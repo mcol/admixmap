@@ -4,7 +4,7 @@
 
 #include <vector>
 #include "vector_d.h"
-#include "Matrix_d.h"
+#include "matrix_d.h"
 
 
 
