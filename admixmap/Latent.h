@@ -32,8 +32,6 @@
 #include "TuneRW.h"
 #include "MetropolisHastings.h"
 #include "HMM.h"
-#include "Haploid.h"
-#include "GameteAdmixture.h"
 #include "AdmixOptions.h"
 
 #include "DARS.h"
