@@ -35,7 +35,11 @@ void smyrand( long seed )
 
 double gengam( double bb, double aa )
 {
-   return( gsl_ran_gamma( RandomNumberGenerator, aa, 1.0 / bb ) );
+  double x = 0.0;
+  do
+   x =  gsl_ran_gamma( RandomNumberGenerator, aa, 1.0 / bb ) ;
+   while (x < 0.000001);
+  return x;
 }
 
 double genbet( double aa, double bb )
@@ -131,20 +135,19 @@ Vector_d gendirichlet( Vector_d alpha )
    Vector_d theta( d );
 
    for( int i = 0; i < d; i++ )
-   {
-//      assert( (double)alpha(i) > 0 );
-      if( alpha(i) > 0 )
-         do{
-            theta(i) = gengam( 1.0, (double)alpha(i) );
-         }while( theta(i) == 0 );
-      else
+     {
+       //      assert( (double)alpha(i) > 0 );
+       if( alpha(i) > 0 )
+	 theta(i) = gengam( 1.0, (double)alpha(i) );
+	 
+       else
          theta(i) = 0.0;
-      sum += theta(i); 
-   }
-
+       sum += theta(i); 
+     }
+   
    assert( sum > 0.0 );
    theta /= sum;
-
+   
    return( theta );
 }
 
