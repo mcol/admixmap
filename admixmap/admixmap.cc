@@ -86,14 +86,15 @@ void submain(AdmixOptions* options){
 
   A.LoadAlleleFreqs(options,&chrm,&Log,&data,&PopulationLabels);//NB this sets Populations option
   IC = new IndividualCollection(options,data.getGeneticData(),*(A.getLoci()),*chrm);//NB call after LoadAlleleFreqs
-  IC->LoadGenotypes(options,&data, &Log, A.getLoci());                             //and before L and R Initialise
-
+  IC->LoadGenotypes(options,&data, &Log,A.getLoci());                             //and before L and R Initialise
+ 
   L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&poptheta);
   R.Initialise(IC,options, &Log);
   A.Initialise(options,data.getEtaPriorMatrix(),&Log,PopulationLabels, L.getrho());
   IC->Initialise(options,R.getbeta(),A.getLoci(),PopulationLabels);
 
-  options->PrintOptions();//NB: call after Populations is set		
+  options->PrintOptions();//NB: call after all options are set
+                          //Currently all except Populations are set in AdmixOptions		
   /*-------------------------------------------------------
   |  single individual, one population, allele frequencies |
   ---------------------------------------------------------*/
@@ -105,6 +106,7 @@ void submain(AdmixOptions* options){
   -----------*/
   //Initialise test objects
   else{
+   
     Scoretest.Initialise(options, IC, A.getLoci(),chrm,&Log);  
     StratTest.Initialize( options, *(A.getLoci()) ,&Log);
     DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());
@@ -125,19 +127,19 @@ void submain(AdmixOptions* options){
   ------------*/
     for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
 //Resets before updates
-      Scoretest.Reset();
       A.Reset();
       SumLogTheta.SetElements( 0.0 );
-	
+
 //Updates  
       IC->Update(iteration,&SumLogTheta, R.getlambda(), R.getNoCovariates(), R.getbeta(),poptheta, options,
 		 A.getLociCorrSummary(), A.getLoci(), chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
 
-       A.UpdateAlleleFreqs(iteration,options->getBurnIn());
-     if( iteration > options->getBurnIn() ){
-       DispTest.UpdateBayesianPValueTest(*(A.getLoci()));
-       if( options->getStratificationTest() )StratTest.calculate(IC, *(A.getLoci()));
+       A.Update(iteration,options->getBurnIn());
+  
+   if( iteration > options->getBurnIn() ){
+     DispTest.UpdateBayesianPValueTest(*(A.getLoci()));
+     if( options->getStratificationTest() )StratTest.calculate(IC, *(A.getLoci()));
      }  
  
      // Latent should not need to know anything about the number or positions of loci
@@ -149,9 +151,10 @@ void submain(AdmixOptions* options){
       R.Update(IC);
 
      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
-       Scoretest.Output2(L.getalpha0(), &LogFileStream);
+       Scoretest.SetMergedHaplotypes(L.getalpha0(), &LogFileStream);//belongs either in Latent or AlleleFreqs
+       Scoretest.SetAllelicAssociationTest();
      }
-
+ 
      // output every 'getSampleEvery()' iterations
      if( !(iteration % options->getSampleEvery()) ){
        if( options->getAnalysisTypeIndicator() >= 0/*!= -3*/ ){//No Pop. Par. output for single individuals
@@ -166,7 +169,7 @@ void submain(AdmixOptions* options){
       }     
      //Output and scoretest updates after BurnIn     
      if( iteration > options->getBurnIn() ){
-       Scoretest.Update(IC->getTargetType(0),IC->getExpectedY0(),R.getlambda0());
+       Scoretest.Update(R.getlambda0());
        R.SumParameters(options->getAnalysisTypeIndicator());
 
        if( !(iteration % options->getSampleEvery()) ){
