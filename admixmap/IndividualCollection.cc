@@ -469,7 +469,7 @@ void IndividualCollection::CheckGenotypes(Genome *Loci,LogWriter *Log)
   for( int i = 0; i < getSize(); i++ ){
     for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
       for( int k = 0; k < (*Loci)(j)->GetNumberOfLoci(); k++ ){
-	Individual* ind = getIndividual(i);
+	Individual* ind =  _child[i];
 	if( (int)(ind->getGenotype(j)[2*k])   > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) || 
 	    (int)(ind->getGenotype(j)[2*k+1]) > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) ){
 	  Log->logmsg(false, "Error in genotypes file\n");
@@ -498,14 +498,19 @@ void IndividualCollection::Update(int iteration, Vector_d *SumLogTheta, AlleleFr
 				  std::ofstream *LogFileStreamPtr, chib *MargLikelihood){
 
 for( int i = 0; i < getSize(); i++ ){
-  getIndividual(i)->IndivUpdate(i,iteration, A,
-				SumLogTheta, &Target, OutcomeType, ExpectedY, *lambda,
-				NoCovariates, Covariates(0), *beta, poptheta, options,
-				 chrm, alpha, _symmetric,_admixed, rhoalpha, rhobeta, sigma);
+
+  if( options->getPopulations() > 1 ){
+    _child[i]->SampleIndividualParameters(i, SumLogTheta, A, iteration , &Target, OutcomeType, ExpectedY, *lambda, NoCovariates, 
+						 Covariates(0),*beta,poptheta, options, 
+						 chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma);}
+
+  else{
+     _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *lambda, A, options->getAnalysisTypeIndicator());
+  }   
 
   if( options->getAnalysisTypeIndicator() == -3 || 
       options->getAnalysisTypeIndicator() == -1 && i == 0 /*&& options->LikOutput()*/)
-    getIndividual(i)->ChibLikelihood(i,iteration, &LogLikelihood, &SumLogLikelihood, MaxLogLikelihood, 
+     _child[i]->ChibLikelihood(i,iteration, &LogLikelihood, &SumLogLikelihood, MaxLogLikelihood, 
 				     options, chrm, alpha,_admixed, rhoalpha, rhobeta,
 				     thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood, A);
  }
@@ -553,11 +558,10 @@ void IndividualCollection::OutputErgodicAvg(int samples, chib *MargLikelihood, s
 void
 IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *A, std::string *PopulationLabels)
 {
-   Individual* ind = getIndividual(0);
    Log->logmsg(true,"Log-likelihood for unadmixed ");
    Log->logmsg(true, (*PopulationLabels)[0]);
    Log->logmsg(true, ": ");
-   Log->logmsg(true,ind->getLogLikelihoodOnePop(A));
+   Log->logmsg(true, _child[0]->getLogLikelihoodOnePop(A));
    Log->logmsg(true,"\n");
 
 }

@@ -73,11 +73,14 @@ public:
   double getLogLikelihoodXOnly(AdmixOptions*,AlleleFreqs*,Chromosome**, Matrix_d, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
-  void IndivUpdate(int i,int iteration, AlleleFreqs *A,
-		   Vector_d *SumLogTheta, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, 
-		   Vector_d &lambda, int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, 
-		   Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, 
-		   vector<bool> _admixed, double rhoalpha, double rhobeta, vector<double> sigma);
+  void SampleIndividualParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target, 
+				   Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
+				   Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions* options, 
+				   Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
+				   double rhoalpha, double rhobeta, vector<double> sigma);
+
+ void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
+			   AlleleFreqs *Loci, int AnalysisTypeIndicator);
 
   void ChibLikelihood(int i,int iteration, double *LogLikelihood, double *SumLogLikelihood, vector<double> MaxLogLikelihood, 
 		      AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha,  
@@ -125,14 +128,20 @@ private:
   double AcceptanceProbForTheta_LinearReg( int i, int TI,  Matrix_d &theta ,bool ModelIndicator,int Populations,
 					   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
 					   MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda);
-  void SampleIndividualParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target, 
-				   Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
-				   Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions* options, 
-				   Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
-				   double rhoalpha, double rhobeta, vector<double> sigma);
 
-  void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
-			   AlleleFreqs *Loci, int AnalysisTypeIndicator);
+  void SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, AlleleFreqs *A, vector< Vector_d > f, 
+			   Matrix_i *, Matrix_i *);
+
+  void SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, vector< unsigned int > *SumN, 
+			      vector< unsigned int > *SumN_X);
+
+  void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
+			   vector< unsigned int > SumN, vector< unsigned int > SumN_X);
+
+  void CalculateChibMarginalLikelihood(int ind, int iteration, AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
+						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
+						 double L_X, vector< unsigned int > SumN, vector< unsigned int > SumN_X, 
+						 Matrix_i &SumLocusAncestry, Matrix_i &SumLocusAncestry_X);
 
   void InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
 		 AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
