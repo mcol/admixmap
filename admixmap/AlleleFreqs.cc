@@ -177,38 +177,41 @@ void AlleleFreqs::UpdateAlleleFreqs(int iteration,int BurnIn){
     if(  isHistoricAlleleFreq ){
       Number++;
       for( int k = 0; k < Populations; k++ ){
+         double mineta = 0;
 	// Sample eta from truncated log-normal distribution.
 	vector< Vector_d > munew;
 	do{
-	  etanew = exp( gennor( log( eta(k) ), etastep(k) ) );
+           etanew = exp( gennor( log( eta(k) ), etastep(k) ) );
 	}while( etanew > 5000.0 );
 	// Prior log-odds ratio         
 	LogPostRatio = ( psi(k) - 1 ) * (log(etanew) - log(eta(k)))
-	  - tau(k) * ( etanew - eta(k) );
+           - tau(k) * ( etanew - eta(k) );
 	// Log-likelihood ratio; numerator of integrating constant
 	LogPostRatio += 2 * Loci.GetNumberOfCompositeLoci()
-	  * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta(k) ) );
+           * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta(k) ) );
 	for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
-	  Vector_d mu = Loci(j)->GetPriorAlleleFreqs( k );
-	  munew.push_back( mu * etanew / eta(k) );
-	  Vector_d SumLogFreqs = Loci(j)->GetStatsForEta( k );
-	  for( int l = 0; l < Loci(j)->GetNumberOfStates(); l++ ){
+           Vector_d mu = Loci(j)->GetPriorAlleleFreqs( k );
+           if( mineta < 0.1 * eta(k) / mu.MinimumElement() )
+              mineta = 0.1 * eta(k) / mu.MinimumElement();
+           munew.push_back( mu * etanew / eta(k) );
+           Vector_d SumLogFreqs = Loci(j)->GetStatsForEta( k );
+           for( int l = 0; l < Loci(j)->GetNumberOfStates(); l++ ){
 	    // Denominator of integrating constant
-	    LogPostRatio += 2*(gsl_sf_lngamma( mu(l) ) - gsl_sf_lngamma( munew[j](l) ));
+              LogPostRatio += 2*(gsl_sf_lngamma( mu(l) ) - gsl_sf_lngamma( munew[j](l) ));
 	    // SumLogFreqs = log phi_1 + log phi_2
-	    LogPostRatio += (munew[j](l) - mu(l))*SumLogFreqs(l);
-	  }
+              LogPostRatio += (munew[j](l) - mu(l))*SumLogFreqs(l);
+           }
 	}
 	
 	// Log acceptance probability = Log posterior ratio since the
 	// proposal ratio (log-normal) cancels with prior.
 	
 	// Acceptance test.
-	if( log( myrand() ) < LogPostRatio ){
-	  eta(k) = etanew;
-	  Loci.UpdatePriorAlleleFreqsGlobal( k, munew );
-	  SumAcceptanceProb(k)++;
-	  NumberAccepted(k)++;
+	if( log( myrand() ) < LogPostRatio && mineta < etanew ){
+           eta(k) = etanew;
+           Loci.UpdatePriorAlleleFreqsGlobal( k, munew );
+           SumAcceptanceProb(k)++;
+           NumberAccepted(k)++;
 	}
 	
 	if( !( Number % w ) ){
