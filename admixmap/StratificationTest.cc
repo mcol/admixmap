@@ -23,13 +23,18 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
 	}
       }
     }
-    Log->logmsg(true, "Loci used in stratification test.\n");
-    for(int i=0; i<NumberOfTestLoci; i++){
-      Log->logmsg(true, Loci(TestLoci[i])->GetLabel(0));Log->logmsg(true, "\n");
+    if( NumberOfTestLoci < 2 ){
+       Log->logmsg(true,"Can't run stratification test with this data set.\n");
     }
-    ModelIndicator = options->getModelIndicator();
-
-    Open(options->getDICoutputFilename(),Log);
+    else{
+       Log->logmsg(true, "Loci used in stratification test.\n");
+       for(int i=0; i<NumberOfTestLoci; i++){
+          Log->logmsg(true, Loci(TestLoci[i])->GetLabel(0));Log->logmsg(true, "\n");
+       }
+       ModelIndicator = options->getModelIndicator();
+       
+       Open(options->getDICoutputFilename(),Log);
+    }
   }
   else{
     Log->logmsg(true,"No test for residual population stratification.\n");
