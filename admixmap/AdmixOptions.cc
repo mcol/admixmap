@@ -128,6 +128,7 @@ AdmixOptions::AdmixOptions()
   imp->TestForLinkageWithAncestry = false;
   imp->TestForMisspecifiedAlleleFreqs = false;
   imp->TestForMisspecifiedAlleleFreqs2 = false;
+  imp->OutputAlleleFreq = false;
   imp->OutputFST=false;    
   imp->XOnlyAnalysis = false;
   imp->TextIndicator = 1;
@@ -831,18 +832,14 @@ void AdmixOptions::PrintOptions(){
     }
 
   //Now output Options table to args.txt
-  //one copy to current dir (for R script) and one to resultsdir (in case first is overwritten)
-  ofstream argstream("args.txt");
   string ss;
   ss = imp->ResultsDir + "/args.txt";
-  ofstream argstream2(ss.c_str());
+  ofstream argstream(ss.c_str());
 
   for( OptionMap::iterator p= OptionValues.begin(); p!=OptionValues.end(); p++) {
     argstream << (*p).first << "=" << (*p).second <<endl;
-    argstream2 << (*p).first << "=" << (*p).second <<endl;
   }
   argstream.close();
-  argstream2.close(); 
 }
 
 int AdmixOptions::checkOptions(LogWriter *Log){
