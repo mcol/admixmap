@@ -4,7 +4,7 @@
 my $DEBUG = 1; # zero gives less output
 
 # Change this to the location of the admixmap executable
-my $executable = '../admixmap/admixmap';
+my $executable = '.admixmap';
 my $results = "IndResults";
 
 # $arg_hash is a hash of parameters passed to
@@ -35,46 +35,37 @@ my $arg_hash =
     initalpha0                   => "1,1,0", # parameter vectors for Dirichlet prior on admixture 
     initalpha1                   => "1,1,0",
 
-    logfile                      => "IndResults/logfile.txt",
-    paramfile                    => "IndResults/paramfile.txt",
-    indadmixturefile             => "IndResults/indadmixture.txt"
+    resultsdir => "IndResults",
+    logfile                      => "logfile.txt",
+    paramfile                    => "paramfile.txt",
+    indadmixturefile             => "indadmixture.txt"
 };
 
-doAnalysis($executable,$arg_hash);
-&RenameDir("IndResults", "IndResults2Way");
+$arg_hash->{resultsdir} = "IndResults2Way";
+doAnalysis($executable,$arg_hash, "IndResults2Way");
 
 $arg_hash->{initalpha0} = "1,1,1";
 $arg_hash->{initalpha1} = "1,1,1";
-doAnalysis($executable,$arg_hash);
-&RenameDir("IndResults", "IndResults3Way");
+$arg_hash->{resultsdir} = "IndResults3Way";
+doAnalysis($executable,$arg_hash, "IndResults3Way");
 
 $arg_hash->{fixedallelefreqs} = 1;
-doAnalysis($executable,$arg_hash);
-&RenameDir("IndResults", "IndResults3WayFixed");
+$arg_hash->{resultsdir} = "IndResults3WayFixed";
+doAnalysis($executable,$arg_hash, "IndResults3WayFixed");
 
-
-sub dumpArgs
-{
-    my ($hash,$path) = @_;
-    open(FILE,">$path") or die($!);
-    foreach my $key (keys %$hash){
-	print FILE $key ."\t" . $hash->{$key} ."\n";
-    }
-    close(FILE);
-}
 
 sub doAnalysis
 {
-    my ($prog,$args) = @_;
+    my ($prog,$args, $resultsdir) = @_;
     my $command = $prog.getArguments($args);
-    unless (-e "$results"){
-	system("mkdir IndResults");
+    unless (-e "$resultsdir"){
+	system("mkdir $resultsdir");
     }
-    dumpArgs($args,"IndResults/args.txt");
-    print $command,"\n" if $DEBUG;
+    print $command if $DEBUG;
     system($command);
+
     print "Starting R script to process output\n";
-    system('RCMD BATCH --quiet --no-save --no-restore IndivAdmixture.R IndResults/Rlog.txt');
+     system("R --quiet --no-save --no-restore <AdmixmapOutput.R >results/Rlog.txt RESULTSDIR=$resultsdir");
     print "R script completed\n\n";
 }
 
