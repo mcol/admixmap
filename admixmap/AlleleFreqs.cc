@@ -46,7 +46,7 @@ AlleleFreqs::~AlleleFreqs(){
 }
 
 void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogWriter *Log,
-			     std::string *PopulationLabels){
+			     std::string *PopulationLabels, double rho){
   Number = 0;
   Populations = options->getPopulations();
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ) isHistoricAlleleFreq = true;
@@ -61,6 +61,10 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
 
   SumAcceptanceProb.SetNumberOfElements( Populations );
   SumEta.SetNumberOfElements( Populations );
+
+  LociCorrSummary.SetNumberOfElements( Loci.GetNumberOfCompositeLoci() );
+  for( int j = 1; j < Loci.GetNumberOfCompositeLoci(); j++ )
+    LociCorrSummary(j) = strangExp( -Loci.GetDistance( j ) * rho );
 
   // Matrix etaprior(1,1);
   Vector_d maxeta( Populations );
@@ -137,6 +141,17 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
     Log->logmsg(true, Loci.GetLengthOfXchrm());
     Log->logmsg(true," Morgans.\n");
    }
+}
+
+void AlleleFreqs::load_f(double rho,Genome *chrm){
+  int locus = 0;
+  for( int j = 0; j < chrm->size(); j++ ){
+    locus++;
+    for( int jj = 1; jj < (*chrm)(j)->GetSize(); jj++ ){
+      LociCorrSummary(locus) = exp( -Loci.GetDistance( locus ) * rho );
+      locus++;
+    }
+  }
 }
 
 // Method samples allele frequency and prior allele frequency
@@ -594,4 +609,18 @@ void AlleleFreqs::getLabels( const string buffer, Vector_i temporary, string *la
             labels[index++] = labels_tmp[i];
         }
     }
+}
+
+Vector_d AlleleFreqs::getLociCorrSummary(){
+  return LociCorrSummary;
+}
+//generic method - should be elsewhere?
+double AlleleFreqs::strangExp( double x )
+{
+  double y;
+  if( x > -700 )
+    y = exp(x);
+  else
+    y = 0;
+  return( y );
 }

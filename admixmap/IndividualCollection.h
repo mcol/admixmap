@@ -59,7 +59,7 @@ public:
   void getOnePopOneIndLogLikelihood(LogWriter *Log, Genome *Loci, std::string *PopulationLabels);
 
   void Update(int iteration, Vector_d *SumLogTheta, Vector_d *lambda, int NoCovariates, MatrixArray_d *beta, 
-	      Vector_d &poptheta, AdmixOptions *options, Vector_d &f, Genome *Loci, Genome *chrm, 
+	      Vector_d &poptheta, AdmixOptions *options, Vector_d f, Genome *Loci, Genome *chrm, 
 	      vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta,
 	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood);
   

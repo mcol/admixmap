@@ -39,7 +39,8 @@ void PrintCopyrightNotice(){
 }
 
 void submain(AdmixOptions* options){
-  // This submain function is needed because the Latent object L does not destruct properly if you use delete L. The ends of some R files which rely on a destructor being called are not generated without thus submain().
+  // This submain function is needed because the Latent object L is not destroyed properly if you use delete L. The ends of some R files which rely on a destructor being called are not generated without thus submain().
+  //Not true any more - is submain still necessary?
 
   std::ofstream LogFileStream;//output to logfile
   std::ofstream avgstream; //output to ErgodicAverageFile
@@ -63,10 +64,7 @@ void submain(AdmixOptions* options){
 
   std::vector<bool> _admixed;
   bool _symmetric;
-  // LociCorrSummary is a vector of terms of the form exp( - rho*x_i) where x_i is the map distance between two adjacent loci
-  // with a global rho model, this vector is same for all individuals and calculated only once. 
-  // should be calculated and stored in the Loci object
-  Vector_d LociCorrSummary;//summary of correlation in ancestry between loci,was called f in Latent
+
   Vector_d SumLogTheta;
   Vector_d poptheta;
   std::string *PopulationLabels;//possibly belongs in InputData
@@ -90,9 +88,9 @@ void submain(AdmixOptions* options){
   IC = new IndividualCollection(options,data.getGeneticData(),*(A.getLoci()),*chrm);//NB call after LoadAlleleFreqs
   IC->LoadGenotypes(options,&data, &Log, A.getLoci());                             //and before L and R Initialise
 
-  L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&LociCorrSummary,&poptheta);
+  L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&poptheta);
   R.Initialise(IC,options, &Log);
-  A.Initialise(options,data.getEtaPriorMatrix(),&Log,PopulationLabels);
+  A.Initialise(options,data.getEtaPriorMatrix(),&Log,PopulationLabels, L.getrho());
   IC->Initialise(options,R.getbeta(),A.getLoci(),PopulationLabels);
 
   options->PrintOptions();//NB: call after Populations is set		
@@ -133,7 +131,7 @@ void submain(AdmixOptions* options){
 	
 //Updates  
       IC->Update(iteration,&SumLogTheta, R.getlambda(), R.getNoCovariates(), R.getbeta(),poptheta, options,
-		 LociCorrSummary, A.getLoci(), chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
+		 A.getLociCorrSummary(), A.getLoci(), chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
 
        A.UpdateAlleleFreqs(iteration,options->getBurnIn());
@@ -141,14 +139,14 @@ void submain(AdmixOptions* options){
        DispTest.UpdateBayesianPValueTest(*(A.getLoci()));
        if( options->getStratificationTest() )StratTest.calculate(IC, *(A.getLoci()));
      }  
-     // Latent update should not need to take LociCorrSummary as an argument
+ 
      // Latent should not need to know anything about the number or positions of loci
      // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
      // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
      // sum of rho and rho-squared over all individuals or gametes 
-     L.Update(iteration, chrm, IC,&LociCorrSummary,&SumLogTheta,&poptheta,&LogFileStream);
-     // Regression Update method should not need to take AnalysisTypeIndicator as an argument once the R object is initialized
-     R.Update(options->getAnalysisTypeIndicator(),IC);
+     L.Update(iteration, IC,&SumLogTheta,&poptheta,&LogFileStream);
+     if( !options->getRhoIndicator() )  A.load_f(L.getrho(),chrm);
+      R.Update(IC);
 
      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
        Scoretest.Output2(L.getalpha0(), &LogFileStream);
@@ -187,7 +185,7 @@ void submain(AdmixOptions* options){
 	 if ( strlen( options->getErgodicAverageFilename() ) ){
 	   int samples = iteration - options->getBurnIn();
 	   L.OutputErgodicAvg(samples,&avgstream);
-	   R.OutputErgodicAvg(samples,options, IC,&avgstream);
+	   R.OutputErgodicAvg(samples,IC,&avgstream);
 	   A.OutputErgodicAvg(samples,options,&avgstream);
 	   if( options->getAnalysisTypeIndicator() == -1 ){
 	     IC->OutputErgodicAvg(samples,&MargLikelihood,&avgstream);

@@ -66,15 +66,13 @@ public:
   ~Latent();
 
   void Initialise(IndividualCollection *,std::ofstream *, std::vector<bool> *_admixed, bool *_symmetric,
-		  Vector_d *f, Vector_d *poptheta);  
+		  Vector_d *poptheta);  
 
   void  InitializeOutputFile(std::string *);//possibly move this into PreUpate
 
   //Updating every iteration
-  void Update(int iteration, Genome *,IndividualCollection *, Vector_d *f,Vector_d *SumLogTheta,
+  void Update(int iteration,IndividualCollection *, Vector_d *SumLogTheta,
 	      Vector_d *poptheta,std::ofstream *LogFileStreamPtr);
-
-  void UpdateRegression(IndividualCollection *individuals, int NoCovariates,MatrixArray_d *beta,Vector_d *lambda);
 
   void OutputParams(int iteration, std::ofstream *LogFileStreamPtr); 
 
@@ -84,6 +82,7 @@ public:
   std::vector<Vector_d> getalpha();
   double getrhoalpha();
   double getrhobeta();
+  double getrho();
   //Vector_d *getSumLogTheta();
 
 private:

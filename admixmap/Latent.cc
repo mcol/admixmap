@@ -18,7 +18,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
 }
 
 void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFileStreamPtr,
-			std::vector<bool> *_admixed, bool *_symmetric, Vector_d *f,Vector_d *poptheta){
+			std::vector<bool> *_admixed, bool *_symmetric, Vector_d *poptheta){
 
   Vector_d alphatemp;
   SumAlpha.SetNumberOfElements( options->getPopulations() );
@@ -67,9 +67,9 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
     Log->logmsg(true,"Model with individual specific rho.\n");
 
   rho = options->getRho();
-  f->SetNumberOfElements( Loci->GetNumberOfCompositeLoci() );
-  for( int j = 1; j < Loci->GetNumberOfCompositeLoci(); j++ )
-    (*f)(j) = strangExp( -Loci->GetDistance( j ) * rho );
+//   f->SetNumberOfElements( Loci->GetNumberOfCompositeLoci() );
+//   for( int j = 1; j < Loci->GetNumberOfCompositeLoci(); j++ )
+//     (*f)(j) = strangExp( -Loci->GetDistance( j ) * rho );
   if( options->getRho() == 99 ){
      rhoalpha = 1.0;
      rhobeta = 0.0;
@@ -388,7 +388,7 @@ Latent::CheckInitAlpha( Vector_d alphatemp )
    return admixed;
 }
 
-void Latent::Update(int iteration, Genome *chrm,IndividualCollection *individuals, Vector_d *f,
+void Latent::Update(int iteration, IndividualCollection *individuals,
 		    Vector_d *SumLogTheta,Vector_d *poptheta,std::ofstream *LogFileStreamPtr){
 
   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
@@ -399,7 +399,6 @@ void Latent::Update(int iteration, Genome *chrm,IndividualCollection *individual
 	RhoParameters(3) = individuals->GetSumrho0();
 	rhodata_i(0).SetColumn( 0, individuals->GetSumXi() );
 	rho = sampleForRho(RhoParameters,RhoDraw,rhodata_i,rhodata_d);
-	load_f(rho,f,chrm);
       }
       else{
 	if( options->getModelIndicator() )
@@ -439,6 +438,10 @@ void Latent::Update(int iteration, Genome *chrm,IndividualCollection *individual
       SumRho += rho;
     }
   }
+
+//       if( !options->getRhoIndicator() ){
+// 	load_f(rho,f,chrm);
+//       }
 }
 //end Update
 
@@ -454,4 +457,7 @@ double Latent::getrhoalpha(){
 }
 double Latent::getrhobeta(){
   return rhobeta;
+}
+double Latent::getrho(){
+  return rho;
 }

@@ -12,7 +12,8 @@ class AlleleFreqs{
 public:
   AlleleFreqs();
   ~AlleleFreqs();
-  void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels);
+  void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels, double rho);
+  void load_f(double rho,Genome *chrm);
   void UpdateAlleleFreqs(int iteration,int);
   void InitializeOutputFile(AdmixOptions *options, std::string *PopulationLabels);
 //outputs SumEta  to ErgodicAverageFile
@@ -34,6 +35,7 @@ public:
 
   Vector_d *geteta();
   Vector_d *getSumEta();
+  Vector_d getLociCorrSummary();
 
 private:
   int Number, Populations;
@@ -54,6 +56,10 @@ private:
   Vector_d SumAcceptanceProb;
   double psi0;
 
+  // LociCorrSummary is a vector of terms of the form exp( - rho*x_i) where x_i is the map distance between two adjacent loci
+  // with a global rho model, this vector is same for all individuals and calculated only once. 
+  Vector_d LociCorrSummary;//summary of correlation in ancestry between loci,was called f in Latent
+
   bool isHistoricAlleleFreq;//indicator for dispersion model
   LocusVisitor* allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile
@@ -65,7 +71,9 @@ private:
  
   void loadAlleleStatesAndDistances(std::vector<std::string>* ChrmLabels,AdmixOptions *,InputData *data_,LogWriter *);
 
-  void OpenFSTFile(AdmixOptions *options,LogWriter *Log);   
+  void OpenFSTFile(AdmixOptions *options,LogWriter *Log); 
+
+  static double strangExp( double );  
 };
 
 
