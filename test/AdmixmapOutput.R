@@ -802,11 +802,12 @@ if(is.null(user.options$paramfile)) {
       print("ergodicaveragefile not specified")
     } else {
       if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
-        print("paramfile empty")
+        print("ergodicaveragefile empty")
       } else {
         plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
         dev.off()
       }
+    }
       
     if(K > 1) {
       ## extract Dirichlet admixture parameters
