@@ -12,23 +12,18 @@ ScoreTests::ScoreTests(){
   MatrixArray_i null_MatrixArray_i;
 
   // these objects are composite-locus specific and could be moved there
-  LocusLinkageScore = null_MatrixArray_d;
-  LocusLinkageInfo = null_MatrixArray_d;
-  SumLocusLinkageScore = null_MatrixArray_d;
-  SumLocusLinkageScore2 = null_MatrixArray_d;
-  SumLocusLinkageInfo = null_MatrixArray_d;
-  AffectedsScore = null_MatrixArray_d;
-  AffectedsVarScore = null_MatrixArray_d;
-  AffectedsInfo = null_MatrixArray_d;
+//   LocusLinkageScore = null_MatrixArray_d;
+//   LocusLinkageInfo = null_MatrixArray_d;
+//   SumLocusLinkageScore = null_MatrixArray_d;
+//   SumLocusLinkageScore2 = null_MatrixArray_d;
+//   SumLocusLinkageInfo = null_MatrixArray_d;
+
   LocusLinkageAlleleScore = null_MatrixArray_d;
   LocusLinkageAlleleInfo = null_MatrixArray_d;
-  SumAffectedsScore2 = null_MatrixArray_d;
-  SumAffectedsScore = null_MatrixArray_d;
-  SumAffectedsVarScore = null_MatrixArray_d;
-  SumAffectedsInfo = null_MatrixArray_d;
   SumLocusLinkageAlleleScore2 = null_MatrixArray_d;
   SumLocusLinkageAlleleScore = null_MatrixArray_d;
   SumLocusLinkageAlleleInfo = null_MatrixArray_d;
+
   ScoreWithinHaplotype = 0;
   InfoWithinHaplotype = 0;
   SumScoreWithinHaplotype = null_MatrixArray_d;
@@ -93,7 +88,9 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
       exit(1);}
   }
 
- 
+  /*------------------------------------
+  |affecteds only linkage with ancestry |
+   ------------------------------------*/ 
   if( options->getTestForAffectedsOnly() ){
 
     affectedsOnlyScoreStream = new ofstream(options->getAffectedsOnlyScoreFilename());
@@ -109,21 +106,13 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     Logptr->logmsg(true,"\n");
     *affectedsOnlyScoreStream << "structure(.Data=c(" << endl;
     }
-
-    AffectedsScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
-						     options->getPopulations(), 1 );
-    AffectedsVarScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
-							options->getPopulations(), 1 );
-    AffectedsInfo.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
-						    options->getPopulations(), 1 );
-    SumAffectedsScore2.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
-							 options->getPopulations(), 1 );
-    SumAffectedsScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
-							options->getPopulations(), 1 );
-    SumAffectedsVarScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
-							   options->getPopulations(), 1 );
-    SumAffectedsInfo.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
-						       options->getPopulations(), 1 );
+    AffectedsScore.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(),options->getPopulations());
+    AffectedsVarScore.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(),options->getPopulations());
+    AffectedsInfo.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(),options->getPopulations());
+    SumAffectedsScore2.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations());
+    SumAffectedsScore.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations());
+    SumAffectedsVarScore.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations());
+    SumAffectedsInfo.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations());
   }
 
   /*-----------------------
@@ -142,13 +131,18 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 	*ancestryAssociationScoreStream << "structure(.Data=c(" << endl;
       }
 
-    LocusLinkageScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
-							2 * options->getPopulations(), 1 );
-    LocusLinkageInfo.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), 2 * options->getPopulations(),
-						       2 * options->getPopulations() );
-    SumLocusLinkageScore2.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations(), 1 );
-    SumLocusLinkageScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations(), 1 );
-    SumLocusLinkageInfo.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations(), 1 );
+//     LocusLinkageScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
+// 							2 * options->getPopulations(), 1 );
+//     LocusLinkageInfo.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), 2 * options->getPopulations(),
+// 						       2 * options->getPopulations() );
+//     SumLocusLinkageScore2.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations(), 1 );
+//     SumLocusLinkageScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations(), 1 );
+//     SumLocusLinkageInfo.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), options->getPopulations(), 1 );
+
+    SumAncestryScore.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(),options->getPopulations());
+    SumAncestryInfo.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(),options->getPopulations());
+    SumAncestryScore2.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(),options->getPopulations());
+    SumAncestryVarScore.SetNumberOfElements(Lociptr->GetNumberOfCompositeLoci(),options->getPopulations());
   }
 
   /*----------------------
@@ -265,7 +259,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     *SNPsAssociationScoreStream << "structure(.Data=c(" << endl;
     }
   }
-    
+
 }
 
 //Initialise ergodic average score file
@@ -293,6 +287,7 @@ void ScoreTests::Reset(){
 
   I.SetElements(0);
   U.SetElements(0);
+
   if( options->getTestForAllelicAssociation() ){
     LocusLinkageAlleleScore.SetElements(0);
     LocusLinkageAlleleInfo.SetElements(0);
@@ -303,20 +298,25 @@ void ScoreTests::Reset(){
       }
     }
   }
-  if( options->getTestForLinkageWithAncestry() ){
-    LocusLinkageScore.SetElements(0);
-    LocusLinkageInfo.SetElements(0);
-  }
+
+//   if( options->getTestForLinkageWithAncestry() ){
+//     LocusLinkageScore.SetElements(0);
+//     LocusLinkageInfo.SetElements(0);
+//     AncestryScore.SetElements(0);
+//     AncestryInfo.SetElements(0);
+//     AncestryVarScore.SetElements(0);
+//   }
+
   if( options->getTestForAffectedsOnly() ){
     AffectedsScore.SetElements(0);
     AffectedsVarScore.SetElements(0);
     AffectedsInfo.SetElements(0);
   }
+
 }
 
-void ScoreTests::Output2(Vector_d *alpha0, std::ofstream *LogFileStreamPtr){//should be renamed
-  //Note: alpha0 = alpha[0]
-
+void ScoreTests::SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr){
+  //Note: alpha0 = alpha[0] in Latent
   for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
 
@@ -330,83 +330,136 @@ void ScoreTests::Output2(Vector_d *alpha0, std::ofstream *LogFileStreamPtr){//sh
       for( int k = 0; k < (*Lociptr)(j)->GetNumberOfStates(); k++ ){
 	*LogFileStreamPtr << k << " " << (*Lociptr)(j)->GetMergedHaplotype(k) << endl;
       }
+    }
+  }
+}
+
+void ScoreTests::SetAllelicAssociationTest(){
+  for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+    if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
+
       int kk = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
-      LocusLinkageAlleleScore(j).SetNumberOfElements( kk + options->getPopulations(),
-						      1 );
-      LocusLinkageAlleleInfo(j).SetNumberOfElements( kk + options->getPopulations(),
-						     kk + options->getPopulations() );
+      LocusLinkageAlleleScore(j).SetNumberOfElements( kk + options->getPopulations(),1 );
+      LocusLinkageAlleleInfo(j).SetNumberOfElements( kk + options->getPopulations(), kk + options->getPopulations() );
       SumLocusLinkageAlleleScore2(j).SetNumberOfElements( kk, kk );
       SumLocusLinkageAlleleScore(j).SetNumberOfElements( kk, 1 );
       SumLocusLinkageAlleleInfo(j).SetNumberOfElements( kk, kk );
     }
   }
-
-
 }
 
 void
-ScoreTests::Update(int TT, Matrix_d* ExpY0,double lambda0)
-//Note: TT = TargetType(0), ExpY0 = ExpectedY(0), lambda0=lambda(0)
+ScoreTests::Update(double lambda)
+//Note: lambda0=lambda(0) = precision in a linear regression model
 {
-  //the first part was formerly the function UpdateScoreIndLevel
+  Reset();
+  //----------------------------------
+  // Update Scores for each individual
+  //----------------------------------
+  double dispersion = lambda;
+  int OutcomeType = individuals->getOutcomeType(0);
+
   for( int i = 0; i < individuals->getSize(); i++ ){
     Individual* ind = individuals->getIndividual(i);
-    if( options->getTestForMisspecifiedAlleleFreqs() )
-      UpdateScoresForMisSpecOfAlleleFreqs( i );
-    if( options->getAnalysisTypeIndicator() == 2 )
+    double EY = individuals->getExpectedY(i);
+    double YMinusEY = individuals->getOutcome(0)( i, 0 ) - EY;
+    double DInvLink;//derivative of inverse link function
+ 
+
+    if( options->getTestForMisspecifiedAlleleFreqs() ) UpdateScoresForMisSpecOfAlleleFreqs( i );
+
+    //
+    //Linear regression
+    //
+    if( options->getAnalysisTypeIndicator() == 2 ){
+	dispersion = lambda;
+	DInvLink = 1.0;
       if( !options->getScoreTestIndicator() ){
 	if( options->getTestForAllelicAssociation() )
-	  UpdateScoreForLinkage( ind, i, 0, 0, &LocusLinkageAlleleScore,
-				 &LocusLinkageAlleleInfo, (*ExpY0)(i,0),lambda0);
+	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
 	if( options->getTestForLinkageWithAncestry() ){
-	  UpdateScoreForLinkage( ind, i, 0, 1, &LocusLinkageScore,
-				 &LocusLinkageInfo, (*ExpY0)(i,0) ,lambda0);
+	  //UpdateScoreForAncestryOld( ind, Y, 0, EY ,dispersion);
 	}
       }
       else
-	UpdateScoreForAssociation_Continuous( i, ind->getAncestry(), &U, &I, (*ExpY0)(i,0),lambda0);
-    else if( options->getAnalysisTypeIndicator() == 3 || 
-	     options->getAnalysisTypeIndicator() == 4 ){
+	UpdateScoreForAssociation(ind->getAncestry(), YMinusEY,dispersion, DInvLink);
+    }
+    //
+    //Logistic Regression
+    //
+    else if( options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4 ){
+      dispersion = 1.0;
+      DInvLink = EY * (1.0 - EY);
       if( !options->getScoreTestIndicator() ){
 	if( options->getTestForAllelicAssociation() ){
-	  UpdateScoreForLinkage( ind, i, 1, 0, &LocusLinkageAlleleScore,
-				 &LocusLinkageAlleleInfo, (*ExpY0)(i,0),lambda0);
+	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
 	}
 	if( options->getTestForLinkageWithAncestry() ){
-	  UpdateScoreForLinkage( ind, i, 1, 1, &LocusLinkageScore,
-				 &LocusLinkageInfo, (*ExpY0)(i,0),lambda0);
+	  //UpdateScoreForAncestryOld( ind, Y, 1, EY,dispersion);
 	}
       }
       else{
-	UpdateScoreForAssociation_Binary( i, ind->getAncestry(), &U, &I, (*ExpY0)(i,0));
+	UpdateScoreForAssociation(ind->getAncestry(), YMinusEY,dispersion, DInvLink);
       }
-      if( options->getTestForAffectedsOnly() && (individuals->getTarget(0))(i,0) == 1 ){
-	UpdateScoreForLinkageAffectedsOnly( ind); 
+      if( options->getTestForAffectedsOnly() && (individuals->getOutcome(0))(i,0) == 1 ){
+	UpdateScoreForLinkageAffectedsOnly( ind);
       }
     }
+    //
+    //No regression
+    //
     else if( options->getAnalysisTypeIndicator() == 0 ){
-      UpdateScoreForLinkageAffectedsOnly( ind); 
+      UpdateScoreForLinkageAffectedsOnly( ind);
     }
+    //
+    //Linear AND logistic regression
+    //
     else if( options->getAnalysisTypeIndicator() == 5 ){
+      dispersion = OutcomeType ? 1.0 : lambda;
+      DInvLink = OutcomeType ? EY*(1.0-EY):1.0;
       if( options->getTestForAllelicAssociation() ){
-	UpdateScoreForLinkage( ind, i, TT, 0,
-                               &LocusLinkageAlleleScore,
-			       &LocusLinkageAlleleInfo, (*ExpY0)(i,0),lambda0);
+	UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
       }
       if( options->getTestForLinkageWithAncestry() ){
-	UpdateScoreForLinkage( ind, i, TT, 1, &LocusLinkageScore,
-			       &LocusLinkageInfo, (*ExpY0)(i,0),lambda0);
+	//UpdateScoreForAncestryOld( ind, Y, OutcomeType, EY,dispersion);
+
       }
     }
   }
 
+  if( options->getAnalysisTypeIndicator() == 2 || options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4){
+    if( !options->getScoreTestIndicator() ){
+      if( options->getTestForLinkageWithAncestry() ){
+	UpdateScoreForAncestry(dispersion);
+      }
+    }
+  }
+
+  else if( options->getAnalysisTypeIndicator() == 5 ){
+    if( options->getTestForLinkageWithAncestry() ){
+      UpdateScoreForAncestry(dispersion);
+    }
+  }
+
+
+
   //the rest formerly was the function UpdateScoreStats
+  //-----------------------------
+  //Accumulate Scores, Info etc. over iterations
+  //-----------------------------
   int kk;
   Matrix_d score, info;
+
+  /*---------------------------------
+  | Misspecified allele frequencies  |
+   ---------------------------------*/
   for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
     if( options->getTestForMisspecifiedAlleleFreqs() )
       (*Lociptr)(j)->SumScoreForMisSpecOfAlleleFreqs();
 
+  /*----------------------
+  | admixture association |
+   -----------------------*/
   if( options->getScoreTestIndicator() ){
     SumU += U;
     SumI += I;
@@ -416,13 +469,16 @@ ScoreTests::Update(int TT, Matrix_d* ExpY0,double lambda0)
   }
 
   if( options->getAnalysisTypeIndicator() != 1 ){
-    // accumulate sums for tests for allelic association
+
+  /*----------------------
+  | Allelic association  |
+   -----------------------*/
     if( options->getTestForAllelicAssociation() )
       SumScoreForWithinHaplotypeAssociation();
+
     for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-      if( (options->getTestForAllelicAssociation()
-	   && (*Lociptr)(j)->GetNumberOfLoci() == 1)
-	  || options->getTestForSNPsInHaplotype() ){
+
+      if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
 	// kk is set to 1 if single diallelic locus, to number of
 	// merged haplotypes if compound locus, to number of states
 	// if >2 alleles
@@ -433,31 +489,49 @@ ScoreTests::Update(int TT, Matrix_d* ExpY0,double lambda0)
 	else
 	  kk = (*Lociptr)(j)->GetNumberOfStates();
 	// algorithm corrects for posterior covariance between regression parameters
-	TransformScoreStatistics( kk, LocusLinkageAlleleScore(j),
-				  LocusLinkageAlleleInfo(j),
-				  &score, &info );
+	// TransformScoreStatistics( kk, LocusLinkageAlleleScore(j),
+// 				  LocusLinkageAlleleInfo(j),
+// 				  &score, &info );
+	CentredGaussianConditional( kk, LocusLinkageAlleleScore(j), LocusLinkageAlleleInfo(j), &score, &info );
 	SumLocusLinkageAlleleScore(j) += score;
 	SumLocusLinkageAlleleScore2(j) += score * score.Transpose();
 	SumLocusLinkageAlleleInfo(j) += info;
       }
-        
-      // accumulate sums for tests for linkage with ancestry
+
+  /*-----------------------
+  | Linkage with ancestry  |
+   -----------------------*/
       if( options->getTestForLinkageWithAncestry() ){
-	TransformScoreStatistics( options->getPopulations(),
-				  LocusLinkageScore(j), LocusLinkageInfo(j),
-				  &score, &info );
-	SumLocusLinkageScore(j) += score;
-	for( int kk = 0; kk < options->getPopulations(); kk++ )
-	  SumLocusLinkageScore2(j)( kk, 0 ) += score( kk, 0 ) * score( kk, 0 );
-	SumLocusLinkageInfo(j) += info.GetDiagonal().ColumnMatrix();
-      }
-      if( options->getTestForAffectedsOnly() ){
-	SumAffectedsScore(j) += AffectedsScore(j);
-	SumAffectedsVarScore(j) += AffectedsVarScore(j);
-	SumAffectedsInfo(j) += AffectedsInfo(j);
-	for( int kk = 0; kk < AffectedsScore(j).GetNumberOfRows(); kk++ )
-	  SumAffectedsScore2(j)( kk, 0 ) +=
-	    AffectedsScore(j)( kk, 0 ) * AffectedsScore(j)( kk, 0 );
+	// TransformScoreStatistics( options->getPopulations(),
+	// 				  LocusLinkageScore(j), LocusLinkageInfo(j),
+	// 				  &score, &info );
+// 	CentredGaussianConditional( options->getPopulations(),
+// 				  LocusLinkageScore(j), LocusLinkageInfo(j),
+// 				  &score, &info );
+
+// 	SumLocusLinkageScore(j) += score;
+// 	for( int kk = 0; kk < options->getPopulations(); kk++ )
+// 	  SumLocusLinkageScore2(j)( kk, 0 ) += score( kk, 0 ) * score( kk, 0 );
+// 	SumLocusLinkageInfo(j) += info.GetDiagonal().ColumnMatrix();
+
+// 	for( int kk = 0; kk < options->getPopulations(); kk++ ){
+// 	  SumAncestryScore(j,kk) += AncestryScore(j,kk);
+// 	  SumAncestryVarScore(j,kk) += AncestryVarScore(j,kk);
+// 	  SumAncestryInfo(j,kk) += AncestryInfo(j,kk);
+// 	  SumAncestryScore2(j, kk) +=  AncestryScore(j, kk) * AncestryScore(j, kk);
+// 	}
+      } 
+  /*------------------------------------
+  |affecteds-only linkage with ancestry |
+  ------------------------------------*/ 
+     if( options->getTestForAffectedsOnly() ){
+	//
+	for( int kk = 0; kk < options->getPopulations(); kk++ ){
+	  SumAffectedsScore(j,kk) += AffectedsScore(j,kk);
+	  SumAffectedsVarScore(j,kk) += AffectedsVarScore(j,kk);
+	  SumAffectedsInfo(j,kk) += AffectedsInfo(j,kk);
+	  SumAffectedsScore2(j, kk) +=  AffectedsScore(j, kk) * AffectedsScore(j, kk);
+	}
       }
     }
   }
@@ -465,16 +539,33 @@ ScoreTests::Update(int TT, Matrix_d* ExpY0,double lambda0)
 
 void ScoreTests::TransformScoreStatistics( int kk, Matrix_d score, Matrix_d info,
 					   Matrix_d *newscore, Matrix_d *newinfo )
+//This function is obsolete. Use CentredGaussianConditional in functions.cc
+//performs centring for regression-based score tests
+//for ancestry score test, kk = #populations
 {
-  Matrix_d score1, score2, Vbb, Vab, Vaa;
+  Matrix_d score1, score2, Vbb, Vab, Vaa,V;
+  Vector_d temp ;
   score1 = score.SubMatrix( 0, kk - 1, 0, 0 );
   score2 = score.SubMatrix( kk, kk + options->getPopulations() - 1, 0, 0 );
   Vaa = info.SubMatrix( 0, kk - 1, 0, kk - 1 );
   Vbb = info.SubMatrix( kk, kk + options->getPopulations() - 1, kk, kk + options->getPopulations() - 1 );
   Vab = info.SubMatrix( 0, kk - 1, kk, kk + options->getPopulations() - 1 );
-  Vbb.InvertUsingLUDecomposition();
-  *newscore = score1 - Vab * Vbb * score2;
-  *newinfo = Vaa - Vab * Vbb * Vab.Transpose();
+
+  //Vbb.InvertUsingLUDecomposition();
+  // *newscore = score1 - Vab * Vbb * score2;
+  temp = score2.GetColumn(0);
+  HH_svx(Vbb, &temp);
+  *newscore = score1 - Vab * (temp.ColumnMatrix()); 
+
+  V.SetNumberOfElements(Vbb.GetNumberOfRows(),Vab.GetNumberOfRows());
+  temp.SetNumberOfElements(Vab.GetNumberOfCols());
+  // *newinfo = Vaa - Vab * Vbb * Vab.Transpose();
+  for(int i =0; i<Vab.GetNumberOfRows();i++){
+    temp =Vab.GetRow(i);
+    HH_svx(Vbb, &temp);
+    V.SetColumn(i,temp);
+  }
+  *newinfo = Vaa - Vab * V;
 }
 
 void
@@ -488,72 +579,45 @@ ScoreTests::UpdateScoreForLinkageAffectedsOnly( Individual* ind)
 
   // Test in McKeigue et al. (2000) was on r defined on the positive
   // real line.  This test is on log r, which should have better
-  // assymptotic properties.
+  // asymptotic properties.
   int locus = 0;
-  Vector_d M(2), EXX;
-  Matrix_d temp;
-  MatrixArray_d EX( Lociptr->GetNumberOfCompositeLoci() ),
-    Cov( Lociptr->GetNumberOfCompositeLoci(), options->getPopulations(), 1 );
-  for( int j = 0; j < chrm->size(); j++ ){
-    for( int jj = 0; jj < (*chrm)(j)->GetSize(); jj++ ){
-      //         temp = (*chrm)(j)->GetExpectationofAncestry(jj);
-      temp = ind->getExpectedAncestry(locus);
-      EX(locus) = temp.SubMatrix( 0, options->getPopulations() - 1, 0 , 1 );
-      EXX = temp.GetColumn(2);
-      for( int k = 0; k < options->getPopulations(); k++ ){
-	Cov(locus)(k,0) = EXX(k) - EX(locus)(k,0)*EX(locus)(k,1);
-      }
-      locus++;
-    }
-  }
-   
+  Vector_d theta(2);//paternal and maternal admixture proportions
+  Matrix_d AncestryProbs;//conditional locus ancestry probs
+
   for( int k = 0; k < options->getPopulations(); k++ ){
-    locus = 0;
-    M(0) = ind->getAncestry()( k, 0 );
+    theta(0) = ind->getAncestry()( k, 0 );
     if( options->getModelIndicator() )
-      M(1) = ind->getAncestry()( k, 1 );
+      theta(1) = ind->getAncestry()( k, 1 );
     else
-      M(1) = ind->getAncestry()( k, 0 );
-      
+      theta(1) = ind->getAncestry()( k, 0 );
+
+    locus = 0;      
     for( int j = 0; j < chrm->size(); j++ ){
       for( int jj = 0; jj < (*chrm)(j)->GetSize(); jj++ ){
-	for( int g = 0; g < 2; g++ ){
-	  AffectedsScore( locus )( k, 0 ) += 0.5*( EX(locus)(k,g) - M(g) );
-	  AffectedsInfo( locus )( k, 0 ) += 0.25 * ( M(g) - M(g)*M(g) );
-	  AffectedsVarScore( locus )( k, 0 ) += 0.25*EX(locus)(k,g)*( 1 - EX(locus)(k,g) );
-	}
-	AffectedsVarScore( locus )( k, 0 ) += 0.5*Cov(locus)(k,0);
+	AncestryProbs = ind->getExpectedAncestry(locus);
+	AffectedsScore(locus,k)+= 0.5*( AncestryProbs(k,1) + 2.0*AncestryProbs(k,2) - theta(0) - theta(1) );
+	AffectedsVarScore(locus, k)+= 0.25 *( AncestryProbs(k,1)*(1.0 - AncestryProbs(k,1)) + 4.0*AncestryProbs(k,2)*AncestryProbs(k,0)); 
+	AffectedsInfo(locus, k)+= 0.25* ( theta(0)*( 1.0 - theta(0) ) + theta(1)*( 1.0 - theta(1) ) );
 	locus++;
-	//          cout << M(0) << " " << M(1) << endl << xx << endl;
       }
     }
-    //     for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
-    //        double x = 0.5 * ( GeneAncestry(i)( k, 2 * j ) + GeneAncestry(i)( k, 2 * j + 1 ) );
-    //        AffectedsScore( j )( k, 0 ) += x - 0.5*( M(0) + M(1) );
-    //        AffectedsInfo( j )( k, 0 ) += 0.25 * ( M(0) - M(0)*M(0) + M(1) - M(1)*M(1) );
-    //     }
   }
 }
 
-// p (= alpha) in methods below should be calculated once and stored
-
-void ScoreTests::UpdateScoreForLinkage( Individual* ind, int i, int regressonindicator, int hypothesisindicator, MatrixArray_d *score, MatrixArray_d *info,double EY0, double lambda0)//EY0 = ExpectedY(0)(i,0), lambda0 = lambda(0)
-{
-  // regressonindicator = 0 => linear regression model
-  // regressonindicator = 1 => logistic regression model
-  // hypothesisindicator = 0 => test for allelic association
-  // hypothesisindicator = 1 => test for association with ancestry
+void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, double YMinusEY, double phi, double DInvLink)
+//Note: EY0 = ExpectedY(0)(i,0), lambda0 = lambda(0)
+ {
 
   int dim = 0; //? this removes warning, but isn't necessarily the Right Thing
   int locus = 0;
   Vector_i hap, ancestry, AlleleCounts;
-  Vector_d xx;
 
-  double IndividualTargetMinusP = individuals->getTarget(0)( i, 0 ) - EY0;
+  Vector_d xx;
+  //double IndividualOutcomeMinusP = individuals->getOutcome(0)( i, 0 ) - EY0;
 
   for( int j = 0; j < chrm->size(); j++ ){
     for( int jj = 0; jj < (*chrm)(j)->GetSize(); jj++ ){
-      if( hypothesisindicator == 0 ){
+
 	if( (*Lociptr)(locus)->GetNumberOfStates() == 2 ){
 	  dim = options->getPopulations() + 1;
 	} else if( (*Lociptr)(locus)->GetNumberOfLoci() == 1 ){
@@ -561,10 +625,8 @@ void ScoreTests::UpdateScoreForLinkage( Individual* ind, int i, int regressonind
 	} else {
 	  dim = (*Lociptr)(locus)->GetNumberOfMergedHaplotypes() + options->getPopulations();
 	}
-      } else if( hypothesisindicator == 1 ) {
-	dim = 2 * options->getPopulations();
-      }
-        
+
+
       // Set x-co-ordinates of covariates in model
       Matrix_d cov_x_coord(dim,1);
       cov_x_coord( dim - 1, 0 ) = 1;
@@ -573,8 +635,7 @@ void ScoreTests::UpdateScoreForLinkage( Individual* ind, int i, int regressonind
       }
      
       // Set x co-ordinate for regression parameter under test
-      // Test for allelic assocition
-      if( hypothesisindicator == 0 ){
+
 	// special case for SNP
 	if( (*Lociptr)(locus)->GetNumberOfStates() == 2 ){
 	  //? next line relies on encoding system
@@ -589,7 +650,7 @@ void ScoreTests::UpdateScoreForLinkage( Individual* ind, int i, int regressonind
 	  }
 	  // general case for composite locus
 	} else {
-	  UpdateScoreForWithinHaplotypeAssociation( i, locus, regressonindicator, EY0,lambda0 );
+	  UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
 	  if( options->getTestForSNPsInHaplotype() ){
 	    ancestry = ind->GetLocusAncestry( j, jj );
 	    hap = (*Lociptr)(locus)->SampleHaplotype( ind->getGenotype(locus), ancestry );
@@ -601,62 +662,175 @@ void ScoreTests::UpdateScoreForLinkage( Individual* ind, int i, int regressonind
 	    }
 	  }
 	}
-      } else if( hypothesisindicator == 1 ){
-	ancestry = ind->GetLocusAncestry( j, jj );
-	cov_x_coord( ancestry(0), 0 )++;
-	cov_x_coord( ancestry(1), 0 )++;
-	//           xx = (*chrm)(j)->GetExpectationofAncestry(jj);
-	//           for( int k = 0; k < options->getPopulations(); k++ ){
-	//              cov_x_coord(k,0) = xx(k);
-	//           }
-	//          cout << ancestry << endl;
-	//          cout << xx << endl;
-      }
+
 
       // Check if missing genotype
       //? NB: zero used for missing genotype here
-      if( !(hypothesisindicator == 0 && ind->IsMissing(locus)[0] == 0 ) ){
-	if( regressonindicator ){
-	  (*score)( locus ) += cov_x_coord * IndividualTargetMinusP;
-	} else {
-	  (*score)( locus ) += (lambda0 * IndividualTargetMinusP) * cov_x_coord;
-	}
-	if( regressonindicator ){
-	  (*info)( locus ) += (cov_x_coord * cov_x_coord.Transpose()) * (EY0 * ( 1 - EY0 ));
-	} else {
-	  (*info)( locus ) += (cov_x_coord * cov_x_coord.Transpose()) * lambda0;
-	}
+
+      if( !(ind->IsMissing(locus)[0] == 0 ) ){
+	LocusLinkageAlleleScore( locus ) += cov_x_coord * YMinusEY * phi;
+	LocusLinkageAlleleInfo( locus ) += (cov_x_coord * cov_x_coord.Transpose()) * phi * DInvLink;
       }
       locus++;
     }
   }
 }
 
-void ScoreTests::UpdateScoreForAssociation_Binary( int i, Matrix_d Theta, Matrix_d  *score, Matrix_d  *info , double EY0)
+// void ScoreTests::UpdateScoreForAncestryOld( Individual* ind, double Y,  int regressonindicator, double EY, double lambda0)
+// //This function is obsolete, replaced by UpdateScoreForAncestry, and is preserved here in case it is needed for reference.
+// //Note: EY = ExpectedY(0)(i,0), lambda0 = lambda(0)
+// {
+//   // regressonindicator = 0 => linear regression model
+//   // regressonindicator = 1 => logistic regression model
+
+//   int locus = 0,dim = 2 * options->getPopulations();
+//   Vector_i ancestry;
+//   Matrix_d X;
+
+//   X.SetNumberOfElements(dim, 1);
+
+//   for( int j = 0; j < chrm->size(); j++ ){
+//     for( int jj = 0; jj < (*chrm)(j)->GetSize(); jj++ ){
+//       X.SetElements(0); 
+        
+//       // Set x-co-ordinates of covariates in model
+//       X( dim - 1, 0 ) = 1;
+//       for( int k = 0; k < options->getPopulations() - 1; k++ ){
+// 	X( k + options->getPopulations(), 0 ) = ind->getAncestry()( k, 0 );
+// //NB getAncestry returns admixture proportions - needs renaming
+//       }
+     
+//       // Set x co-ordinate for regression parameter under test
+// 	ancestry = ind->GetLocusAncestry( j, jj );
+// 	X( ancestry(0), 0 )++;
+// 	X( ancestry(1), 0 )++;
+ 
+// 	//should be possible to make this independent of regression type as for ancestry association score test
+// 	if( regressonindicator ){//logistic
+// 	  LocusLinkageScore( locus ) += X * (Y - EY);
+// 	  LocusLinkageInfo( locus ) += (X * X.Transpose()) * (EY * ( 1 - EY ));
+// 	} else {//linear
+// 	  LocusLinkageScore( locus ) += lambda0 * (Y - EY) * X;
+// 	  LocusLinkageInfo( locus ) += (X * X.Transpose()) * lambda0;
+// 	}
+//       locus++;
+//     }
+//   }
+// }
+
+void ScoreTests::UpdateScoreForAncestry( double phi)
 {
-  double x, p;
-  p = EY0;
-  for( int k = 0; k < options->getPopulations(); k++ ){
-    if( options->getModelIndicator() )
-      x = 0.5 * ( Theta( k, 0 ) + Theta( k, 1 ) );
-    else
-      x = Theta( k, 0 );
-    (*score)( k, 0 ) += x * ( individuals->getTarget(0)( i, 0 ) - p );
-    (*info)( k, 0 ) += x * x * p * ( 1 - p );
+  //Updates score stats for test for assocoation with locus ancestry
+  //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
+  //Notes: 1/phi is dispersion parameter
+  //       = lambda(0) for linear regression, = 1 for logistic
+  //       YMinusEY = Y - E(Y) = Y - g^{-1}(\eta_i)
+  //       VarX = Var(X)
+  //       DInvLink = {d  g^{-1}(\eta)} / d\eta = derivative of inverse-link function
+  //Xcov is a vector of covariates
+  //Note that only the intercept and admixture proportions are used.
+  // X is (A, Xcov)'  
+
+  int locus = 0,dim = 2 * options->getPopulations();;
+  Matrix_d Aprobs;
+  double DInvLink, YMinusEY, xBx;
+  Individual *ind;
+  Matrix_d X, Xcov, B, Vj, Uj, AncestryScore, AncestryInfo;
+  Vector_d VarA, SumVarA, Sj, temp;
+
+  X.SetNumberOfElements(dim, 1);
+  Xcov.SetNumberOfElements(options->getPopulations(), 1);
+  VarA.SetNumberOfElements(options->getPopulations());
+  SumVarA.SetNumberOfElements(options->getPopulations());
+  Uj.SetNumberOfElements(dim,1);
+  Vj.SetNumberOfElements(dim,dim);
+  Sj.SetNumberOfElements(options->getPopulations());
+  B.SetNumberOfElements(options->getPopulations(), options->getPopulations());
+  temp.SetNumberOfElements(options->getPopulations());
+
+  //This block could be done once in ScoreTests::Update and passed down
+    B.SetElements(0);    
+  for(int i = 0; i< individuals->getSize(); i++){
+    ind = individuals->getIndividual(i);
+    //set covariates
+    Xcov(options->getPopulations()-1, 0) = 1;
+    for( int k = 0; k < options->getPopulations() - 1; k++ ){
+      Xcov(k,0) = ind->getAncestry()( k, 0 ); 
+      //NB getAncestry returns admixture proportions - needs renaming
+    }
+    DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i);
+    B += Xcov * Xcov.Transpose() * DInvLink;
   }
+
+  for( int j = 0; j < chrm->size(); j++ ){
+    for( int jj = 0; jj < (*chrm)(j)->GetSize(); jj++ ){
+      
+      Uj.SetElements(0);
+      Vj.SetElements(0);
+      Sj.SetElements(0);
+      SumVarA.SetElements(0);
+
+      for(int i = 0; i< individuals->getSize(); i++){
+	ind = individuals->getIndividual(i);
+	Aprobs = ind->getExpectedAncestry(locus);//conditional locus ancestry probs      
+	YMinusEY = individuals->getOutcome(0)( i, 0 ) - individuals->getExpectedY(i);
+	DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i);
+	
+	X( dim - 1, 0 ) = 1;//intercept
+	Xcov(options->getPopulations()-1, 0) = 1;
+	//set covariates 
+	for( int k = 0; k < options->getPopulations() - 1; k++ ){
+	  X( k + options->getPopulations(), 0 ) = ind->getAncestry()( k, 0 );
+	  Xcov(k,0) = ind->getAncestry()( k, 0 ); 
+	  //NB getAncestry returns admixture proportions - needs renaming
+	}
+	
+	for( int k = 0; k < options->getPopulations() ; k++ ){
+	  X(k,0) = Aprobs(k,1) + 2.0 * Aprobs(k,2);//Conditional expectation of ancestry
+	  VarA(k) = Aprobs(k,1)*(1.0 -Aprobs(k,1)) + 4.0*Aprobs(k,2)*Aprobs(k,0);//conditional variances
+	  SumAncestryVarScore(locus,k) +=  VarA(k)  *phi *phi * YMinusEY * YMinusEY;
+	}
+
+	temp =  Xcov.GetColumn(0);
+	HH_svx(B, &temp);
+	xBx = (Xcov.Transpose() * temp.ColumnMatrix())(0,0);
+
+	SumVarA +=  VarA * DInvLink *phi;
+	Sj += VarA * phi * phi * DInvLink * DInvLink * xBx ;   
+	Uj += X * YMinusEY * phi;
+	Vj += (X * X.Transpose()) * DInvLink * phi;
+      }//end ind loop
+      
+      //centre
+      CentredGaussianConditional( options->getPopulations(),Uj, Vj, &AncestryScore, &AncestryInfo );
+      //accumulate over iterations     
+      for( int k = 0; k < options->getPopulations() ; k++ ){
+	SumAncestryScore(locus,k) += AncestryScore(k,0);
+	SumAncestryInfo(locus,k)  += AncestryInfo(k,k) - Sj(k) + SumVarA(k);
+	SumAncestryScore2(locus,k) += AncestryScore(k,0) * AncestryScore(k,0);
+      }
+      locus++;
+    }
+  }//end locus loop
 }
 
-void ScoreTests::UpdateScoreForAssociation_Continuous( int i, Matrix_d Theta, Matrix_d  *score, Matrix_d  *info, double EY0,double lambda0)
+//void ScoreTests::UpdateAncestryInd(int i, double phi){
+
+
+
+//}
+
+void ScoreTests::UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink)
 {
-  double x, alpha;
-  alpha = EY0;
+  //Updates score and info for score test for admixture association
+  double x;
   for( int k = 0; k < options->getPopulations(); k++ ){
     if( options->getModelIndicator() )
       x = 0.5 * ( Theta( k, 0 ) + Theta( k, 1 ) );
     else
       x = Theta( k, 0 );
-    (*score)( k, 0 ) += lambda0 * x * ( individuals->getTarget(0)( i, 0 ) - alpha );
-    (*info)( k, 0 ) += lambda0 * x * x;
+    U( k, 0 ) += phi * x * YMinusEY;
+    I( k, 0 ) += phi * x * x *DInvLink;
   }
 }
 
@@ -676,9 +850,9 @@ void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs( int i)
 }
 
 // This method calculates score for allelic association at each simple locus within a compound locus
-void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( int i, int j, int indicator, double p,double lambda0)
+void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int j, double YMinusEY,double phi, double DInvLink)
 {
-  Individual* ind = individuals->getIndividual(i);
+  //Individual* ind = individuals->getIndividual(i);
   Vector_i AlleleCounts;
   Vector_d x( options->getPopulations() + 1 );
   AlleleCounts = (*Lociptr)(j)->GetAlleleCountsInHaplotype(ind->getGenotype(j));
@@ -691,19 +865,12 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( int i, int j, int ind
   for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
     x(0) = AlleleCounts( l );
     for( int k = 0; k < options->getPopulations() + 1; k++ ){
-      if( indicator && x(0) != 99 ){
-	ScoreWithinHaplotype[j](l)( k, 0 ) += x(k) * ( individuals->getTarget(0)( i, 0 ) - p );
-      }
-      else if( x(0) != 99 ){
-	ScoreWithinHaplotype[j](l)( k, 0 ) += lambda0 * x(k) * ( individuals->getTarget(0)( i, 0 ) - p );
-      }
+      //if( x(0) != 99 )ScoreWithinHaplotype[j](l)( k, 0 ) += phi * x(k) * ( individuals->getOutcome(0)( i, 0 ) - p );
+if( x(0) != 99 )ScoreWithinHaplotype[j](l)( k, 0 ) += phi * x(k) * YMinusEY;
       for( int kk = 0; kk < options->getPopulations() + 1; kk++ )
 	info( k, kk ) = x( k ) * x( kk );
     }
-    if( indicator && x(0) != 99 )
-      InfoWithinHaplotype[j](l) += info * p * ( 1 - p );
-    else if( x(0) != 99 )
-      InfoWithinHaplotype[j](l) += info * lambda0;
+    if( x(0) != 99 )InfoWithinHaplotype[j](l) += info * phi *DInvLink;
   }
 }
 
@@ -744,9 +911,14 @@ void ScoreTests::Output(int iteration,std::string * PLabels){
   }
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
-    OutputTestsForLocusLinkage( iteration, ancestryAssociationScoreStream,
-				SumLocusLinkageScore,
-				SumLocusLinkageScore2, SumLocusLinkageInfo );
+//old version
+//    OutputTestsForLocusLinkage( iteration, ancestryAssociationScoreStream,
+// 				SumLocusLinkageScore,
+// 				SumLocusLinkageScore2, SumLocusLinkageInfo );
+
+    OutputTestsForLocusLinkage2( iteration, ancestryAssociationScoreStream,
+				 SumAncestryScore, SumAncestryVarScore,
+				 SumAncestryScore2, SumAncestryInfo );
   }
   //affectedonly
   if( options->getTestForAffectedsOnly() ){
@@ -762,12 +934,12 @@ void ScoreTests::Output(int iteration,std::string * PLabels){
   if( options->getTestForMisspecifiedAlleleFreqs2() ){
     OutputTestsForMisSpecifiedAlleleFreqs2( iteration);
   }
-  //????
+  //admixture association
   if( options->getScoreTestIndicator() ){
     OutputScoreTest( iteration );
   }
 
-}//end of output definition
+}
 
 // next few methods calculate score tests from the cumulative sums of
 // the score, score squared, and information score and info can be
@@ -952,10 +1124,11 @@ ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
   }
 }
 
-void
-ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstream,
-					 MatrixArray_d Score, MatrixArray_d VarScore,
-					 MatrixArray_d Score2, MatrixArray_d Info )
+void ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstream,
+					 Matrix_d Score, Matrix_d VarScore,
+					 Matrix_d Score2, Matrix_d Info )
+//used for affectedsonly test and ancestry association test
+//Score2 = Score^2
 {
   double VU, EU, missing, complete;
   for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
@@ -966,17 +1139,17 @@ ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstream,
 	*outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
       *outputstream << PopLabels[k] << ",";
       
-      EU = Score( j )( k, 0 ) / ( iteration - options->getBurnIn() );
-      VU = VarScore( j )( k, 0 ) / ( iteration - options->getBurnIn() );
-      missing = Score2( j )( k, 0 ) / ( iteration - options->getBurnIn() ) - EU * EU + VU;
-      complete =  Info( j )( k, 0 ) / ( iteration - options->getBurnIn() );
+      EU = Score( j , k) / ( iteration - options->getBurnIn() );
+      VU = VarScore( j , k ) / ( iteration - options->getBurnIn() );
+      missing = Score2( j , k ) / ( iteration - options->getBurnIn() ) - EU * EU + VU;
+      complete =  Info( j , k) / ( iteration - options->getBurnIn() );
       
-      *outputstream << double2R(EU)                                << ",";
-      *outputstream << double2R(complete)                          << ",";
-      *outputstream << double2R(complete - missing)                << ",";
-      *outputstream << double2R(100*(complete - missing)/complete) << ",";
+      *outputstream << double2R(EU)                                << ",";//score
+      *outputstream << double2R(complete)                          << ",";//complete info
+      *outputstream << double2R(complete - missing)                << ",";//observed info
+      *outputstream << double2R(100*(complete - missing)/complete) << ",";//%observed info
       *outputstream << double2R(100*(VU/complete))                 << ",";//%missing info attributable to locus ancestry
-      *outputstream << double2R(100*(missing-VU)/complete)         << ",";//%missing info attributable to       
+      *outputstream << double2R(100*(missing-VU)/complete)         << ",";//%remainder of missing info      
       *outputstream << double2R(EU / sqrt( complete - missing ))   << "," << endl;
     }
   }
@@ -1002,7 +1175,7 @@ void ScoreTests::ROutput(){
     labels[0] = "Locus";
     labels[1] = "Score";
     labels[2] = "CompleteInfo";
-    labels[3] = "ObserevedInfo";
+    labels[3] = "ObservedInfo";
     labels[4] = "PercentInfo";
     labels[5] = "StdNormal";
     R_output3DarrayDimensions(&genescorestream,dimensions,labels);
@@ -1028,7 +1201,7 @@ void ScoreTests::ROutput(){
     labels[1] = "Haplotype";
     labels[2] = "Score";
     labels[3] = "CompleteInfo";
-    labels[4] = "ObserevedInfo";
+    labels[4] = "ObservedInfo";
     labels[5] = "PercentInfo";
     labels[6] = "StdNormal";
     labels[7] = "ChiSquare";
@@ -1079,24 +1252,49 @@ void ScoreTests::ROutput(){
     R_output3DarrayDimensions(&allelefreqscorestream2,dimensions,labels);
   }
 
+//old version
+//   /**
+//    * writes out the dimensions and labels of the 
+//    * R-matrix previously written to ancestryAssociationScoreStream
+//    */
+//   if (options->getTestForLinkageWithAncestry()){
+//     vector<int> dimensions(3,0);
+//     dimensions[0] = 7;
+//     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * options->getPopulations();
+//     dimensions[2] = (int)(options->getTotalSamples()/ options->getSampleEvery() / 10  -  options->getBurnIn() / options->getSampleEvery() / 10);
+
+//     vector<string> labels(7,"");
+//     labels[0] = "Locus";
+//     labels[1] = "Population";
+//     labels[2] = "Score";
+//     labels[3] = "CompleteInfo";
+//     labels[4] = "ObservedInfo";
+//     labels[5] = "PercentInfo";
+//     labels[6] = "StdNormal";
+
+//     R_output3DarrayDimensions(ancestryAssociationScoreStream,dimensions,labels);
+//   }
+
   /**
    * writes out the dimensions and labels of the 
    * R-matrix previously written to ancestryAssociationScoreStream
    */
   if (options->getTestForLinkageWithAncestry()){
     vector<int> dimensions(3,0);
-    dimensions[0] = 7;
+    dimensions[0] = 9;
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * options->getPopulations();
-    dimensions[2] = (int)(options->getTotalSamples()/ options->getSampleEvery() / 10  -  options->getBurnIn() / options->getSampleEvery() / 10);
-
-    vector<string> labels(7,"");
+    dimensions[2] = (int)(numPrintedIterations);
+     
+    vector<string> labels(9,"");
     labels[0] = "Locus";
     labels[1] = "Population";
     labels[2] = "Score";
     labels[3] = "CompleteInfo";
     labels[4] = "ObservedInfo";
     labels[5] = "PercentInfo";
-    labels[6] = "StdNormal";
+    labels[6] = "Missing1";
+    labels[7] = "Missing2";
+    labels[8] = "StdNormal";
 
     R_output3DarrayDimensions(ancestryAssociationScoreStream,dimensions,labels);
   }
@@ -1107,19 +1305,19 @@ void ScoreTests::ROutput(){
    */
   if (options->getTestForAffectedsOnly()){
     vector<int> dimensions(3,0);
-    dimensions[0] = 9;//was 7
+    dimensions[0] = 9;
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * options->getPopulations();
     dimensions[2] = (int)(numPrintedIterations);
      
-    vector<string> labels(9,"");//was 7
+    vector<string> labels(9,"");
     labels[0] = "Locus";
     labels[1] = "Population";
     labels[2] = "Score";
     labels[3] = "CompleteInfo";
     labels[4] = "ObservedInfo";
     labels[5] = "PercentInfo";
-    labels[6] = "Missing1";//Percent of missing info due to locus ancestry
-    labels[7] = "Missing2";//Percent of missing info due to     
+    labels[6] = "Missing1";
+    labels[7] = "Missing2"; 
     labels[8] = "StdNormal";
 
     R_output3DarrayDimensions(affectedsOnlyScoreStream,dimensions,labels);
