@@ -44,7 +44,6 @@
 #include "Individual.h"
 #include "IndividualCollection.h"
 
-#include "AbstractCompLocus.h"
 #include "Genome.h"
 #include "Chromosome.h"
 #include "CompositeLocus.h"

@@ -2,7 +2,6 @@
 #ifndef COMPOSITE_LOCUS_H
 #define COMPOSITE_LOCUS_H 1
 
-//#include "AbstractCompLocus.h"
 #include "rand.h"
 #include "vector.h"
 #include "matrix.h"

@@ -2,7 +2,6 @@
 #ifndef GENETIC_ARRAY_H
 #define GENETIC_ARRAY_H 1
 
-//#include "AbstractCompLocus.h"
 #include "CompositeLocus.h"
 //#include "Chromosome.h"
 #include "vector.h"
