@@ -175,7 +175,8 @@ void submain(AdmixOptions* options){
  
      // output every 'getSampleEvery()' iterations
      if( !(iteration % options->getSampleEvery()) ){
-       if( options->getAnalysisTypeIndicator() >= 0/*!= -3*/ ){//No Pop. Par. output for single individuals
+       if( options->getAnalysisTypeIndicator() >= 0 && optionsgetIndAdmixHierIndicator() ){
+	 //Only output population-level parameters when there is a hierarchical model on indadmixture
 	 L.OutputParams(iteration, &LogFileStream);
 	 R.Output(iteration,&LogFileStream,options,IC);
 	 A.OutputEta(iteration, options, &LogFileStream);
@@ -241,8 +242,14 @@ int main( int argc , char** argv ){
     char **xargv = argv;    
 
     if (argc < 2) {
-        cout << "Please specify an options file or command-line arguments\n";
-        exit(1); // **need to print a warning message or list of user options to screen here
+        cout << "Please specify an options file or command-line arguments\n"
+	     << "Usage:\n"
+	     << "1. (not recommended) admixmap --[optionname]=[value] ...\n"
+	     << "2. admixmap [optionfile], where optionfile is a text file containg a list of user options\n"
+	     << "3. use a perl script. See sample perl script supplied with this program.\n"
+	     << "Consult the manual for a list of user options."
+	     << endl;
+        exit(1); 
     } else if (argc == 2) {     // using options text file        
       xargc = 1;//NB initialise to 1 to mimic argc (arg 0 is prog name), otherwise first option is ignored later
         xargv = new char*[50];  // change 50 to max number of options
@@ -270,8 +277,11 @@ int ReadArgsFromFile(char* filename,int* xargc,char **xargv){
     if(str.find_first_of("#")<str.length())str.erase(str.find_first_of("#"));//ignore #comments
 //trim remaining whitespace
     str.erase(str.find_last_not_of(" \t\n\r")+1);//trailing whitespace
-    str.erase(str.find_first_of(" \t\n\r"),str.find("=")-str.find_first_of(" \t\n\r"));//before '='
-    str.erase(str.find_first_of(" \t\n\r"),str.find_last_of(" \t\n")-str.find_first_of(" \t\n\r")+1);//after '='
+    if(str.find_first_of(" \t\n\r") <= str.length()){//check for any whitespace left
+      if(str.find_first_of(" \t\n\r") < str.find("="))//check for space before '='
+	str.erase(str.find_first_of(" \t\n\r"),str.find("=")-str.find_first_of(" \t\n\r"));//before '='
+      str.erase(str.find_first_of(" \t\n\r"),str.find_last_of(" \t\n")-str.find_first_of(" \t\n\r")+1);//after '='
+    }
 //add line to xargv
     xargv[*xargc]=new char[_maxLineLength];
     strcpy(xargv[*xargc],"--");
