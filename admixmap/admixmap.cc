@@ -63,6 +63,9 @@ void submain(AdmixOptions* options){
 
   std::vector<bool> _admixed;
   bool _symmetric;
+  // LociCorrSummary is a vector of terms of the form exp( - rho*x_i) where x_i is the map distance between two adjacent loci
+  // with a global rho model, this vector is same for all individuals and calculated only once. 
+  // should be calculated and stored in the Loci object
   Vector_d LociCorrSummary;//summary of correlation in ancestry between loci,was called f in Latent
   Vector_d SumLogTheta;
   Vector_d poptheta;
@@ -131,13 +134,20 @@ void submain(AdmixOptions* options){
       IC->Update(iteration,&SumLogTheta, R.getlambda(), R.getNoCovariates(), R.getbeta(),poptheta, options,
 		 LociCorrSummary, A.getLoci(), chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
-	
+
+      // UpdateAlleleFreqs should not need to take getPopulations as an argument once the A object is initialized	
       A.UpdateAlleleFreqs(iteration,options->getBurnIn(),options->getPopulations());
      if( iteration > options->getBurnIn() ){
        DispTest.UpdateBayesianPValueTest(*(A.getLoci()));
        if( options->getStratificationTest() )StratTest.calculate(IC, *(A.getLoci()));
      }  
+     // Latent update should not need to take LociCorrSummary as an argument
+     // Latent should not need to know anything about the number or positions of loci
+     // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
+     // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
+     // sum of rho and rho-squared over all individuals or gametes 
      L.Update(iteration, chrm, IC,&LociCorrSummary,&SumLogTheta,&poptheta,&LogFileStream);
+     // Regression Update method should not need to take AnalysisTypeIndicator as an argument once the R object is initialized
      R.Update(options->getAnalysisTypeIndicator(),IC);
 
      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
@@ -258,6 +268,8 @@ int ReadArgsFromFile(char* filename,int* xargc,char **xargv){
 }
 
 //this function is here because three different objects have to write to avgstream
+// for compatibility with parallelization, should rearrange output so that each object (L, R, A) writes one file 
+// containing draws and ergodic averages for the parameters that it updates
 void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *individuals, LogWriter *Log, std::ofstream *avgstream,
 			      std::string *PopulationLabels){
   //Open ErgodicAverageFile  
