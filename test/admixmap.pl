@@ -5,6 +5,7 @@ my $DEBUG = 0; # zero gives less output
 
 # Change this to the location of the admixmap executable
 my $executable = './admixmap';
+# Change this to desired name of results directory
 my $resultsdir = "results";
 
 # $arg_hash is a hash of parameters passed to
@@ -14,32 +15,36 @@ my $resultsdir = "results";
 # values (right-hand side) are parameter values
 my $arg_hash = 
 {
-    stratificationtestfile       => 'strat_test.txt',
-    logfile                      => 'log_test.txt',
-    genotypesfile                => 'data/genotypes.txt',
-    locusfile                    => 'data/loci.txt',
-    priorallelefreqfile          => 'data/priorallelefreqs.txt',
+#data files
+    genotypesfile                   => 'data/genotypes.txt',
+    locusfile                          => 'data/loci.txt',
+    priorallelefreqfile             => 'data/priorallelefreqs.txt',
+    covariatesfile                  => 'data/covariates3.txt',
     outcomevarfile               => 'data/outcomevar_diabetes.txt',
-    samples  => 10,#22000,
-    burnin   => 5,#2000,
+
+#main options
+    analysistypeindicator     => 3,# binary outcome var
+    coutindicator   => 0, #verbose output
+    targetindicator => 0, # diabetes in column 1
+    samples  => 200,
+    burnin   => 5,
     every    => 1,
 
-resultsdir => "$resultsdir",
-    paramfile                    => 'paramfile.txt',
-    regparamfile => 'regression.txt',
-    indadmixturefile             => 'ind_admixture.txt',
-    ergodicaveragefile           => 'ergodicaverage.txt',
+#output files
+    resultsdir               => "$resultsdir",
+    logfile                     => 'logfile.txt',
+    paramfile               => 'paramfile.txt',
+    regparamfile          => 'regparamfile.txt',
+    indadmixturefile     => 'indadmixture.txt',
+    ergodicaveragefile => 'ergodicaverage.txt',
+    allelefreqoutputfile  => 'allelefreqoutputfile.dat',
 
-    allelicassociationscorefile  => 'locusscore_test.dat',
-    ancestryassociationscorefile => 'locusscore_test2.dat',
-    affectedsonlyscorefile        => 'affectedsonlyscorefile.txt',
-    analysistypeindicator     => 3,
-    coutindicator   => 1,
-    targetindicator => 0,
-    covariatesfile               => 'data/covariates3.txt',
+#optional tests
+    allelicassociationscorefile       => 'allelicassociationscorefile.dat',
+    ancestryassociationscorefile  => 'ancestryassociationscorefile.dat',
+    affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
     haplotypeassociationscorefile => 'hapassocscore.txt',
-    allelefreqoutputfile         => 'allelefreqoutputfile_test.dat'
-
+    stratificationtestfile                   => 'strat_test.txt'
 };
 
 doAnalysis($executable,$arg_hash);
@@ -64,6 +69,7 @@ sub doAnalysis
 
     print $command if $DEBUG;
     system($command);
+# Comment out the next three lines to run admixmap without R script
     print "Starting R script to process output\n";
     system('RCMD BATCH --quiet --no-save --no-restore AdmixmapOutput.R results/Rlog.txt');
     print "R script completed\n\n";
