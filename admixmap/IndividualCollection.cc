@@ -53,7 +53,7 @@ if (options->getAnalysisTypeIndicator() == 2)
 }
 
 void
-IndividualCollection::accept(Matrix_d Freqs)
+IndividualCollection::OutputIndAdmixture(Matrix_d Freqs)
 {
   indadmixoutput->visitIndividualCollection(*this);
   for(unsigned int i=0; i<_child.size(); i++){
