@@ -923,7 +923,7 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
 }
 
 // Chib method for marginal likelihood should be rewritten to use the HMM likelihood, without sampling locus ancestry or arrivals
-Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
+void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
 			   AdmixOptions *options, Genome *Loci, Genome *chrm, double rhoalpha, double rhobeta, 
 			   vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr )
 {
