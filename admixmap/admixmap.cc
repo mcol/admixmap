@@ -175,7 +175,7 @@ void submain(AdmixOptions* options){
  
      // output every 'getSampleEvery()' iterations
      if( !(iteration % options->getSampleEvery()) ){
-       if( options->getAnalysisTypeIndicator() >= 0 && optionsgetIndAdmixHierIndicator() ){
+       if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
 	 //Only output population-level parameters when there is a hierarchical model on indadmixture
 	 L.OutputParams(iteration, &LogFileStream);
 	 R.Output(iteration,&LogFileStream,options,IC);
