@@ -124,7 +124,6 @@ private:
   double GetAlleleProbs( int x, int ancestry , int locus);
   void SamplePriorAlleleFreqs1D( Vector_d eta , int );
   void SamplePriorAlleleFreqsMultiDim( Vector_d eta , int);
-  void SamplePriorAlleleFreqs( Vector_d eta );
   void SampleAlleleFreqs( int );
   void UpdateAlleleCounts(const std::vector<unsigned int>&, Vector_i );
   void UpdateAlleleCounts_HaploidData(const std::vector<unsigned int>&, int );
