@@ -359,9 +359,9 @@ CompositeLocus::SetHistoricalAlleleFreqs( Matrix_d NewHistoricLikelihoodAlleleFr
    SumEta.SetNumberOfElements( Populations );
 
    for( int j = 0; j < Populations; j++ ){
-      sumalpha = ( HistoricLikelihoodAlleleFreqs.GetColumn(j) ).Sum();
+      sumalpha = ( PriorAlleleFreqs.GetColumn(j) ).Sum();
       for( int k = 0; k < NumberOfStates - 1; k++ )
-         AlleleFreqs( k, j ) = ( HistoricLikelihoodAlleleFreqs( k, j ) ) / sumalpha;
+         AlleleFreqs( k, j ) = ( PriorAlleleFreqs( k, j ) ) / sumalpha;
    }
 
    if( NumberOfLoci > 1 ){
