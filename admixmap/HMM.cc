@@ -36,20 +36,18 @@ void HMM::SetDimensions( int inTransitions, int inStates )
 }
 
 void HMM::
-//UpdateParameters( Matrix_d &inStationaryDist, MatrixArray_d &inTransitionProbs, MatrixArray_d &inLikelihood, bool CalculateBeta )
-// name of second parameter changed so no need to allocate new memory for a copy of TransitionProbs 
-UpdateParameters( Matrix_d &inStationaryDist, MatrixArray_d &TransitionProbs, MatrixArray_d &inLikelihood, bool CalculateBeta )
+UpdateParameters( Matrix_d &StationaryDist, MatrixArray_d &TransitionProbs, MatrixArray_d &inLikelihood, bool CalculateBeta )
 {
-  StationaryDist = inStationaryDist;
+  //StationaryDist = inStationaryDist;
   //   TransitionProbs = inTransitionProbs;
   Likelihood = inLikelihood;
   if( Transitions > 1 )
     CheckArguments(TransitionProbs);
   _CalculateBeta = CalculateBeta;
-  UpdateFwrdBckwdProbabilities(TransitionProbs);
+  UpdateFwrdBckwdProbabilities(TransitionProbs, StationaryDist);
 }
 
-void HMM::UpdateFwrdBckwdProbabilities(MatrixArray_d &TransitionProbs)
+void HMM::UpdateFwrdBckwdProbabilities(MatrixArray_d &TransitionProbs, Matrix_d& StationaryDist)
 {
 // Matrix multiplication replaced by component-wise multiplication.
 // ie. wasteful to multiply by diagonal matrix, multiply each column

@@ -31,8 +31,6 @@ public:
   HMM( int, int );
   ~HMM();
   void SetDimensions( int, int );
-  // functions Sample, CheckArguments and UpdateFrwrdBackwdProbabilities have been edited to take
-  // pointer to  transition matrices as argument so that HMM doesn't have to store a copy of this array
   Vector_i Sample(MatrixArray_d&);  /* samples hidden states */
   void UpdateParameters( Matrix_d&, MatrixArray_d&, MatrixArray_d&, bool );
   Vector_d GetStateProbs( int );
@@ -41,8 +39,7 @@ public:
 private:
   void CheckArguments(MatrixArray_d&);
   
-  // void UpdateFwrdBckwdProbabilities();
-  void UpdateFwrdBckwdProbabilities(MatrixArray_d&);
+  void UpdateFwrdBckwdProbabilities(MatrixArray_d&, Matrix_d&);
   
   int States; //number of states of Markov chain, m in book
   //There are k*k (=D in Chromosome)states since k populations and 2 chromosomes
@@ -52,11 +49,6 @@ private:
   
   bool _CalculateBeta;
   double factor;
-  
-  Matrix_d StationaryDist;
-  // as transition probs are calculated and stored in Chromosome, no need to 
-  // store another copy in HMM object
-  // MatrixArray_d TransitionProbs;
   
   //(L-1) * D * D array
   MatrixArray_d Likelihood;
