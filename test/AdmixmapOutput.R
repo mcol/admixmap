@@ -916,49 +916,58 @@ if(!is.null(user.options$allelefreqscorefile)) {
   plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
 }
 
-if(!is.null(user.options$allelefreqoutputfile)) {
-  ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
+if(is.null(user.options$allelefreqoutputfile)) {
+  print("allelefreqoutputfile not specified")
+} else {
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
-  print.default("Converting allele frequency samples array to list")
-  allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
-  
-  ## calculate posterior means of sampled fvalues at each locus
-  if(K > 1) { 
-    fValues.means <- calculateLocusfValues(allelefreq.samples.list)
-    fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=2))
-    dimnames(fValues.means)[[2]] <- c("LocusName",
-                                         paste(population.labels[1], population.labels[2], sep="."))
-    write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
-                row.names=TRUE, col.names=TRUE)
-    write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
-                file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
-                row.names=FALSE, col.names=TRUE)
+##this prevents script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
+  if(dim(allelefreq.samples)[2]==0) {
+    print("allelefreqoutputfile empty")
+  } else {
+    ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
+    
+    print.default("Converting allele frequency samples array to list")
+    allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
+    
+    ## calculate posterior means of sampled fvalues at each locus
+    if(K > 1) { 
+      fValues.means <- calculateLocusfValues(allelefreq.samples.list)
+      fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=2))
+      dimnames(fValues.means)[[2]] <- c("LocusName",
+                                        paste(population.labels[1], population.labels[2], sep="."))
+      write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
+                  row.names=TRUE, col.names=TRUE)
+      write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
+                  file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
+                  row.names=FALSE, col.names=TRUE)
+    }
+    
+    ## generate lists to hold allele freq means and covariances
+    freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
+    allelefreq.means.list <- freqMeansCovs[[1]]
+    allelefreq.covs.list <- freqMeansCovs[[2]]
+    ## fit Dirichlet parameters by equating posterior means and variances
+    allelefreq.params.list <- fitDirichletParams(allelefreq.means.list, allelefreq.covs.list) 
+    
+    ## write Dirichlet parameters of allele freq distributions to file as R object
+    dput(allelefreq.params.list, file=paste(resultsdir,"allelefreqparamsAsRObject.txt", sep="/"))
+    
+    ## write Dirichlet parameters of allele freq distributions to file
+    writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
+                     paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
+    
+    ## write posterior means of allele freqs to file
+    allelefreq.means.matrix.list <- list()
+    for(locus in 1:length(allelefreq.params.list)) {
+      allelefreq.means.matrix.list[[locus]] <-
+        allelefreq.params.list[[locus]]/sum(allelefreq.params.list[[locus]], 2)
+    }
+    writeAlleleFreqs(allelefreq.means.matrix.list, K, loci.compound, population.labels,
+                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
   }
-  
-  ## generate lists to hold allele freq means and covariances
-  freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
-  allelefreq.means.list <- freqMeansCovs[[1]]
-  allelefreq.covs.list <- freqMeansCovs[[2]]
-  ## fit Dirichlet parameters by equating posterior means and variances
-  allelefreq.params.list <- fitDirichletParams(allelefreq.means.list, allelefreq.covs.list) 
-  
-  ## write Dirichlet parameters of allele freq distributions to file as R object
-  dput(allelefreq.params.list, file=paste(resultsdir,"allelefreqparamsAsRObject.txt", sep="/"))
-  
-  ## write Dirichlet parameters of allele freq distributions to file
-  writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
-                   paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
-
-  ## write posterior means of allele freqs to file
-  allelefreq.means.matrix.list <- list()
-  for(locus in 1:length(allelefreq.params.list)) {
-    allelefreq.means.matrix.list[[locus]] <-
-      allelefreq.params.list[[locus]]/sum(allelefreq.params.list[[locus]], 2)
-  }
-  writeAlleleFreqs(allelefreq.means.matrix.list, K, loci.compound, population.labels,
-                   paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
 }
 
+  
 if(!is.null(user.options$indadmixturefile)) {
   ## read posterior samples of individual admixture
   print.default("Reading posterior samples of individual vars")
@@ -969,7 +978,7 @@ if(!is.null(user.options$indadmixturefile)) {
   if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
     ## drop any extra vars in the array
     samples.adm <- samples[1:(2*K), , ]
-    samples4way <- array(samples.adm, dim=c(2, K, dim(samples)[2:3]))
+    samples4way <- array(samples1.adm, dim=c(2, K, dim(samples)[2:3]))
     dimnames(samples4way) <- list(c("Parent1", "Parent2"), population.labels,
                                   character(0), character(0))
     samples.meanparents <- apply(samples4way, 2:4, mean)
