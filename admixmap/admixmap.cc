@@ -66,7 +66,7 @@ void submain(AdmixOptions* options){
   std::vector<bool> _admixed;
   bool _symmetric;
 
-  Vector_d SumLogTheta;
+
   Vector_d poptheta;
   std::string *PopulationLabels;//possibly belongs in InputData
 
@@ -90,10 +90,10 @@ void submain(AdmixOptions* options){
   IC = new IndividualCollection(options,data.getGeneticData(),*(A.getLoci()),chrm);//NB call after LoadAlleleFreqs
   IC->LoadGenotypes(options,&data, &Log,A.getLoci());                             //and before L and R Initialise
  
-  L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&poptheta);
-  R.Initialise(IC,options, &Log);
+  L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&poptheta, PopulationLabels);
+  R.Initialise(IC, options, PopulationLabels, &Log);
   A.Initialise(options,data.getEtaPriorMatrix(),&Log,PopulationLabels, L.getrho());
-  IC->Initialise(options,R.getbeta(),A.getLoci(),PopulationLabels);
+  IC->Initialise(options,R.getbeta(),A.getLoci(),PopulationLabels, L.getrhoalpha(),L.getrhobeta(),&Log);
 
   options->PrintOptions();//NB: call after all options are set
                           //Currently all except Populations are set in AdmixOptions		
@@ -103,35 +103,22 @@ void submain(AdmixOptions* options){
   if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
     IC->getOnePopOneIndLogLikelihood(&Log,&A,PopulationLabels);
 
-  /*----------
-  | OTHERWISE |
-  -----------*/
-  //Initialise test objects
   else{
    
-    Scoretest.Initialise(options, IC, A.getLoci(),chrm,&Log);  
+    Scoretest.Initialise(options, IC, A.getLoci(),chrm,PopulationLabels, &Log);  
     StratTest.Initialize( options, *(A.getLoci()) ,&Log);
     DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());
-
-    //Initialise Output Files	
     if( options->getTextIndicator() ){
-      L.InitializeOutputFile(PopulationLabels);
-      R.InitializeOutputFile(options, IC,PopulationLabels);
-      A.InitializeOutputFile(options, PopulationLabels);
       InitializeErgodicAvgFile(options,IC, &Log,&avgstream,PopulationLabels);
-      Scoretest.InitialiseAssocScoreFile(PopulationLabels);  
-    }
-	
-    SumLogTheta.SetNumberOfElements( options->getPopulations());
-    IC->PreUpdate(L.getrhoalpha(),L.getrhobeta(),options);
- 
+      }
+
  /*------------
   |  MAIN LOOP |
   ------------*/
     for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
       if( !(iteration % options->getSampleEvery()) ){
 	if( options->getAnalysisTypeIndicator() >= 0 && (!options->useCOUT() || iteration == 0) )
-	  //do we really want output pars to log when coutindicator = 0?
+	  //do we really want to output pars to log when coutindicator = 0?
 	  {
 	    LogFileStream << setiosflags( ios::fixed );
 	    LogFileStream.width( (int)( log10((double)options->getTotalSamples())+1 ) );
@@ -145,93 +132,92 @@ void submain(AdmixOptions* options){
       }
 //Resets before updates
       A.Reset();
-      SumLogTheta.SetElements( 0.0 );
-
-//Updates  
-      IC->Update(iteration,&SumLogTheta, &A, R.getlambda(), R.getNoCovariates(), R.getbeta(),poptheta, options,
+      
+      //Updates  
+      IC->Update(iteration, &A, R.getlambda(), R.getNoCovariates(), R.getbeta(),poptheta, options,
 		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
-
-       A.Update(iteration,options->getBurnIn());
-  
-   if( iteration > options->getBurnIn() ){
-     DispTest.UpdateBayesianPValueTest(&A);
-     if( options->getStratificationTest() )StratTest.calculate(IC, &A);
-     }  
+      
+      A.Update(iteration,options->getBurnIn());
+      
+      if( iteration > options->getBurnIn() ){
+	DispTest.UpdateBayesianPValueTest(&A);
+	if( options->getStratificationTest() )StratTest.calculate(IC, &A);
+      }  
  
-     // Latent should not need to know anything about the number or positions of loci
-     // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
-     // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
-     // sum of rho and rho-squared over all individuals or gametes 
-     L.Update(iteration, IC,&SumLogTheta,&poptheta,&LogFileStream);
-     A.ResetSumAlleleFreqs();
-     if( !options->getRhoIndicator() )  A.load_f(L.getrho(),chrm);
+      // Latent should not need to know anything about the number or positions of loci
+      // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
+      // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
+      // sum of rho and rho-squared over all individuals or gametes 
+      L.Update(iteration, IC, &poptheta,&LogFileStream);
+      A.ResetSumAlleleFreqs();
+      if( !options->getRhoIndicator() )  A.load_f(L.getrho(),chrm);
       R.Update(IC);
-
-     if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
-       A.SetMergedHaplotypes(L.getalpha0(), &LogFileStream, options->IsPedFile());
-       Scoretest.SetAllelicAssociationTest();
-     }
- 
-     // output every 'getSampleEvery()' iterations
-     if( !(iteration % options->getSampleEvery()) ){
-       if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
-	 //Only output population-level parameters when there is a hierarchical model on indadmixture
-	 L.OutputParams(iteration, &LogFileStream);
-	 R.Output(iteration,&LogFileStream,options,IC);
-	 A.OutputEta(iteration, options, &LogFileStream);
-	 if( !options->useCOUT() || iteration == 0 ) LogFileStream << endl;
-       }
-       if( options->useCOUT() ) cout << endl;
-       if( iteration > options->getBurnIn() ){
-	 // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
-	 if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture(A.GetAlleleFreqs(options->getLocusForTest()));
-	 if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
-       }
-     }     
-     //Output and scoretest updates after BurnIn     
-     if( iteration > options->getBurnIn() ){
-       Scoretest.Update(R.getlambda0(), &A);
-       R.SumParameters(options->getAnalysisTypeIndicator());
-
-  // output every 'getSampleEvery() * 10' iterations
-       if (!(iteration % (options->getSampleEvery() * 10))){    
-	 //FST
-	 if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-	   A.OutputFST(options->IsPedFile());
-	 }
-	 //Ergodic averages
-	 if ( strlen( options->getErgodicAverageFilename() ) ){
-	   int samples = iteration - options->getBurnIn();
-	   L.OutputErgodicAvg(samples,&avgstream);
-	   R.OutputErgodicAvg(samples,IC,&avgstream);
-	   A.OutputErgodicAvg(samples,options,&avgstream);
-	   if( options->getAnalysisTypeIndicator() == -1 ){
-	     IC->OutputErgodicAvg(samples,&MargLikelihood,&avgstream);
-	   }
-	   avgstream << endl;
-	 }
-	 //Test output
-	 if( options->getTestForDispersion() )  DispTest.Output(iteration - options->getBurnIn(), *(A.getLoci()));
-	 if( options->getStratificationTest() ) StratTest.Output();
-	 Scoretest.Output(iteration,PopulationLabels);
-       }//end of 'every'*10 output
-     }//end if after BurnIn
-   }//end main loop
-
-   if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);
-   if( options->getMLIndicator() )IC->Output(&LogFileStream);
-   Scoretest.ROutput();
+      
+      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
+	A.SetMergedHaplotypes(L.getalpha0(), &LogFileStream, options->IsPedFile());
+	Scoretest.SetAllelicAssociationTest();
+      }
+      
+      // output every 'getSampleEvery()' iterations
+      if( !(iteration % options->getSampleEvery()) ){
+	if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
+	  //Only output population-level parameters when there is a hierarchical model on indadmixture
+	  L.OutputParams(iteration, &LogFileStream);
+	  R.Output(iteration,&LogFileStream,options,IC);
+	  A.OutputEta(iteration, options, &LogFileStream);
+	  if( !options->useCOUT() || iteration == 0 ) LogFileStream << endl;
+	}
+	if( options->useCOUT() ) cout << endl;
+	if( iteration > options->getBurnIn() ){
+	  // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
+	  if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture(A.GetAlleleFreqs(options->getLocusForTest()));
+	  if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
+	}
+      }     
+      //Output and scoretest updates after BurnIn     
+      if( iteration > options->getBurnIn() ){
+	Scoretest.Update(R.getlambda0(), &A);
+	R.SumParameters(options->getAnalysisTypeIndicator());
+	
+	// output every 'getSampleEvery() * 10' iterations
+	if (!(iteration % (options->getSampleEvery() * 10))){    
+	  //FST
+	  if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+	    A.OutputFST(options->IsPedFile());
+	  }
+	  //Ergodic averages
+	  if ( strlen( options->getErgodicAverageFilename() ) ){
+	    int samples = iteration - options->getBurnIn();
+	    L.OutputErgodicAvg(samples,&avgstream);
+	    R.OutputErgodicAvg(samples,IC,&avgstream);
+	    A.OutputErgodicAvg(samples,options,&avgstream);
+	    if( options->getAnalysisTypeIndicator() == -1 ){
+	      IC->OutputErgodicAvg(samples,&MargLikelihood,&avgstream);
+	    }
+	    avgstream << endl;
+	  }
+	  //Test output
+	  if( options->getTestForDispersion() )  DispTest.Output(iteration - options->getBurnIn(), *(A.getLoci()));
+	  if( options->getStratificationTest() ) StratTest.Output();
+	  Scoretest.Output(iteration,PopulationLabels);
+	}//end of 'every'*10 output
+      }//end if after BurnIn
+    }//end main loop
+    
+    if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);
+    if( options->getMLIndicator() )IC->Output(&LogFileStream);
+    Scoretest.ROutput();
   }//end else
 
-  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
-    delete chrm[i];
-  }
- 
+  //  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
+  //     delete chrm[i];
+  //   }
+  
   delete IC;//must call explicitly as IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
   //delete []PopulationLabels;
-
+  
   ProcessingTime(&Log, StartTime);
 }
 
@@ -395,6 +381,7 @@ void ProcessingTime(LogWriter *Log, long StartTime)
   Log->logmsg(true,timer.tm_sec);
   Log->logmsg(true,"s\n");
 
+  //double realtime = difftime(time(0), StartTime);
 //   realtime = pruntime();
 //   Log->logmsg(true,"Elapsed time = ");
 //   if(realtime > 3600.0){

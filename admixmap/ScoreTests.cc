@@ -52,7 +52,7 @@ ScoreTests::~ScoreTests(){
   }
 }
 
-void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Genome *L, Chromosome **c,
+void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Genome *L, Chromosome **c,std::string *PLabels,
 			    LogWriter *log){
   options = op;
   individuals = indiv;
@@ -259,6 +259,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     }
   }
 
+  if( options->getTextIndicator() )InitialiseAssocScoreFile(PLabels);
 }
 
 //Initialise ergodic average score file

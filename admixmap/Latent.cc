@@ -18,7 +18,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
 }
 
 void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFileStreamPtr,
-			std::vector<bool> *_admixed, bool *_symmetric, Vector_d *poptheta){
+			std::vector<bool> *_admixed, bool *_symmetric, Vector_d *poptheta, std::string *PopulationLabels){
   //Initialise population admixture distribution Dirichlet parameters alpha
   Vector_d alphatemp;
   SumAlpha.SetNumberOfElements( options->getPopulations() );
@@ -59,6 +59,7 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
      Log->logmsg(true,"Can only specify seperate priors for gamete admixture with analysis of single individual.\n");
   }
   if(!options->getIndAdmixHierIndicator())  SumAlpha = alpha[0];
+
   //Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta
   //
   if( !options->getRhoIndicator() )
@@ -88,7 +89,7 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   rhobeta1 = 1;
 
   //Open paramfile 
-  if ( strlen( options->getParameterFilename() ) ){
+  if ( options->getIndAdmixHierIndicator() && strlen( options->getParameterFilename() ) ){
     outputstream.open( options->getParameterFilename(), ios::out );
     if( !outputstream )
       {
@@ -99,23 +100,12 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
       Log->logmsg(true,"Writing population-level parameters to ");
       Log->logmsg(true,options->getParameterFilename());
       Log->logmsg(true,"\n");
+      if( options->getTextIndicator() )	InitializeOutputFile(PopulationLabels);
     }
   }
   else{
     Log->logmsg(true,"No paramfile given\n");
     //exit(1);
-  }
-
-  // code below does not belong in Latent, which in parallel version will not be able to 
-  // write individual-level parameters
-  //Open IndAdmixtureOutputFile    
-  if ( strlen( options->getIndAdmixtureFilename() ) ){
-    Log->logmsg(true,"Writing individual-level parameters to ");
-    Log->logmsg(true,options->getIndAdmixtureFilename());
-    Log->logmsg(true,"\n");
-    //indadmixoutput = new IndAdmixOutputter(options,Loci,PopulationLabels);
-  } else {
-    Log->logmsg(true,"No indadmixturefile given\n");
   }
 
   //Misc.  
@@ -396,7 +386,7 @@ Latent::CheckInitAlpha( Vector_d alphatemp )
 }
 
 void Latent::Update(int iteration, IndividualCollection *individuals,
-		    Vector_d *SumLogTheta,Vector_d *poptheta,std::ofstream *LogFileStreamPtr){
+		    Vector_d *poptheta,std::ofstream *LogFileStreamPtr){
 
   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
       options->getIndAdmixHierIndicator() ){
@@ -425,7 +415,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
     // Sample for population admixture distribution Dirichlet parameters alpha
     for( int j = 0; j < options->getPopulations(); j++ ){
       AlphaParameters(1) -= alpha[0]( j );
-      AlphaParameters(4) = (*SumLogTheta)( j );
+      AlphaParameters(4) = individuals->getSumLogTheta(j);
       // elements of Dirichlet parameter vector are updated one at a time
       DirParamArray[j]->UpdateParameters( AlphaParameters );
       alpha[0]( j ) = DirParamArray[j]->Sample();
@@ -443,10 +433,11 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
   }
 
   if( iteration < options->getBurnIn() && options->getPopulations() > 1
-      && options->getAnalysisTypeIndicator() > 0 ){
+      && options->getAnalysisTypeIndicator() > 1 ){
     // accumulate ergodic average of population admixture, which is used to centre 
     // the values of individual admixture in the regression model
     *poptheta = SumAlpha / SumAlpha.Sum();
+
   }
   if( iteration > options->getBurnIn() ){
     // accumulate sum of rho parameters after burnin.

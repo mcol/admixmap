@@ -103,7 +103,7 @@ private:
 public:
   ScoreTests();
 
-  void Initialise(AdmixOptions *,IndividualCollection *,Genome *,Chromosome **,LogWriter *);
+  void Initialise(AdmixOptions *,IndividualCollection *,Genome *,Chromosome **,std::string *, LogWriter *);
 
   void InitialiseAssocScoreFile(std::string *);
 

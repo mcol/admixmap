@@ -138,7 +138,7 @@ private:
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 			   vector< unsigned int > SumN, vector< unsigned int > SumN_X);
 
-  void CalculateChibMarginalLikelihood(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
+  void CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
 						 double L_X, vector< unsigned int > SumN, vector< unsigned int > SumN_X, 
 						 Matrix_i &SumLocusAncestry, Matrix_i &SumLocusAncestry_X);
@@ -147,6 +147,7 @@ private:
 		 AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
 		 vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr);
 
+  void setIsMissing(vector<unsigned int >& decoded);
 };
 
 #endif /* INDIVIDUAL_H */

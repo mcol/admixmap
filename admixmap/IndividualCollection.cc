@@ -192,10 +192,17 @@ void IndividualCollection::calculateExpectedY( int k)
     ExpectedY(k)( i, 0 ) = 1 / ( 1 + exp( -ExpectedY(k)( i, 0 ) ) );
 }
 
-void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta, Genome *Loci, std::string *PopulationLabels){
-
-if ( strlen( options->getIndAdmixtureFilename() ) ){
+void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta, Genome *Loci, std::string *PopulationLabels, 
+				      double rhoalpha, double rhobeta, LogWriter *Log){
+  
+  if ( strlen( options->getIndAdmixtureFilename() ) ){
+    Log->logmsg(true,"Writing individual-level parameters to ");
+    Log->logmsg(true,options->getIndAdmixtureFilename());
+    Log->logmsg(true,"\n");
     indadmixoutput = new IndAdmixOutputter(options,Loci,PopulationLabels);
+  }
+  else {
+    Log->logmsg(true,"No indadmixturefile given\n");
   }
  if( options->getLocusForTestIndicator() )
      _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
@@ -263,7 +270,8 @@ if ( strlen( options->getIndAdmixtureFilename() ) ){
 	calculateExpectedY(k);
     }
   }
-
+  SumLogTheta.SetNumberOfElements( options->getPopulations());
+  PreUpdate(rhoalpha,rhobeta,options);
 }
 
 void IndividualCollection::LoadGenotypes(AdmixOptions *options, InputData *data_, LogWriter *Log, Genome *Loci){
@@ -491,28 +499,28 @@ void IndividualCollection::CheckGenotypes(Genome *Loci,LogWriter *Log)
     exit(0);
 }
 
-void IndividualCollection::Update(int iteration, Vector_d *SumLogTheta, AlleleFreqs *A, Vector_d *lambda, int NoCovariates,  
+void IndividualCollection::Update(int iteration, AlleleFreqs *A, Vector_d *lambda, int NoCovariates,  
 				  MatrixArray_d *beta, Vector_d &poptheta, AdmixOptions *options,
 				  Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, 
 				  vector<bool> _admixed, double rhoalpha, double rhobeta,
 				  std::ofstream *LogFileStreamPtr, chib *MargLikelihood){
-
-for( int i = 0; i < getSize(); i++ ){
-
-  if( options->getPopulations() > 1 ){
-    _child[i]->SampleIndividualParameters(i, SumLogTheta, A, iteration , &Target, OutcomeType, ExpectedY, *lambda, NoCovariates, 
-						 Covariates(0),*beta,poptheta, options, 
-						 chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma);}
-
-  else{
-     _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *lambda, A, options->getAnalysisTypeIndicator());
-  }   
-
-  if( options->getAnalysisTypeIndicator() < 0 && i == 0 )//check if this condition is correct
-     _child[i]->ChibLikelihood(i,iteration, &LogLikelihood, &SumLogLikelihood, MaxLogLikelihood, 
-				     options, chrm, alpha,_admixed, rhoalpha, rhobeta,
-				     thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood, A);
- }
+  SumLogTheta.SetElements( 0.0 );
+  for( int i = 0; i < getSize(); i++ ){
+    
+    if( options->getPopulations() > 1 ){
+      _child[i]->SampleIndividualParameters(i, &SumLogTheta, A, iteration , &Target, OutcomeType, ExpectedY, *lambda, NoCovariates, 
+					    Covariates(0),*beta,poptheta, options, 
+					    chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma);}
+    
+    else{
+      _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *lambda, A, options->getAnalysisTypeIndicator());
+    }   
+    
+    if( options->getAnalysisTypeIndicator() < 0 && i == 0 )//check if this condition is correct
+      _child[i]->ChibLikelihood(i,iteration, &LogLikelihood, &SumLogLikelihood, MaxLogLikelihood, 
+				options, chrm, alpha,_admixed, rhoalpha, rhobeta,
+				thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood, A);
+  }
 }
 
 void IndividualCollection::PreUpdate(double rhoalpha, double rhobeta, AdmixOptions * options){
@@ -563,6 +571,9 @@ IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *
    Log->logmsg(true, _child[0]->getLogLikelihoodOnePop(A));
    Log->logmsg(true,"\n");
 
+}
+double IndividualCollection::getSumLogTheta(int i){
+  return SumLogTheta(i);
 }
 double IndividualCollection::getLL(){
   //not currently used

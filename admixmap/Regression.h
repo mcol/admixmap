@@ -23,7 +23,7 @@ public:
   Regression();
   Regression(int);
   ~Regression();
-  void Initialise(IndividualCollection *, AdmixOptions *, LogWriter *);
+  void Initialise(IndividualCollection *, AdmixOptions *, std::string *Populationlabels, LogWriter *);
   void Update(IndividualCollection *individuals);
   void SumParameters(int);//should be private, part of Update
   void InitializeOutputFile(AdmixOptions *, IndividualCollection *individuals,std::string *PopulationLabels);

@@ -60,12 +60,12 @@ public:
   ~Latent();
 
   void Initialise(IndividualCollection *,std::ofstream *, std::vector<bool> *_admixed, bool *_symmetric,
-		  Vector_d *poptheta);  
+		  Vector_d *poptheta, std::string *PopulationLabels);  
 
   void  InitializeOutputFile(std::string *);//possibly move this into PreUpate
 
   //Updating every iteration
-  void Update(int iteration,IndividualCollection *, Vector_d *SumLogTheta,
+  void Update(int iteration,IndividualCollection *,
 	      Vector_d *poptheta,std::ofstream *LogFileStreamPtr);
 
   void OutputParams(int iteration, std::ofstream *LogFileStreamPtr); 

@@ -27,6 +27,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
 
     int TotalLoci = 0;
     //Can we not just count the length of Genome?
+    //TotalLoci = Loci.GetNumberOfCompositeLoci();
     numCompLoci.resize( numChromosomes );
     for( unsigned int j = 0; j < numChromosomes; j++ ){
         numCompLoci[j] = chrm[j]->GetSize();
@@ -462,7 +463,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
      Theta.SetColumn( 0, vectemp );
   }
   if( options->getMLIndicator() && ind == 0 && iteration > options->getBurnIn() )
-    CalculateChibMarginalLikelihood(options,A->getLoci()->isX_data(), alpha, _symmetric,
+    CalculateLogPosterior(options,A->getLoci()->isX_data(), alpha, _symmetric,
 				    _admixed,rhoalpha, rhobeta, L, L_X, 
 				    SumN, SumN_X, SumLocusAncestry, SumLocusAncestry_X);
 
@@ -613,12 +614,11 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
   }
 }
 
-void Individual::CalculateChibMarginalLikelihood(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
+void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
 						 double L_X, vector< unsigned int > SumN, vector< unsigned int > SumN_X, 
 						 Matrix_i &SumLocusAncestry, Matrix_i &SumLocusAncestry_X){
- // this function computes marginal likelihood by the Chib algorithm.  Can be replaced with 
-  // more efficient algorithm based on HMM likelihood
+
   LogPosterior = 0.0; 
   double IntConst1;
  {
@@ -935,10 +935,10 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
   }
 }
 
-// Chib method for marginal likelihood should be rewritten to use the HMM likelihood, without sampling locus ancestry or arrivals
 void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
 				AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
 				vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr)
+//Computes LogPrior and LogLikelihood used for Chib Algorithm
 {
    double LogPrior=0, LogLikelihoodAtEst;
    *LogFileStreamPtr << "Calculating posterior at individual admixture\n"
@@ -1028,6 +1028,9 @@ void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> 
    MargLikelihood->setLogLikelihood( LogLikelihoodAtEst );   
 }
 
+ // this function computes marginal likelihood by the Chib algorithm.  Can be replaced with 
+  // more efficient algorithm based on HMM likelihood
+// Chib method for marginal likelihood should be rewritten to use the HMM likelihood, without sampling locus ancestry or arrivals
 void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, double *SumLogLikelihood, vector<double> MaxLogLikelihood, 
 				AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha, 
 				vector<bool> _admixed, double rhoalpha, double rhobeta, MatrixArray_d &thetahat, 

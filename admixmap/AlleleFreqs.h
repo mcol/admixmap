@@ -18,7 +18,7 @@ public:
   void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels, double rho);
   void load_f(double rho,Chromosome **chrm);
   void Update(int iteration,int);
-  void InitializeOutputFile(AdmixOptions *options, std::string *PopulationLabels);
+  void InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log);
 //outputs SumEta  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration,AdmixOptions *options, std::ofstream *avgstream);
   //outputs eta to dispparamfile

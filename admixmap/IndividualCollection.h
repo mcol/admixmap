@@ -47,13 +47,14 @@ private:
   IndividualVisitor* indadmixoutput;
   double LogLikelihood, SumLogLikelihood;
   std::vector< int > _locusfortest;
+  Vector_d SumLogTheta;
 
 public:
   IndividualCollection();
   ~IndividualCollection();
   IndividualCollection(AdmixOptions*,const Matrix_s& data,Genome&,Chromosome **);
 
-  void Initialise(AdmixOptions *, MatrixArray_d *,Genome *,std::string *PopulationLabels);
+  void Initialise(AdmixOptions *, MatrixArray_d *,Genome *,std::string *PopulationLabels, double rhoalpha,double rhobeta, LogWriter *Log);
 
   void PreUpdate(double, double, AdmixOptions *);
 
@@ -61,7 +62,7 @@ public:
   
   void getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *A, std::string *PopulationLabels);
 
-  void Update(int iteration, Vector_d *SumLogTheta, AlleleFreqs *A, Vector_d *lambda, int NoCovariates, MatrixArray_d *beta, 
+  void Update(int iteration, AlleleFreqs *A, Vector_d *lambda, int NoCovariates, MatrixArray_d *beta, 
 	      Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, 
 	      vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta,
 	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood);
@@ -85,6 +86,7 @@ public:
   Vector_i GetSumXi();
   double GetSumrho0();
   double GetSumrho();
+  double getSumLogTheta(int);
   MatrixArray_d getOutcome();
   Matrix_d getOutcome(int);
   Vector_d getTargetCol(int,int);

@@ -19,7 +19,7 @@ Regression::~Regression(){
 
 }
 
-void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *options, LogWriter *Log){
+void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log){
   AnalysisTypeIndicator = options->getAnalysisTypeIndicator();
   //Open paramfile 
   if ( strlen( options->getRegressionOutputFilename() ) ){
@@ -33,6 +33,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
       Log->logmsg(true,"Writing population-level regression parameters to ");
       Log->logmsg(true,options->getRegressionOutputFilename());
       Log->logmsg(true,"\n");
+      if( options->getTextIndicator() )InitializeOutputFile(options, individuals, PopulationLabels);
     }
   }
   else{
