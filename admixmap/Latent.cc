@@ -399,7 +399,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
 		    Vector_d *SumLogTheta,Vector_d *poptheta,std::ofstream *LogFileStreamPtr){
 
   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
-      options->getAnalysisTypeIndicator() != -3 ){
+      !options->getIndAdmixHierIndicator() ){
     if( Loci->GetLengthOfGenome() > 0.0 ){
       // Sample for global rho
       if( !options->getRhoIndicator() ){

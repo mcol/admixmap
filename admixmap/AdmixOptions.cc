@@ -62,8 +62,10 @@ struct AdmixOptions::Options
   string LocusScoreFilename;
   string AncestryAssociationScoreFilename;
   string LogFilename;
-  bool modelIndicator;
-  bool RhoIndicator;
+  bool modelIndicator;//random mating model
+  bool RhoIndicator;// global rho
+  bool IndAdmixHierIndicator;//hierarchical model on ind admixture
+  bool MLIndicator;//calculate marginal likelihood - valid only for analysistypeindicator < 0
   double TruncPt;
   int Populations;
   string PriorAlleleFreqFilename;
@@ -89,7 +91,6 @@ struct AdmixOptions::Options
   bool OutputFST;
   bool runRScript;
   bool XOnlyAnalysis;
-  string prepend;
   string argsfile;
   unsigned int isPedFile;
   unsigned int genotypesSexColumn;
@@ -112,7 +113,9 @@ AdmixOptions::AdmixOptions()
   imp->ResultsDir = "results";
 
   imp->modelIndicator = false;
-  imp->RhoIndicator = false;
+  imp->RhoIndicator = false;//corresponds to globalrho = 1;
+  imp->IndAdmixHierIndicator = true;
+  imp->MLIndicator = false;
   imp->TruncPt = 99;
   imp->Populations = 0;
 
@@ -147,6 +150,8 @@ AdmixOptions::AdmixOptions()
   OptionValues["resultsdir"] = "results";
   OptionValues["randommatingmodel"] = "0";
   OptionValues["globalrho"] = "1";
+  OptionValues["IndAdmixHierModel"] = "1";
+  OptionValues["MargLikelihood"] = "0";
   OptionValues["truncationpoint"] = "99";
   OptionValues["populations"] = "0";
   OptionValues["ScoreTestIndicator"] = "0";
@@ -325,6 +330,13 @@ bool AdmixOptions::getModelIndicator() const
   return imp->modelIndicator;
 }
 
+bool AdmixOptions::getIndAdmixHierIndicator() const{
+  return imp->IndAdmixHierIndicator;
+}
+bool AdmixOptions::getMLIndicator()const{
+  return imp->MLIndicator;
+}
+
 double AdmixOptions::getTruncPt() const
 {
   return imp->TruncPt;
@@ -464,11 +476,6 @@ Vector_d AdmixOptions::getInitAlpha(int gamete) const
   return imp->alpha[gamete];
 }
 
-const char* AdmixOptions::prepend() const
-{
-  return imp->prepend.c_str();
-}
-
 unsigned int AdmixOptions::IsPedFile() const
 {
   return imp->isPedFile;
@@ -591,6 +598,8 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"logfile",                               1, 0,  0 }, // string
     {"randommatingmodel",                     1, 0,  0 }, // int 0: 1
     {"globalrho",                             1, 0,  0 }, // int 0: 1
+    {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
+    {"marglikelihood",                        1, 0,  0 }, // int 0: 1
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
@@ -736,7 +745,15 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	if (strtol(optarg, NULL, 10) == 1) {
 	  imp->modelIndicator = true;OptionValues["randommatingmodel"]="1";
 	}
-      } else if (long_option_name == "globalrho") {
+      } else if (long_option_name == "indadmixhiermodel") {
+	if (strtol(optarg, NULL, 10) == 0) {
+	  imp->IndAdmixHierIndicator = false;OptionValues["indadmixhiermodel"]="0";
+	}
+      }else if (long_option_name == "marglikelihood") {
+	if (strtol(optarg, NULL, 10) == 1) {
+	  imp->MLIndicator = true;OptionValues["marglikelihood"]="1";
+	}
+      }else if (long_option_name == "globalrho") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  imp->RhoIndicator = false;OptionValues["globalrho"]="0";
 	} else if (strtol(optarg, NULL, 10) == 0) {
@@ -914,22 +931,35 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     {
       Log->logmsg(true,"One individual analysis with marginal likelihood calculation.\n");
     }
-  else if (getAnalysisTypeIndicator() == -3)
+
+  else
+    {
+      Log->logmsg(true,"Unknown analysis type: ");
+      Log->logmsg(true, getAnalysisTypeIndicator());
+      Log->logmsg(true, "\n");
+      exit(0);
+    }
+
+  if (!getIndAdmixHierIndicator())
     {
       Log->logmsg(true,"No hierarchical model for individuals.\n");
     }
-  else
-    {
-      Log->logmsg(true,"Unknown analysis type.\n");
-      exit(0);
-    }
  
   if(getModelIndicator() )
-  Log->logmsg(true,"Model assuming random mating.\n");
+    Log->logmsg(true,"Model assuming random mating.\n");
   else 
     Log->logmsg(true,"Model assuming assortative mating.\n");
 
-  // Check whether input and target files have been specified
+  if(getMLIndicator()){
+    if(getAnalysisTypeIndicator() >= 0){
+      Log->logmsg(true, "Error: Cannot calculate marginal likelihood with analysis type ");
+      Log->logmsg(true, getAnalysisTypeIndicator());
+      Log->logmsg(true, "\n");
+      exit(0);
+    }
+    else Log->logmsg(true,"Analysis with marginal likelihood calculation\n");
+  }
+  // Check whether genotypes file has been specified
   if ( strlen(getGeneticDataFilename() ) == 0 )
     {
       Log->logmsg(true,"Must specify geneticdata filename.\n");
@@ -946,12 +976,12 @@ int AdmixOptions::checkOptions(LogWriter *Log){
            (strlen( getPriorAlleleFreqFilename() ) && getFixedAlleleFreqs() ) ){
     Log->logmsg(true,"Analysis with fixed allele frequencies.\n");
   }
-else if( strlen(getPriorAlleleFreqFilename() ) && !getFixedAlleleFreqs() ){
+  else if( strlen(getPriorAlleleFreqFilename() ) && !getFixedAlleleFreqs() ){
     Log->logmsg(true,"Analysis with prior allele frequencies.\n");
-}
- else if( strlen( getHistoricalAlleleFreqFilename() ) ){
+  }
+  else if( strlen( getHistoricalAlleleFreqFilename() ) ){
     Log->logmsg(true,"Analysis with dispersion model for allele frequencies.\n");
-}
+  }
   if ( strlen( getGeneInfoFilename() ) == 0 )
     {
       Log->logmsg(true,"Must specify locusinfo filename.\n");

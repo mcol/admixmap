@@ -508,8 +508,7 @@ for( int i = 0; i < getSize(); i++ ){
      _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *lambda, A, options->getAnalysisTypeIndicator());
   }   
 
-  if( options->getAnalysisTypeIndicator() == -3 || 
-      options->getAnalysisTypeIndicator() == -1 && i == 0 /*&& options->LikOutput()*/)
+  if( options->getMLIndicator() && i == 0 )//check if this condition is correct
      _child[i]->ChibLikelihood(i,iteration, &LogLikelihood, &SumLogLikelihood, MaxLogLikelihood, 
 				     options, chrm, alpha,_admixed, rhoalpha, rhobeta,
 				     thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood, A);

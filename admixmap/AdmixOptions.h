@@ -88,6 +88,8 @@ public:
   
   bool getModelIndicator() const;
   bool getRhoIndicator() const;
+  bool getIndAdmixHierIndicator() const;
+  bool getMLIndicator() const;
   double getTruncPt() const;  
   
   const char *getPosteriorSummariesFilename() const; 
@@ -121,8 +123,6 @@ public:
   
   Vector_d getInitAlpha(int) const;
   int sizeInitAlpha() const;
-  
-  const char *prepend() const;
   
   unsigned int IsPedFile() const;
   void IsPedFile(unsigned int);

@@ -219,7 +219,7 @@ void submain(AdmixOptions* options){
    }//end main loop
 
    if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);
-   if( options->getAnalysisTypeIndicator() == -3 )IC->Output(&LogFileStream);
+   if( options->getMLIndicator() )IC->Output(&LogFileStream);
    Scoretest.ROutput();
   }//end else
 
