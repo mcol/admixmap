@@ -526,6 +526,7 @@ plotScoreTestAlleleFreqs <- function(scorefile) {
 convertAlleleFreqs <- function(allelefreq.samples) {
   ## argument is a 3-way array of allele frequencies (locusname + pops, alleles x loci, draws)
   ## converts to a list of 3-way arrays each holding alleles x pops x draws for one locus
+  ## dimension 1 of each array is number of alleles minus 1 
   ## extract vector of locus names
   draws <- dim(allelefreq.samples)[3]
   locusnames <- allelefreq.samples[1, , 1]
@@ -579,9 +580,12 @@ calculateLocusfValues <- function(allelefreq.samples.list) {
   pop2 <- 2
   ## 3-way array (alleles-1 x pops x draws) of allele freqs at each locus
   for(locus in 1:num.loci) {
+    num.alleles.minus1 <- dim(allelefreq.samples.list[[locus]])[1] 
     for(draw in 1:num.draws) {
       ## a alleles, 2 pops
-      p <- allelefreq.samples.list[[locus]][, c(pop1, pop2), draw]
+      p <- matrix(allelefreq.samples.list[[locus]][, c(pop1, pop2), draw],
+                  nrow=num.alleles.minus1, ncol=2)
+      p <- rbind(p, 1 - apply(p, 2, sum))     
       ratios <- p[, 1]*p[, 2]/(p[, 1] + p[, 2]) ## vector of length a
       f.draws[draw] <- 1 - 2*sum(ratios)
     }
@@ -686,7 +690,7 @@ plotAdmixtureDistribution <- function(alphas, samples, k) {
   for(pop in 1:k) {
     popM <- dbeta(xvalues, alphas[pop], sum(alphas[-pop])) # beta density of pop at xvalues
     indivadmixture.estimates <- apply(samples[pop,,], 1, mean) # proportionate admixture from pop 
-    hist(indivadmixture.estimates, xlim=c(0,1), ylim=c(0, 2*max(popM)), 
+    hist(indivadmixture.estimates, xlim=c(0,1), # ylim=c(0, 2*max(popM)), 
          ## breaks=seq(0,1, 0.05), 
          freq=FALSE,  
          xaxs="i", yaxs="i", 
