@@ -88,7 +88,8 @@ void submain(AdmixOptions* options){
 
   A.LoadAlleleFreqs(options,&chrm,&Log,&data,&PopulationLabels);//NB this sets Populations option
   IC = new IndividualCollection(options,data.getGeneticData(),*(A.getLoci()),*chrm);//NB call after LoadAlleleFreqs
-  IC->LoadGenotypes(options,&data, &Log, A.getLoci());
+  IC->LoadGenotypes(options,&data, &Log, A.getLoci());                             //and before L and R Initialise
+
   L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&LociCorrSummary,&poptheta);
   R.Initialise(IC,options, &Log);
   A.Initialise(options,data.getEtaPriorMatrix(),&Log,PopulationLabels);
@@ -135,8 +136,7 @@ void submain(AdmixOptions* options){
 		 LociCorrSummary, A.getLoci(), chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
 
-      // UpdateAlleleFreqs should not need to take getPopulations as an argument once the A object is initialized	
-      A.UpdateAlleleFreqs(iteration,options->getBurnIn(),options->getPopulations());
+       A.UpdateAlleleFreqs(iteration,options->getBurnIn());
      if( iteration > options->getBurnIn() ){
        DispTest.UpdateBayesianPValueTest(*(A.getLoci()));
        if( options->getStratificationTest() )StratTest.calculate(IC, *(A.getLoci()));

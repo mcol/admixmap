@@ -27,6 +27,7 @@ AlleleFreqs::AlleleFreqs(){
   w = 0;
   NumberAccepted = null_Vector_i;
   Number  = 0;
+  Populations = 0;
   allelefreqoutput = 0;
   
 }
@@ -47,6 +48,7 @@ AlleleFreqs::~AlleleFreqs(){
 void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogWriter *Log,
 			     std::string *PopulationLabels){
   Number = 0;
+  Populations = options->getPopulations();
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ) isHistoricAlleleFreq = true;
   else isHistoricAlleleFreq = false;
 
@@ -54,23 +56,23 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
     allelefreqoutput = new AlleleFreqOutputter(options,PopulationLabels);
   }
 
-  psi.SetNumberOfElements( options->getPopulations() );
-  tau.SetNumberOfElements( options->getPopulations() );
+  psi.SetNumberOfElements( Populations );
+  tau.SetNumberOfElements( Populations );
 
-  SumAcceptanceProb.SetNumberOfElements( options->getPopulations() );
-  SumEta.SetNumberOfElements( options->getPopulations() );
+  SumAcceptanceProb.SetNumberOfElements( Populations );
+  SumEta.SetNumberOfElements( Populations );
 
   // Matrix etaprior(1,1);
-  Vector_d maxeta( options->getPopulations() );
+  Vector_d maxeta( Populations );
   if( isHistoricAlleleFreq ){
     w = 10;
     etastep0 = 2.0;
-    etastep.SetNumberOfElements( options->getPopulations() );
+    etastep.SetNumberOfElements( Populations );
     etastep.SetElements( etastep0 );
-    eta.SetNumberOfElements( options->getPopulations() );
-    NumberAccepted.SetNumberOfElements( options->getPopulations() );
-    TuneEtaSampler = new TuneRW[ options->getPopulations() ];
-    for( int k = 0; k < options->getPopulations(); k++ )
+    eta.SetNumberOfElements( Populations );
+    NumberAccepted.SetNumberOfElements( Populations );
+    TuneEtaSampler = new TuneRW[ Populations ];
+    for( int k = 0; k < Populations; k++ )
       TuneEtaSampler[k].SetParameters( w, etastep0, 0.1, 100, 0.44 );
     if( strlen(options->getEtaPriorFilename()) ){
       Log->logmsg(true,"Loading gamma prior parameters for allele frequency dispersion from ");
@@ -78,7 +80,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
       Log->logmsg(true,".\n");
       //const Matrix_d& etaprior = data_->getEtaPriorMatrix();
 
-      for( int k = 0; k < options->getPopulations(); k++ ){
+      for( int k = 0; k < Populations; k++ ){
 	psi(k) = etaprior( k, 0 );
 	tau(k) = etaprior( k, 1 );
 	Log->logmsg(true, "Population ");
@@ -94,7 +96,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
       psi.SetElements( 2 ); // default gamma prior with mean 400 
       tau.SetElements( 0.005 );
     }
-    for( int k = 0; k < options->getPopulations(); k++ ){
+    for( int k = 0; k < Populations; k++ ){
       for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
 	maxeta(k) =  Loci(j)->GetPriorAlleleFreqs( k ).Sum();
 	if( maxeta(k) > eta(k) ){
@@ -139,7 +141,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
 
 // Method samples allele frequency and prior allele frequency
 // parameters.
-void AlleleFreqs::UpdateAlleleFreqs(int iteration,int BurnIn,int Populations){
+void AlleleFreqs::UpdateAlleleFreqs(int iteration,int BurnIn){
   if( Loci(0)->IsRandom() ){
      
     Vector_d EtaParameters(3), probs;
@@ -221,18 +223,18 @@ void AlleleFreqs::InitializeOutputFile(AdmixOptions *options, std::string *Popul
 
     //Dispersion parameters (eta)
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-      for( int k = 0; k < options->getPopulations(); k++ ){
+      for( int k = 0; k < Populations; k++ ){
 	outputstream << "\"eta." << PopulationLabels[k].substr(1);
       }
     }
     outputstream << endl;
   }
-}//end InitializeOutputFiles
+}
 
 void AlleleFreqs::OutputErgodicAvg( int samples,AdmixOptions *options, std::ofstream *avgstream)
 {
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-    for( int j = 0; j < options->getPopulations(); j++ ){
+    for( int j = 0; j < Populations; j++ ){
       avgstream->width(9);
       *avgstream << setprecision(6) << SumEta(j) / samples << " ";
     }
@@ -244,7 +246,7 @@ void AlleleFreqs::OutputEta(int iteration, AdmixOptions *options, std::ofstream 
   //output to logfile
     if( !options->useCOUT() || iteration == 0 )
       {
-	for( int j = 0; j < options->getPopulations(); j++ ){
+	for( int j = 0; j < Populations; j++ ){
 	  LogFileStreamPtr->width(9);
 	  (*LogFileStreamPtr) << setprecision(6) << eta(j) << " ";
 	}
@@ -252,14 +254,14 @@ void AlleleFreqs::OutputEta(int iteration, AdmixOptions *options, std::ofstream 
   //output to screen
     if( options->useCOUT() )
       {
-	for( int j = 0; j < options->getPopulations(); j++ ){
+	for( int j = 0; j < Populations; j++ ){
 	  cout.width(9);
 	  cout << setprecision(6) << eta(j) << " ";
 	}
       }
   //Output to paramfile after BurnIn
     if( iteration > options->getBurnIn() ){
-      for( int j = 0; j < options->getPopulations(); j++ ){
+      for( int j = 0; j < Populations; j++ ){
 	outputstream.width(9);
 	outputstream << setprecision(6) << eta(j);
       }
@@ -407,6 +409,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Genome **chrm,LogWriter
   Matrix_d temporary;
   vector<string> ChrmLabels;
 
+  Populations = options->getPopulations();
   checkLociNames(options,data_);
   loadAlleleStatesAndDistances(&ChrmLabels,options,data_, Log);
 
@@ -428,13 +431,14 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Genome **chrm,LogWriter
       Log->logmsg(true," rows.\n");
       exit(0);
     }
-    options->setPopulations( temporary.GetNumberOfCols() - options->getTextIndicator() );
+    //options->setPopulations( temporary.GetNumberOfCols() - options->getTextIndicator() );
+    Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
     if( options->getTextIndicator() ){
-      temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, options->getPopulations() );
+      temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, Populations );
  
-      *PopulationLabels = new string[ options->getPopulations() ];
+      *PopulationLabels = new string[ Populations ];
 
-      Vector_i vtemp( options->getPopulations() + 1 );
+      Vector_i vtemp( Populations + 1 );
       vtemp.SetElements( 1 );
       vtemp(0) = 0;
       ::getLabels(data_->getAlleleFreqData()[0], vtemp, *PopulationLabels);
@@ -443,7 +447,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Genome **chrm,LogWriter
     for( int i = 0; i < GetNumberOfCompositeLoci(); i++ )
       {
 	newrow = row + Loci(i)->GetNumberOfStates() - 1;
-	Loci(i)->SetAlleleFreqs( (temporary.Double()).SubMatrix( row, newrow - 1, 0, options->getPopulations() - 1 ) );
+	Loci(i)->SetAlleleFreqs( (temporary.Double()).SubMatrix( row, newrow - 1, 0, Populations - 1 ) );
 	row = newrow;
       }
 
@@ -468,7 +472,8 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Genome **chrm,LogWriter
       Log->logmsg(false,options->getHistoricalAlleleFreqFilename());
       Log->logmsg(false,".\n");
       temporary = data_->getHistoricalAlleleFreqMatrix();
-      options->setPopulations(temporary.GetNumberOfCols() - options->getTextIndicator());
+      //options->setPopulations(temporary.GetNumberOfCols() - options->getTextIndicator());
+       Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
        
       if( temporary.GetNumberOfRows() != Loci.GetNumberOfStates()+1 ){
 	Log->logmsg(true,"Incorrect number of rows in historicalallelefreqsfile.\n");
@@ -485,7 +490,8 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Genome **chrm,LogWriter
       Log->logmsg(false,options->getPriorAlleleFreqFilename());
       Log->logmsg(false,".\n");
       temporary = data_->getPriorAlleleFreqMatrix();
-      options->setPopulations(temporary.GetNumberOfCols() - options->getTextIndicator());
+      //options->setPopulations(temporary.GetNumberOfCols() - options->getTextIndicator());
+       Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
 
       if( temporary.GetNumberOfRows() != Loci.GetNumberOfStates()+1 ){
 	Log->logmsg(true,"Incorrect number of rows in priorallelefreqsfile.\n");
@@ -498,10 +504,10 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Genome **chrm,LogWriter
       }
     }
  
-    temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, options->getPopulations() );
-    *PopulationLabels = new string[ options->getPopulations() ];
+    temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, Populations );
+    *PopulationLabels = new string[ Populations ];
 
-    Vector_i vtemp( options->getPopulations() + 1 );
+    Vector_i vtemp( Populations + 1 );
     vtemp.SetElements( 1 );
     vtemp(0) = 0;
     ::getLabels(*alleleFreqLabels, vtemp, *PopulationLabels);
@@ -510,16 +516,16 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Genome **chrm,LogWriter
       newrow = row + Loci(i)->GetNumberOfStates();
       if( strlen( options->getHistoricalAlleleFreqFilename() ) )
 	Loci(i)->SetHistoricalAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0,
-								options->getPopulations() - 1 ) );
+								Populations - 1 ) );
       else
-	Loci(i)->SetPriorAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0, options->getPopulations() - 1 ), options->getFixedAlleleFreqs() );
+	Loci(i)->SetPriorAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0, Populations - 1 ), options->getFixedAlleleFreqs() );
       row = newrow;
     }
   }
   else{
-    Loci.SetDefaultAlleleFreqs( options->getPopulations() );
-    *PopulationLabels = new string[ options->getPopulations() ];
-    for( int j = 0; j < options->getPopulations(); j++ ){
+    Loci.SetDefaultAlleleFreqs( Populations );
+    *PopulationLabels = new string[ Populations ];
+    for( int j = 0; j < Populations; j++ ){
       stringstream poplabel;
       string result;
       poplabel << "\"A" << j << "\"";
@@ -528,8 +534,8 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Genome **chrm,LogWriter
     }
       
   }
- *chrm = Loci.GetChromosomes( options->getPopulations(), ChrmLabels );
-
+ *chrm = Loci.GetChromosomes( Populations, ChrmLabels );
+ options->setPopulations(Populations);
  //(**)
   Log->logmsg(false,Loci.size());
   Log->logmsg(false," loci; ");

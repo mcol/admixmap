@@ -13,7 +13,7 @@ public:
   AlleleFreqs();
   ~AlleleFreqs();
   void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels);
-  void UpdateAlleleFreqs(int iteration,int,int);
+  void UpdateAlleleFreqs(int iteration,int);
   void InitializeOutputFile(AdmixOptions *options, std::string *PopulationLabels);
 //outputs SumEta  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration,AdmixOptions *options, std::ofstream *avgstream);
@@ -36,7 +36,7 @@ public:
   Vector_d *getSumEta();
 
 private:
-  int Number;
+  int Number, Populations;
   Vector_d eta; //dispersion parameter
   Vector_d psi,tau;//parameters of gamma prior on eta 
   /**
