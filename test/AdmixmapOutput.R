@@ -698,7 +698,7 @@ plotAdmixtureDistribution <- function(alphas, samples, k) {
   for(pop in 1:k) {
     popM <- dbeta(xvalues, alphas[pop], sum(alphas[-pop])) # beta density of pop at xvalues
     indivadmixture.estimates <- apply(samples[pop,,], 1, mean) # proportionate admixture from pop 
-    hist(indivadmixture.estimates, xlim=c(0,1), # ylim=c(0, 2*max(popM)), 
+    hist(indivadmixture.estimates, xlim=c(0,1), ylim=c(0, 2*max(popM)), 
          ## breaks=seq(0,1, 0.05), 
          freq=FALSE,  
          xaxs="i", yaxs="i", 
@@ -820,7 +820,8 @@ if(is.null(user.options$paramfile)) {
 
 ## read regression parameter samples
 if(is.null(user.options$regparamfile) ||
-           length(scan(paste(resultsdir, user.options$regparamfile, sep="/"), what='character',quiet=TRUE)) == 0)  {
+           length(scan(paste(resultsdir, user.options$regparamfile, sep="/"),
+                       what='character',quiet=TRUE)) == 0)  {
   print("No regression paramfile");
   regparam.samples <- NULL
   beta.admixture<-NULL
@@ -850,7 +851,9 @@ if(is.null(user.options$regparamfile) ||
 }
 
 ## read allele freq dispersion parameter samples
-if(is.null(user.options$dispparamfile)) {
+if(is.null(user.options$dispparamfile)||
+           length(scan(paste(resultsdir, user.options$dispparamfile, sep="/"),
+                       what='character',quiet=TRUE)) == 0)  {
   eta.samples <- NULL
 } else {
   eta.samples<-read.table(paste(resultsdir, user.options$dispparamfile,sep="/"), header=TRUE)
@@ -919,10 +922,14 @@ if(!is.null(user.options$allelefreqoutputfile)) {
   ## calculate posterior means of sampled fvalues at each locus
   if(K > 1) { 
     fValues.means <- calculateLocusfValues(allelefreq.samples.list)
-    fValues.means <- data.frame(round(fValues.means, digits=2))
-    dimnames(fValues.means) <- list(as.vector(loci.compound[,1]), "f-value")
+    fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=2))
+    dimnames(fValues.means)[[2]] <- c("LocusName",
+                                         paste(population.labels[1], population.labels[2], sep="."))
     write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
                 row.names=TRUE, col.names=TRUE)
+    write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
+                file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
+                row.names=FALSE, col.names=TRUE)
   }
   
   ## generate lists to hold allele freq means and covariances
@@ -953,17 +960,24 @@ if(!is.null(user.options$indadmixturefile)) {
   ## reformat as 4-way array if random mating model
   if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
     ## drop any extra vars in the array
-    if(dim(samples)[1] > 2*K ) {
-      samples <- samples[-dim(samples)[1],,]
-    }
-    samples4way <- array(samples, dim=c(2, K, dim(samples)[2:3]))
+    samples.adm <- samples[1:(2*K), , ]
+#    if(dim(samples)[1] > 2*K ) {
+#      samples <- samples[-dim(samples)[1],,]
+#    }
+    samples4way <- array(samples.adm, dim=c(2, K, dim(samples)[2:3]))
     dimnames(samples4way) <- list(c("Parent1", "Parent2"), population.labels,
                                   character(0), character(0))
     samples.meanparents <- apply(samples4way, 2:4, mean)
-  } else samples.meanparents <- samples
+    samples.bothparents <- array(aperm(samples4way, c(2,1,3,4)),
+                                 dim=c(K, 2*n.individuals, n.iterations))
+    dimnames(samples.bothparents) <- list(population.labels, character(0), character(0))
+  } else {
+    samples.meanparents <- samples
+    samples.bothparents <- samples
+  }
   
   ## should plot only if subpopulations are identifiable in model
-  plotAdmixtureDistribution(alphas, samples.meanparents, K)
+  plotAdmixtureDistribution(alphas, samples.bothparents, K)
   if(K > 1) {
     writePosteriorMeansIndivAdmixture(samples.meanparents, K)
   }
