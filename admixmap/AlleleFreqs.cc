@@ -79,7 +79,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
     LociCorrSummary(j) = strangExp( -Loci.GetDistance( j ) * rho );
 
   // Matrix etaprior(1,1);
-  Vector_d maxeta( Populations );
+  //Vector_d maxeta( Populations );
   if( isHistoricAlleleFreq ){
     w = 10;
     etastep0 = 2.0;
@@ -113,35 +113,41 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
       tau.SetElements( 0.005 );
     }
     for( int k = 0; k < Populations; k++ ){
-      for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
-	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
-	if( maxeta(k) > eta(k) ){
-	  eta(k) = maxeta(k);
+
+      //// old method; sets eta to the sum of priorallelefreqs
+      //   for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
+      // 	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
+      // 	if( maxeta(k) > eta(k) ){
+      // 	  eta(k) = maxeta(k);
+      // 	}
+      //       }
+
+      //Initialise eta at its prior expectation
+      eta(k) = psi(k)/tau(k);
+      //Rescale priorallelefreqs so the columns sum to eta 
+      for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ )
+	PriorAlleleFreqs(j).SetColumn(k, PriorAlleleFreqs(j).GetColumn(k) * eta(k) / PriorAlleleFreqs(j).GetColumn(k).Sum());
+    }
+  
+    //Open output file for eta
+    if ( strlen( options->getEtaOutputFilename() ) ){
+      outputstream.open( options->getEtaOutputFilename(), ios::out );
+      if( !outputstream )
+	{
+	  Log->logmsg(true,"ERROR: Couldn't open dispparamfile\n");
+	  //exit( 1 );
 	}
+      else{
+	Log->logmsg(true,"Writing dispersion parameter to ");
+	Log->logmsg(true,options->getEtaOutputFilename());
+	Log->logmsg(true,"\n");
       }
     }
-  }
-
-  if( isHistoricAlleleFreq ){
-  //Open output file for eta
-  if ( strlen( options->getEtaOutputFilename() ) ){
-    outputstream.open( options->getEtaOutputFilename(), ios::out );
-    if( !outputstream )
-      {
-	Log->logmsg(true,"ERROR: Couldn't open dispparamfile\n");
-	//exit( 1 );
-      }
     else{
-      Log->logmsg(true,"Writing dispersion parameter to ");
-      Log->logmsg(true,options->getEtaOutputFilename());
-      Log->logmsg(true,"\n");
+      Log->logmsg(true,"No dispparamfile given\n");
+      //exit(1);
     }
-  }
-  else{
-    Log->logmsg(true,"No dispparamfile given\n");
-    //exit(1);
-  }
-
+    
   }
   OpenFSTFile(options,Log);
   Log->logmsg(true,"Effective length of autosomes under study: ");
@@ -218,7 +224,7 @@ void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int Pops){
 void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed){
 /**
  *
- * Sets the frequencies of each allele at in the ith
+ * Initialises the frequencies of each allele at in the ith
  * composite locus.
  *
  * NewPriorAlleleFreqs - a two-dimensional matrix containing 
@@ -239,16 +245,15 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed){
  *          2 | 1.0 | 8.0 |
  *          3 | 2.0 | 1.0 |
  *
- * The allele frequencies are calculated as expectations over this Dirichlet prior distribution, 
+ * The allele frequencies are initialised as expectations over this Dirichlet prior distribution, 
  * by dividing each prior parameter by the sum of the parameters. 
- * Effect is to integrate out the variation of the allele frequencies over this distribution. 
  * 
  */
   double sumalpha;
   int Pops = New.GetNumberOfCols();
   Loci(i)->SetNumberOfPopulations(Pops);
   if( New.GetNumberOfRows() != Loci(i)->GetNumberOfStates() ){
-    cout << "Error in number of alleles in SetPriorAlleleFreqs.\n";
+    cout << "Error in number of alleles in InitialisePriorAlleleFreqs.\n";
     cout << "Number of states " << Loci(i)->GetNumberOfStates() << endl;
     cout << "PriorAlleleFreqs has " << New.GetNumberOfRows() << " rows.\n";
   }
@@ -279,7 +284,7 @@ void AlleleFreqs::InitialiseHistoricAlleleFreqs(Matrix_d New, int i){
    * allele freqs in the admixed population 
    * to vary from the historical allele frequencies in the unadmixed ancestral populations that have 
    * been sampled. 
-   * Otherwise as for SetPriorAlleleFreqs
+   * Otherwise as for InitalisePriorAlleleFreqs
    * 
    */
   double sumalpha;
@@ -371,8 +376,8 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
       Number++;
       for( int k = 0; k < Populations; k++ ){
          double mineta = 0;
-	// Sample eta from truncated log-normal distribution.
-	vector< Vector_d > munew;
+	 vector< Vector_d > munew;
+	 // Sample eta from truncated log-normal distribution.
 	do{
            etanew = exp( gennor( log( eta(k) ), etastep(k) ) );
 	}while( etanew > 5000.0 );

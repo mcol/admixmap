@@ -83,8 +83,9 @@ private:
   int RandomAlleleFreqs;//should be bool?
 
   Genome Loci;
+
   TuneRW *TuneEtaSampler;
-  int w;
+  int w; // the eta sampler is tuned every w updates
   Vector_i NumberAccepted;
   Vector_d etastep;
   double etastep0;
