@@ -669,8 +669,6 @@ writeAlleleFreqs <- function(allelefreq.params.list, k, loci.compound, populatio
                                  rep(as.vector(loci.compound[locus, 1]), loci.compound[locus, 2]))
     allelefreq.params <- rbind(allelefreq.params, allelefreq.params.list[[locus]])
   }
-  print(length(allelefreq.params.names))
-  print(dim(allelefreq.params))
   allelefreq.params <- data.frame(allelefreq.params.names,
                                   round(allelefreq.params,digits=2),
                                   check.rows=FALSE)
@@ -938,14 +936,14 @@ if(!is.null(user.options$allelefreqoutputfile)) {
   writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
                    paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
 
-  ## write posterior means of allele freqs to table in format for model with fixed allele freqs
+  ## write posterior means of allele freqs to file
   allelefreq.means.matrix.list <- list()
   for(locus in 1:length(allelefreq.params.list)) {
     allelefreq.means.matrix.list[[locus]] <-
       allelefreq.params.list[[locus]]/sum(allelefreq.params.list[[locus]], 2)
   }
   writeAlleleFreqs(allelefreq.means.matrix.list, K, loci.compound, population.labels,
-                   paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
+                   paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
 }
 
 if(!is.null(user.options$indadmixturefile)) {
