@@ -34,18 +34,6 @@ clean:
 		rm -f *.o
 		rm -f .depend
 
-
-veryclean:		
-		- rm -f del
-		rm -f *.o
-		rm -f .depend
-		rm -f ../test/admixmap
-		rm -Rf $(DISTDIR)
-		rm -f $(DISTDIR).tar
-		rm -f $(DISTDIR).tar.gz
-		rm -Rf $(WINDISTDIR)
-		rm -f $(WINDISTDIR).zip
-
 .depend: *.cc
 	$(CXX) $(CPPFLAGS) -MM *.cc >> .depend
 
@@ -57,41 +45,8 @@ admixmap:	$(infiles)
 check:		admixmap
 		perl ../test/batchtest.pl
 
-#Compile and make a tar.gz archive with data, docs and test scripts (Linux)
-dist:		admixmap
-		rm -Rf $(DISTDIR)
-		mkdir $(DISTDIR)
-		cp ../test/admixmap $(DISTDIR)
-		cp README.txt $(DISTDIR)
-		cp COPYING.txt $(DISTDIR)
-		cp ../test/testArguments.txt $(DISTDIR)
-		cp AdmixmapOutput.R $(DISTDIR)
-		cp IndivAdmixture.R $(DISTDIR)
-		cp admixmap.pl $(DISTDIR)
-		cp batchtest.pl $(DISTDIR)
-		cp IndivAdmixture.pl $(DISTDIR)
-		mkdir $(DISTDIR)/data
-		mkdir $(DISTDIR)/IndData
-		mkdir $(DISTDIR)/results
-		cp ../test/data $(DISTDIR)
-		cp ../test/IndData $(DISTDIR)
-		tar cf $(DISTDIR).tar $(DISTDIR)
-		gzip --best $(DISTDIR).tar
+include: .depend
 
-#Compile  for Linux and repackage distribution with new exec
-linuxdist:      admixmap
-		cp ../test/admixmap $(DISTDIR)
-		rm -f ../test/ $(DISTDIR).tar.gz
-		tar cf $(DISTDIR).tar $(DISTDIR)
-		gzip --best $(DISTDIR).tar
-
-#Compile for Windows and prepare to repackage
-#Zipping cannot be done in Windows from command line unless a special zip app installed (eg Winzip, AlZip etc)
-windist:	admixmap
-		cp ../test/admixmap.exe $(DISTDIR)
-		rm -f ../test/ $(DISTDIR).zip
-
-#command to zip directory - do it manually for now
 #Compile  for Linux and repackage distribution with new exec
 linuxdist:      admixmap
 		cp ../test/admixmap $(DISTDIR)
@@ -109,4 +64,5 @@ windist:	admixmap
 #		??
 ## pkzip
 # 		pkzip admixmap.zip ../test/$(WINDISTDIR)
-include .depend
+
+
