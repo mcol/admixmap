@@ -379,6 +379,16 @@ Individual::getLogPosteriorProb()
    return LogPosterior;
 }
 
+// method samples individual admixture proportions conditional on sampled values of ancestry at loci where 
+// jump indicator xi is 1, population admixture distribution parameters alpha, and likelihood from regression 
+// model (if there is one)  
+// should have an alternative method to sample population mixture component membership and individual admixture proportions
+// conditional on genotypes, not sampled locus ancestry
+// should have separate methods for the following:-
+// 1.code to sample locus ancestry
+// 2.code to compute conditional distribution of locus ancestry for score tests
+// 3.code to sample jump indicators xi and number of arrivals
+// 4.code to sample sum intensities conditional on number of arrivals  
 Matrix_d
 Individual::SampleParameters( int ind, AdmixOptions* options, Vector_d &ff, Genome &Loci, Genome &chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, int iteration, vector<double> sigma, Matrix_d &Theta_X )
 {
@@ -409,7 +419,8 @@ Individual::SampleParameters( int ind, AdmixOptions* options, Vector_d &ff, Geno
    }
   
   Sumrho0 = 0;
-  
+  // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
+  // required to calculate transition matrices 
   if( options->getRhoIndicator() ){
      for( unsigned int j = 0; j < numChromosomes; j++ ){
         locus++;
@@ -426,6 +437,9 @@ Individual::SampleParameters( int ind, AdmixOptions* options, Vector_d &ff, Geno
   }
 
   LogPosterior = 0.0;
+  // this code loops over loci to sample locus ancestry and jump indicators xi 
+  // computes conditional distribution of locus ancestry if required for score tests
+  // should be in a separate method
   for( unsigned int j = 0; j < numChromosomes; j++ ){
      locus = chrm(j)->GetLocus(0);
      if( j != X_posn ){
@@ -473,6 +487,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, Vector_d &ff, Geno
         locus++;
      }
      locus = chrm(j)->GetLocus(0);
+     // sum ancestry states over loci where jump indicator is 1
      for( unsigned int jj = 0; jj < numCompLoci[j]; jj++ ){
         for( unsigned int g = 0; g < gametes[j]; g++ ){
            if( _xi[g][locus] ){
@@ -485,7 +500,10 @@ Individual::SampleParameters( int ind, AdmixOptions* options, Vector_d &ff, Geno
         locus++;
      }
   }
-
+  // this should be a separate function
+  // samples number SumN of arrivals between each pair of adjacent loci, 
+  // conditional on jump indicators xi and sum of intensities rho
+  // total number SumN is used for conjugate update of sum of intensities 
   locus = 0;
   double L = Loci.GetLengthOfGenome(), L_X=0.0, rho=0.0;
   if( Loci.isX_data() )
@@ -532,6 +550,9 @@ Individual::SampleParameters( int ind, AdmixOptions* options, Vector_d &ff, Geno
            locus++;
         }
      }
+
+     // this code samples sum of intensities parameter as conjugate gamma with Poisson likelihood 
+     // should be a separate function
      if( options->getXOnlyAnalysis() ){
         do{
            _rho[0] = gengam( rhobeta + L_X, rhoalpha + (double)SumN_X[0] );
@@ -581,6 +602,8 @@ Individual::SampleParameters( int ind, AdmixOptions* options, Vector_d &ff, Geno
      Theta.SetColumn( 0, vectemp );
   }
 
+  // this method computes marginal likelihood by the Chib algorithm.  Can be replaced with 
+  // more efficient algorithm based on HMM likelihood  
   double IntConst1;
   if( options->getAnalysisTypeIndicator() == -1 && ind == 0 && iteration > options->getBurnIn() ){
      Vector_d alphaparams1, alphaparams0;
@@ -712,10 +735,13 @@ Matrix_d *Covariates0)
     (*Covariates0)( i, NoCovariates - Populations + k + 1 )
       = avgtheta( k + 1 ) - poptheta( k + 1 );
 }
+
+
 void Individual::Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &thetaX, bool xdata, int Populations, bool ModelIndicator )
 {
   bool test = true;
-
+  // loop over populations: if element of Dirichlet parameter vector is 0, do not update corresponding element of 
+  // admixture proportion vector
   for( int k = 0; k < Populations; k++ ){
     if( (theta)( k, 0 ) == 0.0 )
       test = false;
@@ -723,6 +749,7 @@ void Individual::Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &theta
       test = false;
   }
 
+  // generic Metropolis rejection step
   if( p < 0 ){
      if( log(myrand()) < p && test ){
         setAncestry(theta);
@@ -737,12 +764,21 @@ void Individual::Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &theta
   }
 }
 
+// these two functions return ratio of likelihoods of new and old values of population admixture
+// in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
+ 
+// should have just one function to get the likelihood in the regression model, given a value of population admixture
+// should be generic method for GLM, given Xbeta, Y and probability distribution 
+// then should calculate ratio in Metropolis step 
+//  
 double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, Matrix_d &theta ,bool ModelIndicator,int Populations,
 					      int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY, 
 						  MatrixArray_d &Target, Vector_d &poptheta) 
 {
   double prob, Xbeta = 0;
+  // TI appears to define which outcome var is used
   Vector_d avgtheta;
+  // calculate mean of parental admixture proportions
   if( ModelIndicator )
     avgtheta = theta.RowMean() - poptheta;
   else
@@ -828,7 +864,7 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta,int it
       }
     }
   }
-
+  // should be modified to allow a population mixture component model   
    Theta = SampleParameters(i, options, f, Loci, chrm, alpha, _symmetric, _admixed,rhoalpha, rhobeta, iteration, sigma, ThetaX );
 
    double p = 0;
@@ -886,7 +922,7 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
   }
 }
 
-void
+// Chib method for marginal likelihood should be rewritten to use the HMM likelihood, without sampling locus ancestry or arrivals
 Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
 			   AdmixOptions *options, Genome *Loci, Genome *chrm, double rhoalpha, double rhobeta, 
 			   vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr )
