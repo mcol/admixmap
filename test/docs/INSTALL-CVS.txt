@@ -18,32 +18,36 @@ To install Admixmap, perform the following steps.
 
 (1) Install R for your operating system, which requires root/administrator privileges. See www.r-project.org  If you are using Windows you will need to add the path for R to your environment variable PATH. For windows XP, go to Start-Control Panel-System. On the Advanced tab, click on Environment Variables. Select the PATH variable and click on Edit. Add the path of the R bin directory to the end of the path variable. This is usually something like ";C:\Program Files\R\bin".
 
-(2) Download and install gsl (the GNU Scientific Library) on your system.  
-You can download the source code for gsl by following the instructions at http://www.gnu.org/order/ftp.html  You should download the latest gsl-<version>.tar.gz file and follow the instructions contained in the readme file.   
+(2) Download and install gsl (the GNU Scientific Library) on your system. You can download the source code for gsl by following the instructions at http://www.gnu.org/order/ftp.html  You should download the latest gsl-<version>.tar.gz file and follow the instructions contained in the readme file.   
 
 If you are installing gsl on MinGW, you may need to run configure with the option --prefix=c:/mingw.  If you are using the Novell client on a networked PC running Windows, you may have to disconnect before running the configure command. 
 
-(3) Log in to the CVS repository and checkout  the  gslwrap-ch  directory  (C++ wrappers for gsl) by typing: 
+(3) Log in to the CVS  repository and checkout the genepi directory by typing 
 
-  cvs checkout gslwrap-ch.  
+    CVS checkout genepi
 
-Change to the gslwrap-ch directory and type the following commands: 
+This directory contains three subdirectories (folders): gslwrap-ch (C++ wrappers for gsl
+matrix and vector functions),  admixmap (source code for the program),
+and test.  
 
-  perl generate    
-  make   
-  cd ..
+Change to the gslwrap-ch subdirectory and type the following commands: 
 
-(4) Checkout the admixmap directory by typing:
-   cvs checkout admixmap
+  sh bootstrap
+  ./configure 
+  make 
 
-(5) Checkout the test directory by typing:
-  cvs checkout test
+Change to the admixmap subdirectory and create the admixmap executable by typing the command:    
 
-Change to the admixmap directory and create the admixmap executable by typing the command:    
    make
-The executable will be placed in the test directory.
 
-(5)You  should now  be able to run admixmap with a test dataset by changing to the test directory and typing the command:
+The executable will be placed in the test subdirectory. 
+
+You can edit the makefile to optimize for the processor you are using, with
+the flag "-march=<processor name> defined in variable CPPFLAGS.  
+
+(4) You should  now be  able to  run admixmap with  a test  dataset by
+    changing to the test directory and typing the command:
+
   ./admixmap testArguments.txt 
 
 This will run the program with the user options that are specified in the file testArguments.txt.   These user options specify that data files are in subdirectory test/data, and that results should be written to subdirectory test/results. 
@@ -55,9 +59,10 @@ Alternatively, you  can run the program by running a Perl script in which the us
 
 --------------------------------------------------------------------------------
 
-Access to the CVS repository
 
-For read-only access to the repository, you can use the username anon and a blank password. 
+Access to the CVS repository (bioinf.ucd.ie:/dsk3/cvs)
+
+For read-only access to the repository, you can use the username anonymous and a blank password. 
 
 
 (1) To access the CVS repository you must have installed a CVS client, and you must set the CVSROOT environment variable. If you are working in Windows, we recommend the free program WinCVS, which provides a CVS client with a graphical interface.  Use View-Preferences in WinCVS to specify authentication as pserver, path as /dsk3/cvs, host address as bioinf.ucd.ie, and your CVS username.  This will define the CVSROOT variable.  
@@ -89,7 +94,10 @@ MinGW provides a Unix-like environment in Windows. You can downlaod MinGW from h
 
 4) Run msysDTK-1.0.1.exe to install the Developer's Kit.	
 
-5) Click on the MSYS icon to start up a bash shell (console window) under Windows. Your home directory is /home/username.  In your bash shell, the C:\ drive is mapped as a subdirectory of the root.  Thus, for example, to change to the Windows directory C:\cvs\genepi\admixmap, type: 
+5) Click on  the MSYS icon to  start up a bash  shell (console window)
+   under Windows. Your home directory is /home/username.  In your bash
+   shell,  the C:\  drive is  mapped as  a subdirectory  of  the root.
+   Thus, for example, to change to the Windows folder C:\cvs\genepi\admixmap, type: 
 
-  "cd /c/cvs/genepi/admixmap"
+  cd /c/cvs/genepi/admixmap
 
