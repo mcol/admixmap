@@ -775,6 +775,7 @@ if(is.null(user.options$paramfile)) {
       if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
         print("ergodicaveragefile empty")
       } else {
+        postscript( paste(resultsdir, "ErgodicAverages.ps", sep="/" ))
         plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
         dev.off()
       }
