@@ -27,7 +27,7 @@ INCLUDES		= -I$(top_builddir)
 pkginclude_HEADERS 	= matrix.h vector.h matrix_d.h vector_d.h \
 											matrix_i.h vector_i.h MatrixArray.h \
 											MatrixArray_d.h MatrixArray_i.h \
-											rand.h gaussian.h gaussian_d.h
+											rand.h 
 
 lib_LTLIBRARIES 		= libmat.la
 

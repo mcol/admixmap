@@ -1,19 +1,15 @@
-COMPILATION INSTRUCTIONS (for clive and nigel)
+COMPILATION INSTRUCTIONS 
 
-1. clean up old files:
-
-  $ make clean
-  $ make maintainer-clean
-  
-2. create configure script:
+ 
+1. create configure script:
 
   $ sh bootstrap
   
-3. create Makefile:
+2. create Makefile:
 
   $ ./configure
   
-4. build project:
+3. build project:
 
   $ make
   

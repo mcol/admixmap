@@ -2,7 +2,7 @@
 CC 			= gcc
 CXX 			= g++
 
-MATRIXLIBDIR 		= ../gslwrap-ch/
+MATRIXLIBDIR 		= ../gslwrap-ch/.libs/
 LIBDIR			= ../gslwrap-ch/
 
 DISTDIR			= ../test/admixmap-linux
@@ -15,8 +15,8 @@ LIBS			= -lmat -lm -static -lgsl -lgslcblas
 
 CXXFLAGS		= 
 #CPPFLAGS		= -W -Wall -march=i686 $(IFLAGS)#compile without optimising
-#CPPFLAGS		= -W -Wall -O3 -march=i686 $(IFLAGS)
-CPPFLAGS		= -W -Wall -g -march=i686 $(IFLAGS)
+CPPFLAGS		= -W -Wall -O3 -march=i686 $(IFLAGS)
+#CPPFLAGS		= -W -Wall -g -march=i686 $(IFLAGS)
 #CPPFLAGS		= -W -Wall -pg -O0 -march=i686 $(IFLAGS)
 # Use option -g to use gdb debugger
 # Use option -pg to use gprof to profile the code
