@@ -26,7 +26,7 @@ my $arg_hash =
     analysistypeindicator     => 3,# binary outcome var
     coutindicator   => 0, #verbose output
     targetindicator => 0, # diabetes in column 1
-    samples  => 200,
+    samples  => 20,
     burnin   => 5,
     every    => 1,
 
@@ -46,6 +46,7 @@ my $arg_hash =
     haplotypeassociationscorefile => 'hapassocscore.txt',
     stratificationtestfile                   => 'strat_test.txt'
 };
+
 
 doAnalysis($executable,$arg_hash);
 
@@ -69,9 +70,10 @@ sub doAnalysis
 
     print $command if $DEBUG;
     system($command);
+
 # Comment out the next three lines to run admixmap without R script
     print "Starting R script to process output\n";
-    system('RCMD BATCH --quiet --no-save --no-restore AdmixmapOutput.R results/Rlog.txt');
+    system("R --quiet --no-save --no-restore <AdmixmapOutput.R >results/Rlog.txt RESULTSDIR=$resultsdir");
     print "R script completed\n\n";
 }
 
