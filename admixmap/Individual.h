@@ -4,6 +4,8 @@
 #include "common.h"
 #include "IndividualVisitor.h"
 #include "Genome.h"
+#include "Chromosome.h"
+#include "AlleleFreqs.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 
@@ -14,7 +16,7 @@ class Individual
 public:
   Individual();
 
-  Individual(AdmixOptions*,const Vector_s& data,Genome&,Genome&);
+  Individual(AdmixOptions*,const Vector_s& data,Genome&,Chromosome **);
 
   ~Individual();
 
@@ -63,36 +65,31 @@ public:
 
   Matrix_d getExpectedAncestry( int );
 
-  double getLogLikelihood(AdmixOptions*,Genome&,Genome&);
+  double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome**);
 
-  double getLogLikelihoodOnePop(Genome&);
+  double getLogLikelihoodOnePop(AlleleFreqs *);
 
   double getLogPosteriorProb();
 
   Vector_i GetLocusAncestry( int, int );
    
-  Matrix_d SampleParameters(int, AdmixOptions*, Vector_d&, Genome&,
-			    Genome&, std::vector<Vector_d>,
-			    bool, std::vector<bool>, double,
-			    double, int, std::vector<double>, Matrix_d& );
-  double getLogLikelihood(AdmixOptions*,Genome&,Genome&,
-			  Matrix_d, std::vector<double>,Matrix_d, std::vector<double>);
-  double getLogLikelihoodXOnly(AdmixOptions*,Genome&,Genome&,
-			       Matrix_d, std::vector<double>);
+  Matrix_d SampleParameters(int, AdmixOptions*, AlleleFreqs*, Chromosome**, std::vector<Vector_d>,
+			    bool, std::vector<bool>, double, double, int, std::vector<double>, Matrix_d& );
+  double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome **, Matrix_d, std::vector<double>,Matrix_d, std::vector<double>);
+  double getLogLikelihoodXOnly(AdmixOptions*,AlleleFreqs*,Chromosome**, Matrix_d, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
-  void IndivUpdate(int i,int iteration,  
+  void IndivUpdate(int i,int iteration, AlleleFreqs *A,
 		   Vector_d *SumLogTheta, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, 
-		   Vector_d &lambda,
-		   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions *options,
-		   Vector_d &f, Genome *Loci, Genome *chrm, vector<Vector_d> alpha, bool _symmetric, 
+		   Vector_d &lambda, int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, 
+		   Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, 
 		   vector<bool> _admixed, double rhoalpha, double rhobeta, vector<double> sigma);
 
   void ChibLikelihood(int i,int iteration, double *LogLikelihood, double *SumLogLikelihood, vector<double> MaxLogLikelihood, 
-		      AdmixOptions *options, Genome *Loci, Genome *chrm, vector<Vector_d> alpha,  
+		      AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha,  
 		      vector<bool> _admixed, double rhoalpha, double rhobeta, MatrixArray_d &thetahat, MatrixArray_d &thetahatX, 
 		      vector<vector<double> > &rhohat,  vector<vector<double> > &rhohatX,
-		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood);
+		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs *A);
 
 private:
   static std::vector<unsigned int>
@@ -133,20 +130,19 @@ private:
   double AcceptanceProbForTheta_LinearReg( int i, int TI,  Matrix_d &theta ,bool ModelIndicator,int Populations,
 					   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
 					   MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda);
-  void SampleIndividualParameters( int i, Vector_d *SumLogTheta, int iteration , MatrixArray_d *Target, Vector_i &OutcomeType, 
-				   MatrixArray_d &ExpectedY, 
-				   Vector_d &lambda, int NoCovariates, Matrix_d &Covariates0,MatrixArray_d &beta, 
-				   Vector_d &poptheta, AdmixOptions* options, Vector_d &f, 
-				   Genome &Loci, Genome &chrm, vector<Vector_d> alpha, bool _symmetric, 
-				   vector<bool> _admixed, double rhoalpha, double rhobeta, vector<double> sigma);
+  void SampleIndividualParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target, 
+				   Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
+				   Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions* options, 
+				   Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
+				   double rhoalpha, double rhobeta, vector<double> sigma);
 
   void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
-			    Genome *Loci, int AnalysisTypeIndicator);
+			   AlleleFreqs *Loci, int AnalysisTypeIndicator);
 
   void
   InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
-		 AdmixOptions *options, Genome *Loci, Genome *chrm, double rhoalpha, double rhobeta, 
-		 vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr );
+		 AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
+		 vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr);
 
 };
 

@@ -3,6 +3,9 @@
 #define INDIVIDUAL_COLLECTION_H 1
 
 #include "Genome.h"
+#include "Chromosome.h"
+#include "AlleleFreqs.h"
+#include "chib.h"
 #include "Individual.h"
 #include "IndividualVisitor.h"
 #include "IndAdmixOutputter.h"
@@ -48,7 +51,7 @@ private:
 public:
   IndividualCollection();
   ~IndividualCollection();
-  IndividualCollection(AdmixOptions*,const Matrix_s& data,Genome&,Genome&);
+  IndividualCollection(AdmixOptions*,const Matrix_s& data,Genome&,Chromosome **);
 
   void Initialise(AdmixOptions *, MatrixArray_d *,Genome *,std::string *PopulationLabels);
 
@@ -56,14 +59,14 @@ public:
 
   void LoadGenotypes(AdmixOptions *options, InputData *, LogWriter *Log, Genome *Loci);
   
-  void getOnePopOneIndLogLikelihood(LogWriter *Log, Genome *Loci, std::string *PopulationLabels);
+  void getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *A, std::string *PopulationLabels);
 
-  void Update(int iteration, Vector_d *SumLogTheta, Vector_d *lambda, int NoCovariates, MatrixArray_d *beta, 
-	      Vector_d &poptheta, AdmixOptions *options, Vector_d f, Genome *Loci, Genome *chrm, 
+  void Update(int iteration, Vector_d *SumLogTheta, AlleleFreqs *A, Vector_d *lambda, int NoCovariates, MatrixArray_d *beta, 
+	      Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, 
 	      vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta,
 	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood);
   
-  void accept();
+  void accept(Matrix_d);
 
   void Output(std::ofstream *);
 

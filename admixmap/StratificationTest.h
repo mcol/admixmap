@@ -6,6 +6,7 @@
 #include <iostream>
 #include "IndividualCollection.h"
 #include "Genome.h"
+#include "AlleleFreqs.h"
 #include "LogWriter.h"
 
 class StratificationTest
@@ -25,7 +26,7 @@ public:
 
   void Initialize( AdmixOptions*, Genome& , LogWriter *);
 
-  void calculate( IndividualCollection*, Genome& );
+  void calculate( IndividualCollection*, AlleleFreqs* );
 
   void Output();
 

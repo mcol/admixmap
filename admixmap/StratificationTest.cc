@@ -41,15 +41,15 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
   }
 }
 
-void StratificationTest::calculate( IndividualCollection* individuals, Genome& Loci )
+void StratificationTest::calculate( IndividualCollection* individuals, AlleleFreqs *A )
 {
   Matrix_d popX( individuals->getSize(), NumberOfTestLoci );
   Matrix_d popRepX( individuals->getSize(), NumberOfTestLoci );
 
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
-    vector<int> ChrmAndLocus = Loci.GetChrmAndLocus(jj);
-    Matrix_d freqs = Loci(jj)->GetAlleleFreqs();
+    vector<int> ChrmAndLocus = A->getLoci()->GetChrmAndLocus(jj);
+    Matrix_d freqs = A->GetAlleleFreqs(jj);
     for( int i = 0; i < individuals->getSize(); i++ ){
       Individual* ind = individuals->getIndividual(i);
       vector<unsigned int> genotype = ind->getGenotype(jj);

@@ -5,6 +5,7 @@
 #include <sstream>
 #include "IndividualCollection.h"
 #include "LogWriter.h"
+#include "AlleleFreqs.h"
 
 class ScoreTests{
 
@@ -44,7 +45,6 @@ private:
   MatrixArray_d SumScore2WithinHaplotype;
   MatrixArray_d SumInfoWithinHaplotype;
 
-  Vector_d pp;
   Matrix_d U; 
   Matrix_d I; 
   Matrix_d SumU; 
@@ -63,7 +63,7 @@ private:
   AdmixOptions *options;
   IndividualCollection *individuals;
   Genome* Lociptr;//Pointer to Loci member of Latent
-  Genome* chrm;
+  Chromosome** chrm;//Copy of pointer to array of chromosomes
 
   LogWriter *Logptr;
 //OUTPUT
@@ -87,7 +87,7 @@ private:
 
   void UpdateScoreForLinkageAffectedsOnly( Individual*);
   
-  void UpdateScoreForAllelicAssociation( Individual*, double,double, double);
+  void UpdateScoreForAllelicAssociation( Individual*, AlleleFreqs *A, double,double, double);
 
   //void UpdateScoreForAncestryOld( Individual* ind, double Y, int regressonindicator, double EY, double lambda0);
 
@@ -96,12 +96,14 @@ private:
   
   void UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink);
 
+  void UpdateScoresForMisSpecOfAlleleFreqs( int i , AlleleFreqs *A);
+
   void TransformScoreStatistics( int, Matrix_d, Matrix_d, Matrix_d *, Matrix_d * );
 
 public:
   ScoreTests();
 
-  void Initialise(AdmixOptions *,IndividualCollection *,Genome *,Genome *,LogWriter *);
+  void Initialise(AdmixOptions *,IndividualCollection *,Genome *,Chromosome **,LogWriter *);
 
   void InitialiseAssocScoreFile(std::string *);
 
@@ -116,15 +118,14 @@ public:
 //UPDATES
   void Reset();
 
-  void SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr);
   void SetAllelicAssociationTest();
 
-  void Update(double);
+  void Update(double, AlleleFreqs *);
   //void UpdateScoreIndLevel(int , Matrix_d*,double);
 
   //void UpdateScoreStats();
 
-  void UpdateScoresForMisSpecOfAlleleFreqs( int i );
+
 
   ~ScoreTests();
 

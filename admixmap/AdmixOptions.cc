@@ -631,7 +631,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 
     case 'd': // stratificationtestfile
       imp->DICoutputFilename = optarg;OptionValues["stratificationtestfile"]=optarg;
-      imp->StratificationTestIndicator = true;OptionValues["StratificationtestIndicator"]="1";
+      imp->StratificationTestIndicator = true;OptionValues["StratificationTestIndicator"]="1";
       break;
 
     case 'e': // ergodicaveragefile

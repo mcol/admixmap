@@ -99,7 +99,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
 }
 
 void
-IndAdmixOutputter::visitIndividual(Individual& ind, double expectedY, vector<int> _locusfortest, double LogLikelihood )
+IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, double LogLikelihood, Matrix_d &Freqs )
 {
   for( int k = 0; k < _options->getPopulations(); k++ ){
      if(_options->getModelIndicator()){
@@ -132,7 +132,8 @@ IndAdmixOutputter::visitIndividual(Individual& ind, double expectedY, vector<int
         _out << ancestry(0) << "," << ancestry(1) << ",";
      }
      if((*_Loci)(_options->getLocusForTest() )->GetNumberOfLoci() > 1 ){
-        Vector_i hap = (*_Loci)(_options->getLocusForTest())->SampleHaplotype(genotype,ancestry);
+       Vector_i hap = (*_Loci)(_options->getLocusForTest())->
+	                                   SampleHaplotype(genotype,ancestry,Freqs);
         if(_options->getPopulations() > 1 ){
            genotype = ind.getGenotype(_options->getLocusForTest() );
         }

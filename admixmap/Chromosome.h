@@ -3,7 +3,6 @@
 #define CHROMOSOME_H 1
 
 #include "Genome.h"
-#include "LocusVisitor.h"
 #include "AdmixOptions.h"
 #include "matrix_d.h"
 #include "matrix_i.h"
@@ -12,9 +11,11 @@
 #include "vector_d.h"
 #include "HMM.h"
 #include "Latent.h"
+#include "AlleleFreqs.h"
 #include <vector>
 
 class Individual;
+
 class Chromosome:public Genome
 {
 private:
@@ -29,25 +30,26 @@ private:
 
   // UNIMPLEMENTED
   // to avoid use
-  Chromosome(); // Private default constructor
+ // Private default constructor
   Chromosome(const Chromosome&);
   Chromosome& operator=(const Chromosome&);
 
 public:
-   Chromosome(int size,int start, int);
-   void ResetStuffForX();
-  virtual ~Chromosome();
-  virtual void SetLabel( int, std::string );
-  virtual std::string GetLabel( int );
-  virtual void accept(LocusVisitor&);
-  virtual int GetLocus(int);
-  virtual int GetSize();
-  virtual Vector_i SampleForHaploidLocusAncestry(Individual*);
-  virtual void UpdateParameters(Individual*,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&,bool);
-  virtual void UpdateParametersHaploid(Individual*,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&,bool);
-  virtual Matrix_i SampleForLocusAncestry(Individual*);
-  virtual Matrix_d getExpectedAncestry( int );
-  virtual double getLogLikelihood();
+  Chromosome();
+  Chromosome(int size,int start, int);
+  void ResetStuffForX();
+  ~Chromosome();
+  void SetLabel( int, std::string );
+  std::string GetLabel( int );
+  int GetLocus(int);
+  int GetSize();
+  Vector_i SampleForHaploidLocusAncestry(Individual*, AlleleFreqs *);
+  void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool);
+  void UpdateParametersHaploid(Individual*,AlleleFreqs *,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool);
+  Matrix_i SampleForLocusAncestry(Individual*, AlleleFreqs *);
+  Matrix_d getExpectedAncestry( int );
+  Matrix_d getAncestryProbs(int);
+  double getLogLikelihood();
 
 };
 

@@ -20,34 +20,35 @@ void DispersionTest::Initialise(AdmixOptions *op,LogWriter *Log, int NumberOfCom
   }
 }
 void
-DispersionTest::UpdateBayesianPValueTest(Genome &Loci)
+DispersionTest::UpdateBayesianPValueTest(AlleleFreqs *A)
 {
   if( options->getTestForDispersion() ){
-    divergentallelefreqstest += TestForDivergentAlleleFrequencies(Loci);
+    divergentallelefreqstest += TestForDivergentAlleleFrequencies(A);
   }
   if( options->getTestForMisspecifiedAlleleFreqs2() ){
-    for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
-      CompositeLocus *locus = (CompositeLocus*)Loci(j);
-      locus->UpdateScoreForMisSpecOfAlleleFreqs2();
+    for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+      CompositeLocus *locus = (CompositeLocus*)A->getLocus(j);
+      locus->UpdateScoreForMisSpecOfAlleleFreqs2(A->GetAlleleFreqs(j), A->GetAlleleCounts(j));
     }
   }
 
 }
 
-Matrix_i DispersionTest::TestForDivergentAlleleFrequencies(Genome &Loci)
+Matrix_i DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
 {
   int numberofstates;
   Vector_i locusancestry, rep, PopCounts;
   Vector_d popfreqs;
 
-  Matrix_i AlleleCount, test( Loci.GetNumberOfCompositeLoci() + 1, options->getPopulations() );
-  Matrix_d LogLikelihood( Loci.GetNumberOfCompositeLoci() + 1, options->getPopulations() ), RepLogLikelihood( Loci.GetNumberOfCompositeLoci() + 1, options->getPopulations() ),
+  Matrix_i AlleleCount, test( A->GetNumberOfCompositeLoci() + 1, options->getPopulations() );
+  Matrix_d LogLikelihood( A->GetNumberOfCompositeLoci() + 1, options->getPopulations() ), 
+    RepLogLikelihood( A->GetNumberOfCompositeLoci() + 1, options->getPopulations() ),
     freqs;
 
-  for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
-    numberofstates = Loci(j)->GetNumberOfStates();
-    AlleleCount = Loci(j)->GetLikelihoodAlleleFreqs();
-    freqs = Loci(j)->GetAlleleFreqs();
+  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+    numberofstates = A->GetNumberOfStates(j);
+    AlleleCount = A->GetAlleleCounts(j);
+    freqs = A->GetAlleleFreqs(j);
     for( int k = 0; k < options->getPopulations(); k++ ){
       popfreqs = freqs.GetColumn( k );
       popfreqs.AddElement( numberofstates - 1 );
@@ -69,9 +70,9 @@ Matrix_i DispersionTest::TestForDivergentAlleleFrequencies(Genome &Loci)
 
   for( int k = 0; k < options->getPopulations(); k++ ){
     if( LogLikelihood.GetColumn(k).Sum() < RepLogLikelihood.GetColumn(k).Sum() )
-      test( Loci.GetNumberOfCompositeLoci(), k ) = 0;
+      test( A->GetNumberOfCompositeLoci(), k ) = 0;
     else
-      test( Loci.GetNumberOfCompositeLoci(), k ) = 1;
+      test( A->GetNumberOfCompositeLoci(), k ) = 1;
   }
 
   return( test );

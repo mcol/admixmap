@@ -44,15 +44,10 @@ Chromosome::~Chromosome()
 {
 }
 
-void
-Chromosome::accept(LocusVisitor& v)
-{
-  v.visitChromosome(*this);
-  for( int i = 0; i < size(); i++ ){
-    (*this)(i)->accept(v);
-  }
-}
-
+//
+// Returns the number of the num'th compositelocus on this chromosome
+// eg if chromosome 2 consists of compositeloci 5,6,7 and 8,
+// GetLocus(i) returns 5 + i
 int
 Chromosome::GetLocus(int num){
   return _startLoci + num;
@@ -64,7 +59,8 @@ Chromosome::GetSize(){
 }
 
 void
-Chromosome::UpdateParameters(Individual* ind, Matrix_d& _ancestry, AdmixOptions* options, vector< Vector_d >& f, bool fixedallelefreqs )
+Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestry, AdmixOptions* options, vector< Vector_d >& f,
+bool fixedallelefreqs )
 {
   Matrix_d Prob;
   MatrixArray_d empty;
@@ -114,7 +110,8 @@ Chromosome::UpdateParameters(Individual* ind, Matrix_d& _ancestry, AdmixOptions*
      d = 0;
      if( ind->IsMissing(locus)[0] != 0 ){
         vector<unsigned int> genotype = ind->getGenotype(locus);
-        Prob = (*this)(j)->GetLikelihood( genotype, true, fixedallelefreqs );
+        //Prob = (*this)(j)->GetLikelihood( genotype, true, fixedallelefreqs );
+	Prob = A->GetLikelihood(locus,  genotype, true, fixedallelefreqs );
         for( int k = 0; k < populations; k++ ){
            for( int kk = 0; kk < populations; kk++ ){
               Likelihood(j)( d, 0 ) = Prob( k, kk );
@@ -137,7 +134,8 @@ Chromosome::UpdateParameters(Individual* ind, Matrix_d& _ancestry, AdmixOptions*
 }
 
 void
-Chromosome::UpdateParametersHaploid(Individual* ind, Matrix_d& _ancestry, AdmixOptions* options, vector< Vector_d >& f, bool fixedallelefreqs )
+Chromosome::UpdateParametersHaploid(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestry, AdmixOptions* options, vector< Vector_d >& f,
+bool fixedallelefreqs )
 {
   Matrix_d Prob;
   MatrixArray_d empty;
@@ -155,7 +153,8 @@ Chromosome::UpdateParametersHaploid(Individual* ind, Matrix_d& _ancestry, AdmixO
   for( int j = 0; j < L; j++ ){
      if( ind->IsMissing(locus)[0] != 0 ){
         vector<unsigned int> genotype = ind->getGenotype(locus);
-        Likelihood(j) = (*this)(j)->GetLikelihood( genotype, false, fixedallelefreqs );
+        //Likelihood(j) = (*this)(j)->GetLikelihood( genotype, false, fixedallelefreqs );
+	Likelihood(j) = A->GetLikelihood(locus, genotype, false, fixedallelefreqs);
      }
      else
         Likelihood(j).SetElements( 1.0 );
@@ -172,7 +171,7 @@ Chromosome::UpdateParametersHaploid(Individual* ind, Matrix_d& _ancestry, AdmixO
 }
 
 Matrix_i
-Chromosome::SampleForLocusAncestry(Individual* ind)
+Chromosome::SampleForLocusAncestry(Individual* ind, AlleleFreqs *A)
 {
   // D - number of diploid ancestry states
   Vector_i CodedStates;
@@ -191,7 +190,8 @@ Chromosome::SampleForLocusAncestry(Individual* ind)
      int locus = GetLocus( j );
      if( ind->IsMissing(locus)[0] != 0 ){
         vector<unsigned int> genotype = ind->getGenotype(locus);
-       (*this)(j)->UpdateLikelihoodAlleleFreqs( genotype, OrderedStates.GetColumn(j) );
+	//(*this)(j)->UpdateAlleleCounts( genotype, OrderedStates.GetColumn(j) );
+	A->UpdateAlleleCounts( locus, genotype, OrderedStates.GetColumn(j) );
      }
   }
 
@@ -199,7 +199,7 @@ Chromosome::SampleForLocusAncestry(Individual* ind)
 }
 
 Vector_i
-Chromosome::SampleForHaploidLocusAncestry(Individual* ind)
+Chromosome::SampleForHaploidLocusAncestry(Individual* ind, AlleleFreqs* A)
 {
   Vector_i OrderedStates;
   OrderedStates = SampleStates.Sample();
@@ -208,7 +208,8 @@ Chromosome::SampleForHaploidLocusAncestry(Individual* ind)
      int locus = GetLocus( j );
      if( ind->IsMissing(locus)[0] != 0 ){
         vector<unsigned int> genotype = ind->getGenotype(locus);
-       (*this)(j)->UpdateLikelihoodAlleleFreqs_HaploidData( genotype, OrderedStates(j) );
+	//(*this)(j)->UpdateAlleleCounts_HaploidData( genotype, OrderedStates(j) );
+	A->UpdateAlleleCounts_HaploidData( locus, genotype, OrderedStates(j) );
      }
   }
 

@@ -1,6 +1,7 @@
 
 #include "admixmap.h"
 #include "IndividualCollection.h"
+#include "Chromosome.h"//not needed if chrm is moved out
 #include "chib.h"
 #include <fstream>
 
@@ -54,7 +55,7 @@ void submain(AdmixOptions* options){
   InputData data;
   data.readData(options, &Log);
 
-  Genome *chrm;//doesn't belong here
+  Chromosome **chrm;//doesn't belong here
   IndividualCollection *IC;
   IC = 0;
   StratificationTest StratTest;
@@ -73,6 +74,7 @@ void submain(AdmixOptions* options){
   | Initialisation |
    ----------------*/
   long StartTime = time(0);
+  
   tm timer;
   timer = *localtime( &StartTime );
   Log.StartMessage(options->getTotalSamples(), options->getBurnIn(),&timer);
@@ -85,7 +87,7 @@ void submain(AdmixOptions* options){
   Regression R;
 
   A.LoadAlleleFreqs(options,&chrm,&Log,&data,&PopulationLabels);//NB this sets Populations option
-  IC = new IndividualCollection(options,data.getGeneticData(),*(A.getLoci()),*chrm);//NB call after LoadAlleleFreqs
+  IC = new IndividualCollection(options,data.getGeneticData(),*(A.getLoci()),chrm);//NB call after LoadAlleleFreqs
   IC->LoadGenotypes(options,&data, &Log,A.getLoci());                             //and before L and R Initialise
  
   L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&poptheta);
@@ -99,7 +101,7 @@ void submain(AdmixOptions* options){
   |  single individual, one population, allele frequencies |
   ---------------------------------------------------------*/
   if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
-    IC->getOnePopOneIndLogLikelihood(&Log,A.getLoci(),PopulationLabels);
+    IC->getOnePopOneIndLogLikelihood(&Log,&A,PopulationLabels);
 
   /*----------
   | OTHERWISE |
@@ -131,15 +133,15 @@ void submain(AdmixOptions* options){
       SumLogTheta.SetElements( 0.0 );
 
 //Updates  
-      IC->Update(iteration,&SumLogTheta, R.getlambda(), R.getNoCovariates(), R.getbeta(),poptheta, options,
-		 A.getLociCorrSummary(), A.getLoci(), chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
+      IC->Update(iteration,&SumLogTheta, &A, R.getlambda(), R.getNoCovariates(), R.getbeta(),poptheta, options,
+		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
 
        A.Update(iteration,options->getBurnIn());
   
    if( iteration > options->getBurnIn() ){
-     DispTest.UpdateBayesianPValueTest(*(A.getLoci()));
-     if( options->getStratificationTest() )StratTest.calculate(IC, *(A.getLoci()));
+     DispTest.UpdateBayesianPValueTest(&A);
+     if( options->getStratificationTest() )StratTest.calculate(IC, &A);
      }  
  
      // Latent should not need to know anything about the number or positions of loci
@@ -147,11 +149,12 @@ void submain(AdmixOptions* options){
      // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
      // sum of rho and rho-squared over all individuals or gametes 
      L.Update(iteration, IC,&SumLogTheta,&poptheta,&LogFileStream);
+     A.ResetSumAlleleFreqs();
      if( !options->getRhoIndicator() )  A.load_f(L.getrho(),chrm);
       R.Update(IC);
 
      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
-       Scoretest.SetMergedHaplotypes(L.getalpha0(), &LogFileStream);//belongs either in Latent or AlleleFreqs
+       A.SetMergedHaplotypes(L.getalpha0(), &LogFileStream, options->IsPedFile());
        Scoretest.SetAllelicAssociationTest();
      }
  
@@ -169,13 +172,13 @@ void submain(AdmixOptions* options){
       }     
      //Output and scoretest updates after BurnIn     
      if( iteration > options->getBurnIn() ){
-       Scoretest.Update(R.getlambda0());
+       Scoretest.Update(R.getlambda0(), &A);
        R.SumParameters(options->getAnalysisTypeIndicator());
 
        if( !(iteration % options->getSampleEvery()) ){
 	 // output individual and locus parameters every 'getSampleEvery()' iterations
-	 if ( strlen( options->getIndAdmixtureFilename() ) ) IC->accept();
-	 if(options->getOutputAlleleFreq())A.accept();
+	 if ( strlen( options->getIndAdmixtureFilename() ) ) IC->accept(A.GetAlleleFreqs(options->getLocusForTest()));
+	 if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
        }//end of 'every' output
 
   // output every 'getSampleEvery() * 10' iterations
@@ -208,14 +211,13 @@ void submain(AdmixOptions* options){
    Scoretest.ROutput();
   }//end else
 
-  for(int i=0; i<chrm->size(); i++){
-    delete (*chrm)(i);
+  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
+    delete chrm[i];
   }
  
   delete IC;//must call explicitly as IndAdmixOutputter destructor finishes writing to indadmixture.txt
-
-//causes a crash
-//    delete[] PopulationLabels;
+  delete []chrm;
+  //delete []PopulationLabels;
 
   ProcessingTime(&Log, StartTime);
 }
@@ -331,9 +333,10 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
 
 void ProcessingTime(LogWriter *Log, long StartTime)
 {
-  long EndTime = time(0);
+  long Time = time(0);
   tm timer;
-  timer = *localtime( &EndTime );
+  timer = *localtime( &Time );
+  
 
   Log->logmsg(false,"Program finished at ");
   Log->logmsg(false,timer.tm_hour);
@@ -351,8 +354,9 @@ void ProcessingTime(LogWriter *Log, long StartTime)
   Log->logmsg(false,1900+timer.tm_year);
   Log->logmsg(false,"\n");
 
-  EndTime -= StartTime;
-  timer = *localtime( &EndTime );
+  Time -= StartTime;
+  timer = *localtime(&Time);
+
   Log->logmsg(true,"Elapsed time = ");
   if( timer.tm_mday > 1 ){
     Log->logmsg(true,timer.tm_mday - 1 );
@@ -368,5 +372,19 @@ void ProcessingTime(LogWriter *Log, long StartTime)
   Log->logmsg(true,timer.tm_sec < 10 ? "0" : "");
   Log->logmsg(true,timer.tm_sec);
   Log->logmsg(true,"s\n");
+
+//   realtime = pruntime();
+//   Log->logmsg(true,"Elapsed time = ");
+//   if(realtime > 3600.0){
+//     Log->logmsg(true, (int)(realtime/3600));Log->logmsg(true,"hour");
+//     if(realtime > 7200.0){Log->logmsg(true,"s");}
+//     realtime = remainder(realtime, 3600.0);
+//   }
+//   if(realtime > 60.0){
+//     Log->logmsg(true, (int)(realtime/3600));Log->logmsg(true,"min");
+//     if(realtime > 120.0){Log->logmsg(true,"s");}
+//     realtime = remainder(realtime, 60.0);
+//   }
+//   Log->logmsg(true, realtime);Log->logmsg(true, "seconds\n");
 }
 

@@ -2,9 +2,9 @@
 #ifndef GENETIC_ARRAY_H
 #define GENETIC_ARRAY_H 1
 
-#include "AbstractCompLocus.h"
-#include "LocusVisitor.h"
+//#include "AbstractCompLocus.h"
 #include "CompositeLocus.h"
+//#include "Chromosome.h"
 #include "vector.h"
 #include <iostream>
 #include <fstream>
@@ -14,8 +14,9 @@
 #include "AdmixOptions.h"
 #include "InputData.h"
 
-
-class Genome : public AbstractCompLocus
+class Chromosome;//declared here to avoid circular includes
+                 //not necessary if getChromosomes function moved out
+class Genome 
 // Object is an array of objects of class CompositeLocus
 // Used to loop over composite loci on a single chromosome, or an entire genome  
 {
@@ -24,15 +25,16 @@ private: // members
   double LengthOfGenome;
   double LengthOfXchrm;
   int NumberOfCompositeLoci;
+  int NumberOfChromosomes;
   bool X_data;
-  AbstractCompLocus **TheArray;
+  CompositeLocus **TheArray;
   std::vector< std::vector< int > > _chrmandlocus;
 
   // UNIMPLEMENTED
   // to avoid use
   Genome(const Genome&);
   Genome& operator=(const Genome&);
-
+ 
 public:
 
   Genome();
@@ -43,144 +45,42 @@ public:
 
    bool isX_data();
 
-   virtual void
-  accept(LocusVisitor&);
-
   // composite-level methods
-  virtual AbstractCompLocus*&
+  //AbstractCompLocus*&
+  CompositeLocus *&
   operator()(int) const;
 
   void SetLabels(const std::vector<std::string> &labels, Vector_d temp);
 
-  virtual Vector
-  GetDistances();
+  Vector GetDistances();
 
-  virtual void
-  SetNumberOfCompositeLoci(int);
+  void SetNumberOfCompositeLoci(int);
 
-  virtual int
-  GetNumberOfCompositeLoci();
+  int GetNumberOfCompositeLoci();
 
-  virtual float
-  GetDistance(int);
+  int GetNumberOfChromosomes();
 
-  virtual void
-  SetDistance(int,float);
+  float GetDistance(int);
 
-  virtual Genome*
-  GetChromosomes( int, std::vector<std::string> );
+  void SetDistance(int,float);
 
-  virtual int
-  size();
+  Chromosome **GetChromosomes(int, std::vector<std::string> );
+
+  int size();
 
   // individual-level methods
-  virtual void
-  AddLocus( int );
-  
-  virtual Matrix_d
-  GetAlleleFreqs();
-  
-  virtual Vector_d
-  GetFst();
-  
-  virtual Matrix_d
-  GetInfo();
-  
-  virtual std::string
-  GetLabel(int);
-  
-  virtual Vector_i
-  GetHapLabels(int);
-  
-  virtual Matrix_i
-  GetLikelihoodAlleleFreqs();
-  
-  virtual int
-  GetMergedHaplotype( int i );
-  
-  virtual int
-  GetNumberOfAllelesOfLocus( int );
-  
-  virtual int
-  GetNumberOfLoci();
-  
-  virtual int
-  GetNumberOfMergedHaplotypes();
-  
-  virtual int
-  GetNumberOfStates();
-  
-  virtual Vector_d
-  GetPriorAlleleFreqs( int );
-  
-  virtual Matrix_d
-  GetScore();
-  
-  virtual Matrix_d
-  GetScoreSq();
-  
-  virtual int
-  GetSize();
 
-  virtual Vector_d
-  GetStatsForEta( int );
+  int GetNumberOfLoci();
   
-  virtual Matrix_d
-  GetSumAlleleFreqs();
+  int GetNumberOfStates();
   
-  virtual int
-  IsRandom();
-  
-  virtual void
-  ResetLikelihoodAlleleFreqs();
-  
-  virtual void
-  ResetScoreForMisSpecOfAlleleFreqs();
+  virtual int GetSize();
 
-  virtual void
-  ResetSumAlleleFreqs();
+  virtual void SetLabel( int, std::string );
   
-  virtual void
-  SampleAlleleFreqs( int );
-  
-  virtual void
-  SamplePriorAlleleFreqs( Vector_d eta );
-  
-  virtual void
-  SetAlleleFreqs( Matrix_d );
-  
-  virtual void
-  SetDefaultAlleleFreqs( int );
-  
-  virtual void
-  SetDefaultMergeHaplotypes( Vector_d alpha );
-  
-  virtual void
-  SetLabel( int, std::string );
-  
-  virtual void
-  SetHistoricalAlleleFreqs( Matrix_d );
-  
-  virtual void
-  SetNumberOfAllelesOfLocus( int, int );
-  
-  virtual void
-  SetNumberOfLoci( int );
-  
-  virtual void
-  SumScoreForMisSpecOfAlleleFreqs();
-  
-  virtual void
-  UpdateFst();
-  
-  virtual void
-  UpdatePriorAlleleFreqs( int, const Vector_d& ){};
-  
-  virtual void
-  UpdatePriorAlleleFreqsGlobal( int, const std::vector<Vector_d>& );
-  
-   double GetLengthOfGenome();
-   double GetLengthOfXchrm();
+  double GetLengthOfGenome();
+  double GetLengthOfXchrm();
+
 };
 
 #endif /* !GENETIC_ARRAY_H */

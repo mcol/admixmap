@@ -16,7 +16,7 @@ IndividualCollection::~IndividualCollection()
 }
 
 IndividualCollection::IndividualCollection(AdmixOptions* options,
-    const Matrix_s& data, Genome& Loci, Genome& chrm)
+    const Matrix_s& data, Genome& Loci, Chromosome **chrm)
 {
   Vector_i null_Vector_i(1);
   OutcomeType = null_Vector_i;
@@ -53,11 +53,11 @@ if (options->getAnalysisTypeIndicator() == 2)
 }
 
 void
-IndividualCollection::accept()
+IndividualCollection::accept(Matrix_d Freqs)
 {
   indadmixoutput->visitIndividualCollection(*this);
   for(unsigned int i=0; i<_child.size(); i++){
-     indadmixoutput->visitIndividual(*_child[i], ExpectedY(0)(i,0), _locusfortest, LogLikelihood );
+    indadmixoutput->visitIndividual(*_child[i], _locusfortest, LogLikelihood, Freqs );
   }
 }
 
@@ -491,24 +491,23 @@ void IndividualCollection::CheckGenotypes(Genome *Loci,LogWriter *Log)
     exit(0);
 }
 
-void IndividualCollection::Update(int iteration, Vector_d *SumLogTheta, Vector_d *lambda, int NoCovariates,  
+void IndividualCollection::Update(int iteration, Vector_d *SumLogTheta, AlleleFreqs *A, Vector_d *lambda, int NoCovariates,  
 				  MatrixArray_d *beta, Vector_d &poptheta, AdmixOptions *options,
-				  Vector_d f, Genome *Loci, Genome *chrm, vector<Vector_d> alpha, bool _symmetric, 
+				  Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, 
 				  vector<bool> _admixed, double rhoalpha, double rhobeta,
 				  std::ofstream *LogFileStreamPtr, chib *MargLikelihood){
 
 for( int i = 0; i < getSize(); i++ ){
-  getIndividual(i)->IndivUpdate(i,iteration, 
+  getIndividual(i)->IndivUpdate(i,iteration, A,
 				SumLogTheta, &Target, OutcomeType, ExpectedY, *lambda,
 				NoCovariates, Covariates(0), *beta, poptheta, options,
-				f, Loci, chrm, alpha, _symmetric, 
-				_admixed, rhoalpha, rhobeta, sigma);
+				 chrm, alpha, _symmetric,_admixed, rhoalpha, rhobeta, sigma);
 
   if( options->getAnalysisTypeIndicator() == -3 || 
       options->getAnalysisTypeIndicator() == -1 && i == 0 /*&& options->LikOutput()*/)
     getIndividual(i)->ChibLikelihood(i,iteration, &LogLikelihood, &SumLogLikelihood, MaxLogLikelihood, 
-				     options, Loci, chrm, alpha,_admixed, rhoalpha, rhobeta,
-				     thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood);
+				     options, chrm, alpha,_admixed, rhoalpha, rhobeta,
+				     thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood, A);
  }
 }
 
@@ -552,13 +551,13 @@ void IndividualCollection::OutputErgodicAvg(int samples, chib *MargLikelihood, s
 }
 
 void
-IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, Genome *Loci, std::string *PopulationLabels)
+IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *A, std::string *PopulationLabels)
 {
    Individual* ind = getIndividual(0);
    Log->logmsg(true,"Log-likelihood for unadmixed ");
    Log->logmsg(true, (*PopulationLabels)[0]);
    Log->logmsg(true, ": ");
-   Log->logmsg(true,ind->getLogLikelihoodOnePop(*Loci));
+   Log->logmsg(true,ind->getLogLikelihoodOnePop(A));
    Log->logmsg(true,"\n");
 
 }

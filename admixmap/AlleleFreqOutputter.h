@@ -31,7 +31,7 @@ public:
   AlleleFreqOutputter( AdmixOptions* options, std::string* PopulationLabels );
   virtual ~AlleleFreqOutputter( );
 
-  virtual void visitCompositeLocus(CompositeLocus&);
+  virtual void OutputAlleleFreqs(AlleleFreqs*);
   virtual void visitChromosome(Chromosome&);
   virtual void visitGenome(Genome&);
 

@@ -3,7 +3,7 @@
 #define LOCUS_VISITOR_H 1
 
 /* forward declaration to avoid circular inclusions  */
-class CompositeLocus;
+class AlleleFreqs;
 class Chromosome;
 class Genome;
 
@@ -23,7 +23,7 @@ class LocusVisitor
 {
 public:
   virtual ~LocusVisitor() {}
-  virtual void visitCompositeLocus(CompositeLocus&) = 0;
+  virtual void OutputAlleleFreqs(AlleleFreqs*) = 0;
   virtual void visitChromosome(Chromosome&) = 0;
   virtual void visitGenome(Genome&) = 0;
 };

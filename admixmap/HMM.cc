@@ -83,6 +83,7 @@ Vector_d HMM::GetStateProbs( int i )
    for( int j = 0; j < States; j++ ){
       probs(j) = alpha(i)( 0, j ) * beta(i)( j, 0 );
    }
+   if(probs.Sum() == 0.0)cout<<alpha<<endl<<beta<<endl;
    probs /= probs.Sum();
    return probs;
 }

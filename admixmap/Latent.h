@@ -93,9 +93,6 @@ private:
   sampleForRho(Vector_d&,DARS*,MatrixArray_i&,MatrixArray_d&);
 
   void
-  load_f(double rho,Vector_d *f,Genome *);
-
-  void
   OpenOutputFiles();
 
   bool CheckInitAlpha( Vector_d );

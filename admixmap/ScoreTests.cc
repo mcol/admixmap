@@ -52,7 +52,7 @@ ScoreTests::~ScoreTests(){
   }
 }
 
-void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Genome *L, Genome *c,
+void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Genome *L, Chromosome **c,
 			    LogWriter *log){
   options = op;
   individuals = indiv;
@@ -60,7 +60,6 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
   Lociptr=L;
   Logptr = log;
 
-  pp.SetNumberOfElements( options->getPopulations());
   U.SetNumberOfElements( options->getPopulations(), indiv->getTargetSize() );
   SumU.SetNumberOfElements( options->getPopulations(), indiv->getTargetSize() );
   SumU2.SetNumberOfElements( options->getPopulations(), indiv->getTargetSize() );
@@ -315,25 +314,6 @@ void ScoreTests::Reset(){
 
 }
 
-void ScoreTests::SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr){
-  //Note: alpha0 = alpha[0] in Latent
-  for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-
-      for( int k = 0; k < options->getPopulations(); k++ )
-	pp(k) = (*alpha0)(k) / alpha0->Sum();
-      (*Lociptr)(j)->SetDefaultMergeHaplotypes( pp );
-      if(options->IsPedFile())
-	*LogFileStreamPtr << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << endl;
-      else
-	*LogFileStreamPtr << (*Lociptr)(j)->GetLabel(0) << endl;
-      for( int k = 0; k < (*Lociptr)(j)->GetNumberOfStates(); k++ ){
-	*LogFileStreamPtr << k << " " << (*Lociptr)(j)->GetMergedHaplotype(k) << endl;
-      }
-    }
-  }
-}
-
 void ScoreTests::SetAllelicAssociationTest(){
   for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
@@ -348,8 +328,7 @@ void ScoreTests::SetAllelicAssociationTest(){
   }
 }
 
-void
-ScoreTests::Update(double lambda)
+void ScoreTests::Update(double lambda, AlleleFreqs *A)
 //Note: lambda0=lambda(0) = precision in a linear regression model
 {
   Reset();
@@ -366,7 +345,7 @@ ScoreTests::Update(double lambda)
     double DInvLink;//derivative of inverse link function
  
 
-    if( options->getTestForMisspecifiedAlleleFreqs() ) UpdateScoresForMisSpecOfAlleleFreqs( i );
+    if( options->getTestForMisspecifiedAlleleFreqs() ) UpdateScoresForMisSpecOfAlleleFreqs( i , A);
 
     //
     //Linear regression
@@ -376,7 +355,7 @@ ScoreTests::Update(double lambda)
 	DInvLink = 1.0;
       if( !options->getScoreTestIndicator() ){
 	if( options->getTestForAllelicAssociation() )
-	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
+	  UpdateScoreForAllelicAssociation( ind, A, YMinusEY,dispersion, DInvLink);
 	if( options->getTestForLinkageWithAncestry() ){
 	  //UpdateScoreForAncestryOld( ind, Y, 0, EY ,dispersion);
 	}
@@ -392,7 +371,7 @@ ScoreTests::Update(double lambda)
       DInvLink = EY * (1.0 - EY);
       if( !options->getScoreTestIndicator() ){
 	if( options->getTestForAllelicAssociation() ){
-	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
+	  UpdateScoreForAllelicAssociation( ind, A, YMinusEY,dispersion, DInvLink);
 	}
 	if( options->getTestForLinkageWithAncestry() ){
 	  //UpdateScoreForAncestryOld( ind, Y, 1, EY,dispersion);
@@ -418,7 +397,7 @@ ScoreTests::Update(double lambda)
       dispersion = OutcomeType ? 1.0 : lambda;
       DInvLink = OutcomeType ? EY*(1.0-EY):1.0;
       if( options->getTestForAllelicAssociation() ){
-	UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
+	UpdateScoreForAllelicAssociation( ind, A, YMinusEY,dispersion, DInvLink);
       }
       if( options->getTestForLinkageWithAncestry() ){
 	//UpdateScoreForAncestryOld( ind, Y, OutcomeType, EY,dispersion);
@@ -592,9 +571,10 @@ ScoreTests::UpdateScoreForLinkageAffectedsOnly( Individual* ind)
       theta(1) = ind->getAncestry()( k, 0 );
 
     locus = 0;      
-    for( int j = 0; j < chrm->size(); j++ ){
-      for( int jj = 0; jj < (*chrm)(j)->GetSize(); jj++ ){
+    for( int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
+      for( int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
 	AncestryProbs = ind->getExpectedAncestry(locus);
+	//AncestryProbs =chrm[j]->getExpectedAncestry(jj);
 	AffectedsScore(locus,k)+= 0.5*( AncestryProbs(k,1) + 2.0*AncestryProbs(k,2) - theta(0) - theta(1) );
 	AffectedsVarScore(locus, k)+= 0.25 *( AncestryProbs(k,1)*(1.0 - AncestryProbs(k,1)) + 4.0*AncestryProbs(k,2)*AncestryProbs(k,0)); 
 	AffectedsInfo(locus, k)+= 0.25* ( theta(0)*( 1.0 - theta(0) ) + theta(1)*( 1.0 - theta(1) ) );
@@ -604,7 +584,7 @@ ScoreTests::UpdateScoreForLinkageAffectedsOnly( Individual* ind)
   }
 }
 
-void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, double YMinusEY, double phi, double DInvLink)
+void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, AlleleFreqs *A,double YMinusEY, double phi, double DInvLink)
 //Note: EY0 = ExpectedY(0)(i,0), lambda0 = lambda(0)
  {
 
@@ -615,8 +595,8 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, double YMinu
   Vector_d xx;
   //double IndividualOutcomeMinusP = individuals->getOutcome(0)( i, 0 ) - EY0;
 
-  for( int j = 0; j < chrm->size(); j++ ){
-    for( int jj = 0; jj < (*chrm)(j)->GetSize(); jj++ ){
+  for( int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
+    for( int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
 
 	if( (*Lociptr)(locus)->GetNumberOfStates() == 2 ){
 	  dim = options->getPopulations() + 1;
@@ -653,7 +633,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, double YMinu
 	  UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
 	  if( options->getTestForSNPsInHaplotype() ){
 	    ancestry = ind->GetLocusAncestry( j, jj );
-	    hap = (*Lociptr)(locus)->SampleHaplotype( ind->getGenotype(locus), ancestry );
+	    hap = (*Lociptr)(locus)->SampleHaplotype( ind->getGenotype(locus), ancestry , A->GetAlleleFreqs(locus));
 	    for( int k = 0; k <(*Lociptr)(locus)->GetNumberOfStates(); k++ ){
 	      if( hap(0) == k )
 		cov_x_coord( (*Lociptr)(locus)->GetMergedHaplotype(k), 0 )++;
@@ -676,6 +656,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, double YMinu
   }
 }
 
+// need to change usage of chrm to make this work
 // void ScoreTests::UpdateScoreForAncestryOld( Individual* ind, double Y,  int regressonindicator, double EY, double lambda0)
 // //This function is obsolete, replaced by UpdateScoreForAncestry, and is preserved here in case it is needed for reference.
 // //Note: EY = ExpectedY(0)(i,0), lambda0 = lambda(0)
@@ -762,8 +743,8 @@ void ScoreTests::UpdateScoreForAncestry( double phi)
     B += Xcov * Xcov.Transpose() * DInvLink;
   }
 
-  for( int j = 0; j < chrm->size(); j++ ){
-    for( int jj = 0; jj < (*chrm)(j)->GetSize(); jj++ ){
+  for( int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
+    for( int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
       
       Uj.SetElements(0);
       Vj.SetElements(0);
@@ -773,6 +754,7 @@ void ScoreTests::UpdateScoreForAncestry( double phi)
       for(int i = 0; i< individuals->getSize(); i++){
 	ind = individuals->getIndividual(i);
 	Aprobs = ind->getExpectedAncestry(locus);//conditional locus ancestry probs      
+	//Aprobs =chrm[j]->getExpectedAncestry(jj);
 	YMinusEY = individuals->getOutcome(0)( i, 0 ) - individuals->getExpectedY(i);
 	DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i);
 	
@@ -834,7 +816,7 @@ void ScoreTests::UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,doub
   }
 }
 
-void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs( int i)
+void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs( int i,AlleleFreqs *A )
 {
   Individual* ind = individuals->getIndividual(i);
   Matrix_d phi( options->getPopulations(), options->getPopulations() );
@@ -845,8 +827,8 @@ void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs( int i)
    
   for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
     //? relies on 'missing' being encoded as zero
-    if( individuals->getIndividual(i)->IsMissing(j)[0] && (*Lociptr)(j)->GetNumberOfLoci() == 1  && !((*Lociptr)(j)->IsRandom()) )
-      (*Lociptr)(j)->UpdateScoreForMisSpecOfAlleleFreqs( phi, individuals->getIndividual(i)->getGenotype(j) );
+    if( individuals->getIndividual(i)->IsMissing(j)[0] && (*Lociptr)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) )
+      (*Lociptr)(j)->UpdateScoreForMisSpecOfAlleleFreqs( phi, individuals->getIndividual(i)->getGenotype(j), A->GetAlleleFreqs(j) );
 }
 
 // This method calculates score for allelic association at each simple locus within a compound locus

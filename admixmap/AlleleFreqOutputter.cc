@@ -11,10 +11,11 @@ AlleleFreqOutputter::AlleleFreqOutputter( AdmixOptions* options, string* Populat
 
   _out.open(_options->getAlleleFreqOutputFilename(), ios::out );
   if( !_out && options->getAnalysisTypeIndicator() >= 0){
-    cerr << "ERROR: Couldn't open allelefreqsoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
-    exit( 1 );
+    cerr << "Warning: Couldn't open allelefreqsoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
+    //exit( 1 );
   }
-  _out << "structure(.Data=c(" << endl;
+  else
+    _out << "structure(.Data=c(" << endl;
 }
 
 AlleleFreqOutputter::~AlleleFreqOutputter()
@@ -36,20 +37,23 @@ AlleleFreqOutputter::~AlleleFreqOutputter()
   _out.close();
 }
 
-void
-AlleleFreqOutputter::visitCompositeLocus(CompositeLocus& Locus)
+void AlleleFreqOutputter::OutputAlleleFreqs(AlleleFreqs* A)
 {
-  Matrix_d freqs = Locus.GetAlleleFreqs();
-  Matrix_d meanfreqs = Locus.GetSumAlleleFreqs()/_iterations;
-  if(_iterations==1){
-    _numLoci += freqs.GetNumberOfRows();
-  }
-  for( int k = 0; k < freqs.GetNumberOfRows(); k++ ){
-    _out << Locus.GetLabel(0) << ",";
-    for( int l = 0; l < _options->getPopulations(); l++ ){
-      _out << freqs(k,l) << ",";
+  Matrix_d freqs;
+  Matrix_d meanfreqs;
+  for( int i = 0; i < A->GetNumberOfCompositeLoci(); i++ ){
+    freqs = A->GetAlleleFreqs(i);
+    meanfreqs = A->GetSumAlleleFreqs(i)/_iterations;
+    if(_iterations==1){
+      _numLoci += freqs.GetNumberOfRows();
     }
-    _out << endl;
+    for( int k = 0; k < freqs.GetNumberOfRows(); k++ ){
+      _out << A->getLocus(i)->GetLabel(0) << ",";
+      for( int l = 0; l < _options->getPopulations(); l++ ){
+	_out << freqs(k,l) << ",";
+      }
+      _out << endl;
+    }
   }
 }
 

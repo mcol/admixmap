@@ -190,18 +190,6 @@ void Latent::PreUpdate(IndividualCollection *individuals){
   
 }//END OF PREUPDATE
 
-void
-Latent::load_f(double rho,Vector_d *f,Genome *chrm){
-  int locus = 0;
-  for( int j = 0; j < chrm->size(); j++ ){
-    locus++;
-    for( int jj = 1; jj < (*chrm)(j)->GetSize(); jj++ ){
-      (*f)(locus) = exp( -Loci->GetDistance( locus ) * rho );
-      locus++;
-    }
-  }
-}
-
 double Latent::sampleForRho(Vector_d& RhoParameters, DARS* RhoDraw,
                             MatrixArray_i& rhodata_i, MatrixArray_d& rhodata_d)
 {
@@ -451,9 +439,6 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
     *LogFileStreamPtr << "Individual admixture centred in regression model around: "
 		     << *poptheta << endl;
 
-    // next line does not belong here, as this class should have no access to allele freqs
-    Loci->ResetSumAlleleFreqs();
-
     SumAlpha.SetElements(0);
   }
 
@@ -470,9 +455,6 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
     }
   }
 
-//       if( !options->getRhoIndicator() ){
-// 	load_f(rho,f,chrm);
-//       }
 }
 //end Update
 

@@ -4,6 +4,7 @@
 
 #include "IndividualCollection.h"
 #include "Genome.h"
+#include "AlleleFreqs.h"
 #include "LogWriter.h"
 #include "matrix_i.h"
 #include "matrix.h"
@@ -20,9 +21,9 @@ class DispersionTest{
   void Output(int , Genome &);
 
   void
-  UpdateBayesianPValueTest(Genome &);
+  UpdateBayesianPValueTest(AlleleFreqs *A);
   Matrix_i
-  TestForDivergentAlleleFrequencies(Genome &);
+  TestForDivergentAlleleFrequencies(AlleleFreqs *);
 };
 
 
