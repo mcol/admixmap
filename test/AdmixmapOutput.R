@@ -8,7 +8,7 @@ if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
   resultsdir <- Sys.getenv("RESULTSDIR")
 } else {
   ## resultsdir set to default directory 
-  resultsdir <- "results/"
+  resultsdir <- "results"
 }
 
 cbindIfNotNull <- function(table1, table2) {
@@ -329,7 +329,7 @@ plotPValuesKPopulations <- function(outputfile, stdNormDev, thinning) {
   dev.off()
 }
 
-plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal) {
+plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal, thinning) {
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
   ## rows are: locus,(haplotype), score, completeinfo, observedinfo,
   ##           pctinfo, stdnormdev, (chisquare)
@@ -368,36 +368,39 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
               row.names=FALSE, col.names=TRUE)
 }
 
-plotAncestryScoreTest <- function(scorefile, k) {
-  scoretest.ancestry <- dget(paste(resultsdir,scorefile,sep="/"))
-  if(k == 2) { 
-    scoretest.ancestry <- scoretest.ancestry[, seq(1, dim(scoretest.ancestry)[2] - 1, by = 2), ]
-  }
-  dimnames(scoretest.ancestry)[[2]] <- scoretest.ancestry[1,,1]
-  scoretest.ancestry <- scoretest.ancestry[-1,,]
-  popnames <- scoretest.ancestry[1,,1]
-  scoretest.ancestry <- array(as.numeric(scoretest.ancestry), dim=dim(scoretest.ancestry),
-                              dimnames=dimnames(scoretest.ancestry))
-  scoretest.ancestry[is.nan(scoretest.ancestry)] <- NA
-  scoretest.ancestry.final <- t(scoretest.ancestry[,,dim(scoretest.ancestry)[3]])
-  scalar.pvalues <- signif(2*pnorm(-abs(scoretest.ancestry.final[,6])), digits=2)
-  
-  scoretest.ancestry.withp <- data.frame(dimnames(scoretest.ancestry.final)[[1]], popnames,
-                                         round(scoretest.ancestry.final[,c(2,3,4)], digits=2),
-                                         round(scoretest.ancestry.final[,5], digits=0), 
-                                         round(scoretest.ancestry.final[,6], digits=2), 
-                                         scalar.pvalues)
-  dimnames(scoretest.ancestry.withp)[[2]] <- c("Locus", "Population", "Score", "CompleteInfo",
-                                               "ObsInfo", "PercentInfo", "StdNormDev", "p-value") 
-  outputfile <- paste(resultsdir, "TestsAncestryAssociationFinal.txt", sep="/" )
-  write.table(scoretest.ancestry.withp,file=outputfile,quote=FALSE,
-              row.names=FALSE, sep="\t")
-  outputfile <- paste(resultsdir, "TestsAncestryAssociation.ps", sep="/" )
-  plotpvalues(outputfile,scoretest.ancestry[6,,],
-              10*thinning,"Running computation of p-values for ancestry association")
-}
+## function uses old ancestryscoretest output
+## now obsolete
+#plotAncestryScoreTest <- function(scorefile, k) {
+#  scoretest.ancestry <- dget(paste(resultsdir,scorefile,sep="/"))
+#  if(k == 2) { 
+#    scoretest.ancestry <- scoretest.ancestry[, seq(1, dim(scoretest.ancestry)[2] - 1, by = 2), ]
+#  }
+#  dimnames(scoretest.ancestry)[[2]] <- scoretest.ancestry[1,,1]
+#  scoretest.ancestry <- scoretest.ancestry[-1,,]
+#  popnames <- scoretest.ancestry[1,,1]
+#  scoretest.ancestry <- array(as.numeric(scoretest.ancestry), dim=dim(scoretest.ancestry),
+#                              dimnames=dimnames(scoretest.ancestry))
+#  scoretest.ancestry[is.nan(scoretest.ancestry)] <- NA
+#  scoretest.ancestry.final <- t(scoretest.ancestry[,,dim(scoretest.ancestry)[3]])
+#  scalar.pvalues <- signif(2*pnorm(-abs(scoretest.ancestry.final[,6])), digits=2)
+#  
+#  scoretest.ancestry.withp <- data.frame(dimnames(scoretest.ancestry.final)[[1]], popnames,
+#                                         round(scoretest.ancestry.final[,c(2,3,4)], digits=2),
+#                                         round(scoretest.ancestry.final[,5], digits=0), 
+#                                         round(scoretest.ancestry.final[,6], digits=2), 
+#                                         scalar.pvalues)
+#  dimnames(scoretest.ancestry.withp)[[2]] <- c("Locus", "Population", "Score", "CompleteInfo",
+#                                               "ObsInfo", "PercentInfo", "StdNormDev", "p-value") 
+#  outputfile <- paste(resultsdir, "TestsAncestryAssociationFinal.txt", sep="/" )
+#  write.table(scoretest.ancestry.withp,file=outputfile,quote=FALSE,
+#              row.names=FALSE, sep="\t")
+#  outputfile <- paste(resultsdir, "TestsAncestryAssociation.ps", sep="/" )
+#  plotpvalues(outputfile,scoretest.ancestry[6,,],
+#              10*thinning,"Running computation of p-values for ancestry association")
+#}
 
-plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning) {
+## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
+plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
   ## extract first row containing locus names
   locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=K), 1]
@@ -414,12 +417,12 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
   
   ## plot cumulative p-values in K colours
   outputfile <- paste(resultsdir, "TestsAffectedsonly.ps", sep="/")
-  stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),
-                    dimnames=c(dimnames(scoretests4way)[2:4]))
+  stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
   plotPValuesKPopulations(outputfile, stdnormdev, thinning)
   ## extract final table as 3-way array: statistic, locus, population
   scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
                            dimnames=c(dimnames(scoretests4way)[1:3]))
+  
   ## set test statistic to missing if obs info < 1
   scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
   pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
@@ -442,8 +445,7 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
               quote=FALSE, row.names=FALSE, sep="\t")
   
   ## plot information content
-  info.content <- array(data=scoretest.final[4, , ], dim=c(dim(scoretest.final)[2:3]),
-                        dimnames=c(dimnames(scoretest.final)[2:3]))
+  info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
   plotInfoMap(loci.compound, info.content)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
@@ -457,7 +459,6 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
   r.exclude.lo <- exp(u/v - sqrt(u^2 + 2*v*log(100))/v)
   ## plotExclusionMap not implemented at present
 }
-
 plotExclusionMap <- function(loci.compound, info.content, cutoffs.lo, cutoffs.hi) {
   for(chr in 1:n.chr) {
     ## cutoffs plotted for risk ratio associated with 1st population only
@@ -580,12 +581,11 @@ calculateLocusfValues <- function(allelefreq.samples.list) {
   pop2 <- 2
   ## 3-way array (alleles-1 x pops x draws) of allele freqs at each locus
   for(locus in 1:num.loci) {
-    num.alleles.minus1 <- dim(allelefreq.samples.list[[locus]])[1] 
+    aminus1 <- dim(allelefreq.samples.list[[locus]])[1]
     for(draw in 1:num.draws) {
       ## a alleles, 2 pops
-      p <- matrix(allelefreq.samples.list[[locus]][, c(pop1, pop2), draw],
-                  nrow=num.alleles.minus1, ncol=2)
-      p <- rbind(p, 1 - apply(p, 2, sum))     
+      p <- matrix(allelefreq.samples.list[[locus]][, c(pop1, pop2), draw], nrow=aminus1, ncol=2)
+      p <- rbind(p, 1 - apply(p, 2, sum))
       ratios <- p[, 1]*p[, 2]/(p[, 1] + p[, 2]) ## vector of length a
       f.draws[draw] <- 1 - 2*sum(ratios)
     }
@@ -606,7 +606,7 @@ listFreqMeansCovs <- function(allelefreq.samples.list) {
     ## loop over populations 
     for(pop in 1:K) {
       ## add row for freq last allele to matrix of draws of allele freqs
-      f.exceptlast <- allelefreq.samples.list[[locus]][pop, ,]
+      f.exceptlast <- allelefreq.samples.list[[locus]][,,pop]
       if(is.vector(f.exceptlast)) {
         f.exceptlast <- matrix(data=f.exceptlast, nrow=1)
       }
@@ -797,8 +797,17 @@ if(is.null(user.options$paramfile)) {
                      paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
     postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
     plotAutocorrelations(param.samples, user.options$every)
-    plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
-    dev.off()    
+    dev.off()
+    if(is.null(user.options$ergodicaveragefile)) {
+      print("ergodicaveragefile not specified")
+    } else {
+      if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
+        print("paramfile empty")
+      } else {
+        plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
+        dev.off()
+      }
+      
     if(K > 1) {
       ## extract Dirichlet admixture parameters
       admixparams <- param.samples[, 1:K,drop=FALSE]
@@ -880,26 +889,25 @@ if(!is.null(param.samples)) {
 if(!is.null(user.options$allelicassociationscorefile)) {
   outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
   outputfileFinal <- paste(resultsdir, "TestsAllelicAssociationFinal.txt", sep="/" )
-  plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, outputfileFinal)
+  plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, outputfileFinal, user.options$every)
 }
 
 ## read output of score test for association with haplotypes, and plot cumulative results
 if(!is.null(user.options$haplotypeassociationscorefile)) {
   outputfilePlot <- paste(resultsdir, "TestsHaplotypeAssociation.ps", sep="/" )
   outputfileFinal <- paste(resultsdir, "TestsHaplotypeAssociationFinal.txt", sep="/" )
-  plotScoreTest(user.options$haplotypeassociationscorefile, TRUE, outputfilePlot, outputfileFinal)
+  plotScoreTest(user.options$haplotypeassociationscorefile, TRUE, outputfilePlot, outputfileFinal, user.options$every)
 }
 
 ## read output of regression model score test for ancestry, and plot cumulative results
 if(!is.null(user.options$ancestryassociationscorefile)) {
   ## produces warning
-  plotAncestryScoreTest(user.options$ancestryassociationscorefile, K)
+  plotRBScoreTest(user.options$ancestryassociationscorefile, K, population.labels, user.options$every)
 }
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile)) {
-  plotScoreTestAffectedOnly(user.options$affectedsonlyscorefile, K, population.labels,
-                            user.options$every)
+  plotRBScoreTest(user.options$affectedsonlyscorefile, K, population.labels, user.options$every)
 }
 
 ## read output of score test for mis-specified allele freqs and plot cumulative results
