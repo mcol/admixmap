@@ -127,12 +127,13 @@ Chromosome::UpdateParameters(Individual* ind, Matrix_d& _ancestry, AdmixOptions*
      locus++;
   }
 
+  bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   if( L > 1 )
      SampleStates.UpdateParameters( StationaryDist, TransitionProbs,
-                                    Likelihood, options->getTestForAffectedsOnly() );
+                                    Likelihood, test );
   else
      SampleStates.UpdateParameters( StationaryDist, empty,
-                                    Likelihood, options->getTestForAffectedsOnly() );
+                                    Likelihood, test );
 }
 
 void
@@ -161,12 +162,13 @@ Chromosome::UpdateParametersHaploid(Individual* ind, Matrix_d& _ancestry, AdmixO
      locus++;
   }
 
+  bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   if( L > 1 )
      SampleStates.UpdateParameters( StationaryDist, TransitionProbs,
-                                    Likelihood, options->getTestForAffectedsOnly() );
+                                    Likelihood, test );
   else
      SampleStates.UpdateParameters( StationaryDist, empty,
-                                    Likelihood, options->getTestForAffectedsOnly() );
+                                    Likelihood, test );
 }
 
 Matrix_i
@@ -215,7 +217,7 @@ Chromosome::SampleForHaploidLocusAncestry(Individual* ind)
 
 Matrix_d Chromosome::getExpectedAncestry( int j )
 {
-  //name is a misnomer. Returns matrix of probabilities of numbers of gene copies with ancestry in each population.
+
   //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry in that population
   //i.e. (i,2) = p_{ii}
   //     (i,1) = \sum_j{p_{ij}} +   \sum_j{p_{ji}} - 2.0*p_{ii}
