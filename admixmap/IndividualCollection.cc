@@ -508,7 +508,7 @@ for( int i = 0; i < getSize(); i++ ){
      _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *lambda, A, options->getAnalysisTypeIndicator());
   }   
 
-  if( options->getMLIndicator() && i == 0 )//check if this condition is correct
+  if( options->getAnalysisTypeIndicator() < 0 && i == 0 )//check if this condition is correct
      _child[i]->ChibLikelihood(i,iteration, &LogLikelihood, &SumLogLikelihood, MaxLogLikelihood, 
 				     options, chrm, alpha,_admixed, rhoalpha, rhobeta,
 				     thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood, A);
@@ -565,6 +565,7 @@ IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *
 
 }
 double IndividualCollection::getLL(){
+  //not currently used
   return SumLogLikelihood;
 }
 

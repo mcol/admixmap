@@ -399,7 +399,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
 		    Vector_d *SumLogTheta,Vector_d *poptheta,std::ofstream *LogFileStreamPtr){
 
   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
-      !options->getIndAdmixHierIndicator() ){
+      options->getIndAdmixHierIndicator() ){
     if( Loci->GetLengthOfGenome() > 0.0 ){
       // Sample for global rho
       if( !options->getRhoIndicator() ){
@@ -418,7 +418,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
 			    rhoalpha* individuals->getSize() + rhobeta0 );
       }
     }
-         
+           
     // For a model in which the distribution of individual admixture in the population is a mixture
     // of components, we will have one Dirichlet parameter vector for each component, 
     // updated only from those individuals who belong to the component

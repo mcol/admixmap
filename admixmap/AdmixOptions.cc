@@ -923,13 +923,11 @@ int AdmixOptions::checkOptions(LogWriter *Log){
 	  exit(0);
 	}
     }
-  else if (getAnalysisTypeIndicator() == -1)
+  else if (getAnalysisTypeIndicator() == -1 || getAnalysisTypeIndicator() == -2)
     {
-      Log->logmsg(true,"One individual analysis with marginal likelihood calculation.\n");
-    }
-  else if (getAnalysisTypeIndicator() == -2)
-    {
-      Log->logmsg(true,"One individual analysis with marginal likelihood calculation.\n");
+      Log->logmsg(true,"One individual analysis");
+      if(getMLIndicator())Log->logmsg(true, " with marginal likelihood calculation");
+      Log->logmsg(true, "\n");
     }
 
   else
@@ -939,6 +937,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true, "\n");
       exit(0);
     }
+
 
   if (!getIndAdmixHierIndicator())
     {
@@ -957,7 +956,8 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true, "\n");
       exit(0);
     }
-    else Log->logmsg(true,"Analysis with marginal likelihood calculation\n");
+    //change this when marginal likelihood can be calculated for other type of model
+    //else Log->logmsg(true,"Analysis with marginal likelihood calculation\n");
   }
   // Check whether genotypes file has been specified
   if ( strlen(getGeneticDataFilename() ) == 0 )

@@ -461,10 +461,10 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
      vectemp = gendirichlet( alpha[0] + SumLocusAncestry.RowSum() );
      Theta.SetColumn( 0, vectemp );
   }
-
-  CalculateChibMarginalLikelihood(ind, iteration, options,A->getLoci()->isX_data(), alpha, _symmetric,
-				  _admixed,rhoalpha, rhobeta, L, L_X, 
-				  SumN, SumN_X, SumLocusAncestry, SumLocusAncestry_X);
+  if( options->getMLIndicator() && ind == 0 && iteration > options->getBurnIn() )
+    CalculateChibMarginalLikelihood(options,A->getLoci()->isX_data(), alpha, _symmetric,
+				    _admixed,rhoalpha, rhobeta, L, L_X, 
+				    SumN, SumN_X, SumLocusAncestry, SumLocusAncestry_X);
 
   return Theta;
 }
@@ -613,7 +613,7 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
   }
 }
 
-void Individual::CalculateChibMarginalLikelihood(int ind, int iteration, AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
+void Individual::CalculateChibMarginalLikelihood(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
 						 double L_X, vector< unsigned int > SumN, vector< unsigned int > SumN_X, 
 						 Matrix_i &SumLocusAncestry, Matrix_i &SumLocusAncestry_X){
@@ -621,7 +621,7 @@ void Individual::CalculateChibMarginalLikelihood(int ind, int iteration, AdmixOp
   // more efficient algorithm based on HMM likelihood
   LogPosterior = 0.0; 
   double IntConst1;
-  if( options->getAnalysisTypeIndicator() == -1 && ind == 0 && iteration > options->getBurnIn() ){
+ {
     Vector_d alphaparams1, alphaparams0;
     if( options->getXOnlyAnalysis() ){
       LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[0],

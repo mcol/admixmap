@@ -138,7 +138,7 @@ private:
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 			   vector< unsigned int > SumN, vector< unsigned int > SumN_X);
 
-  void CalculateChibMarginalLikelihood(int ind, int iteration, AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
+  void CalculateChibMarginalLikelihood(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
 						 double L_X, vector< unsigned int > SumN, vector< unsigned int > SumN_X, 
 						 Matrix_i &SumLocusAncestry, Matrix_i &SumLocusAncestry_X);
