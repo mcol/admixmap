@@ -18,9 +18,6 @@ public:
 
   ~Individual();
 
-  void
-  accept(IndividualVisitor&, double, std::vector<int>, double);
-
   int getSex();
 
   Matrix_d&
@@ -85,7 +82,7 @@ public:
   double IntegratingConst( double alpha, double beta, double a, double b );
 
   void IndivUpdate(int i,int iteration,  
-		   Vector_d *SumLogTheta, MatrixArray_d *Target, Vector_i &TargetType, MatrixArray_d &ExpectedY, 
+		   Vector_d *SumLogTheta, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, 
 		   Vector_d &lambda,
 		   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions *options,
 		   Vector_d &f, Genome *Loci, Genome *chrm, vector<Vector_d> alpha, bool _symmetric, 
@@ -126,7 +123,6 @@ private:
   unsigned int X_posn;
   double TruncationPt;
 
-
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
   void Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &thetaX, bool xdata, int Populations, bool ModelIndicator );
@@ -137,14 +133,14 @@ private:
   double AcceptanceProbForTheta_LinearReg( int i, int TI,  Matrix_d &theta ,bool ModelIndicator,int Populations,
 					   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
 					   MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda);
-  void SampleIndividualParameters( int i, Vector_d *SumLogTheta, int iteration , MatrixArray_d *Target, Vector_i &TargetType, 
+  void SampleIndividualParameters( int i, Vector_d *SumLogTheta, int iteration , MatrixArray_d *Target, Vector_i &OutcomeType, 
 				   MatrixArray_d &ExpectedY, 
 				   Vector_d &lambda, int NoCovariates, Matrix_d &Covariates0,MatrixArray_d &beta, 
 				   Vector_d &poptheta, AdmixOptions* options, Vector_d &f, 
 				   Genome &Loci, Genome &chrm, vector<Vector_d> alpha, bool _symmetric, 
 				   vector<bool> _admixed, double rhoalpha, double rhobeta, vector<double> sigma);
 
-  void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &TargetType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
+  void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
 			    Genome *Loci, int AnalysisTypeIndicator);
 
   void

@@ -255,13 +255,6 @@ Individual::encodeGenotype(vector<unsigned int>& decoded)
 }
 
 void
-Individual::accept(IndividualVisitor& v, double expectedY,
-                   vector<int> locusfortest, double LogLikelihood )
-{
-  v.visitIndividual(*this, expectedY, locusfortest, LogLikelihood );
-}
-
-void
 Individual::s2c(char *c, string s)
 {
   int len = s.length();
@@ -301,6 +294,7 @@ Individual::setGenotype(unsigned int locus,vector<unsigned int> genotype)
 Matrix_d&
 Individual::getAncestry()
 {
+  //returns admixture proportions, should be renamed
   return _ancestry;
 }
 
@@ -450,11 +444,11 @@ Individual::SampleParameters( int ind, AdmixOptions* options, Vector_d &ff, Geno
         chrm(j)->UpdateParameters( this, _ancestryX, options, f, false );
         LocusAncestry(j) = chrm(j)->SampleForLocusAncestry( this );
      }
-     if( options->getTestForAffectedsOnly() )
+     if( options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry())
         ExpectedAncestry[locus] = chrm(j)->getExpectedAncestry( 0 );
      locus++;
      for( unsigned int jj = 1; jj < numCompLoci[j]; jj++ ){
-        if( options->getTestForAffectedsOnly() )
+        if( options->getTestForAffectedsOnly()|| options->getTestForLinkageWithAncestry() )
            ExpectedAncestry[locus] = chrm(j)->getExpectedAncestry( jj );
         for( unsigned int g = 0; g < gametes[j]; g++ ){
            if( LocusAncestry(j)(g,jj-1) == LocusAncestry(j)(g,jj) ){
@@ -810,7 +804,7 @@ double Individual::AcceptanceProbForTheta_XChrm(Matrix_d &Theta, Matrix_d &Theta
 }
 
 void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta,int iteration , MatrixArray_d *Target,
-					     Vector_i &TargetType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
+					     Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
 					     Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, 
 					     AdmixOptions* options, Vector_d &f, Genome &Loci, Genome &chrm, 
 					     vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, 
@@ -822,7 +816,7 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta,int it
   if( options->getAnalysisTypeIndicator() > 1 ){
     for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
       if( (*Target)(k).IsMissingValue( i, 0 ) ){
-	if( !TargetType(k) )
+	if( !OutcomeType(k) )
 	  (*Target)(k)( i, 0 ) = gennor( ExpectedY(k)( i, 0 ), 1 / sqrt( lambda(k) ) );
 	else{
 	  u = myrand();
@@ -848,7 +842,7 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta,int it
    }
    else if( options->getAnalysisTypeIndicator() == 5 ){
       for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
-         if( TargetType( k ) )
+         if( OutcomeType( k ) )
 	   p += AcceptanceProbForTheta_LogReg( i, k, Theta, options->getModelIndicator(), options->getPopulations(),
 						 NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
          else
@@ -868,14 +862,14 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta,int it
    }
 }
 
-void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &TargetType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
+void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
 				      Genome *Loci, int AnalysisTypeIndicator )
 {
   Vector_i ancestry(2);
   for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
     if( AnalysisTypeIndicator > 1 ){
       if( (*Target)(k).IsMissingValue( i, 0 ) ){
-	if( !TargetType(k) )
+	if( !OutcomeType(k) )
 	  (*Target)(k)( i, 0 ) = gennor( ExpectedY(k)( i, 0 ), 1 / sqrt( lambda(k) ) );
 	else{
 	  if( myrand() * ExpectedY(k)( i, 0 ) < 1 )
@@ -986,19 +980,19 @@ Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, 
 }
 
 void Individual::IndivUpdate(int i,int iteration,  
-			     Vector_d *SumLogTheta, MatrixArray_d *Target, Vector_i &TargetType, MatrixArray_d &ExpectedY, 
+			     Vector_d *SumLogTheta, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, 
 			     Vector_d &lambda, int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, Vector_d &poptheta,
 			     AdmixOptions *options,
 			     Vector_d &f, Genome *Loci, Genome *chrm, vector<Vector_d> alpha, bool _symmetric, 
 			     vector<bool> _admixed, double rhoalpha, double rhobeta, vector<double> sigma){
 
   if( options->getPopulations() > 1 ){
-    SampleIndividualParameters(i, SumLogTheta, iteration , Target, TargetType, ExpectedY, lambda, NoCovariates, 
+    SampleIndividualParameters(i, SumLogTheta, iteration , Target, OutcomeType, ExpectedY, lambda, NoCovariates, 
 				    Covariates0,beta,poptheta, options, f, *Loci,
 			       *chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma);}
 
   else{
-    OnePopulationUpdate(i, Target, TargetType, ExpectedY, lambda, Loci, options->getAnalysisTypeIndicator());
+    OnePopulationUpdate(i, Target, OutcomeType, ExpectedY, lambda, Loci, options->getAnalysisTypeIndicator());
   }   
 
 }

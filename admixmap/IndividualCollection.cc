@@ -19,7 +19,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,
     const Matrix_s& data, Genome& Loci, Genome& chrm)
 {
   Vector_i null_Vector_i(1);
-  TargetType = null_Vector_i;
+  OutcomeType = null_Vector_i;
   indadmixoutput = 0;
   TargetLabels = 0;
   LogLikelihood=0.0;
@@ -36,18 +36,18 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,
 
 if (options->getAnalysisTypeIndicator() == 2)
     {
-      SetNumberOfTargetTypeElements(1);//TargetType->SetNumberOfElements( 1 );
-      SetTargetType(0,0);//(*TargetType)( 0 ) = 0;
+      OutcomeType.SetNumberOfElements( 1 );
+      OutcomeType(0) = 0;
     }
   else if (options->getAnalysisTypeIndicator() == 3)
     {
-      SetNumberOfTargetTypeElements(1);//TargetType->SetNumberOfElements( 1 );
-      SetTargetType(0,1);//(*TargetType)( 0 ) = 1;
+      OutcomeType.SetNumberOfElements( 1 );
+      OutcomeType(0) = 1;
     }
   else if (options->getAnalysisTypeIndicator() == 4)
     {
-      SetNumberOfTargetTypeElements(1);//TargetType->SetNumberOfElements( 1 );
-      SetTargetType(0,1);//(*TargetType)( 0 ) = 1;
+      OutcomeType.SetNumberOfElements( 1 );
+      OutcomeType(0) = 1;
     }
 
 }
@@ -57,7 +57,7 @@ IndividualCollection::accept()
 {
   indadmixoutput->visitIndividualCollection(*this);
   for(unsigned int i=0; i<_child.size(); i++){
-    _child[i]->accept( *indadmixoutput, ExpectedY(0)(i,0), _locusfortest, LogLikelihood );
+     indadmixoutput->visitIndividual(*_child[i], ExpectedY(0)(i,0), _locusfortest, LogLikelihood );
   }
 }
 
@@ -94,10 +94,10 @@ IndividualCollection::GetSumrho()
    return Sumrho;
 }
 
-MatrixArray_d IndividualCollection::getTarget(){
+MatrixArray_d IndividualCollection::getOutcome(){
   return Target;
 }
-Matrix_d IndividualCollection::getTarget(int j){
+Matrix_d IndividualCollection::getOutcome(int j){
   return Target(j);
 }
 Vector_d IndividualCollection::getTargetCol(int j, int k){
@@ -107,11 +107,11 @@ int IndividualCollection::getTargetSize(){
   return Target.GetNumberOfElements();
 }
 
-int IndividualCollection::getTargetType(int i){
-  return TargetType(i);
+int IndividualCollection::getOutcomeType(int i){
+  return OutcomeType(i);
 }
-Vector_i *IndividualCollection::getTargetType(){
-  return &TargetType;
+Vector_i *IndividualCollection::getOutcomeType(){
+  return &OutcomeType;
   }
 
 void
@@ -175,16 +175,9 @@ std::string *IndividualCollection::getCovariateLabels(){
   return CovariateLabels;
   }
 
-Matrix_d* IndividualCollection::getExpectedY0(){
-   return &ExpectedY(0);
+double IndividualCollection::getExpectedY(int i){
+  return ExpectedY(0)(i,0);
  }
-
-void IndividualCollection::SetNumberOfTargetTypeElements(int i){
-  TargetType.SetNumberOfElements(i);
-}
-void IndividualCollection::SetTargetType(int index, int setto){
-  TargetType(index) = setto;
-}
 
 std::string IndividualCollection::getTargetLabels(int k){
   return TargetLabels[k];
@@ -266,7 +259,7 @@ if ( strlen( options->getIndAdmixtureFilename() ) ){
 
     for( int k = 0; k < getTargetSize(); k++ ){
       SetExpectedY(k,(*beta)(k));
-      if( getTargetType(k) )
+      if( getOutcomeType(k) )
 	calculateExpectedY(k);
     }
   }
@@ -352,7 +345,7 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
   //conversion necessary because LoadTarget is changed further down
   Matrix_d& LoadTarget = (Matrix_d&)data_->getTargetMatrix();
   if( LoadTarget.GetNumberOfRows() - 1 != getSize() ){
-    Log->logmsg(true,"Inconsistency in number of rows in targetfile and genotypefile.\n");
+    Log->logmsg(true,"Inconsistency in number of rows in outcomevarfile and genotypefile.\n");
   }
   TempLabels = new string[ LoadTarget.GetNumberOfCols() ];
 
@@ -363,7 +356,7 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
   if( options->getAnalysisTypeIndicator() == 5 ){
     TargetLabels = new string[ LoadTarget.GetNumberOfCols() ];
     Target.SetNumberOfElements(LoadTarget.GetNumberOfCols());
-    TargetType.SetNumberOfElements( LoadTarget.GetNumberOfCols() );
+    OutcomeType.SetNumberOfElements( LoadTarget.GetNumberOfCols() );
 
     for( int j = 0; j < LoadTarget.GetNumberOfCols(); j++ ){
       TargetLabels[j] = TempLabels[j];
@@ -372,11 +365,11 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
       for( int i = 0; i < getSize(); i++ ){
 	if( !TempTarget.IsMissingValue( i, 0 ) &&
 	    (TempTarget( i, 0 ) == 0 || TempTarget( i, 0 ) == 1) )
-	  TargetType(j) = 1;
+	  OutcomeType(j) = 1;
       }
       Target(j) = TempTarget;
 
-      if( getTargetType(j) )
+      if( getOutcomeType(j) )
 	{
 	  Log->logmsg(true,"Binary variable: ");
 	  Log->logmsg(true,getTargetLabels(j));
@@ -506,7 +499,7 @@ void IndividualCollection::Update(int iteration, Vector_d *SumLogTheta, Vector_d
 
 for( int i = 0; i < getSize(); i++ ){
   getIndividual(i)->IndivUpdate(i,iteration, 
-				SumLogTheta, &Target, TargetType, ExpectedY, *lambda,
+				SumLogTheta, &Target, OutcomeType, ExpectedY, *lambda,
 				NoCovariates, Covariates(0), *beta, poptheta, options,
 				f, Loci, chrm, alpha, _symmetric, 
 				_admixed, rhoalpha, rhobeta, sigma);
@@ -571,4 +564,22 @@ IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, Genome *Loci,
 }
 double IndividualCollection::getLL(){
   return SumLogLikelihood;
+}
+
+double IndividualCollection::DerivativeInverseLinkFunction(int AnalysisType, int i){
+  double DInvLink = 1.0;
+  double EY = getExpectedY(i);
+
+  if( AnalysisType == 2 )
+    DInvLink = 1.0;//logistic regression
+  
+  else if( AnalysisType == 3 || AnalysisType == 4 )
+    DInvLink = EY * (1.0 - EY);//linear regression
+  
+  else if( AnalysisType == 5 )
+    DInvLink = OutcomeType(0) ? EY*(1.0-EY):1.0;
+
+  else  cout<<"Invalid call to DerivativeLinkFunction; No regression model is being used!"<<endl;
+ 
+  return DInvLink;    
 }

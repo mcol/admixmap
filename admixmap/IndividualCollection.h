@@ -39,7 +39,7 @@ private:
   Matrix_d Input;
   std::string *CovariateLabels;
   std::string *TargetLabels;
-  Vector_i TargetType;
+  Vector_i OutcomeType;
   std::vector<double> sigma;
   IndividualVisitor* indadmixoutput;
   double LogLikelihood, SumLogLikelihood;
@@ -82,8 +82,8 @@ public:
   Vector_i GetSumXi();
   double GetSumrho0();
   double GetSumrho();
-  MatrixArray_d getTarget();
-  Matrix_d getTarget(int);
+  MatrixArray_d getOutcome();
+  Matrix_d getOutcome(int);
   Vector_d getTargetCol(int,int);
   int getTargetSize();
   int GetNumberOfInputRows();
@@ -91,20 +91,19 @@ public:
 
   MatrixArray_d getCovariates();
   Matrix_d getCovariates(int);
-  int getTargetType(int);
-  Vector_i *getTargetType();
-  void SetNumberOfTargetTypeElements(int);
-  void SetTargetType(int,int);
+  int getOutcomeType(int);
+  Vector_i *getOutcomeType();
 
   void SetExpectedY(int,Matrix_d);
   void calculateExpectedY(int);
-  Matrix_d *getExpectedY0();
+  double getExpectedY(int);
 
   std::string getTargetLabels(int);
   std::string getCovariateLabels(int);
   std::string *getCovariateLabels();
 
   double getLL();
+  double DerivativeInverseLinkFunction(int AnalysisType, int i);
 };
 
 #endif /* !defined INDIVIDUAL_COLLECTION_H */
