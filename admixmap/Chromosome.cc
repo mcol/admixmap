@@ -19,6 +19,9 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
   // and for this HMM object to store transition probs
   TransitionProbs.SetNumberOfElementsWithDimensions( L - 1, D, D );
   Likelihood.SetNumberOfElementsWithDimensions( L, D, 1 );
+  //Tpat and Tmat are the paternal and maternal haploid transition probability matrices 
+  //Tpat = 0;
+  //Tmat = 0;
 }
 
 void
@@ -45,6 +48,7 @@ Chromosome::GetLabel( int )
 
 Chromosome::~Chromosome()
 {
+
 }
 
 //
@@ -65,10 +69,10 @@ void
 Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestry, AdmixOptions* options, vector< Vector_d >& f,
 			     bool fixedallelefreqs )
 {
+ 
   Matrix_d Prob;
   MatrixArray_d empty;
   // Construct stationary distribution
-  //  Vector_d mu_1, mu_2;
   Vector_d mu_2, mu_1 = _ancestry.GetColumn(0); //maternal
   if( options->getModelIndicator() )
     mu_2 = _ancestry.GetColumn(1); //paternal
@@ -86,14 +90,48 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestr
   
   int locus = GetLocus( 0 );
   for( int j = 0; j < L - 1; j++ ){
-    // Construct transition matrix
-    // matrices Tpat and Tmat should be declared once in header file
-    // not declared every time this function is called
-    // class HaploidTransitionMatrix needs to be rewritten so that 
-    // method to instantiate object is separated from 
-    // method to set elements of matrix  
-    HaploidTransitionMatrix Tpat(mu_1,f[0](locus+1));
-    HaploidTransitionMatrix Tmat(mu_2,f[1](locus+1));
+    // Construct Haploid transition matrices, Tpat and Tmat, then use them to construct transition matrix
+
+    double **Tpat, **Tmat;
+    unsigned int H1, H2;
+    H1 = mu_1.GetNumberOfElements();
+    H2 = mu_2.GetNumberOfElements();  
+    Tpat = new double*[H1];
+    Tmat = new double*[H2]; 
+ 
+    double _product1[H1], _product2[H2];
+    for(unsigned int i=0; i<H1; i++){
+      Tpat[i] = new double[H1];
+      _product1[i] = f[0](locus+1) * mu_1(i);
+    }
+
+    for(unsigned int i=0; i<H1; i++){
+      for(unsigned int j=0; j<i; j++){
+	Tpat[i][j] = mu_1(j) - _product1[j];
+      }
+      Tpat[i][i] = mu_1(i) + f[0](locus+1) - _product1[i];
+      for(unsigned int j=i+1; j<H1; j++){
+	Tpat[i][j] = mu_1(j) - _product1[j];
+      }
+    }
+
+    
+    for(unsigned int i=0; i<H2; i++){
+      Tmat[i] = new double[H2];
+      _product2[i] = f[1](locus+1) * mu_2(i);
+    }
+    
+    for(unsigned int i=0; i<H2; i++){
+      for(unsigned int j=0; j<i; j++){
+	Tmat[i][j] = mu_2(j) - _product2[j];
+      }
+      Tmat[i][i] = mu_2(i) + f[1](locus+1) - _product2[i];
+      for(unsigned int j=i+1; j<H2; j++){
+	Tmat[i][j] = mu_2(j) - _product2[j];
+      }
+    }
+
+
     // set elements of diploid transition matrix
     int row = 0;
     for( int k1 = 0; k1 < populations; k1++ ){
@@ -103,16 +141,26 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestr
 	for( int kk1 = 0; kk1 < populations; kk1++ ){
 	  for( int kk2 = 0; kk2 < populations; kk2++ ){
 	    //                 int col = kk2 + kk1 * populations;
-	    TransitionProbs(j)( row, col ) = Tpat( k1, kk1 )*Tmat( k2, kk2 );
+	    TransitionProbs(j)( row, col ) = Tpat[k1][kk1]*Tmat[k2][kk2];
 	    col++;
 	  }
 	}
 	row++;
       }
     }
+   for(unsigned int i=0; i<H1; i++){
+      delete Tpat[i];
+      }
+   for(unsigned int i=0; i<H2; i++){
+      delete Tmat[i];
+      }
+
+    delete Tpat;
+    delete Tmat;
+
     locus++;
   }
-  
+ 
   // Construct likelihood (vector of probs of genotype given ancestry states)
   locus = GetLocus( 0 );
   for( int j = 0; j < L; j++ ){
@@ -132,7 +180,7 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestr
       Likelihood(j).SetElements( 1.0 );
     locus++;
   }
-  
+
   bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   if( L > 1 )
     SampleStates.UpdateParameters( StationaryDist, TransitionProbs,
@@ -140,6 +188,7 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestr
   else
     SampleStates.UpdateParameters( StationaryDist, empty,
 				   Likelihood, test );
+
 }
 
 void
@@ -153,8 +202,27 @@ bool fixedallelefreqs )
   
   int locus = GetLocus( 0 );
   for( int j = 0; j < L - 1; j++ ){
-     HaploidTransitionMatrix Tmat( mu, f[0](locus+1) );
-     TransitionProbs(j) = Tmat.toMatrix();
+    //HaploidTransitionMatrix Tmat( mu, f[0](locus+1) );
+
+     int H = mu.GetNumberOfElements();
+     TransitionProbs(j).SetNumberOfElements(H, H);
+     
+     double _product[H];
+    for(int i=0; i<H; i++){
+      _product[i] = f[0](locus+1) * mu(i);
+    }
+
+    for(int i=0; i<H; i++){
+      for(int jj=0; jj<i; jj++){
+	TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
+      }
+      TransitionProbs(j)(i,i) = mu(i) + f[0](locus+1) - _product[i];
+      for(int jj=i+1; jj<H; jj++){
+	TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
+      }
+    }
+
+    //TransitionProbs(j) = Tmat.toMatrix();
      locus++;
   }
   // Construct likelihood

@@ -33,9 +33,6 @@
 #include "MetropolisHastings.h"
 #include "HMM.h"
 #include "Haploid.h"
-#include "HaploidProbabilities.h"
-#include "HaploidTransitionMatrix.h"
-#include "DiploidTransitionMatrix.h"
 #include "GameteAdmixture.h"
 #include "AdmixOptions.h"
 

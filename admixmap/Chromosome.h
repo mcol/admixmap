@@ -19,14 +19,18 @@ class Individual;
 class Chromosome:public Genome
 {
 private:
-   int _startLoci;
-   int populations;
-   int D;
-   int L;
-   std::string _Label;
-   HMM SampleStates;
-   Matrix_d StationaryDist;
-   MatrixArray_d TransitionProbs, Likelihood;
+  int _startLoci;
+  int populations;
+  int D;
+  int L;
+  std::string _Label;
+  HMM SampleStates;
+  Matrix_d StationaryDist;
+  MatrixArray_d TransitionProbs, Likelihood;
+  
+  // for Update function
+
+
 
   // UNIMPLEMENTED
   // to avoid use
