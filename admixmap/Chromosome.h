@@ -28,10 +28,6 @@ private:
   Matrix_d StationaryDist;
   MatrixArray_d TransitionProbs, Likelihood;
   
-  // for Update function
-
-
-
   // UNIMPLEMENTED
   // to avoid use
  // Private default constructor

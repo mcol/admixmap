@@ -19,9 +19,7 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
   // and for this HMM object to store transition probs
   TransitionProbs.SetNumberOfElementsWithDimensions( L - 1, D, D );
   Likelihood.SetNumberOfElementsWithDimensions( L, D, 1 );
-  //Tpat and Tmat are the paternal and maternal haploid transition probability matrices 
-  //Tpat = 0;
-  //Tmat = 0;
+ 
 }
 
 void
@@ -72,65 +70,38 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestr
  
   Matrix_d Prob;
   MatrixArray_d empty;
+  int Mcol = options->getModelIndicator(); //which col to use as maternal ancestry, col 1 for a randommatingmodel
+                                           //col 0 is paternal ancestry
   // Construct stationary distribution
-  Vector_d mu_2, mu_1 = _ancestry.GetColumn(0); //maternal
-  if( options->getModelIndicator() )
-    mu_2 = _ancestry.GetColumn(1); //paternal
-  else
-    mu_2 = _ancestry.GetColumn(0); //paternal
-  
   int d = 0;
   for( int k = 0; k < populations; k++ ){
     for( int kk = 0; kk < populations; kk++ ){
-      StationaryDist( d, 0 ) = mu_1(k) * mu_2(kk);
+      StationaryDist( d, 0 ) = _ancestry(k,0) * _ancestry(kk,Mcol);
       d++;
     }
   }
-  //  StationaryDist = mu_2.ColumnMatrix();
   
   int locus = GetLocus( 0 );
   for( int j = 0; j < L - 1; j++ ){
     // Construct Haploid transition matrices, Tpat and Tmat, then use them to construct transition matrix
+    double Tpat[populations][populations], Tmat[populations][populations];
+    double _product1[populations], _product2[populations];
 
-    double **Tpat, **Tmat;
-    unsigned int H1, H2;
-    H1 = mu_1.GetNumberOfElements();
-    H2 = mu_2.GetNumberOfElements();  
-    Tpat = new double*[H1];
-    Tmat = new double*[H2]; 
- 
-    double _product1[H1], _product2[H2];
-    for(unsigned int i=0; i<H1; i++){
-      Tpat[i] = new double[H1];
-      _product1[i] = f[0](locus+1) * mu_1(i);
+    for(int i=0; i<populations; i++){
+      _product1[i] = f[0](locus+1) * _ancestry(i,0);
+      _product2[i] = f[1](locus+1) * _ancestry(i,Mcol);
     }
 
-    for(unsigned int i=0; i<H1; i++){
-      for(unsigned int j=0; j<i; j++){
-	Tpat[i][j] = mu_1(j) - _product1[j];
+    for(int i=0; i<populations; i++){
+      for(int j=0; j<i; j++){
+	Tpat[i][j] = _ancestry(j,0) - _product1[j];
+	Tmat[i][j] = _ancestry(j,Mcol) - _product2[j];
+	Tpat[j][i] = _ancestry(i,0) - _product1[i];
+	Tmat[j][i] = _ancestry(i,Mcol) - _product2[i];
       }
-      Tpat[i][i] = mu_1(i) + f[0](locus+1) - _product1[i];
-      for(unsigned int j=i+1; j<H1; j++){
-	Tpat[i][j] = mu_1(j) - _product1[j];
-      }
+      Tpat[i][i] = _ancestry(i,0) + f[0](locus+1) - _product1[i];
+      Tmat[i][i] = _ancestry(i,Mcol) + f[1](locus+1) - _product2[i];
     }
-
-    
-    for(unsigned int i=0; i<H2; i++){
-      Tmat[i] = new double[H2];
-      _product2[i] = f[1](locus+1) * mu_2(i);
-    }
-    
-    for(unsigned int i=0; i<H2; i++){
-      for(unsigned int j=0; j<i; j++){
-	Tmat[i][j] = mu_2(j) - _product2[j];
-      }
-      Tmat[i][i] = mu_2(i) + f[1](locus+1) - _product2[i];
-      for(unsigned int j=i+1; j<H2; j++){
-	Tmat[i][j] = mu_2(j) - _product2[j];
-      }
-    }
-
 
     // set elements of diploid transition matrix
     int row = 0;
@@ -148,15 +119,6 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestr
 	row++;
       }
     }
-   for(unsigned int i=0; i<H1; i++){
-      delete Tpat[i];
-      }
-   for(unsigned int i=0; i<H2; i++){
-      delete Tmat[i];
-      }
-
-    delete Tpat;
-    delete Tmat;
 
     locus++;
   }
@@ -266,7 +228,6 @@ Chromosome::SampleForLocusAncestry(Individual* ind, AlleleFreqs *A)
   for( int j = 0; j < L; j++ ){
     int locus = GetLocus( j );
     if( ind->IsMissing(locus)[0] != 0 ){
-      //vector<unsigned int> genotype = ind->getGenotype(locus);
       //(*this)(j)->UpdateAlleleCounts( genotype, OrderedStates.GetColumn(j) );
       // why should function UpdateAlleleCounts need to get genotypes if it already has the possible haplotypes 
       // compatible with the genotype? 
