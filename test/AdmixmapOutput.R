@@ -541,22 +541,27 @@ convertAlleleFreqs <- function(allelefreq.samples) {
 }
 
 calculateLocusfValues <- function(allelefreq.samples.list) {
-  ## correct only for diallelic loci and two populations
-  ## otherwise uses allele 1 and first two populations
-  locusfValues.samples.list <- list()
-  f.means <- numeric(length(allelefreq.samples.list))
-  for(locus in 1:length(allelefreq.samples.list)) {
-    if(length(dim(allelefreq.samples.list[[locus]])) == 2) {
-      p1 <- allelefreq.samples.list[[locus]][1, ]
-      p2 <- allelefreq.samples.list[[locus]][2, ]
-    } else {
-      p1 <- allelefreq.samples.list[[locus]][1, 1, ]
-      p2 <- allelefreq.samples.list[[locus]][1, 2, ]
+  ## calculates locus information content for ancestry
+  ## correct only for two populations
+  ## otherwise uses first two populations
+  num.loci <- length(allelefreq.samples.list)
+  num.draws <- dim(allelefreq.samples.list[[1]])[3]
+  locusfValues.samples <- matrix(data=NA, nrow=num.loci, ncol=1) # should have K(K+1)/2 cols
+  f.draws <- numeric(num.draws)
+  f.means <- numeric(num.loci)
+  ## should loop over all pairs of pops
+  pop1 <- 1
+  pop2 <- 2
+  ## 3-way array (alleles-1 x pops x draws) of allele freqs at each locus
+  for(locus in 1:num.loci) {
+    for(draw in 1:num.draws) {
+      ## a alleles, 2 pops
+      p <- allelefreq.samples.list[[locus]][, c(pop1, pop2), draw]
+      ratios <- p[, 1]*p[, 2]/(p[, 1] + p[, 2]) ## vector of length a
+      f.draws[draw] <- 1 - 2*sum(ratios)
     }
-    f <- (p1 - p2)^2 / ((p1 + p2)*(2 - p1 - p2))
-    f.mean <- mean(f)
-    locusfValues.samples.list[[locus]] <- f
-    f.means[locus] <- f.mean
+    ## locusfValues.samples.list[[locus]] <- f.draws
+    f.means[locus] <- mean(f.draws)
   }
   return(f.means) 
   ## return(locusfValues.samples.list)  
@@ -569,11 +574,10 @@ listFreqMeansCovs <- function(allelefreq.samples.list) {
   K <- dim(allelefreq.samples.list[[1]])[2]
   ## loop over loci to compute means and covariances
   for(locus in 1:length(allelefreq.samples.list)) {
-
     ## loop over populations 
     for(pop in 1:K) {
       ## add row for freq last allele to matrix of draws of allele freqs
-      f.exceptlast <- allelefreq.samples.list[[locus]][,pop,]
+      f.exceptlast <- allelefreq.samples.list[[locus]][pop, ,]
       if(is.vector(f.exceptlast)) {
         f.exceptlast <- matrix(data=f.exceptlast, nrow=1)
       }
@@ -917,6 +921,7 @@ if(!is.null(user.options$allelefreqscorefile)) {
 if(!is.null(user.options$allelefreqoutputfile)) {
   ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
+  print.default("Converting allele frequency samples array to list")
   allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
   
   ## calculate posterior means of sampled fvalues at each locus
