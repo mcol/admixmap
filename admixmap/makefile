@@ -13,13 +13,17 @@ IFLAGS			= -I$(LIBDIR)
 LFLAGS			= -L$(MATRIXLIBDIR) -L$(LIBDIR)
 LIBS			= -lmat -lm -static -lgsl -lgslcblas
 
+# Release version flags
+DFLAGS = -O3
+
+# Debug version flags
+# DFLAGS = -g
+
+# Profiling version flags
+# DFLAGS = -pg -O3
+
 CXXFLAGS		= 
-#CPPFLAGS		= -W -Wall -march=i686 $(IFLAGS)#compile without optimising
-CPPFLAGS		= -W -Wall -O3 -march=i686 $(IFLAGS)
-#CPPFLAGS		= -W -Wall -g -march=i686 $(IFLAGS)
-#CPPFLAGS		= -W -Wall -pg -O0 -march=i686 $(IFLAGS)
-# Use option -g to use gdb debugger
-# Use option -pg to use gprof to profile the code
+CPPFLAGS		= -W -Wall -march=i686 $(IFLAGS) $(DFLAGS)
 
 all:			admixmap .depend
 
@@ -42,7 +46,7 @@ veryclean:
 		rm -Rf $(WINDISTDIR)
 		rm -f $(WINDISTDIR).zip
 
-dep .depend:
+.depend: *.cc
 	$(CXX) $(CPPFLAGS) -MM *.cc >> .depend
 
 infiles		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o VectorLoop.o $(MATRIXLIBDIR)libmat.a DARS.o TuneRW.o gaussian_d.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o Individual.o MetropolisHastings.o HaploidTransitionMatrix.o HMM.o IndAdmixOutputter.o AlleleFreqOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o DispersionTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o
@@ -88,3 +92,5 @@ windist:	admixmap
 		rm -f ../test/ $(DISTDIR).zip
 
 #command to zip directory - do it manually for now
+
+include .depend
