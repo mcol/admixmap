@@ -36,21 +36,23 @@ void HMM::SetDimensions( int inTransitions, int inStates )
 }
 
 void HMM::
-UpdateParameters( Matrix_d &inStationaryDist, MatrixArray_d &inTransitionProbs, MatrixArray_d &inLikelihood, bool CalculateBeta )
+//UpdateParameters( Matrix_d &inStationaryDist, MatrixArray_d &inTransitionProbs, MatrixArray_d &inLikelihood, bool CalculateBeta )
+// name of second parameter changed so no need to allocate new memory for a copy of TransitionProbs 
+UpdateParameters( Matrix_d &inStationaryDist, MatrixArray_d &TransitionProbs, MatrixArray_d &inLikelihood, bool CalculateBeta )
 {
-   StationaryDist = inStationaryDist;
-   TransitionProbs = inTransitionProbs;
-   Likelihood = inLikelihood;
-   if( Transitions > 1 )
-      CheckArguments();
-   _CalculateBeta = CalculateBeta;
-   UpdateFwrdBckwdProbabilities();
+  StationaryDist = inStationaryDist;
+  //   TransitionProbs = inTransitionProbs;
+  Likelihood = inLikelihood;
+  if( Transitions > 1 )
+    CheckArguments(TransitionProbs);
+  _CalculateBeta = CalculateBeta;
+  UpdateFwrdBckwdProbabilities(TransitionProbs);
 }
 
-void HMM::UpdateFwrdBckwdProbabilities()
+void HMM::UpdateFwrdBckwdProbabilities(MatrixArray_d &TransitionProbs)
 {
 // Matrix multiplication replaced by component-wise multiplication.
-// ie., wastefull to multiply by diagonal matrix, multiply each column
+// ie. wasteful to multiply by diagonal matrix, multiply each column
 // in turn by a scalar.
    factor = 0.0;
    alpha(0) = StationaryDist.Transpose();
@@ -97,7 +99,7 @@ double HMM::getLikelihood()
    return( factor+log( sum ) );
 }
 
-Vector_i HMM::Sample()
+Vector_i HMM::Sample(MatrixArray_d &TransitionProbs)
 {
    Vector_i C( Transitions );
    Vector_d V;
@@ -113,7 +115,7 @@ Vector_i HMM::Sample()
    return( C );
 }
 
-void HMM::CheckArguments()
+void HMM::CheckArguments(MatrixArray_d &TransitionProbs)
 {
    assert( Likelihood(0).GetNumberOfRows() == States );
    assert( TransitionProbs.GetNumberOfElements() == Transitions - 1 );
