@@ -1,8 +1,17 @@
-rm(list = ls())  ## remove (almost) everything in the working environment.
+## rm(list = ls())  ## remove (almost) everything in the working environment.
 library(boa)
 library(MASS)
-## script should be invoked from folder that contains ADMIXMAP output files in subfolder "results/"
-resultsdir <- "results"
+## script should be invoked from folder one level above subfolder specified by resultsdir
+## get value of resultsdir if not already defined as R object 
+if(is.null(resultsdir)) {
+  ## get resultsdir from environment if set 
+  if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
+    resultsdir <- Sys.getenv("RESULTSDIR")
+  } else {
+    ## resultsdir set to default directory 
+    resultsdir <- "results/"
+  }
+}
 
 getUserOptions <- function(argsfilename) {
   ## read table of user options written by Perl script
@@ -44,25 +53,32 @@ getNumSubpopulations <- function(user.options) {
     K <- as.numeric(user.options$populations)
   }
   else {print("Error: cannot determine number of populations\n");}
-    return(K)
+  return(K)
 }
 
 getPopulationLabels <- function(k, user.options) {
   if(k==1) {
     population.labels <- "SinglePop"
   } else {
-    if(!is.null(user.options$paramfile)) {
-      population.labels <- dimnames(read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE))[[2]][1:k]
+    if(!is.null(user.options$paramfile) &&
+       length(scan(paste(resultsdir, user.options$paramfile, sep="/"), quiet=TRUE)) != 0) {
+      population.labels <- dimnames(read.table(paste(resultsdir,user.options$paramfile,sep="/"),
+                                               header=TRUE))[[2]][1:k]
     } else {
-      if(!is.null(user.options$historicallelefreqfile))
-        {
-        population.labels <- dimnames(paste(resultsdir,user.options$historicallelefreqfile,sep=""),
-                                                 header=TRUE)[[2]][-1]}
+      if(!is.null(user.options$priorallelefreqfile)) {
+        population.labels <- dimnames(read.table(user.options$priorallelefreqfile,
+                                                 header=TRUE))[[2]][-1]
+      } else {
+        if(!is.null(user.options$historicallelefreqfile)) {
+          population.labels <- dimnames(read.table(user.options$historicallelefreqfile,
+                                                   header=TRUE))[[2]][-1]
+        }
+      }
     }
   }
   return(population.labels)
-}
-  
+}    
+
 getOutcomeType <- function(header) {
   ## determine whether continuous outcome by testing for column headed "precision"
   if(match("precision", header, nomatch=0) == 0) 
@@ -80,79 +96,61 @@ getNumCovariates <- function(user.options) {
   }
   return(n.covariates)
 }
+
 getRegressionParamsForAdmixture <- function(user.options, k, n.covariates, population.labels) {
   ## number col.coeff1 of column containing regression coefficient for effect of subpopulation 1
   ## is determined as  n.covariates + 1
   col.coeff1 <- n.covariates + 1   #  + 1 for intercept
   col.coefflast <- col.coeff1 + k - 2  # only k- 1 coefficients
-  beta <- data.frame(read.table(paste(resultsdir,user.options$regparamfile,sep="/"),sep="",header=TRUE)[, col.coeff1:col.coefflast])
+  beta <- data.frame(read.table(paste(resultsdir,user.options$regparamfile,sep="/"),
+                                sep="",header=TRUE)[, col.coeff1:col.coefflast])
   dimnames(beta)[[2]] <- paste("slope", population.labels[-1], sep="." )
   return(beta)
 }
+
 getPrecision <- function(user.options) {
   beta <- read.table(paste(resultsdir,user.options$regparamfile,sep="/"),sep="",header=TRUE)
   beta <- data.frame(beta[,ncol(beta)])
   dimnames(beta)[[2]] <- "Precision"
   return(beta)
 }
-getAllSamples<-function(user.options,population.labels){
-samples<-NULL
-if(!is.null(user.options$paramfile))
-samples<-read.table(paste(resultsdir,user.options$paramfile,sep="/"),sep="",header=TRUE);
-if(!is.null(user.options$regparamfile))
-samples<-cbind(samples,read.table(paste(resultsdir,user.options$regparamfile,sep="/"),sep="",header=TRUE));
-if(!is.null(user.options$dispparamfile))
-{
-eta.samples<-read.table(paste(resultsdir,user.options$dispparamfile,sep="/"),sep="",header=TRUE)
-   ## label dispersion parameters
-dimnames(eta.samples)[[2]] <- paste("eta", population.labels[j], sep="." )
-samples<-cbind(samples,eta.samples);
-}   
-return(samples);
-}  
 
-plotAutocorrelations <- function(param.samples) {
+plotAutocorrelations <- function(table.samples) {
   ## plot autocorrelations
-
   ## drop columns with zero variance
-  param.samples <- param.samples[, colVars(param.samples)>0]
-  for(j in 1:dim(param.samples)[2]) {
+  table.samples <- table.samples[, colVars(table.samples)>0]
+  for(j in 1:dim(table.samples)[2]) {
     ## next line generates warning messages
-    acfRes <- acf(param.samples[, j], plot=FALSE)
+    acfRes <- acf(table.samples[, j], plot=FALSE)
     if(length(acfRes$acf[is.nan(acfRes$acf)]) == 0){
       plot(thinning*acfRes$lag, acfRes$acf, type="l", ylim = c(0, 1),
-         main=paste("Autocorrelation plot ", dimnames(param.samples)[[2]][j]),
-         xlab=paste("Iterations"), ylab="Autocorrelation") 
+           main=paste("Autocorrelation plot ", dimnames(table.samples)[[2]][j]),
+           xlab=paste("Iterations"), ylab="Autocorrelation") 
     }
   }
 }
 
-checkConvergence <- function(param.samples, listname) {
+checkConvergence <- function(table.samples, listname, outputfile) {
   ## test for adequate burn-in based on Geweke (1992)
   ## in: Bayesian Stats 4. ed. Bernardo JM et al, Oxford, OUP)
-  boa.init()
-  boa.chain.add(link=as.matrix(param.samples),lname=listname)
-  sink(paste(resultsdir, "ConvergenceDiags.txt", sep="/" ));
-  boa.print.geweke();
-  boa.quit()
-  sink()
-}
-
-plotErgodicAverages <- function(user.options, thinning) {
-  ## plot ergodic averages
-  if(!is.null(user.options$ergodicaveragefile)) {
-    cumulativeMeans <- read.table(paste(resultsdir,user.options$ergodicaveragefile,sep="/"),sep="", header=TRUE)
-    outputfile <- paste(resultsdir, "ParameterCumulativeMeans.ps", sep="/" )
-    postscript(outputfile)
-    for(j in 1:dim(cumulativeMeans)[2]) {
-      plot(10*thinning*seq(1:dim(cumulativeMeans)[1]), cumulativeMeans[,j], type="l", 
-           main="Running posterior mean", 
-           xlab="Iterations", ylab=dimnames(cumulativeMeans)[[2]][j])#should fix dimnames
-    }
-    dev.off()
+  table.samples <- table.samples[, colVars(table.samples)>0]
+  if(dim(table.samples)[2] > 0) {
+    table.geweke <- boa.geweke(link=table.samples, p.first=0.1, p.last=0.5)
+    table.geweke <- round(table.geweke, digits=3)
+    write.table(table.geweke, file=outputfile, sep="\t")
   }
 }
 
+plotErgodicAverages <- function(ergodicaveragefile, thinning) {
+  table.averages <- read.table(file=ergodicaveragefile, header=TRUE)
+  ## plot ergodic averages
+  for(j in 1:dim(table.averages)[2]) {
+    plot(10*thinning*seq(1:dim(table.averages)[1]), table.averages[,j], type="l", 
+         main="Running posterior mean", 
+         xlab="Iterations", ylab=dimnames(table.averages)[[2]][j]) # should fix dimnames
+  }
+}
+  
 popAdmixProportions <- function(population.labels, params, k) {
   ## calculate population admixture proportions from Dirichlet parameters
   pop.admix.prop <- as.data.frame(matrix(data=NA, nrow=n, ncol=k))
@@ -296,7 +294,7 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
   }
   ## convert to numeric
   scoretest <- array(as.numeric(scoretest), dim=dim(scoretest),
-                             dimnames=dimnames(scoretest))
+                     dimnames=dimnames(scoretest))
   scoretest[is.nan(scoretest)] <- NA
   ## extract matrix of standard normal deviates
   stdNormDev <- scoretest[5,,]
@@ -315,7 +313,7 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
   if (haplotypes) {
     chisquare <- scoretest.final[, 6]
     scoretest.table <- data.frame(scoretest.table, chisquare)
-   ## dimnames(scoretest.table)[[2]] <- c(dimnames(scoretest.table)[[2]], "ChiSquare")
+    ## dimnames(scoretest.table)[[2]] <- c(dimnames(scoretest.table)[[2]], "ChiSquare")
   }
   write.table(scoretest.table, file=outputfileFinal, quote=FALSE, sep="\t",
               row.names=FALSE, col.names=TRUE)
@@ -349,7 +347,7 @@ plotAncestryScoreTest <- function(scorefile, k) {
   plotpvalues(outputfile,scoretest.ancestry[6,,],
               10*thinning,"Running computation of p-values for ancestry association")
 }
-  
+
 plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning) {
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
   ## extract first row containing locus names
@@ -360,23 +358,23 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
   dim3way <- dim(scoretests.n)
   dim4way <- c(dim3way[1], K, dim3way[2]/K, dim3way[3])
   dimnames4way <- list(c("Score", "CompleteInfo", "ObservedInfo",
-                            "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params", "StdNormal"),
-                            population.labels, locusnames, NULL)
+                         "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params", "StdNormal"),
+                       population.labels, locusnames, NULL)
   scoretests4way <- array(as.numeric(as.vector(scoretests.n)), dim=dim4way, dimnames=dimnames4way)
   scoretests4way[is.nan(scoretests4way)] <- NA
   
- ## plot cumulative p-values in K colours
+  ## plot cumulative p-values in K colours
   outputfile <- paste(resultsdir, "TestsAffectedsonly.ps", sep="/")
   stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
   plotPValuesKPopulations(outputfile, stdnormdev, thinning)
   ## extract final table as 3-way array: statistic, locus, population
   scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
                            dimnames=c(dimnames(scoretests4way)[1:3]))
-
- ## set test statistic to missing if obs info < 1
+  
+  ## set test statistic to missing if obs info < 1
   scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
   pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
-
+  
   ## output scoretest.final as 2-way array, in which rows index pops within loci
   scoretest.final2 <- array(as.vector(scoretests4way), dim=c(7, length(testnames)))
   scoretest.final2 <- data.frame(testnames, t(scoretest.final2), as.vector(pvalues))
@@ -385,7 +383,7 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
   scoretest.final2[, 5:7] <- round(scoretest.final2[, 5:7], digits=0)
   scoretest.final2[, 8] <-  round(scoretest.final2[, 8], digits=2)
   scoretest.final2[, 9] <- signif(scoretest.final2[, 9], digits=2)
-
+  
   dimnames(scoretest.final2)[[2]] <-
     c("Locus.Population", "Score", "CompleteInfo", "ObservedInfo",
       "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params",
@@ -396,8 +394,8 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
   
   ## plot information content
   info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
- plotInfoMap(loci.compound, info.content) #produces error "logical subscript too long"
-
+  plotInfoMap(loci.compound, info.content) #produces error "logical subscript too long"
+  
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
   ## a likelihood ratio of 0.01
   ## based on quadratic approximation to the log-likelihood as a function of log r
@@ -416,7 +414,7 @@ plotExclusionMap <- function(loci.compound, info.content, cutoffs.lo, cutoffs.hi
     plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
          cutoffs.lo[loci.compound$Chromosome==chr], 
          type="l", ylim=c(0,10),
-           xlab="Map position (cM) from first locus", ylab="Population risk ratio at LOD = -2",
+         xlab="Map position (cM) from first locus", ylab="Population risk ratio at LOD = -2",
          main=paste("Exclusion map for chromosome", chr))
     text(loci.compound$MapPosition[loci.compound$Chromosome==chr],
          cutoffs.lo[loci.compound$Chromosome==chr]
@@ -488,7 +486,7 @@ convertAlleleFreqs <- function(allelefreq.samples) {
   if(dim(allelefreq.samples)[1] > 1) {allelefreq.samples <- aperm(allelefreq.samples, c(2,1,3))}
   ## convert array to numeric
   allelefreq.samples <- array(as.numeric(allelefreq.samples), dim=dim(allelefreq.samples),
-                                dimnames=dimnames(allelefreq.samples))
+                              dimnames=dimnames(allelefreq.samples))
   ## generate list holding 3-way arrays (alleles-1 x pops x draws) of allele freqs at each locus
   allelefreq.samples.list <- list()
   for(j in 1:length(loci.compound)) {
@@ -544,7 +542,7 @@ listFreqMeansCovs <- function(allelefreq.samples.list) {
       }
       f.all <- rbind(f.exceptlast, f.last) # matrix in which rows index alleles, cols draws
       allelefreqs.mean <- apply(f.all, 1, mean) # vector of length a
-    allelefreqs.cov <- cov(data.frame(t(f.all))) # covariance matrix of order a
+      allelefreqs.cov <- cov(data.frame(t(f.all))) # covariance matrix of order a
       ## append mean vector and covariance matrix to lists
       allelefreq.means.list[[locus]] <- allelefreqs.mean
       allelefreq.covs.list[[locus]]  <- allelefreqs.cov
@@ -661,7 +659,7 @@ writePriorAlleleFreqs <- function(allelefreq.params.list, k, loci.compound, popu
 }
 
 writeFixedAlleleFreqs <- function(allelefreq.means.list, k, loci.compound,
-                        population.labels, allelefreq.params.list) {
+                                  population.labels, allelefreq.params.list) {
   allelefreq.means <- data.frame(as.list(1:k), row.names=NULL) # 1 row, k cols
   dimnames(allelefreq.means)[[2]] <- population.labels
   allelefreq.means.names <- ""
@@ -702,7 +700,7 @@ plotAdmixtureDistribution <- function(alphas, samples, k) {
   for(pop in 1:k) {
     popM <- dbeta(xvalues, alphas[pop], sum(alphas[-pop])) # beta density of pop at xvalues
     indivadmixture.estimates <- apply(samples[pop,,], 1, mean) # proportionate admixture from pop 
-    hist(indivadmixture.estimates, xlim=c(0,1), ylim=c(0, 2*max(popM)), 
+    hist(indivadmixture.estimates, xlim=c(0,1), # ylim=c(0, 2*max(popM)), 
          ## breaks=seq(0,1, 0.05), 
          freq=FALSE,  
          xaxs="i", yaxs="i", 
@@ -751,8 +749,8 @@ plotPosteriorDensityIndivAdmixture <- function(samples4way, user.options, popula
            ylab="Posterior density", xlim=c(0,1))
       parents.pop <- kde2d(samples4way[1, pop,,],samples4way[2,pop, ,], lims=c(0,1,0,1))
       contour(parents.pop$x, parents.pop$y, parents.pop$z,
-            main=paste("Contour plot of posterior density of parental", population.labels[pop],
-              "admixture proportions"),
+              main=paste("Contour plot of posterior density of parental", population.labels[pop],
+                "admixture proportions"),
               xlab="Parent 1", ylab="Parent 2")
       persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
             main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
@@ -765,7 +763,7 @@ plotPosteriorDensityIndivAdmixture <- function(samples4way, user.options, popula
            ylab="Posterior density", xlim=c(0,1))
     }
   }
-dev.off()
+  dev.off()
 }
 ###################################################################################
 ## start of script
@@ -777,13 +775,8 @@ graphics.off()
 ps.options(pointsize=16)
 
 ## read table of user options written by Perl script
-user.options <- getUserOptions("args.txt")
+user.options <- getUserOptions(paste(resultsdir, "args.txt", sep="/"))
 thinning <- as.numeric(user.options$every)
-
-## set results directory
-if(! is.null(user.options$resultsdir)){
-  resultsdir<-user.options$resultsdir;
-}
 
 ## read table of loci and calculate map positions
 loci.compound <- readLoci(user.options$locusfile)
@@ -792,77 +785,110 @@ n.chr <- nlevels(factor(loci.compound$Chromosome))
 K <- getNumSubpopulations(user.options)
 population.labels <- getPopulationLabels(K, user.options)
 
+param.samples <- NULL
+effect.pop <- NULL
+pop.admix.prop <- NULL
 ## read population parameter samples
-#if(is.null(user.options$paramfile)) {
-#  print("paramfile option not specified");
-#  param.samples<-NULL;
-#}
-#else {
-   param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"),sep="", header=TRUE)
-for(pop in 1:K) {
-     dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
-                                                population.labels[pop], sep="")
-   }
-# }
-   ## param.samples columns contain:    # k Dirichlet parameters 
-                                        # sum of intensities
-   ##TODO: account for globalrho=0 case
+if(is.null(user.options$paramfile)) {
+  print("paramfile not specified")
+} else {
+  if(length(scan(paste(resultsdir, user.options$paramfile, sep="/"), quiet=TRUE)) == 0) {
+    print("paramfile empty")
+  } else {
+    ## param.samples columns contain:    # K Dirichlet parameters 
+                                        # global sum of intensities or gamma shape param if hierarchical
+    param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE)
+    n <- dim(param.samples)[1]
+    for(pop in 1:K) {
+      dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
+                                                 population.labels[pop], sep="")
+    }
+    ## Geweke convergence diagnostics,  autocorrelations and ergodic average plots
+    checkConvergence(param.samples, "Population admixture parameters",
+                     paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
+    postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
+    plotAutocorrelations(param.samples)
+    plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), thinning)
+    dev.off()    
+    if(K > 1) {
+      ## extract Dirichlet admixture parameters
+      admixparams <- param.samples[, 1:K]
+      ## calculate population admixture proportions from Dirichlet parameters
+      pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
+    } else {
+      pop.admix.prop <- NULL
+    }
+  }
+}
 
-   n <- dim(param.samples)[1]
-   n.covariates <- getNumCovariates(user.options)
-## read regression parameters for admixture proportions
-if(user.options$analysistypeindicator > 1 &  !is.null(user.options$regparamfile))
+## read regression parameter samples
+if(is.null(user.options$regparamfile) ||
+           length(scan(paste(resultsdir, user.options$regparamfile, sep="/"), quiet=TRUE)) == 0)  {
+  print("No regression paramfile");
+  regparam.samples <- NULL
+  beta.admixture<-NULL
+} else {
+  regparam.samples <- read.table(paste(resultsdir, user.options$regparamfile, sep="/"), header=TRUE)
+  n.covariates <- getNumCovariates(user.options)
+  
+  ## Geweke convergence diagnostics, autocorrelation and ergodic average plots
+  checkConvergence(regparam.samples, "Regression parameters",
+                   paste(resultsdir, "RegressionParamConvergenceDiags.txt", sep="/"))
+  postscript(paste(resultsdir, "RegressionParamAutocorrelations.ps", sep="/" ))     
+  plotAutocorrelations(regparam.samples)
+  dev.off()
+  
   beta.admixture <- getRegressionParamsForAdmixture(user.options, K, n.covariates, population.labels)
-#else{
-#print("No Regression paramfile");
-#beta.admixture<-NULL;
-#}
-  param.samples.all<-getAllSamples(user.options,population.labels)
-   if(dim(param.samples.all)[2] > 0) {
-#Geweke convergence diagnostics
-  checkConvergence(param.samples.all,"Population-level parameters");
-#AutoCorrelation Plots  
-  postscript( paste(resultsdir, "ParameterSampleAutocorrelationPlots.ps", sep="/" ))     
-  plotAutocorrelations(param.samples.all)
-  dev.off()    
-   }
-   
+  if(K > 2 && !is.null(pop.admix.prop)) {
+    ## calculate estimate of effect of each pop vs all others if there are >2 populations
+    effect.pop <- effectEstimates(beta.admixture, pop.admix.prop, n, K)
+  } else {
+    effect.pop <- NULL
+  }
+  outcome.continuous <- getOutcomeType(dimnames(param.samples)[[2]])  
+  ## calculate residual standard deviation
+  if(outcome.continuous == 1) {
+    residual.SD <- getPrecision(user.options)^-0.5
+  }
+}
 
-   if(K > 1) {
-     ## extract Dirichlet admixture parameters
-     admixparams <- param.samples[, 1:K]
-     ## calculate population admixture proportions from Dirichlet parameters
-     pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
+## read allele freq dispersion parameter samples
+if(is.null(user.options$dispparamfile)) {
+  eta.samples <- NULL
+} else {
+  eta.samples<-read.table(paste(resultsdir, user.options$dispparamfile,sep="/"), header=TRUE)
+  ## label dispersion parameters
+  dimnames(eta.samples)[[2]] <- paste("eta", population.labels[j], sep="." )
+  checkConvergence(dispparam.samples, "Dispersion parameters",
+                   paste(resultsdir, "DispParamConvergenceDiags.txt", sep="/"))
+  postscript(paste(resultsdir, "DispParamAutocorrelations.ps", sep="/" ))     
+  plotAutocorrelations(dispparam.samples)
+  dev.off()
+}   
 
-       if(K > 2) {
-         ## calculate estimate of effect of each pop vs all others if there are >2 populations
-         effect.pop <- effectEstimates(beta.admixture, pop.admix.prop, n, K)
-       }
-   }
-   
-   outcome.continuous <- getOutcomeType(dimnames(param.samples)[[2]])  
-   ## calculate residual standard deviation
-   if(outcome.continuous == 1) {
-     residual.SD <- getPrecision(user.options)^-0.5
-   }
- 
-   ## add new vars to param.samples
-   if(outcome.continuous == 1) {
-     param.samples.all <- cbind(param.samples.all, residual.SD)
-   }
-   if(K > 1) {
-     param.samples.all <- cbind(param.samples.all, pop.admix.prop)
-     if(K > 2 & user.options$analysistypeindicator > 1 &  is.null(user.options$admixturescorefile)) {
-       param.samples.all <- cbind(param.samples.all, effect.pop)
-     }
-   }
+## combine samples of Dirichlet params, admixture proportions, dispersion params, regression params
+param.samples.all <- cbind(param.samples, pop.admix.prop)
+if(!is.null(eta.samples)) {
+  param.samples.all <- cbind(param.samples.all, eta.samples)
+}
+if(!is.null(regparam.samples)) {
+  if(!is.null(param.samples.all)) {
+    param.samples.all <- cbind(param.samples.all, regparam.samples)
+  } else {
+    param.samples.all <- regparam.samples
+  }
+}
+if(!is.null(effect.pop)) {
+  param.samples.all <- cbind(param.samples.all, effect.pop)
+}
+
+## calculate posterior quantiles
+if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
   nvars <- dim(param.samples.all)[2]
+  post.quantiles <- calculateAndPlotQuantiles(param.samples.all, nvars)
+}
 
-   post.quantiles <- calculateAndPlotQuantiles(param.samples.all, nvars)
-   plotErgodicAverages(user.options, thinning)
- #}
-
-## get Dirichlet parameters: posterior means, or values specified in model
+## get population admixture Dirichlet parameters: either posterior means, or values specified in model
 if(!is.null(user.options$paramfile)) {
   alphas <- post.quantiles[1:K, 1]
 } else {
@@ -885,10 +911,10 @@ if(!is.null(user.options$haplotypeassociationscorefile)) {
 
 ## read output of regression model score test for ancestry, and plot cumulative results
 if(!is.null(user.options$ancestryassociationscorefile)) {
-#produces warning
+  ## produces warning
   plotAncestryScoreTest(user.options$ancestryassociationscorefile, K)
 }
-  
+
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile)) {
   plotScoreTestAffectedOnly(user.options$affectedsonlyscorefile, K, population.labels, thinning)
@@ -904,14 +930,14 @@ if(!is.null(user.options$allelefreqoutputfile)) {
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
   allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
   row.locusnumber <- match(allelefreq.samples[1, , 1], unique(allelefreq.samples[1, , 1]))
-
+  
   ## calculate posterior means of sampled fvalues at each locus
   fValues.means <- calculateLocusfValues(allelefreq.samples.list)
   fValues.means <- data.frame(round(fValues.means, digits=2))
   dimnames(fValues.means) <- list(as.vector(loci.compound[,1]), "f-value")
   write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
               row.names=TRUE, col.names=TRUE) 
-    
+  
   ## generate lists to hold allele freq means and covariances
   freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
   allelefreq.means.list <- freqMeansCovs[[1]]
@@ -949,16 +975,14 @@ if(!is.null(user.options$indadmixturefile)) {
     samples.meanparents <- apply(samples4way, 2:4, mean)
   } else samples.meanparents <- samples
   
-  if(is.null(user.options$populations)) {
-    ## if subpopulations are identifiable in model
-    plotAdmixtureDistribution(alphas, samples.meanparents, K)
-  }
+  ## should plot only if subpopulations are identifiable in model
+  plotAdmixtureDistribution(alphas, samples.meanparents, K)
   if(K > 1) {
     writePosteriorMeansIndivAdmixture(samples.meanparents, K)
   }
   if(user.options$analysistypeindicator==-1 | user.options$analysistypeindicator==-2) {
-#    plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels)
+    ## plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels)
   }
-    
+  
 } # ends block conditional on indadmixturefile
 print("Script completed")
