@@ -20,6 +20,7 @@ Regression::~Regression(){
 }
 
 void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *options, LogWriter *Log){
+  AnalysisTypeIndicator = options->getAnalysisTypeIndicator();
   //Open paramfile 
   if ( strlen( options->getRegressionOutputFilename() ) ){
     outputstream.open( options->getRegressionOutputFilename(), ios::out );
@@ -41,7 +42,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
   MatrixArray_i empty_i(1);
 
-  if( options->getAnalysisTypeIndicator() < 2 )
+  if( AnalysisTypeIndicator < 2 )
     NoCovariates = 0;
   else{//AnalysisTypeIndicator >= 2
     if( individuals->GetNumberOfInputRows() == individuals->getSize() ){
@@ -57,7 +58,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
     }
 
     //  Prior parameters for linear regression
-    if( options->getAnalysisTypeIndicator() > 1 ){
+    if( AnalysisTypeIndicator > 1 ){
       SumBeta.SetNumberOfElementsWithDimensions( individuals->getTargetSize(), NoCovariates, 1 );
       beta.SetNumberOfElementsWithDimensions( individuals->getTargetSize(), NoCovariates, 1 );
      }
@@ -92,9 +93,9 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
   for( int i = 0; i < NoCovariates; i++ ){
     BetaDrawArray[i] = 0;
   }
-  if( options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4 || options->getAnalysisTypeIndicator() == 5){
+  if( AnalysisTypeIndicator == 3 || AnalysisTypeIndicator == 4 || AnalysisTypeIndicator == 5){
     for( int k = 0; k < individuals->getTargetSize(); k++ ){
-      if( options->getAnalysisTypeIndicator() != 5 || (options->getAnalysisTypeIndicator() == 5 && individuals->getTargetType(k) ) ){
+      if( AnalysisTypeIndicator != 5 || (AnalysisTypeIndicator == 5 && individuals->getTargetType(k) ) ){
 	BetaParameters.SetElements(0);
 	BetaParameters( NoCovariates + 1 ) = lambda(k);
 	BetaParameters( NoCovariates + 3 ) = beta0(k)(0,0);
@@ -106,7 +107,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
   }
 }
 
-void Regression::Update(int AnalysisTypeIndicator,IndividualCollection *individuals){
+void Regression::Update(IndividualCollection *individuals){
   // Sample for regression model parameters beta
   for( int k = 0; k < individuals->getTargetSize(); k++ ){
     //      linear
@@ -149,7 +150,7 @@ void Regression::Update(int AnalysisTypeIndicator,IndividualCollection *individu
 void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels)
 {
   // Header line of paramfile
-  if( options->getAnalysisTypeIndicator() == 2 || options->getAnalysisTypeIndicator() == 3 ){
+  if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
     outputstream << "\"intercept\" ";
    
     if( individuals->GetNumberOfInputRows() == individuals->getSize() ){
@@ -162,10 +163,10 @@ void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollectio
 	outputstream << "\"slope." << PopulationLabels[k].substr(1) << " ";
       }
     }
-    if( options->getAnalysisTypeIndicator() == 2 )
+    if( AnalysisTypeIndicator == 2 )
       outputstream << setprecision(6) << "\"precision\"";
   }
-  else if( options->getAnalysisTypeIndicator() == 5 ){
+  else if( AnalysisTypeIndicator == 5 ){
     for( int kk = 0; kk < 2; kk++ ){
       outputstream << "\"intercept\" ";
       for( int i = 0; i < individuals->GetNumberOfInputCols(); i++ ){
@@ -186,7 +187,7 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
   //output to logfile
   if( !options->useCOUT() || iteration == 0 )
     {
-      if( options->getAnalysisTypeIndicator() == 2 || options->getAnalysisTypeIndicator() == 3 )
+      if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 )
 	{
           for( int j = 0; j < NoCovariates; j++ )
 	    {
@@ -194,12 +195,12 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
 	      (*LogFileStreamPtr) << setprecision(6) << beta(0)( j, 0 ) << " ";
 	    }
           LogFileStreamPtr->width(9);
-          if( options->getAnalysisTypeIndicator() == 2 )
+          if( AnalysisTypeIndicator == 2 )
 	    {
 	      (*LogFileStreamPtr) << setprecision(6) << lambda;
 	    }
 	}
-      else if( options->getAnalysisTypeIndicator() == 5 )
+      else if( AnalysisTypeIndicator == 5 )
 	{
           for( int k = 0; k < individuals->getTargetSize(); k++ )
 	    {
@@ -220,16 +221,16 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
   //output to screen
   if( options->useCOUT() )
     {
-     if( options->getAnalysisTypeIndicator() == 2 || options->getAnalysisTypeIndicator() == 3 ){
+     if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
 	for( int j = 0; j < NoCovariates; j++ ){
 	  (cout).width(9);
 	  cout << setprecision(6) << beta(0)( j, 0 ) << " ";
 	}
 	(cout).width(9);
-	if( options->getAnalysisTypeIndicator() == 2 )
+	if( AnalysisTypeIndicator == 2 )
 	  cout << setprecision(6) << lambda;
       }
-      else if( options->getAnalysisTypeIndicator() == 5 ){
+      else if( AnalysisTypeIndicator == 5 ){
 	for( int k = 0; k < individuals->getTargetSize(); k++ ){
 	  cout << "\nRegression " << k << " ";
 	  for( int j = 0; j < NoCovariates; j++ ){
@@ -244,16 +245,16 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
     }
   //Output to paramfile after BurnIn
  if( iteration > options->getBurnIn() ){
-   if( options->getAnalysisTypeIndicator() == 2 || options->getAnalysisTypeIndicator() == 3 ){
+   if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
      for( int j = 0; j < NoCovariates; j++ ){
        outputstream.width(9);
        outputstream << setprecision(6) << beta(0)( j, 0 ) << " ";
      }
      outputstream.width(9);
-     if( options->getAnalysisTypeIndicator() == 2 )
+     if( AnalysisTypeIndicator == 2 )
        outputstream << setprecision(6) << lambda(0) << " ";
    }
-   else if( options->getAnalysisTypeIndicator() == 5 ){
+   else if( AnalysisTypeIndicator == 5 ){
      for( int k = 0; k < individuals->getTargetSize(); k++ ){
        for( int j = 0; j < NoCovariates; j++ ){
 	 outputstream.width(9);
@@ -268,18 +269,18 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
       outputstream << endl;
  }
 }
-void Regression::OutputErgodicAvg(int samples, AdmixOptions *options, IndividualCollection *individuals, std::ofstream *avgstream){
+void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals, std::ofstream *avgstream){
  //output to ergodicaveragefile
-  if( options->getAnalysisTypeIndicator() == 2 || options->getAnalysisTypeIndicator() == 3 ){
+  if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
     for( int j = 0; j < NoCovariates; j++ ){
       avgstream->width(9);
       *avgstream << setprecision(6) << SumBeta(0)( j, 0 ) / samples << " ";
     }
     avgstream->width(9);
-    if( options->getAnalysisTypeIndicator() == 2 )
+    if( AnalysisTypeIndicator == 2 )
       *avgstream << setprecision(6) << SumLambda(0) / samples << " ";
   }
-  else if( options->getAnalysisTypeIndicator() == 5 ){
+  else if( AnalysisTypeIndicator == 5 ){
     for( int k = 0; k < individuals->getTargetSize(); k++ ){
       for( int j = 0; j < NoCovariates; j++ ){
 	avgstream->width(9);
