@@ -7,8 +7,7 @@ Individual::Individual()
 {
 }
 
-Individual::Individual(AdmixOptions* options, const Vector_s& data,
-                       Genome& Loci,Chromosome **chrm)
+Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci,Chromosome **chrm)
 {
   //numChromosomes  = chrm.size();
   numChromosomes = Loci.GetNumberOfChromosomes();
@@ -66,6 +65,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data,
 
     vector<unsigned int> empty( 0, 0 );
     new_genotype.resize( numCompositeLoci, empty );
+    PossibleHaplotypes = new Vector_i[numCompositeLoci];
     LocusAncestry.SetNumberOfElements( Loci.GetNumberOfChromosomes() );
     Matrix_d tm(1,1);
     ExpectedAncestry.resize( numCompositeLoci,tm );
@@ -117,6 +117,8 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data,
             _genotype.push_back(encodeGenotype(decodedGenotype));
         }
     }
+    //may be possible to do this inside above loop but a loop over composite loci is neater
+    for(int j=0;j<numCompositeLoci;++j)PossibleHaplotypes[j] = Loci(j)->SetPossibleHaplotypes(new_genotype[j]);
 }
 
 double
@@ -187,7 +189,7 @@ Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
    for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
      if( _genotype[j][0] != 0 ){
        //CompositeLocus *locus = (CompositeLocus*)Loci(j);
-       Prob = A->GetLikelihood( j, new_genotype[j], true, true );
+       Prob = A->GetLikelihood( j, new_genotype[j], getPossibleHaplotypes(j), true, true );
         Likelihood += log( Prob(0,0) );
      }
    }
@@ -242,8 +244,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
    return LogLikelihood;
 }
 
-vector<unsigned int>
-Individual::encodeGenotype(vector<unsigned int>& decoded)
+vector<unsigned int> Individual::encodeGenotype(vector<unsigned int>& decoded)
 {
   int NumberOfLoci = decoded.size()/2;
   vector<unsigned int> encoded(decoded.size(),0);
@@ -267,65 +268,61 @@ Individual::s2c(char *c, string s)
 
 Individual::~Individual()
 {
+  delete []PossibleHaplotypes;
+
 }
 
-vector< unsigned int >&
-Individual::getGenotype(unsigned int locus)
+vector< unsigned int >& Individual::getGenotype(unsigned int locus)
 {
   return new_genotype[locus];
 }
 
-vector< vector< unsigned int > > &
-Individual::IsMissing()
+Vector_i Individual::getPossibleHaplotypes(unsigned int locus){
+  return PossibleHaplotypes[locus];
+}
+
+vector< vector< unsigned int > > & Individual::IsMissing()
 {
   return _genotype;
 }
 
-vector< unsigned int >&
-Individual::IsMissing(unsigned int locus)
+vector< unsigned int >& Individual::IsMissing(unsigned int locus)
 {
   return _genotype[locus];
 }
 
-void
-Individual::setGenotype(unsigned int locus,vector<unsigned int> genotype)
-{
+void Individual::setGenotype(unsigned int locus,vector<unsigned int> genotype)
+{//not used
   _genotype[locus] = genotype;
 }
 
-Matrix_d&
-Individual::getAncestry()
+Matrix_d& Individual::getAncestry()
 {
   //returns admixture proportions, should be renamed
   return _ancestry;
 }
 
-void
-Individual::setAncestry(Matrix_d ancestry)
+void Individual::setAncestry(Matrix_d ancestry)
 {
   _ancestry = ancestry;
 }
 
-Matrix_d&
-Individual::getAncestryX()
+Matrix_d& Individual::getAncestryX()
 {
   return _ancestryX;
 }
 
-void
-Individual::setAncestryX(Matrix_d ancestry)
+void Individual::setAncestryX(Matrix_d ancestry)
 {
   _ancestryX = ancestry;
 }
 
-int
-Individual::getSex()
+int Individual::getSex()
 {
    return sex;
 }
 
-vector<bool>&
-Individual::getXi(unsigned int locus)
+vector<bool>& Individual::getXi(unsigned int locus)
 {
   return _xi[locus];
 }
@@ -336,20 +333,17 @@ Individual::getXi()
    return _xi;
 }
 
-Vector_i
-Individual::getSumXi()
+Vector_i Individual::getSumXi()
 {
    return sumxi;
 }
 
-double
-Individual::getSumrho0()
+double Individual::getSumrho0()
 {
    return Sumrho0;
 }
 
-double
-Individual::getSumrho()
+double Individual::getSumrho()
 {
    double sumrho = 0;
    for( unsigned int g = 0; g < _rho.size(); g++ )
@@ -357,26 +351,22 @@ Individual::getSumrho()
    return sumrho;
 }
 
-vector<double>
-Individual::getRho()
+vector<double> Individual::getRho()
 {
    return _rho;
 }
 
-Vector_i
-Individual::GetLocusAncestry( int chrm, int locus )
+Vector_i Individual::GetLocusAncestry( int chrm, int locus )
 {
    return LocusAncestry(chrm).GetColumn( locus );
 }
 
-Matrix_d
-Individual::getExpectedAncestry( int locus )
+Matrix_d Individual::getExpectedAncestry( int locus )
 {
    return( ExpectedAncestry[ locus ] );
 }
 
-double
-Individual::getLogPosteriorProb()
+double Individual::getLogPosteriorProb()
 {
    return LogPosterior;
 }
@@ -918,7 +908,7 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
   }
       
   for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-    A->UpdateAlleleCounts(j,getGenotype(j),ancestry );
+    A->UpdateAlleleCounts(j,getGenotype(j),getPossibleHaplotypes(j), ancestry );
   }
 }
 

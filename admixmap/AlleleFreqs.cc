@@ -428,16 +428,15 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 }
 
 /**
- * Given the unordered genotype and the ordered ancestry states at a
+ * Given the unordered genotype, possible haplotypes compatible with the genotype, and the ordered ancestry states at a
  * locus, this method randomly draws the phase of the genotype, then
  * updates the counts of alleles observed in each state of ancestry.
  * (MORE DETAILS PLEASE)
  */
 
-void AlleleFreqs::UpdateAlleleCounts(int locus, const vector<unsigned int>& genotype, Vector_i ancestry )
+void AlleleFreqs::UpdateAlleleCounts(int locus, const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry )
 {
-   Vector_i no, h(2);
-   Vector_d Probs;
+   Vector_i h(2);
    Matrix_d ProbsM;
 
    if( Loci(locus)->GetNumberOfLoci() == 1 ){
@@ -455,7 +454,7 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const vector<unsigned int>& geno
      }
      
      else{
-       h = Loci(locus)->SampleHaplotype( genotype, ancestry , Freqs(locus));
+       h = Loci(locus)->SampleHaplotypePair( genotype, Haplotypes, ancestry , Freqs(locus));
        AlleleCounts(locus)( h(0), ancestry(1) )++;
        AlleleCounts(locus)( h(1), ancestry(0) )++;
      }
@@ -513,7 +512,7 @@ double AlleleFreqs::GetAlleleProbs( int x, int ancestry , int locus)
    return P;
 }
 
-Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genotype, bool diploid, bool fixed)
+Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed)
 {
   Matrix_d Prob;
   if( diploid ){
@@ -528,7 +527,7 @@ Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genot
            }
         
      } else {
-      Prob = Loci(locus)->GetGenotypeProbs(genotype,fixed, RandomAlleleFreqs);
+      Prob = Loci(locus)->GetGenotypeProbs(Haplotypes, fixed, RandomAlleleFreqs);
      }
   }
   else{

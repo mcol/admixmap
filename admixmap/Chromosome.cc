@@ -109,9 +109,9 @@ bool fixedallelefreqs )
   for( int j = 0; j < L; j++ ){
      d = 0;
      if( ind->IsMissing(locus)[0] != 0 ){
-        vector<unsigned int> genotype = ind->getGenotype(locus);
+       //vector<unsigned int> genotype = ind->getGenotype(locus);
         //Prob = (*this)(j)->GetLikelihood( genotype, true, fixedallelefreqs );
-	Prob = A->GetLikelihood(locus,  genotype, true, fixedallelefreqs );
+       Prob = A->GetLikelihood(locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), true, fixedallelefreqs );
         for( int k = 0; k < populations; k++ ){
            for( int kk = 0; kk < populations; kk++ ){
               Likelihood(j)( d, 0 ) = Prob( k, kk );
@@ -152,9 +152,9 @@ bool fixedallelefreqs )
   locus = GetLocus( 0 );
   for( int j = 0; j < L; j++ ){
      if( ind->IsMissing(locus)[0] != 0 ){
-        vector<unsigned int> genotype = ind->getGenotype(locus);
+       //vector<unsigned int> genotype = ind->getGenotype(locus);
         //Likelihood(j) = (*this)(j)->GetLikelihood( genotype, false, fixedallelefreqs );
-	Likelihood(j) = A->GetLikelihood(locus, genotype, false, fixedallelefreqs);
+       Likelihood(j) = A->GetLikelihood(locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), false, fixedallelefreqs);
      }
      else
         Likelihood(j).SetElements( 1.0 );
@@ -189,9 +189,9 @@ Chromosome::SampleForLocusAncestry(Individual* ind, AlleleFreqs *A)
   for( int j = 0; j < L; j++ ){
      int locus = GetLocus( j );
      if( ind->IsMissing(locus)[0] != 0 ){
-        vector<unsigned int> genotype = ind->getGenotype(locus);
+       //vector<unsigned int> genotype = ind->getGenotype(locus);
 	//(*this)(j)->UpdateAlleleCounts( genotype, OrderedStates.GetColumn(j) );
-	A->UpdateAlleleCounts( locus, genotype, OrderedStates.GetColumn(j) );
+       A->UpdateAlleleCounts( locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), OrderedStates.GetColumn(j) );
      }
   }
 
@@ -207,9 +207,9 @@ Chromosome::SampleForHaploidLocusAncestry(Individual* ind, AlleleFreqs* A)
   for( int j = 0; j < L; j++ ){
      int locus = GetLocus( j );
      if( ind->IsMissing(locus)[0] != 0 ){
-        vector<unsigned int> genotype = ind->getGenotype(locus);
+       //vector<unsigned int> genotype = ind->getGenotype(locus);
 	//(*this)(j)->UpdateAlleleCounts_HaploidData( genotype, OrderedStates(j) );
-	A->UpdateAlleleCounts_HaploidData( locus, genotype, OrderedStates(j) );
+	A->UpdateAlleleCounts_HaploidData( locus, ind->getGenotype(locus), OrderedStates(j) );
      }
   }
 

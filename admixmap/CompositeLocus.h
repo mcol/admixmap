@@ -45,7 +45,7 @@ private: // members
   Vector_i pmult;
   Vector_i MergeHaplotypes;
   Matrix_i HapLabels;
-  Vector_i PossHaplotypes;
+ 
 
    //possibly move out
   Matrix_d ScoreGene;
@@ -57,7 +57,6 @@ private: // members
   MatrixArray_d SumNewScoreSq;
   MatrixArray_d SumNewInfo;
 
-  Vector_i GetHaplotypes(const std::vector<unsigned int>&);
   Matrix_d GetHaploidLocusProbs(const std::vector<unsigned int>& x);
   Vector_i Haplotype( Vector_i, int );
   void SetNoMergeHaplotypes();
@@ -76,18 +75,16 @@ public:
   Vector_i decodeGenotype(const std::vector<unsigned int>& encoded);
   void ConstructHaplotypeProbs(Matrix_d &AlleleFreqs);
   int HapLoopGetDecimal(Vector_i x);
-  Matrix_d GetGenotypeProbs(const std::vector<unsigned int>&,bool, int);
+  Matrix_d GetGenotypeProbs(Vector_i, bool, int);
 
-  void GetPossibleHaplotypes(std::vector<unsigned int>& genotype);
- 
   void setHaplotypeProbsMAP();
   void SetNumberOfLabels();
   void SetNumberOfPopulations( int );
   void SetNumberOfStates( int );
   void InitialiseHaplotypes(Matrix_d &);
   void InitialiseMuProposal(int);
-
-  Vector_i SampleHaplotype(const std::vector<unsigned int>& genotype, Vector_i , Matrix_d &);
+  Vector_i SetPossibleHaplotypes(const std::vector<unsigned int>&);
+  Vector_i SampleHaplotypePair(const std::vector<unsigned int>& genotype, Vector_i, Vector_i , Matrix_d &);
   int GetNumberOfLoci();
   int GetNumberOfStates();
   int GetSize();

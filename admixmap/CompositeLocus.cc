@@ -222,28 +222,32 @@ string CompositeLocus::GetLabel(int index)
  * genotype - a two-element vector of paternal and maternal genotypes
  *   in decimal notation (e.g. 1121 , 1221 ).
  * 
+ * Haplotypes - a vector of possible haplotypes compatible with genotype
+ *
  * ancestry - a two-element vector of parental ancestry (e.g. 1,0 
  *   might represent european paternal and african maternal).
+ *
+ * AlleleFreqs - a Matrix of allele frequencies, with one column per population
  *
  * returns:
  * two-element vector containing the haplotype pair
  */
-//rename as samplehaplotypepair
-Vector_i CompositeLocus::SampleHaplotype(const vector<unsigned int>& genotype, Vector_i ancestry , Matrix_d &AlleleFreqs)
+Vector_i CompositeLocus::SampleHaplotypePair(const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry , 
+					 Matrix_d &AlleleFreqs)
 {
-   Vector_i no, hap(2);
+   Vector_i hap(2);
    if( NumberOfLoci > 1 ){
       int i;
       Vector_d Probs;
-      no = GetHaplotypes( genotype );
-      Probs.SetNumberOfElements( 2*no.GetNumberOfElements() );
-      for( int k = 0; k < no.GetNumberOfElements(); k++ ){
-         Probs( 2*k )     = HaplotypeProbs( no(k) )( ancestry(0), ancestry(1) );
-         Probs( 2*k + 1 ) = HaplotypeProbs( no(k) )( ancestry(1), ancestry(0) );
+      //no = GetHaplotypes( genotype );
+      Probs.SetNumberOfElements( 2*Haplotypes.GetNumberOfElements() );
+      for( int k = 0; k < Haplotypes.GetNumberOfElements(); k++ ){
+         Probs( 2*k )     = HaplotypeProbs( Haplotypes(k) )( ancestry(0), ancestry(1) );
+         Probs( 2*k + 1 ) = HaplotypeProbs( Haplotypes(k) )( ancestry(1), ancestry(0) );
       }
       i = SampleFromDiscrete2( &Probs );
       DipLoop.Reset();
-      DipLoop.Increment( no( i/2 ) );
+      DipLoop.Increment( Haplotypes( i/2 ) );
       if( i % 2 ){
          hap(0) = (DipLoop.GetCountParent( 0 )*pmult).Sum();
          hap(1) = (DipLoop.GetCountParent( 1 )*pmult).Sum();
@@ -334,11 +338,13 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
 }
 
 /**
- * Given an unordered genotype, returns the probabilities of it having
+ * Given a list of possible haplotypes, returns the probabilities of the genotype having
  * an ancestry from a population.
  * 
- * genotype - a two-element vector of paternal and maternal genotypes.
- *   (how is this stored - in decimal or binary??)
+ * Haplotypes - a list of possible haplotypes compatible with the observed genotypes
+ *
+ * fixed - indicates whether the allelefrequencies are fixed
+ * RandomAlleleFreqs - indicates whether the allelefrequencies are random
  *
  * returns:
  * a two-dimensional matrix of paternal vs. maternal ancestry. For 
@@ -354,17 +360,15 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
  *   n.b. the sum of all probabilities might not equal 1.0 - but
  *   probabilities are in correct proportions.
  */
-Matrix_d CompositeLocus::GetGenotypeProbs(const vector<unsigned int>& genotype, bool fixed, int RandomAlleleFreqs)
+Matrix_d CompositeLocus::GetGenotypeProbs(Vector_i Haplotypes, bool fixed, int RandomAlleleFreqs)
 {
-   Vector_i no;
    Matrix_d GenoTypeProbs( Populations, Populations );
 
-   no = GetHaplotypes(genotype);
-   for( int k = 0; k < no.GetNumberOfElements(); k++ ){
+   for( int k = 0; k < Haplotypes.GetNumberOfElements(); k++ ){
       if( fixed && RandomAlleleFreqs == 1 )
-         GenoTypeProbs += HaplotypeProbsMAP( no(k) );
+         GenoTypeProbs += HaplotypeProbsMAP(Haplotypes(k) );
       else
-         GenoTypeProbs += HaplotypeProbs( no(k) );
+         GenoTypeProbs += HaplotypeProbs( Haplotypes(k) );
    }
 
    return( GenoTypeProbs );
@@ -430,20 +434,23 @@ Vector_i CompositeLocus::GetNumberOfAlleles()
 }
 
 /**
- * Given an unordered genotype, returns every possible haplotype pair that
+ * Given an unordered genotype, calculates every possible haplotype pair that
  * is compatible with observed genotype.
+ * Should be called once only for each (composite) locus and each individual. 
+ * The lists of possible haplotypes are to be stored in the Individual objects to save recalculating each iteration.
  *
- * genotype - a two-element vector of paternal and maternal genotypes
- *   in decimal notation (e.g. 1121 , 1221 ).
+ * genotype - a two-element vector of alleles/ paternal and maternal genotypes
+ *   
  *
- * returns:
+ * Haplotypes:
  * a list of possible haplotypes (in VectorLoop format).
  */
-Vector_i CompositeLocus::GetHaplotypes(const vector<unsigned int>& genotype)
+Vector_i CompositeLocus::SetPossibleHaplotypes(const vector<unsigned int>& genotype)
 {
    int MissingValues;
-   Vector_i LociBase, no, WhereMissingValues, count, xx, x;
+   Vector_i LociBase, WhereMissingValues, count, xx, x;
    VectorLoop LociLoop;
+   Vector_i Haplotypes;
 
    x.SetNumberOfElements( 2*NumberOfLoci );
    LociBase.SetNumberOfElements( NumberOfLoci );
@@ -459,12 +466,12 @@ Vector_i CompositeLocus::GetHaplotypes(const vector<unsigned int>& genotype)
       }
    }
    if( MissingValues == 0 ){
-      no.SetNumberOfElements( NumberOfStates );
+      Haplotypes.SetNumberOfElements( NumberOfStates );
       for( int jj = 0; jj < NumberOfStates; jj++ ){
          xx = Haplotype( x, jj );
-         no(jj) = DipLoop.GetDecimal( xx );
+         Haplotypes(jj) = DipLoop.GetDecimal( xx );
       }
-      no.Distinct();
+      Haplotypes.Distinct();
    }
    else{
       for( int k = 0; k < NumberOfLoci; k++ )
@@ -474,7 +481,7 @@ Vector_i CompositeLocus::GetHaplotypes(const vector<unsigned int>& genotype)
             LociBase(k) = NumberOfAlleles(k) * NumberOfAlleles(k);
       
       LociLoop.SetBase( LociBase );
-      no.SetNumberOfElements( LociLoop.GetDecimalBase() );
+      Haplotypes.SetNumberOfElements( LociLoop.GetDecimalBase() );
       
       do{
          xx = x;
@@ -487,69 +494,12 @@ Vector_i CompositeLocus::GetHaplotypes(const vector<unsigned int>& genotype)
             else{
                xx(2*k) = (int)(count(k)) / NumberOfAlleles(k);
                xx(2*k+1) = (int)count(k) % NumberOfAlleles(k);}}
-            no( LociLoop.GetDecimalCount() ) = DipLoop.GetDecimal( xx );
+            Haplotypes( LociLoop.GetDecimalCount() ) = DipLoop.GetDecimal( xx );
          LociLoop.Increment(1);
       }while( LociLoop.GetDecimalCount() != 0 );
-      no.Distinct();
+      Haplotypes.Distinct();
    }
-
-   return( no );
-}
-//new version of GetHaplotypes to be called once only to set PossHaplotypes
-void CompositeLocus::GetPossibleHaplotypes(vector< unsigned int >& genotype)
-{
-   int MissingValues;
-   Vector_i LociBase,  WhereMissingValues, count, xx, x;
-   VectorLoop LociLoop;
-
-   x.SetNumberOfElements( 2*NumberOfLoci );
-   LociBase.SetNumberOfElements( NumberOfLoci );
-   WhereMissingValues.SetNumberOfElements( NumberOfLoci );
-
-   x = decodeGenotype(genotype);
-   
-   MissingValues = 0;
-   for( int k = 0; k < NumberOfLoci; k++ ){
-      if( x(2*k) == -1 ){
-         WhereMissingValues( MissingValues ) = k;
-         MissingValues++;
-      }
-   }
-   if( MissingValues == 0 ){
-      PossHaplotypes.SetNumberOfElements( NumberOfStates );
-      for( int jj = 0; jj < NumberOfStates; jj++ ){
-         xx = Haplotype( x, jj );
-         PossHaplotypes(jj) = DipLoop.GetDecimal( xx );
-      }
-      PossHaplotypes.Distinct();
-   }
-   else{
-      for( int k = 0; k < NumberOfLoci; k++ )
-         if( x(2*k) != -1 )
-            LociBase(k) = 2;
-         else
-            LociBase(k) = NumberOfAlleles(k) * NumberOfAlleles(k);
-      
-      LociLoop.SetBase( LociBase );
-      PossHaplotypes.SetNumberOfElements( LociLoop.GetDecimalBase() );
-      
-      do{
-         xx = x;
-         count = LociLoop.GetCount();
-         for( int k = 0; k < NumberOfLoci; k++ ){
-            if( x(2*k) != -1 ){
-               if( count(k) == 1 ){
-                  xx(2*k) = x(2*k+1);
-                  xx(2*k+1) = x(2*k);}}
-            else{
-               xx(2*k) = (int)(count(k)) / NumberOfAlleles(k);
-               xx(2*k+1) = (int)count(k) % NumberOfAlleles(k);}}
-            PossHaplotypes( LociLoop.GetDecimalCount() ) = DipLoop.GetDecimal( xx );
-         LociLoop.Increment(1);
-      }while( LociLoop.GetDecimalCount() != 0 );
-      PossHaplotypes.Distinct();
-   }
-
+   return Haplotypes;
 }
 
 int CompositeLocus::HapLoopGetDecimal(Vector_i x){

@@ -633,7 +633,8 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, AlleleFreqs 
 	  UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
 	  if( options->getTestForSNPsInHaplotype() ){
 	    ancestry = ind->GetLocusAncestry( j, jj );
-	    hap = (*Lociptr)(locus)->SampleHaplotype( ind->getGenotype(locus), ancestry , A->GetAlleleFreqs(locus));
+	    hap = (*Lociptr)(locus)->SampleHaplotypePair( ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), 
+						      ancestry , A->GetAlleleFreqs(locus));
 	    for( int k = 0; k <(*Lociptr)(locus)->GetNumberOfStates(); k++ ){
 	      if( hap(0) == k )
 		cov_x_coord( (*Lociptr)(locus)->GetMergedHaplotype(k), 0 )++;

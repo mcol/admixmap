@@ -5,12 +5,13 @@
 #include "IndividualVisitor.h"
 #include "Genome.h"
 #include "Chromosome.h"
-#include "AlleleFreqs.h"
+//#include "AlleleFreqs.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 
 using namespace::std;
 
+class AlleleFreqs;
 class Individual
 {
 public:
@@ -22,38 +23,31 @@ public:
 
   int getSex();
 
-  Matrix_d&
-  getAncestry();
+  Matrix_d& getAncestry();
 
-  void
-  setAncestry(Matrix_d);
+  void setAncestry(Matrix_d);
   
-  Matrix_d&
-  getAncestryX();
+  Matrix_d& getAncestryX();
 
-  void
-  setAncestryX(Matrix_d);
+  void setAncestryX(Matrix_d);
   
   //   std::vector< std::vector<unsigned int> >&
   //   getGenotype();
 
-  std::vector<unsigned int>&
-  getGenotype(unsigned int locus);
+  std::vector<unsigned int>&  getGenotype(unsigned int locus);
 
-  std::vector< std::vector<unsigned int> >&
-  IsMissing();
+  Vector_i getPossibleHaplotypes(unsigned int locus);
+
+  std::vector< std::vector<unsigned int> >&  IsMissing();
 
   std::vector<unsigned int>&
   IsMissing(unsigned int locus);
 
-  void
-  setGenotype(unsigned int locus,std::vector<unsigned int> genotype);
+  void setGenotype(unsigned int locus,std::vector<unsigned int> genotype);
 
-  std::vector<bool>&
-  getXi(unsigned int locus);
+  std::vector<bool>&  getXi(unsigned int locus);
 
-  const std::vector< std::vector<bool> >&
-  getXi();
+  const std::vector< std::vector<bool> >&  getXi();
 
   Vector_i getSumXi();
 
@@ -98,6 +92,7 @@ private:
   s2c(char *c, std::string s);
    
   std::vector< std::vector<unsigned int> > _genotype;
+  Vector_i *PossibleHaplotypes;
   std::vector< std::vector<unsigned int> > new_genotype;
   std::vector< std::vector<bool> > _xi;
   std::vector< unsigned int > numCompLoci;
@@ -139,8 +134,7 @@ private:
   void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
 			   AlleleFreqs *Loci, int AnalysisTypeIndicator);
 
-  void
-  InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
+  void InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
 		 AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
 		 vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr);
 

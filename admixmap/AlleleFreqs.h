@@ -49,12 +49,12 @@ public:
   Matrix_i &GetAlleleCounts(int locus);
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);
   int GetNumberOfStates(int locus);
-  void UpdateAlleleCounts(int locus, const vector<unsigned int>& genotype, Vector_i ancestry );
+  void UpdateAlleleCounts(int locus, const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry );
   void UpdateAlleleCounts_HaploidData(int locus, const vector<unsigned int>& genotype, int ancestry );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
   Matrix_d GetLocusProbs(int locus, const vector<unsigned int>& x, bool fixed);
-  Matrix_d GetLikelihood( int locus, const vector<unsigned int> genotype, bool diploid, bool fixed);
+  Matrix_d GetLikelihood( int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed);
   Vector_d *geteta();
   Vector_d *getSumEta();
   Vector_d getLociCorrSummary();
