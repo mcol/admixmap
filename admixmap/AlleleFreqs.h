@@ -14,7 +14,7 @@ public:
   ~AlleleFreqs();
   void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels, double rho);
   void load_f(double rho,Genome *chrm);
-  void UpdateAlleleFreqs(int iteration,int);
+  void Update(int iteration,int);
   void InitializeOutputFile(AdmixOptions *options, std::string *PopulationLabels);
 //outputs SumEta  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration,AdmixOptions *options, std::ofstream *avgstream);

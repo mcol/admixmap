@@ -156,7 +156,9 @@ void AlleleFreqs::load_f(double rho,Genome *chrm){
 
 // Method samples allele frequency and prior allele frequency
 // parameters.
-void AlleleFreqs::UpdateAlleleFreqs(int iteration,int BurnIn){
+void AlleleFreqs::Update(int iteration,int BurnIn){
+  //Reset();
+
   if( Loci(0)->IsRandom() ){
      
     Vector_d EtaParameters(3), probs;
@@ -232,6 +234,8 @@ void AlleleFreqs::UpdateAlleleFreqs(int iteration,int BurnIn){
       Loci.UpdateFst();
     }
   }
+
+
 }
 
 void AlleleFreqs::InitializeOutputFile(AdmixOptions *options, std::string *PopulationLabels)
