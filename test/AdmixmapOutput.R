@@ -1,9 +1,9 @@
-## rm(list = ls())  ## remove (almost) everything in the working environment.
+rm(list = ls())  ## remove (almost) everything in the working environment.
 library(boa)
 library(MASS)
 ## script should be invoked from folder one level above subfolder specified by resultsdir
 ## get value of resultsdir if not already defined as R object 
-if(is.null(resultsdir)) {
+#if(is.null(resultsdir)) {
   ## get resultsdir from environment if set 
   if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
     resultsdir <- Sys.getenv("RESULTSDIR")
@@ -11,7 +11,7 @@ if(is.null(resultsdir)) {
     ## resultsdir set to default directory 
     resultsdir <- "results/"
   }
-}
+#}
 
 getUserOptions <- function(argsfilename) {
   ## read table of user options written by Perl script
@@ -60,8 +60,7 @@ getPopulationLabels <- function(k, user.options) {
   if(k==1) {
     population.labels <- "SinglePop"
   } else {
-    if(!is.null(user.options$paramfile) &&
-       length(scan(paste(resultsdir, user.options$paramfile, sep="/"), quiet=TRUE)) != 0) {
+    if(!is.null(user.options$paramfile)) {
       population.labels <- dimnames(read.table(paste(resultsdir,user.options$paramfile,sep="/"),
                                                header=TRUE))[[2]][1:k]
     } else {
@@ -376,7 +375,7 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
   pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
   
   ## output scoretest.final as 2-way array, in which rows index pops within loci
-  scoretest.final2 <- array(as.vector(scoretests4way), dim=c(7, length(testnames)))
+  scoretest.final2 <- array(data=scoretests4way[,,,dim(scoretests4way)[4]], dim=c(7,length(testnames)))
   scoretest.final2 <- data.frame(testnames, t(scoretest.final2), as.vector(pvalues))
   
   scoretest.final2[, 2:4] <- round(scoretest.final2[, 2:4], digits=3)
@@ -394,7 +393,7 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
   
   ## plot information content
   info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
-  plotInfoMap(loci.compound, info.content) #produces error "logical subscript too long"
+  plotInfoMap(loci.compound, info.content)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
   ## a likelihood ratio of 0.01
@@ -792,7 +791,7 @@ pop.admix.prop <- NULL
 if(is.null(user.options$paramfile)) {
   print("paramfile not specified")
 } else {
-  if(length(scan(paste(resultsdir, user.options$paramfile, sep="/"), quiet=TRUE)) == 0) {
+  if(length(scan(paste(resultsdir,user.options$paramfile, sep="/"),  what='character', quiet=TRUE)) == 0) {
     print("paramfile empty")
   } else {
     ## param.samples columns contain:    # K Dirichlet parameters 
@@ -812,7 +811,7 @@ if(is.null(user.options$paramfile)) {
     dev.off()    
     if(K > 1) {
       ## extract Dirichlet admixture parameters
-      admixparams <- param.samples[, 1:K]
+      admixparams <- param.samples[, 1:K,drop=FALSE]
       ## calculate population admixture proportions from Dirichlet parameters
       pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
     } else {
@@ -823,7 +822,7 @@ if(is.null(user.options$paramfile)) {
 
 ## read regression parameter samples
 if(is.null(user.options$regparamfile) ||
-           length(scan(paste(resultsdir, user.options$regparamfile, sep="/"), quiet=TRUE)) == 0)  {
+           length(scan(paste(resultsdir, user.options$regparamfile, sep="/"), what='character',quiet=TRUE)) == 0)  {
   print("No regression paramfile");
   regparam.samples <- NULL
   beta.admixture<-NULL
