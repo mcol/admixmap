@@ -37,7 +37,7 @@ getUserOptions <- function(argsfilename) {
 
 readLoci <- function(locusfile) {
   ## read table of loci, number chromosomes and calculate map positions
-  loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", ".")
+  loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", "."))
   ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
   num.sloci <- dim(loci.simple)[1]
   loci.compound <- loci.simple[-(1:num.sloci), ]
@@ -46,7 +46,7 @@ readLoci <- function(locusfile) {
   for(slocus in 1:num.sloci) {
     if(loci.simple[slocus, 3] > 0) { # new compound locus
       if(clocus > 1) {  
-        ## assign num haplotypes at last compound locus
+        ## assign num haplotypes at previous compound locus
         loci.compound[clocus-1, 2] <- num.haps
       }
       ## restart counting num haplotypes
@@ -60,6 +60,9 @@ readLoci <- function(locusfile) {
       num.haps <- num.haps * loci.simple[slocus, 2]
     }
   }
+  ## assign num haplotypes at last compound locus
+  loci.compound[clocus, 2] <- num.haps
+ 
   ## add two columns for map position and chromosome
   loci.compound <- data.frame(loci.compound, numeric(dim(loci.compound)[1]),
                               numeric(dim(loci.compound)[1]))
@@ -656,62 +659,23 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
 }
 
 
-writePriorAlleleFreqs <- function(allelefreq.params.list, k, loci.compound, population.labels) {
-  ## write Dirichlet parameters of allele freq distributions to file in
-  ## format for model with prior allele freqs
-  allelefreq.params <- data.frame(as.list(1:k)) # 1 row, k cols
-  allelefreq.params.names <- ""
+writeAlleleFreqs <- function(allelefreq.params.list, k, loci.compound, population.labels,
+                                  outputfile) {
+  ## write parameters of allele freq distributions to file in priorallelefile format
+  allelefreq.params <- numeric(0)
+  allelefreq.params.names <- character(0)
   for(locus in 1:length(allelefreq.params.list)) {
-    if(k==1) {
-      for(allele in 1:length(allelefreq.params.list[[locus]])) { # loop over alleles
-        allelefreq.params.names <- c(allelefreq.params.names, as.vector(loci.compound[locus,1]))
-        allelefreq.params <- rbind(allelefreq.params,
-                                   allelefreq.params.list[[locus]][allele])
-      }
-    } else {
-      for(allele in 1:dim(allelefreq.params.list[[locus]])[1]) { # loop over alleles
-        allelefreq.params.names <- c(allelefreq.params.names,as.vector(loci.compound[locus,1]))
-        allelefreq.params <- rbind(allelefreq.params, allelefreq.params.list[[locus]][allele,])
-      }
-    }
+    allelefreq.params.names <- c(allelefreq.params.names,
+                                 rep(as.vector(loci.compound[locus, 1]), loci.compound[locus, 2]))
+    allelefreq.params <- rbind(allelefreq.params, allelefreq.params.list[[locus]])
   }
-  allelefreq.params <- data.frame(allelefreq.params.names[-1], round(allelefreq.params[-1,],digits=2),
+  print(length(allelefreq.params.names))
+  print(dim(allelefreq.params))
+  allelefreq.params <- data.frame(allelefreq.params.names,
+                                  round(allelefreq.params,digits=2),
                                   check.rows=FALSE)
   dimnames(allelefreq.params)[[2]] <- c("Locus", population.labels)
-  outputfile <- paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" )
-  write.table(allelefreq.params, file=outputfile,row.names=FALSE, sep=" ")
-}
-
-writeFixedAlleleFreqs <- function(allelefreq.means.list, k, loci.compound,
-                                  population.labels, allelefreq.params.list) {
-  allelefreq.means <- data.frame(as.list(1:k), row.names=NULL) # 1 row, k cols
-  dimnames(allelefreq.means)[[2]] <- population.labels
-  allelefreq.means.names <- ""
-  for(locus in 1:length(allelefreq.means.list)) {
-    if(k==1) {
-      for(allele in 1:(length(allelefreq.means.list[[locus]]) - 1)) {
-        allelefreq.means.names <- c(allelefreq.means.names, as.vector(loci.compound[locus,1]))
-        allelefreq.means <- rbind(allelefreq.means,
-                                  allelefreq.means.list[[locus]][allele])
-      }
-    } else {
-      for(allele in 1:(dim(allelefreq.params.list[[locus]])[1] - 1)) {
-        allelefreq.means.names <- c(allelefreq.means.names, as.vector(loci.compound[locus,1]))
-      }
-      freqs.thislocus <- as.data.frame(matrix(unlist(allelefreq.means.list[[locus]]),
-                                              nrow=dim(allelefreq.params.list[[locus]])[1],
-                                              ncol=k), row.names=NULL, optional=FALSE)
-      dimnames(freqs.thislocus)[[2]] <- population.labels
-      allelefreq.means <- rbind(allelefreq.means,
-                                freqs.thislocus[-dim(allelefreq.params.list[[locus]])[1], ])
-    }
-  }
-  allelefreq.means <- data.frame(allelefreq.means.names[-1], round(allelefreq.means[-1,], digits=4),
-                                 check.rows=FALSE)
-  ColNames <- c("Locus", population.labels)
-  outputfile <- paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" )
-  write.table(allelefreq.means,file=outputfile,quote=numeric(0),
-              row.names=FALSE,col.names=ColNames,sep=" ")
+  write.table(allelefreq.params, file=outputfile, row.names=FALSE, sep=" ")
 }
 
 plotAdmixtureDistribution <- function(alphas, samples, k) {
@@ -971,12 +935,17 @@ if(!is.null(user.options$allelefreqoutputfile)) {
   dput(allelefreq.params.list, file=paste(resultsdir,"allelefreqparamsAsRObject.txt", sep="/"))
   
   ## write Dirichlet parameters of allele freq distributions to file
-  ## in format for model with prior allele freqs
-  writePriorAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels)
-  
-  ## writes posterior means of allele freqs to table in format for model with fixed allele freqs
-  writeFixedAlleleFreqs(allelefreq.means.list, K, loci.compound,
-                        population.labels, allelefreq.params.list)
+  writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
+                   paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
+
+  ## write posterior means of allele freqs to table in format for model with fixed allele freqs
+  allelefreq.means.matrix.list <- list()
+  for(locus in 1:length(allelefreq.params.list)) {
+    allelefreq.means.matrix.list[[locus]] <-
+      allelefreq.params.list[[locus]]/sum(allelefreq.params.list[[locus]], 2)
+  }
+  writeAlleleFreqs(allelefreq.means.matrix.list, K, loci.compound, population.labels,
+                   paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
 }
 
 if(!is.null(user.options$indadmixturefile)) {
