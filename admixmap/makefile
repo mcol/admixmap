@@ -92,5 +92,21 @@ windist:	admixmap
 		rm -f ../test/ $(DISTDIR).zip
 
 #command to zip directory - do it manually for now
+#Compile  for Linux and repackage distribution with new exec
+linuxdist:      admixmap
+		cp ../test/admixmap $(DISTDIR)
+		rm -f ../test/$(DISTDIR).tar.gz
+		tar -czf admixmap.tar.gz ../test/$(DISTDIR)
 
+#Compile for Windows and prepare to repackage
+#Zipping cannot be done in Windows from command line unless a special zip app installed (eg Winzip, AlZip etc)
+windist:	admixmap
+		cp ../test/admixmap.exe $(WINDISTDIR)
+		rm -f ../test/$(WINDISTDIR).zip
+## ALZip
+#		alzip -a ../test/$(WINDISTDIR) ../test/admixmap.zip
+## WinZip
+#		??
+## pkzip
+# 		pkzip admixmap.zip ../test/$(WINDISTDIR)
 include .depend
