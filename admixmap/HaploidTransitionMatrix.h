@@ -25,6 +25,8 @@
  * of doubles.
  */
 
+// David - this class should be edited so that it you can just set elements of the 
+// haploid transition matrix without allocating memory for a new object  
 class HaploidTransitionMatrix
 {
 private: // members
