@@ -1271,7 +1271,7 @@ void AlleleFreqs::UpdateFst()
       f = ( H_combined - 0.5 * ( H_admix + H_parental ) ) / H_combined;
       Fst(locus,  k ) = 2*f / ( 1 + f );
     }
-    for(int i;i < Fst.GetNumberOfCols();++i)
+    for(int i=0;i < Fst.GetNumberOfCols();++i)
       SumFst(locus, i) += Fst(locus,i);
   }
 }
