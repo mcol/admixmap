@@ -19,7 +19,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
 
 void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFileStreamPtr,
 			std::vector<bool> *_admixed, bool *_symmetric, Vector_d *poptheta){
-
+  //Initialise population admixture distribution Dirichlet parameters alpha
   Vector_d alphatemp;
   SumAlpha.SetNumberOfElements( options->getPopulations() );
 
@@ -58,7 +58,9 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   else{
      Log->logmsg(true,"Can only specify seperate priors for gamete admixture with analysis of single individual.\n");
   }
-
+  if(!options->getIndAdmixHierIndicator())  SumAlpha = alpha[0];
+  //Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta
+  //
   if( !options->getRhoIndicator() )
     Log->logmsg(true,"Model with global rho.\n");
   else if( options->getModelIndicator() )
@@ -67,9 +69,7 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
     Log->logmsg(true,"Model with individual specific rho.\n");
 
   rho = options->getRho();
-//   f->SetNumberOfElements( Loci->GetNumberOfCompositeLoci() );
-//   for( int j = 1; j < Loci->GetNumberOfCompositeLoci(); j++ )
-//     (*f)(j) = strangExp( -Loci->GetDistance( j ) * rho );
+
   if( options->getRho() == 99 ){
      rhoalpha = 1.0;
      rhobeta = 0.0;
