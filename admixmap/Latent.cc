@@ -106,6 +106,8 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
     //exit(1);
   }
 
+  // code below does not belong in Latent, which in parallel version will not be able to 
+  // write individual-level parameters
   //Open IndAdmixtureOutputFile    
   if ( strlen( options->getIndAdmixtureFilename() ) ){
     Log->logmsg(true,"Writing individual-level parameters to ");
@@ -142,6 +144,11 @@ void Latent::PreUpdate(IndividualCollection *individuals){
 
   MatrixArray_i empty_i(1);
   MatrixArray_d empty_d(1);
+  // AlphaParameters is an array with 5 elements
+  // element 0 is num individuals or num gametes (if random mating model)
+  // element 1 is the sum of the Dirichlet parameter vector
+  // where are elements 2 and 3 used?
+  // element 4 is the sum of log admixture proportions
    
   AlphaParameters.SetNumberOfElements(5);
   if( options->getModelIndicator() ){
@@ -174,6 +181,7 @@ void Latent::PreUpdate(IndividualCollection *individuals){
    RhoParameters(0) = rhoalpha;
    RhoParameters(1) = rhobeta;
    RhoParameters(2) = Loci->GetNumberOfCompositeLoci();
+   // RhoParameters(3) is a sum over individuals 
 
    RhoDraw = new DARS(0,1,(double)1,RhoParameters,frho,dfrho,ddfrho,
                             rhodata_i,rhodata_d);
@@ -198,12 +206,20 @@ double Latent::sampleForRho(Vector_d& RhoParameters, DARS* RhoDraw,
                             MatrixArray_i& rhodata_i, MatrixArray_d& rhodata_d)
 {
   // Sample for global sum of intensities parameter rho
+  // this algorithm is unnecessarily complicated
+  // to sample conditional on locus ancestry, we can simply sample the total number of 
+  // arrivals on each gamete, then update of rho is conjugate with Poisson likelihood and gamma prior.  
+  // But sampling conditional on locus ancestry gives poor mixing
+  // it would be better to update rho by a Metropolis random walk conditional on the genotype data 
+  // and individual admixture proportions, using the HMM likelihood.  
   RhoDraw->UpdateParameters( RhoParameters );
   RhoDraw->UpdateIntegerData( rhodata_i );
   RhoDraw->UpdateDoubleData( rhodata_d );
   return RhoDraw->Sample();
 }     
 
+// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
+// Dirichlet population admixture parameters
 double
 Latent::logf( Vector_d &parameters , MatrixArray_i&, MatrixArray_d&, double x )
 {
@@ -255,6 +271,8 @@ Latent::frho( Vector_d &parameters, MatrixArray_i& xi, MatrixArray_d &distance, 
   return(f);
 }
 
+// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
+// global rho parameter - will not be needed if this algorithm is replaced
 double
 Latent::dfrho( Vector_d &parameters, MatrixArray_i& xi, MatrixArray_d &distance, double x )
 {
@@ -372,6 +390,7 @@ double Latent::strangExp( double x )
 
 bool
 Latent::CheckInitAlpha( Vector_d alphatemp )
+  // check that Dirichlet parameter vector, if specified by user, has correct length  
 {
    bool admixed = true;
    int count=0;
@@ -401,6 +420,8 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
 	rho = sampleForRho(RhoParameters,RhoDraw,rhodata_i,rhodata_d);
       }
       else{
+	// sample for location parameter of gamma distribution of sumintensities parameters 
+	// in population 
 	if( options->getModelIndicator() )
 	  rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
 			    2*rhoalpha * individuals->getSize() + rhobeta0 );
@@ -410,26 +431,36 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
       }
     }
          
-// Sample for population admixture distribution Dirichlet parameters alpha
+    // For a model in which the distribution of individual admixture in the population is a mixture
+    // of components, we will have one Dirichlet parameter vector for each component, 
+    // updated only from those individuals who belong to the component
+    // Sample for population admixture distribution Dirichlet parameters alpha
     for( int j = 0; j < options->getPopulations(); j++ ){
       AlphaParameters(1) -= alpha[0]( j );
       AlphaParameters(4) = (*SumLogTheta)( j );
+      // elements of Dirichlet parameter vector are updated one at a time
       DirParamArray[j]->UpdateParameters( AlphaParameters );
       alpha[0]( j ) = DirParamArray[j]->Sample();
       AlphaParameters(1) += alpha[0]( j );
     }
+    // accumulate sum of Dirichlet parameter vector over iterations 
     SumAlpha += alpha[0];
   }
 
   if( iteration == options->getBurnIn() && options->getAnalysisTypeIndicator() > 1 ){
     *LogFileStreamPtr << "Individual admixture centred in regression model around: "
 		     << *poptheta << endl;
+
+    // next line does not belong here, as this class should have no access to allele freqs
     Loci->ResetSumAlleleFreqs();
+
     SumAlpha.SetElements(0);
   }
 
   if( iteration < options->getBurnIn() && options->getPopulations() > 1
       && options->getAnalysisTypeIndicator() > 0 ){
+    // accumulate ergodic average of population admixture, which is used to centre 
+    // the values of individual admixture in the regression model
     *poptheta = SumAlpha / SumAlpha.Sum();
   }
   if( iteration > options->getBurnIn() ){
