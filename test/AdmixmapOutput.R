@@ -1,0 +1,964 @@
+rm(list = ls())  ## remove (almost) everything in the working environment.
+library(boa)
+library(MASS)
+## script should be invoked from folder that contains ADMIXMAP output files in subfolder "results/"
+resultsdir <- "results"
+
+getUserOptions <- function(argsfilename) {
+  ## read table of user options written by Perl script
+  args <- read.table(argsfilename, sep="=", header=FALSE)
+  user.options <- as.data.frame(matrix(data=NA, nrow=1, ncol=dim(args)[1]))
+  user.options[1,] <- args[,2]
+  dimnames(user.options) <- list("Value", args[,1])
+  return(user.options)
+}
+
+readLoci <- function(locusfile) {
+  ## read table of loci, number chromosomes and calculate map positions
+  loci.simple <- read.table(locusfile, header=TRUE)
+  ## loci.compound is a table with map 2 cols: locus name, giving 
+  loci.compound <- loci.simple[!loci.simple[,3]==0,]
+  ## drop all but first simple locus in each compound locus
+  loci.compound <- data.frame(loci.compound, numeric(dim(loci.compound)[1]),
+                              numeric(dim(loci.compound)[1]))
+  dimnames(loci.compound)[[2]][4:5] <- c("MapPosition","Chromosome")
+  loci.compound[,3][loci.compound[,3]==100] <- NA
+  ## calculate map positions
+  map.position <- 0
+  chr <- 0
+  for(i in 1:dim(loci.compound)[1]) {
+    if(is.na(loci.compound[i,3])) {
+      chr <- chr + 1
+      map.position <- 0
+    } else {
+      map.position <- map.position + 100*loci.compound[i,3]
+      loci.compound[i,4] <- map.position
+    }
+    loci.compound[i,5] <- chr
+  }
+  return(loci.compound)
+}
+
+getNumSubpopulations <- function(user.options) {
+  if(!is.null(user.options$populations)) {
+    K <- as.numeric(user.options$populations)
+  }
+  else {print("Error: cannot determine number of populations\n");}
+    return(K)
+}
+
+getPopulationLabels <- function(k, user.options) {
+  if(k==1) {
+    population.labels <- "SinglePop"
+  } else {
+    if(!is.null(user.options$paramfile)) {
+      population.labels <- dimnames(read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE))[[2]][1:k]
+    } else {
+      if(!is.null(user.options$historicallelefreqfile))
+        {
+        population.labels <- dimnames(paste(resultsdir,user.options$historicallelefreqfile,sep=""),
+                                                 header=TRUE)[[2]][-1]}
+    }
+  }
+  return(population.labels)
+}
+  
+getOutcomeType <- function(header) {
+  ## determine whether continuous outcome by testing for column headed "precision"
+  if(match("precision", header, nomatch=0) == 0) 
+    outcome.continuous <- 0 else outcome.continuous <- 1
+  return(outcome.continuous)
+}
+
+getNumCovariates <- function(user.options) {
+  ## n.covariates is set to 0 if covariatesfile option not specified 
+  n.covariates <- 0
+  if(!is.null(user.options$covariatesfile)) {
+    covariates <-  read.table(user.options$covariatesfile, sep="", na.strings=c("NA", "#"),
+                              comment.char="*", header=TRUE)
+    n.covariates <- dim(covariates)[2]
+  }
+  return(n.covariates)
+}
+getRegressionParamsForAdmixture <- function(user.options, k, n.covariates, population.labels) {
+  ## number col.coeff1 of column containing regression coefficient for effect of subpopulation 1
+  ## is determined as  n.covariates + 1
+  col.coeff1 <- n.covariates + 1   #  + 1 for intercept
+  col.coefflast <- col.coeff1 + k - 2  # only k- 1 coefficients
+  beta <- data.frame(read.table(paste(resultsdir,user.options$regparamfile,sep="/"),sep="",header=TRUE)[, col.coeff1:col.coefflast])
+  dimnames(beta)[[2]] <- paste("slope", population.labels[-1], sep="." )
+  return(beta)
+}
+getPrecision <- function(user.options) {
+  beta <- read.table(paste(resultsdir,user.options$regparamfile,sep="/"),sep="",header=TRUE)
+  beta <- data.frame(beta[,ncol(beta)])
+  dimnames(beta)[[2]] <- "Precision"
+  return(beta)
+}
+getAllSamples<-function(user.options,population.labels){
+samples<-NULL
+if(!is.null(user.options$paramfile))
+samples<-read.table(paste(resultsdir,user.options$paramfile,sep="/"),sep="",header=TRUE);
+if(!is.null(user.options$regparamfile))
+samples<-cbind(samples,read.table(paste(resultsdir,user.options$regparamfile,sep="/"),sep="",header=TRUE));
+if(!is.null(user.options$dispparamfile))
+{
+eta.samples<-read.table(paste(resultsdir,user.options$dispparamfile,sep="/"),sep="",header=TRUE)
+   ## label dispersion parameters
+dimnames(eta.samples)[[2]] <- paste("eta", population.labels[j], sep="." )
+samples<-cbind(samples,eta.samples);
+}   
+return(samples);
+}  
+
+plotAutocorrelations <- function(param.samples) {
+  ## plot autocorrelations
+
+  ## drop columns with zero variance
+  param.samples <- param.samples[, colVars(param.samples)>0]
+  for(j in 1:dim(param.samples)[2]) {
+    ## next line generates warning messages
+    acfRes <- acf(param.samples[, j], plot=FALSE)
+    if(length(acfRes$acf[is.nan(acfRes$acf)]) == 0){
+      plot(thinning*acfRes$lag, acfRes$acf, type="l", ylim = c(0, 1),
+         main=paste("Autocorrelation plot ", dimnames(param.samples)[[2]][j]),
+         xlab=paste("Iterations"), ylab="Autocorrelation") 
+    }
+  }
+}
+
+checkConvergence <- function(param.samples, listname) {
+  ## test for adequate burn-in based on Geweke (1992)
+  ## in: Bayesian Stats 4. ed. Bernardo JM et al, Oxford, OUP)
+  boa.init()
+  boa.chain.add(link=as.matrix(param.samples),lname=listname)
+  sink(paste(resultsdir, "ConvergenceDiags.txt", sep="/" ));
+  boa.print.geweke();
+  boa.quit()
+  sink()
+}
+
+plotErgodicAverages <- function(user.options, thinning) {
+  ## plot ergodic averages
+  if(!is.null(user.options$ergodicaveragefile)) {
+    cumulativeMeans <- read.table(paste(resultsdir,user.options$ergodicaveragefile,sep="/"),sep="", header=TRUE)
+    outputfile <- paste(resultsdir, "ParameterCumulativeMeans.ps", sep="/" )
+    postscript(outputfile)
+    for(j in 1:dim(cumulativeMeans)[2]) {
+      plot(10*thinning*seq(1:dim(cumulativeMeans)[1]), cumulativeMeans[,j], type="l", 
+           main="Running posterior mean", 
+           xlab="Iterations", ylab=dimnames(cumulativeMeans)[[2]][j])#should fix dimnames
+    }
+    dev.off()
+  }
+}
+
+popAdmixProportions <- function(population.labels, params, k) {
+  ## calculate population admixture proportions from Dirichlet parameters
+  pop.admix.prop <- as.data.frame(matrix(data=NA, nrow=n, ncol=k))
+  for(j in 1:k) {
+    dimnames(pop.admix.prop)[[2]][j] <- paste("prop", population.labels[j], sep=".")
+    for(i in 1:n) {
+      pop.admix.prop[i,j] <- params[i,j]/sum(params[i,1:k])
+    }
+  }
+  return(pop.admix.prop)
+}
+
+effectEstimates <- function(beta, pop.admix.prop, n, k) {
+  ## effect estimate is difference of 2 expectations
+  ## E(Y | M[i]=1) = intercept + beta[i]
+  ## E(Y | M[i]=0) = intercept + E(Y | M[j]=1) averaged over all j != i
+  ## with weights given by Dirichlet parameters or population admixture proportions
+  ## E(Y | M[1]=1) = intercept (because 1st population is baseline category and beta[1] = 0) 
+  ## intercept cancels in subtraction
+  ## with k populations, matrix of effects given M=1 is defined by betas augmented with 1st column of 0s
+  beta <- data.frame(rep(0, n), beta)
+  w.beta      <- matrix(data=NA, nrow=n, ncol=k,
+                        dimnames=list(character(0), population.labels))
+  sum.w.beta  <- matrix(data=NA, nrow=n, ncol=k,
+                        dimnames=list(character(0), population.labels))
+  sum.w       <- matrix(data=NA, nrow=n, ncol=k,
+                        dimnames=list(character(0), population.labels))
+  effect.Meq0 <- matrix(data=NA, nrow=n, ncol=k,
+                        dimnames=list(character(0), population.labels))
+  effect.pop  <- matrix(data=NA, nrow=n, ncol=k,
+                        dimnames=list(character(0), population.labels))
+  for(pop in 1:k) {
+    dimnames(effect.pop)[[2]][pop] <- paste("EffectVsAllOther.", population.labels[pop], sep="")
+  }
+  
+  for(pop in 1:k) {
+    ## calculate for each pop a vector w.beta as weight[pop]*beta[pop]
+    w.beta[,pop] <- pop.admix.prop[,pop]*beta[,pop]
+  }
+  for(pop in 1:k) {
+    ## calculate for each pop a vector of numerators by summing w.beta over all columns except pop
+    sum.w.beta[,pop] <- apply(w.beta[,-pop], 1, sum)
+    ## calculate for each pop a vector of denominators by summing weights over all columns except pop
+    sum.w[,pop] <- apply(pop.admix.prop[,-pop], 1, sum)
+  }
+  for(pop in 1:k) {
+    ## calculate for each pop a vector E(Y | M[pop]=0) by dividing numerators by denominators
+    effect.Meq0[,pop] <- sum.w.beta[,pop]/sum.w[,pop]
+    effect.pop[,pop] <- beta[,pop] - effect.Meq0[,pop]
+  }
+  return(effect.pop)
+}
+
+calculateAndPlotQuantiles <- function(param.samples, nvars) {
+  ## calculate means and 95% credible intervals
+  post.quantiles <- matrix(data=NA, nrow=nvars, ncol=4, 
+                           dimnames=list(dimnames(param.samples)[[2]], 
+                             c("Median", "Mean", "Pct2.5", "Pct97.5")))
+  outputfile <- paste(resultsdir, "ParameterPosteriorDensities.ps", sep="/" )
+  postscript(outputfile)
+  for(j in 1:nvars) {
+    post.quantiles[j, c(1,3,4)] <- quantile(param.samples[,j], probs = c(0.5, 0.025, 0.975), na.rm = T)
+    post.quantiles[j, 2] <- mean(param.samples[,j], na.rm=T) 
+    ## plots kernel density of each variable  
+    plot(density(param.samples[,j], adjust=0.5), 
+         main="Posterior kernel density", xlab=dimnames(post.quantiles)[[1]][j])
+  }
+  dev.off()
+  outputfile <- paste(resultsdir, "PosteriorQuantiles.txt", sep="/" )
+  write.table(signif(post.quantiles, digits=3), file=outputfile, quote=FALSE, 
+              row.names=TRUE, col.names=NA, sep="\t")
+  return(post.quantiles)
+}
+
+plotpvalues <- function(psfilename, stdnormdeviates, table.every, title ) {
+  ## function to plot cumulative p-values
+  ## arguments: psfilename, matrix of cumulative stdnormdeviates, table.every, plot title
+  postscript(psfilename)
+  ## compute matrix of cumulative log10pvalues: rows index tests, cols iterations 
+  log10pvalues <- -log10(2*pnorm(-abs(stdnormdeviates)))
+  ## generate plot for test 1
+  plot(table.every*seq(1:dim(log10pvalues)[2]), log10pvalues[1,],
+       type="l", ylim=c(0,max(log10pvalues*is.finite(log10pvalues),na.rm=T)),
+       main=title, xlab="Iterations", ylab="-log10(p-value)")
+  ## add lines to plot for all other tests 
+  for(test in 2:dim(log10pvalues)[1]) {
+    lines(table.every*seq(1:dim(log10pvalues)[2]), log10pvalues[test,], type="l")
+  }
+  ## label lines for which final p<0.01
+  log10pvalues.final <- log10pvalues[, dim(log10pvalues)[2]]
+  siglabels <- dimnames(log10pvalues)[[1]][log10pvalues.final > 2 | is.na(log10pvalues.final)]
+  siglabels.x <- 0.9*table.every*dim(log10pvalues)[2]
+  siglabels.y <- as.vector(log10pvalues.final[log10pvalues.final > 2])
+  siglabels.y[is.na(siglabels.y)] <- -1
+  if(length(siglabels) > 0) {
+    text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
+  }
+  dev.off()
+}
+
+plotPValuesKPopulations <- function(outputfile, stdNormDev, thinning) {
+  ## stdNormDev is a 3-way array: k populations, loci, draws 
+  log10pvalues <- -log10(2*pnorm(-abs(stdNormDev)))
+  postscript(outputfile)
+  colours <- c("black", "blue", "red", "green")
+  ## set up plot for first population and first locus
+  plot(10*thinning*seq(1:dim(log10pvalues)[3]), log10pvalues[1,1,], type="l", ylim=c(0,5),
+       main="Running computation of p-values for affecteds-only score tests", 
+       xlab="Iterations", ylab="-log10(p-value)")
+  ## loop over populations and loci to add lines
+  for(pop in 1:dim(log10pvalues)[1]) {
+    for(locus in 1:dim(log10pvalues)[2]) {
+      lines(10*thinning*seq(1:dim(log10pvalues)[3]), log10pvalues[pop, locus, ],
+            type="l", col=colours[1 + ((pop-1) %% dim(log10pvalues)[1])])
+      ## print(colours[1 + (test %% k)])
+    }
+  }
+  ## label loci at which tests are significant
+  siglabels.x <- 0.9*10*thinning*dim(log10pvalues)[3] ## x coordinate at which to write labels
+  log10pvalues.final <-  log10pvalues[,,dim(log10pvalues)[3]]
+  siglabels.y <- as.vector(log10pvalues.final[log10pvalues.final > 2]) # label only where p < 0.01
+  siglabels.y[is.na(siglabels.y)] <- -1
+  siglabels <- dimnames(log10pvalues.final)[[2]][log10pvalues.final > 2]
+  if(length(siglabels.y) > 0) {
+    text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
+  }
+  dev.off()
+}
+
+plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal) {
+  scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
+  ## rows are: locus,(haplotype), score, completeinfo, observedinfo,
+  ##           pctinfo, stdnormdev, (chisquare)
+  ## extract testnames and drop 1st row
+  if (!haplotypes) {
+    testnames <- as.vector(scoretest[1,,1])
+    scoretest <- scoretest[-1, , ]
+  } else {
+    testnames <- as.vector(paste(scoretest[1,,1], scoretest[2,,1]))
+    scoretest <- scoretest[-c(1:2), , ]
+  }
+  ## convert to numeric
+  scoretest <- array(as.numeric(scoretest), dim=dim(scoretest),
+                             dimnames=dimnames(scoretest))
+  scoretest[is.nan(scoretest)] <- NA
+  ## extract matrix of standard normal deviates
+  stdNormDev <- scoretest[5,,]
+  plotpvalues(outputfilePlot, stdNormDev,
+              10*thinning, "Running computation of p-values for allelic association")
+  ## extract last table
+  scoretest.final <- t(scoretest[,,dim(scoretest)[3]])
+  pvalues.final <- signif(2*pnorm(-abs(as.numeric(scoretest.final[,5]))), digits=2)
+  scoretest.table <- data.frame(testnames,
+                                signif(scoretest.final[,1:3], digits=3),
+                                round(scoretest.final[,4], digits=0),
+                                round(scoretest.final[,5], digits=2),
+                                pvalues.final)
+  dimnames(scoretest.table)[[2]] <- c("Locus", "Score", "CompleteInfo", "ObsInfo",
+                                      "PercentInfo", "StdNormDev", "ScalarPValue")
+  if (haplotypes) {
+    chisquare <- scoretest.final[, 6]
+    scoretest.table <- data.frame(scoretest.table, chisquare)
+   ## dimnames(scoretest.table)[[2]] <- c(dimnames(scoretest.table)[[2]], "ChiSquare")
+  }
+  write.table(scoretest.table, file=outputfileFinal, quote=FALSE, sep="\t",
+              row.names=FALSE, col.names=TRUE)
+}
+
+plotAncestryScoreTest <- function(scorefile, k) {
+  scoretest.ancestry <- dget(paste(resultsdir,scorefile,sep="/"))
+  if(k == 2) { 
+    scoretest.ancestry <- scoretest.ancestry[, seq(1, dim(scoretest.ancestry)[2] - 1, by = 2), ]
+  }
+  dimnames(scoretest.ancestry)[[2]] <- scoretest.ancestry[1,,1]
+  scoretest.ancestry <- scoretest.ancestry[-1,,]
+  popnames <- scoretest.ancestry[1,,1]
+  scoretest.ancestry <- array(as.numeric(scoretest.ancestry), dim=dim(scoretest.ancestry),
+                              dimnames=dimnames(scoretest.ancestry))
+  scoretest.ancestry[is.nan(scoretest.ancestry)] <- NA
+  scoretest.ancestry.final <- t(scoretest.ancestry[,,dim(scoretest.ancestry)[3]])
+  scalar.pvalues <- signif(2*pnorm(-abs(scoretest.ancestry.final[,6])), digits=2)
+  
+  scoretest.ancestry.withp <- data.frame(dimnames(scoretest.ancestry.final)[[1]], popnames,
+                                         round(scoretest.ancestry.final[,c(2,3,4)], digits=2),
+                                         round(scoretest.ancestry.final[,5], digits=0), 
+                                         round(scoretest.ancestry.final[,6], digits=2), 
+                                         scalar.pvalues)
+  dimnames(scoretest.ancestry.withp)[[2]] <- c("Locus", "Population", "Score", "CompleteInfo",
+                                               "ObsInfo", "PercentInfo", "StdNormDev", "p-value") 
+  outputfile <- paste(resultsdir, "TestsAncestryAssociationFinal.txt", sep="/" )
+  write.table(scoretest.ancestry.withp,file=outputfile,quote=FALSE,
+              row.names=FALSE, sep="\t")
+  outputfile <- paste(resultsdir, "TestsAncestryAssociation.ps", sep="/" )
+  plotpvalues(outputfile,scoretest.ancestry[6,,],
+              10*thinning,"Running computation of p-values for ancestry association")
+}
+  
+plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning) {
+  scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
+  ## extract first row containing locus names
+  locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=K), 1]
+  testnames <- paste(scoretests[1,,1], scoretests[2,,1])
+  ## drop first two rows and reformat as 4-way array
+  scoretests.n <- array(data=scoretests[-c(1:2),,],dim=c(dim(scoretests)[1]-2,dim(scoretests)[2],dim(scoretests)[3]))
+  dim3way <- dim(scoretests.n)
+  dim4way <- c(dim3way[1], K, dim3way[2]/K, dim3way[3])
+  dimnames4way <- list(c("Score", "CompleteInfo", "ObservedInfo",
+                            "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params", "StdNormal"),
+                            population.labels, locusnames, NULL)
+  scoretests4way <- array(as.numeric(as.vector(scoretests.n)), dim=dim4way, dimnames=dimnames4way)
+  scoretests4way[is.nan(scoretests4way)] <- NA
+  
+ ## plot cumulative p-values in K colours
+  outputfile <- paste(resultsdir, "TestsAffectedsonly.ps", sep="/")
+  stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
+  plotPValuesKPopulations(outputfile, stdnormdev, thinning)
+  ## extract final table as 3-way array: statistic, locus, population
+  scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
+                           dimnames=c(dimnames(scoretests4way)[1:3]))
+
+ ## set test statistic to missing if obs info < 1
+  scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
+  pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
+
+  ## output scoretest.final as 2-way array, in which rows index pops within loci
+  scoretest.final2 <- array(as.vector(scoretests4way), dim=c(7, length(testnames)))
+  scoretest.final2 <- data.frame(testnames, t(scoretest.final2), as.vector(pvalues))
+  
+  scoretest.final2[, 2:4] <- round(scoretest.final2[, 2:4], digits=3)
+  scoretest.final2[, 5:7] <- round(scoretest.final2[, 5:7], digits=0)
+  scoretest.final2[, 8] <-  round(scoretest.final2[, 8], digits=2)
+  scoretest.final2[, 9] <- signif(scoretest.final2[, 9], digits=2)
+
+  dimnames(scoretest.final2)[[2]] <-
+    c("Locus.Population", "Score", "CompleteInfo", "ObservedInfo",
+      "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params",
+      "StdNormalDev", "p.value")
+  outputfile <- paste(resultsdir, "TestsAffectedsOnlyFinal.txt", sep="/" )
+  write.table(scoretest.final2, file=outputfile,
+              quote=FALSE, row.names=FALSE, sep="\t")
+  
+  ## plot information content
+  info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
+ plotInfoMap(loci.compound, info.content) #produces error "logical subscript too long"
+
+  ## calculate high and low cutoffs of population risk ratio r that can be excluded at
+  ## a likelihood ratio of 0.01
+  ## based on quadratic approximation to the log-likelihood as a function of log r
+  u <- as.vector(scoretest.final[1,1,])
+  v <- as.vector(scoretest.final[3,1,])
+  ## set to missing if obs info < 1
+  v[v < 1] <- NA
+  r.exclude.hi <- exp(u/v + sqrt(u^2 + 2*v*log(100))/v)
+  r.exclude.lo <- exp(u/v - sqrt(u^2 + 2*v*log(100))/v)
+  ## plotExclusionMap not implemented at present
+}
+
+plotExclusionMap <- function(loci.compound, info.content, cutoffs.lo, cutoffs.hi) {
+  for(chr in 1:n.chr) {
+    ## cutoffs plotted for risk ratio associated with 1st population only
+    plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
+         cutoffs.lo[loci.compound$Chromosome==chr], 
+         type="l", ylim=c(0,10),
+           xlab="Map position (cM) from first locus", ylab="Population risk ratio at LOD = -2",
+         main=paste("Exclusion map for chromosome", chr))
+    text(loci.compound$MapPosition[loci.compound$Chromosome==chr],
+         cutoffs.lo[loci.compound$Chromosome==chr]
+         + 0.5 + 2*(seq(1:length(loci.compound$Chromosome[loci.compound$Chromosome==chr])) %% 3),
+         labels=as.vector(loci.compound[,1][seq(1, dim(scoretest.affectedsonly.final)[1]/k, by=k)]
+           [loci.compound$Chromosome==chr]),adj=c(0,0), # pos=3,
+         srt=90, offset=0.5)
+  }
+}
+
+plotInfoMap <- function(loci.compound, info.content) {
+  ## info.content is matrix in which rows index populations, cols index loci
+  outputfile <- paste(resultsdir, "InformationContentMap.ps", sep="/")
+  postscript(outputfile)
+  for(chr in 1:n.chr) {
+    for(pop in 1:K) {
+      plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
+           info.content[pop, loci.compound$Chromosome==chr], 
+           type="l", ylim=c(-10,100),
+           xlab="Map position (cM) from first locus", ylab="Percent info extracted",
+           main=paste("Map information content for chromosome", chr, "-", pop)
+           )
+      ## text offset vertically in sequences of 3 for legibility
+      text(loci.compound$MapPosition[loci.compound$Chromosome==chr],
+           info.content[pop, loci.compound$Chromosome==chr] +  
+           1 + 20*(seq(1:length(loci.compound$Chromosome[loci.compound$Chromosome==chr])) %% 3),
+           labels=as.vector(loci.compound[,1][loci.compound$Chromosome==chr]),
+           adj=c(0,0), # pos=3,
+           srt=90, offset=0.5)
+    }
+  }
+  dev.off()
+}
+
+plotScoreTestAlleleFreqs <- function(scorefile) {
+  scoretest.allelefreq <- dget(scorefile)
+  dimnames(scoretest.allelefreq)[[2]] <- scoretest.allelefreq[1,,1]
+  scoretest.allelefreq <- scoretest.allelefreq[-1,,]
+  popnames <- scoretest.allelefreq[1,,1]
+  scoretest.allelefreq <- array(as.numeric(scoretest.allelefreq), dim=dim(scoretest.allelefreq),
+                                dimnames=dimnames(scoretest.allelefreq))
+  scoretest.allelefreq[is.nan(scoretest.allelefreq)] <- NA
+  scoretest.allelefreq.final <- t(scoretest.allelefreq[,,dim(scoretest.allelefreq)[3]])
+  scalar.pvalues <- 2*pnorm(-abs(scoretest.allelefreq.final[,6]))
+  scoretest.allelefreq.withp <- data.frame(dimnames(scoretest.allelefreq.final)[[1]], popnames,
+                                           round(scoretest.allelefreq.final[,2:4], digits=2),
+                                           round(scoretest.allelefreq.final[,5], digits=0), 
+                                           round(scoretest.allelefreq.final[,6:7], digits=2), 
+                                           signif(scalar.pvalues, digits=2)
+                                           )
+  dimnames(scoretest.allelefreq.withp)[[2]] <-
+    c("Locus", "Population", "Score", "CompleteInfo",
+      "ObsInfo", "PercentInfo", "StdNormDev", "Chi-square", "Scalar p-value") 
+  outputfile <- paste(resultsdir, "TestsAlleleFreqFinal.txt", sep="" )
+  write.table(scoretest.allelefreq.withp, file=outputfile,
+              quote=FALSE,row.names=FALSE, sep="\t")
+}
+
+convertAlleleFreqs <- function(allelefreq.samples) {
+  ## argument is a 3-way array of allele frequencies (namecol + pops, alleles x loci, draws)
+  ## converts to a list of 3-way arrays each holding alleles x pops x draws for one locus
+  ## extract column of locus names
+  locusnames <- allelefreq.samples[1, , 1]
+  loci.compound <- unique(locusnames) ## vector of names of compound loci 
+  ## generate vector that numbers dimension 1 by compound locus
+  row.locusnumber <- match(locusnames, loci.compound)
+  allelefreq.samples <- allelefreq.samples[-1,,]
+  ## permute so that dimension 1 is alleles x loci
+  if(dim(allelefreq.samples)[1] > 1) {allelefreq.samples <- aperm(allelefreq.samples, c(2,1,3))}
+  ## convert array to numeric
+  allelefreq.samples <- array(as.numeric(allelefreq.samples), dim=dim(allelefreq.samples),
+                                dimnames=dimnames(allelefreq.samples))
+  ## generate list holding 3-way arrays (alleles-1 x pops x draws) of allele freqs at each locus
+  allelefreq.samples.list <- list()
+  for(j in 1:length(loci.compound)) {
+    firstrow <- match(j, row.locusnumber)
+    lastrow <- ifelse( (j + 1) %in% row.locusnumber,
+                      match(j + 1, row.locusnumber) - 1,
+                      dim(allelefreq.samples)[1])
+    if(dim(allelefreq.samples)[1] == 1) {
+      freqarray <- allelefreq.samples[firstrow:lastrow, ]
+    } else {
+      freqarray <- allelefreq.samples[firstrow:lastrow, , ]
+    }
+    allelefreq.samples.list[[j]] <- freqarray
+  }
+  return(allelefreq.samples.list)
+}
+
+calculateLocusfValues <- function(allelefreq.samples.list) {
+  ## correct only for diallelic loci and two populations
+  ## otherwise uses allele 1 and first two populations
+  locusfValues.samples.list <- list()
+  f.means <- numeric(length(allelefreq.samples.list))
+  for(locus in 1:length(allelefreq.samples.list)) {
+    if(length(dim(allelefreq.samples.list[[locus]])) == 2) {
+      p1 <- allelefreq.samples.list[[locus]][1, ]
+      p2 <- allelefreq.samples.list[[locus]][2, ]
+    } else {
+      p1 <- allelefreq.samples.list[[locus]][1, 1, ]
+      p2 <- allelefreq.samples.list[[locus]][1, 2, ]
+    }
+    f <- (p1 - p2)^2 / ((p1 + p2)*(2 - p1 - p2))
+    f.mean <- mean(f)
+    locusfValues.samples.list[[locus]] <- f
+    f.means[locus] <- f.mean
+  }
+  return(f.means) 
+  ## return(locusfValues.samples.list)  
+}
+
+listFreqMeansCovs <- function(allelefreq.samples.list) {
+  ## generate lists to hold allele freq means and covariances
+  allelefreq.means.list <- list()
+  allelefreq.covs.list  <- list()
+  K <- dim(allelefreq.samples.list[[1]])[1]
+  ## loop over loci to compute means and covariances
+  for(locus in 1:length(allelefreq.samples.list)) {
+    if(K==1) { 
+      f.exceptlast <- allelefreq.samples.list[[locus]]
+      if(is.vector(f.exceptlast)) { # diallelic locus a=2
+        f.last <- 1 - f.exceptlast
+      } else { # if a>2 alleles, f.exceptlast is a matrix in which rows index alleles, cols draws
+        f.last <- 1 - apply(f.exceptlast, 2, sum)
+      }
+      f.all <- rbind(f.exceptlast, f.last) # matrix in which rows index alleles, cols draws
+      allelefreqs.mean <- apply(f.all, 1, mean) # vector of length a
+    allelefreqs.cov <- cov(data.frame(t(f.all))) # covariance matrix of order a
+      ## append mean vector and covariance matrix to lists
+      allelefreq.means.list[[locus]] <- allelefreqs.mean
+      allelefreq.covs.list[[locus]]  <- allelefreqs.cov
+    } else {
+      ## loop over populations
+      for(pop in 1:K) {
+        if(is.matrix(allelefreq.samples.list[[locus]])) { # diallelic locus a=2
+          f.exceptlast <- allelefreq.samples.list[[locus]][pop,]
+          f.last <- 1 - f.exceptlast
+        } else { # if a>2 alleles, f.exceptlast is a matrix in which rows index alleles, cols draws
+          f.exceptlast <- allelefreq.samples.list[[locus]][,pop,] 
+          f.last <- 1 - apply(f.exceptlast, 2, sum)
+        }
+        f.all <- rbind(f.exceptlast, f.last) # matrix in which rows index alleles, cols draws
+        allelefreqs.mean <- apply(f.all, 1, mean) # vector of length a
+        allelefreqs.cov <- cov(data.frame(t(f.all))) # covariance matrix of order a
+        ## assign means and covariances to list elements
+        if(pop==1) { 
+          allelefreq.means.list[[locus]] <- list()
+          allelefreq.covs.list[[locus]]  <- list()
+        }
+        allelefreq.means.list[[locus]][[pop]] <- allelefreqs.mean
+        allelefreq.covs.list[[locus]][[pop]]  <- allelefreqs.cov
+      }
+    }
+  }
+  return(list(allelefreq.means.list, allelefreq.covs.list))
+}
+
+fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
+  ## fit Dirichlet parameters by equating posterior means and variances
+  k <- length(allelefreq.means.list[[1]])
+  allelefreq.params.list  <- list()
+  if(k==1) {
+    allelefreq.sumalphas <- vector(mode="numeric", length=length(allelefreq.means.list))
+  } else {
+    allelefreq.sumalphas <- matrix(data=NA, nrow=length(allelefreq.means.list), ncol=k)
+  }
+  for(locus in 1:length(allelefreq.means.list)) {
+    if (k==1) {
+      p <- allelefreq.means.list[[locus]][-1]
+      v <- allelefreq.covs.list[[locus]][-1,-1]
+      if (length(p)==1) { # for diallelic loci
+        factor <- p*(1 - p)/v  # ratio of predicted variance if sumalphas=0 to observed variance
+      } else { # for loci with >2 alleles
+        covar.predicted <- matrix(data=NA, nrow=length(p), ncol=length(p))
+        for(i in 1:length(p)) {
+          for(j in 1:length(p)) {
+            ## predicted covariance if sum.alphas = 0
+            covar.predicted[i,j] <- ifelse(i==j, p[i]*(1-p[i]), p[i]*p[j]) 
+          }
+        }
+        d.predicted <- det(covar.predicted)
+        d.observed <- det(v)
+        factor <- (d.predicted/d.observed)^(1/length(p))
+      }
+      allelefreq.sumalphas[locus] <- factor - 1
+      allelefreq.params.list[[locus]] <- allelefreq.means.list[[locus]]*allelefreq.sumalphas[locus]        
+    } else {
+      for(pop in 1:k) {
+        p <- allelefreq.means.list[[locus]][[pop]][-1]
+        v <- allelefreq.covs.list[[locus]][[pop]][-1,-1]
+        if(length(p)==1) {
+          factor <- p*(1 - p)/v
+        } else {
+          covar.predicted <- matrix(data=NA, nrow=length(p), ncol=length(p))
+          for(i in 1:length(p)) {
+            for(j in 1:length(p)) {
+              ## predicted covariance if sum.alphas = 0
+              covar.predicted[i,j] <- ifelse(i==j, p[i]*(1-p[i]), p[i]*p[j])
+            }
+          }
+          d.predicted <- det(covar.predicted)
+          d.observed <- det(v)
+          factor <- (d.predicted/d.observed)^(1/length(p))
+        }
+        if(pop==1) { # create matrix of allele freqs 
+          allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=1+length(p), ncol=k,
+                                                    dimnames=list(character(0), population.labels))
+        }
+        allelefreq.sumalphas[locus,pop] <- factor - 1
+        allelefreq.params.list[[locus]][,pop] <-
+          allelefreq.sumalphas[locus,pop]*allelefreq.means.list[[locus]][[pop]] 
+      }
+    }
+  }
+  return(allelefreq.params.list)
+}
+
+writePriorAlleleFreqs <- function(allelefreq.params.list, k, loci.compound, population.labels) {
+  ## write Dirichlet parameters of allele freq distributions to file in
+  ## format for model with prior allele freqs
+  allelefreq.params <- data.frame(as.list(1:k)) # 1 row, k cols
+  allelefreq.params.names <- ""
+  for(locus in 1:length(allelefreq.params.list)) {
+    if(k==1) {
+      for(allele in 1:length(allelefreq.params.list[[locus]])) { # loop over alleles
+        allelefreq.params.names <- c(allelefreq.params.names, as.vector(loci.compound[locus,1]))
+        allelefreq.params <- rbind(allelefreq.params,
+                                   allelefreq.params.list[[locus]][allele])
+      }
+    } else {
+      for(allele in 1:dim(allelefreq.params.list[[locus]])[1]) { # loop over alleles
+        allelefreq.params.names <- c(allelefreq.params.names,as.vector(loci.compound[locus,1]))
+        allelefreq.params <- rbind(allelefreq.params, allelefreq.params.list[[locus]][allele,])
+      }
+    }
+  }
+  allelefreq.params <- data.frame(allelefreq.params.names[-1], round(allelefreq.params[-1,],digits=2),
+                                  check.rows=FALSE)
+  dimnames(allelefreq.params)[[2]] <- c("Locus", population.labels)
+  outputfile <- paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" )
+  write.table(allelefreq.params, file=outputfile,row.names=FALSE, sep=" ")
+}
+
+writeFixedAlleleFreqs <- function(allelefreq.means.list, k, loci.compound,
+                        population.labels, allelefreq.params.list) {
+  allelefreq.means <- data.frame(as.list(1:k), row.names=NULL) # 1 row, k cols
+  dimnames(allelefreq.means)[[2]] <- population.labels
+  allelefreq.means.names <- ""
+  for(locus in 1:length(allelefreq.means.list)) {
+    if(k==1) {
+      for(allele in 1:(length(allelefreq.means.list[[locus]]) - 1)) {
+        allelefreq.means.names <- c(allelefreq.means.names, as.vector(loci.compound[locus,1]))
+        allelefreq.means <- rbind(allelefreq.means,
+                                  allelefreq.means.list[[locus]][allele])
+      }
+    } else {
+      for(allele in 1:(dim(allelefreq.params.list[[locus]])[1] - 1)) {
+        allelefreq.means.names <- c(allelefreq.means.names, as.vector(loci.compound[locus,1]))
+      }
+      freqs.thislocus <- as.data.frame(matrix(unlist(allelefreq.means.list[[locus]]),
+                                              nrow=dim(allelefreq.params.list[[locus]])[1],
+                                              ncol=k), row.names=NULL, optional=FALSE)
+      dimnames(freqs.thislocus)[[2]] <- population.labels
+      allelefreq.means <- rbind(allelefreq.means,
+                                freqs.thislocus[-dim(allelefreq.params.list[[locus]])[1], ])
+    }
+  }
+  allelefreq.means <- data.frame(allelefreq.means.names[-1], round(allelefreq.means[-1,], digits=4),
+                                 check.rows=FALSE)
+  ColNames <- c("Locus", population.labels)
+  outputfile <- paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" )
+  write.table(allelefreq.means,file=outputfile,quote=numeric(0),
+              row.names=FALSE,col.names=ColNames,sep=" ")
+}
+
+plotAdmixtureDistribution <- function(alphas, samples, k) {
+  ## plots histogram of posterior means of individual admixture proportions for comparison 
+  ## with population distribution given by Dirichlet parameter vector alphas
+  xvalues <- seq(0.005,0.995,0.01)
+  outputfile <- paste(resultsdir, "DistributionIndividualAdmixture.ps", sep="/" )
+  postscript(outputfile)
+  par(cex=1.5, las=1) 
+  for(pop in 1:k) {
+    popM <- dbeta(xvalues, alphas[pop], sum(alphas[-pop])) # beta density of pop at xvalues
+    indivadmixture.estimates <- apply(samples[pop,,], 1, mean) # proportionate admixture from pop 
+    hist(indivadmixture.estimates, xlim=c(0,1), ylim=c(0, 2*max(popM)), 
+         ## breaks=seq(0,1, 0.05), 
+         freq=FALSE,  
+         xaxs="i", yaxs="i", 
+         xlab=paste("Proportion ", population.labels[pop], " admixture"), ylab="Frequency", 
+         main="Distribution of individual admixture estimates")
+    points(xvalues, popM, type="l", col="blue")
+  }
+  dev.off()
+}
+
+writePosteriorMeansIndivAdmixture <- function(samples.meanparents, K) {
+  ## compute posterior means of individual admixture and ancestry diversity
+  M.squared <- samples.meanparents[1:K,,]^2
+  ancestry.diversity <- 1 - apply(M.squared, 2:3, sum)
+  AncestryDiversity <- apply(ancestry.diversity, 1, mean)
+  IndividualAdmixture <- t(apply(samples.meanparents[1:K,,], 1:2, mean))
+  admixture.table <- data.frame(IndividualAdmixture, AncestryDiversity)
+  outputfile <- paste(resultsdir, "IndividualVarPosteriorMeans.txt", sep="/" )
+  write.table(signif(admixture.table, digits=3), file=outputfile, 
+              quote=FALSE, row.names=FALSE)
+}
+
+plotPosteriorDensityIndivAdmixture <- function(samples4way, user.options, population.labels) {
+  ## plot posterior densities of individual admixture proportions
+  outputfile <- paste(resultsdir, "IndivAdmixture.ps", sep="/")
+  postscript(outputfile)
+  popcols <- c("grey", "blue", "red", "yellow", "orange", "green")
+  for(pop in 1:K) {
+    if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
+      plot(density(0.5*(samples4way[1, pop, 1, ] + samples4way[2, pop, 1, ]),
+                   adjust=0.5, from=0, to=1),
+           main=paste(population.labels[pop], "admixture proportion: mean of both parents"),
+           ylab="Posterior density", xlim=c(0,1))
+      plot(density(abs(samples4way[1, pop, 1, ] - samples4way[2, pop, 1, ]),
+                   adjust=0.5, from=0, to=1), 
+           main=paste(population.labels[pop], "admixture proportion: difference between parents"),
+           ylab="Posterior density", xlim=c(0,1))
+      plot(density(samples4way.1moreAfr[1, pop, 1, ],
+                   adjust=0.5, from=0, to=1),
+           main=paste(population.labels[pop], "admixture proportion of parent with more",
+             population.labels[1], "ancestry"),
+           ylab="Posterior density", xlim=c(0,1))
+      plot(density(samples4way.1moreAfr[2, pop, 1, ],
+                   adjust=0.5, from=0, to=1), 
+           main=paste(population.labels[pop], "admixture proportion of parent with less Afr ancestry"),
+           ylab="Posterior density", xlim=c(0,1))
+      parents.pop <- kde2d(samples4way[1, pop,,],samples4way[2,pop, ,], lims=c(0,1,0,1))
+      contour(parents.pop$x, parents.pop$y, parents.pop$z,
+            main=paste("Contour plot of posterior density of parental", population.labels[pop],
+              "admixture proportions"),
+              xlab="Parent 1", ylab="Parent 2")
+      persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
+            main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
+              "admixture proportions"),
+            xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
+    } else {
+      plot(density(samples[pop, 1, ],
+                   adjust=0.5, from=0, to=1),
+           main=paste(population.labels[pop], "admixture proportion: assumed same for both parents"),
+           ylab="Posterior density", xlim=c(0,1))
+    }
+  }
+dev.off()
+}
+###################################################################################
+## start of script
+###################################################################################
+
+options(echo=TRUE)
+par(cex=2,las=1)
+graphics.off()
+ps.options(pointsize=16)
+
+## read table of user options written by Perl script
+user.options <- getUserOptions("args.txt")
+thinning <- as.numeric(user.options$every)
+
+## set results directory
+if(! is.null(user.options$resultsdir)){
+  resultsdir<-user.options$resultsdir;
+}
+
+## read table of loci and calculate map positions
+loci.compound <- readLoci(user.options$locusfile)
+n.chr <- nlevels(factor(loci.compound$Chromosome))
+
+K <- getNumSubpopulations(user.options)
+population.labels <- getPopulationLabels(K, user.options)
+
+## read population parameter samples
+#if(is.null(user.options$paramfile)) {
+#  print("paramfile option not specified");
+#  param.samples<-NULL;
+#}
+#else {
+   param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"),sep="", header=TRUE)
+for(pop in 1:K) {
+     dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
+                                                population.labels[pop], sep="")
+   }
+# }
+   ## param.samples columns contain:    # k Dirichlet parameters 
+                                        # sum of intensities
+   ##TODO: account for globalrho=0 case
+
+   n <- dim(param.samples)[1]
+   n.covariates <- getNumCovariates(user.options)
+## read regression parameters for admixture proportions
+if(user.options$analysistypeindicator > 1 &  !is.null(user.options$regparamfile))
+  beta.admixture <- getRegressionParamsForAdmixture(user.options, K, n.covariates, population.labels)
+#else{
+#print("No Regression paramfile");
+#beta.admixture<-NULL;
+#}
+  param.samples.all<-getAllSamples(user.options,population.labels)
+   if(dim(param.samples.all)[2] > 0) {
+#Geweke convergence diagnostics
+  checkConvergence(param.samples.all,"Population-level parameters");
+#AutoCorrelation Plots  
+  postscript( paste(resultsdir, "ParameterSampleAutocorrelationPlots.ps", sep="/" ))     
+  plotAutocorrelations(param.samples.all)
+  dev.off()    
+   }
+   
+
+   if(K > 1) {
+     ## extract Dirichlet admixture parameters
+     admixparams <- param.samples[, 1:K]
+     ## calculate population admixture proportions from Dirichlet parameters
+     pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
+
+       if(K > 2) {
+         ## calculate estimate of effect of each pop vs all others if there are >2 populations
+         effect.pop <- effectEstimates(beta.admixture, pop.admix.prop, n, K)
+       }
+   }
+   
+   outcome.continuous <- getOutcomeType(dimnames(param.samples)[[2]])  
+   ## calculate residual standard deviation
+   if(outcome.continuous == 1) {
+     residual.SD <- getPrecision(user.options)^-0.5
+   }
+ 
+   ## add new vars to param.samples
+   if(outcome.continuous == 1) {
+     param.samples.all <- cbind(param.samples.all, residual.SD)
+   }
+   if(K > 1) {
+     param.samples.all <- cbind(param.samples.all, pop.admix.prop)
+     if(K > 2 & user.options$analysistypeindicator > 1 &  is.null(user.options$admixturescorefile)) {
+       param.samples.all <- cbind(param.samples.all, effect.pop)
+     }
+   }
+  nvars <- dim(param.samples.all)[2]
+
+   post.quantiles <- calculateAndPlotQuantiles(param.samples.all, nvars)
+   plotErgodicAverages(user.options, thinning)
+ #}
+
+## get Dirichlet parameters: posterior means, or values specified in model
+if(!is.null(user.options$paramfile)) {
+  alphas <- post.quantiles[1:K, 1]
+} else {
+  alphas <- as.numeric(strsplit(user.options$initalpha0, ",")[[1]])
+}
+
+## read output of score test for allelic association, and plot cumulative results
+if(!is.null(user.options$allelicassociationscorefile)) {
+  outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
+  outputfileFinal <- paste(resultsdir, "TestsAllelicAssociationFinal.txt", sep="/" )
+  plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, outputfileFinal)
+}
+
+## read output of score test for association with haplotypes, and plot cumulative results
+if(!is.null(user.options$haplotypeassociationscorefile)) {
+  outputfilePlot <- paste(resultsdir, "TestsHaplotypeAssociation.ps", sep="/" )
+  outputfileFinal <- paste(resultsdir, "TestsHaplotypeAssociationFinal.txt", sep="/" )
+  plotScoreTest(user.options$haplotypeassociationscorefile, TRUE, outputfilePlot, outputfileFinal)
+}
+
+## read output of regression model score test for ancestry, and plot cumulative results
+if(!is.null(user.options$ancestryassociationscorefile)) {
+#produces warning
+  plotAncestryScoreTest(user.options$ancestryassociationscorefile, K)
+}
+  
+## read output of affecteds-only score test for ancestry, and plot cumulative results
+if(!is.null(user.options$affectedsonlyscorefile)) {
+  plotScoreTestAffectedOnly(user.options$affectedsonlyscorefile, K, population.labels, thinning)
+}
+
+## read output of score test for mis-specified allele freqs and plot cumulative results
+if(!is.null(user.options$allelefreqscorefile)) {
+  plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
+}
+
+if(!is.null(user.options$allelefreqoutputfile)) {
+  ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
+  allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
+  allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
+  row.locusnumber <- match(allelefreq.samples[1, , 1], unique(allelefreq.samples[1, , 1]))
+
+  ## calculate posterior means of sampled fvalues at each locus
+  fValues.means <- calculateLocusfValues(allelefreq.samples.list)
+  fValues.means <- data.frame(round(fValues.means, digits=2))
+  dimnames(fValues.means) <- list(as.vector(loci.compound[,1]), "f-value")
+  write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
+              row.names=TRUE, col.names=TRUE) 
+    
+  ## generate lists to hold allele freq means and covariances
+  freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
+  allelefreq.means.list <- freqMeansCovs[[1]]
+  allelefreq.covs.list <- freqMeansCovs[[2]]
+  ## fit Dirichlet parameters by equating posterior means and variances
+  allelefreq.params.list <- fitDirichletParams(allelefreq.means.list, allelefreq.covs.list) 
+  
+  ## write Dirichlet parameters of allele freq distributions to file as R object
+  dput(allelefreq.params.list, file=paste(resultsdir,"allelefreqparamsAsRObject.txt", sep="/"))
+  
+  ## write Dirichlet parameters of allele freq distributions to file
+  ## in format for model with prior allele freqs
+  writePriorAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels)
+  
+  ## writes posterior means of allele freqs to table in format for model with fixed allele freqs
+  writeFixedAlleleFreqs(allelefreq.means.list, K, loci.compound,
+                        population.labels, allelefreq.params.list)
+}
+
+if(!is.null(user.options$indadmixturefile)) {
+  ## read posterior samples of individual admixture
+  print.default("Reading posterior samples of individual vars")
+  samples <- dget(paste(resultsdir,user.options$indadmixturefile,sep="/"))
+  n.iterations <- dim(samples)[3]
+  n.individuals <- dim(samples)[2]
+  ## reformat as 4-way array if random mating model
+  if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
+    ## drop any extra vars in the array
+    if(dim(samples)[1] > 2*K ) {
+      samples <- samples[-dim(samples)[1],,]
+    }
+    samples4way <- array(samples, dim=c(2, K, dim(samples)[2:3]))
+    dimnames(samples4way) <- list(c("Parent1", "Parent2"), population.labels,
+                                  character(0), character(0))
+    samples.meanparents <- apply(samples4way, 2:4, mean)
+  } else samples.meanparents <- samples
+  
+  if(is.null(user.options$populations)) {
+    ## if subpopulations are identifiable in model
+    plotAdmixtureDistribution(alphas, samples.meanparents, K)
+  }
+  if(K > 1) {
+    writePosteriorMeansIndivAdmixture(samples.meanparents, K)
+  }
+  if(user.options$analysistypeindicator==-1 | user.options$analysistypeindicator==-2) {
+#    plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels)
+  }
+    
+} # ends block conditional on indadmixturefile
+print("Script completed")
