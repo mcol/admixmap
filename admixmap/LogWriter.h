@@ -35,10 +35,6 @@ public:
 
   void StartMessage(int, int, tm *);
 
-  void StartOutput(int iteration, int TotalSamples);
-  void EndOutput(int iteration);
-
-  void Flush();
 };
 
 #endif /* !defined LATENT_H */

@@ -124,10 +124,25 @@ void submain(AdmixOptions* options){
 	
     SumLogTheta.SetNumberOfElements( options->getPopulations());
     IC->PreUpdate(L.getrhoalpha(),L.getrhobeta(),options);
+ 
  /*------------
   |  MAIN LOOP |
   ------------*/
     for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
+      if( !(iteration % options->getSampleEvery()) ){
+	if( options->getAnalysisTypeIndicator() >= 0 && (!options->useCOUT() || iteration == 0) )
+	  //do we really want output pars to log when coutindicator = 0?
+	  {
+	    LogFileStream << setiosflags( ios::fixed );
+	    LogFileStream.width( (int)( log10((double)options->getTotalSamples())+1 ) );
+ 	    LogFileStream << iteration << " ";
+	  }
+	if( options->useCOUT() ) {
+	  cout << setiosflags( ios::fixed );
+	  cout.width( (int)( log10((double)options->getTotalSamples())+1 ) );
+	  cout << iteration << " ";
+	}
+      }
 //Resets before updates
       A.Reset();
       SumLogTheta.SetElements( 0.0 );
@@ -161,25 +176,22 @@ void submain(AdmixOptions* options){
      // output every 'getSampleEvery()' iterations
      if( !(iteration % options->getSampleEvery()) ){
        if( options->getAnalysisTypeIndicator() >= 0/*!= -3*/ ){//No Pop. Par. output for single individuals
-	 Log.StartOutput(iteration,options->getTotalSamples());
 	 L.OutputParams(iteration, &LogFileStream);
 	 R.Output(iteration,&LogFileStream,options,IC);
 	 A.OutputEta(iteration, options, &LogFileStream);
-	 Log.EndOutput(iteration);
+	 if( !options->useCOUT() || iteration == 0 ) LogFileStream << endl;
        }
-       else 
-	 cout << iteration << endl; 
-      }     
+       if( options->useCOUT() ) cout << endl;
+       if( iteration > options->getBurnIn() ){
+	 // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
+	 if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture(A.GetAlleleFreqs(options->getLocusForTest()));
+	 if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
+       }
+     }     
      //Output and scoretest updates after BurnIn     
      if( iteration > options->getBurnIn() ){
        Scoretest.Update(R.getlambda0(), &A);
        R.SumParameters(options->getAnalysisTypeIndicator());
-
-       if( !(iteration % options->getSampleEvery()) ){
-	 // output individual and locus parameters every 'getSampleEvery()' iterations
-	 if ( strlen( options->getIndAdmixtureFilename() ) ) IC->accept(A.GetAlleleFreqs(options->getLocusForTest()));
-	 if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
-       }//end of 'every' output
 
   // output every 'getSampleEvery() * 10' iterations
        if (!(iteration % (options->getSampleEvery() * 10))){    

@@ -103,31 +103,4 @@ void LogWriter::StartMessage(int TotalSamples, int BurnIn,tm *timer){
    
 }
 
-void LogWriter::StartOutput(int iteration, int TotalSamples){
-  //setup output streams
-  if( !useCOUTOption || iteration == 0 )//do we really want output pars to log?
-    {
-      (*LogFileStreamPtr) << setiosflags( ios::fixed );
-      LogFileStreamPtr->width( (int)( log10((double)TotalSamples)+1 ) );
-      (*LogFileStreamPtr) << iteration << " ";
-    }
 
-  if( useCOUTOption )
-    {
-      cout << setiosflags( ios::fixed );
-      (cout).width( (int)( log10((double)TotalSamples)+1 ) );
-      cout << iteration << " ";
-    }
-}
-void LogWriter::EndOutput(int iteration){
-  //Print newline in output
-  if( !useCOUTOption || iteration == 0 )
-    {    *LogFileStreamPtr << endl;
-    }
-  if( useCOUTOption )
-    {      cout << endl;
-    }
-}
-void LogWriter::Flush(){
-  *LogFileStreamPtr<<flush;
-}
