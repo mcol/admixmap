@@ -1,6 +1,10 @@
 #include "functions.h"
 #include <cassert>
 #include <gsl/gsl_sf_gamma.h>
+#include <gsl/gsl_linalg.h>
+#include <iostream>
+
+using namespace::std;
 
 double getGammaLogDensity(double alpha, double beta, double x)
 {
@@ -37,4 +41,112 @@ double AverageOfLogs(const std::vector<double>& vec, double max)
   sum /= vec.size();
 
   return log(sum) + max;
+}
+
+int HH_solve (Matrix_d A, Vector_d b, Vector_d *x)
+{
+  //Caller for gsl_linalg_HH_solve
+  //This function solves the system A x = b directly using Householder transformations. 
+  //On output the solution is stored in x and b is not modified. The matrix AA is destroyed by the Householder transformations. 
+
+  gsl_matrix *AA;
+  gsl_vector *bb,*xx;
+
+  AA = gsl_matrix_calloc(A.GetNumberOfRows(),A.GetNumberOfCols());
+  bb = gsl_vector_calloc(b.GetNumberOfElements());
+  xx = gsl_vector_calloc(x->GetNumberOfElements());
+
+  for (int i=0; i < A.GetNumberOfRows(); i++){
+    for (int j=0; j < A.GetNumberOfCols(); j++){
+      int offset = i * AA->size2 + j;
+      AA->data[offset] = A(i,j);
+    }
+  }
+  for(int i=0;i < b.GetNumberOfElements();i++)
+    bb->data[i] = b(i);
+
+  int status = gsl_linalg_HH_solve(AA,bb,xx);
+  for(int i=0;i < x->GetNumberOfElements();i++)
+    (*x)(i) = xx->data[i];
+
+  gsl_matrix_free(AA);
+  gsl_vector_free(bb);
+  gsl_vector_free(xx);
+  return status;
+}
+
+int HH_svx (Matrix_d A, Vector_d *x)
+{
+  //Caller for gsl_linalg_HH_svx
+  // This function solves the system A x = b in-place using Householder transformations. 
+  // On input x should contain the right-hand side b, which is replaced by the solution on output. 
+  // The matrix AA is destroyed by the Householder transformations. 
+
+  gsl_matrix *AA;
+  gsl_vector *xx;
+
+  AA = gsl_matrix_calloc(A.GetNumberOfRows(),A.GetNumberOfCols());
+  xx = gsl_vector_calloc(x->GetNumberOfElements());
+
+  for (int i=0; i < A.GetNumberOfRows(); i++){
+    for (int j=0; j < A.GetNumberOfCols(); j++){
+      int offset = i * AA->size2 + j;
+      AA->data[offset] = A(i,j);
+    }
+  }
+  for(int i=0;i < x->GetNumberOfElements();i++)
+    xx->data[i] = (*x)(i);
+
+  int status = gsl_linalg_HH_svx(AA,xx);
+  for(int i=0;i < x->GetNumberOfElements();i++)
+    (*x)(i) = xx->data[i];
+
+  gsl_matrix_free(AA);
+  gsl_vector_free(xx);
+
+  return status;
+}
+
+
+void CentredGaussianConditional( int kk, Matrix_d mean, Matrix_d var,
+					   Matrix_d *newmean, Matrix_d *newvar )
+//Computes the conditional mean and variance of a centred subvector of length kk of a zero-mean Multivariate Gaussian vector
+//means are matrices to allow for matrix algebra
+{
+  //some bounds checking would be good here
+  Matrix_d mean1, mean2, Vbb, Vab, Vaa,V;
+  Vector_d x;
+  mean1 = mean.SubMatrix( 0, kk - 1, 0, 0 );
+  mean2 = mean.SubMatrix( kk, mean.GetNumberOfRows() - 1, 0, 0 );
+  Vaa = var.SubMatrix( 0, kk - 1, 0, kk - 1 );
+  Vbb = var.SubMatrix( kk, var.GetNumberOfRows() - 1, kk, var.GetNumberOfCols() - 1 );
+  Vab = var.SubMatrix( 0, kk - 1, kk, var.GetNumberOfCols() - 1 );
+
+  x = mean2.GetColumn(0);
+  HH_svx(Vbb, &x);
+  *newmean = mean1 - Vab * (x.ColumnMatrix()); 
+
+  V.SetNumberOfElements(Vbb.GetNumberOfRows(),Vab.GetNumberOfRows());
+  x.SetNumberOfElements(Vab.GetNumberOfCols());
+
+  for(int i =0; i<Vab.GetNumberOfRows();i++){
+    x =Vab.GetRow(i);
+    HH_svx(Vbb, &x);
+    V.SetColumn(i,x);
+  }
+  *newvar = Vaa - Vab * V;
+}
+
+void CentredGaussianConditional1( Vector_d mean, Matrix_d var,
+					   double *newmean, double  *newvar )
+//As above but for special case of kk = 1 and using vectors and scalars 
+{
+
+  Matrix_d mu, mu2, var2;
+
+  mu = mean.ColumnMatrix();
+
+  CentredGaussianConditional(1, mu, var, &mu2, &var2 );
+  *newmean = mu2(0,0);
+  *newvar = var2(0,0); 
 }
