@@ -44,14 +44,14 @@ UpdateParameters( Matrix_d &inStationaryDist, MatrixArray_d &inTransitionProbs, 
    if( Transitions > 1 )
       CheckArguments();
    _CalculateBeta = CalculateBeta;
-   UpdateFwrdBckwdProbailities();
+   UpdateFwrdBckwdProbabilities();
 }
 
-void HMM::UpdateFwrdBckwdProbailities()
+void HMM::UpdateFwrdBckwdProbabilities()
 {
 // Matrix multiplication replaced by component-wise multiplication.
 // ie., wastefull to multiply by diagonal matrix, multiply each column
-// in turn by a scaler.
+// in turn by a scalar.
    factor = 0.0;
    alpha(0) = StationaryDist.Transpose();
    for( int j = 0; j < States; j++ )

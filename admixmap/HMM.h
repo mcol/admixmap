@@ -1,6 +1,11 @@
 // *-*-C++-*-*
 //RevMCMC.h
 
+/* Class to implement Hidden Markov Models (see MacDonald and Zucchini)
+   Instantiated in class Chromosome
+*/
+
+
 #ifndef HMM_H
 #define HMM_H 1
 
@@ -33,18 +38,27 @@ public:
    
 private:
   void CheckArguments();
-  void UpdateFwrdBckwdProbailities();
+  void UpdateFwrdBckwdProbabilities();
 
-  int States;
-  int Transitions;
+  int States; //number of states of Markov chain, m in book
+  //There are k*k (=D in Chromosome)states since k populations and 2 chromosomes
+
+  int Transitions; //length of chain
+  // = # composite Loci, (=L in Chromosome)
+
    bool _CalculateBeta;
    double factor;
 
   Matrix_d StationaryDist;
   MatrixArray_d TransitionProbs;
+  //(L-1) * D * D array
   MatrixArray_d Likelihood;
-   MatrixArray_d alpha;
-   MatrixArray_d beta;
+  MatrixArray_d alpha;//forward and
+  MatrixArray_d beta;//backward proabilities
+
+  //alpha and beta are arrays of length L corresponding to {\alpha_t} and {\beta_t}
+  //each beta(t) is a m * 1 matrix
+  //each alpha is a ?? 
 };
 
 #endif /* ! HMM_H */
