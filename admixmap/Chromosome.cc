@@ -215,22 +215,27 @@ Chromosome::SampleForHaploidLocusAncestry(Individual* ind)
 
 Matrix_d Chromosome::getExpectedAncestry( int j )
 {
-// Marginal ancestry probabilities of the two gametes in columns 0 & 1.
-// Joint ancestry probabilities for gametes with the same ancestry in column 2;
-   Matrix_d ExpectedAncestry( populations, 3 );
+  //name is a misnomer. Returns matrix of probabilities of numbers of gene copies with ancestry in each population.
+  //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry in that population
+  //i.e. (i,2) = p_{ii}
+  //     (i,1) = \sum_j{p_{ij}} +   \sum_j{p_{ji}} - 2.0*p_{ii}
+  //     (i,0) = 1.0 - (i,1) - (i,2)
+  //where p's are probs in StateProbs
+
+   Matrix_d AncestryProbs( populations, 3 );
    Vector_d StateProbs;
-   StateProbs = SampleStates.GetStateProbs(j);
-   int index, d = 0;
+ 
+   StateProbs = SampleStates.GetStateProbs(j);//vector of ordered ancestry state probs
+ 
    for( int k1 = 0; k1 < populations; k1++ ){
-      index = ( populations + 1 ) * k1;
-      ExpectedAncestry(k1,2) = StateProbs( index );
-      for( int k2 = 0; k2 < populations; k2++ ){
-         ExpectedAncestry(k1,0) += StateProbs(d);
-         ExpectedAncestry(k2,1) += StateProbs(d);
-         d++;
-      }
+     AncestryProbs(k1,2) = StateProbs( ( populations + 1 ) * k1 );
+     for( int k2 = 0 ; k2 < populations; k2++ )
+       AncestryProbs(k1,1) += StateProbs(k1*populations +k2) + StateProbs(k2*populations +k1);
+     AncestryProbs(k1,1)-= 2.0*AncestryProbs(k1,2);
+     AncestryProbs(k1,0) = 1.0 - AncestryProbs(k1,1) - AncestryProbs(k1,2);
    }
-   return ExpectedAncestry;
+   
+   return AncestryProbs;
 }
 
 double Chromosome::getLogLikelihood()

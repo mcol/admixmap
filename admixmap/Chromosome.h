@@ -37,28 +37,17 @@ public:
    Chromosome(int size,int start, int);
    void ResetStuffForX();
   virtual ~Chromosome();
-  virtual void
-  SetLabel( int, std::string );
-  virtual std::string
-  GetLabel( int );
-  virtual void
-  accept(LocusVisitor&);
-  virtual int
-  GetLocus(int);
-  virtual int
-  GetSize();
-  virtual Vector_i
-  SampleForHaploidLocusAncestry(Individual*);
-  virtual void
-  UpdateParameters(Individual*,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&,bool);
-  virtual void
-  UpdateParametersHaploid(Individual*,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&,bool);
-  virtual Matrix_i
-  SampleForLocusAncestry(Individual*);
-  virtual Matrix_d
-  getExpectedAncestry( int );
-  virtual double
-  getLogLikelihood();
+  virtual void SetLabel( int, std::string );
+  virtual std::string GetLabel( int );
+  virtual void accept(LocusVisitor&);
+  virtual int GetLocus(int);
+  virtual int GetSize();
+  virtual Vector_i SampleForHaploidLocusAncestry(Individual*);
+  virtual void UpdateParameters(Individual*,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&,bool);
+  virtual void UpdateParametersHaploid(Individual*,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&,bool);
+  virtual Matrix_i SampleForLocusAncestry(Individual*);
+  virtual Matrix_d getExpectedAncestry( int );
+  virtual double getLogLikelihood();
 
 };
 
