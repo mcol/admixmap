@@ -1,0 +1,47 @@
+src# @start 1
+# configure.in -- Process this file with autoconf to produce configure
+# @start 2
+# Copyright (C) 2000 Gary V. Vaughan
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2, or (at your option)
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# @start 1
+AC_INIT(matrix.cc)
+AC_CONFIG_AUX_DIR(config)
+AM_CONFIG_HEADER(config.h:config-h.in)
+AM_INIT_AUTOMAKE(matrix, 0.1)
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_LIBTOOL
+AC_SUBST(LIBTOOL_DEPS)
+
+# Checks for header files.
+#AC_HEADER_STDC
+#AC_HEADER_SYS_WAIT
+#AC_CHECK_HEADERS()
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_TYPE_PID_T
+AC_TYPE_SIZE_T
+
+# Checks for library functions.
+
+AC_SUBST(ac_aux_dir)
+
+AC_OUTPUT([Makefile], [test -z "$CONFIG_HEADERS" || echo timestamp > stamp-h.in])
+# @end 1

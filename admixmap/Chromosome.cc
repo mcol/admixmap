@@ -1,0 +1,239 @@
+#include "Chromosome.h"
+#include "Individual.h"
+#include <iostream>
+
+#define PR(x) cerr << #x << " = " << x << endl;
+
+using namespace std;
+
+Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
+{
+  _startLoci = start;
+  populations = inpopulations;
+  D = populations * populations;
+  L = GetNumberOfCompositeLoci();
+  SampleStates.SetDimensions( L, D );
+  StationaryDist.SetNumberOfElements( D, 1 );
+  TransitionProbs.SetNumberOfElementsWithDimensions( L - 1, D, D );
+  Likelihood.SetNumberOfElementsWithDimensions( L, D, 1 );
+}
+
+void
+Chromosome::ResetStuffForX()
+{
+  D = populations;
+  SampleStates.SetDimensions( L, D );
+  StationaryDist.SetNumberOfElements( D, 1 );
+  TransitionProbs.SetNumberOfElementsWithDimensions( L - 1, D, D );
+  Likelihood.SetNumberOfElementsWithDimensions( L, D, 1 );
+}
+
+void
+Chromosome::SetLabel( int, string label )
+{
+   _Label = label;
+}
+
+string
+Chromosome::GetLabel( int )
+{
+   return _Label;
+}
+
+Chromosome::~Chromosome()
+{
+}
+
+void
+Chromosome::accept(LocusVisitor& v)
+{
+  v.visitChromosome(*this);
+  for( int i = 0; i < size(); i++ ){
+    (*this)(i)->accept(v);
+  }
+}
+
+int
+Chromosome::GetLocus(int num){
+  return _startLoci + num;
+}
+
+int
+Chromosome::GetSize(){
+  return GetNumberOfCompositeLoci();
+}
+
+void
+Chromosome::UpdateParameters(Individual* ind, Matrix_d& _ancestry, AdmixOptions* options, vector< Vector_d >& f, bool fixedallelefreqs )
+{
+  Matrix_d Prob;
+  MatrixArray_d empty;
+// Construct stationary distribution
+//  Vector_d mu_1, mu_2;
+  Vector_d mu_2, mu_1 = _ancestry.GetColumn(0); //maternal
+  if( options->getModelIndicator() )
+     mu_2 = _ancestry.GetColumn(1); //paternal
+  else
+     mu_2 = _ancestry.GetColumn(0); //paternal
+  
+  int d = 0;
+  for( int k = 0; k < populations; k++ ){
+     for( int kk = 0; kk < populations; kk++ ){
+        StationaryDist( d, 0 ) = mu_1(k) * mu_2(kk);
+        d++;
+     }
+  }
+//  StationaryDist = mu_2.ColumnMatrix();
+  
+  int locus = GetLocus( 0 );
+  for( int j = 0; j < L - 1; j++ ){
+  // Construct transition matrix
+     HaploidTransitionMatrix Tpat(mu_1,f[0](locus+1));
+     HaploidTransitionMatrix Tmat(mu_2,f[1](locus+1));
+     int row = 0;
+     for( int k1 = 0; k1 < populations; k1++ ){
+        for( int k2 = 0; k2 < populations; k2++ ){
+//           int row = k2 + k1 * populations;
+           int col = 0;
+           for( int kk1 = 0; kk1 < populations; kk1++ ){
+              for( int kk2 = 0; kk2 < populations; kk2++ ){
+//                 int col = kk2 + kk1 * populations;
+                 TransitionProbs(j)( row, col ) = Tpat( k1, kk1 )*Tmat( k2, kk2 );
+                 col++;
+              }
+           }
+           row++;
+        }
+     }
+     locus++;
+  }
+
+  // Construct likelihood
+  locus = GetLocus( 0 );
+  for( int j = 0; j < L; j++ ){
+     d = 0;
+     if( ind->IsMissing(locus)[0] != 0 ){
+        vector<unsigned int> genotype = ind->getGenotype(locus);
+        Prob = (*this)(j)->GetLikelihood( genotype, true, fixedallelefreqs );
+        for( int k = 0; k < populations; k++ ){
+           for( int kk = 0; kk < populations; kk++ ){
+              Likelihood(j)( d, 0 ) = Prob( k, kk );
+              d++;
+           }
+        }
+     }
+     else
+        Likelihood(j).SetElements( 1.0 );
+     locus++;
+  }
+
+  if( L > 1 )
+     SampleStates.UpdateParameters( StationaryDist, TransitionProbs,
+                                    Likelihood, options->getTestForAffectedsOnly() );
+  else
+     SampleStates.UpdateParameters( StationaryDist, empty,
+                                    Likelihood, options->getTestForAffectedsOnly() );
+}
+
+void
+Chromosome::UpdateParametersHaploid(Individual* ind, Matrix_d& _ancestry, AdmixOptions* options, vector< Vector_d >& f, bool fixedallelefreqs )
+{
+  Matrix_d Prob;
+  MatrixArray_d empty;
+  Vector_d mu = _ancestry.GetColumn(0);
+  StationaryDist = mu.ColumnMatrix();
+  
+  int locus = GetLocus( 0 );
+  for( int j = 0; j < L - 1; j++ ){
+     HaploidTransitionMatrix Tmat( mu, f[0](locus+1) );
+     TransitionProbs(j) = Tmat.toMatrix();
+     locus++;
+  }
+  // Construct likelihood
+  locus = GetLocus( 0 );
+  for( int j = 0; j < L; j++ ){
+     if( ind->IsMissing(locus)[0] != 0 ){
+        vector<unsigned int> genotype = ind->getGenotype(locus);
+        Likelihood(j) = (*this)(j)->GetLikelihood( genotype, false, fixedallelefreqs );
+     }
+     else
+        Likelihood(j).SetElements( 1.0 );
+     locus++;
+  }
+
+  if( L > 1 )
+     SampleStates.UpdateParameters( StationaryDist, TransitionProbs,
+                                    Likelihood, options->getTestForAffectedsOnly() );
+  else
+     SampleStates.UpdateParameters( StationaryDist, empty,
+                                    Likelihood, options->getTestForAffectedsOnly() );
+}
+
+Matrix_i
+Chromosome::SampleForLocusAncestry(Individual* ind)
+{
+  // D - number of diploid ancestry states
+  Vector_i CodedStates;
+  Matrix_i OrderedStates(2,L);
+  
+// Sample    
+  CodedStates = SampleStates.Sample();
+  for( int j = 0; j < L; j++ ){
+//     OrderedStates( 0, j ) = 0;
+     OrderedStates( 0, j ) = (int)(CodedStates(j) / populations);
+     OrderedStates( 1, j ) = (CodedStates(j) % populations);
+  }
+
+  // Update stats for allele freqs
+  for( int j = 0; j < L; j++ ){
+     int locus = GetLocus( j );
+     if( ind->IsMissing(locus)[0] != 0 ){
+        vector<unsigned int> genotype = ind->getGenotype(locus);
+       (*this)(j)->UpdateLikelihoodAlleleFreqs( genotype, OrderedStates.GetColumn(j) );
+     }
+  }
+
+  return( OrderedStates );
+}
+
+Vector_i
+Chromosome::SampleForHaploidLocusAncestry(Individual* ind)
+{
+  Vector_i OrderedStates;
+  OrderedStates = SampleStates.Sample();
+
+  for( int j = 0; j < L; j++ ){
+     int locus = GetLocus( j );
+     if( ind->IsMissing(locus)[0] != 0 ){
+        vector<unsigned int> genotype = ind->getGenotype(locus);
+       (*this)(j)->UpdateLikelihoodAlleleFreqs_HaploidData( genotype, OrderedStates(j) );
+     }
+  }
+
+  return( OrderedStates );
+}
+
+Matrix_d Chromosome::getExpectedAncestry( int j )
+{
+// Marginal ancestry probabilities of the two gametes in columns 0 & 1.
+// Joint ancestry probabilities for gametes with the same ancestry in column 2;
+   Matrix_d ExpectedAncestry( populations, 3 );
+   Vector_d StateProbs;
+   StateProbs = SampleStates.GetStateProbs(j);
+   int index, d = 0;
+   for( int k1 = 0; k1 < populations; k1++ ){
+      index = ( populations + 1 ) * k1;
+      ExpectedAncestry(k1,2) = StateProbs( index );
+      for( int k2 = 0; k2 < populations; k2++ ){
+         ExpectedAncestry(k1,0) += StateProbs(d);
+         ExpectedAncestry(k2,1) += StateProbs(d);
+         d++;
+      }
+   }
+   return ExpectedAncestry;
+}
+
+double Chromosome::getLogLikelihood()
+{
+   return SampleStates.getLikelihood();
+}

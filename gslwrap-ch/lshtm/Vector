@@ -1,0 +1,277 @@
+// *-*-C++-*-*
+#ifndef LSHTM_VECTOR_H
+#define LSHTM_VECTOR_H 1
+
+#include <cstdlib>
+#include <cassert>
+#include <cstddef>
+
+namespace lshtm
+{
+  template<class T>
+  class Vector
+  {
+  private:
+    size_t _size;
+
+
+  protected:
+    T* _data;
+
+  public:
+    /**
+     * Default constructor, which constructs a vector with zero elements
+     */
+    Vector():
+      _size(0),
+      _data(0)
+    {}
+
+    /**
+     * Constructs a vector with n elements. If the second
+     * argument is not supplied, value is obtained with the default
+     * constructor T(), for the element value type T.
+     */
+    Vector(size_t n, const T& value = T()):
+      _size(n),
+      _data(static_cast<T*>(malloc(n*sizeof(T))))
+    {
+      using namespace std;
+      assert(_data);
+
+      for(size_t i=0; i<n; i++){
+	_data[i] = value;
+      }
+    }
+  
+    /**
+     * Vector copy constructor, which constructs a vector, and
+     * initializes it with copies of the elements of Vector x.
+     */
+    Vector(const Vector<T>& x):
+      _size(x._size),
+      _data(static_cast<T*>(malloc(x._size*sizeof(T))))
+    {
+      using namespace std;
+      assert(_data);
+
+      for(size_t i=0; i<x._size; i++){
+	_data[i] = x._data[i];
+      }
+    }
+
+    /**
+     * Vector assignment operator. Replaces the contents of the
+     * current Vector with a copy of the parameter Vector x.
+     */
+    Vector<T>& operator=(const Vector<T>& x)
+    {
+      using namespace std;
+      if(this == &x){
+	return *this;
+      }
+      free(_data);
+      _data = static_cast<T*>(malloc(x._size*sizeof(T)));
+      assert(_data);
+
+      for(size_t i=0; i<x._size; i++){
+	_data[i] = x._data[i];
+      }
+      _size = x._size;
+
+      return *this;
+    }
+  
+    /**
+     * Makes the Vector contain n elements of
+     * the value u.
+     */
+    void assign(size_t n, const T& u)
+    {
+      using namespace std;
+      free(_data);
+      _data = static_cast<T*>(malloc(n*sizeof(T)));
+      assert(_data);
+
+      for(size_t i=0; i<n; i++){
+	_data[i] = u;
+      }
+      _size = n;
+    }
+  
+    /**
+     * Vector destructor
+     */
+    ~Vector(){ free(_data); }
+
+    /**
+     * Swaps the contents of the current Vector with those of
+     * the input Vector x. The current Vector replaces x and
+     * vice versa.
+     */
+    void swap(Vector<T>& x)
+    {
+      T* temp_data     = _data;
+      size_t temp_size = _size;
+      
+      _data = x._data;
+      _size = x._size;
+
+      x._data = temp_data;
+      x._size = temp_size;
+    }
+
+    /**
+     * Equality operation on Vectors. Returns true if the
+     * elements in x and y are equal (using T::operator=).
+     * Takes linear time.
+     */
+    friend bool
+    operator==(const Vector<T>& x, const Vector<T>& y)
+    {
+      if(&x == &y){
+	return true;
+      }
+      
+      if(x._size == y._size){
+	for(size_t i=0; i<x._size; i++){
+	  if(x._data[i] != y._data[i]){
+	    return false;
+	  }
+	}
+      } else {
+	return false;
+      }
+      
+      return true;
+    }
+  
+    /**
+     * Returns the number of elements currently stored in
+     * the Vector.
+     */
+    size_t size() const { return _size; }
+
+    /**
+     * Resizes the Vector to have n elements by either
+     * inserting copies of c on the end or erasing elements from
+     * the end.
+     */
+    void resize(size_t n, T c = T())
+    {
+      using namespace std;
+
+      if(n!=0){
+	_data = static_cast<T*>(realloc(_data,n*sizeof(T)));
+	assert(_data);
+	for(size_t i=_size; i<n; i++){
+	  _data[i] = c;
+	}
+      } else {
+	free(_data);
+	_data = 0;
+      }
+    
+      _size = n;
+    }
+
+    /**
+     * Returns true if the Vector contains no elements
+     */
+    bool empty() const
+    {
+      return (_size==0);
+    }
+
+
+    /**
+     * returns the nth element
+     * in constant time
+     */
+    T& operator()(size_t n)
+    {
+      return _data[n];
+    }
+    T operator()(size_t n) const
+    {
+      return _data[n];
+    }
+    T& operator[](size_t n)
+    {
+      return _data[n];
+    }
+    T operator[](size_t n) const
+    {
+      return _data[n];
+    }
+    T& at(size_t n)
+    {
+      assert(n<_size);
+      return _data[n];
+    }
+    T at(size_t n) const
+    {
+      assert(n<_size);
+      return _data[n];
+    }
+
+    /**
+     * erases all elements in the vector.
+     */
+    void clear()
+    {
+      free(_data);
+      _data = 0;
+      _size = 0;
+    }
+
+    /**
+     * FROM GSL VECTOR LIBRARIES
+     */
+
+    /**
+     * Sets all elements of the vector to the value x.
+     */
+    void set_all(T x)
+    {
+      for(size_t i=0; i<_size; i++){
+	_data[i] = x;
+      }
+    }
+  
+    /**
+     * Sets all elements of the vector to zero.
+     */
+    void zero()
+    {
+      set_all(T());
+    }
+  
+    /**
+     * Makes a basis vector by setting all the elements of the 
+     * vector to zero, excpet the i-th element, which is
+     * set to one.
+     */
+    void set_basis(size_t i)
+    {
+      assert(i<_size);
+      for(size_t elem=0; elem<_size; elem++){
+	_data[elem] = 0;
+      }
+      _data[i] = 1;
+    }
+
+    /**
+     * Exchjanges the i-th and j-th elements of the vector
+     */
+    void swap(size_t i, size_t j)
+    {
+      assert(i<_size && j<_size);
+      T temp   = _data[i];
+      _data[i] = _data[j];
+      _data[j] = temp;
+    }
+
+  };
+}
+#endif /* !defined LSHTM_VECTOR_H */
