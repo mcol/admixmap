@@ -823,7 +823,7 @@ void Vector%TYPE2%::Load( const char *FileName )
 
   is.close();
 }
-
+/*Next three functions cause compiler errors
 Matrix%TYPE2% Vector%TYPE2%::MyTransposeTimesMe() const
 {
   int i;
@@ -862,7 +862,7 @@ Matrix%TYPE2% Vector%TYPE2%::ColumnMatrix() const
 
   return( temp );
 }
-
+*/
 void Vector%TYPE2%::Randomize( %TYPE% LowerLimit, %TYPE% UpperLimit )
 {
   int i;
