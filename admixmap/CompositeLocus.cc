@@ -228,6 +228,8 @@ CompositeLocus::SetNumberOfLabels()
  *          2 | 0.2 | 0.5 |
  *
  */
+
+// should remove the Score and Info objects below from this class
 void
 CompositeLocus::SetAlleleFreqs( Matrix_d NewAlleleFreqs )
 {
@@ -260,16 +262,18 @@ CompositeLocus::SetAlleleFreqs( Matrix_d NewAlleleFreqs )
 
 /**
  *
+ * This method should be moved out of CompositeLocus into AlleleFreqs. 
  * Sets the frequencies of each allele at each locus in the
  * composite locus.
  *
- * NewPriorAlleleFreqs - a two-dimensional matrix containing 
- *   parameters for the Dirichlet prior distribution of the allele frequencies. The first dimension is the allele number, 
+ *   argument NewPriorAlleleFreqs - a two-dimensional matrix containing 
+ *   parameters for the Dirichlet prior distribution of the allele frequencies. The first dimension is 
+ *   the allele number, 
  *   being in the range of zero to two less than the number of states
  *   [see GetNumberOfStates()]. The sum of the prior parameters over all alleles in a population 
  *   (sumalpha) can be interpreted as 
  +   the "prior sample size". The second dimension is the population. Thus, for a 
- *   composite locus with four states and European and African 
+ *   composite locus with four (? 5) states, and European and African 
  *   populations, the matrix might be:
  *
  *             Population
@@ -281,9 +285,8 @@ CompositeLocus::SetAlleleFreqs( Matrix_d NewAlleleFreqs )
  *          2 | 1.0 | 8.0 |
  *          3 | 2.0 | 1.0 |
  *
- * The allele frequencies are calculated as expectations over this Dirichlet prior distribution, 
- * by dividing each prior parameter by the sum of the parameters. 
- * Effect is to integrate out the variation of the allele frequencies over this distribution. 
+ *  AlleleFreqs is a matrix of expectations over this Dirichlet prior distribution, 
+ *  calculated by dividing each prior parameter by the sum of the parameters. 
  * 
  */
 void
@@ -331,6 +334,7 @@ CompositeLocus::SetPriorAlleleFreqs( Matrix_d NewPriorAlleleFreqs, bool fixed )
 }
 
 /**
+ * This method also should be moved to AlleleFreqs class 
  * This method sets "historical allele frequencies", where the model has been specified to allow the 
  * allele freqs in the admixed population 
  * to vary from the historical allele frequencies in the unadmixed ancestral populations that have 
@@ -444,6 +448,7 @@ CompositeLocus::GetLabel(int index)
 }
 
 /**
+ * this method should be renamed UpdateAlleleCounts, as counts are sufficient stat but not likelihood
  * Given the unordered genotype and the ordered ancestry states at a
  * locus, this method randomly draws the phase of the genotype, then
  * updates the counts of alleles observed in each state of ancestry.
@@ -547,8 +552,8 @@ CompositeLocus::SampleHaplotype(const vector<unsigned int>& genotype, Vector_i a
 /**
  * LikelihoodAlleleFreqs is a matrix of counts of each allele in each
  * population this is the sufficient statistic for updating allele
- * frequencies, but shouldn't be called a likelihood.  Zero's the
- * allele frequencies before they are updated.
+ * frequencies, but shouldn't be called a likelihood.  Sets 
+ * allele frequencies to 0 before they are updated.
  */
 void
 CompositeLocus::ResetLikelihoodAlleleFreqs()
@@ -581,6 +586,7 @@ CompositeLocus::SetNumberOfStates( int newNumberOfStates )
 }
 
 /**
+ * This method should be moved to class AlleleFreqs
  * Whether the object should remember the results of sampling.
  *
  * flag - integer representing a boolean. Set true (one) to remember
@@ -1408,7 +1414,7 @@ CompositeLocus::SamplePriorAlleleFreqs1D( Vector_d eta )
    //warning message - move to wherever loci data are read
    for(int row=0;row<counts0(0).GetNumberOfRows();++row)for(int col=0;col<counts0(0).GetNumberOfCols();++col)
      if(counts0(0)(row,col)==0 && counts1(0)(row,col)==0){
-       cout<<"Warning: zero copies of allele ("<<row<<","<<col<<") in both admixed and unadmixed samples"<<endl;
+       //       cout<<"Warning: zero copies of allele ("<<row<<","<<col<<") in both admixed and unadmixed samples"<<endl;
    //poss return name of comp locus
      }
    DARS SampleMu( 0, 0, 0, MuParameters, fMu, dfMu, ddfMu, counts0, counts1 );
