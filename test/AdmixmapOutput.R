@@ -2,8 +2,8 @@ rm(list = ls())  ## remove (almost) everything in the working environment.
 library(boa)
 library(MASS)
 ## script should be invoked from folder one level above subfolder specified by resultsdir
-## to run this script from an R console session, set the environment variable RESULTSDIR
-## by typing   Sys.putenv("RESULTSDIR"=<path to directory containing results>
+## to run this script from an R console session, set environment variable RESULTSDIR
+## by typing 'Sys.putenv("RESULTSDIR" = <path to directory containing results>'
 if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
   resultsdir <- Sys.getenv("RESULTSDIR")
 } else {
@@ -37,10 +37,30 @@ getUserOptions <- function(argsfilename) {
 
 readLoci <- function(locusfile) {
   ## read table of loci, number chromosomes and calculate map positions
-  loci.simple <- read.table(locusfile, header=TRUE)
-  ## loci.compound is a table with map 2 cols: locus name, giving 
-  loci.compound <- loci.simple[!loci.simple[,3]==0,]
-  ## drop all but first simple locus in each compound locus
+  loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", ".")
+  ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
+  num.sloci <- dim(loci.simple)[1]
+  loci.compound <- loci.simple[-(1:num.sloci), ]
+  clocus <- 0
+  ## loop over simple loci
+  for(slocus in 1:num.sloci) {
+    if(loci.simple[slocus, 3] > 0) { # new compound locus
+      if(clocus > 1) {  
+        ## assign num haplotypes at last compound locus
+        loci.compound[clocus-1, 2] <- num.haps
+      }
+      ## restart counting num haplotypes
+      num.haps <- loci.simple[slocus, 2]
+      ## add row to loci.compound
+      loci.compound <- rbind(loci.compound, loci.simple[slocus, ])
+      ## increment number of compound locus 
+      clocus <- clocus + 1
+    } else {
+      ## continue counting num haplotypes
+      num.haps <- num.haps * loci.simple[slocus, 2]
+    }
+  }
+  ## add two columns for map position and chromosome
   loci.compound <- data.frame(loci.compound, numeric(dim(loci.compound)[1]),
                               numeric(dim(loci.compound)[1]))
   dimnames(loci.compound)[[2]][4:5] <- c("MapPosition","Chromosome")
@@ -48,6 +68,7 @@ readLoci <- function(locusfile) {
   ## calculate map positions
   map.position <- 0
   chr <- 0
+  ## loop over compound loci
   for(i in 1:dim(loci.compound)[1]) {
     if(is.na(loci.compound[i,3])) {
       chr <- chr + 1
@@ -390,12 +411,12 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
   
   ## plot cumulative p-values in K colours
   outputfile <- paste(resultsdir, "TestsAffectedsonly.ps", sep="/")
-  stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
+  stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),
+                    dimnames=c(dimnames(scoretests4way)[2:4]))
   plotPValuesKPopulations(outputfile, stdnormdev, thinning)
   ## extract final table as 3-way array: statistic, locus, population
   scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
                            dimnames=c(dimnames(scoretests4way)[1:3]))
-  
   ## set test statistic to missing if obs info < 1
   scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
   pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
@@ -418,7 +439,8 @@ plotScoreTestAffectedOnly <- function(scorefile, K, population.labels, thinning)
               quote=FALSE, row.names=FALSE, sep="\t")
   
   ## plot information content
-  info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
+  info.content <- array(data=scoretest.final[4, , ], dim=c(dim(scoretest.final)[2:3]),
+                        dimnames=c(dimnames(scoretest.final)[2:3]))
   plotInfoMap(loci.compound, info.content)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
@@ -910,7 +932,8 @@ if(!is.null(user.options$ancestryassociationscorefile)) {
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile)) {
-  plotScoreTestAffectedOnly(user.options$affectedsonlyscorefile, K, population.labels, user.options$every)
+  plotScoreTestAffectedOnly(user.options$affectedsonlyscorefile, K, population.labels,
+                            user.options$every)
 }
 
 ## read output of score test for mis-specified allele freqs and plot cumulative results
@@ -966,9 +989,6 @@ if(!is.null(user.options$indadmixturefile)) {
   if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
     ## drop any extra vars in the array
     samples.adm <- samples[1:(2*K), , ]
-#    if(dim(samples)[1] > 2*K ) {
-#      samples <- samples[-dim(samples)[1],,]
-#    }
     samples4way <- array(samples.adm, dim=c(2, K, dim(samples)[2:3]))
     dimnames(samples4way) <- list(c("Parent1", "Parent2"), population.labels,
                                   character(0), character(0))
