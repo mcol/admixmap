@@ -111,6 +111,9 @@ class Vector_d
   double
     MaximumElement(void);
 
+  double
+    MinimumElement(void);
+
   void
     AddElement(int);
 

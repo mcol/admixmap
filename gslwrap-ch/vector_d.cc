@@ -543,6 +543,19 @@ double Vector_d::Mean() const
   return( mean );
 }  
 
+// Functions computing Maximum and Minimum of the elements
+double Vector_d::MinimumElement()
+{
+  int i;
+  double Minimum = DBL_MAX;
+   
+  for ( i = 0; i < NumberOfElements; i++ )
+    if ( vector->data[i * vector->stride] < Minimum )
+      Minimum = vector->data[i * vector->stride];
+
+  return( Minimum );
+}
+
 double Vector_d::MaximumElement()
 {
   int i;
