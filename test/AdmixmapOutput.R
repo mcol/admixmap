@@ -368,40 +368,10 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
               row.names=FALSE, col.names=TRUE)
 }
 
-## function uses old ancestryscoretest output
-## now obsolete
-#plotAncestryScoreTest <- function(scorefile, k) {
-#  scoretest.ancestry <- dget(paste(resultsdir,scorefile,sep="/"))
-#  if(k == 2) { 
-#    scoretest.ancestry <- scoretest.ancestry[, seq(1, dim(scoretest.ancestry)[2] - 1, by = 2), ]
-#  }
-#  dimnames(scoretest.ancestry)[[2]] <- scoretest.ancestry[1,,1]
-#  scoretest.ancestry <- scoretest.ancestry[-1,,]
-#  popnames <- scoretest.ancestry[1,,1]
-#  scoretest.ancestry <- array(as.numeric(scoretest.ancestry), dim=dim(scoretest.ancestry),
-#                              dimnames=dimnames(scoretest.ancestry))
-#  scoretest.ancestry[is.nan(scoretest.ancestry)] <- NA
-#  scoretest.ancestry.final <- t(scoretest.ancestry[,,dim(scoretest.ancestry)[3]])
-#  scalar.pvalues <- signif(2*pnorm(-abs(scoretest.ancestry.final[,6])), digits=2)
-#  
-#  scoretest.ancestry.withp <- data.frame(dimnames(scoretest.ancestry.final)[[1]], popnames,
-#                                         round(scoretest.ancestry.final[,c(2,3,4)], digits=2),
-#                                         round(scoretest.ancestry.final[,5], digits=0), 
-#                                         round(scoretest.ancestry.final[,6], digits=2), 
-#                                         scalar.pvalues)
-#  dimnames(scoretest.ancestry.withp)[[2]] <- c("Locus", "Population", "Score", "CompleteInfo",
-#                                               "ObsInfo", "PercentInfo", "StdNormDev", "p-value") 
-#  outputfile <- paste(resultsdir, "TestsAncestryAssociationFinal.txt", sep="/" )
-#  write.table(scoretest.ancestry.withp,file=outputfile,quote=FALSE,
-#              row.names=FALSE, sep="\t")
-#  outputfile <- paste(resultsdir, "TestsAncestryAssociation.ps", sep="/" )
-#  plotpvalues(outputfile,scoretest.ancestry[6,,],
-#              10*thinning,"Running computation of p-values for ancestry association")
-#}
-
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
 plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
+  filename <- gsub(".txt", "", scorefile, ignore.case=TRUE)
   ## extract first row containing locus names
   locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=K), 1]
   testnames <- paste(scoretests[1,,1], scoretests[2,,1])
@@ -416,15 +386,16 @@ plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
   scoretests4way[is.nan(scoretests4way)] <- NA
   
   ## plot cumulative p-values in K colours
-  outputfile <- paste(resultsdir, "TestsAffectedsonly.ps", sep="/")
+  outputfile <- paste(resultsdir, "/", filename, ".ps", sep="")
   stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
   plotPValuesKPopulations(outputfile, stdnormdev, thinning)
   ## extract final table as 3-way array: statistic, locus, population
-  scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
+  scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],
+                           dim=c(dim(scoretests4way)[1:3]),
                            dimnames=c(dimnames(scoretests4way)[1:3]))
   
-  ## set test statistic to missing if obs info < 1
-  scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
+  ## set test statistic to missing if percent info  < 5
+  scoretest.final[7,,][scoretest.final[4,,] < 5] <- NA
   pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
   
   ## output scoretest.final as 2-way array, in which rows index pops within loci
@@ -440,7 +411,7 @@ plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
     c("Locus.Population", "Score", "CompleteInfo", "ObservedInfo",
       "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params",
       "StdNormalDev", "p.value")
-  outputfile <- paste(resultsdir, "TestsAffectedsOnlyFinal.txt", sep="/" )
+  outputfile <- paste(resultsdir, "/", filename, "Final.txt", sep="")
   write.table(scoretest.final2, file=outputfile,
               quote=FALSE, row.names=FALSE, sep="\t")
   
