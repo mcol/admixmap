@@ -2,16 +2,28 @@ rm(list = ls())  ## remove (almost) everything in the working environment.
 library(boa)
 library(MASS)
 ## script should be invoked from folder one level above subfolder specified by resultsdir
-## get value of resultsdir if not already defined as R object 
-#if(is.null(resultsdir)) {
-  ## get resultsdir from environment if set 
-  if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
-    resultsdir <- Sys.getenv("RESULTSDIR")
+## to run this script from an R console session, set the environment variable RESULTSDIR
+## by typing   Sys.putenv("RESULTSDIR"=<path to directory containing results>
+if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
+  resultsdir <- Sys.getenv("RESULTSDIR")
+} else {
+  ## resultsdir set to default directory 
+  resultsdir <- "results/"
+}
+
+cbindIfNotNull <- function(table1, table2) {
+## cbind two tables if both are not null
+  if(!is.null(table1) && !is.null(table2)) {
+    table3 <- cbind(table1, table2)
+  } else if(!is.null(table1)) {
+    table3 <- table1
+  } else if(!is.null(table2)) {
+    table3 <- table2
   } else {
-    ## resultsdir set to default directory 
-    resultsdir <- "results/"
+    table3 <- NULL
   }
-#}
+  return(table3)
+}
 
 getUserOptions <- function(argsfilename) {
   ## read table of user options written by Perl script
@@ -19,6 +31,7 @@ getUserOptions <- function(argsfilename) {
   user.options <- as.data.frame(matrix(data=NA, nrow=1, ncol=dim(args)[1]))
   user.options[1,] <- args[,2]
   dimnames(user.options) <- list("Value", args[,1])
+  user.options$every <- as.numeric(user.options$every)
   return(user.options)
 }
 
@@ -52,7 +65,7 @@ getNumSubpopulations <- function(user.options) {
   if(!is.null(user.options$populations)) {
     K <- as.numeric(user.options$populations)
   }
-  else {print("Error: cannot determine number of populations\n");}
+  else {print("Error: number of subpopulations not written to file\n");}
   return(K)
 }
 
@@ -60,9 +73,12 @@ getPopulationLabels <- function(k, user.options) {
   if(k==1) {
     population.labels <- "SinglePop"
   } else {
-    if(!is.null(user.options$paramfile)) {
-      population.labels <- dimnames(read.table(paste(resultsdir,user.options$paramfile,sep="/"),
-                                               header=TRUE))[[2]][1:k]
+    if(!is.null(user.options$paramfile) &&
+       length(scan(paste(resultsdir,user.options$paramfile, sep="/"),
+                   what='character', quiet=TRUE)) != 0) {
+      population.labels <-
+        dimnames(read.table(paste(resultsdir, user.options$paramfile, sep="/"),
+                            header=TRUE))[[2]][1:k]
     } else {
       if(!is.null(user.options$priorallelefreqfile)) {
         population.labels <- dimnames(read.table(user.options$priorallelefreqfile,
@@ -114,17 +130,23 @@ getPrecision <- function(user.options) {
   return(beta)
 }
 
-plotAutocorrelations <- function(table.samples) {
+plotAutocorrelations <- function(table.samples, thinning) {
   ## plot autocorrelations
   ## drop columns with zero variance
   table.samples <- table.samples[, colVars(table.samples)>0]
-  for(j in 1:dim(table.samples)[2]) {
-    ## next line generates warning messages
-    acfRes <- acf(table.samples[, j], plot=FALSE)
-    if(length(acfRes$acf[is.nan(acfRes$acf)]) == 0){
-      plot(thinning*acfRes$lag, acfRes$acf, type="l", ylim = c(0, 1),
-           main=paste("Autocorrelation plot ", dimnames(table.samples)[[2]][j]),
-           xlab=paste("Iterations"), ylab="Autocorrelation") 
+  if(is.null(dim(table.samples))) {
+    table.samples <- data.frame(table.samples)
+  }
+  numcols <- dim(as.matrix(table.samples))[2]
+  if(numcols > 0) {
+    for(j in 1:dim(table.samples)[2]) {
+      ## next line generates warning messages
+      acfRes <- acf(table.samples[, j], plot=FALSE)
+      if(length(acfRes$acf[is.nan(acfRes$acf)]) == 0){
+        plot(thinning*acfRes$lag, acfRes$acf, type="l", ylim = c(0, 1),
+             main=paste("Autocorrelation plot ", dimnames(table.samples)[[2]][j]),
+             xlab=paste("Iterations"), ylab="Autocorrelation") 
+      }
     }
   }
 }
@@ -133,7 +155,11 @@ checkConvergence <- function(table.samples, listname, outputfile) {
   ## test for adequate burn-in based on Geweke (1992)
   ## in: Bayesian Stats 4. ed. Bernardo JM et al, Oxford, OUP)
   table.samples <- table.samples[, colVars(table.samples)>0]
-  if(dim(table.samples)[2] > 0) {
+  if(is.null(dim(table.samples))) {
+    table.samples <- data.frame(table.samples)
+  }
+  numcols <- dim(as.matrix(table.samples))[2]
+  if(numcols > 0) {
     table.geweke <- boa.geweke(link=table.samples, p.first=0.1, p.last=0.5)
     table.geweke <- round(table.geweke, digits=3)
     write.table(table.geweke, file=outputfile, sep="\t")
@@ -473,30 +499,41 @@ plotScoreTestAlleleFreqs <- function(scorefile) {
 }
 
 convertAlleleFreqs <- function(allelefreq.samples) {
-  ## argument is a 3-way array of allele frequencies (namecol + pops, alleles x loci, draws)
+  ## argument is a 3-way array of allele frequencies (locusname + pops, alleles x loci, draws)
   ## converts to a list of 3-way arrays each holding alleles x pops x draws for one locus
-  ## extract column of locus names
+  ## extract vector of locus names
+  draws <- dim(allelefreq.samples)[3]
   locusnames <- allelefreq.samples[1, , 1]
   loci.compound <- unique(locusnames) ## vector of names of compound loci 
-  ## generate vector that numbers dimension 1 by compound locus
+  ## generate vector with locusnames coded as levels of a factor
   row.locusnumber <- match(locusnames, loci.compound)
+  ## drop first row containing locus names
   allelefreq.samples <- allelefreq.samples[-1,,]
-  ## permute so that dimension 1 is alleles x loci
-  if(dim(allelefreq.samples)[1] > 1) {allelefreq.samples <- aperm(allelefreq.samples, c(2,1,3))}
+  ## if this is a 2-way array (single population), rearrange as 3-way array
+  if(length(dim(allelefreq.samples))==2) {
+    allelefreq.samples <- array(as.numeric(allelefreq.samples), dim=c(1, dim(allelefreq.samples)))
+  }
+  ## permute so that dimension 1 is alleles x loci, dimension 2 is pops, dimension 3 is draws
+  allelefreq.samples <- aperm(allelefreq.samples, c(2,1,3))
   ## convert array to numeric
   allelefreq.samples <- array(as.numeric(allelefreq.samples), dim=dim(allelefreq.samples),
                               dimnames=dimnames(allelefreq.samples))
   ## generate list holding 3-way arrays (alleles-1 x pops x draws) of allele freqs at each locus
   allelefreq.samples.list <- list()
+  ## loop over loci
   for(j in 1:length(loci.compound)) {
+    ## firstrow is position in dimension 1 of first allele at j th locus 
     firstrow <- match(j, row.locusnumber)
-    lastrow <- ifelse( (j + 1) %in% row.locusnumber,
-                      match(j + 1, row.locusnumber) - 1,
-                      dim(allelefreq.samples)[1])
-    if(dim(allelefreq.samples)[1] == 1) {
-      freqarray <- allelefreq.samples[firstrow:lastrow, ]
+    ## lastrow is position in dimension 1 of last allele (but one) at j th locus
+    lastrow <- length(row.locusnumber) + 1 - match(j, rev(row.locusnumber))
+    ## freqarray should always be 3-way array even if diallelic locus or single population 
+    freqarray <- allelefreq.samples[firstrow:lastrow, , ]
+    if(is.vector(freqarray)) { 
+      freqarray <- array(freqarray, dim=c(1, 1, draws))
     } else {
-      freqarray <- allelefreq.samples[firstrow:lastrow, , ]
+      if(length(dim(freqarray))==2) {
+        freqarray <- array(freqarray, dim=c(1, dim(freqarray)[1], draws))
+      }
     }
     allelefreq.samples.list[[j]] <- freqarray
   }
@@ -529,43 +566,29 @@ listFreqMeansCovs <- function(allelefreq.samples.list) {
   ## generate lists to hold allele freq means and covariances
   allelefreq.means.list <- list()
   allelefreq.covs.list  <- list()
-  K <- dim(allelefreq.samples.list[[1]])[1]
+  K <- dim(allelefreq.samples.list[[1]])[2]
   ## loop over loci to compute means and covariances
   for(locus in 1:length(allelefreq.samples.list)) {
-    if(K==1) { 
-      f.exceptlast <- allelefreq.samples.list[[locus]]
-      if(is.vector(f.exceptlast)) { # diallelic locus a=2
-        f.last <- 1 - f.exceptlast
-      } else { # if a>2 alleles, f.exceptlast is a matrix in which rows index alleles, cols draws
-        f.last <- 1 - apply(f.exceptlast, 2, sum)
+
+    ## loop over populations 
+    for(pop in 1:K) {
+      ## add row for freq last allele to matrix of draws of allele freqs
+      f.exceptlast <- allelefreq.samples.list[[locus]][,pop,]
+      if(is.vector(f.exceptlast)) {
+        f.exceptlast <- matrix(data=f.exceptlast, nrow=1)
       }
+      f.last <- 1 - apply(f.exceptlast, 2, sum)
       f.all <- rbind(f.exceptlast, f.last) # matrix in which rows index alleles, cols draws
+      ## calculate means and covariances over draws
       allelefreqs.mean <- apply(f.all, 1, mean) # vector of length a
       allelefreqs.cov <- cov(data.frame(t(f.all))) # covariance matrix of order a
-      ## append mean vector and covariance matrix to lists
-      allelefreq.means.list[[locus]] <- allelefreqs.mean
-      allelefreq.covs.list[[locus]]  <- allelefreqs.cov
-    } else {
-      ## loop over populations
-      for(pop in 1:K) {
-        if(is.matrix(allelefreq.samples.list[[locus]])) { # diallelic locus a=2
-          f.exceptlast <- allelefreq.samples.list[[locus]][pop,]
-          f.last <- 1 - f.exceptlast
-        } else { # if a>2 alleles, f.exceptlast is a matrix in which rows index alleles, cols draws
-          f.exceptlast <- allelefreq.samples.list[[locus]][,pop,] 
-          f.last <- 1 - apply(f.exceptlast, 2, sum)
-        }
-        f.all <- rbind(f.exceptlast, f.last) # matrix in which rows index alleles, cols draws
-        allelefreqs.mean <- apply(f.all, 1, mean) # vector of length a
-        allelefreqs.cov <- cov(data.frame(t(f.all))) # covariance matrix of order a
-        ## assign means and covariances to list elements
-        if(pop==1) { 
-          allelefreq.means.list[[locus]] <- list()
-          allelefreq.covs.list[[locus]]  <- list()
-        }
-        allelefreq.means.list[[locus]][[pop]] <- allelefreqs.mean
-        allelefreq.covs.list[[locus]][[pop]]  <- allelefreqs.cov
+      ## assign means and covariances to list elements
+      if(pop==1) { 
+        allelefreq.means.list[[locus]] <- list()
+        allelefreq.covs.list[[locus]]  <- list()
       }
+      allelefreq.means.list[[locus]][[pop]] <- allelefreqs.mean
+      allelefreq.covs.list[[locus]][[pop]]  <- allelefreqs.cov
     }
   }
   return(list(allelefreq.means.list, allelefreq.covs.list))
@@ -575,61 +598,37 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
   ## fit Dirichlet parameters by equating posterior means and variances
   k <- length(allelefreq.means.list[[1]])
   allelefreq.params.list  <- list()
-  if(k==1) {
-    allelefreq.sumalphas <- vector(mode="numeric", length=length(allelefreq.means.list))
-  } else {
-    allelefreq.sumalphas <- matrix(data=NA, nrow=length(allelefreq.means.list), ncol=k)
-  }
+  allelefreq.sumalphas <- matrix(data=NA, nrow=length(allelefreq.means.list), ncol=k)
   for(locus in 1:length(allelefreq.means.list)) {
-    if (k==1) {
-      p <- allelefreq.means.list[[locus]][-1]
-      v <- allelefreq.covs.list[[locus]][-1,-1]
-      if (length(p)==1) { # for diallelic loci
-        factor <- p*(1 - p)/v  # ratio of predicted variance if sumalphas=0 to observed variance
-      } else { # for loci with >2 alleles
+    for(pop in 1:k) {
+      p <- allelefreq.means.list[[locus]][[pop]][-1]
+      v <- allelefreq.covs.list[[locus]][[pop]][-1,-1]
+      if(length(p)==1) {
+        factor <- p*(1 - p)/v
+      } else {
         covar.predicted <- matrix(data=NA, nrow=length(p), ncol=length(p))
         for(i in 1:length(p)) {
           for(j in 1:length(p)) {
             ## predicted covariance if sum.alphas = 0
-            covar.predicted[i,j] <- ifelse(i==j, p[i]*(1-p[i]), p[i]*p[j]) 
+            covar.predicted[i,j] <- ifelse(i==j, p[i]*(1-p[i]), p[i]*p[j])
           }
         }
         d.predicted <- det(covar.predicted)
         d.observed <- det(v)
         factor <- (d.predicted/d.observed)^(1/length(p))
       }
-      allelefreq.sumalphas[locus] <- factor - 1
-      allelefreq.params.list[[locus]] <- allelefreq.means.list[[locus]]*allelefreq.sumalphas[locus]        
-    } else {
-      for(pop in 1:k) {
-        p <- allelefreq.means.list[[locus]][[pop]][-1]
-        v <- allelefreq.covs.list[[locus]][[pop]][-1,-1]
-        if(length(p)==1) {
-          factor <- p*(1 - p)/v
-        } else {
-          covar.predicted <- matrix(data=NA, nrow=length(p), ncol=length(p))
-          for(i in 1:length(p)) {
-            for(j in 1:length(p)) {
-              ## predicted covariance if sum.alphas = 0
-              covar.predicted[i,j] <- ifelse(i==j, p[i]*(1-p[i]), p[i]*p[j])
-            }
-          }
-          d.predicted <- det(covar.predicted)
-          d.observed <- det(v)
-          factor <- (d.predicted/d.observed)^(1/length(p))
-        }
-        if(pop==1) { # create matrix of allele freqs 
-          allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=1+length(p), ncol=k,
-                                                    dimnames=list(character(0), population.labels))
-        }
-        allelefreq.sumalphas[locus,pop] <- factor - 1
-        allelefreq.params.list[[locus]][,pop] <-
-          allelefreq.sumalphas[locus,pop]*allelefreq.means.list[[locus]][[pop]] 
+      if(pop==1) { # create matrix of allele freqs: rows index alleles, cols index populations  
+        allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=1+length(p), ncol=k,
+                                                  dimnames=list(character(0), population.labels))
       }
+      allelefreq.sumalphas[locus,pop] <- factor - 1
+      allelefreq.params.list[[locus]][,pop] <-
+        allelefreq.sumalphas[locus,pop]*allelefreq.means.list[[locus]][[pop]] 
     }
   }
   return(allelefreq.params.list)
 }
+
 
 writePriorAlleleFreqs <- function(allelefreq.params.list, k, loci.compound, population.labels) {
   ## write Dirichlet parameters of allele freq distributions to file in
@@ -775,7 +774,6 @@ ps.options(pointsize=16)
 
 ## read table of user options written by Perl script
 user.options <- getUserOptions(paste(resultsdir, "args.txt", sep="/"))
-thinning <- as.numeric(user.options$every)
 
 ## read table of loci and calculate map positions
 loci.compound <- readLoci(user.options$locusfile)
@@ -806,8 +804,8 @@ if(is.null(user.options$paramfile)) {
     checkConvergence(param.samples, "Population admixture parameters",
                      paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
     postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
-    plotAutocorrelations(param.samples)
-    plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), thinning)
+    plotAutocorrelations(param.samples, user.options$every)
+    plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
     dev.off()    
     if(K > 1) {
       ## extract Dirichlet admixture parameters
@@ -834,7 +832,7 @@ if(is.null(user.options$regparamfile) ||
   checkConvergence(regparam.samples, "Regression parameters",
                    paste(resultsdir, "RegressionParamConvergenceDiags.txt", sep="/"))
   postscript(paste(resultsdir, "RegressionParamAutocorrelations.ps", sep="/" ))     
-  plotAutocorrelations(regparam.samples)
+  plotAutocorrelations(regparam.samples, user.options$every)
   dev.off()
   
   beta.admixture <- getRegressionParamsForAdmixture(user.options, K, n.covariates, population.labels)
@@ -861,26 +859,15 @@ if(is.null(user.options$dispparamfile)) {
   checkConvergence(dispparam.samples, "Dispersion parameters",
                    paste(resultsdir, "DispParamConvergenceDiags.txt", sep="/"))
   postscript(paste(resultsdir, "DispParamAutocorrelations.ps", sep="/" ))     
-  plotAutocorrelations(dispparam.samples)
+  plotAutocorrelations(dispparam.samples, user.options$every)
   dev.off()
 }   
 
 ## combine samples of Dirichlet params, admixture proportions, dispersion params, regression params
-param.samples.all <- cbind(param.samples, pop.admix.prop)
-if(!is.null(eta.samples)) {
-  param.samples.all <- cbind(param.samples.all, eta.samples)
-}
-if(!is.null(regparam.samples)) {
-  if(!is.null(param.samples.all)) {
-    param.samples.all <- cbind(param.samples.all, regparam.samples)
-  } else {
-    param.samples.all <- regparam.samples
-  }
-}
-if(!is.null(effect.pop)) {
-  param.samples.all <- cbind(param.samples.all, effect.pop)
-}
-
+param.samples.all <- cbindIfNotNull(param.samples, pop.admix.prop)
+param.samples.all <- cbindIfNotNull(param.samples.all, eta.samples)
+param.samples.all <- cbindIfNotNull(param.samples.all, regparam.samples)
+param.samples.all <- cbindIfNotNull(param.samples.all, effect.pop)
 ## calculate posterior quantiles
 if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
   nvars <- dim(param.samples.all)[2]
@@ -888,7 +875,7 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
 }
 
 ## get population admixture Dirichlet parameters: either posterior means, or values specified in model
-if(!is.null(user.options$paramfile)) {
+if(!is.null(param.samples)) {
   alphas <- post.quantiles[1:K, 1]
 } else {
   alphas <- as.numeric(strsplit(user.options$initalpha0, ",")[[1]])
@@ -916,7 +903,7 @@ if(!is.null(user.options$ancestryassociationscorefile)) {
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile)) {
-  plotScoreTestAffectedOnly(user.options$affectedsonlyscorefile, K, population.labels, thinning)
+  plotScoreTestAffectedOnly(user.options$affectedsonlyscorefile, K, population.labels, user.options$every)
 }
 
 ## read output of score test for mis-specified allele freqs and plot cumulative results
@@ -928,14 +915,15 @@ if(!is.null(user.options$allelefreqoutputfile)) {
   ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
   allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
-  row.locusnumber <- match(allelefreq.samples[1, , 1], unique(allelefreq.samples[1, , 1]))
   
   ## calculate posterior means of sampled fvalues at each locus
-  fValues.means <- calculateLocusfValues(allelefreq.samples.list)
-  fValues.means <- data.frame(round(fValues.means, digits=2))
-  dimnames(fValues.means) <- list(as.vector(loci.compound[,1]), "f-value")
-  write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
-              row.names=TRUE, col.names=TRUE) 
+  if(K > 1) { 
+    fValues.means <- calculateLocusfValues(allelefreq.samples.list)
+    fValues.means <- data.frame(round(fValues.means, digits=2))
+    dimnames(fValues.means) <- list(as.vector(loci.compound[,1]), "f-value")
+    write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
+                row.names=TRUE, col.names=TRUE)
+  }
   
   ## generate lists to hold allele freq means and covariances
   freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
