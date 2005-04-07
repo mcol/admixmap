@@ -84,7 +84,8 @@ public:
   void InitialiseHaplotypes(Matrix_d &);
   void InitialiseMuProposal(int);
   Vector_i SetPossibleHaplotypes(const std::vector<unsigned int>&);
-  Vector_i SampleHaplotypePair(const std::vector<unsigned int>& genotype, Vector_i, Vector_i , Matrix_d &);
+  //  Vector_i SampleHaplotypePair(const std::vector<unsigned int>& genotype, Vector_i, Vector_i , Matrix_d &);
+  Vector_i SampleHaplotypePair(Vector_i, Vector_i , Matrix_d &);
   int GetNumberOfLoci();
   int GetNumberOfStates();
   int GetSize();

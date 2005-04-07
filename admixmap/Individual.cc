@@ -37,6 +37,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
         }
     }
 
+    // checks of input data files should be in class InputData
     if (options->IsPedFile() == 1) {
         if (data.size() != 2*TotalLoci + 1 + options->genotypesSexColumn()) {
             cout << "Error in formatting of line" << endl;
@@ -590,6 +591,7 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
 			   vector< unsigned int > SumN, vector< unsigned int > SumN_X){
   // Samples sum of intensities parameter as conjugate gamma with Poisson likelihood
   // SumN is the number of arrivals between each pair of adjacent loci
+  int numtries;
   if(XOnly ){
     do{
       _rho[0] = gengam( rhobeta + L_X, rhoalpha + (double)SumN_X[0] );
@@ -597,9 +599,14 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
   }
   else if(RandomMatingModel ){
     for( unsigned int g = 0; g < 2; g++ ){
-      do{
+      numtries = 0;
+      do {
 	_rho[g] = gengam( rhobeta + L, rhoalpha + (double)SumN[g] );
-      }while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
+	numtries++;
+	if(numtries > 10) {
+	  cout << "after >10 tries to sample, rho is " << _rho[g] << "\n";
+	}
+      } while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
     }
     if(X_data  ){
       for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
@@ -931,7 +938,7 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
   }
       
   for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-    A->UpdateAlleleCounts(j,getGenotype(j),getPossibleHaplotypes(j), ancestry );
+    A->UpdateAlleleCounts(j, getPossibleHaplotypes(j), ancestry );
   }
 }
 
