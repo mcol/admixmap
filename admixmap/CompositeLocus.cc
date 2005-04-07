@@ -233,11 +233,14 @@ string CompositeLocus::GetLabel(int index)
  * returns:
  * two-element vector containing the haplotype pair
  */
-Vector_i CompositeLocus::SampleHaplotypePair(const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry , 
-					 Matrix_d &AlleleFreqs)
+
+//Vector_i CompositeLocus::SampleHaplotypePair(const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry , 
+//					 Matrix_d &AlleleFreqs)
+
+Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ancestry, Matrix_d &AlleleFreqs)
 {
    Vector_i hap(2);
-   if( NumberOfLoci > 1 ){
+   //   if( NumberOfLoci > 1 ){
       int i;
       Vector_d Probs;
       //no = GetHaplotypes( genotype );
@@ -257,20 +260,20 @@ Vector_i CompositeLocus::SampleHaplotypePair(const vector<unsigned int>& genotyp
          hap(1) = (DipLoop.GetCountParent( 0 )*pmult).Sum();
          hap(0) = (DipLoop.GetCountParent( 1 )*pmult).Sum();
       }
-   }
-   else{
-      int temp;
-      double q1, q2;
-      q1 = GetAlleleProbs( genotype[0], ancestry(0), AlleleFreqs ) * GetAlleleProbs( genotype[1], ancestry(1), AlleleFreqs );
-      q2 = GetAlleleProbs( genotype[1], ancestry(0), AlleleFreqs ) * GetAlleleProbs( genotype[1], ancestry(0) , AlleleFreqs);
-      hap(0) = genotype[0];
-      hap(1) = genotype[1];
-      if( myrand() > q1 / ( q1 + q2 ) ){
-         temp = hap(0);
-         hap(0) = hap(1);
-         hap(1) = temp;
-      }
-   }
+      //   }
+//   else{
+//      int temp;
+//      double q1, q2;
+//      q1 = GetAlleleProbs( genotype[0], ancestry(0), AlleleFreqs ) * GetAlleleProbs( genotype[1], ancestry(1), AlleleFreqs );
+//      q2 = GetAlleleProbs( genotype[1], ancestry(0), AlleleFreqs ) * GetAlleleProbs( genotype[1], ancestry(0) , AlleleFreqs);
+//      hap(0) = genotype[0];
+//      hap(1) = genotype[1];
+//      if( myrand() > q1 / ( q1 + q2 ) ){
+//         temp = hap(0);
+//         hap(0) = hap(1);
+//         hap(1) = temp;
+//      }
+//   }
    return( hap );
 }
 

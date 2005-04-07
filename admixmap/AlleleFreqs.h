@@ -18,8 +18,10 @@ public:
   void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels, double rho);
   void load_f(double rho,Chromosome **chrm);
   void Update(int iteration,int);
-  void InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log);
+  void InitializeOutputFile(AdmixOptions *options, std::string *PopulationLabels);
+
   //outputs SumEta  to ErgodicAverageFile
+  void InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log);
   void OutputErgodicAvg( int iteration,AdmixOptions *options, std::ofstream *avgstream);
   //outputs eta to dispparamfile
   void OutputEta(int iteration, AdmixOptions *options, std::ofstream *LogFileStreamPtr);
@@ -49,11 +51,11 @@ public:
   Matrix_i &GetAlleleCounts(int locus);
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);
   int GetNumberOfStates(int locus);
-  void UpdateAlleleCounts(int locus, const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry );
+  void UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry );
   void UpdateAlleleCounts_HaploidData(int locus, const vector<unsigned int>& genotype, int ancestry );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
-  Matrix_d GetLocusProbs(int locus, const vector<unsigned int>& x, bool fixed);
+  //  Matrix_d GetLocusProbs(int locus, const vector<unsigned int>& x, bool fixed);
   Matrix_d GetLikelihood( int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed);
   Vector_d *geteta();
   Vector_d *getSumEta();

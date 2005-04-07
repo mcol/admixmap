@@ -33,13 +33,6 @@ AlleleFreqs::AlleleFreqs(){
   RandomAlleleFreqs = 0;
   IsHistoricAlleleFreq = false;
 
-//   Freqs = null_MatrixArray_d;
-//   AlleleFreqsMAP = null_MatrixArray_d;
-//   HistoricalAlleleFreqs = null_MatrixArray_d;
-//   AlleleCounts = null_MatrixArray_i;
-//   HistoricLikelihoodAlleleFreqs = null_MatrixArray_d;
-//   PriorAlleleFreqs = null_MatrixArray_d;
-//   SumAlleleFreqs = null_MatrixArray_d;
    Fst = null_Matrix_d;
    SumFst = null_Matrix_d;  
 }
@@ -113,15 +106,6 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
       tau.SetElements( 0.005 );
     }
     for( int k = 0; k < Populations; k++ ){
-      
-//       // old method; sets eta to the sum of priorallelefreqs
-//       for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
-//        	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
-//        	if( maxeta(k) > eta(k) ){
-//        	  eta(k) = maxeta(k);
-//        	}
-//       }
-      
       //Initialise eta at its prior expectation
       eta(k) = psi(k)/tau(k);
       //Rescale priorallelefreqs so the columns sum to eta 
@@ -440,62 +424,18 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 }
 
 /**
- * Given the unordered genotype, possible haplotypes compatible with the genotype, and the ordered ancestry states at a
- * locus, this method randomly draws the phase of the genotype, then
- * updates the counts of alleles observed in each state of ancestry.
- * (MORE DETAILS PLEASE)
+ * method samples haplotype pair, then updates counts of each haplotype 
+ * ( or each allele if only one simple locus)
+ * hap pairs should be sampled by individual, then stored for use by this method and by score tests, 
  */
-
-void AlleleFreqs::UpdateAlleleCounts(int locus, const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry )
+void AlleleFreqs::UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry )
 {
    Vector_i h(2);
-   Matrix_d ProbsM;
-
-   if( Loci(locus)->GetNumberOfLoci() == 1 ){
-       if( genotype[0] ){ // no missing alleles
-         ProbsM = GetLocusProbs(locus, genotype,false);
-         if( myrand() < ProbsM( ancestry(0), ancestry(1) ) / (ProbsM( ancestry(0), ancestry(1) ) + ProbsM( ancestry(1), ancestry(0) ) ) ){
-	   AlleleCounts(locus)( genotype[0] - 1, ancestry(0) )++;
-	   AlleleCounts(locus)( genotype[1] - 1, ancestry(1) )++;
-         }
-         else{
-	   AlleleCounts(locus)( genotype[0] - 1, ancestry(1) )++;
-	   AlleleCounts(locus)( genotype[1] - 1, ancestry(0) )++;
-         }
-       }
-     }
-     
-     else{
-       h = Loci(locus)->SampleHaplotypePair( genotype, Haplotypes, ancestry , Freqs(locus));
+       h = Loci(locus)->SampleHaplotypePair(Haplotypes, ancestry , Freqs(locus));
        AlleleCounts(locus)( h(0), ancestry(1) )++;
        AlleleCounts(locus)( h(1), ancestry(0) )++;
-     }
- 
 }
 
-/**
- * N.B. This only works with a simple locus.
- * Given an unordered genotype, returns a matrix representing the
- * probability of locus ancestry.
- */
-Matrix_d AlleleFreqs::GetLocusProbs(int locus, const vector<unsigned int>& x, bool fixed)
-{
-   MatrixArray_d Prob( 2, Populations, 1 );
-   
-   for( int pop = 0; pop < Populations; pop++ )
-   {
-      for( int i = 0; i < 2; i++ )
-      {
-         if(fixed && RandomAlleleFreqs == 1 )
-	   Prob(i)( pop, 0 ) = GetAlleleProbsMAP( x[i]-1, pop , locus);
-         else
-	   Prob(i)( pop, 0 ) = GetAlleleProbs( x[i]-1, pop, locus );
-      }
-   }
-
-   return Prob(0) * Prob(1).Transpose();
-
-}
 double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
 {
    double P;
@@ -528,20 +468,7 @@ Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genot
 {
   Matrix_d Prob;
   if( diploid ){
-    // if compound locus contains only one simple locus
-    //    if( Loci(locus)->GetNumberOfLoci() == 1 ){
-    //      Prob = GetLocusProbs(locus, genotype, fixed);
-//      // if heterozygous genotype, add elements that differ only in phase of genotype
-//      if( genotype[0] != genotype[1] )
-//	for( int k = 0; k < Populations; k++ ){
-//	  for( int kk = k; kk < Populations; kk++ ){
-//	    Prob(k,kk) = Prob(k,kk) + Prob(kk,k);
-//	    Prob(kk,k) = Prob(k,kk);
-//	  }
-//	}
-//    } else {
       Prob = Loci(locus)->GetGenotypeProbs(Haplotypes, fixed, RandomAlleleFreqs);
-//    }
   }
   else{
     // lines below should be replaced by a call to GetGenotypeProbs, which should be extended to 
