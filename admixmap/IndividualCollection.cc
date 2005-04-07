@@ -131,18 +131,18 @@ IndividualCollection::getIndividual(int num)
 }
 
 void
-IndividualCollection::setAncestry(Matrix_d ancestry)
+IndividualCollection::setAdmixtureProps(Matrix_d a)
 {
   for(unsigned int i=0; i<_child.size(); i++){
-    _child[i]->setAncestry(ancestry);
+    _child[i]->setAdmixtureProps(a);
   }
 }
 
 void
-IndividualCollection::setAncestryX(Matrix_d ancestry)
+IndividualCollection::setAdmixturePropsX(Matrix_d a)
 {
   for(unsigned int i=0; i<_child.size(); i++){
-    _child[i]->setAncestryX(ancestry);
+    _child[i]->setAdmixturePropsX(a);
   }
 }
 
@@ -151,7 +151,7 @@ IndividualCollection::getAncestries()
 {
   MatrixArray_d ancestries(_child.size());
   for(unsigned int i=0; i<_child.size(); i++){
-    ancestries(i) = _child[i]->getAncestry();
+    ancestries(i) = _child[i]->getAdmixtureProps();
   }
   return ancestries;
 }
@@ -193,8 +193,8 @@ void IndividualCollection::calculateExpectedY( int k)
 }
 
 void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta, Genome *Loci, std::string *PopulationLabels, 
-				      double rhoalpha, double rhobeta, LogWriter *Log){
-  
+				      double rhoalpha, double rhobeta, LogWriter *Log, const Matrix_d &MLEMatrix){
+  //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
     Log->logmsg(true,"Writing individual-level parameters to ");
     Log->logmsg(true,options->getIndAdmixtureFilename());
@@ -204,15 +204,17 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
   else {
     Log->logmsg(true,"No indadmixturefile given\n");
   }
+  //Set locusfortest if specified
  if( options->getLocusForTestIndicator() )
      _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
 
-  Matrix_d ancestry_null;
+ //Initialise Admixture Proportions
+  Matrix_d admix_null;
    if( options->getModelIndicator() )
-    ancestry_null.SetNumberOfElements(options->getPopulations(),2);
+    admix_null.SetNumberOfElements(options->getPopulations(),2);
   else
-    ancestry_null.SetNumberOfElements(options->getPopulations(),1);
-  ancestry_null.SetElements( (double)1.0 / options->getPopulations() );
+    admix_null.SetNumberOfElements(options->getPopulations(),1);
+  admix_null.SetElements( (double)1.0 / options->getPopulations() );
   Vector_d alphatemp;
 
   if( options->sizeInitAlpha() == 0 ){
@@ -226,20 +228,19 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
     alphatemp = options->getInitAlpha(0);
  
     for( int k = 0; k < options->getPopulations(); k++ ){
-       if( alphatemp(k) == 0 ) ancestry_null(k,0) = 0.0;
+       if( alphatemp(k) == 0 ) admix_null(k,0) = 0.0;
      }
      
      alphatemp = options->getInitAlpha(1);
   
      for( int k = 0; k < options->getPopulations(); k++ ){
-       if( alphatemp(k) == 0 ) ancestry_null(k,1) = 0.0;
+       if( alphatemp(k) == 0 ) admix_null(k,1) = 0.0;
      }
   }
-  setAncestry(ancestry_null);
-  if( Loci->isX_data() ){
-    setAncestryX(ancestry_null);
-  }
+  setAdmixtureProps(admix_null);
+  if( Loci->isX_data() )setAdmixturePropsX(admix_null);
 
+  //Regression stuff
   if(options->getAnalysisTypeIndicator() >=2){
     ExpectedY.SetNumberOfElementsWithDimensions( getTargetSize(), getSize(), 1 );
     Covariates.SetNumberOfElements(1);
@@ -266,12 +267,40 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
 
     for( int k = 0; k < getTargetSize(); k++ ){
       SetExpectedY(k,(*beta)(k));
-      if( getOutcomeType(k) )
-	calculateExpectedY(k);
+      if( getOutcomeType(k) )calculateExpectedY(k);
     }
   }
+  //Misc.
   SumLogTheta.SetNumberOfElements( options->getPopulations());
-  PreUpdate(rhoalpha,rhobeta,options);
+  InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
+  //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
+  MaxLogLikelihood.assign(getSize(), -9999999 );
+}
+
+void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, AdmixOptions * options, const Matrix_d &MLEMatrix){
+  //set thetahat and rhohat, estimates of individual admixture and sumintensities
+   thetahat.SetNumberOfElementsWithDimensions( getSize(), 1, 1 );
+   thetahatX.SetNumberOfElementsWithDimensions( getSize(), 1, 1 );
+
+   vector<double> r(2, rhoalpha/rhobeta );
+   rhohat.resize( getSize(), r );
+   rhohatX.resize( getSize(), r );
+
+   //use previously read values from file, if available
+   if( options->getAnalysisTypeIndicator() == -2 ){
+      rhohat[0][0] = MLEMatrix( options->getPopulations(), 0 );
+      if( options->getXOnlyAnalysis() )
+	thetahat(0) = MLEMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 0 );
+      else{
+	thetahat(0) = MLEMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 1 );
+	rhohat[0][1] = MLEMatrix(options->getPopulations(), 1 );
+      }
+      setAdmixtureProps(thetahat(0));
+   }
+   else if( options->getAnalysisTypeIndicator() == -1 ){
+      thetahat = getAncestries();
+   }
+ 
 }
 
 void IndividualCollection::LoadGenotypes(AdmixOptions *options, InputData *data_, LogWriter *Log, Genome *Loci){
@@ -521,32 +550,6 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Vector_d *lambd
 				options, chrm, alpha,_admixed, rhoalpha, rhobeta,
 				thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood, A);
   }
-}
-
-void IndividualCollection::PreUpdate(double rhoalpha, double rhobeta, AdmixOptions * options){
-   Matrix_d temp;
-   thetahat.SetNumberOfElementsWithDimensions( getSize(), 1, 1 );
-   thetahatX.SetNumberOfElementsWithDimensions( getSize(), 1, 1 );
-
-   vector<double> r(2, rhoalpha/rhobeta );
-   rhohat.resize( getSize(), r );
-   rhohatX.resize( getSize(), r );
-
-   if( options->getAnalysisTypeIndicator() == -2 ){
-      temp.Load( options->getMLEFilename() );
-      rhohat[0][0] = temp( options->getPopulations(), 0 );
-      if( options->getXOnlyAnalysis() )
-	thetahat(0) = temp.SubMatrix( 0, options->getPopulations() - 1, 0, 0 );
-      else{
-	thetahat(0) = temp.SubMatrix( 0, options->getPopulations() - 1, 0, 1 );
-	rhohat[0][1] = temp(options->getPopulations(), 1 );
-      }
-      setAncestry(thetahat(0));
-   }
-   else if( options->getAnalysisTypeIndicator() == -1 ){
-      thetahat = getAncestries();
-   }
- MaxLogLikelihood.assign(getSize(), -9999999 );
 }
 
 void IndividualCollection::Output(std::ofstream *LogFileStreamPtr){
