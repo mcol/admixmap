@@ -186,11 +186,12 @@ void CompositeLocus::InitialiseScoreTest(int Populations )
 }
 
 void CompositeLocus::InitialiseHaplotypes(Matrix_d &Freqs){
-  if( NumberOfLoci > 1 ){
+  // haplotype probs should be set even if composite locus contains only one simple locus 
+  //  if( NumberOfLoci > 1 ){
     ConstructHaplotypeProbs(Freqs);
     HaplotypeProbsMAP = HaplotypeProbs;
     SetNoMergeHaplotypes();
-  }
+    // }
 }
 
 /**
@@ -338,16 +339,16 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
 }
 
 /**
- * Given a list of possible haplotypes, returns the probabilities of the genotype having
- * an ancestry from a population.
+ * Given a list of possible haplotypes, returns sums of probabilities of these haplotypes
+ * given each possible ordered pair of locus ancestry states 
  * 
  * Haplotypes - a list of possible haplotypes compatible with the observed genotypes
  *
  * fixed - indicates whether the allelefrequencies are fixed
- * RandomAlleleFreqs - indicates whether the allelefrequencies are random
+ * RandomAlleleFreqs - indicates whether the allele frequencies are random
  *
  * returns:
- * a two-dimensional matrix of paternal vs. maternal ancestry. For 
+ * a matrix with rows and cols indexing paternal and maternal ancestry. For 
  *   example, for African and European populations:
  *
  *       | AFR | EUR |
