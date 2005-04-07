@@ -51,11 +51,6 @@ int VectorLoop::get_mult(int x) const
   return mult;
 }
 
-// private const helper method
-bool VectorLoop::inc_conditional(int x) const
-{
-  return (x>=0 && (_Count(x) == _Base(x)-1));
-}
 
 const Vector_i& VectorLoop::GetCount() const
 {

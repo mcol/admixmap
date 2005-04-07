@@ -23,9 +23,15 @@ private:
     Vector_i _Base;
     Vector_i _Count;
     int _DecimalCount;
-    bool inc_conditional(int) const;
 
-    int get_mult(int) const;
+  // private const helper method
+  bool inc_conditional(int x) const
+  {
+    return (x>=0 && (_Count(x) == _Base(x)-1));
+  };
+  
+  
+  int get_mult(int) const;
 };
 
 #endif /* ! VECTORLOOP_H */
