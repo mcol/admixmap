@@ -93,7 +93,7 @@ void submain(AdmixOptions* options){
   L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&poptheta, PopulationLabels);
   R.Initialise(IC, options, PopulationLabels, &Log);
   A.Initialise(options,data.getEtaPriorMatrix(),&Log,PopulationLabels, L.getrho());
-  IC->Initialise(options,R.getbeta(),A.getLoci(),PopulationLabels, L.getrhoalpha(),L.getrhobeta(),&Log);
+  IC->Initialise(options,R.getbeta(),A.getLoci(),PopulationLabels, L.getrhoalpha(),L.getrhobeta(),&Log, data.getMLEMatrix());
 
   options->PrintOptions();//NB: call after all options are set
                           //Currently all except Populations are set in AdmixOptions		
