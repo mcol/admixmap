@@ -237,7 +237,7 @@ string CompositeLocus::GetLabel(int index)
 //Vector_i CompositeLocus::SampleHaplotypePair(const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry , 
 //					 Matrix_d &AlleleFreqs)
 
-Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ancestry, Matrix_d &AlleleFreqs)
+Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ancestry)
 {
    Vector_i hap(2);
    //   if( NumberOfLoci > 1 ){
@@ -260,36 +260,22 @@ Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ances
          hap(1) = (DipLoop.GetCountParent( 0 )*pmult).Sum();
          hap(0) = (DipLoop.GetCountParent( 1 )*pmult).Sum();
       }
-      //   }
-//   else{
-//      int temp;
-//      double q1, q2;
-//      q1 = GetAlleleProbs( genotype[0], ancestry(0), AlleleFreqs ) * GetAlleleProbs( genotype[1], ancestry(1), AlleleFreqs );
-//      q2 = GetAlleleProbs( genotype[1], ancestry(0), AlleleFreqs ) * GetAlleleProbs( genotype[1], ancestry(0) , AlleleFreqs);
-//      hap(0) = genotype[0];
-//      hap(1) = genotype[1];
-//      if( myrand() > q1 / ( q1 + q2 ) ){
-//         temp = hap(0);
-//         hap(0) = hap(1);
-//         hap(1) = temp;
-//      }
-//   }
    return( hap );
 }
 
-double CompositeLocus::GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs)
-{
-   double P;
-   if( x < NumberOfAlleles(0) - 1 )
-     P = Freqs( x, ancestry );
-   else
-   {
-      P = 1;
-      for( int j = 0; j < NumberOfAlleles(0) - 1; j++ )
-	P -= Freqs( j, ancestry );
-   }
-   return P;
-}
+//double CompositeLocus::GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs)
+//{
+//   double P;
+ //  if( x < NumberOfAlleles(0) - 1 )
+//     P = Freqs( x, ancestry );
+//   else
+//   {
+//      P = 1;
+//      for( int j = 0; j < NumberOfAlleles(0) - 1; j++ )
+//	P -= Freqs( j, ancestry );
+//   }
+//   return P;
+//}
 
 /**
  * Called every time the haplotype frequencies change. Constructs a 

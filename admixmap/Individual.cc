@@ -938,7 +938,7 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
   }
       
   for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-    A->UpdateAlleleCounts(j,getGenotype(j),getPossibleHaplotypes(j), ancestry );
+    A->UpdateAlleleCounts(j, getPossibleHaplotypes(j), ancestry );
   }
 }
 

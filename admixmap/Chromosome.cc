@@ -230,9 +230,7 @@ Chromosome::SampleForLocusAncestry(Individual* ind, AlleleFreqs *A)
     int locus = GetLocus( j );
     if( ind->IsMissing(locus)[0] != 0 ){
       //(*this)(j)->UpdateAlleleCounts( genotype, OrderedStates.GetColumn(j) );
-      // why should function UpdateAlleleCounts need to get genotypes if it already has the possible haplotypes 
-      // compatible with the genotype? 
-      A->UpdateAlleleCounts( locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), OrderedStates.GetColumn(j) );
+      A->UpdateAlleleCounts( locus, ind->getPossibleHaplotypes(locus), OrderedStates.GetColumn(j) );
     }
   }
   

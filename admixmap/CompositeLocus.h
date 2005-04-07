@@ -61,7 +61,7 @@ private: // members
   Vector_i Haplotype( Vector_i, int );
   void SetNoMergeHaplotypes();
   void setHaplotypeProbsMAP(Matrix_d);
-  double GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs);
+  //  double GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs);
 
   // UNIMPLEMENTED
   // to avoid use
@@ -85,7 +85,8 @@ public:
   void InitialiseMuProposal(int);
   Vector_i SetPossibleHaplotypes(const std::vector<unsigned int>&);
   //  Vector_i SampleHaplotypePair(const std::vector<unsigned int>& genotype, Vector_i, Vector_i , Matrix_d &);
-  Vector_i SampleHaplotypePair(Vector_i, Vector_i , Matrix_d &);
+  //  Vector_i SampleHaplotypePair(Vector_i, Vector_i , Matrix_d &);
+  Vector_i SampleHaplotypePair(Vector_i, Vector_i);
   int GetNumberOfLoci();
   int GetNumberOfStates();
   int GetSize();
