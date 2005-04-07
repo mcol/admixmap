@@ -49,8 +49,8 @@ AlleleFreqs::~AlleleFreqs(){
   for(int i=0; i<Loci.GetNumberOfCompositeLoci(); i++){
     delete Loci(i);
   }
-  if(IsRandom())
-    delete allelefreqoutput;
+
+  delete allelefreqoutput;
 
   if( isHistoricAlleleFreq ){
     delete [] TuneEtaSampler;
@@ -64,7 +64,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ) isHistoricAlleleFreq = true;
   else isHistoricAlleleFreq = false;
 
-  if(IsRandom() &&  options->getOutputAlleleFreq() ){
+  if( options->getOutputAlleleFreq() ){
     allelefreqoutput = new AlleleFreqOutputter(options,PopulationLabels);
   }
 
@@ -130,8 +130,18 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
      }
   
     //Open output file for eta
-    if ( options->getIndAdmixHierIndicator() && strlen( options->getEtaOutputFilename() ) ){
-      InitializeEtaOutputFile(options, PopulationLabels, Log); 
+    if ( strlen( options->getEtaOutputFilename() ) ){
+      outputstream.open( options->getEtaOutputFilename(), ios::out );
+      if( !outputstream )
+	{
+	  Log->logmsg(true,"ERROR: Couldn't open dispparamfile\n");
+	  //exit( 1 );
+	}
+      else{
+	Log->logmsg(true,"Writing dispersion parameter to ");
+	Log->logmsg(true,options->getEtaOutputFilename());
+	Log->logmsg(true,"\n");
+      }
     }
     else{
       Log->logmsg(true,"No dispparamfile given\n");
@@ -518,34 +528,37 @@ Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genot
 {
   Matrix_d Prob;
   if( diploid ){
-    if( Loci(locus)->GetNumberOfLoci() == 1 ){
-      Prob = GetLocusProbs(locus, genotype, fixed);
-        if( genotype[0] != genotype[1] )
-           for( int k = 0; k < Populations; k++ ){
-              for( int kk = k; kk < Populations; kk++ ){
-                 Prob(k,kk) = Prob(k,kk) + Prob(kk,k);
-                 Prob(kk,k) = Prob(k,kk);
-              }
-           }
-        
-     } else {
+    // if compound locus contains only one simple locus
+    //    if( Loci(locus)->GetNumberOfLoci() == 1 ){
+    //      Prob = GetLocusProbs(locus, genotype, fixed);
+//      // if heterozygous genotype, add elements that differ only in phase of genotype
+//      if( genotype[0] != genotype[1] )
+//	for( int k = 0; k < Populations; k++ ){
+//	  for( int kk = k; kk < Populations; kk++ ){
+//	    Prob(k,kk) = Prob(k,kk) + Prob(kk,k);
+//	    Prob(kk,k) = Prob(k,kk);
+//	  }
+//	}
+//    } else {
       Prob = Loci(locus)->GetGenotypeProbs(Haplotypes, fixed, RandomAlleleFreqs);
-     }
+//    }
   }
   else{
-     Prob.SetNumberOfElements( Populations, 1 );
-     if( Loci(locus)->GetNumberOfLoci() == 1 ){
-        for( int pop = 0; pop < Populations; pop++ ){
-	  Prob( pop, 0 ) = GetAlleleProbs( genotype[0] - 1, pop , locus);
-        }
-     }
-     else{
-       Vector_i x = Loci(locus)->decodeGenotype(genotype);
-       int xx = Loci(locus)->HapLoopGetDecimal( x );
-        for( int pop = 0; pop < Populations; pop++ ){
-	  Prob( pop, 0 ) = GetAlleleProbs( xx - 1, pop , locus);
-        }
-     }
+    // lines below should be replaced by a call to GetGenotypeProbs, which should be extended to 
+    // work with a haploid locus 
+    Prob.SetNumberOfElements( Populations, 1 );
+    if( Loci(locus)->GetNumberOfLoci() == 1 ){
+      for( int pop = 0; pop < Populations; pop++ ){
+	Prob( pop, 0 ) = GetAlleleProbs( genotype[0] - 1, pop , locus);
+      }
+    }
+    else{
+      Vector_i x = Loci(locus)->decodeGenotype(genotype);
+      int xx = Loci(locus)->HapLoopGetDecimal( x );
+      for( int pop = 0; pop < Populations; pop++ ){
+	Prob( pop, 0 ) = GetAlleleProbs( xx - 1, pop , locus);
+      }
+    }
   }
   return( Prob );
 }
@@ -731,28 +744,18 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( Vector_d eta , int locus)
 }
 
 
-void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log)
+void AlleleFreqs::InitializeOutputFile(AdmixOptions *options, std::string *PopulationLabels)
 {
-  outputstream.open( options->getEtaOutputFilename(), ios::out );
-  if( !outputstream )
-    {
-      Log->logmsg(true,"ERROR: Couldn't open dispparamfile\n");
-      //exit( 1 );
-    }
-  else{
-    Log->logmsg(true,"Writing dispersion parameter to ");
-    Log->logmsg(true,options->getEtaOutputFilename());
-    Log->logmsg(true,"\n");
-    if( options->getTextIndicator()  && options->getAnalysisTypeIndicator() >= 0)
-      {
-	//Dispersion parameters (eta)
-	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-	  for( int k = 0; k < Populations; k++ ){
-	    outputstream << "\"eta." << PopulationLabels[k].substr(1);
-	  }
-	}
-	outputstream << endl;
+  // Header line of paramfile
+  if( options->getAnalysisTypeIndicator() >= 0 ){
+
+    //Dispersion parameters (eta)
+    if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+      for( int k = 0; k < Populations; k++ ){
+	outputstream << "\"eta." << PopulationLabels[k].substr(1);
       }
+    }
+    outputstream << endl;
   }
 }
 
@@ -811,9 +814,8 @@ int AlleleFreqs::GetNumberOfCompositeLoci(){
   return Loci.GetNumberOfCompositeLoci();
 }
 void AlleleFreqs::OutputAlleleFreqs(){
+  allelefreqoutput->visitGenome(Loci);
   if( IsRandom() ){
-    allelefreqoutput->visitGenome(Loci);
-    
     //Loci.accept(*allelefreqoutput);
     allelefreqoutput->OutputAlleleFreqs(this);
   }
