@@ -130,25 +130,29 @@ int SampleFromDiscrete2( Vector_d *probs )
 
 Vector_d gendirichlet( Vector_d alpha )
 {
-   int d = alpha.GetNumberOfElements();
-   double sum = 0;
-   Vector_d theta( d );
-
-   for( int i = 0; i < d; i++ )
-     {
-       //      assert( (double)alpha(i) > 0 );
-       if( alpha(i) > 0 )
-	 theta(i) = gengam( 1.0, (double)alpha(i) );
-	 
-       else
-         theta(i) = 0.0;
-       sum += theta(i); 
-     }
-   
-   assert( sum > 0.0 );
-   theta /= sum;
-   
-   return( theta );
+  int d = alpha.GetNumberOfElements();
+  double sum = 0;
+  Vector_d theta( d ); /* vector of proportions */
+  
+  // d independent draws from gamma(1, alpha_i) 
+  // then divides by their sum to obtain proportions theta  
+  for( int i = 0; i < d; i++ )
+    {
+      //  assert( (double)alpha(i) > 0 );
+      if( alpha(i) > 0 )
+	do{
+	  //	  theta(i) = gengam( 1.0, (double)alpha(i) );
+	  theta(i) = alpha(i) * gsl_ran_gamma_int( RandomNumberGenerator, 1);
+	} while( theta(i) == 0 );
+      else
+	theta(i) = 0.0;
+      sum += theta(i); 
+    }
+  // 
+  assert( sum > 0.0 );
+  theta /= sum;
+  
+  return( theta );
 }
 
 void ddigam(  double *X, double *ddgam  )
