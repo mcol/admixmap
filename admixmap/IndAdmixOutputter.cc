@@ -103,9 +103,9 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
 {
   for( int k = 0; k < _options->getPopulations(); k++ ){
      if(_options->getModelIndicator()){
-        _out << ind.getAncestry()( k, 0 ) << "," << ind.getAncestry()( k, 1 ) << ",";
+        _out << ind.getAdmixtureProps()( k, 0 ) << "," << ind.getAdmixtureProps()( k, 1 ) << ",";
     } else {
-        _out << ind.getAncestry()( k, 0 ) << ",";
+        _out << ind.getAdmixtureProps()( k, 0 ) << ",";
      }
   }
   if( _options->getRhoIndicator() ){
@@ -133,7 +133,7 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
      }
      if((*_Loci)(_options->getLocusForTest() )->GetNumberOfLoci() > 1 ){
        Vector_i hap = (*_Loci)(_options->getLocusForTest())->
-	 SampleHaplotypePair(ind.getPossibleHaplotypes(_options->getLocusForTest()), ancestry, Freqs);
+	 SampleHaplotypePair(genotype,ind.getPossibleHaplotypes(_options->getLocusForTest()),ancestry,Freqs);
         if(_options->getPopulations() > 1 ){
            genotype = ind.getGenotype(_options->getLocusForTest() );
         }

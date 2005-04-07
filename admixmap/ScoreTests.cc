@@ -362,7 +362,7 @@ void ScoreTests::Update(double lambda, AlleleFreqs *A)
 	}
       }
       else
-	UpdateScoreForAssociation(ind->getAncestry(), YMinusEY,dispersion, DInvLink);
+	UpdateScoreForAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
     }
     //
     //Logistic Regression
@@ -379,7 +379,7 @@ void ScoreTests::Update(double lambda, AlleleFreqs *A)
 	}
       }
       else{
-	UpdateScoreForAssociation(ind->getAncestry(), YMinusEY,dispersion, DInvLink);
+	UpdateScoreForAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
       }
       if( options->getTestForAffectedsOnly() && (individuals->getOutcome(0))(i,0) == 1 ){
 	UpdateScoreForLinkageAffectedsOnly( ind);
@@ -565,17 +565,17 @@ ScoreTests::UpdateScoreForLinkageAffectedsOnly( Individual* ind)
   Matrix_d AncestryProbs;//conditional locus ancestry probs
 
   for( int k = 0; k < options->getPopulations(); k++ ){
-    theta(0) = ind->getAncestry()( k, 0 );
+    theta(0) = ind->getAdmixtureProps()( k, 0 );
     if( options->getModelIndicator() )
-      theta(1) = ind->getAncestry()( k, 1 );
+      theta(1) = ind->getAdmixtureProps()( k, 1 );
     else
-      theta(1) = ind->getAncestry()( k, 0 );
+      theta(1) = ind->getAdmixtureProps()( k, 0 );
 
     locus = 0;      
     for( int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
       for( int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-	AncestryProbs = ind->getExpectedAncestry(locus);
-	//AncestryProbs =chrm[j]->getExpectedAncestry(jj);
+	AncestryProbs = ind->getAncestryProbs(locus);
+	//AncestryProbs =chrm[j]->getAncestryProbs(jj);
 	AffectedsScore(locus,k)+= 0.5*( AncestryProbs(k,1) + 2.0*AncestryProbs(k,2) - theta(0) - theta(1) );
 	AffectedsVarScore(locus, k)+= 0.25 *( AncestryProbs(k,1)*(1.0 - AncestryProbs(k,1)) + 4.0*AncestryProbs(k,2)*AncestryProbs(k,0)); 
 	AffectedsInfo(locus, k)+= 0.25* ( theta(0)*( 1.0 - theta(0) ) + theta(1)*( 1.0 - theta(1) ) );
@@ -612,7 +612,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, AlleleFreqs 
       Matrix_d cov_x_coord(dim,1);
       cov_x_coord( dim - 1, 0 ) = 1;
       for( int k = 0; k < options->getPopulations() - 1; k++ ){
-	cov_x_coord( k + dim - options->getPopulations(), 0 ) = ind->getAncestry()( k, 0 );
+	cov_x_coord( k + dim - options->getPopulations(), 0 ) = ind->getAdmixtureProps()( k, 0 );
       }
      
       // Set x co-ordinate for regression parameter under test
@@ -679,8 +679,8 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, AlleleFreqs 
 //       // Set x-co-ordinates of covariates in model
 //       X( dim - 1, 0 ) = 1;
 //       for( int k = 0; k < options->getPopulations() - 1; k++ ){
-// 	X( k + options->getPopulations(), 0 ) = ind->getAncestry()( k, 0 );
-// //NB getAncestry returns admixture proportions - needs renaming
+// 	X( k + options->getPopulations(), 0 ) = ind->getAdmixtureprops()( k, 0 );
+// 
 //       }
      
 //       // Set x co-ordinate for regression parameter under test
@@ -738,8 +738,7 @@ void ScoreTests::UpdateScoreForAncestry( double phi)
     //set covariates
     Xcov(options->getPopulations()-1, 0) = 1;
     for( int k = 0; k < options->getPopulations() - 1; k++ ){
-      Xcov(k,0) = ind->getAncestry()( k, 0 ); 
-      //NB getAncestry returns admixture proportions - needs renaming
+      Xcov(k,0) = ind->getAdmixtureProps()( k, 0 ); 
     }
     DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i);
     B += Xcov * Xcov.Transpose() * DInvLink;
@@ -755,8 +754,8 @@ void ScoreTests::UpdateScoreForAncestry( double phi)
 
       for(int i = 0; i< individuals->getSize(); i++){
 	ind = individuals->getIndividual(i);
-	Aprobs = ind->getExpectedAncestry(locus);//conditional locus ancestry probs      
-	//Aprobs =chrm[j]->getExpectedAncestry(jj);
+	Aprobs = ind->getAncestryProbs(locus);//conditional locus ancestry probs      
+	//Aprobs =chrm[j]->getAncestryProbs(jj);
 	YMinusEY = individuals->getOutcome(0)( i, 0 ) - individuals->getExpectedY(i);
 	DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i);
 	
@@ -764,9 +763,8 @@ void ScoreTests::UpdateScoreForAncestry( double phi)
 	Xcov(options->getPopulations()-1, 0) = 1;
 	//set covariates 
 	for( int k = 0; k < options->getPopulations() - 1; k++ ){
-	  X( k + options->getPopulations(), 0 ) = ind->getAncestry()( k, 0 );
-	  Xcov(k,0) = ind->getAncestry()( k, 0 ); 
-	  //NB getAncestry returns admixture proportions - needs renaming
+	  X( k + options->getPopulations(), 0 ) = ind->getAdmixtureProps()( k, 0 );
+	  Xcov(k,0) = ind->getAdmixtureProps()( k, 0 ); 
 	}
 	
 	for( int k = 0; k < options->getPopulations() ; k++ ){
@@ -825,7 +823,7 @@ void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs( int i,AlleleFreqs *A )
 
   for( int k = 0; k < options->getPopulations(); k++ )
     for( int kk = 0; kk < options->getPopulations(); kk++ )
-      phi( k, kk ) = ind->getAncestry()( k, 0 ) * ind->getAncestry()( kk, 0 );
+      phi( k, kk ) = ind->getAdmixtureProps()( k, 0 ) * ind->getAdmixtureProps()( kk, 0 );
    
   for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
     //? relies on 'missing' being encoded as zero
@@ -844,7 +842,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int 
 
   x( options->getPopulations() ) = 1;
   for( int k = 0; k < options->getPopulations() - 1; k++ )
-    x( k + 1 ) = ind->getAncestry()( k, 0 );
+    x( k + 1 ) = ind->getAdmixtureProps()( k, 0 );
 
   for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
     x(0) = AlleleCounts( l );

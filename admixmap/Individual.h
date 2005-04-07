@@ -23,13 +23,13 @@ public:
 
   int getSex();
 
-  Matrix_d& getAncestry();
+  Matrix_d& getAdmixtureProps();
 
-  void setAncestry(Matrix_d);
+  void setAdmixtureProps(Matrix_d);
   
-  Matrix_d& getAncestryX();
+  Matrix_d& getAdmixturePropsX();
 
-  void setAncestryX(Matrix_d);
+  void setAdmixturePropsX(Matrix_d);
   
   //   std::vector< std::vector<unsigned int> >&
   //   getGenotype();
@@ -57,7 +57,8 @@ public:
 
   std::vector<double> getRho();
 
-  Matrix_d getExpectedAncestry( int );
+  Matrix_d getAncestryProbs( int , int);
+  Matrix_d getAncestryProbs( int );
 
   double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome**);
 
@@ -100,10 +101,10 @@ private:
   std::vector< std::vector<bool> > _xi;
   std::vector< unsigned int > numCompLoci;
   unsigned int numChromosomes;
-  Matrix_d _ancestry;
-  Matrix_d _ancestryX;
-  Matrix_d _ancestryHat;
-  Matrix_d _ancestryHat_X;
+  Matrix_d AdmixtureProps;
+  Matrix_d XAdmixtureProps;
+  Matrix_d AdmixtureHat;
+  Matrix_d XAdmixtureHat;
   MatrixArray_i LocusAncestry;
   double Sumrho0;
   Vector_i sumxi;
@@ -111,7 +112,7 @@ private:
   std::vector< double > _rho_X;
   std::vector< double > _rhoHat;
   std::vector< double > _rhoHat_X;
-  std::vector< Matrix_d > ExpectedAncestry;
+  std::vector< Matrix_d > AncestryProbs;//Conditional probabilities of locus ancestry
   double LogPosterior;
   unsigned int sex;
   std::vector< unsigned int > gametes;

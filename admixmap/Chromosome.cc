@@ -66,6 +66,7 @@ Chromosome::GetSize(){
 void
 Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestry, AdmixOptions* options, vector< Vector_d >& f,
 			     bool fixedallelefreqs )
+//Obtains stationary distribution and transition probs for HMM and updates forward and backward probabilities
 {
  
   Matrix_d Prob;
@@ -229,7 +230,9 @@ Chromosome::SampleForLocusAncestry(Individual* ind, AlleleFreqs *A)
     int locus = GetLocus( j );
     if( ind->IsMissing(locus)[0] != 0 ){
       //(*this)(j)->UpdateAlleleCounts( genotype, OrderedStates.GetColumn(j) );
-      A->UpdateAlleleCounts( locus, ind->getPossibleHaplotypes(locus), OrderedStates.GetColumn(j) );
+      // why should function UpdateAlleleCounts need to get genotypes if it already has the possible haplotypes 
+      // compatible with the genotype? 
+      A->UpdateAlleleCounts( locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), OrderedStates.GetColumn(j) );
     }
   }
   
@@ -254,9 +257,41 @@ Chromosome::SampleForHaploidLocusAncestry(Individual* ind, AlleleFreqs* A)
   return( OrderedStates );
 }
 
-Matrix_d Chromosome::getExpectedAncestry( int j )
-{
+// void Chromosome::CreateAncestryProbs(){
+//   //AncestryProbs are only needed for affectedsonly and ancestry score tests
+//   AncestryProbs = new Matrix_d[L];
+//   for(int i=0;i<L;++i)AncestryProbs[i].SetNumberOfElements(populations,3);
+// }
+// void Chromosome::setAncestryProbs(int j)
+// {
+//   //sets conditional probabilities of ancestry at locus j
+//   //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry from that population
+//   //i.e. (i,2) = p_{ii}
+//   //     (i,1) = \sum_j{p_{ij}} +   \sum_j{p_{ji}} - 2.0*p_{ii}
+//   //     (i,0) = 1.0 - (i,1) - (i,2)
+//   //where p's are probs in StateProbs
   
+//   // Matrix_d AncestryProbs( populations, 3 );
+//   Vector_d StateProbs;
+  
+//   StateProbs = SampleStates.GetStateProbs(j);//vector of ordered ancestry state probs
+  
+//   for( int k1 = 0; k1 < populations; k1++ ){
+//     AncestryProbs[j](k1,2) = StateProbs( ( populations + 1 ) * k1 );
+//     for( int k2 = 0 ; k2 < populations; k2++ )
+//       AncestryProbs[j](k1,1) += StateProbs(k1*populations +k2) + StateProbs(k2*populations +k1);
+//     AncestryProbs[j](k1,1)-= 2.0*AncestryProbs[j](k1,2);
+//     AncestryProbs[j](k1,0) = 1.0 - AncestryProbs[j](k1,1) - AncestryProbs[j](k1,2);
+//   }
+  
+// }
+
+// Matrix_d Chromosome::getAncestryProbs( int j ){
+//   //return AncestryProbs[j];
+// }
+
+Matrix_d Chromosome::getAncestryProbs( int j ){
+  //sets conditional probabilities of ancestry at locus j
   //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry from that population
   //i.e. (i,2) = p_{ii}
   //     (i,1) = \sum_j{p_{ij}} +   \sum_j{p_{ji}} - 2.0*p_{ii}
@@ -275,9 +310,9 @@ Matrix_d Chromosome::getExpectedAncestry( int j )
     AncestryProbs(k1,1)-= 2.0*AncestryProbs(k1,2);
     AncestryProbs(k1,0) = 1.0 - AncestryProbs(k1,1) - AncestryProbs(k1,2);
   }
-  
   return AncestryProbs;
 }
+
 
 double Chromosome::getLogLikelihood()
 {

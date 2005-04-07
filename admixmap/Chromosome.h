@@ -27,6 +27,7 @@ private:
   HMM SampleStates;
   Matrix_d StationaryDist;
   MatrixArray_d TransitionProbs, Likelihood;
+  // Matrix_d *AncestryProbs;//Conditional Probs of Locus Ancestry
   
   // UNIMPLEMENTED
   // to avoid use
@@ -47,8 +48,9 @@ public:
   void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool);
   void UpdateParametersHaploid(Individual*,AlleleFreqs *,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool);
   Matrix_i SampleForLocusAncestry(Individual*, AlleleFreqs *);
-  Matrix_d getExpectedAncestry( int );
+  void setAncestryProbs(int); 
   Matrix_d getAncestryProbs(int);
+  void CreateAncestryProbs();
   double getLogLikelihood();
 
 };

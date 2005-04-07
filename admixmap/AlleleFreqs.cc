@@ -33,6 +33,13 @@ AlleleFreqs::AlleleFreqs(){
   RandomAlleleFreqs = 0;
   IsHistoricAlleleFreq = false;
 
+//   Freqs = null_MatrixArray_d;
+//   AlleleFreqsMAP = null_MatrixArray_d;
+//   HistoricalAlleleFreqs = null_MatrixArray_d;
+//   AlleleCounts = null_MatrixArray_i;
+//   HistoricLikelihoodAlleleFreqs = null_MatrixArray_d;
+//   PriorAlleleFreqs = null_MatrixArray_d;
+//   SumAlleleFreqs = null_MatrixArray_d;
    Fst = null_Matrix_d;
    SumFst = null_Matrix_d;  
 }
@@ -42,8 +49,8 @@ AlleleFreqs::~AlleleFreqs(){
   for(int i=0; i<Loci.GetNumberOfCompositeLoci(); i++){
     delete Loci(i);
   }
-
-  delete allelefreqoutput;
+  if(IsRandom())
+    delete allelefreqoutput;
 
   if( isHistoricAlleleFreq ){
     delete [] TuneEtaSampler;
@@ -57,7 +64,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ) isHistoricAlleleFreq = true;
   else isHistoricAlleleFreq = false;
 
-  if( options->getOutputAlleleFreq() ){
+  if(IsRandom() &&  options->getOutputAlleleFreq() ){
     allelefreqoutput = new AlleleFreqOutputter(options,PopulationLabels);
   }
 
@@ -106,6 +113,15 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
       tau.SetElements( 0.005 );
     }
     for( int k = 0; k < Populations; k++ ){
+      
+//       // old method; sets eta to the sum of priorallelefreqs
+//       for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
+//        	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
+//        	if( maxeta(k) > eta(k) ){
+//        	  eta(k) = maxeta(k);
+//        	}
+//       }
+      
       //Initialise eta at its prior expectation
       eta(k) = psi(k)/tau(k);
       //Rescale priorallelefreqs so the columns sum to eta 
@@ -114,18 +130,8 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
      }
   
     //Open output file for eta
-    if ( strlen( options->getEtaOutputFilename() ) ){
-      outputstream.open( options->getEtaOutputFilename(), ios::out );
-      if( !outputstream )
-	{
-	  Log->logmsg(true,"ERROR: Couldn't open dispparamfile\n");
-	  //exit( 1 );
-	}
-      else{
-	Log->logmsg(true,"Writing dispersion parameter to ");
-	Log->logmsg(true,options->getEtaOutputFilename());
-	Log->logmsg(true,"\n");
-      }
+    if ( options->getIndAdmixHierIndicator() && strlen( options->getEtaOutputFilename() ) ){
+      InitializeEtaOutputFile(options, PopulationLabels, Log); 
     }
     else{
       Log->logmsg(true,"No dispparamfile given\n");
@@ -424,18 +430,62 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 }
 
 /**
- * method samples haplotype pair, then updates counts of each haplotype 
- * ( or each allele if only one simple locus)
- * hap pairs should be sampled by individual, then stored for use by this method and by score tests, 
+ * Given the unordered genotype, possible haplotypes compatible with the genotype, and the ordered ancestry states at a
+ * locus, this method randomly draws the phase of the genotype, then
+ * updates the counts of alleles observed in each state of ancestry.
+ * (MORE DETAILS PLEASE)
  */
-void AlleleFreqs::UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry )
+
+void AlleleFreqs::UpdateAlleleCounts(int locus, const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry )
 {
    Vector_i h(2);
-       h = Loci(locus)->SampleHaplotypePair(Haplotypes, ancestry , Freqs(locus));
+   Matrix_d ProbsM;
+
+   if( Loci(locus)->GetNumberOfLoci() == 1 ){
+       if( genotype[0] ){ // no missing alleles
+         ProbsM = GetLocusProbs(locus, genotype,false);
+         if( myrand() < ProbsM( ancestry(0), ancestry(1) ) / (ProbsM( ancestry(0), ancestry(1) ) + ProbsM( ancestry(1), ancestry(0) ) ) ){
+	   AlleleCounts(locus)( genotype[0] - 1, ancestry(0) )++;
+	   AlleleCounts(locus)( genotype[1] - 1, ancestry(1) )++;
+         }
+         else{
+	   AlleleCounts(locus)( genotype[0] - 1, ancestry(1) )++;
+	   AlleleCounts(locus)( genotype[1] - 1, ancestry(0) )++;
+         }
+       }
+     }
+     
+     else{
+       h = Loci(locus)->SampleHaplotypePair( genotype, Haplotypes, ancestry , Freqs(locus));
        AlleleCounts(locus)( h(0), ancestry(1) )++;
        AlleleCounts(locus)( h(1), ancestry(0) )++;
+     }
+ 
 }
 
+/**
+ * N.B. This only works with a simple locus.
+ * Given an unordered genotype, returns a matrix representing the
+ * probability of locus ancestry.
+ */
+Matrix_d AlleleFreqs::GetLocusProbs(int locus, const vector<unsigned int>& x, bool fixed)
+{
+   MatrixArray_d Prob( 2, Populations, 1 );
+   
+   for( int pop = 0; pop < Populations; pop++ )
+   {
+      for( int i = 0; i < 2; i++ )
+      {
+         if(fixed && RandomAlleleFreqs == 1 )
+	   Prob(i)( pop, 0 ) = GetAlleleProbsMAP( x[i]-1, pop , locus);
+         else
+	   Prob(i)( pop, 0 ) = GetAlleleProbs( x[i]-1, pop, locus );
+      }
+   }
+
+   return Prob(0) * Prob(1).Transpose();
+
+}
 double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
 {
    double P;
@@ -468,24 +518,34 @@ Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genot
 {
   Matrix_d Prob;
   if( diploid ){
+    if( Loci(locus)->GetNumberOfLoci() == 1 ){
+      Prob = GetLocusProbs(locus, genotype, fixed);
+        if( genotype[0] != genotype[1] )
+           for( int k = 0; k < Populations; k++ ){
+              for( int kk = k; kk < Populations; kk++ ){
+                 Prob(k,kk) = Prob(k,kk) + Prob(kk,k);
+                 Prob(kk,k) = Prob(k,kk);
+              }
+           }
+        
+     } else {
       Prob = Loci(locus)->GetGenotypeProbs(Haplotypes, fixed, RandomAlleleFreqs);
+     }
   }
   else{
-    // lines below should be replaced by a call to GetGenotypeProbs, which should be extended to 
-    // work with a haploid locus 
-    Prob.SetNumberOfElements( Populations, 1 );
-    if( Loci(locus)->GetNumberOfLoci() == 1 ){
-      for( int pop = 0; pop < Populations; pop++ ){
-	Prob( pop, 0 ) = GetAlleleProbs( genotype[0] - 1, pop , locus);
-      }
-    }
-    else{
-      Vector_i x = Loci(locus)->decodeGenotype(genotype);
-      int xx = Loci(locus)->HapLoopGetDecimal( x );
-      for( int pop = 0; pop < Populations; pop++ ){
-	Prob( pop, 0 ) = GetAlleleProbs( xx - 1, pop , locus);
-      }
-    }
+     Prob.SetNumberOfElements( Populations, 1 );
+     if( Loci(locus)->GetNumberOfLoci() == 1 ){
+        for( int pop = 0; pop < Populations; pop++ ){
+	  Prob( pop, 0 ) = GetAlleleProbs( genotype[0] - 1, pop , locus);
+        }
+     }
+     else{
+       Vector_i x = Loci(locus)->decodeGenotype(genotype);
+       int xx = Loci(locus)->HapLoopGetDecimal( x );
+        for( int pop = 0; pop < Populations; pop++ ){
+	  Prob( pop, 0 ) = GetAlleleProbs( xx - 1, pop , locus);
+        }
+     }
   }
   return( Prob );
 }
@@ -671,18 +731,28 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( Vector_d eta , int locus)
 }
 
 
-void AlleleFreqs::InitializeOutputFile(AdmixOptions *options, std::string *PopulationLabels)
+void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log)
 {
-  // Header line of paramfile
-  if( options->getAnalysisTypeIndicator() >= 0 ){
-
-    //Dispersion parameters (eta)
-    if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-      for( int k = 0; k < Populations; k++ ){
-	outputstream << "\"eta." << PopulationLabels[k].substr(1);
-      }
+  outputstream.open( options->getEtaOutputFilename(), ios::out );
+  if( !outputstream )
+    {
+      Log->logmsg(true,"ERROR: Couldn't open dispparamfile\n");
+      //exit( 1 );
     }
-    outputstream << endl;
+  else{
+    Log->logmsg(true,"Writing dispersion parameter to ");
+    Log->logmsg(true,options->getEtaOutputFilename());
+    Log->logmsg(true,"\n");
+    if( options->getTextIndicator()  && options->getAnalysisTypeIndicator() >= 0)
+      {
+	//Dispersion parameters (eta)
+	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+	  for( int k = 0; k < Populations; k++ ){
+	    outputstream << "\"eta." << PopulationLabels[k].substr(1);
+	  }
+	}
+	outputstream << endl;
+      }
   }
 }
 
@@ -741,8 +811,9 @@ int AlleleFreqs::GetNumberOfCompositeLoci(){
   return Loci.GetNumberOfCompositeLoci();
 }
 void AlleleFreqs::OutputAlleleFreqs(){
-  allelefreqoutput->visitGenome(Loci);
   if( IsRandom() ){
+    allelefreqoutput->visitGenome(Loci);
+    
     //Loci.accept(*allelefreqoutput);
     allelefreqoutput->OutputAlleleFreqs(this);
   }

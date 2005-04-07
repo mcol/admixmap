@@ -37,7 +37,6 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
         }
     }
 
-    // checks of input data files should be in class InputData
     if (options->IsPedFile() == 1) {
         if (data.size() != 2*TotalLoci + 1 + options->genotypesSexColumn()) {
             cout << "Error in formatting of line" << endl;
@@ -70,7 +69,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
     PossibleHaplotypes = new Vector_i[numCompositeLoci];
     LocusAncestry.SetNumberOfElements( Loci.GetNumberOfChromosomes() );
     Matrix_d tm(1,1);
-    ExpectedAncestry.resize( numCompositeLoci,tm );
+    AncestryProbs.resize( numCompositeLoci,tm );
 
     unsigned int lociI = 0;
     X_posn = 9999;
@@ -128,13 +127,13 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
 {
    double LogLikelihood = 0.0;
    _rhoHat = rho;
-   _ancestryHat = ancestry;
+   AdmixtureHat = ancestry;
    Vector_d ff( A->GetNumberOfCompositeLoci() );
    vector< Vector_d > f(1,ff);
    for( unsigned int jj = 1; jj < numCompLoci[0]; jj++ ){
      f[0](jj) = exp( -A->getLoci()->GetDistance( jj ) * _rhoHat[0] );
    }
-   chrm[0]->UpdateParametersHaploid( this, A,_ancestryHat, options, f, true );
+   chrm[0]->UpdateParametersHaploid( this, A,AdmixtureHat, options, f, true );
    LogLikelihood += chrm[0]->getLogLikelihood();
    return LogLikelihood;
 }
@@ -144,7 +143,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
 {
    int locus = 0;
    _rhoHat = rho;
-   _ancestryHat = ancestry;
+   AdmixtureHat = ancestry;
    double LogLikelihood = 0.0;
    Vector_d ff( A->GetNumberOfCompositeLoci() );
    vector< Vector_d > f(2,ff);
@@ -160,12 +159,12 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
                f[1](locus) = f[0](locus);
             locus++;
          }
-         chrm[j]->UpdateParameters( this,A, _ancestryHat, options, f, true);
+         chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, f, true);
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else{
          _rhoHat_X = rho_X;
-         _ancestryHat_X = ancestry_X;
+         XAdmixtureHat = ancestry_X;
          for( unsigned int jj = 1; jj < numCompLoci[j]; jj++ ){
 	   f[0](locus) = exp( -A->getLoci()->GetDistance( locus ) * _rhoHat_X[0] );
             if( sex == 2 ){
@@ -174,9 +173,9 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
             locus++;
          }
          if( sex == 1 )
-	   chrm[j]->UpdateParametersHaploid( this,A, _ancestryHat_X, options, f, true);
+	   chrm[j]->UpdateParametersHaploid( this,A, XAdmixtureHat, options, f, true);
          else
-	   chrm[j]->UpdateParameters( this, A,_ancestryHat_X, options, f, true);
+	   chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, f, true);
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
    }
@@ -217,7 +216,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
                f[1](locus) = f[0](locus);
             locus++;
          }
-	chrm[j]->UpdateParameters( this, A,_ancestry, options, f, false);
+	chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false);
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else if( options->getXOnlyAnalysis() ){
@@ -225,7 +224,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
 	   f[0](locus) = exp( -A->getLoci()->GetDistance( locus ) * _rho[0] );
             locus++;
          }
-         chrm[j]->UpdateParametersHaploid( this, A,_ancestry, options, f, false);
+         chrm[j]->UpdateParametersHaploid( this, A,AdmixtureProps, options, f, false);
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else{
@@ -237,9 +236,9 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
             locus++;
          }
          if( sex == 1 )
-	   chrm[j]->UpdateParametersHaploid( this, A,_ancestry, options, f, false );
+	   chrm[j]->UpdateParametersHaploid( this, A,AdmixtureProps, options, f, false );
          else
-	   chrm[j]->UpdateParameters( this, A,_ancestry, options, f, false );
+	   chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false );
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
    }
@@ -298,25 +297,24 @@ void Individual::setGenotype(unsigned int locus,vector<unsigned int> genotype)
   _genotype[locus] = genotype;
 }
 
-Matrix_d& Individual::getAncestry()
+Matrix_d& Individual::getAdmixtureProps()
 {
-  //returns admixture proportions, should be renamed
-  return _ancestry;
+  return AdmixtureProps;
 }
 
-void Individual::setAncestry(Matrix_d ancestry)
+void Individual::setAdmixtureProps(Matrix_d a)
 {
-  _ancestry = ancestry;
+  AdmixtureProps = a;
 }
 
-Matrix_d& Individual::getAncestryX()
+Matrix_d& Individual::getAdmixturePropsX()
 {
-  return _ancestryX;
+  return XAdmixtureProps;
 }
 
-void Individual::setAncestryX(Matrix_d ancestry)
+void Individual::setAdmixturePropsX(Matrix_d a)
 {
-  _ancestryX = ancestry;
+  XAdmixtureProps = a;
 }
 
 int Individual::getSex()
@@ -363,9 +361,15 @@ Vector_i Individual::GetLocusAncestry( int chrm, int locus )
    return LocusAncestry(chrm).GetColumn( locus );
 }
 
-Matrix_d Individual::getExpectedAncestry( int locus )
+// Matrix_d Individual::getExpectedAncestry(int j, int locus )
+// {
+//   Matrix_d EA = chrm[j]->getExpectedAncestry[locus];
+//   return EA;
+// }
+Matrix_d Individual::getAncestryProbs(int locus )
 {
-   return( ExpectedAncestry[ locus ] );
+  //this function used only for affectedonly and ancestry scoretests
+  return( AncestryProbs[ locus ] );
 }
 
 double Individual::getLogPosteriorProb()
@@ -481,33 +485,35 @@ void Individual::SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, A
     locus = chrm[j]->GetLocus(0);
 
     if( j != X_posn ){
-      chrm[j]->UpdateParameters( this, A,_ancestry, options, f, false );
+      chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false );
       LocusAncestry(j) = chrm[j]->SampleForLocusAncestry( this, A );
     }
     else if( options->getXOnlyAnalysis() ){
-      chrm[j]->UpdateParametersHaploid( this, A,_ancestry, options, f, false );
+      chrm[j]->UpdateParametersHaploid( this, A,AdmixtureProps, options, f, false );
       LocusAncestry(j).SetRow( 0, chrm[j]->SampleForHaploidLocusAncestry( this, A ) );
     }
     else if( sex == 1 ){
-      chrm[j]->UpdateParametersHaploid( this, A,_ancestryX, options, f, false );
+      chrm[j]->UpdateParametersHaploid( this, A,XAdmixtureProps, options, f, false );
       LocusAncestry(j).SetRow( 0, chrm[j]->SampleForHaploidLocusAncestry( this , A) );
     }
     else{
-      chrm[j]->UpdateParameters( this, A,_ancestryX, options, f, false );
+      chrm[j]->UpdateParameters( this, A,XAdmixtureProps, options, f, false );
       LocusAncestry(j) = chrm[j]->SampleForLocusAncestry( this , A);
     }
     if( options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry())
-      ExpectedAncestry[locus] = chrm[j]->getExpectedAncestry( 0 );
+      AncestryProbs[locus] = chrm[j]->getAncestryProbs( 0 );
+    //chrm[j]->setAncestryProbs(0);
     locus++;
     for( unsigned int jj = 1; jj < numCompLoci[j]; jj++ ){
       if( options->getTestForAffectedsOnly()|| options->getTestForLinkageWithAncestry() )
-	ExpectedAncestry[locus] = chrm[j]->getExpectedAncestry( jj );
+	AncestryProbs[locus] = chrm[j]->getAncestryProbs( jj );
+      //chrm[j]->setAncestryProbs(jj);
       for( unsigned int g = 0; g < gametes[j]; g++ ){
 	if( LocusAncestry(j)(g,jj-1) == LocusAncestry(j)(g,jj) ){
 	  if( options->getModelIndicator() && g == 1 ){
-	    q = _ancestry( LocusAncestry(j)(g,jj), g );
+	    q = AdmixtureProps( LocusAncestry(j)(g,jj), g );
 	  } else {
-	    q = _ancestry( LocusAncestry(j)(g,jj), 0 );
+	    q = AdmixtureProps( LocusAncestry(j)(g,jj), 0 );
 	  }
 	  Prob = (1 - f[g](locus)) / ( 1 - f[g](locus) + f[g](locus) / q );
 	  if( Prob > myrand() ){
@@ -557,16 +563,16 @@ void Individual::SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, v
 	if( _xi[g][locus] ){
 	  if( options->getXOnlyAnalysis() ){
 	    rho = _rho[0];
-	    q = _ancestry( LocusAncestry(j)(0,jj-ran), 0 );
+	    q = AdmixtureProps( LocusAncestry(j)(0,jj-ran), 0 );
 	  }
 	  else if( options->getModelIndicator() && g == 1 ){
-	    q = _ancestry( LocusAncestry(j)(g,jj-ran), g );
+	    q = AdmixtureProps( LocusAncestry(j)(g,jj-ran), g );
                     if( j != X_posn )
 		      rho = _rho[g];
                     else
 		      rho = _rho_X[g];
 	  } else {
-	    q = _ancestry( LocusAncestry(j)(g,jj-ran), 0 );
+	    q = AdmixtureProps( LocusAncestry(j)(g,jj-ran), 0 );
 	    if( j != X_posn )
 	      rho = _rho[0];
 	    else
@@ -591,7 +597,6 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
 			   vector< unsigned int > SumN, vector< unsigned int > SumN_X){
   // Samples sum of intensities parameter as conjugate gamma with Poisson likelihood
   // SumN is the number of arrivals between each pair of adjacent loci
-  int numtries;
   if(XOnly ){
     do{
       _rho[0] = gengam( rhobeta + L_X, rhoalpha + (double)SumN_X[0] );
@@ -599,14 +604,9 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
   }
   else if(RandomMatingModel ){
     for( unsigned int g = 0; g < 2; g++ ){
-      numtries = 0;
-      do {
+      do{
 	_rho[g] = gengam( rhobeta + L, rhoalpha + (double)SumN[g] );
-	numtries++;
-	if(numtries > 10) {
-	  cout << "after >10 tries to sample, rho is " << _rho[g] << "\n";
-	}
-      } while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
+      }while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
     }
     if(X_data  ){
       for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
@@ -639,7 +639,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
 	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[0], 1.0);
       LogPosterior -= log(IntConst1);
       alphaparams0 = alpha[0] + SumLocusAncestry_X.GetColumn(0);
-      LogPosterior += getDirichletLogDensity(alphaparams0,_ancestryHat.GetColumn(0));
+      LogPosterior += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(0));
     }
     else if( isX_data ){
       for( unsigned int g = 0; g < 2; g++ ){
@@ -651,7 +651,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[g], 1.0);
 	LogPosterior -= log(IntConst1);
 	alphaparams0 = alpha[g] + SumLocusAncestry.GetColumn(g);
-	LogPosterior += getDirichletLogDensity(alphaparams0,_ancestryHat.GetColumn(g));
+	LogPosterior += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(g));
       }
       for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
 	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[g],
@@ -662,7 +662,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[g], 1.0);
 	LogPosterior -= log(IntConst1);
 	alphaparams0 = alpha[g] + SumLocusAncestry_X.GetColumn(g);
-	LogPosterior += getDirichletLogDensity(alphaparams0,_ancestryHat_X.GetColumn(g));
+	LogPosterior += getDirichletLogDensity(alphaparams0,XAdmixtureHat.GetColumn(g));
       }
     }
     else if( _symmetric ){
@@ -687,11 +687,11 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
       x[0] -= log(IntConst1);
       x[1] -= log(IntConst2);
       alphaparams0 = alpha[0] + SumLocusAncestry.GetColumn(0);
-      x[0] += getDirichletLogDensity(alphaparams0,_ancestryHat.GetColumn(0));
-      x[1] += getDirichletLogDensity(alphaparams0,_ancestryHat.GetColumn(1));
+      x[0] += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(0));
+      x[1] += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(1));
       alphaparams1 = alpha[1] + SumLocusAncestry.GetColumn(1);
-      x[0] += getDirichletLogDensity(alphaparams1,_ancestryHat.GetColumn(1));
-      x[1] += getDirichletLogDensity(alphaparams1,_ancestryHat.GetColumn(0));
+      x[0] += getDirichletLogDensity(alphaparams1,AdmixtureHat.GetColumn(1));
+      x[1] += getDirichletLogDensity(alphaparams1,AdmixtureHat.GetColumn(0));
       if( isnan(x[0]) || isinf(x[0]) )
 	LogPosterior = x[1] - log(2.0);
       else if( isnan(x[1]) || isinf(x[1])  )
@@ -703,8 +703,8 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
       if( isnan(LogPosterior) || isinf(LogPosterior) ){
 	PR(alphaparams0);
 	PR(alphaparams1);
-	PR(_ancestryHat.GetColumn(0));
-           PR(_ancestryHat.GetColumn(1));
+	PR(AdmixtureHat.GetColumn(0));
+           PR(AdmixtureHat.GetColumn(1));
            PR(x[0]);
            PR(x[1]);
            exit(0);
@@ -720,7 +720,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
            LogPosterior -= log( IntConst1 );
            alphaparams0 = alpha[0] + SumLocusAncestry.GetColumn(0);
-           LogPosterior+=getDirichletLogDensity(alphaparams0,_ancestryHat.GetColumn(0));
+           LogPosterior+=getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(0));
       }
       if( _admixed[1] ){
 	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[1],
@@ -731,7 +731,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);
 	LogPosterior -= log( IntConst1 );
 	alphaparams1 = alpha[1] + SumLocusAncestry.GetColumn(1);
-	LogPosterior+=getDirichletLogDensity(alphaparams1,_ancestryHat.GetColumn(1));
+	LogPosterior+=getDirichletLogDensity(alphaparams1,AdmixtureHat.GetColumn(1));
       }
     }
   }
@@ -748,9 +748,9 @@ Matrix_d *Covariates0)
 {
   Vector_d avgtheta;
   if(ModelIndicator )
-    avgtheta = _ancestry.RowMean();
+    avgtheta = AdmixtureProps.RowMean();
   else
-    avgtheta = _ancestry.GetColumn(0);
+    avgtheta = AdmixtureProps.GetColumn(0);
   for( int k = 0; k < Populations - 1; k++ )
     (*Covariates0)( i, NoCovariates - Populations + k + 1 )
       = avgtheta( k + 1 ) - poptheta( k + 1 );
@@ -772,15 +772,15 @@ void Individual::Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &theta
   // generic Metropolis rejection step
   if( p < 0 ){
      if( log(myrand()) < p && test ){
-        setAncestry(theta);
+        setAdmixtureProps(theta);
         if( xdata )
-           setAncestryX(thetaX);
+           setAdmixturePropsX(thetaX);
      }
   }
   else{
-     setAncestry(theta);
+     setAdmixtureProps(theta);
      if( xdata )
-        setAncestryX(thetaX);
+        setAdmixturePropsX(thetaX);
   }
 }
 
@@ -847,7 +847,7 @@ double Individual::AcceptanceProbForTheta_XChrm(Matrix_d &Theta, Matrix_d &Theta
    if( sex == 2 )
       gametes = 2;
    double p = 0;
-   Matrix_d ThetaOld = _ancestry, ThetaXOld = _ancestryX;
+   Matrix_d ThetaOld = AdmixtureProps, ThetaXOld = XAdmixtureProps;
    for( int g = 0; g < gametes; g++ ){
        p += gsl_sf_lngamma( sigma[g]*Theta.GetColumn(g).Sum() )
          - gsl_sf_lngamma( sigma[g]*ThetaOld.GetColumn(g).Sum() );
@@ -912,9 +912,9 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
    if( options->getAnalysisTypeIndicator() > 1 )
      UpdateAdmixtureForRegression(i,options->getPopulations(), NoCovariates, poptheta, options->getModelIndicator(),&(Covariates0));
    for( int k = 0; k < options->getPopulations(); k++ ){
-     (*SumLogTheta)( k ) += log( _ancestry( k, 0 ) );
+     (*SumLogTheta)( k ) += log( AdmixtureProps( k, 0 ) );
      if(options->getModelIndicator() && !options->getXOnlyAnalysis() )
-       (*SumLogTheta)( k ) += log( _ancestry( k, 1 ) );
+       (*SumLogTheta)( k ) += log( AdmixtureProps( k, 1 ) );
    }
 }
 
@@ -938,7 +938,7 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
   }
       
   for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-    A->UpdateAlleleCounts(j, getPossibleHaplotypes(j), ancestry );
+    A->UpdateAlleleCounts(j,getGenotype(j),getPossibleHaplotypes(j), ancestry );
   }
 }
 
@@ -1062,17 +1062,17 @@ void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, doub
       }
       *LogLikelihood+=
 	getDirichletLogDensity(alpha[0],
-			       getAncestry().GetColumn(0))
+			       getAdmixtureProps().GetColumn(0))
 	+getDirichletLogDensity(alpha[1],
-				getAncestry().GetColumn(1));
+				getAdmixtureProps().GetColumn(1));
       if( *LogLikelihood > MaxLogLikelihood[i] ){
-	*LogFileStreamPtr << getAncestry()
+	*LogFileStreamPtr << getAdmixtureProps()
 			 << _rho[0] << " " << _rho[1]
 			 << endl << *LogLikelihood << endl
 			 << iteration << endl;
 	MaxLogLikelihood[i] = *LogLikelihood;
 	if( iteration <= options->getBurnIn() ){
-	  thetahat(i) = getAncestry();
+	  thetahat(i) = getAdmixtureProps();
 	  rhohat[i] = _rho;
 	  A->setAlleleFreqsMAP();
 	  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
@@ -1082,7 +1082,7 @@ void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, doub
 	      locus->setHaplotypeProbsMAP();
 	  }
 	  if( A->getLoci()->isX_data() ){
-	    thetahatX(i) = getAncestryX();
+	    thetahatX(i) = getAdmixturePropsX();
 	    rhohatX[i] = _rho_X;
 	  }
 	}
