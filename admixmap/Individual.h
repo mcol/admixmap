@@ -91,13 +91,13 @@ public:
 
 private:
   static std::vector<unsigned int>
-  encodeGenotype(std::vector<unsigned int>&);
+  encodeGenotype(std::vector<unsigned int>&); // doesn't appear to do anything - should add 1 to decoded genotypes 
   static void
   s2c(char *c, std::string s);
    
-  std::vector< std::vector<unsigned int> > _genotype;
+  std::vector< std::vector<unsigned int> > _genotype; // stores "encoded" genotypes: missing=0, alleles numbered from 1
   Vector_i *PossibleHaplotypes;
-  std::vector< std::vector<unsigned int> > new_genotype;
+  std::vector< std::vector<unsigned int> > new_genotype; // also stores encoded genotypes    
   std::vector< std::vector<bool> > _xi;
   std::vector< unsigned int > numCompLoci;
   unsigned int numChromosomes;
@@ -112,12 +112,12 @@ private:
   std::vector< double > _rho_X;
   std::vector< double > _rhoHat;
   std::vector< double > _rhoHat_X;
-  std::vector< Matrix_d > AncestryProbs;//Conditional probabilities of locus ancestry
+  std::vector< Matrix_d > AncestryProbs; //Conditional probabilities of locus ancestry
   double LogPosterior;
   unsigned int sex;
   std::vector< unsigned int > gametes;
   unsigned int X_posn;
-  double TruncationPt;
+  double TruncationPt; // upper truncation point for sum intensities parameter rho
 
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);

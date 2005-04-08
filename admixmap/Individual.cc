@@ -64,7 +64,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
     _xi.assign(2, true_vector); 
     sumxi.SetNumberOfElements(numCompositeLoci);
     vector<unsigned int> empty( 0, 0 );
-    new_genotype.resize( numCompositeLoci, empty );
+    new_genotype.resize( numCompositeLoci, empty ); // stl vector of decoded genotypes
     PossibleHaplotypes = new Vector_i[numCompositeLoci]; // vector of possible haplotype pairs - expect 2 integers per locus 
     LocusAncestry.SetNumberOfElements( Loci.GetNumberOfChromosomes() ); // array of matrices in which each col stores 2 integers 
     // or 1 integer (haploid) 
@@ -93,7 +93,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
       if( options->getPopulations() == 1 )
 	LocusAncestry(j).SetElements(0);
       
-      // loop over composite loci to store genotypes strings in array *data* as pairs of integers in stl vector _genotype 
+      // loop over composite loci to store genotype strings in array *data* as pairs of integers in stl vector new_genotype 
       for( unsigned int jj = 0; jj < numCompLoci[j]; jj++ ){
 	int compLocus = chrm[j]->GetLocus(jj);
 	int numLoci = Loci(compLocus)->GetNumberOfLoci();
@@ -120,10 +120,14 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
 	  new_genotype[compLocus][locus*2+1]    = allele1;
 	  lociI++;
 	}
+	// why is function encodeGenotype needed here? input data are already 
+	// in "encoded" format (0=missing, alleles numbered from 1).   
+	// vector _genotype is used only by methods that test for missing genotype. Do we need it? 
 	_genotype.push_back(encodeGenotype(decodedGenotype));
       }
     }
     
+    // loop over composite loci to set possible haplotype pairs compatible with new_genotype 
     //may be possible to do this inside above loop but a separate loop over composite loci is neater
     for(int j=0;j<numCompositeLoci;++j)PossibleHaplotypes[j] = Loci(j)->SetPossibleHaplotypes(new_genotype[j]);
 }
@@ -262,7 +266,7 @@ vector<unsigned int> Individual::encodeGenotype(vector<unsigned int>& decoded)
   vector<unsigned int> encoded(decoded.size(),0);
   for(int i=0;i<NumberOfLoci;i++){
     // what's the point of multiplying by 10, if all elements are set to 0? 
-    // encoded[0] *= 10;
+    // encoded[0] *= 10; // surely should initialize to 1
     // encoded[1] *= 10;
     encoded[0] += decoded[i*2]; // even-numbered elements
     encoded[1] += decoded[i*2+1]; // odd-numbered elements
