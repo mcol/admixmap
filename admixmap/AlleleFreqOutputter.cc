@@ -43,7 +43,8 @@ void AlleleFreqOutputter::OutputAlleleFreqs(AlleleFreqs* A)
   Matrix_d meanfreqs;
   for( int i = 0; i < A->GetNumberOfCompositeLoci(); i++ ){
     freqs = A->GetAlleleFreqs(i);
-    meanfreqs = A->GetSumAlleleFreqs(i)/_iterations;
+    // calculation of posterior means is not required
+    // meanfreqs = A->GetSumAlleleFreqs(i)/_iterations;
     if(_iterations==1){
       _numLoci += freqs.GetNumberOfRows();
     }
