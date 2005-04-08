@@ -50,6 +50,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
     }
 
     // Read sex value if present.
+    // checks should be in class InputData
     if (options->genotypesSexColumn() == 1) {
         sex = StringConvertor::toInt(data[1]);
         if (sex > 2) {
@@ -65,17 +66,19 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
     sumxi.SetNumberOfElements(numCompositeLoci);
 
     vector<unsigned int> empty( 0, 0 );
-    new_genotype.resize( numCompositeLoci, empty );
-    PossibleHaplotypes = new Vector_i[numCompositeLoci];
-    LocusAncestry.SetNumberOfElements( Loci.GetNumberOfChromosomes() );
+    new_genotype.resize( numCompositeLoci, empty ); // stl vector of decoded genotypes
+    PossibleHaplotypes = new Vector_i[numCompositeLoci]; // vector of possible haplotype pairs - expect 2 integers per locus 
+    LocusAncestry.SetNumberOfElements( Loci.GetNumberOfChromosomes() ); // array of matrices in which each col stores 2 integers 
+                                                                       // or 1 integer (haploid) 
     Matrix_d tm(1,1);
     AncestryProbs.resize( numCompositeLoci,tm );
 
     unsigned int lociI = 0;
     X_posn = 9999;
     string s1("\"X\"");
+  // set size of locus ancestry array
     for( unsigned int j = 0; j < numChromosomes; j++ ){
-        if( chrm[j]->GetLabel(0) != s1 ){
+        if( chrm[j]->GetLabel(0) != s1 ){// if not X chromosome, set number of elements to 2, num loci
             LocusAncestry(j).SetNumberOfElements( 2, chrm[j]->GetSize() );
             gametes.push_back(2);
         }
@@ -91,6 +94,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
         }
         if( options->getPopulations() == 1 )
             LocusAncestry(j).SetElements(0);
+	// loop over composite loci to store genotype strings in array *data* as pairs of integers in stl vector new_genotype 
         for( unsigned int jj = 0; jj < numCompLoci[j]; jj++ ){
             int compLocus = chrm[j]->GetLocus(jj);
             int numLoci = Loci(compLocus)->GetNumberOfLoci();
@@ -115,9 +119,11 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
                 new_genotype[compLocus][locus*2+1]    = allele1;
                 lociI++;
             }
+	// vector _genotype is used only by methods that test for missing genotype. Do we need it? 
             _genotype.push_back(encodeGenotype(decodedGenotype));
         }
     }
+    // loop over composite loci to set possible haplotype pairs compatible with new_genotype 
     //may be possible to do this inside above loop but a loop over composite loci is neater
     for(int j=0;j<numCompositeLoci;++j)PossibleHaplotypes[j] = Loci(j)->SetPossibleHaplotypes(new_genotype[j]);
 }
@@ -245,15 +251,20 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
    return LogLikelihood;
 }
 
+// method takes as argument an STL vector containing 2 unsigned integers for each genotype
+// reads even-numbered and odd-numbered elements into another STL vector 
+// what's the difference? 
+// should extend this method to deal with haploid data
 vector<unsigned int> Individual::encodeGenotype(vector<unsigned int>& decoded)
 {
+  // assumed that all loci are diploid 
   int NumberOfLoci = decoded.size()/2;
   vector<unsigned int> encoded(decoded.size(),0);
   for(int i=0;i<NumberOfLoci;i++){
     encoded[0] *= 10;
     encoded[1] *= 10;
-    encoded[0] += decoded[i*2];
-    encoded[1] += decoded[i*2+1];
+    encoded[0] += decoded[i*2]; // even-numbered elements
+    encoded[1] += decoded[i*2+1]; // odd-numbered elements
   }
   return encoded;
 }
@@ -383,13 +394,16 @@ double Individual::getLogPosteriorProb()
 // should have an alternative function to sample population mixture component membership and individual admixture proportions
 // conditional on genotypes, not sampled locus ancestry
 Matrix_d
-Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, int iteration, vector<double> sigma, Matrix_d &Theta_X )
+Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, vector<Vector_d> alpha, 
+			      bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, int iteration, 
+			      vector<double> sigma, Matrix_d &Theta_X )
 {
    unsigned int locus = 0;
    sumxi.SetElements( 0 );
    //double q, Prob;
    Vector_d vectemp;
    vector< Vector_d > f( 2, A->getLociCorrSummary() );
+   // all these matrices should be allocated once when the Individual is instantiated   
    Matrix_i SumLocusAncestry( options->getPopulations(), 2 ), SumLocusAncestry_X;
    Matrix_d Theta;
 
@@ -428,21 +442,29 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
         }
      }
   }
+  // next step should be to calculate transition matrices 
 
+  // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
+  // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
   SampleLocusAncestry(chrm, options, A, f, &SumLocusAncestry, &SumLocusAncestry_X);
-  
+
+  // these matrices and vectors should be allocated only once   
   double L = A->getLoci()->GetLengthOfGenome(), L_X=0.0;
   if( A->getLoci()->isX_data() ) L_X = A->getLoci()->GetLengthOfXchrm();  
   vector< unsigned int > SumN(2,0);
   vector< unsigned int > SumN_X(2,0);
   if( options->getRhoIndicator() ){
  
-    SampleNumberOfArrivals(A, options, &SumN, &SumN_X);
-
+  // sample sum of intensities parameter rho
+  if( options->getRhoIndicator() ){
+    
+    SampleNumberOfArrivals(A, options, &SumN, &SumN_X); // SumN is number of arrivals
+    
     SampleRho( options->getXOnlyAnalysis(), options->getModelIndicator(), A->getLoci()->isX_data(), rhoalpha, rhobeta, L, L_X, 
 	       SumN, SumN_X);
   }
-  
+
+  // if no regression model, sample admixture proportions theta as a conjugate Dirichlet posterior   
   if( options->getXOnlyAnalysis() ){
     vectemp = gendirichlet( alpha[0] + SumLocusAncestry_X.GetColumn(0) );
     Theta.SetColumn( 0, vectemp );
@@ -467,6 +489,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
      vectemp = gendirichlet( alpha[0] + SumLocusAncestry.RowSum() );
      Theta.SetColumn( 0, vectemp );
   }
+  // calculate posterior density conditional on realized locus ancestry states, jump indicators and num arrivals 
   if( options->getMLIndicator() && ind == 0 && iteration > options->getBurnIn() )
     CalculateLogPosterior(options,A->getLoci()->isX_data(), alpha, _symmetric,
 				    _admixed,rhoalpha, rhobeta, L, L_X, 
@@ -756,7 +779,7 @@ Matrix_d *Covariates0)
       = avgtheta( k + 1 ) - poptheta( k + 1 );
 }
 
-
+// Metropolis update for admixture proportions theta, taking acceptance probability p as argument
 void Individual::Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &thetaX, bool xdata, int Populations, bool ModelIndicator )
 {
   bool test = true;
@@ -796,7 +819,7 @@ double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, Matrix_d &theta
 						  MatrixArray_d &Target, Vector_d &poptheta) 
 {
   double prob, Xbeta = 0;
-  // TI appears to define which outcome var is used
+  // TI = Target Indicator, indicates which outcome var is used
   Vector_d avgtheta;
   // calculate mean of parental admixture proportions
   if( ModelIndicator )
@@ -867,14 +890,15 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
 					     double rhobeta,vector<double> sigma)
 {
   double u;
-  Matrix_d Theta, ThetaX;
+  Matrix_d Theta, ThetaX;// admixture proportions
 
   if( options->getAnalysisTypeIndicator() > 1 ){
+   // sample missing values of outcome variable
     for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
       if( (*Target)(k).IsMissingValue( i, 0 ) ){
-	if( !OutcomeType(k) )
+	if( !OutcomeType(k) ) // linear regression
 	  (*Target)(k)( i, 0 ) = gennor( ExpectedY(k)( i, 0 ), 1 / sqrt( lambda(k) ) );
-	else{
+	else{// logistic regression
 	  u = myrand();
 	  if( u * ExpectedY(k)( i, 0 ) < 1 )
 	    (*Target)(k)( i, 0 ) = 1;
@@ -884,6 +908,7 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
       }
     }
   }
+  // sample individual admixture proportions theta
   // should be modified to allow a population mixture component model   
   Theta = SampleParameters(i, options, A, chrm, alpha, _symmetric, _admixed,rhoalpha, rhobeta, iteration, sigma, ThetaX );
 
@@ -918,6 +943,7 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
    }
 }
 
+// unnecessary duplication of code - should use same method as for > 1 population
 void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
 				     AlleleFreqs *A, int AnalysisTypeIndicator )
 {
@@ -938,9 +964,9 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
   }
   // sampled alleles should be stored in Individual objects, then summed over individuals to get counts
   // is this extra update necessary? isn't this method called anyway, irrespective of whether there is only one population?        
-  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-    A->UpdateAlleleCounts(j,getPossibleHaplotypes(j), ancestry );
-  }
+ //  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+//     A->UpdateAlleleCounts(j,getPossibleHaplotypes(j), ancestry );
+//   }
 }
 
 void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
