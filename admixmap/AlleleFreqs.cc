@@ -11,7 +11,7 @@ static void getLabels(const Vector_s& data, Vector_i temporary, string *labels)
     }
 }
 
-AlleleFreqs::AlleleFreqs(){
+AlleleFreqs::AlleleFreqs() {
   Vector_d null_Vector_d(1);
   Vector_i null_Vector_i(1);
   Matrix_d null_Matrix_d(1,1);
@@ -63,21 +63,23 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
   Populations = options->getPopulations();
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ) isHistoricAlleleFreq = true;
   else isHistoricAlleleFreq = false;
-
+  
   if(IsRandom() &&  options->getOutputAlleleFreq() ){
     allelefreqoutput = new AlleleFreqOutputter(options,PopulationLabels);
   }
-
+  
   psi.SetNumberOfElements( Populations );
   tau.SetNumberOfElements( Populations );
-
+  
   SumAcceptanceProb.SetNumberOfElements( Populations );
   SumEta.SetNumberOfElements( Populations );
-
+  
+  // these lines should be moved to chromosome object
   LociCorrSummary.SetNumberOfElements( Loci.GetNumberOfCompositeLoci() );
   for( int j = 1; j < Loci.GetNumberOfCompositeLoci(); j++ )
     LociCorrSummary(j) = strangExp( -Loci.GetDistance( j ) * rho );
-
+  
+  // settings for sampling of dispersion parameter
   // Matrix etaprior(1,1);
   Vector_d maxeta( Populations );
   if( isHistoricAlleleFreq ){
@@ -95,7 +97,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
       Log->logmsg(true,options->getEtaPriorFilename());
       Log->logmsg(true,".\n");
       //const Matrix_d& etaprior = data_->getEtaPriorMatrix();
-
+      
       for( int k = 0; k < Populations; k++ ){
 	psi(k) = etaprior( k, 0 );
 	tau(k) = etaprior( k, 1 );
@@ -114,21 +116,21 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
     }
     for( int k = 0; k < Populations; k++ ){
       
-//       // old method; sets eta to the sum of priorallelefreqs
-//       for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
-//        	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
-//        	if( maxeta(k) > eta(k) ){
-//        	  eta(k) = maxeta(k);
-//        	}
-//       }
+      //       // old method; sets eta to the sum of priorallelefreqs
+      //       for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
+      //        	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
+      //        	if( maxeta(k) > eta(k) ){
+      //        	  eta(k) = maxeta(k);
+      //        	}
+      //       }
       
       //Initialise eta at its prior expectation
       eta(k) = psi(k)/tau(k);
       //Rescale priorallelefreqs so the columns sum to eta 
       for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ )
 	PriorAlleleFreqs(j).SetColumn(k, PriorAlleleFreqs(j).GetColumn(k) * eta(k) / PriorAlleleFreqs(j).GetColumn(k).Sum());
-     }
-  
+    }
+    
     //Open output file for eta
     if ( options->getIndAdmixHierIndicator() && strlen( options->getEtaOutputFilename() ) ){
       InitializeEtaOutputFile(options, PopulationLabels, Log); 
@@ -143,12 +145,12 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
   Log->logmsg(true,"Effective length of autosomes under study: ");
   Log->logmsg(true,Loci.GetLengthOfGenome());
   Log->logmsg(true," Morgans.\n");
-
+  
   if( Loci.isX_data() ){
     Log->logmsg(true,"Effective length of X chromosome under study: ");
     Log->logmsg(true, Loci.GetLengthOfXchrm());
     Log->logmsg(true," Morgans.\n");
-   }
+  }
 }
 
 void AlleleFreqs::load_f(double rho,Chromosome **chrm){
@@ -162,10 +164,11 @@ void AlleleFreqs::load_f(double rho,Chromosome **chrm){
   }
 }
 
+
 void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int Pops){
 /**
  * Sets the frequencies of each haplotype at each composite locus.
- * obsolescent - maintained only for compatibility with old format 
+ * obsolescent - maintained for compatibility with old format 
  * in which fixed allele freqs were specified in input data with last allele omitted 
  * 
  * NewAlleleFreqs - a matrix containing allele frequencies, read from input data
@@ -201,7 +204,7 @@ void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int Pops){
       else{
 	Loci(i)->SetNumberOfPopulations(Pops);
 	newrow = row + Loci(i)->GetNumberOfStates() - 1;
-	// initialize allele freqs at this locus
+	// initialize Freqs
 	Freqs(i) = NewAlleleFreqs.SubMatrix( row, newrow - 1, 0, Pops - 1 );
 	// set size of allele counts matrix at this locus
 	AlleleCounts(i).SetNumberOfElements(Loci(i)->GetNumberOfStates(),Pops);
@@ -210,11 +213,10 @@ void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int Pops){
 	// initialize haplotypes given hap freqs - this call should be moved to Individual class
 	Loci(i)->InitialiseHaplotypes(Freqs(i));
 	row = newrow;
-
       }
     }
+  InitializeAlleleProbs();
 }
-
 
 void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed){
 /**
@@ -254,6 +256,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed){
     cout << "PriorAlleleFreqs has " << New.GetNumberOfRows() << " rows.\n";
   }
   else{
+    // initialize Freqs and AlleleProbs
     // set size of allele freqs matrix for this locus
     Freqs(i).SetNumberOfElements(Loci(i)->GetNumberOfStates()-1, Pops);
     // set size of allele counts matrix
@@ -266,7 +269,6 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed){
       for( int k = 0; k < Loci(i)->GetNumberOfStates() - 1; k++ )
 	Freqs(i)( k, j ) = ( New( k, j ) ) / sumalpha;
     }
-
     Loci(i)->InitialiseHaplotypes(Freqs(i));
     if(fixed){
       Loci(i)->InitialiseScoreTest(Pops);
@@ -287,7 +289,6 @@ void AlleleFreqs::InitialiseHistoricAlleleFreqs(Matrix_d New, int i){
    * to vary from the historical allele frequencies in the unadmixed ancestral populations that have 
    * been sampled. 
    * Otherwise as for InitalisePriorAlleleFreqs
-   * 
    */
   // unnecessary duplication of code - should use same method as above.  only difference is in 
   // how sumalpha is set
@@ -298,11 +299,13 @@ void AlleleFreqs::InitialiseHistoricAlleleFreqs(Matrix_d New, int i){
     cout << "Number of states " << Loci(i)->GetNumberOfStates() << endl;
     cout << "HistoricalAlleleFreqs has "<< New.GetNumberOfRows() << " rows.\n";
   }
-  IsHistoricAlleleFreq = true;//possible not necessary since already set
+  IsHistoricAlleleFreq = true; // possibly not necessary since already set
   HistoricLikelihoodAlleleFreqs(i) = New;
   PriorAlleleFreqs(i) = New + 0.501;
   int Pops = New.GetNumberOfCols();
   Loci(i)->SetNumberOfPopulations(Pops);
+
+  // initialize Freqs
   Freqs(i).SetNumberOfElements(Loci(i)->GetNumberOfStates() - 1, Pops);
   HistoricAlleleFreqs(i).SetNumberOfElements(Loci(i)->GetNumberOfStates() - 1, Pops);
   AlleleCounts(i).SetNumberOfElements(Loci(i)->GetNumberOfStates() , Pops);
@@ -313,6 +316,7 @@ void AlleleFreqs::InitialiseHistoricAlleleFreqs(Matrix_d New, int i){
     for( int k = 0; k < Loci(i)->GetNumberOfStates() - 1; k++ )
       Freqs(i)( k, j ) = ( New( k, j ) ) / sumalpha;
   }
+
   Loci(i)->InitialiseHaplotypes(Freqs(i));
   SumAlleleFreqs(i).SetNumberOfElements(Loci(i)->GetNumberOfStates() - 1, Pops);
   RandomAlleleFreqs = 1;
@@ -353,14 +357,61 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
     // reference prior on allele freqs: all elements of parameter vector set to 0.5
     // this is unrealistic for large haplotypes - should set all elements to sum to 1
     PriorAlleleFreqs(i).SetElements(0.5);
+
+    // initialize Freqs
     Freqs(i).SetNumberOfElements(Loci(i)->GetNumberOfStates() - 1, Pops);
+    // initialize frequencies as equal for all alleles at locus
     Freqs(i).SetElements(1.0/Loci(i)->GetNumberOfStates());
+
     AlleleCounts(i).SetNumberOfElements(Loci(i)->GetNumberOfStates(), Pops);
     Loci(i)->InitialiseHaplotypes(Freqs(i));
     SumAlleleFreqs(i).SetNumberOfElements(Loci(i)->GetNumberOfStates() - 1, Pops);
     RandomAlleleFreqs = 1;
   }
 }
+
+
+// Initializes AlleleProbs, array of frequencies including last allele
+// this method requires that Freqs has already been initialized
+// currently called by method LoadAlleleFreqs
+void AlleleFreqs::InitializeAlleleProbs() {
+  int NumAlleles;
+  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ) {
+    NumAlleles = Loci(i )->GetNumberOfStates();
+    AlleleProbs(i).SetNumberOfElements(NumAlleles, Populations);
+    // last row is indexed as NumAlleles - 1
+    for( int a = 0; a < NumAlleles - 1; a++ ) {
+      // cout << a << " " << AlleleProbs(i).GetNumberOfRows();
+      AlleleProbs(i).SetRow(a, Freqs(i).GetRow(a)); 
+      // accumulate subtraction from 1 in last row 
+      AlleleProbs(i).SetRow(NumAlleles - 1, AlleleProbs(i).GetRow(NumAlleles - 1) - Freqs(i).GetRow(a));
+    }
+    // add ones to last row
+    for (int pop = 0; pop < Populations - 1; pop++ ) {
+      AlleleProbs(i)(NumAlleles - 1, pop) += 1; 
+    }
+  }
+}
+
+// sets AlleleProbs at each iteration, after update of Freqs
+void AlleleFreqs::SetAlleleProbs() {
+  int NumAlleles;
+  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ) {
+    NumAlleles = Loci(i )->GetNumberOfStates();
+    for( int a = 0; a < NumAlleles - 1; a++ ) {
+      // set allele probs in all but last row
+      AlleleProbs(i).SetRow(a, Freqs(i).GetRow(a)); 
+      // accumulate subtraction from 1 in last row 
+      AlleleProbs(i).SetRow(NumAlleles - 1, AlleleProbs(i).GetRow(NumAlleles - 1) - Freqs(i).GetRow(a));
+    }
+    // add ones to last row
+    for (int pop = 0; pop < Populations - 1; pop++ ) {
+      AlleleProbs(i)(NumAlleles - 1, pop) += 1; 
+    }
+  }
+}
+
+
 // Method samples allele frequency and prior allele frequency
 // parameters.
 void AlleleFreqs::Update(int iteration,int BurnIn){
@@ -385,8 +436,9 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
       }
     }
     
-    // Sample allele frequencies
+    // Sample allele frequencies and set AlleleProbs
     SampleAlleleFreqs( 1 );
+    SetAlleleProbs();
     
     // Sample allele frequency dispersion parameters, eta, using
     // Metropolis random-walk.
@@ -451,12 +503,11 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 }
 
 /**
- * Given the unordered genotype, possible haplotypes compatible with the genotype, and the ordered ancestry states at a
- * locus, this method randomly draws the phase of the genotype, then
+ * Given possible haplotype pairs compatible with the genotype, and the ordered ancestry states at a
+ * locus, this method samples the haplotype pair, then  
  * updates the counts of alleles observed in each state of ancestry.
- * (MORE DETAILS PLEASE)
+ * should use hap pairs stored in Individual object
  */
-
 void AlleleFreqs::UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry )
 {
    Vector_i h(2);
@@ -465,8 +516,6 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i an
 }
 
 // get posterior mode of frequency of allele x, given locus and subpopulation
-
-
 double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
 {
    double P;
@@ -482,29 +531,35 @@ double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
    return P;
 }
 
-// it's wasteful to calculate these probs every time the function is called
-// should calculate once after each update of Freqs, and store
+// wasteful to calculate these probs every time the function is called
+// now calculated once after each update of Freqs, and stored
 double AlleleFreqs::GetAlleleProbs( int x, int ancestry , int locus)
 {
-   double P;
-   if( x < Loci(locus)->GetNumberOfAllelesOfLocus(0) - 1 )
-     P = Freqs(locus)( x, ancestry );
-   else
-   {
-      P = 1;
-      for( int j = 0; j < Loci(locus)->GetNumberOfAllelesOfLocus(0) - 1; j++ )
-	P -= Freqs(locus)( j, ancestry );
-   }
-   return P;
+  if(x < AlleleProbs(locus).GetNumberOfRows()) {
+    double P;
+    P = AlleleProbs(locus)( x, ancestry );
+    return P;
+  } 
+  else {
+    string msg = "allele num  > num of alleles \n";
+    throw runtime_error(msg.c_str());
+  }
 }
 
-Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed)
+// gets probability of genotypes given ancestry states. Returns a matrix in which rows and cols index 
+// paternal and maternal locus ancestry states.  
+// this method will be redundant if GetGenotypeProbs is fixed to work with a haploid locus. can then call 
+// GetGenotypeProbs directly
+// method is called by UpdateParameters method in Chromosome object
+Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, 
+				     bool fixed)
 {
   Matrix_d Prob;
   if( diploid ){
     Prob = Loci(locus)->GetGenotypeProbs(Haplotypes, fixed, RandomAlleleFreqs);
   }
   else{
+    // should fix GetGenotypeProbs to work with a haploid locus
     Prob.SetNumberOfElements( Populations, 1 );
     if( Loci(locus)->GetNumberOfLoci() == 1 ){
       for( int pop = 0; pop < Populations; pop++ ){
@@ -537,7 +592,6 @@ void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, const vector<unsigne
 
 /**
  * Whether the object should remember the results of sampling.
- *
  * flag - integer representing a boolean. Set true (one) to remember
  *   sampled data. Set false (zero) during burn in.
  */
@@ -569,10 +623,7 @@ void AlleleFreqs::SampleAlleleFreqs( int flag )
 }
 
 
-/**
- * Sets the sum of allele frequencies over all sampling iterations to
- * zero.
- */
+// Sets sum of allele frequencies over iterations to zero.
 void AlleleFreqs::ResetSumAlleleFreqs()
 {
 for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
@@ -633,6 +684,8 @@ void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<Vector_d>& mu)
 }
 
 void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( Vector_d eta , int locus)
+  // for a multi-allelic locus, we sample the Dirichlet prior allele freqs
+  // by a Metropolis random walk
 {
    vector<int> accept(Populations,0);
    Vector_d mu1, mu2;
@@ -668,6 +721,9 @@ void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( Vector_d eta , int locus)
 }
 
 void AlleleFreqs::SamplePriorAlleleFreqs1D( Vector_d eta , int locus)
+  // for a diallelic locus, we can sample the proportion parameter of the beta distribution
+  // conditional on the observed counts, the historic allele freqs and the dispersion parameter
+  // using an adaptive rejection sampler 
 {
    double lefttruncation = 0.1;
    Vector_d MuParameters(2);
@@ -767,21 +823,27 @@ void AlleleFreqs::OutputEta(int iteration, AdmixOptions *options, std::ofstream 
   }
 }
 
+
 Vector_d *AlleleFreqs::geteta(){
   return &eta;
 }
+
 Vector_d *AlleleFreqs::getSumEta(){
   return &SumEta;
 }
+
 Genome *AlleleFreqs::getLoci(){
   return &Loci;
 }
+
 CompositeLocus *AlleleFreqs::getLocus(int i){
   return (CompositeLocus *)(Loci(i));
 }
+
 int AlleleFreqs::GetNumberOfCompositeLoci(){
   return Loci.GetNumberOfCompositeLoci();
 }
+
 void AlleleFreqs::OutputAlleleFreqs(){
   if( IsRandom() ){
     allelefreqoutput->visitGenome(Loci);
@@ -790,6 +852,7 @@ void AlleleFreqs::OutputAlleleFreqs(){
     allelefreqoutput->OutputAlleleFreqs(this);
   }
 }
+
 void AlleleFreqs::OutputFST(bool IsPedFile){
   for( int j = 0; j < GetNumberOfCompositeLoci(); j++ ){
     if(IsPedFile)
@@ -806,6 +869,7 @@ void AlleleFreqs::Reset(){
     AlleleCounts(i).SetElements(0);
   }
 }
+
 void AlleleFreqs::OpenFSTFile(AdmixOptions *options,LogWriter *Log){
   if( options->getOutputFST() ){
     Log->logmsg(true,options->getFSTOutputFilename());
@@ -817,6 +881,7 @@ void AlleleFreqs::OpenFSTFile(AdmixOptions *options,LogWriter *Log){
     }
   }
 }
+
 void AlleleFreqs::loadAlleleStatesAndDistances(vector<string> * ChrmLabels,AdmixOptions *options,InputData *data_, LogWriter *Log){
   string *LociLabelsCheck = 0;
 
@@ -832,10 +897,10 @@ void AlleleFreqs::loadAlleleStatesAndDistances(vector<string> * ChrmLabels,Admix
   int numCompLoci = 0;
   // numCompLoci counts the number of simple Loci that are in neither simple loci nor the first in a compound locus
   // would be neater to do some thing like
-  //numCompLoci = locifileData.GetNumberOfRows()
+  // numCompLoci = locifileData.GetNumberOfRows()
   //  for( int i = 0; i < locifileData.GetNumberOfRows(); i++ )
   //   if( locifileData( i, 1 ) == 0.0 ) numCompLoci--;
-  //so that numCompLoci is the number of Composite Loci
+  // so that numCompLoci is the number of Composite Loci
   // could also store this at class scope to save calls to Loci::GetNumberOfCompositeLoci
 
   for( int i = 0; i < locifileData.GetNumberOfRows(); i++ )
@@ -847,6 +912,7 @@ void AlleleFreqs::loadAlleleStatesAndDistances(vector<string> * ChrmLabels,Admix
   int NCL = locifileData.GetNumberOfRows() - numCompLoci;
   Loci.SetNumberOfCompositeLoci(NCL);
   Freqs.SetNumberOfElements(NCL);
+  AlleleProbs.SetNumberOfElements(NCL);
   AlleleFreqsMAP.SetNumberOfElements(NCL);
   HistoricAlleleFreqs.SetNumberOfElements(NCL);
   AlleleCounts.SetNumberOfElements(NCL);
@@ -893,6 +959,7 @@ void AlleleFreqs::loadAlleleStatesAndDistances(vector<string> * ChrmLabels,Admix
   }
   Log->logmsg(false,"\n");
 
+  // checks of input data files should be in class InputData
   if( options->getTextIndicator() ){
 
     Vector_s labels = data_->getGeneticData()[0];
@@ -926,11 +993,12 @@ void AlleleFreqs::loadAlleleStatesAndDistances(vector<string> * ChrmLabels,Admix
   delete [] LociLabelsCheck;
 }
 
-void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data_,std::string **PopulationLabels)
+void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, 
+				  InputData *data_,std::string **PopulationLabels)
 {
   int newrow;
   int row = 0;
-
+  
   Matrix temp2, elements;
   Matrix_d temporary;
   vector<string> ChrmLabels;
@@ -1033,12 +1101,12 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
  
     temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, Populations );
     *PopulationLabels = new string[ Populations ];
-
+    
     Vector_i vtemp( Populations + 1 );
     vtemp.SetElements( 1 );
     vtemp(0) = 0;
     ::getLabels(*alleleFreqLabels, vtemp, *PopulationLabels);
-
+    
     for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
       newrow = row + Loci(i)->GetNumberOfStates();
       if( strlen( options->getHistoricalAlleleFreqFilename() ) )
@@ -1046,11 +1114,12 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
 	InitialiseHistoricAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0,Populations - 1 ), i );
       else
 	//Loci(i)->SetPriorAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0, Populations - 1 ), options->getFixedAlleleFreqs() );
-	InitialisePriorAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0, Populations - 1 ), i,options->getFixedAlleleFreqs());
+	InitialisePriorAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0, Populations - 1 ), i, 
+				    options->getFixedAlleleFreqs());
       row = newrow;
     }
   }
-  else{
+  else {
     //Loci.SetDefaultAlleleFreqs( Populations );
     SetDefaultAlleleFreqs( Populations );
     *PopulationLabels = new string[ Populations ];
@@ -1061,8 +1130,10 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
       result = poplabel.str();
       (*PopulationLabels)[j] = result;
     }
-      
+    
   }
+
+  InitializeAlleleProbs();
   (*chrm) = Loci.GetChromosomes(Populations, ChrmLabels );
 
  options->setPopulations(Populations);
@@ -1128,6 +1199,11 @@ void AlleleFreqs::getLabels( const string buffer, Vector_i temporary, string *la
 }
 
 
+// should set allele freqs to the posterior mode
+// but apparently just sets to current value
+// probably doesn't matter where there is strong prior on allele freqs, and used in Chib algorithm 
+// which just requires a value near the posterior mode
+// set AlleleFreqsMAP and getAlleleFreqs are called by Individual object
 void AlleleFreqs::setAlleleFreqsMAP()
 {
   for(int i=0;i<GetNumberOfCompositeLoci();++i)
@@ -1137,7 +1213,6 @@ void AlleleFreqs::setAlleleFreqsMAP()
 
 /**
  * Indicates whether allele frequencies are fixed or random.
- *
  * Returns:
  * an integer representing a boolean. true (one) if allele frequencies
  * are random. false (zero) otherwise.
@@ -1177,25 +1252,29 @@ Vector_i AlleleFreqs::GetAlleleCounts( int locus, int population )
 {
   return( AlleleCounts(locus).GetColumn( population ) );
 }
+
 Vector_d AlleleFreqs::getAlleleFreqsMAP( int locus, int population )
 {
   return( AlleleFreqsMAP(locus).GetColumn( population ) );
 }
+
 /**AlleleFreqs
  * Gets the frequencies of each haplotype in a composite locus.
  *
  * returns:
- * a matrix containing the frequencies of each allele
- * one row per allele state, one column per population
+ * a matrix containing the frequencies of each haplotype
+ * one row per haplotype state, one column per population
  */
 Matrix_d &AlleleFreqs::GetAlleleFreqs(int locus)
 {
   return( Freqs(locus) );
 }
+
 Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus)
 {
   return( SumAlleleFreqs(locus) );
 }
+
 int AlleleFreqs::GetNumberOfStates(int locus){
   return Loci(locus)->GetNumberOfStates();
 }
