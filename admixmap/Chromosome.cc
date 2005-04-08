@@ -213,11 +213,9 @@ bool fixedallelefreqs )
 Matrix_i
 Chromosome::SampleForLocusAncestry(Individual* ind, AlleleFreqs *A)
 {
-  // D - number of diploid ancestry states
   Vector_i CodedStates;
   Matrix_i OrderedStates(2,L);
-  
-  // Sample    
+  // HMM algorithm to sample from joint distribution of hidden states     
   CodedStates = SampleStates.Sample(TransitionProbs);
   for( int j = 0; j < L; j++ ){
     //     OrderedStates( 0, j ) = 0;
@@ -225,16 +223,16 @@ Chromosome::SampleForLocusAncestry(Individual* ind, AlleleFreqs *A)
     OrderedStates( 1, j ) = (CodedStates(j) % populations);
   }
   
-  // Update stats for allele freqs
-  for( int j = 0; j < L; j++ ){
-    int locus = GetLocus( j );
-    if( ind->IsMissing(locus)[0] != 0 ){
-      //(*this)(j)->UpdateAlleleCounts( genotype, OrderedStates.GetColumn(j) );
-      // why should function UpdateAlleleCounts need to get genotypes if it already has the possible haplotypes 
-      // compatible with the genotype? 
-      A->UpdateAlleleCounts( locus, ind->getPossibleHaplotypes(locus), OrderedStates.GetColumn(j) );
-    }
-  }
+// Update stats for allele freqs
+//  for( int j = 0; j < L; j++ ){
+//     int locus = GetLocus( j );
+//     if( ind->IsMissing(locus)[0] != 0 ){
+//       //(*this)(j)->UpdateAlleleCounts( genotype, OrderedStates.GetColumn(j) );
+//       // why should function UpdateAlleleCounts need to get genotypes if it already has the possible haplotypes 
+//       // compatible with the genotype? 
+//       A->UpdateAlleleCounts( locus, ind->getPossibleHaplotypes(locus), OrderedStates.GetColumn(j) );
+//     }
+//   }
   
   return( OrderedStates );
 }

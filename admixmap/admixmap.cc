@@ -1,4 +1,3 @@
-
 #include "admixmap.h"
 #include "IndividualCollection.h"
 #include "Chromosome.h"//not needed if chrm is moved out
@@ -100,11 +99,11 @@ void submain(AdmixOptions* options){
   /*-------------------------------------------------------
   |  single individual, one population, allele frequencies |
   ---------------------------------------------------------*/
-  if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
+  if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && 
+      strlen(options->getAlleleFreqFilename()) )
     IC->getOnePopOneIndLogLikelihood(&Log,&A,PopulationLabels);
 
   else{
-   
     Scoretest.Initialise(options, IC, A.getLoci(),chrm,PopulationLabels, &Log);  
     StratTest.Initialize( options, *(A.getLoci()) ,&Log);
     DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());

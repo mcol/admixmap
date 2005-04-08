@@ -4,9 +4,7 @@ using namespace std;
 
 /**
  * NAME
- *
  *   CompositeLocus - represents a composite locus.
- *
  *
  * SYNOPSIS
  *
@@ -14,14 +12,11 @@ using namespace std;
  *
  *   CompositeLocus loc123;
  *   loc123.SetNumberOfLoci(3);
- *
- *   [!! NEED MORE EXAMPLES !!]
  */
 
 /**
  * No-argument constructor for a CompositeLocus object, which represents a
- * composite locus. By default, constructs a simple diallelic locus with fixed 
- * allele frequencies.
+ * composite locus. By default, constructs a simple diallelic locus 
  */
 CompositeLocus::CompositeLocus()
 {
@@ -186,8 +181,6 @@ void CompositeLocus::InitialiseScoreTest(int Populations )
 }
 
 void CompositeLocus::InitialiseHaplotypes(Matrix_d &Freqs){
-  // haplotype probs should be set even if composite locus contains only one simple locus 
-  //  if( NumberOfLoci > 1 ){
     ConstructHaplotypeProbs(Freqs);
     HaplotypeProbsMAP = HaplotypeProbs;
     SetNoMergeHaplotypes();
@@ -233,10 +226,6 @@ string CompositeLocus::GetLabel(int index)
  * returns:
  * two-element vector containing the haplotype pair
  */
-
-//Vector_i CompositeLocus::SampleHaplotypePair(const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry , 
-//					 Matrix_d &AlleleFreqs)
-
 Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ancestry)
 {
    Vector_i hap(2);
@@ -275,20 +264,6 @@ Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ances
 //      }
 //   }
    return( hap );
-}
-
-double CompositeLocus::GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs)
-{
-   double P;
-   if( x < NumberOfAlleles(0) - 1 )
-     P = Freqs( x, ancestry );
-   else
-   {
-      P = 1;
-      for( int j = 0; j < NumberOfAlleles(0) - 1; j++ )
-	P -= Freqs( j, ancestry );
-   }
-   return P;
 }
 
 /**
@@ -342,13 +317,13 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
 }
 
 /**
- * Given a list of possible haplotypes, returns sums of probabilities of these haplotypes
- * given each possible ordered pair of locus ancestry states 
+ * Given a list of possible haplotype pairs, returns sums of probabilities of these 
+ * haplotype pairs for each possible ordered pair of ancestry states
  * 
  * Haplotypes - a list of possible haplotypes compatible with the observed genotypes
  *
  * fixed - indicates whether the allelefrequencies are fixed
- * RandomAlleleFreqs - indicates whether the allele frequencies are random
+ * RandomAlleleFreqs - indicates whether the allele frequencies are random - why two indicators?
  *
  * returns:
  * a matrix with rows and cols indexing paternal and maternal ancestry. For 
@@ -363,6 +338,7 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
  *
  *   n.b. the sum of all probabilities might not equal 1.0 - but
  *   probabilities are in correct proportions.
+ *  this matrix has to be rearranged as a vector for the HMM  
  */
 Matrix_d CompositeLocus::GetGenotypeProbs(Vector_i Haplotypes, bool fixed, int RandomAlleleFreqs)
 {
