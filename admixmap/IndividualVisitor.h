@@ -12,7 +12,7 @@ class IndividualVisitor
 public:
   
   virtual void
-  visitIndividual(Individual&,std::vector<int>,double, Matrix_d &) = 0;
+  visitIndividual(Individual&,std::vector<int>,double) = 0;
   
   virtual void
   visitIndividualCollection(IndividualCollection&) = 0;

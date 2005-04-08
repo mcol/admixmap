@@ -260,22 +260,36 @@ Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ances
          hap(1) = (DipLoop.GetCountParent( 0 )*pmult).Sum();
          hap(0) = (DipLoop.GetCountParent( 1 )*pmult).Sum();
       }
+      //   }
+//   else{
+//      int temp;
+//      double q1, q2;
+//      q1 = GetAlleleProbs( genotype[0], ancestry(0), AlleleFreqs ) * GetAlleleProbs( genotype[1], ancestry(1), AlleleFreqs );
+//      q2 = GetAlleleProbs( genotype[1], ancestry(0), AlleleFreqs ) * GetAlleleProbs( genotype[1], ancestry(0) , AlleleFreqs);
+//      hap(0) = genotype[0];
+//      hap(1) = genotype[1];
+//      if( myrand() > q1 / ( q1 + q2 ) ){
+//         temp = hap(0);
+//         hap(0) = hap(1);
+//         hap(1) = temp;
+//      }
+//   }
    return( hap );
 }
 
-//double CompositeLocus::GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs)
-//{
-//   double P;
- //  if( x < NumberOfAlleles(0) - 1 )
-//     P = Freqs( x, ancestry );
-//   else
-//   {
-//      P = 1;
-//      for( int j = 0; j < NumberOfAlleles(0) - 1; j++ )
-//	P -= Freqs( j, ancestry );
-//   }
-//   return P;
-//}
+double CompositeLocus::GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs)
+{
+   double P;
+   if( x < NumberOfAlleles(0) - 1 )
+     P = Freqs( x, ancestry );
+   else
+   {
+      P = 1;
+      for( int j = 0; j < NumberOfAlleles(0) - 1; j++ )
+	P -= Freqs( j, ancestry );
+   }
+   return P;
+}
 
 /**
  * Called every time the haplotype frequencies change. Constructs a 
@@ -364,16 +378,13 @@ Matrix_d CompositeLocus::GetGenotypeProbs(Vector_i Haplotypes, bool fixed, int R
    return( GenoTypeProbs );
 }
 
-// doesn't really calculate posterior mode
-// just sets to current value of hap freqs.  ok for Chib algorithm if strong prior
 void CompositeLocus::setHaplotypeProbsMAP()
 {
    HaplotypeProbs = HaplotypeProbsMAP;
 }
 
 /**
- * this method probably needs reworking for general composite locus 
- * Given an unordered SNP genotype, returns the number of times allele 
+ * Given an unordered genotype, returns the number of times allele 
  * number-2 appears at each locus of the composite locus.
  * Used to test individual loci in haplotype for association.
  * 
@@ -412,7 +423,6 @@ Vector_i CompositeLocus::GetAlleleCountsInHaplotype(const vector<unsigned int>& 
    return( AlleleCounts );
 }
 
-// can get rid of this once we eliminate special methods for haploid data
 Vector_i CompositeLocus::decodeGenotype(const vector<unsigned int>& encoded)
 {
   Vector_i decoded(encoded.size());
@@ -500,7 +510,6 @@ int CompositeLocus::HapLoopGetDecimal(Vector_i x){
   return HapLoop.GetDecimal(x);
 }
 
-// 
 Vector_i CompositeLocus::Haplotype( Vector_i Genotype, int count )
 {
    Vector_i hap;
@@ -514,8 +523,6 @@ Vector_i CompositeLocus::Haplotype( Vector_i Genotype, int count )
    return( hap );
 }
 
-
-// presumably this calculates score test for mis-spec allele freqs at multi-allelic loci
 void CompositeLocus::UpdateScoreForMisSpecOfAlleleFreqs2(Matrix_d &AlleleFreqs, Matrix_i &AlleleCounts)
 {
    double rn, r, pj, pi, q;
@@ -542,8 +549,8 @@ void CompositeLocus::UpdateScoreForMisSpecOfAlleleFreqs2(Matrix_d &AlleleFreqs, 
 }
 
 /**
- * N.B. This only works for a single SNP.
- * Updates score tests. Only used with fixed
+ * N.B. This only works for a single SNiP.
+ * Updates what's required for the score tests. Only used with fixed
  * allele frequencies. This method is only used for monitoring.
  */
 void CompositeLocus::UpdateScoreForMisSpecOfAlleleFreqs( Matrix_d phi, vector<unsigned int> x, Matrix_d AlleleFreqs)
@@ -763,9 +770,6 @@ int CompositeLocus::GetMergedHaplotype( int i )
    return( MergeHaplotypes(i) );
 }
 
-// apparently calculates contribution of allele freqs to marginal likelihood of model
-// by subtracting log prior density from log posterior
-// in current version, this method is not called anywhere
 double GetMarginalLikelihood( Vector_d PriorAlleleFreqs, Vector_d AlleleCounts )
 {
    double f = gsl_sf_lngamma( PriorAlleleFreqs.Sum() ) -

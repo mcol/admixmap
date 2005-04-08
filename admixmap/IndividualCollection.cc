@@ -53,11 +53,11 @@ if (options->getAnalysisTypeIndicator() == 2)
 }
 
 void
-IndividualCollection::OutputIndAdmixture(Matrix_d Freqs)
+IndividualCollection::OutputIndAdmixture()
 {
   indadmixoutput->visitIndividualCollection(*this);
   for(unsigned int i=0; i<_child.size(); i++){
-    indadmixoutput->visitIndividual(*_child[i], _locusfortest, LogLikelihood, Freqs );
+    indadmixoutput->visitIndividual(*_child[i], _locusfortest, LogLikelihood);
   }
 }
 

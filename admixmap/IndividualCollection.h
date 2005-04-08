@@ -72,7 +72,7 @@ public:
 	      vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta,
 	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood);
   
-  void OutputIndAdmixture(Matrix_d);
+  void OutputIndAdmixture();
 
   void Output(std::ofstream *);
 

@@ -40,7 +40,7 @@ private: // members
 public:
   IndAdmixOutputter(AdmixOptions*,Genome*,std::string*);
   virtual ~IndAdmixOutputter();
-  void visitIndividual(Individual&, std::vector<int>,double, Matrix_d&);
+  void visitIndividual(Individual&, std::vector<int>,double);
   void visitIndividualCollection(IndividualCollection&);
 
 };

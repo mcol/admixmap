@@ -87,7 +87,7 @@ private:
 
   void UpdateScoreForLinkageAffectedsOnly( Individual*);
   
-  void UpdateScoreForAllelicAssociation( Individual*, AlleleFreqs *A, double,double, double);
+  void UpdateScoreForAllelicAssociation( Individual*, double,double, double);
 
   //void UpdateScoreForAncestryOld( Individual* ind, double Y, int regressonindicator, double EY, double lambda0);
 

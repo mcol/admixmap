@@ -356,7 +356,7 @@ void ScoreTests::Update(double lambda, AlleleFreqs *A)
 	DInvLink = 1.0;
       if( !options->getScoreTestIndicator() ){
 	if( options->getTestForAllelicAssociation() )
-	  UpdateScoreForAllelicAssociation( ind, A, YMinusEY,dispersion, DInvLink);
+	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
 	if( options->getTestForLinkageWithAncestry() ){
 	  //UpdateScoreForAncestryOld( ind, Y, 0, EY ,dispersion);
 	}
@@ -372,7 +372,7 @@ void ScoreTests::Update(double lambda, AlleleFreqs *A)
       DInvLink = EY * (1.0 - EY);
       if( !options->getScoreTestIndicator() ){
 	if( options->getTestForAllelicAssociation() ){
-	  UpdateScoreForAllelicAssociation( ind, A, YMinusEY,dispersion, DInvLink);
+	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
 	}
 	if( options->getTestForLinkageWithAncestry() ){
 	  //UpdateScoreForAncestryOld( ind, Y, 1, EY,dispersion);
@@ -398,7 +398,7 @@ void ScoreTests::Update(double lambda, AlleleFreqs *A)
       dispersion = OutcomeType ? 1.0 : lambda;
       DInvLink = OutcomeType ? EY*(1.0-EY):1.0;
       if( options->getTestForAllelicAssociation() ){
-	UpdateScoreForAllelicAssociation( ind, A, YMinusEY,dispersion, DInvLink);
+	UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
       }
       if( options->getTestForLinkageWithAncestry() ){
 	//UpdateScoreForAncestryOld( ind, Y, OutcomeType, EY,dispersion);
@@ -585,7 +585,7 @@ ScoreTests::UpdateScoreForLinkageAffectedsOnly( Individual* ind)
   }
 }
 
-void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, AlleleFreqs *A,double YMinusEY, double phi, double DInvLink)
+void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinusEY, double phi, double DInvLink)
 //Note: EY0 = ExpectedY(0)(i,0), lambda0 = lambda(0)
  {
 
@@ -634,9 +634,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind, AlleleFreqs 
 	  UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
 	  if( options->getTestForSNPsInHaplotype() ){
 	    ancestry = ind->GetLocusAncestry( j, jj );
-	    //hap = (*Lociptr)(locus)->SampleHaplotypePair( ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), 
-	    //						      ancestry , A->GetAlleleFreqs(locus));
-	    hap = (*Lociptr)(locus)->SampleHaplotypePair(ind->getPossibleHaplotypes(locus), ancestry);
+	    hap = (*Lociptr)(locus)->SampleHaplotypePair( ind->getPossibleHaplotypes(locus), ancestry);
 	    for( int k = 0; k <(*Lociptr)(locus)->GetNumberOfStates(); k++ ){
 	      if( hap(0) == k )
 		cov_x_coord( (*Lociptr)(locus)->GetMergedHaplotype(k), 0 )++;

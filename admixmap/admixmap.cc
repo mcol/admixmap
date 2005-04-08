@@ -171,7 +171,7 @@ void submain(AdmixOptions* options){
 	if( options->useCOUT() ) cout << endl;
 	if( iteration > options->getBurnIn() ){
 	  // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
-	  if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture(A.GetAlleleFreqs(options->getLocusForTest()));
+	  if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
 	  if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
 	}
       }     
