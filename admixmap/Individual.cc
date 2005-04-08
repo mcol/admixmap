@@ -919,9 +919,10 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
 }
 
 void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
-				     AlleleFreqs *A, int AnalysisTypeIndicator )
+				      AlleleFreqs *A, int AnalysisTypeIndicator )
 {
   Vector_i ancestry(2);
+  // sample missing values of outcome variable, conditional on regression model
   for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
     if( AnalysisTypeIndicator > 1 ){
       if( (*Target)(k).IsMissingValue( i, 0 ) ){
@@ -936,7 +937,8 @@ void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &Ou
       }
     }
   }
-      
+  // sampled alleles should be stored in Individual objects, then summed over individuals to get counts
+  // is this extra update necessary? isn't this method called anyway, irrespective of whether there is only one population?     
   for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
     A->UpdateAlleleCounts(j, getPossibleHaplotypes(j), ancestry );
   }
