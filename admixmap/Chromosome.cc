@@ -207,8 +207,7 @@ bool fixedallelefreqs )
                                     Likelihood, test );
 }
 
-Matrix_i
-Chromosome::SampleForLocusAncestry(Individual* ind, AlleleFreqs *A)
+Matrix_i Chromosome::SampleForLocusAncestry()
 {
   // D - number of diploid ancestry states
   Vector_i CodedStates;

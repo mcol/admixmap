@@ -81,7 +81,7 @@ public:
 				   double rhoalpha, double rhobeta, vector<double> sigma);
 
  void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
-			   AlleleFreqs *Loci, int AnalysisTypeIndicator);
+			   int AnalysisTypeIndicator);
 
   void ChibLikelihood(int i,int iteration, double *LogLikelihood, double *SumLogLikelihood, vector<double> MaxLogLikelihood, 
 		      AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha,  

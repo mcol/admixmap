@@ -542,7 +542,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Vector_d *lambd
 					    chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma);}
     
     else{
-      _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *lambda, A, options->getAnalysisTypeIndicator());
+      _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *lambda, options->getAnalysisTypeIndicator());
     }   
     
     if( options->getAnalysisTypeIndicator() < 0 && i == 0 )//check if this condition is correct

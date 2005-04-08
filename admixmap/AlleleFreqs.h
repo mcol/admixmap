@@ -139,14 +139,13 @@ private:
   void SetDefaultAlleleFreqs(int Pops);
 
   // separate functions to set and to get allele probs
-  void InitializeAlleleProbs();
   void SetAlleleProbs();
   double GetAlleleProbs( int x, int ancestry , int locus); // x is allele number
 
   void SamplePriorAlleleFreqs1D( Vector_d eta , int );
   void SamplePriorAlleleFreqsMultiDim( Vector_d eta , int);
   void SampleAlleleFreqs( int );
-
+  void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
   //void UpdateAlleleCounts(const std::vector<unsigned int>&, Vector_i ); //not used?
   //void UpdateAlleleCounts_HaploidData(const std::vector<unsigned int>&, int );// not used?
 

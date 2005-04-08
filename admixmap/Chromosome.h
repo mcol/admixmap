@@ -47,7 +47,7 @@ public:
   Vector_i SampleForHaploidLocusAncestry(Individual*, AlleleFreqs *);
   void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool);
   void UpdateParametersHaploid(Individual*,AlleleFreqs *,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool);
-  Matrix_i SampleForLocusAncestry(Individual*, AlleleFreqs *);
+  Matrix_i SampleForLocusAncestry();
   void setAncestryProbs(int); 
   Matrix_d getAncestryProbs(int);
   void CreateAncestryProbs();

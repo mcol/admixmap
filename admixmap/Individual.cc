@@ -453,7 +453,6 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
   if( A->getLoci()->isX_data() ) L_X = A->getLoci()->GetLengthOfXchrm();  
   vector< unsigned int > SumN(2,0);
   vector< unsigned int > SumN_X(2,0);
-  if( options->getRhoIndicator() ){
  
   // sample sum of intensities parameter rho
   if( options->getRhoIndicator() ){
@@ -469,7 +468,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
     vectemp = gendirichlet( alpha[0] + SumLocusAncestry_X.GetColumn(0) );
     Theta.SetColumn( 0, vectemp );
   }
-  else if( options->getModelIndicator() ){
+  else if( options->getModelIndicator() ){//random mating model
     for( unsigned int g = 0; g < 2; g++ ){
       if( options->getAnalysisTypeIndicator() > -1 )
 	vectemp = gendirichlet( alpha[0] + SumLocusAncestry.GetColumn(g) );
@@ -485,7 +484,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
       }
     }
   }
-  else{
+  else{// no random mating model
      vectemp = gendirichlet( alpha[0] + SumLocusAncestry.RowSum() );
      Theta.SetColumn( 0, vectemp );
   }
@@ -509,7 +508,7 @@ void Individual::SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, A
 
     if( j != X_posn ){
       chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false );
-      LocusAncestry(j) = chrm[j]->SampleForLocusAncestry( this, A );
+      LocusAncestry(j) = chrm[j]->SampleForLocusAncestry();
     }
     else if( options->getXOnlyAnalysis() ){
       chrm[j]->UpdateParametersHaploid( this, A,AdmixtureProps, options, f, false );
@@ -521,7 +520,7 @@ void Individual::SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, A
     }
     else{
       chrm[j]->UpdateParameters( this, A,XAdmixtureProps, options, f, false );
-      LocusAncestry(j) = chrm[j]->SampleForLocusAncestry( this , A);
+      LocusAncestry(j) = chrm[j]->SampleForLocusAncestry();
     }
     if( options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry())
       AncestryProbs[locus] = chrm[j]->getAncestryProbs( 0 );
@@ -945,7 +944,7 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
 
 // unnecessary duplication of code - should use same method as for > 1 population
 void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
-				     AlleleFreqs *A, int AnalysisTypeIndicator )
+				     int AnalysisTypeIndicator )
 {
   Vector_i ancestry(2);
   for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
