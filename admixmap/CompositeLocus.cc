@@ -186,13 +186,10 @@ void CompositeLocus::InitialiseScoreTest(int Populations )
 }
 
 void CompositeLocus::InitialiseHaplotypes(Matrix_d &Freqs){
-  // haplotype probs should be set even if composite locus contains only one simple locus 
-  //  if( NumberOfLoci > 1 ){
     ConstructHaplotypeProbs(Freqs);
     HaplotypeProbsMAP = HaplotypeProbs;
     SetNoMergeHaplotypes();
-    // }
-}
+ }
 
 /**
  * Sets the name of this composite locus (usually from the 
@@ -233,10 +230,6 @@ string CompositeLocus::GetLabel(int index)
  * returns:
  * two-element vector containing the haplotype pair
  */
-
-//Vector_i CompositeLocus::SampleHaplotypePair(const vector<unsigned int>& genotype, Vector_i Haplotypes, Vector_i ancestry , 
-//					 Matrix_d &AlleleFreqs)
-
 Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ancestry)
 {
    Vector_i hap(2);
@@ -275,21 +268,6 @@ Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ances
 //      }
 //   }
    return( hap );
-}
-
-double CompositeLocus::GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs)
-//obsolete
-{
-   double P;
-   if( x < NumberOfAlleles(0) - 1 )
-     P = Freqs( x, ancestry );
-   else
-   {
-      P = 1;
-      for( int j = 0; j < NumberOfAlleles(0) - 1; j++ )
-	P -= Freqs( j, ancestry );
-   }
-   return P;
 }
 
 /**
@@ -343,13 +321,13 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
 }
 
 /**
- * Given a list of possible haplotypes, returns sums of probabilities of these haplotypes
+ * Given a list of possible haplotype pairs, returns sums of probabilities of these haplotypes
  * given each possible ordered pair of locus ancestry states 
  * 
- * Haplotypes - a list of possible haplotypes compatible with the observed genotypes
+ * Haplotypes - a list of possible haplotypes pairs compatible with the observed genotypes
  *
  * fixed - indicates whether the allelefrequencies are fixed
- * RandomAlleleFreqs - indicates whether the allele frequencies are random
+ * RandomAlleleFreqs - indicates whether the allele frequencies are random - why two indicators?
  *
  * returns:
  * a matrix with rows and cols indexing paternal and maternal ancestry. For 
@@ -365,6 +343,7 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
  *   n.b. the sum of all probabilities might not equal 1.0 - but
  *   probabilities are in correct proportions.
  */
+//this matrix has to be rearranged as a vector for the HMM  
 Matrix_d CompositeLocus::GetGenotypeProbs(Vector_i Haplotypes, bool fixed, int RandomAlleleFreqs)
 {
    Matrix_d GenoTypeProbs( Populations, Populations );
@@ -381,26 +360,25 @@ Matrix_d CompositeLocus::GetGenotypeProbs(Vector_i Haplotypes, bool fixed, int R
 
 // doesn't really calculate posterior mode
 // just sets to current value of hap freqs.  ok for Chib algorithm if strong prior
+//this either misnamed or misdefined
 void CompositeLocus::setHaplotypeProbsMAP()
 {
    HaplotypeProbs = HaplotypeProbsMAP;
 }
 
 /**
- * this method probably needs reworking for general composite locus
- * 
- * Given an unordered SNP genotype, returns the number of times allele 
- * number-2 appears at each locus of the composite locus.
+ * Called only by method UpdateScoresForSNPsWithinHaplotype in ScoreTests
+ * Given an unordered genotype, returns a Vector_i containing number of copies of allele 
+ * 2 at each simple locus in the composite locus.
  * Used to test individual loci in haplotype for association.
  * 
- * genotype - a two-element vector of paternal and maternal genotypes
- *   in decimal notation (e.g. 1121 , 1221 ).
+ * genotype - a two-element STL vector in which each element is a one-dimensional array of
+ * alleles coded as unsigned integers numbered starting at 0 ("decoded" format).  
+ * a vector, of length equal to the number of simple loci in this composite
+ * locus, containing the number of copies of allele 2 at each locus.
  *
- * returns:
- * a vector, of length equal to the number of loci in this composite
- * locus, containing the number of allele number-2 at each locus.
- *
- * n.b. this method is only useful in composite loci composed of SNPs
+ * n.b. this method is only useful in composite loci composed of diallelic simple loci
+ * should be generalized to deal with multi-allelic loci
  */
 Vector_i CompositeLocus::GetAlleleCountsInHaplotype(const vector<unsigned int>& genotype)
 {
@@ -411,7 +389,7 @@ Vector_i CompositeLocus::GetAlleleCountsInHaplotype(const vector<unsigned int>& 
    */
 
    Vector_i AlleleCounts( NumberOfLoci );
-   Vector_i decoded = decodeGenotype(genotype);
+   Vector_i decoded = decodeGenotype(genotype);// subtract 1 from allele numbers
 
    for( int k = 0; k < NumberOfLoci; k++ ){
       if(decoded(k*2)!=-1 && decoded(k*2+1)!=-1){
@@ -429,6 +407,9 @@ Vector_i CompositeLocus::GetAlleleCountsInHaplotype(const vector<unsigned int>& 
 }
 
 // can get rid of this once we eliminate special methods for haploid data
+// method takes a single encoded genotype as argument and subtracts 1 from the allele numbers 
+// so that alleles are numbered from 0
+// presumably missing genotypes will be recoded as pairs of minus ones 
 Vector_i CompositeLocus::decodeGenotype(const vector<unsigned int>& encoded)
 {
   Vector_i decoded(encoded.size());
@@ -453,7 +434,7 @@ Vector_i CompositeLocus::GetNumberOfAlleles()
  *   
  *
  * Haplotypes:
- * a list of possible haplotypes (in VectorLoop format).
+ * a list of possible haplotype pairs (in VectorLoop format).
  */
 Vector_i CompositeLocus::SetPossibleHaplotypes(const vector<unsigned int>& genotype)
 {
