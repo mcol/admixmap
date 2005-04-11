@@ -46,7 +46,7 @@ Matrix_i DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
     freqs;
 
   for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-    numberofstates = A->GetNumberOfStates(j);
+    numberofstates = A->getLocus(j)->GetNumberOfStates();
     AlleleCount = A->GetAlleleCounts(j);
     freqs = A->GetAlleleFreqs(j);
     for( int k = 0; k < options->getPopulations(); k++ ){
