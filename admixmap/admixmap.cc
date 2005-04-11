@@ -1,3 +1,4 @@
+
 #include "admixmap.h"
 #include "IndividualCollection.h"
 #include "Chromosome.h"//not needed if chrm is moved out
@@ -18,7 +19,7 @@ void PrintCopyrightNotice(){
     cout << "-----------------------------------------------" << endl;
     cout << "Programme Authors: " <<endl;
     cout << "Clive Hoggart, Richard Sharp, Nigel Wetters, David O'Donnell and Paul McKeigue"<<endl;
-    cout << "Copyright(c) 2002, 2003, 2004 LSHTM" <<endl;
+    cout << "Copyright(c) 2002, 2003, 2004, 2005 LSHTM" <<endl;
     cout << "Send any comments or queries to david.odonnell@ucd.ie"<<endl;
     cout << "-----------------------------------------------\n"<<endl;
     cout << "This program is free software; you can redistribute it and/or modify"<<endl;
@@ -99,11 +100,11 @@ void submain(AdmixOptions* options){
   /*-------------------------------------------------------
   |  single individual, one population, allele frequencies |
   ---------------------------------------------------------*/
-  if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && 
-      strlen(options->getAlleleFreqFilename()) )
+  if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
     IC->getOnePopOneIndLogLikelihood(&Log,&A,PopulationLabels);
 
   else{
+   
     Scoretest.Initialise(options, IC, A.getLoci(),chrm,PopulationLabels, &Log);  
     StratTest.Initialize( options, *(A.getLoci()) ,&Log);
     DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());
