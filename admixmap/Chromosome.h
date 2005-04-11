@@ -25,8 +25,8 @@ private:
   int L;
   std::string _Label;
   HMM SampleStates;
-  Matrix_d StationaryDist;
-  MatrixArray_d TransitionProbs, Likelihood;
+  Vector_d StationaryDist;
+  MatrixArray_d Likelihood;
   // Matrix_d *AncestryProbs;//Conditional Probs of Locus Ancestry
   
   // UNIMPLEMENTED

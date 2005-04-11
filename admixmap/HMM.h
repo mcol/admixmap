@@ -31,33 +31,27 @@ public:
   HMM( int, int );
   ~HMM();
   void SetDimensions( int, int );
-  Vector_i Sample(MatrixArray_d&);  /* samples hidden states */
-  void UpdateParameters( Matrix_d&, MatrixArray_d&, MatrixArray_d&, bool );
+  Vector_i Sample();  /* samples hidden states */
+  void UpdateFwrdBckwdProbabilities( Vector_d &StationaryDist, MatrixArray_d &Likelihood,  bool CalculateBeta);
+  void SetTProb(int, int, int, double);
   Vector_d GetStateProbs( int );
   double getLikelihood();
   
 private:
-  void CheckArguments(MatrixArray_d&);
-  
-  void UpdateFwrdBckwdProbabilities(MatrixArray_d&, Matrix_d&);
   
   int States; //number of states of Markov chain, m in book
   //There are k*k (=D in Chromosome)states since k populations and 2 chromosomes
   
   int Transitions; //length of chain
   // = # composite Loci, (=L in Chromosome)
+  double ***TransitionProbs;//L * D * D array of transition probabilities 
+ 
+  double factor;//used for adjustment of alpha to avoid underflow
   
-  bool _CalculateBeta;
-  double factor;
-  
-  //(L-1) * D * D array
-  MatrixArray_d Likelihood;
-  MatrixArray_d alpha;//forward and
-  MatrixArray_d beta;//backward probabilities
-  
-  //alpha and beta are arrays of length L corresponding to {\alpha_t} and {\beta_t}
-  //each beta(t) is a m * 1 matrix
-  //each alpha(t) is an m * 1 matrix 
+  double ** alpha;//forward and
+  double **beta;//backward probabilities
+  //alpha and beta are L x m arrays 
+  double *betarow;//used to calculate backward probs;
 };
 
 #endif /* ! HMM_H */

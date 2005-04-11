@@ -13,11 +13,8 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
   D = populations * populations;
   L = GetNumberOfCompositeLoci();
   SampleStates.SetDimensions( L, D );
-  StationaryDist.SetNumberOfElements( D, 1 );
-  // as an array of transition matrices is part of the definition of an HMM, 
-  // it would make more sense for the HMM objects to store transition probs
-  TransitionProbs.SetNumberOfElementsWithDimensions( L - 1, D, D );
-  Likelihood.SetNumberOfElementsWithDimensions( L, D, 1 );
+  StationaryDist.SetNumberOfElements( D);
+  Likelihood.SetNumberOfElementsWithDimensions( L, D, 1);
  
 }
 
@@ -26,9 +23,9 @@ Chromosome::ResetStuffForX()
 {
   D = populations;
   SampleStates.SetDimensions( L, D );
-  StationaryDist.SetNumberOfElements( D, 1 );
-  TransitionProbs.SetNumberOfElementsWithDimensions( L - 1, D, D );
-  Likelihood.SetNumberOfElementsWithDimensions( L, D, 1 );
+  StationaryDist.SetNumberOfElements( D );
+  //TransitionProbs.SetNumberOfElementsWithDimensions( L - 1, D, D );
+  Likelihood.SetNumberOfElementsWithDimensions( L, D, 1);
 }
 
 void
@@ -69,59 +66,68 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestr
 {
  
   Matrix_d Prob;
-  MatrixArray_d empty;
+  int locus;
+  //MatrixArray_d empty;
   int Mcol = options->getModelIndicator(); //which col to use as maternal ancestry, col 1 for a randommatingmodel
                                            //col 0 is paternal ancestry
   // Construct stationary distribution
   int d = 0;
   for( int k = 0; k < populations; k++ ){
     for( int kk = 0; kk < populations; kk++ ){
-      StationaryDist( d, 0 ) = _ancestry(k,0) * _ancestry(kk,Mcol);
+      StationaryDist( d ) = _ancestry(k,0) * _ancestry(kk,Mcol);
       d++;
     }
   }
-  
-  int locus = GetLocus( 0 );
-  for( int j = 0; j < L - 1; j++ ){
-    // Construct Haploid transition matrices, Tpat and Tmat, then use them to construct transition matrix
-    double Tpat[populations][populations], Tmat[populations][populations];
-    double _product1[populations], _product2[populations];
 
-    for(int i=0; i<populations; i++){
-      _product1[i] = f[0](locus+1) * _ancestry(i,0);
-      _product2[i] = f[1](locus+1) * _ancestry(i,Mcol);
-    }
-
-    for(int i=0; i<populations; i++){
-      for(int j=0; j<i; j++){
-	Tpat[i][j] = _ancestry(j,0) - _product1[j];
-	Tmat[i][j] = _ancestry(j,Mcol) - _product2[j];
-	Tpat[j][i] = _ancestry(i,0) - _product1[i];
-	Tmat[j][i] = _ancestry(i,Mcol) - _product2[i];
+ 
+  if(L > 1){
+    locus = GetLocus( 0 );
+     for( int j = 0; j < L - 1; j++ ){
+      // Construct Haploid transition matrices, Tpat and Tmat, then use them to construct transition matrix
+      double Tpat[populations][populations], Tmat[populations][populations];
+      double _product1[populations], _product2[populations];
+      
+      for(int i=0; i<populations; i++){
+	_product1[i] = f[0](locus+1) * _ancestry(i,0);
+	_product2[i] = f[1](locus+1) * _ancestry(i,Mcol);
       }
-      Tpat[i][i] = _ancestry(i,0) + f[0](locus+1) - _product1[i];
-      Tmat[i][i] = _ancestry(i,Mcol) + f[1](locus+1) - _product2[i];
-    }
-
-    // set elements of diploid transition matrix
-    int row = 0;
-    for( int k1 = 0; k1 < populations; k1++ ){
-      for( int k2 = 0; k2 < populations; k2++ ){
-	//           int row = k2 + k1 * populations;
-	int col = 0;
-	for( int kk1 = 0; kk1 < populations; kk1++ ){
-	  for( int kk2 = 0; kk2 < populations; kk2++ ){
-	    //                 int col = kk2 + kk1 * populations;
-	    TransitionProbs(j)( row, col ) = Tpat[k1][kk1]*Tmat[k2][kk2];
-	    col++;
-	  }
+      
+      for(int i=0; i<populations; i++){
+	for(int j=0; j<i; j++){
+	  Tpat[i][j] = _ancestry(j,0) - _product1[j];
+	  Tmat[i][j] = _ancestry(j,Mcol) - _product2[j];
+	  Tpat[j][i] = _ancestry(i,0) - _product1[i];
+	  Tmat[j][i] = _ancestry(i,Mcol) - _product2[i];
 	}
-	row++;
+	Tpat[i][i] = _ancestry(i,0) + f[0](locus+1) - _product1[i];
+	Tmat[i][i] = _ancestry(i,Mcol) + f[1](locus+1) - _product2[i];
       }
+      
+      // set elements of diploid transition matrix
+      int row = 0;
+      for( int k1 = 0; k1 < populations; k1++ ){
+	for( int k2 = 0; k2 < populations; k2++ ){
+	  //           int row = k2 + k1 * populations;
+	  int col = 0;
+	  for( int kk1 = 0; kk1 < populations; kk1++ ){
+	    for( int kk2 = 0; kk2 < populations; kk2++ ){
+	      //                 int col = kk2 + kk1 * populations;
+	      //TransitionProbs(j)( row, col ) = Tpat[k1][kk1]*Tmat[k2][kk2];
+	      SampleStates.SetTProb(j, row, col, Tpat[k1][kk1]*Tmat[k2][kk2] );
+	      col++;
+	    }
+	  }
+	  row++;
+	}
+      }
+      
+      locus++;
     }
-
-    locus++;
   }
+  //this could be neater
+  else for(int j= 0; j< L-1; j++)for(int k1 = 0; k1<populations*populations;k1++)for(int k2 = 0; k2<populations*populations; k2++)
+    SampleStates.SetTProb(j, k1, k2, 0.0);
+
  
   // Construct likelihood (vector of probs of genotype given ancestry states)
   locus = GetLocus( 0 );
@@ -139,17 +145,13 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& _ancestr
       }
     }
     else
-      Likelihood(j).SetElements( 1.0 );
+      Likelihood(j).SetElements(1.0);
     locus++;
   }
 
   bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
-  if( L > 1 )
-    SampleStates.UpdateParameters( StationaryDist, TransitionProbs,
-				   Likelihood, test );
-  else
-    SampleStates.UpdateParameters( StationaryDist, empty,
-				   Likelihood, test );
+
+  SampleStates.UpdateFwrdBckwdProbabilities( StationaryDist, Likelihood, test );
 
 }
 
@@ -159,52 +161,59 @@ bool fixedallelefreqs )
 {
   Matrix_d Prob;
   MatrixArray_d empty;
+  int locus;
   Vector_d mu = _ancestry.GetColumn(0);
-  StationaryDist = mu.ColumnMatrix();
-  
-  int locus = GetLocus( 0 );
-  for( int j = 0; j < L - 1; j++ ){
- 
-     int H = mu.GetNumberOfElements();
-     TransitionProbs(j).SetNumberOfElements(H, H);
-     
-     double _product[H];
-    for(int i=0; i<H; i++){
-      _product[i] = f[0](locus+1) * mu(i);
-    }
+  StationaryDist = mu;
 
-    for(int i=0; i<H; i++){
-      for(int jj=0; jj<i; jj++){
-	TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
-      }
-      TransitionProbs(j)(i,i) = mu(i) + f[0](locus+1) - _product[i];
-      for(int jj=i+1; jj<H; jj++){
-	TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
-      }
-    }
 
+  if(L >1){
+    locus = GetLocus( 0 );
+    //construct Transition Probs  
+     for( int j = 0; j < L - 1; j++ ){
+      
+      int H = mu.GetNumberOfElements();
+      //TransitionProbs(j).SetNumberOfElements(H, H);
+      
+      double _product[H];
+      for(int i=0; i<H; i++){
+	_product[i] = f[0](locus+1) * mu(i);
+      }
+
+      for(int i=0; i<H; i++){
+	for(int jj=0; jj<i; jj++){
+	  //TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
+	  SampleStates.SetTProb(j,i,jj, mu(jj) - _product[jj]);
+	}
+	//TransitionProbs(j)(i,i) = mu(i) + f[0](locus+1) - _product[i];
+	SampleStates.SetTProb(j,i,i, mu(i) + f[0](locus+1) - _product[i]);
+	for(int jj=i+1; jj<H; jj++){
+	  //TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
+	  SampleStates.SetTProb(j,i,jj, mu(jj) - _product[jj]);
+	}
+      }
+      
       locus++;
+    }
   }
-  // Construct likelihood
+  //this could be neater
+  else for(int j= 0; j< L-1; j++)for(int k1 = 0; k1<populations*populations;k1++)for(int k2 = 0; k2<populations*populations; k2++)
+    SampleStates.SetTProb(j, k1, k2, 0.0);
+
+    // Construct likelihood
   locus = GetLocus( 0 );
   for( int j = 0; j < L; j++ ){
      if( ind->IsMissing(locus)[0] != 0 ){
-       //vector<unsigned int> genotype = ind->getGenotype(locus);
-        //Likelihood(j) = (*this)(j)->GetLikelihood( genotype, false, fixedallelefreqs );
+          //Likelihood(j) = (*this)(j)->GetLikelihood( genotype, false, fixedallelefreqs );
        Likelihood(j) = A->GetLikelihood(locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), false, fixedallelefreqs);
      }
      else
-        Likelihood(j).SetElements( 1.0 );
+       Likelihood(j).SetElements(1.0);
      locus++;
   }
 
   bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
-  if( L > 1 )
-     SampleStates.UpdateParameters( StationaryDist, TransitionProbs,
-                                    Likelihood, test );
-  else
-     SampleStates.UpdateParameters( StationaryDist, empty,
-                                    Likelihood, test );
+
+  SampleStates.UpdateFwrdBckwdProbabilities( StationaryDist, Likelihood, test );
 }
 
 Matrix_i Chromosome::SampleForLocusAncestry()
@@ -214,7 +223,7 @@ Matrix_i Chromosome::SampleForLocusAncestry()
   Matrix_i OrderedStates(2,L);
   
   // Sample    
-  CodedStates = SampleStates.Sample(TransitionProbs);
+  CodedStates = SampleStates.Sample();
   for( int j = 0; j < L; j++ ){
     //     OrderedStates( 0, j ) = 0;
     OrderedStates( 0, j ) = (int)(CodedStates(j) / populations);
@@ -241,7 +250,7 @@ Vector_i
 Chromosome::SampleForHaploidLocusAncestry(Individual* ind, AlleleFreqs* A)
 {
   Vector_i OrderedStates;
-  OrderedStates = SampleStates.Sample(TransitionProbs);
+  OrderedStates = SampleStates.Sample();
 
   for( int j = 0; j < L; j++ ){
      int locus = GetLocus( j );
