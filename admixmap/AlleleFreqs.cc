@@ -52,7 +52,7 @@ AlleleFreqs::~AlleleFreqs(){
   if(IsRandom())
     delete allelefreqoutput;
 
-  if( isHistoricAlleleFreq ){
+  if( IsHistoricAlleleFreq ){
     delete [] TuneEtaSampler;
   }
 }
@@ -61,8 +61,8 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
 			     std::string *PopulationLabels, double rho){
   Number = 0;
   Populations = options->getPopulations();
-  if( strlen( options->getHistoricalAlleleFreqFilename() ) ) isHistoricAlleleFreq = true;
-  else isHistoricAlleleFreq = false;
+  if( strlen( options->getHistoricalAlleleFreqFilename() ) ) IsHistoricAlleleFreq = true;
+  else IsHistoricAlleleFreq = false;
 
   if(IsRandom() &&  options->getOutputAlleleFreq() ){
     allelefreqoutput = new AlleleFreqOutputter(options,PopulationLabels);
@@ -82,7 +82,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
   // settings for sampling of dispersion parameter
   // Matrix etaprior(1,1);
   Vector_d maxeta( Populations );
-  if( isHistoricAlleleFreq ){
+  if( IsHistoricAlleleFreq ){
     w = 10;
     etastep0 = 2.0;
     etastep.SetNumberOfElements( Populations );
@@ -298,7 +298,6 @@ void AlleleFreqs::InitialiseHistoricAlleleFreqs(Matrix_d New, int i){
     cout << "Number of states " << Loci(i)->GetNumberOfStates() << endl;
     cout << "HistoricalAlleleFreqs has "<< New.GetNumberOfRows() << " rows.\n";
   }
-  IsHistoricAlleleFreq = true;//possibly not necessary since already set
   HistoricLikelihoodAlleleFreqs(i) = New;
   PriorAlleleFreqs(i) = New + 0.501;
   int Pops = New.GetNumberOfCols();
@@ -397,7 +396,7 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     double etanew, LogPostRatio;
     
     // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
-    if(isHistoricAlleleFreq ){
+    if(IsHistoricAlleleFreq ){
       //SamplePriorAlleleFreqs( eta );
       for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
 	if( Loci(i)->GetNumberOfStates() == 2 )
@@ -413,7 +412,7 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     
     // Sample for allele frequency dispersion parameters, eta, using
     // Metropolis random-walk.
-    if(  isHistoricAlleleFreq ){
+    if(  IsHistoricAlleleFreq ){
       Number++;
       for( int k = 0; k < Populations; k++ ){
          double mineta = 0;
@@ -471,7 +470,7 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 	SumEta += eta;
     }
     
-    if( iteration > BurnIn && isHistoricAlleleFreq ){
+    if( iteration > BurnIn && IsHistoricAlleleFreq ){
       UpdateFst();
     }
   }

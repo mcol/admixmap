@@ -88,7 +88,7 @@ private:
 
   Matrix_d Fst;
   Matrix_d SumFst;
-  bool IsHistoricAlleleFreq;//indicator for whether using dispersion model
+  bool IsHistoricAlleleFreq;//indicator for dispersion model
   int RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random - should be bool?
 
   Genome Loci;// is this where the Loci object is instantiated?
@@ -112,7 +112,6 @@ private:
   // should be in Genome object
   Vector_d LociCorrSummary;//summary of correlation in ancestry between loci,was called f in Latent
 
-  bool isHistoricAlleleFreq;//indicator for dispersion model
   LocusVisitor* allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
