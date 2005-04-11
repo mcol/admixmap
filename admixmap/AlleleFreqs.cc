@@ -74,10 +74,10 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
   SumAcceptanceProb.SetNumberOfElements( Populations );
   SumEta.SetNumberOfElements( Populations );
 
-  // these lines should be moved to chromosome object
+  // these lines should be moved to Genome class ?
   LociCorrSummary.SetNumberOfElements( Loci.GetNumberOfCompositeLoci() );
   for( int j = 1; j < Loci.GetNumberOfCompositeLoci(); j++ )
-    LociCorrSummary(j) = strangExp( -Loci.GetDistance( j ) * rho );
+     LociCorrSummary(j) = ( -Loci.GetDistance( j ) * rho > -700) ? exp( -Loci.GetDistance( j ) * rho ) : 0.0;
 
   // settings for sampling of dispersion parameter
   // Matrix etaprior(1,1);
@@ -484,56 +484,13 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
  */
 void AlleleFreqs::UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry )
 {
-   Vector_i h(2);
-   //   Matrix_d ProbsM;
-
-//  if( Loci(locus)->GetNumberOfLoci() == 1 ){
-//        if( genotype[0] ){ // no missing alleles
-//          ProbsM = GetLocusProbs(locus, genotype,false);
-//          if( myrand() < ProbsM( ancestry(0), ancestry(1) ) / (ProbsM( ancestry(0), ancestry(1) ) + ProbsM( ancestry(1), ancestry(0) ) ) ){
-// 	   AlleleCounts(locus)( genotype[0] - 1, ancestry(0) )++;
-// 	   AlleleCounts(locus)( genotype[1] - 1, ancestry(1) )++;
-//          }
-//          else{
-// 	   AlleleCounts(locus)( genotype[0] - 1, ancestry(1) )++;
-// 	   AlleleCounts(locus)( genotype[1] - 1, ancestry(0) )++;
-//          }
-//        }
-//      }
-     
-//      else{
-       h = Loci(locus)->SampleHaplotypePair(Haplotypes, ancestry);
-       AlleleCounts(locus)( h(0), ancestry(1) )++;
-       AlleleCounts(locus)( h(1), ancestry(0) )++;
-       //     }
- 
+  Vector_i h(2);
+  
+  h = Loci(locus)->SampleHaplotypePair(Haplotypes, ancestry);
+  AlleleCounts(locus)( h(0), ancestry(1) )++;
+  AlleleCounts(locus)( h(1), ancestry(0) )++;
 }
 
-
-
-/**
- * N.B. This only works with a simple locus.
- * Given an unordered genotype, returns a matrix representing the
- * probability of locus ancestry.
- */
-// Matrix_d AlleleFreqs::GetLocusProbs(int locus, const vector<unsigned int>& x, bool fixed)
-// {
-//    MatrixArray_d Prob( 2, Populations, 1 );
-   
-//    for( int pop = 0; pop < Populations; pop++ )
-//    {
-//       for( int i = 0; i < 2; i++ )
-//       {
-//          if(fixed && RandomAlleleFreqs == 1 )
-// 	   Prob(i)( pop, 0 ) = GetAlleleProbsMAP( x[i]-1, pop , locus);
-//          else
-// 	   Prob(i)( pop, 0 ) = GetAlleleProbs( x[i]-1, pop, locus );
-//       }
-//    }
-
-//    return Prob(0) * Prob(1).Transpose();
-
-// }
 
 // get posterior mode of frequency of allele x, given locus and subpopulation
 double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
@@ -576,19 +533,7 @@ Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genot
 {
   Matrix_d Prob;
   if( diploid ){
-//     if( Loci(locus)->GetNumberOfLoci() == 1 ){
-//       Prob = GetLocusProbs(locus, genotype, fixed);
-//         if( genotype[0] != genotype[1] )
-//            for( int k = 0; k < Populations; k++ ){
-//               for( int kk = k; kk < Populations; kk++ ){
-//                  Prob(k,kk) = Prob(k,kk) + Prob(kk,k);
-//                  Prob(kk,k) = Prob(k,kk);
-//               }
-//            }
-        
-//      } else {
       Prob = Loci(locus)->GetGenotypeProbs(Haplotypes, fixed, RandomAlleleFreqs);
-      //}
   }
   else{
     // lines below should be replaced by a call to GetGenotypeProbs, which should be extended to 
@@ -1298,20 +1243,6 @@ Matrix_d &AlleleFreqs::GetAlleleFreqs(int locus)
 Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus)
 {
   return( SumAlleleFreqs(locus) );
-}
-int AlleleFreqs::GetNumberOfStates(int locus){
-  return Loci(locus)->GetNumberOfStates();
-}
-
-//generic function - should be elsewhere?
-double AlleleFreqs::strangExp( double x )
-{
-  double y;
-  if( x > -700 )
-    y = exp(x);
-  else
-    y = 0;
-  return( y );
 }
 
 void AlleleFreqs::UpdateFst()

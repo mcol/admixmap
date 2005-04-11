@@ -9,7 +9,6 @@
 #include "LocusVisitor.h"
 #include "AlleleFreqOutputter.h"
 
-
 class AlleleFreqs{
 
 public:
@@ -52,14 +51,11 @@ public:
   
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
 
-  // does not need a public method - this belongs in CompositeLocus object
-  int GetNumberOfStates(int locus);
-
   void UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry );
   void UpdateAlleleCounts_HaploidData(int locus, const vector<unsigned int>& genotype, int ancestry );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
-  //Matrix_d GetLocusProbs(int locus, const vector<unsigned int>& x, bool fixed);
+ 
   Matrix_d GetLikelihood( int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed);
   Vector_d *geteta();
   Vector_d *getSumEta();
@@ -91,7 +87,7 @@ private:
   bool IsHistoricAlleleFreq;//indicator for dispersion model
   int RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random - should be bool?
 
-  Genome Loci;// is this where the Loci object is instantiated?
+  Genome Loci;// this is where the Loci object is instantiated
 
   TuneRW *TuneEtaSampler;
   int w; // the eta sampler is tuned every w updates
@@ -124,9 +120,6 @@ private:
 
   void OpenFSTFile(AdmixOptions *options,LogWriter *Log); 
 
-  // this can be moved when LociCorrSummary is moved
-  static double strangExp( double );
-
   // we have four different functions to initialize allele freqs
   // 2nd and 3rd take i th locus as argument
   // other two loop over all composite loci
@@ -145,11 +138,7 @@ private:
   void SamplePriorAlleleFreqsMultiDim( Vector_d eta , int);
   void SampleAlleleFreqs( int );
   void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
-  //void UpdateAlleleCounts(const std::vector<unsigned int>&, Vector_i ); //not used?
-  //void UpdateAlleleCounts_HaploidData(const std::vector<unsigned int>&, int );// not used?
-
-
-
+ 
 };
 // functions required to update proportion vector Mu with adaptive rejection sampler
 // likelihood, 1st and 2nd derivatives of log-likelihood
