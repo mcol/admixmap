@@ -51,7 +51,7 @@ private:
   double ** alpha;//forward and
   double **beta;//backward probabilities
   //alpha and beta are L x m arrays 
-  double *betarow;//used to calculate backward probs;
+
 };
 
 #endif /* ! HMM_H */

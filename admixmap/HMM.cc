@@ -28,7 +28,6 @@ HMM::HMM( int inTransitions, int inStates )
   alpha = new double*[Transitions];
   // backward probabilities
   beta = new double*[Transitions];
-  betarow = new double[States];
 
   for(int i=0;i < Transitions;++i) {
     alpha[i] = new double[States];
@@ -40,7 +39,6 @@ HMM::~HMM()
 {
   delete[] alpha;
   delete[] beta;
-  delete betarow;
   delete[] TransitionProbs;
 }
 
@@ -57,7 +55,6 @@ void HMM::SetDimensions( int inTransitions, int inStates )
   alpha = new double*[Transitions];
   // backward probabilities
   beta = new double*[Transitions];
-  betarow = new double[States];
 
   for(int i=0;i < Transitions;++i) {
     alpha[i] = new double[States];
@@ -69,16 +66,9 @@ void HMM::SetDimensions( int inTransitions, int inStates )
 void HMM::UpdateFwrdBckwdProbabilities( double *StationaryDist, double **Likelihood, bool CalculateBeta)
 {
   //StationaryDist = delta, double array of length States 
-  //TransitionProbs = Gamma, (States x States) Matrix
+  //TransitionProbs = Gamma, (States x States) Transition Matrix
   //Likelihood = lambda = (States x States) matrix of p(Hidden State | Observed State)
   // CalculateBeta indicates whether to calculate backward probs beta. They are only needed for state probs.
-
-  //Check dimensions of arguments
-//   if( Transitions > 1 )  if(Likelihood(0).GetNumberOfRows() != States){
-//     //need to throw an exception here
-//     cout << "Error in Likelihood passed to HMM::Update"<<endl;
-//     exit(1);
-//   }
 
    //set alpha(0) = StationaryDist * lambda(0) 
    for( int j = 0; j < States; j++ )
@@ -103,30 +93,16 @@ void HMM::UpdateFwrdBckwdProbabilities( double *StationaryDist, double **Likelih
    }
 
    if( CalculateBeta ){
-     //beta( Transitions - 1 ).SetNumberOfElements( States, 1 );
-     //beta( Transitions - 1 ).SetElements( 1.0 );
-//       for( int t = Transitions - 2; t >= 0; t-- ){
-//          for( int j = 0; j < States; j++ )
-// 	   beta(t)( 0, j ) = Likelihood( t + 1)(j, 0) * beta( t + 1 )( j, 0 );
-//          beta(t) = TransitionProbs(t) * beta(t);
-//       }
-
      //set beta(T) = 1
      for(int i = 0; i < States; ++i)beta[Transitions - 1][i] = 1.0;
-      for( int t = Transitions - 2; t >= 0; t-- ){
-
-	//set beta(t) (temporarily) to lambda(t) * beta(t+1) 	
-	for( int i = 0; i < States; i++ )
-	  beta[t][i] = Likelihood[t + 1][i] * beta[ t + 1 ][i];
-
-	for( int i = 0; i < States; i++ ){
-	  //premultiply beta(t) by Gamma 
-	  betarow[i] = 0.0;
-	//element-wise matrix-vector multiplication
-	  for( int j = 0; j < States; j++ )betarow[i] += beta[t][j] * TransitionProbs[t][i][j];
-	  beta[t][i] *= betarow[i];
-	}	
-      }
+     
+     for( int t = Transitions - 2; t >= 0; t-- ){
+       for( int i = 0; i < States; i++ ){
+	 beta[t][i] = 0.0;
+	 //set beta(t) to Gamma * lambda(t+1) * beta(t+1) 
+	 for( int j = 0; j < States; j++ )beta[t][i] += Likelihood[t+1][j] * beta[t+1][j] * TransitionProbs[t][i][j];
+       }	
+     }
    }
    
 }
