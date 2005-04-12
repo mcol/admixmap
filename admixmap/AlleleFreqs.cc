@@ -822,9 +822,6 @@ int AlleleFreqs::GetNumberOfCompositeLoci(){
 }
 void AlleleFreqs::OutputAlleleFreqs(){
   if( IsRandom() ){
-    allelefreqoutput->visitGenome(Loci);
-    
-    //Loci.accept(*allelefreqoutput);
     allelefreqoutput->OutputAlleleFreqs(this);
   }
 }

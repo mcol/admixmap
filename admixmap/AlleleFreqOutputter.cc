@@ -40,7 +40,8 @@ AlleleFreqOutputter::~AlleleFreqOutputter()
 void AlleleFreqOutputter::OutputAlleleFreqs(AlleleFreqs* A)
 {
   Matrix_d freqs;
-  Matrix_d meanfreqs;
+  //Matrix_d meanfreqs;
+  _iterations++;
   for( int i = 0; i < A->GetNumberOfCompositeLoci(); i++ ){
     freqs = A->GetAlleleFreqs(i);
  
@@ -65,5 +66,5 @@ AlleleFreqOutputter::visitChromosome(Chromosome&)
 void
 AlleleFreqOutputter::visitGenome(Genome&)
 {
-  _iterations++;
+
 }
