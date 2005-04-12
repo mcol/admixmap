@@ -1,5 +1,4 @@
 rm(list = ls())  ## remove (almost) everything in the working environment.
-library(boa)
 library(MASS)
 ## script should be invoked from folder one level above subfolder specified by resultsdir
 ## to run this script from an R console session, set environment variable RESULTSDIR
@@ -157,7 +156,7 @@ getPrecision <- function(user.options) {
 plotAutocorrelations <- function(table.samples, thinning) {
   ## plot autocorrelations
   ## drop columns with zero variance
-  table.samples <- table.samples[, colVars(table.samples)>0]
+  table.samples <- table.samples[, apply(table.samples,2,var)>0]
   if(is.null(dim(table.samples))) {
     table.samples <- data.frame(table.samples)
   }
@@ -175,16 +174,58 @@ plotAutocorrelations <- function(table.samples, thinning) {
   }
 }
 
+getiter <- function (link, iter) 
+{
+    result <- NULL
+    idx <- is.element(dimnames(link)[[1]], iter)
+    if (any(idx)) 
+        result <- link[idx, , drop = FALSE]
+    return(result)
+}
+
+gewekePwr <-function (link) 
+{
+    spec <- NULL
+    pnames <- dimnames(link)[[2]]
+    n <- nrow(link)
+    nspans <- min(1 + sqrt(n)/0.3, n - 1)
+    if (n > 2) {
+        for (i in pnames) {
+            spec <- c(spec, spec.pgram(link[, i], spans = nspans, 
+                demean = TRUE, detrend = FALSE, plot = FALSE)$spec[1])
+        }
+        spec <- 10^(spec/10)
+    }
+    else {
+        spec <- rep(NA, length(pnames))
+    }
+    return(structure(spec, names = pnames))
+}
+
+getgeweke<-function (link, p.first, p.last) 
+{
+    iter <- unique(as.numeric(dimnames(link)[[1]]))
+    n <- length(iter)
+    link.first <- getiter(link, iter[1:round(p.first * n)])
+    link.last <- getiter(link, iter[(n - round(p.last * n) + 
+        1):n])
+    result <- (colMeans(link.first) - colMeans(link.last))/sqrt(gewekePwr(link.first)/nrow(link.first) + 
+        gewekePwr(link.last)/nrow(link.last))
+    result <- cbind(result, 2 * (1 - pnorm(abs(result))))
+    dimnames(result)[[2]] <- c("Z-Score", "p-value")
+    return(result)
+}
+
 checkConvergence <- function(table.samples, listname, outputfile) {
   ## test for adequate burn-in based on Geweke (1992)
   ## in: Bayesian Stats 4. ed. Bernardo JM et al, Oxford, OUP)
-  table.samples <- table.samples[, colVars(table.samples)>0]
+  table.samples <- table.samples[, apply(table.samples,2,var)>0]
   if(is.null(dim(table.samples))) {
     table.samples <- data.frame(table.samples)
   }
   numcols <- dim(as.matrix(table.samples))[2]
   if(numcols > 0) {
-    table.geweke <- boa.geweke(link=table.samples, p.first=0.1, p.last=0.5)
+    table.geweke <- getgeweke(link=table.samples, p.first=0.1, p.last=0.5)
     table.geweke <- round(table.geweke, digits=3)
     write.table(table.geweke, file=outputfile, sep="\t")
   }
@@ -368,10 +409,40 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
               row.names=FALSE, col.names=TRUE)
 }
 
+## function uses old ancestryscoretest output
+## now obsolete
+#plotAncestryScoreTest <- function(scorefile, k) {
+#  scoretest.ancestry <- dget(paste(resultsdir,scorefile,sep="/"))
+#  if(k == 2) { 
+#    scoretest.ancestry <- scoretest.ancestry[, seq(1, dim(scoretest.ancestry)[2] - 1, by = 2), ]
+#  }
+#  dimnames(scoretest.ancestry)[[2]] <- scoretest.ancestry[1,,1]
+#  scoretest.ancestry <- scoretest.ancestry[-1,,]
+#  popnames <- scoretest.ancestry[1,,1]
+#  scoretest.ancestry <- array(as.numeric(scoretest.ancestry), dim=dim(scoretest.ancestry),
+#                              dimnames=dimnames(scoretest.ancestry))
+#  scoretest.ancestry[is.nan(scoretest.ancestry)] <- NA
+#  scoretest.ancestry.final <- t(scoretest.ancestry[,,dim(scoretest.ancestry)[3]])
+#  scalar.pvalues <- signif(2*pnorm(-abs(scoretest.ancestry.final[,6])), digits=2)
+#  
+#  scoretest.ancestry.withp <- data.frame(dimnames(scoretest.ancestry.final)[[1]], popnames,
+#                                         round(scoretest.ancestry.final[,c(2,3,4)], digits=2),
+#                                         round(scoretest.ancestry.final[,5], digits=0), 
+#                                         round(scoretest.ancestry.final[,6], digits=2), 
+#                                         scalar.pvalues)
+#  dimnames(scoretest.ancestry.withp)[[2]] <- c("Locus", "Population", "Score", "CompleteInfo",
+#                                               "ObsInfo", "PercentInfo", "StdNormDev", "p-value") 
+#  outputfile <- paste(resultsdir, "TestsAncestryAssociationFinal.txt", sep="/" )
+#  write.table(scoretest.ancestry.withp,file=outputfile,quote=FALSE,
+#              row.names=FALSE, sep="\t")
+#  outputfile <- paste(resultsdir, "TestsAncestryAssociation.ps", sep="/" )
+#  plotpvalues(outputfile,scoretest.ancestry[6,,],
+#              10*thinning,"Running computation of p-values for ancestry association")
+#}
+
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
 plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
-  filename <- gsub(".txt", "", scorefile, ignore.case=TRUE)
   ## extract first row containing locus names
   locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=K), 1]
   testnames <- paste(scoretests[1,,1], scoretests[2,,1])
@@ -386,16 +457,15 @@ plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
   scoretests4way[is.nan(scoretests4way)] <- NA
   
   ## plot cumulative p-values in K colours
-  outputfile <- paste(resultsdir, "/", filename, ".ps", sep="")
+  outputfile <- paste(resultsdir, "TestsAffectedsonly.ps", sep="/")
   stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
   plotPValuesKPopulations(outputfile, stdnormdev, thinning)
   ## extract final table as 3-way array: statistic, locus, population
-  scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],
-                           dim=c(dim(scoretests4way)[1:3]),
+  scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
                            dimnames=c(dimnames(scoretests4way)[1:3]))
   
-  ## set test statistic to missing if percent info  < 5
-  scoretest.final[7,,][scoretest.final[4,,] < 5] <- NA
+  ## set test statistic to missing if obs info < 1
+  scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
   pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
   
   ## output scoretest.final as 2-way array, in which rows index pops within loci
@@ -411,7 +481,7 @@ plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
     c("Locus.Population", "Score", "CompleteInfo", "ObservedInfo",
       "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params",
       "StdNormalDev", "p.value")
-  outputfile <- paste(resultsdir, "/", filename, "Final.txt", sep="")
+  outputfile <- paste(resultsdir, "TestsAffectedsOnlyFinal.txt", sep="/" )
   write.table(scoretest.final2, file=outputfile,
               quote=FALSE, row.names=FALSE, sep="\t")
   
