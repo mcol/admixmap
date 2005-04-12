@@ -31,10 +31,10 @@ public:
   HMM( int, int );
   ~HMM();
   void SetDimensions( int, int );
-  Vector_i Sample();  /* samples hidden states */
-  void UpdateFwrdBckwdProbabilities( Vector_d &StationaryDist, MatrixArray_d &Likelihood,  bool CalculateBeta);
+  void Sample(int *);  /* samples hidden states */
+  void UpdateFwrdBckwdProbabilities( double *StationaryDist, double **Likelihood,  bool CalculateBeta);
   void SetTProb(int, int, int, double);
-  Vector_d GetStateProbs( int );
+  void GetStateProbs(double *,  int );
   double getLikelihood();
   
 private:

@@ -66,23 +66,23 @@ void HMM::SetDimensions( int inTransitions, int inStates )
 }
 
 //Update Forward and (optionally) Backward probs
-void HMM::UpdateFwrdBckwdProbabilities( Vector_d &StationaryDist, MatrixArray_d &Likelihood, bool CalculateBeta)
+void HMM::UpdateFwrdBckwdProbabilities( double *StationaryDist, double **Likelihood, bool CalculateBeta)
 {
-  //StationaryDist = delta, vector of length States 
+  //StationaryDist = delta, double array of length States 
   //TransitionProbs = Gamma, (States x States) Matrix
-  //Likelihood = lambda = diag (States x States) matrix of p(Hidden State | Observed State)
+  //Likelihood = lambda = (States x States) matrix of p(Hidden State | Observed State)
   // CalculateBeta indicates whether to calculate backward probs beta. They are only needed for state probs.
 
   //Check dimensions of arguments
-  if( Transitions > 1 )  if(Likelihood(0).GetNumberOfRows() != States){
-    //need to throw an exception here
-    cout << "Error in Likelihood passed to HMM::Update"<<endl;
-    exit(1);
-  }
+//   if( Transitions > 1 )  if(Likelihood(0).GetNumberOfRows() != States){
+//     //need to throw an exception here
+//     cout << "Error in Likelihood passed to HMM::Update"<<endl;
+//     exit(1);
+//   }
 
    //set alpha(0) = StationaryDist * lambda(0) 
    for( int j = 0; j < States; j++ )
-     alpha[0][j] =  StationaryDist(j) *Likelihood(0)( j, 0);
+     alpha[0][j] =  StationaryDist[j] *Likelihood[0][j];
 
    for( int t = 1; t < Transitions; t++ ){
      //set alpha(t) = alpha(t-1) * Gamma * lambda(t)
@@ -90,7 +90,7 @@ void HMM::UpdateFwrdBckwdProbabilities( Vector_d &StationaryDist, MatrixArray_d 
        alpha[t][i] = 0.0;
        //explicit element-wise vector-matrix multiplication
        for( int j = 0; j < States; j++ )alpha[t][i] += alpha[t-1][j] * TransitionProbs[t-1][j][i];
-       alpha[t][i] *= Likelihood(t)( i, 0);
+       alpha[t][i] *= Likelihood[t][i];
      }
 
      //This is to avoid underflow
@@ -117,7 +117,7 @@ void HMM::UpdateFwrdBckwdProbabilities( Vector_d &StationaryDist, MatrixArray_d 
 
 	//set beta(t) (temporarily) to lambda(t) * beta(t+1) 	
 	for( int i = 0; i < States; i++ )
-	  beta[t][i] = Likelihood( t + 1)(i, 0) * beta[ t + 1 ][i];
+	  beta[t][i] = Likelihood[t + 1][i] * beta[ t + 1 ][i];
 
 	for( int i = 0; i < States; i++ ){
 	  //premultiply beta(t) by Gamma 
@@ -131,15 +131,21 @@ void HMM::UpdateFwrdBckwdProbabilities( Vector_d &StationaryDist, MatrixArray_d 
    
 }
 
-Vector_d HMM::GetStateProbs( int i )
+//computes state probabilities at "time" i
+//probs - double array to store state probs
+void HMM::GetStateProbs( double * probs, int i )
 {
-   Vector_d probs( States );
+  //Vector_d probs( States );
+  double sum = 0.0;
    for( int j = 0; j < States; j++ ){
-     probs(j) = alpha[i][j] * beta[i][j];
+     probs[j] = alpha[i][j] * beta[i][j];
+     sum += probs[j];
    }
-   if(probs.Sum() == 0.0)cout<<alpha<<endl<<beta<<endl;
-   probs /= probs.Sum();
-   return probs;
+   //if(sum() == 0.0)cout<<alpha<<endl<<beta<<endl;
+   for( int j = 0; j < States; j++ ){
+     probs[j] /= sum;
+   }
+   //return probs;
 }
 
 double HMM::getLikelihood()
@@ -152,21 +158,19 @@ double HMM::getLikelihood()
 }
 
 //Sample Hidden States
-Vector_i HMM::Sample()
+void HMM::Sample(int *C)
 {
-   Vector_i C( Transitions );
+  //C - an int array to store the sampled states
    Vector_d V(States);
 
    for( int j = 0; j < States; j++ )V(j) = alpha[Transitions - 1][j];
-   C( Transitions - 1 ) = SampleFromDiscrete2( &V );
+   C[ Transitions - 1 ] = SampleFromDiscrete2( &V );
    for( int t =  Transitions - 2; t >= 0; t-- ){
-     //V = TransitionProbs[ t ].GetColumn( C( t + 1 ) );
-     for(int j = 0; j < States; j++)V(j) = TransitionProbs[t][j][ C(t+1) ];
+     for(int j = 0; j < States; j++)V(j) = TransitionProbs[t][j][ C[t+1] ];
       for( int j = 0; j < States; j++ )
 	V(j) *= alpha[t][j];
-      C( t ) = SampleFromDiscrete2( &V );
+      C[ t ] = SampleFromDiscrete2( &V );
    }
-   return( C );
 }
 
 //set a transition probability

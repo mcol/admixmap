@@ -405,7 +405,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
    vector< Vector_d > f( 2, A->getLociCorrSummary() );
    // all these matrices should be allocated once when the Individual is instantiated   
    Matrix_i SumLocusAncestry( options->getPopulations(), 2 ), SumLocusAncestry_X;
-   Matrix_d Theta;
+   Matrix_d Theta; //Admixture Proportions?
 
    if( options->getModelIndicator() ){
       Theta.SetNumberOfElements( options->getPopulations(), 2 );

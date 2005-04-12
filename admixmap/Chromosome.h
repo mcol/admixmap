@@ -25,8 +25,10 @@ private:
   int L;
   std::string _Label;
   HMM SampleStates;
-  Vector_d StationaryDist;
-  MatrixArray_d Likelihood;
+  double *StationaryDist;
+  double **Likelihood;
+  Matrix_d Prob;//used to construct likelihood
+  int *CodedStates;//used to sample hidden states from HMM
   // Matrix_d *AncestryProbs;//Conditional Probs of Locus Ancestry
   
   // UNIMPLEMENTED
