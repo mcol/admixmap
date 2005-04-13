@@ -31,19 +31,11 @@ public:
 
   void setAdmixturePropsX(Matrix_d);
   
-  //   std::vector< std::vector<unsigned int> >&
-  //   getGenotype();
-
   std::vector<unsigned int>&  getGenotype(unsigned int locus);
 
   Vector_i getPossibleHaplotypes(unsigned int locus);
 
-  std::vector< std::vector<unsigned int> >&  IsMissing();
-
-  std::vector<unsigned int>&
-  IsMissing(unsigned int locus);
-
-  void setGenotype(unsigned int locus,std::vector<unsigned int> genotype);
+  bool IsMissing(unsigned int locus);
 
   std::vector<bool>&  getXi(unsigned int locus);
 
@@ -68,8 +60,8 @@ public:
 
   Vector_i GetLocusAncestry( int, int );
    
-  Matrix_d SampleParameters(int, AdmixOptions*, AlleleFreqs*, Chromosome**, std::vector<Vector_d>,
-			    bool, std::vector<bool>, double, double, int, std::vector<double>, Matrix_d& );
+  void SampleParameters(int, AdmixOptions*, AlleleFreqs*, Chromosome**, std::vector<Vector_d>,
+			    bool, std::vector<bool>, double, double, int, std::vector<double>);
   double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome **, Matrix_d, std::vector<double>,Matrix_d, std::vector<double>);
   double getLogLikelihoodXOnly(AdmixOptions*,AlleleFreqs*,Chromosome**, Matrix_d, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
@@ -90,19 +82,17 @@ public:
 		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs *A);
 
 private:
-  static std::vector<unsigned int>
-  encodeGenotype(std::vector<unsigned int>&); // doesn't appear to do anything - should add 1 to decoded genotypes 
-  static void
-  s2c(char *c, std::string s);
+  static void s2c(char *c, std::string s);
    
-  std::vector< std::vector<unsigned int> > _genotype; // stores "encoded" genotypes: missing=0, alleles numbered from 1
   Vector_i *PossibleHaplotypes;
-  std::vector< std::vector<unsigned int> > new_genotype; // also stores encoded genotypes    
+  std::vector< std::vector<unsigned int> > genotype; // stores genotypes    
   std::vector< std::vector<bool> > _xi;
   std::vector< unsigned int > numCompLoci;
   unsigned int numChromosomes;
   Matrix_d AdmixtureProps;
   Matrix_d XAdmixtureProps;
+  Matrix_d Theta, ThetaX;// proposal admixture proportions
+
   Matrix_d AdmixtureHat;
   Matrix_d XAdmixtureHat;
   MatrixArray_i LocusAncestry;
@@ -119,14 +109,15 @@ private:
   unsigned int X_posn;
   double TruncationPt; // upper truncation point for sum intensities parameter rho
 
+
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
-  void Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &thetaX, bool xdata, int Populations, bool ModelIndicator );
-  double AcceptanceProbForTheta_XChrm(Matrix_d &Theta, Matrix_d &ThetaX,std::vector<double> &sigma, int Populations );
-  double AcceptanceProbForTheta_LogReg( int i, int TI, Matrix_d &theta ,bool ModelIndicator,int Populations, 
+  void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
+  double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
+  double AcceptanceProbForTheta_LogReg( int i, int TI, bool ModelIndicator,int Populations, 
 					int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY, 
 					MatrixArray_d &Target, Vector_d &poptheta);
-  double AcceptanceProbForTheta_LinearReg( int i, int TI,  Matrix_d &theta ,bool ModelIndicator,int Populations,
+  double AcceptanceProbForTheta_LinearReg( int i, int TI, bool ModelIndicator,int Populations,
 					   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
 					   MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda);
 

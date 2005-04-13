@@ -644,18 +644,15 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 	  }
 	}
 
-
-      // Check if missing genotype
-      //? NB: zero used for missing genotype here
-
-      if( !(ind->IsMissing(locus)[0] == 0 ) ){
-	LocusLinkageAlleleScore( locus ) += cov_x_coord * YMinusEY * phi;
-	LocusLinkageAlleleInfo( locus ) += (cov_x_coord * cov_x_coord.Transpose()) * phi * DInvLink;
-      }
-      locus++;
+	// Check if missing genotype
+ 	if( !(ind->IsMissing(locus)) ){
+	  LocusLinkageAlleleScore( locus ) += cov_x_coord * YMinusEY * phi;
+	  LocusLinkageAlleleInfo( locus ) += (cov_x_coord * cov_x_coord.Transpose()) * phi * DInvLink;
+	}
+	locus++;
     }
   }
-}
+ }
 
 // need to change usage of chrm to make this work
 // void ScoreTests::UpdateScoreForAncestryOld( Individual* ind, double Y,  int regressonindicator, double EY, double lambda0)
@@ -825,8 +822,7 @@ void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs( int i,AlleleFreqs *A )
       phi( k, kk ) = ind->getAdmixtureProps()( k, 0 ) * ind->getAdmixtureProps()( kk, 0 );
    
   for( int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
-    //? relies on 'missing' being encoded as zero
-    if( individuals->getIndividual(i)->IsMissing(j)[0] && (*Lociptr)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) )
+    if( !(individuals->getIndividual(i)->IsMissing(j)) && (*Lociptr)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) )
       (*Lociptr)(j)->UpdateScoreForMisSpecOfAlleleFreqs( phi, individuals->getIndividual(i)->getGenotype(j), A->GetAlleleFreqs(j) );
 }
 

@@ -66,7 +66,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
     sumxi.SetNumberOfElements(numCompositeLoci);
 
     vector<unsigned int> empty( 0, 0 );
-    new_genotype.resize( numCompositeLoci, empty ); // stl vector of decoded genotypes
+    genotype.resize( numCompositeLoci, empty ); // stl vector of decoded genotypes
     PossibleHaplotypes = new Vector_i[numCompositeLoci]; // vector of possible haplotype pairs - expect 2 integers per locus 
     LocusAncestry.SetNumberOfElements( Loci.GetNumberOfChromosomes() ); // array of matrices in which each col stores 2 integers 
                                                                        // or 1 integer (haploid) 
@@ -94,12 +94,12 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
         }
         if( options->getPopulations() == 1 )
             LocusAncestry(j).SetElements(0);
-	// loop over composite loci to store genotype strings in array *data* as pairs of integers in stl vector new_genotype 
+	// loop over composite loci to store genotype strings in array *data* as pairs of integers in stl vector genotype 
         for( unsigned int jj = 0; jj < numCompLoci[j]; jj++ ){
             int compLocus = chrm[j]->GetLocus(jj);
             int numLoci = Loci(compLocus)->GetNumberOfLoci();
-            vector<unsigned int> decodedGenotype(numLoci * 2,0);
-            new_genotype[compLocus].resize( 2 * numLoci, 0 );
+  
+            genotype[compLocus].resize( 2 * numLoci, 0 );
             for (int locus=0; locus<numLoci; locus++) {
                 int allele0, allele1;
 
@@ -113,19 +113,16 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
                     allele1 = a.second;
                 }
 
-                decodedGenotype[locus*2]   = allele0;
-                decodedGenotype[locus*2+1] = allele1;
-                new_genotype[compLocus][locus*2]      = allele0;
-                new_genotype[compLocus][locus*2+1]    = allele1;
+                genotype[compLocus][locus*2]      = allele0;
+                genotype[compLocus][locus*2+1]    = allele1;
                 lociI++;
             }
-	// vector _genotype is used only by methods that test for missing genotype. Do we need it? 
-            _genotype.push_back(encodeGenotype(decodedGenotype));
+
         }
     }
-    // loop over composite loci to set possible haplotype pairs compatible with new_genotype 
+    // loop over composite loci to set possible haplotype pairs compatible with genotype 
     //may be possible to do this inside above loop but a loop over composite loci is neater
-    for(int j=0;j<numCompositeLoci;++j)PossibleHaplotypes[j] = Loci(j)->SetPossibleHaplotypes(new_genotype[j]);
+    for(int j=0;j<numCompositeLoci;++j)PossibleHaplotypes[j] = Loci(j)->SetPossibleHaplotypes(genotype[j]);
 }
 
 double
@@ -139,7 +136,7 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
    for( unsigned int jj = 1; jj < numCompLoci[0]; jj++ ){
      f[0](jj) = exp( -A->getLoci()->GetDistance( jj ) * _rhoHat[0] );
    }
-   chrm[0]->UpdateParametersHaploid( this, A,AdmixtureHat, options, f, true );
+   chrm[0]->UpdateParameters( this, A,AdmixtureHat, options, f, true, false );
    LogLikelihood += chrm[0]->getLogLikelihood();
    return LogLikelihood;
 }
@@ -165,7 +162,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
                f[1](locus) = f[0](locus);
             locus++;
          }
-         chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, f, true);
+         chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, f, true, true);
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else{
@@ -179,9 +176,9 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
             locus++;
          }
          if( sex == 1 )
-	   chrm[j]->UpdateParametersHaploid( this,A, XAdmixtureHat, options, f, true);
+	   chrm[j]->UpdateParameters( this,A, XAdmixtureHat, options, f, true, false);
          else
-	   chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, f, true);
+	   chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, f, true, true);
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
    }
@@ -194,10 +191,9 @@ Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
    double Likelihood = 0.0;
    Matrix_d Prob;
    for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-     if( _genotype[j][0] != 0 ){
-       //CompositeLocus *locus = (CompositeLocus*)Loci(j);
-       Prob = A->GetLikelihood( j, new_genotype[j], getPossibleHaplotypes(j), true, true );
-        Likelihood += log( Prob(0,0) );
+     if(!IsMissing(j)){
+       A->GetGenotypeProbs(&Prob, j, genotype[j], getPossibleHaplotypes(j), true, true );
+       Likelihood += log( Prob(0,0) );
      }
    }
    return Likelihood;
@@ -222,7 +218,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
                f[1](locus) = f[0](locus);
             locus++;
          }
-	chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false);
+	chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, true);
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else if( options->getXOnlyAnalysis() ){
@@ -230,7 +226,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
 	   f[0](locus) = exp( -A->getLoci()->GetDistance( locus ) * _rho[0] );
             locus++;
          }
-         chrm[j]->UpdateParametersHaploid( this, A,AdmixtureProps, options, f, false);
+         chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false);
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else{
@@ -242,31 +238,13 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
             locus++;
          }
          if( sex == 1 )
-	   chrm[j]->UpdateParametersHaploid( this, A,AdmixtureProps, options, f, false );
+	   chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false );
          else
-	   chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false );
+	   chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, true );
          LogLikelihood += chrm[j]->getLogLikelihood();
       }
    }
    return LogLikelihood;
-}
-
-// method takes as argument an STL vector containing 2 unsigned integers for each genotype
-// reads even-numbered and odd-numbered elements into another STL vector 
-// what's the difference? 
-// should extend this method to deal with haploid data
-vector<unsigned int> Individual::encodeGenotype(vector<unsigned int>& decoded)
-{
-  // assumed that all loci are diploid 
-  int NumberOfLoci = decoded.size()/2;
-  vector<unsigned int> encoded(decoded.size(),0);
-  for(int i=0;i<NumberOfLoci;i++){
-    encoded[0] *= 10;
-    encoded[1] *= 10;
-    encoded[0] += decoded[i*2]; // even-numbered elements
-    encoded[1] += decoded[i*2+1]; // odd-numbered elements
-  }
-  return encoded;
 }
 
 void
@@ -286,26 +264,23 @@ Individual::~Individual()
 
 vector< unsigned int >& Individual::getGenotype(unsigned int locus)
 {
-  return new_genotype[locus];
+  return genotype[locus];
 }
 
 Vector_i Individual::getPossibleHaplotypes(unsigned int locus){
   return PossibleHaplotypes[locus];
 }
 
-vector< vector< unsigned int > > & Individual::IsMissing()
+//Indicates whether a genotype is missing at a locus
+bool Individual::IsMissing(unsigned int locus)
 {
-  return _genotype;
-}
-
-vector< unsigned int >& Individual::IsMissing(unsigned int locus)
-{
-  return _genotype[locus];
-}
-
-void Individual::setGenotype(unsigned int locus,vector<unsigned int> genotype)
-{//not used
-  _genotype[locus] = genotype;
+  unsigned int count = 0;
+  int NumberOfLoci = genotype[locus].size()/2;
+  for(int i=0;i<NumberOfLoci;i++){
+    count += genotype[locus][i*2]; // even-numbered elements
+    //count += genotype[locus][i*2+1]; // odd-numbered elements
+  }
+  return (count == 0);
 }
 
 Matrix_d& Individual::getAdmixtureProps()
@@ -372,11 +347,6 @@ Vector_i Individual::GetLocusAncestry( int chrm, int locus )
    return LocusAncestry(chrm).GetColumn( locus );
 }
 
-// Matrix_d Individual::getExpectedAncestry(int j, int locus )
-// {
-//   Matrix_d EA = chrm[j]->getExpectedAncestry[locus];
-//   return EA;
-// }
 Matrix_d Individual::getAncestryProbs(int locus )
 {
   //this function used only for affectedonly and ancestry scoretests
@@ -393,10 +363,9 @@ double Individual::getLogPosteriorProb()
 // model (if there is one)  
 // should have an alternative function to sample population mixture component membership and individual admixture proportions
 // conditional on genotypes, not sampled locus ancestry
-Matrix_d
-Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, vector<Vector_d> alpha, 
+void Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, vector<Vector_d> alpha, 
 			      bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, int iteration, 
-			      vector<double> sigma, Matrix_d &Theta_X )
+			      vector<double> sigma)
 {
    unsigned int locus = 0;
    sumxi.SetElements( 0 );
@@ -405,7 +374,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
    vector< Vector_d > f( 2, A->getLociCorrSummary() );
    // all these matrices should be allocated once when the Individual is instantiated   
    Matrix_i SumLocusAncestry( options->getPopulations(), 2 ), SumLocusAncestry_X;
-   Matrix_d Theta; //Admixture Proportions?
+   //Matrix_d Theta; //Admixture Proportions?
 
    if( options->getModelIndicator() ){
       Theta.SetNumberOfElements( options->getPopulations(), 2 );
@@ -416,11 +385,11 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
 
    if( A->getLoci()->isX_data() ){
       if( sex == 1 ){
-         Theta_X.SetNumberOfElements( options->getPopulations(), 1 );
+         ThetaX.SetNumberOfElements( options->getPopulations(), 1 );
          SumLocusAncestry_X.SetNumberOfElements( options->getPopulations(), 1 );
       }
       else{
-         Theta_X.SetNumberOfElements( options->getPopulations(), 2 );
+         ThetaX.SetNumberOfElements( options->getPopulations(), 2 );
          SumLocusAncestry_X.SetNumberOfElements( options->getPopulations(), 2 );
       }
    }
@@ -480,7 +449,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
       for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
 	vectemp = gendirichlet( Theta.GetColumn(g)*sigma[g]
 				+ SumLocusAncestry_X.GetColumn(g) );
-	Theta_X.SetColumn( g, vectemp );
+	ThetaX.SetColumn( g, vectemp );
       }
     }
   }
@@ -494,7 +463,7 @@ Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Ch
 				    _admixed,rhoalpha, rhobeta, L, L_X, 
 				    SumN, SumN_X, SumLocusAncestry, SumLocusAncestry_X);
 
-  return Theta;
+  //return Theta;
 }
 
 void Individual::SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, AlleleFreqs *A, vector< Vector_d > f, 
@@ -507,19 +476,19 @@ void Individual::SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, A
     locus = chrm[j]->GetLocus(0);
 
     if( j != X_posn ){
-      chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false );
+      chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, true );
       LocusAncestry(j) = chrm[j]->SampleForLocusAncestry();
     }
     else if( options->getXOnlyAnalysis() ){
-      chrm[j]->UpdateParametersHaploid( this, A,AdmixtureProps, options, f, false );
+      chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false );
       LocusAncestry(j).SetRow( 0, chrm[j]->SampleForHaploidLocusAncestry( this, A ) );
     }
     else if( sex == 1 ){
-      chrm[j]->UpdateParametersHaploid( this, A,XAdmixtureProps, options, f, false );
+      chrm[j]->UpdateParameters( this, A,XAdmixtureProps, options, f, false, false );
       LocusAncestry(j).SetRow( 0, chrm[j]->SampleForHaploidLocusAncestry( this , A) );
     }
     else{
-      chrm[j]->UpdateParameters( this, A,XAdmixtureProps, options, f, false );
+      chrm[j]->UpdateParameters( this, A,XAdmixtureProps, options, f, false, true );
       LocusAncestry(j) = chrm[j]->SampleForLocusAncestry();
     }
     if( options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry())
@@ -779,30 +748,30 @@ Matrix_d *Covariates0)
 }
 
 // Metropolis update for admixture proportions theta, taking acceptance probability p as argument
-void Individual::Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &thetaX, bool xdata, int Populations, bool ModelIndicator )
+void Individual::Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator )
 {
   bool test = true;
   // loop over populations: if element of Dirichlet parameter vector is 0, do not update corresponding element of 
   // admixture proportion vector
   for( int k = 0; k < Populations; k++ ){
-    if( (theta)( k, 0 ) == 0.0 )
+    if( (Theta)( k, 0 ) == 0.0 )
       test = false;
-    else if( ModelIndicator && (theta)( k, 1 ) == 0.0 )
+    else if( ModelIndicator && (Theta)( k, 1 ) == 0.0 )
       test = false;
   }
 
   // generic Metropolis rejection step
   if( p < 0 ){
      if( log(myrand()) < p && test ){
-        setAdmixtureProps(theta);
+        setAdmixtureProps(Theta);
         if( xdata )
-           setAdmixturePropsX(thetaX);
+           setAdmixturePropsX(ThetaX);
      }
   }
   else{
-     setAdmixtureProps(theta);
+     setAdmixtureProps(Theta);
      if( xdata )
-        setAdmixturePropsX(thetaX);
+        setAdmixturePropsX(ThetaX);
   }
 }
 
@@ -813,7 +782,7 @@ void Individual::Accept_Reject_Theta( double p, Matrix_d &theta, Matrix_d &theta
 // should be generic method for GLM, given Xbeta, Y and probability distribution 
 // then should calculate ratio in Metropolis step 
 //  
-double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, Matrix_d &theta ,bool ModelIndicator,int Populations,
+double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool ModelIndicator,int Populations,
 					      int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY, 
 						  MatrixArray_d &Target, Vector_d &poptheta) 
 {
@@ -822,9 +791,9 @@ double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, Matrix_d &theta
   Vector_d avgtheta;
   // calculate mean of parental admixture proportions
   if( ModelIndicator )
-    avgtheta = theta.RowMean() - poptheta;
+    avgtheta = Theta.RowMean() - poptheta;
   else
-    avgtheta = theta.GetColumn(0) - poptheta;
+    avgtheta = Theta.GetColumn(0) - poptheta;
 
   for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
     Xbeta += Covariates0( i, jj ) * beta( TI )( jj ,0 );
@@ -840,16 +809,16 @@ double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, Matrix_d &theta
   return( log(prob) );
 } 
 
-double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  Matrix_d &theta ,bool ModelIndicator,int Populations,
+double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  bool ModelIndicator,int Populations,
 						 int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
 						 MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda)
 {
   double prob, Xbeta = 0;
   Vector_d avgtheta;
   if( ModelIndicator )
-    avgtheta = theta.RowMean() - poptheta;
+    avgtheta = Theta.RowMean() - poptheta;
   else
-    avgtheta = theta.GetColumn(0) - poptheta;
+    avgtheta = Theta.GetColumn(0) - poptheta;
 
   for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
     Xbeta += Covariates0( i, jj ) * beta( TI )( jj, 0 );
@@ -863,7 +832,7 @@ double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  Matrix_d &t
   return( prob );
 }
 
-double Individual::AcceptanceProbForTheta_XChrm(Matrix_d &Theta, Matrix_d &ThetaX,std::vector<double> &sigma, int Populations )
+double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations )
 {
    int gametes = 1;
    if( sex == 2 )
@@ -889,7 +858,7 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
 					     double rhobeta,vector<double> sigma)
 {
   double u;
-  Matrix_d Theta, ThetaX;// admixture proportions
+
 
   if( options->getAnalysisTypeIndicator() > 1 ){
    // sample missing values of outcome variable
@@ -909,30 +878,32 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
   }
   // sample individual admixture proportions theta
   // should be modified to allow a population mixture component model   
-  Theta = SampleParameters(i, options, A, chrm, alpha, _symmetric, _admixed,rhoalpha, rhobeta, iteration, sigma, ThetaX );
+  SampleParameters(i, options, A, chrm, alpha, _symmetric, _admixed,rhoalpha, rhobeta, iteration, sigma);
 
    double p = 0;
    if( options->getAnalysisTypeIndicator() == 2 && !options->getScoreTestIndicator() ){
-     p = AcceptanceProbForTheta_LinearReg( i, 0, Theta ,options->getModelIndicator(),options->getPopulations(),
+     p = AcceptanceProbForTheta_LinearReg( i, 0, options->getModelIndicator(),options->getPopulations(),
 					      NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda); 
    }
    else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getScoreTestIndicator() ){
-     p = AcceptanceProbForTheta_LogReg( i, 0, Theta ,options->getModelIndicator(),options->getPopulations(),
+     p = AcceptanceProbForTheta_LogReg( i, 0, options->getModelIndicator(),options->getPopulations(),
 						 NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
    }
    else if( options->getAnalysisTypeIndicator() == 5 ){
       for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
          if( OutcomeType( k ) )
-	   p += AcceptanceProbForTheta_LogReg( i, k, Theta, options->getModelIndicator(), options->getPopulations(),
+	   p += AcceptanceProbForTheta_LogReg( i, k, options->getModelIndicator(), options->getPopulations(),
 						 NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
          else
-	   p += AcceptanceProbForTheta_LinearReg( i, k, Theta, options->getModelIndicator(), options->getPopulations(),
+	   p += AcceptanceProbForTheta_LinearReg( i, k, options->getModelIndicator(), options->getPopulations(),
 					      NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda);
       }
    }
    if( A->getLoci()->isX_data() && !options->getXOnlyAnalysis() )
-     p += AcceptanceProbForTheta_XChrm( Theta, ThetaX , sigma, options->getPopulations());
-   Accept_Reject_Theta(p, Theta, ThetaX, A->getLoci()->isX_data(),options->getPopulations(), options->getModelIndicator() );
+     p += AcceptanceProbForTheta_XChrm( sigma, options->getPopulations());
+ 
+  Accept_Reject_Theta(p, A->getLoci()->isX_data(),options->getPopulations(), options->getModelIndicator() );
+
    if( options->getAnalysisTypeIndicator() > 1 )
      UpdateAdmixtureForRegression(i,options->getPopulations(), NoCovariates, poptheta, options->getModelIndicator(),&(Covariates0));
    for( int k = 0; k < options->getPopulations(); k++ ){

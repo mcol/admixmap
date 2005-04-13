@@ -22,7 +22,6 @@ Genome::Genome( int NumberOfElements )
   }
   NumberOfCompositeLoci = NumberOfElements;
   TheArray = new CompositeLocus*[ NumberOfCompositeLoci ];
-  //TheArray = new CompositeLocus*[NumberOfCompositeLoci];
   Distances.SetNumberOfElements( NumberOfCompositeLoci );
   LengthOfGenome = 0;
   LengthOfXchrm = 0;
@@ -83,7 +82,7 @@ double Genome::GetLengthOfXchrm()
    return LengthOfXchrm;
 }
 
-Chromosome** Genome::GetChromosomes( int populations, vector<string> chrmlabels )
+Chromosome** Genome::GetChromosomes( int populations, vector<string> chrmlabels)
 {
   int *cstart = new int[NumberOfCompositeLoci];
   int *cfinish = new int[NumberOfCompositeLoci];
@@ -140,13 +139,12 @@ Chromosome** Genome::GetChromosomes( int populations, vector<string> chrmlabels 
            else{
               LengthOfXchrm += GetDistance(cstart[i]+j);
               X_data = true;
-               C[i]->ResetStuffForX();
+	      C[i]->ResetStuffForX();
            }
         }
      }
   }
   
-//  cout << LengthOfChrm << endl;
   delete cstart;
   delete cfinish;
   return C;
@@ -173,7 +171,6 @@ void Genome::SetNumberOfCompositeLoci( int NumberOfElements )
   }
   NumberOfCompositeLoci = NumberOfElements;
   TheArray = new CompositeLocus*[ NumberOfCompositeLoci ];
-  //TheArray = new CompositeLocus*[NumberOfCompositeLoci];
   Distances.SetNumberOfElements( NumberOfCompositeLoci );
 }
 
