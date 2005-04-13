@@ -56,7 +56,7 @@ public:
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
-  Matrix_d GetLikelihood( int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed);
+  void GetGenotypeProbs(Matrix_d *Prob, int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed);
   Vector_d *geteta();
   Vector_d *getSumEta();
 

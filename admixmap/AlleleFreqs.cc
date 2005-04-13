@@ -524,35 +524,34 @@ double AlleleFreqs::GetAlleleProbs( int x, int ancestry , int locus)
   }
 }
 
-// gets probability of genotypes given ancestry states. Returns a matrix in which rows and cols index 
+// gets probability of genotypes given ancestry states. 
+//Probs is a matrix in which rows and cols index 
 // paternal and maternal locus ancestry states.  
 // this method will be redundant if GetGenotypeProbs is fixed to work with a haploid locus. can then call 
 // GetGenotypeProbs directly
 // method is called by UpdateParameters method in Chromosome object
-Matrix_d AlleleFreqs::GetLikelihood( int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed)
+void AlleleFreqs::GetGenotypeProbs( Matrix_d *Prob, int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed)
 {
-  Matrix_d Prob;
   if( diploid ){
-      Prob = Loci(locus)->GetGenotypeProbs(Haplotypes, fixed, RandomAlleleFreqs);
+    Loci(locus)->GetGenotypeProbs(Prob, Haplotypes, fixed, RandomAlleleFreqs);
   }
   else{
     // lines below should be replaced by a call to GetGenotypeProbs, which should be extended to 
     // work with a haploid locus 
-     Prob.SetNumberOfElements( Populations, 1 );
+     Prob->SetNumberOfElements( Populations, 1 );
      if( Loci(locus)->GetNumberOfLoci() == 1 ){
         for( int pop = 0; pop < Populations; pop++ ){
-	  Prob( pop, 0 ) = GetAlleleProbs( genotype[0] - 1, pop , locus);
+	  (*Prob)( pop, 0 ) = GetAlleleProbs( genotype[0] - 1, pop , locus);
         }
      }
      else{
        Vector_i x = Loci(locus)->decodeGenotype(genotype);
        int xx = Loci(locus)->HapLoopGetDecimal( x );
         for( int pop = 0; pop < Populations; pop++ ){
-	  Prob( pop, 0 ) = GetAlleleProbs( xx - 1, pop , locus);
+	  (*Prob)( pop, 0 ) = GetAlleleProbs( xx - 1, pop , locus);
         }
      }
   }
-  return( Prob );
 }
 
 void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, const vector<unsigned int>& genotype, int ancestry )
