@@ -63,16 +63,16 @@ void HMM::SetDimensions( int inTransitions, int inStates )
 }
 
 //Update Forward and (optionally) Backward probs
-void HMM::UpdateFwrdBckwdProbabilities( double *StationaryDist, double **Likelihood, bool CalculateBeta)
+void HMM::UpdateFwrdBckwdProbabilities( double *StationaryDist, double **StateDepProbs, bool CalculateBeta)
 {
   //StationaryDist = delta, double array of length States 
   //TransitionProbs = Gamma, (States x States) Transition Matrix
-  //Likelihood = lambda = (States x States) matrix of p(Hidden State | Observed State)
+  //StateDepProbs = lambda = (States x States) matrix of State-Dependent Probabilities, p(Hidden State | Observed State)
   // CalculateBeta indicates whether to calculate backward probs beta. They are only needed for state probs.
 
    //set alpha(0) = StationaryDist * lambda(0) 
    for( int j = 0; j < States; j++ )
-     alpha[0][j] =  StationaryDist[j] *Likelihood[0][j];
+     alpha[0][j] =  StationaryDist[j] *StateDepProbs[0][j];
 
    for( int t = 1; t < Transitions; t++ ){
      //set alpha(t) = alpha(t-1) * Gamma * lambda(t)
@@ -80,7 +80,7 @@ void HMM::UpdateFwrdBckwdProbabilities( double *StationaryDist, double **Likelih
        alpha[t][i] = 0.0;
        //explicit element-wise vector-matrix multiplication
        for( int j = 0; j < States; j++ )alpha[t][i] += alpha[t-1][j] * TransitionProbs[t-1][j][i];
-       alpha[t][i] *= Likelihood[t][i];
+       alpha[t][i] *= StateDepProbs[t][i];
      }
 
      //This is to avoid underflow
@@ -100,7 +100,7 @@ void HMM::UpdateFwrdBckwdProbabilities( double *StationaryDist, double **Likelih
        for( int i = 0; i < States; i++ ){
 	 beta[t][i] = 0.0;
 	 //set beta(t) to Gamma * lambda(t+1) * beta(t+1) 
-	 for( int j = 0; j < States; j++ )beta[t][i] += Likelihood[t+1][j] * beta[t+1][j] * TransitionProbs[t][i][j];
+	 for( int j = 0; j < States; j++ )beta[t][i] += StateDepProbs[t+1][j] * beta[t+1][j] * TransitionProbs[t][i][j];
        }	
      }
    }
