@@ -26,10 +26,11 @@ private:
   std::string _Label;
   HMM SampleStates;
   double *StationaryDist;
-  double **Likelihood;
-  Matrix_d Prob;//used to construct likelihood
+  double **GenotypeProbs;
+  Matrix_d Prob;//used to construct genotypeprobs
   int *CodedStates;//used to sample hidden states from HMM
-  // Matrix_d *AncestryProbs;//Conditional Probs of Locus Ancestry
+  double **Tpat, **Tmat;//paternal and maternal transition probability matrices
+  double *_product1, *_product2;
   
   // UNIMPLEMENTED
   // to avoid use
@@ -47,8 +48,7 @@ public:
   int GetLocus(int);
   int GetSize();
   Vector_i SampleForHaploidLocusAncestry(Individual*, AlleleFreqs *);
-  void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool);
-  void UpdateParametersHaploid(Individual*,AlleleFreqs *,Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool);
+  void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool,bool);
   Matrix_i SampleForLocusAncestry();
   void setAncestryProbs(int); 
   Matrix_d getAncestryProbs(int);
