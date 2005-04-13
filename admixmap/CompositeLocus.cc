@@ -344,18 +344,18 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
  *   probabilities are in correct proportions.
  */
 //this matrix has to be rearranged as a vector for the HMM  
-Matrix_d CompositeLocus::GetGenotypeProbs(Vector_i Haplotypes, bool fixed, int RandomAlleleFreqs)
+void CompositeLocus::GetGenotypeProbs(Matrix_d *Probs, Vector_i Haplotypes, bool fixed, int RandomAlleleFreqs)
 {
-   Matrix_d GenoTypeProbs( Populations, Populations );
-
+  //Matrix_d GenoTypeProbs( Populations, Populations );
+  Probs->SetNumberOfElements(Populations, Populations);
    for( int k = 0; k < Haplotypes.GetNumberOfElements(); k++ ){
       if( fixed && RandomAlleleFreqs == 1 )
-         GenoTypeProbs += HaplotypeProbsMAP(Haplotypes(k) );
+         *Probs += HaplotypeProbsMAP(Haplotypes(k) );
       else
-         GenoTypeProbs += HaplotypeProbs( Haplotypes(k) );
+         *Probs += HaplotypeProbs( Haplotypes(k) );
    }
 
-   return( GenoTypeProbs );
+   //return( GenoTypeProbs );
 }
 
 // doesn't really calculate posterior mode

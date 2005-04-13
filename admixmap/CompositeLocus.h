@@ -29,7 +29,7 @@ class Matrix_d;
 class VectorLoop;
 class TuneRW;
 
-class CompositeLocus //: public AbstractCompLocus
+class CompositeLocus 
 {
 private: // members
   int NumberOfLoci;
@@ -75,7 +75,8 @@ public:
   Vector_i decodeGenotype(const std::vector<unsigned int>& encoded);
   void ConstructHaplotypeProbs(Matrix_d &AlleleFreqs);
   int HapLoopGetDecimal(Vector_i x);
-  Matrix_d GetGenotypeProbs(Vector_i, bool, int);
+  //Matrix_d GetGenotypeProbs(Vector_i, bool, int);
+  void GetGenotypeProbs(Matrix_d *, Vector_i, bool, int);
 
   void setHaplotypeProbsMAP();
   void SetNumberOfLabels();
