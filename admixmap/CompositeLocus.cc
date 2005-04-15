@@ -428,20 +428,20 @@ Vector_i CompositeLocus::GetNumberOfAlleles()
  * Given an unordered genotype, calculates every possible haplotype pair that
  * is compatible with observed genotype.
  * Should be called once only for each (composite) locus and each individual. 
- * The lists of possible haplotypes are to be stored in the Individual objects to save recalculating each iteration.
+ * The lists of possible haplotypes are stored in the Individual objects to save recalculating each iteration.
  *
- * genotype - a two-element vector of alleles/ paternal and maternal genotypes
+ * genotype - a vector of genotypes
  *   
  *
  * Haplotypes:
  * a list of possible haplotype pairs (in VectorLoop format).
  */
-Vector_i CompositeLocus::SetPossibleHaplotypes(const vector<unsigned int>& genotype)
+void CompositeLocus::SetPossibleHaplotypes(Vector_i *Haplotypes, const vector<unsigned int>& genotype)
 {
    int MissingValues;
    Vector_i LociBase, WhereMissingValues, count, xx, x;
    VectorLoop LociLoop;
-   Vector_i Haplotypes;
+   //Vector_i Haplotypes;
 
    x.SetNumberOfElements( 2*NumberOfLoci );
    LociBase.SetNumberOfElements( NumberOfLoci );
@@ -457,12 +457,12 @@ Vector_i CompositeLocus::SetPossibleHaplotypes(const vector<unsigned int>& genot
       }
    }
    if( MissingValues == 0 ){
-      Haplotypes.SetNumberOfElements( NumberOfStates );
+      Haplotypes->SetNumberOfElements( NumberOfStates );
       for( int jj = 0; jj < NumberOfStates; jj++ ){
          xx = Haplotype( x, jj );
-         Haplotypes(jj) = DipLoop.GetDecimal( xx );
+         (*Haplotypes)(jj) = DipLoop.GetDecimal( xx );
       }
-      Haplotypes.Distinct();
+      Haplotypes->Distinct();
    }
    else{
       for( int k = 0; k < NumberOfLoci; k++ )
@@ -472,7 +472,7 @@ Vector_i CompositeLocus::SetPossibleHaplotypes(const vector<unsigned int>& genot
             LociBase(k) = NumberOfAlleles(k) * NumberOfAlleles(k);
       
       LociLoop.SetBase( LociBase );
-      Haplotypes.SetNumberOfElements( LociLoop.GetDecimalBase() );
+      Haplotypes->SetNumberOfElements( LociLoop.GetDecimalBase() );
       
       do{
          xx = x;
@@ -485,12 +485,12 @@ Vector_i CompositeLocus::SetPossibleHaplotypes(const vector<unsigned int>& genot
             else{
                xx(2*k) = (int)(count(k)) / NumberOfAlleles(k);
                xx(2*k+1) = (int)count(k) % NumberOfAlleles(k);}}
-            Haplotypes( LociLoop.GetDecimalCount() ) = DipLoop.GetDecimal( xx );
+	 (*Haplotypes)( LociLoop.GetDecimalCount() ) = DipLoop.GetDecimal( xx );
          LociLoop.Increment(1);
       }while( LociLoop.GetDecimalCount() != 0 );
-      Haplotypes.Distinct();
+      Haplotypes->Distinct();
    }
-   return Haplotypes;
+   //return Haplotypes;
 }
 
 int CompositeLocus::HapLoopGetDecimal(Vector_i x){
