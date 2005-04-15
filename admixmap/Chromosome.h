@@ -47,11 +47,10 @@ public:
   std::string GetLabel( int );
   int GetLocus(int);
   int GetSize();
-  Vector_i SampleForHaploidLocusAncestry(Individual*, AlleleFreqs *);
-  void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,std::vector<Vector_d>&, bool,bool);
-  Matrix_i SampleForLocusAncestry();
+  void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,Vector_d [], bool,bool);
+  void SampleForLocusAncestry(Matrix_i*, bool);
   void setAncestryProbs(int); 
-  Matrix_d getAncestryProbs(int);
+  void getAncestryProbs(int, Matrix_d *);
   void CreateAncestryProbs();
   double getLogLikelihood();
 

@@ -82,7 +82,7 @@ Chromosome::GetSize(){
 }
 
 void
-Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, vector< Vector_d >& f,
+Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, Vector_d f[],
 			     bool fixedallelefreqs, bool diploid )
 //Obtains stationary distribution and transition probs for HMM and updates forward and backward probabilities
 //Admixture - matrix of admixture proportions
@@ -215,60 +215,28 @@ Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixtur
 
 }
 
-Matrix_i Chromosome::SampleForLocusAncestry()
-//Diploid case
+void Chromosome::SampleForLocusAncestry(Matrix_i *OrderedStates, bool isdiploid)
+//Ordered States - pointer to ((2 or 1) x size) int matrix to store the locus ancestry states
+//isdiploid - indicator for diploid (true) or haploid (false)
 {
-  //Vector_i CodedStates;
-  Matrix_i OrderedStates(2,L);
-  
+
   // Sample    
-  //CodedStates = SampleStates.Sample();
   SampleStates.Sample(CodedStates);
   for( int j = 0; j < L; j++ ){
-    //     OrderedStates( 0, j ) = 0;
-    OrderedStates( 0, j ) = (int)(CodedStates[j] / populations);
-    OrderedStates( 1, j ) = (CodedStates[j] % populations);
+    if(isdiploid){
+      //     OrderedStates( 0, j ) = 0;
+      (*OrderedStates)( 0, j ) = (int)(CodedStates[j] / populations);
+      (*OrderedStates)( 1, j ) = (CodedStates[j] % populations);
+    }
+    else //haploid
+      {
+	(*OrderedStates)(0, j ) = CodedStates[j];
+      }
   }
-  
-//   // Update stats for allele freqs
-//   for( int j = 0; j < L; j++ ){
-//     int locus = GetLocus( j );
-//     if( !(ind->IsMissing(locus)) ){
-//       //(*this)(j)->UpdateAlleleCounts( genotype, OrderedStates.GetColumn(j) );
-//       // why should function UpdateAlleleCounts need to get genotypes if it already has the possible haplotypes 
-//       // compatible with the genotype? 
-//       // unnecessary to call this function here
-//       // allele counts are updated at each iteration anyway, when allele freqs are updated
-//       A->UpdateAlleleCounts( locus, ind->getPossibleHaplotypes(locus), OrderedStates.GetColumn(j) );
-//     }
-//   }
-  
-  return( OrderedStates );
+   
 }
 
-Vector_i
-Chromosome::SampleForHaploidLocusAncestry(Individual* ind, AlleleFreqs* A)
-{
-  Vector_i OrderedStates;
-  //can remove next bit when OrderedStates is an array
-  //OrderedStates = SampleStates.Sample();
-  SampleStates.Sample(CodedStates);
-
-  for( int j = 0; j < L; j++ ){
-    OrderedStates( j ) = CodedStates[j];
-     int locus = GetLocus( j );
-     if( !(ind->IsMissing(locus)) ){
-       //vector<unsigned int> genotype = ind->getGenotype(locus);
-	//(*this)(j)->UpdateAlleleCounts_HaploidData( genotype, OrderedStates(j) );
-	//A->UpdateAlleleCounts_HaploidData( locus, ind->getGenotype(locus), OrderedStates(j) );
-       A->UpdateAlleleCounts_HaploidData( locus, ind->getGenotype(locus), OrderedStates(j) );
-     }
-  }
-
-  return( OrderedStates );
-}
-
-Matrix_d Chromosome::getAncestryProbs( int j ){
+void Chromosome::getAncestryProbs( int j, Matrix_d *AncestryProbs ){
   //sets conditional probabilities of ancestry at locus j
   //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry from that population
   //i.e. (i,2) = p_{ii}
@@ -276,23 +244,20 @@ Matrix_d Chromosome::getAncestryProbs( int j ){
   //     (i,0) = 1.0 - (i,1) - (i,2)
   //where p's are probs in StateProbs
   
-  Matrix_d AncestryProbs( populations, 3 );
-  //Vector_d StateProbs;
+  AncestryProbs->SetNumberOfElements(populations, 3);
   double *StateProbs;
   StateProbs = new double[D];//possibly should keep this at class scope
   
-  //StateProbs = SampleStates.GetStateProbs(j);//vector of ordered ancestry state probs
-  SampleStates.GetStateProbs(StateProbs, j);
+   SampleStates.GetStateProbs(StateProbs, j);
   
   for( int k1 = 0; k1 < populations; k1++ ){
-    AncestryProbs(k1,2) = StateProbs[ ( populations + 1 ) * k1 ];
+    (*AncestryProbs)(k1,2) = StateProbs[ ( populations + 1 ) * k1 ];
     for( int k2 = 0 ; k2 < populations; k2++ )
-      AncestryProbs(k1,1) += StateProbs[k1*populations +k2] + StateProbs[k2*populations +k1];
-    AncestryProbs(k1,1)-= 2.0*AncestryProbs(k1,2);
-    AncestryProbs(k1,0) = 1.0 - AncestryProbs(k1,1) - AncestryProbs(k1,2);
+      (*AncestryProbs)(k1,1) += StateProbs[k1*populations +k2] + StateProbs[k2*populations +k1];
+    (*AncestryProbs)(k1,1)-= 2.0*(*AncestryProbs)(k1,2);
+    (*AncestryProbs)(k1,0) = 1.0 - (*AncestryProbs)(k1,1) - (*AncestryProbs)(k1,2);
   }
   delete StateProbs;
-  return AncestryProbs;
 }
 
 
