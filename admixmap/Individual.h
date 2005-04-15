@@ -87,7 +87,8 @@ private:
   Vector_i *PossibleHaplotypes;
   std::vector< std::vector<unsigned int> > genotype; // stores genotypes    
   std::vector< std::vector<bool> > _xi;
-  std::vector< unsigned int > numCompLoci;
+  //std::vector< unsigned int > numCompLoci;
+  unsigned int *numCompLoci;
   unsigned int numChromosomes;
   Matrix_d AdmixtureProps;
   Matrix_d XAdmixtureProps;
@@ -95,7 +96,10 @@ private:
 
   Matrix_d AdmixtureHat;
   Matrix_d XAdmixtureHat;
+
   MatrixArray_i LocusAncestry;
+  Matrix_i SumLocusAncestry, SumLocusAncestry_X;
+
   double Sumrho0;
   Vector_i sumxi;
   std::vector< double > _rho;
@@ -104,12 +108,11 @@ private:
   std::vector< double > _rhoHat_X;
   std::vector< Matrix_d > AncestryProbs; //Conditional probabilities of locus ancestry
   double LogPosterior;
-  unsigned int sex;
+  short unsigned int sex; // 0 = missing, 1 = male, 2 = female 
   std::vector< unsigned int > gametes;
   unsigned int X_posn;
   double TruncationPt; // upper truncation point for sum intensities parameter rho
-
-
+ 
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
@@ -121,19 +124,16 @@ private:
 					   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
 					   MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda);
 
-  void SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, AlleleFreqs *A, vector< Vector_d > f, 
-			   Matrix_i *, Matrix_i *);
+  void SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, AlleleFreqs *A);
 
-  void SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, vector< unsigned int > *SumN, 
-			      vector< unsigned int > *SumN_X);
+  void SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, unsigned int SumN[],unsigned int SumN_X[]);
 
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
-			   vector< unsigned int > SumN, vector< unsigned int > SumN_X);
+		 unsigned int SumN[], unsigned int SumN_X[]);
 
   void CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
-						 double L_X, vector< unsigned int > SumN, vector< unsigned int > SumN_X, 
-						 Matrix_i &SumLocusAncestry, Matrix_i &SumLocusAncestry_X);
+			     double L_X, unsigned int SumN[], unsigned int SumN_X[]);
 
   void InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
 		 AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 

@@ -25,10 +25,12 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
                 _rho.assign(2,1);
     }
 
+    //TODO: this block should be in IndividualCollection
     int TotalLoci = 0;
     //Can we not just count the length of Genome?
     //TotalLoci = Loci.GetNumberOfCompositeLoci();
-    numCompLoci.resize( numChromosomes );
+    //numCompLoci.resize( numChromosomes );
+    numCompLoci = new unsigned int[numChromosomes];
     for( unsigned int j = 0; j < numChromosomes; j++ ){
         numCompLoci[j] = chrm[j]->GetSize();
         for( unsigned int jj = 0; jj < numCompLoci[j]; jj++ ){
@@ -36,7 +38,7 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
             TotalLoci += Loci(compLocus)->GetNumberOfLoci();
         }
     }
-
+    //TODO: this block goes in InputData
     if (options->IsPedFile() == 1) {
         if (data.size() != 2*TotalLoci + 1 + options->genotypesSexColumn()) {
             cout << "Error in formatting of line" << endl;
@@ -56,7 +58,11 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
         if (sex > 2) {
             cout << "Error: sex must be coded as 0 - missing, 1 - male or 2 - female.\n";
             exit(0);
-        }        
+        }
+	//TODO: need pointer Data to InputData object
+	//      Individual needs to know its number to tell Data
+	//sex = Data->GetSexValue(mynumber);
+       
     }
 
     int numCompositeLoci = Loci.GetNumberOfCompositeLoci();
@@ -92,8 +98,8 @@ Individual::Individual(AdmixOptions* options, const Vector_s& data, Genome& Loci
             gametes.push_back(2);
             X_posn = j;
         }
-        if( options->getPopulations() == 1 )
-            LocusAncestry(j).SetElements(0);
+        if( options->getPopulations() == 1 ) LocusAncestry(j).SetElements(0);
+
 	// loop over composite loci to store genotype strings in array *data* as pairs of integers in stl vector genotype 
         for( unsigned int jj = 0; jj < numCompLoci[j]; jj++ ){
             int compLocus = chrm[j]->GetLocus(jj);
