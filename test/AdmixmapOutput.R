@@ -40,7 +40,7 @@ readLoci <- function(locusfile) {
   ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
   num.sloci <- dim(loci.simple)[1]
   loci.compound <- loci.simple[-(1:num.sloci), ]
-  clocus <- 0
+  clocus <- 1
   ## loop over simple loci
   for(slocus in 1:num.sloci) {
     if(loci.simple[slocus, 3] > 0) { # new compound locus
@@ -441,7 +441,7 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
 #}
 
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
-plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
+plotRBScoreTest <- function(scorefile, outfile, K, population.labels, thinning) {
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
   ## extract first row containing locus names
   locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=K), 1]
@@ -457,7 +457,8 @@ plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
   scoretests4way[is.nan(scoretests4way)] <- NA
   
   ## plot cumulative p-values in K colours
-  outputfile <- paste(resultsdir, "TestsAffectedsonly.ps", sep="/")
+  outputfile <- paste(resultsdir, outfile, sep="/")
+  outputfile <- paste(outputfile, ".ps", sep="")
   stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
   plotPValuesKPopulations(outputfile, stdnormdev, thinning)
   ## extract final table as 3-way array: statistic, locus, population
@@ -481,7 +482,8 @@ plotRBScoreTest <- function(scorefile, K, population.labels, thinning) {
     c("Locus.Population", "Score", "CompleteInfo", "ObservedInfo",
       "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params",
       "StdNormalDev", "p.value")
-  outputfile <- paste(resultsdir, "TestsAffectedsOnlyFinal.txt", sep="/" )
+  outputfile <- paste(resultsdir, outfile, sep="/" )
+  outputfile <- paste(outputfile, "Final.txt", sep="")
   write.table(scoretest.final2, file=outputfile,
               quote=FALSE, row.names=FALSE, sep="\t")
   
@@ -945,12 +947,12 @@ if(!is.null(user.options$haplotypeassociationscorefile)) {
 ## read output of regression model score test for ancestry, and plot cumulative results
 if(!is.null(user.options$ancestryassociationscorefile)) {
   ## produces warning
-  plotRBScoreTest(user.options$ancestryassociationscorefile, K, population.labels, user.options$every)
+  plotRBScoreTest(user.options$ancestryassociationscorefile, "TestsAncestryAssoc",K, population.labels, user.options$every)
 }
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile)) {
-  plotRBScoreTest(user.options$affectedsonlyscorefile, K, population.labels, user.options$every)
+  plotRBScoreTest(user.options$affectedsonlyscorefile, "TestsAffectedsOnly",K, population.labels, user.options$every)
 }
 
 ## read output of score test for mis-specified allele freqs and plot cumulative results
