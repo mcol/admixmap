@@ -39,21 +39,20 @@ readLoci <- function(locusfile) {
   loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", "."))
   ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
   num.sloci <- dim(loci.simple)[1]
-  loci.compound <- loci.simple[-(1:num.sloci), ]
+  loci.compound <- loci.simple[1, ] # table with 1 row 
   clocus <- 1
+  num.haps <- loci.compound[1, 2]
   ## loop over simple loci
-  for(slocus in 1:num.sloci) {
+  for(slocus in 2:num.sloci) {
     if(loci.simple[slocus, 3] > 0) { # new compound locus
-      if(clocus > 1) {  
-        ## assign num haplotypes at previous compound locus
-        loci.compound[clocus-1, 2] <- num.haps
-      }
+      ## increment number of compound locus 
+      clocus <- clocus + 1
+      ## assign num haplotypes at previous compound locus
+      loci.compound[clocus-1, 2] <- num.haps
       ## restart counting num haplotypes
       num.haps <- loci.simple[slocus, 2]
       ## add row to loci.compound
       loci.compound <- rbind(loci.compound, loci.simple[slocus, ])
-      ## increment number of compound locus 
-      clocus <- clocus + 1
     } else {
       ## continue counting num haplotypes
       num.haps <- num.haps * loci.simple[slocus, 2]
@@ -61,7 +60,7 @@ readLoci <- function(locusfile) {
   }
   ## assign num haplotypes at last compound locus
   loci.compound[clocus, 2] <- num.haps
- 
+  
   ## add two columns for map position and chromosome
   loci.compound <- data.frame(loci.compound, numeric(dim(loci.compound)[1]),
                               numeric(dim(loci.compound)[1]))
@@ -97,6 +96,7 @@ getPopulationLabels <- function(k, user.options) {
     population.labels <- "SinglePop"
   } else {
     if(!is.null(user.options$paramfile) &&
+       file.exists(user.options$paramfile) &&  
        length(scan(paste(resultsdir,user.options$paramfile, sep="/"),
                    what='character', quiet=TRUE)) != 0) {
       population.labels <-
@@ -820,50 +820,55 @@ population.labels <- getPopulationLabels(K, user.options)
 param.samples <- NULL
 effect.pop <- NULL
 pop.admix.prop <- NULL
+
 ## read population parameter samples
 if(is.null(user.options$paramfile)) {
   print("paramfile not specified")
 } else {
-  if(length(scan(paste(resultsdir,user.options$paramfile, sep="/"),  what='character', quiet=TRUE)) == 0) {
-    print("paramfile empty")
+  if(!file.exists(user.options$paramfile)) {
+    print("paramfile specified but file does not exist")
   } else {
-    ## param.samples columns contain:    # K Dirichlet parameters 
+    if(length(scan(paste(resultsdir,user.options$paramfile, sep="/"),  what='character', quiet=TRUE)) == 0) {
+      print("paramfile empty")
+    } else {
+      ## param.samples columns contain:    # K Dirichlet parameters 
                                         # global sum of intensities or gamma shape param if hierarchical
-    param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE)
-    n <- dim(param.samples)[1]
-    for(pop in 1:K) {
-      dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
-                                                 population.labels[pop], sep="")
-    }
-    ## Geweke convergence diagnostics,  autocorrelations and ergodic average plots
-    checkConvergence(param.samples, "Population admixture parameters",
-                     paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
-    postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
-    plotAutocorrelations(param.samples, user.options$every)
-    dev.off()
-    if(is.null(user.options$ergodicaveragefile)) {
-      print("ergodicaveragefile not specified")
-    } else {
-      if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
-        print("ergodicaveragefile empty")
-      } else {
-        postscript( paste(resultsdir, "ErgodicAverages.ps", sep="/" ))
-        plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
-        dev.off()
+      param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE)
+      n <- dim(param.samples)[1]
+      for(pop in 1:K) {
+        dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
+                                                   population.labels[pop], sep="")
       }
-    }
+      ## Geweke convergence diagnostics,  autocorrelations and ergodic average plots
+      checkConvergence(param.samples, "Population admixture parameters",
+                       paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
+      postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
+      plotAutocorrelations(param.samples, user.options$every)
+      dev.off()
+      if(is.null(user.options$ergodicaveragefile)) {
+        print("ergodicaveragefile not specified")
+      } else {
+        if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
+          print("ergodicaveragefile empty")
+        } else {
+          postscript( paste(resultsdir, "ErgodicAverages.ps", sep="/" ))
+          plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
+          dev.off()
+        }
+      }
       
-    if(K > 1) {
-      ## extract Dirichlet admixture parameters
-      admixparams <- param.samples[, 1:K,drop=FALSE]
-      ## calculate population admixture proportions from Dirichlet parameters
-      pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
-    } else {
-      pop.admix.prop <- NULL
+      if(K > 1) {
+        ## extract Dirichlet admixture parameters
+        admixparams <- param.samples[, 1:K,drop=FALSE]
+        ## calculate population admixture proportions from Dirichlet parameters
+        pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
+      } else {
+        pop.admix.prop <- NULL
+      }
     }
   }
 }
-
+  
 ## read regression parameter samples
 if(is.null(user.options$regparamfile) ||
            length(scan(paste(resultsdir, user.options$regparamfile, sep="/"),
@@ -964,12 +969,11 @@ if(is.null(user.options$allelefreqoutputfile)) {
   print("allelefreqoutputfile not specified")
 } else {
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
-##this prevents script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
+  ## prevent script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
   if(dim(allelefreq.samples)[2]==0) {
     print("allelefreqoutputfile empty")
   } else {
     ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
-    
     print.default("Converting allele frequency samples array to list")
     allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
     
@@ -1022,7 +1026,7 @@ if(!is.null(user.options$indadmixturefile)) {
   if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
     ## drop any extra vars in the array
     samples.adm <- samples[1:(2*K), , ]
-    samples4way <- array(samples1.adm, dim=c(2, K, dim(samples)[2:3]))
+    samples4way <- array(samples.adm, dim=c(2, K, dim(samples)[2:3]))
     dimnames(samples4way) <- list(c("Parent1", "Parent2"), population.labels,
                                   character(0), character(0))
     samples.meanparents <- apply(samples4way, 2:4, mean)
