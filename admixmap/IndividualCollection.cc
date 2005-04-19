@@ -205,48 +205,43 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
     Log->logmsg(true,"No indadmixturefile given\n");
   }
   //Set locusfortest if specified
- if( options->getLocusForTestIndicator() )
-     _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
-
- //Initialise Admixture Proportions
-  Matrix_d admix_null;
-   if( options->getModelIndicator() )
+  if( options->getLocusForTestIndicator() )
+    _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
+  
+  //Initialise Admixture Proportions: now initialized at prior means - draws from prior would be better 
+  Matrix_d admix_null; // matrix of initial values has K rows and 2 cols if randommatingmodel, 1 otherwise
+  if( options->getModelIndicator() )
     admix_null.SetNumberOfElements(options->getPopulations(),2);
   else
     admix_null.SetNumberOfElements(options->getPopulations(),1);
-  admix_null.SetElements( (double)1.0 / options->getPopulations() );
-  Vector_d alphatemp;
-
-  if( options->sizeInitAlpha() == 0 ){
-    alphatemp.SetNumberOfElements( options->getPopulations() );
-    alphatemp.SetElements( 1.0 );
-  }
-  else if( options->sizeInitAlpha() == 1 ){
-    alphatemp = options->getInitAlpha(0);
-  }
-  else if( options->getAnalysisTypeIndicator() < 0 ){
-    alphatemp = options->getInitAlpha(0);
- 
-    for( int k = 0; k < options->getPopulations(); k++ ){
-       if( alphatemp(k) == 0 ) admix_null(k,0) = 0.0;
-     }
-     
-     alphatemp = options->getInitAlpha(1);
+  admix_null.SetElements( (double)1.0 / options->getPopulations() ); //all elements set to 1/K
   
-     for( int k = 0; k < options->getPopulations(); k++ ){
-       if( alphatemp(k) == 0 ) admix_null(k,1) = 0.0;
-     }
+  if( options->sizeInitAlpha() >= 1 ){ // get Dirichlet prior parameters if supplied by user
+    Vector_d alphatemp;  
+    alphatemp.SetNumberOfElements( options->getPopulations() );
+    // alphatemp.SetElements( 1.0 ); // default is all elements of alpha vector set to 1 
+    alphatemp = options->getInitAlpha(0); // get prior on paternal gamete 
+    for( int k = 0; k < options->getPopulations(); k++ ) { // initialize admixture proportions at prior mean
+      admix_null(k,0) = alphatemp(k) / alphatemp.Sum();
+    } 
+    if( options->sizeInitAlpha() ==2 )  { // repeat for maternal gamete
+      alphatemp = options->getInitAlpha(1); 
+      for( int k = 0; k < options->getPopulations(); k++ ) {
+	admix_null(k,1) = alphatemp(k) / alphatemp.Sum();
+      }
+    }
   }
-  setAdmixtureProps(admix_null);
+  
+  setAdmixtureProps(admix_null); // initialize individual admixture props
   if( Loci->isX_data() )setAdmixturePropsX(admix_null);
-
+  
   //Regression stuff
   if(options->getAnalysisTypeIndicator() >=2){
     ExpectedY.SetNumberOfElementsWithDimensions( getTargetSize(), getSize(), 1 );
     Covariates.SetNumberOfElements(1);
     Matrix_d temporary( getSize(), 1 );
     temporary.SetElements(1);
-      
+    
     if( Input.GetNumberOfRows() == getSize() ){
       Covariates(0) = ConcatenateHorizontally( temporary, Input );
       Vector_d mean;
@@ -257,14 +252,14 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
     } else {
       Covariates(0) = temporary;
     }
-
+    
     
     if( !options->getScoreTestIndicator() && options->getPopulations() > 1 ){
       temporary.SetNumberOfElements( getSize(), options->getPopulations() - 1 );
       temporary.SetElements( 1 / options->getPopulations() );
       Covariates(0) = ConcatenateHorizontally( Covariates(0), temporary );
     }
-
+    
     for( int k = 0; k < getTargetSize(); k++ ){
       SetExpectedY(k,(*beta)(k));
       if( getOutcomeType(k) )calculateExpectedY(k);
