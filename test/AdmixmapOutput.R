@@ -341,14 +341,18 @@ plotpvalues <- function(psfilename, stdnormdeviates, table.every, title ) {
   dev.off()
 }
 
-plotPValuesKPopulations <- function(outputfile, stdNormDev, thinning) {
+plotPValuesKPopulations <- function(outfile, stdNormDev, thinning) {
   ## stdNormDev is a 3-way array: k populations, loci, draws 
   log10pvalues <- -log10(2*pnorm(-abs(stdNormDev)))
   postscript(outputfile)
   colours <- c("black", "blue", "red", "green")
+  outputfile <- paste(resultsdir, outfile, sep="/")
+  outputfile <- paste(outputfile, "Tests.ps", sep="")
+  header <- paste("Running computation of p-values for ",outfile,sep="")
+  header <- paste(header," score tests",sep="");
   ## set up plot for first population and first locus
   plot(10*thinning*seq(1:dim(log10pvalues)[3]), log10pvalues[1,1,], type="l", ylim=c(0,5),
-       main="Running computation of p-values for affecteds-only score tests", 
+       main=header, 
        xlab="Iterations", ylab="-log10(p-value)")
   ## loop over populations and loci to add lines
   for(pop in 1:dim(log10pvalues)[1]) {
@@ -457,10 +461,8 @@ plotRBScoreTest <- function(scorefile, outfile, K, population.labels, thinning) 
   scoretests4way[is.nan(scoretests4way)] <- NA
   
   ## plot cumulative p-values in K colours
-  outputfile <- paste(resultsdir, outfile, sep="/")
-  outputfile <- paste(outputfile, ".ps", sep="")
   stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
-  plotPValuesKPopulations(outputfile, stdnormdev, thinning)
+  plotPValuesKPopulations(outfile, stdnormdev, thinning)
   ## extract final table as 3-way array: statistic, locus, population
   scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
                            dimnames=c(dimnames(scoretests4way)[1:3]))
@@ -952,12 +954,12 @@ if(!is.null(user.options$haplotypeassociationscorefile)) {
 ## read output of regression model score test for ancestry, and plot cumulative results
 if(!is.null(user.options$ancestryassociationscorefile)) {
   ## produces warning
-  plotRBScoreTest(user.options$ancestryassociationscorefile, "TestsAncestryAssoc",K, population.labels, user.options$every)
+  plotRBScoreTest(user.options$ancestryassociationscorefile, "AncestryAssoc",K, population.labels, user.options$every)
 }
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile)) {
-  plotRBScoreTest(user.options$affectedsonlyscorefile, "TestsAffectedsOnly",K, population.labels, user.options$every)
+  plotRBScoreTest(user.options$affectedsonlyscorefile, "AffectedsOnly",K, population.labels, user.options$every)
 }
 
 ## read output of score test for mis-specified allele freqs and plot cumulative results
