@@ -13,7 +13,7 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
 {
   if(options->getStratificationTest() ){
     float DistanceFromLast = 0;
-    for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
+    for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
       DistanceFromLast += Loci.GetDistance(j);
       if( DistanceFromLast > 0.05 ){
 	if( Loci(j)->GetNumberOfStates() == 2 ){
@@ -25,6 +25,7 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
     }
     if( NumberOfTestLoci < 2 ){
        Log->logmsg(true,"Can't run stratification test with this data set.\n");
+       options->setStratificationTest(false);
     }
     else{
        Log->logmsg(true, "Loci used in stratification test.\n");
@@ -52,10 +53,10 @@ void StratificationTest::calculate( IndividualCollection* individuals, AlleleFre
     Matrix_d freqs = A->GetAlleleFreqs(jj);
     for( int i = 0; i < individuals->getSize(); i++ ){
       Individual* ind = individuals->getIndividual(i);
-      vector<unsigned int> genotype = ind->getGenotype(jj);
+      vector<unsigned short> genotype = ind->getGenotype(jj);
       if( genotype[0] ){
 	Vector_i ancestry = ind->GetLocusAncestry( ChrmAndLocus[0], ChrmAndLocus[1] );
-	vector<unsigned int> repgenotype = GenerateRepGenotype( freqs, ancestry );
+	vector<unsigned short >repgenotype = GenerateRepGenotype( freqs, ancestry );
 	vector<double> pA = GenerateExpectedGenotype( ind, freqs );
 	if( genotype[0] != genotype[1] ){
 	  genotype = SampleForOrderedSNiP( freqs, ancestry );
@@ -100,10 +101,10 @@ StratificationTest::GenerateExpectedGenotype( Individual* ind, const Matrix_d& f
   return pA;
 }
 
-vector<unsigned int>
+vector<unsigned short>
 StratificationTest::GenerateRepGenotype( const Matrix_d& freqs, const Vector_i& ancestry )
 {
-  vector<unsigned int> repgenotype(2,0);
+  vector<unsigned short> repgenotype(2,0);
   if( freqs( 0, ancestry(0) ) > myrand() )
     repgenotype[0] = 1;
   else
@@ -115,10 +116,10 @@ StratificationTest::GenerateRepGenotype( const Matrix_d& freqs, const Vector_i& 
   return repgenotype;
 }
 
-vector<unsigned int>
+vector<unsigned short>
 StratificationTest::SampleForOrderedSNiP( const Matrix_d& freqs, const Vector_i& Ancestry )
 {
-  vector<unsigned int> genotype(2,0);
+  vector<unsigned short> genotype(2,0);
   
   double q1 = freqs( 0, Ancestry(0) ) * ( 1 - freqs( 0, Ancestry(1) ) );
   double q2 = freqs( 0, Ancestry(1) ) * ( 1 - freqs( 0, Ancestry(0) ) );

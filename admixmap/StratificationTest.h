@@ -33,10 +33,10 @@ public:
   std::vector<double>
   GenerateExpectedGenotype( Individual*, const Matrix_d& );
 
-  std::vector<unsigned int>
+  std::vector<unsigned short>
   GenerateRepGenotype( const Matrix_d&, const Vector_i& );
 
-  std::vector<unsigned int> SampleForOrderedSNiP
+  std::vector<unsigned short> SampleForOrderedSNiP
   ( const Matrix_d&, const Vector_i& );
 
   float getStatistic();
