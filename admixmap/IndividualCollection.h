@@ -58,7 +58,7 @@ private:
 public:
   IndividualCollection();
   ~IndividualCollection();
-  IndividualCollection(AdmixOptions*,const Matrix_s& data,Genome&,Chromosome **);
+  IndividualCollection(AdmixOptions*,InputData *Data,Genome&,Chromosome **);
 
   void Initialise(AdmixOptions *, MatrixArray_d *,Genome *,std::string *PopulationLabels, double rhoalpha,double rhobeta, LogWriter *Log,
 		  const Matrix_d &MLEMatrix);
@@ -113,7 +113,7 @@ public:
   std::string *getCovariateLabels();
 
   double getLL();
-  double DerivativeInverseLinkFunction(int AnalysisType, int i);
+  double DerivativeInverseLinkFunction(int AnalysisType,int i);
 };
 
 #endif /* !defined INDIVIDUAL_COLLECTION_H */

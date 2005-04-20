@@ -15,8 +15,7 @@ IndividualCollection::~IndividualCollection()
   delete indadmixoutput;
 }
 
-IndividualCollection::IndividualCollection(AdmixOptions* options,
-    const Matrix_s& data, Genome& Loci, Chromosome **chrm)
+IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
 {
   Vector_i null_Vector_i(1);
   OutcomeType = null_Vector_i;
@@ -25,15 +24,11 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,
   LogLikelihood=0.0;
   SumLogLikelihood = 0.0;
 
-    // Determine if ped file.
-    const int isPedFile = 2*data[0].size() - 1 == data[1].size() ? 1 : 0;
-    options->IsPedFile(isPedFile);
-
     // Fill separate individuals.
-    for (size_t i = 1; i < data.size() ; ++i) {
-        _child.push_back(new Individual(options, data[i], Loci, chrm));
+  for (int i = 1; i <= Data->getNumberOfIndividuals() ; ++i) {
+      _child.push_back(new Individual(i,options, Data, Loci, chrm));
     }
-
+ 
 if (options->getAnalysisTypeIndicator() == 2)
     {
       OutcomeType.SetNumberOfElements( 1 );
@@ -205,43 +200,48 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
     Log->logmsg(true,"No indadmixturefile given\n");
   }
   //Set locusfortest if specified
-  if( options->getLocusForTestIndicator() )
-    _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
-  
-  //Initialise Admixture Proportions: now initialized at prior means - draws from prior would be better 
-  Matrix_d admix_null; // matrix of initial values has K rows and 2 cols if randommatingmodel, 1 otherwise
-  if( options->getModelIndicator() )
+ if( options->getLocusForTestIndicator() )
+     _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
+
+ //Initialise Admixture Proportions
+  Matrix_d admix_null;
+   if( options->getModelIndicator() )
     admix_null.SetNumberOfElements(options->getPopulations(),2);
   else
     admix_null.SetNumberOfElements(options->getPopulations(),1);
-  admix_null.SetElements( (double)1.0 / options->getPopulations() ); //all elements set to 1/K
-  
-  if( options->sizeInitAlpha() >= 1 ){ // get Dirichlet prior parameters if supplied by user
-    Vector_d alphatemp;  
+  admix_null.SetElements( (double)1.0 / options->getPopulations() );
+  Vector_d alphatemp;
+
+  if( options->sizeInitAlpha() == 0 ){
     alphatemp.SetNumberOfElements( options->getPopulations() );
-    // alphatemp.SetElements( 1.0 ); // default is all elements of alpha vector set to 1 
-    alphatemp = options->getInitAlpha(0); // get prior on paternal gamete 
-    for( int k = 0; k < options->getPopulations(); k++ ) { // initialize admixture proportions at prior mean
-      admix_null(k,0) = alphatemp(k) / alphatemp.Sum();
-    } 
-    if( options->sizeInitAlpha() ==2 )  { // repeat for maternal gamete
-      alphatemp = options->getInitAlpha(1); 
-      for( int k = 0; k < options->getPopulations(); k++ ) {
-	admix_null(k,1) = alphatemp(k) / alphatemp.Sum();
-      }
-    }
+    alphatemp.SetElements( 1.0 );
   }
+  else if( options->sizeInitAlpha() == 1 ){
+    alphatemp = options->getInitAlpha(0);
+  }
+  else if( options->getAnalysisTypeIndicator() < 0 ){
+    alphatemp = options->getInitAlpha(0);
+ 
+    for( int k = 0; k < options->getPopulations(); k++ ){
+       if( alphatemp(k) == 0 ) admix_null(k,0) = 0.0;
+     }
+     
+     alphatemp = options->getInitAlpha(1);
   
-  setAdmixtureProps(admix_null); // initialize individual admixture props
+     for( int k = 0; k < options->getPopulations(); k++ ){
+       if( alphatemp(k) == 0 ) admix_null(k,1) = 0.0;
+     }
+  }
+  setAdmixtureProps(admix_null);
   if( Loci->isX_data() )setAdmixturePropsX(admix_null);
-  
+
   //Regression stuff
   if(options->getAnalysisTypeIndicator() >=2){
     ExpectedY.SetNumberOfElementsWithDimensions( getTargetSize(), getSize(), 1 );
     Covariates.SetNumberOfElements(1);
     Matrix_d temporary( getSize(), 1 );
     temporary.SetElements(1);
-    
+      
     if( Input.GetNumberOfRows() == getSize() ){
       Covariates(0) = ConcatenateHorizontally( temporary, Input );
       Vector_d mean;
@@ -252,14 +252,14 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
     } else {
       Covariates(0) = temporary;
     }
-    
+
     
     if( !options->getScoreTestIndicator() && options->getPopulations() > 1 ){
       temporary.SetNumberOfElements( getSize(), options->getPopulations() - 1 );
       temporary.SetElements( 1 / options->getPopulations() );
       Covariates(0) = ConcatenateHorizontally( Covariates(0), temporary );
     }
-    
+
     for( int k = 0; k < getTargetSize(); k++ ){
       SetExpectedY(k,(*beta)(k));
       if( getOutcomeType(k) )calculateExpectedY(k);
@@ -494,12 +494,13 @@ void IndividualCollection::getLabels(const Vector_s& data, Vector_i temporary, s
     }
 }
 
+//should be in InputData class
 void IndividualCollection::CheckGenotypes(Genome *Loci,LogWriter *Log)
 {
   bool error = false;
    
   for( int i = 0; i < getSize(); i++ ){
-    for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+    for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
       for( int k = 0; k < (*Loci)(j)->GetNumberOfLoci(); k++ ){
 	Individual* ind =  _child[i];
 	if( (int)(ind->getGenotype(j)[2*k])   > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) || 
@@ -578,20 +579,23 @@ double IndividualCollection::getLL(){
   return SumLogLikelihood;
 }
 
-double IndividualCollection::DerivativeInverseLinkFunction(int AnalysisType, int i){
-  double DInvLink = 1.0;
+//returns Derivative of Inverse Link Function for individual i
+double IndividualCollection::DerivativeInverseLinkFunction(int AnalysisType,int i){
+  double DInvLink;
   double EY = getExpectedY(i);
+  int OutcomeType = getOutcomeType(0);
 
-  if( AnalysisType == 2 )
-    DInvLink = 1.0;//logistic regression
-  
-  else if( AnalysisType == 3 || AnalysisType == 4 )
-    DInvLink = EY * (1.0 - EY);//linear regression
-  
-  else if( AnalysisType == 5 )
-    DInvLink = OutcomeType(0) ? EY*(1.0-EY):1.0;
-
-  else  cout<<"Invalid call to DerivativeLinkFunction; No regression model is being used!"<<endl;
+    //Linear regression
+    if(AnalysisType == 2 ){
+      DInvLink = 1.0;
+      }
+    //Logistic Regression
+    else if( AnalysisType == 3 || AnalysisType == 4 ){
+      DInvLink = EY * (1.0 - EY);
+    }
+    else if( AnalysisType == 5 ){
+      DInvLink = OutcomeType ? EY*(1.0-EY):1.0;
+    }
  
   return DInvLink;    
 }
