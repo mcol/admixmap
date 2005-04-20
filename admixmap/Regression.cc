@@ -407,7 +407,7 @@ double Regression::getDispersion(int OutcomeType){
   else {
     if( AnalysisTypeIndicator == 3 || AnalysisTypeIndicator == 4 )dispersion = 1.0;//logistic
     else if (AnalysisTypeIndicator == 5)dispersion = OutcomeType ? 1.0 : lambda(0);
-    else cout<<"Invalid call to Regression::getDispersion()."<<endl;
+    //else cout<<"Invalid call to Regression::getDispersion()."<<endl;
   }
   return dispersion;
 }
