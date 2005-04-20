@@ -19,7 +19,9 @@ private:
 
   MatrixArray_d AncestryScore;
   MatrixArray_d AncestryInfo;
-  Matrix_d AncestryInfoCorrection;
+  Matrix_d AncestryVarScore,AncestryInfoCorrection;
+  //Matrix_d AncestryScore, AncestryInfo;
+  //Vector_d AncestryVarScore, AncestryInfoCorrection;
   Matrix_d SumAncestryScore;
   Matrix_d SumAncestryInfo;
   Matrix_d SumAncestryVarScore;
@@ -91,8 +93,8 @@ private:
 
   //void UpdateScoreForAncestryOld( Individual* ind, double Y, int regressonindicator, double EY, double lambda0);
 
-  void UpdateScoreForAncestry(Individual *ind, int i, Matrix_d &B,  double phi, double DInvLink);
-  void UpdateScoreForAncestry(double);
+  void UpdateScoreForAncestry(Individual *ind, Matrix_d &B, double YMinusEY, double phi, double DInvLink);
+  void UpdateScoreForAncestry(int i,double, Matrix_d &);
   
   void UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink);
 
