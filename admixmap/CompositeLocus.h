@@ -72,7 +72,7 @@ public:
   CompositeLocus();
    ~CompositeLocus();
 
-  Vector_i decodeGenotype(const std::vector<unsigned int>& encoded);
+  Vector_i decodeGenotype(std::vector<unsigned short >&encoded);
   void ConstructHaplotypeProbs(Matrix_d &AlleleFreqs);
   int HapLoopGetDecimal(Vector_i x);
   //Matrix_d GetGenotypeProbs(Vector_i, bool, int);
@@ -84,19 +84,18 @@ public:
   void SetNumberOfStates( int );
   void InitialiseHaplotypes(Matrix_d &);
   void InitialiseMuProposal(int);
-  void SetPossibleHaplotypes(Vector_i *, const std::vector<unsigned int>&);
+  void SetPossibleHaplotypes(Vector_i *, std::vector<unsigned short >&genotype);
   //  Vector_i SampleHaplotypePair(const std::vector<unsigned int>& genotype, Vector_i, Vector_i , Matrix_d &);
   Vector_i SampleHaplotypePair(Vector_i, Vector_i );
   int GetNumberOfLoci();
   int GetNumberOfStates();
-  int GetSize();
   std::string GetLabel(int);
   int GetMergedHaplotype( int i );
   int GetNumberOfMergedHaplotypes();
   Vector_i GetHapLabels( int );
   Vector_i GetNumberOfAlleles();
   int GetNumberOfAllelesOfLocus( int );
-  Vector_i GetAlleleCountsInHaplotype(const std::vector<unsigned int>&);
+  Vector_i GetAlleleCountsInHaplotype(std::vector<unsigned short >&genotype);
   void SetDefaultMergeHaplotypes( Vector_d alpha, Matrix_d AlleleFreqs );
   void SetLabel( int, std::string );
   void SetNumberOfLoci( int );
@@ -108,7 +107,7 @@ public:
   void InitialiseScoreTest(int);
   void SumScoreForMisSpecOfAlleleFreqs();
   void ResetScoreForMisSpecOfAlleleFreqs();
-  void UpdateScoreForMisSpecOfAlleleFreqs( Matrix_d phi, std::vector<unsigned int> x , Matrix_d );
+  void UpdateScoreForMisSpecOfAlleleFreqs( Matrix_d phi, std::vector<unsigned short >&x , Matrix_d );
   void UpdateScoreForMisSpecOfAlleleFreqs2(Matrix_d&, Matrix_i&);
   Matrix_d GetScore();
   Matrix_d GetInfo();

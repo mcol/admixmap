@@ -21,7 +21,7 @@ IndAdmixOutputter::IndAdmixOutputter(AdmixOptions* options,Genome* Loci,string* 
 
   _ModelIndicator = options->getModelIndicator();
 
-  if (_options->getLocusForTest() >= _Loci->GetNumberOfCompositeLoci()){
+  if (_options->getLocusForTest() >= (int)_Loci->GetNumberOfCompositeLoci()){
     cerr << "locusfortest is greater than number of loci" << endl;
     exit(0);
   }
@@ -127,7 +127,7 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
 
   if (_options->getLocusForTestIndicator()){
      Vector_i ancestry = ind.GetLocusAncestry( _locusfortest[0], _locusfortest[1] );
-     vector<unsigned int> genotype = ind.getGenotype(_options->getLocusForTest());
+     std::vector<unsigned short > genotype = ind.getGenotype(_options->getLocusForTest());
      if(_options->getPopulations() > 1 ){
         _out << ancestry(0) << "," << ancestry(1) << ",";
      }

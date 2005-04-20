@@ -46,7 +46,7 @@ AlleleFreqs::AlleleFreqs(){
 
 AlleleFreqs::~AlleleFreqs(){
 
-  for(int i=0; i<Loci.GetNumberOfCompositeLoci(); i++){
+  for(unsigned int i=0; i < Loci.GetNumberOfCompositeLoci(); i++){
     delete Loci(i);
   }
   if(IsRandom())
@@ -76,7 +76,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
 
   // these lines should be moved to Genome class ?
   LociCorrSummary.SetNumberOfElements( Loci.GetNumberOfCompositeLoci() );
-  for( int j = 1; j < Loci.GetNumberOfCompositeLoci(); j++ )
+  for(unsigned int j = 1; j < Loci.GetNumberOfCompositeLoci(); j++ )
      LociCorrSummary(j) = ( -Loci.GetDistance( j ) * rho > -700) ? exp( -Loci.GetDistance( j ) * rho ) : 0.0;
 
   // settings for sampling of dispersion parameter
@@ -127,7 +127,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
       //Initialise eta at its prior expectation
       eta(k) = psi(k)/tau(k);
       //Rescale priorallelefreqs so the columns sum to eta 
-      for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ )
+      for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ )
 	PriorAlleleFreqs(j).SetColumn(k, PriorAlleleFreqs(j).GetColumn(k) * eta(k) / PriorAlleleFreqs(j).GetColumn(k).Sum());
      }
   
@@ -156,9 +156,9 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
 
 void AlleleFreqs::load_f(double rho,Chromosome **chrm){
   int locus = 0;
-  for( int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
+  for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
     locus++;
-    for( int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
+    for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
       LociCorrSummary(locus) = exp( -Loci.GetDistance( locus ) * rho );
       locus++;
     }
@@ -427,7 +427,7 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 	// Log-likelihood ratio; numerator of integrating constant
 	LogPostRatio += 2 * Loci.GetNumberOfCompositeLoci()
            * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta(k) ) );
-	for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
+	for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
 
 	  Vector_d mu = GetPriorAlleleFreqs(j,k);
 	  //mineta is a lower bound for proposal etanew
@@ -530,7 +530,7 @@ double AlleleFreqs::GetAlleleProbs( int x, int ancestry , int locus)
 // this method will be redundant if GetGenotypeProbs is fixed to work with a haploid locus. can then call 
 // GetGenotypeProbs directly
 // method is called by UpdateParameters method in Chromosome object
-void AlleleFreqs::GetGenotypeProbs( Matrix_d *Prob, int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed)
+void AlleleFreqs::GetGenotypeProbs( Matrix_d *Prob, int locus, std::vector<unsigned short >&genotype, Vector_i Haplotypes, bool diploid, bool fixed)
 {
   if( diploid ){
     Loci(locus)->GetGenotypeProbs(Prob, Haplotypes, fixed, RandomAlleleFreqs);
@@ -554,7 +554,7 @@ void AlleleFreqs::GetGenotypeProbs( Matrix_d *Prob, int locus, const vector<unsi
   }
 }
 
-void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, const vector<unsigned int>& genotype, int ancestry )
+void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, std::vector<unsigned short >&genotype, int ancestry )
 {
     int xx;
     if( Loci(locus)->GetNumberOfLoci() == 1 )
@@ -1104,11 +1104,12 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
   }
   SetAlleleProbs();
   (*chrm) = Loci.GetChromosomes(Populations, ChrmLabels );
-
- options->setPopulations(Populations);
- pp.SetNumberOfElements(Populations);
- //(**)
-  Log->logmsg(false,Loci.size());
+  
+  Loci.SetSizes();
+  options->setPopulations(Populations);
+  pp.SetNumberOfElements(Populations);
+  //(**)
+  Log->logmsg(false,Loci.GetNumberOfCompositeLoci());
   Log->logmsg(false," loci; ");
   Log->logmsg(false, Loci.GetNumberOfChromosomes());
   Log->logmsg(false," chromosomes\n");

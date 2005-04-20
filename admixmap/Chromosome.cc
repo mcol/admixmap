@@ -67,7 +67,7 @@ Chromosome::~Chromosome()
 
 }
 
-//
+
 // Returns the number of the num'th compositelocus on this chromosome
 // eg if chromosome 2 consists of compositeloci 5,6,7 and 8,
 // GetLocus(i) returns 5 + i
@@ -76,13 +76,13 @@ Chromosome::GetLocus(int num){
   return _startLoci + num;
 }
 
-int
-Chromosome::GetSize(){
+//returns number of composite loci in the chromosome
+//must call Genome function since NumberOfCompositeLoci is private in Genome
+unsigned int Chromosome::GetSize(){
   return GetNumberOfCompositeLoci();
 }
 
-void
-Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, Vector_d f[],
+void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, Vector_d f[],
 			     bool fixedallelefreqs, bool diploid )
 //Obtains stationary distribution and transition probs for HMM and updates forward and backward probabilities
 //Admixture - matrix of admixture proportions
@@ -254,13 +254,13 @@ void Chromosome::getAncestryProbs( int j, Matrix_d *AncestryProbs ){
     (*AncestryProbs)(k1,2) = StateProbs[ ( populations + 1 ) * k1 ];
     for( int k2 = 0 ; k2 < populations; k2++ )
       (*AncestryProbs)(k1,1) += StateProbs[k1*populations +k2] + StateProbs[k2*populations +k1];
-    (*AncestryProbs)(k1,1)-= 2.0*(*AncestryProbs)(k1,2);
+    (*AncestryProbs)(k1,1) -= 2.0*(*AncestryProbs)(k1,2);
     (*AncestryProbs)(k1,0) = 1.0 - (*AncestryProbs)(k1,1) - (*AncestryProbs)(k1,2);
   }
   delete StateProbs;
 }
 
-
+//accessor for HMM Likelihood
 double Chromosome::getLogLikelihood()
 {
    return SampleStates.getLikelihood();

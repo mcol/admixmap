@@ -79,7 +79,7 @@ Matrix_i DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
 }
 
 void DispersionTest::Output(int samples,Genome& Loci){
-  for( int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
+  for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
     if(options->IsPedFile())
       dispersionoutputstream << "\"" << Loci(j)->GetLabel(0) << "\"" << " ";
     else

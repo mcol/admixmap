@@ -236,7 +236,7 @@ Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ances
    //   if( NumberOfLoci > 1 ){
       int i;
       Vector_d Probs;
-      //no = GetHaplotypes( genotype );
+   
       Probs.SetNumberOfElements( 2*Haplotypes.GetNumberOfElements() );
       for( int k = 0; k < Haplotypes.GetNumberOfElements(); k++ ){
          Probs( 2*k )     = HaplotypeProbs( Haplotypes(k) )( ancestry(0), ancestry(1) );
@@ -380,7 +380,7 @@ void CompositeLocus::setHaplotypeProbsMAP()
  * n.b. this method is only useful in composite loci composed of diallelic simple loci
  * should be generalized to deal with multi-allelic loci
  */
-Vector_i CompositeLocus::GetAlleleCountsInHaplotype(const vector<unsigned int>& genotype)
+Vector_i CompositeLocus::GetAlleleCountsInHaplotype(std::vector<unsigned short >&genotype)
 {
   /**
    * AlleleCounts contains counts of the number of 2 alleles at each
@@ -410,9 +410,10 @@ Vector_i CompositeLocus::GetAlleleCountsInHaplotype(const vector<unsigned int>& 
 // method takes a single encoded genotype as argument and subtracts 1 from the allele numbers 
 // so that alleles are numbered from 0
 // presumably missing genotypes will be recoded as pairs of minus ones 
-Vector_i CompositeLocus::decodeGenotype(const vector<unsigned int>& encoded)
+Vector_i CompositeLocus::decodeGenotype(std::vector<unsigned short >&encoded)
 {
   Vector_i decoded(encoded.size());
+
   for(unsigned int i=0;i<encoded.size();i++){
     decoded(i) = ((int)(encoded[i])) - 1;
   }
@@ -436,7 +437,7 @@ Vector_i CompositeLocus::GetNumberOfAlleles()
  * Haplotypes:
  * a list of possible haplotype pairs (in VectorLoop format).
  */
-void CompositeLocus::SetPossibleHaplotypes(Vector_i *Haplotypes, const vector<unsigned int>& genotype)
+void CompositeLocus::SetPossibleHaplotypes(Vector_i *Haplotypes, std::vector<unsigned short >&genotype)
 {
    int MissingValues;
    Vector_i LociBase, WhereMissingValues, count, xx, x;
@@ -540,7 +541,7 @@ void CompositeLocus::UpdateScoreForMisSpecOfAlleleFreqs2(Matrix_d &AlleleFreqs, 
  * Updates what's required for the score tests. Only used with fixed
  * allele frequencies. This method is only used for monitoring.
  */
-void CompositeLocus::UpdateScoreForMisSpecOfAlleleFreqs( Matrix_d phi, vector<unsigned int> x, Matrix_d AlleleFreqs)
+void CompositeLocus::UpdateScoreForMisSpecOfAlleleFreqs( Matrix_d phi, std::vector<unsigned short >&x, Matrix_d AlleleFreqs)
 {
    Vector_d Pi( 3 ), Score( Populations );
    Pi.SetElements(0);
@@ -650,11 +651,6 @@ Matrix_d CompositeLocus::GetNewScoreSq( int k )
 Matrix_d CompositeLocus::GetNewInfo( int k )
 {
    return( SumNewInfo(k) );
-}
-
-int CompositeLocus::GetSize()
-{
-  return 1;
 }
 
 /**

@@ -52,11 +52,11 @@ public:
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
 
   void UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry );
-  void UpdateAlleleCounts_HaploidData(int locus, const vector<unsigned int>& genotype, int ancestry );
+  void UpdateAlleleCounts_HaploidData(int locus, std::vector<unsigned short >&genotype, int ancestry );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
-  void GetGenotypeProbs(Matrix_d *Prob, int locus, const vector<unsigned int> genotype, Vector_i Haplotypes, bool diploid, bool fixed);
+  void GetGenotypeProbs(Matrix_d *Prob, int locus, std::vector<unsigned short >&genotype, Vector_i Haplotypes, bool diploid, bool fixed);
   Vector_d *geteta();
   Vector_d *getSumEta();
 
