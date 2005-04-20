@@ -17,7 +17,7 @@ class Individual
 public:
   Individual();
 
-  Individual(AdmixOptions*,const Vector_s& data,Genome&,Chromosome **);
+  Individual(int i,AdmixOptions*,InputData *Data,Genome&,Chromosome **);
 
   ~Individual();
 
@@ -31,7 +31,7 @@ public:
 
   void setAdmixturePropsX(Matrix_d);
   
-  std::vector<unsigned int>&  getGenotype(unsigned int locus);
+  std::vector<unsigned short>& getGenotype(unsigned int locus);
 
   Vector_i getPossibleHaplotypes(unsigned int locus);
 
@@ -49,8 +49,7 @@ public:
 
   std::vector<double> getRho();
 
-  Matrix_d getAncestryProbs( int , int);
-  Matrix_d getAncestryProbs( int );
+  Matrix_d getAncestryProbs(int);
 
   double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome**);
 
@@ -81,11 +80,13 @@ public:
 		      vector<vector<double> > &rhohat,  vector<vector<double> > &rhohatX,
 		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs *A);
 
+
 private:
   static void s2c(char *c, std::string s);
    
   Vector_i *PossibleHaplotypes;
-  std::vector< std::vector<unsigned int> > genotype; // stores genotypes    
+  std::vector< std::vector<unsigned short> > genotype; // stores genotypes    
+
   std::vector< std::vector<bool> > _xi;
   //std::vector< unsigned int > numCompLoci;
   unsigned int *numCompLoci;
@@ -106,7 +107,7 @@ private:
   std::vector< double > _rho_X;
   std::vector< double > _rhoHat;
   std::vector< double > _rhoHat_X;
-  std::vector< Matrix_d > AncestryProbs; //Conditional probabilities of locus ancestry
+  Matrix_d *AncestryProbs; //Conditional probabilities of locus ancestry
   double LogPosterior;
   short unsigned int sex; // 0 = missing, 1 = male, 2 = female 
   std::vector< unsigned int > gametes;
@@ -126,7 +127,7 @@ private:
 
   void SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, AlleleFreqs *A);
 
-  void SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, unsigned int SumN[],unsigned int SumN_X[]);
+  void SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
 
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);
