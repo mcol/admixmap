@@ -34,6 +34,7 @@ public:
   
   bool getTestForDispersion() const;
   bool getStratificationTest() const;
+  void setStratificationTest(bool);
   bool getFixedAlleleFreqs() const;
   
   Vector_i getStratificationTestLoci() const;
@@ -107,10 +108,13 @@ public:
   
   const char *getTargetFilename() const;  
   
-  bool getTestForAffectedsOnly() const;  
-  bool getTestForAllelicAssociation() const; 
+  bool getTestForAffectedsOnly() const;
+  void setTestForAffectedsOnly(bool);  
+  bool getTestForAllelicAssociation() const;
+  void setTestForAllelicAssociation(bool); 
   bool getTestForSNPsInHaplotype() const;
-  bool getTestForLinkageWithAncestry() const;    
+  bool getTestForLinkageWithAncestry() const;
+  void setTestForLinkageWithAncestry(bool);   
   bool getTestForMisspecifiedAlleleFreqs() const;
   bool getTestForMisspecifiedAlleleFreqs2() const;
   
@@ -132,7 +136,7 @@ public:
   
   bool getXOnlyAnalysis() const;
   
-  private: // members
+private: // members
   
   struct Options;     // class declaration only
   Options *imp;       // implementation

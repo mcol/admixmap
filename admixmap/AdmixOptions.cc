@@ -406,6 +406,9 @@ bool AdmixOptions::getStratificationTest() const
   return imp->StratificationTestIndicator;
 }
 
+void AdmixOptions::setStratificationTest(bool b){
+  imp->StratificationTestIndicator = b;
+}
 const char *AdmixOptions::getTargetFilename() const
 {
   return imp->TargetFilename.c_str();
@@ -416,9 +419,17 @@ bool AdmixOptions::getTestForAffectedsOnly() const
   return imp->TestForAffectedsOnly;
 }
 
+void AdmixOptions::setTestForAffectedsOnly(bool b){
+  imp->TestForAffectedsOnly = b;
+}
+
 bool AdmixOptions::getTestForAllelicAssociation() const
 {
   return imp->TestForAllelicAssociation;
+}
+
+void AdmixOptions::setTestForAllelicAssociation(bool b){
+  imp->TestForAllelicAssociation = b;
 }
 
 bool AdmixOptions::getTestForDispersion() const
@@ -429,6 +440,10 @@ bool AdmixOptions::getTestForDispersion() const
 bool AdmixOptions::getTestForLinkageWithAncestry() const
 {
   return imp->TestForLinkageWithAncestry;
+}
+
+void AdmixOptions::setTestForLinkageWithAncestry(bool b){
+  imp->TestForLinkageWithAncestry = b;
 }
 
 bool AdmixOptions::getTestForMisspecifiedAlleleFreqs() const
