@@ -23,11 +23,14 @@ private: // members
   Vector Distances;
   double LengthOfGenome;
   double LengthOfXchrm;
-  int NumberOfCompositeLoci;
-  int NumberOfChromosomes;
+  unsigned int NumberOfCompositeLoci;
+  unsigned int NumberOfChromosomes;
+  unsigned int TotalLoci;//number of simple loci;
+  unsigned int *SizesOfChromosomes;
   bool X_data;
   CompositeLocus **TheArray;
   std::vector< std::vector< int > > _chrmandlocus;
+
 
   // UNIMPLEMENTED
   // to avoid use
@@ -44,8 +47,6 @@ public:
 
    bool isX_data();
 
-  // composite-level methods
-  //AbstractCompLocus*&
   CompositeLocus *&
   operator()(int) const;
 
@@ -55,9 +56,13 @@ public:
 
   void SetNumberOfCompositeLoci(int);
 
-  int GetNumberOfCompositeLoci();
+  unsigned int GetNumberOfCompositeLoci();
 
-  int GetNumberOfChromosomes();
+  unsigned int GetNumberOfChromosomes();
+
+  unsigned int GetTotalNumberOfLoci();
+
+  unsigned int *GetSizesOfChromosomes();
 
   float GetDistance(int);
 
@@ -65,16 +70,10 @@ public:
 
   Chromosome **GetChromosomes(int, std::vector<std::string> );
 
-  int size();
-
-  // individual-level methods
-
-  int GetNumberOfLoci();
-  
+  void SetSizes();
+ 
   int GetNumberOfStates();
   
-  virtual int GetSize();
-
   virtual void SetLabel( int, std::string );
   
   double GetLengthOfGenome();
