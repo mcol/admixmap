@@ -87,7 +87,8 @@ void submain(AdmixOptions* options){
   Regression R;
 
   A.LoadAlleleFreqs(options,&chrm,&Log,&data,&PopulationLabels);//NB this sets Populations option
-  IC = new IndividualCollection(options,data.getGeneticData(),*(A.getLoci()),chrm);//NB call after LoadAlleleFreqs
+  data.determineIfPedFile(options);
+  IC = new IndividualCollection(options,&data,*(A.getLoci()),chrm);//NB call after LoadAlleleFreqs
   IC->LoadGenotypes(options,&data, &Log,A.getLoci());                             //and before L and R Initialise
  
   L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&poptheta, PopulationLabels);
@@ -177,7 +178,7 @@ void submain(AdmixOptions* options){
       }     
       //Output and scoretest updates after BurnIn     
       if( iteration > options->getBurnIn() ){
-	Scoretest.Update(R.getlambda0(), &A);
+	Scoretest.Update(R.getDispersion(IC->getOutcomeType(0)), &A);
 	R.SumParameters(options->getAnalysisTypeIndicator());
 	
 	// output every 'getSampleEvery() * 10' iterations
