@@ -826,7 +826,7 @@ pop.admix.prop <- NULL
 if(is.null(user.options$paramfile)) {
   print("paramfile not specified")
 } else {
-  if(!file.exists(user.options$paramfile)) {
+  if(!file.exists(paste(resultsdir,user.options$paramfile, sep="/"))) {
     print("paramfile specified but file does not exist")
   } else {
     if(length(scan(paste(resultsdir,user.options$paramfile, sep="/"),  what='character', quiet=TRUE)) == 0) {
