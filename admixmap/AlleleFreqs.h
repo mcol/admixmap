@@ -61,6 +61,7 @@ public:
   Vector_d *getSumEta();
 
   Vector_d getLociCorrSummary();// should be in Genome object
+  void getLociCorrSummary(double *[]);
 
  // function to merge rare haplotypes for construction of score tests
   void SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr, bool IsPedFile);

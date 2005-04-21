@@ -82,7 +82,7 @@ unsigned int Chromosome::GetSize(){
   return GetNumberOfCompositeLoci();
 }
 
-void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, Vector_d f[],
+void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, double * f[],
 			     bool fixedallelefreqs, bool diploid )
 //Obtains stationary distribution and transition probs for HMM and updates forward and backward probabilities
 //Admixture - matrix of admixture proportions
@@ -109,8 +109,8 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
 	// Construct Haploid transition matrices, Tpat and Tmat, then use them to construct transition matrix
 	
 	for(int i=0; i<populations; i++){
-	  _product1[i] = f[0](locus+1) * Admixture(i,0);
-	  _product2[i] = f[1](locus+1) * Admixture(i,Mcol);
+	  _product1[i] = f[0][locus+1] * Admixture(i,0);
+	  _product2[i] = f[1][locus+1] * Admixture(i,Mcol);
 	}
 	
 	for(int i=0; i<populations; i++){
@@ -120,8 +120,8 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
 	    Tpat[j][i] = Admixture(i,0) - _product1[i];
 	    Tmat[j][i] = Admixture(i,Mcol) - _product2[i];
 	  }
-	  Tpat[i][i] = Admixture(i,0) + f[0](locus+1) - _product1[i];
-	  Tmat[i][i] = Admixture(i,Mcol) + f[1](locus+1) - _product2[i];
+	  Tpat[i][i] = Admixture(i,0) + f[0][locus+1] - _product1[i];
+	  Tmat[i][i] = Admixture(i,Mcol) + f[1][locus+1] - _product2[i];
 	}
 	
 	// set elements of diploid transition matrix
@@ -165,7 +165,7 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
 	
 	double _product[H];
 	for(int i=0; i<H; i++){
-	  _product[i] = f[0](locus+1) * mu(i);
+	  _product[i] = f[0][locus+1] * mu(i);
 	}
 	
 	for(int i=0; i<H; i++){
@@ -174,7 +174,7 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
 	    SampleStates.SetTProb(j,i,jj, mu(jj) - _product[jj]);
 	  }
 	  //TransitionProbs(j)(i,i) = mu(i) + f[0](locus+1) - _product[i];
-	  SampleStates.SetTProb(j,i,i, mu(i) + f[0](locus+1) - _product[i]);
+	  SampleStates.SetTProb(j,i,i, mu(i) + f[0][locus+1] - _product[i]);
 	  for(int jj=i+1; jj<H; jj++){
 	    //TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
 	    SampleStates.SetTProb(j,i,jj, mu(jj) - _product[jj]);

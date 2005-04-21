@@ -1196,6 +1196,10 @@ int AlleleFreqs::IsRandom()
 Vector_d AlleleFreqs::getLociCorrSummary(){
   return LociCorrSummary;
 }
+void AlleleFreqs::getLociCorrSummary(double *f[]){
+  for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci();++i)
+    f[0][i] = f[1][i] = LociCorrSummary(i);
+}
 /**PriorAlleleFreqs
  * Returns Dirichlet parameters for allele frequencies for a particular population and locus.
  * 

@@ -47,7 +47,7 @@ public:
   std::string GetLabel( int );
   int GetLocus(int);
   unsigned int GetSize();
-  void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,Vector_d [], bool,bool);
+  void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,double *[], bool,bool);
   void SampleForLocusAncestry(Matrix_i*, bool);
   void setAncestryProbs(int); 
   void getAncestryProbs(int, Matrix_d *);
