@@ -109,9 +109,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 	Logptr->logmsg(true,"\n");
 	*affectedsOnlyScoreStream << "structure(.Data=c(" << endl;
       }
-      AffectedsScore.SetNumberOfElements(L, K);
-      AffectedsVarScore.SetNumberOfElements(L, K);
-      AffectedsInfo.SetNumberOfElements(L, K);
+      Individual::InitialiseAffectedsOnlyScores(L, K);
       SumAffectedsScore2.SetNumberOfElements(L, K);
       SumAffectedsScore.SetNumberOfElements(L, K);
       SumAffectedsVarScore.SetNumberOfElements(L, K);
@@ -161,6 +159,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     AncestryInfo.SetNumberOfElementsWithDimensions(L, 2 * K, 2 * K);
     AncestryVarScore.SetNumberOfElements(L, K);
     AncestryInfoCorrection.SetNumberOfElements(L, K);
+    Individual::InitialiseAncestryScores(L, K);
       }
     else options->setTestForLinkageWithAncestry(false);
   }
@@ -332,12 +331,6 @@ void ScoreTests::Reset(){
      AncestryVarScore.SetElements(0);
    }
 
-  if( options->getTestForAffectedsOnly() ){
-    AffectedsScore.SetElements(0);
-    AffectedsVarScore.SetElements(0);
-    AffectedsInfo.SetElements(0);
-  }
-
 }
 
 void ScoreTests::SetAllelicAssociationTest(){
@@ -401,11 +394,8 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
     if( options->getTestForLinkageWithAncestry() ){
       //UpdateScoreForAncestryOld( ind, Y, 1, EY,dispersion);
       UpdateScoreForAncestry(ind, B, YMinusEY,dispersion, DInvLink);
-    }
-    //affecteds only
-    if( options->getAnalysisTypeIndicator() == 0 ) UpdateScoreForLinkageAffectedsOnly( ind);
-    else if( options->getTestForAffectedsOnly() && (individuals->getOutcome(0))(i,0) == 1 ){
-      UpdateScoreForLinkageAffectedsOnly( ind);
+      //ind->UpdateScoreForAncestry(dispersion,YMinusEY, DInvLink,
+      //A->getLoci()->GetNumberOfCompositeLoci(), options->getPopulations() );
     }
 
   }
@@ -498,19 +488,15 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
 	  SumAncestryScore2(j,k) += score(k,0) * score(k,0);
 	  SumAncestryVarScore(j,k) += AncestryVarScore(j,k);
 	}
-
+	//Individual::SumScoresForAncestry(j, options->getPopulations(), &score, &info, 
+	// &SumAncestryScore, &SumAncestryInfo, &SumAncestryScore2, &SumAncestryVarScore);
       } 
   /*------------------------------------
   |affecteds-only linkage with ancestry |
   ------------------------------------*/ 
      if( options->getTestForAffectedsOnly() ){
-	//
-	for( int kk = 0; kk < options->getPopulations(); kk++ ){
-	  SumAffectedsScore(j,kk) += AffectedsScore(j,kk);
-	  SumAffectedsVarScore(j,kk) += AffectedsVarScore(j,kk);
-	  SumAffectedsInfo(j,kk) += AffectedsInfo(j,kk);
-	  SumAffectedsScore2(j, kk) +=  AffectedsScore(j, kk) * AffectedsScore(j, kk);
-	}
+       Individual::SumScoresForLinkageAffectedsOnly(j,options->getPopulations(),
+						    &SumAffectedsScore, &SumAffectedsVarScore,&SumAffectedsScore2, &SumAffectedsInfo);
       }
     }
   }
@@ -545,39 +531,6 @@ void ScoreTests::TransformScoreStatistics( int kk, Matrix_d score, Matrix_d info
     V.SetColumn(i,temp);
   }
   *newinfo = Vaa - Vab * V;
-}
-
-void
-ScoreTests::UpdateScoreForLinkageAffectedsOnly( Individual* ind)
-{
-  // Different from the notation in McKeigue et  al. (2000). McKeigue
-  // uses P0, P1, P2, which relate to individual admixture as follows;
-  // P0 = ( 1 - theta0 ) * ( 1 - theta1 )
-  // P1 = ( 1 - theta0 ) * theta1 + theta0 * ( 1 - theta1 )
-  // P2 = theta0 * theta1
-
-  // Test in McKeigue et al. (2000) was on r defined on the positive
-  // real line.  This test is on log r, which should have better
-  // asymptotic properties.
-
-  double theta[2];//paternal and maternal admixture proportions
-  Matrix_d AncestryProbs;//conditional locus ancestry probs
-
-  for( int k = 0; k < options->getPopulations(); k++ ){
-    theta[0] = ind->getAdmixtureProps()( k, 0 );
-    if( options->getModelIndicator() )
-      theta[1] = ind->getAdmixtureProps()( k, 1 );
-    else
-      theta[1] = ind->getAdmixtureProps()( k, 0 );
-
-    for(unsigned int locus = 0; locus< Lociptr->GetNumberOfCompositeLoci(); ++locus){
-      AncestryProbs = ind->getAncestryProbs(locus);
-      AffectedsScore(locus,k)+= 0.5*( AncestryProbs(k,1) + 2.0*AncestryProbs(k,2) - theta[0] - theta[1] );
-      AffectedsVarScore(locus, k)+= 0.25 *( AncestryProbs(k,1)*(1.0 - AncestryProbs(k,1)) + 
-					    4.0*AncestryProbs(k,2)*AncestryProbs(k,0)); 
-      AffectedsInfo(locus, k)+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
-    }
-  }
 }
 
 void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinusEY, double phi, double DInvLink)

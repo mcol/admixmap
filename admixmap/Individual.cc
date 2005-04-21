@@ -1059,7 +1059,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
    Vector_d ff( A->GetNumberOfCompositeLoci() );
 
    for(int j=0;j<2;++j){
-     for(int k;k<A->GetNumberOfCompositeLoci();++k)f[j][k] = ff(k);
+     for(int k = 0;k<A->GetNumberOfCompositeLoci();++k)f[j][k] = ff(k);
    }
    
    for( unsigned int j = 0; j < numChromosomes; j++ ){      
@@ -1123,7 +1123,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
    Vector_d ff( A->GetNumberOfCompositeLoci() );
  
    for(int j=0;j<2;++j){
-     for(int k;k<A->GetNumberOfCompositeLoci();++k)f[j][k] = ff(k);
+     for(int k =0;k<A->GetNumberOfCompositeLoci();++k)f[j][k] = ff(k);
    }
    
    for( unsigned int j = 0; j < numChromosomes; j++ ){      

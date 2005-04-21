@@ -33,9 +33,6 @@ private:
   MatrixArray_d SumLocusLinkageAlleleScore;
   MatrixArray_d SumLocusLinkageAlleleInfo;
 
-  Matrix_d AffectedsScore;
-  Matrix_d AffectedsVarScore;
-  Matrix_d AffectedsInfo;
   Matrix_d SumAffectedsScore2;
   Matrix_d SumAffectedsVarScore;
   Matrix_d SumAffectedsScore;

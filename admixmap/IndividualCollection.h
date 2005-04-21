@@ -19,6 +19,7 @@
 #include <string.h>
 #include <string>
 
+class Regression;
 class IndividualCollection
 {
 private:
@@ -70,7 +71,7 @@ public:
   void Update(int iteration, AlleleFreqs *A, Vector_d *lambda, int NoCovariates, MatrixArray_d *beta, 
 	      Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, 
 	      vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta,
-	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood);
+	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, Regression *R);
   
   void OutputIndAdmixture();
 

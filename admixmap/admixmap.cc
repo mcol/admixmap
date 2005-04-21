@@ -137,7 +137,7 @@ void submain(AdmixOptions* options){
       //Updates  
       IC->Update(iteration, &A, R.getlambda(), R.getNoCovariates(), R.getbeta(),poptheta, options,
 		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
-		 &LogFileStream, &MargLikelihood);
+		 &LogFileStream, &MargLikelihood, &R);
       
       A.Update(iteration,options->getBurnIn());
       

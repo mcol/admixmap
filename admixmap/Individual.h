@@ -69,7 +69,8 @@ public:
 				   Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
 				   Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions* options, 
 				   Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
-				   double rhoalpha, double rhobeta, vector<double> sigma);
+				   double rhoalpha, double rhobeta, vector<double> sigma, 
+				   double outcome, double DInvLink);
 
  void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
 			   int AnalysisTypeIndicator);
@@ -80,10 +81,19 @@ public:
 		      vector<vector<double> > &rhohat,  vector<vector<double> > &rhohatX,
 		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs *A);
 
+  static void InitialiseAffectedsOnlyScores(int L, int K);
+  static void InitialiseAncestryScores(int L, int K);
+  static void ResetScores(AdmixOptions *options);
+ 
+  static void SumScoresForLinkageAffectedsOnly(int j,int Populations, Matrix_d *SumAffectedsScore, 
+					       Matrix_d *SumAffectedsVarScore,Matrix_d *SumAffectedsScore2, Matrix_d *SumAffectedsInfo);
+  static void SumScoresForAncestry(int j, int Populations, Matrix_d *score, Matrix_d *info, 
+				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
+				      Matrix_d *SumAncestryVarScore);
+  void UpdateScoreForLinkageAffectedsOnly(int Populations, bool ModelIndicator, int L);//could be private
+  void UpdateScoreForAncestry(double phi, double EY,double DInvLink, int L, int Populations);
 
 private:
-  static void s2c(char *c, std::string s);
-   
   Vector_i *PossibleHaplotypes;
   std::vector< std::vector<unsigned short> > genotype; // stores genotypes    
 
@@ -107,12 +117,27 @@ private:
   std::vector< double > _rho_X;
   std::vector< double > _rhoHat;
   std::vector< double > _rhoHat_X;
+  // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
+  // required to calculate transition matrices 
+  double *f[2]; 
+
   Matrix_d *AncestryProbs; //Conditional probabilities of locus ancestry
   double LogPosterior;
   short unsigned int sex; // 0 = missing, 1 = male, 2 = female 
   std::vector< unsigned int > gametes;
   unsigned int X_posn;
   double TruncationPt; // upper truncation point for sum intensities parameter rho
+
+  //score test objects, static so they can accumulate sums over individuals
+  static Matrix_d AffectedsScore;
+  static Matrix_d AffectedsVarScore;
+  static Matrix_d AffectedsInfo;
+  static MatrixArray_d AncestryScore;
+  static MatrixArray_d AncestryInfo;
+  static Matrix_d AncestryVarScore;
+  static Matrix_d AncestryInfoCorrection;
+  static Matrix_d B;
+  double MyOutcome;
  
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
@@ -126,6 +151,8 @@ private:
 					   MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda);
 
   void SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, AlleleFreqs *A);
+
+  void SampleJumpIndicators(unsigned int j,unsigned int jj, bool ModelIndicator, Genome *Loci);
 
   void SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
 
@@ -141,6 +168,10 @@ private:
 		 vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr);
 
   void setIsMissing(vector<unsigned int >& decoded);
+
+
+  //void UpdateScoreForLinkageAffectedsOnly(int Populations, bool ModelIndicator, int L);
+
 };
 
 #endif /* INDIVIDUAL_H */
