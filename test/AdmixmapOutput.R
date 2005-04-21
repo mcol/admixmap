@@ -344,10 +344,10 @@ plotpvalues <- function(psfilename, stdnormdeviates, table.every, title ) {
 plotPValuesKPopulations <- function(outfile, stdNormDev, thinning) {
   ## stdNormDev is a 3-way array: k populations, loci, draws 
   log10pvalues <- -log10(2*pnorm(-abs(stdNormDev)))
-  postscript(outputfile)
-  colours <- c("black", "blue", "red", "green")
   outputfile <- paste(resultsdir, outfile, sep="/")
   outputfile <- paste(outputfile, "Tests.ps", sep="")
+  postscript(outputfile)
+  colours <- c("black", "blue", "red", "green")
   header <- paste("Running computation of p-values for ",outfile,sep="")
   header <- paste(header," score tests",sep="");
   ## set up plot for first population and first locus
@@ -411,7 +411,7 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
   }
   write.table(scoretest.table, file=outputfileFinal, quote=FALSE, sep="\t",
               row.names=FALSE, col.names=TRUE)
-}
+1}
 
 ## function uses old ancestryscoretest output
 ## now obsolete
@@ -442,7 +442,6 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
 #  outputfile <- paste(resultsdir, "TestsAncestryAssociation.ps", sep="/" )
 #  plotpvalues(outputfile,scoretest.ancestry[6,,],
 #              10*thinning,"Running computation of p-values for ancestry association")
-#}
 
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
 plotRBScoreTest <- function(scorefile, outfile, K, population.labels, thinning) {
@@ -934,7 +933,7 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
 if(!is.null(param.samples)) {
   alphas <- post.quantiles[1:K, 1]
 } else {
-  alphas <- as.numeric(strsplit(user.options$initalpha0, ",")[[1]])
+  if(!is.null(user.options$initalpha0))alphas <- as.numeric(strsplit(user.options$initalpha0, ",")[[1]])
 }
 
 ## read output of score test for allelic association, and plot cumulative results
