@@ -96,7 +96,7 @@ getPopulationLabels <- function(k, user.options) {
     population.labels <- "SinglePop"
   } else {
     if(!is.null(user.options$paramfile) &&
-       file.exists(user.options$paramfile) &&  
+       file.exists(paste(resultsdir,user.options$paramfile,sep="/")) &&  
        length(scan(paste(resultsdir,user.options$paramfile, sep="/"),
                    what='character', quiet=TRUE)) != 0) {
       population.labels <-
