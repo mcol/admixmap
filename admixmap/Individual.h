@@ -49,8 +49,6 @@ public:
 
   std::vector<double> getRho();
 
-  Matrix_d getAncestryProbs(int);
-
   double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome**);
 
   double getLogLikelihoodOnePop(AlleleFreqs *);
@@ -59,18 +57,16 @@ public:
 
   Vector_i GetLocusAncestry( int, int );
    
-  void SampleParameters(int, AdmixOptions*, AlleleFreqs*, Chromosome**, std::vector<Vector_d>,
-			    bool, std::vector<bool>, double, double, int, std::vector<double>);
   double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome **, Matrix_d, std::vector<double>,Matrix_d, std::vector<double>);
   double getLogLikelihoodXOnly(AdmixOptions*,AlleleFreqs*,Chromosome**, Matrix_d, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
-  void SampleIndividualParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target, 
-				   Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
-				   Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions* options, 
-				   Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
-				   double rhoalpha, double rhobeta, vector<double> sigma, 
-				   double outcome, double DInvLink);
+  void SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target, 
+			 Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
+			 Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions* options, 
+			 Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
+			 double rhoalpha, double rhobeta, vector<double> sigma, 
+			 double DInvLink, double dispersion);
 
  void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
 			   int AnalysisTypeIndicator);
@@ -87,18 +83,18 @@ public:
  
   static void SumScoresForLinkageAffectedsOnly(int j,int Populations, Matrix_d *SumAffectedsScore, 
 					       Matrix_d *SumAffectedsVarScore,Matrix_d *SumAffectedsScore2, Matrix_d *SumAffectedsInfo);
-  static void SumScoresForAncestry(int j, int Populations, Matrix_d *score, Matrix_d *info, 
+  static void SumScoresForAncestry(int j, int Populations,  
 				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
 				      Matrix_d *SumAncestryVarScore);
-  void UpdateScoreForLinkageAffectedsOnly(int Populations, bool ModelIndicator, int L);//could be private
-  void UpdateScoreForAncestry(double phi, double EY,double DInvLink, int L, int Populations);
+  void UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool ModelIndicator, Chromosome **);//could be private
+  void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **, int Populations);
 
 private:
   Vector_i *PossibleHaplotypes;
   std::vector< std::vector<unsigned short> > genotype; // stores genotypes    
 
-  std::vector< std::vector<bool> > _xi;
-  //std::vector< unsigned int > numCompLoci;
+  std::vector< std::vector<bool> > _xi;//jump indicators
+
   unsigned int *numCompLoci;
   unsigned int numChromosomes;
   Matrix_d AdmixtureProps;
@@ -108,7 +104,7 @@ private:
   Matrix_d AdmixtureHat;
   Matrix_d XAdmixtureHat;
 
-  MatrixArray_i LocusAncestry;
+  Matrix_i *LocusAncestry;
   Matrix_i SumLocusAncestry, SumLocusAncestry_X;
 
   double Sumrho0;
@@ -121,7 +117,6 @@ private:
   // required to calculate transition matrices 
   double *f[2]; 
 
-  Matrix_d *AncestryProbs; //Conditional probabilities of locus ancestry
   double LogPosterior;
   short unsigned int sex; // 0 = missing, 1 = male, 2 = female 
   std::vector< unsigned int > gametes;
@@ -136,9 +131,9 @@ private:
   static MatrixArray_d AncestryInfo;
   static Matrix_d AncestryVarScore;
   static Matrix_d AncestryInfoCorrection;
-  static Matrix_d B;
-  double MyOutcome;
+  static MatrixArray_d AncestryInfoCorrection2;
  
+  void Reset();
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
@@ -150,15 +145,16 @@ private:
 					   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
 					   MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda);
 
-  void SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, AlleleFreqs *A);
+  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options);
 
-  void SampleJumpIndicators(unsigned int j,unsigned int jj, bool ModelIndicator, Genome *Loci);
+  void SampleJumpIndicators(unsigned int j, Chromosome *chrm, Genome *Loci, bool ModelIndicator);
 
   void SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
 
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);
 
+  void SampleTheta(AdmixOptions *options, AlleleFreqs *A, vector<double> sigma, vector<Vector_d> alpha);
   void CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
 			     double L_X, unsigned int SumN[], unsigned int SumN_X[]);

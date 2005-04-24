@@ -10,7 +10,7 @@ MatrixArray_d Individual::AncestryScore;
 MatrixArray_d Individual::AncestryInfo;
 Matrix_d Individual::AncestryVarScore;
 Matrix_d Individual::AncestryInfoCorrection;
-Matrix_d Individual::B;
+MatrixArray_d Individual::AncestryInfoCorrection2;
 
 Individual::Individual()
 {
@@ -32,10 +32,9 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
             else
                 _rho.assign(2,1);
     }
-  for(int j=0 ;j<2;++j) f[j] = new double[Loci.GetNumberOfCompositeLoci()];
+    for(int j=0 ;j<2;++j) f[j] = new double[Loci.GetNumberOfCompositeLoci()];
 
     numChromosomes = Loci.GetNumberOfChromosomes();
-    //numCompLoci = Loci.GetSizesOfChromosomes();
 
     // Read sex value if present.
     if (options->genotypesSexColumn() == 1) {
@@ -49,35 +48,49 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     _xi.assign(2,true_vector);
     sumxi.SetNumberOfElements(numCompositeLoci);
 
-    PossibleHaplotypes = new Vector_i[numCompositeLoci]; // vector of possible haplotype pairs - expect 2 integers per locus 
-    LocusAncestry.SetNumberOfElements( Loci.GetNumberOfChromosomes() ); // array of matrices in which each col stores 2 integers 
+    LocusAncestry = new Matrix_i[ numChromosomes ]; // array of matrices in which each col stores 2 integers 
  
-    AncestryProbs = 0;                                                                      // or 1 integer (haploid) 
-    if( options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()){
-      //Matrix_d tm(1,1);
-      //AncestryProbs.resize( numCompositeLoci,tm );
-      AncestryProbs = new Matrix_d[numCompositeLoci];
+    // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
+    SumLocusAncestry.SetNumberOfElements(options->getPopulations(),2);
+    if( options->getModelIndicator() ){//random mating model
+      Theta.SetNumberOfElements( options->getPopulations(), 2 );
+    }
+    else{
+      Theta.SetNumberOfElements( options->getPopulations(), 1 );
+    }
+    
+    if(Loci.isX_data() ){
+      if( sex == 1 ){
+	ThetaX.SetNumberOfElements( options->getPopulations(), 1 );
+	SumLocusAncestry_X.SetNumberOfElements( options->getPopulations(), 1 );
+      }
+      else{
+	ThetaX.SetNumberOfElements( options->getPopulations(), 2 );
+	SumLocusAncestry_X.SetNumberOfElements( options->getPopulations(), 2 );
+      }
     }
 
+    PossibleHaplotypes = new Vector_i[numCompositeLoci]; // vector of possible haplotype pairs - expect 2 integers per locus 
+                                                        // or 1 integer (haploid) 
     X_posn = 9999;
     string s1("\"X\"");
   // set size of locus ancestry array
     for( unsigned int j = 0; j < numChromosomes; j++ ){
         if( chrm[j]->GetLabel(0) != s1 ){// if not X chromosome, set number of elements to 2, num loci
-            LocusAncestry(j).SetNumberOfElements( 2, chrm[j]->GetSize() );
+            LocusAncestry[j].SetNumberOfElements( 2, chrm[j]->GetSize() );
             gametes.push_back(2);
         }
         else if( sex != 2 ){
-            LocusAncestry(j).SetNumberOfElements( 1, chrm[j]->GetSize() );
+            LocusAncestry[j].SetNumberOfElements( 1, chrm[j]->GetSize() );
             gametes.push_back(1);
             X_posn = j;
         }
         else{
-            LocusAncestry(j).SetNumberOfElements( 2, chrm[j]->GetSize() );
+            LocusAncestry[j].SetNumberOfElements( 2, chrm[j]->GetSize() );
             gametes.push_back(2);
             X_posn = j;
         }
-        if( options->getPopulations() == 1 ) LocusAncestry(j).SetElements(0);
+        if( options->getPopulations() == 1 ) LocusAncestry[j].SetElements(0);
 
     }
     //retrieve genotypes
@@ -97,20 +110,27 @@ void Individual::InitialiseAffectedsOnlyScores(int L, int K){
 void Individual::InitialiseAncestryScores(int L, int K){
   AncestryScore.SetNumberOfElementsWithDimensions(L, 2 * K, 1);
   AncestryInfo.SetNumberOfElementsWithDimensions(L, 2 * K, 2 * K);
+  AncestryInfoCorrection2.SetNumberOfElementsWithDimensions(L, K, K);
   AncestryVarScore.SetNumberOfElements(L, K);
   AncestryInfoCorrection.SetNumberOfElements(L, K);
-  B.SetNumberOfElements(K, K);
 }
 
 Individual::~Individual()
 {
   delete[] PossibleHaplotypes;
-  //if(AncestryProbs)
-    //TODO: delete this properly
-    delete[] AncestryProbs;
-   delete []f[0];
-   delete []f[1];
+  delete[] LocusAncestry;  
+  delete[] f[0];
+  delete[] f[1];
 
+}
+
+void Individual::Reset(){
+  sumxi.SetElements( 0 );
+  SumLocusAncestry.SetElements(0);
+  Theta.SetElements( 0.0 );
+  ThetaX.SetElements(0.0 );
+  SumLocusAncestry_X.SetElements(0);
+  
 }
 
 vector< unsigned short >& Individual::getGenotype(unsigned int locus)
@@ -195,14 +215,7 @@ vector<double> Individual::getRho()
 
 Vector_i Individual::GetLocusAncestry( int chrm, int locus )
 {
-   return LocusAncestry(chrm).GetColumn( locus );
-}
-
-//temporary function until ancestry ScoreTests are moved into here
-Matrix_d Individual::getAncestryProbs(int locus)
-{
-  //this function used only for affectedonly and ancestry scoretests
-    return( AncestryProbs[ locus ] );
+   return LocusAncestry[chrm].GetColumn( locus );
 }
 
 double Individual::getLogPosteriorProb()
@@ -326,18 +339,85 @@ double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int 
    return p;
 }
 
-void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target,
-					     Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
-					     Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, 
-					     AdmixOptions* options, Chromosome **chrm, 
-					     vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, 
-					     double rhobeta,vector<double> sigma, double outcome, double DInvLink)
+void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target,
+				   Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
+				   Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, 
+				   AdmixOptions* options, Chromosome **chrm, 
+				   vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, 
+				   double rhobeta,vector<double> sigma, double DInvLink, double dispersion)
 {
   double u;
-  MyOutcome = outcome;
+
+  //reset xi, theta and SumLocusAncestry
+  Reset();
+  
+  // ?next step should be to calculate transition matrices 
+  
+  //fill f with values in AlleleFreqs;
+  A->getLociCorrSummary(f);
+  
+  Sumrho0 = 0;
+  int locus = 0;
+  // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
+  // required to calculate transition matrices 
+  if( options->getRhoIndicator() ){
+    for( unsigned int j = 0; j < numChromosomes; j++ ){
+      locus++;
+      for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
+	f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[0] );
+	if( options->getModelIndicator() ){
+	  f[1][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[1] );
+	  }
+	else
+	  f[1][locus] = f[0][locus];
+	locus++;
+      }
+    }
+  }
+
+  bool isdiploid;
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    //Update Forward/Backward probs in HMM
+    isdiploid = UpdateForBackProbs(j, chrm[j], A, options);
+
+    //update score tests for linkage with ancestry for *previous* iteration
+    if(iteration > options->getBurnIn()){
+      //Update affecteds only scores
+      if( options->getAnalysisTypeIndicator() == 0 ) 
+	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->getModelIndicator(), 
+					   chrm );
+      else if( options->getTestForAffectedsOnly() && (*Target)(0)(i,0) == 1 ){
+	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->getModelIndicator(), 
+					   chrm );
+      }
+      //update ancestry score tests
+      if( options->getTestForLinkageWithAncestry() ){   
+	UpdateScoreForAncestry(j,dispersion, (*Target)(0)(i,0) - ExpectedY(0)(i,0), DInvLink,chrm, options->getPopulations() );
+      }    
+    }
+
+    //Sample locus ancestry
+    // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
+    chrm[j]->SampleForLocusAncestry(&LocusAncestry[j],isdiploid);
+
+    //loop over loci on current chromosome and update allele counts
+    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+      int locus =  chrm[j]->GetLocus(jj);
+      if( !(IsMissing(j)) ){
+	  if(isdiploid)
+	    A->UpdateAlleleCounts( locus, PossibleHaplotypes[locus], LocusAncestry[j].GetColumn(jj) );
+	  else
+	    A->UpdateAlleleCounts_HaploidData( locus, genotype[locus], LocusAncestry[j](0,jj) );
+	}
+     }   
+
+    //update jump indicators xi 
+    SampleJumpIndicators(j, chrm[j], A->getLoci(),options->getModelIndicator()); 
+    
+  }//end chromosome loop
 
   if( options->getAnalysisTypeIndicator() > 1 ){
-   // sample missing values of outcome variable
+    // sample missing values of outcome variable
     for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
       if( (*Target)(k).IsMissingValue( i, 0 ) ){
 	if( !OutcomeType(k) ) // linear regression
@@ -352,94 +432,68 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
       }
     }
   }
-
-  //resets
-   sumxi.SetElements( 0 );
- 
-   // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
-    SumLocusAncestry.SetNumberOfElements(options->getPopulations(),2);
-    if( options->getModelIndicator() ){//random mating model
-      Theta.SetNumberOfElements( options->getPopulations(), 2 );
-    }
-    else{
-      Theta.SetNumberOfElements( options->getPopulations(), 1 );
-    }
+  
+  double L = A->getLoci()->GetLengthOfGenome(), L_X=0.0;
+  if( A->getLoci()->isX_data() ) L_X = A->getLoci()->GetLengthOfXchrm();
+  
+  //SumN is the number of arrivals between each pair of adjacent loci  
+  unsigned int SumN[] = {0,0};
+  unsigned int SumN_X[] = {0,0};
+  
+  // sample sum of intensities parameter rho
+  if( options->getRhoIndicator() ){
     
-    if(A->getLoci()->isX_data() ){
-      if( sex == 1 ){
-	ThetaX.SetNumberOfElements( options->getPopulations(), 1 );
-	SumLocusAncestry_X.SetNumberOfElements( options->getPopulations(), 1 );
-      }
-      else{
-	ThetaX.SetNumberOfElements( options->getPopulations(), 2 );
-	SumLocusAncestry_X.SetNumberOfElements( options->getPopulations(), 2 );
-      }
-    }
-    // next step should be to calculate transition matrices 
-
-    // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
-    SampleLocusAncestry(chrm, options, A);
+    SampleNumberOfArrivals(A, options, chrm, SumN, SumN_X); // SumN is number of arrivals
     
-    // sample individual admixture proportions theta
-    // should be modified to allow a population mixture component model   
-    SampleParameters(i, options, A, chrm, alpha, _symmetric, _admixed,rhoalpha, rhobeta, iteration, sigma);
-
-    double p = 0;
-    if( options->getAnalysisTypeIndicator() == 2 && !options->getScoreTestIndicator() ){
-      p = AcceptanceProbForTheta_LinearReg( i, 0, options->getModelIndicator(),options->getPopulations(),
-					    NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda); 
+    SampleRho( options->getXOnlyAnalysis(), options->getModelIndicator(), A->getLoci()->isX_data(), rhoalpha, rhobeta, L, L_X, 
+	       SumN, SumN_X);
+  }
+  // sample individual admixture proportions theta
+  // should be modified to allow a population mixture component model
+  SampleTheta(options, A, sigma, alpha);       
+  
+  //calculate log posterior if necessary 
+  if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
+    CalculateLogPosterior(options,A->getLoci()->isX_data(), alpha, _symmetric,
+			  _admixed,rhoalpha, rhobeta, L, L_X, SumN, SumN_X);
+  
+    //calculate acceptance probability for proposal theta    
+    //should have one function to do this
+  double p = 0;
+  //linear regression case
+  if( options->getAnalysisTypeIndicator() == 2 && !options->getScoreTestIndicator() ){
+    p = AcceptanceProbForTheta_LinearReg( i, 0, options->getModelIndicator(),options->getPopulations(),
+					  NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda); 
+  }
+  //logistic regression case
+  else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getScoreTestIndicator() ){
+    p = AcceptanceProbForTheta_LogReg( i, 0, options->getModelIndicator(),options->getPopulations(),
+				       NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
     }
-    else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getScoreTestIndicator() ){
-      p = AcceptanceProbForTheta_LogReg( i, 0, options->getModelIndicator(),options->getPopulations(),
-					 NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
-    }
-    else if( options->getAnalysisTypeIndicator() == 5 ){
-      for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
-	if( OutcomeType( k ) )
-	  p += AcceptanceProbForTheta_LogReg( i, k, options->getModelIndicator(), options->getPopulations(),
-					      NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
-	else
-	   p += AcceptanceProbForTheta_LinearReg( i, k, options->getModelIndicator(), options->getPopulations(),
-						  NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda);
+  //case of both linear and logistic regressions
+  else if( options->getAnalysisTypeIndicator() == 5 ){
+    for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
+      if( OutcomeType( k ) )
+	p += AcceptanceProbForTheta_LogReg( i, k, options->getModelIndicator(), options->getPopulations(),
+					    NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
+      else
+	p += AcceptanceProbForTheta_LinearReg( i, k, options->getModelIndicator(), options->getPopulations(),
+					       NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda);
       }
-    }
-    if( A->getLoci()->isX_data() && !options->getXOnlyAnalysis() )
-      p += AcceptanceProbForTheta_XChrm( sigma, options->getPopulations());
-    
-    Accept_Reject_Theta(p, A->getLoci()->isX_data(),options->getPopulations(), options->getModelIndicator() );
-
-    if( options->getAnalysisTypeIndicator() > 1 )
-      UpdateAdmixtureForRegression(i,options->getPopulations(), NoCovariates, poptheta, options->getModelIndicator(),&(Covariates0));
-    for( int k = 0; k < options->getPopulations(); k++ ){
-      (*SumLogTheta)( k ) += log( AdmixtureProps( k, 0 ) );
+  }
+  //case of X only data
+  if( A->getLoci()->isX_data() && !options->getXOnlyAnalysis() )
+    p += AcceptanceProbForTheta_XChrm( sigma, options->getPopulations());
+  
+  //Update theta using acceptance prob    
+  Accept_Reject_Theta(p, A->getLoci()->isX_data(),options->getPopulations(), options->getModelIndicator() );
+  
+  if( options->getAnalysisTypeIndicator() > 1 )
+    UpdateAdmixtureForRegression(i,options->getPopulations(), NoCovariates, poptheta, options->getModelIndicator(),&(Covariates0));
+  for( int k = 0; k < options->getPopulations(); k++ ){
+    (*SumLogTheta)( k ) += log( AdmixtureProps( k, 0 ) );
       if(options->getModelIndicator() && !options->getXOnlyAnalysis() )
 	(*SumLogTheta)( k ) += log( AdmixtureProps( k, 1 ) );
-    }
-    
-    // compute conditional distribution of locus ancestry if required for score tests
-    if( options->getTestForAffectedsOnly()|| options->getTestForLinkageWithAncestry() )
-      for( unsigned int j = 0; j < numChromosomes; j++ )
-	for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ )
-	  chrm[j]->getAncestryProbs( jj, &AncestryProbs[chrm[j]->GetLocus(jj)] );
-    
-    //Update affecteds only scores
-    if(iteration > options->getBurnIn()){
-      if( options->getAnalysisTypeIndicator() == 0 ) 
-       UpdateScoreForLinkageAffectedsOnly(options->getPopulations(), options->getModelIndicator(), 
-					  A->getLoci()->GetNumberOfCompositeLoci() );
-      else if( options->getTestForAffectedsOnly() && MyOutcome == 1 ){
-	UpdateScoreForLinkageAffectedsOnly(options->getPopulations(), options->getModelIndicator(), 
-					   A->getLoci()->GetNumberOfCompositeLoci() );
-      }
-    }
-    if(iteration > options->getBurnIn() && options->getTestForLinkageWithAncestry() ){
-      Matrix_d Xcov(options->getPopulations(), 1);
-      
-      Xcov(options->getPopulations()-1, 0) = 1;
-      for( int k = 0; k < options->getPopulations() - 1; k++ ){
-	Xcov(k,0) = getAdmixtureProps()( k, 0 ); 
-      }
-      B += Xcov * Xcov.Transpose() * DInvLink;
     }
 }
 
@@ -448,34 +502,13 @@ void Individual::SampleIndividualParameters( int i, Vector_d *SumLogTheta, Allel
 // model (if there is one)  
 // should have an alternative function to sample population mixture component membership and individual admixture proportions
 // conditional on genotype, not sampled locus ancestry
-void Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, vector<Vector_d> alpha, 
-			      bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, int iteration, 
-			      vector<double> sigma)
-{
-
-
-    double L = A->getLoci()->GetLengthOfGenome(), L_X=0.0;
-    if( A->getLoci()->isX_data() ) L_X = A->getLoci()->GetLengthOfXchrm();
-    
-    //SumN is the number of arrivals between each pair of adjacent loci  
-    unsigned int SumN[] = {0,0};
-    unsigned int SumN_X[] = {0,0};
-    
-    // sample sum of intensities parameter rho
-    if( options->getRhoIndicator() ){
-      
-      SampleNumberOfArrivals(A, options, chrm, SumN, SumN_X); // SumN is number of arrivals
-      
-      SampleRho( options->getXOnlyAnalysis(), options->getModelIndicator(), A->getLoci()->isX_data(), rhoalpha, rhobeta, L, L_X, 
-		 SumN, SumN_X);
-    }
-    
-    Vector_d vectemp;//used to hold sample from theta posterior
-    // if no regression model, sample admixture proportions theta as a conjugate Dirichlet posterior   
-    if( options->getXOnlyAnalysis() ){
-      vectemp = gendirichlet( alpha[0] + SumLocusAncestry_X.GetColumn(0) );
-      Theta.SetColumn( 0, vectemp );
-    }
+void Individual::SampleTheta(AdmixOptions *options, AlleleFreqs *A, vector<double> sigma, vector<Vector_d> alpha){
+  Vector_d vectemp;//used to hold sample from theta posterior
+  // if no regression model, sample admixture proportions theta as a conjugate Dirichlet posterior   
+  if( options->getXOnlyAnalysis() ){
+    vectemp = gendirichlet( alpha[0] + SumLocusAncestry_X.GetColumn(0) );
+    Theta.SetColumn( 0, vectemp );
+  }
     else if( options->getModelIndicator() ){//random mating model
       for( unsigned int g = 0; g < 2; g++ ){
 	if( options->getAnalysisTypeIndicator() > -1 )
@@ -484,7 +517,7 @@ void Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *
 	  vectemp = gendirichlet( alpha[g] + SumLocusAncestry.GetColumn(g) );
 	Theta.SetColumn( g, vectemp );
       }
-      if( A->getLoci()->isX_data() ){//nonrandom mating model
+      if( A->getLoci()->isX_data() ){
 	for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
 	  vectemp = gendirichlet( Theta.GetColumn(g)*sigma[g]
 				  + SumLocusAncestry_X.GetColumn(g) );
@@ -496,120 +529,72 @@ void Individual::SampleParameters( int ind, AdmixOptions* options, AlleleFreqs *
       vectemp = gendirichlet( alpha[0] + SumLocusAncestry.RowSum() );
       Theta.SetColumn( 0, vectemp );
     }
-
-    // calculate posterior density conditional on realized locus ancestry states, jump indicators and num arrivals 
-    if( options->getMLIndicator() && ind == 0 && iteration > options->getBurnIn() )
-      CalculateLogPosterior(options,A->getLoci()->isX_data(), alpha, _symmetric,
-			    _admixed,rhoalpha, rhobeta, L, L_X, SumN, SumN_X);
-    
 }
 
-void Individual::SampleLocusAncestry(Chromosome **chrm, AdmixOptions *options, AlleleFreqs *A){
-  // Loops over loci to sample locus ancestry and jump indicators xi 
-  //updates allele counts in A
+//Updates forward and backward probabilities in HMM for chromosome j 
+bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options){
+  bool isdiploid;
+  //Update Forward/Backward probs in HMM
+  if( j != X_posn ){
+    chrm->UpdateParameters( this, A,AdmixtureProps, options, f, false, true );
+    isdiploid = true;
+  }
+  else if( options->getXOnlyAnalysis() ){
+    chrm->UpdateParameters( this, A,AdmixtureProps, options, f, false, false );
+    isdiploid = false;
+  }
+  else if( sex == 1 ){
+    chrm->UpdateParameters( this, A,XAdmixtureProps, options, f, false, false );
+    isdiploid = false;
+  }
+  else{
+    chrm->UpdateParameters( this, A,XAdmixtureProps, options, f, false, true );
+    isdiploid = true;
+  }
+  return isdiploid;
+}
+
+//samples jump indicators xi for chromosome j
+void Individual::SampleJumpIndicators(unsigned int j, Chromosome *chrm, Genome *Loci, bool ModelIndicator){
   int locus;
   double q, Prob;
-
-  //fill f with values in AlleleFreqs;
-  A->getLociCorrSummary(f);
-  
-  Sumrho0 = 0;
-  locus = 0;
-  // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
-  // required to calculate transition matrices 
-  if( options->getRhoIndicator() ){
-    for( unsigned int j = 0; j < numChromosomes; j++ ){
-      locus++;
-      for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-	f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[0] );
-	if( options->getModelIndicator() ){
-	  f[1][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[1] );
-	}
-	else
-	  f[1][locus] = f[0][locus];
-	locus++;
-      }
-    }
-  }
- 
-  locus = 0;
-  bool isdiploid;
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    locus = chrm[j]->GetLocus(0);
-
-    //Update Forward/Backward probs in HMM
-    if( j != X_posn ){
-      chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, true );
-      isdiploid = true;
-   }
-    else if( options->getXOnlyAnalysis() ){
-      chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false );
-      isdiploid = false;
-    }
-    else if( sex == 1 ){
-      chrm[j]->UpdateParameters( this, A,XAdmixtureProps, options, f, false, false );
-      isdiploid = false;
-    }
-    else{
-      chrm[j]->UpdateParameters( this, A,XAdmixtureProps, options, f, false, true );
-      isdiploid = true;
-    }
-
-    //Sample locus ancestry
-    chrm[j]->SampleForLocusAncestry(&LocusAncestry(j),isdiploid);
-
-    //loop over loci on current chromosome and update allele counts and Ancestry probs if needed
-    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      int loc =  chrm[j]->GetLocus(jj);
-      if( !(IsMissing(j)) ){
-	  if(isdiploid)
-	    A->UpdateAlleleCounts( loc, PossibleHaplotypes[loc], LocusAncestry(j).GetColumn(jj) );
-	  else
-	    A->UpdateAlleleCounts_HaploidData( loc, genotype[loc], LocusAncestry(j)(0,jj) );
-	}
-     }   
-
-    //locus++;
-    //update jump indicators xi  
-    for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-      locus = chrm[j]->GetLocus(jj);    
-      for( unsigned int g = 0; g < gametes[j]; g++ ){
-	if( LocusAncestry(j)(g,jj-1) == LocusAncestry(j)(g,jj) ){
-	  if( options->getModelIndicator() && g == 1 ){
-	    q = AdmixtureProps( LocusAncestry(j)(g,jj), g );
-	  } else {
-	    q = AdmixtureProps( LocusAncestry(j)(g,jj), 0 );
-	  }
-	  Prob = (1 - f[g][locus]) / ( 1 - f[g][locus] + f[g][locus] / q );
-	  if( Prob > myrand() ){
-	    _xi[g][locus] = true;
-	    sumxi(locus)++;
-	  } else {
-	    _xi[g][locus] = false;
-	    Sumrho0 += A->getLoci()->GetDistance( locus );
-	  }
+  for( unsigned int jj = 1; jj < chrm->GetSize(); jj++ ){
+    locus = chrm->GetLocus(jj);    
+    for( unsigned int g = 0; g < gametes[j]; g++ ){
+      if( LocusAncestry[j](g,jj-1) == LocusAncestry[j](g,jj) ){
+	if( ModelIndicator && g == 1 ){
+	  q = AdmixtureProps( LocusAncestry[j](g,jj), g );
 	} else {
+	  q = AdmixtureProps( LocusAncestry[j](g,jj), 0 );
+	}
+	Prob = (1 - f[g][locus]) / ( 1 - f[g][locus] + f[g][locus] / q );
+	if( Prob > myrand() ){
 	  _xi[g][locus] = true;
 	  sumxi(locus)++;
+	} else {
+	  _xi[g][locus] = false;
+	  Sumrho0 += Loci->GetDistance( locus );
 	}
+      } else {
+	_xi[g][locus] = true;
+	sumxi(locus)++;
       }
-      //locus++;
     }
-    locus = chrm[j]->GetLocus(0);
-    // sum ancestry states over loci where jump indicator is 1
-    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      for( unsigned int g = 0; g < gametes[j]; g++ ){
-	if( _xi[g][locus] ){
-	  if( j != X_posn )
-	    SumLocusAncestry( LocusAncestry(j)( g, jj ), g )++;
-	  else
-	    SumLocusAncestry_X( LocusAncestry(j)( g, jj ), g )++;
-	}
+    //locus++;
+  }
+  locus = chrm->GetLocus(0);
+  // sum ancestry states over loci where jump indicator is 1
+  for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
+    for( unsigned int g = 0; g < gametes[j]; g++ ){
+      if( _xi[g][locus] ){
+	if( j != X_posn )
+	  SumLocusAncestry( LocusAncestry[j]( g, jj ), g )++;
+	else
+	  SumLocusAncestry_X( LocusAncestry[j]( g, jj ), g )++;
       }
-      locus++;
     }
-  }//end chromosome loop
-
+    locus++;
+  }
 }
 
 void Individual::SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, Chromosome **chrm, 
@@ -629,16 +614,16 @@ void Individual::SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, C
 	if( _xi[g][locus] ){
 	  if( options->getXOnlyAnalysis() ){
 	    rho = _rho[0];
-	    q = AdmixtureProps( LocusAncestry(j)(0,jj-ran), 0 );
+	    q = AdmixtureProps( LocusAncestry[j](0,jj-ran), 0 );
 	  }
 	  else if( options->getModelIndicator() && g == 1 ){
-	    q = AdmixtureProps( LocusAncestry(j)(g,jj-ran), g );
+	    q = AdmixtureProps( LocusAncestry[j](g,jj-ran), g );
                     if( j != X_posn )
 		      rho = _rho[g];
                     else
 		      rho = _rho_X[g];
 	  } else {
-	    q = AdmixtureProps( LocusAncestry(j)(g,jj-ran), 0 );
+	    q = AdmixtureProps( LocusAncestry[j](g,jj-ran), 0 );
 	    if( j != X_posn )
 	      rho = _rho[0];
 	    else
@@ -697,12 +682,12 @@ void Individual::ResetScores(AdmixOptions *options){
     AncestryScore.SetElements(0);
     AncestryInfo.SetElements(0);
     AncestryInfoCorrection.SetElements(0);
+    AncestryInfoCorrection2.SetElements(0);
     AncestryVarScore.SetElements(0);
-    B.SetElements(0);    
   }
 }
 
-void Individual::UpdateScoreForLinkageAffectedsOnly(int Populations, bool ModelIndicator, int NumberOfCompositeLoci){
+void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool ModelIndicator, Chromosome **chrm){
   // Different from the notation in McKeigue et  al. (2000). McKeigue
   // uses P0, P1, P2, which relate to individual admixture as follows;
   // P0 = ( 1 - theta0 ) * ( 1 - theta1 )
@@ -714,7 +699,7 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int Populations, bool ModelI
   // asymptotic properties.
 
   double theta[2];//paternal and maternal admixture proportions
-  //Matrix_d AncestryProbs;//conditional locus ancestry probs
+  double AProbs[Populations][3];
 
   for( int k = 0; k < Populations; k++ ){
     theta[0] = AdmixtureProps( k, 0 );
@@ -723,17 +708,22 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int Populations, bool ModelI
     else
       theta[1] = AdmixtureProps( k, 0 );
 
-    for(int locus = 0; locus< NumberOfCompositeLoci; ++locus){
-      //AncestryProbs = getAncestryProbs(locus);
-      AffectedsScore(locus,k)+= 0.5*( AncestryProbs[locus](k,1) + 2.0*AncestryProbs[locus](k,2) - theta[0] - theta[1] );
-      AffectedsVarScore(locus, k)+= 0.25 *( AncestryProbs[locus](k,1)*(1.0 - AncestryProbs[locus](k,1)) + 
-					    4.0*AncestryProbs[locus](k,2)*AncestryProbs[locus](k,0)); 
+    int locus;
+    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+      locus = chrm[j]->GetLocus(jj); 
+      //retrieve AncestryProbs from HMM
+      chrm[j]->getAncestryProbs( jj, AProbs );
+      //accumulate score, score variance, and info
+      AffectedsScore(locus,k)+= 0.5*( AProbs[k][1] + 2.0*AProbs[k][2] - theta[0] - theta[1] );
+      AffectedsVarScore(locus, k)+= 0.25 *( AProbs[k][1]*(1.0 - AProbs[k][1]) + 
+					    4.0*AProbs[k][2]*AProbs[k][0]); 
       AffectedsInfo(locus, k)+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
+      ++locus;
     }
   }
 }
 
-void Individual::UpdateScoreForAncestry(double phi, double YMinusEY, double DInvLink, int NumberOfCompositeLoci,int Populations)
+void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, double DInvLink, Chromosome **chrm,int Populations)
 {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
@@ -746,48 +736,40 @@ void Individual::UpdateScoreForAncestry(double phi, double YMinusEY, double DInv
   //Note that only the intercept and admixture proportions are used.
   // X is (A, Xcov)'  
 
-  int dim = 2 * Populations;
-  Matrix_d Aprobs;
-  double xBx;
-  Matrix_d X, Xcov;
-  Vector_d VarA, temp;
-  //double YMinusEY = MyOutcome - EY;
-
+  double AProbs[Populations][3];
+  Matrix_d X(2 * Populations, 1), X2(Populations, 1),Xcov(Populations, 1);
+  Vector_d temp(Populations);
+  double VarA[Populations];
  
-  X.SetNumberOfElements(dim, 1);
-  Xcov.SetNumberOfElements(Populations, 1);
-  VarA.SetNumberOfElements(Populations);
-  temp.SetNumberOfElements(Populations);
-      
-      X( dim - 1, 0 ) = 1;//intercept
-      Xcov(Populations-1, 0) = 1;
-      //set covariates 
-      for( int k = 0; k < Populations - 1; k++ ){
-	X( k + Populations, 0 ) = getAdmixtureProps()( k, 0 );
-	Xcov(k,0) = getAdmixtureProps()( k, 0 ); 
+  X( 2*Populations - 1, 0 ) = 1;//intercept
+  Xcov(Populations-1, 0) = 1;
+  //set covariates 
+  for( int k = 0; k < Populations - 1; k++ ){
+    X( k + Populations, 0 ) = getAdmixtureProps()( k, 0 );
+    Xcov(k,0) = getAdmixtureProps()( k, 0 );
+  }
+
+  int locus; 
+  for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+    locus = chrm[j]->GetLocus(jj);      
+    chrm[j]->getAncestryProbs( jj, AProbs );//conditional locus ancestry probs      
+    
+    for( int k = 0; k < Populations ; k++ ){
+      X(k,0) = AProbs[k][1] + 2.0 * AProbs[k][2];//Conditional expectation of ancestry
+      VarA[k] = AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0];//conditional variances
+      X2(k,0) = sqrt(VarA[k]);
       }
-      
-      for(int locus =0; locus < NumberOfCompositeLoci; ++locus){
-	
-	Aprobs = getAncestryProbs(locus);//conditional locus ancestry probs      
-	
-	for( int k = 0; k < Populations ; k++ ){
-	  X(k,0) = Aprobs(k,1) + 2.0 * Aprobs(k,2);//Conditional expectation of ancestry
-	  VarA(k) = Aprobs(k,1)*(1.0 - Aprobs(k,1)) + 4.0*Aprobs(k,2)*Aprobs(k,0);//conditional variances
-	}
-	
-	temp =  Xcov.GetColumn(0);
-	HH_svx(B, &temp);
-	xBx = (Xcov.Transpose() * temp.ColumnMatrix())(0,0);
-	
-	AncestryScore(locus) += X * YMinusEY * phi;
-	AncestryInfo(locus) += (X * X.Transpose()) * DInvLink * phi;
-	
-	for( int k = 0; k < Populations ; k++ ){
-	  AncestryInfoCorrection(locus,k) += VarA(k) * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx) ;   
-	  AncestryVarScore(locus,k) += VarA(k) * phi * phi * YMinusEY * YMinusEY;
-	}
-      }//end locus loop
+    
+    AncestryScore(locus) += X * YMinusEY * phi;
+    AncestryInfo(locus) += (X * X.Transpose()) * DInvLink * phi;
+    AncestryInfoCorrection2(locus) += (X2 * Xcov.Transpose() ) *DInvLink * phi;
+    
+      for( int k = 0; k < Populations ; k++ ){
+	AncestryInfoCorrection(locus,k) += VarA[k] * DInvLink *phi;   
+	AncestryVarScore(locus,k) += VarA[k] * phi * phi * YMinusEY * YMinusEY;
+      }
+      ++locus;
+  }//end locus loop
 }
 
 void Individual::SumScoresForLinkageAffectedsOnly(int j,int Populations, Matrix_d *SumAffectedsScore, 
@@ -800,17 +782,37 @@ void Individual::SumScoresForLinkageAffectedsOnly(int j,int Populations, Matrix_
   }
 }
 
-void Individual::SumScoresForAncestry(int j, int Populations, Matrix_d *score, Matrix_d *info, 
+void Individual::SumScoresForAncestry(int j, int Populations,  
 				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
 				      Matrix_d *SumAncestryVarScore){
-  CentredGaussianConditional(Populations,AncestryScore(j), AncestryInfo(j), score, info );
+  Matrix_d score, info;
+
+  CentredGaussianConditional(Populations,AncestryScore(j), AncestryInfo(j), &score, &info );
+
+  Matrix_d Vbb, V, newCorrection;
+  Vector_d x;
+  Vbb = AncestryInfo(j).SubMatrix( Populations, AncestryInfo(j).GetNumberOfRows() - 1, 
+				   Populations, AncestryInfo(j).GetNumberOfCols() - 1 );
+
+  V.SetNumberOfElements(Vbb.GetNumberOfRows(),Populations);
+  x.SetNumberOfElements(Populations);
+
+  for(int i =0; i<Populations;i++){
+    x = AncestryInfoCorrection2(j).GetRow(i);
+    HH_svx(Vbb, &x);
+    V.SetColumn(i,x);
+  }
+  newCorrection = AncestryInfoCorrection2(j) * V;
+
+
   //accumulate over iterations     
   for( int k = 0; k < Populations ; k++ ){
-    (*SumAncestryScore)(j,k) += (*score)(k,0);
-    (*SumAncestryInfo)(j,k)  += (*info)(k,k) + AncestryInfoCorrection(j,k);
-    (*SumAncestryScore2)(j,k) += (*score)(k,0) * (*score)(k,0);
+    (*SumAncestryScore)(j,k) += score(k,0);
+    (*SumAncestryInfo)(j,k)  += info(k,k) + AncestryInfoCorrection(j,k) - newCorrection(k,k);
+    (*SumAncestryScore2)(j,k) += score(k,0) * score(k,0);
     (*SumAncestryVarScore)(j,k) += AncestryVarScore(j,k);
   }
+
 }
 
 // unnecessary duplication of code - should use same method as for > 1 population
