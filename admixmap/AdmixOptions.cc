@@ -466,6 +466,10 @@ bool AdmixOptions::getTestForSNPsInHaplotype() const
   return imp->TestForSNPsInHaplotype;
 }
 
+void AdmixOptions::setTestForSNPsInHaplotype(bool b){
+  imp->TestForSNPsInHaplotype = b;
+}
+
 const char *AdmixOptions::getEtaPriorFilename() const
 {
   return imp->EtaPriorFilename.c_str();

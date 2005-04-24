@@ -113,6 +113,7 @@ public:
   bool getTestForAllelicAssociation() const;
   void setTestForAllelicAssociation(bool); 
   bool getTestForSNPsInHaplotype() const;
+  void setTestForSNPsInHaplotype(bool);
   bool getTestForLinkageWithAncestry() const;
   void setTestForLinkageWithAncestry(bool);   
   bool getTestForMisspecifiedAlleleFreqs() const;
