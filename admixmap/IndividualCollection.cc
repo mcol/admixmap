@@ -525,11 +525,10 @@ void IndividualCollection::CheckGenotypes(Genome *Loci,LogWriter *Log)
     exit(0);
 }
 
-void IndividualCollection::Update(int iteration, AlleleFreqs *A, Vector_d *lambda, int NoCovariates,  
-				  MatrixArray_d *beta, Vector_d &poptheta, AdmixOptions *options,
+void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, Vector_d &poptheta, AdmixOptions *options,
 				  Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, 
 				  vector<bool> _admixed, double rhoalpha, double rhobeta,
-				  std::ofstream *LogFileStreamPtr, chib *MargLikelihood, Regression *R){
+				  std::ofstream *LogFileStreamPtr, chib *MargLikelihood){
   SumLogTheta.SetElements( 0.0 );
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
@@ -537,13 +536,14 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Vector_d *lambd
   for( int i = 0; i < getSize(); i++ ){
     
     if( options->getPopulations() > 1 ){
-      _child[i]->SampleIndividualParameters(i, &SumLogTheta, A, iteration , &Target, OutcomeType, ExpectedY, *lambda, NoCovariates, 
-					    Covariates(0),*beta,poptheta, options, 
-					    chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma, (getOutcome(0))(i,0), 
-					    DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i));}
+      _child[i]->SampleParameters(i, &SumLogTheta, A, iteration , &Target, OutcomeType, ExpectedY, *(R->getlambda()), 
+				  R->getNoCovariates(),  Covariates(0),*(R->getbeta()),poptheta, options, 
+				  chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma,  
+				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
+				  R->getDispersion(OutcomeType(0)));}
     
     else{
-      _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *lambda, options->getAnalysisTypeIndicator());
+      _child[i]->OnePopulationUpdate(i, &Target, OutcomeType, ExpectedY, *(R->getlambda()), options->getAnalysisTypeIndicator());
     }   
     
     if( options->getAnalysisTypeIndicator() < 0 && i == 0 )//check if this condition is correct
@@ -552,19 +552,10 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Vector_d *lambd
 				thetahat, thetahatX, rhohat, rhohatX,LogFileStreamPtr, MargLikelihood, A);
   }
 
-  //updating of ancestryscores must be done after ALL individuals are updated
-//   if(iteration > options->getBurnIn() && options->getTestForLinkageWithAncestry() ){
-  
-//     for( int i = 0; i < getSize(); i++ ){
-//       _child[i]->UpdateScoreForAncestry(R->getDispersion(getOutcomeType(0)),getOutcome(0)( i, 0 ) - getExpectedY(i), 
-// 					DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(),i),
-//  					A->getLoci()->GetNumberOfCompositeLoci(), options->getPopulations() );
-//     }
-//   }
 }
 
 void IndividualCollection::Output(std::ofstream *LogFileStreamPtr){
-  //Used only for AnalysisTypeIndicator = -3
+  //Used only for IndAdmixHierModel = 0
   for( int i = 0; i < getSize(); i++ )
      *LogFileStreamPtr << thetahat(i).GetColumn(0) << " "
      << thetahat(i).GetColumn(1) << " "
@@ -596,7 +587,7 @@ double IndividualCollection::getLL(){
 
 //returns Derivative of Inverse Link Function for individual i
 double IndividualCollection::DerivativeInverseLinkFunction(int AnalysisType,int i){
-  double DInvLink;
+  double DInvLink = 1.0;
   double EY = getExpectedY(i);
   int OutcomeType = getOutcomeType(0);
 

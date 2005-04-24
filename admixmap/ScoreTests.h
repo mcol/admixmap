@@ -17,11 +17,6 @@ private:
 //   MatrixArray_d SumLocusLinkageScore2;
 //   MatrixArray_d SumLocusLinkageInfo;
 
-  MatrixArray_d AncestryScore;
-  MatrixArray_d AncestryInfo;
-  Matrix_d AncestryVarScore,AncestryInfoCorrection;
-  //Matrix_d AncestryScore, AncestryInfo;
-  //Vector_d AncestryVarScore, AncestryInfoCorrection;
   Matrix_d SumAncestryScore;
   Matrix_d SumAncestryInfo;
   Matrix_d SumAncestryVarScore;
@@ -90,9 +85,6 @@ private:
 
   //void UpdateScoreForAncestryOld( Individual* ind, double Y, int regressonindicator, double EY, double lambda0);
 
-  void UpdateScoreForAncestry(Individual *ind, Matrix_d &B, double YMinusEY, double phi, double DInvLink);
-  void UpdateScoreForAncestry(int i,double, Matrix_d &);
-  
   void UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink);
 
   void UpdateScoresForMisSpecOfAlleleFreqs( int i , AlleleFreqs *A);
@@ -114,21 +106,16 @@ public:
 
   static void 
   R_output3DarrayDimensions(std::ofstream* stream,std::vector<int> dim,std::vector<std::string> labels);    
-//UPDATES
+
   void Reset();
 
   void SetAllelicAssociationTest();
 
   void Update(double, AlleleFreqs *);
-  //void UpdateScoreIndLevel(int , Matrix_d*,double);
-
-  //void UpdateScoreStats();
-
-
 
   ~ScoreTests();
 
-};//end of class declaration
+};
 
 
 

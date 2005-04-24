@@ -155,10 +155,6 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     SumAncestryScore2.SetNumberOfElements(L, K);
     SumAncestryVarScore.SetNumberOfElements(L, K);
 
-    AncestryScore.SetNumberOfElementsWithDimensions(L, 2 * K, 1);
-    AncestryInfo.SetNumberOfElementsWithDimensions(L, 2 * K, 2 * K);
-    AncestryVarScore.SetNumberOfElements(L, K);
-    AncestryInfoCorrection.SetNumberOfElements(L, K);
     Individual::InitialiseAncestryScores(L, K);
       }
     else options->setTestForLinkageWithAncestry(false);
@@ -264,23 +260,32 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
   /*-------------------
   | SNPs in haplotype  |
    -------------------*/  
- if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){
+  if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){
     if( !options->getTestForAllelicAssociation() ){
       Logptr->logmsg(true,"Can't Test For SNPs In Haplotype if options->getTestForAllelicAssociation() is false\n");
       exit(1);
     }
-    SNPsAssociationScoreStream = new ofstream( options->getTestsForSNPsInHaplotypeOutputFilename(), ios::out );
-    if( !SNPsAssociationScoreStream ){
-      Logptr->logmsg(true,"ERROR: Couldn't open testsforSNPsinhaplotypeoutputfilename\n");
-      exit( 1 );
+    if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
+      SNPsAssociationScoreStream = new ofstream( options->getTestsForSNPsInHaplotypeOutputFilename(), ios::out );
+      if( !SNPsAssociationScoreStream ){
+	Logptr->logmsg(true,"ERROR: Couldn't open testsforSNPsinhaplotypeoutputfilename\n");
+	exit( 1 );
+      }
+      else{
+	Logptr->logmsg(true,"Tests for associations of SNPs in haplotypes written to\n");
+	Logptr->logmsg(true,options->getTestsForSNPsInHaplotypeOutputFilename());
+	Logptr->logmsg(true,"\n");
+	*SNPsAssociationScoreStream << "structure(.Data=c(" << endl;
+      }
     }
-    else{
-    Logptr->logmsg(true,"Tests for associations of SNPs in haplotypes written to\n");
-    Logptr->logmsg(true,options->getTestsForSNPsInHaplotypeOutputFilename());
-    Logptr->logmsg(true,"\n");
-    *SNPsAssociationScoreStream << "structure(.Data=c(" << endl;
+    else {
+      options->setTestForSNPsInHaplotype(false);
+      Logptr->logmsg(true, "ERROR: Cannot test for SNPs in Haplotype if all loci are simple\n");
+      Logptr->logmsg(true, "This options will be ignored\n");
     }
+
   }
+
 
   if( options->getTextIndicator() )InitialiseAssocScoreFile(PLabels);
 }
@@ -322,14 +327,10 @@ void ScoreTests::Reset(){
     }
   }
 
-   if( options->getTestForLinkageWithAncestry() ){
+  //if( options->getTestForLinkageWithAncestry() ){
      //     LocusLinkageScore.SetElements(0);
      //     LocusLinkageInfo.SetElements(0);
-     AncestryScore.SetElements(0);
-     AncestryInfo.SetElements(0);
-     AncestryInfoCorrection.SetElements(0);
-     AncestryVarScore.SetElements(0);
-   }
+  //}
 
 }
 
@@ -354,24 +355,6 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
   Reset();
 
   double DInvLink;
-  Matrix_d B;
-
-  if( options->getTestForLinkageWithAncestry() ){
-    B.SetNumberOfElements(options->getPopulations(), options->getPopulations());
-    Matrix_d Xcov(options->getPopulations(), 1);
-    
-    B.SetElements(0);    
-    for(int i = 0; i< individuals->getSize(); i++){
-      Individual* ind = individuals->getIndividual(i);
-      //set covariates
-      Xcov(options->getPopulations()-1, 0) = 1;
-      for( int k = 0; k < options->getPopulations() - 1; k++ ){
-	Xcov(k,0) = ind->getAdmixtureProps()( k, 0 ); 
-      }
-      DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i);
-      B += Xcov * Xcov.Transpose() * DInvLink;
-    }
-  }
 
   //----------------------------------
   // Update Scores for each individual
@@ -390,16 +373,7 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
     //allelic association
     if( options->getTestForAllelicAssociation() )
       UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
-    //ancestry association
-    if( options->getTestForLinkageWithAncestry() ){
-      //UpdateScoreForAncestryOld( ind, Y, 1, EY,dispersion);
-      UpdateScoreForAncestry(ind, B, YMinusEY,dispersion, DInvLink);
-      //ind->UpdateScoreForAncestry(dispersion,YMinusEY, DInvLink,
-      //A->getLoci()->GetNumberOfCompositeLoci(), options->getPopulations() );
-    }
-
   }
-
 
   //the rest formerly was the function UpdateScoreStats
   //-----------------------------
@@ -473,23 +447,9 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
 // 	  SumLocusLinkageScore2(j)( kk, 0 ) += score( kk, 0 ) * score( kk, 0 );
 // 	SumLocusLinkageInfo(j) += info.GetDiagonal().ColumnMatrix();
 
-// 	for( int kk = 0; kk < options->getPopulations(); kk++ ){
-// 	  SumAncestryScore(j,kk) += AncestryScore(j,kk);
-// 	  SumAncestryVarScore(j,kk) += AncestryVarScore(j,kk);
-// 	  SumAncestryInfo(j,kk) += AncestryInfo(j,kk);
-// 	  SumAncestryScore2(j, kk) +=  AncestryScore(j, kk) * AncestryScore(j, kk);
-// 	}
-	//centre
-	CentredGaussianConditional( options->getPopulations(),AncestryScore(j), AncestryInfo(j), &score, &info );
-	//accumulate over iterations     
-	for( int k = 0; k < options->getPopulations() ; k++ ){
-	  SumAncestryScore(j,k) += score(k,0);
-	  SumAncestryInfo(j,k)  += info(k,k) + AncestryInfoCorrection(j,k);
-	  SumAncestryScore2(j,k) += score(k,0) * score(k,0);
-	  SumAncestryVarScore(j,k) += AncestryVarScore(j,k);
-	}
-	//Individual::SumScoresForAncestry(j, options->getPopulations(), &score, &info, 
-	// &SumAncestryScore, &SumAncestryInfo, &SumAncestryScore2, &SumAncestryVarScore);
+	Individual::SumScoresForAncestry(j, options->getPopulations(), 
+	 &SumAncestryScore, &SumAncestryInfo, &SumAncestryScore2, &SumAncestryVarScore);
+
       } 
   /*------------------------------------
   |affecteds-only linkage with ancestry |
@@ -502,36 +462,36 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
   }
 }
 
-void ScoreTests::TransformScoreStatistics( int kk, Matrix_d score, Matrix_d info,
-					   Matrix_d *newscore, Matrix_d *newinfo )
-//This function is obsolete. Use CentredGaussianConditional in functions.cc
-//performs centring for regression-based score tests
-//for ancestry score test, kk = #populations
-{
-  Matrix_d score1, score2, Vbb, Vab, Vaa,V;
-  Vector_d temp ;
-  score1 = score.SubMatrix( 0, kk - 1, 0, 0 );
-  score2 = score.SubMatrix( kk, kk + options->getPopulations() - 1, 0, 0 );
-  Vaa = info.SubMatrix( 0, kk - 1, 0, kk - 1 );
-  Vbb = info.SubMatrix( kk, kk + options->getPopulations() - 1, kk, kk + options->getPopulations() - 1 );
-  Vab = info.SubMatrix( 0, kk - 1, kk, kk + options->getPopulations() - 1 );
+// void ScoreTests::TransformScoreStatistics( int kk, Matrix_d score, Matrix_d info,
+// 					   Matrix_d *newscore, Matrix_d *newinfo )
+// //This function is obsolete. Use CentredGaussianConditional in functions.cc
+// //performs centring for regression-based score tests
+// //for ancestry score test, kk = #populations
+// {
+//   Matrix_d score1, score2, Vbb, Vab, Vaa,V;
+//   Vector_d temp ;
+//   score1 = score.SubMatrix( 0, kk - 1, 0, 0 );
+//   score2 = score.SubMatrix( kk, kk + options->getPopulations() - 1, 0, 0 );
+//   Vaa = info.SubMatrix( 0, kk - 1, 0, kk - 1 );
+//   Vbb = info.SubMatrix( kk, kk + options->getPopulations() - 1, kk, kk + options->getPopulations() - 1 );
+//   Vab = info.SubMatrix( 0, kk - 1, kk, kk + options->getPopulations() - 1 );
 
-  //Vbb.InvertUsingLUDecomposition();
-  // *newscore = score1 - Vab * Vbb * score2;
-  temp = score2.GetColumn(0);
-  HH_svx(Vbb, &temp);
-  *newscore = score1 - Vab * (temp.ColumnMatrix()); 
+//   //Vbb.InvertUsingLUDecomposition();
+//   // *newscore = score1 - Vab * Vbb * score2;
+//   temp = score2.GetColumn(0);
+//   HH_svx(Vbb, &temp);
+//   *newscore = score1 - Vab * (temp.ColumnMatrix()); 
 
-  V.SetNumberOfElements(Vbb.GetNumberOfRows(),Vab.GetNumberOfRows());
-  temp.SetNumberOfElements(Vab.GetNumberOfCols());
-  // *newinfo = Vaa - Vab * Vbb * Vab.Transpose();
-  for(int i =0; i<Vab.GetNumberOfRows();i++){
-    temp =Vab.GetRow(i);
-    HH_svx(Vbb, &temp);
-    V.SetColumn(i,temp);
-  }
-  *newinfo = Vaa - Vab * V;
-}
+//   V.SetNumberOfElements(Vbb.GetNumberOfRows(),Vab.GetNumberOfRows());
+//   temp.SetNumberOfElements(Vab.GetNumberOfCols());
+//   // *newinfo = Vaa - Vab * Vbb * Vab.Transpose();
+//   for(int i =0; i<Vab.GetNumberOfRows();i++){
+//     temp =Vab.GetRow(i);
+//     HH_svx(Vbb, &temp);
+//     V.SetColumn(i,temp);
+//   }
+//   *newinfo = Vaa - Vab * V;
+// }
 
 void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinusEY, double phi, double DInvLink)
 //Note: EY0 = ExpectedY(0)(i,0), lambda0 = lambda(0)
@@ -645,63 +605,6 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 //   }
 // }
 
-void ScoreTests::UpdateScoreForAncestry(Individual *ind, Matrix_d &B, double YMinusEY, double phi, double DInvLink)
-{
-  //Updates score stats for test for association with locus ancestry
-  //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
-  //Notes: 1/phi is dispersion parameter
-  //       = lambda(0) for linear regression, = 1 for logistic
-  //       YMinusEY = Y - E(Y) = Y - g^{-1}(\eta_i)
-  //       VarX = Var(X)
-  //       DInvLink = {d  g^{-1}(\eta)} / d\eta = derivative of inverse-link function
-  //Xcov is a vector of covariates
-  //Note that only the intercept and admixture proportions are used.
-  // X is (A, Xcov)'  
-
-  int dim = 2 * options->getPopulations();;
-  Matrix_d Aprobs;
-  double xBx;
-  Matrix_d X, Xcov;
-  Vector_d VarA, temp;
-
- 
-  X.SetNumberOfElements(dim, 1);
-  Xcov.SetNumberOfElements(options->getPopulations(), 1);
-  VarA.SetNumberOfElements(options->getPopulations());
-  temp.SetNumberOfElements(options->getPopulations());
-      
-      X( dim - 1, 0 ) = 1;//intercept
-      Xcov(options->getPopulations()-1, 0) = 1;
-      //set covariates 
-      for( int k = 0; k < options->getPopulations() - 1; k++ ){
-	X( k + options->getPopulations(), 0 ) = ind->getAdmixtureProps()( k, 0 );
-	Xcov(k,0) = ind->getAdmixtureProps()( k, 0 ); 
-      }
-      
-      for(unsigned int locus =0; locus < Lociptr->GetNumberOfCompositeLoci(); ++locus){
-	
-	Aprobs = ind->getAncestryProbs(locus);//conditional locus ancestry probs      
-	
-	for( int k = 0; k < options->getPopulations() ; k++ ){
-	  X(k,0) = Aprobs(k,1) + 2.0 * Aprobs(k,2);//Conditional expectation of ancestry
-	  VarA(k) = Aprobs(k,1)*(1.0 - Aprobs(k,1)) + 4.0*Aprobs(k,2)*Aprobs(k,0);//conditional variances
-	}
-	
-	temp =  Xcov.GetColumn(0);
-	HH_svx(B, &temp);
-	xBx = (Xcov.Transpose() * temp.ColumnMatrix())(0,0);
-	
-	AncestryScore(locus) += X * YMinusEY * phi;
-	AncestryInfo(locus) += (X * X.Transpose()) * DInvLink * phi;
-	
-	for( int k = 0; k < options->getPopulations() ; k++ ){
-	  AncestryInfoCorrection(locus,k) += VarA(k) * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx) ;   
-	  AncestryVarScore(locus,k) += VarA(k) * phi * phi * YMinusEY * YMinusEY;
-	}
-      }//end locus loop
-}
-
-
 
 void ScoreTests::UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink)
 {
@@ -789,7 +692,7 @@ void ScoreTests::Output(int iteration,std::string * PLabels){
     OutputTestsForAllelicAssociation( iteration );
   }
   //haplotype association
-  if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){
+  if( options->getTestForSNPsInHaplotype() ){
     OutputTestsForSNPsInHaplotype( iteration );
   }
   //ancestry association
@@ -1068,7 +971,7 @@ void ScoreTests::ROutput(){
    * writes out the dimensions and labels of the        
    * R-matrix for score tests of SNPs in haplotypes.        
    */ 
-  if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){      
+  if( options->getTestForSNPsInHaplotype()  ){      
     count = 0;
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
       if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){

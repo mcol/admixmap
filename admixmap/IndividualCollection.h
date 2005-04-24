@@ -68,10 +68,10 @@ public:
   
   void getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *A, std::string *PopulationLabels);
 
-  void Update(int iteration, AlleleFreqs *A, Vector_d *lambda, int NoCovariates, MatrixArray_d *beta, 
+  void Update(int iteration, AlleleFreqs *A, Regression *R, 
 	      Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, 
 	      vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta,
-	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, Regression *R);
+	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood);
   
   void OutputIndAdmixture();
 
