@@ -50,7 +50,7 @@ public:
   void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,double *[], bool,bool);
   void SampleForLocusAncestry(Matrix_i*, bool);
   void setAncestryProbs(int); 
-  void getAncestryProbs(int, Matrix_d *);
+  void getAncestryProbs(int, double[][3]);
   void CreateAncestryProbs();
   double getLogLikelihood();
 

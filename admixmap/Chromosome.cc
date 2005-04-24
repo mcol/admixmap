@@ -236,26 +236,26 @@ void Chromosome::SampleForLocusAncestry(Matrix_i *OrderedStates, bool isdiploid)
    
 }
 
-void Chromosome::getAncestryProbs( int j, Matrix_d *AncestryProbs ){
+void Chromosome::getAncestryProbs( int j, double AncestryProbs[][3] ){
   //sets conditional probabilities of ancestry at locus j
   //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry from that population
   //i.e. (i,2) = p_{ii}
   //     (i,1) = \sum_j{p_{ij}} +   \sum_j{p_{ji}} - 2.0*p_{ii}
   //     (i,0) = 1.0 - (i,1) - (i,2)
-  //where p's are probs in StateProbs
-  
-  AncestryProbs->SetNumberOfElements(populations, 3);
+  //where p's are probs in StateProbs from HMM
+
   double *StateProbs;
   StateProbs = new double[D];//possibly should keep this at class scope
   
-   SampleStates.GetStateProbs(StateProbs, j);
+  SampleStates.GetStateProbs(StateProbs, j);
   
   for( int k1 = 0; k1 < populations; k1++ ){
-    (*AncestryProbs)(k1,2) = StateProbs[ ( populations + 1 ) * k1 ];
+    AncestryProbs[k1][2] = StateProbs[ ( populations + 1 ) * k1 ];
+    AncestryProbs[k1][1] = 0.0;
     for( int k2 = 0 ; k2 < populations; k2++ )
-      (*AncestryProbs)(k1,1) += StateProbs[k1*populations +k2] + StateProbs[k2*populations +k1];
-    (*AncestryProbs)(k1,1) -= 2.0*(*AncestryProbs)(k1,2);
-    (*AncestryProbs)(k1,0) = 1.0 - (*AncestryProbs)(k1,1) - (*AncestryProbs)(k1,2);
+      AncestryProbs[k1][1] += StateProbs[k1*populations +k2] + StateProbs[k2*populations +k1];
+    AncestryProbs[k1][1] -= 2.0*AncestryProbs[k1][2];
+    AncestryProbs[k1][0] = 1.0 - AncestryProbs[k1][1] - AncestryProbs[k1][2];
   }
   delete StateProbs;
 }
