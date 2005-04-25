@@ -10,7 +10,9 @@ MatrixArray_d Individual::AncestryScore;
 MatrixArray_d Individual::AncestryInfo;
 Matrix_d Individual::AncestryVarScore;
 Matrix_d Individual::AncestryInfoCorrection;
-MatrixArray_d Individual::AncestryInfoCorrection2;
+Matrix_d Individual::B;
+Matrix_d Individual::PrevB;
+Matrix_d Individual::Xcov;
 
 Individual::Individual()
 {
@@ -110,9 +112,11 @@ void Individual::InitialiseAffectedsOnlyScores(int L, int K){
 void Individual::InitialiseAncestryScores(int L, int K){
   AncestryScore.SetNumberOfElementsWithDimensions(L, 2 * K, 1);
   AncestryInfo.SetNumberOfElementsWithDimensions(L, 2 * K, 2 * K);
-  AncestryInfoCorrection2.SetNumberOfElementsWithDimensions(L, K, K);
   AncestryVarScore.SetNumberOfElements(L, K);
   AncestryInfoCorrection.SetNumberOfElements(L, K);
+  B.SetNumberOfElements(K,K);
+  PrevB.SetNumberOfElements(K,K);
+  Xcov.SetNumberOfElements(K,1);
 }
 
 Individual::~Individual()
@@ -345,6 +349,16 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 				   AdmixOptions* options, Chromosome **chrm, 
 				   vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, 
 				   double rhobeta,vector<double> sigma, double DInvLink, double dispersion)
+//Target = Outcome variable(s)
+//Expected Y = expected outcome variable
+//lambda = precision in linear regression model (if there is one)
+//NoCovariates = # covariates
+//alpha = 
+//_admixed = 
+//rhoalpha, rhobeta = shape and scale parameters in prior for rho
+//sigma = 
+//DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
+//dispersion = dispersion paameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 {
   double u;
 
@@ -495,6 +509,16 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
       if(options->getModelIndicator() && !options->getXOnlyAnalysis() )
 	(*SumLogTheta)( k ) += log( AdmixtureProps( k, 1 ) );
     }
+
+  //increment B using new Admixture Props
+  //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
+  if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
+    Xcov(options->getPopulations()-1, 0) = 1;//last entry is intercept
+    for( int k = 0; k < options->getPopulations() - 1; k++ ){
+      Xcov(k,0) = AdmixtureProps( k, 0 ); 
+    }
+    B += Xcov * Xcov.Transpose() * DInvLink * dispersion;
+  }
 }
 
 // Samples individual admixture proportions conditional on sampled values of ancestry at loci where 
@@ -682,8 +706,10 @@ void Individual::ResetScores(AdmixOptions *options){
     AncestryScore.SetElements(0);
     AncestryInfo.SetElements(0);
     AncestryInfoCorrection.SetElements(0);
-    AncestryInfoCorrection2.SetElements(0);
     AncestryVarScore.SetElements(0);
+    PrevB = B;           //PrevB stores the sum for the previous iteration
+    B.SetElements(0.0);//while B accumulates the sum for the current iteration 
+    Xcov.SetElements(0.0);
   }
 }
 
@@ -734,12 +760,12 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   //       DInvLink = {d  g^{-1}(\eta)} / d\eta = derivative of inverse-link function
   //Xcov is a vector of covariates
   //Note that only the intercept and admixture proportions are used.
-  // X is (A, Xcov)'  
+  // X is (A, cov)'  
 
   double AProbs[Populations][3];
-  Matrix_d X(2 * Populations, 1), X2(Populations, 1),Xcov(Populations, 1);
+  Matrix_d X(2 * Populations, 1);
   Vector_d temp(Populations);
-  double VarA[Populations];
+  double VarA[Populations], xBx;
  
   X( 2*Populations - 1, 0 ) = 1;//intercept
   Xcov(Populations-1, 0) = 1;
@@ -757,18 +783,20 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
     for( int k = 0; k < Populations ; k++ ){
       X(k,0) = AProbs[k][1] + 2.0 * AProbs[k][2];//Conditional expectation of ancestry
       VarA[k] = AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0];//conditional variances
-      X2(k,0) = sqrt(VarA[k]);
       }
+
+    temp =  Xcov.GetColumn(0);
+    HH_svx(PrevB, &temp);
+    xBx = (Xcov.Transpose() * temp.ColumnMatrix())(0,0);
     
     AncestryScore(locus) += X * YMinusEY * phi;
     AncestryInfo(locus) += (X * X.Transpose()) * DInvLink * phi;
-    AncestryInfoCorrection2(locus) += (X2 * Xcov.Transpose() ) *DInvLink * phi;
     
-      for( int k = 0; k < Populations ; k++ ){
-	AncestryInfoCorrection(locus,k) += VarA[k] * DInvLink *phi;   
-	AncestryVarScore(locus,k) += VarA[k] * phi * phi * YMinusEY * YMinusEY;
-      }
-      ++locus;
+    for( int k = 0; k < Populations ; k++ ){
+      AncestryInfoCorrection(locus,k) += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx); 
+      AncestryVarScore(locus,k) += VarA[k] * phi * phi * YMinusEY * YMinusEY;
+    }
+    ++locus;
   }//end locus loop
 }
 
@@ -786,33 +814,16 @@ void Individual::SumScoresForAncestry(int j, int Populations,
 				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
 				      Matrix_d *SumAncestryVarScore){
   Matrix_d score, info;
-
+  
   CentredGaussianConditional(Populations,AncestryScore(j), AncestryInfo(j), &score, &info );
-
-  Matrix_d Vbb, V, newCorrection;
-  Vector_d x;
-  Vbb = AncestryInfo(j).SubMatrix( Populations, AncestryInfo(j).GetNumberOfRows() - 1, 
-				   Populations, AncestryInfo(j).GetNumberOfCols() - 1 );
-
-  V.SetNumberOfElements(Vbb.GetNumberOfRows(),Populations);
-  x.SetNumberOfElements(Populations);
-
-  for(int i =0; i<Populations;i++){
-    x = AncestryInfoCorrection2(j).GetRow(i);
-    HH_svx(Vbb, &x);
-    V.SetColumn(i,x);
-  }
-  newCorrection = AncestryInfoCorrection2(j) * V;
-
-
+  
   //accumulate over iterations     
   for( int k = 0; k < Populations ; k++ ){
     (*SumAncestryScore)(j,k) += score(k,0);
-    (*SumAncestryInfo)(j,k)  += info(k,k) + AncestryInfoCorrection(j,k) - newCorrection(k,k);
+    (*SumAncestryInfo)(j,k)  += info(k,k) + AncestryInfoCorrection(j,k);
     (*SumAncestryScore2)(j,k) += score(k,0) * score(k,0);
     (*SumAncestryVarScore)(j,k) += AncestryVarScore(j,k);
   }
-
 }
 
 // unnecessary duplication of code - should use same method as for > 1 population

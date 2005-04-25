@@ -131,8 +131,11 @@ private:
   static MatrixArray_d AncestryInfo;
   static Matrix_d AncestryVarScore;
   static Matrix_d AncestryInfoCorrection;
-  static MatrixArray_d AncestryInfoCorrection2;
- 
+  static Matrix_d B;//used for ancestry score test
+  static Matrix_d PrevB;//holds B for previous iteration while B accumulates for this iteration
+  static Matrix_d Xcov; //column matrix of covariates used to calculate B and for score test, 
+                       //static only for convenience since it is reused each time
+
   void Reset();
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
