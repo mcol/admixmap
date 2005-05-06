@@ -23,7 +23,7 @@ class Regression;
 class IndividualCollection
 {
 private:
-  std::vector<Individual*> _child;
+  Individual **_child;
   void getLabels( const string, Vector_i temporary, string *labels );
   void getLabels(const Vector_s& data, Vector_i temporary, string *labels);
 
@@ -33,6 +33,7 @@ private:
   void CheckGenotypes(Genome *Loci, LogWriter *Log);
   void InitialiseMLEs(double, double, AdmixOptions *, const Matrix_d&);
 
+  unsigned int NumInd;
   //MLEs of Individual admixture and sumintensities
   //used to calculate marginal likelihood
   vector< vector<double> > rhohat, rhohatX;
@@ -43,7 +44,7 @@ private:
   //Regression Objects
   MatrixArray_d ExpectedY;
   MatrixArray_d Target;
-  MatrixArray_d Covariates;
+  Matrix_d Covariates;
   Matrix_d Input;
   std::string *CovariateLabels;
   std::string *TargetLabels;
@@ -100,8 +101,7 @@ public:
   int GetNumberOfInputRows();
   int GetNumberOfInputCols();
 
-  MatrixArray_d getCovariates();
-  Matrix_d getCovariates(int);
+  Matrix_d getCovariates();
   int getOutcomeType(int);
   Vector_i *getOutcomeType();
 

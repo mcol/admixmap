@@ -10,24 +10,30 @@ IndividualCollection::IndividualCollection()
 
 IndividualCollection::~IndividualCollection()
 {
-  for(unsigned int i=0;i<_child.size();i++){
+  //for(unsigned int i=0;i<_child.size();i++){
+  for(unsigned int i=0;i<NumInd;i++){
     delete _child[i];
   }
+  delete[] _child;
   delete indadmixoutput;
 }
 
 IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
 {
   Vector_i null_Vector_i(1);
+  Matrix_d nullMatrix(1,1);
   OutcomeType = null_Vector_i;
   indadmixoutput = 0;
   TargetLabels = 0;
   LogLikelihood=0.0;
   SumLogLikelihood = 0.0;
+  Covariates = nullMatrix;
+  NumInd = Data->getNumberOfIndividuals();
 
+  _child = new Individual*[NumInd];
     // Fill separate individuals.
-  for (int i = 1; i <= Data->getNumberOfIndividuals() ; ++i) {
-      _child.push_back(new Individual(i,options, Data, Loci, chrm));
+  for (unsigned int i = 0; i < NumInd; ++i) {
+    _child[i] = new Individual(i+1,options, Data, Loci, chrm);
     }
  
 if (options->getAnalysisTypeIndicator() == 2)
@@ -52,7 +58,7 @@ void
 IndividualCollection::OutputIndAdmixture()
 {
   indadmixoutput->visitIndividualCollection(*this);
-  for(unsigned int i=0; i<_child.size(); i++){
+  for(unsigned int i=0; i<NumInd; i++){
     indadmixoutput->visitIndividual(*_child[i], _locusfortest, LogLikelihood);
   }
 }
@@ -60,14 +66,14 @@ IndividualCollection::OutputIndAdmixture()
 int
 IndividualCollection::getSize()
 {
-  return _child.size();
+  return NumInd;
 }
 
 Vector_i
 IndividualCollection::GetSumXi()
 {
    Vector_i sumxi = (*_child[0]).getSumXi();
-   for( unsigned int i = 1; i < _child.size(); i++ )
+   for( unsigned int i = 1; i <NumInd; i++ )
       sumxi += (*_child[i]).getSumXi();
    return sumxi;
 }
@@ -76,7 +82,7 @@ double
 IndividualCollection::GetSumrho0()
 {
    double Sumrho0 = 0;
-   for( unsigned int i = 0; i < _child.size(); i++ )
+   for( unsigned int i = 0; i < NumInd; i++ )
       Sumrho0 += (*_child[i]).getSumrho0();
    return Sumrho0;
 }
@@ -85,7 +91,7 @@ double
 IndividualCollection::GetSumrho()
 {
    double Sumrho = 0;
-   for( unsigned int i = 0; i < _child.size(); i++ )
+   for( unsigned int i = 0; i < NumInd; i++ )
       Sumrho += (*_child[i]).getSumrho();
    return Sumrho;
 }
@@ -110,16 +116,16 @@ Vector_i *IndividualCollection::getOutcomeType(){
   return &OutcomeType;
   }
 
-void
-IndividualCollection::add(Individual* ind)
-{
-  _child.push_back(ind);
-}
+// void
+// IndividualCollection::add(Individual* ind)
+// {
+//   _child.push_back(ind);
+// }
 
 Individual*
 IndividualCollection::getIndividual(int num)
 {
-  if (num < (int)_child.size()){
+  if (num < (int)NumInd){
     return _child[num];
   } else {
     return 0;
@@ -129,7 +135,7 @@ IndividualCollection::getIndividual(int num)
 void
 IndividualCollection::setAdmixtureProps(Matrix_d a)
 {
-  for(unsigned int i=0; i<_child.size(); i++){
+  for(unsigned int i=0; i<NumInd; i++){
     _child[i]->setAdmixtureProps(a);
   }
 }
@@ -137,7 +143,7 @@ IndividualCollection::setAdmixtureProps(Matrix_d a)
 void
 IndividualCollection::setAdmixturePropsX(Matrix_d a)
 {
-  for(unsigned int i=0; i<_child.size(); i++){
+  for(unsigned int i=0; i<NumInd; i++){
     _child[i]->setAdmixturePropsX(a);
   }
 }
@@ -145,8 +151,8 @@ IndividualCollection::setAdmixturePropsX(Matrix_d a)
 MatrixArray_d
 IndividualCollection::getAncestries()
 {
-  MatrixArray_d ancestries(_child.size());
-  for(unsigned int i=0; i<_child.size(); i++){
+  MatrixArray_d ancestries(NumInd);
+  for(unsigned int i=0; i<NumInd; i++){
     ancestries(i) = _child[i]->getAdmixtureProps();
   }
   return ancestries;
@@ -158,12 +164,10 @@ int IndividualCollection::GetNumberOfInputRows(){
 int IndividualCollection::GetNumberOfInputCols(){
   return Input.GetNumberOfCols();
 }
-MatrixArray_d IndividualCollection::getCovariates(){
+Matrix_d IndividualCollection::getCovariates(){
   return Covariates;
 }
-Matrix_d IndividualCollection::getCovariates(int i){
-  return Covariates(i);
-}
+
 std::string IndividualCollection::getCovariateLabels(int i){
   return CovariateLabels[i];
   }
@@ -180,11 +184,11 @@ std::string IndividualCollection::getTargetLabels(int k){
 }
 
 void IndividualCollection::SetExpectedY(int k,Matrix_d beta){
-ExpectedY(k) = getCovariates(0) * beta;
+  ExpectedY(k) = Covariates * beta;
 }
 void IndividualCollection::calculateExpectedY( int k)
 {
-  for( int i = 0; i < getSize(); i++ )
+  for(unsigned int i = 0; i < NumInd; i++ )
     ExpectedY(k)( i, 0 ) = 1 / ( 1 + exp( -ExpectedY(k)( i, 0 ) ) );
 }
 
@@ -238,27 +242,27 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
 
   //Regression stuff
   if(options->getAnalysisTypeIndicator() >=2){
-    ExpectedY.SetNumberOfElementsWithDimensions( getTargetSize(), getSize(), 1 );
-    Covariates.SetNumberOfElements(1);
-    Matrix_d temporary( getSize(), 1 );
+    ExpectedY.SetNumberOfElementsWithDimensions( getTargetSize(), NumInd, 1 );
+    //Covariates.SetNumberOfElements(1);
+    Matrix_d temporary( NumInd, 1 );
     temporary.SetElements(1);
       
-    if( Input.GetNumberOfRows() == getSize() ){
-      Covariates(0) = ConcatenateHorizontally( temporary, Input );
+    if( Input.GetNumberOfRows() == (int)NumInd ){
+      Covariates = ConcatenateHorizontally( temporary, Input );
       Vector_d mean;
       mean = Input.ColumnMean();
-      for( int i = 0; i < getSize(); i++ )
+      for(unsigned int i = 0; i < NumInd; i++ )
 	for( int j = 0; j < Input.GetNumberOfCols(); j++ )
 	  Input( i, j ) -= mean(j);
     } else {
-      Covariates(0) = temporary;
+      Covariates = temporary;
     }
 
     
     if( !options->getScoreTestIndicator() && options->getPopulations() > 1 ){
-      temporary.SetNumberOfElements( getSize(), options->getPopulations() - 1 );
+      temporary.SetNumberOfElements( NumInd, options->getPopulations() - 1 );
       temporary.SetElements( 1 / options->getPopulations() );
-      Covariates(0) = ConcatenateHorizontally( Covariates(0), temporary );
+      Covariates = ConcatenateHorizontally( Covariates, temporary );
     }
 
     for( int k = 0; k < getTargetSize(); k++ ){
@@ -270,17 +274,17 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
   SumLogTheta.SetNumberOfElements( options->getPopulations());
   InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
-  MaxLogLikelihood.assign(getSize(), -9999999 );
+  MaxLogLikelihood.assign(NumInd, -9999999 );
 }
 
 void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, AdmixOptions * options, const Matrix_d &MLEMatrix){
   //set thetahat and rhohat, estimates of individual admixture and sumintensities
-   thetahat.SetNumberOfElementsWithDimensions( getSize(), 1, 1 );
-   thetahatX.SetNumberOfElementsWithDimensions( getSize(), 1, 1 );
+   thetahat.SetNumberOfElementsWithDimensions( NumInd, 1, 1 );
+   thetahatX.SetNumberOfElementsWithDimensions( NumInd, 1, 1 );
 
    vector<double> r(2, rhoalpha/rhobeta );
-   rhohat.resize( getSize(), r );
-   rhohatX.resize( getSize(), r );
+   rhohat.resize( NumInd, r );
+   rhohatX.resize( NumInd, r );
 
    //use previously read values from file, if available
    if( options->getAnalysisTypeIndicator() == -2 ){
@@ -349,16 +353,16 @@ void IndividualCollection::LoadCovariates(AdmixOptions *options, InputData *data
   Log->logmsg(false,".\n");
   Input = data_->getInputMatrix();
 
-  if( getSize() != Input.GetNumberOfRows() - 1 ){
+  if( (int)NumInd != Input.GetNumberOfRows() - 1 ){
     Log->logmsg(true,"Genotype file has ");
-    Log->logmsg(true,getSize());
+    Log->logmsg(true,NumInd);
     Log->logmsg(true," observations and Input file has ");
     Log->logmsg(true,Input.GetNumberOfRows() - 1);
     Log->logmsg(true," observations.\n");
     exit(0);
   }
   if( options->getTextIndicator() ){
-    Input.SubMatrix2( 1, getSize(), 0, Input.GetNumberOfCols() - 1 );
+    Input.SubMatrix2( 1, NumInd, 0, Input.GetNumberOfCols() - 1 );
     CovariateLabels = new string[ Input.GetNumberOfCols() ];
     Vector_i vtemp( Input.GetNumberOfCols() );
     vtemp.SetElements( 1 );
@@ -377,7 +381,7 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
   //const Matrix_d& LoadTarget = data_->getTargetMatrix();
   //conversion necessary because LoadTarget is changed further down
   Matrix_d& LoadTarget = (Matrix_d&)data_->getTargetMatrix();
-  if( LoadTarget.GetNumberOfRows() - 1 != getSize() ){
+  if( LoadTarget.GetNumberOfRows() - 1 != (int)NumInd ){
     Log->logmsg(true,"Inconsistency in number of rows in outcomevarfile and genotypefile.\n");
   }
   TempLabels = new string[ LoadTarget.GetNumberOfCols() ];
@@ -394,8 +398,8 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
     for( int j = 0; j < LoadTarget.GetNumberOfCols(); j++ ){
       TargetLabels[j] = TempLabels[j];
       TempTarget = LoadTarget;
-      TempTarget.SubMatrix2( 1, getSize(), j, j );
-      for( int i = 0; i < getSize(); i++ ){
+      TempTarget.SubMatrix2( 1, NumInd, j, j );
+      for(unsigned int i = 0; i < NumInd; i++ ){
 	if( !TempTarget.IsMissingValue( i, 0 ) &&
 	    (TempTarget( i, 0 ) == 0 || TempTarget( i, 0 ) == 1) )
 	  OutcomeType(j) = 1;
@@ -423,15 +427,15 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
     Log->logmsg(true,"Regressing on: ");
     Log->logmsg(true,getTargetLabels(0));
     Log->logmsg(true,".\n");
-    if( LoadTarget.GetNumberOfRows() - 1 != getSize() ){
+    if( LoadTarget.GetNumberOfRows() - 1 != (int)NumInd ){
       Log->logmsg(true,"Target file has ");
       Log->logmsg(true,LoadTarget.GetNumberOfRows() - 1);
       Log->logmsg(true," observations and Genotypes file has ");
-      Log->logmsg(true,getSize());
+      Log->logmsg(true,NumInd);
       Log->logmsg(true," observations.\n");
       exit(1);
     }
-    LoadTarget.SubMatrix2( 1, getSize(), options->getTargetIndicator(), options->getTargetIndicator() );
+    LoadTarget.SubMatrix2( 1, NumInd, options->getTargetIndicator(), options->getTargetIndicator() );
     Target(0) = LoadTarget;
   }
 
@@ -441,13 +445,13 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
 void IndividualCollection::LoadRepAncestry(AdmixOptions *options, InputData *data_, LogWriter *Log){
   //LOAD REPORTED ANCESTRY IF GIVEN   
 
-  ReportedAncestry.SetNumberOfElements( getSize() );
+  ReportedAncestry.SetNumberOfElements( NumInd );
   Log->logmsg(false,"Loading ");
   Log->logmsg(false,options->getReportedAncestryFilename());
   Log->logmsg(false,".\n");
   const Matrix_d& temporary = data_->getReportedAncestryMatrix();
 
-  if( temporary.GetNumberOfRows() != 2 * getSize() ){
+  if( temporary.GetNumberOfRows() != 2 * (int)NumInd ){
     Log->logmsg(false,"Error\n");
     Log->logmsg(false,options->getReportedAncestryFilename());
     Log->logmsg(false," has ");
@@ -455,7 +459,7 @@ void IndividualCollection::LoadRepAncestry(AdmixOptions *options, InputData *dat
     Log->logmsg(false," rows\n");
     Log->logmsg(false,options->getGeneticDataFilename());
     Log->logmsg(false," has ");
-    Log->logmsg(false,getSize());
+    Log->logmsg(false,NumInd);
     Log->logmsg(false," rows\n");
     exit(0);}
   if( temporary.GetNumberOfCols() != options->getPopulations() ){
@@ -500,7 +504,7 @@ void IndividualCollection::CheckGenotypes(Genome *Loci,LogWriter *Log)
 {
   bool error = false;
    
-  for( int i = 0; i < getSize(); i++ ){
+  for(unsigned int i = 0; i < NumInd; i++ ){
     for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
       for( int k = 0; k < (*Loci)(j)->GetNumberOfLoci(); k++ ){
 	Individual* ind =  _child[i];
@@ -533,11 +537,11 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
 
-  for( int i = 0; i < getSize(); i++ ){
+  for(unsigned int i = 0; i < NumInd; i++ ){
     
     if( options->getPopulations() > 1 ){
       _child[i]->SampleParameters(i, &SumLogTheta, A, iteration , &Target, OutcomeType, ExpectedY, *(R->getlambda()), 
-				  R->getNoCovariates(),  Covariates(0),*(R->getbeta()),poptheta, options, 
+				  R->getNoCovariates(),  Covariates,*(R->getbeta()),poptheta, options, 
 				  chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
 				  R->getDispersion(OutcomeType(0)));}
@@ -556,7 +560,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
 
 void IndividualCollection::Output(std::ofstream *LogFileStreamPtr){
   //Used only for IndAdmixHierModel = 0
-  for( int i = 0; i < getSize(); i++ )
+  for(unsigned  int i = 0; i < NumInd; i++ )
      *LogFileStreamPtr << thetahat(i).GetColumn(0) << " "
      << thetahat(i).GetColumn(1) << " "
      << rhohat[i][0] << " " << rhohat[i][1] << endl;
