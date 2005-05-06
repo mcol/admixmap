@@ -52,13 +52,13 @@ public:
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
 
   void UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry );
+  void UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry );
   void UpdateAlleleCounts_HaploidData(int locus, std::vector<unsigned short >&genotype, int ancestry );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
   void GetGenotypeProbs(Matrix_d *Prob, int locus, std::vector<unsigned short >&genotype, Vector_i Haplotypes, bool diploid, bool fixed);
-  Vector_d *geteta();
-  Vector_d *getSumEta();
+  void GetGenotypeProbs(double **Prob, int locus, std::vector<unsigned short >&genotype, Vector_i Haplotypes, bool diploid, bool fixed);
 
   Vector_d getLociCorrSummary();// should be in Genome object
   void getLociCorrSummary(double *[]);
@@ -69,19 +69,17 @@ public:
 private:
   int Number, Populations;
   Vector_d eta; //dispersion parameter
-  Vector_d psi,tau;// eta has Gamma prior with shape and scale parameters psi and tau
+  double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
+  double psi0;
  
-  MatrixArray_d Freqs;// allele frequencies except for last allele
-  MatrixArray_d AlleleFreqsMAP; // posterior mode of allele freqs
-  MatrixArray_d HistoricAlleleFreqs;
-  MatrixArray_d AlleleProbs; // allele freqs including last allele
-
-  MatrixArray_i AlleleCounts;
-  MatrixArray_d HistoricLikelihoodAlleleFreqs;
-  MatrixArray_d PriorAlleleFreqs;
-
-  MatrixArray_d SumAlleleFreqs;// used to compute ergodic average
-  //Matrix_d SumEta;
+  Matrix_d *Freqs;// allele frequencies except for last allele
+  Matrix_d *AlleleProbs; // allele freqs including last allele
+  Matrix_d *AlleleFreqsMAP; // posterior mode of allele freqs
+  Matrix_d *HistoricAlleleFreqs;
+  Matrix_i *AlleleCounts;
+  Matrix_d *HistoricLikelihoodAlleleFreqs;
+  Matrix_d *PriorAlleleFreqs;
+  Matrix_d *SumAlleleFreqs;// used to compute ergodic average
 
   Matrix_d Fst;
   Matrix_d SumFst;
@@ -92,13 +90,12 @@ private:
 
   TuneRW *TuneEtaSampler;
   int w; // the eta sampler is tuned every w updates
-  Vector_i NumberAccepted;
-  Vector_d etastep;
+  int *NumberAccepted;
+  double *SumAcceptanceProb;
+  double *etastep;
   double etastep0;
+  double *SumEta;
 
-  Vector_d SumEta;
-  Vector_d SumAcceptanceProb;
-  double psi0;
   Vector_d pp;//used to set merged haplotypes, which are used in the allelic association test
 
 //    DARS SampleMu;
@@ -135,8 +132,8 @@ private:
   void SetAlleleProbs();
   double GetAlleleProbs( int x, int ancestry , int locus); // x is allele number
 
-  void SamplePriorAlleleFreqs1D( Vector_d eta , int );
-  void SamplePriorAlleleFreqsMultiDim( Vector_d eta , int);
+  void SamplePriorAlleleFreqs1D( int );
+  void SamplePriorAlleleFreqsMultiDim( int);
   void SampleAlleleFreqs( int );
   void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
  
