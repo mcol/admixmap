@@ -397,7 +397,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
       //Update affecteds only scores
-      if( options->getAnalysisTypeIndicator() == 0 ) 
+      if( options->getTestForAffectedsOnly() && options->getAnalysisTypeIndicator() == 0 ) 
 	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->getModelIndicator(), 
 					   chrm );
       else if( options->getTestForAffectedsOnly() && (*Target)(0)(i,0) == 1 ){
@@ -412,14 +412,19 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 
     //Sample locus ancestry
     // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
-    chrm[j]->SampleForLocusAncestry(&LocusAncestry[j],isdiploid);
-
+    //chrm[j]->SampleForLocusAncestry(&LocusAncestry[j],isdiploid);
+    chrm[j]->NewSampleForLocusAncestry(&LocusAncestry[j], AdmixtureProps,f,options->getModelIndicator(),isdiploid);
+ 
     //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
       int locus =  chrm[j]->GetLocus(jj);
       if( !(IsMissing(j)) ){
-	  if(isdiploid)
-	    A->UpdateAlleleCounts( locus, PossibleHaplotypes[locus], LocusAncestry[j].GetColumn(jj) );
+	if(isdiploid){
+	  int h[2];
+	  //A->UpdateAlleleCounts( locus, PossibleHaplotypes[locus], LocusAncestry[j].GetColumn(jj) );
+	  A->getLocus(locus)->SampleHaplotypePair(h, PossibleHaplotypes[locus], LocusAncestry[j].GetColumn(jj));
+	  A->UpdateAlleleCounts(locus,h,LocusAncestry[j].GetColumn(jj));
+	}
 	  else
 	    A->UpdateAlleleCounts_HaploidData( locus, genotype[locus], LocusAncestry[j](0,jj) );
 	}
@@ -560,19 +565,23 @@ bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreq
   bool isdiploid;
   //Update Forward/Backward probs in HMM
   if( j != X_posn ){
-    chrm->UpdateParameters( this, A,AdmixtureProps, options, f, false, true );
+    //chrm->UpdateParameters( this, A,AdmixtureProps, options, f, false, true );
+    chrm->NewUpdateParameters(this, A, AdmixtureProps, options, f,false, true);
     isdiploid = true;
   }
   else if( options->getXOnlyAnalysis() ){
-    chrm->UpdateParameters( this, A,AdmixtureProps, options, f, false, false );
+    //chrm->UpdateParameters( this, A,AdmixtureProps, options, f, false, false );
+    chrm->NewUpdateParameters( this, A,AdmixtureProps, options, f, false, false );
     isdiploid = false;
   }
   else if( sex == 1 ){
-    chrm->UpdateParameters( this, A,XAdmixtureProps, options, f, false, false );
+    //chrm->UpdateParameters( this, A,XAdmixtureProps, options, f, false, false );
+    chrm->NewUpdateParameters( this, A,XAdmixtureProps, options, f, false, false );
     isdiploid = false;
   }
   else{
-    chrm->UpdateParameters( this, A,XAdmixtureProps, options, f, false, true );
+    //chrm->UpdateParameters( this, A,XAdmixtureProps, options, f, false, true );
+    chrm->NewUpdateParameters( this, A,XAdmixtureProps, options, f, false, true );
     isdiploid = true;
   }
   return isdiploid;
@@ -1052,7 +1061,8 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
    for( unsigned int jj = 1; jj < chrm[0]->GetSize(); jj++ ){
      f[0][jj] = exp( -A->getLoci()->GetDistance( jj ) * _rhoHat[0] );
    }
-   chrm[0]->UpdateParameters( this, A,AdmixtureHat, options, f, true, false );
+   //chrm[0]->UpdateParameters( this, A,AdmixtureHat, options, f, true, false );
+   chrm[0]->NewUpdateParameters( this, A,AdmixtureHat, options, f, true, false );
    LogLikelihood += chrm[0]->getLogLikelihood();
 
    return LogLikelihood;
@@ -1064,7 +1074,6 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
 double
 Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, Matrix_d ancestry, vector<double> rho, Matrix_d ancestry_X, vector<double> rho_X )
 {
-  //Why are the forward, backward probs updated here when this has been done already?
    int locus = 0;
    _rhoHat = rho;
    AdmixtureHat = ancestry;
@@ -1087,7 +1096,8 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
                f[1][locus] = f[0][locus];
             locus++;
          }
-         chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, f, true, true);
+	//chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, f, true, true);
+	chrm[j]->NewUpdateParameters( this,A, AdmixtureHat, options, f, true, true);
          //LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else{
@@ -1100,10 +1110,14 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
             }
             locus++;
          }
-         if( sex == 1 )
-	   chrm[j]->UpdateParameters( this,A, XAdmixtureHat, options, f, true, false);
-         else
-	   chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, f, true, true);
+         if( sex == 1 ){
+	   //chrm[j]->UpdateParameters( this,A, XAdmixtureHat, options, f, true, false);
+	   chrm[j]->NewUpdateParameters( this,A, XAdmixtureHat, options, f, true, false);
+	 }
+         else{
+	   //chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, f, true, true);
+	   chrm[j]->NewUpdateParameters( this, A,XAdmixtureHat, options, f, true, true);
+	 }
          //LogLikelihood += chrm[j]->getLogLikelihood();
       }
       LogLikelihood += chrm[j]->getLogLikelihood();
@@ -1151,7 +1165,8 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
                f[1][locus] = f[0][locus];
             locus++;
          }
-	chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, true);
+	//chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, true);
+	chrm[j]->NewUpdateParameters( this, A,AdmixtureProps, options, f, false, true);
 	//LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else if( options->getXOnlyAnalysis() ){
@@ -1159,7 +1174,8 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
 	  f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[0] );
             locus++;
          }
-         chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false);
+	//chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false);
+	chrm[j]->NewUpdateParameters( this, A,AdmixtureProps, options, f, false, false);
          //LogLikelihood += chrm[j]->getLogLikelihood();
       }
       else{
@@ -1170,14 +1186,18 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
             }
             locus++;
          }
-         if( sex == 1 )
-	   chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false );
-         else
-	   chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, true );
+	if( sex == 1 ){
+	  //chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false );
+	 chrm[j]->NewUpdateParameters( this, A,AdmixtureProps, options, f, false, false );
+	}
+	else{
+	  //chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, true );
+	 chrm[j]->NewUpdateParameters( this, A,AdmixtureProps, options, f, false, true );
+	}
          //LogLikelihood += chrm[j]->getLogLikelihood();
       }
       LogLikelihood += chrm[j]->getLogLikelihood();
-   }
+     }
 
    return LogLikelihood;
 }
