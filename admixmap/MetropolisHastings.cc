@@ -2,10 +2,10 @@
 
 MetropolisHastings::MetropolisHastings
 (const Vector_d &inparameters,
- double (*funct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
- double (*dfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
- double (*ddfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
- const MatrixArray_i &integer_data, const MatrixArray_d &double_data )
+ double (*funct)(Vector_d&, Matrix_i&, Matrix_d&, double),
+ double (*dfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
+ double (*ddfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
+ const Matrix_i &integer_data, const Matrix_d &double_data )
 {
    parameters = inparameters;
    data_i = integer_data;
@@ -24,12 +24,12 @@ void MetropolisHastings::UpdateParameters( const Vector_d &inparameters )
   parameters = inparameters;
 }
 
-void MetropolisHastings::UpdateIntegerData( const MatrixArray_i &indata )
+void MetropolisHastings::UpdateIntegerData( const Matrix_i &indata )
 {
   data_i = indata;
 }
 
-void MetropolisHastings::UpdateDoubleData( const MatrixArray_d &indata )
+void MetropolisHastings::UpdateDoubleData( const Matrix_d &indata )
 {
   data_d = indata;
 }
