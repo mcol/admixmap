@@ -2,7 +2,7 @@
 #ifndef REGRESSION_H
 #define REGRESSION_H 1
 
-#include "matrix_d.h"
+
 #include "vector_d.h"
 #include "vector_i.h"
 #include "MatrixArray_d.h"
@@ -12,7 +12,7 @@
 #include "MetropolisHastings.h"
 
 // class Vector_d;
-// class Matrix_d;
+ class Matrix_d;
 // class Vector_i;
 // class Matrix_i;
 // class MatrixArray_d;
@@ -58,13 +58,13 @@ private:
   std::ofstream outputstream;//output to regparamfile
 
   static double
-  lr( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  lr( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   static double
-  dlr( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  dlr( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   static double
-  ddlr( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  ddlr( Vector_d & , Matrix_i&, Matrix_d& , double );
   
 
 };

@@ -1,4 +1,5 @@
 #include "Regression.h"
+#include "matrix_d.h"
 
 Regression::Regression(){
   lambda0 = 0.0; //population
@@ -41,7 +42,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
     //exit(1);
   }
 
-  MatrixArray_i empty_i(1);
+
 
   if( AnalysisTypeIndicator < 2 )
     NoCovariates = 0;
@@ -95,6 +96,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
     BetaDrawArray[i] = 0;
   }
   if( AnalysisTypeIndicator == 3 || AnalysisTypeIndicator == 4 || AnalysisTypeIndicator == 5){
+    Matrix_i empty_i;
     for( int k = 0; k < individuals->getTargetSize(); k++ ){
       if( AnalysisTypeIndicator != 5 || (AnalysisTypeIndicator == 5 && individuals->getOutcomeType(k) ) ){
 	BetaParameters.SetElements(0);
@@ -113,12 +115,12 @@ void Regression::Update(IndividualCollection *individuals){
   for( int k = 0; k < individuals->getTargetSize(); k++ ){
     //      linear
     if( AnalysisTypeIndicator == 2 || (AnalysisTypeIndicator == 5 && ! individuals->getOutcomeType(k)) ){
-      Matrix_d temporary = individuals->getCovariates(0).Transpose() * individuals->getCovariates(0) + n0;
+      Matrix_d temporary = individuals->getCovariates().Transpose() * individuals->getCovariates() + n0;
       temporary.InvertUsingLUDecomposition();
       temporary.Symmetrize();
-      betan = temporary * ( n0 * beta0(k) + individuals->getCovariates(0).Transpose() * individuals->getOutcome(k) );
+      betan = temporary * ( n0 * beta0(k) + individuals->getCovariates().Transpose() * individuals->getOutcome(k) );
       double lambdan = lambda0 + 0.5 *
-	( (individuals->getOutcome(k) - individuals->getCovariates(0) * betan ).Transpose() * individuals->getOutcome(k)
+	( (individuals->getOutcome(k) - individuals->getCovariates() * betan ).Transpose() * individuals->getOutcome(k)
 	  + (beta0(k) - betan).Transpose() * n0 * beta0(k) )(0,0);
       lambda(k) = gengam( lambdan, lambda0 + 0.5 * individuals->getSize() );
       DrawBeta.SetMean( betan );
@@ -129,7 +131,7 @@ void Regression::Update(IndividualCollection *individuals){
     else if( AnalysisTypeIndicator == 3 ||
 	     AnalysisTypeIndicator == 4 ||
 	     (AnalysisTypeIndicator == 5 &&  individuals->getOutcomeType(k) ) ){
-      sum = (individuals->getOutcome(k)).Transpose() * individuals->getCovariates(0);
+      sum = (individuals->getOutcome(k)).Transpose() * individuals->getCovariates();
       for( int j = 0; j < NoCovariates; j++ ){
 	BetaDrawArray[j]->UpdateDoubleData( individuals->getCovariates() );
 	BetaParameters( NoCovariates + 2 ) = j;
@@ -139,7 +141,7 @@ void Regression::Update(IndividualCollection *individuals){
 	BetaParameters(j) = beta(k)( j, 0 );
       }
     }
-    //ExpectedY(k) = individuals->getCovariates(0) * beta(k);
+    //ExpectedY(k) = individuals->getCovariates * beta(k);
     individuals->SetExpectedY(k,beta(k));
     if( individuals->getOutcomeType(k) )
       // calculateExpectedY( ExpectedY(k), individuals->getSize() );
@@ -317,10 +319,10 @@ int Regression::getNoCovariates(){
 }
 
 double
-Regression::lr( Vector_d &parameters, MatrixArray_i &, MatrixArray_d &data, double beta )
+Regression::lr( Vector_d &parameters, Matrix_i &, Matrix_d &data, double beta )
 {
-  int n = (int)data(0).GetNumberOfRows();
-  int d = (int)data(0).GetNumberOfCols();
+  int n = (int)data.GetNumberOfRows();
+  int d = (int)data.GetNumberOfCols();
   int index = (int)parameters( d + 2 );
   double beta0 = 0;
   if( index == 0 )
@@ -337,7 +339,7 @@ Regression::lr( Vector_d &parameters, MatrixArray_i &, MatrixArray_d &data, doub
 	beta1( i , 0 ) = beta;
     }
   
-  Xbeta = data(0) * beta1;
+  Xbeta = data * beta1;
   for( int i = 0; i < n; i++ ){
     f -= log( 1. + exp( Xbeta( i, 0 ) ) );}
   
@@ -345,10 +347,10 @@ Regression::lr( Vector_d &parameters, MatrixArray_i &, MatrixArray_d &data, doub
 }
 
 double
-Regression::dlr( Vector_d &parameters, MatrixArray_i&, MatrixArray_d &data, double beta )
+Regression::dlr( Vector_d &parameters, Matrix_i&, Matrix_d &data, double beta )
 {
-  int n = (int)data(0).GetNumberOfRows();
-  int d = (int)data(0).GetNumberOfCols();
+  int n = (int)data.GetNumberOfRows();
+  int d = (int)data.GetNumberOfCols();
   int index = (int)parameters( d + 2 );
   double beta0 = 0;
   if( index == 0 )
@@ -364,19 +366,19 @@ Regression::dlr( Vector_d &parameters, MatrixArray_i&, MatrixArray_d &data, doub
 	beta1( i, 0 ) = beta;
     }
   
-  Xbeta = data(0) * beta1;
+  Xbeta = data * beta1;
   for( int i = 0; i < n; i++ )
     {
-      f -= data(0)( i, index ) / ( 1. + exp( -Xbeta( i, 0 ) ) );
+      f -= data( i, index ) / ( 1. + exp( -Xbeta( i, 0 ) ) );
     }
   return( f );
 }
 
 double
-Regression::ddlr( Vector_d &parameters, MatrixArray_i&, MatrixArray_d &data, double beta )
+Regression::ddlr( Vector_d &parameters, Matrix_i&, Matrix_d &data, double beta )
 {
-  int n = (int)data(0).GetNumberOfRows();
-  int d = (int)data(0).GetNumberOfCols();
+  int n = (int)data.GetNumberOfRows();
+  int d = (int)data.GetNumberOfCols();
   int index = (int)parameters( d + 2 );
   double f = -parameters( d + 1 );
   Matrix_d Xbeta, beta1( d, 1 );
@@ -389,10 +391,10 @@ Regression::ddlr( Vector_d &parameters, MatrixArray_i&, MatrixArray_d &data, dou
 	beta1( i, 0 ) = beta;
     }
   
-  Xbeta = data(0) * beta1;
+  Xbeta = data * beta1;
   for( int i = 0; i < n; i++ )
     {
-      f -= data(0)( i, index ) * data(0)( i, index ) / ( 2. + exp( -Xbeta( i, 0 ) ) + exp( Xbeta( i, 0 ) ) );
+      f -= data( i, index ) * data( i, index ) / ( 2. + exp( -Xbeta( i, 0 ) ) + exp( Xbeta( i, 0 ) ) );
     }
   return( f );
 }
