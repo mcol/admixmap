@@ -77,6 +77,7 @@ public:
   int HapLoopGetDecimal(Vector_i x);
   //Matrix_d GetGenotypeProbs(Vector_i, bool, int);
   void GetGenotypeProbs(Matrix_d *, Vector_i, bool, int);
+  void GetGenotypeProbs(double **Probs, Vector_i Haplotypes, bool fixed, int RandomAlleleFreqs);
 
   void setHaplotypeProbsMAP();
   void SetNumberOfLabels();
@@ -87,6 +88,7 @@ public:
   void SetPossibleHaplotypes(Vector_i *, std::vector<unsigned short >&genotype);
   //  Vector_i SampleHaplotypePair(const std::vector<unsigned int>& genotype, Vector_i, Vector_i , Matrix_d &);
   Vector_i SampleHaplotypePair(Vector_i, Vector_i );
+  void SampleHaplotypePair(int [],Vector_i, Vector_i);
   int GetNumberOfLoci();
   int GetNumberOfStates();
   std::string GetLabel(int);

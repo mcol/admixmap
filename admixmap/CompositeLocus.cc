@@ -1,5 +1,6 @@
 #include "CompositeLocus.h"
 
+
 using namespace std;
 
 /**
@@ -270,6 +271,28 @@ Vector_i CompositeLocus::SampleHaplotypePair(Vector_i Haplotypes, Vector_i ances
    return( hap );
 }
 
+void CompositeLocus::SampleHaplotypePair(int hap[2],Vector_i Haplotypes, Vector_i ancestry)
+{
+  int i;
+  double Probs[ 2*Haplotypes.GetNumberOfElements()];
+  
+   for( int k = 0; k < Haplotypes.GetNumberOfElements(); k++ ){
+    Probs[ 2*k ]     = HaplotypeProbs( Haplotypes(k) )( ancestry(0), ancestry(1) );
+    Probs[ 2*k + 1 ] = HaplotypeProbs( Haplotypes(k) )( ancestry(1), ancestry(0) );
+  }
+   i = SampleFromDiscrete3( Probs,  2*Haplotypes.GetNumberOfElements() );
+  DipLoop.Reset();
+  DipLoop.Increment( Haplotypes( i/2 ) );
+  if( i % 2 ){
+    hap[0] = (DipLoop.GetCountParent( 0 )*pmult).Sum();
+    hap[1] = (DipLoop.GetCountParent( 1 )*pmult).Sum();
+  }
+  else{
+    hap[1] = (DipLoop.GetCountParent( 0 )*pmult).Sum();
+    hap[0] = (DipLoop.GetCountParent( 1 )*pmult).Sum();
+  }
+}
+
 /**
  * Called every time the haplotype frequencies change. Constructs a 
  * three-dimensional matrix of Haplotype->Paternal Ancestry->Maternal
@@ -347,7 +370,7 @@ void CompositeLocus::ConstructHaplotypeProbs(Matrix_d &AlleleFreqs)
 void CompositeLocus::GetGenotypeProbs(Matrix_d *Probs, Vector_i Haplotypes, bool fixed, int RandomAlleleFreqs)
 {
   //Matrix_d GenoTypeProbs( Populations, Populations );
-  Probs->SetNumberOfElements(Populations, Populations);
+  Probs->SetNumberOfElements(Populations, Populations);// ! Possible Memory Leak !
    for( int k = 0; k < Haplotypes.GetNumberOfElements(); k++ ){
       if( fixed && RandomAlleleFreqs == 1 )
          *Probs += HaplotypeProbsMAP(Haplotypes(k) );
@@ -356,6 +379,21 @@ void CompositeLocus::GetGenotypeProbs(Matrix_d *Probs, Vector_i Haplotypes, bool
    }
 
    //return( GenoTypeProbs );
+}
+
+void CompositeLocus::GetGenotypeProbs(double **Probs, Vector_i Haplotypes, bool fixed, int RandomAlleleFreqs)
+//Probs should be a k x k array to hold probabilities of genotype at this locus
+{
+  for(int i=0;i<Populations;++i)for(int j=0;j<Populations;++j)Probs[i][j]=0.0;//might be unnecessary if loops are rearranged
+   for( int k = 0; k < Haplotypes.GetNumberOfElements(); k++ ){
+      if( fixed && RandomAlleleFreqs == 1 )
+	for(int i=0; i < Populations;++i)for(int j=0; j< Populations; ++j)
+	  Probs[i][j] += HaplotypeProbsMAP(Haplotypes(k) )(i,j);
+      else
+	for(int i=0; i < Populations;++i)for(int j=0; j< Populations; ++j)
+	  Probs[i][j] += HaplotypeProbs( Haplotypes(k) )(i,j);
+   }
+
 }
 
 // doesn't really calculate posterior mode
