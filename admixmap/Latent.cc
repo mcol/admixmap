@@ -111,52 +111,32 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   //Misc.  
   poptheta->SetNumberOfElements( options->getPopulations() );
 
-  PreUpdate(individuals);
-}
-
-Latent::~Latent()
-{
-  delete RhoDraw;
-  for(int i=0; i<options->getPopulations(); i++){
-    delete DirParamArray[i];
-  }
-  /**
-   * From Admixbase destructor
-   **/
- 
-  //    if( options->getAnalysisTypeIndicator() > 1 ){
-  //      delete [] TargetLabels;
-  //    }
-}
-
-//FUNCTION TO BE CALLED BEFORE UPDATE TO INITIALISE MEMBERS USED IN LOOP
-void Latent::PreUpdate(IndividualCollection *individuals){
-
-  MatrixArray_i empty_i(1);
-  MatrixArray_d empty_d(1);
   // AlphaParameters is an array with 5 elements
   // element 0 is num individuals or num gametes (if random mating model)
   // element 1 is the sum of the Dirichlet parameter vector
   // where are elements 2 and 3 used?
   // element 4 is the sum of log admixture proportions
    
-  AlphaParameters.SetNumberOfElements(5);
   if( options->getModelIndicator() ){
-    AlphaParameters(0) = 2 * individuals->getSize();
+    AlphaParameters[0] = 2 * individuals->getSize();
   } else {
-    AlphaParameters(0) = individuals->getSize();
+    AlphaParameters[0] = individuals->getSize();
   }
   //if( options->getAnalysisTypeIndicator() > -1 ){
-  AlphaParameters(1) = alpha[0].Sum();
-     AlphaParameters(2) = 1;
-     AlphaParameters(3) = 1;
-     AlphaParameters(4) = 1;
+  AlphaParameters[1] = alpha[0].Sum();
+     AlphaParameters[2] = 1;
+     AlphaParameters[3] = 1;
+     AlphaParameters[4] = 1;
      //}
+
+  MatrixArray_i empty_i(1);
+  MatrixArray_d empty_d(1);
+
    
   DirParamArray = new DARS*[ options->getPopulations() ];
   for( int j = 0; j < options->getPopulations(); j++ ){
     DirParamArray[j] = new DARS();
-    DirParamArray[j]->SetParameters( 0, 1, 0.1, AlphaParameters,
+    DirParamArray[j]->SetParameters( 0, 1, 0.1, AlphaParameters,5,
 				     logf, dlogf, ddlogf, empty_i, empty_d );
     DirParamArray[j]->SetLeftTruncation( 0.1 );
   }
@@ -167,21 +147,24 @@ void Latent::PreUpdate(IndividualCollection *individuals){
   rhodata_d.SetNumberOfElementsWithDimensions( 1, Loci->GetNumberOfCompositeLoci(), 1 );
   rhodata_d(0).SetColumn( 0, Loci->GetDistances().Double() );
    
-   RhoParameters.SetNumberOfElements(4);
-   RhoParameters(0) = rhoalpha;
-   RhoParameters(1) = rhobeta;
-   RhoParameters(2) = Loci->GetNumberOfCompositeLoci();
-   // RhoParameters(3) is a sum over individuals 
+   RhoParameters[0] = rhoalpha;
+   RhoParameters[1] = rhobeta;
+   RhoParameters[2] = Loci->GetNumberOfCompositeLoci();
+   // RhoParameters[3] is a sum over individuals 
 
-   RhoDraw = new DARS(0,1,(double)1,RhoParameters,frho,dfrho,ddfrho,
+   RhoDraw = new DARS(0,1,(double)1,RhoParameters,4,frho,dfrho,ddfrho,
                             rhodata_i,rhodata_d);
+}
 
- 
-  
-}//END OF PREUPDATE
+Latent::~Latent()
+{
+  delete RhoDraw;
+  for(int i=0; i<options->getPopulations(); i++){
+    delete DirParamArray[i];
+  }
+}
 
-double Latent::sampleForRho(Vector_d& RhoParameters, DARS* RhoDraw,
-                            MatrixArray_i& rhodata_i, MatrixArray_d& rhodata_d)
+double Latent::sampleForRho()
 {
   // Sample for global sum of intensities parameter rho
   // this algorithm is unnecessarily complicated
@@ -190,7 +173,7 @@ double Latent::sampleForRho(Vector_d& RhoParameters, DARS* RhoDraw,
   // But sampling conditional on locus ancestry gives poor mixing
   // it would be better to update rho by a Metropolis random walk conditional on the genotype data 
   // and individual admixture proportions, using the HMM likelihood.  
-  RhoDraw->UpdateParameters( RhoParameters );
+  RhoDraw->UpdateParameters( RhoParameters,4 );
   RhoDraw->UpdateIntegerData( rhodata_i );
   RhoDraw->UpdateDoubleData( rhodata_d );
   return RhoDraw->Sample();
@@ -299,7 +282,7 @@ void Latent::InitializeOutputFile(std::string *PopulationLabels)
     outputstream << endl;
   }
 
-}//end InitializeOutputFile
+}
 
 void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 {
@@ -356,18 +339,8 @@ void Latent::OutputParams(int iteration, std::ofstream *LogFileStreamPtr){
 
 }
 
-double Latent::strangExp( double x )
-{
-  double y;
-  if( x > -700 )
-    y = exp(x);
-  else
-    y = 0;
-  return( y );
-}
-
-bool
-Latent::CheckInitAlpha( Vector_d alphatemp )
+//this should be in InputData
+bool Latent::CheckInitAlpha( Vector_d alphatemp )
   // check that Dirichlet parameter vector, if specified by user, has correct length  
 {
    bool admixed = true;
@@ -393,9 +366,9 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
     if( Loci->GetLengthOfGenome() > 0.0 ){
       // Sample for global rho
       if( !options->getRhoIndicator() ){
-	RhoParameters(3) = individuals->GetSumrho0();
+	RhoParameters[3] = individuals->GetSumrho0();
 	rhodata_i(0).SetColumn( 0, individuals->GetSumXi() );
-	rho = sampleForRho(RhoParameters,RhoDraw,rhodata_i,rhodata_d);
+	rho = sampleForRho();
       }
       else{
 	// sample for location parameter of gamma distribution of sumintensities parameters 
@@ -414,12 +387,12 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
     // updated only from those individuals who belong to the component
     // Sample for population admixture distribution Dirichlet parameters alpha
     for( int j = 0; j < options->getPopulations(); j++ ){
-      AlphaParameters(1) -= alpha[0]( j );
-      AlphaParameters(4) = individuals->getSumLogTheta(j);
+      AlphaParameters[1] -= alpha[0]( j );
+      AlphaParameters[4] = individuals->getSumLogTheta(j);
       // elements of Dirichlet parameter vector are updated one at a time
-      DirParamArray[j]->UpdateParameters( AlphaParameters );
+      DirParamArray[j]->UpdateParameters( AlphaParameters, 5 );
       alpha[0]( j ) = DirParamArray[j]->Sample();
-      AlphaParameters(1) += alpha[0]( j );
+      AlphaParameters[1] += alpha[0]( j );
     }
     // accumulate sum of Dirichlet parameter vector over iterations 
     SumAlpha += alpha[0];

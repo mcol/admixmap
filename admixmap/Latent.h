@@ -30,7 +30,7 @@
 #include "VectorLoop.h"
 
 #include "TuneRW.h"
-#include "MetropolisHastings.h"
+//#include "MetropolisHastings.h"
 #include "HMM.h"
 #include "AdmixOptions.h"
 
@@ -80,14 +80,10 @@ public:
   //Vector_d *getSumLogTheta();
 
 private:
-  //Initialise loop variables   
-  void PreUpdate(IndividualCollection *);
-  
-  static double
-  sampleForRho(Vector_d&,DARS*,MatrixArray_i&,MatrixArray_d&);
 
-  void
-  OpenOutputFiles();
+  double sampleForRho();
+
+  void OpenOutputFiles();
 
   bool CheckInitAlpha( Vector_d );
   
@@ -118,8 +114,8 @@ private:
   LogWriter *Log; 
 
   //These next members were previously declared in Latent::Sampler
-  Vector_d AlphaParameters;
-  Vector_d RhoParameters;
+  double AlphaParameters[5];
+  double RhoParameters[4];
 
   MatrixArray_i rhodata_i;
   MatrixArray_d rhodata_d;
@@ -161,13 +157,6 @@ private:
   static double
   ddfrho( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
   
-  static double
-  strangExp( double );
-  
-//   static void
-//   s2c( char*, std::string );
-
-
   // UNIMPLEMENTED
   // to avoid use
   Latent();
