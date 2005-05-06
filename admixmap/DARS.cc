@@ -4,11 +4,11 @@ using namespace std;
 
 // c *************************************************************
 // c
-// c    This program uses adaptative rejection algoritm for  
+// c    This program uses adaptative rejection algorithm for  
 // c    log-concave distributions to generate from the  
 // c	distribution of w in (-Infty,Infty)
 
-// c 	Suply:  no:  Number of starting points
+// c 	Supply:  no:  Number of starting points
 // c		lgth: Number of maxium points on the grid
 // c	        alpha: vector of parameters
 // c
@@ -44,7 +44,8 @@ DARS::DARS()
 }
 
 DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
-            const Vector_d &inparameters,
+            //const Vector_d &inparameters,
+	    const double inparameters[],int size,
             double (*funct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
             double (*dfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
             double (*ddfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
@@ -54,7 +55,9 @@ DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
    loc = 0;
    lgth = 25;
    x0 = 0;
-   parameters = inparameters;
+   //parameters = inparameters;
+   parameters.SetNumberOfElements(size);
+   for(int i=0;i<size;++i)parameters(i)=inparameters[i];
    data_i =  integer_data;
    data_d =  double_data;
    function = funct;
@@ -83,13 +86,16 @@ DARS::~DARS()
 
 void DARS::
 SetParameters( int inLeftFlag, int inRightFlag, double innewnum,
-               const Vector_d &inparameters,
+               //const Vector_d &inparameters,
+	       const double inparameters[],int size,
                double (*funct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
                double (*dfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
                double (*ddfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
                const MatrixArray_i &integer_data, const MatrixArray_d &double_data )
 {
-   parameters = inparameters;
+  //parameters = inparameters;
+  parameters.SetNumberOfElements(size);
+  for(int i=0;i<size;++i)parameters(i)=inparameters[i];
    data_i = integer_data;
    data_d = double_data;
    function = funct;
@@ -110,9 +116,11 @@ void DARS::SetRightTruncation( double inx0 )
    x1 = inx0;
 }
 
-void DARS::UpdateParameters( const Vector_d &inparameters )
+//void DARS::UpdateParameters( const Vector_d &inparameters )
+void DARS::UpdateParameters( const double inparameters[], int size )
 {
-   parameters = inparameters;
+  //parameters = inparameters;
+  for(int i=0;i<size;++i)parameters(i)=inparameters[i];
 }
 
 void DARS::UpdateIntegerData( const MatrixArray_i &indata )

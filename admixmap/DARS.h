@@ -56,7 +56,7 @@ public:
   // default constructor
   DARS();
   // all arguments
-  DARS( int, int, double newnum , const Vector_d &inparameters,
+  DARS( int, int, double newnum , const double inparameters[],int size,//const Vector_d &inparameters,
         double (*funct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
         double (*dfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
         double (*ddfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
@@ -68,24 +68,21 @@ public:
   double
   Sample();
   
-  double
-  SampleUsingARS();
+  double SampleUsingARS();
   
-  void
-  SetParameters(int, int, double newnum, const Vector_d &inparameters,
+  void SetParameters(int, int, double newnum, const double inparameters[],int size,//const Vector_d &inparameters,
                 double (*funct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
                 double (*dfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
                 double (*ddfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
 		const MatrixArray_i&, const MatrixArray_d&);
   
-  void 
-  SetLeftTruncation(double);
+  void SetLeftTruncation(double);
   
-  void
-  SetRightTruncation( double );
+  void SetRightTruncation( double );
   
-  void
-  UpdateParameters(const Vector_d &inparameters);
+  //void
+  //UpdateParameters(const Vector_d &inparameters);
+  void UpdateParameters( const double inparameters[], int size );
   
   void
   UpdateIntegerData(const MatrixArray_i&);
