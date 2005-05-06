@@ -7,8 +7,6 @@
 #include "IndividualCollection.h"
 #include "AdmixOptions.h"
 #include "Genome.h"
-#include "MatrixArray_d.h"
-#include "MatrixArray_i.h"
 #include "Latent.h"
 
 #include <vector>
