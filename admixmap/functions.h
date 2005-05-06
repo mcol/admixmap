@@ -21,4 +21,5 @@ int HH_svx (Matrix_d A, Vector_d *x);
 void CentredGaussianConditional( int kk, Matrix_d mean, Matrix_d var, Matrix_d *newmean, Matrix_d *newvar );
 void CentredGaussianConditional1( Vector_d mean, Matrix_d var, double *newmean, double  *newvar );
 
+double **alloc2D_d(int m, int n);
 #endif /* !FUNCTIONS_H */

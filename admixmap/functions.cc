@@ -150,3 +150,11 @@ void CentredGaussianConditional1( Vector_d mean, Matrix_d var,
   *newmean = mu2(0,0);
   *newvar = var2(0,0); 
 }
+
+double **alloc2D_d(int m,int n)
+{
+  double **M;
+  M = new double*[m];
+  for(int i=0; i<m; ++i)M[i]=new double[n];
+  return M;
+}
