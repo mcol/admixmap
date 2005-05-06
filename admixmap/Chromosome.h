@@ -6,8 +6,6 @@
 #include "AdmixOptions.h"
 #include "matrix_d.h"
 #include "matrix_i.h"
-#include "MatrixArray_d.h"
-#include "MatrixArray_i.h"
 #include "vector_d.h"
 #include "HMM.h"
 #include "Latent.h"
@@ -25,12 +23,13 @@ private:
   int L;
   std::string _Label;
   HMM SampleStates;
-  double *StationaryDist;
-  double **GenotypeProbs;
-  Matrix_d Prob;//used to construct genotypeprobs
+  //double *StationaryDist;
+  //double **GenotypeProbs;
+  double ***Lambda;
+  //Matrix_d Prob;//used to construct genotypeprobs
   int *CodedStates;//used to sample hidden states from HMM
-  double **Tpat, **Tmat;//paternal and maternal transition probability matrices
-  double *_product1, *_product2;
+  // double **Tpat, **Tmat;//paternal and maternal transition probability matrices
+  //double *_product1, *_product2;
   
   // UNIMPLEMENTED
   // to avoid use
@@ -47,11 +46,12 @@ public:
   std::string GetLabel( int );
   int GetLocus(int);
   unsigned int GetSize();
-  void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,double *[], bool,bool);
-  void SampleForLocusAncestry(Matrix_i*, bool);
-  void setAncestryProbs(int); 
+  //void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,double *[], bool,bool);
+  void NewUpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, double * f[],
+		    bool fixedallelefreqs, bool diploid );
+  //void SampleForLocusAncestry(Matrix_i*, bool);
+  void NewSampleForLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, double *f[], int Mcol,bool isdiploid);
   void getAncestryProbs(int, double[][3]);
-  void CreateAncestryProbs();
   double getLogLikelihood();
 
 };
