@@ -243,7 +243,7 @@ void Chromosome::NewUpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& 
     //construct Lambda
     for( int j = 0; j < L; j++ ){
       if( !(ind->IsMissing(locus)) ){
-	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), true, fixedallelefreqs );
+	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), true, fixedallelefreqs );
       }
       else{
 	for( int k1 = 0; k1 < populations; k1++ )for(int k2 =0; k2<populations; ++k2) Lambda[j][k1][k2] = 1.0;
@@ -258,7 +258,7 @@ void Chromosome::NewUpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& 
   else{//haploid
     for( int j = 0; j < L; j++ ){
       if( !(ind->IsMissing(locus)) ){
-	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), false, fixedallelefreqs );
+	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), false, fixedallelefreqs );
       }
       else{
 	for( int k1 = 0; k1 < populations; k1++ )for(int k2 =0; k2<populations; ++k2) Lambda[j][k1][k2] = 1.0;

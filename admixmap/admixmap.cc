@@ -55,7 +55,7 @@ void submain(AdmixOptions* options){
   InputData data;
   data.readData(options, &Log);
 
-  Chromosome **chrm;//doesn't belong here
+  Chromosome **chrm = 0;//doesn't belong here
   IndividualCollection *IC;
   IC = 0;
   StratificationTest StratTest;
@@ -68,7 +68,7 @@ void submain(AdmixOptions* options){
 
 
   Vector_d poptheta;
-  std::string *PopulationLabels;//possibly belongs in InputData
+  std::string *PopulationLabels = 0;//possibly belongs in InputData
 
   /*----------------
   | Initialisation |

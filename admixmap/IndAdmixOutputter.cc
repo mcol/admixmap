@@ -132,12 +132,13 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
         _out << ancestry(0) << "," << ancestry(1) << ",";
      }
      if((*_Loci)(_options->getLocusForTest() )->GetNumberOfLoci() > 1 ){
-       Vector_i hap = (*_Loci)(_options->getLocusForTest())->
-	 SampleHaplotypePair(ind.getPossibleHaplotypes(_options->getLocusForTest()),ancestry);
+       int hap[2] = {0,0};
+       (*_Loci)(_options->getLocusForTest())->
+	 SampleHapPair(hap,ind.getPossibleHapPairs(_options->getLocusForTest()),ancestry);
         if(_options->getPopulations() > 1 ){
            genotype = ind.getGenotype(_options->getLocusForTest() );
         }
-        _out << hap(0) << "," << hap(1) << ",";
+        _out << hap[0] << "," << hap[1] << ",";
      } else {
         _out << genotype[0] << "," << genotype[1] << ",";
      }

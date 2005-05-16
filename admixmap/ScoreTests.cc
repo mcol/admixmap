@@ -542,11 +542,12 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 	  UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
 	  if( options->getTestForSNPsInHaplotype() ){
 	    ancestry = ind->GetLocusAncestry( j, jj );
-	    hap = (*Lociptr)(locus)->SampleHaplotypePair( ind->getPossibleHaplotypes(locus), ancestry);
+	    int hap[2] = {0,0};
+	    (*Lociptr)(locus)->SampleHapPair(hap, ind->getPossibleHapPairs(locus), ancestry);
 	    for( int k = 0; k <(*Lociptr)(locus)->GetNumberOfStates(); k++ ){
-	      if( hap(0) == k )
+	      if( hap[0] == k )
 		cov_x_coord( (*Lociptr)(locus)->GetMergedHaplotype(k), 0 )++;
-	      if( hap(1) == k )
+	      if( hap[1] == k )
 		cov_x_coord((*Lociptr)(locus)->GetMergedHaplotype(k), 0 )++;
 	    }
 	  }
