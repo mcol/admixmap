@@ -17,9 +17,12 @@
 #include "MatrixArray_i.h"
 
 
- typedef std::vector<std::string> Vector_s; //std vector of strings 
- typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors 
-
+typedef std::vector<std::string> Vector_s; //std vector of strings 
+typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors 
+typedef double ** dmatrix;
+typedef int ** imatrix;
+typedef double*** dmatrixarray;
+typedef int *** imatrixarray;
 
 
 typedef struct 
