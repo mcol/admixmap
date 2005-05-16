@@ -62,8 +62,7 @@ Alternatively, you  can run the program by running a Perl script in which the us
 
 Access to the CVS repository (bioinf.ucd.ie:/dsk3/cvs)
 
-For read-only access to the repository, you can use the username anonymous and a blank password. 
-
+For read-only access to the repository, you can use the username anon and password cvs. 
 
 (1) To access the CVS repository you must have installed a CVS client, and you must set the CVSROOT environment variable. If you are working in Windows, we recommend the free program WinCVS, which provides a CVS client with a graphical interface.  Use View-Preferences in WinCVS to specify authentication as pserver, path as /dsk3/cvs, host address as bioinf.ucd.ie, and your CVS username.  This will define the CVSROOT variable.  
 
