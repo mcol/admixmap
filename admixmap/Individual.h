@@ -33,7 +33,7 @@ public:
   
   std::vector<unsigned short>& getGenotype(unsigned int locus);
 
-  Vector_i getPossibleHaplotypes(unsigned int locus);
+  std::vector<hapPair > &getPossibleHapPairs(unsigned int locus);
 
   bool IsMissing(unsigned int locus);
 
@@ -56,6 +56,7 @@ public:
   double getLogPosteriorProb();
 
   Vector_i GetLocusAncestry( int, int );
+  //int *GetLocusAncestry(int, int);
    
   double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome **, Matrix_d, std::vector<double>,Matrix_d, std::vector<double>);
   double getLogLikelihoodXOnly(AdmixOptions*,AlleleFreqs*,Chromosome**, Matrix_d, std::vector<double>);
@@ -90,8 +91,9 @@ public:
   void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **, int Populations);
 
 private:
-  Vector_i *PossibleHaplotypes;
   std::vector< std::vector<unsigned short> > genotype; // stores genotypes    
+  int ***genotype_array;
+  std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
 
   std::vector< std::vector<bool> > _xi;//jump indicators
 
@@ -168,9 +170,12 @@ private:
 
   void setIsMissing(vector<unsigned int >& decoded);
 
-
+  int ***genotype2array();
+  void HapPairs2PossHaps();
   //void UpdateScoreForLinkageAffectedsOnly(int Populations, bool ModelIndicator, int L);
 
 };
 
+
 #endif /* INDIVIDUAL_H */
+

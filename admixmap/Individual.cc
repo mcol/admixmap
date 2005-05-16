@@ -72,8 +72,10 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
       }
     }
 
-    PossibleHaplotypes = new Vector_i[numCompositeLoci]; // vector of possible haplotype pairs - expect 2 integers per locus 
-                                                        // or 1 integer (haploid) 
+    // vector of possible haplotype pairs - expect 2 integers per locus 
+                                                        // or 1 integer (haploid)
+    PossibleHapPairs = new vector<hapPair >[numCompositeLoci];
+ 
     X_posn = 9999;
     string s1("\"X\"");
   // set size of locus ancestry array
@@ -100,9 +102,14 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     genotype.resize( numCompositeLoci, empty ); // stl vector of genotypes
     Data->GetGenotype(mynumber,options,Loci,&genotype);
 
+    genotype_array  = genotype2array();
+
     // loop over composite loci to set possible haplotype pairs compatible with genotype 
-    for(int j=0;j<numCompositeLoci;++j) Loci(j)->SetPossibleHaplotypes(&PossibleHaplotypes[j],genotype[j]);
-}
+    for(int j=0;j<numCompositeLoci;++j) {
+       Loci(j)->setPossibleHaplotypePairs(genotype_array[j], PossibleHapPairs[j]);
+    }
+
+ }
 
 void Individual::InitialiseAffectedsOnlyScores(int L, int K){
   AffectedsScore.SetNumberOfElements(L, K);
@@ -121,7 +128,7 @@ void Individual::InitialiseAncestryScores(int L, int K){
 
 Individual::~Individual()
 {
-  delete[] PossibleHaplotypes;
+  delete[] PossibleHapPairs;
   delete[] LocusAncestry;  
   delete[] f[0];
   delete[] f[1];
@@ -142,8 +149,8 @@ vector< unsigned short >& Individual::getGenotype(unsigned int locus)
   return genotype[locus];
 }
 
-Vector_i Individual::getPossibleHaplotypes(unsigned int locus){
-  return PossibleHaplotypes[locus];
+std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus){
+  return PossibleHapPairs[locus];
 }
 
 //Indicates whether a genotype is missing at a locus
@@ -219,7 +226,11 @@ vector<double> Individual::getRho()
 
 Vector_i Individual::GetLocusAncestry( int chrm, int locus )
 {
-   return LocusAncestry[chrm].GetColumn( locus );
+//   int ancestry[LocusAncestry[chrm].GetNumberOfRows()];
+//   for(int i=0;i<LocusAncestry[chrm].GetNumberOfRows();++i)
+//     ancestry[i] = LocusAncestry[chrm][i][locus];
+//   return ancestry;
+  return LocusAncestry[chrm].GetColumn( locus );
 }
 
 double Individual::getLogPosteriorProb()
@@ -397,7 +408,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
       //Update affecteds only scores
-      if( options->getTestForAffectedsOnly() && options->getAnalysisTypeIndicator() == 0 ) 
+      if( options->getAnalysisTypeIndicator() == 0 ) 
 	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->getModelIndicator(), 
 					   chrm );
       else if( options->getTestForAffectedsOnly() && (*Target)(0)(i,0) == 1 ){
@@ -415,14 +426,13 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     //chrm[j]->SampleForLocusAncestry(&LocusAncestry[j],isdiploid);
     chrm[j]->NewSampleForLocusAncestry(&LocusAncestry[j], AdmixtureProps,f,options->getModelIndicator(),isdiploid);
  
-    //loop over loci on current chromosome and update allele counts
+   //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
       int locus =  chrm[j]->GetLocus(jj);
       if( !(IsMissing(j)) ){
 	if(isdiploid){
-	  int h[2];
-	  //A->UpdateAlleleCounts( locus, PossibleHaplotypes[locus], LocusAncestry[j].GetColumn(jj) );
-	  A->getLocus(locus)->SampleHaplotypePair(h, PossibleHaplotypes[locus], LocusAncestry[j].GetColumn(jj));
+	  int h[2];//to store sampled hap pair
+	  A->getLocus(locus)->SampleHapPair(h, PossibleHapPairs[locus], LocusAncestry[j].GetColumn(jj));
 	  A->UpdateAlleleCounts(locus,h,LocusAncestry[j].GetColumn(jj));
 	}
 	  else
@@ -839,7 +849,6 @@ void Individual::SumScoresForAncestry(int j, int Populations,
 void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
 				     int AnalysisTypeIndicator )
 {
-  Vector_i ancestry(2);
   for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
     if( AnalysisTypeIndicator > 1 ){
       if( (*Target)(k).IsMissingValue( i, 0 ) ){
@@ -1130,11 +1139,12 @@ double
 Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
 {
    double Likelihood = 0.0;
-   Matrix_d Prob;
+   double **Prob;
+   Prob = alloc2D_d(1,1);//one pop so 1x1 array
    for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
      if(!IsMissing(j)){
-       A->GetGenotypeProbs(&Prob, j, genotype[j], getPossibleHaplotypes(j), true, true );
-       Likelihood += log( Prob(0,0) );
+       A->GetGenotypeProbs(Prob, j, genotype[j], getPossibleHapPairs(j), true, true );
+       Likelihood += log( Prob[0][0] );
      }
    }
    return Likelihood;
@@ -1321,4 +1331,22 @@ double Individual::IntegratingConst( double alpha, double beta, double a, double
 {
    double I = gsl_cdf_gamma_P( b*beta, alpha, 1 ) - gsl_cdf_gamma_P( a*beta, alpha, 1);
    return I;
+}
+//temporary utility function
+int ***Individual::genotype2array(){
+  int ***array;
+  array = new int**[genotype.size()]; //num Comp loci
+  for(unsigned int i=0;i<genotype.size();++i){
+    unsigned int dim2 = genotype[i].size()/2;// num simple loci
+    array[i] = new int*[dim2];
+    for(unsigned int j=0;j<dim2;++j){
+      array[i][j] = new int[2];
+      array[i][j][0] = genotype[i][j*2];//odd elements
+      array[i][j][1] = genotype[i][j*2+1];//even elements
+    }
+  }
+  return array;
+}
+void HapPairs2PossHaps(){
+
 }
