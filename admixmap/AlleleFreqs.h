@@ -39,9 +39,8 @@ public:
 
   void Reset();//resets Loci object
   int IsRandom();//possibly should be bool?
-  Vector_d GetFst(int locus);
   void UpdateFst();
-  Vector_d GetStatsForEta( int , int locus);
+  double *GetStatsForEta( int , int locus);
   double GetAlleleProbsMAP( int x, int ancestry , int locus);
   Vector_d GetPriorAlleleFreqs( int locus, int population );
   Vector_i GetAlleleCounts( int locus, int population );
@@ -51,16 +50,16 @@ public:
   
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
 
-  void UpdateAlleleCounts(int locus, Vector_i Haplotypes, Vector_i ancestry );
   void UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry );
   void UpdateAlleleCounts_HaploidData(int locus, std::vector<unsigned short >&genotype, int ancestry );
+  void UpdateAlleleCounts_HaploidData(int locus, unsigned short *genotype, int ancestry );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
-  void GetGenotypeProbs(Matrix_d *Prob, int locus, std::vector<unsigned short >&genotype, Vector_i Haplotypes, bool diploid, bool fixed);
   void GetGenotypeProbs(double **Prob, int locus, std::vector<unsigned short >&genotype, Vector_i Haplotypes, bool diploid, bool fixed);
-
-  Vector_d getLociCorrSummary();// should be in Genome object
+  void GetGenotypeProbs( double **Probs, int locus, std::vector<unsigned short >&genotype, 
+			 std::vector<hapPair > &Haplotypes, bool diploid, bool fixed);
+  void GetGenotypeProbs(double **Prob, int locus, unsigned short *genotype, Vector_i Haplotypes, bool diploid, bool fixed);
   void getLociCorrSummary(double *[]);
 
  // function to merge rare haplotypes for construction of score tests
@@ -68,21 +67,23 @@ public:
 
 private:
   int Number, Populations;
-  Vector_d eta; //dispersion parameter
+  double *eta; //dispersion parameter
+  double *SumEta;
   double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
   double psi0;
  
   Matrix_d *Freqs;// allele frequencies except for last allele
-  Matrix_d *AlleleProbs; // allele freqs including last allele
   Matrix_d *AlleleFreqsMAP; // posterior mode of allele freqs
   Matrix_d *HistoricAlleleFreqs;
+  Matrix_d *AlleleProbs; // allele freqs including last allele
   Matrix_i *AlleleCounts;
   Matrix_d *HistoricLikelihoodAlleleFreqs;
   Matrix_d *PriorAlleleFreqs;
+
   Matrix_d *SumAlleleFreqs;// used to compute ergodic average
 
-  Matrix_d Fst;
-  Matrix_d SumFst;
+  double **Fst;
+  double **SumFst;
   bool IsHistoricAlleleFreq;//indicator for dispersion model
   int RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random - should be bool?
 
@@ -90,21 +91,22 @@ private:
 
   TuneRW *TuneEtaSampler;
   int w; // the eta sampler is tuned every w updates
-  int *NumberAccepted;
-  double *SumAcceptanceProb;
+
   double *etastep;
   double etastep0;
-  double *SumEta;
 
-  Vector_d pp;//used to set merged haplotypes, which are used in the allelic association test
+  int *NumberAccepted;
+  double *SumAcceptanceProb;
+
+  double *pp;//used to set merged haplotypes, which are used in the allelic association test
 
 //    DARS SampleMu;
    std::vector<TuneRW> *MuProposal;
 
-  // LociCorrSummary is a vector of terms of the form exp( - rho*x_i) where x_i is the map distance between two adjacent loci
-  // with a global rho model, this vector is same for all individuals and calculated only once.
+  // LociCorrSummary is an array of terms of the form exp( - rho*x_i) where x_i is the map distance between two adjacent loci
+  // with a global rho model, this array is same for all individuals and calculated only once.
   // should be in Genome object
-  Vector_d LociCorrSummary;//summary of correlation in ancestry between loci,was called f in Latent
+  double *LociCorrSummary;//summary of correlation in ancestry between loci,was called f in Latent
 
   LocusVisitor* allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile
