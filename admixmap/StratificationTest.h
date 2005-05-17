@@ -26,7 +26,7 @@ public:
 
   void Initialize( AdmixOptions*, Genome& , LogWriter *);
 
-  void calculate( IndividualCollection*, AlleleFreqs* );
+  void calculate( IndividualCollection* individuals, Matrix_d *AlleleFreqs, std::vector<std::vector<int> > ChrmAndLocus );
 
   void Output();
 

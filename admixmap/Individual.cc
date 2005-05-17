@@ -14,6 +14,9 @@ Matrix_d Individual::B;
 Matrix_d Individual::PrevB;
 Matrix_d Individual::Xcov;
 
+unsigned int Individual::numChromosomes;
+Genome *Individual::Loci;
+
 Individual::Individual()
 {
 }
@@ -35,8 +38,6 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
                 _rho.assign(2,1);
     }
     for(int j=0 ;j<2;++j) f[j] = new double[Loci.GetNumberOfCompositeLoci()];
-
-    numChromosomes = Loci.GetNumberOfChromosomes();
 
     // Read sex value if present.
     if (options->genotypesSexColumn() == 1) {
@@ -111,6 +112,10 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 
  }
 
+void Individual::SetStaticMembers(int nchr, Genome *pLoci){
+  numChromosomes = nchr;
+  Loci = pLoci;
+}
 void Individual::InitialiseAffectedsOnlyScores(int L, int K){
   AffectedsScore.SetNumberOfElements(L, K);
   AffectedsVarScore.SetNumberOfElements(L, K);
@@ -389,9 +394,9 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     for( unsigned int j = 0; j < numChromosomes; j++ ){
       locus++;
       for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-	f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[0] );
+	f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
 	if( options->getModelIndicator() ){
-	  f[1][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[1] );
+	  f[1][locus] = exp( -Loci->GetDistance( locus ) * _rho[1] );
 	  }
 	else
 	  f[1][locus] = f[0][locus];
@@ -441,7 +446,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
      }   
 
     //update jump indicators xi 
-    SampleJumpIndicators(j, chrm[j], A->getLoci(),options->getModelIndicator()); 
+    SampleJumpIndicators(j, chrm[j], Loci,options->getModelIndicator()); 
     
   }//end chromosome loop
 
@@ -462,8 +467,8 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     }
   }
   
-  double L = A->getLoci()->GetLengthOfGenome(), L_X=0.0;
-  if( A->getLoci()->isX_data() ) L_X = A->getLoci()->GetLengthOfXchrm();
+  double L = Loci->GetLengthOfGenome(), L_X=0.0;
+  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
   
   //SumN is the number of arrivals between each pair of adjacent loci  
   unsigned int SumN[] = {0,0};
@@ -472,18 +477,18 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   // sample sum of intensities parameter rho
   if( options->getRhoIndicator() ){
     
-    SampleNumberOfArrivals(A, options, chrm, SumN, SumN_X); // SumN is number of arrivals
+    SampleNumberOfArrivals(options, chrm, SumN, SumN_X); // SumN is number of arrivals
     
-    SampleRho( options->getXOnlyAnalysis(), options->getModelIndicator(), A->getLoci()->isX_data(), rhoalpha, rhobeta, L, L_X, 
+    SampleRho( options->getXOnlyAnalysis(), options->getModelIndicator(), Loci->isX_data(), rhoalpha, rhobeta, L, L_X, 
 	       SumN, SumN_X);
   }
   // sample individual admixture proportions theta
   // should be modified to allow a population mixture component model
-  SampleTheta(options, A, sigma, alpha);       
+  SampleTheta(options, sigma, alpha);       
   
   //calculate log posterior if necessary 
   if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
-    CalculateLogPosterior(options,A->getLoci()->isX_data(), alpha, _symmetric,
+    CalculateLogPosterior(options,Loci->isX_data(), alpha, _symmetric,
 			  _admixed,rhoalpha, rhobeta, L, L_X, SumN, SumN_X);
   
     //calculate acceptance probability for proposal theta    
@@ -511,11 +516,11 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
       }
   }
   //case of X only data
-  if( A->getLoci()->isX_data() && !options->getXOnlyAnalysis() )
+  if( Loci->isX_data() && !options->getXOnlyAnalysis() )
     p += AcceptanceProbForTheta_XChrm( sigma, options->getPopulations());
   
   //Update theta using acceptance prob    
-  Accept_Reject_Theta(p, A->getLoci()->isX_data(),options->getPopulations(), options->getModelIndicator() );
+  Accept_Reject_Theta(p, Loci->isX_data(),options->getPopulations(), options->getModelIndicator() );
   
   if( options->getAnalysisTypeIndicator() > 1 )
     UpdateAdmixtureForRegression(i,options->getPopulations(), NoCovariates, poptheta, options->getModelIndicator(),&(Covariates0));
@@ -541,7 +546,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 // model (if there is one)  
 // should have an alternative function to sample population mixture component membership and individual admixture proportions
 // conditional on genotype, not sampled locus ancestry
-void Individual::SampleTheta(AdmixOptions *options, AlleleFreqs *A, vector<double> sigma, vector<Vector_d> alpha){
+void Individual::SampleTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha){
   Vector_d vectemp;//used to hold sample from theta posterior
   // if no regression model, sample admixture proportions theta as a conjugate Dirichlet posterior   
   if( options->getXOnlyAnalysis() ){
@@ -556,7 +561,7 @@ void Individual::SampleTheta(AdmixOptions *options, AlleleFreqs *A, vector<doubl
 	  vectemp = gendirichlet( alpha[g] + SumLocusAncestry.GetColumn(g) );
 	Theta.SetColumn( g, vectemp );
       }
-      if( A->getLoci()->isX_data() ){
+      if( Loci->isX_data() ){
 	for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
 	  vectemp = gendirichlet( Theta.GetColumn(g)*sigma[g]
 				  + SumLocusAncestry_X.GetColumn(g) );
@@ -640,7 +645,7 @@ void Individual::SampleJumpIndicators(unsigned int j, Chromosome *chrm, Genome *
   }
 }
 
-void Individual::SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, Chromosome **chrm, 
+void Individual::SampleNumberOfArrivals(AdmixOptions *options, Chromosome **chrm, 
 					unsigned int SumN[], unsigned int SumN_X[]){
   // samples number SumN of arrivals between each pair of adjacent loci, 
   // conditional on jump indicators xi and sum of intensities rho
@@ -652,7 +657,7 @@ void Individual::SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, C
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     locus++;
     for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-      double delta = A->getLoci()->GetDistance(locus);
+      double delta = Loci->GetDistance(locus);
       for( unsigned int g = 0; g < gametes[j]; g++ ){
 	if( _xi[g][locus] ){
 	  if( options->getXOnlyAnalysis() ){
@@ -892,7 +897,7 @@ void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> 
       }
       LogPrior += getDirichletLogDensity( alpha[0], theta.GetColumn(0) );
    }
-   else if( A->getLoci()->isX_data() ){
+   else if( Loci->isX_data() ){
      LogLikelihoodAtEst = getLogLikelihood( options, A, chrm, theta, rho, thetaX, rhoX );
       if( options->getRho() == 99 ){
          LogPrior = -4.0*log( options->getTruncPt() - 1.0 );
@@ -1009,7 +1014,7 @@ void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, doub
 	    if( locus->GetNumberOfLoci() > 2 )
 	      locus->setHaplotypeProbsMAP();
 	  }
-	  if( A->getLoci()->isX_data() ){
+	  if( Loci->isX_data() ){
 	    thetahatX(i) = getAdmixturePropsX();
 	    rhohatX[i] = _rho_X;
 	  }
@@ -1068,7 +1073,7 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
    for(int j=0;j<A->GetNumberOfCompositeLoci();++j)f[0][j] = ff(j);
   
    for( unsigned int jj = 1; jj < chrm[0]->GetSize(); jj++ ){
-     f[0][jj] = exp( -A->getLoci()->GetDistance( jj ) * _rhoHat[0] );
+     f[0][jj] = exp( -Loci->GetDistance( jj ) * _rhoHat[0] );
    }
    //chrm[0]->UpdateParameters( this, A,AdmixtureHat, options, f, true, false );
    chrm[0]->NewUpdateParameters( this, A,AdmixtureHat, options, f, true, false );
@@ -1097,9 +1102,9 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
       locus++;
       if( j != X_posn ){
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-	   f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rhoHat[0] );
+	   f[0][locus] = exp( -Loci->GetDistance( locus ) * _rhoHat[0] );
             if( options->getModelIndicator() ){
-	      f[1][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rhoHat[1] );
+	      f[1][locus] = exp( -Loci->GetDistance( locus ) * _rhoHat[1] );
             }
             else
                f[1][locus] = f[0][locus];
@@ -1113,9 +1118,9 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
          _rhoHat_X = rho_X;
          XAdmixtureHat = ancestry_X;
          for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-	   f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rhoHat_X[0] );
+	   f[0][locus] = exp( -Loci->GetDistance( locus ) * _rhoHat_X[0] );
             if( sex == 2 ){
-	      f[1][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rhoHat_X[1] );
+	      f[1][locus] = exp( -Loci->GetDistance( locus ) * _rhoHat_X[1] );
             }
             locus++;
          }
@@ -1167,9 +1172,9 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
       locus++;
       if( j != X_posn ){
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-	  f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[0] );
+	  f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
             if( options->getModelIndicator() ){
-	      f[1][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[1] );
+	      f[1][locus] = exp( -Loci->GetDistance( locus ) * _rho[1] );
             }
             else
                f[1][locus] = f[0][locus];
@@ -1181,7 +1186,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
       }
       else if( options->getXOnlyAnalysis() ){
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-	  f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho[0] );
+	  f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
             locus++;
          }
 	//chrm[j]->UpdateParameters( this, A,AdmixtureProps, options, f, false, false);
@@ -1190,9 +1195,9 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
       }
       else{
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-	   f[0][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho_X[0] );
+	   f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho_X[0] );
             if( sex == 2 ){
-	      f[1][locus] = exp( -A->getLoci()->GetDistance( locus ) * _rho_X[1] );
+	      f[1][locus] = exp( -Loci->GetDistance( locus ) * _rho_X[1] );
             }
             locus++;
          }

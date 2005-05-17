@@ -42,20 +42,19 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
   }
 }
 
-void StratificationTest::calculate( IndividualCollection* individuals, AlleleFreqs *A )
+void StratificationTest::calculate( IndividualCollection* individuals, Matrix_d *AlleleFreqs, vector<vector<int> > ChrmAndLocus )
 {
   Matrix_d popX( individuals->getSize(), NumberOfTestLoci );
   Matrix_d popRepX( individuals->getSize(), NumberOfTestLoci );
 
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
-    vector<int> ChrmAndLocus = A->getLoci()->GetChrmAndLocus(jj);
-    Matrix_d freqs = A->GetAlleleFreqs(jj);
+    Matrix_d freqs = AlleleFreqs[jj];
     for( int i = 0; i < individuals->getSize(); i++ ){
       Individual* ind = individuals->getIndividual(i);
       vector<unsigned short> genotype = ind->getGenotype(jj);
       if( genotype[0] ){
-	Vector_i ancestry = ind->GetLocusAncestry( ChrmAndLocus[0], ChrmAndLocus[1] );
+	Vector_i ancestry = ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1] );
 	vector<unsigned short >repgenotype = GenerateRepGenotype( freqs, ancestry );
 	vector<double> pA = GenerateExpectedGenotype( ind, freqs );
 	if( genotype[0] != genotype[1] ){

@@ -21,6 +21,8 @@ public:
 
   ~Individual();
 
+  static void SetStaticMembers(int nchr, Genome *pLoci);
+
   int getSex();
 
   Matrix_d& getAdmixtureProps();
@@ -97,8 +99,8 @@ private:
 
   std::vector< std::vector<bool> > _xi;//jump indicators
 
-  unsigned int *numCompLoci;
-  unsigned int numChromosomes;
+  static unsigned int numChromosomes;
+  static Genome *Loci;
   Matrix_d AdmixtureProps;
   Matrix_d XAdmixtureProps;
   Matrix_d Theta, ThetaX;// proposal admixture proportions
@@ -154,12 +156,12 @@ private:
 
   void SampleJumpIndicators(unsigned int j, Chromosome *chrm, Genome *Loci, bool ModelIndicator);
 
-  void SampleNumberOfArrivals(AlleleFreqs *A, AdmixOptions *options, Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
+  void SampleNumberOfArrivals(AdmixOptions *options, Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
 
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);
 
-  void SampleTheta(AdmixOptions *options, AlleleFreqs *A, vector<double> sigma, vector<Vector_d> alpha);
+  void SampleTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha);
   void CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
 			     double L_X, unsigned int SumN[], unsigned int SumN_X[]);

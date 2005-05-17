@@ -11,7 +11,7 @@
 class AlleleFreqs{
 
 public:
-  AlleleFreqs();
+  AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
   void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels, double rho);
   void load_f(double rho,Chromosome **chrm); // should be moved to chromosome object
@@ -45,6 +45,7 @@ public:
   Vector_i GetAlleleCounts( int locus, int population );
   Vector_d getAlleleFreqsMAP( int locus, int population );
   Matrix_d &GetAlleleFreqs(int locus);
+  Matrix_d *GetAlleleFreqs();
   Matrix_i &GetAlleleCounts(int locus);
   
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
@@ -85,7 +86,7 @@ private:
   bool IsHistoricAlleleFreq;//indicator for dispersion model
   int RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random - should be bool?
 
-  Genome Loci;// this is where the Loci object is instantiated
+  Genome *Loci;//pointer to Loci object
 
   TuneRW *TuneEtaSampler;
   int Number,w; // the eta sampler is tuned every w updates

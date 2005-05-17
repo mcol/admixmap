@@ -19,24 +19,7 @@ class Genome
 // Object is an array of objects of class CompositeLocus
 // Used to loop over composite loci on a single chromosome, or an entire genome  
 {
-private: // members
-  Vector Distances;
-  double LengthOfGenome;
-  double LengthOfXchrm;
-  unsigned int NumberOfCompositeLoci;
-  unsigned int NumberOfChromosomes;
-  unsigned int TotalLoci;//number of simple loci;
-  unsigned int *SizesOfChromosomes;
-  bool X_data;
-  CompositeLocus **TheArray;
-  std::vector< std::vector< int > > _chrmandlocus;
 
-
-  // UNIMPLEMENTED
-  // to avoid use
-  Genome(const Genome&);
-  Genome& operator=(const Genome&);
- 
 public:
 
   Genome();
@@ -44,6 +27,8 @@ public:
   virtual ~Genome();
 
   std::vector< int > GetChrmAndLocus( int );
+
+  std::vector<  std::vector< int > >GetChrmAndLocus( );
 
    bool isX_data();
 
@@ -79,6 +64,24 @@ public:
   double GetLengthOfGenome();
   double GetLengthOfXchrm();
 
+private: 
+  Vector Distances;
+  double LengthOfGenome;
+  double LengthOfXchrm;
+  unsigned int NumberOfCompositeLoci;
+  unsigned int NumberOfChromosomes;
+  unsigned int TotalLoci;//number of simple loci;
+  unsigned int *SizesOfChromosomes;
+  bool X_data;
+  CompositeLocus **TheArray;
+  std::vector< std::vector< int > > _chrmandlocus;
+
+
+  // UNIMPLEMENTED
+  // to avoid use
+  Genome(const Genome&);
+  Genome& operator=(const Genome&);
+ 
 };
 
 #endif /* !GENETIC_ARRAY_H */

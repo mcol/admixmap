@@ -223,6 +223,9 @@ vector<int> Genome::GetChrmAndLocus( int j ){
   return _chrmandlocus[j];
 }
 
+vector<vector<int > > Genome::GetChrmAndLocus(){
+  return _chrmandlocus;
+}
 bool Genome::isX_data()
 {
    return X_data;

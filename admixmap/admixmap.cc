@@ -55,7 +55,8 @@ void submain(AdmixOptions* options){
   InputData data;
   data.readData(options, &Log);
 
-  Chromosome **chrm = 0;//doesn't belong here
+  Genome Loci;
+  Chromosome **chrm = 0;
   IndividualCollection *IC;
   IC = 0;
   StratificationTest StratTest;
@@ -82,19 +83,19 @@ void submain(AdmixOptions* options){
   // Initialise random number seed
   smyrand( options->getSeed() );
   //Initialise Objects
-  AlleleFreqs A;
-  Latent L( options, A.getLoci(), &Log);
+  AlleleFreqs A(&Loci);
+  Latent L( options, &Loci, &Log);
   Regression R;
 
   A.LoadAlleleFreqs(options,&chrm,&Log,&data,&PopulationLabels);//NB this sets Populations option
   data.determineIfPedFile(options);
-  IC = new IndividualCollection(options,&data,*(A.getLoci()),chrm);//NB call after LoadAlleleFreqs
-  IC->LoadGenotypes(options,&data, &Log,A.getLoci());                             //and before L and R Initialise
+  IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
+  IC->LoadGenotypes(options,&data, &Log, &Loci);                             //and before L and R Initialise
  
-  L.Initialise(IC,&LogFileStream, &_admixed,&_symmetric,&poptheta, PopulationLabels);
+  L.Initialise(IC, &LogFileStream, &_admixed, &_symmetric, &poptheta, PopulationLabels);
   R.Initialise(IC, options, PopulationLabels, &Log);
-  A.Initialise(options,data.getEtaPriorMatrix(),&Log,PopulationLabels, L.getrho());
-  IC->Initialise(options,R.getbeta(),A.getLoci(),PopulationLabels, L.getrhoalpha(),L.getrhobeta(),&Log, data.getMLEMatrix());
+  A.Initialise(options, data.getEtaPriorMatrix(), &Log, PopulationLabels, L.getrho());
+  IC->Initialise(options, R.getbeta(), &Loci, PopulationLabels, L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
 
   options->PrintOptions();//NB: call after all options are set
                           //Currently all except Populations are set in AdmixOptions		
@@ -106,8 +107,8 @@ void submain(AdmixOptions* options){
 
   else{
    
-    Scoretest.Initialise(options, IC, A.getLoci(),chrm,PopulationLabels, &Log);  
-    StratTest.Initialize( options, *(A.getLoci()) ,&Log);
+    Scoretest.Initialise(options, IC, &Loci, chrm,PopulationLabels, &Log);  
+    StratTest.Initialize( options, Loci ,&Log);
     DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());
     if( options->getTextIndicator() ){
       InitializeErgodicAvgFile(options,IC, &Log,&avgstream,PopulationLabels);
@@ -133,17 +134,15 @@ void submain(AdmixOptions* options){
       }
 //Resets before updates
       A.Reset();
-      
       //Updates  
       IC->Update(iteration, &A, &R, poptheta, options,
 		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
-      
       A.Update(iteration,options->getBurnIn());
       
       if( iteration > options->getBurnIn() ){
 	DispTest.UpdateBayesianPValueTest(&A);
-	if( options->getStratificationTest() )StratTest.calculate(IC, &A);
+	if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus());
       }  
  
       // Latent should not need to know anything about the number or positions of loci
@@ -199,7 +198,7 @@ void submain(AdmixOptions* options){
 	    avgstream << endl;
 	  }
 	  //Test output
-	  if( options->getTestForDispersion() )  DispTest.Output(iteration - options->getBurnIn(), *(A.getLoci()));
+	  if( options->getTestForDispersion() )  DispTest.Output(iteration - options->getBurnIn(), Loci);
 	  if( options->getStratificationTest() ) StratTest.Output();
 	  Scoretest.Output(iteration,PopulationLabels);
 	}//end of 'every'*10 output
@@ -217,6 +216,9 @@ void submain(AdmixOptions* options){
   
   delete IC;//must call explicitly as IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
+  for(unsigned int i=0; i < Loci.GetNumberOfCompositeLoci(); i++){
+    delete Loci(i);
+  }
   //delete []PopulationLabels;
   
   ProcessingTime(&Log, StartTime);
