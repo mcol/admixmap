@@ -36,7 +36,6 @@ AlleleFreqs::AlleleFreqs(){
   HistoricLikelihoodAlleleFreqs = 0;
   PriorAlleleFreqs = 0;
   SumAlleleFreqs = 0;
-  AlleleProbs = 0;
   Fst = 0;
   SumFst = 0;
   allelefreqoutput = 0;
@@ -56,7 +55,6 @@ AlleleFreqs::~AlleleFreqs(){
 
   delete[] Freqs;
   delete[] AlleleCounts;
-  delete[] AlleleProbs;
   delete[] PriorAlleleFreqs;
   delete[] HistoricLikelihoodAlleleFreqs;
   delete[] SumAlleleFreqs;
@@ -104,7 +102,6 @@ void AlleleFreqs::loadAlleleStatesAndDistances(vector<string> * ChrmLabels,Admix
   int NCL = locifileData.GetNumberOfRows() - numCompLoci;
   Loci.SetNumberOfCompositeLoci(NCL);
   Freqs = new Matrix_d[NCL];
-  AlleleProbs = new Matrix_d[NCL];
   AlleleFreqsMAP = new Matrix_d[NCL];
   HistoricAlleleFreqs = new Matrix_d[NCL];
   AlleleCounts = new Matrix_i[NCL];
@@ -400,12 +397,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
   for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
-    AlleleProbs[i].SetNumberOfElements(Loci(i)->GetNumberOfStates(), Populations);
-  }
-  SetAlleleProbs();
-  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
-    Loci(i)->InitialiseHaplotypes(AlleleProbs[i]);
-
+    Loci(i)->Initialise(Freqs[i]);
   }
 
   // these lines should be moved to Genome class ?
@@ -705,24 +697,6 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
    }
 }
 
-// sets AlleleProbs at each iteration, after update of Freqs
-void AlleleFreqs::SetAlleleProbs() {
-  int NumAlleles;
-  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ) {
-    NumAlleles = Loci(i )->GetNumberOfStates();
-    for( int a = 0; a < NumAlleles - 1; a++ ) {
-      // set allele probs in all but last row
-      AlleleProbs[i].SetRow(a, Freqs[i].GetRow(a)); 
-      // accumulate subtraction from 1 in last row 
-      AlleleProbs[i].SetRow(NumAlleles - 1, AlleleProbs[i].GetRow(NumAlleles - 1) - Freqs[i].GetRow(a));
-    }
-    // add ones to last row
-    for (int pop = 0; pop < Populations; pop++ ) {
-      AlleleProbs[i](NumAlleles - 1, pop) += 1; 
-    }
-  }
-}
-
 // Method samples allele frequency and prior allele frequency
 // parameters.
 void AlleleFreqs::Update(int iteration,int BurnIn){
@@ -747,9 +721,13 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     }
 
     // Sample allele frequencies and set AlleleProbs
-    SampleAlleleFreqs( 1 );
-    SetAlleleProbs();
-    
+    for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+      SampleAlleleFreqs(i, 1 );
+      Loci(i)->SetAlleleProbs(Freqs[i]);
+      if( Loci(i)->GetNumberOfLoci() > 1 )
+	Loci(i)->SetHapPairProbs();
+    }
+
     // Sample for allele frequency dispersion parameters, eta, using
     // Metropolis random-walk.
     if(  IsHistoricAlleleFreq ){
@@ -860,21 +838,6 @@ double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
 }
 
 
-// wasteful to calculate these probs every time the function is called
-// now calculated once after each update of Freqs, and stored
-double AlleleFreqs::GetAlleleProbs( int x, int ancestry , int locus)
-{
-  if(x < AlleleProbs[locus].GetNumberOfRows()) {
-    double P;
-    P = AlleleProbs[locus]( x, ancestry );
-    return P;
-  } 
-  else {
-    string msg = "allele num  > num of alleles \n";
-    throw runtime_error(msg.c_str());
-  }
-}
-
 /* 
    gets probability of genotypes given ancestry states. 
    Probs is a KxK array in which rows and cols index 
@@ -883,6 +846,7 @@ double AlleleFreqs::GetAlleleProbs( int x, int ancestry , int locus)
    GetGenotypeProbs directly
    Called by UpdateParameters method in Chromosome class and OnePopulationUpdate in Individual
 */
+//TODO: haploid case
 void AlleleFreqs::GetGenotypeProbs( double **Probs, int locus, std::vector<unsigned short >&genotype, 
 				    std::vector<hapPair > &Haplotypes, bool diploid, bool fixed)
 {
@@ -915,30 +879,27 @@ void AlleleFreqs::GetGenotypeProbs( double **Probs, int locus, std::vector<unsig
  *
  * flag - integer representing a boolean. Set true (one) to remember
  *   sampled data. Set false (zero) during burn in.
+ * i - locus at which to update
  */
-void AlleleFreqs::SampleAlleleFreqs( int flag )
+void AlleleFreqs::SampleAlleleFreqs(int i, int flag )
 {
   Vector_d freqs;
-  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
-      for( int j = 0; j < Populations; j++ ){
+  
+  for( int j = 0; j < Populations; j++ ){
+    freqs = gendirichlet( PriorAlleleFreqs[i].GetColumn(j)
+			  + AlleleCounts[i].GetColumn(j) );
+    freqs.RemoveElement( Loci(i)->GetNumberOfStates() - 1 );
+    Freqs[i].SetColumn( j, freqs );
+    if( IsHistoricAlleleFreq ){
       freqs = gendirichlet( PriorAlleleFreqs[i].GetColumn(j)
-			    + AlleleCounts[i].GetColumn(j) );
+			    + HistoricLikelihoodAlleleFreqs[i].GetColumn(j) );
       freqs.RemoveElement( Loci(i)->GetNumberOfStates() - 1 );
-      Freqs[i].SetColumn( j, freqs );
-      if( IsHistoricAlleleFreq ){
-	freqs = gendirichlet( PriorAlleleFreqs[i].GetColumn(j)
-			      + HistoricLikelihoodAlleleFreqs[i].GetColumn(j) );
-	freqs.RemoveElement( Loci(i)->GetNumberOfStates() - 1 );
-	HistoricAlleleFreqs[i].SetColumn( j, freqs );
-      }
+      HistoricAlleleFreqs[i].SetColumn( j, freqs );
     }
-
-    if( Loci(i)->GetNumberOfLoci() > 1 )
-     Loci(i)->SetHapPairProbs(AlleleProbs[i]);
-    
-    if( flag > 0 ){
-      SumAlleleFreqs[i] += Freqs[i];
-    }
+  }
+  
+  if( flag > 0 ){
+    SumAlleleFreqs[i] += Freqs[i];
   }
 }
 

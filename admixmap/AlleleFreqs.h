@@ -2,7 +2,6 @@
 #ifndef ALLELEFREQS_H
 #define ALLELEFREQS_H 1
 #include "InputData.h"
-//#include "Chromosome.h"
 #include "Genome.h"
 #include "AdmixOptions.h"
 #include "LogWriter.h"
@@ -66,7 +65,7 @@ public:
   void SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr, bool IsPedFile);
 
 private:
-  int Number, Populations;
+  int Populations;
   double *eta; //dispersion parameter
   double *SumEta;
   double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
@@ -75,22 +74,21 @@ private:
   Matrix_d *Freqs;// allele frequencies except for last allele
   Matrix_d *AlleleFreqsMAP; // posterior mode of allele freqs
   Matrix_d *HistoricAlleleFreqs;
-  Matrix_d *AlleleProbs; // allele freqs including last allele
   Matrix_i *AlleleCounts;
   Matrix_d *HistoricLikelihoodAlleleFreqs;
   Matrix_d *PriorAlleleFreqs;
 
   Matrix_d *SumAlleleFreqs;// used to compute ergodic average
 
-  double **Fst;
-  double **SumFst;
+  dmatrix Fst;
+  dmatrix SumFst;
   bool IsHistoricAlleleFreq;//indicator for dispersion model
   int RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random - should be bool?
 
   Genome Loci;// this is where the Loci object is instantiated
 
   TuneRW *TuneEtaSampler;
-  int w; // the eta sampler is tuned every w updates
+  int Number,w; // the eta sampler is tuned every w updates
 
   double *etastep;
   double etastep0;
@@ -130,13 +128,9 @@ private:
   void InitialiseHistoricAlleleFreqs(Matrix_d New, int i);
   void SetDefaultAlleleFreqs(int Pops);
 
-  // separate functions to set and to get allele probs
-  void SetAlleleProbs();
-  double GetAlleleProbs( int x, int ancestry , int locus); // x is allele number
-
   void SamplePriorAlleleFreqs1D( int );
   void SamplePriorAlleleFreqsMultiDim( int);
-  void SampleAlleleFreqs( int );
+  void SampleAlleleFreqs(int, int);
   void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
  
 };

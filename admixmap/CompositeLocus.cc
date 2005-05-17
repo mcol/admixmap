@@ -4,26 +4,9 @@
 
 using namespace std;
 
-void zerointarray(int a[], int size){
-  for(int i=0;i<size;++i)a[i]=0;
-}
-void zerointarray(int a[][2], int size){
-  for(int i=0;i<size;++i)a[i][0]=a[i][1]=0;
-}
 /**
- * NAME
- *
  *   CompositeLocus - represents a composite locus.
  *
- *
- * SYNOPSIS
- *
- *   #include "CompositeLocus.h"
- *
- *   CompositeLocus loc123;
- *   loc123.SetNumberOfLoci(3);
- *
- *   [!! NEED MORE EXAMPLES !!]
  */
 
 /**
@@ -34,9 +17,7 @@ void zerointarray(int a[][2], int size){
 CompositeLocus::CompositeLocus()
 {
   NumberOfLoci = 1;
-  //NumberOfAlleles.SetNumberOfElements( NumberOfLoci );
   NumberOfAlleles = new int[NumberOfLoci];
-  //NumberOfAlleles(0) = 2;
   NumberOfAlleles[0] = 2;
   NumberOfStates = 2;
   base = 0;
@@ -49,8 +30,8 @@ CompositeLocus::CompositeLocus()
   // not previously defined
   Populations = 0;
   NumberOfMergedHaplotypes = 0;
-  //NumberOfAlleles = null_Vector_i;
   NumberOfAlleles = 0;
+  AlleleProbs = 0;
 
   // std::string Label;
   ScoreGene = null_Matrix_d;
@@ -177,14 +158,51 @@ void CompositeLocus::AddLocus( int alleles )
   int temp[NumberOfLoci];
   for(int i=0;i<NumberOfLoci;++i)temp[i] = NumberOfAlleles[i];
   NumberOfLoci++;
-  NumberOfStates *= alleles;
-  //NumberOfAlleles.AddElement( NumberOfLoci );
-  //NumberOfAlleles( NumberOfLoci ) = alleles;
 
   delete[] NumberOfAlleles;
   NumberOfAlleles = new int[NumberOfLoci];
   NumberOfAlleles[NumberOfLoci-1] = alleles;
   for(int i=0; i< NumberOfLoci-1; ++i)NumberOfAlleles[i] = temp[i]; 
+
+  NumberOfStates *= alleles;
+}
+
+void CompositeLocus::Initialise(Matrix_d &AFreqs){
+  AlleleProbs = alloc2D_d(NumberOfStates, Populations);
+  SetAlleleProbs(AFreqs);
+  SetHapPairProbs();
+  SetNoMergeHaplotypes();
+  //Initialise HapPairProbsMAP to values in HapPairProbs
+  for(int h0 = 0; h0 < NumberOfStates; ++h0)
+    for(int h1 = 0; h1 < NumberOfStates; ++h1)
+      for(int k0 = 0; k0 < Populations; ++k0)
+	for(int k1 = 0; k1 < Populations; ++k1)
+	  HapPairProbsMAP[h0][h1][k0][k1] = HapPairProbs[h0][h1][k0][k1]; 
+}
+
+void CompositeLocus::SetAlleleProbs(Matrix_d &AFreqs){
+  try{
+  //check dimensions
+    if(!AlleleProbs)throw("AlleleProbs not allocated");
+    if(AFreqs.GetNumberOfRows() != NumberOfStates - 1)throw("Wrong Number Of rows");
+    if(AFreqs.GetNumberOfCols() != Populations)throw("Wrong number of cols");
+  }
+  catch(char * str){
+    cout<<"Error in CompositeLocus::SetAlleleProbs: "<<str<<endl;
+  }
+
+  // put ones in last row
+  for (int k = 0; k < Populations; k++ ) {
+    AlleleProbs[NumberOfStates - 1][k] = 1.0; 
+  }
+  for( int a = 0; a < NumberOfStates - 1; a++ ) {
+    for(int k = 0; k < Populations; ++k){
+      // set allele probs in all but last row
+      AlleleProbs[a][k] = AFreqs(a,k); 
+      // accumulate subtraction from 1 in last row 
+      AlleleProbs[NumberOfStates-1][k] -= AFreqs(a,k);
+    }
+  }
 
 }
 
@@ -192,17 +210,6 @@ void CompositeLocus::SetNumberOfLabels()
 {
    Label = new string[ NumberOfLoci ];
 }
-
-void CompositeLocus::InitialiseHaplotypes(Matrix_d &AlleleProbs){
-    SetHapPairProbs(AlleleProbs);
-    SetNoMergeHaplotypes();
-    //Initialise HapPairProbsMAP to values in HappairProbs
-    for(int h0 = 0; h0 < NumberOfStates; ++h0)
-      for(int h1 = 0; h1 < NumberOfStates; ++h1)
-	for(int k0 = 0; k0 < Populations; ++k0)
-	  for(int k1 = 0; k1 < Populations; ++k1)
-	    HapPairProbsMAP[h0][h1][k0][k1] = HapPairProbs[h0][h1][k0][k1]; 
- }
 
 /**
  * Sets the name of this composite locus (usually from the 
@@ -260,19 +267,7 @@ void CompositeLocus::SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, 
  * four-dimensional matrix of probabilities of pairs of haplotypes.
  */
 
-//we can use this while AlleleProbs is a matrix
-void CompositeLocus::SetHapPairProbs(Matrix_d &AlleleProbs){
-  for(int h0 = 0; h0<NumberOfStates; ++h0){
-    for(int h1=0; h1<NumberOfStates; ++h1){
-      for(int k0 = 0; k0< Populations; ++k0){
-	for(int k1=0; k1<Populations; ++k1)
-	  HapPairProbs[h0][h1][k0][k1] = AlleleProbs(h0,k0) * AlleleProbs(h1,k1);
-      }
-    }
-  }
-}
-//and this when AlleleProbs is an array
-void CompositeLocus::SetHapPairProbs(double **AlleleProbs){
+void CompositeLocus::SetHapPairProbs(){
   for(int h0 = 0; h0<NumberOfStates; ++h0){
     for(int h1=0; h1<NumberOfStates; ++h1){
       for(int k0 = 0; k0< Populations; ++k0){
@@ -282,8 +277,6 @@ void CompositeLocus::SetHapPairProbs(double **AlleleProbs){
     }
   }
 }
-
-
 
 /**
  * Given a list of possible haplotype pairs, returns sums of probabilities of these haplotypes

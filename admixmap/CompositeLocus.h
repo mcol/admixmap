@@ -3,6 +3,13 @@
 #define COMPOSITE_LOCUS_H 1
 
 #include "rand.h"
+#include "common.h"
+#include <iomanip>
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+
 #include "vector.h"
 #include "matrix.h"
 #include "vector_d.h"
@@ -13,15 +20,6 @@
 #include "MatrixArray_i.h"
 #include "DARS.h"
 #include "TuneRW.h"
-
-#include <vector>
-#include <string>
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 class Vector_i;
 class Matrix_d;
@@ -44,7 +42,6 @@ public:
   void SetNumberOfLabels();
   void SetNumberOfPopulations( int );
   void SetNumberOfStates( int );
-  void InitialiseHaplotypes(Matrix_d &);
   void SetLabel( int, std::string );
   void SetNumberOfLoci( int );
   void SetNumberOfAllelesOfLocus( int, int );
@@ -59,10 +56,11 @@ public:
   void setPossibleHaplotypePairs(int **Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles);
   void GetGenotypeProbs(double **Probs, std::vector<hapPair > &HaplotypePairs, bool fixed, int RandomAlleleFreqs);
-  void SetHapPairProbs(Matrix_d &AlleleProbs);
-  void SetHapPairProbs(double **AlleleProbs);
+  void SetHapPairProbs();
   void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, Vector_i ancestry);
   void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, int *ancestry);
+  void Initialise(Matrix_d &);
+  void SetAlleleProbs(Matrix_d &alleleFreqs);
 
   //to be rewritten
   Vector_i decodeGenotype(std::vector<unsigned short >&encoded);
@@ -94,6 +92,7 @@ private:
   int NumberOfStates;
   int Populations;
   int *NumberOfAlleles;
+  dmatrix AlleleProbs;
   double ****HapPairProbs; //haplotype pair probabilities
   double ****HapPairProbsMAP; //Posterior estimates of hap pair probs
   std::string *Label;
