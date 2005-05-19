@@ -444,7 +444,7 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
 #              10*thinning,"Running computation of p-values for ancestry association")
 
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
-plotRBScoreTest <- function(scorefile, outfile, K, population.labels, thinning) {
+plotRBScoreTest <- function(scorefile, testname, K, population.labels, thinning) {
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
   ## extract first row containing locus names
   locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=K), 1]
@@ -461,7 +461,7 @@ plotRBScoreTest <- function(scorefile, outfile, K, population.labels, thinning) 
   
   ## plot cumulative p-values in K colours
   stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
-  plotPValuesKPopulations(outfile, stdnormdev, thinning)
+  plotPValuesKPopulations(testname, stdnormdev, thinning)
   ## extract final table as 3-way array: statistic, locus, population
   scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
                            dimnames=c(dimnames(scoretests4way)[1:3]))
@@ -483,10 +483,21 @@ plotRBScoreTest <- function(scorefile, outfile, K, population.labels, thinning) 
     c("Locus.Population", "Score", "CompleteInfo", "ObservedInfo",
       "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params",
       "StdNormalDev", "p.value")
-  outputfile <- paste(resultsdir, outfile, sep="/" )
+  outputfile <- paste(resultsdir, testname, sep="/" )
   outputfile <- paste(outputfile, "Final.txt", sep="")
   write.table(scoretest.final2, file=outputfile,
               quote=FALSE, row.names=FALSE, sep="\t")
+
+  #qq plot of scores
+  outputfile <- paste(resultsdir, "QQPlot", sep="/" )
+  outputfile <- paste(outputfile, testname, sep="")
+  outputfile <- paste(outputfile, ".ps", sep="")
+
+  postscript(outputfile)
+  title <- paste("QQ plot of z-scores,", testname,sep="" )
+  point.list <- qqnorm(scoretest.final2[,8], main = title)
+  lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
+  dev.off()
   
   ## plot information content
   info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
@@ -503,6 +514,7 @@ plotRBScoreTest <- function(scorefile, outfile, K, population.labels, thinning) 
   r.exclude.lo <- exp(u/v - sqrt(u^2 + 2*v*log(100))/v)
   ## plotExclusionMap not implemented at present
 }
+
 plotExclusionMap <- function(loci.compound, info.content, cutoffs.lo, cutoffs.hi) {
   for(chr in 1:n.chr) {
     ## cutoffs plotted for risk ratio associated with 1st population only
@@ -545,12 +557,13 @@ plotInfoMap <- function(loci.compound, info.content) {
 }
 
 plotScoreTestAlleleFreqs <- function(scorefile) {
-  scoretest.allelefreq <- dget(scorefile)
+  scoretest.allelefreq <- dget(paste(resultsdir,scorefile,sep="/"))
   dimnames(scoretest.allelefreq)[[2]] <- scoretest.allelefreq[1,,1]
   scoretest.allelefreq <- scoretest.allelefreq[-1,,]
   popnames <- scoretest.allelefreq[1,,1]
-  scoretest.allelefreq <- array(as.numeric(scoretest.allelefreq), dim=dim(scoretest.allelefreq),
-                                dimnames=dimnames(scoretest.allelefreq))
+  scoretest.allelefreq <- 
+  array(as.numeric(scoretest.allelefreq), dim=dim(scoretest.allelefreq),
+                               dimnames=dimnames(scoretest.allelefreq))
   scoretest.allelefreq[is.nan(scoretest.allelefreq)] <- NA
   scoretest.allelefreq.final <- t(scoretest.allelefreq[,,dim(scoretest.allelefreq)[3]])
   scalar.pvalues <- 2*pnorm(-abs(scoretest.allelefreq.final[,6]))
@@ -563,7 +576,29 @@ plotScoreTestAlleleFreqs <- function(scorefile) {
   dimnames(scoretest.allelefreq.withp)[[2]] <-
     c("Locus", "Population", "Score", "CompleteInfo",
       "ObsInfo", "PercentInfo", "StdNormDev", "Chi-square", "Scalar p-value") 
-  outputfile <- paste(resultsdir, "TestsAlleleFreqFinal.txt", sep="" )
+  outputfile <- paste(resultsdir, "TestsAlleleFreqFinal.txt", sep="/" )
+  write.table(scoretest.allelefreq.withp, file=outputfile,
+              quote=FALSE,row.names=FALSE, sep="\t")
+}
+
+plotScoreTestAlleleFreqs2 <- function(scorefile) {
+  scoretest.allelefreq <- dget(paste(resultsdir,scorefile,sep="/"))
+  dimnames(scoretest.allelefreq)[[2]] <- scoretest.allelefreq[1,,1]
+  scoretest.allelefreq <- scoretest.allelefreq[-1,,]
+  popnames <- scoretest.allelefreq[1,,1]
+  scoretest.allelefreq <- 
+  array(as.numeric(scoretest.allelefreq), dim=dim(scoretest.allelefreq),
+                               dimnames=dimnames(scoretest.allelefreq))
+  scoretest.allelefreq[is.nan(scoretest.allelefreq)] <- NA
+  scoretest.allelefreq.final <- t(scoretest.allelefreq[,,dim(scoretest.allelefreq)[3]])
+
+  scoretest.allelefreq.withp <- data.frame(dimnames(scoretest.allelefreq.final)[[1]], popnames,
+                                           round(scoretest.allelefreq.final[,2:5], digits=2)
+                                           )
+  dimnames(scoretest.allelefreq.withp)[[2]] <-
+    c("Locus", "Population", "CompleteInfo",
+      "ObsInfo", "PercentInfo", "Chi-square") 
+  outputfile <- paste(resultsdir, "TestsAlleleFreqFinal2.txt", sep="" )
   write.table(scoretest.allelefreq.withp, file=outputfile,
               quote=FALSE,row.names=FALSE, sep="\t")
 }
@@ -650,15 +685,17 @@ listFreqMeansCovs <- function(allelefreq.samples.list) {
     ## loop over populations 
     for(pop in 1:K) {
       ## add row for freq last allele to matrix of draws of allele freqs
-      f.exceptlast <- allelefreq.samples.list[[locus]][,,pop]
+      f.exceptlast <- allelefreq.samples.list[[locus]][,pop,]
       if(is.vector(f.exceptlast)) {
         f.exceptlast <- matrix(data=f.exceptlast, nrow=1)
       }
       f.last <- 1 - apply(f.exceptlast, 2, sum)
       f.all <- rbind(f.exceptlast, f.last) # matrix in which rows index alleles, cols draws
       ## calculate means and covariances over draws
-      allelefreqs.mean <- apply(f.all, 1, mean) # vector of length a
-      allelefreqs.cov <- cov(data.frame(t(f.all))) # covariance matrix of order a
+      allelefreqs.mean <- apply(f.all,1 , mean) # vector of length a
+      allelefreqs.cov <- cov(data.frame(t(f.all)))/( (ncol(f.all)+1)/ncol(f.all) )
+                                        # covariance matrix of order a
+                                        #to get biased covariances
       ## assign means and covariances to list elements
       if(pop==1) { 
         allelefreq.means.list[[locus]] <- list()
@@ -678,10 +715,10 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
   allelefreq.sumalphas <- matrix(data=NA, nrow=length(allelefreq.means.list), ncol=k)
   for(locus in 1:length(allelefreq.means.list)) {
     for(pop in 1:k) {
-      p <- allelefreq.means.list[[locus]][[pop]][-1]
-      v <- allelefreq.covs.list[[locus]][[pop]][-1,-1]
-      if(length(p)==1) {
-        factor <- p*(1 - p)/v
+      p <- allelefreq.means.list[[locus]][[pop]]#[-1]
+      v <- allelefreq.covs.list[[locus]][[pop]] #[-1,-1]
+      if(length(p)==2) {
+        factor <- p[1]*(1 - p[1])/v[1,1]
       } else {
         covar.predicted <- matrix(data=NA, nrow=length(p), ncol=length(p))
         for(i in 1:length(p)) {
@@ -693,9 +730,12 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
         d.predicted <- det(covar.predicted)
         d.observed <- det(v)
         factor <- (d.predicted/d.observed)^(1/length(p))
+        if(factor<1){
+          cat(d.predicted,"\t",d.observed,"\t")
+        }
       }
       if(pop==1) { # create matrix of allele freqs: rows index alleles, cols index populations  
-        allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=1+length(p), ncol=k,
+        allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=length(p), ncol=k,
                                                   dimnames=list(character(0), population.labels))
       }
       allelefreq.sumalphas[locus,pop] <- factor - 1
@@ -965,6 +1005,10 @@ if(!is.null(user.options$affectedsonlyscorefile)) {
 if(!is.null(user.options$allelefreqscorefile)) {
   plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
 }
+
+#if(!is.null(user.options$allelefreqscorefile2)) {
+#  plotScoreTestAlleleFreqs2(user.options$allelefreqscorefile2)
+#}
 
 if(is.null(user.options$allelefreqoutputfile)) {
   print("allelefreqoutputfile not specified")
