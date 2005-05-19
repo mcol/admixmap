@@ -7,7 +7,6 @@
 #include "AlleleFreqs.h"
 #include "chib.h"
 #include "Individual.h"
-#include "IndividualVisitor.h"
 #include "IndAdmixOutputter.h"
 #include "matrix.h"
 #include "MatrixArray_d.h"
@@ -20,6 +19,9 @@
 #include <string>
 
 class Regression;
+class Individual;
+class IndAdmixOutputter;
+
 class IndividualCollection
 {
 private:
@@ -52,7 +54,7 @@ private:
 
   MatrixArray_d ReportedAncestry;
   std::vector<double> sigma;
-  IndividualVisitor* indadmixoutput;
+  IndAdmixOutputter* indadmixoutput;
   double LogLikelihood, SumLogLikelihood;
   std::vector< int > _locusfortest;
   Vector_d SumLogTheta;

@@ -2,10 +2,9 @@
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H 1
 #include "common.h"
-#include "IndividualVisitor.h"
+//#include "IndAdmixOutputter.h"
 #include "Genome.h"
 #include "Chromosome.h"
-//#include "AlleleFreqs.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 

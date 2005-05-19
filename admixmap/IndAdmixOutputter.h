@@ -2,7 +2,6 @@
 #ifndef IND_ADMIX_OUTPUTTER
 #define IND_ADMIX_OUTPUTTER 1
 
-#include "IndividualVisitor.h"
 #include "Individual.h"
 #include "IndividualCollection.h"
 #include "AdmixOptions.h"
@@ -12,7 +11,10 @@
 #include <vector>
 #include <iostream>
 
-class IndAdmixOutputter : public IndividualVisitor
+class IndividualCollection;
+class Individual;
+
+class IndAdmixOutputter 
 {
 private: // members
   std::ofstream _out;
