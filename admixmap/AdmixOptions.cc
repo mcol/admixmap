@@ -715,19 +715,19 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	imp->ScoreTestIndicator = true;//OptionValues["ScoreTestIndicator"]="1";
       } else if (long_option_name == "affectedsonlyscorefile") {
 	imp->AffectedsOnlyScoreFilename = optarg;OptionValues["affectedsonlyscorefile"]=optarg;
-	imp->TestForAffectedsOnly = true;//OptionValues["TestForAffectedsOnly"]="1";
+	imp->TestForAffectedsOnly = true;
       } else if (long_option_name == "allelicassociationscorefile") {
 	imp->LocusScoreFilename = optarg;OptionValues["allelicassociationscorefile"]=optarg;
-	imp->TestForAllelicAssociation = true;//OptionValues["TestForAllelicAssociation"]="1";
+	imp->TestForAllelicAssociation = true;
       } else if (long_option_name == "allelefreqoutputfile") {
 	imp->AlleleFreqOutputFilename = optarg;OptionValues["allelefreqoutputfile"]=optarg;
-	imp->OutputAlleleFreq = true;//OptionValues["OutputAlleleFreq"]="1";
-      } else if (long_option_name == "allelefreqscorefile2") {
-	imp->AlleleFreqScoreFilename = optarg;OptionValues["allelefreqscorefile2"]=optarg;
-	imp->TestForMisspecifiedAlleleFreqs = true;//OptionValues["TestForMisspecifiedAlleleFreqs2"]="1";
-      } else if (long_option_name == "allelefreqscorefile"){
-	imp->AlleleFreqScoreFilename2 = optarg;OptionValues["allelefreqscorefile"]=optarg;
-	imp->TestForMisspecifiedAlleleFreqs2 = true;//OptionValues["TestForMisspecifiedAlleleFreqs"]="1";
+	imp->OutputAlleleFreq = true;
+      } else if (long_option_name == "allelefreqscorefile") {
+	imp->AlleleFreqScoreFilename = optarg;OptionValues["allelefreqscorefile"]=optarg;
+	imp->TestForMisspecifiedAlleleFreqs = true;
+      } else if (long_option_name == "allelefreqscorefile2"){
+	imp->AlleleFreqScoreFilename2 = optarg;OptionValues["allelefreqscorefile2"]=optarg;
+	imp->TestForMisspecifiedAlleleFreqs2 = true;
       } else if (long_option_name == "analysistypeindicator") {
 	imp->AnalysisTypeIndicator = (int)strtol(optarg, NULL, 10);OptionValues["analysistypeindicator"]=optarg;
       } else if (long_option_name == "covariatesfile") {
