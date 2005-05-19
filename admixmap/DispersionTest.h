@@ -20,10 +20,7 @@ class DispersionTest{
   void Initialise(AdmixOptions *,LogWriter *, int);
   void Output(int , Genome &);
 
-  void
-  UpdateBayesianPValueTest(AlleleFreqs *A);
-  Matrix_i
-  TestForDivergentAlleleFrequencies(AlleleFreqs *);
+  void TestForDivergentAlleleFrequencies(AlleleFreqs *);
 };
 
 

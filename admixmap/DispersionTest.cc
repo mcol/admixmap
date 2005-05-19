@@ -19,22 +19,8 @@ void DispersionTest::Initialise(AdmixOptions *op,LogWriter *Log, int NumberOfCom
     }
   }
 }
-void
-DispersionTest::UpdateBayesianPValueTest(AlleleFreqs *A)
-{
-  if( options->getTestForDispersion() ){
-    divergentallelefreqstest += TestForDivergentAlleleFrequencies(A);
-  }
-  if( options->getTestForMisspecifiedAlleleFreqs2() ){
-    for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-      CompositeLocus *locus = (CompositeLocus*)A->getLocus(j);
-      locus->UpdateScoreForMisSpecOfAlleleFreqs2(A->GetAlleleFreqs(j), A->GetAlleleCounts(j));
-    }
-  }
 
-}
-
-Matrix_i DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
+void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
 {
   int numberofstates;
   Vector_i locusancestry, rep, PopCounts;
@@ -75,7 +61,7 @@ Matrix_i DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
       test( A->GetNumberOfCompositeLoci(), k ) = 1;
   }
 
-  return( test );
+  divergentallelefreqstest += test;
 }
 
 void DispersionTest::Output(int samples,Genome& Loci){
