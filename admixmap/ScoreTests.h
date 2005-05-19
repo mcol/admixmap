@@ -53,6 +53,7 @@ private:
   std::ofstream * affectedsOnlyScoreStream;
   std::ofstream genescorestream;
   std::string *PopLabels;
+  int NumLoci;//number of comp loci with a single locus ie those used in scalar score test for misspecified allelefreqs
 
   AdmixOptions *options;
   IndividualCollection *individuals;
@@ -88,6 +89,7 @@ private:
   void UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink);
 
   void UpdateScoresForMisSpecOfAlleleFreqs( int i , AlleleFreqs *A);
+  void UpdateScoresForMisSpecOfAlleleFreqs2( AlleleFreqs *A );
 
   void TransformScoreStatistics( int, Matrix_d, Matrix_d, Matrix_d *, Matrix_d * );
 

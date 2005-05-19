@@ -366,6 +366,8 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
 
     //misspecified allele freqs
     if( options->getTestForMisspecifiedAlleleFreqs() ) UpdateScoresForMisSpecOfAlleleFreqs( i , A);
+    if( options->getTestForMisspecifiedAlleleFreqs2() ) UpdateScoresForMisSpecOfAlleleFreqs2(A);
+
     //admixture association
     if( options->getScoreTestIndicator() && (options->getAnalysisTypeIndicator()>1 && options->getAnalysisTypeIndicator()<5) ){
       UpdateScoreForAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
@@ -629,11 +631,22 @@ void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs( int i,AlleleFreqs *A )
   for( int k = 0; k < options->getPopulations(); k++ )
     for( int kk = 0; kk < options->getPopulations(); kk++ )
       phi( k, kk ) = ind->getAdmixtureProps()( k, 0 ) * ind->getAdmixtureProps()( kk, 0 );
-   
-  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
+
+  NumLoci = 0;   
+  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+    if(	(*Lociptr)(j)->GetNumberOfLoci() == 1) NumLoci++;
     if( !(individuals->getIndividual(i)->IsMissing(j)) && 
-	(*Lociptr)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) )
+	(*Lociptr)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) ){
       (*Lociptr)(j)->UpdateScoreForMisSpecOfAlleleFreqs( phi, individuals->getIndividual(i)->getGenotype(j), A->GetAlleleFreqs(j) );
+    }
+  }
+
+}
+
+void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs2( AlleleFreqs *A ){
+    for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+      (*Lociptr)(j)->UpdateScoreForMisSpecOfAlleleFreqs2(A->GetAlleleFreqs(j), A->GetAlleleCounts(j));
+    }
 }
 
 // This method calculates score for allelic association at each simple locus within a compound locus
@@ -715,11 +728,13 @@ void ScoreTests::Output(int iteration,std::string * PLabels){
 	   
   }
   //misspecified allele freqs
-  if( options->getTestForMisspecifiedAlleleFreqs() ){
-    OutputTestsForMisSpecifiedAlleleFreqs( iteration);
-  }
-  if( options->getTestForMisspecifiedAlleleFreqs2() ){
-    OutputTestsForMisSpecifiedAlleleFreqs2( iteration);
+  if(iteration == options->getTotalSamples()){
+    if( options->getTestForMisspecifiedAlleleFreqs() ){
+      OutputTestsForMisSpecifiedAlleleFreqs( iteration);
+    }
+    if( options->getTestForMisspecifiedAlleleFreqs2() ){
+      OutputTestsForMisSpecifiedAlleleFreqs2( iteration);
+    }
   }
   //admixture association
   if( options->getScoreTestIndicator() ){
@@ -1002,8 +1017,8 @@ void ScoreTests::ROutput(){
   if( options->getTestForMisspecifiedAlleleFreqs() ){
     vector<int> dimensions(3,0);
     dimensions[0] = 8;
-    dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * options->getPopulations();
-    dimensions[2] = (int)(numPrintedIterations);
+    dimensions[1] = NumLoci * options->getPopulations();
+    dimensions[2] = 1;//(int)(numPrintedIterations);
 
     vector<string> labels(8,"");
     labels[0] = "Locus";
@@ -1026,7 +1041,7 @@ void ScoreTests::ROutput(){
     vector<int> dimensions(3,0);
     dimensions[0] = 6;
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * options->getPopulations();
-    dimensions[2] = (int)(numPrintedIterations);
+    dimensions[2] = 1;//(int)(numPrintedIterations);
 
     vector<string> labels(6,"");
     labels[0] = "Locus";
