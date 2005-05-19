@@ -89,7 +89,7 @@ private:
   Genome *Loci;//pointer to Loci object
 
   TuneRW *TuneEtaSampler;
-  int Number,w; // the eta sampler is tuned every w updates
+  int Number,w; // Number is the number of updates of eta. The eta sampler is tuned every w updates. 
 
   double *etastep;
   double etastep0;
@@ -124,7 +124,7 @@ private:
   // other two loop over all composite loci
   // would be simpler to have one method
   // these functions are called by method LoadAlleleFreqs  
-  void InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int Populations);
+  void InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Populations);
   void InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed);
   void InitialiseHistoricAlleleFreqs(Matrix_d New, int i);
   void SetDefaultAlleleFreqs(int Pops);

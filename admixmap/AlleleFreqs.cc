@@ -211,7 +211,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
       Log->logmsg(true," rows.\n");
       exit(0);
     }
-    //options->setPopulations( temporary.GetNumberOfCols() - options->getTextIndicator() );
+
     Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
     if( options->getTextIndicator() ){
       temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, Populations );
@@ -224,13 +224,12 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
       ::getLabels(data_->getAlleleFreqData()[0], vtemp, *PopulationLabels);
     }
 
-    InitialiseAlleleFreqs( (temporary.Double()), Populations);
-//     for( int i = 0; i < GetNumberOfCompositeLoci(); i++ )
-//       {
-// 	newrow = row + (*Loci)(i)->GetNumberOfStates() - 1;
-// 	(*Loci)(i)->SetAlleleFreqs( (temporary.Double()).SubMatrix( row, newrow - 1, 0, Populations - 1 ) );
-// 	row = newrow;
-//       }
+    for( int i = 0; i < GetNumberOfCompositeLoci(); i++ )
+      {
+	newrow = row + (*Loci)(i)->GetNumberOfStates() - 1;
+	InitialiseAlleleFreqs( temporary.Double().SubMatrix( row, newrow - 1, 0, Populations - 1 ), i, Populations);
+	row = newrow;
+      }
 
     if( row != temporary.GetNumberOfRows() ){
       Log->logmsg(true,"Inconsistency in ");
@@ -500,9 +499,9 @@ void AlleleFreqs::load_f(double rho,Chromosome **chrm){
   }
 }
 
-void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int Pops){
+void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Pops){
 /**
- * Sets the frequencies of each haplotype at each composite locus.
+ * Sets the frequencies of each haplotype at the ith composite locus.
  * obsolescent - maintained for compatibility with old format 
  * in which fixed allele freqs were specified in input data with last allele omitted 
  * 
@@ -521,34 +520,25 @@ void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int Pops){
  *          2 | 0.2 | 0.5 |
  * also initializes score test - this doesn't belong here
  */
-  int newrow;
-  int row = 0;
+
   int NumberOfStates;
 
-  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ )
-    {
-      NumberOfStates = (*Loci)(i)->GetNumberOfStates();
-     // check that number of alleles is correct 
-      if( NewAlleleFreqs.GetNumberOfRows() != NumberOfStates - 1 ){//should use logmsg
-	cout << "Error in number of alleles in SetAlleleFreqs.\n";
-	cout << "Number of states = " << NumberOfStates << endl;
-	cout << "AlleleFreqs has " << NewAlleleFreqs.GetNumberOfRows() << " rows.\n";
-	exit(0);
-      }
-      else{
-	(*Loci)(i)->SetNumberOfPopulations(Pops);
-	newrow = row + (*Loci)(i)->GetNumberOfStates() - 1;
-	// initialize Freqs
-	Freqs[i] = NewAlleleFreqs.SubMatrix( row, newrow - 1, 0, Pops - 1 );
-	// set size of allele counts matrix at this locus
-	AlleleCounts[i].SetNumberOfElements((*Loci)(i)->GetNumberOfStates(),Pops);
-	// initialize score test
-	(*Loci)(i)->InitialiseScoreTest(Pops); // ?move this to ScoreTests class
-	row = newrow;
-
-      }//end else
-    }
-
+  NumberOfStates = (*Loci)(i)->GetNumberOfStates();
+  // check that number of alleles is correct 
+  if( NewAlleleFreqs.GetNumberOfRows() != NumberOfStates - 1 ){
+    cout << "Error in number of alleles in SetAlleleFreqs.\n";
+    cout << "Number of states = " << NumberOfStates << endl;
+    cout << "AlleleFreqs has " << NewAlleleFreqs.GetNumberOfRows() << " rows.\n";
+    exit(0);
+  }
+  
+  // initialize Freqs
+  Freqs[i] = NewAlleleFreqs;
+  (*Loci)(i)->SetNumberOfPopulations(Pops);
+  // set size of allele counts matrix at this locus
+  AlleleCounts[i].SetNumberOfElements(NumberOfStates,Pops);
+  // initialize score test
+  (*Loci)(i)->InitialiseScoreTest(Pops); // ?move this to ScoreTests class
 }
 
 
