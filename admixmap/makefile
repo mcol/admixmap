@@ -2,7 +2,7 @@
 CC 			= gcc
 CXX 			= g++
 
-# MATRIXLIBDIR 		= ../gslwrap-ch/.libs/
+MATRIXLIBDIR 		= ../gslwrap-ch/.libs/
 LIBDIR			= ../gslwrap-ch/
 
 DISTDIR			= ../test/admixmap-linux
