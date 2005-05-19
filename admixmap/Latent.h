@@ -30,7 +30,6 @@
 #include "VectorLoop.h"
 
 #include "TuneRW.h"
-//#include "MetropolisHastings.h"
 #include "HMM.h"
 #include "AdmixOptions.h"
 
@@ -51,6 +50,7 @@
 
 
 class InputData;
+class IndividualCollection;
 
 class Latent
 {
