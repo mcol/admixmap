@@ -141,7 +141,7 @@ void submain(AdmixOptions* options){
       A.Update(iteration,options->getBurnIn());
       
       if( iteration > options->getBurnIn() ){
-	DispTest.UpdateBayesianPValueTest(&A);
+	if( options->getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
 	if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus());
       }  
  
