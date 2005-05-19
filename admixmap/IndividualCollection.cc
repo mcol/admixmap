@@ -117,14 +117,7 @@ Vector_i *IndividualCollection::getOutcomeType(){
   return &OutcomeType;
   }
 
-// void
-// IndividualCollection::add(Individual* ind)
-// {
-//   _child.push_back(ind);
-// }
-
-Individual*
-IndividualCollection::getIndividual(int num)
+Individual* IndividualCollection::getIndividual(int num)
 {
   if (num < (int)NumInd){
     return _child[num];
@@ -133,24 +126,21 @@ IndividualCollection::getIndividual(int num)
   }
 }
 
-void
-IndividualCollection::setAdmixtureProps(Matrix_d a)
+void IndividualCollection::setAdmixtureProps(Matrix_d a)
 {
   for(unsigned int i=0; i<NumInd; i++){
     _child[i]->setAdmixtureProps(a);
   }
 }
 
-void
-IndividualCollection::setAdmixturePropsX(Matrix_d a)
+void IndividualCollection::setAdmixturePropsX(Matrix_d a)
 {
   for(unsigned int i=0; i<NumInd; i++){
     _child[i]->setAdmixturePropsX(a);
   }
 }
 
-MatrixArray_d
-IndividualCollection::getAncestries()
+MatrixArray_d IndividualCollection::getAncestries()
 {
   MatrixArray_d ancestries(NumInd);
   for(unsigned int i=0; i<NumInd; i++){
