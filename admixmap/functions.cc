@@ -165,3 +165,9 @@ void free_dmatrix(double **M, int m){
     delete[] M;
   }
 }
+
+void equate_matrix(double **A, double **B, int m, int n){
+  for(int i = 0; i < m; ++i)
+    for(int j = 0; j < n; ++j)
+      A[i][j] = B[i][j];
+}
