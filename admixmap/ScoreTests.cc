@@ -461,13 +461,13 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 	// special case for SNP
 	if( (*Lociptr)(locus)->GetNumberOfStates() == 2 ){
 	  //? next line relies on encoding system
-	  cov_x_coord( 0, 0 ) = (int)(ind->getGenotype(locus)[0]) + (int)(ind->getGenotype(locus)[1] - 3.0);
+	  cov_x_coord( 0, 0 ) = (int)(ind->getGenotype(locus)[0][0]) + (int)(ind->getGenotype(locus)[0][1] - 3.0);
 	  // general case for simple locus
 	} else if((*Lociptr)(locus)->GetNumberOfLoci() == 1 ){
 	  for( int k = 0; k < (*Lociptr)(locus)->GetNumberOfStates(); k++ ){
-	    if( (int)(ind->getGenotype(locus)[0]) == k + 1 )
+	    if( (int)(ind->getGenotype(locus)[0][0]) == k + 1 )
 	      cov_x_coord( k, 0 )++;
-	    if( (int)(ind->getGenotype(locus)[1]) == k + 1 )
+	    if( (int)(ind->getGenotype(locus)[0][1]) == k + 1 )
 	      cov_x_coord( k, 0 )++;
 	  }
 	  // general case for composite locus
@@ -560,7 +560,8 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int 
   //Individual* ind = individuals->getIndividual(i);
   Vector_i AlleleCounts;
   Vector_d x( options->getPopulations() + 1 );
-  AlleleCounts = (*Lociptr)(j)->GetAlleleCountsInHaplotype(ind->getGenotype(j));
+ 
+  AlleleCounts = GetAlleleCountsInHaplotype(ind->getGenotype(j), (*Lociptr)(j)->GetNumberOfLoci());
   Matrix_d info( options->getPopulations() + 1, options->getPopulations() + 1 );
 
   x( options->getPopulations() ) = 1;
@@ -577,6 +578,47 @@ if( x(0) != 99 )ScoreWithinHaplotype[j](l)( k, 0 ) += phi * x(k) * YMinusEY;
     }
     if( x(0) != 99 )InfoWithinHaplotype[j](l) += info * phi *DInvLink;
   }
+}
+
+/**
+ * Called only by UpdateScoresForSNPsWithinHaplotype in ScoreTests
+ * Given an unordered genotype, returns a Vector_i containing number of copies of allele 
+ * 2 at each simple locus in a composite locus.
+ * Used to test individual loci in haplotype for association.
+ * 
+ * genotype - a 2way array in which each element of
+ * alleles coded as unsigned integers numbered.  
+ * 
+ *returns:
+ * a vector, of length equal to the number of simple loci in the composite
+ * locus, containing the number of copies of allele 2 at each locus.
+ *
+ * n.b. this function is only useful in composite loci composed of diallelic simple loci
+ * should be generalized to deal with multi-allelic loci
+ */
+Vector_i ScoreTests::GetAlleleCountsInHaplotype(unsigned short **genotype, int NumberOfLoci)
+{
+  /**
+   * AlleleCounts contains counts of the number of 2 alleles at each
+   * locus in haplotype.  Used to test individual loci in haplotype
+   * for association.  Only use for haplotypes made up of SNPs.
+   */
+
+  Vector_i AlleleCounts( NumberOfLoci );
+  
+  for( int k = 0; k < NumberOfLoci; k++ ){
+    if(genotype[k][0]!=0 && genotype[k][1]!=0){
+      if(genotype[k][0] == 2){
+	AlleleCounts(k)++;
+      }
+      if(genotype[k][1] == 2){
+	AlleleCounts(k)++;
+      }
+    } else {
+      AlleleCounts(k) = 99;
+    }
+  }
+  return AlleleCounts;
 }
 
 void ScoreTests::SumScoreForWithinHaplotypeAssociation()

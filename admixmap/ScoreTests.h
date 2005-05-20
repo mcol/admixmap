@@ -69,7 +69,7 @@ private:
   void OutputScoreTest( int );
 
   void UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int locus, double p,double phi, double DInvLink);
-  
+  Vector_i GetAlleleCountsInHaplotype(unsigned short **genotype, int NumberOfLoci);
   void SumScoreForWithinHaplotypeAssociation();
 
   void UpdateScoreForLinkageAffectedsOnly( Individual*);
