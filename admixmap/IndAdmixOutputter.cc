@@ -127,7 +127,7 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
 
   if (_options->getLocusForTestIndicator()){
      Vector_i ancestry = ind.GetLocusAncestry( _locusfortest[0], _locusfortest[1] );
-     std::vector<unsigned short > genotype = ind.getGenotype(_options->getLocusForTest());
+     unsigned short **genotype = ind.getGenotype(_options->getLocusForTest());
      if(_options->getPopulations() > 1 ){
         _out << ancestry(0) << "," << ancestry(1) << ",";
      }
@@ -140,7 +140,7 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
         }
         _out << hap[0] << "," << hap[1] << ",";
      } else {
-        _out << genotype[0] << "," << genotype[1] << ",";
+        _out << genotype[0][0] << "," << genotype[0][1] << ",";
      }
   }
   _out << endl;

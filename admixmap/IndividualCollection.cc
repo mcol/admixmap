@@ -499,16 +499,16 @@ void IndividualCollection::CheckGenotypes(Genome *Loci,LogWriter *Log)
     for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
       for( int k = 0; k < (*Loci)(j)->GetNumberOfLoci(); k++ ){
 	Individual* ind =  _child[i];
-	if( (int)(ind->getGenotype(j)[2*k])   > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) || 
-	    (int)(ind->getGenotype(j)[2*k+1]) > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) ){
+	if( (int)(ind->getGenotype(j)[k][0])   > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) || 
+	    (int)(ind->getGenotype(j)[k][1]) > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) ){
 	  Log->logmsg(false, "Error in genotypes file\n");
 	  Log->logmsg(false, "Individual ");
 	  Log->logmsg(false, i);
 	  Log->logmsg(false, " at locus ");
 	  Log->logmsg(false, (*Loci)(j)->GetLabel(k));
 	  Log->logmsg(false, " has genotype ");
-	  Log->logmsg(false,ind->getGenotype(j)[2*k]);Log->logmsg(false, " ");
-	  Log->logmsg(false, ind->getGenotype(j)[2*k+1]);Log->logmsg(false, " \n");
+	  Log->logmsg(false,ind->getGenotype(j)[k][0]);Log->logmsg(false, " ");
+	  Log->logmsg(false, ind->getGenotype(j)[k][1]);Log->logmsg(false, " \n");
 	  Log->logmsg(false, "Number of allelic states at locus = ");
 	  Log->logmsg(false, (*Loci)(j)->GetNumberOfAllelesOfLocus( k ));Log->logmsg(false, "\n");
 	  error = true;

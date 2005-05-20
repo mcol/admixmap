@@ -2,7 +2,6 @@
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H 1
 #include "common.h"
-//#include "IndAdmixOutputter.h"
 #include "Genome.h"
 #include "Chromosome.h"
 #include "chib.h"
@@ -32,7 +31,7 @@ public:
 
   void setAdmixturePropsX(Matrix_d);
   
-  std::vector<unsigned short>& getGenotype(unsigned int locus);
+  unsigned short **getGenotype(unsigned int locus);
 
   std::vector<hapPair > &getPossibleHapPairs(unsigned int locus);
 
@@ -92,17 +91,15 @@ public:
   void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **, int Populations);
 
 private:
-  std::vector< std::vector<unsigned short> > genotype; // stores genotypes    
-  int ***genotype_array;
+  unsigned short ***genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
 
   std::vector< std::vector<bool> > _xi;//jump indicators
 
   static unsigned int numChromosomes;
   static Genome *Loci;
-  Matrix_d AdmixtureProps;
-  Matrix_d XAdmixtureProps;
-  Matrix_d Theta, ThetaX;// proposal admixture proportions
+  Matrix_d Theta, ThetaX;//admixture proportions
+  Matrix_d ThetaProposal, ThetaXProposal;// proposal admixture proportions
 
   Matrix_d AdmixtureHat;
   Matrix_d XAdmixtureHat;
@@ -130,8 +127,8 @@ private:
   static Matrix_d AffectedsScore;
   static Matrix_d AffectedsVarScore;
   static Matrix_d AffectedsInfo;
-  static MatrixArray_d AncestryScore;
-  static MatrixArray_d AncestryInfo;
+  static Matrix_d *AncestryScore;
+  static Matrix_d *AncestryInfo;
   static Matrix_d AncestryVarScore;
   static Matrix_d AncestryInfoCorrection;
   static Matrix_d B;//used for ancestry score test

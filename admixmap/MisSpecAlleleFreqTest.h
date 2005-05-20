@@ -44,7 +44,7 @@ private:
   std::ofstream allelefreqscorestream;
   std::ofstream allelefreqscorestream2;
 
-  void UpdateScoreForMisSpecOfAlleleFreqs(int j,  dmatrix phi, std::vector<unsigned short >&x, Matrix_d AlleleFreqs);
+  void UpdateScoreForMisSpecOfAlleleFreqs(int j,  dmatrix phi, unsigned short **x, Matrix_d AlleleFreqs);
   void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, const Matrix_d &AlleleFreqs, 
 					   const Matrix_i &AlleleCounts);
 

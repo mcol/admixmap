@@ -65,9 +65,8 @@ public:
   void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
 
   int GetSexValue(int i);
-  void GetGenotype(int i,AdmixOptions *options,Genome &Loci,
-		   std::vector< std::vector<unsigned short > > *genotype);
-
+ 
+  void GetGenotype(int i,AdmixOptions *options,Genome &Loci,unsigned short ****genotype);
 private:    
   Matrix_s geneInfoData_;
   Matrix_s geneticData_;

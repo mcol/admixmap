@@ -792,7 +792,7 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry )
 }
 
 //needs to be rewritten
-void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, std::vector<unsigned short >&genotype, int ancestry )
+void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, unsigned short **genotype, int ancestry )
 {
 //     int xx;
 //     if( (*Loci)(locus)->GetNumberOfLoci() == 1 )
@@ -831,7 +831,7 @@ double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
    Called by UpdateParameters method in Chromosome class and OnePopulationUpdate in Individual
 */
 //TODO: haploid case
-void AlleleFreqs::GetGenotypeProbs( double **Probs, int locus, std::vector<unsigned short >&genotype, 
+void AlleleFreqs::GetGenotypeProbs( double **Probs, int locus, unsigned short **genotype, 
 				    std::vector<hapPair > &Haplotypes, bool diploid, bool fixed)
 {
   if( diploid ){

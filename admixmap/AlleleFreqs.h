@@ -51,13 +51,11 @@ public:
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
 
   void UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry );
-  void UpdateAlleleCounts_HaploidData(int locus, std::vector<unsigned short >&genotype, int ancestry );
-  void UpdateAlleleCounts_HaploidData(int locus, unsigned short *genotype, int ancestry );
+  void UpdateAlleleCounts_HaploidData(int locus, unsigned short **genotype, int ancestry );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
-  void GetGenotypeProbs(double **Prob, int locus, std::vector<unsigned short >&genotype, Vector_i Haplotypes, bool diploid, bool fixed);
-  void GetGenotypeProbs( double **Probs, int locus, std::vector<unsigned short >&genotype, 
+  void GetGenotypeProbs( double **Probs, int locus, unsigned short **genotype, 
 			 std::vector<hapPair > &Haplotypes, bool diploid, bool fixed);
   void GetGenotypeProbs(double **Prob, int locus, unsigned short *genotype, Vector_i Haplotypes, bool diploid, bool fixed);
   void getLociCorrSummary(double *[]);

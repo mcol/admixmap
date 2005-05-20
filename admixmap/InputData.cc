@@ -243,34 +243,30 @@ void InputData::convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm) {
 }
 
 //TODO: maybe have numChromosomes, NumLoci etc members of InputData
-void InputData::GetGenotype(int i,AdmixOptions *options,Genome &Loci,std::vector< std::vector<unsigned short> > *genotype){
+void InputData::GetGenotype(int i,AdmixOptions *options,Genome &Loci, unsigned short ****genotype){
   unsigned int lociI = 0;
-  unsigned int *a;
-  a = new unsigned int[2];
-
-  for(unsigned int j=0;j< Loci.GetNumberOfCompositeLoci();++j){
+  
+  *genotype = new unsigned short **[Loci.GetNumberOfCompositeLoci()];
+  for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); ++j){
     // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype 
     int numLoci = Loci(j)->GetNumberOfLoci();
     
-    (*genotype)[j].resize( 2 * numLoci, 0 );
+    (*genotype)[j] = new unsigned short *[numLoci];
 
-    for (int locus=0; locus<numLoci; locus++) {
-      a[0]=a[1]=0;   
+    for (int locus = 0; locus < numLoci; locus++) {
+      (*genotype)[j][locus] = new unsigned short[2];
+  
       if (options->IsPedFile() == 1) {
-	StringConvertor::toIntPair(a,geneticData_[i][1 + options->genotypesSexColumn() + 2*lociI]);
+	StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + options->genotypesSexColumn() + 2*lociI]);
       } 
       else 
 	{
-	  StringConvertor::toIntPair(a,geneticData_[i][1 + options->genotypesSexColumn() + lociI]);
+	  StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + options->genotypesSexColumn() + lociI]);
 	}
       
-      (*genotype)[j][locus*2]      = a[0];
-      (*genotype)[j][locus*2+1]    = a[1];
- 
       lociI++;
     }
   }
-  delete[] a;
 }
 
 const Matrix_s& InputData::getGeneInfoData() const

@@ -36,8 +36,7 @@ public:
   std::vector<unsigned short>
   GenerateRepGenotype( const Matrix_d&, const Vector_i& );
 
-  std::vector<unsigned short> SampleForOrderedSNiP
-  ( const Matrix_d&, const Vector_i& );
+  unsigned short **SampleForOrderedSNiP ( const Matrix_d&, const Vector_i& );
 
   float getStatistic();
 };

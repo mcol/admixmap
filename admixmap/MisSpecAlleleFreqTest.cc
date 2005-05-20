@@ -170,8 +170,7 @@ void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreq
  * Updates what's required for the score tests. Only used with fixed
  * allele frequencies. This function is only used for monitoring.
  */
- void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j,  dmatrix phi, std::vector<unsigned short >&x, 
-								Matrix_d AlleleFreqs)
+ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j,  dmatrix phi, unsigned short **x, Matrix_d AlleleFreqs)
 {
    double Score[ Populations ];
    double Pi[3] = {0.0, 0.0, 0.0};
@@ -184,7 +183,7 @@ void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreq
       }
    }
 
-   if( x[0] == 1 && x[1] == 1 ){
+   if( x[0][0] == 1 && x[0][1] == 1 ){
       for( int k = 0; k < Populations; k++ ){
          Score[k] = 2 * AlleleFreqs( 0, k ) * phi[k][k];
          for( int kk = 0; kk < Populations; kk++ )
@@ -199,7 +198,7 @@ void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreq
              if( k != kk )
                 InfoGene[j]( k, kk ) += Score[k] * Score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[0];}
    
-   else if( x[0] == 1 && x[1] != 1 ){
+   else if( x[0][0] == 1 && x[0][1] != 1 ){
       for( int k = 0; k < Populations; k++ ){
          Score[k] = 2 * ( 1 - 2 * AlleleFreqs( 0, k ) ) * phi[k][k];
          for( int kk = 0; kk < Populations; kk++ )
@@ -213,7 +212,7 @@ void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreq
              if( k != kk )
                 InfoGene[j]( k, kk ) += Score[k] * Score[kk] + 2*(phi[k][kk] + phi[kk][k]) / Pi[1];}
    
-   else if( x[0] != 0 && x[0] != 1 && x[1] != 1 ){
+   else if( x[0][0] != 0 && x[0][0] != 1 && x[0][1] != 1 ){
       for( int k = 0; k < Populations; k++ ){
           Score[k] = -2 * ( 1 - AlleleFreqs( 0, k ) ) * phi[k][k];
           for( int kk = 0; kk < Populations; kk++ )

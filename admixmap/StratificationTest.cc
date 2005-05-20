@@ -46,25 +46,28 @@ void StratificationTest::calculate( IndividualCollection* individuals, Matrix_d 
 {
   Matrix_d popX( individuals->getSize(), NumberOfTestLoci );
   Matrix_d popRepX( individuals->getSize(), NumberOfTestLoci );
+  bool flag = false;
 
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
     Matrix_d freqs = AlleleFreqs[jj];
     for( int i = 0; i < individuals->getSize(); i++ ){
       Individual* ind = individuals->getIndividual(i);
-      vector<unsigned short> genotype = ind->getGenotype(jj);
-      if( genotype[0] ){
+     unsigned short **genotype = ind->getGenotype(jj);
+      if( genotype[0][0] ){
 	Vector_i ancestry = ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1] );
 	vector<unsigned short >repgenotype = GenerateRepGenotype( freqs, ancestry );
 	vector<double> pA = GenerateExpectedGenotype( ind, freqs );
-	if( genotype[0] != genotype[1] ){
+	if( genotype[0][0] != genotype[0][1] ){
 	  genotype = SampleForOrderedSNiP( freqs, ancestry );
+	  flag = true;//need to delete genotype
 	}
 // pA = P( allele 1 ).
 // Calculate error X = Y - pA, where Y = 1 for allele 1 and Y = 2 for allele 2.
 // The following code actually calculates X / Xrep = -Y + pA.
         popRepX( i, j ) = (double)(repgenotype[0]+repgenotype[1])-4+pA[0]+pA[1];
-        popX( i, j ) = (double)(genotype[0]+genotype[1])-4+pA[0]+pA[1];
+        popX( i, j ) = (double)(genotype[0][0]+genotype[0][1])-4+pA[0]+pA[1];
+	//if(flag){delete[] genotype[0];delete[] genotype;}
       }
     }
   }
@@ -115,20 +118,21 @@ StratificationTest::GenerateRepGenotype( const Matrix_d& freqs, const Vector_i& 
   return repgenotype;
 }
 
-vector<unsigned short>
-StratificationTest::SampleForOrderedSNiP( const Matrix_d& freqs, const Vector_i& Ancestry )
+unsigned short **StratificationTest::SampleForOrderedSNiP( const Matrix_d& freqs, const Vector_i& Ancestry )
 {
-  vector<unsigned short> genotype(2,0);
+  unsigned short **genotype;
+  genotype = new unsigned short*[1];
+  genotype[0] = new unsigned short[2];
   
   double q1 = freqs( 0, Ancestry(0) ) * ( 1 - freqs( 0, Ancestry(1) ) );
   double q2 = freqs( 0, Ancestry(1) ) * ( 1 - freqs( 0, Ancestry(0) ) );
   if( myrand() > q1 / ( q1 + q2 ) ){
-    genotype[0] = 2;
-    genotype[1] = 1;
+    genotype[0][0] = 2;
+    genotype[0][1] = 1;
   }
   else{
-    genotype[0] = 1;
-    genotype[1] = 2;
+    genotype[0][0] = 1;
+    genotype[0][1] = 2;
   }
   return genotype;
 }
