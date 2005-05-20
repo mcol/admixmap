@@ -545,7 +545,7 @@ void ScoreTests::UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,doub
   //Updates score and info for score test for admixture association
   double x;
   for( int k = 0; k < options->getPopulations(); k++ ){
-    if( options->getModelIndicator() )
+    if( options->isRandomMatingModel() )
       x = 0.5 * ( Theta( k, 0 ) + Theta( k, 1 ) );
     else
       x = Theta( k, 0 );

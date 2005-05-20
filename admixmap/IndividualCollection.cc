@@ -201,7 +201,7 @@ void IndividualCollection::Initialise(AdmixOptions *options,MatrixArray_d *beta,
 
  //Initialise Admixture Proportions
   Matrix_d admix_null;
-   if( options->getModelIndicator() )
+   if( options->isRandomMatingModel() )
     admix_null.SetNumberOfElements(options->getPopulations(),2);
   else
     admix_null.SetNumberOfElements(options->getPopulations(),1);

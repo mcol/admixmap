@@ -87,7 +87,7 @@ public:
   const char *getAncestryAssociationScoreFilename() const;
   const char *getLogFilename() const;  
   
-  bool getModelIndicator() const;
+  bool isRandomMatingModel() const;
   bool getRhoIndicator() const;
   bool getIndAdmixHierIndicator() const;
   bool getMLIndicator() const;

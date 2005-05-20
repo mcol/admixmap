@@ -64,7 +64,7 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   //
   if( !options->getRhoIndicator() )
     Log->logmsg(true,"Model with global rho.\n");
-  else if( options->getModelIndicator() )
+  else if( options->isRandomMatingModel() )
     Log->logmsg(true,"Model with gamete specific rho.\n");
   else
     Log->logmsg(true,"Model with individual specific rho.\n");
@@ -117,7 +117,7 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   // where are elements 2 and 3 used?
   // element 4 is the sum of log admixture proportions
    
-  if( options->getModelIndicator() ){
+  if( options->isRandomMatingModel() ){
     AlphaParameters[0] = 2 * individuals->getSize();
   } else {
     AlphaParameters[0] = individuals->getSize();
@@ -373,7 +373,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
       else{
 	// sample for location parameter of gamma distribution of sumintensities parameters 
 	// in population 
-	if( options->getModelIndicator() )
+	if( options->isRandomMatingModel() )
 	  rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
 			    2*rhoalpha * individuals->getSize() + rhobeta0 );
 	else

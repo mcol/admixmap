@@ -62,7 +62,7 @@ struct AdmixOptions::Options
   string LocusScoreFilename;
   string AncestryAssociationScoreFilename;
   string LogFilename;
-  bool modelIndicator;//random mating model
+  bool RandomMatingModel;//random mating model
   bool RhoIndicator;// global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool MLIndicator;//calculate marginal likelihood - valid only for analysistypeindicator < 0
@@ -112,7 +112,7 @@ AdmixOptions::AdmixOptions()
   imp->LogFilename = "log.txt";
   imp->ResultsDir = "results";
 
-  imp->modelIndicator = false;
+  imp->RandomMatingModel = false;
   imp->RhoIndicator = false;//corresponds to globalrho = 1;
   imp->IndAdmixHierIndicator = true;
   imp->MLIndicator = false;
@@ -325,9 +325,9 @@ const char *AdmixOptions::getMLEFilename() const
   return imp->MLEFilename.c_str();
 }
 
-bool AdmixOptions::getModelIndicator() const
+bool AdmixOptions::isRandomMatingModel() const
 {
-  return imp->modelIndicator;
+  return imp->RandomMatingModel;
 }
 
 bool AdmixOptions::getIndAdmixHierIndicator() const{
@@ -762,7 +762,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	imp->LogFilename = optarg;OptionValues["logfile"]=optarg;
       } else if (long_option_name == "randommatingmodel") {
 	if (strtol(optarg, NULL, 10) == 1) {
-	  imp->modelIndicator = true;OptionValues["randommatingmodel"]="1";
+	  imp->RandomMatingModel = true;OptionValues["randommatingmodel"]="1";
 	}
       } else if (long_option_name == "indadmixhiermodel") {
 	if (strtol(optarg, NULL, 10) == 0) {
@@ -963,7 +963,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true,"No hierarchical model for individuals.\n");
     }
  
-  if(getModelIndicator() )
+  if(isRandomMatingModel() )
     Log->logmsg(true,"Model assuming random mating.\n");
   else 
     Log->logmsg(true,"Model assuming assortative mating.\n");

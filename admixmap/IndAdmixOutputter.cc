@@ -19,7 +19,7 @@ IndAdmixOutputter::IndAdmixOutputter(AdmixOptions* options,Genome* Loci,string* 
     _isLogistic = true;
   }
 
-  _ModelIndicator = options->getModelIndicator();
+  _ModelIndicator = options->isRandomMatingModel();
 
   if (_options->getLocusForTest() >= (int)_Loci->GetNumberOfCompositeLoci()){
     cerr << "locusfortest is greater than number of loci" << endl;
@@ -55,7 +55,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
   }
 
   if( _options->getRhoIndicator() ){
-     if(_options->getModelIndicator())
+     if(_options->isRandomMatingModel())
         dimOne += 2;
      else
         dimOne++;
@@ -68,12 +68,12 @@ IndAdmixOutputter::~IndAdmixOutputter()
 
   for( int i = 0; i < _options->getPopulations(); i++ ){
      _out << _PopulationLabels[i] << ",";
-     if(_options->getModelIndicator() )
+     if(_options->isRandomMatingModel() )
         _out << _PopulationLabels[i] << ",";
   }
 
   if( _options->getRhoIndicator() ){
-     if(_options->getModelIndicator())
+     if(_options->isRandomMatingModel())
         _out << "\"rho0\",\"rho1\",";
      else
         _out << "\"rho\",";
@@ -102,7 +102,7 @@ void
 IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, double LogLikelihood)
 {
   for( int k = 0; k < _options->getPopulations(); k++ ){
-     if(_options->getModelIndicator()){
+     if(_options->isRandomMatingModel()){
         _out << ind.getAdmixtureProps()( k, 0 ) << "," << ind.getAdmixtureProps()( k, 1 ) << ",";
     } else {
         _out << ind.getAdmixtureProps()( k, 0 ) << ",";
@@ -110,7 +110,7 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
   }
   if( _options->getRhoIndicator() ){
      vector<double> rho = ind.getRho();
-     if(_options->getModelIndicator())
+     if(_options->isRandomMatingModel())
         _out << rho[0] << "," << rho[1] << ",";
      else
         _out << rho[0] << ",";

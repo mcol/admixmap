@@ -98,7 +98,7 @@ unsigned int Chromosome::GetSize(){
 //   int locus, d;
 //   if(diploid){
 
-//     int Mcol = options->getModelIndicator(); //which col to use as maternal ancestry, col 1 for a randommatingmodel
+//     int Mcol = options->isRandomMatingModel(); //which col to use as maternal ancestry, col 1 for a randommatingmodel
 //     //col 0 is paternal ancestry
 //     // Construct stationary distribution
 //     d = 0;
@@ -252,7 +252,7 @@ void Chromosome::NewUpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& 
     }
  
     //Update Forward/Backward Probs in HMM
-    SampleStates.UpdateProbsDiploid(f, GetLocus(0),Admixture, Lambda, options->getModelIndicator(), test);
+    SampleStates.UpdateProbsDiploid(f, GetLocus(0),Admixture, Lambda, options->isRandomMatingModel(), test);
   }
 
   else{//haploid
@@ -330,7 +330,7 @@ void Chromosome::getAncestryProbs( int j, double AncestryProbs[][3] ){
     AncestryProbs[k1][1] -= 2.0*AncestryProbs[k1][2];
     AncestryProbs[k1][0] = 1.0 - AncestryProbs[k1][1] - AncestryProbs[k1][2];
   }
-  delete StateProbs;
+  delete[] StateProbs;
 }
 
 //accessor for HMM Likelihood

@@ -32,7 +32,7 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
        for(int i=0; i<NumberOfTestLoci; i++){
           Log->logmsg(true, Loci(TestLoci[i])->GetLabel(0));Log->logmsg(true, "\n");
        }
-       ModelIndicator = options->getModelIndicator();
+       ModelIndicator = options->isRandomMatingModel();
        
        Open(options->getDICoutputFilename(),Log);
     }

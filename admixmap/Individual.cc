@@ -26,7 +26,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 
     if( options->getRhoIndicator() ){
         TruncationPt = options->getTruncPt();
-        if( options->getModelIndicator() )
+        if( options->isRandomMatingModel() )
             if(options->getRho() < 90.0 )
                 _rho.assign(2,options->getRho());
             else
@@ -55,7 +55,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
  
     // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
     SumLocusAncestry.SetNumberOfElements(options->getPopulations(),2);
-    if( options->getModelIndicator() ){//random mating model
+    if( options->isRandomMatingModel() ){//random mating model
       Theta.SetNumberOfElements( options->getPopulations(), 2 );
     }
     else{
@@ -243,11 +243,11 @@ double Individual::getLogPosteriorProb()
    return LogPosterior;
 }
 
-void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
+void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool RandomMatingModel,
 Matrix_d *Covariates0)
 {
   Vector_d avgtheta;
-  if(ModelIndicator )
+  if(RandomMatingModel )
     avgtheta = AdmixtureProps.RowMean();
   else
     avgtheta = AdmixtureProps.GetColumn(0);
@@ -257,7 +257,7 @@ Matrix_d *Covariates0)
 }
 
 // Metropolis update for admixture proportions theta, taking acceptance probability p as argument
-void Individual::Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator )
+void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populations, bool RandomMatingModel )
 {
   bool test = true;
   // loop over populations: if element of Dirichlet parameter vector is 0, do not update corresponding element of 
@@ -265,13 +265,13 @@ void Individual::Accept_Reject_Theta( double p, bool xdata, int Populations, boo
   for( int k = 0; k < Populations; k++ ){
     if( (Theta)( k, 0 ) == 0.0 )
       test = false;
-    else if( ModelIndicator && (Theta)( k, 1 ) == 0.0 )
+    else if( RandomMatingModel && (Theta)( k, 1 ) == 0.0 )
       test = false;
   }
 
   // generic Metropolis rejection step
-  if( p < 0 ){
-     if( log(myrand()) < p && test ){
+  if( logpratio < 0 ){
+     if( test && log(myrand()) < logpratio ){
         setAdmixtureProps(Theta);
         if( xdata )
            setAdmixturePropsX(ThetaX);
@@ -284,22 +284,22 @@ void Individual::Accept_Reject_Theta( double p, bool xdata, int Populations, boo
   }
 }
 
-// these two functions return ratio of likelihoods of new and old values of population admixture
+// these two functions return log of ratio of likelihoods of new and old values of population admixture
 // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
  
 // should have just one function to get the likelihood in the regression model, given a value of population admixture
 // should be generic method for GLM, given Xbeta, Y and probability distribution 
 // then should calculate ratio in Metropolis step 
 //  
-double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool ModelIndicator,int Populations,
+double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool RandomMatingModel,int Populations,
 					      int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY, 
 						  MatrixArray_d &Target, Vector_d &poptheta) 
 {
-  double prob, Xbeta = 0;
+  double probratio, Xbeta = 0;
   // TI = Target Indicator, indicates which outcome var is used
   Vector_d avgtheta;
   // calculate mean of parental admixture proportions
-  if( ModelIndicator )
+  if( RandomMatingModel )
     avgtheta = Theta.RowMean() - poptheta;
   else
     avgtheta = Theta.GetColumn(0) - poptheta;
@@ -309,22 +309,22 @@ double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool ModelIndic
   for( int k = 0; k < Populations - 1; k++ ){
     //? Old code had 0 instead of TI in for index of beta.
     Xbeta += avgtheta( k ) * beta(TI)( NoCovariates - Populations + k + 1, 0 );}
-  double newExpectedY = 1 / ( 1. + exp( -Xbeta ) );
+  double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
   if( Target( TI )( i, 0 ) == 1 )
-    prob = newExpectedY / ExpectedY( TI )( i, 0 );
+    probratio = newExpectedY / ExpectedY( TI )( i, 0 );
   else
-    prob = ( 1 - newExpectedY ) / ( 1 - ExpectedY( TI )( i, 0 ) );
+    probratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY( TI )( i, 0 ) );
 
-  return( log(prob) );
+  return( log(probratio) );
 } 
 
-double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  bool ModelIndicator,int Populations,
+double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  bool RandomMatingModel, int Populations,
 						 int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
 						 MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda)
 {
   double prob, Xbeta = 0;
   Vector_d avgtheta;
-  if( ModelIndicator )
+  if( RandomMatingModel )
     avgtheta = Theta.RowMean() - poptheta;
   else
     avgtheta = Theta.GetColumn(0) - poptheta;
@@ -395,7 +395,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
       locus++;
       for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
 	f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
-	if( options->getModelIndicator() ){
+	if( options->isRandomMatingModel() ){
 	  f[1][locus] = exp( -Loci->GetDistance( locus ) * _rho[1] );
 	  }
 	else
@@ -414,10 +414,10 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     if(iteration > options->getBurnIn()){
       //Update affecteds only scores
       if( options->getAnalysisTypeIndicator() == 0 ) 
-	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->getModelIndicator(), 
+	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->isRandomMatingModel(), 
 					   chrm );
       else if( options->getTestForAffectedsOnly() && (*Target)(0)(i,0) == 1 ){
-	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->getModelIndicator(), 
+	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->isRandomMatingModel(), 
 					   chrm );
       }
       //update ancestry score tests
@@ -429,7 +429,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     //Sample locus ancestry
     // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
     //chrm[j]->SampleForLocusAncestry(&LocusAncestry[j],isdiploid);
-    chrm[j]->NewSampleForLocusAncestry(&LocusAncestry[j], AdmixtureProps,f,options->getModelIndicator(),isdiploid);
+    chrm[j]->NewSampleForLocusAncestry(&LocusAncestry[j], AdmixtureProps,f,options->isRandomMatingModel(),isdiploid);
  
    //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
@@ -446,7 +446,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
      }   
 
     //update jump indicators xi 
-    SampleJumpIndicators(j, chrm[j], Loci,options->getModelIndicator()); 
+    SampleJumpIndicators(j, chrm[j], Loci,options->isRandomMatingModel()); 
     
   }//end chromosome loop
 
@@ -479,10 +479,10 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     
     SampleNumberOfArrivals(options, chrm, SumN, SumN_X); // SumN is number of arrivals
     
-    SampleRho( options->getXOnlyAnalysis(), options->getModelIndicator(), Loci->isX_data(), rhoalpha, rhobeta, L, L_X, 
+    SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, L, L_X, 
 	       SumN, SumN_X);
   }
-  // sample individual admixture proportions theta
+  // sample proposed value for individual admixture proportions as theta
   // should be modified to allow a population mixture component model
   SampleTheta(options, sigma, alpha);       
   
@@ -496,37 +496,38 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   double p = 0;
   //linear regression case
   if( options->getAnalysisTypeIndicator() == 2 && !options->getScoreTestIndicator() ){
-    p = AcceptanceProbForTheta_LinearReg( i, 0, options->getModelIndicator(),options->getPopulations(),
+    p = AcceptanceProbForTheta_LinearReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
 					  NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda); 
   }
   //logistic regression case
   else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getScoreTestIndicator() ){
-    p = AcceptanceProbForTheta_LogReg( i, 0, options->getModelIndicator(),options->getPopulations(),
+    p = AcceptanceProbForTheta_LogReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
 				       NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
     }
   //case of both linear and logistic regressions
   else if( options->getAnalysisTypeIndicator() == 5 ){
     for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
       if( OutcomeType( k ) )
-	p += AcceptanceProbForTheta_LogReg( i, k, options->getModelIndicator(), options->getPopulations(),
+	p += AcceptanceProbForTheta_LogReg( i, k, options->isRandomMatingModel(), options->getPopulations(),
 					    NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
       else
-	p += AcceptanceProbForTheta_LinearReg( i, k, options->getModelIndicator(), options->getPopulations(),
+	p += AcceptanceProbForTheta_LinearReg( i, k, options->isRandomMatingModel(), options->getPopulations(),
 					       NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda);
       }
   }
   //case of X only data
   if( Loci->isX_data() && !options->getXOnlyAnalysis() )
     p += AcceptanceProbForTheta_XChrm( sigma, options->getPopulations());
-  
+
   //Update theta using acceptance prob    
-  Accept_Reject_Theta(p, Loci->isX_data(),options->getPopulations(), options->getModelIndicator() );
-  
+  Accept_Reject_Theta(p, Loci->isX_data(),options->getPopulations(), options->isRandomMatingModel() );
+   
   if( options->getAnalysisTypeIndicator() > 1 )
-    UpdateAdmixtureForRegression(i,options->getPopulations(), NoCovariates, poptheta, options->getModelIndicator(),&(Covariates0));
+    UpdateAdmixtureForRegression(i,options->getPopulations(), NoCovariates, poptheta, options->isRandomMatingModel(),&(Covariates0));
+
   for( int k = 0; k < options->getPopulations(); k++ ){
     (*SumLogTheta)( k ) += log( AdmixtureProps( k, 0 ) );
-      if(options->getModelIndicator() && !options->getXOnlyAnalysis() )
+      if(options->isRandomMatingModel() && !options->getXOnlyAnalysis() )
 	(*SumLogTheta)( k ) += log( AdmixtureProps( k, 1 ) );
     }
 
@@ -553,7 +554,7 @@ void Individual::SampleTheta(AdmixOptions *options, vector<double> sigma, vector
     vectemp = gendirichlet( alpha[0] + SumLocusAncestry_X.GetColumn(0) );
     Theta.SetColumn( 0, vectemp );
   }
-    else if( options->getModelIndicator() ){//random mating model
+    else if( options->isRandomMatingModel() ){//random mating model
       for( unsigned int g = 0; g < 2; g++ ){
 	if( options->getAnalysisTypeIndicator() > -1 )
 	  vectemp = gendirichlet( alpha[0] + SumLocusAncestry.GetColumn(g) );
@@ -603,14 +604,14 @@ bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreq
 }
 
 //samples jump indicators xi for chromosome j
-void Individual::SampleJumpIndicators(unsigned int j, Chromosome *chrm, Genome *Loci, bool ModelIndicator){
+void Individual::SampleJumpIndicators(unsigned int j, Chromosome *chrm, Genome *Loci, bool RandomMatingModel){
   int locus;
   double q, Prob;
   for( unsigned int jj = 1; jj < chrm->GetSize(); jj++ ){
     locus = chrm->GetLocus(jj);    
     for( unsigned int g = 0; g < gametes[j]; g++ ){
       if( LocusAncestry[j](g,jj-1) == LocusAncestry[j](g,jj) ){
-	if( ModelIndicator && g == 1 ){
+	if( RandomMatingModel && g == 1 ){
 	  q = AdmixtureProps( LocusAncestry[j](g,jj), g );
 	} else {
 	  q = AdmixtureProps( LocusAncestry[j](g,jj), 0 );
@@ -664,7 +665,7 @@ void Individual::SampleNumberOfArrivals(AdmixOptions *options, Chromosome **chrm
 	    rho = _rho[0];
 	    q = AdmixtureProps( LocusAncestry[j](0,jj-ran), 0 );
 	  }
-	  else if( options->getModelIndicator() && g == 1 ){
+	  else if( options->isRandomMatingModel() && g == 1 ){
 	    q = AdmixtureProps( LocusAncestry[j](g,jj-ran), g );
                     if( j != X_posn )
 		      rho = _rho[g];
@@ -737,7 +738,7 @@ void Individual::ResetScores(AdmixOptions *options){
   }
 }
 
-void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool ModelIndicator, Chromosome **chrm){
+void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool RandomMatingModel, Chromosome **chrm){
   // Different from the notation in McKeigue et  al. (2000). McKeigue
   // uses P0, P1, P2, which relate to individual admixture as follows;
   // P0 = ( 1 - theta0 ) * ( 1 - theta1 )
@@ -753,7 +754,7 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool 
 
   for( int k = 0; k < Populations; k++ ){
     theta[0] = AdmixtureProps( k, 0 );
-    if( ModelIndicator )
+    if( RandomMatingModel )
       theta[1] = AdmixtureProps( k, 1 );
     else
       theta[1] = AdmixtureProps( k, 0 );
@@ -765,8 +766,7 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool 
       chrm[j]->getAncestryProbs( jj, AProbs );
       //accumulate score, score variance, and info
       AffectedsScore(locus,k)+= 0.5*( AProbs[k][1] + 2.0*AProbs[k][2] - theta[0] - theta[1] );
-      AffectedsVarScore(locus, k)+= 0.25 *( AProbs[k][1]*(1.0 - AProbs[k][1]) + 
-					    4.0*AProbs[k][2]*AProbs[k][0]); 
+      AffectedsVarScore(locus, k)+= 0.25 *( AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0]); 
       AffectedsInfo(locus, k)+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
       ++locus;
     }
@@ -1103,7 +1103,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
       if( j != X_posn ){
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
 	   f[0][locus] = exp( -Loci->GetDistance( locus ) * _rhoHat[0] );
-            if( options->getModelIndicator() ){
+            if( options->isRandomMatingModel() ){
 	      f[1][locus] = exp( -Loci->GetDistance( locus ) * _rhoHat[1] );
             }
             else
@@ -1173,7 +1173,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
       if( j != X_posn ){
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
 	  f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
-            if( options->getModelIndicator() ){
+            if( options->isRandomMatingModel() ){
 	      f[1][locus] = exp( -Loci->GetDistance( locus ) * _rho[1] );
             }
             else
