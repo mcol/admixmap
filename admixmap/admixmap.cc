@@ -3,6 +3,7 @@
 #include "IndividualCollection.h"
 #include "Chromosome.h"//not needed if chrm is moved out
 #include "chib.h"
+#include "MisSpecAlleleFreqTest.h"
 #include <fstream>
 
 using namespace std;
@@ -61,6 +62,7 @@ void submain(AdmixOptions* options){
   IC = 0;
   StratificationTest StratTest;
   ScoreTests Scoretest;
+  MisSpecAlleleFreqTest AlleleFreqTest;
   DispersionTest DispTest;
   chib MargLikelihood;
 
@@ -107,7 +109,9 @@ void submain(AdmixOptions* options){
 
   else{
    
-    Scoretest.Initialise(options, IC, &Loci, chrm,PopulationLabels, &Log);  
+    //initialise test objects
+    Scoretest.Initialise(options, IC, &Loci, chrm,PopulationLabels, &Log);
+    AlleleFreqTest.Initialise(options, &Loci, &Log );  
     StratTest.Initialize( options, Loci ,&Log);
     DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());
     if( options->getTextIndicator() ){
@@ -120,7 +124,7 @@ void submain(AdmixOptions* options){
     for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
       if( !(iteration % options->getSampleEvery()) ){
 	if( options->getAnalysisTypeIndicator() >= 0 && (!options->useCOUT() || iteration == 0) )
-	  //do we really want to output pars to log when coutindicator = 0?
+	  //output params to log when coutindicator = 0
 	  {
 	    LogFileStream << setiosflags( ios::fixed );
 	    LogFileStream.width( (int)( log10((double)options->getTotalSamples())+1 ) );
@@ -132,8 +136,8 @@ void submain(AdmixOptions* options){
 	  cout << iteration << " ";
 	}
       }
-//Resets before updates
-      A.Reset();
+
+      A.ResetAlleleCounts();
       //Updates  
       IC->Update(iteration, &A, &R, poptheta, options,
 		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
@@ -177,7 +181,8 @@ void submain(AdmixOptions* options){
       }     
       //Output and scoretest updates after BurnIn     
       if( iteration > options->getBurnIn() ){
-	Scoretest.Update(R.getDispersion(IC->getOutcomeType(0)), &A);
+	Scoretest.Update(R.getDispersion(IC->getOutcomeType(0)));
+	AlleleFreqTest.Update(IC, &A, &Loci);
 	R.SumParameters(options->getAnalysisTypeIndicator());
 	
 	// output every 'getSampleEvery() * 10' iterations
@@ -203,6 +208,8 @@ void submain(AdmixOptions* options){
 	  Scoretest.Output(iteration,PopulationLabels);
 	}//end of 'every'*10 output
       }//end if after BurnIn
+      if(iteration == options->getTotalSamples())
+	AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, PopulationLabels, options->IsPedFile());
     }//end main loop
     
     if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);

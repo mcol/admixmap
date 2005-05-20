@@ -67,25 +67,12 @@ public:
   int HapLoopGetDecimal(Vector_i x);
   Vector_i GetAlleleCountsInHaplotype(std::vector<unsigned short >&genotype);
 
-  //score test for misspecified allelefreqs
-  void InitialiseScoreTest(int);
+  //functions used for haplotype association score test 
   int GetMergedHaplotype( int i );
   int GetNumberOfMergedHaplotypes();
   Vector_i GetHapLabels( int );
   void SetDefaultMergeHaplotypes( Vector_d alpha, Matrix_d AlleleFreqs );
   void SetDefaultMergeHaplotypes( double *alpha, Matrix_d AlleleFreqs );
-  void SumScoreForMisSpecOfAlleleFreqs();
-  void ResetScoreForMisSpecOfAlleleFreqs();
-  void UpdateScoreForMisSpecOfAlleleFreqs( Matrix_d phi, std::vector<unsigned short >&x , Matrix_d );
-  void UpdateScoreForMisSpecOfAlleleFreqs2(Matrix_d&, Matrix_i&);
-  Matrix_d GetScore();
-  Matrix_d GetInfo();
-  Matrix_d GetScoreSq();
-  Matrix_d GetNewScore( int );
-  Matrix_d GetNewInfo( int );
-  Matrix_d GetNewScoreSq( int );
-
-
 
 private: 
   int NumberOfLoci;
@@ -102,14 +89,6 @@ private:
   Vector_i MergeHaplotypes;
   Matrix_i HapLabels;
   int NumberOfMergedHaplotypes;
-  Matrix_d ScoreGene;
-  Matrix_d InfoGene;
-  Matrix_d SumScoreGene;
-  Matrix_d SumScoreGeneSq;
-  Matrix_d SumInfoGene;
-  MatrixArray_d SumNewScore;
-  MatrixArray_d SumNewScoreSq;
-  MatrixArray_d SumNewInfo;
 
   Matrix_d GetHaploidLocusProbs(const std::vector<unsigned int>& x);
   void SetNoMergeHaplotypes();

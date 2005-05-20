@@ -36,7 +36,7 @@ public:
 
   void LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data,std::string **PopulationLabels);
 
-  void Reset();//resets Loci object
+  void ResetAlleleCounts();//resets Allelecounts to zero at start of iteration
   int IsRandom();//possibly should be bool?
   void UpdateFst();
   double *GetStatsForEta( int , int locus);

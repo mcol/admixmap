@@ -5,7 +5,6 @@
 #include <sstream>
 #include "IndividualCollection.h"
 #include "LogWriter.h"
-#include "AlleleFreqs.h"
 
 class ScoreTests{
 
@@ -45,15 +44,12 @@ private:
   Matrix_d SumU2; 
   Matrix_d SumI;
 
-  std::ofstream allelefreqscorestream;
-  std::ofstream allelefreqscorestream2;
   std::ofstream assocscorestream;
   std::ofstream * ancestryAssociationScoreStream;
   std::ofstream * SNPsAssociationScoreStream;
   std::ofstream * affectedsOnlyScoreStream;
   std::ofstream genescorestream;
   std::string *PopLabels;
-  int NumLoci;//number of comp loci with a single locus ie those used in scalar score test for misspecified allelefreqs
 
   AdmixOptions *options;
   IndividualCollection *individuals;
@@ -70,10 +66,6 @@ private:
   
   void OutputTestsForSNPsInHaplotype( int );
   
-  void OutputTestsForMisSpecifiedAlleleFreqs( int);
-  
-  void OutputTestsForMisSpecifiedAlleleFreqs2( int);
-  
   void OutputScoreTest( int );
 
   void UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int locus, double p,double phi, double DInvLink);
@@ -88,10 +80,6 @@ private:
 
   void UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink);
 
-  void UpdateScoresForMisSpecOfAlleleFreqs( int i , AlleleFreqs *A);
-  void UpdateScoresForMisSpecOfAlleleFreqs2( AlleleFreqs *A );
-
-  void TransformScoreStatistics( int, Matrix_d, Matrix_d, Matrix_d *, Matrix_d * );
 
 public:
   ScoreTests();
@@ -113,7 +101,7 @@ public:
 
   void SetAllelicAssociationTest();
 
-  void Update(double, AlleleFreqs *);
+  void Update(double);
 
   ~ScoreTests();
 

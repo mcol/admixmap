@@ -43,7 +43,7 @@ ScoreTests::ScoreTests(){
   options = 0;
   individuals = 0;
 
-}//end constructor
+}
 
 ScoreTests::~ScoreTests(){
   if( options->getTestForAllelicAssociation() ){
@@ -142,6 +142,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 	*ancestryAssociationScoreStream << "structure(.Data=c(" << endl;
       }
 
+    //code for old method
 //     LocusLinkageScore.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(),
 // 							2 * options->getPopulations(), 1 );
 //     LocusLinkageInfo.SetNumberOfElementsWithDimensions(Lociptr->GetNumberOfCompositeLoci(), 2 * options->getPopulations(),
@@ -222,40 +223,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
   /*---------------------------------
   | Misspecified allele frequencies  |
    ---------------------------------*/
-  if( options->getTestForMisspecifiedAlleleFreqs() ){
-    allelefreqscorestream.open( options->getAlleleFreqScoreFilename() );
-    if( !allelefreqscorestream ){
-      Logptr->logmsg(true,"ERROR: Couldn't open allelefreqscorefile\n");
-      Logptr->logmsg(true,options->getAlleleFreqScoreFilename());
-      Logptr->logmsg(true,"\n");
-      exit( 1 );
-    }
-    else{
-    Logptr->logmsg(true,"Writing score tests for mis-specified allele frequencies to ");
-    Logptr->logmsg(true,options->getAlleleFreqScoreFilename());
-    Logptr->logmsg(true,"\n");
-    allelefreqscorestream << "structure(.Data=c(" << endl;
-    }
-  }
-
-  /*-------------------------------------
-  | Misspecified allele frequencies 2 (?) |
-   --------------------------------------*/
-  if( options->getTestForMisspecifiedAlleleFreqs2() ){
-    allelefreqscorestream2.open( options->getAlleleFreqScoreFilename2() );
-    if( !allelefreqscorestream2 ){
-      Logptr->logmsg(true,"ERROR: Couldn't open allelefreqscorefile\n");
-      Logptr->logmsg(true,options->getAlleleFreqScoreFilename2());
-      Logptr->logmsg(true,"\n");
-      exit( 1 );
-    }
-    else{
-    Logptr->logmsg(true,"Writing score tests for mis-specified allele frequencies to ");
-    Logptr->logmsg(true,options->getAlleleFreqScoreFilename2());
-    Logptr->logmsg(true,"\n");
-    allelefreqscorestream2 << "structure(.Data=c(" << endl;
-    }
-  }
+  //moved to new class
 
   /*-------------------
   | SNPs in haplotype  |
@@ -348,7 +316,7 @@ void ScoreTests::SetAllelicAssociationTest(){
   }
 }
 
-void ScoreTests::Update(double dispersion, AlleleFreqs *A)
+void ScoreTests::Update(double dispersion)
 //Note: dispersion = dispersion in regression model
 //                 = precision for linear reg, 1.0 for logistic
 {
@@ -363,10 +331,6 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
     Individual* ind = individuals->getIndividual(i);
     double YMinusEY = individuals->getOutcome(0)( i, 0 ) - individuals->getExpectedY(i);
     DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(),i);
-
-    //misspecified allele freqs
-    if( options->getTestForMisspecifiedAlleleFreqs() ) UpdateScoresForMisSpecOfAlleleFreqs( i , A);
-    if( options->getTestForMisspecifiedAlleleFreqs2() ) UpdateScoresForMisSpecOfAlleleFreqs2(A);
 
     //admixture association
     if( options->getScoreTestIndicator() && (options->getAnalysisTypeIndicator()>1 && options->getAnalysisTypeIndicator()<5) ){
@@ -387,9 +351,7 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
   /*---------------------------------
   | Misspecified allele frequencies  |
    ---------------------------------*/
-  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
-    if( options->getTestForMisspecifiedAlleleFreqs() )
-      (*Lociptr)(j)->SumScoreForMisSpecOfAlleleFreqs();
+  //moved to new class
 
   /*----------------------
   | admixture association |
@@ -463,37 +425,6 @@ void ScoreTests::Update(double dispersion, AlleleFreqs *A)
     }
   }
 }
-
-// void ScoreTests::TransformScoreStatistics( int kk, Matrix_d score, Matrix_d info,
-// 					   Matrix_d *newscore, Matrix_d *newinfo )
-// //This function is obsolete. Use CentredGaussianConditional in functions.cc
-// //performs centring for regression-based score tests
-// //for ancestry score test, kk = #populations
-// {
-//   Matrix_d score1, score2, Vbb, Vab, Vaa,V;
-//   Vector_d temp ;
-//   score1 = score.SubMatrix( 0, kk - 1, 0, 0 );
-//   score2 = score.SubMatrix( kk, kk + options->getPopulations() - 1, 0, 0 );
-//   Vaa = info.SubMatrix( 0, kk - 1, 0, kk - 1 );
-//   Vbb = info.SubMatrix( kk, kk + options->getPopulations() - 1, kk, kk + options->getPopulations() - 1 );
-//   Vab = info.SubMatrix( 0, kk - 1, kk, kk + options->getPopulations() - 1 );
-
-//   //Vbb.InvertUsingLUDecomposition();
-//   // *newscore = score1 - Vab * Vbb * score2;
-//   temp = score2.GetColumn(0);
-//   HH_svx(Vbb, &temp);
-//   *newscore = score1 - Vab * (temp.ColumnMatrix()); 
-
-//   V.SetNumberOfElements(Vbb.GetNumberOfRows(),Vab.GetNumberOfRows());
-//   temp.SetNumberOfElements(Vab.GetNumberOfCols());
-//   // *newinfo = Vaa - Vab * Vbb * Vab.Transpose();
-//   for(int i =0; i<Vab.GetNumberOfRows();i++){
-//     temp =Vab.GetRow(i);
-//     HH_svx(Vbb, &temp);
-//     V.SetColumn(i,temp);
-//   }
-//   *newinfo = Vaa - Vab * V;
-// }
 
 void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinusEY, double phi, double DInvLink)
 //Note: EY0 = ExpectedY(0)(i,0), lambda0 = lambda(0)
@@ -623,32 +554,6 @@ void ScoreTests::UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,doub
   }
 }
 
-void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs( int i,AlleleFreqs *A )
-{
-  Individual* ind = individuals->getIndividual(i);
-  Matrix_d phi( options->getPopulations(), options->getPopulations() );
-
-  for( int k = 0; k < options->getPopulations(); k++ )
-    for( int kk = 0; kk < options->getPopulations(); kk++ )
-      phi( k, kk ) = ind->getAdmixtureProps()( k, 0 ) * ind->getAdmixtureProps()( kk, 0 );
-
-  NumLoci = 0;   
-  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    if(	(*Lociptr)(j)->GetNumberOfLoci() == 1) NumLoci++;
-    if( !(individuals->getIndividual(i)->IsMissing(j)) && 
-	(*Lociptr)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) ){
-      (*Lociptr)(j)->UpdateScoreForMisSpecOfAlleleFreqs( phi, individuals->getIndividual(i)->getGenotype(j), A->GetAlleleFreqs(j) );
-    }
-  }
-
-}
-
-void ScoreTests::UpdateScoresForMisSpecOfAlleleFreqs2( AlleleFreqs *A ){
-    for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-      (*Lociptr)(j)->UpdateScoreForMisSpecOfAlleleFreqs2(A->GetAlleleFreqs(j), A->GetAlleleCounts(j));
-    }
-}
-
 // This method calculates score for allelic association at each simple locus within a compound locus
 void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int j, double YMinusEY,double phi, double DInvLink)
 {
@@ -728,14 +633,9 @@ void ScoreTests::Output(int iteration,std::string * PLabels){
 	   
   }
   //misspecified allele freqs
-  if(iteration == options->getTotalSamples()){
-    if( options->getTestForMisspecifiedAlleleFreqs() ){
-      OutputTestsForMisSpecifiedAlleleFreqs( iteration);
-    }
-    if( options->getTestForMisspecifiedAlleleFreqs2() ){
-      OutputTestsForMisSpecifiedAlleleFreqs2( iteration);
-    }
-  }
+  //moved to new class
+
+
   //admixture association
   if( options->getScoreTestIndicator() ){
     OutputScoreTest( iteration );
@@ -842,65 +742,8 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
   }
 }
 
-void ScoreTests::OutputTestsForMisSpecifiedAlleleFreqs2( int iteration)
-{
-  int samples = iteration - options->getBurnIn();
-  Matrix_d score, completeinfo, observedinfo;
-  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    CompositeLocus *locus = (CompositeLocus*)(*Lociptr)(j);
-    for( int k = 0; k < options->getPopulations(); k++ ){
-      score = locus->GetNewScore(k) / samples;
-      completeinfo = locus->GetNewInfo(k) / samples;
-      observedinfo = completeinfo + score * score.Transpose() - locus->GetNewScoreSq(k) / samples;
-      if(options->IsPedFile())
-	allelefreqscorestream2 << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
-      else
-	allelefreqscorestream2 << (*Lociptr)(j)->GetLabel(0) << ",";
-      allelefreqscorestream2 << PopLabels[k] << ",";
-      allelefreqscorestream2 << double2R(completeinfo.Determinant()) << ",";
-      allelefreqscorestream2 << double2R(observedinfo.Determinant()) << ",";
-      allelefreqscorestream2 << double2R(100*observedinfo.Determinant() / completeinfo.Determinant()) << ",";
-      observedinfo.InvertUsingLUDecomposition();
-      allelefreqscorestream2 << double2R((score.Transpose() * observedinfo * score)(0,0)) << "," << endl;
-    }
-  }
-}
-
-void ScoreTests::OutputTestsForMisSpecifiedAlleleFreqs( int iteration)
-{
-  int samples = iteration - options->getBurnIn();
-  Matrix_d ScoreMatrix, CompleteMatrix, ObservedMatrix;
-  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    if( (*Lociptr)(j)->GetNumberOfLoci() == 1 ){
-      ScoreMatrix = (*Lociptr)(j)->GetScore() / samples;
-      CompleteMatrix = (*Lociptr)(j)->GetInfo() / samples;
-      ObservedMatrix = CompleteMatrix + ScoreMatrix * ScoreMatrix.Transpose() - (*Lociptr)(j)->GetScoreSq() / samples;
-      for( int k = 0; k < options->getPopulations(); k++ ){
-	// Test for mis-specification within each continental-population.
-	if(options->IsPedFile())
-	  allelefreqscorestream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
-	else
-	  allelefreqscorestream << (*Lociptr)(j)->GetLabel(0) << ",";
-	allelefreqscorestream << PopLabels[k] << ",";
-	allelefreqscorestream << double2R(ScoreMatrix( k, 0 ) ) << ",";
-	allelefreqscorestream << double2R(CompleteMatrix( k, k ) ) << ",";
-	allelefreqscorestream << double2R(ObservedMatrix( k, k ) ) << ",";
-	allelefreqscorestream << double2R(100*ObservedMatrix( k, k ) / CompleteMatrix( k, k ) ) << ",";
-	allelefreqscorestream << double2R(ScoreMatrix( k, 0 ) / sqrt( ObservedMatrix( k, k ) ) ) << ",";
-	if( k < options->getPopulations() - 1 )
-	  allelefreqscorestream  << "\"NA\"," << endl;
-      }
-      // Summary chi-sq test for mis-specification in all continental-populations.
-      ObservedMatrix = ObservedMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, options->getPopulations() - 1 );
-      ScoreMatrix = ScoreMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 0 );
-      ObservedMatrix.InvertUsingLUDecomposition();
-      allelefreqscorestream << (ScoreMatrix.Transpose() * ObservedMatrix * ScoreMatrix)(0,0) << "," << endl;
-    }
-  }
-}
-
-void
-ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
+//this function is obsolete, was used for old ancestry score test
+void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
 					MatrixArray_d Score, MatrixArray_d Score2,
 					MatrixArray_d Info )
 {
@@ -1010,51 +853,9 @@ void ScoreTests::ROutput(){
     R_output3DarrayDimensions(SNPsAssociationScoreStream,dimensions,labels);
   }
    
-  /**
-   * writes out the dimensions and labels of the 
-   * R-matrix for old test for mis-specified allele frequencies
-   */
-  if( options->getTestForMisspecifiedAlleleFreqs() ){
-    vector<int> dimensions(3,0);
-    dimensions[0] = 8;
-    dimensions[1] = NumLoci * options->getPopulations();
-    dimensions[2] = 1;//(int)(numPrintedIterations);
 
-    vector<string> labels(8,"");
-    labels[0] = "Locus";
-    labels[1] = "Population";
-    labels[2] = "Score";
-    labels[3] = "CompleteInfo";
-    labels[4] = "ObservedInfo";
-    labels[5] = "PercentInfo";
-    labels[6] = "StdNormal";
-    labels[7] = "ChiSquared";
 
-    R_output3DarrayDimensions(&allelefreqscorestream,dimensions,labels);
-  }
-
-  /**
-   * writes out the dimensions and labels of the 
-   * R-matrix for new test for mis-specified allele frequencies
-   */
-  if( options->getTestForMisspecifiedAlleleFreqs2() ){
-    vector<int> dimensions(3,0);
-    dimensions[0] = 6;
-    dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * options->getPopulations();
-    dimensions[2] = 1;//(int)(numPrintedIterations);
-
-    vector<string> labels(6,"");
-    labels[0] = "Locus";
-    labels[1] = "Population";
-    labels[2] = "CompleteInfo";
-    labels[3] = "ObservedInfo";
-    labels[4] = "PercentInfo";
-    labels[5] = "ChiSquared";
-
-    R_output3DarrayDimensions(&allelefreqscorestream2,dimensions,labels);
-  }
-
-//old version
+//old ancestry score test code
 //   /**
 //    * writes out the dimensions and labels of the 
 //    * R-matrix previously written to ancestryAssociationScoreStream

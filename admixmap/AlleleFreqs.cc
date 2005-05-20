@@ -193,7 +193,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
   checkLociNames(options,data_);
   loadAlleleStatesAndDistances(&ChrmLabels,options,data_, Log);
 
-  // Load allele frequencies
+  //Fixed AlleleFreqs
   if( strlen( options->getAlleleFreqFilename() ) ){
 
     Log->logmsg(false,"Loading ");
@@ -246,14 +246,14 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
   }
   else if( strlen( options->getHistoricalAlleleFreqFilename() ) || strlen( options->getPriorAlleleFreqFilename() ) ){
     const Vector_s* alleleFreqLabels = 0;
+    //Historic AlleleFreqs
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
       alleleFreqLabels = &data_->getHistoricalAlleleFreqData()[0];
       Log->logmsg(false,"Loading ");
       Log->logmsg(false,options->getHistoricalAlleleFreqFilename());
       Log->logmsg(false,".\n");
       temporary = data_->getHistoricalAlleleFreqMatrix();
-      //options->setPopulations(temporary.GetNumberOfCols() - options->getTextIndicator());
-       Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
+      Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
        
       if( temporary.GetNumberOfRows() != Loci->GetNumberOfStates()+1 ){
 	Log->logmsg(true,"Incorrect number of rows in historicalallelefreqsfile.\n");
@@ -265,13 +265,13 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
 	exit(0);
       }
     } else {
+      //Prior on AlleleFreqs
       alleleFreqLabels = &data_->getPriorAlleleFreqData()[0];
       Log->logmsg(false,"Loading ");
       Log->logmsg(false,options->getPriorAlleleFreqFilename());
       Log->logmsg(false,".\n");
       temporary = data_->getPriorAlleleFreqMatrix();
-      //options->setPopulations(temporary.GetNumberOfCols() - options->getTextIndicator());
-       Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
+      Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
 
       if( temporary.GetNumberOfRows() != Loci->GetNumberOfStates()+1 ){
 	Log->logmsg(true,"Incorrect number of rows in priorallelefreqsfile.\n");
@@ -301,6 +301,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
       row = newrow;
     }
   }
+  //Default Allele Freqs
   else{
     //Loci->SetDefaultAlleleFreqs( Populations );
     SetDefaultAlleleFreqs( Populations );
@@ -537,8 +538,6 @@ void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Pops
   (*Loci)(i)->SetNumberOfPopulations(Pops);
   // set size of allele counts matrix at this locus
   AlleleCounts[i].SetNumberOfElements(NumberOfStates,Pops);
-  // initialize score test
-  (*Loci)(i)->InitialiseScoreTest(Pops); // ?move this to ScoreTests class
 }
 
 
@@ -591,10 +590,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed){
       for( int k = 0; k < (*Loci)(i)->GetNumberOfStates() - 1; k++ )
 	Freqs[i]( k, j ) = ( New( k, j ) ) / sumalpha;
     }
-    if(fixed){
-      (*Loci)(i)->InitialiseScoreTest(Pops);
-    }
-    else{
+    if(!fixed){
       PriorAlleleFreqs[i] = New;
       SumAlleleFreqs[i].SetNumberOfElements((*Loci)(i)->GetNumberOfStates() -1, Pops);
       RandomAlleleFreqs = 1;
@@ -1120,9 +1116,8 @@ void AlleleFreqs::OutputFST(bool IsPedFile){
   }
 }
 
-void AlleleFreqs::Reset(){
+void AlleleFreqs::ResetAlleleCounts(){
   for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
-    (*Loci)(i)->ResetScoreForMisSpecOfAlleleFreqs();
     AlleleCounts[i].SetElements(0);
   }
 }
