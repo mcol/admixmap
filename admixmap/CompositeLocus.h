@@ -53,7 +53,7 @@ public:
   int GetNumberOfAllelesOfLocus( int );
 
   //new functions
-  void setPossibleHaplotypePairs(int **Genotype, std::vector<hapPair> &PossibleHapPairs);
+  void setPossibleHaplotypePairs(unsigned short **Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles);
   void GetGenotypeProbs(double **Probs, std::vector<hapPair > &HaplotypePairs, bool fixed, int RandomAlleleFreqs);
   void SetHapPairProbs();
@@ -63,9 +63,7 @@ public:
   void SetAlleleProbs(Matrix_d &alleleFreqs);
 
   //to be rewritten
-  Vector_i decodeGenotype(std::vector<unsigned short >&encoded);
   int HapLoopGetDecimal(Vector_i x);
-  Vector_i GetAlleleCountsInHaplotype(std::vector<unsigned short >&genotype);
 
   //functions used for haplotype association score test 
   int GetMergedHaplotype( int i );
@@ -102,7 +100,7 @@ private:
   int codeHapAllelesAsInt(const int *hapAlleles);
   void codeHapAllelesPairAsIntPair(const int HapAllelesPair[][2], int *hpair);
   void permuteHetLoci(const bool *isHet, const int numHetLoci, const int permHet, 
-		      int **Genotype, int HapAllelesPair[][2]);
+		      unsigned short **Genotype, int HapAllelesPair[][2]);
   void permuteMissingLoci(const bool *isMissing, const int numMissingLoci, const int permMissing, 
 			  const int HapAllelesPair[][2], const int baseMissing[][2], int HapAllelesPairNoMissing[][2]) ;
   // UNIMPLEMENTED

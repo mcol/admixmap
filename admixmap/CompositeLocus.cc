@@ -315,20 +315,6 @@ void CompositeLocus::setHaplotypeProbsMAP()
 	  HapPairProbs[h0][h1][k0][k1] = HapPairProbsMAP[h0][h1][k0][k1]; 
 }
 
-// can get rid of this once we eliminate special methods for haploid data
-// takes a single encoded genotype as argument and subtracts 1 from the allele numbers 
-// so that alleles are numbered from 0
-// presumably missing genotypes will be recoded as pairs of minus ones 
-Vector_i CompositeLocus::decodeGenotype(std::vector<unsigned short >&encoded)
-{
-  Vector_i decoded(encoded.size());
-
-  for(unsigned int i=0;i<encoded.size();i++){
-    decoded(i) = ((int)(encoded[i])) - 1;
-  }
-  return decoded;
-}
-
 // arguments: integer, length of bit array
 // returns: 1D array of bits representing integer
 void CompositeLocus::intToBits(int n, const int length, bool *bits) 
@@ -426,7 +412,7 @@ void CompositeLocus::codeHapAllelesPairAsIntPair(const int HapAllelesPair[][2], 
 // arguments: genotype as 2D array, hetLoci as array of col nums of het loci, isHet as array of length equal to NumberOfLoci
 // updates: haplotype pair array with permHet th permutation of alleles at heterozygous loci  
 void CompositeLocus::permuteHetLoci(const bool *isHet, const int numHetLoci, const int permHet, 
-				   int **Genotype, int HapAllelesPair[][2])
+				   unsigned short **Genotype, int HapAllelesPair[][2])
 {
   //recode permHet as array of bits, with length equal to NumHetLoci
   bool permbits[numHetLoci];
@@ -470,7 +456,7 @@ void CompositeLocus::permuteMissingLoci(const bool *isMissing, const int numMiss
 // arguments: genotype is 2D array of alleles with 2 rows and NumberOfLoci cols
 // updates: PossibleHapPairs, an stl vector of arrays of 2 integers
 // call once for each individual at start of program 
-void CompositeLocus::setPossibleHaplotypePairs(int **Genotype, vector<hapPair> &PossibleHapPairs)
+void CompositeLocus::setPossibleHaplotypePairs(unsigned short **Genotype, vector<hapPair> &PossibleHapPairs)
 {
   setBaseForHapCode();
   int numHetLoci = 0;
@@ -715,46 +701,6 @@ int CompositeLocus::GetNumberOfMergedHaplotypes()
 int CompositeLocus::GetMergedHaplotype( int i )
 {
    return( MergeHaplotypes(i) );
-}
-
-/**
- * Called only by UpdateScoresForSNPsWithinHaplotype in ScoreTests
- * Given an unordered genotype, returns a Vector_i containing number of copies of allele 
- * 2 at each simple locus in the composite locus.
- * Used to test individual loci in haplotype for association.
- * 
- * genotype - a two-element STL vector in which each element is a one-dimensional array of
- * alleles coded as unsigned integers numbered starting at 0 ("decoded" format).  
- * a vector, of length equal to the number of simple loci in this composite
- * locus, containing the number of copies of allele 2 at each locus.
- *
- * n.b. this function is only useful in composite loci composed of diallelic simple loci
- * should be generalized to deal with multi-allelic loci
- */
-Vector_i CompositeLocus::GetAlleleCountsInHaplotype(std::vector<unsigned short >&genotype)
-{
-  /**
-   * AlleleCounts contains counts of the number of 2 alleles at each
-   * locus in haplotype.  Used to test individual loci in haplotype
-   * for association.  Only use for haplotypes made up of SNPs.
-   */
-
-   Vector_i AlleleCounts( NumberOfLoci );
-   Vector_i decoded = decodeGenotype(genotype);// subtract 1 from allele numbers
-
-   for( int k = 0; k < NumberOfLoci; k++ ){
-      if(decoded(k*2)!=-1 && decoded(k*2+1)!=-1){
-	if(decoded(k*2) == 1){
-	  AlleleCounts(k)++;
-	}
-	if(decoded(k*2+1) == 1){
-	  AlleleCounts(k)++;
-	}
-      } else {
-	AlleleCounts(k) = 99;
-      }
-   }
-   return( AlleleCounts );
 }
 
 // apparently calculates contribution of allele freqs to marginal likelihood of model
