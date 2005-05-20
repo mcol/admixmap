@@ -159,7 +159,7 @@ double **alloc2D_d(int m,int n)
   return M;
 }
 
-void free_dmatrix(double **M, int m){
+void free_matrix(double **M, int m){
   if(M){
     for(int i = 0; i < m; ++i) if( M[i] )delete[] M[i];
     delete[] M;

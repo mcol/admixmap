@@ -22,4 +22,5 @@ void CentredGaussianConditional( int kk, Matrix_d mean, Matrix_d var, Matrix_d *
 void CentredGaussianConditional1( Vector_d mean, Matrix_d var, double *newmean, double  *newvar );
 
 double **alloc2D_d(int m, int n);
+void free_matrix(double **, int);
 #endif /* !FUNCTIONS_H */
