@@ -160,7 +160,7 @@ private:
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);
 
-  void SampleTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha);
+  void ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha);
   void CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
 			     double L_X, unsigned int SumN[], unsigned int SumN_X[]);

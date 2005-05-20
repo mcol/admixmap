@@ -243,6 +243,7 @@ double Individual::getLogPosteriorProb()
    return LogPosterior;
 }
 
+// update the individual admixture values (mean of both gametes) used in the regression model
 void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool RandomMatingModel,
 Matrix_d *Covariates0)
 {
@@ -256,7 +257,9 @@ Matrix_d *Covariates0)
       = avgtheta( k + 1 ) - poptheta( k + 1 );
 }
 
-// Metropolis update for admixture proportions theta, taking acceptance probability p as argument
+// Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
+// uses log ratio because this is easier than ratio to calculate for linear regression model
+// if no regression model, logpratio remains set to 0, so all proposals are accepted 
 void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populations, bool RandomMatingModel )
 {
   bool test = true;
@@ -277,7 +280,7 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
            setAdmixturePropsX(ThetaX);
      }
   }
-  else{
+  else{ // accept proposal if prob ratio > 1   
      setAdmixtureProps(Theta);
      if( xdata )
         setAdmixturePropsX(ThetaX);
@@ -292,7 +295,8 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
 // then should calculate ratio in Metropolis step 
 //  
 double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool RandomMatingModel,int Populations,
-					      int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY, 
+					      int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, 
+						  MatrixArray_d &ExpectedY, 
 						  MatrixArray_d &Target, Vector_d &poptheta) 
 {
   double probratio, Xbeta = 0;
@@ -374,7 +378,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 //rhoalpha, rhobeta = shape and scale parameters in prior for rho
 //sigma = 
 //DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
-//dispersion = dispersion paameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
+//dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 {
   double u;
 
@@ -482,46 +486,46 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, L, L_X, 
 	       SumN, SumN_X);
   }
-  // sample proposed value for individual admixture proportions as theta
-  // should be modified to allow a population mixture component model
-  SampleTheta(options, sigma, alpha);       
-  
-  //calculate log posterior if necessary 
-  if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
-    CalculateLogPosterior(options,Loci->isX_data(), alpha, _symmetric,
-			  _admixed,rhoalpha, rhobeta, L, L_X, SumN, SumN_X);
-  
-    //calculate acceptance probability for proposal theta    
-    //should have one function to do this
-  double p = 0;
+
+
+  // this block samples individual admixture proportions - should be a separate function
+  // propose new value for individual admixture proportions
+  ProposeTheta(options, sigma, alpha);
+  double logpratio = 0;
+    
+  //calculate Metropolis acceptance probability ratio for proposal theta    
   //linear regression case
   if( options->getAnalysisTypeIndicator() == 2 && !options->getScoreTestIndicator() ){
-    p = AcceptanceProbForTheta_LinearReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
+    logpratio = AcceptanceProbForTheta_LinearReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
 					  NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda); 
   }
   //logistic regression case
   else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getScoreTestIndicator() ){
-    p = AcceptanceProbForTheta_LogReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
+    logpratio = AcceptanceProbForTheta_LogReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
 				       NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
     }
   //case of both linear and logistic regressions
   else if( options->getAnalysisTypeIndicator() == 5 ){
+    logpratio = 0;
     for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
       if( OutcomeType( k ) )
-	p += AcceptanceProbForTheta_LogReg( i, k, options->isRandomMatingModel(), options->getPopulations(),
+	logpratio += AcceptanceProbForTheta_LogReg( i, k, options->isRandomMatingModel(), options->getPopulations(),
 					    NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
       else
-	p += AcceptanceProbForTheta_LinearReg( i, k, options->isRandomMatingModel(), options->getPopulations(),
+	logpratio += AcceptanceProbForTheta_LinearReg( i, k, options->isRandomMatingModel(), options->getPopulations(),
 					       NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda);
       }
   }
   //case of X only data
   if( Loci->isX_data() && !options->getXOnlyAnalysis() )
-    p += AcceptanceProbForTheta_XChrm( sigma, options->getPopulations());
+    logpratio += AcceptanceProbForTheta_XChrm( sigma, options->getPopulations());
 
-  //Update theta using acceptance prob    
-  Accept_Reject_Theta(p, Loci->isX_data(),options->getPopulations(), options->isRandomMatingModel() );
-   
+  //Accept or reject proposed value - if no regression model, proposal will be accepted because logpratio = 0    
+  Accept_Reject_Theta(logpratio, Loci->isX_data(),options->getPopulations(), options->isRandomMatingModel() );
+  // ends block for updating individual admixture 
+
+
+  // update the value of admixture proportions used in the regression model  
   if( options->getAnalysisTypeIndicator() > 1 )
     UpdateAdmixtureForRegression(i,options->getPopulations(), NoCovariates, poptheta, options->isRandomMatingModel(),&(Covariates0));
 
@@ -540,16 +544,19 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     }
     B += Xcov * Xcov.Transpose() * DInvLink * dispersion;
   }
-}
 
-// Samples individual admixture proportions conditional on sampled values of ancestry at loci where 
-// jump indicator xi is 1, population admixture distribution parameters alpha, and likelihood from regression 
-// model (if there is one)  
-// should have an alternative function to sample population mixture component membership and individual admixture proportions
-// conditional on genotype, not sampled locus ancestry
-void Individual::SampleTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha){
+  //calculate log posterior if necessary 
+  if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
+    CalculateLogPosterior(options,Loci->isX_data(), alpha, _symmetric,
+			  _admixed,rhoalpha, rhobeta, L, L_X, SumN, SumN_X);
+ }
+
+// Proposes new value for individual admixture proportions 
+// as conjugate Dirichlet posterior conditional on prior parameter vector alpha and 
+// multinomial likelihood given by sampled values of ancestry at loci where jump indicator xi is 1
+// proposes new values for both gametes if random mating model 
+void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha){
   Vector_d vectemp;//used to hold sample from theta posterior
-  // if no regression model, sample admixture proportions theta as a conjugate Dirichlet posterior   
   if( options->getXOnlyAnalysis() ){
     vectemp = gendirichlet( alpha[0] + SumLocusAncestry_X.GetColumn(0) );
     Theta.SetColumn( 0, vectemp );
