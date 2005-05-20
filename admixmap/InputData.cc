@@ -58,7 +58,7 @@ static void convertMatrix(const Matrix_s& data, Matrix_d& m)
 {       
     const size_t numRows = data.size();
 
-    // If there is no rows, return empty matrix.
+    // If there are no rows, return empty matrix.
     if (0 == numRows) return;
 
     // Verify that all rows have same length.
@@ -111,7 +111,7 @@ void InputData::readData(AdmixOptions *options, LogWriter * /*log*/)
       ::readFile(options->getMLEFilename(), MLEData_);
       ::readFile(options->getReportedAncestryFilename(), reportedAncestryData_);
       
-      // Form matrixes.
+      // Form matrices.
       convertMatrix(geneInfoData_, geneInfoMatrix_);
       if (options->getTextIndicator()) {
 	geneInfoMatrix_.SubMatrix2(1, geneInfoMatrix_.GetNumberOfRows() - 1, 1, 2);
@@ -158,12 +158,12 @@ void InputData::determineIfPedFile(AdmixOptions *options) {
     //should use logmsg
     if (isPedFile == 1) {
       if (geneticData_[i].size() != 2*TotalLoci + 1 + options->genotypesSexColumn()) {
-	cout << "Error in formatting of line " <<i<<" of genotypesfile"<< endl;
+	cout << "Error in formatting of line " <<i+1<<" of genotypesfile"<< endl;
 	exit(0);
       }
     } else {
       if (geneticData_[i].size() != TotalLoci + 1 + options->genotypesSexColumn()) {
-	cout << "Error in formatting of line "<<i<<" of genotypesfile" << endl;
+	cout << "Error in formatting of line "<<i+1<<" of genotypesfile" << endl;
 	exit(0);
       }
     }
