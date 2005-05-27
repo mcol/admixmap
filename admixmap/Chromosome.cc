@@ -12,51 +12,38 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
   _startLoci = start;
   populations = inpopulations;
   D = populations * populations;
-  L = GetNumberOfCompositeLoci();
-  SampleStates.SetDimensions( L, populations, true );
-  //StationaryDist = new double[D];
+  SampleStates.SetDimensions( size, populations, true );
 
-  //Likelihood.SetNumberOfElementsWithDimensions( L, D, 1);
-  Lambda = new double**[L];
-  //GenotypeProbs = new double *[L];
-  for(int i=0;i<L;++i){
-    //GenotypeProbs[i] = new double[D];
+  Lambda = new double**[size];
+
+  for(int i = 0; i < size ;++i){
     Lambda[i] = alloc2D_d(populations, populations);
   }
 
-  CodedStates = new int[L];
+  CodedStates = new int[size];
+  for(int j = 0; j < 2; ++j) f[j] = new double[size];
 
-  //Tpat = alloc2D_d(populations, populations);
-  //Tmat = alloc2D_d(populations, populations);
-  // _product1 = new double[populations];
-  // _product2 = new double[populations];
-
+  StateArrivalProbs = new double**[NumberOfCompositeLoci];
+  for(int t = 1; t < size; t++ ){        
+    StateArrivalProbs[t] = new double*[populations];
+    for(int j = 0; j < populations; ++j){
+      StateArrivalProbs[t][j] = new double[2];
+    }
+  }
 }
 
-void
-Chromosome::ResetStuffForX()
+void Chromosome::ResetStuffForX()
 {
-
   D = populations;
-  SampleStates.SetDimensions( L, populations, false );
-  //if(StationaryDist != NULL) delete StationaryDist;
-  //StationaryDist = new double[ D ];
-  //Likelihood.SetNumberOfElementsWithDimensions( L, D, 1);
-  //for(int i=0;i<L;++i){
-  //delete GenotypeProbs[i];
-  //GenotypeProbs[i] = new double[D];
-  //}
-
+  SampleStates.SetDimensions( NumberOfCompositeLoci, populations, false );
 }
 
-void
-Chromosome::SetLabel( int, string label )
+void Chromosome::SetLabel( string label )
 {
    _Label = label;
 }
 
-string
-Chromosome::GetLabel( int )
+string Chromosome::GetLabel( int )
 {
    return _Label;
 }
@@ -65,12 +52,16 @@ Chromosome::~Chromosome()
 {
   //TODO: delete these properly
   delete CodedStates;
-  //delete StationaryDist;
-  //delete[] GenotypeProbs;
-  //delete[] Tpat;
-  //delete[] Tmat;
   delete[] Lambda;
-
+  delete[] f[0];
+  delete[] f[1];
+  for(unsigned  int t = 1; t < NumberOfCompositeLoci; t++ ){
+    for(int j = 0; j < populations; ++j){
+      delete[] StateArrivalProbs[t][j];
+    }
+    delete[] StateArrivalProbs[t];
+  }
+  delete[] StateArrivalProbs;
 }
 
 
@@ -83,165 +74,45 @@ Chromosome::GetLocus(int num){
 }
 
 //returns number of composite loci in the chromosome
-//must call Genome function since NumberOfCompositeLoci is private in Genome
 unsigned int Chromosome::GetSize(){
-  return GetNumberOfCompositeLoci();
+  return NumberOfCompositeLoci;
 }
 
-// void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, double *f[],
-// 			     bool fixedallelefreqs, bool diploid )
-// //Obtains stationary distribution and transition probs for HMM and updates forward and backward probabilities
-// //Admixture - matrix of admixture proportions
-// //f - 
-// {
+//Initialises f for global rho. Necessary since individual-level parameters updated before global rho (in Latent)
+void Chromosome::InitialiseLociCorr(const double rho){
+  for(unsigned int j = 1; j < GetNumberOfCompositeLoci(); j++ )
+    f[0][j] = f[1][j] = ( -GetDistance( j ) * rho > -700) ? exp( -GetDistance( j ) * rho ) : 0.0;
+}
 
-//   int locus, d;
-//   if(diploid){
+//sets f for global rho, called after Latent is updated
+void Chromosome::SetLociCorr(const double rho){
+    for(unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
+      f[0][jj] = f[1][jj] = exp( -GetDistance( jj ) * rho );
+    }
+}
 
-//     int Mcol = options->isRandomMatingModel(); //which col to use as maternal ancestry, col 1 for a randommatingmodel
-//     //col 0 is paternal ancestry
-//     // Construct stationary distribution
-//     d = 0;
-//     for( int k = 0; k < populations; k++ ){
-//       for( int kk = 0; kk < populations; kk++ ){
-// 	StationaryDist[ d ] = Admixture(k,0) * Admixture(kk,Mcol);
-// 	d++;
-//       }
-//     }
-
-//     if(L > 1){
-//       locus = GetLocus( 0 );
-//       for( int t = 0; t < L - 1; t++ ){
-// 	// Construct Haploid transition matrices, Tpat and Tmat, then use them to construct transition matrix
-	
-// 	for(int i=0; i<populations; i++){
-// 	  _product1[i] = f[0][locus+1] * Admixture(i,0);
-// 	  _product2[i] = f[1][locus+1] * Admixture(i,Mcol);
-// 	}
-	
-// 	for(int i=0; i<populations; i++){
-// 	  for(int j=0; j<i; j++){
-// 	    Tpat[i][j] = Admixture(j,0) - _product1[j];
-// 	    Tmat[i][j] = Admixture(j,Mcol) - _product2[j];
-// 	    Tpat[j][i] = Admixture(i,0) - _product1[i];
-// 	    Tmat[j][i] = Admixture(i,Mcol) - _product2[i];
-// 	  }
-// 	  Tpat[i][i] = Admixture(i,0) + f[0][locus+1] - _product1[i];
-// 	  Tmat[i][i] = Admixture(i,Mcol) + f[1][locus+1] - _product2[i];
-// 	}
-	
-// 	// set elements of diploid transition matrix
-// 	int row = 0;
-// 	for( int k1 = 0; k1 < populations; k1++ ){
-// 	  for( int k2 = 0; k2 < populations; k2++ ){
-// 	    //           int row = k2 + k1 * populations;
-// 	    int col = 0;
-// 	    for( int kk1 = 0; kk1 < populations; kk1++ ){
-// 	      for( int kk2 = 0; kk2 < populations; kk2++ ){
-// 		//                 int col = kk2 + kk1 * populations;
-// 		//TransitionProbs(j)( row, col ) = Tpat[k1][kk1]*Tmat[k2][kk2];
-// 		SampleStates.SetTProb(t, row, col, Tpat[k1][kk1]*Tmat[k2][kk2] );
-// 		col++;
-// 	      }
-// 	    }
-// 	    row++;
-// 	  }
-// 	}
-// 	locus++;
-//       }
- 
-//     }
-//     //this could be neater
-//     //case of a chromosome with a single locus - set transition probs to zero
-//     else for(int j= 0; j< L-1; j++)for(int k1 = 0; k1<populations*populations;k1++)for(int k2 = 0; k2<populations*populations; k2++)
-//       SampleStates.SetTProb(j, k1, k2, 0.0);
-
-//     // Construct array of probs of genotype given ancestry states
-//     locus = GetLocus( 0 );
-//     for( int j = 0; j < L; j++ ){
-//       d = 0;
-//       if( !(ind->IsMissing(locus)) ){
-// 	A->GetGenotypeProbs(&Prob, locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), true, fixedallelefreqs );
-// 	for( int k = 0; k < populations; k++ ){
-// 	  for( int kk = 0; kk < populations; kk++ ){
-// 	    GenotypeProbs[j][d] = Prob( k, kk );
-// 	    d++;
-// 	  }
-// 	}
-//       }
-//       else{
-// 	for( int k = 0; k < D; k++ ) GenotypeProbs[j][k] = 1.0;
-//       }
-//       locus++;
-//     }
-//   }
-
-//   else{//haploid
-//     Vector_d mu = Admixture.GetColumn(0);
-//     for( int j = 0; j < D; j++ )
-//       StationaryDist[j] = mu(j); 
+void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options,  
+				  std::vector< double > _rho, bool fixedallelefreqs, bool diploid ){
+  // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
+  // required to calculate transition matrices 
+  if( options->getRhoIndicator() ){
     
-//     if(L >1){
-//       locus = GetLocus( 0 );
-//       //construct Transition Probs  
-//       for( int j = 0; j < L - 1; j++ ){
-// 	int H = mu.GetNumberOfElements();
-// 	//TransitionProbs(j).SetNumberOfElements(H, H);
-	
-// 	double _product[H];
-// 	for(int i=0; i<H; i++){
-// 	  _product[i] = f[0][locus+1] * mu(i);
-// 	}
-	
-// 	for(int i=0; i<H; i++){
-// 	  for(int jj=0; jj<i; jj++){
-// 	    //TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
-// 	    SampleStates.SetTProb(j,i,jj, mu(jj) - _product[jj]);
-// 	  }
-// 	  //TransitionProbs(j)(i,i) = mu(i) + f[0](locus+1) - _product[i];
-// 	  SampleStates.SetTProb(j,i,i, mu(i) + f[0][locus+1] - _product[i]);
-// 	  for(int jj=i+1; jj<H; jj++){
-// 	    //TransitionProbs(j)(i,jj) = mu(jj) - _product[jj];
-// 	    SampleStates.SetTProb(j,i,jj, mu(jj) - _product[jj]);
-// 	  }
-// 	}
-	
-// 	locus++;
-//       }
-//     }
-//     //this could be neater
-//     //case of a chromosome with a single locus - set transition probs to zero
-//     else for(int j= 0; j< L-1; j++)for(int k1 = 0; k1<populations*populations;k1++)for(int k2 = 0; k2<populations*populations; k2++)
-//       SampleStates.SetTProb(j, k1, k2, 0.0);
+    for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
+      f[0][jj] = exp( -GetDistance( jj ) * _rho[0] );
+      if( options->isRandomMatingModel() ){
+	  f[1][jj] = exp( -GetDistance( jj ) * _rho[1] );
+      }
+      else
+	f[1][jj] = f[0][jj];
+    }
+  }
+  //global rho case already dealt with
 
-//     // Construct array of probs of genotype given ancestry states
-//     locus = GetLocus( 0 );
-//     for( int j = 0; j < L; j++ ){
-//        if( !(ind->IsMissing(locus)) ){
-// 	//vector<unsigned int> genotype = ind->getGenotype(locus);
-//         //Likelihood(j) = (*this)(j)->GetLikelihood( genotype, false, fixedallelefreqs );
-// 	A->GetGenotypeProbs(&Prob,locus, ind->getGenotype(locus), ind->getPossibleHaplotypes(locus), false, fixedallelefreqs);
-// 	for( int k = 0; k < populations; k++ )GenotypeProbs[j][k] = Prob(j,k); 
-//       }
-//       else
-// 	for( int k = 0; k < populations; k++ )GenotypeProbs[j][k] = 1.0;
-//       locus++;
-//     }
-//   }
-
-//   bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
-
-//   SampleStates.UpdateFwrdBckwdProbabilities( StationaryDist, GenotypeProbs, test );
-
-// }
-
-void Chromosome::NewUpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, double * f[],
-				     bool fixedallelefreqs, bool diploid ){
-  int locus=GetLocus(0);
+ int locus = GetLocus(0);
   bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   if(diploid){
     //construct Lambda
-    for( int j = 0; j < L; j++ ){
+    for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
       if( !(ind->IsMissing(locus)) ){
 	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), true, fixedallelefreqs );
       }
@@ -250,51 +121,43 @@ void Chromosome::NewUpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& 
       }
       locus++;
     }
+    //construct StateArrivalProbs
+    for(unsigned int t = 1; t < NumberOfCompositeLoci; t++ ){        
+      for(int j = 0; j < populations; ++j){
+	StateArrivalProbs[t][j][0] = (1.0 - f[0][t]) * Admixture(j,0);
+	if( options->isRandomMatingModel())
+	  StateArrivalProbs[t][j][1] = (1.0 - f[1][t]) * Admixture(j,1);
+	else StateArrivalProbs[t][j][1] = (1.0 - f[1][t]) * Admixture(j,0);
+      }
+    }
  
     //Update Forward/Backward Probs in HMM
-    SampleStates.UpdateProbsDiploid(f, GetLocus(0),Admixture, Lambda, options->isRandomMatingModel(), test);
+    SampleStates.UpdateForwardProbsDiploid(StateArrivalProbs,f, Admixture, Lambda, options->isRandomMatingModel());
+    if(test)
+      SampleStates.UpdateBackwardProbsDiploid(StateArrivalProbs,f, Admixture, Lambda, options->isRandomMatingModel());
+
   }
 
   else{//haploid
-    for( int j = 0; j < L; j++ ){
+    for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
       if( !(ind->IsMissing(locus)) ){
 	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), false, fixedallelefreqs );
       }
       else{
-	for( int k1 = 0; k1 < populations; k1++ )for(int k2 =0; k2<populations; ++k2) Lambda[j][k1][k2] = 1.0;
+	for( int k1 = 0; k1 < populations; k1++ )for(int k2 = 0; k2 < populations; ++k2) Lambda[j][k1][k2] = 1.0;
       }
     }
     //Update Forward/Backward Probs in HMM
-    SampleStates.UpdateProbsHaploid(f, GetLocus(0),Admixture, Lambda, test);
+    SampleStates.UpdateProbsHaploid(f, Admixture, Lambda, test);
   }
 
 }
 
-// void Chromosome::SampleForLocusAncestry(Matrix_i *OrderedStates, bool isdiploid)
-// //Ordered States - pointer to ((2 or 1) x size) int matrix to store the locus ancestry states
-// //isdiploid - indicator for diploid (true) or haploid (false)
-// {
+//void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, double *f[], bool isdiploid){
+void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid){
 
-//   // Sample    
-//   SampleStates.Sample(CodedStates);
-//   for( int j = 0; j < L; j++ ){
-//     if(isdiploid){
-//       //     OrderedStates( 0, j ) = 0;
-//       (*OrderedStates)( 0, j ) = (int)(CodedStates[j] / populations);
-//       (*OrderedStates)( 1, j ) = (CodedStates[j] % populations);
-//     }
-//     else //haploid
-//       {
-// 	(*OrderedStates)(0, j ) = CodedStates[j];
-//       }
-//   }
-   
-// }
-
-void Chromosome::NewSampleForLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, double *f[], int Mcol,bool isdiploid){
-
-  SampleStates.NewSample(CodedStates, Admixture, f, GetLocus(0),Mcol,isdiploid);
-  for( int j = 0; j < L; j++ ){
+  SampleStates.Sample(CodedStates, Admixture, f, isdiploid);
+  for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
     if(isdiploid){
       //     OrderedStates( 0, j ) = 0;
       (*OrderedStates)( 0, j ) = (int)(CodedStates[j] / populations);
@@ -319,8 +182,7 @@ void Chromosome::getAncestryProbs( int j, double AncestryProbs[][3] ){
   double *StateProbs;
   StateProbs = new double[D];//possibly should keep this at class scope
   
-  //SampleStates.GetStateProbs(StateProbs, j);
-  SampleStates.NewGetStateProbs(StateProbs,j);
+  SampleStates.GetStateProbs(StateProbs, j);
   
   for( int k1 = 0; k1 < populations; k1++ ){
     AncestryProbs[k1][2] = StateProbs[ ( populations + 1 ) * k1 ];
@@ -336,7 +198,34 @@ void Chromosome::getAncestryProbs( int j, double AncestryProbs[][3] ){
 //accessor for HMM Likelihood
 double Chromosome::getLogLikelihood()
 {
-  //return SampleStates.getLikelihood();
-  return SampleStates.NewgetLikelihood();
+  return SampleStates.getLikelihood();
 }
 
+//samples jump indicators xi for this chromosome, 
+//updates sumxi and Sumrho0
+void Chromosome::SampleJumpIndicators(const Matrix_i &LocusAncestry, 
+				      const unsigned int gametes, std::vector< std::vector<bool> > *xi, int *sumxi, 
+				      double *Sumrho0){
+
+  int locus;
+  double Prob;
+  for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
+    locus = GetLocus(jj);    
+    for( unsigned int g = 0; g < gametes; g++ ){
+      if( LocusAncestry(g,jj-1) == LocusAncestry(g,jj) ){
+
+	Prob = StateArrivalProbs[jj][ LocusAncestry(g,jj)][g] / (StateArrivalProbs[jj][ LocusAncestry(g,jj)][g] + f[g][jj] );
+	if( Prob > myrand() ){
+	  (*xi)[g][locus] = true;
+	  sumxi[locus]++;
+	} else {
+	  (*xi)[g][locus] = false;
+	  *Sumrho0 += GetDistance( jj );
+	}
+      } else {
+	(*xi)[g][locus] = true;
+	sumxi[locus]++;
+      }
+    }
+  }
+}

@@ -20,16 +20,16 @@ private:
   int _startLoci;
   int populations;
   int D;
-  int L;
   std::string _Label;
   HMM SampleStates;
-  //double *StationaryDist;
-  //double **GenotypeProbs;
   double ***Lambda;
-  //Matrix_d Prob;//used to construct genotypeprobs
+  double ***StateArrivalProbs;
+
+  // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
+  // With a global rho model, this array is same for all individuals and calculated only once.
+  // required to calculate transition matrices 
+  double *f[2]; 
   int *CodedStates;//used to sample hidden states from HMM
-  // double **Tpat, **Tmat;//paternal and maternal transition probability matrices
-  //double *_product1, *_product2;
   
   // UNIMPLEMENTED
   // to avoid use
@@ -42,18 +42,27 @@ public:
   Chromosome(int size,int start, int);
   void ResetStuffForX();
   ~Chromosome();
-  void SetLabel( int, std::string );
+  void SetLabel(std::string );
   std::string GetLabel( int );
   int GetLocus(int);
   unsigned int GetSize();
-  //void UpdateParameters(Individual*,AlleleFreqs *, Matrix_d&,AdmixOptions*,double *[], bool,bool);
-  void NewUpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options, double * f[],
-		    bool fixedallelefreqs, bool diploid );
-  //void SampleForLocusAncestry(Matrix_i*, bool);
-  void NewSampleForLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, double *f[], int Mcol,bool isdiploid);
+
+  void InitialiseLociCorr(const double rho);
+  void SetLociCorr(const double rho);
+
+  void UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options,  
+			double *f[2], bool fixedallelefreqs, bool diploid );
+
+  void UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options,  
+			std::vector< double > _rho,  bool fixedallelefreqs, bool diploid );
+
+
+  void SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture,  bool isdiploid);
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
-
+  void SampleJumpIndicators(const Matrix_i &LocusAncestry,   
+				      const unsigned int gametes, std::vector< std::vector<bool> > *xi, int *sumxi, 
+				      double *Sumrho0);
 };
 
 #endif /* !defined CHROMOSOME_H */
