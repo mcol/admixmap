@@ -13,8 +13,7 @@ class AlleleFreqs{
 public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
-  void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels, double rho);
-  void load_f(double rho,Chromosome **chrm); // should be moved to chromosome object
+  void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels);
   void Update(int iteration,int);
 
   //initialize output file for samples of dispersion parameters
@@ -58,13 +57,12 @@ public:
   void GetGenotypeProbs( double **Probs, int locus, unsigned short **genotype, 
 			 std::vector<hapPair > &Haplotypes, bool diploid, bool fixed);
   void GetGenotypeProbs(double **Prob, int locus, unsigned short *genotype, Vector_i Haplotypes, bool diploid, bool fixed);
-  void getLociCorrSummary(double *[]);
 
  // function to merge rare haplotypes for construction of score tests
   void SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr, bool IsPedFile);
 
 private:
-  int Populations;
+  int Populations, NumberOfCompositeLoci;
   double *eta; //dispersion parameter
   double *SumEta;
   double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
@@ -100,11 +98,6 @@ private:
 //    DARS SampleMu;
    std::vector<TuneRW> *MuProposal;
 
-  // LociCorrSummary is an array of terms of the form exp( - rho*x_i) where x_i is the map distance between two adjacent loci
-  // with a global rho model, this array is same for all individuals and calculated only once.
-  // should be in Genome object
-  double *LociCorrSummary;//summary of correlation in ancestry between loci,was called f in Latent
-
   LocusVisitor* allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
@@ -113,8 +106,6 @@ private:
     
   void getLabels( const std::string, Vector_i, std::string* );
  
-  void loadAlleleStatesAndDistances(std::vector<std::string>* ChrmLabels,AdmixOptions *,InputData *data_,LogWriter *);
-
   void OpenFSTFile(AdmixOptions *options,LogWriter *Log); 
 
   // we have four different functions to initialize allele freqs

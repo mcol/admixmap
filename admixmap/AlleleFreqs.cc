@@ -40,7 +40,6 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   SumFst = 0;
   allelefreqoutput = 0;
   TuneEtaSampler = 0;
-  LociCorrSummary = 0;
   pp = 0;
   Loci = pLoci;  
 }
@@ -66,118 +65,7 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] SumAcceptanceProb;
   delete[] etastep;
   delete[] SumEta;
-  delete[] LociCorrSummary;
   delete[] pp;
-}
-
-void AlleleFreqs::loadAlleleStatesAndDistances(vector<string> * ChrmLabels,AdmixOptions *options,InputData *data_, LogWriter *Log){
-  string *LociLabelsCheck = 0;
-
-  // Load number of allelic states and distances.
-  //also sets number of composite loci and initialises the allelefreq arrays
-  Log->logmsg(false,"Loading ");
-  Log->logmsg(false,options->getGeneInfoFilename());
-  Log->logmsg(false,".\n");
-
-  Matrix_d& locifileData = (Matrix_d&) data_->getGeneInfoMatrix();
-  
-  LociLabelsCheck = new string[ locifileData.GetNumberOfRows() ];
-  int numCompLoci = 0;
-  // numCompLoci counts the number of simple Loci that are in neither simple loci nor the first in a compound locus
-  // would be neater to do some thing like
-  //numCompLoci = locifileData.GetNumberOfRows()
-  //  for( int i = 0; i < locifileData.GetNumberOfRows(); i++ )
-  //   if( locifileData( i, 1 ) == 0.0 ) numCompLoci--;
-  //so that numCompLoci is the number of Composite Loci
-  // could also store this at class scope to save calls to Loci::GetNumberOfCompositeLoci
-
-  for( int i = 0; i < locifileData.GetNumberOfRows(); i++ )
-    if( locifileData( i, 1 ) == 0.0 ) numCompLoci++;
-
-  //determine number of composite loci and allocate arrays
-  // should only allocate the arrays that are needed
-  //eg we don't always use HistoricAlleleFreqs
-  int NCL = locifileData.GetNumberOfRows() - numCompLoci;
-  Loci->SetNumberOfCompositeLoci(NCL);
-  Freqs = new Matrix_d[NCL];
-  AlleleFreqsMAP = new Matrix_d[NCL];
-  HistoricAlleleFreqs = new Matrix_d[NCL];
-  AlleleCounts = new Matrix_i[NCL];
-  HistoricLikelihoodAlleleFreqs = new Matrix_d[NCL];
-  PriorAlleleFreqs = new Matrix_d[NCL];
-  SumAlleleFreqs = new Matrix_d[NCL];
-  MuProposal = new std::vector<TuneRW>[NCL];
-
-
-  for(int i=0;i < GetNumberOfCompositeLoci();i++){
-    (*Loci)(i) = new CompositeLocus();
-    (*Loci)(i)->SetNumberOfLoci(1);
-  }
-
-  Log->logmsg(false,"Loading ");
-  Log->logmsg(false,options->getGeneticDataFilename());
-  Log->logmsg(false,".\n");
-
-  // Set number of alleles at each locus
-  int index =0;
-  size_t next_line = 0;
-  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
-    ++next_line;
-
-    const Vector_s& m = data_->getGeneInfoData()[next_line];
-
-    LociLabelsCheck[index] = m[0];
-    if (m.size() == 4)
-      ChrmLabels->push_back(m[3]);
-    (*Loci)(i)->SetNumberOfAllelesOfLocus( 0, (int)locifileData( i, 0 ) );
-    Loci->SetDistance( i, locifileData( index, 1 ) );
-    while( index < locifileData.GetNumberOfRows() - 1 && locifileData( index + 1, 1 ) == 0 ){
-      ++next_line;
-
-      (*Loci)(i)->AddLocus( (int)locifileData( index + 1, 0 ) );
-      index++;
-      LociLabelsCheck[index] = m[0];
-    }
-    CompositeLocus *locus = (CompositeLocus*)(*Loci)(i);
-    locus->SetNumberOfLabels();
-    index++;
-    //Log->logmsg(false,(*Loci)(i)->GetNumberOfLoci());
-    //Log->logmsg(false," ");
-  }
-  Log->logmsg(false,"\n");
-
-  // checks of input data files should be in class InputData
-  if( options->getTextIndicator() ){
-
-    Vector_s labels = data_->getGeneticData()[0];
-
-    Vector_d vtemp = locifileData.GetColumn(1);
-    Log->logmsg(true, vtemp.GetNumberOfElements());Log->logmsg(true," simple loci\n");
-    vtemp.AddElement(0); // Forces SetLabels method to ignore first row of loci.txt (GenotypesFile)
-    // Add a sex column if it is not included
-    if( ! options->genotypesSexColumn() ){
-      labels.insert(labels.begin(), "\"extracol\"");
-    }
-    Loci->SetLabels(labels, vtemp);
-  }
-
-  index = 0;
-  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
-    for( int j = 0; j < (*Loci)(i)->GetNumberOfLoci(); j++ ){
-      if( LociLabelsCheck[index].compare( (*Loci)(i)->GetLabel(0) ) ){
-	Log->logmsg(true, "Error in loci names in genotypes file and loci file at loci\n" );
-	Log->logmsg(true, i);
-	Log->logmsg(true, LociLabelsCheck[index] );
-	Log->logmsg(true, " " );
-	Log->logmsg(true, j);
-	Log->logmsg(true, (*Loci)(i)->GetLabel(j) );
-	Log->logmsg(true, "\n" );
-	exit(0);
-      }
-      index++;
-    }
-  }  
-  delete [] LociLabelsCheck;
 }
 
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data_,std::string **PopulationLabels)
@@ -191,7 +79,17 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
 
   Populations = options->getPopulations();
   checkLociNames(options,data_);
-  loadAlleleStatesAndDistances(&ChrmLabels,options,data_, Log);
+  Loci->loadAlleleStatesAndDistances(&ChrmLabels,options,data_, Log);
+
+  NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  Freqs = new Matrix_d[NumberOfCompositeLoci];
+  AlleleFreqsMAP = new Matrix_d[NumberOfCompositeLoci];
+  HistoricAlleleFreqs = new Matrix_d[NumberOfCompositeLoci];
+  AlleleCounts = new Matrix_i[NumberOfCompositeLoci];
+  HistoricLikelihoodAlleleFreqs = new Matrix_d[NumberOfCompositeLoci];
+  PriorAlleleFreqs = new Matrix_d[NumberOfCompositeLoci];
+  SumAlleleFreqs = new Matrix_d[NumberOfCompositeLoci];
+  MuProposal = new std::vector<TuneRW>[NumberOfCompositeLoci];
 
   //Fixed AlleleFreqs
   if( strlen( options->getAlleleFreqFilename() ) ){
@@ -202,10 +100,10 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
 
     temporary = data_->getAlleleFreqMatrix();
 
-    if(temporary.GetNumberOfRows()-1 != Loci->GetNumberOfStates()-GetNumberOfCompositeLoci()){
+    if(temporary.GetNumberOfRows()-1 != Loci->GetNumberOfStates()-NumberOfCompositeLoci){
       Log->logmsg(true,"Incorrect number of rows in allelefreqsfile.\n");
       Log->logmsg(true,"Expecting ");
-      Log->logmsg(true,Loci->GetNumberOfStates()-GetNumberOfCompositeLoci()+1);
+      Log->logmsg(true,Loci->GetNumberOfStates()-NumberOfCompositeLoci+1);
       Log->logmsg(true," rows, where as there are ");
       Log->logmsg(true,temporary.GetNumberOfRows());
       Log->logmsg(true," rows.\n");
@@ -224,7 +122,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
       ::getLabels(data_->getAlleleFreqData()[0], vtemp, *PopulationLabels);
     }
 
-    for( int i = 0; i < GetNumberOfCompositeLoci(); i++ )
+    for( int i = 0; i < NumberOfCompositeLoci; i++ )
       {
 	newrow = row + (*Loci)(i)->GetNumberOfStates() - 1;
 	InitialiseAlleleFreqs( temporary.Double().SubMatrix( row, newrow - 1, 0, Populations - 1 ), i, Populations);
@@ -292,7 +190,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
     vtemp(0) = 0;
     ::getLabels(*alleleFreqLabels, vtemp, *PopulationLabels);
 
-    for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       newrow = row + (*Loci)(i)->GetNumberOfStates();
       if( strlen( options->getHistoricalAlleleFreqFilename() ) )
 	InitialiseHistoricAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0,Populations - 1 ), i );
@@ -316,13 +214,13 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
       
   }
 
-  (*chrm) = Loci->GetChromosomes(Populations, ChrmLabels );
+  (*chrm) = Loci->GetChromosomes(Populations, ChrmLabels);
   
   Loci->SetSizes();
   options->setPopulations(Populations);
   pp = new double[Populations];
   //(**)
-  Log->logmsg(false,Loci->GetNumberOfCompositeLoci());
+  Log->logmsg(false, NumberOfCompositeLoci);
   Log->logmsg(false," loci; ");
   Log->logmsg(false, Loci->GetNumberOfChromosomes());
   Log->logmsg(false," chromosomes\n");
@@ -382,7 +280,7 @@ void AlleleFreqs::getLabels( const string buffer, Vector_i temporary, string *la
 }
 
 void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogWriter *Log,
-			     std::string *PopulationLabels, double rho){
+			     std::string *PopulationLabels){
   Number = 0;
   Populations = options->getPopulations();
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ) IsHistoricAlleleFreq = true;
@@ -394,14 +292,9 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
 
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
-  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     (*Loci)(i)->Initialise(Freqs[i]);
   }
-
-  // these lines should be moved to Genome class ?
-  LociCorrSummary = new double[ Loci->GetNumberOfCompositeLoci() ];
-  for(unsigned int j = 1; j < Loci->GetNumberOfCompositeLoci(); j++ )
-     LociCorrSummary[j] = ( -Loci->GetDistance( j ) * rho > -700) ? exp( -Loci->GetDistance( j ) * rho ) : 0.0;
 
   // settings for sampling of dispersion parameter
   // Matrix etaprior(1,1);
@@ -452,7 +345,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
     for( int k = 0; k < Populations; k++ ){
       
 //       // old method; sets eta to the sum of priorallelefreqs
-//       for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+//       for( int j = 0; j < NumberOfCompositeLoci; j++ ){
 //        	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
 //        	if( maxeta(k) > eta[k] ){
 //        	  eta[k] = maxeta(k);
@@ -462,7 +355,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
       //Initialise eta at its prior expectation
       eta[k] = psi[k]/tau[k];
       //Rescale priorallelefreqs so the columns sum to eta 
-      for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
+      for(int j = 0; j < NumberOfCompositeLoci; j++ )
 	PriorAlleleFreqs[j].SetColumn(k, PriorAlleleFreqs[j].GetColumn(k) * eta[k] / PriorAlleleFreqs[j].GetColumn(k).Sum());
      }
   
@@ -487,17 +380,6 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
     Log->logmsg(true, Loci->GetLengthOfXchrm());
     Log->logmsg(true," Morgans.\n");
    }
-}
-
-void AlleleFreqs::load_f(double rho,Chromosome **chrm){
-  int locus = 0;
-  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ){
-    locus++;
-    for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-      LociCorrSummary[locus] = exp( -Loci->GetDistance( locus ) * rho );
-      locus++;
-    }
-  }
 }
 
 void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Pops){
@@ -635,8 +517,8 @@ void AlleleFreqs::InitialiseHistoricAlleleFreqs(Matrix_d New, int i){
   }
   SumAlleleFreqs[i].SetNumberOfElements((*Loci)(i)->GetNumberOfStates() - 1, Pops);
   RandomAlleleFreqs = 1;
-  Fst = alloc2D_d(GetNumberOfCompositeLoci(), Pops);
-  SumFst = alloc2D_d(GetNumberOfCompositeLoci(), Pops);
+  Fst = alloc2D_d(NumberOfCompositeLoci, Pops);
+  SumFst = alloc2D_d(NumberOfCompositeLoci, Pops);
   // set size of vector MuProposal
   if( (*Loci)(i)->GetNumberOfStates() > 2 ){
     MuProposal[i].resize( Populations );
@@ -660,7 +542,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
       exit(0);
    }
   // this check should be moved into InputData class
-   for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
      if((*Loci)(i)->GetNumberOfStates() < 2){
        cout << "Error: The number of alleles at a locus is < 2. There must be at least two different alleles at each locus." << endl;
        exit(0);
@@ -690,13 +572,13 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
      
     Vector_d EtaParameters(3), probs;
     Matrix_d stats;
-    MatrixArray_d data( Loci->GetNumberOfCompositeLoci() );
+    MatrixArray_d data( NumberOfCompositeLoci );
     
     double etanew, LogPostRatio;
     
     // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
     if(IsHistoricAlleleFreq ){
-      for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+      for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 	if( (*Loci)(i)->GetNumberOfStates() == 2 )
 	  SamplePriorAlleleFreqs1D( i);
 	else
@@ -705,7 +587,7 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     }
 
     // Sample allele frequencies and set AlleleProbs
-    for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       SampleAlleleFreqs(i, 1 );
       (*Loci)(i)->SetAlleleProbs(Freqs[i]);
       if( (*Loci)(i)->GetNumberOfLoci() > 1 )
@@ -727,9 +609,9 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 	LogPostRatio = ( psi[k] - 1 ) * (log(etanew) - log(eta[k]))
            - tau[k] * ( etanew - eta[k] );
 	// Log-likelihood ratio; numerator of integrating constant
-	LogPostRatio += 2 * Loci->GetNumberOfCompositeLoci()
+	LogPostRatio += 2 * NumberOfCompositeLoci
            * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta[k] ) );
-	for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+	for(int j = 0; j < NumberOfCompositeLoci; j++ ){
 
 	  Vector_d mu = GetPriorAlleleFreqs(j,k);
 	  //mineta is a lower bound for proposal etanew
@@ -778,6 +660,7 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
       UpdateFst();
     }
   }
+  ResetSumAlleleFreqs();
 }
 
 /*
@@ -894,14 +777,14 @@ void AlleleFreqs::SampleAlleleFreqs(int i, int flag )
  */
 void AlleleFreqs::ResetSumAlleleFreqs()
 {
-for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+for( int i = 0; i < NumberOfCompositeLoci; i++ ){
   SumAlleleFreqs[i].SetElements(0);
  }
 }
 
 void AlleleFreqs::SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr, bool IsPedFile){
   //Note: alpha0 = alpha[0] in Latent
-  for( int j = 0; j < GetNumberOfCompositeLoci(); j++ ){
+  for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     if( (*Loci)(j)->GetNumberOfLoci() > 1 ){
 
       for( int k = 0; k < Populations; k++ )
@@ -939,7 +822,7 @@ double *AlleleFreqs::GetStatsForEta( int locus, int population)
 
 // void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<Vector_d>& mu)
 // {
-//   for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+//   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 //     PriorAlleleFreqs[i].SetColumn( j, mu[i] );
 //     //    double sum;
 //     //    Vector_d freqs;
@@ -1097,8 +980,9 @@ Genome *AlleleFreqs::getLoci(){
 CompositeLocus *AlleleFreqs::getLocus(int i){
   return (CompositeLocus *)((*Loci)(i));
 }
+//any call to this function should be replaced by a call to the same function in Genome
 int AlleleFreqs::GetNumberOfCompositeLoci(){
-  return Loci->GetNumberOfCompositeLoci();
+  return NumberOfCompositeLoci;
 }
 void AlleleFreqs::OutputAlleleFreqs(){
   if( IsRandom() ){
@@ -1106,7 +990,7 @@ void AlleleFreqs::OutputAlleleFreqs(){
   }
 }
 void AlleleFreqs::OutputFST(bool IsPedFile){
-  for( int j = 0; j < GetNumberOfCompositeLoci(); j++ ){
+  for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     if(IsPedFile)
       fstoutputstream << "\"" << (*Loci)(j)->GetLabel(0) << "\"";
     else
@@ -1117,7 +1001,7 @@ void AlleleFreqs::OutputFST(bool IsPedFile){
 }
 
 void AlleleFreqs::ResetAlleleCounts(){
-  for( int i = 0; i < GetNumberOfCompositeLoci(); i++ ){
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     AlleleCounts[i].SetElements(0);
   }
 }
@@ -1141,7 +1025,7 @@ void AlleleFreqs::OpenFSTFile(AdmixOptions *options,LogWriter *Log){
 // set AlleleFreqsMAP and getAlleleFreqs are called by Individual object
 void AlleleFreqs::setAlleleFreqsMAP()
 {
-  for(int i=0;i<GetNumberOfCompositeLoci();++i)
+  for(int i = 0; i < NumberOfCompositeLoci;++i)
     AlleleFreqsMAP[i] = Freqs[i];
   //(*Loci)(i)->setAlleleFreqsMAP(Freqs[i]);
 }
@@ -1159,10 +1043,6 @@ int AlleleFreqs::IsRandom()
   return( RandomAlleleFreqs );
 }
 
-void AlleleFreqs::getLociCorrSummary(double *f[]){
-  for(unsigned int i = 0; i < Loci->GetNumberOfCompositeLoci();++i)
-    f[0][i] = f[1][i] = LociCorrSummary[i];
-}
 /**PriorAlleleFreqs
  * Returns Dirichlet parameters for allele frequencies for a particular population and locus.
  * 
@@ -1214,7 +1094,7 @@ Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus)
 
 void AlleleFreqs::UpdateFst()
 {
-  for(int locus = 0; locus < GetNumberOfCompositeLoci(); ++locus){
+  for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
     double q_admix,q_parental,f,H_admix, H_parental, H_combined, pbar;
     for( int k = 0; k < Populations; k++ ){
       H_admix = 0;

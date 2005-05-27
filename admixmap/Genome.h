@@ -37,9 +37,9 @@ public:
 
   void SetLabels(const std::vector<std::string> &labels, Vector_d temp);
 
-  Vector GetDistances();
+  void loadAlleleStatesAndDistances(vector<string> * ChrmLabels,AdmixOptions *options,InputData *data_, LogWriter *Log);
 
-  void SetNumberOfCompositeLoci(int);
+  Vector GetDistances();
 
   unsigned int GetNumberOfCompositeLoci();
 
@@ -53,29 +53,32 @@ public:
 
   void SetDistance(int,float);
 
-  Chromosome **GetChromosomes(int, std::vector<std::string> );
+  Chromosome **GetChromosomes(int, std::vector<std::string> &);
 
   void SetSizes();
  
   int GetNumberOfStates();
   
-  virtual void SetLabel( int, std::string );
-  
   double GetLengthOfGenome();
   double GetLengthOfXchrm();
 
-private: 
+protected:// to make available to Chromosome
   Vector Distances;
+  unsigned int NumberOfCompositeLoci;
+  CompositeLocus **TheArray;
+
+private: 
+
   double LengthOfGenome;
   double LengthOfXchrm;
-  unsigned int NumberOfCompositeLoci;
+
   unsigned int NumberOfChromosomes;
   unsigned int TotalLoci;//number of simple loci;
   unsigned int *SizesOfChromosomes;
   bool X_data;
-  CompositeLocus **TheArray;
   std::vector< std::vector< int > > _chrmandlocus;
 
+  void InitialiseCompositeLoci();
 
   // UNIMPLEMENTED
   // to avoid use
