@@ -14,10 +14,8 @@
 #include "matrix.h"
 #include "vector_d.h"
 #include "matrix_d.h"
-#include "MatrixArray_d.h"
 #include "vector_i.h"
 #include "matrix_i.h"
-#include "MatrixArray_i.h"
 #include "DARS.h"
 #include "TuneRW.h"
 

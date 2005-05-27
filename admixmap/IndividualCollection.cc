@@ -29,6 +29,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   SumLogLikelihood = 0.0;
   Covariates = nullMatrix;
   NumInd = Data->getNumberOfIndividuals();
+  NumCompLoci = Loci.GetNumberOfCompositeLoci();
 
   _child = new Individual*[NumInd];
   Individual::SetStaticMembers(Loci.GetNumberOfChromosomes(), &Loci);
@@ -70,26 +71,28 @@ IndividualCollection::getSize()
   return NumInd;
 }
 
-Vector_i
-IndividualCollection::GetSumXi()
+//not needed
+int *IndividualCollection::GetSumXi()
 {
-   Vector_i sumxi = (*_child[0]).getSumXi();
-   for( unsigned int i = 1; i <NumInd; i++ )
-      sumxi += (*_child[i]).getSumXi();
-   return sumxi;
+  return Individual::getSumXi();
 }
 
-double
-IndividualCollection::GetSumrho0()
-{
-   double Sumrho0 = 0;
-   for( unsigned int i = 0; i < NumInd; i++ )
-      Sumrho0 += (*_child[i]).getSumrho0();
-   return Sumrho0;
+//not needed
+int IndividualCollection::GetSumXi(int j){
+  return Individual::getSumXi(j);
 }
 
-double
-IndividualCollection::GetSumrho()
+//not needed 
+double IndividualCollection::GetSumrho0()
+{
+ //   double Sumrho0 = 0;
+//    for( unsigned int i = 0; i < NumInd; i++ )
+//       Sumrho0 += (*_child[i]).getSumrho0();
+//    return Sumrho0;
+  return Individual::getSumrho0();
+ }
+
+double IndividualCollection::GetSumrho()
 {
    double Sumrho = 0;
    for( unsigned int i = 0; i < NumInd; i++ )
@@ -526,7 +529,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
 				  std::ofstream *LogFileStreamPtr, chib *MargLikelihood){
   SumLogTheta.SetElements( 0.0 );
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
-
+  Individual::ResetStaticSums();
 
   for(unsigned int i = 0; i < NumInd; i++ ){
     

@@ -9,40 +9,40 @@
 class ScoreTests{
 
 private:
-// these objects are composite-locus specific and could be moved there
-//   MatrixArray_d LocusLinkageScore;
-//   MatrixArray_d LocusLinkageInfo;
-//   MatrixArray_d SumLocusLinkageScore;
-//   MatrixArray_d SumLocusLinkageScore2;
-//   MatrixArray_d SumLocusLinkageInfo;
+
+//   Matrix_d *LocusLinkageScore;
+//   Matrix_d *LocusLinkageInfo;
+//   Matrix_d *SumLocusLinkageScore;
+//   Matrix_d *SumLocusLinkageScore2;
+//   Matrix_d *SumLocusLinkageInfo;
 
   Matrix_d SumAncestryScore;
   Matrix_d SumAncestryInfo;
   Matrix_d SumAncestryVarScore;
   Matrix_d SumAncestryScore2;
 
-  MatrixArray_d LocusLinkageAlleleScore;
-  MatrixArray_d LocusLinkageAlleleInfo;
-  MatrixArray_d SumLocusLinkageAlleleScore2;
-  MatrixArray_d SumLocusLinkageAlleleScore;
-  MatrixArray_d SumLocusLinkageAlleleInfo;
+  Matrix_d *LocusLinkageAlleleScore;
+  Matrix_d *LocusLinkageAlleleInfo;
+  Matrix_d *SumLocusLinkageAlleleScore2;
+  Matrix_d *SumLocusLinkageAlleleScore;
+  Matrix_d *SumLocusLinkageAlleleInfo;
 
   Matrix_d SumAffectedsScore2;
   Matrix_d SumAffectedsVarScore;
   Matrix_d SumAffectedsScore;
   Matrix_d SumAffectedsInfo;
   
-  MatrixArray_d *ScoreWithinHaplotype;
-  MatrixArray_d *InfoWithinHaplotype;
-  MatrixArray_d SumScoreWithinHaplotype;
-  MatrixArray_d SumScore2WithinHaplotype;
-  MatrixArray_d SumInfoWithinHaplotype;
+  Matrix_d **ScoreWithinHaplotype;
+  Matrix_d **InfoWithinHaplotype;
+  Matrix_d *SumScoreWithinHaplotype;
+  Matrix_d *SumScore2WithinHaplotype;
+  Matrix_d *SumInfoWithinHaplotype;
 
-  Matrix_d U; 
-  Matrix_d I; 
-  Matrix_d SumU; 
-  Matrix_d SumU2; 
-  Matrix_d SumI;
+  Matrix_d AdmixtureScore; 
+  Matrix_d AdmixtureInfo; 
+  Matrix_d SumAdmixtureScore; 
+  Matrix_d SumAdmixtureScore2; 
+  Matrix_d SumAdmixtureInfo;
 
   std::ofstream assocscorestream;
   std::ofstream * ancestryAssociationScoreStream;
@@ -58,7 +58,7 @@ private:
 
   LogWriter *Logptr;
 //OUTPUT
-  void OutputTestsForLocusLinkage( int, std::ofstream *, MatrixArray_d, MatrixArray_d, MatrixArray_d );
+  //void OutputTestsForLocusLinkage( int, std::ofstream *, Matrix_d *, Matrix_d *, Matrix_d *);
   
   void OutputTestsForLocusLinkage2( int, std::ofstream *,Matrix_d, Matrix_d, Matrix_d, Matrix_d );
 
@@ -66,7 +66,7 @@ private:
   
   void OutputTestsForSNPsInHaplotype( int );
   
-  void OutputScoreTest( int );
+  void OutputAdmixtureScoreTest( int );
 
   void UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int locus, double p,double phi, double DInvLink);
   Vector_i GetAlleleCountsInHaplotype(unsigned short **genotype, int NumberOfLoci);
@@ -78,8 +78,14 @@ private:
 
   //void UpdateScoreForAncestryOld( Individual* ind, double Y, int regressonindicator, double EY, double lambda0);
 
-  void UpdateScoreForAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink);
+  void UpdateScoreForAdmixtureAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink);
 
+  static std::string double2R( double );
+
+  static void 
+  R_output3DarrayDimensions(std::ofstream* stream,std::vector<int> dim,std::vector<std::string> labels);    
+
+  void Reset();
 
 public:
   ScoreTests();
@@ -91,13 +97,6 @@ public:
   void Output(int,std::string *);
 
   void ROutput();
-
-  static std::string  double2R( double );
-
-  static void 
-  R_output3DarrayDimensions(std::ofstream* stream,std::vector<int> dim,std::vector<std::string> labels);    
-
-  void Reset();
 
   void SetAllelicAssociationTest();
 

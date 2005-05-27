@@ -16,6 +16,8 @@ Matrix_d Individual::Xcov;
 
 unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
+int *Individual::sumxi;
+double Individual::Sumrho0;
 
 Individual::Individual()
 {
@@ -37,7 +39,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
             else
                 _rho.assign(2,1);
     }
-    for(int j=0 ;j<2;++j) f[j] = new double[Loci.GetNumberOfCompositeLoci()];
+    for(int j = 0 ;j < 2; ++j) f[j] = new double[Loci.GetNumberOfCompositeLoci()];
 
     // Read sex value if present.
     if (options->genotypesSexColumn() == 1) {
@@ -49,7 +51,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     //create vector of jump indicators
     vector<bool> true_vector(numCompositeLoci,true);
     _xi.assign(2,true_vector);
-    sumxi.SetNumberOfElements(numCompositeLoci);
+    sumxi = new int[numCompositeLoci];
 
     LocusAncestry = new Matrix_i[ numChromosomes ]; // array of matrices in which each col stores 2 integers 
  
@@ -138,16 +140,22 @@ Individual::~Individual()
   delete[] LocusAncestry;  
   delete[] f[0];
   delete[] f[1];
+  delete[] sumxi;
 
 }
 
 void Individual::Reset(){
-  sumxi.SetElements( 0 );
   SumLocusAncestry.SetElements(0);
   ThetaProposal.SetElements( 0.0 );
   ThetaXProposal.SetElements(0.0 );
   SumLocusAncestry_X.SetElements(0);
   
+}
+
+void Individual::ResetStaticSums(){
+  //  sumxi.SetElements( 0 );
+  for(unsigned int i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)sumxi[i] = 0;
+  Sumrho0 = 0;
 }
 
 unsigned short **Individual::getGenotype(unsigned int locus){
@@ -207,9 +215,13 @@ Individual::getXi()
    return _xi;
 }
 
-Vector_i Individual::getSumXi()
+int *Individual::getSumXi()
 {
    return sumxi;
+}
+
+int Individual::getSumXi(int j){
+  return sumxi[j];
 }
 
 double Individual::getSumrho0()
@@ -380,38 +392,46 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 //DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
 //dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 {
-  double u;
+  //int locus;
 
   //reset xi, theta and SumLocusAncestry
   Reset();
   
   // ?next step should be to calculate transition matrices 
   
-  //fill f with values in AlleleFreqs;
-  A->getLociCorrSummary(f);
-  
-  Sumrho0 = 0;
-  int locus = 0;
-  // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
-  // required to calculate transition matrices 
-  if( options->getRhoIndicator() ){
-    for( unsigned int j = 0; j < numChromosomes; j++ ){
-      locus++;
-      for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-	f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
-	if( options->isRandomMatingModel() ){
-	  f[1][locus] = exp( -Loci->GetDistance( locus ) * _rho[1] );
-	  }
-	else
-	  f[1][locus] = f[0][locus];
-	locus++;
-      }
-    }
-  }
+//   locus = 0;
+//   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
+//   // required to calculate transition matrices 
+//   if( options->getRhoIndicator() ){
+//     for( unsigned int j = 0; j < numChromosomes; j++ ){
+//       locus++;
+//       for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
+// 	f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
+// 	if( options->isRandomMatingModel() ){
+// 	  f[1][locus] = exp( -Loci->GetDistance( locus ) * _rho[1] );
+// 	  }
+// 	else
+// 	  f[1][locus] = f[0][locus];
+// 	locus++;
+//       }
+//     }
+//   }
+//   else{
+//     //fill f with values in AlleleFreqs;
+//     //locus = 0;
+//     for( unsigned int j = 0; j < numChromosomes; j++ ){
+//       locus++;
+//       for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
+// 	f[0][locus] = f[1][locus] = exp( -Loci->GetDistance( locus ) * rho );
+// 	locus++;
+//       }
+//     }
+//   }
 
   bool isdiploid;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     //Update Forward/Backward probs in HMM
+    //isdiploid = UpdateForBackProbs(j, chrm[j], A, options);
     isdiploid = UpdateForBackProbs(j, chrm[j], A, options);
 
     //update score tests for linkage with ancestry for *previous* iteration
@@ -432,8 +452,8 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 
     //Sample locus ancestry
     // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
-    //chrm[j]->SampleForLocusAncestry(&LocusAncestry[j],isdiploid);
-    chrm[j]->NewSampleForLocusAncestry(&LocusAncestry[j], Theta,f,options->isRandomMatingModel(),isdiploid);
+    //chrm[j]->SampleLocusAncestry(&LocusAncestry[j], Theta,f, isdiploid);
+    chrm[j]->SampleLocusAncestry(&LocusAncestry[j], Theta,isdiploid);
  
    //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
@@ -450,12 +470,15 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
      }   
 
     //update jump indicators xi 
-    SampleJumpIndicators(j, chrm[j], Loci,options->isRandomMatingModel()); 
+    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], &_xi, sumxi, &Sumrho0);
+    //sum ancestry states over loci where jump indicator is 1 
+    SumAncestry(j,chrm[j]);
     
   }//end chromosome loop
 
   if( options->getAnalysisTypeIndicator() > 1 ){
     // sample missing values of outcome variable
+    double u;
     for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
       if( (*Target)(k).IsMissingValue( i, 0 ) ){
 	if( !OutcomeType(k) ) // linear regression
@@ -590,61 +613,35 @@ void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vecto
 }
 
 //Updates forward and backward probabilities in HMM for chromosome j 
+//bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options){
 bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options){
   bool isdiploid;
   //Update Forward/Backward probs in HMM
   if( j != X_posn ){
-    //chrm->UpdateParameters( this, A,Theta, options, f, false, true );
-    chrm->NewUpdateParameters(this, A, Theta, options, f,false, true);
+    //chrm->UpdateParameters(this, A, Theta, options, f,false, true);
+    chrm->UpdateParameters(this, A, Theta, options, _rho, false, true);
     isdiploid = true;
   }
   else if( options->getXOnlyAnalysis() ){
     //chrm->UpdateParameters( this, A,Theta, options, f, false, false );
-    chrm->NewUpdateParameters( this, A,Theta, options, f, false, false );
+    chrm->UpdateParameters( this, A,Theta, options, _rho, false, false );
     isdiploid = false;
   }
   else if( sex == 1 ){
     //chrm->UpdateParameters( this, A,ThetaX, options, f, false, false );
-    chrm->NewUpdateParameters( this, A,ThetaX, options, f, false, false );
+    chrm->UpdateParameters( this, A,ThetaX, options, _rho, false, false );
     isdiploid = false;
   }
   else{
     //chrm->UpdateParameters( this, A,ThetaX, options, f, false, true );
-    chrm->NewUpdateParameters( this, A,ThetaX, options, f, false, true );
+    chrm->UpdateParameters( this, A,ThetaX, options, _rho, false, true );
     isdiploid = true;
   }
   return isdiploid;
 }
 
-//samples jump indicators xi for chromosome j
-void Individual::SampleJumpIndicators(unsigned int j, Chromosome *chrm, Genome *Loci, bool RandomMatingModel){
-  int locus;
-  double q, Prob;
-  for( unsigned int jj = 1; jj < chrm->GetSize(); jj++ ){
-    locus = chrm->GetLocus(jj);    
-    for( unsigned int g = 0; g < gametes[j]; g++ ){
-      if( LocusAncestry[j](g,jj-1) == LocusAncestry[j](g,jj) ){
-	if( RandomMatingModel && g == 1 ){
-	  q = Theta( LocusAncestry[j](g,jj), g );
-	} else {
-	  q = Theta( LocusAncestry[j](g,jj), 0 );
-	}
-	Prob = (1 - f[g][locus]) / ( 1 - f[g][locus] + f[g][locus] / q );
-	if( Prob > myrand() ){
-	  _xi[g][locus] = true;
-	  sumxi(locus)++;
-	} else {
-	  _xi[g][locus] = false;
-	  Sumrho0 += Loci->GetDistance( locus );
-	}
-      } else {
-	_xi[g][locus] = true;
-	sumxi(locus)++;
-      }
-    }
-    //locus++;
-  }
-  locus = chrm->GetLocus(0);
+void Individual::SumAncestry(unsigned int j, Chromosome *chrm){
+  int locus = chrm->GetLocus(0);
   // sum ancestry states over loci where jump indicator is 1
   for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
     for( unsigned int g = 0; g < gametes[j]; g++ ){
@@ -1077,21 +1074,22 @@ void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, doub
 
 }
 
-double
+//TODO: need to fix this
+double 
 Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, Matrix_d ancestry, vector<double> rho )
 {
    double LogLikelihood = 0.0;
    _rhoHat = rho;
    AdmixtureHat = ancestry;
-   Vector_d ff( A->GetNumberOfCompositeLoci() );
 
-   for(int j=0;j<A->GetNumberOfCompositeLoci();++j)f[0][j] = ff(j);
+   for(int j=0;j<A->GetNumberOfCompositeLoci();++j)f[0][j] = 0.0;
   
    for( unsigned int jj = 1; jj < chrm[0]->GetSize(); jj++ ){
      f[0][jj] = exp( -Loci->GetDistance( jj ) * _rhoHat[0] );
    }
    //chrm[0]->UpdateParameters( this, A,AdmixtureHat, options, f, true, false );
-   chrm[0]->NewUpdateParameters( this, A,AdmixtureHat, options, f, true, false );
+   chrm[0]->UpdateParameters( this, A,AdmixtureHat, options, _rhoHat,  true, false );
+
    LogLikelihood += chrm[0]->getLogLikelihood();
 
    return LogLikelihood;
@@ -1100,17 +1098,15 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
 //do we need 2 getLogLikelihood functions?
 //This one is called by InitializeChib, called in turn by ChibLikelihood
 //only used to compute marginal likelihood   
-double
-Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, Matrix_d ancestry, vector<double> rho, Matrix_d ancestry_X, vector<double> rho_X )
+double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, Matrix_d ancestry, vector<double> rho, Matrix_d ancestry_X, vector<double> rho_X )
 {
    int locus = 0;
    _rhoHat = rho;
    AdmixtureHat = ancestry;
    double LogLikelihood = 0.0;
-   Vector_d ff( A->GetNumberOfCompositeLoci() );
 
-   for(int j=0;j<2;++j){
-     for(int k = 0;k<A->GetNumberOfCompositeLoci();++k)f[j][k] = ff(k);
+   for(int j = 0; j < 2;++j){
+     for(unsigned int k = 0;k<Loci->GetNumberOfCompositeLoci();++k)f[j][k] = 0.0;
    }
    
    for( unsigned int j = 0; j < numChromosomes; j++ ){      
@@ -1124,10 +1120,9 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
             else
                f[1][locus] = f[0][locus];
             locus++;
-         }
+	}
 	//chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, f, true, true);
-	chrm[j]->NewUpdateParameters( this,A, AdmixtureHat, options, f, true, true);
-         //LogLikelihood += chrm[j]->getLogLikelihood();
+	chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, _rhoHat, true, true);
       }
       else{
          _rhoHat_X = rho_X;
@@ -1141,13 +1136,12 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
          }
          if( sex == 1 ){
 	   //chrm[j]->UpdateParameters( this,A, XAdmixtureHat, options, f, true, false);
-	   chrm[j]->NewUpdateParameters( this,A, XAdmixtureHat, options, f, true, false);
+	   chrm[j]->UpdateParameters( this,A, XAdmixtureHat, options, _rhoHat_X, true, false);
 	 }
-         else{
+         else{//sex = 2
 	   //chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, f, true, true);
-	   chrm[j]->NewUpdateParameters( this, A,XAdmixtureHat, options, f, true, true);
+	   chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, _rhoHat_X, true, true);
 	 }
-         //LogLikelihood += chrm[j]->getLogLikelihood();
       }
       LogLikelihood += chrm[j]->getLogLikelihood();
    }
@@ -1155,8 +1149,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome 
    return LogLikelihood;
 }
 
-double
-Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
+double Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
 {
    double Likelihood = 0.0;
    double **Prob;
@@ -1172,15 +1165,13 @@ Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
 
 //do we need 2 getLogLikelihood functions?
 //called at top of ChibLikelihood, used to compute marginal likelihood
-double
-Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome **chrm )
+double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome **chrm )
 {
    int locus = 0;
    double LogLikelihood = 0.0;
-   Vector_d ff( A->GetNumberOfCompositeLoci() );
  
-   for(int j=0;j<2;++j){
-     for(int k =0;k<A->GetNumberOfCompositeLoci();++k)f[j][k] = ff(k);
+   for(int j = 0; j < 2;++j){
+     for(int k =0;k<A->GetNumberOfCompositeLoci();++k)f[j][k] = 0.0;
    }
    
    for( unsigned int j = 0; j < numChromosomes; j++ ){      
@@ -1196,8 +1187,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
             locus++;
          }
 	//chrm[j]->UpdateParameters( this, A,Theta, options, f, false, true);
-	chrm[j]->NewUpdateParameters( this, A,Theta, options, f, false, true);
-	//LogLikelihood += chrm[j]->getLogLikelihood();
+	chrm[j]->UpdateParameters( this, A,Theta, options, _rho, false, true);
       }
       else if( options->getXOnlyAnalysis() ){
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
@@ -1205,8 +1195,7 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
             locus++;
          }
 	//chrm[j]->UpdateParameters( this, A,Theta, options, f, false, false);
-	chrm[j]->NewUpdateParameters( this, A,Theta, options, f, false, false);
-         //LogLikelihood += chrm[j]->getLogLikelihood();
+	chrm[j]->UpdateParameters( this, A,Theta, options, _rho, false, false);
       }
       else{
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
@@ -1218,13 +1207,12 @@ Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome 
          }
 	if( sex == 1 ){
 	  //chrm[j]->UpdateParameters( this, A,Theta, options, f, false, false );
-	 chrm[j]->NewUpdateParameters( this, A,Theta, options, f, false, false );
+	  chrm[j]->UpdateParameters( this, A,Theta, options, _rho_X, false, false );
 	}
 	else{
 	  //chrm[j]->UpdateParameters( this, A,Theta, options, f, false, true );
-	 chrm[j]->NewUpdateParameters( this, A,Theta, options, f, false, true );
+	  chrm[j]->UpdateParameters( this, A,Theta, options, _rho_X, false, true );
 	}
-         //LogLikelihood += chrm[j]->getLogLikelihood();
       }
       LogLikelihood += chrm[j]->getLogLikelihood();
      }

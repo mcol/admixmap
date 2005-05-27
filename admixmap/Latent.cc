@@ -366,8 +366,12 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
     if( Loci->GetLengthOfGenome() > 0.0 ){
       // Sample for global rho
       if( !options->getRhoIndicator() ){
-	RhoParameters[3] = individuals->GetSumrho0();
-	rhodata_i(0).SetColumn( 0, individuals->GetSumXi() );
+	//RhoParameters[3] = individuals->GetSumrho0();//equivalent to next line
+	RhoParameters[3] = Individual::getSumrho0();
+	for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+	  //rhodata_i(0)(j,0) = individuals->GetSumXi()[j];//equivalent to next line
+	  rhodata_i(0)(j,0) = Individual::getSumXi(j);
+	//rhodata_i(0).SetColumn( 0, individuals->GetSumXi() );
 	rho = sampleForRho();
       }
       else{

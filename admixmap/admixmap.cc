@@ -66,8 +66,8 @@ void submain(AdmixOptions* options){
   DispersionTest DispTest;
   chib MargLikelihood;
 
-  std::vector<bool> _admixed;
-  bool _symmetric;
+  std::vector<bool> _admixed;//don't belong
+  bool _symmetric;          //here  
 
 
   Vector_d poptheta;
@@ -90,13 +90,17 @@ void submain(AdmixOptions* options){
   Regression R;
 
   A.LoadAlleleFreqs(options,&chrm,&Log,&data,&PopulationLabels);//NB this sets Populations option
-  data.determineIfPedFile(options);
   IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
   IC->LoadGenotypes(options,&data, &Log, &Loci);                             //and before L and R Initialise
  
   L.Initialise(IC, &LogFileStream, &_admixed, &_symmetric, &poptheta, PopulationLabels);
   R.Initialise(IC, options, PopulationLabels, &Log);
-  A.Initialise(options, data.getEtaPriorMatrix(), &Log, PopulationLabels, L.getrho());
+  A.Initialise(options, data.getEtaPriorMatrix(), &Log, PopulationLabels);
+
+  if( !options->getRhoIndicator() )
+    for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
+      chrm[j]->InitialiseLociCorr(L.getrho());
+    }
   IC->Initialise(options, R.getbeta(), &Loci, PopulationLabels, L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
 
   options->PrintOptions();//NB: call after all options are set
@@ -155,7 +159,10 @@ void submain(AdmixOptions* options){
       // sum of rho and rho-squared over all individuals or gametes 
       L.Update(iteration, IC, &poptheta,&LogFileStream);
       A.ResetSumAlleleFreqs();
-      if( !options->getRhoIndicator() )  A.load_f(L.getrho(),chrm);
+      if( !options->getRhoIndicator() )  
+	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
+	  chrm[j]->SetLociCorr(L.getrho());
+	}
       R.Update(IC);
       
       if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
@@ -210,6 +217,7 @@ void submain(AdmixOptions* options){
       }//end if after BurnIn
       if(iteration == options->getTotalSamples())
 	AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, PopulationLabels, options->IsPedFile());
+
     }//end main loop
     
     if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);
@@ -221,7 +229,7 @@ void submain(AdmixOptions* options){
   //     delete chrm[i];
   //   }
   
-  delete IC;//must call explicitly as IndAdmixOutputter destructor finishes writing to indadmixture.txt
+  delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
   for(unsigned int i=0; i < Loci.GetNumberOfCompositeLoci(); i++){
     delete Loci(i);

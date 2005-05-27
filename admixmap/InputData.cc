@@ -133,36 +133,43 @@ void InputData::readData(AdmixOptions *options, LogWriter * /*log*/)
     exit(1);
   }
   NumSimpleLoci = getNumberOfSimpleLoci();
-  //determineIfPedFile( options );
   NumIndividuals = getNumberOfIndividuals();
+  IsPedFile = determineIfPedFile( options );
+  CheckGeneticData(options->genotypesSexColumn());
   //convertGenotypesToIntArray(options );
 
 }
 
+//determine number of individuals by counting lines in genotypesfile 
 int InputData::getNumberOfIndividuals() {
   return(geneticData_.size() - 1);
 }
 
+//determine number of loci by counting rows of locusfile
 int InputData::getNumberOfSimpleLoci() {
   return(geneInfoData_.size() - 1);
 }
-void InputData::determineIfPedFile(AdmixOptions *options) {
+bool InputData::determineIfPedFile(AdmixOptions *options) {
   // Determine if genotype table is in pedfile format by testing if number of strings in row 1 equals
   // twice the number of strings in the header row minus one. 
   // 
   const int isPedFile = 2*geneticData_[0].size() - 1 == geneticData_[1].size() ? 1 : 0;
   options->IsPedFile(isPedFile);
-  int TotalLoci = geneInfoData_.size() - 1;
 
-  for(unsigned int i=1; i <= geneticData_.size() - 1; ++i){
+  return (isPedFile==1);
+}
+
+//checks number of loci in genotypes file is the same as in locusfile
+void InputData::CheckGeneticData(int genotypesSexColumn){
+  for(int i = 1; i <= NumIndividuals; ++i){
     //should use logmsg
-    if (isPedFile == 1) {
-      if (geneticData_[i].size() != 2*TotalLoci + 1 + options->genotypesSexColumn()) {
+    if (IsPedFile) {
+      if ((int)geneticData_[i].size()-1 != 2*NumSimpleLoci + genotypesSexColumn) {
 	cout << "Error in formatting of line " <<i+1<<" of genotypesfile"<< endl;
 	exit(0);
       }
     } else {
-      if (geneticData_[i].size() != TotalLoci + 1 + options->genotypesSexColumn()) {
+      if ((int)geneticData_[i].size()-1 != NumSimpleLoci + genotypesSexColumn) {
 	cout << "Error in formatting of line "<<i+1<<" of genotypesfile" << endl;
 	exit(0);
       }
@@ -170,6 +177,7 @@ void InputData::determineIfPedFile(AdmixOptions *options) {
   }
 }
 
+//returns sex value from genotypes file for individual i
 int InputData::GetSexValue(int i){
   //if (options->genotypesSexColumn() == 1) {
     int sex = StringConvertor::toInt(geneticData_[i][1]);

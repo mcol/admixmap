@@ -60,7 +60,7 @@ public:
   const Matrix_d& getMLEMatrix() const;
   const Matrix_d& getReportedAncestryMatrix() const;
 
-  void determineIfPedFile(AdmixOptions *options);
+  bool determineIfPedFile(AdmixOptions *options);
   void convertGenotypesToIntArray(AdmixOptions *options);
   void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
 
@@ -91,6 +91,8 @@ private:
 
   int NumIndividuals;
   int NumSimpleLoci;
+  int NumCompositeLoci;
+  bool IsPedFile;
 
   Matrix_g genotypes_g; // 3-way array of genotypes: indivs, simple loci, alleles
   
@@ -104,6 +106,8 @@ private:
    */    
   InputData(const InputData&);
   void operator=(const InputData&);
+
+  void CheckGeneticData(int genotypesSexColumn);
 };
 
 #endif /* !defined INPUT_DATA_H */

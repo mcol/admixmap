@@ -35,7 +35,7 @@ private:
   void CheckGenotypes(Genome *Loci, LogWriter *Log);
   void InitialiseMLEs(double, double, AdmixOptions *, const Matrix_d&);
 
-  unsigned int NumInd;
+  unsigned int NumInd, NumCompLoci;
   //MLEs of Individual admixture and sumintensities
   //used to calculate marginal likelihood
   vector< vector<double> > rhohat, rhohatX;
@@ -92,7 +92,8 @@ public:
   void setAdmixtureProps(Matrix_d);
   void setAdmixturePropsX(Matrix_d);
 
-  Vector_i GetSumXi();
+  int *GetSumXi();
+  int GetSumXi(int j);
   double GetSumrho0();
   double GetSumrho();
   double getSumLogTheta(int);

@@ -21,6 +21,8 @@ public:
 
   static void SetStaticMembers(int nchr, Genome *pLoci);
 
+  static void ResetStaticSums();
+
   int getSex();
 
   Matrix_d& getAdmixtureProps();
@@ -41,9 +43,11 @@ public:
 
   const std::vector< std::vector<bool> >&  getXi();
 
-  Vector_i getSumXi();
+  static int *getSumXi();
 
-  double getSumrho0();
+  static int getSumXi(int j);
+
+  static double getSumrho0();
 
   double getSumrho();
 
@@ -87,14 +91,15 @@ public:
   static void SumScoresForAncestry(int j, int Populations,  
 				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
 				      Matrix_d *SumAncestryVarScore);
-  void UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool ModelIndicator, Chromosome **);//could be private
-  void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **, int Populations);
+
 
 private:
   unsigned short ***genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
 
   std::vector< std::vector<bool> > _xi;//jump indicators
+  static int *sumxi;//sum of xi over individuals, gametes
+  static double Sumrho0;//? sum of distances between loci where there are no arrivals, summed over individuals
 
   static unsigned int numChromosomes;
   static Genome *Loci;
@@ -107,8 +112,6 @@ private:
   Matrix_i *LocusAncestry;
   Matrix_i SumLocusAncestry, SumLocusAncestry_X;
 
-  double Sumrho0;
-  Vector_i sumxi;
   std::vector< double > _rho;
   std::vector< double > _rho_X;
   std::vector< double > _rhoHat;
@@ -150,7 +153,7 @@ private:
 
   bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options);
 
-  void SampleJumpIndicators(unsigned int j, Chromosome *chrm, Genome *Loci, bool ModelIndicator);
+  void SumAncestry(unsigned int j, Chromosome *chrm);
 
   void SampleNumberOfArrivals(AdmixOptions *options, Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
 
@@ -168,10 +171,8 @@ private:
 
   void setIsMissing(vector<unsigned int >& decoded);
 
-  int ***genotype2array();
-  void HapPairs2PossHaps();
-  //void UpdateScoreForLinkageAffectedsOnly(int Populations, bool ModelIndicator, int L);
-
+  void UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool ModelIndicator, Chromosome **);//could be private
+  void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **, int Populations);
 };
 
 
