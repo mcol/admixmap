@@ -19,7 +19,8 @@ class Chromosome:public Genome
 private:
   int _startLoci;
   int populations;
-  int D;
+  int D; 
+  unsigned int L;
   std::string _Label;
   HMM SampleStates;
   double ***Lambda;

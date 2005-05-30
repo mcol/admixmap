@@ -4,24 +4,35 @@
 Regression::Regression(){
   lambda0 = 0.0; //population
   lambda1 = 0.0; //population
+  beta = 0;
+  beta0 = 0;
+  SumBeta = 0;
+  NumOutcomeVars = 0;
 }
 
 Regression::Regression(int nocovariates){
   NoCovariates = nocovariates;
   lambda0 = 0.0; //population
   lambda1 = 0.0; //population
+  beta = 0;
+  beta0 = 0;
+  SumBeta = 0;
+  NumOutcomeVars = 0;
 }
 
 Regression::~Regression(){
-  for(int i=0;i<NoCovariates;i++){
+  for(int i = 0; i < NoCovariates; i++){
     delete BetaDrawArray[i];
   }
   delete [] BetaDrawArray;
-
+  delete[] beta;
+  delete[] beta0;
+  delete[] SumBeta;
 }
 
 void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log){
   AnalysisTypeIndicator = options->getAnalysisTypeIndicator();
+  NumOutcomeVars = individuals->getNumberOfOutcomeVars();
   //Open paramfile 
   if ( strlen( options->getRegressionOutputFilename() ) ){
     outputstream.open( options->getRegressionOutputFilename(), ios::out );
@@ -61,20 +72,29 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
     //  Prior parameters for linear regression
     if( AnalysisTypeIndicator > 1 ){
-      SumBeta.SetNumberOfElementsWithDimensions( individuals->getTargetSize(), NoCovariates, 1 );
-      beta.SetNumberOfElementsWithDimensions( individuals->getTargetSize(), NoCovariates, 1 );
+      beta = new Matrix_d[NumOutcomeVars];
+      SumBeta = new Matrix_d[NumOutcomeVars];
+      for(int i = 0; i < NumOutcomeVars; ++i){
+	SumBeta[i].SetNumberOfElements(NoCovariates, 1 );
+	beta[i].SetNumberOfElements(NoCovariates, 1 );
+      }
      }
 
     double p;
-    beta0.SetNumberOfElementsWithDimensions( individuals->getTargetSize(), NoCovariates, 1 );
-    for( int k = 0; k < individuals->getTargetSize(); k++ ){
+    beta0 = new Matrix_d[NumOutcomeVars];
+      for(int i = 0; i < NumOutcomeVars; ++i){
+	beta0[i].SetNumberOfElements(NoCovariates, 1 );
+      }
+    for( int k = 0; k < NumOutcomeVars; k++ ){
       p = (individuals->getTargetCol(k,0)).Mean();
       if( individuals->getOutcomeType(k) )
-	beta0(k)(0,0) = log( p / ( 1 - p ) );
+	beta0[k](0,0) = log( p / ( 1 - p ) );
       else
-	beta0(k)(0,0) = p;
+	beta0[k](0,0) = p;
     }
-    beta = beta0;
+      for(int i = 0; i < NumOutcomeVars; ++i){
+	beta[i] = beta0[i];
+      }
     
     n0.SetNumberOfElements( NoCovariates, NoCovariates );
     n0.SetDiagonal( 1 );
@@ -82,10 +102,10 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
   lambda0 = .1;
   lambda1 = .1;
-  lambda.SetNumberOfElements( individuals->getTargetSize() );
+  lambda.SetNumberOfElements( NumOutcomeVars );
   lambda.SetElements( .1 );
 
-  SumLambda.SetNumberOfElements( individuals->getTargetSize() );
+  SumLambda.SetNumberOfElements( NumOutcomeVars );
   SumLambda.SetElements( .1 );    
   acceptbeta.SetNumberOfElements( options->getPopulations());
   DrawBeta.SetDimension( NoCovariates );
@@ -97,11 +117,11 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
   }
   if( AnalysisTypeIndicator == 3 || AnalysisTypeIndicator == 4 || AnalysisTypeIndicator == 5){
     Matrix_i empty_i;
-    for( int k = 0; k < individuals->getTargetSize(); k++ ){
+    for( int k = 0; k < NumOutcomeVars; k++ ){
       if( AnalysisTypeIndicator != 5 || (AnalysisTypeIndicator == 5 && individuals->getOutcomeType(k) ) ){
 	BetaParameters.SetElements(0);
 	BetaParameters( NoCovariates + 1 ) = lambda(k);
-	BetaParameters( NoCovariates + 3 ) = beta0(k)(0,0);
+	BetaParameters( NoCovariates + 3 ) = beta0[k](0,0);
 	for( int i = 0; i < NoCovariates; i++ ){
 	  BetaDrawArray[i] = new MetropolisHastings( BetaParameters, lr, dlr, ddlr, empty_i, individuals->getCovariates() );
 	}
@@ -112,20 +132,20 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
 void Regression::Update(IndividualCollection *individuals){
   // Sample for regression model parameters beta
-  for( int k = 0; k < individuals->getTargetSize(); k++ ){
+  for( int k = 0; k < NumOutcomeVars; k++ ){
     //      linear
     if( AnalysisTypeIndicator == 2 || (AnalysisTypeIndicator == 5 && ! individuals->getOutcomeType(k)) ){
       Matrix_d temporary = individuals->getCovariates().Transpose() * individuals->getCovariates() + n0;
       temporary.InvertUsingLUDecomposition();
       temporary.Symmetrize();
-      betan = temporary * ( n0 * beta0(k) + individuals->getCovariates().Transpose() * individuals->getOutcome(k) );
+      betan = temporary * ( n0 * beta0[k] + individuals->getCovariates().Transpose() * individuals->getOutcome(k) );
       double lambdan = lambda0 + 0.5 *
 	( (individuals->getOutcome(k) - individuals->getCovariates() * betan ).Transpose() * individuals->getOutcome(k)
-	  + (beta0(k) - betan).Transpose() * n0 * beta0(k) )(0,0);
+	  + (beta0[k] - betan).Transpose() * n0 * beta0[k] )(0,0);
       lambda(k) = gengam( lambdan, lambda0 + 0.5 * individuals->getSize() );
       DrawBeta.SetMean( betan );
       DrawBeta.SetCovariance( temporary / lambda(k) );
-      beta(k) = DrawBeta.Draw();
+      beta[k] = DrawBeta.Draw();
     }
     //      logistic
     else if( AnalysisTypeIndicator == 3 ||
@@ -137,12 +157,12 @@ void Regression::Update(IndividualCollection *individuals){
 	BetaParameters( NoCovariates + 2 ) = j;
 	BetaParameters( NoCovariates ) = sum( 0, j );
 	BetaDrawArray[j]->UpdateParameters( BetaParameters );
-	acceptbeta(k) = BetaDrawArray[j]->Sample( &( beta(k)(j,0) ) );
-	BetaParameters(j) = beta(k)( j, 0 );
+	acceptbeta(k) = BetaDrawArray[j]->Sample( &( beta[k](j,0) ) );
+	BetaParameters(j) = beta[k]( j, 0 );
       }
     }
     //ExpectedY(k) = individuals->getCovariates * beta(k);
-    individuals->SetExpectedY(k,beta(k));
+    individuals->SetExpectedY(k,beta[k]);
     if( individuals->getOutcomeType(k) )
       // calculateExpectedY( ExpectedY(k), individuals->getSize() );
       individuals->calculateExpectedY(k);
@@ -195,7 +215,7 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
           for( int j = 0; j < NoCovariates; j++ )
 	    {
 	      LogFileStreamPtr->width(9);
-	      (*LogFileStreamPtr) << setprecision(6) << beta(0)( j, 0 ) << " ";
+	      (*LogFileStreamPtr) << setprecision(6) << beta[0]( j, 0 ) << " ";
 	    }
           LogFileStreamPtr->width(9);
           if( AnalysisTypeIndicator == 2 )
@@ -205,13 +225,13 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
 	}
       else if( AnalysisTypeIndicator == 5 )
 	{
-          for( int k = 0; k < individuals->getTargetSize(); k++ )
+          for( int k = 0; k <  NumOutcomeVars; k++ )
 	    {
 	      *LogFileStreamPtr<< "\nRegression " << k << " ";
 	      for( int j = 0; j < NoCovariates; j++ )
 		{
 		  LogFileStreamPtr->width(9);
-		  *LogFileStreamPtr<< setprecision(6) << beta(k)( j, 0 ) << " ";
+		  *LogFileStreamPtr<< setprecision(6) << beta[k]( j, 0 ) << " ";
 		}
 	      LogFileStreamPtr->width(9);
 	      if( ! individuals->getOutcomeType(k) )
@@ -227,18 +247,18 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
      if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
 	for( int j = 0; j < NoCovariates; j++ ){
 	  (cout).width(9);
-	  cout << setprecision(6) << beta(0)( j, 0 ) << " ";
+	  cout << setprecision(6) << beta[0]( j, 0 ) << " ";
 	}
 	(cout).width(9);
 	if( AnalysisTypeIndicator == 2 )
 	  cout << setprecision(6) << lambda;
       }
       else if( AnalysisTypeIndicator == 5 ){
-	for( int k = 0; k < individuals->getTargetSize(); k++ ){
+	for( int k = 0; k < NumOutcomeVars; k++ ){
 	  cout << "\nRegression " << k << " ";
 	  for( int j = 0; j < NoCovariates; j++ ){
 	    (cout).width(9);
-	    cout << setprecision(6) << beta(k)( j, 0 ) << " ";
+	    cout << setprecision(6) << beta[k]( j, 0 ) << " ";
 	  }
 	  (cout).width(9);
 	  if( ! individuals->getOutcomeType(k) )
@@ -251,17 +271,17 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
    if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
      for( int j = 0; j < NoCovariates; j++ ){
        outputstream.width(9);
-       outputstream << setprecision(6) << beta(0)( j, 0 ) << " ";
+       outputstream << setprecision(6) << beta[0]( j, 0 ) << " ";
      }
      outputstream.width(9);
      if( AnalysisTypeIndicator == 2 )
        outputstream << setprecision(6) << lambda(0) << " ";
    }
    else if( AnalysisTypeIndicator == 5 ){
-     for( int k = 0; k < individuals->getTargetSize(); k++ ){
+     for( int k = 0; k < NumOutcomeVars; k++ ){
        for( int j = 0; j < NoCovariates; j++ ){
 	 outputstream.width(9);
-	 outputstream << setprecision(6) << beta(k)( j, 0 ) << " ";
+	 outputstream << setprecision(6) << beta[k]( j, 0 ) << " ";
        }
        if( ! individuals->getOutcomeType(k) ){
 	 outputstream.width(9);
@@ -277,17 +297,17 @@ void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals
   if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
     for( int j = 0; j < NoCovariates; j++ ){
       avgstream->width(9);
-      *avgstream << setprecision(6) << SumBeta(0)( j, 0 ) / samples << " ";
+      *avgstream << setprecision(6) << SumBeta[0]( j, 0 ) / samples << " ";
     }
     avgstream->width(9);
     if( AnalysisTypeIndicator == 2 )
       *avgstream << setprecision(6) << SumLambda(0) / samples << " ";
   }
   else if( AnalysisTypeIndicator == 5 ){
-    for( int k = 0; k < individuals->getTargetSize(); k++ ){
+    for( int k = 0; k < NumOutcomeVars; k++ ){
       for( int j = 0; j < NoCovariates; j++ ){
 	avgstream->width(9);
-	*avgstream << setprecision(6) << SumBeta(k)( j, 0 ) / samples << " ";
+	*avgstream << setprecision(6) << SumBeta[k]( j, 0 ) / samples << " ";
       }
       if( ! individuals->getOutcomeType(k) ){
 	avgstream->width(9);
@@ -300,12 +320,16 @@ void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals
 void Regression::SumParameters(int AnalysisTypeIndicator){
   // accumulate sum of parameters after burnin.
   if( NoCovariates )
-    SumBeta += beta;
+    for(int i = 0; i < NumOutcomeVars; ++i){
+      SumBeta[i] += beta[i];
+    }
   if( AnalysisTypeIndicator > 1 )
     SumLambda += lambda;
 }
-MatrixArray_d *Regression::getbeta(){
-  return &beta;
+Matrix_d *Regression::getbeta(){
+  if(beta)
+    return beta;
+  else return NULL;
 }
 Vector_d *Regression::getlambda(){
   return &lambda;

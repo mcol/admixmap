@@ -158,7 +158,7 @@ void submain(AdmixOptions* options){
       // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
       // sum of rho and rho-squared over all individuals or gametes 
       L.Update(iteration, IC, &poptheta,&LogFileStream);
-      A.ResetSumAlleleFreqs();
+
       if( !options->getRhoIndicator() )  
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
 	  chrm[j]->SetLociCorr(L.getrho());

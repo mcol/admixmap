@@ -154,8 +154,18 @@ void CentredGaussianConditional1( Vector_d mean, Matrix_d var,
 double **alloc2D_d(int m,int n)
 {
   double **M;
-  M = new double*[m];
-  for(int i = 0; i < m; ++i)M[i] = new double[n];
+  try{
+    M = new double*[m];
+    if(M==NULL)throw(0);
+    for(int i = 0; i < m; ++i){
+      M[i] = new double[n];
+      if(M[i] == NULL)throw(0);
+    }
+  }
+  catch(int i){
+    cout<<"Unable to allocate space for matrix"<<endl;
+    exit(1);
+  }
   return M;
 }
 

@@ -10,6 +10,7 @@ void DispersionTest::Initialise(AdmixOptions *op,LogWriter *Log, int NumberOfCom
   divergentallelefreqstest = Matrix_i(NumberOfCompositeLoci + 1, options->getPopulations() );
   
   if( options->getTestForDispersion() ){
+    Log->logmsg(true, "Writing dispersion test results to ");
     Log->logmsg(true,options->getDispersionTestFilename());
     Log->logmsg(true,"\n");
     dispersionoutputstream.open( options->getDispersionTestFilename(), ios::out );

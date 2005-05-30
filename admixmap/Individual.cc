@@ -308,8 +308,8 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
 // then should calculate ratio in Metropolis step 
 //  
 double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool RandomMatingModel,int Populations,
-					      int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY, 
-						  MatrixArray_d &Target, Vector_d &poptheta) 
+					      int NoCovariates, Matrix_d &Covariates0, Matrix_d *beta, Matrix_d *ExpectedY, 
+						  Matrix_d *Outcome, Vector_d &poptheta)
 {
   double probratio, Xbeta = 0;
   // TI = Target Indicator, indicates which outcome var is used
@@ -321,22 +321,22 @@ double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool RandomMati
     avgtheta = ThetaProposal.GetColumn(0) - poptheta;
 
   for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates0( i, jj ) * beta( TI )( jj ,0 );
+    Xbeta += Covariates0( i, jj ) * beta[TI]( jj ,0 );
   for( int k = 0; k < Populations - 1; k++ ){
     //? Old code had 0 instead of TI in for index of beta.
-    Xbeta += avgtheta( k ) * beta(TI)( NoCovariates - Populations + k + 1, 0 );}
+    Xbeta += avgtheta( k ) * beta[TI]( NoCovariates - Populations + k + 1, 0 );}
   double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
-  if( Target( TI )( i, 0 ) == 1 )
-    probratio = newExpectedY / ExpectedY( TI )( i, 0 );
+  if( Outcome[ TI ]( i, 0 ) == 1 )
+    probratio = newExpectedY / ExpectedY[ TI ]( i, 0 );
   else
-    probratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY( TI )( i, 0 ) );
+    probratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY[ TI ]( i, 0 ) );
 
   return( log(probratio) );
 } 
 
 double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  bool RandomMatingModel, int Populations,
-						 int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
-						 MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda)
+						 int NoCovariates, Matrix_d &Covariates0, Matrix_d *beta, Matrix_d *ExpectedY,
+						 Matrix_d *Outcome, Vector_d &poptheta, Vector_d &lambda)
 {
   double prob, Xbeta = 0;
   Vector_d avgtheta;
@@ -346,13 +346,13 @@ double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  bool Random
     avgtheta = ThetaProposal.GetColumn(0) - poptheta;
 
   for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates0( i, jj ) * beta( TI )( jj, 0 );
+    Xbeta += Covariates0( i, jj ) * beta[ TI ]( jj, 0 );
   for( int k = 0; k < Populations - 1; k++ ){
-    Xbeta += avgtheta( k ) * beta( TI )( NoCovariates - Populations + k + 1, 0 );
+    Xbeta += avgtheta( k ) * beta[ TI ]( NoCovariates - Populations + k + 1, 0 );
   }
 
-  prob = 0.5 * lambda( TI ) * (( ExpectedY( TI )( i, 0 ) - Target( TI )( i, 0 ) ) * ( ExpectedY( TI )( i, 0 ) - Target( TI )( i, 0 ) )
-			       - ( Xbeta - Target( TI )( i, 0 ) ) * ( Xbeta - Target( TI )( i, 0 ) ) );
+  prob = 0.5 * lambda( TI ) * (( ExpectedY[ TI ]( i, 0 ) - Outcome[ TI ]( i, 0 ) ) * ( ExpectedY[ TI ]( i, 0 ) - Outcome[ TI ]( i, 0 ) )
+			       - ( Xbeta - Outcome[ TI ]( i, 0 ) ) * ( Xbeta - Outcome[ TI ]( i, 0 ) ) );
 
   return( prob );
 }
@@ -375,9 +375,9 @@ double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int 
    return p;
 }
 
-void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target,
-				   Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
-				   Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, 
+void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
+				  int NumOutcomes,  Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda, int NoCovariates,
+				   Matrix_d &Covariates0, Matrix_d *beta, Vector_d &poptheta, 
 				   AdmixOptions* options, Chromosome **chrm, 
 				   vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, 
 				   double rhobeta,vector<double> sigma, double DInvLink, double dispersion)
@@ -440,13 +440,13 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
       if( options->getAnalysisTypeIndicator() == 0 ) 
 	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->isRandomMatingModel(), 
 					   chrm );
-      else if( options->getTestForAffectedsOnly() && (*Target)(0)(i,0) == 1 ){
+      else if( options->getTestForAffectedsOnly() && Outcome[0](i,0) == 1 ){
 	UpdateScoreForLinkageAffectedsOnly(j,options->getPopulations(), options->isRandomMatingModel(), 
 					   chrm );
       }
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){   
-	UpdateScoreForAncestry(j,dispersion, (*Target)(0)(i,0) - ExpectedY(0)(i,0), DInvLink,chrm, options->getPopulations() );
+	UpdateScoreForAncestry(j,dispersion, Outcome[0](i,0) - ExpectedY[0](i,0), DInvLink,chrm, options->getPopulations() );
       }    
     }
 
@@ -479,16 +479,16 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   if( options->getAnalysisTypeIndicator() > 1 ){
     // sample missing values of outcome variable
     double u;
-    for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
-      if( (*Target)(k).IsMissingValue( i, 0 ) ){
-	if( !OutcomeType(k) ) // linear regression
-	  (*Target)(k)( i, 0 ) = gennor( ExpectedY(k)( i, 0 ), 1 / sqrt( lambda(k) ) );
+    for( int k = 0; k < NumOutcomes; k++ ){
+      if( Outcome[k].IsMissingValue( i, 0 ) ){
+	if( !OutcomeType[k] ) // linear regression
+	  Outcome[k]( i, 0 ) = gennor( ExpectedY[k]( i, 0 ), 1 / sqrt( lambda(k) ) );
 	else{// logistic regression
 	  u = myrand();
-	  if( u * ExpectedY(k)( i, 0 ) < 1 )
-	    (*Target)(k)( i, 0 ) = 1;
+	  if( u * ExpectedY[k]( i, 0 ) < 1 )
+	    Outcome[k]( i, 0 ) = 1;
 	  else
-	    (*Target)(k)( i, 0 ) = 0;
+	    Outcome[k]( i, 0 ) = 0;
 	}
       }
     }
@@ -521,22 +521,22 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   //linear regression case
   if( options->getAnalysisTypeIndicator() == 2 && !options->getScoreTestIndicator() ){
     logpratio = AcceptanceProbForTheta_LinearReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
-					  NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda); 
+					  NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
   }
   //logistic regression case
   else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getScoreTestIndicator() ){
     logpratio = AcceptanceProbForTheta_LogReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
-				       NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
+				       NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta);
     }
   //case of both linear and logistic regressions
   else if( options->getAnalysisTypeIndicator() == 5 ){
-    for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
+    for( int k = 0; k < NumOutcomes; k++ ){
       if( OutcomeType( k ) )
 	logpratio += AcceptanceProbForTheta_LogReg( i, k, options->isRandomMatingModel(), options->getPopulations(),
-					    NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta); 
+					    NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta);
       else
 	logpratio += AcceptanceProbForTheta_LinearReg( i, k, options->isRandomMatingModel(), options->getPopulations(),
-					       NoCovariates, Covariates0, beta, ExpectedY, *Target, poptheta,lambda);
+					       NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
       }
   }
   //case of X only data
@@ -863,19 +863,19 @@ void Individual::SumScoresForAncestry(int j, int Populations,
 }
 
 // unnecessary duplication of code - should use same method as for > 1 population
-void Individual::OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
+void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda,
 				     int AnalysisTypeIndicator )
 {
-  for( int k = 0; k < Target->GetNumberOfElements(); k++ ){
+  for( int k = 0; k < NumOutcomes; k++ ){
     if( AnalysisTypeIndicator > 1 ){
-      if( (*Target)(k).IsMissingValue( i, 0 ) ){
+      if( Outcome[k].IsMissingValue( i, 0 ) ){
 	if( !OutcomeType(k) )
-	  (*Target)(k)( i, 0 ) = gennor( ExpectedY(k)( i, 0 ), 1 / sqrt( lambda(k) ) );
+	  Outcome[k]( i, 0 ) = gennor( ExpectedY[k]( i, 0 ), 1 / sqrt( lambda(k) ) );
 	else{
-	  if( myrand() * ExpectedY(k)( i, 0 ) < 1 )
-	    (*Target)(k)( i, 0 ) = 1;
+	  if( myrand() * ExpectedY[k]( i, 0 ) < 1 )
+	    Outcome[k]( i, 0 ) = 1;
 	  else
-	    (*Target)(k)( i, 0 ) = 0;
+	    Outcome[k]( i, 0 ) = 0;
 	}
       }
     }
@@ -983,11 +983,11 @@ void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> 
  // this function computes marginal likelihood by the Chib algorithm.  Can be replaced with 
   // more efficient algorithm based on HMM likelihood
 // Chib method for marginal likelihood should be rewritten to use the HMM likelihood, without sampling locus ancestry or arrivals
-void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, double *SumLogLikelihood, vector<double> MaxLogLikelihood, 
+void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
 				AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha, 
-				vector<bool> _admixed, double rhoalpha, double rhobeta, MatrixArray_d &thetahat, 
-				MatrixArray_d &thetahatX, vector<vector<double> > &rhohat, 
-				vector<vector<double> > &rhohatX,std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs* A){
+				vector<bool> _admixed, double rhoalpha, double rhobeta, Matrix_d &thetahat,
+				Matrix_d &thetahatX, vector<double> &rhohat,
+				vector<double> &rhohatX,std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs* A){
             
 //           if( iteration <= options->getBurnIn() ){
 
@@ -1010,15 +1010,15 @@ void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, doub
 			       getAdmixtureProps().GetColumn(0))
 	+getDirichletLogDensity(alpha[1],
 				getAdmixtureProps().GetColumn(1));
-      if( *LogLikelihood > MaxLogLikelihood[i] ){
+      if( *LogLikelihood > *MaxLogLikelihood ){
 	*LogFileStreamPtr << getAdmixtureProps()
 			 << _rho[0] << " " << _rho[1]
 			 << endl << *LogLikelihood << endl
 			 << iteration << endl;
-	MaxLogLikelihood[i] = *LogLikelihood;
+	*MaxLogLikelihood = *LogLikelihood;
 	if( iteration <= options->getBurnIn() ){
-	  thetahat(i) = getAdmixtureProps();
-	  rhohat[i] = _rho;
+	  thetahat = getAdmixtureProps();
+	  rhohat = _rho;
 	  A->setAlleleFreqsMAP();
 	  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
 	    CompositeLocus *locus = (CompositeLocus*)(A->getLocus(j));
@@ -1027,16 +1027,16 @@ void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, doub
 	      locus->setHaplotypeProbsMAP();
 	  }
 	  if( Loci->isX_data() ){
-	    thetahatX(i) = getAdmixturePropsX();
-	    rhohatX[i] = _rho_X;
+	    thetahatX = getAdmixturePropsX();
+	    rhohatX = _rho_X;
 	  }
 	}
       }
     }
     else{//populations <=0
-      if( *LogLikelihood > MaxLogLikelihood[i] ){
+      if( *LogLikelihood > *MaxLogLikelihood ){
 
-	MaxLogLikelihood[i] = *LogLikelihood;
+	*MaxLogLikelihood = *LogLikelihood;
 	if( iteration <= options->getBurnIn() ){
 	  A->setAlleleFreqsMAP();
 	  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
@@ -1050,7 +1050,7 @@ void Individual::ChibLikelihood(int i,int iteration, double *LogLikelihood, doub
     }
     if( options->getAnalysisTypeIndicator() == -1 ){
       if( iteration == options->getBurnIn() ){
-	InitializeChib(thetahat(0), thetahatX(0), rhohat[0], rhohatX[0], 
+	InitializeChib(thetahat, thetahatX, rhohat, rhohatX,
 		       options, A, chrm, rhoalpha, rhobeta, 
 		       alpha, _admixed, MargLikelihood, LogFileStreamPtr);
       }

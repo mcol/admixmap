@@ -9,7 +9,6 @@
 #include "Individual.h"
 #include "IndAdmixOutputter.h"
 #include "matrix.h"
-#include "MatrixArray_d.h"
 #include "matrix_d.h"
 #include "matrix_i.h"
 #include "vector.h"
@@ -39,20 +38,21 @@ private:
   //MLEs of Individual admixture and sumintensities
   //used to calculate marginal likelihood
   vector< vector<double> > rhohat, rhohatX;
-  MatrixArray_d thetahat;
-  MatrixArray_d thetahatX;
+  Matrix_d *thetahat;
+  Matrix_d *thetahatX;
   vector<double> MaxLogLikelihood;
 
   //Regression Objects
-  MatrixArray_d ExpectedY;
-  MatrixArray_d Target;
+  Matrix_d *ExpectedY;
+  Matrix_d *Outcome;
+  int NumOutcomes;
   Matrix_d Covariates;
   Matrix_d Input;
   std::string *CovariateLabels;
   std::string *TargetLabels;
   Vector_i OutcomeType;
 
-  MatrixArray_d ReportedAncestry;
+  Matrix_d *ReportedAncestry;
   std::vector<double> sigma;
   IndAdmixOutputter* indadmixoutput;
   double LogLikelihood, SumLogLikelihood;
@@ -64,7 +64,7 @@ public:
   ~IndividualCollection();
   IndividualCollection(AdmixOptions*,InputData *Data,Genome&,Chromosome **);
 
-  void Initialise(AdmixOptions *, MatrixArray_d *,Genome *,std::string *PopulationLabels, double rhoalpha,double rhobeta, LogWriter *Log,
+  void Initialise(AdmixOptions *, Matrix_d *,Genome *,std::string *PopulationLabels, double rhoalpha,double rhobeta, LogWriter *Log,
 		  const Matrix_d &MLEMatrix);
 
   void LoadGenotypes(AdmixOptions *options, InputData *, LogWriter *Log, Genome *Loci);
@@ -88,7 +88,6 @@ public:
 
   Individual* getIndividual(int);
 
-  MatrixArray_d getAncestries();
   void setAdmixtureProps(Matrix_d);
   void setAdmixturePropsX(Matrix_d);
 
@@ -97,10 +96,10 @@ public:
   double GetSumrho0();
   double GetSumrho();
   double getSumLogTheta(int);
-  MatrixArray_d getOutcome();
   Matrix_d getOutcome(int);
+  double getOutcome(int, int);
   Vector_d getTargetCol(int,int);
-  int getTargetSize();
+  int getNumberOfOutcomeVars();
   int GetNumberOfInputRows();
   int GetNumberOfInputCols();
 

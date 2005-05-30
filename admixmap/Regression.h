@@ -5,7 +5,6 @@
 
 #include "vector_d.h"
 #include "vector_i.h"
-#include "MatrixArray_d.h"
 #include "gaussian_d.h"
 #include "AdmixOptions.h"
 #include "IndividualCollection.h"
@@ -15,7 +14,6 @@
  class Matrix_d;
 // class Vector_i;
 // class Matrix_i;
-// class MatrixArray_d;
 
 class Regression{
 
@@ -29,14 +27,14 @@ public:
   void InitializeOutputFile(AdmixOptions *, IndividualCollection *individuals,std::string *PopulationLabels);
   void Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOptions *, IndividualCollection *individuals);
   void OutputErgodicAvg(int iteration, IndividualCollection *individuals,std::ofstream *avgstream);
-  MatrixArray_d *getbeta();
+  Matrix_d *getbeta();
   Vector_d *getlambda();
   int getNoCovariates();
   double getlambda0();
   double getDispersion(int);
 
 private:
-  int NoCovariates,AnalysisTypeIndicator;
+  int NoCovariates, NumOutcomeVars, AnalysisTypeIndicator;
 
   Matrix_d n0; //
   Gaussian DrawBeta;
@@ -50,9 +48,9 @@ private:
   double lambda0; //parameters of
   double lambda1; //prior for lambda
 
-  MatrixArray_d beta;//regression parameters
-  MatrixArray_d beta0; //
-  MatrixArray_d SumBeta;//running sums (for ergodic averages) 
+  Matrix_d *beta;//regression parameters
+  Matrix_d *beta0; //
+  Matrix_d *SumBeta;//running sums (for ergodic averages) 
   Vector_d SumLambda;
  
   std::ofstream outputstream;//output to regparamfile

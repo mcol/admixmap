@@ -25,7 +25,6 @@ CompositeLocus::CompositeLocus()
   Vector_i      null_Vector_i(1);
   Matrix_i      null_Matrix_i(1,1);
   Matrix_d      null_Matrix_d(1,1);
-  MatrixArray_d null_MatrixArray_d;
   
   // not previously defined
   Populations = 0;

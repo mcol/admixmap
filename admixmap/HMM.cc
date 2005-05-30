@@ -2,7 +2,6 @@
 #include "vector_i.h"
 #include "vector_d.h"
 #include "matrix_d.h"
-#include "MatrixArray_d.h"
 #include "HMM.h"
 #include "functions.h"
 

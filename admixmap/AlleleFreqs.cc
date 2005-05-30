@@ -1,6 +1,6 @@
 #include "AlleleFreqs.h"
 #include "StringSplitter.h"
-
+#include "DARS.h"
 
 //belongs in InputData
 static void getLabels(const Vector_s& data, Vector_i temporary, string *labels)
@@ -572,7 +572,6 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
      
     Vector_d EtaParameters(3), probs;
     Matrix_d stats;
-    MatrixArray_d data( NumberOfCompositeLoci );
     
     double etanew, LogPostRatio;
     
@@ -878,12 +877,12 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
 {
    double lefttruncation = 0.1;
    double MuParameters[2];
-   MatrixArray_i counts0(1);
-   MatrixArray_d counts1(1);
+   Matrix_i counts0;
+   Matrix_d counts1;
 
 // Construct adaptive rejection sampler for mu.
-   counts0(0) = AlleleCounts[locus];
-   counts1(0) = HistoricLikelihoodAlleleFreqs[locus];
+   counts0 = AlleleCounts[locus];
+   counts1 = HistoricLikelihoodAlleleFreqs[locus];
    //warning message - move to wherever loci data are read
 //    for(int row=0;row<counts0(0).GetNumberOfRows();++row)for(int col=0;col<counts0(0).GetNumberOfCols();++col)
 //      if(counts0(0)(row,col)==0 && counts1(0)(row,col)==0){
@@ -1127,7 +1126,7 @@ void AlleleFreqs::UpdateFst()
 }
 
 double
-fMu( Vector_d &parameters, MatrixArray_i& counts0, MatrixArray_d& counts1, double mu )
+fMu( Vector_d &parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
 {
 //    Vector_d rn(2), ri(2);
 //    rn(0) = parameters(1);
@@ -1140,14 +1139,14 @@ fMu( Vector_d &parameters, MatrixArray_i& counts0, MatrixArray_d& counts1, doubl
    double f = prior - 2 * gsl_sf_lngamma( mu ) - 2 * gsl_sf_lngamma( eta - mu );
 //   for( int i = 0; i < 2; i++ )
 //      f += gsl_sf_lngamma( mu + ri(i) ) + gsl_sf_lngamma( eta - mu + rn(i) );
-   f += gsl_sf_lngamma( mu+counts0(0)(0,pop) ) + gsl_sf_lngamma( eta-mu+counts0(0)(1,pop) );
-   f += gsl_sf_lngamma( mu+counts1(0)(0,pop) ) + gsl_sf_lngamma( eta-mu+counts1(0)(1,pop) );
+   f += gsl_sf_lngamma( mu+counts0(0,pop) ) + gsl_sf_lngamma( eta-mu+counts0(1,pop) );
+   f += gsl_sf_lngamma( mu+counts1(0,pop) ) + gsl_sf_lngamma( eta-mu+counts1(1,pop) );
 
    return f;
 }
 
 double
-dfMu( Vector_d &parameters, MatrixArray_i& counts0, MatrixArray_d& counts1, double mu )
+dfMu( Vector_d &parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
 {
 //    Vector_d rn(2), ri(2);
 //    rn(0) = parameters(1);
@@ -1174,17 +1173,17 @@ dfMu( Vector_d &parameters, MatrixArray_i& counts0, MatrixArray_d& counts1, doub
 //       f -= y2;
 //    }
 
-   x = mu + counts0(0)(0,pop);
+   x = mu + counts0(0,pop);
    ddigam( &x, &y2 );
    f += y2;
-   x = eta - mu + counts0(0)(1,pop);
+   x = eta - mu + counts0(1,pop);
    ddigam( &x, &y2 );
    f -= y2;
 
-   x = mu + counts1(0)(0,pop);
+   x = mu + counts1(0,pop);
    ddigam( &x, &y2 );
    f += y2;
-   x = eta - mu + counts1(0)(1,pop);
+   x = eta - mu + counts1(1,pop);
    ddigam( &x, &y2 );
    f -= y2;
 
@@ -1192,7 +1191,7 @@ dfMu( Vector_d &parameters, MatrixArray_i& counts0, MatrixArray_d& counts1, doub
 }
 
 double
-ddfMu( Vector_d &parameters, MatrixArray_i& counts0, MatrixArray_d& counts1, double mu )
+ddfMu( Vector_d &parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
 {
 //    Vector_d rn(2), ri(2);
 //    rn(0) = parameters(1);
@@ -1217,17 +1216,17 @@ ddfMu( Vector_d &parameters, MatrixArray_i& counts0, MatrixArray_d& counts1, dou
 //       f += y2;
 //    }
 
-   x = mu + counts0(0)(0,pop);
+   x = mu + counts0(0,pop);
    trigam( &x, &y2 );
    f += y2;
-   x = eta - mu + counts0(0)(1,pop);
+   x = eta - mu + counts0(1,pop);
    trigam( &x, &y2 );
    f += y2;
 
-   x = mu + counts1(0)(0,pop);
+   x = mu + counts1(0,pop);
    trigam( &x, &y2 );
    f += y2;
-   x = eta - mu + counts1(0)(1,pop);
+   x = eta - mu + counts1(1,pop);
    trigam( &x, &y2 );
    f += y2;
 

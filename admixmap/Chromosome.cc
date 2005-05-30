@@ -12,6 +12,8 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
   _startLoci = start;
   populations = inpopulations;
   D = populations * populations;
+  L = size;
+
   SampleStates.SetDimensions( size, populations, true );
 
   Lambda = new double**[size];
@@ -23,19 +25,17 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
   CodedStates = new int[size];
   for(int j = 0; j < 2; ++j) f[j] = new double[size];
 
-  StateArrivalProbs = new double**[NumberOfCompositeLoci];
+  StateArrivalProbs = new double**[L];
   for(int t = 1; t < size; t++ ){        
-    StateArrivalProbs[t] = new double*[populations];
-    for(int j = 0; j < populations; ++j){
-      StateArrivalProbs[t][j] = new double[2];
-    }
+    StateArrivalProbs[t] = alloc2D_d(populations,2);
   }
+
 }
 
 void Chromosome::ResetStuffForX()
 {
   D = populations;
-  SampleStates.SetDimensions( NumberOfCompositeLoci, populations, false );
+  SampleStates.SetDimensions( L, populations, false );
 }
 
 void Chromosome::SetLabel( string label )
@@ -55,7 +55,7 @@ Chromosome::~Chromosome()
   delete[] Lambda;
   delete[] f[0];
   delete[] f[1];
-  for(unsigned  int t = 1; t < NumberOfCompositeLoci; t++ ){
+  for(unsigned  int t = 1; t < L; t++ ){
     for(int j = 0; j < populations; ++j){
       delete[] StateArrivalProbs[t][j];
     }
@@ -75,18 +75,18 @@ Chromosome::GetLocus(int num){
 
 //returns number of composite loci in the chromosome
 unsigned int Chromosome::GetSize(){
-  return NumberOfCompositeLoci;
+  return L;
 }
 
 //Initialises f for global rho. Necessary since individual-level parameters updated before global rho (in Latent)
 void Chromosome::InitialiseLociCorr(const double rho){
-  for(unsigned int j = 1; j < GetNumberOfCompositeLoci(); j++ )
+  for(unsigned int j = 1; j < L; j++ )
     f[0][j] = f[1][j] = ( -GetDistance( j ) * rho > -700) ? exp( -GetDistance( j ) * rho ) : 0.0;
 }
 
 //sets f for global rho, called after Latent is updated
 void Chromosome::SetLociCorr(const double rho){
-    for(unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
+    for(unsigned int jj = 1; jj < L; jj++ ){
       f[0][jj] = f[1][jj] = exp( -GetDistance( jj ) * rho );
     }
 }
@@ -96,8 +96,8 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
   // required to calculate transition matrices 
   if( options->getRhoIndicator() ){
-    
-    for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
+
+    for( unsigned int jj = 1; jj < L; jj++ ){
       f[0][jj] = exp( -GetDistance( jj ) * _rho[0] );
       if( options->isRandomMatingModel() ){
 	  f[1][jj] = exp( -GetDistance( jj ) * _rho[1] );
@@ -112,7 +112,7 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
   bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   if(diploid){
     //construct Lambda
-    for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
+    for(unsigned int j = 0; j < L; j++ ){
       if( !(ind->IsMissing(locus)) ){
 	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), true, fixedallelefreqs );
       }
@@ -122,7 +122,7 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
       locus++;
     }
     //construct StateArrivalProbs
-    for(unsigned int t = 1; t < NumberOfCompositeLoci; t++ ){        
+    for(unsigned int t = 1; t < L; t++ ){        
       for(int j = 0; j < populations; ++j){
 	StateArrivalProbs[t][j][0] = (1.0 - f[0][t]) * Admixture(j,0);
 	if( options->isRandomMatingModel())
@@ -139,7 +139,7 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
   }
 
   else{//haploid
-    for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
+    for(unsigned int j = 0; j < L; j++ ){
       if( !(ind->IsMissing(locus)) ){
 	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), false, fixedallelefreqs );
       }
@@ -157,7 +157,7 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
 void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid){
 
   SampleStates.Sample(CodedStates, Admixture, f, isdiploid);
-  for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
+  for(unsigned int j = 0; j < L; j++ ){
     if(isdiploid){
       //     OrderedStates( 0, j ) = 0;
       (*OrderedStates)( 0, j ) = (int)(CodedStates[j] / populations);
@@ -183,7 +183,7 @@ void Chromosome::getAncestryProbs( int j, double AncestryProbs[][3] ){
   StateProbs = new double[D];//possibly should keep this at class scope
   
   SampleStates.GetStateProbs(StateProbs, j);
-  
+ 
   for( int k1 = 0; k1 < populations; k1++ ){
     AncestryProbs[k1][2] = StateProbs[ ( populations + 1 ) * k1 ];
     AncestryProbs[k1][1] = 0.0;
@@ -209,7 +209,7 @@ void Chromosome::SampleJumpIndicators(const Matrix_i &LocusAncestry,
 
   int locus;
   double Prob;
-  for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
+  for( unsigned int jj = 1; jj < L; jj++ ){
     locus = GetLocus(jj);    
     for( unsigned int g = 0; g < gametes; g++ ){
       if( LocusAncestry(g,jj-1) == LocusAncestry(g,jj) ){

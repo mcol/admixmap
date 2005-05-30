@@ -66,20 +66,20 @@ public:
   double getLogLikelihoodXOnly(AdmixOptions*,AlleleFreqs*,Chromosome**, Matrix_d, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
-  void SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , MatrixArray_d *Target, 
-			 Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, int NoCovariates, 
-			 Matrix_d &Covariates0,MatrixArray_d &beta, Vector_d &poptheta, AdmixOptions* options, 
+  void SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
+			 int NumOutcomes, Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda, int NoCovariates,
+			 Matrix_d &Covariates0, Matrix_d *beta, Vector_d &poptheta, AdmixOptions* options, 
 			 Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
 			 double rhoalpha, double rhobeta, vector<double> sigma, 
 			 double DInvLink, double dispersion);
 
- void OnePopulationUpdate( int i, MatrixArray_d *Target, Vector_i &OutcomeType, MatrixArray_d &ExpectedY, Vector_d &lambda, 
+ void OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda,
 			   int AnalysisTypeIndicator);
 
-  void ChibLikelihood(int i,int iteration, double *LogLikelihood, double *SumLogLikelihood, vector<double> MaxLogLikelihood, 
+  void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
 		      AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha,  
-		      vector<bool> _admixed, double rhoalpha, double rhobeta, MatrixArray_d &thetahat, MatrixArray_d &thetahatX, 
-		      vector<vector<double> > &rhohat,  vector<vector<double> > &rhohatX,
+		      vector<bool> _admixed, double rhoalpha, double rhobeta, Matrix_d &thetahat, Matrix_d &thetahatX,
+		      vector<double> &rhohat, vector<double> &rhohatX,
 		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs *A);
 
   static void InitialiseAffectedsOnlyScores(int L, int K);
@@ -145,11 +145,11 @@ private:
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
   double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
   double AcceptanceProbForTheta_LogReg( int i, int TI, bool ModelIndicator,int Populations, 
-					int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY, 
-					MatrixArray_d &Target, Vector_d &poptheta);
+					int NoCovariates, Matrix_d &Covariates0, Matrix_d *beta, Matrix_d *ExpectedY, 
+					Matrix_d *Outcome, Vector_d &poptheta);
   double AcceptanceProbForTheta_LinearReg( int i, int TI, bool ModelIndicator,int Populations,
-					   int NoCovariates, Matrix_d &Covariates0, MatrixArray_d &beta, MatrixArray_d &ExpectedY,
-					   MatrixArray_d &Target, Vector_d &poptheta, Vector_d &lambda);
+					   int NoCovariates, Matrix_d &Covariates0, Matrix_d *beta, Matrix_d *ExpectedY,
+					   Matrix_d *Outcome, Vector_d &poptheta, Vector_d &lambda);
 
   bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options);
 

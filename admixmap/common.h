@@ -13,9 +13,6 @@
 #include "matrix.h"
 #include "matrix_i.h"
 #include "matrix_d.h"
-#include "MatrixArray_d.h"
-#include "MatrixArray_i.h"
-
 
 typedef std::vector<std::string> Vector_s; //std vector of strings 
 typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors 

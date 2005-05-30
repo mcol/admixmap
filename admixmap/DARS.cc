@@ -37,19 +37,20 @@ DARS::DARS()
    u = new double[ lgth ];  
    z = new double[ lgth ];  
    psum = new double[ lgth ];
-   MatrixArray_i null_MatrixArray_i(1);
-   MatrixArray_d null_MatrixArray_d(1);
-   data_i = null_MatrixArray_i;
-   data_d = null_MatrixArray_d;
+   Matrix_i null_Matrix_i(1,1);
+   Matrix_d null_Matrix_d(1,1);
+   data_i = null_Matrix_i;
+   data_d = null_Matrix_d;
 }
+
 
 DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
             //const Vector_d &inparameters,
 	    const double inparameters[],int size,
-            double (*funct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
-            double (*dfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
-            double (*ddfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
-            const MatrixArray_i &integer_data, const MatrixArray_d &double_data )
+            double (*funct)(Vector_d&, Matrix_i &, Matrix_d &, double),
+            double (*dfunct)(Vector_d&, Matrix_i&, Matrix_d &, double),
+            double (*ddfunct)(Vector_d&, Matrix_i&, Matrix_d &, double),
+            const Matrix_i &integer_data, const Matrix_d &double_data )
 {
    no = 3;
    loc = 0;
@@ -74,6 +75,7 @@ DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
    newnum = innewnum;
 }
 
+
 DARS::~DARS()
 {
    delete [] psum;
@@ -88,10 +90,10 @@ void DARS::
 SetParameters( int inLeftFlag, int inRightFlag, double innewnum,
                //const Vector_d &inparameters,
 	       const double inparameters[],int size,
-               double (*funct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
-               double (*dfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
-               double (*ddfunct)(Vector_d&, MatrixArray_i&, MatrixArray_d&, double),
-               const MatrixArray_i &integer_data, const MatrixArray_d &double_data )
+               double (*funct)(Vector_d&, Matrix_i&, Matrix_d&, double),
+               double (*dfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
+               double (*ddfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
+               const Matrix_i &integer_data, const Matrix_d &double_data )
 {
   //parameters = inparameters;
   parameters.SetNumberOfElements(size);
@@ -123,12 +125,12 @@ void DARS::UpdateParameters( const double inparameters[], int size )
   for(int i=0;i<size;++i)parameters(i)=inparameters[i];
 }
 
-void DARS::UpdateIntegerData( const MatrixArray_i &indata )
+void DARS::UpdateIntegerData( const Matrix_i &indata )
 {
    data_i = indata;
 }
 
-void DARS::UpdateDoubleData( const MatrixArray_d &indata )
+void DARS::UpdateDoubleData( const Matrix_d &indata )
 {
    data_d = indata;
 }

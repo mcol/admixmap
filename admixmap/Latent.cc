@@ -129,8 +129,8 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
      AlphaParameters[4] = 1;
      //}
 
-  MatrixArray_i empty_i(1);
-  MatrixArray_d empty_d(1);
+  Matrix_i empty_i(1,1);
+  Matrix_d empty_d(1,1);
 
    
   DirParamArray = new DARS*[ options->getPopulations() ];
@@ -143,9 +143,9 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
 
 
   // rho stuff
-  rhodata_i.SetNumberOfElementsWithDimensions( 1, Loci->GetNumberOfCompositeLoci(), 1 );
-  rhodata_d.SetNumberOfElementsWithDimensions( 1, Loci->GetNumberOfCompositeLoci(), 1 );
-  rhodata_d(0).SetColumn( 0, Loci->GetDistances().Double() );
+  rhodata_i.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
+  rhodata_d.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
+  rhodata_d.SetColumn( 0, Loci->GetDistances().Double() );
    
    RhoParameters[0] = rhoalpha;
    RhoParameters[1] = rhobeta;
@@ -182,7 +182,7 @@ double Latent::sampleForRho()
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // Dirichlet population admixture parameters
 double
-Latent::logf( Vector_d &parameters , MatrixArray_i&, MatrixArray_d&, double x )
+Latent::logf( Vector_d &parameters , Matrix_i&, Matrix_d&, double x )
 {
   double f = parameters(0) * ( gsl_sf_lngamma( x + parameters(1) ) - gsl_sf_lngamma( x ) ) - x * ( parameters(3) - parameters(4) )  + (parameters(2) - 1) * log(x);
   
@@ -190,7 +190,7 @@ Latent::logf( Vector_d &parameters , MatrixArray_i&, MatrixArray_d&, double x )
 }
 
 double
-Latent::dlogf( Vector_d &parameters, MatrixArray_i&, MatrixArray_d&, double x )
+Latent::dlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
 {
   double f,x2,y1,y2;
   
@@ -206,7 +206,7 @@ Latent::dlogf( Vector_d &parameters, MatrixArray_i&, MatrixArray_d&, double x )
 }
 
 double
-Latent::ddlogf( Vector_d &parameters, MatrixArray_i&, MatrixArray_d&, double x )
+Latent::ddlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
 {
   double f,x2,y1,y2;
   
@@ -221,13 +221,13 @@ Latent::ddlogf( Vector_d &parameters, MatrixArray_i&, MatrixArray_d&, double x )
 }
 
 double
-Latent::frho( Vector_d &parameters, MatrixArray_i& xi, MatrixArray_d &distance, double x )
+Latent::frho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x )
 {
   int genes = (int)parameters(2);
   double f = -x * ( parameters(1) + parameters(3) ) + ( parameters(0) - 1 ) * log(x);
 
   for( int j = 1; j < genes; j++ ){
-    f += xi(0)( j, 0 ) * log(1 - exp( -x * distance(0)( j, 0 ) ) );
+    f += xi( j, 0 ) * log(1 - exp( -x * distance( j, 0 ) ) );
   }
   return(f);
 }
@@ -235,27 +235,27 @@ Latent::frho( Vector_d &parameters, MatrixArray_i& xi, MatrixArray_d &distance, 
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // global rho parameter - will not be needed if this algorithm is replaced
 double
-Latent::dfrho( Vector_d &parameters, MatrixArray_i& xi, MatrixArray_d &distance, double x )
+Latent::dfrho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x )
 {
   int genes = (int)parameters(2);
   double f = -( parameters(1) + parameters(3) ) + ( parameters(0) - 1 ) / x;
 
   for( int j = 1; j < genes; j++ ){
-    f += xi(0)( j, 0 ) * distance(0)( j, 0 ) * exp( -x * distance(0)( j, 0 ) ) / (1 - exp( -x * distance(0)( j, 0 ) ) );
+    f += xi( j, 0 ) * distance( j, 0 ) * exp( -x * distance( j, 0 ) ) / (1 - exp( -x * distance( j, 0 ) ) );
   }
   return(f);
 }
 
 double
-Latent::ddfrho( Vector_d &parameters, MatrixArray_i& xi, MatrixArray_d &distance, double x )
+Latent::ddfrho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x )
 {
   float temporary;
   int genes = (int)parameters(2);
   double f = -( parameters(0) - 1 ) / (x * x);
   
   for( int j = 1; j < genes; j++ ){
-    temporary = exp( x * distance(0)( j, 0 ) ) - 2 + exp( -x * distance(0)( j, 0 ) );
-    f -= xi(0)( j, 0 ) * distance(0)( j, 0 ) * distance(0)( j, 0 ) / temporary;
+    temporary = exp( x * distance( j, 0 ) ) - 2 + exp( -x * distance( j, 0 ) );
+    f -= xi( j, 0 ) * distance( j, 0 ) * distance( j, 0 ) / temporary;
   }
   return(f);
 }
@@ -369,9 +369,9 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
 	//RhoParameters[3] = individuals->GetSumrho0();//equivalent to next line
 	RhoParameters[3] = Individual::getSumrho0();
 	for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
-	  //rhodata_i(0)(j,0) = individuals->GetSumXi()[j];//equivalent to next line
-	  rhodata_i(0)(j,0) = Individual::getSumXi(j);
-	//rhodata_i(0).SetColumn( 0, individuals->GetSumXi() );
+	  //rhodata_i(j,0) = individuals->GetSumXi()[j];//equivalent to next line
+	  rhodata_i(j,0) = Individual::getSumXi(j);
+	//rhodata_i.SetColumn( 0, individuals->GetSumXi() );
 	rho = sampleForRho();
       }
       else{

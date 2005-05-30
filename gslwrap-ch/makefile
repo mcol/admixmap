@@ -10,7 +10,7 @@ CPPFLAGS		= -W -Wall -O3 -march=i686
 
 all:			libmat.a
 
-OBJS			= matrix.o vector.o matrix_d.o vector_d.o matrix_i.o vector_i.o rand_serial.o MatrixArray.o MatrixArray_d.o MatrixArray_i.o
+OBJS			= matrix.o vector.o matrix_d.o vector_d.o matrix_i.o vector_i.o rand_serial.o
 
 libmat.a:	$(OBJS)
 		ar rv libmat.a $(OBJS)

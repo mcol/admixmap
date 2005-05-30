@@ -64,16 +64,10 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
   int K = options->getPopulations();
   int L = Lociptr->GetNumberOfCompositeLoci();
 
-  AdmixtureScore.SetNumberOfElements( K, indiv->getTargetSize() );
-  SumAdmixtureScore.SetNumberOfElements( K, indiv->getTargetSize() );
-  SumAdmixtureScore2.SetNumberOfElements( K, indiv->getTargetSize() );
-  AdmixtureInfo.SetNumberOfElements( K, indiv->getTargetSize() );
-  SumAdmixtureInfo.SetNumberOfElements( K, indiv->getTargetSize() );
-
-
   /*----------------------
   | admixture association |
    -----------------------*/
+  //TODO check conditions on this test
    if( options->getScoreTestIndicator() ){
     if ( strlen( options->getAssocScoreFilename() ) ){
         assocscorestream.open( options->getAssocScoreFilename(), ios::out );
@@ -85,6 +79,12 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 	Logptr->logmsg(true,options->getAssocScoreFilename());
 	Logptr->logmsg(true,"\n");
 	assocscorestream << setiosflags( ios::fixed );
+
+	AdmixtureScore.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
+	SumAdmixtureScore.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
+	SumAdmixtureScore2.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
+	AdmixtureInfo.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
+	SumAdmixtureInfo.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
       }
     }
     else{
@@ -109,12 +109,13 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 	Logptr->logmsg(true,options->getAffectedsOnlyScoreFilename());
 	Logptr->logmsg(true,"\n");
 	*affectedsOnlyScoreStream << "structure(.Data=c(" << endl;
+	//}
+	Individual::InitialiseAffectedsOnlyScores(L, K);
+	SumAffectedsScore2.SetNumberOfElements(L, K);
+	SumAffectedsScore.SetNumberOfElements(L, K);
+	SumAffectedsVarScore.SetNumberOfElements(L, K);
+	SumAffectedsInfo.SetNumberOfElements(L, K);
       }
-      Individual::InitialiseAffectedsOnlyScores(L, K);
-      SumAffectedsScore2.SetNumberOfElements(L, K);
-      SumAffectedsScore.SetNumberOfElements(L, K);
-      SumAffectedsVarScore.SetNumberOfElements(L, K);
-      SumAffectedsInfo.SetNumberOfElements(L, K);
     }
     else {
       Logptr->logmsg(true,"ERROR: affectedsonly score test is only valid with analysistypeindicator 0, 3, or 4.\n");
@@ -346,7 +347,7 @@ void ScoreTests::Update(double dispersion)
   //----------------------------------
   for( int i = 0; i < individuals->getSize(); i++ ){
     Individual* ind = individuals->getIndividual(i);
-    double YMinusEY = individuals->getOutcome(0)( i, 0 ) - individuals->getExpectedY(i);
+    double YMinusEY = individuals->getOutcome(0, i) - individuals->getExpectedY(i);
     DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(),i);
 
     //admixture association
@@ -377,7 +378,7 @@ void ScoreTests::Update(double dispersion)
     SumAdmixtureScore += AdmixtureScore;
     SumAdmixtureInfo += AdmixtureInfo;
     for( int k = 0; k < options->getPopulations(); k++ )
-      for( int kk = 0; kk < individuals->getTargetSize(); kk++ )
+      for( int kk = 0; kk < individuals->getNumberOfOutcomeVars(); kk++ )
 	SumAdmixtureScore2( k, kk ) += AdmixtureScore( k, kk ) * AdmixtureScore( k, kk );
   }
 
@@ -752,7 +753,7 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iteration )
 void ScoreTests::OutputAdmixtureScoreTest(int iteration)
 {
   for( int j = 0; j < options->getPopulations(); j++ ){
-    for( int jj = 0; jj < individuals->getTargetSize(); jj++ ){
+    for( int jj = 0; jj < individuals->getNumberOfOutcomeVars(); jj++ ){
       double EU = SumAdmixtureScore( j, jj ) / ( iteration - options->getBurnIn() );
       double complete = SumAdmixtureInfo( j, jj ) / ( iteration - options->getBurnIn() );
       double missing = SumAdmixtureScore2( j, jj ) / ( iteration - options->getBurnIn() ) - EU * EU;

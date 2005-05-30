@@ -23,29 +23,12 @@
 #include "matrix.h"
 #include "matrix_i.h"
 #include "matrix_d.h"
-#include "gaussian_d.h"
-#include "MatrixArray.h"
-#include "MatrixArray_d.h"
-#include "MatrixArray_i.h"
-#include "VectorLoop.h"
 
-#include "TuneRW.h"
-#include "HMM.h"
 #include "AdmixOptions.h"
-
 #include "DARS.h"
-
 #include "Individual.h"
 #include "IndividualCollection.h"
-
 #include "Genome.h"
-#include "Chromosome.h"
-#include "CompositeLocus.h"
-#include "LocusVisitor.h"
-#include "AlleleFreqOutputter.h"
-
-#include "chib.h"
-
 #include "LogWriter.h"
 
 
@@ -103,7 +86,6 @@ private:
 
   //std::vector<bool> _admixed; //population
   //bool _symmetric;
-  //Vector_d f; //population, summary of correlation in ancestry between loci
   //Vector_d poptheta; //population
 
   std::ofstream outputstream;//output to paramfile
@@ -117,8 +99,8 @@ private:
   double AlphaParameters[5];
   double RhoParameters[4];
 
-  MatrixArray_i rhodata_i;
-  MatrixArray_d rhodata_d;
+  Matrix_i rhodata_i;
+  Matrix_d rhodata_d;
  
   DARS** DirParamArray;
   DARS* RhoDraw;
@@ -129,33 +111,24 @@ private:
   // access any object variables, nor be used
   // outside of Latent.cc
   //
-  // these could be little calculations,
-  // but might also be methods that are going to
-  // be moved out of Latent - i.e. making the
-  // method static allows us to see what arguments
-  // it needs outside this class
-  //
-  // mostly, the methods at the top of this list
-  // are small calculations, whereas the methods at the
-  // bottom of the list are on their way out of this class
-  // NB some have already been moved
+
   static double
-  logf( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  logf( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   static double
-  dlogf( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  dlogf( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   static double
-  ddlogf( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  ddlogf( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   static double
-  frho( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  frho( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   static double
-  dfrho( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  dfrho( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   static double
-  ddfrho( Vector_d & , MatrixArray_i&, MatrixArray_d& , double );
+  ddfrho( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   // UNIMPLEMENTED
   // to avoid use
