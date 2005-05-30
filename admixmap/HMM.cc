@@ -25,6 +25,7 @@ HMM::HMM( int inTransitions, int pops, bool isdiploid )
   Transitions = inTransitions;
 
   alpha = new double**[Transitions];
+  ralpha = new double**[Transitions];
   beta =  new double**[Transitions];
   int d = isdiploid? K:1;  
   
@@ -161,6 +162,7 @@ void HMM::UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], Ma
       }
       }
   }
+
 }
 
 
@@ -224,7 +226,6 @@ void HMM::GetStateProbs( double * probs, int t)
      probs[j] /= sum;
    }
 }
-
 
 /*
   returns log-likelihood
@@ -316,10 +317,10 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   double Sum = 0.0, scaleFactor = 1.0;
   double *rowProb = new double[K];
   double *colProb = new double[K];
-  double *rowSum = new double[K];
-  double *colSum = new double[K];
-  double **cov;
-  cov = alloc2D_d(K, K);
+  // double *rowSum = new double[K];
+  //double *colSum = new double[K];
+  //double **cov;
+  //cov = alloc2D_d(K, K);
 
   // scale array oldProbs so that elements sum to 1, and accumulate row and col sums
   for( int j0 = 0; j0 <  K; ++j0 ) {
@@ -377,11 +378,17 @@ void HMM::RecursionProbs(const double ff, const double f[2],
       //newProbs[j0][j1] = cov[j0][j1] + 
       newProbs[j0][j1] = ff * (oldProbs[j0][j1]*scaleFactor - rowProb[j0] * colProb[j1]) + 
 	( f[0]*rowProb[j0] + stateArrivalProbs[j0][0] ) * ( f[1]*colProb[j1] + stateArrivalProbs[j1][1] );
-      //if(forward)oldProbs[j0][j1] *= scaleFactor;
+      //if(forward)
+      //oldProbs[j0][j1] *= scaleFactor;
       //undo scaling 
       newProbs[j0][j1] *= Sum;
     }
   }
+  delete[] rowProb;
+  delete[] colProb;
+  //delete[] rowSum;
+  //delete[] colSum;
+  //free_matrix(cov, K);
 
 }
 
