@@ -89,23 +89,25 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   rhobeta1 = 1;
 
   //Open paramfile 
-  if ( options->getIndAdmixHierIndicator() && strlen( options->getParameterFilename() ) ){
-    outputstream.open( options->getParameterFilename(), ios::out );
-    if( !outputstream )
-      {
-	Log->logmsg(true,"ERROR: Couldn't open paramfile\n");
-	//exit( 1 );
+  if ( options->getIndAdmixHierIndicator()){
+    if( strlen( options->getParameterFilename() ) ){
+      outputstream.open( options->getParameterFilename(), ios::out );
+      if( !outputstream )
+	{
+	  Log->logmsg(true,"ERROR: Couldn't open paramfile\n");
+	  //exit( 1 );
+	}
+      else{
+	Log->logmsg(true,"Writing population-level parameters to ");
+	Log->logmsg(true,options->getParameterFilename());
+	Log->logmsg(true,"\n");
+	if( options->getTextIndicator() )	InitializeOutputFile(PopulationLabels);
       }
-    else{
-      Log->logmsg(true,"Writing population-level parameters to ");
-      Log->logmsg(true,options->getParameterFilename());
-      Log->logmsg(true,"\n");
-      if( options->getTextIndicator() )	InitializeOutputFile(PopulationLabels);
     }
-  }
-  else{
-    Log->logmsg(true,"No paramfile given\n");
-    //exit(1);
+    else{
+      Log->logmsg(true,"No paramfile given\n");
+      //exit(1);
+    }
   }
 
   //Misc.  

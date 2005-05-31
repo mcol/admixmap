@@ -963,6 +963,25 @@ int AdmixOptions::checkOptions(LogWriter *Log){
   if (!getIndAdmixHierIndicator())
     {
       Log->logmsg(true,"No hierarchical model for individuals.\n");
+
+      if(strlen( getParameterFilename() ) ){
+	Log->logmsg(true, "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n");
+	Log->logmsg(true, "\tThis option will be ignored\n");
+	imp->ParameterFilename = "";
+	OptionValues.erase("paramfile");
+      }
+      if(strlen(getRegressionOutputFilename())){
+	Log->logmsg(true, "ERROR: regparamfile option is not valid with indadmixhierindicator = 0\n");
+	Log->logmsg(true, "\tThis option will be ignored\n");
+	imp->RegressionOutputFilename = "";
+	OptionValues.erase("regparamfile");
+	 }
+      if(strlen( getEtaOutputFilename() ) ){
+	Log->logmsg(true, "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n");
+	Log->logmsg(true, "\tThis option will be ignored\n");
+	imp->EtaOutputFilename = "";
+	OptionValues.erase("dispparamfile");
+      }
     }
  
   if(isRandomMatingModel() )

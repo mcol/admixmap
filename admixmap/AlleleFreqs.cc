@@ -360,13 +360,14 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
      }
   
     //Open output file for eta
-    //if ( options->getIndAdmixHierIndicator() && strlen( options->getEtaOutputFilename() ) ){
-    if (strlen( options->getEtaOutputFilename() ) ){
-      InitializeEtaOutputFile(options, PopulationLabels, Log); 
-    }
-    else{
-      Log->logmsg(true,"No dispparamfile given\n");
-      //exit(1);
+    if ( options->getIndAdmixHierIndicator()){
+      if (strlen( options->getEtaOutputFilename() ) ){
+	InitializeEtaOutputFile(options, PopulationLabels, Log); 
+      }
+      else{
+	Log->logmsg(true,"No dispparamfile given\n");
+	//exit(1);
+      }
     }
     
   }
