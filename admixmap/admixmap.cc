@@ -60,10 +60,7 @@ void submain(AdmixOptions* options){
   Chromosome **chrm = 0;
   IndividualCollection *IC;
   IC = 0;
-  StratificationTest StratTest;
-  ScoreTests Scoretest;
-  MisSpecAlleleFreqTest AlleleFreqTest;
-  DispersionTest DispTest;
+
   chib MargLikelihood;
 
   std::vector<bool> _admixed;//don't belong
@@ -94,7 +91,8 @@ void submain(AdmixOptions* options){
   IC->LoadGenotypes(options,&data, &Log, &Loci);                             //and before L and R Initialise
  
   L.Initialise(IC, &LogFileStream, &_admixed, &_symmetric, &poptheta, PopulationLabels);
-  R.Initialise(IC, options, PopulationLabels, &Log);
+  if( options->getAnalysisTypeIndicator() >= 2)
+    R.Initialise(IC, options, PopulationLabels, &Log);
   A.Initialise(options, data.getEtaPriorMatrix(), &Log, PopulationLabels);
 
   if( !options->getRhoIndicator() )
@@ -112,12 +110,22 @@ void submain(AdmixOptions* options){
     IC->getOnePopOneIndLogLikelihood(&Log,&A,PopulationLabels);
 
   else{
-   
     //initialise test objects
-    Scoretest.Initialise(options, IC, &Loci, chrm,PopulationLabels, &Log);
-    AlleleFreqTest.Initialise(options, &Loci, &Log );  
-    StratTest.Initialize( options, Loci ,&Log);
-    DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());
+    DispersionTest DispTest;
+    StratificationTest StratTest;
+    ScoreTests Scoretest;
+    MisSpecAlleleFreqTest AlleleFreqTest;
+ 
+    if( options->getTestForDispersion() ){
+      DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());    
+    }
+    if( options->getStratificationTest() )
+      StratTest.Initialize( options, Loci ,&Log);
+    if( options->getScoreTestIndicator() )
+      Scoretest.Initialise(options, IC, &Loci, chrm,PopulationLabels, &Log);
+    if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
+      AlleleFreqTest.Initialise(options, &Loci, &Log );  
+
     if( options->getTextIndicator() ){
       InitializeErgodicAvgFile(options,IC, &Log,&avgstream,PopulationLabels);
       }
@@ -142,10 +150,11 @@ void submain(AdmixOptions* options){
       }
 
       A.ResetAlleleCounts();
-      //Updates  
+      //Update individual-level parameters  
       IC->Update(iteration, &A, &R, poptheta, options,
 		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
+      //update allele frequencies
       A.Update(iteration,options->getBurnIn());
       
       if( iteration > options->getBurnIn() ){
@@ -163,8 +172,10 @@ void submain(AdmixOptions* options){
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
 	  chrm[j]->SetLociCorr(L.getrho());
 	}
-      R.Update(IC);
-      
+      //update regression parameters (if regression model)
+      if( options->getAnalysisTypeIndicator() >= 2)
+	R.Update((iteration > options->getBurnIn()), IC);
+
       if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
 	A.SetMergedHaplotypes(L.getalpha0(), &LogFileStream, options->IsPedFile());
 	Scoretest.SetAllelicAssociationTest();
@@ -174,9 +185,14 @@ void submain(AdmixOptions* options){
       if( !(iteration % options->getSampleEvery()) ){
 	if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
 	  //Only output population-level parameters when there is a hierarchical model on indadmixture
+	  //pop admixture, sumintensities
 	  L.OutputParams(iteration, &LogFileStream);
-	  R.Output(iteration,&LogFileStream,options,IC);
+	  //regression parameters
+	  if( options->getAnalysisTypeIndicator() >= 2)
+	    R.Output(iteration,&LogFileStream,options,IC);
+	  //dispersion parameter (if dispersion model)
 	  A.OutputEta(iteration, options, &LogFileStream);
+	  //new line in logfile
 	  if( !options->useCOUT() || iteration == 0 ) LogFileStream << endl;
 	}
 	if( options->useCOUT() ) cout << endl;
@@ -186,13 +202,16 @@ void submain(AdmixOptions* options){
 	  if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
 	}
       }     
-      //Output and scoretest updates after BurnIn     
+      //Updates and Output after BurnIn     
       if( iteration > options->getBurnIn() ){
-	Scoretest.Update(R.getDispersion(IC->getOutcomeType(0)));
-	AlleleFreqTest.Update(IC, &A, &Loci);
-	R.SumParameters(options->getAnalysisTypeIndicator());
+	//score tests
+	if( options->getScoreTestIndicator() )
+	  Scoretest.Update(R.getDispersion(IC->getOutcomeType(0)));
+	//tests for mis-specified allelefreqs
+	if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
+	  AlleleFreqTest.Update(IC, &A, &Loci);
 	
-	// output every 'getSampleEvery() * 10' iterations
+	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
 	if (!(iteration % (options->getSampleEvery() * 10))){    
 	  //FST
 	  if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
@@ -202,7 +221,8 @@ void submain(AdmixOptions* options){
 	  if ( strlen( options->getErgodicAverageFilename() ) ){
 	    int samples = iteration - options->getBurnIn();
 	    L.OutputErgodicAvg(samples,&avgstream);
-	    R.OutputErgodicAvg(samples,IC,&avgstream);
+	    if( options->getAnalysisTypeIndicator() >= 2)
+	      R.OutputErgodicAvg(samples,IC,&avgstream);
 	    A.OutputErgodicAvg(samples,options,&avgstream);
 	    if( options->getAnalysisTypeIndicator() == -1 ){
 	      IC->OutputErgodicAvg(samples,&MargLikelihood,&avgstream);
@@ -212,17 +232,25 @@ void submain(AdmixOptions* options){
 	  //Test output
 	  if( options->getTestForDispersion() )  DispTest.Output(iteration - options->getBurnIn(), Loci);
 	  if( options->getStratificationTest() ) StratTest.Output();
-	  Scoretest.Output(iteration,PopulationLabels);
+	  if( options->getScoreTestIndicator() )
+	    Scoretest.Output(iteration,PopulationLabels);
 	}//end of 'every'*10 output
       }//end if after BurnIn
-      if(iteration == options->getTotalSamples())
-	AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, PopulationLabels, options->IsPedFile());
+
 
     }//end main loop
-    
+
+    //output at end
+    //tests for mis-specified allele frequencies
+    if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
+      AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, PopulationLabels, options->IsPedFile());    
+    //Marginal Likelihood for a single individual
     if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);
+    //MLEs of admixture & sumintensities for nonhierarchical model on individual admixture
     if( options->getMLIndicator() )IC->Output(&LogFileStream);
-    Scoretest.ROutput();
+    //finish writing score test output as R objects
+    if( options->getScoreTestIndicator() )
+      Scoretest.ROutput();
   }//end else
 
   //  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
@@ -334,7 +362,7 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
 	*avgstream << individuals->getCovariateLabels(i) << " ";
       }
     }
-    if( !options->getScoreTestIndicator() ){
+    if( !options->getTestForAdmixtureAssociation() ){
       for( int k = 1; k < options->getPopulations(); k++ ){
 	*avgstream << PopulationLabels[k] << " ";
       }

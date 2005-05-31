@@ -1,3 +1,12 @@
+/*
+Class implements the following score tests:
+(1) Score test for admixture association (admixturescoretest)
+(2) Score test for allelic association
+(3) Score test for within-halpotype association
+(4) Score test for linkage with locus ancestry
+(5) Affecteds-only score test for linkage with locus ancestry
+*/
+
 #include "ScoreTests.h"
 
 using namespace std;
@@ -39,18 +48,14 @@ ScoreTests::ScoreTests(){
 }
 
 ScoreTests::~ScoreTests(){
-  if( options->getTestForAllelicAssociation() ){
-    //TODO: delete these properly
-    delete [] ScoreWithinHaplotype;
-    delete [] InfoWithinHaplotype;
-  }
-  if(options->getTestForAllelicAssociation() ){
-    delete[] LocusLinkageAlleleScore;
-    delete[] LocusLinkageAlleleInfo;
-    delete[] SumLocusLinkageAlleleScore;
-    delete[] SumLocusLinkageAlleleScore2;
-    delete[] SumLocusLinkageAlleleInfo;
-  }
+  //TODO: delete these properly
+  delete [] ScoreWithinHaplotype;
+  delete [] InfoWithinHaplotype;
+  delete[] LocusLinkageAlleleScore;
+  delete[] LocusLinkageAlleleInfo;
+  delete[] SumLocusLinkageAlleleScore;
+  delete[] SumLocusLinkageAlleleScore2;
+  delete[] SumLocusLinkageAlleleInfo;
 }
 
 void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Genome *Loci, Chromosome **c,std::string *PLabels,
@@ -68,7 +73,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
   | admixture association |
    -----------------------*/
   //TODO check conditions on this test
-   if( options->getScoreTestIndicator() ){
+   if( options->getTestForAdmixtureAssociation() ){
     if ( strlen( options->getAssocScoreFilename() ) ){
         assocscorestream.open( options->getAssocScoreFilename(), ios::out );
       if( !assocscorestream ){
@@ -129,12 +134,12 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
    -----------------------*/
   if( options->getTestForLinkageWithAncestry() ){
     if( options->getAnalysisTypeIndicator() == 5  ||
-	(!options->getScoreTestIndicator() && (options->getAnalysisTypeIndicator() == 2 || 
+	(!options->getTestForAdmixtureAssociation() && (options->getAnalysisTypeIndicator() == 2 || 
 					       options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4)))
       {
     ancestryAssociationScoreStream = new ofstream(options->getAncestryAssociationScoreFilename());
     if( !ancestryAssociationScoreStream ){
-      Logptr->logmsg(true,"ERROR: Couldn't open locusscorefile2\n");
+      Logptr->logmsg(true,"ERROR: Couldn't open ancestry association scorefile\n");
       exit( 1 );//remove?
     }
       else{
@@ -176,15 +181,15 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
       Logptr->logmsg(true,"ERROR: To test for allelic association analysistypeindicator must be 2, 3, 4 or 5.\n");
       exit(0);
     }
-    else {if(options->getAnalysisTypeIndicator() == 5 || !options->getScoreTestIndicator()){
-	genescorestream.open( options->getLocusScoreFilename(), ios::out );
+    else {if(options->getAnalysisTypeIndicator() == 5 || !options->getTestForAdmixtureAssociation()){
+	genescorestream.open( options->getAllelicAssociationScoreFilename(), ios::out );
 	if( !genescorestream ){
 	  Logptr->logmsg(true,"ERROR: Couldn't open locusscorefile\n");
 	  exit( 1 );
 	}
 	else{
 	  Logptr->logmsg(false,"Test for allelic association written to ");
-	  Logptr->logmsg(false,options->getLocusScoreFilename());
+	  Logptr->logmsg(false,options->getAllelicAssociationScoreFilename());
 	  Logptr->logmsg(false,"\n");
 	  genescorestream << "structure(.Data=c(" << endl;
 	}
@@ -275,7 +280,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 
 //Initialise ergodic average score file
 void ScoreTests::InitialiseAssocScoreFile(std::string *PLabels){
-  if( options->getScoreTestIndicator() ){
+  if( options->getTestForAdmixtureAssociation() ){
     PopLabels = PLabels;
     assocscorestream << "Ergodic averages of score statistic for populations:\n";
     for( int i = 0; i < options->getPopulations(); i++ ){
@@ -351,7 +356,7 @@ void ScoreTests::Update(double dispersion)
     DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(),i);
 
     //admixture association
-    if( options->getScoreTestIndicator() && (options->getAnalysisTypeIndicator()>1 && options->getAnalysisTypeIndicator()<5) ){
+    if( options->getTestForAdmixtureAssociation() && (options->getAnalysisTypeIndicator()>1 && options->getAnalysisTypeIndicator()<5) ){
       UpdateScoreForAdmixtureAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
     }
     //allelic association
@@ -374,7 +379,7 @@ void ScoreTests::Update(double dispersion)
   /*----------------------
   | admixture association |
    -----------------------*/
-  if( options->getScoreTestIndicator() ){
+  if( options->getTestForAdmixtureAssociation() ){
     SumAdmixtureScore += AdmixtureScore;
     SumAdmixtureInfo += AdmixtureInfo;
     for( int k = 0; k < options->getPopulations(); k++ )
@@ -693,7 +698,7 @@ void ScoreTests::Output(int iteration,std::string * PLabels){
 
 
   //admixture association
-  if( options->getScoreTestIndicator() ){
+  if( options->getTestForAdmixtureAssociation() ){
     OutputAdmixtureScoreTest( iteration );
   }
 

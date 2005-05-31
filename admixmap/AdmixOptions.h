@@ -22,92 +22,71 @@ public:
   int checkOptions(LogWriter *Log);
   void PrintOptions();
 
-  const char *getResultsDir() const;
-  
-  const char *getAffectedsOnlyScoreFilename() const;
-  const char *getAlleleFreqFilename() const;
-  
   long getBurnIn() const;
-  
-  const char *getDICoutputFilename() const;
-  const char *getDispersionTestFilename() const;
-  
-  bool getTestForDispersion() const;
-  bool getStratificationTest() const;
-  void setStratificationTest(bool);
-  bool getFixedAlleleFreqs() const;
-  
-  Vector_i getStratificationTestLoci() const;
-  
+  long getTotalSamples() const;
+  long getSampleEvery() const; 
+  int getAnalysisTypeIndicator() const;
+  long getSeed() const;     
+
+  //main output files
+  const char *getResultsDir() const;
+  const char *getLogFilename() const;
   const char *getErgodicAverageFilename() const;
-  
-  const char *getGeneInfoFilename() const;
-  const char *getGeneticDataFilename() const;
-  const char *getIndAdmixtureFilename() const;
-  
-  const char *getOutputFilename1() const;
-  const char *getOutputFilename2() const;
-  const char *getOutputFilename3() const;
-  
   const char *getParameterFilename() const;
   const char *getRegressionOutputFilename() const;
   const char *getEtaOutputFilename() const;
-  const char *getReportedAncestryFilename() const;
-  
-  long getTotalSamples() const;
-  int getTargetIndicator() const;
-  
-  int useCOUT() const;
-  
+  const char *getIndAdmixtureFilename() const;
   const char *getAlleleFreqOutputFilename() const;
   bool getOutputAlleleFreq() const;
 
-  const char *getFSTOutputFilename() const;
-  
-  bool getOutputFST() const;
-  
-  const char *getAlleleFreqScoreFilename() const;
-  const char *getAlleleFreqScoreFilename2() const;
-  
-  int getAnalysisTypeIndicator() const;
-  
-  const char *getAssocScoreFilename() const;
-  
-  long getSampleEvery() const;    
-  const char *getHistoricalAlleleFreqFilename() const;
-  const char *getInitialParameterFilename() const;
-  
+  //input file names
+  const char *getGeneInfoFilename() const;
+  const char *getGeneticDataFilename() const;
   const char *getInputFilename() const;  
   const char *getMLEFilename() const;
+  const char *getHistoricalAlleleFreqFilename() const;
+  const char *getPriorAlleleFreqFilename() const;
+  const char *getAlleleFreqFilename() const;
+  const char *getReportedAncestryFilename() const;
+  const char *getEtaPriorFilename() const;
+  const char *getTargetFilename() const;  
+  int getTargetIndicator() const;
+  double getRho() const;  
+
+  Vector_d getInitAlpha(int) const;
+  int sizeInitAlpha() const;
+
+  unsigned int genotypesSexColumn() const;    
+  void genotypesSexColumn(unsigned int i);
   
-  bool getLocusForTestIndicator() const;
-  int getLocusForTest() const;
-  
-  const char *getLocusScoreFilename() const; 
-  const char *getAncestryAssociationScoreFilename() const;
-  const char *getLogFilename() const;  
-  
+  //indicators and model options  
+  int useCOUT() const;
+  bool getFixedAlleleFreqs() const;
+  int getTextIndicator() const;
   bool isRandomMatingModel() const;
   bool getRhoIndicator() const;
   bool getIndAdmixHierIndicator() const;
   bool getMLIndicator() const;
   double getTruncPt() const;  
-  
-  const char *getPosteriorSummariesFilename() const; 
-  
   int getPopulations() const; 
   void setPopulations(int num);
-  
-  const char *getPrecisionFilename() const;    
-  const char *getPredictionFilename() const;
-  const char *getPriorAlleleFreqFilename() const;
-  
-  bool getScoreTestIndicator() const;  
-  long getSeed() const;  
-  double getRho() const;  
-  
-  const char *getTargetFilename() const;  
-  
+  unsigned int IsPedFile() const;
+  void IsPedFile(unsigned int);
+  bool getXOnlyAnalysis() const;  
+
+  //Score test file names
+  const char *getAffectedsOnlyScoreFilename() const;
+  const char *getTestsForSNPsInHaplotypeOutputFilename() const;
+  const char *getAllelicAssociationScoreFilename() const; 
+  const char *getAncestryAssociationScoreFilename() const;
+  const char *getAlleleFreqScoreFilename() const;
+  const char *getAlleleFreqScoreFilename2() const;
+  const char *getAssocScoreFilename() const;
+  const char *getHWTestFilename() const;
+
+  //score test indicators 
+  bool getScoreTestIndicator() const; //indicator for any score test (except misspec allelefreqs) 
+  bool getTestForAdmixtureAssociation() const;
   bool getTestForAffectedsOnly() const;
   void setTestForAffectedsOnly(bool);  
   bool getTestForAllelicAssociation() const;
@@ -118,24 +97,23 @@ public:
   void setTestForLinkageWithAncestry(bool);   
   bool getTestForMisspecifiedAlleleFreqs() const;
   bool getTestForMisspecifiedAlleleFreqs2() const;
+  bool getHWTestIndicator() const;
   
-  const char *getTestInputFilename() const;  
-  const char *getTestsForSNPsInHaplotypeOutputFilename() const;
-  const char *getEtaPriorFilename() const;
-  const char *getTestTargetFilename() const;  
+  //other test file names
+  const char *getDICoutputFilename() const;
+  const char *getDispersionTestFilename() const;
+  const char *getFSTOutputFilename() const;
   
-  int getTextIndicator() const;
+  //other test indicators
+  bool getTestForDispersion() const;
+  bool getStratificationTest() const;
+  void setStratificationTest(bool);
+  bool getOutputFST() const;
+  bool getLocusForTestIndicator() const;
+  int getLocusForTest() const;
+
+  Vector_i getStratificationTestLoci() const;
   
-  Vector_d getInitAlpha(int) const;
-  int sizeInitAlpha() const;
-  
-  unsigned int IsPedFile() const;
-  void IsPedFile(unsigned int);
-  
-  unsigned int genotypesSexColumn() const;    
-  void genotypesSexColumn(unsigned int i);
-  
-  bool getXOnlyAnalysis() const;
   
 private: // members
   

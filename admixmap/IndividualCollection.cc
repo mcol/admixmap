@@ -260,7 +260,7 @@ void IndividualCollection::Initialise(AdmixOptions *options,Matrix_d *beta, Geno
     }
 
     
-    if( !options->getScoreTestIndicator() && options->getPopulations() > 1 ){
+    if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 ){
       temporary.SetNumberOfElements( NumInd, options->getPopulations() - 1 );
       temporary.SetElements( 1 / options->getPopulations() );
       Covariates = ConcatenateHorizontally( Covariates, temporary );

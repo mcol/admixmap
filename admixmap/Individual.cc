@@ -519,12 +519,12 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   //should have one function to do this
 
   //linear regression case
-  if( options->getAnalysisTypeIndicator() == 2 && !options->getScoreTestIndicator() ){
+  if( options->getAnalysisTypeIndicator() == 2 && !options->getTestForAdmixtureAssociation() ){
     logpratio = AcceptanceProbForTheta_LinearReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
 					  NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
   }
   //logistic regression case
-  else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getScoreTestIndicator() ){
+  else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getTestForAdmixtureAssociation() ){
     logpratio = AcceptanceProbForTheta_LogReg( i, 0, options->isRandomMatingModel(),options->getPopulations(),
 				       NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta);
     }

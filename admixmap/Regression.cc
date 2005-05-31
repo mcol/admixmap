@@ -8,6 +8,8 @@ Regression::Regression(){
   beta0 = 0;
   SumBeta = 0;
   NumOutcomeVars = 0;
+  NoCovariates = 0;
+  BetaDrawArray = 0;
 }
 
 Regression::Regression(int nocovariates){
@@ -18,13 +20,14 @@ Regression::Regression(int nocovariates){
   beta0 = 0;
   SumBeta = 0;
   NumOutcomeVars = 0;
+  BetaDrawArray = 0;
 }
 
 Regression::~Regression(){
   for(int i = 0; i < NoCovariates; i++){
     delete BetaDrawArray[i];
   }
-  delete [] BetaDrawArray;
+  delete[] BetaDrawArray;
   delete[] beta;
   delete[] beta0;
   delete[] SumBeta;
@@ -59,12 +62,12 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
     NoCovariates = 0;
   else{
     if( individuals->GetNumberOfInputRows() == individuals->getSize() ){
-      if( options->getScoreTestIndicator() )
+      if( options->getTestForAdmixtureAssociation() )
 	NoCovariates = individuals->GetNumberOfInputCols() + 1;
       else
 	NoCovariates = individuals->GetNumberOfInputCols() + options->getPopulations();}
     else{
-      if( options->getScoreTestIndicator() )
+      if( options->getTestForAdmixtureAssociation() )
 	NoCovariates = 1;
       else
 	NoCovariates = options->getPopulations();
@@ -130,7 +133,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
   }
 }
 
-void Regression::Update(IndividualCollection *individuals){
+void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
   // Sample for regression model parameters beta
   for( int k = 0; k < NumOutcomeVars; k++ ){
     //      linear
@@ -167,7 +170,8 @@ void Regression::Update(IndividualCollection *individuals){
       // calculateExpectedY( ExpectedY(k), individuals->getSize() );
       individuals->calculateExpectedY(k);
   }
-
+  if(afterBurnIn)
+    SumParameters();
 }//end Update
 
 void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels)
@@ -181,7 +185,7 @@ void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollectio
 	outputstream << individuals->getCovariateLabels(i) << " ";
       }
     } 
-    if( !options->getScoreTestIndicator() ){
+    if( !options->getTestForAdmixtureAssociation() ){
       for( int k = 1; k < options->getPopulations(); k++ ){
 	outputstream << "\"slope." << PopulationLabels[k].substr(1) << " ";
       }
@@ -317,13 +321,13 @@ void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals
   }
 }
 
-void Regression::SumParameters(int AnalysisTypeIndicator){
+void Regression::SumParameters(){
   // accumulate sum of parameters after burnin.
   if( NoCovariates )
     for(int i = 0; i < NumOutcomeVars; ++i){
       SumBeta[i] += beta[i];
     }
-  if( AnalysisTypeIndicator > 1 )
+  //if( AnalysisTypeIndicator > 1 )
     SumLambda += lambda;
 }
 Matrix_d *Regression::getbeta(){

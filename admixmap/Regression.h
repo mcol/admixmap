@@ -22,8 +22,8 @@ public:
   Regression(int);
   ~Regression();
   void Initialise(IndividualCollection *, AdmixOptions *, std::string *Populationlabels, LogWriter *);
-  void Update(IndividualCollection *individuals);
-  void SumParameters(int);//should be private, part of Update
+  void Update(bool afterBurnIn, IndividualCollection *individuals);
+  void SumParameters();//should be private, part of Update
   void InitializeOutputFile(AdmixOptions *, IndividualCollection *individuals,std::string *PopulationLabels);
   void Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOptions *, IndividualCollection *individuals);
   void OutputErgodicAvg(int iteration, IndividualCollection *individuals,std::ofstream *avgstream);

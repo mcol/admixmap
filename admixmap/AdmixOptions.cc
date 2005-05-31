@@ -29,52 +29,31 @@ static Vector_d CstrToVec2(const char* str)
 
 struct AdmixOptions::Options
 {
-  string alleleFreqFilename;
   long burnin;
-  string DICoutputFilename;
-  string ErgodicAverageFilename;
-  string GeneInfoFilename;
-  string GeneticDataFilename;
-  string IndAdmixtureFilename;
-  string ParameterFilename;
-  string RegressionOutputFilename;
-  string EtaOutputFilename;
-  string ReportedAncestryFilename;
   long TotalSamples;
-  int TargetIndicator;
-  int use_cout;
-
-  string ResultsDir;
-  string AffectedsOnlyScoreFilename;
-  string AlleleFreqOutputFilename;
-  string AlleleFreqScoreFilename;
-  string AlleleFreqScoreFilename2;
-  int AnalysisTypeIndicator;
-  string AssocScoreFilename;
   long SampleEvery;
-  string DispersionTestFilename;
-  string HistoricalAlleleFreqFilename;
-  string InputFilename;
-  string MLEFilename;
+  long Seed;
+  int AnalysisTypeIndicator;
+  int TargetIndicator;
+  double TruncPt;
+  int Populations;
+
+  int use_cout;
+  int TextIndicator;
+  bool OutputFST;
+  bool XOnlyAnalysis;
+  unsigned int isPedFile;
+  unsigned int genotypesSexColumn;
   bool locusForTestIndicator;
-  bool fixedallelefreqs;
   int LocusForTest;
-  string LocusScoreFilename;
-  string AncestryAssociationScoreFilename;
-  string LogFilename;
+  bool fixedallelefreqs;
   bool RandomMatingModel;//random mating model
   bool RhoIndicator;// global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool MLIndicator;//calculate marginal likelihood - valid only for analysistypeindicator < 0
-  double TruncPt;
-  int Populations;
-  string PriorAlleleFreqFilename;
-  bool ScoreTestIndicator;
-  long Seed;
-  double Rho;
-  std::vector<Vector_d> alpha;
+  bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
+  bool TestForAdmixtureAssociation;
   bool StratificationTestIndicator;
-  string TargetFilename;
   bool TestForAffectedsOnly;
   bool TestForAllelicAssociation;
   bool TestForSNPsInHaplotype;
@@ -82,18 +61,43 @@ struct AdmixOptions::Options
   bool TestForLinkageWithAncestry;
   bool TestForMisspecifiedAlleleFreqs;
   bool TestForMisspecifiedAlleleFreqs2;
+  bool HWTest;
   bool OutputAlleleFreq;
-  string TestsForSNPsInHaplotypeOutputFilename;
-  string EtaPriorFilename;
-  string TestTargetFilename;
-  int TextIndicator;
+
+  double Rho;
+  std::vector<Vector_d> alpha;
+
+  string ResultsDir;
+  string LogFilename;
+  string AffectedsOnlyScoreFilename;
+  string AlleleFreqOutputFilename;
+  string AlleleFreqScoreFilename;
+  string AlleleFreqScoreFilename2;
+  string AssocScoreFilename;
+  string alleleFreqFilename;
+  string DICoutputFilename;
+  string ErgodicAverageFilename;
+  string ParameterFilename;
+  string RegressionOutputFilename;
+  string EtaOutputFilename;
+  string DispersionTestFilename;
+  string IndAdmixtureFilename;
   string FSTOutputFilename;
-  bool OutputFST;
-  bool runRScript;
-  bool XOnlyAnalysis;
-  string argsfile;
-  unsigned int isPedFile;
-  unsigned int genotypesSexColumn;
+  string TestsForSNPsInHaplotypeOutputFilename;
+  string AllelicAssociationScoreFilename;
+  string AncestryAssociationScoreFilename;
+  string HWTestFilename;
+
+  string GeneInfoFilename;
+  string GeneticDataFilename;
+  string HistoricalAlleleFreqFilename;
+  string PriorAlleleFreqFilename;
+  string InputFilename;
+  string TargetFilename;
+  string MLEFilename;
+  string EtaPriorFilename;
+  string ReportedAncestryFilename;
+
 };
 
 AdmixOptions::AdmixOptions()
@@ -120,10 +124,11 @@ AdmixOptions::AdmixOptions()
   imp->Populations = 0;
 
   imp->ScoreTestIndicator = false;
+  imp->TestForAdmixtureAssociation = false;
   imp->Seed = 1;
   imp->Rho = 5.0;
   imp->StratificationTestIndicator = false;
-
+  imp->HWTest = false;
   imp->TestForAffectedsOnly = false;
   imp->TestForAllelicAssociation = false;
   imp->TestForSNPsInHaplotype = false;
@@ -143,7 +148,6 @@ AdmixOptions::AdmixOptions()
   OptionValues["coutindicator"] = "1";
   OptionValues["analysistypeindicator"] = "0";
   OptionValues["every"] = "100";
-  //OptionValues["locusForTestIndicator"] = "0";
   OptionValues["fixedallelefreqs"] = "0";
   OptionValues["locusfortest"] = "0";
   OptionValues["logfile"] = "log.txt";
@@ -154,22 +158,10 @@ AdmixOptions::AdmixOptions()
   OptionValues["marglikelihood"] = "0";
   OptionValues["truncationpoint"] = "99";
   OptionValues["populations"] = "0";
-  //OptionValues["ScoreTestIndicator"] = "0";
   OptionValues["seed"] = "1";
   OptionValues["sumintensities"] = "5.0";
-  //OptionValues["StratificationTestIndicator"] = "0";
-  //OptionValues["TestForAffectedsOnly"] = "0";
-  //OptionValues["TestForAllelicAssociation"] = "0";
-  //OptionValues["TestForSNPsInHaplotype"] = "0";
-  //OptionValues["TestForDispersion"] = "0";
-  //OptionValues["TestForLinkageWithAncestry"] = "0";
-  //OptionValues["TestForMisspecifiedAlleleFreqs"] = "0";
-  //OptionValues["TestForMisspecifiedAlleleFreqs2"] = "0";
-  //OptionValues["OutputFST"]="0";
   OptionValues["xonlyanalysis"] = "0";
   OptionValues["textindicator"] = "1";
-  //OptionValues["isPedFile"] = "0";
-  //OptionValues["genotypesSexColumn"]= "0";
 }
 
 AdmixOptions::~AdmixOptions()
@@ -265,6 +257,10 @@ int AdmixOptions::useCOUT() const
   return imp->use_cout;
 }
 
+bool AdmixOptions::getScoreTestIndicator() const
+{
+  return imp->ScoreTestIndicator;
+}
 const char *AdmixOptions::getAffectedsOnlyScoreFilename() const
 {
   return imp->AffectedsOnlyScoreFilename.c_str();
@@ -310,6 +306,15 @@ const char *AdmixOptions::getDispersionTestFilename() const
   return imp->DispersionTestFilename.c_str();
 }
 
+bool AdmixOptions::getHWTestIndicator() const
+{
+  return imp->HWTest;
+}
+
+const char *AdmixOptions::getHWTestFilename() const
+{
+  return imp->HWTestFilename.c_str();
+}
 const char *AdmixOptions::getHistoricalAlleleFreqFilename() const
 {
   return imp->HistoricalAlleleFreqFilename.c_str();
@@ -357,9 +362,9 @@ int AdmixOptions::getLocusForTest() const
   return imp->LocusForTest;
 }
 
-const char *AdmixOptions::getLocusScoreFilename() const
+const char *AdmixOptions::getAllelicAssociationScoreFilename() const
 {
-  return imp->LocusScoreFilename.c_str();
+  return imp->AllelicAssociationScoreFilename.c_str();
 }
 
 const char *AdmixOptions::getAncestryAssociationScoreFilename() const
@@ -386,9 +391,9 @@ const char *AdmixOptions::getPriorAlleleFreqFilename() const
   return imp->PriorAlleleFreqFilename.c_str();
 }
 
-bool AdmixOptions::getScoreTestIndicator() const
+bool AdmixOptions::getTestForAdmixtureAssociation() const
 {
-  return imp->ScoreTestIndicator;
+  return imp->TestForAdmixtureAssociation;
 }
 
 long AdmixOptions::getSeed() const
@@ -473,11 +478,6 @@ void AdmixOptions::setTestForSNPsInHaplotype(bool b){
 const char *AdmixOptions::getEtaPriorFilename() const
 {
   return imp->EtaPriorFilename.c_str();
-}
-
-const char *AdmixOptions::getTestTargetFilename() const
-{
-  return imp->TestTargetFilename.c_str();
 }
 
 int AdmixOptions::getTextIndicator() const
@@ -611,6 +611,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"allelefreqscorefile2",                  1, 0,  0 }, // string
     {"dispersiontestfile",                    1, 0,  0 }, // string
     {"FSToutputfilename",                     1, 0,  0 }, // string
+    {"hwtestfilename",                        1, 0,  0 }, // string
 
     // Other options
     {"coutindicator",                         1, 0, 'c'}, // int 0: 1
@@ -712,13 +713,13 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	imp->EtaOutputFilename = optarg; OptionValues["dispparamfile"]=optarg;
       }else  if (long_option_name == "admixturescorefile") {
 	imp->AssocScoreFilename = optarg;OptionValues["admixturescorefile"]=optarg;
-	imp->ScoreTestIndicator = true;//OptionValues["ScoreTestIndicator"]="1";
+	imp->TestForAdmixtureAssociation = true; imp->ScoreTestIndicator = true;
       } else if (long_option_name == "affectedsonlyscorefile") {
 	imp->AffectedsOnlyScoreFilename = optarg;OptionValues["affectedsonlyscorefile"]=optarg;
-	imp->TestForAffectedsOnly = true;
+	imp->TestForAffectedsOnly = true; imp->ScoreTestIndicator = true;
       } else if (long_option_name == "allelicassociationscorefile") {
-	imp->LocusScoreFilename = optarg;OptionValues["allelicassociationscorefile"]=optarg;
-	imp->TestForAllelicAssociation = true;
+	imp->AllelicAssociationScoreFilename = optarg;OptionValues["allelicassociationscorefile"]=optarg;
+	imp->TestForAllelicAssociation = true; imp->ScoreTestIndicator = true;
       } else if (long_option_name == "allelefreqoutputfile") {
 	imp->AlleleFreqOutputFilename = optarg;OptionValues["allelefreqoutputfile"]=optarg;
 	imp->OutputAlleleFreq = true;
@@ -736,12 +737,15 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	imp->MLEFilename = optarg;OptionValues["mlefile"]=optarg;
       } else if (long_option_name == "dispersiontestfile") {
 	imp->DispersionTestFilename = optarg;OptionValues["dispersiontestfile"]=optarg;
-	imp->TestForDispersion = true;//OptionValues["TestForDispersion"]="1";
+	imp->TestForDispersion = true;
       } else if (long_option_name == "every") {
 	imp->SampleEvery = strtol(optarg, NULL, 10);OptionValues["every"]=optarg;
       } else if (long_option_name == "FSToutputfilename") {
 	imp->FSTOutputFilename = optarg;OptionValues["FSToutputfilename"]=optarg;
-	imp->OutputFST = true;//OptionValues["OutputFST"]="1";
+	imp->OutputFST = true;
+      } else if (long_option_name == "hwtestfilename") {
+	imp->HWTestFilename = optarg;OptionValues["hwtestfilename"]=optarg;
+	imp->HWTest = true;
       } else if (long_option_name == "fixedallelefreqs") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  imp->fixedallelefreqs = true;OptionValues["fixedallelefreqs"]="1";
@@ -754,10 +758,10 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	imp->HistoricalAlleleFreqFilename = optarg;OptionValues["historicallelefreqfile"]=optarg;
       } else if (long_option_name == "locusfortest") {
 	imp->LocusForTest = (int)strtol(optarg, NULL, 10);OptionValues["locusfortest"]=optarg;
-	imp->locusForTestIndicator = true;//OptionValues["locusForTestIndicator"]="1";
+	imp->locusForTestIndicator = true;
       } else if (long_option_name == "ancestryassociationscorefile") {
 	imp->AncestryAssociationScoreFilename = optarg;OptionValues["ancestryassociationscorefile"]=optarg;
-	imp->TestForLinkageWithAncestry = true;//OptionValues["TestForLinkageWithAncestry"]="1";
+	imp->TestForLinkageWithAncestry = true; imp->ScoreTestIndicator = true;
       } else if (long_option_name == "logfile") {
 	imp->LogFilename = optarg;OptionValues["logfile"]=optarg;
       } else if (long_option_name == "randommatingmodel") {
@@ -787,9 +791,6 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	setPopulations((int)strtol(optarg, NULL, 10));OptionValues["populations"]=optarg;
       } else if (long_option_name == "priorallelefreqfile") {
 	imp->PriorAlleleFreqFilename = optarg;OptionValues["priorallelefreqfile"]=optarg;
-      } else if (long_option_name == "scoretestindicator") {
-	// TODO:
-    OptionValues["ScoreTestIndicator"]=optarg;
       } else if (long_option_name == "seed") {
 	imp->Seed = strtol(optarg, NULL, 10);OptionValues["seed"]=optarg;
       } else if (long_option_name == "sumintensities") {
@@ -798,7 +799,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	imp->TruncPt = strtod(optarg, NULL);OptionValues["truncationpoint"]=optarg;
       } else if (long_option_name == "haplotypeassociationscorefile") {
 	imp->TestsForSNPsInHaplotypeOutputFilename = optarg;OptionValues["haplotypeassociationscorefile"]=optarg;
-	imp->TestForSNPsInHaplotype = true;//OptionValues["TestForSNPsInHaplotype"]=optarg;
+	imp->TestForSNPsInHaplotype = true; imp->ScoreTestIndicator = true;
       } else if (long_option_name == "etapriorfile") {
 	imp->EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
       } else if (long_option_name == "initalpha0" ) {
@@ -842,7 +843,7 @@ void AdmixOptions::SetOutputNames(){
   if (imp->ParameterFilename != "")imp->ParameterFilename = imp->ResultsDir + "/" + imp->ParameterFilename; 
   if (imp->RegressionOutputFilename != "")imp->RegressionOutputFilename = imp->ResultsDir + "/" + imp->RegressionOutputFilename; 
   if (imp->EtaOutputFilename != "")imp->EtaOutputFilename = imp->ResultsDir + "/" + imp->EtaOutputFilename; 
-  if (imp->LocusScoreFilename != "")imp->LocusScoreFilename = imp->ResultsDir + "/" + imp->LocusScoreFilename; 
+  if (imp->AllelicAssociationScoreFilename != "")imp->AllelicAssociationScoreFilename = imp->ResultsDir + "/" + imp->AllelicAssociationScoreFilename; 
   if (imp->AncestryAssociationScoreFilename != "")imp->AncestryAssociationScoreFilename = imp->ResultsDir + "/" + imp->AncestryAssociationScoreFilename; 
   if (imp->AffectedsOnlyScoreFilename != "")imp->AffectedsOnlyScoreFilename = imp->ResultsDir + "/" + imp->AffectedsOnlyScoreFilename; 
   if (imp->IndAdmixtureFilename != "")imp->IndAdmixtureFilename = imp->ResultsDir + "/" + imp->IndAdmixtureFilename; 
@@ -854,7 +855,8 @@ void AdmixOptions::SetOutputNames(){
   if (imp->AlleleFreqScoreFilename2 != "")imp->AlleleFreqScoreFilename2 = imp->ResultsDir + "/" + imp->AlleleFreqScoreFilename2; 
   if (imp->AlleleFreqScoreFilename != "")imp->AlleleFreqScoreFilename = imp->ResultsDir + "/" + imp->AlleleFreqScoreFilename; 
   if (imp->DispersionTestFilename != "")imp->DispersionTestFilename = imp->ResultsDir + "/" + imp->DispersionTestFilename; 
-  if (imp->FSTOutputFilename != "")imp->FSTOutputFilename = imp->ResultsDir + "/" + imp->FSTOutputFilename; 
+  if (imp->FSTOutputFilename != "")imp->FSTOutputFilename = imp->ResultsDir + "/" + imp->FSTOutputFilename;
+  if (imp->HWTestFilename != "")imp->HWTestFilename = imp->ResultsDir + "/" + imp->HWTestFilename;
   
 }
 
@@ -879,7 +881,7 @@ void AdmixOptions::PrintOptions(){
 }
 
 int AdmixOptions::checkOptions(LogWriter *Log){
-  if(getScoreTestIndicator() &&
+  if(getTestForAdmixtureAssociation() &&
       ( getTestForLinkageWithAncestry() || getTestForAllelicAssociation() ) ){
     Log->logmsg(true,"Cannot test for linkage with ancestry or allelic association\n");
     Log->logmsg(true,"with score test for association. Can only use affecteds only test\n");
