@@ -381,8 +381,8 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 				   AdmixOptions* options, Chromosome **chrm, 
 				   vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, 
 				   double rhobeta,vector<double> sigma, double DInvLink, double dispersion)
-//Target = Outcome variable(s)
-//Expected Y = expected outcome variable
+//Outcome = Outcome variable(s)
+//ExpectedY = expected outcome variable
 //lambda = precision in linear regression model (if there is one)
 //NoCovariates = # covariates
 //alpha = 
@@ -392,42 +392,9 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 //DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
 //dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 {
-  //int locus;
-
   //reset xi, theta and SumLocusAncestry
   Reset();
   
-  // ?next step should be to calculate transition matrices 
-  
-//   locus = 0;
-//   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
-//   // required to calculate transition matrices 
-//   if( options->getRhoIndicator() ){
-//     for( unsigned int j = 0; j < numChromosomes; j++ ){
-//       locus++;
-//       for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-// 	f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
-// 	if( options->isRandomMatingModel() ){
-// 	  f[1][locus] = exp( -Loci->GetDistance( locus ) * _rho[1] );
-// 	  }
-// 	else
-// 	  f[1][locus] = f[0][locus];
-// 	locus++;
-//       }
-//     }
-//   }
-//   else{
-//     //fill f with values in AlleleFreqs;
-//     //locus = 0;
-//     for( unsigned int j = 0; j < numChromosomes; j++ ){
-//       locus++;
-//       for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-// 	f[0][locus] = f[1][locus] = exp( -Loci->GetDistance( locus ) * rho );
-// 	locus++;
-//       }
-//     }
-//   }
-
   bool isdiploid;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     //Update Forward/Backward probs in HMM

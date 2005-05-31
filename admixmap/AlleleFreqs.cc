@@ -360,7 +360,8 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
      }
   
     //Open output file for eta
-    if ( options->getIndAdmixHierIndicator() && strlen( options->getEtaOutputFilename() ) ){
+    //if ( options->getIndAdmixHierIndicator() && strlen( options->getEtaOutputFilename() ) ){
+    if (strlen( options->getEtaOutputFilename() ) ){
       InitializeEtaOutputFile(options, PopulationLabels, Log); 
     }
     else{
@@ -915,7 +916,7 @@ void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *Po
   if( !outputstream )
     {
       Log->logmsg(true,"ERROR: Couldn't open dispparamfile\n");
-      //exit( 1 );
+      exit( 1 );
     }
   else{
     Log->logmsg(true,"Writing dispersion parameter to ");
