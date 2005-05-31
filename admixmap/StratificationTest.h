@@ -12,14 +12,14 @@
 class StratificationTest
 {
 private:
-   int T;
-   int count;
-   int NumberOfTestLoci;
-   std::vector<unsigned int> TestLoci;
-   bool ModelIndicator;
-  std::ofstream DICstream;
+  int T;
+  int count;
+  int NumberOfTestLoci;
+  std::vector<unsigned int> TestLoci;
+  bool ModelIndicator;
+  std::ofstream outputstream;
 
-  void Open( const char * , LogWriter *);
+  void OpenOutputFile( const char * , LogWriter *);
 
 public:
    StratificationTest();
@@ -38,7 +38,7 @@ public:
 
   unsigned short **SampleForOrderedSNiP ( const Matrix_d&, const Vector_i& );
 
-  float getStatistic();
+  //float getStatistic();
 };
 
 #endif /* !defined STRATIFICATIONTEST_H */

@@ -34,7 +34,7 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
        }
        ModelIndicator = options->isRandomMatingModel();
        
-       Open(options->getDICoutputFilename(),Log);
+       OpenOutputFile(options->getDICoutputFilename(),Log);
     }
   }
   else{
@@ -137,15 +137,15 @@ unsigned short **StratificationTest::SampleForOrderedSNiP( const Matrix_d& freqs
   return genotype;
 }
 
-float StratificationTest::getStatistic()
-{
-   return (float)T/count;
-}
+// float StratificationTest::getStatistic()
+// {
+//    return (float)T/count;
+// }
 
-void StratificationTest::Open( const char * OutputFilename, LogWriter *Log){
+void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter *Log){
 
-  DICstream.open(OutputFilename, ios::out );
-  if( !DICstream ){
+  outputstream.open(OutputFilename, ios::out );
+  if( !outputstream ){
     Log->logmsg(false,"ERROR: Couldn't open stratificationtestfile");
     Log->logmsg(false,OutputFilename);
     Log->logmsg(false,"\n");
@@ -154,8 +154,10 @@ void StratificationTest::Open( const char * OutputFilename, LogWriter *Log){
   Log->logmsg(true,"Writing results of test for residual population stratification to ");
   Log->logmsg(true,OutputFilename);
   Log->logmsg(true,"\n");
+  //write header
+  outputstream << "Post. Pred. Check Prob." <<endl;
 }
 
 void StratificationTest::Output(){
-   DICstream << getStatistic() << endl;
+   outputstream << (float)T/count << endl;
 }
