@@ -288,6 +288,9 @@ unsigned int Genome::GetNumberOfCompositeLoci()
   return NumberOfCompositeLoci;
 }
 
+int Genome::getNumberOfLoci(int j){
+  return TheArray[j]->GetNumberOfLoci();
+}
 unsigned int Genome::GetNumberOfChromosomes(){
   return NumberOfChromosomes;
 }

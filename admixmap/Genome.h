@@ -47,6 +47,8 @@ public:
 
   unsigned int GetTotalNumberOfLoci();
 
+  int getNumberOfLoci(int);
+
   unsigned int *GetSizesOfChromosomes();
 
   float GetDistance(int);
