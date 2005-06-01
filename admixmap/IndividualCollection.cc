@@ -10,6 +10,7 @@ IndividualCollection::IndividualCollection()
 
 IndividualCollection::~IndividualCollection()
 {
+  Individual::DeleteStaticMembers();
   //for(unsigned int i=0;i<_child.size();i++){
   for(unsigned int i=0;i<NumInd;i++){
     delete _child[i];

@@ -23,6 +23,8 @@ public:
 
   static void ResetStaticSums();
 
+  static void DeleteStaticMembers();
+
   int getSex();
 
   Matrix_d& getAdmixtureProps();
@@ -61,6 +63,8 @@ public:
 
   Vector_i GetLocusAncestry( int, int );
   //int *GetLocusAncestry(int, int);
+
+  int GetLocusAncestry(int, int, int);
    
   double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome **, Matrix_d, std::vector<double>,Matrix_d, std::vector<double>);
   double getLogLikelihoodXOnly(AdmixOptions*,AlleleFreqs*,Chromosome**, Matrix_d, std::vector<double>);

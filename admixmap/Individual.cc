@@ -114,6 +114,8 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 void Individual::SetStaticMembers(int nchr, Genome *pLoci){
   numChromosomes = nchr;
   Loci = pLoci;
+  AncestryScore = 0;
+  AncestryInfo = 0;
 }
 void Individual::InitialiseAffectedsOnlyScores(int L, int K){
   AffectedsScore.SetNumberOfElements(L, K);
@@ -140,8 +142,12 @@ Individual::~Individual()
   delete[] LocusAncestry;  
   delete[] f[0];
   delete[] f[1];
-  delete[] sumxi;
+}
 
+void Individual::DeleteStaticMembers(){
+  delete[] sumxi;
+  delete[] AncestryScore;
+  delete[] AncestryInfo;
 }
 
 void Individual::Reset(){
@@ -249,6 +255,11 @@ Vector_i Individual::GetLocusAncestry( int chrm, int locus )
 //     ancestry[i] = LocusAncestry[chrm][i][locus];
 //   return ancestry;
   return LocusAncestry[chrm].GetColumn( locus );
+}
+
+int Individual::GetLocusAncestry(int chrm, int gamete, int locus){
+  int g = LocusAncestry[chrm].GetNumberOfRows()==2 ? gamete : 0;
+  return LocusAncestry[chrm](g , locus);
 }
 
 double Individual::getLogPosteriorProb()
