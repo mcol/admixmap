@@ -4,6 +4,7 @@
 #include "Chromosome.h"//not needed if chrm is moved out
 #include "chib.h"
 #include "MisSpecAlleleFreqTest.h"
+#include "HWTest.h"
 #include <fstream>
 
 using namespace std;
@@ -115,6 +116,7 @@ void submain(AdmixOptions* options){
     StratificationTest StratTest;
     ScoreTests Scoretest;
     MisSpecAlleleFreqTest AlleleFreqTest;
+    HWTest HWtest;
  
     if( options->getTestForDispersion() ){
       DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());    
@@ -125,6 +127,8 @@ void submain(AdmixOptions* options){
       Scoretest.Initialise(options, IC, &Loci, chrm,PopulationLabels, &Log);
     if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
       AlleleFreqTest.Initialise(options, &Loci, &Log );  
+    if( options->getHWTestIndicator() )
+      HWtest.Initialise(options, Loci.GetTotalNumberOfLoci(), &Log);
 
     if( options->getTextIndicator() ){
       InitializeErgodicAvgFile(options,IC, &Log,&avgstream,PopulationLabels);
@@ -168,6 +172,7 @@ void submain(AdmixOptions* options){
       // sum of rho and rho-squared over all individuals or gametes 
       L.Update(iteration, IC, &poptheta,&LogFileStream);
 
+      //update f summary for global rho
       if( !options->getRhoIndicator() )  
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
 	  chrm[j]->SetLociCorr(L.getrho());
@@ -210,7 +215,10 @@ void submain(AdmixOptions* options){
 	//tests for mis-specified allelefreqs
 	if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
 	  AlleleFreqTest.Update(IC, &A, &Loci);
-	
+	//test for Hardy-Weinberg eq
+	if( options->getHWTestIndicator() )
+	  HWtest.Update(IC, chrm, &Loci);
+
 	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
 	if (!(iteration % (options->getSampleEvery() * 10))){    
 	  //FST
@@ -243,14 +251,16 @@ void submain(AdmixOptions* options){
     //output at end
     //tests for mis-specified allele frequencies
     if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
-      AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, PopulationLabels, options->IsPedFile());    
+      AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, PopulationLabels, options->IsPedFile()); 
+    //test for H-W eq
+   if( options->getHWTestIndicator() )
+     HWtest.Output(options->IsPedFile(), data.getGeneInfoData()); 
     //Marginal Likelihood for a single individual
     if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);
     //MLEs of admixture & sumintensities for nonhierarchical model on individual admixture
     if( options->getMLIndicator() )IC->Output(&LogFileStream);
     //finish writing score test output as R objects
-    if( options->getScoreTestIndicator() )
-      Scoretest.ROutput();
+    if( options->getScoreTestIndicator() ) Scoretest.ROutput();
   }//end else
 
   //  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
