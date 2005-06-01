@@ -3,8 +3,8 @@
 #define DARS_H 1
 
 #include "vector_d.h"
-#include "Matrix_i.h"
-#include "Matrix_d.h"
+#include "matrix_i.h"
+#include "matrix_d.h"
 #include "rand.h"
 
 #include <iostream>

@@ -123,7 +123,7 @@ void HWTest::Output(bool IsPedFile, Matrix_s LocusData){
   //output locus labels from locus file
     //need same code as in ScoreTests to do for comp loci
       if(IsPedFile)
-	outputfile << "\"" << LocusData[j][0] << "\"" << ",";
+	outputfile << "\"" << LocusData[j+1][0] << "\"" << ",";
       else
 	outputfile << LocusData[j][0] << ",";
       
@@ -171,7 +171,7 @@ void HWTest::R_output3DarrayDimensions(ofstream* stream,vector<int> dim,vector<s
       *stream << ",";
     }
   }
-  *stream << "), character(0), character(0)))" << endl;
+  *stream << "), character(0)))" << endl;
 }
 
 string HWTest::double2R( double x )
