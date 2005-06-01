@@ -267,6 +267,27 @@ void CompositeLocus::SetHapPairProbs(){
   }
 }
 
+/*
+  returns array of marginal alleleprobs for each allele of each locus, for ancestry state k,  within the composite locus
+  P must be of correct dimensions ie a ragged array with dimensions #loci and #alleles
+*/
+void CompositeLocus::getLocusAlleleProbs(double **P, int k){
+
+ for(int j = 0; j < NumberOfLoci; ++j)
+    for(int jj = 0 ; jj < NumberOfAlleles[j]; ++jj)
+      P[j][jj] = 0.0;
+
+  int *hA =  new int[NumberOfLoci];
+
+  for(int h = 0; h < NumberOfStates; ++h){//loop over all haplotypes
+    decodeIntAsHapAlleles(h, hA);
+    //compute marginal probs by summing over relevant hap probs
+    for(int j = 0; j < NumberOfLoci; ++j)
+      P[j][hA[j]-1] += AlleleProbs[h][k]; 
+  }
+  delete[] hA;
+}
+
 /**
  * Given a list of possible haplotype pairs, returns sums of probabilities of these haplotypes
  * given each possible ordered pair of locus ancestry states 

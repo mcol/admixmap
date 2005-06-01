@@ -49,7 +49,8 @@ public:
 
   int GetNumberOfAllelesOfLocus( int );
 
-  //new functions
+  void getLocusAlleleProbs(double **P, int k);
+
   void setPossibleHaplotypePairs(unsigned short **Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles);
   void GetGenotypeProbs(double **Probs, std::vector<hapPair > &HaplotypePairs, bool fixed, int RandomAlleleFreqs);
