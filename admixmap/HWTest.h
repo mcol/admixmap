@@ -17,6 +17,7 @@ public:
   void Initialise(AdmixOptions *options, int nloci, LogWriter *Log);
 
   void Output(bool IsPedFile, Matrix_s locusdata);
+  void Output2(bool IsPedFile, Matrix_s locusdata);
 
   void Update(IndividualCollection *IC, Chromosome **C, Genome *Loci);
 
@@ -28,6 +29,7 @@ private:
   //dmatrix sumscore;
   //dmatrix sumscore2;
   //dmatrix suminfo;
+  double *score;
   double *sumscore;
   double *sumscore2;
   double *suminfo;
