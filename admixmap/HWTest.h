@@ -1,4 +1,25 @@
 // *-*-C++-*-*
+/** 
+ *   ADMIXMAP
+ *   HWTest.h 
+ *   header file for HWTest class
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
 #ifndef HWTEST_H
 #define HWTEST_H 1
 
@@ -17,7 +38,6 @@ public:
   void Initialise(AdmixOptions *options, int nloci, LogWriter *Log);
 
   void Output(bool IsPedFile, Matrix_s locusdata);
-  void Output2(bool IsPedFile, Matrix_s locusdata);
 
   void Update(IndividualCollection *IC, Chromosome **C, Genome *Loci);
 
@@ -36,7 +56,6 @@ private:
 
   std::ofstream outputfile;
 
-  void R_output3DarrayDimensions(ofstream* stream,vector<int> dim,vector<string> labels);
   string double2R( double x );
   /**
    *  UNIMPLEMENTED: to avoid undesired copying.

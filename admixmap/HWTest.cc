@@ -6,6 +6,7 @@
 */
 #include "HWTest.h"
 #include "functions.h"
+#include "gsl/gsl_cdf.h"
 
 HWTest::HWTest(){
   score = 0;
@@ -74,9 +75,9 @@ void HWTest::Update(IndividualCollection *IC, Chromosome **C, Genome *Loci){
   double **Prob0 = 0, **Prob1 = 0;
 
   //reset score
-//   for(int j = 0; j < NumLoci; ++j){
-//     score[j] = 0.0;
-//   }
+  for(int j = 0; j < NumLoci; ++j){
+    score[j] = 0.0;
+  }
   for(int i = 0; i < IC->getSize(); ++i){
 
     ind = IC->getIndividual(i);
@@ -109,27 +110,21 @@ void HWTest::Update(IndividualCollection *IC, Chromosome **C, Genome *Loci){
 	      h = (genotype[jj][0] != genotype[jj][1]);
 	      
 	      H = 1.0;
-	      //compute prob of heterozygosity by summing component-wise products of off-diagonal marginal probs	    
-	      for(int a0 = 0; a0 < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a0){//loop over allele pairs
-		// 	      for(int a1 = 0; a1 < a0; ++a1)
-		// 		H += Prob0[jj][a0] * Prob1[jj][a1];
-		// 	      for(int a1 = a0+1; a1 < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a1)
-		// 		H += Prob0[jj][a0] * Prob1[jj][a1];
-		H -= Prob0[jj][a0] * Prob1[jj][a0];
+	      //compute prob of heterozygosity by subtracting from 1 the prob of homozygosity, ie sum of diagonal products	    
+	      for(int a = 0; a < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
+		H -= Prob0[jj][a] * Prob1[jj][a];
 	      }
 	      
-// 	      //accumulate score over individuals
-// 	      if( h ){//heterozygous
-// 		score[locus] += -0.5; 
-// 	      }
-// 	      else{//homozygous
-// 		score[locus] += 0.5 * ( H  / ( 1.0 - H ) ); 
-// 	      }
-	      //if(locus==0) cout<<"ind "<<i<<" "<<score[0]<<endl;
-	      //suminfo[locus] += 0.25 *( H /  (1.0 - H) );
+	      //accumulate score over individuals
+	      if( h ){//heterozygous
+		score[locus] += -0.5; 
+	      }
+	      else{//homozygous
+		score[locus] += 0.5 * ( H  / ( 1.0 - H ) ); 
+	      }
+	      suminfo[locus] += 0.25 *( H /  (1.0 - H) );
+	      //suminfo[locus] += score[locus] * score[locus];
     
-	      if( h ) ++sumscore[locus]; //observed h'osity
-	      sumscore2[locus] += H;//expected h'osity
 	    }
 	    ++locus;
 	  }
@@ -143,102 +138,40 @@ void HWTest::Update(IndividualCollection *IC, Chromosome **C, Genome *Loci){
     }
     ind = 0;
   }
-//   for(int j = 0; j < NumLoci; ++j){
-//     sumscore[j] += score[j];
-//     sumscore2[j] += score[j] * score[j];
-//     suminfo[j] += score[j] * score[j];
-//   }
-  //cout << score[0]<<" "<<sumscore[0]<<endl;	
+  for(int j = 0; j < NumLoci; ++j){
+    sumscore[j] += score[j];
+    sumscore2[j] += score[j] * score[j];
+  }
   ++samples;
-  //system("pause");
 }
 
 void HWTest::Output(bool IsPedFile, Matrix_s LocusData){
- outputfile << "structure(.Data=c(" << endl;
+  //header line
+  outputfile <<"Locus Score CompleteInfo MissingInfo ObservedInfo \%Info z-score p-value"<<endl;
 
-  double EU, missing, complete;
+ double EU, missing, complete, zscore;
   for(int j = 0; j < NumLoci; j++ ){
   //output locus labels from locus file
     //need same code as in ScoreTests to do for comp loci
       if(IsPedFile)
-	outputfile << "\"" << LocusData[j+1][0] << "\"" << ",";
+	outputfile << "\"" << LocusData[j+1][0] << "\"" << "\t";
       else
-	outputfile << LocusData[j+1][0] << ",";
+	outputfile << LocusData[j+1][0] << "\t";
 
-      cout<< sumscore[j]/ (double) samples<<" "<<sumscore2[j]/ (double) samples<<" "<<suminfo[j]/ (double) samples      <<endl;
       EU = sumscore[ j ] / (double) samples;
       missing = sumscore2[ j ] / (double) samples - EU * EU;
       complete =  suminfo[ j ] / (double) samples;
+      zscore = EU / sqrt( complete - missing );
 
-      outputfile << double2R(EU)                                << ",";
-      outputfile << double2R(complete)                          << ",";
-      outputfile << double2R(missing)                          << ",";
-      outputfile << double2R(complete - missing)                << ",";
-      outputfile << double2R(100*(complete - missing)/complete) << ",";
-      outputfile << double2R(EU / sqrt( complete - missing ))   << "," << endl;
+      //outputfile.precision(2);
+      outputfile << double2R(EU)                                << "\t"
+		 << double2R(complete)                          << "\t"
+		 << double2R(missing)                          << "\t"
+		 << double2R(complete - missing)                << "\t"
+		 << double2R(100*(complete - missing)/complete) << "\t"
+		 << double2R(zscore)   << "\t"
+		 << 2.0 * gsl_cdf_ugaussian_P (-abs(zscore)) << "\t" << endl;//p-value
   }
-
-    vector<int> dimensions(2,0);
-    dimensions[0] = 7;
-    dimensions[1] = NumLoci;
-
-    vector<string> labels(7,"");
-    labels[0] = "Locus";
-    labels[1] = "Score";
-    labels[2] = "CompleteInfo";
-    labels[3] = "MissingInfo";
-    labels[4] = "ObservedInfo";
-    labels[5] = "PercentInfo";
-    labels[6] = "StdNormal";
-    R_output3DarrayDimensions(&outputfile, dimensions, labels);
-}
-
-void HWTest::Output2(bool IsPedFile, Matrix_s LocusData){
-  for(int j = 0; j < NumLoci; j++ ){
-  //output locus labels from locus file
-    //need same code as in ScoreTests to do for comp loci
-      if(IsPedFile)
-	outputfile << "\"" << LocusData[j+1][0] << "\"" << ",";
-      else
-	outputfile << LocusData[j+1][0] << ",";
-
-      outputfile << double2R(sumscore[j]/(double)samples)  << ","//observed
-		 << double2R(sumscore2[j]/(double)samples) << ","//expected
-		 << endl;
-  }
-
-    vector<int> dimensions(2,0);
-    dimensions[0] = 3;
-    dimensions[1] = NumLoci;
-
-    vector<string> labels(3,"");
-    labels[0] = "Locus";
-    labels[1] = "Observed";
-    labels[2] = "Expected";
-    R_output3DarrayDimensions(&outputfile, dimensions, labels);
-
-}
-
-//copied from ScoreTests
-void HWTest::R_output3DarrayDimensions(ofstream* stream,vector<int> dim,vector<string> labels)
-{
-  *stream << ")," << endl;
-  *stream << ".Dim = c(";
-  for(unsigned int i=0;i<dim.size();i++){
-    *stream << dim[i];
-    if(i != dim.size() - 1){
-      *stream << ",";
-    }
-  }
-  *stream << ")," << endl;
-  *stream << ".Dimnames=list(c(";
-  for(unsigned int i=0;i<labels.size();i++){
-    *stream << "\"" << labels[i] << "\"";
-    if(i != labels.size() - 1){
-      *stream << ",";
-    }
-  }
-  *stream << "), character(0)))" << endl;
 }
 
 string HWTest::double2R( double x )
@@ -247,7 +180,7 @@ string HWTest::double2R( double x )
     return "NaN";
   else{
     stringstream ret;
-    ret << x;
+    ret << floor(x*100+0.5)/100.0;//for two decimal places
     return( ret.str() );
   }
 }
