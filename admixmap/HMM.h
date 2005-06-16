@@ -35,15 +35,14 @@ public:
 
   double getLikelihood();
 
-  void UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], Matrix_d& Admixture, double ***lambda, int Mcol);
+  void UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], double **ThetaThetaPrime, double ***lambda);
 
   void UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], double **ThetaThetaPrime, double ***lambda);
 
   void UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double ***lambda, bool CalculateBeta);
 
   void RecursionProbs(const double ff, const double f[2], 
-		      double **stateArrivalProbs, double **oldProbs, 
-		      double **newProbs, bool sumFactor);  
+		      double **stateArrivalProbs, double **oldProbs, double **newProbs);  
 private:
   int K;
   int States; //number of states of Markov chain, m in book
@@ -60,7 +59,6 @@ private:
   double ***alpha, ***beta,**LambdaBeta;
   double *p;
 
-  void PrintLikelihoods();
 };
 
 #endif /* ! HMM_H */

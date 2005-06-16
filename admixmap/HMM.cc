@@ -84,28 +84,25 @@ void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
   Updates Forward and (if required) Backward probabilities
   diploid case only
   -----------------------------------------------------------
-  Mcol = options->getRandomMatingModel() = 1 for random mating model, 0 otherwise
-  K = # populations
-  
   relates to notation in docs as follows:
   j = j1, j' = j2, i = i1, i' = i2, 
   theta_j = Admixture(j,0),  theta'_j = Admixture(j,Mcol).
 */
-void HMM::UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], Matrix_d& Admixture, double ***lambda, int Mcol)
+void HMM::UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], double **ThetaThetaPrime, double ***lambda)
 {
   sumfactor = 0.0;
 
    for(int j1 = 0; j1 < K; ++j1)
     for(int j2 =0; j2 <K; ++j2){
       //set alpha(0) = StationaryDist * lambda(0) 
-      alpha[0][j1][j2] =  Admixture(j1,0)*Admixture(j2,Mcol) *lambda[0][j1][j2];
+      alpha[0][j1][j2] =  ThetaThetaPrime[j1][j2] *lambda[0][j1][j2];
     }
 
   for( int t = 1; t < Transitions; t++ ){        
     p[t] = f[0][t] * f[1][t];
     double f2[2] = {f[0][t], f[1][t]};
 
-    RecursionProbs(p[t], f2,StateArrivalProbs[t], alpha[t-1], alpha[t], true);
+    RecursionProbs(p[t], f2,StateArrivalProbs[t], alpha[t-1], alpha[t]);
     for(int j1 = 0; j1 < K; ++j1){
       for(int j2 = 0; j2 < K; ++j2){
 	alpha[t][j1][j2] *= lambda[t][j1][j2];
@@ -135,7 +132,7 @@ void HMM::UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], do
 	}
     }
     
-    RecursionProbs(p[t+1], f2,StateArrivalProbs[t+1], LambdaBeta, beta[t], false);
+    RecursionProbs(p[t+1], f2,StateArrivalProbs[t+1], LambdaBeta, beta[t]);
     for(int j1 = 0; j1 < K; ++j1){
       for(int j2 =0; j2 <K; ++j2){
 	beta[t][j1][j2] *= rec[j1][j2];
@@ -223,23 +220,6 @@ double HMM::getLikelihood()
    return( sumfactor+log( sum ) );
 }
 
-// void HMM::PrintLikelihoods(){
-//   double oldsum=0.0, newsum=0.0;
-//   bool flag = false;
-//   cout<<"old lik"<<" "<<"new lik"<<endl;
-//   for(int t = 0; t< Transitions;++t){
-//     oldsum = newsum = 0.0;
-//     for(int i=0;i<K;++i)
-//       for(int j=0;j<K;++j){
-// 	oldsum += beta[t][i][j]*alpha[t][i][j];
-// 	newsum += beta[t][i][j]*alpha[t][i][j];
-//       }
-//     cout<<"t = "<<t<<": "<<oldsum<<" "<<newsum<<endl;
-//     if(oldsum - newsum < -0.000001 || oldsum - newsum > 0.000001)flag=true;
-//   }
-//   if(flag)system("pause");
-// }
-
 /*
   Samples Hidden States
   ---------------------
@@ -287,9 +267,7 @@ void HMM::Sample(int *C, Matrix_d &Admixture, double *f[], double ***StateArriva
 // for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
 // updates oldProbs (scaled to sum to 1), newProbs and sumfactor if forward = true (for alphas)
 void HMM::RecursionProbs(const double ff, const double f[2], 
-			 //const double stateArrivalProbs[][2], double **oldProbs,  
-			 double **stateArrivalProbs, double **oldProbs,
-			 double **newProbs, bool forward) {
+			 double **stateArrivalProbs, double **oldProbs, double **newProbs) {
   double Sum = 0.0, scaleFactor = 1.0;
   double *rowProb = new double[K];
   double *colProb = new double[K];
@@ -364,8 +342,6 @@ void HMM::RecursionProbs(const double ff, const double f[2],
 	// newProbs[j0][j1] = ff * (oldProbs[j0][j1]*scaleFactor - rowProb[j0] * colProb[j1]) + 
 	Expectation0[j0] * Expectation1[j1];
       //	 ( f[0]*rowProb[j0] + stateArrivalProbs[j0][0] ) * ( f[1]*colProb[j1] + stateArrivalProbs[j1][1] );
-      //if(forward)
-      //oldProbs[j0][j1] *= scaleFactor;
       //undo scaling 
       newProbs[j0][j1] *= Sum;
     }
