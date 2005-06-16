@@ -24,7 +24,6 @@ HMM::HMM( int inTransitions, int pops, bool isdiploid )
   Transitions = inTransitions;
 
   alpha = new double**[Transitions];
-  ralpha = new double**[Transitions];
   beta =  new double**[Transitions];
   int d = isdiploid? K:1;  
   
@@ -38,10 +37,6 @@ HMM::HMM( int inTransitions, int pops, bool isdiploid )
   }
   sumfactor=0.0;
   p = new double[Transitions];
-  Q = alloc2D_d(Transitions,K);
-  R = alloc2D_d(Transitions,K);
-  S = new double **[Transitions];
-  for(int i=0;i<Transitions;++i)S[i] = alloc2D_d(K,K);
   LambdaBeta = alloc2D_d(K,d);
 }
 
@@ -49,14 +44,9 @@ HMM::~HMM()
 {
   //TODO:destroy these properly
   delete[] p;
-  delete[] Q;
-  delete[] R;
   for(int i = 0; i < K; ++i){
-    delete[] S[i];
     delete[] LambdaBeta[i];
   }
-  delete[] S;
-
 }
 
 void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
@@ -85,10 +75,6 @@ void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
   }
   sumfactor=0.0;
   p = new double[Transitions];
-  Q = alloc2D_d(Transitions,K);
-  R = alloc2D_d(Transitions,K);
-  S = new double **[Transitions];
-  for(int i = 0; i < Transitions; ++i)S[i] = alloc2D_d(K,K);
   LambdaBeta = alloc2D_d(K,d);
 }
 
@@ -117,7 +103,6 @@ void HMM::UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], Ma
 
   for( int t = 1; t < Transitions; t++ ){        
     p[t] = f[0][t] * f[1][t];
-    
     double f2[2] = {f[0][t], f[1][t]};
 
     RecursionProbs(p[t], f2,StateArrivalProbs[t], alpha[t-1], alpha[t], true);
@@ -126,22 +111,18 @@ void HMM::UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], Ma
 	alpha[t][j1][j2] *= lambda[t][j1][j2];
       }
     }
-
-    for(int j0 = 0; j0 < K; ++j0){
-      Q[t][j0] = f[1][t] * StateArrivalProbs[t][j0][0];
-      R[t][j0] = f[0][t] * StateArrivalProbs[t][j0][1];
-      for(int j1 = 0; j1 < K; ++j1)S[t][j0][j1] = StateArrivalProbs[t][j0][0] * StateArrivalProbs[t][j1][1];
-    }
-
   }
 }
 
-void HMM::UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], Matrix_d& Admixture, double ***lambda, int Mcol)
+void HMM::UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], double **ThetaThetaPrime, double ***lambda)
 {
+  double rec[K][K];
+
   for(int j1 = 0; j1 < K; ++j1)
     for(int j2 =0; j2 <K; ++j2){
       //set beta(T) = 1
       beta[Transitions - 1][j1][j2] = 1.0;
+      rec[j1][j2] = 1.0 / ThetaThetaPrime[j1][j2];
     }
 
   for( int t = Transitions-2; t >=0; t-- ){
@@ -150,16 +131,16 @@ void HMM::UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], Ma
     
     for(int j1 = 0; j1 < K; ++j1){
 	for(int j2 =0; j2 <K; ++j2){
-	  LambdaBeta[j1][j2] = lambda[t+1][j1][j2] * beta[t+1][j1][j2] *Admixture(j1,0)*Admixture(j2,Mcol);
+	  LambdaBeta[j1][j2] = lambda[t+1][j1][j2] * beta[t+1][j1][j2] * ThetaThetaPrime[j1][j2];
 	}
     }
     
     RecursionProbs(p[t+1], f2,StateArrivalProbs[t+1], LambdaBeta, beta[t], false);
     for(int j1 = 0; j1 < K; ++j1){
       for(int j2 =0; j2 <K; ++j2){
-	beta[t][j1][j2] /= Admixture(j1,0)*Admixture(j2,Mcol);
+	beta[t][j1][j2] *= rec[j1][j2];
       }
-      }
+    }
   }
 
 }
@@ -263,11 +244,9 @@ double HMM::getLikelihood()
   Samples Hidden States
   ---------------------
   C          - an int array to store the sampled states
-  StartLocus - number of first locus on chromosome
-  Mcol       - indicator for random mating model
   isdiploid  - indicator for diploidy
 */
-void HMM::Sample(int *C, Matrix_d &Admixture, double *f[], bool isdiploid)
+void HMM::Sample(int *C, Matrix_d &Admixture, double *f[], double ***StateArrivalProbs, bool isdiploid)
 {
   int j1,j2;
   double V[States];
@@ -283,10 +262,8 @@ void HMM::Sample(int *C, Matrix_d &Admixture, double *f[], bool isdiploid)
 
       State = 0;
       for(int i1 = 0; i1 < K; i1++)for(int i2=0;i2<K;++i2){
-// 	V[State] = (i1==j1)*(i2==j2)*p[t+1] + (i2==j2)*q[t+1]*Admixture(j1,0) 
-//                  + (i1==j1)*r[t+1]*Admixture(j2,Mcol) + Admixture(j1,0)*Admixture(j2,Mcol)*s[t+1];
-	V[State] = (i1==j1)*(i2==j2)*p[t+1] + (i2==j2)*Q[t+1][j1] 
-                 + (i1==j1)*R[t+1][j2] + S[t+1][j1][j2];
+	V[State] = 
+	  ( (i1==j1)*f[0][t+1] + StateArrivalProbs[t+1][j1][0] ) * ( (i2==j2)*f[1][t+1] + StateArrivalProbs[t+1][j2][1] );
 	V[State] *= alpha[t][i1][i2];
 	State++;
       }

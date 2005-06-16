@@ -30,16 +30,14 @@ public:
   ~HMM();
   void SetDimensions( int inTransitions, int pops, bool isdiploid );
   /* samples hidden states */
-  void Sample(int *C, Matrix_d &Admixture, double *f[], bool isdiploid);
+  void Sample(int *C, Matrix_d &Admixture, double *f[], double ***StateArrivalProbs, bool isdiploid);
   void GetStateProbs( double * probs, int t);
-  void NewGetStateProbs( double * probs, int t, double ***StateArrivalProbs, double *f[]);
 
   double getLikelihood();
-  void UpdateProbsDiploid(double ***StateArrivalProbs,double *f[], Matrix_d& Admixture, double ***lambda, int Mcol, bool CalculateBeta);
-  void UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], Matrix_d& Admixture, double ***lambda, int Mcol);
-  void UpdateRevAlphas(double ***StateArrivalProbs, double *f[], Matrix_d& Admixture, double ***lambda, int Mcol);
 
-  void UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], Matrix_d& Admixture, double ***lambda, int Mcol);
+  void UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], Matrix_d& Admixture, double ***lambda, int Mcol);
+
+  void UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], double **ThetaThetaPrime, double ***lambda);
 
   void UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double ***lambda, bool CalculateBeta);
 
@@ -60,8 +58,7 @@ private:
   //forward and backward probabilities
   //L x K x K arrays
   double ***alpha, ***beta,**LambdaBeta;
-  double ***ralpha;
-  double *p,**Q ,**R, ***S;
+  double *p;
 
   void PrintLikelihoods();
 };

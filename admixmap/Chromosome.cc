@@ -133,8 +133,13 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
  
     //Update Forward/Backward Probs in HMM
     SampleStates.UpdateForwardProbsDiploid(StateArrivalProbs,f, Admixture, Lambda, options->isRandomMatingModel());
-    if(test)
-      SampleStates.UpdateBackwardProbsDiploid(StateArrivalProbs,f, Admixture, Lambda, options->isRandomMatingModel());
+    if(test){
+      double **ThetaThetaPrime = alloc2D_d(populations, populations);
+      for(int j0 = 0; j0 < populations; ++j0)for(int j1 = 0; j1 < populations; ++j1)
+	ThetaThetaPrime[j0][j1] = Admixture(j0,0)*Admixture(j1, options->isRandomMatingModel());
+      SampleStates.UpdateBackwardProbsDiploid(StateArrivalProbs,f, ThetaThetaPrime, Lambda);
+      free_matrix(ThetaThetaPrime, populations);
+    }
 
   }
 
@@ -156,7 +161,7 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
 //void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, double *f[], bool isdiploid){
 void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid){
 
-  SampleStates.Sample(CodedStates, Admixture, f, isdiploid);
+  SampleStates.Sample(CodedStates, Admixture, f, StateArrivalProbs, isdiploid);
   for(unsigned int j = 0; j < L; j++ ){
     if(isdiploid){
       //     OrderedStates( 0, j ) = 0;

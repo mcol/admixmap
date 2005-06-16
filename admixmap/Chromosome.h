@@ -58,7 +58,7 @@ public:
 			std::vector< double > _rho,  bool fixedallelefreqs, bool diploid );
 
 
-  void SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture,  bool isdiploid);
+  void SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid);
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
   void SampleJumpIndicators(const Matrix_i &LocusAncestry,   
