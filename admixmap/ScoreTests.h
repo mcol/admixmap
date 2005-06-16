@@ -8,6 +8,23 @@
 
 class ScoreTests{
 
+public:
+  ScoreTests();
+
+  void Initialise(AdmixOptions *,IndividualCollection *,Genome *,Chromosome **,std::string *, LogWriter *);
+
+  void InitialiseAssocScoreFile(std::string *);
+
+  void Output(int,std::string *);
+
+  void ROutput();
+
+  void SetAllelicAssociationTest();
+
+  void Update(double);
+
+  ~ScoreTests();
+
 private:
 
 //   Matrix_d *LocusLinkageScore;
@@ -26,6 +43,7 @@ private:
   Matrix_d *SumLocusLinkageAlleleScore2;
   Matrix_d *SumLocusLinkageAlleleScore;
   Matrix_d *SumLocusLinkageAlleleInfo;
+  bool *locusObsIndicator;
 
   Matrix_d SumAffectedsScore2;
   Matrix_d SumAffectedsVarScore;
@@ -87,22 +105,6 @@ private:
 
   void Reset();
 
-public:
-  ScoreTests();
-
-  void Initialise(AdmixOptions *,IndividualCollection *,Genome *,Chromosome **,std::string *, LogWriter *);
-
-  void InitialiseAssocScoreFile(std::string *);
-
-  void Output(int,std::string *);
-
-  void ROutput();
-
-  void SetAllelicAssociationTest();
-
-  void Update(double);
-
-  ~ScoreTests();
 
 };
 

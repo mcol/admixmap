@@ -25,6 +25,7 @@ ScoreTests::ScoreTests(){
   SumLocusLinkageAlleleScore2 = 0;
   SumLocusLinkageAlleleScore = 0;
   SumLocusLinkageAlleleInfo = 0;
+  locusObsIndicator = 0;
 
   ScoreWithinHaplotype = 0;
   InfoWithinHaplotype = 0;
@@ -56,6 +57,7 @@ ScoreTests::~ScoreTests(){
   delete[] SumLocusLinkageAlleleScore;
   delete[] SumLocusLinkageAlleleScore2;
   delete[] SumLocusLinkageAlleleInfo;
+  delete[] locusObsIndicator;
 }
 
 void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Genome *Loci, Chromosome **c,std::string *PLabels,
@@ -124,7 +126,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     }
     else {
       Logptr->logmsg(true,"ERROR: affectedsonly score test is only valid with analysistypeindicator 0, 3, or 4.\n");
-      Logptr->logmsg(true,"This option will be ignored.\n");
+      Logptr->logmsg(true,"\tThis option will be ignored.\n");
       options->setTestForAffectedsOnly(false);
     }
   }
@@ -135,44 +137,48 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
   if( options->getTestForLinkageWithAncestry() ){
     if( options->getAnalysisTypeIndicator() == 5  ||
 	(!options->getTestForAdmixtureAssociation() && (options->getAnalysisTypeIndicator() == 2 || 
-					       options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4)))
+							options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4)))
       {
-    ancestryAssociationScoreStream = new ofstream(options->getAncestryAssociationScoreFilename());
-    if( !ancestryAssociationScoreStream ){
-      Logptr->logmsg(true,"ERROR: Couldn't open ancestry association scorefile\n");
-      exit( 1 );//remove?
-    }
-      else{
-	Logptr->logmsg(true,"Writing tests for locus linkage to ");
-	Logptr->logmsg(true,options->getAncestryAssociationScoreFilename());
-	Logptr->logmsg(true,"\n");
+	ancestryAssociationScoreStream = new ofstream(options->getAncestryAssociationScoreFilename());
+	if( !ancestryAssociationScoreStream ){
+	  Logptr->logmsg(true,"ERROR: Couldn't open ancestry association scorefile\n");
+	  exit( 1 );//remove?
+	}
+	else{
+	  Logptr->logmsg(true,"Writing tests for locus linkage to ");
+	  Logptr->logmsg(true,options->getAncestryAssociationScoreFilename());
+	  Logptr->logmsg(true,"\n");
 	*ancestryAssociationScoreStream << "structure(.Data=c(" << endl;
-      }
-
-    //code for old method
-//     LocusLinkageScore = new Matrix_d[L];
-//     LocusLinkageInfo = new Matrix_d[L];
-//     SumLocusLinkageScore = new Matrix_d[L];
-//     SumLocusLinkageScore2 = new Matrix_d[L];
-//     SumLocusLinkageInfo = new Matrix_d[L];
-//     for( int j = 0; j < L; j++ ){
+	}
+	
+	//code for old method
+	//     LocusLinkageScore = new Matrix_d[L];
+	//     LocusLinkageInfo = new Matrix_d[L];
+	//     SumLocusLinkageScore = new Matrix_d[L];
+	//     SumLocusLinkageScore2 = new Matrix_d[L];
+	//     SumLocusLinkageInfo = new Matrix_d[L];
+	//     for( int j = 0; j < L; j++ ){
 //       LocusLinkageScore[j].SetNumberOfElements(2 * K, 1 );
 //       LocusLinkageInfo[j].SetNumberOfElements( 2 * K, 2 * K );
 //       SumLocusLinkageScore2[j].SetNumberOfElements(K, 1 );
 //       SumLocusLinkageScore[j].SetNumberOfElements(K, 1 );
 //       SumLocusLinkageInfo[j].SetNumberOfElements(K, 1 );
 //     }
-
-    SumAncestryScore.SetNumberOfElements(L, K);
-    SumAncestryInfo.SetNumberOfElements(L, K);
-    SumAncestryScore2.SetNumberOfElements(L, K);
-    SumAncestryVarScore.SetNumberOfElements(L, K);
-
-    Individual::InitialiseAncestryScores(L, K);
+	
+	SumAncestryScore.SetNumberOfElements(L, K);
+	SumAncestryInfo.SetNumberOfElements(L, K);
+	SumAncestryScore2.SetNumberOfElements(L, K);
+	SumAncestryVarScore.SetNumberOfElements(L, K);
+	
+	Individual::InitialiseAncestryScores(L, K);
       }
-    else options->setTestForLinkageWithAncestry(false);
+    else {
+      Logptr->logmsg(true,"ERROR: ancestryassociation score test is only valid with analysistypeindicator > 2.\n");
+      Logptr->logmsg(true,"\tThis option will be ignored.\n");
+      options->setTestForLinkageWithAncestry(false);
+    }
   }
-
+  
   /*----------------------
   | Allelic association  |
    -----------------------*/
@@ -206,6 +212,18 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 	SumScoreWithinHaplotype = new Matrix_d[L];
 	SumScore2WithinHaplotype = new Matrix_d[L];
 	SumInfoWithinHaplotype = new Matrix_d[L];
+	locusObsIndicator = new bool[L];
+
+
+	//search for loci with no observed genotypes
+ 	for(int j = 0; j < L; ++j){
+	  locusObsIndicator[j] = false;
+	  for(int i = 0; i < indiv->getSize(); ++i){
+	    if(!indiv->getIndividual(i)->IsMissing(j)){
+	      locusObsIndicator[j] = true;
+	    }
+	  }
+	}
 
 	for( int j = 0; j < L; j++ ){
 	  int NumberOfLoci = (*Lociptr)(j)->GetNumberOfLoci();
@@ -399,20 +417,22 @@ void ScoreTests::Update(double dispersion)
   | Allelic association  |
    -----------------------*/
       if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
-	// kk is set to 1 if single diallelic locus, to number of
-	// merged haplotypes if compound locus, to number of states
-	// if >2 alleles
-	if( (*Lociptr)(j)->GetNumberOfStates() == 2 )
-	  kk = 1;
-	else if( (*Lociptr)(j)->GetNumberOfLoci() > 1 )
-	  kk = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
-	else
-	  kk = (*Lociptr)(j)->GetNumberOfStates();
-	// correct for posterior covariance between regression parameters
-	CentredGaussianConditional( kk, LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j], &score, &info );
-	SumLocusLinkageAlleleScore[j] += score;
-	SumLocusLinkageAlleleScore2[j] += score * score.Transpose();
-	SumLocusLinkageAlleleInfo[j] += info;
+	if(locusObsIndicator[j]){//skip loci with no observed genotypes
+	  // kk is set to 1 if single diallelic locus, to number of
+	  // merged haplotypes if compound locus, to number of states
+	  // if >2 alleles
+	  if( (*Lociptr)(j)->GetNumberOfStates() == 2 )
+	    kk = 1;
+	  else if( (*Lociptr)(j)->GetNumberOfLoci() > 1 )
+	    kk = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
+	  else
+	    kk = (*Lociptr)(j)->GetNumberOfStates();
+	  // correct for posterior covariance between regression parameters
+	  CentredGaussianConditional( kk, LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j], &score, &info );
+	  SumLocusLinkageAlleleScore[j] += score;
+	  SumLocusLinkageAlleleScore2[j] += score * score.Transpose();
+	  SumLocusLinkageAlleleInfo[j] += info;
+	  }
       }
 
   /*-----------------------
@@ -860,6 +880,39 @@ void ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstr
     }
   }
 }
+
+//version for2 populations, when we only want to output for second population
+// void ScoreTests::OutputTestsForLocusLinkage2pops( int iteration, ofstream* outputstream,
+// 					 Matrix_d Score, Matrix_d VarScore,
+// 					 Matrix_d Score2, Matrix_d Info )
+// //used for affectedsonly test and ancestry association test
+// //Score2 = Score^2
+// {
+//   double VU, EU, missing, complete;
+//   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+//     k = 1;
+//     if(options->IsPedFile())
+//       *outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
+//     else
+//       *outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
+//     *outputstream << PopLabels[k] << ",";
+    
+//     EU = Score( j , k) / ( iteration - options->getBurnIn() );
+//     VU = VarScore( j , k ) / ( iteration - options->getBurnIn() );
+//     missing = Score2( j , k ) / ( iteration - options->getBurnIn() ) - EU * EU + VU;
+//     complete =  Info( j , k) / ( iteration - options->getBurnIn() );
+    
+//     *outputstream << double2R(EU)                                << ",";//score
+//       *outputstream << double2R(complete)                          << ",";//complete info
+//       *outputstream << double2R(complete - missing)                << ",";//observed info
+//       *outputstream << double2R(100*(complete - missing)/complete) << ",";//%observed info
+//       *outputstream << double2R(100*(VU/complete))                 << ",";//%missing info attributable to locus ancestry
+//       *outputstream << double2R(100*(missing-VU)/complete)         << ",";//%remainder of missing info      
+//       *outputstream << double2R(EU / sqrt( complete - missing ))   << "," << endl;
+      
+//   }
+// }
+
 void ScoreTests::ROutput(){
   int numPrintedIterations = options->getTotalSamples()/ options->getSampleEvery() / 10  -  options->getBurnIn() / options->getSampleEvery() / 10;
 
