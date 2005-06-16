@@ -141,7 +141,7 @@ getRegressionParamsForAdmixture <- function(user.options, k, n.covariates, popul
   col.coeff1 <- n.covariates + 1   #  + 1 for intercept
   col.coefflast <- col.coeff1 + k - 2  # only k- 1 coefficients
   beta <- data.frame(read.table(paste(resultsdir,user.options$regparamfile,sep="/"),
-                                sep="",header=TRUE)[, col.coeff1:col.coefflast])
+                                sep="",header=TRUE))[, col.coeff1:col.coefflast]
   dimnames(beta)[[2]] <- paste("slope", population.labels[-1], sep="." )
   return(beta)
 }
@@ -413,38 +413,21 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
               row.names=FALSE, col.names=TRUE)
 1}
 
-## function uses old ancestryscoretest output
-## now obsolete
-#plotAncestryScoreTest <- function(scorefile, k) {
-#  scoretest.ancestry <- dget(paste(resultsdir,scorefile,sep="/"))
-#  if(k == 2) { 
-#    scoretest.ancestry <- scoretest.ancestry[, seq(1, dim(scoretest.ancestry)[2] - 1, by = 2), ]
-#  }
-#  dimnames(scoretest.ancestry)[[2]] <- scoretest.ancestry[1,,1]
-#  scoretest.ancestry <- scoretest.ancestry[-1,,]
-#  popnames <- scoretest.ancestry[1,,1]
-#  scoretest.ancestry <- array(as.numeric(scoretest.ancestry), dim=dim(scoretest.ancestry),
-#                              dimnames=dimnames(scoretest.ancestry))
-#  scoretest.ancestry[is.nan(scoretest.ancestry)] <- NA
-#  scoretest.ancestry.final <- t(scoretest.ancestry[,,dim(scoretest.ancestry)[3]])
-#  scalar.pvalues <- signif(2*pnorm(-abs(scoretest.ancestry.final[,6])), digits=2)
-#  
-#  scoretest.ancestry.withp <- data.frame(dimnames(scoretest.ancestry.final)[[1]], popnames,
-#                                         round(scoretest.ancestry.final[,c(2,3,4)], digits=2),
-#                                         round(scoretest.ancestry.final[,5], digits=0), 
-#                                         round(scoretest.ancestry.final[,6], digits=2), 
-#                                         scalar.pvalues)
-#  dimnames(scoretest.ancestry.withp)[[2]] <- c("Locus", "Population", "Score", "CompleteInfo",
-#                                               "ObsInfo", "PercentInfo", "StdNormDev", "p-value") 
-#  outputfile <- paste(resultsdir, "TestsAncestryAssociationFinal.txt", sep="/" )
-#  write.table(scoretest.ancestry.withp,file=outputfile,quote=FALSE,
-#              row.names=FALSE, sep="\t")
-#  outputfile <- paste(resultsdir, "TestsAncestryAssociation.ps", sep="/" )
-#  plotpvalues(outputfile,scoretest.ancestry[6,,],
-#              10*thinning,"Running computation of p-values for ancestry association")
-
+#used to plot output of score test for heterozygosity
+plotHWScoreTest <- function(scorefile, k) {
+  scoretest <- read.table(paste(resultsdir,scorefile,sep="/"),header=TRUE, row.names="Locus")
+  
+  #qq plot of scores
+  outputfile <- paste(resultsdir, "QQPlotHWTest.ps", sep="/" )
+  postscript(outputfile)
+  title <- "QQ plot of H-W Test z-scores"
+  point.list <- qqnorm(scoretest[,6], main = title)
+  lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
+  dev.off()  
+}
+  
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
-plotRBScoreTest <- function(scorefile, testname, K, population.labels, thinning) {
+plotAncestryScoreTest <- function(scorefile, testname, K, population.labels, thinning) {
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
   ## extract first row containing locus names
   locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=K), 1]
@@ -730,10 +713,7 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
         d.predicted <- det(covar.predicted)
         d.observed <- det(v)
         factor <- (d.predicted/d.observed)^(1/length(p))
-        if(factor<1){
-          cat(d.predicted,"\t",d.observed,"\t")
         }
-      }
       if(pop==1) { # create matrix of allele freqs: rows index alleles, cols index populations  
         allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=length(p), ncol=k,
                                                   dimnames=list(character(0), population.labels))
@@ -928,13 +908,13 @@ if(is.null(user.options$regparamfile) ||
   plotAutocorrelations(regparam.samples, user.options$every)
   dev.off()
   
-  beta.admixture <- getRegressionParamsForAdmixture(user.options, K, n.covariates, population.labels)
-  if(K > 2 && !is.null(pop.admix.prop)) {
+  #beta.admixture <- getRegressionParamsForAdmixture(user.options, K, n.covariates, population.labels)
+  #if(K > 2 && !is.null(pop.admix.prop)) {
     ## calculate estimate of effect of each pop vs all others if there are >2 populations
-    effect.pop <- effectEstimates(beta.admixture, pop.admix.prop, n, K)
-  } else {
-    effect.pop <- NULL
-  }
+    #effect.pop <- effectEstimates(beta.admixture, pop.admix.prop, n, K)
+  #} else {
+  #  effect.pop <- NULL
+  #}
   outcome.continuous <- getOutcomeType(dimnames(param.samples)[[2]])  
   ## calculate residual standard deviation
   if(outcome.continuous == 1) {
@@ -993,12 +973,12 @@ if(!is.null(user.options$haplotypeassociationscorefile)) {
 ## read output of regression model score test for ancestry, and plot cumulative results
 if(!is.null(user.options$ancestryassociationscorefile)) {
   ## produces warning
-  plotRBScoreTest(user.options$ancestryassociationscorefile, "AncestryAssoc",K, population.labels, user.options$every)
+  plotAncestryScoreTest(user.options$ancestryassociationscorefile, "AncestryAssoc",K, population.labels, user.options$every)
 }
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile)) {
-  plotRBScoreTest(user.options$affectedsonlyscorefile, "AffectedsOnly",K, population.labels, user.options$every)
+  plotAncestryScoreTest(user.options$affectedsonlyscorefile, "AffectedsOnly",K, population.labels, user.options$every)
 }
 
 ## read output of score test for mis-specified allele freqs and plot cumulative results
@@ -1009,6 +989,18 @@ if(!is.null(user.options$allelefreqscorefile)) {
 #if(!is.null(user.options$allelefreqscorefile2)) {
 #  plotScoreTestAlleleFreqs2(user.options$allelefreqscorefile2)
 #}
+
+#read output of test for heterozygosity and plot
+if(!is.null(user.options$hwtestfile)){
+  plotHWScoreTest(user.options$hwtestfile, K)
+}
+
+if(!is.null(user.options$anneal)){
+  anneal.table <- read.table("annealmon.txt", header=TRUE, row.names = NULL)
+  postscript("annealplot.ps")
+  plot(anneal.table[,1],anneal.table[,2])
+  dev.off()
+}
 
 if(is.null(user.options$allelefreqoutputfile)) {
   print("allelefreqoutputfile not specified")
