@@ -18,7 +18,7 @@ class DispersionTest{
  public:
   DispersionTest();
   void Initialise(AdmixOptions *,LogWriter *, int);
-  void Output(int , Genome &);
+  void Output(int , Genome &, std::string *PopLabels);
 
   void TestForDivergentAlleleFrequencies(AlleleFreqs *);
 };

@@ -1,3 +1,23 @@
+/** 
+ *   ADMIXMAP
+ *   admixmap.cc 
+ *   Top-level source file
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #include "admixmap.h"
 #include "IndividualCollection.h"
@@ -238,7 +258,7 @@ void submain(AdmixOptions* options){
 	    avgstream << endl;
 	  }
 	  //Test output
-	  if( options->getTestForDispersion() )  DispTest.Output(iteration - options->getBurnIn(), Loci);
+
 	  if( options->getStratificationTest() ) StratTest.Output();
 	  if( options->getScoreTestIndicator() )
 	    Scoretest.Output(iteration,PopulationLabels);
@@ -249,6 +269,8 @@ void submain(AdmixOptions* options){
     }//end main loop
 
     //output at end
+    //dispersion test
+    if( options->getTestForDispersion() )  DispTest.Output(options->getTotalSamples() - options->getBurnIn(), Loci, PopulationLabels);
     //tests for mis-specified allele frequencies
     if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
       AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, PopulationLabels, options->IsPedFile()); 
