@@ -1,3 +1,24 @@
+/** 
+ *   ADMIXMAP
+ *   AdmixOptions.cc 
+ *   Class to hold program options
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
 #include "AdmixOptions.h"
 #include "LogWriter.h"
 #include "StringSplitter.h"
@@ -51,6 +72,7 @@ struct AdmixOptions::Options
   bool RhoIndicator;// global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool MLIndicator;//calculate marginal likelihood - valid only for analysistypeindicator < 0
+  bool AnnealIndicator;
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
   bool TestForAdmixtureAssociation;
   bool StratificationTestIndicator;
@@ -120,13 +142,14 @@ AdmixOptions::AdmixOptions()
   imp->RhoIndicator = false;//corresponds to globalrho = 1;
   imp->IndAdmixHierIndicator = true;
   imp->MLIndicator = false;
+  imp->AnnealIndicator = false;
   imp->TruncPt = 99;
   imp->Populations = 0;
 
   imp->ScoreTestIndicator = false;
   imp->TestForAdmixtureAssociation = false;
   imp->Seed = 1;
-  imp->Rho = 5.0;
+  imp->Rho = 6.0;
   imp->StratificationTestIndicator = false;
   imp->HWTest = false;
   imp->TestForAffectedsOnly = false;
@@ -341,6 +364,9 @@ bool AdmixOptions::getIndAdmixHierIndicator() const{
 bool AdmixOptions::getMLIndicator()const{
   return imp->MLIndicator;
 }
+bool AdmixOptions::getAnnealIndicator()const{
+  return imp->AnnealIndicator;
+}
 
 double AdmixOptions::getTruncPt() const
 {
@@ -426,6 +452,11 @@ bool AdmixOptions::getTestForAffectedsOnly() const
 
 void AdmixOptions::setTestForAffectedsOnly(bool b){
   imp->TestForAffectedsOnly = b;
+  if(b && imp->AffectedsOnlyScoreFilename.length()==0){
+    //set default filename
+  }
+  else
+    OptionValues.erase("affectedsonlyscorefile");
 }
 
 bool AdmixOptions::getTestForAllelicAssociation() const
@@ -449,6 +480,11 @@ bool AdmixOptions::getTestForLinkageWithAncestry() const
 
 void AdmixOptions::setTestForLinkageWithAncestry(bool b){
   imp->TestForLinkageWithAncestry = b;
+  if(b && imp->AncestryAssociationScoreFilename.length()==0){
+    //set default filename
+  }
+  else
+    OptionValues.erase("ancestryassociationscorefile");
 }
 
 bool AdmixOptions::getTestForMisspecifiedAlleleFreqs() const
@@ -620,6 +656,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"globalrho",                             1, 0,  0 }, // int 0: 1
     {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
     {"marglikelihood",                        1, 0,  0 }, // int 0: 1
+    {"anneal",                                1, 0,  0 }, // int 0: 1
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
@@ -776,11 +813,15 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	if (strtol(optarg, NULL, 10) == 1) {
 	  imp->MLIndicator = true;OptionValues["marglikelihood"]="1";
 	}
+      }else if (long_option_name == "anneal") {
+	if (strtol(optarg, NULL, 10) == 1) {
+	  imp->AnnealIndicator = true;OptionValues["anneal"]="1";
+	}
       }else if (long_option_name == "globalrho") {
 	if (strtol(optarg, NULL, 10) == 1) {
-	  imp->RhoIndicator = false;OptionValues["globalrho"]="0";
+	  imp->RhoIndicator = false;OptionValues["globalrho"]="1";
 	} else if (strtol(optarg, NULL, 10) == 0) {
-	  imp->RhoIndicator = true;OptionValues["globalrho"]="1";
+	  imp->RhoIndicator = true;OptionValues["globalrho"]="0";
 	} else {
 	  cerr << "Set global rho to 0 or 1.\n";
 	  exit(1);
@@ -881,22 +922,8 @@ void AdmixOptions::PrintOptions(){
 }
 
 int AdmixOptions::checkOptions(LogWriter *Log){
-  if(getTestForAdmixtureAssociation() &&
-      ( getTestForLinkageWithAncestry() || getTestForAllelicAssociation() ) ){
-    Log->logmsg(true,"Cannot test for linkage with ancestry or allelic association\n");
-    Log->logmsg(true,"with score test for association. Can only use affecteds only test\n");
-    Log->logmsg(true,"for linkage.\n");
-    Log->logmsg(true,"If admixturescorefile is selected, then please unselect both\n");
-    Log->logmsg(true,"allelicassociationscorefile and ancestryassociationscorefile\n");
-    exit(1);
-  }
-  //the rest taken from Latent constructor
-  if( getTestForMisspecifiedAlleleFreqs() &&
-      ( !strlen( getAlleleFreqFilename() ) && !(getFixedAlleleFreqs()) ) ){
-    Log->logmsg(true,"Cannot test for mis-specified allele frequencies with unknown allele frequncies.\n");
-    exit(0);
-  }
-  
+
+  // **** analysis type  ****
   if (getAnalysisTypeIndicator() == 0)
     {
       Log->logmsg(true,"Affecteds only analysis.\n");
@@ -958,8 +985,14 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true, "\n");
       exit(0);
     }
+  if(getAnalysisTypeIndicator() < 3 && imp->RegressionOutputFilename.length() > 0){
+    Log->logmsg(true, "ERROR: regparamfile option is not valid without a regression model\n");
+    Log->logmsg(true, "\tThis option will be ignored");
+    OptionValues.erase("regparamfile");
+  }
 
 
+  // **** Hierarchical model on ind admixture ****
   if (!getIndAdmixHierIndicator())
     {
       Log->logmsg(true,"No hierarchical model for individuals.\n");
@@ -983,12 +1016,22 @@ int AdmixOptions::checkOptions(LogWriter *Log){
 	OptionValues.erase("dispparamfile");
       }
     }
- 
+
+  // **** Random Mating Model **** 
   if(isRandomMatingModel() )
     Log->logmsg(true,"Model assuming random mating.\n");
   else 
     Log->logmsg(true,"Model assuming assortative mating.\n");
 
+  // **** global rho ****
+  if( !getRhoIndicator() )
+    Log->logmsg(true,"Model with global rho.\n");
+  else if( isRandomMatingModel() )
+    Log->logmsg(true,"Model with gamete specific rho.\n");
+  else
+    Log->logmsg(true,"Model with individual specific rho.\n");
+
+  // **** Marginal Likelihood ****
   if(getMLIndicator()){
     if(getAnalysisTypeIndicator() >= 0){
       Log->logmsg(true, "Error: Cannot calculate marginal likelihood with analysis type ");
@@ -999,12 +1042,16 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     //change this when marginal likelihood can be calculated for other type of model
     //else Log->logmsg(true,"Analysis with marginal likelihood calculation\n");
   }
-  // Check whether genotypes file has been specified
+
+
+  // **** Check whether genotypes file has been specified ****
   if ( strlen(getGeneticDataFilename() ) == 0 )
     {
       Log->logmsg(true,"Must specify geneticdata filename.\n");
       exit( 1 );
     }
+
+  // **** model for allele freqs ****
   if(getPopulations() > 0 )
     {
       Log->logmsg(true,"No allelefreq filename or priorallelefreq filename given.\n");
@@ -1028,9 +1075,27 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       exit( 1 );
     }
 
+  // **** score tests ****
   if( getTestForLinkageWithAncestry() && getPopulations() == 1 ){
     Log->logmsg(true,"Cannot test for linkage with ancestry with 1 population.\n");
     exit(0);
   }
+  if(getTestForAdmixtureAssociation() &&
+      ( getTestForLinkageWithAncestry() || getTestForAllelicAssociation() ) ){
+    Log->logmsg(true,"Cannot test for linkage with ancestry or allelic association\n");
+    Log->logmsg(true,"with score test for association. Can only use affecteds only test\n");
+    Log->logmsg(true,"for linkage.\n");
+    Log->logmsg(true,"If admixturescorefile is selected, then please unselect both\n");
+    Log->logmsg(true,"allelicassociationscorefile and ancestryassociationscorefile\n");
+    exit(1);
+  }
+
+  if( getTestForMisspecifiedAlleleFreqs() &&
+      ( !strlen( getAlleleFreqFilename() ) && !(getFixedAlleleFreqs()) ) ){
+    Log->logmsg(true,"Cannot test for mis-specified allele frequencies with nonfixed allele frequencies.\n");
+    exit(0);
+  }
+
   return 1;
 }
+
