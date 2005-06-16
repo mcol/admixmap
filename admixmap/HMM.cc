@@ -316,10 +316,13 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   double Sum = 0.0, scaleFactor = 1.0;
   double *rowProb = new double[K];
   double *colProb = new double[K];
-  // double *rowSum = new double[K];
-  //double *colSum = new double[K];
-  //double **cov;
-  //cov = alloc2D_d(K, K);
+  double *Expectation0 = new double[K];
+  double *Expectation1 = new double[K];
+
+  double *rowSum = new double[K];
+  double *colSum = new double[K];
+  double **cov;
+  cov = alloc2D_d(K, K);
 
   // scale array oldProbs so that elements sum to 1, and accumulate row and col sums
   for( int j0 = 0; j0 <  K; ++j0 ) {
@@ -341,42 +344,49 @@ void HMM::RecursionProbs(const double ff, const double f[2],
       //oldProbs[j0][j1] *= scaleFactor; 
     }
   }
+  // calculate expectations of indicator variables for each ancestry state on each gamete
+  for( int j = 0; j <  K; ++j ) {
+    Expectation0[j] = f[0]*rowProb[j] + stateArrivalProbs[j][0];
+    Expectation1[j] = f[1]*colProb[j] + stateArrivalProbs[j][1];
+    
+  }
+  // calculate covariance of ancestry states as ff * deviation from product of row and col probs
+  for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
+    for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
+      cov[j0][j1] = ff * ( oldProbs[j0][j1]*scaleFactor - rowProb[j0] * colProb[j1] );
+    }
+  }
 
-//   // calculate covariance of ancestry states as deviation from product of row and col prob
-//   for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
-//     for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-//       cov[j0][j1] = ff * ( oldProbs[j0][j1]*scaleFactor - rowProb[j0] * colProb[j1] );
-
-//     }
-//   }
-
-//   for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
-//     rowSum[j0] = 0.0;
-//     colSum[j0] = 0.0;
-//     for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-//       rowSum[j0] += cov[j0][j1];
-//       colSum[j0] += cov[j1][j0];
-//     }
-//   }
-//   // calculate last row except for last col, by subtracting colSum from 0
-//   rowSum[K-1] = 0.0;
-//   for( int j1 = 0; j1 < K-1; ++j1 ) {
-//     cov[K-1][j1] =  -ff *  colSum[j1];
-//     rowSum[K-1] += cov[K-1][j1];
-//   }
-//   // calculate last col by subtracting rowSum from 0
-//   for( int j0 = 0; j0 < K; ++j0 ) {
-//     cov[j0][K-1] =  -ff * rowSum[j0];
-//   }
+  // accumulate sums of covariances over first K-1 rows and K-1 cols
+  for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
+    rowSum[j0] = 0.0;
+    colSum[j0] = 0.0;
+    for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
+      rowSum[j0] += cov[j0][j1];
+      colSum[j0] += cov[j1][j0];
+    }
+  }
+  // calculate last row except for last col, by subtracting colSum from 0
+  // also accumulate sum of covariances for K th row over first K-1 cols
+  rowSum[K-1] = 0.0;
+  for( int j = 0; j < K-1; ++j ) {
+    cov[K-1][j] =  -colSum[j];
+    rowSum[K-1] += cov[K-1][j];
+  }
+  // calculate last col by subtracting rowSum from 0
+  for( int j = 0; j < K; ++j ) {
+    cov[j][K-1] =  -rowSum[j];
+  }
 
   // calculate expectation of product as covariance plus product of expectations
   // can speed up with Fourier transform 
   for(int j0 = 0; j0 < K; ++j0) {
     for(int j1 =0; j1 < K; ++j1) {
- 
-      //newProbs[j0][j1] = cov[j0][j1] + 
-      newProbs[j0][j1] = ff * (oldProbs[j0][j1]*scaleFactor - rowProb[j0] * colProb[j1]) + 
-	( f[0]*rowProb[j0] + stateArrivalProbs[j0][0] ) * ( f[1]*colProb[j1] + stateArrivalProbs[j1][1] );
+      
+      newProbs[j0][j1] = cov[j0][j1] + 
+	// newProbs[j0][j1] = ff * (oldProbs[j0][j1]*scaleFactor - rowProb[j0] * colProb[j1]) + 
+	Expectation0[j0] * Expectation1[j1];
+      //	 ( f[0]*rowProb[j0] + stateArrivalProbs[j0][0] ) * ( f[1]*colProb[j1] + stateArrivalProbs[j1][1] );
       //if(forward)
       //oldProbs[j0][j1] *= scaleFactor;
       //undo scaling 
@@ -385,10 +395,13 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   }
   delete[] rowProb;
   delete[] colProb;
-  //delete[] rowSum;
-  //delete[] colSum;
-  //free_matrix(cov, K);
+  delete[] Expectation0;
+  delete[] Expectation1;
 
+  delete[] rowSum;
+  delete[] colSum;
+  free_matrix(cov, K);
+  
 }
 
 
