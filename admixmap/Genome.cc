@@ -1,5 +1,6 @@
-#include "Genome.h"
 #include <stdlib.h>
+#include <sstream>
+#include "Genome.h"
 #include "Chromosome.h"
 
 using namespace std;

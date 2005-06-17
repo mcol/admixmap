@@ -1,3 +1,23 @@
+/** 
+ *   ADMIXMAP
+ *   Individual.cc 
+ *   Class to represent an individual and update individual-level parameters
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #include "Individual.h"
 #include "StringConvertor.h"
 
@@ -48,9 +68,6 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 
     int numCompositeLoci = Loci.GetNumberOfCompositeLoci();
 
-    //create vector of jump indicators
-    vector<bool> true_vector(numCompositeLoci,true);
-    _xi.assign(2,true_vector);
     sumxi = new int[numCompositeLoci];
 
     LocusAncestry = new Matrix_i[ numChromosomes ]; // array of matrices in which each col stores 2 integers 
@@ -150,16 +167,7 @@ void Individual::DeleteStaticMembers(){
   delete[] AncestryInfo;
 }
 
-void Individual::Reset(){
-  SumLocusAncestry.SetElements(0);
-  ThetaProposal.SetElements( 0.0 );
-  ThetaXProposal.SetElements(0.0 );
-  SumLocusAncestry_X.SetElements(0);
-  
-}
-
 void Individual::ResetStaticSums(){
-  //  sumxi.SetElements( 0 );
   for(unsigned int i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)sumxi[i] = 0;
   Sumrho0 = 0;
 }
@@ -179,8 +187,6 @@ bool Individual::IsMissing(unsigned int locus)
   int NumberOfLoci = (*Loci)(locus)->GetNumberOfLoci();
   for(int i=0;i<NumberOfLoci;i++){
     count += genotypes[locus][i][0];
-    //count += genotype[locus][i*2]; // even-numbered elements
-    //count += genotype[locus][i*2+1]; // odd-numbered elements
   }
   return (count == 0);
 }
@@ -208,17 +214,6 @@ void Individual::setAdmixturePropsX(Matrix_d a)
 int Individual::getSex()
 {
    return sex;
-}
-
-vector<bool>& Individual::getXi(unsigned int locus)
-{
-  return _xi[locus];
-}
-
-const vector< vector<bool> >&
-Individual::getXi()
-{
-   return _xi;
 }
 
 int *Individual::getSumXi()
@@ -403,14 +398,15 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 //DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
 //dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 {
-  //reset xi, theta and SumLocusAncestry
-  Reset();
+  SumLocusAncestry.SetElements(0);
+  SumLocusAncestry_X.SetElements(0);
+  ThetaProposal.SetElements( 0.0 );
+  ThetaXProposal.SetElements(0.0 );
   
   bool isdiploid;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     //Update Forward/Backward probs in HMM
-    //isdiploid = UpdateForBackProbs(j, chrm[j], A, options);
-    isdiploid = UpdateForBackProbs(j, chrm[j], A, options);
+      isdiploid = UpdateForBackProbs(j, chrm[j], A, options);
 
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
@@ -430,8 +426,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 
     //Sample locus ancestry
     // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
-    //chrm[j]->SampleLocusAncestry(&LocusAncestry[j], Theta,f, isdiploid);
-    chrm[j]->SampleLocusAncestry(&LocusAncestry[j], Theta,isdiploid);
+    chrm[j]->SampleLocusAncestry(&LocusAncestry[j], Theta, isdiploid);
  
    //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
@@ -448,10 +443,9 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
      }   
 
     //update jump indicators xi 
-    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], &_xi, sumxi, &Sumrho0);
-    //sum ancestry states over loci where jump indicator is 1 
-    SumAncestry(j,chrm[j]);
-    
+    bool isX = (j == X_posn);
+    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], sumxi, &Sumrho0, &SumLocusAncestry, &SumLocusAncestry_X, isX);
+     
   }//end chromosome loop
 
   if( options->getAnalysisTypeIndicator() > 1 ){
@@ -482,7 +476,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   // sample sum of intensities parameter rho
   if( options->getRhoIndicator() ){
     
-    SampleNumberOfArrivals(options, chrm, SumN, SumN_X); // SumN is number of arrivals
+    SampleNumberOfArrivals(chrm, SumN, SumN_X); // SumN is number of arrivals
     
     SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, L, L_X, 
 	       SumN, SumN_X);
@@ -596,87 +590,35 @@ bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreq
   bool isdiploid;
   //Update Forward/Backward probs in HMM
   if( j != X_posn ){
-    //chrm->UpdateParameters(this, A, Theta, options, f,false, true);
     chrm->UpdateParameters(this, A, Theta, options, _rho, false, true);
     isdiploid = true;
   }
   else if( options->getXOnlyAnalysis() ){
-    //chrm->UpdateParameters( this, A,Theta, options, f, false, false );
     chrm->UpdateParameters( this, A,Theta, options, _rho, false, false );
     isdiploid = false;
   }
   else if( sex == 1 ){
-    //chrm->UpdateParameters( this, A,ThetaX, options, f, false, false );
     chrm->UpdateParameters( this, A,ThetaX, options, _rho, false, false );
     isdiploid = false;
   }
   else{
-    //chrm->UpdateParameters( this, A,ThetaX, options, f, false, true );
     chrm->UpdateParameters( this, A,ThetaX, options, _rho, false, true );
     isdiploid = true;
   }
   return isdiploid;
 }
 
-void Individual::SumAncestry(unsigned int j, Chromosome *chrm){
-  int locus = chrm->GetLocus(0);
-  // sum ancestry states over loci where jump indicator is 1
-  for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
-    for( unsigned int g = 0; g < gametes[j]; g++ ){
-      if( _xi[g][locus] ){
-	if( j != X_posn )
-	  SumLocusAncestry( LocusAncestry[j]( g, jj ), g )++;
-	else
-	  SumLocusAncestry_X( LocusAncestry[j]( g, jj ), g )++;
-      }
-    }
-    locus++;
-  }
-}
-
-void Individual::SampleNumberOfArrivals(AdmixOptions *options, Chromosome **chrm, 
+void Individual::SampleNumberOfArrivals(Chromosome **chrm, 
 					unsigned int SumN[], unsigned int SumN_X[]){
   // samples number SumN of arrivals between each pair of adjacent loci, 
   // conditional on jump indicators xi and sum of intensities rho
   // total number SumN is used for conjugate update of sum of intensities 
-  double f, rho = 0.0;
-  int locus = 0;
   int ran = 0;
   if( myrand() < 0.5 ) ran = 1;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    locus++;
-    for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
-      double delta = Loci->GetDistance(locus);
-      for( unsigned int g = 0; g < gametes[j]; g++ ){
-	if( _xi[g][locus] ){
-	  if( options->getXOnlyAnalysis() ){
-	    rho = _rho[0];
-	  }
-	  else if( options->isRandomMatingModel() && g == 1 ){
-	    if( j != X_posn )
-	      rho = _rho[g];
-	    else
-	      rho = _rho_X[g];
-	  } else {
-	    if( j != X_posn )
-	      rho = _rho[0];
-	    else
-	      rho = _rho_X[0];
-	  }
-	  f = exp(-rho*delta);
-	  double u = myrand();
-	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
-	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
-	  // algorithm does not require rho or d, only u and f
-	  unsigned int sample = genpoi( log( (1 - u*( 1 - f)) / f ) );
-	  if( j != X_posn )
-	    SumN[g] += sample + 1;
-	  else
-	    SumN_X[g] += sample + 1;
-	}
-      }
-      locus++;
-    }
+
+    bool isX = (j == X_posn);
+    chrm[j]->SampleNumberOfArrivals(gametes[j], isX, SumN, SumN_X);
   }
 }
 

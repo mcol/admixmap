@@ -3,41 +3,18 @@
 #define CHROMOSOME_H 1
 
 #include "Genome.h"
-#include "AdmixOptions.h"
 #include "matrix_d.h"
 #include "matrix_i.h"
 #include "vector_d.h"
 #include "HMM.h"
-#include "Latent.h"
 #include "AlleleFreqs.h"
 #include <vector>
 
 class Individual;
+class AdmixOptions;
 
 class Chromosome:public Genome
 {
-private:
-  int _startLoci;
-  int populations;
-  int D; 
-  unsigned int L;
-  std::string _Label;
-  HMM SampleStates;
-  double ***Lambda;
-  double ***StateArrivalProbs;
-
-  // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
-  // With a global rho model, this array is same for all individuals and calculated only once.
-  // required to calculate transition matrices 
-  double *f[2]; 
-  int *CodedStates;//used to sample hidden states from HMM
-  
-  // UNIMPLEMENTED
-  // to avoid use
- // Private default constructor
-  Chromosome(const Chromosome&);
-  Chromosome& operator=(const Chromosome&);
-
 public:
   Chromosome();
   Chromosome(int size,int start, int);
@@ -61,9 +38,31 @@ public:
   void SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid);
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
-  void SampleJumpIndicators(const Matrix_i &LocusAncestry,   
-				      const unsigned int gametes, std::vector< std::vector<bool> > *xi, int *sumxi, 
-				      double *Sumrho0);
+  void SampleJumpIndicators(const Matrix_i &LocusAncestry, const unsigned int gametes, 
+			    int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX);
+  void SampleNumberOfArrivals(const unsigned int gametes, const bool isX, 
+					unsigned int SumN[], unsigned int SumN_X[]);
+private:
+  int _startLocus;
+  int populations;
+  int D; 
+  std::string _Label;
+  HMM SampleStates;
+  double ***Lambda;
+  double ***StateArrivalProbs;
+  std::vector< std::vector<bool> > xi;//jump indicators
+
+  // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
+  // With a global rho model, this array is same for all individuals and calculated only once.
+  // required to calculate transition matrices 
+  double *f[2]; 
+  int *CodedStates;//used to sample hidden states from HMM
+  
+  // UNIMPLEMENTED
+  // to avoid use
+ // Private default constructor
+  Chromosome(const Chromosome&);
+  Chromosome& operator=(const Chromosome&);
 };
 
 #endif /* !defined CHROMOSOME_H */

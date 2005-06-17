@@ -1,4 +1,24 @@
 // *-*-C++-*-*
+/** 
+ *   ADMIXMAP
+ *   Individual.h 
+ *   header file for Individual class
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H 1
 #include "common.h"
@@ -40,10 +60,6 @@ public:
   std::vector<hapPair > &getPossibleHapPairs(unsigned int locus);
 
   bool IsMissing(unsigned int locus);
-
-  std::vector<bool>&  getXi(unsigned int locus);
-
-  const std::vector< std::vector<bool> >&  getXi();
 
   static int *getSumXi();
 
@@ -101,8 +117,7 @@ private:
   unsigned short ***genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
 
-  std::vector< std::vector<bool> > _xi;//jump indicators
-  static int *sumxi;//sum of xi over individuals, gametes
+  static int *sumxi;//sum of jump indicators over individuals, gametes
   static double Sumrho0;//? sum of distances between loci where there are no arrivals, summed over individuals
 
   static unsigned int numChromosomes;
@@ -143,7 +158,6 @@ private:
   static Matrix_d Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
 
-  void Reset();
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
@@ -159,7 +173,7 @@ private:
 
   void SumAncestry(unsigned int j, Chromosome *chrm);
 
-  void SampleNumberOfArrivals(AdmixOptions *options, Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
+  void SampleNumberOfArrivals(Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
 
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);

@@ -1,6 +1,8 @@
 #include "AlleleFreqs.h"
 #include "StringSplitter.h"
 #include "DARS.h"
+#include <sstream>
+#include "functions.h"
 
 //belongs in InputData
 static void getLabels(const Vector_s& data, Vector_i temporary, string *labels)

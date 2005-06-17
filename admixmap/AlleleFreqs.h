@@ -8,6 +8,7 @@
 #include "LocusVisitor.h"
 #include "AlleleFreqOutputter.h"
 
+
 class AlleleFreqs{
 
 public:
