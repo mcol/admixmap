@@ -1,13 +1,29 @@
+/** 
+ *   ADMIXMAP
+ *   CompositeLocus.cc 
+ *   Class to represent a composite locus
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
 #include "CompositeLocus.h"
 #include "functions.h"
 #include "VectorLoop.h"
 
 using namespace std;
-
-/**
- *   CompositeLocus - represents a composite locus.
- *
- */
 
 /**
  * No-argument constructor for a CompositeLocus object, which represents a
@@ -294,8 +310,10 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k){
  * 
  * Haplotypes - a list of possible haplotypes pair labels compatible with the observed genotypes
  *
- * fixed - indicates whether the allelefrequencies are fixed
- * RandomAlleleFreqs - indicates whether the allele frequencies are random - why two indicators?
+ * chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
+ * instead of HapPairProbs when allelefreqs are not fixed.
+ *
+ * RandomAlleleFreqs - indicates whether the allele frequencies are random 
  *
  * Probs
  * a k x k array with rows and cols indexing paternal and maternal ancestry. For 
@@ -311,16 +329,21 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k){
  *   n.b. the sum of all probabilities might not equal 1.0 - but
  *   probabilities are in correct proportions.
  */
-void CompositeLocus::GetGenotypeProbs(double **Probs, std::vector<hapPair > &HapPairs, bool fixed, int RandomAlleleFreqs){
-  for(int k0 = 0; k0 < Populations; ++k0)for(int k1 = 0; k1 < Populations; ++k1){
-    Probs[k0][k1] = 0.0;
-    for(unsigned int h = 0; h < HapPairs.size() ; ++h)
-      if( fixed && RandomAlleleFreqs == 1 )
-	Probs[k0][k1] += HapPairProbsMAP[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
-      else
-	Probs[k0][k1] += HapPairProbs[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
-  }
-}
+// void CompositeLocus::GetGenotypeProbs(double **Probs, std::vector<hapPair > &HapPairs, bool chibindicator, int RandomAlleleFreqs){
+//   for(int k0 = 0; k0 < Populations; ++k0)for(int k1 = 0; k1 < Populations; ++k1){
+//     Probs[k0][k1] = 0.0;
+//     for(unsigned int h = 0; h < HapPairs.size() ; ++h)
+//       if( chibindicator && RandomAlleleFreqs == 1 )
+// 	Probs[k0][k1] += HapPairProbsMAP[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
+//       else
+// 	Probs[k0][k1] += HapPairProbs[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
+//   }
+// }
+
+//TODO: finish this function
+//void GetGenotypeProbsHaploid(){
+
+//}
 
 // doesn't really calculate posterior mode
 // just sets to current value of hap freqs.  ok for Chib algorithm if strong prior

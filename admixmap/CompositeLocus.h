@@ -1,4 +1,25 @@
 // *-*-C++-*-*
+/** 
+ *   ADMIXMAP
+ *   CompositeLocus.h 
+ *   header file for CompositeLocus class
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
 #ifndef COMPOSITE_LOCUS_H
 #define COMPOSITE_LOCUS_H 1
 
@@ -109,7 +130,16 @@ private:
 
 double GetMarginalLikelihood( Vector_d PriorAlleleFreqs, Vector_d AlleleCounts );
 
-
+inline void CompositeLocus::GetGenotypeProbs(double **Probs, std::vector<hapPair > &HapPairs, bool chibindicator, int RandomAlleleFreqs){
+  for(int k0 = 0; k0 < Populations; ++k0)for(int k1 = 0; k1 < Populations; ++k1){
+    Probs[k0][k1] = 0.0;
+    for(unsigned int h = 0; h < HapPairs.size() ; ++h)
+      if( chibindicator && RandomAlleleFreqs == 1 )
+	Probs[k0][k1] += HapPairProbsMAP[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
+      else
+	Probs[k0][k1] += HapPairProbs[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
+  }
+}
 
 
 #endif /* !COMPOSITE_LOCUS_H */
