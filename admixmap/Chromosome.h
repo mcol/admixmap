@@ -39,9 +39,8 @@ public:
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
   void SampleJumpIndicators(const Matrix_i &LocusAncestry, const unsigned int gametes, 
-			    int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX);
-  void SampleNumberOfArrivals(const unsigned int gametes, const bool isX, 
-					unsigned int SumN[], unsigned int SumN_X[]);
+			    int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
+			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator);
 private:
   int _startLocus;
   int populations;
@@ -49,9 +48,7 @@ private:
   std::string _Label;
   HMM SampleStates;
   double ***Lambda;
-  double ***StateArrivalProbs;
-  std::vector< std::vector<bool> > xi;//jump indicators
-
+ 
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
   // With a global rho model, this array is same for all individuals and calculated only once.
   // required to calculate transition matrices 

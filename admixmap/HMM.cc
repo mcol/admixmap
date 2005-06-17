@@ -47,6 +47,14 @@ HMM::~HMM()
   for(int i = 0; i < K; ++i){
     delete[] LambdaBeta[i];
   }
+  for(int t = 1; t < Transitions; t++ ){
+    for(int j = 0; j < K; ++j){
+      delete[] StateArrivalProbs[t][j];
+    }
+    delete[] StateArrivalProbs[t];
+  }
+  delete[] StateArrivalProbs;
+  free_matrix(ThetaThetaPrime, K);
 }
 
 void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
@@ -76,9 +84,24 @@ void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
   sumfactor=0.0;
   p = new double[Transitions];
   LambdaBeta = alloc2D_d(K,d);
+
+  StateArrivalProbs = new double**[Transitions];
+  for(int t = 1; t < Transitions; t++ ){        
+    StateArrivalProbs[t] = alloc2D_d(K,2);
+  }
+  ThetaThetaPrime = alloc2D_d(K,K);
 }
 
-
+void HMM::SetStateArrivalProbs(double *f[], const Matrix_d &Theta, int Mcol){
+  for(int t = 1; t < Transitions; t++ ){        
+    for(int j = 0; j < K; ++j){
+      StateArrivalProbs[t][j][0] = (1.0 - f[0][t]) * Theta(j,0);
+      StateArrivalProbs[t][j][1] = (1.0 - f[1][t]) * Theta(j,Mcol);
+    }
+  }
+  for(int j0 = 0; j0 < K; ++j0)for(int j1 = 0; j1 < K; ++j1)
+    ThetaThetaPrime[j0][j1] = Theta(j0,0)*Theta(j1, Mcol);
+}
 
 /*
   Updates Forward and (if required) Backward probabilities
@@ -88,7 +111,7 @@ void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
   j = j1, j' = j2, i = i1, i' = i2, 
   theta_j = Admixture(j,0),  theta'_j = Admixture(j,Mcol).
 */
-void HMM::UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], double **ThetaThetaPrime, double ***lambda)
+void HMM::UpdateForwardProbsDiploid(double *f[], double ***lambda)
 {
   sumfactor = 0.0;
 
@@ -111,7 +134,7 @@ void HMM::UpdateForwardProbsDiploid(double ***StateArrivalProbs, double *f[], do
   }
 }
 
-void HMM::UpdateBackwardProbsDiploid(double ***StateArrivalProbs,double *f[], double **ThetaThetaPrime, double ***lambda)
+void HMM::UpdateBackwardProbsDiploid(double *f[], double ***lambda)
 {
   double rec[K][K];
 
@@ -226,7 +249,7 @@ double HMM::getLikelihood()
   C          - an int array to store the sampled states
   isdiploid  - indicator for diploidy
 */
-void HMM::Sample(int *C, Matrix_d &Admixture, double *f[], double ***StateArrivalProbs, bool isdiploid)
+void HMM::Sample(int *C, Matrix_d &Admixture, double *f[], bool isdiploid)
 {
   int j1,j2;
   double V[States];
@@ -357,4 +380,63 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   
 }
 
+void HMM::SampleJumpIndicators(const Matrix_i &LocusAncestry, double *f[], const unsigned int gametes, 
+			       const Vector &Distances, const int startLocus, 
+			       int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
+			       unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
 
+  int locus;
+  double Prob;
+  bool xi[2][Transitions];//jump indicators
+  xi[0][0] = xi[1][0] = true;
+
+  for( int jj = 1; jj < Transitions; jj++ ){
+    locus = startLocus + jj;
+    xi[0][jj] = xi[1][jj] = true;    
+    for( unsigned int g = 0; g < gametes; g++ ){
+      if( LocusAncestry(g,jj-1) == LocusAncestry(g,jj) ){
+
+	Prob = StateArrivalProbs[jj][ LocusAncestry(g,jj)][g] / (StateArrivalProbs[jj][ LocusAncestry(g,jj)][g] + f[g][jj] );
+	if( Prob > myrand() ){
+	  xi[g][jj] = true;
+	  sumxi[locus]++;
+	} else {
+	  xi[g][jj] = false;
+	  *Sumrho0 += Distances( jj );
+	}
+      } else {
+	xi[g][jj] = true;
+	sumxi[locus]++;
+      }
+ 
+      if( xi[g][jj] ){
+	// sum ancestry states over loci where jump indicator is 1
+	if( !isX )
+	  (*SumLocusAncestry)( LocusAncestry( g, jj ), g )++;
+	else
+	  (*SumLocusAncestry_X)( LocusAncestry( g, jj ), g )++;
+	//sample number of arrivals where jump indicator is 1
+	if(RhoIndicator){
+	  double u = myrand();
+	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
+	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
+	  // algorithm does not require rho or d, only u and f
+	  unsigned int sample = genpoi( log( (1 - u*( 1 - f[g][jj])) / f[g][jj] ) );
+	  if( !isX )
+	    SumN[g] += sample + 1;
+	  else
+	    SumN_X[g] += sample + 1;
+	}
+      }
+    }
+  }
+  //finally for first locus, not include in above loop
+    for( unsigned int g = 0; g < gametes; g++ ){
+      if( xi[g][0] ){
+	if( !isX )
+	  (*SumLocusAncestry)( LocusAncestry( g, 0 ), g )++;
+	else
+	  (*SumLocusAncestry_X)( LocusAncestry( g, 0 ), g )++;
+      }
+    }
+}
