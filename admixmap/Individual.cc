@@ -402,7 +402,11 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   SumLocusAncestry_X.SetElements(0);
   ThetaProposal.SetElements( 0.0 );
   ThetaXProposal.SetElements(0.0 );
-  
+
+  //SumN is the number of arrivals between each pair of adjacent loci  
+  unsigned int SumN[] = {0,0};
+  unsigned int SumN_X[] = {0,0};
+    
   bool isdiploid;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     //Update Forward/Backward probs in HMM
@@ -442,11 +446,20 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 	}
      }   
 
-    //update jump indicators xi 
+    //sample number of arrivals and update sumxi, sumrho0 and SumLocusAncestry
     bool isX = (j == X_posn);
-    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], sumxi, &Sumrho0, &SumLocusAncestry, &SumLocusAncestry_X, isX);
-     
+    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], sumxi, &Sumrho0, &SumLocusAncestry, &SumLocusAncestry_X, isX, 
+				  SumN, SumN_X, options->getRhoIndicator());
   }//end chromosome loop
+
+  double L = Loci->GetLengthOfGenome(), L_X=0.0;
+  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
+
+  // sample sum of intensities parameter rho
+  if( options->getRhoIndicator() ){
+     SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, L, L_X, 
+	       SumN, SumN_X);
+  }
 
   if( options->getAnalysisTypeIndicator() > 1 ){
     // sample missing values of outcome variable
@@ -465,23 +478,34 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
       }
     }
   }
-  
-  double L = Loci->GetLengthOfGenome(), L_X=0.0;
-  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
-  
-  //SumN is the number of arrivals between each pair of adjacent loci  
-  unsigned int SumN[] = {0,0};
-  unsigned int SumN_X[] = {0,0};
-  
-  // sample sum of intensities parameter rho
-  if( options->getRhoIndicator() ){
-    
-    SampleNumberOfArrivals(chrm, SumN, SumN_X); // SumN is number of arrivals
-    
-    SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, L, L_X, 
-	       SumN, SumN_X);
+
+  //sample admixture proportions, Theta
+  SampleTheta(i, SumLogTheta,Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
+	      Covariates0, beta, poptheta, options, alpha, sigma);
+
+  //increment B using new Admixture Props
+  //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
+  if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
+    Xcov(options->getPopulations()-1, 0) = 1;//last entry is intercept
+    for( int k = 0; k < options->getPopulations() - 1; k++ ){
+      Xcov(k,0) = Theta( k, 0 ); 
+    }
+    B += Xcov * Xcov.Transpose() * DInvLink * dispersion;
   }
-  // this block samples individual admixture proportions - should be a separate function
+  //calculate log posterior if necessary 
+  if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
+    CalculateLogPosterior(options,Loci->isX_data(), alpha, _symmetric,
+			  _admixed,rhoalpha, rhobeta, L, L_X, SumN, SumN_X);
+  
+
+}
+
+// samples individual admixture proportions
+void Individual::SampleTheta( int i, Vector_d *SumLogTheta, Matrix_d *Outcome,
+				  int NumOutcomes,  Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda, int NoCovariates,
+				   Matrix_d &Covariates0, Matrix_d *beta, Vector_d &poptheta, 
+				   AdmixOptions* options, vector<Vector_d> alpha, vector<double> sigma){
+
   // propose new value for individual admixture proportions
   // should be modified to allow a population mixture component model
   ProposeTheta(options, sigma, alpha);       
@@ -527,21 +551,6 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
       if(options->isRandomMatingModel() && !options->getXOnlyAnalysis() )
 	(*SumLogTheta)( k ) += log( Theta( k, 1 ) );
     }
-
-  //increment B using new Admixture Props
-  //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
-  if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
-    Xcov(options->getPopulations()-1, 0) = 1;//last entry is intercept
-    for( int k = 0; k < options->getPopulations() - 1; k++ ){
-      Xcov(k,0) = Theta( k, 0 ); 
-    }
-    B += Xcov * Xcov.Transpose() * DInvLink * dispersion;
-  }
-  //calculate log posterior if necessary 
-  if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
-    CalculateLogPosterior(options,Loci->isX_data(), alpha, _symmetric,
-			  _admixed,rhoalpha, rhobeta, L, L_X, SumN, SumN_X);
-  
 
 }
 
@@ -606,20 +615,6 @@ bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreq
     isdiploid = true;
   }
   return isdiploid;
-}
-
-void Individual::SampleNumberOfArrivals(Chromosome **chrm, 
-					unsigned int SumN[], unsigned int SumN_X[]){
-  // samples number SumN of arrivals between each pair of adjacent loci, 
-  // conditional on jump indicators xi and sum of intensities rho
-  // total number SumN is used for conjugate update of sum of intensities 
-  int ran = 0;
-  if( myrand() < 0.5 ) ran = 1;
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-
-    bool isX = (j == X_posn);
-    chrm[j]->SampleNumberOfArrivals(gametes[j], isX, SumN, SumN_X);
-  }
 }
 
 void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 

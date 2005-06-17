@@ -173,10 +173,12 @@ private:
 
   void SumAncestry(unsigned int j, Chromosome *chrm);
 
-  void SampleNumberOfArrivals(Chromosome **,unsigned int SumN[],unsigned int SumN_X[]);
-
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);
+  void SampleTheta( int i, Vector_d *SumLogTheta, Matrix_d *Outcome,
+		    int NumOutcomes,  Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda, int NoCovariates,
+		    Matrix_d &Covariates0, Matrix_d *beta, Vector_d &poptheta, 
+		    AdmixOptions* options, vector<Vector_d> alpha, vector<double> sigma);
 
   void ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha);
   void CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<Vector_d> alpha, 
