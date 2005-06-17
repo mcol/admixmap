@@ -24,6 +24,7 @@
 #include "common.h"
 #include "Genome.h"
 #include "Chromosome.h"
+#include "AlleleFreqs.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 
@@ -169,7 +170,7 @@ private:
 					   int NoCovariates, Matrix_d &Covariates0, Matrix_d *beta, Matrix_d *ExpectedY,
 					   Matrix_d *Outcome, Vector_d &poptheta, Vector_d &lambda);
 
-  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options);
+  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool randomAlleleFreqs);
 
   void SumAncestry(unsigned int j, Chromosome *chrm);
 

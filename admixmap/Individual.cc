@@ -410,7 +410,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   bool isdiploid;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     //Update Forward/Backward probs in HMM
-      isdiploid = UpdateForBackProbs(j, chrm[j], A, options);
+    isdiploid = UpdateForBackProbs(j, chrm[j], options, A->IsRandom());
 
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
@@ -594,24 +594,23 @@ void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vecto
 }
 
 //Updates forward and backward probabilities in HMM for chromosome j 
-//bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options){
-bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AlleleFreqs *A, AdmixOptions *options){
+bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool randomAlleleFreqs){
   bool isdiploid;
   //Update Forward/Backward probs in HMM
   if( j != X_posn ){
-    chrm->UpdateParameters(this, A, Theta, options, _rho, false, true);
+    chrm->UpdateParameters(this, Theta, options, _rho, false, true, randomAlleleFreqs);
     isdiploid = true;
   }
   else if( options->getXOnlyAnalysis() ){
-    chrm->UpdateParameters( this, A,Theta, options, _rho, false, false );
+    chrm->UpdateParameters( this, Theta, options, _rho, false, false, randomAlleleFreqs );
     isdiploid = false;
   }
   else if( sex == 1 ){
-    chrm->UpdateParameters( this, A,ThetaX, options, _rho, false, false );
+    chrm->UpdateParameters( this, ThetaX, options, _rho, false, false, randomAlleleFreqs );
     isdiploid = false;
   }
   else{
-    chrm->UpdateParameters( this, A,ThetaX, options, _rho, false, true );
+    chrm->UpdateParameters( this, ThetaX, options, _rho, false, true, randomAlleleFreqs );
     isdiploid = true;
   }
   return isdiploid;
@@ -996,13 +995,12 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
    _rhoHat = rho;
    AdmixtureHat = ancestry;
 
-   for(int j=0;j<A->GetNumberOfCompositeLoci();++j)f[0][j] = 0.0;
+   for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci();++j)f[0][j] = 0.0;
   
    for( unsigned int jj = 1; jj < chrm[0]->GetSize(); jj++ ){
      f[0][jj] = exp( -Loci->GetDistance( jj ) * _rhoHat[0] );
    }
-   //chrm[0]->UpdateParameters( this, A,AdmixtureHat, options, f, true, false );
-   chrm[0]->UpdateParameters( this, A,AdmixtureHat, options, _rhoHat,  true, false );
+   chrm[0]->UpdateParameters( this, AdmixtureHat, options, _rhoHat,  true, false, A->IsRandom() );
 
    LogLikelihood += chrm[0]->getLogLikelihood();
 
@@ -1035,8 +1033,7 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chro
                f[1][locus] = f[0][locus];
             locus++;
 	}
-	//chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, f, true, true);
-	chrm[j]->UpdateParameters( this,A, AdmixtureHat, options, _rhoHat, true, true);
+	chrm[j]->UpdateParameters( this, AdmixtureHat, options, _rhoHat, true, true, A->IsRandom());
       }
       else{
          _rhoHat_X = rho_X;
@@ -1050,11 +1047,11 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chro
          }
          if( sex == 1 ){
 	   //chrm[j]->UpdateParameters( this,A, XAdmixtureHat, options, f, true, false);
-	   chrm[j]->UpdateParameters( this,A, XAdmixtureHat, options, _rhoHat_X, true, false);
+	   chrm[j]->UpdateParameters( this, XAdmixtureHat, options, _rhoHat_X, true, false, A->IsRandom());
 	 }
          else{//sex = 2
 	   //chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, f, true, true);
-	   chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, _rhoHat_X, true, true);
+	   chrm[j]->UpdateParameters( this, XAdmixtureHat, options, _rhoHat_X, true, true, A->IsRandom());
 	 }
       }
       LogLikelihood += chrm[j]->getLogLikelihood();
@@ -1070,7 +1067,8 @@ double Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
    Prob = alloc2D_d(1,1);//one pop so 1x1 array
    for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
      if(!IsMissing(j)){
-       A->GetGenotypeProbs(Prob, j, genotypes[j], getPossibleHapPairs(j), true, true );
+       //A->GetGenotypeProbs(Prob, j, genotypes[j], getPossibleHapPairs(j), true, true );
+       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true, A->IsRandom() );
        Likelihood += log( Prob[0][0] );
      }
    }
@@ -1100,16 +1098,14 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chro
                f[1][locus] = f[0][locus];
             locus++;
          }
-	//chrm[j]->UpdateParameters( this, A,Theta, options, f, false, true);
-	chrm[j]->UpdateParameters( this, A,Theta, options, _rho, false, true);
+	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, true, A->IsRandom());
       }
       else if( options->getXOnlyAnalysis() ){
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
 	  f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
             locus++;
          }
-	//chrm[j]->UpdateParameters( this, A,Theta, options, f, false, false);
-	chrm[j]->UpdateParameters( this, A,Theta, options, _rho, false, false);
+	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, false, A->IsRandom());
       }
       else{
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
@@ -1120,12 +1116,10 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chro
             locus++;
          }
 	if( sex == 1 ){
-	  //chrm[j]->UpdateParameters( this, A,Theta, options, f, false, false );
-	  chrm[j]->UpdateParameters( this, A,Theta, options, _rho_X, false, false );
+	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, false, A->IsRandom() );
 	}
 	else{
-	  //chrm[j]->UpdateParameters( this, A,Theta, options, f, false, true );
-	  chrm[j]->UpdateParameters( this, A,Theta, options, _rho_X, false, true );
+	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, true, A->IsRandom() );
 	}
       }
       LogLikelihood += chrm[j]->getLogLikelihood();
