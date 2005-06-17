@@ -639,7 +639,7 @@ void Individual::SampleNumberOfArrivals(AdmixOptions *options, Chromosome **chrm
   // samples number SumN of arrivals between each pair of adjacent loci, 
   // conditional on jump indicators xi and sum of intensities rho
   // total number SumN is used for conjugate update of sum of intensities 
-  double q, rho = 0.0;
+  double f, rho = 0.0;
   int locus = 0;
   int ran = 0;
   if( myrand() < 0.5 ) ran = 1;
@@ -651,25 +651,24 @@ void Individual::SampleNumberOfArrivals(AdmixOptions *options, Chromosome **chrm
 	if( _xi[g][locus] ){
 	  if( options->getXOnlyAnalysis() ){
 	    rho = _rho[0];
-	    q = Theta( LocusAncestry[j](0,jj-ran), 0 );
 	  }
 	  else if( options->isRandomMatingModel() && g == 1 ){
-	    q = Theta( LocusAncestry[j](g,jj-ran), g );
-                    if( j != X_posn )
-		      rho = _rho[g];
-                    else
-		      rho = _rho_X[g];
+	    if( j != X_posn )
+	      rho = _rho[g];
+	    else
+	      rho = _rho_X[g];
 	  } else {
-	    q = Theta( LocusAncestry[j](g,jj-ran), 0 );
 	    if( j != X_posn )
 	      rho = _rho[0];
 	    else
 	      rho = _rho_X[0];
 	  }
+	  f = exp(-rho*delta);
 	  double u = myrand();
-	  //                 double deltadash = -log( 1 - u*( 1 - exp(-q*rho*delta) ) ) / (q*rho);
-	  double deltadash = -log( 1 - u*( 1 - exp(-rho*delta) ) ) / (rho);
-	  unsigned int sample = genpoi( rho*(delta - deltadash) );
+	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
+	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
+	  // algorithm does not require rho or d, only u and f
+	  unsigned int sample = genpoi( log( (1 - u*( 1 - f)) / f ) );
 	  if( j != X_posn )
 	    SumN[g] += sample + 1;
 	  else
