@@ -6,6 +6,7 @@
 #include "CompositeLocus.h"
 #include "Chromosome.h"
 #include "Genome.h"
+#include "AlleleFreqs.h"
 
 #include <iostream>
 #include <string>

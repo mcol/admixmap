@@ -55,10 +55,6 @@ public:
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
-  void GetGenotypeProbs( double **Probs, int locus, unsigned short **genotype, 
-			 std::vector<hapPair > &Haplotypes, bool diploid, bool fixed);
-  void GetGenotypeProbs(double **Prob, int locus, unsigned short *genotype, Vector_i Haplotypes, bool diploid, bool fixed);
-
  // function to merge rare haplotypes for construction of score tests
   void SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr, bool IsPedFile);
 

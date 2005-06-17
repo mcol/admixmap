@@ -97,8 +97,12 @@ void Chromosome::SetLociCorr(const double rho){
     }
 }
 
-void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options,  
-				  std::vector< double > _rho, bool fixedallelefreqs, bool diploid ){
+void Chromosome::UpdateParameters(Individual* ind, Matrix_d& Admixture, AdmixOptions* options,  
+				  std::vector< double > _rho, bool chibindicator, bool diploid, bool randomAlleleFreqs ){
+  //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
+  //instead of HapPairProbs when allelefreqs are not fixed.
+  //randomAlleleFreqs might not be necessary if CompositeLocus knows if AlleleFreqs are fixed or random
+
   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
   // required to calculate transition matrices 
   if( options->getRhoIndicator() ){
@@ -120,7 +124,7 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
     //construct Lambda
     for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
       if( !(ind->IsMissing(locus)) ){
-	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), true, fixedallelefreqs );
+	TheArray[j]->GetGenotypeProbs(Lambda[j], ind->getPossibleHapPairs(locus), chibindicator, randomAlleleFreqs);
       }
       else{
 	for( int k1 = 0; k1 < populations; k1++ )for(int k2 =0; k2<populations; ++k2) Lambda[j][k1][k2] = 1.0;
@@ -138,18 +142,20 @@ void Chromosome::UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Adm
  
   }
 
-  else{//haploid
-    for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
-      if( !(ind->IsMissing(locus)) ){
-	A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), false, fixedallelefreqs );
-      }
-      else{
-	for( int k1 = 0; k1 < populations; k1++ )for(int k2 = 0; k2 < populations; ++k2) Lambda[j][k1][k2] = 1.0;
-      }
-    }
-    //Update Forward/Backward Probs in HMM
-    SampleStates.UpdateProbsHaploid(f, Admixture, Lambda, test);
-  }
+  //disabled until Haploid version of GetGenotypeProbs is finished
+//   else{//haploid
+//     for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
+//       if( !(ind->IsMissing(locus)) ){
+// 	//A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), false, chibindicator );
+// 	//need to replace this by a call to haplotype version of GetGenotypeProbs in CompositeLocus, when this is written
+//       }
+//       else{
+// 	for( int k1 = 0; k1 < populations; k1++ )for(int k2 = 0; k2 < populations; ++k2) Lambda[j][k1][k2] = 1.0;
+//       }
+//     }
+//     //Update Forward/Backward Probs in HMM
+//     SampleStates.UpdateProbsHaploid(f, Admixture, Lambda, test);
+//   }
 
 }
 
@@ -207,61 +213,6 @@ void Chromosome::SampleJumpIndicators(const Matrix_i &LocusAncestry, const unsig
 				      int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
 				      unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
 
-//   int locus;
-//   double Prob;
-//   bool xi[2][NumberOfCompositeLoci];//jump indicators
-//   xi[0][0] = xi[1][0] = true;
-//   double ***StateArrivalProbs = SampleStates.getSAP();
-
-//   for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
-//     locus = _startLocus + jj;
-//     xi[0][jj] = xi[1][jj] = true;    
-//     for( unsigned int g = 0; g < gametes; g++ ){
-//       if( LocusAncestry(g,jj-1) == LocusAncestry(g,jj) ){
-
-// 	Prob = StateArrivalProbs[jj][ LocusAncestry(g,jj)][g] / (StateArrivalProbs[jj][ LocusAncestry(g,jj)][g] + f[g][jj] );
-// 	if( Prob > myrand() ){
-// 	  xi[g][jj] = true;
-// 	  sumxi[locus]++;
-// 	} else {
-// 	  xi[g][jj] = false;
-// 	  *Sumrho0 += GetDistance( jj );
-// 	}
-//       } else {
-// 	xi[g][jj] = true;
-// 	sumxi[locus]++;
-//       }
- 
-//       if( xi[g][jj] ){
-// 	// sum ancestry states over loci where jump indicator is 1
-// 	if( !isX )
-// 	  (*SumLocusAncestry)( LocusAncestry( g, jj ), g )++;
-// 	else
-// 	  (*SumLocusAncestry_X)( LocusAncestry( g, jj ), g )++;
-// 	//sample number of arrivals where jump indicator is 1
-// 	if(RhoIndicator){
-// 	  double u = myrand();
-// 	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
-// 	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
-// 	  // algorithm does not require rho or d, only u and f
-// 	  unsigned int sample = genpoi( log( (1 - u*( 1 - f[g][jj])) / f[g][jj] ) );
-// 	  if( !isX )
-// 	    SumN[g] += sample + 1;
-// 	  else
-// 	    SumN_X[g] += sample + 1;
-// 	}
-//       }
-//     }
-//   }
-//   //finally for first locus, not include in above loop
-//     for( unsigned int g = 0; g < gametes; g++ ){
-//       if( xi[g][0] ){
-// 	if( !isX )
-// 	  (*SumLocusAncestry)( LocusAncestry( g, 0 ), g )++;
-// 	else
-// 	  (*SumLocusAncestry_X)( LocusAncestry( g, 0 ), g )++;
-//       }
-//     }
   SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, Distances, _startLocus, 
 				    sumxi, Sumrho0, SumLocusAncestry, SumLocusAncestry_X, isX, 
 				    SumN, SumN_X, RhoIndicator);

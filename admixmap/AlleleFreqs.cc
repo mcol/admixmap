@@ -715,16 +715,14 @@ double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
    this function will be redundant if GetGenotypeProbs is fixed to work with a haploid locus. can then call 
    GetGenotypeProbs directly
    Called by UpdateParameters method in Chromosome class and OnePopulationUpdate in Individual
+  chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
+  instead of HapPairProbs when allelefreqs are not fixed.
+
 */
 //TODO: haploid case
-void AlleleFreqs::GetGenotypeProbs( double **Probs, int locus, unsigned short **genotype, 
-				    std::vector<hapPair > &Haplotypes, bool diploid, bool fixed)
-{
-  if( diploid ){
-    //here Probs should be a k x k array
-    (*Loci)(locus)->GetGenotypeProbs(Probs, Haplotypes, fixed, RandomAlleleFreqs);
-  }
-//   else{
+//void AlleleFreqs::GetGenotypeProbsHaploid( double **Probs, int locus, unsigned short **genotype)
+//{
+
 //     // lines below should be replaced by a call to GetGenotypeProbs, which should be extended to 
 //     // work with a haploid locus
 //     //here Probs has a single column 
@@ -741,8 +739,7 @@ void AlleleFreqs::GetGenotypeProbs( double **Probs, int locus, unsigned short **
 // 	  Probs[pop][ 0 ] = GetAlleleProbs( xx - 1, pop , locus);
 //         }
 //      }
-//   }
-}
+//}
 
 /**
  * Whether the object should remember the results of sampling.

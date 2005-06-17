@@ -7,7 +7,6 @@
 #include "matrix_i.h"
 #include "vector_d.h"
 #include "HMM.h"
-#include "AlleleFreqs.h"
 #include <vector>
 
 class Individual;
@@ -28,11 +27,8 @@ public:
   void InitialiseLociCorr(const double rho);
   void SetLociCorr(const double rho);
 
-  void UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options,  
-			double *f[2], bool fixedallelefreqs, bool diploid );
-
-  void UpdateParameters(Individual* ind, AlleleFreqs *A, Matrix_d& Admixture, AdmixOptions* options,  
-			std::vector< double > _rho,  bool fixedallelefreqs, bool diploid );
+  void UpdateParameters(Individual* ind,Matrix_d& Admixture, AdmixOptions* options,  
+			std::vector< double > _rho,  bool chibindicator, bool diploid, bool randomAlleleFreqs );
 
 
   void SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid);
