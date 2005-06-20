@@ -911,9 +911,10 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true, "\n");
       exit(0);
     }
-  if(getAnalysisTypeIndicator() < 3 && RegressionOutputFilename.length() > 0){
+  if(getAnalysisTypeIndicator() < 2 && RegressionOutputFilename.length() > 0){
     Log->logmsg(true, "ERROR: regparamfile option is not valid without a regression model\n");
-    Log->logmsg(true, "\tThis option will be ignored");
+    Log->logmsg(true, "\tThis option will be ignored\n");
+    RegressionOutputFilename = "";
     OptionValues.erase("regparamfile");
   }
 
@@ -932,7 +933,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       if(strlen(getRegressionOutputFilename())){
 	Log->logmsg(true, "ERROR: regparamfile option is not valid with indadmixhierindicator = 0\n");
 	Log->logmsg(true, "\tThis option will be ignored\n");
-	 RegressionOutputFilename = "";
+	RegressionOutputFilename = "";
 	OptionValues.erase("regparamfile");
 	 }
       if(strlen( getEtaOutputFilename() ) ){
