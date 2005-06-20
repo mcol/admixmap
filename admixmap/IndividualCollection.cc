@@ -590,12 +590,12 @@ void IndividualCollection::OutputErgodicAvg(int samples, chib *MargLikelihood, s
 }
 
 void
-IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *A, std::string *PopulationLabels)
+IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels, bool randomAlleleFreqs)
 {
    Log->logmsg(true,"Log-likelihood for unadmixed ");
    Log->logmsg(true, (*PopulationLabels)[0]);
    Log->logmsg(true, ": ");
-   Log->logmsg(true, _child[0]->getLogLikelihoodOnePop(A));
+   Log->logmsg(true, _child[0]->getLogLikelihoodOnePop(randomAlleleFreqs));
    Log->logmsg(true,"\n");
 
 }

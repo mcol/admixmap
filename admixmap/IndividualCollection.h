@@ -53,7 +53,7 @@ public:
 
   void LoadGenotypes(AdmixOptions *options, InputData *, LogWriter *Log, Genome *Loci);
   
-  void getOnePopOneIndLogLikelihood(LogWriter *Log, AlleleFreqs *A, std::string *PopulationLabels);
+  void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels, bool);
 
   void Update(int iteration, AlleleFreqs *A, Regression *R, 
 	      Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, 

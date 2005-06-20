@@ -795,7 +795,7 @@ void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes,
   }
   // sampled alleles should be stored in Individual objects, then summed over individuals to get counts
   // is this extra update necessary? isn't this method called anyway, irrespective of whether there is only one population?        
- //  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+ //  for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
 //     A->UpdateAlleleCounts(j,getPossibleHaplotypes(j), ancestry );
 //   }
 }
@@ -809,7 +809,7 @@ void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> 
    *LogFileStreamPtr << "Calculating posterior at individual admixture\n"
                     << theta << "and rho\n" << rho[0] << " " << rho[1] << endl;
    if( options->getXOnlyAnalysis() ){
-     LogLikelihoodAtEst = getLogLikelihoodXOnly( options, A, chrm, theta, rho );
+     LogLikelihoodAtEst = getLogLikelihoodXOnly( options, chrm, theta, rho, A->IsRandom() );
       if( options->getRho() == 99 ){
          LogPrior = -log( options->getTruncPt() - 1.0 );
       }
@@ -823,7 +823,7 @@ void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> 
       LogPrior += getDirichletLogDensity( alpha[0], theta.GetColumn(0) );
    }
    else if( Loci->isX_data() ){
-     LogLikelihoodAtEst = getLogLikelihood( options, A, chrm, theta, rho, thetaX, rhoX );
+     LogLikelihoodAtEst = getLogLikelihood( options, chrm, theta, rho, thetaX, rhoX, A->IsRandom() );
       if( options->getRho() == 99 ){
          LogPrior = -4.0*log( options->getTruncPt() - 1.0 );
       }
@@ -844,11 +844,11 @@ void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> 
          + getDirichletLogDensity( alpha[0], thetaX.GetColumn(0) )
          + getDirichletLogDensity( alpha[1], theta.GetColumn(1) )
          + getDirichletLogDensity( alpha[1], thetaX.GetColumn(1) );
-      LogLikelihoodAtEst = getLogLikelihood( options, A, chrm, theta, rho, thetaX, rhoX );
+      LogLikelihoodAtEst = getLogLikelihood( options, chrm, theta, rho, thetaX, rhoX, A->IsRandom() );
    }
    else{
       if( options->getPopulations() > 1 ){
-         LogLikelihoodAtEst = getLogLikelihood( options, A, chrm, theta, rho, thetaX, rhoX );
+	LogLikelihoodAtEst = getLogLikelihood( options, chrm, theta, rho, thetaX, rhoX, A->IsRandom() );
          if( _admixed[0] ){
             if( options->getRho() == 99 ){
                LogPrior = -log( options->getTruncPt() - 1.0 );
@@ -878,11 +878,11 @@ void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> 
          }
       }
       else{
-         LogLikelihoodAtEst = getLogLikelihoodOnePop(A);
+	LogLikelihoodAtEst = getLogLikelihoodOnePop(A->IsRandom());
       }
    }
    if( A->IsRandom() ){
-      for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+      for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
          for( int k = 0; k < options->getPopulations(); k++ ){
 	   //CompositeLocus *locus = (CompositeLocus*)(*Loci)(j);
 	   LogPrior += getDirichletLogDensity( A->GetPriorAlleleFreqs(j, k), A->getAlleleFreqsMAP(j,k) );
@@ -904,7 +904,8 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
             
 //           if( iteration <= options->getBurnIn() ){
 
-  *LogLikelihood = getLogLikelihood(options, A, chrm);
+  *LogLikelihood = getLogLikelihood(options, chrm, A->IsRandom());//only call to 3-argument getLogLikelihood function
+  //need to modify to use other version
     if( options->getPopulations() > 1 ){
       if( options->getRho() < 90 ){
 	if( _admixed[0] ){
@@ -933,7 +934,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	  thetahat = getAdmixtureProps();
 	  rhohat = _rho;
 	  A->setAlleleFreqsMAP();
-	  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+	  for( unsigned  j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
 	    CompositeLocus *locus = (CompositeLocus*)(A->getLocus(j));
 	    //locus->setAlleleFreqsMAP();
 	    if( locus->GetNumberOfLoci() > 2 )
@@ -952,11 +953,11 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	*MaxLogLikelihood = *LogLikelihood;
 	if( iteration <= options->getBurnIn() ){
 	  A->setAlleleFreqsMAP();
-	  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
-	    CompositeLocus *locus = (CompositeLocus*)(A->getLocus(j));
+	  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+
 	    //locus->setAlleleFreqsMAP();
-	    if( locus->GetNumberOfLoci() > 2 )
-	      locus->setHaplotypeProbsMAP();
+	    if( (*Loci)(j)->GetNumberOfLoci() > 2 )
+	      (*Loci)(j)->setHaplotypeProbsMAP();
 	  }
 	}
       }
@@ -972,7 +973,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	if( options->getPopulations() > 1 )
 	  LogPosterior = getLogPosteriorProb();
 	if( A->IsRandom() ){
-	  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+	  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
 	    for( int k = 0; k < options->getPopulations(); k++ ){
 	      //CompositeLocus *locus = (CompositeLocus*)(*Loci)(j);
 	      LogPosterior += getDirichletLogDensity( A->GetPriorAlleleFreqs(j,k) + A->GetAlleleCounts(j,k), 
@@ -989,7 +990,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 
 //TODO: need to fix this
 double 
-Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, Matrix_d ancestry, vector<double> rho )
+Individual::getLogLikelihoodXOnly( AdmixOptions* options, Chromosome **chrm, Matrix_d ancestry, vector<double> rho, bool randomAlleleFreqs )
 {
    double LogLikelihood = 0.0;
    _rhoHat = rho;
@@ -1000,7 +1001,7 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
    for( unsigned int jj = 1; jj < chrm[0]->GetSize(); jj++ ){
      f[0][jj] = exp( -Loci->GetDistance( jj ) * _rhoHat[0] );
    }
-   chrm[0]->UpdateParameters( this, AdmixtureHat, options, _rhoHat,  true, false, A->IsRandom() );
+   chrm[0]->UpdateParameters( this, AdmixtureHat, options, _rhoHat,  true, false, randomAlleleFreqs );
 
    LogLikelihood += chrm[0]->getLogLikelihood();
 
@@ -1010,7 +1011,7 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, AlleleFreqs *A, Chromo
 //do we need 2 getLogLikelihood functions?
 //This one is called by InitializeChib, called in turn by ChibLikelihood
 //only used to compute marginal likelihood   
-double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chromosome **chrm, Matrix_d ancestry, vector<double> rho, Matrix_d ancestry_X, vector<double> rho_X )
+double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, Matrix_d ancestry, vector<double> rho, Matrix_d ancestry_X, vector<double> rho_X, bool randomAlleleFreqs )
 {
    int locus = 0;
    _rhoHat = rho;
@@ -1018,7 +1019,7 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chro
    double LogLikelihood = 0.0;
 
    for(int j = 0; j < 2;++j){
-     for(unsigned int k = 0;k<Loci->GetNumberOfCompositeLoci();++k)f[j][k] = 0.0;
+     for(unsigned int k = 0;k < Loci->GetNumberOfCompositeLoci();++k)f[j][k] = 0.0;
    }
    
    for( unsigned int j = 0; j < numChromosomes; j++ ){      
@@ -1033,7 +1034,7 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chro
                f[1][locus] = f[0][locus];
             locus++;
 	}
-	chrm[j]->UpdateParameters( this, AdmixtureHat, options, _rhoHat, true, true, A->IsRandom());
+	chrm[j]->UpdateParameters( this, AdmixtureHat, options, _rhoHat, true, true, randomAlleleFreqs);
       }
       else{
          _rhoHat_X = rho_X;
@@ -1047,11 +1048,11 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chro
          }
          if( sex == 1 ){
 	   //chrm[j]->UpdateParameters( this,A, XAdmixtureHat, options, f, true, false);
-	   chrm[j]->UpdateParameters( this, XAdmixtureHat, options, _rhoHat_X, true, false, A->IsRandom());
+	   chrm[j]->UpdateParameters( this, XAdmixtureHat, options, _rhoHat_X, true, false, randomAlleleFreqs);
 	 }
          else{//sex = 2
 	   //chrm[j]->UpdateParameters( this, A,XAdmixtureHat, options, f, true, true);
-	   chrm[j]->UpdateParameters( this, XAdmixtureHat, options, _rhoHat_X, true, true, A->IsRandom());
+	   chrm[j]->UpdateParameters( this, XAdmixtureHat, options, _rhoHat_X, true, true, randomAlleleFreqs);
 	 }
       }
       LogLikelihood += chrm[j]->getLogLikelihood();
@@ -1060,15 +1061,14 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs *A, Chro
    return LogLikelihood;
 }
 
-double Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
+double Individual::getLogLikelihoodOnePop(bool randomAlleleFreqs )
 {
    double Likelihood = 0.0;
    double **Prob;
    Prob = alloc2D_d(1,1);//one pop so 1x1 array
-   for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+   for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
      if(!IsMissing(j)){
-       //A->GetGenotypeProbs(Prob, j, genotypes[j], getPossibleHapPairs(j), true, true );
-       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true, A->IsRandom() );
+       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true, randomAlleleFreqs );
        Likelihood += log( Prob[0][0] );
      }
    }
@@ -1077,13 +1077,13 @@ double Individual::getLogLikelihoodOnePop(AlleleFreqs *A )
 
 //do we need 2 getLogLikelihood functions?
 //called at top of ChibLikelihood, used to compute marginal likelihood
-double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chromosome **chrm )
+double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, bool randomAlleleFreqs )
 {
    int locus = 0;
    double LogLikelihood = 0.0;
  
    for(int j = 0; j < 2;++j){
-     for(int k =0;k<A->GetNumberOfCompositeLoci();++k)f[j][k] = 0.0;
+     for(unsigned int k =0; k < Loci->GetNumberOfCompositeLoci();++k)f[j][k] = 0.0;
    }
    
    for( unsigned int j = 0; j < numChromosomes; j++ ){      
@@ -1098,14 +1098,14 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chro
                f[1][locus] = f[0][locus];
             locus++;
          }
-	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, true, A->IsRandom());
+	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, true, randomAlleleFreqs);
       }
       else if( options->getXOnlyAnalysis() ){
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
 	  f[0][locus] = exp( -Loci->GetDistance( locus ) * _rho[0] );
             locus++;
          }
-	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, false, A->IsRandom());
+	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, false,randomAlleleFreqs);
       }
       else{
 	for( unsigned int jj = 1; jj < chrm[j]->GetSize(); jj++ ){
@@ -1116,10 +1116,10 @@ double Individual::getLogLikelihood( AdmixOptions* options, AlleleFreqs* A, Chro
             locus++;
          }
 	if( sex == 1 ){
-	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, false, A->IsRandom() );
+	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, false, randomAlleleFreqs );
 	}
 	else{
-	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, true, A->IsRandom() );
+	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, true,randomAlleleFreqs );
 	}
       }
       LogLikelihood += chrm[j]->getLogLikelihood();

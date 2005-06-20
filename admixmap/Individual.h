@@ -72,9 +72,9 @@ public:
 
   std::vector<double> getRho();
 
-  double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome**);
+  double getLogLikelihood(AdmixOptions*, Chromosome**, bool);
 
-  double getLogLikelihoodOnePop(AlleleFreqs *);
+  double getLogLikelihoodOnePop(bool);
 
   double getLogPosteriorProb();
 
@@ -83,8 +83,8 @@ public:
 
   int GetLocusAncestry(int, int, int);
    
-  double getLogLikelihood(AdmixOptions*,AlleleFreqs*,Chromosome **, Matrix_d, std::vector<double>,Matrix_d, std::vector<double>);
-  double getLogLikelihoodXOnly(AdmixOptions*,AlleleFreqs*,Chromosome**, Matrix_d, std::vector<double>);
+  double getLogLikelihood(AdmixOptions*, Chromosome **, Matrix_d, std::vector<double>,Matrix_d, std::vector<double>, bool);
+  double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, Matrix_d, std::vector<double>, bool randomAlleleFreqs);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
   void SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
