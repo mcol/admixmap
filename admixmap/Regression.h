@@ -27,7 +27,7 @@ public:
   void InitializeOutputFile(AdmixOptions *, IndividualCollection *individuals,std::string *PopulationLabels);
   void Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOptions *, IndividualCollection *individuals);
   void OutputErgodicAvg(int iteration, IndividualCollection *individuals,std::ofstream *avgstream);
-  Matrix_d *getbeta();
+  double **getbeta();
   Vector_d *getlambda();
   int getNoCovariates();
   double getlambda0();
@@ -48,9 +48,9 @@ private:
   double lambda0; //parameters of
   double lambda1; //prior for lambda
 
-  Matrix_d *beta;//regression parameters
+  double **beta;//regression parameters
   Matrix_d *beta0; //
-  Matrix_d *SumBeta;//running sums (for ergodic averages) 
+  double **SumBeta;//running sums (for ergodic averages)
   Vector_d SumLambda;
  
   std::ofstream outputstream;//output to regparamfile

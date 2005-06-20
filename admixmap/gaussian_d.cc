@@ -237,3 +237,24 @@ Matrix_d Gaussian::Draw()
    
    return( draw );
 }
+
+void Gaussian::Draw(double *beta)
+{
+   int i;
+   double draw[Dimension];
+   Matrix_d cd;
+
+   for ( i = 0; i < Dimension; i++ )
+      draw[i] = gennor( (double)0.0, (double)1.0 );
+
+   if ( Covariance->CholeskyDecomposition( &cd ) == 0 )
+   {
+      std::cout << "Cholesky decomposition failed..." << std::endl;
+      exit( 1 );
+   }
+  for ( i = 0; i < Dimension; i++ ){
+   beta[i] = 0.0;
+   for(int j = 0; j < Dimension; ++j)beta[i] += cd(i,j)*draw[j];
+   beta[i] += (*Mean)(i,0);
+   }
+}

@@ -1,4 +1,24 @@
 // *-*-C++-*-*
+/** 
+ *   ADMIXMAP
+ *   IndividualCollection.h 
+ *   header file for IndividualCollection class
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #ifndef INDIVIDUAL_COLLECTION_H
 #define INDIVIDUAL_COLLECTION_H 1
 
@@ -23,48 +43,12 @@ class IndAdmixOutputter;
 
 class IndividualCollection
 {
-private:
-  Individual **_child;
-  void getLabels( const string, Vector_i temporary, string *labels );
-  void getLabels(const Vector_s& data, Vector_i temporary, string *labels);
-
-  void LoadCovariates(AdmixOptions *options, InputData *, LogWriter *Log);
-  void LoadOutcomeVar(AdmixOptions *options, InputData *, LogWriter *Log);
-  void LoadRepAncestry(AdmixOptions *options, InputData *, LogWriter *Log);
-  void CheckGenotypes(Genome *Loci, LogWriter *Log);
-  void InitialiseMLEs(double, double, AdmixOptions *, const Matrix_d&);
-
-  unsigned int NumInd, NumCompLoci;
-  //MLEs of Individual admixture and sumintensities
-  //used to calculate marginal likelihood
-  vector< vector<double> > rhohat, rhohatX;
-  Matrix_d *thetahat;
-  Matrix_d *thetahatX;
-  vector<double> MaxLogLikelihood;
-
-  //Regression Objects
-  Matrix_d *ExpectedY;
-  Matrix_d *Outcome;
-  int NumOutcomes;
-  Matrix_d Covariates;
-  Matrix_d Input;
-  std::string *CovariateLabels;
-  std::string *TargetLabels;
-  Vector_i OutcomeType;
-
-  Matrix_d *ReportedAncestry;
-  std::vector<double> sigma;
-  IndAdmixOutputter* indadmixoutput;
-  double LogLikelihood, SumLogLikelihood;
-  std::vector< int > _locusfortest;
-  Vector_d SumLogTheta;
-
 public:
   IndividualCollection();
   ~IndividualCollection();
   IndividualCollection(AdmixOptions*,InputData *Data,Genome&,Chromosome **);
 
-  void Initialise(AdmixOptions *, Matrix_d *,Genome *,std::string *PopulationLabels, double rhoalpha,double rhobeta, LogWriter *Log,
+  void Initialise(AdmixOptions *, double **,Genome *,std::string *PopulationLabels, double rhoalpha,double rhobeta, LogWriter *Log,
 		  const Matrix_d &MLEMatrix);
 
   void LoadGenotypes(AdmixOptions *options, InputData *, LogWriter *Log, Genome *Loci);
@@ -108,6 +92,7 @@ public:
   Vector_i *getOutcomeType();
 
   void SetExpectedY(int,Matrix_d);
+  void SetExpectedY(int,double *);
   void calculateExpectedY(int);
   double getExpectedY(int);
 
@@ -117,6 +102,43 @@ public:
 
   double getLL();
   double DerivativeInverseLinkFunction(int AnalysisType,int i);
+private:
+  Individual **_child; //array of pointers to Individual
+  void getLabels( const string, Vector_i temporary, string *labels );
+  void getLabels(const Vector_s& data, Vector_i temporary, string *labels);
+
+  void LoadCovariates(AdmixOptions *options, InputData *, LogWriter *Log);
+  void LoadOutcomeVar(AdmixOptions *options, InputData *, LogWriter *Log);
+  void LoadRepAncestry(AdmixOptions *options, InputData *, LogWriter *Log);
+  void CheckGenotypes(Genome *Loci, LogWriter *Log);
+  void InitialiseMLEs(double, double, AdmixOptions *, const Matrix_d&);
+
+  unsigned int NumInd, NumCompLoci;
+  //MLEs of Individual admixture and sumintensities
+  //used to calculate marginal likelihood
+  vector< vector<double> > rhohat, rhohatX;
+  Matrix_d *thetahat;
+  Matrix_d *thetahatX;
+  vector<double> MaxLogLikelihood;
+
+  //Regression Objects
+  double **ExpectedY;
+  Matrix_d *Outcome;
+  int NumOutcomes;
+  Matrix_d Covariates;
+  Matrix_d Input;
+  std::string *CovariateLabels;
+  std::string *TargetLabels;
+  Vector_i OutcomeType;
+
+  Matrix_d *ReportedAncestry;
+  std::vector<double> sigma;
+  IndAdmixOutputter* indadmixoutput;
+  double LogLikelihood, SumLogLikelihood;
+  std::vector< int > _locusfortest;
+  Vector_d SumLogTheta;
+
+
 };
 
 #endif /* !defined INDIVIDUAL_COLLECTION_H */

@@ -61,6 +61,7 @@ public:
    double LogLikelihood( const Matrix_d &d );
    ///
    Matrix_d Draw();
+   void Draw(double *);
    ///
    ///
 private:

@@ -88,13 +88,13 @@ public:
   double IntegratingConst( double alpha, double beta, double a, double b );
 
   void SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
-			 int NumOutcomes, Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda, int NoCovariates,
-			 Matrix_d &Covariates0, Matrix_d *beta, Vector_d &poptheta, AdmixOptions* options, 
+			 int NumOutcomes, Vector_i &OutcomeType, double **ExpectedY, Vector_d &lambda, int NoCovariates,
+			 Matrix_d &Covariates0, double **beta, Vector_d &poptheta, AdmixOptions* options,
 			 Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
 			 double rhoalpha, double rhobeta, vector<double> sigma, 
 			 double DInvLink, double dispersion);
 
- void OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda,
+ void OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, Vector_i &OutcomeType, double **ExpectedY, Vector_d &lambda,
 			   int AnalysisTypeIndicator);
 
   void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
@@ -164,10 +164,10 @@ private:
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
   double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
   double AcceptanceProbForTheta_LogReg( int i, int TI, bool ModelIndicator,int Populations, 
-					int NoCovariates, Matrix_d &Covariates0, Matrix_d *beta, Matrix_d *ExpectedY, 
+					int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
 					Matrix_d *Outcome, Vector_d &poptheta);
   double AcceptanceProbForTheta_LinearReg( int i, int TI, bool ModelIndicator,int Populations,
-					   int NoCovariates, Matrix_d &Covariates0, Matrix_d *beta, Matrix_d *ExpectedY,
+					   int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
 					   Matrix_d *Outcome, Vector_d &poptheta, Vector_d &lambda);
 
   bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool randomAlleleFreqs);
@@ -177,8 +177,8 @@ private:
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);
   void SampleTheta( int i, Vector_d *SumLogTheta, Matrix_d *Outcome,
-		    int NumOutcomes,  Vector_i &OutcomeType, Matrix_d *ExpectedY, Vector_d &lambda, int NoCovariates,
-		    Matrix_d &Covariates0, Matrix_d *beta, Vector_d &poptheta, 
+		    int NumOutcomes,  Vector_i &OutcomeType, double **ExpectedY, Vector_d &lambda, int NoCovariates,
+		    Matrix_d &Covariates0, double **beta, Vector_d &poptheta,
 		    AdmixOptions* options, vector<Vector_d> alpha, vector<double> sigma);
 
   void ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha);

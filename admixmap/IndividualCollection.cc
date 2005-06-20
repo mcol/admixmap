@@ -18,7 +18,7 @@ IndividualCollection::~IndividualCollection()
   delete[] _child;
   delete indadmixoutput;
   delete[] Outcome;
-  delete[] ExpectedY;
+  free_matrix(ExpectedY, NumOutcomes);
 }
 
 IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
@@ -173,7 +173,7 @@ std::string *IndividualCollection::getCovariateLabels(){
 
 double IndividualCollection::getExpectedY(int i){
   if(ExpectedY)
-    return ExpectedY[0](i,0);
+    return ExpectedY[0][i];
   else
     return 0.0;
  }
@@ -182,18 +182,25 @@ std::string IndividualCollection::getTargetLabels(int k){
   return TargetLabels[k];
 }
 
-void IndividualCollection::SetExpectedY(int k,Matrix_d beta){
-  if(ExpectedY)
-    ExpectedY[k] = Covariates * beta;
+void IndividualCollection::SetExpectedY(int k, double *beta){
+  if(ExpectedY){
+    Matrix_d Beta(Covariates.GetNumberOfCols(), 1);
+    Beta.SetElements(0.0);
+    for(int i = 0; i < Covariates.GetNumberOfCols(); ++i)Beta(i, 0) = beta[i];
+      Beta = Covariates * Beta;  //possible memory leak
+      for(int j = 0; j < Covariates.GetNumberOfRows(); ++j)
+        ExpectedY[k][j] = Beta(j,0);
+    }
 }
+
 void IndividualCollection::calculateExpectedY( int k)
 {
   if(ExpectedY)
     for(unsigned int i = 0; i < NumInd; i++ )
-      ExpectedY[k]( i, 0 ) = 1 / ( 1 + exp( -ExpectedY[k]( i, 0 ) ) );
+      ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
 }
 
-void IndividualCollection::Initialise(AdmixOptions *options,Matrix_d *beta, Genome *Loci, std::string *PopulationLabels, 
+void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Genome *Loci, std::string *PopulationLabels,
 				      double rhoalpha, double rhobeta, LogWriter *Log, const Matrix_d &MLEMatrix){
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
@@ -243,8 +250,7 @@ void IndividualCollection::Initialise(AdmixOptions *options,Matrix_d *beta, Geno
 
   //Regression stuff
   if(options->getAnalysisTypeIndicator() >=2){
-    ExpectedY = new Matrix_d[NumOutcomes];
-    for(int i = 0; i < NumOutcomes; ++i)ExpectedY[i].SetNumberOfElements(NumInd, 1 );
+    ExpectedY = alloc2D_d(NumOutcomes, NumInd);
     //Covariates.SetNumberOfElements(1);
     Matrix_d temporary( NumInd, 1 );
     temporary.SetElements(1);
@@ -270,6 +276,7 @@ void IndividualCollection::Initialise(AdmixOptions *options,Matrix_d *beta, Geno
     //should be in Regression
     for( int k = 0; k < NumOutcomes; k++ ){
       SetExpectedY(k,beta[k]);
+//for logistic regression
       if( getOutcomeType(k) )calculateExpectedY(k);
     }
   }
@@ -603,7 +610,6 @@ double IndividualCollection::getLL(){
 //returns Derivative of Inverse Link Function for individual i
 double IndividualCollection::DerivativeInverseLinkFunction(int AnalysisType,int i){
   double DInvLink = 1.0;
-  double EY = getExpectedY(i);
   int OutcomeType = getOutcomeType(0);
 
     //Linear regression
@@ -612,10 +618,10 @@ double IndividualCollection::DerivativeInverseLinkFunction(int AnalysisType,int 
       }
     //Logistic Regression
     else if( AnalysisType == 3 || AnalysisType == 4 ){
-      DInvLink = EY * (1.0 - EY);
+      DInvLink = ExpectedY[0][i] * (1.0 - ExpectedY[0][i]);
     }
     else if( AnalysisType == 5 ){
-      DInvLink = OutcomeType ? EY*(1.0-EY):1.0;
+      DInvLink = OutcomeType ? ExpectedY[0][i] * (1.0 - ExpectedY[0][i]) : 1.0;
     }
  
   return DInvLink;    
