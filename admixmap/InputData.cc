@@ -135,7 +135,7 @@ void InputData::readData(AdmixOptions *options, LogWriter * /*log*/)
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumIndividuals = getNumberOfIndividuals();
   IsPedFile = determineIfPedFile( options );
-  CheckGeneticData(options->genotypesSexColumn());
+  CheckGeneticData(options->getgenotypesSexColumn());
   //convertGenotypesToIntArray(options );
 
 }
@@ -179,7 +179,7 @@ void InputData::CheckGeneticData(int genotypesSexColumn){
 
 //returns sex value from genotypes file for individual i
 int InputData::GetSexValue(int i){
-  //if (options->genotypesSexColumn() == 1) {
+  //if (options->getgenotypesSexColumn() == 1) {
     int sex = StringConvertor::toInt(geneticData_[i][1]);
     if (sex > 2) {
       cout << "Error: sex must be coded as 0 - missing, 1 - male or 2 - female.\n";
@@ -193,7 +193,7 @@ int InputData::GetSexValue(int i){
 //converts genotypes stored as Matrix_s strings to genotypes stored as Matrix g integer pairs
 //also removes cols for ID and sex - this should have been a separate step  
 void InputData::convertGenotypesToIntArray(AdmixOptions *options ) {
-  int firstcol = 1 + options->genotypesSexColumn();
+  int firstcol = 1 + options->getgenotypesSexColumn();
   genotype g;
   Vector_g vgenotypes; // vector of individual's genotypes
   unsigned int *a = new unsigned int[2];
@@ -265,11 +265,11 @@ void InputData::GetGenotype(int i,AdmixOptions *options,Genome &Loci, unsigned s
       (*genotype)[j][locus] = new unsigned short[2];
   
       if (options->IsPedFile() == 1) {
-	StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + options->genotypesSexColumn() + 2*lociI]);
+	StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + options->getgenotypesSexColumn() + 2*lociI]);
       } 
       else 
 	{
-	  StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + options->genotypesSexColumn() + lociI]);
+	  StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + options->getgenotypesSexColumn() + lociI]);
 	}
       
       lociI++;

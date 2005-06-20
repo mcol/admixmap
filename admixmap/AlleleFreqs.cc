@@ -247,11 +247,12 @@ void AlleleFreqs::checkLociNames(AdmixOptions *options,InputData *data_){
 
     const size_t numLoci = geneInfoData.size() - 1;
 
+//this should be in InputData
     // Determine if "Sex" column present in genotypes file.
     if (numLoci == geneticData[0].size() - 1) {
-        options->genotypesSexColumn(0);
+        options->setgenotypesSexColumn(0);
     } else if (numLoci == geneticData[0].size() - 2) {
-        options->genotypesSexColumn(1);
+        options->setgenotypesSexColumn(1);
     } else {
         cerr << "Error. Number of loci in genotypes file does not match number in locus file." << endl;
         exit(2);
@@ -259,11 +260,11 @@ void AlleleFreqs::checkLociNames(AdmixOptions *options,InputData *data_){
 
     // Compare loci names in locus file and genotypes file.
     for (size_t i = 1; i <= numLoci; ++i) {
-        if (geneInfoData[i][0] != geneticData[0][i + options->genotypesSexColumn()]) {
+        if (geneInfoData[i][0] != geneticData[0][i + options->getgenotypesSexColumn()]) {
             cout << "Error. Loci names in locus file and genotypes file are not the same." << endl;
             cout << "Loci names causing an error are: " << geneInfoData[i][0] << " and " 
-                 << geneticData[0][i + options->genotypesSexColumn()] << endl;
-            cout << options->genotypesSexColumn() << endl;
+                 << geneticData[0][i + options->getgenotypesSexColumn()] << endl;
+            cout << options->getgenotypesSexColumn() << endl;
             exit(2);
         }
     } 

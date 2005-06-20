@@ -77,8 +77,8 @@ public:
   Vector_d getInitAlpha(int) const;
   int sizeInitAlpha() const;
 
-  unsigned int genotypesSexColumn() const;    
-  void genotypesSexColumn(unsigned int i);
+  unsigned int getgenotypesSexColumn() const;
+  void setgenotypesSexColumn(unsigned int i);
   
   //indicators and model options  
   int useCOUT() const;
@@ -137,11 +137,78 @@ public:
   Vector_i getStratificationTestLoci() const;
   
   
-private: // members
-  
-  struct Options;     // class declaration only
-  Options *imp;       // implementation
-  OptionMap OptionValues;
+private:
+  long burnin;
+  long TotalSamples;
+  long SampleEvery;
+  long Seed;
+  int AnalysisTypeIndicator;
+  int TargetIndicator;
+  double TruncPt;
+  int Populations;
+
+  int use_cout;
+  int TextIndicator;
+  bool OutputFST;
+  bool XOnlyAnalysis;
+  unsigned int isPedFile;
+  unsigned int genotypesSexColumn;
+  bool locusForTestIndicator;
+  int LocusForTest;
+  bool fixedallelefreqs;
+  bool RandomMatingModel;//random mating model
+  bool RhoIndicator;//indicator for non-global rho
+  bool IndAdmixHierIndicator;//hierarchical model on ind admixture
+  bool MLIndicator;//calculate marginal likelihood - valid only for analysistypeindicator < 0
+  bool AnnealIndicator;
+  bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
+  bool TestForAdmixtureAssociation;
+  bool StratificationTestIndicator;
+  bool TestForAffectedsOnly;
+  bool TestForAllelicAssociation;
+  bool TestForSNPsInHaplotype;
+  bool TestForDispersion;
+  bool TestForLinkageWithAncestry;
+  bool TestForMisspecifiedAlleleFreqs;
+  bool TestForMisspecifiedAlleleFreqs2;
+  bool HWTest;
+  bool OutputAlleleFreq;
+
+  double Rho;
+  std::vector<Vector_d> alpha;
+
+  string ResultsDir;
+  string LogFilename;
+  string AffectedsOnlyScoreFilename;
+  string AlleleFreqOutputFilename;
+  string AlleleFreqScoreFilename;
+  string AlleleFreqScoreFilename2;
+  string AssocScoreFilename;
+  string alleleFreqFilename;
+  string DICoutputFilename;
+  string ErgodicAverageFilename;
+  string ParameterFilename;
+  string RegressionOutputFilename;
+  string EtaOutputFilename;
+  string DispersionTestFilename;
+  string IndAdmixtureFilename;
+  string FSTOutputFilename;
+  string TestsForSNPsInHaplotypeOutputFilename;
+  string AllelicAssociationScoreFilename;
+  string AncestryAssociationScoreFilename;
+  string HWTestFilename;
+
+  string GeneInfoFilename;
+  string GeneticDataFilename;
+  string HistoricalAlleleFreqFilename;
+  string PriorAlleleFreqFilename;
+  string InputFilename;
+  string TargetFilename;
+  string MLEFilename;
+  string EtaPriorFilename;
+  string ReportedAncestryFilename;
+
+  OptionMap OptionValues;//to output user options
   
   // UNIMPLIMENTED: to avoid use
   AdmixOptions(const AdmixOptions&);

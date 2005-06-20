@@ -125,7 +125,7 @@ void Genome::loadAlleleStatesAndDistances( vector<string> *ChrmLabels, AdmixOpti
     Log->logmsg(true, vtemp.GetNumberOfElements());Log->logmsg(true," simple loci\n");
     vtemp.AddElement(0); // Forces SetLabels method to ignore first row of loci.txt (GenotypesFile)
     // Add a sex column if it is not included
-    if( ! options->genotypesSexColumn() ){
+    if( ! options->getgenotypesSexColumn() ){
       labels.insert(labels.begin(), "\"extracol\"");
     }
     SetLabels(labels, vtemp);
