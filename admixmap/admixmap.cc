@@ -128,7 +128,7 @@ void submain(AdmixOptions* options){
   |  single individual, one population, allele frequencies |
   ---------------------------------------------------------*/
   if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
-    IC->getOnePopOneIndLogLikelihood(&Log,&A,PopulationLabels);
+    IC->getOnePopOneIndLogLikelihood(&Log, PopulationLabels, A.IsRandom());
 
   else{
     //initialise test objects
@@ -288,7 +288,8 @@ void submain(AdmixOptions* options){
   //  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
   //     delete chrm[i];
   //   }
-  
+
+  A.CloseOutputFile(options->getTotalSamples() - options->getBurnIn(), PopulationLabels);  
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
   for(unsigned int i=0; i < Loci.GetNumberOfCompositeLoci(); i++){

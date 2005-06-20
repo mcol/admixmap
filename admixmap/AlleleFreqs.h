@@ -5,9 +5,8 @@
 #include "Genome.h"
 #include "AdmixOptions.h"
 #include "LogWriter.h"
-#include "LocusVisitor.h"
-#include "AlleleFreqOutputter.h"
-
+//#include "LocusVisitor.h"
+//#include "AlleleFreqOutputter.h"
 
 class AlleleFreqs{
 
@@ -31,6 +30,7 @@ public:
   int GetNumberOfCompositeLoci();
 
   void OutputAlleleFreqs();
+  void CloseOutputFile(int iterations, string* PopulationLabels);
 
   void OutputFST(bool IsPedFile);
 
@@ -95,7 +95,7 @@ private:
 //    DARS SampleMu;
    std::vector<TuneRW> *MuProposal;
 
-  LocusVisitor* allelefreqoutput;// object to output allele frequencies
+  std::ofstream allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
@@ -119,7 +119,9 @@ private:
   void SamplePriorAlleleFreqsMultiDim( int);
   void SampleAlleleFreqs(int, int);
   void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
- 
+
+  void OpenOutputFile(AdmixOptions *options);
+
 };
 // functions required to update proportion vector Mu with adaptive rejection sampler
 // likelihood, 1st and 2nd derivatives of log-likelihood

@@ -28,7 +28,6 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   NumberAccepted = 0;
   Number  = 0;
   Populations = 0;
-  allelefreqoutput = 0;
   RandomAlleleFreqs = 0;
   IsHistoricAlleleFreq = false;
   AlleleCounts = 0;
@@ -40,15 +39,12 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   SumAlleleFreqs = 0;
   Fst = 0;
   SumFst = 0;
-  allelefreqoutput = 0;
   TuneEtaSampler = 0;
   pp = 0;
   Loci = pLoci;  
 }
 
 AlleleFreqs::~AlleleFreqs(){
-
-  delete allelefreqoutput;
 
   delete[] TuneEtaSampler;
 
@@ -290,7 +286,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogW
   else IsHistoricAlleleFreq = false;
 
   if(IsRandom() &&  options->getOutputAlleleFreq() ){
-    allelefreqoutput = new AlleleFreqOutputter(options,PopulationLabels);
+    OpenOutputFile(options);
   }
 
   //set up alleleprobs and hap pair probs
@@ -985,11 +981,7 @@ CompositeLocus *AlleleFreqs::getLocus(int i){
 int AlleleFreqs::GetNumberOfCompositeLoci(){
   return NumberOfCompositeLoci;
 }
-void AlleleFreqs::OutputAlleleFreqs(){
-  if( IsRandom() ){
-    allelefreqoutput->OutputAlleleFreqs(this);
-  }
-}
+
 void AlleleFreqs::OutputFST(bool IsPedFile){
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     if(IsPedFile)
@@ -1125,6 +1117,56 @@ void AlleleFreqs::UpdateFst()
     for(int i=0;i < Populations;++i)
       SumFst[locus][i] += Fst[locus][i];
   }
+}
+
+void AlleleFreqs::OpenOutputFile(AdmixOptions *options)
+{
+  allelefreqoutput.open(options->getAlleleFreqOutputFilename(), ios::out );
+  if( !allelefreqoutput && options->getAnalysisTypeIndicator() >= 0){
+    cerr << "Warning: Couldn't open allelefreqsoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
+    //exit( 1 );
+  }
+  else
+    allelefreqoutput << "structure(.Data=c(" << endl;
+}
+
+void AlleleFreqs::OutputAlleleFreqs()
+{
+  if( IsRandom() ){
+    //Matrix_d meanfreqs;
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+      
+      for( int k = 0; k < Freqs[i].GetNumberOfRows(); k++ ){
+	allelefreqoutput << getLocus(i)->GetLabel(0) << ",";
+	for( int l = 0; l < Populations; l++ ){
+	  allelefreqoutput << Freqs[i](k,l) << ",";
+	}
+	allelefreqoutput << endl;
+      }
+    }
+  }
+}
+
+void AlleleFreqs::CloseOutputFile(int iterations, string* PopulationLabels)
+{
+  int nrows = 0;
+  for(int j = 0; j < NumberOfCompositeLoci; ++j)
+    nrows += Freqs[j].GetNumberOfRows();
+  allelefreqoutput << ")," << endl;
+  allelefreqoutput << ".Dim = c(";
+  allelefreqoutput << Populations+1 << ",";
+  allelefreqoutput << nrows << ",";
+  allelefreqoutput << iterations;
+  allelefreqoutput << ")," << endl;
+  allelefreqoutput << ".Dimnames=list(c(\"Locus\",";
+  for (int i = 0; i < Populations; i++){
+     allelefreqoutput << PopulationLabels[i];
+    if(i < Populations-1){
+      allelefreqoutput << ",";
+    }
+  }
+  allelefreqoutput << "), character(0), character(0)))" << endl;
+  allelefreqoutput.close();
 }
 
 double
