@@ -27,11 +27,18 @@
 using namespace ::std;
 
 DispersionTest::DispersionTest(){
+  divergentallelefreqstest = 0;
+  NumberOfCompositeLoci = -1;
+  NumberOfPopulations = 0;
+  options = 0;
 }
-void DispersionTest::Initialise(AdmixOptions *op,LogWriter *Log, int NumberOfCompositeLoci){
-  options = op;
 
-  divergentallelefreqstest = Matrix_i(NumberOfCompositeLoci + 1, options->getPopulations() );
+void DispersionTest::Initialise(AdmixOptions *op,LogWriter *Log, int NumLoci){
+  options = op;
+  NumberOfCompositeLoci = NumLoci;
+  NumberOfPopulations = options->getPopulations();
+
+  divergentallelefreqstest = alloc2D_i(NumberOfCompositeLoci + 1, NumberOfPopulations );
   
   if( options->getTestForDispersion() ){
     Log->logmsg(true, "Writing dispersion test results to ");
@@ -45,22 +52,31 @@ void DispersionTest::Initialise(AdmixOptions *op,LogWriter *Log, int NumberOfCom
   }
 }
 
+DispersionTest::~DispersionTest(){
+  free_matrix(divergentallelefreqstest, NumberOfCompositeLoci + 1);
+}
+
 void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
 {
   int numberofstates;
-  Vector_i locusancestry, rep, PopCounts;
+  Vector_i rep;
   Vector_d popfreqs;
 
-  Matrix_i AlleleCount, test( A->GetNumberOfCompositeLoci() + 1, options->getPopulations() );
-  Matrix_d LogLikelihood( A->GetNumberOfCompositeLoci() + 1, options->getPopulations() ), 
-    RepLogLikelihood( A->GetNumberOfCompositeLoci() + 1, options->getPopulations() ),
-    freqs;
+  Matrix_i AlleleCount; 
+  double LogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ], 
+    RepLogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ];
+  double sum[NumberOfPopulations], repsum[NumberOfPopulations];
+  Matrix_d freqs;
 
-  for( int j = 0; j < A->GetNumberOfCompositeLoci(); j++ ){
+  for( int k = 0; k < NumberOfPopulations; k++ ){
+    sum[k] = 0.0; 
+    repsum[k] = 0.0;
+  }
+  for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     numberofstates = A->getLocus(j)->GetNumberOfStates();
     AlleleCount = A->GetAlleleCounts(j);
     freqs = A->GetAlleleFreqs(j);
-    for( int k = 0; k < options->getPopulations(); k++ ){
+    for( int k = 0; k < NumberOfPopulations; k++ ){
       popfreqs = freqs.GetColumn( k );
       popfreqs.AddElement( numberofstates - 1 );
       popfreqs( numberofstates - 1 ) = 1 - popfreqs.Sum();
@@ -68,42 +84,42 @@ void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
       rep = genmultinomial( (AlleleCount.GetColumn(k)).Sum(), popfreqs );
 
       // Calculate likelihood of observed and repliate data.
-      LogLikelihood( j, k ) =
+      LogLikelihood[j][k] =
 	log( MultinomialLikelihood( AlleleCount.GetColumn( k ), popfreqs ) );
-      RepLogLikelihood( j, k ) =
+      RepLogLikelihood[j][k] =
 	log( MultinomialLikelihood( rep, popfreqs ) );
-      if( LogLikelihood( j, k ) < RepLogLikelihood( j, k ) )
-	test( j, k ) = 0;
-      else
-	test( j, k ) = 1;
+      if(!( LogLikelihood[j][k] < RepLogLikelihood[j][k]) )
+	divergentallelefreqstest[j][k] ++;
+      sum[k] += LogLikelihood[j][k];
+      repsum[k] += RepLogLikelihood[j][k];
     }
   }
 
+  //test statistic for population
   for( int k = 0; k < options->getPopulations(); k++ ){
-    if( LogLikelihood.GetColumn(k).Sum() < RepLogLikelihood.GetColumn(k).Sum() )
-      test( A->GetNumberOfCompositeLoci(), k ) = 0;
-    else
-      test( A->GetNumberOfCompositeLoci(), k ) = 1;
+    if(!( sum[k] < repsum[k]) )
+      divergentallelefreqstest[NumberOfCompositeLoci][k] ++;
   }
-
-  divergentallelefreqstest += test;
 }
 
 void DispersionTest::Output(int samples,Genome& Loci, std::string *PopLabels){
   //write header
   dispersionoutputstream << "Locus";
-  for(int i = 0; i< divergentallelefreqstest.GetNumberOfCols(); ++i)
+  for(int i = 0; i< NumberOfPopulations; ++i)
     dispersionoutputstream << " " <<PopLabels[i];//should use pop labels here
   dispersionoutputstream << endl;
 
-  for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
+  for(int j = 0; j < NumberOfCompositeLoci; j++ ){
     if(options->IsPedFile())
       dispersionoutputstream << "\"" << Loci(j)->GetLabel(0) << "\"" << " ";
     else
       dispersionoutputstream << Loci(j)->GetLabel(0) << " ";
-    dispersionoutputstream << divergentallelefreqstest.GetRow(j).Float() / samples << endl;
+    for(int k=0; k < NumberOfPopulations; ++k)
+      dispersionoutputstream << (float)divergentallelefreqstest[j][k] / (float)samples << " ";
+    dispersionoutputstream  << endl;
   }
-  dispersionoutputstream << "Population "
-			 << divergentallelefreqstest.GetRow( Loci.GetNumberOfCompositeLoci() ).Float() / samples
-			 << endl;
+  dispersionoutputstream << "Population ";
+  for(int k=0; k < NumberOfPopulations; ++k)
+    dispersionoutputstream << (float)divergentallelefreqstest[NumberOfCompositeLoci][k] /(float) samples << " ";
+  dispersionoutputstream  << endl;
 }
