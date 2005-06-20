@@ -151,6 +151,7 @@ void CentredGaussianConditional1( Vector_d mean, Matrix_d var,
   *newvar = var2(0,0); 
 }
 
+//allocate space for 2-way rectangular array of doubles and initialise to zero
 double **alloc2D_d(int m,int n)
 {
   double **M;
@@ -160,6 +161,7 @@ double **alloc2D_d(int m,int n)
     for(int i = 0; i < m; ++i){
       M[i] = new double[n];
       if(M[i] == NULL)throw(0);
+      for(int j = 0; j < n; ++j)M[i][j] = 0.0;
     }
   }
   catch(int i){
@@ -169,7 +171,35 @@ double **alloc2D_d(int m,int n)
   return M;
 }
 
+//allocate space for 2-way rectangular array of ints and initialise to zero
+int **alloc2D_i(int m,int n)
+{
+  int **M;
+  try{
+    M = new int*[m];
+    if(M==NULL)throw(0);
+    for(int i = 0; i < m; ++i){
+      M[i] = new int[n];
+      if(M[i] == NULL)throw(0);
+      for(int j = 0; j < n; ++j)M[i][j] = 0;
+    }
+  }
+  catch(int i){
+    cout<<"Unable to allocate space for matrix"<<endl;
+    exit(1);
+  }
+  return M;
+}
+
+//delete double matrix, even nonrectangular
 void free_matrix(double **M, int m){
+  if(M){
+    for(int i = 0; i < m; ++i) if( M[i] )delete[] M[i];
+    delete[] M;
+  }
+}
+//delete int matrix
+void free_matrix(int **M, int m){
   if(M){
     for(int i = 0; i < m; ++i) if( M[i] )delete[] M[i];
     delete[] M;
@@ -180,4 +210,13 @@ void equate_matrix(double **A, double **B, int m, int n){
   for(int i = 0; i < m; ++i)
     for(int j = 0; j < n; ++j)
       A[i][j] = B[i][j];
+}
+
+double **MatrixAsArray(Matrix_d &M){
+  double **A;
+  A = alloc2D_d(M.GetNumberOfRows(), M.GetNumberOfCols());
+  for(int row = 0; row < M.GetNumberOfRows(); ++row)
+    for(int col = 0; col < M.GetNumberOfCols(); ++col)
+      A[row][col] = M(row,col);
+  return A;
 }
