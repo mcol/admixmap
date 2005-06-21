@@ -159,21 +159,9 @@ void Chromosome::UpdateParameters(Individual* ind, Matrix_d& Admixture, AdmixOpt
 
 }
 
-//void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, double *f[], bool isdiploid){
 void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid){
 
-  SampleStates.Sample(CodedStates, Admixture, f, isdiploid);
-  for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
-    if(isdiploid){
-      //     OrderedStates( 0, j ) = 0;
-      (*OrderedStates)( 0, j ) = (int)(CodedStates[j] / populations);
-      (*OrderedStates)( 1, j ) = (CodedStates[j] % populations);
-    }
-    else //haploid
-      {
-	(*OrderedStates)(0, j ) = CodedStates[j];
-      }
-  }
+  SampleStates.Sample(OrderedStates, Admixture, f, isdiploid);
 }
 
 void Chromosome::getAncestryProbs( int j, double AncestryProbs[][3] ){
@@ -185,20 +173,7 @@ void Chromosome::getAncestryProbs( int j, double AncestryProbs[][3] ){
   //     (i,0) = 1.0 - (i,1) - (i,2)
   //where p's are probs in StateProbs from HMM
 
-  double *StateProbs;
-  StateProbs = new double[D];//possibly should keep this at class scope
-  
-  SampleStates.GetStateProbs(StateProbs, j);
- 
-  for( int k1 = 0; k1 < populations; k1++ ){
-    AncestryProbs[k1][2] = StateProbs[ ( populations + 1 ) * k1 ];
-    AncestryProbs[k1][1] = 0.0;
-    for( int k2 = 0 ; k2 < populations; k2++ )
-      AncestryProbs[k1][1] += StateProbs[k1*populations +k2] + StateProbs[k2*populations +k1];
-    AncestryProbs[k1][1] -= 2.0*AncestryProbs[k1][2];
-    AncestryProbs[k1][0] = 1.0 - AncestryProbs[k1][1] - AncestryProbs[k1][2];
-  }
-  delete[] StateProbs;
+  SampleStates.Get3WayStateProbs(j, AncestryProbs);
 }
 
 //accessor for HMM Likelihood

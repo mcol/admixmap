@@ -227,6 +227,30 @@ void HMM::GetStateProbs( double * probs, int t)
    }
 }
 
+void HMM::Get3WayStateProbs( int t, double AncestryProbs[][3]){
+  double sum = 0.0;
+  int State = 0;
+  double probs[States];
+
+  for(int i = 0; i < K; ++i)
+   for( int j = 0; j < K; j++ ){
+     probs[State++] = alpha[t][i][j] * beta[t][i][j];
+     sum += probs[State-1];
+   }
+
+   for( int j = 0; j < States; j++ ){
+     probs[j] /= sum;
+   }
+   for( int k1 = 0; k1 < K; k1++ ){
+     AncestryProbs[k1][2] = probs[ ( K + 1 ) * k1 ];
+     AncestryProbs[k1][1] = 0.0;
+     for( int k2 = 0 ; k2 < K; k2++ )
+       AncestryProbs[k1][1] += probs[k1*K +k2] + probs[k2*K +k1];
+     AncestryProbs[k1][1] -= 2.0*AncestryProbs[k1][2];
+     AncestryProbs[k1][0] = 1.0 - AncestryProbs[k1][1] - AncestryProbs[k1][2];
+   }
+}
+
 /*
   returns log-likelihood
   This is the sum over states of products of alpha and beta
@@ -246,18 +270,21 @@ double HMM::getLikelihood()
 /*
   Samples Hidden States
   ---------------------
-  C          - an int array to store the sampled states
+  SStates          - an int array to store the sampled states
   isdiploid  - indicator for diploidy
 */
-void HMM::Sample(int *C, Matrix_d &Admixture, double *f[], bool isdiploid)
+void HMM::Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdiploid)
 {
   int j1,j2;
   double V[States];
+  int C[Transitions];
 
   if(isdiploid){
     int State = 0;
     for( int i1 = 0; i1 < K; i1++ )for(int i2 = 0; i2<K; ++i2)V[State++] = alpha[Transitions - 1][i1][i2];
     C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
+    (*SStates)(0,Transitions-1) = (int)(C[Transitions-1]/K);
+    (*SStates)(1,Transitions-1) = (C[Transitions-1] % K);
     
     for( int t =  Transitions - 2; t >= 0; t-- ){
       j1 = (int) (C[t+1]/K);//j
@@ -271,18 +298,21 @@ void HMM::Sample(int *C, Matrix_d &Admixture, double *f[], bool isdiploid)
 	State++;
       }
       C[ t ] = SampleFromDiscrete3( V, States );
+      (*SStates)(0,t) = (int)(C[t]/K);
+      (*SStates)(1,t) = (C[t] % K);
     }
-  }
+   }
   else{//haploid
     for( int j = 0; j < States; j++ )V[j] = alpha[Transitions - 1][j][0];
     C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
+    (*SStates)(0,Transitions-1) = C[Transitions-1];
     for( int t =  Transitions - 2; t >= 0; t-- ){
       for(int j = 0; j < States; j++)V[j] = (j == C[t+1])*f[0][t+1]+Admixture(C[t+1],0)*(1.0 - f[0][t]);
       for( int j = 0; j < States; j++ )	V[j] *= alpha[t][j][0];
       C[ t ] = SampleFromDiscrete3( V, States );
-   }
+      (*SStates)(0,t) = C[t];
+    }
   }
-
 }
 
 // argument oldProbs is square array of size K, K

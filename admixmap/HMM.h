@@ -35,8 +35,9 @@ public:
   void SetStateArrivalProbs(double *f[], const Matrix_d &Theta, int Mcol);
   double ***getSAP();
   /* samples hidden states */
-  void Sample(int *C, Matrix_d &Admixture, double *f[], bool isdiploid);
+  void Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdiploid);
   void GetStateProbs( double * probs, int t);
+  void Get3WayStateProbs( int j, double AncestryProbs[][3]);
 
   double getLikelihood();
 
