@@ -24,6 +24,7 @@
 #include "StringConvertor.h"
 #include "Genome.h"
 #include "Chromosome.h"
+#include <string>
 
 using namespace std;
 
@@ -163,6 +164,12 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options->getgenotypesSexColumn());
   checkLociNames(options);
+ if ( strlen( options->getTargetFilename() ) != 0 )
+   CheckOutcomeVarFile((bool)(options->getAnalysisTypeIndicator() != 5));
+ if ( strlen( options->getInputFilename() ) != 0 )
+   CheckCovariatesFile();
+ if ( strlen( options->getReportedAncestryFilename() ) != 0 )
+   CheckRepAncestryFile(options->getPopulations());
   //convertGenotypesToIntArray(options );
 }
 
@@ -179,10 +186,10 @@ bool InputData::determineIfPedFile(AdmixOptions *options) {
   // Determine if genotype table is in pedfile format by testing if number of strings in row 1 equals
   // twice the number of strings in the header row minus one. 
   // 
-  const int isPedFile = 2*geneticData_[0].size() - 1 == geneticData_[1].size() ? 1 : 0;
+  const bool isPedFile = (bool)(2*geneticData_[0].size() - 1 == geneticData_[1].size());
   options->IsPedFile(isPedFile);
 
-  return (isPedFile==1);
+  return (isPedFile);
 }
 
 //checks number of loci in genotypes file is the same as in locusfile
@@ -301,6 +308,64 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
   }
 }
 
+void InputData::CheckOutcomeVarFile(bool singleRegression){
+  if( targetMatrix_.GetNumberOfRows() - 1 != NumIndividuals ){
+    Log->logmsg(true,"ERROR: Genotypes file has ");
+    Log->logmsg(true,NumIndividuals);
+    Log->logmsg(true," observations and Outcomevar file has ");
+    Log->logmsg(true,inputMatrix_.GetNumberOfRows() - 1);
+    Log->logmsg(true," observations.\n");
+    exit(1);
+  }
+  if(singleRegression){
+    if( targetMatrix_.GetNumberOfRows() - 1 != NumIndividuals ){
+      Log->logmsg(true,"Outcomevar file has ");
+      Log->logmsg(true,targetMatrix_.GetNumberOfRows() - 1);
+      Log->logmsg(true," observations and Genotypes file has ");
+      Log->logmsg(true,NumIndividuals);
+      Log->logmsg(true," observations.\n");
+      exit(1);
+    }
+  }
+}
+
+void InputData::CheckCovariatesFile(){
+  if( NumIndividuals != inputMatrix_.GetNumberOfRows() - 1 ){
+    Log->logmsg(true,"ERROR: Genotypes file has ");
+    Log->logmsg(true,NumIndividuals);
+    Log->logmsg(true," observations and Covariates file has ");
+    Log->logmsg(true,inputMatrix_.GetNumberOfRows() - 1);
+    Log->logmsg(true," observations.\n");
+    exit(1);
+  }
+}
+
+void InputData::CheckRepAncestryFile(int populations){
+  if( reportedAncestryMatrix_.GetNumberOfRows() != 2 * NumIndividuals ){
+    Log->logmsg(false,"ERROR: ");
+    Log->logmsg(false,"ReportedAncestry file");
+    Log->logmsg(false," has ");
+    Log->logmsg(false,reportedAncestryMatrix_.GetNumberOfRows());
+    Log->logmsg(false," rows\n");
+    Log->logmsg(false,"Genotypesfile");
+    Log->logmsg(false," has ");
+    Log->logmsg(false,NumIndividuals);
+    Log->logmsg(false," rows\n");
+    exit(1);}
+  if( reportedAncestryMatrix_.GetNumberOfCols() != populations ){
+    Log->logmsg(false,"ERROR: ");
+    Log->logmsg(false,"ReportedAncestry file");
+    Log->logmsg(false," has ");
+    Log->logmsg(false,reportedAncestryMatrix_.GetNumberOfCols());
+    Log->logmsg(false," cols\n");
+    Log->logmsg(false, "AlleleFreq file");
+    Log->logmsg(false," has ");
+    Log->logmsg(false,populations);
+    Log->logmsg(false," cols\n");
+    exit(1);
+  }
+}
+
 //returns sex value from genotypes file for individual i
 int InputData::GetSexValue(int i){
   //if (options->getgenotypesSexColumn() == 1) {
@@ -375,30 +440,49 @@ void InputData::convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm) {
 }
 
 //TODO: maybe have numChromosomes, NumLoci etc members of InputData
-void InputData::GetGenotype(int i,AdmixOptions *options,Genome &Loci, unsigned short ****genotype){
+void InputData::GetGenotype(int i, int SexColumn, Genome &Loci, unsigned short ****genotype){
   unsigned int lociI = 0;
   
   *genotype = new unsigned short **[Loci.GetNumberOfCompositeLoci()];
-  for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); ++j){
-    // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype 
-    int numLoci = Loci(j)->GetNumberOfLoci();
-    
-    (*genotype)[j] = new unsigned short *[numLoci];
 
-    for (int locus = 0; locus < numLoci; locus++) {
-      (*genotype)[j][locus] = new unsigned short[2];
-  
-      if (options->IsPedFile() == 1) {
-	StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + options->getgenotypesSexColumn() + 2*lociI]);
-      } 
-      else 
-	{
-	  StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + options->getgenotypesSexColumn() + lociI]);
-	}
+    for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); ++j){
+      // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype 
+      int numLoci = Loci(j)->GetNumberOfLoci();
       
-      lociI++;
+      (*genotype)[j] = new unsigned short *[numLoci];
+      
+      for (int locus = 0; locus < numLoci; locus++) {
+	(*genotype)[j][locus] = new unsigned short[2];
+	
+	if (IsPedFile) {
+	  StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + SexColumn + 2*lociI]);
+	} 
+	else 
+	  {
+	    StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + SexColumn + lociI]);
+	  }
+	if((*genotype)[j][locus][0] > Loci(j)->GetNumberOfAllelesOfLocus(locus) ||
+	   (*genotype)[j][locus][1] > Loci(j)->GetNumberOfAllelesOfLocus(locus))
+	  throwGenotypeError(i, locus, Loci(j)->GetLabel(j), 
+			     (*genotype)[j][locus][0], (*genotype)[j][locus][1], Loci(j)->GetNumberOfAllelesOfLocus(locus) );
+	lociI++;
+      }
     }
-  }
+}
+
+void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles){
+  Log->logmsg(false, "Error in genotypes file:\n");
+  Log->logmsg(false, "Individual ");
+  Log->logmsg(false, ind);
+  Log->logmsg(false, " at locus ");
+  Log->logmsg(false, label);Log->logmsg(false, locus);
+  Log->logmsg(false, " has genotype ");
+  Log->logmsg(false, g0);Log->logmsg(false, ", ");
+  Log->logmsg(false, g1);Log->logmsg(false, " \n");
+  Log->logmsg(false, "Number of allelic states at locus = ");
+  Log->logmsg(false, numalleles);Log->logmsg(false, "\n");
+  if(ind == NumIndividuals)
+    exit(1);
 }
 
 const Matrix_s& InputData::getGeneInfoData() const

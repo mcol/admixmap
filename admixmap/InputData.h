@@ -86,7 +86,7 @@ public:
 
   int GetSexValue(int i);
  
-  void GetGenotype(int i,AdmixOptions *options,Genome &Loci,unsigned short ****genotype);
+  void GetGenotype(int i, int SexColumn, Genome &Loci,unsigned short ****genotype);
   void CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates);
 private:    
   Matrix_s geneInfoData_;
@@ -132,6 +132,10 @@ private:
   void readFile(const char *fname, Matrix_s& data);
   void CheckGeneticData(int genotypesSexColumn);
   void checkLociNames(AdmixOptions *options);
+  void CheckOutcomeVarFile(bool);
+  void CheckCovariatesFile();
+  void CheckRepAncestryFile(int populations);
+  void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles);
 };
 
 #endif /* !defined INPUT_DATA_H */

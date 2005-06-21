@@ -119,7 +119,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     }
     //retrieve genotypes
     //genotypes = new int **[numCompositeLoci];
-    Data->GetGenotype(mynumber, options, Loci, &genotypes);
+    Data->GetGenotype(mynumber, options->getgenotypesSexColumn(), Loci, &genotypes);
 
     // loop over composite loci to set possible haplotype pairs compatible with genotype 
     for(int j=0;j<numCompositeLoci;++j) {
@@ -882,7 +882,7 @@ void Individual::InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> 
       }
    }
    if( A->IsRandom() ){
-      for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+      for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
          for( int k = 0; k < options->getPopulations(); k++ ){
 	   //CompositeLocus *locus = (CompositeLocus*)(*Loci)(j);
 	   LogPrior += getDirichletLogDensity( A->GetPriorAlleleFreqs(j, k), A->getAlleleFreqsMAP(j,k) );
@@ -1066,7 +1066,7 @@ double Individual::getLogLikelihoodOnePop(bool randomAlleleFreqs )
    double Likelihood = 0.0;
    double **Prob;
    Prob = alloc2D_d(1,1);//one pop so 1x1 array
-   for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+   for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
      if(!IsMissing(j)){
        (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true, randomAlleleFreqs );
        Likelihood += log( Prob[0][0] );

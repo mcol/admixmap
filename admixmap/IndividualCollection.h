@@ -51,7 +51,7 @@ public:
   void Initialise(AdmixOptions *, double **,Genome *,std::string *PopulationLabels, double rhoalpha,double rhobeta, LogWriter *Log,
 		  const Matrix_d &MLEMatrix);
 
-  void LoadGenotypes(AdmixOptions *options, InputData *, LogWriter *Log, Genome *Loci);
+  void LoadData(AdmixOptions *options, InputData *, LogWriter *Log);
   
   void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels, bool);
 
@@ -107,10 +107,9 @@ private:
   void getLabels( const string, Vector_i temporary, string *labels );
   void getLabels(const Vector_s& data, Vector_i temporary, string *labels);
 
-  void LoadCovariates(AdmixOptions *options, InputData *, LogWriter *Log);
+  void LoadCovariates(InputData *);
   void LoadOutcomeVar(AdmixOptions *options, InputData *, LogWriter *Log);
-  void LoadRepAncestry(AdmixOptions *options, InputData *, LogWriter *Log);
-  void CheckGenotypes(Genome *Loci, LogWriter *Log);
+  void LoadRepAncestry(InputData *);
   void InitialiseMLEs(double, double, AdmixOptions *, const Matrix_d&);
 
   unsigned int NumInd, NumCompLoci;

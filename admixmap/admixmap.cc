@@ -107,7 +107,7 @@ void submain(AdmixOptions* options){
 
   A.LoadAlleleFreqs(options,&chrm,&Log,&data,&PopulationLabels);//NB this sets Populations option
   IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
-  IC->LoadGenotypes(options,&data, &Log, &Loci);                             //and before L and R Initialise
+  IC->LoadData(options,&data, &Log);                             //and before L and R Initialise
  
   L.Initialise(IC, &LogFileStream, &_admixed, &_symmetric, &poptheta, PopulationLabels);
   if( options->getAnalysisTypeIndicator() >= 2)

@@ -1,3 +1,23 @@
+/** 
+ *   ADMIXMAP
+ *   IndividualCollection.cc 
+ *   Class to hold an array of Individuals
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #include "IndividualCollection.h"
 #include "StringSplitter.h"
 #include "Regression.h"
@@ -319,36 +339,11 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
  
 }
 
-void IndividualCollection::LoadGenotypes(AdmixOptions *options, InputData *data_, LogWriter *Log, Genome *Loci){
-  // Load Genotypes into Individuals
-
-  /**This block should be replaced or removed. Omitted by Dmitry
-  if(options->IsPedFile() == 0){
-    Matrix_d locifileData;
-    locifileData.Load( options->getGeneInfoFilename() );
-    lshtm_match m;
-    lshtm_path_regex("\"[[:space:]]+\"", &m, options->getGeneticDataFilename(), REG_EXTENDED);
-    for( unsigned int i = 0; i < m.lCount; i++ ){
-      if( (int)(m.mPerLine[i]+1-options->genotypesSexColumn()) != locifileData.GetNumberOfRows() && m.mPerLine[i] != 0 ){
-	Log->logmsg(true,"Error: Line ");
-	Log->logmsg(true, (int)i+1);
-	Log->logmsg(true," of the genotypes file ");
-	Log->logmsg(true, options->getGeneticDataFilename());
-	Log->logmsg(true," has ");
-	Log->logmsg(true,(int)(m.mPerLine[i]+1-options->genotypesSexColumn()));
-	Log->logmsg(true," columns\n");
-	Log->logmsg(true,"But the loci file ");
-	Log->logmsg(true,options->getGeneInfoFilename());
-	Log->logmsg(true," has ");
-	Log->logmsg(true,locifileData.GetNumberOfRows());
-	Log->logmsg(true," rows\n");
-	exit(0);
-      }
+void IndividualCollection::LoadData(AdmixOptions *options, InputData *data_, LogWriter *Log){
+   if ( strlen( options->getInputFilename() ) != 0 ){
+    if( options->getTextIndicator() ){  
+      LoadCovariates(data_);
     }
-  }
-  */  
-  if ( strlen( options->getInputFilename() ) != 0 ){  
-    LoadCovariates(options,data_, Log);
   }
   if ( Input.GetNumberOfMissingValues() ) Input.SetMissingValuesToColumnMeans();
 
@@ -356,34 +351,20 @@ void IndividualCollection::LoadGenotypes(AdmixOptions *options, InputData *data_
     LoadOutcomeVar(options, data_, Log);
   }
   if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
-    LoadRepAncestry(options, data_, Log);
+    LoadRepAncestry(data_);
   }
-  CheckGenotypes(Loci, Log);
 }
 
-void IndividualCollection::LoadCovariates(AdmixOptions *options, InputData *data_, LogWriter *Log){
+void IndividualCollection::LoadCovariates(InputData *data_){
   //LOAD INPUT (COVARIATES)
 
-  Log->logmsg(false,"Loading ");
-  Log->logmsg(false,options->getInputFilename());
-  Log->logmsg(false,".\n");
   Input = data_->getInputMatrix();
 
-  if( (int)NumInd != Input.GetNumberOfRows() - 1 ){
-    Log->logmsg(true,"Genotype file has ");
-    Log->logmsg(true,NumInd);
-    Log->logmsg(true," observations and Input file has ");
-    Log->logmsg(true,Input.GetNumberOfRows() - 1);
-    Log->logmsg(true," observations.\n");
-    exit(0);
-  }
-  if( options->getTextIndicator() ){
-    Input.SubMatrix2( 1, NumInd, 0, Input.GetNumberOfCols() - 1 );
-    CovariateLabels = new string[ Input.GetNumberOfCols() ];
-    Vector_i vtemp( Input.GetNumberOfCols() );
-    vtemp.SetElements( 1 );
-    getLabels(data_->getInputData()[0], vtemp, CovariateLabels);//?getCovariatelabels()
-  }
+  Input.SubMatrix2( 1, NumInd, 0, Input.GetNumberOfCols() - 1 );
+  CovariateLabels = new string[ Input.GetNumberOfCols() ];
+  Vector_i vtemp( Input.GetNumberOfCols() );
+  vtemp.SetElements( 1 );
+  getLabels(data_->getInputData()[0], vtemp, CovariateLabels);//?getCovariatelabels()
 }
 
 void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data_, LogWriter *Log){
@@ -391,15 +372,8 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
   Matrix_d TempTarget, temporary;
   string *TempLabels = 0;
 
-  Log->logmsg(false,"Loading ");
-  Log->logmsg(false,options->getTargetFilename());
-  Log->logmsg(false,".\n");
-  //const Matrix_d& LoadTarget = data_->getTargetMatrix();
   //conversion necessary because LoadTarget is changed further down
   Matrix_d& LoadTarget = (Matrix_d&)data_->getTargetMatrix();
-  if( LoadTarget.GetNumberOfRows() - 1 != (int)NumInd ){
-    Log->logmsg(true,"Inconsistency in number of rows in outcomevarfile and genotypefile.\n");
-  }
   TempLabels = new string[ LoadTarget.GetNumberOfCols() ];
 
   Vector_i vtemp( LoadTarget.GetNumberOfCols() );
@@ -445,14 +419,7 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
     Log->logmsg(true,"Regressing on: ");
     Log->logmsg(true,getTargetLabels(0));
     Log->logmsg(true,".\n");
-    if( LoadTarget.GetNumberOfRows() - 1 != (int)NumInd ){
-      Log->logmsg(true,"Target file has ");
-      Log->logmsg(true,LoadTarget.GetNumberOfRows() - 1);
-      Log->logmsg(true," observations and Genotypes file has ");
-      Log->logmsg(true,NumInd);
-      Log->logmsg(true," observations.\n");
-      exit(1);
-    }
+
     LoadTarget.SubMatrix2( 1, NumInd, options->getTargetIndicator(), options->getTargetIndicator() );
     Outcome[0] = LoadTarget;
   }
@@ -460,38 +427,11 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
   delete [] TempLabels;
 }
 
-void IndividualCollection::LoadRepAncestry(AdmixOptions *options, InputData *data_, LogWriter *Log){
+void IndividualCollection::LoadRepAncestry(InputData *data_){
   //LOAD REPORTED ANCESTRY IF GIVEN   
 
   ReportedAncestry = new Matrix_d[NumInd];
-  Log->logmsg(false,"Loading ");
-  Log->logmsg(false,options->getReportedAncestryFilename());
-  Log->logmsg(false,".\n");
   const Matrix_d& temporary = data_->getReportedAncestryMatrix();
-
-  if( temporary.GetNumberOfRows() != 2 * (int)NumInd ){
-    Log->logmsg(false,"Error\n");
-    Log->logmsg(false,options->getReportedAncestryFilename());
-    Log->logmsg(false," has ");
-    Log->logmsg(false,temporary.GetNumberOfRows());
-    Log->logmsg(false," rows\n");
-    Log->logmsg(false,options->getGeneticDataFilename());
-    Log->logmsg(false," has ");
-    Log->logmsg(false,NumInd);
-    Log->logmsg(false," rows\n");
-    exit(0);}
-  if( temporary.GetNumberOfCols() != options->getPopulations() ){
-    Log->logmsg(false,"Error\n");
-    Log->logmsg(false,options->getReportedAncestryFilename());
-    Log->logmsg(false," has ");
-    Log->logmsg(false,temporary.GetNumberOfCols());
-    Log->logmsg(false," cols\n");
-    Log->logmsg(false,options->getAlleleFreqFilename());
-    Log->logmsg(false," has ");
-    Log->logmsg(false,options->getPopulations());
-    Log->logmsg(false," cols\n");
-    exit(0);
-  }
   for( int i = 0; i < temporary.GetNumberOfRows() / 2; i++ )
     ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.GetNumberOfCols() - 1 );
  
@@ -515,36 +455,6 @@ void IndividualCollection::getLabels(const Vector_s& data, Vector_i temporary, s
             labels[index++] = data[i];
         }
     }
-}
-
-//should be in InputData class
-void IndividualCollection::CheckGenotypes(Genome *Loci,LogWriter *Log)
-{
-  bool error = false;
-   
-  for(unsigned int i = 0; i < NumInd; i++ ){
-    for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-      for( int k = 0; k < (*Loci)(j)->GetNumberOfLoci(); k++ ){
-	Individual* ind =  _child[i];
-	if( (int)(ind->getGenotype(j)[k][0])   > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) || 
-	    (int)(ind->getGenotype(j)[k][1]) > (*Loci)(j)->GetNumberOfAllelesOfLocus( k ) ){
-	  Log->logmsg(false, "Error in genotypes file\n");
-	  Log->logmsg(false, "Individual ");
-	  Log->logmsg(false, i);
-	  Log->logmsg(false, " at locus ");
-	  Log->logmsg(false, (*Loci)(j)->GetLabel(k));
-	  Log->logmsg(false, " has genotype ");
-	  Log->logmsg(false,ind->getGenotype(j)[k][0]);Log->logmsg(false, " ");
-	  Log->logmsg(false, ind->getGenotype(j)[k][1]);Log->logmsg(false, " \n");
-	  Log->logmsg(false, "Number of allelic states at locus = ");
-	  Log->logmsg(false, (*Loci)(j)->GetNumberOfAllelesOfLocus( k ));Log->logmsg(false, "\n");
-	  error = true;
-	}
-      }
-    }
-  }
-  if( error )
-    exit(0);
 }
 
 void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, Vector_d &poptheta, AdmixOptions *options,
