@@ -952,11 +952,11 @@ int AdmixOptions::checkOptions(LogWriter *Log){
 
   // **** global rho ****
   if( !getRhoIndicator() )
-    Log->logmsg(true,"Model with global rho.\n");
+    Log->logmsg(true,"Model with global sumintensities.\n");
   else if( isRandomMatingModel() )
-    Log->logmsg(true,"Model with gamete specific rho.\n");
+    Log->logmsg(true,"Model with gamete specific sumintensities.\n");
   else
-    Log->logmsg(true,"Model with individual specific rho.\n");
+    Log->logmsg(true,"Model with individual specific sumintensities.\n");
 
   // **** Marginal Likelihood ****
   if(getMLIndicator()){

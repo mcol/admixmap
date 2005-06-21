@@ -72,8 +72,6 @@ void submain(AdmixOptions* options){
   LogWriter Log;
   Log.Initialise(&LogFileStream,options->useCOUT());
 
-  options->checkOptions(&Log);//should be in AdmixOptions  
-
   /*----------------
   | Initialisation |
    ----------------*/
@@ -83,6 +81,7 @@ void submain(AdmixOptions* options){
   timer = *localtime( &StartTime );
   Log.StartMessage(&timer);
 
+  options->checkOptions(&Log);
   // Initialise random number seed
   smyrand( options->getSeed() );
 
