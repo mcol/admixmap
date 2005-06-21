@@ -1,3 +1,23 @@
+/** 
+ *   ADMIXMAP
+ *   InputData.cc 
+ *   Class to read and check all input data files
+ *   Copyright (c) 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #include "InputData.h"
 #include "AdmixOptions.h"
 #include "StringSplitter.h"
@@ -21,7 +41,7 @@ static bool isWhiteLine(const char *p)
     return true;
 }
 
-static void readFile(const char *fname, Matrix_s& data)
+void InputData::readFile(const char *fname, Matrix_s& data)
 {
     if (0 == fname || 0 == strlen(fname)) return;
 
@@ -31,6 +51,11 @@ static void readFile(const char *fname, Matrix_s& data)
         msg += fname;
         msg += "\"";
         throw runtime_error(msg.c_str());
+    }
+    else {
+      Log->logmsg(false,"Loading ");
+      Log->logmsg(false,fname);
+      Log->logmsg(false,".\n");
     }
 
     data.clear();
@@ -95,21 +120,22 @@ InputData::~InputData()
 {
 }
 
-void InputData::readData(AdmixOptions *options, LogWriter * /*log*/)
+void InputData::readData(AdmixOptions *options, LogWriter *log)
 {
+  Log = log;
   try
     {
       // Read all input files.
-      ::readFile(options->getGeneInfoFilename(), geneInfoData_);   //locusfile
-      ::readFile(options->getGeneticDataFilename(), geneticData_); //genotypes file
-      ::readFile(options->getInputFilename(), inputData_);         //covariates file
-      ::readFile(options->getTargetFilename(), targetData_);       //outcomevar file                
-      ::readFile(options->getAlleleFreqFilename(), alleleFreqData_);
-      ::readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_);            
-      ::readFile(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_);
-      ::readFile(options->getEtaPriorFilename(), etaPriorData_);
-      ::readFile(options->getMLEFilename(), MLEData_);
-      ::readFile(options->getReportedAncestryFilename(), reportedAncestryData_);
+      readFile(options->getGeneInfoFilename(), geneInfoData_);   //locusfile
+      readFile(options->getGeneticDataFilename(), geneticData_); //genotypes file
+      readFile(options->getInputFilename(), inputData_);         //covariates file
+      readFile(options->getTargetFilename(), targetData_);       //outcomevar file                
+      readFile(options->getAlleleFreqFilename(), alleleFreqData_);
+      readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_);            
+      readFile(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_);
+      readFile(options->getEtaPriorFilename(), etaPriorData_);
+      readFile(options->getMLEFilename(), MLEData_);
+      readFile(options->getReportedAncestryFilename(), reportedAncestryData_);
       
       // Form matrices.
       convertMatrix(geneInfoData_, geneInfoMatrix_);
@@ -136,8 +162,8 @@ void InputData::readData(AdmixOptions *options, LogWriter * /*log*/)
   NumIndividuals = getNumberOfIndividuals();
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options->getgenotypesSexColumn());
+  checkLociNames(options);
   //convertGenotypesToIntArray(options );
-
 }
 
 //determine number of individuals by counting lines in genotypesfile 
@@ -174,6 +200,104 @@ void InputData::CheckGeneticData(int genotypesSexColumn){
 	exit(0);
       }
     }
+  }
+}
+
+void InputData::checkLociNames(AdmixOptions *options){
+  // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
+  
+  // Check loci names are unique    
+  for (size_t i = 1; i < geneInfoData_.size(); ++i) {
+    for (size_t j = i + 1; j < geneInfoData_.size(); ++j) {   
+      if (geneInfoData_[i][0] == geneInfoData_[j][0]) {
+	cerr << "Error in locusfile. Two different loci have the same name. "
+	     << geneInfoData_[i][0] << endl;
+	exit(2);            
+      }
+    }
+  }
+
+  const size_t numLoci = geneInfoData_.size() - 1;
+
+//this should be in InputData
+    // Determine if "Sex" column present in genotypes file.
+    if (numLoci == geneticData_[0].size() - 1) {
+        options->setgenotypesSexColumn(0);
+    } else if (numLoci == geneticData_[0].size() - 2) {
+        options->setgenotypesSexColumn(1);
+    } else {
+        cerr << "Error. Number of loci in genotypes file does not match number in locus file." << endl;
+        exit(2);
+    }
+
+    // Compare loci names in locus file and genotypes file.
+    for (size_t i = 1; i <= numLoci; ++i) {
+        if (geneInfoData_[i][0] != geneticData_[0][i + options->getgenotypesSexColumn()]) {
+            cout << "Error. Loci names in locus file and genotypes file are not the same." << endl;
+            cout << "Loci names causing an error are: " << geneInfoData_[i][0] << " and " 
+                 << geneticData_[0][i + options->getgenotypesSexColumn()] << endl;
+            cout << options->getgenotypesSexColumn() << endl;
+            exit(2);
+        }
+    } 
+}
+
+//checks consistency of supplied allelefreqs with locusfile
+void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates){
+  string freqtype = "x";
+  bool infile = false;
+  int nrows, expectednrows;
+
+  //fixed allele freqs
+  if( strlen( options->getAlleleFreqFilename() ) ){
+    freqtype = "";
+    infile = true;
+    nrows = alleleFreqMatrix_.GetNumberOfRows()-1;
+    expectednrows = NumberOfStates-NumberOfCompositeLoci;
+  }
+  
+  //Historic AlleleFreqs
+  if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+    freqtype = "historic";
+    infile = true;
+    nrows = historicalAlleleFreqMatrix_.GetNumberOfRows();
+    expectednrows = NumberOfStates+1;
+  }
+  //prior allelefreqs
+  if( strlen( options->getPriorAlleleFreqFilename() )) {
+      freqtype = "prior";
+      infile = true;
+      nrows = priorAlleleFreqMatrix_.GetNumberOfRows();
+      expectednrows = NumberOfStates+1;
+  }
+  if(infile){
+    if(nrows != expectednrows){
+      Log->logmsg(true,"Incorrect number of rows in ");
+      Log->logmsg(true, freqtype);
+      Log->logmsg(true, "allelefreqfile.\n");
+      Log->logmsg(true,"Expecting ");
+      Log->logmsg(true,expectednrows);
+      Log->logmsg(true," rows, but there are ");
+      Log->logmsg(true,nrows);
+      Log->logmsg(true," rows.\n");
+      exit(1);
+    }
+  }
+  else{//'populations' option
+    if(options->getPopulations() < 1){
+      Log->logmsg(true, "ERROR: populations = ");
+      Log->logmsg(true, options->getPopulations());
+      Log->logmsg(true, "\n");
+      exit(1);
+    }
+//     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+//       if(Loci->GetNumberOfStates(i) < 2){
+// 	Log->logmsg(true, "ERROR: The number of alleles at a locus is ");
+// 	Log->logmsg(true, Loci->GetNumberOfStates(i));
+// 	Log->logmsg(true, "\n");
+// 	exit(1);
+//       }
+//     }
   }
 }
 

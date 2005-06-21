@@ -1,3 +1,23 @@
+/** 
+ *   ADMIXMAP
+ *   Genome.cc (formerly GeneticArray.cc) 
+ *   Class to hold and access (pointers to) Composite Locus objects and information about the genome.
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #include <stdlib.h>
 #include <sstream>
 #include "Genome.h"
@@ -61,15 +81,10 @@ void Genome::SetLabels(const vector<string> &labels, Vector_d temp)
     }
 }
 
-void Genome::loadAlleleStatesAndDistances( vector<string> *ChrmLabels, AdmixOptions *options,InputData *data_, LogWriter *Log){
+//gets contents of locusfile and genotypesfile and creates CompositeLocus array
+void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_, LogWriter *Log){
+
   string *LociLabelsCheck = 0;
-
-  // Load number of allelic states and distances.
-  //Also creates the CompositeLocus array
-  Log->logmsg(false,"Loading ");
-  Log->logmsg(false,options->getGeneInfoFilename());
-  Log->logmsg(false,".\n");
-
   Matrix_d& locifileData = (Matrix_d&) data_->getGeneInfoMatrix();
   
   LociLabelsCheck = new string[ locifileData.GetNumberOfRows() ];
@@ -82,11 +97,6 @@ void Genome::loadAlleleStatesAndDistances( vector<string> *ChrmLabels, AdmixOpti
   //set up CompositeLocus objects
   InitialiseCompositeLoci();
 
-  //load locusfile data
-  Log->logmsg(false,"Loading ");
-  Log->logmsg(false,options->getGeneticDataFilename());
-  Log->logmsg(false,".\n");
-
   // Set number of alleles at each locus
   int index =0;
   size_t next_line = 0;
@@ -98,7 +108,7 @@ void Genome::loadAlleleStatesAndDistances( vector<string> *ChrmLabels, AdmixOpti
     //set numbers of alleles and distances for each locus
     LociLabelsCheck[index] = m[0];
     if (m.size() == 4)
-      ChrmLabels->push_back(m[3]);
+      ChrmLabels.push_back(m[3]);
     TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData( i, 0 ) );
     SetDistance( i, locifileData( index, 1 ) );
     while( index < locifileData.GetNumberOfRows() - 1 && locifileData( index + 1, 1 ) == 0 ){
@@ -153,7 +163,7 @@ void Genome::loadAlleleStatesAndDistances( vector<string> *ChrmLabels, AdmixOpti
 //Creates an array of pointers to Chromosome objects, sets their labels
 //also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
 //LengthOfXChrm and chrmandlocus
-Chromosome** Genome::GetChromosomes( int populations, std::vector<std::string> &chrmlabels )
+Chromosome** Genome::GetChromosomes( int populations)
 {
   int *cstart = new int[NumberOfCompositeLoci];
   int *cfinish = new int[NumberOfCompositeLoci];
@@ -199,13 +209,13 @@ Chromosome** Genome::GetChromosomes( int populations, std::vector<std::string> &
     stringstream label;
     string result;
     //default (if none supplied)
-    if( chrmlabels.size() == 0 ){
+    if( ChrmLabels.size() == 0 ){
       label << "\"" << i << "\"";
       result = label.str();
       C[i]->SetLabel(result);
     }
     else
-      C[i]->SetLabel(chrmlabels[cstart[i]]);
+      C[i]->SetLabel(ChrmLabels[cstart[i]]);
 
     for(int j = 0; j < size; j++){//loop over loci on chromosome
       //assign pointers to composite locus objects
@@ -315,8 +325,11 @@ float Genome::GetDistance( int locus )
   return( Distances( locus ) );
 }
 
-
-//returns total numbers of states accross all comp loci
+//returns number of states of a comp locus
+int Genome::GetNumberOfStates(int locus){
+  return TheArray[locus]->GetNumberOfStates();
+}
+//returns total number of states accross all comp loci
 int Genome::GetNumberOfStates()
 {
   int ret = 0;

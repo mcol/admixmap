@@ -74,35 +74,34 @@ void submain(AdmixOptions* options){
 
   options->checkOptions(&Log);//should be in AdmixOptions  
 
+  /*----------------
+  | Initialisation |
+   ----------------*/
+  //start timer
+  long StartTime = time(0);
+  tm timer;
+  timer = *localtime( &StartTime );
+  Log.StartMessage(&timer);
+
+  // Initialise random number seed
+  smyrand( options->getSeed() );
+
+  //Initialise Objects
   InputData data;
   data.readData(options, &Log);
 
   Genome Loci;
-  Chromosome **chrm = 0;
-  IndividualCollection *IC;
-  IC = 0;
+  Loci.loadAlleleStatesAndDistances(options, &data, &Log);
 
+  Chromosome **chrm = 0;
+  IndividualCollection *IC = 0;
   chib MargLikelihood;
 
   std::vector<bool> _admixed;//don't belong
   bool _symmetric;          //here  
-
-
   Vector_d poptheta;
   std::string *PopulationLabels = 0;//possibly belongs in InputData
 
-  /*----------------
-  | Initialisation |
-   ----------------*/
-  long StartTime = time(0);
-  
-  tm timer;
-  timer = *localtime( &StartTime );
-  Log.StartMessage(options->getTotalSamples(), options->getBurnIn(),&timer);
-
-  // Initialise random number seed
-  smyrand( options->getSeed() );
-  //Initialise Objects
   AlleleFreqs A(&Loci);
   Latent L( options, &Loci, &Log);
   Regression R;
