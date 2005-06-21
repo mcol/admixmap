@@ -97,8 +97,8 @@ private:
   int Populations;
   int *NumberOfAlleles;
   dmatrix AlleleProbs;
-  double ****HapPairProbs; //haplotype pair probabilities
-  double ****HapPairProbsMAP; //Posterior estimates of hap pair probs
+  double *HapPairProbs; //haplotype pair probabilities
+  double *HapPairProbsMAP; //Posterior estimates of hap pair probs
   std::string *Label;
   int *base;
 
@@ -135,9 +135,13 @@ inline void CompositeLocus::GetGenotypeProbs(double **Probs, std::vector<hapPair
     Probs[k0][k1] = 0.0;
     for(unsigned int h = 0; h < HapPairs.size() ; ++h)
       if(RandomAlleleFreqs && chibindicator )
-	Probs[k0][k1] += HapPairProbsMAP[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
+	Probs[k0][k1] += HapPairProbsMAP[HapPairs[h].haps[0] * NumberOfStates * Populations * Populations +
+					 HapPairs[h].haps[1] * Populations * Populations +
+					 k0 * Populations + k1];
       else
-	Probs[k0][k1] += HapPairProbs[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
+	Probs[k0][k1] += HapPairProbs[HapPairs[h].haps[0] * NumberOfStates * Populations * Populations +
+					 HapPairs[h].haps[1] * Populations * Populations +
+					 k0 * Populations + k1];
   }
 }
 

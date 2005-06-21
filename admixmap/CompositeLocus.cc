@@ -42,11 +42,12 @@ CompositeLocus::CompositeLocus()
   Matrix_i      null_Matrix_i(1,1);
   Matrix_d      null_Matrix_d(1,1);
   
-  // not previously defined
   Populations = 0;
   NumberOfMergedHaplotypes = 0;
   NumberOfAlleles = 0;
   AlleleProbs = 0;
+  HapPairProbs = 0;
+  HapPairProbsMAP = 0;
 
   MergeHaplotypes = null_Vector_i;
   HapLabels = null_Matrix_i;
@@ -57,7 +58,8 @@ CompositeLocus::~CompositeLocus()
   delete [] Label;
   if(base)
     delete[] base;
-  //TODO: delete HapPairprobs
+  delete[] HapPairProbs;
+  delete[] HapPairProbsMAP;
   delete[] NumberOfAlleles;
 }
 
@@ -178,11 +180,8 @@ void CompositeLocus::Initialise(Matrix_d &AFreqs){
   SetHapPairProbs();
   SetNoMergeHaplotypes();
   //Initialise HapPairProbsMAP to values in HapPairProbs
-  for(int h0 = 0; h0 < NumberOfStates; ++h0)
-    for(int h1 = 0; h1 < NumberOfStates; ++h1)
-      for(int k0 = 0; k0 < Populations; ++k0)
-	for(int k1 = 0; k1 < Populations; ++k1)
-	  HapPairProbsMAP[h0][h1][k0][k1] = HapPairProbs[h0][h1][k0][k1]; 
+  for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0)
+    HapPairProbsMAP[h0] = HapPairProbs[h0]; 
 }
 
 void CompositeLocus::SetAlleleProbs(Matrix_d &AFreqs){
@@ -253,7 +252,9 @@ void CompositeLocus::SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, 
   double Probs[HapPairs.size()];//1way array of hap.pair probs
 
   for(unsigned k = 0; k < HapPairs.size(); ++k){
-    Probs[k] = HapPairProbs[HapPairs[k].haps[0]][HapPairs[k].haps[1]][ancestry(0)][ancestry(1)];
+    Probs[k] = HapPairProbs[ HapPairs[k].haps[0] * NumberOfStates * Populations * Populations + 
+			     HapPairs[k].haps[1] * Populations * Populations +
+			     ancestry(0) * Populations  + ancestry(1)];
   }
 
   int h = SampleFromDiscrete3(Probs, HapPairs.size());
@@ -273,11 +274,13 @@ void CompositeLocus::SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, 
  */
 
 void CompositeLocus::SetHapPairProbs(){
-  for(int h0 = 0; h0<NumberOfStates; ++h0){
-    for(int h1=0; h1<NumberOfStates; ++h1){
-      for(int k0 = 0; k0< Populations; ++k0){
-	for(int k1=0; k1<Populations; ++k1)
-	  HapPairProbs[h0][h1][k0][k1] = AlleleProbs[h0][k0] * AlleleProbs[h1][k1];
+  for(int h0 = 0; h0 < NumberOfStates; ++h0){
+    for(int h1 = 0; h1 < NumberOfStates; ++h1){
+      for(int k0 = 0; k0 < Populations; ++k0){
+	for(int k1 = 0; k1 < Populations; ++k1)
+	  HapPairProbs[h0 * NumberOfStates * Populations * Populations +
+		       h1 * Populations * Populations +
+		       k0 * Populations + k1] = AlleleProbs[h0][k0] * AlleleProbs[h1][k1];
       }
     }
   }
@@ -351,11 +354,8 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k){
 void CompositeLocus::setHaplotypeProbsMAP()
 {
   //HaplotypeProbs = HaplotypeProbsMAP;
-  for(int h0 = 0; h0 < NumberOfStates; ++h0)
-    for(int h1 = 0; h1 < NumberOfStates; ++h1)
-      for(int k0 = 0; k0 < Populations; ++k0)
-	for(int k1 = 0; k1 < Populations; ++k1)
-	  HapPairProbs[h0][h1][k0][k1] = HapPairProbsMAP[h0][h1][k0][k1]; 
+  for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0)
+    HapPairProbs[h0] = HapPairProbsMAP[h0]; 
 }
 
 // arguments: integer, length of bit array
@@ -567,17 +567,8 @@ void CompositeLocus::setPossibleHaplotypePairs(unsigned short **Genotype, vector
   }
   //set size of array of haplotype pair probs
   int NumHaps = base[0] * NumberOfAlleles[0];//total # possible haplotypes = NumberOfStates
-  HapPairProbs = new double ***[NumHaps];
-  HapPairProbsMAP = new double ***[NumHaps];
-  for(int d1=0; d1<NumHaps; ++d1){
-    HapPairProbs[d1] = new double **[NumHaps];
-    HapPairProbsMAP[d1] = new double **[NumHaps];
-    for(int d2=0; d2<NumHaps; ++d2){
-      HapPairProbs[d1][d2] = alloc2D_d(Populations, Populations);
-      HapPairProbsMAP[d1][d2] = alloc2D_d(Populations, Populations);
-    }
-  }
-
+  HapPairProbs = new double[NumHaps * NumHaps * Populations * Populations];
+  HapPairProbsMAP = new double[NumHaps * NumHaps * Populations * Populations];
 }
 
 //--------------------------------------
