@@ -63,7 +63,7 @@ AdmixOptions::AdmixOptions()
   TextIndicator = 1;//should be bool
   OutputFST = false;
   XOnlyAnalysis = false;
-  isPedFile = 0; //should be bool
+  isPedFile = false; //should be bool
   genotypesSexColumn = 0;
   locusForTestIndicator = false;
   LocusForTest = 0;
@@ -457,12 +457,12 @@ Vector_d AdmixOptions::getInitAlpha(int gamete) const
   return alpha[gamete];
 }
 
-unsigned int AdmixOptions::IsPedFile() const
+bool AdmixOptions::IsPedFile() const
 {
   return isPedFile;
 }
 
-void AdmixOptions::IsPedFile(unsigned int i)
+void AdmixOptions::IsPedFile(bool i)
 {
   isPedFile = i;
 }

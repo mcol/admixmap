@@ -92,8 +92,8 @@ public:
   double getTruncPt() const;  
   int getPopulations() const; 
   void setPopulations(int num);
-  unsigned int IsPedFile() const;
-  void IsPedFile(unsigned int);
+  bool IsPedFile() const;
+  void IsPedFile(bool);
   bool getXOnlyAnalysis() const;  
 
   //Score test file names
@@ -151,7 +151,7 @@ private:
   int TextIndicator;
   bool OutputFST;
   bool XOnlyAnalysis;
-  unsigned int isPedFile;
+  bool isPedFile;
   unsigned int genotypesSexColumn;
   bool locusForTestIndicator;
   int LocusForTest;
