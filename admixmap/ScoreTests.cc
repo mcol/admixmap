@@ -795,7 +795,7 @@ void ScoreTests::OutputAdmixtureScoreTest(int iteration)
 
 void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
 {
-  double Score, CompleteInfo, MissingInfo, ObservedInfo;
+  double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore;
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
       if((* Lociptr)(j)->GetNumberOfLoci() == 1 ){
@@ -810,15 +810,29 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
 	MissingInfo = SumScore2WithinHaplotype[ j ]( l, 0 ) / ( iteration - options->getBurnIn() ) - Score * Score;
 	ObservedInfo = CompleteInfo - MissingInfo;
       }
+      if(CompleteInfo > 0.0) {
+	PercentInfo = 100*ObservedInfo / CompleteInfo;
+	zscore = Score / sqrt( ObservedInfo );
+      }
+      else{
+	PercentInfo = 0.0;
+
+      }
       if(options->IsPedFile())
 	genescorestream << "\"" << (*Lociptr)(j)->GetLabel(l) << "\"" << ",";
       else
 	genescorestream << (*Lociptr)(j)->GetLabel(l) << ",";
-      genescorestream << double2R(Score)        << ",";
-      genescorestream << double2R(CompleteInfo) << ",";
-      genescorestream << double2R(ObservedInfo) << ",";
-      genescorestream << double2R(100*ObservedInfo / CompleteInfo) << ",";
-      genescorestream << double2R(Score / sqrt( ObservedInfo ))    << "," << endl;
+      genescorestream << double2R(Score)        << ","
+		      << double2R(CompleteInfo) << ","
+		      << double2R(ObservedInfo) << ",";
+     if(CompleteInfo > 0.0) {
+       genescorestream << double2R(100*ObservedInfo / CompleteInfo) << ",";
+       genescorestream << double2R(Score / sqrt( ObservedInfo ))    << "," << endl;
+     }
+     else{
+       genescorestream << "NaN" << ","
+		       << "NaN" << ",";
+     }
     }
   }
 }
@@ -870,13 +884,18 @@ void ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstr
       missing = Score2( j , k ) / ( iteration - options->getBurnIn() ) - EU * EU + VU;
       complete =  Info( j , k) / ( iteration - options->getBurnIn() );
       
-      *outputstream << double2R(EU)                                << ",";//score
-      *outputstream << double2R(complete)                          << ",";//complete info
-      *outputstream << double2R(complete - missing)                << ",";//observed info
-      *outputstream << double2R(100*(complete - missing)/complete) << ",";//%observed info
-      *outputstream << double2R(100*(VU/complete))                 << ",";//%missing info attributable to locus ancestry
-      *outputstream << double2R(100*(missing-VU)/complete)         << ",";//%remainder of missing info      
-      *outputstream << double2R(EU / sqrt( complete - missing ))   << "," << endl;
+      *outputstream << double2R(EU)                                << ","//score
+		    << double2R(complete)                          << ","//complete info
+		    << double2R(complete - missing)                << ","//observed info
+		    << double2R(100*(complete - missing)/complete) << ",";//%observed info
+      if(complete > 0.0){
+	*outputstream << double2R(100*(VU/complete))                 << ","//%missing info attributable to locus ancestry
+		      << double2R(100*(missing-VU)/complete)         << ","//%remainder of missing info      
+		      << double2R(EU / sqrt( complete - missing ))   << "," << endl;
+      }
+      else{
+	*outputstream << "NaN,NaN,NaN," << endl; 
+      }
     }
   }
 }
