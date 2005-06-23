@@ -166,9 +166,9 @@ plotAutocorrelations <- function(table.samples, thinning) {
       ## next line generates warning messages
       acfRes <- acf(table.samples[, j], plot=FALSE)
       if(length(acfRes$acf[is.nan(acfRes$acf)]) == 0){
-        plot(thinning*acfRes$lag, acfRes$acf, type="l", ylim = c(0, 1),
+        plot(thinning*acfRes$lag, abs(acfRes$acf), type="l", ylim = c(0, 1),
              main=paste("Autocorrelation plot ", dimnames(table.samples)[[2]][j]),
-             xlab=paste("Iterations"), ylab="Autocorrelation") 
+             xlab=paste("Lag"), ylab="Autocorrelation") 
       }
     }
   }
@@ -418,12 +418,15 @@ plotHWScoreTest <- function(scorefile, k) {
   scoretest <- read.table(paste(resultsdir,scorefile,sep="/"),header=TRUE, row.names="Locus")
   
   #qq plot of scores
-  outputfile <- paste(resultsdir, "QQPlotHWTest.ps", sep="/" )
-  postscript(outputfile)
-  title <- "QQ plot of H-W Test z-scores"
-  point.list <- qqnorm(scoretest[,6], main = title)
-  lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
-  dev.off()  
+  point.list <- scoretest[,6]
+  if(length(point.list[!is.na(point.list)]) > 0){
+    outputfile <- paste(resultsdir, "QQPlotHWTest.ps", sep="/" )
+    postscript(outputfile)
+    title <- "QQ plot of H-W Test z-scores"
+    point.list <- qqnorm(scoretest[,6], main = title)
+    lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
+    dev.off()
+  }
 }
   
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
@@ -472,15 +475,18 @@ plotAncestryScoreTest <- function(scorefile, testname, K, population.labels, thi
               quote=FALSE, row.names=FALSE, sep="\t")
 
   #qq plot of scores
-  outputfile <- paste(resultsdir, "QQPlot", sep="/" )
-  outputfile <- paste(outputfile, testname, sep="")
-  outputfile <- paste(outputfile, ".ps", sep="")
-
-  postscript(outputfile)
-  title <- paste("QQ plot of z-scores,", testname,sep="" )
-  point.list <- qqnorm(scoretest.final2[,8], main = title)
-  lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
-  dev.off()
+  point.list <- scoretest.final2[,8]
+  if(length(point.list[!is.na(point.list)]) > 0){
+    outputfile <- paste(resultsdir, "QQPlot", sep="/" )
+    outputfile <- paste(outputfile, testname, sep="")
+    outputfile <- paste(outputfile, ".ps", sep="")
+    
+    postscript(outputfile)
+    title <- paste("QQ plot of z-scores,", testname,sep="" )
+    point.list <- qqnorm(scoretest.final2[,8], main = title)
+    lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
+    dev.off()
+  }
   
   ## plot information content
   info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
