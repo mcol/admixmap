@@ -35,11 +35,7 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
 
   SampleStates.SetDimensions( size, populations, true );
 
-  Lambda = new double**[size];
-
-  for(int i = 0; i < size ;++i){
-    Lambda[i] = alloc2D_d(populations, populations);
-  }
+  Lambda = new double[size* populations * populations];
 
   CodedStates = new int[size];
   for(int j = 0; j < 2; ++j) f[j] = new double[size];
@@ -124,10 +120,10 @@ void Chromosome::UpdateParameters(Individual* ind, Matrix_d& Admixture, AdmixOpt
     //construct Lambda
     for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
       if( !(ind->IsMissing(locus)) ){
-	TheArray[j]->GetGenotypeProbs(Lambda[j], ind->getPossibleHapPairs(locus), chibindicator, randomAlleleFreqs);
+	TheArray[j]->GetGenotypeProbs(Lambda+j*populations*populations, ind->getPossibleHapPairs(locus), chibindicator, randomAlleleFreqs);
       }
       else{
-	for( int k1 = 0; k1 < populations; k1++ )for(int k2 =0; k2<populations; ++k2) Lambda[j][k1][k2] = 1.0;
+	for( int k = 0; k < populations*populations;k++) Lambda[j*populations*populations + k] = 1.0;
       }
       locus++;
     }

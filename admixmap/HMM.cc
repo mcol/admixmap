@@ -23,38 +23,23 @@ HMM::HMM( int inTransitions, int pops, bool isdiploid )
 
   Transitions = inTransitions;
 
-  alpha = new double**[Transitions];
-  beta =  new double**[Transitions];
-  int d = isdiploid? K:1;  
-  
-  for(int i=0;i < Transitions;++i) {
-    alpha[i] = new double*[K];
-    beta[i]  = new double*[K];
-    for(int j=0;j<K;++j){
-      alpha[i][j]= new double[d];
-      beta[i][j] = new double[d];
-    }
-  }
+  alpha = new double[Transitions*States];
+  beta =  new double[Transitions*States];
+ 
   sumfactor=0.0;
   p = new double[Transitions];
-  LambdaBeta = alloc2D_d(K,d);
+  LambdaBeta = new double[States];
 }
 
 HMM::~HMM()
 {
   //TODO:destroy these properly
   delete[] p;
-  for(int i = 0; i < K; ++i){
-    delete[] LambdaBeta[i];
-  }
-  for(int t = 1; t < Transitions; t++ ){
-    for(int j = 0; j < K; ++j){
-      delete[] StateArrivalProbs[t][j];
-    }
-    delete[] StateArrivalProbs[t];
-  }
+  delete[] LambdaBeta;
+  delete[] alpha;
+  delete[] beta;
   delete[] StateArrivalProbs;
-  free_matrix(ThetaThetaPrime, K);
+  delete[] ThetaThetaPrime;
 }
 
 void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
@@ -68,39 +53,28 @@ void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
   States = isdiploid? K*K : K;//K for haploid, K^2 for diploid
 
   Transitions = inTransitions;
-  //TransitionProbs = new double**[ Transitions - 1];
-  //for(int i=0;i< Transitions - 1; i++){
-  // TransitionProbs[i] = alloc2D_d(States, States);
-  //}
 
-  alpha = new double**[Transitions];
-  beta =  new double**[Transitions];
   int d = isdiploid? K:1;  
+  alpha = new double[Transitions*States];
+  beta =  new double[Transitions*States];
   
-  for(int i=0;i < Transitions;++i) {
-    alpha[i] = alloc2D_d(K,d);
-    beta[i] = alloc2D_d(K,d);
-  }
   sumfactor=0.0;
   p = new double[Transitions];
-  LambdaBeta = alloc2D_d(K,d);
+  LambdaBeta = new double[K*d];
 
-  StateArrivalProbs = new double**[Transitions];
-  for(int t = 1; t < Transitions; t++ ){        
-    StateArrivalProbs[t] = alloc2D_d(K,2);
-  }
-  ThetaThetaPrime = alloc2D_d(K,K);
+  StateArrivalProbs = new double[Transitions * K * 2];
+  ThetaThetaPrime = new double[States];
 }
 
 void HMM::SetStateArrivalProbs(double *f[], const Matrix_d &Theta, int Mcol){
   for(int t = 1; t < Transitions; t++ ){        
     for(int j = 0; j < K; ++j){
-      StateArrivalProbs[t][j][0] = (1.0 - f[0][t]) * Theta(j,0);
-      StateArrivalProbs[t][j][1] = (1.0 - f[1][t]) * Theta(j,Mcol);
+      StateArrivalProbs[t*K*2 + j*2] = (1.0 - f[0][t]) * Theta(j,0);
+      StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[1][t]) * Theta(j,Mcol);
     }
   }
   for(int j0 = 0; j0 < K; ++j0)for(int j1 = 0; j1 < K; ++j1)
-    ThetaThetaPrime[j0][j1] = Theta(j0,0)*Theta(j1, Mcol);
+    ThetaThetaPrime[j0*K + j1] = Theta(j0,0)*Theta(j1, Mcol);
 }
 
 /*
@@ -111,57 +85,49 @@ void HMM::SetStateArrivalProbs(double *f[], const Matrix_d &Theta, int Mcol){
   j = j1, j' = j2, i = i1, i' = i2, 
   theta_j = Admixture(j,0),  theta'_j = Admixture(j,Mcol).
 */
-void HMM::UpdateForwardProbsDiploid(double *f[], double ***lambda)
+void HMM::UpdateForwardProbsDiploid(double *f[], double *lambda)
 {
   sumfactor = 0.0;
 
-   for(int j1 = 0; j1 < K; ++j1)
-    for(int j2 =0; j2 <K; ++j2){
-      //set alpha(0) = StationaryDist * lambda(0) 
-      alpha[0][j1][j2] =  ThetaThetaPrime[j1][j2] *lambda[0][j1][j2];
-    }
+   for(int j = 0; j < States; ++j)
+     //set alpha(0) = StationaryDist * lambda(0) 
+     alpha[j] =  ThetaThetaPrime[j] *lambda[j];
+
 
   for( int t = 1; t < Transitions; t++ ){        
     p[t] = f[0][t] * f[1][t];
     double f2[2] = {f[0][t], f[1][t]};
 
-    RecursionProbs(p[t], f2,StateArrivalProbs[t], alpha[t-1], alpha[t]);
-    for(int j1 = 0; j1 < K; ++j1){
-      for(int j2 = 0; j2 < K; ++j2){
-	alpha[t][j1][j2] *= lambda[t][j1][j2];
-      }
+    RecursionProbs(p[t], f2, StateArrivalProbs + t*K*2, alpha + (t-1)*States, alpha + t*States);
+    for(int j = 0; j < States; ++j){
+      alpha[t*States +j] *= lambda[t*States +j];
     }
   }
 }
 
-void HMM::UpdateBackwardProbsDiploid(double *f[], double ***lambda)
+void HMM::UpdateBackwardProbsDiploid(double *f[], double *lambda)
 {
-  double rec[K][K];
+  double rec[States];
 
-  for(int j1 = 0; j1 < K; ++j1)
-    for(int j2 =0; j2 <K; ++j2){
+  for(int j = 0; j < States; ++j){
       //set beta(T) = 1
-      beta[Transitions - 1][j1][j2] = 1.0;
-      rec[j1][j2] = 1.0 / ThetaThetaPrime[j1][j2];
+      beta[(Transitions - 1)*States + j] = 1.0;
+      rec[j] = 1.0 / ThetaThetaPrime[j];
     }
 
   for( int t = Transitions-2; t >=0; t-- ){
     
     double f2[2] = {f[0][t+1], f[1][t+1]};
     
-    for(int j1 = 0; j1 < K; ++j1){
-	for(int j2 =0; j2 <K; ++j2){
-	  LambdaBeta[j1][j2] = lambda[t+1][j1][j2] * beta[t+1][j1][j2] * ThetaThetaPrime[j1][j2];
-	}
+    for(int j = 0; j < States; ++j){
+      LambdaBeta[j] = lambda[(t+1)*K*K + j] * beta[(t+1)*States + j] * ThetaThetaPrime[j];
     }
     
-    RecursionProbs(p[t+1], f2,StateArrivalProbs[t+1], LambdaBeta, beta[t]);
-    for(int j1 = 0; j1 < K; ++j1){
-      for(int j2 =0; j2 <K; ++j2){
-	beta[t][j1][j2] *= rec[j1][j2];
-      }
+    RecursionProbs(p[t+1], f2, StateArrivalProbs+ (t+1)*K*2, LambdaBeta, beta+ t*States);
+    for(int j = 0; j < States; ++j){
+      beta[t*States + j] *= rec[j];
     }
-  }
+   }
 
 }
 
@@ -171,33 +137,33 @@ void HMM::UpdateBackwardProbsDiploid(double *f[], double ***lambda)
   haploid case only
   Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
 */
-void HMM::UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double ***lambda, bool CalculateBeta){
+void HMM::UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double *lambda, bool CalculateBeta){
 
   double Sum;
 
   for(int j=0; j<States;++j){
-    alpha[0][j][0] = Admixture(j,0) * lambda[0][j][0];
-    beta[Transitions-1][j][0] = 1.0;
+    alpha[j] = Admixture(j,0) * lambda[j];
+    beta[(Transitions-1)*States + j] = 1.0;
   }
 
   for( int t = 1; t < Transitions; t++ ){
     Sum = 0.0;
     for(int j=0;j<States;++j){
-      Sum += alpha[t-1][j][0];
+      Sum += alpha[(t-1)*States + j];
     }
     for(int j=0;j<0;++j){
-      alpha[t][j][0] = f[0][t] + (1.0 - f[0][t]) * Admixture(0,j) * Sum;
-      alpha[t][j][0] *= lambda[t+1][j][0];
+      alpha[t*States + j] = f[0][t] + (1.0 - f[0][t]) * Admixture(0,j) * Sum;
+      alpha[t*States + j] *= lambda[(t+1)*States + j];
     }
 
     if(CalculateBeta){
       for( int t = Transitions-2; t >=0; t-- ){
 	Sum = 0.0;
 	for(int j=0;j<States;++j){
-	  Sum += Admixture(0,j)*lambda[t+1][j][0]*beta[t+1][j][0];
+	  Sum += Admixture(0,j)*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
 	}
-	for(int j=0;j<0;++j){
-	  beta[t][j][0] = f[t+1][0]*lambda[t+1][j][0]*beta[t+1][j][0] + (1.0 - f[0][t+1])*Sum;
+	for(int j=0;j<States;++j){
+	  beta[t*States + j] = f[t+1][0]*lambda[(t+1)*States + j]*beta[(t+1)*States + j] + (1.0 - f[0][t+1])*Sum;
 	}
       }
       
@@ -218,7 +184,7 @@ void HMM::GetStateProbs( double * probs, int t)
 
   for(int i = 0; i < K; ++i)
    for( int j = 0; j < K; j++ ){
-     probs[State++] = alpha[t][i][j] * beta[t][i][j];
+     probs[State++] = alpha[t*States + i*K +j] * beta[t*States + i*K +j];
      sum += probs[State-1];
    }
 
@@ -232,11 +198,10 @@ void HMM::Get3WayStateProbs( int t, double AncestryProbs[][3]){
   int State = 0;
   double probs[States];
 
-  for(int i = 0; i < K; ++i)
-   for( int j = 0; j < K; j++ ){
-     probs[State++] = alpha[t][i][j] * beta[t][i][j];
-     sum += probs[State-1];
-   }
+  for( int j = 0; j < States; j++ ){
+    probs[State++] = alpha[t*States + j] * beta[t*States + j];
+    sum += probs[State-1];
+  }
 
    for( int j = 0; j < States; j++ ){
      probs[j] /= sum;
@@ -260,9 +225,8 @@ void HMM::Get3WayStateProbs( int t, double AncestryProbs[][3]){
 double HMM::getLikelihood()
 {
    double sum = 0;
-  for(int i = 0; i < K; ++i)
-   for( int j = 0; j < K; j++ ){
-     sum += alpha[Transitions - 1][i][j];
+   for( int j = 0; j < States; j++ ){
+     sum += alpha[(Transitions - 1)*States + j];
    }
    return( sumfactor+log( sum ) );
 }
@@ -281,7 +245,7 @@ void HMM::Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdip
 
   if(isdiploid){
     int State = 0;
-    for( int i1 = 0; i1 < K; i1++ )for(int i2 = 0; i2<K; ++i2)V[State++] = alpha[Transitions - 1][i1][i2];
+    for( int j = 0; j < States; j++ )V[State++] = alpha[(Transitions - 1)*States + j];
     C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
     (*SStates)(0,Transitions-1) = (int)(C[Transitions-1]/K);
     (*SStates)(1,Transitions-1) = (C[Transitions-1] % K);
@@ -293,8 +257,8 @@ void HMM::Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdip
       State = 0;
       for(int i1 = 0; i1 < K; i1++)for(int i2=0;i2<K;++i2){
 	V[State] = 
-	  ( (i1==j1)*f[0][t+1] + StateArrivalProbs[t+1][j1][0] ) * ( (i2==j2)*f[1][t+1] + StateArrivalProbs[t+1][j2][1] );
-	V[State] *= alpha[t][i1][i2];
+	  ( (i1==j1)*f[0][t+1] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * ( (i2==j2)*f[1][t+1] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
+	V[State] *= alpha[t*States + i1*K + i2];
 	State++;
       }
       C[ t ] = SampleFromDiscrete3( V, States );
@@ -303,12 +267,12 @@ void HMM::Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdip
     }
    }
   else{//haploid
-    for( int j = 0; j < States; j++ )V[j] = alpha[Transitions - 1][j][0];
+    for( int j = 0; j < States; j++ )V[j] = alpha[(Transitions - 1)*States + j ];
     C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
     (*SStates)(0,Transitions-1) = C[Transitions-1];
     for( int t =  Transitions - 2; t >= 0; t-- ){
       for(int j = 0; j < States; j++)V[j] = (j == C[t+1])*f[0][t+1]+Admixture(C[t+1],0)*(1.0 - f[0][t]);
-      for( int j = 0; j < States; j++ )	V[j] *= alpha[t][j][0];
+      for( int j = 0; j < States; j++ )	V[j] *= alpha[t*States + j];
       C[ t ] = SampleFromDiscrete3( V, States );
       (*SStates)(0,t) = C[t];
     }
@@ -320,7 +284,7 @@ void HMM::Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdip
 // for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
 // updates oldProbs (scaled to sum to 1), newProbs and sumfactor if forward = true (for alphas)
 void HMM::RecursionProbs(const double ff, const double f[2], 
-			 double **stateArrivalProbs, double **oldProbs, double **newProbs) {
+			 double *stateArrivalProbs, double *oldProbs, double *newProbs) {
   double Sum = 0.0, scaleFactor = 1.0;
   double *rowProb = new double[K];
   double *colProb = new double[K];
@@ -333,10 +297,8 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   cov = alloc2D_d(K, K);
 
   // scale array oldProbs so that elements sum to 1, and accumulate row and col sums
-  for( int j0 = 0; j0 <  K; ++j0 ) {
-    for( int j1 =0; j1 < K; ++j1 ) { 
-      Sum += oldProbs[j0][j1];
-    }
+  for( int j = 0; j <  States; ++j ) {
+    Sum += oldProbs[j];
   }
 
   scaleFactor = 1.0 / Sum;
@@ -347,21 +309,21 @@ void HMM::RecursionProbs(const double ff, const double f[2],
     rowProb[j0] = 0.0;
     colProb[j0] = 0.0;
     for( int j1 =0; j1 < K; ++j1 ) {
-      rowProb[j0] += oldProbs[j0][j1] * scaleFactor;
-      colProb[j0] += oldProbs[j1][j0] * scaleFactor;
+      rowProb[j0] += oldProbs[j0*K + j1] * scaleFactor;
+      colProb[j0] += oldProbs[j1*K + j0] * scaleFactor;
       //oldProbs[j0][j1] *= scaleFactor; 
     }
   }
   // calculate expectations of indicator variables for each ancestry state on each gamete
   for( int j = 0; j <  K; ++j ) {
-    Expectation0[j] = f[0]*rowProb[j] + stateArrivalProbs[j][0];
-    Expectation1[j] = f[1]*colProb[j] + stateArrivalProbs[j][1];
+    Expectation0[j] = f[0]*rowProb[j] + stateArrivalProbs[j*2];
+    Expectation1[j] = f[1]*colProb[j] + stateArrivalProbs[j*2 + 1];
     
   }
   // calculate covariance of ancestry states as ff * deviation from product of row and col probs
   for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
     for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-      cov[j0][j1] = ff * ( oldProbs[j0][j1]*scaleFactor - rowProb[j0] * colProb[j1] );
+      cov[j0][j1] = ff * ( oldProbs[j0*K + j1]*scaleFactor - rowProb[j0] * colProb[j1] );
     }
   }
 
@@ -391,12 +353,12 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   for(int j0 = 0; j0 < K; ++j0) {
     for(int j1 =0; j1 < K; ++j1) {
       
-      newProbs[j0][j1] = cov[j0][j1] + 
-	// newProbs[j0][j1] = ff * (oldProbs[j0][j1]*scaleFactor - rowProb[j0] * colProb[j1]) + 
+      newProbs[j0*K + j1] = cov[j0][j1] + 
+	// newProbs[j0][j1] = ff * (oldProbs[j0*K + j1]*scaleFactor - rowProb[j0] * colProb[j1]) + 
 	Expectation0[j0] * Expectation1[j1];
-      //	 ( f[0]*rowProb[j0] + stateArrivalProbs[j0][0] ) * ( f[1]*colProb[j1] + stateArrivalProbs[j1][1] );
+      //	 ( f[0]*rowProb[j0] + stateArrivalProbs[j0*2] ) * ( f[1]*colProb[j1] + stateArrivalProbs[j1*2 + 1] );
       //undo scaling 
-      newProbs[j0][j1] *= Sum;
+      newProbs[j0*K + j1] *= Sum;
     }
   }
   delete[] rowProb;
@@ -426,7 +388,7 @@ void HMM::SampleJumpIndicators(const Matrix_i &LocusAncestry, double *f[], const
     for( unsigned int g = 0; g < gametes; g++ ){
       if( LocusAncestry(g,jj-1) == LocusAncestry(g,jj) ){
 
-	Prob = StateArrivalProbs[jj][ LocusAncestry(g,jj)][g] / (StateArrivalProbs[jj][ LocusAncestry(g,jj)][g] + f[g][jj] );
+	Prob = StateArrivalProbs[jj*K*2 +LocusAncestry(g,jj)*2 + g] / (StateArrivalProbs[jj*K*2 + LocusAncestry(g,jj)*2 +g] + f[g][jj] );
 	if( Prob > myrand() ){
 	  xi[g][jj] = true;
 	  sumxi[locus]++;

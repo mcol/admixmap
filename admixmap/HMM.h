@@ -33,7 +33,6 @@ public:
   void SetDimensions( int inTransitions, int pops, bool isdiploid );
 
   void SetStateArrivalProbs(double *f[], const Matrix_d &Theta, int Mcol);
-  double ***getSAP();
   /* samples hidden states */
   void Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdiploid);
   void GetStateProbs( double * probs, int t);
@@ -41,14 +40,14 @@ public:
 
   double getLikelihood();
 
-  void UpdateForwardProbsDiploid(double *f[], double ***lambda);
+  void UpdateForwardProbsDiploid(double *f[], double *lambda);
 
-  void UpdateBackwardProbsDiploid(double *f[], double ***lambda);
+  void UpdateBackwardProbsDiploid(double *f[], double *lambda);
 
-  void UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double ***lambda, bool CalculateBeta);
+  void UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double *lambda, bool CalculateBeta);
 
-  void RecursionProbs(const double ff, const double f[2], double **stateArrivalProbs,
-		      double **oldProbs, double **newProbs); 
+  void RecursionProbs(const double ff, const double f[2], double *stateArrivalProbs,
+		      double *oldProbs, double *newProbs); 
 
   void SampleJumpIndicators(const Matrix_i &LocusAncestry, double *f[], const unsigned int gametes, 
 			    const Vector &Distances, const int startLocus,  
@@ -67,10 +66,10 @@ private:
   
   //forward and backward probabilities
   //L x K x K arrays
-  double ***alpha, ***beta,**LambdaBeta;
+  double *alpha, *beta,*LambdaBeta;
   double *p;
-  double ***StateArrivalProbs;
-  double **ThetaThetaPrime;
+  double *StateArrivalProbs;
+  double *ThetaThetaPrime;
 
 };
 

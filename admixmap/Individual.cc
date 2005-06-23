@@ -1064,12 +1064,12 @@ double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, M
 double Individual::getLogLikelihoodOnePop(bool randomAlleleFreqs )
 {
    double Likelihood = 0.0;
-   double **Prob;
-   Prob = alloc2D_d(1,1);//one pop so 1x1 array
+   double *Prob;
+   Prob = new double[1];//one pop so 1x1 array
    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
      if(!IsMissing(j)){
        (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true, randomAlleleFreqs );
-       Likelihood += log( Prob[0][0] );
+       Likelihood += log( Prob[0] );
      }
    }
    return Likelihood;
