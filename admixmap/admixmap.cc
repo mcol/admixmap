@@ -287,7 +287,7 @@ void submain(AdmixOptions* options){
   //     delete chrm[i];
   //   }
 
-  A.CloseOutputFile(options->getTotalSamples() - options->getBurnIn(), PopulationLabels);  
+  A.CloseOutputFile((options->getTotalSamples() - options->getBurnIn())/options->getSampleEvery(), PopulationLabels);  
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
   for(unsigned int i=0; i < Loci.GetNumberOfCompositeLoci(); i++){
