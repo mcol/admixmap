@@ -51,10 +51,10 @@ public:
 			std::vector< double > _rho,  bool chibindicator, bool diploid, bool randomAlleleFreqs );
 
 
-  void SampleLocusAncestry(Matrix_i *OrderedStates, double *Admixture, bool isdiploid);
+  void SampleLocusAncestry(int *OrderedStates, double *Admixture, bool isdiploid);
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
-  void SampleJumpIndicators(const Matrix_i &LocusAncestry, const unsigned int gametes, 
+  void SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
 			    int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator);
 private:

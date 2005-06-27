@@ -116,17 +116,19 @@ void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptio
 
   int locus = _startLocus;
   bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
-  if(diploid){
-    //construct Lambda
-    for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
-      if( !(ind->IsMissing(locus)) ){
-	TheArray[j]->GetGenotypeProbs(Lambda+j*populations*populations, ind->getPossibleHapPairs(locus), chibindicator, randomAlleleFreqs);
+  
+  //construct Lambda
+  for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
+    if( !(ind->IsMissing(locus)) ){
+      TheArray[j]->GetGenotypeProbs(Lambda+j*populations*populations, ind->getPossibleHapPairs(locus), chibindicator, randomAlleleFreqs);
       }
-      else{
-	for( int k = 0; k < populations*populations;k++) Lambda[j*populations*populations + k] = 1.0;
-      }
-      locus++;
+    else{
+      for( int k = 0; k < populations*populations;k++) Lambda[j*populations*populations + k] = 1.0;
     }
+    locus++;
+  }
+
+  if(diploid){
     //construct StateArrivalProbs
     SampleStates.SetStateArrivalProbs(f, Admixture, options->isRandomMatingModel());
  
@@ -138,24 +140,13 @@ void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptio
  
   }
 
-  //disabled until Haploid version of GetGenotypeProbs is finished
-//   else{//haploid
-//     for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
-//       if( !(ind->IsMissing(locus)) ){
-// 	//A->GetGenotypeProbs(Lambda[j], locus, ind->getGenotype(locus), ind->getPossibleHapPairs(locus), false, chibindicator );
-// 	//need to replace this by a call to haplotype version of GetGenotypeProbs in CompositeLocus, when this is written
-//       }
-//       else{
-// 	for( int k1 = 0; k1 < populations; k1++ )for(int k2 = 0; k2 < populations; ++k2) Lambda[j][k1][k2] = 1.0;
-//       }
-//     }
-//     //Update Forward/Backward Probs in HMM
-//     SampleStates.UpdateProbsHaploid(f, Admixture, Lambda, test);
-//   }
+  else{//haploid
+    SampleStates.UpdateProbsHaploid(f, Admixture, Lambda, test);
+  }
 
 }
 
-void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, double *Admixture, bool isdiploid){
+void Chromosome::SampleLocusAncestry(int *OrderedStates, double *Admixture, bool isdiploid){
 
   SampleStates.Sample(OrderedStates, Admixture, f, isdiploid);
 }
@@ -180,7 +171,7 @@ double Chromosome::getLogLikelihood()
 
 //samples jump indicators xi for this chromosome, 
 //updates sumxi and Sumrho0 and SumLocusAncestry
-void Chromosome::SampleJumpIndicators(const Matrix_i &LocusAncestry, const unsigned int gametes, 
+void Chromosome::SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
 				      int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
 				      unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
 
