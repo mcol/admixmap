@@ -58,7 +58,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
 
   _child = new Individual*[NumInd];
-  Individual::SetStaticMembers(Loci.GetNumberOfChromosomes(), &Loci);
+  Individual::SetStaticMembers(&Loci, options->getPopulations());
     // Fill separate individuals.
   for (unsigned int i = 0; i < NumInd; ++i) {
     _child[i] = new Individual(i+1,options, Data, Loci, chrm);

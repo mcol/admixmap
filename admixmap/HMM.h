@@ -34,7 +34,7 @@ public:
 
   void SetStateArrivalProbs(double *f[], double *Theta, int Mcol);
   /* samples hidden states */
-  void Sample(Matrix_i *SStates, double *Admixture, double *f[], bool isdiploid);
+  void Sample(int *SStates, double *Admixture, double *f[], bool isdiploid);
   void GetStateProbs( double * probs, int t);
   void Get3WayStateProbs( int j, double AncestryProbs[][3]);
 
@@ -49,7 +49,7 @@ public:
   void RecursionProbs(const double ff, const double f[2], double *stateArrivalProbs,
 		      double *oldProbs, double *newProbs); 
 
-  void SampleJumpIndicators(const Matrix_i &LocusAncestry, double *f[], const unsigned int gametes, 
+  void SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
 			    const Vector &Distances, const int startLocus,  
 			    int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator) ;

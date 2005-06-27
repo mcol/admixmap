@@ -40,7 +40,7 @@ public:
 
   ~Individual();
 
-  static void SetStaticMembers(int nchr, Genome *pLoci);
+  static void SetStaticMembers(Genome *pLoci, int pops);
 
   static void ResetStaticSums();
 
@@ -122,6 +122,7 @@ private:
   static double Sumrho0;//? sum of distances between loci where there are no arrivals, summed over individuals
 
   static unsigned int numChromosomes;
+  static int Populations;
   static Genome *Loci;
   double *Theta, *ThetaX;//admixture proportions
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
@@ -129,8 +130,10 @@ private:
   Matrix_d AdmixtureHat;
   Matrix_d XAdmixtureHat;
 
-  Matrix_i *LocusAncestry;
+  //Matrix_i *LocusAncestry;
   Matrix_i SumLocusAncestry, SumLocusAncestry_X;
+
+  int **LocusAncestry;//, *SumLocusAncestry, *SumLocusAncestry_X;
 
   std::vector< double > _rho;
   std::vector< double > _rho_X;

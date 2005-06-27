@@ -237,7 +237,7 @@ double HMM::getLikelihood()
   SStates          - an int array to store the sampled states
   isdiploid  - indicator for diploidy
 */
-void HMM::Sample(Matrix_i *SStates, double *Admixture, double *f[], bool isdiploid)
+void HMM::Sample(int *SStates, double *Admixture, double *f[], bool isdiploid)
 {
   int j1,j2;
   double V[States];
@@ -247,8 +247,8 @@ void HMM::Sample(Matrix_i *SStates, double *Admixture, double *f[], bool isdiplo
     int State = 0;
     for( int j = 0; j < States; j++ )V[State++] = alpha[(Transitions - 1)*States + j];
     C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
-    (*SStates)(0,Transitions-1) = (int)(C[Transitions-1]/K);
-    (*SStates)(1,Transitions-1) = (C[Transitions-1] % K);
+    SStates[Transitions-1] = (int)(C[Transitions-1]/K);
+    SStates[Transitions - 1 + Transitions] = (C[Transitions-1] % K);
     
     for( int t =  Transitions - 2; t >= 0; t-- ){
       j1 = (int) (C[t+1]/K);//j
@@ -262,19 +262,19 @@ void HMM::Sample(Matrix_i *SStates, double *Admixture, double *f[], bool isdiplo
 	State++;
       }
       C[ t ] = SampleFromDiscrete3( V, States );
-      (*SStates)(0,t) = (int)(C[t]/K);
-      (*SStates)(1,t) = (C[t] % K);
+      SStates[t] = (int)(C[t]/K);
+      SStates[t + Transitions] = (C[t] % K);
     }
    }
   else{//haploid
     for( int j = 0; j < States; j++ )V[j] = alpha[(Transitions - 1)*States + j ];
     C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
-    (*SStates)(0,Transitions-1) = C[Transitions-1];
+    SStates[Transitions-1] = C[Transitions-1];
     for( int t =  Transitions - 2; t >= 0; t-- ){
       for(int j = 0; j < States; j++)V[j] = (j == C[t+1])*f[0][t+1]+Admixture[C[t+1]]*(1.0 - f[0][t]);
       for( int j = 0; j < States; j++ )	V[j] *= alpha[t*States + j];
       C[ t ] = SampleFromDiscrete3( V, States );
-      (*SStates)(0,t) = C[t];
+      SStates[t] = C[t];
     }
   }
 }
@@ -372,7 +372,7 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   
 }
 
-void HMM::SampleJumpIndicators(const Matrix_i &LocusAncestry, double *f[], const unsigned int gametes, 
+void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
 			       const Vector &Distances, const int startLocus, 
 			       int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
 			       unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
@@ -386,9 +386,10 @@ void HMM::SampleJumpIndicators(const Matrix_i &LocusAncestry, double *f[], const
     locus = startLocus + jj;
     xi[0][jj] = xi[1][jj] = true;    
     for( unsigned int g = 0; g < gametes; g++ ){
-      if( LocusAncestry(g,jj-1) == LocusAncestry(g,jj) ){
+      if( LocusAncestry[g*Transitions + jj-1] == LocusAncestry[jj + g*Transitions] ){
 
-	Prob = StateArrivalProbs[jj*K*2 +LocusAncestry(g,jj)*2 + g] / (StateArrivalProbs[jj*K*2 + LocusAncestry(g,jj)*2 +g] + f[g][jj] );
+	Prob = StateArrivalProbs[jj*K*2 +LocusAncestry[jj + g*Transitions]*2 + g] / 
+	  (StateArrivalProbs[jj*K*2 + LocusAncestry[jj + g*Transitions]*2 +g] + f[g][jj] );
 	if( Prob > myrand() ){
 	  xi[g][jj] = true;
 	  sumxi[locus]++;
@@ -404,9 +405,9 @@ void HMM::SampleJumpIndicators(const Matrix_i &LocusAncestry, double *f[], const
       if( xi[g][jj] ){
 	// sum ancestry states over loci where jump indicator is 1
 	if( !isX )
-	  (*SumLocusAncestry)( LocusAncestry( g, jj ), g )++;
+	  (*SumLocusAncestry)( LocusAncestry[jj + g*Transitions], g )++;
 	else
-	  (*SumLocusAncestry_X)( LocusAncestry( g, jj ), g )++;
+	  (*SumLocusAncestry_X)( LocusAncestry[jj + g*Transitions], g )++;
 	//sample number of arrivals where jump indicator is 1
 	if(RhoIndicator){
 	  double u = myrand();
@@ -426,9 +427,9 @@ void HMM::SampleJumpIndicators(const Matrix_i &LocusAncestry, double *f[], const
     for( unsigned int g = 0; g < gametes; g++ ){
       if( xi[g][0] ){
 	if( !isX )
-	  (*SumLocusAncestry)( LocusAncestry( g, 0 ), g )++;
+	  (*SumLocusAncestry)( LocusAncestry[g*Transitions], g )++;
 	else
-	  (*SumLocusAncestry_X)( LocusAncestry( g, 0 ), g )++;
+	  (*SumLocusAncestry_X)( LocusAncestry[g*Transitions], g )++;
       }
     }
 }
