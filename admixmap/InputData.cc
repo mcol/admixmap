@@ -162,7 +162,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumIndividuals = getNumberOfIndividuals();
   IsPedFile = determineIfPedFile( options );
-  CheckGeneticData(options->getgenotypesSexColumn());
+  CheckGeneticData(options);
   checkLociNames(options);
  if ( strlen( options->getTargetFilename() ) != 0 )
    CheckOutcomeVarFile((bool)(options->getAnalysisTypeIndicator() != 5));
@@ -193,16 +193,31 @@ bool InputData::determineIfPedFile(AdmixOptions *options) {
 }
 
 //checks number of loci in genotypes file is the same as in locusfile
-void InputData::CheckGeneticData(int genotypesSexColumn){
+void InputData::CheckGeneticData(AdmixOptions *options){
+
+  const size_t numLoci = geneInfoData_.size() - 1; //number of loci in locus file
+  int sexcol;
+  // Determine if "Sex" column present in genotypes file.
+  if (numLoci == geneticData_[0].size() - 1) {
+    sexcol = 0;
+  } else if (numLoci == geneticData_[0].size() - 2) {
+    sexcol  = 1;
+  } else {
+    cerr << "Error. Number of loci in genotypes file does not match number in locus file." << endl;
+    exit(2);
+  }
+  options->setgenotypesSexColumn(sexcol);
+
+
   for(int i = 1; i <= NumIndividuals; ++i){
     //should use logmsg
     if (IsPedFile) {
-      if ((int)geneticData_[i].size()-1 != 2*NumSimpleLoci + genotypesSexColumn) {
+      if ((int)geneticData_[i].size()-1 != 2*NumSimpleLoci + sexcol) {
 	cout << "Error in formatting of line " <<i+1<<" of genotypesfile"<< endl;
 	exit(0);
       }
     } else {
-      if ((int)geneticData_[i].size()-1 != NumSimpleLoci + genotypesSexColumn) {
+      if ((int)geneticData_[i].size()-1 != NumSimpleLoci + sexcol) {
 	cout << "Error in formatting of line "<<i+1<<" of genotypesfile" << endl;
 	exit(0);
       }
@@ -225,17 +240,6 @@ void InputData::checkLociNames(AdmixOptions *options){
   }
 
   const size_t numLoci = geneInfoData_.size() - 1;
-
-//this should be in InputData
-    // Determine if "Sex" column present in genotypes file.
-    if (numLoci == geneticData_[0].size() - 1) {
-        options->setgenotypesSexColumn(0);
-    } else if (numLoci == geneticData_[0].size() - 2) {
-        options->setgenotypesSexColumn(1);
-    } else {
-        cerr << "Error. Number of loci in genotypes file does not match number in locus file." << endl;
-        exit(2);
-    }
 
     // Compare loci names in locus file and genotypes file.
     for (size_t i = 1; i <= numLoci; ++i) {

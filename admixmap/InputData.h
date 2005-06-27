@@ -130,7 +130,7 @@ private:
   void operator=(const InputData&);
 
   void readFile(const char *fname, Matrix_s& data);
-  void CheckGeneticData(int genotypesSexColumn);
+  void CheckGeneticData(AdmixOptions *options);
   void checkLociNames(AdmixOptions *options);
   void CheckOutcomeVarFile(bool);
   void CheckCovariatesFile();
