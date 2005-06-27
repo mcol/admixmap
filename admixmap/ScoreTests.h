@@ -96,7 +96,7 @@ private:
 
   //void UpdateScoreForAncestryOld( Individual* ind, double Y, int regressonindicator, double EY, double lambda0);
 
-  void UpdateScoreForAdmixtureAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink);
+  void UpdateScoreForAdmixtureAssociation( double *Theta, double YMinusEY,double phi, double DInvLink);
 
   static std::string double2R( double );
 

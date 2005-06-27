@@ -62,7 +62,7 @@ public:
   
   void OutputIndAdmixture();
 
-  void Output(std::ofstream *);
+  void Output(std::ofstream *, int);
 
   void OutputErgodicAvg(int samples, chib *MargLikelihood, std::ofstream *avgstream);
 
@@ -72,8 +72,8 @@ public:
 
   Individual* getIndividual(int);
 
-  void setAdmixtureProps(Matrix_d);
-  void setAdmixturePropsX(Matrix_d);
+  void setAdmixtureProps(double *, size_t);
+  void setAdmixturePropsX(double *, size_t);
 
   int *GetSumXi();
   int GetSumXi(int j);
@@ -116,8 +116,8 @@ private:
   //MLEs of Individual admixture and sumintensities
   //used to calculate marginal likelihood
   vector< vector<double> > rhohat, rhohatX;
-  Matrix_d *thetahat;
-  Matrix_d *thetahatX;
+  double **thetahat;
+  double **thetahatX;
   vector<double> MaxLogLikelihood;
 
   //Regression Objects

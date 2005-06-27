@@ -491,7 +491,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
       Matrix_d cov_x_coord(dim,1);
       cov_x_coord( dim - 1, 0 ) = 1;
       for( int k = 0; k < options->getPopulations() - 1; k++ ){
-	cov_x_coord( k + dim - options->getPopulations(), 0 ) = ind->getAdmixtureProps()( k, 0 );
+	cov_x_coord( k + dim - options->getPopulations(), 0 ) = ind->getAdmixtureProps()[k];
       }
      
       // Set x co-ordinate for regression parameter under test
@@ -578,15 +578,15 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 // }
 
 
-void ScoreTests::UpdateScoreForAdmixtureAssociation( Matrix_d Theta, double YMinusEY,double phi, double DInvLink)
+void ScoreTests::UpdateScoreForAdmixtureAssociation( double  *Theta, double YMinusEY,double phi, double DInvLink)
 {
   //Updates score and info for score test for admixture association
   double x;
   for( int k = 0; k < options->getPopulations(); k++ ){
     if( options->isRandomMatingModel() )
-      x = 0.5 * ( Theta( k, 0 ) + Theta( k, 1 ) );
+      x = 0.5 * ( Theta[k] + Theta[ options->getPopulations() + k ] );
     else
-      x = Theta( k, 0 );
+      x = Theta[k];
     AdmixtureScore( k, 0 ) += phi * x * YMinusEY;
     AdmixtureInfo( k, 0 ) += phi * x * x *DInvLink;
   }
@@ -604,7 +604,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int 
 
   x( options->getPopulations() ) = 1;
   for( int k = 0; k < options->getPopulations() - 1; k++ )
-    x( k + 1 ) = ind->getAdmixtureProps()( k, 0 );
+    x( k + 1 ) = ind->getAdmixtureProps()[k];
 
   for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
     x(0) = AlleleCounts( l );

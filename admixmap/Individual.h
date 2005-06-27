@@ -48,13 +48,13 @@ public:
 
   int getSex();
 
-  Matrix_d& getAdmixtureProps();
+  double *getAdmixtureProps();
 
-  void setAdmixtureProps(Matrix_d);
+  void setAdmixtureProps(double *, size_t);
   
-  Matrix_d& getAdmixturePropsX();
+  // Matrix_d& getAdmixturePropsX();
 
-  void setAdmixturePropsX(Matrix_d);
+  void setAdmixturePropsX(double *, size_t);
   
   unsigned short **getGenotype(unsigned int locus);
 
@@ -83,8 +83,8 @@ public:
 
   int GetLocusAncestry(int, int, int);
    
-  double getLogLikelihood(AdmixOptions*, Chromosome **, Matrix_d, std::vector<double>,Matrix_d, std::vector<double>, bool);
-  double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, Matrix_d, std::vector<double>, bool randomAlleleFreqs);
+  double getLogLikelihoodAtEst(AdmixOptions*, Chromosome **, double *, std::vector<double>, double *, std::vector<double>, bool);
+  double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, double *, std::vector<double>, bool randomAlleleFreqs);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
   void SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
@@ -99,7 +99,7 @@ public:
 
   void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
 		      AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha,  
-		      vector<bool> _admixed, double rhoalpha, double rhobeta, Matrix_d &thetahat, Matrix_d &thetahatX,
+		      vector<bool> _admixed, double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
 		      vector<double> &rhohat, vector<double> &rhohatX,
 		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs *A);
 
@@ -123,8 +123,8 @@ private:
 
   static unsigned int numChromosomes;
   static Genome *Loci;
-  Matrix_d Theta, ThetaX;//admixture proportions
-  Matrix_d ThetaProposal, ThetaXProposal;// proposal admixture proportions
+  double *Theta, *ThetaX;//admixture proportions
+  double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
 
   Matrix_d AdmixtureHat;
   Matrix_d XAdmixtureHat;
@@ -136,9 +136,6 @@ private:
   std::vector< double > _rho_X;
   std::vector< double > _rhoHat;
   std::vector< double > _rhoHat_X;
-  // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
-  // required to calculate transition matrices 
-  double *f[2]; 
 
   double LogPosterior;
   short unsigned int sex; // 0 = missing, 1 = male, 2 = female 
@@ -186,7 +183,7 @@ private:
 						 bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta, double L, 
 			     double L_X, unsigned int SumN[], unsigned int SumN_X[]);
 
-  void InitializeChib(Matrix_d theta, Matrix_d thetaX, vector<double> rho, vector<double> rhoX, 
+  void InitializeChib(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 
 		 AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
 		 vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr);
 

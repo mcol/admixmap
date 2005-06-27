@@ -32,9 +32,9 @@ public:
   ~HMM();
   void SetDimensions( int inTransitions, int pops, bool isdiploid );
 
-  void SetStateArrivalProbs(double *f[], const Matrix_d &Theta, int Mcol);
+  void SetStateArrivalProbs(double *f[], double *Theta, int Mcol);
   /* samples hidden states */
-  void Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdiploid);
+  void Sample(Matrix_i *SStates, double *Admixture, double *f[], bool isdiploid);
   void GetStateProbs( double * probs, int t);
   void Get3WayStateProbs( int j, double AncestryProbs[][3]);
 
@@ -44,7 +44,7 @@ public:
 
   void UpdateBackwardProbsDiploid(double *f[], double *lambda);
 
-  void UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double *lambda, bool CalculateBeta);
+  void UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, bool CalculateBeta);
 
   void RecursionProbs(const double ff, const double f[2], double *stateArrivalProbs,
 		      double *oldProbs, double *newProbs); 

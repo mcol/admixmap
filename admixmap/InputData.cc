@@ -253,7 +253,7 @@ void InputData::checkLociNames(AdmixOptions *options){
 void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates){
   string freqtype = "x";
   bool infile = false;
-  int nrows, expectednrows;
+  int nrows=0, expectednrows=0;
 
   //fixed allele freqs
   if( strlen( options->getAlleleFreqFilename() ) ){

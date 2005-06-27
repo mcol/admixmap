@@ -66,15 +66,15 @@ void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
   ThetaThetaPrime = new double[States];
 }
 
-void HMM::SetStateArrivalProbs(double *f[], const Matrix_d &Theta, int Mcol){
+void HMM::SetStateArrivalProbs(double *f[], double *Theta, int Mcol){
   for(int t = 1; t < Transitions; t++ ){        
     for(int j = 0; j < K; ++j){
-      StateArrivalProbs[t*K*2 + j*2] = (1.0 - f[0][t]) * Theta(j,0);
-      StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[1][t]) * Theta(j,Mcol);
+      StateArrivalProbs[t*K*2 + j*2] = (1.0 - f[0][t]) * Theta[j];
+      StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[1][t]) * Theta[K*Mcol +j ];
     }
   }
   for(int j0 = 0; j0 < K; ++j0)for(int j1 = 0; j1 < K; ++j1)
-    ThetaThetaPrime[j0*K + j1] = Theta(j0,0)*Theta(j1, Mcol);
+    ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
 }
 
 /*
@@ -137,12 +137,12 @@ void HMM::UpdateBackwardProbsDiploid(double *f[], double *lambda)
   haploid case only
   Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
 */
-void HMM::UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double *lambda, bool CalculateBeta){
+void HMM::UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, bool CalculateBeta){
 
   double Sum;
 
   for(int j=0; j<States;++j){
-    alpha[j] = Admixture(j,0) * lambda[j];
+    alpha[j] = Admixture[j] * lambda[j];
     beta[(Transitions-1)*States + j] = 1.0;
   }
 
@@ -152,7 +152,7 @@ void HMM::UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double *lambda, b
       Sum += alpha[(t-1)*States + j];
     }
     for(int j=0;j<0;++j){
-      alpha[t*States + j] = f[0][t] + (1.0 - f[0][t]) * Admixture(0,j) * Sum;
+      alpha[t*States + j] = f[0][t] + (1.0 - f[0][t]) * Admixture[j] * Sum;
       alpha[t*States + j] *= lambda[(t+1)*States + j];
     }
 
@@ -160,7 +160,7 @@ void HMM::UpdateProbsHaploid(double *f[], Matrix_d& Admixture, double *lambda, b
       for( int t = Transitions-2; t >=0; t-- ){
 	Sum = 0.0;
 	for(int j=0;j<States;++j){
-	  Sum += Admixture(0,j)*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
+	  Sum += Admixture[j]*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
 	}
 	for(int j=0;j<States;++j){
 	  beta[t*States + j] = f[t+1][0]*lambda[(t+1)*States + j]*beta[(t+1)*States + j] + (1.0 - f[0][t+1])*Sum;
@@ -237,7 +237,7 @@ double HMM::getLikelihood()
   SStates          - an int array to store the sampled states
   isdiploid  - indicator for diploidy
 */
-void HMM::Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdiploid)
+void HMM::Sample(Matrix_i *SStates, double *Admixture, double *f[], bool isdiploid)
 {
   int j1,j2;
   double V[States];
@@ -271,7 +271,7 @@ void HMM::Sample(Matrix_i *SStates, Matrix_d &Admixture, double *f[], bool isdip
     C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
     (*SStates)(0,Transitions-1) = C[Transitions-1];
     for( int t =  Transitions - 2; t >= 0; t-- ){
-      for(int j = 0; j < States; j++)V[j] = (j == C[t+1])*f[0][t+1]+Admixture(C[t+1],0)*(1.0 - f[0][t]);
+      for(int j = 0; j < States; j++)V[j] = (j == C[t+1])*f[0][t+1]+Admixture[C[t+1]]*(1.0 - f[0][t]);
       for( int j = 0; j < States; j++ )	V[j] *= alpha[t*States + j];
       C[ t ] = SampleFromDiscrete3( V, States );
       (*SStates)(0,t) = C[t];

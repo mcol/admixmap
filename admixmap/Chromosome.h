@@ -47,11 +47,11 @@ public:
   void InitialiseLociCorr(const double rho);
   void SetLociCorr(const double rho);
 
-  void UpdateParameters(Individual* ind,Matrix_d& Admixture, AdmixOptions* options,  
+  void UpdateParameters(Individual* ind, double *Admixture, AdmixOptions* options,  
 			std::vector< double > _rho,  bool chibindicator, bool diploid, bool randomAlleleFreqs );
 
 
-  void SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid);
+  void SampleLocusAncestry(Matrix_i *OrderedStates, double *Admixture, bool isdiploid);
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
   void SampleJumpIndicators(const Matrix_i &LocusAncestry, const unsigned int gametes, 

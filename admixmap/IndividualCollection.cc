@@ -160,17 +160,17 @@ Individual* IndividualCollection::getIndividual(int num)
   }
 }
 
-void IndividualCollection::setAdmixtureProps(Matrix_d a)
+void IndividualCollection::setAdmixtureProps(double *a, size_t size)
 {
   for(unsigned int i=0; i<NumInd; i++){
-    _child[i]->setAdmixtureProps(a);
+    _child[i]->setAdmixtureProps(a, size);
   }
 }
 
-void IndividualCollection::setAdmixturePropsX(Matrix_d a)
+void IndividualCollection::setAdmixturePropsX(double *a, size_t size)
 {
   for(unsigned int i=0; i<NumInd; i++){
-    _child[i]->setAdmixturePropsX(a);
+    _child[i]->setAdmixturePropsX(a, size);
   }
 }
 
@@ -237,16 +237,23 @@ void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Geno
      _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
 
  //Initialise Admixture Proportions
-  Matrix_d admix_null;
+ //admix_null holds initial values of admixture props, assigned to each Individual
+ //indexed first by gamete, then by population
+  double *admix_null;
+  size_t size_admix;
+  int K = options->getPopulations();
    if( options->isRandomMatingModel() )
-    admix_null.SetNumberOfElements(options->getPopulations(),2);
-  else
-    admix_null.SetNumberOfElements(options->getPopulations(),1);
-  admix_null.SetElements( (double)1.0 / options->getPopulations() );
-  Vector_d alphatemp;
+     size_admix = K*2; // double the size for 2 gametes in RMM
+   else//assortative mating
+     size_admix = K;
+
+   admix_null = new double[size_admix];
+   for(unsigned i = 0; i< size_admix; ++i) admix_null[i] = (double)1.0 / K;
+   
+   Vector_d alphatemp;
 
   if( options->sizeInitAlpha() == 0 ){
-    alphatemp.SetNumberOfElements( options->getPopulations() );
+    alphatemp.SetNumberOfElements( K );
     alphatemp.SetElements( 1.0 );
   }
   else if( options->sizeInitAlpha() == 1 ){
@@ -255,18 +262,20 @@ void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Geno
   else if( options->getAnalysisTypeIndicator() < 0 ){
     alphatemp = options->getInitAlpha(0);
  
-    for( int k = 0; k < options->getPopulations(); k++ ){
-       if( alphatemp(k) == 0 ) admix_null(k,0) = 0.0;
+    for( int k = 0; k < K; k++ ){
+       if( alphatemp(k) == 0 ) admix_null[k] = 0.0;
      }
      
      alphatemp = options->getInitAlpha(1);
   
-     for( int k = 0; k < options->getPopulations(); k++ ){
-       if( alphatemp(k) == 0 ) admix_null(k,1) = 0.0;
+     //possible problem if not randommating model
+     for( int k = 0; k < K; k++ ){
+       if( alphatemp(k) == 0 ) admix_null[K + k] = 0.0;
      }
   }
-  setAdmixtureProps(admix_null);
-  if( Loci->isX_data() )setAdmixturePropsX(admix_null);
+  setAdmixtureProps(admix_null, size_admix);
+  if( Loci->isX_data() )setAdmixturePropsX(admix_null, size_admix);
+  delete[] admix_null;
 
   //Regression stuff
   if(options->getAnalysisTypeIndicator() >=2){
@@ -307,13 +316,25 @@ void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Geno
   MaxLogLikelihood.assign(NumInd, -9999999 );
 }
 
+// ** this function needs debugging
 void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, AdmixOptions * options, const Matrix_d &MLEMatrix){
   //set thetahat and rhohat, estimates of individual admixture and sumintensities
-   thetahat = new Matrix_d[NumInd];
-   thetahatX = new Matrix_d[NumInd];
+  //NB NumInd = 1 here
+
+  thetahat = new double *[NumInd];
+  thetahatX = new double *[NumInd];
+
+   Matrix_d temp;
+   size_t size_admix;
+   int K = options->getPopulations();
+   if( options->isRandomMatingModel() )
+     size_admix = K*2; // double the size for 2 gametes in RMM
+   else//assortative mating
+     size_admix = K;
+
    for(unsigned int i = 0; i < NumInd; ++i){
-   thetahat[i].SetNumberOfElements(1, 1 );
-   thetahatX[i].SetNumberOfElements(1, 1 );
+   thetahat[i] = new double[size_admix];
+   thetahatX[i] = new double[size_admix];
    }
 
    vector<double> r(2, rhoalpha/rhobeta );
@@ -323,17 +344,24 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
    //use previously read values from file, if available
    if( options->getAnalysisTypeIndicator() == -2 ){
       rhohat[0][0] = MLEMatrix( options->getPopulations(), 0 );
-      if( options->getXOnlyAnalysis() )
-	thetahat[0] = MLEMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 0 );
+      if( options->getXOnlyAnalysis() ){
+	temp = MLEMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 0 );
+	for(int k = 0; k < options->getPopulations(); ++k) thetahat[0][k] = temp(k,0);
+      }
       else{
-	thetahat[0] = MLEMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 1 );
+	temp = MLEMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 1 );
+	for(int k = 0; k < options->getPopulations(); ++k) {
+	  thetahat[0][k] = temp(k,0);
+	  thetahat[0][k+ options->getPopulations()] = temp(k,1);
+	}
 	rhohat[0][1] = MLEMatrix(options->getPopulations(), 1 );
       }
-      setAdmixtureProps(thetahat[0]);
+      setAdmixtureProps(thetahat[0], size_admix);
    }
    else if( options->getAnalysisTypeIndicator() == -1 ){
     for(unsigned int i = 0; i < NumInd; ++i){
-       thetahat[i] = _child[i]->getAdmixtureProps();
+      for(unsigned k = 0; k < size_admix; ++k)
+       thetahat[i][k] = _child[i]->getAdmixtureProps()[k];
        }
    }
  
@@ -478,7 +506,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
       _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, *(R->getlambda()), options->getAnalysisTypeIndicator());
     }   
     
-    if( options->getAnalysisTypeIndicator() < 0 && i == 0 )//check if this condition is correct
+    if( (options->getAnalysisTypeIndicator() < 0) && (i == 0) )//check if this condition is correct
       _child[i]->ChibLikelihood(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
 				options, chrm, alpha,_admixed, rhoalpha, rhobeta,
 				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], LogFileStreamPtr, MargLikelihood, A);
@@ -486,12 +514,15 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
 
 }
 
-void IndividualCollection::Output(std::ofstream *LogFileStreamPtr){
+void IndividualCollection::Output(std::ofstream *LogFileStreamPtr, int Populations){
   //Used only for IndAdmixHierModel = 0
-  for(unsigned  int i = 0; i < NumInd; i++ )
-     *LogFileStreamPtr << thetahat[i].GetColumn(0) << " "
-     << thetahat[i].GetColumn(1) << " "
-     << rhohat[i][0] << " " << rhohat[i][1] << endl;
+  for(unsigned  int i = 0; i < NumInd; i++ ){
+    for(int k = 0; k < Populations; ++k)
+      *LogFileStreamPtr << thetahat[i][k] << " ";
+    for(int k = 0; k < Populations; ++k)
+      *LogFileStreamPtr << thetahat[i][Populations +k] << " ";
+    *LogFileStreamPtr << rhohat[i][0] << " " << rhohat[i][1] << endl;
+  }
 }
 
 void IndividualCollection::OutputErgodicAvg(int samples, chib *MargLikelihood, std::ofstream *avgstream){

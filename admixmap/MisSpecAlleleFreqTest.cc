@@ -139,7 +139,7 @@ void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreq
       
       for( int k = 0; k < Populations; k++ )
 	for( int kk = 0; kk < Populations; kk++ )
-	  phi[k][ kk ] = ind->getAdmixtureProps()( k, 0 ) * ind->getAdmixtureProps()( kk, 0 );
+	  phi[k][ kk ] = ind->getAdmixtureProps()[k] * ind->getAdmixtureProps()[kk];
       
       for(int j = 0; j < NumCompLoci; j++ ){
 	if( !(ind->IsMissing(j)) && 

@@ -93,7 +93,7 @@ void Chromosome::SetLociCorr(const double rho){
     }
 }
 
-void Chromosome::UpdateParameters(Individual* ind, Matrix_d& Admixture, AdmixOptions* options,  
+void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptions* options,  
 				  std::vector< double > _rho, bool chibindicator, bool diploid, bool randomAlleleFreqs ){
   //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
@@ -155,7 +155,7 @@ void Chromosome::UpdateParameters(Individual* ind, Matrix_d& Admixture, AdmixOpt
 
 }
 
-void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, Matrix_d &Admixture, bool isdiploid){
+void Chromosome::SampleLocusAncestry(Matrix_i *OrderedStates, double *Admixture, bool isdiploid){
 
   SampleStates.Sample(OrderedStates, Admixture, f, isdiploid);
 }

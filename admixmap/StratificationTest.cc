@@ -94,11 +94,11 @@ StratificationTest::GenerateExpectedGenotype( Individual* ind, const Matrix_d& f
 {
   vector<double> pA(2,0);
   for( int k = 0; k < freqs.GetNumberOfCols(); k++ ){
-    pA[0] += freqs( 0, k ) * ind->getAdmixtureProps()( k, 0 );
+    pA[0] += freqs( 0, k ) * ind->getAdmixtureProps()[k];
     if( ModelIndicator )
-       pA[1] += freqs( 0, k ) * ind->getAdmixtureProps()( k, 1 );
+      pA[1] += freqs( 0, k ) * ind->getAdmixtureProps()[k + freqs.GetNumberOfCols()];
     else
-       pA[1] += freqs( 0, k ) * ind->getAdmixtureProps()( k, 0 );       
+       pA[1] += freqs( 0, k ) * ind->getAdmixtureProps()[k];       
   }
   return pA;
 }

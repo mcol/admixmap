@@ -103,9 +103,9 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
 {
   for( int k = 0; k < _options->getPopulations(); k++ ){
      if(_options->isRandomMatingModel()){
-        _out << ind.getAdmixtureProps()( k, 0 ) << "," << ind.getAdmixtureProps()( k, 1 ) << ",";
+       _out << ind.getAdmixtureProps()[k] << "," << ind.getAdmixtureProps()[ k + _options->getPopulations()] << ",";
     } else {
-        _out << ind.getAdmixtureProps()( k, 0 ) << ",";
+        _out << ind.getAdmixtureProps()[k] << ",";
      }
   }
   if( _options->getRhoIndicator() ){

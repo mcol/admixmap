@@ -125,10 +125,11 @@ void submain(AdmixOptions* options){
   /*-------------------------------------------------------
   |  single individual, one population, allele frequencies |
   ---------------------------------------------------------*/
-  if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
+   if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
     IC->getOnePopOneIndLogLikelihood(&Log, PopulationLabels, A.IsRandom());
 
-  else{
+  else
+{
     //initialise test objects
     DispersionTest DispTest;
     StratificationTest StratTest;
@@ -278,7 +279,7 @@ void submain(AdmixOptions* options){
     //Marginal Likelihood for a single individual
     if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);
     //MLEs of admixture & sumintensities for nonhierarchical model on individual admixture
-    if( options->getMLIndicator() )IC->Output(&LogFileStream);
+    if( options->getMLIndicator() )IC->Output(&LogFileStream, options->getPopulations());
     //finish writing score test output as R objects
     if( options->getScoreTestIndicator() ) Scoretest.ROutput();
   }//end else
