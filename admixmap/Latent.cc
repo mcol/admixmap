@@ -160,8 +160,8 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   // rho stuff
   rhodata_i.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
   rhodata_d.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
-  rhodata_d.SetColumn( 0, Loci->GetDistances().Double() );
-   
+  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)rhodata_d(j,0) = Loci->GetDistance(j);
+     
    RhoParameters[0] = rhoalpha;
    RhoParameters[1] = rhobeta;
    RhoParameters[2] = Loci->GetNumberOfCompositeLoci();
@@ -199,7 +199,7 @@ double Latent::sampleForRho()
 double
 Latent::logf( Vector_d &parameters , Matrix_i&, Matrix_d&, double x )
 {
-  double f = parameters(0) * ( gsl_sf_lngamma( x + parameters(1) ) - gsl_sf_lngamma( x ) ) - x * ( parameters(3) - parameters(4) )  + (parameters(2) - 1) * log(x);
+  double f = parameters(0) * ( gsl_sf_lngamma( x + parameters(1) ) - gsl_sf_lngamma( x ) ) - x * ( parameters(3) - parameters(4) );//  + (parameters(2) - 1) * log(x);
   
   return(f);
 }
@@ -215,7 +215,7 @@ Latent::dlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
   if(x2 < 0)cout<<"\nError in Latent::dlogf - arg x2 to ddigam is negative\n";   
   ddigam( &x2 , &y2 );
   
-  f = parameters(0) * ( y2 - y1 ) - ( parameters(3) - parameters(4) ) + (parameters(2) - 1)/x;
+  f = parameters(0) * ( y2 - y1 ) - ( parameters(3) - parameters(4) );// + (parameters(2) - 1)/x;
   
   return(f);
 }
@@ -230,7 +230,7 @@ Latent::ddlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
   trigam( &x, &y1 );
   trigam( &x2, &y2 );
   
-  f = parameters(0) * ( y2 - y1 ) - (parameters(2) - 1)/ (x*x);
+  f = parameters(0) * ( y2 - y1 );// - (parameters(2) - 1)/ (x*x);
   
   return(f);
 }

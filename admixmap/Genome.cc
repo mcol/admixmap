@@ -34,6 +34,7 @@ Genome::Genome()
   LengthOfGenome = 0;
   LengthOfXchrm = 0;
   TotalLoci = 0;
+  Distances = 0;
 }
 
 //used by Chromosome
@@ -44,7 +45,7 @@ Genome::Genome( int size )
   }
   NumberOfCompositeLoci = size;
   TheArray = new CompositeLocus*[ NumberOfCompositeLoci ];
-  Distances.SetNumberOfElements( NumberOfCompositeLoci );
+  Distances = new double[ NumberOfCompositeLoci ];
   LengthOfGenome = 0;
   LengthOfXchrm = 0;
   TotalLoci = 0;
@@ -58,7 +59,8 @@ Genome::~Genome()
 //       delete TheArray[i];
 //     }
   delete[] TheArray;
-  delete[] SizesOfChromosomes; 
+  delete[] SizesOfChromosomes;
+  delete[] Distances; 
 }
 
 //sets the labels of all composite loci in TheArray using SetLabel function in CompositeLocus
@@ -229,8 +231,8 @@ Chromosome** Genome::GetChromosomes( int populations)
       C[i]->SetDistance(j,GetDistance(cstart[i]+j));
 
       if( j != 0 ){
-	string s1("\"X\"");
-	if( C[i]->GetLabel(0) != s1 ){
+	string s1("\"X\""), s2("X");
+	if( C[i]->GetLabel(0) != s1 && C[i]->GetLabel(0) != s2){
 	  LengthOfGenome += GetDistance(cstart[i]+j);
 	  LengthOfChrm[i] += GetDistance(cstart[i]+j);
 	  //              cout << i << " " << j << " " << GetDistance(cstart[i]+j) << endl;
@@ -271,7 +273,7 @@ CompositeLocus*& Genome::operator() ( int ElementNumber ) const
 void Genome::InitialiseCompositeLoci()
 {
   TheArray = new CompositeLocus*[ NumberOfCompositeLoci ];
-  Distances.SetNumberOfElements( NumberOfCompositeLoci );
+  Distances = new double[ NumberOfCompositeLoci ];
   for(unsigned int i = 0; i < NumberOfCompositeLoci;i++){
     //each element in the array is a pointer to a CompositeLocus object
     TheArray[i] = new CompositeLocus();
@@ -279,9 +281,9 @@ void Genome::InitialiseCompositeLoci()
   }
 }
 
-void Genome::SetDistance( int locus, float distance )
+void Genome::SetDistance( int locus, double distance )
 {
-  Distances( locus ) = distance;
+  Distances[ locus ] = distance;
 }
 
 void Genome::SetSizes(){
@@ -315,14 +317,14 @@ unsigned int *Genome::GetSizesOfChromosomes(){
   return SizesOfChromosomes;
 }
 
-Vector Genome::GetDistances()
+double *Genome::GetDistances()
 {
   return( Distances );
 }
 
-float Genome::GetDistance( int locus )
+double Genome::GetDistance( int locus )
 {
-  return( Distances( locus ) );
+  return( Distances[ locus ] );
 }
 
 //returns number of states of a comp locus

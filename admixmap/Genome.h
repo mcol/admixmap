@@ -25,7 +25,6 @@
 
 #include "CompositeLocus.h"
 //#include "Chromosome.h"
-#include "vector.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -60,7 +59,7 @@ public:
 
   void loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_, LogWriter *Log);
 
-  Vector GetDistances();
+  double *GetDistances();
 
   unsigned int GetNumberOfCompositeLoci();
 
@@ -72,9 +71,9 @@ public:
 
   unsigned int *GetSizesOfChromosomes();
 
-  float GetDistance(int);
+  double GetDistance(int);
 
-  void SetDistance(int,float);
+  void SetDistance(int,double);
 
   Chromosome **GetChromosomes(int);
 
@@ -87,7 +86,7 @@ public:
   double GetLengthOfXchrm();
 
 protected:// to make available to Chromosome
-  Vector Distances;
+  double *Distances;
   unsigned int NumberOfCompositeLoci;
   CompositeLocus **TheArray;
 
