@@ -130,10 +130,9 @@ private:
   Matrix_d AdmixtureHat;
   Matrix_d XAdmixtureHat;
 
-  //Matrix_i *LocusAncestry;
-  Matrix_i SumLocusAncestry, SumLocusAncestry_X;
+  //Matrix_i SumLocusAncestry, SumLocusAncestry_X;
 
-  int **LocusAncestry;//, *SumLocusAncestry, *SumLocusAncestry_X;
+  int **LocusAncestry, *SumLocusAncestry, *SumLocusAncestry_X;
 
   std::vector< double > _rho;
   std::vector< double > _rho_X;

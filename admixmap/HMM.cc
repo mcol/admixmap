@@ -373,8 +373,8 @@ void HMM::RecursionProbs(const double ff, const double f[2],
 }
 
 void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
-			       const Vector &Distances, const int startLocus, 
-			       int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
+			       double *Distances, const int startLocus, 
+			       int *sumxi, double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			       unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
 
   int locus;
@@ -395,7 +395,7 @@ void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned i
 	  sumxi[locus]++;
 	} else {
 	  xi[g][jj] = false;
-	  *Sumrho0 += Distances( jj );
+	  *Sumrho0 += Distances[ jj ];
 	}
       } else {
 	xi[g][jj] = true;
@@ -405,9 +405,9 @@ void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned i
       if( xi[g][jj] ){
 	// sum ancestry states over loci where jump indicator is 1
 	if( !isX )
-	  (*SumLocusAncestry)( LocusAncestry[jj + g*Transitions], g )++;
+	  SumLocusAncestry[ LocusAncestry[jj + g*Transitions] +  g*K ]++;
 	else
-	  (*SumLocusAncestry_X)( LocusAncestry[jj + g*Transitions], g )++;
+	  SumLocusAncestry_X[ LocusAncestry[jj + g*Transitions] + g*K ]++;
 	//sample number of arrivals where jump indicator is 1
 	if(RhoIndicator){
 	  double u = myrand();
@@ -427,9 +427,9 @@ void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned i
     for( unsigned int g = 0; g < gametes; g++ ){
       if( xi[g][0] ){
 	if( !isX )
-	  (*SumLocusAncestry)( LocusAncestry[g*Transitions], g )++;
+	  SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ]++;
 	else
-	  (*SumLocusAncestry_X)( LocusAncestry[g*Transitions], g )++;
+	  SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
       }
     }
 }

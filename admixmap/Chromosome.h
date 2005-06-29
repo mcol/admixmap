@@ -23,8 +23,6 @@
 #define CHROMOSOME_H 1
 
 #include "Genome.h"
-#include "matrix_d.h"
-#include "matrix_i.h"
 #include "vector_d.h"
 #include "HMM.h"
 #include <vector>
@@ -55,7 +53,7 @@ public:
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
   void SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
-			    int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
+			    int *sumxi, double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator);
 private:
   int _startLocus;

@@ -15,9 +15,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <values.h>
-#include "matrix_d.h"
-#include "matrix_i.h"
-#include "vector.h"
 
 #define FILENAMELENGTH 100
 
@@ -50,8 +47,8 @@ public:
 		      double *oldProbs, double *newProbs); 
 
   void SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
-			    const Vector &Distances, const int startLocus,  
-			    int *sumxi, double *Sumrho0, Matrix_i *SumLocusAncestry, Matrix_i *SumLocusAncestry_X, bool isX, 
+			    double *Distances, const int startLocus,  
+			    int *sumxi, double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator) ;
 private:
   int K;
