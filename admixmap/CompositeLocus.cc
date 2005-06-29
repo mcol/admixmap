@@ -176,6 +176,9 @@ void CompositeLocus::AddLocus( int alleles )
 
 void CompositeLocus::Initialise(Matrix_d &AFreqs){
   AlleleProbs = alloc2D_d(NumberOfStates, Populations);
+  //set size of array of haplotype pair probs
+  HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
+  HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
   SetAlleleProbs(AFreqs);
   SetHapPairProbs();
   SetNoMergeHaplotypes();
@@ -565,10 +568,6 @@ void CompositeLocus::setPossibleHaplotypePairs(unsigned short **Genotype, vector
       }
     }
   }
-  //set size of array of haplotype pair probs
-  int NumHaps = base[0] * NumberOfAlleles[0];//total # possible haplotypes = NumberOfStates
-  HapPairProbs = new double[NumHaps * NumHaps * Populations * Populations];
-  HapPairProbsMAP = new double[NumHaps * NumHaps * Populations * Populations];
 }
 
 //--------------------------------------
