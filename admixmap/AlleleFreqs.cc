@@ -546,8 +546,8 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry )
 }
 
 //needs to be rewritten
-void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, unsigned short **genotype, int ancestry )
-{
+//void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, unsigned short **genotype, int ancestry )
+//{
 //     int xx;
 //     if( (*Loci)(locus)->GetNumberOfLoci() == 1 )
 //       xx = genotype[0] - 1;
@@ -557,7 +557,7 @@ void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, unsigned short **gen
 //     }
 //     AlleleCounts[locus]( xx, ancestry )++;
 
-}
+//}
 
 // get posterior mode of frequency of allele x, given locus and subpopulation
 double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
