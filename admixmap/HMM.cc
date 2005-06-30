@@ -246,7 +246,7 @@ void HMM::Sample(int *SStates, double *Admixture, double *f[], bool isdiploid)
   if(isdiploid){
     int State = 0;
     for( int j = 0; j < States; j++ )V[State++] = alpha[(Transitions - 1)*States + j];
-    C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
+    C[ Transitions - 1 ] = SampleFromDiscrete( V, States );
     SStates[Transitions-1] = (int)(C[Transitions-1]/K);
     SStates[Transitions - 1 + Transitions] = (C[Transitions-1] % K);
     
@@ -261,19 +261,19 @@ void HMM::Sample(int *SStates, double *Admixture, double *f[], bool isdiploid)
 	V[State] *= alpha[t*States + i1*K + i2];
 	State++;
       }
-      C[ t ] = SampleFromDiscrete3( V, States );
+      C[ t ] = SampleFromDiscrete( V, States );
       SStates[t] = (int)(C[t]/K);
       SStates[t + Transitions] = (C[t] % K);
     }
    }
   else{//haploid
     for( int j = 0; j < States; j++ )V[j] = alpha[(Transitions - 1)*States + j ];
-    C[ Transitions - 1 ] = SampleFromDiscrete3( V, States );
+    C[ Transitions - 1 ] = SampleFromDiscrete( V, States );
     SStates[Transitions-1] = C[Transitions-1];
     for( int t =  Transitions - 2; t >= 0; t-- ){
       for(int j = 0; j < States; j++)V[j] = (j == C[t+1])*f[0][t+1]+Admixture[C[t+1]]*(1.0 - f[0][t]);
       for( int j = 0; j < States; j++ )	V[j] *= alpha[t*States + j];
-      C[ t ] = SampleFromDiscrete3( V, States );
+      C[ t ] = SampleFromDiscrete( V, States );
       SStates[t] = C[t];
     }
   }

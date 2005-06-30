@@ -260,7 +260,7 @@ void CompositeLocus::SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, 
 			     ancestry(0) * Populations  + ancestry(1)];
   }
 
-  int h = SampleFromDiscrete3(Probs, HapPairs.size());
+  int h = SampleFromDiscrete(Probs, HapPairs.size());
 
   //h should really be a HapPair object
   // so we can do
