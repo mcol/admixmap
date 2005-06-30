@@ -28,9 +28,10 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
        options->setStratificationTest(false);
     }
     else{
-       Log->logmsg(true, "Loci used in stratification test.\n");
-       for(int i=0; i<NumberOfTestLoci; i++){
-          Log->logmsg(true, Loci(TestLoci[i])->GetLabel(0));Log->logmsg(true, "\n");
+      Log->logmsg(true, NumberOfTestLoci);
+       Log->logmsg(true, " loci used in stratification test.\n");
+       for(int i = 0; i < NumberOfTestLoci; i++){
+          Log->write(Loci(TestLoci[i])->GetLabel(0));Log->write("\n");
        }
        ModelIndicator = options->isRandomMatingModel();
        
