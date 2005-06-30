@@ -12,6 +12,8 @@ double getGammaLogDensity(double alpha, double beta, double x);
 
 double getDirichletLogDensity(const Vector_d& a, const Vector_d& x);
 
+double getDirichletLogDensity(double *a, double *x, size_t K);
+
 double AverageOfLogs(const std::vector<double>& vec, double max);
 
 int HH_solve (Matrix_d A, Vector_d b, Vector_d *x);

@@ -13,20 +13,60 @@ double getGammaLogDensity(double alpha, double beta, double x)
 
 double getDirichletLogDensity(const Vector_d& a, const Vector_d& x)
 {
-  double f;
-  Vector_d xdash;    //This adds the implied last (kth) element of x
-  xdash = x;                              //when x has length (k-1)
-  int k = a.GetNumberOfElements();        //x must sum to 1
-  if (k - 1 == x.GetNumberOfElements()) {
-    xdash.AddElement( k - 1 );
-    xdash( k - 1 ) = 1 - x.Sum();
+//   double f;
+//   Vector_d xdash;    //This adds the implied last (kth) element of x
+//   xdash = x;                              //when x has length (k-1)
+//   int k = a.GetNumberOfElements();        //x must sum to 1
+//   if (k - 1 == x.GetNumberOfElements()) {
+//     xdash.AddElement( k - 1 );
+//     xdash( k - 1 ) = 1 - x.Sum();
+//   }
+//   assert( k == xdash.GetNumberOfElements() ); //Error in getDirichletLogDensity - lengths of vector arguments do not match.\n";
+
+//   f = gsl_sf_lngamma( a.Sum() );
+//   for( int i = 0; i < k; i++ )
+//     if( a(i) > 0.0 )
+//       f += ( a(i) - 1 ) * log( xdash(i) ) - gsl_sf_lngamma( a(i) );
+
+  size_t K = a.GetNumberOfElements();
+  double f, xsum = 0.0;
+  double theta[K];
+
+  for(size_t k = 0; k < K-1; ++k){
+    theta[k] = x(k);
+     xsum += x(k);
   }
-  assert( k == xdash.GetNumberOfElements() ); //Error in getDirichletLogDensity - lengths of vector arguments do not match.\n";
+
+  theta[K-1] = 1.0 - xsum;
+
 
   f = gsl_sf_lngamma( a.Sum() );
-  for( int i = 0; i < k; i++ )
+  for( unsigned i = 0; i < K; i++ )
     if( a(i) > 0.0 )
-      f += ( a(i) - 1 ) * log( xdash(i) ) - gsl_sf_lngamma( a(i) );
+      f += ( a(i) - 1 ) * log( theta[i] ) - gsl_sf_lngamma( a(i) );
+
+  return f;
+}
+
+//calls gsl function for computing the logarithm of the probability density p(x_1, ... , x_K) 
+//for a Dirichlet distribution with parameters a[K]. 
+//a should be of length K but x can be of length K or K-1 since last element ignored
+double getDirichletLogDensity(double *alpha, double *x, size_t K)
+{
+  double f, xsum = 0.0, sumalpha = alpha[K-1];
+  double theta[K];
+
+  for(size_t k = 0; k < K-1; ++k){
+    theta[k] = x[k];
+    xsum += x[k];
+    sumalpha += alpha[k];
+  }
+  theta[K-1] = 1.0 - xsum;
+
+  f = gsl_sf_lngamma( sumalpha );
+  for( size_t i = 0; i < K; i++ )
+    if( alpha[i] > 0.0 )// to avoid bug in gsl_sf_lngamma
+      f += ( alpha[i] - 1 ) * log( theta[i] ) - gsl_sf_lngamma( alpha[i] );
 
   return f;
 }
