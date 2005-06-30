@@ -23,13 +23,13 @@
 
 #define PR(x) cout << #x << " = " << x << endl;
 
-Matrix_d Individual::AffectedsScore;
-Matrix_d Individual::AffectedsVarScore;
-Matrix_d Individual::AffectedsInfo;
+double **Individual::AffectedsScore = 0;
+double **Individual::AffectedsVarScore = 0;
+double **Individual::AffectedsInfo = 0;
 Matrix_d *Individual::AncestryScore;
 Matrix_d *Individual::AncestryInfo;
-Matrix_d Individual::AncestryVarScore;
-Matrix_d Individual::AncestryInfoCorrection;
+double **Individual::AncestryVarScore;
+double **Individual::AncestryInfoCorrection;
 Matrix_d Individual::B;
 Matrix_d Individual::PrevB;
 Matrix_d Individual::Xcov;
@@ -126,7 +126,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 	  AncestrySize = 2 * chrm[j]->GetSize() ;
 	  gametes.push_back(2);
         }
-        else if( sex != 2 ){//male
+        else if( sex != 2 ){//male or missing
 	  AncestrySize = chrm[j]->GetSize() ;
 	  gametes.push_back(1);
 	  X_posn = j;
@@ -141,7 +141,6 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 
     }
     //retrieve genotypes
-    //genotypes = new int **[numCompositeLoci];
     Data->GetGenotype(mynumber, options->getgenotypesSexColumn(), Loci, &genotypes);
 
     // loop over composite loci to set possible haplotype pairs compatible with genotype 
@@ -157,11 +156,13 @@ void Individual::SetStaticMembers(Genome *pLoci, int Pops){
   Populations = Pops;
   AncestryScore = 0;
   AncestryInfo = 0;
+  AncestryVarScore = 0;
+  AncestryInfoCorrection = 0;
 }
 void Individual::InitialiseAffectedsOnlyScores(int L, int K){
-  AffectedsScore.SetNumberOfElements(L, K);
-  AffectedsVarScore.SetNumberOfElements(L, K);
-  AffectedsInfo.SetNumberOfElements(L, K);
+  AffectedsScore = alloc2D_d(L, K);
+  AffectedsVarScore = alloc2D_d(L, K);
+  AffectedsInfo = alloc2D_d(L, K);
 }
 void Individual::InitialiseAncestryScores(int L, int K){
   AncestryScore = new Matrix_d[L];
@@ -170,8 +171,8 @@ void Individual::InitialiseAncestryScores(int L, int K){
     AncestryScore[i].SetNumberOfElements(2 * K, 1);
     AncestryInfo[i].SetNumberOfElements(2 * K, 2 * K);
   }
-  AncestryVarScore.SetNumberOfElements(L, K);
-  AncestryInfoCorrection.SetNumberOfElements(L, K);
+  AncestryVarScore = alloc2D_d(L, K);
+  AncestryInfoCorrection = alloc2D_d(L, K);
   B.SetNumberOfElements(K,K);
   PrevB.SetNumberOfElements(K,K);
   Xcov.SetNumberOfElements(K,1);
@@ -193,6 +194,11 @@ void Individual::DeleteStaticMembers(){
   delete[] sumxi;
   delete[] AncestryScore;
   delete[] AncestryInfo;
+  free_matrix(AffectedsScore, Loci->GetNumberOfCompositeLoci());
+  free_matrix(AffectedsInfo, Loci->GetNumberOfCompositeLoci());
+  free_matrix(AffectedsVarScore, Loci->GetNumberOfCompositeLoci());
+  free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
+  free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
 }
 
 void Individual::ResetStaticSums(){
@@ -635,46 +641,36 @@ void Individual::SampleTheta( int i, Vector_d *SumLogTheta, Matrix_d *Outcome,
 // should have an alternative function to sample population mixture component membership and individual admixture proportions
 // conditional on genotype, not sampled locus ancestry
 void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha){
-  int K = Populations;
-  Vector_d vectemp;//used to hold sample from theta posterior
-  Vector_d temp(K);
+  size_t K = Populations;
+  double temp[K];//used to hold dirichlet parameters of theta posterior
   // if no regression model, sample admixture proportions theta as a conjugate Dirichlet posterior   
   if( options->getXOnlyAnalysis() ){
-    for(int k = 0; k < K; ++k)temp(k) = alpha[0](k) + SumLocusAncestry_X[k];
-    vectemp = gendirichlet( temp );
-    for(int k = 0; k < K; ++k)
-      ThetaProposal[k] = vectemp(k);
+    for(size_t k = 0; k < K; ++k)temp[k] = alpha[0](k) + SumLocusAncestry_X[k];
+    gendirichlet(K, temp, ThetaProposal );
   }
-    else if( options->isRandomMatingModel() ){//random mating model
-      for( unsigned int g = 0; g < 2; g++ ){
-	if( options->getAnalysisTypeIndicator() > -1 ){
-	  for(int k = 0; k < K; ++k)temp(k) = alpha[0](k) + SumLocusAncestry[k + K*g];
-	  vectemp = gendirichlet( temp );
-	}
-	else{
-	  for(int k = 0; k < K; ++k)temp(k) = alpha[g](k) + SumLocusAncestry[k + K*g];
-	  vectemp = gendirichlet( temp );
-	}
-	for(int k = 0; k < K; ++k)
-	  ThetaProposal[g*K + k] = vectemp(k);
-
+  else if( options->isRandomMatingModel() ){//random mating model
+    for( unsigned int g = 0; g < 2; g++ ){
+      if( options->getAnalysisTypeIndicator() > -1 ){
+	for(size_t k = 0; k < K; ++k)temp[k] = alpha[0](k) + SumLocusAncestry[k + K*g];
       }
-      if( Loci->isX_data() ){
-	for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
-	  for(int k = 0; k < K; ++k)
-	    temp(k) = SumLocusAncestry_X[g*K + k] + ThetaProposal[g*K + k]*sigma[g];
-	  vectemp = gendirichlet( temp );
-	  for(int k = 0; k < K; ++k)
-	    ThetaXProposal[g*K + k] = vectemp(k);
-	}
+      else{//single individual
+	for(size_t k = 0; k < K; ++k)temp[k] = alpha[g](k) + SumLocusAncestry[k + K*g];
       }
+      gendirichlet(K, temp, ThetaProposal+g*K );
+     
     }
-    else{// no random mating model
-      for(int k = 0; k < K; ++k)temp(k) = alpha[0](k) + SumLocusAncestry[k] + SumLocusAncestry[k + K];
-      vectemp = gendirichlet( temp );
-      for(int k = 0; k < K; ++k)
-	ThetaProposal[k] = vectemp(k);
+    if( Loci->isX_data() ){
+      for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
+	for(size_t k = 0; k < K; ++k)
+	  temp[k] = SumLocusAncestry_X[g*K + k] + ThetaProposal[g*K + k]*sigma[g];
+	gendirichlet(K, temp, ThetaXProposal + g*K );
+	}
     }
+  }
+  else{//assortative mating model
+    for(size_t k = 0; k < K; ++k)temp[k] = alpha[0](k) + SumLocusAncestry[k] + SumLocusAncestry[k + K];
+    gendirichlet(K, temp, ThetaProposal );
+  }
 }
 
 //Updates forward and backward probabilities in HMM for chromosome j 
@@ -730,17 +726,23 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
 
 void Individual::ResetScores(AdmixOptions *options){
   if( options->getTestForAffectedsOnly() ){
-    AffectedsScore.SetElements(0);
-    AffectedsVarScore.SetElements(0);
-    AffectedsInfo.SetElements(0);
+    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+      for(int k = 0; k < Populations; ++k){
+	AffectedsScore[j][k] = 0.0;
+	AffectedsVarScore[j][k] = 0.0;
+	AffectedsInfo[j][k] = 0.0;
+      }
   }
   if( options->getTestForLinkageWithAncestry() ){
     for(unsigned int i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i){
       AncestryScore[i].SetElements(0);
       AncestryInfo[i].SetElements(0);
     }
-    AncestryInfoCorrection.SetElements(0);
-    AncestryVarScore.SetElements(0);
+    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+      for(int k = 0; k < Populations; ++k){
+	AncestryInfoCorrection[j][k] = 0.0;
+	AncestryVarScore[j][k] = 0.0;
+      }
     PrevB = B;           //PrevB stores the sum for the previous iteration
     B.SetElements(0.0);//while B accumulates the sum for the current iteration 
     Xcov.SetElements(0.0);
@@ -774,9 +776,9 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool 
       //retrieve AncestryProbs from HMM
       chrm[j]->getAncestryProbs( jj, AProbs );
       //accumulate score, score variance, and info
-      AffectedsScore(locus,k)+= 0.5*( AProbs[k][1] + 2.0*AProbs[k][2] - theta[0] - theta[1] );
-      AffectedsVarScore(locus, k)+= 0.25 *( AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0]); 
-      AffectedsInfo(locus, k)+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
+      AffectedsScore[locus][k]+= 0.5*( AProbs[k][1] + 2.0*AProbs[k][2] - theta[0] - theta[1] );
+      AffectedsVarScore[locus][k]+= 0.25 *( AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0]); 
+      AffectedsInfo[locus][k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
       ++locus;
     }
   }
@@ -826,8 +828,8 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
     AncestryInfo[locus] += (X * X.Transpose()) * DInvLink * phi;
     
     for( int k = 0; k < Populations ; k++ ){
-      AncestryInfoCorrection(locus,k) += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx); 
-      AncestryVarScore(locus,k) += VarA[k] * phi * phi * YMinusEY * YMinusEY;
+      AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx); 
+      AncestryVarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
     }
     ++locus;
   }//end locus loop
@@ -836,10 +838,10 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
 void Individual::SumScoresForLinkageAffectedsOnly(int j,int Populations, Matrix_d *SumAffectedsScore, 
 				      Matrix_d *SumAffectedsVarScore,Matrix_d *SumAffectedsScore2, Matrix_d *SumAffectedsInfo){
   for( int kk = 0; kk < Populations; kk++ ){
-    (*SumAffectedsScore)(j,kk) += AffectedsScore(j,kk);
-    (*SumAffectedsVarScore)(j,kk) += AffectedsVarScore(j,kk);
-    (*SumAffectedsInfo)(j,kk) += AffectedsInfo(j,kk);
-    (*SumAffectedsScore2)(j,kk) +=  AffectedsScore(j, kk) * AffectedsScore(j, kk);
+    (*SumAffectedsScore)(j,kk) += AffectedsScore[j][kk];
+    (*SumAffectedsVarScore)(j,kk) += AffectedsVarScore[j][kk];
+    (*SumAffectedsInfo)(j,kk) += AffectedsInfo[j][kk];
+    (*SumAffectedsScore2)(j,kk) +=  AffectedsScore[j][kk] * AffectedsScore[j][kk];
   }
 }
 
@@ -848,20 +850,20 @@ void Individual::SumScoresForAncestry(int j, int Populations,
 				      Matrix_d *SumAncestryVarScore){
   Matrix_d score, info;
   
-  CentredGaussianConditional(Populations,AncestryScore[j], AncestryInfo[j], &score, &info );
+  CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], &score, &info );
   
   //accumulate over iterations     
   for( int k = 0; k < Populations ; k++ ){
     (*SumAncestryScore)(j,k) += score(k,0);
-    (*SumAncestryInfo)(j,k)  += info(k,k) + AncestryInfoCorrection(j,k);
+    (*SumAncestryInfo)(j,k)  += info(k,k) + AncestryInfoCorrection[j][k];
     (*SumAncestryScore2)(j,k) += score(k,0) * score(k,0);
-    (*SumAncestryVarScore)(j,k) += AncestryVarScore(j,k);
+    (*SumAncestryVarScore)(j,k) += AncestryVarScore[j][k];
   }
 }
 
 // unnecessary duplication of code - should use same method as for > 1 population
-void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, Vector_i &OutcomeType, double **ExpectedY, Vector_d &lambda,
-				     int AnalysisTypeIndicator )
+void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, Vector_i &OutcomeType, double **ExpectedY, 
+				      Vector_d &lambda, int AnalysisTypeIndicator )
 {
   for( int k = 0; k < NumOutcomes; k++ ){
     if( AnalysisTypeIndicator > 1 ){

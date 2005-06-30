@@ -52,8 +52,6 @@ public:
 
   void setAdmixtureProps(double *, size_t);
   
-  // Matrix_d& getAdmixturePropsX();
-
   void setAdmixturePropsX(double *, size_t);
   
   unsigned short **getGenotype(unsigned int locus);
@@ -127,32 +125,31 @@ private:
   double *Theta, *ThetaX;//admixture proportions
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
 
-  Matrix_d AdmixtureHat;
-  Matrix_d XAdmixtureHat;
-
-  //Matrix_i SumLocusAncestry, SumLocusAncestry_X;
-
   int **LocusAncestry, *SumLocusAncestry, *SumLocusAncestry_X;
 
-  std::vector< double > _rho;
-  std::vector< double > _rho_X;
-  std::vector< double > _rhoHat;
-  std::vector< double > _rhoHat_X;
+  std::vector< double > _rho; //sum of intensities
+  std::vector< double > _rho_X;//sum of intensities for X chromosome
 
   double LogPosterior;
   short unsigned int sex; // 0 = missing, 1 = male, 2 = female 
-  std::vector< unsigned int > gametes;
-  unsigned int X_posn;
+  std::vector< unsigned int > gametes;// number of gametes on each chromosome
+  unsigned int X_posn;  //number of X chromosome
   double TruncationPt; // upper truncation point for sum intensities parameter rho
 
+  //parameter estimates for chib algorithm
+  Matrix_d AdmixtureHat;
+  Matrix_d XAdmixtureHat;
+  std::vector< double > _rhoHat;
+  std::vector< double > _rhoHat_X;
+
   //score test objects, static so they can accumulate sums over individuals
-  static Matrix_d AffectedsScore;
-  static Matrix_d AffectedsVarScore;
-  static Matrix_d AffectedsInfo;
+  static double **AffectedsScore;
+  static double **AffectedsVarScore;
+  static double **AffectedsInfo;
   static Matrix_d *AncestryScore;
   static Matrix_d *AncestryInfo;
-  static Matrix_d AncestryVarScore;
-  static Matrix_d AncestryInfoCorrection;
+  static double **AncestryVarScore;
+  static double **AncestryInfoCorrection;
   static Matrix_d B;//used for ancestry score test
   static Matrix_d PrevB;//holds B for previous iteration while B accumulates for this iteration
   static Matrix_d Xcov; //column matrix of covariates used to calculate B and for score test, 
