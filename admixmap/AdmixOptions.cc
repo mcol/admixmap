@@ -572,8 +572,8 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"allelefreqscorefile",                   1, 0,  0 }, // string
     {"allelefreqscorefile2",                  1, 0,  0 }, // string
     {"dispersiontestfile",                    1, 0,  0 }, // string
-    {"FSToutputfilename",                     1, 0,  0 }, // string
-    {"hwtestfilename",                        1, 0,  0 }, // string
+    {"fstoutputfile",                         1, 0,  0 }, // string
+    {"hwscoretestfile",                       1, 0,  0 }, // string
 
     // Other options
     {"coutindicator",                         1, 0, 'c'}, // int 0: 1
@@ -703,11 +703,11 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	 TestForDispersion = true;
       } else if (long_option_name == "every") {
 	 SampleEvery = strtol(optarg, NULL, 10);OptionValues["every"]=optarg;
-      } else if (long_option_name == "FSToutputfilename") {
-	 FSTOutputFilename = optarg;OptionValues["FSToutputfilename"]=optarg;
+      } else if (long_option_name == "fstoutputfile") {
+	 FSTOutputFilename = optarg;OptionValues["fstoutputfile"]=optarg;
 	 OutputFST = true;
-      } else if (long_option_name == "hwtestfilename") {
-	 HWTestFilename = optarg;OptionValues["hwtestfilename"]=optarg;
+      } else if (long_option_name == "hwscoretestfile") {
+	 HWTestFilename = optarg;OptionValues["hwscoretestfile"]=optarg;
 	 HWTest = true;
       } else if (long_option_name == "fixedallelefreqs") {
 	if (strtol(optarg, NULL, 10) == 1) {
