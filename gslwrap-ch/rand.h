@@ -1,3 +1,4 @@
+#include <iostream>
 class Vector_d;
 ///
 class Vector_i;
@@ -25,13 +26,10 @@ double MultinomialLikelihood( Vector_i r, Vector_d theta );
 ///Poisson generator
 long ignpoi(double mu);
 ///
-int SampleFromDiscrete( Vector_d *cdf );
-///
-int SampleFromDiscrete2( Vector_d *probs );
-///
-int SampleFromDiscrete3( double probs[] , int numberofelements);
+int SampleFromDiscrete( double probs[] , int numberofelements);
 ///
 Vector_d gendirichlet( Vector_d );
+void gendirichlet(const size_t K, const double alpha[], double theta[] );
 ///
 void ddigam( double *, double * );
 ///

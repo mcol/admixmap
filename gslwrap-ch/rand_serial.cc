@@ -100,47 +100,19 @@ long ignpoi( double mu )
    return( gsl_ran_poisson( RandomNumberGenerator, mu ) );
 }
 
-int SampleFromDiscrete( Vector_d *cdf )
+int SampleFromDiscrete( double probs[] , int numberofelements)
 {
-   int numberofelements = (*cdf).GetNumberOfElements();
-   double u = myrand();
-   (*cdf) /= (*cdf)( numberofelements - 1 );
-   int k = 0;
-   while( u > (*cdf)(k) )
-      k++;
-
-   return(k);
-}
-
-int SampleFromDiscrete2( Vector_d *probs )
-{
-   int numberofelements = (*probs).GetNumberOfElements();
-   Vector_d cdf( numberofelements );
-   cdf(0) = (*probs)(0);
+   double cdf[ numberofelements ];
+   cdf[0] = probs[0];
    for( int i = 1; i < numberofelements; i++ )
-      cdf(i) = cdf(i-1) + (*probs)(i);
+     cdf[i] = (cdf[i-1] + probs[i]); 
+  for( int i = 0; i < numberofelements; i++ )
+    cdf[i] /= cdf[ numberofelements - 1 ];
    double u = myrand();
-   cdf /= cdf( numberofelements - 1 );
    int k = 0;
-   while( u > cdf(k) )
+   while( u > cdf[k] )
       k++;
-
-   return(k);
-}
-
-int SampleFromDiscrete3( double probs[] , int numberofelements)
-{
-   Vector_d cdf( numberofelements );
-   cdf(0) = probs[0];
-   for( int i = 1; i < numberofelements; i++ )
-     cdf(i) = cdf(i-1) + probs[i];
-   double u = myrand();
-   cdf /= cdf( numberofelements - 1 );
-   int k = 0;
-   while( u > cdf(k) )
-      k++;
-
-   return(k);
+    return(k);
 }
 
 Vector_d gendirichlet( Vector_d alpha )
@@ -165,6 +137,27 @@ Vector_d gendirichlet( Vector_d alpha )
    
    return( theta );
 }
+
+void gendirichlet(const size_t K, const double alpha[], double theta[] )
+{
+   double sum = 0.0;
+
+   for( int i = 0; i < K; i++ )
+     {
+       if( alpha[i] > 0 )
+	 theta[i] = gengam( 1.0, alpha[i] );
+	 
+       else
+         theta[i] = 0.0;
+       sum += theta[i]; 
+     }
+   //need to do proper error catching here
+   assert( sum > 0.0 );
+   for( int i = 0; i < K; i++ )
+     theta[i] /= sum;
+   
+}
+
 
 void ddigam(  double *X, double *ddgam  )
 {
