@@ -142,7 +142,7 @@ void gendirichlet(const size_t K, const double alpha[], double theta[] )
 {
    double sum = 0.0;
 
-   for( int i = 0; i < K; i++ )
+   for( unsigned int i = 0; i < K; i++ )
      {
        if( alpha[i] > 0 )
 	 theta[i] = gengam( 1.0, alpha[i] );
@@ -153,11 +153,10 @@ void gendirichlet(const size_t K, const double alpha[], double theta[] )
      }
    //need to do proper error catching here
    assert( sum > 0.0 );
-   for( int i = 0; i < K; i++ )
+   for( unsigned int i = 0; i < K; i++ )
      theta[i] /= sum;
    
 }
-
 
 void ddigam(  double *X, double *ddgam  )
 {
