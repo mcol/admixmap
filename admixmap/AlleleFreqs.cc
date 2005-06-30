@@ -476,14 +476,13 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 	do{
            etanew = exp( gennor( log( eta[k] ), etastep[k] ) );
 	}while( etanew > 5000.0 );
-	// Prior log-odds ratio         
+	// Prior log-odds ratio (proposal ratio cancels with a part of the prior ratio)   
 	LogPostRatio = ( psi[k] - 1 ) * (log(etanew) - log(eta[k]))
            - tau[k] * ( etanew - eta[k] );
 	// Log-likelihood ratio; numerator of integrating constant
 	LogPostRatio += 2 * NumberOfCompositeLoci
            * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta[k] ) );
 	for(int j = 0; j < NumberOfCompositeLoci; j++ ){
-
 	  Vector_d mu = GetPriorAlleleFreqs(j,k);
 	  //mineta is a lower bound for proposal etanew
            if( mineta < 0.1 * eta[k] / mu.MinimumElement() )
