@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# NEW TEST SCRIPT TO TRY ALL ADMIXMAP OPTIONS AND COMPARE WITH PREVIOUS RUN TO # FIND ANY CHANGES
+# Test Script to test most of ADMIXMAP options and compare results with previous results
 # 
 print "OS is ";print $^O;
 $resultsdir = "results";
@@ -9,7 +9,7 @@ system("mkdir $resultsdir");}
 else {system("mkdir $resultsdir");}
 
 # Change this to the location of the admixmap executable
-my $executable = './admixmap';
+my $executable = 'admixmap';
 
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
@@ -46,13 +46,13 @@ my $arg_hash =
 
 # single population, reference prior on allele freqs  
 $arg_hash->{populations} = 1;
- doAnalysis($executable,$arg_hash, $resultsdir);
- &CompareThenMove("results", "results1");
+doAnalysis($executable,$arg_hash, $resultsdir);
+&CompareThenMove("results", "results1");
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{populations}     = 2;
 $arg_hash->{sumintensities}  = 5;
- doAnalysis($executable,$arg_hash);
+doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results2");
 
 # fixed allele freqs
@@ -73,27 +73,25 @@ $arg_hash->{globalrho}        = 1;
 $arg_hash->{randommatingmodel} = 1;
 delete $arg_hash->{allelefreqscorefile};
 delete $arg_hash->{allelefreqscorefile2};
+delete $arg_hash->{affectedsonlyscorefile};
 $arg_hash->{dispersiontestfile}  = 'dispersiontest.txt';
 $arg_hash->{analysistypeindicator} = 2; # continuous outcome var
 $arg_hash->{targetindicator} = 1; # skin reflectance
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results4");
 
-# - dispersion model for allele freqs 
+# dispersion model for allele freqs 
 delete $arg_hash->{priorallelefreqfile};
 delete $arg_hash->{dispersiontestfile};
 $arg_hash->{historicallelefreqfile} = 'data/priorallelefreqs.txt';
-$arg_hash->{FSToutputfilename} = 'FSToutputfile.txt';
+$arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
+$arg_hash->{fstoutputfile} = 'FSToutputfile.txt';
 $arg_hash->{dispparamfile} = 'disppar.txt';
 $arg_hash->{randommatingmodel} = 0;
 $arg_hash->{analysistypeindicator} = 3; # binary outcome var
 $arg_hash->{targetindicator} = 0; # diabetes
- doAnalysis($executable,$arg_hash);
- &CompareThenMove("results", "results5");
-
-##NOTE
-##Dispersion model doesn't work with a linear regression
-##Needs fixing
+doAnalysis($executable,$arg_hash);
+&CompareThenMove("results", "results5");
 
 #Single individual
 my $arg_hash = 
@@ -110,7 +108,9 @@ my $arg_hash =
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
     randommatingmodel            => 1,
     globalrho                    => 0,
-    sumintensities		 => 99,
+ #rhoalpha => 1.0, #flat prior on sumintensities
+#rhobeta => 0.0,
+sumintensities => 99,
 #    fixedallelefreqs             => 1,
     initalpha0                   => "1,1,1",
     initalpha1                   => "1,1,0",
@@ -153,9 +153,12 @@ sub CompareThenMove{
 	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
 	while ( defined (my $file = readdir SOURCE) ) {
 	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt"));     # skip . and .. and logfile
-	    system("$diffcmd $sourcedir$slash$file $targetdir$slash$prefix$file");}#compare
-	closedir(SOURCE);
+	    system("$diffcmd $sourcedir$slash$file $targetdir$slash$prefix$file");
 	if($^O eq "MSWin32"){system("pause")}  # for checking comparisons 
+	}#compare
+
+	closedir(SOURCE);
+
 	}
 ###################
     if (-e $sourcedir) {
