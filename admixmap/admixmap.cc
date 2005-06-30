@@ -240,10 +240,7 @@ void submain(AdmixOptions* options){
 
 	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
 	if (!(iteration % (options->getSampleEvery() * 10))){    
-	  //FST
-	  if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-	    A.OutputFST(options->IsPedFile());
-	  }
+
 	  //Ergodic averages
 	  if ( strlen( options->getErgodicAverageFilename() ) ){
 	    int samples = iteration - options->getBurnIn();
@@ -258,7 +255,7 @@ void submain(AdmixOptions* options){
 	  }
 	  //Test output
 
-	  if( options->getStratificationTest() ) StratTest.Output();
+
 	  if( options->getScoreTestIndicator() )
 	    Scoretest.Output(iteration,PopulationLabels);
 	}//end of 'every'*10 output
@@ -268,6 +265,12 @@ void submain(AdmixOptions* options){
     }//end main loop
 
     //output at end
+    //FST
+    if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+      A.OutputFST(options->IsPedFile());
+    }
+    //stratification test
+    if( options->getStratificationTest() ) StratTest.Output();
     //dispersion test
     if( options->getTestForDispersion() )  DispTest.Output(options->getTotalSamples() - options->getBurnIn(), Loci, PopulationLabels);
     //tests for mis-specified allele frequencies
