@@ -84,6 +84,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     sumxi = new int[numCompositeLoci];
 
     LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers 
+    SumLocusAncestry_X = 0;
 
     Theta = 0;
     ThetaX = 0;
