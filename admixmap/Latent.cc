@@ -80,8 +80,15 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   }
   if(!options->getIndAdmixHierIndicator())  SumAlpha = alpha[0];
 
-  //Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta
-  //
+  eta = alpha[0].Sum();
+  mu = new double[ options->getPopulations() ];
+  sumlogtheta = new double[ options->getPopulations() ];
+  PopAdmixSampler.SetSize( options->getPopulations() );
+  for( int i = 0; i < options->getPopulations(); i++ ){
+     mu[i] = alpha[0](i)/eta;
+  }
+
+//Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta
   rho = options->getRho();
 
   if( options->getRho() == 99 ){
@@ -139,10 +146,10 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   }
   //if( options->getAnalysisTypeIndicator() > -1 ){
   AlphaParameters[1] = alpha[0].Sum();
-     AlphaParameters[2] = 1;
-     AlphaParameters[3] = 1;
-     AlphaParameters[4] = 1;
-     //}
+  AlphaParameters[2] = 1;
+  AlphaParameters[3] = 1;
+  AlphaParameters[4] = 1;
+  //}
 
   Matrix_i empty_i(1,1);
   Matrix_d empty_d(1,1);
@@ -168,12 +175,14 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
    // RhoParameters[3] is a sum over individuals 
 
    RhoDraw = new DARS(0,1,(double)1,RhoParameters,4,frho,dfrho,ddfrho,
-                            rhodata_i,rhodata_d);
+                      rhodata_i,rhodata_d);
 }
 
 Latent::~Latent()
 {
   delete RhoDraw;
+//   delete mu;
+//   delete sumlogtheta;
   for(int i=0; i<options->getPopulations(); i++){
     delete DirParamArray[i];
   }
@@ -378,74 +387,79 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
 
   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
       options->getIndAdmixHierIndicator() ){
-    if( Loci->GetLengthOfGenome() > 0.0 ){
+     if( Loci->GetLengthOfGenome() > 0.0 ){
       // Sample for global rho
-      if( !options->getRhoIndicator() ){
-	//RhoParameters[3] = individuals->GetSumrho0();//equivalent to next line
-	RhoParameters[3] = Individual::getSumrho0();
-	for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
-	  //rhodata_i(j,0) = individuals->GetSumXi()[j];//equivalent to next line
-	  rhodata_i(j,0) = Individual::getSumXi(j);
-	//rhodata_i.SetColumn( 0, individuals->GetSumXi() );
-	rho = sampleForRho();
-      }
-      else{
-	// sample for location parameter of gamma distribution of sumintensities parameters 
-	// in population 
-	if( options->isRandomMatingModel() )
-	  rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
-			    2*rhoalpha * individuals->getSize() + rhobeta0 );
-	else
-	  rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
-			    rhoalpha* individuals->getSize() + rhobeta0 );
-      }
-    }
-           
-    // For a model in which the distribution of individual admixture in the population is a mixture
-    // of components, we will have one Dirichlet parameter vector for each component, 
-    // updated only from those individuals who belong to the component
-    // Sample for population admixture distribution Dirichlet parameters alpha
-    for( int j = 0; j < options->getPopulations(); j++ ){
-      AlphaParameters[1] -= alpha[0]( j );
-      AlphaParameters[4] = individuals->getSumLogTheta(j);
-      // elements of Dirichlet parameter vector are updated one at a time
-      DirParamArray[j]->UpdateParameters( AlphaParameters, 5 );
-      alpha[0]( j ) = DirParamArray[j]->Sample();
-      AlphaParameters[1] += alpha[0]( j );
-    }
-    // accumulate sum of Dirichlet parameter vector over iterations 
-    SumAlpha += alpha[0];
+        if( !options->getRhoIndicator() ){
+           //RhoParameters[3] = individuals->GetSumrho0();//equivalent to next line
+           RhoParameters[3] = Individual::getSumrho0();
+           for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+              //rhodata_i(j,0) = individuals->GetSumXi()[j];//equivalent to next line
+              rhodata_i(j,0) = Individual::getSumXi(j);
+           //rhodata_i.SetColumn( 0, individuals->GetSumXi() );
+           rho = sampleForRho();
+        }
+        else{
+           // sample for location parameter of gamma distribution of sumintensities parameters 
+           // in population 
+           if( options->isRandomMatingModel() )
+              rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
+                                2*rhoalpha * individuals->getSize() + rhobeta0 );
+           else
+              rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
+                                rhoalpha* individuals->getSize() + rhobeta0 );
+        }
+     }
+     
+     // For a model in which the distribution of individual admixture in the population is a mixture
+     // of components, we will have one Dirichlet parameter vector for each component, 
+     // updated only from those individuals who belong to the component
+     // Sample for population admixture distribution Dirichlet parameters alpha
+     for( int j = 0; j < options->getPopulations(); j++ ){
+//         AlphaParameters[1] -= alpha[0]( j );        
+//         AlphaParameters[4] = individuals->getSumLogTheta(j);
+//         // elements of Dirichlet parameter vector are updated one at a time
+//         DirParamArray[j]->UpdateParameters( AlphaParameters, 5 );
+//         alpha[0]( j ) = DirParamArray[j]->Sample();
+//         AlphaParameters[1] += alpha[0]( j );
+        sumlogtheta[j] = individuals->getSumLogTheta(j);
+     }
+     PopAdmixSampler.Sample( AlphaParameters[0], sumlogtheta, &eta, mu );
+     for( int j = 0; j < options->getPopulations(); j++ ){
+        alpha[0]( j ) = mu[j] * eta;
+     }
+     // accumulate sum of Dirichlet parameter vector over iterations 
+     SumAlpha += alpha[0];
   }
-
+  
   if( iteration == options->getBurnIn() && options->getAnalysisTypeIndicator() > 1 ){
-    *LogFileStreamPtr << "Individual admixture centred in regression model around: "
-		     << *poptheta << endl;
-
-    SumAlpha.SetElements(0);
+     *LogFileStreamPtr << "Individual admixture centred in regression model around: "
+                       << *poptheta << endl;
+     
+     SumAlpha.SetElements(0);
   }
-
+  
   if( iteration < options->getBurnIn() && options->getPopulations() > 1
       && options->getAnalysisTypeIndicator() > 1 ){
-    // accumulate ergodic average of population admixture, which is used to centre 
-    // the values of individual admixture in the regression model
-    *poptheta = SumAlpha / SumAlpha.Sum();
-
+     // accumulate ergodic average of population admixture, which is used to centre 
+     // the values of individual admixture in the regression model
+     *poptheta = SumAlpha / SumAlpha.Sum();
+     
   }
   if( iteration > options->getBurnIn() ){
-    // accumulate sum of rho parameters after burnin.
-    if( options->getPopulations() > 1 ){
-      SumRho += rho;
-    }
+     // accumulate sum of rho parameters after burnin.
+     if( options->getPopulations() > 1 ){
+        SumRho += rho;
+     }
   }
-
+  
 }
 //end Update
 
 Vector_d *Latent::getalpha0(){
-  return &alpha[0];
+   return &alpha[0];
 }
 std::vector<Vector_d> Latent::getalpha(){
-  return alpha;
+   return alpha;
 }
 
 double Latent::getrhoalpha(){

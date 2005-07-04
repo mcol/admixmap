@@ -30,7 +30,7 @@
 #include "IndividualCollection.h"
 #include "Genome.h"
 #include "LogWriter.h"
-
+#include "DirichletParamSampler.h"
 
 class InputData;
 class IndividualCollection;
@@ -81,7 +81,11 @@ private:
   double rhobeta1;
   double SumRho; //
 
-  std::vector<Vector_d> alpha; //population admixture
+   double eta;
+   double *mu;
+   double *sumlogtheta;
+   DirichletParamSampler PopAdmixSampler;
+   std::vector<Vector_d> alpha; //population admixture
   Vector_d SumAlpha; //
 
   //std::vector<bool> _admixed; //population
