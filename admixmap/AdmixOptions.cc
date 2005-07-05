@@ -269,9 +269,9 @@ const char *AdmixOptions::getHistoricalAlleleFreqFilename() const
   return HistoricalAlleleFreqFilename.c_str();
 }
 
-const char *AdmixOptions::getInputFilename() const
+const char *AdmixOptions::getCovariatesFilename() const
 {
-  return InputFilename.c_str();
+  return CovariatesFilename.c_str();
 }
 
 const char *AdmixOptions::getMLEFilename() const
@@ -366,9 +366,9 @@ bool AdmixOptions::getStratificationTest() const
 void AdmixOptions::setStratificationTest(bool b){
   StratificationTestIndicator = b;
 }
-const char *AdmixOptions::getTargetFilename() const
+const char *AdmixOptions::getOutcomeVarFilename() const
 {
-  return TargetFilename.c_str();
+  return OutcomeVarFilename.c_str();
 }
 
 bool AdmixOptions::getTestForAffectedsOnly() const
@@ -695,7 +695,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
       } else if (long_option_name == "analysistypeindicator") {
 	 AnalysisTypeIndicator = (int)strtol(optarg, NULL, 10);OptionValues["analysistypeindicator"]=optarg;
       } else if (long_option_name == "covariatesfile") {
-	 InputFilename = optarg;OptionValues["covariatesfile"]=optarg;
+	 CovariatesFilename = optarg;OptionValues["covariatesfile"]=optarg;
       } else if (long_option_name == "mlefile") {
 	 MLEFilename = optarg;OptionValues["mlefile"]=optarg;
       } else if (long_option_name == "dispersiontestfile") {
@@ -753,7 +753,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	  exit(1);
 	}
       } else if (long_option_name == "outcomevarfile") {
-	 TargetFilename = optarg;OptionValues["outcomevarfile"]=optarg;
+	 OutcomeVarFilename = optarg;OptionValues["outcomevarfile"]=optarg;
       } else if (long_option_name == "populations") {
 	setPopulations((int)strtol(optarg, NULL, 10));OptionValues["populations"]=optarg;
       } else if (long_option_name == "priorallelefreqfile") {
@@ -850,68 +850,68 @@ void AdmixOptions::PrintOptions(){
 int AdmixOptions::checkOptions(LogWriter *Log){
 
   // **** analysis type  ****
-  if (getAnalysisTypeIndicator() == 0)
+  if (AnalysisTypeIndicator == 0)
     {
       Log->logmsg(true,"Affecteds only analysis.\n");
-      if( !getTestForAffectedsOnly() ){
+      if( !TestForAffectedsOnly ){
         Log->logmsg(true,"Must specify affectedsonlyscorefile.\n");
       }
     }
-  else if (getAnalysisTypeIndicator() == 1)
+  else if (AnalysisTypeIndicator == 1)
     {
       Log->logmsg(true,"Cross sectional analysis, no outcome.\n");
     }
-  else if (getAnalysisTypeIndicator() == 2)
+  else if (AnalysisTypeIndicator == 2)
     {
       Log->logmsg(true,"Cross sectional analysis, continuous outcome.\n");
-      if( strlen(getTargetFilename() ) == 0 )
+      if( OutcomeVarFilename.length() == 0 )
 	{
-	   Log->logmsg(true,"Must specify target filename.\n");
+	   Log->logmsg(true,"Must specify outcomevar file.\n");
 	   exit(0);
 	}
     }
-  else if (getAnalysisTypeIndicator() == 3)
+  else if (AnalysisTypeIndicator == 3)
     {
       Log->logmsg(true,"Cross sectional analysis, binary outcome.\n");
-      if( strlen(getTargetFilename() ) == 0 )
+      if( OutcomeVarFilename.length() == 0 )
 	{
-	  Log->logmsg(true,"Must specify target filename.\n");
+	  Log->logmsg(true,"Must specify outcomevar file.\n");
 	  exit(0);
 	}
     }
-  else if (getAnalysisTypeIndicator() == 4)
+  else if (AnalysisTypeIndicator == 4)
     {
       Log->logmsg(true,"Case control analysis.\n");
-      if( strlen(getTargetFilename() ) == 0  )
+      if( OutcomeVarFilename.length() == 0  )
 	{
-	   Log->logmsg(true,"Must specify target filename.\n");
+	   Log->logmsg(true,"Must specify outcomevar file.\n");
 	   exit(0);
 	}
     }
-  else if (getAnalysisTypeIndicator() == 5)
+  else if (AnalysisTypeIndicator == 5)
     {
       Log->logmsg(true,"Cross sectional analysis, multiple outcome.\n");
-      if( strlen(getTargetFilename() ) == 0  )
+      if( OutcomeVarFilename.length() == 0  )
 	{
-	  Log->logmsg(true,"Must specify target filename.\n");
+	  Log->logmsg(true,"Must specify outcomevar file.\n");
 	  exit(0);
 	}
     }
-  else if (getAnalysisTypeIndicator() == -1 || getAnalysisTypeIndicator() == -2)
+  else if (AnalysisTypeIndicator == -1 || AnalysisTypeIndicator == -2)
     {
       Log->logmsg(true,"One individual analysis");
-      if(getMLIndicator())Log->logmsg(true, " with marginal likelihood calculation");
+      if(MLIndicator)Log->logmsg(true, " with marginal likelihood calculation");
       Log->logmsg(true, "\n");
     }
 
   else
     {
       Log->logmsg(true,"Unknown analysis type: ");
-      Log->logmsg(true, getAnalysisTypeIndicator());
+      Log->logmsg(true, AnalysisTypeIndicator);
       Log->logmsg(true, "\n");
       exit(0);
     }
-  if(getAnalysisTypeIndicator() < 2 && RegressionOutputFilename.length() > 0){
+  if(AnalysisTypeIndicator < 2 && RegressionOutputFilename.length() > 0){
     Log->logmsg(true, "ERROR: regparamfile option is not valid without a regression model\n");
     Log->logmsg(true, "\tThis option will be ignored\n");
     RegressionOutputFilename = "";
@@ -920,23 +920,23 @@ int AdmixOptions::checkOptions(LogWriter *Log){
 
 
   // **** Hierarchical model on ind admixture ****
-  if (!getIndAdmixHierIndicator())
+  if (!IndAdmixHierIndicator)
     {
       Log->logmsg(true,"No hierarchical model for individuals.\n");
 
-      if(strlen( getParameterFilename() ) ){
+      if(ParameterFilename.length() > 0 ){
 	Log->logmsg(true, "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n");
 	Log->logmsg(true, "\tThis option will be ignored\n");
 	 ParameterFilename = "";
 	OptionValues.erase("paramfile");
       }
-      if(strlen(getRegressionOutputFilename())){
+      if(RegressionOutputFilename.length() > 0){
 	Log->logmsg(true, "ERROR: regparamfile option is not valid with indadmixhierindicator = 0\n");
 	Log->logmsg(true, "\tThis option will be ignored\n");
 	RegressionOutputFilename = "";
 	OptionValues.erase("regparamfile");
 	 }
-      if(strlen( getEtaOutputFilename() ) ){
+      if(EtaOutputFilename.length() > 0 ){
 	Log->logmsg(true, "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n");
 	Log->logmsg(true, "\tThis option will be ignored\n");
 	 EtaOutputFilename = "";
@@ -945,24 +945,24 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
 
   // **** Random Mating Model **** 
-  if(isRandomMatingModel() )
+  if(RandomMatingModel )
     Log->logmsg(true,"Model assuming random mating.\n");
   else 
     Log->logmsg(true,"Model assuming assortative mating.\n");
 
   // **** global rho ****
-  if( !getRhoIndicator() )
+  if( !RhoIndicator )
     Log->logmsg(true,"Model with global sumintensities.\n");
-  else if( isRandomMatingModel() )
+  else if( RandomMatingModel )
     Log->logmsg(true,"Model with gamete specific sumintensities.\n");
   else
     Log->logmsg(true,"Model with individual specific sumintensities.\n");
 
   // **** Marginal Likelihood ****
-  if(getMLIndicator()){
-    if(getAnalysisTypeIndicator() >= 0){
+  if(MLIndicator){
+    if(AnalysisTypeIndicator >= 0){
       Log->logmsg(true, "Error: Cannot calculate marginal likelihood with analysis type ");
-      Log->logmsg(true, getAnalysisTypeIndicator());
+      Log->logmsg(true, AnalysisTypeIndicator);
       Log->logmsg(true, "\n");
       exit(0);
     }
@@ -972,43 +972,43 @@ int AdmixOptions::checkOptions(LogWriter *Log){
 
 
   // **** Check whether genotypes file has been specified ****
-  if ( strlen(getGeneticDataFilename() ) == 0 )
+  if ( GeneticDataFilename.length() == 0 )
     {
       Log->logmsg(true,"Must specify geneticdata filename.\n");
       exit( 1 );
     }
 
   // **** model for allele freqs ****
-  if(getPopulations() > 0 )
+  if(Populations > 0 )
     {
       Log->logmsg(true,"No allelefreq filename or priorallelefreq filename given.\n");
       Log->logmsg(true,"Default priors will be set for the allele frequencies with ");
-      Log->logmsg(true,getPopulations());
+      Log->logmsg(true, Populations);
       Log->logmsg(true," populations.\n");
     }
-  else if( strlen( getAlleleFreqFilename() ) ||
-           (strlen( getPriorAlleleFreqFilename() ) && getFixedAlleleFreqs() ) ){
+  else if( alleleFreqFilename.length() ||
+           (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
     Log->logmsg(true,"Analysis with fixed allele frequencies.\n");
   }
-  else if( strlen(getPriorAlleleFreqFilename() ) && !getFixedAlleleFreqs() ){
+  else if( PriorAlleleFreqFilename.length() && !fixedallelefreqs ){
     Log->logmsg(true,"Analysis with prior allele frequencies.\n");
   }
-  else if( strlen( getHistoricalAlleleFreqFilename() ) ){
+  else if( HistoricalAlleleFreqFilename.length() > 0 ){
     Log->logmsg(true,"Analysis with dispersion model for allele frequencies.\n");
   }
-  if ( strlen( getGeneInfoFilename() ) == 0 )
+  if ( GeneInfoFilename.length() == 0 )
     {
       Log->logmsg(true,"Must specify locusinfo filename.\n");
       exit( 1 );
     }
 
   // **** score tests ****
-  if( getTestForLinkageWithAncestry() && getPopulations() == 1 ){
+  if( TestForLinkageWithAncestry && Populations == 1 ){
     Log->logmsg(true,"Cannot test for linkage with ancestry with 1 population.\n");
     exit(0);
   }
-  if(getTestForAdmixtureAssociation() &&
-      ( getTestForLinkageWithAncestry() || getTestForAllelicAssociation() ) ){
+  if(TestForAdmixtureAssociation &&
+      ( TestForLinkageWithAncestry || TestForAllelicAssociation ) ){
     Log->logmsg(true,"Cannot test for linkage with ancestry or allelic association\n");
     Log->logmsg(true,"with score test for association. Can only use affecteds only test\n");
     Log->logmsg(true,"for linkage.\n");
@@ -1017,12 +1017,33 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     exit(1);
   }
 
-  if( getTestForMisspecifiedAlleleFreqs() &&
-      ( !strlen( getAlleleFreqFilename() ) && !(getFixedAlleleFreqs()) ) ){
-    Log->logmsg(true,"Cannot test for mis-specified allele frequencies with nonfixed allele frequencies.\n");
-    exit(0);
+  if( TestForMisspecifiedAlleleFreqs &&
+      ( alleleFreqFilename.length()==0 && !(fixedallelefreqs) ) ){
+    Log->logmsg(true,"Cannot test for mis-specified allele frequencies unless allele frequencies are fixed.\n");
+    exit(1);
   }
 
+  if( TestForAffectedsOnly )
+    if(!(AnalysisTypeIndicator==0 || AnalysisTypeIndicator==3 || AnalysisTypeIndicator==4)){
+      Log->logmsg(true,"ERROR: affectedsonly score test is only valid with analysistypeindicator 0, 3, or 4.");
+      Log->logmsg(true," This option will be ignored.\n");
+      setTestForAffectedsOnly(false);
+    }
+  if( TestForLinkageWithAncestry ){
+    if(AnalysisTypeIndicator < 2){
+      Log->logmsg(true,"ERROR: ancestryassociation score test is not valid with analysistypeindicator < 2 .");
+      Log->logmsg(true," This option will be ignored.\n");
+      setTestForLinkageWithAncestry(false);
+    }
+  }
+  if( TestForAllelicAssociation ){
+    if( AnalysisTypeIndicator < 2 ){
+      Log->logmsg(true,"ERROR: allelic association score test is not valid with analysistypeindicator < 2.");
+      Log->logmsg(true," This option will be ignored.\n");
+      setTestForAllelicAssociation(false);
+    }
+  }
+      
   return 1;
 }
 

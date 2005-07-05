@@ -129,8 +129,8 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       // Read all input files.
       readFile(options->getGeneInfoFilename(), geneInfoData_);   //locusfile
       readFile(options->getGeneticDataFilename(), geneticData_); //genotypes file
-      readFile(options->getInputFilename(), inputData_);         //covariates file
-      readFile(options->getTargetFilename(), targetData_);       //outcomevar file                
+      readFile(options->getCovariatesFilename(), inputData_);         //covariates file
+      readFile(options->getOutcomeVarFilename(), targetData_);       //outcomevar file                
       readFile(options->getAlleleFreqFilename(), alleleFreqData_);
       readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_);            
       readFile(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_);
@@ -164,9 +164,9 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
   checkLociNames(options);
- if ( strlen( options->getTargetFilename() ) != 0 )
+ if ( strlen( options->getOutcomeVarFilename() ) != 0 )
    CheckOutcomeVarFile((bool)(options->getAnalysisTypeIndicator() != 5));
- if ( strlen( options->getInputFilename() ) != 0 )
+ if ( strlen( options->getCovariatesFilename() ) != 0 )
    CheckCovariatesFile();
  if ( strlen( options->getReportedAncestryFilename() ) != 0 )
    CheckRepAncestryFile(options->getPopulations());

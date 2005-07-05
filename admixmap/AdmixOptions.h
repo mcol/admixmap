@@ -63,14 +63,14 @@ public:
   //input file names
   const char *getGeneInfoFilename() const;
   const char *getGeneticDataFilename() const;
-  const char *getInputFilename() const;  
+  const char *getCovariatesFilename() const;  
   const char *getMLEFilename() const;
   const char *getHistoricalAlleleFreqFilename() const;
   const char *getPriorAlleleFreqFilename() const;
   const char *getAlleleFreqFilename() const;
   const char *getReportedAncestryFilename() const;
   const char *getEtaPriorFilename() const;
-  const char *getTargetFilename() const;  
+  const char *getOutcomeVarFilename() const;  
   int getTargetIndicator() const;
   double getRho() const;  
 
@@ -202,8 +202,8 @@ private:
   string GeneticDataFilename;
   string HistoricalAlleleFreqFilename;
   string PriorAlleleFreqFilename;
-  string InputFilename;
-  string TargetFilename;
+  string CovariatesFilename;
+  string OutcomeVarFilename;
   string MLEFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;

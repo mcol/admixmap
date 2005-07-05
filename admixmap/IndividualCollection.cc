@@ -31,8 +31,7 @@ IndividualCollection::IndividualCollection()
 IndividualCollection::~IndividualCollection()
 {
   Individual::DeleteStaticMembers();
-  //for(unsigned int i=0;i<_child.size();i++){
-  for(unsigned int i=0;i<NumInd;i++){
+  for(unsigned int i = 0; i < NumInd; i++){
     delete _child[i];
   }
   delete[] _child;
@@ -58,7 +57,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
 
   _child = new Individual*[NumInd];
-  Individual::SetStaticMembers(&Loci, options->getPopulations());
+  Individual::SetStaticMembers(&Loci, options);
     // Fill separate individuals.
   for (unsigned int i = 0; i < NumInd; ++i) {
     _child[i] = new Individual(i+1,options, Data, Loci, chrm);
@@ -368,14 +367,14 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
 }
 
 void IndividualCollection::LoadData(AdmixOptions *options, InputData *data_, LogWriter *Log){
-   if ( strlen( options->getInputFilename() ) != 0 ){
+   if ( strlen( options->getCovariatesFilename() ) != 0 ){
     if( options->getTextIndicator() ){  
       LoadCovariates(data_);
     }
   }
   if ( Input.GetNumberOfMissingValues() ) Input.SetMissingValuesToColumnMeans();
 
-  if ( strlen( options->getTargetFilename() ) != 0 ){
+  if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
     LoadOutcomeVar(options, data_, Log);
   }
   if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
