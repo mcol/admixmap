@@ -40,7 +40,7 @@ public:
 
   ~Individual();
 
-  static void SetStaticMembers(Genome *pLoci, int pops);
+  static void SetStaticMembers(Genome *pLoci, AdmixOptions *options);
 
   static void ResetStaticSums();
 
@@ -101,14 +101,11 @@ public:
 		      vector<double> &rhohat, vector<double> &rhohatX,
 		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs *A);
 
-  static void InitialiseAffectedsOnlyScores(int L, int K);
-  static void InitialiseAncestryScores(int L, int K);
   static void ResetScores(AdmixOptions *options);
  
-  static void SumScoresForLinkageAffectedsOnly(int j,int Populations, Matrix_d *SumAffectedsScore, 
+  static void SumScoresForLinkageAffectedsOnly(int j, Matrix_d *SumAffectedsScore, 
 					       Matrix_d *SumAffectedsVarScore,Matrix_d *SumAffectedsScore2, Matrix_d *SumAffectedsInfo);
-  static void SumScoresForAncestry(int j, int Populations,  
-				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
+  static void SumScoresForAncestry(int j, Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
 				      Matrix_d *SumAncestryVarScore);
 
 
@@ -188,8 +185,8 @@ private:
 
   void setIsMissing(vector<unsigned int >& decoded);
 
-  void UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool ModelIndicator, Chromosome **);//could be private
-  void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **, int Populations);
+  void UpdateScoreForLinkageAffectedsOnly(int j, bool ModelIndicator, Chromosome **);
+  void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **);
 };
 
 

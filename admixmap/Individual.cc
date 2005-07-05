@@ -26,10 +26,10 @@
 double **Individual::AffectedsScore = 0;
 double **Individual::AffectedsVarScore = 0;
 double **Individual::AffectedsInfo = 0;
-Matrix_d *Individual::AncestryScore;
-Matrix_d *Individual::AncestryInfo;
-double **Individual::AncestryVarScore;
-double **Individual::AncestryInfoCorrection;
+Matrix_d *Individual::AncestryScore = 0;
+Matrix_d *Individual::AncestryInfo = 0;
+double **Individual::AncestryVarScore = 0;
+double **Individual::AncestryInfoCorrection = 0;
 Matrix_d Individual::B;
 Matrix_d Individual::PrevB;
 Matrix_d Individual::Xcov;
@@ -84,7 +84,6 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     sumxi = new int[numCompositeLoci];
 
     LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers 
-    SumLocusAncestry_X = 0;
 
     Theta = 0;
     ThetaX = 0;
@@ -93,6 +92,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
  
     // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
     SumLocusAncestry = new int[options->getPopulations()*2];
+
     if( options->isRandomMatingModel() ){//random mating model
       ThetaProposal = new double[ Populations * 2 ];
     }
@@ -100,7 +100,8 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
       ThetaProposal = new double[ Populations];
     }
 
-    //X chromosome objects    
+    //X chromosome objects
+    SumLocusAncestry_X = 0;    
     if(Loci.isX_data() ){
       if( sex == 1 ){
 	ThetaXProposal = new double[ Populations];
@@ -151,32 +152,38 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 
  }
 
-void Individual::SetStaticMembers(Genome *pLoci, int Pops){
+void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
   Loci = pLoci;
   numChromosomes = Loci->GetNumberOfChromosomes();
-  Populations = Pops;
+  Populations = options->getPopulations();
+  int L = Loci->GetNumberOfCompositeLoci();
+
   AncestryScore = 0;
   AncestryInfo = 0;
   AncestryVarScore = 0;
   AncestryInfoCorrection = 0;
-}
-void Individual::InitialiseAffectedsOnlyScores(int L, int K){
-  AffectedsScore = alloc2D_d(L, K);
-  AffectedsVarScore = alloc2D_d(L, K);
-  AffectedsInfo = alloc2D_d(L, K);
-}
-void Individual::InitialiseAncestryScores(int L, int K){
-  AncestryScore = new Matrix_d[L];
-  AncestryInfo = new Matrix_d[L];
-  for(int i = 0; i < L; ++i){
-    AncestryScore[i].SetNumberOfElements(2 * K, 1);
-    AncestryInfo[i].SetNumberOfElements(2 * K, 2 * K);
+
+  int K = Populations;
+
+  if( options->getTestForAffectedsOnly() ){
+    if(Populations == 2) K = 1;
+    AffectedsScore = alloc2D_d(L, K);
+    AffectedsVarScore = alloc2D_d(L, K);
+    AffectedsInfo = alloc2D_d(L, K);
   }
-  AncestryVarScore = alloc2D_d(L, K);
-  AncestryInfoCorrection = alloc2D_d(L, K);
-  B.SetNumberOfElements(K,K);
-  PrevB.SetNumberOfElements(K,K);
-  Xcov.SetNumberOfElements(K,1);
+  if( options->getTestForLinkageWithAncestry() ){
+    AncestryScore = new Matrix_d[L];
+    AncestryInfo = new Matrix_d[L];
+    for(int i = 0; i < L; ++i){
+      AncestryScore[i].SetNumberOfElements(2 * K, 1);
+      AncestryInfo[i].SetNumberOfElements(2 * K, 2 * K);
+    }
+    AncestryVarScore = alloc2D_d(L, K);
+    AncestryInfoCorrection = alloc2D_d(L, K);
+    B.SetNumberOfElements(K,K);
+    PrevB.SetNumberOfElements(K,K);
+    Xcov.SetNumberOfElements(K,1);
+  }
 }
 
 Individual::~Individual()
@@ -491,15 +498,15 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
     if(iteration > options->getBurnIn()){
       //Update affecteds only scores
       if( options->getAnalysisTypeIndicator() == 0 ) 
-	UpdateScoreForLinkageAffectedsOnly(j,Populations, options->isRandomMatingModel(), 
+	UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(), 
 					   chrm );
       else if( options->getTestForAffectedsOnly() && Outcome[0](i,0) == 1 ){
-	UpdateScoreForLinkageAffectedsOnly(j,Populations, options->isRandomMatingModel(), 
+	UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(), 
 					   chrm );
       }
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){   
-	UpdateScoreForAncestry(j,dispersion, Outcome[0](i,0) - ExpectedY[0][i], DInvLink,chrm, Populations );
+	UpdateScoreForAncestry(j,dispersion, Outcome[0](i,0) - ExpectedY[0][i], DInvLink,chrm);
       }    
     }
 
@@ -750,7 +757,7 @@ void Individual::ResetScores(AdmixOptions *options){
   }
 }
 
-void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool RandomMatingModel, Chromosome **chrm){
+void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingModel, Chromosome **chrm){
   // Different from the notation in McKeigue et  al. (2000). McKeigue
   // uses P0, P1, P2, which relate to individual admixture as follows;
   // P0 = ( 1 - theta0 ) * ( 1 - theta1 )
@@ -761,13 +768,17 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool 
   // real line.  This test is on log r, which should have better
   // asymptotic properties.
 
+  //we don't bother computing scores for the first populstion when there are two
+  int KK = Populations,k1 = 0;
+  if(Populations ==2) {KK = 1;k1 = 1;}
+  
   double theta[2];//paternal and maternal admixture proportions
   double AProbs[Populations][3];
 
-  for( int k = 0; k < Populations; k++ ){
-    theta[0] = Theta[ k ];
+  for( int k = 0; k < KK; k++ ){
+    theta[0] = Theta[ k+k1 ];
     if( RandomMatingModel )
-      theta[1] = Theta[ Populations + k ];
+      theta[1] = Theta[ Populations + k+k1 ];
     else
       theta[1] = theta[0];
 
@@ -777,15 +788,15 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j,int Populations, bool 
       //retrieve AncestryProbs from HMM
       chrm[j]->getAncestryProbs( jj, AProbs );
       //accumulate score, score variance, and info
-      AffectedsScore[locus][k]+= 0.5*( AProbs[k][1] + 2.0*AProbs[k][2] - theta[0] - theta[1] );
-      AffectedsVarScore[locus][k]+= 0.25 *( AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0]); 
+      AffectedsScore[locus][k]+= 0.5*( AProbs[k+k1][1] + 2.0*AProbs[k+k1][2] - theta[0] - theta[1] );
+      AffectedsVarScore[locus][k]+= 0.25 *( AProbs[k+k1][1]*(1.0 - AProbs[k+k1][1]) + 4.0*AProbs[k+k1][2]*AProbs[k+k1][0]); 
       AffectedsInfo[locus][k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
       ++locus;
     }
   }
 }
 
-void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, double DInvLink, Chromosome **chrm,int Populations)
+void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, double DInvLink, Chromosome **chrm)
 {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
@@ -797,7 +808,7 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   //Xcov is a vector of covariates
   //Note that only the intercept and admixture proportions are used.
   // X is (A, cov)'  
-
+  
   double AProbs[Populations][3];
   Matrix_d X(2 * Populations, 1);
   Vector_d temp(Populations);
@@ -808,7 +819,7 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   //set covariates 
   for( int k = 0; k < Populations - 1; k++ ){
     X( k + Populations, 0 ) = Theta[ k ];
-    Xcov(k,0) = Theta[ k ];
+    Xcov(k,0) = Theta[ k];
   }
 
   int locus; 
@@ -836,9 +847,12 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   }//end locus loop
 }
 
-void Individual::SumScoresForLinkageAffectedsOnly(int j,int Populations, Matrix_d *SumAffectedsScore, 
+void Individual::SumScoresForLinkageAffectedsOnly(int j, Matrix_d *SumAffectedsScore, 
 				      Matrix_d *SumAffectedsVarScore,Matrix_d *SumAffectedsScore2, Matrix_d *SumAffectedsInfo){
-  for( int kk = 0; kk < Populations; kk++ ){
+  int KK = Populations;
+  if(KK == 2) KK = 1;
+
+  for( int kk = 0; kk < KK; kk++ ){
     (*SumAffectedsScore)(j,kk) += AffectedsScore[j][kk];
     (*SumAffectedsVarScore)(j,kk) += AffectedsVarScore[j][kk];
     (*SumAffectedsInfo)(j,kk) += AffectedsInfo[j][kk];
@@ -846,19 +860,23 @@ void Individual::SumScoresForLinkageAffectedsOnly(int j,int Populations, Matrix_
   }
 }
 
-void Individual::SumScoresForAncestry(int j, int Populations,  
+void Individual::SumScoresForAncestry(int j,   
 				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
 				      Matrix_d *SumAncestryVarScore){
   Matrix_d score, info;
-  
+ 
   CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], &score, &info );
   
-  //accumulate over iterations     
-  for( int k = 0; k < Populations ; k++ ){
-    (*SumAncestryScore)(j,k) += score(k,0);
-    (*SumAncestryInfo)(j,k)  += info(k,k) + AncestryInfoCorrection[j][k];
-    (*SumAncestryScore2)(j,k) += score(k,0) * score(k,0);
-    (*SumAncestryVarScore)(j,k) += AncestryVarScore[j][k];
+  //accumulate over iterations
+  //for two populations, we only accumulate the scores for the second populations
+  int KK = Populations, k1 = 0;
+  if(Populations == 2){KK = 1; k1 = 1;}
+     
+  for( int k = 0; k < KK ; k++ ){
+    (*SumAncestryScore)(j,k) += score(k + k1,0);
+    (*SumAncestryInfo)(j,k)  += info(k+k1,k+k1) + AncestryInfoCorrection[j][k+k1];
+    (*SumAncestryScore2)(j,k) += score(k+k1,0) * score(k+k1,0);
+    (*SumAncestryVarScore)(j,k) += AncestryVarScore[j][k+k1];
   }
 }
 
