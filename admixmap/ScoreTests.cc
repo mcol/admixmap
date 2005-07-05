@@ -878,8 +878,10 @@ void ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstr
 		    << double2R(100*(complete - missing)/complete) << ",";//%observed info
       if(complete > 0.0){
 	*outputstream << double2R(100*(VU/complete))                 << ","//%missing info attributable to locus ancestry
-		      << double2R(100*(missing-VU)/complete)         << ","//%remainder of missing info      
-		      << double2R(EU / sqrt( complete - missing ))   << "," << endl;
+		      << double2R(100*(missing-VU)/complete)         << ",";//%remainder of missing info      
+	if(complete - missing > 0.0)
+	  *outputstream << double2R(EU / sqrt( complete - missing ))   << "," << endl;
+	else *outputstream << "NaN,"  << endl;
       }
       else{
 	*outputstream << "NaN,NaN,NaN," << endl; 
