@@ -54,6 +54,9 @@ void DirichletParamSampler::SetPriorMu( double *ingamma )
 }
 
 void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double *eta, double *mu )
+/*
+n = number of gametes/individuals
+*/
 {
    unsigned int i;
    double *alpha, L1=0, L2=0, P1=0, P2=0, Proposal1=0, Proposal2=0;
