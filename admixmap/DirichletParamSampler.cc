@@ -30,6 +30,7 @@ void DirichletParamSampler::SetSize( unsigned int ind )
    d = ind;
    gamma = new double[d];
    munew = new double[d];
+   alpha = new double[d];
    for( unsigned int i = 0; i < d; i++ )
       gamma[i] = 1.0;
 }
@@ -38,6 +39,7 @@ DirichletParamSampler::~DirichletParamSampler()
 {
    delete [] munew;
    delete [] gamma;
+   delete[] alpha;
 }
 
 void DirichletParamSampler::SetPriorEta( double inEtaAlpha, double inEtaBeta )
@@ -59,8 +61,7 @@ n = number of gametes/individuals
 */
 {
    unsigned int i;
-   double *alpha, L1=0, L2=0, P1=0, P2=0, Proposal1=0, Proposal2=0;
-   alpha = new double[d];
+   double L1=0, L2=0, P1=0, P2=0, Proposal1=0, Proposal2=0;
    double sigma = TuneMu.GetSigma();
    for( i = 0; i < d; i++ )
       alpha[i] = mu[i] / sigma;
@@ -100,4 +101,5 @@ n = number of gametes/individuals
       TuneEta.Event(false);
 //   PR(*eta);
 //   cout << endl;
+
 }
