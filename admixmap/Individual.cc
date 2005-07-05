@@ -23,9 +23,9 @@
 
 #define PR(x) cout << #x << " = " << x << endl;
 
-double **Individual::AffectedsScore = 0;
-double **Individual::AffectedsVarScore = 0;
-double **Individual::AffectedsInfo = 0;
+double *Individual::AffectedsScore = 0;
+double *Individual::AffectedsVarScore = 0;
+double *Individual::AffectedsInfo = 0;
 Matrix_d *Individual::AncestryScore = 0;
 Matrix_d *Individual::AncestryInfo = 0;
 double **Individual::AncestryVarScore = 0;
@@ -162,14 +162,17 @@ void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
   AncestryInfo = 0;
   AncestryVarScore = 0;
   AncestryInfoCorrection = 0;
+  AffectedsScore = 0;
+  AffectedsVarScore = 0;
+  AffectedsInfo = 0;
 
   int K = Populations;
 
   if( options->getTestForAffectedsOnly() ){
     if(Populations == 2) K = 1;
-    AffectedsScore = alloc2D_d(L, K);
-    AffectedsVarScore = alloc2D_d(L, K);
-    AffectedsInfo = alloc2D_d(L, K);
+    AffectedsScore = new double[L * K];
+    AffectedsVarScore = new double[L * K];
+    AffectedsInfo = new double[L * K];
   }
   if( options->getTestForLinkageWithAncestry() ){
     AncestryScore = new Matrix_d[L];
@@ -200,13 +203,13 @@ Individual::~Individual()
 
 void Individual::DeleteStaticMembers(){
   delete[] sumxi;
-  delete[] AncestryScore;
-  delete[] AncestryInfo;
-  free_matrix(AffectedsScore, Loci->GetNumberOfCompositeLoci());
-  free_matrix(AffectedsInfo, Loci->GetNumberOfCompositeLoci());
-  free_matrix(AffectedsVarScore, Loci->GetNumberOfCompositeLoci());
-  free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
-  free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
+  //delete[] AncestryScore;
+  //delete[] AncestryInfo;
+  delete[] AffectedsScore;
+  delete[] AffectedsInfo;
+  delete[] AffectedsVarScore;
+  //free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
+  //free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
 }
 
 void Individual::ResetStaticSums(){
@@ -733,14 +736,15 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
 }
 
 void Individual::ResetScores(AdmixOptions *options){
-  if( options->getTestForAffectedsOnly() ){
-    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
-      for(int k = 0; k < Populations; ++k){
-	AffectedsScore[j][k] = 0.0;
-	AffectedsVarScore[j][k] = 0.0;
-	AffectedsInfo[j][k] = 0.0;
-      }
-  }
+  int KK = Populations;
+  if(Populations == 2)KK = 1;
+
+  if( options->getTestForAffectedsOnly() )
+    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()*KK; ++j){
+      AffectedsScore[j] = 0.0;
+      AffectedsVarScore[j] = 0.0;
+      AffectedsInfo[j] = 0.0;
+    }
   if( options->getTestForLinkageWithAncestry() ){
     for(unsigned int i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i){
       AncestryScore[i].SetElements(0);
@@ -750,7 +754,7 @@ void Individual::ResetScores(AdmixOptions *options){
       for(int k = 0; k < Populations; ++k){
 	AncestryInfoCorrection[j][k] = 0.0;
 	AncestryVarScore[j][k] = 0.0;
-      }
+	}
     PrevB = B;           //PrevB stores the sum for the previous iteration
     B.SetElements(0.0);//while B accumulates the sum for the current iteration 
     Xcov.SetElements(0.0);
@@ -788,9 +792,9 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingMode
       //retrieve AncestryProbs from HMM
       chrm[j]->getAncestryProbs( jj, AProbs );
       //accumulate score, score variance, and info
-      AffectedsScore[locus][k]+= 0.5*( AProbs[k+k1][1] + 2.0*AProbs[k+k1][2] - theta[0] - theta[1] );
-      AffectedsVarScore[locus][k]+= 0.25 *( AProbs[k+k1][1]*(1.0 - AProbs[k+k1][1]) + 4.0*AProbs[k+k1][2]*AProbs[k+k1][0]); 
-      AffectedsInfo[locus][k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
+      AffectedsScore[locus *KK + k]+= 0.5*( AProbs[k+k1][1] + 2.0*AProbs[k+k1][2] - theta[0] - theta[1] );
+      AffectedsVarScore[locus * KK + k]+= 0.25 *( AProbs[k+k1][1]*(1.0 - AProbs[k+k1][1]) + 4.0*AProbs[k+k1][2]*AProbs[k+k1][0]); 
+      AffectedsInfo[locus * KK +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
       ++locus;
     }
   }
@@ -852,11 +856,11 @@ void Individual::SumScoresForLinkageAffectedsOnly(int j, Matrix_d *SumAffectedsS
   int KK = Populations;
   if(KK == 2) KK = 1;
 
-  for( int kk = 0; kk < KK; kk++ ){
-    (*SumAffectedsScore)(j,kk) += AffectedsScore[j][kk];
-    (*SumAffectedsVarScore)(j,kk) += AffectedsVarScore[j][kk];
-    (*SumAffectedsInfo)(j,kk) += AffectedsInfo[j][kk];
-    (*SumAffectedsScore2)(j,kk) +=  AffectedsScore[j][kk] * AffectedsScore[j][kk];
+  for( int k = 0; k < KK; k++ ){
+    (*SumAffectedsScore)(j,k) += AffectedsScore[j*KK + k];
+    (*SumAffectedsVarScore)(j,k) += AffectedsVarScore[j * KK +k];
+    (*SumAffectedsInfo)(j,k) += AffectedsInfo[j * KK +k];
+    (*SumAffectedsScore2)(j,k) +=  AffectedsScore[j*KK +k] * AffectedsScore[j*KK +k];
   }
 }
 

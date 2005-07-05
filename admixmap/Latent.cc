@@ -424,7 +424,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
 //         AlphaParameters[1] += alpha[0]( j );
         sumlogtheta[j] = individuals->getSumLogTheta(j);
      }
-     PopAdmixSampler.Sample( AlphaParameters[0], sumlogtheta, &eta, mu );
+     PopAdmixSampler.Sample( (unsigned)AlphaParameters[0], sumlogtheta, &eta, mu );
      for( int j = 0; j < options->getPopulations(); j++ ){
         alpha[0]( j ) = mu[j] * eta;
      }

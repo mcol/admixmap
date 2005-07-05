@@ -140,9 +140,9 @@ private:
   std::vector< double > _rhoHat_X;
 
   //score test objects, static so they can accumulate sums over individuals
-  static double **AffectedsScore;
-  static double **AffectedsVarScore;
-  static double **AffectedsInfo;
+  static double *AffectedsScore;
+  static double *AffectedsVarScore;
+  static double *AffectedsInfo;
   static Matrix_d *AncestryScore;
   static Matrix_d *AncestryInfo;
   static double **AncestryVarScore;
