@@ -31,6 +31,8 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   rhoalpha = 0.0;
   rhobeta = 0.0;
   SumRho = 0.0;
+  mu = 0;
+  sumlogtheta = 0;
 
   options = op;
   Loci = loci;
@@ -181,8 +183,8 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
 Latent::~Latent()
 {
   delete RhoDraw;
-//   delete mu;
-//   delete sumlogtheta;
+  delete[] mu;
+  delete[] sumlogtheta;
   for(int i=0; i<options->getPopulations(); i++){
     delete DirParamArray[i];
   }
@@ -395,7 +397,6 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
            for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
               //rhodata_i(j,0) = individuals->GetSumXi()[j];//equivalent to next line
               rhodata_i(j,0) = Individual::getSumXi(j);
-           //rhodata_i.SetColumn( 0, individuals->GetSumXi() );
            rho = sampleForRho();
         }
         else{
