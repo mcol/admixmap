@@ -430,18 +430,24 @@ plotHWScoreTest <- function(scorefile, k) {
 }
   
 ## used to plot output of Rao-Blackwellized score tests for ancestry association and affectedsonly
-plotAncestryScoreTest <- function(scorefile, testname, K, population.labels, thinning) {
+plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, thinning) {
+  KK <- Pops
+  poplabels <- population.labels
+  if(Pops == 2 ) {
+    KK <- 1
+    poplabels <- population.labels[2]
+  }
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
   ## extract first row containing locus names
-  locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=K), 1]
+  locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=KK), 1]
   testnames <- paste(scoretests[1,,1], scoretests[2,,1])
   ## drop first two rows and reformat as 4-way array
   scoretests.n <- array(data=scoretests[-c(1:2),,],dim=c(dim(scoretests)[1]-2,dim(scoretests)[2],dim(scoretests)[3]))
   dim3way <- dim(scoretests.n)
-  dim4way <- c(dim3way[1], K, dim3way[2]/K, dim3way[3])
+  dim4way <- c(dim3way[1], KK, dim3way[2]/KK, dim3way[3])
   dimnames4way <- list(c("Score", "CompleteInfo", "ObservedInfo",
                          "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params", "StdNormal"),
-                       population.labels, locusnames, NULL)
+                       poplabels, locusnames, NULL)
   scoretests4way <- array(as.numeric(as.vector(scoretests.n)), dim=dim4way, dimnames=dimnames4way)
   scoretests4way[is.nan(scoretests4way)] <- NA
   
@@ -487,10 +493,13 @@ plotAncestryScoreTest <- function(scorefile, testname, K, population.labels, thi
     lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
     dev.off()
   }
-  
+
+  ##plot z-scores across genome
+  zscores <- array(data=scoretest.final[7,,], dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
+  plotScoreMap(loci.compound,zscores, KK, testname) 
   ## plot information content
   info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
-  plotInfoMap(loci.compound, info.content)
+  plotInfoMap(loci.compound, info.content, KK, testname)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
   ## a likelihood ratio of 0.01
@@ -502,6 +511,25 @@ plotAncestryScoreTest <- function(scorefile, testname, K, population.labels, thi
   r.exclude.hi <- exp(u/v + sqrt(u^2 + 2*v*log(100))/v)
   r.exclude.lo <- exp(u/v - sqrt(u^2 + 2*v*log(100))/v)
   ## plotExclusionMap not implemented at present
+}
+
+plotScoreMap <- function(loci.compound, zscores, K, testname){
+  outputfile <- paste(resultsdir, testname, sep="/")
+  outputfile <- paste(outputfile, "ScoreMap.ps", sep="")
+  postscript(outputfile)
+  for(chr in 1:n.chr) {
+    for(pop in 1:K) {
+      plot(loci.compound$MapPosition[loci.compound$Chromosome==chr],
+           zscores[pop, loci.compound$Chromosome==chr], 
+           type="l", ylim=c(-5,5),
+           xlab="Map position (cM) from first locus", ylab="z-score",
+           main=paste("z-scores for chromosome", chr, "- pop", pop)
+           )
+      lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.975),qnorm(0.975)))
+      lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.025),qnorm(0.025)))
+    }
+  }
+  dev.off()
 }
 
 plotExclusionMap <- function(loci.compound, info.content, cutoffs.lo, cutoffs.hi) {
@@ -521,9 +549,10 @@ plotExclusionMap <- function(loci.compound, info.content, cutoffs.lo, cutoffs.hi
   }
 }
 
-plotInfoMap <- function(loci.compound, info.content) {
+plotInfoMap <- function(loci.compound, info.content, K, testname) {
   ## info.content is matrix in which rows index populations, cols index loci
-  outputfile <- paste(resultsdir, "InformationContentMap.ps", sep="/")
+  outputfile <- paste(resultsdir, testname, sep="/")
+  outputfile <- paste(outputfile, "InformationContentMap.ps", sep="")
   postscript(outputfile)
   for(chr in 1:n.chr) {
     for(pop in 1:K) {
@@ -531,7 +560,7 @@ plotInfoMap <- function(loci.compound, info.content) {
            info.content[pop, loci.compound$Chromosome==chr], 
            type="l", ylim=c(-10,100),
            xlab="Map position (cM) from first locus", ylab="Percent info extracted",
-           main=paste("Map information content for chromosome", chr, "-", pop)
+           main=paste("Map information content for chromosome", chr, "- pop", pop)
            )
       ## text offset vertically in sequences of 3 for legibility
       text(loci.compound$MapPosition[loci.compound$Chromosome==chr],
