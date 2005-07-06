@@ -8,8 +8,8 @@ DirichletParamSampler::DirichletParamSampler()
 {
    TuneEta.SetParameters( 10, .1, 0.1, 100, 0.44 );
    TuneMu.SetParameters( 10, 0.002, 0.0001, 0.1, 0.23 );
-   EtaAlpha = .1;
-   EtaBeta = .1;
+   EtaAlpha = 1;
+   EtaBeta = 1;
 }
 
 DirichletParamSampler::DirichletParamSampler( unsigned int ind )
@@ -63,26 +63,26 @@ n = number of gametes/individuals
    unsigned int i;
    double L1=0, L2=0, P1=0, P2=0, Proposal1=0, Proposal2=0;
    double sigma = TuneMu.GetSigma();
-   for( i = 0; i < d; i++ )
-      alpha[i] = mu[i] / sigma;
-   gendirichlet( d, alpha, munew );
+//    for( i = 0; i < d; i++ )
+//       alpha[i] = mu[i] / sigma;
+//    gendirichlet( d, alpha, munew );
 
-   for( i = 0; i < d; i++ ){
-      Proposal1 += (munew[i]/sigma - 1) * log( mu[i] ) - gsl_sf_lngamma( munew[i]/sigma );
-      Proposal2 += (alpha[i] - 1) * log( munew[i] ) - gsl_sf_lngamma( alpha[i] );
-      L1 += (*eta * mu[i] - 1) * sumlogtheta[i] - n*gsl_sf_lngamma( *eta * mu[i] );
-      L2 += (*eta * munew[i] - 1) * sumlogtheta[i] - n*gsl_sf_lngamma( *eta * munew[i] );
-      P1 += (gamma[i] - 1) * log( mu[i] );
-      P2 += (gamma[i] - 1) * log( munew[i] );
-//      PR(i);PR(mu[i]);PR(munew[i]);PR(Proposal1);PR(Proposal2);PR(L1);PR(L2);PR(P1);PR(P2);
-   }
-   if( log(myrand()) <  P2 + L2 - P1 - L1 - Proposal2 + Proposal1 ){
-      TuneMu.Event(true);
-      for( i = 0; i < d; i++ )
-         mu[i] = munew[i];
-   }
-   else
-      TuneMu.Event(false);
+//    for( i = 0; i < d; i++ ){
+//       Proposal1 += (munew[i]/sigma - 1) * log( mu[i] ) - gsl_sf_lngamma( munew[i]/sigma );
+//       Proposal2 += (alpha[i] - 1) * log( munew[i] ) - gsl_sf_lngamma( alpha[i] );
+//       L1 += (*eta * mu[i] - 1) * sumlogtheta[i] - n*gsl_sf_lngamma( *eta * mu[i] );
+//       L2 += (*eta * munew[i] - 1) * sumlogtheta[i] - n*gsl_sf_lngamma( *eta * munew[i] );
+//       P1 += (gamma[i] - 1) * log( mu[i] );
+//       P2 += (gamma[i] - 1) * log( munew[i] );
+// //      PR(i);PR(mu[i]);PR(munew[i]);PR(Proposal1);PR(Proposal2);PR(L1);PR(L2);PR(P1);PR(P2);
+//    }
+//    if( log(myrand()) <  P2 + L2 - P1 - L1 - Proposal2 + Proposal1 ){
+//       TuneMu.Event(true);
+//       for( i = 0; i < d; i++ )
+//          mu[i] = munew[i];
+//    }
+//    else
+//       TuneMu.Event(false);
    
    etanew = exp( gennor( log( *eta ), TuneEta.GetSigma() ) );
    Proposal1 = log(etanew) - log(*eta);
@@ -99,7 +99,4 @@ n = number of gametes/individuals
    }
    else
       TuneEta.Event(false);
-//   PR(*eta);
-//   cout << endl;
-
 }
