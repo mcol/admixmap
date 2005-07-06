@@ -26,13 +26,13 @@
 double *Individual::AffectedsScore = 0;
 double *Individual::AffectedsVarScore = 0;
 double *Individual::AffectedsInfo = 0;
-Matrix_d *Individual::AncestryScore = 0;
-Matrix_d *Individual::AncestryInfo = 0;
+double **Individual::AncestryScore = 0;
+double **Individual::AncestryInfo = 0;
 double **Individual::AncestryVarScore = 0;
 double **Individual::AncestryInfoCorrection = 0;
-Matrix_d Individual::B;
-Matrix_d Individual::PrevB;
-Matrix_d Individual::Xcov;
+double *Individual::B;
+double *Individual::PrevB;
+double *Individual::Xcov;
 
 unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
@@ -165,6 +165,9 @@ void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
   AffectedsScore = 0;
   AffectedsVarScore = 0;
   AffectedsInfo = 0;
+  B = 0;
+  PrevB = 0;
+  Xcov = 0;
 
   int K = Populations;
 
@@ -175,17 +178,13 @@ void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
     AffectedsInfo = new double[L * K];
   }
   if( options->getTestForLinkageWithAncestry() ){
-    AncestryScore = new Matrix_d[L];
-    AncestryInfo = new Matrix_d[L];
-    for(int i = 0; i < L; ++i){
-      AncestryScore[i].SetNumberOfElements(2 * K, 1);
-      AncestryInfo[i].SetNumberOfElements(2 * K, 2 * K);
-    }
-    AncestryVarScore = alloc2D_d(L, K);
-    AncestryInfoCorrection = alloc2D_d(L, K);
-    B.SetNumberOfElements(K,K);
-    PrevB.SetNumberOfElements(K,K);
-    Xcov.SetNumberOfElements(K,1);
+    AncestryScore = alloc2D_d(L, 2*Populations);
+    AncestryInfo = alloc2D_d(L, 4*Populations*Populations);
+    AncestryVarScore = alloc2D_d(L, Populations);
+    AncestryInfoCorrection = alloc2D_d(L, Populations);
+    B = new double[Populations * Populations];
+    PrevB = new double[Populations * Populations];
+    Xcov = new double[Populations];
   }
 }
 
@@ -203,13 +202,13 @@ Individual::~Individual()
 
 void Individual::DeleteStaticMembers(){
   delete[] sumxi;
-  //delete[] AncestryScore;
-  //delete[] AncestryInfo;
   delete[] AffectedsScore;
   delete[] AffectedsInfo;
   delete[] AffectedsVarScore;
-  //free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
-  //free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
+  free_matrix(AncestryScore, Loci->GetNumberOfCompositeLoci());
+  free_matrix(AncestryInfo, Loci->GetNumberOfCompositeLoci());  
+  free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
+  free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
 }
 
 void Individual::ResetStaticSums(){
@@ -572,12 +571,17 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   //increment B using new Admixture Props
   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
   if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
-    Xcov(Populations-1, 0) = 1;//last entry is intercept
+    Xcov[Populations-1] = 1;//last entry is intercept
     for( int k = 0; k < Populations - 1; k++ ){
-      Xcov(k,0) = Theta[ k]; 
+      Xcov[k] = Theta[ k]; 
     }
-    B += Xcov * Xcov.Transpose() * DInvLink * dispersion;
+    double *temp = new double[Populations*Populations];
+    matrix_product(Xcov, Xcov, temp, Populations, 1, Populations);
+    scale_matrix(temp, DInvLink*dispersion, Populations, Populations);
+    add_matrix(B, temp, Populations, Populations);
+    delete[] temp;
   }
+
   //calculate log posterior if necessary 
   if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
     CalculateLogPosterior(options,Loci->isX_data(), alpha, _symmetric,
@@ -746,18 +750,23 @@ void Individual::ResetScores(AdmixOptions *options){
       AffectedsInfo[j] = 0.0;
     }
   if( options->getTestForLinkageWithAncestry() ){
-    for(unsigned int i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i){
-      AncestryScore[i].SetElements(0);
-      AncestryInfo[i].SetElements(0);
-    }
-    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
+      for(int k = 0; k < 2*Populations; ++k)
+	AncestryScore[j][k] = 0.0;
+      for(int k = 0; k < 4*Populations*Populations; ++k)
+	AncestryInfo[j][k] = 0.0;
       for(int k = 0; k < Populations; ++k){
 	AncestryInfoCorrection[j][k] = 0.0;
 	AncestryVarScore[j][k] = 0.0;
-	}
-    PrevB = B;           //PrevB stores the sum for the previous iteration
-    B.SetElements(0.0);//while B accumulates the sum for the current iteration 
-    Xcov.SetElements(0.0);
+      }
+    }
+    for(int k = 0; k < Populations*Populations; ++k){
+      PrevB[k] = B[k];           //PrevB stores the sum for the previous iteration
+      B[k] = 0.0;                //while B accumulates the sum for the current iteration 
+    }
+    for(int k = 0; k < Populations; ++k){
+      Xcov[k] = 0.0;
+    }
   }
 }
 
@@ -814,16 +823,16 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   // X is (A, cov)'  
   
   double AProbs[Populations][3];
-  Matrix_d X(2 * Populations, 1);
-  Vector_d temp(Populations);
-  double VarA[Populations], xBx;
+  double X[2 * Populations], Xcopy[2*Populations], XX[4*Populations*Populations];
+  double xBx[1], BX[Populations];
+  double VarA[Populations];
  
-  X( 2*Populations - 1, 0 ) = 1;//intercept
-  Xcov(Populations-1, 0) = 1;
+  X[ 2*Populations - 1] = 1;//intercept
+  Xcov[Populations-1] = 1;
   //set covariates 
   for( int k = 0; k < Populations - 1; k++ ){
-    X( k + Populations, 0 ) = Theta[ k ];
-    Xcov(k,0) = Theta[ k];
+    X[ k + Populations] = Theta[ k ];
+    BX[k] = Xcov[k] = Theta[ k ];
   }
 
   int locus; 
@@ -832,19 +841,25 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
     chrm[j]->getAncestryProbs( jj, AProbs );//conditional locus ancestry probs      
     
     for( int k = 0; k < Populations ; k++ ){
-      X(k,0) = AProbs[k][1] + 2.0 * AProbs[k][2];//Conditional expectation of ancestry
+      Xcopy[k] = X[k] = AProbs[k][1] + 2.0 * AProbs[k][2];//Conditional expectation of ancestry
+      Xcopy[k + Populations] = Theta[ k ];
       VarA[k] = AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0];//conditional variances
       }
+    Xcopy[2*Populations-1] = 1;
+    // ** compute expectation of score **
+    scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
+    add_matrix(AncestryScore[locus], Xcopy, 2*Populations, 1);//AncestryScore[locus] += Xcopy
+ 
+    // ** compute uncorrected info **
+    matrix_product(X, X, XX, 2*Populations, 1, 2*Populations);        //XX = X'X
+    scale_matrix(XX, DInvLink*phi, 2*Populations, 2*Populations);     //XX = DInvLink * phi * X'X
+    add_matrix(AncestryInfo[locus], XX, 2*Populations, 2*Populations);//AncestryInfo[locus] += XX
 
-    temp =  Xcov.GetColumn(0);
-    HH_svx(PrevB, &temp);
-    xBx = (Xcov.Transpose() * temp.ColumnMatrix())(0,0);
-    
-    AncestryScore[locus] += X * YMinusEY * phi;
-    AncestryInfo[locus] += (X * X.Transpose()) * DInvLink * phi;
-    
+    // ** compute variance of score and correction term for info **    
+    HH_solve(Populations, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
+    matrix_product(Xcov, BX, xBx, 1, Populations, 1);//xBx = Xcov' * BX
     for( int k = 0; k < Populations ; k++ ){
-      AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx); 
+      AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
       AncestryVarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
     }
     ++locus;
@@ -867,21 +882,23 @@ void Individual::SumScoresForLinkageAffectedsOnly(int j, Matrix_d *SumAffectedsS
 void Individual::SumScoresForAncestry(int j,   
 				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
 				      Matrix_d *SumAncestryVarScore){
-  Matrix_d score, info;
- 
-  CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], &score, &info );
+
+  double *score = new double[Populations], *info = new double[Populations*Populations];
+  CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], score, info, 2*Populations );
   
   //accumulate over iterations
-  //for two populations, we only accumulate the scores for the second populations
+  //for two populations, we only accumulate the scores for the second population
   int KK = Populations, k1 = 0;
   if(Populations == 2){KK = 1; k1 = 1;}
      
   for( int k = 0; k < KK ; k++ ){
-    (*SumAncestryScore)(j,k) += score(k + k1,0);
-    (*SumAncestryInfo)(j,k)  += info(k+k1,k+k1) + AncestryInfoCorrection[j][k+k1];
-    (*SumAncestryScore2)(j,k) += score(k+k1,0) * score(k+k1,0);
+    (*SumAncestryScore)(j,k) += score[k+k1];
+    (*SumAncestryInfo)(j,k)  += info[(k+k1)*Populations +k+k1] + AncestryInfoCorrection[j][k+k1];
+    (*SumAncestryScore2)(j,k) += score[k+k1] * score[k+k1];
     (*SumAncestryVarScore)(j,k) += AncestryVarScore[j][k+k1];
   }
+  delete[] score;
+  delete[] info;
 }
 
 // unnecessary duplication of code - should use same method as for > 1 population

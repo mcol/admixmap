@@ -143,13 +143,13 @@ private:
   static double *AffectedsScore;
   static double *AffectedsVarScore;
   static double *AffectedsInfo;
-  static Matrix_d *AncestryScore;
-  static Matrix_d *AncestryInfo;
+  static double **AncestryScore;
+  static double **AncestryInfo;
   static double **AncestryVarScore;
   static double **AncestryInfoCorrection;
-  static Matrix_d B;//used for ancestry score test
-  static Matrix_d PrevB;//holds B for previous iteration while B accumulates for this iteration
-  static Matrix_d Xcov; //column matrix of covariates used to calculate B and for score test, 
+  static double *B;//used for ancestry score test
+  static double *PrevB;//holds B for previous iteration while B accumulates for this iteration
+  static double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
 
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
