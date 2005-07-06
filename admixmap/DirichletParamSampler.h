@@ -3,6 +3,10 @@
 #define DirichletParamSampler_H 1
 
 #include <gsl/gsl_sf_gamma.h>
+#include "matrix_i.h"
+#include "matrix_d.h"
+#include "vector_d.h"
+#include "DARS.h"
 #include "TuneRW.h"
 #include "rand.h"
 
@@ -20,14 +24,28 @@ public:
   
 private:
   TuneRW TuneEta;
-  TuneRW TuneMu;
   unsigned int d;
   double etanew;
   double *munew;
   double *gamma;
-  double *alpha;
   double EtaAlpha;
   double EtaBeta;
+
+  DARS** DirParamArray;
+  // AlphaParameters is an array with 5 elements
+  // element 0 is 
+  // element 1 is 
+  // 
+  // element 4 is 
+  double AlphaParameters[5];
+  static double
+  logf( Vector_d&, Matrix_i&, Matrix_d& , double );
+  
+  static double
+  dlogf( Vector_d&, Matrix_i&, Matrix_d& , double );
+  
+  static double
+  ddlogf( Vector_d&, Matrix_i&, Matrix_d& , double );
 };
 
 #endif /* ! DirichletParamSampler_H */

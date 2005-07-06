@@ -60,7 +60,6 @@ public:
   double getrhoalpha();
   double getrhobeta();
   double getrho();
-  //Vector_d *getSumLogTheta();
 
 private:
 
@@ -79,11 +78,12 @@ private:
   double rhobeta; 
   double rhobeta0;
   double rhobeta1;
-  double SumRho; //
+  double SumRho;
 
    double eta;
    double *mu;
    double *sumlogtheta;
+   unsigned int obs;
    DirichletParamSampler PopAdmixSampler;
    std::vector<Vector_d> alpha; //population admixture
   Vector_d SumAlpha; //
@@ -100,30 +100,18 @@ private:
   LogWriter *Log; 
 
   //These next members were previously declared in Latent::Sampler
-  double AlphaParameters[5];
   double RhoParameters[4];
 
   Matrix_i rhodata_i;
   Matrix_d rhodata_d;
  
-  DARS** DirParamArray;
   DARS* RhoDraw;
-
 
 // these methods are 'private static'
   // i.e. private helper methods that cannot
   // access any object variables, nor be used
   // outside of Latent.cc
   //
-
-  static double
-  logf( Vector_d & , Matrix_i&, Matrix_d& , double );
-  
-  static double
-  dlogf( Vector_d & , Matrix_i&, Matrix_d& , double );
-  
-  static double
-  ddlogf( Vector_d & , Matrix_i&, Matrix_d& , double );
   
   static double
   frho( Vector_d & , Matrix_i&, Matrix_d& , double );

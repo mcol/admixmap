@@ -89,6 +89,11 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   for( int i = 0; i < options->getPopulations(); i++ ){
      mu[i] = alpha[0](i)/eta;
   }
+  if( options->isRandomMatingModel() ){
+     obs = 2 * individuals->getSize();
+  } else {
+     obs = individuals->getSize();
+  }
 
 //Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta
   rho = options->getRho();
@@ -135,37 +140,6 @@ void Latent::Initialise(IndividualCollection *individuals, std::ofstream *LogFil
   //Misc.  
   poptheta->SetNumberOfElements( options->getPopulations() );
 
-  // AlphaParameters is an array with 5 elements
-  // element 0 is num individuals or num gametes (if random mating model)
-  // element 1 is the sum of the Dirichlet parameter vector
-  // where are elements 2 and 3 used?
-  // element 4 is the sum of log admixture proportions
-   
-  if( options->isRandomMatingModel() ){
-    AlphaParameters[0] = 2 * individuals->getSize();
-  } else {
-    AlphaParameters[0] = individuals->getSize();
-  }
-  //if( options->getAnalysisTypeIndicator() > -1 ){
-  AlphaParameters[1] = alpha[0].Sum();
-  AlphaParameters[2] = 1;
-  AlphaParameters[3] = 1;
-  AlphaParameters[4] = 1;
-  //}
-
-  Matrix_i empty_i(1,1);
-  Matrix_d empty_d(1,1);
-
-   
-  DirParamArray = new DARS*[ options->getPopulations() ];
-  for( int j = 0; j < options->getPopulations(); j++ ){
-    DirParamArray[j] = new DARS();
-    DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,5,
-				     logf, dlogf, ddlogf, empty_i, empty_d );
-    DirParamArray[j]->SetLeftTruncation( 0.1 );
-  }
-
-
   // rho stuff
   rhodata_i.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
   rhodata_d.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
@@ -185,9 +159,6 @@ Latent::~Latent()
   delete RhoDraw;
   delete[] mu;
   delete[] sumlogtheta;
-  for(int i=0; i<options->getPopulations(); i++){
-    delete DirParamArray[i];
-  }
 }
 
 double Latent::sampleForRho()
@@ -204,58 +175,6 @@ double Latent::sampleForRho()
   RhoDraw->UpdateDoubleData( rhodata_d );
   return RhoDraw->Sample();
 }     
-
-// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
-// Dirichlet population admixture parameters
-double
-Latent::logf( Vector_d &parameters , Matrix_i&, Matrix_d&, double x )
-{
-   int n = (int)parameters(0);
-   double eta = parameters(1), summu = parameters(2), sumlj = parameters(4), sumln = parameters(3);
-   double f = eta * ( x*sumlj + (1.0-summu-x)*sumln )
-      - n * ( gsl_sf_lngamma(x*eta) + gsl_sf_lngamma((1.0-summu-x)*eta) );
-   
-  return f;
-}
-
-double
-Latent::dlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
-{
-  double f,x2,y1,y2;
-  int n = (int)parameters(0);
-  double eta = parameters(1), summu = parameters(2), sumlj = parameters(4), sumln = parameters(3);
-
-//  PR(x);PR(eta)PR(summu);
-  
-  x2 = eta*x;
-  if(x2 < 0)cout<<"\nError in Latent::dlogf - arg x to ddigam is negative\n";   
-  ddigam( &x2 , &y1 );
-
-  x2 = eta*(1.0-x-summu);
-  if(x2 < 0)cout<<"\nError in Latent::dlogf - arg x2 to ddigam is negative\n";   
-  ddigam( &x2 , &y2 );
-  
-  f =  eta * ( sumlj - sumln ) - n * eta * ( y1 - y2 );
-  
-  return f;
-}
-
-double
-Latent::ddlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
-{
-  double f,x2,y1,y2;
-  int n = (int)parameters(0);
-  double eta = parameters(1), summu = parameters(2), sumlj = parameters(4), sumln = parameters(3);
-  
-  x2 = eta*x;
-  trigam( &x2, &y1 );
-  x2 = eta*(1.0-x-summu);
-  trigam( &x2, &y2 );
-  
-  f = -n*eta*eta*( y2+y1 );
-  
-  return(f);
-}
 
 double
 Latent::frho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x )
@@ -426,36 +345,12 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
      // of components, we will have one Dirichlet parameter vector for each component, 
      // updated only from those individuals who belong to the component
      // Sample for population admixture distribution Dirichlet parameters alpha
-     double sum = 0, summu;
-     double b = mu[options->getPopulations()-1] + mu[0] - 0.005;
-     summu = 1.0 - mu[options->getPopulations()-1];
-//     cout << mu[0] << " " << mu[1] << " " << mu[2] << endl;
-     for( int j = 0; j < options->getPopulations()-1; j++ ){
-        AlphaParameters[1] = eta;
-        AlphaParameters[2] = summu - mu[j];
-        AlphaParameters[3] = individuals->getSumLogTheta( options->getPopulations()-1 );
-        AlphaParameters[4] = individuals->getSumLogTheta(j);
-        DirParamArray[j]->SetLeftTruncation( 0.005 );
-        DirParamArray[j]->SetRightTruncation( b );
-//        PR(b);
-        // elements of Dirichlet parameter vector are updated one at a time
-        DirParamArray[j]->UpdateParameters( AlphaParameters, 5 );
-        mu[j] = DirParamArray[j]->Sample();
+     for( int j = 0; j < options->getPopulations(); j++ )
         sumlogtheta[j] = individuals->getSumLogTheta(j);
-        sum += alpha[0]( j );
-        alpha[0]( j ) = eta*mu[j];
-        b = b - mu[j] + mu[j+1];
-        summu = AlphaParameters[2] + mu[j];
-     }
-     sumlogtheta[options->getPopulations()-1] = individuals->getSumLogTheta(options->getPopulations()-1);
-     alpha[0](options->getPopulations()-1) = eta - sum;
-     mu[options->getPopulations()-1] = alpha[0](options->getPopulations()-1) / eta;
-//     cout << "here1: " << alpha[0](0)/eta << " " << alpha[0](1)/eta << " " << alpha[0](2)/eta << endl;
-     PopAdmixSampler.Sample( (unsigned)AlphaParameters[0], sumlogtheta, &eta, mu );
-     for( int j = 0; j < options->getPopulations(); j++ ){
+     PopAdmixSampler.Sample( obs, sumlogtheta, &eta, mu );
+     for( int j = 0; j < options->getPopulations(); j++ )
         alpha[0](j) = mu[j]*eta;
-     }
-//     cout << "here2: " << alpha[0](0)/eta << " " << alpha[0](1)/eta << " " << alpha[0](2)/eta << endl;
+
      // accumulate sum of Dirichlet parameter vector over iterations 
      SumAlpha += alpha[0];
   }
