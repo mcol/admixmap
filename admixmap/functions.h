@@ -6,8 +6,6 @@
 #include "vector_d.h"
 #include "matrix_d.h"
 
-
-
 double getGammaLogDensity(double alpha, double beta, double x);
 
 double getDirichletLogDensity(const Vector_d& a, const Vector_d& x);
@@ -16,11 +14,20 @@ double getDirichletLogDensity(double *a, double *x, size_t K);
 
 double AverageOfLogs(const std::vector<double>& vec, double max);
 
+//matrix algebra
 int HH_solve (Matrix_d A, Vector_d b, Vector_d *x);
+int HH_solve (size_t n, double *A, double *b, double *x);
 
 int HH_svx (Matrix_d A, Vector_d *x);
+int HH_svx (double *A, double *x);
+
+void add_matrix(double *a, double *b, size_t d1, size_t d2);
+void matrix_product(double *a, double *b, double *c, size_t d1, size_t d2, size_t d3);
+void scale_matrix(double *a, const double c, size_t d1, size_t d2);
 
 void CentredGaussianConditional( int kk, Matrix_d mean, Matrix_d var, Matrix_d *newmean, Matrix_d *newvar );
+void CentredGaussianConditional( int kk, double *mean, double *var,
+				 double *newmean, double *newvar, size_t dim );
 void CentredGaussianConditional1( Vector_d mean, Matrix_d var, double *newmean, double  *newvar );
 
 double **alloc2D_d(int m, int n);
