@@ -55,6 +55,8 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   ExpectedY = 0;
   NumInd = Data->getNumberOfIndividuals();
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
+  sigma.resize(2);
+  sigma[0] = sigma[1] = 1.0;
 
   _child = new Individual*[NumInd];
   Individual::SetStaticMembers(&Loci, options);
