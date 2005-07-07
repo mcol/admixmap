@@ -79,7 +79,7 @@ void MisSpecAlleleFreqTest::Initialise(AdmixOptions *options, Genome *Loci, LogW
       exit( 1 );
      }
     else{
-      Log->logmsg(true,"Writing score tests for mis-specified allele frequencies to ");
+      Log->logmsg(true,"Writing score tests for mis-specified allele frequencies(1) to ");
       Log->logmsg(true,options->getAlleleFreqScoreFilename());
       Log->logmsg(true,"\n");
       allelefreqscorestream << "structure(.Data=c(" << endl;
@@ -111,7 +111,7 @@ void MisSpecAlleleFreqTest::Initialise(AdmixOptions *options, Genome *Loci, LogW
        exit( 1 );
     }
      else{
-       Log->logmsg(true,"Writing score tests for mis-specified allele frequencies to ");
+       Log->logmsg(true,"Writing score tests for mis-specified allele frequencies(2) to ");
        Log->logmsg(true,options->getAlleleFreqScoreFilename2());
        Log->logmsg(true,"\n");
        allelefreqscorestream2 << "structure(.Data=c(" << endl;
