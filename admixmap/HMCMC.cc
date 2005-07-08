@@ -30,6 +30,7 @@ HMCMC::HMCMC(){
   eps0 = 1.0; 
   eps1 = 1.0;
   g = 0;
+  accept_count = 0;
 };
 
 HMCMC::~HMCMC(){
@@ -111,10 +112,10 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
   xnew = new double[dim];
   gnew = new double[dim];
   
-  for(unsigned i = 0; i < n; ++i)p[i] = gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
+  for(unsigned i = 0; i < dim; ++i)p[i] = gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
   for(unsigned i = 0; i < dim; ++i)sumpsq += p[i]*p[i];
   H = 0.5 * sumpsq + E ; // evaluate H(x,p)
-  for(unsigned i = 0; i < dim; ++i) {
+  for(unsigned i = 0; i < dim; ++i) {//reset xnew and gnew
     xnew[i] = x[i]; 
     gnew[i] = g[i];
   }
@@ -124,6 +125,8 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
     gradE ( xnew, n, sumlogtheta, eps0, eps1, gnew ) ; // find new gradient
     for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
   }
+  sumpsq = 0.0;
+  for(unsigned i = 0; i < dim; ++i)sumpsq += p[i]*p[i];
   Enew = findE ( xnew, n, sumlogtheta, eps0, eps1 ) ; // find new value of H
   Hnew = sumpsq *0.5 + Enew ;
   dH = Hnew - H ; // Decide whether to accept
@@ -135,6 +138,7 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
     for(unsigned i = 0; i < dim; ++i){
       x[i] = xnew[i]; 
       g[i] = gnew[i];
+      ++accept_count;
     }
     E = Enew ;
   }

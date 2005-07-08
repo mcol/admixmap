@@ -51,6 +51,7 @@ private:
   double Tau;       //# leapfrog steps
   double E;         //value of objective function
   double *g;        //gradient (multidim)
+  long accept_count; //number of acceptances, incase needed for monitoring
 
   unsigned n;       //number of individuals/gametes
   double eps0, eps1;//gamma prior parameters
