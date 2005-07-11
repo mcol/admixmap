@@ -526,7 +526,9 @@ plotScoreMap <- function(loci.compound, zscores, K, testname){
            main=paste("z-scores for chromosome", chr, "- pop", pop)
            )
       lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.975),qnorm(0.975)))
+      lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.995),qnorm(0.995)), lty=2)
       lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.025),qnorm(0.025)))
+      lines(c(0,max(loci.compound$MapPosition[loci.compound$Chromosome==chr])), c(qnorm(0.005),qnorm(0.005)), lty=2)
     }
   }
   dev.off()
