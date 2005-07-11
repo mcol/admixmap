@@ -37,7 +37,6 @@ public:
   HMCMC();
   ~HMCMC();
   void Sample(double *x, double *sumlogtheta);//call inside a loop
-  void Initialise(double *x, double *sumlogtheta);  //call to set starting values of objective function and gradient
   void SetDimensions(const unsigned pdim, const double pepsilon, const unsigned pTau, 
 		     const unsigned pn, const double peps0, const double peps1);
   //sets dimension, stepsize, number of steps and parameters for density function
