@@ -494,7 +494,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
   bool isdiploid;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     //Update Forward/Backward probs in HMM
-    isdiploid = UpdateForBackProbs(j, chrm[j], options, A->IsRandom());
+    isdiploid = UpdateForBackProbs(j, chrm[j], options);
 
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
@@ -689,23 +689,24 @@ void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vecto
 }
 
 //Updates forward and backward probabilities in HMM for chromosome j 
-bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool randomAlleleFreqs){
+bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options){
   bool isdiploid;
+  bool calcbackprobs = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   //Update Forward/Backward probs in HMM
   if( j != X_posn ){
-    chrm->UpdateParameters(this, Theta, options, _rho, false, true, randomAlleleFreqs);
+    chrm->UpdateParameters(this, Theta, options, _rho, false, true, calcbackprobs);
     isdiploid = true;
   }
   else if( options->getXOnlyAnalysis() ){
-    chrm->UpdateParameters( this, Theta, options, _rho, false, false, randomAlleleFreqs );
+    chrm->UpdateParameters( this, Theta, options, _rho, false, false, calcbackprobs);
     isdiploid = false;
   }
   else if( sex == 1 ){
-    chrm->UpdateParameters( this, ThetaX, options, _rho, false, false, randomAlleleFreqs );
+    chrm->UpdateParameters( this, ThetaX, options, _rho, false, false, calcbackprobs);
     isdiploid = false;
   }
   else{
-    chrm->UpdateParameters( this, ThetaX, options, _rho, false, true, randomAlleleFreqs );
+    chrm->UpdateParameters( this, ThetaX, options, _rho, false, true, calcbackprobs);
     isdiploid = true;
   }
   return isdiploid;
@@ -936,7 +937,7 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
    *LogFileStreamPtr << "Calculating posterior at individual admixture\n"
                     << theta << "and rho\n" << rho[0] << " " << rho[1] << endl;
    if( options->getXOnlyAnalysis() ){
-     LogLikelihoodAtEst = getLogLikelihoodXOnly( options, chrm, theta, rho, A->IsRandom() );
+     LogLikelihoodAtEst = getLogLikelihoodXOnly( options, chrm, theta, rho);
       if( options->getRho() == 99 ){
          LogPrior = -log( options->getTruncPt() - 1.0 );
       }
@@ -950,7 +951,7 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
       LogPrior += getDirichletLogDensity( alpha[0], GetRow(theta, 0, K) );
    }
    else if( Loci->isX_data() ){
-     LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX, A->IsRandom() );
+     LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX);
       if( options->getRho() == 99 ){
          LogPrior = -4.0*log( options->getTruncPt() - 1.0 );
       }
@@ -971,11 +972,11 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
          + getDirichletLogDensity( alpha[0], GetRow(thetaX, 0, K) )
          + getDirichletLogDensity( alpha[1], GetRow(theta, 1, K) )
          + getDirichletLogDensity( alpha[1], GetRow(thetaX, 1, K) );
-      LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX, A->IsRandom() );
+      LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX );
    }
    else{
       if( Populations > 1 ){
-	LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX, A->IsRandom() );
+	LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX );
          if( _admixed[0] ){
             if( options->getRho() == 99 ){
                LogPrior = -log( options->getTruncPt() - 1.0 );
@@ -1005,7 +1006,7 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
          }
       }
       else{
-	LogLikelihoodAtEst = getLogLikelihoodOnePop(A->IsRandom());
+	LogLikelihoodAtEst = getLogLikelihoodOnePop();
       }
    }
    if( A->IsRandom() ){
@@ -1034,7 +1035,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
   size_t theta_size = Populations;
   if(options->isRandomMatingModel()) theta_size *=2;
 
-  *LogLikelihood = getLogLikelihood(options, chrm, A->IsRandom());//only call to 3-argument getLogLikelihood function
+  *LogLikelihood = getLogLikelihood(options, chrm);//only call to 3-argument getLogLikelihood function
   //need to modify to use other version
     if( K > 1 ){
       if( options->getRho() < 90 ){
@@ -1120,7 +1121,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 
 // //TODO: need to fix this
  double 
-Individual::getLogLikelihoodXOnly( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho, bool randomAlleleFreqs )
+Individual::getLogLikelihoodXOnly( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho)
 {
    double LogLikelihood = 0.0;
    _rhoHat = rho;
@@ -1128,7 +1129,7 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, Chromosome **chrm, dou
      for(int j = 0; j < AdmixtureHat.GetNumberOfCols(); ++j)
        AdmixtureHat(i,j) = admixture[j*Populations + i];
 
-     chrm[0]->UpdateParameters( this, admixture, options, _rhoHat,  true, false, randomAlleleFreqs );
+   chrm[0]->UpdateParameters( this, admixture, options, _rhoHat,  true, false, false);
 
    LogLikelihood += chrm[0]->getLogLikelihood();
 
@@ -1138,7 +1139,7 @@ Individual::getLogLikelihoodXOnly( AdmixOptions* options, Chromosome **chrm, dou
 //computes log likelihood at parameter estimates
 //This one is called by InitializeChib, called in turn by ChibLikelihood
 //only used to compute marginal likelihood   
-double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho, double *admixture_X, vector<double> rho_X, bool randomAlleleFreqs )
+double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho, double *admixture_X, vector<double> rho_X)
 {
    double LogLikelihood = 0.0;
    _rhoHat = rho;
@@ -1157,7 +1158,7 @@ double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **ch
     //update forward probs in HMM using current parameter values   
    for( unsigned int j = 0; j < numChromosomes; j++ ){      
       if( j != X_posn ){
-	chrm[j]->UpdateParameters( this, admixture, options, _rhoHat, true, true, randomAlleleFreqs);
+	chrm[j]->UpdateParameters( this, admixture, options, _rhoHat, true, true, false);
       }
       else{//X chromosome
          _rhoHat_X = rho_X;
@@ -1165,10 +1166,10 @@ double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **ch
 	   for(int jj = 0; jj < XAdmixtureHat.GetNumberOfCols(); ++jj)
 	     XAdmixtureHat(i,jj) = admixture_X[jj*Populations + i];
          if( sex == 1 ){//male
-	   chrm[j]->UpdateParameters( this, admixture_X, options, _rhoHat_X, true, false, randomAlleleFreqs);
+	   chrm[j]->UpdateParameters( this, admixture_X, options, _rhoHat_X, true, false, false);
 	 }
          else{//female
-	   chrm[j]->UpdateParameters( this, admixture_X, options, _rhoHat_X, true, true, randomAlleleFreqs);
+	   chrm[j]->UpdateParameters( this, admixture_X, options, _rhoHat_X, true, true, false);
 	 }
       }
       //accumulate loglikelihood from HMM
@@ -1178,14 +1179,14 @@ double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **ch
    return LogLikelihood;
 }
 
-double Individual::getLogLikelihoodOnePop(bool randomAlleleFreqs )
+double Individual::getLogLikelihoodOnePop()
 {
    double Likelihood = 0.0;
    double *Prob;
    Prob = new double[1];//one pop so 1x1 array
    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
      if(!IsMissing(j)){
-       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true, randomAlleleFreqs );
+       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true);
        Likelihood += log( Prob[0] );
      }
    }
@@ -1193,25 +1194,25 @@ double Individual::getLogLikelihoodOnePop(bool randomAlleleFreqs )
 }
 
 //called at top of ChibLikelihood, used to compute marginal likelihood
-double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, bool randomAlleleFreqs )
+double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm)
 {
    double LogLikelihood = 0.0;
  
    for( unsigned int j = 0; j < numChromosomes; j++ ){      
       if( j != X_posn ){
 
-	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, true, randomAlleleFreqs);
+	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, true, false);
       }
       else if( options->getXOnlyAnalysis() ){
 
-	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, false,randomAlleleFreqs);
+	chrm[j]->UpdateParameters( this, Theta, options, _rho, false, false, false);
       }
       else{//X chromosome
 	if( sex == 1 ){//male
-	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, false, randomAlleleFreqs );
+	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, false, false);
 	}
 	else{//female
-	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, true,randomAlleleFreqs );
+	  chrm[j]->UpdateParameters( this, Theta, options, _rho_X, false, true, false);
 	}
       }
       LogLikelihood += chrm[j]->getLogLikelihood();

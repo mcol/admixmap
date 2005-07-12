@@ -86,7 +86,7 @@ void Chromosome::InitialiseLociCorr(const double rho){
     f[0][j] = f[1][j] = ( -GetDistance( j ) * rho > -700) ? exp( -GetDistance( j ) * rho ) : 0.0;
 }
 
-//sets f for global rho, called after Latent is updated
+//sets f for global rho, call after global rho is updated
 void Chromosome::SetLociCorr(const double rho){
     for(unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
       f[0][jj] = f[1][jj] = exp( -GetDistance( jj ) * rho );
@@ -94,14 +94,13 @@ void Chromosome::SetLociCorr(const double rho){
 }
 
 void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptions* options,  
-				  std::vector< double > _rho, bool chibindicator, bool diploid, bool randomAlleleFreqs ){
+				  std::vector< double > _rho, bool chibindicator, bool diploid, bool CalculateBackProbs){
   //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
-  //randomAlleleFreqs might not be necessary if CompositeLocus knows if AlleleFreqs are fixed or random
 
   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
   // required to calculate transition matrices 
-  if( options->getRhoIndicator() ){
+  if( options->getRhoIndicator() ){//non global rho case
 
     for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
       f[0][jj] = exp( -GetDistance( jj ) * _rho[0] );
@@ -115,12 +114,11 @@ void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptio
   //global rho case already dealt with
 
   int locus = _startLocus;
-  bool test = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   
   //construct Lambda
   for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
     if( !(ind->IsMissing(locus)) ){
-      TheArray[j]->GetGenotypeProbs(Lambda+j*populations*populations, ind->getPossibleHapPairs(locus), chibindicator, randomAlleleFreqs);
+      TheArray[j]->GetGenotypeProbs(Lambda+j*populations*populations, ind->getPossibleHapPairs(locus), chibindicator);
       }
     else{
       for( int k = 0; k < populations*populations;k++) Lambda[j*populations*populations + k] = 1.0;
@@ -134,17 +132,17 @@ void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptio
  
     //Update Forward/Backward Probs in HMM
     SampleStates.UpdateForwardProbsDiploid(f, Lambda);
-    if(test){
+
+    if(CalculateBackProbs)
       SampleStates.UpdateBackwardProbsDiploid(f, Lambda);
-    }
- 
   }
 
   else{//haploid
-    SampleStates.UpdateProbsHaploid(f, Admixture, Lambda, test);
+    SampleStates.UpdateProbsHaploid(f, Admixture, Lambda, CalculateBackProbs);
   }
 
 }
+
 
 void Chromosome::SampleLocusAncestry(int *OrderedStates, double *Admixture, bool isdiploid){
 

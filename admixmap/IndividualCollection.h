@@ -53,7 +53,7 @@ public:
 
   void LoadData(AdmixOptions *options, InputData *, LogWriter *Log);
   
-  void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels, bool);
+  void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels);
 
   void Update(int iteration, AlleleFreqs *A, Regression *R, 
 	      Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, 

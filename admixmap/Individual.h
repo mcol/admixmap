@@ -70,9 +70,9 @@ public:
 
   std::vector<double> getRho();
 
-  double getLogLikelihood(AdmixOptions*, Chromosome**, bool);
+  double getLogLikelihood(AdmixOptions*, Chromosome**);
 
-  double getLogLikelihoodOnePop(bool);
+  double getLogLikelihoodOnePop();
 
   double getLogPosteriorProb();
 
@@ -81,8 +81,8 @@ public:
 
   int GetLocusAncestry(int, int, int);
    
-  double getLogLikelihoodAtEst(AdmixOptions*, Chromosome **, double *, std::vector<double>, double *, std::vector<double>, bool);
-  double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, double *, std::vector<double>, bool randomAlleleFreqs);
+  double getLogLikelihoodAtEst(AdmixOptions*, Chromosome **, double *, std::vector<double>, double *, std::vector<double>);
+  double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, double *, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
   void SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
@@ -163,7 +163,7 @@ private:
 					   int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
 					   Matrix_d *Outcome, Vector_d &poptheta, Vector_d &lambda);
 
-  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool randomAlleleFreqs);
+  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options);
 
   void SumAncestry(unsigned int j, Chromosome *chrm);
 
