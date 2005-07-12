@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 1 //1 = original DARS sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HMCMC
 
@@ -80,6 +80,7 @@ public:
   void  InitializeOutputFile(std::string *);
 
   //Updating every iteration
+  void UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C);
   void Update(int iteration,IndividualCollection *,
 	      Vector_d *poptheta,std::ofstream *LogFileStreamPtr);
 

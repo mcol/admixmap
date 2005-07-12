@@ -19,6 +19,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "Latent.h"
+#include "Chromosome.h"
 
 using namespace std;
 
@@ -233,13 +234,39 @@ double Latent::sampleForRho()
   return RhoDraw->Sample();
 }     
 
+void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C){
+  //code for generating proposal
+  double rhoprop;
+  double LogLikelihood = 0.0;
+  // ...
+
+  //get log likelihood at current parameter values
+  for(int i = 0; i < IC->getSize(); ++i)LogLikelihood -= IC->getIndividual(i)->getLogLikelihood(options, C);
+  //get log likelihood at proposal rho and current admixture proportions
+  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
+  for(int i = 0; i < IC->getSize(); ++i)LogLikelihood += IC->getIndividual(i)->getLogLikelihood(options, C);
+  
+  //compute rest of acceptance prob
+  // ...
+  
+  //accept/reject proposal
+  // ...
+  
+  //update TuneRW object
+  // ...
+
+  // update f in Chromosomes, must do this regardless of whether proposal is accepted
+  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
+    C[j]->SetLociCorr(rho);
+}
+
 #if POPADMIXSAMPLER == 1
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // Dirichlet population admixture parameters
 double
 Latent::logf( Vector_d &parameters , Matrix_i&, Matrix_d&, double x )
 {
-  double f = parameters(0) * ( gsl_sf_lngamma( x + parameters(1) ) - gsl_sf_lngamma( x ) ) - x * ( parameters(3) - parameters(4) );//  + (parameters(2) - 1) * log(x);
+  double f = parameters(0) * ( gsl_sf_lngamma( x + parameters(1) ) - gsl_sf_lngamma( x ) ) - x * ( parameters(3) - parameters(4) ) + (parameters(2) - 1) * log(x);
   
   return(f);
 }
@@ -255,7 +282,7 @@ Latent::dlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
   if(x2 < 0)cout<<"\nError in Latent::dlogf - arg x2 to ddigam is negative\n";   
   ddigam( &x2 , &y2 );
   
-  f = parameters(0) * ( y2 - y1 ) - ( parameters(3) - parameters(4) );// + (parameters(2) - 1)/x;
+  f = parameters(0) * ( y2 - y1 ) - ( parameters(3) - parameters(4) ) + (parameters(2) - 1)/x;
   
   return(f);
 }
@@ -270,7 +297,7 @@ Latent::ddlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
   trigam( &x, &y1 );
   trigam( &x2, &y2 );
   
-  f = parameters(0) * ( y2 - y1 );// - (parameters(2) - 1)/ (x*x);
+  f = parameters(0) * ( y2 - y1 ) - (parameters(2) - 1)/ (x*x);
   
   return(f);
 }

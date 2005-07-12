@@ -109,7 +109,7 @@ void submain(AdmixOptions* options){
   IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
   IC->LoadData(options,&data, &Log);                             //and before L and R Initialise
  
-  L.Initialise(IC, &LogFileStream, &_admixed, &_symmetric, &poptheta, PopulationLabels);
+  L.Initialise(IC->getSize(), &LogFileStream, &_admixed, &_symmetric, &poptheta, PopulationLabels);
   if( options->getAnalysisTypeIndicator() >= 2)
     R.Initialise(IC, options, PopulationLabels, &Log);
   A.Initialise(options, data.getEtaPriorMatrix(), &Log, PopulationLabels);
@@ -122,11 +122,10 @@ void submain(AdmixOptions* options){
 
   options->PrintOptions();//NB: call after all options are set
                           //Currently all except Populations are set in AdmixOptions		
-  /*-------------------------------------------------------
-  |  single individual, one population, allele frequencies |
-  ---------------------------------------------------------*/
+
+  //   ** single individual, one population, allele frequencies 
    if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
-    IC->getOnePopOneIndLogLikelihood(&Log, PopulationLabels, A.IsRandom());
+    IC->getOnePopOneIndLogLikelihood(&Log, PopulationLabels);
 
   else
 {
@@ -173,11 +172,14 @@ void submain(AdmixOptions* options){
       }
 
       A.ResetAlleleCounts();
-      //Update individual-level parameters  
+      //** update global sumintensities
+	  //if( !options->getRhoIndicator() )L.UpdateRhoWithRW(chrm);
+
+      // ** Update individual-level parameters  
       IC->Update(iteration, &A, &R, poptheta, options,
 		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
 		 &LogFileStream, &MargLikelihood);
-      //update allele frequencies
+      // ** update allele frequencies
       A.Update(iteration,options->getBurnIn());
       
       if( iteration > options->getBurnIn() ){
@@ -263,7 +265,6 @@ void submain(AdmixOptions* options){
 
 
     }//end main loop
-
     //output at end
     //FST
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
@@ -284,13 +285,12 @@ void submain(AdmixOptions* options){
     //MLEs of admixture & sumintensities for nonhierarchical model on individual admixture
     if( options->getMLIndicator() )IC->Output(&LogFileStream, options->getPopulations());
     //finish writing score test output as R objects
-    if( options->getScoreTestIndicator() ) Scoretest.ROutput();
-  }//end else
+  if( options->getScoreTestIndicator() ) Scoretest.ROutput();
+ }//end else
 
   //  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
   //     delete chrm[i];
   //   }
-
   A.CloseOutputFile((options->getTotalSamples() - options->getBurnIn())/options->getSampleEvery(), PopulationLabels);  
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
@@ -298,7 +298,13 @@ void submain(AdmixOptions* options){
     delete Loci(i);
   }
   //delete []PopulationLabels;
-  
+
+#if POPADMIXSAMPLER == 3 
+  Log.logmsg(true,"Acceptance rate in admixture parameter sampler: ");
+  Log.logmsg(true, L.getAlphaSamplerAcceptanceCount()/options->getTotalSamples());
+  Log.logmsg(true, "\n");
+#endif
+
   ProcessingTime(&Log, StartTime);
 }
 
