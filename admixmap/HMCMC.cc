@@ -24,14 +24,13 @@
 using namespace::std;
 
 HMCMC::HMCMC(){
-  n = 100;
   dim = 1;
   epsilon = 0.0;
   Tau = 1;
-  eps0 = 1.0; 
-  eps1 = 1.0;
   g = 0;
   accept_count = 0;
+  findE = 0;
+  gradE = 0;
 };
 
 HMCMC::~HMCMC(){
@@ -40,66 +39,18 @@ HMCMC::~HMCMC(){
 
 //set dimensions
 void HMCMC::SetDimensions(const unsigned pdim, const double pepsilon, const unsigned pTau, 
-		   const unsigned pn, const double peps0, const double peps1){
+			  double (*pfindE)(unsigned d,double *theta, double **args),
+			  void (*pgradE)(unsigned d,double *theta, double **args, double *g)){
   dim = pdim;
   epsilon = pepsilon;
   Tau = pTau;
-  n = pn;
-  eps0 = peps0;
-  eps1 = peps1;
+  findE = pfindE;
+  gradE = pgradE;
 
   g = new double[dim];
 }
 
-//these next 2 functions are specific to the Dirichlet parameters alpha(or their logs)
-//should use function pointers and keep code in Latent, or wherever the sampler is to be used
-
-//calculate objective function
-double HMCMC::findE(double *theta, unsigned n, double *sumlogtheta, double eps0, double eps1){
-  /*
-    theta = log dirichlet parameters (alpha)
-    n = #individuals/gametes
-    sumlogtheta = sums of logs of individual admixture proportions
-    eps0, eps1 = parameters of Gamma prior for alpha
-  */
-
-  double E = 0.0;
-  double sumalpha = 0.0, sumgamma = 0.0, sumtheta = 0.0, sume = 0.0;
-  bool flag = true;
-  for(unsigned j = 0; j < dim;++j){
-    if(exp(theta[j]) == 0.0){flag = false;break;} //to avoid underflow problems
-    sumalpha += exp(theta[j]);
-    sumgamma += gsl_sf_lngamma(exp(theta[j]));
-    sume += exp(theta[j]) * (eps1 - sumlogtheta[j]);
-    sumtheta += theta[j];
-  }
-  if(flag){
-    E = n * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + (eps0 - 1.0) * sumtheta;
-    return -E;
-  }
-  else return -1.0;//is there a better return value? possibly use flag pointer
-}
-
-//calculate gradient
-void HMCMC::gradE(double *theta, unsigned n, double *sumlogtheta, double eps0, double eps1, double *g){
-  delete[] g;
-  g = new double[dim];
-  double sumalpha = 0.0, x, y1, y2;
-  for(unsigned j = 0; j < dim; ++j) {
-    g[j] = 0.0;
-    sumalpha += exp(theta[j]);
-  }
-    ddigam(&sumalpha, &y1);
-    for(unsigned j = 0; j < dim; ++j) {
-      x = exp(theta[j]);
-      ddigam(&x, &y2);
-      if(x > 0.0 && gsl_finite(y1) && gsl_finite(y2)){//to avoid over/underflow problems
-	g[j] = x *( (double)n *(y2 - y1) + (eps1 - sumlogtheta[j])) - eps0 + 1.0;
-      }
-    }
-}
-
-void HMCMC::Sample(double *x, double *sumlogtheta){
+void HMCMC::Sample(double *x, double **args){
   /*
     x = position
     p = momentum
@@ -109,6 +60,7 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
     dim = dimension (= K)
     gradE = gradient function
     findE = objective function = -log density
+    args = 2darray of arguments to gradE and findE, 2nd dimension is dim so effectively a vector of args for each scalar x 
   */
 
   bool accept = false;
@@ -118,8 +70,8 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
   xnew = new double[dim];
   gnew = new double[dim];
 
-  gradE ( x, n, sumlogtheta, eps0, eps1, g ) ; // set gradient using initial x
-  E = findE ( x, n, sumlogtheta, eps0, eps1 ) ;// set objective function too
+  gradE (dim, x, args, g ) ; // set gradient using initial x
+  E = findE (dim, x, args ) ;// set objective function too
   
   for(unsigned i = 0; i < dim; ++i)p[i] = gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
   for(unsigned i = 0; i < dim; ++i)sumpsq += p[i]*p[i];
@@ -131,7 +83,7 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
   for(unsigned tau = 0; tau < Tau; ++tau){ // make Tau `leapfrog' steps
     for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
     for(unsigned i = 0; i < dim; ++i) xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
-    gradE ( xnew, n, sumlogtheta, eps0, eps1, gnew ) ; // find new gradient
+    gradE ( dim, xnew, args, gnew ) ; // find new gradient
     for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
   }
   sumpsq = 0.0;
@@ -139,7 +91,7 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
      sumpsq += p[i]*p[i];
   }
 
-    Enew = findE ( xnew, n, sumlogtheta, eps0, eps1 ) ; // find new value of H
+  Enew = findE ( dim, xnew, args ) ; // find new value of H
     if(Enew !=-1.0){
       Hnew = sumpsq *0.5 + Enew ;
       dH = Hnew - H ; // Decide whether to accept
@@ -151,8 +103,8 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
 	for(unsigned i = 0; i < dim; ++i){
 	  x[i] = xnew[i]; 
 	  g[i] = gnew[i];
-	++accept_count;
 	}
+	++accept_count;
 	E = Enew ;
       }
     }
@@ -161,5 +113,7 @@ void HMCMC::Sample(double *x, double *sumlogtheta){
   delete[] gnew;  
 }
 
-
+float HMCMC::getAcceptanceCount(){
+  return (float)accept_count;
+}
 

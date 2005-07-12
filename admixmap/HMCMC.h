@@ -36,14 +36,16 @@ class HMCMC{
 public:
   HMCMC();
   ~HMCMC();
-  void Sample(double *x, double *sumlogtheta);//call inside a loop
+  void Sample(double *x, double **args);//call inside a loop
   void SetDimensions(const unsigned pdim, const double pepsilon, const unsigned pTau, 
-		     const unsigned pn, const double peps0, const double peps1);
+		     double (*pfindE)(unsigned d, double *theta, double **args),
+		     void (*pgradE)(unsigned d, double *theta, double **args, double *g));
   //sets dimension, stepsize, number of steps and parameters for density function
+  float getAcceptanceCount();
 
 private:
-  double findE(double *theta, unsigned n, double *sumlogtheta, double eps0, double eps1); //calculate objective function
-  void gradE(double *theta, unsigned n, double *sumlogtheta, double eps0, double eps1, double *g);//calculate gradient
+  double (*findE)(unsigned d, double *theta, double **args); //calculate objective function
+  void (*gradE)(unsigned d, double *theta, double **args, double *g);//calculate gradient
 
   unsigned dim;     //dimension
   double epsilon;   //stepsize
@@ -52,8 +54,6 @@ private:
   double *g;        //gradient (multidim)
   long accept_count; //number of acceptances, incase needed for monitoring
 
-  unsigned n;       //number of individuals/gametes
-  double eps0, eps1;//gamma prior parameters
 };
 
 

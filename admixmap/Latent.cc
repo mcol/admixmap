@@ -46,7 +46,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   options = op;
   Loci = loci;
   Log = l;
-#if POPADMIXSAMPLER != 1
+#if POPADMIXSAMPLER == 1
   sumlogtheta = 0;
 #endif
 }
@@ -145,7 +145,7 @@ void Latent::Initialise(int Numindividuals, std::ofstream *LogFileStreamPtr,
   // AlphaParameters is an array with 5 elements
   // element 0 is num individuals or num gametes (if random mating model)
   // element 1 is the sum of the Dirichlet parameter vector
-  // where are elements 2 and 3 used?
+  // elements 2 and 3 are the parameters of the gamma prior
   // element 4 is the sum of log admixture proportions
    
   if( options->isRandomMatingModel() ){
@@ -184,10 +184,18 @@ void Latent::Initialise(int Numindividuals, std::ofstream *LogFileStreamPtr,
     obs = Numindividuals;
   }
   
-#elif POPADMIXSAMPLER == 3   
+#elif POPADMIXSAMPLER == 3
+  AlphaArgs = new double*[4];
+  AlphaArgs[0] = new double[options->getPopulations()];
+  for(unsigned i = 1; i < 4;++i)AlphaArgs[i] = new double[1];
+  //elem 0 is sum of log admixture props
+  AlphaArgs[1][0] = (double)Numindividuals;// elem 1 is num individuals/gametes
+  if( options->isRandomMatingModel() )AlphaArgs[1][0] *= 2.0;
+  AlphaArgs[2][0] = 1.0;//params of gamma prior
+  AlphaArgs[3][0] = 1.0;
+
   //2nd arg is stepsize, 3rd is nsteps. May be necessary to 'tune' these for better mixing
-  SampleAlpha.SetDimensions(options->getPopulations(), 0.035, 20, Numindividuals, 1.0, 1.0);
-  sumlogtheta = new double[options->getPopulations()];
+  SampleAlpha.SetDimensions(options->getPopulations(), 0.035, 20, findE, gradE);
 #endif
 
   //set up DARS sampler for global sumintensities
@@ -211,11 +219,12 @@ Latent::~Latent()
   for(int i=0; i<options->getPopulations(); i++){
     delete DirParamArray[i];
   }
-#else
-  delete[] sumlogtheta;
-#endif
-#if POPADMIXSAMPLER == 2
+#elif POPADMIXSAMPLER == 2
   delete[] mu;
+  delete[] sumlogtheta;
+#elif POPADMIXSAMPLER == 3
+  for(unsigned i = 0; i < 4;++i)delete[] AlphaArgs[i];
+  delete[] AlphaArgs;
 #endif
 }
 
@@ -492,11 +501,11 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
     
 #elif POPADMIXSAMPLER == 3
      for( int j = 0; j < options->getPopulations(); j++ ){
-       sumlogtheta[j] = individuals->getSumLogTheta(j);
+       AlphaArgs[0][j] = individuals->getSumLogTheta(j);
      }
     double *alpha_array = new double[options->getPopulations()];
     VectorAsArray(alpha[0], alpha_array);
-    SampleAlpha.Sample(alpha_array, sumlogtheta);
+    SampleAlpha.Sample(alpha_array, AlphaArgs);
     ArrayAsVector(alpha[0], alpha_array);
     delete[] alpha_array;
 #endif
@@ -549,4 +558,52 @@ double Latent::getrho(){
 float Latent::getAlphaSamplerAcceptanceCount(){
   return SampleAlpha.getAcceptanceCount();
 }
+//these next 2 functions are specific to the Dirichlet parameters alpha(or their logs)
+//should use function pointers and keep code in Latent, or wherever the sampler is to be used
+
+//calculate objective function
+double Latent::findE(unsigned dim, double *theta, double **args){
+  /*
+    theta = log dirichlet parameters (alpha)
+    args[1] = n = #individuals/gametes
+    args[0] = sumlogtheta (array, length dim) = sums of logs of individual admixture proportions
+    args[2] = eps0, args[3] = eps1 = parameters of Gamma prior for alpha
+  */
+
+  double E = 0.0;
+  double sumalpha = 0.0, sumgamma = 0.0, sumtheta = 0.0, sume = 0.0;
+  bool flag = true;
+  for(unsigned j = 0; j < dim;++j){
+    if(exp(theta[j]) == 0.0){flag = false;break;} //to avoid underflow problems
+    sumalpha += exp(theta[j]);
+    sumgamma += gsl_sf_lngamma(exp(theta[j]));
+    sume += exp(theta[j]) * (args[3][0] - args[0][j]);
+    sumtheta += theta[j];
+  }
+  if(flag){
+    E = args[1][0] * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + (args[2][0] - 1.0) * sumtheta;
+    return -E;
+  }
+  else return -1.0;//is there a better return value? possibly use flag pointer
+}
+
+//calculate gradient
+void Latent::gradE(unsigned dim, double *theta, double **args, double *g){
+  //delete[] g;
+  //g = new double[dim];
+  double sumalpha = 0.0, x, y1, y2;
+  for(unsigned j = 0; j < dim; ++j) {
+    g[j] = 0.0;
+    sumalpha += exp(theta[j]);
+  }
+    ddigam(&sumalpha, &y1);
+    for(unsigned j = 0; j < dim; ++j) {
+      x = exp(theta[j]);
+      ddigam(&x, &y2);
+      if(x > 0.0 && gsl_finite(y1) && gsl_finite(y2)){//to avoid over/underflow problems
+	g[j] = x *( args[1][0] *(y2 - y1) + (args[3][0] - args[0][j])) - args[2][0] + 1.0;
+      }
+    }
+}
+
 #endif

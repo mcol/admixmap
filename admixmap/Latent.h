@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 1 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HMCMC
 
@@ -134,7 +134,7 @@ private:
   unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
 #elif POPADMIXSAMPLER == 3 //HMCMC sampler
-  double *sumlogtheta;
+  double **AlphaArgs;
   HMCMC SampleAlpha;
 #endif
 
@@ -154,7 +154,7 @@ private:
   // access any object variables, nor be used
   // outside of Latent.cc
   //
-
+#if POPADMIXSAMPLER == 1
   static double
   logf( Vector_d & , Matrix_i&, Matrix_d& , double );
   
@@ -163,7 +163,10 @@ private:
   
   static double
   ddlogf( Vector_d & , Matrix_i&, Matrix_d& , double );
-  
+#elif POPADMIXSAMPLER == 3
+  static double findE(unsigned dim,double *theta, double **args);
+  static void gradE(unsigned dim,double *theta, double **args, double *g);
+#endif  
   static double
   frho( Vector_d & , Matrix_i&, Matrix_d& , double );
   
