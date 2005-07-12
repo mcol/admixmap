@@ -9,7 +9,6 @@
 */
 #include "MisSpecAlleleFreqTest.h"
 #include "functions.h"
-#include "VectorLoop.h"
 
 MisSpecAlleleFreqTest::MisSpecAlleleFreqTest(){
   ScoreGene = 0;
@@ -28,19 +27,23 @@ MisSpecAlleleFreqTest::MisSpecAlleleFreqTest(){
 }
 
 MisSpecAlleleFreqTest::~MisSpecAlleleFreqTest(){
-  delete[] ScoreGene;
-  delete[] SumScoreGene;
-  delete[] InfoGene;
-  delete[] SumInfoGene;
-  delete[] SumScoreGeneSq;
-  for(int i = 0; i < NumCompLoci; ++i){
-    delete[] SumNewScore[i];
-    delete[] SumNewInfo[i];
-    delete[] SumNewScoreSq[i];
+  if(Test1){
+    delete[] ScoreGene;
+    delete[] SumScoreGene;
+    delete[] InfoGene;
+    delete[] SumInfoGene;
+    delete[] SumScoreGeneSq;
   }
-  delete[] SumNewScore;
-  delete[] SumNewInfo;
-  delete[] SumNewScoreSq;
+  if(Test2){
+    for(int i = NumCompLoci; i > 0; --i){
+      delete[] SumNewScore[i-1];
+      delete[] SumNewInfo[i-1];
+      delete[] SumNewScoreSq[i-1];
+    }
+    delete[] SumNewScore;
+    delete[] SumNewInfo;
+    delete[] SumNewScoreSq;
+  }
 }
 
 
