@@ -59,6 +59,7 @@ public:
   void setHaplotypeProbsMAP();
   void SetNumberOfLabels();
   void SetNumberOfPopulations( int );
+  void SetRandomAlleleFreqs(bool);
   void SetNumberOfStates( int );
   void SetLabel( int, std::string );
   void SetNumberOfLoci( int );
@@ -74,7 +75,7 @@ public:
 
   void setPossibleHaplotypePairs(unsigned short **Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles);
-  void GetGenotypeProbs(double *Probs, std::vector<hapPair > &HaplotypePairs, bool fixed, bool RandomAlleleFreqs);
+  void GetGenotypeProbs(double *Probs, std::vector<hapPair > &HaplotypePairs, bool fixed);
   void SetHapPairProbs();
   void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, Vector_i ancestry);
   void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, int *ancestry);
@@ -101,6 +102,7 @@ private:
   double *HapPairProbsMAP; //Posterior estimates of hap pair probs
   std::string *Label;
   int *base;
+  bool RandomAlleleFreqs;
 
   //possibly move out
   Vector_i MergeHaplotypes;
@@ -130,7 +132,7 @@ private:
 
 double GetMarginalLikelihood( Vector_d PriorAlleleFreqs, Vector_d AlleleCounts );
 
-inline void CompositeLocus::GetGenotypeProbs(double *Probs, std::vector<hapPair > &HapPairs, bool chibindicator, bool RandomAlleleFreqs){
+inline void CompositeLocus::GetGenotypeProbs(double *Probs, std::vector<hapPair > &HapPairs, bool chibindicator){
   for(int k0 = 0; k0 < Populations * Populations; ++k0){
     Probs[k0] = 0.0;
     for(unsigned int h = 0; h < HapPairs.size() ; ++h)

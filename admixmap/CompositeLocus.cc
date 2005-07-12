@@ -43,6 +43,7 @@ CompositeLocus::CompositeLocus()
   Matrix_d      null_Matrix_d(1,1);
   
   Populations = 0;
+  RandomAlleleFreqs = false;
   NumberOfMergedHaplotypes = 0;
   NumberOfAlleles = 0;
   AlleleProbs = 0;
@@ -115,6 +116,9 @@ void CompositeLocus::SetNumberOfStates( int newNumberOfStates )
 
 void CompositeLocus::SetNumberOfPopulations(int pops){
   Populations = pops;
+}
+void CompositeLocus::SetRandomAlleleFreqs(bool b){
+  RandomAlleleFreqs = b;
 }
 /**
  * Sets the number of alleles at a given locus.
@@ -335,11 +339,11 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k){
  *   n.b. the sum of all probabilities might not equal 1.0 - but
  *   probabilities are in correct proportions.
  */
-// void CompositeLocus::GetGenotypeProbs(double **Probs, std::vector<hapPair > &HapPairs, bool chibindicator, int RandomAlleleFreqs){
+// void CompositeLocus::GetGenotypeProbs(double **Probs, std::vector<hapPair > &HapPairs, bool chibindicator){
 //   for(int k0 = 0; k0 < Populations; ++k0)for(int k1 = 0; k1 < Populations; ++k1){
 //     Probs[k0][k1] = 0.0;
 //     for(unsigned int h = 0; h < HapPairs.size() ; ++h)
-//       if( chibindicator && RandomAlleleFreqs == 1 )
+//       if( chibindicator && RandomAlleleFreqs )
 // 	Probs[k0][k1] += HapPairProbsMAP[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
 //       else
 // 	Probs[k0][k1] += HapPairProbs[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
