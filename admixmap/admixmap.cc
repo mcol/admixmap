@@ -65,12 +65,6 @@ void submain(AdmixOptions* options){
   // This submain function is needed because the Latent object L is not destroyed properly if you use delete L. The ends of some R files which rely on a destructor being called are not generated without thus submain().
   //Not true any more - is submain still necessary?
 
-  std::ofstream LogFileStream;//output to logfile
-  std::ofstream avgstream; //output to ErgodicAverageFile
-
-  LogFileStream.open( options->getLogFilename(), ios::out ); 
-  LogWriter Log;
-  Log.Initialise(&LogFileStream,options->useCOUT());
 
   /*----------------
   | Initialisation |
@@ -79,6 +73,8 @@ void submain(AdmixOptions* options){
   long StartTime = time(0);
   tm timer;
   timer = *localtime( &StartTime );
+
+  LogWriter Log(options->getLogFilename(),options->useCOUT());
   Log.StartMessage(&timer);
 
   options->checkOptions(&Log);
@@ -98,7 +94,6 @@ void submain(AdmixOptions* options){
 
   std::vector<bool> _admixed;//don't belong
   bool _symmetric;          //here  
-  Vector_d poptheta;
 
   AlleleFreqs A(&Loci);
   Latent L( options, &Loci, &Log);
@@ -108,7 +103,7 @@ void submain(AdmixOptions* options){
   IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
   IC->LoadData(options,&data, &Log);                             //and before L and R Initialise
  
-  L.Initialise(IC->getSize(), &_admixed, &_symmetric, &poptheta, data.GetPopLabels());
+  L.Initialise(IC->getSize(), &_admixed, &_symmetric, data.GetPopLabels());
   if( options->getAnalysisTypeIndicator() >= 2)
     R.Initialise(IC, options, data.GetPopLabels(), &Log);
   A.Initialise(options, data.getEtaPriorMatrix(), &Log, data.GetPopLabels());
@@ -120,7 +115,7 @@ void submain(AdmixOptions* options){
   IC->Initialise(options, R.getbeta(), &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
 
   options->PrintOptions();//NB: call after all options are set
-                          //Currently all except Populations are set in AdmixOptions		
+                          //Currently all except Populations are set in AdmixOptions::SetOptions		
 
   //   ** single individual, one population, allele frequencies 
    if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
@@ -134,6 +129,7 @@ void submain(AdmixOptions* options){
     ScoreTests Scoretest;
     MisSpecAlleleFreqTest AlleleFreqTest;
     HWTest HWtest;
+    std::ofstream avgstream; //output to ErgodicAverageFile
  
     if( options->getTestForDispersion() ){
       DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());    
@@ -156,18 +152,7 @@ void submain(AdmixOptions* options){
   ------------*/
     for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
       if( !(iteration % options->getSampleEvery()) ){
-	if( options->getAnalysisTypeIndicator() >= 0 && (!options->useCOUT() || iteration == 0) )
-	  //output params to log when coutindicator = 0
-	  {
-	    LogFileStream << setiosflags( ios::fixed );
-	    LogFileStream.width( (int)( log10((double)options->getTotalSamples())+1 ) );
- 	    LogFileStream << iteration << " ";
-	  }
-	if( options->useCOUT() ) {
-	  cout << setiosflags( ios::fixed );
-	  cout.width( (int)( log10((double)options->getTotalSamples())+1 ) );
-	  cout << iteration << " ";
-	}
+	Log.Reset(iteration, (options->getAnalysisTypeIndicator() < 0), (int)( log10((double)options->getTotalSamples())+1 ) );
       }
 
       A.ResetAlleleCounts();
@@ -175,9 +160,9 @@ void submain(AdmixOptions* options){
 	  //if( !options->getRhoIndicator() )L.UpdateRhoWithRW(chrm, IC);
 
       // ** Update individual-level parameters  
-      IC->Update(iteration, &A, &R, poptheta, options,
+	  IC->Update(iteration, &A, &R, L.getpoptheta(),options,
 		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
-		 &LogFileStream, &MargLikelihood);
+		 &Log, &MargLikelihood);
       // ** update allele frequencies
       A.Update(iteration,options->getBurnIn());
       
@@ -190,19 +175,20 @@ void submain(AdmixOptions* options){
       // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
       // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
       // sum of rho and rho-squared over all individuals or gametes 
-      L.Update(iteration, IC, &poptheta,&LogFileStream);
+      L.Update(iteration, IC);
 
       //update f summary for global rho
       if( !options->getRhoIndicator() )  
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
 	  chrm[j]->SetLociCorr(L.getrho());
 	}
-      //update regression parameters (if regression model)
+      // ** update regression parameters (if regression model)
       if( options->getAnalysisTypeIndicator() >= 2)
 	R.Update((iteration > options->getBurnIn()), IC);
 
-      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
-	A.SetMergedHaplotypes(L.getalpha0(), &LogFileStream, options->IsPedFile());
+      // ** set merged haplotypes for allelic association score test 
+     if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
+	A.SetMergedHaplotypes(L.getalpha0());
 	Scoretest.SetAllelicAssociationTest();
       }
       
@@ -210,15 +196,15 @@ void submain(AdmixOptions* options){
       if( !(iteration % options->getSampleEvery()) ){
 	if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
 	  //Only output population-level parameters when there is a hierarchical model on indadmixture
-	  //pop admixture, sumintensities
-	  L.OutputParams(iteration, &LogFileStream);
-	  //regression parameters
+	  // ** pop admixture, sumintensities
+	  L.OutputParams(iteration);
+	  // ** regression parameters
 	  if( options->getAnalysisTypeIndicator() >= 2)
-	    R.Output(iteration,&LogFileStream,options,IC);
-	  //dispersion parameter (if dispersion model)
-	  A.OutputEta(iteration, options, &LogFileStream);
-	  //new line in logfile
-	  if( !options->useCOUT() || iteration == 0 ) LogFileStream << endl;
+	    R.Output(iteration, options, IC, &Log);
+	  //** dispersion parameter (if dispersion model)
+	  A.OutputEta(iteration, options, &Log);
+	  //** new line in logfile
+	  if( !options->useCOUT() || iteration == 0 ) Log.write("\n");
 	}
 	if( options->useCOUT() ) cout << endl;
 	if( iteration > options->getBurnIn() ){
@@ -254,17 +240,14 @@ void submain(AdmixOptions* options){
 	    }
 	    avgstream << endl;
 	  }
-	  //Test output
-
-
-	  if( options->getScoreTestIndicator() )
-	    Scoretest.Output(iteration,data.GetPopLabels());
+	  //Score Test output
+	  if( options->getScoreTestIndicator() )  Scoretest.Output(iteration,data.GetPopLabels());
 	}//end of 'every'*10 output
       }//end if after BurnIn
 
 
     }//end main loop
-    //output at end
+    // ** output at end
     //FST
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
       A.OutputFST(options->IsPedFile());
@@ -277,14 +260,20 @@ void submain(AdmixOptions* options){
     if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
       AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, data.GetPopLabels(), options->IsPedFile()); 
     //test for H-W eq
-   if( options->getHWTestIndicator() )
-     HWtest.Output(options->IsPedFile(), data.getGeneInfoData()); 
-    //Marginal Likelihood for a single individual
-    if( options->getAnalysisTypeIndicator() == -1 )MargLikelihood.Output(&LogFileStream);
-    //MLEs of admixture & sumintensities for nonhierarchical model on individual admixture
-    if( options->getMLIndicator() )IC->Output(&LogFileStream, options->getPopulations());
+    if( options->getHWTestIndicator() )
+      HWtest.Output(options->IsPedFile(), data.getGeneInfoData()); 
     //finish writing score test output as R objects
-  if( options->getScoreTestIndicator() ) Scoretest.ROutput();
+    if( options->getScoreTestIndicator() ) Scoretest.ROutput();
+    
+    if( options->getMLIndicator() ){
+      //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
+      IC->OutputChibEstimates(&Log, options->getPopulations());
+      Log.logmsg(true,   "Log likelihood         (at estimates): ");Log.logmsg(true, MargLikelihood.getLogLikelihood());
+      Log.logmsg(true, "\nLog prior              (at estimates): ");Log.logmsg(true, MargLikelihood.getLogPrior());
+      Log.logmsg(true, "\nLog posterior          (at estimates): ");Log.logmsg(true, MargLikelihood.getLogPosterior());
+      Log.logmsg(true, "\nLog marginal likelihood(at estimates): ");Log.logmsg(true, MargLikelihood.getLogMarginalLikelihood());
+    }
+    if(avgstream.is_open())avgstream.close();
  }//end else
 
   //  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
@@ -293,7 +282,7 @@ void submain(AdmixOptions* options){
    A.CloseOutputFile((options->getTotalSamples() - options->getBurnIn())/options->getSampleEvery(), data.GetPopLabels());  
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
-  for(unsigned int i=0; i < Loci.GetNumberOfCompositeLoci(); i++){
+  for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
     delete Loci(i);
   }
 
@@ -431,7 +420,7 @@ void ProcessingTime(LogWriter *Log, long StartTime)
   timer = *localtime( &Time );
   
 
-  Log->logmsg(false,"Program finished at ");
+  Log->logmsg(false,"\nProgram finished at ");
   Log->logmsg(false,timer.tm_hour);
   Log->logmsg(false,":");
   Log->logmsg(false,timer.tm_min < 10 ? "0" : "");
