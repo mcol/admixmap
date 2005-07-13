@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 1 //1 = original DARS sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HMCMC
 
@@ -46,9 +46,6 @@
 #include "vector.h"
 #include "vector_i.h"
 #include "vector_d.h"
-#include "matrix.h"
-#include "matrix_i.h"
-#include "matrix_d.h"
 
 #include "AdmixOptions.h"
 #include "DARS.h"
@@ -75,16 +72,15 @@ public:
   ~Latent();
 
   void Initialise(int Numindividuals, std::vector<bool> *_admixed, bool *_symmetric,
-		  Vector_d *poptheta, std::string *PopulationLabels);  
+		  std::string *PopulationLabels);  
 
   void  InitializeOutputFile(std::string *);
 
   //Updating every iteration
   void UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C);
-  void Update(int iteration,IndividualCollection *,
-	      Vector_d *poptheta,std::ofstream *LogFileStreamPtr);
+  void Update(int iteration,IndividualCollection *);
 
-  void OutputParams(int iteration, std::ofstream *LogFileStreamPtr); 
+  void OutputParams(int iteration); 
 
   void OutputErgodicAvg( int, std::ofstream *avgstream);
 
@@ -93,7 +89,7 @@ public:
   double getrhoalpha();
   double getrhobeta();
   double getrho();
-  //Vector_d *getSumLogTheta();
+  const double *getpoptheta();
   float getAlphaSamplerAcceptanceCount();
 
 private:
@@ -139,9 +135,8 @@ private:
 #endif
 
 
-  //std::vector<bool> _admixed; //population
-  //bool _symmetric;
-  //Vector_d poptheta; //population
+  double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
+                       //in the regression model
 
   std::ofstream outputstream;//output to paramfile
 

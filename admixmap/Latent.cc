@@ -46,13 +46,14 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   options = op;
   Loci = loci;
   Log = l;
+  poptheta = 0;
 #if POPADMIXSAMPLER == 2
   sumlogtheta = 0;
 #endif
 }
 
 void Latent::Initialise(int Numindividuals,
-			std::vector<bool> *_admixed, bool *_symmetric, Vector_d *poptheta, std::string *PopulationLabels){
+			std::vector<bool> *_admixed, bool *_symmetric, std::string *PopulationLabels){
   //Initialise population admixture distribution Dirichlet parameters alpha
   Vector_d alphatemp;
   SumAlpha.SetNumberOfElements( options->getPopulations() );
@@ -60,7 +61,7 @@ void Latent::Initialise(int Numindividuals,
   _admixed->resize(2,true);
   *_symmetric = true;
 
-  //if no initalpha is specified, alpha for both gemetes is initialised to 1.0 for each population  
+  //if no initalpha is specified, alpha for both gametes is initialised to 1.0 for each population  
   if( options->sizeInitAlpha() == 0 ){
      alphatemp.SetNumberOfElements( options->getPopulations() );
      alphatemp.SetElements( 1.0 );
@@ -70,7 +71,8 @@ void Latent::Initialise(int Numindividuals,
      Log->logmsg(false,"\nShape parameter for sumintensities prior: ");
      Log->logmsg(false, options->getRho());Log->logmsg(false,"\n");
   }
-  //if exactly one of initalpha0 or initalpha1 is specified, it is used as initial value for alpha for both gametes
+  //if exactly one of initalpha0 or initalpha1 is specified, sets initial values of alpha parameter vector for both gametes
+  // if indadmixhiermodel=0, alpha values stay fixed
   else if( options->sizeInitAlpha() == 1 ){
     alphatemp = options->getInitAlpha(0);
     (*_admixed)[0] = CheckInitAlpha( alphatemp );
@@ -82,7 +84,7 @@ void Latent::Initialise(int Numindividuals,
   //if both are specified and analysis is for a single individual,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
   //? potential problem if user specifies them the wrong way round
-  else if( options->getAnalysisTypeIndicator() < 0 ){
+  else if( options->getAnalysisTypeIndicator() < 0 ){ // should be if indadmixhiermodel=0
     //gamete 1
     alphatemp = options->getInitAlpha(0);
     (*_admixed)[0] = CheckInitAlpha( alphatemp );
@@ -95,7 +97,7 @@ void Latent::Initialise(int Numindividuals,
      alphatemp = options->getInitAlpha(1);
      (*_admixed)[1] = CheckInitAlpha( alphatemp );
      alpha.push_back(alphatemp);
-     Log->logmsg(false, "Prior for gamete 1 admixture: ");
+     Log->logmsg(false, "Prior for gamete 2 admixture: ");
      for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
      Log->logmsg(false,"\n");
 
@@ -152,7 +154,7 @@ void Latent::Initialise(int Numindividuals,
 
   //ergodic average of population admixture, which is used to centre 
   // the values of individual admixture in the regression model  
-  poptheta->SetNumberOfElements( options->getPopulations() );
+  poptheta =new double[ options->getPopulations() ];
 
 #if POPADMIXSAMPLER == 1  
   // AlphaParameters is an array with 5 elements
@@ -228,6 +230,7 @@ void Latent::Initialise(int Numindividuals,
 Latent::~Latent()
 {
   delete RhoDraw;
+  delete[] poptheta;
 #if POPADMIXSAMPLER == 1
   for(int i=0; i<options->getPopulations(); i++){
     delete DirParamArray[i];
@@ -399,19 +402,19 @@ void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
   *avgstream << setprecision(6) << SumRho / samples << " ";
 }
 
-void Latent::OutputParams(int iteration, std::ofstream *LogFileStreamPtr){
-  //output to logfile
+void Latent::OutputParams(int iteration){
+  //output to logfile for first iteration or every iteration if cout = 0
   if( !options->useCOUT() || iteration == 0 )
     {
       for( int j = 0; j < options->getPopulations(); j++ ){
-	LogFileStreamPtr->width(9);
-	(*LogFileStreamPtr) << setprecision(6) << alpha[0]( j ) << " ";
+	Log->width(9);
+	Log->write(alpha[0](j), 6);
       }
-      LogFileStreamPtr->width(9);
+      //LogFileStreamPtr->width(9);
       if( options->getRhoIndicator() )
-	(*LogFileStreamPtr) << setprecision(6) << rhobeta << " ";
+	Log->write(rhobeta,6);
       else
-	(*LogFileStreamPtr) << setprecision(6) << rho << " ";
+	Log->write(rho,6);
     }
   //output to screen
   if( options->useCOUT() )
@@ -463,8 +466,7 @@ bool Latent::CheckInitAlpha( Vector_d alphatemp )
    return admixed;
 }
 
-void Latent::Update(int iteration, IndividualCollection *individuals,
-		    Vector_d *poptheta,std::ofstream *LogFileStreamPtr){
+void Latent::Update(int iteration, IndividualCollection *individuals){
 
   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
       options->getIndAdmixHierIndicator() ){
@@ -528,8 +530,9 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
   }
 
   if( iteration == options->getBurnIn() && options->getAnalysisTypeIndicator() > 1 ){
-    *LogFileStreamPtr << "Individual admixture centred in regression model around: "
-		     << *poptheta << endl;
+    Log->write("Individual admixture centred in regression model around: ");
+    Log->write( poptheta, options->getPopulations());
+    Log->write("\n");
 
     SumAlpha.SetElements(0);
   }
@@ -538,7 +541,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals,
       && options->getAnalysisTypeIndicator() > 1 ){
     // accumulate ergodic average of population admixture, which is used to centre 
     // the values of individual admixture in the regression model
-    *poptheta = SumAlpha / SumAlpha.Sum();
+    for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha(j) / SumAlpha.Sum();
 
   }
   if( iteration > options->getBurnIn() ){
@@ -567,6 +570,10 @@ double Latent::getrhobeta(){
 double Latent::getrho(){
   return rho;
 }
+const double *Latent::getpoptheta(){
+  return poptheta;
+}
+
 #if POPADMIXSAMPLER == 3
 float Latent::getAlphaSamplerAcceptanceCount(){
   return SampleAlpha.getAcceptanceCount();
