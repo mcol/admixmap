@@ -188,8 +188,7 @@ void submain(AdmixOptions* options){
 
       // ** set merged haplotypes for allelic association score test 
      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
-	A.SetMergedHaplotypes(L.getalpha0());
-	Scoretest.SetAllelicAssociationTest();
+ 	Scoretest.SetAllelicAssociationTest(L.getalpha0());
       }
       
       // output every 'getSampleEvery()' iterations

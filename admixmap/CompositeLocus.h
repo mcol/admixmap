@@ -89,8 +89,7 @@ public:
   int GetMergedHaplotype( int i );
   int GetNumberOfMergedHaplotypes();
   Vector_i GetHapLabels( int );
-  void SetDefaultMergeHaplotypes( Vector_d alpha, Matrix_d AlleleFreqs );
-  void SetDefaultMergeHaplotypes( double *alpha, Matrix_d AlleleFreqs );
+  void SetDefaultMergeHaplotypes( double *alpha);
 
 private: 
   int NumberOfLoci;

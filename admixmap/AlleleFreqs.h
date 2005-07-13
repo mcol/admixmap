@@ -73,9 +73,6 @@ public:
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
- // function to merge rare haplotypes for construction of score tests
-  void SetMergedHaplotypes(Vector_d *alpha0);
-
 private:
   int Populations, NumberOfCompositeLoci;
   double *eta; //dispersion parameter
@@ -107,8 +104,6 @@ private:
 
   int *NumberAccepted;
   double *SumAcceptanceProb;
-
-  double *pp;//used to set merged haplotypes, which are used in the allelic association test
 
 //    DARS SampleMu;
    std::vector<TuneRW> *MuProposal;

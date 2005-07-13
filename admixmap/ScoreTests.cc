@@ -1,13 +1,31 @@
-/*
-Class implements the following score tests:
-(1) Score test for admixture association (admixturescoretest)
-(2) Score test for allelic association
-(3) Score test for within-halpotype association
-(4) Score test for linkage with locus ancestry
-(5) Affecteds-only score test for linkage with locus ancestry
-*/
+/** 
+ *   ADMIXMAP
+ *   Scoretests.cc 
+ *   Class implements the following score tests:
+ *   (1) Score test for admixture association (admixturescoretest)
+ *   (2) Score test for allelic association
+ *   (3) Score test for within-halpotype association
+ *   (4) Score test for linkage with locus ancestry
+ *   (5) Affecteds-only score test for linkage with locus ancestry
+ *   Copyright (c) 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 
 #include "ScoreTests.h"
+
 
 using namespace std;
 
@@ -322,9 +340,15 @@ void ScoreTests::Reset(){
 
 }
 
-void ScoreTests::SetAllelicAssociationTest(){
+void ScoreTests::SetAllelicAssociationTest(Vector_d *alpha0){
+  //alpha0 = alpha[0], pop admixture dirichlet params, from Latent
+  double pp[options->getPopulations()];
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
+      for( int k = 0; k < options->getPopulations(); k++ )
+	pp[k] = (*alpha0)(k) / alpha0->Sum();
+      (*Lociptr)(j)->SetDefaultMergeHaplotypes( pp);
+      
       //possible memory leaks here
       int kk = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
       LocusLinkageAlleleScore[j].SetNumberOfElements( kk + options->getPopulations(),1 );

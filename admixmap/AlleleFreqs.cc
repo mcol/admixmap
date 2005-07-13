@@ -49,7 +49,6 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   Fst = 0;
   SumFst = 0;
   TuneEtaSampler = 0;
-  pp = 0;
   Loci = pLoci;  
 }
 
@@ -72,7 +71,6 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] SumAcceptanceProb;
   delete[] etastep;
   delete[] SumEta;
-  delete[] pp;
 }
 
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data_)
@@ -138,7 +136,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
   (*chrm) = Loci->GetChromosomes(Populations);
   
   Loci->SetSizes();
-  pp = new double[Populations];
+
   //(**)
   Log->logmsg(false, NumberOfCompositeLoci);
   Log->logmsg(false," loci; ");
@@ -595,18 +593,6 @@ void AlleleFreqs::ResetSumAlleleFreqs()
 for( int i = 0; i < NumberOfCompositeLoci; i++ ){
   SumAlleleFreqs[i].SetElements(0);
  }
-}
-
-void AlleleFreqs::SetMergedHaplotypes(Vector_d *alpha0){
-  //Note: alpha0 = alpha[0] in Latent
-  for( int j = 0; j < NumberOfCompositeLoci; j++ ){
-    if( (*Loci)(j)->GetNumberOfLoci() > 1 ){
-
-      for( int k = 0; k < Populations; k++ )
-	pp[k] = (*alpha0)(k) / alpha0->Sum();
-      (*Loci)(j)->SetDefaultMergeHaplotypes( pp, Freqs[j] );
-    }
-  }
 }
 
 /**
