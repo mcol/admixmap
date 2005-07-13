@@ -1,3 +1,24 @@
+/** 
+ *   ADMIXMAP
+ *   chib.cc
+ *   this is meant to be a generic class for the Chib algorithm 
+ *   calculating the marginal likelihood of the model from MCMC output 
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #include "chib.h"
 
 using namespace std;
@@ -30,25 +51,18 @@ void chib::addLogPosteriorObs( double f )
 
 double chib::getLogPosterior()
 {
-   double x = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
-   if( isnan(x) ){
-      for( unsigned int i = 0; i < VecLogPosterior.size(); i++ )
-         cout << VecLogPosterior[i] << " ";
-      cout << endl;
-      exit(0);
-   }
+  //double x = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
+  //if( isnan(x) ){
+  //  for( unsigned int i = 0; i < VecLogPosterior.size(); i++ )
+  //     cout << VecLogPosterior[i] << " ";
+  //  cout << endl;
+  //  exit(0);
+  //}
    return AverageOfLogs( VecLogPosterior, MaxLogPosterior );
 }
 
-void chib::Output(ofstream *outputstream)
-{
-   double LogPosterior = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
-   cout << "Log likelihood:          " << LogLikelihood << endl;
-   cout << "Log prior:               " << LogPrior      << endl;
-   cout << "Log posterior:           " << LogPosterior  << endl;
-   cout << "Log marginal likelihood: " << LogLikelihood + LogPrior - LogPosterior << endl;
-   *outputstream << "Log likelihood:          " << LogLikelihood << endl;
-   *outputstream << "Log prior:               " << LogPrior      << endl;
-   *outputstream << "Log posterior:           " << LogPosterior  << endl;
-   *outputstream << "Log marginal likelihood: " << LogLikelihood + LogPrior - LogPosterior << endl;
+double chib::getLogMarginalLikelihood(){
+  double LogPosterior = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
+  return LogLikelihood + LogPrior - LogPosterior;
 }
+
