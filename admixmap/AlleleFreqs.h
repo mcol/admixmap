@@ -25,15 +25,13 @@
 #include "Genome.h"
 #include "AdmixOptions.h"
 #include "LogWriter.h"
-//#include "LocusVisitor.h"
-//#include "AlleleFreqOutputter.h"
 
 class AlleleFreqs{
 
 public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
-  void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log,std::string *PopulationLabels);
+  void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log, std::string *);
   void Update(int iteration,int);
 
   //initialize output file for samples of dispersion parameters
@@ -54,10 +52,10 @@ public:
 
   void OutputFST(bool IsPedFile);
 
-  void LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data,std::string **PopulationLabels);
+  void LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data);
 
   void ResetAlleleCounts();//resets Allelecounts to zero at start of iteration
-  int IsRandom();//possibly should be bool?
+  bool IsRandom();
   void UpdateFst();
   double *GetStatsForEta( int , int locus);
   double GetAlleleProbsMAP( int x, int ancestry , int locus);
@@ -97,7 +95,7 @@ private:
   dmatrix Fst;
   dmatrix SumFst;
   bool IsHistoricAlleleFreq;//indicator for dispersion model
-  int RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random - should be bool?
+  bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
 
   Genome *Loci;//pointer to Loci object
 
@@ -119,15 +117,9 @@ private:
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
-  void checkLociNames(AdmixOptions *,InputData *data_);
-    
-  void getLabels( const std::string, Vector_i, std::string* );
- 
   void OpenFSTFile(AdmixOptions *options,LogWriter *Log); 
 
-  // we have four different functions to initialize allele freqs
-  // 2nd and 3rd take i th locus as argument
-  // other two loop over all composite loci
+  // we have three different functions to initialize allele freqs
   // would be simpler to have one method
   // these functions are called by method LoadAlleleFreqs  
   void InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Populations);

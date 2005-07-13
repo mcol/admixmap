@@ -87,7 +87,7 @@ void submain(AdmixOptions* options){
 
   //Initialise Objects
   InputData data;
-  data.readData(options, &Log);
+  data.readData(options, &Log);//NB this sets Populations option
 
   Genome Loci;
   Loci.loadAlleleStatesAndDistances(options, &data, &Log);
@@ -99,33 +99,32 @@ void submain(AdmixOptions* options){
   std::vector<bool> _admixed;//don't belong
   bool _symmetric;          //here  
   Vector_d poptheta;
-  std::string *PopulationLabels = 0;//possibly belongs in InputData
 
   AlleleFreqs A(&Loci);
   Latent L( options, &Loci, &Log);
   Regression R;
 
-  A.LoadAlleleFreqs(options,&chrm,&Log,&data,&PopulationLabels);//NB this sets Populations option
+  A.LoadAlleleFreqs(options,&chrm,&Log,&data);
   IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
   IC->LoadData(options,&data, &Log);                             //and before L and R Initialise
  
-  L.Initialise(IC->getSize(), &LogFileStream, &_admixed, &_symmetric, &poptheta, PopulationLabels);
+  L.Initialise(IC->getSize(), &_admixed, &_symmetric, &poptheta, data.GetPopLabels());
   if( options->getAnalysisTypeIndicator() >= 2)
-    R.Initialise(IC, options, PopulationLabels, &Log);
-  A.Initialise(options, data.getEtaPriorMatrix(), &Log, PopulationLabels);
+    R.Initialise(IC, options, data.GetPopLabels(), &Log);
+  A.Initialise(options, data.getEtaPriorMatrix(), &Log, data.GetPopLabels());
 
   if( !options->getRhoIndicator() )
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
       chrm[j]->InitialiseLociCorr(L.getrho());
     }
-  IC->Initialise(options, R.getbeta(), &Loci, PopulationLabels, L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
+  IC->Initialise(options, R.getbeta(), &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
 
   options->PrintOptions();//NB: call after all options are set
                           //Currently all except Populations are set in AdmixOptions		
 
   //   ** single individual, one population, allele frequencies 
    if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
-    IC->getOnePopOneIndLogLikelihood(&Log, PopulationLabels);
+     IC->getOnePopOneIndLogLikelihood(&Log, data.GetPopLabels());
 
   else
 {
@@ -142,14 +141,14 @@ void submain(AdmixOptions* options){
     if( options->getStratificationTest() )
       StratTest.Initialize( options, Loci ,&Log);
     if( options->getScoreTestIndicator() )
-      Scoretest.Initialise(options, IC, &Loci, chrm,PopulationLabels, &Log);
+      Scoretest.Initialise(options, IC, &Loci, chrm,data.GetPopLabels(), &Log);
     if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
       AlleleFreqTest.Initialise(options, &Loci, &Log );  
     if( options->getHWTestIndicator() )
       HWtest.Initialise(options, Loci.GetTotalNumberOfLoci(), &Log);
 
     if( options->getTextIndicator() ){
-      InitializeErgodicAvgFile(options,IC, &Log,&avgstream,PopulationLabels);
+      InitializeErgodicAvgFile(options,IC, &Log,&avgstream,data.GetPopLabels());
       }
 
  /*------------
@@ -173,7 +172,7 @@ void submain(AdmixOptions* options){
 
       A.ResetAlleleCounts();
       //** update global sumintensities
-	  //if( !options->getRhoIndicator() )L.UpdateRhoWithRW(chrm);
+	  //if( !options->getRhoIndicator() )L.UpdateRhoWithRW(chrm, IC);
 
       // ** Update individual-level parameters  
       IC->Update(iteration, &A, &R, poptheta, options,
@@ -259,7 +258,7 @@ void submain(AdmixOptions* options){
 
 
 	  if( options->getScoreTestIndicator() )
-	    Scoretest.Output(iteration,PopulationLabels);
+	    Scoretest.Output(iteration,data.GetPopLabels());
 	}//end of 'every'*10 output
       }//end if after BurnIn
 
@@ -273,10 +272,10 @@ void submain(AdmixOptions* options){
     //stratification test
     if( options->getStratificationTest() ) StratTest.Output();
     //dispersion test
-    if( options->getTestForDispersion() )  DispTest.Output(options->getTotalSamples() - options->getBurnIn(), Loci, PopulationLabels);
+    if( options->getTestForDispersion() )  DispTest.Output(options->getTotalSamples() - options->getBurnIn(), Loci, data.GetPopLabels());
     //tests for mis-specified allele frequencies
     if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
-      AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, PopulationLabels, options->IsPedFile()); 
+      AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, data.GetPopLabels(), options->IsPedFile()); 
     //test for H-W eq
    if( options->getHWTestIndicator() )
      HWtest.Output(options->IsPedFile(), data.getGeneInfoData()); 
@@ -291,13 +290,12 @@ void submain(AdmixOptions* options){
   //  for(int i=0; i<A.getLoci()->GetNumberOfChromosomes(); i++){
   //     delete chrm[i];
   //   }
-  A.CloseOutputFile((options->getTotalSamples() - options->getBurnIn())/options->getSampleEvery(), PopulationLabels);  
+   A.CloseOutputFile((options->getTotalSamples() - options->getBurnIn())/options->getSampleEvery(), data.GetPopLabels());  
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
   for(unsigned int i=0; i < Loci.GetNumberOfCompositeLoci(); i++){
     delete Loci(i);
   }
-  //delete []PopulationLabels;
 
 #if POPADMIXSAMPLER == 3 
   Log.logmsg(true,"Acceptance rate in admixture parameter sampler: ");

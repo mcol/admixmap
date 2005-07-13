@@ -20,20 +20,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "AlleleFreqs.h"
-#include "StringSplitter.h"
 #include "DARS.h"
-#include <sstream>
 #include "functions.h"
-
-//belongs in InputData
-static void getLabels(const Vector_s& data, Vector_i temporary, string *labels)
-{
-    for (size_t i = 0, index = 0; i < data.size(); ++i) {
-        if (temporary.GetNumberOfElements() == 1 || temporary(i)) {            
-            labels[index++] = data[i];
-        }
-    }
-}
 
 AlleleFreqs::AlleleFreqs(Genome *pLoci){
   eta = 0;
@@ -49,7 +37,7 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   NumberAccepted = 0;
   Number  = 0;
   Populations = 0;
-  RandomAlleleFreqs = 0;
+  RandomAlleleFreqs = false;
   IsHistoricAlleleFreq = false;
   AlleleCounts = 0;
   Freqs = 0;
@@ -87,7 +75,7 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] pp;
 }
 
-void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data_,std::string **PopulationLabels)
+void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data_)
 {
   data_->CheckAlleleFreqs(options, Loci->GetNumberOfCompositeLoci(), Loci->GetNumberOfStates());
   int newrow;
@@ -110,14 +98,8 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
   //Fixed AlleleFreqs
   if( strlen( options->getAlleleFreqFilename() ) ){
     temporary = data_->getAlleleFreqMatrix();
-    Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
     if( options->getTextIndicator() ){
       temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, Populations );
-      *PopulationLabels = new string[ Populations ];
-      Vector_i vtemp( Populations + 1 );
-      vtemp.SetElements( 1 );
-      vtemp(0) = 0;
-      ::getLabels(data_->getAlleleFreqData()[0], vtemp, *PopulationLabels);
     }
 
     for( int i = 0; i < NumberOfCompositeLoci; i++ )
@@ -128,31 +110,18 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
       }
   }
   else if( strlen( options->getHistoricalAlleleFreqFilename() ) || strlen( options->getPriorAlleleFreqFilename() ) ){
-    const Vector_s* alleleFreqLabels = 0;
     bool Historic;
     //Historic AlleleFreqs
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-      alleleFreqLabels = &data_->getHistoricalAlleleFreqData()[0];
       temporary = data_->getHistoricalAlleleFreqMatrix();
-      Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
       Historic = true; 
  
     } else {
       //Prior on AlleleFreqs
-      alleleFreqLabels = &data_->getPriorAlleleFreqData()[0];
       temporary = data_->getPriorAlleleFreqMatrix();
-      Populations = temporary.GetNumberOfCols() - options->getTextIndicator();
       Historic = false;
     }
- 
     temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, Populations );
-    *PopulationLabels = new string[ Populations ];
-
-    Vector_i vtemp( Populations + 1 );
-    vtemp.SetElements( 1 );
-    vtemp(0) = 0;
-    ::getLabels(*alleleFreqLabels, vtemp, *PopulationLabels);
-
 
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       newrow = row + (*Loci)(i)->GetNumberOfStates();
@@ -163,22 +132,12 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
   //Default Allele Freqs
   else{
     SetDefaultAlleleFreqs( Populations );
-    *PopulationLabels = new string[ Populations ];
-    for( int j = 0; j < Populations; j++ ){
-      stringstream poplabel;
-      string result;
-      poplabel << "\"A" << j << "\"";
-      result = poplabel.str();
-      (*PopulationLabels)[j] = result;
-    }
-      
   }
 
   //create Chromosome objects
   (*chrm) = Loci->GetChromosomes(Populations);
   
   Loci->SetSizes();
-  options->setPopulations(Populations);
   pp = new double[Populations];
   //(**)
   Log->logmsg(false, NumberOfCompositeLoci);
@@ -195,18 +154,6 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
     Log->logmsg(true, Loci->GetLengthOfXchrm());
     Log->logmsg(true," Morgans.\n");
    }
-}
-
-void AlleleFreqs::getLabels( const string buffer, Vector_i temporary, string *labels )
-{
-    StringSplitter splitter;
-    const Vector_s& labels_tmp = splitter.split(buffer);
-
-    for (size_t i = 0, index = 0; i < labels_tmp.size(); ++i) {
-        if (temporary.GetNumberOfElements() == 1 || temporary(i)) {            
-            labels[index++] = labels_tmp[i];
-        }
-    }
 }
 
 void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogWriter *Log,
@@ -332,6 +279,7 @@ void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Pops
   // initialize Freqs
   Freqs[i] = NewAlleleFreqs;
   (*Loci)(i)->SetNumberOfPopulations(Pops);
+  (*Loci)(i)->SetRandomAlleleFreqs(RandomAlleleFreqs);
   // set size of allele counts matrix at this locus
   AlleleCounts[i].SetNumberOfElements(NumberOfStates,Pops);
 }
@@ -387,7 +335,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
     HistoricLikelihoodAlleleFreqs[i] = New;
     PriorAlleleFreqs[i] = New + 0.501;
     SumAlleleFreqs[i].SetNumberOfElements((*Loci)(i)->GetNumberOfStates() - 1, Pops);
-    RandomAlleleFreqs = 1;
+    RandomAlleleFreqs = true;
     Fst = alloc2D_d(NumberOfCompositeLoci, Pops);
     SumFst = alloc2D_d(NumberOfCompositeLoci, Pops);
     // set size of vector MuProposal
@@ -402,10 +350,10 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
     if(!fixed){
 	PriorAlleleFreqs[i] = New;
 	SumAlleleFreqs[i].SetNumberOfElements((*Loci)(i)->GetNumberOfStates() -1, Pops);
-	RandomAlleleFreqs = 1;
+	RandomAlleleFreqs = true;
     }
   }
-
+  (*Loci)(i)->SetRandomAlleleFreqs(RandomAlleleFreqs);
 }
 
 void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
@@ -416,7 +364,6 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
  * populations - the number of ancestral populations
  */
 
-  // this check should be moved into InputData class
    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
   
     // more duplicated code - should do this within method InitializePriorAlleleFreqs
@@ -431,7 +378,8 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 
      AlleleCounts[i].SetNumberOfElements((*Loci)(i)->GetNumberOfStates(), Pops);
      SumAlleleFreqs[i].SetNumberOfElements((*Loci)(i)->GetNumberOfStates() - 1, Pops);
-     RandomAlleleFreqs = 1;
+     RandomAlleleFreqs = true;
+     (*Loci)(i)->SetRandomAlleleFreqs(RandomAlleleFreqs);
    }
 }
 
@@ -901,7 +849,7 @@ void AlleleFreqs::setAlleleFreqsMAP()
  * are random. false (zero) otherwise.
  * Should this return a boolean?
  */
-int AlleleFreqs::IsRandom()
+bool AlleleFreqs::IsRandom()
 {
   return( RandomAlleleFreqs );
 }

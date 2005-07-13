@@ -80,6 +80,8 @@ public:
   const Matrix_d& getMLEMatrix() const;
   const Matrix_d& getReportedAncestryMatrix() const;
 
+  std::string *GetPopLabels() const;
+
   bool determineIfPedFile(AdmixOptions *options);
   void convertGenotypesToIntArray(AdmixOptions *options);
   void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
@@ -110,6 +112,7 @@ private:
   Matrix_d MLEMatrix_;
   Matrix_d reportedAncestryMatrix_;
 
+  std::string *PopulationLabels;
   int NumIndividuals;
   int NumSimpleLoci;
   int NumCompositeLoci;

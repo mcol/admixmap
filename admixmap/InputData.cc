@@ -25,6 +25,7 @@
 #include "Genome.h"
 #include "Chromosome.h"
 #include <string>
+#include <sstream>
 
 using namespace std;
 
@@ -41,6 +42,28 @@ static bool isWhiteLine(const char *p)
 
     return true;
 }
+
+//Extracts population labels from header line of allelefreq input file
+static void getPopLabels(const Vector_s& data, size_t Populations, string **labels)
+{
+  if(data.size() != Populations+1){cout << "Error in getPopLabels\n";exit(1);}
+  *labels = new string[ Populations ];
+
+    for (size_t i = 0; i < Populations; ++i) {
+      (*labels)[i] = data[i+1];
+    }
+}
+// static void getLabels( const string buffer, Vector_i temporary, string *labels )
+// {
+//     StringSplitter splitter;
+//     const Vector_s& labels_tmp = splitter.split(buffer);
+
+//     for (size_t i = 0, index = 0; i < labels_tmp.size(); ++i) {
+//         if (temporary.GetNumberOfElements() == 1 || temporary(i)) {            
+//             labels[index++] = labels_tmp[i];
+//         }
+//     }
+// }
 
 void InputData::readFile(const char *fname, Matrix_s& data)
 {
@@ -115,10 +138,12 @@ static void convertMatrix(const Matrix_s& data, Matrix_d& m)
 
 InputData::InputData()
 {
+  PopulationLabels = 0;
 }
 
 InputData::~InputData()
 {
+  delete[] PopulationLabels;
 }
 
 void InputData::readData(AdmixOptions *options, LogWriter *log)
@@ -182,6 +207,7 @@ int InputData::getNumberOfIndividuals() {
 int InputData::getNumberOfSimpleLoci() {
   return(geneInfoData_.size() - 1);
 }
+
 bool InputData::determineIfPedFile(AdmixOptions *options) {
   // Determine if genotype table is in pedfile format by testing if number of strings in row 1 equals
   // twice the number of strings in the header row minus one. 
@@ -254,10 +280,12 @@ void InputData::checkLociNames(AdmixOptions *options){
 }
 
 //checks consistency of supplied allelefreqs with locusfile
+//and determines number of populations and population labels
 void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates){
-  string freqtype = "x";
-  bool infile = false;
+  string freqtype = "";
+  bool infile = false;//indicates whether either of the three allelefreq files are specified
   int nrows=0, expectednrows=0;
+  int Populations;
 
   //fixed allele freqs
   if( strlen( options->getAlleleFreqFilename() ) ){
@@ -265,14 +293,19 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
     infile = true;
     nrows = alleleFreqMatrix_.GetNumberOfRows()-1;
     expectednrows = NumberOfStates-NumberOfCompositeLoci;
+    Populations = alleleFreqMatrix_.GetNumberOfCols() - options->getTextIndicator();
+    ::getPopLabels(alleleFreqData_[0], Populations, &PopulationLabels);
   }
   
-  //Historic AlleleFreqs
+  //Historic allelefreqs
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
     freqtype = "historic";
     infile = true;
     nrows = historicalAlleleFreqMatrix_.GetNumberOfRows();
     expectednrows = NumberOfStates+1;
+    Populations = historicalAlleleFreqMatrix_.GetNumberOfCols() - options->getTextIndicator();
+    ::getPopLabels(historicalAlleleFreqData_[0], Populations, &PopulationLabels);
+
   }
   //prior allelefreqs
   if( strlen( options->getPriorAlleleFreqFilename() )) {
@@ -280,6 +313,8 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
       infile = true;
       nrows = priorAlleleFreqMatrix_.GetNumberOfRows();
       expectednrows = NumberOfStates+1;
+      Populations = priorAlleleFreqMatrix_.GetNumberOfCols() - options->getTextIndicator();
+      ::getPopLabels(priorAlleleFreqData_[0], Populations, &PopulationLabels);
   }
   if(infile){
     if(nrows != expectednrows){
@@ -293,13 +328,23 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
       Log->logmsg(true," rows.\n");
       exit(1);
     }
+    options->setPopulations(Populations);
   }
   else{//'populations' option
-    if(options->getPopulations() < 1){
+    Populations = options->getPopulations();
+    if(Populations < 1){
       Log->logmsg(true, "ERROR: populations = ");
       Log->logmsg(true, options->getPopulations());
       Log->logmsg(true, "\n");
       exit(1);
+    }
+    PopulationLabels = new string[ Populations ];
+    for( int j = 0; j < Populations; j++ ){
+      stringstream poplabel;
+      string result;
+      poplabel << "\"Pop" << j+1 << "\"";
+      result = poplabel.str();
+      PopulationLabels[j] = result;
     }
 //     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 //       if(Loci->GetNumberOfStates(i) < 2){
@@ -582,4 +627,7 @@ const Matrix_d& InputData::getReportedAncestryMatrix() const
 const Matrix_d& InputData::getInputMatrix() const
 {
     return inputMatrix_;
+}
+std::string *InputData::GetPopLabels() const{
+  return PopulationLabels;
 }
