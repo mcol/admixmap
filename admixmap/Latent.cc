@@ -46,12 +46,12 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   options = op;
   Loci = loci;
   Log = l;
-#if POPADMIXSAMPLER == 1
+#if POPADMIXSAMPLER == 2
   sumlogtheta = 0;
 #endif
 }
 
-void Latent::Initialise(int Numindividuals, std::ofstream *LogFileStreamPtr,
+void Latent::Initialise(int Numindividuals,
 			std::vector<bool> *_admixed, bool *_symmetric, Vector_d *poptheta, std::string *PopulationLabels){
   //Initialise population admixture distribution Dirichlet parameters alpha
   Vector_d alphatemp;
@@ -59,38 +59,51 @@ void Latent::Initialise(int Numindividuals, std::ofstream *LogFileStreamPtr,
 
   _admixed->resize(2,true);
   *_symmetric = true;
+
+  //if no initalpha is specified, alpha for both gemetes is initialised to 1.0 for each population  
   if( options->sizeInitAlpha() == 0 ){
      alphatemp.SetNumberOfElements( options->getPopulations() );
      alphatemp.SetElements( 1.0 );
      alpha.resize(2,alphatemp);
-     *LogFileStreamPtr << "Prior for gamete/individual admixture: "
-                      << alphatemp << endl;
-     *LogFileStreamPtr << "Shape parameter for sumintensities prior: " <<  options->getRho() << endl;
+     Log->logmsg(false,  "Prior for gamete/individual admixture: ");
+     for(int k = 0;k < options->getPopulations(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
+     Log->logmsg(false,"\nShape parameter for sumintensities prior: ");
+     Log->logmsg(false, options->getRho());Log->logmsg(false,"\n");
   }
+  //if exactly one of initalpha0 or initalpha1 is specified, it is used as initial value for alpha for both gametes
   else if( options->sizeInitAlpha() == 1 ){
     alphatemp = options->getInitAlpha(0);
     (*_admixed)[0] = CheckInitAlpha( alphatemp );
      alpha.resize(2,alphatemp);
-     *LogFileStreamPtr << "Prior for gamete/individual admixture: "
-                      << alphatemp << endl;
+     Log->logmsg(false, "Prior for gamete/individual admixture: ");
+     for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
+     Log->logmsg(false,"\n");
   }
+  //if both are specified and analysis is for a single individual,
+  //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
+  //? potential problem if user specifies them the wrong way round
   else if( options->getAnalysisTypeIndicator() < 0 ){
+    //gamete 1
     alphatemp = options->getInitAlpha(0);
     (*_admixed)[0] = CheckInitAlpha( alphatemp );
      alpha.push_back(alphatemp);
+     Log->logmsg(false, "Prior for gamete 1 admixture: ");
+     for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
+     Log->logmsg(false,"\n");
 
-     *LogFileStreamPtr << "Prior for gamete 1 admixture: "
-                      << alphatemp << endl;
+     //gamete 2
      alphatemp = options->getInitAlpha(1);
      (*_admixed)[1] = CheckInitAlpha( alphatemp );
      alpha.push_back(alphatemp);
+     Log->logmsg(false, "Prior for gamete 1 admixture: ");
+     for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
+     Log->logmsg(false,"\n");
 
-     *LogFileStreamPtr << "Prior for gamete 2 admixture: "
-                      << alphatemp << endl;
      *_symmetric = false;
   }
   else{
-     Log->logmsg(true,"Can only specify seperate priors for gamete admixture with analysis of single individual.\n");
+     Log->logmsg(true,"ERROR: Can only specify seperate priors for gamete admixture with analysis of single individual.\n");
+     exit(1);
   }
   if(!options->getIndAdmixHierIndicator())  SumAlpha = alpha[0];
 

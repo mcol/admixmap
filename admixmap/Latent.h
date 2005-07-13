@@ -74,7 +74,7 @@ public:
   
   ~Latent();
 
-  void Initialise(int Numindividuals, std::ofstream *, std::vector<bool> *_admixed, bool *_symmetric,
+  void Initialise(int Numindividuals, std::vector<bool> *_admixed, bool *_symmetric,
 		  Vector_d *poptheta, std::string *PopulationLabels);  
 
   void  InitializeOutputFile(std::string *);
