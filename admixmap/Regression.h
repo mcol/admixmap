@@ -9,6 +9,7 @@
 #include "AdmixOptions.h"
 #include "IndividualCollection.h"
 #include "MetropolisHastings.h"
+#include "LogWriter.h"
 
 // class Vector_d;
  class Matrix_d;
@@ -23,9 +24,8 @@ public:
   ~Regression();
   void Initialise(IndividualCollection *, AdmixOptions *, std::string *Populationlabels, LogWriter *);
   void Update(bool afterBurnIn, IndividualCollection *individuals);
-  void SumParameters();//should be private, part of Update
   void InitializeOutputFile(AdmixOptions *, IndividualCollection *individuals,std::string *PopulationLabels);
-  void Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOptions *, IndividualCollection *individuals);
+  void Output(int iteration, AdmixOptions *, IndividualCollection *individuals, LogWriter *Log);
   void OutputErgodicAvg(int iteration, IndividualCollection *individuals,std::ofstream *avgstream);
   double **getbeta();
   Vector_d *getlambda();
@@ -54,6 +54,8 @@ private:
   Vector_d SumLambda;
  
   std::ofstream outputstream;//output to regparamfile
+
+  void SumParameters();
 
   static double
   lr( Vector_d & , Matrix_i&, Matrix_d& , double );

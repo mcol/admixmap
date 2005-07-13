@@ -79,10 +79,10 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
       beta = alloc2D_d(NumOutcomeVars, NoCovariates);
       SumBeta = alloc2D_d(NumOutcomeVars, NoCovariates);
      }
-    for(int i=0;i<NumOutcomeVars; ++i)
-       for(int j=0;j<NoCovariates;++j)
-          SumBeta[i][j] = 0.0;
-    
+    for(int i = 0; i < NumOutcomeVars; ++i)
+      for(int j = 0; j < NoCovariates; ++j)
+	SumBeta[i][j] = 0.0;
+
     double p;
     beta0 = new Matrix_d[NumOutcomeVars];
       for(int i = 0; i < NumOutcomeVars; ++i){
@@ -210,7 +210,7 @@ void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollectio
   outputstream << endl;
 }
 
-void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOptions *options, IndividualCollection *individuals){
+void Regression::Output(int iteration, AdmixOptions *options, IndividualCollection *individuals, LogWriter *Log){
   //output to logfile
   if( !options->useCOUT() || iteration == 0 )
     {
@@ -218,29 +218,31 @@ void Regression::Output(int iteration, std::ofstream *LogFileStreamPtr, AdmixOpt
 	{
           for( int j = 0; j < NoCovariates; j++ )
 	    {
-	      LogFileStreamPtr->width(9);
-	      (*LogFileStreamPtr) << setprecision(6) << beta[0][j] << " ";
+	      Log->width(9);
+	      Log->write(beta[0][j],6);
 	    }
-          LogFileStreamPtr->width(9);
+          //Log->width(9);
           if( AnalysisTypeIndicator == 2 )
 	    {
-	      (*LogFileStreamPtr) << setprecision(6) << lambda;
+	      for( int k = 0; k <  NumOutcomeVars; k++ )
+		Log->write(lambda(k),6);
+		//Log->write( lambda, 6);
 	    }
 	}
       else if( AnalysisTypeIndicator == 5 )
 	{
           for( int k = 0; k <  NumOutcomeVars; k++ )
 	    {
-	      *LogFileStreamPtr<< "\nRegression " << k << " ";
+	      Log->write("\nRegression ");Log->write(k);
 	      for( int j = 0; j < NoCovariates; j++ )
 		{
-		  LogFileStreamPtr->width(9);
-		  *LogFileStreamPtr<< setprecision(6) << beta[k][j] << " ";
+		  Log->width(9);
+		  Log->write(beta[k][j], 9);
 		}
-	      LogFileStreamPtr->width(9);
+	      Log->width(9);
 	      if( ! individuals->getOutcomeType(k) )
 		{
-                  *LogFileStreamPtr<< setprecision(6) << lambda(k);
+                  Log->write(lambda(k),6);
 		}
 	    }
 	}

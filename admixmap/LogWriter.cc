@@ -26,101 +26,127 @@ using namespace::std;
 LogWriter::LogWriter(){
 }
 
-void LogWriter::Initialise(std::ofstream *LogFileStream, int useCout){
-  //LogFileStreamPtr.open(LogFilename(), ios::out );
-  LogFileStreamPtr = LogFileStream;
-  useCOUTOption=useCout;
+LogWriter::LogWriter(const char *LogFilename, const bool useCout){
+  LogFileStream.open(LogFilename, ios::out );
+  if(!LogFileStream.is_open()){
+    cout << "ERROR: unable to open logfile"<<endl;
+    exit(1);
+  }
+  useCOUTOption = useCout;
 }
 
-void
-LogWriter::logmsg (bool useCOUT, std::string message)
+LogWriter::~LogWriter(){
+  if(LogFileStream.is_open())LogFileStream.close();
+}
+
+void LogWriter::logmsg (bool useCOUT, std::string message)
 {
-  *LogFileStreamPtr << message;
+  LogFileStream << message;
   if(useCOUTOption || useCOUT){
     cout << message;
   }
 }
 
-void
-LogWriter::logmsg (bool useCOUT, const char * message)
+void LogWriter::logmsg (bool useCOUT, const char * message)
 {
-  *LogFileStreamPtr << message;
+  LogFileStream << message;
   if(useCOUTOption || useCOUT){
     cout << message;
   }
 }
 
-void
-LogWriter::logmsg (bool useCOUT, int number)
+void LogWriter::logmsg (bool useCOUT, int number)
 {
-  *LogFileStreamPtr << number;
+  LogFileStream << number;
   if(useCOUTOption  || useCOUT){
     cout << number;
   }
 }
 
-void
-LogWriter::logmsg (bool useCOUT, unsigned int number)
+void LogWriter::logmsg (bool useCOUT, unsigned int number)
 {
-  *LogFileStreamPtr << number;
+  LogFileStream << number;
   if(useCOUTOption  || useCOUT){
     cout << number;
   }
 }
 
-void
-LogWriter::logmsg (bool useCOUT, long number)
+void LogWriter::logmsg (bool useCOUT, long number)
 {
-  *LogFileStreamPtr << number;
+  LogFileStream << number;
   if(useCOUTOption || useCOUT ){
     cout << number;
   }
 }
 
-void
-LogWriter::logmsg (bool useCOUT, double number)
+void LogWriter::logmsg (bool useCOUT, double number)
 {
-  *LogFileStreamPtr << number;
+  LogFileStream << number;
   if(useCOUTOption  || useCOUT){
     cout << number;
   }
 }
 
 void LogWriter::write(const char* message){
-  *LogFileStreamPtr<<message;
+  LogFileStream<<message<<" ";
 }
 void LogWriter::write(std::string message){
-  *LogFileStreamPtr<<message;
+  LogFileStream<<message<<" ";
 }
 void LogWriter::write(int number){
-  *LogFileStreamPtr<<number;
+  LogFileStream<<number<<" ";
 }
 void LogWriter::write(long number){
-  *LogFileStreamPtr<<number;
+  LogFileStream<<number<<" ";
 }
 void LogWriter::write(double number){
-  *LogFileStreamPtr<<number;
+  LogFileStream<<number<<" ";
+}
+void LogWriter::write(double number, unsigned prec){
+  LogFileStream<<setprecision(prec)<<number<<" ";
+  LogFileStream<<setprecision(6);//restore default
+}
+void LogWriter::write(double *array, size_t dim){
+  if(array)//to avoid seg faults with unallocated arrays
+    for(size_t i = 0; i < dim;++i)LogFileStream<<array[i]<<" ";
+}
+
+void LogWriter::width(unsigned w){
+  LogFileStream.width(w);
 }
 
 void LogWriter::StartMessage(tm *timer){
-  *LogFileStreamPtr << "-----------------------------------------------" << endl;
-  *LogFileStreamPtr << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
-  *LogFileStreamPtr << "-----------------------------------------------" << endl;
-  logmsg(false,"Program started at ");
-  logmsg(false,timer->tm_hour);
-  logmsg(false,":");
-  logmsg(false,timer->tm_min < 10 ? "0" : "" );
-  logmsg(false,timer->tm_min);
-  logmsg(false,".");
-  logmsg(false,timer->tm_sec < 10 ? "0" : "" );
-  logmsg(false,timer->tm_sec);
-  logmsg(false," ");
-  logmsg(false,timer->tm_mday);
-  logmsg(false,"/");
-  logmsg(false,timer->tm_mon+1);
-  logmsg(false,"/");
-  logmsg(false,1900+timer->tm_year);
-  logmsg(false,"\n\n");
+  LogFileStream << "-----------------------------------------------" << endl;
+  LogFileStream << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
+  LogFileStream << "-----------------------------------------------" << endl;
+  logmsg(true,"Program started at ");
+  logmsg(true,timer->tm_hour);
+  logmsg(true,":");
+  logmsg(true,timer->tm_min < 10 ? "0" : "" );
+  logmsg(true,timer->tm_min);
+  logmsg(true,".");
+  logmsg(true,timer->tm_sec < 10 ? "0" : "" );
+  logmsg(true,timer->tm_sec);
+  logmsg(true," ");
+  logmsg(true,timer->tm_mday);
+  logmsg(true,"/");
+  logmsg(true,timer->tm_mon+1);
+  logmsg(true,"/");
+  logmsg(true,1900+timer->tm_year);
+  logmsg(true,"\n\n");
 }
-
+void LogWriter::Reset(int iteration, bool OneIndAnalysis, int width){
+  if( (!OneIndAnalysis) && (!useCOUTOption || iteration == 0) )
+    //output params to log on first iteration and every other when coutindicator = 0
+    {
+      LogFileStream << setiosflags( ios::fixed );
+      LogFileStream.width( width );
+      LogFileStream << iteration << " ";
+    }
+  if( useCOUTOption ) {
+    cout << setiosflags( ios::fixed );
+    cout.width( width );
+    cout << iteration << " ";
+  }
+}
 

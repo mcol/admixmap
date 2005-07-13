@@ -3,6 +3,7 @@
  *   ADMIXMAP
  *   LogWriter.h
  *   Header file for LogWriter class
+ *   all writing to the logfile is done via this class
  *   Copyright (c) 2005 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
@@ -30,31 +31,41 @@ class LogWriter
 {
 public:
   LogWriter();
-  void Initialise(std::ofstream *LogFileStream, int useCout);
+  LogWriter(const char *LogFilename, const bool useCout);
+  ~LogWriter();
 
-  void logmsg(bool useCOUT, std::string message);
+  void Reset(int iteration, bool, int);
 
-  void logmsg(bool useCOUT, const char * message);
+  //logmsg functions write to logfile
+  //also write to screen unless cout = 0 and first arg is false
+  void logmsg(bool , std::string message);
 
-  void logmsg(bool useCOUT, int number);
+  void logmsg(bool , const char * message);
 
-  void logmsg(bool useCOUT, unsigned int number);
+  void logmsg(bool , int number);
 
-  void logmsg(bool useCOUT, long number);
+  void logmsg(bool , unsigned int number);
 
-  void logmsg(bool useCOUT, double number);
+  void logmsg(bool , long number);
 
+  void logmsg(bool, double number);
+
+  //write functions write only to log with a space at end
   void write(const char*);
   void write (std::string message);
   void write(int);
   void write(long);
   void write(double);
+  void write(double number, unsigned prec);
+  void write(double *array, size_t dim);
 
-  void StartMessage(tm *);
+  void width(unsigned w);//calls width function for LogFileStream
+
+  void StartMessage(tm *);//prints startup message
 
 private:
-  std::ofstream *LogFileStreamPtr;
-  int useCOUTOption;
+  std::ofstream LogFileStream;
+  bool useCOUTOption;
 };
 
 #endif /* !defined LATENT_H */

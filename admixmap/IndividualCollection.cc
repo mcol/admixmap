@@ -486,10 +486,10 @@ void IndividualCollection::getLabels(const Vector_s& data, Vector_i temporary, s
     }
 }
 
-void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, Vector_d &poptheta, AdmixOptions *options,
+void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, const double *poptheta, AdmixOptions *options,
 				  Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, 
 				  vector<bool> _admixed, double rhoalpha, double rhobeta,
-				  std::ofstream *LogFileStreamPtr, chib *MargLikelihood){
+				  LogWriter *Log, chib *MargLikelihood){
   SumLogTheta.SetElements( 0.0 );
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
   Individual::ResetStaticSums();
@@ -498,7 +498,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
     
     if( options->getPopulations() > 1 ){
       _child[i]->SampleParameters(i, &SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, *(R->getlambda()),
-				  R->getNoCovariates(),  Covariates, R->getbeta(),poptheta, options, 
+				  R->getNoCovariates(),  Covariates, R->getbeta(), poptheta, options, 
 				  chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
 				  R->getDispersion(OutcomeType(0)));}
@@ -507,22 +507,23 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
       _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, *(R->getlambda()), options->getAnalysisTypeIndicator());
     }   
     
-    if( (options->getAnalysisTypeIndicator() < 0) && (i == 0) )//check if this condition is correct
+    if( (options->getAnalysisTypeIndicator() < 0) &&  options->getMLIndicator() && (i == 0) )//check if this condition is correct
       _child[i]->ChibLikelihood(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
 				options, chrm, alpha,_admixed, rhoalpha, rhobeta,
-				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], LogFileStreamPtr, MargLikelihood, A);
+				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], Log, MargLikelihood, A);
   }
 
 }
 
-void IndividualCollection::Output(std::ofstream *LogFileStreamPtr, int Populations){
-  //Used only for IndAdmixHierModel = 0
+void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
+  //Used only if marglikelihood = 1
+  Log->write("Estimates used in Chib algorithm to estimate marginal likelihood:\n");
   for(unsigned  int i = 0; i < NumInd; i++ ){
     for(int k = 0; k < Populations; ++k)
-      *LogFileStreamPtr << thetahat[i][k] << " ";
+      Log->write(thetahat[i][k]);
     for(int k = 0; k < Populations; ++k)
-      *LogFileStreamPtr << thetahat[i][Populations +k] << " ";
-    *LogFileStreamPtr << rhohat[i][0] << " " << rhohat[i][1] << endl;
+      Log->write(thetahat[i][Populations +k]);
+    Log->write( rhohat[i][0]);Log->write( rhohat[i][1]);Log->write("\n");
   }
 }
 

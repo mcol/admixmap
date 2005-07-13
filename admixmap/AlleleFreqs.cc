@@ -597,7 +597,7 @@ for( int i = 0; i < NumberOfCompositeLoci; i++ ){
  }
 }
 
-void AlleleFreqs::SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr, bool IsPedFile){
+void AlleleFreqs::SetMergedHaplotypes(Vector_d *alpha0){
   //Note: alpha0 = alpha[0] in Latent
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     if( (*Loci)(j)->GetNumberOfLoci() > 1 ){
@@ -605,13 +605,6 @@ void AlleleFreqs::SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileSt
       for( int k = 0; k < Populations; k++ )
 	pp[k] = (*alpha0)(k) / alpha0->Sum();
       (*Loci)(j)->SetDefaultMergeHaplotypes( pp, Freqs[j] );
-      if(IsPedFile)
-	*LogFileStreamPtr << "\"" << (*Loci)(j)->GetLabel(0) << "\"" << endl;
-      else
-	*LogFileStreamPtr << (*Loci)(j)->GetLabel(0) << endl;
-      for( int k = 0; k < (*Loci)(j)->GetNumberOfStates(); k++ ){
-	*LogFileStreamPtr << k << " " << (*Loci)(j)->GetMergedHaplotype(k) << endl;
-      }
     }
   }
 }
@@ -760,14 +753,14 @@ void AlleleFreqs::OutputErgodicAvg( int samples,AdmixOptions *options, std::ofst
   }
 }
 
-void AlleleFreqs::OutputEta(int iteration, AdmixOptions *options, std::ofstream *LogFileStreamPtr){
+void AlleleFreqs::OutputEta(int iteration, AdmixOptions *options, LogWriter *Log){
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
   //output to logfile
     if( !options->useCOUT() || iteration == 0 )
       {
 	for( int j = 0; j < Populations; j++ ){
-	  LogFileStreamPtr->width(9);
-	  (*LogFileStreamPtr) << setprecision(6) << eta[j] << " ";
+	  Log->width(9);
+	  Log->write(eta[j],6);
 	}
       }
   //output to screen

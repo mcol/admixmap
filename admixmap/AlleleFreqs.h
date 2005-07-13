@@ -40,7 +40,7 @@ public:
   //outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration,AdmixOptions *options, std::ofstream *avgstream);
   //output samples of dispersion parameters (eta) to dispparamfile
-  void OutputEta(int iteration, AdmixOptions *options, std::ofstream *LogFileStreamPtr);
+  void OutputEta(int iteration, AdmixOptions *options, LogWriter *Log);
 
   Genome *getLoci();
   CompositeLocus *getLocus(int);
@@ -74,7 +74,7 @@ public:
   void setAlleleFreqsMAP();
  
  // function to merge rare haplotypes for construction of score tests
-  void SetMergedHaplotypes(Vector_d *alpha0, std::ofstream *LogFileStreamPtr, bool IsPedFile);
+  void SetMergedHaplotypes(Vector_d *alpha0);
 
 private:
   int Populations, NumberOfCompositeLoci;

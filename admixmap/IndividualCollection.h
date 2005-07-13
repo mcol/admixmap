@@ -40,6 +40,7 @@
 class Regression;
 class Individual;
 class IndAdmixOutputter;
+class LogWriter;
 
 class IndividualCollection
 {
@@ -56,13 +57,13 @@ public:
   void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels);
 
   void Update(int iteration, AlleleFreqs *A, Regression *R, 
-	      Vector_d &poptheta, AdmixOptions *options, Chromosome **chrm, 
+	      const double *poptheta, AdmixOptions *options, Chromosome **chrm, 
 	      vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta,
-	      std::ofstream *LogFileStreamPtr, chib *MargLikelihood);
+	      LogWriter *Log, chib *MargLikelihood);
   
   void OutputIndAdmixture();
 
-  void Output(std::ofstream *, int);
+  void OutputChibEstimates(LogWriter *, int);
 
   void OutputErgodicAvg(int samples, chib *MargLikelihood, std::ofstream *avgstream);
 

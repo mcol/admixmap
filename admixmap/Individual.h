@@ -25,6 +25,7 @@
 #include "Genome.h"
 #include "Chromosome.h"
 #include "AlleleFreqs.h"
+#include "LogWriter.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 
@@ -87,7 +88,7 @@ public:
 
   void SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
 			 int NumOutcomes, Vector_i &OutcomeType, double **ExpectedY, Vector_d &lambda, int NoCovariates,
-			 Matrix_d &Covariates0, double **beta, Vector_d &poptheta, AdmixOptions* options,
+			 Matrix_d &Covariates0, double **beta, const double *poptheta, AdmixOptions* options,
 			 Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, 
 			 double rhoalpha, double rhobeta, vector<double> sigma, 
 			 double DInvLink, double dispersion);
@@ -99,7 +100,7 @@ public:
 		      AdmixOptions *options, Chromosome **chrm, vector<Vector_d> alpha,  
 		      vector<bool> _admixed, double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
 		      vector<double> &rhohat, vector<double> &rhohatX,
-		      std::ofstream *LogFileStreamPtr, chib *MargLikelihood, AlleleFreqs *A);
+		      LogWriter *Log, chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(AdmixOptions *options);
  
@@ -152,16 +153,16 @@ private:
   static double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
 
-  void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, Vector_d &poptheta, bool ModelIndicator,
+  void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double *poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
   double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
   double AcceptanceProbForTheta_LogReg( int i, int TI, bool ModelIndicator,int Populations, 
 					int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
-					Matrix_d *Outcome, Vector_d &poptheta);
+					Matrix_d *Outcome, const double *poptheta);
   double AcceptanceProbForTheta_LinearReg( int i, int TI, bool ModelIndicator,int Populations,
 					   int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
-					   Matrix_d *Outcome, Vector_d &poptheta, Vector_d &lambda);
+					   Matrix_d *Outcome, const double *poptheta, Vector_d &lambda);
 
   bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options);
 
@@ -171,7 +172,7 @@ private:
 		 unsigned int SumN[], unsigned int SumN_X[]);
   void SampleTheta( int i, Vector_d *SumLogTheta, Matrix_d *Outcome,
 		    int NumOutcomes,  Vector_i &OutcomeType, double **ExpectedY, Vector_d &lambda, int NoCovariates,
-		    Matrix_d &Covariates0, double **beta, Vector_d &poptheta,
+		    Matrix_d &Covariates0, double **beta, const double *poptheta,
 		    AdmixOptions* options, vector<Vector_d> alpha, vector<double> sigma);
 
   void ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<Vector_d> alpha);
@@ -181,7 +182,7 @@ private:
 
   void InitializeChib(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 
 		 AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
-		 vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, std::ofstream *LogFileStreamPtr);
+		 vector<Vector_d> alpha, vector<bool> _admixed, chib *MargLikelihood, LogWriter *Log);
 
   void setIsMissing(vector<unsigned int >& decoded);
 
