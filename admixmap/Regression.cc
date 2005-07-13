@@ -79,10 +79,10 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
       beta = alloc2D_d(NumOutcomeVars, NoCovariates);
       SumBeta = alloc2D_d(NumOutcomeVars, NoCovariates);
      }
-for(int i=0;i<NumOutcomeVars; ++i)
-for(int j=0;j<NoCovariates;++j)
-SumBeta[i][j] = 0.0;
-
+    for(int i=0;i<NumOutcomeVars; ++i)
+       for(int j=0;j<NoCovariates;++j)
+          SumBeta[i][j] = 0.0;
+    
     double p;
     beta0 = new Matrix_d[NumOutcomeVars];
       for(int i = 0; i < NumOutcomeVars; ++i){
@@ -142,7 +142,7 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
       temporary.InvertUsingLUDecomposition();
       temporary.Symmetrize();
       betan = temporary * ( n0 * beta0[k] + individuals->getCovariates().Transpose() * individuals->getOutcome(k) );
-      double lambdan = lambda0 + 0.5 *
+      double lambdan = lambda1 + 0.5 *
 	( (individuals->getOutcome(k) - individuals->getCovariates() * betan ).Transpose() * individuals->getOutcome(k)
 	  + (beta0[k] - betan).Transpose() * n0 * beta0[k] )(0,0);
       lambda(k) = gengam( lambdan, lambda0 + 0.5 * individuals->getSize() );
