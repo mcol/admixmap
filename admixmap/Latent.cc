@@ -155,6 +155,7 @@ void Latent::Initialise(int Numindividuals,
   //ergodic average of population admixture, which is used to centre 
   // the values of individual admixture in the regression model  
   poptheta =new double[ options->getPopulations() ];
+  for( int i = 0; i < options->getPopulations(); i++ )poptheta[i] = 0.0;
 
 #if POPADMIXSAMPLER == 1  
   // AlphaParameters is an array with 5 elements
