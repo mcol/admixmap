@@ -152,7 +152,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   try
     {
       // Read all input files.
-      readFile(options->getGeneInfoFilename(), geneInfoData_);   //locusfile
+      readFile(options->getGeneInfoFilename(), locusData_);   //locusfile
       readFile(options->getGeneticDataFilename(), geneticData_); //genotypes file
       readFile(options->getCovariatesFilename(), inputData_);         //covariates file
       readFile(options->getOutcomeVarFilename(), targetData_);       //outcomevar file                
@@ -162,13 +162,14 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       readFile(options->getEtaPriorFilename(), etaPriorData_);
       readFile(options->getMLEFilename(), MLEData_);
       readFile(options->getReportedAncestryFilename(), reportedAncestryData_);
-      
+
+      Log->logmsg(false,"\n");      
       // Form matrices.
-      convertMatrix(geneInfoData_, geneInfoMatrix_);
+      convertMatrix(locusData_, locusMatrix_);
       if (options->getTextIndicator()) {
-	geneInfoMatrix_.SubMatrix2(1, geneInfoMatrix_.GetNumberOfRows() - 1, 1, 2);
+	locusMatrix_.SubMatrix2(1, locusMatrix_.GetNumberOfRows() - 1, 1, 2);
       } else {
-	geneInfoMatrix_.SubMatrix2(0, geneInfoMatrix_.GetNumberOfRows() - 1, 0, 1);
+	locusMatrix_.SubMatrix2(0, locusMatrix_.GetNumberOfRows() - 1, 0, 1);
       }
       
       ::convertMatrix(targetData_, targetMatrix_);
@@ -185,6 +186,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
     exit(1);
   }
   NumSimpleLoci = getNumberOfSimpleLoci();
+  NumCompositeLoci = determineNumberOfCompositeLoci();
   NumIndividuals = getNumberOfIndividuals();
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
@@ -205,7 +207,15 @@ int InputData::getNumberOfIndividuals() {
 
 //determine number of loci by counting rows of locusfile
 int InputData::getNumberOfSimpleLoci() {
-  return(geneInfoData_.size() - 1);
+   Log->logmsg(true, locusMatrix_.GetNumberOfRows());Log->logmsg(true," simple loci\n");
+  return(locusData_.size() - 1);
+}
+//determines number of composite loci from locusfile
+unsigned InputData::determineNumberOfCompositeLoci(){
+  unsigned NumberOfCompositeLoci = locusMatrix_.GetNumberOfRows();
+    for( int i = 0; i < locusMatrix_.GetNumberOfRows(); i++ )
+     if( locusMatrix_( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
+    return NumberOfCompositeLoci;
 }
 
 bool InputData::determineIfPedFile(AdmixOptions *options) {
@@ -221,7 +231,7 @@ bool InputData::determineIfPedFile(AdmixOptions *options) {
 //checks number of loci in genotypes file is the same as in locusfile
 void InputData::CheckGeneticData(AdmixOptions *options){
 
-  const size_t numLoci = geneInfoData_.size() - 1; //number of loci in locus file
+  const size_t numLoci = locusData_.size() - 1; //number of loci in locus file
   int sexcol;
   // Determine if "Sex" column present in genotypes file.
   if (numLoci == geneticData_[0].size() - 1) {
@@ -255,25 +265,25 @@ void InputData::checkLociNames(AdmixOptions *options){
   // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
   
   // Check loci names are unique    
-  for (size_t i = 1; i < geneInfoData_.size(); ++i) {
-    for (size_t j = i + 1; j < geneInfoData_.size(); ++j) {   
-      if (geneInfoData_[i][0] == geneInfoData_[j][0]) {
+  for (size_t i = 1; i < locusData_.size(); ++i) {
+    for (size_t j = i + 1; j < locusData_.size(); ++j) {   
+      if (locusData_[i][0] == locusData_[j][0]) {
 	cerr << "Error in locusfile. Two different loci have the same name. "
-	     << geneInfoData_[i][0] << endl;
+	     << locusData_[i][0] << endl;
 	exit(2);            
       }
     }
   }
 
-  const size_t numLoci = geneInfoData_.size() - 1;
+  const size_t numLoci = locusData_.size() - 1;//number of simple loci
 
     // Compare loci names in locus file and genotypes file.
     for (size_t i = 1; i <= numLoci; ++i) {
-        if (geneInfoData_[i][0] != geneticData_[0][i + options->getgenotypesSexColumn()]) {
+        if (locusData_[i][0] != geneticData_[0][i + options->getgenotypesSexColumn()]) {
             cout << "Error. Loci names in locus file and genotypes file are not the same." << endl;
-            cout << "Loci names causing an error are: " << geneInfoData_[i][0] << " and " 
+            cout << "Loci names causing an error are: " << locusData_[i][0] << " and " 
                  << geneticData_[0][i + options->getgenotypesSexColumn()] << endl;
-            cout << options->getgenotypesSexColumn() << endl;
+            //cout << options->getgenotypesSexColumn() << endl;
             exit(2);
         }
     } 
@@ -534,9 +544,9 @@ void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0
     exit(1);
 }
 
-const Matrix_s& InputData::getGeneInfoData() const
+const Matrix_s& InputData::getLocusData() const
 {
-    return geneInfoData_;
+    return locusData_;
 }
 
 const Matrix_s& InputData::getGeneticData() const
@@ -594,9 +604,9 @@ const Matrix_d& InputData::getMLEMatrix() const
     return MLEMatrix_;
 }
 
-const Matrix_d& InputData::getGeneInfoMatrix() const
+const Matrix_d& InputData::getLocusMatrix() const
 {
-    return geneInfoMatrix_;
+    return locusMatrix_;
 }
 
 const Matrix_d& InputData::getAlleleFreqMatrix() const

@@ -29,7 +29,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include "LogWriter.h"
 #include "AdmixOptions.h"
 #include "InputData.h"
 
@@ -57,7 +56,7 @@ public:
 
   void SetLabels(const std::vector<std::string> &labels, Vector_d temp);
 
-  void loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_, LogWriter *Log);
+  void loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_);
 
   double *GetDistances();
 
@@ -77,7 +76,7 @@ public:
 
   Chromosome **GetChromosomes(int);
 
-  void SetSizes();
+  void SetSizes(LogWriter *Log);
  
   int GetNumberOfStates();
   int GetNumberOfStates(int locus);

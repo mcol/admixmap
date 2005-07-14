@@ -29,7 +29,7 @@ LogWriter::LogWriter(){
 LogWriter::LogWriter(const char *LogFilename, const bool useCout){
   LogFileStream.open(LogFilename, ios::out );
   if(!LogFileStream.is_open()){
-    cout << "ERROR: unable to open logfile"<<endl;
+    cerr << "ERROR: unable to open logfile"<<endl;
     exit(1);
   }
   useCOUTOption = useCout;
@@ -39,50 +39,50 @@ LogWriter::~LogWriter(){
   if(LogFileStream.is_open())LogFileStream.close();
 }
 
-void LogWriter::logmsg (bool useCOUT, std::string message)
+void LogWriter::logmsg (const bool display, const string message)
 {
   LogFileStream << message;
-  if(useCOUTOption || useCOUT){
+  if(useCOUTOption || display){
     cout << message;
   }
 }
 
-void LogWriter::logmsg (bool useCOUT, const char * message)
+void LogWriter::logmsg (const bool display, const char * message)
 {
   LogFileStream << message;
-  if(useCOUTOption || useCOUT){
+  if(useCOUTOption || display){
     cout << message;
   }
 }
 
-void LogWriter::logmsg (bool useCOUT, int number)
+void LogWriter::logmsg (const bool display, const int number)
 {
   LogFileStream << number;
-  if(useCOUTOption  || useCOUT){
+  if(useCOUTOption  || display){
     cout << number;
   }
 }
 
-void LogWriter::logmsg (bool useCOUT, unsigned int number)
+void LogWriter::logmsg (const bool display, const unsigned number)
 {
   LogFileStream << number;
-  if(useCOUTOption  || useCOUT){
+  if(useCOUTOption  || display){
     cout << number;
   }
 }
 
-void LogWriter::logmsg (bool useCOUT, long number)
+void LogWriter::logmsg (const bool display, const long number)
 {
   LogFileStream << number;
-  if(useCOUTOption || useCOUT ){
+  if(useCOUTOption || display ){
     cout << number;
   }
 }
 
-void LogWriter::logmsg (bool useCOUT, double number)
+void LogWriter::logmsg (const bool display, const double number)
 {
   LogFileStream << number;
-  if(useCOUTOption  || useCOUT){
+  if(useCOUTOption  || display){
     cout << number;
   }
 }
@@ -90,28 +90,28 @@ void LogWriter::logmsg (bool useCOUT, double number)
 void LogWriter::write(const char* message){
   LogFileStream<<message<<" ";
 }
-void LogWriter::write(std::string message){
+void LogWriter::write(const string message){
   LogFileStream<<message<<" ";
 }
-void LogWriter::write(int number){
+void LogWriter::write(const int number){
   LogFileStream<<number<<" ";
 }
-void LogWriter::write(long number){
+void LogWriter::write(const long number){
   LogFileStream<<number<<" ";
 }
-void LogWriter::write(double number){
+void LogWriter::write(const double number){
   LogFileStream<<number<<" ";
 }
-void LogWriter::write(double number, unsigned prec){
+void LogWriter::write(const double number, const unsigned prec){
   LogFileStream<<setprecision(prec)<<number<<" ";
   LogFileStream<<setprecision(6);//restore default
 }
-void LogWriter::write(double *array, size_t dim){
+void LogWriter::write(const double *array, const size_t dim){
   if(array)//to avoid seg faults with unallocated arrays
     for(size_t i = 0; i < dim;++i)LogFileStream<<array[i]<<" ";
 }
 
-void LogWriter::width(unsigned w){
+void LogWriter::width(const unsigned w){
   LogFileStream.width(w);
 }
 
@@ -135,7 +135,7 @@ void LogWriter::StartMessage(tm *timer){
   logmsg(true,1900+timer->tm_year);
   logmsg(true,"\n\n");
 }
-void LogWriter::Reset(int iteration, bool OneIndAnalysis, int width){
+void LogWriter::Reset(const int iteration, const bool OneIndAnalysis, const int width){
   if( (!OneIndAnalysis) && (!useCOUTOption || iteration == 0) )
     //output params to log on first iteration and every other when coutindicator = 0
     {

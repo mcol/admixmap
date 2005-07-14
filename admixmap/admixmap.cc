@@ -78,35 +78,34 @@ void submain(AdmixOptions* options){
   Log.StartMessage(&timer);
 
   options->checkOptions(&Log);
-  // Initialise random number seed
-  smyrand( options->getSeed() );
 
-  //Initialise Objects
-  InputData data;
-  data.readData(options, &Log);//NB this sets Populations option
+  smyrand( options->getSeed() );  // Initialise random number seed
 
+  InputData data; //read data files and check (except allelefreq files)
+  data.readData(options, &Log);//Note: this sets Populations option
+  
   Genome Loci;
-  Loci.loadAlleleStatesAndDistances(options, &data, &Log);
-
-  Chromosome **chrm = 0;
-  IndividualCollection *IC = 0;
-  chib MargLikelihood;
-
+  Loci.loadAlleleStatesAndDistances(options, &data);//creates CompositeLocus objects
+  
   std::vector<bool> _admixed;//don't belong
   bool _symmetric;          //here  
-
+  
   AlleleFreqs A(&Loci);
-  Latent L( options, &Loci, &Log);
-  Regression R;
-
-  A.LoadAlleleFreqs(options,&chrm,&Log,&data);
-  IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
-  IC->LoadData(options,&data, &Log);                             //and before L and R Initialise
+  A.Initialise(options, &data, &Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
  
+  Chromosome **chrm = 0; //Note: pointer to array of Chromosomes
+  chrm = Loci.GetChromosomes(options->getPopulations());  //create Chromosome objects
+  Loci.SetSizes(&Log);//prints length of genome, num loci, num chromosomes
+    
+  IndividualCollection *IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
+  IC->LoadData(options,&data, &Log);                             //and before L and R Initialise
+
+  Latent L( options, &Loci, &Log);    
   L.Initialise(IC->getSize(), &_admixed, &_symmetric, data.GetPopLabels());
+
+  Regression R;
   if( options->getAnalysisTypeIndicator() >= 2)
     R.Initialise(IC, options, data.GetPopLabels(), &Log);
-  A.Initialise(options, data.getEtaPriorMatrix(), &Log, data.GetPopLabels());
 
   if( !options->getRhoIndicator() )
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
@@ -130,7 +129,8 @@ void submain(AdmixOptions* options){
     MisSpecAlleleFreqTest AlleleFreqTest;
     HWTest HWtest;
     std::ofstream avgstream; //output to ErgodicAverageFile
- 
+    chib MargLikelihood;
+   
     if( options->getTestForDispersion() ){
       DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());    
     }
@@ -260,7 +260,7 @@ void submain(AdmixOptions* options){
       AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, data.GetPopLabels(), options->IsPedFile()); 
     //test for H-W eq
     if( options->getHWTestIndicator() )
-      HWtest.Output(options->IsPedFile(), data.getGeneInfoData()); 
+      HWtest.Output(options->IsPedFile(), data.getLocusData()); 
     //finish writing score test output as R objects
     if( options->getScoreTestIndicator() ) Scoretest.ROutput();
     

@@ -73,7 +73,104 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] SumEta;
 }
 
-void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data_)
+void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *Log){
+  LoadAlleleFreqs(options, data);
+
+  Number = 0;
+  Populations = options->getPopulations();
+  if( strlen( options->getHistoricalAlleleFreqFilename() ) ) IsHistoricAlleleFreq = true;
+  else IsHistoricAlleleFreq = false;
+
+  if(IsRandom() &&  options->getOutputAlleleFreq() ){
+    OpenOutputFile(options);
+  }
+
+  //set up alleleprobs and hap pair probs
+  //NB: HaplotypePairProbs in Individual must be set first
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    (*Loci)(i)->Initialise(Freqs[i]);
+  }
+
+  // settings for sampling of dispersion parameter
+  // Matrix etaprior(1,1);
+  psi = new double[ Populations ];
+  tau = new double[ Populations ];
+
+  SumAcceptanceProb = new double[ Populations ];
+  SumEta = new double[ Populations ];
+
+  Vector_d maxeta( Populations );
+  if( IsHistoricAlleleFreq ){
+    w = 10;
+    etastep0 = 2.0;
+    etastep =new double[ Populations ];
+    for(int k=0;k<Populations;++k)etastep[k] = etastep0;
+
+    eta = new double[Populations];
+    NumberAccepted =new int[ Populations ];
+    TuneEtaSampler = new TuneRW[ Populations ];
+    for( int k = 0; k < Populations; k++ )
+      TuneEtaSampler[k].SetParameters( w, etastep0, 0.1, 100, 0.44 );
+    if( strlen(options->getEtaPriorFilename()) ){
+      Log->logmsg(true,"Loading gamma prior parameters for allele frequency dispersion from ");
+      Log->logmsg(true,options->getEtaPriorFilename());
+      Log->logmsg(true,".\n");
+      const Matrix_d& etaprior = data->getEtaPriorMatrix();
+
+      for( int k = 0; k < Populations; k++ ){
+	psi[k] = etaprior( k, 0 );
+	tau[k] = etaprior( k, 1 );
+	Log->logmsg(true, "Population ");
+	Log->logmsg(true, k);
+	Log->logmsg(true, ": ");
+	Log->logmsg(true, psi[k]);
+	Log->logmsg(true, " ");
+	Log->logmsg(true, tau[k]);
+	Log->logmsg(true, "\n");
+      }
+    }
+    else{
+      //psi.SetElements( 2 ); // default gamma prior with mean 400, variance 80 000 
+      //tau.SetElements( 0.005 );
+      for(int k=0; k<Populations; ++k){
+	psi[k] = 2.0;
+	tau[k] = 0.005;
+      }
+    }
+    for( int k = 0; k < Populations; k++ ){
+      
+//       // old method; sets eta to the sum of priorallelefreqs
+//       for( int j = 0; j < NumberOfCompositeLoci; j++ ){
+//        	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
+//        	if( maxeta(k) > eta[k] ){
+//        	  eta[k] = maxeta(k);
+//        	}
+//       }
+      
+      //Initialise eta at its prior expectation
+      eta[k] = psi[k]/tau[k];
+      //Rescale priorallelefreqs so the columns sum to eta 
+      for(int j = 0; j < NumberOfCompositeLoci; j++ )
+	PriorAlleleFreqs[j].SetColumn(k, PriorAlleleFreqs[j].GetColumn(k) * eta[k] / PriorAlleleFreqs[j].GetColumn(k).Sum());
+     }
+  
+    //Open output file for eta
+    if ( options->getIndAdmixHierIndicator()){
+      if (strlen( options->getEtaOutputFilename() ) ){
+	InitializeEtaOutputFile(options, data->GetPopLabels(), Log); 
+      }
+      else{
+	Log->logmsg(true,"No dispparamfile given\n");
+	//exit(1);
+      }
+    }
+    
+  }
+  OpenFSTFile(options,Log);
+}
+
+
+void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
 {
   data_->CheckAlleleFreqs(options, Loci->GetNumberOfCompositeLoci(), Loci->GetNumberOfStates());
   int newrow;
@@ -132,121 +229,6 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogW
     SetDefaultAlleleFreqs( Populations );
   }
 
-  //create Chromosome objects
-  (*chrm) = Loci->GetChromosomes(Populations);
-  
-  Loci->SetSizes();
-
-  //(**)
-  Log->logmsg(false, NumberOfCompositeLoci);
-  Log->logmsg(false," loci; ");
-  Log->logmsg(false, Loci->GetNumberOfChromosomes());
-  Log->logmsg(false," chromosomes\n");
-
-  Log->logmsg(true,"Effective length of autosomes under study: ");
-  Log->logmsg(true,Loci->GetLengthOfGenome());
-  Log->logmsg(true," Morgans.\n");
-
-  if( Loci->isX_data() ){
-    Log->logmsg(true,"Effective length of X chromosome under study: ");
-    Log->logmsg(true, Loci->GetLengthOfXchrm());
-    Log->logmsg(true," Morgans.\n");
-   }
-}
-
-void AlleleFreqs::Initialise(AdmixOptions *options,const Matrix_d& etaprior,LogWriter *Log,
-			     std::string *PopulationLabels){
-  Number = 0;
-  Populations = options->getPopulations();
-  if( strlen( options->getHistoricalAlleleFreqFilename() ) ) IsHistoricAlleleFreq = true;
-  else IsHistoricAlleleFreq = false;
-
-  if(IsRandom() &&  options->getOutputAlleleFreq() ){
-    OpenOutputFile(options);
-  }
-
-  //set up alleleprobs and hap pair probs
-  //NB: HaplotypePairProbs in Individual must be set first
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    (*Loci)(i)->Initialise(Freqs[i]);
-  }
-
-  // settings for sampling of dispersion parameter
-  // Matrix etaprior(1,1);
-  psi = new double[ Populations ];
-  tau = new double[ Populations ];
-
-  SumAcceptanceProb = new double[ Populations ];
-  SumEta = new double[ Populations ];
-
-  Vector_d maxeta( Populations );
-  if( IsHistoricAlleleFreq ){
-    w = 10;
-    etastep0 = 2.0;
-    etastep =new double[ Populations ];
-    for(int k=0;k<Populations;++k)etastep[k] = etastep0;
-
-    eta = new double[Populations];
-    NumberAccepted =new int[ Populations ];
-    TuneEtaSampler = new TuneRW[ Populations ];
-    for( int k = 0; k < Populations; k++ )
-      TuneEtaSampler[k].SetParameters( w, etastep0, 0.1, 100, 0.44 );
-    if( strlen(options->getEtaPriorFilename()) ){
-      Log->logmsg(true,"Loading gamma prior parameters for allele frequency dispersion from ");
-      Log->logmsg(true,options->getEtaPriorFilename());
-      Log->logmsg(true,".\n");
-      //const Matrix_d& etaprior = data_->getEtaPriorMatrix();
-
-      for( int k = 0; k < Populations; k++ ){
-	psi[k] = etaprior( k, 0 );
-	tau[k] = etaprior( k, 1 );
-	Log->logmsg(true, "Population ");
-	Log->logmsg(true, k);
-	Log->logmsg(true, ": ");
-	Log->logmsg(true, psi[k]);
-	Log->logmsg(true, " ");
-	Log->logmsg(true, tau[k]);
-	Log->logmsg(true, "\n");
-      }
-    }
-    else{
-      //psi.SetElements( 2 ); // default gamma prior with mean 400, variance 80 000 
-      //tau.SetElements( 0.005 );
-      for(int k=0; k<Populations; ++k){
-	psi[k] = 2.0;
-	tau[k] = 0.005;
-      }
-    }
-    for( int k = 0; k < Populations; k++ ){
-      
-//       // old method; sets eta to the sum of priorallelefreqs
-//       for( int j = 0; j < NumberOfCompositeLoci; j++ ){
-//        	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
-//        	if( maxeta(k) > eta[k] ){
-//        	  eta[k] = maxeta(k);
-//        	}
-//       }
-      
-      //Initialise eta at its prior expectation
-      eta[k] = psi[k]/tau[k];
-      //Rescale priorallelefreqs so the columns sum to eta 
-      for(int j = 0; j < NumberOfCompositeLoci; j++ )
-	PriorAlleleFreqs[j].SetColumn(k, PriorAlleleFreqs[j].GetColumn(k) * eta[k] / PriorAlleleFreqs[j].GetColumn(k).Sum());
-     }
-  
-    //Open output file for eta
-    if ( options->getIndAdmixHierIndicator()){
-      if (strlen( options->getEtaOutputFilename() ) ){
-	InitializeEtaOutputFile(options, PopulationLabels, Log); 
-      }
-      else{
-	Log->logmsg(true,"No dispparamfile given\n");
-	//exit(1);
-      }
-    }
-    
-  }
-  OpenFSTFile(options,Log);
 }
 
 void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Pops){
@@ -407,7 +389,7 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       SampleAlleleFreqs(i, 1 );
       (*Loci)(i)->SetAlleleProbs(Freqs[i]);
-      if( (*Loci)(i)->GetNumberOfLoci() > 1 )
+      if( (*Loci)(i)->GetNumberOfLoci() > 1 )//why this condition ??
 	(*Loci)(i)->SetHapPairProbs();
     }
 

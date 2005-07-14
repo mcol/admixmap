@@ -210,8 +210,8 @@ void Latent::Initialise(int Numindividuals,
   AlphaArgs[2][0] = 1.0;//params of gamma prior
   AlphaArgs[3][0] = 1.0;
 
-  //2nd arg is stepsize, 3rd is nsteps. May be necessary to 'tune' these for better mixing
-  SampleAlpha.SetDimensions(options->getPopulations(), 0.035, 20, findE, gradE);
+  //2nd arg is stepsize, 3rd is nsteps, 4th is target acceptance rate
+  SampleAlpha.SetDimensions(options->getPopulations(), 0.035, 20, 0.5, findE, gradE);
 #endif
 
   //set up DARS sampler for global sumintensities
@@ -582,8 +582,8 @@ float Latent::getAlphaSamplerAcceptanceCount(){
 //these next 2 functions are specific to the Dirichlet parameters alpha(or their logs)
 //should use function pointers and keep code in Latent, or wherever the sampler is to be used
 
-//calculate objective function
-double Latent::findE(unsigned dim, double *theta, double **args){
+//calculate objective function for log alpha, used in Hamiltonian Metropolis algorithm
+double Latent::findE(unsigned dim, const double* const theta, const double* const* args){
   /*
     theta = log dirichlet parameters (alpha)
     args[1] = n = #individuals/gametes
@@ -602,14 +602,14 @@ double Latent::findE(unsigned dim, double *theta, double **args){
     sumtheta += theta[j];
   }
   if(flag){
-    E = args[1][0] * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + (args[2][0] - 1.0) * sumtheta;
+    E = args[1][0] * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + args[2][0] * sumtheta;
     return -E;
   }
   else return -1.0;//is there a better return value? possibly use flag pointer
 }
 
-//calculate gradient
-void Latent::gradE(unsigned dim, double *theta, double **args, double *g){
+//calculate gradient for log alpha
+void Latent::gradE(unsigned dim, const double* const theta, const double* const* args, double *g){
   //delete[] g;
   //g = new double[dim];
   double sumalpha = 0.0, x, y1, y2;
@@ -622,7 +622,7 @@ void Latent::gradE(unsigned dim, double *theta, double **args, double *g){
       x = exp(theta[j]);
       ddigam(&x, &y2);
       if(x > 0.0 && gsl_finite(y1) && gsl_finite(y2)){//to avoid over/underflow problems
-	g[j] = x *( args[1][0] *(y2 - y1) + (args[3][0] - args[0][j])) - args[2][0] + 1.0;
+	g[j] = x *( args[1][0] *(y2 - y1) + (args[3][0] - args[0][j])) - args[2][0];
       }
     }
 }

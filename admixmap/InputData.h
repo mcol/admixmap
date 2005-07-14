@@ -50,13 +50,12 @@ public:
    *  Read all input data and store in internal structures.
    */    
   void readData(AdmixOptions *options, LogWriter *log);    
-  int getNumberOfIndividuals();
-  int getNumberOfSimpleLoci(); 
+
 
   /**
    *  Getters to retrieve data (in string form).
    */
-  const Matrix_s& getGeneInfoData() const;
+  const Matrix_s& getLocusData() const;
   const Matrix_s& getGeneticData()  const;
   const Matrix_s& getInputData()    const;
   const Matrix_s& getTargetData()   const;
@@ -70,7 +69,7 @@ public:
   /**
    *  Getters to retrieve data (converted to Matrix_d).
    */    
-  const Matrix_d& getGeneInfoMatrix() const;
+  const Matrix_d& getLocusMatrix() const;
   const Matrix_d& getTargetMatrix() const;
   const Matrix_d& getInputMatrix() const;
   const Matrix_d& getAlleleFreqMatrix() const;
@@ -87,11 +86,15 @@ public:
   void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
 
   int GetSexValue(int i);
- 
+  int getNumberOfIndividuals();
+  int getNumberOfSimpleLoci();
+  unsigned getNumberOfCompositeLoci(){return NumCompositeLoci;};  
+
   void GetGenotype(int i, int SexColumn, Genome &Loci,unsigned short ****genotype);
   void CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates);
+
 private:    
-  Matrix_s geneInfoData_;
+  Matrix_s locusData_;
   Matrix_s geneticData_;
   Matrix_s inputData_;
   Matrix_s targetData_;
@@ -102,7 +105,7 @@ private:
   Matrix_s MLEData_;
   Matrix_s reportedAncestryData_;
 
-  Matrix_d geneInfoMatrix_;
+  Matrix_d locusMatrix_;
   Matrix_d inputMatrix_;
   Matrix_d targetMatrix_;
   Matrix_d alleleFreqMatrix_;
@@ -115,7 +118,7 @@ private:
   std::string *PopulationLabels;
   int NumIndividuals;
   int NumSimpleLoci;
-  int NumCompositeLoci;
+  unsigned NumCompositeLoci;
   bool IsPedFile;
   LogWriter *Log;
 
@@ -125,7 +128,6 @@ private:
   // 3-way array of genotypes: indivs, composite loci, 2*simple loci    
 
 
-private:
   /**
    *  UNIMPLEMENTED: to avoid undesired copying.
    */    
@@ -135,6 +137,7 @@ private:
   void readFile(const char *fname, Matrix_s& data);
   void CheckGeneticData(AdmixOptions *options);
   void checkLociNames(AdmixOptions *options);
+  unsigned determineNumberOfCompositeLoci();
   void CheckOutcomeVarFile(bool);
   void CheckCovariatesFile();
   void CheckRepAncestryFile(int populations);

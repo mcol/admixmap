@@ -84,49 +84,41 @@ void Genome::SetLabels(const vector<string> &labels, Vector_d temp)
 }
 
 //gets contents of locusfile and genotypesfile and creates CompositeLocus array
-void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_, LogWriter *Log){
+void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_){
 
-  string *LociLabelsCheck = 0;
-  Matrix_d& locifileData = (Matrix_d&) data_->getGeneInfoMatrix();
+  Matrix_d& locifileData = (Matrix_d&) data_->getLocusMatrix();
   
-  LociLabelsCheck = new string[ locifileData.GetNumberOfRows() ];
-
   //determine number of composite loci
-  NumberOfCompositeLoci = locifileData.GetNumberOfRows();
-    for( int i = 0; i < locifileData.GetNumberOfRows(); i++ )
-     if( locifileData( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
-
+  NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
+  
   //set up CompositeLocus objects
   InitialiseCompositeLoci();
-
+  
   // Set number of alleles at each locus
   int index =0;
   size_t next_line = 0;
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     ++next_line;
-
-    const Vector_s& m = data_->getGeneInfoData()[next_line];
-
+    
+    const Vector_s& m = data_->getLocusData()[next_line];
+    
     //set numbers of alleles and distances for each locus
-    LociLabelsCheck[index] = m[0];
     if (m.size() == 4)
       ChrmLabels.push_back(m[3]);
     TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData( i, 0 ) );
     SetDistance( i, locifileData( index, 1 ) );
     while( index < locifileData.GetNumberOfRows() - 1 && locifileData( index + 1, 1 ) == 0 ){
       ++next_line;
-
+      
       TheArray[i]->AddLocus( (int)locifileData( index + 1, 0 ) );
       index++;
-      LociLabelsCheck[index] = m[0];
     }
-
+    
     TheArray[i]->SetNumberOfLabels();
     index++;
     //Log->logmsg(false,(*Loci)(i)->GetNumberOfLoci());
     //Log->logmsg(false," ");
   }
-  Log->logmsg(false,"\n");
 
   // checks of input data files should be in class InputData
   if( options->getTextIndicator() ){
@@ -134,7 +126,6 @@ void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_
     Vector_s labels = data_->getGeneticData()[0];
 
     Vector_d vtemp = locifileData.GetColumn(1);
-    Log->logmsg(true, vtemp.GetNumberOfElements());Log->logmsg(true," simple loci\n");
     vtemp.AddElement(0); // Forces SetLabels method to ignore first row of loci.txt (GenotypesFile)
     // Add a sex column if it is not included
     if( ! options->getgenotypesSexColumn() ){
@@ -143,23 +134,6 @@ void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_
     SetLabels(labels, vtemp);
   }
 
-  index = 0;
-  for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
-    for( int j = 0; j < TheArray[i]->GetNumberOfLoci(); j++ ){
-      if( LociLabelsCheck[index].compare( TheArray[i]->GetLabel(0) ) ){
-	Log->logmsg(true, "Error in loci names in genotypes file and loci file at loci\n" );
-	Log->logmsg(true, i);
-	Log->logmsg(true, LociLabelsCheck[index] );
-	Log->logmsg(true, " " );
-	Log->logmsg(true, j);
-	Log->logmsg(true, TheArray[i]->GetLabel(j) );
-	Log->logmsg(true, "\n" );
-	exit(0);
-      }
-      index++;
-    }
-  }  
-  delete [] LociLabelsCheck;
 }
 
 //Creates an array of pointers to Chromosome objects, sets their labels
@@ -286,13 +260,25 @@ void Genome::SetDistance( int locus, double distance )
   Distances[ locus ] = distance;
 }
 
-void Genome::SetSizes(){
+void Genome::SetSizes(LogWriter *Log){
   TotalLoci = 0;
-
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     TotalLoci += TheArray[i]->GetNumberOfLoci();
   }
+  Log->logmsg(false, NumberOfCompositeLoci);
+  Log->logmsg(false," compound loci; ");
+  Log->logmsg(false, NumberOfChromosomes);
+  Log->logmsg(false," chromosomes\n");
 
+  Log->logmsg(true,"Effective length of autosomes under study: ");
+  Log->logmsg(true, LengthOfGenome);
+  Log->logmsg(true," Morgans.\n");
+
+  if( isX_data() ){
+    Log->logmsg(true,"Effective length of X chromosome under study: ");
+    Log->logmsg(true, LengthOfXchrm);
+    Log->logmsg(true," Morgans.\n");
+   }
 }
 
 //Accessors

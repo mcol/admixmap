@@ -34,32 +34,32 @@ public:
   LogWriter(const char *LogFilename, const bool useCout);
   ~LogWriter();
 
-  void Reset(int iteration, bool, int);
+  void Reset(const int iteration, const bool, const int);
 
   //logmsg functions write to logfile
   //also write to screen unless cout = 0 and first arg is false
-  void logmsg(bool , std::string message);
+  void logmsg(const bool , const std::string message);
 
-  void logmsg(bool , const char * message);
+  void logmsg(const bool , const char * message);
 
-  void logmsg(bool , int number);
+  void logmsg(const bool , const int number);
 
-  void logmsg(bool , unsigned int number);
+  void logmsg(const bool , const unsigned number);
 
-  void logmsg(bool , long number);
+  void logmsg(const bool , const long number);
 
-  void logmsg(bool, double number);
+  void logmsg(const bool, const double number);
 
   //write functions write only to log with a space at end
   void write(const char*);
-  void write (std::string message);
-  void write(int);
-  void write(long);
-  void write(double);
-  void write(double number, unsigned prec);
-  void write(double *array, size_t dim);
+  void write (const std::string message);
+  void write(const int);
+  void write(const long);
+  void write(const double);
+  void write(const double number, const unsigned prec);
+  void write(const double *array, const size_t dim);
 
-  void width(unsigned w);//calls width function for LogFileStream
+  void width(const unsigned w);//calls width function for LogFileStream
 
   void StartMessage(tm *);//prints startup message
 

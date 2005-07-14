@@ -31,7 +31,7 @@ class AlleleFreqs{
 public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
-  void Initialise(AdmixOptions *options, const Matrix_d& etaprior,LogWriter *Log, std::string *);
+  void Initialise(AdmixOptions *options, InputData *Data, LogWriter *Log);
   void Update(int iteration,int);
 
   //initialize output file for samples of dispersion parameters
@@ -52,7 +52,7 @@ public:
 
   void OutputFST(bool IsPedFile);
 
-  void LoadAlleleFreqs(AdmixOptions *options, Chromosome ***chrm,LogWriter *Log, InputData *data);
+  void LoadAlleleFreqs(AdmixOptions *options, InputData *data);
 
   void ResetAlleleCounts();//resets Allelecounts to zero at start of iteration
   bool IsRandom();
