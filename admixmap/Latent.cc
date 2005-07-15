@@ -63,13 +63,11 @@ void Latent::Initialise(int Numindividuals,
 
   //if no initalpha is specified, alpha for both gametes is initialised to 1.0 for each population  
   if( options->sizeInitAlpha() == 0 ){
-     alphatemp.SetNumberOfElements( options->getPopulations() );
-     alphatemp.SetElements( 1.0 );
-     alpha.resize(2,alphatemp);
-     Log->logmsg(false,  "Prior for gamete/individual admixture: ");
-     for(int k = 0;k < options->getPopulations(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
-     Log->logmsg(false,"\nShape parameter for sumintensities prior: ");
-     Log->logmsg(false, options->getRho());Log->logmsg(false,"\n");
+    alphatemp.SetNumberOfElements( options->getPopulations() );
+    alphatemp.SetElements( 1.0 );
+    alpha.resize(2,alphatemp);
+    Log->logmsg(false,  "Initial value for population admixture (Dirichlet) parameter vector: ");
+    for(int k = 0;k < options->getPopulations(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
   }
   //if exactly one of initalpha0 or initalpha1 is specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed
@@ -77,19 +75,18 @@ void Latent::Initialise(int Numindividuals,
     alphatemp = options->getInitAlpha(0);
     (*_admixed)[0] = CheckInitAlpha( alphatemp );
      alpha.resize(2,alphatemp);
-     Log->logmsg(false, "Prior for gamete/individual admixture: ");
+     Log->logmsg(false, "Initial value for population admixture (Dirichlet) parameter vector: ");
      for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
      Log->logmsg(false,"\n");
   }
   //if both are specified and analysis is for a single individual,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
-  //? potential problem if user specifies them the wrong way round
   else if( options->getAnalysisTypeIndicator() < 0 ){ // should be if indadmixhiermodel=0
     //gamete 1
     alphatemp = options->getInitAlpha(0);
     (*_admixed)[0] = CheckInitAlpha( alphatemp );
      alpha.push_back(alphatemp);
-     Log->logmsg(false, "Prior for gamete 1 admixture: ");
+     Log->logmsg(false, "Dirichlet prior for paternal gamete admixture: ");
      for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
      Log->logmsg(false,"\n");
 
@@ -97,14 +94,14 @@ void Latent::Initialise(int Numindividuals,
      alphatemp = options->getInitAlpha(1);
      (*_admixed)[1] = CheckInitAlpha( alphatemp );
      alpha.push_back(alphatemp);
-     Log->logmsg(false, "Prior for gamete 2 admixture: ");
+     Log->logmsg(false, "Dirichlet prior for maternal gamete admixture: ");
      for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
      Log->logmsg(false,"\n");
 
      *_symmetric = false;
   }
   else{
-     Log->logmsg(true,"ERROR: Can only specify seperate priors for gamete admixture with analysis of single individual.\n");
+     Log->logmsg(true,"ERROR: Can specify separate priors on admixture of each gamete only if analysing single individual\n");
      exit(1);
   }
   if(!options->getIndAdmixHierIndicator())  SumAlpha = alpha[0];
@@ -112,16 +109,16 @@ void Latent::Initialise(int Numindividuals,
   //Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta
   //
   rho = options->getRho();
-
+  
   if( options->getRho() == 99 ){
-     rhoalpha = 1.0;
-     rhobeta = 0.0;
-     Log->logmsg(true,"Flat prior on sumintensities.\n");
+    rhoalpha = 1.0;
+    rhobeta = 0.0;
+    Log->logmsg(true,"Flat prior on sumintensities.\n");
   }
   else if( options->getRho() == 98 ){
-     rhoalpha = 0.0;
-     rhobeta = 0.0;
-     Log->logmsg(true,"Flat prior on log sumintensities.\n");
+    rhoalpha = 0.0;
+    rhobeta = 0.0;
+    Log->logmsg(true,"Flat prior on log sumintensities.\n");
   }
   else{
     rhoalpha = options->getRho();
@@ -129,6 +126,10 @@ void Latent::Initialise(int Numindividuals,
   }
   rhobeta0 = 1;
   rhobeta1 = 1;
+  Log->logmsg(false,"\nShape parameter for gamma prior on sum-of-intensities: ");
+  Log->logmsg(false, rhoalpha); Log->logmsg(false,"\n");
+  Log->logmsg(false,"Rate (1 / location) parameter for gamma prior on sum-of-intensities: ");
+  Log->logmsg(false, rhobeta); Log->logmsg(false,"\n");
 
   //Open paramfile 
   if ( options->getIndAdmixHierIndicator()){
