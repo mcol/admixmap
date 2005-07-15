@@ -105,9 +105,20 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
   lambda0 = .1;
   lambda1 = .1;
+  
   lambda.SetNumberOfElements( NumOutcomeVars );
   lambda.SetElements( .1 );
 
+  if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 5) {
+    Log->logmsg(false,"\nNormal-inverse-gamma prior for linear regression model with gamma shape parameter ");
+    Log->logmsg(false, lambda0); 
+    Log->logmsg(false, " and rate parameter "); Log->logmsg(false, lambda1); Log->logmsg(false, "\n");
+  }
+  if( AnalysisTypeIndicator == 3 ||  AnalysisTypeIndicator == 4 ||  AnalysisTypeIndicator == 5) {
+    Log->logmsg(false,"\nGaussian priors on logistic regression parameters with precision ");
+    Log->logmsg(false, "0.1"); Log->logmsg(false, "\n");
+  }
+  
   SumLambda.SetNumberOfElements( NumOutcomeVars );
   SumLambda.SetElements( .1 );    
   acceptbeta.SetNumberOfElements( options->getPopulations());
