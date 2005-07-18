@@ -266,7 +266,7 @@ void CompositeLocus::SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, 
 
   int h = SampleFromDiscrete(Probs, HapPairs.size());
 
-  //h should really be a HapPair object
+  //hap should really be a HapPair object
   // so we can do
   //return HapPairs[h];
   //or

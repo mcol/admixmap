@@ -108,7 +108,6 @@ private:
   Matrix_i HapLabels;
   int NumberOfMergedHaplotypes;
 
-  Matrix_d GetHaploidLocusProbs(const std::vector<unsigned int>& x);
   void SetNoMergeHaplotypes();
   void setHaplotypeProbsMAP(Matrix_d);
   double GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs);

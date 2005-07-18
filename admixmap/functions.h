@@ -9,6 +9,7 @@
 double getGammaLogDensity(double alpha, double beta, double x);
 
 double getDirichletLogDensity(const Vector_d& a, const Vector_d& x);
+double getDirichletLogDensity(const std::vector<double>& a, const Vector_d& x);
 
 double getDirichletLogDensity(double *a, double *x, size_t K);
 
