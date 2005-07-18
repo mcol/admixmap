@@ -1,8 +1,8 @@
 // *-*-C++-*-*
 /** 
  *   ADMIXMAP
- *   HMCMC.h 
- *   Class to implement a Hamiltonian (or hybrid )MCMC sampler
+ *   HMC.h 
+ *   Class to implement a Hamiltonian (or hybrid )Monte Carlo sampler
  *   (see Information Theory, Inference, and Learning Algorithms by David Mackay (1993), Neal (1993))
  *   Copyright (c) 2005 LSHTM
  *  
@@ -20,8 +20,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#ifndef HMCMC_H
-#define HMCMC_H 1
+#ifndef HMC_H
+#define HMC_H 1
 #include <iostream>
 #include <stdlib.h>
 #include <vector>
@@ -32,29 +32,40 @@ extern "C" {
 #include <gsl/gsl_sf_gamma.h>
 }
 
-class HMCMC{
+class HamiltonianMonteCarlo{
 public:
-  HMCMC();
-  ~HMCMC();
-  void Sample(double *x, double **args);//call inside a loop
-  void SetDimensions(const unsigned pdim, const double pepsilon, const unsigned pTau, 
-		     double (*pfindE)(unsigned d, double *theta, double **args),
-		     void (*pgradE)(unsigned d, double *theta, double **args, double *g));
+  HamiltonianMonteCarlo();
+  ~HamiltonianMonteCarlo();
+  void Sample(double *x, const double* const* args);//call inside a loop
+  void SetDimensions(unsigned pdim, double pepsilon, unsigned pTau, float target, 
+		     double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
+		     void (*pgradE)(unsigned d, const double* const theta, const double* const *args, double *g));
   //sets dimension, stepsize, number of steps and parameters for density function
-  float getAcceptanceCount();
+  float getAcceptanceRate() const;
+  float getStepsize() const;
+  void Tune();
 
 private:
-  double (*findE)(unsigned d, double *theta, double **args); //calculate objective function
-  void (*gradE)(unsigned d, double *theta, double **args, double *g);//calculate gradient
+  double (*findE)(unsigned d, const double* const theta, const double* const* args); //calculate objective function
+  void (*gradE)(unsigned d, const double* const theta, const double* const* args, double *g);//calculate gradient
 
   unsigned dim;     //dimension
   double epsilon;   //stepsize
+  double epsilon0; //initial stepsize
   double Tau;       //# leapfrog steps
   double E;         //value of objective function
   double *g;        //gradient (multidim)
-  long accept_count; //number of acceptances, incase needed for monitoring
+  long accept_count; //number of acceptances since last tuning, for monitoring
+  long overall_accept_count;
+  long numsamples;  //number of times Sample has been called since last tuning
+  long totalsamples;//  "        "      "     "   "    "  in total
+  long seq;
+  float TargetAcceptRate;
+
+  HamiltonianMonteCarlo(const HamiltonianMonteCarlo&);
+  HamiltonianMonteCarlo& operator=(const HamiltonianMonteCarlo);
 
 };
 
 
-#endif /* !defined HMCMC_H */
+#endif /* !defined HMC_H */

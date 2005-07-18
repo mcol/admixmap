@@ -87,13 +87,10 @@ void submain(AdmixOptions* options){
   Genome Loci;
   Loci.loadAlleleStatesAndDistances(options, &data);//creates CompositeLocus objects
   
-  std::vector<bool> _admixed;//don't belong
-  bool _symmetric;          //here  
-  
   AlleleFreqs A(&Loci);
   A.Initialise(options, &data, &Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
  
-  Chromosome **chrm = 0; //Note: pointer to array of Chromosomes
+  Chromosome **chrm = 0; //Note: array of pointers to Chromosome
   chrm = Loci.GetChromosomes(options->getPopulations());  //create Chromosome objects
   Loci.SetSizes(&Log);//prints length of genome, num loci, num chromosomes
     
@@ -101,7 +98,7 @@ void submain(AdmixOptions* options){
   IC->LoadData(options,&data, &Log);                             //and before L and R Initialise
 
   Latent L( options, &Loci, &Log);    
-  L.Initialise(IC->getSize(), &_admixed, &_symmetric, data.GetPopLabels());
+  L.Initialise(IC->getSize(), data.GetPopLabels());
 
   Regression R;
   if( options->getAnalysisTypeIndicator() >= 2)
@@ -156,12 +153,12 @@ void submain(AdmixOptions* options){
       }
 
       A.ResetAlleleCounts();
-      //** update global sumintensities
-	  //if( !options->getRhoIndicator() )L.UpdateRhoWithRW(chrm, IC);
-
+      // ** update global sumintensities
+      // if( !options->getRhoIndicator() )L.UpdateRhoWithRW(chrm, IC);
+      
       // ** Update individual-level parameters  
-	  IC->Update(iteration, &A, &R, L.getpoptheta(),options,
-		 chrm, L.getalpha(), _symmetric, _admixed, L.getrhoalpha(), L.getrhobeta(),
+      IC->Update(iteration, &A, &R, L.getpoptheta(),options,
+		 chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
 		 &Log, &MargLikelihood);
       // ** update allele frequencies
       A.Update(iteration,options->getBurnIn());
@@ -188,7 +185,7 @@ void submain(AdmixOptions* options){
 
       // ** set merged haplotypes for allelic association score test 
      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
- 	Scoretest.SetAllelicAssociationTest(L.getalpha0());
+       Scoretest.SetAllelicAssociationTest(L.getalpha0());
       }
       
       // output every 'getSampleEvery()' iterations
@@ -287,8 +284,9 @@ void submain(AdmixOptions* options){
 
 #if POPADMIXSAMPLER == 3 
   Log.logmsg(true,"Acceptance rate in admixture parameter sampler: ");
-  Log.logmsg(true, L.getAlphaSamplerAcceptanceCount()/options->getTotalSamples());
-  Log.logmsg(true, "\n");
+  Log.logmsg(true, L.getAlphaSamplerAcceptanceRate());
+  Log.logmsg(true, "\nwith final stepsize of");
+  Log.logmsg(true, L.getAlphaSamplerStepsize());Log.logmsg(true, "\n");
 #endif
 
   ProcessingTime(&Log, StartTime);

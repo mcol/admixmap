@@ -1,7 +1,7 @@
 /** 
  *   ADMIXMAP
- *   HMCMC.cc 
- *   Class to implement a Hamiltonian (or hybrid )MCMC sampler
+ *   HMC.cc 
+ *   Class to implement a Hamiltonian (or hybrid )Monte Carlo sampler
  *   Copyright (c) 2005 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
@@ -18,39 +18,46 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include "HMCMC.h"
+#include "HamiltonianMonteCarlo.h"
 #include "gsl/gsl_math.h"
 
 using namespace::std;
 
-HMCMC::HMCMC(){
+HamiltonianMonteCarlo::HamiltonianMonteCarlo(){
   dim = 1;
   epsilon = 0.0;
   Tau = 1;
   g = 0;
   accept_count = 0;
+  overall_accept_count = 0;
   findE = 0;
   gradE = 0;
+  TargetAcceptRate  = 1.0;
+  numsamples = 0;
+  totalsamples = 0;
+  seq = 1;
 };
 
-HMCMC::~HMCMC(){
+HamiltonianMonteCarlo::~HamiltonianMonteCarlo(){
   delete[] g;
 }
 
 //set dimensions
-void HMCMC::SetDimensions(const unsigned pdim, const double pepsilon, const unsigned pTau, 
-			  double (*pfindE)(unsigned d,double *theta, double **args),
-			  void (*pgradE)(unsigned d,double *theta, double **args, double *g)){
+void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, unsigned pTau, float target,
+			  double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
+			  void (*pgradE)(unsigned d, const double* const theta, const double* const* args, double *g)){
   dim = pdim;
+  epsilon0 = pepsilon;
   epsilon = pepsilon;
   Tau = pTau;
   findE = pfindE;
   gradE = pgradE;
+  TargetAcceptRate = target;
 
   g = new double[dim];
 }
 
-void HMCMC::Sample(double *x, double **args){
+void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
   /*
     x = position
     p = momentum
@@ -105,15 +112,36 @@ void HMCMC::Sample(double *x, double **args){
 	  g[i] = gnew[i];
 	}
 	++accept_count;
+	++overall_accept_count;
 	E = Enew ;
       }
     }
-  delete[] p;
-  delete[] xnew;
-  delete[] gnew;  
+    ++numsamples;
+    ++totalsamples;
+    delete[] p;
+    delete[] xnew;
+    delete[] gnew;  
 }
 
-float HMCMC::getAcceptanceCount(){
-  return (float)accept_count;
+float HamiltonianMonteCarlo::getAcceptanceRate() const{
+  return (float)overall_accept_count/(float)totalsamples;
 }
 
+float HamiltonianMonteCarlo::getStepsize() const{
+  return epsilon;
+}
+
+void HamiltonianMonteCarlo::Tune(){
+  //adjusts stepsize according to current acceptance rate
+//   if(numsamples > 0){
+//     if(accept_count > 0.0)
+//       epsilon *=  (double)accept_count / ((double)TargetAcceptRate *(double)numsamples);
+//     else epsilon *= 0.8;
+//     numsamples = 0;
+//     accept_count = 0;
+//   } 
+  epsilon += epsilon0 * ((double)accept_count/(double)numsamples - TargetAcceptRate) / seq;
+  ++seq;
+  numsamples = 0;
+  accept_count = 0;
+}

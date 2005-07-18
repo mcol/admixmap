@@ -27,25 +27,17 @@
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
 
-
-#include <iostream>
+#include "common.h"
 #include <sstream>
 #include <fstream>
 #include <iomanip>
 #include <stdlib.h>
 #include <math.h>
-#include <string>
 #include <string.h>
 #include <stdio.h>
-#include <vector>
-#include <list>
-#include <algorithm>
 #include <gsl/gsl_cdf.h>
 
 #include "rand.h"
-#include "vector.h"
-#include "vector_i.h"
-#include "vector_d.h"
 
 #include "AdmixOptions.h"
 #include "DARS.h"
@@ -57,7 +49,7 @@
 #if POPADMIXSAMPLER == 2
 #include "DirichletParamSampler.h"
 #elif POPADMIXSAMPLER == 3
-#include "HMC.h"
+#include "HamiltonianMonteCarlo.h"
 #endif
 
 
@@ -71,7 +63,7 @@ public:
   
   ~Latent();
 
-  void Initialise(int Numindividuals, std::vector<bool> *_admixed, bool *_symmetric,
+  void Initialise(int Numindividuals,
 		  std::string *PopulationLabels);  
 
   void  InitializeOutputFile(std::string *);
@@ -84,13 +76,14 @@ public:
 
   void OutputErgodicAvg( int, std::ofstream *avgstream);
 
-  Vector_d *getalpha0();
-  std::vector<Vector_d> getalpha();
+  std::vector<double> &getalpha0();
+  std::vector<std::vector<double> > &getalpha();
   double getrhoalpha();
   double getrhobeta();
   double getrho();
   const double *getpoptheta();
-  float getAlphaSamplerAcceptanceCount();
+  float getAlphaSamplerAcceptanceRate();
+  float getAlphaSamplerStepsize();
 
 private:
 
@@ -98,8 +91,6 @@ private:
 
   void OpenOutputFiles();
 
-  bool CheckInitAlpha( Vector_d );
-  
   /*
    * rho is the sumofintensities parameter. It has a beta prior with shape and scale parameters rhoalpha and rhobeta.
    * rhobeta has a beta hyperprior with parameters rhobeta0 and rhobeta1
@@ -116,8 +107,8 @@ private:
   Matrix_d rhodata_d;
   DARS* RhoDraw;
   
-  std::vector<Vector_d> alpha; //population admixture Dirichlet parameters
-  Vector_d SumAlpha; //ergodic sums of alphas
+  std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
+  std::vector<double> SumAlpha; //ergodic sums of alphas
   //sampler for alpha
 
 #if POPADMIXSAMPLER == 1 //DARS sampler
@@ -131,7 +122,10 @@ private:
   DirichletParamSampler PopAdmixSampler;
 #elif POPADMIXSAMPLER == 3 //HMCMC sampler
   double **AlphaArgs;
-  HamiltonianMonteCarlo SampleAlpha;
+  double *logalpha;
+  HamiltonianMonteCarlo AlphaSampler;
+  double initialAlphaStepsize;
+  float targetAlphaAcceptRate;
 #endif
 
 
