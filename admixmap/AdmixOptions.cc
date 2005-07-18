@@ -26,6 +26,7 @@
 #include <getopt.h>    /* for getopt and getopt_long */
 #include <string.h>
 #include <sstream>
+#include <numeric> // for checkInitAlpha
 
 using namespace std;
 
@@ -33,17 +34,16 @@ using namespace std;
 /**
  *   Convert Cstrings to vector (used on initalpha option)
  */
-static Vector_d CstrToVec2(const char* str)
+static std::vector<double> CstrToVec2(const char* str)
 {
   // Split string to separate elems.
   StringSplitter splitter;
   vector<string> elems = splitter.split(str);
 
   // Convert elements to doubles and fill resulting vector.
-  Vector_d x;
-  x.SetNumberOfElements(elems.size());
+  vector<double> x(elems.size());
   for (size_t i = 0; i < elems.size(); i++) {
-    x(i) = StringConvertor::toFloat(elems[i]);
+    x[i] = StringConvertor::toFloat(elems[i]);
   }    
   return x;
 }
@@ -87,7 +87,7 @@ AdmixOptions::AdmixOptions()
   OutputAlleleFreq = false;
 
   Rho = 6.0;
-  std::vector<Vector_d> alpha;
+  //std::vector<Vector_d> alpha;
 
   ResultsDir = "results";
   LogFilename = "log.txt";
@@ -452,7 +452,7 @@ int AdmixOptions::sizeInitAlpha() const
   return alpha.size();
 }
 
-Vector_d AdmixOptions::getInitAlpha(int gamete) const
+std::vector<double> AdmixOptions::getInitAlpha(int gamete) const
 {
   return alpha[gamete];
 }
@@ -480,6 +480,12 @@ void AdmixOptions::setgenotypesSexColumn(unsigned int i)
 bool AdmixOptions::getXOnlyAnalysis() const
 {
   return XOnlyAnalysis;
+}
+bool AdmixOptions::isSymmetric()const{
+  return _symmetric;
+}
+bool AdmixOptions::isAdmixed(unsigned gamete)const{
+  return _admixed[gamete];
 }
 
 void AdmixOptions::SetOptions(int nargs,char** args)
@@ -1046,4 +1052,69 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       
   return 1;
 }
+//Note: requires Populations option to have already been set
+vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
+  _admixed.resize(2,true);
+  _symmetric = true;
+  vector<double> alphatemp(Populations);
+  vector<vector<double> > initalpha;
 
+  //if no initalpha is specified, alpha for both gametes is initialised to 1.0 for each population  
+  if( alpha.size() == 0 ){
+    fill( alphatemp.begin(), alphatemp.end(), 1.0);//fill alphatemp with 1s
+    initalpha.push_back(alphatemp);initalpha.push_back(alphatemp);//put 2 copies of alphatemp in alpha
+    Log->logmsg(false,  "Initial value for population admixture (Dirichlet) parameter vector: ");
+    for(int k = 0;k < Populations; ++k){Log->logmsg(false,alphatemp[k]);Log->logmsg(false," ");}
+  }
+  //if exactly one of initalpha0 or initalpha1 is specified, sets initial values of alpha parameter vector for both gametes
+  // if indadmixhiermodel=0, alpha values stay fixed
+  else if( alpha.size() == 1 ){
+    _admixed[0] = CheckInitAlpha( alpha[0] );
+    initalpha.push_back(alpha[0]);initalpha.push_back(alpha[0]);//put 2 copies of alpha[0] in alpha
+    Log->logmsg(false, "Initial value for population admixture (Dirichlet) parameter vector: ");
+    for(size_t k = 0;k < alpha[0].size(); ++k){Log->logmsg(false,alpha[0][k]);Log->logmsg(false," ");}
+    Log->logmsg(false,"\n");
+  }
+  //if both are specified and analysis is for a single individual,
+  //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
+  else if( AnalysisTypeIndicator < 0 ){ // should be if indadmixhiermodel=0
+    _admixed[0] = CheckInitAlpha( alpha[0] );    //gamete 1
+    _admixed[1] = CheckInitAlpha( alpha[1] );    //gamete 2
+
+    initalpha = alpha;
+    Log->logmsg(false, "Dirichlet prior for paternal gamete admixture: ");
+    for(size_t k = 0;k < alpha[0].size(); ++k){Log->logmsg(false,alpha[0][k]);Log->logmsg(false," ");}
+    Log->logmsg(false,"\n");
+    
+    Log->logmsg(false, "Dirichlet prior for maternal gamete admixture: ");
+    for(size_t k = 0;k < alpha[1].size(); ++k){Log->logmsg(false,alpha[1][k]);Log->logmsg(false," ");}
+    Log->logmsg(false,"\n");
+    
+    _symmetric = false;
+  }
+  else{
+    Log->logmsg(true,"ERROR: Can specify separate priors on admixture of each gamete only if analysing single individual\n");
+    exit(1);
+  }
+  return initalpha;
+}
+
+bool AdmixOptions::CheckInitAlpha( vector<double> &alphatemp)
+// check that Dirichlet parameter vector, if specified by user, has correct length
+//returns indicator for admixture as indicated by initalpha   
+{
+   bool admixed = true;
+   int count = 0;
+   for( size_t i = 0; i < alphatemp.size(); i++ )
+      if( alphatemp[i] != 0.0 )
+         count++;
+   if( count == 1 )
+     admixed = false;//unadmixed if eg 1 0 0
+   if( alphatemp.size() != (unsigned)Populations ){
+     cerr << "Error in specification of initalpha.\n";
+     copy(alphatemp.begin(), alphatemp.end(), ostream_iterator<double>(cerr));//prints alphatemp
+     cerr << endl;
+     exit(0);
+   }
+   return admixed;
+}

@@ -74,8 +74,9 @@ public:
   int getTargetIndicator() const;
   double getRho() const;  
 
-  Vector_d getInitAlpha(int) const;
+  vector<double> getInitAlpha(int) const;
   int sizeInitAlpha() const;
+  vector<vector<double> > getAndCheckInitAlpha(LogWriter *Log);
 
   unsigned int getgenotypesSexColumn() const;
   void setgenotypesSexColumn(unsigned int i);
@@ -94,7 +95,9 @@ public:
   void setPopulations(int num);
   bool IsPedFile() const;
   void IsPedFile(bool);
-  bool getXOnlyAnalysis() const;  
+  bool getXOnlyAnalysis() const;
+  bool isAdmixed(unsigned) const;
+  bool isSymmetric()const;
 
   //Score test file names
   const char *getAffectedsOnlyScoreFilename() const;
@@ -174,8 +177,11 @@ private:
   bool HWTest;
   bool OutputAlleleFreq;
 
+  std::vector<bool> _admixed;
+  bool _symmetric;         
+
   double Rho;
-  std::vector<Vector_d> alpha;
+  std::vector<std::vector<double> > alpha;
 
   string ResultsDir;
   string LogFilename;
@@ -215,6 +221,7 @@ private:
   AdmixOptions& operator=(const AdmixOptions&);
   
   void SetOutputNames();
+  bool CheckInitAlpha( std::vector<double> &alphatemp);
   };
 
 #endif /* ADMIX_OPTIONS_H */

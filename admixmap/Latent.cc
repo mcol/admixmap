@@ -20,18 +20,19 @@
  */
 #include "Latent.h"
 #include "Chromosome.h"
+#include <algorithm>
+#include <numeric>
 
 using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
 #if POPADMIXSAMPLER == 3
-static void VectorAsArray(Vector_d &v, double *x){
-  for(int i = 0; i< v.GetNumberOfElements();++i)x[i] = log(v(i));
-
+static double xlog(double x){
+  return log(x);
 }
-static void ArrayAsVector(Vector_d &v, double *x){
-  for(int i = 0; i< v.GetNumberOfElements();++i)v(i) = exp(x[i]);
+static double xexp(double x){
+  return exp(x);
 }
 #endif
 
@@ -49,76 +50,32 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   poptheta = 0;
 #if POPADMIXSAMPLER == 2
   sumlogtheta = 0;
+#elif POPADMIXSAMPLER == 3
+  logalpha = 0;
+  initialAlphaStepsize = 0.03;//need a way of setting this without recompiling, or a sensible fixed value
+  targetAlphaAcceptRate = 0.5;//need to choose suitable value for this
 #endif
 }
 
-void Latent::Initialise(int Numindividuals,
-			std::vector<bool> *_admixed, bool *_symmetric, std::string *PopulationLabels){
+void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   //Initialise population admixture distribution Dirichlet parameters alpha
-  Vector_d alphatemp;
-  SumAlpha.SetNumberOfElements( options->getPopulations() );
+  alpha = options->getAndCheckInitAlpha(Log);
+  SumAlpha.resize( options->getPopulations() );
 
-  _admixed->resize(2,true);
-  *_symmetric = true;
-
-  //if no initalpha is specified, alpha for both gametes is initialised to 1.0 for each population  
-  if( options->sizeInitAlpha() == 0 ){
-    alphatemp.SetNumberOfElements( options->getPopulations() );
-    alphatemp.SetElements( 1.0 );
-    alpha.resize(2,alphatemp);
-    Log->logmsg(false,  "Initial value for population admixture (Dirichlet) parameter vector: ");
-    for(int k = 0;k < options->getPopulations(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
-  }
-  //if exactly one of initalpha0 or initalpha1 is specified, sets initial values of alpha parameter vector for both gametes
-  // if indadmixhiermodel=0, alpha values stay fixed
-  else if( options->sizeInitAlpha() == 1 ){
-    alphatemp = options->getInitAlpha(0);
-    (*_admixed)[0] = CheckInitAlpha( alphatemp );
-     alpha.resize(2,alphatemp);
-     Log->logmsg(false, "Initial value for population admixture (Dirichlet) parameter vector: ");
-     for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
-     Log->logmsg(false,"\n");
-  }
-  //if both are specified and analysis is for a single individual,
-  //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
-  else if( options->getAnalysisTypeIndicator() < 0 ){ // should be if indadmixhiermodel=0
-    //gamete 1
-    alphatemp = options->getInitAlpha(0);
-    (*_admixed)[0] = CheckInitAlpha( alphatemp );
-     alpha.push_back(alphatemp);
-     Log->logmsg(false, "Dirichlet prior for paternal gamete admixture: ");
-     for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
-     Log->logmsg(false,"\n");
-
-     //gamete 2
-     alphatemp = options->getInitAlpha(1);
-     (*_admixed)[1] = CheckInitAlpha( alphatemp );
-     alpha.push_back(alphatemp);
-     Log->logmsg(false, "Dirichlet prior for maternal gamete admixture: ");
-     for(int k = 0;k < alphatemp.GetNumberOfElements(); ++k){Log->logmsg(false,alphatemp(k));Log->logmsg(false," ");}
-     Log->logmsg(false,"\n");
-
-     *_symmetric = false;
-  }
-  else{
-     Log->logmsg(true,"ERROR: Can specify separate priors on admixture of each gamete only if analysing single individual\n");
-     exit(1);
-  }
-  if(!options->getIndAdmixHierIndicator())  SumAlpha = alpha[0];
+  if(!options->getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
 
   //Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta
-  //
   rho = options->getRho();
-  
+
   if( options->getRho() == 99 ){
-    rhoalpha = 1.0;
-    rhobeta = 0.0;
-    Log->logmsg(true,"Flat prior on sumintensities.\n");
+     rhoalpha = 1.0;
+     rhobeta = 0.0;
+     Log->logmsg(true,"Flat prior on sumintensities.\n");
   }
   else if( options->getRho() == 98 ){
-    rhoalpha = 0.0;
-    rhobeta = 0.0;
-    Log->logmsg(true,"Flat prior on log sumintensities.\n");
+     rhoalpha = 0.0;
+     rhobeta = 0.0;
+     Log->logmsg(true,"Flat prior on log sumintensities.\n");
   }
   else{
     rhoalpha = options->getRho();
@@ -138,7 +95,7 @@ void Latent::Initialise(int Numindividuals,
       if( !outputstream )
 	{
 	  Log->logmsg(true,"ERROR: Couldn't open paramfile\n");
-	  //exit( 1 );
+	  exit( 1 );
 	}
       else{
 	Log->logmsg(true,"Writing population-level parameters to ");
@@ -171,11 +128,11 @@ void Latent::Initialise(int Numindividuals,
     AlphaParameters[0] = Numindividuals;
   }
   //if( options->getAnalysisTypeIndicator() > -1 ){
-  AlphaParameters[1] = alpha[0].Sum();
-     AlphaParameters[2] = 1;
-     AlphaParameters[3] = 1;
-     AlphaParameters[4] = 1;
-     //}
+  AlphaParameters[1] = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, plus<double>());//sum of alpha[0]
+  AlphaParameters[2] = 1;
+  AlphaParameters[3] = 1;
+  AlphaParameters[4] = 1;
+  //}
 
   Matrix_i empty_i(1,1);
   Matrix_d empty_d(1,1);
@@ -202,6 +159,9 @@ void Latent::Initialise(int Numindividuals,
   }
   
 #elif POPADMIXSAMPLER == 3
+  logalpha = new double[options->getPopulations()];
+  transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
+
   AlphaArgs = new double*[4];
   AlphaArgs[0] = new double[options->getPopulations()];
   for(unsigned i = 1; i < 4;++i)AlphaArgs[i] = new double[1];
@@ -211,8 +171,7 @@ void Latent::Initialise(int Numindividuals,
   AlphaArgs[2][0] = 1.0;//params of gamma prior
   AlphaArgs[3][0] = 1.0;
 
-  //2nd arg is stepsize, 3rd is nsteps, 4th is target acceptance rate
-  SampleAlpha.SetDimensions(options->getPopulations(), 0.035, 20, 0.5, findE, gradE);
+  AlphaSampler.SetDimensions(options->getPopulations(), initialAlphaStepsize, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
 
   //set up DARS sampler for global sumintensities
@@ -243,6 +202,7 @@ Latent::~Latent()
 #elif POPADMIXSAMPLER == 3
   for(unsigned i = 0; i < 4;++i)delete[] AlphaArgs[i];
   delete[] AlphaArgs;
+  delete[] logalpha;
 #endif
 }
 
@@ -398,7 +358,7 @@ void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 {
   for( int j = 0; j < options->getPopulations(); j++ ){
     avgstream->width(9);
-    *avgstream << setprecision(6) << SumAlpha(j) / samples << " ";
+    *avgstream << setprecision(6) << SumAlpha[j] / samples << " ";
   }
   avgstream->width(9);
   *avgstream << setprecision(6) << SumRho / samples << " ";
@@ -410,10 +370,9 @@ void Latent::OutputParams(int iteration){
     {
       for( int j = 0; j < options->getPopulations(); j++ ){
 	Log->width(9);
-	Log->write(alpha[0](j), 6);
+	Log->write(alpha[0][j], 6);
       }
-      //LogFileStreamPtr->width(9);
-      if( options->getRhoIndicator() )
+       if( options->getRhoIndicator() )
 	Log->write(rhobeta,6);
       else
 	Log->write(rho,6);
@@ -423,7 +382,7 @@ void Latent::OutputParams(int iteration){
     {
       for( int j = 0; j < options->getPopulations(); j++ ){
        (cout).width(9);
-       (cout) << setprecision(6) << alpha[0]( j ) << " ";
+       (cout) << setprecision(6) << alpha[0][ j ] << " ";
       }
      (cout).width(9);
       if( options->getRhoIndicator() )
@@ -436,7 +395,7 @@ void Latent::OutputParams(int iteration){
   if( iteration > options->getBurnIn() ){
     for( int j = 0; j < options->getPopulations(); j++ ){
       outputstream.width(9);
-      outputstream << setprecision(6) << alpha[0]( j ) << " ";}
+      outputstream << setprecision(6) << alpha[0][ j ] << " ";}
     //output rho
     outputstream.width(9);
     if( options->getRhoIndicator() )
@@ -447,25 +406,6 @@ void Latent::OutputParams(int iteration){
     outputstream << endl;
   }
 
-}
-
-//this should be in InputData
-bool Latent::CheckInitAlpha( Vector_d alphatemp )
-  // check that Dirichlet parameter vector, if specified by user, has correct length  
-{
-   bool admixed = true;
-   int count=0;
-   for( int i = 0; i < alphatemp.GetNumberOfElements(); i++ )
-      if( alphatemp(i) != 0.0 )
-         count++;
-   if( count == 1 )
-      admixed = false;
-   if( alphatemp.GetNumberOfElements() != options->getPopulations() ){
-      cout << "Error in specification of alpha.\n"
-           << alphatemp << endl;
-      exit(0);
-   }
-   return admixed;
 }
 
 void Latent::Update(int iteration, IndividualCollection *individuals){
@@ -502,33 +442,33 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
 
 #if POPADMIXSAMPLER == 1
     for( int j = 0; j < options->getPopulations(); j++ ){
-      AlphaParameters[1] -= alpha[0]( j );
+      AlphaParameters[1] -= alpha[0][ j ];
       AlphaParameters[4] = individuals->getSumLogTheta(j);
       // elements of Dirichlet parameter vector are updated one at a time
       DirParamArray[j]->UpdateParameters( AlphaParameters, 5 );
-      alpha[0]( j ) = DirParamArray[j]->Sample();
-      AlphaParameters[1] += alpha[0]( j );
+      alpha[0][ j ] = DirParamArray[j]->Sample();
+      AlphaParameters[1] += alpha[0][ j ];
     }
 #elif POPADMIXSAMPLER == 2
     for( int j = 0; j < options->getPopulations(); j++ )
       sumlogtheta[j] = individuals->getSumLogTheta(j);
     PopAdmixSampler.Sample( obs, sumlogtheta, &eta, mu );
     for( int j = 0; j < options->getPopulations(); j++ )
-      alpha[0](j) = mu[j]*eta;
+      alpha[0][j] = mu[j]*eta;
     
 #elif POPADMIXSAMPLER == 3
      for( int j = 0; j < options->getPopulations(); j++ ){
        AlphaArgs[0][j] = individuals->getSumLogTheta(j);
      }
-    double *alpha_array = new double[options->getPopulations()];
-    VectorAsArray(alpha[0], alpha_array);
-    SampleAlpha.Sample(alpha_array, AlphaArgs);
-    ArrayAsVector(alpha[0], alpha_array);
-    delete[] alpha_array;
+    AlphaSampler.Sample(logalpha, AlphaArgs);//sample new values for logalpha
+    transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
+    if(!((iteration+1) % 10)){
+      AlphaSampler.Tune();//tune Hamiltonian sampler every 10 iterations
+    }
 #endif
     
     // ** accumulate sum of Dirichlet parameter vector over iterations  **
-    SumAlpha += alpha[0];
+    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
   }
 
   if( iteration == options->getBurnIn() && options->getAnalysisTypeIndicator() > 1 ){
@@ -536,14 +476,15 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
     Log->write( poptheta, options->getPopulations());
     Log->write("\n");
 
-    SumAlpha.SetElements(0);
+    fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
   }
 
   if( iteration < options->getBurnIn() && options->getPopulations() > 1
       && options->getAnalysisTypeIndicator() > 1 ){
     // accumulate ergodic average of population admixture, which is used to centre 
     // the values of individual admixture in the regression model
-    for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha(j) / SumAlpha.Sum();
+    double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
+    for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
 
   }
   if( iteration > options->getBurnIn() ){
@@ -556,10 +497,10 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
 }
 //end Update
 
-Vector_d *Latent::getalpha0(){
-  return &alpha[0];
+vector<double > &Latent::getalpha0(){
+  return alpha[0];
 }
-std::vector<Vector_d> Latent::getalpha(){
+std::vector<vector<double> > &Latent::getalpha(){
   return alpha;
 }
 
@@ -577,13 +518,13 @@ const double *Latent::getpoptheta(){
 }
 
 #if POPADMIXSAMPLER == 3
-float Latent::getAlphaSamplerAcceptanceCount(){
-  return SampleAlpha.getAcceptanceCount();
+float Latent::getAlphaSamplerAcceptanceRate(){
+  return AlphaSampler.getAcceptanceRate();
 }
-//these next 2 functions are specific to the Dirichlet parameters alpha(or their logs)
-//should use function pointers and keep code in Latent, or wherever the sampler is to be used
-
-//calculate objective function for log alpha, used in Hamiltonian Metropolis algorithm
+float Latent::getAlphaSamplerStepsize(){
+  return AlphaSampler.getStepsize();
+}
+//calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm
 double Latent::findE(unsigned dim, const double* const theta, const double* const* args){
   /*
     theta = log dirichlet parameters (alpha)
@@ -611,8 +552,6 @@ double Latent::findE(unsigned dim, const double* const theta, const double* cons
 
 //calculate gradient for log alpha
 void Latent::gradE(unsigned dim, const double* const theta, const double* const* args, double *g){
-  //delete[] g;
-  //g = new double[dim];
   double sumalpha = 0.0, x, y1, y2;
   for(unsigned j = 0; j < dim; ++j) {
     g[j] = 0.0;
