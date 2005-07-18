@@ -123,7 +123,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     size_t AncestrySize = 0;
   // set size of locus ancestry array
     //gametes holds the number of gametes for each chromosome, either 1 or 2
-    //X_posn is the number of the X chromosome. Note that this is not necessarily 22
+    //X_posn is the number of the X chromosome. Note that this is not necessarily 22, even in humans
     for( unsigned int j = 0; j < numChromosomes; j++ ){
         if( chrm[j]->GetLabel(0) != s1  && chrm[j]->GetLabel(0) != s2){// if not X chromosome, set number of elements to 2, num loci
 	  AncestrySize = 2 * chrm[j]->GetSize() ;
@@ -453,7 +453,7 @@ double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int 
    return p;
 }
 
-void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
+void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
 				  int NumOutcomes,  Vector_i &OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 				   Matrix_d &Covariates0, double **beta, const double *poptheta,
 				   AdmixOptions* options, Chromosome **chrm, 
@@ -590,7 +590,7 @@ void Individual::SampleParameters( int i, Vector_d *SumLogTheta, AlleleFreqs *A,
 }
 
 // samples individual admixture proportions
-void Individual::SampleTheta( int i, Vector_d *SumLogTheta, Matrix_d *Outcome,
+void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
 				  int NumOutcomes,  Vector_i &OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 				   Matrix_d &Covariates0, double **beta, const double *poptheta,
 				   AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma){
@@ -637,9 +637,9 @@ void Individual::SampleTheta( int i, Vector_d *SumLogTheta, Matrix_d *Outcome,
     UpdateAdmixtureForRegression(i, K, NoCovariates, poptheta, options->isRandomMatingModel(),&(Covariates0));
 
   for( int k = 0; k < K; k++ ){
-    (*SumLogTheta)( k ) += log( Theta[ k ] );
+    SumLogTheta[ k ] += log( Theta[ k ] );
       if(options->isRandomMatingModel() && !options->getXOnlyAnalysis() )
-	(*SumLogTheta)( k ) += log( Theta[ K + k ] );
+	SumLogTheta[ k ] += log( Theta[ K + k ] );
     }
 
 }
@@ -866,22 +866,21 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   }//end locus loop
 }
 
-void Individual::SumScoresForLinkageAffectedsOnly(int j, Matrix_d *SumAffectedsScore, 
-				      Matrix_d *SumAffectedsVarScore,Matrix_d *SumAffectedsScore2, Matrix_d *SumAffectedsInfo){
+void Individual::SumScoresForLinkageAffectedsOnly(int j, double *SumAffectedsScore, 
+				      double *SumAffectedsVarScore, double *SumAffectedsScore2, double *SumAffectedsInfo){
   int KK = Populations;
   if(KK == 2) KK = 1;
 
   for( int k = 0; k < KK; k++ ){
-    (*SumAffectedsScore)(j,k) += AffectedsScore[j*KK + k];
-    (*SumAffectedsVarScore)(j,k) += AffectedsVarScore[j * KK +k];
-    (*SumAffectedsInfo)(j,k) += AffectedsInfo[j * KK +k];
-    (*SumAffectedsScore2)(j,k) +=  AffectedsScore[j*KK +k] * AffectedsScore[j*KK +k];
+    SumAffectedsScore[j*KK +k] += AffectedsScore[j*KK + k];
+    SumAffectedsVarScore[j*KK +k] += AffectedsVarScore[j * KK +k];
+    SumAffectedsInfo[j*KK +k] += AffectedsInfo[j * KK +k];
+    SumAffectedsScore2[j*KK +k] +=  AffectedsScore[j*KK +k] * AffectedsScore[j*KK +k];
   }
 }
 
-void Individual::SumScoresForAncestry(int j,   
-				      Matrix_d *SumAncestryScore, Matrix_d *SumAncestryInfo, Matrix_d *SumAncestryScore2,
-				      Matrix_d *SumAncestryVarScore){
+void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *SumAncestryInfo, double *SumAncestryScore2,
+				      double *SumAncestryVarScore){
 
   double *score = new double[Populations], *info = new double[Populations*Populations];
   CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], score, info, 2*Populations );
@@ -892,10 +891,10 @@ void Individual::SumScoresForAncestry(int j,
   if(Populations == 2){KK = 1; k1 = 1;}
      
   for( int k = 0; k < KK ; k++ ){
-    (*SumAncestryScore)(j,k) += score[k+k1];
-    (*SumAncestryInfo)(j,k)  += info[(k+k1)*Populations +k+k1] + AncestryInfoCorrection[j][k+k1];
-    (*SumAncestryScore2)(j,k) += score[k+k1] * score[k+k1];
-    (*SumAncestryVarScore)(j,k) += AncestryVarScore[j][k+k1];
+    SumAncestryScore[j*KK +k] += score[k+k1];
+    SumAncestryInfo[j*KK +k] += info[(k+k1)*Populations +k+k1] + AncestryInfoCorrection[j][k+k1];
+    SumAncestryScore2[j*KK +k] += score[k+k1] * score[k+k1];
+    SumAncestryVarScore[j*KK +k] += AncestryVarScore[j][k+k1];
   }
   delete[] score;
   delete[] info;
