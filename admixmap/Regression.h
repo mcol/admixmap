@@ -28,7 +28,7 @@ public:
   void Output(int iteration, AdmixOptions *, IndividualCollection *individuals, LogWriter *Log);
   void OutputErgodicAvg(int iteration, IndividualCollection *individuals,std::ofstream *avgstream);
   double **getbeta();
-  Vector_d *getlambda();
+  double *getlambda();
   int getNoCovariates();
   double getlambda0();
   double getDispersion(int);
@@ -40,18 +40,18 @@ private:
   Gaussian DrawBeta;
   MetropolisHastings** BetaDrawArray;
   Vector_d BetaParameters;
-  Vector_i acceptbeta;
+  int *acceptbeta;
   Matrix_d betan;
   Matrix_d sum;
 
-  Vector_d lambda; //precision parameter
+  double *lambda; //precision parameter
   double lambda0; //parameters of
   double lambda1; //prior for lambda
+  double *SumLambda;
 
   double **beta;//regression parameters
   Matrix_d *beta0; //
   double **SumBeta;//running sums (for ergodic averages)
-  Vector_d SumLambda;
  
   std::ofstream outputstream;//output to regparamfile
 

@@ -249,37 +249,49 @@ void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Geno
      size_admix = K;
 
    admix_null = new double[size_admix];
-   for(unsigned i = 0; i< size_admix; ++i) admix_null[i] = (double)1.0 / K;
+   for(unsigned i = 0; i< size_admix; ++i) admix_null[i] = (double)1.0;
    
-   Vector_d alphatemp;
-
-  if( options->sizeInitAlpha() == 0 ){
-    alphatemp.SetNumberOfElements( K );
-    alphatemp.SetElements( 1.0 );
-  }
-  else if( options->sizeInitAlpha() == 1 ){
+   vector<double >alphatemp(K);
+   
+   int KK0=K, KK1=K;
+   if( options->sizeInitAlpha() == 0 ){
+     fill(alphatemp.begin(), alphatemp.end(), 1.0 );
+   }
+   else if( options->sizeInitAlpha() == 1 ){
     alphatemp = options->getInitAlpha(0);
-  }
-  else if( options->getAnalysisTypeIndicator() < 0 ){
-    alphatemp = options->getInitAlpha(0);
- 
-    for( int k = 0; k < K; k++ ){
-       if( alphatemp(k) == 0 ) admix_null[k] = 0.0;
+   }
+   else  if( options->getAnalysisTypeIndicator() < 0 ){
+     alphatemp = options->getInitAlpha(0);
+     
+     for( int k = 0; k < K; k++ ){
+       if( alphatemp[k] == 0 ) {
+	 admix_null[k] = 0.0;
+	 KK0--;
+       }
      }
      
      alphatemp = options->getInitAlpha(1);
-  
-     //possible problem if not randommating model
+     
+     //possible problem if not randommating model ?
      for( int k = 0; k < K; k++ ){
-       if( alphatemp(k) == 0 ) admix_null[K + k] = 0.0;
+       if( alphatemp[k] == 0 ) {
+	 admix_null[K + k] = 0.0;
+	 KK1--;
+       }
      }
-  }
-  setAdmixtureProps(admix_null, size_admix);
-  if( Loci->isX_data() )setAdmixturePropsX(admix_null, size_admix);
-  delete[] admix_null;
+   }
 
+   //set initial values of admixture to 1 / (number of admixed pops)
+   // eg 1 1 0 -> 1/2, 1/2, 1/2
+   for( int k = 0; k < K; k++ )admix_null[k] /= KK0;//gamete 1
+   if( options->isRandomMatingModel() )   for( int k = 0; k < K; k++ )admix_null[K + k] /= KK1;//gamete 2
+   
+   setAdmixtureProps(admix_null, size_admix);
+   if( Loci->isX_data() )setAdmixturePropsX(admix_null, size_admix);
+   delete[] admix_null;
+   
   //Regression stuff
-  if(options->getAnalysisTypeIndicator() >=2){
+   if(options->getAnalysisTypeIndicator() >=2){
     ExpectedY = alloc2D_d(NumOutcomes, NumInd);
     //Covariates.SetNumberOfElements(1);
     Matrix_d temporary( NumInd, 1 );
@@ -487,8 +499,7 @@ void IndividualCollection::getLabels(const Vector_s& data, Vector_i temporary, s
 }
 
 void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, const double *poptheta, AdmixOptions *options,
-				  Chromosome **chrm, vector<Vector_d> alpha, bool _symmetric, 
-				  vector<bool> _admixed, double rhoalpha, double rhobeta,
+				  Chromosome **chrm, vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 				  LogWriter *Log, chib *MargLikelihood){
   SumLogTheta.SetElements( 0.0 );
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
@@ -497,19 +508,19 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
   for(unsigned int i = 0; i < NumInd; i++ ){
     
     if( options->getPopulations() > 1 ){
-      _child[i]->SampleParameters(i, &SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, *(R->getlambda()),
+      _child[i]->SampleParameters(i, &SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(),
 				  R->getNoCovariates(),  Covariates, R->getbeta(), poptheta, options, 
-				  chrm, alpha, _symmetric, _admixed, rhoalpha, rhobeta, sigma,  
+				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
 				  R->getDispersion(OutcomeType(0)));}
     
     else{
-      _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, *(R->getlambda()), options->getAnalysisTypeIndicator());
+      _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(), options->getAnalysisTypeIndicator());
     }   
     
     if( (options->getAnalysisTypeIndicator() < 0) &&  options->getMLIndicator() && (i == 0) )//check if this condition is correct
       _child[i]->ChibLikelihood(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
-				options, chrm, alpha,_admixed, rhoalpha, rhobeta,
+				options, chrm, alpha, rhoalpha, rhobeta,
 				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], Log, MargLikelihood, A);
   }
 

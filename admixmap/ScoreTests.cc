@@ -25,6 +25,7 @@
  */
 
 #include "ScoreTests.h"
+#include <numeric>
 
 
 using namespace std;
@@ -340,13 +341,14 @@ void ScoreTests::Reset(){
 
 }
 
-void ScoreTests::SetAllelicAssociationTest(Vector_d *alpha0){
+void ScoreTests::SetAllelicAssociationTest(std::vector<double> &alpha0){
   //alpha0 = alpha[0], pop admixture dirichlet params, from Latent
   double pp[options->getPopulations()];
+  double sum  = accumulate(alpha0.begin(), alpha0.end(), 0.0, std::plus<double>());//sum of alpha0 over pops
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
       for( int k = 0; k < options->getPopulations(); k++ )
-	pp[k] = (*alpha0)(k) / alpha0->Sum();
+	pp[k] = alpha0[k] / sum;
       (*Lociptr)(j)->SetDefaultMergeHaplotypes( pp);
       
       //possible memory leaks here

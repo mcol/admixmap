@@ -58,7 +58,7 @@ public:
 
   void Update(int iteration, AlleleFreqs *A, Regression *R, 
 	      const double *poptheta, AdmixOptions *options, Chromosome **chrm, 
-	      vector<Vector_d> alpha, bool _symmetric, vector<bool> _admixed, double rhoalpha, double rhobeta,
+	      std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta,
 	      LogWriter *Log, chib *MargLikelihood);
   
   void OutputIndAdmixture();

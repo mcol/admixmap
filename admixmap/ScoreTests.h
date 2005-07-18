@@ -41,7 +41,7 @@ public:
 
   void ROutput();
 
-  void SetAllelicAssociationTest(Vector_d *alpha0);
+  void SetAllelicAssociationTest(std::vector<double> &alpha0);
 
   void Update(double);
 

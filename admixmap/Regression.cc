@@ -2,25 +2,31 @@
 #include "matrix_d.h"
 
 Regression::Regression(){
-  lambda0 = 0.0; //population
-  lambda1 = 0.0; //population
+  lambda = 0;
+  lambda0 = 0.0;
+  lambda1 = 0.0;
+  SumLambda = 0;
   beta = 0;
   beta0 = 0;
   SumBeta = 0;
   NumOutcomeVars = 0;
   NoCovariates = 0;
   BetaDrawArray = 0;
+  acceptbeta = 0;
 }
 
 Regression::Regression(int nocovariates){
   NoCovariates = nocovariates;
+  lambda = 0;
   lambda0 = 0.0; //population
   lambda1 = 0.0; //population
   beta = 0;
   beta0 = 0;
   SumBeta = 0;
+  SumLambda = 0;
   NumOutcomeVars = 0;
   BetaDrawArray = 0;
+  acceptbeta = 0;
 }
 
 Regression::~Regression(){
@@ -28,10 +34,12 @@ Regression::~Regression(){
     delete BetaDrawArray[i];
   }
   delete[] BetaDrawArray;
-  //delete[] beta;
   free_matrix(beta,NumOutcomeVars);
   free_matrix(SumBeta,NumOutcomeVars);
   delete[] beta0;
+  delete[] lambda;
+  delete[] SumLambda;
+  delete[] acceptbeta;
 }
 
 void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log){
@@ -105,27 +113,25 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
   lambda0 = .1;
   lambda1 = .1;
-  
-  lambda.SetNumberOfElements( NumOutcomeVars );
-  lambda.SetElements( .1 );
-
+  lambda = new double[ NumOutcomeVars ];
+  fill(lambda, lambda+NumOutcomeVars, 0.1);//initialise lambda to 0.1
   if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 5) {
     Log->logmsg(false,"\nNormal-inverse-gamma prior for linear regression model with gamma shape parameter ");
-    Log->logmsg(false, lambda0); 
+    Log->logmsg(false, lambda0);
     Log->logmsg(false, " and rate parameter "); Log->logmsg(false, lambda1); Log->logmsg(false, "\n");
   }
   if( AnalysisTypeIndicator == 3 ||  AnalysisTypeIndicator == 4 ||  AnalysisTypeIndicator == 5) {
     Log->logmsg(false,"\nGaussian priors on logistic regression parameters with precision ");
     Log->logmsg(false, "0.1"); Log->logmsg(false, "\n");
   }
-  
-  SumLambda.SetNumberOfElements( NumOutcomeVars );
-  SumLambda.SetElements( .1 );    
-  acceptbeta.SetNumberOfElements( options->getPopulations());
+
+  SumLambda = new double[ NumOutcomeVars ];
+  fill(SumLambda, SumLambda + NumOutcomeVars, 0.1);//initialise SumLambda to 0.1 (initial value of lambda)
+  acceptbeta = new int[ options->getPopulations()];
   DrawBeta.SetDimension( NoCovariates );
   BetaParameters.SetNumberOfElements( NoCovariates + 4 );
   BetaDrawArray = new MetropolisHastings*[NoCovariates];
-
+  
   for( int i = 0; i < NoCovariates; i++ ){
     BetaDrawArray[i] = 0;
   }
@@ -134,7 +140,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
     for( int k = 0; k < NumOutcomeVars; k++ ){
       if( AnalysisTypeIndicator != 5 || (AnalysisTypeIndicator == 5 && individuals->getOutcomeType(k) ) ){
 	BetaParameters.SetElements(0);
-	BetaParameters( NoCovariates + 1 ) = lambda(k);
+	BetaParameters( NoCovariates + 1 ) = lambda[k];
 	BetaParameters( NoCovariates + 3 ) = beta0[k](0,0);
 	for( int i = 0; i < NoCovariates; i++ ){
 	  BetaDrawArray[i] = new MetropolisHastings( BetaParameters, lr, dlr, ddlr, empty_i, individuals->getCovariates() );
@@ -156,9 +162,9 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
       double lambdan = lambda1 + 0.5 *
 	( (individuals->getOutcome(k) - individuals->getCovariates() * betan ).Transpose() * individuals->getOutcome(k)
 	  + (beta0[k] - betan).Transpose() * n0 * beta0[k] )(0,0);
-      lambda(k) = gengam( lambdan, lambda0 + 0.5 * individuals->getSize() );
+      lambda[k] = gengam( lambdan, lambda0 + 0.5 * individuals->getSize() );
       DrawBeta.SetMean( betan );
-      DrawBeta.SetCovariance( temporary / lambda(k) );
+      DrawBeta.SetCovariance( temporary / lambda[k] );
       DrawBeta.Draw(beta[k]);
     }
     //      logistic
@@ -171,7 +177,7 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
 	BetaParameters( NoCovariates + 2 ) = j;
 	BetaParameters( NoCovariates ) = sum( 0, j );
 	BetaDrawArray[j]->UpdateParameters( BetaParameters );
-	acceptbeta(k) = BetaDrawArray[j]->Sample( &( beta[k][j] ) );
+	acceptbeta[k] = BetaDrawArray[j]->Sample( &( beta[k][j] ) );
 	BetaParameters(j) = beta[k][j];
       }
     }
@@ -236,7 +242,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
           if( AnalysisTypeIndicator == 2 )
 	    {
 	      for( int k = 0; k <  NumOutcomeVars; k++ )
-		Log->write(lambda(k),6);
+		Log->write(lambda[k],6);
 		//Log->write( lambda, 6);
 	    }
 	}
@@ -253,7 +259,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
 	      Log->width(9);
 	      if( ! individuals->getOutcomeType(k) )
 		{
-                  Log->write(lambda(k),6);
+                  Log->write(lambda[k],6);
 		}
 	    }
 	}
@@ -268,7 +274,9 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
 	}
 	(cout).width(9);
 	if( AnalysisTypeIndicator == 2 )
-	  cout << setprecision(6) << lambda;
+	  cout << setprecision(6);
+   for( int j = 0; j < NoCovariates; j++ )
+ cout<< lambda[j]<<" ";
       }
       else if( AnalysisTypeIndicator == 5 ){
 	for( int k = 0; k < NumOutcomeVars; k++ ){
@@ -279,7 +287,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
 	  }
 	  (cout).width(9);
 	  if( ! individuals->getOutcomeType(k) )
-	    cout << setprecision(6) << lambda(k);
+	    cout << setprecision(6) << lambda[k];
 	}
       }
     }
@@ -292,7 +300,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
      }
      outputstream.width(9);
      if( AnalysisTypeIndicator == 2 )
-       outputstream << setprecision(6) << lambda(0) << " ";
+       outputstream << setprecision(6) << lambda[0] << " ";
    }
    else if( AnalysisTypeIndicator == 5 ){
      for( int k = 0; k < NumOutcomeVars; k++ ){
@@ -302,7 +310,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
        }
        if( ! individuals->getOutcomeType(k) ){
 	 outputstream.width(9);
-	 outputstream<< setprecision(6) << lambda(k) << " ";
+	 outputstream<< setprecision(6) << lambda[k] << " ";
        }
      }
    }
@@ -318,7 +326,7 @@ void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals
     }
     avgstream->width(9);
     if( AnalysisTypeIndicator == 2 )
-      *avgstream << setprecision(6) << SumLambda(0) / samples << " ";
+      *avgstream << setprecision(6) << SumLambda[0] / samples << " ";
   }
   else if( AnalysisTypeIndicator == 5 ){
     for( int k = 0; k < NumOutcomeVars; k++ ){
@@ -328,7 +336,7 @@ void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals
       }
       if( ! individuals->getOutcomeType(k) ){
 	avgstream->width(9);
-	*avgstream << setprecision(6) << SumLambda(k) / samples << " ";
+	*avgstream << setprecision(6) << SumLambda[k] / samples << " ";
       }
     }
   }
@@ -342,18 +350,18 @@ void Regression::SumParameters(){
         SumBeta[i][j] += beta[i][j];
     }
   //if( AnalysisTypeIndicator > 1 )
-    SumLambda += lambda;
+    for(int i = 0; i < NumOutcomeVars; ++i) SumLambda[i] += lambda[i];
 }
 double **Regression::getbeta(){
   if(beta)
     return beta;
   else return NULL;
 }
-Vector_d *Regression::getlambda(){
-  return &lambda;
+double *Regression::getlambda(){
+  return lambda;
 }
 double Regression::getlambda0(){
-  return lambda(0);
+  return lambda[0];
 }
 
 int Regression::getNoCovariates(){
@@ -447,10 +455,10 @@ double Regression::getDispersion(int OutcomeType){
   //                  = 0 =>linear regression
   //                  = 1=> logistic
   double dispersion = 1.0;
-  if( AnalysisTypeIndicator == 2 ) dispersion = lambda(0);//linear regression
+  if( AnalysisTypeIndicator == 2 ) dispersion = lambda[0];//linear regression
   else {
     if( AnalysisTypeIndicator == 3 || AnalysisTypeIndicator == 4 )dispersion = 1.0;//logistic
-    else if (AnalysisTypeIndicator == 5)dispersion = OutcomeType ? 1.0 : lambda(0);
+    else if (AnalysisTypeIndicator == 5)dispersion = OutcomeType ? 1.0 : lambda[0];
     //else cout<<"Invalid call to Regression::getDispersion()."<<endl;
   }
   return dispersion;
