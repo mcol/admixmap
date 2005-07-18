@@ -25,7 +25,8 @@
 using namespace std;
 
 IndividualCollection::IndividualCollection()
-{   
+{
+  SumLogTheta = 0;   
 }
 
 IndividualCollection::~IndividualCollection()
@@ -38,6 +39,7 @@ IndividualCollection::~IndividualCollection()
   delete indadmixoutput;
   delete[] Outcome;
   free_matrix(ExpectedY, NumOutcomes);
+  delete[] SumLogTheta;
 }
 
 IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
@@ -53,6 +55,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   Covariates = nullMatrix;
   Outcome = 0;
   ExpectedY = 0;
+  SumLogTheta = 0;
   NumInd = Data->getNumberOfIndividuals();
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
   sigma.resize(2);
@@ -322,8 +325,8 @@ void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Geno
       if( getOutcomeType(k) )calculateExpectedY(k);
     }
   }
-  //Misc.
-  SumLogTheta.SetNumberOfElements( options->getPopulations());
+
+  SumLogTheta = new double[ options->getPopulations()];
   InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
   MaxLogLikelihood.assign(NumInd, -9999999 );
@@ -501,14 +504,14 @@ void IndividualCollection::getLabels(const Vector_s& data, Vector_i temporary, s
 void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, const double *poptheta, AdmixOptions *options,
 				  Chromosome **chrm, vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 				  LogWriter *Log, chib *MargLikelihood){
-  SumLogTheta.SetElements( 0.0 );
+  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
   Individual::ResetStaticSums();
 
   for(unsigned int i = 0; i < NumInd; i++ ){
     
     if( options->getPopulations() > 1 ){
-      _child[i]->SampleParameters(i, &SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(),
+      _child[i]->SampleParameters(i, SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(),
 				  R->getNoCovariates(),  Covariates, R->getbeta(), poptheta, options, 
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
@@ -554,7 +557,10 @@ IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *
 
 }
 double IndividualCollection::getSumLogTheta(int i){
-  return SumLogTheta(i);
+  return SumLogTheta[i];
+}
+double *IndividualCollection::getSumLogTheta(){
+  return SumLogTheta;
 }
 double IndividualCollection::getLL(){
   //not currently used

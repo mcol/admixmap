@@ -48,9 +48,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   Loci = loci;
   Log = l;
   poptheta = 0;
-#if POPADMIXSAMPLER == 2
-  sumlogtheta = 0;
-#elif POPADMIXSAMPLER == 3
+#if POPADMIXSAMPLER == 3
   logalpha = 0;
   initialAlphaStepsize = 0.03;//need a way of setting this without recompiling, or a sensible fixed value
   targetAlphaAcceptRate = 0.5;//need to choose suitable value for this
@@ -145,12 +143,11 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
     DirParamArray[j]->SetLeftTruncation( 0.1 );
   }
 #elif POPADMIXSAMPLER == 2
-  eta = alpha[0].Sum();
+  eta = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
   mu = new double[ options->getPopulations() ];
-  sumlogtheta = new double[ options->getPopulations() ];
   PopAdmixSampler.SetSize( options->getPopulations() );
   for( int i = 0; i < options->getPopulations(); i++ ){
-    mu[i] = alpha[0](i)/eta;
+    mu[i] = alpha[0][i]/eta;
   }
   if( options->isRandomMatingModel() ){
     obs = 2 * Numindividuals;
@@ -198,7 +195,6 @@ Latent::~Latent()
   }
 #elif POPADMIXSAMPLER == 2
   delete[] mu;
-  delete[] sumlogtheta;
 #elif POPADMIXSAMPLER == 3
   for(unsigned i = 0; i < 4;++i)delete[] AlphaArgs[i];
   delete[] AlphaArgs;
@@ -450,16 +446,15 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
       AlphaParameters[1] += alpha[0][ j ];
     }
 #elif POPADMIXSAMPLER == 2
-    for( int j = 0; j < options->getPopulations(); j++ )
-      sumlogtheta[j] = individuals->getSumLogTheta(j);
-    PopAdmixSampler.Sample( obs, sumlogtheta, &eta, mu );
+    PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &eta, mu );
     for( int j = 0; j < options->getPopulations(); j++ )
       alpha[0][j] = mu[j]*eta;
     
 #elif POPADMIXSAMPLER == 3
-     for( int j = 0; j < options->getPopulations(); j++ ){
-       AlphaArgs[0][j] = individuals->getSumLogTheta(j);
-     }
+    //for( int j = 0; j < options->getPopulations(); j++ ){
+    //AlphaArgs[0][j] = individuals->getSumLogTheta(j);
+    //}
+    copy(individuals->getSumLogTheta(), individuals->getSumLogTheta()+options->getPopulations(), AlphaArgs[0]);
     AlphaSampler.Sample(logalpha, AlphaArgs);//sample new values for logalpha
     transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
     if(!((iteration+1) % 10)){

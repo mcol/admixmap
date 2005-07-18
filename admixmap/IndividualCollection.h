@@ -81,6 +81,7 @@ public:
   double GetSumrho0();
   double GetSumrho();
   double getSumLogTheta(int);
+  double *getSumLogTheta();
   Matrix_d getOutcome(int);
   double getOutcome(int, int);
   Vector_d getTargetCol(int,int);
@@ -119,6 +120,7 @@ private:
   vector< vector<double> > rhohat, rhohatX;
   double **thetahat;
   double **thetahatX;
+  double *SumLogTheta;//sums of log individual admixture proportions
   vector<double> MaxLogLikelihood;
 
   //Regression Objects
@@ -136,7 +138,7 @@ private:
   IndAdmixOutputter* indadmixoutput;
   double LogLikelihood, SumLogLikelihood;
   std::vector< int > _locusfortest;
-  Vector_d SumLogTheta;
+ 
 
 
 };

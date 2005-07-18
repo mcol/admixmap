@@ -117,7 +117,6 @@ private:
 #elif POPADMIXSAMPLER == 2//DirichletParamSampler
   double eta;
   double *mu;
-  double *sumlogtheta;
   unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
 #elif POPADMIXSAMPLER == 3 //HMCMC sampler
