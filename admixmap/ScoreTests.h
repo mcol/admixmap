@@ -55,10 +55,15 @@ private:
 //   Matrix_d *SumLocusLinkageScore2;
 //   Matrix_d *SumLocusLinkageInfo;
 
-  Matrix_d SumAncestryScore;
-  Matrix_d SumAncestryInfo;
-  Matrix_d SumAncestryVarScore;
-  Matrix_d SumAncestryScore2;
+  double* SumAncestryScore;
+  double* SumAncestryInfo;
+  double* SumAncestryVarScore;
+  double* SumAncestryScore2;
+
+  double* SumAffectedsScore2;
+  double* SumAffectedsVarScore;
+  double* SumAffectedsScore;
+  double* SumAffectedsInfo;
 
   Matrix_d *LocusLinkageAlleleScore;
   Matrix_d *LocusLinkageAlleleInfo;
@@ -67,22 +72,17 @@ private:
   Matrix_d *SumLocusLinkageAlleleInfo;
   bool *locusObsIndicator;
 
-  Matrix_d SumAffectedsScore2;
-  Matrix_d SumAffectedsVarScore;
-  Matrix_d SumAffectedsScore;
-  Matrix_d SumAffectedsInfo;
-  
   Matrix_d **ScoreWithinHaplotype;
   Matrix_d **InfoWithinHaplotype;
   Matrix_d *SumScoreWithinHaplotype;
   Matrix_d *SumScore2WithinHaplotype;
   Matrix_d *SumInfoWithinHaplotype;
 
-  Matrix_d AdmixtureScore; 
-  Matrix_d AdmixtureInfo; 
-  Matrix_d SumAdmixtureScore; 
-  Matrix_d SumAdmixtureScore2; 
-  Matrix_d SumAdmixtureInfo;
+  double* AdmixtureScore; 
+  double* AdmixtureInfo; 
+  double* SumAdmixtureScore; 
+  double* SumAdmixtureScore2; 
+  double* SumAdmixtureInfo;
 
   std::ofstream assocscorestream;
   std::ofstream * ancestryAssociationScoreStream;
@@ -100,7 +100,9 @@ private:
 //OUTPUT
   //void OutputTestsForLocusLinkage( int, std::ofstream *, Matrix_d *, Matrix_d *, Matrix_d *);
   
-  void OutputTestsForLocusLinkage2( int, std::ofstream *,Matrix_d, Matrix_d, Matrix_d, Matrix_d );
+  void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
+			      double* Score, double* VarScore,
+			      double* Score2, double* Info );
 
   void OutputTestsForAllelicAssociation( int );
   
@@ -110,6 +112,7 @@ private:
 
   void UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int locus, double p,double phi, double DInvLink);
   Vector_i GetAlleleCountsInHaplotype(unsigned short **genotype, int NumberOfLoci);
+  int GetAllele2CountsInHaplotype(int locus, unsigned short **genotype);
   void SumScoreForWithinHaplotypeAssociation();
 
   void UpdateScoreForLinkageAffectedsOnly( Individual*);

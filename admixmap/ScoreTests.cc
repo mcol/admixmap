@@ -39,6 +39,16 @@ ScoreTests::ScoreTests(){
 //   SumLocusLinkageScore2 = 0;
 //   SumLocusLinkageInfo = 0;
 
+  SumAncestryScore = 0;
+  SumAncestryInfo = 0;
+  SumAncestryVarScore = 0;
+  SumAncestryScore2 = 0;
+
+  SumAffectedsScore = 0;
+  SumAffectedsScore2 = 0;
+  SumAffectedsInfo = 0;
+  SumAffectedsVarScore = 0;
+
   LocusLinkageAlleleScore = 0;
   LocusLinkageAlleleInfo = 0;
   SumLocusLinkageAlleleScore2 = 0;
@@ -52,11 +62,11 @@ ScoreTests::ScoreTests(){
   SumScore2WithinHaplotype = 0;
   SumInfoWithinHaplotype = 0;
 
-  AdmixtureScore = null_Matrix_d; 
-  AdmixtureInfo = null_Matrix_d; 
-  SumAdmixtureScore = null_Matrix_d; 
-  SumAdmixtureScore2 = null_Matrix_d;
-  SumAdmixtureInfo = null_Matrix_d;
+  AdmixtureScore = 0; 
+  AdmixtureInfo = 0; 
+  SumAdmixtureScore = 0; 
+  SumAdmixtureScore2 = 0;
+  SumAdmixtureInfo = 0;
 
   ancestryAssociationScoreStream = 0;
   SNPsAssociationScoreStream = 0;
@@ -68,6 +78,22 @@ ScoreTests::ScoreTests(){
 }
 
 ScoreTests::~ScoreTests(){
+  delete[] SumAncestryScore;
+  delete[] SumAncestryInfo;
+  delete[] SumAncestryVarScore;
+  delete[] SumAncestryScore2;
+
+  delete[] SumAffectedsScore;
+  delete[] SumAffectedsScore2;
+  delete[] SumAffectedsInfo;
+  delete[] SumAffectedsVarScore;
+
+  delete[] AdmixtureScore;
+  delete[] AdmixtureInfo;
+  delete[] SumAdmixtureScore;
+  delete[] SumAdmixtureInfo;
+  delete[] SumAdmixtureScore2;
+
   //TODO: delete these properly
   delete[] ScoreWithinHaplotype;
   delete[] InfoWithinHaplotype;
@@ -98,23 +124,29 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     if ( strlen( options->getAssocScoreFilename() ) ){
         assocscorestream.open( options->getAssocScoreFilename(), ios::out );
       if( !assocscorestream ){
-	Logptr->logmsg(true,"ERROR: Couldn't open assocscorefile\n");
+	Logptr->logmsg(true,"ERROR: Couldn't open admixturescorefile\n");
 	exit( 1 );}
       else {
-	Logptr->logmsg(true,"Admixture score file: ");    
+	Logptr->logmsg(true,"Writing tests for admixture association to: ");    
 	Logptr->logmsg(true,options->getAssocScoreFilename());
 	Logptr->logmsg(true,"\n");
 	assocscorestream << setiosflags( ios::fixed );
 
-	AdmixtureScore.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
-	SumAdmixtureScore.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
-	SumAdmixtureScore2.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
-	AdmixtureInfo.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
-	SumAdmixtureInfo.SetNumberOfElements( K, indiv->getNumberOfOutcomeVars() );
+	int NumOutcomeVars = indiv->getNumberOfOutcomeVars();
+	AdmixtureScore = new double[K * NumOutcomeVars];
+	SumAdmixtureScore = new double[K * NumOutcomeVars];
+	SumAdmixtureScore2 = new double[K * NumOutcomeVars];
+	AdmixtureInfo = new double[K * NumOutcomeVars];
+	SumAdmixtureInfo = new double[K * NumOutcomeVars];
+	fill(AdmixtureScore, AdmixtureScore + K * NumOutcomeVars, 0.0);
+	fill(AdmixtureInfo, AdmixtureInfo + K * NumOutcomeVars, 0.0);
+	fill(SumAdmixtureScore, SumAdmixtureScore + K * NumOutcomeVars, 0.0);
+	fill(SumAdmixtureScore2, SumAdmixtureScore2 + K * NumOutcomeVars, 0.0);
+	fill(SumAdmixtureInfo, SumAdmixtureInfo + K * NumOutcomeVars, 0.0);
       }
     }
     else{
-      Logptr->logmsg(true,"No assocscorefile given\n");
+      Logptr->logmsg(true,"No admixturescorefile given\n");
       exit(1);}
   }
 
@@ -139,10 +171,14 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 	int KK = K;
 	if(K == 2)KK = 1;
 	//Individual::InitialiseAffectedsOnlyScores(L, KK);
-	SumAffectedsScore2.SetNumberOfElements(L, KK);
-	SumAffectedsScore.SetNumberOfElements(L, KK);
-	SumAffectedsVarScore.SetNumberOfElements(L, KK);
-	SumAffectedsInfo.SetNumberOfElements(L, KK);
+	SumAffectedsScore2 = new double[L * KK];
+	SumAffectedsScore = new double[L * KK];
+	SumAffectedsVarScore = new double[L * KK];
+	SumAffectedsInfo = new double[L * KK];
+	fill(SumAffectedsScore, SumAffectedsScore +L*KK, 0.0);
+	fill(SumAffectedsScore2, SumAffectedsScore2 +L*KK, 0.0);
+	fill(SumAffectedsInfo, SumAffectedsInfo + L*KK, 0.0);
+	fill(SumAffectedsVarScore, SumAffectedsVarScore + L*KK, 0.0);
       }
   }
 
@@ -177,12 +213,15 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 //     }
 
 	int KK = K;
-	if(K == 2)KK = 1;
-	SumAncestryScore.SetNumberOfElements(L, KK);
-	SumAncestryInfo.SetNumberOfElements(L, KK);
-	SumAncestryScore2.SetNumberOfElements(L, KK);
-	SumAncestryVarScore.SetNumberOfElements(L, KK);
-	
+	if(K == 2)KK = 1;//only keeping scores for second population when 2 populations
+	SumAncestryScore = new double[L * KK];
+	SumAncestryInfo = new double[L * KK];
+	SumAncestryScore2 = new double[L * KK];
+	SumAncestryVarScore = new double[L * KK];
+	fill(SumAncestryScore, SumAncestryScore +L*KK, 0.0);
+	fill(SumAncestryScore2, SumAncestryScore2 +L*KK, 0.0);
+	fill(SumAncestryInfo, SumAncestryInfo + L*KK, 0.0);
+	fill(SumAncestryVarScore, SumAncestryVarScore + L*KK, 0.0);
   }
   
   /*----------------------
@@ -316,9 +355,10 @@ void ScoreTests::InitialiseAssocScoreFile(std::string *PLabels){
 }
 
 void ScoreTests::Reset(){
-
-  AdmixtureInfo.SetElements(0);
-  AdmixtureScore.SetElements(0);
+  if( options->getTestForAdmixtureAssociation() ){
+    fill(AdmixtureScore, AdmixtureScore + options->getPopulations() * individuals->getNumberOfOutcomeVars(), 0.0);
+    fill(AdmixtureInfo, AdmixtureInfo + options->getPopulations() * individuals->getNumberOfOutcomeVars(), 0.0);
+  }
 
   if( options->getTestForAllelicAssociation() ){
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
@@ -403,11 +443,16 @@ void ScoreTests::Update(double dispersion)
   | admixture association |
    -----------------------*/
   if( options->getTestForAdmixtureAssociation() ){
-    SumAdmixtureScore += AdmixtureScore;
-    SumAdmixtureInfo += AdmixtureInfo;
-    for( int k = 0; k < options->getPopulations(); k++ )
-      for( int kk = 0; kk < individuals->getNumberOfOutcomeVars(); kk++ )
-	SumAdmixtureScore2( k, kk ) += AdmixtureScore( k, kk ) * AdmixtureScore( k, kk );
+    int K = options->getPopulations();
+    int NumOutcomeVars = individuals->getNumberOfOutcomeVars();
+    //SumAdmixtureScore += AdmixtureScore;
+    transform(AdmixtureScore, AdmixtureScore + K*NumOutcomeVars, SumAdmixtureScore, SumAdmixtureScore, std::plus<double>());
+    //SumAdmixtureInfo += AdmixtureInfo;
+    transform(AdmixtureInfo, AdmixtureInfo + K*NumOutcomeVars, SumAdmixtureInfo, SumAdmixtureScore, std::plus<double>());
+
+    for( int k = 0; k < K; k++ )
+      for( int kk = 0; kk < NumOutcomeVars; kk++ )
+	SumAdmixtureScore2[ k*NumOutcomeVars + kk ] += AdmixtureScore[ k*NumOutcomeVars + kk ] * AdmixtureScore[ k*NumOutcomeVars + kk ];
   }
 
   if( options->getAnalysisTypeIndicator() != 1 ){
@@ -455,15 +500,14 @@ void ScoreTests::Update(double dispersion)
 // 	SumLocusLinkageInfo[j] += info.GetDiagonal().ColumnMatrix();
 
 	Individual::SumScoresForAncestry(j,  
-	 &SumAncestryScore, &SumAncestryInfo, &SumAncestryScore2, &SumAncestryVarScore);
+	 SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
 
       } 
   /*------------------------------------
   |affecteds-only linkage with ancestry |
   ------------------------------------*/ 
      if( options->getTestForAffectedsOnly() ){
-       Individual::SumScoresForLinkageAffectedsOnly(j,
-						    &SumAffectedsScore, &SumAffectedsVarScore,&SumAffectedsScore2, &SumAffectedsInfo);
+       Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
       }
     }
   }
@@ -475,7 +519,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 
   int dim = 0; //? this removes warning, but isn't necessarily the Right Thing
   int locus = 0;
-  Vector_i hap, ancestry, AlleleCounts;
+  Vector_i ancestry;
 
   Vector_d xx;
   //double IndividualOutcomeMinusP = individuals->getOutcome(0)( i, 0 ) - EY0;
@@ -583,43 +627,43 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 // }
 
 
-void ScoreTests::UpdateScoreForAdmixtureAssociation( double  *Theta, double YMinusEY,double phi, double DInvLink)
+void ScoreTests::UpdateScoreForAdmixtureAssociation( double  *Theta, double YMinusEY, double phi, double DInvLink)
 {
   //Updates score and info for score test for admixture association
   double x;
+  int NumOutcomeVars = individuals->getNumberOfOutcomeVars();
   for( int k = 0; k < options->getPopulations(); k++ ){
     if( options->isRandomMatingModel() )
       x = 0.5 * ( Theta[k] + Theta[ options->getPopulations() + k ] );
     else
       x = Theta[k];
-    AdmixtureScore( k, 0 ) += phi * x * YMinusEY;
-    AdmixtureInfo( k, 0 ) += phi * x * x *DInvLink;
+    AdmixtureScore[ k*NumOutcomeVars] += phi * x * YMinusEY;//only for 1st outcomevar ??
+    AdmixtureInfo[ k*NumOutcomeVars] += phi * x * x *DInvLink;
   }
 }
 
 // This method calculates score for allelic association at each simple locus within a compound locus
 void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int j, double YMinusEY,double phi, double DInvLink)
 {
-  //Individual* ind = individuals->getIndividual(i);
   Vector_i AlleleCounts;
-  Vector_d x( options->getPopulations() + 1 );
+  double x[ options->getPopulations() + 1 ];
  
   AlleleCounts = GetAlleleCountsInHaplotype(ind->getGenotype(j), (*Lociptr)(j)->GetNumberOfLoci());
   Matrix_d info( options->getPopulations() + 1, options->getPopulations() + 1 );
 
-  x( options->getPopulations() ) = 1;
+  x[ options->getPopulations() ] = 1.0;
   for( int k = 0; k < options->getPopulations() - 1; k++ )
-    x( k + 1 ) = ind->getAdmixtureProps()[k];
+    x[ k + 1 ] = ind->getAdmixtureProps()[k];
 
   for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
-    x(0) = AlleleCounts( l );
+    x[0] = AlleleCounts( l );
     for( int k = 0; k < options->getPopulations() + 1; k++ ){
       //if( x(0) != 99 )ScoreWithinHaplotype[j](l)( k, 0 ) += phi * x(k) * ( individuals->getOutcome(0)( i, 0 ) - p );
-if( x(0) != 99 )ScoreWithinHaplotype[j][l]( k, 0 ) += phi * x(k) * YMinusEY;
+if( x[0] != 99 )ScoreWithinHaplotype[j][l]( k, 0 ) += phi * x[k] * YMinusEY;
       for( int kk = 0; kk < options->getPopulations() + 1; kk++ )
-	info( k, kk ) = x( k ) * x( kk );
+	info( k, kk ) = x[ k ] * x[ kk ];
     }
-    if( x(0) != 99 )InfoWithinHaplotype[j][l] += info * phi *DInvLink;
+    if( x[0] != 99 )InfoWithinHaplotype[j][l] += info * phi *DInvLink;
   }
 }
 
@@ -663,6 +707,29 @@ Vector_i ScoreTests::GetAlleleCountsInHaplotype(unsigned short **genotype, int N
   }
   return AlleleCounts;
 }
+int ScoreTests::GetAllele2CountsInHaplotype(int locus, unsigned short **genotype)
+{
+  /**
+   * AlleleCounts is the number of 2 alleles at a
+   * locus in haplotype.  Used to test individual loci in haplotype
+   * for association.  Only use for haplotypes made up of SNPs.
+   */
+
+  int AlleleCounts;
+
+    if(genotype[locus][0]!=0 && genotype[locus][1]!=0){
+      if(genotype[locus][0] == 2){
+	AlleleCounts++;
+      }
+      if(genotype[locus][1] == 2){
+	AlleleCounts++;
+      }
+    } else {
+      AlleleCounts = 99;
+    }
+  return AlleleCounts;
+}
+
 
 void ScoreTests::SumScoreForWithinHaplotypeAssociation()
 {
@@ -707,13 +774,13 @@ void ScoreTests::Output(int iteration,std::string * PLabels){
     // 				SumLocusLinkageScore,
     // 				SumLocusLinkageScore2, SumLocusLinkageInfo );
     
-    OutputTestsForLocusLinkage2( iteration, ancestryAssociationScoreStream,
+    OutputTestsForLocusLinkage( iteration, ancestryAssociationScoreStream,
 				 SumAncestryScore, SumAncestryVarScore,
 				 SumAncestryScore2, SumAncestryInfo );
   }
   //affectedonly
   if( options->getTestForAffectedsOnly() ){
-    OutputTestsForLocusLinkage2( iteration, affectedsOnlyScoreStream,
+    OutputTestsForLocusLinkage( iteration, affectedsOnlyScoreStream,
 				 SumAffectedsScore, SumAffectedsVarScore,
 				 SumAffectedsScore2, SumAffectedsInfo );
     
@@ -782,11 +849,12 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iteration )
 
 void ScoreTests::OutputAdmixtureScoreTest(int iteration)
 {
+  int NumOutcomeVars = individuals->getNumberOfOutcomeVars();
   for( int j = 0; j < options->getPopulations(); j++ ){
-    for( int jj = 0; jj < individuals->getNumberOfOutcomeVars(); jj++ ){
-      double EU = SumAdmixtureScore( j, jj ) / ( iteration - options->getBurnIn() );
-      double complete = SumAdmixtureInfo( j, jj ) / ( iteration - options->getBurnIn() );
-      double missing = SumAdmixtureScore2( j, jj ) / ( iteration - options->getBurnIn() ) - EU * EU;
+    for( int jj = 0; jj < NumOutcomeVars; jj++ ){
+      double EU = SumAdmixtureScore[ j*NumOutcomeVars + jj ] / ( iteration - options->getBurnIn() );
+      double complete = SumAdmixtureInfo[ j*NumOutcomeVars + jj ] / ( iteration - options->getBurnIn() );
+      double missing = SumAdmixtureScore2[ j*NumOutcomeVars + jj ] / ( iteration - options->getBurnIn() ) - EU * EU;
       assocscorestream.width(9);
       assocscorestream << setprecision(6) << double2R(complete) << " ";
       assocscorestream.width(9);
@@ -869,9 +937,9 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
 //   }
 // }
 
-void ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstream,
-					 Matrix_d Score, Matrix_d VarScore,
-					 Matrix_d Score2, Matrix_d Info )
+void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
+					 double* Score, double* VarScore,
+					 double* Score2, double* Info )
 //used for affectedsonly test and ancestry association test
 //Score2 = Score^2
 {
@@ -893,10 +961,10 @@ void ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstr
 	*outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
       *outputstream << PopLabels[k+k1] << ","; //need offset to get second poplabel for 2pops
       
-      EU = Score( j , k) / ( iteration - options->getBurnIn() );
-      VU = VarScore( j , k ) / ( iteration - options->getBurnIn() );
-      missing = Score2( j , k ) / ( iteration - options->getBurnIn() ) - EU * EU + VU;
-      complete =  Info( j , k) / ( iteration - options->getBurnIn() );
+      EU = Score[ j*KK + k] / ( iteration - options->getBurnIn() );
+      VU = VarScore[ j*KK + k ] / ( iteration - options->getBurnIn() );
+      missing = Score2[ j*KK + k ] / ( iteration - options->getBurnIn() ) - EU * EU + VU;
+      complete =  Info[ j*KK + k ] / ( iteration - options->getBurnIn() );
       
       *outputstream << double2R(EU)                                << ","//score
 		    << double2R(complete)                          << ","//complete info
@@ -915,7 +983,6 @@ void ScoreTests::OutputTestsForLocusLinkage2( int iteration, ofstream* outputstr
     }
   }
 }
-
 void ScoreTests::ROutput(){
   int numPrintedIterations = options->getTotalSamples()/ options->getSampleEvery() / 10  -  options->getBurnIn() / options->getSampleEvery() / 10;
 
