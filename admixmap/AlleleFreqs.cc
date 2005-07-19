@@ -76,7 +76,6 @@ AlleleFreqs::~AlleleFreqs(){
 void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *Log){
   LoadAlleleFreqs(options, data);
 
-  Number = 0;
   Populations = options->getPopulations();
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ) IsHistoricAlleleFreq = true;
   else IsHistoricAlleleFreq = false;
@@ -91,26 +90,27 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
     (*Loci)(i)->Initialise(Freqs[i]);
   }
 
-  // settings for sampling of dispersion parameter
+  // ** settings for sampling of dispersion parameter **
   // Matrix etaprior(1,1);
-  psi = new double[ Populations ];
-  tau = new double[ Populations ];
-
-  SumAcceptanceProb = new double[ Populations ];
-  SumEta = new double[ Populations ];
-
-  Vector_d maxeta( Populations );
   if( IsHistoricAlleleFreq ){
+    eta = new double[ Populations ];//dispersion parameters
+    psi = new double[ Populations ];//gamma prior shape parameter
+    tau = new double[ Populations ];//gamma prior rate parameter
+    
+    SumAcceptanceProb = new double[ Populations ];
+    SumEta = new double[ Populations ];
     w = 10;
     etastep0 = 2.0;
     etastep =new double[ Populations ];
-    for(int k=0;k<Populations;++k)etastep[k] = etastep0;
+    for(int k = 0; k < Populations; ++k)etastep[k] = etastep0;
 
-    eta = new double[Populations];
+    Number = 0;
     NumberAccepted =new int[ Populations ];
     TuneEtaSampler = new TuneRW[ Populations ];
     for( int k = 0; k < Populations; k++ )
       TuneEtaSampler[k].SetParameters( w, etastep0, 0.1, 100, 0.44 );
+
+    // ** set eta priors **
     if( strlen(options->getEtaPriorFilename()) ){
       Log->logmsg(true,"Loading gamma prior parameters for allele frequency dispersion from ");
       Log->logmsg(true,options->getEtaPriorFilename());
@@ -120,30 +120,28 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
       for( int k = 0; k < Populations; k++ ){
 	psi[k] = etaprior( k, 0 );
 	tau[k] = etaprior( k, 1 );
-	Log->logmsg(true, "Population ");
-	Log->logmsg(true, k);
-	Log->logmsg(true, ": ");
-	Log->logmsg(true, psi[k]);
-	Log->logmsg(true, " ");
-	Log->logmsg(true, tau[k]);
-	Log->logmsg(true, "\n");
       }
     }
-    else{
-      //psi.SetElements( 2 ); // default gamma prior with mean 400, variance 80 000 
-      //tau.SetElements( 0.005 );
-      for(int k=0; k<Populations; ++k){
-	psi[k] = 2.0;
-	tau[k] = 0.005;
-      }
+    else{//default priors on eta
+      // default gamma prior with mean 400, variance 80 000 
+      fill(psi, psi + Populations, 2.0);
+      fill(tau, tau+Populations, 0.005);
     }
+
+    Log->logmsg(false, "Gamma prior on dispersion parameters with means and variances:\n");
     for( int k = 0; k < Populations; k++ ){
-      
+      Log->logmsg(false, data->GetPopLabels()[k]);Log->logmsg(false, ": ");
+      Log->logmsg(false, psi[k]/tau[k]);Log->logmsg(false, "  ");Log->logmsg(false, psi[k]/(tau[k]*tau[k]));Log->logmsg(false, "\n");
+    }
+    Log->logmsg(false, "\n");
+
+    //double maxeta[ Populations ];
+    for( int k = 0; k < Populations; k++ ){
 //       // old method; sets eta to the sum of priorallelefreqs
 //       for( int j = 0; j < NumberOfCompositeLoci; j++ ){
-//        	maxeta(k) =  GetPriorAlleleFreqs(j,k).Sum();
-//        	if( maxeta(k) > eta[k] ){
-//        	  eta[k] = maxeta(k);
+//        	maxeta[k] =  GetPriorAlleleFreqs(j,k).Sum();
+//        	if( maxeta[k] > eta[k] ){
+//        	  eta[k] = maxeta[k];
 //        	}
 //       }
       
@@ -152,9 +150,9 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
       //Rescale priorallelefreqs so the columns sum to eta 
       for(int j = 0; j < NumberOfCompositeLoci; j++ )
 	PriorAlleleFreqs[j].SetColumn(k, PriorAlleleFreqs[j].GetColumn(k) * eta[k] / PriorAlleleFreqs[j].GetColumn(k).Sum());
-     }
+    }
   
-    //Open output file for eta
+    // ** Open output file for eta **
     if ( options->getIndAdmixHierIndicator()){
       if (strlen( options->getEtaOutputFilename() ) ){
 	InitializeEtaOutputFile(options, data->GetPopLabels(), Log); 
@@ -164,10 +162,14 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
 	//exit(1);
       }
     }
-    
-  }
-  OpenFSTFile(options,Log);
+    // ** open fst output file if specified **
+    if( options->getOutputFST() ){
+      OpenFSTFile(options,Log);
+    }
+  }//end if historicallelefreqs
+
 }
+
 
 
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
@@ -695,7 +697,7 @@ void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *Po
       exit( 1 );
     }
   else{
-    Log->logmsg(true,"Writing dispersion parameter to ");
+    Log->logmsg(true,"Writing dispersion parameters to ");
     Log->logmsg(true,options->getEtaOutputFilename());
     Log->logmsg(true,"\n");
     if( options->getTextIndicator()  && options->getAnalysisTypeIndicator() >= 0)
@@ -778,7 +780,7 @@ void AlleleFreqs::ResetAlleleCounts(){
   }
 }
 void AlleleFreqs::OpenFSTFile(AdmixOptions *options,LogWriter *Log){
-  if( options->getOutputFST() ){
+    Log->logmsg(true, "Writing ergodic averages of FSTs to: ");
     Log->logmsg(true,options->getFSTOutputFilename());
     Log->logmsg(true,"\n");
     fstoutputstream.open( options->getFSTOutputFilename(), ios::out );
@@ -786,7 +788,6 @@ void AlleleFreqs::OpenFSTFile(AdmixOptions *options,LogWriter *Log){
       Log->logmsg(true,"ERROR: Couldn't open fstoutputfile\n");
       exit( 1 );
     }
-  }
 }
 
 

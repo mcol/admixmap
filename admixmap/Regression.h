@@ -36,22 +36,22 @@ public:
 private:
   int NoCovariates, NumOutcomeVars, AnalysisTypeIndicator;
 
-  Matrix_d n0; //
-  Gaussian DrawBeta;
-  MetropolisHastings** BetaDrawArray;
+  double *lambda; //precision parameter
+  double lambda0; //parameters of
+  double lambda1; //Gamma prior for lambda
+  double *SumLambda;
+
+  double **beta;//regression parameters
+  Matrix_d *beta0; //beta prior mean
+  Matrix_d n0; //for linear regression, beta prior variance is lambda*n0
+  double **SumBeta;//running sums (for ergodic averages)
+
+  Gaussian DrawBeta;//for linear regression
+  MetropolisHastings** BetaDrawArray;//for logistic
   Vector_d BetaParameters;
   int *acceptbeta;
   Matrix_d betan;
   Matrix_d sum;
-
-  double *lambda; //precision parameter
-  double lambda0; //parameters of
-  double lambda1; //prior for lambda
-  double *SumLambda;
-
-  double **beta;//regression parameters
-  Matrix_d *beta0; //
-  double **SumBeta;//running sums (for ergodic averages)
  
   std::ofstream outputstream;//output to regparamfile
 

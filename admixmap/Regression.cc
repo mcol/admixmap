@@ -18,8 +18,8 @@ Regression::Regression(){
 Regression::Regression(int nocovariates){
   NoCovariates = nocovariates;
   lambda = 0;
-  lambda0 = 0.0; //population
-  lambda1 = 0.0; //population
+  lambda0 = 0.0;
+  lambda1 = 0.0; 
   beta = 0;
   beta0 = 0;
   SumBeta = 0;
@@ -54,7 +54,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 	//exit( 1 );
       }
     else{
-      Log->logmsg(true,"Writing population-level regression parameters to ");
+      Log->logmsg(true,"Writing regression parameters to ");
       Log->logmsg(true,options->getRegressionOutputFilename());
       Log->logmsg(true,"\n");
       if( options->getTextIndicator() )InitializeOutputFile(options, individuals, PopulationLabels);

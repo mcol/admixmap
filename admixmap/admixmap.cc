@@ -94,7 +94,7 @@ void submain(AdmixOptions* options){
   chrm = Loci.GetChromosomes(options->getPopulations());  //create Chromosome objects
   Loci.SetSizes(&Log);//prints length of genome, num loci, num chromosomes
     
-  IndividualCollection *IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after LoadAlleleFreqs
+  IndividualCollection *IC = new IndividualCollection(options,&data,Loci,chrm);//NB call after A Initialise
   IC->LoadData(options,&data, &Log);                             //and before L and R Initialise
 
   Latent L( options, &Loci, &Log);    
@@ -168,10 +168,6 @@ void submain(AdmixOptions* options){
 	if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus());
       }  
  
-      // Latent should not need to know anything about the number or positions of loci
-      // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
-      // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
-      // sum of rho and rho-squared over all individuals or gametes 
       L.Update(iteration, IC);
 
       //update f summary for global rho
@@ -363,9 +359,9 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
 	//exit( 1 );
       }
       else{
-      Log->logmsg(true,"Writing ergodic averages to ");
+      Log->logmsg(true,"Writing ergodic averages of parameters to ");
       Log->logmsg(true,options->getErgodicAverageFilename());
-      Log->logmsg(true,"\n");
+      Log->logmsg(true,"\n\n");
       }
 
 

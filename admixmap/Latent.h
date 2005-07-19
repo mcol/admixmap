@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 1 //1 = original DARS sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
 
@@ -119,7 +119,7 @@ private:
   double *mu;
   unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
-#elif POPADMIXSAMPLER == 3 //HMCMC sampler
+#elif POPADMIXSAMPLER == 3 //Hamiltonian sampler
   double **AlphaArgs;
   double *logalpha;
   HamiltonianMonteCarlo AlphaSampler;

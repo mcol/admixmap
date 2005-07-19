@@ -56,62 +56,26 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
 }
 
 void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
-  //Initialise population admixture distribution Dirichlet parameters alpha
+  // ** Initialise population admixture distribution Dirichlet parameters alpha **
   alpha = options->getAndCheckInitAlpha(Log);
   SumAlpha.resize( options->getPopulations() );
 
   if(!options->getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
 
-  //Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta
-  rho = options->getRho();
-
-  if( options->getRho() == 99 ){
-     rhoalpha = 1.0;
-     rhobeta = 0.0;
-     Log->logmsg(true,"Flat prior on sumintensities.\n");
-  }
-  else if( options->getRho() == 98 ){
-     rhoalpha = 0.0;
-     rhobeta = 0.0;
-     Log->logmsg(true,"Flat prior on log sumintensities.\n");
-  }
-  else{
-    rhoalpha = options->getRho();
-    rhobeta = 1;
-  }
-  rhobeta0 = 1;
-  rhobeta1 = 1;
-  Log->logmsg(false,"\nShape parameter for gamma prior on sum-of-intensities: ");
-  Log->logmsg(false, rhoalpha); Log->logmsg(false,"\n");
-  Log->logmsg(false,"Rate (1 / location) parameter for gamma prior on sum-of-intensities: ");
-  Log->logmsg(false, rhobeta); Log->logmsg(false,"\n");
-
-  //Open paramfile 
-  if ( options->getIndAdmixHierIndicator()){
-    if( strlen( options->getParameterFilename() ) ){
-      outputstream.open( options->getParameterFilename(), ios::out );
-      if( !outputstream )
-	{
-	  Log->logmsg(true,"ERROR: Couldn't open paramfile\n");
-	  exit( 1 );
-	}
-      else{
-	Log->logmsg(true,"Writing population-level parameters to ");
-	Log->logmsg(true,options->getParameterFilename());
-	Log->logmsg(true,"\n");
-	if( options->getTextIndicator() )	InitializeOutputFile(PopulationLabels);
-      }
-    }
-    else{
-      Log->logmsg(true,"No paramfile given\n");
-      //exit(1);
-    }
-  }
-
   //ergodic average of population admixture, which is used to centre 
   // the values of individual admixture in the regression model  
   poptheta =new double[ options->getPopulations() ];
   for( int i = 0; i < options->getPopulations(); i++ )poptheta[i] = 0.0;
+
+  double alphapriormean = options->getAlphamean();
+  double alphapriorvar = options->getAlphavar();
+  Log->logmsg(false, "Gamma prior on population admixture Dirichlet parameters with mean ");
+  Log->logmsg(false, alphapriormean);
+  Log->logmsg(false, " and variance ");
+  Log->logmsg(false, alphapriorvar);
+  Log->logmsg(false, "\n");
+ 
+  // ** set up sampler for alpha **
 
 #if POPADMIXSAMPLER == 1  
   // AlphaParameters is an array with 5 elements
@@ -127,8 +91,8 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   }
   //if( options->getAnalysisTypeIndicator() > -1 ){
   AlphaParameters[1] = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, plus<double>());//sum of alpha[0]
-  AlphaParameters[2] = 1;
-  AlphaParameters[3] = 1;
+  AlphaParameters[2] = alphapriormean*alphapriormean / alphapriorvar;
+  AlphaParameters[3] = alphapriormean / alphapriorvar;
   AlphaParameters[4] = 1;
   //}
 
@@ -165,13 +129,37 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   //elem 0 is sum of log admixture props
   AlphaArgs[1][0] = (double)Numindividuals;// elem 1 is num individuals/gametes
   if( options->isRandomMatingModel() )AlphaArgs[1][0] *= 2.0;
-  AlphaArgs[2][0] = 1.0;//params of gamma prior
-  AlphaArgs[3][0] = 1.0;
+  AlphaArgs[2][0] = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
+  AlphaArgs[3][0] = alphapriormean / alphapriorvar;
 
   AlphaSampler.SetDimensions(options->getPopulations(), initialAlphaStepsize, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
 
-  //set up DARS sampler for global sumintensities
+  // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
+  rho = options->getRhoalpha();
+
+  if( options->RhoFlatPrior() ){
+     rhoalpha = 1.0;
+     rhobeta = 0.0;
+     Log->logmsg(true,"Flat prior on sumintensities.\n");
+  }
+  else if( options->logRhoFlatPrior() ){
+     rhoalpha = 0.0;
+     rhobeta = 0.0;
+     Log->logmsg(true,"Flat prior on log sumintensities.\n");
+  }
+  else{
+    rhoalpha = options->getRhoalpha();
+    rhobeta = options->getRhobeta();
+    Log->logmsg(false,"Gamma prior on sum-of-intensities with Shape parameter: ");
+    Log->logmsg(false, rhoalpha); Log->logmsg(false,"\n");
+    Log->logmsg(false," and Rate (1 / location) parameter: ");
+    Log->logmsg(false, rhobeta); Log->logmsg(false,"\n");
+  }
+  rhobeta0 = 1;
+  rhobeta1 = 1;
+
+  // ** set up DARS sampler for global sumintensities **
   rhodata_i.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
   rhodata_d.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
   for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)rhodata_d(j,0) = Loci->GetDistance(j);
@@ -183,6 +171,28 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 
    RhoDraw = new DARS(0,1,(double)1,RhoParameters,4,frho,dfrho,ddfrho,
                             rhodata_i,rhodata_d);
+
+  // ** Open paramfile **
+  if ( options->getIndAdmixHierIndicator()){
+    if( strlen( options->getParameterFilename() ) ){
+      outputstream.open( options->getParameterFilename(), ios::out );
+      if( !outputstream )
+	{
+	  Log->logmsg(true,"ERROR: Couldn't open paramfile\n");
+	  exit( 1 );
+	}
+      else{
+	Log->logmsg(true,"Writing population-level parameters to ");
+	Log->logmsg(true,options->getParameterFilename());
+	Log->logmsg(true,"\n");
+	if( options->getTextIndicator() )	InitializeOutputFile(PopulationLabels);
+      }
+    }
+    else{
+      Log->logmsg(true,"No paramfile given\n");
+      //exit(1);
+    }
+  }
 }
 
 Latent::~Latent()
@@ -408,6 +418,9 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
 
   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
       options->getIndAdmixHierIndicator() ){
+    // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
+    // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
+    // sum of rho and rho-squared over all individuals or gametes 
     if( Loci->GetLengthOfGenome() > 0.0 ){
       //  ** Sample for global rho **
       if( !options->getRhoIndicator() ){

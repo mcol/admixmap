@@ -48,29 +48,29 @@ static Vector_d GetRow(double *x, int row, int ncols){
   for(int i = 0; i < ncols; ++i)v(i) = x[row*ncols + i];
   return v;
 }
-static Vector_d GetRow(int *x, int row, int ncols){
-  Vector_d v(ncols);
-  for(int i = 0; i < ncols; ++i)v(i) = x[row*ncols + i];
-  return v;
-}
+// static Vector_d GetRow(int *x, int row, int ncols){
+//   Vector_d v(ncols);
+//   for(int i = 0; i < ncols; ++i)v(i) = x[row*ncols + i];
+//   return v;
+// }
 
 Individual::Individual()
-{
+{//should initialise pointers here
 }
 
 Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Genome& Loci,Chromosome **chrm)
 {
 
-    if( options->getRhoIndicator() ){
+  if( options->getRhoIndicator() ){
         TruncationPt = options->getTruncPt();
         if( options->isRandomMatingModel() )
-            if(options->getRho() < 90.0 )
-                _rho.assign(2,options->getRho());
+	  if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
+                _rho.assign(2,options->getRhoalpha());
             else
                 _rho.assign(2,1);
         else
-            if(options->getRho() < 90.0 )
-                _rho.assign(1,options->getRho());
+	  if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
+                _rho.assign(1,options->getRhoalpha());
             else
                 _rho.assign(2,1);
     }
@@ -937,38 +937,42 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
    double LogPrior=0, LogLikelihoodAtEst;
    Log->write("Calculating posterior at individual admixture\n");
    Log->write( theta, theta_size);Log->write("\nand sumintensities\n");Log->write( rho[0]);Log->write(rho[1]);Log->write("\n");
+   // ** case of xonly data **
    if( options->getXOnlyAnalysis() ){
      LogLikelihoodAtEst = getLogLikelihoodXOnly( options, chrm, theta, rho);
-      if( options->getRho() == 99 ){
+     if( options->RhoFlatPrior() ){ //flat prior on sumintensities
          LogPrior = -log( options->getTruncPt() - 1.0 );
       }
-      else if( options->getRho() == 98 ){
+     else if( options->logRhoFlatPrior() ){//flat prior on log sumintensities
          LogPrior = -log( rho[0]*(log( options->getTruncPt() ) ) );
       }
-      else{
+     else{//gamma prior on sumintensities
          LogPrior = getGammaLogDensity( rhoalpha, rhobeta, rho[0] );
          LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) );
       }
+     //alpha contribution
       LogPrior += getDirichletLogDensity( alpha[0], GetRow(theta, 0, K) );
    }
+   // ** case of some x data **
    else if( Loci->isX_data() ){
      LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX);
-      if( options->getRho() == 99 ){
+      if( options->RhoFlatPrior() ){//flat prior on sumintensities
          LogPrior = -4.0*log( options->getTruncPt() - 1.0 );
       }
-      else if( options->getRho() == 98 ){
+      else if( options->logRhoFlatPrior() ){//flat prior on log sumintensities
          LogPrior = -log( rho[0]*(log( options->getTruncPt() ) ) )
             -log( rho[1]*(log( options->getTruncPt() ) ) )
             -log( rhoX[0]*(log( options->getTruncPt() ) ) )
             -log( rhoX[1]*(log( options->getTruncPt() ) ) );
       }
-      else{
+      else{//gamma prior on sumintensities
          LogPrior = getGammaLogDensity( rhoalpha, rhobeta, rho[0] )
             + getGammaLogDensity( rhoalpha, rhobeta, rhoX[0] )
             + getGammaLogDensity( rhoalpha, rhobeta, rho[1] )
             + getGammaLogDensity( rhoalpha, rhobeta, rhoX[1] );
          LogPrior /= gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0);
       }
+     //alpha contribution
       LogPrior += getDirichletLogDensity( alpha[0],GetRow(theta, 0, K) )
          + getDirichletLogDensity( alpha[0], GetRow(thetaX, 0, K) )
          + getDirichletLogDensity( alpha[1], GetRow(theta, 1, K) )
@@ -979,10 +983,10 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
       if( Populations > 1 ){
 	LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX );
 	if( options->isAdmixed(0) ){
-            if( options->getRho() == 99 ){
+            if( options->RhoFlatPrior() ){
                LogPrior = -log( options->getTruncPt() - 1.0 );
             }
-            else if( options->getRho() == 98 ){
+            else if( options->logRhoFlatPrior() ){
                LogPrior = -log( rho[0]*(log( options->getTruncPt() ) ) );
             }
             else{
@@ -993,10 +997,10 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
          }
 	if( options->isAdmixed(1) ){
 
-            if( options->getRho() == 99 ){
+            if( options->RhoFlatPrior() ){
                LogPrior -= log( options->getTruncPt() - 1.0 );
             }
-            else if( options->getRho() == 98 ){
+            else if( options->logRhoFlatPrior() ){
                LogPrior -= log( rho[1]*(log( options->getTruncPt() ) ) );
             }
             else{
@@ -1039,13 +1043,13 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
   *LogLikelihood = getLogLikelihood(options, chrm);//gets loglikelihood at current parameter values
 
     if( K > 1 ){
-      if( options->getRho() < 90 ){
+      if( !options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
 	if( options->isAdmixed(0) ){
 	  *LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, _rho[0] );}
 	if(  options->isAdmixed(1) )
 	  *LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, _rho[1] );
       }
-      else if( options->getRho() == 98 ){
+      else if( options->logRhoFlatPrior() ){
 	if( options->isAdmixed(0) )
 	  *LogLikelihood -= log( _rho[0] );
 	if(  options->isAdmixed(1) )
@@ -1238,7 +1242,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
     if( options->getXOnlyAnalysis() ){
       LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[0],
 					  rhobeta + L_X, _rhoHat[0] );
-      if( options->getRho() > 90.0 )
+      if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
 	IntConst1 = IntegratingConst(rhoalpha+(double)SumN_X[0], rhobeta+L_X, 1.0, options->getTruncPt() );
       else
 	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[0], 1.0);
@@ -1251,7 +1255,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
       for( unsigned int g = 0; g < 2; g++ ){
 	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[g],
 					    rhobeta + L, _rhoHat[g] );
-	if( options->getRho() > 90.0 )
+	if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
 	  IntConst1 = IntegratingConst(rhoalpha+(double)SumN[g], rhobeta+L, 1.0, options->getTruncPt() );
 	else
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[g], 1.0);
@@ -1263,7 +1267,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
       for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
 	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[g],
 					    rhobeta + L_X, _rhoHat_X[g] );
-	if( options->getRho() > 90.0 )
+	if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
 	  IntConst1 = IntegratingConst(rhoalpha+(double)SumN_X[g], rhobeta+L_X, 1.0, options->getTruncPt() );
 	else
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[g], 1.0);
@@ -1284,7 +1288,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
       x[1] += getGammaLogDensity( rhoalpha + (double)SumN[0],
 				  rhobeta + L, _rhoHat[1] );
       double IntConst1, IntConst2;
-      if( options->getRho() > 90.0 ){
+      if( options->RhoFlatPrior() || options->logRhoFlatPrior() ){
 	IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, options->getTruncPt() );
 	IntConst2 = IntegratingConst(rhoalpha+(double)SumN[1], rhobeta+L, 1.0, options->getTruncPt() );
       }
@@ -1324,7 +1328,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
       if(  options->isAdmixed(0) ){
 	LogPosterior = getGammaLogDensity( rhoalpha + (double)SumN[0],
 					   rhobeta + L, _rhoHat[0] );
-	if( options->getRho() > 90.0 )
+	if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
 	  IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, options->getTruncPt() );
 	else
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
@@ -1336,7 +1340,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
       if(  options->isAdmixed(1) ){
 	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[1],
 					    rhobeta + L, _rhoHat[1] );
-	if( options->getRho() > 90.0 )
+	if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
 	  IntConst1 = IntegratingConst(rhoalpha+(double)SumN[1], rhobeta+L, 1.0, options->getTruncPt() );
 	else
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);

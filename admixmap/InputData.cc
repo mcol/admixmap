@@ -152,8 +152,8 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   try
     {
       // Read all input files.
-      readFile(options->getGeneInfoFilename(), locusData_);   //locusfile
-      readFile(options->getGeneticDataFilename(), geneticData_); //genotypes file
+      readFile(options->getLocusFilename(), locusData_);   //locusfile
+      readFile(options->getGenotypesFilename(), geneticData_); //genotypes file
       readFile(options->getCovariatesFilename(), inputData_);         //covariates file
       readFile(options->getOutcomeVarFilename(), targetData_);       //outcomevar file                
       readFile(options->getAlleleFreqFilename(), alleleFreqData_);
@@ -207,7 +207,6 @@ int InputData::getNumberOfIndividuals() {
 
 //determine number of loci by counting rows of locusfile
 int InputData::getNumberOfSimpleLoci() {
-   Log->logmsg(true, locusMatrix_.GetNumberOfRows());Log->logmsg(true," simple loci\n");
   return(locusData_.size() - 1);
 }
 //determines number of composite loci from locusfile
