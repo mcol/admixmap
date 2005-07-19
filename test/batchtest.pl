@@ -30,7 +30,6 @@ my $arg_hash =
     coutindicator              => 1,
     
 # output files
-    #resultsdir => 'results',
     logfile                    => 'logfile.txt',
     paramfile                  => 'param.txt',
     regparamfile  => 'regparam.txt',
@@ -51,7 +50,7 @@ doAnalysis($executable,$arg_hash, $resultsdir);
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{populations}     = 2;
-$arg_hash->{sumintensities}  = 5;
+$arg_hash->{sumintensitiesalpha}  = 5;
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results2");
 
@@ -108,15 +107,15 @@ my $arg_hash =
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
     randommatingmodel            => 1,
     globalrho                    => 0,
- #rhoalpha => 1.0, #flat prior on sumintensities
-#rhobeta => 0.0,
-sumintensities => 99,
+    sumintensitiesalpha => 1.0, #flat prior on sumintensities
+    sumintensitiesbeta => 0.0,
+
 #    fixedallelefreqs             => 1,
     initalpha0                   => "1,1,1",
     initalpha1                   => "1,1,0",
 
     logfile                      => "logfile.txt",
-    #paramfile                    => "paramfile.txt",
+    marglikelihood => 1,
     indadmixturefile             => "indadmixture.txt"
 };
 
