@@ -265,6 +265,8 @@ void Genome::SetSizes(LogWriter *Log){
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     TotalLoci += TheArray[i]->GetNumberOfLoci();
   }
+  Log->logmsg(false, TotalLoci);
+  Log->logmsg(false, " simple loci\n");
   Log->logmsg(false, NumberOfCompositeLoci);
   Log->logmsg(false," compound loci; ");
   Log->logmsg(false, NumberOfChromosomes);
@@ -279,6 +281,7 @@ void Genome::SetSizes(LogWriter *Log){
     Log->logmsg(true, LengthOfXchrm);
     Log->logmsg(true," Morgans.\n");
    }
+  Log->logmsg(true, "\n");
 }
 
 //Accessors
