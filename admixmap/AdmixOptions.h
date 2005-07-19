@@ -61,8 +61,8 @@ public:
   bool getOutputAlleleFreq() const;
 
   //input file names
-  const char *getGeneInfoFilename() const;
-  const char *getGeneticDataFilename() const;
+  const char *getLocusFilename() const;
+  const char *getGenotypesFilename() const;
   const char *getCovariatesFilename() const;  
   const char *getMLEFilename() const;
   const char *getHistoricalAlleleFreqFilename() const;
@@ -72,11 +72,17 @@ public:
   const char *getEtaPriorFilename() const;
   const char *getOutcomeVarFilename() const;  
   int getTargetIndicator() const;
-  double getRho() const;  
+  double getRho() const;
+  double getRhoalpha() const;
+  double getRhobeta() const;
+  bool RhoFlatPrior() const;
+  bool logRhoFlatPrior() const;  
 
   vector<double> getInitAlpha(int) const;
   int sizeInitAlpha() const;
   vector<vector<double> > getAndCheckInitAlpha(LogWriter *Log);
+  double getAlphamean()const;
+  double getAlphavar() const;
 
   unsigned int getgenotypesSexColumn() const;
   void setgenotypesSexColumn(unsigned int i);
@@ -180,8 +186,10 @@ private:
   std::vector<bool> _admixed;
   bool _symmetric;         
 
-  double Rho;
+  //priors
+  double Rhoalpha, Rhobeta;//gamma parameters for sumintensities
   std::vector<std::vector<double> > alpha;
+  double alphamean, alphavar;
 
   string ResultsDir;
   string LogFilename;
@@ -204,8 +212,8 @@ private:
   string AncestryAssociationScoreFilename;
   string HWTestFilename;
 
-  string GeneInfoFilename;
-  string GeneticDataFilename;
+  string LocusFilename;
+  string GenotypesFilename;
   string HistoricalAlleleFreqFilename;
   string PriorAlleleFreqFilename;
   string CovariatesFilename;

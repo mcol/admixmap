@@ -63,12 +63,12 @@ AdmixOptions::AdmixOptions()
   TextIndicator = 1;//should be bool
   OutputFST = false;
   XOnlyAnalysis = false;
-  isPedFile = false; //should be bool
+  isPedFile = false; 
   genotypesSexColumn = 0;
   locusForTestIndicator = false;
   LocusForTest = 0;
   fixedallelefreqs = false;
-  RandomMatingModel = false;//random mating model
+  RandomMatingModel = false;
   RhoIndicator = false;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
   MLIndicator = false;//calculate marginal likelihood - valid only for analysistypeindicator < 0
@@ -86,8 +86,10 @@ AdmixOptions::AdmixOptions()
   HWTest = false;
   OutputAlleleFreq = false;
 
-  Rho = 6.0;
-  //std::vector<Vector_d> alpha;
+  Rhoalpha = 6.0;//should be 3.0
+  Rhobeta = 1.0;// and 0.5
+  alphamean = 1.0;//should be 0.5
+  alphavar = 1.0;// and 0.25
 
   ResultsDir = "results";
   LogFilename = "log.txt";
@@ -109,7 +111,10 @@ AdmixOptions::AdmixOptions()
   OptionValues["truncationpoint"] = "99";
   OptionValues["populations"] = "0";
   OptionValues["seed"] = "1";
-  OptionValues["sumintensities"] = "5.0";
+  OptionValues["sumintensitiesalpha"] = "5.0";
+  OptionValues["sumintensitiesbeta"] = "1.0";
+  OptionValues["popadmixpriormean"] = "1.0";
+  OptionValues["popadmixpriorvar"] = "1.0";
   OptionValues["xonlyanalysis"] = "0";
   OptionValues["textindicator"] = "1";
 }
@@ -156,14 +161,14 @@ bool AdmixOptions::getFixedAlleleFreqs() const
   return fixedallelefreqs;
 }
 
-const char *AdmixOptions::getGeneInfoFilename() const
+const char *AdmixOptions::getLocusFilename() const
 {
-  return GeneInfoFilename.c_str();
+  return LocusFilename.c_str();
 }
 
-const char *AdmixOptions::getGeneticDataFilename() const
+const char *AdmixOptions::getGenotypesFilename() const
 {
-  return GeneticDataFilename.c_str();
+  return GenotypesFilename.c_str();
 }
 
 const char *AdmixOptions::getIndAdmixtureFilename() const
@@ -352,10 +357,31 @@ long AdmixOptions::getSeed() const
 {
   return Seed;
 }
-
 double AdmixOptions::getRho() const
 {
-  return Rho;
+  return Rhoalpha;
+}
+double AdmixOptions::getRhoalpha() const
+{
+  return Rhoalpha;
+}
+double AdmixOptions::getRhobeta() const
+{
+  return Rhobeta;
+}
+double AdmixOptions::getAlphamean() const{
+  return alphamean;
+}
+double AdmixOptions::getAlphavar() const{
+  return alphavar;
+}
+bool AdmixOptions::RhoFlatPrior() const{
+  if( Rhoalpha==99 || ((Rhoalpha==1) && (Rhobeta==0)) ) return true;
+  else return false;
+}
+bool AdmixOptions::logRhoFlatPrior() const{
+  if( Rhoalpha==98 || ((Rhoalpha==0) && (Rhobeta==0)) ) return true;
+  else return false;
 }
 
 bool AdmixOptions::getStratificationTest() const
@@ -593,7 +619,10 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
     {"textindicator",                         1, 0,  0 }, // int
-    {"sumintensities",                        1, 0,  0 }, // double
+    {"sumintensitiesalpha",                   1, 0,  0 }, // double
+    {"sumintensitiesbeta",                    1, 0,  0 }, // double
+    {"popadmixpriormean",                     1, 0,  0 }, //double
+    {"popadmixpriorvar",                      1, 0,  0 }, //double
     {"truncationpoint",                       1, 0,  0 }, // double
     {"initalpha0",                            1, 0,  0 }, // double
     {"initalpha1",                            1, 0,  0 }, // double
@@ -637,7 +666,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
       break;
 
     case 'g': // genotypesfile
-      { GeneticDataFilename = optarg;OptionValues["genotypesfile"]=optarg;}
+      { GenotypesFilename = optarg;OptionValues["genotypesfile"]=optarg;}
       break;
 
     case 'h': // help
@@ -651,7 +680,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
       break;
 
     case 'l': // locusfile
-      { GeneInfoFilename = optarg;OptionValues["locusfile"]=optarg;}
+      { LocusFilename = optarg;OptionValues["locusfile"]=optarg;}
       break;
 
     case 'p': // paramfile
@@ -766,8 +795,14 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	 PriorAlleleFreqFilename = optarg;OptionValues["priorallelefreqfile"]=optarg;
       } else if (long_option_name == "seed") {
 	 Seed = strtol(optarg, NULL, 10);OptionValues["seed"]=optarg;
-      } else if (long_option_name == "sumintensities") {
-	 Rho = strtod(optarg, NULL);OptionValues["sumintensities"]=optarg;
+      } else if (long_option_name == "sumintensitiesalpha") {
+	 Rhoalpha = strtod(optarg, NULL);OptionValues["sumintensitiesalpha"]=optarg;
+      } else if (long_option_name == "sumintensitiesbeta") {
+	 Rhobeta = strtod(optarg, NULL);OptionValues["sumintensitiesbeta"]=optarg;
+      } else if (long_option_name == "popadmixpriormean") {
+	 Rhoalpha = strtod(optarg, NULL);OptionValues["popadmixmean"]=optarg;
+      } else if (long_option_name == "popadmixpriorvar") {
+	 Rhobeta = strtod(optarg, NULL);OptionValues["popadmixpriorvar"]=optarg;
       } else if (long_option_name == "truncationpoint") {
 	 TruncPt = strtod(optarg, NULL);OptionValues["truncationpoint"]=optarg;
       } else if (long_option_name == "haplotypeassociationscorefile") {
@@ -945,7 +980,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       if(EtaOutputFilename.length() > 0 ){
 	Log->logmsg(true, "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n");
 	Log->logmsg(true, "\tThis option will be ignored\n");
-	 EtaOutputFilename = "";
+	EtaOutputFilename = "";
 	OptionValues.erase("dispparamfile");
       }
     }
@@ -978,9 +1013,15 @@ int AdmixOptions::checkOptions(LogWriter *Log){
 
 
   // **** Check whether genotypes file has been specified ****
-  if ( GeneticDataFilename.length() == 0 )
+  if ( GenotypesFilename.length() == 0 )
     {
-      Log->logmsg(true,"Must specify geneticdata filename.\n");
+      Log->logmsg(true,"Must specify genotypesfile.\n");
+      exit( 1 );
+    }
+  // **** Check whether locus file has been specified ****
+  if ( LocusFilename.length() == 0 )
+    {
+      Log->logmsg(true,"Must specify locusfile.\n");
       exit( 1 );
     }
 
@@ -1002,11 +1043,15 @@ int AdmixOptions::checkOptions(LogWriter *Log){
   else if( HistoricalAlleleFreqFilename.length() > 0 ){
     Log->logmsg(true,"Analysis with dispersion model for allele frequencies.\n");
   }
-  if ( GeneInfoFilename.length() == 0 )
-    {
-      Log->logmsg(true,"Must specify locusinfo filename.\n");
-      exit( 1 );
-    }
+  if( (FSTOutputFilename.length() > 0) && (HistoricalAlleleFreqFilename.length() == 0) ){
+    Log->logmsg(true, "ERROR: fstoutputfile option is only valid with historicallelefreqfile option\n");
+    Log->logmsg(true, "       this option will be ignored\n");
+    OutputFST = false;
+    FSTOutputFilename = "";
+    OptionValues.erase("fstoutputfile");
+  }
+
+
 
   // **** score tests ****
   if( TestForLinkageWithAncestry && Populations == 1 ){
@@ -1065,6 +1110,7 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
     initalpha.push_back(alphatemp);initalpha.push_back(alphatemp);//put 2 copies of alphatemp in alpha
     Log->logmsg(false,  "Initial value for population admixture (Dirichlet) parameter vector: ");
     for(int k = 0;k < Populations; ++k){Log->logmsg(false,alphatemp[k]);Log->logmsg(false," ");}
+    Log->logmsg(false,"\n");
   }
   //if exactly one of initalpha0 or initalpha1 is specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed
