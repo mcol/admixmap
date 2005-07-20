@@ -5,7 +5,6 @@
 #include <gsl/gsl_sf_gamma.h>
 #include "matrix_i.h"
 #include "matrix_d.h"
-#include "vector_d.h"
 #include "DARS.h"
 #include "TuneRW.h"
 #include "rand.h"
@@ -39,13 +38,13 @@ private:
   // element 4 is 
   double AlphaParameters[5];
   static double
-  logf( Vector_d&, Matrix_i&, Matrix_d& , double );
+  logf( const double*, Matrix_i&, Matrix_d& , double );
   
   static double
-  dlogf( Vector_d&, Matrix_i&, Matrix_d& , double );
+  dlogf( const double*, Matrix_i&, Matrix_d& , double );
   
   static double
-  ddlogf( Vector_d&, Matrix_i&, Matrix_d& , double );
+  ddlogf( const double*, Matrix_i&, Matrix_d& , double );
 };
 
 #endif /* ! DirichletParamSampler_H */

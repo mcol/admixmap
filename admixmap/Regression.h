@@ -3,18 +3,13 @@
 #define REGRESSION_H 1
 
 
-#include "vector_d.h"
-#include "vector_i.h"
 #include "gaussian_d.h"
 #include "AdmixOptions.h"
 #include "IndividualCollection.h"
 #include "MetropolisHastings.h"
 #include "LogWriter.h"
 
-// class Vector_d;
- class Matrix_d;
-// class Vector_i;
-// class Matrix_i;
+class Matrix_d;
 
 class Regression{
 
@@ -48,7 +43,7 @@ private:
 
   Gaussian DrawBeta;//for linear regression
   MetropolisHastings** BetaDrawArray;//for logistic
-  Vector_d BetaParameters;
+  double *BetaParameters;
   int *acceptbeta;
   Matrix_d betan;
   Matrix_d sum;
@@ -58,13 +53,13 @@ private:
   void SumParameters();
 
   static double
-  lr( Vector_d & , Matrix_i&, Matrix_d& , double );
+  lr( const double* , Matrix_i&, Matrix_d& , double );
   
   static double
-  dlr( Vector_d & , Matrix_i&, Matrix_d& , double );
+  dlr( const double* , Matrix_i&, Matrix_d& , double );
   
   static double
-  ddlr( Vector_d & , Matrix_i&, Matrix_d& , double );
+  ddlr( const double* , Matrix_i&, Matrix_d& , double );
   
 
 };

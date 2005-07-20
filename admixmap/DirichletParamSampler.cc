@@ -27,7 +27,7 @@ DirichletParamSampler::DirichletParamSampler( unsigned int ind )
   DirParamArray = new DARS*[ d ];
   for( unsigned int j = 0; j < d; j++ ){
      DirParamArray[j] = new DARS();
-     DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,5,
+     DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,
                                       logf, dlogf, ddlogf, empty_i, empty_d );
   }
 }
@@ -45,7 +45,7 @@ void DirichletParamSampler::SetSize( unsigned int ind )
    DirParamArray = new DARS*[ d ];
    for( unsigned int j = 0; j < d; j++ ){
       DirParamArray[j] = new DARS();
-      DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,5,
+      DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,
                                        logf, dlogf, ddlogf, empty_i, empty_d );
    }
 }
@@ -90,7 +90,7 @@ n = number of gametes/individuals
       DirParamArray[j]->SetLeftTruncation( 0.005 );
       DirParamArray[j]->SetRightTruncation( b );
       // elements of Dirichlet parameter vector are updated one at a time
-      DirParamArray[j]->UpdateParameters( AlphaParameters, 5 );
+      DirParamArray[j]->UpdateParameters( AlphaParameters );
       mu[j] = DirParamArray[j]->Sample();
       b = b - mu[j] + mu[j+1];
       summu = AlphaParameters[2] + mu[j];
@@ -115,10 +115,10 @@ n = number of gametes/individuals
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // Dirichlet population admixture parameters
 double
-DirichletParamSampler::logf( Vector_d &parameters , Matrix_i&, Matrix_d&, double x )
+DirichletParamSampler::logf( const double* parameters , Matrix_i&, Matrix_d&, double x )
 {
-   int n = (int)parameters(0);
-   double eta = parameters(1), summu = parameters(2), sumlj = parameters(4), sumln = parameters(3);
+   int n = (int)parameters[0];
+   double eta = parameters[1], summu = parameters[2], sumlj = parameters[4], sumln = parameters[3];
    double f = eta * ( x*sumlj + (1.0-summu-x)*sumln )
       - n * ( gsl_sf_lngamma(x*eta) + gsl_sf_lngamma((1.0-summu-x)*eta) );
    
@@ -126,11 +126,11 @@ DirichletParamSampler::logf( Vector_d &parameters , Matrix_i&, Matrix_d&, double
 }
 
 double
-DirichletParamSampler::dlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
+DirichletParamSampler::dlogf( const double* parameters, Matrix_i&, Matrix_d&, double x )
 {
   double f,x2,y1,y2;
-  int n = (int)parameters(0);
-  double eta = parameters(1), summu = parameters(2), sumlj = parameters(4), sumln = parameters(3);
+  int n = (int)parameters[0];
+  double eta = parameters[1], summu = parameters[2], sumlj = parameters[4], sumln = parameters[3];
   
   x2 = eta*x;
   if(x2 < 0)cout<<"\nError in  DirichletParamSampler::dlogf - arg x to ddigam is negative\n";   
@@ -146,11 +146,11 @@ DirichletParamSampler::dlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double
 }
 
 double
-DirichletParamSampler::ddlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
+DirichletParamSampler::ddlogf( const double* parameters, Matrix_i&, Matrix_d&, double x )
 {
   double f,x2,y1,y2;
-  int n = (int)parameters(0);
-  double eta = parameters(1), summu = parameters(2);
+  int n = (int)parameters[0];
+  double eta = parameters[1], summu = parameters[2];
   
   x2 = eta*x;
   trigam( &x2, &y1 );

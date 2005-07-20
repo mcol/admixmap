@@ -1,10 +1,10 @@
 #include "MetropolisHastings.h"
 
 MetropolisHastings::MetropolisHastings
-(const Vector_d &inparameters,
- double (*funct)(Vector_d&, Matrix_i&, Matrix_d&, double),
- double (*dfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
- double (*ddfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
+(const double *inparameters,
+ double (*funct)(const double*, Matrix_i&, Matrix_d&, double),
+ double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
+ double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
  const Matrix_i &integer_data, const Matrix_d &double_data )
 {
    parameters = inparameters;
@@ -19,8 +19,8 @@ MetropolisHastings::~MetropolisHastings()
 {
 }
 
-void MetropolisHastings::UpdateParameters( const Vector_d &inparameters )
-{
+void MetropolisHastings::UpdateParameters( const double *inparameters )
+{//may be unnecessary
   parameters = inparameters;
 }
 

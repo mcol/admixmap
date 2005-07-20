@@ -1,29 +1,47 @@
+/** 
+ *   ADMIXMAP
+ *   DARS.cc
+ *   This class implements an adaptative rejection algorithm for  
+ *   log-concave distributions to generate from the  
+ *   distribution of w in (-Infty,Infty)
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
 #include "DARS.h"
 
 using namespace std;
 
-// c *************************************************************
-// c
-// c    This program uses adaptative rejection algorithm for  
-// c    log-concave distributions to generate from the  
-// c	distribution of w in (-Infty,Infty)
 
-// c 	Supply:  no:  Number of starting points
-// c		lgth: Number of maxium points on the grid
-// c	        alpha: vector of parameters
-// c
-// c	Externals: h  log-density
-// c		   dh  derivative of the log-density
-// c
-// c		   x vector that contains the grid points
-// c		   z vector of intersections of the tangent
-// c		     lines
-// c		   u=f(z)
-// c
-// c	Return
-// c		   flag Counts the points used to get w	
-// c		   w sample point
+/*
+  Supply:  no:  Number of starting points
+  lgth: Number of maxium points on the grid
+  alpha: vector of parameters
+  
+  Externals: h  log-density
+  dh  derivative of the log-density
+  
+  x vector that contains the grid points
+  z vector of intersections of the tangent
+  lines
+  u=f(z)
 
+  Return
+  flag Counts the points used to get w	
+  w sample point
+*/
 
 DARS::DARS()
 {
@@ -41,24 +59,22 @@ DARS::DARS()
    Matrix_d null_Matrix_d(1,1);
    data_i = null_Matrix_i;
    data_d = null_Matrix_d;
+   parameters = 0;
 }
 
 
 DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
-            //const Vector_d &inparameters,
-	    const double inparameters[],int size,
-            double (*funct)(Vector_d&, Matrix_i &, Matrix_d &, double),
-            double (*dfunct)(Vector_d&, Matrix_i&, Matrix_d &, double),
-            double (*ddfunct)(Vector_d&, Matrix_i&, Matrix_d &, double),
+	    const double inparameters[],
+            double (*funct)(const double*, Matrix_i &, Matrix_d &, double),
+            double (*dfunct)(const double*, Matrix_i&, Matrix_d &, double),
+            double (*ddfunct)(const double*, Matrix_i&, Matrix_d &, double),
             const Matrix_i &integer_data, const Matrix_d &double_data )
 {
    no = 3;
    loc = 0;
    lgth = 25;
    x0 = 0;
-   //parameters = inparameters;
-   parameters.SetNumberOfElements(size);
-   for(int i=0;i<size;++i)parameters(i)=inparameters[i];
+   parameters = inparameters;
    data_i =  integer_data;
    data_d =  double_data;
    function = funct;
@@ -86,26 +102,22 @@ DARS::~DARS()
    delete [] u;
 }
 
-void DARS::
-SetParameters( int inLeftFlag, int inRightFlag, double innewnum,
-               //const Vector_d &inparameters,
-	       const double inparameters[],int size,
-               double (*funct)(Vector_d&, Matrix_i&, Matrix_d&, double),
-               double (*dfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
-               double (*ddfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
+void DARS::SetParameters( int inLeftFlag, int inRightFlag, double innewnum,
+	       const double inparameters[],
+               double (*funct)(const double*, Matrix_i&, Matrix_d&, double),
+               double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
+               double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
                const Matrix_i &integer_data, const Matrix_d &double_data )
 {
-  //parameters = inparameters;
-  parameters.SetNumberOfElements(size);
-  for(int i=0;i<size;++i)parameters(i)=inparameters[i];
-   data_i = integer_data;
-   data_d = double_data;
-   function = funct;
-   dfunction = dfunct;
-   ddfunction = ddfunct;
-   LeftFlag = inLeftFlag;
-   RightFlag = inRightFlag;
-   newnum = innewnum;
+  parameters = inparameters;
+  data_i = integer_data;
+  data_d = double_data;
+  function = funct;
+  dfunction = dfunct;
+  ddfunction = ddfunct;
+  LeftFlag = inLeftFlag;
+  RightFlag = inRightFlag;
+  newnum = innewnum;
 }
 
 void DARS::SetLeftTruncation( double inx0 )
@@ -118,11 +130,9 @@ void DARS::SetRightTruncation( double inx0 )
    x1 = inx0;
 }
 
-//void DARS::UpdateParameters( const Vector_d &inparameters )
-void DARS::UpdateParameters( const double inparameters[], int size )
+void DARS::UpdateParameters( const double inparameters[])
 {
-  //parameters = inparameters;
-  for(int i=0;i<size;++i)parameters(i)=inparameters[i];
+  parameters = inparameters;
 }
 
 void DARS::UpdateIntegerData( const Matrix_i &indata )

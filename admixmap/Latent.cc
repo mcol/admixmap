@@ -102,7 +102,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   DirParamArray = new DARS*[ options->getPopulations() ];
   for( int j = 0; j < options->getPopulations(); j++ ){
     DirParamArray[j] = new DARS();
-    DirParamArray[j]->SetParameters( 0, 1, 0.1, AlphaParameters,5,
+    DirParamArray[j]->SetParameters( 0, 1, 0.1, AlphaParameters,
 				     logf, dlogf, ddlogf, empty_i, empty_d );
     DirParamArray[j]->SetLeftTruncation( 0.1 );
   }
@@ -169,7 +169,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
    RhoParameters[2] = Loci->GetNumberOfCompositeLoci();
    // RhoParameters[3] is a sum over individuals 
 
-   RhoDraw = new DARS(0,1,(double)1,RhoParameters,4,frho,dfrho,ddfrho,
+   RhoDraw = new DARS(0,1,(double)1,RhoParameters, frho,dfrho,ddfrho,
                             rhodata_i,rhodata_d);
 
   // ** Open paramfile **
@@ -221,7 +221,7 @@ double Latent::sampleForRho()
   // But sampling conditional on locus ancestry gives poor mixing
   // it would be better to update rho by a Metropolis random walk conditional on the genotype data 
   // and individual admixture proportions, using the HMM likelihood.  
-  RhoDraw->UpdateParameters( RhoParameters,4 );
+  RhoDraw->UpdateParameters( RhoParameters );
   RhoDraw->UpdateIntegerData( rhodata_i );
   RhoDraw->UpdateDoubleData( rhodata_d );
   return RhoDraw->Sample();
@@ -253,54 +253,12 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C){
     C[j]->SetLociCorr(rho);
 }
 
-#if POPADMIXSAMPLER == 1
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
-// Dirichlet population admixture parameters
-double
-Latent::logf( Vector_d &parameters , Matrix_i&, Matrix_d&, double x )
+// global rho parameter - will not be needed if this algorithm is replaced
+double Latent::frho( const double* parameters, Matrix_i& xi, Matrix_d &distance, double x )
 {
-  double f = parameters(0) * ( gsl_sf_lngamma( x + parameters(1) ) - gsl_sf_lngamma( x ) ) - x * ( parameters(3) - parameters(4) ) + (parameters(2) - 1) * log(x);
-  
-  return(f);
-}
-
-double
-Latent::dlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
-{
-  double f,x2,y1,y2;
-  
-  x2 = x + parameters(1);
-   if(x < 0)cout<<"\nError in Latent::dlogf - arg x to ddigam is negative\n";   
-  ddigam( &x , &y1 );
-  if(x2 < 0)cout<<"\nError in Latent::dlogf - arg x2 to ddigam is negative\n";   
-  ddigam( &x2 , &y2 );
-  
-  f = parameters(0) * ( y2 - y1 ) - ( parameters(3) - parameters(4) ) + (parameters(2) - 1)/x;
-  
-  return(f);
-}
-
-double
-Latent::ddlogf( Vector_d &parameters, Matrix_i&, Matrix_d&, double x )
-{
-  double f,x2,y1,y2;
-  
-  x2 = x + parameters(1);
-  
-  trigam( &x, &y1 );
-  trigam( &x2, &y2 );
-  
-  f = parameters(0) * ( y2 - y1 ) - (parameters(2) - 1)/ (x*x);
-  
-  return(f);
-}
-#endif
-
-double
-Latent::frho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x )
-{
-  int genes = (int)parameters(2);
-  double f = -x * ( parameters(1) + parameters(3) ) + ( parameters(0) - 1 ) * log(x);
+  int genes = (int)parameters[2];
+  double f = -x * ( parameters[1] + parameters[3] ) + ( parameters[0] - 1 ) * log(x);
 
   for( int j = 1; j < genes; j++ ){
     f += xi( j, 0 ) * log(1 - exp( -x * distance( j, 0 ) ) );
@@ -308,13 +266,10 @@ Latent::frho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x )
   return(f);
 }
 
-// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
-// global rho parameter - will not be needed if this algorithm is replaced
-double
-Latent::dfrho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x )
+double Latent::dfrho( const double* parameters, Matrix_i& xi, Matrix_d &distance, double x )
 {
-  int genes = (int)parameters(2);
-  double f = -( parameters(1) + parameters(3) ) + ( parameters(0) - 1 ) / x;
+  int genes = (int)parameters[2];
+  double f = -( parameters[1] + parameters[3] ) + ( parameters[0] - 1 ) / x;
 
   for( int j = 1; j < genes; j++ ){
     f += xi( j, 0 ) * distance( j, 0 ) * exp( -x * distance( j, 0 ) ) / (1 - exp( -x * distance( j, 0 ) ) );
@@ -322,12 +277,11 @@ Latent::dfrho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x 
   return(f);
 }
 
-double
-Latent::ddfrho( Vector_d &parameters, Matrix_i& xi, Matrix_d &distance, double x )
+double Latent::ddfrho( const double* parameters, Matrix_i& xi, Matrix_d &distance, double x )
 {
   float temporary;
-  int genes = (int)parameters(2);
-  double f = -( parameters(0) - 1 ) / (x * x);
+  int genes = (int)parameters[2];
+  double f = -( parameters[0] - 1 ) / (x * x);
   
   for( int j = 1; j < genes; j++ ){
     temporary = exp( x * distance( j, 0 ) ) - 2 + exp( -x * distance( j, 0 ) );
@@ -421,7 +375,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
     // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
     // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
     // sum of rho and rho-squared over all individuals or gametes 
-    if( Loci->GetLengthOfGenome() > 0.0 ){
+    if( Loci->GetLengthOfGenome() > 0.0 ){//no update for xonly data
       //  ** Sample for global rho **
       if( !options->getRhoIndicator() ){
 	//RhoParameters[3] = individuals->GetSumrho0();//equivalent to next line
@@ -454,7 +408,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
       AlphaParameters[1] -= alpha[0][ j ];
       AlphaParameters[4] = individuals->getSumLogTheta(j);
       // elements of Dirichlet parameter vector are updated one at a time
-      DirParamArray[j]->UpdateParameters( AlphaParameters, 5 );
+      DirParamArray[j]->UpdateParameters( AlphaParameters );
       alpha[0][ j ] = DirParamArray[j]->Sample();
       AlphaParameters[1] += alpha[0][ j ];
     }
@@ -524,6 +478,45 @@ double Latent::getrho(){
 const double *Latent::getpoptheta(){
   return poptheta;
 }
+#if POPADMIXSAMPLER == 1
+// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
+// Dirichlet population admixture parameters
+double Latent::logf( const double* parameters , Matrix_i&, Matrix_d&, double x )
+{
+  double f = parameters[0] * ( gsl_sf_lngamma( x + parameters[1] ) - gsl_sf_lngamma( x ) ) - x * ( parameters[3] - parameters[4] ) + (parameters[2] - 1) * log(x);
+  
+  return(f);
+}
+
+double Latent::dlogf( const double* parameters, Matrix_i&, Matrix_d&, double x )
+{
+  double f,x2,y1,y2;
+  
+  x2 = x + parameters[1];
+   if(x < 0)cout<<"\nError in Latent::dlogf - arg x to ddigam is negative\n";   
+  ddigam( &x , &y1 );
+  if(x2 < 0)cout<<"\nError in Latent::dlogf - arg x2 to ddigam is negative\n";   
+  ddigam( &x2 , &y2 );
+  
+  f = parameters[0] * ( y2 - y1 ) - ( parameters[3] - parameters[4] ) + (parameters[2] - 1)/x;
+  
+  return(f);
+}
+
+double Latent::ddlogf( const double* parameters, Matrix_i&, Matrix_d&, double x )
+{
+  double f,x2,y1,y2;
+  
+  x2 = x + parameters[1];
+  
+  trigam( &x, &y1 );
+  trigam( &x2, &y2 );
+  
+  f = parameters[0] * ( y2 - y1 ) - (parameters[2] - 1)/ (x*x);
+  
+  return(f);
+}
+#endif
 
 #if POPADMIXSAMPLER == 3
 float Latent::getAlphaSamplerAcceptanceRate(){

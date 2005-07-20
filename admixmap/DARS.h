@@ -1,8 +1,28 @@
 // *-*-C++-*-*
+/** 
+ *   ADMIXMAP
+ *   DARS.h
+ *   header file for DARS class
+ *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+
 #ifndef DARS_H
 #define DARS_H 1
 
-#include "vector_d.h"
 #include "matrix_i.h"
 #include "matrix_d.h"
 #include "rand.h"
@@ -17,8 +37,54 @@
 
 class DARS
 {
-private: // members
-  Vector_d parameters;
+public:
+
+  // CONSTRUCTORS
+  
+  // default constructor
+  DARS();
+  // all arguments
+  DARS( int, int, double newnum , const double inparameters[],
+        double (*funct)(const double *, Matrix_i&, Matrix_d&, double),
+        double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
+        double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
+	const Matrix_i &, const Matrix_d &);
+
+  // DESTRUCTOR
+  ~DARS();
+  
+  double Sample();
+  
+  double SampleUsingARS();
+  
+  void SetParameters(int, int, double newnum, const double inparameters[],
+                double (*funct)(const double*, Matrix_i&, Matrix_d&, double),
+                double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
+                double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
+		const Matrix_i &, const Matrix_d &);
+  
+  void SetLeftTruncation(double);
+  
+  void SetRightTruncation( double );
+  
+  void UpdateParameters( const double inparameters[]);
+  
+  void UpdateIntegerData(const Matrix_i&);
+  
+  void UpdateDoubleData(const Matrix_d&);
+  
+  void BeginModeSearch(double);
+  
+  void conspsum();
+  
+  void consz();
+  
+  void SimpleModeSearch(double, double);
+  
+  void NewtonRaphson();
+
+private:
+  const double* parameters;
   int LeftFlag;
   int RightFlag;
   int n;
@@ -36,9 +102,9 @@ private: // members
   double *u;
   double *z;
   double newnum;
-  double (*function)(Vector_d &, Matrix_i &, Matrix_d &, double xin);
-  double (*dfunction)(Vector_d &, Matrix_i &, Matrix_d &, double xin);
-  double (*ddfunction)(Vector_d &, Matrix_i &, Matrix_d &, double xin);
+  double (*function)(const double*, Matrix_i &, Matrix_d &, double xin);
+  double (*dfunction)(const double*, Matrix_i &, Matrix_d &, double xin);
+  double (*ddfunction)(const double*, Matrix_i &, Matrix_d &, double xin);
 
   // UNIMPLEMENTED
   // to avoid use
@@ -46,64 +112,7 @@ private: // members
   DARS& operator=(const DARS&);
 
   // PRIVATE HELPERS
-  static double
-  fannyexp( double );
-
-public:
-
-  // CONSTRUCTORS
-
-  // default constructor
-  DARS();
-  // all arguments
-  DARS( int, int, double newnum , const double inparameters[],int size,//const Vector_d &inparameters,
-        double (*funct)(Vector_d&, Matrix_i&, Matrix_d&, double),
-        double (*dfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
-        double (*ddfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
-	const Matrix_i &, const Matrix_d &);
-
-  // DESTRUCTOR
-  ~DARS();
-  
-  double
-  Sample();
-  
-  double SampleUsingARS();
-  
-  void SetParameters(int, int, double newnum, const double inparameters[],int size,//const Vector_d &inparameters,
-                double (*funct)(Vector_d&, Matrix_i&, Matrix_d&, double),
-                double (*dfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
-                double (*ddfunct)(Vector_d&, Matrix_i&, Matrix_d&, double),
-		const Matrix_i &, const Matrix_d &);
-  
-  void SetLeftTruncation(double);
-  
-  void SetRightTruncation( double );
-  
-  //void
-  //UpdateParameters(const Vector_d &inparameters);
-  void UpdateParameters( const double inparameters[], int size );
-  
-  void
-  UpdateIntegerData(const Matrix_i&);
-  
-  void
-  UpdateDoubleData(const Matrix_d&);
-  
-  void
-  BeginModeSearch(double);
-  
-  void
-  conspsum();
-  
-  void
-  consz();
-  
-  void
-  SimpleModeSearch(double, double);
-  
-  void
-  NewtonRaphson();
+  static double fannyexp( double );
   
 };
 

@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 1 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
 
@@ -143,26 +143,20 @@ private:
   // outside of Latent.cc
   //
 #if POPADMIXSAMPLER == 1
-  static double
-  logf( Vector_d & , Matrix_i&, Matrix_d& , double );
+  static double logf( const double* , Matrix_i&, Matrix_d& , double );
   
-  static double
-  dlogf( Vector_d & , Matrix_i&, Matrix_d& , double );
+  static double  dlogf( const double* , Matrix_i&, Matrix_d& , double );
   
-  static double
-  ddlogf( Vector_d & , Matrix_i&, Matrix_d& , double );
+  static double  ddlogf( const double* , Matrix_i&, Matrix_d& , double );
 #elif POPADMIXSAMPLER == 3
   static double findE(unsigned dim, const double* const theta, const double* const*args);
   static void gradE(unsigned dim,const double* const theta, const double* const* args, double *g);
 #endif  
-  static double
-  frho( Vector_d & , Matrix_i&, Matrix_d& , double );
+  static double frho( const double* , Matrix_i&, Matrix_d& , double );
   
-  static double
-  dfrho( Vector_d & , Matrix_i&, Matrix_d& , double );
+  static double dfrho( const double* , Matrix_i&, Matrix_d& , double );
   
-  static double
-  ddfrho( Vector_d & , Matrix_i&, Matrix_d& , double );
+  static double ddfrho( const double* , Matrix_i&, Matrix_d& , double );
   
   // UNIMPLEMENTED
   // to avoid use
