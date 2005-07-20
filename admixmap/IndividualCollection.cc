@@ -26,7 +26,9 @@ using namespace std;
 
 IndividualCollection::IndividualCollection()
 {
-  SumLogTheta = 0;   
+  SumLogTheta = 0;
+  OutcomeType = 0;
+   
 }
 
 IndividualCollection::~IndividualCollection()
@@ -38,15 +40,15 @@ IndividualCollection::~IndividualCollection()
   delete[] _child;
   delete indadmixoutput;
   delete[] Outcome;
+  delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
   delete[] SumLogTheta;
 }
 
 IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
 {
-  Vector_i null_Vector_i(1);
   Matrix_d nullMatrix(1,1);
-  OutcomeType = null_Vector_i;
+  OutcomeType = 0;
   NumOutcomes = 0;
   indadmixoutput = 0;
   TargetLabels = 0;
@@ -67,23 +69,14 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   for (unsigned int i = 0; i < NumInd; ++i) {
     _child[i] = new Individual(i+1,options, Data, Loci, chrm);
     }
- 
-if (options->getAnalysisTypeIndicator() == 2)
-    {
-      OutcomeType.SetNumberOfElements( 1 );
-      OutcomeType(0) = 0;
-    }
-  else if (options->getAnalysisTypeIndicator() == 3)
-    {
-      OutcomeType.SetNumberOfElements( 1 );
-      OutcomeType(0) = 1;
-    }
-  else if (options->getAnalysisTypeIndicator() == 4)
-    {
-      OutcomeType.SetNumberOfElements( 1 );
-      OutcomeType(0) = 1;
-    }
 
+  OutcomeType = new int[1];
+  OutcomeType[0] = 0; 
+  if (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4)
+    {
+      OutcomeType[0] = 1;
+    }
+ 
 }
 
 void
@@ -149,11 +142,8 @@ int IndividualCollection::getNumberOfOutcomeVars(){
 }
 
 int IndividualCollection::getOutcomeType(int i){
-  return OutcomeType(i);
+  return OutcomeType[i];
 }
-Vector_i *IndividualCollection::getOutcomeType(){
-  return &OutcomeType;
-  }
 
 Individual* IndividualCollection::getIndividual(int num)
 {
@@ -322,7 +312,7 @@ void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Geno
     for( int k = 0; k < NumOutcomes; k++ ){
       SetExpectedY(k,beta[k]);
 //for logistic regression
-      if( getOutcomeType(k) )calculateExpectedY(k);
+      if( OutcomeType[k] )calculateExpectedY(k);
     }
   }
 
@@ -428,7 +418,8 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
     TargetLabels = new string[ LoadTarget.GetNumberOfCols() ];
     NumOutcomes = LoadTarget.GetNumberOfCols();
     Outcome = new Matrix_d[NumOutcomes];
-    OutcomeType.SetNumberOfElements( LoadTarget.GetNumberOfCols() );
+    delete[] OutcomeType;
+    OutcomeType = new int[ LoadTarget.GetNumberOfCols() ];
 
     for( int j = 0; j < LoadTarget.GetNumberOfCols(); j++ ){
       TargetLabels[j] = TempLabels[j];
@@ -436,12 +427,13 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
       TempTarget.SubMatrix2( 1, NumInd, j, j );
       for(unsigned int i = 0; i < NumInd; i++ ){
 	if( !TempTarget.IsMissingValue( i, 0 ) &&
-	    (TempTarget( i, 0 ) == 0 || TempTarget( i, 0 ) == 1) )
-	  OutcomeType(j) = 1;
+	    (TempTarget( i, 0 ) == 0 || TempTarget( i, 0 ) == 1) )//binary outcome
+	  OutcomeType[j] = 1;// 1 => binary outcome
+	else OutcomeType[j] = 0;// 0 => continuous outcome
       }
       Outcome[j] = TempTarget;
 
-      if( getOutcomeType(j) )
+      if( OutcomeType[j] )
 	{
 	  Log->logmsg(true,"Binary variable: ");
 	  Log->logmsg(true,getTargetLabels(j));
@@ -515,7 +507,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
 				  R->getNoCovariates(),  Covariates, R->getbeta(), poptheta, options, 
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
-				  R->getDispersion(OutcomeType(0)));}
+				  R->getDispersion(OutcomeType[0]));}
     
     else{
       _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(), options->getAnalysisTypeIndicator());
@@ -570,7 +562,7 @@ double IndividualCollection::getLL(){
 //returns Derivative of Inverse Link Function for individual i
 double IndividualCollection::DerivativeInverseLinkFunction(int AnalysisType,int i){
   double DInvLink = 1.0;
-  int OutcomeType = getOutcomeType(0);
+  int mOutcomeType = OutcomeType[0];
 
     //Linear regression
     if(AnalysisType == 2 ){
@@ -581,7 +573,7 @@ double IndividualCollection::DerivativeInverseLinkFunction(int AnalysisType,int 
       DInvLink = ExpectedY[0][i] * (1.0 - ExpectedY[0][i]);
     }
     else if( AnalysisType == 5 ){
-      DInvLink = OutcomeType ? ExpectedY[0][i] * (1.0 - ExpectedY[0][i]) : 1.0;
+      DInvLink = mOutcomeType ? ExpectedY[0][i] * (1.0 - ExpectedY[0][i]) : 1.0;
     }
  
   return DInvLink;    

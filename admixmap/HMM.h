@@ -16,11 +16,6 @@
 #include <stdlib.h>
 #include <values.h>
 
-#define FILENAMELENGTH 100
-
-class Vector_i;
-class Matrix_d;
-
 class HMM
 {
 public:

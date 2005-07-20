@@ -1,7 +1,4 @@
 #include "rand.h"
-#include "vector_i.h"
-#include "vector_d.h"
-#include "matrix_d.h"
 #include "HMM.h"
 #include "functions.h"
 
@@ -255,15 +252,15 @@ void HMM::Sample(int *SStates, double *Admixture, double *f[], bool isdiploid)
       j2 = C[t+1]-K*j1;     //j'
 
       State = 0;
-      for(int i1 = 0; i1 < K; i1++)for(int i2=0;i2<K;++i2){
+      for(int i1 = 0; i1 < K; i1++)for(int i2 = 0; i2 < K; ++i2){
 	V[State] = 
 	  ( (i1==j1)*f[0][t+1] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * ( (i2==j2)*f[1][t+1] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
 	V[State] *= alpha[t*States + i1*K + i2];
 	State++;
       }
       C[ t ] = SampleFromDiscrete( V, States );
-      SStates[t] = (int)(C[t]/K);
-      SStates[t + Transitions] = (C[t] % K);
+      SStates[t] = (int)(C[t]/K);//paternal
+      SStates[t + Transitions] = (C[t] % K);//maternal
     }
    }
   else{//haploid

@@ -131,7 +131,7 @@ private:
   Matrix_d Input;
   std::string *CovariateLabels;
   std::string *TargetLabels;
-  Vector_i OutcomeType;
+  int *OutcomeType;
 
   Matrix_d *ReportedAncestry;
   std::vector<double> sigma;

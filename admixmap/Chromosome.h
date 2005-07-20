@@ -23,7 +23,6 @@
 #define CHROMOSOME_H 1
 
 #include "Genome.h"
-#include "vector_d.h"
 #include "HMM.h"
 #include <vector>
 

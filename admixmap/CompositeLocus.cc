@@ -597,69 +597,7 @@ void CompositeLocus::SetNoMergeHaplotypes()
  * population (used for weighting).  This function is only used for
  * monitoring.
  */
-// void CompositeLocus::SetDefaultMergeHaplotypes( Vector_d alpha)
-// {
-//    int count = 0, count2 = 0;
-//    double p, alphasum[Populations];
-//    Vector_i temp( NumberOfStates ), Merged( NumberOfStates );
-//    MergeHaplotypes.SetNumberOfElements( NumberOfStates );
-//    for( int j = 0; j < Populations; j++ )alphasum[j] = 0.0;
 
-//    for( int i = 0; i < NumberOfStates - 1; i++ ){
-//        p = 0;
-//      for( int j = 0; j < Populations; j++ ){
-// 	p += alpha(j) * AlleleProbs[i][j];
-// 	alphasum[j] += AlleleProbs[i][j];
-//      }
-//       p /= alpha.Sum();
-//       if( p > 0.01 ){
-//          temp( i ) = count;
-//          count++;
-//       }
-//       else
-//          temp(i) = NumberOfStates;
-//    }
-//    p = 0;
-//    for( int j = 0; j < Populations; j++ )
-
-//      p += alpha(j) * ( 1 - alphasum[j] );
-//    p /= alpha.Sum();
-//    if( p > 0.01 ){
-//       temp( NumberOfStates - 1 ) = count;
-//       count++;
-//    }
-//    else
-//       temp( NumberOfStates - 1 ) = NumberOfStates;
-
-//    for( int i = 0; i < NumberOfStates; i++ ){
-//       if( temp(i) == NumberOfStates )
-//          MergeHaplotypes(i) = count;
-//       else{
-//          MergeHaplotypes(i) = temp(i);
-//          Merged( count2 ) = i;
-//          count2++;
-//       }
-//    }
-
-//    if( count == NumberOfStates )
-//       NumberOfMergedHaplotypes = NumberOfStates;
-//    else
-//       NumberOfMergedHaplotypes = count + 1;
-
-//    Vector_i numAlleles(NumberOfLoci);
-//    for(int i=0;i<NumberOfLoci;++i)numAlleles(i) = NumberOfAlleles[i];
-//    VectorLoop hap( numAlleles );
-//    HapLabels.SetNumberOfElements( NumberOfMergedHaplotypes, NumberOfLoci );
-//    Vector_i temphaplabel;
-//    for( int i = 0; i < NumberOfMergedHaplotypes - 1; i++ ){
-//       hap.Reset();
-//       hap.Increment( Merged(i) );
-//       temphaplabel = hap.GetCount();
-//       HapLabels.SetRow(i, temphaplabel);
-//    }
-//    for( int j = 0; j < NumberOfLoci; j++ )
-//       HapLabels( NumberOfMergedHaplotypes - 1, j ) = 99;
-// }
 void CompositeLocus::SetDefaultMergeHaplotypes( double *alpha)
 {
    int count = 0, count2 = 0;

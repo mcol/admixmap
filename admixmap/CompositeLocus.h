@@ -82,9 +82,6 @@ public:
   void Initialise(Matrix_d &);
   void SetAlleleProbs(Matrix_d &alleleFreqs);
 
-  //to be rewritten
-  int HapLoopGetDecimal(Vector_i x);
-
   //functions used for haplotype association score test 
   int GetMergedHaplotype( int i );
   int GetNumberOfMergedHaplotypes();
