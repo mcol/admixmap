@@ -20,6 +20,7 @@
  */
 #include "Latent.h"
 #include "Chromosome.h"
+#include "functions.h"
 #include <algorithm>
 #include <numeric>
 
@@ -159,6 +160,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   rhobeta0 = 1;
   rhobeta1 = 1;
 
+#if GLOBALRHOSAMPLER == 1
   // ** set up DARS sampler for global sumintensities **
   rhodata_i.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
   rhodata_d.SetNumberOfElements(Loci->GetNumberOfCompositeLoci(), 1 );
@@ -171,6 +173,15 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 
    RhoDraw = new DARS(0,1,(double)1,RhoParameters, frho,dfrho,ddfrho,
                             rhodata_i,rhodata_d);
+#elif GLOBALRHOSAMPLER == 2
+   // ** set up TuneRW object for global rho updates **
+   NumberOfUpdates = 0;
+   NumberAccepted = 0;
+   w = 10;
+   step0 = 2.0;//need to choose sensible value for this initial RW variance
+   step = step0;
+   TuneRhoSampler.SetParameters(w, step0, 0.1, 100, 0.23);  
+#endif
 
   // ** Open paramfile **
   if ( options->getIndAdmixHierIndicator()){
@@ -197,8 +208,10 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 
 Latent::~Latent()
 {
-  delete RhoDraw;
   delete[] poptheta;
+#if GLOBALRHOSAMPLER == 1
+  delete RhoDraw;
+#endif
 #if POPADMIXSAMPLER == 1
   for(int i=0; i<options->getPopulations(); i++){
     delete DirParamArray[i];
@@ -212,6 +225,7 @@ Latent::~Latent()
 #endif
 }
 
+#if GLOBALRHOSAMPLER == 1
 double Latent::sampleForRho()
 {
   // Sample for global sum of intensities parameter rho
@@ -225,34 +239,7 @@ double Latent::sampleForRho()
   RhoDraw->UpdateIntegerData( rhodata_i );
   RhoDraw->UpdateDoubleData( rhodata_d );
   return RhoDraw->Sample();
-}     
-
-void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C){
-  //code for generating proposal
-  double rhoprop;
-  double LogLikelihood = 0.0;
-  // ...
-
-  //get log likelihood at current parameter values
-  for(int i = 0; i < IC->getSize(); ++i)LogLikelihood -= IC->getIndividual(i)->getLogLikelihood(options, C);
-  //get log likelihood at proposal rho and current admixture proportions
-  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
-  for(int i = 0; i < IC->getSize(); ++i)LogLikelihood += IC->getIndividual(i)->getLogLikelihood(options, C);
-  
-  //compute rest of acceptance prob
-  // ...
-  
-  //accept/reject proposal
-  // ...
-  
-  //update TuneRW object
-  // ...
-
-  // update f in Chromosomes, must do this regardless of whether proposal is accepted
-  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-    C[j]->SetLociCorr(rho);
 }
-
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // global rho parameter - will not be needed if this algorithm is replaced
 double Latent::frho( const double* parameters, Matrix_i& xi, Matrix_d &distance, double x )
@@ -288,7 +275,54 @@ double Latent::ddfrho( const double* parameters, Matrix_i& xi, Matrix_d &distanc
     f -= xi( j, 0 ) * distance( j, 0 ) * distance( j, 0 ) / temporary;
   }
   return(f);
+}     
+#elif GLOBALRHOSAMPLER == 2
+void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C){
+
+  if( !options->getRhoIndicator() ){
+    double rhoprop;
+    double LogLikelihoodRatio = 0.0;
+    double LogPriorRatio = 0.0;
+
+    rhoprop = gennor(rho, step);
+    
+    //get log likelihood at current parameter values
+    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C);
+    //get log likelihood at proposal rho and current admixture proportions
+    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
+    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, C);
+    
+    //compute prior ratio
+    LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
+    
+    //accept/reject proposal
+    if(log( myrand() ) < LogLikelihoodRatio + LogPriorRatio){
+      rho = rhoprop;
+      SumAcceptanceProb++;
+      NumberAccepted++;
+    }
+    //update TuneRW object every w updates
+    if( !( NumberOfUpdates % w ) ){
+      step = TuneRhoSampler.UpdateSigma( NumberAccepted );
+      NumberAccepted = 0;
+    }
+    
+    // update f in Chromosomes, must do this regardless of whether proposal is accepted
+    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
+      C[j]->SetLociCorr(rho);
+  }
+  else{
+    // sample for location parameter of gamma distribution of sumintensities parameters 
+    // in population 
+    if( options->isRandomMatingModel() )
+      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			2*rhoalpha * IC->getSize() + rhobeta0 );
+    else
+      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			rhoalpha* IC->getSize() + rhobeta0 );
+  }
 }
+#endif
 
 void Latent::InitializeOutputFile(std::string *PopulationLabels)
 {
@@ -372,6 +406,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
 
   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
       options->getIndAdmixHierIndicator() ){
+#if GLOBALRHOSAMPLER == 1
     // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
     // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
     // sum of rho and rho-squared over all individuals or gametes 
@@ -397,6 +432,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals){
 			    rhoalpha* individuals->getSize() + rhobeta0 );
       }
     }
+#endif
     // ** Sample for population admixture distribution Dirichlet parameters, alpha **
            
     // For a model in which the distribution of individual admixture in the population is a mixture

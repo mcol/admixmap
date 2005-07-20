@@ -153,9 +153,11 @@ void submain(AdmixOptions* options){
       }
 
       A.ResetAlleleCounts();
+#if GLOBALRHOSAMPLER == 2
       // ** update global sumintensities
-      // if( !options->getRhoIndicator() )L.UpdateRhoWithRW(chrm, IC);
-      
+      if((options->getPopulations() > 1) && (IC->getSize() > 1) && options->getIndAdmixHierIndicator() && (Loci.GetLengthOfGenome()> 0.0))
+	L.UpdateRhoWithRW(IC, chrm);
+#endif      
       // ** Update individual-level parameters  
       IC->Update(iteration, &A, &R, L.getpoptheta(),options,
 		 chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
@@ -170,11 +172,13 @@ void submain(AdmixOptions* options){
  
       L.Update(iteration, IC);
 
+#if GLOBALRHOSAMPLER == 1
       //update f summary for global rho
       if( !options->getRhoIndicator() )  
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
 	  chrm[j]->SetLociCorr(L.getrho());
 	}
+#endif
       // ** update regression parameters (if regression model)
       if( options->getAnalysisTypeIndicator() >= 2)
 	R.Update((iteration > options->getBurnIn()), IC);
