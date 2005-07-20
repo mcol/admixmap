@@ -60,7 +60,6 @@ Individual::Individual()
 
 Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Genome& Loci,Chromosome **chrm)
 {
-
   if( options->getRhoIndicator() ){
         TruncationPt = options->getTruncPt();
         if( options->isRandomMatingModel() )
@@ -151,7 +150,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
        Loci(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
     }
 
- }
+}
 
 void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
   Loci = pLoci;
@@ -200,7 +199,6 @@ Individual::~Individual()
   delete[] ThetaProposal;
   delete[] ThetaXProposal;
 }
-
 void Individual::DeleteStaticMembers(){
   delete[] sumxi;
   delete[] AffectedsScore;
@@ -230,7 +228,7 @@ bool Individual::IsMissing(unsigned int locus)
 {
   unsigned int count = 0;
   int NumberOfLoci = (*Loci)(locus)->GetNumberOfLoci();
-  for(int i=0;i<NumberOfLoci;i++){
+  for(int i = 0; i < NumberOfLoci; i++){
     count += genotypes[locus][i][0];
   }
   return (count == 0);
@@ -293,24 +291,11 @@ vector<double> Individual::getRho()
    return _rho;
 }
 
-//int *Individual::GetLocusAncestry( int chrm, int locus )
-//{
-//   int ancestry[LocusAncestry[chrm].GetNumberOfRows()];
-//   for(int i=0;i<LocusAncestry[chrm].GetNumberOfRows();++i)
-//     ancestry[i] = LocusAncestry[chrm][i][locus];
-//   return ancestry;
-
-//  int *Ancestry = new int[gametes[chrm]];
-//  for(int i = 0; i < gametes[j]; ++i)
-//    Ancestry[i]  = LocusAncestry[chrm][i* +locus];
-//  return Ancestry; 
-  //return LocusAncestry[chrm].GetColumn( locus );
-//}
-
 Vector_i Individual::GetLocusAncestry(int chrm, int locus){
-  Vector_i Ancestry(gametes[chrm]);
-  for(unsigned i = 0; i < gametes[chrm]; ++i)
-    Ancestry[i]  = LocusAncestry[chrm][i * Loci->GetSizesOfChromosomes()[chrm]  + locus];
+  Vector_i Ancestry(2);
+  Ancestry(0)  = LocusAncestry[chrm][locus];
+  if((unsigned)chrm == X_posn)Ancestry(1) = Ancestry(0);
+  else Ancestry(1) = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
   return Ancestry; 
 }
 
@@ -454,7 +439,7 @@ double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int 
 }
 
 void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
-				  int NumOutcomes,  Vector_i &OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+				  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 				   Matrix_d &Covariates0, double **beta, const double *poptheta,
 				   AdmixOptions* options, Chromosome **chrm, 
 				   vector<vector<double> > &alpha, double rhoalpha, 
@@ -469,6 +454,8 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 //DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
 //dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 {
+  // ** reset SumLocusAncestry and ThetaProposal **
+  // should clean this up, takes 4 lines with std::vectors
   for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
   if(Loci->isX_data() ){
     int J = Populations;
@@ -484,7 +471,10 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 
    for(unsigned k = 0; k < size_theta; ++k){
      ThetaProposal[k] = 0.0;
-     if(ThetaXProposal)ThetaXProposal[k] = 0.0;
+   }
+   if(ThetaXProposal){
+     size_theta = Populations;if(sex != 1) size_theta *= 2;
+     for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
    }
 
   //SumN is the number of arrivals between each pair of adjacent loci  
@@ -520,15 +510,11 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
       int locus =  chrm[j]->GetLocus(jj);
       if( !(IsMissing(j)) ){
-	if(isdiploid){
 	  int h[2];//to store sampled hap pair
-	  A->getLocus(locus)->SampleHapPair(h, PossibleHapPairs[locus], GetLocusAncestry(j,jj));
-	  A->UpdateAlleleCounts(locus,h, GetLocusAncestry(j,jj));
-	}
-	//need to fix haploid case
-	//else
-	//A->UpdateAlleleCounts_HaploidData( locus, genotypes[locus], LocusAncestry[j][jj] );
-	}
+	  //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
+	  (*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], GetLocusAncestry(j,jj));
+	  A->UpdateAlleleCounts(locus,h, GetLocusAncestry(j,jj), isdiploid);
+      }
      }   
 
     //sample number of arrivals and update sumxi, sumrho0 and SumLocusAncestry
@@ -591,7 +577,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 
 // samples individual admixture proportions
 void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
-				  int NumOutcomes,  Vector_i &OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+				  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 				   Matrix_d &Covariates0, double **beta, const double *poptheta,
 				   AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma){
 
@@ -617,7 +603,7 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
   //case of both linear and logistic regressions
   else if( options->getAnalysisTypeIndicator() == 5 ){
     for( int k = 0; k < NumOutcomes; k++ ){
-      if( OutcomeType( k ) )
+      if( OutcomeType[ k ] )
 	logpratio += AcceptanceProbForTheta_LogReg( i, k, options->isRandomMatingModel(), K,
 					    NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta);
       else
@@ -901,13 +887,13 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 }
 
 // unnecessary duplication of code - should use same method as for > 1 population
-void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, Vector_i &OutcomeType, double **ExpectedY, 
+void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY, 
 				      double *lambda, int AnalysisTypeIndicator )
 {
   for( int k = 0; k < NumOutcomes; k++ ){
     if( AnalysisTypeIndicator > 1 ){
       if( Outcome[k].IsMissingValue( i, 0 ) ){
-	if( !OutcomeType(k) )
+	if( !OutcomeType[k] )
 	  Outcome[k]( i, 0 ) = gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) );
 	else{
 	  if( myrand() * ExpectedY[k][i] < 1 )

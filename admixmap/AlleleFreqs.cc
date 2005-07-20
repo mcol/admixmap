@@ -372,9 +372,6 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 
   if( IsRandom() ){
      
-    Vector_d EtaParameters(3), probs;
-    Matrix_d stats;
-    
     double etanew, LogPostRatio;
     
     // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
@@ -420,8 +417,7 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 
 	   //rescale munew so munew sums to etanew
            munew.push_back( mu * etanew / eta[k] );
-           //Vector_d SumLogFreqs = GetStatsForEta(j, k );
-	   double *SumLogFreqs = GetStatsForEta(j,k);
+ 	   double *SumLogFreqs = GetStatsForEta(j,k);
            for( int l = 0; l < (*Loci)(j)->GetNumberOfStates(); l++ ){
 	    // Denominator of integrating constant
               LogPostRatio += 2*(gsl_sf_lngamma( mu(l) ) - gsl_sf_lngamma( munew[j](l) ));
@@ -468,25 +464,13 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
   updates the counts of alleles observed in each state of ancestry.
  * should use hap pairs stored in Individual object
  */
-void AlleleFreqs::UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry )
+void AlleleFreqs::UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry, bool diploid )
 {
   AlleleCounts[locus]( h[0], ancestry(1) )++;
-  AlleleCounts[locus]( h[1], ancestry(0) )++;
+  if(diploid)AlleleCounts[locus]( h[1], ancestry(0) )++;
+  //if haploid(ie diploid = false), h[0]==h[1]==genotypes[locus] and ancestry[0]==ancestry[1]
+  //and we only count once
 }
-
-//needs to be rewritten
-//void AlleleFreqs::UpdateAlleleCounts_HaploidData(int locus, unsigned short **genotype, int ancestry )
-//{
-//     int xx;
-//     if( (*Loci)(locus)->GetNumberOfLoci() == 1 )
-//       xx = genotype[0] - 1;
-//     else{
-//       Vector_i x = (*Loci)(locus)->decodeGenotype(genotype);
-//       xx = (*Loci)(locus)->HapLoopGetDecimal( x );//fix this
-//     }
-//     AlleleCounts[locus]( xx, ancestry )++;
-
-//}
 
 // get posterior mode of frequency of allele x, given locus and subpopulation
 double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
@@ -668,7 +652,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
 //        cout<<"Warning: zero copies of allele ("<<row<<","<<col<<") in both admixed and unadmixed samples"<<endl;
 //    //poss return name of comp locus
 //    }
-   DARS SampleMu( 0, 0, 0, MuParameters, 2, fMu, dfMu, ddfMu, counts0, counts1 );
+   DARS SampleMu( 0, 0, 0, MuParameters, fMu, dfMu, ddfMu, counts0, counts1 );
 
    SampleMu.SetLeftTruncation( lefttruncation );
    for( int j = 0; j < Populations; j++ ){
@@ -680,7 +664,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
 //       MuParameters(3) = (float)AlleleCounts( k, j );
 //       MuParameters(4) = (float)HistoricLikelihoodAlleleFreqs( k, j );
       SampleMu.SetRightTruncation( eta[j] - lefttruncation );
-      SampleMu.UpdateParameters( MuParameters, 2 );
+      SampleMu.UpdateParameters( MuParameters);
       PriorAlleleFreqs[locus]( 0, j ) = SampleMu.Sample();
 // Last prior frequency parameter is determined by; sum of mu's = eta.
       PriorAlleleFreqs[locus]( 1, j ) = eta[j] - PriorAlleleFreqs[locus]( 0, j );
@@ -949,16 +933,15 @@ void AlleleFreqs::CloseOutputFile(int iterations, string* PopulationLabels)
   allelefreqoutput.close();
 }
 
-double
-fMu( Vector_d &parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
+double fMu( const double* parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
 {
 //    Vector_d rn(2), ri(2);
 //    rn(0) = parameters(1);
 //    rn(1) = parameters(2);
 //    ri(0) = parameters(3);
 //    ri(1) = parameters(4);
-   int pop = (int)parameters(1);
-   double eta = parameters(0);
+   int pop = (int)parameters[1];
+   double eta = parameters[0];
    double prior = 0.1 * log( mu / eta ) + 0.1 * log( 1 - mu / eta );
    double f = prior - 2 * gsl_sf_lngamma( mu ) - 2 * gsl_sf_lngamma( eta - mu );
 //   for( int i = 0; i < 2; i++ )
@@ -969,19 +952,18 @@ fMu( Vector_d &parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
    return f;
 }
 
-double
-dfMu( Vector_d &parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
+double dfMu( const double* parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
 {
 //    Vector_d rn(2), ri(2);
 //    rn(0) = parameters(1);
 //    rn(1) = parameters(2);
 //    ri(0) = parameters(3);
 //    ri(1) = parameters(4);
-   int pop = (int)parameters(1);
-   double eta = parameters(0), x, y1, y2;
+   int pop = (int)parameters[1];
+   double eta = parameters[0], x, y1, y2;
    double prior = 0.1 / mu - 0.1 / ( eta - mu );
    double f = prior;
-   x = parameters(0) - mu;
+   x = parameters[0] - mu;
    if(mu < 0)cout<<"\nError in dfMu in compositelocus.cc - arg mu to ddigam is negative\n"; 
    ddigam( &mu, &y1 );
    if(x < 0)cout<<"\nError in dfMu in compositelocus.cc - arg x to ddigam is negative\n"; 
@@ -1014,19 +996,18 @@ dfMu( Vector_d &parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
    return f;
 }
 
-double
-ddfMu( Vector_d &parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
+double ddfMu( const double* parameters, Matrix_i& counts0, Matrix_d& counts1, double mu )
 {
 //    Vector_d rn(2), ri(2);
 //    rn(0) = parameters(1);
 //    rn(1) = parameters(2);
 //    ri(0) = parameters(3);
 //    ri(1) = parameters(4);
-   int pop = (int)parameters(1);
-   double eta = parameters(0), x, y1, y2;
+   int pop = (int)parameters[1];
+   double eta = parameters[0], x, y1, y2;
    double prior = -0.1 / (mu*mu) - 0.1 / (( eta - mu ) * ( eta - mu ) );
    double f = prior;
-   x = parameters(0) - mu;
+   x = parameters[0] - mu;
    trigam( &mu, &y1 );
    trigam( &x, &y2 );
    f -= 2 * ( y2 + y1 );

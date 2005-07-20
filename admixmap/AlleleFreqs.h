@@ -68,8 +68,7 @@ public:
   
   Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
 
-  void UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry );
-  void UpdateAlleleCounts_HaploidData(int locus, unsigned short **genotype, int ancestry );
+  void UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry, bool diploid );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
@@ -132,9 +131,9 @@ private:
 // functions required to update proportion vector Mu with adaptive rejection sampler
 // likelihood, 1st and 2nd derivatives of log-likelihood
 //Note that these are not part of AlleleFreqs class
-double fMu( Vector_d &, Matrix_i &, Matrix_d &, double );
-double dfMu( Vector_d &, Matrix_i &, Matrix_d &, double );
-double ddfMu( Vector_d &, Matrix_i &, Matrix_d &, double );
+double fMu( const double*, Matrix_i &, Matrix_d &, double );
+double dfMu( const double*, Matrix_i &, Matrix_d &, double );
+double ddfMu( const double*, Matrix_i &, Matrix_d &, double );
 
 
 

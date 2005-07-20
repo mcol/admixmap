@@ -38,7 +38,7 @@ public:
   Individual();
 
   Individual(int i,AdmixOptions*,InputData *Data,Genome&,Chromosome **);
-
+ 
   ~Individual();
 
   static void SetStaticMembers(Genome *pLoci, AdmixOptions *options);
@@ -87,13 +87,13 @@ public:
   double IntegratingConst( double alpha, double beta, double a, double b );
 
   void SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
-			 int NumOutcomes, Vector_i &OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+			 int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 			 Matrix_d &Covariates0, double **beta, const double *poptheta, AdmixOptions* options,
 			 Chromosome **chrm, vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, vector<double> sigma, 
 			 double DInvLink, double dispersion);
 
- void OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, Vector_i &OutcomeType, double **ExpectedY, double *lambda,
+ void OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda,
 			   int AnalysisTypeIndicator);
 
   void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
@@ -171,7 +171,7 @@ private:
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);
   void SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
-		    int NumOutcomes,  Vector_i &OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+		    int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 		    Matrix_d &Covariates0, double **beta, const double *poptheta,
 		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma);
 
