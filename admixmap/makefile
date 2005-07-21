@@ -14,10 +14,10 @@ LFLAGS			= -L$(MATRIXLIBDIR) -L$(LIBDIR)
 LIBS			= -lmat -lm -static -lgsl -lgslcblas
 
 # Release version flags
- DFLAGS = -O3
+# DFLAGS = -O3
 
 # Debug version flags
-# DFLAGS = -g
+ DFLAGS = -g
 
 # Profiling version flags
 # DFLAGS = -pg -O3

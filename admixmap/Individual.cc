@@ -75,6 +75,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     }
 
     // Read sex value if present.
+    sex = 1;
     if (options->getgenotypesSexColumn() == 1) {
 	sex = Data->GetSexValue(mynumber);
     }
@@ -102,7 +103,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 
     //X chromosome objects
     SumLocusAncestry_X = 0;    
-    if(Loci.isX_data() ){
+//    if(Loci.isX_data() ){
       if( sex == 1 ){
 	ThetaXProposal = new double[ Populations];
 	SumLocusAncestry_X = new int[Populations];
@@ -111,7 +112,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 	ThetaXProposal = new double[ Populations * 2 ];
 	SumLocusAncestry_X = new int[Populations * 2 ];
       }
-    }
+//    }
 
     // vector of possible haplotype pairs - expect 2 integers per locus 
                                                         // or 1 integer (haploid)
@@ -310,8 +311,8 @@ double Individual::getLogPosteriorProb()
 }
 
 // update the individual admixture values (mean of both gametes) used in the regression model
-void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double *poptheta, bool RandomMatingModel,
-Matrix_d *Covariates0)
+void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates,
+                                               const double *poptheta, bool RandomMatingModel, Matrix_d *Covariates0)
 {
   double avgtheta[Populations];
   if(RandomMatingModel )//average over gametes
@@ -457,11 +458,11 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
   // ** reset SumLocusAncestry and ThetaProposal **
   // should clean this up, takes 4 lines with std::vectors
   for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
-  if(Loci->isX_data() ){
+//  if(Loci->isX_data() ){
     int J = Populations;
     if(sex != 1) J *=2;
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
-  }
+//  }
 
   size_t size_theta;
    if( options->isRandomMatingModel() )
@@ -519,7 +520,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 
     //sample number of arrivals and update sumxi, sumrho0 and SumLocusAncestry
     bool isX = (j == X_posn);
-    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], sumxi, &Sumrho0, SumLocusAncestry, SumLocusAncestry_X, isX, 
+    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], sumxi, &Sumrho0, SumLocusAncestry, SumLocusAncestry_X, isX,
 				  SumN, SumN_X, options->getRhoIndicator());
   }//end chromosome loop
 
@@ -577,10 +578,10 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 
 // samples individual admixture proportions
 void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
-				  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-				   Matrix_d &Covariates0, double **beta, const double *poptheta,
-				   AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma){
-
+                                 int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+                                  Matrix_d &Covariates0, double **beta, const double *poptheta,
+                                  AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma)
+{
   // propose new value for individual admixture proportions
   // should be modified to allow a population mixture component model
   ProposeTheta(options, sigma, alpha);       
@@ -593,7 +594,7 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
   //linear regression case
   if( options->getAnalysisTypeIndicator() == 2 && !options->getTestForAdmixtureAssociation() ){
     logpratio = AcceptanceProbForTheta_LinearReg( i, 0, options->isRandomMatingModel(), K,
-					  NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
+                                                  NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
   }
   //logistic regression case
   else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getTestForAdmixtureAssociation() ){
@@ -605,10 +606,10 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
     for( int k = 0; k < NumOutcomes; k++ ){
       if( OutcomeType[ k ] )
 	logpratio += AcceptanceProbForTheta_LogReg( i, k, options->isRandomMatingModel(), K,
-					    NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta);
+                                                    NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta);
       else
 	logpratio += AcceptanceProbForTheta_LinearReg( i, k, options->isRandomMatingModel(), K,
-					       NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
+                                                       NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
       }
   }
   //case of X only data
@@ -627,7 +628,6 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
       if(options->isRandomMatingModel() && !options->getXOnlyAnalysis() )
 	SumLogTheta[ k ] += log( Theta[ K + k ] );
     }
-
 }
 
 // Samples individual admixture proportions conditional on sampled values of ancestry at loci where 
@@ -645,19 +645,29 @@ void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vecto
   double temp[K];//used to hold dirichlet parameters of theta posterior
   // if no regression model, sample admixture proportions theta as a conjugate Dirichlet posterior   
   if( options->getXOnlyAnalysis() ){
-    for(size_t k = 0; k < K; ++k)temp[k] = alpha[0][k] + SumLocusAncestry_X[k];
+    for(size_t k = 0; k < K; ++k)
+       temp[k] = alpha[0][k] + SumLocusAncestry_X[k];
     gendirichlet(K, temp, ThetaProposal );
   }
   else if( options->isRandomMatingModel() ){//random mating model
     for( unsigned int g = 0; g < 2; g++ ){
       if( options->getAnalysisTypeIndicator() > -1 ){
-	for(size_t k = 0; k < K; ++k)temp[k] = alpha[0][k] + SumLocusAncestry[k + K*g];
+         for(size_t k = 0; k < K; ++k){
+            temp[k] = alpha[0][k] + SumLocusAncestry[k + K*g];
+            if( g == 0 )
+               temp[k] += SumLocusAncestry_X[k];
+//            cout << SumLocusAncestry_X[k] << " ";
+         }
+//         cout << endl;
       }
       else{//single individual
-	for(size_t k = 0; k < K; ++k)temp[k] = alpha[g][k] + SumLocusAncestry[k + K*g];
+         for(size_t k = 0; k < K; ++k){
+            temp[k] = alpha[g][k] + SumLocusAncestry[k + K*g];
+            if( g == 0 )
+               temp[k] += SumLocusAncestry_X[k];
+         }
       }
       gendirichlet(K, temp, ThetaProposal+g*K );
-     
     }
     if( Loci->isX_data() ){
       for( unsigned int g = 0; g < gametes[X_posn]; g++ ){

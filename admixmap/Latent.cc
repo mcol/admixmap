@@ -171,8 +171,8 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
    RhoParameters[2] = Loci->GetNumberOfCompositeLoci();
    // RhoParameters[3] is a sum over individuals 
 
-   RhoDraw = new DARS(0,1,(double)1,RhoParameters, frho,dfrho,ddfrho,
-                            rhodata_i,rhodata_d);
+   RhoDraw = new DARS(0,1,(double)1,RhoParameters,frho,dfrho,ddfrho,
+                      rhodata_i,rhodata_d);
 #elif GLOBALRHOSAMPLER == 2
    // ** set up TuneRW object for global rho updates **
    NumberOfUpdates = 0;
@@ -402,74 +402,69 @@ void Latent::OutputParams(int iteration){
 
 }
 
-void Latent::Update(int iteration, IndividualCollection *individuals){
-
-  if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
-      options->getIndAdmixHierIndicator() ){
-#if GLOBALRHOSAMPLER == 1
-    // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood
-    // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics: 
-    // sum of rho and rho-squared over all individuals or gametes 
-    if( Loci->GetLengthOfGenome() > 0.0 ){//no update for xonly data
-      //  ** Sample for global rho **
-      if( !options->getRhoIndicator() ){
-	//RhoParameters[3] = individuals->GetSumrho0();//equivalent to next line
-	RhoParameters[3] = Individual::getSumrho0();
-	for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
-	  //rhodata_i(j,0) = individuals->GetSumXi()[j];//equivalent to next line
-	  rhodata_i(j,0) = Individual::getSumXi(j);
-	//rhodata_i.SetColumn( 0, individuals->GetSumXi() );
-	rho = sampleForRho();
+void Latent::Update(int iteration, IndividualCollection *individuals)
+{
+   if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
+       options->getIndAdmixHierIndicator() ){
+      if( Loci->GetLengthOfGenome() +  Loci->GetLengthOfXchrm() > 0.0 ){
+         //  ** Sample for global rho **
+         if( !options->getRhoIndicator() ){
+            //RhoParameters[3] = individuals->GetSumrho0();//equivalent to next line
+            RhoParameters[3] = Individual::getSumrho0();
+            for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+               //rhodata_i(j,0) = individuals->GetSumXi()[j];//equivalent to next line
+               rhodata_i(j,0) = Individual::getSumXi(j);
+            //rhodata_i.SetColumn( 0, individuals->GetSumXi() );
+            rho = sampleForRho();
+         }
+         else{
+            // sample for location parameter of gamma distribution of sumintensities parameters 
+            // in population 
+            if( options->isRandomMatingModel() )
+               rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
+                                 2*rhoalpha * individuals->getSize() + rhobeta0 );
+            else
+               rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
+                                 rhoalpha* individuals->getSize() + rhobeta0 );
+         }
       }
-      else{
-	// sample for location parameter of gamma distribution of sumintensities parameters 
-	// in population 
-	if( options->isRandomMatingModel() )
-	  rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
-			    2*rhoalpha * individuals->getSize() + rhobeta0 );
-	else
-	  rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
-			    rhoalpha* individuals->getSize() + rhobeta0 );
-      }
-    }
-#endif
-    // ** Sample for population admixture distribution Dirichlet parameters, alpha **
-           
-    // For a model in which the distribution of individual admixture in the population is a mixture
-    // of components, we will have one Dirichlet parameter vector for each component, 
-    // updated only from those individuals who belong to the component
-
+   // ** Sample for population admixture distribution Dirichlet parameters, alpha **
+   
+   // For a model in which the distribution of individual admixture in the population is a mixture
+   // of components, we will have one Dirichlet parameter vector for each component, 
+   // updated only from those individuals who belong to the component
+   
 #if POPADMIXSAMPLER == 1
-    for( int j = 0; j < options->getPopulations(); j++ ){
-      AlphaParameters[1] -= alpha[0][ j ];
-      AlphaParameters[4] = individuals->getSumLogTheta(j);
-      // elements of Dirichlet parameter vector are updated one at a time
-      DirParamArray[j]->UpdateParameters( AlphaParameters );
-      alpha[0][ j ] = DirParamArray[j]->Sample();
-      AlphaParameters[1] += alpha[0][ j ];
-    }
+      for( int j = 0; j < options->getPopulations(); j++ ){
+         AlphaParameters[1] -= alpha[0][ j ];
+         AlphaParameters[4] = individuals->getSumLogTheta(j);
+         // elements of Dirichlet parameter vector are updated one at a time
+         DirParamArray[j]->UpdateParameters( AlphaParameters );
+         alpha[0][ j ] = DirParamArray[j]->Sample();
+         AlphaParameters[1] += alpha[0][ j ];
+      }
 #elif POPADMIXSAMPLER == 2
-    PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &eta, mu );
-    for( int j = 0; j < options->getPopulations(); j++ )
-      alpha[0][j] = mu[j]*eta;
-    
+      PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &eta, mu );
+      for( int j = 0; j < options->getPopulations(); j++ )
+         alpha[0][j] = mu[j]*eta;
+      
 #elif POPADMIXSAMPLER == 3
-    //for( int j = 0; j < options->getPopulations(); j++ ){
-    //AlphaArgs[0][j] = individuals->getSumLogTheta(j);
-    //}
-    copy(individuals->getSumLogTheta(), individuals->getSumLogTheta()+options->getPopulations(), AlphaArgs[0]);
-    AlphaSampler.Sample(logalpha, AlphaArgs);//sample new values for logalpha
-    transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
-    if(!((iteration+1) % 10)){
-      AlphaSampler.Tune();//tune Hamiltonian sampler every 10 iterations
-    }
+      //for( int j = 0; j < options->getPopulations(); j++ ){
+      //AlphaArgs[0][j] = individuals->getSumLogTheta(j);
+      //}
+      copy(individuals->getSumLogTheta(), individuals->getSumLogTheta()+options->getPopulations(), AlphaArgs[0]);
+      AlphaSampler.Sample(logalpha, AlphaArgs);//sample new values for logalpha
+      transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
+      if(!((iteration+1) % 10)){
+         AlphaSampler.Tune();//tune Hamiltonian sampler every 10 iterations
+      }
 #endif
-    
-    // ** accumulate sum of Dirichlet parameter vector over iterations  **
-    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
-  }
-
-  if( iteration == options->getBurnIn() && options->getAnalysisTypeIndicator() > 1 ){
+      
+      // ** accumulate sum of Dirichlet parameter vector over iterations  **
+      transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
+   }
+   
+   if( iteration == options->getBurnIn() && options->getAnalysisTypeIndicator() > 1 ){
     Log->write("Individual admixture centred in regression model around: ");
     Log->write( poptheta, options->getPopulations());
     Log->write("\n");
