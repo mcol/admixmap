@@ -21,7 +21,6 @@
 
 #include "CompositeLocus.h"
 #include "functions.h"
-#include "VectorLoop.h"
 
 using namespace std;
 
@@ -38,10 +37,6 @@ CompositeLocus::CompositeLocus()
   NumberOfStates = 2;
   base = 0;
   
-  Vector_i      null_Vector_i(1);
-  Matrix_i      null_Matrix_i(1,1);
-  Matrix_d      null_Matrix_d(1,1);
-  
   Populations = 0;
   RandomAlleleFreqs = false;
   NumberOfMergedHaplotypes = 0;
@@ -50,8 +45,8 @@ CompositeLocus::CompositeLocus()
   HapPairProbs = 0;
   HapPairProbsMAP = 0;
 
-  MergeHaplotypes = null_Vector_i;
-  HapLabels = null_Matrix_i;
+  MergeHaplotypes = 0;
+  HapLabels = 0;
 }
 
 CompositeLocus::~CompositeLocus()
@@ -62,6 +57,8 @@ CompositeLocus::~CompositeLocus()
   delete[] HapPairProbs;
   delete[] HapPairProbsMAP;
   delete[] NumberOfAlleles;
+  delete[] MergeHaplotypes;
+  delete[] HapLabels;
 }
 
 /**
@@ -74,8 +71,6 @@ CompositeLocus::~CompositeLocus()
 void CompositeLocus::SetNumberOfLoci( int NewNumberOfLoci )
 {
    NumberOfLoci = NewNumberOfLoci;
-   //NumberOfAlleles.SetNumberOfElements( NumberOfLoci );
-   //NumberOfAlleles.SetElements( 2 );
    NumberOfAlleles = new int[NumberOfLoci];
    NumberOfAlleles[0] = 2;
    NumberOfStates = (int)pow( 2.0, NumberOfLoci );
@@ -350,11 +345,6 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k){
 //   }
 // }
 
-//TODO: finish this function
-//void GetGenotypeProbsHaploid(){
-
-//}
-
 // doesn't really calculate posterior mode
 // just sets to current value of hap freqs.  ok for Chib algorithm if strong prior
 //this either misnamed or misdefined
@@ -585,9 +575,9 @@ void CompositeLocus::setPossibleHaplotypePairs(unsigned short **Genotype, vector
  */
 void CompositeLocus::SetNoMergeHaplotypes()
 {
-   MergeHaplotypes.SetNumberOfElements( NumberOfStates );
+   MergeHaplotypes = new int[ NumberOfStates ];
    for( int i = 0; i < NumberOfStates; i++ )
-      MergeHaplotypes(i) = i;
+      MergeHaplotypes[i] = i;
    NumberOfMergedHaplotypes = NumberOfStates;
 }
 
@@ -602,8 +592,9 @@ void CompositeLocus::SetDefaultMergeHaplotypes( double *alpha)
 {
    int count = 0, count2 = 0;
    double p, sumalpha = 0.0, sumAlleleProbs[Populations];
-   Vector_i temp( NumberOfStates ), Merged( NumberOfStates );
-   MergeHaplotypes.SetNumberOfElements( NumberOfStates );
+   int temp[ NumberOfStates ], Merged[ NumberOfStates ];
+   fill(Merged, Merged + NumberOfStates, 0);
+   MergeHaplotypes = new int[ NumberOfStates ];
    for( int j = 0; j < Populations; j++ ){
      sumalpha +=alpha[j];
      sumAlleleProbs[j] = 0.0;
@@ -617,29 +608,29 @@ void CompositeLocus::SetDefaultMergeHaplotypes( double *alpha)
       }
       p /= sumalpha;
       if( p > 0.01 ){
-         temp( i ) = count;
+         temp[ i ] = count;
          count++;
       }
       else
-         temp(i) = NumberOfStates;
+         temp[i] = NumberOfStates;
    }
    p = 0;
    for( int j = 0; j < Populations; j++ )
       p += alpha[j] * ( 1 - sumAlleleProbs[j] );
    p /= sumalpha;
    if( p > 0.01 ){
-      temp( NumberOfStates - 1 ) = count;
+      temp[ NumberOfStates - 1 ] = count;
       count++;
    }
    else
-      temp( NumberOfStates - 1 ) = NumberOfStates;
+      temp[ NumberOfStates - 1 ] = NumberOfStates;
 
    for( int i = 0; i < NumberOfStates; i++ ){
-      if( temp(i) == NumberOfStates )
-         MergeHaplotypes(i) = count;
+      if( temp[i] == NumberOfStates )
+         MergeHaplotypes[i] = count;
       else{
-         MergeHaplotypes(i) = temp(i);
-         Merged( count2 ) = i;
+         MergeHaplotypes[i] = temp[i];
+         Merged[ count2 ] = i;
          count2++;
       }
    }
@@ -649,24 +640,20 @@ void CompositeLocus::SetDefaultMergeHaplotypes( double *alpha)
    else
       NumberOfMergedHaplotypes = count + 1;
 
-   Vector_i numAlleles(NumberOfLoci);
-   for(int i=0;i<NumberOfLoci;++i)numAlleles(i) = NumberOfAlleles[i];
-   VectorLoop hap( numAlleles );
-   HapLabels.SetNumberOfElements( NumberOfMergedHaplotypes, NumberOfLoci );
-   Vector_i temphaplabel;
+   HapLabels = new int[ NumberOfMergedHaplotypes * NumberOfLoci ];
+   int *haplotype =  new int[NumberOfLoci];
    for( int i = 0; i < NumberOfMergedHaplotypes - 1; i++ ){
-      hap.Reset();
-      hap.Increment( Merged(i) );
-      temphaplabel = hap.GetCount();
-      HapLabels.SetRow(i, temphaplabel);
+      decodeIntAsHapAlleles(Merged[i], haplotype);
+      for(int j = 0; j < NumberOfLoci; ++j)HapLabels[i*NumberOfLoci +j] = haplotype[j]-1;
    }
+   delete[] haplotype;
    for( int j = 0; j < NumberOfLoci; j++ )
-      HapLabels( NumberOfMergedHaplotypes - 1, j ) = 99;
+     HapLabels[ (NumberOfMergedHaplotypes - 1)*NumberOfLoci + j ] = 99;
 }
 
-Vector_i CompositeLocus::GetHapLabels( int i )
+const int *CompositeLocus::GetHapLabels( int i )const
 {
-   return( HapLabels.GetRow(i) );
+   return( HapLabels+i*NumberOfLoci );
 }
 
 /**
@@ -684,7 +671,7 @@ int CompositeLocus::GetNumberOfMergedHaplotypes()
  */
 int CompositeLocus::GetMergedHaplotype( int i )
 {
-   return( MergeHaplotypes(i) );
+   return( MergeHaplotypes[i] );
 }
 
 // apparently calculates contribution of allele freqs to marginal likelihood of model

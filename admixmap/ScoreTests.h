@@ -72,11 +72,11 @@ private:
   Matrix_d *SumLocusLinkageAlleleInfo;
   bool *locusObsIndicator;
 
-  Matrix_d **ScoreWithinHaplotype;
-  Matrix_d **InfoWithinHaplotype;
-  Matrix_d *SumScoreWithinHaplotype;
-  Matrix_d *SumScore2WithinHaplotype;
-  Matrix_d *SumInfoWithinHaplotype;
+  double ***ScoreWithinHaplotype;
+  double ***InfoWithinHaplotype;
+  double **SumScoreWithinHaplotype;
+  double **SumScore2WithinHaplotype;
+  double **SumInfoWithinHaplotype;
 
   double* AdmixtureScore; 
   double* AdmixtureInfo; 
@@ -111,7 +111,6 @@ private:
   void OutputAdmixtureScoreTest( int );
 
   void UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int locus, double p,double phi, double DInvLink);
-  Vector_i GetAlleleCountsInHaplotype(unsigned short **genotype, int NumberOfLoci);
   int GetAllele2CountsInHaplotype(int locus, unsigned short **genotype);
   void SumScoreForWithinHaplotypeAssociation();
 

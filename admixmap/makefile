@@ -14,10 +14,10 @@ LFLAGS			= -L$(MATRIXLIBDIR) -L$(LIBDIR)
 LIBS			= -lmat -lm -static -lgsl -lgslcblas
 
 # Release version flags
-# DFLAGS = -O3
+ DFLAGS = -O3
 
 # Debug version flags
- DFLAGS = -g
+# DFLAGS = -g
 
 # Profiling version flags
 # DFLAGS = -pg -O3
@@ -37,7 +37,7 @@ clean:
 .depend: *.cc
 	$(CXX) $(CPPFLAGS) -MM *.cc >> .depend
 
-infiles		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o VectorLoop.o $(LIBDIR)libmat.a DARS.o TuneRW.o gaussian_d.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o Individual.o MetropolisHastings.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o MisSpecAlleleFreqTest.o HWTest.o DispersionTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o DirichletParamSampler.o HamiltonianMonteCarlo.o
+infiles		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o $(LIBDIR)libmat.a DARS.o TuneRW.o gaussian_d.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o Individual.o MetropolisHastings.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o MisSpecAlleleFreqTest.o HWTest.o DispersionTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o DirichletParamSampler.o HamiltonianMonteCarlo.o
 
 admixmap:	$(infiles)
 		$(CXX) $(CPPFLAGS) $(LFLAGS) -o ../test/admixmap $(infiles) $(LIBS)

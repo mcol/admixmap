@@ -30,13 +30,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
-#include "vector.h"
-#include "matrix.h"
-#include "vector_d.h"
-#include "matrix_d.h"
-#include "vector_i.h"
-#include "matrix_i.h"
 #include "TuneRW.h"
 
 class Vector_i;
@@ -85,7 +78,7 @@ public:
   //functions used for haplotype association score test 
   int GetMergedHaplotype( int i );
   int GetNumberOfMergedHaplotypes();
-  Vector_i GetHapLabels( int );
+  const int *GetHapLabels( int ) const;
   void SetDefaultMergeHaplotypes( double *alpha);
 
 private: 
@@ -101,8 +94,8 @@ private:
   bool RandomAlleleFreqs;
 
   //possibly move out
-  Vector_i MergeHaplotypes;
-  Matrix_i HapLabels;
+  int *MergeHaplotypes;
+  int *HapLabels;
   int NumberOfMergedHaplotypes;
 
   void SetNoMergeHaplotypes();
