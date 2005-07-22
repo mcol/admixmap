@@ -138,35 +138,32 @@ void HMM::UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, boo
 
   double Sum;
 
-  for(int j=0; j<States;++j){
+  for(int j = 0; j < States; ++j){
     alpha[j] = Admixture[j] * lambda[j];
     beta[(Transitions-1)*States + j] = 1.0;
   }
 
   for( int t = 1; t < Transitions; t++ ){
     Sum = 0.0;
-    for(int j=0;j<States;++j){
+    for(int j = 0; j < States; ++j){
       Sum += alpha[(t-1)*States + j];
     }
-    for(int j=0;j<0;++j){
+    for(int j = 0; j < States; ++j){
       alpha[t*States + j] = f[0][t] + (1.0 - f[0][t]) * Admixture[j] * Sum;
       alpha[t*States + j] *= lambda[(t+1)*States + j];
     }
-
-    if(CalculateBeta){
-      for( int t = Transitions-2; t >=0; t-- ){
-	Sum = 0.0;
-	for(int j=0;j<States;++j){
-	  Sum += Admixture[j]*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
-	}
-	for(int j=0;j<States;++j){
-	  beta[t*States + j] = f[t+1][0]*lambda[(t+1)*States + j]*beta[(t+1)*States + j] + (1.0 - f[0][t+1])*Sum;
-	}
+  }
+  if(CalculateBeta){
+    for( int t = Transitions-2; t >=0; t-- ){
+      Sum = 0.0;
+      for(int j = 0; j < States; ++j){
+	Sum += Admixture[j]*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
       }
-      
+      for(int j = 0; j < States; ++j){
+	beta[t*States + j] = f[t+1][0]*lambda[(t+1)*States + j]*beta[(t+1)*States + j] + (1.0 - f[0][t+1])*Sum;
+      }
     }
   }
-
 }
 
 /*
