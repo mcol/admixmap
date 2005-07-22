@@ -140,7 +140,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 	  X_posn = j;
         }
 	LocusAncestry[j] = new int[ AncestrySize];
-        if( Populations == 1 ) for(unsigned i = 0; i < AncestrySize; ++i)LocusAncestry[j][i] = 0;
+        for(unsigned i = 0; i < AncestrySize; ++i)LocusAncestry[j][i] = 0;
 
     }
     //retrieve genotypes
