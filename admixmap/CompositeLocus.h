@@ -30,8 +30,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "TuneRW.h"
-
 class Vector_i;
 class Matrix_d;
 class TuneRW;
