@@ -406,6 +406,11 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
 {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
+#if GLOBALRHOSAMPLER == 1       
+     // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood   
+     // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics:   
+     // sum of rho and rho-squared over all individuals or gametes 
+
       if( Loci->GetLengthOfGenome() +  Loci->GetLengthOfXchrm() > 0.0 ){
          //  ** Sample for global rho **
          if( !options->getRhoIndicator() ){
@@ -428,6 +433,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
                                  rhoalpha* individuals->getSize() + rhobeta0 );
          }
       }
+#endif
    // ** Sample for population admixture distribution Dirichlet parameters, alpha **
    
    // For a model in which the distribution of individual admixture in the population is a mixture

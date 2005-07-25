@@ -135,7 +135,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
   //  ** sampler for logistic regression **
   acceptbeta = new int[ options->getPopulations()];
   BetaParameters = new double[ NoCovariates + 4 ];
-  BetaDrawArray = new MetropolisHastings*[NoCovariates];
+  BetaDrawArray = new GaussianProposalMH*[NoCovariates];
   
   for( int i = 0; i < NoCovariates; i++ ){
     BetaDrawArray[i] = 0;
@@ -148,7 +148,7 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 	BetaParameters[ NoCovariates + 1 ] = lambda[k];
 	BetaParameters[ NoCovariates + 3 ] = beta0[k](0,0);
 	for( int i = 0; i < NoCovariates; i++ ){
-	  BetaDrawArray[i] = new MetropolisHastings( BetaParameters, lr, dlr, ddlr, empty_i, individuals->getCovariates() );
+	  BetaDrawArray[i] = new GaussianProposalMH( BetaParameters, lr, dlr, ddlr, empty_i, individuals->getCovariates() );
 	}
       }
     }

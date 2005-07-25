@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 1 //1 = original DARS sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
 
@@ -49,7 +49,7 @@
 #include "LogWriter.h"
 
 #if GLOBALRHOSAMPLER == 2
-#include "TuneRW.h"
+#include "AdaptiveRandomWalkMH.h"
 #endif
 #if POPADMIXSAMPLER==1 || GLOBALRHOSAMPLER == 1
 #include "DARS.h"

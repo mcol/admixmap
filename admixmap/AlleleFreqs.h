@@ -95,7 +95,7 @@ private:
 
   Genome *Loci;//pointer to Loci object
 
-  TuneRW *TuneEtaSampler;
+  AdaptiveRandomWalkMH *TuneEtaSampler;
   int Number,w; // Number is the number of updates of eta. The eta sampler is tuned every w updates. 
 
   double *etastep;
@@ -105,7 +105,7 @@ private:
   double *SumAcceptanceProb;
 
 //    DARS SampleMu;
-   std::vector<TuneRW> *MuProposal;
+   std::vector<AdaptiveRandomWalkMH> *MuProposal;
 
   std::ofstream allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile

@@ -3,10 +3,10 @@
 #define REGRESSION_H 1
 
 
-#include "gaussian_d.h"
+#include "Gaussian.h"
 #include "AdmixOptions.h"
 #include "IndividualCollection.h"
-#include "MetropolisHastings.h"
+#include "GaussianProposalMH.h"
 #include "LogWriter.h"
 
 class Matrix_d;
@@ -42,7 +42,7 @@ private:
   double **SumBeta;//running sums (for ergodic averages)
 
   Gaussian DrawBeta;//for linear regression
-  MetropolisHastings** BetaDrawArray;//for logistic
+  GaussianProposalMH** BetaDrawArray;//for logistic
   double *BetaParameters;
   int *acceptbeta;
   Matrix_d betan;

@@ -106,7 +106,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
 
     Number = 0;
     NumberAccepted =new int[ Populations ];
-    TuneEtaSampler = new TuneRW[ Populations ];
+    TuneEtaSampler = new AdaptiveRandomWalkMH[ Populations ];
     for( int k = 0; k < Populations; k++ )
       TuneEtaSampler[k].SetParameters( w, etastep0, 0.1, 100, 0.44 );
 
@@ -190,7 +190,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
   HistoricLikelihoodAlleleFreqs = new Matrix_d[NumberOfCompositeLoci];
   PriorAlleleFreqs = new Matrix_d[NumberOfCompositeLoci];
   SumAlleleFreqs = new Matrix_d[NumberOfCompositeLoci];
-  MuProposal = new std::vector<TuneRW>[NumberOfCompositeLoci];
+  MuProposal = new std::vector<AdaptiveRandomWalkMH>[NumberOfCompositeLoci];
 
   //Fixed AlleleFreqs
   if( strlen( options->getAlleleFreqFilename() ) ){

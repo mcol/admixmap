@@ -6,7 +6,7 @@
 #include "matrix_i.h"
 #include "matrix_d.h"
 #include "DARS.h"
-#include "TuneRW.h"
+#include "AdaptiveRandomWalkMH.h"
 #include "rand.h"
 
 class DirichletParamSampler
@@ -22,7 +22,7 @@ public:
   void Sample( unsigned int, double*, double*, double* );
   
 private:
-  TuneRW TuneEta;
+  AdaptiveRandomWalkMH TuneEta;
   unsigned int d;
   double etanew;
   double *munew;
