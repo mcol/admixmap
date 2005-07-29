@@ -173,7 +173,7 @@ void CompositeLocus::AddLocus( int alleles )
   NumberOfStates *= alleles;
 }
 
-void CompositeLocus::Initialise(Matrix_d &AFreqs){
+void CompositeLocus::Initialise(double *AFreqs){
   AlleleProbs = alloc2D_d(NumberOfStates, Populations);
   //set size of array of haplotype pair probs
   HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
@@ -186,12 +186,12 @@ void CompositeLocus::Initialise(Matrix_d &AFreqs){
     HapPairProbsMAP[h0] = HapPairProbs[h0]; 
 }
 
-void CompositeLocus::SetAlleleProbs(Matrix_d &AFreqs){
+void CompositeLocus::SetAlleleProbs(double *AFreqs){
   try{
   //check dimensions
     if(!AlleleProbs)throw("AlleleProbs not allocated");
-    if(AFreqs.GetNumberOfRows() != NumberOfStates - 1)throw("Wrong Number Of rows");
-    if(AFreqs.GetNumberOfCols() != Populations)throw("Wrong number of cols");
+    //if(AFreqs.GetNumberOfRows() != NumberOfStates - 1)throw("Wrong Number Of rows");
+    //if(AFreqs.GetNumberOfCols() != Populations)throw("Wrong number of cols");
   }
   catch(char * str){
     cout<<"Error in CompositeLocus::SetAlleleProbs: "<<str<<endl;
@@ -204,9 +204,9 @@ void CompositeLocus::SetAlleleProbs(Matrix_d &AFreqs){
   for( int a = 0; a < NumberOfStates - 1; a++ ) {
     for(int k = 0; k < Populations; ++k){
       // set allele probs in all but last row
-      AlleleProbs[a][k] = AFreqs(a,k); 
+      AlleleProbs[a][k] = AFreqs[a*Populations+k]; 
       // accumulate subtraction from 1 in last row 
-      AlleleProbs[NumberOfStates-1][k] -= AFreqs(a,k);
+      AlleleProbs[NumberOfStates-1][k] -= AFreqs[a*Populations+k];
     }
   }
 
@@ -249,14 +249,14 @@ string CompositeLocus::GetLabel(int index)
  *   might represent european paternal and african maternal).
  *
  */
-//TODO: change ancestry to an int *, change hap to hapPair
-void CompositeLocus::SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, Vector_i ancestry){
+//TODO: change hap to hapPair
+void CompositeLocus::SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, int ancestry[2]){
   double Probs[HapPairs.size()];//1way array of hap.pair probs
 
   for(unsigned k = 0; k < HapPairs.size(); ++k){
     Probs[k] = HapPairProbs[ HapPairs[k].haps[0] * NumberOfStates * Populations * Populations + 
 			     HapPairs[k].haps[1] * Populations * Populations +
-			     ancestry(0) * Populations  + ancestry(1)];
+			     ancestry[0] * Populations  + ancestry[1]];
   }
 
   int h = SampleFromDiscrete(Probs, HapPairs.size());

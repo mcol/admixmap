@@ -69,13 +69,13 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   for (unsigned int i = 0; i < NumInd; ++i) {
     _child[i] = new Individual(i+1,options, Data, Loci, chrm);
     }
-  
+
   OutcomeType = new int[1];
   OutcomeType[0] = 0; 
   if (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4)
-  {
-     OutcomeType[0] = 1;
-  }
+    {
+      OutcomeType[0] = 1;
+    }
  
 }
 
@@ -493,11 +493,9 @@ void IndividualCollection::getLabels(const Vector_s& data, Vector_i temporary, s
     }
 }
 
-void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, const double *poptheta,
-                                  AdmixOptions *options,
+void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, const double *poptheta, AdmixOptions *options,
 				  Chromosome **chrm, vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
-				  LogWriter *Log, chib *MargLikelihood)
-{
+				  LogWriter *Log, chib *MargLikelihood){
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
   Individual::ResetStaticSums();

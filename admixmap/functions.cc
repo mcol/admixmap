@@ -436,6 +436,14 @@ void matrix_product(double *a, double *b, double *c, size_t d1, size_t d2, size_
 
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, &A.matrix, &B.matrix, 0, &C.matrix); 
 }
+void matrix_product(const double *a, const double *b, double *c, size_t d1, size_t d2, size_t d3){
+  gsl_matrix_view A, B, C;
+  A = gsl_matrix_view_array(const_cast<double *>(a), d1, d2);
+  B = gsl_matrix_view_array(const_cast<double *>(b), d2, d3);
+  C = gsl_matrix_view_array(c, d1, d3);
+
+  gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, &A.matrix, &B.matrix, 0, &C.matrix); 
+}
 
 //multiplies (d1 x d2) matrix a by c
 void scale_matrix(double *a, const double c, size_t d1, size_t d2){

@@ -77,8 +77,7 @@ public:
 
   double getLogPosteriorProb();
 
-  Vector_i GetLocusAncestry( int, int );
-  //int *GetLocusAncestry(int, int);
+  void GetLocusAncestry(int chrm, int locus, int Ancestry[2]);
 
   int GetLocusAncestry(int, int, int);
    

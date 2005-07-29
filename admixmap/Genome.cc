@@ -123,7 +123,7 @@ void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_
   // checks of input data files should be in class InputData
   if( options->getTextIndicator() ){
 
-    Vector_s labels = data_->getGeneticData()[0];
+    Vector_s labels = data_->getGeneticData()[0];//header of genotypes file
 
     Vector_d vtemp = locifileData.GetColumn(1);
     vtemp.AddElement(0); // Forces SetLabels method to ignore first row of loci.txt (GenotypesFile)

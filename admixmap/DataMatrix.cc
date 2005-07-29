@@ -1,0 +1,80 @@
+/** 
+ *   ADMIXMAP
+ *   DataMatrix.cc 
+ *   class to represent a matrix of data, possibly read in from file
+ *   Copyright (c) 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+#include "DataMatrix.h"
+#include <algorithm>
+
+DataMatrix::DataMatrix(){
+  nrows = 0;
+  ncols = 0;
+}
+DataMatrix::DataMatrix(unsigned rows, unsigned cols){
+  nrows = rows;
+  ncols = cols;
+  data.resize(nrows*ncols);
+  fill(data.begin(), data.end(), 0.0);
+  missing.resize(nrows*ncols);
+  fill(missing.begin(), missing.end(), false);
+}
+void DataMatrix::setDimensions(unsigned rows, unsigned cols){
+  nrows = rows;
+  ncols = cols;
+  data.resize(nrows*ncols);
+  fill(data.begin(), data.end(), 0.0);
+  missing.resize(nrows*ncols);
+  fill(missing.begin(), missing.end(), false);
+}
+unsigned DataMatrix::nRows()const{
+  return nrows;
+}
+unsigned DataMatrix::nCols()const{
+  return ncols;
+}
+bool DataMatrix::isMissing(unsigned row, unsigned col){
+  if (row >= nrows || col >= ncols) throw BoundsViolation();
+  return missing[row*ncols +col];
+}
+void DataMatrix::isMissing(unsigned row, unsigned col, bool b){
+  if (row >= nrows || col >= ncols) throw BoundsViolation();
+  missing[row*ncols + col] = b;
+}
+void DataMatrix::set(unsigned row, unsigned col, double x){
+  if (row >= nrows || col >= ncols) throw BoundsViolation();
+  data[row*ncols +col] = x;
+}
+double DataMatrix::DataMatrix::get(unsigned row, unsigned col)const{
+  if (row >= nrows || col >= ncols) throw BoundsViolation();
+  return data[row*ncols +col];
+}
+std::vector<double> DataMatrix::getRow(unsigned r){
+  std::vector<double> row(ncols);
+  std::vector<double>::const_iterator it = data.begin()+r*ncols;
+  copy(it, it + ncols, row.begin());
+  return row;
+}
+DataMatrix DataMatrix::SubMatrix(unsigned r1, unsigned r2, unsigned c1, unsigned c2){
+  DataMatrix Sub(r2-r1+1, c2-c1+1);
+  for(unsigned i = r1; i<= r2; ++i)
+    for(unsigned j = c1; j <= c2;++j){
+      Sub.set(i,j, data[i*ncols +j]);
+      Sub.isMissing(i,j, missing[i*ncols+j]);
+    }
+  return Sub;   
+}

@@ -13,8 +13,6 @@ DirichletParamSampler::DirichletParamSampler()
 
 DirichletParamSampler::DirichletParamSampler( unsigned int ind )
 {
-   Matrix_i empty_i(1,1);
-   Matrix_d empty_d(1,1);
    d = ind;
    gamma = new double[d];
    munew = new double[d];
@@ -28,14 +26,12 @@ DirichletParamSampler::DirichletParamSampler( unsigned int ind )
   for( unsigned int j = 0; j < d; j++ ){
      DirParamArray[j] = new DARS();
      DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,
-                                      logf, dlogf, ddlogf, empty_i, empty_d );
+                                      logf, dlogf, ddlogf, 0, 0 );
   }
 }
 
 void DirichletParamSampler::SetSize( unsigned int ind )
 {
-   Matrix_i empty_i(1,1);
-   Matrix_d empty_d(1,1);
    d = ind;
    gamma = new double[d];
    munew = new double[d];
@@ -46,7 +42,7 @@ void DirichletParamSampler::SetSize( unsigned int ind )
    for( unsigned int j = 0; j < d; j++ ){
       DirParamArray[j] = new DARS();
       DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,
-                                       logf, dlogf, ddlogf, empty_i, empty_d );
+                                       logf, dlogf, ddlogf, 0, 0 );
    }
 }
 
@@ -115,7 +111,7 @@ n = number of gametes/individuals
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // Dirichlet population admixture parameters
 double
-DirichletParamSampler::logf( const double* parameters , Matrix_i&, Matrix_d&, double x )
+DirichletParamSampler::logf( const double* parameters , const int*, const double*, double x )
 {
    int n = (int)parameters[0];
    double eta = parameters[1], summu = parameters[2], sumlj = parameters[4], sumln = parameters[3];
@@ -126,7 +122,7 @@ DirichletParamSampler::logf( const double* parameters , Matrix_i&, Matrix_d&, do
 }
 
 double
-DirichletParamSampler::dlogf( const double* parameters, Matrix_i&, Matrix_d&, double x )
+DirichletParamSampler::dlogf( const double* parameters, const int*, const double*, double x )
 {
   double f,x2,y1,y2;
   int n = (int)parameters[0];
@@ -146,7 +142,7 @@ DirichletParamSampler::dlogf( const double* parameters, Matrix_i&, Matrix_d&, do
 }
 
 double
-DirichletParamSampler::ddlogf( const double* parameters, Matrix_i&, Matrix_d&, double x )
+DirichletParamSampler::ddlogf( const double* parameters, const int*, const double*, double x )
 {
   double f,x2,y1,y2;
   int n = (int)parameters[0];

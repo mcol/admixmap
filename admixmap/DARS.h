@@ -23,8 +23,6 @@
 #ifndef DARS_H
 #define DARS_H 1
 
-#include "matrix_i.h"
-#include "matrix_d.h"
 #include "rand.h"
 
 #include <iostream>
@@ -45,10 +43,10 @@ public:
   DARS();
   // all arguments
   DARS( int, int, double newnum , const double inparameters[],
-        double (*funct)(const double *, Matrix_i&, Matrix_d&, double),
-        double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
-        double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
-	const Matrix_i &, const Matrix_d &);
+        double (*funct)(const double *, const int *, const double*, double),
+        double (*dfunct)(const double*, const int *, const double*, double),
+        double (*ddfunct)(const double*, const int *, const double*, double),
+	const int *, const double*);
 
   // DESTRUCTOR
   ~DARS();
@@ -58,10 +56,10 @@ public:
   double SampleUsingARS();
   
   void SetParameters(int, int, double newnum, const double inparameters[],
-                double (*funct)(const double*, Matrix_i&, Matrix_d&, double),
-                double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
-                double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
-		const Matrix_i &, const Matrix_d &);
+                double (*funct)(const double*, const int *, const double*, double),
+                double (*dfunct)(const double*, const int *, const double*, double),
+                double (*ddfunct)(const double*, const int *, const double*, double),
+		const int*, const double*);
   
   void SetLeftTruncation(double);
   
@@ -69,9 +67,9 @@ public:
   
   void UpdateParameters( const double inparameters[]);
   
-  void UpdateIntegerData(const Matrix_i&);
+  void UpdateIntegerData(const int *);
   
-  void UpdateDoubleData(const Matrix_d&);
+  void UpdateDoubleData(const double *);
   
   void BeginModeSearch(double);
   
@@ -91,8 +89,8 @@ private:
   int no;
   int lgth;
   int loc;
-  Matrix_i data_i;
-  Matrix_d data_d;
+  const int *data_i;
+  const double *data_d;
   double x0;
   double x1;
   double *x;
@@ -102,9 +100,9 @@ private:
   double *u;
   double *z;
   double newnum;
-  double (*function)(const double*, Matrix_i &, Matrix_d &, double xin);
-  double (*dfunction)(const double*, Matrix_i &, Matrix_d &, double xin);
-  double (*ddfunction)(const double*, Matrix_i &, Matrix_d &, double xin);
+  double (*function)(const double*, const int *, const double*, double xin);
+  double (*dfunction)(const double*, const int *, const double*, double xin);
+  double (*ddfunction)(const double*, const int *, const double*, double xin);
 
   // UNIMPLEMENTED
   // to avoid use

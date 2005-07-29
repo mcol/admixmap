@@ -31,8 +31,6 @@
 #include <stdio.h>
 
 class Vector_i;
-class Matrix_d;
-class TuneRW;
 
 typedef struct  
 {
@@ -68,10 +66,9 @@ public:
   void decodeIntAsHapAlleles(const int h, int *hapAlleles);
   void GetGenotypeProbs(double *Probs, std::vector<hapPair > &HaplotypePairs, bool fixed);
   void SetHapPairProbs();
-  void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, Vector_i ancestry);
-  void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, int *ancestry);
-  void Initialise(Matrix_d &);
-  void SetAlleleProbs(Matrix_d &alleleFreqs);
+  void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, int ancestry[2]);
+  void Initialise(double*);
+  void SetAlleleProbs(double *alleleFreqs);
 
   //functions used for haplotype association score test 
   int GetMergedHaplotype( int i );
@@ -84,7 +81,7 @@ private:
   int NumberOfStates;
   int Populations;
   int *NumberOfAlleles;
-  dmatrix AlleleProbs;
+  double **AlleleProbs;
   double *HapPairProbs; //haplotype pair probabilities
   double *HapPairProbsMAP; //Posterior estimates of hap pair probs
   std::string *Label;
@@ -97,8 +94,6 @@ private:
   int NumberOfMergedHaplotypes;
 
   void SetNoMergeHaplotypes();
-  void setHaplotypeProbsMAP(Matrix_d);
-  double GetAlleleProbs( int x, int ancestry , Matrix_d &Freqs);
 
   void intToBits(int n, const int length, bool *bits) ;
   void setBaseForHapCode();

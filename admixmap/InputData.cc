@@ -24,6 +24,7 @@
 #include "StringConvertor.h"
 #include "Genome.h"
 #include "Chromosome.h"
+
 #include <string>
 #include <sstream>
 
@@ -126,6 +127,33 @@ static void convertMatrix(const Matrix_s& data, Matrix_d& m)
                 m.SetMissingElement(i, j);
             } else {
                 m(i, j) = StringConvertor::toFloat(data[i][j]);
+            }
+        }
+    }
+}
+static void convertMatrix(const Matrix_s& data, DataMatrix& m)
+{       
+    const size_t numRows = data.size();
+
+    // If there are no rows, return empty matrix.
+    if (0 == numRows) return;
+
+    // Verify that all rows have same length.
+    const size_t numCols = data[0].size();
+    for (size_t i = 1; i < numRows; ++i) {
+        if (numCols != data[i].size()) {
+            throw runtime_error("Invalid row length");
+        }
+    }
+    
+    // Form matrix.
+    m.setDimensions(numRows, numCols);
+    for (size_t i = 0; i < numRows; ++i) {
+        for (size_t j = 0; j < numCols; ++j) {
+            if (StringConvertor::isMissingValue(data[i][j])) {
+	      m.isMissing(i, j, true);
+            } else {
+	      m.set(i, j, StringConvertor::toFloat(data[i][j]));
             }
         }
     }
@@ -439,65 +467,64 @@ int InputData::GetSexValue(int i){
 
 //converts genotypes stored as Matrix_s strings to genotypes stored as Matrix g integer pairs
 //also removes cols for ID and sex - this should have been a separate step  
-void InputData::convertGenotypesToIntArray(AdmixOptions *options ) {
-  int firstcol = 1 + options->getgenotypesSexColumn();
-  genotype g;
-  Vector_g vgenotypes; // vector of individual's genotypes
-  unsigned int *a = new unsigned int[2];
+// void InputData::convertGenotypesToIntArray(AdmixOptions *options ) {
+//   int firstcol = 1 + options->getgenotypesSexColumn();
+//   genotype g;
+//   Vector_g vgenotypes; // vector of individual's genotypes
+//   unsigned int *a = new unsigned int[2];
 
-  //loop over individuals
-  for( unsigned int indiv=0; indiv < geneticData_.size() - 1; indiv++ ) {
-    Vector_s & genotypes_s = geneticData_[indiv + 1];
-    // loop over simple loci to store genotype strings as unsigned integers 
-    for( int locus = 0; locus < NumSimpleLoci; locus++ ) {
-      // needs fixing to deal with X chr data in males
-      // should throw exception for index out of range 
-      StringConvertor::toIntPair(a, genotypes_s[firstcol + locus].c_str() );
-      g.alleles[0] = a[0];
-      g.alleles[1] = a[1];
-    }
-    // append genotype to vgenotypes
-    vgenotypes.push_back( g );
-  }
-  // append genotypes vector to genotypes_g
-  genotypes_g.push_back( vgenotypes );
-  delete[] a;
-}
+//   //loop over individuals
+//   for( unsigned int indiv=0; indiv < geneticData_.size() - 1; indiv++ ) {
+//     Vector_s & genotypes_s = geneticData_[indiv + 1];
+//     // loop over simple loci to store genotype strings as unsigned integers 
+//     for( int locus = 0; locus < NumSimpleLoci; locus++ ) {
+//       // needs fixing to deal with X chr data in males
+//       // should throw exception for index out of range 
+//       StringConvertor::toIntPair(a, genotypes_s[firstcol + locus].c_str() );
+//       g.alleles[0] = a[0];
+//       g.alleles[1] = a[1];
+//     }
+//     // append genotype to vgenotypes
+//     vgenotypes.push_back( g );
+//   }
+//   // append genotypes vector to genotypes_g
+//   genotypes_g.push_back( vgenotypes );
+//   delete[] a;
+// }
 
 
-// loop over simple loci within each composite locus to store genotypes at S simple loci within 
-// each composite locus as vector of length 2S.  
-void InputData::convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm) {
-  int NumChromosomes = Loci.GetNumberOfChromosomes();
-  int NumCLoci = Loci.GetNumberOfCompositeLoci();
-  int NumSimpleLoci;
-  int CLocus;
-  std::vector< std::vector<unsigned int> > genotypes_cloci; 
-  for( int indiv=0; indiv < NumIndividuals; indiv++ ) { // loop over individuals
-    for( int j = 0; j < NumChromosomes; j++ ){ // loop over chromosomes
-      // loop over composite loci
-      for( int jj = 0; jj < NumCLoci; jj++ ){
-     	CLocus = chrm[j]->GetLocus(jj); // get number of this composite locus
-     	NumSimpleLoci = Loci(CLocus)->GetNumberOfLoci(); // 
-     	// create new vector genotypes.clocus for this composite locus 
-     	std::vector<unsigned int> genotypes_clocus(NumSimpleLoci * 2, 0); // should delete after appending to genotypes_cloci
-     	// loop over simple loci within composite locus to assign elements of vector genotypes.clocus
-     	for (int locus=0; locus < NumSimpleLoci; locus++) { //
-     	  genotypes_clocus[locus*2]    = genotypes_g[indiv][locus].alleles[0];
-     	  genotypes_clocus[locus*2+1]  = genotypes_g[indiv][locus].alleles[1];
-     	}
-     	// append genotypes for composite locus to vector over composite loci for this individual
-	genotypes_cloci.push_back( genotypes_clocus);
-	genotypes_clocus.clear(); // do not re-use this object as it would have to be resized - possible memory leaks
-      }
-      // append genotypes for individual to vector over individuals
-      genotypes_c.push_back(genotypes_cloci);
-      genotypes_cloci.clear(); // could re-use this object
-    }
-  }
-}
+// // loop over simple loci within each composite locus to store genotypes at S simple loci within 
+// // each composite locus as vector of length 2S.  
+// void InputData::convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm) {
+//   int NumChromosomes = Loci.GetNumberOfChromosomes();
+//   int NumCLoci = Loci.GetNumberOfCompositeLoci();
+//   int NumSimpleLoci;
+//   int CLocus;
+//   std::vector< std::vector<unsigned int> > genotypes_cloci; 
+//   for( int indiv=0; indiv < NumIndividuals; indiv++ ) { // loop over individuals
+//     for( int j = 0; j < NumChromosomes; j++ ){ // loop over chromosomes
+//       // loop over composite loci
+//       for( int jj = 0; jj < NumCLoci; jj++ ){
+//      	CLocus = chrm[j]->GetLocus(jj); // get number of this composite locus
+//      	NumSimpleLoci = Loci(CLocus)->GetNumberOfLoci(); // 
+//      	// create new vector genotypes.clocus for this composite locus 
+//      	std::vector<unsigned int> genotypes_clocus(NumSimpleLoci * 2, 0); // should delete after appending to genotypes_cloci
+//      	// loop over simple loci within composite locus to assign elements of vector genotypes.clocus
+//      	for (int locus=0; locus < NumSimpleLoci; locus++) { //
+//      	  genotypes_clocus[locus*2]    = genotypes_g[indiv][locus].alleles[0];
+//      	  genotypes_clocus[locus*2+1]  = genotypes_g[indiv][locus].alleles[1];
+//      	}
+//      	// append genotypes for composite locus to vector over composite loci for this individual
+// 	genotypes_cloci.push_back( genotypes_clocus);
+// 	genotypes_clocus.clear(); // do not re-use this object as it would have to be resized - possible memory leaks
+//       }
+//       // append genotypes for individual to vector over individuals
+//       genotypes_c.push_back(genotypes_cloci);
+//       genotypes_cloci.clear(); // could re-use this object
+//     }
+//   }
+// }
 
-//TODO: maybe have numChromosomes, NumLoci etc members of InputData
 void InputData::GetGenotype(int i, int SexColumn, Genome &Loci, unsigned short ****genotype){
   unsigned int lociI = 0;
   
@@ -593,7 +620,7 @@ const Matrix_s& InputData::getReportedAncestryData() const
     return reportedAncestryData_;
 }
 
-const Matrix_d& InputData::getEtaPriorMatrix() const
+const DataMatrix& InputData::getEtaPriorMatrix() const
 {
     return etaPriorMatrix_;
 }

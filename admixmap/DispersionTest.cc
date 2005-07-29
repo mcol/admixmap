@@ -62,11 +62,10 @@ void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
   Vector_i rep;
   Vector_d popfreqs;
 
-  Matrix_i AlleleCount; 
+  Vector_i AlleleCount; 
   double LogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ], 
     RepLogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ];
   double sum[NumberOfPopulations], repsum[NumberOfPopulations];
-  Matrix_d freqs;
 
   for( int k = 0; k < NumberOfPopulations; k++ ){
     sum[k] = 0.0; 
@@ -74,18 +73,19 @@ void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
   }
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     numberofstates = A->getLocus(j)->GetNumberOfStates();
-    AlleleCount = A->GetAlleleCounts(j);
-    freqs = A->GetAlleleFreqs(j);
+    //AlleleCount = A->GetAlleleCounts(j);
+    //freqs = A->GetAlleleFreqs(j);
     for( int k = 0; k < NumberOfPopulations; k++ ){
-      popfreqs = freqs.GetColumn( k );
+      popfreqs =  A->GetAlleleFreqs(j, k );
       popfreqs.AddElement( numberofstates - 1 );
       popfreqs( numberofstates - 1 ) = 1 - popfreqs.Sum();
       // Generate replicate data conditional on locus ancestry
-      rep = genmultinomial( (AlleleCount.GetColumn(k)).Sum(), popfreqs );
+      AlleleCount = A->GetAlleleCounts(j, k);
+      rep = genmultinomial( AlleleCount.Sum(), popfreqs );
 
       // Calculate likelihood of observed and repliate data.
       LogLikelihood[j][k] =
-	log( MultinomialLikelihood( AlleleCount.GetColumn( k ), popfreqs ) );
+	log( MultinomialLikelihood( AlleleCount, popfreqs ) );
       RepLogLikelihood[j][k] =
 	log( MultinomialLikelihood( rep, popfreqs ) );
       if(!( LogLikelihood[j][k] < RepLogLikelihood[j][k]) )

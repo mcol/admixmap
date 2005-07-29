@@ -22,7 +22,7 @@
 #ifndef INPUT_DATA_H
 #define INPUT_DATA_H 1
 #include "common.h"
-
+#include "DataMatrix.h"
 
 /**
  *  Forward declarations.
@@ -31,7 +31,7 @@ class AdmixOptions;
 class LogWriter;
 class Chromosome;
 class Genome;
-class InputData 
+class InputData
 {
 public:    
 
@@ -75,7 +75,7 @@ public:
   const Matrix_d& getAlleleFreqMatrix() const;
   const Matrix_d& getHistoricalAlleleFreqMatrix() const;
   const Matrix_d& getPriorAlleleFreqMatrix() const;
-  const Matrix_d& getEtaPriorMatrix() const;
+  const DataMatrix& getEtaPriorMatrix() const;
   const Matrix_d& getMLEMatrix() const;
   const Matrix_d& getReportedAncestryMatrix() const;
 
@@ -111,7 +111,8 @@ private:
   Matrix_d alleleFreqMatrix_;
   Matrix_d historicalAlleleFreqMatrix_;
   Matrix_d priorAlleleFreqMatrix_;
-  Matrix_d etaPriorMatrix_;
+  //Matrix_d etaPriorMatrix_;
+  DataMatrix etaPriorMatrix_;
   Matrix_d MLEMatrix_;
   Matrix_d reportedAncestryMatrix_;
 
@@ -122,9 +123,9 @@ private:
   bool IsPedFile;
   LogWriter *Log;
 
-  Matrix_g genotypes_g; // 3-way array of genotypes: indivs, simple loci, alleles
+  //Matrix_g genotypes_g; // 3-way array of genotypes: indivs, simple loci, alleles
   
-  std::vector<std::vector< std::vector<unsigned int> > > genotypes_c; 
+  //std::vector<std::vector< std::vector<unsigned int> > > genotypes_c; 
   // 3-way array of genotypes: indivs, composite loci, 2*simple loci    
 
 

@@ -292,14 +292,13 @@ vector<double> Individual::getRho()
    return _rho;
 }
 
-Vector_i Individual::GetLocusAncestry(int chrm, int locus){
-  Vector_i Ancestry(2);
-  Ancestry(0)  = LocusAncestry[chrm][locus];
-  if((unsigned)chrm == X_posn)Ancestry(1) = Ancestry(0);
-  else Ancestry(1) = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
-  return Ancestry; 
+void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2]){
+  Ancestry[0]  = LocusAncestry[chrm][locus];
+  if((unsigned)chrm == X_posn)Ancestry[1] = Ancestry[0];
+  else Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
 }
 
+//returns value of LocusAncestry at a locus for a particular gamete
 int Individual::GetLocusAncestry(int chrm, int gamete, int locus){
   int g = (gametes[chrm] == 2) ? gamete : 0; //so that gamete = 1 works when gametes[chrm] = 1;
   return LocusAncestry[chrm][g * Loci->GetSizesOfChromosomes()[chrm]  + locus] ;
@@ -511,10 +510,12 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
       int locus =  chrm[j]->GetLocus(jj);
       if( !(IsMissing(j)) ){
+	  int anc[2];//to store ancestry states
+	  GetLocusAncestry(j,jj,anc);
 	  int h[2];//to store sampled hap pair
 	  //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-	  (*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], GetLocusAncestry(j,jj));
-	  A->UpdateAlleleCounts(locus,h, GetLocusAncestry(j,jj), isdiploid);
+	  (*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
+	  A->UpdateAlleleCounts(locus,h, anc, isdiploid);
       }
      }   
 

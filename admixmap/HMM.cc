@@ -128,7 +128,6 @@ void HMM::UpdateBackwardProbsDiploid(double *f[], double *lambda)
 
 }
 
-
 /*
   Updates Forward and (if required) Backward probabilities
   haploid case only
@@ -136,6 +135,8 @@ void HMM::UpdateBackwardProbsDiploid(double *f[], double *lambda)
 */
 void HMM::UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, bool CalculateBeta){
 
+  sumfactor = 0.0;
+  double factor = 0.0;
   double Sum;
 
   for(int j = 0; j < States; ++j){
@@ -148,22 +149,28 @@ void HMM::UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, boo
     for(int j = 0; j < States; ++j){
       Sum += alpha[(t-1)*States + j];
     }
+    //factor = 0.0;
     for(int j = 0; j < States; ++j){
       alpha[t*States + j] = f[0][t] + (1.0 - f[0][t]) * Admixture[j] * Sum;
       alpha[t*States + j] *= lambda[(t+1)*States + j];
+      //factor += alpha[t*States + j];
     }
+
   }
-  if(CalculateBeta){
-    for( int t = Transitions-2; t >=0; t-- ){
-      Sum = 0.0;
-      for(int j = 0; j < States; ++j){
-	Sum += Admixture[j]*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
+
+    if(CalculateBeta){
+      for( int t = Transitions-2; t >=0; t-- ){
+	Sum = 0.0;
+	for(int j = 0; j < States; ++j){
+	  Sum += Admixture[j]*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
+	}
+	for(int j=0;j<States;++j){
+	  beta[t*States + j] = f[t+1][0]*lambda[(t+1)*States + j]*beta[(t+1)*States + j] + (1.0 - f[0][t+1])*Sum;
+	}
       }
-      for(int j = 0; j < States; ++j){
-	beta[t*States + j] = f[t+1][0]*lambda[(t+1)*States + j]*beta[(t+1)*States + j] + (1.0 - f[0][t+1])*Sum;
-      }
+      
     }
-  }
+
 }
 
 /*

@@ -564,7 +564,8 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
       } else {
 	UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
 	if( options->getTestForSNPsInHaplotype() ){
-	  ancestry = ind->GetLocusAncestry( j, jj );
+	  int ancestry[2];
+	  ind->GetLocusAncestry( j, jj, ancestry );
 	  int hap[2] = {0,0};
 	  (*Lociptr)(locus)->SampleHapPair(hap, ind->getPossibleHapPairs(locus), ancestry);
 	  for( int k = 0; k <(*Lociptr)(locus)->GetNumberOfStates(); k++ ){

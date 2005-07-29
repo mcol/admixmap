@@ -26,17 +26,17 @@ public:
 
   void Initialize( AdmixOptions*, Genome& , LogWriter *);
 
-  void calculate( IndividualCollection* individuals, Matrix_d *AlleleFreqs, std::vector<std::vector<int> > ChrmAndLocus );
+  void calculate( IndividualCollection* individuals, double **AlleleFreqs, std::vector<std::vector<int> > ChrmAndLocus, int Populations );
 
   void Output();
 
   std::vector<double>
-  GenerateExpectedGenotype( Individual*, const Matrix_d& );
+  GenerateExpectedGenotype( Individual*, double*, int  );
 
   std::vector<unsigned short>
-  GenerateRepGenotype( const Matrix_d&, const Vector_i& );
+  GenerateRepGenotype( double*, int ancestry[2] );
 
-  unsigned short **SampleForOrderedSNiP ( const Matrix_d&, const Vector_i& );
+  unsigned short **SampleForOrderedSNiP ( double*, int ancestry[2] );
 
   //float getStatistic();
 };

@@ -55,20 +55,18 @@ DARS::DARS()
    u = new double[ lgth ];  
    z = new double[ lgth ];  
    psum = new double[ lgth ];
-   Matrix_i null_Matrix_i(1,1);
-   Matrix_d null_Matrix_d(1,1);
-   data_i = null_Matrix_i;
-   data_d = null_Matrix_d;
+   data_i = 0;
+   data_d = 0;
    parameters = 0;
 }
 
 
 DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
 	    const double inparameters[],
-            double (*funct)(const double*, Matrix_i &, Matrix_d &, double),
-            double (*dfunct)(const double*, Matrix_i&, Matrix_d &, double),
-            double (*ddfunct)(const double*, Matrix_i&, Matrix_d &, double),
-            const Matrix_i &integer_data, const Matrix_d &double_data )
+            double (*funct)(const double*, const int *, const double*, double),
+            double (*dfunct)(const double*, const int *, const double*, double),
+            double (*ddfunct)(const double*, const int *, const double*, double),
+            const int *integer_data, const double *double_data )
 {
    no = 3;
    loc = 0;
@@ -104,10 +102,10 @@ DARS::~DARS()
 
 void DARS::SetParameters( int inLeftFlag, int inRightFlag, double innewnum,
 	       const double inparameters[],
-               double (*funct)(const double*, Matrix_i&, Matrix_d&, double),
-               double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
-               double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
-               const Matrix_i &integer_data, const Matrix_d &double_data )
+               double (*funct)(const double*, const int *, const double*, double),
+               double (*dfunct)(const double*, const int *, const double*, double),
+               double (*ddfunct)(const double*, const int *, const double*, double),
+               const int *integer_data, const double *double_data )
 {
   parameters = inparameters;
   data_i = integer_data;
@@ -135,12 +133,12 @@ void DARS::UpdateParameters( const double inparameters[])
   parameters = inparameters;
 }
 
-void DARS::UpdateIntegerData( const Matrix_i &indata )
+void DARS::UpdateIntegerData( const int *indata )
 {
    data_i = indata;
 }
 
-void DARS::UpdateDoubleData( const Matrix_d &indata )
+void DARS::UpdateDoubleData( const double *indata )
 {
    data_d = indata;
 }

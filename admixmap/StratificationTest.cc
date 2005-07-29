@@ -43,7 +43,7 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
   }
 }
 
-void StratificationTest::calculate( IndividualCollection* individuals, Matrix_d *AlleleFreqs, vector<vector<int> > ChrmAndLocus )
+void StratificationTest::calculate( IndividualCollection* individuals, double** AlleleFreqs, vector<vector<int> > ChrmAndLocus, int Populations )
 {
   Matrix_d popX( individuals->getSize(), NumberOfTestLoci );
   Matrix_d popRepX( individuals->getSize(), NumberOfTestLoci );
@@ -51,14 +51,15 @@ void StratificationTest::calculate( IndividualCollection* individuals, Matrix_d 
 
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
-    Matrix_d freqs = AlleleFreqs[jj];
+    double* freqs = AlleleFreqs[jj];
     for( int i = 0; i < individuals->getSize(); i++ ){
       Individual* ind = individuals->getIndividual(i);
      unsigned short **genotype = ind->getGenotype(jj);
       if( genotype[0][0] ){
-	Vector_i ancestry = ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1] );
+	int ancestry[2];
+	ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
 	vector<unsigned short >repgenotype = GenerateRepGenotype( freqs, ancestry );
-	vector<double> pA = GenerateExpectedGenotype( ind, freqs );
+	vector<double> pA = GenerateExpectedGenotype( ind, freqs, Populations );
 	if( genotype[0][0] != genotype[0][1] ){
 	  genotype = SampleForOrderedSNiP( freqs, ancestry );
 	  flag = true;//need to delete genotype
@@ -91,42 +92,42 @@ void StratificationTest::calculate( IndividualCollection* individuals, Matrix_d 
 }
 
 vector<double>
-StratificationTest::GenerateExpectedGenotype( Individual* ind, const Matrix_d& freqs )
+StratificationTest::GenerateExpectedGenotype( Individual* ind, double* freqs, int Populations )
 {
   vector<double> pA(2,0);
-  for( int k = 0; k < freqs.GetNumberOfCols(); k++ ){
-    pA[0] += freqs( 0, k ) * ind->getAdmixtureProps()[k];
+  for( int k = 0; k < Populations; k++ ){
+    pA[0] += freqs[ k ] * ind->getAdmixtureProps()[k];
     if( ModelIndicator )
-      pA[1] += freqs( 0, k ) * ind->getAdmixtureProps()[k + freqs.GetNumberOfCols()];
+      pA[1] += freqs[ k ] * ind->getAdmixtureProps()[k + Populations];
     else
-       pA[1] += freqs( 0, k ) * ind->getAdmixtureProps()[k];       
+       pA[1] += freqs[ k ] * ind->getAdmixtureProps()[k];       
   }
   return pA;
 }
 
 vector<unsigned short>
-StratificationTest::GenerateRepGenotype( const Matrix_d& freqs, const Vector_i& ancestry )
+StratificationTest::GenerateRepGenotype( double* freqs, int ancestry[2] )
 {
   vector<unsigned short> repgenotype(2,0);
-  if( freqs( 0, ancestry(0) ) > myrand() )
+  if( freqs[ ancestry[0] ] > myrand() )
     repgenotype[0] = 1;
   else
     repgenotype[0] = 2;
-  if( freqs( 0, ancestry(1) ) > myrand() )
+  if( freqs[ ancestry[1] ] > myrand() )
     repgenotype[1] = 1;
   else
     repgenotype[1] = 2;
   return repgenotype;
 }
 
-unsigned short **StratificationTest::SampleForOrderedSNiP( const Matrix_d& freqs, const Vector_i& Ancestry )
+unsigned short **StratificationTest::SampleForOrderedSNiP( double* freqs, int Ancestry[2] )
 {
   unsigned short **genotype;
   genotype = new unsigned short*[1];
   genotype[0] = new unsigned short[2];
   
-  double q1 = freqs( 0, Ancestry(0) ) * ( 1 - freqs( 0, Ancestry(1) ) );
-  double q2 = freqs( 0, Ancestry(1) ) * ( 1 - freqs( 0, Ancestry(0) ) );
+  double q1 = freqs[ Ancestry[0] ] * ( 1 - freqs[ Ancestry[1] ] );
+  double q2 = freqs[ Ancestry[1] ] * ( 1 - freqs[ Ancestry[0] ] );
   if( myrand() > q1 / ( q1 + q2 ) ){
     genotype[0][0] = 2;
     genotype[0][1] = 1;

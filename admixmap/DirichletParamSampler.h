@@ -3,8 +3,6 @@
 #define DirichletParamSampler_H 1
 
 #include <gsl/gsl_sf_gamma.h>
-#include "matrix_i.h"
-#include "matrix_d.h"
 #include "DARS.h"
 #include "AdaptiveRandomWalkMH.h"
 #include "rand.h"
@@ -38,13 +36,13 @@ private:
   // element 4 is 
   double AlphaParameters[5];
   static double
-  logf( const double*, Matrix_i&, Matrix_d& , double );
+  logf( const double*, const int*, const double* , double );
   
   static double
-  dlogf( const double*, Matrix_i&, Matrix_d& , double );
+  dlogf( const double*, const int *, const double* , double );
   
   static double
-  ddlogf( const double*, Matrix_i&, Matrix_d& , double );
+  ddlogf( const double*, const int *, const double* , double );
 };
 
 #endif /* ! DirichletParamSampler_H */

@@ -21,10 +21,19 @@
  */
 #ifndef ALLELEFREQS_H
 #define ALLELEFREQS_H 1
+
+#define ETASAMPLER 1 //1 = RANDOM WALK METROPOLIS
+                     //2 = HAMILTONIAN
 #include "InputData.h"
 #include "Genome.h"
 #include "AdmixOptions.h"
 #include "LogWriter.h"
+
+#if ETASAMPLER == 1
+#include "AdaptiveRandomWalkMH.h"
+#elif ETASAMPLER ==2
+#include "HamiltonianMonteCarlo.h"
+#endif
 
 class AlleleFreqs{
 
@@ -62,13 +71,14 @@ public:
   Vector_d GetPriorAlleleFreqs( int locus, int population );
   Vector_i GetAlleleCounts( int locus, int population );
   Vector_d getAlleleFreqsMAP( int locus, int population );
-  Matrix_d &GetAlleleFreqs(int locus);
-  Matrix_d *GetAlleleFreqs();
-  Matrix_i &GetAlleleCounts(int locus);
+  Vector_d GetAlleleFreqs( int locus, int population );
+  double *GetAlleleFreqs(int locus);
+  double **GetAlleleFreqs();
+  int *GetAlleleCounts(int locus);
   
-  Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
+  //Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
 
-  void UpdateAlleleCounts(int locus, int h[2], Vector_i ancestry, bool diploid );
+  void UpdateAlleleCounts(int locus, int h[2], int ancestry[2], bool diploid );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
  
@@ -79,31 +89,40 @@ private:
   double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
   double psi0;
  
-  Matrix_d *Freqs;// allele frequencies except for last allele
-  Matrix_d *AlleleFreqsMAP; // posterior mode of allele freqs
-  Matrix_d *HistoricAlleleFreqs;
-  Matrix_i *AlleleCounts;
-  Matrix_d *HistoricLikelihoodAlleleFreqs;
+  double **Freqs;// allele frequencies except for last allele
+  double **AlleleFreqsMAP; // posterior mode of allele freqs
+  double **HistoricAlleleFreqs;
+  int **AlleleCounts;
+  double **HistoricAlleleCounts;
   Matrix_d *PriorAlleleFreqs;
 
-  Matrix_d *SumAlleleFreqs;// used to compute ergodic average
+  //double **SumAlleleFreqs;// used to compute ergodic average
 
-  dmatrix Fst;
-  dmatrix SumFst;
+  double** Fst;
+  double** SumFst;
   bool IsHistoricAlleleFreq;//indicator for dispersion model
   bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
 
   Genome *Loci;//pointer to Loci object
 
+#if ETASAMPLER == 1
+  //adaptive RW sampler for eta
   AdaptiveRandomWalkMH *TuneEtaSampler;
   int Number,w; // Number is the number of updates of eta. The eta sampler is tuned every w updates. 
-
   double *etastep;
   double etastep0;
-
   int *NumberAccepted;
   double *SumAcceptanceProb;
+#elif ETASAMPLER == 2
+  //Hamiltonian MC sampler for eta
+  double **EtaArgs;
+  double *logeta;
+  HamiltonianMonteCarlo EtaSampler;
+  double initialEtaStepsize;
+  float targetEtaAcceptRate;
+#endif
 
+  //sampler for univariate mu
 //    DARS SampleMu;
    std::vector<AdaptiveRandomWalkMH> *MuProposal;
 
@@ -126,17 +145,16 @@ private:
   void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
 
   void OpenOutputFile(AdmixOptions *options);
-
+#if ETASAMPLER == 2
+  static double etaEnergyFunction(unsigned dim, const double* const theta, const double* const*args);
+  static void etaGradient(unsigned dim,const double* const theta, const double* const* args, double *g);
+#endif
 };
 // functions required to update proportion vector Mu with adaptive rejection sampler
 // likelihood, 1st and 2nd derivatives of log-likelihood
 //Note that these are not part of AlleleFreqs class
-double fMu( const double*, Matrix_i &, Matrix_d &, double );
-double dfMu( const double*, Matrix_i &, Matrix_d &, double );
-double ddfMu( const double*, Matrix_i &, Matrix_d &, double );
-
-
-
-
+double fMu( const double*, const int *, const double*, double );
+double dfMu( const double*, const int *, const double*, double );
+double ddfMu( const double*, const int *, const double*, double );
 
 #endif

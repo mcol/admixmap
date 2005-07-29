@@ -147,18 +147,7 @@ void submain(AdmixOptions* options){
  /*------------
   |  MAIN LOOP |
   ------------*/
-    unsigned int xchrm = Loci.GetNumberOfChromosomes()-1;
-    cerr << "xchrm: " << xchrm << endl;
-    unsigned int xloci = chrm[ xchrm ]->GetSize();
-    cerr << "xloci: " << xloci << endl;
     for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
-//        for( int i = 0; i < IC->getSize(); i++ ){
-//           for( unsigned int j = 0; j < xloci; j++ ){          
-//              cout << IC->getIndividual(i)->GetLocusAncestry( xchrm, 0, j ) << " ";
-//           }
-//           cout << endl;
-//       }
-   
       if( !(iteration % options->getSampleEvery()) ){
 	Log.Reset(iteration, (options->getAnalysisTypeIndicator() < 0), (int)( log10((double)options->getTotalSamples())+1 ) );
       }
@@ -178,7 +167,7 @@ void submain(AdmixOptions* options){
       
       if( iteration > options->getBurnIn() ){
 	if( options->getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
-	if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus());
+	if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), options->getPopulations());
       }  
  
       L.Update(iteration, IC);

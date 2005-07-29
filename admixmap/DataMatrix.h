@@ -1,8 +1,8 @@
 // *-*-C++-*-*
 /** 
  *   ADMIXMAP
- *   DispersionTest.h 
- *   header file for DispersionTest class
+ *   DataMatrix.h 
+ *   class to represent a matrix of data, possibly read in from file
  *   Copyright (c) 2005 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
@@ -19,39 +19,27 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#ifndef DISPTEST_H
-#define DISPTEST_H 1
+#include <vector>
 
-#include "IndividualCollection.h"
-#include "Genome.h"
-#include "AlleleFreqs.h"
-#include "LogWriter.h"
+class DataMatrix{
+public:
+  DataMatrix();
+  DataMatrix(unsigned, unsigned);
+  void setDimensions(unsigned, unsigned);
+  bool isMissing(unsigned, unsigned);
+  void isMissing(unsigned, unsigned, bool);
+  std::vector<double> getRow(unsigned);
+  double get(unsigned, unsigned) const;
+  void set(unsigned, unsigned, double);
+  unsigned nRows()const;
+  unsigned nCols()const;
+  DataMatrix SubMatrix(unsigned, unsigned, unsigned, unsigned);
 
-class DispersionTest{
- public:
-  DispersionTest();
-  ~DispersionTest();
-  void Initialise(AdmixOptions *,LogWriter *, int);
-  void Output(int , Genome &, std::string *PopLabels);
-  void TestForDivergentAlleleFrequencies(AlleleFreqs *);
-
- private:
-  int NumberOfCompositeLoci;
-  int NumberOfPopulations;
-  AdmixOptions *options;
-  std::ofstream dispersionoutputstream;
-  int **divergentallelefreqstest;
+private:
+  std::vector<double > data;
+  std::vector<bool > missing;
+  unsigned nrows;
+  unsigned ncols;
+  class BoundsViolation { };
 
 };
-
-
-
-
-
-
-
-
-
-
-
-#endif /* !defined DISPTEST_H */
