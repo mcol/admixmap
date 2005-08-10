@@ -36,7 +36,7 @@ public:
   std::vector<unsigned short>
   GenerateRepGenotype( double*, int ancestry[2] );
 
-  unsigned short **SampleForOrderedSNiP ( double*, int ancestry[2] );
+  std::vector<unsigned short> SampleHeterozygotePhase( double*, int ancestry[2] );
 
   //float getStatistic();
 };

@@ -15,8 +15,12 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
     float DistanceFromLast = 0;
     for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
       DistanceFromLast += Loci.GetDistance(j);
-      if( DistanceFromLast > 0.05 ){
-	if( Loci(j)->GetNumberOfStates() == 2 ){
+      if( DistanceFromLast > 10 ){ // set cutoff to 10 morgans so that only unlinked loci will be included
+	// should have a more specific way to code unlinked loci than setting Distance=100
+	// this algorithm selects the first locus on each chromosome
+	// preferable to select the most informative locus (greatest heterozygosity)
+	if( Loci(j)->GetNumberOfStates() == 2 ){ // test uses only diallelic loci
+	  // should be able to use multi-allelic loci by grouping alleles into 2 bins
 	  TestLoci.push_back(j);
 	  NumberOfTestLoci++;
 	  DistanceFromLast = 0;
@@ -24,7 +28,7 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
       }
     }
     if( NumberOfTestLoci < 2 ){
-       Log->logmsg(true,"Can't run stratification test with this data set.\n");
+       Log->logmsg(true,"Too few unlinked loci to run stratification test\n");
        options->setStratificationTest(false);
     }
     else{
@@ -43,50 +47,57 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWri
   }
 }
 
-void StratificationTest::calculate( IndividualCollection* individuals, double** AlleleFreqs, vector<vector<int> > ChrmAndLocus, int Populations )
+void StratificationTest::calculate( IndividualCollection* individuals, double** AlleleFreqs, vector<vector<int> > ChrmAndLocus, 
+				    int Populations )
 {
-  Matrix_d popX( individuals->getSize(), NumberOfTestLoci );
+  // matrix of (observed minus expected copies allele 1) scores for each individual at each locus
+  Matrix_d popX( individuals->getSize(), NumberOfTestLoci ); 
+  // matrix of replicate scores
   Matrix_d popRepX( individuals->getSize(), NumberOfTestLoci );
-  bool flag = false;
-
+  //bool flag = false;
+  vector<unsigned short> genotype(2, 0);
+  int ancestry[2];
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
     double* freqs = AlleleFreqs[jj];
     for( int i = 0; i < individuals->getSize(); i++ ){
       Individual* ind = individuals->getIndividual(i);
-     unsigned short **genotype = ind->getGenotype(jj);
-      if( genotype[0][0] ){
-	int ancestry[2];
-	ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
-	vector<unsigned short >repgenotype = GenerateRepGenotype( freqs, ancestry );
-	vector<double> pA = GenerateExpectedGenotype( ind, freqs, Populations );
-	if( genotype[0][0] != genotype[0][1] ){
-	  genotype = SampleForOrderedSNiP( freqs, ancestry );
-	  flag = true;//need to delete genotype
+      unsigned short **genotypeArray = ind->getGenotype(jj);
+      // recode as vector<unsigned short>
+      genotype[0] = genotypeArray[0][0];
+      genotype[1] = genotypeArray[0][1];
+      ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
+      if( genotype[0] != genotype[1] ){ // if heterozygous
+	genotype = SampleHeterozygotePhase( freqs, ancestry ); // sample phase conditional on ordered diploid ancestry 
+      } else 
+	if( genotype[0] == 0 ){ // if genotype is missing, sample it
+	  genotype = GenerateRepGenotype( freqs, ancestry );
 	}
-// pA = P( allele 1 ).
-// Calculate error X = Y - pA, where Y = 1 for allele 1 and Y = 2 for allele 2.
-// The following code actually calculates X / Xrep = -Y + pA.
-        popRepX( i, j ) = (double)(repgenotype[0]+repgenotype[1])-4+pA[0]+pA[1];
-        popX( i, j ) = (double)(genotype[0][0]+genotype[0][1])-4+pA[0]+pA[1];
-	//if(flag){delete[] genotype[0];delete[] genotype;}
-      }
-    }
+      // pA = Prob( allele 1 ) conditional on individual admixture
+      vector<double> pA = GenerateExpectedGenotype( ind, freqs, Populations );
+      vector<unsigned short> repgenotype = GenerateRepGenotype( freqs, ancestry );
+      // Calculate score X = Obs0 + Obs1 - Expected0 - Expected1, where Obs0, Obs1 are coded 1 for allele 1, 0 for allele 2
+      // Obs0 + Obs1 = 4 - genotype[0] - genotype[1]
+      popX( i, j )    = (double)(4 - genotype[0] - genotype[1]) - pA[0] - pA[1];
+      popRepX( i, j ) = (double)(4 - repgenotype[0] - repgenotype[1]) - pA[0] - pA[1];
+      // delete[] genotype[0];delete[] genotype; 
+    }  
   }
   
   Vector_d EigenValues;
   Vector_d RepEigenValues;
-  Matrix_d Cov;
-  Matrix_d RepCov;
-
+  Matrix_d Cov;  // covariance matrix for (observed minus expected copies allele 1) scores
+  Matrix_d RepCov; // covariance matrix for replicate scores
+  
   Cov = popX.Transpose() * popX;
   RepCov = popRepX.Transpose() * popRepX;
   Cov.Eigenvalue2( &EigenValues );
   RepCov.Eigenvalue2( &RepEigenValues );
   EigenValues /= EigenValues.Sum();
   RepEigenValues /= RepEigenValues.Sum();
+  // cout << "\nT_obs " << EigenValues.MaximumElement() << "  T_rep " << RepEigenValues.MaximumElement() << endl;
   if( EigenValues.MaximumElement() < RepEigenValues.MaximumElement() ){
-     T++;
+    T++;
   }
   count++;
 }
@@ -100,9 +111,9 @@ StratificationTest::GenerateExpectedGenotype( Individual* ind, double* freqs, in
     if( ModelIndicator )
       pA[1] += freqs[ k ] * ind->getAdmixtureProps()[k + Populations];
     else
-       pA[1] += freqs[ k ] * ind->getAdmixtureProps()[k];       
+      pA[1] += freqs[ k ] * ind->getAdmixtureProps()[k];       
   }
-  return pA;
+  return pA; // vector of length 2 specifying probs of allele 1 on each gamete
 }
 
 vector<unsigned short>
@@ -120,21 +131,18 @@ StratificationTest::GenerateRepGenotype( double* freqs, int ancestry[2] )
   return repgenotype;
 }
 
-unsigned short **StratificationTest::SampleForOrderedSNiP( double* freqs, int Ancestry[2] )
+vector<unsigned short> StratificationTest::SampleHeterozygotePhase( double* freqs, int Ancestry[2] )
 {
-  unsigned short **genotype;
-  genotype = new unsigned short*[1];
-  genotype[0] = new unsigned short[2];
-  
+  vector<unsigned short> genotype(2, 0);
   double q1 = freqs[ Ancestry[0] ] * ( 1 - freqs[ Ancestry[1] ] );
   double q2 = freqs[ Ancestry[1] ] * ( 1 - freqs[ Ancestry[0] ] );
   if( myrand() > q1 / ( q1 + q2 ) ){
-    genotype[0][0] = 2;
-    genotype[0][1] = 1;
+    genotype[0] = 2;
+    genotype[1] = 1;
   }
   else{
-    genotype[0][0] = 1;
-    genotype[0][1] = 2;
+    genotype[0] = 1;
+    genotype[1] = 2;
   }
   return genotype;
 }
@@ -157,7 +165,7 @@ void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter 
   Log->logmsg(true,OutputFilename);
   Log->logmsg(true,"\n");
   //write header
-  outputstream << "Post. Pred. Check Prob." <<endl;
+  outputstream << "Posterior predictive check probability ";
 }
 
 void StratificationTest::Output(){
