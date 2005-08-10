@@ -28,7 +28,7 @@ public:
 
   void calculate( IndividualCollection* individuals, double **AlleleFreqs, std::vector<std::vector<int> > ChrmAndLocus, int Populations );
 
-  void Output();
+  void Output(LogWriter *);
 
   std::vector<double>
   GenerateExpectedGenotype( Individual*, double*, int  );

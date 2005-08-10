@@ -40,31 +40,18 @@ void PrintCopyrightNotice(){
     cout << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
     cout << "-----------------------------------------------" << endl;
     cout << "Programme Authors: " <<endl;
-    cout << "Clive Hoggart, Richard Sharp, Nigel Wetters, David O'Donnell and Paul McKeigue"<<endl;
+    cout << "David O'Donnell, Clive Hoggart, and Paul McKeigue"<<endl;
     cout << "Copyright(c) 2002, 2003, 2004, 2005 LSHTM" <<endl;
     cout << "Send any comments or queries to david.odonnell@ucd.ie"<<endl;
     cout << "-----------------------------------------------\n"<<endl;
-    cout << "This program is free software; you can redistribute it and/or modify"<<endl;
-    cout << "it under the terms of the GNU General Public License as published by"<<endl;
-    cout << "the Free Software Foundation; either version 2 of the License, or"<<endl;
-    cout << "any later version."<<endl;
-    cout << "\n";
-    cout << "This program is distributed in the hope that it will be useful,"<<endl;
-    cout << "but WITHOUT ANY WARRANTY; without even the implied warranty of"<<endl;
-    cout << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"<<endl;
-    cout << "GNU General Public License for more details."<<endl;
-    cout << "\n";
-    cout << "You should have received a copy of the GNU General Public License"<<endl;
-    cout << "along with this program; if not, write to the Free Software"<<endl;
-    cout << "Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307"<<endl;
-    cout << "USA or contact the email address above."<<endl;
+    cout << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl;
+    cout << "under the terms of the GNU General Public License" <<endl;
     cout << "-----------------------------------------------" << endl;
 }
 
 void submain(AdmixOptions* options){
   // This submain function is needed because the Latent object L is not destroyed properly if you use delete L. The ends of some R files which rely on a destructor being called are not generated without thus submain().
   //Not true any more - is submain still necessary?
-
 
   /*----------------
   | Initialisation |
@@ -167,7 +154,8 @@ void submain(AdmixOptions* options){
       
       if( iteration > options->getBurnIn() ){
 	if( options->getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
-	if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), options->getPopulations());
+	if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
+								  options->getPopulations());
       }  
  
       L.Update(iteration, IC);
@@ -249,7 +237,7 @@ void submain(AdmixOptions* options){
       A.OutputFST(options->IsPedFile());
     }
     //stratification test
-    if( options->getStratificationTest() ) StratTest.Output();
+    if( options->getStratificationTest() ) StratTest.Output(&Log);
     //dispersion test
     if( options->getTestForDispersion() )  DispTest.Output(options->getTotalSamples() - options->getBurnIn(), Loci, data.GetPopLabels());
     //tests for mis-specified allele frequencies

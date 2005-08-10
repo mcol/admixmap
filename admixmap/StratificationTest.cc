@@ -59,7 +59,7 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
   int ancestry[2];
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
-    double* freqs = AlleleFreqs[jj];
+    double* freqs = AlleleFreqs[jj];  // array of length (NumberOfStates-1)*Populations
     for( int i = 0; i < individuals->getSize(); i++ ){
       Individual* ind = individuals->getIndividual(i);
       unsigned short **genotypeArray = ind->getGenotype(jj);
@@ -80,7 +80,6 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
       // Obs0 + Obs1 = 4 - genotype[0] - genotype[1]
       popX( i, j )    = (double)(4 - genotype[0] - genotype[1]) - pA[0] - pA[1];
       popRepX( i, j ) = (double)(4 - repgenotype[0] - repgenotype[1]) - pA[0] - pA[1];
-      // delete[] genotype[0];delete[] genotype; 
     }  
   }
   
@@ -95,7 +94,7 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
   RepCov.Eigenvalue2( &RepEigenValues );
   EigenValues /= EigenValues.Sum();
   RepEigenValues /= RepEigenValues.Sum();
-  // cout << "\nT_obs " << EigenValues.MaximumElement() << "  T_rep " << RepEigenValues.MaximumElement() << endl;
+  outputstream << "\nT_obs " << EigenValues.MaximumElement() << "  T_rep " << RepEigenValues.MaximumElement() << endl;
   if( EigenValues.MaximumElement() < RepEigenValues.MaximumElement() ){
     T++;
   }
@@ -147,11 +146,6 @@ vector<unsigned short> StratificationTest::SampleHeterozygotePhase( double* freq
   return genotype;
 }
 
-// float StratificationTest::getStatistic()
-// {
-//    return (float)T/count;
-// }
-
 void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter *Log){
 
   outputstream.open(OutputFilename, ios::out );
@@ -162,12 +156,13 @@ void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter 
     exit( 1 );
   }
   Log->logmsg(true,"Writing results of test for residual population stratification to ");
-  Log->logmsg(true,OutputFilename);
+  Log->logmsg(true, OutputFilename);
   Log->logmsg(true,"\n");
-  //write header
-  outputstream << "Posterior predictive check probability ";
+  //outputstream << "Posterior predictive check probability ";
 }
 
-void StratificationTest::Output(){
-   outputstream << (float)T/count << endl;
+void StratificationTest::Output(LogWriter *Log){
+  Log->logmsg(true, "Posterior predictive check probability "); 
+  Log->logmsg(true, (float)T/count);
+  Log->logmsg(true,"\n");
 }
