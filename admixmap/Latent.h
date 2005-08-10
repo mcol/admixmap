@@ -119,7 +119,7 @@ private:
   DARS* RhoDraw;
 #elif GLOBALRHOSAMPLER == 2
   //RWM sampler for global rho
-  TuneRW TuneRhoSampler;
+  AdaptiveRandomWalkMH TuneRhoSampler;
   int w, NumberOfUpdates;
   double step, step0;
   int NumberAccepted;

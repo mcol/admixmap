@@ -28,16 +28,6 @@ using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-#if POPADMIXSAMPLER == 3
-static double xlog(double x){
-  return log(x);
-}
-static double xexp(double x){
-  return exp(x);
-}
-#endif
-
-
 Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
 {
   options = 0;

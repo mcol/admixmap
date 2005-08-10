@@ -400,6 +400,17 @@ void free_matrix(int **M, int m){
 
 }
 
+void submatrix(double **M, double **Sub, int r1, int r2, int c1, int c2){
+  //sets Sub as submatrix of M consisting of rows r1 to r2 and cols c1 to c2
+  for(int row = r1; row < r2; ++row)
+    for(int col = c1; col < c2; ++col)
+      Sub[row-r1][col-c1] = M[row][col];
+}
+void submatrix(double *M, double *Sub, int Mcols, int r1, int r2, int c1, int c2){
+  for(int row = r1; row < r2; ++row)
+    for(int col = c1; col < c2; ++col)
+      Sub[(row-r1)*(r2-r1+1) + (col-c1)] = M[row*Mcols +col];
+}
 void equate_matrix(double **A, double **B, int m, int n){
   for(int i = 0; i < m; ++i)
     for(int j = 0; j < n; ++j)
@@ -449,4 +460,12 @@ void matrix_product(const double *a, const double *b, double *c, size_t d1, size
 void scale_matrix(double *a, const double c, size_t d1, size_t d2){
   gsl_matrix_view A = gsl_matrix_view_array(a, d1, d2);
   gsl_matrix_scale(&A.matrix, c);
+}
+
+//useful for stl functions
+double xlog(double x){
+  return log(x);
+}
+double xexp(double x){
+  return exp(x);
 }

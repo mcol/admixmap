@@ -37,4 +37,9 @@ int **alloc2D_i(int m, int n);
 void free_matrix(double **, int);
 void free_matrix(int **, int);
 double **MatrixAsArray(Matrix_d &M);
+void submatrix(double **M, double **Sub, int r1, int r2, int c1, int c2);
+void submatrix(double *M, double *Sub, int Mcols, int r1, int r2, int c1, int c2);
+
+double xlog(double x);
+double xexp(double x);
 #endif /* !FUNCTIONS_H */

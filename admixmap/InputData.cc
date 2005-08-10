@@ -158,7 +158,29 @@ static void convertMatrix(const Matrix_s& data, DataMatrix& m)
         }
     }
 }
+static void convertMatrix(const Matrix_s& data, double *m)
+{       
+    const size_t numRows = data.size();
 
+    // If there are no rows, return empty matrix.
+    if (0 == numRows) return;
+
+    // Verify that all rows have same length.
+    const size_t numCols = data[0].size();
+    for (size_t i = 1; i < numRows; ++i) {
+        if (numCols != data[i].size()) {
+            throw runtime_error("Invalid row length");
+        }
+    }
+    
+    // Form matrix.
+    m = new double[numRows * numCols];
+    for (size_t i = 0; i < numRows; ++i) {
+        for (size_t j = 0; j < numCols; ++j) {
+	  m[i*numCols +j] = StringConvertor::toFloat(data[i][j]);
+        }
+    }
+}
 
 /**
  *  InputData members.

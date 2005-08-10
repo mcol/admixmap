@@ -29,11 +29,13 @@
 #include "AdmixOptions.h"
 #include "LogWriter.h"
 
-#if ETASAMPLER == 1
+
 #include "AdaptiveRandomWalkMH.h"
-#elif ETASAMPLER ==2
+class AdaptiveRandomWalkMH;
+#if ETASAMPLER ==2
 #include "HamiltonianMonteCarlo.h"
 #endif
+
 
 class AlleleFreqs{
 
