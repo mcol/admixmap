@@ -67,12 +67,12 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
       genotype[0] = genotypeArray[0][0];
       genotype[1] = genotypeArray[0][1];
       ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
-      if( genotype[0] != genotype[1] ){ // if heterozygous
-	genotype = SampleHeterozygotePhase( freqs, ancestry ); // sample phase conditional on ordered diploid ancestry 
-      } else 
-	if( genotype[0] == 0 ){ // if genotype is missing, sample it
-	  genotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
-	}
+      //if( genotype[0] != genotype[1] ){ // if heterozygous
+      // genotype = SampleHeterozygotePhase( freqs, ancestry ); // sample phase conditional on ordered diploid ancestry 
+      //} else 
+      if( genotype[0] == 0 ){ // if genotype is missing, sample it
+	genotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
+      }
       // ProbAllele1 = Prob( allele 1 ) conditional on individual admixture
       vector<double> ProbAllele1 = GenerateExpectedGenotype( ind, freqs, Populations );
       vector<unsigned short> repgenotype = SimGenotypeConditionalOnAdmixture( ProbAllele1 );
@@ -178,7 +178,7 @@ void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter 
 }
 
 void StratificationTest::Output(LogWriter *Log){
-  Log->logmsg(true, "Posterior predictive check probability "); 
+  Log->logmsg(true, "\nStratification test: posterior predictive check probability "); 
   Log->logmsg(true, (float)T/count);
   Log->logmsg(true,"\n");
 }
