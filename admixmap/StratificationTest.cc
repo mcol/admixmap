@@ -71,15 +71,16 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
 	genotype = SampleHeterozygotePhase( freqs, ancestry ); // sample phase conditional on ordered diploid ancestry 
       } else 
 	if( genotype[0] == 0 ){ // if genotype is missing, sample it
-	  genotype = GenerateRepGenotype( freqs, ancestry );
+	  genotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
 	}
-      // pA = Prob( allele 1 ) conditional on individual admixture
-      vector<double> pA = GenerateExpectedGenotype( ind, freqs, Populations );
-      vector<unsigned short> repgenotype = GenerateRepGenotype( freqs, ancestry );
+      // ProbAllele1 = Prob( allele 1 ) conditional on individual admixture
+      vector<double> ProbAllele1 = GenerateExpectedGenotype( ind, freqs, Populations );
+      vector<unsigned short> repgenotype = SimGenotypeConditionalOnAdmixture( ProbAllele1 );
+      // vector<unsigned short> repgenotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
       // Calculate score X = Obs0 + Obs1 - Expected0 - Expected1, where Obs0, Obs1 are coded 1 for allele 1, 0 for allele 2
       // Obs0 + Obs1 = 4 - genotype[0] - genotype[1]
-      popX( i, j )    = (double)(4 - genotype[0] - genotype[1]) - pA[0] - pA[1];
-      popRepX( i, j ) = (double)(4 - repgenotype[0] - repgenotype[1]) - pA[0] - pA[1];
+      popX( i, j )    = (double)(4 - genotype[0] - genotype[1]) - ProbAllele1[0] - ProbAllele1[1];
+      popRepX( i, j ) = (double)(4 - repgenotype[0] - repgenotype[1]) - ProbAllele1[0] - ProbAllele1[1];
     }  
   }
   
@@ -94,7 +95,7 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
   RepCov.Eigenvalue2( &RepEigenValues );
   EigenValues /= EigenValues.Sum();
   RepEigenValues /= RepEigenValues.Sum();
-  outputstream << "\nT_obs " << EigenValues.MaximumElement() << "  T_rep " << RepEigenValues.MaximumElement() << endl;
+  outputstream << EigenValues.MaximumElement() << "\t" << RepEigenValues.MaximumElement() << endl;
   if( EigenValues.MaximumElement() < RepEigenValues.MaximumElement() ){
     T++;
   }
@@ -102,7 +103,7 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
 }
 
 vector<double>
-StratificationTest::GenerateExpectedGenotype( Individual* ind, double* freqs, int Populations )
+StratificationTest::GenerateExpectedGenotype( Individual* ind, const double* freqs, const int Populations )
 {
   vector<double> pA(2,0);
   for( int k = 0; k < Populations; k++ ){
@@ -116,7 +117,22 @@ StratificationTest::GenerateExpectedGenotype( Individual* ind, double* freqs, in
 }
 
 vector<unsigned short>
-StratificationTest::GenerateRepGenotype( double* freqs, int ancestry[2] )
+StratificationTest::SimGenotypeConditionalOnAdmixture( const vector<double> ProbAllele1 )
+{
+  vector<unsigned short> repgenotype(2,0);
+  if( ProbAllele1[0] > myrand() )
+    repgenotype[0] = 1;
+  else
+    repgenotype[0] = 2;
+  if( ProbAllele1[1] > myrand() )
+    repgenotype[1] = 1;
+  else
+    repgenotype[1] = 2;
+  return repgenotype;
+}
+
+vector<unsigned short>
+StratificationTest::SimGenotypeConditionalOnAncestry( const double* freqs, const int ancestry[2] )
 {
   vector<unsigned short> repgenotype(2,0);
   if( freqs[ ancestry[0] ] > myrand() )
@@ -130,7 +146,7 @@ StratificationTest::GenerateRepGenotype( double* freqs, int ancestry[2] )
   return repgenotype;
 }
 
-vector<unsigned short> StratificationTest::SampleHeterozygotePhase( double* freqs, int Ancestry[2] )
+vector<unsigned short> StratificationTest::SampleHeterozygotePhase( const double* freqs, const int Ancestry[2] )
 {
   vector<unsigned short> genotype(2, 0);
   double q1 = freqs[ Ancestry[0] ] * ( 1 - freqs[ Ancestry[1] ] );
@@ -158,7 +174,7 @@ void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter 
   Log->logmsg(true,"Writing results of test for residual population stratification to ");
   Log->logmsg(true, OutputFilename);
   Log->logmsg(true,"\n");
-  //outputstream << "Posterior predictive check probability ";
+  outputstream << "T_obs" << "\t" << "T_rep\n";
 }
 
 void StratificationTest::Output(LogWriter *Log){

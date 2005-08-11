@@ -21,6 +21,17 @@ private:
 
   void OpenOutputFile( const char * , LogWriter *);
 
+  std::vector<double>
+  GenerateExpectedGenotype( Individual*, const double*, const int  );
+
+  std::vector<unsigned short>
+  SimGenotypeConditionalOnAdmixture( std::vector<double> ProbAllele1 );
+
+  std::vector<unsigned short>
+  SimGenotypeConditionalOnAncestry( const double*, const int ancestry[2] );
+
+  std::vector<unsigned short> SampleHeterozygotePhase( const double*, const int ancestry[2] );
+
 public:
    StratificationTest();
 
@@ -30,13 +41,6 @@ public:
 
   void Output(LogWriter *);
 
-  std::vector<double>
-  GenerateExpectedGenotype( Individual*, double*, int  );
-
-  std::vector<unsigned short>
-  GenerateRepGenotype( double*, int ancestry[2] );
-
-  std::vector<unsigned short> SampleHeterozygotePhase( double*, int ancestry[2] );
 
   //float getStatistic();
 };
