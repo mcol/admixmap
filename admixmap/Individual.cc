@@ -224,7 +224,7 @@ std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus){
   return PossibleHapPairs[locus];
 }
 
-//Indicates whether a genotype is missing at a locus
+//Indicates whether genotype is missing at all simple loci within a composite locus
 bool Individual::IsMissing(unsigned int locus)
 {
   unsigned int count = 0;
@@ -897,10 +897,11 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
   delete[] info;
 }
 
-// unnecessary duplication of code - should use same method as for > 1 population
+// unnecessary duplication of code - ? should embed within method for > 1 population
 void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY, 
-				      double *lambda, int AnalysisTypeIndicator )
+				      double *lambda, int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A )
 {
+  // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
     if( AnalysisTypeIndicator > 1 ){
       if( Outcome[k].IsMissingValue( i, 0 ) ){
@@ -915,11 +916,24 @@ void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes,
       }
     }
   }
-  // sampled alleles should be stored in Individual objects, then summed over individuals to get counts
-  // is this extra update necessary? isn't this method called anyway, irrespective of whether there is only one population?        
- //  for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-//     A->UpdateAlleleCounts(j,getPossibleHaplotypes(j), ancestry );
-//   }
+  // update allele counts
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    //loop over loci on current chromosome and update allele counts
+    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+      int locus =  chrm[j]->GetLocus(jj);
+      if( !(IsMissing(j)) ){
+	int anc[2] = {0, 0}; //ancestry states for single population
+	// GetLocusAncestry(j,jj,anc);
+	int h[2]; //to store sampled hap pair
+	(*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
+	A->UpdateAlleleCounts(locus, h, anc, true); // should fix this to work with haploid data: last argument should be isdiploid
+      }
+    }
+  }   
+  // sampled hap pairs should be stored in the Individual objects, so they can be re-used in the score tests
+  //  for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+  //     A->UpdateAlleleCounts(j,getPossibleHaplotypes(j), ancestry );
+  //   }
 }
 
 void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 

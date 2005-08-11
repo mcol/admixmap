@@ -510,7 +510,8 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
 				  R->getDispersion(OutcomeType[0]));}
     
     else{
-      _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(), options->getAnalysisTypeIndicator());
+      _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(), options->getAnalysisTypeIndicator(), 
+				     chrm, A);
     }   
     
     if( (options->getAnalysisTypeIndicator() < 0) &&  options->getMLIndicator() && (i == 0) )//check if this condition is correct

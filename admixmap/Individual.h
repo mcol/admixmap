@@ -93,7 +93,7 @@ public:
 			 double DInvLink, double dispersion);
 
  void OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda,
-			   int AnalysisTypeIndicator);
+			   int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A );
 
   void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
 		      AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha,  
