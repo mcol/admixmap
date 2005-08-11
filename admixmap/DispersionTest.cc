@@ -106,20 +106,20 @@ void DispersionTest::Output(int samples,Genome& Loci, std::string *PopLabels){
   //write header
   dispersionoutputstream << "Locus";
   for(int i = 0; i< NumberOfPopulations; ++i)
-    dispersionoutputstream << " " <<PopLabels[i];//should use pop labels here
+    dispersionoutputstream << "\t" << PopLabels[i]; //should use pop labels here
   dispersionoutputstream << endl;
-
+  
   for(int j = 0; j < NumberOfCompositeLoci; j++ ){
-    if(options->IsPedFile())
-      dispersionoutputstream << "\"" << Loci(j)->GetLabel(0) << "\"" << " ";
-    else
-      dispersionoutputstream << Loci(j)->GetLabel(0) << " ";
+    // if(options->IsPedFile())
+    // dispersionoutputstream << "\"" << Loci(j)->GetLabel(0) << "\"" << "\t";
+    // else
+    dispersionoutputstream << Loci(j)->GetLabel(0);
     for(int k=0; k < NumberOfPopulations; ++k)
-      dispersionoutputstream << (float)divergentallelefreqstest[j][k] / (float)samples << " ";
+      dispersionoutputstream << "\t" << (float)divergentallelefreqstest[j][k] / (float)samples;
     dispersionoutputstream  << endl;
   }
-  dispersionoutputstream << "Population ";
+  dispersionoutputstream << "Population";
   for(int k=0; k < NumberOfPopulations; ++k)
-    dispersionoutputstream << (float)divergentallelefreqstest[NumberOfCompositeLoci][k] /(float) samples << " ";
+    dispersionoutputstream << "\t" << (float)divergentallelefreqstest[NumberOfCompositeLoci][k] /(float) samples;
   dispersionoutputstream  << endl;
 }
