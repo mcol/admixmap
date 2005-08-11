@@ -977,18 +977,19 @@ void AlleleFreqs::OpenOutputFile(AdmixOptions *options)
 void AlleleFreqs::OutputAlleleFreqs()
 {
   if( IsRandom() ){
-    //Matrix_d meanfreqs;
-    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      
-      for( int k = 0; k < (*Loci)(i)->GetNumberOfStates()-1; k++ ){
-	allelefreqoutput << getLocus(i)->GetLabel(0) << ",";
-	for( int l = 0; l < Populations; l++ ){
-	  allelefreqoutput << Freqs[i][k*Populations+l] << ",";
+    for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
+      for( int state = 0; state < (*Loci)(locus)->GetNumberOfStates()-1; state++ ){
+	allelefreqoutput << getLocus(locus)->GetLabel(0) << ",";
+	for( int pop = 0; pop < Populations; pop++ ){
+	  allelefreqoutput <<  Freqs[locus][state*Populations + pop] << ",";
+	  // allelefreqoutput << "count " << AlleleCounts[locus][state*Populations + pop] <<"; ";
 	}
 	allelefreqoutput << endl;
       }
+      allelefreqoutput << endl;
     }
   }
+  allelefreqoutput << endl;
 }
 
 void AlleleFreqs::CloseOutputFile(int iterations, string* PopulationLabels)
