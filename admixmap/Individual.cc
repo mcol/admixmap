@@ -617,7 +617,7 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
   if( Loci->isX_data() && !options->getXOnlyAnalysis() )
     logpratio += AcceptanceProbForTheta_XChrm( sigma, K);
 
- //Accept or reject proposed value - if no regression model, proposal will be accepted because logpratio = 0    
+ //Accept or reject proposed value - if no regression model, proposal will be accepted because logpratio = 0
   Accept_Reject_Theta(logpratio, Loci->isX_data(), K, options->isRandomMatingModel() );
 
  // update the value of admixture proportions used in the regression model  

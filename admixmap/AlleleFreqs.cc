@@ -424,12 +424,15 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
       }
     }
     
-    // Sample allele frequencies and set AlleleProbs
+    // Sample allele frequencies conditional on Dirichlet priors 
+    // and set AlleleProbs, then set haplotype pair probs
+    // this is the only point at which SetHapPair probs is called, apart from when 
+    // the composite loci are initialized
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       SampleAlleleFreqs(i, 1 );
       (*Loci)(i)->SetAlleleProbs(Freqs[i]);
-      if( (*Loci)(i)->GetNumberOfLoci() > 1 )//why this condition ??
-	(*Loci)(i)->SetHapPairProbs();
+      //      if( (*Loci)(i)->GetNumberOfLoci() > 1 ) // this condition must be wrong
+      (*Loci)(i)->SetHapPairProbs();
     }
     
     // Sample for allele frequency dispersion parameters, eta, using

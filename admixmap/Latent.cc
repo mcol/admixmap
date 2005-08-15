@@ -64,11 +64,11 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 
   double alphapriormean = options->getAlphamean();
   double alphapriorvar = options->getAlphavar();
-  Log->logmsg(false, "Gamma prior on population admixture Dirichlet parameters with mean ");
-  Log->logmsg(false, alphapriormean);
-  Log->logmsg(false, " and variance ");
-  Log->logmsg(false, alphapriorvar);
-  Log->logmsg(false, "\n");
+  Log->logmsg(true, "Gamma prior on population admixture Dirichlet parameters with mean ");
+  Log->logmsg(true, alphapriormean);
+  Log->logmsg(true, " and variance ");
+  Log->logmsg(true, alphapriorvar);
+  Log->logmsg(true, "\n");
  
   // ** set up sampler for alpha **
 
@@ -86,8 +86,8 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   }
   //if( options->getAnalysisTypeIndicator() > -1 ){
   AlphaParameters[1] = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, plus<double>());//sum of alpha[0]
-  AlphaParameters[2] = alphapriormean*alphapriormean / alphapriorvar;
-  AlphaParameters[3] = alphapriormean / alphapriorvar;
+  AlphaParameters[2] = alphapriormean*alphapriormean / alphapriorvar; // shape parameter of gamma prior
+  AlphaParameters[3] = alphapriormean / alphapriorvar; // rate parameter of gamma prior
   AlphaParameters[4] = 1;
   //}
 
@@ -144,9 +144,9 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   else{
     rhoalpha = options->getRhoalpha();
     rhobeta = options->getRhobeta();
-    Log->logmsg(false,"Gamma prior on sum-of-intensities with Shape parameter: ");
+    Log->logmsg(false,"Gamma prior on sum-of-intensities with shape parameter: ");
     Log->logmsg(false, rhoalpha); Log->logmsg(false,"\n");
-    Log->logmsg(false," and Rate (1 / location) parameter: ");
+    Log->logmsg(false," and rate (1 / location) parameter: ");
     Log->logmsg(false, rhobeta); Log->logmsg(false,"\n");
   }
   rhobeta0 = 1;
@@ -428,7 +428,6 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
       }
 #endif
    // ** Sample for population admixture distribution Dirichlet parameters, alpha **
-   
    // For a model in which the distribution of individual admixture in the population is a mixture
    // of components, we will have one Dirichlet parameter vector for each component, 
    // updated only from those individuals who belong to the component
