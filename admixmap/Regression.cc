@@ -114,27 +114,33 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
     n0.SetDiagonal( 1 );
   }
 
-  lambda0 = .1;
-  lambda1 = .1;
-  lambda = new double[ NumOutcomeVars ];
-  fill(lambda, lambda+NumOutcomeVars, 0.1);//initialise lambda to 0.1
+  lambda0 = .01;
+  lambda1 = .01;
+  lambda = new double[ NumOutcomeVars ]; // elements of this array are either 
+  // inverse of dispersion parameter for a linear regression model, 
+  // or specify precision of priors on logistic regression parameters 
+  // is this correct? 
+  fill(lambda, lambda+NumOutcomeVars, 0.01); //initialise elements of lambda to 0.01
   if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 5) {
-    Log->logmsg(false,"\nNormal-inverse-gamma prior for linear regression model with gamma shape parameter ");
-    Log->logmsg(false, lambda0);
-    Log->logmsg(false, " and rate parameter "); Log->logmsg(false, lambda1); Log->logmsg(false, "\n");
+    Log->logmsg(true,"\nNormal-inverse-gamma prior for linear regression model with gamma shape parameter ");
+    Log->logmsg(true, lambda0);
+    Log->logmsg(true, " and rate parameter "); Log->logmsg(true, lambda1); Log->logmsg(true, "\n");
   }
   if( AnalysisTypeIndicator == 3 ||  AnalysisTypeIndicator == 4 ||  AnalysisTypeIndicator == 5) {
-    Log->logmsg(false,"\nGaussian priors on logistic regression parameters with precision ");
-    Log->logmsg(false, "0.1"); Log->logmsg(false, "\n");
+    Log->logmsg(true,"\nGaussian priors on logistic regression parameters with precision ");
+    Log->logmsg(true, lambda[0]); Log->logmsg(true, "\n");
   }
 
   SumLambda = new double[ NumOutcomeVars ];
   fill(SumLambda, SumLambda + NumOutcomeVars, 0.1);//initialise SumLambda to 0.1 (initial value of lambda)
   DrawBeta.SetDimension( NoCovariates );
 
-  //  ** sampler for logistic regression **
+  //  ** initialize sampler for logistic regression **
   acceptbeta = new int[ options->getPopulations()];
-  BetaParameters = new double[ NoCovariates + 4 ];
+  BetaParameters = new double[ NoCovariates + 4 ]; // array elements consist of 
+  // one beta param for each covariate followed by 
+  // precision of priors on logistic regression params for each outcome var, 
+  // followed by one intercept param for each outcome var
   BetaDrawArray = new GaussianProposalMH*[NoCovariates];
   
   for( int i = 0; i < NoCovariates; i++ ){
