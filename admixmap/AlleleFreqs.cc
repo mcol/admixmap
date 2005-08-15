@@ -195,8 +195,6 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
 
 }
 
-
-
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
 {
   data_->CheckAlleleFreqs(options, Loci->GetNumberOfCompositeLoci(), Loci->GetNumberOfStates());
@@ -309,7 +307,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
    *
    * New - a matrix containing 
    *   parameters for the Dirichlet prior distribution of the allele frequencies. The first dimension is the allele number, 
-   *   being in the range of zero to two less than the number of states
+   *   being in the range of zero to one ??? two less than the number of states
    *   [see GetNumberOfStates()]. The sum of the prior parameters over all alleles in a population 
    *   (sumalpha) can be interpreted as 
    *   the "prior sample size". The second dimension is the population. Thus, for a 
@@ -335,10 +333,12 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
 
   int Pops = New.GetNumberOfCols();
   (*Loci)(i)->SetNumberOfPopulations(Pops);
-  // set size of allele freqs matrix for this locus
+  // set size of allele freqs array for this locus
+  // Freqs array has only NumberOfStates - 1 elements for each population
   Freqs[i] = new double[((*Loci)(i)->GetNumberOfStates()-1)* Pops];
   //SumAlleleFreqs[i] = new double[((*Loci)(i)->GetNumberOfStates() - 1)* Pops];
-  // set size of allele counts matrix
+  // set size of allele counts array
+  // allele counts array has NumberOfStates elements for each population 
   AlleleCounts[i] = new int[(*Loci)(i)->GetNumberOfStates() * Pops];
   fill(AlleleCounts[i], AlleleCounts[i]+(*Loci)(i)->GetNumberOfStates()*Pops, 0);
 
@@ -357,7 +357,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
     for(int row = 0; row < New.GetNumberOfRows(); ++row)
       for(int col = 0; col < New.GetNumberOfCols(); ++col)
 	HistoricAlleleCounts[i][row*New.GetNumberOfCols() +col] = New(row, col);
-    PriorAlleleFreqs[i] = New + 0.501;
+    PriorAlleleFreqs[i] = New + 0.501; // why add 0.501? 
     RandomAlleleFreqs = true;
     Fst = alloc2D_d(NumberOfCompositeLoci, Pops);
     SumFst = alloc2D_d(NumberOfCompositeLoci, Pops);
@@ -369,7 +369,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
       }
     }
   }
-  else{//priorallelefreqs
+  else{ // priorallelefreqs model
     if(!fixed){
       PriorAlleleFreqs[i] = New;
       RandomAlleleFreqs = true;
@@ -381,8 +381,8 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
 void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
   /**
    * Given the number of ancestral populations, sets default values for
-   * allele frequencies and prior allele frequencies.
-   *
+   * allele frequencies (in Freqs) and prior allele frequencies (in PriorAlleleFreqs).
+   * also creates array AlleleCounts
    * populations - the number of ancestral populations
    */
 
@@ -413,7 +413,6 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
   //Reset();
 
   if( IsRandom() ){
-    
     // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
     if(IsHistoricAlleleFreq ){
       for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -425,13 +424,14 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     }
     
     // Sample allele frequencies conditional on Dirichlet priors 
-    // and set AlleleProbs, then set haplotype pair probs
-    // this is the only point at which SetHapPair probs is called, apart from when 
+    // use these frequencies to set AlleleProbs in CompositeLocus
+    // then use AlleleProbs to set HapPairProbs in CompositeLocus
+    // this is the only point at which SetHapPairProbs is called, apart from when 
     // the composite loci are initialized
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       SampleAlleleFreqs(i, 1 );
       (*Loci)(i)->SetAlleleProbs(Freqs[i]);
-      //      if( (*Loci)(i)->GetNumberOfLoci() > 1 ) // this condition must be wrong
+      //      if( (*Loci)(i)->GetNumberOfLoci() > 1 ) // ************* this condition must be wrong - remarked out
       (*Loci)(i)->SetHapPairProbs();
     }
     
@@ -582,6 +582,8 @@ double AlleleFreqs::GetAlleleProbsMAP( int x, int ancestry , int locus)
  */
 void AlleleFreqs::SampleAlleleFreqs(int i, int flag )
 {
+  // samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
+  // and stores result in array Freqs 
   unsigned NumStates = (*Loci)(i)->GetNumberOfStates();
   double temp[NumStates];
   double *freqs = new double[NumStates];
@@ -592,6 +594,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i, int flag )
     gendirichlet(NumStates, temp, freqs);
     for(unsigned s = 0; s < NumStates-1; ++s)Freqs[i][s*Populations+j] = freqs[s];
 
+    // sample HistoricAlleleFreqs as a conjugate Dirichlet update with prior specified by PriorAlleleFreqs
     if( IsHistoricAlleleFreq ){
       for(unsigned s = 0; s < NumStates; ++s)temp[s] = PriorAlleleFreqs[i](s,j)+HistoricAlleleCounts[i][s*Populations+j];
       gendirichlet(NumStates, temp, freqs);
@@ -630,6 +633,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i, int flag )
  */
 double *AlleleFreqs::GetStatsForEta( int locus, int population)
 {
+  // calculates sufficient stats for update of dispersion parameter
   double *stats = new double[ (*Loci)(locus)->GetNumberOfStates() ];
   double sumHistoric = 0.0, sum = 0.0;
   for( int i = 0; i < (*Loci)(locus)->GetNumberOfStates() - 1; i++ ){
@@ -656,18 +660,21 @@ double *AlleleFreqs::GetStatsForEta( int locus, int population)
 // }
 
 void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
-// for a multi-allelic locus, we sample the Dirichlet prior allele freqs
-// by a Metropolis random walk
+  // problem here is to sample the Dirichlet parameters of a multinomial-Dirichlet distribution
+  // for a multi-allelic locus, we sample the Dirichlet proportion parameters conditional on the  
+  // dispersion parameter and the allele counts in admixed and historic populations
+  // by a Metropolis random walk
 {
   vector<int> accept(Populations,0);
-  Vector_d mu1, mu2;
+  Vector_d mu1, mu2; // mu1 is current vector of proportion parameters, mu2 is proposal
   for( int j = 0; j < Populations; j++ ){
     double Proposal1=0, Proposal2=0, f1=0, f2=0;
     mu1 = PriorAlleleFreqs[locus].GetColumn(j) / eta[j];
     mu2 = gendirichlet( mu1 / MuProposal[locus][j].GetSigma() );
         
     for( int i = 0; i < (*Loci)(locus)->GetNumberOfStates(); i++ ){
-      f1 += 0.1 * log( mu1(i) ) + 0.1 * log( 1 - mu1(i) );
+      // priors on proportion parameters are apparently Dirichlet(0.1, ,,, 0,1) 
+      f1 += 0.1 * log( mu1(i) ) + 0.1 * log( 1 - mu1(i) ); 
       f2 += 0.1 * log( mu2(i) ) + 0.1 * log( 1 - mu2(i) );
       Proposal1 += (eta[j] * mu2(i) - 1) * log( mu1(i) ) - gsl_sf_lngamma( eta[j] * mu2(i) );
       Proposal2 += (eta[j] * mu1(i) - 1) * log( mu2(i) ) - gsl_sf_lngamma( eta[j] * mu1(i) );
@@ -693,10 +700,14 @@ void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
 }
 
 void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
-// for a diallelic locus, we can sample the proportion parameter of the beta distribution
-// conditional on the observed counts, the historic allele freqs and the dispersion parameter
-// using an adaptive rejection sampler
-//Note: here NumberOfStates == 2  
+  // with a dispersion model, we sample PriorAlleleFreqs conditional on the observed counts 
+  // (with the realized allele freqs integrated out) from a distribution that is 
+  // proportional to the product of two binomial-beta likelihoods (for a diallelic locus)
+  // we sample the proportion parameter of the beta distribution
+  // conditional on the realized allele counts in the admixed population, 
+  // the allele counts in the historic population, and the dispersion parameter
+  // using an adaptive rejection sampler
+  //Note: here NumberOfStates == 2  
 {
   double lefttruncation = 0.1;
   double MuParameters[2];
@@ -810,7 +821,7 @@ int AlleleFreqs::GetNumberOfCompositeLoci(){
   return NumberOfCompositeLoci;
 }
 
-void AlleleFreqs::OutputFST(bool IsPedFile){
+void AlleleFreqs::OutputFST(bool IsPedFile){ // should remove all refs to IsPedFile
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     if(IsPedFile)
       fstoutputstream << "\"" << (*Loci)(j)->GetLabel(0) << "\"";
@@ -837,7 +848,6 @@ void AlleleFreqs::OpenFSTFile(AdmixOptions *options,LogWriter *Log){
   }
 }
 
-
 // should set allele freqs to the posterior mode
 // but apparently just sets to current value
 // probably doesn't matter where there is strong prior on allele freqs, and used in Chib algorithm 
@@ -855,14 +865,8 @@ void AlleleFreqs::setAlleleFreqsMAP()
   }
 }
 
-/**
- * Indicates whether allele frequencies are fixed or random.
- *
- * Returns:
- * an integer representing a boolean. true (one) if allele frequencies
- * are random. false (zero) otherwise.
- * Should this return a boolean?
- */
+// Indicates whether allele frequencies are fixed or random.
+// returns a boolean true if allele frequencies are random, false otherwise.
 bool AlleleFreqs::IsRandom()
 {
   return( RandomAlleleFreqs );
@@ -874,22 +878,21 @@ bool AlleleFreqs::IsRandom()
  * population - the number of the population (zero based)
  * locus - the number of the locus
  * returns:
- * a vector containing Dirichlet parameters for frequencies of each allele at the locus. 
+ * a vector_d containing Dirichlet parameters for frequencies of each allele at the locus. 
  * Expected frequencies are calculated by dividing each parameter by the sum of parameters
  */
 Vector_d AlleleFreqs::GetPriorAlleleFreqs( int locus, int population )
 {
   return( PriorAlleleFreqs[locus].GetColumn( population ) );
 }
-/**
- * AlleleCounts is a matrix of counts of each allele in each
- * population this is the sufficient statistic for updating allele
- * frequencies.  Zero's the allele frequencies before they are updated.
- */
+
+// AlleleCounts is a 2D array: 1st dimension is locus, 2nd dimension is state*population
+// this function returns counts for all populations 
 int *AlleleFreqs::GetAlleleCounts(int locus)
 {
   return( AlleleCounts[locus] );
 }
+// this function returns counts for the population specified
 Vector_i AlleleFreqs::GetAlleleCounts( int locus, int population )
 {
   Vector_i counts((*Loci)(locus)->GetNumberOfStates());
@@ -909,7 +912,7 @@ Vector_d AlleleFreqs::getAlleleFreqsMAP( int locus, int population )
  * Gets the frequencies of each haplotype in a composite locus.
  *
  * returns:
- * a matrix containing the frequencies of each allele
+ * array containing the frequencies of each allele
  * one row per allele state, one column per population
  */
 double *AlleleFreqs::GetAlleleFreqs(int locus)

@@ -270,11 +270,8 @@ void CompositeLocus::SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, 
   hap[1] = HapPairs[h].haps[1];
 }
 
-/**
- * Called every time the haplotype frequencies change. Sets values in the 
- * four-dimensional matrix of probabilities of pairs of haplotypes.
- */
-
+// Called every time the haplotype frequencies change. Sets elements in the  
+// array of probabilities of ordered haplotype pairs for each ordered pair of ancestry states
 void CompositeLocus::SetHapPairProbs(){
   for(int h0 = 0; h0 < NumberOfStates; ++h0){
     for(int h1 = 0; h1 < NumberOfStates; ++h1){
