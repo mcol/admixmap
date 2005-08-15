@@ -86,10 +86,10 @@ AdmixOptions::AdmixOptions()
   HWTest = false;
   OutputAlleleFreq = false;
 
-  Rhoalpha = 6.0;//should be 3.0
-  Rhobeta = 1.0;// and 0.5
-  alphamean = 1.0;//should be 0.5
-  alphavar = 1.0;// and 0.25
+  Rhoalpha = 3.0; //should be 3.0
+  Rhobeta = 0.5;  // and 0.5
+  alphamean = 1;  //  gamma(0.25, 0.25)
+  alphavar = 16;   // 
 
   ResultsDir = "results";
   LogFilename = "log.txt";
