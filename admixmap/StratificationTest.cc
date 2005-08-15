@@ -1,4 +1,6 @@
 #include "StratificationTest.h"
+#include <numeric>
+#include "gsl/gsl_eigen.h"
 
 using namespace std;
 
@@ -9,37 +11,65 @@ StratificationTest::StratificationTest()
    T = 0;
 }
 
-void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, LogWriter *Log )
+void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, Chromosome **Chr, IndividualCollection *IC, LogWriter *Log )
 {
   if(options->getStratificationTest() ){
     float DistanceFromLast = 0;
-    for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
-      DistanceFromLast += Loci.GetDistance(j);
-      if( DistanceFromLast > 10 ){ // set cutoff to 10 morgans so that only unlinked loci will be included
-	// should have a more specific way to code unlinked loci than setting Distance=100
-	// this algorithm selects the first locus on each chromosome
-	// preferable to select the most informative locus (greatest heterozygosity)
-	if( Loci(j)->GetNumberOfStates() == 2 ){ // test uses only diallelic loci
-	  // should be able to use multi-allelic loci by grouping alleles into 2 bins
-	  TestLoci.push_back(j);
-	  NumberOfTestLoci++;
-	  DistanceFromLast = 0;
+    //OLD CODE
+//     for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
+//       DistanceFromLast += Loci.GetDistance(j);
+//       if( DistanceFromLast > 10 ){ // set cutoff to 10 morgans so that only unlinked loci will be included
+// 	// should have a more specific way to code unlinked loci than setting Distance=100
+// 	// this algorithm selects the first locus on each chromosome
+// 	// preferable to select the most informative locus (greatest heterozygosity)
+// 	if( Loci(j)->GetNumberOfStates() == 2 ){ // test uses only diallelic loci
+// 	  // should be able to use multi-allelic loci by grouping alleles into 2 bins
+// 	  TestLoci.push_back(j);
+// 	  NumberOfTestLoci++;
+// 	  DistanceFromLast = 0;
+// 	}
+//       }
+//     }
+    //NEW CODE
+    for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
+      int j = -1;
+      double max = 0;
+      double n1, n2;//# copies of allele1, allele2
+      double ExpHet;//expected heterozygosity
+      //select most informative locus (with greatest exp heteroxygosity) on each chromosome
+      for(unsigned locus = 0; locus < Chr[c]->GetSize(); ++locus){
+	if((*Chr[c])(locus)->GetNumberOfStates() == 2){// test uses only diallelic loci
+	  n1 = (double) GetAlleleCounts(locus, 1, IC);
+	  n2 = (double) GetAlleleCounts(locus, 2, IC);
+	  ExpHet = 2.0 * (n1*n2) / ((n1+n2)*(n1+n2)); 
+	  if( ExpHet > max){
+	    max  = ExpHet;
+	    j = Chr[c]->GetLocus(locus);//gets locus number (on genome) of this locus
+	  }
 	}
       }
+      //j is the most informative locus
+      if(j > -1){
+	TestLoci.push_back(j);
+	NumberOfTestLoci++;
+	DistanceFromLast = 0;
+      }
     }
+    
+    
     if( NumberOfTestLoci < 2 ){
-       Log->logmsg(true,"Too few unlinked loci to run stratification test\n");
-       options->setStratificationTest(false);
+      Log->logmsg(true,"Too few unlinked loci to run stratification test\n");
+      options->setStratificationTest(false);
     }
     else{
       Log->logmsg(true, NumberOfTestLoci);
-       Log->logmsg(true, " loci used in stratification test.\n");
-       for(int i = 0; i < NumberOfTestLoci; i++){
-          Log->write(Loci(TestLoci[i])->GetLabel(0));Log->write("\n");
-       }
-       ModelIndicator = options->isRandomMatingModel();
-       
-       OpenOutputFile(options->getDICoutputFilename(),Log);
+      Log->logmsg(true, " loci used in stratification test.\n");
+      for(int i = 0; i < NumberOfTestLoci; i++){
+	Log->write(Loci(TestLoci[i])->GetLabel(0));Log->write("\n");
+      }
+      ModelIndicator = options->isRandomMatingModel();
+      
+      OpenOutputFile(options->getDICoutputFilename(),Log);
     }
   }
   else{
@@ -51,9 +81,9 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
 				    int Populations )
 {
   // matrix of (observed minus expected copies allele 1) scores for each individual at each locus
-  Matrix_d popX( individuals->getSize(), NumberOfTestLoci ); 
+  gsl_matrix *popX = gsl_matrix_calloc( individuals->getSize(), NumberOfTestLoci ); 
   // matrix of replicate scores
-  Matrix_d popRepX( individuals->getSize(), NumberOfTestLoci );
+  gsl_matrix *popRepX = gsl_matrix_calloc( individuals->getSize(), NumberOfTestLoci );
   //bool flag = false;
   vector<unsigned short> genotype(2, 0);
   int ancestry[2];
@@ -79,27 +109,51 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
       // vector<unsigned short> repgenotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
       // Calculate score X = Obs0 + Obs1 - Expected0 - Expected1, where Obs0, Obs1 are coded 1 for allele 1, 0 for allele 2
       // Obs0 + Obs1 = 4 - genotype[0] - genotype[1]
-      popX( i, j )    = (double)(4 - genotype[0] - genotype[1]) - ProbAllele1[0] - ProbAllele1[1];
-      popRepX( i, j ) = (double)(4 - repgenotype[0] - repgenotype[1]) - ProbAllele1[0] - ProbAllele1[1];
+      gsl_matrix_set(popX, i, j, (double)(4 - genotype[0] - genotype[1]) - ProbAllele1[0] - ProbAllele1[1]);
+      gsl_matrix_set(popRepX, i, j ,(double)(4 - repgenotype[0] - repgenotype[1]) - ProbAllele1[0] - ProbAllele1[1]);
     }  
   }
   
-  Vector_d EigenValues;
-  Vector_d RepEigenValues;
-  Matrix_d Cov;  // covariance matrix for (observed minus expected copies allele 1) scores
-  Matrix_d RepCov; // covariance matrix for replicate scores
-  
-  Cov = popX.Transpose() * popX;
-  RepCov = popRepX.Transpose() * popRepX;
-  Cov.Eigenvalue2( &EigenValues );
-  RepCov.Eigenvalue2( &RepEigenValues );
-  EigenValues /= EigenValues.Sum();
-  RepEigenValues /= RepEigenValues.Sum();
-  outputstream << EigenValues.MaximumElement() << "\t" << RepEigenValues.MaximumElement() << endl;
-  if( EigenValues.MaximumElement() < RepEigenValues.MaximumElement() ){
+  // covariance matrix for (observed minus expected copies allele 1) scores
+  gsl_matrix *Cov = gsl_matrix_calloc(NumberOfTestLoci, NumberOfTestLoci);
+  gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1, popX, popX, 0, Cov  );//Cov = popX' * popX
+
+  // covariance matrix for replicate scores
+  gsl_matrix *RepCov = gsl_matrix_calloc(NumberOfTestLoci, NumberOfTestLoci);
+  gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1, popRepX, popRepX, 0, RepCov  );//RepCov = popRepX' * popRepX
+
+  //compute eigenvalues
+  gsl_eigen_symm_workspace *w = gsl_eigen_symm_alloc (NumberOfTestLoci);//allocates workspace for eigenvalue calculations
+  gsl_vector *EigenValues = gsl_vector_calloc(NumberOfTestLoci);
+  gsl_eigen_symm (Cov, EigenValues, w);
+
+  gsl_vector *RepEigenValues = gsl_vector_calloc(NumberOfTestLoci);
+  gsl_eigen_symm(RepCov, RepEigenValues, w);
+
+  gsl_eigen_symm_free(w); 
+
+  //normalise eigenvalues
+  const double Sum = accumulate(EigenValues->data, EigenValues->data + NumberOfTestLoci, 0.0);
+  gsl_vector_scale (EigenValues, 1.0/Sum) ;
+  const double RepSum = accumulate(RepEigenValues->data, RepEigenValues->data + NumberOfTestLoci, 0.0);
+  gsl_vector_scale (RepEigenValues, 1.0/RepSum) ;
+  //find max eigenvalues
+  double maxEigenValue = gsl_vector_max(EigenValues);
+  double maxRepEigenValue = gsl_vector_max(RepEigenValues);
+  //output to file
+  outputstream << maxEigenValue << "\t" << maxRepEigenValue << endl;
+  //increment test statistic
+  if( maxEigenValue < maxRepEigenValue ){
     T++;
   }
   count++;
+  //clean up
+  gsl_vector_free(EigenValues);
+  gsl_vector_free(RepEigenValues);
+  gsl_matrix_free(Cov);
+  gsl_matrix_free(RepCov);
+  gsl_matrix_free(popX);
+  gsl_matrix_free(popRepX);
 }
 
 vector<double>
@@ -181,4 +235,29 @@ void StratificationTest::Output(LogWriter *Log){
   Log->logmsg(true, "\nStratification test: posterior predictive check probability "); 
   Log->logmsg(true, (float)T/count);
   Log->logmsg(true,"\n");
+}
+
+//this function should really be in CompositeLocus or AlleleFreqs or IndividualCollection
+int StratificationTest::GetAlleleCounts(int locus, int a, IndividualCollection *IC)
+{
+  /**
+   * returns a count of the copies of allele a at a comp locus
+   * only works for diallelic loci. 
+   */
+
+  int AlleleCounts = 0;
+
+  for(int i = 0; i < IC->getSize(); ++i){
+    Individual *ind = IC->getIndividual(i);
+    if(!ind->IsMissing(locus)){
+      unsigned short **genotype = ind->getGenotype(locus);
+	if(genotype[0][0] == a){
+	  AlleleCounts++;
+	}
+	if(genotype[0][1] == a){
+	  AlleleCounts++;
+	}
+    }
+  }
+  return AlleleCounts;
 }

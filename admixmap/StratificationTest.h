@@ -11,6 +11,17 @@
 
 class StratificationTest
 {
+public:
+   StratificationTest();
+
+  void Initialize( AdmixOptions* options, Genome &Loci, Chromosome **Chr, IndividualCollection *IC, LogWriter *Log );
+
+  void calculate( IndividualCollection* individuals, double **AlleleFreqs, std::vector<std::vector<int> > ChrmAndLocus, int Populations );
+
+  void Output(LogWriter *);
+
+  //float getStatistic();
+
 private:
   int T;
   int count;
@@ -32,17 +43,8 @@ private:
 
   std::vector<unsigned short> SampleHeterozygotePhase( const double*, const int ancestry[2] );
 
-public:
-   StratificationTest();
+  int GetAlleleCounts(int locus, int a, IndividualCollection *IC);
 
-  void Initialize( AdmixOptions*, Genome& , LogWriter *);
-
-  void calculate( IndividualCollection* individuals, double **AlleleFreqs, std::vector<std::vector<int> > ChrmAndLocus, int Populations );
-
-  void Output(LogWriter *);
-
-
-  //float getStatistic();
 };
 
 #endif /* !defined STRATIFICATIONTEST_H */

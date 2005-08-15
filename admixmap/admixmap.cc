@@ -119,7 +119,7 @@ void submain(AdmixOptions* options){
       DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());    
     }
     if( options->getStratificationTest() )
-      StratTest.Initialize( options, Loci ,&Log);
+      StratTest.Initialize( options, Loci, chrm, IC, &Log);
     if( options->getScoreTestIndicator() )
       Scoretest.Initialise(options, IC, &Loci, chrm,data.GetPopLabels(), &Log);
     if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
