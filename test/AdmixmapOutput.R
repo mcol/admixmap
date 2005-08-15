@@ -459,7 +459,9 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
                            dimnames=c(dimnames(scoretests4way)[1:3]))
   
   ## set test statistic to missing if obs info < 1
-  scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
+  if(getOutcomeType(dimnames(param.samples)[[2]]) == 1){#continuous outcome
+    scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
+  }
   pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
   
   ## output scoretest.final as 2-way array, in which rows index pops within loci
