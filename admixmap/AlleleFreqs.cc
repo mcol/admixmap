@@ -518,8 +518,8 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
   */
 void AlleleFreqs::UpdateAlleleCounts(int locus, int h[2], int ancestry[2], bool diploid )
 {
-  AlleleCounts[locus][ h[0]*Populations + ancestry[1] ]++;
-  if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[0] ]++;
+  AlleleCounts[locus][ h[0]*Populations + ancestry[0] ]++;
+  if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[1] ]++;
   //if haploid(ie diploid = false), h[0]==h[1]==genotypes[locus] and ancestry[0]==ancestry[1]
   //and we only count once
 }
