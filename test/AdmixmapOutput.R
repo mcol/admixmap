@@ -753,7 +753,8 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
         }
       if(pop==1) { # create matrix of allele freqs: rows index alleles, cols index populations  
         allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=length(p), ncol=k,
-                                                  dimnames=list(character(0), population.labels))
+                                                  dimnames=dimnames(allelefreq.means.list[[locus]][-1]))
+                                                  #list(character(0), population.labels))
       }
       allelefreq.sumalphas[locus,pop] <- factor - 1
       allelefreq.params.list[[locus]][,pop] <-
@@ -1082,7 +1083,7 @@ if(is.null(user.options$allelefreqoutputfile)) {
     allelefreq.means.matrix.list <- list()
     for(locus in 1:length(allelefreq.params.list)) {
       allelefreq.means.matrix.list[[locus]] <-
-        allelefreq.params.list[[locus]]/sum(allelefreq.params.list[[locus]], 2)
+        allelefreq.params.list[[locus]]/colSums(allelefreq.params.list[[locus]])
     }
     writeAlleleFreqs(allelefreq.means.matrix.list, K, loci.compound, population.labels,
                      paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
