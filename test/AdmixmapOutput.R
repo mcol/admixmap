@@ -655,14 +655,14 @@ convertAlleleFreqs <- function(allelefreq.samples) {
     ## lastrow is position in dimension 1 of last allele (but one) at j th locus
     lastrow <- length(row.locusnumber) + 1 - match(j, rev(row.locusnumber))
     ## freqarray should always be 3-way array even if diallelic locus or single population 
-    freqarray <- allelefreq.samples[firstrow:lastrow, , ]
-    if(is.vector(freqarray)) { 
-      freqarray <- array(freqarray, dim=c(1, 1, draws))
-    } else {
-      if(length(dim(freqarray))==2) {
-        freqarray <- array(freqarray, dim=c(1, dim(freqarray)[1], draws))
-      }
-    }
+    freqarray <- allelefreq.samples[firstrow:lastrow, , ,drop=FALSE]
+    ##if(is.vector(freqarray)) { 
+      ##freqarray <- array(freqarray, dim=c(1, 1, draws))
+    ##} else {
+      ##if(length(dim(freqarray))==2) {
+        ##freqarray <- array(freqarray, dim=c(1, dim(freqarray)[1], draws))
+      ##}
+    ##}
     allelefreq.samples.list[[j]] <- freqarray
   }
   return(allelefreq.samples.list)
@@ -701,7 +701,7 @@ listFreqMeansCovs <- function(allelefreq.samples.list) {
   ## generate lists to hold allele freq means and covariances
   allelefreq.means.list <- list()
   allelefreq.covs.list  <- list()
-  K <- dim(allelefreq.samples.list[[1]])[1]
+  K <- dim(allelefreq.samples.list[[1]])[2]
   ## loop over loci to compute means and covariances
   for(locus in 1:length(allelefreq.samples.list)) {
     ## loop over populations 
@@ -749,9 +749,9 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
             covar.predicted[i,j] <- ifelse(i==j, p[i]*(1-p[i]), p[i]*p[j])
           }
         }
-        d.predicted <- det(covar.predicted)
-        d.observed <- det(v)
-        factor <- (d.predicted/d.observed)^(1/length(p))
+        d.predicted <- sum(diag(covar.predicted))##det(covar.predicted)
+        d.observed <- sum(diag(v))##det(v)
+        factor <- (d.predicted/d.observed)##^(1/length(p))
         }
       if(pop==1) { # create matrix of allele freqs: rows index alleles, cols index populations  
         allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=length(p), ncol=k,
