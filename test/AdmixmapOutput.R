@@ -813,7 +813,7 @@ writePosteriorMeansIndivAdmixture <- function(samples.meanparents, K) {
   IndividualAdmixture <- t(apply(samples.meanparents[1:K,,], 1:2, mean))
   admixture.table <- data.frame(IndividualAdmixture, AncestryDiversity)
   outputfile <- paste(resultsdir, "IndividualVarPosteriorMeans.txt", sep="/" )
-  write.table(signif(admixture.table, digits=3), file=outputfile, 
+  write.table(signif(admixture.table, digits=3), file=outputfile, sep="\t", 
               quote=FALSE, row.names=FALSE)
 }
 
@@ -1013,12 +1013,12 @@ if(!is.null(user.options$haplotypeassociationscorefile)) {
 ## read output of regression model score test for ancestry, and plot cumulative results
 if(!is.null(user.options$ancestryassociationscorefile)) {
   ## produces warning
-  plotAncestryScoreTest(user.options$ancestryassociationscorefile, "AncestryAssoc",K, population.labels, user.options$every)
+  plotAncestryScoreTest(user.options$ancestryassociationscorefile, "TestsAncestryAssoc",K, population.labels, user.options$every)
 }
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
 if(!is.null(user.options$affectedsonlyscorefile)) {
-  plotAncestryScoreTest(user.options$affectedsonlyscorefile, "AffectedsOnly",K, population.labels, user.options$every)
+  plotAncestryScoreTest(user.options$affectedsonlyscorefile, "TestsAffectedsOnly",K, population.labels, user.options$every)
 }
 
 ## read output of score test for mis-specified allele freqs and plot cumulative results
