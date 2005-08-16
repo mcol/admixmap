@@ -34,17 +34,28 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, Chromo
     for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
       int j = -1;
       double max = 0;
-      double n1, n2;//# copies of allele1, allele2
+      double n1, n2;
       double ExpHet;//expected heterozygosity
-      //select most informative locus (with greatest exp heteroxygosity) on each chromosome
+      //select most informative locus (with greatest exp heteroxygosity), from those with
+      //less than 5% missing genotypes, on each chromosome
       for(unsigned locus = 0; locus < Chr[c]->GetSize(); ++locus){
 	if((*Chr[c])(locus)->GetNumberOfStates() == 2){// test uses only diallelic loci
-	  n1 = (double) GetAlleleCounts(locus, 1, IC);
-	  n2 = (double) GetAlleleCounts(locus, 2, IC);
-	  ExpHet = 2.0 * (n1*n2) / ((n1+n2)*(n1+n2)); 
-	  if( ExpHet > max){
-	    max  = ExpHet;
-	    j = Chr[c]->GetLocus(locus);//gets locus number (on genome) of this locus
+	  //count number of missing genotypes at locus
+	  long count = 0;
+	  for(int i = 0; i < IC->getSize(); ++i){
+	    Individual *ind = IC->getIndividual(i);
+	    if(ind->IsMissing(locus)){
+	      ++count;
+	    }
+	  }
+	  if( ( (double)count / (double)(IC->getSize()) ) < 0.05){//exclude loci with >5% missing genotypes
+	    n1 = (double) GetAlleleCounts(locus, 1, IC);//# copies of allele1
+	    n2 = (double) GetAlleleCounts(locus, 2, IC);//# copies of allele2
+	    ExpHet = 2.0 * (n1*n2) / ((n1+n2)*(n1+n2)); 
+	    if( ExpHet > max){
+	      max  = ExpHet;
+	      j = Chr[c]->GetLocus(locus);//gets locus number (on genome) of this locus
+	    }
 	  }
 	}
       }
