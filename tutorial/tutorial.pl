@@ -42,6 +42,7 @@ doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
+$arg_hash->{samples}                    = 5100;  
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
 doAnalysis($executable,$arg_hash);
 
@@ -52,13 +53,12 @@ doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs 
 delete $arg_hash->{populations};
-#$arg_hash->{samples}                    = 1100;  
 $arg_hash->{resultsdir}                    = 'PriorFreqResultsSkin';  
 $arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqs.txt';
 $arg_hash->{dispersiontestfile}            = 'dispersionTest.txt';
 $arg_hash->{indadmixturefile}              = 'indivadmixture.txt';
 $arg_hash->{ancestryassociationscorefile}  = 'ancestryassociationscorefile.txt';
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs and diabetes as outcome var 
 delete $arg_hash->{populations};
@@ -66,7 +66,7 @@ $arg_hash->{resultsdir}                = 'PriorFreqResultsDiabetes';
 $arg_hash->{analysistypeindicator}     = 3; # binary outcome var
 $arg_hash->{targetindicator}           = 0; # diabetes
 $arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 # model with historic allele freqs and both outcome vars
 delete $arg_hash->{priorallelefreqfile};
@@ -79,7 +79,7 @@ $arg_hash->{etapriorfile}              = "data/etapriors.txt";
 $arg_hash->{dispparamfile}             = "dispersionparams.txt";
 $arg_hash->{fstoutputfile}             = "lociFst.txt";
 $arg_hash->{allelefreqoutputfile}      = "allelefreqs.txt";
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 ############### DO NOT EDIT BELOW THIS LINE ############################
 
