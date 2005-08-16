@@ -701,7 +701,7 @@ listFreqMeansCovs <- function(allelefreq.samples.list) {
   ## generate lists to hold allele freq means and covariances
   allelefreq.means.list <- list()
   allelefreq.covs.list  <- list()
-  K <- dim(allelefreq.samples.list[[1]])[2]
+  K <- dim(allelefreq.samples.list[[1]])[1]
   ## loop over loci to compute means and covariances
   for(locus in 1:length(allelefreq.samples.list)) {
     ## loop over populations 
