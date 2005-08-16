@@ -1,0 +1,13 @@
+"RowNames" "NumberOfAlleles" "MapDistance"
+"CAP43"	2	100
+"CAP19"	2	0
+"CAP63"	2	0
+"CAP44"	2	0
+"PPARE6"	2	100
+"PPAR12"	2	0
+"SURE16"	2	100
+"SURE31"	2	0
+"SURE33"	2	0
+"KCNJ"	2	0
+
+

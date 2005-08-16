@@ -1,0 +1,3 @@
+"RowNames" "NumberOfAlleles" "MapDistance"
+"1800498" 2   100
+"1079598" 2   0
