@@ -48,7 +48,7 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, Chromo
 	      ++count;
 	    }
 	  }
-	  if( ( (double)count / (double)(IC->getSize()) ) < 0.05){//exclude loci with >5% missing genotypes
+	  if( ( (double)count / (double)(IC->getSize()) ) < 0.1){//exclude loci with >10% missing genotypes
 	    n1 = (double) GetAlleleCounts(locus, 1, IC);//# copies of allele1
 	    n2 = (double) GetAlleleCounts(locus, 2, IC);//# copies of allele2
 	    ExpHet = 2.0 * (n1*n2) / ((n1+n2)*(n1+n2)); 
