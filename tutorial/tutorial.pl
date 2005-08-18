@@ -38,13 +38,14 @@ $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'SinglePopResults';  
 $arg_hash->{analysistypeindicator} = 2; # continuous outcome var
 $arg_hash->{targetindicator}       = 1; # skin reflectance
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
-$arg_hash->{samples}                    = 5100;  
+$arg_hash->{samples}               = 1200;
+$arg_hash->{burnin}                = 200;  
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 3 populations
 $arg_hash->{populations}           = 3;
@@ -54,11 +55,11 @@ doAnalysis($executable,$arg_hash);
 # model with prior allele freqs 
 delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                    = 'PriorFreqResultsSkin';  
-$arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqs.txt';
+$arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqsnew.txt';
 $arg_hash->{dispersiontestfile}            = 'dispersionTest.txt';
 $arg_hash->{indadmixturefile}              = 'indivadmixture.txt';
 $arg_hash->{ancestryassociationscorefile}  = 'ancestryassociationscorefile.txt';
-#doAnalysis($executable,$arg_hash);
+doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs and diabetes as outcome var 
 delete $arg_hash->{populations};
