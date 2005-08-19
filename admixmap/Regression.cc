@@ -163,13 +163,20 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
 void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
   // Sample for regression model parameters beta
+  // should make sure that matrix returned by getCovariates contains updated values of indiv admixture
   for( int k = 0; k < NumOutcomeVars; k++ ){
     //      linear
     if( AnalysisTypeIndicator == 2 || (AnalysisTypeIndicator == 5 && ! individuals->getOutcomeType(k)) ){
+      // full conditional for regression parameters has mean Beta_n = (n0 + X'X)^-1 (n0 Beta0 + X'Y)
+      // where Beta0  and n0*lambda are prior mean and prior precision matrix for regression parameters
+      // calculate (n0 + X'X)^-1
       Matrix_d temporary = individuals->getCovariates().Transpose() * individuals->getCovariates() + n0;
       temporary.InvertUsingLUDecomposition();
       temporary.Symmetrize();
+      // postmultiply by (n0*beta0 + X'*Y) to obtain means of full conditional distribution
       betan = temporary * ( n0 * beta0[k] + individuals->getCovariates().Transpose() * individuals->getOutcome(k) );
+      // lambda_n is rate parameter of gamma full conditional distribution for dispersion parameter, given by  
+      // lambda1 + 0.5[(Y - X Beta)' Y + (Beta0 - Beta_n)' n0 Beta0]
       double lambdan = lambda1 + 0.5 *
 	( (individuals->getOutcome(k) - individuals->getCovariates() * betan ).Transpose() * individuals->getOutcome(k)
 	  + (beta0[k] - betan).Transpose() * n0 * beta0[k] )(0,0);
