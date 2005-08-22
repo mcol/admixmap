@@ -39,10 +39,10 @@ genotypes <- character(L)
 outcome <- numeric(N)
 avM <- numeric(N)
 for(individual in 1:N) {
-  M1 <- rbeta(1, 4, 1)
+  M1 <- rbeta(1, 1, 4)
   # M2 <- rbeta(1, 4, 1)# random mating
   M2 <- M1 #assortative mating
-  avM[individual] <- 0.5*(M1 + M2)
+  avM[individual] <- 1 - 0.5*(M1 + M2)
   obs <- simulateGenotypes(M1, M2, rho, x, L)  #make some genotypes missing
   for(locus in 1:L) if(runif(n=1) < 0.1)
     obs[locus]<-""
@@ -53,8 +53,7 @@ for(individual in 1:N) {
   ##outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-2*avM[individual])))  # binary outcome
   ##ofam <- binomial
 }
-m2 <- 1 - avM
-reg.true <-summary.glm(glm(outcome ~ m2, family = ofam))
+reg.true <-summary.glm(glm(outcome ~ avM, family = ofam))
 
 outcome.table <- data.frame(outcome, row.names=NULL) # write outcome variable to file
 write.table(outcome.table, file="sim/outcome.txt", row.names=FALSE, col.names=TRUE)
