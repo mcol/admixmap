@@ -48,16 +48,17 @@ for(individual in 1:N) {
     obs[locus]<-""
   genotypes <- rbind(genotypes, obs)
   ## simulate outcome
-  ## outcome[individual] <- rnorm(1, mean=(50 + 25*avM[individual], sd=3) #linear regression 
-  outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-2*avM[individual])))  # binary outcome
-  ofam <- binomial
+  outcome[individual] <- rnorm(1, mean=(50 + 25*avM[individual]), sd=3) #linear regression
+  ofam <- gaussian
+  ##outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-2*avM[individual])))  # binary outcome
+  ##ofam <- binomial
 }
 m2 <- 1 - avM
 reg.true <-summary.glm(glm(outcome ~ m2, family = ofam))
 
 outcome.table <- data.frame(outcome, row.names=NULL) # write outcome variable to file
 write.table(outcome.table, file="sim/outcome.txt", row.names=FALSE, col.names=TRUE)
-Mvector.table <- data.frame(Mvector, row.names=NULL)
+Mvector.table <- data.frame(avM, row.names=NULL)
 write.table(outcome, file="sim/Mvalues.txt", row.names=FALSE,
             col.names=TRUE)
 ##write genotypes to file
