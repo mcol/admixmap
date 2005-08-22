@@ -311,7 +311,7 @@ double Individual::getLogPosteriorProb()
 
 // update the individual admixture values (mean of both gametes) used in the regression model
 void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates,
-                                               const double *poptheta, bool RandomMatingModel, Matrix_d *Covariates0)
+                                               const double *poptheta, bool RandomMatingModel, Matrix_d *Covariates)
 {
   double avgtheta[Populations];
   if(RandomMatingModel )//average over gametes
@@ -319,9 +319,9 @@ void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCova
   
   else
     for(int k = 0; k < Populations; ++k) avgtheta[k] = Theta[k];
-  for( int k = 0; k < Populations - 1; k++ )
-    (*Covariates0)( i, NoCovariates - Populations + k + 1 )
-      = avgtheta[ k + 1 ] - poptheta[ k + 1 ];
+  for( int k = 1; k < Populations ; k++ )
+    (*Covariates)( i, NoCovariates - Populations + k )
+      = avgtheta[ k ] - poptheta[ k ];
 }
 
 // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
@@ -365,23 +365,23 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
 // then should calculate ratio in Metropolis step 
 //  
 double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool RandomMatingModel,int Populations,
-					      int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
+					      int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
 						  Matrix_d *Outcome, const double *poptheta)
 {
   double probratio, Xbeta = 0;
   // TI = Target Indicator, indicates which outcome var is used
-  double avgtheta[Populations];
+  double avgtheta[Populations];avgtheta[0] = 0.0;
   // calculate mean of parental admixture proportions
   if( RandomMatingModel )
-    for(int k = 0;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations])/ 2.0 - poptheta[k];
+    for(int k = 1;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations])/ 2.0 - poptheta[k];
   else
-    for(int k = 0;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
+    for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
 
   for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates0( i, jj ) * beta[TI][jj];
-  for( int k = 0; k < Populations - 1; k++ ){
+    Xbeta += Covariates( i, jj ) * beta[TI][jj];
+  for( int k = 1; k < Populations; k++ ){
     //? Old code had 0 instead of TI in for index of beta.
-    Xbeta += avgtheta[ k ] * beta[TI][NoCovariates - Populations + k + 1];}
+    Xbeta += avgtheta[ k ] * beta[TI][NoCovariates - Populations + k];}
   double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
   if( Outcome[ TI ]( i, 0 ) == 1 )
     probratio = newExpectedY / ExpectedY[ TI ][i];
@@ -392,26 +392,26 @@ double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool RandomMati
 } 
 
 double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  bool RandomMatingModel, int Populations,
-						 int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
+						 int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
 						 Matrix_d *Outcome, const double *poptheta, double *lambda)
 {
-  double prob, Xbeta = 0;
-   double avgtheta[Populations];
+  double logprobratio, Xbeta = 0;
+   double avgtheta[Populations];avgtheta[0] = 0.0;
   if( RandomMatingModel )
-    for(int k = 0;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations ])/ 2.0 - poptheta[k];
+    for(int k = 1;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations ])/ 2.0 - poptheta[k];
   else
-    for(int k = 0;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
+    for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
 
   for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates0( i, jj ) * beta[ TI ][jj];
-  for( int k = 0; k < Populations - 1; k++ ){
-    Xbeta += avgtheta[ k ] * beta[ TI ][NoCovariates - Populations + k + 1];
+    Xbeta += Covariates( i, jj ) * beta[ TI ][jj];
+  for( int k = 1; k < Populations; k++ ){
+    Xbeta += avgtheta[ k ] * beta[ TI ][NoCovariates - Populations + k ];
   }
 
-  prob = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) ) * ( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) )
+  logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) ) * ( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) )
 			       - ( Xbeta - Outcome[ TI ]( i, 0 ) ) * ( Xbeta - Outcome[ TI ]( i, 0 ) ) );
 
-  return( prob );
+  return( logprobratio );
 }
 
 double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations )
@@ -440,7 +440,7 @@ double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int 
 
 void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
 				  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-				   Matrix_d &Covariates0, double **beta, const double *poptheta,
+				   Matrix_d &Covariates, double **beta, const double *poptheta,
 				   AdmixOptions* options, Chromosome **chrm, 
 				   vector<vector<double> > &alpha, double rhoalpha, 
 				   double rhobeta,vector<double> sigma, double DInvLink, double dispersion)
@@ -554,7 +554,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 
   //sample admixture proportions, Theta
   SampleTheta(i, SumLogTheta,Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
-	      Covariates0, beta, poptheta, options, alpha, sigma);
+	      Covariates, beta, poptheta, options, alpha, sigma);
 
   //increment B using new Admixture Props
   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
@@ -580,7 +580,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 // samples individual admixture proportions
 void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
                                  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-                                  Matrix_d &Covariates0, double **beta, const double *poptheta,
+                                  Matrix_d &Covariates, double **beta, const double *poptheta,
                                   AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma)
 {
   // propose new value for individual admixture proportions
@@ -595,22 +595,22 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
   //linear regression case
   if( options->getAnalysisTypeIndicator() == 2 && !options->getTestForAdmixtureAssociation() ){
     logpratio = AcceptanceProbForTheta_LinearReg( i, 0, options->isRandomMatingModel(), K,
-                                                  NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
+                                                  NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
   }
   //logistic regression case
   else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getTestForAdmixtureAssociation() ){
     logpratio = AcceptanceProbForTheta_LogReg( i, 0, options->isRandomMatingModel(), K,
-				       NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta);
+				       NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta);
     }
   //case of both linear and logistic regressions
   else if( options->getAnalysisTypeIndicator() == 5 ){
     for( int k = 0; k < NumOutcomes; k++ ){
       if( OutcomeType[ k ] )
 	logpratio += AcceptanceProbForTheta_LogReg( i, k, options->isRandomMatingModel(), K,
-                                                    NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta);
+                                                    NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta);
       else
 	logpratio += AcceptanceProbForTheta_LinearReg( i, k, options->isRandomMatingModel(), K,
-                                                       NoCovariates, Covariates0, beta, ExpectedY, Outcome, poptheta,lambda);
+                                                       NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
       }
   }
   //case of X only data
@@ -622,7 +622,7 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
 
  // update the value of admixture proportions used in the regression model  
   if( options->getAnalysisTypeIndicator() > 1 )
-    UpdateAdmixtureForRegression(i, K, NoCovariates, poptheta, options->isRandomMatingModel(),&(Covariates0));
+    UpdateAdmixtureForRegression(i, K, NoCovariates, poptheta, options->isRandomMatingModel(),&(Covariates));
 
   for( int k = 0; k < K; k++ ){
     SumLogTheta[ k ] += log( Theta[ k ] );

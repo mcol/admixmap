@@ -129,7 +129,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 #endif
 
   // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
-  rho = options->getRhoalpha();
+  rho = options->getRhoalpha()/options->getRhobeta();
 
   if( options->RhoFlatPrior() ){
      rhoalpha = 1.0;

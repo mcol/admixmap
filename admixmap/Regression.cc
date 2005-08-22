@@ -114,8 +114,8 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
     n0.SetDiagonal( 1 );
   }
 
-  lambda0 = .01;
-  lambda1 = .01;
+  lambda0 = .01;//shape parameter for prior on lambda
+  lambda1 = 1.0;//.01;//rate parameter for prior on lambda
   lambda = new double[ NumOutcomeVars ]; // elements of this array are either 
   // inverse of dispersion parameter for a linear regression model, 
   // or specify precision of priors on logistic regression parameters 
@@ -171,10 +171,15 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
       // where Beta0  and n0*lambda are prior mean and prior precision matrix for regression parameters
       // calculate (n0 + X'X)^-1
       Matrix_d temporary = individuals->getCovariates().Transpose() * individuals->getCovariates() + n0;
+      //cout<<"X'X = \n"<<temporary;
       temporary.InvertUsingLUDecomposition();
       temporary.Symmetrize();
+      //cout<<"X'X = \n"<<temporary;
       // postmultiply by (n0*beta0 + X'*Y) to obtain means of full conditional distribution
-      betan = temporary * ( n0 * beta0[k] + individuals->getCovariates().Transpose() * individuals->getOutcome(k) );
+      betan = ( n0 * beta0[k] + individuals->getCovariates().Transpose() * individuals->getOutcome(k) );
+      //cout<<"X'Y = \n"<<betan;
+      betan = temporary * betan;
+      //cout<<"(X'X)-1 * X'y = \n"<<betan<<endl<<endl;
       // lambda_n is rate parameter of gamma full conditional distribution for dispersion parameter, given by  
       // lambda1 + 0.5[(Y - X Beta)' Y + (Beta0 - Beta_n)' n0 Beta0]
       double lambdan = lambda1 + 0.5 *
