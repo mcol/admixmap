@@ -130,7 +130,7 @@ private:
   Matrix_d Covariates;
   Matrix_d Input;
   std::string *CovariateLabels;
-  std::string *TargetLabels;
+  std::string *OutcomeVarLabels;
   int *OutcomeType;
 
   Matrix_d *ReportedAncestry;

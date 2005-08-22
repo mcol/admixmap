@@ -51,7 +51,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   OutcomeType = 0;
   NumOutcomes = 0;
   indadmixoutput = 0;
-  TargetLabels = 0;
+  OutcomeVarLabels = 0;
   LogLikelihood=0.0;
   SumLogLikelihood = 0.0;
   Covariates = nullMatrix;
@@ -193,7 +193,7 @@ double IndividualCollection::getExpectedY(int i){
  }
 
 std::string IndividualCollection::getTargetLabels(int k){
-  return TargetLabels[k];
+  return OutcomeVarLabels[k];
 }
 
 void IndividualCollection::SetExpectedY(int k, double *beta){
@@ -415,14 +415,14 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
   getLabels(data_->getTargetData()[0], vtemp, TempLabels);
 
   if( options->getAnalysisTypeIndicator() == 5 ){
-    TargetLabels = new string[ LoadTarget.GetNumberOfCols() ];
+    OutcomeVarLabels = new string[ LoadTarget.GetNumberOfCols() ];
     NumOutcomes = LoadTarget.GetNumberOfCols();
     Outcome = new Matrix_d[NumOutcomes];
     delete[] OutcomeType;
     OutcomeType = new int[ LoadTarget.GetNumberOfCols() ];
 
     for( int j = 0; j < LoadTarget.GetNumberOfCols(); j++ ){
-      TargetLabels[j] = TempLabels[j];
+      OutcomeVarLabels[j] = TempLabels[j];
       TempTarget = LoadTarget;
       TempTarget.SubMatrix2( 1, NumInd, j, j );
       for(unsigned int i = 0; i < NumInd; i++ ){
@@ -436,24 +436,24 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
       if( OutcomeType[j] )
 	{
 	  Log->logmsg(true,"Binary variable: ");
-	  Log->logmsg(true,getTargetLabels(j));
+	  Log->logmsg(true,OutcomeVarLabels[j]);
 	  Log->logmsg(true,".\n");
 	}
       else
 	{
 	  Log->logmsg(true,"Continuous variable: ");
-	  Log->logmsg(true,getTargetLabels(j));
+	  Log->logmsg(true,OutcomeVarLabels[j]);
 	  Log->logmsg(true,".\n");
 	}
     }
   }
   else{
-    TargetLabels = new string[ 1 ];
-    TargetLabels[0] = TempLabels[ options->getTargetIndicator() ];
+    OutcomeVarLabels = new string[ 1 ];
+    OutcomeVarLabels[0] = TempLabels[ options->getTargetIndicator() ];
     NumOutcomes = 1;
     Outcome = new Matrix_d[1];
     Log->logmsg(true,"Regressing on: ");
-    Log->logmsg(true,getTargetLabels(0));
+    Log->logmsg(true, OutcomeVarLabels[0]);
     Log->logmsg(true,".\n");
 
     LoadTarget.SubMatrix2( 1, NumInd, options->getTargetIndicator(), options->getTargetIndicator() );
