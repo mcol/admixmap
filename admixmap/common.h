@@ -16,6 +16,9 @@
 
 typedef std::vector<std::string> Vector_s; //std vector of strings 
 typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors
+
+enum RegressionType {Linear, Logistic};
+
 // typedef double ** dmatrix;
 // typedef int ** imatrix;
 // typedef double*** dmatrixarray;
