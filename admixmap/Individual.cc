@@ -357,87 +357,6 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
   }
 }
 
-// these two functions return log of ratio of likelihoods of new and old values of population admixture
-// in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
- 
-// should have just one function to get the likelihood in the regression model, given a value of population admixture
-// should be generic method for GLM, given Xbeta, Y and probability distribution 
-// then should calculate ratio in Metropolis step 
-//  
-double Individual::AcceptanceProbForTheta_LogReg( int i, int TI, bool RandomMatingModel,int Populations,
-					      int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
-						  Matrix_d *Outcome, const double *poptheta)
-{
-  double probratio, Xbeta = 0;
-  // TI = Target Indicator, indicates which outcome var is used
-  double avgtheta[Populations];avgtheta[0] = 0.0;
-  // calculate mean of parental admixture proportions
-  if( RandomMatingModel )
-    for(int k = 1;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations])/ 2.0 - poptheta[k];
-  else
-    for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
-
-  for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates( i, jj ) * beta[TI][jj];
-  for( int k = 1; k < Populations; k++ ){
-    //? Old code had 0 instead of TI in for index of beta.
-    Xbeta += avgtheta[ k ] * beta[TI][NoCovariates - Populations + k];}
-  double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
-  if( Outcome[ TI ]( i, 0 ) == 1 )
-    probratio = newExpectedY / ExpectedY[ TI ][i];
-  else
-    probratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY[ TI ][i] );
-
-  return( log(probratio) );
-} 
-
-double Individual::AcceptanceProbForTheta_LinearReg( int i, int TI,  bool RandomMatingModel, int Populations,
-						 int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
-						 Matrix_d *Outcome, const double *poptheta, double *lambda)
-{
-  double logprobratio, Xbeta = 0;
-   double avgtheta[Populations];avgtheta[0] = 0.0;
-  if( RandomMatingModel )
-    for(int k = 1;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations ])/ 2.0 - poptheta[k];
-  else
-    for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
-
-  for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates( i, jj ) * beta[ TI ][jj];
-  for( int k = 1; k < Populations; k++ ){
-    Xbeta += avgtheta[ k ] * beta[ TI ][NoCovariates - Populations + k ];
-  }
-
-  logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) ) * ( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) )
-			       - ( Xbeta - Outcome[ TI ]( i, 0 ) ) * ( Xbeta - Outcome[ TI ]( i, 0 ) ) );
-
-  return( logprobratio );
-}
-
-double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations )
-{
-   int gametes = 1;
-   if( sex == 2 )
-      gametes = 2;
-   double p = 0, sum1 = 0.0, sum2 = 0.0;
-   //Matrix_d ThetaOld = Theta, ThetaXOld = ThetaX;
-   for( int g = 0; g < gametes; g++ ){
-     sum1 = sum2 = 0.0;
-     for( int k = 0; k < Populations; k++ ) {
-       sum1 += ThetaProposal[g*Populations + k];
-       sum2 += Theta[g*Populations + k];
-     }
-       p += gsl_sf_lngamma( sigma[g]*sum1 )
-         - gsl_sf_lngamma( sigma[g]*sum2 );
-      for( int k = 0; k < Populations; k++ ){
-         p += gsl_sf_lngamma( sigma[g]*Theta[g*Populations + k] ) - gsl_sf_lngamma( sigma[g]*ThetaProposal[g*Populations +k] );
-         p += (sigma[g]*ThetaProposal[g*Populations + k]-1.0)*log(ThetaXProposal[g*Populations +k]) - 
-	   (sigma[g]*Theta[g*Populations + k]-1.0) *log(ThetaX[g*Populations + k]);
-      }
-   }
-   return p;
-}
-
 void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
 				  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 				   Matrix_d &Covariates, double **beta, const double *poptheta,
@@ -594,23 +513,21 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
 
   //linear regression case
   if( options->getAnalysisTypeIndicator() == 2 && !options->getTestForAdmixtureAssociation() ){
-    logpratio = AcceptanceProbForTheta_LinearReg( i, 0, options->isRandomMatingModel(), K,
-                                                  NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
+    logpratio = LogAcceptanceRatioForRegressionModel( i, Linear, 0, options->isRandomMatingModel(), K,
+						      NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
   }
   //logistic regression case
   else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getTestForAdmixtureAssociation() ){
-    logpratio = AcceptanceProbForTheta_LogReg( i, 0, options->isRandomMatingModel(), K,
-				       NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta);
+     logpratio = LogAcceptanceRatioForRegressionModel( i, Logistic, 0, options->isRandomMatingModel(), K,
+						      NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
     }
   //case of both linear and logistic regressions
   else if( options->getAnalysisTypeIndicator() == 5 ){
+    RegressionType RegType;
     for( int k = 0; k < NumOutcomes; k++ ){
-      if( OutcomeType[ k ] )
-	logpratio += AcceptanceProbForTheta_LogReg( i, k, options->isRandomMatingModel(), K,
-                                                    NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta);
-      else
-	logpratio += AcceptanceProbForTheta_LinearReg( i, k, options->isRandomMatingModel(), K,
-                                                       NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
+      if(OutcomeType[k])RegType = Logistic; else RegType = Linear;
+	logpratio +=  LogAcceptanceRatioForRegressionModel( i, RegType, k, options->isRandomMatingModel(), K,
+						    NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
       }
   }
   //case of X only data
@@ -682,6 +599,64 @@ void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vecto
     for(size_t k = 0; k < K; ++k)temp[k] = alpha[0][k] + SumLocusAncestry[k] + SumLocusAncestry[k + K];
     gendirichlet(K, temp, ThetaProposal );
   }
+}
+
+// returns log of ratio of likelihoods of new and old values of population admixture
+// in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
+// returns log of ratio of likelihoods of new and old values of population admixture
+// in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
+double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, int Populations,
+							 int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
+							 Matrix_d *Outcome, const double *poptheta, double *lambda)
+{
+  double logprobratio = 0.0, Xbeta = 0.0;
+   double avgtheta[Populations];avgtheta[0] = 0.0;
+  if( RandomMatingModel )
+    for(int k = 1;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations ])/ 2.0 - poptheta[k];
+  else
+    for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
+
+  for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
+    Xbeta += Covariates( i, jj ) * beta[ TI ][jj];
+  for( int k = 1; k < Populations; k++ ){
+    Xbeta += avgtheta[ k ] * beta[ TI ][NoCovariates - Populations + k ];
+  }
+  if(RegType == Linear){
+    logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) ) * ( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) )
+					 - ( Xbeta - Outcome[ TI ]( i, 0 ) ) * ( Xbeta - Outcome[ TI ]( i, 0 ) ) );
+  }
+  else if(RegType == Logistic){
+    double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
+    if( Outcome[ TI ]( i, 0 ) == 1 )
+      logprobratio = newExpectedY / ExpectedY[ TI ][i];
+    else
+      logprobratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY[ TI ][i] );
+    logprobratio = log(logprobratio);//what is actually calculated above is the prob ratio. We take the log here rather than compute 4 logs above
+  }
+  return( logprobratio );
+}
+double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations )
+{
+   int gametes = 1;
+   if( sex == 2 )
+      gametes = 2;
+   double p = 0, sum1 = 0.0, sum2 = 0.0;
+   //Matrix_d ThetaOld = Theta, ThetaXOld = ThetaX;
+   for( int g = 0; g < gametes; g++ ){
+     sum1 = sum2 = 0.0;
+     for( int k = 0; k < Populations; k++ ) {
+       sum1 += ThetaProposal[g*Populations + k];
+       sum2 += Theta[g*Populations + k];
+     }
+       p += gsl_sf_lngamma( sigma[g]*sum1 )
+         - gsl_sf_lngamma( sigma[g]*sum2 );
+      for( int k = 0; k < Populations; k++ ){
+         p += gsl_sf_lngamma( sigma[g]*Theta[g*Populations + k] ) - gsl_sf_lngamma( sigma[g]*ThetaProposal[g*Populations +k] );
+         p += (sigma[g]*ThetaProposal[g*Populations + k]-1.0)*log(ThetaXProposal[g*Populations +k]) - 
+	   (sigma[g]*Theta[g*Populations + k]-1.0) *log(ThetaX[g*Populations + k]);
+      }
+   }
+   return p;
 }
 
 //Updates forward and backward probabilities in HMM for chromosome j 
@@ -821,15 +796,16 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   
   double AProbs[Populations][3];
   double X[2 * Populations], Xcopy[2*Populations], XX[4*Populations*Populations];
+  //Xcopy is an exact copy of X; We need two copies as one will be destroyed
   double xBx[1], BX[Populations];
   double VarA[Populations];
  
   X[ 2*Populations - 1] = 1;//intercept
   Xcov[Populations-1] = 1;
-  //set covariates 
+  //set covariates, admixture props for pops 2 to K 
   for( int k = 0; k < Populations - 1; k++ ){
-    X[ k + Populations] = Theta[ k ];
-    BX[k] = Xcov[k] = Theta[ k ];
+    X[ Populations + k] = Theta[ k+1 ];
+    BX[k] = Xcov[k] = Theta[ k+1 ];
   }
 
   int locus; 
@@ -839,10 +815,12 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
     
     for( int k = 0; k < Populations ; k++ ){
       Xcopy[k] = X[k] = AProbs[k][1] + 2.0 * AProbs[k][2];//Conditional expectation of ancestry
-      Xcopy[k + Populations] = Theta[ k ];
       VarA[k] = AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0];//conditional variances
       }
+    //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
     Xcopy[2*Populations-1] = 1;
+    for( int k = 1; k < Populations-1 ; k++ )Xcopy[k + Populations] = Theta[ k ];
+
     // ** compute expectation of score **
     scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
     add_matrix(AncestryScore[locus], Xcopy, 2*Populations, 1);//AncestryScore[locus] += Xcopy

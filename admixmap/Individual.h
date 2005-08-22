@@ -156,12 +156,9 @@ private:
 				     Matrix_d *Covariates0);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
   double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
-  double AcceptanceProbForTheta_LogReg( int i, int TI, bool ModelIndicator,int Populations, 
-					int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
-					Matrix_d *Outcome, const double *poptheta);
-  double AcceptanceProbForTheta_LinearReg( int i, int TI, bool ModelIndicator,int Populations,
-					   int NoCovariates, Matrix_d &Covariates0, double **beta, double **ExpectedY,
-					   Matrix_d *Outcome, const double *poptheta, double *lambda);
+  double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, int Populations,
+					       int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
+					       Matrix_d *Outcome, const double *poptheta, double *lambda);
 
   bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options);
 
