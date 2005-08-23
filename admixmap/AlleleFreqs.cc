@@ -760,9 +760,15 @@ void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *Po
     if( options->getTextIndicator()  && options->getAnalysisTypeIndicator() >= 0)
       {
 	//Dispersion parameters (eta)
-	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-	  for( int k = 0; k < Populations; k++ ){
-	    outputstream << "\"eta." << PopulationLabels[k].substr(1);
+	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){ 
+	  // why this condition? 
+	  // if no historicallelefreqfile supplied, can't fit dispersion model
+	  // so this function won't be called
+	  // next three lines are correct if population label strings are stored with quotes
+	  // should change this
+	  outputstream << "\"eta." << PopulationLabels[0].substr(1); // << "\""; //
+	  for( int k = 1; k < Populations; k++ ){
+	    outputstream << "\t" << "\"eta." << PopulationLabels[k].substr(1); // << "\""; 
 	  }
 	}
 	outputstream << endl;
@@ -800,10 +806,14 @@ void AlleleFreqs::OutputEta(int iteration, AdmixOptions *options, LogWriter *Log
       }
     //Output to paramfile after BurnIn
     if( iteration > options->getBurnIn() ){
-      for( int j = 0; j < Populations; j++ ){
-	outputstream.width(9);
-	outputstream << setprecision(6) << eta[j];
+      outputstream << eta[0];
+      for( int j = 1; j < Populations; j++ ){
+	outputstream << "\t" << eta[j];
       }
+//       for( int j = 0; j < Populations; j++ ){
+// 	outputstream.width(9);
+// 	outputstream << setprecision(6) << eta[j];
+//       }
       outputstream << endl;
     }
   }
