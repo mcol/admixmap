@@ -944,12 +944,12 @@ void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstre
 
   double VU, EU, missing, complete;
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
-      if(options->IsPedFile())
-	*outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
-      else
-	*outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
-      *outputstream <<PopLabels[k+k1] << ","; //need offset to get second poplabel for 2pops
+    for( int k = 0; k < KK; k++ ){//end at 1 for 2 pops
+      //       if(options->IsPedFile())
+      // 	*outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
+      //       else
+      *outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
+      *outputstream << PopLabels[k+k1] << ","; //need offset to get second poplabel for 2pops
       
       EU = Score[ j*KK + k] / ( iteration - options->getBurnIn() );
       VU = VarScore[ j*KK + k ] / ( iteration - options->getBurnIn() );
