@@ -24,7 +24,7 @@
     genotypesfile                = data/genotypes.txt
     locusfile                    = data/loci.txt
     priorallelefreqfile          =  data/priorallelefreqs.txt
-    outcomevarfile               =  data/outcomevar_diabetes.txt
+    outcomevarfile               =  data/outcomevars.txt
     covariatesfile               =  data/covariates3std.txt
 
 ## Required Output Files
