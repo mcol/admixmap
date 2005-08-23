@@ -86,8 +86,8 @@ public:
   double getOutcome(int, int);
   Vector_d getTargetCol(int,int);
   int getNumberOfOutcomeVars();
-  int GetNumberOfInputRows();
-  int GetNumberOfInputCols();
+  int GetNumCovariates() const;
+  int GetNumberOfInputCovariates();
 
   Matrix_d getCovariates();
   int getOutcomeType(int);
@@ -106,8 +106,7 @@ public:
   double DerivativeInverseLinkFunction(int AnalysisType,int i);
 private:
   Individual **_child; //array of pointers to Individual
-  void getLabels( const string, Vector_i temporary, string *labels );
-  void getLabels(const Vector_s& data, Vector_i temporary, string *labels);
+  void getLabels(const Vector_s& data,  string *labels);
 
   void LoadCovariates(InputData *);
   void LoadOutcomeVar(AdmixOptions *options, InputData *, LogWriter *Log);
@@ -127,8 +126,9 @@ private:
   double **ExpectedY;
   Matrix_d *Outcome;
   int NumOutcomes;
-  Matrix_d Covariates;
-  Matrix_d Input;
+  int NumCovariates;
+  Matrix_d Covariates;//all covariates, including admixture props
+  Matrix_d InputCovariates;//covariates from file
   std::string *CovariateLabels;
   std::string *OutcomeVarLabels;
   int *OutcomeType;

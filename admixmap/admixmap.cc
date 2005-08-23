@@ -69,13 +69,17 @@ void submain(AdmixOptions* options){
   smyrand( options->getSeed() );  // Initialise random number seed
 
   InputData data; //read data files and check (except allelefreq files)
-  data.readData(options, &Log);//Note: this sets Populations option
-  
+  data.readData(options, &Log);
+
   Genome Loci;
   Loci.loadAlleleStatesAndDistances(options, &data);//creates CompositeLocus objects
   
   AlleleFreqs A(&Loci);
   A.Initialise(options, &data, &Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
+  //Note: this sets Populations option
+
+  options->PrintOptions();//NB: call after all options are set
+                          //Currently all except Populations are set in AdmixOptions::SetOptions  
  
   Chromosome **chrm = 0; //Note: array of pointers to Chromosome
   chrm = Loci.GetChromosomes(options->getPopulations());  //create Chromosome objects
@@ -97,8 +101,7 @@ void submain(AdmixOptions* options){
     }
   IC->Initialise(options, R.getbeta(), &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
 
-  options->PrintOptions();//NB: call after all options are set
-                          //Currently all except Populations are set in AdmixOptions::SetOptions		
+		
 
   //   ** single individual, one population, allele frequencies 
    if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
@@ -370,8 +373,8 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
   // Regression parameters
   if( options->getAnalysisTypeIndicator() > 1 ){
     *avgstream << "       \"intercept\" ";
-    if( individuals->GetNumberOfInputRows() == individuals->getSize() ){
-      for( int i = 0; i < individuals->GetNumberOfInputCols(); i++ ){
+    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
+      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
 	*avgstream << individuals->getCovariateLabels(i) << " ";
       }
     }

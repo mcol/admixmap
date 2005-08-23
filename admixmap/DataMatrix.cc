@@ -69,6 +69,11 @@ std::vector<double> DataMatrix::getRow(unsigned r){
   copy(it, it + ncols, row.begin());
   return row;
 }
+std::vector<double> DataMatrix::getCol(unsigned c){
+  std::vector<double> col;
+  for(unsigned row = 0; row < nrows; ++row)col.push_back( data[row*nrows + c] );
+  return col;
+}
 DataMatrix DataMatrix::SubMatrix(unsigned r1, unsigned r2, unsigned c1, unsigned c2){
   DataMatrix Sub(r2-r1+1, c2-c1+1);
   for(unsigned i = r1; i<= r2; ++i)

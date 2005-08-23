@@ -71,6 +71,7 @@ private:
   Matrix_d *SumLocusLinkageAlleleScore;
   Matrix_d *SumLocusLinkageAlleleInfo;
   bool *locusObsIndicator;
+  //unsigned dim;
 
   double ***ScoreWithinHaplotype;
   double ***InfoWithinHaplotype;

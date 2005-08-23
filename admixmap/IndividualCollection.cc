@@ -28,7 +28,8 @@ IndividualCollection::IndividualCollection()
 {
   SumLogTheta = 0;
   OutcomeType = 0;
-   
+  CovariateLabels = 0;
+  NumCovariates = 0;
 }
 
 IndividualCollection::~IndividualCollection()
@@ -43,6 +44,7 @@ IndividualCollection::~IndividualCollection()
   delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
   delete[] SumLogTheta;
+  delete[] CovariateLabels;
 }
 
 IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
@@ -50,11 +52,13 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   Matrix_d nullMatrix(1,1);
   OutcomeType = 0;
   NumOutcomes = 0;
+  NumCovariates = 0;
   indadmixoutput = 0;
   OutcomeVarLabels = 0;
   LogLikelihood=0.0;
   SumLogLikelihood = 0.0;
   Covariates = nullMatrix;
+  CovariateLabels = 0;
   Outcome = 0;
   ExpectedY = 0;
   SumLogTheta = 0;
@@ -168,12 +172,13 @@ void IndividualCollection::setAdmixturePropsX(double *a, size_t size)
   }
 }
 
-int IndividualCollection::GetNumberOfInputRows(){
-  return Input.GetNumberOfRows();
+int IndividualCollection::GetNumberOfInputCovariates(){
+  return InputCovariates.GetNumberOfCols();
 }
-int IndividualCollection::GetNumberOfInputCols(){
-  return Input.GetNumberOfCols();
+int IndividualCollection::GetNumCovariates() const{
+  return NumCovariates;
 }
+
 Matrix_d IndividualCollection::getCovariates(){
   return Covariates;
 }
@@ -290,13 +295,13 @@ void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Geno
     Matrix_d temporary( NumInd, 1 );
     temporary.SetElements(1);
       
-    if( Input.GetNumberOfRows() == (int)NumInd ){
-      Covariates = ConcatenateHorizontally( temporary, Input );
+    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
+      Covariates = ConcatenateHorizontally( temporary, InputCovariates );
       Vector_d mean;
-      mean = Input.ColumnMean();
+      mean = InputCovariates.ColumnMean();
       for(unsigned int i = 0; i < NumInd; i++ )
-	for( int j = 0; j < Input.GetNumberOfCols(); j++ )
-	  Input( i, j ) -= mean(j);
+	for( int j = 0; j < InputCovariates.GetNumberOfCols(); j++ )
+	  InputCovariates( i, j ) -= mean(j);
     } else {
       Covariates = temporary;
     }
@@ -375,11 +380,22 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
 
 void IndividualCollection::LoadData(AdmixOptions *options, InputData *data_, LogWriter *Log){
    if ( strlen( options->getCovariatesFilename() ) != 0 ){
-    if( options->getTextIndicator() ){  
-      LoadCovariates(data_);
-    }
-  }
-  if ( Input.GetNumberOfMissingValues() ) Input.SetMissingValuesToColumnMeans();
+     if( options->getTextIndicator() ){  
+       LoadCovariates(data_);
+     }
+     if( options->getTestForAdmixtureAssociation() )
+       NumCovariates = InputCovariates.GetNumberOfCols() + 1;
+     else
+       NumCovariates = InputCovariates.GetNumberOfCols() + options->getPopulations();
+   }
+   else{
+     if( options->getTestForAdmixtureAssociation() )
+       NumCovariates = 1;
+     else
+       NumCovariates = options->getPopulations();
+   }
+
+  if ( InputCovariates.GetNumberOfMissingValues() ) InputCovariates.SetMissingValuesToColumnMeans();
 
   if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
     LoadOutcomeVar(options, data_, Log);
@@ -392,13 +408,13 @@ void IndividualCollection::LoadData(AdmixOptions *options, InputData *data_, Log
 void IndividualCollection::LoadCovariates(InputData *data_){
   //LOAD INPUT (COVARIATES)
 
-  Input = data_->getInputMatrix();
+  InputCovariates = data_->getInputMatrix();
 
-  Input.SubMatrix2( 1, NumInd, 0, Input.GetNumberOfCols() - 1 );
-  CovariateLabels = new string[ Input.GetNumberOfCols() ];
-  Vector_i vtemp( Input.GetNumberOfCols() );
-  vtemp.SetElements( 1 );
-  getLabels(data_->getInputData()[0], vtemp, CovariateLabels);//?getCovariatelabels()
+  InputCovariates.SubMatrix2( 1, NumInd, 0, InputCovariates.GetNumberOfCols() - 1 );
+  CovariateLabels = new string[ InputCovariates.GetNumberOfCols() ];
+  //Vector_i vtemp( InputCovariates.GetNumberOfCols() );
+  //vtemp.SetElements( 1 );
+  getLabels(data_->getInputData()[0], CovariateLabels);
 }
 
 void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data_, LogWriter *Log){
@@ -410,9 +426,9 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
   Matrix_d& LoadTarget = (Matrix_d&)data_->getTargetMatrix();
   TempLabels = new string[ LoadTarget.GetNumberOfCols() ];
 
-  Vector_i vtemp( LoadTarget.GetNumberOfCols() );
-  vtemp.SetElements(1);
-  getLabels(data_->getTargetData()[0], vtemp, TempLabels);
+  //Vector_i vtemp( LoadTarget.GetNumberOfCols() );
+  //vtemp.SetElements(1);
+  getLabels(data_->getTargetData()[0], TempLabels);
 
   if( options->getAnalysisTypeIndicator() == 5 ){
     OutcomeVarLabels = new string[ LoadTarget.GetNumberOfCols() ];
@@ -473,24 +489,11 @@ void IndividualCollection::LoadRepAncestry(InputData *data_){
  
 }
 
-void IndividualCollection::getLabels( const string buffer, Vector_i temporary, string *labels )
+void IndividualCollection::getLabels(const Vector_s& data, string *labels)
 {
-  StringSplitter splitter;
-  const Vector_s& labels_tmp = splitter.split(buffer);
-
-  for (size_t i = 0, index = 0; i < labels_tmp.size(); ++i) {
-    if (temporary.GetNumberOfElements() == 1 || temporary(i)) {            
-      labels[index++] = labels_tmp[i];
-    }
+  for (size_t i = 0, index = 0; i < data.size(); ++i) {
+    labels[index++] = data[i];
   }
-}
-void IndividualCollection::getLabels(const Vector_s& data, Vector_i temporary, string *labels)
-{
-    for (size_t i = 0, index = 0; i < data.size(); ++i) {
-        if (temporary.GetNumberOfElements() == 1 || temporary(i)) {            
-            labels[index++] = data[i];
-        }
-    }
 }
 
 void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, const double *poptheta, AdmixOptions *options,
@@ -504,7 +507,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, 
     
     if( options->getPopulations() > 1 ){
       _child[i]->SampleParameters(i, SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(),
-				  R->getNoCovariates(),  Covariates, R->getbeta(), poptheta, options, 
+				  R->getNumCovariates(),  Covariates, R->getbeta(), poptheta, options, 
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
 				  R->getDispersion(OutcomeType[0]));}

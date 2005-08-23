@@ -10,14 +10,14 @@ Regression::Regression(){
   beta0 = 0;
   SumBeta = 0;
   NumOutcomeVars = 0;
-  NoCovariates = 0;
+  NumCovariates = 0;
   BetaDrawArray = 0;
   acceptbeta = 0;
   BetaParameters = 0;
 }
 
-Regression::Regression(int nocovariates){
-  NoCovariates = nocovariates;
+Regression::Regression(int numcovariates){
+  NumCovariates = numcovariates;
   lambda = 0;
   lambda0 = 0.0;
   lambda1 = 0.0; 
@@ -32,7 +32,7 @@ Regression::Regression(int nocovariates){
 }
 
 Regression::~Regression(){
-  for(int i = 0; i < NoCovariates; i++){
+  for(int i = 0; i < NumCovariates; i++){
     delete BetaDrawArray[i];
   }
   delete[] BetaDrawArray;
@@ -70,34 +70,25 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
 
 
-  if( AnalysisTypeIndicator < 2 )
-    NoCovariates = 0;
+  if( AnalysisTypeIndicator < 2 )//no regression model
+    NumCovariates = 0;
   else{
-    if( individuals->GetNumberOfInputRows() == individuals->getSize() ){
-      if( options->getTestForAdmixtureAssociation() )
-	NoCovariates = individuals->GetNumberOfInputCols() + 1;
-      else
-	NoCovariates = individuals->GetNumberOfInputCols() + options->getPopulations();}
-    else{
-      if( options->getTestForAdmixtureAssociation() )
-	NoCovariates = 1;
-      else
-	NoCovariates = options->getPopulations();
-    }
+
+    NumCovariates = individuals->GetNumCovariates();
 
     //  Prior parameters for linear regression
     if( AnalysisTypeIndicator > 1 ){
-      beta = alloc2D_d(NumOutcomeVars, NoCovariates);
-      SumBeta = alloc2D_d(NumOutcomeVars, NoCovariates);
+      beta = alloc2D_d(NumOutcomeVars, NumCovariates);
+      SumBeta = alloc2D_d(NumOutcomeVars, NumCovariates);
      }
     for(int i = 0; i < NumOutcomeVars; ++i)
-      for(int j = 0; j < NoCovariates; ++j)
+      for(int j = 0; j < NumCovariates; ++j)
 	SumBeta[i][j] = 0.0;
 
     double p;
     beta0 = new Matrix_d[NumOutcomeVars];
       for(int i = 0; i < NumOutcomeVars; ++i){
-	beta0[i].SetNumberOfElements(NoCovariates, 1 );
+	beta0[i].SetNumberOfElements(NumCovariates, 1 );
       }
     for( int k = 0; k < NumOutcomeVars; k++ ){
       p = (individuals->getTargetCol(k,0)).Mean();
@@ -106,11 +97,11 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
       else
 	beta0[k](0,0) = p;
     }
-      for(int i = 0; i < NumOutcomeVars; ++i)for(int j = 0; j < NoCovariates; ++j){
+      for(int i = 0; i < NumOutcomeVars; ++i)for(int j = 0; j < NumCovariates; ++j){
 	beta[i][j] = beta0[i](j,0);
       }
     
-    n0.SetNumberOfElements( NoCovariates, NoCovariates );
+    n0.SetNumberOfElements( NumCovariates, NumCovariates );
     n0.SetDiagonal( 1 );
   }
 
@@ -133,27 +124,27 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
 
   SumLambda = new double[ NumOutcomeVars ];
   fill(SumLambda, SumLambda + NumOutcomeVars, 0.1);//initialise SumLambda to 0.1 (initial value of lambda)
-  DrawBeta.SetDimension( NoCovariates );
+  DrawBeta.SetDimension( NumCovariates );
 
   //  ** initialize sampler for logistic regression **
   acceptbeta = new int[ options->getPopulations()];
-  BetaParameters = new double[ NoCovariates + 4 ]; // array elements consist of 
+  BetaParameters = new double[ NumCovariates + 4 ]; // array elements consist of 
   // one beta param for each covariate followed by 
   // precision of priors on logistic regression params for each outcome var, 
   // followed by one intercept param for each outcome var
-  BetaDrawArray = new GaussianProposalMH*[NoCovariates];
+  BetaDrawArray = new GaussianProposalMH*[NumCovariates];
   
-  for( int i = 0; i < NoCovariates; i++ ){
+  for( int i = 0; i < NumCovariates; i++ ){
     BetaDrawArray[i] = 0;
   }
   if( AnalysisTypeIndicator == 3 || AnalysisTypeIndicator == 4 || AnalysisTypeIndicator == 5){
     Matrix_i empty_i;
     for( int k = 0; k < NumOutcomeVars; k++ ){
       if( AnalysisTypeIndicator != 5 || (AnalysisTypeIndicator == 5 && individuals->getOutcomeType(k) ) ){
-	fill(BetaParameters, BetaParameters+NoCovariates+4, 0.0);
-	BetaParameters[ NoCovariates + 1 ] = lambda[k];
-	BetaParameters[ NoCovariates + 3 ] = beta0[k](0,0);
-	for( int i = 0; i < NoCovariates; i++ ){
+	fill(BetaParameters, BetaParameters+NumCovariates+4, 0.0);
+	BetaParameters[ NumCovariates + 1 ] = lambda[k];
+	BetaParameters[ NumCovariates + 3 ] = beta0[k](0,0);
+	for( int i = 0; i < NumCovariates; i++ ){
 	  BetaDrawArray[i] = new GaussianProposalMH( BetaParameters, lr, dlr, ddlr, empty_i, individuals->getCovariates() );
 	}
       }
@@ -195,10 +186,10 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
 	     AnalysisTypeIndicator == 4 ||
 	     (AnalysisTypeIndicator == 5 &&  individuals->getOutcomeType(k) ) ){
       sum = (individuals->getOutcome(k)).Transpose() * individuals->getCovariates();
-      for( int j = 0; j < NoCovariates; j++ ){
+      for( int j = 0; j < NumCovariates; j++ ){
 	BetaDrawArray[j]->UpdateDoubleData( individuals->getCovariates() );
-	BetaParameters[ NoCovariates + 2 ] = j;
-	BetaParameters[ NoCovariates ] = sum( 0, j );
+	BetaParameters[ NumCovariates + 2 ] = j;
+	BetaParameters[ NumCovariates ] = sum( 0, j );
 	BetaDrawArray[j]->UpdateParameters( BetaParameters );
 	acceptbeta[k] = BetaDrawArray[j]->Sample( &( beta[k][j] ) );
 	BetaParameters[j] = beta[k][j];
@@ -220,8 +211,8 @@ void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollectio
   if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
     outputstream << "\"intercept\" ";
    
-    if( individuals->GetNumberOfInputRows() == individuals->getSize() ){
-      for( int i = 0; i < individuals->GetNumberOfInputCols(); i++ ){
+    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
+      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
 	outputstream << individuals->getCovariateLabels(i) << " ";
       }
     } 
@@ -236,7 +227,7 @@ void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollectio
   else if( AnalysisTypeIndicator == 5 ){
     for( int kk = 0; kk < 2; kk++ ){
       outputstream << "\"intercept\" ";
-      for( int i = 0; i < individuals->GetNumberOfInputCols(); i++ ){
+      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
 	outputstream << individuals->getCovariateLabels(i) << " ";
       }
       for( int k = 1; k < options->getPopulations(); k++ ){
@@ -256,7 +247,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
     {
       if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 )
 	{
-          for( int j = 0; j < NoCovariates; j++ )
+          for( int j = 0; j < NumCovariates; j++ )
 	    {
 	      Log->width(9);
 	      Log->write(beta[0][j],6);
@@ -274,7 +265,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
           for( int k = 0; k <  NumOutcomeVars; k++ )
 	    {
 	      Log->write("\nRegression ");Log->write(k);
-	      for( int j = 0; j < NoCovariates; j++ )
+	      for( int j = 0; j < NumCovariates; j++ )
 		{
 		  Log->width(9);
 		  Log->write(beta[k][j], 9);
@@ -291,20 +282,20 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
   if( options->useCOUT() )
     {
      if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
-	for( int j = 0; j < NoCovariates; j++ ){
+	for( int j = 0; j < NumCovariates; j++ ){
 	  (cout).width(9);
 	  cout << setprecision(6) << beta[0][j] << " ";
 	}
 	(cout).width(9);
 	if( AnalysisTypeIndicator == 2 )
 	  cout << setprecision(6);
-   for( int j = 0; j < NoCovariates; j++ )
+   for( int j = 0; j < NumCovariates; j++ )
  cout<< lambda[j]<<" ";
       }
       else if( AnalysisTypeIndicator == 5 ){
 	for( int k = 0; k < NumOutcomeVars; k++ ){
 	  cout << "\nRegression " << k << " ";
-	  for( int j = 0; j < NoCovariates; j++ ){
+	  for( int j = 0; j < NumCovariates; j++ ){
 	    (cout).width(9);
 	    cout << setprecision(6) << beta[k][j] << " ";
 	  }
@@ -317,7 +308,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
   //Output to paramfile after BurnIn
  if( iteration > options->getBurnIn() ){
    if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
-     for( int j = 0; j < NoCovariates; j++ ){
+     for( int j = 0; j < NumCovariates; j++ ){
        outputstream.width(9);
        outputstream << setprecision(6) << beta[0][j] << " ";
      }
@@ -327,7 +318,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
    }
    else if( AnalysisTypeIndicator == 5 ){
      for( int k = 0; k < NumOutcomeVars; k++ ){
-       for( int j = 0; j < NoCovariates; j++ ){
+       for( int j = 0; j < NumCovariates; j++ ){
 	 outputstream.width(9);
 	 outputstream << setprecision(6) << beta[k][j] << " ";
        }
@@ -343,7 +334,7 @@ void Regression::Output(int iteration, AdmixOptions *options, IndividualCollecti
 void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals, std::ofstream *avgstream){
  //output to ergodicaveragefile
   if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 3 ){
-    for( int j = 0; j < NoCovariates; j++ ){
+    for( int j = 0; j < NumCovariates; j++ ){
       avgstream->width(9);
       *avgstream << setprecision(6) << SumBeta[0][j] / samples << " ";
     }
@@ -353,7 +344,7 @@ void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals
   }
   else if( AnalysisTypeIndicator == 5 ){
     for( int k = 0; k < NumOutcomeVars; k++ ){
-      for( int j = 0; j < NoCovariates; j++ ){
+      for( int j = 0; j < NumCovariates; j++ ){
 	avgstream->width(9);
 	*avgstream << setprecision(6) << SumBeta[k][j] / samples << " ";
       }
@@ -367,9 +358,9 @@ void Regression::OutputErgodicAvg(int samples, IndividualCollection *individuals
 
 void Regression::SumParameters(){
   // accumulate sum of parameters after burnin.
-  if( NoCovariates )
+  if( NumCovariates )
     for(int i = 0; i < NumOutcomeVars; ++i){
-      for(int j = 0; j < NoCovariates; ++j)
+      for(int j = 0; j < NumCovariates; ++j)
         SumBeta[i][j] += beta[i][j];
     }
   //if( AnalysisTypeIndicator > 1 )
@@ -387,8 +378,8 @@ double Regression::getlambda0(){
   return lambda[0];
 }
 
-int Regression::getNoCovariates(){
-  return NoCovariates;
+int Regression::getNumCovariates(){
+  return NumCovariates;
 }
 
 double Regression::lr( const double *parameters, Matrix_i &, Matrix_d &data, double beta )

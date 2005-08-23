@@ -29,6 +29,7 @@ public:
   bool isMissing(unsigned, unsigned);
   void isMissing(unsigned, unsigned, bool);
   std::vector<double> getRow(unsigned);
+  std::vector<double> getCol(unsigned c);
   double get(unsigned, unsigned) const;
   void set(unsigned, unsigned, double);
   unsigned nRows()const;

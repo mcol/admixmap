@@ -24,12 +24,12 @@ public:
   void OutputErgodicAvg(int iteration, IndividualCollection *individuals,std::ofstream *avgstream);
   double **getbeta();
   double *getlambda();
-  int getNoCovariates();
+  int getNumCovariates();
   double getlambda0();
   double getDispersion(int);
 
 private:
-  int NoCovariates, NumOutcomeVars, AnalysisTypeIndicator;
+  int NumCovariates, NumOutcomeVars, AnalysisTypeIndicator;
 
   double *lambda; //precision parameter
   double lambda0; //parameters of

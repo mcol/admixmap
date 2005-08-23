@@ -523,9 +523,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 
   int dim = 0; //? this removes warning, but isn't necessarily the Right Thing
   int locus = 0;
-  Vector_i ancestry;
-
-  //double IndividualOutcomeMinusP = individuals->getOutcome(0)( i, 0 ) - EY0;
+  int K = options->getPopulations();
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
     for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
@@ -538,12 +536,15 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 	dim = (*Lociptr)(locus)->GetNumberOfMergedHaplotypes() + options->getPopulations();
       }
 
-
       // Set x-co-ordinates of covariates in model
       Matrix_d cov_x_coord(dim,1);
-      cov_x_coord( dim - 1, 0 ) = 1;
-      for( int k = 0; k < options->getPopulations() - 1; k++ ){
-	cov_x_coord( k + dim - options->getPopulations(), 0 ) = ind->getAdmixtureProps()[k];
+//       cov_x_coord( dim - 1, 0 ) = 1;
+//       for( int k = 0; k < options->getPopulations() - 1; k++ ){
+// 	cov_x_coord( k + dim - options->getPopulations(), 0 ) = ind->getAdmixtureProps()[k];
+//       }
+      cov_x_coord( dim - K, 0 ) = 1;
+      for( int k = 1; k < K ; k++ ){
+	cov_x_coord( dim - K + k, 0 ) = ind->getAdmixtureProps()[k];
       }
      
       // Set x co-ordinate for regression parameter under test
@@ -948,7 +949,7 @@ void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstre
 	*outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
       else
 	*outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
-      *outputstream << PopLabels[k+k1] << ","; //need offset to get second poplabel for 2pops
+      *outputstream <<PopLabels[k+k1] << ","; //need offset to get second poplabel for 2pops
       
       EU = Score[ j*KK + k] / ( iteration - options->getBurnIn() );
       VU = VarScore[ j*KK + k ] / ( iteration - options->getBurnIn() );

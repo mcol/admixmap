@@ -91,7 +91,7 @@ void InputData::readFile(const char *fname, Matrix_s& data)
 
         while (getline(in, line)) {
             if (!isWhiteLine(line.c_str())) {
-                data.push_back(splitter.split(line.c_str()));
+	      data.push_back(splitter.split(line.c_str()));
             }
         }
     } catch (...) {

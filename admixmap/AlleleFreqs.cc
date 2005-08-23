@@ -100,7 +100,6 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
   }
 
   // ** settings for sampling of dispersion parameter **
-  // Matrix etaprior(1,1);
   if( IsHistoricAlleleFreq ){
     eta = new double[ Populations ];//dispersion parameters
     psi = new double[ Populations ];//gamma prior shape parameter

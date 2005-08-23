@@ -800,9 +800,9 @@ void AdmixOptions::SetOptions(int nargs,char** args)
       } else if (long_option_name == "sumintensitiesbeta") {
 	 Rhobeta = strtod(optarg, NULL);OptionValues["sumintensitiesbeta"]=optarg;
       } else if (long_option_name == "popadmixpriormean") {
-	 Rhoalpha = strtod(optarg, NULL);OptionValues["popadmixmean"]=optarg;
+	 alphamean = strtod(optarg, NULL);OptionValues["popadmixpriormean"]=optarg;
       } else if (long_option_name == "popadmixpriorvar") {
-	 Rhobeta = strtod(optarg, NULL);OptionValues["popadmixpriorvar"]=optarg;
+	 alphavar = strtod(optarg, NULL);OptionValues["popadmixpriorvar"]=optarg;
       } else if (long_option_name == "truncationpoint") {
 	 TruncPt = strtod(optarg, NULL);OptionValues["truncationpoint"]=optarg;
       } else if (long_option_name == "haplotypeassociationscorefile") {
