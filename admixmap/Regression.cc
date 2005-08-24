@@ -2,7 +2,7 @@
 #include "matrix_d.h"
 
 Regression::Regression(){
-  lambda = 0;
+  lambda = 0; 
   lambda0 = 0.0;
   lambda1 = 0.0;
   SumLambda = 0;
@@ -102,15 +102,14 @@ void Regression::Initialise(IndividualCollection *individuals,AdmixOptions *opti
       }
     
     n0.SetNumberOfElements( NumCovariates, NumCovariates );
-    n0.SetDiagonal( 1 );
+    n0.SetDiagonal( 1 ); // identity matrix
   }
 
-  lambda0 = .01;//shape parameter for prior on lambda
-  lambda1 = 1.0;//.01;//rate parameter for prior on lambda
-  lambda = new double[ NumOutcomeVars ]; // elements of this array are either 
-  // inverse of dispersion parameter for a linear regression model, 
-  // or specify precision of priors on logistic regression parameters 
-  // is this correct? 
+  lambda0 = 0.01;//shape parameter for prior on lambda
+  lambda1 = 0.01;//rate parameter for prior on lambda
+  lambda = new double[ NumOutcomeVars ]; 
+  // if i th regression model is linear regression, n0*lambda[i] is the prior precision matrix of regression coefficients given lambda   
+  // if i th regression model is logistic regression, lambda[i] is the prior precision for regression coefficients 
   fill(lambda, lambda+NumOutcomeVars, 0.01); //initialise elements of lambda to 0.01
   if( AnalysisTypeIndicator == 2 || AnalysisTypeIndicator == 5) {
     Log->logmsg(true,"\nNormal-inverse-gamma prior for linear regression model with gamma shape parameter ");
