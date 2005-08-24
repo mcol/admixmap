@@ -376,22 +376,29 @@ plotPValuesKPopulations <- function(outfile, stdNormDev, thinning) {
 
 plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal, thinning) {
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
+  dim.names <- dimnames(scoretest)
+  dim.names[[1]] <- dim.names[[1]][-1]
+  
   ## rows are: locus,(haplotype), score, completeinfo, observedinfo,
   ##           pctinfo, stdnormdev, (chisquare)
   ## extract testnames and drop 1st row
   if (!haplotypes) {
     testnames <- as.vector(scoretest[1,,1])
-    scoretest <- scoretest[-1, , ]
+    scoretest <- scoretest[-1, ,]
   } else {
     testnames <- as.vector(paste(scoretest[1,,1], scoretest[2,,1]))
-    scoretest <- scoretest[-c(1:2), , ]
+    scoretest <- scoretest[-c(1:2), ,]
   }
+  dims <- dim(scoretest)
+  if(length(dim(scoretest))==2){
+    dims <- c(dims,1)
+   }
   ## convert to numeric
-  scoretest <- array(as.numeric(scoretest), dim=dim(scoretest),
-                     dimnames=dimnames(scoretest))
+    scoretest <- array(as.numeric(scoretest), dim=dims,dimnames=dim.names)
   scoretest[is.nan(scoretest)] <- NA
   ## extract matrix of standard normal deviates
   stdNormDev <- scoretest[5,,]
+  if(is.vector(stdNormDev))stdNormDev <- as.matrix(stdNormDev)
   plotpvalues(outputfilePlot, stdNormDev,
               10*thinning, "Running computation of p-values for allelic association")
   ## extract last table
@@ -580,8 +587,15 @@ plotInfoMap <- function(loci.compound, info.content, K, testname) {
 
 plotScoreTestAlleleFreqs <- function(scorefile) {
   scoretest.allelefreq <- dget(paste(resultsdir,scorefile,sep="/"))
+
   dimnames(scoretest.allelefreq)[[2]] <- scoretest.allelefreq[1,,1]
+  dim.names <- dimnames(scoretest.allelefreq)
+  dim.names[[1]] <- dim.names[[1]][-1]
+  
   scoretest.allelefreq <- scoretest.allelefreq[-1,,]
+  if(is.matrix(scoretest.allelefreq))scoretest.allelefreq <- array(scoretest.allelefreq, dim=c(dim(scoretest.allelefreq), 1),
+                                                                   dimnames=dim.names)
+  
   popnames <- scoretest.allelefreq[1,,1]
   scoretest.allelefreq <- 
   array(as.numeric(scoretest.allelefreq), dim=dim(scoretest.allelefreq),
