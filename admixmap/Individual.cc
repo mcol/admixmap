@@ -819,7 +819,7 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
       }
     //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
     Xcopy[2*Populations-1] = 1;
-    for( int k = 1; k < Populations-1 ; k++ )Xcopy[k + Populations] = Theta[ k ];
+    for( int k = 0; k < Populations-1; k++ )Xcopy[k + Populations] = Theta[ k+1 ];
 
     // ** compute expectation of score **
     scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
