@@ -760,17 +760,12 @@ void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *Po
     if( options->getTextIndicator()  && options->getAnalysisTypeIndicator() >= 0)
       {
 	//Dispersion parameters (eta)
-	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){ 
-	  // why this condition? 
-	  // if no historicallelefreqfile supplied, can't fit dispersion model
-	  // so this function won't be called
 	  // next three lines are correct if population label strings are stored with quotes
 	  // should change this
 	  outputstream << "\"eta." << PopulationLabels[0].substr(1); // << "\""; //
 	  for( int k = 1; k < Populations; k++ ){
 	    outputstream << "\t" << "\"eta." << PopulationLabels[k].substr(1); // << "\""; 
 	  }
-	}
 	outputstream << endl;
       }
   }
@@ -830,12 +825,9 @@ int AlleleFreqs::GetNumberOfCompositeLoci(){
   return NumberOfCompositeLoci;
 }
 
-void AlleleFreqs::OutputFST(bool IsPedFile){ // should remove all refs to IsPedFile
+void AlleleFreqs::OutputFST(){ 
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
-    if(IsPedFile)
-      fstoutputstream << "\"" << (*Loci)(j)->GetLabel(0) << "\"";
-    else
-      fstoutputstream << (*Loci)(j)->GetLabel(0);
+    fstoutputstream << (*Loci)(j)->GetLabel(0);
     for(int k=0; k<Populations; ++k)fstoutputstream << " " << Fst[j][k];
     fstoutputstream << endl;
   }

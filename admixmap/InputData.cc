@@ -293,20 +293,19 @@ void InputData::CheckGeneticData(AdmixOptions *options){
   }
   options->setgenotypesSexColumn(sexcol);
 
-
+  unsigned ExpCols;
   for(int i = 1; i <= NumIndividuals; ++i){
     //should use logmsg
-    if (IsPedFile) {
-      if ((int)geneticData_[i].size()-1 != 2*NumSimpleLoci + sexcol) {
-	cout << "Error in formatting of line " <<i+1<<" of genotypesfile"<< endl;
-	exit(0);
-      }
-    } else {
-      if ((int)geneticData_[i].size()-1 != NumSimpleLoci + sexcol) {
-	cout << "Error in formatting of line "<<i+1<<" of genotypesfile" << endl;
-	exit(0);
-      }
+    if (IsPedFile) 
+      ExpCols = 2*NumSimpleLoci + sexcol;
+    else
+      ExpCols = NumSimpleLoci + sexcol;
+    
+    if (geneticData_[i].size()-1 != ExpCols) {//check each row of genotypesfile has the right number of fields
+      cerr << "Wrong number of entries in line "<<i+1<<" of genotypesfile" << endl;
+      exit(0);
     }
+    
   }
 }
 
@@ -560,14 +559,11 @@ void InputData::GetGenotype(int i, int SexColumn, Genome &Loci, unsigned short *
       
       for (int locus = 0; locus < numLoci; locus++) {
 	(*genotype)[j][locus] = new unsigned short[2];
-	
-	if (IsPedFile) {
-	  StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + SexColumn + 2*lociI]);
-	} 
-	else 
-	  {
-	    StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][1 + SexColumn + lociI]);
-	  }
+	int col = 1 + SexColumn + lociI;
+	if (IsPedFile)col = 1 + SexColumn + 2*lociI;
+	  
+	StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][col]);
+
 	if((*genotype)[j][locus][0] > Loci(j)->GetNumberOfAllelesOfLocus(locus) ||
 	   (*genotype)[j][locus][1] > Loci(j)->GetNumberOfAllelesOfLocus(locus))
 	  throwGenotypeError(i, locus, Loci(j)->GetLabel(j), 

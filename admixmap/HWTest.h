@@ -37,7 +37,7 @@ public:
 
   void Initialise(AdmixOptions *options, int nloci, LogWriter *Log);
 
-  void Output(bool IsPedFile, Matrix_s locusdata);
+  void Output(Matrix_s locusdata);
 
   void Update(IndividualCollection *IC, Chromosome **C, Genome *Loci);
 

@@ -342,9 +342,6 @@ void ScoreTests::InitialiseAssocScoreFile(std::string *PLabels){
     PopLabels = PLabels;
     assocscorestream << "Ergodic averages of score statistic for populations:\n";
     for( int i = 0; i < options->getPopulations(); i++ ){
-      if(options->IsPedFile())
-	assocscorestream << "\"" << PopLabels[i] << "\"" << " ";
-      else
 	assocscorestream << PopLabels[i] << " ";
       if( !i )
 	assocscorestream << " ";
@@ -523,7 +520,10 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 
   int dim = 0; //? this removes warning, but isn't necessarily the Right Thing
   int locus = 0;
+  Vector_i ancestry;
   int K = options->getPopulations();
+
+  //double IndividualOutcomeMinusP = individuals->getOutcome(0)( i, 0 ) - EY0;
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
     for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
@@ -536,15 +536,16 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
 	dim = (*Lociptr)(locus)->GetNumberOfMergedHaplotypes() + options->getPopulations();
       }
 
+
       // Set x-co-ordinates of covariates in model
       Matrix_d cov_x_coord(dim,1);
 //       cov_x_coord( dim - 1, 0 ) = 1;
 //       for( int k = 0; k < options->getPopulations() - 1; k++ ){
 // 	cov_x_coord( k + dim - options->getPopulations(), 0 ) = ind->getAdmixtureProps()[k];
 //       }
-      cov_x_coord( dim - K, 0 ) = 1;
-      for( int k = 1; k < K ; k++ ){
-	cov_x_coord( dim - K + k, 0 ) = ind->getAdmixtureProps()[k];
+      cov_x_coord( dim - K, 0 ) = 1; 
+      for( int k = 1; k < K ; k++ ){ 
+	cov_x_coord( dim - K + k, 0 ) = ind->getAdmixtureProps()[k]; 
       }
      
       // Set x co-ordinate for regression parameter under test
@@ -802,9 +803,6 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iteration )
       ObservedMatrix = CompleteMatrix + ScoreMatrix * ScoreMatrix.Transpose() - SumLocusLinkageAlleleScore2[j] / ( iteration - options->getBurnIn() );
       NumberOfMergedHaplotypes = ScoreMatrix.GetNumberOfRows();
       for( int k = 0; k < NumberOfMergedHaplotypes; k++ ){
-	if(options->IsPedFile())
-	  *SNPsAssociationScoreStream  << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
-	else
 	  *SNPsAssociationScoreStream  << (*Lociptr)(j)->GetLabel(0) << ",";
 	if( k < NumberOfMergedHaplotypes - 1 ){
 	  hap = (*Lociptr)(j)->GetHapLabels(k);
@@ -881,10 +879,7 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
 	PercentInfo = 0.0;
 
       }
-      if(options->IsPedFile())
-	genescorestream << "\"" << (*Lociptr)(j)->GetLabel(l) << "\"" << ",";
-      else
-	genescorestream << (*Lociptr)(j)->GetLabel(l) << ",";
+      genescorestream << (*Lociptr)(j)->GetLabel(l) << ",";
       genescorestream << double2R(Score)        << ","
 		      << double2R(CompleteInfo) << ","
 		      << double2R(ObservedInfo) << ",";
@@ -908,9 +903,6 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
 //   double EU, missing, complete;
 //   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
 //     for( int k = 0; k < options->getPopulations(); k++ ){
-//       if(options->IsPedFile())
-// 	*outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
-//       else
 // 	*outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
 //       *outputstream << PopLabels[k] << ",";
       
@@ -944,10 +936,7 @@ void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstre
 
   double VU, EU, missing, complete;
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    for( int k = 0; k < KK; k++ ){//end at 1 for 2 pops
-      //       if(options->IsPedFile())
-      // 	*outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << ",";
-      //       else
+    for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
       *outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
       *outputstream << PopLabels[k+k1] << ","; //need offset to get second poplabel for 2pops
       

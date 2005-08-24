@@ -237,7 +237,7 @@ void submain(AdmixOptions* options){
     // ** output at end
     //FST
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-      A.OutputFST(options->IsPedFile());
+      A.OutputFST();
     }
     //stratification test
     if( options->getStratificationTest() ) StratTest.Output(&Log);
@@ -245,10 +245,10 @@ void submain(AdmixOptions* options){
     if( options->getTestForDispersion() )  DispTest.Output(options->getTotalSamples() - options->getBurnIn(), Loci, data.GetPopLabels());
     //tests for mis-specified allele frequencies
     if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
-      AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, data.GetPopLabels(), options->IsPedFile()); 
+      AlleleFreqTest.Output(options->getTotalSamples() - options->getBurnIn(), &Loci, data.GetPopLabels()); 
     //test for H-W eq
     if( options->getHWTestIndicator() )
-      HWtest.Output(options->IsPedFile(), data.getLocusData()); 
+      HWtest.Output(data.getLocusData()); 
     //finish writing score test output as R objects
     if( options->getScoreTestIndicator() ) Scoretest.ROutput();
     

@@ -260,16 +260,16 @@ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus,
 }
 
 
-void MisSpecAlleleFreqTest::Output(int samples, Genome *Loci,  std::string * PopLabels, bool IsPedFile){
+void MisSpecAlleleFreqTest::Output(int samples, Genome *Loci,  std::string * PopLabels){
     if( Test1){
-      OutputTestsForMisSpecifiedAlleleFreqs(samples, Loci, PopLabels, IsPedFile);
+      OutputTestsForMisSpecifiedAlleleFreqs(samples, Loci, PopLabels);
     }
     if( Test2 ){
-      OutputTestsForMisSpecifiedAlleleFreqs2(samples, Loci, PopLabels, IsPedFile);
+      OutputTestsForMisSpecifiedAlleleFreqs2(samples, Loci, PopLabels);
     }
 }
 
-void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, Genome *Loci, std::string * PopLabels,bool IsPedFile)
+void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, Genome *Loci, std::string * PopLabels)
 {
   //int samples = iteration - options->getBurnIn();
   Matrix_d ScoreMatrix, CompleteMatrix, ObservedMatrix;
@@ -280,10 +280,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
       ObservedMatrix = CompleteMatrix + ScoreMatrix * ScoreMatrix.Transpose() - SumScoreGeneSq[j] / samples;
       for( int k = 0; k < Populations; k++ ){
 	// Test for mis-specification within each continental-population.
-	if(IsPedFile)
-	  allelefreqscorestream << "\"" << (*Loci)(j)->GetLabel(0) << "\"" << ",";
-	else
-	  allelefreqscorestream << (*Loci)(j)->GetLabel(0) << ",";
+	allelefreqscorestream << (*Loci)(j)->GetLabel(0) << ",";
 	allelefreqscorestream << PopLabels[k] << ",";
 	allelefreqscorestream << double2R(ScoreMatrix( k, 0 ) ) << ",";
 	allelefreqscorestream << double2R(CompleteMatrix( k, k ) ) << ",";
@@ -322,7 +319,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
   R_output3DarrayDimensions(&allelefreqscorestream,dimensions,labels);
 }
 
-void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples, Genome *Loci, std::string * PopLabels,bool IsPedFile)
+void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples, Genome *Loci, std::string * PopLabels)
 {
   Matrix_d score, completeinfo, observedinfo;
   for(int j = 0; j < NumCompLoci; j++ ){
@@ -331,10 +328,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
       score = SumNewScore[j][k] / samples;
       completeinfo = SumNewInfo[j][k] / samples;
       observedinfo = completeinfo + score * score.Transpose() - SumNewScoreSq[j][k] / samples;
-      if(IsPedFile)
-	allelefreqscorestream2 << "\"" << (*Loci)(j)->GetLabel(0) << "\"" << ",";
-      else
-	allelefreqscorestream2 << (*Loci)(j)->GetLabel(0) << ",";
+      allelefreqscorestream2 << (*Loci)(j)->GetLabel(0) << ",";
       allelefreqscorestream2 << PopLabels[k] << ",";
       allelefreqscorestream2 << double2R(completeinfo.Determinant()) << ",";
       allelefreqscorestream2 << double2R(observedinfo.Determinant()) << ",";

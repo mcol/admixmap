@@ -61,7 +61,7 @@ public:
   void OutputAlleleFreqs();
   void CloseOutputFile(int iterations, string* PopulationLabels);
 
-  void OutputFST(bool IsPedFile);
+  void OutputFST();
 
   void LoadAlleleFreqs(AdmixOptions *options, InputData *data);
 

@@ -145,7 +145,7 @@ void HWTest::Update(IndividualCollection *IC, Chromosome **C, Genome *Loci){
   ++samples;
 }
 
-void HWTest::Output(bool IsPedFile, Matrix_s LocusData){
+void HWTest::Output(Matrix_s LocusData){
   //header line
   outputfile <<"Locus Score CompleteInfo MissingInfo ObservedInfo \%Info z-score p-value"<<endl;
 
@@ -153,17 +153,14 @@ void HWTest::Output(bool IsPedFile, Matrix_s LocusData){
   for(int j = 0; j < NumLoci; j++ ){
   //output locus labels from locus file
     //need same code as in ScoreTests to do for comp loci
-      if(IsPedFile)
-	outputfile << "\"" << LocusData[j+1][0] << "\"" << "\t";
-      else
-	outputfile << LocusData[j+1][0] << "\t";
+    outputfile << LocusData[j+1][0] << "\t";
 
-      EU = sumscore[ j ] / (double) samples;
-      missing = sumscore2[ j ] / (double) samples - EU * EU;
-      complete =  suminfo[ j ] / (double) samples;
-      zscore = EU / sqrt( complete - missing );
-
-      //outputfile.precision(2);
+    EU = sumscore[ j ] / (double) samples;
+    missing = sumscore2[ j ] / (double) samples - EU * EU;
+    complete =  suminfo[ j ] / (double) samples;
+    zscore = EU / sqrt( complete - missing );
+    
+    //outputfile.precision(2);
       outputfile << double2R(EU)                                << "\t"
 		 << double2R(complete)                          << "\t"
 		 << double2R(missing)                          << "\t"

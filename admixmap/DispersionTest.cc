@@ -110,9 +110,6 @@ void DispersionTest::Output(int samples,Genome& Loci, std::string *PopLabels){
   dispersionoutputstream << endl;
   
   for(int j = 0; j < NumberOfCompositeLoci; j++ ){
-    // if(options->IsPedFile())
-    // dispersionoutputstream << "\"" << Loci(j)->GetLabel(0) << "\"" << "\t";
-    // else
     dispersionoutputstream << Loci(j)->GetLabel(0);
     for(int k=0; k < NumberOfPopulations; ++k)
       dispersionoutputstream << "\t" << (float)divergentallelefreqstest[j][k] / (float)samples;

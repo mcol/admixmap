@@ -23,7 +23,7 @@ public:
 
   void Initialise(AdmixOptions *options, Genome *Loci, LogWriter *Log );
   void Update(IndividualCollection *individuals, AlleleFreqs *A, Genome *Loci);
-  void Output(int iteration, Genome *Loci,  std::string * PopLabels, bool IsPedFile);
+  void Output(int iteration, Genome *Loci,  std::string * PopLabels);
 
 private:
   bool Test1, Test2;//indicators for the two tests
@@ -48,8 +48,8 @@ private:
   void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, double* AlleleFreqs, 
 					   int *AlleleCounts);
 
-  void OutputTestsForMisSpecifiedAlleleFreqs( int, Genome *Loci,  std::string * PopLabels, bool IsPedFile);
-  void OutputTestsForMisSpecifiedAlleleFreqs2( int samples, Genome *Loci, std::string * PopLabels,bool IsPedFile);
+  void OutputTestsForMisSpecifiedAlleleFreqs( int, Genome *Loci,  std::string * PopLabels);
+  void OutputTestsForMisSpecifiedAlleleFreqs2( int samples, Genome *Loci, std::string * PopLabels);
   void R_output3DarrayDimensions(ofstream* stream,vector<int> dim,vector<string> labels);
   string double2R( double x );
 };
