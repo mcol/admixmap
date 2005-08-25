@@ -31,6 +31,7 @@ void CentredGaussianConditional( int kk, Matrix_d mean, Matrix_d var, Matrix_d *
 void CentredGaussianConditional( int kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim );
 void CentredGaussianConditional1( Vector_d mean, Matrix_d var, double *newmean, double  *newvar );
+double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim );
 
 double **alloc2D_d(int m, int n);
 int **alloc2D_i(int m, int n);

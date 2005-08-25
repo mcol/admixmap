@@ -330,6 +330,48 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
 
 }
 
+double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim )
+{
+  //Note that matrix_view's do not allocate new data
+  gsl_matrix *Q = gsl_matrix_alloc(1, 1);
+
+  gsl_matrix *U1 = gsl_matrix_alloc(1, kk);
+  for(int i = 0; i< kk; ++i){
+    U1->data[i] = mean[i];
+  }
+
+  gsl_matrix *V11 = gsl_matrix_alloc(kk, kk);
+  for(int i = 0; i < kk; ++i)
+    for(int j = 0; j < kk; ++j){
+      V11->data[i*kk +j] = var[i*dim +j];
+    }
+
+  if(gsl_linalg_LU_det (V11, 1) < 0.000001) return -1;
+
+
+  //compute V = V11^-1 * U1
+  gsl_matrix *V = gsl_matrix_alloc(kk, 1);
+  gsl_vector *x = gsl_vector_alloc(kk);
+
+  for(int j = 0; j < kk; ++j)gsl_vector_set(x, j, gsl_matrix_get(U1, 0, j));
+  gsl_linalg_HH_svx(V11, x);
+  
+  //set column of V to x
+  for(int j = 0; j < kk; ++j)gsl_matrix_set(V, j, 0, gsl_vector_get(x, j));  
+  gsl_vector_free(x);
+
+  //compute Q = U1' * V
+  gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1, U1, V, 0, Q);
+
+  gsl_matrix_free(V);
+  gsl_matrix_free(U1);
+  gsl_matrix_free(V11);
+
+  double result = gsl_matrix_get(Q, 0,0);
+  gsl_matrix_free(Q);
+  return result;
+}
+
 //allocate space for 2-way rectangular array of doubles and initialise to zero
 double **alloc2D_d(int m, int n)
 {

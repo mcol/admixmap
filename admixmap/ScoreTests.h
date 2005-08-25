@@ -26,8 +26,6 @@
 #include "IndividualCollection.h"
 #include "LogWriter.h"
 
-#include "vector_d.h"
-
 class ScoreTests{
 
 public:
@@ -48,13 +46,6 @@ public:
   ~ScoreTests();
 
 private:
-
-//   Matrix_d *LocusLinkageScore;
-//   Matrix_d *LocusLinkageInfo;
-//   Matrix_d *SumLocusLinkageScore;
-//   Matrix_d *SumLocusLinkageScore2;
-//   Matrix_d *SumLocusLinkageInfo;
-
   double* SumAncestryScore;
   double* SumAncestryInfo;
   double* SumAncestryVarScore;
@@ -65,13 +56,13 @@ private:
   double* SumAffectedsScore;
   double* SumAffectedsInfo;
 
-  Matrix_d *LocusLinkageAlleleScore;
-  Matrix_d *LocusLinkageAlleleInfo;
-  Matrix_d *SumLocusLinkageAlleleScore2;
-  Matrix_d *SumLocusLinkageAlleleScore;
-  Matrix_d *SumLocusLinkageAlleleInfo;
+  double **LocusLinkageAlleleScore;
+  double **LocusLinkageAlleleInfo;
+  double **SumLocusLinkageAlleleScore2;
+  double **SumLocusLinkageAlleleScore;
+  double **SumLocusLinkageAlleleInfo;
   bool *locusObsIndicator;
-  //unsigned dim;
+  unsigned *dim_;
 
   double ***ScoreWithinHaplotype;
   double ***InfoWithinHaplotype;
