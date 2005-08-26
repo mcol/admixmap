@@ -12,12 +12,13 @@ my $arg_hash =
 #data files
     genotypesfile                   => 'data/genotypes.txt',
     locusfile                       => 'data/loci.txt',
-    covariatesfile                  => 'data/covariates3std.txt',
+    covariatesfile                  => 'data/covariates3std.txt', # age, sex, income
+   #covariatesfile                  => 'data/covariates2std.txt', # age, sex only
     outcomevarfile                  => 'data/outcomevars.txt',
     
 #main options
-    samples  => 600,
-    burnin   => 100,
+    samples  => 1200,
+    burnin   => 200,
     every    => 5,
     coutindicator => 0, 
     
@@ -38,14 +39,15 @@ $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'SinglePopResults';  
 $arg_hash->{analysistypeindicator} = 2; # continuous outcome var
 $arg_hash->{targetindicator}       = 1; # skin reflectance
-#doAnalysis($executable,$arg_hash);
+doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
-$arg_hash->{samples}               = 1200;
-$arg_hash->{burnin}                = 200;  
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
-#doAnalysis($executable,$arg_hash);
+#$arg_hash->{samples}               = 5500;
+#$arg_hash->{burnin}                = 500;
+#$arg_hash->{every}                 = 5;
+doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 3 populations
 $arg_hash->{populations}           = 3;
@@ -59,6 +61,10 @@ $arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqsnew.txt';
 $arg_hash->{dispersiontestfile}            = 'dispersionTest.txt';
 $arg_hash->{indadmixturefile}              = 'indivadmixture.txt';
 $arg_hash->{ancestryassociationscorefile}  = 'ancestryassociationscorefile.txt';
+$arg_hash->{resultsdir}            = 'TwoPopsResults';  
+#$arg_hash->{samples}               = 1100;
+#$arg_hash->{burnin}                = 100;
+#$arg_hash->{every}                 = 5;
 doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs and diabetes as outcome var 
@@ -67,7 +73,7 @@ $arg_hash->{resultsdir}                = 'PriorFreqResultsDiabetes';
 $arg_hash->{analysistypeindicator}     = 3; # binary outcome var
 $arg_hash->{targetindicator}           = 0; # diabetes
 $arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
-#doAnalysis($executable,$arg_hash);
+doAnalysis($executable,$arg_hash);
 
 # model with historic allele freqs and both outcome vars
 delete $arg_hash->{priorallelefreqfile};
@@ -80,7 +86,7 @@ $arg_hash->{etapriorfile}              = "data/etapriors.txt";
 $arg_hash->{dispparamfile}             = "dispersionparams.txt";
 $arg_hash->{fstoutputfile}             = "lociFst.txt";
 $arg_hash->{allelefreqoutputfile}      = "allelefreqs.txt";
-#doAnalysis($executable,$arg_hash);
+doAnalysis($executable,$arg_hash);
 
 ############### DO NOT EDIT BELOW THIS LINE ############################
 
