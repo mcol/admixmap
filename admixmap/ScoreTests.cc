@@ -282,11 +282,11 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
   }  
 
   /*-------------------
-    | SNPs in haplotype  |
+    | haplotype associations |
     -------------------*/  
   if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){
     if( !options->getTestForAllelicAssociation() ){
-      Logptr->logmsg(true,"Can't Test For SNPs In Haplotype if allelicassociationscorefile is not specified\n");
+      Logptr->logmsg(true,"Can't test for haplotype associations if allelicassociationscorefile is not specified\n");
       exit(1);
     }
     if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
@@ -296,7 +296,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 	exit( 1 );
       }
       else{
-	Logptr->logmsg(true,"Tests for associations of SNPs in haplotypes written to\n");
+	Logptr->logmsg(true,"Tests for haplotype associations written to\n");
 	Logptr->logmsg(true,options->getTestsForSNPsInHaplotypeOutputFilename());
 	Logptr->logmsg(true,"\n");
 	*SNPsAssociationScoreStream << "structure(.Data=c(" << endl;
@@ -304,7 +304,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     }
     else {
       options->setTestForSNPsInHaplotype(false);
-      Logptr->logmsg(true, "ERROR: Cannot test for SNPs in Haplotype if all loci are simple\n");
+      Logptr->logmsg(true, "ERROR: Cannot test for haplotype associations if all loci are simple\n");
       Logptr->logmsg(true, "This option will be ignored\n");
     }
 
@@ -398,13 +398,13 @@ void ScoreTests::SetAllelicAssociationTest(std::vector<double> &alpha0){
 }
 
 void ScoreTests::Update(double dispersion)
-//Note: dispersion = dispersion in regression model
-//                 = precision for linear reg, 1.0 for logistic
+  //Note: dispersion = dispersion in regression model
+  //                 = precision for linear reg, 1.0 for logistic
 {
   Reset();//set sums over individuals to zero
-
+  
   double DInvLink;
-
+  
   //----------------------------------
   // Update Scores for each individual
   //----------------------------------
@@ -412,7 +412,7 @@ void ScoreTests::Update(double dispersion)
     Individual* ind = individuals->getIndividual(i);
     double YMinusEY = individuals->getOutcome(0, i) - individuals->getExpectedY(i);//individual outcome - its expectation
     DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(),i);
-
+    
     //admixture association
     if( options->getTestForAdmixtureAssociation() && (options->getAnalysisTypeIndicator()>1 && options->getAnalysisTypeIndicator()<5) ){
       UpdateScoreForAdmixtureAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
@@ -421,11 +421,11 @@ void ScoreTests::Update(double dispersion)
     if( options->getTestForAllelicAssociation() )
       UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
   }
-
+  
   //-----------------------------
   //Accumulate Scores, Info etc. over iterations
   //-----------------------------
-
+  
   /*----------------------
     | admixture association |
     -----------------------*/
@@ -436,31 +436,28 @@ void ScoreTests::Update(double dispersion)
     transform(AdmixtureScore, AdmixtureScore + K*NumOutcomeVars, SumAdmixtureScore, SumAdmixtureScore, std::plus<double>());
     //SumAdmixtureInfo += AdmixtureInfo;
     transform(AdmixtureInfo, AdmixtureInfo + K*NumOutcomeVars, SumAdmixtureInfo, SumAdmixtureScore, std::plus<double>());
-
+    
     for( int k = 0; k < K; k++ )
       for( int kk = 0; kk < NumOutcomeVars; kk++ )
 	SumAdmixtureScore2[ k*NumOutcomeVars + kk ] += AdmixtureScore[ k*NumOutcomeVars + kk ] * AdmixtureScore[ k*NumOutcomeVars + kk ];
   }
-
+  
   if( options->getAnalysisTypeIndicator() != 1 ){
-
-
     if( options->getTestForAllelicAssociation() ) SumScoreForWithinHaplotypeAssociation();
-
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-
+      
       /*----------------------
 	| Allelic association  |
 	-----------------------*/
       if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
 	if(locusObsIndicator[j]){//skip loci with no observed genotypes
-
-	  // correct for posterior covariance between regression parameters
+	  
+	  // correct for covariance between score and regression parameters
 	  double *score = new double[dim_[j]];
 	  double *info = new double[(dim_[j])*(dim_[j])];
 	  CentredGaussianConditional( dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j], 
 				      score, info, dim_[j]+options->getPopulations() );
-
+	  
 	  for(unsigned d = 0; d < dim_[j]; ++d){
 	    SumLocusLinkageAlleleScore[j][d] += score[d];
 	    for(unsigned dd = 0; dd < dim_[j]; ++dd){
@@ -691,30 +688,33 @@ void ScoreTests::Output(int iteration,std::string * PLabels){
 // scalars, or respectively a vector and a matrix should have just one
 // method or class to do this
 void ScoreTests::OutputTestsForSNPsInHaplotype( int iteration )
+  // misleading name for this method - should be called OutputTestsForHaplotypeAssociation
+  // loops over composite loci that have 2 or more simple loci, and calculates score tests for each 
+  // haplotype separately, together with a summary chi-square
 {
   int NumberOfMergedHaplotypes;
   const int *hap;
   double *ScoreVector, *CompleteMatrix, *ObservedMatrix;
-
+  
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-
+    if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){ // compound locus contains 2 or more simple loci
+      
       ScoreVector = new double[dim_[j]];
       copy(SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore[j]+dim_[j], ScoreVector);
       scale_matrix(ScoreVector, 1.0/( iteration - options->getBurnIn()), dim_[j], 1);
-
+      
       CompleteMatrix = new double[dim_[j]*dim_[j]];
       copy(SumLocusLinkageAlleleInfo[j], SumLocusLinkageAlleleInfo[j]+ dim_[j]*dim_[j], CompleteMatrix);
       scale_matrix(CompleteMatrix, 1.0/( iteration - options->getBurnIn()), dim_[j], dim_[j]);
-
+      
       ObservedMatrix = new double[dim_[j]*dim_[j]];
       for(unsigned d1 = 0; d1 < dim_[j]; ++d1)for(unsigned d2 = 0; d2 < dim_[j]; ++d2)
 	ObservedMatrix[d1*dim_[j] + d2] = CompleteMatrix[d1*dim_[j]+d2] + ScoreVector[d1]*ScoreVector[d2] -
 	  SumLocusLinkageAlleleScore2[j][d1*dim_[j]+d2]/( iteration - options->getBurnIn() );
-
+      
       NumberOfMergedHaplotypes = dim_[j];
       for( int k = 0; k < NumberOfMergedHaplotypes; k++ ){
-	  *SNPsAssociationScoreStream  << (*Lociptr)(j)->GetLabel(0) << ",";
+	*SNPsAssociationScoreStream  << (*Lociptr)(j)->GetLabel(0) << ",";
 	if( k < NumberOfMergedHaplotypes - 1 ){
 	  hap = (*Lociptr)(j)->GetHapLabels(k);
 	  *SNPsAssociationScoreStream  << "\"";
@@ -731,9 +731,9 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iteration )
 	*SNPsAssociationScoreStream  << double2R(100*ObservedMatrix[k*dim_[j]+k] / CompleteMatrix[k*dim_[j]+k]) << ",";
 	*SNPsAssociationScoreStream  << double2R(ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim_[j]+k] ));
 	*SNPsAssociationScoreStream  << ",";
-	// if not last allele at locus, output NA in chi-square column
+	// if not last allele at locus, output unquoted "NA" in chi-square column
 	if( k != NumberOfMergedHaplotypes - 1 ){
-	  *SNPsAssociationScoreStream  << "\"NA\"," << endl;
+	  *SNPsAssociationScoreStream  << "NA," << endl;
 	}
       }
       // calculate summary chi-square statistic
