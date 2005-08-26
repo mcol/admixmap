@@ -38,7 +38,8 @@ public:
   void SetParameters(int w, double sigma0, double min, double max, double target);
     
   double GetSigma();//returns current proposal SD
-  double UpdateSigma(int NumberAccepted);//tunes and returns proposal SD, according to current acceptance rate
+  double UpdateSigma(int);
+  double UpdateSigma(double AcceptanceProb);//tunes and returns proposal SD, according to current acceptance prob
   void Event(bool);// updates acceptance count and tunes proposal SD
 
 private:

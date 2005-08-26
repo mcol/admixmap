@@ -52,6 +52,16 @@ double AdaptiveRandomWalkMH::GetSigma()
   return sigma;
 }
 
+double AdaptiveRandomWalkMH::UpdateSigma(double AcceptanceProb)
+{
+  sigma = sigma + 2.0*( AcceptanceProb - target ) / k;
+  if( sigma > max )
+    sigma = max;
+  else if( sigma < min )
+    sigma = min;
+  k++;
+  return sigma;
+}
 double AdaptiveRandomWalkMH::UpdateSigma(int NumberAccepted)
 {
   double ProportionAccepted = (double)NumberAccepted / w;
