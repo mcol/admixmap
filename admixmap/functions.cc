@@ -346,7 +346,7 @@ double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size
       V11->data[i*kk +j] = var[i*dim +j];
     }
 
-  if(gsl_linalg_LU_det (V11, 1) < 0.000001) return -1;
+  if(gsl_linalg_LU_det (V11, 1)==0.0) return -1;//potentially dangerous but works
 
 
   //compute V = V11^-1 * U1
