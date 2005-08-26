@@ -146,7 +146,7 @@ void submain(AdmixOptions* options){
 #if GLOBALRHOSAMPLER == 2
       // ** update global sumintensities
       if((options->getPopulations() > 1) && (IC->getSize() > 1) && options->getIndAdmixHierIndicator() && (Loci.GetLengthOfGenome()> 0.0))
-	L.UpdateRhoWithRW(IC, chrm);
+	L.UpdateRhoWithRW(IC, chrm, iteration);
 #endif      
       // ** Update individual-level parameters  
       IC->Update(iteration, &A, &R, L.getpoptheta(),options,
@@ -278,6 +278,15 @@ void submain(AdmixOptions* options){
   Log.logmsg(true, L.getAlphaSamplerAcceptanceRate());
   Log.logmsg(true, "\nwith final stepsize of");
   Log.logmsg(true, L.getAlphaSamplerStepsize());Log.logmsg(true, "\n");
+#endif
+#if GLOBALRHOSAMPLER ==2
+  Log.logmsg(true, "Acceptance rate in global sumintensities sampler: ");
+  Log.logmsg(true, L.getRhoSamplerAccRate());
+  Log.logmsg(true, "\nwith final stepsize of ");
+  Log.logmsg(true, L.getRhoSamplerStepsize());
+  Log.logmsg(true, "\nand sd of ");
+  Log.logmsg(true, exp(L.getRhoSamplerStepsize()));
+  Log.logmsg(true, "\n");
 #endif
 
   ProcessingTime(&Log, StartTime);

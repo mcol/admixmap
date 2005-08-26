@@ -169,10 +169,12 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
    // ** set up TuneRW object for global rho updates **
    NumberOfUpdates = 0;
    NumberAccepted = 0;
-   w = 10;
-   step0 = 2.0;//need to choose sensible value for this initial RW variance
+   TotalNumberAccepted = 0;
+   w = 1;
+   step0 = 1.0;//NB log of sd
+//need to choose sensible value for this initial RW sd
    step = step0;
-   TuneRhoSampler.SetParameters(w, step0, 0.1, 100, 0.23);  
+   TuneRhoSampler.SetParameters(w, step0, -3.0, 5.0, 0.44);  
 #endif
 
   // ** Open paramfile **
@@ -217,183 +219,6 @@ Latent::~Latent()
   delete[] AlphaArgs;
   delete[] logalpha;
 #endif
-}
-
-#if GLOBALRHOSAMPLER == 1
-double Latent::sampleForRho()
-{
-  // Sample for global sum of intensities parameter rho
-  // this algorithm is unnecessarily complicated
-  // to sample conditional on locus ancestry, we can simply sample the total number of 
-  // arrivals on each gamete, then update of rho is conjugate with Poisson likelihood and gamma prior.  
-  // But sampling conditional on locus ancestry gives poor mixing
-  // it would be better to update rho by a Metropolis random walk conditional on the genotype data 
-  // and individual admixture proportions, using the HMM likelihood.  
-  RhoDraw->UpdateParameters( RhoParameters );
-  RhoDraw->UpdateIntegerData( rhodata_i );
-  RhoDraw->UpdateDoubleData( rhodata_d );
-  return RhoDraw->Sample();
-}
-// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
-// global rho parameter - will not be needed if this algorithm is replaced
-double Latent::frho( const double* parameters, const int *xi, const double *distance, double x )
-{
-  int genes = (int)parameters[2];
-  double f = -x * ( parameters[1] + parameters[3] ) + ( parameters[0] - 1 ) * log(x);
-
-  for( int j = 1; j < genes; j++ ){
-    f += xi[ j ] * log(1 - exp( -x * distance[ j ] ) );
-  }
-  return(f);
-}
-
-double Latent::dfrho( const double* parameters, const int * xi, const double*distance, double x )
-{
-  int genes = (int)parameters[2];
-  double f = -( parameters[1] + parameters[3] ) + ( parameters[0] - 1 ) / x;
-
-  for( int j = 1; j < genes; j++ ){
-    f += xi[ j ] * distance[ j ] * exp( -x * distance[ j ] ) / (1 - exp( -x * distance[ j ] ) );
-  }
-  return(f);
-}
-
-double Latent::ddfrho( const double* parameters, const int * xi, const double *distance, double x )
-{
-  float temporary;
-  int genes = (int)parameters[2];
-  double f = -( parameters[0] - 1 ) / (x * x);
-  
-  for( int j = 1; j < genes; j++ ){
-    temporary = exp( x * distance[ j ] ) - 2 + exp( -x * distance[ j ] );
-    f -= xi[ j ] * distance[ j ] * distance[ j ] / temporary;
-  }
-  return(f);
-}     
-#elif GLOBALRHOSAMPLER == 2
-void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C){
-
-  if( !options->getRhoIndicator() ){
-    double rhoprop;
-    double LogLikelihoodRatio = 0.0;
-    double LogPriorRatio = 0.0;
-
-    rhoprop = gennor(rho, step);
-    
-    //get log likelihood at current parameter values
-    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C);
-    //get log likelihood at proposal rho and current admixture proportions
-    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
-    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, C);
-    
-    //compute prior ratio
-    LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
-    
-    //accept/reject proposal
-    if(log( myrand() ) < LogLikelihoodRatio + LogPriorRatio){
-      rho = rhoprop;
-      SumAcceptanceProb++;
-      NumberAccepted++;
-    }
-    //update TuneRW object every w updates
-    if( !( NumberOfUpdates % w ) ){
-      step = TuneRhoSampler.UpdateSigma( NumberAccepted );
-      NumberAccepted = 0;
-    }
-    
-    // update f in Chromosomes, must do this regardless of whether proposal is accepted
-    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-      C[j]->SetLociCorr(rho);
-  }
-  else{
-    // sample for location parameter of gamma distribution of sumintensities parameters 
-    // in population 
-    if( options->isRandomMatingModel() )
-      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			2*rhoalpha * IC->getSize() + rhobeta0 );
-    else
-      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			rhoalpha* IC->getSize() + rhobeta0 );
-  }
-}
-#endif
-
-void Latent::InitializeOutputFile(std::string *PopulationLabels)
-{
-  // Header line of paramfile
-
-//   if(options->getAnalysisTypeIndicator() < 0){//Analysis for a single individual or set of individuals
-//     outputstream << "\"Log Likelihood\"\t \"Log Posterior\"\n";
-//   }
-  if( options->getAnalysisTypeIndicator() >= 0 ){
-
-    //Pop. Admixture
-    for( int i = 0; i < options->getPopulations(); i++ ){
-      outputstream << PopulationLabels[i] << " ";
-    }
-    //SumIntensities
-    if( !options->getRhoIndicator() )
-      outputstream << "\"sumIntensities\" ";
-    else
-      outputstream << "\"sumIntensities.beta\" ";
-
-    outputstream << endl;
-  }
-
-}
-
-void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
-{
-  for( int j = 0; j < options->getPopulations(); j++ ){
-    avgstream->width(9);
-    *avgstream << setprecision(6) << SumAlpha[j] / samples << " ";
-  }
-  avgstream->width(9);
-  *avgstream << setprecision(6) << SumRho / samples << " ";
-}
-
-void Latent::OutputParams(int iteration){
-  //output to logfile for first iteration or every iteration if cout = 0
-  if( !options->useCOUT() || iteration == 0 )
-    {
-      for( int j = 0; j < options->getPopulations(); j++ ){
-	Log->width(9);
-	Log->write(alpha[0][j], 6);
-      }
-       if( options->getRhoIndicator() )
-	Log->write(rhobeta,6);
-      else
-	Log->write(rho,6);
-    }
-  //output to screen
-  if( options->useCOUT() )
-    {
-      for( int j = 0; j < options->getPopulations(); j++ ){
-       (cout).width(9);
-       (cout) << setprecision(6) << alpha[0][ j ] << " ";
-      }
-     (cout).width(9);
-      if( options->getRhoIndicator() )
-	(cout) << setprecision(6) << rhobeta << " ";
-      else
-	(cout) << setprecision(6) << rho << " ";
-    }
-  //Output to paramfile after BurnIn
-    //output alpha
-  if( iteration > options->getBurnIn() ){
-    for( int j = 0; j < options->getPopulations(); j++ ){
-      outputstream.width(9);
-      outputstream << setprecision(6) << alpha[0][ j ] << " ";}
-    //output rho
-    outputstream.width(9);
-    if( options->getRhoIndicator() )
-      (outputstream) << setprecision(6) << rhobeta << " ";
-    else
-      (outputstream) << setprecision(6) << rho << " ";
-
-    outputstream << endl;
-  }
-
 }
 
 void Latent::Update(int iteration, IndividualCollection *individuals)
@@ -487,6 +312,212 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
 
 }
 //end Update
+
+#if GLOBALRHOSAMPLER == 1
+double Latent::sampleForRho()
+{
+  // Sample for global sum of intensities parameter rho
+  // this algorithm is unnecessarily complicated
+  // to sample conditional on locus ancestry, we can simply sample the total number of 
+  // arrivals on each gamete, then update of rho is conjugate with Poisson likelihood and gamma prior.  
+  // But sampling conditional on locus ancestry gives poor mixing
+  // it would be better to update rho by a Metropolis random walk conditional on the genotype data 
+  // and individual admixture proportions, using the HMM likelihood.  
+  RhoDraw->UpdateParameters( RhoParameters );
+  RhoDraw->UpdateIntegerData( rhodata_i );
+  RhoDraw->UpdateDoubleData( rhodata_d );
+
+  //Ordered over-relaxation (see Neal 1994) samples 'samples' values, sorts them and the current value and returns the sampled value
+  //with the same rank as the current but from the other end. 
+  unsigned samples = 1;
+  std::vector<double> v(samples+1);
+  v[0] = rho;
+  int rank = 0;
+  for(unsigned i = 1; i <= samples; ++i){
+    v[i] = RhoDraw->Sample();
+    if(v[i] < rho)rank++;
+  }
+  sort(v.begin(), v.end());
+  return v[samples - rank];
+}
+// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
+// global rho parameter - will not be needed if this algorithm is replaced
+double Latent::frho( const double* parameters, const int *xi, const double *distance, double x )
+{
+  int genes = (int)parameters[2];
+  double f = -x * ( parameters[1] + parameters[3] ) + ( parameters[0] - 1 ) * log(x);
+
+  for( int j = 1; j < genes; j++ ){
+    f += xi[ j ] * log(1 - exp( -x * distance[ j ] ) );
+  }
+  return(f);
+}
+
+double Latent::dfrho( const double* parameters, const int * xi, const double*distance, double x )
+{
+  int genes = (int)parameters[2];
+  double f = -( parameters[1] + parameters[3] ) + ( parameters[0] - 1 ) / x;
+
+  for( int j = 1; j < genes; j++ ){
+    f += xi[ j ] * distance[ j ] * exp( -x * distance[ j ] ) / (1 - exp( -x * distance[ j ] ) );
+  }
+  return(f);
+}
+
+double Latent::ddfrho( const double* parameters, const int * xi, const double *distance, double x )
+{
+  float temporary;
+  int genes = (int)parameters[2];
+  double f = -( parameters[0] - 1 ) / (x * x);
+  
+  for( int j = 1; j < genes; j++ ){
+    temporary = exp( x * distance[ j ] ) - 2 + exp( -x * distance[ j ] );
+    f -= xi[ j ] * distance[ j ] * distance[ j ] / temporary;
+  }
+  return(f);
+}     
+#elif GLOBALRHOSAMPLER == 2 //random-walk Metropolis sampler for rho
+void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int iteration){
+
+  if( !options->getRhoIndicator() ){
+    double rhoprop;
+    double LogLikelihoodRatio = 0.0;
+    double LogPriorRatio = 0.0;
+    double LogAccProb;
+
+    NumberOfUpdates++;
+    rhoprop = exp(gennor(log(rho), exp(step)));
+    
+    //get log likelihood at current parameter values
+    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C);
+    //get log likelihood at proposal rho and current admixture proportions
+    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
+    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, C);
+    
+    //compute prior ratio
+    LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
+    
+    LogAccProb = 0.0;
+    if(LogLikelihoodRatio + LogPriorRatio < 0.0) 
+      LogAccProb = LogLikelihoodRatio + LogPriorRatio; 
+    //accept/reject proposal
+    if(log( myrand() ) < LogAccProb){
+      rho = rhoprop;
+
+      if(iteration > options->getBurnIn()){
+	TotalNumberAccepted++;
+	//NumberAccepted++;
+      }
+    }
+    //update sampler object every w updates
+    if( !( NumberOfUpdates % w ) ){
+      step = TuneRhoSampler.UpdateSigma( exp(LogAccProb) );
+      //NumberAccepted = 0;
+      //NumberOfUpdates = 0;
+    }
+    
+    // update f in Chromosomes, must do this regardless of whether proposal is accepted
+    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
+      C[j]->SetLociCorr(rho);
+  }
+  else{
+    // sample for location parameter of gamma distribution of sumintensities parameters 
+    // in population 
+    if( options->isRandomMatingModel() )
+      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			2*rhoalpha * IC->getSize() + rhobeta0 );
+    else
+      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			rhoalpha* IC->getSize() + rhobeta0 );
+  }
+}
+double Latent::getRhoSamplerAccRate(){
+  return (double)TotalNumberAccepted / (double)(NumberOfUpdates);
+}
+double Latent::getRhoSamplerStepsize(){
+  return step;
+}
+#endif
+
+void Latent::InitializeOutputFile(std::string *PopulationLabels)
+{
+  // Header line of paramfile
+
+//   if(options->getAnalysisTypeIndicator() < 0){//Analysis for a single individual or set of individuals
+//     outputstream << "\"Log Likelihood\"\t \"Log Posterior\"\n";
+//   }
+  if( options->getAnalysisTypeIndicator() >= 0 ){
+
+    //Pop. Admixture
+    for( int i = 0; i < options->getPopulations(); i++ ){
+      outputstream << PopulationLabels[i] << " ";
+    }
+    //SumIntensities
+    if( !options->getRhoIndicator() )
+      outputstream << "\"sumIntensities\" ";
+    else
+      outputstream << "\"sumIntensities.beta\" ";
+
+    outputstream << endl;
+  }
+
+}
+
+void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
+{
+  for( int j = 0; j < options->getPopulations(); j++ ){
+    avgstream->width(9);
+    *avgstream << setprecision(6) << SumAlpha[j] / samples << " ";
+  }
+  avgstream->width(9);
+  *avgstream << setprecision(6) << SumRho / samples << " ";
+}
+
+void Latent::OutputParams(int iteration){
+  //output to logfile for first iteration or every iteration if cout = 0
+  if( !options->useCOUT() || iteration == 0 )
+    {
+      for( int j = 0; j < options->getPopulations(); j++ ){
+	Log->width(9);
+	Log->write(alpha[0][j], 6);
+      }
+       if( options->getRhoIndicator() )
+	Log->write(rhobeta,6);
+      else
+	Log->write(rho,6);
+    }
+  //output to screen
+  if( options->useCOUT() )
+    {
+      for( int j = 0; j < options->getPopulations(); j++ ){
+       (cout).width(9);
+       (cout) << setprecision(6) << alpha[0][ j ] << " ";
+      }
+     (cout).width(9);
+      if( options->getRhoIndicator() )
+	(cout) << setprecision(6) << rhobeta << " ";
+      else
+	(cout) << setprecision(6) << rho << " ";
+    }
+  //Output to paramfile after BurnIn
+    //output alpha
+  if( iteration > options->getBurnIn() ){
+    for( int j = 0; j < options->getPopulations(); j++ ){
+      outputstream.width(9);
+      outputstream << setprecision(6) << alpha[0][ j ] << " ";}
+    //output rho
+    outputstream.width(9);
+    if( options->getRhoIndicator() )
+      (outputstream) << setprecision(6) << rhobeta << " ";
+    else
+      (outputstream) << setprecision(6) << rho << " ";
+
+    outputstream << endl;
+  }
+
+}
+
+
 
 vector<double > &Latent::getalpha0(){
   return alpha[0];

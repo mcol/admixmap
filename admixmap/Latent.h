@@ -27,7 +27,7 @@
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
 
-#define GLOBALRHOSAMPLER 1 //1 = DARS
+#define GLOBALRHOSAMPLER 2 //1 = DARS
                            //2 = Random-Walk Metropolis
 
 #include "common.h"
@@ -78,7 +78,7 @@ public:
   void  InitializeOutputFile(std::string *);
 
   //Updating every iteration
-  void UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C);
+  void UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int iteration);
   void Update(int iteration,IndividualCollection *);
 
   void OutputParams(int iteration); 
@@ -93,6 +93,8 @@ public:
   const double *getpoptheta();
   float getAlphaSamplerAcceptanceRate();
   float getAlphaSamplerStepsize();
+  double getRhoSamplerAccRate();
+  double getRhoSamplerStepsize();
 
 private:
 
@@ -123,7 +125,7 @@ private:
   int w, NumberOfUpdates;
   double step, step0;
   int NumberAccepted;
-  double SumAcceptanceProb;
+  double TotalNumberAccepted;
 #endif  
 
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
