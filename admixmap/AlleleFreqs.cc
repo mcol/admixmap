@@ -44,10 +44,10 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   Loci = pLoci;
 
 #if ETASAMPLER ==1
-  //TuneEtaSampler = 0;
-  //w = 1;
+  TuneEtaSampler = 0;
+  w = 1;
   //NumberAccepted = 0;
-  //Number  = 0;
+  NumberOfEtaUpdates  = 0;
   //etastep0 = 1.0;
   //etastep = etastep0;
   //SumAcceptanceProb = 0; 
@@ -72,8 +72,8 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] SumEta;
 
 #if ETASAMPLER ==1
-  delete[] NumberAccepted;
-  delete[] SumAcceptanceProb;
+  //delete[] NumberAccepted;
+  //delete[] SumAcceptanceProb;
   delete[] etastep;
   delete[] TuneEtaSampler;
 #elif ETASAMPLER ==2
@@ -113,9 +113,9 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
     etastep0 = 1.0; // sd of proposal distribution for log eta
     etastep = new double[ Populations ];
     for(int k = 0; k < Populations; ++k) etastep[k] = etastep0;
-    Number = 0;
-    NumberAccepted =new int[ Populations ];
-    TuneEtaSampler = new AdaptiveRandomWalkMH[ Populations ];
+    NumberOfEtaUpdates = 0;
+    //NumberAccepted =new int[ Populations ];
+    TuneEtaSampler = new StepSizeTuner[ Populations ];
     for( int k = 0; k < Populations; k++ )
       TuneEtaSampler[k].SetParameters( w, etastep0, 0.01, 10, 0.44 );
 #elif ETASAMPLER == 2
@@ -211,7 +211,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
   HistoricAlleleCounts = new double*[NumberOfCompositeLoci];
   PriorAlleleFreqs = new Matrix_d[NumberOfCompositeLoci];
   //SumAlleleFreqs = new double*[NumberOfCompositeLoci];
-  MuProposal = new std::vector<AdaptiveRandomWalkMH>[NumberOfCompositeLoci];
+  MuProposal = new std::vector<StepSizeTuner>[NumberOfCompositeLoci];
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     Freqs[i] = 0;
@@ -436,8 +436,8 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     // Metropolis random-walk.
     if(  IsHistoricAlleleFreq ){
 #if ETASAMPLER == 1
-      double etanew, LogPostRatio;
-      //Number++;
+      double etanew, LogPostRatio, AccProb;
+      NumberOfEtaUpdates++;
       for( int k = 0; k < Populations; k++ ){
 	double mineta = 0;
 	vector< Vector_d > munew;
@@ -471,6 +471,10 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 	
 	// Log acceptance probability = Log posterior ratio since the
 	// proposal ratio (log-normal) cancels with prior.
+	if(LogPostRatio > 0.0)LogPostRatio = 0.0;
+	AccProb = 0.0; 
+	if(mineta < etanew )AccProb = exp(LogPostRatio);
+
 	// Acceptance test.
 	if( log( myrand() ) < LogPostRatio && mineta < etanew ){
 	  eta[k] = etanew;
@@ -479,15 +483,15 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 	  // NumberAccepted[k]++;
 	}
 	
-	if( !( Number % w ) ){
-	  etastep[k] = TuneEtaSampler[k].UpdateStepSize( LogPostRatio );
+	if( !( NumberOfEtaUpdates % w ) ){
+	  etastep[k] = TuneEtaSampler[k].UpdateStepSize( AccProb );
 	  // NumberAccepted[k] = 0;
 	}
       }
       
-      if( !( Number % w ) ){
-	Number = 0;
-      }
+//       if( !( NumberOfEtaUpdates % w ) ){
+// 	Number = 0;
+//       }
 #elif ETASAMPLER == 2
 	EtaSampler.Sample(logeta, EtaArgs);//sample new values for eta
 	transform(logeta, logeta+Populations, eta, xexp);//eta = exp(logeta)
@@ -1126,7 +1130,16 @@ double ddfMu( const double* parameters, const int *counts0, const double *counts
 
   return f;
 }
-#if ETASAMPLER == 2
+
+#if ETASAMPLER == 1
+float AlleleFreqs::getEtaSamplerAcceptanceRate(int k){
+  return TuneEtaSampler[k].getExpectedAcceptanceRate();
+}
+float AlleleFreqs::getEtaSamplerStepsize(int k){
+  return etastep[k];
+}
+
+#elif ETASAMPLER == 2
 /*
   Energy function (-log density) and gradient function for dispersion parameters eta, used in Hamiltonian sampler
   args[0] = psi, shape parameters of gamma prior

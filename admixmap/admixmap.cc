@@ -259,6 +259,7 @@ void submain(AdmixOptions* options){
       Log.logmsg(true, "\nLog prior              (at estimates): ");Log.logmsg(true, MargLikelihood.getLogPrior());
       Log.logmsg(true, "\nLog posterior          (at estimates): ");Log.logmsg(true, MargLikelihood.getLogPosterior());
       Log.logmsg(true, "\nLog marginal likelihood(at estimates): ");Log.logmsg(true, MargLikelihood.getLogMarginalLikelihood());
+      Log.logmsg(true, "\n");
     }
     if(avgstream.is_open())avgstream.close();
  }//end else
@@ -273,25 +274,37 @@ void submain(AdmixOptions* options){
     delete Loci(i);
   }
 
+  if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
 #if POPADMIXSAMPLER == 2 
-  Log.logmsg(true,"Expected acceptance rate in admixture dispersion parameter sampler: ");
-  Log.logmsg(true, L.getEtaSamplerAcceptanceRate());
-  Log.logmsg(true, "\nwith final step size of ");
-  Log.logmsg(true, L.getEtaSamplerStepsize());Log.logmsg(true, "\n");
-#endif
-#if POPADMIXSAMPLER == 3 
-  Log.logmsg(true,"Expected acceptance rate in admixture parameter Hamiltonian sampler: ");
-  Log.logmsg(true, L.getAlphaSamplerAcceptanceRate());
-  Log.logmsg(true, "\nwith final step size of ");
-  Log.logmsg(true, L.getAlphaSamplerStepsize());Log.logmsg(true, "\n");
+    Log.logmsg(true,"Expected acceptance rate in admixture dispersion parameter sampler: ");
+    Log.logmsg(true, L.getEtaSamplerAcceptanceRate());
+    Log.logmsg(true, "\nwith final step size of ");
+    Log.logmsg(true, L.getEtaSamplerStepsize());Log.logmsg(true, "\n");
+#elif POPADMIXSAMPLER == 3 
+    Log.logmsg(true,"Expected acceptance rate in admixture parameter Hamiltonian sampler: ");
+    Log.logmsg(true, L.getAlphaSamplerAcceptanceRate());
+    Log.logmsg(true, "\nwith final step size of ");
+    Log.logmsg(true, L.getAlphaSamplerStepsize());Log.logmsg(true, "\n");
 #endif
 #if GLOBALRHOSAMPLER ==2
-  Log.logmsg(true, "Expected acceptance rate in global sumintensities sampler: ");
-  Log.logmsg(true, L.getRhoSamplerAccRate());
-  Log.logmsg(true, "\nwith final step size of ");
-  Log.logmsg(true, L.getRhoSamplerStepsize());
-  Log.logmsg(true, "\n");
+    if( !options->getRhoIndicator() ){
+      Log.logmsg(true, "Expected acceptance rate in global sumintensities sampler: ");
+      Log.logmsg(true, L.getRhoSamplerAccRate());
+      Log.logmsg(true, "\nwith final step size of ");
+      Log.logmsg(true, L.getRhoSamplerStepsize());
+      Log.logmsg(true, "\n");
+    }
 #endif
+#if ETASAMPLER ==1
+    if( strlen( options->getHistoricalAlleleFreqFilename() )){
+      Log.logmsg(true, "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ");
+      for(int k = 0; k < options->getPopulations(); ++k){Log.logmsg(true, A.getEtaSamplerAcceptanceRate(k));Log.logmsg(true, " ");}
+      Log.logmsg(true, "\nwith final step sizes of ");
+      for(int k = 0; k < options->getPopulations(); ++k){Log.logmsg(true, A.getEtaSamplerStepsize(k));Log.logmsg(true, " ");}
+      Log.logmsg(true, "\n");
+    }
+#endif
+  }
 
   ProcessingTime(&Log, StartTime);
 }

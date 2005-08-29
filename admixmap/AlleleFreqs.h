@@ -30,8 +30,8 @@
 #include "LogWriter.h"
 
 
-#include "AdaptiveRandomWalkMH.h"
-class AdaptiveRandomWalkMH;
+#include "StepSizeTuner.h"
+class StepSizeTuner;
 #if ETASAMPLER ==2
 #include "HamiltonianMonteCarlo.h"
 #endif
@@ -78,12 +78,15 @@ public:
   double **GetAlleleFreqs();
   int *GetAlleleCounts(int locus);
   
-  //Matrix_d AlleleFreqs::GetSumAlleleFreqs(int locus);//is this used?
-
   void UpdateAlleleCounts(int locus, int h[2], int ancestry[2], bool diploid );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
- 
+
+#if ETASAMPLER ==1
+  float getEtaSamplerAcceptanceRate(int k);
+  float getEtaSamplerStepsize(int k); 
+#endif
+
 private:
   int Populations, NumberOfCompositeLoci;
   double *eta; //dispersion parameter
@@ -109,12 +112,13 @@ private:
 
 #if ETASAMPLER == 1
   //adaptive RW sampler for eta
-  AdaptiveRandomWalkMH *TuneEtaSampler;
-  int Number,w; // Number is the number of updates of eta. The eta sampler is tuned every w updates. 
+  StepSizeTuner *TuneEtaSampler;
+  int NumberOfEtaUpdates;
+  int *NumberAccepted; 
   double *etastep;
   double etastep0;
-  int *NumberAccepted;
-  double *SumAcceptanceProb;
+  int w;//The eta sampler is tuned every w updates.
+  //double *SumAcceptanceProb;
 #elif ETASAMPLER == 2
   //Hamiltonian MC sampler for eta
   double **EtaArgs;
@@ -129,7 +133,7 @@ private:
   // DARS SampleMu is now initialized each time the allele freqs at a locus in a population are sampled
 
   // sampler for Dirichlet proportion parameters 
-  std::vector<AdaptiveRandomWalkMH> *MuProposal;
+  std::vector<StepSizeTuner> *MuProposal;
   
   std::ofstream allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile
