@@ -12,8 +12,8 @@ my $arg_hash =
 #data files
     genotypesfile                   => 'data/genotypes.txt',
     locusfile                       => 'data/loci.txt',
-    covariatesfile                  => 'data/covariates3std.txt', # age, sex, income
-   #covariatesfile                  => 'data/covariates2std.txt', # age, sex only
+    #covariatesfile                  => 'data/covariates3std.txt', # age, sex, income
+    covariatesfile                  => 'data/covariates2std.txt', # age, sex only
     outcomevarfile                  => 'data/outcomevars.txt',
     
 #main options
@@ -31,7 +31,7 @@ my $arg_hash =
     allelicassociationscorefile       => 'allelicassociationscoretests.txt',
     haplotypeassociationscorefile     => 'hapassocscoretests.txt',
     stratificationtestfile            => 'stratificationtest.txt',
-    hwscoretestfile                   => 'HWtest.txt'
+    hwscoretestfile                   => 'HardyWeinbergTest.txt'
 };
 
 # model with reference prior on allele freqs in 1 population, skin reflectance as outcome var
@@ -57,7 +57,7 @@ doAnalysis($executable,$arg_hash);
 # model with prior allele freqs 
 delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                    = 'PriorFreqResultsSkin';  
-$arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqsnew.txt';
+$arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqs.txt';
 $arg_hash->{dispersiontestfile}            = 'dispersionTest.txt';
 $arg_hash->{indadmixturefile}              = 'indivadmixture.txt';
 $arg_hash->{ancestryassociationscorefile}  = 'ancestryassociationscorefile.txt';
