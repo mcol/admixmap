@@ -49,7 +49,7 @@
 #include "LogWriter.h"
 
 #if GLOBALRHOSAMPLER == 2
-#include "AdaptiveRandomWalkMH.h"
+#include "StepSizeTuner.h"
 #endif
 #if POPADMIXSAMPLER==1 || GLOBALRHOSAMPLER == 1
 #include "DARS.h"
@@ -130,11 +130,11 @@ private:
   DARS* RhoDraw;
 #elif GLOBALRHOSAMPLER == 2
   //RWM sampler for global rho
-  AdaptiveRandomWalkMH TuneRhoSampler;
+  StepSizeTuner TuneRhoSampler;
   int w, NumberOfUpdates;
   double step, step0;
-  int NumberAccepted;
-  double TotalNumberAccepted;
+  //int NumberAccepted;
+  // double TotalNumberAccepted;
 #endif  
 
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters

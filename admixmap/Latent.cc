@@ -168,8 +168,8 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 #elif GLOBALRHOSAMPLER == 2
    // ** set up TuneRW object for global rho updates **
    NumberOfUpdates = 0;
-   NumberAccepted = 0;
-   TotalNumberAccepted = 0;
+   //NumberAccepted = 0;
+   //TotalNumberAccepted = 0;
    w = 1;
    step0 = 1.0; // sd of proposal distribution for log rho
    //need to choose sensible value for this initial RW sd
@@ -195,7 +195,6 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
     }
     else{
       Log->logmsg(true,"No paramfile given\n");
-      //exit(1);
     }
   }
 }
@@ -400,10 +399,10 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int itera
     if(log( myrand() ) < LogAccProb){
       rho = rhoprop;
 
-      if(iteration > options->getBurnIn()){
-	TotalNumberAccepted++;
-	//NumberAccepted++;
-      }
+//       if(iteration > options->getBurnIn()){
+// 	TotalNumberAccepted++;
+// 	NumberAccepted++;
+//       }
     }
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){

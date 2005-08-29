@@ -4,7 +4,7 @@
 
 #include <gsl/gsl_sf_gamma.h>
 #include "DARS.h"
-#include "AdaptiveRandomWalkMH.h"
+#include "StepSizeTuner.h"
 #include "rand.h"
 
 class DirichletParamSampler
@@ -22,7 +22,7 @@ public:
   double getExpectedAcceptanceRate();
   
 private:
-  AdaptiveRandomWalkMH TuneEta;
+  StepSizeTuner TuneEta;
   unsigned int d;
   double etanew;
   double *munew;

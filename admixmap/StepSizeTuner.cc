@@ -1,7 +1,8 @@
 /** 
  *   ADMIXMAP
- *   GaussianProposalMH.cc (formerly TuneRW.cc)
- *   This class is used to implement a Metropolis Hastings update with Gaussian proposal distribution
+ *   StepSizeTuner.cc (formerly AdaptiveRandomWalkMH.cc, TuneRW.cc)
+ *   This class is used to tune the step size in a Metropolis update, eg proposal sd in a Random Walk , 
+ *   in order to reach a specified acceptance rate.
  *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
@@ -18,24 +19,24 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include "AdaptiveRandomWalkMH.h"
+#include "StepSizeTuner.h"
 
 
-AdaptiveRandomWalkMH::AdaptiveRandomWalkMH()
+StepSizeTuner::StepSizeTuner()
 {
   k = 1;   
 }
 
-AdaptiveRandomWalkMH::AdaptiveRandomWalkMH(int inw, double insigma0, double inmin, double inmax, double intarget)
+StepSizeTuner::StepSizeTuner(int inw, double insigma0, double inmin, double inmax, double intarget)
 {
   SetParameters(inw, insigma0, inmin, inmax, intarget);
 }
 
-AdaptiveRandomWalkMH::~AdaptiveRandomWalkMH()
+StepSizeTuner::~StepSizeTuner()
 {
 }
 
-void AdaptiveRandomWalkMH::SetParameters(int inw, double step0, double inmin, double inmax, double intarget)
+void StepSizeTuner::SetParameters(int inw, double step0, double inmin, double inmax, double intarget)
 {
   w = inw;
   step = step0;
@@ -49,12 +50,12 @@ void AdaptiveRandomWalkMH::SetParameters(int inw, double step0, double inmin, do
   SumAcceptanceProb = 0.0;
 }
 
-double AdaptiveRandomWalkMH::GetSigma()
+double StepSizeTuner::GetSigma()
 {
   return sigma;
 }
 
-double AdaptiveRandomWalkMH::UpdateStepSize(double AcceptanceProb)
+double StepSizeTuner::UpdateStepSize(double AcceptanceProb)
 {
   sigma = sigma + ( AcceptanceProb - target ) / k; 
   // initial adjustment to step size will be of the order of exp(0.5) fold 
@@ -69,7 +70,7 @@ double AdaptiveRandomWalkMH::UpdateStepSize(double AcceptanceProb)
   return step;
 }
 
-double AdaptiveRandomWalkMH::UpdateSigma(int NumberAccepted)
+double StepSizeTuner::UpdateSigma(int NumberAccepted)
 {
   double ProportionAccepted = (double)NumberAccepted / w;
   sigma = sigma + sigma0 * ( ProportionAccepted - target ) / k;
@@ -81,17 +82,19 @@ double AdaptiveRandomWalkMH::UpdateSigma(int NumberAccepted)
   return sigma;
 }
 
-double AdaptiveRandomWalkMH::getStepSize()
+double StepSizeTuner::getStepSize()
 {
   return step; 
 }
 
-double AdaptiveRandomWalkMH::getExpectedAcceptanceRate()
+double StepSizeTuner::getExpectedAcceptanceRate()
 {
-  return SumAcceptanceProb / count;
+  if(count > 0)
+    return SumAcceptanceProb / count;
+  else return 0.0;
 }
 
-void AdaptiveRandomWalkMH::Event(bool accept)
+void StepSizeTuner::Event(bool accept)
 {
   count++;
   NumberAccepted+=accept;

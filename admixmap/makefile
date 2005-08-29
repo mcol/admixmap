@@ -37,7 +37,7 @@ clean:
 .depend: *.cc
 	$(CXX) $(CPPFLAGS) -MM *.cc >> .depend
 
-infiles		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o $(MATRIXLIBDIR)libmat.a DARS.o AdaptiveRandomWalkMH.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o Individual.o GaussianProposalMH.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o DirichletParamSampler.o HamiltonianMonteCarlo.o DataMatrix.o
+infiles		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o $(MATRIXLIBDIR)libmat.a DARS.o StepSizeTuner.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o Individual.o GaussianProposalMH.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o DirichletParamSampler.o HamiltonianMonteCarlo.o DataMatrix.o
 
 admixmap:	$(infiles)
 		$(CXX) $(CPPFLAGS) $(LFLAGS) -o ../test/admixmap $(infiles) $(LIBS)
