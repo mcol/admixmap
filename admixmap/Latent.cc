@@ -39,10 +39,6 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   Loci = loci;
   Log = l;
   poptheta = 0;
-#if GLOBALRHOSAMPLER == 1
-  rhodata_i = 0;
-  rhodata_d = 0;
-#endif
 #if POPADMIXSAMPLER == 3
   logalpha = 0;
   initialAlphaStepsize = 0.03;//need a way of setting this without recompiling, or a sensible fixed value
@@ -152,20 +148,6 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   rhobeta0 = 1;
   rhobeta1 = 1;
 
-#if GLOBALRHOSAMPLER == 1
-  // ** set up DARS sampler for global sumintensities **
-  rhodata_i = new int[Loci->GetNumberOfCompositeLoci()];
-  rhodata_d = new double[Loci->GetNumberOfCompositeLoci()];
-  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)rhodata_d[j] = Loci->GetDistance(j);
-     
-   RhoParameters[0] = rhoalpha;
-   RhoParameters[1] = rhobeta;
-   RhoParameters[2] = Loci->GetNumberOfCompositeLoci();
-   // RhoParameters[3] is a sum over individuals 
-
-   RhoDraw = new DARS(0,1,(double)1,RhoParameters,frho,dfrho,ddfrho,
-                      rhodata_i,rhodata_d);
-#elif GLOBALRHOSAMPLER == 2
    // ** set up TuneRW object for global rho updates **
    NumberOfUpdates = 0;
    //NumberAccepted = 0;
@@ -175,7 +157,6 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
    //need to choose sensible value for this initial RW sd
    step = step0;
    TuneRhoSampler.SetParameters(w, step0, 0.01, 10, 0.44);  
-#endif
 
   // ** Open paramfile **
   if ( options->getIndAdmixHierIndicator()){
@@ -202,11 +183,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 Latent::~Latent()
 {
   delete[] poptheta;
-#if GLOBALRHOSAMPLER == 1
-  delete RhoDraw;
-  delete[] rhodata_i;
-  delete[] rhodata_d;
-#endif
+
 #if POPADMIXSAMPLER == 1
   for(int i=0; i<options->getPopulations(); i++){
     delete DirParamArray[i];
@@ -224,29 +201,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
  {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
-#if GLOBALRHOSAMPLER == 1       
-      if( Loci->GetLengthOfGenome() +  Loci->GetLengthOfXchrm() > 0.0 ){
-         //  ** Sample for global rho **
-         if( !options->getRhoIndicator() ){
-            //RhoParameters[3] = individuals->GetSumrho0();//equivalent to next line
-            RhoParameters[3] = Individual::getSumrho0();
-            for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
-               //rhodata_i[j] = individuals->GetSumXi()[j];//equivalent to next line
-               rhodata_i[j] = Individual::getSumXi(j);
-            rho = sampleForRho();
-         }
-         else{
-            // sample for location parameter of gamma distribution of sumintensities parameters 
-            // in population 
-            if( options->isRandomMatingModel() )
-               rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
-                                 2*rhoalpha * individuals->getSize() + rhobeta0 );
-            else
-               rhobeta = gengam( individuals->GetSumrho() + rhobeta1,
-                                 rhoalpha* individuals->getSize() + rhobeta0 );
-         }
-      }
-#endif
+
    // ** Sample for population admixture distribution Dirichlet parameters, alpha **
    // For a model in which the distribution of individual admixture in the population is a mixture
    // of components, we will have one Dirichlet parameter vector for each component, 
@@ -308,70 +263,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
 }
 //end Update
 
-#if GLOBALRHOSAMPLER == 1
-double Latent::sampleForRho()
-{
-  // Sample for global sum of intensities parameter rho
-  // this algorithm is unnecessarily complicated
-  // to sample conditional on locus ancestry, we can simply sample the total number of 
-  // arrivals on each gamete, then update of rho is conjugate with Poisson likelihood and gamma prior.  
-  // But sampling conditional on locus ancestry gives poor mixing
-  // it would be better to update rho by a Metropolis random walk conditional on the genotype data 
-  // and individual admixture proportions, using the HMM likelihood.  
-  RhoDraw->UpdateParameters( RhoParameters );
-  RhoDraw->UpdateIntegerData( rhodata_i );
-  RhoDraw->UpdateDoubleData( rhodata_d );
 
-  //Ordered over-relaxation (see Neal 1994) samples 'samples' values, sorts them and the current value and returns the sampled value
-  //with the same rank as the current but from the other end. 
-  unsigned samples = 1;
-  std::vector<double> v(samples+1);
-  v[0] = rho;
-  int rank = 0;
-  for(unsigned i = 1; i <= samples; ++i){
-    v[i] = RhoDraw->Sample();
-    if(v[i] < rho)rank++;
-  }
-  sort(v.begin(), v.end());
-  return v[samples - rank];
-}
-// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
-// global rho parameter - will not be needed if this algorithm is replaced
-double Latent::frho( const double* parameters, const int *xi, const double *distance, double x )
-{
-  int genes = (int)parameters[2];
-  double f = -x * ( parameters[1] + parameters[3] ) + ( parameters[0] - 1 ) * log(x);
-
-  for( int j = 1; j < genes; j++ ){
-    f += xi[ j ] * log(1 - exp( -x * distance[ j ] ) );
-  }
-  return(f);
-}
-
-double Latent::dfrho( const double* parameters, const int * xi, const double*distance, double x )
-{
-  int genes = (int)parameters[2];
-  double f = -( parameters[1] + parameters[3] ) + ( parameters[0] - 1 ) / x;
-
-  for( int j = 1; j < genes; j++ ){
-    f += xi[ j ] * distance[ j ] * exp( -x * distance[ j ] ) / (1 - exp( -x * distance[ j ] ) );
-  }
-  return(f);
-}
-
-double Latent::ddfrho( const double* parameters, const int * xi, const double *distance, double x )
-{
-  float temporary;
-  int genes = (int)parameters[2];
-  double f = -( parameters[0] - 1 ) / (x * x);
-  
-  for( int j = 1; j < genes; j++ ){
-    temporary = exp( x * distance[ j ] ) - 2 + exp( -x * distance[ j ] );
-    f -= xi[ j ] * distance[ j ] * distance[ j ] / temporary;
-  }
-  return(f);
-}     
-#elif GLOBALRHOSAMPLER == 2 //random-walk Metropolis sampler for rho
 void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int iteration){
 
   if( !options->getRhoIndicator() ){
@@ -433,7 +325,6 @@ double Latent::getRhoSamplerAccRate(){
 double Latent::getRhoSamplerStepsize(){
   return step;
 }
-#endif
 
 void Latent::InitializeOutputFile(std::string *PopulationLabels)
 {

@@ -23,12 +23,9 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 1 //1 = original DARS sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
-
-#define GLOBALRHOSAMPLER 2 //1 = DARS
-                           //2 = Random-Walk Metropolis
 
 #include "common.h"
 #include <sstream>
@@ -48,10 +45,9 @@
 #include "Genome.h"
 #include "LogWriter.h"
 
-#if GLOBALRHOSAMPLER == 2
 #include "StepSizeTuner.h"
-#endif
-#if POPADMIXSAMPLER==1 || GLOBALRHOSAMPLER == 1
+
+#if POPADMIXSAMPLER==1
 #include "DARS.h"
 #endif
 
@@ -122,20 +118,13 @@ private:
   double rhobeta1;
   double SumRho; //ergodic sum of rho
   
-#if GLOBALRHOSAMPLER == 1
-  //DARS sampler for global rho
-  double RhoParameters[4];
-  int *rhodata_i;
-  double *rhodata_d;
-  DARS* RhoDraw;
-#elif GLOBALRHOSAMPLER == 2
+  
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
   int w, NumberOfUpdates;
   double step, step0;
   //int NumberAccepted;
   // double TotalNumberAccepted;
-#endif  
 
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
   std::vector<double> SumAlpha; //ergodic sums of alphas
