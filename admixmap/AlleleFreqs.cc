@@ -22,6 +22,7 @@
 #include "AlleleFreqs.h"
 #include "DARS.h"
 #include "functions.h"
+#include <math.h>
 
 AlleleFreqs::AlleleFreqs(Genome *pLoci){
   eta = 0;
@@ -363,7 +364,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
     if( (*Loci)(i)->GetNumberOfStates() > 2 ){
       MuProposal[i].resize( Populations );
       for( int k = 0; k < Populations; k++ ){
-	MuProposal[i][k].SetParameters( 1, 0.01, 0.001, 0.1, 0.23 );
+	MuProposal[i][k].SetParameters( 1, 0.01, 0.001, 10.0, 0.23 );
       }
     }
   }
@@ -665,41 +666,43 @@ void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
   // dispersion parameter and the allele counts in admixed and historic populations
   // by a Metropolis random walk
 {
-  vector<int> accept(Populations,0);
   Vector_d mu1, mu2; // mu1 is current vector of proportion parameters, mu2 is proposal
+  double LogAccProb;
+
   for( int j = 0; j < Populations; j++ ){
     double Proposal1=0, Proposal2=0, f1=0, f2=0;
     mu1 = PriorAlleleFreqs[locus].GetColumn(j) / eta[j];
-    // cout << "eta[" << j << "] " << eta[j] << "\nmu1 " << mu1;
     // propose mu2 from Dirichlet distribution with vector of expectations given by mu1
     // step size parameter controls variance: small step size gives small variance
+
     mu2 = gendirichlet( mu1 / MuProposal[locus][j].getStepSize() ); // step size initialized to 0.1
         
     for( int i = 0; i < (*Loci)(locus)->GetNumberOfStates(); i++ ){
       // priors on proportion parameters are apparently Dirichlet(0.1, ,,, 0,1) 
-      f1 += 0.1 * log( mu1(i) ) + 0.1 * log( 1 - mu1(i) ); 
-      f2 += 0.1 * log( mu2(i) ) + 0.1 * log( 1 - mu2(i) );
+      // f1 += 0.1 * log( mu1(i) ) + 0.1 * log( 1 - mu1(i) ); 
+      //f2 += 0.1 * log( mu2(i) ) + 0.1 * log( 1 - mu2(i) );
+
+      //using Di(1,...,1) prior
       Proposal1 += (eta[j] * mu2(i) - 1) * log( mu1(i) ) - gsl_sf_lngamma( eta[j] * mu2(i) );
       Proposal2 += (eta[j] * mu1(i) - 1) * log( mu2(i) ) - gsl_sf_lngamma( eta[j] * mu1(i) );
     }
       
     int numberofstates = mu1.GetNumberOfElements();
     for( int k = 0; k < numberofstates; k++ ){
-      f1 -= Populations * gsl_sf_lngamma( mu1( k )* eta[j] );
-      f2 -= Populations * gsl_sf_lngamma( mu2( k )* eta[j] );
+      f1 -= 2.0 * gsl_sf_lngamma( mu1( k )* eta[j] );
+      f2 -= 2.0 * gsl_sf_lngamma( mu2( k )* eta[j] );
       f1 += gsl_sf_lngamma( mu1( k )* eta[j] + AlleleCounts[locus][k*Populations +j ]);
       f2 += gsl_sf_lngamma( mu2( k )* eta[j] + AlleleCounts[locus][k*Populations +j ]);
       f1 += gsl_sf_lngamma( mu1( k )* eta[j] + HistoricAlleleCounts[locus][k*Populations+j] );
       f2 += gsl_sf_lngamma( mu2( k )* eta[j] + HistoricAlleleCounts[locus][k*Populations+j] );
     }
-    if( log(myrand()) < f2 - f1 - Proposal2 + Proposal1 ){
+    LogAccProb = f2-f1-Proposal2 + Proposal1;
+    if(LogAccProb > 0.0) LogAccProb = 0.0;
+
+    if( log(myrand()) < LogAccProb ){
       PriorAlleleFreqs[locus].SetColumn( j, mu2 * eta[j] );
-      accept[j] = 1;
-      // these statements not needed
-      MuProposal[locus][j].Event(true);
     }
-    else
-      MuProposal[locus][j].Event(false);
+    MuProposal[locus][j].UpdateStepSize(exp(LogAccProb));
   }
 }
 
