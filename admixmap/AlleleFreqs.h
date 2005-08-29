@@ -123,11 +123,14 @@ private:
   double initialEtaStepsize;
   float targetEtaAcceptRate;
 #endif
+  
+  //sampler for univariate mu (beta proportion parameters)
+  //    DARS SampleMu;
+  // DARS SampleMu is now initialized each time the allele freqs at a locus in a population are sampled
 
-  //sampler for univariate mu
-//    DARS SampleMu;
-   std::vector<AdaptiveRandomWalkMH> *MuProposal;
-
+  // sampler for Dirichlet proportion parameters 
+  std::vector<AdaptiveRandomWalkMH> *MuProposal;
+  
   std::ofstream allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;

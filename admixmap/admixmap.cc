@@ -273,19 +273,23 @@ void submain(AdmixOptions* options){
     delete Loci(i);
   }
 
+#if POPADMIXSAMPLER == 2 
+  Log.logmsg(true,"Expected acceptance rate in admixture dispersion parameter sampler: ");
+  Log.logmsg(true, L.getEtaSamplerAcceptanceRate());
+  Log.logmsg(true, "\nwith final step size of ");
+  Log.logmsg(true, L.getEtaSamplerStepsize());Log.logmsg(true, "\n");
+#endif
 #if POPADMIXSAMPLER == 3 
-  Log.logmsg(true,"Acceptance rate in admixture parameter sampler: ");
+  Log.logmsg(true,"Expected acceptance rate in admixture parameter Hamiltonian sampler: ");
   Log.logmsg(true, L.getAlphaSamplerAcceptanceRate());
-  Log.logmsg(true, "\nwith final stepsize of");
+  Log.logmsg(true, "\nwith final step size of ");
   Log.logmsg(true, L.getAlphaSamplerStepsize());Log.logmsg(true, "\n");
 #endif
 #if GLOBALRHOSAMPLER ==2
-  Log.logmsg(true, "Acceptance rate in global sumintensities sampler: ");
+  Log.logmsg(true, "Expected acceptance rate in global sumintensities sampler: ");
   Log.logmsg(true, L.getRhoSamplerAccRate());
-  Log.logmsg(true, "\nwith final stepsize of ");
+  Log.logmsg(true, "\nwith final step size of ");
   Log.logmsg(true, L.getRhoSamplerStepsize());
-  Log.logmsg(true, "\nand sd of ");
-  Log.logmsg(true, exp(L.getRhoSamplerStepsize()));
   Log.logmsg(true, "\n");
 #endif
 

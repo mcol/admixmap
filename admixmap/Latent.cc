@@ -171,10 +171,10 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
    NumberAccepted = 0;
    TotalNumberAccepted = 0;
    w = 1;
-   step0 = 1.0;//NB log of sd
-//need to choose sensible value for this initial RW sd
+   step0 = 1.0; // sd of proposal distribution for log rho
+   //need to choose sensible value for this initial RW sd
    step = step0;
-   TuneRhoSampler.SetParameters(w, step0, -3.0, 5.0, 0.44);  
+   TuneRhoSampler.SetParameters(w, step0, 0.01, 10, 0.44);  
 #endif
 
   // ** Open paramfile **
@@ -222,14 +222,10 @@ Latent::~Latent()
 }
 
 void Latent::Update(int iteration, IndividualCollection *individuals)
-{
+ {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
 #if GLOBALRHOSAMPLER == 1       
-     // with a global rho model, update of rho should be via a Metropolis random walk conditioned on the HMM likelihood   
-     // with a hierarchical rho model, update of hyperparameters should be via sufficient statistics:   
-     // sum of rho and rho-squared over all individuals or gametes 
-
       if( Loci->GetLengthOfGenome() +  Loci->GetLengthOfXchrm() > 0.0 ){
          //  ** Sample for global rho **
          if( !options->getRhoIndicator() ){
@@ -386,7 +382,7 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int itera
     double LogAccProb;
 
     NumberOfUpdates++;
-    rhoprop = exp(gennor(log(rho), exp(step)));
+    rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values
     for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C);
@@ -411,7 +407,8 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int itera
     }
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){
-      step = TuneRhoSampler.UpdateSigma( exp(LogAccProb) );
+      step = TuneRhoSampler.UpdateStepSize( exp(LogAccProb) );
+      // cout << "step size " << step << "; expected acceptanceprob " << TuneRhoSampler.getExpectedAcceptanceRate() << endl;
       //NumberAccepted = 0;
       //NumberOfUpdates = 0;
     }
@@ -432,7 +429,7 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int itera
   }
 }
 double Latent::getRhoSamplerAccRate(){
-  return (double)TotalNumberAccepted / (double)(NumberOfUpdates);
+  return TuneRhoSampler.getExpectedAcceptanceRate();
 }
 double Latent::getRhoSamplerStepsize(){
   return step;
@@ -578,6 +575,15 @@ double Latent::ddlogf( const double* parameters, const int *, const double*, dou
 }
 #endif
 
+#if POPADMIXSAMPLER == 2
+float Latent::getEtaSamplerAcceptanceRate(){
+  return PopAdmixSampler.getExpectedAcceptanceRate();
+}
+float Latent::getEtaSamplerStepsize(){
+  return PopAdmixSampler.getStepSize();
+}
+#endif
+
 #if POPADMIXSAMPLER == 3
 float Latent::getAlphaSamplerAcceptanceRate(){
   return AlphaSampler.getAcceptanceRate();
@@ -585,6 +591,7 @@ float Latent::getAlphaSamplerAcceptanceRate(){
 float Latent::getAlphaSamplerStepsize(){
   return AlphaSampler.getStepsize();
 }
+
 //calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm
 double Latent::findE(unsigned dim, const double* const theta, const double* const* args){
   /*

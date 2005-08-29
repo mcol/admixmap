@@ -44,13 +44,13 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   Loci = pLoci;
 
 #if ETASAMPLER ==1
-  TuneEtaSampler = 0;
-  w = 0;
-  NumberAccepted = 0;
-  Number  = 0;
-  etastep = 0;
-  etastep0 = 0.0;
-  SumAcceptanceProb = 0; 
+  //TuneEtaSampler = 0;
+  //w = 1;
+  //NumberAccepted = 0;
+  //Number  = 0;
+  //etastep0 = 1.0;
+  //etastep = etastep0;
+  //SumAcceptanceProb = 0; 
 #elif ETASAMPLER ==2
   initialEtaStepsize = 0.03;//need a sensible value for this
   targetEtaAcceptRate = 0.5;//and this 
@@ -108,17 +108,16 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
     
 #if ETASAMPLER == 1
     // ** Settings for random walk sampler
-    SumAcceptanceProb = new double[ Populations ];
-    w = 10;
-    etastep0 = 2.0;
-    etastep =new double[ Populations ];
-    for(int k = 0; k < Populations; ++k)etastep[k] = etastep0;
-
+    //SumAcceptanceProb = new double[ Populations ];
+    w = 1;
+    etastep0 = 1.0; // sd of proposal distribution for log eta
+    etastep = new double[ Populations ];
+    for(int k = 0; k < Populations; ++k) etastep[k] = etastep0;
     Number = 0;
     NumberAccepted =new int[ Populations ];
     TuneEtaSampler = new AdaptiveRandomWalkMH[ Populations ];
     for( int k = 0; k < Populations; k++ )
-      TuneEtaSampler[k].SetParameters( w, etastep0, 0.1, 100, 0.44 );
+      TuneEtaSampler[k].SetParameters( w, etastep0, 0.01, 10, 0.44 );
 #elif ETASAMPLER == 2
     // ** Settings for Hamiltonian sampler
     logeta = new double[Populations];
@@ -364,7 +363,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
     if( (*Loci)(i)->GetNumberOfStates() > 2 ){
       MuProposal[i].resize( Populations );
       for( int k = 0; k < Populations; k++ ){
-	MuProposal[i][k].SetParameters( 10, 0.01, 0.001, 0.1, 0.23 );
+	MuProposal[i][k].SetParameters( 1, 0.01, 0.001, 0.1, 0.23 );
       }
     }
   }
@@ -430,7 +429,6 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       SampleAlleleFreqs(i, 1 );
       (*Loci)(i)->SetAlleleProbs(Freqs[i]);
-      //      if( (*Loci)(i)->GetNumberOfLoci() > 1 ) // ************* this condition must be wrong - remarked out
       (*Loci)(i)->SetHapPairProbs();
     }
     
@@ -439,11 +437,11 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
     if(  IsHistoricAlleleFreq ){
 #if ETASAMPLER == 1
       double etanew, LogPostRatio;
-      Number++;
+      //Number++;
       for( int k = 0; k < Populations; k++ ){
 	double mineta = 0;
 	vector< Vector_d > munew;
-	// Sample eta from truncated log-normal distribution.
+	// propose etanew from truncated log-normal distribution.
 	do{
 	  etanew = exp( gennor( log( eta[k] ), etastep[k] ) );
 	}while( etanew > 5000.0 );
@@ -473,18 +471,17 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
 	
 	// Log acceptance probability = Log posterior ratio since the
 	// proposal ratio (log-normal) cancels with prior.
-	
 	// Acceptance test.
 	if( log( myrand() ) < LogPostRatio && mineta < etanew ){
 	  eta[k] = etanew;
 	  //UpdatePriorAlleleFreqs( k, munew );
-	  SumAcceptanceProb[k]++;
-	  NumberAccepted[k]++;
+	  //SumAcceptanceProb[k]++;
+	  // NumberAccepted[k]++;
 	}
 	
 	if( !( Number % w ) ){
-	  etastep[k] = TuneEtaSampler[k].UpdateSigma( NumberAccepted[k] );
-	  NumberAccepted[k] = 0;
+	  etastep[k] = TuneEtaSampler[k].UpdateStepSize( LogPostRatio );
+	  // NumberAccepted[k] = 0;
 	}
       }
       
@@ -669,7 +666,10 @@ void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
   for( int j = 0; j < Populations; j++ ){
     double Proposal1=0, Proposal2=0, f1=0, f2=0;
     mu1 = PriorAlleleFreqs[locus].GetColumn(j) / eta[j];
-    mu2 = gendirichlet( mu1 / MuProposal[locus][j].GetSigma() );
+    // cout << "eta[" << j << "] " << eta[j] << "\nmu1 " << mu1;
+    // propose mu2 from Dirichlet distribution with vector of expectations given by mu1
+    // step size parameter controls variance: small step size gives small variance
+    mu2 = gendirichlet( mu1 / MuProposal[locus][j].getStepSize() ); // step size initialized to 0.1
         
     for( int i = 0; i < (*Loci)(locus)->GetNumberOfStates(); i++ ){
       // priors on proportion parameters are apparently Dirichlet(0.1, ,,, 0,1) 
@@ -691,6 +691,7 @@ void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
     if( log(myrand()) < f2 - f1 - Proposal2 + Proposal1 ){
       PriorAlleleFreqs[locus].SetColumn( j, mu2 * eta[j] );
       accept[j] = 1;
+      // these statements not needed
       MuProposal[locus][j].Event(true);
     }
     else

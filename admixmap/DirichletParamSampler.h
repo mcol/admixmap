@@ -18,6 +18,8 @@ public:
   void SetPriorEta( double, double );
   void SetPriorMu( double* );
   void Sample( unsigned int, double*, double*, double* );
+  double getStepSize();
+  double getExpectedAcceptanceRate();
   
 private:
   AdaptiveRandomWalkMH TuneEta;
@@ -27,6 +29,8 @@ private:
   double *gamma;
   double EtaAlpha;
   double EtaBeta;
+  double step, step0;
+  double LogAccProb;
 
   DARS** DirParamArray;
   // AlphaParameters is an array with 5 elements

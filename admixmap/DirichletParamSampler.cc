@@ -6,31 +6,37 @@ using namespace std;
 
 DirichletParamSampler::DirichletParamSampler()
 {
-   TuneEta.SetParameters( 10, .1, 0.1, 100, 0.44 );
-   EtaAlpha = 1;
-   EtaBeta = 1;
+  step0 = 0.1; //sd of proposal distribution for log eta
+  // need to choose sensible value for this initial RW sd
+  step = step0;
+  TuneEta.SetParameters(1, step0, 0.01, 10, 0.44); 
+  EtaAlpha = 1;
+  EtaBeta = 1;
 }
 
 DirichletParamSampler::DirichletParamSampler( unsigned int ind )
 {
-   d = ind;
-   gamma = new double[d];
-   munew = new double[d];
-   TuneEta.SetParameters( 10, 0.1, 0.01, 100, 0.44 );
-   EtaAlpha = 1;
-   EtaBeta = 1;
-   for( unsigned int i = 0; i < d; i++ )
-      gamma[i] = 1.0;
-   
+  d = ind;
+  gamma = new double[d];
+  munew = new double[d];
+  TuneEta.SetParameters(1, step0, 0.01, 10, 0.44); 
+  //   TuneEta.SetParameters( 10, 0.1, 0.01, 100, 0.44 );
+  EtaAlpha = 1;
+  EtaBeta = 1;
+  for( unsigned int i = 0; i < d; i++ )
+    gamma[i] = 1.0;
+  
   DirParamArray = new DARS*[ d ];
   for( unsigned int j = 0; j < d; j++ ){
-     DirParamArray[j] = new DARS();
-     DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,
-                                      logf, dlogf, ddlogf, 0, 0 );
+    DirParamArray[j] = new DARS();
+    DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,
+				     logf, dlogf, ddlogf, 0, 0 );
   }
 }
 
 void DirichletParamSampler::SetSize( unsigned int ind )
+  // sets number of elements in Dirichlet parameter vector
+  // instantiates an adaptive rejection sampler object for each element 
 {
    d = ind;
    gamma = new double[d];
@@ -70,7 +76,7 @@ void DirichletParamSampler::SetPriorMu( double *ingamma )
 
 void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double *eta, double *mu )
 /*
-n = number of gametes/individuals
+n = number of observations
 */
 {
    unsigned int i;
@@ -79,37 +85,54 @@ n = number of gametes/individuals
    double summu = 1.0 - mu[d-1];
    AlphaParameters[0] = n;
    for( unsigned int j = 0; j < d-1; j++ ){
-      AlphaParameters[1] = *eta;
-      AlphaParameters[2] = summu - mu[j];
-      AlphaParameters[3] = sumlogtheta[d-1];
-      AlphaParameters[4] = sumlogtheta[j];
-      DirParamArray[j]->SetLeftTruncation( 0.005 );
-      DirParamArray[j]->SetRightTruncation( b );
-      // elements of Dirichlet parameter vector are updated one at a time
-      DirParamArray[j]->UpdateParameters( AlphaParameters );
-      mu[j] = DirParamArray[j]->Sample();
-      b = b - mu[j] + mu[j+1];
-      summu = AlphaParameters[2] + mu[j];
+     AlphaParameters[1] = *eta; // dispersion parameter
+     AlphaParameters[2] = summu - mu[j]; // 1 - lastparam - proportion parameter
+     AlphaParameters[3] = sumlogtheta[d-1]; 
+     AlphaParameters[4] = sumlogtheta[j];
+     DirParamArray[j]->SetLeftTruncation( 0.005 );
+     DirParamArray[j]->SetRightTruncation( b );
+     // Dirichlet proportion parameters mu[j] are updated one at a time
+     DirParamArray[j]->UpdateParameters( AlphaParameters );
+     mu[j] = DirParamArray[j]->Sample();
+     b = b - mu[j] + mu[j+1];
+     summu = AlphaParameters[2] + mu[j];
    }
    mu[d-1] = 1.0 - summu;
    
-   etanew = exp( gennor( log( *eta ), TuneEta.GetSigma() ) );
+   // Dirichlet dispersion parameter eta is updated with a Metropolis random walk
+   etanew = exp( gennor( log( *eta ), step ) );
    Proposal1 = log(etanew) - log(*eta);
+   // log prior ratio P1 
    P1 = ( EtaAlpha - 1.0 ) * ( log(etanew) - log(*eta) ) - EtaBeta * ( etanew - *eta );
+   // log likelihood ratio L1
    L1 = n * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( *eta ) );
    for( i = 0; i < d; i++ )
-      L1 += mu[i] * (etanew - *eta) * sumlogtheta[i] - n*gsl_sf_lngamma( etanew * mu[i] ) + n*gsl_sf_lngamma( *eta * mu[i] );
-
-   if( log(myrand()) < L1 + P1 + Proposal1 ){
-      *eta = etanew;
-      TuneEta.Event(true);
+     L1 += mu[i] * (etanew - *eta) * sumlogtheta[i] - n*gsl_sf_lngamma( etanew * mu[i] ) + n*gsl_sf_lngamma( *eta * mu[i] );
+   // calculate log acceptance probability ratio
+   LogAccProb = 0.0;
+   if(P1 + L1 + Proposal1 < 0.0)  
+     LogAccProb = P1 + L1 + Proposal1; 
+   //accept/reject proposal
+   if( log(myrand()) < LogAccProb ){
+     *eta = etanew;
    }
-   else
-      TuneEta.Event(false);
+   //update step size
+   step = TuneEta.UpdateStepSize( exp(LogAccProb) );
 }
 
+double DirichletParamSampler::getStepSize()
+{
+    return TuneEta.getStepSize();
+}
+
+double DirichletParamSampler::getExpectedAcceptanceRate()
+{
+    return TuneEta.getExpectedAcceptanceRate();
+}
+
+
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
-// Dirichlet population admixture parameters
+// Dirichlet proportion parameters
 double
 DirichletParamSampler::logf( const double* parameters , const int*, const double*, double x )
 {

@@ -23,12 +23,15 @@
 #ifndef ADAPTIVERANDOMWALKMH_H
 #define ADAPTIVERANDOMWALKMH_H 1
 
+#include "rand.h"
+#include <math.h>
+
 class AdaptiveRandomWalkMH
 {
 public:
   /*supply: w = number of samplings between tunings
-            sigma0 = initial proposal SD
-            min, max = min and max values for proposal SD
+            step0 = initial step size
+            min, max = min and max values for step size
             target = target acceptance rate
   */
   AdaptiveRandomWalkMH(int w, double sigma0, double min, double max, double target);
@@ -37,21 +40,25 @@ public:
   
   void SetParameters(int w, double sigma0, double min, double max, double target);
     
-  double GetSigma();//returns current proposal SD
+  double GetSigma();//returns log step size
   double UpdateSigma(int);
-  double UpdateSigma(double AcceptanceProb);//tunes and returns proposal SD, according to current acceptance prob
+  double UpdateStepSize(double AcceptanceProb);// returns step size after updating from current acceptance prob
   void Event(bool);// updates acceptance count and tunes proposal SD
+  double getStepSize(); 
+  double getExpectedAcceptanceRate();
 
 private:
-   double sigma0; // Initial value of parameter of random walk being tuned.
-   double sigma; // Current value of parameter of random walk being tuned.
-   double min; // Minimum value of sigma
-   double max; // Maximum value of sigma
-   double target; // Target acceptance probability
-   int k; // Number of times sigma sigma updated
-   int w; // Frequency sigma is updated - 10 is good
-   int count; // Number of iterations since sigma lsat updated
-   int NumberAccepted; // Number of accepted proposals in random-walk since sigma last updated
+  double sigma0; // Initial value of parameter of random walk being tuned.
+  double sigma; // log step size 
+  double step; // step size: must be positive
+  double min; // Minimum value of sigma
+  double max; // Maximum value of sigma
+  double target; // Target acceptance probability
+  double SumAcceptanceProb; // cumulative sum of acceptance probs
+  int k; // Number of times sigma sigma updated
+  int w; // Frequency sigma is updated - 10 is good
+  int count; // Number of iterations since sigma lsat updated
+  int NumberAccepted; // Number of accepted proposals in random-walk since sigma last updated
 };
 
 #endif /* ! AdaptiveRandomWalkMH_H */

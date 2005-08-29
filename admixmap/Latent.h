@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 1 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
 
@@ -71,37 +71,46 @@ public:
   Latent( AdmixOptions* ,Genome*,LogWriter *);
   
   ~Latent();
-
+  
   void Initialise(int Numindividuals,
 		  std::string *PopulationLabels);  
-
+  
   void  InitializeOutputFile(std::string *);
-
+  
   //Updating every iteration
   void UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int iteration);
   void Update(int iteration,IndividualCollection *);
-
+  
   void OutputParams(int iteration); 
-
+  
   void OutputErgodicAvg( int, std::ofstream *avgstream);
-
+  
   std::vector<double> &getalpha0();
   std::vector<std::vector<double> > &getalpha();
   double getrhoalpha();
   double getrhobeta();
   double getrho();
   const double *getpoptheta();
+  
+#if POPADMIXSAMPLER == 2 
+  float getEtaSamplerAcceptanceRate();
+  float getEtaSamplerStepsize();
+#endif
+  
+  //#if POPADMIXSAMPLER == 3 
   float getAlphaSamplerAcceptanceRate();
   float getAlphaSamplerStepsize();
+  //#endif
+  
   double getRhoSamplerAccRate();
   double getRhoSamplerStepsize();
-
+  
 private:
-
+  
   double sampleForRho();
-
+  
   void OpenOutputFiles();
-
+  
   /*
    * rho is the sumofintensities parameter. It has a beta prior with shape and scale parameters rhoalpha and rhobeta.
    * rhobeta has a beta hyperprior with parameters rhobeta0 and rhobeta1
@@ -112,7 +121,7 @@ private:
   double rhobeta0;
   double rhobeta1;
   double SumRho; //ergodic sum of rho
-
+  
 #if GLOBALRHOSAMPLER == 1
   //DARS sampler for global rho
   double RhoParameters[4];
@@ -131,7 +140,7 @@ private:
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
   std::vector<double> SumAlpha; //ergodic sums of alphas
   //sampler for alpha
-
+  
 #if POPADMIXSAMPLER == 1 //DARS sampler
   double AlphaParameters[5];
   DARS** DirParamArray;

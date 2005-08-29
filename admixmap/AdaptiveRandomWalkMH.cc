@@ -20,9 +20,10 @@
  */
 #include "AdaptiveRandomWalkMH.h"
 
+
 AdaptiveRandomWalkMH::AdaptiveRandomWalkMH()
 {
-  k = 1;
+  k = 1;   
 }
 
 AdaptiveRandomWalkMH::AdaptiveRandomWalkMH(int inw, double insigma0, double inmin, double inmax, double intarget)
@@ -34,17 +35,18 @@ AdaptiveRandomWalkMH::~AdaptiveRandomWalkMH()
 {
 }
 
-void AdaptiveRandomWalkMH::SetParameters(int inw, double insigma0, double inmin, double inmax, double intarget)
+void AdaptiveRandomWalkMH::SetParameters(int inw, double step0, double inmin, double inmax, double intarget)
 {
   w = inw;
-  sigma0 = insigma0;
+  step = step0;
+  sigma0 = log(step);
   sigma = sigma0;
-  min = inmin;
-  max = inmax;
+  min = log(inmin);
+  max = log(inmax);
   target = intarget;
   k = 1;
   count = 0;
-  NumberAccepted = 0;
+  SumAcceptanceProb = 0.0;
 }
 
 double AdaptiveRandomWalkMH::GetSigma()
@@ -52,16 +54,21 @@ double AdaptiveRandomWalkMH::GetSigma()
   return sigma;
 }
 
-double AdaptiveRandomWalkMH::UpdateSigma(double AcceptanceProb)
+double AdaptiveRandomWalkMH::UpdateStepSize(double AcceptanceProb)
 {
-  sigma = sigma + 2.0*( AcceptanceProb - target ) / k;
+  sigma = sigma + ( AcceptanceProb - target ) / k; 
+  // initial adjustment to step size will be of the order of exp(0.5) fold 
   if( sigma > max )
     sigma = max;
   else if( sigma < min )
     sigma = min;
+  step = exp(sigma);
+  SumAcceptanceProb += AcceptanceProb; // accumulate sum of acceptance probs
+  count++;
   k++;
-  return sigma;
+  return step;
 }
+
 double AdaptiveRandomWalkMH::UpdateSigma(int NumberAccepted)
 {
   double ProportionAccepted = (double)NumberAccepted / w;
@@ -72,6 +79,16 @@ double AdaptiveRandomWalkMH::UpdateSigma(int NumberAccepted)
     sigma = min;
   k++;
   return sigma;
+}
+
+double AdaptiveRandomWalkMH::getStepSize()
+{
+  return step; 
+}
+
+double AdaptiveRandomWalkMH::getExpectedAcceptanceRate()
+{
+  return SumAcceptanceProb / count;
 }
 
 void AdaptiveRandomWalkMH::Event(bool accept)
