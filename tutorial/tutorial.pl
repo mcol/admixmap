@@ -44,9 +44,9 @@ doAnalysis($executable,$arg_hash);
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
-#$arg_hash->{samples}               = 5500;
-#$arg_hash->{burnin}                = 500;
-#$arg_hash->{every}                 = 5;
+$arg_hash->{samples}               = 5500;
+$arg_hash->{burnin}                = 500;
+$arg_hash->{every}                 = 5;
 doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 3 populations
@@ -61,7 +61,6 @@ $arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqsnew.txt';
 $arg_hash->{dispersiontestfile}            = 'dispersionTest.txt';
 $arg_hash->{indadmixturefile}              = 'indivadmixture.txt';
 $arg_hash->{ancestryassociationscorefile}  = 'ancestryassociationscorefile.txt';
-$arg_hash->{resultsdir}            = 'TwoPopsResults';  
 #$arg_hash->{samples}               = 1100;
 #$arg_hash->{burnin}                = 100;
 #$arg_hash->{every}                 = 5;
@@ -78,6 +77,7 @@ doAnalysis($executable,$arg_hash);
 # model with historic allele freqs and both outcome vars
 delete $arg_hash->{priorallelefreqfile};
 delete $arg_hash->{dispersiontestfile};
+delete $arg_hash->{affectedsonlyscorefile};
 $arg_hash->{resultsdir}                = 'HistoricFreqResults';  
 $arg_hash->{randommatingmodel}         = 1;
 $arg_hash->{analysistypeindicator}     = 5; # both outcome vars
