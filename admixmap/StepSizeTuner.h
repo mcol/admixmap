@@ -41,9 +41,7 @@ public:
   void SetParameters(int w, double sigma0, double min, double max, double target);
     
   double GetSigma();//returns log step size
-  double UpdateSigma(int);
   double UpdateStepSize(double AcceptanceProb);// returns step size after updating from current acceptance prob
-  void Event(bool);// updates acceptance count and tunes proposal stepsize
   double getStepSize(); 
   double getExpectedAcceptanceRate();
 

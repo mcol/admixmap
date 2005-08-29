@@ -70,18 +70,6 @@ double StepSizeTuner::UpdateStepSize(double AcceptanceProb)
   return step;
 }
 
-double StepSizeTuner::UpdateSigma(int NumberAccepted)
-{
-  double ProportionAccepted = (double)NumberAccepted / w;
-  sigma = sigma + sigma0 * ( ProportionAccepted - target ) / k;
-  if( sigma > max )
-    sigma = max;
-  else if( sigma < min )
-    sigma = min;
-  k++;
-  return sigma;
-}
-
 double StepSizeTuner::getStepSize()
 {
   return step; 
@@ -94,19 +82,4 @@ double StepSizeTuner::getExpectedAcceptanceRate()
   else return 0.0;
 }
 
-void StepSizeTuner::Event(bool accept)
-{
-  count++;
-  NumberAccepted+=accept;
-  if( count == w ){
-    double ProportionAccepted = (double)NumberAccepted / w;
-    sigma = sigma + sigma0 * ( ProportionAccepted - target ) / k;
-    if( sigma > max )
-      sigma = max;
-    else if( sigma < min )
-      sigma = min;
-    k++;
-    NumberAccepted = 0;
-    count = 0;
-  }  
-}
+
