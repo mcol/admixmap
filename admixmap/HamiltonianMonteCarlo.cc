@@ -50,7 +50,7 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, unsign
 
   g = new double[dim];
 
-  Tuner.SetParameters( epsilon, 0.01, 10.0, target);
+  Tuner.SetParameters( 1, epsilon, 0.01, 10.0, target);
 }
 
 void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
