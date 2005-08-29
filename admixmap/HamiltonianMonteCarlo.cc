@@ -28,14 +28,10 @@ HamiltonianMonteCarlo::HamiltonianMonteCarlo(){
   epsilon = 0.0;
   Tau = 1;
   g = 0;
-  accept_count = 0;
-  overall_accept_count = 0;
+  //overall_accept_count = 0;
   findE = 0;
   gradE = 0;
-  TargetAcceptRate  = 1.0;
-  numsamples = 0;
-  totalsamples = 0;
-  seq = 1;
+  //totalsamples = 0;
 };
 
 HamiltonianMonteCarlo::~HamiltonianMonteCarlo(){
@@ -47,14 +43,14 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, unsign
 			  double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
 			  void (*pgradE)(unsigned d, const double* const theta, const double* const* args, double *g)){
   dim = pdim;
-  epsilon0 = pepsilon;
   epsilon = pepsilon;
   Tau = pTau;
   findE = pfindE;
   gradE = pgradE;
-  TargetAcceptRate = target;
 
   g = new double[dim];
+
+  Tuner.SetParameters( epsilon, 0.01, 10.0, target);
 }
 
 void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
@@ -71,6 +67,7 @@ void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
   */
 
   bool accept = false;
+  double AccProb;
   double *p = new double[dim];
   double H, Hnew, dH, sumpsq = 0.0;
   double *gnew, *xnew, Enew;
@@ -79,6 +76,7 @@ void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
 
   gradE (dim, x, args, g ) ; // set gradient using initial x
   E = findE (dim, x, args ) ;// set objective function too
+  epsilon = Tuner.getStepSize();
   
   for(unsigned i = 0; i < dim; ++i)p[i] = gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
   for(unsigned i = 0; i < dim; ++i)sumpsq += p[i]*p[i];
@@ -99,49 +97,42 @@ void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
   }
 
   Enew = findE ( dim, xnew, args ) ; // find new value of H
-    if(Enew !=-1.0){
+
+  AccProb = 0.0;
+  if(Enew !=-1.0){// -1 means an error in calculation of energy function
       Hnew = sumpsq *0.5 + Enew ;
       dH = Hnew - H ; // Decide whether to accept
-      if ( dH < 0.0 ) accept = true ;
-      else if ( myrand() < exp(-dH) ) accept = true;
-      else accept = false ;
+      if ( dH < 0.0 ) {accept = true ;AccProb = 1.0;}
+      else {
+	AccProb = exp(-dH);
+	if ( myrand() < exp(-dH) ) accept = true;
+	else accept = false ;
+      }
       
       if ( accept ){
 	for(unsigned i = 0; i < dim; ++i){
 	  x[i] = xnew[i]; 
 	  g[i] = gnew[i];
 	}
-	++accept_count;
-	++overall_accept_count;
+	//++overall_accept_count;
 	E = Enew ;
       }
-    }
-    ++numsamples;
-    ++totalsamples;
-    delete[] p;
-    delete[] xnew;
-    delete[] gnew;  
+  }
+  Tuner.UpdateStepSize(AccProb);
+  //++totalsamples;
+  delete[] p;
+  delete[] xnew;
+  delete[] gnew;  
 }
 
-float HamiltonianMonteCarlo::getAcceptanceRate() const{
-  return (float)overall_accept_count/(float)totalsamples;
+float HamiltonianMonteCarlo::getAcceptanceRate(){
+  //return (float)overall_accept_count/(float)totalsamples;
+  return Tuner.getExpectedAcceptanceRate();
 }
 
-float HamiltonianMonteCarlo::getStepsize() const{
+float HamiltonianMonteCarlo::getStepsize(){
   return epsilon;
+  //return Tuner.getStepsize();
 }
 
-void HamiltonianMonteCarlo::Tune(){
-  //adjusts stepsize according to current acceptance rate
-//   if(numsamples > 0){
-//     if(accept_count > 0.0)
-//       epsilon *=  (double)accept_count / ((double)TargetAcceptRate *(double)numsamples);
-//     else epsilon *= 0.8;
-//     numsamples = 0;
-//     accept_count = 0;
-//   } 
-  epsilon += epsilon0 * ((double)accept_count/(double)numsamples - TargetAcceptRate) / seq;
-  ++seq;
-  numsamples = 0;
-  accept_count = 0;
-}
+

@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <vector>
 #include "rand.h"
+#include "StepSizeTuner.h"
 extern "C" {
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
@@ -41,8 +42,8 @@ public:
 		     double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
 		     void (*pgradE)(unsigned d, const double* const theta, const double* const *args, double *g));
   //sets dimension, stepsize, number of steps and parameters for density function
-  float getAcceptanceRate() const;
-  float getStepsize() const;
+  float getAcceptanceRate();
+  float getStepsize();
   void Tune();
 
 private:
@@ -51,16 +52,12 @@ private:
 
   unsigned dim;     //dimension
   double epsilon;   //stepsize
-  double epsilon0; //initial stepsize
   double Tau;       //# leapfrog steps
   double E;         //value of objective function
   double *g;        //gradient (multidim)
-  long accept_count; //number of acceptances since last tuning, for monitoring
   long overall_accept_count;
-  long numsamples;  //number of times Sample has been called since last tuning
   long totalsamples;//  "        "      "     "   "    "  in total
-  long seq;
-  float TargetAcceptRate;
+  StepSizeTuner Tuner;
 
   HamiltonianMonteCarlo(const HamiltonianMonteCarlo&);
   HamiltonianMonteCarlo& operator=(const HamiltonianMonteCarlo);
