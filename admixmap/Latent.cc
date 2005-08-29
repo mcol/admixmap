@@ -228,9 +228,9 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
       copy(individuals->getSumLogTheta(), individuals->getSumLogTheta()+options->getPopulations(), AlphaArgs[0]);
       AlphaSampler.Sample(logalpha, AlphaArgs);//sample new values for logalpha
       transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
-      if(!((iteration+1) % 10)){
-         AlphaSampler.Tune();//tune Hamiltonian sampler every 10 iterations
-      }
+      //if(!((iteration+1) % 10)){
+      //AlphaSampler.Tune();//tune Hamiltonian sampler every 10 iterations
+      //  }
 #endif
       
       // ** accumulate sum of Dirichlet parameter vector over iterations  **
