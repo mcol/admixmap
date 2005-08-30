@@ -219,7 +219,7 @@ void IndividualCollection::calculateExpectedY( int k)
       ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
 }
 
-void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Genome *Loci, std::string *PopulationLabels,
+void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::string *PopulationLabels,
 				      double rhoalpha, double rhobeta, LogWriter *Log, const Matrix_d &MLEMatrix){
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
@@ -313,13 +313,7 @@ void IndividualCollection::Initialise(AdmixOptions *options, double **beta, Geno
       Covariates = ConcatenateHorizontally( Covariates, temporary );
     }
 
-    //should be in Regression
-    for( int k = 0; k < NumOutcomes; k++ ){
-      SetExpectedY(k,beta[k]);
-//for logistic regression
-      if( OutcomeType[k] )calculateExpectedY(k);
-    }
-  }
+   }
 
   SumLogTheta = new double[ options->getPopulations()];
   InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
@@ -496,25 +490,31 @@ void IndividualCollection::getLabels(const Vector_s& data, string *labels)
   }
 }
 
-void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R, const double *poptheta, AdmixOptions *options,
-				  Chromosome **chrm, vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
-				  LogWriter *Log, chib *MargLikelihood){
+void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0, Regression *R1, const double *poptheta, 
+				  AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, 
+				  double rhoalpha, double rhobeta, LogWriter *Log, chib *MargLikelihood){
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
   Individual::ResetStaticSums();
 
+  double lambda[] = {R0->getlambda(), R1->getlambda()};
+  double *beta[] = {R0->getbeta(), R1->getbeta()};
+ 
   for(unsigned int i = 0; i < NumInd; i++ ){
     
     if( options->getPopulations() > 1 ){
-      _child[i]->SampleParameters(i, SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(),
-				  R->getNumCovariates(),  Covariates, R->getbeta(), poptheta, options, 
+      _child[i]->SampleParameters(i, SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, 
+				  lambda, NumCovariates, Covariates, beta, poptheta, options, 
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
-				  R->getDispersion(OutcomeType[0]));}
+				  R0->getDispersion()
+				  );
+    }
+    //?? possible error, only using dispersion parameter for first regression model
     
     else{
-      _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, R->getlambda(), options->getAnalysisTypeIndicator(), 
-				     chrm, A);
+      _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, 
+				     options->getAnalysisTypeIndicator(), chrm, A);
     }   
     
     if( (options->getAnalysisTypeIndicator() < 0) &&  options->getMLIndicator() && (i == 0) )//check if this condition is correct

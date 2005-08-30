@@ -49,14 +49,14 @@ public:
   ~IndividualCollection();
   IndividualCollection(AdmixOptions*,InputData *Data,Genome&,Chromosome **);
 
-  void Initialise(AdmixOptions *, double **,Genome *,std::string *PopulationLabels, double rhoalpha,double rhobeta, LogWriter *Log,
-		  const Matrix_d &MLEMatrix);
+  void Initialise(AdmixOptions *, Genome *, std::string *PopulationLabels, 
+		  double rhoalpha, double rhobeta, LogWriter *Log, const Matrix_d &MLEMatrix);
 
   void LoadData(AdmixOptions *options, InputData *, LogWriter *Log);
   
   void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels);
 
-  void Update(int iteration, AlleleFreqs *A, Regression *R, 
+  void Update(int iteration, AlleleFreqs *A, Regression *R0, Regression *R1,  
 	      const double *poptheta, AdmixOptions *options, Chromosome **chrm, 
 	      std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta,
 	      LogWriter *Log, chib *MargLikelihood);
@@ -122,6 +122,12 @@ private:
   double *SumLogTheta;//sums of log individual admixture proportions
   vector<double> MaxLogLikelihood;
 
+  Matrix_d *ReportedAncestry;
+  std::vector<double> sigma;
+  IndAdmixOutputter* indadmixoutput;
+  double LogLikelihood, SumLogLikelihood;
+  std::vector< int > _locusfortest;
+ 
   //Regression Objects
   double **ExpectedY;
   Matrix_d *Outcome;
@@ -132,14 +138,6 @@ private:
   std::string *CovariateLabels;
   std::string *OutcomeVarLabels;
   int *OutcomeType;
-
-  Matrix_d *ReportedAncestry;
-  std::vector<double> sigma;
-  IndAdmixOutputter* indadmixoutput;
-  double LogLikelihood, SumLogLikelihood;
-  std::vector< int > _locusfortest;
- 
-
 
 };
 
