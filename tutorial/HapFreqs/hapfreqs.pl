@@ -12,9 +12,9 @@ my $executable = '../../test/admixmap.exe';
 # values (right-hand side) are parameter values
 my $arg_hash = 
 {
-    samples                    => 1200, 
-    burnin                     => 200,
-    every                      => 5,
+    samples                    => 2100, 
+    burnin                     => 100,
+    every                      => 1,
     coutindicator              => 0,
     locusfile                  => 'lociDRD2.txt',
     genotypesfile              => 'genotypesDRD2NAm.txt',

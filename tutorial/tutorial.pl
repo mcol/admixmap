@@ -39,20 +39,20 @@ $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'SinglePopResults';  
 $arg_hash->{analysistypeindicator} = 2; # continuous outcome var
 $arg_hash->{targetindicator}       = 1; # skin reflectance
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
-$arg_hash->{samples}               = 5500;
-$arg_hash->{burnin}                = 500;
-$arg_hash->{every}                 = 5;
+#$arg_hash->{samples}               = 5500;
+#$arg_hash->{burnin}                = 500;
+#$arg_hash->{every}                 = 5;
 doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 3 populations
-$arg_hash->{populations}           = 3;
+#$arg_hash->{populations}           = 3;
 $arg_hash->{resultsdir}            = 'ThreePopsResults';  
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs 
 delete $arg_hash->{populations};
