@@ -21,7 +21,7 @@
 
 #include "admixmap.h"
 #include "IndividualCollection.h"
-#include "Chromosome.h"//not needed if chrm is moved out
+#include "Chromosome.h"
 #include "chib.h"
 #include "MisSpecAlleleFreqTest.h"
 #include "HWTest.h"
@@ -91,17 +91,25 @@ void submain(AdmixOptions* options){
   Latent L( options, &Loci, &Log);    
   L.Initialise(IC->getSize(), data.GetPopLabels());
 
-  Regression R;
-  if( options->getAnalysisTypeIndicator() >= 2)
-    R.Initialise(IC, options, data.GetPopLabels(), &Log);
+  Regression R0;
+  Regression R1;
+  if(options->getAnalysisTypeIndicator() > 1){
+    R0.Initialise(0, IC, options, &Log);
+    if(options->getAnalysisTypeIndicator() == 5)R1.Initialise(1, IC, options, &Log);
+  }
+  Regression::OpenOutputFile(options, IC, data.GetPopLabels(), &Log);  
+
 
   if( !options->getRhoIndicator() )
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
       chrm[j]->InitialiseLociCorr(L.getrho());
     }
-  IC->Initialise(options, R.getbeta(), &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
-
-		
+  IC->Initialise(options, &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
+  //set expected Y
+  if(options->getAnalysisTypeIndicator() > 1){
+    R0.SetExpectedY(IC);
+    if(options->getAnalysisTypeIndicator() == 5)R1.SetExpectedY(IC);
+  }		
 
   //   ** single individual, one population, allele frequencies 
    if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
@@ -149,7 +157,7 @@ void submain(AdmixOptions* options){
 	L.UpdateRhoWithRW(IC, chrm, iteration);
   
       // ** Update individual-level parameters  
-      IC->Update(iteration, &A, &R, L.getpoptheta(),options,
+      IC->Update(iteration, &A, &R0, &R1, L.getpoptheta(),options,
 		 chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
 		 &Log, &MargLikelihood);
       // ** update allele frequencies
@@ -164,8 +172,10 @@ void submain(AdmixOptions* options){
       L.Update(iteration, IC);
 
       // ** update regression parameters (if regression model)
-      if( options->getAnalysisTypeIndicator() >= 2)
-	R.Update((iteration > options->getBurnIn()), IC);
+      if( options->getAnalysisTypeIndicator() >= 2){
+	R0.Update((iteration > options->getBurnIn()), IC);
+      if( options->getAnalysisTypeIndicator() == 5) R1.Update((iteration > options->getBurnIn()), IC);
+      }
 
       // ** set merged haplotypes for allelic association score test 
      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
@@ -179,8 +189,11 @@ void submain(AdmixOptions* options){
 	  // ** pop admixture, sumintensities
 	  L.OutputParams(iteration);
 	  // ** regression parameters
-	  if( options->getAnalysisTypeIndicator() >= 2)
-	    R.Output(iteration, options, IC, &Log);
+	  if( options->getAnalysisTypeIndicator() >= 2){
+	    R0.Output(iteration, options, &Log);
+	    if( options->getAnalysisTypeIndicator() == 5)
+	      R1.Output(iteration, options, &Log);
+	  }
 	  //** dispersion parameter (if dispersion model)
 	  A.OutputEta(iteration, options, &Log);
 	  //** new line in logfile
@@ -197,7 +210,7 @@ void submain(AdmixOptions* options){
       if( iteration > options->getBurnIn() ){
 	//score tests
 	if( options->getScoreTestIndicator() )
-	  Scoretest.Update(R.getDispersion(IC->getOutcomeType(0)));
+	  Scoretest.Update(R0.getDispersion());//possible error? what if 2 regression models?
 	//tests for mis-specified allelefreqs
 	if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
 	  AlleleFreqTest.Update(IC, &A, &Loci);
@@ -212,8 +225,11 @@ void submain(AdmixOptions* options){
 	  if ( strlen( options->getErgodicAverageFilename() ) ){
 	    int samples = iteration - options->getBurnIn();
 	    L.OutputErgodicAvg(samples,&avgstream);
-	    if( options->getAnalysisTypeIndicator() >= 2)
-	      R.OutputErgodicAvg(samples,IC,&avgstream);
+	    if( options->getAnalysisTypeIndicator() >= 2){
+	      R0.OutputErgodicAvg(samples, &avgstream);
+	      if( options->getAnalysisTypeIndicator() == 5)
+		R1.OutputErgodicAvg(samples, &avgstream);
+	    }
 	    A.OutputErgodicAvg(samples,options,&avgstream);
 	    if( options->getAnalysisTypeIndicator() == -1 ){
 	      IC->OutputErgodicAvg(samples,&MargLikelihood,&avgstream);
