@@ -29,16 +29,16 @@
 class StepSizeTuner
 {
 public:
-  /*supply: w = number of samplings between tunings
+  /*supply: 
             step0 = initial step size
             min, max = min and max values for step size
             target = target acceptance rate
   */
-  StepSizeTuner(int w, double sigma0, double min, double max, double target);
+  StepSizeTuner(double sigma0, double min, double max, double target);
   StepSizeTuner();//default constructor, initialises k only
   ~StepSizeTuner();
   
-  void SetParameters(int w, double sigma0, double min, double max, double target);
+  void SetParameters(double sigma0, double min, double max, double target);
     
   double GetSigma();//returns log step size
   double UpdateStepSize(double AcceptanceProb);// returns step size after updating from current acceptance prob
@@ -54,7 +54,6 @@ private:
   double target; // Target acceptance probability
   double SumAcceptanceProb; // cumulative sum of acceptance probs
   int k; // Number of times stepsize is to be updated
-  int w; // Frequency of updates - 10 is good
   int count; // Number of iterations since last update
   int NumberAccepted; // Number of accepted proposals in since last update
 };

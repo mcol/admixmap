@@ -27,18 +27,17 @@ StepSizeTuner::StepSizeTuner()
   k = 1;   
 }
 
-StepSizeTuner::StepSizeTuner(int inw, double insigma0, double inmin, double inmax, double intarget)
+StepSizeTuner::StepSizeTuner(double insigma0, double inmin, double inmax, double intarget)
 {
-  SetParameters(inw, insigma0, inmin, inmax, intarget);
+  SetParameters(insigma0, inmin, inmax, intarget);
 }
 
 StepSizeTuner::~StepSizeTuner()
 {
 }
 
-void StepSizeTuner::SetParameters(int inw, double step0, double inmin, double inmax, double intarget)
+void StepSizeTuner::SetParameters(double step0, double inmin, double inmax, double intarget)
 {
-  w = inw;
   step = step0;
   sigma0 = log(step);
   sigma = sigma0;

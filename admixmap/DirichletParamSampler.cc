@@ -9,7 +9,7 @@ DirichletParamSampler::DirichletParamSampler()
   step0 = 0.1; //sd of proposal distribution for log eta
   // need to choose sensible value for this initial RW sd
   step = step0;
-  TuneEta.SetParameters(1, step0, 0.01, 10, 0.44); 
+  TuneEta.SetParameters( step0, 0.01, 10, 0.44); 
   EtaAlpha = 1;
   EtaBeta = 1;
 }
@@ -19,8 +19,7 @@ DirichletParamSampler::DirichletParamSampler( unsigned int ind )
   d = ind;
   gamma = new double[d];
   munew = new double[d];
-  TuneEta.SetParameters(1, step0, 0.01, 10, 0.44); 
-  //   TuneEta.SetParameters( 10, 0.1, 0.01, 100, 0.44 );
+  TuneEta.SetParameters( step0, 0.01, 10, 0.44); 
   EtaAlpha = 1;
   EtaBeta = 1;
   for( unsigned int i = 0; i < d; i++ )
