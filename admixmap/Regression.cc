@@ -16,6 +16,9 @@ Regression::Regression(){
   acceptbeta = 0;
   BetaParameters = 0;
   RegType = None;
+
+  aCovariates = 0;
+  dims = 0;
 }
 
 Regression::~Regression(){
@@ -24,11 +27,14 @@ Regression::~Regression(){
       delete BetaDrawArray[i];
     }
     delete[] BetaDrawArray;
+    delete[] dims;
+    delete[] aCovariates;
   }
 
   delete[] beta;
   delete[] SumBeta;
   delete[] BetaParameters;
+
 }
 
 void Regression::OpenOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels, LogWriter *Log){
@@ -163,14 +169,22 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
       BetaDrawArray[i] = 0;
     }
 
-      Matrix_i empty_i;
-      fill(BetaParameters, BetaParameters+NumCovariates+4, 0.0);
-      BetaParameters[ NumCovariates + 1 ] = lambda;
-      BetaParameters[ NumCovariates + 3 ] = beta0(0,0);
-      for( int i = 0; i < NumCovariates; i++ ){
-	BetaDrawArray[i] = new GaussianProposalMH( BetaParameters, lr, dlr, ddlr, empty_i, individuals->getCovariates() );
-      }
+    Matrix_d Cov = individuals->getCovariates();
+    aCovariates = new double[individuals->getSize() * NumCovariates];
+    for(int i = 0; i < Cov.GetNumberOfRows(); ++i)
+      for(int j = 0; j < Cov.GetNumberOfCols(); ++j)
+	aCovariates[i*NumCovariates +j] = Cov(i,j);
+
+    dims = new int[2];
+    dims[0] = individuals->getSize();
+    dims[1] = NumCovariates;
+    fill(BetaParameters, BetaParameters+NumCovariates+4, 0.0);
+    BetaParameters[ NumCovariates + 1 ] = lambda;
+    BetaParameters[ NumCovariates + 3 ] = beta0(0,0);
+    for( int i = 0; i < NumCovariates; i++ ){
+      BetaDrawArray[i] = new GaussianProposalMH( BetaParameters, lr, dlr, ddlr, dims, aCovariates );
     }
+  }
   }//end else, AnalysisTypeIndicator >2
 }
 
@@ -206,8 +220,14 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
 
     else if( RegType == Logistic ){
       sum = (individuals->getOutcome(RegNumber)).Transpose() * individuals->getCovariates();
+
+      Matrix_d Cov = individuals->getCovariates();
+      for(int i = 0; i < Cov.GetNumberOfRows(); ++i)
+	for(int j = 0; j < Cov.GetNumberOfCols(); ++j)
+	  aCovariates[i*NumCovariates +j] = Cov(i,j);
+
       for( int j = 0; j < NumCovariates; j++ ){
-	BetaDrawArray[j]->UpdateDoubleData( individuals->getCovariates() );
+	BetaDrawArray[j]->UpdateDoubleData( aCovariates );
 	BetaParameters[ NumCovariates + 2 ] = j;
 	BetaParameters[ NumCovariates ] = sum( 0, j );
 	BetaDrawArray[j]->UpdateParameters( BetaParameters );
@@ -305,81 +325,106 @@ int Regression::getNumCovariates(){
   return NumCovariates;
 }
 
-double Regression::lr( const double *parameters, Matrix_i &, Matrix_d &data, double beta )
+double Regression::lr( const double* const parameters, const int* const dims, const double* const data, const double beta )
 {
-  int n = (int)data.GetNumberOfRows();
-  int d = (int)data.GetNumberOfCols();
+  //dims is an array of length 2 containing the dimensions of data
+  int n = dims[0];
+  int d = dims[1];
   int index = (int)parameters[ d + 2 ];
   double beta0 = 0;
   if( index == 0 )
     beta0 = parameters[ d + 3 ];
-  Matrix_d Xbeta, beta1( d, 1 );
+  double *Xbeta, *beta1;
+
+  beta1 = new double[ d ];
+  Xbeta = new double[ n ];
+
   double f = parameters[ d ] * beta
     - 0.5 * parameters[ d + 1 ] * (beta - beta0) * (beta - beta0);
   
   for( int i = 0; i < d; i++ )
     {
       if( i != index )
-	beta1( i , 0 ) = parameters[i];
+	beta1[ i ] = parameters[i];
       else
-	beta1( i , 0 ) = beta;
+	beta1[ i ] = beta;
     }
   
-  Xbeta = data * beta1;
+  //Xbeta = data * beta1;
+  matrix_product(data, beta1, Xbeta, n, d, 1);
+
   for( int i = 0; i < n; i++ ){
-    f -= log( 1. + exp( Xbeta( i, 0 ) ) );}
+    f -= log( 1. + exp( Xbeta[ i ] ) );}
   
+  delete[] beta1;
+  delete[] Xbeta;
   return( f );
 }
 
-double Regression::dlr( const double *parameters, Matrix_i&, Matrix_d &data, double beta )
+//a lot of duplicated code in the next 2 functions
+//can we find a way to use a single function to compute Xbeta?
+double Regression::dlr( const double* const parameters, const int* const dims, const double* const data, const double beta )
 {
-  int n = (int)data.GetNumberOfRows();
-  int d = (int)data.GetNumberOfCols();
+  //dims is an array of length 2 containing the dimensions of data
+  int n = dims[0];
+  int d = dims[1];
   int index = (int)parameters[ d + 2 ];
   double beta0 = 0;
   if( index == 0 )
     beta0 = parameters[ d + 3 ];
   double f = parameters[ d ] - parameters[ d + 1 ] * (beta - beta0);
-  Matrix_d Xbeta, beta1( d, 1 );
+  double *Xbeta, *beta1;
+
+  beta1 = new double[ d ];
+  Xbeta = new double[ n ];
   
   for( int i = 0; i < d; i++ )
     {
       if( i != index )
-	beta1( i, 0 ) = parameters[i];
+	beta1[ i ] = parameters[i];
       else
-	beta1( i, 0 ) = beta;
+	beta1[ i ] = beta;
     }
   
-  Xbeta = data * beta1;
+  //Xbeta = data * beta1;
+  matrix_product(data, beta1, Xbeta, n, d, 1);
   for( int i = 0; i < n; i++ )
     {
-      f -= data( i, index ) / ( 1. + exp( -Xbeta( i, 0 ) ) );
+      f -= data[ i*d + index ] / ( 1. + exp( -Xbeta[ i ] ) );
     }
+  delete[] beta1;
+  delete[] Xbeta;
   return( f );
 }
 
-double Regression::ddlr( const double *parameters, Matrix_i&, Matrix_d &data, double beta )
+double Regression::ddlr( const double* const parameters, const int* const dims, const double* const data, const double beta )
 {
-  int n = (int)data.GetNumberOfRows();
-  int d = (int)data.GetNumberOfCols();
+  //dims is an array of length 2 containing the dimensions of data
+  int n = dims[0];
+  int d = dims[1];
   int index = (int)parameters[ d + 2 ];
   double f = -parameters[ d + 1 ];
-  Matrix_d Xbeta, beta1( d, 1 );
+   double *Xbeta, *beta1;
+
+  beta1 = new double[ d ];
+  Xbeta = new double[ n ];
   
   for( int i = 0; i < d; i++ )
     {
       if( i != index )
-	beta1( i, 0 ) = parameters[i];
+	beta1[ i ] = parameters[i];
       else
-	beta1( i, 0 ) = beta;
+	beta1[ i ] = beta;
     }
   
-  Xbeta = data * beta1;
+  //Xbeta = data * beta1;
+  matrix_product(data, beta1, Xbeta, n, d, 1);
   for( int i = 0; i < n; i++ )
     {
-      f -= data( i, index ) * data( i, index ) / ( 2. + exp( -Xbeta( i, 0 ) ) + exp( Xbeta( i, 0 ) ) );
+      f -= data[ i*d + index ] * data[ i*d + index ] / ( 2. + exp( -Xbeta[ i ] ) + exp( Xbeta[ i ] ) );
     }
+  delete[] beta1;
+  delete[] Xbeta;
   return( f );
 }
 

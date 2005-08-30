@@ -51,21 +51,18 @@ private:
   double *BetaParameters;
   int acceptbeta;
   Matrix_d sum;
-
-
+  double *aCovariates;
+  int *dims;
  
   static std::ofstream outputstream;//output to regparamfile
 
   void SumParameters();
 
-  static double
-  lr( const double* , Matrix_i&, Matrix_d& , double );
+  static double lr( const double* const, const int* const, const double* const, const double );
   
-  static double
-  dlr( const double* , Matrix_i&, Matrix_d& , double );
+  static double dlr( const double* const, const int* const, const double* const, const double );
   
-  static double
-  ddlr( const double* , Matrix_i&, Matrix_d& , double );
+  static double ddlr( const double* const, const int* const, const double* const, const double );
   
 
 };

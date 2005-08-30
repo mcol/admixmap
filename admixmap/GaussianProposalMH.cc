@@ -22,10 +22,10 @@
 
 GaussianProposalMH::GaussianProposalMH
 (const double *inparameters,
- double (*funct)(const double*, Matrix_i&, Matrix_d&, double),
- double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
- double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
- const Matrix_i &integer_data, const Matrix_d &double_data )
+ double (*funct)( const double* const, const int* const, const double* const, const double ),
+ double (*dfunct)( const double* const, const int* const, const double* const, const double ),
+ double (*ddfunct)( const double* const, const int* const, const double* const, const double ),
+ const int* const integer_data, const double* const double_data )
 {
    parameters = inparameters;
    data_i = integer_data;
@@ -44,12 +44,12 @@ void GaussianProposalMH::UpdateParameters( const double *inparameters )
   parameters = inparameters;
 }
 
-void GaussianProposalMH::UpdateIntegerData( const Matrix_i &indata )
+void GaussianProposalMH::UpdateIntegerData( const int* indata )
 {
   data_i = indata;
 }
 
-void GaussianProposalMH::UpdateDoubleData( const Matrix_d &indata )
+void GaussianProposalMH::UpdateDoubleData( const double* indata )
 {
   data_d = indata;
 }

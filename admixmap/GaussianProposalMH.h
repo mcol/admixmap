@@ -23,35 +23,33 @@
 #define GAUSSIANPROPOSALMH_H 1
 
 #include "rand.h"
-#include "matrix_i.h"
-#include "matrix_d.h"
 
 class GaussianProposalMH
 {
 public:
   GaussianProposalMH(const double* inparameters,
-                     double (*funct)(const double*, Matrix_i&, Matrix_d&, double),
-                     double (*dfunct)(const double*, Matrix_i&, Matrix_d&, double),
-                     double (*ddfunct)(const double*, Matrix_i&, Matrix_d&, double),
-                     const Matrix_i&, const Matrix_d&);
+                     double (*funct)( const double* const, const int* const, const double* const, const double ),
+                     double (*dfunct)( const double* const, const int* const, const double* const, const double ),
+                     double (*ddfunct)( const double* const, const int* const, const double* const, const double ),
+                     const int* const, const double* const);
    
   ~GaussianProposalMH();
   
   int Sample(double*);
   void UpdateParameters(const double* inparameters);
-  void UpdateIntegerData(const Matrix_i&);
-  void UpdateDoubleData(const Matrix_d&);
+  void UpdateIntegerData(const int *);
+  void UpdateDoubleData(const double*);
 
 private: // members
   unsigned dim;
-  const double *parameters;
-  Matrix_i data_i;
-  Matrix_d data_d;
+  const double* parameters;
+  const int* data_i;
+  const double* data_d;
   double newnum;
   double ddf;
-  double (*function)(const double*, Matrix_i &, Matrix_d &, double xin);
-  double (*dfunction)(const double*, Matrix_i &, Matrix_d &, double xin);
-  double (*ddfunction)(const double*, Matrix_i &, Matrix_d &, double xin);
+  double (*function)( const double* const, const int* const, const double* const, const double );
+  double (*dfunction)( const double* const, const int* const, const double* const, const double );
+  double (*ddfunction)( const double* const, const int* const, const double* const, const double );
 
   // HELPER FUNCTIONS
   void NewtonRaphson();
