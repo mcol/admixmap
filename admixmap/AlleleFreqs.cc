@@ -50,7 +50,7 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   //NumberAccepted = 0;
   NumberOfEtaUpdates  = 0;
   //etastep0 = 1.0;
-  //etastep = etastep0;
+  etastep = 0;
   //SumAcceptanceProb = 0; 
 #elif ETASAMPLER ==2
   initialEtaStepsize = 0.03;//need a sensible value for this
@@ -118,7 +118,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
     //NumberAccepted =new int[ Populations ];
     TuneEtaSampler = new StepSizeTuner[ Populations ];
     for( int k = 0; k < Populations; k++ )
-      TuneEtaSampler[k].SetParameters( w, etastep0, 0.01, 10, 0.44 );
+      TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
 #elif ETASAMPLER == 2
     // ** Settings for Hamiltonian sampler
     logeta = new double[Populations];
@@ -364,7 +364,7 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i, bool fixed, bo
     if( (*Loci)(i)->GetNumberOfStates() > 2 ){
       MuProposal[i].resize( Populations );
       for( int k = 0; k < Populations; k++ ){
-	MuProposal[i][k].SetParameters( 1, 0.01, 0.001, 10.0, 0.23 );
+	MuProposal[i][k].SetParameters( 0.01, 0.001, 10.0, 0.23 );
       }
     }
   }
