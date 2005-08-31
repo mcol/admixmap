@@ -377,7 +377,6 @@ plotPValuesKPopulations <- function(outfile, stdNormDev, thinning) {
 plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal, thinning) {
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
   dim.names <- dimnames(scoretest)
-  dim.names[[1]] <- dim.names[[1]][-1]
   
   ## rows are: locus,(haplotype), score, completeinfo, observedinfo,
   ##           pctinfo, stdnormdev, (chisquare)
@@ -385,16 +384,18 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
   if (!haplotypes) {
     testnames <- as.vector(scoretest[1,,1])
     scoretest <- scoretest[-1, ,]
+    dim.names[[1]] <- dim.names[[1]][-1]
   } else {
     testnames <- as.vector(paste(scoretest[1,,1], scoretest[2,,1]))
     scoretest <- scoretest[-c(1:2), ,]
+    dim.names[[1]] <- dim.names[[1]][-c(1:2)]
   }
   dims <- dim(scoretest)
   if(length(dim(scoretest))==2){
     dims <- c(dims,1)
    }
   ## convert to numeric
-    scoretest <- array(as.numeric(scoretest), dim=dims,dimnames=dim.names)
+  scoretest <- array(as.numeric(scoretest), dim=dims,dimnames=dim.names)
   scoretest[is.nan(scoretest)] <- NA
   ## extract matrix of standard normal deviates
   stdNormDev <- scoretest[5,,]
@@ -418,7 +419,7 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
   }
   write.table(scoretest.table, file=outputfileFinal, quote=FALSE, sep="\t",
               row.names=FALSE, col.names=TRUE)
-1}
+}
 
 #used to plot output of score test for heterozygosity
 plotHWScoreTest <- function(scorefile, k) {
@@ -1056,7 +1057,7 @@ if(!is.null(user.options$anneal)){
   dev.off()
 }
 
-if(is.null(user.options$allelefreqoutputfile)) {
+if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1) {
   print("allelefreqoutputfile not specified")
 } else {
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))

@@ -407,20 +407,23 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
 
   // Regression parameters
   if( options->getAnalysisTypeIndicator() > 1 ){
-    *avgstream << "       \"intercept\" ";
-    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
-      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-	*avgstream << individuals->getCovariateLabels(i) << " ";
+    for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
+      *avgstream << "       \"intercept\" ";
+      if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
+	for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
+	  *avgstream << individuals->getCovariateLabels(i) << " ";
+	}
       }
-    }
-    if( !options->getTestForAdmixtureAssociation() ){
-      for( int k = 1; k < options->getPopulations(); k++ ){
-	*avgstream << PopulationLabels[k] << " ";
+      if( !options->getTestForAdmixtureAssociation() ){
+	for( int k = 1; k < options->getPopulations(); k++ ){
+	  *avgstream << PopulationLabels[k] << " ";
+	}
       }
+      if( individuals->getOutcomeType(r)==0 )//linear regression
+	*avgstream << "       \"precision\"";
     }
   }
-  if( options->getAnalysisTypeIndicator() == 2 )
-    *avgstream << "       \"precision\"";
+
 
   // dispersion parameters
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ){

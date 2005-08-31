@@ -1036,6 +1036,12 @@ int AdmixOptions::checkOptions(LogWriter *Log){
   else if( alleleFreqFilename.length() ||
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
     Log->logmsg(true,"Analysis with fixed allele frequencies.\n");
+    if(OutputAlleleFreq){
+      Log->logmsg(true, "ERROR: allelefreqoutputfile option is invalid with fixed allele frequencies\n");
+      Log->logmsg(true, "       this option will be ignored\n");
+      OptionValues.erase("allelefreqoutputfile");
+      OutputAlleleFreq = false;
+    }
   }
   else if( PriorAlleleFreqFilename.length() && !fixedallelefreqs ){
     Log->logmsg(true,"Analysis with prior allele frequencies.\n");

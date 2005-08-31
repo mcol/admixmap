@@ -99,16 +99,16 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
   //set regression number for this object
   RegNumber = Number;
 
-  //determine regression type
-  if( individuals->getOutcomeType(RegNumber)==1 ) RegType = Logistic;
-  else if( individuals->getOutcomeType(RegNumber)==0 )RegType = Linear;
-  if(options->getAnalysisTypeIndicator()< 2)RegType = None;
-
-
   //?? next 2 lines may be unecessary, not initalising unless there is a regression model
-  if( AnalysisTypeIndicator < 2 )//no regression model
+  if( options->getAnalysisTypeIndicator() < 2 ){//no regression model
     NumCovariates = 0;
+    RegType = None;
+  }
   else{
+
+    //determine regression type
+    if( individuals->getOutcomeType(RegNumber)==1 ) RegType = Logistic;
+    else if( individuals->getOutcomeType(RegNumber)==0 )RegType = Linear;
 
     //** Objects common to both regression types
     NumCovariates = individuals->GetNumCovariates();

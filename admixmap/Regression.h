@@ -29,7 +29,7 @@ public:
   double getDispersion();
 
 private:
-  int NumCovariates, NumOutcomeVars, AnalysisTypeIndicator;
+  int NumCovariates, NumOutcomeVars;
   RegressionType RegType;
   unsigned RegNumber;
 

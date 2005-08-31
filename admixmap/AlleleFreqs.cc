@@ -985,8 +985,9 @@ void AlleleFreqs::OpenOutputFile(AdmixOptions *options)
     cerr << "Warning: Couldn't open allelefreqsoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
     //exit( 1 );
   }
-  else
+  else{
     allelefreqoutput << "structure(.Data=c(" << endl;
+  }
 }
 
 void AlleleFreqs::OutputAlleleFreqs()
