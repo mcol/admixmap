@@ -52,6 +52,9 @@ N <- 200
 K <- 2 # num subpopulations
 rho <- 6 # sum-of-intensities
 spacing <- 40 # 40 cM spacing gives 99 loci
+eta <- 5 # allele freq dispersion parameter
+beta <- 2 # regression slope
+logistic <- F # logistic or linear
 
 x <- numeric(0)
 chr <- numeric(0)
@@ -68,7 +71,6 @@ x <- 0.01*distanceFromLast(chr, x)
 L <- length(x) # number of loci
 
 ## simulate correlated allele freqs
-eta <- 20 # allele freq dispersion parameter
 mu <- numeric(L) # ancestral freqs allele 1
 alleleFreqs <- matrix(data=NA, nrow=2*L, ncol=K)
 for(locus in 1:L) {
@@ -77,8 +79,8 @@ for(locus in 1:L) {
                                         # freqs allele 1 in each of K subpops
   alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
 }
-alleleFreqs[,1] <- 1
-alleleFreqs[,2] <- 0
+#alleleFreqs[,1] <- 1
+#alleleFreqs[,2] <- 0
 
 ## simulate genotypes and outcome variable
 genotypes <- character(L)
@@ -98,18 +100,14 @@ for(individual in 1:N) {
   genotypes <- rbind(genotypes, obs)
 
   ## simulate outcome
-  beta <- 3
   alpha <- -beta*popM
-  
-  ## linear regression
-  logistic <- F
-  outcome[individual] <- rnorm(1, mean=(alpha + beta*avM[individual]), sd=1) 
-  ofam <- gaussian
-  
-  ## logistic regression with approx equal numbers of cases and controls
-  # logistic <- T
-  #outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[individual]))))  
-  #ofam <- binomial
+  if(logistic) { # logistic regression with approx equal numbers of cases and controls
+    outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[individual]))))  
+    ofam <- binomial
+  } else { # linear regression
+    outcome[individual] <- rnorm(1, mean=(alpha + beta*avM[individual]), sd=1) 
+    ofam <- gaussian
+  }
 }
 
 
@@ -117,9 +115,11 @@ reg.true <-summary.glm(glm(outcome ~ avM, family = ofam))
 
 outcome.table <- data.frame(outcome, row.names=NULL) # write outcome variable to file
 write.table(outcome.table, file="sim/outcome.txt", row.names=FALSE, col.names=TRUE)
+
 Mvector.table <- data.frame(avM, row.names=NULL)
 write.table(outcome, file="sim/Mvalues.txt", row.names=FALSE,
             col.names=TRUE)
+
 ##write genotypes to file
 genotypes <- genotypes[-1,]
 id = as.character(seq(1:N))
@@ -127,7 +127,7 @@ genotypes <- data.frame(id, genotypes, row.names=NULL)
 write.table(genotypes, file="sim/genotypes.txt",
             row.names=FALSE)
 
-  ## write locus file
+## write locus file
 x[is.na(x)] <- 100
 loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  x, row.names=NULL)
 dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distance")

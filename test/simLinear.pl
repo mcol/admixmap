@@ -17,14 +17,15 @@ my $arg_hash =
     genotypesfile                   => 'sim/genotypes.txt',
     locusfile                          => 'sim/loci.txt',
     priorallelefreqfile             => 'sim/priorallelefreqs.txt',
-    # covariatesfile                  => 'data/covariates3.txt',
     outcomevarfile               => 'sim/outcome.txt',
 
 #main options
     analysistypeindicator     => 2, # continuous outcome 
+    popadmixpriormean         => 2,
+    popadmixpriorvar          => 5,
     coutindicator   => 1, #verbose output
-    samples  => 500,
-    burnin   => 100,
+    samples  => 11000,
+    burnin   => 1000,
     every    => 5,
 
 #output files
@@ -32,21 +33,17 @@ my $arg_hash =
     logfile                     => 'logfile.txt',
     paramfile               => 'paramfile.txt',
     indadmixturefile     => 'indadmixture.txt',
-    ergodicaveragefile => 'ergodicaverage.txt'
+    ergodicaveragefile => 'ergodicaverage.txt',
     # allelefreqoutputfile  => 'allelefreqoutputfile.dat',
 
 #optional tests
-    # allelicassociationscorefile       => 'allelicassociationscorefile.dat',
-    # ancestryassociationscorefile  => 'ancestryassociationscorefile.dat',
-    # affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    # haplotypeassociationscorefile => 'hapassocscore.txt',
-    # stratificationtestfile                   => 'strat_test.txt'
+    allelicassociationscorefile       => 'allelicassociationscorefile.dat',
+    stratificationtestfile                   => 'strat_test.txt'
 };
 
 #doAnalysis($executable,$arg_hash);
 
 $arg_hash->{outcomevarfile} = 'sim/outcome.txt';
-$arg_hash->{analysistypeindicator} = 3;
 $arg_hash->{regparamfile} = 'regparamfile.txt';
 doAnalysis($executable,$arg_hash);
 
