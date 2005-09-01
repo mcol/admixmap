@@ -68,17 +68,17 @@ x <- 0.01*distanceFromLast(chr, x)
 L <- length(x) # number of loci
 
 ## simulate correlated allele freqs
-eta <- 2 # allele freq dispersion parameter
+eta <- 20 # allele freq dispersion parameter
 mu <- numeric(L) # ancestral freqs allele 1
 alleleFreqs <- matrix(data=NA, nrow=2*L, ncol=K)
-#alleleFreqs[,1] <- 1
-#alleleFreqs[,2] <- 0
 for(locus in 1:L) {
   mu[locus] <- rbeta(1, 2, 2)
   alleleFreqs[2*locus - 1, ] <- rbeta(2, mu[locus]*eta, (1 - mu[locus])*eta)
                                         # freqs allele 1 in each of K subpops
   alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
 }
+alleleFreqs[,1] <- 1
+alleleFreqs[,2] <- 0
 
 ## simulate genotypes and outcome variable
 genotypes <- character(L)
