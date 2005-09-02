@@ -86,8 +86,10 @@ p2 <- alleleFreqs[seq(2, 2*L, by=2), 2]
 ## positive f-value if freq allele 2 higher in pop1 than pop2
 f.signed <- sign(p1-p2)*(p1 - p2)^2 / ((p1+p2)*(2 - p1 - p2)) 
 ### if f.signed is negative, true effect is in opposite direction to confounding effect
-## candidate <- match(floor(L/4),   rank(f.signed)) # 25 th centile of f-value
-candidate <- match(floor(3*L/4), rank(f.signed)) # 75th centile of f-value
+
+## choose a candidate locus from 25th or 75th centile of signed f-values
+candidate <- match(floor(L/4),   rank(f.signed)) # 25 th centile of f-value
+#candidate <- match(floor(3*L/4), rank(f.signed)) # 75th centile of f-value
 cat("Candidate locus", candidate, "with signed f-value", f.signed[candidate])
 
 
