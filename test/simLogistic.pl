@@ -16,8 +16,6 @@ my $arg_hash =
 #data files
     genotypesfile                   => 'sim/genotypes.txt',
     locusfile                          => 'sim/loci.txt',
-    priorallelefreqfile             => 'sim/priorallelefreqs.txt',
-    # covariatesfile                  => 'data/covariates3.txt',
     outcomevarfile               => 'sim/outcome.txt',
 
 #main options
@@ -36,18 +34,18 @@ my $arg_hash =
     # allelefreqoutputfile  => 'allelefreqoutputfile.dat',
 
 #optional tests
-    # allelicassociationscorefile       => 'allelicassociationscorefile.dat',
-    # ancestryassociationscorefile  => 'ancestryassociationscorefile.dat',
-    # affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    # haplotypeassociationscorefile => 'hapassocscore.txt',
-    # stratificationtestfile                   => 'strat_test.txt'
+    allelicassociationscorefile       => 'allelicassociationscorefile.dat',
+    stratificationtestfile                   => 'strat_test.txt'
 };
 
-#doAnalysis($executable,$arg_hash);
-
-$arg_hash->{outcomevarfile} = 'sim/outcome.txt';
-$arg_hash->{analysistypeindicator} = 3;
+$arg_hash->{populations} = 1;
 $arg_hash->{regparamfile} = 'regparamfile.txt';
+doAnalysis($executable,$arg_hash);
+
+$arg_hash->{populations}               = 2;
+#delete $arg_hash{populations};
+#$arg_hash->{priorallelefreqfile}      = 'sim/priorallelefreqs.txt';
+#$arg_hash->{outcomevarfile}           = 'sim/outcome.txt';
 doAnalysis($executable,$arg_hash);
 
 sub getArguments

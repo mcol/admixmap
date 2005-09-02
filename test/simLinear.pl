@@ -14,37 +14,39 @@ my $executable = './admixmap';
 my $arg_hash = 
 {
 #data files
-    genotypesfile                   => 'sim/genotypes.txt',
-    locusfile                          => 'sim/loci.txt',
-    priorallelefreqfile             => 'sim/priorallelefreqs.txt',
-    outcomevarfile               => 'sim/outcome.txt',
+    genotypesfile                  => 'sim/genotypes.txt',
+    locusfile                      => 'sim/loci.txt',
+    outcomevarfile                 => 'sim/outcome.txt',
 
 #main options
     analysistypeindicator     => 2, # continuous outcome 
-    popadmixpriormean         => 2,
-    popadmixpriorvar          => 5,
     coutindicator   => 1, #verbose output
-    samples  => 11000,
-    burnin   => 1000,
+    samples  => 500,
+    burnin   => 100,
     every    => 5,
 
 #output files
-    resultsdir               => "sim",
-    logfile                     => 'logfile.txt',
+    resultsdir               => 'SinglePopResults',
+    logfile                     => 'log.txt',
     paramfile               => 'paramfile.txt',
     indadmixturefile     => 'indadmixture.txt',
     ergodicaveragefile => 'ergodicaverage.txt',
-    # allelefreqoutputfile  => 'allelefreqoutputfile.dat',
+    # allelefreqoutputfile  => 'allelefreqoutputfile.txt',
 
 #optional tests
-    allelicassociationscorefile       => 'allelicassociationscorefile.dat',
+    allelicassociationscorefile       => 'allelicassociationscorefile.txt',
     stratificationtestfile                   => 'strat_test.txt'
 };
 
-#doAnalysis($executable,$arg_hash);
-
-$arg_hash->{outcomevarfile} = 'sim/outcome.txt';
+$arg_hash->{populations} = 1;
 $arg_hash->{regparamfile} = 'regparamfile.txt';
+doAnalysis($executable,$arg_hash);
+
+$arg_hash->{populations}               = 2;
+$arg_hash->{resultsdir}      = 'TwoPopsResults';
+#delete $arg_hash{populations};
+#$arg_hash->{priorallelefreqfile}      = 'sim/priorallelefreqs.txt';
+#$arg_hash->{outcomevarfile}           = 'sim/outcome.txt';
 doAnalysis($executable,$arg_hash);
 
 sub getArguments
