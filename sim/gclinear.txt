@@ -1,0 +1,1230 @@
+
+--------------------------------------------------------------------------
+Association Studies for Quantitative Traits in Structured Populations:
+Models and Summary Statistics
+
+Date: Sat Sep 03 21:11:54 2005
+--------------------------------------------------------------------------
+
+--------------------------------------------------------------------------
+Program: GCF
+Response Type (Y): Gaussian
+Covariates: No
+Number of loci in data file: 99
+Number of subjects: 200
+Null Loci: 1-99
+Estimate(s) of lambda:
+   Marginal:    1.25562
+NOTE: No output file specified for null models.
+Alpha: 0.05
+Bonferroni p-value cutoff: 0.0005
+FDR p-value cutoff: NA
+--------------------------------------------------------------------------
+
+
+----------
+Model 1
+----------
+Model: Y = X1
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X1                1.145             0.2521                         
+
+
+----------
+Model 2
+----------
+Model: Y = X2
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X2               -0.069             0.9453                         
+
+
+----------
+Model 3
+----------
+Model: Y = X3
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X3                1.301             0.1931                         
+
+
+----------
+Model 4
+----------
+Model: Y = X4
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X4               -0.266             0.7902                         
+
+
+----------
+Model 5
+----------
+Model: Y = X5
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X5               -1.551             0.1208                         
+
+
+----------
+Model 6
+----------
+Model: Y = X6
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X6               -0.525             0.5998                         
+
+
+----------
+Model 7
+----------
+Model: Y = X7
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X7               -1.644             0.1002                         
+
+
+----------
+Model 8
+----------
+Model: Y = X8
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X8               -0.841             0.4003                         
+
+
+----------
+Model 9
+----------
+Model: Y = X9
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X9                0.411             0.6813                         
+
+
+----------
+Model 10
+----------
+Model: Y = X10
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X10              -0.254             0.7997                         
+
+
+----------
+Model 11
+----------
+Model: Y = X11
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X11               0.191             0.8489                         
+
+
+----------
+Model 12
+----------
+Model: Y = X12
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X12               0.248             0.8043                         
+
+
+----------
+Model 13
+----------
+Model: Y = X13
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X13               0.017             0.9861                         
+
+
+----------
+Model 14
+----------
+Model: Y = X14
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X14              -0.225             0.8220                         
+
+
+----------
+Model 15
+----------
+Model: Y = X15
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X15               1.587             0.1124                         
+
+
+----------
+Model 16
+----------
+Model: Y = X16
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X16               0.717             0.4736                         
+
+
+----------
+Model 17
+----------
+Model: Y = X17
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X17               0.127             0.8992                         
+
+
+----------
+Model 18
+----------
+Model: Y = X18
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X18               0.676             0.4991                         
+
+
+----------
+Model 19
+----------
+Model: Y = X19
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X19               0.701             0.4834                         
+
+
+----------
+Model 20
+----------
+Model: Y = X20
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X20               2.283             0.0224                         
+
+
+----------
+Model 21
+----------
+Model: Y = X21
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X21              -1.220             0.2225                         
+
+
+----------
+Model 22
+----------
+Model: Y = X22
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X22              -1.030             0.3031                         
+
+
+----------
+Model 23
+----------
+Model: Y = X23
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X23               1.797             0.0723                         
+
+
+----------
+Model 24
+----------
+Model: Y = X24
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X24               1.694             0.0903                         
+
+
+----------
+Model 25
+----------
+Model: Y = X25
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X25              -0.303             0.7618                         
+
+
+----------
+Model 26
+----------
+Model: Y = X26
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X26              -0.053             0.9579                         
+
+
+----------
+Model 27
+----------
+Model: Y = X27
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X27              -0.375             0.7080                         
+
+
+----------
+Model 28
+----------
+Model: Y = X28
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X28               1.419             0.1559                         
+
+
+----------
+Model 29
+----------
+Model: Y = X29
+
+NOTE: A problem occured when fitting this model
+
+
+----------
+Model 30
+----------
+Model: Y = X30
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X30               0.749             0.4536                         
+
+
+----------
+Model 31
+----------
+Model: Y = X31
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X31               0.209             0.8348                         
+
+
+----------
+Model 32
+----------
+Model: Y = X32
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X32              -0.200             0.8417                         
+
+
+----------
+Model 33
+----------
+Model: Y = X33
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X33              -1.920             0.0549                         
+
+
+----------
+Model 34
+----------
+Model: Y = X34
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X34              -1.639             0.1012                         
+
+
+----------
+Model 35
+----------
+Model: Y = X35
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X35              -1.268             0.2049                         
+
+
+----------
+Model 36
+----------
+Model: Y = X36
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X36              -1.197             0.2315                         
+
+
+----------
+Model 37
+----------
+Model: Y = X37
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X37              -1.200             0.2302                         
+
+
+----------
+Model 38
+----------
+Model: Y = X38
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X38               0.440             0.6600                         
+
+
+----------
+Model 39
+----------
+Model: Y = X39
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X39               1.338             0.1809                         
+
+
+----------
+Model 40
+----------
+Model: Y = X40
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X40              -0.013             0.9896                         
+
+
+----------
+Model 41
+----------
+Model: Y = X41
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X41               2.003             0.0452                         
+
+
+----------
+Model 42
+----------
+Model: Y = X42
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X42               0.652             0.5144                         
+
+
+----------
+Model 43
+----------
+Model: Y = X43
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X43               1.186             0.2357                         
+
+
+----------
+Model 44
+----------
+Model: Y = X44
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X44               0.094             0.9255                         
+
+
+----------
+Model 45
+----------
+Model: Y = X45
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X45              -0.294             0.7687                         
+
+
+----------
+Model 46
+----------
+Model: Y = X46
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X46               0.771             0.4405                         
+
+
+----------
+Model 47
+----------
+Model: Y = X47
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X47              -0.154             0.8772                         
+
+
+----------
+Model 48
+----------
+Model: Y = X48
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X48               0.445             0.6560                         
+
+
+----------
+Model 49
+----------
+Model: Y = X49
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X49              -0.059             0.9528                         
+
+
+----------
+Model 50
+----------
+Model: Y = X50
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X50               0.691             0.4898                         
+
+
+----------
+Model 51
+----------
+Model: Y = X51
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X51               1.875             0.0608                         
+
+
+----------
+Model 52
+----------
+Model: Y = X52
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X52               0.204             0.8387                         
+
+
+----------
+Model 53
+----------
+Model: Y = X53
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X53               1.897             0.0578                         
+
+
+----------
+Model 54
+----------
+Model: Y = X54
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X54              -0.645             0.5191                         
+
+
+----------
+Model 55
+----------
+Model: Y = X55
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X55               0.784             0.4328                         
+
+
+----------
+Model 56
+----------
+Model: Y = X56
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X56               1.078             0.2808                         
+
+
+----------
+Model 57
+----------
+Model: Y = X57
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X57              -1.792             0.0731                         
+
+
+----------
+Model 58
+----------
+Model: Y = X58
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X58              -0.641             0.5213                         
+
+
+----------
+Model 59
+----------
+Model: Y = X59
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X59              -0.294             0.7687                         
+
+
+----------
+Model 60
+----------
+Model: Y = X60
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X60               0.560             0.5757                         
+
+
+----------
+Model 61
+----------
+Model: Y = X61
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X61              -1.779             0.0753                         
+
+
+----------
+Model 62
+----------
+Model: Y = X62
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X62               1.383             0.1667                         
+
+
+----------
+Model 63
+----------
+Model: Y = X63
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X63               0.485             0.6274                         
+
+
+----------
+Model 64
+----------
+Model: Y = X64
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X64               0.750             0.4533                         
+
+
+----------
+Model 65
+----------
+Model: Y = X65
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X65               0.525             0.5994                         
+
+
+----------
+Model 66
+----------
+Model: Y = X66
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X66              -0.378             0.7051                         
+
+
+----------
+Model 67
+----------
+Model: Y = X67
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X67              -2.032             0.0421                         
+
+
+----------
+Model 68
+----------
+Model: Y = X68
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X68              -0.501             0.6165                         
+
+
+----------
+Model 69
+----------
+Model: Y = X69
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X69              -0.859             0.3905                         
+
+
+----------
+Model 70
+----------
+Model: Y = X70
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X70              -2.018             0.0436                         
+
+
+----------
+Model 71
+----------
+Model: Y = X71
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X71               0.640             0.5222                         
+
+
+----------
+Model 72
+----------
+Model: Y = X72
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X72              -1.307             0.1911                         
+
+
+----------
+Model 73
+----------
+Model: Y = X73
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X73              -0.770             0.4411                         
+
+
+----------
+Model 74
+----------
+Model: Y = X74
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X74              -0.326             0.7445                         
+
+
+----------
+Model 75
+----------
+Model: Y = X75
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X75              -0.442             0.6583                         
+
+
+----------
+Model 76
+----------
+Model: Y = X76
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X76              -0.567             0.5707                         
+
+
+----------
+Model 77
+----------
+Model: Y = X77
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X77               0.661             0.5085                         
+
+
+----------
+Model 78
+----------
+Model: Y = X78
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X78              -0.053             0.9575                         
+
+
+----------
+Model 79
+----------
+Model: Y = X79
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X79              -0.406             0.6847                         
+
+
+----------
+Model 80
+----------
+Model: Y = X80
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X80               1.861             0.0628                         
+
+
+----------
+Model 81
+----------
+Model: Y = X81
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X81              -0.370             0.7113                         
+
+
+----------
+Model 82
+----------
+Model: Y = X82
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X82               0.329             0.7419                         
+
+
+----------
+Model 83
+----------
+Model: Y = X83
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X83               1.071             0.2840                         
+
+
+----------
+Model 84
+----------
+Model: Y = X84
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X84              -0.240             0.8102                         
+
+
+----------
+Model 85
+----------
+Model: Y = X85
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X85              -0.818             0.4131                         
+
+
+----------
+Model 86
+----------
+Model: Y = X86
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X86               0.009             0.9928                         
+
+
+----------
+Model 87
+----------
+Model: Y = X87
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X87               0.048             0.9618                         
+
+
+----------
+Model 88
+----------
+Model: Y = X88
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X88              -1.377             0.1686                         
+
+
+----------
+Model 89
+----------
+Model: Y = X89
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X89              -1.105             0.2693                         
+
+
+----------
+Model 90
+----------
+Model: Y = X90
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X90              -1.011             0.3122                         
+
+
+----------
+Model 91
+----------
+Model: Y = X91
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X91              -0.006             0.9950                         
+
+
+----------
+Model 92
+----------
+Model: Y = X92
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X92              -0.342             0.7320                         
+
+
+----------
+Model 93
+----------
+Model: Y = X93
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X93              -1.913             0.0557                         
+
+
+----------
+Model 94
+----------
+Model: Y = X94
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X94               0.891             0.3727                         
+
+
+----------
+Model 95
+----------
+Model: Y = X95
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X95              -0.202             0.8401                         
+
+
+----------
+Model 96
+----------
+Model: Y = X96
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X96              -0.286             0.7750                         
+
+
+----------
+Model 97
+----------
+Model: Y = X97
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X97               0.591             0.5545                         
+
+
+----------
+Model 98
+----------
+Model: Y = X98
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X98              -0.215             0.8295                         
+
+
+----------
+Model 99
+----------
+Model: Y = X99
+
+                   Test                              Bonferroni     FDR
+  Term            statistic           p-value          cutoff      cutoff
+--------------------------------------------------------------------------
+  X99               0.132             0.8953                         
+
+
+
+--------------------------------------
+Summary Statistics: Response Variable
+--------------------------------------
+
+  Mean: -0.012 
+  SD:   1.190 
+  Min:  -3.311 
+  Q1:   -0.869 
+  Med:  -0.007 
+  Q3:   0.767 
+  Max:  3.052
+
+
+
+--------------------------------------
+Summary Statistics: Loci
+--------------------------------------
+
+  Loci        11        12        22     Missing
+--------------------------------------------------
+  X1           0        32       168        0
+  X2           3        50       147        0
+  X3           1        18       181        0
+  X4          48        94        58        0
+  X5          13        74       113        0
+  X6         172        27         1        0
+  X7          57        94        49        0
+  X8          97        79        24        0
+  X9          94        82        24        0
+  X10         51        96        53        0
+  X11         19        89        92        0
+  X12         50        93        57        0
+  X13          2        30       168        0
+  X14         10        72       118        0
+  X15        118        72        10        0
+  X16        136        59         5        0
+  X17         56       107        37        0
+  X18          4        33       163        0
+  X19         48        97        55        0
+  X20          4        50       146        0
+  X21        109        79        12        0
+  X22         92        82        26        0
+  X23         39        95        66        0
+  X24         58       108        34        0
+  X25         82        99        19        0
+  X26         30        87        83        0
+  X27         29       102        69        0
+  X28         39       103        58        0
+  X29        200         0         0        0
+  X30         50       105        45        0
+  X31        174        26         0        0
+  X32          1        24       175        0
+  X33         23        86        91        0
+  X34         43        95        62        0
+  X35         33        99        68        0
+  X36         83        91        26        0
+  X37          6        68       126        0
+  X38         32        94        74        0
+  X39         57        86        57        0
+  X40        117        74         9        0
+  X41        146        50         4        0
+  X42        143        50         7        0
+  X43          8        68       124        0
+  X44          6        65       129        0
+  X45         46        91        63        0
+  X46        109        79        12        0
+  X47         29        81        90        0
+  X48         12        82       106        0
+  X49         12        85       103        0
+  X50         49       108        43        0
+  X51         90        89        21        0
+  X52         83        86        31        0
+  X53         48        97        55        0
+  X54         32        97        71        0
+  X55         41        97        62        0
+  X56         19        72       109        0
+  X57          9        47       144        0
+  X58          9        56       135        0
+  X59         77        96        27        0
+  X60         79        85        36        0
+  X61         29        96        75        0
+  X62         61       110        29        0
+  X63         24        92        84        0
+  X64         44        93        63        0
+  X65         61        94        45        0
+  X66          8        68       124        0
+  X67        128        59        13        0
+  X68        127        68         5        0
+  X69         11        56       133        0
+  X70         97        74        29        0
+  X71        100        80        20        0
+  X72          0        13       187        0
+  X73         21        81        98        0
+  X74        100        78        22        0
+  X75        109        76        15        0
+  X76         23        85        92        0
+  X77         11        70       119        0
+  X78        143        51         6        0
+  X79          3        34       163        0
+  X80        129        55        16        0
+  X81          5        46       149        0
+  X82        152        43         5        0
+  X83         47       115        38        0
+  X84         32        83        85        0
+  X85         37        91        72        0
+  X86         64        91        45        0
+  X87        163        36         1        0
+  X88         56        96        48        0
+  X89         75       107        18        0
+  X90        100        81        19        0
+  X91         47        94        59        0
+  X92         24        95        81        0
+  X93         43        96        61        0
+  X94        196         4         0        0
+  X95         13        90        97        0
+  X96          0        15       185        0
+  X97         11        81       108        0
+  X98          4        47       149        0
+  X99         12        62       126        0
