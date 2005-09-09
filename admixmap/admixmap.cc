@@ -260,6 +260,10 @@ void submain(AdmixOptions* options){
       HWtest.Output(data.getLocusData()); 
     //finish writing score test output as R objects
     if( options->getScoreTestIndicator() ) Scoretest.ROutput();
+
+    //output to likelihood ratio file
+    if(options->getTestForAffectedsOnly())
+      Individual::OutputLikRatios(options->getLikRatioFilename(), options->getTotalSamples()-options->getBurnIn(), data.GetPopLabels());
     
     if( options->getMLIndicator() ){
       //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
