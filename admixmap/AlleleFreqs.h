@@ -71,6 +71,7 @@ public:
   double *GetStatsForEta( int , int locus);
   double GetAlleleProbsMAP( int x, int ancestry , int locus);
   Vector_d GetPriorAlleleFreqs( int locus, int population );
+  std::vector<double> GetPriorAlleleFreqs_v( int locus, int population );
   Vector_i GetAlleleCounts( int locus, int population );
   Vector_d getAlleleFreqsMAP( int locus, int population );
   Vector_d GetAlleleFreqs( int locus, int population );
@@ -99,9 +100,7 @@ private:
   double **HistoricAlleleFreqs;
   int **AlleleCounts;
   double **HistoricAlleleCounts;
-  Matrix_d *PriorAlleleFreqs;
-
-  //double **SumAlleleFreqs;// used to compute ergodic average
+  double **PriorAlleleFreqs;
 
   double** Fst;
   double** SumFst;
@@ -150,7 +149,7 @@ private:
 
   void SamplePriorAlleleFreqs1D( int );
   void SamplePriorAlleleFreqsMultiDim( int);
-  void SampleAlleleFreqs(int, int);
+  void SampleAlleleFreqs(int);
   void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
 
   void OpenOutputFile(AdmixOptions *options);
