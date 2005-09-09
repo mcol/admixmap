@@ -108,6 +108,7 @@ public:
   static void SumScoresForAncestry(int j, double *SumAncestryScore, double *SumAncestryInfo, double *SumAncestryScore2,
 				   double *SumAncestryVarScore);
 
+  static void OutputLikRatios(const char *filename, int iterations, std::string *PopLabels);
 
 private:
   unsigned short ***genotypes;
@@ -152,6 +153,9 @@ private:
   static double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
 
+  static double *LikRatio1;
+  static double *LikRatio2;
+
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double *poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
@@ -160,7 +164,7 @@ private:
 					       int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
 					       Matrix_d *Outcome, const double *poptheta, double *lambda);
 
-  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options);
+  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool);
 
   void SumAncestry(unsigned int j, Chromosome *chrm);
 

@@ -21,9 +21,12 @@
 #include "Individual.h"
 #include "StringConvertor.h"
 #include <algorithm>
+#include <sstream>
 
 #define PR(x) cout << #x << " = " << x << endl;
 
+double *Individual::LikRatio1;
+double *Individual::LikRatio2;
 double *Individual::AffectedsScore = 0;
 double *Individual::AffectedsVarScore = 0;
 double *Individual::AffectedsInfo = 0;
@@ -159,6 +162,8 @@ void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
   Populations = options->getPopulations();
   int L = Loci->GetNumberOfCompositeLoci();
 
+  LikRatio1 = 0;
+  LikRatio2 = 0;
   AncestryScore = 0;
   AncestryInfo = 0;
   AncestryVarScore = 0;
@@ -177,6 +182,10 @@ void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
     AffectedsScore = new double[L * K];
     AffectedsVarScore = new double[L * K];
     AffectedsInfo = new double[L * K];
+    LikRatio1 = new double[L*K];
+    LikRatio2 = new double[L*K];
+    fill(LikRatio1, LikRatio1+L*K, 0.0);
+    fill(LikRatio2, LikRatio2+L*K, 0.0);
   }
   if( options->getTestForLinkageWithAncestry() ){
     AncestryScore = alloc2D_d(L, 2*Populations);
@@ -205,6 +214,8 @@ void Individual::DeleteStaticMembers(){
   delete[] AffectedsScore;
   delete[] AffectedsInfo;
   delete[] AffectedsVarScore;
+  delete[] LikRatio1;
+  delete[] LikRatio2;
   free_matrix(AncestryScore, Loci->GetNumberOfCompositeLoci());
   free_matrix(AncestryInfo, Loci->GetNumberOfCompositeLoci());  
   free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
@@ -401,9 +412,10 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
   unsigned int SumN_X[] = {0,0};
     
   bool isdiploid;
+  bool calcbackprobs = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     //Update Forward/Backward probs in HMM
-    isdiploid = UpdateForBackProbs(j, chrm[j], options);
+    isdiploid = UpdateForBackProbs(j, chrm[j], options, calcbackprobs);
 
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
@@ -660,9 +672,9 @@ double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int 
 }
 
 //Updates forward and backward probabilities in HMM for chromosome j 
-bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options){
+bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool calcbackprobs){
   bool isdiploid;
-  bool calcbackprobs = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
+
   //Update Forward/Backward probs in HMM
   if( j != X_posn ){
     chrm->UpdateParameters(this, Theta, options, _rho, false, true, calcbackprobs);
@@ -715,12 +727,13 @@ void Individual::ResetScores(AdmixOptions *options){
   int KK = Populations;
   if(Populations == 2)KK = 1;
 
-  if( options->getTestForAffectedsOnly() )
+  if( options->getTestForAffectedsOnly() ){
     for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()*KK; ++j){
       AffectedsScore[j] = 0.0;
       AffectedsVarScore[j] = 0.0;
       AffectedsInfo[j] = 0.0;
     }
+  }
   if( options->getTestForLinkageWithAncestry() ){
     for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
       for(int k = 0; k < 2*Populations; ++k)
@@ -753,31 +766,52 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingMode
   // real line.  This test is on log r, which should have better
   // asymptotic properties.
 
-  //we don't bother computing scores for the first populstion when there are two
+  double r1 = 0.5;
+  double r2 = 2.0;//hard-coding these for now, can make them vary later
+
+  //we don't bother computing scores for the first population when there are two
   int KK = Populations,k1 = 0;
   if(Populations ==2) {KK = 1;k1 = 1;}
   
   double theta[2];//paternal and maternal admixture proportions
   double AProbs[Populations][3];
 
-  for( int k = 0; k < KK; k++ ){
-    theta[0] = Theta[ k+k1 ];
-    if( RandomMatingModel )
-      theta[1] = Theta[ Populations + k+k1 ];
-    else
-      theta[1] = theta[0];
+  double Pi[3];//probs of 0,1,2 copies of Pop1 given admixture
+  int offset = 0;
+  if(!RandomMatingModel)offset = Populations;
 
-    int locus;
-    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      locus = chrm[j]->GetLocus(jj); 
-      //retrieve AncestryProbs from HMM
-      chrm[j]->getAncestryProbs( jj, AProbs );
+
+  int locus;
+  for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+    locus = chrm[j]->GetLocus(jj); 
+    //retrieve AncestryProbs from HMM
+    chrm[j]->getAncestryProbs( jj, AProbs );
+
+    for( int k = 0; k < KK; k++ ){
+      theta[0] = Theta[ k+k1 ];
+      if( RandomMatingModel )
+	theta[1] = Theta[ Populations + k+k1 ];
+      else
+	theta[1] = theta[0];
+      
       //accumulate score, score variance, and info
       AffectedsScore[locus *KK + k]+= 0.5*( AProbs[k+k1][1] + 2.0*AProbs[k+k1][2] - theta[0] - theta[1] );
       AffectedsVarScore[locus * KK + k]+= 0.25 *( AProbs[k+k1][1]*(1.0 - AProbs[k+k1][1]) + 4.0*AProbs[k+k1][2]*AProbs[k+k1][0]); 
       AffectedsInfo[locus * KK +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
-      ++locus;
+
+      //probs of 0,1,2 copies of Pop1 given admixture
+      Pi[2] = theta[0] * theta[1];
+      Pi[1] = theta[0] * (1.0 - theta[1]);
+      Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
+
+      //compute contribution to likelihood ratio
+      LikRatio1[locus *KK + k] += (AProbs[k+k1][0] + sqrt(r1)*AProbs[k+k1][1] + r1 * AProbs[k+k1][2]) / 
+	(Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
+      LikRatio2[locus *KK + k] += (AProbs[k+k1][0] + sqrt(r2)*AProbs[k+k1][1] + r2 * AProbs[k+k1][2]) / 
+	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
     }
+    
+    ++locus;
   }
 }
 
@@ -1348,3 +1382,72 @@ double Individual::IntegratingConst( double alpha, double beta, double a, double
    return I;
 }
 
+static string double2R( double x )
+{
+  if( isnan(x) )
+    return "NaN";
+  else{
+    stringstream ret;
+    ret << x;
+    return( ret.str() );
+  }
+}
+
+void Individual::OutputLikRatios(const char *filename, int iterations, std::string *PopLabels){
+  //open outut file
+  std::ofstream outputstream(filename);
+
+  //start writing R object
+  outputstream<< "structure(.Data=c(" << endl;
+
+  //output ergodic averages of LikRatios
+  int KK = Populations, k1 = 0;
+  if(KK == 2 ){
+    KK = 1;k1 = 1;
+  }
+  double L1, L2;
+
+  for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+    for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
+      outputstream << (*Loci)(j)->GetLabel(0) << ",";
+      outputstream << PopLabels[k+k1] << ","; //need offset to get second poplabel for 2pops
+      
+      L1 = LikRatio1[ j*KK + k] / ( iterations );
+      L2 = LikRatio2[ j*KK + k] / ( iterations );
+      
+      outputstream << double2R(L1)                                << ","
+		    << double2R(L2)                          << ","<<endl;
+    }
+  }
+
+  vector<int> dim(2,0);
+  dim[0] = 4;
+  dim[1] = Loci->GetNumberOfCompositeLoci() * KK;
+  
+  vector<string> labels(4,"");
+  labels[0] = "Locus";
+  labels[1] = "Population";
+  labels[2] = "L1";
+  labels[3] = "L2";
+  
+  outputstream << ")," << endl;
+  outputstream << ".Dim = c(";
+  for(unsigned int i=0;i<dim.size();i++){
+    outputstream << dim[i];
+    if(i != dim.size() - 1){
+      outputstream << ",";
+    }
+  }
+  outputstream << ")," << endl;
+  outputstream << ".Dimnames=list(c(";
+  for(unsigned int i=0;i<labels.size();i++){
+    outputstream << "\"" << labels[i] << "\"";
+    if(i != labels.size() - 1){
+      outputstream << ",";
+    }
+  }
+  outputstream << "), character(0)))" << endl;
+
+  outputstream.close();
+
+}
