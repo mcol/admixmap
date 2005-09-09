@@ -94,6 +94,8 @@ AdmixOptions::AdmixOptions()
   ResultsDir = "results";
   LogFilename = "log.txt";
 
+  LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
+
   OptionValues["burnin"] = "1000";
   OptionValues["samples"] = "1000000";
   OptionValues["targetindicator"] = "0";
@@ -117,6 +119,7 @@ AdmixOptions::AdmixOptions()
   OptionValues["popadmixpriorvar"] = "1.0";
   OptionValues["xonlyanalysis"] = "0";
   OptionValues["textindicator"] = "1";
+  OptionValues["likratiofilename"] = "LikRatioFile.txt";
 }
 
 AdmixOptions::~AdmixOptions()
@@ -514,6 +517,10 @@ bool AdmixOptions::isAdmixed(unsigned gamete)const{
   return _admixed[gamete];
 }
 
+const char*AdmixOptions::getLikRatioFilename() const{
+  return LikRatioFilename.c_str();
+}
+
 void AdmixOptions::SetOptions(int nargs,char** args)
 {
 
@@ -865,7 +872,7 @@ void AdmixOptions::SetOutputNames(){
   if ( DispersionTestFilename != "") DispersionTestFilename = ResultsDir + "/" + DispersionTestFilename;
   if ( FSTOutputFilename != "") FSTOutputFilename = ResultsDir + "/" + FSTOutputFilename;
   if ( HWTestFilename != "") HWTestFilename = ResultsDir + "/" + HWTestFilename;
-  
+  if ( LikRatioFilename != "") LikRatioFilename = ResultsDir + "/" + LikRatioFilename;
 }
 
 void AdmixOptions::PrintOptions(){

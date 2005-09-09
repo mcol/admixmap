@@ -114,6 +114,7 @@ public:
   const char *getAlleleFreqScoreFilename2() const;
   const char *getAssocScoreFilename() const;
   const char *getHWTestFilename() const;
+  const char* getLikRatioFilename() const;
 
   //score test indicators 
   bool getScoreTestIndicator() const; //indicator for any score test (except misspec allelefreqs) 
@@ -211,6 +212,7 @@ private:
   string AllelicAssociationScoreFilename;
   string AncestryAssociationScoreFilename;
   string HWTestFilename;
+  string LikRatioFilename;
 
   string LocusFilename;
   string GenotypesFilename;
