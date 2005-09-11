@@ -1,5 +1,5 @@
-burnin=100
-samples=500
+burnin=50
+samples=250
 targetindicator=0
 coutindicator=1
 analysistypeindicator=2
@@ -26,7 +26,5 @@ genotypesfile=data/genotypes.txt
 outcomevarfile=data/outcome.txt
 paramfile=paramfile.txt
 regparamfile=regparamfile.txt
-indadmixturefile=indadmixture.txt
-ergodicaveragefile=ergodicaverage.txt
 allelicassociationscorefile=allelicassociationscores.txt
 stratificationtestfile=stratificationTest.txt

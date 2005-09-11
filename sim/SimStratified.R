@@ -12,8 +12,8 @@ simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
       Tmatrix <- t(matrix(data=c(M, 1-M, M, 1-M), nrow=2, ncol=2))
     } else {
       Tmatrix <- t(matrix(data=c(M + (1-M)*exp(-rho*x[locus]),  1-M - (1-M)*exp(-rho*x[locus]),
-                      M - M*exp(-rho*x[locus]), 1-M + M*exp(-rho*x[locus]) ),
-                    nrow=2, ncol=2))
+                            M - M*exp(-rho*x[locus]), 1-M + M*exp(-rho*x[locus]) ),
+                          nrow=2, ncol=2))
     }
     ## simulate ancestry at locus
     gameteAncestry[locus] <- ifelse(randAnc[locus] < Tmatrix[gameteAncestry[locus-1], 1], 1, 2)
@@ -48,13 +48,13 @@ numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 N <- 200
-K <- 2 # num subpopulations
+NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
 spacing <- 40 # 40 cM spacing gives 99 loci
-eta <- 10 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmaparams Di(1,2)
+eta <- 10 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmparams Di(1,2)
 beta <- 2 # regression slope for effect of admixture
-gamma <- 0.5 # effect of allele 2 at candidate locus: standardized effect size if linear reg
+gamma <- 0.4 # effect of allele 2 at candidate locus: standardized effect size if linear reg
                                         # log odds ratio if logistic reg
 logistic <- F # logistic or linear
 ## assign map distances
@@ -69,160 +69,224 @@ for(chromosome in 1:22) {
 x <- 0.01*distanceFromLast(chr, x)
 L <- length(x) # number of loci
 
+null.results <- data.frame(matrix(data=NA, nrow=0, ncol=4))
+candidate.results <- data.frame(matrix(data=NA, nrow=0, ncol=4))
+results.colnames <- c("f.signed", "crude.p", "gc.p", "adj.p")
+dimnames(null.results)[[2]] <- results.colnames
+dimnames(candidate.results)[[2]] <- results.colnames
+admixmap <- T
+numsims <- 10
 
-## simulate correlated allele freqs
-mu <- numeric(L) # ancestral freqs allele 1
-alleleFreqs <- matrix(data=NA, nrow=2*L, ncol=K)
-for(locus in 1:L) {
-  mu[locus] <- rbeta(1, 2, 2)
-  alleleFreqs[2*locus - 1, ] <- rbeta(2, mu[locus]*eta, (1 - mu[locus])*eta)
-                                        # freqs allele 1 in each of K subpops
-  alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
-}
-#alleleFreqs[,1] <- 1
-#alleleFreqs[,2] <- 0
-p1 <- alleleFreqs[seq(2, 2*L, by=2), 1]
-p2 <- alleleFreqs[seq(2, 2*L, by=2), 2]
-## positive f-value if freq allele 2 higher in pop1 than pop2
-f.signed <- sign(p1-p2)*(p1 - p2)^2 / ((p1+p2)*(2 - p1 - p2)) 
-### if f.signed is negative, true effect is in opposite direction to confounding effect
+for(sims in 1:numsims) {
+  ## simulate correlated allele freqs
+  mu <- numeric(L) # ancestral freqs allele 1
+  alleleFreqs <- matrix(data=NA, nrow=2*L, ncol=NumSubPops)
+  for(locus in 1:L) {
+    mu[locus] <- rbeta(1, 2, 2)
+    alleleFreqs[2*locus - 1, ] <- rbeta(2, mu[locus]*eta, (1 - mu[locus])*eta)
+                                        # freqs allele 1 in each of NumSubPops subpops
+    alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
+  }
+                                        #alleleFreqs[,1] <- 1
+                                        #alleleFreqs[,2] <- 0
+  p1 <- alleleFreqs[seq(2, 2*L, by=2), 1]
+  p2 <- alleleFreqs[seq(2, 2*L, by=2), 2]
+  ## positive f-value if freq allele 2 higher in pop1 than pop2
+  f.signed <- sign(p1-p2)*(p1 - p2)^2 / ((p1+p2)*(2 - p1 - p2)) 
+  ## if f.signed is negative, true effect is in opposite direction to confounding effect
 
-## choose a candidate locus from centile of signed f-values
-#candidate <- match(floor(0.1*L),   rank(f.signed)) # 20th centile of f-value: positive confounding
-candidate <- match(floor(0.8*L), rank(f.signed)) # 80th centile of f-value: negative confounding
-cat("Candidate locus", candidate, "with signed f-value", f.signed[candidate])
-
-## simulate genotypes and outcome 
-genotypes <- character(L)
-outcome <- numeric(N)
-avM <- numeric(N)
-g <- numeric(N)
-popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
-popg <- 2*(popM*alleleFreqs[2*candidate, 1] + (1 - popM)*alleleFreqs[2*candidate, 2])
+  ## choose candidate at random
+  candidate <- 1 + floor(L*runif(1)) # returns number between 1 and L
+  ## choose a candidate locus from centile of signed f-values
+  ##candidate <- match(floor(0.05*L),   rank(f.signed)) # 5th centile of f-value: negative confounding
+  ##candidate <- match(floor(0.95*L), rank(f.signed)) # 95th centile of f-value: positive confounding
+  cat("Candidate locus", candidate, "with signed f-value", f.signed[candidate], "\n")
+  
+  ## simulate genotypes and outcome 
+  genotypes <- character(L)
+  outcome <- numeric(N)
+  avM <- numeric(N)
+  g <- numeric(N)
+  popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
+  popg <- 2*(popM*alleleFreqs[2*candidate, 1] + (1 - popM)*alleleFreqs[2*candidate, 2])
                                         # mean number of copies allele 2 at candidate locus
-g.positive <- 2*popM > popg # positive confounding of g by admixture 
-for(individual in 1:N) {
-  M1 <- 1 - rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
-  ## M2 <- rbeta(1, 4, 1)# random mating
-  M2 <- M1 #assortative mating
-  avM[individual] <- 1 - 0.5*(M1 + M2)
-  obs <- simulateGenotypes(M1, M2, rho, x, L, alleleFreqs)
-  ## recode genotype at candidate locus
-  if(obs[candidate] == "1,1") {
-    g[individual] <- 0
-  } else if(obs[candidate] == "1,2" | obs[candidate] == "2,1") {
-    g[individual] <- 1 
-  } else if(obs[candidate] == "2,2") {
-    g[individual] <- 2
+  g.positive <- 2*popM > popg # positive confounding of g by admixture 
+  for(individual in 1:N) {
+    M1 <- 1 - rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
+    ## M2 <- rbeta(1, 4, 1)# random mating
+    M2 <- M1 #assortative mating
+    avM[individual] <- 1 - 0.5*(M1 + M2)
+    obs <- simulateGenotypes(M1, M2, rho, x, L, alleleFreqs)
+    ## recode genotype at candidate locus
+    if(obs[candidate] == "1,1") {
+      g[individual] <- 0
+    } else if(obs[candidate] == "1,2" | obs[candidate] == "2,1") {
+      g[individual] <- 1 
+    } else if(obs[candidate] == "2,2") {
+      g[individual] <- 2
+    }
+    ##make some genotypes missing
+    ##for(locus in 1:L) if(runif(n=1) < 0.1)
+    ##    obs[locus]<-""
+    genotypes <- rbind(genotypes, obs)
+    
+    ## simulate outcome
+    alpha <- -beta*popM - gamma*popg 
+    if(logistic) { # logistic regression with approx equal numbers of cases and controls
+      outcome[individual] <-
+        rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[individual] + gamma*g[individual]))))  
+      ofam <- binomial
+    } else { # linear regression
+      outcome[individual] <-
+        rnorm(1, mean=(alpha + beta*avM[individual]+ gamma*g[individual]), sd=1) 
+      ofam <- gaussian
+    }
   }
-  ##make some genotypes missing
-  ##for(locus in 1:L) if(runif(n=1) < 0.1)
-  ##    obs[locus]<-""
-  genotypes <- rbind(genotypes, obs)
+  
+  ## fit regression model to sampled values
+  reg.adj <- summary.glm(glm(outcome ~ avM + g, family = ofam))$coefficients[3,]
+  reg.crude <- summary.glm(glm(outcome ~ g, family = ofam))$coefficients[2,]
+  confound.effect <- reg.crude[1] - reg.adj[1]
+  ## write outcome variable to file
+  outcome.table <- data.frame(outcome, row.names=NULL) 
+  write.table(outcome.table, file="data/outcome.txt", row.names=FALSE, col.names=TRUE)
+  ## write true admixture proportions to file
+  Mvector.table <- data.frame(avM, row.names=NULL)
+  write.table(outcome, file="data/Mvalues.txt", row.names=FALSE,
+              col.names=TRUE)
+  
+  ##write genotypes to file
+  genotypes <- genotypes[-1,]
+  genotypes.gc <- genotypes
+  for(col in 1:dim(genotypes)[2]) {
+    genotypes.gc[, col] <- gsub(",", "\ ", as.vector(genotypes.gc[, col]))
+  }  
+  id = as.character(seq(1:N))
+  ## write for ADMIXMAP
+  genotypes <- data.frame(id, genotypes, row.names=NULL)
+  write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
+  
+  ## write for GC
+  gc.genotypes <- data.frame(id, outcome, genotypes.gc)
+  write.table(gc.genotypes, file="data/gcgenotypes.txt", row.names=FALSE, col.names=FALSE,
+              quote=F, sep=" ")
+  
+  ## write locus file
+  x[is.na(x)] <- 100
+  loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  x, row.names=NULL)
+  dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distance")
+  write.table(loci, file="data/loci.txt", row.names=FALSE)
+  
+  ## write allelefreqs files
+  trueallelefreqs <- data.frame(rep(loci[,1], each=2), alleleFreqs)
+  dimnames(trueallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
+  write.table(trueallelefreqs, file="data/trueallelefreqs.txt",
+              row.names=FALSE)                               
+  
+  ## run admixmap analysis with outcome var
+  system("../test/admixmap.exe SinglePopArgs.txt")
+  Sys.putenv("RESULTSDIR" = "SinglePopResults")
+  source("../test/AdmixmapOutput.R")
+    
+  ## run genomic control analysis
+  source("gcf.R")
 
-  ## simulate outcome
-  alpha <- -beta*popM - gamma*popg
-  if(logistic) { # logistic regression with approx equal numbers of cases and controls
-    outcome[individual] <-
-      rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[individual] + gamma*g[individual]))))  
-    ofam <- binomial
-  } else { # linear regression
-    outcome[individual] <-
-      rnorm(1, mean=(alpha + beta*avM[individual]+ gamma*g[individual]), sd=1) 
-    ofam <- gaussian
+  if(admixmap) {
+    system("../test/admixmap.exe TwoPopsArgs.txt")
+    Sys.putenv("RESULTSDIR" = "TwoPopsResults")
+    source("../test/AdmixmapOutput.R")
   }
+
+  ## read adjusted and unadjusted p-values from file
+  crude.pvalues <- read.table(file="SinglePopResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
+  gc.pvalues <- read.table(file="GCTests.txt", header=T)[, 2]
+  adj.pvalues <- numeric(L)
+  if(admixmap) {
+    adj.pvalues <- read.table(file="TwoPopsResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
+    reg.quantiles <- read.table(file="TwoPopsResults/PosteriorQuantiles.txt", header=T)
+    print(reg.quantiles)
+    avM.estimates <- read.table("TwoPopsResults/IndividualVarPosteriorMeans.txt", header=T)[, 2]
+    reg.estimates <- summary.glm(glm(outcome ~ avM.estimates, family=ofam))
+    ## plot posterior means of individual admixture against true values 
+    plot(avM, avM.estimates, xlim=c(0,1), ylim=c(0,1))
+    lines(c(0,1),c(0,1), type="l")
+  }
+
+  ## bind p-values into a table
+  all.results <- data.frame(f.signed, crude.pvalues, gc.pvalues, adj.pvalues)
+  dimnames(all.results)[[2]] <- results.colnames
+  ## append to tables null.results and candidate.results
+  null.results <- rbind(null.results, all.results[-candidate, ])
+  candidate.results <- rbind(candidate.results, all.results[candidate, ])
+  
+  postscript("TwoPopsResults/PValues.ps")
+  plotchars <- numeric(L)
+  plotchars[1:L] <- 1
+  plotchars[candidate] <- 19
+  plotcols <- character(L)
+  plotcols[1:L] <- "black"
+  plotcols[candidate] <- "red"
+  plot(-log10(crude.pvalues), -log10(gc.pvalues), xlim=c(0,7), ylim=c(0,7),
+       pch=plotchars, col=plotcols)
+  if(admixmap) {
+    plot(-log10(crude.pvalues), -log10(adj.pvalues), xlim=c(0,7), ylim=c(0,7),
+         pch=plotchars, col=plotcols)
+  }
+  dev.off()
+  
+  ## calculate error rates  
+  type1.error <- c(mean(crude.pvalues<0.05, na.rm=T),
+                   mean(gc.pvalues<0.05, na.rm=T),
+                   mean(adj.pvalues<0.05, na.rm=T))
+  type2.error <- c(as.numeric(crude.pvalues[candidate] > 0.05),
+                   as.numeric(gc.pvalues[candidate] > 0.05),
+                   as.numeric(adj.pvalues[candidate] > 0.05))
+  ## print error rates
+  cat("Type 1 error", type1.error, "\n")
+  cat("Type 2 error", type2.error, "\n")
 }
 
-reg.true <-summary.glm(glm(outcome ~ avM, family = ofam))
+type1.error <- data.frame(null.results$f.signed,
+                          null.results$crude.p < 0.05,
+                          null.results$gc.p < 0.05,
+                          null.results$adj.p < 0.05)
+type2.error <- data.frame(candidate.results$f.signed,
+                          candidate.results$crude.p > 0.05,
+                          candidate.results$gc.p > 0.05,
+                          candidate.results$adj.p > 0.05)
 
-outcome.table <- data.frame(outcome, row.names=NULL) # write outcome variable to file
-write.table(outcome.table, file="data/outcome.txt", row.names=FALSE, col.names=TRUE)
+dimnames(type1.error)[[2]] <- results.colnames
+dimnames(type2.error)[[2]] <- results.colnames
 
-Mvector.table <- data.frame(avM, row.names=NULL)
-write.table(outcome, file="data/Mvalues.txt", row.names=FALSE,
-            col.names=TRUE)
+## plot type 1 error rates by quartile of signed f-value
+groups <- 5
+f.gr <- 1 + floor(groups*rank(type1.error$f.signed)/(1+dim(type1.error)[1]))
+t1.crude <- tapply(type1.error$crude.p, f.gr, mean, na.rm=T)
+t1.gc <- tapply(type1.error$gc.p, f.gr, mean, na.rm=T)
+t1.adj <-  tapply(type1.error$adj.p, f.gr, mean, na.rm=T)
 
-##write genotypes to file
-genotypes <- genotypes[-1,]
-genotypes.gc <- genotypes
-for(col in 1:dim(genotypes)[2]) {
-  genotypes.gc[, col] <- gsub(",", "\ ", as.vector(genotypes.gc[, col]))
-}  
-id = as.character(seq(1:N))
-genotypes <- data.frame(id, genotypes, row.names=NULL)
-write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
+f2.gr <- 1 + floor(groups*rank(type2.error$f.signed)/(1+dim(type2.error)[1]))
+t2.crude <- tapply(type2.error$crude.p, f2.gr, mean, na.rm=T)
+t2.gc <- tapply(type2.error$gc.p, f2.gr, mean, na.rm=T)
+t2.adj <-  tapply(type2.error$adj.p, f2.gr, mean, na.rm=T)
 
-## write data file for GC
-gc.genotypes <- data.frame(id, outcome, genotypes.gc)
-write.table(gc.genotypes, file="data/gcgenotypes.txt", row.names=FALSE, col.names=FALSE,
-            quote=F, sep=" ")
+postscript("ErrorRates.ps")
+plot(dimnames(t1.crude)[[1]], t1.crude, ylim=c(0, 0.3),
+     xlab="Quintile of standardized allele frequency differential",
+     ylab="Type 1 error rate", pch=2, col=1)
+points(dimnames(t1.gc)[[1]], t1.gc, pch=19, col=3)
+points(dimnames(t1.adj)[[1]], t1.adj, pch=3, col=4)
 
-## write locus file
-x[is.na(x)] <- 100
-loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  x, row.names=NULL)
-dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distance")
-write.table(loci, file="data/loci.txt", row.names=FALSE)
-
-## write allelefreqs files
-trueallelefreqs <- data.frame(rep(loci[,1], each=2), alleleFreqs)
-dimnames(trueallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
-write.table(trueallelefreqs, file="data/trueallelefreqs.txt",
-            row.names=FALSE)                               
-## write reference prior allele freqs
-priorallelefreqs <- data.frame(rep(loci[,1], each=2), matrix(data=0.5, nrow=2*L, ncol=K))
-dimnames(priorallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
-write.table(priorallelefreqs, file="data/priorallelefreqs.txt",
-            row.names=FALSE)                               
-
-## run admixmap analysis with outcome var
-#if(logistic) {
-#  system("perl simLogistic.pl")
-#} else system("perl simLinear.pl")
-
-system("../test/admixmap.exe SinglePopArgs.txt")
-Sys.putenv("RESULTSDIR" = "SinglePopResults")
-source("../test/AdmixmapOutput.R")
-system("../test/admixmap.exe TwoPopsArgs.txt")
-Sys.putenv("RESULTSDIR" = "TwopPopsResults")
-source("../test/AdmixmapOutput.R")
-
-## run genomic control analysis
-source("gcf.R")
-
-# plot adjusted against unadjusted p-values
-crude.pvalues <- read.table(file="SinglePopResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
-adj.pvalues <- read.table(file="TwoPopsResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
-gc.pvalues <- read.table(file="GCTests.txt", header=T)[, 2]
-
-postscript("TwoPopsResults/PValues.ps")
-plotchars <- numeric(L)
-plotchars[1:L] <- 1
-plotchars[candidate] <- 19
-plotcols <- character(L)
-plotcols[1:L] <- "black"
-plotcols[candidate] <- "red"
-plot(-log10(crude.pvalues), -log10(adj.pvalues), xlim=c(0,7), ylim=c(0,7),
-     pch=plotchars, col=plotcols)
-plot(-log10(gc.pvalues), -log10(adj.pvalues), xlim=c(0,7), ylim=c(0,7),
-     pch=plotchars, col=plotcols)
+plot(dimnames(t2.crude)[[1]], t2.crude, ylim=c(0, 1),
+     xlab="Quintile of standardized allele frequency differential",
+     ylab="Type 2 error rate", pch=2, col=1)
+points(dimnames(t2.gc)[[1]], t2.gc, pch=19, col=3)
+points(dimnames(t2.gc)[[1]], t2.adj, pch=3, col=4)
 dev.off()
 
-type1.error <- c(mean(crude.pvalues<0.05, na.rm=T),
-                 mean(gc.pvalues<0.05, na.rm=T),
-                 mean(adj.pvalues<0.05, na.rm=T))
-type2.error <- c(as.numeric(crude.pvalues[candidate] > 0.05),
-                 as.numeric(gc.pvalues[candidate] > 0.05),
-                 as.numeric(adj.pvalues[candidate] > 0.05))
+print(apply(type1.error[, -1], 2, mean, na.rm=T))
+print(apply(type2.error[, -1], 2, mean, na.rm=T))
 
-cat("Type 1 error", type1.error, "\n")
-cat("Type 2 error", type2.error, "\n")
 
-reg.quantiles <- read.table(file="TwoPopsResults/PosteriorQuantiles.txt", header=T)
-# print(reg.quantiles)
 
-## plot posterior means of individual admixture against true values 
-avM.estimates <- read.table("TwoPopsResults/IndividualVarPosteriorMeans.txt", header=T)[, 2]
-reg.estimates <- summary.glm(glm(outcome ~ avM.estimates, family=ofam))
-plot(avM, avM.estimates, xlim=c(0,1), ylim=c(0,1))
-lines(c(0,1),c(0,1), type="l")
 
