@@ -1,0 +1,37 @@
+
+KEY PARAMETERS FOR THE PROGRAM structure.  YOU WILL NEED TO SET THESE
+IN ORDER TO RUN THE PROGRAM.  VARIOUS OPTIONS CAN BE ADJUSTED IN THE
+FILE extraparams.
+
+
+"(int)" means that this takes an integer value.
+"(B)"   means that this variable is Boolean 
+        (ie insert 1 for True, and 0 for False).
+"(str)" means that this is a string (but not enclosed in quotes!) 
+
+Data File
+
+#define INFILE  strdata.txt // (str) name of input data file. max length 30.
+#define OUTFILE results   // (str) name of output data file. max length 30.
+
+#define NUMINDS 200   // (int) number of diploid individuals in data file
+#define NUMLOCI  99    // (int) number of loci in data file
+#define LABEL    1    // (B) Input file contains individual labels
+#define POPDATA  0    // (B) Input file contains a population 
+                             identifier
+#define POPFLAG  0    // (B) Input file contains a flag which says 
+                             whether to use popinfo when USEPOPINFO==1
+#define PHENOTYPE 0   // (B) Input file contains phenotype information
+#define EXTRACOLS 0   // (int) Number of additional columns of data 
+                             before the genotype data start.
+#define MISSING  0 // (int) value given to missing genotype data
+
+not working #define GENENAMES 0
+#define MAPDISTANCES 1                  
+
+Program Parameters
+
+#define MAXPOPS 2     // (int) Model the data using this many populations (K)
+#define BURNIN  20   // (int) length of burnin period
+#define NUMREPS 100  // (int) number of MCMC reps after burnin
+
