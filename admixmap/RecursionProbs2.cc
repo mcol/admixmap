@@ -19,7 +19,6 @@ void ::RecursionProbs2(const double ff, const double f[2],
   double ImaginaryF1;
 
   // version for K = 2
-
   // scale array oldProbs so that elements sum to 1, and accumulate row and col sums
   for( int j = 0; j <  4; ++j ) {
     Sum += oldProbs[j];
@@ -37,7 +36,7 @@ void ::RecursionProbs2(const double ff, const double f[2],
   cov = ff * ( oldProbs[0]*scaleFactor - row0Prob * col0Prob );
 
   // calculate expectation of product as covariance plus product of expectations
-  // original loop evaluated newProbs[j0*K + j1] = cov + Expectation0 * Expectation1;
+  // evaluates newProbs[j0*K + j1] = cov + Expectation0 * Expectation1;
   // uses discrete Fourier transform  
   //   P0 = Expectation0 * Expectation1 + cov;
   //   P1 = (1 - Expectation0) * Expectation1 - cov;
@@ -51,12 +50,13 @@ void ::RecursionProbs2(const double ff, const double f[2],
   ImaginaryF1 = Expectation1 - Product - 0.5 * (1 - Expectation0) - cov;
   
   newProbs[0] = 0.5*Expectation0 + RealF1;
-  newProbs[1] = 0.5*(1 - Expectation0) + ImaginaryF1;
+  newProbs[1] = 0.5*(1.0 - Expectation0) + ImaginaryF1;
   newProbs[2] = 0.5*Expectation0 - RealF1;
-  newProbs[3] = 0.5*(1 - Expectation0) - ImaginaryF1;
+  newProbs[3] = 0.5*(1.0 - Expectation0) - ImaginaryF1;
   //undo scaling 
   for(int j0 = 0; j0 < 2; ++j0) {
     for(int j1 =0; j1 < 2; ++j1) {
+      newProbs[j0*K + j1] *= Sum;
     }
   }
 }
