@@ -33,12 +33,15 @@ using namespace std;
   Externals: h  log-density
   dh  derivative of the log-density
   
-  x vector that contains the grid points
-  z vector of intersections of the tangent
+  x vector of points on x axis at which gradient is evaluated
+  z vector of points on x axis at which i th tangent intersects i+1 th tangent
   lines
-  u=f(z)
+  u  vector of heights at which i th tangent intersects i+1th tangent   
 
-  Return
+  LeftFlag and RightFlag are coded as 0 if there is a left truncation point, 1 otherwise
+  left and right truncation points are passed separately as inx0 and inx1 
+
+  Returns
   flag Counts the points used to get w	
   w sample point
 */
@@ -50,16 +53,15 @@ DARS::DARS()
    lgth = 25;
    x0 = 0;
    f = new double[ lgth ];  
-   df = new double[ lgth ];  
-   x = new double[ lgth ];  
-   u = new double[ lgth ];  
-   z = new double[ lgth ];  
+   df = new double[ lgth ];  // vector of gradients
+   x = new double[ lgth ];  // vector of grid points
+   u = new double[ lgth ];  // u[i] is log density at z[i] 
+   z = new double[ lgth ];  // vector of intersections of tangents
    psum = new double[ lgth ];
    data_i = 0;
    data_d = 0;
    parameters = 0;
 }
-
 
 DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
 	    const double inparameters[],
@@ -68,9 +70,9 @@ DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
             double (*ddfunct)(const double*, const int *, const double*, double),
             const int *integer_data, const double *double_data )
 {
-   no = 3;
+  no = 3; // num starting points
    loc = 0;
-   lgth = 25;
+   lgth = 25; // max num points 
    x0 = 0;
    parameters = inparameters;
    data_i =  integer_data;
@@ -88,7 +90,6 @@ DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
    RightFlag = inRightFlag;
    newnum = innewnum;
 }
-
 
 DARS::~DARS()
 {
@@ -149,374 +150,374 @@ void DARS::BeginModeSearch( double innewnum )
 }
 
 double DARS::Sample()
+  // function should have argument allowing user to pass mode if known 
 {
-   double w, dfa = 1, dfb = -1;
-
-   if( !LeftFlag )
-      dfa = (*dfunction)( parameters, data_i, data_d, x0 + 0.00000001 );
-   if( !RightFlag )
-      dfb = (*dfunction)( parameters, data_i, data_d, x1 - 0.00000001 );
-
-// Check gradient is positive at minimum value and negative at maximum value
-   if( dfa > 0 && dfb < 0 ){
-      
-// Mode search
-      if( !LeftFlag && !RightFlag ){
-         SimpleModeSearch( x0, x1 );
-      }
-      else{
-         NewtonRaphson();
-      }
-      while( isinf( (*function)( parameters, data_i, data_d, x[0] ) ) )
-         x[0] = ( x[0] + x[1] ) / 2;
-      while( isinf( (*function)( parameters, data_i, data_d, x[2] ) ) )
-         x[2] = ( x[2] + x[1] ) / 2;
-   }
-   else if( dfb > 0 ){
-      newnum = x1 - 0.00000001;
-      x[2] = newnum;
-      if( !LeftFlag ){
-         x[0] = x0 + 0.00000001;
-         x[1] = (x[0] + x[2]) / 2;
-      }
-      else{
-         x[1] = x[2] - 2/dfb;
-         x[0] = x[1] - 2/dfb;
-      }
-   }
-   else{
-      newnum = x0 + 0.00000001;
-      x[0] = newnum;
-      if( !RightFlag ){
-         x[2] = x1 - 0.00000001;
-         x[1] = (x[0] + x[2]) / 2;
-      }
-      else{
-         x[1] = x[0] - 2/dfa;
-         x[2] = x[1] - 2/dfa;
-      }
-   }
-
-   w = SampleUsingARS();
-
-   return( w );
+  double w, dfa = 1, dfb = -1;
+  
+  if( !LeftFlag ) // if bounded below, evaluate gradient just above minimum value 
+    dfa = (*dfunction)( parameters, data_i, data_d, x0 + 0.00000001 );
+  if( !RightFlag ) // if bounded above, evaluate gradient just below max value
+    dfb = (*dfunction)( parameters, data_i, data_d, x1 - 0.00000001 );
+  
+  // Check gradient is positive at minimum value and negative at maximum value
+  if( dfa > 0 && dfb < 0 ){
+    
+    // Mode search
+    if( !LeftFlag && !RightFlag ){ // if bounded below and above 
+      SimpleModeSearch( x0, x1 );
+    }
+    else{ // if unbounded below or above
+      NewtonRaphson(); // assigns x[1] as mode, x[0], x[2] as +/- 3 times 2nd deriv
+    }
+    
+    // if log density infinite at x[0], assign x[0] as mean of x[0] and x[1]
+    while( isinf( (*function)( parameters, data_i, data_d, x[0] ) ) )
+      x[0] = ( x[0] + x[1] ) / 2;
+    // x[2] similarlyx
+    while( isinf( (*function)( parameters, data_i, data_d, x[2] ) ) )
+      x[2] = ( x[2] + x[1] ) / 2;
+  }
+  else if( dfb > 0 ){ // if gradient positive at maximum value
+    newnum = x1 - 0.00000001;
+    x[2] = newnum;
+    if( !LeftFlag ){ // if bounded below
+      x[0] = x0 + 0.00000001;
+      x[1] = (x[0] + x[2]) / 2; // assign x[1] as mean of x[0] and x[2]
+    }
+    else{ // use gradient at max to assign x[0] and x[2]
+      x[1] = x[2] - 2/dfb;
+      x[0] = x[1] - 2/dfb;
+    }
+  }
+  else{ // if gradient negative at minimum value, 
+    newnum = x0 + 0.00000001;
+    x[0] = newnum;
+    if( !RightFlag ){ // assign x[1] as mean of x[0] and x[2]
+      x[2] = x1 - 0.00000001;
+      x[1] = (x[0] + x[2]) / 2;
+    }
+    else{ // use gradient at min
+      x[1] = x[0] - 2/dfa; 
+      x[2] = x[1] - 2/dfa;
+    }
+  }
+  
+  w = SampleUsingARS();
+  return( w );
 }
+
 double DARS::SampleUsingARS()
 {
-   int flag = 0, SampleFlag = 0, i;
-   double aux = 0.0;
-   double aux1 = 0.0;
-   double bux,max,un,w,temp,newdf;
-         
-   n = no;
-   for( int i = 0; i < lgth; i++ )
-   {
-      psum[i] = 0;
+  int flag = 0, SampleFlag = 0, i;
+  double aux = 0.0;
+  double aux1 = 0.0;
+  double bux,max,un,w,temp,newdf;
+  
+  n = no; // initially set to num starting points
+  for( int i = 0; i < lgth; i++ ) // loop from 0 to max num grid points
+    {
+      psum[i] = 0; // ? factor that scales the x-axis of the envelope
       u[i] = 0;
-      z[i] = 0;
-   }
-
-   max=(*function)(parameters, data_i, data_d, newnum );
-
-   for( int i = 0; i < n; i++ )
-   {
+      z[i] = 0; // 
+    }
+  
+  max=(*function)(parameters, data_i, data_d, newnum ); // log density at newnum
+  // loop over n grid points to calculate log density f[i] and gradient df[i] 
+  for( int i = 0; i < n; i++ )
+    {
       aux=x[i];
       f[i]=(*function)(parameters, data_i, data_d, aux)-max;
       df[i]=(*dfunction)(parameters, data_i, data_d, aux);
-   }
-
-
-   loc = 0;
-
-// ** Routine starts **
-
-   do
-   {
-      consz();
-      conspsum();
+    }
+  
+  loc = 0;
+  
+  // ** Routine starts **
+  do
+    {
+      consz();  // construct envelope of tangents: horizontal positions z and heights u at intersections 
+      conspsum();  // construct vector of cumulative sums of areas under tangents
       
+      // draw w as uniform between 0 and psum[n-1] 
       un=myrand();
-      
       w=un*psum[n-1];
-      
-      i = 0;
-      
+      // assign loc: integer between 0 and n, specifying which tangent w is under
+      i = 0;  
       while( i < n && w > psum[i] )
-         i++;
-      
+	i++;
       loc = i;
-         
-//  ** Generate w and height of w on the envelope distribution  **
-
-      if( loc == 0 )
-      {
-         if( LeftFlag == 0 ) // Ok for sampling from x0
-            aux = w*df[0]+fannyexp(df[0]*(x0-x[0])+f[0]);
-         else if( LeftFlag == 1 ) // Sample from -Inf
-            aux=w*df[0];
-         w = x[0]+(log(aux)-f[0])/df[0];
-         if( isnan(w) ){
-            cout << "Nan at loc = 0\n";
-         }
-      }
-      else if( fabs(df[loc]) < 0.0001 )
-      {
-         w -= psum[loc-1];
-         aux = fannyexp(f[loc]);
-         w = z[loc-1]+w/aux;
-         if( isnan(w) ){
-            cout << "Nan at df[loc] < 0.0001 = 0\n";
-         }
-      }
-      else   
-      {
-         w -= psum[loc-1];
-         aux = w*df[loc]+fannyexp(u[loc-1]);         
-         w = x[loc]+(log(aux)-f[loc])/df[loc];
-         if( isnan(w) ){
-            cout << "Nan at else = 0\n";
-         }
-      }
-//** Prepare squeezing pre-test **
-
-      if ( w >= x[loc] && loc == n - 1 )
-      {
-         bux=0.0;
-         loc++;
-      }
-      else if( w >= x[loc] )
-      {
-         temp=(f[loc+1]*(w-x[loc])) / (x[loc+1]-x[loc]);
-         bux=fannyexp(temp);
-         bux *= fannyexp(f[loc]*(x[loc+1]-w));
-         loc++;
-      }
-      else if( loc == 0 )
-      {
-         bux=0.0;
-      }
-      else
-         bux = fannyexp((f[loc-1]*(x[loc]-w)+f[loc] * (w-x[loc-1]))/(x[loc]-x[loc-1]));
-
-// ** Rejection step by squeezing  **
- 
-      un = myrand();
       
-      if( un <= (bux/aux) )
-         SampleFlag = 1;
+      //  ** convert w to position on x axis, and calculate height of envelope at position w   **
+      if( loc == 0 ) // if no tangents intersect to left of w
+	{
+	  if( LeftFlag == 0 ) // if lower bound, ok for sampling from x0
+            aux = w*df[0]+fannyexp(df[0]*(x0-x[0])+f[0]);
+	  else if( LeftFlag == 1 ) // if no lower bound, sample from -Inf
+            aux=w*df[0];
+	  w = x[0]+(log(aux)-f[0])/df[0]; 
+	  if( isnan(w) ){
+            cout << "Nan at loc = 0\n";
+	  }
+	}
+      else if( fabs(df[loc]) < 0.0001 ) // if gradient flat at x[loc]
+	{
+	  w -= psum[loc-1];
+	  aux = fannyexp(f[loc]); // calculate density by taking exponents 
+	  w = z[loc-1]+w/aux; 
+	  if( isnan(w) ){
+            cout << "Nan at df[loc] < 0.0001 = 0\n";
+	  }
+	}
+      else  // at least one tangent to left of w, and gradient not flat at x[loc]
+	{
+	  w -= psum[loc-1];
+	  aux = w*df[loc]+fannyexp(u[loc-1]);         
+	  w = x[loc]+(log(aux)-f[loc])/df[loc];
+	  if( isnan(w) ){
+            cout << "Nan at else = 0\n";
+	  }
+	}
+
+      //** Prepare squeezing pre-test **
+      if ( w >= x[loc] && loc == n - 1 )
+	{
+	  bux=0.0;
+	  loc++;
+	}
+      else if( w >= x[loc] )
+	{
+	  temp=(f[loc+1]*(w-x[loc])) / (x[loc+1]-x[loc]);
+	  bux=fannyexp(temp);
+	  bux *= fannyexp(f[loc]*(x[loc+1]-w));
+	  loc++;
+	}
+      else if( loc == 0 )
+	{
+	  bux=0.0;
+	}
       else
-      {
-// ** Rejection step  **
-         aux1 = (*function)(parameters, data_i, data_d, w)-max;
-         bux = fannyexp(aux1);
-         if ( log(un) <= aux1 - log(aux) )
-            SampleFlag = 1;
-      }
-
-// ** Prepare new envelope **
-
-      newdf = (*dfunction)(parameters, data_i, data_d, w);
+	bux = fannyexp((f[loc-1]*(x[loc]-w)+f[loc] * (w-x[loc-1]))/(x[loc]-x[loc-1]));
+      
+      // ** Rejection step by squeezing  **
+      un = myrand();
+      if( un <= (bux/aux) )
+	SampleFlag = 1;
+      else
+	{
+	  // ** Rejection step  **
+	  aux1 = (*function)(parameters, data_i, data_d, w)-max;
+	  bux = fannyexp(aux1);
+	  if ( log(un) <= aux1 - log(aux) )
+            SampleFlag = 1; // exit loop
+	}
+      
+      // ** Prepare new envelope **
+      newdf = (*dfunction)(parameters, data_i, data_d, w); 
       if( SampleFlag == 0 ){
-         if( !isinf(aux1) && !isinf(newdf) && !isnan(aux1) && !isnan(newdf) ){
-         n++;
-         
-         if( n >= lgth )
-         {
-            cout << "warning" << n << endl;
-            cout << x[0] << " " << x[n-1] << endl;
-            exit(1);
-         }
-         
-         for( i = n - 1; i >= loc + 1; i-- )
-         {
-            x[i] = x[i-1];
-            f[i] = f[i-1];
-            df[i] = df[i-1];
-         }
-         x[loc] = w;
-         f[loc] = aux1;
-         df[loc] = newdf;
-         loc--;
-         }
-         else{
-            cout << "bollox\n";
-         }
+	if( !isinf(aux1) && !isinf(newdf) && !isnan(aux1) && !isnan(newdf) ){ // if aux1 and newdf not inf or nan 
+	  n++;
+	  
+	  if( n >= lgth ) // failure to accept after max number of grid points
+	    {
+	      cout << "Adaptive rejection sampler: failure to accept values " << n << endl;
+	      cout << x[0] << " " << x[n-1] << endl;
+	      exit(1);
+	    }
+	  
+	  for( i = n - 1; i >= loc + 1; i-- )
+	    {
+	      x[i] = x[i-1];
+	      f[i] = f[i-1];
+	      df[i] = df[i-1];
+	    }
+	  x[loc] = w; // update vector of grid points with w
+	  f[loc] = aux1; // update vector of log densities at x
+	  df[loc] = newdf; // update vector of gradients at x
+	  loc--; // decrement loc
+	}
+	else{ // aux1 or newdf inf or nan
+	  cout << "Adaptive rejection sampler: log density or gradient infinite or NaN\n";
+	}
       }
    }while( SampleFlag == 0 );
    
    flag += n-no+1;
-
+   
    return ( w );
 }
 
-void DARS::consz()
+void DARS::consz() // constructs envelope of tangents 
+  // updates scalars aux, bux, aux1, aux2, arrays z, u
 {
-   int i,iloc,iloc1;
-   double aux,bux;
-   double aux1 = 0.0;
-   double bux1 = 0.0;
-
-   if( loc == -1 )
-   {
+  int i,iloc,iloc1;
+  // same names as global vars
+  double aux,bux;
+  double aux1 = 0.0;
+  double bux1 = 0.0;
+  
+  if( loc == -1 )
+    {
       iloc=0;
       iloc1=0;
-   }
-   else
-   {
+    }
+  else
+    {
       iloc=loc;
       iloc1=loc+1;
-   }
-
-   for( i = iloc; i < n - 1; i++ )
-   {
+    }
+  
+  for( i = iloc; i < n - 1; i++ )
+    {
       if( (n == no) || (i <= iloc1) )
-      {
-         aux1 = z[i];
-         bux1 = u[i];
-         z[i] = (f[i+1]-f[i]-x[i+1]*df[i+1]+x[i]*df[i])/ (df[i]-df[i+1]);
-         u[i] = df[i]*(z[i]-x[i])+f[i];
-      }
+	{
+	  aux1 = z[i];
+	  bux1 = u[i];
+	  z[i] = (f[i+1]-f[i]-x[i+1]*df[i+1]+x[i]*df[i])/ (df[i]-df[i+1]); 
+	  //horizontal position of intersection of i th tangent with (i+1) th tangent  
+	  u[i] = df[i]*(z[i]-x[i])+f[i]; // height of i th tangent at horizontal position z[i]
+	}
       else
-      {
-         aux = z[i];
-         bux = u[i];
-         z[i] = aux1;
-         u[i] = bux1;
-         aux1 = aux;
-         bux1 = bux;
-      }
-   }
-   if( !RightFlag ){
-      z[n-1] = x1;
-      u[n-1] = df[n-1]*(z[n-1]-x[n-1])+f[n-1];
-   }
+	{
+	  aux = z[i];
+	  bux = u[i];
+	  z[i] = aux1;
+	  u[i] = bux1;
+	  aux1 = aux;
+	  bux1 = bux;
+	}
+    }
+  if( !RightFlag ){
+    z[n-1] = x1; // horizontal position of last intersection is set to upper bound
+    u[n-1] = df[n-1]*(z[n-1]-x[n-1])+f[n-1];
+  }
 }
 
 void DARS::conspsum()
 {
-   int i,iloc,iloc1;
-   double aux1,aux2,saux1;
-
-   double aux = 0.0;
-   double saux = 0.0;
- 
-   aux1 = psum[0];
-   if( loc == -1 )
-   {
+  //psum is an array of cumulative sums of areas under tangents 
+  int i,iloc,iloc1;
+  double aux1,aux2,saux1;
+  
+  double aux = 0.0;
+  double saux = 0.0;
+  
+  aux1 = psum[0];
+  if( loc == -1 )
+    {
       if( LeftFlag == 0 ) // Ok for sampling from x0
-         saux = fannyexp(u[0])*(1 - fannyexp((x0-z[0])*df[0]))/df[0];
+	saux = fannyexp(u[0])*(1 - fannyexp((x0-z[0])*df[0]))/df[0];
       else if( LeftFlag == 1 ) // Sample from -Inf
-         saux = fannyexp(u[0])/df[0];
+	saux = fannyexp(u[0])/df[0];
       psum[0] = saux;
       iloc = 1;
       iloc1 = 1;
       if( isinf(saux) ){
-         cout << "suax = inf at loc == -1" << endl;
-         exit(0);
+	cout << "suax = inf at loc == -1" << endl;
+	exit(0);
       }
     }
-   else if( loc == 0 )
-   {
+  else if( loc == 0 )
+    {
       if( LeftFlag == 0 ) // Ok for sampling from x0
-         saux = fannyexp(u[0])*(1. - fannyexp((x0-z[0])*df[0]))/df[0];
+	saux = fannyexp(u[0])*(1. - fannyexp((x0-z[0])*df[0]))/df[0];
       else if( LeftFlag == 1 ) // Sample from -Inf
-         saux = fannyexp(u[0])/df[0];
+	saux = fannyexp(u[0])/df[0];
       psum[0] = saux;
       iloc = 1;
       iloc1 = 2;
       if( isinf(saux) ){
-         cout << "suax = inf at loc == 0" << endl;
-         exit(0);
+	cout << "suax = inf at loc == 0" << endl;
+	exit(0);
       }
-   }
-   else
-   {
+    }
+  else
+    {
       saux = psum[loc-1];
       iloc = loc;
       iloc1 = loc+2;
       if( isinf(saux) ){
-         cout << "suax = inf at loc != -1, 0." << endl;
-         exit(0);
+	cout << "suax = inf at loc != -1, 0." << endl;
+	exit(0);
       }
-   }
-
-   for( i = iloc; i  < n - RightFlag; i++ )
-   {
+    }
+  
+  for( i = iloc; i  < n - RightFlag; i++ )
+    {
       if( (n == no) || (i <= iloc1) )
-      {
-         aux = aux1;
-         aux1 = psum[i];
-         if ( fabs(df[i]) < 0.0001 )
-         {
-            saux1 = (z[i]-z[i-1])*fannyexp(f[i]);
-            saux += saux1;
-         }
-         else
-         {
-            saux1 = (fannyexp(u[i])-fannyexp(u[i-1]))/df[i];
-            saux += saux1;
-         }
-         psum[i] = saux;
-         if( psum[i] < 0 ){
+	{
+	  aux = aux1;
+	  aux1 = psum[i];
+	  if ( fabs(df[i]) < 0.0001 )
+	    {
+	      saux1 = (z[i]-z[i-1])*fannyexp(f[i]);
+	      saux += saux1;
+	    }
+	  else
+	    {
+	      saux1 = (fannyexp(u[i])-fannyexp(u[i-1]))/df[i];
+	      saux += saux1;
+	    }
+	  psum[i] = saux;
+	  if( psum[i] < 0 ){
             cout << "psum < 0 : 1" << endl;
             cout << n << endl;
             for( int ii = 0; ii < n; ii++ )
-               cout << x[ii] << " ";
+	      cout << x[ii] << " ";
             cout << endl;
             for( int ii = 0; ii < n; ii++ )
-               cout << f[ii] << " ";
+	      cout << f[ii] << " ";
             cout << endl;
             for( int ii = 0; ii < n; ii++ )
-               cout << df[ii] << " ";
+	      cout << df[ii] << " ";
             cout << endl;
-        }
-      }
+	  }
+	}
       else
-      {
-         aux2 = psum[i];
-         saux = aux1-aux+psum[i-1];
-         psum[i] = saux;
-         if( psum[i] < 0 ){
+	{
+	  aux2 = psum[i];
+	  saux = aux1-aux+psum[i-1];
+	  psum[i] = saux;
+	  if( psum[i] < 0 ){
             cout << "psum < 0 : 2" << endl;
             cout << n << endl;
             for( int ii = 0; ii < n; ii++ )
-               cout << x[ii] << " ";
+	      cout << x[ii] << " ";
             cout << endl;
             for( int ii = 0; ii < n; ii++ )
-               cout << f[ii] << " ";
+	      cout << f[ii] << " ";
             cout << endl;
             for( int ii = 0; ii < n; ii++ )
-               cout << df[ii] << " ";
+	      cout << df[ii] << " ";
             cout << endl;
-         }
-         else if( isinf(psum[i]) || isinf(psum[i]) ){
+	  }
+	  else if( isinf(psum[i]) || isinf(psum[i]) ){
             cout << "Error: psum[i] = inf" << endl;
             exit(0);
-         }
-         aux = aux1;
-         aux1 = aux2;
-      }
-   }
-// Change in case you are not sampling from Infty
-   if( RightFlag )
-      psum[n-1] = saux - fannyexp(u[n-2])/df[n-1];
-   if( psum[n-1] < 0 ){
-      cout << "psum < 0 : 3" << endl;
-      cout << n << endl;
-      for( int ii = 0; ii < n; ii++ )
-         cout << x[ii] << " ";
-      cout << endl;
-      for( int ii = 0; ii < n; ii++ )
-         cout << f[ii] << " ";
-      cout << endl;
-      for( int ii = 0; ii < n; ii++ )
-         cout << df[ii] << " ";
-      cout << endl;
-   }
-   else if( isinf(psum[n-1]) || isinf(psum[n-1]) ){
-      cout << "Error: psum[n-1] = inf" << endl;
-      exit(0);
-   }
+	  }
+	  aux = aux1;
+	  aux1 = aux2;
+	}
+    }
+  // Change in case you are not sampling from Infty
+  if( RightFlag )
+    psum[n-1] = saux - fannyexp(u[n-2])/df[n-1];
+  if( psum[n-1] < 0 ){
+    cout << "psum < 0 : 3" << endl;
+    cout << n << endl;
+    for( int ii = 0; ii < n; ii++ )
+      cout << x[ii] << " ";
+    cout << endl;
+    for( int ii = 0; ii < n; ii++ )
+      cout << f[ii] << " ";
+    cout << endl;
+    for( int ii = 0; ii < n; ii++ )
+      cout << df[ii] << " ";
+    cout << endl;
+  }
+  else if( isinf(psum[n-1]) || isinf(psum[n-1]) ){
+    cout << "Error: psum[n-1] = inf" << endl;
+    exit(0);
+  }
 }
 
 void DARS::SimpleModeSearch( double aa, double bb )
@@ -597,9 +598,10 @@ void DARS::NewtonRaphson()
       if( !RightFlag && newnum > x1 )
          newnum = x1 - 0.00000001;
       dfnew = (*dfunction)( parameters, data_i, data_d, newnum );
-   }while( ( (dfold * dfnew) > 0 ) && fabs(dfnew) > 0.01 );
+   // continues looping until oldnum and new num are on opposite sides of mode, or gradient zero at newnum  
+   }while( ( (dfold * dfnew) > 0 ) && fabs(dfnew) > 0.01 ); 
 
-   if( fabs(dfnew) > 0.01 ){
+   if( fabs(dfnew) > 0.01 ){ // if gradient not zero at newnum, set a to lower value and b to higher value
       if( oldnum < newnum ){
          a = oldnum;
          b = newnum;
@@ -608,7 +610,7 @@ void DARS::NewtonRaphson()
          a = newnum;
          b = oldnum;
       }
-      
+      // if a below lower bound or b below upper bound, reset to just within bounds 
       if( LeftFlag == 0 && a < x0 )
          a = x0 + 0.00000001;
       else if( RightFlag == 0 && b > x1 )
