@@ -69,13 +69,12 @@ for(chromosome in 1:22) {
 x <- 0.01*distanceFromLast(chr, x)
 L <- length(x) # number of loci
 
-null.results <- data.frame(matrix(data=NA, nrow=0, ncol=4))
-candidate.results <- data.frame(matrix(data=NA, nrow=0, ncol=4))
-results.colnames <- c("f.signed", "crude.p", "gc.p", "adj.p")
+null.results <- data.frame(matrix(data=NA, nrow=0, ncol=5))
+candidate.results <- data.frame(matrix(data=NA, nrow=0, ncol=5))
+results.colnames <- c("f.signed", "crude.p", "gc.p", "adj2.p", "adj.p")
 dimnames(null.results)[[2]] <- results.colnames
 dimnames(candidate.results)[[2]] <- results.colnames
-admixmap <- T
-numsims <- 10
+numsims <- 2
 
 for(sims in 1:numsims) {
   ## simulate correlated allele freqs
@@ -144,9 +143,10 @@ for(sims in 1:numsims) {
   }
   
   ## fit regression model to sampled values
-  reg.adj <- summary.glm(glm(outcome ~ avM + g, family = ofam))$coefficients[3,]
-  reg.crude <- summary.glm(glm(outcome ~ g, family = ofam))$coefficients[2,]
-  confound.effect <- reg.crude[1] - reg.adj[1]
+  #reg.adj <- summary.glm(glm(outcome ~ avM + g, family = ofam))$coefficients[3,]
+  #reg.crude <- summary.glm(glm(outcome ~ g, family = ofam))$coefficients[2,]
+  #confound.effect <- reg.crude[1] - reg.adj[1]
+
   ## write outcome variable to file
   outcome.table <- data.frame(outcome, row.names=NULL) 
   write.table(outcome.table, file="data/outcome.txt", row.names=FALSE, col.names=TRUE)
@@ -154,8 +154,7 @@ for(sims in 1:numsims) {
   Mvector.table <- data.frame(avM, row.names=NULL)
   write.table(outcome, file="data/Mvalues.txt", row.names=FALSE,
               col.names=TRUE)
-  
-  ##write genotypes to file
+  ## write genotypes to file
   genotypes <- genotypes[-1,]
   genotypes.gc <- genotypes
   for(col in 1:dim(genotypes)[2]) {
@@ -165,36 +164,49 @@ for(sims in 1:numsims) {
   ## write for ADMIXMAP
   genotypes <- data.frame(id, genotypes, row.names=NULL)
   write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
-  
   ## write for GC
   gc.genotypes <- data.frame(id, outcome, genotypes.gc)
   write.table(gc.genotypes, file="data/gcgenotypes.txt", row.names=FALSE, col.names=FALSE,
               quote=F, sep=" ")
-  
   ## write locus file
   x[is.na(x)] <- 100
   loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  x, row.names=NULL)
   dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distance")
   write.table(loci, file="data/loci.txt", row.names=FALSE)
-  
   ## write allelefreqs files
   trueallelefreqs <- data.frame(rep(loci[,1], each=2), alleleFreqs)
   dimnames(trueallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
   write.table(trueallelefreqs, file="data/trueallelefreqs.txt",
               row.names=FALSE)                               
-  
-  ## run admixmap analysis with outcome var
+
+  ## run admixmap with outcome var and single population
   system("../test/admixmap.exe SinglePopArgs.txt")
   Sys.putenv("RESULTSDIR" = "SinglePopResults")
   source("../test/AdmixmapOutput.R")
-    
   ## run genomic control analysis
   source("gcf.R")
+  ## run admixmap with no outcomevar and two populations
+  system("../test/admixmap.exe NoOutcomeArgs.txt")
+  Sys.putenv("RESULTSDIR" = "NoOutcomeResults")
+  source("../test/AdmixmapOutput.R")
+  ## run admixmap with outcome var and two populations
+  system("../test/admixmap.exe TwoPopsArgs.txt")
+  Sys.putenv("RESULTSDIR" = "TwoPopsResults")
+  source("../test/AdmixmapOutput.R")
 
-  if(admixmap) {
-    system("../test/admixmap.exe TwoPopsArgs.txt")
-    Sys.putenv("RESULTSDIR" = "TwoPopsResults")
-    source("../test/AdmixmapOutput.R")
+
+  ## calculate score tests for two-step structured association approach
+  avM.nOutcome <- read.table("NoOutcomeResults/IndividualVarPosteriorMeans.txt", header=T)[, 2]
+  r.nOutcome <- glm(outcome ~ avM.nOutcome, family=ofam)
+  resid.nOutcome <- resid(r.nOutcome)
+  nOutcome.pvalues <- numeric(L)
+  for(locus in 1:L) {
+    x <- ifelse(as.vector(genotypes[,1+locus])=="1,1", 0,
+                ifelse(as.vector(genotypes[,1+locus])=="1,2" | as.vector(genotypes[,1+locus])=="2,1", 1,
+                       ifelse(as.vector(genotypes[,1+locus])=="2,2", 2, NA)))
+    score <- sum(x * resid.nOutcome)
+    info <- sum(x^2)
+    nOutcome.pvalues[locus] = 2*pnorm(-abs(score / sqrt(info)))
   }
 
   ## read adjusted and unadjusted p-values from file
@@ -213,12 +225,13 @@ for(sims in 1:numsims) {
   }
 
   ## bind p-values into a table
-  all.results <- data.frame(f.signed, crude.pvalues, gc.pvalues, adj.pvalues)
+  all.results <- data.frame(f.signed, crude.pvalues, gc.pvalues, nOutcome.pvalues, adj.pvalues)
   dimnames(all.results)[[2]] <- results.colnames
   ## append to tables null.results and candidate.results
   null.results <- rbind(null.results, all.results[-candidate, ])
   candidate.results <- rbind(candidate.results, all.results[candidate, ])
-  
+
+  # display plot of adjusted against crude pvalues
   postscript("TwoPopsResults/PValues.ps")
   plotchars <- numeric(L)
   plotchars[1:L] <- 1
@@ -228,60 +241,63 @@ for(sims in 1:numsims) {
   plotcols[candidate] <- "red"
   plot(-log10(crude.pvalues), -log10(gc.pvalues), xlim=c(0,7), ylim=c(0,7),
        pch=plotchars, col=plotcols)
-  if(admixmap) {
-    plot(-log10(crude.pvalues), -log10(adj.pvalues), xlim=c(0,7), ylim=c(0,7),
-         pch=plotchars, col=plotcols)
-  }
+  plot(-log10(crude.pvalues), -log10(adj.pvalues), xlim=c(0,7), ylim=c(0,7),
+       pch=plotchars, col=plotcols)
   dev.off()
-  
-  ## calculate error rates  
-  type1.error <- c(mean(crude.pvalues<0.05, na.rm=T),
-                   mean(gc.pvalues<0.05, na.rm=T),
-                   mean(adj.pvalues<0.05, na.rm=T))
-  type2.error <- c(as.numeric(crude.pvalues[candidate] > 0.05),
-                   as.numeric(gc.pvalues[candidate] > 0.05),
-                   as.numeric(adj.pvalues[candidate] > 0.05))
-  ## print error rates
-  cat("Type 1 error", type1.error, "\n")
-  cat("Type 2 error", type2.error, "\n")
 }
 
 type1.error <- data.frame(null.results$f.signed,
                           null.results$crude.p < 0.05,
                           null.results$gc.p < 0.05,
+                          null.results$adj2.p < 0.05,
                           null.results$adj.p < 0.05)
 type2.error <- data.frame(candidate.results$f.signed,
                           candidate.results$crude.p > 0.05,
                           candidate.results$gc.p > 0.05,
+                          candidate.results$adj2.p > 0.05,
                           candidate.results$adj.p > 0.05)
-
 dimnames(type1.error)[[2]] <- results.colnames
 dimnames(type2.error)[[2]] <- results.colnames
 
-## plot type 1 error rates by quartile of signed f-value
+## plot type 1 error rates by quintile of signed f-value
 groups <- 5
 f.gr <- 1 + floor(groups*rank(type1.error$f.signed)/(1+dim(type1.error)[1]))
 t1.crude <- tapply(type1.error$crude.p, f.gr, mean, na.rm=T)
 t1.gc <- tapply(type1.error$gc.p, f.gr, mean, na.rm=T)
+t1.adj2 <-  tapply(type1.error$adj2.p, f.gr, mean, na.rm=T)
 t1.adj <-  tapply(type1.error$adj.p, f.gr, mean, na.rm=T)
 
 f2.gr <- 1 + floor(groups*rank(type2.error$f.signed)/(1+dim(type2.error)[1]))
 t2.crude <- tapply(type2.error$crude.p, f2.gr, mean, na.rm=T)
 t2.gc <- tapply(type2.error$gc.p, f2.gr, mean, na.rm=T)
+t2.adj2 <-  tapply(type2.error$adj2.p, f2.gr, mean, na.rm=T)
 t2.adj <-  tapply(type2.error$adj.p, f2.gr, mean, na.rm=T)
 
 postscript("ErrorRates.ps")
+plotchars <- c(1, 2, 15, 16)
+plotcols <- c("black", "red", "green", "blue")
+legend.y <- c(0.24, 0.21, 0.18, 0.15)
+legend.x <- rep(3, 4)
+legend.labels <- c("Crude", "Genomic control", "Two-step structured association",
+                   "One-step structured association")
 plot(dimnames(t1.crude)[[1]], t1.crude, ylim=c(0, 0.3),
      xlab="Quintile of standardized allele frequency differential",
-     ylab="Type 1 error rate", pch=2, col=1)
-points(dimnames(t1.gc)[[1]], t1.gc, pch=19, col=3)
-points(dimnames(t1.adj)[[1]], t1.adj, pch=3, col=4)
-
+     ylab="Type 1 error rate", pch=plotchars[1], col=plotcols[1])
+points(dimnames(t1.gc)[[1]], t1.gc,  pch=plotchars[2], col=plotcols[2])
+points(dimnames(t1.adj2)[[1]], t1.adj2,  pch=plotchars[3], col=plotcols[3])
+points(dimnames(t1.adj)[[1]], t1.adj,  pch=plotchars[4], col=plotcols[4])
+text(legend.x, legend.y, labels=legend.labels, adj=c(0, 0.5))   
+points(legend.x - 0.2, legend.y, pch=plotchars, col=plotcols)
+       
+legend.y <- c(0.9, 0.85, 0.8, 0.75)
 plot(dimnames(t2.crude)[[1]], t2.crude, ylim=c(0, 1),
      xlab="Quintile of standardized allele frequency differential",
-     ylab="Type 2 error rate", pch=2, col=1)
-points(dimnames(t2.gc)[[1]], t2.gc, pch=19, col=3)
-points(dimnames(t2.gc)[[1]], t2.adj, pch=3, col=4)
+     ylab="Type 2 error rate", pch=plotchars[1], col=plotcols[1])
+points(dimnames(t2.gc)[[1]], t2.gc,  pch=plotchars[2], col=plotcols[2])
+points(dimnames(t2.adj2)[[1]], t2.adj2,  pch=plotchars[3], col=plotcols[3])
+points(dimnames(t2.adj)[[1]], t2.adj,  pch=plotchars[4], col=plotcols[4])
+text(legend.x, legend.y, labels=legend.labels, adj=c(0, 0.5))   
+points(legend.x - 0.2, legend.y, pch=plotchars, col=plotcols)
 dev.off()
 
 print(apply(type1.error[, -1], 2, mean, na.rm=T))
