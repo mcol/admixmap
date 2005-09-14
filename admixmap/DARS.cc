@@ -46,6 +46,21 @@ using namespace std;
   w sample point
 */
 
+// should have the following functions:-
+// SetStartingValues: sets 3 starting values and initializes upper and lower hulls
+// SampleFromUpperHull: samples from distribution defined by upper hull
+// HeightUpperHull: evaluates height of upper hull at position x
+// HeightLowerHull: evaluates height of lower hull at position x
+// UpdateHulls: updates upper and lower hulls with new tangent and chord at position x
+//    this should include rearranging the x values in ascending order 
+//    and recalculating areas under curves formed by tangents   
+// algorithm samples x from SampleUpperHull and w from unif(0,1) 
+// squeezing test calls functions HeightUpperHull and HeightLowerHull
+// rejection test evaluates log density at x
+// if rejected by both tests, call UpdateHulls and repeat  
+// how is distribution defined by upper hull normalized?  
+// should use STL vectors to allow x values, heights and gradients to be inserted in sequence
+
 DARS::DARS()
 {
    no = 3;
@@ -53,10 +68,10 @@ DARS::DARS()
    lgth = 25;
    x0 = 0;
    f = new double[ lgth ];  
-   df = new double[ lgth ];  // vector of gradients
-   x = new double[ lgth ];  // vector of grid points
+   df = new double[ lgth ];  // vector of gradients at x[]
+   x = new double[ lgth ];  // vector of parameter values at which gradient is evaluated
    u = new double[ lgth ];  // u[i] is log density at z[i] 
-   z = new double[ lgth ];  // vector of intersections of tangents
+   z = new double[ lgth ];  // vector of parameter values at which tangents intersect
    psum = new double[ lgth ];
    data_i = 0;
    data_d = 0;
@@ -71,24 +86,24 @@ DARS::DARS( int inLeftFlag, int inRightFlag, double innewnum,
             const int *integer_data, const double *double_data )
 {
   no = 3; // num starting points
-   loc = 0;
-   lgth = 25; // max num points 
-   x0 = 0;
-   parameters = inparameters;
-   data_i =  integer_data;
-   data_d =  double_data;
-   function = funct;
-   dfunction = dfunct;
-   ddfunction = ddfunct;
-   f = new double[ lgth ];
-   df = new double[ lgth ];  
-   x = new double[ lgth ];  
-   u = new double[ lgth ];  
-   z = new double[ lgth ];
-   psum = new double[ lgth ];
-   LeftFlag = inLeftFlag;
-   RightFlag = inRightFlag;
-   newnum = innewnum;
+  loc = 0;
+  lgth = 25; // max num points 
+  x0 = 0;
+  parameters = inparameters;
+  data_i =  integer_data;
+  data_d =  double_data;
+  function = funct;
+  dfunction = dfunct;
+  ddfunction = ddfunct;
+  f = new double[ lgth ];
+  df = new double[ lgth ];  
+  x = new double[ lgth ];  
+  u = new double[ lgth ];  
+  z = new double[ lgth ];
+  psum = new double[ lgth ];
+  LeftFlag = inLeftFlag;
+  RightFlag = inRightFlag;
+  newnum = innewnum;
 }
 
 DARS::~DARS()
@@ -210,13 +225,14 @@ double DARS::SampleUsingARS()
 {
   int flag = 0, SampleFlag = 0, i;
   double aux = 0.0;
-  double aux1 = 0.0;
-  double bux,max,un,w,temp,newdf;
-  
-  n = no; // initially set to num starting points
+  double aux1 = 0.0; // log density at x, minus max 
+  double bux,max,un,w,temp,newdf; // bux is exp(aux1)
+  // max is log density at newnum
+
+  n = no; // number of points at which log density and gradient are evaluated, initially set to num starting points
   for( int i = 0; i < lgth; i++ ) // loop from 0 to max num grid points
     {
-      psum[i] = 0; // ? factor that scales the x-axis of the envelope
+      psum[i] = 0; // i th element is sum of areas under tangents 0 to i. 
       u[i] = 0;
       z[i] = 0; // 
     }
@@ -225,45 +241,46 @@ double DARS::SampleUsingARS()
   // loop over n grid points to calculate log density f[i] and gradient df[i] 
   for( int i = 0; i < n; i++ )
     {
-      aux=x[i];
+      aux=x[i]; // here aux is assigned value of x[i]
+      //  elsewhere it is used for height of log density at x[i]
       f[i]=(*function)(parameters, data_i, data_d, aux)-max;
       df[i]=(*dfunction)(parameters, data_i, data_d, aux);
     }
   
   loc = 0;
-  
   // ** Routine starts **
   do
     {
-      consz();  // construct envelope of tangents: horizontal positions z and heights u at intersections 
-      conspsum();  // construct vector of cumulative sums of areas under tangents
+      consz();  // update vectors specifying tangents: horizontal positions z and heights u at intersections 
+      conspsum();  // update vector of cumulative sums of areas under density curves formed by tangents to log density
       
-      // draw w as uniform between 0 and psum[n-1] 
+      // draw w as uniform between 0 and psum[n-1]: here w is a value from the cumulative distribution function 
       un=myrand();
-      w=un*psum[n-1];
-      // assign loc: integer between 0 and n, specifying which tangent w is under
+      w=un*psum[n-1]; 
+      // assign loc as integer between 0 and n that specifies which tangent w is under
       i = 0;  
       while( i < n && w > psum[i] )
 	i++;
       loc = i;
       
-      //  ** convert w to position on x axis, and calculate height of envelope at position w   **
+      //  ** convert w to position on x axis, and calculate aux: height of envelope at position w   **
       if( loc == 0 ) // if no tangents intersect to left of w
 	{
-	  if( LeftFlag == 0 ) // if lower bound, ok for sampling from x0
-            aux = w*df[0]+fannyexp(df[0]*(x0-x[0])+f[0]);
-	  else if( LeftFlag == 1 ) // if no lower bound, sample from -Inf
-            aux=w*df[0];
-	  w = x[0]+(log(aux)-f[0])/df[0]; 
+	  if( LeftFlag == 0 ) // if lower bound
+            aux = w*df[0] + fannyexp(df[0]*(x0 - x[0]) + f[0]); // height of envelope at lower bound
+	  else if( LeftFlag == 1 ) // if no lower bound 
+            aux=w*df[0]; // height of envelope at w=0    
+
+	  w = x[0]+(log(aux)-f[0])/df[0]; // w recoded as parameter value
 	  if( isnan(w) ){
             cout << "Nan at loc = 0\n";
 	  }
 	}
       else if( fabs(df[loc]) < 0.0001 ) // if gradient flat at x[loc]
 	{
-	  w -= psum[loc-1];
-	  aux = fannyexp(f[loc]); // calculate density by taking exponents 
-	  w = z[loc-1]+w/aux; 
+	  w -= psum[loc-1]; 
+	  aux = fannyexp(f[loc]);  // height of density at x[loc]  
+	  w = z[loc-1]+w/aux;  // w recoded as parameter value 
 	  if( isnan(w) ){
             cout << "Nan at df[loc] < 0.0001 = 0\n";
 	  }
@@ -271,7 +288,7 @@ double DARS::SampleUsingARS()
       else  // at least one tangent to left of w, and gradient not flat at x[loc]
 	{
 	  w -= psum[loc-1];
-	  aux = w*df[loc]+fannyexp(u[loc-1]);         
+	  aux = w*df[loc]+fannyexp(u[loc-1]);  // density at z[loc-1 + height of tangent at w=0       
 	  w = x[loc]+(log(aux)-f[loc])/df[loc];
 	  if( isnan(w) ){
             cout << "Nan at else = 0\n";
@@ -305,14 +322,14 @@ double DARS::SampleUsingARS()
       else
 	{
 	  // ** Rejection step  **
-	  aux1 = (*function)(parameters, data_i, data_d, w)-max;
-	  bux = fannyexp(aux1);
-	  if ( log(un) <= aux1 - log(aux) )
+#	  aux1 = (*function)(parameters, data_i, data_d, w) - max; // log density at w, minus max
+	  bux = fannyexp(aux1);  // density at w
+	  if ( log(un) <= aux1 - log(aux) )  // aux is height of envelope at w
             SampleFlag = 1; // exit loop
 	}
       
       // ** Prepare new envelope **
-      newdf = (*dfunction)(parameters, data_i, data_d, w); 
+      newdf = (*dfunction)(parameters, data_i, data_d, w); // log density at parameter value w 
       if( SampleFlag == 0 ){
 	if( !isinf(aux1) && !isinf(newdf) && !isnan(aux1) && !isnan(newdf) ){ // if aux1 and newdf not inf or nan 
 	  n++;
@@ -325,15 +342,15 @@ double DARS::SampleUsingARS()
 	    }
 	  
 	  for( i = n - 1; i >= loc + 1; i-- )
-	    {
-	      x[i] = x[i-1];
+	    { // loop from i=n-1 to i=loc+1
+	      x[i] = x[i-1]; 
 	      f[i] = f[i-1];
 	      df[i] = df[i-1];
 	    }
 	  x[loc] = w; // update vector of grid points with w
 	  f[loc] = aux1; // update vector of log densities at x
 	  df[loc] = newdf; // update vector of gradients at x
-	  loc--; // decrement loc
+	  loc--; // decrement loc - this could set loc to -1 if no tangents intersect to left of w
 	}
 	else{ // aux1 or newdf inf or nan
 	  cout << "Adaptive rejection sampler: log density or gradient infinite or NaN\n";
@@ -394,15 +411,20 @@ void DARS::consz() // constructs envelope of tangents
 
 void DARS::conspsum()
 {
-  //psum is an array of cumulative sums of areas under tangents 
+  // updates psum: array of cumulative sums of areas under curves formed by tangents to log density 
+  // should take as const arguments: x[], z[], u[], df[], x0. x1, loc
+  // new x value is under the loc th tangent
+  // in case of error, should output all arguments 
+  // 
   int i,iloc,iloc1;
   double aux1,aux2,saux1;
   
-  double aux = 0.0;
-  double saux = 0.0;
+  double aux = 0.0; // stores last value of aux1
+  double saux = 0.0; // when calculated, this is assigned to psum[i]
   
-  aux1 = psum[0];
-  if( loc == -1 )
+  aux1 = psum[0]; // stores last value of aux2
+
+  if( loc == -1 ) // no tangents intersect to left of w, and decrement after rejection step
     {
       if( LeftFlag == 0 ) // Ok for sampling from x0
 	saux = fannyexp(u[0])*(1 - fannyexp((x0-z[0])*df[0]))/df[0];
@@ -416,7 +438,7 @@ void DARS::conspsum()
 	exit(0);
       }
     }
-  else if( loc == 0 )
+  else if( loc == 0 ) // no tangents intersect to left of w, or loc=1 before decrement
     {
       if( LeftFlag == 0 ) // Ok for sampling from x0
 	saux = fannyexp(u[0])*(1. - fannyexp((x0-z[0])*df[0]))/df[0];
@@ -430,7 +452,7 @@ void DARS::conspsum()
 	exit(0);
       }
     }
-  else
+  else  
     {
       saux = psum[loc-1];
       iloc = loc;
@@ -441,24 +463,24 @@ void DARS::conspsum()
       }
     }
   
-  for( i = iloc; i  < n - RightFlag; i++ )
+  for( i = iloc; i  < n - RightFlag; i++ ) // loops from iloc to n-1 if no upper bound, to n-2 if no upper bound 
     {
-      if( (n == no) || (i <= iloc1) )
+      if( (n == no) || (i <= iloc1) ) 
 	{
 	  aux = aux1;
 	  aux1 = psum[i];
-	  if ( fabs(df[i]) < 0.0001 )
+	  if ( fabs(df[i]) < 0.0001 ) // if gradient is flat at i th x value
 	    {
 	      saux1 = (z[i]-z[i-1])*fannyexp(f[i]);
 	      saux += saux1;
 	    }
 	  else
 	    {
-	      saux1 = (fannyexp(u[i])-fannyexp(u[i-1]))/df[i];
+	      saux1 = (fannyexp(u[i])-fannyexp(u[i-1]))/df[i]; // positive if numerator has same sign as denominator 
 	      saux += saux1;
 	    }
-	  psum[i] = saux;
-	  if( psum[i] < 0 ){
+	  psum[i] = saux; // assign i th element of psum 
+	  if( psum[i] < 0 ){ 
             cout << "psum < 0 : 1" << endl;
             cout << n << endl;
             for( int ii = 0; ii < n; ii++ )
@@ -472,10 +494,10 @@ void DARS::conspsum()
             cout << endl;
 	  }
 	}
-      else
+      else // n not equal to num starting points and i > loc + 2
 	{
 	  aux2 = psum[i];
-	  saux = aux1-aux+psum[i-1];
+	  saux = aux1 - aux + psum[i-1];
 	  psum[i] = saux;
 	  if( psum[i] < 0 ){
             cout << "psum < 0 : 2" << endl;
