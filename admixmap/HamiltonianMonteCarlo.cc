@@ -39,7 +39,7 @@ HamiltonianMonteCarlo::~HamiltonianMonteCarlo(){
 }
 
 //set dimensions
-void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, unsigned pTau, float target,
+void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double min, double max, unsigned pTau, float target,
 			  double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
 			  void (*pgradE)(unsigned d, const double* const theta, const double* const* args, double *g)){
   dim = pdim;
@@ -50,7 +50,7 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, unsign
 
   g = new double[dim];
 
-  Tuner.SetParameters( epsilon, 0.01, 10.0, target);
+  Tuner.SetParameters( epsilon, min, max, target);
 }
 
 void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
@@ -87,10 +87,14 @@ void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
   }
   for(unsigned tau = 0; tau < Tau; ++tau){ // make Tau `leapfrog' steps
     for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
-    for(unsigned i = 0; i < dim; ++i) xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
+    for(unsigned i = 0; i < dim; ++i) {xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
+      //cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
+    }
+    //cout<<endl<<endl;
     gradE ( dim, xnew, args, gnew ) ; // find new gradient
     for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
   }
+  //cout<<endl;
   sumpsq = 0.0;
   for(unsigned i = 0; i < dim; ++i){
      sumpsq += p[i]*p[i];

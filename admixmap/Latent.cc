@@ -121,7 +121,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   AlphaArgs[2][0] = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
   AlphaArgs[3][0] = alphapriormean / alphapriorvar;
 
-  AlphaSampler.SetDimensions(options->getPopulations(), initialAlphaStepsize, 20, targetAlphaAcceptRate, findE, gradE);
+  AlphaSampler.SetDimensions(options->getPopulations(), initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
 
   // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
