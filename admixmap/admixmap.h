@@ -16,7 +16,7 @@
 #include "ScoreTests.h"
 #include "InputData.h"
 
-#define ADMIXMAP_VERSION "2.2.0"
+#define ADMIXMAP_VERSION "2.3"
 
 int main( int argc , char** argv );
 
