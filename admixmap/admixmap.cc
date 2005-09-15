@@ -230,7 +230,7 @@ void submain(AdmixOptions* options){
 	      if( options->getAnalysisTypeIndicator() == 5)
 		R1.OutputErgodicAvg(samples, &avgstream);
 	    }
-	    A.OutputErgodicAvg(samples,options,&avgstream);
+	    A.OutputErgodicAvg(samples, &avgstream);
 	    if( options->getAnalysisTypeIndicator() == -1 ){
 	      IC->OutputErgodicAvg(samples,&MargLikelihood,&avgstream);
 	    }
@@ -287,6 +287,7 @@ void submain(AdmixOptions* options){
     delete Loci(i);
   }
 
+  // ** acceptance rates - output to screen and log
   if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
 #if POPADMIXSAMPLER == 2 
     Log.logmsg(true,"Expected acceptance rate in admixture dispersion parameter sampler: ");
@@ -299,7 +300,7 @@ void submain(AdmixOptions* options){
     Log.logmsg(true, "\nwith final step size of ");
     Log.logmsg(true, L.getAlphaSamplerStepsize());Log.logmsg(true, "\n");
 #endif
-
+    
     if( !options->getRhoIndicator() ){
       Log.logmsg(true, "Expected acceptance rate in global sumintensities sampler: ");
       Log.logmsg(true, L.getRhoSamplerAccRate());
@@ -307,13 +308,26 @@ void submain(AdmixOptions* options){
       Log.logmsg(true, L.getRhoSamplerStepsize());
       Log.logmsg(true, "\n");
     }
+    if(options->getCorrelatedAlleleFreqs()){
+      Log.logmsg(true, "Expected acceptance rates in sampler for allele frequency prior parameters: \n");
+      for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
+	Log.logmsg(true, A.getAlphaSamplerAcceptanceRate(i));Log.logmsg(true, " ");
+      }
+      Log.logmsg(true, A.getEtaSamplerAcceptanceRate(0));
+      Log.logmsg(true, "\nwith final step sizes of \n");
+      for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
+	Log.logmsg(true, A.getAlphaSamplerStepsize(i));Log.logmsg(true, " ");
+      }
+      Log.logmsg(true, A.getEtaSamplerStepsize(0));
+      Log.logmsg(true, "\n");
+    }
 
 #if ETASAMPLER ==1
     if( strlen( options->getHistoricalAlleleFreqFilename() )){
       Log.logmsg(true, "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ");
-      for(int k = 0; k < options->getPopulations(); ++k){Log.logmsg(true, A.getEtaSamplerAcceptanceRate(k));Log.logmsg(true, " ");}
+      for(int k = 0; k < options->getPopulations(); ++k){Log.logmsg(true, A.getEtaRWSamplerAcceptanceRate(k));Log.logmsg(true, " ");}
       Log.logmsg(true, "\nwith final step sizes of ");
-      for(int k = 0; k < options->getPopulations(); ++k){Log.logmsg(true, A.getEtaSamplerStepsize(k));Log.logmsg(true, " ");}
+      for(int k = 0; k < options->getPopulations(); ++k){Log.logmsg(true, A.getEtaRWSamplerStepsize(k));Log.logmsg(true, " ");}
       Log.logmsg(true, "\n");
     }
 #endif

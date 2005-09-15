@@ -29,12 +29,12 @@
 #include "AdmixOptions.h"
 #include "LogWriter.h"
 
-
+#include "MuSampler.h"
+#include "DispersionSampler.h"
 #include "StepSizeTuner.h"
 class StepSizeTuner;
-#if ETASAMPLER ==2
 #include "HamiltonianMonteCarlo.h"
-#endif
+
 
 
 class AlleleFreqs{
@@ -49,7 +49,7 @@ public:
   void InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log);
 
   //outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
-  void OutputErgodicAvg( int iteration,AdmixOptions *options, std::ofstream *avgstream);
+  void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
   //output samples of dispersion parameters (eta) to dispparamfile
   void OutputEta(int iteration, AdmixOptions *options, LogWriter *Log);
 
@@ -71,7 +71,6 @@ public:
   double *GetStatsForEta( int , int locus);
   double GetAlleleProbsMAP( int x, int ancestry , int locus);
   Vector_d GetPriorAlleleFreqs( int locus, int population );
-  std::vector<double> GetPriorAlleleFreqs_v( int locus, int population );
   Vector_i GetAlleleCounts( int locus, int population );
   Vector_d getAlleleFreqsMAP( int locus, int population );
   Vector_d GetAlleleFreqs( int locus, int population );
@@ -84,16 +83,24 @@ public:
   void setAlleleFreqsMAP();
 
 #if ETASAMPLER ==1
-  float getEtaSamplerAcceptanceRate(int k);
-  float getEtaSamplerStepsize(int k); 
+  float getEtaRWSamplerAcceptanceRate(int k);
+  float getEtaRWSamplerStepsize(int k); 
 #endif
+  float getAlphaSamplerAcceptanceRate(int);
+  float getAlphaSamplerStepsize(int);
+  float getEtaSamplerAcceptanceRate(int);
+  float getEtaSamplerStepsize(int);
 
 private:
   int Populations, NumberOfCompositeLoci;
+  int *NumberOfStates;
   double *eta; //dispersion parameter
   double *SumEta;
   double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
   double psi0;
+  MuSampler *muSampler;
+  //new sampler for eta
+  DispersionSampler *EtaSampler;
  
   double **Freqs;// allele frequencies except for last allele
   double **AlleleFreqsMAP; // posterior mode of allele freqs
@@ -106,6 +113,7 @@ private:
   double** SumFst;
   bool IsHistoricAlleleFreq;//indicator for dispersion model
   bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
+  bool CorrelatedAlleleFreqs;
 
   Genome *Loci;//pointer to Loci object
 
@@ -118,14 +126,9 @@ private:
   double etastep0;
   int w;//The eta sampler is tuned every w updates.
   //double *SumAcceptanceProb;
-#elif ETASAMPLER == 2
-  //Hamiltonian MC sampler for eta
-  double **EtaArgs;
-  double *logeta;
-  HamiltonianMonteCarlo EtaSampler;
-  double initialEtaStepsize;
-  float targetEtaAcceptRate;
 #endif
+
+
   
   //sampler for univariate mu (beta proportion parameters)
   //    DARS SampleMu;
@@ -144,19 +147,19 @@ private:
   // would be simpler to have one method
   // these functions are called by method LoadAlleleFreqs  
   void InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Populations);
-  void InitialisePriorAlleleFreqs(Matrix_d NewFreqs, int i, bool fixed, bool Historic);
+  void InitialisePriorAlleleFreqs(Matrix_d NewFreqs, int i);
   void SetDefaultAlleleFreqs(int Pops);
 
   void SamplePriorAlleleFreqs1D( int );
   void SamplePriorAlleleFreqsMultiDim( int);
+  void SamplePriorAlleleFreqs();
   void SampleAlleleFreqs(int);
   void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
 
   void OpenOutputFile(AdmixOptions *options);
-#if ETASAMPLER == 2
-  static double etaEnergyFunction(unsigned dim, const double* const theta, const double* const*args);
-  static void etaGradient(unsigned dim,const double* const theta, const double* const* args, double *g);
-#endif
+
+  static double muEnergyFunction(unsigned K, const double * const alpha, const double* const *args);
+  static void muGradient(unsigned K, const double * const alpha, const double* const *args, double *g);
 };
 // functions required to update proportion vector Mu with adaptive rejection sampler
 // likelihood, 1st and 2nd derivatives of log-likelihood
