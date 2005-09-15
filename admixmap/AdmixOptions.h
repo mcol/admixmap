@@ -83,6 +83,8 @@ public:
   vector<vector<double> > getAndCheckInitAlpha(LogWriter *Log);
   double getAlphamean()const;
   double getAlphavar() const;
+  double getEtaMean() const;
+  double getEtaVar() const;
 
   unsigned int getgenotypesSexColumn() const;
   void setgenotypesSexColumn(unsigned int i);
@@ -90,6 +92,7 @@ public:
   //indicators and model options  
   int useCOUT() const;
   bool getFixedAlleleFreqs() const;
+  bool getCorrelatedAlleleFreqs() const;
   int getTextIndicator() const;
   bool isRandomMatingModel() const;
   bool getRhoIndicator() const;
@@ -166,6 +169,7 @@ private:
   bool locusForTestIndicator;
   int LocusForTest;
   bool fixedallelefreqs;
+  bool correlatedallelefreqs;
   bool RandomMatingModel;//random mating model
   bool RhoIndicator;//indicator for non-global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
@@ -191,6 +195,7 @@ private:
   double Rhoalpha, Rhobeta;//gamma parameters for sumintensities
   std::vector<std::vector<double> > alpha;
   double alphamean, alphavar;
+  double etamean, etavar;//gamma parameters for dispersion parameter
 
   string ResultsDir;
   string LogFilename;

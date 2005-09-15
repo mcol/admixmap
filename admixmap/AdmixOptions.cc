@@ -68,6 +68,7 @@ AdmixOptions::AdmixOptions()
   locusForTestIndicator = false;
   LocusForTest = 0;
   fixedallelefreqs = false;
+  correlatedallelefreqs = false;
   RandomMatingModel = false;
   RhoIndicator = false;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
@@ -86,10 +87,12 @@ AdmixOptions::AdmixOptions()
   HWTest = false;
   OutputAlleleFreq = false;
 
-  Rhoalpha = 3.0; //should be 3.0
-  Rhobeta = 0.5;  // and 0.5
+  Rhoalpha = 3.0; 
+  Rhobeta = 0.5;  
   alphamean = 1;  //  gamma(0.25, 0.25)
-  alphavar = 16;   // 
+  alphavar = 16;   //
+  etamean = 300.0; //gamma(3, 0.01)
+  etavar = 300000.0; 
 
   ResultsDir = "results";
   LogFilename = "log.txt";
@@ -103,6 +106,7 @@ AdmixOptions::AdmixOptions()
   OptionValues["analysistypeindicator"] = "0";
   OptionValues["every"] = "100";
   OptionValues["fixedallelefreqs"] = "0";
+  OptionValues["correlatedallelefreqs"] = "0";
   OptionValues["locusfortest"] = "0";
   OptionValues["logfile"] = "log.txt";
   OptionValues["resultsdir"] = "results";
@@ -162,6 +166,10 @@ bool AdmixOptions::getOutputFST() const
 bool AdmixOptions::getFixedAlleleFreqs() const
 {
   return fixedallelefreqs;
+}
+bool AdmixOptions::getCorrelatedAlleleFreqs() const
+{
+  return correlatedallelefreqs;
 }
 
 const char *AdmixOptions::getLocusFilename() const
@@ -378,6 +386,13 @@ double AdmixOptions::getAlphamean() const{
 double AdmixOptions::getAlphavar() const{
   return alphavar;
 }
+double AdmixOptions::getEtaMean() const{
+  return etamean;
+}
+double AdmixOptions::getEtaVar() const{
+  return etavar;
+}
+
 bool AdmixOptions::RhoFlatPrior() const{
   if( Rhoalpha==99 || ((Rhoalpha==1) && (Rhobeta==0)) ) return true;
   else return false;
@@ -630,10 +645,13 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"sumintensitiesbeta",                    1, 0,  0 }, // double
     {"popadmixpriormean",                     1, 0,  0 }, //double
     {"popadmixpriorvar",                      1, 0,  0 }, //double
+    {"etapriormean",                          1, 0,  0 }, //double
+    {"etapriorvar",                           1, 0,  0 }, //double
     {"truncationpoint",                       1, 0,  0 }, // double
     {"initalpha0",                            1, 0,  0 }, // double
     {"initalpha1",                            1, 0,  0 }, // double
     {"fixedallelefreqs",                      1, 0,  0 }, // long
+    {"correlatedallelefreqs",                 1, 0,  0 }, // long
     {"xonlyanalysis",                         1, 0,  0 }, // long
     {0, 0, 0, 0}    // marks end of array
   };
@@ -755,6 +773,10 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	if (strtol(optarg, NULL, 10) == 1) {
 	  fixedallelefreqs = true;OptionValues["fixedallelefreqs"]="1";
 	}
+      } else if (long_option_name == "correlatedallelefreqs") {
+	if (strtol(optarg, NULL, 10) == 1) {
+	  correlatedallelefreqs = true;OptionValues["correlatedallelefreqs"]="1";
+	}
       } else if (long_option_name == "xonlyanalysis") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  XOnlyAnalysis = true;OptionValues["xonlyanalysis"]="1";
@@ -810,6 +832,10 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	 alphamean = strtod(optarg, NULL);OptionValues["popadmixpriormean"]=optarg;
       } else if (long_option_name == "popadmixpriorvar") {
 	 alphavar = strtod(optarg, NULL);OptionValues["popadmixpriorvar"]=optarg;
+      } else if (long_option_name == "etapriormean") {
+	 alphamean = strtod(optarg, NULL);OptionValues["etapriormean"]=optarg;
+      } else if (long_option_name == "etapriorvar") {
+	 alphavar = strtod(optarg, NULL);OptionValues["etapriorvar"]=optarg;
       } else if (long_option_name == "truncationpoint") {
 	 TruncPt = strtod(optarg, NULL);OptionValues["truncationpoint"]=optarg;
       } else if (long_option_name == "haplotypeassociationscorefile") {
