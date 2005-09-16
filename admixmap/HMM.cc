@@ -96,9 +96,13 @@ void HMM::UpdateForwardProbsDiploid(double *f[], double *lambda)
     double f2[2] = {f[0][t], f[1][t]};
 
     RecursionProbs(p[t], f2, StateArrivalProbs + t*K*2, alpha + (t-1)*States, alpha + t*States);
+
     for(int j = 0; j < States; ++j){
       alpha[t*States +j] *= lambda[t*States +j];
+ 
     }
+
+
   }
 }
 
@@ -136,7 +140,7 @@ void HMM::UpdateBackwardProbsDiploid(double *f[], double *lambda)
 void HMM::UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, bool CalculateBeta){
 
   sumfactor = 0.0;
-  double factor = 0.0;
+  //double factor = 0.0;
   double Sum;
 
   for(int j = 0; j < States; ++j){
@@ -285,7 +289,11 @@ void HMM::Sample(int *SStates, double *Admixture, double *f[], bool isdiploid)
 // for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
 // updates oldProbs (scaled to sum to 1), newProbs and sumfactor if forward = true (for alphas)
 void HMM::RecursionProbs(const double ff, const double f[2], 
-			 double *stateArrivalProbs, double *oldProbs, double *newProbs) {
+			 const double* const stateArrivalProbs, double* oldProbs, double *newProbs) {
+
+  //if(K==2)RecursionProbs2(ff, f, stateArrivalProbs, oldProbs, newProbs);
+  //else
+{
   double Sum = 0.0, scaleFactor = 1.0;
   double *rowProb = new double[K];
   double *colProb = new double[K];
@@ -305,14 +313,15 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   scaleFactor = 1.0 / Sum;
   //accumulate sum of logs of scale factor to correct log likelihood
   //sumfactor += log(scaleFactor);
+  for( int j0 = 0; j0 <  States; ++j0 )
+      oldProbs[j0] *= scaleFactor; 
 
   for( int j0 = 0; j0 <  K; ++j0 ) {
     rowProb[j0] = 0.0;
     colProb[j0] = 0.0;
     for( int j1 =0; j1 < K; ++j1 ) {
-      rowProb[j0] += oldProbs[j0*K + j1] * scaleFactor;
-      colProb[j0] += oldProbs[j1*K + j0] * scaleFactor;
-      //oldProbs[j0][j1] *= scaleFactor; 
+      rowProb[j0] += oldProbs[j0*K + j1];
+      colProb[j0] += oldProbs[j1*K + j0];
     }
   }
   // calculate expectations of indicator variables for each ancestry state on each gamete
@@ -324,7 +333,7 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   // calculate covariance of ancestry states as ff * deviation from product of row and col probs
   for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
     for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-      cov[j0][j1] = ff * ( oldProbs[j0*K + j1]*scaleFactor - rowProb[j0] * colProb[j1] );
+      cov[j0][j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
     }
   }
 
@@ -354,10 +363,10 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   for(int j0 = 0; j0 < K; ++j0) {
     for(int j1 =0; j1 < K; ++j1) {
       
-      newProbs[j0*K + j1] = cov[j0][j1] + 
+      newProbs[j0*K + j1] = cov[j0][j1] + Expectation0[j0] * Expectation1[j1];
 	// newProbs[j0][j1] = ff * (oldProbs[j0*K + j1]*scaleFactor - rowProb[j0] * colProb[j1]) + 
-	Expectation0[j0] * Expectation1[j1];
       //	 ( f[0]*rowProb[j0] + stateArrivalProbs[j0*2] ) * ( f[1]*colProb[j1] + stateArrivalProbs[j1*2 + 1] );
+
       //undo scaling 
       newProbs[j0*K + j1] *= Sum;
     }
@@ -370,7 +379,7 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   delete[] rowSum;
   delete[] colSum;
   free_matrix(cov, K);
-  
+  }//end else
 }
 
 void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
@@ -433,4 +442,58 @@ void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned i
 	  SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
       }
     }
+}
+void HMM::RecursionProbs2(const double ff, const double f[2], 
+			 const double* const stateArrivalProbs, const double* const oldProbs, double *newProbs) {
+  double Sum = 0.0, scaleFactor = 1.0;
+  double row0Prob;
+  double col0Prob;
+  double Expectation0;
+  double Expectation1;
+  double cov;
+  double Product;
+  double RealF1;
+  double ImaginaryF1;
+
+  // version for K = 2
+  // scale array oldProbs so that elements sum to 1, and accumulate row and col sums  
+  for( int j = 0; j <  4; ++j ) {
+    Sum += oldProbs[j];
+  }
+  scaleFactor = 1.0 / Sum;
+  row0Prob = ( oldProbs[0] + oldProbs[2] ) * scaleFactor;
+  col0Prob = ( oldProbs[1] + oldProbs[3] ) * scaleFactor;
+
+  // calculate expectations of indicator variables for each ancestry state on each gamete
+  Expectation0 = f[0]*row0Prob + stateArrivalProbs[0];
+  Expectation1 = f[1]*col0Prob + stateArrivalProbs[1];
+  Product = Expectation0 * Expectation1;
+  
+  // calculate covariance of ancestry states as ff * deviation from product of row and col probs
+  cov = ff * ( oldProbs[0]*scaleFactor - row0Prob * col0Prob );
+
+  // calculate expectation of product as covariance plus product of expectations
+  // evaluates newProbs[j0*K + j1] = cov + Expectation0 * Expectation1;
+  // uses discrete Fourier transform  
+  //   P0 = Expectation0 * Expectation1 + cov;
+  //   P1 = (1 - Expectation0) * Expectation1 - cov;
+  //   P2 = Expectation0 * (1 - Expectation1) - cov;
+  //   P3 = (1 - Expectation0) * (1 - Expectation1) + cov;
+  // F0 = 0.5*(P0 + P1 + P2 + P3) = 0.5
+  // F1 = 0.5*((P0 - P2) + i*(P1 - P3)) = Real + i*Imaginary
+  // F2 = 0.5*(P0 - P1 + P2 - P3)
+  // F3 = 0.5*((P0 - P2) - i*(P1 - P3)) 
+  RealF1      = Product - 0.5 * Expectation0 + cov;
+  ImaginaryF1 = Expectation1 - Product - 0.5 * (1 - Expectation0) - cov;
+  
+  newProbs[0] = 0.5*Expectation0 + RealF1;
+  newProbs[1] = 0.5*(1.0 - Expectation0) + ImaginaryF1;
+  newProbs[2] = 0.5*Expectation0 - RealF1;
+  newProbs[3] = 0.5*(1.0 - Expectation0) - ImaginaryF1;
+  //undo scaling 
+  for(int j0 = 0; j0 < 2; ++j0) {
+    for(int j1 =0; j1 < 2; ++j1) {
+      newProbs[j0*K + j1] *= Sum;
+    }
+  }
 }

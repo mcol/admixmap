@@ -38,8 +38,8 @@ public:
 
   void UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, bool CalculateBeta);
 
-  void RecursionProbs(const double ff, const double f[2], double *stateArrivalProbs,
-		      double *oldProbs, double *newProbs); 
+  void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
+		      double* oldProbs, double *newProbs); 
 
   void SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
 			    double *Distances, const int startLocus,  
@@ -62,6 +62,9 @@ private:
   double *p;
   double *StateArrivalProbs;
   double *ThetaThetaPrime;
+
+void RecursionProbs2(const double ff, const double f[2], 
+		     const double* const stateArrivalProbs, const double* const oldProbs, double *newProbs) ;
 
 };
 
