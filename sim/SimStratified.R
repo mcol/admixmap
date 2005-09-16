@@ -48,6 +48,7 @@ numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 N <- 200
+numsims <- 1
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
@@ -74,7 +75,6 @@ candidate.results <- data.frame(matrix(data=NA, nrow=0, ncol=5))
 results.colnames <- c("f.signed", "crude.p", "gc.p", "adj2.p", "adj.p")
 dimnames(null.results)[[2]] <- results.colnames
 dimnames(candidate.results)[[2]] <- results.colnames
-numsims <- 2
 
 for(sims in 1:numsims) {
   ## simulate correlated allele freqs
@@ -108,22 +108,14 @@ for(sims in 1:numsims) {
   g <- numeric(N)
   popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
   popg <- 2*(popM*alleleFreqs[2*candidate, 1] + (1 - popM)*alleleFreqs[2*candidate, 2])
-                                        # mean number of copies allele 2 at candidate locus
-  g.positive <- 2*popM > popg # positive confounding of g by admixture 
+                                        # expected number of copies allele 2 at candidate locus
+  g.positive <- 2*popM > popg # positive confounding of g by admixture
   for(individual in 1:N) {
     M1 <- 1 - rbeta(1, popadmixparams[1], popadmixparams[2]) ## M1 is prob pop 1
     ## M2 <- rbeta(1, 4, 1)# random mating
     M2 <- M1 #assortative mating
     avM[individual] <- 1 - 0.5*(M1 + M2)
     obs <- simulateGenotypes(M1, M2, rho, x, L, alleleFreqs)
-    ## recode genotype at candidate locus
-    if(obs[candidate] == "1,1") {
-      g[individual] <- 0
-    } else if(obs[candidate] == "1,2" | obs[candidate] == "2,1") {
-      g[individual] <- 1 
-    } else if(obs[candidate] == "2,2") {
-      g[individual] <- 2
-    }
     ##make some genotypes missing
     ##for(locus in 1:L) if(runif(n=1) < 0.1)
     ##    obs[locus]<-""
@@ -141,6 +133,21 @@ for(sims in 1:numsims) {
       ofam <- gaussian
     }
   }
+  ## recode genotypes as 0, 1, 2
+  genotypes.r <- matrix(data=NA, nrow=dim(genotypes)[1], ncol=dim(genotypes)[2])
+  ## recode genotype at candidate locus
+  for(i in 1:dim(genotypes)) {
+    for(j in 1:dim(genotypes)[2]) {
+      if(genotypes[i, j] == "1,1") {
+        genotypes.r[i, j] <- 0
+      } else if(genotypes[i, j] == "1,2" | genotypes[i, j] == "2,1") {
+        genotypes.r[i, j] <- 1 
+      } else if(genotypes[i, j] == "2,2") {
+        genotypes.r[i, j] <- 2
+      }
+    }
+  }
+  g <- genotypes.r[, candidate]
   
   ## fit regression model to sampled values
   #reg.adj <- summary.glm(glm(outcome ~ avM + g, family = ofam))$coefficients[3,]
@@ -199,13 +206,12 @@ for(sims in 1:numsims) {
   avM.nOutcome <- read.table("NoOutcomeResults/IndividualVarPosteriorMeans.txt", header=T)[, 2]
   r.nOutcome <- glm(outcome ~ avM.nOutcome, family=ofam)
   resid.nOutcome <- resid(r.nOutcome)
+  residvar <- (sum(resid.nOutcome^2) - sum(resid.nOutcome)^2)/(N-2)
   nOutcome.pvalues <- numeric(L)
   for(locus in 1:L) {
-    x <- ifelse(as.vector(genotypes[,1+locus])=="1,1", 0,
-                ifelse(as.vector(genotypes[,1+locus])=="1,2" | as.vector(genotypes[,1+locus])=="2,1", 1,
-                       ifelse(as.vector(genotypes[,1+locus])=="2,2", 2, NA)))
-    score <- sum(x * resid.nOutcome)
-    info <- sum(x^2)
+    a <- genotypes.r[, L]
+    score <- sum(a * resid.nOutcome) / residvar
+    info <- sum(a^2) / residvar
     nOutcome.pvalues[locus] = 2*pnorm(-abs(score / sqrt(info)))
   }
 
@@ -213,17 +219,16 @@ for(sims in 1:numsims) {
   crude.pvalues <- read.table(file="SinglePopResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
   gc.pvalues <- read.table(file="GCTests.txt", header=T)[, 2]
   adj.pvalues <- numeric(L)
-  if(admixmap) {
-    adj.pvalues <- read.table(file="TwoPopsResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
-    reg.quantiles <- read.table(file="TwoPopsResults/PosteriorQuantiles.txt", header=T)
-    print(reg.quantiles)
-    avM.estimates <- read.table("TwoPopsResults/IndividualVarPosteriorMeans.txt", header=T)[, 2]
-    reg.estimates <- summary.glm(glm(outcome ~ avM.estimates, family=ofam))
-    ## plot posterior means of individual admixture against true values 
-    plot(avM, avM.estimates, xlim=c(0,1), ylim=c(0,1))
-    lines(c(0,1),c(0,1), type="l")
-  }
-
+  adj.pvalues <- read.table(file="TwoPopsResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
+  ## print posterior quantiles for params 
+  reg.quantiles <- read.table(file="TwoPopsResults/PosteriorQuantiles.txt", header=T)
+  print(reg.quantiles)
+  ## plot posterior means of individual admixture against true values 
+  avM.estimates <- read.table("TwoPopsResults/IndividualVarPosteriorMeans.txt", header=T)[, 2]
+  reg.estimates <- summary.glm(glm(outcome ~ avM.estimates, family=ofam))
+  plot(avM, avM.estimates, xlim=c(0,1), ylim=c(0,1))
+  lines(c(0,1),c(0,1), type="l")
+  
   ## bind p-values into a table
   all.results <- data.frame(f.signed, crude.pvalues, gc.pvalues, nOutcome.pvalues, adj.pvalues)
   dimnames(all.results)[[2]] <- results.colnames
@@ -231,7 +236,7 @@ for(sims in 1:numsims) {
   null.results <- rbind(null.results, all.results[-candidate, ])
   candidate.results <- rbind(candidate.results, all.results[candidate, ])
 
-  # display plot of adjusted against crude pvalues
+  # plot adjusted against crude pvalues
   postscript("TwoPopsResults/PValues.ps")
   plotchars <- numeric(L)
   plotchars[1:L] <- 1
@@ -240,12 +245,18 @@ for(sims in 1:numsims) {
   plotcols[1:L] <- "black"
   plotcols[candidate] <- "red"
   plot(-log10(crude.pvalues), -log10(gc.pvalues), xlim=c(0,7), ylim=c(0,7),
+       xlab="-log10 genomic control p-values", ylab="-log10 crude p-values",
        pch=plotchars, col=plotcols)
   plot(-log10(crude.pvalues), -log10(adj.pvalues), xlim=c(0,7), ylim=c(0,7),
+       xlab="-log10 one-step adjusted p-values", ylab="-log10 crude p-values",
+       pch=plotchars, col=plotcols)
+  plot(-log10(nOutcome.pvalues), -log10(adj.pvalues), xlim=c(0,7), ylim=c(0,7),
+       xlab="-log10 one-step adjusted p-values", ylab="-log10 two-step adjusted p-values",
        pch=plotchars, col=plotcols)
   dev.off()
-}
+} # end simulations loop 
 
+## convert p-values to error rates
 type1.error <- data.frame(null.results$f.signed,
                           null.results$crude.p < 0.05,
                           null.results$gc.p < 0.05,
@@ -254,12 +265,12 @@ type1.error <- data.frame(null.results$f.signed,
 type2.error <- data.frame(candidate.results$f.signed,
                           candidate.results$crude.p > 0.05,
                           candidate.results$gc.p > 0.05,
-                          candidate.results$adj2.p > 0.05,
+                          candidate.results$nadj2.p > 0.05,
                           candidate.results$adj.p > 0.05)
 dimnames(type1.error)[[2]] <- results.colnames
 dimnames(type2.error)[[2]] <- results.colnames
 
-## plot type 1 error rates by quintile of signed f-value
+## plot type 1 and type 2 error rates by quintile of signed f-value
 groups <- 5
 f.gr <- 1 + floor(groups*rank(type1.error$f.signed)/(1+dim(type1.error)[1]))
 t1.crude <- tapply(type1.error$crude.p, f.gr, mean, na.rm=T)
