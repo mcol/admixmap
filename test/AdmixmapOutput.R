@@ -1,4 +1,4 @@
-rm(list = ls())  ## remove (almost) everything in the working environment.
+# rm(list = ls())  ## remove (almost) everything in the working environment.
 library(MASS)
 ## script should be invoked from folder one level above subfolder specified by resultsdir
 ## to run this script from an R console session, set environment variable RESULTSDIR
