@@ -161,7 +161,7 @@ void submain(AdmixOptions* options){
 		 chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
 		 &Log, &MargLikelihood);
       // ** update allele frequencies
-      A.Update(iteration,options->getBurnIn());
+      A.Update((iteration > options->getBurnIn()));
       
       if( iteration > options->getBurnIn() ){
 	if( options->getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
@@ -184,7 +184,7 @@ void submain(AdmixOptions* options){
       
       // output every 'getSampleEvery()' iterations
       if( !(iteration % options->getSampleEvery()) ){
-	if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
+	if( options->getAnalysisTypeIndicator() >= 0 ){
 	  //Only output population-level parameters when there is a hierarchical model on indadmixture
 	  // ** pop admixture, sumintensities
 	  L.OutputParams(iteration);

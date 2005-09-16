@@ -46,12 +46,10 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   SumFst = 0;
   Loci = pLoci;
 
-#if ETASAMPLER ==1
   TuneEtaSampler = 0;
   w = 1;
   NumberOfEtaUpdates  = 0;
   etastep = 0;
-#endif
 
 }
 
@@ -173,7 +171,6 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
       }
     }
 
-#if ETASAMPLER == 1
     // ** Settings for random walk sampler
     w = 1;
     etastep0 = 1.0; // sd of proposal distribution for log eta
@@ -183,23 +180,20 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
     TuneEtaSampler = new StepSizeTuner[ dim ];
     for( unsigned k = 0; k < dim; k++ )
       TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
-#endif
 
-    // ** Settings for Hamiltonian sampler
-    EtaSampler = new DispersionSampler[dim];
-    double initialEtaStepsize = 0.0003;//need a sensible value for this
-    double targetEtaAcceptRate = 0.44;//and this 
-    double min = 0.00;//min and max values for eta stepsize
-    double max = 10.0;
+//     // ** Settings for Hamiltonian sampler
+//     EtaSampler = new DispersionSampler[dim];
+//     double initialEtaStepsize = 0.0003;//need a sensible value for this
+//     double targetEtaAcceptRate = 0.44;//and this 
+//     double min = 0.00;//min and max values for eta stepsize
+//     double max = 10.0;
 
-    if( IsHistoricAlleleFreq);
-#if ETASAMPLER==2
-      for( unsigned k = 0; k < dim; k++ ){
-	EtaSampler[k].setDimensions(NumberOfCompositeLoci, 2, NumberOfStates,//<- 2 for admixed & unadmixed pops 
-				    initialEtaStepsize, min, max, targetEtaAcceptRate);
-	EtaSampler[k].setEtaPrior(psi[k], tau[k]);
-      }
-#endif
+//     if( IsHistoricAlleleFreq);
+//       for( unsigned k = 0; k < dim; k++ ){
+// 	EtaSampler[k].setDimensions(NumberOfCompositeLoci, 2, NumberOfStates,//<- 2 for admixed & unadmixed pops 
+// 				    initialEtaStepsize, min, max, targetEtaAcceptRate);
+// 	EtaSampler[k].setEtaPrior(psi[k], tau[k]);
+//       }
 //       else{//correlated allelefreq model
 //       EtaSampler[0].setDimensions(NumberOfCompositeLoci, Populations, NumberOfStates, 
 // 				  initialEtaStepsize, min, max, targetEtaAcceptRate);
@@ -257,39 +251,43 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
     AlleleCounts[i] = 0;
     HistoricAlleleCounts[i] = 0;
   }
+  int offset = 0;
+  bool oldformat = false;
+  bool file = false;
   //Fixed AlleleFreqs
   if( strlen( options->getAlleleFreqFilename() ) ){
     temporary = data_->getAlleleFreqMatrix();
     if( options->getTextIndicator() ){
       temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, Populations );
     }
-
-    for( int i = 0; i < NumberOfCompositeLoci; i++ )
-      {
-	newrow = row + (*Loci)(i)->GetNumberOfStates() - 1;
-	InitialiseAlleleFreqs( temporary.Double().SubMatrix( row, newrow - 1, 0, Populations - 1 ), i, Populations);
-	row = newrow;
-      }
+    offset = 1;
+    oldformat = true;
+    file = true;
   }
   else if( strlen( options->getHistoricalAlleleFreqFilename() ) || strlen( options->getPriorAlleleFreqFilename() ) ){
+    offset = 0;
+    oldformat = false;
+    file = true;
     //Historic AlleleFreqs
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
       temporary = data_->getHistoricalAlleleFreqMatrix();
       IsHistoricAlleleFreq = true;
- 
+      
     } else {
       //Prior on AlleleFreqs
       temporary = data_->getPriorAlleleFreqMatrix();
       IsHistoricAlleleFreq = false;
     }
     temporary = temporary.SubMatrix( 1, temporary.GetNumberOfRows() - 1, 1, Populations );
-
-    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      newrow = row + (*Loci)(i)->GetNumberOfStates();
-      InitialisePriorAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0, Populations - 1 ), i);
-      row = newrow;
-    }
   }
+  if(file)
+    for( int i = 0; i < NumberOfCompositeLoci; i++ )
+      {
+	newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
+	LoadAlleleFreqs( temporary.Double().SubMatrix( row, newrow - 1, 0, Populations - 1 ), i, oldformat);
+	row = newrow;
+      }
+
   //Default Allele Freqs
   else{
     SetDefaultAlleleFreqs( Populations );
@@ -297,49 +295,14 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
 
 }
 
-void AlleleFreqs::InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Pops){
+void AlleleFreqs::LoadAlleleFreqs(Matrix_d New, int i, bool oldformat){
   /**
-   * Sets the frequencies of each haplotype at the ith composite locus.
-   * obsolescent - maintained for compatibility with old format 
-   * in which fixed allele freqs were specified in input data with last allele omitted 
-   * 
-   * NewAlleleFreqs - a matrix containing allele frequencies, read from input data
-   * Rows index alleles or haplotypes, omitting the last allele
-   * as its frequency is 1 minus sum of all other frequencies. 
-   * Cols index populations.  Thus, for a composite locus with four states
-   *   and European and African populations, the matrix might be:
-   *
-   *             Population
-   *
-   *            | EUR | AFR |
-   *         ---|-----|-----|
-   *          0 | 0.5 | 0.2 |
-   *   State  1 | 0.1 | 0.2 |
-   *          2 | 0.2 | 0.5 |
-   */
-
-  NumberOfStates[i] = (*Loci)(i)->GetNumberOfStates();
-  
-  // initialize Freqs
-  Freqs[i] = new double[(NumberOfStates[i]-1)*Pops];
-  for(int j = 0; j < NumberOfStates[i]-1; ++j)
-    for(int k = 0; k < Pops; ++k)
-      Freqs[i][j*Populations+k] = NewAlleleFreqs(j,k);
-  (*Loci)(i)->SetNumberOfPopulations(Pops);
-  (*Loci)(i)->SetRandomAlleleFreqs(RandomAlleleFreqs);
-  // set size of allele counts matrix at this locus
-  AlleleCounts[i] = new int[NumberOfStates[i]*Pops];
-  fill(AlleleCounts[i], AlleleCounts[i]+NumberOfStates[i]*Pops, 0);
-}
-
-void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i){
-  /**
-   * Initialises the frequencies of each allele in the ith
-   * composite locus, given Dirichlet priors in matrix New.  Allele freqs
-   * are set to their prior expectation 
+   * Initialises the frequencies of each haplotype in the ith
+   * composite locus, given Dirichlet priors (oldformat=false) or frequencies (oldformat=true)in matrix New.  
+   * If oldformat=false, Allele freqs are set to their prior expectation. 
    * If fixed, allele freqs will be fixed at their prior expectations   
    *
-   * New - a matrix containing 
+   * New - a matrix containing either frequencies or
    *   parameters for the Dirichlet prior distribution of the allele frequencies. The first dimension is the allele number, 
    *   being in the range of zero to one less than the number of states.
    *   The sum of the prior parameters over all alleles in a population 
@@ -364,7 +327,6 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i){
    * to vary from the historical allele frequencies in the unadmixed ancestral populations that have 
    * been sampled. 
    */
-  double sumalpha;
   NumberOfStates[i] = (*Loci)(i)->GetNumberOfStates();
 
   int Pops = New.GetNumberOfCols();
@@ -376,39 +338,47 @@ void AlleleFreqs::InitialisePriorAlleleFreqs(Matrix_d New, int i){
   // allele counts array has NumberOfStates elements for each population 
   AlleleCounts[i] = new int[NumberOfStates[i] * Pops];
   fill(AlleleCounts[i], AlleleCounts[i]+ NumberOfStates[i]*Pops, 0);
-  PriorAlleleFreqs[i] = new double[New.GetNumberOfRows()*New.GetNumberOfCols()];
 
-  // allele frequencies are initialised as expectations over the Dirichlet prior distribution, 
-  // by dividing each prior parameter by the sum of the parameters.
-  for( int j = 0; j < Pops; j++ ){
-    sumalpha = ( New.GetColumn(j) ).Sum();
-    for( int k = 0; k < NumberOfStates[i] - 1; k++ )
-      Freqs[i][ k*Populations + j ] = ( New( k*(!CorrelatedAlleleFreqs), j ) ) / sumalpha;
+  if(oldformat){//old format allelefreqfile
+    for(int j = 0; j < NumberOfStates[i]-1; ++j)
+      for(int k = 0; k < Pops; ++k)
+	Freqs[i][j*Populations+k] = New(j,k);
   }
-  
-  if(IsHistoricAlleleFreq){
-    HistoricAlleleFreqs[i] = new double[(NumberOfStates[i] - 1)* Pops];
-    fill(HistoricAlleleFreqs[i],HistoricAlleleFreqs[i] + (NumberOfStates[i] - 1)* Pops, 0.0);
-    HistoricAlleleCounts[i] = new double[New.GetNumberOfRows()*New.GetNumberOfCols()];
-
-    for(int row = 0; row < New.GetNumberOfRows(); ++row)
-      for(int col = 0; col < New.GetNumberOfCols(); ++col){
-	HistoricAlleleCounts[i][row*New.GetNumberOfCols() +col] = New(row, col);
-	PriorAlleleFreqs[i][col*New.GetNumberOfRows() + row] = New(row, col) + 0.501; // why add 0.501? 
-      }
-
-    Fst = alloc2D_d(NumberOfCompositeLoci, Pops);
-    SumFst = alloc2D_d(NumberOfCompositeLoci, Pops);
-    // set size of vector MuProposal
-    if( NumberOfStates[i] > 2 ){
-      MuProposal[i].resize( Populations );
-      for( int k = 0; k < Populations; k++ ){
-	MuProposal[i][k].SetParameters( 0.01, 0.001, 10.0, 0.23 );
-      }
+  else{
+    double sumalpha;
+    // allele frequencies are initialised as expectations over the Dirichlet prior distribution, 
+    // by dividing each prior parameter by the sum of the parameters.
+    for( int j = 0; j < Pops; j++ ){
+      sumalpha = ( New.GetColumn(j) ).Sum();
+      for( int k = 0; k < NumberOfStates[i] - 1; k++ )
+	Freqs[i][ k*Populations + j ] = ( New( k*(!CorrelatedAlleleFreqs), j ) ) / sumalpha;
     }
   }
-  else{ // priorallelefreqs model, with or without correlated allelefreqs
-    if(RandomAlleleFreqs){
+  
+  if(RandomAlleleFreqs){
+    PriorAlleleFreqs[i] = new double[New.GetNumberOfRows()*New.GetNumberOfCols()];
+    if(IsHistoricAlleleFreq){
+      HistoricAlleleFreqs[i] = new double[(NumberOfStates[i] - 1)* Pops];
+      fill(HistoricAlleleFreqs[i],HistoricAlleleFreqs[i] + (NumberOfStates[i] - 1)* Pops, 0.0);
+      HistoricAlleleCounts[i] = new double[New.GetNumberOfRows()*New.GetNumberOfCols()];
+      
+      for(int row = 0; row < New.GetNumberOfRows(); ++row)
+	for(int col = 0; col < New.GetNumberOfCols(); ++col){
+	  HistoricAlleleCounts[i][row*New.GetNumberOfCols() +col] = New(row, col);
+	  PriorAlleleFreqs[i][col*New.GetNumberOfRows() + row] = New(row, col) + 0.501; // why add 0.501? 
+	}
+      
+      Fst = alloc2D_d(NumberOfCompositeLoci, Pops);
+      SumFst = alloc2D_d(NumberOfCompositeLoci, Pops);
+      // set size of vector MuProposal
+      if( NumberOfStates[i] > 2 ){
+	MuProposal[i].resize( Populations );
+	for( int k = 0; k < Populations; k++ ){
+	  MuProposal[i][k].SetParameters( 0.01, 0.001, 10.0, 0.23 );
+	}
+      }
+    }
+    else{ // priorallelefreqs model, with or without correlated allelefreqs
       RandomAlleleFreqs = true;
       for(int row = 0; row < New.GetNumberOfRows(); ++row)
 	for(int col = 0; col < New.GetNumberOfCols(); ++col){
@@ -459,7 +429,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 
 // Method samples allele frequency and prior allele frequency
 // parameters.
-void AlleleFreqs::Update(int iteration,int BurnIn){
+void AlleleFreqs::Update(bool afterBurnIn){
 
   if( IsRandom() ){
     // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
@@ -486,67 +456,18 @@ void AlleleFreqs::Update(int iteration,int BurnIn){
       (*Loci)(i)->SetHapPairProbs();
     }
     
-    // Sample for allele frequency dispersion parameters, eta, using
+    // Sample for allele frequency dispersion parameters, eta, conditional on allelefreqs using
     // Metropolis random-walk.
-    if(  IsHistoricAlleleFreq ){
-#if ETASAMPLER == 1
-      double etanew, LogPostRatio, AccProb;
+    if(  IsHistoricAlleleFreq){ 
       NumberOfEtaUpdates++;
-      int dim = IsHistoricAlleleFreq ? Populations : 1;
-      for( int k = 0; k < dim; k++ ){
-	double mineta = 0;
-	vector< Vector_d > munew;
-	// propose etanew from truncated log-normal distribution.
-	do{
-	  etanew = exp( gennor( log( eta[k] ), etastep[k] ) );
-	}while( etanew > 5000.0 );
-	// Prior log-odds ratio (proposal ratio cancels with a part of the prior ratio)   
-	LogPostRatio = ( psi[k] - 1 ) * (log(etanew) - log(eta[k]))
-	  - tau[k] * ( etanew - eta[k] );
-	// Log-likelihood ratio; numerator of integrating constant
-	LogPostRatio += 2 * NumberOfCompositeLoci
-	  * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta[k] ) );
-	for(int j = 0; j < NumberOfCompositeLoci; j++ ){
-	  Vector_d mu = GetPriorAlleleFreqs(j,k);
-	  //mineta is a lower bound for proposal etanew
-	  if( mineta < 0.1 * eta[k] / mu.MinimumElement() )
-	    mineta = 0.1 * eta[k] / mu.MinimumElement();
-	  
-	  //rescale munew so munew sums to etanew
-	  munew.push_back( mu * etanew / eta[k] );
-	  double *SumLogFreqs = GetStatsForEta(j,k);
-	  for( int l = 0; l < (*Loci)(j)->GetNumberOfStates(); l++ ){
-	    // Denominator of integrating constant
-	    LogPostRatio += 2*(gsl_sf_lngamma( mu(l) ) - gsl_sf_lngamma( munew[j](l) ));
-	    // SumLogFreqs = log phi_1 + log phi_2
-	    LogPostRatio += (munew[j](l) - mu(l))*SumLogFreqs[l];
-	  }
-	  delete[] SumLogFreqs;
-	}
-	
-	// Log acceptance probability = Log posterior ratio since the
-	// proposal ratio (log-normal) cancels with prior.
-	if(LogPostRatio > 0.0)LogPostRatio = 0.0;
-	AccProb = 0.0; 
-	if(mineta < etanew )AccProb = exp(LogPostRatio);
-
-	// Acceptance test.
-	if( log( myrand() ) < LogPostRatio && mineta < etanew ){
-	  eta[k] = etanew;
-	  //UpdatePriorAlleleFreqs( k, munew );
-	}
-	
-	if( !( NumberOfEtaUpdates % w ) ){
-	  etastep[k] = TuneEtaSampler[k].UpdateStepSize( AccProb );
-	}
-      }
-      
-	if( iteration > BurnIn )
-	  for(int i = 0; i<Populations;++i)SumEta[i]+=eta[i];
-#endif
-    }//end isHistoric
+      for( int k = 0; k < Populations; k++ )SampleEtaWithRandomWalk(k, afterBurnIn);
+    }
+    else if(CorrelatedAlleleFreqs){
+      NumberOfEtaUpdates++;
+      SampleEtaWithRandomWalk(0, afterBurnIn);
+    }
     
-    if( iteration > BurnIn && IsHistoricAlleleFreq ){
+    if( afterBurnIn && IsHistoricAlleleFreq ){
       UpdateFst();
     }
   }//end isRandom
@@ -644,19 +565,14 @@ double *AlleleFreqs::GetStatsForEta( int locus, int population)
   return stats;
 }
 
-// void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<Vector_d>& mu)
-// {
-//   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-//     PriorAlleleFreqs[i].SetColumn( j, mu[i] );
-//     //    double sum;
-//     //    Vector_d freqs;
-//     //    for( int j = 0; j < Populations; j++ ){
-//     //       freqs = PriorAlleleFreqs[i].GetColumn(j);
-//     //       sum = freqs.Sum();
-//     //       PriorAlleleFreqs[i].SetColumn( j, freqs * eta[j] / sum );
-//     //    }
-//   }
-// }
+void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<Vector_d>& mu)
+//sets PriorAlleleFreqs to sum to eta after sampling of eta
+{
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+      for(int h = 0; h < NumberOfStates[i]; ++h)
+	PriorAlleleFreqs[i][j*NumberOfStates[i]+h] = mu[i](h);
+  }
+}
 
 void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
   // problem here is to sample the Dirichlet parameters of a multinomial-Dirichlet distribution
@@ -759,15 +675,15 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
 	  }
 	
 	muSampler[i*Populations + k].Sample(PriorAlleleFreqs[i] + (k*NumberOfStates[i]), eta[k], counts);
-#if ETASAMPLER==2
+
 	//EtaSampler[k].addAlphas(i, PriorAlleleFreqs[i] + (k*NumberOfStates[i]));
 	//EtaSampler[k].addCounts(i, counts);
-#endif
+
       }
-#if ETASAMPLER==2
+
       //sample eta
       //eta[k] = EtaSampler[k].Sample();
-      SumEta[k]+=eta[k];
+      //SumEta[k]+=eta[k];
       //rescale PriorAlleleFreqs so they sum to eta
       //for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       //double sum = accumulate(PriorAlleleFreqs[i][k*NumberOfStates[i]], PriorAlleleFreqs[i][k*NumberOfStates[i]]+NumberOfStates[i], 
@@ -777,7 +693,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
       //  PriorAlleleFreqs[i][t] *= sum;
       //}
       //}
-#endif
+
     }
   }
   
@@ -789,7 +705,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
 	}
     //sample eta
     //eta[0] = EtaSampler[0].Sample();
-    SumEta[0] += eta[0];
+    //SumEta[0] += eta[0];
 
     //rescale PriorAlleleFreqs so they sum to eta
     //for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -800,6 +716,58 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
     //}
     //}
   }
+}
+
+void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
+  double etanew, LogPostRatio, AccProb;
+  double mineta = 0;
+  vector< Vector_d > munew;
+  // propose etanew from truncated log-normal distribution.
+  do{
+    etanew = exp( gennor( log( eta[k] ), etastep[k] ) );
+  }while( etanew > 5000.0 );
+  // Prior log-odds ratio (proposal ratio cancels with a part of the prior ratio)   
+  LogPostRatio = ( psi[k] - 1 ) * (log(etanew) - log(eta[k]))
+    - tau[k] * ( etanew - eta[k] );
+  // Log-likelihood ratio; numerator of integrating constant
+  LogPostRatio += 2 * NumberOfCompositeLoci
+    * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta[k] ) );
+  for(int j = 0; j < NumberOfCompositeLoci; j++ ){
+    Vector_d mu = GetPriorAlleleFreqs(j,k);
+    //mineta is a lower bound for proposal etanew
+    if( mineta < 0.1 * eta[k] / mu.MinimumElement() )
+      mineta = 0.1 * eta[k] / mu.MinimumElement();
+    
+    //rescale munew so munew sums to etanew
+    munew.push_back( mu * etanew / eta[k] );
+    double *SumLogFreqs = GetStatsForEta(j,k);
+    for( int l = 0; l < (*Loci)(j)->GetNumberOfStates(); l++ ){
+      // Denominator of integrating constant
+      LogPostRatio += 2*(gsl_sf_lngamma( mu(l) ) - gsl_sf_lngamma( munew[j](l) ));
+      // SumLogFreqs = log phi_1 + log phi_2
+      LogPostRatio += (munew[j](l) - mu(l))*SumLogFreqs[l];
+    }
+    delete[] SumLogFreqs;
+  }
+  
+  // Log acceptance probability = Log posterior ratio since the
+  // proposal ratio (log-normal) cancels with prior.
+  if(LogPostRatio > 0.0)LogPostRatio = 0.0;
+  AccProb = 0.0; 
+  if(mineta < etanew )AccProb = exp(LogPostRatio);
+  
+  // Acceptance test.
+  if( log( myrand() ) < LogPostRatio && mineta < etanew ){
+    eta[k] = etanew;
+    UpdatePriorAlleleFreqs( k, munew );
+  }
+  
+  if( !( NumberOfEtaUpdates % w ) ){
+    etastep[k] = TuneEtaSampler[k].UpdateStepSize( AccProb );
+  }
+  
+  if( updateSumEta )
+    SumEta[k]+=eta[k];
 }
 
 void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log)
@@ -1183,7 +1151,6 @@ double ddfMu( const double* parameters, const int *counts0, const double *counts
   return f;
 }
 
-#if ETASAMPLER == 1
 float AlleleFreqs::getEtaRWSamplerAcceptanceRate(int k){
   return TuneEtaSampler[k].getExpectedAcceptanceRate();
 }
@@ -1191,7 +1158,6 @@ float AlleleFreqs::getEtaRWSamplerStepsize(int k){
   return etastep[k];
 }
 
-#endif
 
 float AlleleFreqs::getAlphaSamplerAcceptanceRate(int i){
   return muSampler[i].getAcceptanceRate();

@@ -43,7 +43,7 @@ public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
   void Initialise(AdmixOptions *options, InputData *Data, LogWriter *Log);
-  void Update(int iteration,int);
+  void Update(bool afterBurnIn);
 
   //initialize output file for samples of dispersion parameters
   void InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log);
@@ -82,10 +82,9 @@ public:
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
 
-#if ETASAMPLER ==1
   float getEtaRWSamplerAcceptanceRate(int k);
   float getEtaRWSamplerStepsize(int k); 
-#endif
+
   float getAlphaSamplerAcceptanceRate(int);
   float getAlphaSamplerStepsize(int);
   float getEtaSamplerAcceptanceRate(int);
@@ -117,7 +116,6 @@ private:
 
   Genome *Loci;//pointer to Loci object
 
-#if ETASAMPLER == 1
   //adaptive RW sampler for eta
   StepSizeTuner *TuneEtaSampler;
   int NumberOfEtaUpdates;
@@ -125,8 +123,6 @@ private:
   double *etastep;
   double etastep0;
   int w;//The eta sampler is tuned every w updates.
-  //double *SumAcceptanceProb;
-#endif
 
 
   
@@ -143,11 +139,7 @@ private:
 
   void OpenFSTFile(AdmixOptions *options,LogWriter *Log); 
 
-  // we have three different functions to initialize allele freqs
-  // would be simpler to have one method
-  // these functions are called by method LoadAlleleFreqs  
-  void InitialiseAlleleFreqs(Matrix_d NewAlleleFreqs, int i, int Populations);
-  void InitialisePriorAlleleFreqs(Matrix_d NewFreqs, int i);
+  void LoadAlleleFreqs(Matrix_d NewFreqs, int i, bool);
   void SetDefaultAlleleFreqs(int Pops);
 
   void SamplePriorAlleleFreqs1D( int );
@@ -155,6 +147,7 @@ private:
   void SamplePriorAlleleFreqs();
   void SampleAlleleFreqs(int);
   void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
+  void SampleEtaWithRandomWalk(int k, bool updateSumEta);
 
   void OpenOutputFile(AdmixOptions *options);
 
