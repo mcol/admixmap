@@ -42,12 +42,40 @@ distanceFromLast <- function(v.Chr, v.Position) {
   return(v.DistanceFromLast)
 }
 
+PolyaLogL <- function(eta, mu, n) {
+  ## K outcomes, N observations with same mu
+  ## mu is vector of length K, n is matrix of counts with K rows and N cols
+  LogL <- 0
+  K <- length(mu)
+  N <- dim(n)[1]
+  for(i in 1:N) { # outer sum over N observations
+    LogL <- LogL + lgamma(eta) - lgamma(sum(n[i, ]) + eta)
+    for(k in 1:K){ # inner sum over outcomes 1:K
+      LogL <- LogL + lgamma(n[i, k] + eta*mu[k]) - lgamma(eta*mu[k]) # outcome 1
+    }
+  }
+  return(LogL)
+}
+
+PolyaLogLOverLoci <- function(eta, mu, counts) {
+  ## K outcomes, M experiments with different mu each of which has N observations 
+  ## mu is matrix with M rows, K cols
+  ## counts is 3-way array with dim N, M, K
+  M <- dim(mu)[1]
+  LogL <- 0
+  for(m in 1:M) { # M experiments with different mu
+    LogL <- LogL + PolyaLogL(eta, mu[m, ], counts[m,,])
+  }
+  return(LogL)
+}
+    
+  
 ##########################################################################
 ## Start of script
 numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-N <- 100
+N <- 200
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
@@ -82,7 +110,7 @@ for(sims in 1:numsims) {
   mu <- numeric(L) # ancestral freqs allele 1
   alleleFreqs <- matrix(data=NA, nrow=2*L, ncol=NumSubPops)
   for(locus in 1:L) {
-    mu[locus] <- 0.5##rbeta(1,10,10)##rbeta(1, 2, 2)
+    mu[locus] <- rbeta(1, 2, 2)
     alleleFreqs[2*locus - 1, ] <- rbeta(2, mu[locus]*eta, (1 - mu[locus])*eta)
                                         # freqs allele 1 in each of NumSubPops subpops
     alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
@@ -143,10 +171,6 @@ for(sims in 1:numsims) {
     }
   }
   
-  ## fit regression model to sampled values
-  reg.adj <- summary.glm(glm(outcome ~ avM + g, family = ofam))$coefficients[3,]
-  reg.crude <- summary.glm(glm(outcome ~ g, family = ofam))$coefficients[2,]
-  confound.effect <- reg.crude[1] - reg.adj[1]
   ## write outcome variable to file
   outcome.table <- data.frame(outcome, row.names=NULL) 
   write.table(outcome.table, file="data/outcome.txt", row.names=FALSE, col.names=TRUE)
@@ -154,7 +178,6 @@ for(sims in 1:numsims) {
   Mvector.table <- data.frame(avM, row.names=NULL)
   write.table(outcome, file="data/Mvalues.txt", row.names=FALSE,
               col.names=TRUE)
-  
   ##write genotypes to file
   genotypes <- genotypes[-1,]
   genotypes.gc <- genotypes
@@ -165,52 +188,40 @@ for(sims in 1:numsims) {
   ## write for ADMIXMAP
   genotypes <- data.frame(id, genotypes, row.names=NULL)
   write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
-  
-  
   ## write locus file
   x[is.na(x)] <- 100
   loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  x, row.names=NULL)
   dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distance")
   write.table(loci, file="data/loci.txt", row.names=FALSE)
-  
   ## write allelefreqs files
   trueallelefreqs <- data.frame(rep(loci[,1], each=2), alleleFreqs)
   dimnames(trueallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
   write.table(trueallelefreqs, file="data/trueallelefreqs.txt",
               row.names=FALSE)                               
 
-  ## write allelecounts to file
-  genfrombinom <- function(x){
-    rbinom(1, 2*N, x)
+
+  alleleCounts <- array(data=NA, dim=c(L,2,2)) # 2nd dim indexes subpops, 3rd dim indexes alleles
+  for(locus in 1:L) {
+    alleleCounts[locus,1,1] <- rbinom(1, 2*N, alleleFreqs[2*locus-1, 1])
+    alleleCounts[locus,2,1] <- rbinom(1, 2*N, alleleFreqs[2*locus-1, 2])
+    alleleCounts[locus,,2] <- 2*N - alleleCounts[locus,,1]
   }
-  alleleCounts <- apply(alleleFreqs, c(1,2), genfrombinom)
-  alleleCounts[seq(2, 198, 2),] <- 2*N-alleleCounts[seq(1,198,2),]
-
-  etaenergy <- function(logeta, counts, N){
-    eta <- exp(logeta)
-    ##E <- 9*logeta-eta #prior
-    E <- logeta
-    muhat <- numeric(99)
-    for(i in 1:99){#number of loci
-      muhat[i] <- 0.5##sum(counts[((i-1)*2+1),])/(2*N)+0.000001
-    
-      #plot(mu,muhat)
-      for(k in 1:2){#number of pops
-        E <- E + lgamma(counts[((i-1)*2+1),k] + eta*muhat[i])-lgamma(eta*muhat[i])##sum over alleles
-        E <- E + lgamma(counts[(i*2),k] + eta*(1-muhat[i]))-lgamma(eta*(1-muhat[i]))##sum over alleles
-
-        E <- E + lgamma(eta) - lgamma(2*N+eta)
-      }
-    }
-    E
+  
+  muhat <- numeric(L)
+  for(i in 1:L) {
+    muhat[i] <- sum(alleleCounts[i,,1]) / (4*N)
   }
-  logeta <- log(seq(5, 15, 0.1))
-  plot(exp(logeta), -etaenergy(logeta, alleleCounts, N), xlab="eta", ylab="Energy")
+  plot(mu, muhat)
+  muhat <- data.frame(muhat, 1 - muhat)
+  
+  eta <- seq(5, 30, by=5)
+  LogL.eta <- numeric(length(eta))
 
-  Counts <- data.frame(rep(loci[,1], each=2), alleleFreqs)
-  dimnames(Counts)[[2]] <- c("Locus", "Pop1", "Pop2")
-  write.table(Counts, file="data/trueallelefreqs.txt",
-              row.names=FALSE)      
+## loop over eta
+  for(i in 1:length(eta)) {
+    LogL.eta[i] <- PolyaLogLOverLoci(eta[i], muhat, alleleCounts)
+  }
+  plot(eta, LogL.eta, xlab="eta", ylab="LogL")
   
  ## if(admixmap) {
    ## system("../test/admixmap.exe TwoPopsArgs.txt")
@@ -218,9 +229,7 @@ for(sims in 1:numsims) {
     ##source("../test/AdmixmapOutput.R")
   ##}
 
-
+  
 }
 
-
-
-
+  
