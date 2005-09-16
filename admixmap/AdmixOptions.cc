@@ -833,9 +833,9 @@ void AdmixOptions::SetOptions(int nargs,char** args)
       } else if (long_option_name == "popadmixpriorvar") {
 	 alphavar = strtod(optarg, NULL);OptionValues["popadmixpriorvar"]=optarg;
       } else if (long_option_name == "etapriormean") {
-	 alphamean = strtod(optarg, NULL);OptionValues["etapriormean"]=optarg;
+	 etamean = strtod(optarg, NULL);OptionValues["etapriormean"]=optarg;
       } else if (long_option_name == "etapriorvar") {
-	 alphavar = strtod(optarg, NULL);OptionValues["etapriorvar"]=optarg;
+	 etavar = strtod(optarg, NULL);OptionValues["etapriorvar"]=optarg;
       } else if (long_option_name == "truncationpoint") {
 	 TruncPt = strtod(optarg, NULL);OptionValues["truncationpoint"]=optarg;
       } else if (long_option_name == "haplotypeassociationscorefile") {
