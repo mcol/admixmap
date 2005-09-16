@@ -64,7 +64,7 @@ void DispersionSampler::setDimensions(unsigned inL, unsigned inK, int* const inH
 void DispersionSampler::setEtaPrior(double shape, double rate){
   Args[4][0] = shape;
   Args[4][1] = rate;
-  logeta[0] = log(shape/rate);
+  logeta[0] = log(10.0);//log(shape/rate);
 }
 
 void DispersionSampler::addAlphas(unsigned i, const double* const alpha){
@@ -151,7 +151,7 @@ void DispersionSampler::etaGradient(unsigned , const double * const logeta, cons
     for(int k = 0; k < K; ++k){
       double nik = 0.0;//sum of counts for locus i, pop k
       for(int h = 0; h < args[1][i]; ++h){
-	int H = (int)args[1][i];
+	//int H = (int)args[1][i];
 
 	double alpha = args[2][H+h];
 	double count = args[3][H*K + h*K +k];
@@ -162,4 +162,7 @@ void DispersionSampler::etaGradient(unsigned , const double * const logeta, cons
     }
     H += (int)args[1][i];
   }
+}
+double DispersionSampler::getEnergy(){
+  return etaEnergyFunction(0, logeta, Args);
 }
