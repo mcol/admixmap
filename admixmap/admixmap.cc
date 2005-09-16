@@ -313,12 +313,12 @@ void submain(AdmixOptions* options){
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
 	Log.logmsg(true, A.getAlphaSamplerAcceptanceRate(i));Log.logmsg(true, " ");
       }
-      Log.logmsg(true, A.getEtaSamplerAcceptanceRate(0));
+//       Log.logmsg(true, A.getEtaSamplerAcceptanceRate(0));
       Log.logmsg(true, "\nwith final step sizes of \n");
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
 	Log.logmsg(true, A.getAlphaSamplerStepsize(i));Log.logmsg(true, " ");
       }
-      Log.logmsg(true, A.getEtaSamplerStepsize(0));
+//       Log.logmsg(true, A.getEtaSamplerStepsize(0));
       Log.logmsg(true, "\n");
     }
 
