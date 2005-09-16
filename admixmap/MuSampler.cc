@@ -25,13 +25,13 @@
 using namespace::std;
 
 MuSampler::MuSampler(){
-  logitmu = 0;
+  params = 0;
   muArgs = new double*[4];
   for(int i = 0; i < 4; ++i){muArgs[i] = 0;}
 }
 
 MuSampler::~MuSampler(){
-  delete[] logitmu;
+  delete[] params;
   for(int i = 0; i < 4; ++i){delete[] muArgs[i];}
   delete[] muArgs;
 }
@@ -42,9 +42,9 @@ void MuSampler::setDimensions(unsigned inK, unsigned inH, double mustep0, double
   K = inK;
   H = inH;
 
-  logitmu = new double[H];
-  muArgs[0] = new double[1]; muArgs[0][0] = K;
-  muArgs[1] = new double[1]; muArgs[1][0] = H;
+  params = new double[H];
+  muArgs[0] = new double[2]; muArgs[0][0] = K;muArgs[0][1] = H;
+  muArgs[1] = new double[1]; 
   muArgs[2] = new double[H*K];//to hold counts
   muArgs[3] = new double[1]; //to hold eta
   muSampler.SetDimensions(H, mustep0, mumin, mumax, 20, mutarget, 
@@ -55,23 +55,40 @@ void MuSampler::setDimensions(unsigned inK, unsigned inH, double mustep0, double
 void MuSampler::Sample(double* alpha, double eta, const int* const Counts){
   //alpha is the array (length H) of Dirichlet parameters
   //these are first transformed to logits of proportions
-//Counts is an H*K array of counts
+//Counts is an H*K array of couExp[a1] + Exp[a2] + Exp[a3]nts
   if(H == 2)Sample1D(alpha, eta, Counts);//can sample directly from beta-binomial in one-dimensional case
   else
-    {
-
-    for(unsigned t = 0; t < H; ++t){
-      logitmu[t] = logit(alpha[t]/eta);
+  {
+    
+    //transform alphas 
+    double sum = 0.0;
+    for(unsigned t = 0; t < H-1; ++t){
+      sum += log( alpha[t]/eta );
     }
+    params[H-1] = -sum / H;
+    for(unsigned t = 0; t < H-1; ++t){
+      params[t] = params[H-1] + log(alpha[t]/eta) - log(alpha[H-1]/eta);
+    }
+
+    //assign counts
     for(unsigned t = 0; t < K*H; ++t){
       muArgs[2][t] = (double)Counts[t];
     }
     muArgs[3][0] = eta;
-    muSampler.Sample(logitmu, muArgs);//muSampler actually samples logit(mu)
-    //set alpha by reversing logit transformation
+    muArgs[1][0] = 0.01 * muSampler.getStepsize();//"small" differential of 10% of current stepsize
+    //used to compute derivative of Jacobian in gradient
+ 
+    muSampler.Sample(params, muArgs);
+
+    //set alpha by reversing transformation
+    double z = 0.0;
     for(unsigned t = 0; t < H; ++t){
-      alpha[t] = eta * invlogit(logitmu[t]);
+      z += exp(params[t]);
     } 
+    for(unsigned t = 0; t < H; ++t){
+      alpha[t] = eta * exp(params[t])/ z;
+    } 
+
   }
 }
 
@@ -80,7 +97,7 @@ void MuSampler::Sample1D(double* alpha, double eta, const int* const Counts )
   //Counts has dimension 2 * K
   //alpha has dimension 2
   double lefttruncation = 0.1;
-  double MuParameters[1];
+  double MuParameters[2];
 
   DARS SampleMu( 0, 0, 0, MuParameters, fMu, dfMu, ddfMu, Counts, 0 );
 
@@ -103,8 +120,8 @@ float MuSampler::getStepsize(){
   return muSampler.getStepsize();
 }
 
-double MuSampler::muEnergyFunction(unsigned , const double * const logitmu, const double* const *args){
-  int H = (int)args[1][0]; // Number of haplotypes/alleles
+double MuSampler::muEnergyFunction(unsigned , const double * const a, const double* const *args){
+  int H = (int)args[0][1]; // Number of haplotypes/alleles
   int K = (int)args[0][0];// Number of populations
   double eta = args[3][0];//dispersion parameter
   //Counts = args[2];//realized allele counts, stored as ints
@@ -113,31 +130,36 @@ double MuSampler::muEnergyFunction(unsigned , const double * const logitmu, cons
 
   E -= (double)(H); //logprior
 
+  double z = 0.0;
   for(int h = 0; h < H; ++h){
-    double theta = logitmu[h];
-    double alpha = eta * invlogit(theta);
-//TODO: finish Jacobian
-    E += theta + 2.0*log(1.0 + exp(-theta));//log Jacobian
-  
+    z+= exp(a[h]);
+  }
+
+  for(int h = 0; h < H; ++h){
+    double alpha = eta * exp(a[h])/z;
   for(int k = 0; k < K; ++k){
       int offset = h*K +k;
       E += gsl_sf_lngamma(alpha) - gsl_sf_lngamma(args[2][offset] + alpha);//log likelihood
     }
   }
+  E -= logJacobian(a, z, H);
   return E;
 }
 
-void MuSampler::muGradient(unsigned , const double * const logitmu, const double* const *args, double *g){
-  int H = (int)args[1][0]; // Number of haplotypes/alleles
+void MuSampler::muGradient(unsigned , const double * const a, const double* const *args, double *g){
+  int H = (int)args[0][1]; // Number of haplotypes/alleles
   int K = (int)args[0][0];// Number of populations
   double eta = args[3][0];//dispersion parameter
 
-  double thetaH = logitmu[H-1];
-  double alphaH = eta * invlogit(thetaH);
+  double z = 0.0;
+  for(int h = 0; h < H; ++h){
+    z+= exp(a[h]);
+  }
+  double delta = args[1][0];
+  double alphaH = eta * exp(a[H])/z;;
 
   for(int h = 0; h < H; ++h){
-     double theta = logitmu[h];
-     double alpha = eta * invlogit(theta);
+    double alpha = eta * exp(a[h])/z;
 
      for(int k = 0; k < K; ++k){
 
@@ -145,8 +167,8 @@ void MuSampler::muGradient(unsigned , const double * const logitmu, const double
 
       g[h] = eta * (gsl_sf_psi(alpha) - gsl_sf_psi(args[2][offset]+alpha));//log likelihood term
       g[h] += eta * (gsl_sf_psi(alphaH) - gsl_sf_psi(args[2][offset]+alphaH));
-//TODO: Jacobian term
     }
+     g[h] -= DlogJacobian(a, z, H, h, delta);  //Jacobian term
   }
 }
 
@@ -154,8 +176,8 @@ double MuSampler::fMu( const double* parameters, const int *counts,  const doubl
 {
   int K = (int)parameters[1];
   double eta = parameters[0];
-  double mu = alpha / eta;
-  double logprior = 0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1,1) prior
+  //double mu = alpha / eta;
+  double logprior = 0.0;//0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1.1, 1.1) prior
   double f = logprior - 2 * gsl_sf_lngamma( alpha ) - 2 * gsl_sf_lngamma( eta - alpha );
 
   for(int k = 0; k < K; ++k){
@@ -169,12 +191,12 @@ double MuSampler::dfMu( const double* parameters, const int *counts, const doubl
 {
   int K = (int)parameters[1];
   double eta = parameters[0], x, y1, y2;
-  double logprior = 0.1 / alpha - 0.1 / ( eta - alpha );//Beta(1,1) prior
+  double logprior = 0.0;//0.1 / alpha - 0.1 / ( eta - alpha );//Beta(1.1, 1.1) prior
   double f = logprior;
   x = eta - alpha;
-  if(alpha < 0)cout<<"\nError in dfMu in compositelocus.cc - arg mu to ddigam is negative\n"; 
+  if(alpha < 0)cout<<"\nError in dfMu in MuSampler.cc - arg alpha to ddigam is negative\n"; 
   ddigam( &alpha, &y1 );
-  if(x < 0)cout<<"\nError in dfMu in compositelocus.cc - arg x to ddigam is negative\n"; 
+  if(x < 0)cout<<"\nError in dfMu in MuSampler.cc - arg (eta-alpha) to ddigam is negative\n"; 
   ddigam( &x, &y2 );
   f += 2 * ( y2 - y1 );
 
@@ -196,8 +218,8 @@ double MuSampler::ddfMu( const double* parameters, const int *counts, const doub
 {
   int K = (int)parameters[1];
   double eta = parameters[0], x, y1, y2;
-  double prior = -0.1 / (alpha*alpha) - 0.1 / (( eta - alpha ) * ( eta - alpha ) );
-  double f = prior;
+  double logprior = 0.0;//-0.1 / (alpha*alpha) - 0.1 / (( eta - alpha ) * ( eta - alpha ) );
+  double f = logprior;
   x = eta - alpha;
   trigam( &alpha, &y1 );
   trigam( &x, &y2 );
@@ -212,4 +234,41 @@ double MuSampler::ddfMu( const double* parameters, const int *counts, const doub
     f += y2;
   }
   return f;
+}
+
+double MuSampler::logJacobian(const double* a, const double z, unsigned H){
+  //computes logJacobian for softmax transformation
+
+  //construct matrix
+  gsl_matrix *J = gsl_matrix_calloc(H-1, H-1);
+  for(unsigned i = 0; i < H-1; ++i){
+    gsl_matrix_set(J,i,i, a[i]*(z-a[i])/(z*z));//diagonal elements
+    for(unsigned j = i+1; j < H-1; ++j){
+      gsl_matrix_set(J, i, j, -exp(2*a[i]+a[j])/(z*z));//upper triangle
+      gsl_matrix_set(J, j, i, -exp(2*a[j]+a[i])/(z*z));//lower triangle
+    }
+  }
+  //LU decomposition
+  gsl_permutation *p = gsl_permutation_alloc(H-1);
+  gsl_permutation_init(p);
+  int signum =1;
+  
+  int status = gsl_linalg_LU_decomp ( J , p, &signum);
+
+  gsl_permutation_free(p);
+  double logJ = gsl_linalg_LU_lndet(J); 
+  gsl_matrix_free(J);
+  return logJ; 
+}
+
+double MuSampler::DlogJacobian(const double* const a, const double z, unsigned H, unsigned h, double delta){
+  //computes numerical approximation to derivative of above Jacobian wrt a[h]
+  //room for improvement here ?
+
+  double b[H];
+  copy(a, a+H, b);
+  b[h] += delta;
+  double d = logJacobian(b, z, H);
+  d -= logJacobian(a, z, H);
+  return d / delta;
 }

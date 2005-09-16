@@ -43,14 +43,16 @@ private:
   unsigned K;//number of counts
   unsigned H;//dimension of alpha
 
-  //logits of proportions are sampled using a Hamiltonian Monte Carlo sampler
-  double *logitmu;
+  //proportions are transformed using softmax transformation and sampled with a Hamiltonian Monte Carlo sampelr
+  double *params;
   HamiltonianMonteCarlo muSampler;
   double **muArgs;
 
-  static double muEnergyFunction(unsigned , const double * const logitmu, const double* const *args);
-  static void muGradient(unsigned , const double * const logitmu, const double* const *args, double *g);
+  static double muEnergyFunction(unsigned , const double * const params, const double* const *args);
+  static void muGradient(unsigned , const double * const params, const double* const *args, double *g);
   static double fMu( const double* parameters, const int *counts,  const double *, double alpha );
   static double dfMu( const double* parameters, const int *counts, const double *, double alpha );
   static double ddfMu( const double* parameters, const int *counts, const double *, double alpha );
+  static double logJacobian(const double* a, const double z, unsigned H);
+  static double DlogJacobian(const double* const a, const double z, unsigned H, unsigned h, double delta);
 };

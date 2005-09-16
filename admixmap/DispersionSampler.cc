@@ -113,21 +113,24 @@ double DispersionSampler::etaEnergyFunction(unsigned , const double * const loge
   double priorshape = args[4][0];
   double priorrate = args[4][1];
 
-  E = (priorshape-1.0)*logeta[0] - priorrate*eta;//log (gamma)prior
-  E += logeta[0];//Jacobian
+  //E = (priorshape-1.0)*logeta[0] - priorrate*eta;//log (gamma)prior
+  //E += logeta[0];//Jacobian
   int H = 0;// counts how many states visited so far
   for(int i = 0; i < L; ++i){
-
+ 
     for(int k = 0; k < K; ++k){
+
       double nik = 0.0;//sum of counts for locus i, pop k
 
        for(int h = 0; h < args[1][i]; ++h){
 
 	double alpha = args[2][H+h];
 	double count = args[3][H*K + h*K +k];
+
 	nik += count;
 	E += gsl_sf_lngamma(count + alpha) - gsl_sf_lngamma(alpha);
       }
+ 
       E += gsl_sf_lngamma(eta) - gsl_sf_lngamma(eta+nik);
     }
     H += (int)args[1][i];
@@ -145,7 +148,7 @@ void DispersionSampler::etaGradient(unsigned , const double * const logeta, cons
   double priorshape = args[4][0];
   double priorrate = args[4][1];
 
-  g[0] -= priorshape - priorrate*eta;//log prior term
+  //g[0] -= priorshape - priorrate*eta;//log prior term
   int H = 0;
   for(int i = 0; i < L; ++i){
     for(int k = 0; k < K; ++k){
@@ -163,6 +166,13 @@ void DispersionSampler::etaGradient(unsigned , const double * const logeta, cons
     H += (int)args[1][i];
   }
 }
-double DispersionSampler::getEnergy(){
+double DispersionSampler::getEnergy(double x){
+  logeta[0] = x;
   return etaEnergyFunction(0, logeta, Args);
+}
+double DispersionSampler::getGradient(double x){
+  double g[1];
+  logeta[0] = x;
+  etaGradient(0, logeta, Args, g);
+  return g[0];
 }

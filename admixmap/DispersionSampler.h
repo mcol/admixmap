@@ -34,6 +34,8 @@ public:
   void addAlphas(unsigned, const double* const);
   void addCounts(unsigned, const int* const);
   double Sample();
+  double getEnergy(double);
+  double getGradient(double);
 
   float getAcceptanceRate();
   float getStepsize();
