@@ -54,7 +54,6 @@ private:
   // = # composite Loci, (=L in Chromosome)
 
   double sumfactor; 
-  double factor;//used for adjustment of alpha to avoid underflow
   
   //forward and backward probabilities
   //L x K x K arrays
