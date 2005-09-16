@@ -3,6 +3,7 @@
 #define FUNCTIONS_H 1
 
 #include <vector>
+#include <gsl/gsl_sf_psi.h>
 #include "vector_d.h"
 #include "matrix_d.h"
 
@@ -14,6 +15,10 @@ double getDirichletLogDensity(const std::vector<double>& a, const Vector_d& x);
 double getDirichletLogDensity(double *a, double *x, size_t K);
 
 double AverageOfLogs(const std::vector<double>& vec, double max);
+
+double logit(double );
+double invlogit(double);
+double derivBeta(double, double);
 
 //matrix algebra
 int HH_solve (Matrix_d A, Vector_d b, Vector_d *x);
@@ -27,10 +32,8 @@ void matrix_product(double *a, double *b, double *c, size_t d1, size_t d2, size_
 void matrix_product(const double *a, const double *b, double *c, size_t d1, size_t d2, size_t d3);
 void scale_matrix(double *a, const double c, size_t d1, size_t d2);
 
-void CentredGaussianConditional( int kk, Matrix_d mean, Matrix_d var, Matrix_d *newmean, Matrix_d *newvar );
 void CentredGaussianConditional( int kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim );
-void CentredGaussianConditional1( Vector_d mean, Matrix_d var, double *newmean, double  *newvar );
 double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim );
 
 double **alloc2D_d(int m, int n);
