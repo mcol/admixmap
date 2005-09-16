@@ -115,29 +115,6 @@ int SampleFromDiscrete( double probs[] , int numberofelements)
     return(k);
 }
 
-Vector_d gendirichlet( Vector_d alpha )
-{
-   int d = alpha.GetNumberOfElements();
-   double sum = 0;
-   Vector_d theta( d );
-
-   for( int i = 0; i < d; i++ )
-     {
-       //      assert( (double)alpha(i) > 0 );
-       if( alpha(i) > 0 )
-	 theta(i) = gengam( 1.0, (double)alpha(i) );
-	 
-       else
-         theta(i) = 0.0;
-       sum += theta(i); 
-     }
-   
-   assert( sum > 0.0 );
-   theta /= sum;
-   
-   return( theta );
-}
-
 void gendirichlet(const size_t K, const double alpha[], double theta[] )
 {
    double sum = 0.0;

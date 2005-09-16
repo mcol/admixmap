@@ -28,7 +28,6 @@ long ignpoi(double mu);
 ///
 int SampleFromDiscrete( double probs[] , int numberofelements);
 ///
-Vector_d gendirichlet( Vector_d );
 void gendirichlet(const size_t K, const double alpha[], double theta[] );
 ///
 void ddigam( double *, double * );
