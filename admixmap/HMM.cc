@@ -311,7 +311,7 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   //if(K==2)RecursionProbs2(ff, f, stateArrivalProbs, oldProbs, newProbs);
   //else
 {
-  double scaleFactor = 1.0;
+  // double scaleFactor = 1.0;
   double *rowProb = new double[K];
   double *colProb = new double[K];
   double *Expectation0 = new double[K];
@@ -322,8 +322,8 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   double **cov;
   cov = alloc2D_d(K, K);
 
-  for( int j0 = 0; j0 <  States; ++j0 )
-      oldProbs[j0] *= scaleFactor; 
+  //  for( int j0 = 0; j0 <  States; ++j0 )
+  //      oldProbs[j0] *= scaleFactor; 
 
   for( int j0 = 0; j0 <  K; ++j0 ) {
     rowProb[j0] = 0.0;
