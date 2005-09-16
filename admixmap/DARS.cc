@@ -322,7 +322,7 @@ double DARS::SampleUsingARS()
       else
 	{
 	  // ** Rejection step  **
-#	  aux1 = (*function)(parameters, data_i, data_d, w) - max; // log density at w, minus max
+	  aux1 = (*function)(parameters, data_i, data_d, w) - max; // log density at w, minus max
 	  bux = fannyexp(aux1);  // density at w
 	  if ( log(un) <= aux1 - log(aux) )  // aux is height of envelope at w
             SampleFlag = 1; // exit loop
