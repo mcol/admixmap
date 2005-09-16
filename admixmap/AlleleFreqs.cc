@@ -162,7 +162,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
       //       }
       
       //Initialise eta at its prior expectation
-      eta[k] = 3.0;//psi[k]/tau[k];
+      eta[k] = psi[k]/tau[k];
       //Rescale priorallelefreqs so the columns sum to eta 
       for(int j = 0; j < NumberOfCompositeLoci; j++ ){
 	double sum = 0.0;
