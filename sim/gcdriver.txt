@@ -1,5 +1,5 @@
 DATAFILE=data/gcgenotypes.txt
-MODEL=1-99
+MODEL=1-128
 MODELTYPE=1
 ALPHA=0.05
 OUTMODEL=gclinear.txt

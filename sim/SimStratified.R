@@ -47,13 +47,13 @@ distanceFromLast <- function(v.Chr, v.Position) {
 numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-N <- 200
-numsims <- 1
+N <- 300
+numsims <- 2
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
-spacing <- 40 # 40 cM spacing gives 99 loci
-eta <- 10 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmparams Di(1,2)
+spacing <- 30 # 40 cM spacing gives 99 loci
+eta <- 20 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmparams Di(1,2)
 beta <- 2 # regression slope for effect of admixture
 gamma <- 0.4 # effect of allele 2 at candidate locus: standardized effect size if linear reg
                                         # log odds ratio if logistic reg
@@ -96,9 +96,6 @@ for(sims in 1:numsims) {
 
   ## choose candidate at random
   candidate <- 1 + floor(L*runif(1)) # returns number between 1 and L
-  ## choose a candidate locus from centile of signed f-values
-  ##candidate <- match(floor(0.05*L),   rank(f.signed)) # 5th centile of f-value: negative confounding
-  ##candidate <- match(floor(0.95*L), rank(f.signed)) # 95th centile of f-value: positive confounding
   cat("Candidate locus", candidate, "with signed f-value", f.signed[candidate], "\n")
   
   ## simulate genotypes and outcome 
@@ -133,10 +130,11 @@ for(sims in 1:numsims) {
       ofam <- gaussian
     }
   }
+  genotypes <- genotypes[-1, ]
   ## recode genotypes as 0, 1, 2
   genotypes.r <- matrix(data=NA, nrow=dim(genotypes)[1], ncol=dim(genotypes)[2])
   ## recode genotype at candidate locus
-  for(i in 1:dim(genotypes)) {
+  for(i in 1:dim(genotypes)[1]) {
     for(j in 1:dim(genotypes)[2]) {
       if(genotypes[i, j] == "1,1") {
         genotypes.r[i, j] <- 0
@@ -162,7 +160,6 @@ for(sims in 1:numsims) {
   write.table(outcome, file="data/Mvalues.txt", row.names=FALSE,
               col.names=TRUE)
   ## write genotypes to file
-  genotypes <- genotypes[-1,]
   genotypes.gc <- genotypes
   for(col in 1:dim(genotypes)[2]) {
     genotypes.gc[, col] <- gsub(",", "\ ", as.vector(genotypes.gc[, col]))
@@ -193,11 +190,11 @@ for(sims in 1:numsims) {
   ## run genomic control analysis
   source("gcf.R")
   ## run admixmap with no outcomevar and two populations
-  system("../test/admixmap.exe NoOutcomeArgs.txt")
+  system("../test/admixmap.exe argsNoOutcome.txt")
   Sys.putenv("RESULTSDIR" = "NoOutcomeResults")
   source("../test/AdmixmapOutput.R")
   ## run admixmap with outcome var and two populations
-  system("../test/admixmap.exe TwoPopsArgs.txt")
+  system("../test/admixmap.exe argsTwoPops.txt")
   Sys.putenv("RESULTSDIR" = "TwoPopsResults")
   source("../test/AdmixmapOutput.R")
 
@@ -209,7 +206,7 @@ for(sims in 1:numsims) {
   residvar <- (sum(resid.nOutcome^2) - sum(resid.nOutcome)^2)/(N-2)
   nOutcome.pvalues <- numeric(L)
   for(locus in 1:L) {
-    a <- genotypes.r[, L]
+    a <- genotypes.r[, locus]
     score <- sum(a * resid.nOutcome) / residvar
     info <- sum(a^2) / residvar
     nOutcome.pvalues[locus] = 2*pnorm(-abs(score / sqrt(info)))
@@ -265,7 +262,7 @@ type1.error <- data.frame(null.results$f.signed,
 type2.error <- data.frame(candidate.results$f.signed,
                           candidate.results$crude.p > 0.05,
                           candidate.results$gc.p > 0.05,
-                          candidate.results$nadj2.p > 0.05,
+                          candidate.results$adj2.p > 0.05,
                           candidate.results$adj.p > 0.05)
 dimnames(type1.error)[[2]] <- results.colnames
 dimnames(type2.error)[[2]] <- results.colnames
