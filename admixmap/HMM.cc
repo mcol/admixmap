@@ -307,86 +307,101 @@ void HMM::Sample(int *SStates, double *Admixture, double *f[], bool isdiploid)
 // updates oldProbs (scaled to sum to 1), newProbs and sumfactor if forward = true (for alphas)
 void HMM::RecursionProbs(const double ff, const double f[2], 
 			 const double* const stateArrivalProbs, double* oldProbs, double *newProbs) {
-
-  //if(K==2)RecursionProbs2(ff, f, stateArrivalProbs, oldProbs, newProbs);
-  //else
-{
-  // double scaleFactor = 1.0;
-  double *rowProb = new double[K];
-  double *colProb = new double[K];
-  double *Expectation0 = new double[K];
-  double *Expectation1 = new double[K];
-
-  double *rowSum = new double[K];
-  double *colSum = new double[K];
-  double **cov;
-  cov = alloc2D_d(K, K);
-
-  //  for( int j0 = 0; j0 <  States; ++j0 )
-  //      oldProbs[j0] *= scaleFactor; 
-
-  for( int j0 = 0; j0 <  K; ++j0 ) {
-    rowProb[j0] = 0.0;
-    colProb[j0] = 0.0;
-    for( int j1 =0; j1 < K; ++j1 ) {
-      rowProb[j0] += oldProbs[j0*K + j1];
-      colProb[j0] += oldProbs[j1*K + j0];
-    }
-  }
-  // calculate expectations of indicator variables for each ancestry state on each gamete
-  for( int j = 0; j <  K; ++j ) {
-    Expectation0[j] = f[0]*rowProb[j] + stateArrivalProbs[j*2];
-    Expectation1[j] = f[1]*colProb[j] + stateArrivalProbs[j*2 + 1];
-    
-  }
-  // calculate covariance of ancestry states as ff * deviation from product of row and col probs
-  for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
-    for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-      cov[j0][j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
-    }
-  }
-
-  // accumulate sums of covariances over first K-1 rows and K-1 cols
-  for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
-    rowSum[j0] = 0.0;
-    colSum[j0] = 0.0;
-    for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-      rowSum[j0] += cov[j0][j1];
-      colSum[j0] += cov[j1][j0];
-    }
-  }
-  // calculate last row except for last col, by subtracting colSum from 0
-  // also accumulate sum of covariances for K th row over first K-1 cols
-  rowSum[K-1] = 0.0;
-  for( int j = 0; j < K-1; ++j ) {
-    cov[K-1][j] =  -colSum[j];
-    rowSum[K-1] += cov[K-1][j];
-  }
-  // calculate last col by subtracting rowSum from 0
-  for( int j = 0; j < K; ++j ) {
-    cov[j][K-1] =  -rowSum[j];
-  }
-
-  // calculate expectation of product as covariance plus product of expectations
-  // can speed up with Fourier transform 
-  for(int j0 = 0; j0 < K; ++j0) {
-    for(int j1 =0; j1 < K; ++j1) {
+  if(K==2) RecursionProbs2(ff, f, stateArrivalProbs, oldProbs, newProbs);
+  else
+    {
+      // double scaleFactor = 1.0;
+      double *rowProb = new double[K];
+      double *colProb = new double[K];
+      double *Expectation0 = new double[K];
+      double *Expectation1 = new double[K];
       
-      newProbs[j0*K + j1] = cov[j0][j1] + Expectation0[j0] * Expectation1[j1];
-	// newProbs[j0][j1] = ff * (oldProbs[j0*K + j1]*scaleFactor - rowProb[j0] * colProb[j1]) + 
-      //	 ( f[0]*rowProb[j0] + stateArrivalProbs[j0*2] ) * ( f[1]*colProb[j1] + stateArrivalProbs[j1*2 + 1] );
+      double *rowSum = new double[K];
+      double *colSum = new double[K];
+      double **cov;
+      cov = alloc2D_d(K, K);
+      
+      for( int j0 = 0; j0 <  K; ++j0 ) {
+	rowProb[j0] = 0.0;
+	colProb[j0] = 0.0;
+	for( int j1 =0; j1 < K; ++j1 ) {
+	  rowProb[j0] += oldProbs[j0*K + j1];
+	  colProb[j0] += oldProbs[j1*K + j0];
+	}
+      }
+      // calculate expectations of indicator variables for each ancestry state on each gamete
+      for( int j = 0; j <  K; ++j ) {
+	Expectation0[j] = f[0]*rowProb[j] + stateArrivalProbs[j*2];
+	Expectation1[j] = f[1]*colProb[j] + stateArrivalProbs[j*2 + 1];
+	
+      }
+      // calculate covariance of ancestry states as ff * deviation from product of row and col probs
+      for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
+	for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
+	  cov[j0][j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
+	}
+      }
+      
+      // accumulate sums of covariances over first K-1 rows and K-1 cols
+      for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
+	rowSum[j0] = 0.0;
+	colSum[j0] = 0.0;
+	for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
+	  rowSum[j0] += cov[j0][j1];
+	  colSum[j0] += cov[j1][j0];
+	}
+      }
+      // calculate last row except for last col, by subtracting colSum from 0
+      // also accumulate sum of covariances for K th row over first K-1 cols
+      rowSum[K-1] = 0.0;
+      for( int j = 0; j < K-1; ++j ) {
+	cov[K-1][j] =  -colSum[j];
+	rowSum[K-1] += cov[K-1][j];
+      }
+      // calculate last col by subtracting rowSum from 0
+      for( int j = 0; j < K; ++j ) {
+	cov[j][K-1] =  -rowSum[j];
+      }
+      
+      // calculate expectation of product as covariance plus product of expectations
+      for(int j0 = 0; j0 < K; ++j0) {
+	for(int j1 =0; j1 < K; ++j1) {
+	  newProbs[j0*K + j1] = cov[j0][j1] + Expectation0[j0] * Expectation1[j1];
+	  // newProbs[1] is prob(paternal=1, maternal=0)
+	}
+      }
+      delete[] rowProb;
+      delete[] colProb;
+      delete[] Expectation0;
+      delete[] Expectation1;
+      delete[] rowSum;
+      delete[] colSum;
+      free_matrix(cov, K);
+    }//end else
+}
 
-    }
-  }
-  delete[] rowProb;
-  delete[] colProb;
-  delete[] Expectation0;
-  delete[] Expectation1;
-
-  delete[] rowSum;
-  delete[] colSum;
-  free_matrix(cov, K);
-  }//end else
+void HMM::RecursionProbs2(const double ff, const double f[2], const double* const stateArrivalProbs, 
+			  const double* const oldProbs, double *newProbs) {
+  // version for 2 subpopulations
+  double row0Prob;
+  double col0Prob;
+  double Expectation0;
+  double Expectation1;
+  double cov;
+  double Product;
+  // sum row 0 and col 0  
+  row0Prob = ( oldProbs[0] + oldProbs[2] );
+  col0Prob = ( oldProbs[0] + oldProbs[1] );
+  // calculate expectations of indicator variables for ancestry=0 on each gamete
+  Expectation0 = f[0]*row0Prob + stateArrivalProbs[0]; // paternal gamete
+  Expectation1 = f[1]*col0Prob + stateArrivalProbs[1]; // maternal gamete
+  Product = Expectation0 * Expectation1;
+  // calculate covariance of indicator variables as ff * deviation from product of row and col probs
+  cov = ff * ( oldProbs[0] - row0Prob * col0Prob );
+  newProbs[0] = Product + cov; 
+  newProbs[1] = Expectation0 - newProbs[0]; //prob paternal ancestry=1, maternal=0 
+  newProbs[2] = Expectation1 - newProbs[0]; //prob paternal ancestry=0, maternal=1 
+  newProbs[3] = 1 - Expectation0 - Expectation1 + newProbs[0];
 }
 
 void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
@@ -450,47 +465,4 @@ void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned i
       }
     }
 }
-void HMM::RecursionProbs2(const double ff, const double f[2], 
-			 const double* const stateArrivalProbs, const double* const oldProbs, double *newProbs) {
-  //double Sum = 0.0, scaleFactor = 1.0;
-  double row0Prob;
-  double col0Prob;
-  double Expectation0;
-  double Expectation1;
-  double cov;
-  double Product;
-  double RealF1;
-  double ImaginaryF1;
 
-  // version for K = 2
-  // scale array oldProbs so that elements sum to 1, and accumulate row and col sums  
-  row0Prob = ( oldProbs[0] + oldProbs[2] );
-  col0Prob = ( oldProbs[1] + oldProbs[3] );
-
-  // calculate expectations of indicator variables for each ancestry state on each gamete
-  Expectation0 = f[0]*row0Prob + stateArrivalProbs[0];
-  Expectation1 = f[1]*col0Prob + stateArrivalProbs[1];
-  Product = Expectation0 * Expectation1;
-  
-  // calculate covariance of ancestry states as ff * deviation from product of row and col probs
-  cov = ff * ( oldProbs[0] - row0Prob * col0Prob );
-
-  // calculate expectation of product as covariance plus product of expectations
-  // evaluates newProbs[j0*K + j1] = cov + Expectation0 * Expectation1;
-  // uses discrete Fourier transform  
-  //   P0 = Expectation0 * Expectation1 + cov;
-  //   P1 = (1 - Expectation0) * Expectation1 - cov;
-  //   P2 = Expectation0 * (1 - Expectation1) - cov;
-  //   P3 = (1 - Expectation0) * (1 - Expectation1) + cov;
-  // F0 = 0.5*(P0 + P1 + P2 + P3) = 0.5
-  // F1 = 0.5*((P0 - P2) + i*(P1 - P3)) = Real + i*Imaginary
-  // F2 = 0.5*(P0 - P1 + P2 - P3)
-  // F3 = 0.5*((P0 - P2) - i*(P1 - P3)) 
-  RealF1      = Product - 0.5 * Expectation0 + cov;
-  ImaginaryF1 = Expectation1 - Product - 0.5 * (1 - Expectation0) - cov;
-  
-  newProbs[0] = 0.5*Expectation0 + RealF1;
-  newProbs[1] = 0.5*(1.0 - Expectation0) + ImaginaryF1;
-  newProbs[2] = 0.5*Expectation0 - RealF1;
-  newProbs[3] = 0.5*(1.0 - Expectation0) - ImaginaryF1;
-}
