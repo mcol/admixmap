@@ -50,9 +50,11 @@ static std::vector<double> CstrToVec2(const char* str)
 
 AdmixOptions::AdmixOptions()
 {
-  burnin = 1000;
-  TotalSamples = 1000000;
-  SampleEvery = 100;
+  // global variables store option values: variable names not necessarily same as 
+  // command-line option names which are all lower-case 
+  burnin = 100;
+  TotalSamples = 1100;
+  SampleEvery = 10;
   Seed = 1;
   AnalysisTypeIndicator = 0;
   TargetIndicator = 0;
@@ -91,19 +93,20 @@ AdmixOptions::AdmixOptions()
   Rhobeta = 0.5;  
   alphamean = 1;  //  gamma(0.25, 0.25)
   alphavar = 16;   //
-  etamean = 300.0; //gamma(3, 0.01)
-  etavar = 300000.0; 
+  etamean = 100.0; //gamma(3, 0.01)
+  etavar = 2500.0; 
 
   ResultsDir = "results";
   LogFilename = "log.txt";
 
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
 
-  OptionValues["burnin"] = "1000";
-  OptionValues["samples"] = "1000000";
+  // option names and option values are stored as strings in a map container 
+  OptionValues["burnin"] = "100";
+  OptionValues["samples"] = "1100";
   OptionValues["targetindicator"] = "0";
   OptionValues["coutindicator"] = "1";
-  OptionValues["analysistypeindicator"] = "0";
+  OptionValues["analysistypeindicator"] = "1";
   OptionValues["every"] = "100";
   OptionValues["fixedallelefreqs"] = "0";
   OptionValues["correlatedallelefreqs"] = "0";
@@ -130,6 +133,7 @@ AdmixOptions::~AdmixOptions()
 {
 }
 
+// each option has a function to return its value
 const char *AdmixOptions::getResultsDir() const{
   return ResultsDir.c_str();
 }
@@ -628,6 +632,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"dispersiontestfile",                    1, 0,  0 }, // string
     {"fstoutputfile",                         1, 0,  0 }, // string
     {"hwscoretestfile",                       1, 0,  0 }, // string
+    {"likratiofilename",                       1, 0,  0 }, // string
 
     // Other options
     {"coutindicator",                         1, 0, 'c'}, // int 0: 1
@@ -651,7 +656,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"initalpha0",                            1, 0,  0 }, // double
     {"initalpha1",                            1, 0,  0 }, // double
     {"fixedallelefreqs",                      1, 0,  0 }, // long
-    {"correlatedallelefreqs",                 1, 0,  0 }, // long
+    {"correlatedallelefreqs",                 1, 0,  0 }, // int 0: 1
     {"xonlyanalysis",                         1, 0,  0 }, // long
     {0, 0, 0, 0}    // marks end of array
   };
@@ -697,7 +702,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     case 'h': // help
       cout << "Usage: " << args[0] << " [options]" << endl;
       cout << " some help text goes here" << endl;
-//outputlist of user options to console
+      //outputlist of user options to console
       exit(0);
 
     case 'i': // indadmixturefile
@@ -878,7 +883,6 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 }
 
 void AdmixOptions::SetOutputNames(){
-
   //prefix output files with ResultsDir
   if ( LogFilename != "") LogFilename = ResultsDir + "/" + LogFilename;
   if ( ParameterFilename != "") ParameterFilename = ResultsDir + "/" + ParameterFilename;
@@ -909,7 +913,6 @@ void AdmixOptions::PrintOptions(){
     {
     OptionValues["populations"] = (char *)s.str().c_str();
     }
-
   //Now output Options table to args.txt
   string ss;
   ss = ResultsDir + "/args.txt";
@@ -922,7 +925,6 @@ void AdmixOptions::PrintOptions(){
 }
 
 int AdmixOptions::checkOptions(LogWriter *Log){
-
   // **** analysis type  ****
   if (AnalysisTypeIndicator == 0)
     {
@@ -1064,7 +1066,10 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true,"No allelefreq filename or priorallelefreq filename given.\n");
       Log->logmsg(true,"Default priors will be set for the allele frequencies with ");
       Log->logmsg(true, Populations);
-      Log->logmsg(true," populations.\n");
+      Log->logmsg(true," population(s)\n");
+      if(correlatedallelefreqs) {
+	Log->logmsg(true,"Analysis with correlated allele frequencies\n");
+      }
     }
   else if( alleleFreqFilename.length() ||
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
@@ -1089,8 +1094,6 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     FSTOutputFilename = "";
     OptionValues.erase("fstoutputfile");
   }
-
-
 
   // **** score tests ****
   if( TestForLinkageWithAncestry && Populations == 1 ){
