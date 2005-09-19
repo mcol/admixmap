@@ -126,7 +126,6 @@ AdmixOptions::AdmixOptions()
   OptionValues["popadmixpriorvar"] = "1.0";
   OptionValues["xonlyanalysis"] = "0";
   OptionValues["textindicator"] = "1";
-  OptionValues["likratiofilename"] = "LikRatioFile.txt";
 }
 
 AdmixOptions::~AdmixOptions()
@@ -655,9 +654,9 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"truncationpoint",                       1, 0,  0 }, // double
     {"initalpha0",                            1, 0,  0 }, // double
     {"initalpha1",                            1, 0,  0 }, // double
-    {"fixedallelefreqs",                      1, 0,  0 }, // long
-    {"correlatedallelefreqs",                 1, 0,  0 }, // int 0: 1
-    {"xonlyanalysis",                         1, 0,  0 }, // long
+    {"fixedallelefreqs",                      1, 0,  0 }, // int 0, 1
+    {"correlatedallelefreqs",                 1, 0,  0 }, // int 0, 1
+    {"xonlyanalysis",                         1, 0,  0 }, // int 0, 1
     {0, 0, 0, 0}    // marks end of array
   };
 
@@ -1122,6 +1121,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true," This option will be ignored.\n");
       setTestForAffectedsOnly(false);
     }
+    else   OptionValues["likratiofilename"] = "LikRatioFile.txt";
   if( TestForLinkageWithAncestry ){
     if(AnalysisTypeIndicator < 2){
       Log->logmsg(true,"ERROR: ancestryassociation score test is not valid with analysistypeindicator < 2 .");
