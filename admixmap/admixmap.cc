@@ -154,7 +154,7 @@ void submain(AdmixOptions* options){
 
       // ** update global sumintensities
       if((options->getPopulations() > 1) && (IC->getSize() > 1) && options->getIndAdmixHierIndicator() && (Loci.GetLengthOfGenome()> 0.0))
-	L.UpdateRhoWithRW(IC, chrm, iteration);
+	L.UpdateRhoWithRW(IC, chrm);
   
       // ** Update individual-level parameters  
       IC->Update(iteration, &A, &R0, &R1, L.getpoptheta(),options,

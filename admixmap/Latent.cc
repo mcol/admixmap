@@ -262,7 +262,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
 //end Update
 
 
-void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int iteration){
+void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C){
 
   if( !options->getRhoIndicator() ){
     double rhoprop;

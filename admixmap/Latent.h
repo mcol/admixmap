@@ -74,7 +74,7 @@ public:
   void  InitializeOutputFile(std::string *);
   
   //Updating every iteration
-  void UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, int iteration);
+  void UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C);
   void Update(int iteration,IndividualCollection *);
   
   void OutputParams(int iteration); 
