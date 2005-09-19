@@ -13,6 +13,7 @@ double getDirichletLogDensity(const Vector_d& a, const Vector_d& x);
 double getDirichletLogDensity(const std::vector<double>& a, const Vector_d& x);
 
 double getDirichletLogDensity(double *a, double *x, size_t K);
+double getDirichletLogDensity(const std::vector<double>& a, double *x);
 
 double AverageOfLogs(const std::vector<double>& vec, double max);
 
