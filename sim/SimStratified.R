@@ -47,8 +47,8 @@ distanceFromLast <- function(v.Chr, v.Position) {
 numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-N <- 300
-numsims <- 2
+N <- 400
+numsims <- 3
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
@@ -58,6 +58,7 @@ beta <- 2 # regression slope for effect of admixture
 gamma <- 0.4 # effect of allele 2 at candidate locus: standardized effect size if linear reg
                                         # log odds ratio if logistic reg
 logistic <- F # logistic or linear
+
 ## assign map distances
 x <- numeric(0)
 chr <- numeric(0)
@@ -86,8 +87,6 @@ for(sims in 1:numsims) {
                                         # freqs allele 1 in each of NumSubPops subpops
     alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
   }
-                                        #alleleFreqs[,1] <- 1
-                                        #alleleFreqs[,2] <- 0
   p1 <- alleleFreqs[seq(2, 2*L, by=2), 1]
   p2 <- alleleFreqs[seq(2, 2*L, by=2), 2]
   ## positive f-value if freq allele 2 higher in pop1 than pop2
@@ -102,7 +101,6 @@ for(sims in 1:numsims) {
   genotypes <- character(L)
   outcome <- numeric(N)
   avM <- numeric(N)
-  g <- numeric(N)
   popM <- popadmixparams[1] / sum(popadmixparams) # mean admixture proportions
   popg <- 2*(popM*alleleFreqs[2*candidate, 1] + (1 - popM)*alleleFreqs[2*candidate, 2])
                                         # expected number of copies allele 2 at candidate locus
@@ -117,20 +115,9 @@ for(sims in 1:numsims) {
     ##for(locus in 1:L) if(runif(n=1) < 0.1)
     ##    obs[locus]<-""
     genotypes <- rbind(genotypes, obs)
-    
-    ## simulate outcome
-    alpha <- -beta*popM - gamma*popg 
-    if(logistic) { # logistic regression with approx equal numbers of cases and controls
-      outcome[individual] <-
-        rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[individual] + gamma*g[individual]))))  
-      ofam <- binomial
-    } else { # linear regression
-      outcome[individual] <-
-        rnorm(1, mean=(alpha + beta*avM[individual]+ gamma*g[individual]), sd=1) 
-      ofam <- gaussian
-    }
   }
   genotypes <- genotypes[-1, ]
+  
   ## recode genotypes as 0, 1, 2
   genotypes.r <- matrix(data=NA, nrow=dim(genotypes)[1], ncol=dim(genotypes)[2])
   ## recode genotype at candidate locus
@@ -146,6 +133,20 @@ for(sims in 1:numsims) {
     }
   }
   g <- genotypes.r[, candidate]
+  
+  for(individual in 1:N) {
+    ## simulate outcome
+    alpha <- -beta*popM - gamma*popg 
+    if(logistic) { # logistic regression with approx equal numbers of cases and controls
+      outcome[individual] <-
+        rbinom(1, 1, 1 / (1+exp(-(alpha + beta*avM[individual] + gamma*g[individual]))))  
+      ofam <- binomial
+    } else { # linear regression
+      outcome[individual] <-
+        rnorm(1, mean=(alpha + beta*avM[individual]+ gamma*g[individual]), sd=1) 
+      ofam <- gaussian
+    }
+  }
   
   ## fit regression model to sampled values
   #reg.adj <- summary.glm(glm(outcome ~ avM + g, family = ofam))$coefficients[3,]
@@ -187,7 +188,7 @@ for(sims in 1:numsims) {
   system("../test/admixmap.exe SinglePopArgs.txt")
   Sys.putenv("RESULTSDIR" = "SinglePopResults")
   source("../test/AdmixmapOutput.R")
-  ## run genomic control analysis
+  ## run genomic control analysis - must set threshold p-value in gcdriver.txt
   source("gcf.R")
   ## run admixmap with no outcomevar and two populations
   system("../test/admixmap.exe argsNoOutcome.txt")
@@ -205,11 +206,13 @@ for(sims in 1:numsims) {
   resid.nOutcome <- resid(r.nOutcome)
   residvar <- (sum(resid.nOutcome^2) - sum(resid.nOutcome)^2)/(N-2)
   nOutcome.pvalues <- numeric(L)
+  r.pvalues <- numeric(L)
   for(locus in 1:L) {
-    a <- genotypes.r[, locus]
+    a <- genotypes.r[, locus] - mean(genotypes.r[, locus])
     score <- sum(a * resid.nOutcome) / residvar
     info <- sum(a^2) / residvar
     nOutcome.pvalues[locus] = 2*pnorm(-abs(score / sqrt(info)))
+    #r.pvalues[locus] <- summary(glm(outcome ~ avM.nOutcome + a, family=ofam))$coefficients[3, 4]
   }
 
   ## read adjusted and unadjusted p-values from file
