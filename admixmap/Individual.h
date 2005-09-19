@@ -26,6 +26,7 @@
 #include "Chromosome.h"
 #include "AlleleFreqs.h"
 #include "LogWriter.h"
+#include "StepSizeTuner.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 
@@ -61,10 +62,6 @@ public:
 
   bool IsMissing(unsigned int locus);
 
-  static int *getSumXi();
-
-  static int getSumXi(int j);
-
   static double getSumrho0();
 
   double getSumrho();
@@ -72,6 +69,7 @@ public:
   std::vector<double> getRho();
 
   double getLogLikelihood(AdmixOptions*, Chromosome**);
+  double getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, vector<double > rho, vector<double> rho_X);
 
   double getLogLikelihoodOnePop();
 
@@ -114,7 +112,6 @@ private:
   unsigned short ***genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
 
-  static int *sumxi;//sum of jump indicators over individuals, gametes
   static double Sumrho0;//? sum of distances between loci where there are no arrivals, summed over individuals
 
   static unsigned int numChromosomes;
@@ -133,6 +130,11 @@ private:
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   unsigned int X_posn;  //number of X chromosome
   double TruncationPt; // upper truncation point for sum intensities parameter rho
+
+  //RWM sampler for individual admixture
+  StepSizeTuner ThetaTuner;
+  int w, NumberOfUpdates;
+  double step, step0;
 
   //parameter estimates for chib algorithm
   Matrix_d AdmixtureHat;
@@ -158,7 +160,7 @@ private:
 
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double *poptheta, bool ModelIndicator,
 				     Matrix_d *Covariates0);
-  void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator );
+  void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator, bool RW );
   double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
   double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, int Populations,
 					       int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
@@ -170,12 +172,13 @@ private:
 
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
 		 unsigned int SumN[], unsigned int SumN_X[]);
-  void SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome,
+  void SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome, Chromosome **C, 
 		    int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 		    Matrix_d &Covariates0, double **beta, const double *poptheta,
-		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma);
+		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, bool);
 
   void ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<vector<double> > &alpha);
+  double ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome **C, vector<vector<double> > &alpha);
   void CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<vector<double> > &alpha, 
 			     double rhoalpha, double rhobeta, double L, 
 			     double L_X, unsigned int SumN[], unsigned int SumN_X[]);

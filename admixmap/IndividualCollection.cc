@@ -98,17 +98,6 @@ IndividualCollection::getSize()
   return NumInd;
 }
 
-//not needed
-int *IndividualCollection::GetSumXi()
-{
-  return Individual::getSumXi();
-}
-
-//not needed
-int IndividualCollection::GetSumXi(int j){
-  return Individual::getSumXi(j);
-}
-
 //not needed 
 double IndividualCollection::GetSumrho0()
 {

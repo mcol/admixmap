@@ -168,13 +168,13 @@ double Chromosome::getLogLikelihood()
 }
 
 //samples jump indicators xi for this chromosome, 
-//updates sumxi and Sumrho0 and SumLocusAncestry
+//updates Sumrho0 and SumLocusAncestry
 void Chromosome::SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
-				      int *sumxi, double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+				      double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 				      unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
 
   SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, Distances, _startLocus, 
-				    sumxi, Sumrho0, SumLocusAncestry, SumLocusAncestry_X, isX, 
+				    Sumrho0, SumLocusAncestry, SumLocusAncestry_X, isX, 
 				    SumN, SumN_X, RhoIndicator);
 }
 
