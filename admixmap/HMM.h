@@ -43,7 +43,7 @@ public:
 
   void SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
 			    double *Distances, const int startLocus,  
-			    int *sumxi, double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+			    double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator) ;
 private:
   int K;

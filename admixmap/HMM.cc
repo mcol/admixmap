@@ -310,16 +310,13 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   if(K==2) RecursionProbs2(ff, f, stateArrivalProbs, oldProbs, newProbs);
   else
     {
-      // double scaleFactor = 1.0;
-      double *rowProb = new double[K];
-      double *colProb = new double[K];
-      double *Expectation0 = new double[K];
-      double *Expectation1 = new double[K];
-      
-      double *rowSum = new double[K];
-      double *colSum = new double[K];
-      double **cov;
-      cov = alloc2D_d(K, K);
+      double rowProb[K];
+      double colProb[K];
+      double Expectation0[K];
+      double Expectation1[K];
+      double rowSum[K];
+      double colSum[K];
+      double cov[K][K];
       
       for( int j0 = 0; j0 <  K; ++j0 ) {
 	rowProb[j0] = 0.0;
@@ -370,13 +367,6 @@ void HMM::RecursionProbs(const double ff, const double f[2],
 	  // newProbs[1] is prob(paternal=1, maternal=0)
 	}
       }
-      delete[] rowProb;
-      delete[] colProb;
-      delete[] Expectation0;
-      delete[] Expectation1;
-      delete[] rowSum;
-      delete[] colSum;
-      free_matrix(cov, K);
     }//end else
 }
 
@@ -406,7 +396,7 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
 
 void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
 			       double *Distances, const int startLocus, 
-			       int *sumxi, double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+			       double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			       unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
 
   int locus;
@@ -424,14 +414,12 @@ void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned i
 	  (StateArrivalProbs[jj*K*2 + LocusAncestry[jj + g*Transitions]*2 +g] + f[g][jj] );
 	if( Prob > myrand() ){
 	  xi[g][jj] = true;
-	  sumxi[locus]++;
 	} else {
 	  xi[g][jj] = false;
 	  *Sumrho0 += Distances[ jj ];
 	}
       } else {
 	xi[g][jj] = true;
-	sumxi[locus]++;
       }
  
       if( xi[g][jj] ){
