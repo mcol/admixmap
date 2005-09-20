@@ -98,16 +98,6 @@ IndividualCollection::getSize()
   return NumInd;
 }
 
-//not needed 
-double IndividualCollection::GetSumrho0()
-{
- //   double Sumrho0 = 0;
-//    for( unsigned int i = 0; i < NumInd; i++ )
-//       Sumrho0 += (*_child[i]).getSumrho0();
-//    return Sumrho0;
-  return Individual::getSumrho0();
- }
-
 double IndividualCollection::GetSumrho()
 {
    double Sumrho = 0;
@@ -484,7 +474,6 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
 				  double rhoalpha, double rhobeta, LogWriter *Log, chib *MargLikelihood){
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
-  Individual::ResetStaticSums();
 
   double lambda[] = {R0->getlambda(), R1->getlambda()};
   double *beta[] = {R0->getbeta(), R1->getbeta()};

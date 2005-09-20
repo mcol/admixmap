@@ -76,7 +76,6 @@ public:
   void setAdmixtureProps(double *, size_t);
   void setAdmixturePropsX(double *, size_t);
 
-  double GetSumrho0();
   double GetSumrho();
   double getSumLogTheta(int);
   double *getSumLogTheta();

@@ -53,7 +53,7 @@ public:
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
   void SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
-			    double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+			    int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator);
 private:
   int _startLocus;

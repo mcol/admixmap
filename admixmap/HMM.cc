@@ -395,8 +395,8 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
 }
 
 void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
-			       double *Distances, const int startLocus, 
-			       double *Sumrho0, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+			       const int startLocus, 
+			       int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			       unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
 
   int locus;
@@ -416,7 +416,6 @@ void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned i
 	  xi[g][jj] = true;
 	} else {
 	  xi[g][jj] = false;
-	  *Sumrho0 += Distances[ jj ];
 	}
       } else {
 	xi[g][jj] = true;

@@ -44,8 +44,6 @@ public:
 
   static void SetStaticMembers(Genome *pLoci, AdmixOptions *options);
 
-  static void ResetStaticSums();
-
   static void DeleteStaticMembers();
 
   int getSex();
@@ -61,8 +59,6 @@ public:
   std::vector<hapPair > &getPossibleHapPairs(unsigned int locus);
 
   bool IsMissing(unsigned int locus);
-
-  static double getSumrho0();
 
   double getSumrho();
 
@@ -111,8 +107,6 @@ public:
 private:
   unsigned short ***genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
-
-  static double Sumrho0;//? sum of distances between loci where there are no arrivals, summed over individuals
 
   static unsigned int numChromosomes;
   static int Populations;

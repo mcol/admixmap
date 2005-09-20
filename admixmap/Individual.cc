@@ -40,7 +40,6 @@ double *Individual::Xcov;
 
 unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
-double Individual::Sumrho0;
 int Individual::Populations;
 
 //temporary function for marg likelihood calculation
@@ -154,10 +153,10 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     // ** set up StepSizeTuner object for random walk updates of admixture **
     NumberOfUpdates = 0;
     w = 1;
-    step0 = 0.5; // initial sd of proposal distribution
+    step0 = 0.1; // initial sd of proposal distribution
     //need to choose sensible value for this initial RW sd
     step = step0;
-    ThetaTuner.SetParameters( step0, 0.00, 1.0, 0.44);  
+    ThetaTuner.SetParameters( step0, 0.00, 10.0, 0.44);  
    
 }
 
@@ -226,10 +225,6 @@ void Individual::DeleteStaticMembers(){
   free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
 }
 
-void Individual::ResetStaticSums(){
-  Sumrho0 = 0;
-}
-
 unsigned short **Individual::getGenotype(unsigned int locus){
   return genotypes[locus];
 }
@@ -279,10 +274,6 @@ int Individual::getSex()
    return sex;
 }
 
-double Individual::getSumrho0()
-{
-   return Sumrho0;
-}
 
 double Individual::getSumrho()
 {
@@ -392,8 +383,8 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 //DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
 //dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 {
+
   // ** reset SumLocusAncestry and ThetaProposal **
-  // should clean this up, takes 4 lines with std::vectors
   for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
 //  if(Loci->isX_data() ){
     int J = Populations;
@@ -408,12 +399,16 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
      size_theta = Populations;
 
    for(unsigned k = 0; k < size_theta; ++k){
-     ThetaProposal[k] = 0.0;
+     ThetaProposal[k] = 0.0;//may be unnecessary
    }
    if(ThetaXProposal){
      size_theta = Populations;if(sex != 1) size_theta *= 2;
      for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
    }
+
+   if(!(iteration %2))//update theta with random walk
+     SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
+		 Covariates, beta, poptheta, options, alpha, sigma, true);
 
   //SumN is the number of arrivals between each pair of adjacent loci  
   unsigned int SumN[] = {0,0};
@@ -422,6 +417,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
   bool isdiploid;
   bool calcbackprobs = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   for( unsigned int j = 0; j < numChromosomes; j++ ){
+
     //Update Forward/Backward probs in HMM
     isdiploid = UpdateForBackProbs(j, chrm[j], options, calcbackprobs);
 
@@ -458,9 +454,9 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
       }
      }   
 
-    //sample number of arrivals and sumrho0 and SumLocusAncestry
+    //sample number of arrivals and SumLocusAncestry
     bool isX = (j == X_posn);
-    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], &Sumrho0, SumLocusAncestry, SumLocusAncestry_X, isX,
+    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X, isX,
 				  SumN, SumN_X, options->getRhoIndicator());
   }//end chromosome loop
 
@@ -491,13 +487,9 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
     }
   }
 
-  //sample admixture proportions, Theta
-  bool RW;
-  if((iteration %2)==0)RW = false;//sample directly
-  else RW = true;//update with random walk
-
-  SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
-	      Covariates, beta, poptheta, options, alpha, sigma, RW);
+  if((iteration %2))//conjugate update of theta
+    SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
+		Covariates, beta, poptheta, options, alpha, sigma, false);
 
   //increment B using new Admixture Props
   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
@@ -585,32 +577,23 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
     double LogLikelihoodRatio = 0.0;
     double LogPriorRatio = 0.0;
 
-    cout<<"Stepsize = "<<step<<endl;
-    double logpratio;
-
     //generate proposals
     unsigned G = 1;
     if( options->isRandomMatingModel() )G = 2;//random mating model
     for( unsigned int g = 0; g < G; g++ ){
       //perform softmax transformation
       double a[Populations];
+      inv_softmax(Populations, Theta+g*Populations, a);
+
       a[Populations-1] = 0.0;
-      double z = 0.0;
-      double sum = 0.0;
-      
+	//random walk step
       for(int k = 0; k < Populations-1; ++k){
-	a[Populations-1] -= log(Theta[g*Populations +k]);
-      }
-      a[Populations-1] /= Populations;
-      for(int k = 0; k < Populations-1; ++k){
-	a[k] = a[Populations-1] +log(Theta[g*Populations +k]) - log(Theta[(g+1)*Populations -1]);
 	a[k] = gennor(a[k], step);
-	z += exp(a[k]);
-	sum += a[k];
+	a[Populations-1] -= a[k];
       }
-      a[Populations-1] = -sum;
-      z += exp(a[Populations-1]);
-      for(int k = 0; k < Populations; ++k)ThetaProposal[g*Populations +k] = exp(a[k]) / z;
+
+      //reverse transformation
+      softmax(Populations, ThetaProposal+g*Populations, a);
       
       //compute prior ratio
       LogPriorRatio += getDirichletLogDensity(alpha[0], ThetaProposal+g*Populations) - 
@@ -618,11 +601,11 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
     }
     //get log likelihood at current parameter values
     LogLikelihoodRatio -= getLogLikelihood(options, C);
+ 
     //get log likelihood at proposal theta and current rho
     LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, _rho, _rho_X);
-    logpratio += LogLikelihoodRatio + LogPriorRatio; 
-
-    return logpratio;
+ 
+    return LogLikelihoodRatio + LogPriorRatio;
 }
 
 // Samples individual admixture proportions conditional on sampled values of ancestry at loci where 
