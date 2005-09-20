@@ -113,8 +113,8 @@ double DispersionSampler::etaEnergyFunction(unsigned , const double * const loge
   double priorshape = args[4][0];
   double priorrate = args[4][1];
 
-  //E = (priorshape-1.0)*logeta[0] - priorrate*eta;//log (gamma)prior
-  //E += logeta[0];//Jacobian
+  E += (priorshape-1.0)*logeta[0] - priorrate*eta;//log (gamma)prior
+  E += logeta[0];//Jacobian
   int H = 0;// counts how many states visited so far
   for(int i = 0; i < L; ++i){
  
@@ -148,7 +148,7 @@ void DispersionSampler::etaGradient(unsigned , const double * const logeta, cons
   double priorshape = args[4][0];
   double priorrate = args[4][1];
 
-  //g[0] -= priorshape - priorrate*eta;//log prior term
+  g[0] -= priorshape - priorrate*eta;//log prior term
   int H = 0;
   for(int i = 0; i < L; ++i){
     for(int k = 0; k < K; ++k){
