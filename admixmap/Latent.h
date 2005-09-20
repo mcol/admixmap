@@ -118,13 +118,10 @@ private:
   double rhobeta1;
   double SumRho; //ergodic sum of rho
   
-  
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
   int w, NumberOfUpdates;
   double step, step0;
-  //int NumberAccepted;
-  // double TotalNumberAccepted;
 
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
   std::vector<double> SumAlpha; //ergodic sums of alphas
