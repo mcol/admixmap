@@ -151,24 +151,36 @@ void MuSampler::muGradient(unsigned , const double * const a, const double* cons
   int K = (int)args[0][0];// Number of populations
   double eta = args[3][0];//dispersion parameter
 
+  //prior term is zero
   double z = 0.0;
   for(int h = 0; h < H; ++h){
     z+= exp(a[h]);
   }
-  double delta = args[1][0];
   double alphaH = eta * exp(a[H])/z;;
+  double dEdMu[H];fill(dEdMu, dEdMu+H, 0.0);
 
+  //first compute gradient wrt mu
   for(int h = 0; h < H; ++h){
-    double alpha = eta * exp(a[h])/z;
+    double mu = exp(a[h])/z;
+    double alpha = eta * mu;
 
-     for(int k = 0; k < K; ++k){
-
+    for(int k = 0; k < K; ++k){
+      
       int offset = h*K +k;
-
-      g[h] = eta * (gsl_sf_psi(alpha) - gsl_sf_psi(args[2][offset]+alpha));//log likelihood term
-      g[h] += eta * (gsl_sf_psi(alphaH) - gsl_sf_psi(args[2][offset]+alphaH));
+      
+      dEdMu[h] += eta * (gsl_sf_psi(alpha) - gsl_sf_psi(args[2][offset]+alpha));//log likelihood term
+      dEdMu[h] += eta * (gsl_sf_psi(alphaH) - gsl_sf_psi(args[2][offset]+alphaH));
     }
-     g[h] -= DlogJacobian(a, z, H, h, delta);  //Jacobian term
+  }
+   //now use chain rule to obtain gradient wrt args
+  for(int h = 0; h < H; ++h){
+    double muh = exp(a[h])/z; 
+    g[h] = 0.0;
+    for(int i = 0; i < H; ++i){
+      double mui = exp(a[i])/z;
+      if(i == h)g[h] += dEdMu[h] * muh * (1.0 - muh);
+      else g[h] -= dEdMu[i] * exp(a[i]) * muh * mui; 
+    }
   }
 }
 
@@ -253,7 +265,8 @@ double MuSampler::logJacobian(const double* a, const double z, unsigned H){
   gsl_permutation_init(p);
   int signum =1;
   
-  int status = gsl_linalg_LU_decomp ( J , p, &signum);
+  //int status = 
+  gsl_linalg_LU_decomp ( J , p, &signum);
 
   gsl_permutation_free(p);
   double logJ = gsl_linalg_LU_lndet(J); 
@@ -261,14 +274,4 @@ double MuSampler::logJacobian(const double* a, const double z, unsigned H){
   return logJ; 
 }
 
-double MuSampler::DlogJacobian(const double* const a, const double z, unsigned H, unsigned h, double delta){
-  //computes numerical approximation to derivative of above Jacobian wrt a[h]
-  //room for improvement here ?
 
-  double b[H];
-  copy(a, a+H, b);
-  b[h] += delta;
-  double d = logJacobian(b, z, H);
-  d -= logJacobian(a, z, H);
-  return d / delta;
-}
