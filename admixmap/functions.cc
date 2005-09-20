@@ -129,6 +129,21 @@ double AverageOfLogs(const std::vector<double>& vec, double max)
   return log(sum) + max;
 }
 
+void inv_softmax(size_t K, const double* const mu, double *a){
+  double sumlogmu = 0.0;
+  for(unsigned k = 0; k < K; ++k)sumlogmu += log(mu[k]);
+  double logz = -sumlogmu / (double)K;
+
+  for(unsigned k = 0; k< K; ++k)a[k] = log(mu[k]) + logz;
+}
+void softmax(size_t K, double *mu, const double* a){
+  //inverse of softmax transformation above
+  double z = 0.0;
+  for(unsigned k = 0; k < K; ++k) z += exp(a[k]);
+  for(unsigned k = 0; k < K; ++k)mu[k] = exp(a[k]) / z;
+}
+
+
 // int HH_solve (Matrix_d A, Vector_d b, Vector_d *x)
 // {
 //   //Caller for gsl_linalg_HH_solve

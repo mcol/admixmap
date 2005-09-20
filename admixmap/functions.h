@@ -17,9 +17,8 @@ double getDirichletLogDensity(const std::vector<double>& a, double *x);
 
 double AverageOfLogs(const std::vector<double>& vec, double max);
 
-double logit(double );
-double invlogit(double);
-double derivBeta(double, double);
+void inv_softmax(size_t K, const double* const mu, double *a);
+void softmax(size_t K, double *mu, const double* a);
 
 //matrix algebra
 int HH_solve (Matrix_d A, Vector_d b, Vector_d *x);
