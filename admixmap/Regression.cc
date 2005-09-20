@@ -274,8 +274,9 @@ void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log){
 	}
 	(cout).width(9);
 	if( RegType == Linear )
-	  cout << setprecision(6);
-	cout<< lambda<<" ";
+	  cout << setprecision(6)
+	       << lambda<<" ";
+
       }
     }
   //Output to paramfile after BurnIn
