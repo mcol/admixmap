@@ -157,8 +157,7 @@ void submain(AdmixOptions* options){
 	L.UpdateRhoWithRW(IC, chrm);
   
       // ** Update individual-level parameters  
-      IC->Update(iteration, &A, &R0, &R1, L.getpoptheta(),options,
-		 chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
+      IC->Update(iteration, &A, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
 		 &Log, &MargLikelihood);
       // ** update allele frequencies
       A.Update((iteration > options->getBurnIn()));
@@ -188,14 +187,14 @@ void submain(AdmixOptions* options){
 	  //Only output population-level parameters when there is a hierarchical model on indadmixture
 	  // ** pop admixture, sumintensities
 	  L.OutputParams(iteration);
+	  //** dispersion parameter (if dispersion model)
+	  A.OutputEta(iteration, options, &Log);
 	  // ** regression parameters
 	  if( options->getAnalysisTypeIndicator() >= 2){
 	    R0.Output(iteration, options, &Log);
 	    if( options->getAnalysisTypeIndicator() == 5)
 	      R1.Output(iteration, options, &Log);
 	  }
-	  //** dispersion parameter (if dispersion model)
-	  A.OutputEta(iteration, options, &Log);
 	  //** new line in logfile
 	  if( !options->useCOUT() || iteration == 0 ) Log.write("\n");
 	}
