@@ -117,6 +117,28 @@ double getDirichletLogDensity(const std::vector<double>& a, double *x)
   return f;
 }
 
+double getDirichletLogDensity_Softmax(const std::vector<double>& a, double *x)
+{
+  size_t K = a.size();
+  double f, xsum = 0.0;
+  double theta[K];
+
+  for(size_t k = 0; k < K-1; ++k){
+    theta[k] = x[k];
+     xsum += x[k];
+  }
+
+  theta[K-1] = 1.0 - xsum;
+
+  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
+  f = 0.0;
+  for( unsigned i = 0; i < K; i++ )
+    if( a[i] > 0.0 )
+      f += ( a[i] ) * log( theta[i] );
+
+  return f;
+}
+
 double AverageOfLogs(const std::vector<double>& vec, double max)
 {
   double sum = 0;

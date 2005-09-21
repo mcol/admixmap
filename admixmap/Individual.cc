@@ -153,7 +153,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     // ** set up StepSizeTuner object for random walk updates of admixture **
     NumberOfUpdates = 0;
     w = 1;
-    step0 = 0.1; // initial sd of proposal distribution
+    step0 = 1.0; // initial sd of proposal distribution
     //need to choose sensible value for this initial RW sd
     step = step0;
     ThetaTuner.SetParameters( step0, 0.00, 10.0, 0.44);  
@@ -406,9 +406,9 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
      for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
    }
 
-   //if(!(iteration %2))//update theta with random walk
-// SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
-		// Covariates, beta, poptheta, options, alpha, sigma, true);
+   if(!(iteration %2))//update theta with random walk
+     SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
+		 Covariates, beta, poptheta, options, alpha, sigma, true);
 
   //SumN is the number of arrivals between each pair of adjacent loci  
   unsigned int SumN[] = {0,0};
@@ -487,9 +487,9 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
     }
   }
 
-  //if((iteration %2))//conjugate update of theta
-  SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
-  Covariates, beta, poptheta, options, alpha, sigma, false);
+  if((iteration %2))//conjugate update of theta
+    SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
+		Covariates, beta, poptheta, options, alpha, sigma, false);
 
   //increment B using new Admixture Props
   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
@@ -577,8 +577,6 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
     double LogLikelihoodRatio = 0.0;
     double LogPriorRatio = 0.0;
 
-    //cout<<"Stepsize = "<<step<<", AccRate = "<<ThetaTuner.getExpectedAcceptanceRate()<<endl;
-
     //generate proposals
     unsigned G = 1;
     if( options->isRandomMatingModel() )G = 2;//random mating model
@@ -587,37 +585,24 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
       double a[Populations];
       inv_softmax(Populations, Theta+g*Populations, a);
 
-      //cout<<"a(current) = ";
       a[Populations-1] = 0.0;
 	//random walk step
       for(int k = 0; k < Populations-1; ++k){
-	//cout<<a[k]<<" ";
-	a[k] = gennor(a[k], step);
+	a[k] = gennor(a[k], step0);
 	a[Populations-1] -= a[k];
       }
 
       //reverse transformation
       softmax(Populations, ThetaProposal+g*Populations, a);
       
-      //cout<<endl<<"a(prop) = "<<a[0]<<" "<<a[1]<<endl;
-
       //compute prior ratio
-      LogPriorRatio += getDirichletLogDensity(alpha[0], ThetaProposal+g*Populations) - 
-	getDirichletLogDensity(alpha[0], Theta+g*Populations);
+      LogPriorRatio += getDirichletLogDensity_Softmax(alpha[0], ThetaProposal+g*Populations) - 
+	getDirichletLogDensity_Softmax(alpha[0], Theta+g*Populations);
     }
     //get log likelihood at current parameter values
     LogLikelihoodRatio -= getLogLikelihood(options, C);
  
-    //cout<<"Current theta: "<<endl;
-    //for(int k = 0; k < Populations; ++k)cout<<Theta[k]<<" ";
-    //cout<<endl;
-    //cout<<"Proposal theta: "<<endl;
-    //for(int k = 0; k < Populations; ++k)cout<<ThetaProposal[k]<<" ";
-    //cout<<endl;
-    //get log likelihood at proposal theta and current rho
     LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, _rho, _rho_X);
-    //cout<<"LogLikelihood ratio = "<<LogLikelihoodRatio<<endl<<endl;
-
     return LogLikelihoodRatio + LogPriorRatio;
 }
 
