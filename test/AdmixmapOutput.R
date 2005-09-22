@@ -985,7 +985,9 @@ if(is.null(user.options$dispparamfile)||
 } else {
   eta.samples<-read.table(paste(resultsdir, user.options$dispparamfile,sep="/"), header=TRUE)
   ## label dispersion parameters
-  dimnames(eta.samples)[[2]] <- paste("eta", population.labels, sep="." )
+  if(!is.null(user.options$historicallelefreqfile)) {
+    dimnames(eta.samples)[[2]] <- paste("eta", population.labels, sep="." )
+  }
   checkConvergence(eta.samples, "Dispersion parameters",
                    paste(resultsdir, "DispParamConvergenceDiags.txt", sep="/"))
   postscript(paste(resultsdir, "DispParamAutocorrelations.ps", sep="/" ))     
