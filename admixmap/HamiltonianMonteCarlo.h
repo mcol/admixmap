@@ -37,7 +37,7 @@ class HamiltonianMonteCarlo{
 public:
   HamiltonianMonteCarlo();
   ~HamiltonianMonteCarlo();
-  void Sample(double *x, const double* const* args);//call inside a loop
+  void Sample(double* const x, const double* const* args);//call inside a loop
   void SetDimensions(unsigned pdim, double pepsilon, double min, double max, unsigned pTau, float target, 
 		     double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
 		     void (*pgradE)(unsigned d, const double* const theta, const double* const *args, double *g));

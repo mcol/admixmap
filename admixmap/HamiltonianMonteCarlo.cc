@@ -53,7 +53,7 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double
   Tuner.SetParameters( epsilon, min, max, target);
 }
 
-void HamiltonianMonteCarlo::Sample(double* x, const double* const* args){
+void HamiltonianMonteCarlo::Sample(double* const x, const double* const* args){
   /*
     x = position
     p = momentum
