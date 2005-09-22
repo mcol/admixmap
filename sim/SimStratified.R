@@ -48,15 +48,16 @@ numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 N <- 400
-numsims <- 3
+numsims <- 100
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
 spacing <- 30 # 40 cM spacing gives 99 loci
-eta <- 20 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmparams Di(1,2)
+eta <- 51 # allele freq dispersion parameter 
 beta <- 2 # regression slope for effect of admixture
-gamma <- 0.4 # effect of allele 2 at candidate locus: standardized effect size if linear reg
+gamma <- 0.3 # effect of allele 2 at candidate locus: standardized effect size if linear reg
                                         # log odds ratio if logistic reg
+pthreshold <- 0.01
 logistic <- F # logistic or linear
 
 ## assign map distances
@@ -188,7 +189,7 @@ for(sims in 1:numsims) {
   system("../test/admixmap.exe SinglePopArgs.txt")
   Sys.putenv("RESULTSDIR" = "SinglePopResults")
   source("../test/AdmixmapOutput.R")
-  ## run genomic control analysis - must set threshold p-value in gcdriver.txt
+  ## run genomic control analysis - must set L and pthreshold in gcdriver.txt
   source("gcf.R")
   ## run admixmap with no outcomevar and two populations
   system("../test/admixmap.exe argsNoOutcome.txt")
@@ -258,15 +259,15 @@ for(sims in 1:numsims) {
 
 ## convert p-values to error rates
 type1.error <- data.frame(null.results$f.signed,
-                          null.results$crude.p < 0.05,
-                          null.results$gc.p < 0.05,
-                          null.results$adj2.p < 0.05,
-                          null.results$adj.p < 0.05)
+                          null.results$crude.p < pthreshold,
+                          null.results$gc.p < pthreshold,
+                          null.results$adj2.p < pthreshold,
+                          null.results$adj.p < pthreshold)
 type2.error <- data.frame(candidate.results$f.signed,
-                          candidate.results$crude.p > 0.05,
-                          candidate.results$gc.p > 0.05,
-                          candidate.results$adj2.p > 0.05,
-                          candidate.results$adj.p > 0.05)
+                          candidate.results$crude.p > pthreshold,
+                          candidate.results$gc.p > pthreshold,
+                          candidate.results$adj2.p > pthreshold,
+                          candidate.results$adj.p > pthreshold)
 dimnames(type1.error)[[2]] <- results.colnames
 dimnames(type2.error)[[2]] <- results.colnames
 
@@ -313,7 +314,3 @@ dev.off()
 
 print(apply(type1.error[, -1], 2, mean, na.rm=T))
 print(apply(type2.error[, -1], 2, mean, na.rm=T))
-
-
-
-
