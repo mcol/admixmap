@@ -56,8 +56,8 @@ void MuSampler::Sample(double* alpha, double eta, const int* const Counts){
   //alpha is the array (length H) of Dirichlet parameters
   //these are first transformed to logits of proportions
 //Counts is an H*K array of counts
-  //if(H == 2)Sample1D(alpha, eta, Counts);//can sample directly from beta-binomial in one-dimensional case
-  //else
+  if(H == 2)Sample1D(alpha, eta, Counts);//can sample directly from beta-binomial in one-dimensional case
+  else
   {
     
     //transform alphas 

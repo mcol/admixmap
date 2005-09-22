@@ -102,7 +102,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
       dim = 1;
       muSampler = new MuSampler[NumberOfCompositeLoci];
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	muSampler[i].setDimensions(NumberOfStates[i], Populations, 0.0001, 0.0, 10.0, 0.44);
+	muSampler[i].setDimensions(NumberOfStates[i], Populations, 0.002, 0.0, 10.0, 0.44);
     }
     
     // ** dispersion parameter(s) and priors **
@@ -173,7 +173,7 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
 
     // ** Settings for random walk sampler
     w = 1;
-    etastep0 = 1.0; // sd of proposal distribution for log eta
+    etastep0 = 0.3; // sd of proposal distribution for log eta
     etastep = new double[ dim ];
     for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
     NumberOfEtaUpdates = 0;
@@ -182,22 +182,22 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
       TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
 
 //     // ** Settings for Hamiltonian sampler
-//     EtaSampler = new DispersionSampler[dim];
-//     double initialEtaStepsize = 0.0003;//need a sensible value for this
-//     double targetEtaAcceptRate = 0.44;//and this 
-//     double min = 0.00;//min and max values for eta stepsize
-//     double max = 10.0;
+    //EtaSampler = new DispersionSampler[dim];
+    //double initialEtaStepsize = 0.0003;//need a sensible value for this
+    //double targetEtaAcceptRate = 0.44;//and this 
+    //double min = 0.00;//min and max values for eta stepsize
+    //double max = 10.0;
 
-//     if( IsHistoricAlleleFreq);
+//     if( IsHistoricAlleleFreq)
 //       for( unsigned k = 0; k < dim; k++ ){
 // 	EtaSampler[k].setDimensions(NumberOfCompositeLoci, 2, NumberOfStates,//<- 2 for admixed & unadmixed pops 
 // 				    initialEtaStepsize, min, max, targetEtaAcceptRate);
 // 	EtaSampler[k].setEtaPrior(psi[k], tau[k]);
 //       }
 //       else{//correlated allelefreq model
-//       EtaSampler[0].setDimensions(NumberOfCompositeLoci, Populations, NumberOfStates, 
-// 				  initialEtaStepsize, min, max, targetEtaAcceptRate);
-//       EtaSampler[0].setEtaPrior(psi[0], tau[0]);
+     //EtaSampler[0].setDimensions(NumberOfCompositeLoci, Populations, NumberOfStates, 
+     //			  initialEtaStepsize, min, max, targetEtaAcceptRate);
+     //  EtaSampler[0].setEtaPrior(psi[0], tau[0]);
 //     }
     //NOTE: only need to set prior if user has not specified
 
@@ -463,8 +463,8 @@ void AlleleFreqs::Update(bool afterBurnIn){
       for( int k = 0; k < Populations; k++ )SampleEtaWithRandomWalk(k, afterBurnIn);
     }
     else if(CorrelatedAlleleFreqs){
-      NumberOfEtaUpdates++;
-      SampleEtaWithRandomWalk(0, afterBurnIn);
+    NumberOfEtaUpdates++;
+    SampleEtaWithRandomWalk(0, afterBurnIn);
     }
     
     if( afterBurnIn && IsHistoricAlleleFreq ){
@@ -703,6 +703,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
       //EtaSampler[0].addAlphas(i, PriorAlleleFreqs[i]);
       //EtaSampler[0].addCounts(i, AlleleCounts[i]);
 	}
+
     //sample eta
     //eta[0] = EtaSampler[0].Sample();
     //SumEta[0] += eta[0];

@@ -133,8 +133,8 @@ AdmixOptions::~AdmixOptions()
 }
 
 // each option has a function to return its value
-const char *AdmixOptions::getResultsDir() const{
-  return ResultsDir.c_str();
+const string AdmixOptions::getResultsDir() const{
+  return ResultsDir;
 }
 const char *AdmixOptions::getAlleleFreqFilename() const
 {

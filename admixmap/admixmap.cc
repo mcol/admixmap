@@ -141,6 +141,8 @@ void submain(AdmixOptions* options){
     if( options->getTextIndicator() ){
       InitializeErgodicAvgFile(options,IC, &Log,&avgstream,data.GetPopLabels());
       }
+    string s = options->getResultsDir()+"/loglikelihoodfile.txt";
+    ofstream loglikelihoodfile(s.c_str());
 
  /*------------
   |  MAIN LOOP |
@@ -152,9 +154,14 @@ void submain(AdmixOptions* options){
 
       A.ResetAlleleCounts();
 
+    //compute loglikelihood and write to file
+    double LogL = 0.0;
+    for(int i = 0; i < IC->getSize(); ++i)LogL += IC->getIndividual(i)->getLogLikelihood(options, chrm);
+    loglikelihoodfile<< iteration<<" " <<LogL<<endl;
+
       // ** update global sumintensities
       if((options->getPopulations() > 1) && (IC->getSize() > 1) && options->getIndAdmixHierIndicator() && (Loci.GetLengthOfGenome()> 0.0))
-	L.UpdateRhoWithRW(IC, chrm);
+	L.UpdateRhoWithRW(IC, chrm, LogL);
   
       // ** Update individual-level parameters  
       IC->Update(iteration, &A, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
@@ -310,14 +317,15 @@ void submain(AdmixOptions* options){
     if(options->getCorrelatedAlleleFreqs()){
       Log.logmsg(true, "Expected acceptance rates in sampler for allele frequency prior parameters: \n");
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
+
 	Log.logmsg(true, A.getAlphaSamplerAcceptanceRate(i));Log.logmsg(true, " ");
       }
-//       Log.logmsg(true, A.getEtaSamplerAcceptanceRate(0));
+      Log.logmsg(true, A.getEtaRWSamplerAcceptanceRate(0));
       Log.logmsg(true, "\nwith final step sizes of \n");
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
 	Log.logmsg(true, A.getAlphaSamplerStepsize(i));Log.logmsg(true, " ");
       }
-//       Log.logmsg(true, A.getEtaSamplerStepsize(0));
+       Log.logmsg(true, A.getEtaRWSamplerStepsize(0));
       Log.logmsg(true, "\n");
     }
 

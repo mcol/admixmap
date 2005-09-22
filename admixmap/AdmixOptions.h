@@ -50,7 +50,7 @@ public:
   long getSeed() const;     
 
   //main output files
-  const char *getResultsDir() const;
+  const string getResultsDir() const;
   const char *getLogFilename() const;
   const char *getErgodicAverageFilename() const;
   const char *getParameterFilename() const;

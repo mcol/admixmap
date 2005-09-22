@@ -260,7 +260,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
 //end Update
 
 
-void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C){
+void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, double LogL){
 
   if( !options->getRhoIndicator() ){
     double rhoprop;
@@ -272,7 +272,9 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C){
     rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values
-    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C);
+    //    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C);
+    LogLikelihoodRatio -= LogL;
+    
     //get log likelihood at proposal rho and current admixture proportions
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
     for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, C);

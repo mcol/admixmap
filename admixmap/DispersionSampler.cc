@@ -58,7 +58,7 @@ void DispersionSampler::setDimensions(unsigned inL, unsigned inK, int* const inH
   //set default gamma priors for eta
   Args[4][0] = 3.0;
   Args[4][1] = 0.01;//mean 300, variance 30 000
-  logeta[0] = log(300.0); //initialise eta at prior mean
+  logeta[0] = log(Args[4][0]/Args[4][1]); //initialise eta at prior mean
 }
 
 void DispersionSampler::setEtaPrior(double shape, double rate){
@@ -85,9 +85,8 @@ void DispersionSampler::addCounts(unsigned i, const int* const counts){
     for(unsigned j = 0; j < i; ++j){
       H += (int)Args[1][j];
     }
-  for(unsigned h = 0; h < Args[1][i]; ++h)
-    for(unsigned k = 0; k < K; ++k)
-      Args[3][H*K + h*K +k] = (double)counts[h*K +k];
+  for(unsigned h = 0; h < K*Args[1][i]; ++h)
+      Args[3][H*K + h] = (double)counts[h];
 }
 
 double DispersionSampler::Sample(){
@@ -131,7 +130,7 @@ double DispersionSampler::etaEnergyFunction(unsigned , const double * const loge
 	E += gsl_sf_lngamma(count + alpha) - gsl_sf_lngamma(alpha);
       }
  
-      E += gsl_sf_lngamma(eta) - gsl_sf_lngamma(eta+nik);
+       E += gsl_sf_lngamma(eta) - gsl_sf_lngamma(eta+nik);
     }
     H += (int)args[1][i];
   }
@@ -154,7 +153,6 @@ void DispersionSampler::etaGradient(unsigned , const double * const logeta, cons
     for(int k = 0; k < K; ++k){
       double nik = 0.0;//sum of counts for locus i, pop k
       for(int h = 0; h < args[1][i]; ++h){
-	//int H = (int)args[1][i];
 
 	double alpha = args[2][H+h];
 	double count = args[3][H*K + h*K +k];
