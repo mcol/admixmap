@@ -22,6 +22,7 @@
 #include <sstream>
 #include "Genome.h"
 #include "Chromosome.h"
+#include "DataMatrix.h"
 
 using namespace std;
 
@@ -65,14 +66,14 @@ Genome::~Genome()
 
 //sets the labels of all composite loci in TheArray using SetLabel function in CompositeLocus
 //all loci within each composite locus are assigned the same label from labels vector
-void Genome::SetLabels(const vector<string> &labels, Vector_d temp)
+void Genome::SetLabels(const vector<string> &labels, vector<double> temp)
 {
     int index = -1; // counts through number of composite loci
     int locus = 0;
 
     for (size_t count = 2; count < labels.size(); ++count) {
         const string& label = labels[count];
-        if (temp.GetNumberOfElements() == 1 || temp(count - 1)) {
+        if (temp.size() == 1 || temp[count - 1]) {
             index++;
             locus = 0;
             TheArray[index]->SetLabel(0,label);
@@ -86,7 +87,7 @@ void Genome::SetLabels(const vector<string> &labels, Vector_d temp)
 //gets contents of locusfile and genotypesfile and creates CompositeLocus array
 void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_){
 
-  Matrix_d& locifileData = (Matrix_d&) data_->getLocusMatrix();
+  DataMatrix locifileData =  data_->getLocusMatrix();
   
   //determine number of composite loci
   NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
@@ -95,7 +96,7 @@ void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_
   InitialiseCompositeLoci();
   
   // Set number of alleles at each locus
-  int index =0;
+  unsigned index =0;
   size_t next_line = 0;
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     ++next_line;
@@ -105,12 +106,12 @@ void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_
     //set numbers of alleles and distances for each locus
     if (m.size() == 4)
       ChrmLabels.push_back(m[3]);
-    TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData( i, 0 ) );
-    SetDistance( i, locifileData( index, 1 ) );
-    while( index < locifileData.GetNumberOfRows() - 1 && locifileData( index + 1, 1 ) == 0 ){
+    TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData.get( i, 0 ) );
+    SetDistance( i, locifileData.get( index, 1 ) );
+    while( index < locifileData.nRows() - 1 && locifileData.get( index + 1, 1 ) == 0 ){
       ++next_line;
       
-      TheArray[i]->AddLocus( (int)locifileData( index + 1, 0 ) );
+      TheArray[i]->AddLocus( (int)locifileData.get( index + 1, 0 ) );
       index++;
     }
     
@@ -125,11 +126,11 @@ void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_
 
     Vector_s labels = data_->getGeneticData()[0];//header of genotypes file
 
-    Vector_d vtemp = locifileData.GetColumn(1);
-    vtemp.AddElement(0); // Forces SetLabels method to ignore first row of loci.txt (GenotypesFile)
+    vector<double> vtemp = locifileData.getCol(1);
+    vtemp.insert(vtemp.begin(), 0.0);// Forces SetLabels method to ignore first row of loci.txt 
     // Add a sex column if it is not included
     if( ! options->getgenotypesSexColumn() ){
-      labels.insert(labels.begin(), "\"extracol\"");
+      labels.insert(labels.begin(), "\"sexcol\"");
     }
     SetLabels(labels, vtemp);
   }

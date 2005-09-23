@@ -69,7 +69,7 @@ public:
   /**
    *  Getters to retrieve data (converted to Matrix_d).
    */    
-  const Matrix_d& getLocusMatrix() const;
+  const DataMatrix& getLocusMatrix() const;
   const Matrix_d& getTargetMatrix() const;
   const Matrix_d& getInputMatrix() const;
   const DataMatrix& getAlleleFreqMatrix() const;
@@ -105,13 +105,12 @@ private:
   Matrix_s MLEData_;
   Matrix_s reportedAncestryData_;
 
-  Matrix_d locusMatrix_;
+  DataMatrix locusMatrix_;
   Matrix_d inputMatrix_;
   Matrix_d targetMatrix_;
   DataMatrix alleleFreqMatrix_;
   DataMatrix historicalAlleleFreqMatrix_;
   DataMatrix priorAlleleFreqMatrix_;
-  //Matrix_d etaPriorMatrix_;
   DataMatrix etaPriorMatrix_;
   Matrix_d MLEMatrix_;
   Matrix_d reportedAncestryMatrix_;

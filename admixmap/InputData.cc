@@ -217,9 +217,9 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       // Form matrices.
       convertMatrix(locusData_, locusMatrix_);
       if (options->getTextIndicator()) {
-	locusMatrix_.SubMatrix2(1, locusMatrix_.GetNumberOfRows() - 1, 1, 2);
+      locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);
       } else {
-	locusMatrix_.SubMatrix2(0, locusMatrix_.GetNumberOfRows() - 1, 0, 1);
+      locusMatrix_ = locusMatrix_.SubMatrix(0, locusMatrix_.nRows() - 1, 0, 1);
       }
       
       ::convertMatrix(targetData_, targetMatrix_);
@@ -261,9 +261,9 @@ int InputData::getNumberOfSimpleLoci() {
 }
 //determines number of composite loci from locusfile
 unsigned InputData::determineNumberOfCompositeLoci(){
-  unsigned NumberOfCompositeLoci = locusMatrix_.GetNumberOfRows();
-    for( int i = 0; i < locusMatrix_.GetNumberOfRows(); i++ )
-     if( locusMatrix_( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
+  unsigned NumberOfCompositeLoci = locusMatrix_.nRows();
+    for( unsigned i = 0; i < locusMatrix_.nRows(); i++ )
+     if( locusMatrix_.get( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
     return NumberOfCompositeLoci;
 }
 
@@ -648,7 +648,7 @@ const Matrix_d& InputData::getMLEMatrix() const
     return MLEMatrix_;
 }
 
-const Matrix_d& InputData::getLocusMatrix() const
+const DataMatrix& InputData::getLocusMatrix() const
 {
     return locusMatrix_;
 }
