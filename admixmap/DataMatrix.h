@@ -19,6 +19,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+#ifndef DATAMATRIX_H
+#define DATAMATRIX_H 1
 #include <vector>
 
 class DataMatrix{
@@ -35,6 +37,7 @@ public:
   unsigned nRows()const;
   unsigned nCols()const;
   DataMatrix SubMatrix(unsigned, unsigned, unsigned, unsigned);
+  void SetMissingValuesToColumnMeans();
 
 private:
   std::vector<double > data;
@@ -44,3 +47,4 @@ private:
   class BoundsViolation { };
 
 };
+#endif

@@ -71,15 +71,32 @@ std::vector<double> DataMatrix::getRow(unsigned r){
 }
 std::vector<double> DataMatrix::getCol(unsigned c){
   std::vector<double> col;
-  for(unsigned row = 0; row < nrows; ++row)col.push_back( data[row*nrows + c] );
+  for(unsigned row = 0; row < nrows; ++row)col.push_back( data[row*ncols + c] );
   return col;
 }
 DataMatrix DataMatrix::SubMatrix(unsigned r1, unsigned r2, unsigned c1, unsigned c2){
   DataMatrix Sub(r2-r1+1, c2-c1+1);
   for(unsigned i = r1; i<= r2; ++i)
     for(unsigned j = c1; j <= c2;++j){
-      Sub.set(i,j, data[i*ncols +j]);
-      Sub.isMissing(i,j, missing[i*ncols+j]);
+      Sub.set(i-r1,j-c1, data[i*ncols +j]);
+      Sub.isMissing(i-r1,j-c1, missing[i*ncols+j]);
     }
   return Sub;   
+}
+
+void DataMatrix::SetMissingValuesToColumnMeans(){
+  double mean;
+  for(unsigned col = 0; col < ncols; ++col){
+    //find col mean
+    mean  = 0.0;
+    for(unsigned row = 0; row < nrows; ++row){
+      if(!isMissing(row, col))mean += get(row, col);
+    }
+    //set missing values
+    for(unsigned row = 0; row < nrows; ++row){
+      if(isMissing(row, col))set(row, col, mean);
+    }
+
+  }
+
 }
