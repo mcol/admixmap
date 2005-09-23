@@ -349,9 +349,9 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
   if( strlen( options->getAlleleFreqFilename() ) ){
     freqtype = "";
     infile = true;
-    nrows = alleleFreqMatrix_.GetNumberOfRows()-1;
+    nrows = alleleFreqMatrix_.nRows()-1;
     expectednrows = NumberOfStates-NumberOfCompositeLoci;
-    Populations = alleleFreqMatrix_.GetNumberOfCols() - options->getTextIndicator();
+    Populations = alleleFreqMatrix_.nCols() - options->getTextIndicator();
     ::getPopLabels(alleleFreqData_[0], Populations, &PopulationLabels);
   }
   
@@ -359,9 +359,9 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
   if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
     freqtype = "historic";
     infile = true;
-    nrows = historicalAlleleFreqMatrix_.GetNumberOfRows();
+    nrows = historicalAlleleFreqMatrix_.nRows();
     expectednrows = NumberOfStates+1;
-    Populations = historicalAlleleFreqMatrix_.GetNumberOfCols() - options->getTextIndicator();
+    Populations = historicalAlleleFreqMatrix_.nCols() - options->getTextIndicator();
     ::getPopLabels(historicalAlleleFreqData_[0], Populations, &PopulationLabels);
 
   }
@@ -369,9 +369,9 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
   if( strlen( options->getPriorAlleleFreqFilename() )) {
       freqtype = "prior";
       infile = true;
-      nrows = priorAlleleFreqMatrix_.GetNumberOfRows();
+      nrows = priorAlleleFreqMatrix_.nRows();
       expectednrows = NumberOfStates+1;
-      Populations = priorAlleleFreqMatrix_.GetNumberOfCols() - options->getTextIndicator();
+      Populations = priorAlleleFreqMatrix_.nCols() - options->getTextIndicator();
       ::getPopLabels(priorAlleleFreqData_[0], Populations, &PopulationLabels);
   }
   if(infile){
@@ -653,17 +653,17 @@ const Matrix_d& InputData::getLocusMatrix() const
     return locusMatrix_;
 }
 
-const Matrix_d& InputData::getAlleleFreqMatrix() const
+const DataMatrix& InputData::getAlleleFreqMatrix() const
 {
     return alleleFreqMatrix_;
 }
 
-const Matrix_d& InputData::getHistoricalAlleleFreqMatrix() const
+const DataMatrix& InputData::getHistoricalAlleleFreqMatrix() const
 {
     return historicalAlleleFreqMatrix_;
 }
 
-const Matrix_d& InputData::getPriorAlleleFreqMatrix() const
+const DataMatrix& InputData::getPriorAlleleFreqMatrix() const
 {
     return priorAlleleFreqMatrix_;
 }

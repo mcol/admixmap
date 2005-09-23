@@ -139,7 +139,7 @@ private:
 
   void OpenFSTFile(AdmixOptions *options,LogWriter *Log); 
 
-  void LoadAlleleFreqs(Matrix_d NewFreqs, int i, bool);
+  void LoadAlleleFreqs(DataMatrix NewFreqs, int i, bool);
   void SetDefaultAlleleFreqs(int Pops);
 
   void SamplePriorAlleleFreqs1D( int );

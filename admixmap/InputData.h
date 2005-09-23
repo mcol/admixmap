@@ -72,9 +72,9 @@ public:
   const Matrix_d& getLocusMatrix() const;
   const Matrix_d& getTargetMatrix() const;
   const Matrix_d& getInputMatrix() const;
-  const Matrix_d& getAlleleFreqMatrix() const;
-  const Matrix_d& getHistoricalAlleleFreqMatrix() const;
-  const Matrix_d& getPriorAlleleFreqMatrix() const;
+  const DataMatrix& getAlleleFreqMatrix() const;
+  const DataMatrix& getHistoricalAlleleFreqMatrix() const;
+  const DataMatrix& getPriorAlleleFreqMatrix() const;
   const DataMatrix& getEtaPriorMatrix() const;
   const Matrix_d& getMLEMatrix() const;
   const Matrix_d& getReportedAncestryMatrix() const;
@@ -108,9 +108,9 @@ private:
   Matrix_d locusMatrix_;
   Matrix_d inputMatrix_;
   Matrix_d targetMatrix_;
-  Matrix_d alleleFreqMatrix_;
-  Matrix_d historicalAlleleFreqMatrix_;
-  Matrix_d priorAlleleFreqMatrix_;
+  DataMatrix alleleFreqMatrix_;
+  DataMatrix historicalAlleleFreqMatrix_;
+  DataMatrix priorAlleleFreqMatrix_;
   //Matrix_d etaPriorMatrix_;
   DataMatrix etaPriorMatrix_;
   Matrix_d MLEMatrix_;
