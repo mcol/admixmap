@@ -20,7 +20,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
+#ifndef MUSAMPLER_H
+#define MUSAMPLER_H 1
 #include "HamiltonianMonteCarlo.h"
 #include "StepSizeTuner.h"
 #include "DARS.h"
@@ -56,3 +57,4 @@ private:
   static double logJacobian(const double* a, const double z, unsigned H);
   static double DlogJacobian(const double* const a, const double z, unsigned H, unsigned h, double delta);
 };
+#endif

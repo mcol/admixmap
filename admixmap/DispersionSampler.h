@@ -20,7 +20,8 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-
+#ifndef DISPERSIONSAMPLER_H
+#define DISPERSIONSAMPLER_H 1
 #include "HamiltonianMonteCarlo.h"
 
 class DispersionSampler{
@@ -52,3 +53,4 @@ private:
   static double etaEnergyFunction(unsigned , const double * const logitmu, const double* const *args);
   static void etaGradient(unsigned , const double * const logitmu, const double* const *args, double *g);
 };
+#endif
