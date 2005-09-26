@@ -20,8 +20,10 @@ public:
   void SetPriorMu( double* );
   void Sample( unsigned int, double*, double*, double* );
   void Sample2( unsigned int, double*, double*, double*, int* );
-  double getStepSize();
-  double getExpectedAcceptanceRate();
+  double getEtaStepSize();
+  double getEtaExpectedAcceptanceRate();
+  double getMuStepSize();
+  double getMuExpectedAcceptanceRate();
   
 private:
   StepSizeTuner TuneEta;

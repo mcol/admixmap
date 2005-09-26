@@ -410,7 +410,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
      for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
    }
 
-   if(!(iteration %2))//update theta with random walk
+   if(!(iteration %2))//update theta with random walk on odd-numbered iterations
      SampleTheta(i, iteration, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
 		 Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true);
 

@@ -35,7 +35,7 @@ void DirichletParamSampler::SetSize( unsigned numind, unsigned numpops )
       DirParamArray[j] = new DARS();
       DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters, logf, dlogf, ddlogf, 0, 0 );
    }
-   muSampler.setDimensions(numind, numpops, 0.1 , 0.0, 1.0, 0.44);//may need to modify initial stepsize (arg 3)
+   muSampler.setDimensions(numind, numpops, 0.00001 , 0.0, 1.0, 0.44);//may need to modify initial stepsize (arg 3)
 }
 
 DirichletParamSampler::~DirichletParamSampler()
@@ -91,7 +91,9 @@ void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double 
 
 //sample mu with MuSampler (DARS for dim==2, HMC otherwise), conditional on counts, and eta with RW
 void DirichletParamSampler::Sample2(unsigned n, double *sumlogtheta, double *eta, double *mu, int *counts){
+  for(unsigned k=0; k < d; ++k)mu[k] *= *eta;
   muSampler.Sample(mu, *eta, counts);
+  for(unsigned k=0; k < d; ++k)mu[k] /= *eta;
   SampleEta(n, sumlogtheta, eta, mu);
 }
 
@@ -120,14 +122,23 @@ void DirichletParamSampler::SampleEta(unsigned n, double *sumlogtheta, double *e
   step = TuneEta.UpdateStepSize( exp(LogAccProb) );
 }
 
-double DirichletParamSampler::getStepSize()
+double DirichletParamSampler::getEtaStepSize()
 {
     return TuneEta.getStepSize();
 }
 
-double DirichletParamSampler::getExpectedAcceptanceRate()
+double DirichletParamSampler::getEtaExpectedAcceptanceRate()
 {
     return TuneEta.getExpectedAcceptanceRate();
+}
+double DirichletParamSampler::getMuStepSize()
+{
+    return muSampler.getStepsize();
+}
+
+double DirichletParamSampler::getMuExpectedAcceptanceRate()
+{
+    return muSampler.getAcceptanceRate();
 }
 
 

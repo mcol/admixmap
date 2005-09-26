@@ -166,10 +166,10 @@ void submain(AdmixOptions* options){
       // ** Update individual-level parameters  
       IC->Update(iteration, &A, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
 		 &Log, &MargLikelihood);
-      //if((iteration %2)){
-	//L.Update(iteration, IC);//update pop admix params conditional on sums of ancestry states with jump indicators==1
-	//IC->ConjugateUpdateIndAdmixture(iteration, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha());//conjugate update of theta
-      //}
+      if((iteration %2)){
+	L.Update(iteration, IC);//update pop admix params conditional on sums of ancestry states with jump indicators==1
+	IC->ConjugateUpdateIndAdmixture(iteration, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha());//conjugate update of theta
+      }
 
       // ** update allele frequencies
       A.Update((iteration > options->getBurnIn()));
@@ -305,6 +305,12 @@ void submain(AdmixOptions* options){
     Log.logmsg(true, L.getEtaSamplerAcceptanceRate());
     Log.logmsg(true, "\nwith final step size of ");
     Log.logmsg(true, L.getEtaSamplerStepsize());Log.logmsg(true, "\n");
+    if(options->getPopulations() > 2){
+      Log.logmsg(true,"Expected acceptance rate in admixture proportion parameter sampler: ");
+      Log.logmsg(true, L.getMuSamplerAcceptanceRate());
+      Log.logmsg(true, "\nwith final step size of ");
+      Log.logmsg(true, L.getMuSamplerStepsize());Log.logmsg(true, "\n");
+      }
 #elif POPADMIXSAMPLER == 3 
     Log.logmsg(true,"Expected acceptance rate in admixture parameter Hamiltonian sampler: ");
     Log.logmsg(true, L.getAlphaSamplerAcceptanceRate());
@@ -322,12 +328,13 @@ void submain(AdmixOptions* options){
     if(options->getCorrelatedAlleleFreqs()){
       Log.logmsg(true, "Expected acceptance rates in sampler for allele frequency prior parameters: \n");
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
-
+	if(Loci(i)->GetNumberOfStates()>2)
 	Log.logmsg(true, A.getAlphaSamplerAcceptanceRate(i));Log.logmsg(true, " ");
       }
       Log.logmsg(true, A.getEtaRWSamplerAcceptanceRate(0));
       Log.logmsg(true, "\nwith final step sizes of \n");
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
+	if(Loci(i)->GetNumberOfStates()>2)
 	Log.logmsg(true, A.getAlphaSamplerStepsize(i));Log.logmsg(true, " ");
       }
        Log.logmsg(true, A.getEtaRWSamplerStepsize(0));

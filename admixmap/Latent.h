@@ -90,6 +90,8 @@ public:
 #if POPADMIXSAMPLER == 2 
   float getEtaSamplerAcceptanceRate();
   float getEtaSamplerStepsize();
+  float getMuSamplerAcceptanceRate();
+  float getMuSamplerStepsize();
 #endif
   
   //#if POPADMIXSAMPLER == 3 
