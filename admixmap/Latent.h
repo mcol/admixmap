@@ -57,7 +57,6 @@
 #include "HamiltonianMonteCarlo.h"
 #endif
 
-
 class InputData;
 class IndividualCollection;
 
@@ -135,6 +134,8 @@ private:
   double *mu;
   unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
+  double *SumLocusAncestry;
+
 #elif POPADMIXSAMPLER == 3 //Hamiltonian sampler
   double **AlphaArgs;
   double *logalpha;

@@ -300,6 +300,10 @@ int Individual::GetLocusAncestry(int chrm, int gamete, int locus){
   return LocusAncestry[chrm][g * Loci->GetSizesOfChromosomes()[chrm]  + locus] ;
 }
 
+int *Individual::getSumLocusAncestry(){
+  return SumLocusAncestry;
+}
+
 double Individual::getLogPosteriorProb()
 {
    return LogPosterior;
@@ -367,7 +371,7 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
   }
 }
 
-void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
+void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 				  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 				   Matrix_d &Covariates, double **beta, const double *poptheta,
 				   AdmixOptions* options, Chromosome **chrm, 
@@ -407,13 +411,13 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
    }
 
    if(!(iteration %2))//update theta with random walk
-     SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
-		 Covariates, beta, poptheta, options, alpha, sigma, true);
+     SampleTheta(i, iteration, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
+		 Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true);
 
-  //SumN is the number of arrivals between each pair of adjacent loci  
-  unsigned int SumN[] = {0,0};
-  unsigned int SumN_X[] = {0,0};
-    
+  //SumN is the number of arrivals between each pair of adjacent loci
+   SumN[0] = SumN[1] = 0;
+   SumN_X[0] = SumN_X[1] = 0;  
+ 
   bool isdiploid;
   bool calcbackprobs = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -427,13 +431,13 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
       if( options->getAnalysisTypeIndicator() == 0 ) 
 	UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(), 
 					   chrm );
-      else if( options->getTestForAffectedsOnly() && Outcome[0](i,0) == 1 ){
+      else if( options->getTestForAffectedsOnly() && Outcome->get(i, 0) == 1 ){
 	UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(), 
 					   chrm );
       }
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){   
-	UpdateScoreForAncestry(j,dispersion, Outcome[0](i,0) - ExpectedY[0][i], DInvLink,chrm);
+	UpdateScoreForAncestry(j,dispersion, Outcome->get(i, 0) - ExpectedY[0][i], DInvLink,chrm);
       }    
     }
 
@@ -460,12 +464,9 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 				  SumN, SumN_X, options->getRhoIndicator());
   }//end chromosome loop
 
-  double L = Loci->GetLengthOfGenome(), L_X=0.0;
-  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
-
   // sample sum of intensities parameter rho
   if( options->getRhoIndicator() ){
-     SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, L, L_X, 
+     SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, 
 	       SumN, SumN_X);
   }
 
@@ -473,50 +474,28 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
     // sample missing values of outcome variable
     double u;
     for( int k = 0; k < NumOutcomes; k++ ){
-      if( Outcome[k].IsMissingValue( i, 0 ) ){
+      if( Outcome->isMissing( i, k ) ){
 	if( !OutcomeType[k] ) // linear regression
-	  Outcome[k]( i, 0 ) = gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) );
+	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
 	else{// logistic regression
 	  u = myrand();
 	  if( u * ExpectedY[k][i] < 1 )
-	    Outcome[k]( i, 0 ) = 1;
+	    Outcome->set( i, k, 1);
 	  else
-	    Outcome[k]( i, 0 ) = 0;
+	    Outcome->set( i, k, 0);
 	}
       }
     }
   }
 
-  if((iteration %2))//conjugate update of theta
-    SampleTheta(i, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
-		Covariates, beta, poptheta, options, alpha, sigma, false);
-
-  //increment B using new Admixture Props
-  //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
-  if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
-    Xcov[Populations-1] = 1;//last entry is intercept
-    for( int k = 0; k < Populations - 1; k++ ){
-      Xcov[k] = Theta[ k]; 
-    }
-    double *temp = new double[Populations*Populations];
-    matrix_product(Xcov, Xcov, temp, Populations, 1, Populations);
-    scale_matrix(temp, DInvLink*dispersion, Populations, Populations);
-    add_matrix(B, temp, Populations, Populations);
-    delete[] temp;
-  }
-
-  //calculate log posterior if necessary 
-  if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
-    CalculateLogPosterior(options,Loci->isX_data(), alpha, rhoalpha, rhobeta, L, L_X, SumN, SumN_X);
-  
-
 }
 
 // samples individual admixture proportions
-void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome, Chromosome ** C,
+void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMatrix *Outcome, Chromosome ** C,
                                  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
                                   Matrix_d &Covariates, double **beta, const double *poptheta,
-			      AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, bool RW)
+			      AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma,
+			      double DInvLink, double dispersion, bool RW)
 {
   double logpratio = 0;
 
@@ -570,12 +549,21 @@ void Individual::SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome, Chr
       if(options->isRandomMatingModel() && !options->getXOnlyAnalysis() )
 	SumLogTheta[ k ] += log( Theta[ K + k ] );
     }
+
+//   //increment B using new Admixture Props
+//   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
+   if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
+     UpdateB(DInvLink, dispersion);
+   }
+
 }
 
 double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome **C, vector<vector<double> > &alpha){
   //TODO: X-chromosome case
     double LogLikelihoodRatio = 0.0;
     double LogPriorRatio = 0.0;
+
+    //cout<<"Stepsize = "<<step<<", AccRate = "<<ThetaTuner.getExpectedAcceptanceRate()<<endl;
 
     //generate proposals
     unsigned G = 1;
@@ -585,9 +573,11 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
       double a[Populations];
       inv_softmax(Populations, Theta+g*Populations, a);
 
+      //cout<<"a(current) = ";
       a[Populations-1] = 0.0;
 	//random walk step
       for(int k = 0; k < Populations-1; ++k){
+	//cout<<a[k]<<" ";
 	a[k] = gennor(a[k], step0);
 	a[Populations-1] -= a[k];
       }
@@ -595,6 +585,8 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
       //reverse transformation
       softmax(Populations, ThetaProposal+g*Populations, a);
       
+      //cout<<endl<<"a(prop) = "<<a[0]<<" "<<a[1]<<endl;
+
       //compute prior ratio
       LogPriorRatio += getDirichletLogDensity_Softmax(alpha[0], ThetaProposal+g*Populations) - 
 	getDirichletLogDensity_Softmax(alpha[0], Theta+g*Populations);
@@ -602,7 +594,17 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
     //get log likelihood at current parameter values
     LogLikelihoodRatio -= getLogLikelihood(options, C);
  
+    //cout<<"Current theta: "<<endl;
+    //for(int k = 0; k < Populations; ++k)cout<<Theta[k]<<" ";
+    //cout<<endl;
+    //cout<<"Proposal theta: "<<endl;
+    //for(int k = 0; k < Populations; ++k)cout<<ThetaProposal[k]<<" ";
+    //cout<<endl;
+    //get log likelihood at proposal theta and current rho
     LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, _rho, _rho_X);
+    //cout<<"LogLikelihood ratio = "<<LogLikelihoodRatio<<endl
+    //<<"Log Acceptance Prob = "<<LogLikelihoodRatio + LogPriorRatio<<endl;
+
     return LogLikelihoodRatio + LogPriorRatio;
 }
 
@@ -665,7 +667,7 @@ void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vecto
 // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
 double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, int Populations,
 							 int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
-							 Matrix_d *Outcome, const double *poptheta, double *lambda)
+							 DataMatrix *Outcome, const double *poptheta, double *lambda)
 {
   double logprobratio = 0.0, Xbeta = 0.0;
    double avgtheta[Populations];avgtheta[0] = 0.0;
@@ -680,12 +682,12 @@ double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType R
     Xbeta += avgtheta[ k ] * beta[ TI ][NoCovariates - Populations + k ];
   }
   if(RegType == Linear){
-    logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) ) * ( ExpectedY[ TI ][i] - Outcome[ TI ]( i, 0 ) )
-					 - ( Xbeta - Outcome[ TI ]( i, 0 ) ) * ( Xbeta - Outcome[ TI ]( i, 0 ) ) );
+    logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][i] - Outcome->get( i, TI ) ) * ( ExpectedY[ TI ][i] - Outcome->get( i, TI ) )
+					 - ( Xbeta - Outcome->get( i, TI ) ) * ( Xbeta - Outcome->get( i, TI) ) );
   }
   else if(RegType == Logistic){
     double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
-    if( Outcome[ TI ]( i, 0 ) == 1 )
+    if( Outcome->get( i, TI ) == 1 )
       logprobratio = newExpectedY / ExpectedY[ TI ][i];
     else
       logprobratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY[ TI ][i] );
@@ -741,8 +743,11 @@ bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptio
   return isdiploid;
 }
 
-void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
+void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, 
 			   unsigned int SumN[], unsigned int SumN_X[]){
+  double L = Loci->GetLengthOfGenome(), L_X=0.0;
+  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
+
   // Samples sum of intensities parameter as conjugate gamma with Poisson likelihood
   // SumN is the number of arrivals between each pair of adjacent loci
   if(XOnly ){
@@ -921,6 +926,20 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   }//end locus loop
 }
 
+void Individual::UpdateB(double DInvLink, double dispersion){
+  //increment B using new Admixture Props
+  //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
+    Xcov[Populations-1] = 1;//last entry is intercept
+    for( int k = 0; k < Populations - 1; k++ ){
+      Xcov[k] = Theta[ k]; 
+    }
+    double *temp = new double[Populations*Populations];
+    matrix_product(Xcov, Xcov, temp, Populations, 1, Populations);
+    scale_matrix(temp, DInvLink*dispersion, Populations, Populations);
+    add_matrix(B, temp, Populations, Populations);
+    delete[] temp;
+}
+
 void Individual::SumScoresForLinkageAffectedsOnly(int j, double *SumAffectedsScore, 
 				      double *SumAffectedsVarScore, double *SumAffectedsScore2, double *SumAffectedsInfo){
   int KK = Populations;
@@ -956,20 +975,20 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 }
 
 // unnecessary duplication of code - ? should embed within method for > 1 population
-void Individual::OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY, 
+void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY,
 				      double *lambda, int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A )
 {
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
     if( AnalysisTypeIndicator > 1 ){
-      if( Outcome[k].IsMissingValue( i, 0 ) ){
+      if( Outcome->isMissing( i, k ) ){
 	if( !OutcomeType[k] )
-	  Outcome[k]( i, 0 ) = gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) );
+	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
 	else{
 	  if( myrand() * ExpectedY[k][i] < 1 )
-	    Outcome[k]( i, 0 ) = 1;
+	    Outcome->set( i, k, 1);
 	  else
-	    Outcome[k]( i, 0 ) = 0;
+	    Outcome->set( i, k, 0);
 	}
       }
     }
@@ -1305,10 +1324,10 @@ double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, d
    return LogLikelihood;
 }
 
-void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<vector<double> > &alpha, 
-				       double rhoalpha, double rhobeta, double L, 
-				       double L_X, unsigned int SumN[],unsigned int SumN_X[]){
-
+void Individual::CalculateLogPosterior(AdmixOptions *options, vector<vector<double> > &alpha, 
+				       double rhoalpha, double rhobeta){
+  double L = Loci->GetLengthOfGenome(), L_X=0.0;
+  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
   LogPosterior = 0.0; 
   double IntConst1;
  {
@@ -1325,7 +1344,7 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, bool isX_data, vec
       transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
       LogPosterior += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(0));
     }
-    else if( isX_data ){
+    else if( Loci->isX_data() ){
       for( unsigned int g = 0; g < 2; g++ ){
 	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[g],
 					    rhobeta + L, _rhoHat[g] );

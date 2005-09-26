@@ -75,17 +75,16 @@ void DirichletParamSampler::SetPriorMu( double *ingamma )
 
 void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double *eta, double *mu )
 /*
-n = number of observations
+  n = number of observations
 */
 {
-   unsigned int i;
-   double L1=0, P1=0, Proposal1=0;
+
    double b = mu[d-1] + mu[0] - 0.005;
    double summu = 1.0 - mu[d-1];
    AlphaParameters[0] = n;
    for( unsigned int j = 0; j < d-1; j++ ){
      AlphaParameters[1] = *eta; // dispersion parameter
-     AlphaParameters[2] = summu - mu[j]; // 1 - lastparam - proportion parameter
+     AlphaParameters[2] = summu - mu[j]; // 1 - last proportion parameter
      AlphaParameters[3] = sumlogtheta[d-1]; 
      AlphaParameters[4] = sumlogtheta[j];
      DirParamArray[j]->SetLeftTruncation( 0.005 );
@@ -98,25 +97,33 @@ n = number of observations
    }
    mu[d-1] = 1.0 - summu;
    
-   // Dirichlet dispersion parameter eta is updated with a Metropolis random walk
-   etanew = exp( gennor( log( *eta ), step ) );
-   Proposal1 = log(etanew) - log(*eta);
-   // log prior ratio P1 
-   P1 = ( EtaAlpha - 1.0 ) * ( log(etanew) - log(*eta) ) - EtaBeta * ( etanew - *eta );
-   // log likelihood ratio L1
-   L1 = n * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( *eta ) );
-   for( i = 0; i < d; i++ )
-     L1 += mu[i] * (etanew - *eta) * sumlogtheta[i] - n*gsl_sf_lngamma( etanew * mu[i] ) + n*gsl_sf_lngamma( *eta * mu[i] );
-   // calculate log acceptance probability ratio
-   LogAccProb = 0.0;
-   if(P1 + L1 + Proposal1 < 0.0)  
-     LogAccProb = P1 + L1 + Proposal1; 
-   //accept/reject proposal
-   if( log(myrand()) < LogAccProb ){
-     *eta = etanew;
-   }
-   //update step size
-   step = TuneEta.UpdateStepSize( exp(LogAccProb) );
+   SampleEta(n, sumlogtheta, eta, mu);
+
+}
+
+void DirichletParamSampler::SampleEta(unsigned n, double *sumlogtheta, double *eta, double *mu){
+  // Dirichlet dispersion parameter eta is updated with a Metropolis random walk
+  unsigned int i;
+  double L1=0, P1=0, Proposal1=0;
+
+  etanew = exp( gennor( log( *eta ), step ) );
+  Proposal1 = log(etanew) - log(*eta);
+  // log prior ratio P1 
+  P1 = ( EtaAlpha - 1.0 ) * ( log(etanew) - log(*eta) ) - EtaBeta * ( etanew - *eta );
+  // log likelihood ratio L1
+  L1 = n * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( *eta ) );
+  for( i = 0; i < d; i++ )
+    L1 += mu[i] * (etanew - *eta) * sumlogtheta[i] - n*gsl_sf_lngamma( etanew * mu[i] ) + n*gsl_sf_lngamma( *eta * mu[i] );
+  // calculate log acceptance probability ratio
+  LogAccProb = 0.0;
+  if(P1 + L1 + Proposal1 < 0.0)  
+    LogAccProb = P1 + L1 + Proposal1; 
+  //accept/reject proposal
+  if( log(myrand()) < LogAccProb ){
+    *eta = etanew;
+  }
+  //update step size
+  step = TuneEta.UpdateStepSize( exp(LogAccProb) );
 }
 
 double DirichletParamSampler::getStepSize()

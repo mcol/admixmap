@@ -64,6 +64,8 @@ public:
 
   std::vector<double> getRho();
 
+  int *getSumLocusAncestry();
+
   double getLogLikelihood(AdmixOptions*, Chromosome**);
   double getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, vector<double > rho, vector<double> rho_X);
 
@@ -79,14 +81,19 @@ public:
   double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, double *, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
-  void SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , Matrix_d *Outcome,
+  void SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 			 Matrix_d &Covariates0, double **beta, const double *poptheta, AdmixOptions* options,
 			 Chromosome **chrm, vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, vector<double> sigma, 
 			 double DInvLink, double dispersion);
 
- void OnePopulationUpdate( int i, Matrix_d *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda,
+  void SampleTheta( int i, int iteration, double *SumLogTheta, DataMatrix *Outcome, Chromosome **C,
+		    int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+		    Matrix_d &Covariates0, double **beta, const double *poptheta,
+		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, double, double, bool);
+
+ void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda,
 			   int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A );
 
   void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
@@ -104,6 +111,9 @@ public:
 
   static void OutputLikRatios(const char *filename, int iterations, std::string *PopLabels);
 
+  void CalculateLogPosterior(AdmixOptions *options, vector<vector<double> > &alpha, 
+			     double rhoalpha, double rhobeta);
+
 private:
   unsigned short ***genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
@@ -115,6 +125,7 @@ private:
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
 
   int **LocusAncestry, *SumLocusAncestry, *SumLocusAncestry_X;
+  unsigned SumN[2], SumN_X[2];
 
   std::vector< double > _rho; //sum of intensities
   std::vector< double > _rho_X;//sum of intensities for X chromosome
@@ -158,24 +169,18 @@ private:
   double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
   double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, int Populations,
 					       int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
-					       Matrix_d *Outcome, const double *poptheta, double *lambda);
+					       DataMatrix *Outcome, const double *poptheta, double *lambda);
 
   bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool);
 
   void SumAncestry(unsigned int j, Chromosome *chrm);
 
-  void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, double L, double L_X, 
+  void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta,  
 		 unsigned int SumN[], unsigned int SumN_X[]);
-  void SampleTheta( int i, double *SumLogTheta, Matrix_d *Outcome, Chromosome **C, 
-		    int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-		    Matrix_d &Covariates0, double **beta, const double *poptheta,
-		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, bool);
 
   void ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<vector<double> > &alpha);
   double ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome **C, vector<vector<double> > &alpha);
-  void CalculateLogPosterior(AdmixOptions *options, bool isX_data, vector<vector<double> > &alpha, 
-			     double rhoalpha, double rhobeta, double L, 
-			     double L_X, unsigned int SumN[], unsigned int SumN_X[]);
+
 
   void InitializeChib(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 
 		      AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
@@ -185,6 +190,7 @@ private:
 
   void UpdateScoreForLinkageAffectedsOnly(int j, bool ModelIndicator, Chromosome **);
   void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **);
+  void UpdateB(double DInvLink, double dispersion);
 };
 
 

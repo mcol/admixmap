@@ -30,6 +30,7 @@ IndividualCollection::IndividualCollection()
   OutcomeType = 0;
   CovariateLabels = 0;
   NumCovariates = 0;
+  ReportedAncestry = 0;
 }
 
 IndividualCollection::~IndividualCollection()
@@ -40,11 +41,11 @@ IndividualCollection::~IndividualCollection()
   }
   delete[] _child;
   delete indadmixoutput;
-  delete[] Outcome;
   delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
   delete[] SumLogTheta;
   delete[] CovariateLabels;
+  delete[] ReportedAncestry;
 }
 
 IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
@@ -59,7 +60,6 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   SumLogLikelihood = 0.0;
   Covariates = nullMatrix;
   CovariateLabels = 0;
-  Outcome = 0;
   ExpectedY = 0;
   SumLogTheta = 0;
   NumInd = Data->getNumberOfIndividuals();
@@ -106,20 +106,14 @@ double IndividualCollection::GetSumrho()
    return Sumrho;
 }
 
-Matrix_d IndividualCollection::getOutcome(int j){
-  return Outcome[j];
+vector<double> IndividualCollection::getOutcome(int j){
+  return Outcome.getCol(j);
 }
 
 double IndividualCollection::getOutcome(int j, int ind){
-  if(Outcome){
-    return Outcome[j](ind, 0);
-  }
-  else return 0.0;
+    return Outcome.get(ind, j);
 }
 
-Vector_d IndividualCollection::getTargetCol(int j, int k){
-  return Outcome[j].GetColumn(k);
-}
 int IndividualCollection::getNumberOfOutcomeVars(){
   return NumOutcomes;
 }
@@ -199,7 +193,7 @@ void IndividualCollection::calculateExpectedY( int k)
 }
 
 void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::string *PopulationLabels,
-				      double rhoalpha, double rhobeta, LogWriter *Log, const Matrix_d &MLEMatrix){
+				      double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix){
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
     Log->logmsg(true,"Writing individual-level parameters to ");
@@ -301,14 +295,13 @@ void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::
 }
 
 // ** this function needs debugging
-void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, AdmixOptions * options, const Matrix_d &MLEMatrix){
+void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, AdmixOptions * options, const DataMatrix &MLEMatrix){
   //set thetahat and rhohat, estimates of individual admixture and sumintensities
   //NB NumInd = 1 here
 
   thetahat = new double *[NumInd];
   thetahatX = new double *[NumInd];
 
-   Matrix_d temp;
    size_t size_admix;
    int K = options->getPopulations();
    if( options->isRandomMatingModel() )
@@ -327,18 +320,16 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
 
    //use previously read values from file, if available
    if( options->getAnalysisTypeIndicator() == -2 ){
-      rhohat[0][0] = MLEMatrix( options->getPopulations(), 0 );
+      rhohat[0][0] = MLEMatrix.get( options->getPopulations(), 0 );
       if( options->getXOnlyAnalysis() ){
-	temp = MLEMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 0 );
-	for(int k = 0; k < options->getPopulations(); ++k) thetahat[0][k] = temp(k,0);
+	for(int k = 0; k < options->getPopulations(); ++k) thetahat[0][k] = MLEMatrix.get(k,0);
       }
       else{
-	temp = MLEMatrix.SubMatrix( 0, options->getPopulations() - 1, 0, 1 );
 	for(int k = 0; k < options->getPopulations(); ++k) {
-	  thetahat[0][k] = temp(k,0);
-	  thetahat[0][k+ options->getPopulations()] = temp(k,1);
+	  thetahat[0][k] = MLEMatrix.get(k,0);
+	  thetahat[0][k+ options->getPopulations()] = MLEMatrix.get(k,1);
 	}
-	rhohat[0][1] = MLEMatrix(options->getPopulations(), 1 );
+	rhohat[0][1] = MLEMatrix.get(options->getPopulations(), 1 );
       }
       setAdmixtureProps(thetahat[0], size_admix);
    }
@@ -392,35 +383,36 @@ void IndividualCollection::LoadCovariates(InputData *data_){
 
 void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data_, LogWriter *Log){
   //LOAD TARGET (OUTCOME VARIABLE)
-  Matrix_d TempTarget, temporary;
+  DataMatrix TempTarget, temporary;
   string *TempLabels = 0;
 
   //conversion necessary because LoadTarget is changed further down
-  Matrix_d& LoadTarget = (Matrix_d&)data_->getTargetMatrix();
-  TempLabels = new string[ LoadTarget.GetNumberOfCols() ];
+  DataMatrix& OutcomeVarData = (DataMatrix&)data_->getOutcomeVarMatrix();
+  TempLabels = new string[ OutcomeVarData.nCols() ];
 
   //Vector_i vtemp( LoadTarget.GetNumberOfCols() );
   //vtemp.SetElements(1);
-  getLabels(data_->getTargetData()[0], TempLabels);
+  getLabels(data_->getOutcomeVarData()[0], TempLabels);
 
   if( options->getAnalysisTypeIndicator() == 5 ){
-    OutcomeVarLabels = new string[ LoadTarget.GetNumberOfCols() ];
-    NumOutcomes = LoadTarget.GetNumberOfCols();
-    Outcome = new Matrix_d[NumOutcomes];
+    OutcomeVarLabels = new string[ OutcomeVarData.nCols() ];
+    NumOutcomes = OutcomeVarData.nCols();
+    Outcome.setDimensions(NumOutcomes, 1);
     delete[] OutcomeType;
-    OutcomeType = new int[ LoadTarget.GetNumberOfCols() ];
+    OutcomeType = new int[ OutcomeVarData.nCols() ];
+    Outcome = OutcomeVarData.SubMatrix( 1, NumInd, 0, OutcomeVarData.nCols()-1 );
 
-    for( int j = 0; j < LoadTarget.GetNumberOfCols(); j++ ){
+    for( unsigned j = 0; j < OutcomeVarData.nCols(); j++ ){
       OutcomeVarLabels[j] = TempLabels[j];
-      TempTarget = LoadTarget;
-      TempTarget.SubMatrix2( 1, NumInd, j, j );
+      TempTarget = OutcomeVarData.SubMatrix( 1, NumInd, j, j );//jth col of outcomevarfile, excluding header
+
       for(unsigned int i = 0; i < NumInd; i++ ){
-	if( !TempTarget.IsMissingValue( i, 0 ) &&
-	    (TempTarget( i, 0 ) == 0 || TempTarget( i, 0 ) == 1) )//binary outcome
+	if( !TempTarget.isMissing( i, 0 ) &&
+	    (TempTarget.get( i, 0 ) == 0 || TempTarget.get( i, 0 ) == 1) )//binary outcome
 	  OutcomeType[j] = 1;// 1 => binary outcome
 	else OutcomeType[j] = 0;// 0 => continuous outcome
       }
-      Outcome[j] = TempTarget;
+      //Outcome[j] = TempTarget;
 
       if( OutcomeType[j] )
 	{
@@ -435,18 +427,16 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
 	  Log->logmsg(true,".\n");
 	}
     }
-  }
+  }//end analysistypeindicator == 5
   else{
     OutcomeVarLabels = new string[ 1 ];
     OutcomeVarLabels[0] = TempLabels[ options->getTargetIndicator() ];
     NumOutcomes = 1;
-    Outcome = new Matrix_d[1];
     Log->logmsg(true,"Regressing on: ");
     Log->logmsg(true, OutcomeVarLabels[0]);
     Log->logmsg(true,".\n");
-
-    LoadTarget.SubMatrix2( 1, NumInd, options->getTargetIndicator(), options->getTargetIndicator() );
-    Outcome[0] = LoadTarget;
+    Outcome = OutcomeVarData.SubMatrix( 1, NumInd, options->getTargetIndicator(), options->getTargetIndicator() );
+    //Outcome[0] = OutcomeVarData.SubMatrix( 1, NumInd, options->getTargetIndicator(), options->getTargetIndicator() );
   }
 
   delete [] TempLabels;
@@ -455,10 +445,10 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
 void IndividualCollection::LoadRepAncestry(InputData *data_){
   //LOAD REPORTED ANCESTRY IF GIVEN   
 
-  ReportedAncestry = new Matrix_d[NumInd];
-  const Matrix_d& temporary = data_->getReportedAncestryMatrix();
-  for( int i = 0; i < temporary.GetNumberOfRows() / 2; i++ )
-    ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.GetNumberOfCols() - 1 );
+  ReportedAncestry = new DataMatrix[NumInd];
+  DataMatrix& temporary = (DataMatrix&)data_->getReportedAncestryMatrix();
+  for( unsigned i = 0; i < temporary.nRows() / 2; i++ )
+    ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.nCols() - 1 );
  
 }
 
@@ -481,19 +471,29 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
   for(unsigned int i = 0; i < NumInd; i++ ){
     
     if( options->getPopulations() > 1 ){
-      _child[i]->SampleParameters(i, SumLogTheta, A, iteration , Outcome, NumOutcomes, OutcomeType, ExpectedY, 
+      _child[i]->SampleParameters(i, SumLogTheta, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
 				  lambda, NumCovariates, Covariates, beta, poptheta, options, 
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
 				  R0->getDispersion()
 				  );
+      if((iteration %2))//conjugate update of theta
+	_child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
+			       Covariates, beta, poptheta, options, alpha, sigma,
+			       DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i), 
+			       R0->getDispersion(), false);
+
     }
     //?? possible error, only using dispersion parameter for first regression model
     
-    else{
-      _child[i]->OnePopulationUpdate(i, Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, 
+    else{//single population 
+      _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
 				     options->getAnalysisTypeIndicator(), chrm, A);
     }   
+
+    //calculate log posterior if necessary 
+    if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
+      _child[i]->CalculateLogPosterior(options, alpha, rhoalpha, rhobeta);
     
     if( (options->getAnalysisTypeIndicator() < 0) &&  options->getMLIndicator() && (i == 0) )//check if this condition is correct
       _child[i]->ChibLikelihood(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
@@ -501,6 +501,20 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
 				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], Log, MargLikelihood, A);
   }
 
+}
+
+void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, Regression *R0, Regression *R1, const double *poptheta, 
+						       AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha){
+  if( options->getPopulations() > 1 ){
+    double lambda[] = {R0->getlambda(), R1->getlambda()};
+    double *beta[] = {R0->getbeta(), R1->getbeta()};
+
+    for(unsigned int i = 0; i < NumInd; i++ )
+      _child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
+			     Covariates, beta, poptheta, options, alpha, sigma,
+			     DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i), 
+			     R0->getDispersion(), false);
+  }
 }
 
 void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){

@@ -39,6 +39,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   Loci = loci;
   Log = l;
   poptheta = 0;
+  SumLocusAncestry = 0;
 #if POPADMIXSAMPLER == 3
   logalpha = 0;
   initialAlphaStepsize = 0.05;//need a way of setting this without recompiling, or a sensible fixed value
@@ -48,15 +49,17 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
 
 void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   // ** Initialise population admixture distribution Dirichlet parameters alpha **
+  int K = options->getPopulations();
+
   alpha = options->getAndCheckInitAlpha(Log);
-  SumAlpha.resize( options->getPopulations() );
+  SumAlpha.resize( K );
 
   if(!options->getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
 
   //ergodic average of population admixture, which is used to centre 
   // the values of individual admixture in the regression model  
-  poptheta =new double[ options->getPopulations() ];
-  for( int i = 0; i < options->getPopulations(); i++ )poptheta[i] = 0.0;
+  poptheta =new double[ K ];
+  for( int i = 0; i < K; i++ )poptheta[i] = 0.0;
 
   double alphapriormean = options->getAlphamean();
   double alphapriorvar = options->getAlphavar();
@@ -88,8 +91,8 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   //}
 
 
-  DirParamArray = new DARS*[ options->getPopulations() ];
-  for( int j = 0; j < options->getPopulations(); j++ ){
+  DirParamArray = new DARS*[ K ];
+  for( int j = 0; j < K; j++ ){
     DirParamArray[j] = new DARS();
     DirParamArray[j]->SetParameters( 0, 1, 0.1, AlphaParameters,
 				     logf, dlogf, ddlogf, 0, 0 );
@@ -97,9 +100,9 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   }
 #elif POPADMIXSAMPLER == 2
   eta = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
-  mu = new double[ options->getPopulations() ];
-  PopAdmixSampler.SetSize( options->getPopulations() );
-  for( int i = 0; i < options->getPopulations(); i++ ){
+  mu = new double[ K ];
+  PopAdmixSampler.SetSize( K );
+  for( int i = 0; i < K; i++ ){
     mu[i] = alpha[0][i]/eta;
   }
   if( options->isRandomMatingModel() ){
@@ -107,13 +110,13 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   } else {
     obs = Numindividuals;
   }
-  
+  SumLocusAncestry = new double[Numindividuals*K];
 #elif POPADMIXSAMPLER == 3
-  logalpha = new double[options->getPopulations()];
+  logalpha = new double[K];
   transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
 
   AlphaArgs = new double*[4];
-  AlphaArgs[0] = new double[options->getPopulations()];
+  AlphaArgs[0] = new double[K];
   for(unsigned i = 1; i < 4;++i)AlphaArgs[i] = new double[1];
   //elem 0 is sum of log admixture props
   AlphaArgs[1][0] = (double)Numindividuals;// elem 1 is num individuals/gametes
@@ -121,7 +124,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   AlphaArgs[2][0] = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
   AlphaArgs[3][0] = alphapriormean / alphapriorvar;
 
-  AlphaSampler.SetDimensions(options->getPopulations(), initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
+  AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
 
   // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
@@ -188,6 +191,7 @@ Latent::~Latent()
   }
 #elif POPADMIXSAMPLER == 2
   delete[] mu;
+  delete[] SumLocusAncestry;
 #elif POPADMIXSAMPLER == 3
   for(unsigned i = 0; i < 4;++i)delete[] AlphaArgs[i];
   delete[] AlphaArgs;

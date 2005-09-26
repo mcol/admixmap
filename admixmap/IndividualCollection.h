@@ -28,6 +28,7 @@
 #include "chib.h"
 #include "Individual.h"
 #include "IndAdmixOutputter.h"
+#include "DataMatrix.h"
 #include "matrix.h"
 #include "matrix_d.h"
 #include "matrix_i.h"
@@ -50,7 +51,7 @@ public:
   IndividualCollection(AdmixOptions*,InputData *Data,Genome&,Chromosome **);
 
   void Initialise(AdmixOptions *, Genome *, std::string *PopulationLabels, 
-		  double rhoalpha, double rhobeta, LogWriter *Log, const Matrix_d &MLEMatrix);
+		  double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix);
 
   void LoadData(AdmixOptions *options, InputData *, LogWriter *Log);
   
@@ -60,6 +61,9 @@ public:
 	      const double *poptheta, AdmixOptions *options, Chromosome **chrm, 
 	      std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta,
 	      LogWriter *Log, chib *MargLikelihood);
+
+  void ConjugateUpdateIndAdmixture(int iteration, Regression *R0, Regression *R1, const double *poptheta, 
+				   AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha);
   
   void OutputIndAdmixture();
 
@@ -79,9 +83,8 @@ public:
   double GetSumrho();
   double getSumLogTheta(int);
   double *getSumLogTheta();
-  Matrix_d getOutcome(int);
+  std::vector<double> getOutcome(int);
   double getOutcome(int, int);
-  Vector_d getTargetCol(int,int);
   int getNumberOfOutcomeVars();
   int GetNumCovariates() const;
   int GetNumberOfInputCovariates();
@@ -108,7 +111,7 @@ private:
   void LoadCovariates(InputData *);
   void LoadOutcomeVar(AdmixOptions *options, InputData *, LogWriter *Log);
   void LoadRepAncestry(InputData *);
-  void InitialiseMLEs(double, double, AdmixOptions *, const Matrix_d&);
+  void InitialiseMLEs(double, double, AdmixOptions *, const DataMatrix&);
 
   unsigned int NumInd, NumCompLoci;
   //MLEs of Individual admixture and sumintensities
@@ -119,7 +122,7 @@ private:
   double *SumLogTheta;//sums of log individual admixture proportions
   vector<double> MaxLogLikelihood;
 
-  Matrix_d *ReportedAncestry;
+  DataMatrix *ReportedAncestry;
   std::vector<double> sigma;
   IndAdmixOutputter* indadmixoutput;
   double LogLikelihood, SumLogLikelihood;
@@ -127,7 +130,7 @@ private:
  
   //Regression Objects
   double **ExpectedY;
-  Matrix_d *Outcome;
+  DataMatrix Outcome;
   int NumOutcomes;
   int NumCovariates;
   Matrix_d Covariates;//all covariates, including admixture props
