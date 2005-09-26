@@ -58,7 +58,7 @@ public:
   const Matrix_s& getLocusData() const;
   const Matrix_s& getGeneticData()  const;
   const Matrix_s& getInputData()    const;
-  const Matrix_s& getTargetData()   const;
+  const Matrix_s& getOutcomeVarData()   const;
   const Matrix_s& getAlleleFreqData() const;
   const Matrix_s& getHistoricalAlleleFreqData() const;
   const Matrix_s& getPriorAlleleFreqData() const;
@@ -70,14 +70,14 @@ public:
    *  Getters to retrieve data (converted to Matrix_d).
    */    
   const DataMatrix& getLocusMatrix() const;
-  const Matrix_d& getTargetMatrix() const;
+  const DataMatrix& getOutcomeVarMatrix() const;
   const Matrix_d& getInputMatrix() const;
   const DataMatrix& getAlleleFreqMatrix() const;
   const DataMatrix& getHistoricalAlleleFreqMatrix() const;
   const DataMatrix& getPriorAlleleFreqMatrix() const;
   const DataMatrix& getEtaPriorMatrix() const;
-  const Matrix_d& getMLEMatrix() const;
-  const Matrix_d& getReportedAncestryMatrix() const;
+  const DataMatrix& getMLEMatrix() const;
+  const DataMatrix& getReportedAncestryMatrix() const;
 
   std::string *GetPopLabels() const;
 
@@ -97,7 +97,7 @@ private:
   Matrix_s locusData_;
   Matrix_s geneticData_;
   Matrix_s inputData_;
-  Matrix_s targetData_;
+  Matrix_s outcomeVarData_;
   Matrix_s alleleFreqData_;
   Matrix_s historicalAlleleFreqData_;
   Matrix_s priorAlleleFreqData_;
@@ -107,13 +107,13 @@ private:
 
   DataMatrix locusMatrix_;
   Matrix_d inputMatrix_;
-  Matrix_d targetMatrix_;
+  DataMatrix outcomeVarMatrix_;
   DataMatrix alleleFreqMatrix_;
   DataMatrix historicalAlleleFreqMatrix_;
   DataMatrix priorAlleleFreqMatrix_;
   DataMatrix etaPriorMatrix_;
-  Matrix_d MLEMatrix_;
-  Matrix_d reportedAncestryMatrix_;
+  DataMatrix MLEMatrix_;
+  DataMatrix reportedAncestryMatrix_;
 
   std::string *PopulationLabels;
   int NumIndividuals;

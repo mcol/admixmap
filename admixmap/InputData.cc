@@ -1,4 +1,4 @@
-/** 
+/**
  *   ADMIXMAP
  *   InputData.cc 
  *   Class to read and check all input data files
@@ -158,29 +158,29 @@ static void convertMatrix(const Matrix_s& data, DataMatrix& m)
         }
     }
 }
-static void convertMatrix(const Matrix_s& data, double *m)
-{       
-    const size_t numRows = data.size();
+// static void convertMatrix(const Matrix_s& data, double *m)
+// {       
+//     const size_t numRows = data.size();
 
-    // If there are no rows, return empty matrix.
-    if (0 == numRows) return;
+//     // If there are no rows, return empty matrix.
+//     if (0 == numRows) return;
 
-    // Verify that all rows have same length.
-    const size_t numCols = data[0].size();
-    for (size_t i = 1; i < numRows; ++i) {
-        if (numCols != data[i].size()) {
-            throw runtime_error("Invalid row length");
-        }
-    }
+//     // Verify that all rows have same length.
+//     const size_t numCols = data[0].size();
+//     for (size_t i = 1; i < numRows; ++i) {
+//         if (numCols != data[i].size()) {
+//             throw runtime_error("Invalid row length");
+//         }
+//     }
     
-    // Form matrix.
-    m = new double[numRows * numCols];
-    for (size_t i = 0; i < numRows; ++i) {
-        for (size_t j = 0; j < numCols; ++j) {
-	  m[i*numCols +j] = StringConvertor::toFloat(data[i][j]);
-        }
-    }
-}
+//     // Form matrix.
+//     m = new double[numRows * numCols];
+//     for (size_t i = 0; i < numRows; ++i) {
+//         for (size_t j = 0; j < numCols; ++j) {
+// 	  m[i*numCols +j] = StringConvertor::toFloat(data[i][j]);
+//         }
+//     }
+// }
 
 /**
  *  InputData members.
@@ -205,7 +205,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       readFile(options->getLocusFilename(), locusData_);   //locusfile
       readFile(options->getGenotypesFilename(), geneticData_); //genotypes file
       readFile(options->getCovariatesFilename(), inputData_);         //covariates file
-      readFile(options->getOutcomeVarFilename(), targetData_);       //outcomevar file                
+      readFile(options->getOutcomeVarFilename(), outcomeVarData_);       //outcomevar file
       readFile(options->getAlleleFreqFilename(), alleleFreqData_);
       readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_);            
       readFile(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_);
@@ -222,7 +222,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       locusMatrix_ = locusMatrix_.SubMatrix(0, locusMatrix_.nRows() - 1, 0, 1);
       }
       
-      ::convertMatrix(targetData_, targetMatrix_);
+      ::convertMatrix(outcomeVarData_, outcomeVarMatrix_);
       ::convertMatrix(inputData_,  inputMatrix_);
       ::convertMatrix(alleleFreqData_, alleleFreqMatrix_);
       ::convertMatrix(historicalAlleleFreqData_, historicalAlleleFreqMatrix_);
@@ -416,18 +416,18 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
 }
 
 void InputData::CheckOutcomeVarFile(bool singleRegression){
-  if( targetMatrix_.GetNumberOfRows() - 1 != NumIndividuals ){
+  if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
     Log->logmsg(true,"ERROR: Genotypes file has ");
     Log->logmsg(true,NumIndividuals);
     Log->logmsg(true," observations and Outcomevar file has ");
-    Log->logmsg(true,inputMatrix_.GetNumberOfRows() - 1);
+    Log->logmsg(true,outcomeVarMatrix_.nRows() - 1);
     Log->logmsg(true," observations.\n");
     exit(1);
   }
   if(singleRegression){
-    if( targetMatrix_.GetNumberOfRows() - 1 != NumIndividuals ){
+    if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
       Log->logmsg(true,"Outcomevar file has ");
-      Log->logmsg(true,targetMatrix_.GetNumberOfRows() - 1);
+      Log->logmsg(true,outcomeVarMatrix_.nRows() - 1);
       Log->logmsg(true," observations and Genotypes file has ");
       Log->logmsg(true,NumIndividuals);
       Log->logmsg(true," observations.\n");
@@ -448,22 +448,22 @@ void InputData::CheckCovariatesFile(){
 }
 
 void InputData::CheckRepAncestryFile(int populations){
-  if( reportedAncestryMatrix_.GetNumberOfRows() != 2 * NumIndividuals ){
+  if( (int)reportedAncestryMatrix_.nRows() != 2 * NumIndividuals ){
     Log->logmsg(false,"ERROR: ");
     Log->logmsg(false,"ReportedAncestry file");
     Log->logmsg(false," has ");
-    Log->logmsg(false,reportedAncestryMatrix_.GetNumberOfRows());
+    Log->logmsg(false,reportedAncestryMatrix_.nRows());
     Log->logmsg(false," rows\n");
     Log->logmsg(false,"Genotypesfile");
     Log->logmsg(false," has ");
     Log->logmsg(false,NumIndividuals);
     Log->logmsg(false," rows\n");
     exit(1);}
-  if( reportedAncestryMatrix_.GetNumberOfCols() != populations ){
+  if( (int)reportedAncestryMatrix_.nCols() != populations ){
     Log->logmsg(false,"ERROR: ");
     Log->logmsg(false,"ReportedAncestry file");
     Log->logmsg(false," has ");
-    Log->logmsg(false,reportedAncestryMatrix_.GetNumberOfCols());
+    Log->logmsg(false,reportedAncestryMatrix_.nCols());
     Log->logmsg(false," cols\n");
     Log->logmsg(false, "AlleleFreq file");
     Log->logmsg(false," has ");
@@ -603,9 +603,9 @@ const Matrix_s& InputData::getInputData() const
     return inputData_;
 }
 
-const Matrix_s& InputData::getTargetData() const
+const Matrix_s& InputData::getOutcomeVarData() const
 {
-    return targetData_;
+    return outcomeVarData_;
 }
 
 const Matrix_s& InputData::getAlleleFreqData() const
@@ -643,7 +643,7 @@ const DataMatrix& InputData::getEtaPriorMatrix() const
     return etaPriorMatrix_;
 }
 
-const Matrix_d& InputData::getMLEMatrix() const
+const DataMatrix& InputData::getMLEMatrix() const
 {
     return MLEMatrix_;
 }
@@ -668,12 +668,12 @@ const DataMatrix& InputData::getPriorAlleleFreqMatrix() const
     return priorAlleleFreqMatrix_;
 }
 
-const Matrix_d& InputData::getTargetMatrix() const
+const DataMatrix& InputData::getOutcomeVarMatrix() const
 {
-    return targetMatrix_;
+    return outcomeVarMatrix_;
 }
 
-const Matrix_d& InputData::getReportedAncestryMatrix() const
+const DataMatrix& InputData::getReportedAncestryMatrix() const
 {
     return reportedAncestryMatrix_;
 }
