@@ -20,10 +20,12 @@
  */
 #include "DataMatrix.h"
 #include <algorithm>
+#include <iostream>
 
 DataMatrix::DataMatrix(){
   nrows = 0;
   ncols = 0;
+  anyMissing =false;
 }
 DataMatrix::DataMatrix(unsigned rows, unsigned cols){
   nrows = rows;
@@ -32,6 +34,7 @@ DataMatrix::DataMatrix(unsigned rows, unsigned cols){
   fill(data.begin(), data.end(), 0.0);
   missing.resize(nrows*ncols);
   fill(missing.begin(), missing.end(), false);
+  anyMissing = false;
 }
 void DataMatrix::setDimensions(unsigned rows, unsigned cols){
   nrows = rows;
@@ -40,6 +43,7 @@ void DataMatrix::setDimensions(unsigned rows, unsigned cols){
   fill(data.begin(), data.end(), 0.0);
   missing.resize(nrows*ncols);
   fill(missing.begin(), missing.end(), false);
+  anyMissing = false;
 }
 unsigned DataMatrix::nRows()const{
   return nrows;
@@ -54,6 +58,7 @@ bool DataMatrix::isMissing(unsigned row, unsigned col){
 void DataMatrix::isMissing(unsigned row, unsigned col, bool b){
   if (row >= nrows || col >= ncols) throw BoundsViolation();
   missing[row*ncols + col] = b;
+  if(b)anyMissing = true;
 }
 void DataMatrix::set(unsigned row, unsigned col, double x){
   if (row >= nrows || col >= ncols) throw BoundsViolation();
@@ -89,9 +94,16 @@ void DataMatrix::SetMissingValuesToColumnMeans(){
   for(unsigned col = 0; col < ncols; ++col){
     //find col mean
     mean  = 0.0;
+    unsigned count;
     for(unsigned row = 0; row < nrows; ++row){
-      if(!isMissing(row, col))mean += get(row, col);
+      if(!isMissing(row, col))mean += get(row, col);//sum of nonmissing values
+      count++;
     }
+    if(count == 0){
+      std::cerr<<"Warning: column "<<col<<" of covariatesfile has all missing values\n";
+      exit(1);
+    }
+    mean /= (double)count;
     //set missing values
     for(unsigned row = 0; row < nrows; ++row){
       if(isMissing(row, col))set(row, col, mean);

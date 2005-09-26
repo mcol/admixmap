@@ -30,6 +30,7 @@ public:
   void setDimensions(unsigned, unsigned);
   bool isMissing(unsigned, unsigned);
   void isMissing(unsigned, unsigned, bool);
+  bool hasMissing(){return anyMissing;}
   std::vector<double> getRow(unsigned);
   std::vector<double> getCol(unsigned c);
   double get(unsigned, unsigned) const;
@@ -44,6 +45,7 @@ private:
   std::vector<bool > missing;
   unsigned nrows;
   unsigned ncols;
+  bool anyMissing;
   class BoundsViolation { };
 
 };
