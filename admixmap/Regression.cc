@@ -1,5 +1,6 @@
 #include "Regression.h"
 #include "matrix_d.h"
+#include <numeric>
 
 std::ofstream Regression::outputstream;
 
@@ -121,7 +122,8 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
     double p;
     beta0.SetNumberOfElements(NumCovariates, 1 );
     
-    p = (individuals->getTargetCol(RegNumber,0)).Mean();
+    std::vector<double> v = individuals->getOutcome(RegNumber);
+    p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
     if(RegType == Logistic )
       beta0(0,0) = log( p / ( 1 - p ) );
     else if(RegType == Linear)
@@ -196,6 +198,10 @@ void Regression::SetExpectedY(IndividualCollection *IC){
 void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
   // Sample for regression model parameters beta
   // should make sure that matrix returned by getCovariates contains updated values of indiv admixture
+  std::vector<double> Outcome = individuals->getOutcome(RegNumber);
+  Matrix_d Y(Outcome.size(), 1);
+  for(unsigned i = 0; i < Outcome.size(); ++i)
+  Y(i,0) = Outcome[i];
 
     if( RegType == Linear ){
       // full conditional for regression parameters has mean Beta_n = (n0 + X'X)^-1 (n0 Beta0 + X'Y)
@@ -205,12 +211,12 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
       temporary.InvertUsingLUDecomposition();
       temporary.Symmetrize();
       // postmultiply by (n0*beta0 + X'*Y) to obtain means of full conditional distribution
-      betan = ( n0 * beta0 + individuals->getCovariates().Transpose() * individuals->getOutcome(RegNumber) );
+      betan = ( n0 * beta0 + individuals->getCovariates().Transpose() * Y );
       betan = temporary * betan;
       // lambda_n is rate parameter of gamma full conditional distribution for dispersion parameter, given by  
       // lambda1 + 0.5[(Y - X Beta)' Y + (Beta0 - Beta_n)' n0 Beta0]
       double lambdan = lambda1 + 0.5 *
-	( (individuals->getOutcome(RegNumber) - individuals->getCovariates() * betan ).Transpose() * individuals->getOutcome(RegNumber)
+	( (Y - individuals->getCovariates() * betan ).Transpose() * Y
 	  + (beta0 - betan).Transpose() * n0 * beta0 )(0,0);
       lambda = gengam( lambdan, lambda0 + 0.5 * individuals->getSize() );
       DrawBeta.SetMean( betan );
@@ -219,7 +225,7 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
     }
 
     else if( RegType == Logistic ){
-      sum = (individuals->getOutcome(RegNumber)).Transpose() * individuals->getCovariates();
+      sum = Y.Transpose() * individuals->getCovariates();
 
       Matrix_d Cov = individuals->getCovariates();
       for(int i = 0; i < Cov.GetNumberOfRows(); ++i)
