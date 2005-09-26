@@ -166,6 +166,11 @@ void submain(AdmixOptions* options){
       // ** Update individual-level parameters  
       IC->Update(iteration, &A, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
 		 &Log, &MargLikelihood);
+      //if((iteration %2)){
+	//L.Update(iteration, IC);//update pop admix params conditional on sums of ancestry states with jump indicators==1
+	//IC->ConjugateUpdateIndAdmixture(iteration, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha());//conjugate update of theta
+      //}
+
       // ** update allele frequencies
       A.Update((iteration > options->getBurnIn()));
       

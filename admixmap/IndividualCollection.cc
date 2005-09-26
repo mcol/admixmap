@@ -477,7 +477,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
 				  R0->getDispersion()
 				  );
-      if((iteration %2))//conjugate update of theta
+      if((iteration %2))//conjugate update of theta on even-numbered iterations
 	_child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
 			       Covariates, beta, poptheta, options, alpha, sigma,
 			       DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i), 

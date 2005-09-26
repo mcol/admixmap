@@ -12,13 +12,14 @@ class DirichletParamSampler
 {
 public:
   DirichletParamSampler();
-  DirichletParamSampler(unsigned int);
+  DirichletParamSampler(unsigned, unsigned);
   ~DirichletParamSampler();
   
-  void SetSize( unsigned int );
+  void SetSize( unsigned, unsigned );
   void SetPriorEta( double, double );
   void SetPriorMu( double* );
   void Sample( unsigned int, double*, double*, double* );
+  void Sample2( unsigned int, double*, double*, double*, int* );
   double getStepSize();
   double getExpectedAcceptanceRate();
   
@@ -41,6 +42,8 @@ private:
   // element 3 is 
   // element 4 is 
   double AlphaParameters[5];
+
+  MuSampler muSampler;
 
   void SampleEta(unsigned n, double *sumlogtheta, double *eta, double *mu);
 

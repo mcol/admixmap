@@ -134,7 +134,7 @@ private:
   double *mu;
   unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
-  double *SumLocusAncestry;
+  int *SumLocusAncestry;
 
 #elif POPADMIXSAMPLER == 3 //Hamiltonian sampler
   double **AlphaArgs;

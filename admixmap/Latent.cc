@@ -101,7 +101,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 #elif POPADMIXSAMPLER == 2
   eta = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
   mu = new double[ K ];
-  PopAdmixSampler.SetSize( K );
+  PopAdmixSampler.SetSize( Numindividuals, K );
   for( int i = 0; i < K; i++ ){
     mu[i] = alpha[0][i]/eta;
   }
@@ -110,7 +110,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   } else {
     obs = Numindividuals;
   }
-  SumLocusAncestry = new double[Numindividuals*K];
+  SumLocusAncestry = new int[Numindividuals*K];
 #elif POPADMIXSAMPLER == 3
   logalpha = new double[K];
   transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
@@ -219,9 +219,26 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
          AlphaParameters[1] += alpha[0][ j ];
       }
 #elif POPADMIXSAMPLER == 2
+//       if((iteration %2)){//even-numbered iterations
+// 	//sample mu conditional on sum of ancestry states where jump indicator==1
+// 	unsigned I = individuals->getSize();
+// 	unsigned K = options->getPopulations();
+// 	for(unsigned i = 0; i < I; ++i){
+// 	  int *SLA_ind = individuals->getIndividual(i)->getSumLocusAncestry();
+// 	  for(unsigned k = 0; k < K; ++k)
+// 	    SumLocusAncestry[k*I + i] = SLA_ind[k];	  
+// 	}
+// 	//PopAdmixSampler.Sample2( obs, individuals->getSumLogTheta(), &eta, mu, SumLocusAncestry );
+//       }
+//       else//odd-numbered iterations; sample mu conditional on individual admixture proportions
       PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &eta, mu );
+
+
       for( int j = 0; j < options->getPopulations(); j++ )
          alpha[0][j] = mu[j]*eta;
+
+
+
       
 #elif POPADMIXSAMPLER == 3
       //for( int j = 0; j < options->getPopulations(); j++ ){

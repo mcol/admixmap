@@ -14,30 +14,17 @@ DirichletParamSampler::DirichletParamSampler()
   EtaBeta = 1;
 }
 
-DirichletParamSampler::DirichletParamSampler( unsigned int ind )
+DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops )
 {
-  d = ind;
-  gamma = new double[d];
-  munew = new double[d];
-  TuneEta.SetParameters( step0, 0.01, 10, 0.44); 
-  EtaAlpha = 1;
-  EtaBeta = 1;
-  for( unsigned int i = 0; i < d; i++ )
-    gamma[i] = 1.0;
-  
-  DirParamArray = new DARS*[ d ];
-  for( unsigned int j = 0; j < d; j++ ){
-    DirParamArray[j] = new DARS();
-    DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,
-				     logf, dlogf, ddlogf, 0, 0 );
-  }
+  SetSize(numind, numpops);
 }
 
-void DirichletParamSampler::SetSize( unsigned int ind )
+void DirichletParamSampler::SetSize( unsigned numind, unsigned numpops )
   // sets number of elements in Dirichlet parameter vector
-  // instantiates an adaptive rejection sampler object for each element 
+  // instantiates an adaptive rejection sampler object for each element
+//sets up MuSampler object 
 {
-   d = ind;
+   d = numpops;
    gamma = new double[d];
    munew = new double[d];
    for( unsigned int i = 0; i < d; i++ )
@@ -46,9 +33,9 @@ void DirichletParamSampler::SetSize( unsigned int ind )
    DirParamArray = new DARS*[ d ];
    for( unsigned int j = 0; j < d; j++ ){
       DirParamArray[j] = new DARS();
-      DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters,
-                                       logf, dlogf, ddlogf, 0, 0 );
+      DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters, logf, dlogf, ddlogf, 0, 0 );
    }
+   muSampler.setDimensions(numind, numpops, 0.1 , 0.0, 1.0, 0.44);//may need to modify initial stepsize (arg 3)
 }
 
 DirichletParamSampler::~DirichletParamSampler()
@@ -73,6 +60,7 @@ void DirichletParamSampler::SetPriorMu( double *ingamma )
    }
 }
 
+//sample mus with DARS, conditional on frequencies sumlogtheta, and eta with RW
 void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double *eta, double *mu )
 /*
   n = number of observations
@@ -99,6 +87,12 @@ void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double 
    
    SampleEta(n, sumlogtheta, eta, mu);
 
+}
+
+//sample mu with MuSampler (DARS for dim==2, HMC otherwise), conditional on counts, and eta with RW
+void DirichletParamSampler::Sample2(unsigned n, double *sumlogtheta, double *eta, double *mu, int *counts){
+  muSampler.Sample(mu, *eta, counts);
+  SampleEta(n, sumlogtheta, eta, mu);
 }
 
 void DirichletParamSampler::SampleEta(unsigned n, double *sumlogtheta, double *eta, double *mu){
