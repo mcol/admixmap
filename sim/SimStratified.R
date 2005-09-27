@@ -47,15 +47,15 @@ distanceFromLast <- function(v.Chr, v.Position) {
 numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-N <- 400
-numsims <- 100
+N <- 500
+numsims <- 5
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
-spacing <- 30 # 40 cM spacing gives 99 loci
+spacing <- 25 # 40 cM spacing gives 99 loci, 30 cM spacing 128 loci, 25 cM 151 loci
 eta <- 51 # allele freq dispersion parameter 
-beta <- 2 # regression slope for effect of admixture
-gamma <- 0.3 # effect of allele 2 at candidate locus: standardized effect size if linear reg
+beta <- 2.5 # regression slope for effect of admixture
+gamma <- 0.25 # effect of allele 2 at candidate locus: standardized effect size if linear reg
                                         # log odds ratio if logistic reg
 pthreshold <- 0.01
 logistic <- F # logistic or linear
@@ -241,7 +241,7 @@ for(sims in 1:numsims) {
   postscript("TwoPopsResults/PValues.ps")
   plotchars <- numeric(L)
   plotchars[1:L] <- 1
-  plotchars[candidate] <- 19
+  plotchars[candidate] <- 2
   plotcols <- character(L)
   plotcols[1:L] <- "black"
   plotcols[candidate] <- "red"
@@ -288,26 +288,27 @@ t2.adj <-  tapply(type2.error$adj.p, f2.gr, mean, na.rm=T)
 postscript("ErrorRates.ps")
 plotchars <- c(1, 2, 15, 16)
 plotcols <- c("black", "red", "green", "blue")
-legend.y <- c(0.24, 0.21, 0.18, 0.15)
 legend.x <- rep(3, 4)
 legend.labels <- c("Crude", "Genomic control", "Two-step structured association",
                    "One-step structured association")
-plot(dimnames(t1.crude)[[1]], t1.crude, ylim=c(0, 0.3),
+
+plot(dimnames(t1.crude)[[1]], t1.crude, ylim=c(0, 0.1),
      xlab="Quintile of standardized allele frequency differential",
      ylab="Type 1 error rate", pch=plotchars[1], col=plotcols[1])
 points(dimnames(t1.gc)[[1]], t1.gc,  pch=plotchars[2], col=plotcols[2])
 points(dimnames(t1.adj2)[[1]], t1.adj2,  pch=plotchars[3], col=plotcols[3])
 points(dimnames(t1.adj)[[1]], t1.adj,  pch=plotchars[4], col=plotcols[4])
+legend.y <- seq(0.09, 0.06, by=-0.01)
 text(legend.x, legend.y, labels=legend.labels, adj=c(0, 0.5))   
 points(legend.x - 0.2, legend.y, pch=plotchars, col=plotcols)
        
-legend.y <- c(0.9, 0.85, 0.8, 0.75)
 plot(dimnames(t2.crude)[[1]], t2.crude, ylim=c(0, 1),
      xlab="Quintile of standardized allele frequency differential",
      ylab="Type 2 error rate", pch=plotchars[1], col=plotcols[1])
 points(dimnames(t2.gc)[[1]], t2.gc,  pch=plotchars[2], col=plotcols[2])
 points(dimnames(t2.adj2)[[1]], t2.adj2,  pch=plotchars[3], col=plotcols[3])
 points(dimnames(t2.adj)[[1]], t2.adj,  pch=plotchars[4], col=plotcols[4])
+legend.y <- seq(0.9, 0.75, by=-0.05)
 text(legend.x, legend.y, labels=legend.labels, adj=c(0, 0.5))   
 points(legend.x - 0.2, legend.y, pch=plotchars, col=plotcols)
 dev.off()
