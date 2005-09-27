@@ -219,18 +219,18 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
          AlphaParameters[1] += alpha[0][ j ];
       }
 #elif POPADMIXSAMPLER == 2
-      if((iteration %2)){//even-numbered iterations
-	//sample mu conditional on sum of ancestry states where jump indicator==1
-	unsigned I = individuals->getSize();
-	unsigned K = options->getPopulations();
-	for(unsigned i = 0; i < I; ++i){
-	  int *SLA_ind = individuals->getIndividual(i)->getSumLocusAncestry();
-	  for(unsigned k = 0; k < K; ++k)
-	    SumLocusAncestry[k*I + i] = SLA_ind[k];	  
-	}
-	PopAdmixSampler.Sample2( obs, individuals->getSumLogTheta(), &eta, mu, SumLocusAncestry );
-      }
-      else//odd-numbered iterations; sample mu conditional on individual admixture proportions
+//       if((iteration %2)){//even-numbered iterations
+// 	//sample mu conditional on sum of ancestry states where jump indicator==1
+// 	unsigned I = individuals->getSize();
+// 	unsigned K = options->getPopulations();
+// 	for(unsigned i = 0; i < I; ++i){
+// 	  int *SLA_ind = individuals->getIndividual(i)->getSumLocusAncestry();
+// 	  for(unsigned k = 0; k < K; ++k)
+// 	    SumLocusAncestry[k*I + i] = SLA_ind[k];	  
+// 	}
+// 	PopAdmixSampler.Sample2( obs, individuals->getSumLogTheta(), &eta, mu, SumLocusAncestry );
+//       }
+//       else//odd-numbered iterations; sample mu conditional on individual admixture proportions
       PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &eta, mu );
 
 
