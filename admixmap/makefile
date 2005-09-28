@@ -14,7 +14,10 @@ LFLAGS			= -L$(MATRIXLIBDIR) -L$(LIBDIR)
 LIBS			= -lmat -lm -static -lgsl -lgslcblas
 
 # Release version flags
- DFLAGS = -O3
+DFLAGS = -O3
+
+# Pentium 4 version flags
+# DFLAGS = -O3 -march=pentium4 -mfpmath=sse
 
 # Debug version flags
 # DFLAGS = -g
