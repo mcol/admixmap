@@ -1,5 +1,6 @@
 #include "NewARS.h"
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
@@ -88,12 +89,12 @@ void NewARS::InitialisePoints(double x[3], const double* const args){
   }
   Points[K-1].z = UpperBound;
 
-  sort(Points.begin(), Points.end()); 
+  stable_sort(Points.begin(), Points.end()); // PROBLEM: garbles points
 }
   
 void NewARS::SamplePoint(const double* const args){
   //sample from standard uniform
-  double u = 0.193;//myrand();
+  double u = myrand();
   cout<<"Sampled u = "<<u<<endl;;
   
   //compute areas under tangents and hence interval probabilities
@@ -140,6 +141,8 @@ void NewARS::SamplePoint(const double* const args){
   unsigned above = (NewPoint.abscissa < Points[pos+1].abscissa)? pos+1 : pos+2;//index of x above new point
   NewPoint.z = TangentIntersection(NewPoint.abscissa, Points[above].abscissa, NewPoint.height, Points[above].height,
 				   NewPoint.gradient, Points[above].height);
+  Points.insert(Points.begin()+pos, 1, NewPoint);
+  cout<<"new point added"<<endl<<endl;;
 
 }
 
@@ -161,14 +164,14 @@ bool NewARS::Sample(const double* const args){
 void NewARS::Update(){
   //height and gradient at new point already calculated
   //as are upper and lower hulls
-  Points.push_back(NewPoint);
-  cout<<"new point added"<<endl;
+  //Points.push_back(NewPoint);
+  //cout<<"new point added"<<endl;
 
   //increment dimension
   ++K;
 
   //re-sort the Points
-  sort(Points.begin(), Points.end());
+  stable_sort(Points.begin(), Points.end());
 }
 
 double NewARS::TangentIntersection(double x0, double x1, double h0, double h1, double g0, double g1){
@@ -214,6 +217,7 @@ double NewARS::ARS(const double* const args){
   }
   while (!success);
 
+  Points.clear();
   return NewPoint.abscissa;
 }
 
@@ -249,10 +253,15 @@ double LogNormalGradient(double x, const double* const args){
 
 int main() {
   NewARS Sampler;
+  ofstream outfile("./ARSPoints.txt");
   Sampler.Initialise(false, false, 0, 0, LogNormalDensity, LogNormalGradient);
   double args[2] = {0.0, 1.0};
-  for(unsigned i = 0; i < 10; ++i)
-  cout<<"Sampled point: "<<Sampler.ARS(args)<<endl<<endl;
+  for(unsigned i = 0; i < 100; ++i){
+    double x  = Sampler.ARS(args);
+    cout<<"Sampled point: "<<x<<endl<<endl;
+    outfile<<x<<" ";
+  }
 
+  outfile.close();
   //Sampler.test(); 
 }
