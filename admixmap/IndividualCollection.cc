@@ -24,6 +24,7 @@
 
 using namespace std;
 
+// **** CONSTRUCTORS  ****
 IndividualCollection::IndividualCollection()
 {
   SumLogTheta = 0;
@@ -31,21 +32,7 @@ IndividualCollection::IndividualCollection()
   CovariateLabels = 0;
   NumCovariates = 0;
   ReportedAncestry = 0;
-}
-
-IndividualCollection::~IndividualCollection()
-{
-  Individual::DeleteStaticMembers();
-  for(unsigned int i = 0; i < NumInd; i++){
-    delete _child[i];
-  }
-  delete[] _child;
-  delete indadmixoutput;
-  delete[] OutcomeType;
-  free_matrix(ExpectedY, NumOutcomes);
-  delete[] SumLogTheta;
-  delete[] CovariateLabels;
-  delete[] ReportedAncestry;
+  SumDeviance = SumDevianceSq = 0.0;
 }
 
 IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
@@ -58,6 +45,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   OutcomeVarLabels = 0;
   LogLikelihood=0.0;
   SumLogLikelihood = 0.0;
+  SumDeviance = SumDevianceSq = 0.0;
   Covariates = nullMatrix;
   CovariateLabels = 0;
   ExpectedY = 0;
@@ -83,114 +71,23 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
  
 }
 
-void
-IndividualCollection::OutputIndAdmixture()
+// ************** DESTRUCTOR **************
+IndividualCollection::~IndividualCollection()
 {
-  indadmixoutput->visitIndividualCollection(*this);
-  for(unsigned int i=0; i<NumInd; i++){
-    indadmixoutput->visitIndividual(*_child[i], _locusfortest, LogLikelihood);
+  Individual::DeleteStaticMembers();
+  for(unsigned int i = 0; i < NumInd; i++){
+    delete _child[i];
   }
+  delete[] _child;
+  delete indadmixoutput;
+  delete[] OutcomeType;
+  free_matrix(ExpectedY, NumOutcomes);
+  delete[] SumLogTheta;
+  delete[] CovariateLabels;
+  delete[] ReportedAncestry;
 }
 
-int
-IndividualCollection::getSize()
-{
-  return NumInd;
-}
-
-double IndividualCollection::GetSumrho()
-{
-   double Sumrho = 0;
-   for( unsigned int i = 0; i < NumInd; i++ )
-      Sumrho += (*_child[i]).getSumrho();
-   return Sumrho;
-}
-
-vector<double> IndividualCollection::getOutcome(int j){
-  return Outcome.getCol(j);
-}
-
-double IndividualCollection::getOutcome(int j, int ind){
-    return Outcome.get(ind, j);
-}
-
-int IndividualCollection::getNumberOfOutcomeVars(){
-  return NumOutcomes;
-}
-
-int IndividualCollection::getOutcomeType(int i){
-  return OutcomeType[i];
-}
-
-Individual* IndividualCollection::getIndividual(int num)
-{
-  if (num < (int)NumInd){
-    return _child[num];
-  } else {
-    return 0;
-  }
-}
-
-void IndividualCollection::setAdmixtureProps(double *a, size_t size)
-{
-  for(unsigned int i=0; i<NumInd; i++){
-    _child[i]->setAdmixtureProps(a, size);
-  }
-}
-
-void IndividualCollection::setAdmixturePropsX(double *a, size_t size)
-{
-  for(unsigned int i=0; i<NumInd; i++){
-    _child[i]->setAdmixturePropsX(a, size);
-  }
-}
-
-int IndividualCollection::GetNumberOfInputCovariates(){
-  return InputCovariates.GetNumberOfCols();
-}
-int IndividualCollection::GetNumCovariates() const{
-  return NumCovariates;
-}
-
-Matrix_d IndividualCollection::getCovariates(){
-  return Covariates;
-}
-
-std::string IndividualCollection::getCovariateLabels(int i){
-  return CovariateLabels[i];
-  }
-std::string *IndividualCollection::getCovariateLabels(){
-  return CovariateLabels;
-  }
-
-double IndividualCollection::getExpectedY(int i){
-  if(ExpectedY)
-    return ExpectedY[0][i];
-  else
-    return 0.0;
- }
-
-std::string IndividualCollection::getTargetLabels(int k){
-  return OutcomeVarLabels[k];
-}
-
-void IndividualCollection::SetExpectedY(int k, double *beta){
-  if(ExpectedY){
-    Matrix_d Beta(Covariates.GetNumberOfCols(), 1);
-    Beta.SetElements(0.0);
-    for(int i = 0; i < Covariates.GetNumberOfCols(); ++i)Beta(i, 0) = beta[i];
-      Beta = Covariates * Beta;  //possible memory leak
-      for(int j = 0; j < Covariates.GetNumberOfRows(); ++j)
-        ExpectedY[k][j] = Beta(j,0);
-    }
-}
-
-void IndividualCollection::calculateExpectedY( int k)
-{
-  if(ExpectedY)
-    for(unsigned int i = 0; i < NumInd; i++ )
-      ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
-}
+// ************** INITIALISATION AND LOADING OF DATA **************
 
 void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::string *PopulationLabels,
 				      double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix){
@@ -458,7 +355,39 @@ void IndividualCollection::getLabels(const Vector_s& data, string *labels)
     labels[index++] = data[i];
   }
 }
+void IndividualCollection::setAdmixtureProps(double *a, size_t size)
+{
+  for(unsigned int i=0; i<NumInd; i++){
+    _child[i]->setAdmixtureProps(a, size);
+  }
+}
 
+void IndividualCollection::setAdmixturePropsX(double *a, size_t size)
+{
+  for(unsigned int i=0; i<NumInd; i++){
+    _child[i]->setAdmixturePropsX(a, size);
+  }
+}
+
+void IndividualCollection::SetExpectedY(int k, double *beta){
+  if(ExpectedY){
+    Matrix_d Beta(Covariates.GetNumberOfCols(), 1);
+    Beta.SetElements(0.0);
+    for(int i = 0; i < Covariates.GetNumberOfCols(); ++i)Beta(i, 0) = beta[i];
+      Beta = Covariates * Beta;  //possible memory leak
+      for(int j = 0; j < Covariates.GetNumberOfRows(); ++j)
+        ExpectedY[k][j] = Beta(j,0);
+    }
+}
+
+void IndividualCollection::calculateExpectedY( int k)
+{
+  if(ExpectedY)
+    for(unsigned int i = 0; i < NumInd; i++ )
+      ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
+}
+
+// ************** UPDATING **************
 void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0, Regression *R1, const double *poptheta, 
 				  AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, 
 				  double rhoalpha, double rhobeta, LogWriter *Log, chib *MargLikelihood){
@@ -467,11 +396,12 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
 
   double lambda[] = {R0->getlambda(), R1->getlambda()};
   double *beta[] = {R0->getbeta(), R1->getbeta()};
- 
+  LogLikelihood = 0.0; 
+
   for(unsigned int i = 0; i < NumInd; i++ ){
     
     if( options->getPopulations() > 1 ){
-      _child[i]->SampleParameters(i, SumLogTheta, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
+      _child[i]->SampleParameters(i, SumLogTheta, &LogLikelihood, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
 				  lambda, NumCovariates, Covariates, beta, poptheta, options, 
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
@@ -484,11 +414,11 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
  			       R0->getDispersion(), false);
 
     }
-    //?? possible error, only using dispersion parameter for first regression model
     
     else{//single population 
       _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
 				     options->getAnalysisTypeIndicator(), chrm, A);
+      LogLikelihood += _child[i]->getLogLikelihoodOnePop();
     }   
 
     //calculate log posterior if necessary 
@@ -500,6 +430,8 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
 				options, chrm, alpha, rhoalpha, rhobeta,
 				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], Log, MargLikelihood, A);
   }
+  SumDeviance += -2.0*LogLikelihood;
+  SumDevianceSq += 4.0*LogLikelihood*LogLikelihood;
 
 }
 
@@ -517,6 +449,95 @@ void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, Regression
   }
 }
 
+// ************** ACCESSORS **************
+int IndividualCollection::getSize()
+{
+  return NumInd;
+}
+
+double IndividualCollection::GetSumrho()
+{
+   double Sumrho = 0;
+   for( unsigned int i = 0; i < NumInd; i++ )
+      Sumrho += (*_child[i]).getSumrho();
+   return Sumrho;
+}
+
+vector<double> IndividualCollection::getOutcome(int j){
+  return Outcome.getCol(j);
+}
+
+double IndividualCollection::getOutcome(int j, int ind){
+    return Outcome.get(ind, j);
+}
+
+int IndividualCollection::getNumberOfOutcomeVars(){
+  return NumOutcomes;
+}
+
+int IndividualCollection::getOutcomeType(int i){
+  return OutcomeType[i];
+}
+
+Individual* IndividualCollection::getIndividual(int num)
+{
+  if (num < (int)NumInd){
+    return _child[num];
+  } else {
+    return 0;
+  }
+}
+
+int IndividualCollection::GetNumberOfInputCovariates(){
+  return InputCovariates.GetNumberOfCols();
+}
+int IndividualCollection::GetNumCovariates() const{
+  return NumCovariates;
+}
+
+Matrix_d IndividualCollection::getCovariates(){
+  return Covariates;
+}
+
+std::string IndividualCollection::getCovariateLabels(int i){
+  return CovariateLabels[i];
+  }
+std::string *IndividualCollection::getCovariateLabels(){
+  return CovariateLabels;
+  }
+
+double IndividualCollection::getExpectedY(int i){
+  if(ExpectedY)
+    return ExpectedY[0][i];
+  else
+    return 0.0;
+ }
+
+std::string IndividualCollection::getTargetLabels(int k){
+  return OutcomeVarLabels[k];
+}
+
+// ************** OUTPUT **************
+
+void IndividualCollection::OutputDeviance(LogWriter *Log, unsigned iterations){
+  double E, V;
+  E = SumDeviance / (double) iterations;//ergodic average of deviance
+  V = SumDevianceSq / (double)iterations - E*E;//ergodic variance of deviance 
+
+  Log->logmsg(true, "MeanDeviance\tVarDeviance\t\tGOFStat\n");
+  Log->logmsg(true, E);Log->logmsg(true,"\t");
+  Log->logmsg(true, V);Log->logmsg(true, "\t");
+  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "\n\n");
+}
+
+void IndividualCollection::OutputIndAdmixture()
+{
+  indadmixoutput->visitIndividualCollection(*this);
+  for(unsigned int i=0; i<NumInd; i++){
+    indadmixoutput->visitIndividual(*_child[i], _locusfortest, LogLikelihood);
+  }
+}
+
 void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
   //Used only if marglikelihood = 1
   Log->write("Estimates used in Chib algorithm to estimate marginal likelihood:\n");
@@ -529,13 +550,13 @@ void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
   }
 }
 
+//for single individual analysis
 void IndividualCollection::OutputErgodicAvg(int samples, chib *MargLikelihood, std::ofstream *avgstream){
      *avgstream << SumLogLikelihood / samples << " "
                << MargLikelihood->getLogPosterior();
 }
 
-void
-IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels)
+void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels)
 {
    Log->logmsg(true,"Log-likelihood for unadmixed ");
    Log->logmsg(true, (*PopulationLabels)[0]);

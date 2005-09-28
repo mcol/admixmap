@@ -285,6 +285,7 @@ void submain(AdmixOptions* options){
       Log.logmsg(true, "\nLog marginal likelihood(at estimates): ");Log.logmsg(true, MargLikelihood.getLogMarginalLikelihood());
       Log.logmsg(true, "\n");
     }
+    IC->OutputDeviance(&Log, options->getTotalSamples()-options->getBurnIn());
     if(avgstream.is_open())avgstream.close();
  }//end else
 
@@ -380,7 +381,9 @@ int main( int argc , char** argv ){
     options->SetOptions(xargc, xargv);
 
     submain(options);
-    cerr << "Finished\n";
+    cout << "Finished\n";
+    for(unsigned i = 0; i < 80; ++i)cout<<"*";
+    cout<<endl;
   return 0;
 }//end of main
 

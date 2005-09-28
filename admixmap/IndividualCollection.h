@@ -67,6 +67,8 @@ public:
   
   void OutputIndAdmixture();
 
+  void OutputDeviance(LogWriter *Log, unsigned iterations);
+
   void OutputChibEstimates(LogWriter *, int);
 
   void OutputErgodicAvg(int samples, chib *MargLikelihood, std::ofstream *avgstream);
@@ -126,6 +128,7 @@ private:
   std::vector<double> sigma;
   IndAdmixOutputter* indadmixoutput;
   double LogLikelihood, SumLogLikelihood;
+  double SumDeviance, SumDevianceSq;
   std::vector< int > _locusfortest;
  
   //Regression Objects

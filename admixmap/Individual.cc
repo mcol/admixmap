@@ -309,83 +309,71 @@ double Individual::getLogPosteriorProb()
    return LogPosterior;
 }
 
-// update the individual admixture values (mean of both gametes) used in the regression model
-void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates,
-                                               const double *poptheta, bool RandomMatingModel, Matrix_d *Covariates)
+// unnecessary duplication of code - ? should embed within method for > 1 population
+void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY,
+				      double *lambda, int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A )
 {
-  double avgtheta[Populations];
-  if(RandomMatingModel )//average over gametes
-    for(int k = 0; k < Populations; ++k) avgtheta[k] = (Theta[k] + Theta[k + Populations]) / 2.0;    
-  
-  else
-    for(int k = 0; k < Populations; ++k) avgtheta[k] = Theta[k];
-  for( int k = 1; k < Populations ; k++ )
-    (*Covariates)( i, NoCovariates - Populations + k )
-      = avgtheta[ k ] - poptheta[ k ];
+  // sample missing values of outcome variable
+  for( int k = 0; k < NumOutcomes; k++ ){
+    if( AnalysisTypeIndicator > 1 ){
+      if( Outcome->isMissing( i, k ) ){
+	if( !OutcomeType[k] )
+	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
+	else{
+	  if( myrand() * ExpectedY[k][i] < 1 )
+	    Outcome->set( i, k, 1);
+	  else
+	    Outcome->set( i, k, 0);
+	}
+      }
+    }
+  }
+  // update allele counts
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    //loop over loci on current chromosome and update allele counts
+    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+      int locus =  chrm[j]->GetLocus(jj);
+      if( !(IsMissing(j)) ){
+	int anc[2] = {0, 0}; //ancestry states for single population
+	// GetLocusAncestry(j,jj,anc);
+	int h[2]; //to store sampled hap pair
+	(*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
+	A->UpdateAlleleCounts(locus, h, anc, true); // should fix this to work with haploid data: last argument should be isdiploid
+      }
+    }
+  }   
+
 }
 
-// Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
-// uses log ratio because this is easier than ratio to calculate for linear regression model
-// if no regression model, logpratio remains set to 0, so all proposals are accepted 
-void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populations, bool RandomMatingModel, bool RW )
-{
-  bool test = true;
-  double AccProb = exp(logpratio);
-  // loop over populations: if any element of Dirichlet parameter vector is too small, do not update admixtire proportions
-  for( int k = 0; k < Populations; k++ ){
-    if( ThetaProposal[ k ] < 0.0001 ){
-      test = false;
-      AccProb = 0.0;
-    }
-    else if( RandomMatingModel && ThetaProposal[ k + Populations ] < 0.0001 ){
-      test = false;
-      AccProb = 0.0;
-    }
-  }
-
-  size_t size_admix;
-  if(RandomMatingModel) size_admix = Populations *2;
-  else size_admix = Populations;
-  // generic Metropolis rejection step
-  if( logpratio < 0 ){
-     if( test && log(myrand()) < logpratio ){
-       setAdmixtureProps(ThetaProposal, size_admix);
-        if( xdata )
-	  setAdmixturePropsX(ThetaXProposal, size_admix);
-     }
-  }
-  else{//logpratio >= 0 => always accept
-    if(test){
-    AccProb = 1.0;
-    setAdmixtureProps(ThetaProposal, size_admix);
-     if( xdata )
-       setAdmixturePropsX(ThetaXProposal, size_admix);
-    }
-  }
-
-  if(RW){
-    //update sampler object every w updates
-    if( !( NumberOfUpdates % w ) ){
-      step = ThetaTuner.UpdateStepSize( AccProb );
-    }
-  }
-}
-
-void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
+void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 				  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 				   Matrix_d &Covariates, double **beta, const double *poptheta,
 				   AdmixOptions* options, Chromosome **chrm, 
 				   vector<vector<double> > &alpha, double rhoalpha, 
 				   double rhobeta,vector<double> sigma, double DInvLink, double dispersion)
-//Outcome = Outcome variable(s)
-//ExpectedY = expected outcome variable
-//lambda = precision in linear regression model (if there is one)
-//NoCovariates = # covariates
-//alpha = pop admixture Dirichlet parameters
-//rhoalpha, rhobeta = shape and scale parameters in prior for rho
-//sigma = 
-//DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
-//dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
+/*arguments:
+  i = this individuals's number-1
+  SumLogTheta = array in IndividualCollection holding sums of log admixture props
+  LogLikelihood = pointer to sum of individual LogLikelihoods (dould do this as static variable)
+  AlleleFreqs = pointer to AlleleFreqs, needed to update allele counts
+  iteration = current iteration
+  Outcome = Outcome variable(s)
+  NumOutcomes = number of outcomes
+  OutcomeType = array of indicators for the types of outcome (binary/continuous)   
+  ExpectedY = expected outcome variable
+  lambda = precision in linear regression model (if there is one)
+  NoCovariates = # covariates, including admixture
+  Covariates = Covariates array, including admixture
+  beta = regression parameters
+  poptheta = ergodic average of population admixture, used to centre the values of individual admixture in the regression model
+  options = pointer to program options
+  chrm = array of Chromosome pointers
+  alpha = pop admixture Dirichlet parameters
+  rhoalpha, rhobeta = shape and scale parameters in prior for rho
+  sigma = ?? used in X-chromosome update
+  DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
+  dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
+*/
 {
   //cout<<"Individual "<<i<<endl;
   // ** reset SumLocusAncestry and ThetaProposal **
@@ -462,6 +450,9 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
     bool isX = (j == X_posn);
     chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X, isX,
 				  SumN, SumN_X, options->getRhoIndicator());
+
+    //accumulate LogLikelihood from HMM
+    *LogLikelihood += chrm[j]->getLogLikelihood();
   }//end chromosome loop
 
   // sample sum of intensities parameter rho
@@ -719,6 +710,68 @@ double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int 
    return p;
 }
 
+// update the individual admixture values (mean of both gametes) used in the regression model
+void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates,
+                                               const double *poptheta, bool RandomMatingModel, Matrix_d *Covariates)
+{
+  double avgtheta[Populations];
+  if(RandomMatingModel )//average over gametes
+    for(int k = 0; k < Populations; ++k) avgtheta[k] = (Theta[k] + Theta[k + Populations]) / 2.0;    
+  
+  else
+    for(int k = 0; k < Populations; ++k) avgtheta[k] = Theta[k];
+  for( int k = 1; k < Populations ; k++ )
+    (*Covariates)( i, NoCovariates - Populations + k )
+      = avgtheta[ k ] - poptheta[ k ];
+}
+
+// Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
+// uses log ratio because this is easier than ratio to calculate for linear regression model
+// if no regression model, logpratio remains set to 0, so all proposals are accepted 
+void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populations, bool RandomMatingModel, bool RW )
+{
+  bool test = true;
+  double AccProb = exp(logpratio);
+  // loop over populations: if any element of Dirichlet parameter vector is too small, do not update admixtire proportions
+  for( int k = 0; k < Populations; k++ ){
+    if( ThetaProposal[ k ] < 0.0001 ){
+      test = false;
+      AccProb = 0.0;
+    }
+    else if( RandomMatingModel && ThetaProposal[ k + Populations ] < 0.0001 ){
+      test = false;
+      AccProb = 0.0;
+    }
+  }
+
+  size_t size_admix;
+  if(RandomMatingModel) size_admix = Populations *2;
+  else size_admix = Populations;
+  // generic Metropolis rejection step
+  if( logpratio < 0 ){
+     if( test && log(myrand()) < logpratio ){
+       setAdmixtureProps(ThetaProposal, size_admix);
+        if( xdata )
+	  setAdmixturePropsX(ThetaXProposal, size_admix);
+     }
+  }
+  else{//logpratio >= 0 => always accept
+    if(test){
+    AccProb = 1.0;
+    setAdmixtureProps(ThetaProposal, size_admix);
+     if( xdata )
+       setAdmixturePropsX(ThetaXProposal, size_admix);
+    }
+  }
+
+  if(RW){
+    //update sampler object every w updates
+    if( !( NumberOfUpdates % w ) ){
+      step = ThetaTuner.UpdateStepSize( AccProb );
+    }
+  }
+}
+
 //Updates forward and backward probabilities in HMM for chromosome j 
 bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool calcbackprobs){
   bool isdiploid;
@@ -972,45 +1025,6 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
   }
   delete[] score;
   delete[] info;
-}
-
-// unnecessary duplication of code - ? should embed within method for > 1 population
-void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY,
-				      double *lambda, int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A )
-{
-  // sample missing values of outcome variable
-  for( int k = 0; k < NumOutcomes; k++ ){
-    if( AnalysisTypeIndicator > 1 ){
-      if( Outcome->isMissing( i, k ) ){
-	if( !OutcomeType[k] )
-	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
-	else{
-	  if( myrand() * ExpectedY[k][i] < 1 )
-	    Outcome->set( i, k, 1);
-	  else
-	    Outcome->set( i, k, 0);
-	}
-      }
-    }
-  }
-  // update allele counts
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    //loop over loci on current chromosome and update allele counts
-    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      int locus =  chrm[j]->GetLocus(jj);
-      if( !(IsMissing(j)) ){
-	int anc[2] = {0, 0}; //ancestry states for single population
-	// GetLocusAncestry(j,jj,anc);
-	int h[2]; //to store sampled hap pair
-	(*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
-	A->UpdateAlleleCounts(locus, h, anc, true); // should fix this to work with haploid data: last argument should be isdiploid
-      }
-    }
-  }   
-  // sampled hap pairs should be stored in the Individual objects, so they can be re-used in the score tests
-  //  for( int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-  //     A->UpdateAlleleCounts(j,getPossibleHaplotypes(j), ancestry );
-  //   }
 }
 
 void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 

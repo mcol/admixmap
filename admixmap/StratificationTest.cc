@@ -245,7 +245,7 @@ void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter 
 void StratificationTest::Output(LogWriter *Log){
   Log->logmsg(true, "\nStratification test: posterior predictive check probability "); 
   Log->logmsg(true, (float)T/count);
-  Log->logmsg(true,"\n");
+  Log->logmsg(true,"\n\n");
 }
 
 //this function should really be in CompositeLocus or AlleleFreqs or IndividualCollection

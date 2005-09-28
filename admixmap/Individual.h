@@ -81,7 +81,7 @@ public:
   double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, double *, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
-  void SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
+  void SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 			 Matrix_d &Covariates0, double **beta, const double *poptheta, AdmixOptions* options,
 			 Chromosome **chrm, vector<vector<double> > &alpha,  
