@@ -28,7 +28,7 @@ using namespace::std;
 
 MuSampler::MuSampler(){
   params = 0;
-  muArgs = new double*[4];
+  muArgs = new double*[3];
   for(int i = 0; i < 4; ++i){muArgs[i] = 0;}
 }
 
@@ -46,10 +46,9 @@ void MuSampler::setDimensions(unsigned inK, unsigned inH, double mustep0, double
 
   params = new double[H];
   muArgs[0] = new double[2]; muArgs[0][0] = K;muArgs[0][1] = H;
-  muArgs[1] = new double[1]; 
-  muArgs[2] = new double[H*K];//to hold counts
-  muArgs[3] = new double[1]; //to hold eta
-  muSampler.SetDimensions(H-1, mustep0, mumin, mumax, 20, mutarget, 
+  muArgs[1] = new double[H*K];//to hold counts
+  muArgs[2] = new double[1]; //to hold eta
+  muSampler.SetDimensions(H, mustep0, mumin, mumax, 20, mutarget, 
 			  muEnergyFunction, muGradient);
 
 }
@@ -67,24 +66,19 @@ void MuSampler::Sample(double* alpha, double eta, const int* const Counts){
 
     //assign counts
     for(unsigned t = 0; t < K*H; ++t){
-      muArgs[2][t] = (double)Counts[t];
+      muArgs[1][t] = (double)Counts[t];
     }
-    muArgs[3][0] = eta;
-    muArgs[1][0] = 0.01 * muSampler.getStepsize();//"small" differential of 10% of current stepsize
-    //used to compute derivative of Jacobian in gradient
+    muArgs[2][0] = eta;
  
     muSampler.Sample(params, muArgs);
-    params[H-1] = accumulate(params, params+H-1, 0.0, std::minus<double>());//set last entry so params sums to 0
 
     //set alpha by reversing transformation
-    double z = 0.0;
+    //NOTE: params may not sum to zero but the proportions will still be correct
+    softmax(H, alpha, params);
+    //alpha now holds proportions so multiply by eta
     for(unsigned t = 0; t < H; ++t){
-      z += exp(params[t]);
+      alpha[t] *= eta;
     } 
-    for(unsigned t = 0; t < H; ++t){
-      alpha[t] = eta * exp(params[t])/ z;
-    } 
-
   }
 }
 
@@ -119,16 +113,15 @@ float MuSampler::getStepsize(){
 double MuSampler::muEnergyFunction(unsigned , const double * const params, const double* const *args){
   int H = (int)args[0][1]; // Number of haplotypes/alleles
   int K = (int)args[0][0];// Number of populations
-  double eta = args[3][0];//dispersion parameter
+  double eta = args[2][0];//dispersion parameter
   //Counts = args[2];//realized allele counts, stored as ints
   double E = 0.0;
-  //params in softmax format but missing final element, of length (H-1)
+  //params in softmax format , of length H, but may not sum to zero
 
-  double a[H];
   double mu[H];
-  copy(params, params +H-1, a);
-  a[H-1] = accumulate(params, params+H-1, 0.0, std::minus<double>());//set last entry so params sums to 0
-  softmax(H, mu, a);
+  double a[H];
+  softmax(H, mu, params);
+  inv_softmax(H, mu, a); // normalized parameters; sum to zero
 
   E -= (double)(H); //logprior
 
@@ -142,7 +135,7 @@ double MuSampler::muEnergyFunction(unsigned , const double * const params, const
     double alpha = eta * mu[h];
   for(int k = 0; k < K; ++k){
       int offset = h*K +k;
-      E += gsl_sf_lngamma(alpha) - gsl_sf_lngamma(args[2][offset] + alpha);//log likelihood
+      E += gsl_sf_lngamma(alpha) - gsl_sf_lngamma(args[1][offset] + alpha);//log likelihood
     }
   }
   E -= logJacobian(a, z, H);
@@ -152,14 +145,14 @@ double MuSampler::muEnergyFunction(unsigned , const double * const params, const
 void MuSampler::muGradient(unsigned , const double * const params, const double* const *args, double *g){
   int H = (int)args[0][1]; // Number of haplotypes/alleles
   int K = (int)args[0][0];// Number of populations
-  double eta = args[3][0];//dispersion parameter
-  //params in softmax format but missing final element, of length (H-1)
+  double eta = args[2][0];//dispersion parameter
+  //params in softmax format , of length H, but may not sum to zero
 
-  double a[H];
   double mu[H];
-  copy(params, params +H-1, a);
-  a[H-1] = accumulate(params, params+H-1, 0.0, std::minus<double>());//set last entry so params sums to 0
-  softmax(H, mu, a);
+  double a[H];
+  softmax(H, mu, params);
+  inv_softmax(H, mu, a); // normalized parameters; sum to zero
+
 
   //prior term is zero
   double z = 0.0;
@@ -177,14 +170,14 @@ void MuSampler::muGradient(unsigned , const double * const params, const double*
       
       int offset = h*K +k;
       
-      dEdMu[h] += eta * (gsl_sf_psi(alpha) - gsl_sf_psi(args[2][offset]+alpha));//log likelihood term
-      dEdMu[h] += eta * (gsl_sf_psi(alphaH) - gsl_sf_psi(args[2][offset]+alphaH));
+      dEdMu[h] += eta * (gsl_sf_psi(alpha) - gsl_sf_psi(args[1][offset]+alpha));//log likelihood term
+      dEdMu[h] += eta * (gsl_sf_psi(alphaH) - gsl_sf_psi(args[1][offset]+alphaH));
     }
   }
    //now use chain rule to obtain gradient wrt args
   for(int h = 0; h < H-1; ++h){
     g[h] = 0.0;
-    for(int i = 0; i < H; ++i){
+    for(int i = 0; i < H-1; ++i){
       if(i == h)g[h] += dEdMu[h] * mu[h] * (1.0 - mu[h]);
       else g[h] -= dEdMu[i] * exp(a[i]) * mu[h] * mu[i]; 
     }
