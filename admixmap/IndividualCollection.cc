@@ -430,8 +430,10 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
 				options, chrm, alpha, rhoalpha, rhobeta,
 				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], Log, MargLikelihood, A);
   }
-  SumDeviance += -2.0*LogLikelihood;
-  SumDevianceSq += 4.0*LogLikelihood*LogLikelihood;
+  if(iteration > options->getBurnIn()){
+    SumDeviance += -2.0*LogLikelihood;
+    SumDevianceSq += 4.0*LogLikelihood*LogLikelihood;
+  }
 
 }
 
