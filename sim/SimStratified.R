@@ -90,9 +90,11 @@ for(sims in 1:numsims) {
   }
   p1 <- alleleFreqs[seq(2, 2*L, by=2), 1]
   p2 <- alleleFreqs[seq(2, 2*L, by=2), 2]
-  ## positive f-value if freq allele 2 higher in pop1 than pop2
-  f.signed <- sign(p1-p2)*(p1 - p2)^2 / ((p1+p2)*(2 - p1 - p2)) 
-  ## if f.signed is negative, true effect is in opposite direction to confounding effect
+  ## p1 and p2 are freqs of allele 2 in pop1 and pop2
+  f.signed <- sign(p2-p1)*(p1 - p2)^2 / ((p1+p2)*(2 - p1 - p2)) 
+  ## if f.signed is negative, freq allele 2 (trait-raising allele) is higher in pop2
+  ## trait value increases with proportionate admixture from pop1
+  ## so true effect is in opposite direction to confounding effect
 
   ## choose candidate at random
   candidate <- 1 + floor(L*runif(1)) # returns number between 1 and L
@@ -257,6 +259,9 @@ for(sims in 1:numsims) {
   dev.off()
 } # end simulations loop 
 
+write.table(null.results, file="TwoPopsResults/NullResults.txt", col.names=T, row.names=F, sep="\t")
+write.table(candidate.results, file="TwoPopsResults/CandidateResults.txt", col.names=T, row.names=F, sep="\t")
+
 ## convert p-values to error rates
 type1.error <- data.frame(null.results$f.signed,
                           null.results$crude.p < pthreshold,
@@ -284,26 +289,32 @@ t2.crude <- tapply(type2.error$crude.p, f2.gr, mean, na.rm=T)
 t2.gc <- tapply(type2.error$gc.p, f2.gr, mean, na.rm=T)
 t2.adj2 <-  tapply(type2.error$adj2.p, f2.gr, mean, na.rm=T)
 t2.adj <-  tapply(type2.error$adj.p, f2.gr, mean, na.rm=T)
+Fst <- 1/(eta-1)
 
-postscript("ErrorRates.ps")
+par(bty="l")
+
+postscript("Type1ErrorRates.ps")
 plotchars <- c(1, 2, 15, 16)
 plotcols <- c("black", "red", "green", "blue")
-legend.x <- rep(3, 4)
+legend.x <- rep(2, 4)
 legend.labels <- c("Crude", "Genomic control", "Two-step structured association",
                    "One-step structured association")
-
-plot(dimnames(t1.crude)[[1]], t1.crude, ylim=c(0, 0.1),
-     xlab="Quintile of standardized allele frequency differential",
+plot(dimnames(t1.crude)[[1]], t1.crude, ylim=c(0, 0.1), type="b", 
+     xlab=expression(paste("Quintile of standardized allele frequency differential with ",
+         F[ST], "= 0.02")), # should substitute value of Fst 
      ylab="Type 1 error rate", pch=plotchars[1], col=plotcols[1])
 points(dimnames(t1.gc)[[1]], t1.gc,  pch=plotchars[2], col=plotcols[2])
 points(dimnames(t1.adj2)[[1]], t1.adj2,  pch=plotchars[3], col=plotcols[3])
 points(dimnames(t1.adj)[[1]], t1.adj,  pch=plotchars[4], col=plotcols[4])
-legend.y <- seq(0.09, 0.06, by=-0.01)
+legend.y <- seq(0.1, 0.07, by=-0.01)
 text(legend.x, legend.y, labels=legend.labels, adj=c(0, 0.5))   
 points(legend.x - 0.2, legend.y, pch=plotchars, col=plotcols)
-       
-plot(dimnames(t2.crude)[[1]], t2.crude, ylim=c(0, 1),
-     xlab="Quintile of standardized allele frequency differential",
+dev.off()
+
+postscript("Type2ErrorRates.ps")
+plot(dimnames(t2.crude)[[1]], t2.crude, ylim=c(0, 1), type="b",
+     xlab=expression(paste("Quintile of standardized allele frequency differential with ",
+         F[ST], "= 0.02")), # should substitute value of Fst 
      ylab="Type 2 error rate", pch=plotchars[1], col=plotcols[1])
 points(dimnames(t2.gc)[[1]], t2.gc,  pch=plotchars[2], col=plotcols[2])
 points(dimnames(t2.adj2)[[1]], t2.adj2,  pch=plotchars[3], col=plotcols[3])
