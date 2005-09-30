@@ -1136,9 +1136,12 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       setTestForAllelicAssociation(false);
     }
   }
-      
+  
+  ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || TestForAdmixtureAssociation
+			|| TestForSNPsInHaplotype);
   return 1;
 }
+
 //Note: requires Populations option to have already been set
 vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
   _admixed.resize(2,true);
