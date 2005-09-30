@@ -32,13 +32,6 @@ public:
 
 };
   
-double myrand()
-
-/* to return a standard uniform random number */
-{
-   return ((double)rand() + 0.5)/((double)RAND_MAX + 1.0);
-}
-
 class NewDARS{
 
 public:
@@ -47,7 +40,9 @@ public:
   double ARS(const double* const args, double initialPoints[], unsigned numberOfInitialPoints);
   void Initialise(bool upperBound, bool lowerBound, double upper, double lower, 
 		  double (*height) (double, const double* const),
-		  double (*gradient)(double, const double* const)); 
+		  double (*gradient)(double, const double* const));
+  void setLowerBound(double);
+  void setUpperBound(double); 
 
   void test();//temporary, just for demo purposes
 
@@ -60,6 +55,7 @@ private:
   bool hasLowerBound;
   double UpperBound;
   double LowerBound;
+  double heightAtMode;
 
   double (*height) (double, const double* const);
   double (*gradient)(double, const double* const); 
@@ -67,7 +63,7 @@ private:
   double AreaUnderTangentCurve(double x1, double h, double g, 
 			       double z1, double z2, 
 			       bool lower, bool upper); 
-  double TransformPoint(double u, double x1, double g, double s1, double s2, double z1, double z2, 
+  double TransformPoint(double u, double g, double s1, double s2, double z1, double z2, 
 			      bool lower, bool upper);
 
   double TangentIntersection(double x0, double x1, double h0, double h1, double g0, double g1);

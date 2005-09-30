@@ -20,6 +20,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "NewARS.h"
+#include "rand.h"
 #include <iostream>
 
 
@@ -48,6 +49,15 @@ void NewDARS::Initialise(bool upperBound, bool lowerBound, double upper, double 
   gradient = g;
 }
 
+void NewDARS::setLowerBound(double LB){
+  LowerBound = LB;
+  hasLowerBound = true;
+}
+void NewDARS::setUpperBound(double UB){
+  UpperBound = UB;
+  hasUpperBound = true;
+}
+
 //use this function if mode not known
 double NewDARS::Sample(const double* const args, double (*secondDeriv)(double, const double* const)){
   K = 3;//number of initial points
@@ -58,8 +68,10 @@ double NewDARS::Sample(const double* const args, double (*secondDeriv)(double, c
   
   if( hasLowerBound ) // if bounded below, evaluate gradient at lower bound 
     dfa = (*gradient)( LowerBound, args );
+  //if(isinf(dfa))dfa = (*gradient)(LowerBound+EPS, args);
   if( hasUpperBound ) // if bounded above, evaluate gradient at upper bound
     dfb = (*gradient)( UpperBound, args );
+  //if(isinf(dfb))dfb = (*gradient)(UpperBound-EPS, args);
   
   //mode not at boundary
   if( dfa > 0.0 && dfb < 0.0 ){
@@ -153,6 +165,10 @@ double NewDARS::AreaUnderTangentCurve(double x1, double h, double g, double z1, 
   // z1 and z2 lower and upper bounds ofinterval, 
   // lower=true if lower bound, upper=true if upper bound
   double unscaled = 0.0;
+  if(z2 < z1 ){
+    cout<<"DARS: Error in arguments passed to AreaUnderTangentCurve: z1 > z2 \n"; 
+    exit(1);
+  }
   // should check that z1 <= x1 if lower, and x1 <= z2 if upper
   // to prevent computational underflow, could return unscaled with h = log scale factor
   
@@ -168,14 +184,14 @@ double NewDARS::AreaUnderTangentCurve(double x1, double h, double g, double z1, 
   } else if(upper && g > 0) {//no lower limit and positive gradient
     unscaled = exp(g*(z2 - x1)) / g;
   } else {
-    cout << "Error in arguments passed to AreaUnderTangentCurve \n";
+    cout << "DARS: Error in arguments passed to AreaUnderTangentCurve \n";
     exit(1);
   }
   return exp(h) * unscaled;
 } 
 
 //turns a uniform point to a point on the x axis
-double NewDARS::TransformPoint(double u, double x1, double g, double s1, double s2, double z1, double z2, 
+double NewDARS::TransformPoint(double u, double g, double s1, double s2, double z1, double z2, 
 			      bool lower, bool upper) {
   if(s1>s2 || u<s1 || u>s2 || (!lower && g<0) || (!upper && g>0) ){
     cerr<<"Error in arguments to TransformPoint"<<endl;
@@ -189,7 +205,7 @@ double NewDARS::TransformPoint(double u, double x1, double g, double s1, double 
   } else if(upper && g > 0) {//no lower limit and positive gradient
     x = z2 + (log(u) - log(s2)) / g;
   } else {
-    cout << "Error in arguments passed to TransformPoint \n";
+    cout << "DARS: Error in arguments passed to TransformPoint \n";
     exit(1);
   }
   return x;
@@ -197,17 +213,21 @@ double NewDARS::TransformPoint(double u, double x1, double g, double s1, double 
 
  
 void NewDARS::InitialisePoints(double x[3], const double* const args){
+  sort(x, x+3);
+  heightAtMode = (*height)(x[1], args);
   for(unsigned i = 0; i < K; ++i){
     ARSPoint p;
     p.abscissa = x[i];
-    p.height = (*height)(x[i], args);
+    p.height = (*height)(x[i], args) - heightAtMode;
     p.gradient = (*gradient)(x[i], args);
     p.upper = p.height;//upper hull at x is the same as height at x
     Points.push_back(p);
   }
-  stable_sort(Points.begin(), Points.end()); // PROBLEM: garbles points
+
+  stable_sort(Points.begin(), Points.end()); // PROBLEM: can garble points; redundant if x is sorted
   for(unsigned i = 0; i < K-1; ++i){
-    Points[i].z = TangentIntersection(x[i], x[i+1], Points[i].height, Points[i+1].height, Points[i].gradient, Points[i+1].gradient);
+    Points[i].z = TangentIntersection(Points[i].abscissa, Points[i+1].abscissa, Points[i].height, Points[i+1].height, 
+				      Points[i].gradient, Points[i+1].gradient);
   }
   Points[K-1].z = UpperBound;
 
@@ -246,9 +266,9 @@ void NewDARS::SamplePoint(const double* const args){
 
 #if DEBUG ==1
   cout<<"pos = "<<pos<<endl;
-  cout<<"x\tboundary\tCumArea"<<endl;
+  cout<<"x\t\tboundary\tCumArea\t\theight\tgradient"<<endl;
   for(unsigned i = 0; i < K; ++i){
-    cout<<Points[i].abscissa<<"\t"<<Points[i].z<<"\t"<<Points[i].cumarea<<endl;
+    cout<<Points[i].abscissa<<"\t"<<Points[i].z<<"\t"<<Points[i].cumarea<<"\t"<<Points[i].height<<"\t"<<Points[i].gradient<<endl;
   }
 #endif
   
@@ -265,12 +285,12 @@ void NewDARS::SamplePoint(const double* const args){
   if(pos>0)z1 = Points[pos-1].z; else z1 = LowerBound;
   z2 = Points[pos].z;
   
-  NewPoint.abscissa = TransformPoint(u, Points[pos].abscissa, Points[pos].gradient, s1, s2, z1, z2, lower, upper);
+  NewPoint.abscissa = TransformPoint(u, Points[pos].gradient, s1, s2, z1, z2, lower, upper);
   //check new point is in range
   if( ( (hasUpperBound || pos<K-1) && NewPoint.abscissa > Points[pos].z ) //too big
       || (pos>0 && NewPoint.abscissa < Points[pos-1].z) || (pos==0 && hasLowerBound && NewPoint.abscissa < LowerBound))//too small
     {
-      cerr<<"Error: miscalculated point: "<<NewPoint.abscissa<<endl;
+      cerr<<"DARS: Error: miscalculated point: "<<NewPoint.abscissa<<endl;
       exit(1);
     }
 #if DEBUG ==1
@@ -278,8 +298,8 @@ void NewDARS::SamplePoint(const double* const args){
 #endif
 
   //compute values of functions at new point
-  NewPoint.height = height(NewPoint.abscissa, args);//call to log density function
-  NewPoint.gradient = gradient(NewPoint.abscissa, args);//call to gradient function
+  NewPoint.height = height(NewPoint.abscissa, args) - heightAtMode;
+  NewPoint.gradient = gradient(NewPoint.abscissa, args);
   NewPoint.upper = UpperHull(NewPoint.abscissa, Points[pos].abscissa, Points[pos].height, Points[pos].gradient);
 
   if(NewPoint.abscissa > Points[pos].abscissa) ++pos;//so that xnew < x[pos] 
@@ -293,9 +313,11 @@ void NewDARS::SamplePoint(const double* const args){
   double h1 = 0.0;
   if(pos==K && hasUpperBound)h1 = (*height)(UpperBound, args);
   else if(pos < K)h1 = Points[pos].height;
-
+  double x0 = LowerBound, x1=UpperBound;
+  if(pos > 0)x0 = Points[pos-1].abscissa;
+  if(pos < K)z1 = Points[pos].abscissa;
  
-  NewPoint.lower = LowerHull(NewPoint.abscissa, Points[pos-1].abscissa, Points[pos].abscissa, 
+  NewPoint.lower = LowerHull(NewPoint.abscissa, x0, x1, 
 			     Points[pos-1].height, Points[pos].height, lower, upper);
 }
 
@@ -312,9 +334,9 @@ bool NewDARS::TestNewPoint(){
 }
 
 void NewDARS::Update(){
-  //height and gradient at new point already calculated
-  //as are upper and lower hulls
-  Points.insert(Points.begin()+pos, 1, NewPoint);//insert before pos
+
+  //insert new point in array before pos
+  Points.insert(Points.begin()+pos, 1, NewPoint);
 #if DEBUG ==1
   cout<<"new point added"<<endl<<endl;
 #endif
@@ -326,6 +348,8 @@ void NewDARS::Update(){
   //stable_sort(Points.begin(), Points.end());
 
   TestForLogConcavity();
+
+  //height, gradient, upper and lower hulls at new point already calculated
 
   //recalculate intersection points. Note that not all need be recalculated
   unsigned i0 = 0;
@@ -342,7 +366,7 @@ double NewDARS::TangentIntersection(double x0, double x1, double h0, double h1, 
   //h0, h1 = heights at two points
   //g0, g1 = gradients at the two points
   if(fabs(g0 - g1) < EPS){
-    cerr<<"Error in args passed to TangentIntersection: g0 = "<<g0<<", g1 = "<<g1<<endl;
+    cerr<<"DARS: Error in args passed to TangentIntersection: g0 = "<<g0<<", g1 = "<<g1<<endl;
     exit(1);
   }
   return (h1 - h0 - x1*g1 + x0*g0) / (g0 - g1);
@@ -375,7 +399,7 @@ double NewDARS::LowerHull(double x, double x0, double x1, double h0, double h1, 
 void NewDARS::TestForLogConcavity(){
   for(unsigned i = 0; i < K-1; ++i){
     if(Points[i].gradient < Points[i+1].gradient){
-      cerr<<"Error: failed test for log-concavity"<<endl;
+      cerr<<"DARS: Error: failed test for log-concavity"<<endl;
       exit(2);
     }
   }
@@ -429,7 +453,7 @@ void NewDARS::SimpleModeSearch( double aa, double bb, double *x, const double* c
     x[0] = a;
   else{
     ddf = (*secondDeriv)( newnum, args );
-    x[0] = x[1] + 3.0 / ddf;
+    x[0] = x[1] + 2.5 / sqrt(-ddf);
     if( hasLowerBound && x[0] < LowerBound )
       x[0] = LowerBound;
   }
@@ -438,7 +462,7 @@ void NewDARS::SimpleModeSearch( double aa, double bb, double *x, const double* c
     x[2] = b;
   else{
     ddf = (*secondDeriv)( newnum, args );
-    x[2] = x[1] - 3.0 / ddf;
+    x[2] = x[1] - 2.5 / sqrt(-ddf);
     if( hasUpperBound && x[2] > UpperBound )
       x[2] = UpperBound;
   }
@@ -487,8 +511,8 @@ void NewDARS::NewtonRaphson(double *x, const double* const args, double (*gradie
   }
   else{
     x[1] = newnum;
-    x[0] = x[1] + 3.0 / ddf;
-    x[2] = x[1] - 3.0 / ddf;
+    x[0] = x[1] + 2.5 / sqrt(-ddf);
+    x[2] = x[1] - 2.5 / sqrt(-ddf);
     if( hasLowerBound && x[0] < LowerBound )
       x[0] = LowerBound;
     else if( hasUpperBound && x[2] > UpperBound )
