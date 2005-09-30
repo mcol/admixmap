@@ -50,6 +50,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   CovariateLabels = 0;
   ExpectedY = 0;
   SumLogTheta = 0;
+  ReportedAncestry = 0;
   NumInd = Data->getNumberOfIndividuals();
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
   sigma.resize(2);
