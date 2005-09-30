@@ -37,6 +37,7 @@ class NewDARS{
 public:
   NewDARS();
   double Sample(const double* const args, double (*secondDeriv)(double, const double* const));
+  double Sample(double mode, const double* const args, double (*secondDeriv)(double, const double* const));
   double ARS(const double* const args, double initialPoints[], unsigned numberOfInitialPoints);
   void Initialise(bool upperBound, bool lowerBound, double upper, double lower, 
 		  double (*height) (double, const double* const),
@@ -55,7 +56,7 @@ private:
   bool hasLowerBound;
   double UpperBound;
   double LowerBound;
-  double heightAtMode;
+  double minHeight;
 
   double (*height) (double, const double* const);
   double (*gradient)(double, const double* const); 
@@ -77,11 +78,13 @@ private:
   void Update();
   void TestForLogConcavity();
 
-  void SimpleModeSearch( double aa, double bb, double *x, const double* const args, 
-			   double (*gradient)(double, const double* const), double (*secondDeriv)(double, const double* const) );
+  double SimpleModeSearch( double aa, double bb, const double* const args, double (*gradient)(double, const double* const) );
 
-  void NewtonRaphson(double *x, const double* const args, double (*gradient)(double, const double* const), 
+  double NewtonRaphson(const double* const args, double (*gradient)(double, const double* const), 
 			       double (*secondDeriv)(double, const double* const) );
+
+  void SetInitialPoints(double mode, double x[3], const double* const args, 
+			double (*secondDeriv)(double, const double* const));
 
 };
 

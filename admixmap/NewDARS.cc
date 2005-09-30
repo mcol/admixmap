@@ -65,7 +65,8 @@ double NewDARS::Sample(const double* const args, double (*secondDeriv)(double, c
 
   //code to find mode and initial points
   double dfa = 1, dfb = -1; //gradient at upper and lower bound (if there are any) should be +ve and -ve respectively
-  
+  double mode;  
+
   if( hasLowerBound ) // if bounded below, evaluate gradient at lower bound 
     dfa = (*gradient)( LowerBound, args );
   //if(isinf(dfa))dfa = (*gradient)(LowerBound+EPS, args);
@@ -77,12 +78,13 @@ double NewDARS::Sample(const double* const args, double (*secondDeriv)(double, c
   if( dfa > 0.0 && dfb < 0.0 ){
     // Mode search
     if( hasLowerBound && hasUpperBound ){ // if bounded below and above 
-      SimpleModeSearch( LowerBound, UpperBound, x, args, gradient, secondDeriv );
+      mode = SimpleModeSearch( LowerBound, UpperBound, args, gradient);
     }
     else{ // if unbounded below or above
-      NewtonRaphson(x, args, gradient, secondDeriv); // assigns x[1] as mode, x[0], x[2] as +/- 3 times 2nd deriv
+      mode = NewtonRaphson(args, gradient, secondDeriv); // assigns x[1] as mode, x[0], x[2] as +/- 3 times 2nd deriv
     }
-    
+    SetInitialPoints(mode, x, args, secondDeriv);    
+
     // if log density infinite at x[0], assign x[0] as mean of x[0] and x[1]
     while( isinf( (*height)( x[0], args ) ) )
       x[0] = ( x[0] + x[1] ) / 2.0;
@@ -120,14 +122,58 @@ double NewDARS::Sample(const double* const args, double (*secondDeriv)(double, c
 }
 
 //use this version if the mode is known but leaving object to determine two more points
-// double NewDARS::ARS(const double* const args, double mode, double (*secondDeriv)(double, const double* const)){
-//   K = 3;//number of initial points
-//   //code for mode search goes here
-//   //x[1] = .....
+ double NewDARS::Sample(double mode, const double* const args, double (*secondDeriv)(double, const double* const)){
+   K = 3;//number of initial points
+  double x[] = {-2.0, 0.0, 2.0};//dummy args
 
-//   //use secondDeriv to determine x[0] and x[2]
+  double dfa = 1, dfb = -1; //gradient at upper and lower bound (if there are any) should be +ve and -ve respectively
+  
+  if( hasLowerBound ) // if bounded below, evaluate gradient at lower bound 
+    dfa = (*gradient)( LowerBound, args );
+  //if(isinf(dfa))dfa = (*gradient)(LowerBound+EPS, args);
+  if( hasUpperBound ) // if bounded above, evaluate gradient at upper bound
+    dfb = (*gradient)( UpperBound, args );
+  //if(isinf(dfb))dfb = (*gradient)(UpperBound-EPS, args);
+  
+  //mode not at boundary
+  if( dfa > 0.0 && dfb < 0.0 ){
+    SetInitialPoints(mode, x, args, secondDeriv);    
 
-// }
+    // if log density infinite at x[0], assign x[0] as mean of x[0] and x[1]
+    while( isinf( (*height)( x[0], args ) ) )
+      x[0] = ( x[0] + x[1] ) / 2.0;
+    // x[2] similarly
+    while( isinf( (*height)( x[2], args ) ) )
+      x[2] = ( x[2] + x[1] ) / 2.0;
+  }
+
+  else if( dfb > 0 ){ // mode at upper bound; 
+    //only true if there is a UB since dfb initialise to -1
+    x[2] = UpperBound;
+    if( hasLowerBound ){ // if bounded below
+      x[0] = LowerBound;
+      x[1] = (x[0] + x[2]) / 2; // assign x[1] as mean of x[0] and x[2]
+    }
+    else{ // use gradient at max to assign x[0] and x[2]
+      x[1] = x[2] - 2/dfb;
+      x[0] = x[1] - 2/dfb;
+    }
+  }
+  else{ // mode at lower bound
+    //only true if there is an LB since dfa initialised to 1 
+    x[0] = LowerBound;
+    if( hasUpperBound ){ // assign x[1] as mean of x[0] and x[2]
+      x[2] = UpperBound;
+      x[1] = (x[0] + x[2]) / 2;
+    }
+    else{ // use gradient at min
+      x[1] = x[0] - 2/dfa; 
+      x[2] = x[1] - 2/dfa;
+    }
+  }
+
+  return ARS(args, x, K);
+ }
 
 //use this function if initial points are known (to save time computing mode etc)
 double NewDARS::ARS(const double* const args, double initialPoints[], unsigned numberOfInitialPoints){
@@ -214,14 +260,20 @@ double NewDARS::TransformPoint(double u, double g, double s1, double s2, double 
  
 void NewDARS::InitialisePoints(double x[3], const double* const args){
   sort(x, x+3);
-  heightAtMode = (*height)(x[1], args);
+  minHeight = 0.0;
   for(unsigned i = 0; i < K; ++i){
     ARSPoint p;
     p.abscissa = x[i];
-    p.height = (*height)(x[i], args) - heightAtMode;
+    p.height = (*height)(x[i], args);
+    //if(p.height < minHeight) minHeight = p.height;
     p.gradient = (*gradient)(x[i], args);
     p.upper = p.height;//upper hull at x is the same as height at x
     Points.push_back(p);
+  }
+  minHeight = Points[1].height;
+  for(unsigned i = 0; i < K; ++i){
+    Points[i].height -= minHeight;
+    Points[i].upper -= minHeight;
   }
 
   stable_sort(Points.begin(), Points.end()); // PROBLEM: can garble points; redundant if x is sorted
@@ -298,7 +350,7 @@ void NewDARS::SamplePoint(const double* const args){
 #endif
 
   //compute values of functions at new point
-  NewPoint.height = height(NewPoint.abscissa, args) - heightAtMode;
+  NewPoint.height = height(NewPoint.abscissa, args);
   NewPoint.gradient = gradient(NewPoint.abscissa, args);
   NewPoint.upper = UpperHull(NewPoint.abscissa, Points[pos].abscissa, Points[pos].height, Points[pos].gradient);
 
@@ -335,14 +387,25 @@ bool NewDARS::TestNewPoint(){
 
 void NewDARS::Update(){
 
+//   if(NewPoint.height < minHeight){
+//     for(unsigned i = 0; i < K; ++i){
+//       Points[i].height -= NewPoint.height - minHeight;
+//       Points[i].upper = Points[i].height;
+// 	}
+//     minHeight = NewPoint.height;
+//     NewPoint.height  = 0.0;
+//   }
+//   else 
+NewPoint.height -= minHeight;
+
   //insert new point in array before pos
   Points.insert(Points.begin()+pos, 1, NewPoint);
+  //increment dimension
+  ++K;
+ 
 #if DEBUG ==1
   cout<<"new point added"<<endl<<endl;
 #endif
-
-  //increment dimension
-  ++K;
 
   //re-sort the Points
   //stable_sort(Points.begin(), Points.end());
@@ -405,20 +468,17 @@ void NewDARS::TestForLogConcavity(){
   }
 }
 
-void NewDARS::SimpleModeSearch( double aa, double bb, double *x, const double* const args,
-			       double (*gradient)(double, const double* const), double (*secondDeriv)(double, const double* const) )
+double NewDARS::SimpleModeSearch( double a, double b, const double* const args,
+			       double (*gradient)(double, const double* const) )
 //searches for mode between aa and bb
-//places mode and a point either side in x
 {
   double newnum;
-  double a, b, num, df2, df1, dfa, dfb, ddf;
+  double num, df2, df1;
   int count = 0;
-  a = aa + 0.00000001;
-  b = bb - 0.00000001;
   
   newnum = ( a + b ) / 2;
   do{
-    count++;
+    count++; //?? to stop if no mode found after ? iterations
     df1 = (*gradient)(newnum, args);
     if( df1 > 0.0 ){
       num = (newnum + b) / 2;
@@ -445,32 +505,12 @@ void NewDARS::SimpleModeSearch( double aa, double bb, double *x, const double* c
       }
     }
   }while( fabs(df1) > 0.01 );
-  dfa = (*gradient)(a, args);
-  dfb = (*gradient)(b, args);
-  x[1] = newnum;
-  
-  if( dfa > 1.0 )
-    x[0] = a;
-  else{
-    ddf = (*secondDeriv)( newnum, args );
-    x[0] = x[1] + 2.5 / sqrt(-ddf);
-    if( hasLowerBound && x[0] < LowerBound )
-      x[0] = LowerBound;
-  }
-  
-  if( dfb < -1.0 )
-    x[2] = b;
-  else{
-    ddf = (*secondDeriv)( newnum, args );
-    x[2] = x[1] - 2.5 / sqrt(-ddf);
-    if( hasUpperBound && x[2] > UpperBound )
-      x[2] = UpperBound;
-  }
 
+  return newnum;
 }
 
-void NewDARS::NewtonRaphson(double *x, const double* const args, double (*gradient)(double, const double* const), 
-			     double (*secondDeriv)(double, const double* const) )
+double NewDARS::NewtonRaphson(const double* const args, double (*gradient)(double, const double* const),
+			    double (*secondDeriv)(double, const double* const) )
 {
 // Using modified Newton-Raphson (step size * 2) to find two points
 // either side of the mode. Given these two points use most simple and
@@ -492,6 +532,7 @@ void NewDARS::NewtonRaphson(double *x, const double* const args, double (*gradie
     // continues looping until oldnum and new num are on opposite sides of mode, or gradient zero at newnum  
   }while( ( (dfold * dfnew) > 0 ) && fabs(dfnew) > 0.01 ); 
   
+  double mode;
   if( fabs(dfnew) > 0.01 ){ // if gradient not zero at newnum, set a to lower value and b to higher value
     if( oldnum < newnum ){
       a = oldnum;
@@ -507,16 +548,31 @@ void NewDARS::NewtonRaphson(double *x, const double* const args, double (*gradie
     else if( hasUpperBound && b > UpperBound )
       b = UpperBound;
     
-    SimpleModeSearch( a, b, x, args, gradient, secondDeriv );
-  }
+    mode = SimpleModeSearch( a, b, args, gradient);
+
+  }//end if(fabs(dfnew > 0.01)
   else{
-    x[1] = newnum;
-    x[0] = x[1] + 2.5 / sqrt(-ddf);
-    x[2] = x[1] - 2.5 / sqrt(-ddf);
-    if( hasLowerBound && x[0] < LowerBound )
-      x[0] = LowerBound;
-    else if( hasUpperBound && x[2] > UpperBound )
-      x[2] = UpperBound;
+    mode = newnum;
   }
+  return mode;
 }
 
+void NewDARS::SetInitialPoints(double mode, double x[3], const double* const args, 
+			       double (*secondDeriv)(double, const double* const)){
+  //given a mode and function for 2nd derivative, determines two points either side of the mode and places them in x
+
+  x[1] = mode;
+  
+  double ddf = (*secondDeriv)( mode, args );
+  x[0] = x[1] - 2.5 / sqrt(-ddf);
+  if( hasLowerBound && x[0] < LowerBound )
+    x[0] = LowerBound;
+
+  ddf = (*secondDeriv)( mode, args );
+  x[2] = x[1] + 2.5 / sqrt(-ddf);
+  if( hasUpperBound && x[2] > UpperBound )
+    x[2] = UpperBound;
+
+  //cout<<"\nx = "<<x[0]<<" "<<x[1]<<" "<<x[2]<<" "<<a<<" "<<b<<" "<<2.5 / sqrt(-ddf)<<endl;
+
+}
