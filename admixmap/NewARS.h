@@ -56,7 +56,7 @@ private:
   bool hasLowerBound;
   double UpperBound;
   double LowerBound;
-  double minHeight;
+  double heightAtMode;
 
   double (*height) (double, const double* const);
   double (*gradient)(double, const double* const); 

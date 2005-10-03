@@ -68,10 +68,10 @@ double NewDARS::Sample(const double* const args, double (*secondDeriv)(double, c
   double mode;  
 
   if( hasLowerBound ) // if bounded below, evaluate gradient at lower bound 
-    dfa = (*gradient)( LowerBound, args );
+    dfa = (*gradient)( LowerBound +EPS, args );
   //if(isinf(dfa))dfa = (*gradient)(LowerBound+EPS, args);
   if( hasUpperBound ) // if bounded above, evaluate gradient at upper bound
-    dfb = (*gradient)( UpperBound, args );
+    dfb = (*gradient)( UpperBound - EPS, args );
   //if(isinf(dfb))dfb = (*gradient)(UpperBound-EPS, args);
   
   //mode not at boundary
@@ -244,12 +244,15 @@ double NewDARS::TransformPoint(double u, double g, double s1, double s2, double 
     exit(1);
   }
   double x;
-  if(lower && upper){
-    x = z1 + (z2-z1)*(u-s1) / (s2-s1);
+  double prop = (u-s1) / (s2-s1);//proportion of area between z1 and z2 that is to the left of u
+  double maxterm = max(log(1.0 - prop) + g*z1, log(prop)+g*z2);//in case very steep gradient
+  if(lower && upper && fabs(g) > EPS){
+    x = (maxterm + log( exp( (g*z1) + log(1.0 - prop) - maxterm) + exp((g*z2) + log(prop)-maxterm) )) / g;
+    //need formula for g close to zero
   } else if(lower && g < 0) {//no upper limit and negative gradient
-    x = z1 + (log(u-s1) - log(1.0 - s1)) / g;
+    x = log( exp(g*z1)*(1.0 - prop) ) / g;
   } else if(upper && g > 0) {//no lower limit and positive gradient
-    x = z2 + (log(u) - log(s2)) / g;
+    x = log( exp(g*z2)*prop ) / g;
   } else {
     cout << "DARS: Error in arguments passed to TransformPoint \n";
     exit(1);
@@ -260,20 +263,20 @@ double NewDARS::TransformPoint(double u, double g, double s1, double s2, double 
  
 void NewDARS::InitialisePoints(double x[3], const double* const args){
   sort(x, x+3);
-  minHeight = 0.0;
+  heightAtMode = 0.0;
   for(unsigned i = 0; i < K; ++i){
     ARSPoint p;
     p.abscissa = x[i];
     p.height = (*height)(x[i], args);
-    //if(p.height < minHeight) minHeight = p.height;
+    //if(p.height < heightAtMode) heightAtMode = p.height;
     p.gradient = (*gradient)(x[i], args);
     p.upper = p.height;//upper hull at x is the same as height at x
     Points.push_back(p);
   }
-  minHeight = Points[1].height;
+  heightAtMode = Points[1].height;
   for(unsigned i = 0; i < K; ++i){
-    Points[i].height -= minHeight;
-    Points[i].upper -= minHeight;
+    Points[i].height -= heightAtMode;
+    Points[i].upper -= heightAtMode;
   }
 
   stable_sort(Points.begin(), Points.end()); // PROBLEM: can garble points; redundant if x is sorted
@@ -318,9 +321,9 @@ void NewDARS::SamplePoint(const double* const args){
 
 #if DEBUG ==1
   cout<<"pos = "<<pos<<endl;
-  cout<<"x\t\tboundary\tCumArea\t\theight\tgradient"<<endl;
+  cout<<"x         boundary  Area    Cum.Area  height  gradient"<<endl;
   for(unsigned i = 0; i < K; ++i){
-    cout<<Points[i].abscissa<<"\t"<<Points[i].z<<"\t"<<Points[i].cumarea<<"\t"<<Points[i].height<<"\t"<<Points[i].gradient<<endl;
+    cout<<Points[i].abscissa<<"  "<<Points[i].z<<"  "<<Points[i].area<<"  "<<Points[i].cumarea<<"  "<<Points[i].height<<"  "<<Points[i].gradient<<endl;
   }
 #endif
   
@@ -351,6 +354,7 @@ void NewDARS::SamplePoint(const double* const args){
 
   //compute values of functions at new point
   NewPoint.height = height(NewPoint.abscissa, args);
+  NewPoint.height -= heightAtMode;
   NewPoint.gradient = gradient(NewPoint.abscissa, args);
   NewPoint.upper = UpperHull(NewPoint.abscissa, Points[pos].abscissa, Points[pos].height, Points[pos].gradient);
 
@@ -360,10 +364,10 @@ void NewDARS::SamplePoint(const double* const args){
   lower =true; if(pos==0 && !hasLowerBound) lower=false;
   upper = true; if(pos==K && !hasUpperBound)upper=false;
   double h0 = 0.0;
-  if(pos == 0 && hasLowerBound )h0 = (*height)(LowerBound, args);
+  if(pos == 0 && hasLowerBound )h0 = (*height)(LowerBound+EPS, args);
   else if(pos > 0)h0 = Points[pos-1].height;
   double h1 = 0.0;
-  if(pos==K && hasUpperBound)h1 = (*height)(UpperBound, args);
+  if(pos==K && hasUpperBound)h1 = (*height)(UpperBound-EPS, args);
   else if(pos < K)h1 = Points[pos].height;
   double x0 = LowerBound, x1=UpperBound;
   if(pos > 0)x0 = Points[pos-1].abscissa;
@@ -377,26 +381,17 @@ bool NewDARS::TestNewPoint(){
   double w = myrand();
   bool accept = false;
   //squeeze test
-  if (w <= exp(NewPoint.lower - NewPoint.upper) ) accept = true;
-  else
+  if (w <= exp(NewPoint.lower - NewPoint.upper) ) {accept = true;
+  }
+  else{
     //rejection test
     if(w <= exp(NewPoint.height - NewPoint.upper) ) accept = true;
+    }
   
   return accept;
 }
 
 void NewDARS::Update(){
-
-//   if(NewPoint.height < minHeight){
-//     for(unsigned i = 0; i < K; ++i){
-//       Points[i].height -= NewPoint.height - minHeight;
-//       Points[i].upper = Points[i].height;
-// 	}
-//     minHeight = NewPoint.height;
-//     NewPoint.height  = 0.0;
-//   }
-//   else 
-NewPoint.height -= minHeight;
 
   //insert new point in array before pos
   Points.insert(Points.begin()+pos, 1, NewPoint);
