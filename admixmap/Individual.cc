@@ -25,6 +25,7 @@
 
 #define PR(x) cout << #x << " = " << x << endl;
 
+// ******* Static Member Declarations
 double *Individual::LikRatio1;
 double *Individual::LikRatio2;
 double *Individual::AffectedsScore = 0;
@@ -42,19 +43,7 @@ unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
 int Individual::Populations;
 
-//temporary function for marg likelihood calculation
-//given an array representing a matrix, returns a vector, containing one column
-static Vector_d GetRow(double *x, int row, int ncols){
-  Vector_d v(ncols);
-  for(int i = 0; i < ncols; ++i)v(i) = x[row*ncols + i];
-  return v;
-}
-// static Vector_d GetRow(int *x, int row, int ncols){
-//   Vector_d v(ncols);
-//   for(int i = 0; i < ncols; ++i)v(i) = x[row*ncols + i];
-//   return v;
-// }
-
+//******** Constructors **********
 Individual::Individual()
 {//should initialise pointers here
 }
@@ -89,15 +78,21 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     ThetaX = 0;
     ThetaProposal = 0;
     ThetaXProposal = 0;
+    ThetaHat = 0;
+    ThetaXHat = 0;
  
     // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
     SumLocusAncestry = new int[options->getPopulations()*2];
 
+
     if( options->isRandomMatingModel() ){//random mating model
       ThetaProposal = new double[ Populations * 2 ];
+      Theta = new double[ Populations * 2 ];
+      ThetaHat = new double[ Populations * 2 ];;
     }
     else{
       ThetaProposal = new double[ Populations];
+      Theta = new double[ Populations ];
     }
 
     //X chromosome objects
@@ -105,10 +100,14 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 //    if(Loci.isX_data() ){
       if( sex == 1 ){
 	ThetaXProposal = new double[ Populations];
+	ThetaX = new double[Populations];
+	ThetaXHat = new double[Populations];
 	SumLocusAncestry_X = new int[Populations];
       }
       else{
 	ThetaXProposal = new double[ Populations * 2 ];
+	ThetaX = new double[ Populations * 2 ];
+	ThetaXHat = new double[ Populations * 2 ];
 	SumLocusAncestry_X = new int[Populations * 2 ];
       }
 //    }
@@ -160,6 +159,20 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
    
 }
 
+//********** Destructor **********
+Individual::~Individual()
+{
+  delete[] PossibleHapPairs;
+  delete[] LocusAncestry;
+  delete[] SumLocusAncestry;
+  delete[] SumLocusAncestry_X;  
+  delete[] Theta;
+  delete[] ThetaX;
+  delete[] ThetaProposal;
+  delete[] ThetaXProposal;
+}
+
+//********** Allocation and deletion of static objects for score tests
 void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
   Loci = pLoci;
   numChromosomes = Loci->GetNumberOfChromosomes();
@@ -202,17 +215,6 @@ void Individual::SetStaticMembers(Genome *pLoci, AdmixOptions *options){
   }
 }
 
-Individual::~Individual()
-{
-  delete[] PossibleHapPairs;
-  delete[] LocusAncestry;
-  delete[] SumLocusAncestry;
-  delete[] SumLocusAncestry_X;  
-  delete[] Theta;
-  delete[] ThetaX;
-  delete[] ThetaProposal;
-  delete[] ThetaXProposal;
-}
 void Individual::DeleteStaticMembers(){
   delete[] AffectedsScore;
   delete[] AffectedsInfo;
@@ -224,7 +226,20 @@ void Individual::DeleteStaticMembers(){
   free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
   free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
 }
+//********** Initialisation of Admixture porportions *********
 
+//should call this initialise not set
+void Individual::setAdmixtureProps(double *a, size_t size)
+{
+  for(unsigned i = 0; i < size; ++i)  Theta[i] = a[i];
+}
+
+void Individual::setAdmixturePropsX(double *a, size_t size)
+{
+  for(unsigned i = 0; i < size; ++i)  ThetaX[i] = a[i];
+}
+
+//******************** Accessors ***********************************************************
 unsigned short **Individual::getGenotype(unsigned int locus){
   return genotypes[locus];
 }
@@ -233,40 +248,9 @@ std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus){
   return PossibleHapPairs[locus];
 }
 
-//Indicates whether genotype is missing at all simple loci within a composite locus
-bool Individual::IsMissing(unsigned int locus)
-{
-  unsigned int count = 0;
-  int NumberOfLoci = (*Loci)(locus)->GetNumberOfLoci();
-  for(int i = 0; i < NumberOfLoci; i++){
-    count += genotypes[locus][i][0];
-  }
-  return (count == 0);
-}
-
 double *Individual::getAdmixtureProps()
 {
   return Theta;
-}
-
-//should call this initialise not set
-void Individual::setAdmixtureProps(double *a, size_t size)
-{
-  delete[] Theta; //safe if Theta initialised to 0
-  Theta = new double[size];
-  for(unsigned i = 0; i < size; ++i)  Theta[i] = a[i];
-}
-
-// Matrix_d& Individual::getAdmixturePropsX()
-// {
-//   return ThetaX;
-// }
-
-void Individual::setAdmixturePropsX(double *a, size_t size)
-{
-  delete[] ThetaX;
-  ThetaX = new double[size];
-  for(unsigned i = 0; i < size; ++i)  ThetaX[i] = a[i];
 }
 
 int Individual::getSex()
@@ -308,6 +292,118 @@ double Individual::getLogPosteriorProb()
 {
    return LogPosterior;
 }
+
+//********** Missing Genotype Indicator *********************
+
+//Indicates whether genotype is missing at all simple loci within a composite locus
+bool Individual::IsMissing(unsigned int locus)
+{
+  unsigned int count = 0;
+  int NumberOfLoci = (*Loci)(locus)->GetNumberOfLoci();
+  for(int i = 0; i < NumberOfLoci; i++){
+    count += genotypes[locus][i][0];
+  }
+  return (count == 0);
+}
+
+//****************** Log-Likelihoods **********************
+
+// //TODO: need to fix this
+double Individual::getLogLikelihoodXOnly( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho)
+{
+   double LogLikelihood = 0.0;
+   _rhoHat = rho;
+   size_t size = Populations;
+   if(options->isRandomMatingModel())size *= 2;
+   copy(admixture, admixture + size, ThetaHat); 
+
+   chrm[0]->UpdateParameters( this, admixture, options, _rhoHat,  true, false, false);
+
+   LogLikelihood += chrm[0]->getLogLikelihood();
+
+   return LogLikelihood;
+}
+
+double Individual::getLogLikelihoodOnePop()
+//Single population log-likelihood
+{
+   double Likelihood = 0.0;
+   double *Prob;
+   Prob = new double[1];//one pop so 1x1 array
+   for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+     if(!IsMissing(j)){
+       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true);
+       Likelihood += log( Prob[0] );
+     }
+   }
+   return Likelihood;
+}
+
+//computes log likelihood at parameter estimates
+//This one is called by InitializeChib, called in turn by ChibLikelihood
+//only used to compute marginal likelihood   
+double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho, 
+					  double *admixture_X, vector<double> rho_X)
+{
+   double LogLikelihood = 0.0;
+
+    //update forward probs in HMM using current parameter values   
+   for( unsigned int j = 0; j < numChromosomes; j++ ){      
+      if( j != X_posn ){
+	chrm[j]->UpdateParameters( this, admixture, options, rho, true, true, false);
+      }
+      else{//X chromosome
+         if( sex == 1 ){//male
+	   chrm[j]->UpdateParameters( this, admixture_X, options, rho_X, true, false, false);
+	 }
+         else{//female
+	   chrm[j]->UpdateParameters( this, admixture_X, options, rho_X, true, true, false);
+	 }
+      }
+      //accumulate loglikelihood from HMM
+      LogLikelihood += chrm[j]->getLogLikelihood();
+   }
+
+   return LogLikelihood;
+}
+
+double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm){
+  //use current parameter values
+  return getLogLikelihood(options, chrm, Theta, _rho, _rho_X);
+}
+
+double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, vector<double > rho, vector<double> rho_X)
+//updates forward probs in HMM and retrieves loglikelihood at supplied theta and rho
+{
+
+   double LogLikelihood = 0.0;
+   if(Populations == 1)LogLikelihood = getLogLikelihoodOnePop();//in case this version called when only one population
+   else{
+     for( unsigned int j = 0; j < numChromosomes; j++ ){      
+       if( j != X_posn ){
+	 
+	 chrm[j]->UpdateParameters( this, theta, options, rho, false, true, false);
+       }
+       else if( options->getXOnlyAnalysis() ){
+	 
+	 chrm[j]->UpdateParameters( this, theta, options, rho, false, false, false);
+       }
+       else{//X chromosome
+	 if( sex == 1 ){//male
+	   chrm[j]->UpdateParameters( this, theta, options, rho_X, false, false, false);
+	 }
+	 else{//female
+	   chrm[j]->UpdateParameters( this, theta, options, rho_X, false, true, false);
+	 }
+       }
+       LogLikelihood += chrm[j]->getLogLikelihood();
+     }
+   }
+
+   return LogLikelihood;
+}
+
+//************** Updating (Public) ***************************************************************************************
 
 // unnecessary duplication of code - ? should embed within method for > 1 population
 void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY,
@@ -480,13 +576,16 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
   }
 
 }
+// ****** End Public Interface *******
 
-// samples individual admixture proportions
+//************** Updating (Private) ***************************************************************************************
+
 void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMatrix *Outcome, Chromosome ** C,
                                  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
                                   Matrix_d &Covariates, double **beta, const double *poptheta,
 			      AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma,
 			      double DInvLink, double dispersion, bool RW)
+// samples individual admixture proportions
 {
   double logpratio = 0;
 
@@ -859,6 +958,8 @@ void Individual::ResetScores(AdmixOptions *options){
   }
 }
 
+//********************** Score Tests ***************************
+
 void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingModel, Chromosome **chrm){
   // Different from the notation in McKeigue et  al. (2000). McKeigue
   // uses P0, P1, P2, which relate to individual admixture as follows;
@@ -1027,6 +1128,8 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
   delete[] info;
 }
 
+//******************** Chib Algorithm ***************************************
+
 void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 
 				AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
 				vector<vector<double> > &alpha, chib *MargLikelihood, LogWriter *Log)
@@ -1053,10 +1156,15 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
          LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) );
       }
      //alpha contribution
-      LogPrior += getDirichletLogDensity( alpha[0], GetRow(theta, 0, K) );
+      LogPrior += getDirichletLogDensity( alpha[0], theta );
    }
    // ** case of some x data **
    else if( Loci->isX_data() ){
+     _rhoHat = rho;
+     _rhoHat_X = rhoX;
+     copy(theta, theta + theta_size, ThetaHat); //ThetaHat = theta
+     copy(theta, theta + theta_size, ThetaXHat); //ThetaXHat = theta
+
      LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX);
       if( options->RhoFlatPrior() ){//flat prior on sumintensities
          LogPrior = -4.0*log( options->getTruncPt() - 1.0 );
@@ -1075,14 +1183,23 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
          LogPrior /= gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0);
       }
      //alpha contribution
-      LogPrior += getDirichletLogDensity( alpha[0],GetRow(theta, 0, K) )
-         + getDirichletLogDensity( alpha[0], GetRow(thetaX, 0, K) )
-         + getDirichletLogDensity( alpha[1], GetRow(theta, 1, K) )
-         + getDirichletLogDensity( alpha[1], GetRow(thetaX, 1, K) );
+      LogPrior += getDirichletLogDensity( alpha[0], theta )
+               + getDirichletLogDensity( alpha[0], thetaX )
+               + getDirichletLogDensity( alpha[1], theta+K )
+               + getDirichletLogDensity( alpha[1], thetaX + K );
+
+      _rhoHat = rho;
+      _rhoHat_X = rhoX;
+      copy(theta, theta + theta_size, ThetaHat); 
+      copy(theta, theta + theta_size, ThetaXHat);
       LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX );
    }
    else{
       if( Populations > 1 ){
+	_rhoHat = rho;
+	_rhoHat_X = rhoX;
+	copy(theta, theta + theta_size, ThetaHat); 
+	copy(theta, theta + theta_size, ThetaXHat);
 	LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX );
 	if( options->isAdmixed(0) ){
             if( options->RhoFlatPrior() ){
@@ -1095,7 +1212,7 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
                LogPrior = getGammaLogDensity( rhoalpha, rhobeta, rho[0] );
                LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) );
             }
-            LogPrior += getDirichletLogDensity( alpha[0], GetRow(theta, 0, K) );
+            LogPrior += getDirichletLogDensity( alpha[0], theta );
          }
 	if( options->isAdmixed(1) ){
 
@@ -1109,7 +1226,7 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
                LogPrior += getGammaLogDensity( rhoalpha, rhobeta, rho[1] );
                LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) );
             }
-            LogPrior += getDirichletLogDensity( alpha[1], GetRow(theta, 1, K) );
+            LogPrior += getDirichletLogDensity( alpha[1], theta + K );
          }
       }
       else{
@@ -1119,7 +1236,6 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
    if( A->IsRandom() ){
       for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
          for( int k = 0; k < Populations; k++ ){
-	   //CompositeLocus *locus = (CompositeLocus*)(*Loci)(j);
 	   LogPrior += getDirichletLogDensity( A->GetPriorAlleleFreqs(j, k), A->getAlleleFreqsMAP(j,k) );
          }
       }
@@ -1157,11 +1273,8 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	if(  options->isAdmixed(1) )
 	  *LogLikelihood -= log( _rho[1] );
       }
-      *LogLikelihood+=
-	getDirichletLogDensity(alpha[0],
-			       GetRow(Theta, 0, K))
-	+getDirichletLogDensity(alpha[1],
-				GetRow(Theta, 1, K));
+      *LogLikelihood+= getDirichletLogDensity(alpha[0], Theta)
+	+getDirichletLogDensity(alpha[1], Theta + K);
       if( *LogLikelihood > *MaxLogLikelihood ){
 	Log->write("Admixture (gamete 1):");
 	Log->write(Theta, K);Log->write("\n");
@@ -1218,7 +1331,6 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	if( A->IsRandom() ){
 	  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
 	    for( int k = 0; k < Populations; k++ ){
-	      //CompositeLocus *locus = (CompositeLocus*)(*Loci)(j);
 	      LogPosterior += getDirichletLogDensity( A->GetPriorAlleleFreqs(j,k) + A->GetAlleleCounts(j,k), 
 						      A->getAlleleFreqsMAP(j, k) );
 	    }
@@ -1229,113 +1341,6 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
       }
     }
 
-}
-
-// //TODO: need to fix this
- double 
-Individual::getLogLikelihoodXOnly( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho)
-{
-   double LogLikelihood = 0.0;
-   _rhoHat = rho;
-   for(int i = 0; i < AdmixtureHat.GetNumberOfRows(); ++i)
-     for(int j = 0; j < AdmixtureHat.GetNumberOfCols(); ++j)
-       AdmixtureHat(i,j) = admixture[j*Populations + i];
-
-   chrm[0]->UpdateParameters( this, admixture, options, _rhoHat,  true, false, false);
-
-   LogLikelihood += chrm[0]->getLogLikelihood();
-
-   return LogLikelihood;
-}
-
-//computes log likelihood at parameter estimates
-//This one is called by InitializeChib, called in turn by ChibLikelihood
-//only used to compute marginal likelihood   
-double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho, double *admixture_X, vector<double> rho_X)
-{
-   double LogLikelihood = 0.0;
-   _rhoHat = rho;
-   if(options->isRandomMatingModel()){
-     AdmixtureHat.SetNumberOfElements(Populations, 2);
-     XAdmixtureHat.SetNumberOfElements(Populations, 2);
-   }
-   else{
-     AdmixtureHat.SetNumberOfElements(Populations, 1);
-     XAdmixtureHat.SetNumberOfElements(Populations, 1);
-   }
-    for(int i = 0; i < AdmixtureHat.GetNumberOfRows(); ++i)
-     for(int j = 0; j < AdmixtureHat.GetNumberOfCols(); ++j)
-       AdmixtureHat(i,j) = admixture[j*Populations + i];
-
-    //update forward probs in HMM using current parameter values   
-   for( unsigned int j = 0; j < numChromosomes; j++ ){      
-      if( j != X_posn ){
-	chrm[j]->UpdateParameters( this, admixture, options, _rhoHat, true, true, false);
-      }
-      else{//X chromosome
-         _rhoHat_X = rho_X;
-	 for(int i = 0; i < XAdmixtureHat.GetNumberOfRows(); ++i)
-	   for(int jj = 0; jj < XAdmixtureHat.GetNumberOfCols(); ++jj)
-	     XAdmixtureHat(i,jj) = admixture_X[jj*Populations + i];
-         if( sex == 1 ){//male
-	   chrm[j]->UpdateParameters( this, admixture_X, options, _rhoHat_X, true, false, false);
-	 }
-         else{//female
-	   chrm[j]->UpdateParameters( this, admixture_X, options, _rhoHat_X, true, true, false);
-	 }
-      }
-      //accumulate loglikelihood from HMM
-      LogLikelihood += chrm[j]->getLogLikelihood();
-   }
-
-   return LogLikelihood;
-}
-
-double Individual::getLogLikelihoodOnePop()
-{
-   double Likelihood = 0.0;
-   double *Prob;
-   Prob = new double[1];//one pop so 1x1 array
-   for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-     if(!IsMissing(j)){
-       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true);
-       Likelihood += log( Prob[0] );
-     }
-   }
-   return Likelihood;
-}
-
-//updates forward probs in HMM and retrieves loglikelihood
-double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm){
-  //use current parameter values
-  return getLogLikelihood(options, chrm, Theta, _rho, _rho_X);
-}
-
-double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, vector<double > rho, vector<double> rho_X)
-{
-   double LogLikelihood = 0.0;
-
-   for( unsigned int j = 0; j < numChromosomes; j++ ){      
-      if( j != X_posn ){
-
-	chrm[j]->UpdateParameters( this, theta, options, rho, false, true, false);
-      }
-      else if( options->getXOnlyAnalysis() ){
-
-	chrm[j]->UpdateParameters( this, theta, options, rho, false, false, false);
-      }
-      else{//X chromosome
-	if( sex == 1 ){//male
-	  chrm[j]->UpdateParameters( this, theta, options, rho_X, false, false, false);
-	}
-	else{//female
-	  chrm[j]->UpdateParameters( this, theta, options, rho_X, false, true, false);
-	}
-      }
-      LogLikelihood += chrm[j]->getLogLikelihood();
-     }
-
-   return LogLikelihood;
 }
 
 void Individual::CalculateLogPosterior(AdmixOptions *options, vector<vector<double> > &alpha, 
@@ -1354,9 +1359,8 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, vector<vector<doub
       else
 	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[0], 1.0);
       LogPosterior -= log(IntConst1);
-      //      alphaparams0 = alpha[0] + GetRow(SumLocusAncestry_X, 0 , Populations);
-      transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
-      LogPosterior += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(0));
+      transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry_X, alphaparams0.begin(), std::plus<double>());
+      LogPosterior += getDirichletLogDensity(alphaparams0, ThetaHat);
     }
     else if( Loci->isX_data() ){
       for( unsigned int g = 0; g < 2; g++ ){
@@ -1367,9 +1371,8 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, vector<vector<doub
 	else
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[g], 1.0);
 	LogPosterior -= log(IntConst1);
-	//alphaparams0 = alpha[g] + GetRow(SumLocusAncestry, g, Populations);
 	transform(alpha[g].begin(), alpha[g].end(), SumLocusAncestry +g*Populations, alphaparams0.begin(), std::plus<double>());
-	LogPosterior += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(g));
+	LogPosterior += getDirichletLogDensity(alphaparams0, ThetaHat + g*Populations);
       }
       for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
 	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[g],
@@ -1379,9 +1382,8 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, vector<vector<doub
 	else
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[g], 1.0);
 	LogPosterior -= log(IntConst1);
-	//alphaparams0 = alpha[g] + GetRow(SumLocusAncestry_X, g, Populations);
 	transform(alpha[g].begin(), alpha[g].end(), SumLocusAncestry_X +g*Populations, alphaparams0.begin(), std::plus<double>());
-	LogPosterior += getDirichletLogDensity(alphaparams0,XAdmixtureHat.GetColumn(g));
+	LogPosterior += getDirichletLogDensity(alphaparams0, ThetaXHat+g*Populations);
       }
     }
     else if( options->isSymmetric() ){
@@ -1405,14 +1407,12 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, vector<vector<doub
       }
       x[0] -= log(IntConst1);
       x[1] -= log(IntConst2);
-      //alphaparams0 = alpha[0] + GetRow(SumLocusAncestry, 0, Populations);
       transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
-      x[0] += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(0));
-      x[1] += getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(1));
-      //alphaparams1 = alpha[1] + GetRow(SumLocusAncestry, 1, Populations);
+      x[0] += getDirichletLogDensity(alphaparams0, ThetaHat);
+      x[1] += getDirichletLogDensity(alphaparams0, ThetaHat+Populations);
       transform(alpha[1].begin(), alpha[1].end(), SumLocusAncestry+Populations, alphaparams1.begin(), std::plus<double>());
-      x[0] += getDirichletLogDensity(alphaparams1,AdmixtureHat.GetColumn(1));
-      x[1] += getDirichletLogDensity(alphaparams1,AdmixtureHat.GetColumn(0));
+      x[0] += getDirichletLogDensity(alphaparams1, ThetaHat+Populations);
+      x[1] += getDirichletLogDensity(alphaparams1, ThetaHat);
       if( isnan(x[0]) || isinf(x[0]) )
 	LogPosterior = x[1] - log(2.0);
       else if( isnan(x[1]) || isinf(x[1])  )
@@ -1440,9 +1440,8 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, vector<vector<doub
 	else
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
            LogPosterior -= log( IntConst1 );
-           //alphaparams0 = alpha[0] + GetRow(SumLocusAncestry, 0, Populations);
 	   transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
-           LogPosterior+=getDirichletLogDensity(alphaparams0,AdmixtureHat.GetColumn(0));
+	   LogPosterior += getDirichletLogDensity(alphaparams0, ThetaHat);
       }
       if(  options->isAdmixed(1) ){
 	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[1],
@@ -1452,9 +1451,8 @@ void Individual::CalculateLogPosterior(AdmixOptions *options, vector<vector<doub
 	else
 	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);
 	LogPosterior -= log( IntConst1 );
-	//alphaparams1 = alpha[1] + GetRow(SumLocusAncestry, 1, Populations);
 	transform(alpha[1].begin(), alpha[1].end(), SumLocusAncestry+Populations, alphaparams1.begin(), std::plus<double>());
-	LogPosterior+=getDirichletLogDensity(alphaparams1,AdmixtureHat.GetColumn(1));
+	LogPosterior += getDirichletLogDensity(alphaparams1, ThetaHat+Populations);
       }
     }
   }
@@ -1465,6 +1463,8 @@ double Individual::IntegratingConst( double alpha, double beta, double a, double
    double I = gsl_cdf_gamma_P( b*beta, alpha, 1 ) - gsl_cdf_gamma_P( a*beta, alpha, 1);
    return I;
 }
+
+//******************* Likelihood Ratios (Affecteds-only score test) ************************
 
 static string double2R( double x )
 {
@@ -1499,11 +1499,11 @@ void Individual::OutputLikRatios(const char *filename, int iterations, std::stri
       L1 = LikRatio1[ j*KK + k] / ( iterations );
       L2 = LikRatio2[ j*KK + k] / ( iterations );
       
-      outputstream << double2R(L1)                                << ","
-		    << double2R(L2)                          << ","<<endl;
+      outputstream << double2R(L1)<< ","
+		   << double2R(L2)<< ","<<endl;
     }
   }
-
+  
   vector<int> dim(2,0);
   dim[0] = 4;
   dim[1] = Loci->GetNumberOfCompositeLoci() * KK;

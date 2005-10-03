@@ -142,8 +142,8 @@ private:
   double step, step0;
 
   //parameter estimates for chib algorithm
-  Matrix_d AdmixtureHat;
-  Matrix_d XAdmixtureHat;
+  double* ThetaHat;
+  double* ThetaXHat;
   std::vector< double > _rhoHat;
   std::vector< double > _rhoHat_X;
 
