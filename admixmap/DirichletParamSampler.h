@@ -3,9 +3,9 @@
 #define DirichletParamSampler_H 1
 
 #include <gsl/gsl_sf_gamma.h>
-#include "DARS.h"
+#include "NewARS.h"
 #include "StepSizeTuner.h"
-#include "MuSampler.h"
+//#include "MuSampler.h"
 #include "rand.h"
 
 class DirichletParamSampler
@@ -36,7 +36,7 @@ private:
   double step, step0;
   double LogAccProb;
 
-  DARS** DirParamArray;
+  NewDARS** DirParamArray;
   // AlphaParameters is an array with 5 elements
   // element 0 is number of observations
   // element 1 is dispersion parameter
@@ -45,15 +45,15 @@ private:
   // element 4 is 
   double AlphaParameters[5];
 
-  MuSampler muSampler;
+  //MuSampler muSampler;
 
   void SampleEta(unsigned n, double *sumlogtheta, double *eta, double *mu);
 
-  static double logf( const double*, const int*, const double* , double );
+  static double logf( double, const double* const );
   
-  static double dlogf( const double*, const int *, const double* , double );
+  static double dlogf( double, const double* const );
   
-  static double ddlogf( const double*, const int *, const double* , double );
+  static double ddlogf( double, const double* const );
 };
 
 #endif /* ! DirichletParamSampler_H */
