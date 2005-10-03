@@ -484,12 +484,12 @@ float Latent::getEtaSamplerAcceptanceRate(){
 float Latent::getEtaSamplerStepsize(){
   return PopAdmixSampler.getEtaStepSize();
 }
-float Latent::getMuSamplerAcceptanceRate(){
-  return PopAdmixSampler.getMuExpectedAcceptanceRate();
-}
-float Latent::getMuSamplerStepsize(){
-  return PopAdmixSampler.getMuStepSize();
-}
+// float Latent::getMuSamplerAcceptanceRate(){
+//   return PopAdmixSampler.getMuExpectedAcceptanceRate();
+// }
+// float Latent::getMuSamplerStepsize(){
+//   return PopAdmixSampler.getMuStepSize();
+//}
 #endif
 
 #if POPADMIXSAMPLER == 3

@@ -306,12 +306,12 @@ void submain(AdmixOptions* options){
     Log.logmsg(true, L.getEtaSamplerAcceptanceRate());
     Log.logmsg(true, "\nwith final step size of ");
     Log.logmsg(true, L.getEtaSamplerStepsize());Log.logmsg(true, "\n");
-    if(options->getPopulations() > 2){
-      Log.logmsg(true,"Expected acceptance rate in admixture proportion parameter sampler: ");
-      Log.logmsg(true, L.getMuSamplerAcceptanceRate());
-      Log.logmsg(true, "\nwith final step size of ");
-      Log.logmsg(true, L.getMuSamplerStepsize());Log.logmsg(true, "\n");
-      }
+//     if(options->getPopulations() > 2){
+//       Log.logmsg(true,"Expected acceptance rate in admixture proportion parameter sampler: ");
+//       Log.logmsg(true, L.getMuSamplerAcceptanceRate());
+//       Log.logmsg(true, "\nwith final step size of ");
+//       Log.logmsg(true, L.getMuSamplerStepsize());Log.logmsg(true, "\n");
+//       }
 #elif POPADMIXSAMPLER == 3 
     Log.logmsg(true,"Expected acceptance rate in admixture parameter Hamiltonian sampler: ");
     Log.logmsg(true, L.getAlphaSamplerAcceptanceRate());
