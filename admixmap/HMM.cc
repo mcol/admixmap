@@ -6,6 +6,19 @@ using namespace std;
 
 HMM::HMM()
 {
+  alpha = 0;
+  beta = 0;
+  LambdaBeta = 0;
+  p = 0;
+  StateArrivalProbs = 0;
+  ThetaThetaPrime = 0;
+  colProb = 0;
+  Expectation0 = 0;
+  Expectation1 = 0;
+  rowSum = 0;
+  colSum = 0;
+  rowProb = 0;
+  cov = 0;
 }
 
 //not currently used
@@ -26,17 +39,33 @@ HMM::HMM( int inTransitions, int pops, bool isdiploid )
   sumfactor=0.0;
   p = new double[Transitions];
   LambdaBeta = new double[States];
+
+  if(K>2){
+    rowProb = new double[K];
+    colProb = new double[K];
+    Expectation0 = new double[K];
+    Expectation1 = new double[K];
+    rowSum = new double[K];
+    colSum = new double[K];
+    cov = alloc2D_d(K, K);
+  }
 }
 
 HMM::~HMM()
 {
-  //TODO:destroy these properly
   delete[] p;
   delete[] LambdaBeta;
   delete[] alpha;
   delete[] beta;
   delete[] StateArrivalProbs;
   delete[] ThetaThetaPrime;
+  delete[] rowProb;
+  delete[] colProb;
+  delete[] Expectation0;
+  delete[] Expectation1;
+  delete[] rowSum;
+  delete[] colSum;
+  free_matrix(cov, K);
 }
 
 void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
@@ -61,6 +90,15 @@ void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
 
   StateArrivalProbs = new double[Transitions * K * 2];
   ThetaThetaPrime = new double[States];
+  if(K>2){
+    rowProb = new double[K];
+    colProb = new double[K];
+    Expectation0 = new double[K];
+    Expectation1 = new double[K];
+    rowSum = new double[K];
+    colSum = new double[K];
+    cov = alloc2D_d(K,K);
+  }
 }
 
 void HMM::SetStateArrivalProbs(double *f[], double *Theta, int Mcol){
@@ -310,13 +348,6 @@ void HMM::RecursionProbs(const double ff, const double f[2],
   if(K==2) RecursionProbs2(ff, f, stateArrivalProbs, oldProbs, newProbs);
   else
     {
-      double rowProb[K];
-      double colProb[K];
-      double Expectation0[K];
-      double Expectation1[K];
-      double rowSum[K];
-      double colSum[K];
-      double cov[K][K];
       
       for( int j0 = 0; j0 <  K; ++j0 ) {
 	rowProb[j0] = 0.0;
@@ -375,23 +406,23 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
   // version for 2 subpopulations
   double row0Prob;
   double col0Prob;
-  double Expectation0;
-  double Expectation1;
-  double cov;
+  double Exp0;
+  double Exp1;
+  double cov0;
   double Product;
   // sum row 0 and col 0  
   row0Prob = ( oldProbs[0] + oldProbs[2] );
   col0Prob = ( oldProbs[0] + oldProbs[1] );
   // calculate expectations of indicator variables for ancestry=0 on each gamete
-  Expectation0 = f[0]*row0Prob + stateArrivalProbs[0]; // paternal gamete
-  Expectation1 = f[1]*col0Prob + stateArrivalProbs[1]; // maternal gamete
-  Product = Expectation0 * Expectation1;
+  Exp0 = f[0]*row0Prob + stateArrivalProbs[0]; // paternal gamete
+  Exp1 = f[1]*col0Prob + stateArrivalProbs[1]; // maternal gamete
+  Product = Exp0 * Exp1;
   // calculate covariance of indicator variables as ff * deviation from product of row and col probs
-  cov = ff * ( oldProbs[0] - row0Prob * col0Prob );
-  newProbs[0] = Product + cov; 
-  newProbs[1] = Expectation0 - newProbs[0]; //prob paternal ancestry=1, maternal=0 
-  newProbs[2] = Expectation1 - newProbs[0]; //prob paternal ancestry=0, maternal=1 
-  newProbs[3] = 1 - Expectation0 - Expectation1 + newProbs[0];
+  cov0 = ff * ( oldProbs[0] - row0Prob * col0Prob );
+  newProbs[0] = Product + cov0; 
+  newProbs[1] = Exp0 - newProbs[0]; //prob paternal ancestry=1, maternal=0 
+  newProbs[2] = Exp1 - newProbs[0]; //prob paternal ancestry=0, maternal=1 
+  newProbs[3] = 1 - Exp0 - Exp1 + newProbs[0];
 }
 
 void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 

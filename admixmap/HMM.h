@@ -61,6 +61,15 @@ private:
   double *StateArrivalProbs;
   double *ThetaThetaPrime;
 
+  //arrays for RecursionProbs
+  double *rowProb;
+  double *colProb;
+  double *Expectation0;
+  double *Expectation1;
+  double *rowSum;
+  double *colSum;
+  double **cov;
+
 void RecursionProbs2(const double ff, const double f[2], 
 		     const double* const stateArrivalProbs, const double* const oldProbs, double *newProbs) ;
 
