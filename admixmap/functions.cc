@@ -50,28 +50,6 @@ double getDirichletLogDensity(const Vector_d& a, const Vector_d& x)
   return f;
 }
 
-double getDirichletLogDensity(const std::vector<double>& a, const Vector_d& x)
-{
-  size_t K = a.size();
-  double f, xsum = 0.0;
-  double theta[K];
-
-  for(size_t k = 0; k < K-1; ++k){
-    theta[k] = x(k);
-     xsum += x(k);
-  }
-
-  theta[K-1] = 1.0 - xsum;
-
-  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
-  f = gsl_sf_lngamma( sum );
-  for( unsigned i = 0; i < K; i++ )
-    if( a[i] > 0.0 )
-      f += ( a[i] - 1 ) * log( theta[i] ) - gsl_sf_lngamma( a[i] );
-
-  return f;
-}
-
 //calls gsl function for computing the logarithm of the probability density p(x_1, ... , x_K) 
 //for a Dirichlet distribution with parameters a[K]. 
 //a should be of length K but x can be of length K or K-1 since last element ignored
@@ -130,7 +108,6 @@ double getDirichletLogDensity_Softmax(const std::vector<double>& a, double *x)
 
   theta[K-1] = 1.0 - xsum;
 
-  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
   f = 0.0;
   for( unsigned i = 0; i < K; i++ )
     if( a[i] > 0.0 )
