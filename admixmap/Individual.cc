@@ -65,7 +65,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     }
 
     // Read sex value if present.
-    sex = 1;
+    sex = male;
     if (options->getgenotypesSexColumn() == 1) {
 	sex = Data->GetSexValue(mynumber);
     }
@@ -93,12 +93,13 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
     else{
       ThetaProposal = new double[ Populations];
       Theta = new double[ Populations ];
+      ThetaHat = new double[ Populations ];
     }
 
     //X chromosome objects
     SumLocusAncestry_X = 0;    
 //    if(Loci.isX_data() ){
-      if( sex == 1 ){
+      if( sex == male ){
 	ThetaXProposal = new double[ Populations];
 	ThetaX = new double[Populations];
 	ThetaXHat = new double[Populations];
@@ -127,7 +128,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
 	  AncestrySize = 2 * chrm[j]->GetSize() ;
 	  gametes.push_back(2);
         }
-        else if( sex != 2 ){//male or missing
+        else if( sex != female ){//male or missing
 	  AncestrySize = chrm[j]->GetSize() ;
 	  gametes.push_back(1);
 	  X_posn = j;
@@ -253,7 +254,7 @@ double *Individual::getAdmixtureProps()
   return Theta;
 }
 
-int Individual::getSex()
+Sex Individual::getSex()
 {
    return sex;
 }
@@ -353,10 +354,10 @@ double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **ch
 	chrm[j]->UpdateParameters( this, admixture, options, rho, true, true, false);
       }
       else{//X chromosome
-         if( sex == 1 ){//male
+         if( sex == male ){//male
 	   chrm[j]->UpdateParameters( this, admixture_X, options, rho_X, true, false, false);
 	 }
-         else{//female
+         else{//female or unknown
 	   chrm[j]->UpdateParameters( this, admixture_X, options, rho_X, true, true, false);
 	 }
       }
@@ -389,10 +390,10 @@ double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, d
 	 chrm[j]->UpdateParameters( this, theta, options, rho, false, false, false);
        }
        else{//X chromosome
-	 if( sex == 1 ){//male
+	 if( sex == male ){//male
 	   chrm[j]->UpdateParameters( this, theta, options, rho_X, false, false, false);
 	 }
-	 else{//female
+	 else{//female or unknown
 	   chrm[j]->UpdateParameters( this, theta, options, rho_X, false, true, false);
 	 }
        }
@@ -471,12 +472,11 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
   dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 */
 {
-  //cout<<"Individual "<<i<<endl;
   // ** reset SumLocusAncestry and ThetaProposal **
   for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
 //  if(Loci->isX_data() ){
     int J = Populations;
-    if(sex != 1) J *=2;
+    if(sex != male) J *=2;
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
 //  }
 
@@ -490,7 +490,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
      ThetaProposal[k] = 0.0;//may be unnecessary
    }
    if(ThetaXProposal){
-     size_theta = Populations;if(sex != 1) size_theta *= 2;
+     size_theta = Populations;if(sex != male) size_theta *= 2;
      for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
    }
 
@@ -788,7 +788,7 @@ double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType R
 double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations )
 {
    int gametes = 1;
-   if( sex == 2 )
+   if( sex == female )
       gametes = 2;
    double p = 0, sum1 = 0.0, sum2 = 0.0;
    //Matrix_d ThetaOld = Theta, ThetaXOld = ThetaX;
@@ -869,6 +869,8 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
       step = ThetaTuner.UpdateStepSize( AccProb );
     }
   }
+  //transform(Theta, Theta+size_admix, ThetaHat, ThetaHat, std::plus<double>());
+  //transform(ThetaX, ThetaX+size_admix, ThetaXHat, ThetaXHat, std::plus<double>());
 }
 
 //Updates forward and backward probabilities in HMM for chromosome j 
@@ -884,7 +886,7 @@ bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptio
     chrm->UpdateParameters( this, Theta, options, _rho, false, false, calcbackprobs);
     isdiploid = false;
   }
-  else if( sex == 1 ){
+  else if( sex == male ){
     chrm->UpdateParameters( this, ThetaX, options, _rho, false, false, calcbackprobs);
     isdiploid = false;
   }
@@ -924,6 +926,8 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
   else{
     _rho[0] = gengam( rhobeta + 2*L, rhoalpha + (double)(SumN[0] + SumN[1]) );
   }
+  //transform(_rho.begin(), _rho.end(), _rhoHat.begin(), _rhoHat.begin(), std::plus<double>());
+  //transform(_rho_X.begin(), _rho_X.end(), _rhoHat_X.begin(), _rhoHat_X.begin(), std::plus<double>());
 }
 
 void Individual::ResetScores(AdmixOptions *options){
@@ -1134,6 +1138,7 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
 				AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
 				vector<vector<double> > &alpha, chib *MargLikelihood, LogWriter *Log)
 //Computes LogPrior and LogLikelihood used for Chib Algorithm
+  //called once after burnin to set estimates
 {
   int K = Populations;
   size_t theta_size = Populations;
@@ -1286,6 +1291,8 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	Log->write("\niteration: ");Log->write(iteration);Log->write("\n\n");
 
 	*MaxLogLikelihood = *LogLikelihood;
+
+	//during burnin
 	if( iteration <= options->getBurnIn() ){
 	  for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
 	  rhohat = _rho;
@@ -1300,10 +1307,11 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	  for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
 	    rhohatX = _rho_X;
 	  }
-	}
+	}//end during burnin block
       }
-    }
-    else{//populations <=0
+    }//end if K>1
+
+    else{//single population
       if( *LogLikelihood > *MaxLogLikelihood ){
 
 	*MaxLogLikelihood = *LogLikelihood;

@@ -46,7 +46,7 @@ public:
 
   static void DeleteStaticMembers();
 
-  int getSex();
+  Sex getSex();
 
   double *getAdmixtureProps();
 
@@ -131,7 +131,7 @@ private:
   std::vector< double > _rho_X;//sum of intensities for X chromosome
 
   double LogPosterior;
-  short unsigned int sex; // 0 = missing, 1 = male, 2 = female 
+  Sex sex; // 0 = missing, 1 = male, 2 = female 
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   unsigned int X_posn;  //number of X chromosome
   double TruncationPt; // upper truncation point for sum intensities parameter rho

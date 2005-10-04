@@ -85,7 +85,7 @@ public:
   void convertGenotypesToIntArray(AdmixOptions *options);
   void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
 
-  int GetSexValue(int i);
+  Sex GetSexValue(int i);
   int getNumberOfIndividuals();
   int getNumberOfSimpleLoci();
   unsigned getNumberOfCompositeLoci(){return NumCompositeLoci;};  

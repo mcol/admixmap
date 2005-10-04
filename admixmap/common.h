@@ -19,19 +19,6 @@ typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors
 
 enum RegressionType {Linear, Logistic, None};
 enum DataType {Continuous, Binary};
-
-
-// typedef double ** dmatrix;
-// typedef int ** imatrix;
-
-
-// typedef struct 
-// {
-//    int alleles[2];
-// } genotype; // genotype contains array of 2 integers
-
-// typedef std::vector<genotype> Vector_g; // vector of genotypes over loci
-
-// typedef std::vector<Vector_g> Matrix_g; // vector of Vector g objects over individuals 
+enum Sex {unknown, male, female};
 
 #endif /* !defined COMMON_H */

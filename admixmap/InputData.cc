@@ -474,7 +474,7 @@ void InputData::CheckRepAncestryFile(int populations){
 }
 
 //returns sex value from genotypes file for individual i
-int InputData::GetSexValue(int i){
+Sex InputData::GetSexValue(int i){
   //if (options->getgenotypesSexColumn() == 1) {
     int sex = StringConvertor::toInt(geneticData_[i][1]);
     if (sex > 2) {
@@ -482,7 +482,7 @@ int InputData::GetSexValue(int i){
       exit(0);
     }        
     //}
-    return sex;
+    return (Sex) sex;
 }
 
 
