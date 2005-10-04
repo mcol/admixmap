@@ -30,11 +30,11 @@ void DirichletParamSampler::SetSize( unsigned numind, unsigned numpops )
    for( unsigned int i = 0; i < d; i++ )
       gamma[i] = 1.0;
 
-   DirParamArray = new NewDARS*[ d ];
+   DirParamArray = new AdaptiveRejection*[ d ];
    for( unsigned int j = 0; j < d; j++ ){
-      DirParamArray[j] = new NewDARS();
-      //DirParamArray[j]->SetParameters( 0, 0, 0.1, AlphaParameters, logf, dlogf, ddlogf, 0, 0 );
+      DirParamArray[j] = new AdaptiveRejection();
       DirParamArray[j]->Initialise(true, true, 0.0, 1.0, logf, dlogf);
+      DirParamArray[j]->setLowerBound(0.00);
    }
    //muSampler.setDimensions(numind, numpops, 0.00001 , 0.0, 1.0, 0.44);//may need to modify initial stepsize (arg 3)
 }
@@ -61,7 +61,7 @@ void DirichletParamSampler::SetPriorMu( double *ingamma )
    }
 }
 
-//sample mus with DARS, conditional on frequencies sumlogtheta, and eta with RW
+//sample mus with adaptive rejection sampler, conditional on frequencies sumlogtheta, and eta with RW
 void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double *eta, double *mu )
 /*
   n = number of observations
@@ -76,12 +76,9 @@ void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double 
      AlphaParameters[2] = summu - mu[j]; // 1 - last proportion parameter
      AlphaParameters[3] = sumlogtheta[d-1]; 
      AlphaParameters[4] = sumlogtheta[j];
-     //DirParamArray[j]->SetLeftTruncation( 0.005 );
-     DirParamArray[j]->setLowerBound(0.00);
-     //DirParamArray[j]->SetRightTruncation( b );
+
      DirParamArray[j]->setUpperBound(b);
      // Dirichlet proportion parameters mu[j] are updated one at a time
-     //DirParamArray[j]->UpdateParameters( AlphaParameters );
      mu[j] = DirParamArray[j]->Sample(AlphaParameters, ddlogf);
      b = b - mu[j] + mu[j+1];
      summu = AlphaParameters[2] + mu[j];
@@ -92,7 +89,7 @@ void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double 
 
 }
 
-// //sample mu with MuSampler (DARS for dim==2, HMC otherwise), conditional on counts, and eta with RW
+// //sample mu with MuSampler (ARS for dim==2, HMC otherwise), conditional on counts, and eta with RW
 // void DirichletParamSampler::Sample2(unsigned n, double *sumlogtheta, double *eta, double *mu, int *counts){
 //   for(unsigned k=0; k < d; ++k)mu[k] *= *eta;
 //   muSampler.Sample(mu, *eta, counts);
@@ -148,8 +145,9 @@ double DirichletParamSampler::getEtaExpectedAcceptanceRate()
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // Dirichlet proportion parameters
 double
-DirichletParamSampler::logf( double x, const double* const parameters )
+DirichletParamSampler::logf( double x, const void* const pars )
 {
+  const double* parameters = (const double*) pars;
    int n = (int)parameters[0];
    double eta = parameters[1], summu = parameters[2], sumlj = parameters[4], sumln = parameters[3];
    double f = eta * ( x*sumlj + (1.0-summu-x)*sumln )
@@ -159,8 +157,9 @@ DirichletParamSampler::logf( double x, const double* const parameters )
 }
 
 double
-DirichletParamSampler::dlogf( double x, const double* const parameters )
+DirichletParamSampler::dlogf( double x, const void* const pars )
 {
+  const double* parameters = (const double*) pars;
   double f,x2,y1,y2;
   int n = (int)parameters[0];
   double eta = parameters[1], summu = parameters[2], sumlj = parameters[4], sumln = parameters[3];
@@ -179,8 +178,9 @@ DirichletParamSampler::dlogf( double x, const double* const parameters )
 }
 
 double
-DirichletParamSampler::ddlogf( double x, const double* const parameters)
+DirichletParamSampler::ddlogf( double x, const void* const pars)
 {
+  const double* parameters = (const double*) pars;
   double f,x2,y1,y2;
   int n = (int)parameters[0];
   double eta = parameters[1], summu = parameters[2];

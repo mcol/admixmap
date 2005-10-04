@@ -157,8 +157,8 @@ private:
 // functions required to update proportion vector Mu with adaptive rejection sampler
 // likelihood, 1st and 2nd derivatives of log-likelihood
 //Note that these are not part of AlleleFreqs class
-double fMu( const double*, const int *, const double*, double );
-double dfMu( const double*, const int *, const double*, double );
-double ddfMu( const double*, const int *, const double*, double );
+double fMu( double alpha, const void* const args );
+double dfMu( double alpha, const void* const args );
+double ddfMu( double alpha, const void* const args );
 
 #endif

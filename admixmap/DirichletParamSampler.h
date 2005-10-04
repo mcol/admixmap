@@ -3,7 +3,7 @@
 #define DirichletParamSampler_H 1
 
 #include <gsl/gsl_sf_gamma.h>
-#include "NewARS.h"
+#include "AdaptiveRejection.h"
 #include "StepSizeTuner.h"
 //#include "MuSampler.h"
 #include "rand.h"
@@ -36,7 +36,7 @@ private:
   double step, step0;
   double LogAccProb;
 
-  NewDARS** DirParamArray;
+  AdaptiveRejection** DirParamArray;
   // AlphaParameters is an array with 5 elements
   // element 0 is number of observations
   // element 1 is dispersion parameter
@@ -49,11 +49,11 @@ private:
 
   void SampleEta(unsigned n, double *sumlogtheta, double *eta, double *mu);
 
-  static double logf( double, const double* const );
+  static double logf( double, const void* const );
   
-  static double dlogf( double, const double* const );
+  static double dlogf( double, const void* const );
   
-  static double ddlogf( double, const double* const );
+  static double ddlogf( double, const void* const );
 };
 
 #endif /* ! DirichletParamSampler_H */

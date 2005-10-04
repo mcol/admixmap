@@ -24,7 +24,6 @@
 #define MUSAMPLER_H 1
 #include "HamiltonianMonteCarlo.h"
 #include "StepSizeTuner.h"
-#include "DARS.h"
 
 class MuSampler{
 
@@ -51,9 +50,9 @@ private:
 
   static double muEnergyFunction(unsigned , const double * const params, const double* const *args);
   static void muGradient(unsigned , const double * const params, const double* const *args, double *g);
-  static double fMu( const double* parameters, const int *counts,  const double *, double alpha );
-  static double dfMu( const double* parameters, const int *counts, const double *, double alpha );
-  static double ddfMu( const double* parameters, const int *counts, const double *, double alpha );
+  static double fMu( double alpha, const void* const args );
+  static double dfMu( double alpha, const void* const args );
+  static double ddfMu( double alpha, const void* const args );
   static double logJacobian(const double* a, const double z, unsigned H);
   static double DlogJacobian(const double* const a, const double z, unsigned H, unsigned h, double delta);
 };

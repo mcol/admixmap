@@ -20,10 +20,18 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "AlleleFreqs.h"
-#include "DARS.h"
+#include "AdaptiveRejection.h"
 #include "functions.h"
 #include <math.h>
 #include <numeric>
+
+typedef struct{
+  const int *counts0;
+  const double* counts1;
+  unsigned H;
+  unsigned K;
+  double eta;
+} MuSamplerArgs;
 
 AlleleFreqs::AlleleFreqs(Genome *pLoci){
   eta = 0;
@@ -96,13 +104,13 @@ void AlleleFreqs::Initialise(AdmixOptions *options, InputData *data, LogWriter *
       muSampler = new MuSampler[dim*NumberOfCompositeLoci];
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
 	for(int k = 0; k < Populations; ++k)
-	muSampler[i*Populations+k].setDimensions(NumberOfStates[i], 2, 0.0001, 0.0, 10.0, 0.44);
+	  muSampler[i*Populations+k].setDimensions(2, NumberOfStates[i], 0.0001, 0.0, 10.0, 0.44);
      }
     else{//correlated allele freq model
       dim = 1;
       muSampler = new MuSampler[NumberOfCompositeLoci];
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	muSampler[i].setDimensions(NumberOfStates[i], Populations, 0.002, 0.0, 10.0, 0.44);
+	muSampler[i].setDimensions(Populations, NumberOfStates[i], 0.002, 0.0, 10.0, 0.44);
     }
     
     // ** dispersion parameter(s) and priors **
@@ -634,8 +642,8 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
   // using an adaptive rejection sampler
   //Note: here NumberOfStates == 2  
 {
-  double lefttruncation = 0.1;
-  double MuParameters[2];
+  double lefttruncation = 0.1;//should be smaller
+  MuSamplerArgs MuParameters;
   int counts0[2 * Populations];
   double counts1[2 * Populations];
 
@@ -646,17 +654,21 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
       counts1[i+ j*2] = HistoricAlleleCounts[locus][i*Populations +j];
     }
 
-  DARS SampleMu( 0, 0, 0, MuParameters, fMu, dfMu, ddfMu, counts0, counts1 );
+  AdaptiveRejection SampleMu;
+  SampleMu.Initialise(true, true, 1.0, lefttruncation, fMu, dfMu );
 
-  SampleMu.SetLeftTruncation( lefttruncation );
   for( int j = 0; j < Populations; j++ ){
 
-    MuParameters[0] = eta[j];
-    MuParameters[1] = j;
+    MuParameters.eta = eta[j];
+    MuParameters.K = j;
+    MuParameters.counts0 = counts0;
+    MuParameters.counts1 = counts1;
 
-    SampleMu.SetRightTruncation( eta[j] - lefttruncation );//set upper limit for sampler
-    SampleMu.UpdateParameters( MuParameters);
-    PriorAlleleFreqs[locus][ j*2 ] = SampleMu.Sample(); //first state/allele
+    SampleMu.setUpperBound( eta[j] - lefttruncation );//set upper limit for sampler
+    //?? wrong  - should have upper limit of 1.0
+
+    PriorAlleleFreqs[locus][ j*2 ] = SampleMu.Sample(&MuParameters, ddfMu); //first state/allele
+    //?? wrong should be eta * SampleMu.Sample(...
     // Last (second) prior frequency parameter is determined by sum of mu's = eta.
     PriorAlleleFreqs[locus][ j*2 +1 ] = eta[j] - PriorAlleleFreqs[locus][ j*2 ];
   }
@@ -1075,11 +1087,15 @@ void AlleleFreqs::CloseOutputFile(int iterations, string* PopulationLabels)
   allelefreqoutput.close();
 }
 
-double fMu( const double* parameters, const int *counts0,  const double *counts1, double alpha )
+double fMu( double alpha, const void* const args )
 {
+  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+  int pop = parameters->K;// number of populations
+  double eta = parameters->eta;
+  const int *counts0 = parameters->counts0;
+  const double *counts1 = parameters->counts1;
+
   //counts 0 are counts for admixed pop, counts1 for historic/unadmixed pop
-  int pop = (int)parameters[1];// number of populations
-  double eta = parameters[0];
   double mu = alpha / eta;
   double logprior = 0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1,1) prior
   double f = logprior - 2 * gsl_sf_lngamma( alpha ) - 2 * gsl_sf_lngamma( eta - alpha );
@@ -1090,10 +1106,15 @@ double fMu( const double* parameters, const int *counts0,  const double *counts1
   return f;
 }
 
-double dfMu( const double* parameters, const int *counts0, const double *counts1, double alpha )
+double dfMu( double alpha, const void* const args )
 {
-  int pop = (int)parameters[1];//number of populations
-  double eta = parameters[0], x, y1, y2;
+  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+  int pop = parameters->K;// number of populations
+  double eta = parameters->eta;
+  const int *counts0 = parameters->counts0;
+  const double *counts1 = parameters->counts1;
+
+  double x, y1, y2;
   double logprior = 0.1 / alpha - 0.1 / ( eta - alpha );//Beta(1,1) prior
   double f = logprior;
   x = eta - alpha;
@@ -1124,10 +1145,15 @@ double dfMu( const double* parameters, const int *counts0, const double *counts1
   return f;
 }
 
-double ddfMu( const double* parameters, const int *counts0, const double *counts1, double alpha )
+double ddfMu( double alpha, const void* const args )
 {
-  int pop = (int)parameters[1];
-  double eta = parameters[0], x, y1, y2;
+  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+  int pop = parameters->K;// number of populations
+  double eta = parameters->eta;
+  const int *counts0 = parameters->counts0;
+  const double *counts1 = parameters->counts1;
+
+  double x, y1, y2;
   double prior = -0.1 / (alpha*alpha) - 0.1 / (( eta - alpha ) * ( eta - alpha ) );
   double f = prior;
   x = eta - alpha;

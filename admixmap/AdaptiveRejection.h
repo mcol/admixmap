@@ -1,6 +1,27 @@
 // *-*-C++-*-*
-#ifndef NEWARS_H
-#define NEWARS_H 1
+/** 
+ *   ADMIXMAP
+ *   AdaptiveRejection.h
+ *   This class implements an adaptative rejection algorithm for  
+ *   log-concave distributions. 
+ *   Copyright (c) 2005 LSHTM
+ *  
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or (at
+ * your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ */
+#ifndef ADAPTIVEREJECTION_H
+#define ADAPTIVEREJECTION_H 1
 
 #include <vector>
 #include <math.h>
@@ -32,20 +53,18 @@ public:
 
 };
   
-class NewDARS{
+class AdaptiveRejection{
 
 public:
-  NewDARS();
-  double Sample(const double* const args, double (*secondDeriv)(double, const double* const));
-  double Sample(double mode, const double* const args, double (*secondDeriv)(double, const double* const));
-  double ARS(const double* const args, double initialPoints[], unsigned numberOfInitialPoints);
+  AdaptiveRejection();
+  double Sample(const void* const args, double (*secondDeriv)(double, const void* const));
+  double Sample(double mode, const void* const args, double (*secondDeriv)(double, const void* const));
+  double ARS(const void* const args, double initialPoints[], unsigned numberOfInitialPoints);
   void Initialise(bool upperBound, bool lowerBound, double upper, double lower, 
-		  double (*height) (double, const double* const),
-		  double (*gradient)(double, const double* const));
+		  double (*height) (double, const void* const),
+		  double (*gradient)(double, const void* const));
   void setLowerBound(double);
   void setUpperBound(double); 
-
-  void test();//temporary, just for demo purposes
 
 private:
   unsigned K;//initial number of points
@@ -58,8 +77,8 @@ private:
   double LowerBound;
   double heightAtMode;
 
-  double (*height) (double, const double* const);
-  double (*gradient)(double, const double* const); 
+  double (*height) (double, const void* const);
+  double (*gradient)(double, const void* const); 
 
   double AreaUnderTangentCurve(double x1, double h, double g, 
 			       double z1, double z2, 
@@ -72,19 +91,19 @@ private:
   double UpperHull(double x, double x0, double h, double g);
   double LowerHull(double x, double x0, double x1, double h0, double h1, bool lower, bool upper);
 
-  void InitialisePoints(double x[3], const double* const args);
-  void SamplePoint(const double* const);
+  void InitialisePoints(double x[3], const void* const args);
+  void SamplePoint(const void* const);
   bool TestNewPoint();
   void Update();
   void TestForLogConcavity();
 
-  double SimpleModeSearch( double aa, double bb, const double* const args, double (*gradient)(double, const double* const) );
+  double SimpleModeSearch( double aa, double bb, const void* const args, double (*gradient)(double, const void* const) );
 
-  double NewtonRaphson(const double* const args, double (*gradient)(double, const double* const), 
-			       double (*secondDeriv)(double, const double* const) );
+  double NewtonRaphson(const void* const args, double (*gradient)(double, const void* const), 
+			       double (*secondDeriv)(double, const void* const) );
 
-  void SetInitialPoints(double mode, double x[3], const double* const args, 
-			double (*secondDeriv)(double, const double* const));
+  void SetInitialPoints(double mode, double x[3], const void* const args, 
+			double (*secondDeriv)(double, const void* const));
 
 };
 
