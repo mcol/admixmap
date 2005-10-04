@@ -37,18 +37,18 @@ class HamiltonianMonteCarlo{
 public:
   HamiltonianMonteCarlo();
   ~HamiltonianMonteCarlo();
-  void Sample(double* const x, const double* const* args);//call inside a loop
+  void Sample(double* const x, const void* const args);//call inside a loop
   void SetDimensions(unsigned pdim, double pepsilon, double min, double max, unsigned pTau, float target, 
-		     double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
-		     void (*pgradE)(unsigned d, const double* const theta, const double* const *args, double *g));
+		     double (*pfindE)(unsigned d, const double* const theta, const void* const args),
+		     void (*pgradE)(unsigned d, const double* const theta, const void* const args, double *g));
   //sets dimension, stepsize, number of steps and parameters for density function
   float getAcceptanceRate();
   float getStepsize();
   void Tune();
 
 private:
-  double (*findE)(unsigned d, const double* const theta, const double* const* args); //calculate objective function
-  void (*gradE)(unsigned d, const double* const theta, const double* const* args, double *g);//calculate gradient
+  double (*findE)(unsigned d, const double* const theta, const void* const args); //calculate objective function
+  void (*gradE)(unsigned d, const double* const theta, const void* const args, double *g);//calculate gradient
 
   unsigned dim;     //dimension
   double epsilon;   //stepsize

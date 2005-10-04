@@ -31,7 +31,7 @@ typedef struct{
   unsigned H;
   unsigned K;
   double eta;
-} MuSamplerArgs;
+} MuSamplerArgs2;// 2 so as not to confuse with one in MuSampler
 
 AlleleFreqs::AlleleFreqs(Genome *pLoci){
   eta = 0;
@@ -643,7 +643,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
   //Note: here NumberOfStates == 2  
 {
   double lefttruncation = 0.1;//should be smaller
-  MuSamplerArgs MuParameters;
+  MuSamplerArgs2 MuParameters;
   int counts0[2 * Populations];
   double counts1[2 * Populations];
 
@@ -1089,7 +1089,7 @@ void AlleleFreqs::CloseOutputFile(int iterations, string* PopulationLabels)
 
 double fMu( double alpha, const void* const args )
 {
-  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+  const MuSamplerArgs2* parameters = (const MuSamplerArgs2*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
   const int *counts0 = parameters->counts0;
@@ -1108,7 +1108,7 @@ double fMu( double alpha, const void* const args )
 
 double dfMu( double alpha, const void* const args )
 {
-  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+  const MuSamplerArgs2* parameters = (const MuSamplerArgs2*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
   const int *counts0 = parameters->counts0;
@@ -1147,7 +1147,7 @@ double dfMu( double alpha, const void* const args )
 
 double ddfMu( double alpha, const void* const args )
 {
-  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
+  const MuSamplerArgs2* parameters = (const MuSamplerArgs2*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
   const int *counts0 = parameters->counts0;

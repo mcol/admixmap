@@ -48,13 +48,21 @@
 #include "StepSizeTuner.h"
 
 #if POPADMIXSAMPLER==1
-#include "DARS.h"
+#include "AdaptiveRejection.h"
 #endif
 
 #if POPADMIXSAMPLER == 2
 #include "DirichletParamSampler.h"
 #elif POPADMIXSAMPLER == 3
 #include "HamiltonianMonteCarlo.h"
+
+typedef struct{
+  int n;
+  const double *sumlogtheta;
+  double eps0;
+  double eps1;
+}AlphaSamplerArgs;
+
 #endif
 
 class InputData;
@@ -130,7 +138,7 @@ private:
   
 #if POPADMIXSAMPLER == 1 //DARS sampler
   double AlphaParameters[5];
-  DARS** DirParamArray;
+  AdaptiveRejection** DirParamArray;
 #elif POPADMIXSAMPLER == 2//DirichletParamSampler
   double eta;
   double *mu;
@@ -139,7 +147,7 @@ private:
   int *SumLocusAncestry;
 
 #elif POPADMIXSAMPLER == 3 //Hamiltonian sampler
-  double **AlphaArgs;
+  AlphaSamplerArgs AlphaArgs;
   double *logalpha;
   HamiltonianMonteCarlo AlphaSampler;
   double initialAlphaStepsize;
@@ -162,20 +170,15 @@ private:
   // outside of Latent.cc
   //
 #if POPADMIXSAMPLER == 1
-  static double logf( const double* , const int *, const double*, double );
+  static double logf( double, const void* const );
   
-  static double  dlogf( const double* , const int *, const double*, double );
+  static double  dlogf( double, const void* const );
   
-  static double  ddlogf( const double* , const int *, const double*, double );
+  static double  ddlogf( double, const void* const );
 #elif POPADMIXSAMPLER == 3
-  static double findE(unsigned dim, const double* const theta, const double* const*args);
-  static void gradE(unsigned dim,const double* const theta, const double* const* args, double *g);
+  static double alphaEnergy(unsigned dim, const double* const theta, const void* const args);
+  static void alphaGradient(unsigned dim,const double* const theta, const void* const args, double *g);
 #endif  
-  static double frho( const double* , const int *, const double*, double );
-  
-  static double dfrho( const double* , const int *, const double*, double );
-  
-  static double ddfrho( const double* , const int *, const double*, double );
   
   // UNIMPLEMENTED
   // to avoid use

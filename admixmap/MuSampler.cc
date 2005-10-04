@@ -27,23 +27,12 @@
 
 using namespace::std;
 
-typedef struct{
-  const int *counts;
-  unsigned H;
-  unsigned K;
-  double eta;
-} MuSamplerArgs;
-
 MuSampler::MuSampler(){
   params = 0;
-  muArgs = new double*[3];
-  for(int i = 0; i < 4; ++i){muArgs[i] = 0;}
 }
 
 MuSampler::~MuSampler(){
   delete[] params;
-  for(int i = 0; i < 4; ++i){delete[] muArgs[i];}
-  delete[] muArgs;
 }
 
 void MuSampler::setDimensions(unsigned inK, unsigned inH, double mustep0, double mumin, double mumax, double mutarget){
@@ -53,9 +42,10 @@ void MuSampler::setDimensions(unsigned inK, unsigned inH, double mustep0, double
   H = inH;
 
   params = new double[H];
-  muArgs[0] = new double[2]; muArgs[0][0] = K;muArgs[0][1] = H;
-  muArgs[1] = new double[H*K];//to hold counts
-  muArgs[2] = new double[1]; //to hold eta
+  muArgs.H = H;
+  muArgs.K = K;
+  
+  //set dimensions of Hamiltonian MC object
   muSampler.SetDimensions(H, mustep0, mumin, mumax, 20, mutarget, 
 			  muEnergyFunction, muGradient);
 
@@ -72,13 +62,10 @@ void MuSampler::Sample(double* alpha, double eta, const int* const Counts){
     //transform alphas
     inv_softmax(H, alpha, params);//NOTE: inv_softmax function works with alpha as well as mu
 
-    //assign counts
-    for(unsigned t = 0; t < K*H; ++t){
-      muArgs[1][t] = (double)Counts[t];
-    }
-    muArgs[2][0] = eta;
+    muArgs.counts = Counts;
+    muArgs.eta = eta;
  
-    muSampler.Sample(params, muArgs);
+    muSampler.Sample(params, &muArgs);
 
     //set alpha by reversing transformation
     //NOTE: params may not sum to zero but the proportions will still be correct
@@ -95,20 +82,20 @@ void MuSampler::Sample1D(double* alpha, double eta, const int* const Counts )
   //Counts has dimension 2 * K
   //alpha has dimension 2
   double leftbound = 0.1;
-  MuSamplerArgs MuParameters;
+  //MuSamplerArgs MuParameters;
 
   AdaptiveRejection SampleMu;
   SampleMu.Initialise( true, true, 1.0, 0.0, fMu, dfMu);
 
   SampleMu.setLowerBound( leftbound );
 
-  MuParameters.eta = eta;
-  MuParameters.K = K;
-  MuParameters.counts = Counts;
+  muArgs.eta = eta;
+  muArgs.K = K;
+  muArgs.counts = Counts;
   
   SampleMu.setUpperBound( eta - leftbound );//set upper limit for sampler
 
-  alpha[ 0 ] = SampleMu.Sample(&MuParameters, ddfMu); //first state/allele
+  alpha[ 0 ] = SampleMu.Sample(&muArgs, ddfMu); //first state/allele
   // Last (second) prior frequency parameter is determined by sum of mu's = eta.
   alpha[ 1 ] = eta - alpha[ 0 ];
 }
@@ -125,13 +112,15 @@ float MuSampler::getStepsize(){
 
 //******* Energy and gradient functions for Hamiltonian MC sampler
 
-double MuSampler::muEnergyFunction(unsigned , const double * const params, const double* const *args){
-  int H = (int)args[0][1]; // Number of haplotypes/alleles
-  int K = (int)args[0][0];// Number of populations
-  double eta = args[2][0];//dispersion parameter
-  //Counts = args[2];//realized allele counts, stored as ints
-  double E = 0.0;
+double MuSampler::muEnergyFunction(unsigned , const double * const params, const void* const vargs){
   //params in softmax format , of length H, but may not sum to zero
+  const MuSamplerArgs* args = (const MuSamplerArgs*) vargs;
+  int H = args->H; // Number of haplotypes/alleles
+  int K = args->K;// Number of populations
+  double eta = args->eta;//dispersion parameter
+  const int* counts = args->counts;//realized allele counts, stored as ints
+
+  double E = 0.0;
 
   double mu[H];
   double a[H];
@@ -150,18 +139,20 @@ double MuSampler::muEnergyFunction(unsigned , const double * const params, const
     double alpha = eta * mu[h];
   for(int k = 0; k < K; ++k){
       int offset = h*K +k;
-      E += gsl_sf_lngamma(alpha) - gsl_sf_lngamma(args[1][offset] + alpha);//log likelihood
+      E += gsl_sf_lngamma(alpha) - gsl_sf_lngamma(counts[offset] + alpha);//log likelihood
     }
   }
   E -= logJacobian(a, z, H);
   return E;
 }
 
-void MuSampler::muGradient(unsigned , const double * const params, const double* const *args, double *g){
-  int H = (int)args[0][1]; // Number of haplotypes/alleles
-  int K = (int)args[0][0];// Number of populations
-  double eta = args[2][0];//dispersion parameter
+void MuSampler::muGradient(unsigned , const double * const params, const void* const vargs, double *g){
   //params in softmax format , of length H, but may not sum to zero
+  const MuSamplerArgs* args = (const MuSamplerArgs*) vargs;
+  int H = args->H; // Number of haplotypes/alleles
+  int K = args->K;// Number of populations
+  double eta = args->eta;//dispersion parameter
+  const int* counts = args->counts;//realized allele counts, stored as ints
 
   double mu[H];
   double a[H];
@@ -185,8 +176,8 @@ void MuSampler::muGradient(unsigned , const double * const params, const double*
       
       int offset = h*K +k;
       
-      dEdMu[h] += eta * (gsl_sf_psi(alpha) - gsl_sf_psi(args[1][offset]+alpha));//log likelihood term
-      dEdMu[h] += eta * (gsl_sf_psi(alphaH) - gsl_sf_psi(args[1][offset]+alphaH));
+      dEdMu[h] += eta * (gsl_sf_psi(alpha) - gsl_sf_psi(counts[offset]+alpha));//log likelihood term
+      dEdMu[h] += eta * (gsl_sf_psi(alphaH) - gsl_sf_psi(counts[offset]+alphaH));
     }
   }
    //now use chain rule to obtain gradient wrt args

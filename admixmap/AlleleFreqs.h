@@ -33,9 +33,6 @@
 #include "DispersionSampler.h"
 #include "StepSizeTuner.h"
 class StepSizeTuner;
-#include "HamiltonianMonteCarlo.h"
-
-
 
 class AlleleFreqs{
 
