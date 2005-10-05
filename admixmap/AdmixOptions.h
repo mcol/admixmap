@@ -193,7 +193,8 @@ private:
 
   //priors
   double Rhoalpha, Rhobeta;//gamma parameters for sumintensities
-  std::vector<std::vector<double> > alpha;
+  std::vector<double> alpha0;
+  std::vector<double> alpha1;
   double alphamean, alphavar;
   double etamean, etavar;//gamma parameters for dispersion parameter
 

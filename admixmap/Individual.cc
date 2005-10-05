@@ -855,13 +855,13 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
 {
   bool test = true;
   double AccProb = exp(logpratio);
-  // loop over populations: if any element of Dirichlet parameter vector is too small, do not update admixtire proportions
+  // loop over populations: if any element of Dirichlet parameter vector is too small, do not update admixture proportions
   for( int k = 0; k < Populations; k++ ){
-    if( ThetaProposal[ k ] < 0.0001 ){
+    if( Theta[ k ] > 0.0 && ThetaProposal[ k ] < 0.0001 ){
       test = false;
       AccProb = 0.0;
     }
-    else if( RandomMatingModel && ThetaProposal[ k + Populations ] < 0.0001 ){
+    else if( RandomMatingModel && Theta[k + Populations] > 0.0 && ThetaProposal[ k + Populations ] < 0.0001 ){
       test = false;
       AccProb = 0.0;
     }

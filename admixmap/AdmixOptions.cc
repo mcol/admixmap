@@ -110,7 +110,6 @@ AdmixOptions::AdmixOptions()
   OptionValues["every"] = "100";
   OptionValues["fixedallelefreqs"] = "0";
   OptionValues["correlatedallelefreqs"] = "0";
-  OptionValues["locusfortest"] = "0";
   OptionValues["logfile"] = "log.txt";
   OptionValues["resultsdir"] = "results";
   OptionValues["randommatingmodel"] = "0";
@@ -118,7 +117,6 @@ AdmixOptions::AdmixOptions()
   OptionValues["indadmixhiermodel"] = "1";
   OptionValues["marglikelihood"] = "0";
   OptionValues["truncationpoint"] = "99";
-  OptionValues["populations"] = "0";
   OptionValues["seed"] = "1";
   OptionValues["sumintensitiesalpha"] = "5.0";
   OptionValues["sumintensitiesbeta"] = "1.0";
@@ -496,12 +494,23 @@ int AdmixOptions::getTextIndicator() const
 
 int AdmixOptions::sizeInitAlpha() const
 {
-  return alpha.size();
+  unsigned size = 0;
+  if(alpha0.size() > 0)++size;
+  if(alpha1.size() > 0)++size;
+  return size;
 }
 
 std::vector<double> AdmixOptions::getInitAlpha(int gamete) const
 {
-  return alpha[gamete];
+  switch(gamete){
+  case 0: return alpha0;
+  case 1: return alpha1;
+  default : 
+    {
+      cerr<<"Error in call to getInitAlpha, g > 1"<<endl;
+      exit(1);
+    }
+  }
 }
 
 bool AdmixOptions::IsPedFile() const
@@ -848,9 +857,9 @@ void AdmixOptions::SetOptions(int nargs,char** args)
       } else if (long_option_name == "etapriorfile") {
 	 EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
       } else if (long_option_name == "initalpha0" ) {
-	 alpha.push_back(CstrToVec2(optarg));OptionValues["initalpha0"]=optarg;
+	 alpha0 = CstrToVec2(optarg);OptionValues["initalpha0"]=optarg;
       } else if (long_option_name == "initalpha1") {
-	 alpha.push_back(CstrToVec2(optarg));OptionValues["initalpha1"]=optarg;
+	 alpha1 = CstrToVec2(optarg);OptionValues["initalpha1"]=optarg;
       } else if (long_option_name == "textindicator") {
 	 TextIndicator = (int)strtol(optarg, NULL, 10);OptionValues["textindicator"]=optarg;
       } else {
@@ -905,13 +914,13 @@ void AdmixOptions::SetOutputNames(){
 }
 
 void AdmixOptions::PrintOptions(){
-  //set populations value in case it has changed
-  //NB do similar for any option that can be changed outside AdmixOptions
-  std::ostringstream s;
-  if (s << Populations) // conversion worked
-    {
-    OptionValues["populations"] = (char *)s.str().c_str();
-    }
+//   //set populations value in case it has changed
+//   //NB do similar for any option that can be changed outside AdmixOptions
+//   std::ostringstream s;
+//   if (s << Populations) // conversion worked
+//     {
+//     OptionValues["populations"] = (char *)s.str().c_str();
+//     }
   //Now output Options table to args.txt
   string ss;
   ss = ResultsDir + "/args.txt";
@@ -1150,35 +1159,36 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
   vector<vector<double> > initalpha;
 
   //if no initalpha is specified, alpha for both gametes is initialised to 1.0 for each population  
-  if( alpha.size() == 0 ){
+  if( alpha0.size() == 0 && alpha1.size() == 0 ){
     fill( alphatemp.begin(), alphatemp.end(), 1.0);//fill alphatemp with 1s
     initalpha.push_back(alphatemp);initalpha.push_back(alphatemp);//put 2 copies of alphatemp in alpha
     Log->logmsg(false,  "Initial value for population admixture (Dirichlet) parameter vector: ");
     for(int k = 0;k < Populations; ++k){Log->logmsg(false,alphatemp[k]);Log->logmsg(false," ");}
     Log->logmsg(false,"\n");
   }
-  //if exactly one of initalpha0 or initalpha1 is specified, sets initial values of alpha parameter vector for both gametes
+  //if only initalpha0 specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed
-  else if( alpha.size() == 1 ){
-    _admixed[0] = CheckInitAlpha( alpha[0] );
-    initalpha.push_back(alpha[0]);initalpha.push_back(alpha[0]);//put 2 copies of alpha[0] in alpha
+  else if( alpha0.size() == 1 ){
+    _admixed[0] = CheckInitAlpha( alpha0 );
+    initalpha.push_back(alpha0);initalpha.push_back(alpha0);//put 2 copies of alpha[0] in alpha
     Log->logmsg(false, "Initial value for population admixture (Dirichlet) parameter vector: ");
-    for(size_t k = 0;k < alpha[0].size(); ++k){Log->logmsg(false,alpha[0][k]);Log->logmsg(false," ");}
+    for(size_t k = 0;k < alpha0.size(); ++k){Log->logmsg(false,alpha0[k]);Log->logmsg(false," ");}
     Log->logmsg(false,"\n");
   }
   //if both are specified and analysis is for a single individual,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
   else if( AnalysisTypeIndicator < 0 ){ // should be if indadmixhiermodel=0
-    _admixed[0] = CheckInitAlpha( alpha[0] );    //gamete 1
-    _admixed[1] = CheckInitAlpha( alpha[1] );    //gamete 2
+    _admixed[0] = CheckInitAlpha( alpha0 );    //gamete 1
+    _admixed[1] = CheckInitAlpha( alpha1 );    //gamete 2
 
-    initalpha = alpha;
+    initalpha.push_back(alpha0);
+    initalpha.push_back(alpha1);
     Log->logmsg(false, "Dirichlet prior for paternal gamete admixture: ");
-    for(size_t k = 0;k < alpha[0].size(); ++k){Log->logmsg(false,alpha[0][k]);Log->logmsg(false," ");}
+    for(size_t k = 0;k < alpha0.size(); ++k){Log->logmsg(false,alpha0[k]);Log->logmsg(false," ");}
     Log->logmsg(false,"\n");
     
     Log->logmsg(false, "Dirichlet prior for maternal gamete admixture: ");
-    for(size_t k = 0;k < alpha[1].size(); ++k){Log->logmsg(false,alpha[1][k]);Log->logmsg(false," ");}
+    for(size_t k = 0;k < alpha1.size(); ++k){Log->logmsg(false,alpha1[k]);Log->logmsg(false," ");}
     Log->logmsg(false,"\n");
     
     _symmetric = false;
