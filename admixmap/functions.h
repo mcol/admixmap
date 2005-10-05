@@ -20,6 +20,8 @@ double AverageOfLogs(const std::vector<double>& vec, double max);
 
 void inv_softmax(size_t K, const double* const mu, double *a);
 void softmax(size_t K, double *mu, const double* a);
+void inv_softmax(size_t K, const double* const mu, double *a, const bool* const b);
+void softmax(size_t K, double *mu, const double* a, const bool* const b);
 
 //matrix algebra
 int HH_solve (Matrix_d A, Vector_d b, Vector_d *x);

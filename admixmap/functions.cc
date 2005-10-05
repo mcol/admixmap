@@ -141,6 +141,23 @@ void softmax(size_t K, double *mu, const double* a){
   for(unsigned k = 0; k < K; ++k) z += exp(a[k]);
   for(unsigned k = 0; k < K; ++k)mu[k] = exp(a[k]) / z;
 }
+void inv_softmax(size_t K, const double* const mu, double *a, const bool* const b){
+  //b is an array of indicators
+  //transformation is only applied to elements with b=true
+  double sumlogmu = 0.0;
+  for(unsigned k = 0; k < K; ++k)if(b[k])sumlogmu += log(mu[k]);
+  double logz = -sumlogmu / (double)K;
+
+  for(unsigned k = 0; k< K; ++k)if(b[k])a[k] = log(mu[k]) + logz;
+}
+void softmax(size_t K, double *mu, const double* a, const bool* const b){
+  //inverse of softmax transformation
+  //b is an array of indicators
+  //transformation is only applied to elements with b=true
+  double z = 0.0;
+  for(unsigned k = 0; k < K; ++k) z += exp(a[k])*b[k];
+  for(unsigned k = 0; k < K; ++k)mu[k] = b[k]*exp(a[k]) / z;
+}
 
 
 // int HH_solve (Matrix_d A, Vector_d b, Vector_d *x)
