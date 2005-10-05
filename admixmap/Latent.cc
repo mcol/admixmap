@@ -34,7 +34,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   rho = 0.0;
   rhoalpha = 0.0;
   rhobeta = 0.0;
-  SumRho = 0.0;
+  SumLogRho = 0.0;
   options = op;
   Loci = loci;
   Log = l;
@@ -94,7 +94,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 
   DirParamArray = new AdaptiveRejection*[ K ];
   for( int j = 0; j < K; j++ ){
-    DirParamArray[j] = new AdaptiveRejection();
+    DirParamArray[j] = new Adaptiverejection();
     DirParamArray[j]->Initialise(false, true, 0, 1, logf, dlogf);
     DirParamArray[j]->setLowerBound( 0.1 );
   }
@@ -115,12 +115,16 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   logalpha = new double[K];
   transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
 
-  AlphaArgs.n = Numindividuals;
-  if( options->isRandomMatingModel() )AlphaArgs.n *= 2;
-  AlphaArgs.eps0 = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
-  AlphaArgs.eps1 = alphapriormean / alphapriorvar;
+  AlphaArgs = new double*[4];
+  AlphaArgs[0] = new double[K];
+  for(unsigned i = 1; i < 4;++i)AlphaArgs[i] = new double[1];
+  //elem 0 is sum of log admixture props
+  AlphaArgs[1][0] = (double)Numindividuals;// elem 1 is num individuals/gametes
+  if( options->isRandomMatingModel() )AlphaArgs[1][0] *= 2.0;
+  AlphaArgs[2][0] = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
+  AlphaArgs[3][0] = alphapriormean / alphapriorvar;
 
-  AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, alphaEnergy, alphaGradient);
+  AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
 
   // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
@@ -189,6 +193,8 @@ Latent::~Latent()
   delete[] mu;
   delete[] SumLocusAncestry;
 #elif POPADMIXSAMPLER == 3
+  for(unsigned i = 0; i < 4;++i)delete[] AlphaArgs[i];
+  delete[] AlphaArgs;
   delete[] logalpha;
 #endif
 }
@@ -230,43 +236,45 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
       for( int j = 0; j < options->getPopulations(); j++ )
          alpha[0][j] = mu[j]*eta;
 
+
+
       
 #elif POPADMIXSAMPLER == 3
       //for( int j = 0; j < options->getPopulations(); j++ ){
       //AlphaArgs[0][j] = individuals->getSumLogTheta(j);
       //}
-      AlphaArgs.sumlogtheta = individuals->getSumLogTheta();
-      AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
+      copy(individuals->getSumLogTheta(), individuals->getSumLogTheta()+options->getPopulations(), AlphaArgs[0]);
+      AlphaSampler.Sample(logalpha, AlphaArgs);//sample new values for logalpha
       transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
+
 #endif
       
       // ** accumulate sum of Dirichlet parameter vector over iterations  **
       transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
    }
    
+   if( iteration < options->getBurnIn() && options->getPopulations() > 1
+       && options->getAnalysisTypeIndicator() > 1 ){
+     // accumulate ergodic average of population admixture, which is used to centre 
+     // the values of individual admixture in the regression model
+     double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
+     for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
+   }
+   
    if( iteration == options->getBurnIn() && options->getAnalysisTypeIndicator() > 1 ){
-    Log->write("Individual admixture centred in regression model around: ");
-    Log->write( poptheta, options->getPopulations());
-    Log->write("\n");
-
-    fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
-  }
-
-  if( iteration < options->getBurnIn() && options->getPopulations() > 1
-      && options->getAnalysisTypeIndicator() > 1 ){
-    // accumulate ergodic average of population admixture, which is used to centre 
-    // the values of individual admixture in the regression model
-    double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
-    for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
-
-  }
-  if( iteration > options->getBurnIn() ){
-    // accumulate sum of rho parameters after burnin.
-    if( options->getPopulations() > 1 ){
-      SumRho += rho;
-    }
-  }
-
+     Log->write("Individual admixture centred in regression model around: ");
+     Log->write( poptheta, options->getPopulations());
+     Log->write("\n");
+     
+     fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
+   }
+   
+   if( iteration > options->getBurnIn() ){
+     // accumulate sum of log of rho parameters after burnin.
+     if( options->getPopulations() > 1 ){
+       SumLogRho += log(rho);
+     }
+   }
 }
 //end Update
 
@@ -359,7 +367,7 @@ void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
     *avgstream << setprecision(6) << SumAlpha[j] / samples << " ";
   }
   avgstream->width(9);
-  *avgstream << setprecision(6) << SumRho / samples << " ";
+  *avgstream << setprecision(6) << exp(SumLogRho / samples) << " ";
 }
 
 void Latent::OutputParams(int iteration){
@@ -424,6 +432,9 @@ double Latent::getrhobeta(){
 double Latent::getrho(){
   return rho;
 }
+double Latent::getSumLogRho(){
+  return SumLogRho;
+}
 const double *Latent::getpoptheta(){
   return poptheta;
 }
@@ -433,8 +444,8 @@ const double *Latent::getpoptheta(){
 double Latent::logf( double x, const void* const pars)
 {
   const double* parameters = (const double*)pars;
-  double f = parameters[0] * ( gsl_sf_lngamma( x + parameters[1] ) - gsl_sf_lngamma( x ) ) - x * ( parameters[3] - parameters[4] ) + 
-    (parameters[2] - 1) * log(x);
+  double f = parameters[0] * ( gsl_sf_lngamma( x + parameters[1] ) - gsl_sf_lngamma( x ) ) - 
+    x * ( parameters[3] - parameters[4] ) + (parameters[2] - 1) * log(x);
   
   return(f);
 }
@@ -455,7 +466,7 @@ double Latent::dlogf( double x, const void* const pars )
   return(f);
 }
 
-double Latent::ddlogf(double x, const void* const pars )
+double Latent::ddlogf( double x, const void* const pars )
 {
   const double* parameters = (const double*)pars;
   double f,x2,y1,y2;
@@ -495,11 +506,13 @@ float Latent::getAlphaSamplerStepsize(){
 }
 
 //calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm
-double Latent::alphaEnergy(unsigned dim, const double* const theta, const void* const vargs){
+double Latent::findE(unsigned dim, const double* const theta, const double* const* args){
   /*
     theta = log dirichlet parameters (alpha)
+    args[1] = n = #individuals/gametes
+    args[0] = sumlogtheta (array, length dim) = sums of logs of individual admixture proportions
+    args[2] = eps0, args[3] = eps1 = parameters of Gamma prior for alpha
   */
-  const AlphaSamplerArgs* args = (const AlphaSamplerArgs*) vargs;
 
   double E = 0.0;
   double sumalpha = 0.0, sumgamma = 0.0, sumtheta = 0.0, sume = 0.0;
@@ -508,19 +521,18 @@ double Latent::alphaEnergy(unsigned dim, const double* const theta, const void* 
     if(exp(theta[j]) == 0.0){flag = false;break;} //to avoid underflow problems
     sumalpha += exp(theta[j]);
     sumgamma += gsl_sf_lngamma(exp(theta[j]));
-    sume += exp(theta[j]) * (args->eps1 - args->sumlogtheta[j]);
+    sume += exp(theta[j]) * (args[3][0] - args[0][j]);
     sumtheta += theta[j];
   }
   if(flag){
-    E = (double)args->n * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + args->eps0 * sumtheta;
+    E = args[1][0] * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + args[2][0] * sumtheta;
     return -E;
   }
   else return -1.0;//is there a better return value? possibly use flag pointer
 }
 
 //calculate gradient for log alpha
-void Latent::alphaGradient(unsigned dim, const double* const theta, const void* const vargs, double *g){
-  const AlphaSamplerArgs* args = (const AlphaSamplerArgs*) vargs;
+void Latent::gradE(unsigned dim, const double* const theta, const double* const* args, double *g){
   double sumalpha = 0.0, x, y1, y2;
   for(unsigned j = 0; j < dim; ++j) {
     g[j] = 0.0;
@@ -531,7 +543,7 @@ void Latent::alphaGradient(unsigned dim, const double* const theta, const void* 
       x = exp(theta[j]);
       ddigam(&x, &y2);
       if(x > 0.0 && gsl_finite(y1) && gsl_finite(y2)){//to avoid over/underflow problems
-	g[j] = x *( (double)args->n *(y2 - y1) + (args->eps1 - args->sumlogtheta[j])) - args->eps0;
+	g[j] = x *( args[1][0] *(y2 - y1) + (args[3][0] - args[0][j])) - args[2][0];
       }
     }
 }

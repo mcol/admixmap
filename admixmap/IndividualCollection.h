@@ -67,7 +67,7 @@ public:
   
   void OutputIndAdmixture();
 
-  void OutputDeviance(LogWriter *Log, unsigned iterations);
+  void OutputDeviance(AdmixOptions *options, Chromosome** C, LogWriter *Log, double SumRho, unsigned numChromosomes);
 
   void OutputChibEstimates(LogWriter *, int);
 

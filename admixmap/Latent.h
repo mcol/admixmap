@@ -55,14 +55,6 @@
 #include "DirichletParamSampler.h"
 #elif POPADMIXSAMPLER == 3
 #include "HamiltonianMonteCarlo.h"
-
-typedef struct{
-  int n;
-  const double *sumlogtheta;
-  double eps0;
-  double eps1;
-}AlphaSamplerArgs;
-
 #endif
 
 class InputData;
@@ -93,6 +85,7 @@ public:
   double getrhoalpha();
   double getrhobeta();
   double getrho();
+  double getSumLogRho();
   const double *getpoptheta();
   
 #if POPADMIXSAMPLER == 2 
@@ -125,7 +118,7 @@ private:
   double rhobeta; 
   double rhobeta0;
   double rhobeta1;
-  double SumRho; //ergodic sum of rho
+  double SumLogRho; //ergodic sum of log(rho)
   
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
@@ -147,7 +140,7 @@ private:
   int *SumLocusAncestry;
 
 #elif POPADMIXSAMPLER == 3 //Hamiltonian sampler
-  AlphaSamplerArgs AlphaArgs;
+  double **AlphaArgs;
   double *logalpha;
   HamiltonianMonteCarlo AlphaSampler;
   double initialAlphaStepsize;
@@ -176,8 +169,8 @@ private:
   
   static double  ddlogf( double, const void* const );
 #elif POPADMIXSAMPLER == 3
-  static double alphaEnergy(unsigned dim, const double* const theta, const void* const args);
-  static void alphaGradient(unsigned dim,const double* const theta, const void* const args, double *g);
+  static double findE(unsigned dim, const double* const theta, const double* const*args);
+  static void gradE(unsigned dim,const double* const theta, const double* const* args, double *g);
 #endif  
   
   // UNIMPLEMENTED

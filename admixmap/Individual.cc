@@ -51,112 +51,120 @@ Individual::Individual()
 Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Genome& Loci,Chromosome **chrm)
 {
   if( options->getRhoIndicator() ){
-        TruncationPt = options->getTruncPt();
-        if( options->isRandomMatingModel() )
-	  if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-                _rho.assign(2,options->getRhoalpha());
-            else
-                _rho.assign(2,1);
-        else
-	  if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-                _rho.assign(1,options->getRhoalpha());
-            else
-                _rho.assign(2,1);
-    }
-
-    // Read sex value if present.
-    sex = male;
-    if (options->getgenotypesSexColumn() == 1) {
-	sex = Data->GetSexValue(mynumber);
-    }
-
-    int numCompositeLoci = Loci.GetNumberOfCompositeLoci();
-
-    LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers 
-
-    Theta = 0;
-    ThetaX = 0;
-    ThetaProposal = 0;
-    ThetaXProposal = 0;
-    ThetaHat = 0;
-    ThetaXHat = 0;
- 
-    // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
-    SumLocusAncestry = new int[options->getPopulations()*2];
-
-
-    if( options->isRandomMatingModel() ){//random mating model
-      ThetaProposal = new double[ Populations * 2 ];
-      Theta = new double[ Populations * 2 ];
-      ThetaHat = new double[ Populations * 2 ];;
-    }
-    else{
-      ThetaProposal = new double[ Populations];
-      Theta = new double[ Populations ];
-      ThetaHat = new double[ Populations ];
-    }
-
-    //X chromosome objects
-    SumLocusAncestry_X = 0;    
-//    if(Loci.isX_data() ){
-      if( sex == male ){
-	ThetaXProposal = new double[ Populations];
-	ThetaX = new double[Populations];
-	ThetaXHat = new double[Populations];
-	SumLocusAncestry_X = new int[Populations];
-      }
-      else{
-	ThetaXProposal = new double[ Populations * 2 ];
-	ThetaX = new double[ Populations * 2 ];
-	ThetaXHat = new double[ Populations * 2 ];
-	SumLocusAncestry_X = new int[Populations * 2 ];
-      }
-//    }
-
-    // vector of possible haplotype pairs - expect 2 integers per locus 
-                                                        // or 1 integer (haploid)
-    PossibleHapPairs = new vector<hapPair >[numCompositeLoci];
- 
-    X_posn = 9999;
-    string s1("\"X\""), s2("X");
-    size_t AncestrySize = 0;
+    TruncationPt = options->getTruncPt();
+    if( options->isRandomMatingModel() )
+      if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
+	_rho.assign(2,options->getRhoalpha());
+      else
+	_rho.assign(2,1);
+    else
+      if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
+	_rho.assign(1,options->getRhoalpha());
+      else
+	_rho.assign(2,1);
+  }
+  sumlogrho.assign(_rho.size(), 0.0);
+  _rhoHat.assign(_rho.size(), 0.0);
+  _rhoHat_X.assign(_rho.size(), 0.0);
+  
+  // Read sex value if present.
+  sex = male;
+  if (options->getgenotypesSexColumn() == 1) {
+    sex = Data->GetSexValue(mynumber);
+  }
+  
+  int numCompositeLoci = Loci.GetNumberOfCompositeLoci();
+  
+  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers 
+  
+  Theta = 0;
+  ThetaX = 0;
+  ThetaProposal = 0;
+  ThetaXProposal = 0;
+  ThetaHat = 0;
+  ThetaXHat = 0;
+  SumSoftmaxTheta = 0;
+  
+  // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
+  SumLocusAncestry = new int[options->getPopulations()*2];
+  
+  
+  if( options->isRandomMatingModel() ){//random mating model
+    ThetaProposal = new double[ Populations * 2 ];
+    Theta = new double[ Populations * 2 ];
+    SumSoftmaxTheta = new double[ Populations * 2 ];
+    fill(SumSoftmaxTheta, SumSoftmaxTheta + Populations*2, 0.0);
+    ThetaHat = new double[ Populations * 2 ];;
+  }
+  else{
+    ThetaProposal = new double[ Populations];
+    Theta = new double[ Populations ];
+    SumSoftmaxTheta = new double[ Populations ];
+    fill(SumSoftmaxTheta, SumSoftmaxTheta + Populations, 0.0);
+    ThetaHat = new double[ Populations ];
+  }
+  
+  //X chromosome objects
+  SumLocusAncestry_X = 0;    
+  //    if(Loci.isX_data() ){
+  if( sex == male ){
+    ThetaXProposal = new double[ Populations];
+    ThetaX = new double[Populations];
+    ThetaXHat = new double[Populations];
+    SumLocusAncestry_X = new int[Populations];
+  }
+  else{
+    ThetaXProposal = new double[ Populations * 2 ];
+    ThetaX = new double[ Populations * 2 ];
+    ThetaXHat = new double[ Populations * 2 ];
+    SumLocusAncestry_X = new int[Populations * 2 ];
+  }
+  //    }
+  
+  // vector of possible haplotype pairs - expect 2 integers per locus 
+  // or 1 integer (haploid)
+  PossibleHapPairs = new vector<hapPair >[numCompositeLoci];
+  
+  X_posn = 9999;
+  string s1("\"X\""), s2("X");
+  size_t AncestrySize = 0;
   // set size of locus ancestry array
-    //gametes holds the number of gametes for each chromosome, either 1 or 2
-    //X_posn is the number of the X chromosome. Note that this is not necessarily 22, even in humans
-    for( unsigned int j = 0; j < numChromosomes; j++ ){
-        if( chrm[j]->GetLabel(0) != s1  && chrm[j]->GetLabel(0) != s2){// if not X chromosome, set number of elements to 2, num loci
-	  AncestrySize = 2 * chrm[j]->GetSize() ;
-	  gametes.push_back(2);
-        }
-        else if( sex != female ){//male or missing
-	  AncestrySize = chrm[j]->GetSize() ;
-	  gametes.push_back(1);
-	  X_posn = j;
-        }
-        else{//female
-	  AncestrySize = 2 * chrm[j]->GetSize() ;
-	  gametes.push_back(2);
-	  X_posn = j;
-        }
-	LocusAncestry[j] = new int[ AncestrySize];
-        for(unsigned i = 0; i < AncestrySize; ++i)LocusAncestry[j][i] = 0;
-
+  //gametes holds the number of gametes for each chromosome, either 1 or 2
+  //X_posn is the number of the X chromosome. Note that this is not necessarily 22, even in humans
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    if( chrm[j]->GetLabel(0) != s1  && chrm[j]->GetLabel(0) != s2){// if not X chromosome, set number of elements to 2, num loci
+      AncestrySize = 2 * chrm[j]->GetSize() ;
+      gametes.push_back(2);
     }
-    //retrieve genotypes
-    Data->GetGenotype(mynumber, options->getgenotypesSexColumn(), Loci, &genotypes);
-
-    // loop over composite loci to set possible haplotype pairs compatible with genotype 
-    for(int j=0;j<numCompositeLoci;++j) {
-       Loci(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+    else if( sex != female ){//male or missing
+      AncestrySize = chrm[j]->GetSize() ;
+      gametes.push_back(1);
+      X_posn = j;
     }
-
-    // ** set up StepSizeTuner object for random walk updates of admixture **
-    NumberOfUpdates = 0;
-    w = 1;
-    step0 = 1.0; // initial sd of proposal distribution
-    //need to choose sensible value for this initial RW sd
-    step = step0;
-    ThetaTuner.SetParameters( step0, 0.00, 10.0, 0.44);  
+    else{//female
+      AncestrySize = 2 * chrm[j]->GetSize() ;
+      gametes.push_back(2);
+      X_posn = j;
+    }
+    LocusAncestry[j] = new int[ AncestrySize];
+    for(unsigned i = 0; i < AncestrySize; ++i)LocusAncestry[j][i] = 0;
+    
+  }
+  //retrieve genotypes
+  Data->GetGenotype(mynumber, options->getgenotypesSexColumn(), Loci, &genotypes);
+  
+  // loop over composite loci to set possible haplotype pairs compatible with genotype 
+  for(int j=0;j<numCompositeLoci;++j) {
+    Loci(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+  }
+  
+  // ** set up StepSizeTuner object for random walk updates of admixture **
+  NumberOfUpdates = 0;
+  w = 1;
+  step0 = 1.0; // initial sd of proposal distribution
+  //need to choose sensible value for this initial RW sd
+  step = step0;
+  ThetaTuner.SetParameters( step0, 0.00, 10.0, 0.44);  
    
 }
 
@@ -171,6 +179,7 @@ Individual::~Individual()
   delete[] ThetaX;
   delete[] ThetaProposal;
   delete[] ThetaXProposal;
+  delete[] SumSoftmaxTheta;
 }
 
 //********** Allocation and deletion of static objects for score tests
@@ -261,6 +270,7 @@ Sex Individual::getSex()
 
 
 double Individual::getSumrho()
+//returns sum of sumintensities over gametes
 {
    double sumrho = 0;
    for( unsigned int g = 0; g < _rho.size(); g++ )
@@ -340,63 +350,47 @@ double Individual::getLogLikelihoodOnePop()
    return Likelihood;
 }
 
-//computes log likelihood at parameter estimates
-//This one is called by InitializeChib, called in turn by ChibLikelihood
-//only used to compute marginal likelihood   
-double Individual::getLogLikelihoodAtEst( AdmixOptions* options, Chromosome **chrm, double *admixture, vector<double> rho, 
-					  double *admixture_X, vector<double> rho_X)
-{
-   double LogLikelihood = 0.0;
-
-    //update forward probs in HMM using current parameter values   
-   for( unsigned int j = 0; j < numChromosomes; j++ ){      
-      if( j != X_posn ){
-	chrm[j]->UpdateParameters( this, admixture, options, rho, true, true, false);
-      }
-      else{//X chromosome
-         if( sex == male ){//male
-	   chrm[j]->UpdateParameters( this, admixture_X, options, rho_X, true, false, false);
-	 }
-         else{//female or unknown
-	   chrm[j]->UpdateParameters( this, admixture_X, options, rho_X, true, true, false);
-	 }
-      }
-      //accumulate loglikelihood from HMM
-      LogLikelihood += chrm[j]->getLogLikelihood();
-   }
-
-   return LogLikelihood;
-}
-
 double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm){
   //use current parameter values
-  return getLogLikelihood(options, chrm, Theta, _rho, _rho_X);
+  return getLogLikelihood(options, chrm, Theta, ThetaX,_rho, _rho_X, false);
 }
 
-double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, vector<double > rho, vector<double> rho_X)
+double Individual::getLogLikelihoodAtPosteriorMeans(AdmixOptions* options, Chromosome **chrm){
+  //TODO: X chromosome objects
+  //obtain ergodic averages of (softmax)admixture props and (log)sumintensities and transform back
+  //to original scales
+  unsigned size = Populations; if(options->isRandomMatingModel())size *=2;
+  for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (options->getTotalSamples() - options->getBurnIn());
+  for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] = exp(sumlogrho[i]/(options->getTotalSamples() - options->getBurnIn()));
+
+  //apply softmax transformation to obtain thetabar
+  unsigned G = 1;
+  if( options->isRandomMatingModel() )G = 2;//random mating model
+  double ThetaBar[G*Populations];
+  for( unsigned int g = 0; g < G; g++ ){
+    bool b[Populations];
+    for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
+      b[k] = true; //to skip elements set to zero
+    }
+    else b[k] = false;
+
+    softmax(Populations, ThetaBar+g*Populations, SumSoftmaxTheta+g*Populations, b);
+  }
+
+  return getLogLikelihood(options, chrm, ThetaBar, ThetaBar, sumlogrho, sumlogrho, false);
+}
+double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, double *thetaX,
+				     vector<double > rho, vector<double> rho_X, bool chibindicator = false)
 //updates forward probs in HMM and retrieves loglikelihood at supplied theta and rho
+//(optional)chibindicator = true for computing LogL at MLEs; instructs CompositeLocus to use HapPairProbsMAP
+//instead of HapPairProbs, when allelefreqs are not fixed, in calculating GenotypeProbs.
 {
 
    double LogLikelihood = 0.0;
    if(Populations == 1)LogLikelihood = getLogLikelihoodOnePop();//in case this version called when only one population
    else{
      for( unsigned int j = 0; j < numChromosomes; j++ ){      
-       if( j != X_posn ){
-	 
-	 chrm[j]->UpdateParameters( this, theta, options, rho, false, true, false);
-       }
-       else if( options->getXOnlyAnalysis() ){
-	 
-	 chrm[j]->UpdateParameters( this, theta, options, rho, false, false, false);
-       }
-       else{//X chromosome
-	 if( sex == male ){//male
-	   chrm[j]->UpdateParameters( this, theta, options, rho_X, false, false, false);
-	 }
-	 else{//female or unknown
-	   chrm[j]->UpdateParameters( this, theta, options, rho_X, false, true, false);
-	 }
-       }
+       UpdateForBackProbs(j, chrm[j], options, theta, thetaX, rho, rho_X, chibindicator, false);
        LogLikelihood += chrm[j]->getLogLikelihood();
      }
    }
@@ -496,7 +490,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
 
    if(!(iteration %2))//update theta with random walk on odd-numbered iterations
      SampleTheta(i, iteration, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
-		 Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true);
+ 		 Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true);
 
   //SumN is the number of arrivals between each pair of adjacent loci
    SumN[0] = SumN[1] = 0;
@@ -507,7 +501,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
   for( unsigned int j = 0; j < numChromosomes; j++ ){
 
     //Update Forward/Backward probs in HMM
-    isdiploid = UpdateForBackProbs(j, chrm[j], options, calcbackprobs);
+    isdiploid = UpdateForBackProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X, false, calcbackprobs);
 
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
@@ -555,6 +549,9 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
   if( options->getRhoIndicator() ){
      SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, 
 	       SumN, SumN_X);
+  }
+  if(iteration > options->getBurnIn()){
+    for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] += log(_rho[i]);
   }
 
   if( options->getAnalysisTypeIndicator() > 1 ){
@@ -634,6 +631,25 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMat
   if( options->getAnalysisTypeIndicator() > 1 )
     UpdateAdmixtureForRegression(i, K, NoCovariates, poptheta, options->isRandomMatingModel(),&(Covariates));
 
+  if(iteration > options->getBurnIn()){
+    unsigned G = 1;
+    if( options->isRandomMatingModel() )G = 2;//random mating model
+ 
+    for( unsigned int g = 0; g < G; g++ ){
+      bool b[Populations];
+      for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
+	b[k] = true; //to skip elements set to zero
+      }
+      else b[k] = false;
+
+      double a[Populations];
+      inv_softmax(Populations, Theta+g*Populations, a, b);
+
+      transform(a, a+Populations, SumSoftmaxTheta+g*Populations, SumSoftmaxTheta+g*Populations, std::plus<double>());
+      //transform(ThetaX, ThetaX+size_admix, ThetaXHat, ThetaXHat, std::plus<double>());
+    }
+  }
+
   for( int k = 0; k < K; k++ ){
     SumLogTheta[ k ] += log( Theta[ k ] );
       if(options->isRandomMatingModel() && !options->getXOnlyAnalysis() )
@@ -660,20 +676,28 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
     if( options->isRandomMatingModel() )G = 2;//random mating model
     for( unsigned int g = 0; g < G; g++ ){
       //perform softmax transformation
+      bool b[Populations];
+      int last = -1;//index of last nonzero element of theta 
+      for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
+	b[k] = true; //to skip elements set to zero
+	++last;//last should be >0 unless unadmixed on this gamete
+      }
+      else b[k] = false;
+
       double a[Populations];
-      inv_softmax(Populations, Theta+g*Populations, a);
+      inv_softmax(Populations, Theta+g*Populations, a, b);
 
       //cout<<"a(current) = ";
       a[Populations-1] = 0.0;
 	//random walk step
-      for(int k = 0; k < Populations-1; ++k){
+      for(int k = 0; k < last; ++k)if(Theta[g*Populations + k]>0.0){
 	//cout<<a[k]<<" ";
 	a[k] = gennor(a[k], step0);
-	a[Populations-1] -= a[k];
+	a[last] -= a[k];
       }
 
       //reverse transformation
-      softmax(Populations, ThetaProposal+g*Populations, a);
+      softmax(Populations, ThetaProposal+g*Populations, a, b);
       
       //cout<<endl<<"a(prop) = "<<a[0]<<" "<<a[1]<<endl;
 
@@ -691,7 +715,7 @@ double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome 
     //for(int k = 0; k < Populations; ++k)cout<<ThetaProposal[k]<<" ";
     //cout<<endl;
     //get log likelihood at proposal theta and current rho
-    LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, _rho, _rho_X);
+    LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, ThetaXProposal,_rho, _rho_X, false);
     //cout<<"LogLikelihood ratio = "<<LogLikelihoodRatio<<endl
     //<<"Log Acceptance Prob = "<<LogLikelihoodRatio + LogPriorRatio<<endl;
 
@@ -869,29 +893,29 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
       step = ThetaTuner.UpdateStepSize( AccProb );
     }
   }
-  //transform(Theta, Theta+size_admix, ThetaHat, ThetaHat, std::plus<double>());
-  //transform(ThetaX, ThetaX+size_admix, ThetaXHat, ThetaXHat, std::plus<double>());
 }
 
 //Updates forward and backward probabilities in HMM for chromosome j 
-bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool calcbackprobs){
+bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, 
+				    double* theta, double *thetaX,
+				    vector<double> rho, vector<double> rhoX, bool chibindicator, bool calcbackprobs){
   bool isdiploid;
 
   //Update Forward/Backward probs in HMM
   if( j != X_posn ){
-    chrm->UpdateParameters(this, Theta, options, _rho, false, true, calcbackprobs);
+    chrm->UpdateParameters(this, theta, options, rho, chibindicator, true, calcbackprobs);
     isdiploid = true;
   }
   else if( options->getXOnlyAnalysis() ){
-    chrm->UpdateParameters( this, Theta, options, _rho, false, false, calcbackprobs);
+    chrm->UpdateParameters( this, theta, options, rho, chibindicator, false, calcbackprobs);
     isdiploid = false;
   }
   else if( sex == male ){
-    chrm->UpdateParameters( this, ThetaX, options, _rho, false, false, calcbackprobs);
+    chrm->UpdateParameters( this, thetaX, options, rhoX, chibindicator, false, calcbackprobs);
     isdiploid = false;
   }
   else{
-    chrm->UpdateParameters( this, ThetaX, options, _rho, false, true, calcbackprobs);
+    chrm->UpdateParameters( this, thetaX, options, rhoX, chibindicator, true, calcbackprobs);
     isdiploid = true;
   }
   return isdiploid;
@@ -926,8 +950,6 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
   else{
     _rho[0] = gengam( rhobeta + 2*L, rhoalpha + (double)(SumN[0] + SumN[1]) );
   }
-  //transform(_rho.begin(), _rho.end(), _rhoHat.begin(), _rhoHat.begin(), std::plus<double>());
-  //transform(_rho_X.begin(), _rho_X.end(), _rhoHat_X.begin(), _rhoHat_X.begin(), std::plus<double>());
 }
 
 void Individual::ResetScores(AdmixOptions *options){
@@ -1170,7 +1192,7 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
      copy(theta, theta + theta_size, ThetaHat); //ThetaHat = theta
      copy(theta, theta + theta_size, ThetaXHat); //ThetaXHat = theta
 
-     LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX);
+     LogLikelihoodAtEst = getLogLikelihood( options, chrm, theta, thetaX, rho, rhoX, true);
       if( options->RhoFlatPrior() ){//flat prior on sumintensities
          LogPrior = -4.0*log( options->getTruncPt() - 1.0 );
       }
@@ -1197,15 +1219,13 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
       _rhoHat_X = rhoX;
       copy(theta, theta + theta_size, ThetaHat); 
       copy(theta, theta + theta_size, ThetaXHat);
-      LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX );
+      LogLikelihoodAtEst = getLogLikelihood( options, chrm, theta, thetaX, rho, rhoX, true);
    }
    else{
       if( Populations > 1 ){
-	_rhoHat = rho;
-	_rhoHat_X = rhoX;
+ 	_rhoHat = rho;
 	copy(theta, theta + theta_size, ThetaHat); 
-	copy(theta, theta + theta_size, ThetaXHat);
-	LogLikelihoodAtEst = getLogLikelihoodAtEst( options, chrm, theta, rho, thetaX, rhoX );
+	LogLikelihoodAtEst = getLogLikelihood( options, chrm, theta, thetaX, rho, rhoX, true);
 	if( options->isAdmixed(0) ){
             if( options->RhoFlatPrior() ){
                LogPrior = -log( options->getTruncPt() - 1.0 );
@@ -1346,7 +1366,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	}
 	MargLikelihood->addLogPosteriorObs( LogPosterior );
 	*SumLogLikelihood += *LogLikelihood;
-      }
+     }
     }
 
 }

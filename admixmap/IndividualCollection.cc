@@ -341,8 +341,6 @@ void IndividualCollection::LoadOutcomeVar(AdmixOptions *options, InputData *data
 }
 
 void IndividualCollection::LoadRepAncestry(InputData *data_){
-  //LOAD REPORTED ANCESTRY IF GIVEN   
-
   ReportedAncestry = new DataMatrix[NumInd];
   DataMatrix& temporary = (DataMatrix&)data_->getReportedAncestryMatrix();
   for( unsigned i = 0; i < temporary.nRows() / 2; i++ )
@@ -522,15 +520,38 @@ std::string IndividualCollection::getTargetLabels(int k){
 
 // ************** OUTPUT **************
 
-void IndividualCollection::OutputDeviance(LogWriter *Log, unsigned iterations){
+void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C, LogWriter *Log, double SumRho, unsigned numChromosomes){
+  //SumRho = ergodic sum of global sumintensities
+
+  int iterations = options->getTotalSamples()-options->getBurnIn();
   double E, V;
   E = SumDeviance / (double) iterations;//ergodic average of deviance
   V = SumDevianceSq / (double)iterations - E*E;//ergodic variance of deviance 
 
-  Log->logmsg(true, "MeanDeviance\tVarDeviance\t\tGOFStat\n");
-  Log->logmsg(true, E);Log->logmsg(true,"\t");
-  Log->logmsg(true, V);Log->logmsg(true, "\t");
-  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "\n\n");
+  Log->logmsg(true, "MeanDeviance    VarDeviance     GOFStat         DIC\n");
+  Log->logmsg(true, E);Log->logmsg(true,"    ");
+  Log->logmsg(true, V);Log->logmsg(true,"    ");
+  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "    ");
+
+  //update chromosomes using globalrho, for globalrho model
+  if(!options->getRhoIndicator())
+    for( unsigned int j = 0; j < numChromosomes; j++ )
+      C[j]->SetLociCorr(SumRho / (double)iterations);
+
+  //accumulate deviance at posterior means for each individual
+  double D = 0.0;
+  if(options->getPopulations() > 1)
+    for(unsigned int i = 0; i < NumInd; i++ ){
+      D += -2.0*_child[i]->getLogLikelihoodAtPosteriorMeans(options, C);
+    }
+  else
+    for(unsigned int i = 0; i < NumInd; i++ ){
+      D += -2.0*_child[i]->getLogLikelihoodOnePop();
+    }
+
+  double DIC = 2.0*E - D;
+  
+  Log->logmsg(true, DIC);Log->logmsg(true, "\n\n");
 }
 
 void IndividualCollection::OutputIndAdmixture()

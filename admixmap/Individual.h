@@ -67,7 +67,9 @@ public:
   int *getSumLocusAncestry();
 
   double getLogLikelihood(AdmixOptions*, Chromosome**);
-  double getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, vector<double > rho, vector<double> rho_X);
+  double getLogLikelihoodAtPosteriorMeans(AdmixOptions* options, Chromosome **chrm);
+  double getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, double* theta, 
+			   vector<double > rho, vector<double> rho_X, bool chibindicator);
 
   double getLogLikelihoodOnePop();
 
@@ -77,7 +79,6 @@ public:
 
   int GetLocusAncestry(int, int, int);
    
-  double getLogLikelihoodAtEst(AdmixOptions*, Chromosome **, double *, std::vector<double>, double *, std::vector<double>);
   double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, double *, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
@@ -122,6 +123,7 @@ private:
   static int Populations;
   static Genome *Loci;
   double *Theta, *ThetaX;//admixture proportions
+  double *SumSoftmaxTheta;
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
 
   int **LocusAncestry, *SumLocusAncestry, *SumLocusAncestry_X;
@@ -129,6 +131,7 @@ private:
 
   std::vector< double > _rho; //sum of intensities
   std::vector< double > _rho_X;//sum of intensities for X chromosome
+  std::vector<double> sumlogrho;
 
   double LogPosterior;
   Sex sex; // 0 = missing, 1 = male, 2 = female 
@@ -171,7 +174,9 @@ private:
 					       int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
 					       DataMatrix *Outcome, const double *poptheta, double *lambda);
 
-  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, bool);
+  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, 
+			  double* theta, double *thetaX,
+			  vector<double> rho, vector<double> rhoX, bool chibindicator, bool calcbackprobs);
 
   void SumAncestry(unsigned int j, Chromosome *chrm);
 
