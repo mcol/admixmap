@@ -40,8 +40,8 @@ HamiltonianMonteCarlo::~HamiltonianMonteCarlo(){
 
 //set dimensions
 void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double min, double max, unsigned pTau, float target,
-			  double (*pfindE)(unsigned d, const double* const theta, const void* const args),
-			  void (*pgradE)(unsigned d, const double* const theta, const void* const args, double *g)){
+			  double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
+			  void (*pgradE)(unsigned d, const double* const theta, const double* const* args, double *g)){
   dim = pdim;
   epsilon = pepsilon;
   Tau = pTau;
@@ -53,7 +53,7 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double
   Tuner.SetParameters( epsilon, min, max, target);
 }
 
-void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
+void HamiltonianMonteCarlo::Sample(double* const x, const double* const* args){
   /*
     x = position
     p = momentum
