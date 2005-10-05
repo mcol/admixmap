@@ -32,13 +32,13 @@
 class ARSPoint{
 public:
   double abscissa;//x
-  double height;//value of  logdensity at x
+  double height;//value of logdensity at x
   double gradient;//derivative of logdensity at x
   double upper;//value of upper hull at x
   double lower;//value of lower hull at x
   double s;
-  double z;//intersection of tangent at x_i with tangent at x_(i+1)
-  // last element of vector will UpperBound as z
+  double z;//intersection of tangent at x[i] with tangent at x[i+1]
+  // last element of vector will have UpperBound as z
   double area;//area above x, ie under curve at tangent at x between z[i-1] and z[i], where z[-1] = LowerBound 
   double cumarea;//cumulative area
 
