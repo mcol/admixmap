@@ -72,6 +72,7 @@ AdmixOptions::AdmixOptions()
   fixedallelefreqs = false;
   correlatedallelefreqs = false;
   RandomMatingModel = false;
+  RegressionIndicator = false;
   RhoIndicator = false;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
   MLIndicator = false;//calculate marginal likelihood - valid only for analysistypeindicator < 0
@@ -144,9 +145,9 @@ long AdmixOptions::getBurnIn() const
   return burnin;
 }
 
-const char *AdmixOptions::getDICoutputFilename() const
+const char *AdmixOptions::getStratTestFilename() const
 {
-  return DICoutputFilename.c_str();
+  return StratTestFilename.c_str();
 }
 
 const char *AdmixOptions::getErgodicAverageFilename() const
@@ -255,6 +256,9 @@ bool AdmixOptions::getOutputAlleleFreq() const
 int AdmixOptions::getAnalysisTypeIndicator() const
 {
   return AnalysisTypeIndicator;
+}
+bool AdmixOptions::isRegressionModel() const{
+  return RegressionIndicator;
 }
 
 const char *AdmixOptions::getAssocScoreFilename() const
@@ -631,7 +635,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"allelicassociationscorefile",           1, 0,  0 }, // string
     {"ancestryassociationscorefile",          1, 0,  0 }, // string
     {"affectedsonlyscorefile",                1, 0,  0 }, // string
-    {"stratificationtestfile",                1, 0, 'd'}, // string
+    {"stratificationtestfile",                1, 0,  0 }, // string
     {"admixturescorefile",                    1, 0,  0 }, // string
     {"haplotypeassociationscorefile",         1, 0,  0 }, // string
     {"locusfortest",                          1, 0,  0 }, // int 0: no. of composite loci - 1
@@ -644,7 +648,6 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 
     // Other options
     {"coutindicator",                         1, 0, 'c'}, // int 0: 1
-    {"help",                                  0, 0, 'h'}, // NONE
     {"randommatingmodel",                     1, 0,  0 }, // int 0: 1
     {"globalrho",                             1, 0,  0 }, // int 0: 1
     {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
@@ -673,7 +676,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
   while (1) {
     int option_index = 0;
 
-    c = getopt_long (nargs, args, "a:b:c:d:e:g:h:i:l:o:p:r:s:t:",
+    c = getopt_long (nargs, args, "a:b:c:e:g:i:l:o:p:r:s:t:",
 		     long_options, &option_index);
 
     string long_option_name = long_options[option_index].name;
@@ -694,11 +697,6 @@ void AdmixOptions::SetOptions(int nargs,char** args)
       { use_cout = (int)strtol(optarg, NULL, 10);OptionValues["coutindicator"]=optarg;}
       break;
 
-    case 'd': // stratificationtestfile
-      DICoutputFilename = optarg;OptionValues["stratificationtestfile"]=optarg;
-      StratificationTestIndicator = true;//OptionValues["StratificationTestIndicator"]="1";
-      break;
-
     case 'e': // ergodicaveragefile
       { ErgodicAverageFilename = optarg;OptionValues["ergodicaveragefile"]=optarg;}
       break;
@@ -706,12 +704,6 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     case 'g': // genotypesfile
       { GenotypesFilename = optarg;OptionValues["genotypesfile"]=optarg;}
       break;
-
-    case 'h': // help
-      cout << "Usage: " << args[0] << " [options]" << endl;
-      cout << " some help text goes here" << endl;
-      //outputlist of user options to console
-      exit(0);
 
     case 'i': // indadmixturefile
       { IndAdmixtureFilename = optarg;OptionValues["indadmixturefile"]=optarg;}
@@ -772,8 +764,11 @@ void AdmixOptions::SetOptions(int nargs,char** args)
       } else if (long_option_name == "mlefile") {
 	 MLEFilename = optarg;OptionValues["mlefile"]=optarg;
       } else if (long_option_name == "dispersiontestfile") {
-	 DispersionTestFilename = optarg;OptionValues["dispersiontestfile"]=optarg;
+	DispersionTestFilename = optarg;OptionValues["dispersiontestfile"]=optarg;
 	 TestForDispersion = true;
+      } else if (long_option_name == "stratificationtestfile") {
+	StratTestFilename = optarg;OptionValues["stratificationtestfile"]=optarg;
+	StratificationTestIndicator = true;
       } else if (long_option_name == "every") {
 	 SampleEvery = strtol(optarg, NULL, 10);OptionValues["every"]=optarg;
       } else if (long_option_name == "fstoutputfile") {
@@ -901,7 +896,7 @@ void AdmixOptions::SetOutputNames(){
   if ( AffectedsOnlyScoreFilename != "") AffectedsOnlyScoreFilename = ResultsDir + "/" + AffectedsOnlyScoreFilename;
   if ( IndAdmixtureFilename != "") IndAdmixtureFilename = ResultsDir + "/" + IndAdmixtureFilename;
   if ( ErgodicAverageFilename != "") ErgodicAverageFilename = ResultsDir + "/" + ErgodicAverageFilename;
-  if ( DICoutputFilename != "") DICoutputFilename = ResultsDir + "/" + DICoutputFilename;
+  if ( StratTestFilename != "") StratTestFilename = ResultsDir + "/" + StratTestFilename;
   if ( AssocScoreFilename != "") AssocScoreFilename = ResultsDir + "/" + AssocScoreFilename;
   if ( TestsForSNPsInHaplotypeOutputFilename != "") TestsForSNPsInHaplotypeOutputFilename = ResultsDir + "/" + TestsForSNPsInHaplotypeOutputFilename;
   if ( AlleleFreqOutputFilename != "") AlleleFreqOutputFilename = ResultsDir + "/" + AlleleFreqOutputFilename;
@@ -934,6 +929,7 @@ void AdmixOptions::PrintOptions(){
 
 int AdmixOptions::checkOptions(LogWriter *Log){
   // **** analysis type  ****
+  RegressionIndicator = false;
   if (AnalysisTypeIndicator == 0)
     {
       Log->logmsg(true,"Affecteds only analysis.\n");
@@ -947,6 +943,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == 2)
     {
+      RegressionIndicator = true;
       Log->logmsg(true,"Cross sectional analysis, continuous outcome.\n");
       if( OutcomeVarFilename.length() == 0 )
 	{
@@ -956,6 +953,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == 3)
     {
+      RegressionIndicator = true;
       Log->logmsg(true,"Cross sectional analysis, binary outcome.\n");
       if( OutcomeVarFilename.length() == 0 )
 	{
@@ -965,6 +963,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == 4)
     {
+      RegressionIndicator = true;
       Log->logmsg(true,"Case control analysis.\n");
       if( OutcomeVarFilename.length() == 0  )
 	{
@@ -974,6 +973,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == 5)
     {
+      RegressionIndicator = true;
       Log->logmsg(true,"Cross sectional analysis, multiple outcome.\n");
       if( OutcomeVarFilename.length() == 0  )
 	{
@@ -983,6 +983,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == -1 || AnalysisTypeIndicator == -2)
     {
+      IndAdmixHierIndicator = false;
       Log->logmsg(true,"One individual analysis");
       if(MLIndicator)Log->logmsg(true, " with marginal likelihood calculation");
       Log->logmsg(true, "\n");
@@ -995,7 +996,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true, "\n");
       exit(0);
     }
-  if(AnalysisTypeIndicator < 2 && RegressionOutputFilename.length() > 0){
+  if(!RegressionIndicator && RegressionOutputFilename.length() > 0){
     Log->logmsg(true, "ERROR: regparamfile option is not valid without a regression model\n");
     Log->logmsg(true, "\tThis option will be ignored\n");
     RegressionOutputFilename = "";

@@ -92,7 +92,7 @@ void submain(AdmixOptions* options){
 
   Regression R0;
   Regression R1;
-  if(options->getAnalysisTypeIndicator() > 1){
+  if(options->isRegressionModel()){
     R0.Initialise(0, IC, options, &Log);
     if(options->getAnalysisTypeIndicator() == 5)R1.Initialise(1, IC, options, &Log);
   }
@@ -105,7 +105,7 @@ void submain(AdmixOptions* options){
     }
   IC->Initialise(options, &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
   //set expected Y
-  if(options->getAnalysisTypeIndicator() > 1){
+  if(options->isRegressionModel()){
     R0.SetExpectedY(IC);
     if(options->getAnalysisTypeIndicator() == 5)R1.SetExpectedY(IC);
   }		
@@ -182,7 +182,7 @@ void submain(AdmixOptions* options){
       L.Update(iteration, IC);
 
       // ** update regression parameters (if regression model)
-      if( options->getAnalysisTypeIndicator() >= 2){
+      if( options->isRegressionModel() ){
 	R0.Update((iteration > options->getBurnIn()), IC);
       if( options->getAnalysisTypeIndicator() == 5) R1.Update((iteration > options->getBurnIn()), IC);
       }
@@ -201,7 +201,7 @@ void submain(AdmixOptions* options){
 	  //** dispersion parameter (if dispersion model)
 	  A.OutputEta(iteration, options, &Log);
 	  // ** regression parameters
-	  if( options->getAnalysisTypeIndicator() >= 2){
+	  if( options->isRegressionModel() ){
 	    R0.Output(iteration, options, &Log);
 	    if( options->getAnalysisTypeIndicator() == 5)
 	      R1.Output(iteration, options, &Log);
@@ -235,7 +235,7 @@ void submain(AdmixOptions* options){
 	  if ( strlen( options->getErgodicAverageFilename() ) ){
 	    int samples = iteration - options->getBurnIn();
 	    L.OutputErgodicAvg(samples,&avgstream);
-	    if( options->getAnalysisTypeIndicator() >= 2){
+	    if( options->isRegressionModel() ){
 	      R0.OutputErgodicAvg(samples, &avgstream);
 	      if( options->getAnalysisTypeIndicator() == 5)
 		R1.OutputErgodicAvg(samples, &avgstream);
@@ -299,7 +299,7 @@ void submain(AdmixOptions* options){
   }
 
   // ** acceptance rates - output to screen and log
-  if( options->getAnalysisTypeIndicator() >= 0 && options->getIndAdmixHierIndicator() ){
+  if( options->getIndAdmixHierIndicator() ){
 #if POPADMIXSAMPLER == 2 
     Log.logmsg(true,"Expected acceptance rate in admixture dispersion parameter sampler: ");
     Log.logmsg(true, L.getEtaSamplerAcceptanceRate());

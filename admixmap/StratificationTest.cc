@@ -80,7 +80,7 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, Chromo
       }
       ModelIndicator = options->isRandomMatingModel();
       
-      OpenOutputFile(options->getDICoutputFilename(),Log);
+      OpenOutputFile(options->getStratTestFilename(),Log);
     }
   }
   else{

@@ -95,6 +95,7 @@ public:
   bool getCorrelatedAlleleFreqs() const;
   int getTextIndicator() const;
   bool isRandomMatingModel() const;
+  bool isRegressionModel() const;
   bool getRhoIndicator() const;
   bool getIndAdmixHierIndicator() const;
   bool getMLIndicator() const;
@@ -135,7 +136,7 @@ public:
   bool getHWTestIndicator() const;
   
   //other test file names
-  const char *getDICoutputFilename() const;
+  const char *getStratTestFilename() const;
   const char *getDispersionTestFilename() const;
   const char *getFSTOutputFilename() const;
   
@@ -156,6 +157,7 @@ private:
   long SampleEvery;
   long Seed;
   int AnalysisTypeIndicator;
+  bool RegressionIndicator;
   int TargetIndicator;
   double TruncPt;
   int Populations;
@@ -206,7 +208,7 @@ private:
   string AlleleFreqScoreFilename2;
   string AssocScoreFilename;
   string alleleFreqFilename;
-  string DICoutputFilename;
+  string StratTestFilename;
   string ErgodicAverageFilename;
   string ParameterFilename;
   string RegressionOutputFilename;

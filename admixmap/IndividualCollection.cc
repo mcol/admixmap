@@ -160,7 +160,7 @@ void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::
    delete[] admix_null;
    
   //Regression stuff
-   if(options->getAnalysisTypeIndicator() >=2){
+   if(options->isRegressionModel()){
     ExpectedY = alloc2D_d(NumOutcomes, NumInd);
     //Covariates.SetNumberOfElements(1);
     Matrix_d temporary( NumInd, 1 );
@@ -406,7 +406,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
 				  DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i),
 				  R0->getDispersion()
 				  );
-       if((iteration %2))//conjugate update of theta on even-numbered iterations
+      if((iteration %2))//conjugate update of theta on even-numbered iterations
  	_child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
  			       Covariates, beta, poptheta, options, alpha, sigma,
  			       DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(), i), 
@@ -565,7 +565,7 @@ void IndividualCollection::OutputIndAdmixture()
 void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
   //Used only if marglikelihood = 1
   Log->write("Estimates used in Chib algorithm to estimate marginal likelihood:\n");
-  for(unsigned  int i = 0; i < NumInd; i++ ){
+  for(unsigned i = 0; i < NumInd; i++ ){
     for(int k = 0; k < Populations; ++k)
       Log->write(thetahat[i][k]);
     for(int k = 0; k < Populations; ++k)

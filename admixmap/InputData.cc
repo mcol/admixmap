@@ -54,17 +54,6 @@ static void getPopLabels(const Vector_s& data, size_t Populations, string **labe
       (*labels)[i] = data[i+1];
     }
 }
-// static void getLabels( const string buffer, Vector_i temporary, string *labels )
-// {
-//     StringSplitter splitter;
-//     const Vector_s& labels_tmp = splitter.split(buffer);
-
-//     for (size_t i = 0, index = 0; i < labels_tmp.size(); ++i) {
-//         if (temporary.GetNumberOfElements() == 1 || temporary(i)) {            
-//             labels[index++] = labels_tmp[i];
-//         }
-//     }
-// }
 
 void InputData::readFile(const char *fname, Matrix_s& data)
 {
@@ -158,29 +147,6 @@ static void convertMatrix(const Matrix_s& data, DataMatrix& m)
         }
     }
 }
-// static void convertMatrix(const Matrix_s& data, double *m)
-// {       
-//     const size_t numRows = data.size();
-
-//     // If there are no rows, return empty matrix.
-//     if (0 == numRows) return;
-
-//     // Verify that all rows have same length.
-//     const size_t numCols = data[0].size();
-//     for (size_t i = 1; i < numRows; ++i) {
-//         if (numCols != data[i].size()) {
-//             throw runtime_error("Invalid row length");
-//         }
-//     }
-    
-//     // Form matrix.
-//     m = new double[numRows * numCols];
-//     for (size_t i = 0; i < numRows; ++i) {
-//         for (size_t j = 0; j < numCols; ++j) {
-// 	  m[i*numCols +j] = StringConvertor::toFloat(data[i][j]);
-//         }
-//     }
-// }
 
 /**
  *  InputData members.
@@ -238,6 +204,10 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumCompositeLoci = determineNumberOfCompositeLoci();
   NumIndividuals = getNumberOfIndividuals();
+  if(NumIndividuals > 1){
+    Log->logmsg(false, NumIndividuals);Log->logmsg(false, " individuals\n");
+  }
+
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
   checkLociNames(options);

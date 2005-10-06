@@ -39,23 +39,25 @@ Regression::~Regression(){
 }
 
 void Regression::OpenOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels, LogWriter *Log){
-  //Open paramfile 
-  if ( strlen( options->getRegressionOutputFilename() ) ){
-    outputstream.open( options->getRegressionOutputFilename(), ios::out );
-    if( !outputstream )
-      {
-	Log->logmsg(true,"ERROR: Couldn't open regparamfile\n");
-	exit( 1 );
-      }
-    else{
+  //Open paramfile
+  if ( options->getIndAdmixHierIndicator()){ 
+    if ( strlen( options->getRegressionOutputFilename() ) ){
+      outputstream.open( options->getRegressionOutputFilename(), ios::out );
+      if( !outputstream )
+	{
+	  Log->logmsg(true,"ERROR: Couldn't open regparamfile\n");
+	  exit( 1 );
+	}
+      else{
       Log->logmsg(true,"Writing regression parameters to ");
       Log->logmsg(true, options->getRegressionOutputFilename());
       Log->logmsg(true,"\n");
       if( options->getTextIndicator() )InitializeOutputFile(options, individuals, PopulationLabels);
+      }
     }
-  }
-  else{
-    Log->logmsg(true,"No regparamfile given\n");
+    else{
+      Log->logmsg(true,"No regparamfile given\n");
+    }
   }
 }
 
@@ -101,7 +103,7 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
   RegNumber = Number;
 
   //?? next 2 lines may be unecessary, not initalising unless there is a regression model
-  if( options->getAnalysisTypeIndicator() < 2 ){//no regression model
+  if( !options->isRegressionModel() ){//no regression model
     NumCovariates = 0;
     RegType = None;
   }

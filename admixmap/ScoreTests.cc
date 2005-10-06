@@ -414,7 +414,7 @@ void ScoreTests::Update(double dispersion)
     DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(),i);
     
     //admixture association
-    if( options->getTestForAdmixtureAssociation() && (options->getAnalysisTypeIndicator()>1 && options->getAnalysisTypeIndicator()<5) ){
+    if( options->getTestForAdmixtureAssociation() && (options->isRegressionModel() && options->getAnalysisTypeIndicator()<5) ){
       UpdateScoreForAdmixtureAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
     }
     //allelic association
@@ -442,7 +442,7 @@ void ScoreTests::Update(double dispersion)
 	SumAdmixtureScore2[ k*NumOutcomeVars + kk ] += AdmixtureScore[ k*NumOutcomeVars + kk ] * AdmixtureScore[ k*NumOutcomeVars + kk ];
   }
   
-  if( options->getAnalysisTypeIndicator() != 1 ){
+  if( options->isRegressionModel() ){
     if( options->getTestForAllelicAssociation() ) SumScoreForWithinHaplotypeAssociation();
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
       
