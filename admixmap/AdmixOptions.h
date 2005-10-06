@@ -95,7 +95,8 @@ public:
   bool getCorrelatedAlleleFreqs() const;
   int getTextIndicator() const;
   bool isRandomMatingModel() const;
-  bool isRegressionModel() const;
+  int getNumberOfOutcomes() const;
+  void setNumberOfOutcomes(int);
   bool getRhoIndicator() const;
   bool getIndAdmixHierIndicator() const;
   bool getMLIndicator() const;
@@ -157,7 +158,7 @@ private:
   long SampleEvery;
   long Seed;
   int AnalysisTypeIndicator;
-  bool RegressionIndicator;
+  int NumberOfOutcomes;
   int TargetIndicator;
   double TruncPt;
   int Populations;

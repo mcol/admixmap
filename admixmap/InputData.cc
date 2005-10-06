@@ -54,6 +54,12 @@ static void getPopLabels(const Vector_s& data, size_t Populations, string **labe
       (*labels)[i] = data[i+1];
     }
 }
+void getLabels(const Vector_s& data, string *labels)
+{
+  for (size_t i = 0, index = 0; i < data.size(); ++i) {
+    labels[index++] = data[i];
+  }
+}
 
 void InputData::readFile(const char *fname, Matrix_s& data)
 {
@@ -204,20 +210,20 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumCompositeLoci = determineNumberOfCompositeLoci();
   NumIndividuals = getNumberOfIndividuals();
-  if(NumIndividuals > 1){
-    Log->logmsg(false, NumIndividuals);Log->logmsg(false, " individuals\n");
-  }
 
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
   checkLociNames(options);
- if ( strlen( options->getOutcomeVarFilename() ) != 0 )
-   CheckOutcomeVarFile((bool)(options->getAnalysisTypeIndicator() != 5));
- if ( strlen( options->getCovariatesFilename() ) != 0 )
-   CheckCovariatesFile();
- if ( strlen( options->getReportedAncestryFilename() ) != 0 )
-   CheckRepAncestryFile(options->getPopulations());
-  //convertGenotypesToIntArray(options );
+  if ( strlen( options->getOutcomeVarFilename() ) != 0 )
+    options->setNumberOfOutcomes( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator()) );
+  if ( strlen( options->getCovariatesFilename() ) != 0 )
+    CheckCovariatesFile();
+  if ( strlen( options->getReportedAncestryFilename() ) != 0 )
+    CheckRepAncestryFile(options->getPopulations());
+  
+  if(NumIndividuals > 1){
+    Log->logmsg(false, NumIndividuals);Log->logmsg(false, " individuals\n");
+  }
 }
 
 //determine number of individuals by counting lines in genotypesfile 
@@ -385,7 +391,8 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
   }
 }
 
-void InputData::CheckOutcomeVarFile(bool singleRegression){
+int InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
+  //check outcomevarfile and genotypes file have the same number of cols
   if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
     Log->logmsg(true,"ERROR: Genotypes file has ");
     Log->logmsg(true,NumIndividuals);
@@ -394,16 +401,50 @@ void InputData::CheckOutcomeVarFile(bool singleRegression){
     Log->logmsg(true," observations.\n");
     exit(1);
   }
-  if(singleRegression){
-    if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
-      Log->logmsg(true,"Outcomevar file has ");
-      Log->logmsg(true,outcomeVarMatrix_.nRows() - 1);
-      Log->logmsg(true," observations and Genotypes file has ");
-      Log->logmsg(true,NumIndividuals);
-      Log->logmsg(true," observations.\n");
-      exit(1);
+  //check the number of outcomes specified is not more than the number of cols in outcomevarfile
+  int numoutcomes = NumOutcomes;
+  if(NumOutcomes > 0){
+    if((int)outcomeVarMatrix_.nCols() - Firstcol < NumOutcomes){
+      numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;
+      Log->logmsg(true, "ERROR: 'outcomes' is too large, setting to ");
+      Log->logmsg(true, numoutcomes);
     }
   }
+
+  //extract portion of outcomevarfile needed
+  std::string* OutcomeVarLabels = new string[ outcomeVarMatrix_.nCols() ];
+  getLabels(outcomeVarData_[0], OutcomeVarLabels);
+  DataMatrix Temp = outcomeVarMatrix_.SubMatrix(1, NumIndividuals, Firstcol, Firstcol+numoutcomes-1);
+  outcomeVarMatrix_ = Temp;
+
+  //determine type of outcome - binary/continuous
+  OutcomeType = new DataType[numoutcomes];
+  for( int j = 0; j < numoutcomes; j++ ){
+    
+    for(int i = 0; i < NumIndividuals; ++i)
+      if(!outcomeVarMatrix_.isMissing(i, j) && (outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) )
+	OutcomeType[j] = Binary;
+      else OutcomeType[j] = Continuous;
+    //in this way, the outcome type is set as binary only if all individuals have outcome values of 1 or 0
+    //otherwise, a continuous outcome of 1.0 or 0.0 could lead to the type being wrongly set to binary.
+    
+    //need to check for allmissing
+    //     if(i == NumIndividuals){
+    //       Log->logmsg(true, "ERROR: all outcomes missing\n");
+    //       exit(1);
+    //     }
+    
+    Log->logmsg(true,"Regressing on ");    
+    if( OutcomeType[j] == Binary )
+      Log->logmsg(true,"Binary variable: ");
+    else if(OutcomeType[j] == Continuous )
+      Log->logmsg(true,"Continuous variable: ");
+    Log->logmsg(true,outcomeVarData_[0][j+Firstcol]);
+    Log->logmsg(true,".\n");
+  }
+  Log->logmsg(true, "\n");
+
+  return numoutcomes;
 }
 
 void InputData::CheckCovariatesFile(){
@@ -455,67 +496,6 @@ Sex InputData::GetSexValue(int i){
     return (Sex) sex;
 }
 
-
-//converts genotypes stored as Matrix_s strings to genotypes stored as Matrix g integer pairs
-//also removes cols for ID and sex - this should have been a separate step  
-// void InputData::convertGenotypesToIntArray(AdmixOptions *options ) {
-//   int firstcol = 1 + options->getgenotypesSexColumn();
-//   genotype g;
-//   Vector_g vgenotypes; // vector of individual's genotypes
-//   unsigned int *a = new unsigned int[2];
-
-//   //loop over individuals
-//   for( unsigned int indiv=0; indiv < geneticData_.size() - 1; indiv++ ) {
-//     Vector_s & genotypes_s = geneticData_[indiv + 1];
-//     // loop over simple loci to store genotype strings as unsigned integers 
-//     for( int locus = 0; locus < NumSimpleLoci; locus++ ) {
-//       // needs fixing to deal with X chr data in males
-//       // should throw exception for index out of range 
-//       StringConvertor::toIntPair(a, genotypes_s[firstcol + locus].c_str() );
-//       g.alleles[0] = a[0];
-//       g.alleles[1] = a[1];
-//     }
-//     // append genotype to vgenotypes
-//     vgenotypes.push_back( g );
-//   }
-//   // append genotypes vector to genotypes_g
-//   genotypes_g.push_back( vgenotypes );
-//   delete[] a;
-// }
-
-
-// // loop over simple loci within each composite locus to store genotypes at S simple loci within 
-// // each composite locus as vector of length 2S.  
-// void InputData::convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm) {
-//   int NumChromosomes = Loci.GetNumberOfChromosomes();
-//   int NumCLoci = Loci.GetNumberOfCompositeLoci();
-//   int NumSimpleLoci;
-//   int CLocus;
-//   std::vector< std::vector<unsigned int> > genotypes_cloci; 
-//   for( int indiv=0; indiv < NumIndividuals; indiv++ ) { // loop over individuals
-//     for( int j = 0; j < NumChromosomes; j++ ){ // loop over chromosomes
-//       // loop over composite loci
-//       for( int jj = 0; jj < NumCLoci; jj++ ){
-//      	CLocus = chrm[j]->GetLocus(jj); // get number of this composite locus
-//      	NumSimpleLoci = Loci(CLocus)->GetNumberOfLoci(); // 
-//      	// create new vector genotypes.clocus for this composite locus 
-//      	std::vector<unsigned int> genotypes_clocus(NumSimpleLoci * 2, 0); // should delete after appending to genotypes_cloci
-//      	// loop over simple loci within composite locus to assign elements of vector genotypes.clocus
-//      	for (int locus=0; locus < NumSimpleLoci; locus++) { //
-//      	  genotypes_clocus[locus*2]    = genotypes_g[indiv][locus].alleles[0];
-//      	  genotypes_clocus[locus*2+1]  = genotypes_g[indiv][locus].alleles[1];
-//      	}
-//      	// append genotypes for composite locus to vector over composite loci for this individual
-// 	genotypes_cloci.push_back( genotypes_clocus);
-// 	genotypes_clocus.clear(); // do not re-use this object as it would have to be resized - possible memory leaks
-//       }
-//       // append genotypes for individual to vector over individuals
-//       genotypes_c.push_back(genotypes_cloci);
-//       genotypes_cloci.clear(); // could re-use this object
-//     }
-//   }
-// }
-
 void InputData::GetGenotype(int i, int SexColumn, Genome &Loci, unsigned short ****genotype){
   unsigned int lociI = 0;
   
@@ -558,6 +538,10 @@ void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0
     exit(1);
 }
 
+void InputData::getOutcomeTypes(DataType* T){
+  for(unsigned i = 0; i < outcomeVarMatrix_.nCols(); ++i)
+    T[i] = OutcomeType[i];
+}
 const Matrix_s& InputData::getLocusData() const
 {
     return locusData_;

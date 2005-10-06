@@ -88,9 +88,9 @@ protected:// to make available to Chromosome
   double *Distances;
   unsigned int NumberOfCompositeLoci;
   CompositeLocus **TheArray;
+  bool isChromosome;
 
 private: 
-
   double LengthOfGenome;
   double LengthOfXchrm;
 

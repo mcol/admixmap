@@ -32,7 +32,6 @@ class AdmixOptions;
 class Chromosome:public Genome
 {
 public:
-  Chromosome();
   Chromosome(int size,int start, int);
   void ResetStuffForX();
   ~Chromosome();
@@ -72,6 +71,7 @@ private:
   // UNIMPLEMENTED
   // to avoid use
  // Private default constructor
+  Chromosome();
   Chromosome(const Chromosome&);
   Chromosome& operator=(const Chromosome&);
 };

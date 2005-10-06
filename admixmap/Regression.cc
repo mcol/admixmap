@@ -89,7 +89,7 @@ void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollectio
       for( int k = 1; k < options->getPopulations(); k++ ){
 	outputstream << "\"slope." << PopulationLabels[k].substr(1) << " ";
       }
-      if( ! individuals->getOutcomeType(kk) ){
+      if( individuals->getOutcomeType(kk) == Continuous ){
 	outputstream<< setprecision(6) << "\"precision\"";
       }
     }
@@ -103,15 +103,15 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
   RegNumber = Number;
 
   //?? next 2 lines may be unecessary, not initalising unless there is a regression model
-  if( !options->isRegressionModel() ){//no regression model
+  if( options->getNumberOfOutcomes() == 0 ){//no regression model
     NumCovariates = 0;
     RegType = None;
   }
   else{
 
     //determine regression type
-    if( individuals->getOutcomeType(RegNumber)==1 ) RegType = Logistic;
-    else if( individuals->getOutcomeType(RegNumber)==0 )RegType = Linear;
+    if( individuals->getOutcomeType(RegNumber)== Binary ) RegType = Logistic;
+    else if( individuals->getOutcomeType(RegNumber)== Continuous )RegType = Linear;
 
     //** Objects common to both regression types
     NumCovariates = individuals->GetNumCovariates();

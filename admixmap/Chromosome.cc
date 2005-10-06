@@ -29,6 +29,7 @@ using namespace std;
 
 Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
 {
+  isChromosome = true;
   _startLocus = start;
   populations = inpopulations;
   D = populations * populations;
@@ -39,6 +40,7 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
 
   CodedStates = new int[size];
   for(int j = 0; j < 2; ++j) f[j] = new double[size];
+
 }
 
 void Chromosome::ResetStuffForX()
@@ -59,8 +61,7 @@ string Chromosome::GetLabel( int )
 
 Chromosome::~Chromosome()
 {
-  //TODO: delete these properly
-  delete CodedStates;
+  delete[] CodedStates;
   delete[] Lambda;
   delete[] f[0];
   delete[] f[1];

@@ -411,10 +411,10 @@ void ScoreTests::Update(double dispersion)
   for( int i = 0; i < individuals->getSize(); i++ ){
     Individual* ind = individuals->getIndividual(i);
     double YMinusEY = individuals->getOutcome(0, i) - individuals->getExpectedY(i);//individual outcome - its expectation
-    DInvLink = individuals->DerivativeInverseLinkFunction(options->getAnalysisTypeIndicator(),i);
+    DInvLink = individuals->DerivativeInverseLinkFunction(i);
     
     //admixture association
-    if( options->getTestForAdmixtureAssociation() && (options->isRegressionModel() && options->getAnalysisTypeIndicator()<5) ){
+    if( options->getTestForAdmixtureAssociation() && (options->getNumberOfOutcomes() == 1) ){
       UpdateScoreForAdmixtureAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
     }
     //allelic association
@@ -442,7 +442,7 @@ void ScoreTests::Update(double dispersion)
 	SumAdmixtureScore2[ k*NumOutcomeVars + kk ] += AdmixtureScore[ k*NumOutcomeVars + kk ] * AdmixtureScore[ k*NumOutcomeVars + kk ];
   }
   
-  if( options->isRegressionModel() ){
+  if( options->getNumberOfOutcomes() > 0 ){
     if( options->getTestForAllelicAssociation() ) SumScoreForWithinHaplotypeAssociation();
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
       

@@ -83,18 +83,18 @@ public:
   double IntegratingConst( double alpha, double beta, double a, double b );
 
   void SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
-			 int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+			 int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 			 Matrix_d &Covariates0, double **beta, const double *poptheta, AdmixOptions* options,
 			 Chromosome **chrm, vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, vector<double> sigma, 
 			 double DInvLink, double dispersion);
 
   void SampleTheta( int i, int iteration, double *SumLogTheta, DataMatrix *Outcome, Chromosome **C,
-		    int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+		    int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 		    Matrix_d &Covariates0, double **beta, const double *poptheta,
 		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, double, double, bool);
 
- void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY, double *lambda,
+ void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda,
 			   int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A );
 
   void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,

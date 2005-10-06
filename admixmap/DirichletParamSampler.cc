@@ -12,6 +12,9 @@ DirichletParamSampler::DirichletParamSampler()
   TuneEta.SetParameters( step0, 0.01, 10, 0.44); 
   EtaAlpha = 1;
   EtaBeta = 1;
+  munew = 0;
+  gamma = 0;
+  DirParamArray = 0;
 }
 
 DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops )
@@ -41,11 +44,15 @@ void DirichletParamSampler::SetSize( unsigned numind, unsigned numpops )
 
 DirichletParamSampler::~DirichletParamSampler()
 {
-   delete [] munew;
-   delete [] gamma;
-   for(unsigned int i=0; i<d; i++){
-      delete DirParamArray[i];
-   }
+  delete [] munew;
+  delete [] gamma;
+  if(DirParamArray){//in case not allocated
+    for(unsigned int i = 0; i < d; i++){
+      if(DirParamArray[i])
+	delete DirParamArray[i];
+    }
+    delete[] DirParamArray;
+  }
 }
 
 void DirichletParamSampler::SetPriorEta( double inEtaAlpha, double inEtaBeta )

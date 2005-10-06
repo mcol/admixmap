@@ -21,6 +21,7 @@
 #include "DataMatrix.h"
 #include <algorithm>
 #include <iostream>
+#include <numeric>
 
 DataMatrix::DataMatrix(){
   nrows = 0;
@@ -80,6 +81,7 @@ std::vector<double> DataMatrix::getCol(unsigned c){
   return col;
 }
 DataMatrix DataMatrix::SubMatrix(unsigned r1, unsigned r2, unsigned c1, unsigned c2){
+  if( r1>r2 || c1>c2 || r2 > nrows-1 || c2 > ncols-1)std::cerr<<"Error in DataMatrix::SubMatrix"<<std::endl;
   DataMatrix Sub(r2-r1+1, c2-c1+1);
   for(unsigned i = r1; i<= r2; ++i)
     for(unsigned j = c1; j <= c2;++j){
@@ -110,5 +112,13 @@ void DataMatrix::SetMissingValuesToColumnMeans(){
     }
 
   }
+}
 
+void DataMatrix::Print(){
+  for(unsigned i = 0; i < nrows; ++i){
+    std::vector<double> a = getRow(i);
+    copy(a.begin(), a.end(), std::ostream_iterator<double>(std::cout, " "));
+    std::cout<<std::endl;
+  }
+  std::cout<<std::endl;
 }

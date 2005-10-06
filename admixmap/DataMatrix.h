@@ -39,6 +39,7 @@ public:
   unsigned nCols()const;
   DataMatrix SubMatrix(unsigned, unsigned, unsigned, unsigned);
   void SetMissingValuesToColumnMeans();
+  void Print();
 
 private:
   std::vector<double > data;

@@ -535,3 +535,16 @@ double xlog(double x){
 double xexp(double x){
   return exp(x);
 }
+
+void print_vector(std::vector<double> a){
+  copy(a.begin(), a.end(), ostream_iterator<double>(cout, " "));
+  cout<<endl;
+}
+void print_vector(std::vector<std::string> a){
+  copy(a.begin(), a.end(), ostream_iterator<std::string>(cout, " "));
+  cout<<endl;
+}
+void print_vector(std::vector<int> a){
+  copy(a.begin(), a.end(), ostream_iterator<int>(cout, " "));
+  cout<<endl;
+}

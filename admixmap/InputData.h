@@ -79,6 +79,7 @@ public:
   const DataMatrix& getMLEMatrix() const;
   const DataMatrix& getReportedAncestryMatrix() const;
 
+  void getOutcomeTypes(DataType*);
   std::string *GetPopLabels() const;
 
   bool determineIfPedFile(AdmixOptions *options);
@@ -116,6 +117,7 @@ private:
   DataMatrix reportedAncestryMatrix_;
 
   std::string *PopulationLabels;
+  DataType* OutcomeType;
   int NumIndividuals;
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
@@ -138,7 +140,7 @@ private:
   void CheckGeneticData(AdmixOptions *options);
   void checkLociNames(AdmixOptions *options);
   unsigned determineNumberOfCompositeLoci();
-  void CheckOutcomeVarFile(bool);
+  int CheckOutcomeVarFile(int, int);
   void CheckCovariatesFile();
   void CheckRepAncestryFile(int populations);
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles);

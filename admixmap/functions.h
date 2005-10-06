@@ -47,6 +47,10 @@ double **MatrixAsArray(Matrix_d &M);
 void submatrix(double **M, double **Sub, int r1, int r2, int c1, int c2);
 void submatrix(double *M, double *Sub, int Mcols, int r1, int r2, int c1, int c2);
 
+void print_vector(std::vector<double> a);
+void print_vector(std::vector<int> a);
+void print_vector(std::vector<std::string> a);
+
 double xlog(double x);
 double xexp(double x);
 #endif /* !FUNCTIONS_H */

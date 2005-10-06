@@ -29,6 +29,7 @@ using namespace std;
 
 Genome::Genome()
 {
+  isChromosome = false;
   NumberOfCompositeLoci = 0;
   NumberOfChromosomes = 0;
   TheArray = 0;
@@ -36,6 +37,7 @@ Genome::Genome()
   LengthOfXchrm = 0;
   TotalLoci = 0;
   Distances = 0;
+  SizesOfChromosomes = 0;
 }
 
 //used by Chromosome
@@ -50,15 +52,19 @@ Genome::Genome( int size )
   LengthOfGenome = 0;
   LengthOfXchrm = 0;
   TotalLoci = 0;
+  SizesOfChromosomes = 0;
 }
 
 
 Genome::~Genome()
 {
-//   if(NumberOfCompositeLoci > 0)
-//     for(unsigned int i = 0; i < NumberOfCompositeLoci; i++){
-//       delete TheArray[i];
-//     }
+  if(!isChromosome && NumberOfCompositeLoci > 0) 
+    //The CompositeLocus objects are owned by a pure Genome object (Loci)
+    //Chromosomes only have an array of pointers so they are not allowed to delete any CompositeLoci
+    //otherwise the destruction of the lead Genome object would trigger an illegal second attempt at their destruction
+    for(unsigned int i = 0; i < NumberOfCompositeLoci; i++){
+      delete TheArray[i];
+    }
   delete[] TheArray;
   delete[] SizesOfChromosomes;
   delete[] Distances; 

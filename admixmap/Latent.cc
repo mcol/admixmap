@@ -40,6 +40,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
   Log = l;
   poptheta = 0;
 #if POPADMIXSAMPLER == 2
+  mu = 0;
   SumLocusAncestry = 0;
 #elif POPADMIXSAMPLER == 3
   logalpha = 0;
@@ -51,134 +52,133 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
 void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
   // ** Initialise population admixture distribution Dirichlet parameters alpha **
   int K = options->getPopulations();
-
-  alpha = options->getAndCheckInitAlpha(Log);
-  SumAlpha.resize( K );
-
-  if(!options->getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
-
   //ergodic average of population admixture, which is used to centre 
   // the values of individual admixture in the regression model  
-  poptheta =new double[ K ];
+  poptheta = new double[ K ];
   for( int i = 0; i < K; i++ )poptheta[i] = 0.0;
+  alpha = options->getAndCheckInitAlpha(Log);
+  SumAlpha.resize( K );
+  if(!options->getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
 
-  double alphapriormean = options->getAlphamean();
-  double alphapriorvar = options->getAlphavar();
-  Log->logmsg(true, "Gamma prior on population admixture Dirichlet parameters with mean ");
-  Log->logmsg(true, alphapriormean);
-  Log->logmsg(true, " and variance ");
-  Log->logmsg(true, alphapriorvar);
-  Log->logmsg(true, "\n");
- 
-  // ** set up sampler for alpha **
-
+  if(K > 1){
+    double alphapriormean = options->getAlphamean();
+    double alphapriorvar = options->getAlphavar();
+    Log->logmsg(true, "Gamma prior on population admixture Dirichlet parameters with mean ");
+    Log->logmsg(true, alphapriormean);
+    Log->logmsg(true, " and variance ");
+    Log->logmsg(true, alphapriorvar);
+    Log->logmsg(true, "\n");
+    
+    // ** set up sampler for alpha **
+    
 #if POPADMIXSAMPLER == 1  
-  // AlphaParameters is an array with 5 elements
-  // element 0 is num individuals or num gametes (if random mating model)
-  // element 1 is the sum of the Dirichlet parameter vector
-  // elements 2 and 3 are the parameters of the gamma prior
-  // element 4 is the sum of log admixture proportions
-   
-  if( options->isRandomMatingModel() ){
-    AlphaParameters[0] = 2 * Numindividuals;
-  } else {
-    AlphaParameters[0] = Numindividuals;
-  }
-  //if( options->getAnalysisTypeIndicator() > -1 ){
-  AlphaParameters[1] = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, plus<double>());//sum of alpha[0]
-  AlphaParameters[2] = alphapriormean*alphapriormean / alphapriorvar; // shape parameter of gamma prior
-  AlphaParameters[3] = alphapriormean / alphapriorvar; // rate parameter of gamma prior
-  AlphaParameters[4] = 1;
-  //}
-
-
-  DirParamArray = new AdaptiveRejection*[ K ];
-  for( int j = 0; j < K; j++ ){
-    DirParamArray[j] = new Adaptiverejection();
-    DirParamArray[j]->Initialise(false, true, 0, 1, logf, dlogf);
-    DirParamArray[j]->setLowerBound( 0.1 );
-  }
+    // AlphaParameters is an array with 5 elements
+    // element 0 is num individuals or num gametes (if random mating model)
+    // element 1 is the sum of the Dirichlet parameter vector
+    // elements 2 and 3 are the parameters of the gamma prior
+    // element 4 is the sum of log admixture proportions
+    
+    if( options->isRandomMatingModel() ){
+      AlphaParameters[0] = 2 * Numindividuals;
+    } else {
+      AlphaParameters[0] = Numindividuals;
+    }
+    //if( options->getAnalysisTypeIndicator() > -1 ){
+    AlphaParameters[1] = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, plus<double>());//sum of alpha[0]
+    AlphaParameters[2] = alphapriormean*alphapriormean / alphapriorvar; // shape parameter of gamma prior
+    AlphaParameters[3] = alphapriormean / alphapriorvar; // rate parameter of gamma prior
+    AlphaParameters[4] = 1;
+    //}
+    
+    
+    DirParamArray = new AdaptiveRejection*[ K ];
+    for( int j = 0; j < K; j++ ){
+      DirParamArray[j] = new Adaptiverejection();
+      DirParamArray[j]->Initialise(false, true, 0, 1, logf, dlogf);
+      DirParamArray[j]->setLowerBound( 0.1 );
+    }
 #elif POPADMIXSAMPLER == 2
-  eta = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
-  mu = new double[ K ];
-  PopAdmixSampler.SetSize( Numindividuals, K );
-  for( int i = 0; i < K; i++ ){
-    mu[i] = alpha[0][i]/eta;
-  }
-  if( options->isRandomMatingModel() ){
-    obs = 2 * Numindividuals;
-  } else {
-    obs = Numindividuals;
-  }
-  SumLocusAncestry = new int[Numindividuals*K];
+    eta = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
+    mu = new double[ K ];
+    PopAdmixSampler.SetSize( Numindividuals, K );
+    for( int i = 0; i < K; i++ ){
+      mu[i] = alpha[0][i]/eta;
+    }
+    if( options->isRandomMatingModel() ){
+      obs = 2 * Numindividuals;
+    } else {
+      obs = Numindividuals;
+    }
+    SumLocusAncestry = new int[Numindividuals*K];
 #elif POPADMIXSAMPLER == 3
-  logalpha = new double[K];
-  transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
-
-  AlphaArgs = new double*[4];
-  AlphaArgs[0] = new double[K];
-  for(unsigned i = 1; i < 4;++i)AlphaArgs[i] = new double[1];
-  //elem 0 is sum of log admixture props
-  AlphaArgs[1][0] = (double)Numindividuals;// elem 1 is num individuals/gametes
-  if( options->isRandomMatingModel() )AlphaArgs[1][0] *= 2.0;
-  AlphaArgs[2][0] = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
-  AlphaArgs[3][0] = alphapriormean / alphapriorvar;
-
-  AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
+    logalpha = new double[K];
+    transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
+    
+    AlphaArgs = new double*[4];
+    AlphaArgs[0] = new double[K];
+    for(unsigned i = 1; i < 4;++i)AlphaArgs[i] = new double[1];
+    //elem 0 is sum of log admixture props
+    AlphaArgs[1][0] = (double)Numindividuals;// elem 1 is num individuals/gametes
+    if( options->isRandomMatingModel() )AlphaArgs[1][0] *= 2.0;
+    AlphaArgs[2][0] = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
+    AlphaArgs[3][0] = alphapriormean / alphapriorvar;
+    
+    AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
-
-  // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
-  rho = options->getRhoalpha()/options->getRhobeta();
-
-  if( options->RhoFlatPrior() ){
-     rhoalpha = 1.0;
-     rhobeta = 0.0;
-     Log->logmsg(true,"Flat prior on sumintensities.\n");
-  }
-  else if( options->logRhoFlatPrior() ){
-     rhoalpha = 0.0;
-     rhobeta = 0.0;
-     Log->logmsg(true,"Flat prior on log sumintensities.\n");
-  }
-  else{
-    rhoalpha = options->getRhoalpha();
-    rhobeta = options->getRhobeta();
-    Log->logmsg(false,"Gamma prior on sum-of-intensities with shape parameter: ");
-    Log->logmsg(false, rhoalpha); Log->logmsg(false,"\n");
-    Log->logmsg(false," and rate (1 / location) parameter: ");
-    Log->logmsg(false, rhobeta); Log->logmsg(false,"\n");
-  }
-  rhobeta0 = 1;
-  rhobeta1 = 1;
-
-   // ** set up TuneRW object for global rho updates **
-   NumberOfUpdates = 0;
-   w = 1;
-   step0 = 1.0; // sd of proposal distribution for log rho
-   //need to choose sensible value for this initial RW sd
-   step = step0;
-   TuneRhoSampler.SetParameters( step0, 0.01, 10, 0.44);  
-
-  // ** Open paramfile **
-  if ( options->getIndAdmixHierIndicator()){
-    if( strlen( options->getParameterFilename() ) ){
-      outputstream.open( options->getParameterFilename(), ios::out );
-      if( !outputstream )
-	{
-	  Log->logmsg(true,"ERROR: Couldn't open paramfile\n");
-	  exit( 1 );
-	}
-      else{
-	Log->logmsg(true,"Writing population-level parameters to ");
-	Log->logmsg(true,options->getParameterFilename());
-	Log->logmsg(true,"\n");
-	if( options->getTextIndicator() )	InitializeOutputFile(PopulationLabels);
-      }
+    
+    // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
+    rho = options->getRhoalpha()/options->getRhobeta();
+    
+    if( options->RhoFlatPrior() ){
+      rhoalpha = 1.0;
+      rhobeta = 0.0;
+      Log->logmsg(true,"Flat prior on sumintensities.\n");
+    }
+    else if( options->logRhoFlatPrior() ){
+      rhoalpha = 0.0;
+      rhobeta = 0.0;
+      Log->logmsg(true,"Flat prior on log sumintensities.\n");
     }
     else{
-      Log->logmsg(true,"No paramfile given\n");
+      rhoalpha = options->getRhoalpha();
+      rhobeta = options->getRhobeta();
+      Log->logmsg(false,"Gamma prior on sum-of-intensities with shape parameter: ");
+      Log->logmsg(false, rhoalpha); Log->logmsg(false,"\n");
+      Log->logmsg(false," and rate (1 / location) parameter: ");
+      Log->logmsg(false, rhobeta); Log->logmsg(false,"\n");
     }
-  }
+    rhobeta0 = 1;
+    rhobeta1 = 1;
+    
+    // ** set up TuneRW object for global rho updates **
+    NumberOfUpdates = 0;
+    w = 1;
+    step0 = 1.0; // sd of proposal distribution for log rho
+    //need to choose sensible value for this initial RW sd
+    step = step0;
+    TuneRhoSampler.SetParameters( step0, 0.01, 10, 0.44);  
+    
+    // ** Open paramfile **
+    if ( options->getIndAdmixHierIndicator()){
+      if( strlen( options->getParameterFilename() ) ){
+	outputstream.open( options->getParameterFilename(), ios::out );
+	if( !outputstream )
+	  {
+	    Log->logmsg(true,"ERROR: Couldn't open paramfile\n");
+	    exit( 1 );
+	  }
+	else{
+	  Log->logmsg(true,"Writing population-level parameters to ");
+	  Log->logmsg(true,options->getParameterFilename());
+	  Log->logmsg(true,"\n");
+	  if( options->getTextIndicator() )	InitializeOutputFile(PopulationLabels);
+	}
+      }
+      else{
+	Log->logmsg(true,"No paramfile given\n");
+      }
+    }
+  }//end if Populations > 1
 }
 
 Latent::~Latent()

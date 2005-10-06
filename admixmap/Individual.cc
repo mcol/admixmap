@@ -401,14 +401,14 @@ double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, d
 //************** Updating (Public) ***************************************************************************************
 
 // unnecessary duplication of code - ? should embed within method for > 1 population
-void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, int* OutcomeType, double **ExpectedY,
+void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY,
 				      double *lambda, int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A )
 {
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
     if( AnalysisTypeIndicator > 1 ){
       if( Outcome->isMissing( i, k ) ){
-	if( !OutcomeType[k] )
+	if( OutcomeType[k] == Continuous )
 	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
 	else{
 	  if( myrand() * ExpectedY[k][i] < 1 )
@@ -437,7 +437,7 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
 }
 
 void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
-				  int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+				  int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
 				   Matrix_d &Covariates, double **beta, const double *poptheta,
 				   AdmixOptions* options, Chromosome **chrm, 
 				   vector<vector<double> > &alpha, double rhoalpha, 
@@ -450,7 +450,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
   iteration = current iteration
   Outcome = Outcome variable(s)
   NumOutcomes = number of outcomes
-  OutcomeType = array of indicators for the types of outcome (binary/continuous)   
+  OutcomeType = array of types of outcome (binary/continuous)   
   ExpectedY = expected outcome variable
   lambda = precision in linear regression model (if there is one)
   NoCovariates = # covariates, including admixture
@@ -559,7 +559,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
     double u;
     for( int k = 0; k < NumOutcomes; k++ ){
       if( Outcome->isMissing( i, k ) ){
-	if( !OutcomeType[k] ) // linear regression
+	if( OutcomeType[k] == Continuous ) // linear regression
 	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
 	else{// logistic regression
 	  u = myrand();
@@ -578,7 +578,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
 //************** Updating (Private) ***************************************************************************************
 
 void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMatrix *Outcome, Chromosome ** C,
-                                 int NumOutcomes,  int* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
+                                 int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
                                   Matrix_d &Covariates, double **beta, const double *poptheta,
 			      AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma,
 			      double DInvLink, double dispersion, bool RW)
@@ -615,7 +615,7 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMat
   else if( options->getAnalysisTypeIndicator() == 5 ){
     RegressionType RegType;
     for( int k = 0; k < NumOutcomes; k++ ){
-      if(OutcomeType[k])RegType = Logistic; else RegType = Linear;
+      if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
 	logpratio +=  LogAcceptanceRatioForRegressionModel( i, RegType, k, options->isRandomMatingModel(), K,
 						    NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
       }

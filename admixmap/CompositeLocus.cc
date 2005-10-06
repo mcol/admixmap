@@ -47,16 +47,16 @@ CompositeLocus::CompositeLocus()
 
   MergeHaplotypes = 0;
   HapLabels = 0;
+  Label = 0;
 }
 
 CompositeLocus::~CompositeLocus()
 {
-  delete [] Label;
-  if(base)
-    delete[] base;
+  delete[] Label;
+  delete[] base;
+  delete[] NumberOfAlleles;
   delete[] HapPairProbs;
   delete[] HapPairProbsMAP;
-  delete[] NumberOfAlleles;
   delete[] MergeHaplotypes;
   delete[] HapLabels;
 }

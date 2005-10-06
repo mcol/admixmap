@@ -53,14 +53,14 @@ public:
   void Initialise(AdmixOptions *, Genome *, std::string *PopulationLabels, 
 		  double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix);
 
-  void LoadData(AdmixOptions *options, InputData *, LogWriter *Log);
+  void LoadData(AdmixOptions *options, InputData *);
   
   void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels);
 
   void Update(int iteration, AlleleFreqs *A, Regression *R0, Regression *R1,  
 	      const double *poptheta, AdmixOptions *options, Chromosome **chrm, 
 	      std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta,
-	      LogWriter *Log, chib *MargLikelihood);
+	      LogWriter *Log);
 
   void ConjugateUpdateIndAdmixture(int iteration, Regression *R0, Regression *R1, const double *poptheta, 
 				   AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha);
@@ -71,7 +71,7 @@ public:
 
   void OutputChibEstimates(LogWriter *, int);
 
-  void OutputErgodicAvg(int samples, chib *MargLikelihood, std::ofstream *avgstream);
+  void OutputErgodicAvg(int samples, std::ofstream *avgstream);
 
   int getSize();
 
@@ -92,7 +92,7 @@ public:
   int GetNumberOfInputCovariates();
 
   Matrix_d getCovariates();
-  int getOutcomeType(int);
+  DataType getOutcomeType(int);
   Vector_i *getOutcomeType();
 
   void SetExpectedY(int,Matrix_d);
@@ -105,13 +105,13 @@ public:
   std::string *getCovariateLabels();
 
   double getLL();
-  double DerivativeInverseLinkFunction(int AnalysisType,int i);
+  double DerivativeInverseLinkFunction(int i);
 private:
   Individual **_child; //array of pointers to Individual
   void getLabels(const Vector_s& data,  string *labels);
 
   void LoadCovariates(InputData *);
-  void LoadOutcomeVar(AdmixOptions *options, InputData *, LogWriter *Log);
+  void LoadOutcomeVar(InputData *);
   void LoadRepAncestry(InputData *);
   void InitialiseMLEs(double, double, AdmixOptions *, const DataMatrix&);
 
@@ -139,9 +139,9 @@ private:
   Matrix_d Covariates;//all covariates, including admixture props
   Matrix_d InputCovariates;//covariates from file
   std::string *CovariateLabels;
-  std::string *OutcomeVarLabels;
-  int *OutcomeType;
+  DataType *OutcomeType;
 
+  chib MargLikelihood;
 };
 
 #endif /* !defined INDIVIDUAL_COLLECTION_H */

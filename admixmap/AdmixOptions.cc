@@ -72,7 +72,7 @@ AdmixOptions::AdmixOptions()
   fixedallelefreqs = false;
   correlatedallelefreqs = false;
   RandomMatingModel = false;
-  RegressionIndicator = false;
+  NumberOfOutcomes = 0;
   RhoIndicator = false;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
   MLIndicator = false;//calculate marginal likelihood - valid only for analysistypeindicator < 0
@@ -257,10 +257,12 @@ int AdmixOptions::getAnalysisTypeIndicator() const
 {
   return AnalysisTypeIndicator;
 }
-bool AdmixOptions::isRegressionModel() const{
-  return RegressionIndicator;
+int AdmixOptions::getNumberOfOutcomes() const{
+  return NumberOfOutcomes;
 }
-
+void AdmixOptions::setNumberOfOutcomes(int i){
+  NumberOfOutcomes = i;
+}
 const char *AdmixOptions::getAssocScoreFilename() const
 {
   return AssocScoreFilename.c_str();
@@ -616,8 +618,8 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"mlefile",                               1, 0,  0 }, // string
 
     // Optional if specify outcomevarfile
-    {"targetindicator",                       1, 0, 't'}, // int
-    // 0: no. of cols in outcomvarfile
+    {"outcomes",                              1, 0,  0 }, // int 1: no. of cols in outcomvarfile
+    {"targetindicator",                       1, 0, 't'}, // 0: no. of cols in outcomvarfile
 
     //standard output files (optional)
     {"paramfile",                             1, 0, 'p'}, // string
@@ -929,7 +931,7 @@ void AdmixOptions::PrintOptions(){
 
 int AdmixOptions::checkOptions(LogWriter *Log){
   // **** analysis type  ****
-  RegressionIndicator = false;
+
   if (AnalysisTypeIndicator == 0)
     {
       Log->logmsg(true,"Affecteds only analysis.\n");
@@ -943,7 +945,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == 2)
     {
-      RegressionIndicator = true;
+      NumberOfOutcomes = 1;
       Log->logmsg(true,"Cross sectional analysis, continuous outcome.\n");
       if( OutcomeVarFilename.length() == 0 )
 	{
@@ -953,7 +955,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == 3)
     {
-      RegressionIndicator = true;
+      NumberOfOutcomes = 1;
       Log->logmsg(true,"Cross sectional analysis, binary outcome.\n");
       if( OutcomeVarFilename.length() == 0 )
 	{
@@ -963,7 +965,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == 4)
     {
-      RegressionIndicator = true;
+      NumberOfOutcomes = 1;
       Log->logmsg(true,"Case control analysis.\n");
       if( OutcomeVarFilename.length() == 0  )
 	{
@@ -973,7 +975,7 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
   else if (AnalysisTypeIndicator == 5)
     {
-      RegressionIndicator = true;
+      NumberOfOutcomes = 2;
       Log->logmsg(true,"Cross sectional analysis, multiple outcome.\n");
       if( OutcomeVarFilename.length() == 0  )
 	{
@@ -996,11 +998,20 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       Log->logmsg(true, "\n");
       exit(0);
     }
-  if(!RegressionIndicator && RegressionOutputFilename.length() > 0){
-    Log->logmsg(true, "ERROR: regparamfile option is not valid without a regression model\n");
-    Log->logmsg(true, "\tThis option will be ignored\n");
-    RegressionOutputFilename = "";
-    OptionValues.erase("regparamfile");
+  if(OutcomeVarFilename.length() == 0){
+    if(NumberOfOutcomes > 0){
+      Log->logmsg(true, "ERROR: 'outcomes' > 0 and no outcomevarfile specified\n");
+      exit(1);
+    }
+    //should check for specified targetindicator too, simply ignoring for now
+    if(RegressionOutputFilename.length() > 0){
+      Log->logmsg(true, "ERROR: regparamfile option is not valid without a regression model\n");
+      Log->logmsg(true, "\tThis option will be ignored\n");
+      RegressionOutputFilename = "";
+      OptionValues.erase("regparamfile");
+    }
+
+
   }
 
 
