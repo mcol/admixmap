@@ -22,7 +22,6 @@
 #include "admixmap.h"
 #include "IndividualCollection.h"
 #include "Chromosome.h"
-//#include "chib.h"
 #include "MisSpecAlleleFreqTest.h"
 #include "HWTest.h"
 #include <fstream>
@@ -66,12 +65,11 @@ void submain(AdmixOptions* options){
 
   //check user options and print to file args.txt
   options->checkOptions(&Log);
-  options->PrintOptions();
 
   smyrand( options->getSeed() );  // Initialise random number seed
 
   InputData data; //read data files and check (except allelefreq files)
-  data.readData(options, &Log);
+  data.readData(options, &Log);//also sets 'numberofregressions' option
 
   Genome Loci;
   Loci.loadAlleleStatesAndDistances(options, &data);//creates CompositeLocus objects
@@ -79,6 +77,9 @@ void submain(AdmixOptions* options){
   AlleleFreqs A(&Loci);
   A.Initialise(options, &data, &Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
   //Note: this sets Populations option
+
+  //print user options to args.txt; must be done after all options are set
+  options->PrintOptions();
 
   Chromosome **chrm = 0; //Note: array of pointers to Chromosome
   chrm = Loci.GetChromosomes(options->getPopulations());  //create Chromosome objects

@@ -105,10 +105,10 @@ AdmixOptions::AdmixOptions()
   // option names and option values are stored as strings in a map container 
   OptionValues["burnin"] = "100";
   OptionValues["samples"] = "1100";
+  OptionValues["every"] = "100";
   OptionValues["targetindicator"] = "0";
   OptionValues["coutindicator"] = "1";
   OptionValues["analysistypeindicator"] = "1";
-  OptionValues["every"] = "100";
   OptionValues["fixedallelefreqs"] = "0";
   OptionValues["correlatedallelefreqs"] = "0";
   OptionValues["logfile"] = "log.txt";
@@ -911,13 +911,13 @@ void AdmixOptions::SetOutputNames(){
 }
 
 void AdmixOptions::PrintOptions(){
-//   //set populations value in case it has changed
-//   //NB do similar for any option that can be changed outside AdmixOptions
-//   std::ostringstream s;
-//   if (s << Populations) // conversion worked
-//     {
-//     OptionValues["populations"] = (char *)s.str().c_str();
-//     }
+  //set populations value in case it has changed
+  //NB do similar for any option that can be changed outside AdmixOptions
+  std::ostringstream s;
+  if (s << Populations) // conversion worked
+    {
+    OptionValues["populations"] = (char *)s.str().c_str();
+    }
   //Now output Options table to args.txt
   string ss;
   ss = ResultsDir + "/args.txt";
@@ -1081,17 +1081,9 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     }
 
   // **** model for allele freqs ****
-  if(Populations > 0 )
-    {
-      Log->logmsg(true,"No allelefreq filename or priorallelefreq filename given.\n");
-      Log->logmsg(true,"Default priors will be set for the allele frequencies with ");
-      Log->logmsg(true, Populations);
-      Log->logmsg(true," population(s)\n");
-      if(correlatedallelefreqs) {
-	Log->logmsg(true,"Analysis with correlated allele frequencies\n");
-      }
-    }
-  else if( alleleFreqFilename.length() ||
+
+  //fixed allele freqs
+  if( alleleFreqFilename.length() ||
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
     Log->logmsg(true,"Analysis with fixed allele frequencies.\n");
     if(OutputAlleleFreq){
@@ -1101,12 +1093,29 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       OutputAlleleFreq = false;
     }
   }
+  //prior allele freqs
   else if( PriorAlleleFreqFilename.length() && !fixedallelefreqs ){
     Log->logmsg(true,"Analysis with prior allele frequencies.\n");
+    if(correlatedallelefreqs) {
+      Log->logmsg(true,"Analysis with correlated allele frequencies\n");
+    }
   }
+  //historic allele freqs
   else if( HistoricalAlleleFreqFilename.length() > 0 ){
     Log->logmsg(true,"Analysis with dispersion model for allele frequencies.\n");
   }
+  //default priors ('populations' option)
+  else if(Populations > 0 )
+    {
+      Log->logmsg(true,"No allelefreq priorallelefreq or historicallelefreq filename given.\n");
+      Log->logmsg(true,"Default priors will be set for the allele frequencies with ");
+      Log->logmsg(true, Populations);
+      Log->logmsg(true," population(s)\n");
+      if(correlatedallelefreqs) {
+	Log->logmsg(true,"Analysis with correlated allele frequencies\n");
+      }
+    }
+  
   if( (FSTOutputFilename.length() > 0) && (HistoricalAlleleFreqFilename.length() == 0) ){
     Log->logmsg(true, "ERROR: fstoutputfile option is only valid with historicallelefreqfile option\n");
     Log->logmsg(true, "       this option will be ignored\n");
