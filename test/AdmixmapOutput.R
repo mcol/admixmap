@@ -111,6 +111,10 @@ getPopulationLabels <- function(k, user.options) {
           population.labels <- dimnames(read.table(user.options$historicallelefreqfile,
                                                    header=TRUE))[[2]][-1]
         }
+        else {
+          population.labels <- rep("Pop",K)
+          for(i in 1:K)population.labels[i] <- paste(population.labels[i], format(i),sep="")
+        }        
       }
     }
   }
