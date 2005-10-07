@@ -16,7 +16,14 @@ class Individual;
 
 class IndAdmixOutputter 
 {
-private: // members
+public:
+  IndAdmixOutputter(AdmixOptions*,Genome*,std::string*);
+  virtual ~IndAdmixOutputter();
+  void visitIndividual(Individual&, std::vector<int>,double);
+  void visitIndividualCollection(IndividualCollection&);
+
+
+private: 
   std::ofstream _out;
 
   AdmixOptions* _options;
@@ -27,21 +34,13 @@ private: // members
   int _totalIndividuals;
   int _currentIndividual;
 
-  int _analysisType;
-  bool _isLogistic;
-   bool _ModelIndicator;
+  bool _RandomMatingModelIndicator;
 
   // UNIMPLEMENTED
   // to avoid use
   IndAdmixOutputter();
   IndAdmixOutputter(const IndAdmixOutputter&);
   IndAdmixOutputter& operator=(const IndAdmixOutputter&);
-
-public:
-  IndAdmixOutputter(AdmixOptions*,Genome*,std::string*);
-  virtual ~IndAdmixOutputter();
-  void visitIndividual(Individual&, std::vector<int>,double);
-  void visitIndividualCollection(IndividualCollection&);
 
 };
 

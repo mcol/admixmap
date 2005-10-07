@@ -402,12 +402,11 @@ double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, d
 
 // unnecessary duplication of code - ? should embed within method for > 1 population
 void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY,
-				      double *lambda, int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A )
+				      double *lambda, Chromosome **chrm, AlleleFreqs *A )
 {
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
-    if( AnalysisTypeIndicator > 1 ){
-      if( Outcome->isMissing( i, k ) ){
+       if( Outcome->isMissing( i, k ) ){
 	if( OutcomeType[k] == Continuous )
 	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
 	else{
@@ -417,7 +416,6 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
 	    Outcome->set( i, k, 0);
 	}
       }
-    }
   }
   // update allele counts
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -506,13 +504,10 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
       //Update affecteds only scores
-      if( options->getAnalysisTypeIndicator() == 0 ) 
-	UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(), 
-					   chrm );
-      else if( options->getTestForAffectedsOnly() && Outcome->get(i, 0) == 1 ){
-	UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(), 
-					   chrm );
-      }
+      if( options->getTestForAffectedsOnly())
+	if(options->getNumberOfOutcomes() == 0 || Outcome->get(i, 0) == 1)
+	UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(),chrm );
+
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){   
 	UpdateScoreForAncestry(j,dispersion, Outcome->get(i, 0) - ExpectedY[0][i], DInvLink,chrm);
@@ -554,7 +549,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
     for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] += log(_rho[i]);
   }
 
-  if( options->getAnalysisTypeIndicator() > 1 ){
+  if( options->getNumberOfOutcomes() > 0 ){
     // sample missing values of outcome variable
     double u;
     for( int k = 0; k < NumOutcomes; k++ ){
@@ -599,26 +594,13 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMat
   int K = Populations;
 
   //calculate Metropolis acceptance probability ratio for proposal theta    
-  //should have one function to do this
-
-  //linear regression case
-  if( options->getAnalysisTypeIndicator() == 2 && !options->getTestForAdmixtureAssociation() ){
-    logpratio += LogAcceptanceRatioForRegressionModel( i, Linear, 0, options->isRandomMatingModel(), K,
-						      NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
-  }
-  //logistic regression case
-  else if( (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4) && !options->getTestForAdmixtureAssociation() ){
-     logpratio += LogAcceptanceRatioForRegressionModel( i, Logistic, 0, options->isRandomMatingModel(), K,
-						      NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
-    }
-  //case of both linear and logistic regressions
-  else if( options->getAnalysisTypeIndicator() == 5 ){
+  if(!options->getTestForAdmixtureAssociation()){
     RegressionType RegType;
     for( int k = 0; k < NumOutcomes; k++ ){
       if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
-	logpratio +=  LogAcceptanceRatioForRegressionModel( i, RegType, k, options->isRandomMatingModel(), K,
-						    NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
-      }
+      logpratio +=  LogAcceptanceRatioForRegressionModel( i, RegType, k, options->isRandomMatingModel(), K,
+							  NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
+    }
   }
   //case of X only data
   if( Loci->isX_data() && !options->getXOnlyAnalysis() )
@@ -628,7 +610,7 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMat
   Accept_Reject_Theta(logpratio, Loci->isX_data(), K, options->isRandomMatingModel(), RW );
 
  // update the value of admixture proportions used in the regression model  
-  if( options->getAnalysisTypeIndicator() > 1 )
+  if( options->getNumberOfOutcomes() > 0 )
     UpdateAdmixtureForRegression(i, K, NoCovariates, poptheta, options->isRandomMatingModel(),&(Covariates));
 
   if(iteration > options->getBurnIn()){
@@ -743,7 +725,7 @@ void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vecto
   }
   else if( options->isRandomMatingModel() ){//random mating model
     for( unsigned int g = 0; g < 2; g++ ){
-      if( options->getAnalysisTypeIndicator() > -1 ){
+      if( options->getIndAdmixHierIndicator() ){
          for(size_t k = 0; k < K; ++k){
             temp[k] = alpha[0][k] + SumLocusAncestry[k + K*g];
             if( g == 0 )
@@ -1346,7 +1328,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	}
       }
     }
-    if( options->getAnalysisTypeIndicator() == -1 ){
+    //if( options->getAnalysisTypeIndicator() == -1 ){
       if( iteration == options->getBurnIn() ){
 	InitializeChib(thetahat, thetahatX, rhohat, rhohatX,
 		       options, A, chrm, rhoalpha, rhobeta, 
@@ -1367,7 +1349,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	MargLikelihood->addLogPosteriorObs( LogPosterior );
 	*SumLogLikelihood += *LogLikelihood;
      }
-    }
+      //}
 
 }
 

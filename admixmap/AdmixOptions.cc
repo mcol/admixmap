@@ -56,7 +56,6 @@ AdmixOptions::AdmixOptions()
   TotalSamples = 1100;
   SampleEvery = 10;
   Seed = 1;
-  AnalysisTypeIndicator = 0;
   TargetIndicator = 0;
   TruncPt = 99;
   Populations = 0;
@@ -73,9 +72,10 @@ AdmixOptions::AdmixOptions()
   correlatedallelefreqs = false;
   RandomMatingModel = false;
   NumberOfOutcomes = -1;
+  RegType = None;
   RhoIndicator = false;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
-  MLIndicator = false;//calculate marginal likelihood - valid only for analysistypeindicator < 0
+  MLIndicator = false;//calculate marginal likelihood
   AnnealIndicator = false;
   ScoreTestIndicator = false; //indicator for any of the score tests in ScoreTests class
   TestForAdmixtureAssociation = false;
@@ -108,7 +108,6 @@ AdmixOptions::AdmixOptions()
   OptionValues["every"] = "100";
   OptionValues["targetindicator"] = "0";
   OptionValues["coutindicator"] = "1";
-  OptionValues["analysistypeindicator"] = "1";
   OptionValues["fixedallelefreqs"] = "0";
   OptionValues["correlatedallelefreqs"] = "0";
   OptionValues["logfile"] = "log.txt";
@@ -253,10 +252,6 @@ bool AdmixOptions::getOutputAlleleFreq() const
   return OutputAlleleFreq;
 }
 
-int AdmixOptions::getAnalysisTypeIndicator() const
-{
-  return AnalysisTypeIndicator;
-}
 int AdmixOptions::getNumberOfOutcomes() const{
   return NumberOfOutcomes;
 }
@@ -266,6 +261,12 @@ void AdmixOptions::setNumberOfOutcomes(int i){
     OptionValues.erase("outcomevarfile");
     OutcomeVarFilename = "";
   }
+}
+void AdmixOptions::setRegType(RegressionType R){
+  RegType = R;
+  if(R == Both)NumberOfOutcomes = 2;
+  else if(R != None) NumberOfOutcomes = 1;
+  else setNumberOfOutcomes(0);
 }
 const char *AdmixOptions::getAssocScoreFilename() const
 {
@@ -603,7 +604,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 
   static struct option long_options[] = {
     // Required options
-    {"analysistypeindicator",                 1, 0,  0 }, // int 0: 4
+    {"analysistypeindicator",                 1, 0,  0 }, // int 0: 4 - redundant but kept for backward compatibility(does nothing)
     {"locusfile",                             1, 0, 'l'}, // string
     {"genotypesfile",                         1, 0, 'g'}, // string
     {"burnin",                                1, 0, 'b'}, // long
@@ -616,13 +617,12 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"allelefreqfile",                        1, 0, 'a'}, // string
     {"historicallelefreqfile",                1, 0,  0 }, // string
 
-    // Required with certain analysistypeindicator values
     {"outcomevarfile",                        1, 0,  0 }, // string
     {"covariatesfile",                        1, 0,  0 }, // string
     {"mlefile",                               1, 0,  0 }, // string
 
     // Optional if specify outcomevarfile
-    {"outcomes",                              1, 0,  0 }, // int 1: no. of cols in outcomvarfile
+    {"outcomes",                              1, 0, 'o'}, // int 1: no. of cols in outcomvarfile
     {"targetindicator",                       1, 0, 't'}, // 0: no. of cols in outcomvarfile
 
     //standard output files (optional)
@@ -718,6 +718,9 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     case 'l': // locusfile
       { LocusFilename = optarg;OptionValues["locusfile"]=optarg;}
       break;
+    case 'o': //number of outcomes
+      {NumberOfOutcomes = (int)strtol(optarg, NULL, 10); OptionValues["outcomes"]=optarg;}
+      break;
 
     case 'p': // paramfile
       { ParameterFilename = optarg;OptionValues["paramfile"]=optarg;}
@@ -764,7 +767,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	 AlleleFreqScoreFilename2 = optarg;OptionValues["allelefreqscorefile2"]=optarg;
 	 TestForMisspecifiedAlleleFreqs2 = true;
       } else if (long_option_name == "analysistypeindicator") {
-	 AnalysisTypeIndicator = (int)strtol(optarg, NULL, 10);OptionValues["analysistypeindicator"]=optarg;
+	;//do nothing
       } else if (long_option_name == "covariatesfile") {
 	 CovariatesFilename = optarg;OptionValues["covariatesfile"]=optarg;
       } else if (long_option_name == "mlefile") {
@@ -933,75 +936,45 @@ void AdmixOptions::PrintOptions(){
   argstream.close();
 }
 
-int AdmixOptions::checkOptions(LogWriter *Log){
+int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
   // **** analysis type  ****
 
-  if (AnalysisTypeIndicator == 0)
-    {
-      Log->logmsg(true,"Affecteds only analysis.\n");
-      if( !TestForAffectedsOnly ){
-        Log->logmsg(true,"Must specify affectedsonlyscorefile.\n");
-      }
-    }
-  else if (AnalysisTypeIndicator == 1)
-    {
-      Log->logmsg(true,"Cross sectional analysis, no outcome.\n");
-    }
-  else if (AnalysisTypeIndicator == 2)
-    {
-      NumberOfOutcomes = 1;
-      Log->logmsg(true,"Cross sectional analysis, continuous outcome.\n");
-      if( OutcomeVarFilename.length() == 0 )
-	{
-	   Log->logmsg(true,"Must specify outcomevar file.\n");
-	   exit(0);
-	}
-    }
-  else if (AnalysisTypeIndicator == 3)
-    {
-      NumberOfOutcomes = 1;
-      Log->logmsg(true,"Cross sectional analysis, binary outcome.\n");
-      if( OutcomeVarFilename.length() == 0 )
-	{
-	  Log->logmsg(true,"Must specify outcomevar file.\n");
-	  exit(0);
-	}
-    }
-  else if (AnalysisTypeIndicator == 4)
-    {
-      NumberOfOutcomes = 1;
-      Log->logmsg(true,"Case control analysis.\n");
-      if( OutcomeVarFilename.length() == 0  )
-	{
-	   Log->logmsg(true,"Must specify outcomevar file.\n");
-	   exit(0);
-	}
-    }
-  else if (AnalysisTypeIndicator == 5)
-    {
-      NumberOfOutcomes = 2;
-      Log->logmsg(true,"Cross sectional analysis, multiple outcome.\n");
-      if( OutcomeVarFilename.length() == 0  )
-	{
-	  Log->logmsg(true,"Must specify outcomevar file.\n");
-	  exit(0);
-	}
-    }
-  else if (AnalysisTypeIndicator == -1 || AnalysisTypeIndicator == -2)
+  if (NumberOfIndividuals ==1)
     {
       IndAdmixHierIndicator = false;
       Log->logmsg(true,"One individual analysis");
-      if(MLIndicator)Log->logmsg(true, " with marginal likelihood calculation");
-      Log->logmsg(true, "\n");
     }
 
-  else
+  else if (RegType == None)
     {
-      Log->logmsg(true,"Unknown analysis type: ");
-      Log->logmsg(true, AnalysisTypeIndicator);
-      Log->logmsg(true, "\n");
-      exit(0);
+      NumberOfOutcomes = 0;
+      if(AffectedsOnlyScoreFilename.length()>0){
+	Log->logmsg(true,"Affecteds only analysis");
+      }
+      else 
+	{
+	  Log->logmsg(true,"Cross sectional analysis, no outcome");
+	}
     }
+  else if (RegType == Linear)
+    {
+      NumberOfOutcomes = 1;
+      Log->logmsg(true,"Cross sectional analysis, continuous outcome");
+    }
+  else if (RegType == Logistic)
+    {
+      NumberOfOutcomes = 1;
+      Log->logmsg(true,"Cross sectional analysis, binary outcome");
+    }
+  else if (RegType == Both)
+    {
+      NumberOfOutcomes = 2;
+      Log->logmsg(true,"Cross sectional analysis, multiple outcome");
+    }
+  if(MLIndicator)Log->logmsg(true, " with marginal likelihood calculation for first individual");
+  Log->logmsg(true, "\n");
+
+
   if(OutcomeVarFilename.length() == 0){
     if(NumberOfOutcomes > 0){
       Log->logmsg(true, "ERROR: 'outcomes' > 0 and no outcomevarfile specified\n");
@@ -1014,8 +987,6 @@ int AdmixOptions::checkOptions(LogWriter *Log){
       RegressionOutputFilename = "";
       OptionValues.erase("regparamfile");
     }
-
-
   }
 
 
@@ -1057,19 +1028,6 @@ int AdmixOptions::checkOptions(LogWriter *Log){
     Log->logmsg(true,"Model with gamete specific sumintensities.\n");
   else
     Log->logmsg(true,"Model with individual specific sumintensities.\n");
-
-  // **** Marginal Likelihood ****
-  if(MLIndicator){
-    if(AnalysisTypeIndicator >= 0){
-      Log->logmsg(true, "Error: Cannot calculate marginal likelihood with analysis type ");
-      Log->logmsg(true, AnalysisTypeIndicator);
-      Log->logmsg(true, "\n");
-      exit(0);
-    }
-    //change this when marginal likelihood can be calculated for other type of model
-    //else Log->logmsg(true,"Analysis with marginal likelihood calculation\n");
-  }
-
 
   // **** Check whether genotypes file has been specified ****
   if ( GenotypesFilename.length() == 0 )
@@ -1150,26 +1108,31 @@ int AdmixOptions::checkOptions(LogWriter *Log){
   }
 
   if( TestForAffectedsOnly )
-    if(!(AnalysisTypeIndicator==0 || AnalysisTypeIndicator==3 || AnalysisTypeIndicator==4)){
-      Log->logmsg(true,"ERROR: affectedsonly score test is only valid with analysistypeindicator 0, 3, or 4.");
+    if( RegType == Linear){
+      Log->logmsg(true,"ERROR: affectedsonly score test is not valid with a linear regression only.");
       Log->logmsg(true," This option will be ignored.\n");
       setTestForAffectedsOnly(false);
     }
     else   OptionValues["likratiofilename"] = "LikRatioFile.txt";
   if( TestForLinkageWithAncestry ){
-    if(AnalysisTypeIndicator < 2){
-      Log->logmsg(true,"ERROR: ancestryassociation score test is not valid with analysistypeindicator < 2 .");
+    if(NumberOfOutcomes < 1){
+      Log->logmsg(true,"ERROR: ancestryassociation score test is not valid without a regression model.");
       Log->logmsg(true," This option will be ignored.\n");
       setTestForLinkageWithAncestry(false);
     }
   }
   if( TestForAllelicAssociation ){
-    if( AnalysisTypeIndicator < 2 ){
-      Log->logmsg(true,"ERROR: allelic association score test is not valid with analysistypeindicator < 2.");
+    if( NumberOfOutcomes < 1 ){
+      Log->logmsg(true,"ERROR: allelic association score test is not valid without a regression model.");
       Log->logmsg(true," This option will be ignored.\n");
       setTestForAllelicAssociation(false);
     }
   }
+  if( TestForSNPsInHaplotype && !TestForAllelicAssociation ){
+      Log->logmsg(true,"ERROR: Can't test for haplotype associations if allelicassociationscorefile is not specified");
+      Log->logmsg(true, " This option will be ignored.\n");
+      setTestForSNPsInHaplotype(false);
+    }
   
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || TestForAdmixtureAssociation
 			|| TestForSNPsInHaplotype);
@@ -1202,7 +1165,7 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
   }
   //if both are specified and analysis is for a single individual,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
-  else if( AnalysisTypeIndicator < 0 ){ // should be if indadmixhiermodel=0
+  else if( !IndAdmixHierIndicator ){ // should be if indadmixhiermodel=0
     _admixed[0] = CheckInitAlpha( alpha0 );    //gamete 1
     _admixed[1] = CheckInitAlpha( alpha1 );    //gamete 2
 
@@ -1219,7 +1182,7 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
     _symmetric = false;
   }
   else{
-    Log->logmsg(true,"ERROR: Can specify separate priors on admixture of each gamete only if analysing single individual\n");
+    Log->logmsg(true,"ERROR: Can specify separate priors on admixture of each gamete only if indadmixhierindicator = 0\n");
     exit(1);
   }
   return initalpha;

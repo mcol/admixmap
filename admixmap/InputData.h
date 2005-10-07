@@ -140,7 +140,7 @@ private:
   void CheckGeneticData(AdmixOptions *options);
   void checkLociNames(AdmixOptions *options);
   unsigned determineNumberOfCompositeLoci();
-  int CheckOutcomeVarFile(int, int);
+  RegressionType CheckOutcomeVarFile(int, int);
   void CheckCovariatesFile();
   void CheckRepAncestryFile(int populations);
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles);

@@ -83,7 +83,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
     } else {
       AlphaParameters[0] = Numindividuals;
     }
-    //if( options->getAnalysisTypeIndicator() > -1 ){
+    //if( NumIndividuals > 1 ){
     AlphaParameters[1] = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, plus<double>());//sum of alpha[0]
     AlphaParameters[2] = alphapriormean*alphapriormean / alphapriorvar; // shape parameter of gamma prior
     AlphaParameters[3] = alphapriormean / alphapriorvar; // rate parameter of gamma prior
@@ -254,14 +254,14 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
    }
    
    if( iteration < options->getBurnIn() && options->getPopulations() > 1
-       && options->getAnalysisTypeIndicator() > 1 ){
+       && options->getNumberOfOutcomes() > 0 ){
      // accumulate ergodic average of population admixture, which is used to centre 
      // the values of individual admixture in the regression model
      double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
      for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
    }
    
-   if( iteration == options->getBurnIn() && options->getAnalysisTypeIndicator() > 1 ){
+   if( iteration == options->getBurnIn() && options->getNumberOfOutcomes() > 0 ){
      Log->write("Individual admixture centred in regression model around: ");
      Log->write( poptheta, options->getPopulations());
      Log->write("\n");
@@ -340,10 +340,7 @@ void Latent::InitializeOutputFile(std::string *PopulationLabels)
 {
   // Header line of paramfile
 
-//   if(options->getAnalysisTypeIndicator() < 0){//Analysis for a single individual or set of individuals
-//     outputstream << "\"Log Likelihood\"\t \"Log Posterior\"\n";
-//   }
-  if( options->getAnalysisTypeIndicator() >= 0 ){
+  if( options->getIndAdmixHierIndicator() ){
 
     //Pop. Admixture
     for( int i = 0; i < options->getPopulations(); i++ ){

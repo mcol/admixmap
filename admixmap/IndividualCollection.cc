@@ -61,14 +61,6 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   for (unsigned int i = 0; i < NumInd; ++i) {
     _child[i] = new Individual(i+1,options, Data, Loci, chrm);
     }
-
-  OutcomeType = new DataType[1];
-  OutcomeType[0] = Continuous; 
-  if (options->getAnalysisTypeIndicator() == 3 || options->getAnalysisTypeIndicator() == 4)
-    {
-      OutcomeType[0] = Binary;
-    }
- 
 }
 
 // ************** DESTRUCTOR **************
@@ -128,7 +120,7 @@ void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::
    else if( options->sizeInitAlpha() == 1 ){
     alphatemp = options->getInitAlpha(0);
    }
-   else  if( options->getAnalysisTypeIndicator() < 0 ){
+   else  if( !options->getIndAdmixHierIndicator() ){
      alphatemp = options->getInitAlpha(0);
      
      for( int k = 0; k < K; k++ ){
@@ -216,7 +208,7 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
    rhohatX.resize( NumInd, r );
 
    //use previously read values from file, if available
-   if( options->getAnalysisTypeIndicator() == -2 ){
+   if( NumInd ==1 && strlen(options->getMLEFilename())>0 ){
       rhohat[0][0] = MLEMatrix.get( options->getPopulations(), 0 );
       if( options->getXOnlyAnalysis() ){
 	for(int k = 0; k < options->getPopulations(); ++k) thetahat[0][k] = MLEMatrix.get(k,0);
@@ -230,7 +222,7 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
       }
       setAdmixtureProps(thetahat[0], size_admix);
    }
-   else if( options->getAnalysisTypeIndicator() == -1 ){
+   else if( !options->getIndAdmixHierIndicator() ){
     for(unsigned int i = 0; i < NumInd; ++i){
       for(unsigned k = 0; k < size_admix; ++k)
        thetahat[i][k] = _child[i]->getAdmixtureProps()[k];
@@ -359,7 +351,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
     
     else{//single population 
       _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
-				     options->getAnalysisTypeIndicator(), chrm, A);
+				     chrm, A);
       LogLikelihood += _child[i]->getLogLikelihoodOnePop(false);
     }   
 
@@ -367,7 +359,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
     if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
       _child[i]->CalculateLogPosterior(options, alpha, rhoalpha, rhobeta);
     
-    if( (options->getAnalysisTypeIndicator() < 0) &&  options->getMLIndicator() && (i == 0) )//check if this condition is correct
+    if( options->getMLIndicator() && (i == 0) )//check if this condition is correct
       _child[i]->ChibLikelihood(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
 				options, chrm, alpha, rhoalpha, rhobeta,
 				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], Log, &MargLikelihood, A);
@@ -503,7 +495,7 @@ void IndividualCollection::OutputIndAdmixture()
 
 void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
   //Used only if marglikelihood = 1
-  Log->write("Estimates used in Chib algorithm to estimate marginal likelihood:\n");
+  Log->write("Estimates used in Chib algorithm to estimate marginal likelihood for Individual 1:\n");
   for(unsigned i = 0; i < NumInd; i++ ){
     for(int k = 0; k < Populations; ++k)
       Log->write(thetahat[i][k]);
@@ -511,6 +503,7 @@ void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
       Log->write(thetahat[i][Populations +k]);
     Log->write( rhohat[i][0]);Log->write( rhohat[i][1]);Log->write("\n");
   }
+  Log->logmsg(true, "Individual 1:\n");
   Log->logmsg(true,   "Log likelihood         (at estimates): ");Log->logmsg(true, MargLikelihood.getLogLikelihood());
   Log->logmsg(true, "\nLog prior              (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPrior());
   Log->logmsg(true, "\nLog posterior          (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPosterior());
@@ -548,9 +541,10 @@ double IndividualCollection::getLL(){
 double IndividualCollection::DerivativeInverseLinkFunction(int i){
   double DInvLink = 1.0;
   
-  if(OutcomeType[0] == Binary)
-    DInvLink = ExpectedY[0][i] * (1.0 - ExpectedY[0][i]);
-  else if(OutcomeType[0] == Continuous)DInvLink = 1.0;
-  
+  if(OutcomeType){//in case no regression model
+    if(OutcomeType[0] == Binary)
+      DInvLink = ExpectedY[0][i] * (1.0 - ExpectedY[0][i]);
+    else if(OutcomeType[0] == Continuous)DInvLink = 1.0;
+  }
   return DInvLink;    
 }

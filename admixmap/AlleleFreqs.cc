@@ -795,12 +795,9 @@ void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *Po
     Log->logmsg(true,"Writing dispersion parameters to ");
     Log->logmsg(true,options->getEtaOutputFilename());
     Log->logmsg(true,"\n");
-    if( options->getTextIndicator()  && options->getAnalysisTypeIndicator() >= 0)
+    if( options->getTextIndicator() )
       {
 	//Dispersion parameters (eta)
-	  // next three lines are correct if population label strings are stored with quotes
-	  // should change this
-
 	if(IsHistoricAlleleFreq){
 	  for( int k = 0; k < Populations; k++ ){
 	    outputstream << "\"eta." << PopulationLabels[k]<< "\"\t"; 
@@ -1037,9 +1034,9 @@ void AlleleFreqs::UpdateFst()
 void AlleleFreqs::OpenOutputFile(AdmixOptions *options)
 {
   allelefreqoutput.open(options->getAlleleFreqOutputFilename(), ios::out );
-  if( !allelefreqoutput && options->getAnalysisTypeIndicator() >= 0){
-    cerr << "Warning: Couldn't open allelefreqsoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
-    //exit( 1 );
+  if( !allelefreqoutput && options->getIndAdmixHierIndicator()){
+    cerr << "Warning: Couldn't open allelefreqoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
+    exit( 1 );
   }
   else{
     allelefreqoutput << "structure(.Data=c(" << endl;

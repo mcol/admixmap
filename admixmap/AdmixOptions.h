@@ -40,13 +40,12 @@ public:
     ~AdmixOptions();
 
   void SetOptions(int, char**);
-  int checkOptions(LogWriter *Log);
+  int checkOptions(LogWriter *Log, int NumberOfIndividuals);
   void PrintOptions();
 
   long getBurnIn() const;
   long getTotalSamples() const;
   long getSampleEvery() const; 
-  int getAnalysisTypeIndicator() const;
   long getSeed() const;     
 
   //main output files
@@ -97,6 +96,7 @@ public:
   bool isRandomMatingModel() const;
   int getNumberOfOutcomes() const;
   void setNumberOfOutcomes(int);
+  void setRegType(RegressionType R);
   bool getRhoIndicator() const;
   bool getIndAdmixHierIndicator() const;
   bool getMLIndicator() const;
@@ -157,8 +157,9 @@ private:
   long TotalSamples;
   long SampleEvery;
   long Seed;
-  int AnalysisTypeIndicator;
+  //int AnalysisTypeIndicator;
   int NumberOfOutcomes;
+  RegressionType RegType;
   int TargetIndicator;
   double TruncPt;
   int Populations;
@@ -176,7 +177,7 @@ private:
   bool RandomMatingModel;//random mating model
   bool RhoIndicator;//indicator for non-global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
-  bool MLIndicator;//calculate marginal likelihood - valid only for analysistypeindicator < 0
+  bool MLIndicator;//calculate marginal likelihood 
   bool AnnealIndicator;
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
   bool TestForAdmixtureAssociation;

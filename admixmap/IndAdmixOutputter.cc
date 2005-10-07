@@ -13,13 +13,7 @@ IndAdmixOutputter::IndAdmixOutputter(AdmixOptions* options,Genome* Loci,string* 
   _currentIndividual = 0;
 
 
-  _analysisType = options->getAnalysisTypeIndicator();
-  _isLogistic = false;
-  if((_analysisType==3)||(_analysisType==4)){
-    _isLogistic = true;
-  }
-
-  _ModelIndicator = options->isRandomMatingModel();
+  _RandomMatingModelIndicator = options->isRandomMatingModel();
 
   if (_options->getLocusForTest() >= (int)_Loci->GetNumberOfCompositeLoci()){
     cerr << "locusfortest is greater than number of loci" << endl;
@@ -40,26 +34,27 @@ IndAdmixOutputter::~IndAdmixOutputter()
       dimOne += 2;
     }
   }
-  if( _analysisType > 1 ){//need this with commented bits below removed
-    dimOne -= 1;
-  }
-  if (_options->getPopulations() > 0 && _ModelIndicator ){
-    dimOne += 2 * _options->getPopulations();
-  }
-  else if(_options->getPopulations() > 0 && !_ModelIndicator ){
-    dimOne += _options->getPopulations();
+
+//number of cols for admixture proportions
+  if (_options->getPopulations() > 0){
+    if( _RandomMatingModelIndicator ){
+      dimOne += 2 * _options->getPopulations();
+    }
+    else {
+      dimOne += _options->getPopulations();
+    }
   }
 
-  if( (_analysisType != 1) && (_analysisType != 0) ){
-    dimOne++;
-  }
-
+  //number of cols for sumintensities
   if( _options->getRhoIndicator() ){
      if(_options->isRandomMatingModel())
         dimOne += 2;
      else
         dimOne++;
   }
+  //column for loglikelihood
+  if(_totalIndividuals == 1)
+    dimOne++;
   
   _out << ")," << endl;
   _out << ".Dim = c(" << dimOne << "," << _totalIndividuals << "," << _iterations << ")," << endl;
@@ -79,13 +74,9 @@ IndAdmixOutputter::~IndAdmixOutputter()
         _out << "\"rho\",";
   }
 
-  if( (_analysisType < 0) ){
+  if( (_totalIndividuals == 1) ){
      _out << "\"Log-likelihood\"";
   }
-
-//   if( _analysisType > 1 ){
-//     _out << "\"ExpectedOutcomeVar\"";
-//   }
 
   if (_options->getLocusForTestIndicator()){
     if( _options->getPopulations() > 1 ){
@@ -117,11 +108,7 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
   }
   
         
-//   if( _analysisType > 1 ){
-//     _out << expectedY << ",";
-//   }
-
-  if( (_analysisType < 0) ){
+  if( (_totalIndividuals == 1 ) ){
      _out << LogLikelihood << ",";
   }
 
@@ -148,8 +135,7 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
   _currentIndividual++;
 }
 
-void
-IndAdmixOutputter::visitIndividualCollection(IndividualCollection& i)
+void IndAdmixOutputter::visitIndividualCollection(IndividualCollection& i)
 {
   _iterations++;
   _totalIndividuals = i.getSize();

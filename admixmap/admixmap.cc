@@ -63,13 +63,12 @@ void submain(AdmixOptions* options){
   LogWriter Log(options->getLogFilename(),options->useCOUT());
   Log.StartMessage(&timer);
 
-  //check user options and print to file args.txt
-  options->checkOptions(&Log);
-
   smyrand( options->getSeed() );  // Initialise random number seed
 
   InputData data; //read data files and check (except allelefreq files)
   data.readData(options, &Log);//also sets 'numberofregressions' option
+  //check user options
+  options->checkOptions(&Log, data.getNumberOfIndividuals());
 
   Genome Loci;
   Loci.loadAlleleStatesAndDistances(options, &data);//creates CompositeLocus objects
@@ -95,7 +94,7 @@ void submain(AdmixOptions* options){
   Regression R1;
   if(options->getNumberOfOutcomes() > 0){
     R0.Initialise(0, IC, options, &Log);
-    if(options->getAnalysisTypeIndicator() == 5)R1.Initialise(1, IC, options, &Log);
+    if(options->getNumberOfOutcomes() == 2)R1.Initialise(1, IC, options, &Log);
   }
   Regression::OpenOutputFile(options, IC, data.GetPopLabels(), &Log);  
 
@@ -108,11 +107,11 @@ void submain(AdmixOptions* options){
   //set expected Y
   if(options->getNumberOfOutcomes() > 0){
     R0.SetExpectedY(IC);
-    if(options->getAnalysisTypeIndicator() == 5)R1.SetExpectedY(IC);
+    if(options->getNumberOfOutcomes() == 2)R1.SetExpectedY(IC);
   }		
 
   //   ** single individual, one population, allele frequencies 
-   if( options->getAnalysisTypeIndicator() == -1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
+   if( IC->getSize() == 1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
      IC->getOnePopOneIndLogLikelihood(&Log, data.GetPopLabels());
 
   else
@@ -148,7 +147,13 @@ void submain(AdmixOptions* options){
   ------------*/
     for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
       if( !(iteration % options->getSampleEvery()) ){
-	Log.Reset(iteration, (options->getAnalysisTypeIndicator() < 0), (int)( log10((double)options->getTotalSamples())+1 ) );
+	if(IC->getSize() >1)
+	  Log.Reset(iteration, (int)( log10((double)options->getTotalSamples())+1 ) );
+	if( options->useCOUT() ) {
+	  cout << setiosflags( ios::fixed );
+	  cout.width((int)( log10((double)options->getTotalSamples())+1 ) );
+	  cout << iteration << " ";
+	}
       }
 
       A.ResetAlleleCounts();
@@ -184,7 +189,7 @@ void submain(AdmixOptions* options){
       // ** update regression parameters (if regression model)
       if( options->getNumberOfOutcomes() > 0 ){
 	R0.Update((iteration > options->getBurnIn()), IC);
-      if( options->getAnalysisTypeIndicator() == 5) R1.Update((iteration > options->getBurnIn()), IC);
+      if( options->getNumberOfOutcomes() == 2) R1.Update((iteration > options->getBurnIn()), IC);
       }
 
       // ** set merged haplotypes for allelic association score test 
@@ -194,7 +199,7 @@ void submain(AdmixOptions* options){
       
       // output every 'getSampleEvery()' iterations
       if( !(iteration % options->getSampleEvery()) ){
-	if( options->getAnalysisTypeIndicator() >= 0 ){
+	if( options->getIndAdmixHierIndicator() ){
 	  //Only output population-level parameters when there is a hierarchical model on indadmixture
 	  // ** pop admixture, sumintensities
 	  if(options->getPopulations() > 1) L.OutputParams(iteration);
@@ -203,7 +208,7 @@ void submain(AdmixOptions* options){
 	  // ** regression parameters
 	  if( options->getNumberOfOutcomes() > 0 ){
 	    R0.Output(iteration, options, &Log);
-	    if( options->getAnalysisTypeIndicator() == 5)
+	    if( options->getNumberOfOutcomes() == 2)
 	      R1.Output(iteration, options, &Log);
 	  }
 	  //** new line in logfile
@@ -237,11 +242,11 @@ void submain(AdmixOptions* options){
 	    L.OutputErgodicAvg(samples,&avgstream);
 	    if( options->getNumberOfOutcomes() > 0 ){
 	      R0.OutputErgodicAvg(samples, &avgstream);
-	      if( options->getAnalysisTypeIndicator() == 5)
+	      if( options->getNumberOfOutcomes() == 2)
 		R1.OutputErgodicAvg(samples, &avgstream);
 	    }
 	    A.OutputErgodicAvg(samples, &avgstream);
-	    if( options->getAnalysisTypeIndicator() == -1 ){
+	    if( IC->getSize()==1 ){
 	      IC->OutputErgodicAvg(samples, &avgstream);
 	    }
 	    avgstream << endl;
@@ -442,7 +447,7 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
 
 
   // Regression parameters
-  if( options->getAnalysisTypeIndicator() > 1 ){
+  if( options->getNumberOfOutcomes() > 0 ){
     for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
       *avgstream << "       \"intercept\" ";
       if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified

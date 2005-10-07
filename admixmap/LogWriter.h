@@ -34,7 +34,7 @@ public:
   LogWriter(const char *LogFilename, const bool useCout);
   ~LogWriter();
 
-  void Reset(const int iteration, const bool, const int);
+  void Reset(const int iteration, const int);
 
   //logmsg functions write to logfile
   //also write to screen unless cout = 0 and first arg is false

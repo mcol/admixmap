@@ -95,7 +95,7 @@ public:
 		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, double, double, bool);
 
  void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda,
-			   int AnalysisTypeIndicator, Chromosome **chrm, AlleleFreqs *A );
+			   Chromosome **chrm, AlleleFreqs *A );
 
   void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
 		      AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha,  

@@ -240,7 +240,7 @@ void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log){
     {
       if( RegType != None )
 	{
-	  if(options->getAnalysisTypeIndicator()==5)Log->write("\nRegression ");Log->write((int)RegNumber);
+	  if(options->getNumberOfOutcomes()==2)Log->write("\nRegression ");Log->write((int)RegNumber);
           for( int j = 0; j < NumCovariates; j++ )
 	    {
 	      Log->width(9);
@@ -258,7 +258,7 @@ void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log){
   if( options->useCOUT() )
     {
       if( RegType != None ){
-	if(options->getAnalysisTypeIndicator()==5)cout << "\nRegression " << RegNumber << " ";
+	if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << " ";
 	for( int j = 0; j < NumCovariates; j++ ){
 	  (cout).width(9);
 	  cout << setprecision(6) << beta[j] << " ";
@@ -281,7 +281,7 @@ void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log){
      if( RegType == Linear )
        outputstream << setprecision(6) << lambda << " ";
 	}
-	if(options->getAnalysisTypeIndicator()<5 || RegNumber==1)outputstream << endl;
+	if(options->getNumberOfOutcomes()< 2 || RegNumber==1)outputstream << endl;
 	//output new line in paramfile when last regression model
   }
 }

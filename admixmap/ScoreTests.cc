@@ -285,10 +285,6 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     | haplotype associations |
     -------------------*/  
   if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){
-    if( !options->getTestForAllelicAssociation() ){
-      Logptr->logmsg(true,"Can't test for haplotype associations if allelicassociationscorefile is not specified\n");
-      exit(1);
-    }
     if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
       SNPsAssociationScoreStream = new ofstream( options->getTestsForSNPsInHaplotypeOutputFilename(), ios::out );
       if( !SNPsAssociationScoreStream ){
@@ -307,9 +303,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
       Logptr->logmsg(true, "ERROR: Cannot test for haplotype associations if all loci are simple\n");
       Logptr->logmsg(true, "This option will be ignored\n");
     }
-
   }
-
 
   if( options->getTextIndicator() )InitialiseAssocScoreFile(PLabels);
 }
@@ -409,17 +403,19 @@ void ScoreTests::Update(double dispersion)
   // Update Scores for each individual
   //----------------------------------
   for( int i = 0; i < individuals->getSize(); i++ ){
-    Individual* ind = individuals->getIndividual(i);
-    double YMinusEY = individuals->getOutcome(0, i) - individuals->getExpectedY(i);//individual outcome - its expectation
-    DInvLink = individuals->DerivativeInverseLinkFunction(i);
-    
-    //admixture association
-    if( options->getTestForAdmixtureAssociation() && (options->getNumberOfOutcomes() == 1) ){
-      UpdateScoreForAdmixtureAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
+    if(options->getNumberOfOutcomes() > 0){//if regressionmodel
+      Individual* ind = individuals->getIndividual(i);
+      double YMinusEY = individuals->getOutcome(0, i) - individuals->getExpectedY(i);//individual outcome - its expectation
+      DInvLink = individuals->DerivativeInverseLinkFunction(i);
+      
+      //admixture association
+      if( options->getTestForAdmixtureAssociation() && (options->getNumberOfOutcomes() == 1) ){
+	UpdateScoreForAdmixtureAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
+      }
+      //allelic association
+      if( options->getTestForAllelicAssociation() )
+	UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
     }
-    //allelic association
-    if( options->getTestForAllelicAssociation() )
-      UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
   }
   
   //-----------------------------

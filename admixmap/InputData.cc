@@ -216,7 +216,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   CheckGeneticData(options);
   checkLociNames(options);
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
-    options->setNumberOfOutcomes( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator()) );
+    options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator()) );
   if ( strlen( options->getCovariatesFilename() ) != 0 )
     CheckCovariatesFile();
   if ( strlen( options->getReportedAncestryFilename() ) != 0 )
@@ -392,7 +392,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
   }
 }
 
-int InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
+RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
   //check outcomevarfile and genotypes file have the same number of cols
   if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
     Log->logmsg(true,"ERROR: Genotypes file has ");
@@ -412,9 +412,10 @@ int InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
     }
   }
   else numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;
-  
+
+  RegressionType RegType = None;  
   if(numoutcomes >0){
-    
+    RegType = Both;
     //extract portion of outcomevarfile needed
     std::string* OutcomeVarLabels = new string[ outcomeVarMatrix_.nCols() ];
     getLabels(outcomeVarData_[0], OutcomeVarLabels);
@@ -439,16 +440,20 @@ int InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
       //     }
       
       Log->logmsg(true,"Regressing on ");    
-      if( OutcomeType[j] == Binary )
+      if( OutcomeType[j] == Binary ){
 	Log->logmsg(true,"Binary variable: ");
-      else if(OutcomeType[j] == Continuous )
+	if(numoutcomes==1)RegType = Logistic;
+      }
+      else if(OutcomeType[j] == Continuous ){
 	Log->logmsg(true,"Continuous variable: ");
+	if(numoutcomes==1)RegType = Linear;
+      }
       Log->logmsg(true,outcomeVarData_[0][j+Firstcol]);
       Log->logmsg(true,".\n");
     }
     Log->logmsg(true, "\n");
   }
-  return numoutcomes;
+  return RegType;
 }
 
 void InputData::CheckCovariatesFile(){

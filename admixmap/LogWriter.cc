@@ -135,18 +135,14 @@ void LogWriter::StartMessage(tm *timer){
   logmsg(true,1900+timer->tm_year);
   logmsg(true,"\n\n");
 }
-void LogWriter::Reset(const int iteration, const bool OneIndAnalysis, const int width){
-  if( (!OneIndAnalysis) && (!useCOUTOption || iteration == 0) )
+void LogWriter::Reset(const int iteration, const int width){
+  if( !useCOUTOption || iteration == 0 )
     //output params to log on first iteration and every other when coutindicator = 0
     {
       LogFileStream << setiosflags( ios::fixed );
       LogFileStream.width( width );
       LogFileStream << iteration << " ";
     }
-  if( useCOUTOption ) {
-    cout << setiosflags( ios::fixed );
-    cout.width( width );
-    cout << iteration << " ";
-  }
+
 }
 
