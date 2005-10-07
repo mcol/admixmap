@@ -360,7 +360,7 @@ void IndividualCollection::Update(int iteration, AlleleFreqs *A, Regression *R0,
     else{//single population 
       _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
 				     options->getAnalysisTypeIndicator(), chrm, A);
-      LogLikelihood += _child[i]->getLogLikelihoodOnePop();
+      LogLikelihood += _child[i]->getLogLikelihoodOnePop(false);
     }   
 
     //calculate log posterior if necessary 
@@ -485,7 +485,7 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
     }
   else
     for(unsigned int i = 0; i < NumInd; i++ ){
-      D += -2.0*_child[i]->getLogLikelihoodOnePop();
+      D += -2.0*_child[i]->getLogLikelihoodOnePop(false);
     }
 
   double DIC = 2.0*E - D;
@@ -529,7 +529,7 @@ void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::str
    Log->logmsg(true,"Log-likelihood for unadmixed ");
    Log->logmsg(true, (*PopulationLabels)[0]);
    Log->logmsg(true, ": ");
-   Log->logmsg(true, _child[0]->getLogLikelihoodOnePop());
+   Log->logmsg(true, _child[0]->getLogLikelihoodOnePop(false));
    Log->logmsg(true,"\n");
 
 }

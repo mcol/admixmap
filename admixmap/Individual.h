@@ -71,7 +71,7 @@ public:
   double getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, double* theta, 
 			   vector<double > rho, vector<double> rho_X, bool chibindicator);
 
-  double getLogLikelihoodOnePop();
+  double getLogLikelihoodOnePop(bool chibindicator);
 
   double getLogPosteriorProb();
 

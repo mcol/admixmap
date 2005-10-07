@@ -335,7 +335,7 @@ double Individual::getLogLikelihoodXOnly( AdmixOptions* options, Chromosome **ch
    return LogLikelihood;
 }
 
-double Individual::getLogLikelihoodOnePop()
+double Individual::getLogLikelihoodOnePop(bool chibindicator)
 //Single population log-likelihood
 {
    double Likelihood = 0.0;
@@ -343,7 +343,7 @@ double Individual::getLogLikelihoodOnePop()
    Prob = new double[1];//one pop so 1x1 array
    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
      if(!IsMissing(j)){
-       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), true);
+       (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), chibindicator);
        Likelihood += log( Prob[0] );
      }
    }
@@ -387,7 +387,7 @@ double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, d
 {
 
    double LogLikelihood = 0.0;
-   if(Populations == 1)LogLikelihood = getLogLikelihoodOnePop();//in case this version called when only one population
+   if(Populations == 1)LogLikelihood = getLogLikelihoodOnePop(chibindicator);//in case this version called when only one population
    else{
      for( unsigned int j = 0; j < numChromosomes; j++ ){      
        UpdateForBackProbs(j, chrm[j], options, theta, thetaX, rho, rho_X, chibindicator, false);
@@ -1255,7 +1255,7 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
          }
       }
       else{
-	LogLikelihoodAtEst = getLogLikelihoodOnePop();
+	LogLikelihoodAtEst = getLogLikelihoodOnePop(true);
       }
    }
    if( A->IsRandom() ){
