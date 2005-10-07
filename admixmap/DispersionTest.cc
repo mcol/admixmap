@@ -106,7 +106,7 @@ void DispersionTest::Output(int samples,Genome& Loci, std::string *PopLabels){
   //write header
   dispersionoutputstream << "Locus";
   for(int i = 0; i< NumberOfPopulations; ++i)
-    dispersionoutputstream << "\t" << PopLabels[i]; //should use pop labels here
+    dispersionoutputstream << "\t\"" << PopLabels[i]<<"\""; 
   dispersionoutputstream << endl;
   
   for(int j = 0; j < NumberOfCompositeLoci; j++ ){

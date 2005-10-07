@@ -802,9 +802,8 @@ void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *Po
 	  // should change this
 
 	if(IsHistoricAlleleFreq){
-	  outputstream << "\"eta." << PopulationLabels[0].substr(1); // << "\""; //
-	  for( int k = 1; k < Populations; k++ ){
-	    outputstream << "\t" << "\"eta." << PopulationLabels[k].substr(1); // << "\""; 
+	  for( int k = 0; k < Populations; k++ ){
+	    outputstream << "\"eta." << PopulationLabels[k]<< "\"\t"; 
 	  }
 	  outputstream << endl;
 	}
@@ -1078,7 +1077,7 @@ void AlleleFreqs::CloseOutputFile(int iterations, string* PopulationLabels)
   allelefreqoutput << ")," << endl;
   allelefreqoutput << ".Dimnames=list(c(\"Locus\",";
   for (int i = 0; i < Populations; i++){
-    allelefreqoutput << PopulationLabels[i];
+    allelefreqoutput << "\""<<PopulationLabels[i]<<"\"";
     if(i < Populations-1){
       allelefreqoutput << ",";
     }

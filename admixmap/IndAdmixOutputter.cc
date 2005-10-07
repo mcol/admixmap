@@ -67,9 +67,9 @@ IndAdmixOutputter::~IndAdmixOutputter()
   _out << ".Dimnames=list(c(";
 
   for( int i = 0; i < _options->getPopulations(); i++ ){
-     _out << _PopulationLabels[i] << ",";
+    _out << "\""<<_PopulationLabels[i] << "\",";
      if(_options->isRandomMatingModel() )
-        _out << _PopulationLabels[i] << ",";
+       _out << "\""<<_PopulationLabels[i] << "\",";
   }
 
   if( _options->getRhoIndicator() ){

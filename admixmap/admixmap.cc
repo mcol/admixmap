@@ -433,7 +433,7 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
 
   // Header line of ergodicaveragefile
   for( int i = 0; i < options->getPopulations(); i++ ){
-    *avgstream << PopulationLabels[i] << " ";
+    *avgstream << "\""<<PopulationLabels[i] << "\" ";
   }
   if( !options->getRhoIndicator() )
     *avgstream << " \"sumIntensities\"";
@@ -452,7 +452,7 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
       }
       if( !options->getTestForAdmixtureAssociation() ){
 	for( int k = 1; k < options->getPopulations(); k++ ){
-	  *avgstream << PopulationLabels[k] << " ";
+	  *avgstream << "\""<<PopulationLabels[k] << "\" ";
 	}
       }
       if( individuals->getOutcomeType(r)==0 )//linear regression

@@ -72,7 +72,7 @@ AdmixOptions::AdmixOptions()
   fixedallelefreqs = false;
   correlatedallelefreqs = false;
   RandomMatingModel = false;
-  NumberOfOutcomes = 0;
+  NumberOfOutcomes = -1;
   RhoIndicator = false;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
   MLIndicator = false;//calculate marginal likelihood - valid only for analysistypeindicator < 0
@@ -262,6 +262,10 @@ int AdmixOptions::getNumberOfOutcomes() const{
 }
 void AdmixOptions::setNumberOfOutcomes(int i){
   NumberOfOutcomes = i;
+  if(i==0){
+    OptionValues.erase("outcomevarfile");
+    OutcomeVarFilename = "";
+  }
 }
 const char *AdmixOptions::getAssocScoreFilename() const
 {

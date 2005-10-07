@@ -347,7 +347,7 @@ void Latent::InitializeOutputFile(std::string *PopulationLabels)
 
     //Pop. Admixture
     for( int i = 0; i < options->getPopulations(); i++ ){
-      outputstream << PopulationLabels[i] << " ";
+      outputstream << "\""<<PopulationLabels[i] << "\" ";
     }
     //SumIntensities
     if( !options->getRhoIndicator() )

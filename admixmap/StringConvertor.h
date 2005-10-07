@@ -20,9 +20,8 @@ public:
   static void toIntPair(unsigned short *,const std::string& str);
   
   static bool isMissingValue(const std::string& str);
-
-private:
   static std::string dequote(const std::string& str);
+
 };
 
 #endif /* !STRING_CONVERTOR_H */

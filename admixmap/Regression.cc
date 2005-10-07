@@ -64,36 +64,19 @@ void Regression::OpenOutputFile(AdmixOptions *options, IndividualCollection *ind
 void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels)
 {
   // Header line of paramfile
-  if( options->getAnalysisTypeIndicator() == 2 || options->getAnalysisTypeIndicator() == 3 ){
-    outputstream << "\"intercept\" ";
-   
-    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
-      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-	outputstream << individuals->getCovariateLabels(i) << " ";
-      }
-    } 
-    if( !options->getTestForAdmixtureAssociation() ){
-      for( int k = 1; k < options->getPopulations(); k++ ){
-	outputstream << "\"slope." << PopulationLabels[k].substr(1) << " ";
-      }
-    }
-    if( options->getAnalysisTypeIndicator() == 2 )//AnalysisType = 2 => linear regression
-      outputstream << setprecision(6) << "\"precision\"";
-  }
-  else if( options->getAnalysisTypeIndicator() == 5 ){
-    for( int kk = 0; kk < 2; kk++ ){
+  for( int kk = 0; kk < options->getNumberOfOutcomes(); kk++ ){
       outputstream << "\"intercept\" ";
       for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
 	outputstream << individuals->getCovariateLabels(i) << " ";
       }
-      for( int k = 1; k < options->getPopulations(); k++ ){
-	outputstream << "\"slope." << PopulationLabels[k].substr(1) << " ";
-      }
+      if( !options->getTestForAdmixtureAssociation() )
+	for( int k = 1; k < options->getPopulations(); k++ ){
+	  outputstream << "\"slope." << PopulationLabels[k] << "\" ";
+	}
       if( individuals->getOutcomeType(kk) == Continuous ){
 	outputstream<< setprecision(6) << "\"precision\"";
       }
     }
-  }
   outputstream << endl;
 }
 

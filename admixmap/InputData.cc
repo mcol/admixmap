@@ -49,9 +49,10 @@ static void getPopLabels(const Vector_s& data, size_t Populations, string **labe
 {
   if(data.size() != Populations+1){cout << "Error in getPopLabels\n";exit(1);}
   *labels = new string[ Populations ];
+  StringConvertor S;
 
     for (size_t i = 0; i < Populations; ++i) {
-      (*labels)[i] = data[i+1];
+      (*labels)[i] = S.dequote(data[i+1]);
     }
 }
 void getLabels(const Vector_s& data, string *labels)
@@ -376,7 +377,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
     for( int j = 0; j < Populations; j++ ){
       stringstream poplabel;
       string result;
-      poplabel << "\"Pop" << j+1 << "\"";
+      poplabel << "Pop" << j+1;
       result = poplabel.str();
       PopulationLabels[j] = result;
     }
@@ -403,47 +404,50 @@ int InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
   }
   //check the number of outcomes specified is not more than the number of cols in outcomevarfile
   int numoutcomes = NumOutcomes;
-  if(NumOutcomes > 0){
+  if(NumOutcomes > -1){//options 'numberofregressions' used
     if((int)outcomeVarMatrix_.nCols() - Firstcol < NumOutcomes){
-      numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;
+      numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;//adjusts if too large
       Log->logmsg(true, "ERROR: 'outcomes' is too large, setting to ");
       Log->logmsg(true, numoutcomes);
     }
   }
-
-  //extract portion of outcomevarfile needed
-  std::string* OutcomeVarLabels = new string[ outcomeVarMatrix_.nCols() ];
-  getLabels(outcomeVarData_[0], OutcomeVarLabels);
-  DataMatrix Temp = outcomeVarMatrix_.SubMatrix(1, NumIndividuals, Firstcol, Firstcol+numoutcomes-1);
-  outcomeVarMatrix_ = Temp;
-
-  //determine type of outcome - binary/continuous
-  OutcomeType = new DataType[numoutcomes];
-  for( int j = 0; j < numoutcomes; j++ ){
+  else numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;
+  
+  if(numoutcomes >0){
     
-    for(int i = 0; i < NumIndividuals; ++i)
-      if(!outcomeVarMatrix_.isMissing(i, j) && (outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) )
-	OutcomeType[j] = Binary;
-      else OutcomeType[j] = Continuous;
-    //in this way, the outcome type is set as binary only if all individuals have outcome values of 1 or 0
-    //otherwise, a continuous outcome of 1.0 or 0.0 could lead to the type being wrongly set to binary.
+    //extract portion of outcomevarfile needed
+    std::string* OutcomeVarLabels = new string[ outcomeVarMatrix_.nCols() ];
+    getLabels(outcomeVarData_[0], OutcomeVarLabels);
+    DataMatrix Temp = outcomeVarMatrix_.SubMatrix(1, NumIndividuals, Firstcol, Firstcol+numoutcomes-1);
+    outcomeVarMatrix_ = Temp;
     
-    //need to check for allmissing
-    //     if(i == NumIndividuals){
-    //       Log->logmsg(true, "ERROR: all outcomes missing\n");
-    //       exit(1);
-    //     }
-    
-    Log->logmsg(true,"Regressing on ");    
-    if( OutcomeType[j] == Binary )
-      Log->logmsg(true,"Binary variable: ");
-    else if(OutcomeType[j] == Continuous )
-      Log->logmsg(true,"Continuous variable: ");
-    Log->logmsg(true,outcomeVarData_[0][j+Firstcol]);
-    Log->logmsg(true,".\n");
+    //determine type of outcome - binary/continuous
+    OutcomeType = new DataType[numoutcomes];
+    for( int j = 0; j < numoutcomes; j++ ){
+      
+      for(int i = 0; i < NumIndividuals; ++i)
+	if(!outcomeVarMatrix_.isMissing(i, j) && (outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) )
+	  OutcomeType[j] = Binary;
+	else OutcomeType[j] = Continuous;
+      //in this way, the outcome type is set as binary only if all individuals have outcome values of 1 or 0
+      //otherwise, a continuous outcome of 1.0 or 0.0 could lead to the type being wrongly set to binary.
+      
+      //need to check for allmissing
+      //     if(i == NumIndividuals){
+      //       Log->logmsg(true, "ERROR: all outcomes missing\n");
+      //       exit(1);
+      //     }
+      
+      Log->logmsg(true,"Regressing on ");    
+      if( OutcomeType[j] == Binary )
+	Log->logmsg(true,"Binary variable: ");
+      else if(OutcomeType[j] == Continuous )
+	Log->logmsg(true,"Continuous variable: ");
+      Log->logmsg(true,outcomeVarData_[0][j+Firstcol]);
+      Log->logmsg(true,".\n");
+    }
+    Log->logmsg(true, "\n");
   }
-  Log->logmsg(true, "\n");
-
   return numoutcomes;
 }
 

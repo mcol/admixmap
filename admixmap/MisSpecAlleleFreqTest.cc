@@ -281,7 +281,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
       for( int k = 0; k < Populations; k++ ){
 	// Test for mis-specification within each continental-population.
 	allelefreqscorestream << (*Loci)(j)->GetLabel(0) << ",";
-	allelefreqscorestream << PopLabels[k] << ",";
+	allelefreqscorestream << "\""<<PopLabels[k] << "\",";
 	allelefreqscorestream << double2R(ScoreMatrix( k, 0 ) ) << ",";
 	allelefreqscorestream << double2R(CompleteMatrix( k, k ) ) << ",";
 	allelefreqscorestream << double2R(ObservedMatrix( k, k ) ) << ",";
@@ -329,7 +329,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
       completeinfo = SumNewInfo[j][k] / samples;
       observedinfo = completeinfo + score * score.Transpose() - SumNewScoreSq[j][k] / samples;
       allelefreqscorestream2 << (*Loci)(j)->GetLabel(0) << ",";
-      allelefreqscorestream2 << PopLabels[k] << ",";
+      allelefreqscorestream2 << "\""<<PopLabels[k] << "\",";
       allelefreqscorestream2 << double2R(completeinfo.Determinant()) << ",";
       allelefreqscorestream2 << double2R(observedinfo.Determinant()) << ",";
       allelefreqscorestream2 << double2R(100*observedinfo.Determinant() / completeinfo.Determinant()) << ",";
