@@ -1150,18 +1150,18 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
   if( alpha0.size() == 0 && alpha1.size() == 0 ){
     fill( alphatemp.begin(), alphatemp.end(), 1.0);//fill alphatemp with 1s
     initalpha.push_back(alphatemp);initalpha.push_back(alphatemp);//put 2 copies of alphatemp in alpha
-    Log->logmsg(false,  "Initial value for population admixture (Dirichlet) parameter vector: ");
-    for(int k = 0;k < Populations; ++k){Log->logmsg(false,alphatemp[k]);Log->logmsg(false," ");}
-    Log->logmsg(false,"\n");
+    Log->logmsg(true,  "Initial value for population admixture (Dirichlet) parameter vector: ");
+    for(int k = 0;k < Populations; ++k){Log->logmsg(true,alphatemp[k]);Log->logmsg(true," ");}
+    Log->logmsg(true,"\n");
   }
   //if only initalpha0 specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed
   else if( alpha0.size() == 1 ){
     _admixed[0] = CheckInitAlpha( alpha0 );
     initalpha.push_back(alpha0);initalpha.push_back(alpha0);//put 2 copies of alpha[0] in alpha
-    Log->logmsg(false, "Initial value for population admixture (Dirichlet) parameter vector: ");
-    for(size_t k = 0;k < alpha0.size(); ++k){Log->logmsg(false,alpha0[k]);Log->logmsg(false," ");}
-    Log->logmsg(false,"\n");
+    Log->logmsg(true, "Initial value for population admixture (Dirichlet) parameter vector: ");
+    for(size_t k = 0;k < alpha0.size(); ++k){Log->logmsg(true,alpha0[k]);Log->logmsg(true," ");}
+    Log->logmsg(true,"\n");
   }
   //if both are specified and analysis is for a single individual,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
@@ -1171,13 +1171,13 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
 
     initalpha.push_back(alpha0);
     initalpha.push_back(alpha1);
-    Log->logmsg(false, "Dirichlet prior for paternal gamete admixture: ");
-    for(size_t k = 0;k < alpha0.size(); ++k){Log->logmsg(false,alpha0[k]);Log->logmsg(false," ");}
-    Log->logmsg(false,"\n");
+    Log->logmsg(true, "Dirichlet prior for paternal gamete admixture: ");
+    for(size_t k = 0;k < alpha0.size(); ++k){Log->logmsg(true,alpha0[k]);Log->logmsg(true," ");}
+    Log->logmsg(true,"\n");
     
-    Log->logmsg(false, "Dirichlet prior for maternal gamete admixture: ");
-    for(size_t k = 0;k < alpha1.size(); ++k){Log->logmsg(false,alpha1[k]);Log->logmsg(false," ");}
-    Log->logmsg(false,"\n");
+    Log->logmsg(true, "Dirichlet prior for maternal gamete admixture: ");
+    for(size_t k = 0;k < alpha1.size(); ++k){Log->logmsg(true,alpha1[k]);Log->logmsg(true," ");}
+    Log->logmsg(true,"\n");
     
     _symmetric = false;
   }
