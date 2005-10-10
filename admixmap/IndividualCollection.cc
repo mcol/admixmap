@@ -375,12 +375,8 @@ Regression *R0, Regression *R1, const double *poptheta,
       LogLikelihood += _child[i]->getLogLikelihoodOnePop(false);
     }   
 
-    //calculate log posterior if necessary 
-    if( options->getMLIndicator() && i == 0 && iteration > options->getBurnIn() )
-      _child[i]->CalculateLogPosterior(options, alpha, rhoalpha, rhobeta);
-    
-    if( options->getMLIndicator() && (i == 0) )//check if this condition is correct
-      _child[i]->ChibLikelihood(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
+    if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
+      _child[i]->Chib(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
 				options, chrm, alpha, globalrho, rhoalpha, rhobeta,
 				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], Log, &MargLikelihood, A);
   }
@@ -452,13 +448,13 @@ int IndividualCollection::GetNumCovariates() const{
 }
 
 Matrix_d IndividualCollection::getCovariates(){
-Matrix_d Cov(1,1);
-Cov.SetNumberOfElements(Covariates.nRows(), Covariates.nCols());
-for(unsigned i = 0; i < Covariates.nRows(); ++i)
-for(unsigned j = 0; j < Covariates.nCols(); ++j){
-Cov(i,j) = Covariates.get(i,j);
-if(Covariates.isMissing(i,j)) Cov.SetMissingElement(i,j);
-}
+  Matrix_d Cov(1,1);
+  Cov.SetNumberOfElements(Covariates.nRows(), Covariates.nCols());
+  for(unsigned i = 0; i < Covariates.nRows(); ++i)
+    for(unsigned j = 0; j < Covariates.nCols(); ++j){
+      Cov(i,j) = Covariates.get(i,j);
+      if(Covariates.isMissing(i,j)) Cov.SetMissingElement(i,j);
+    }
   return Cov;
 }
 
@@ -532,10 +528,10 @@ void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
     Log->write( rhohat[i][0]);Log->write( rhohat[i][1]);Log->write("\n");
   }
   Log->logmsg(true, "Individual 1:\n");
-  Log->logmsg(true,   "Log likelihood         (at estimates): ");Log->logmsg(true, MargLikelihood.getLogLikelihood());
-  Log->logmsg(true, "\nLog prior              (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPrior());
-  Log->logmsg(true, "\nLog posterior          (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPosterior());
-  Log->logmsg(true, "\nLog marginal likelihood(at estimates): ");Log->logmsg(true, MargLikelihood.getLogMarginalLikelihood());
+  Log->logmsg(true,   "Log likelihood (at estimates): ");Log->logmsg(true, MargLikelihood.getLogLikelihood());
+  Log->logmsg(true, "\nLog prior      (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPrior());
+  Log->logmsg(true, "\nLog posterior  (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPosterior());
+  Log->logmsg(true, "\nLog marginal likelihood : ");Log->logmsg(true, MargLikelihood.getLogMarginalLikelihood());
   Log->logmsg(true, "\n\n");
 }
 

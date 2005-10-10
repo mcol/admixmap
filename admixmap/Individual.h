@@ -79,7 +79,6 @@ public:
 
   int GetLocusAncestry(int, int, int);
    
-  double getLogLikelihoodXOnly(AdmixOptions*, Chromosome**, double *, std::vector<double>);
   double IntegratingConst( double alpha, double beta, double a, double b );
 
   void SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
@@ -97,7 +96,7 @@ public:
  void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda,
 			   Chromosome **chrm, AlleleFreqs *A );
 
-  void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
+  void Chib(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
 		      AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, double globalrho,
 		      double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
 		      vector<double> &rhohat, vector<double> &rhohatX,
@@ -111,9 +110,6 @@ public:
 				   double *SumAncestryVarScore);
 
   static void OutputLikRatios(const char *filename, int iterations, std::string *PopLabels);
-
-  void CalculateLogPosterior(AdmixOptions *options, vector<vector<double> > &alpha, 
-			     double rhoalpha, double rhobeta);
 
 private:
   unsigned short ***genotypes;
@@ -133,7 +129,7 @@ private:
   std::vector< double > _rho_X;//sum of intensities for X chromosome
   std::vector<double> sumlogrho;
 
-  double LogPosterior;
+  //double LogPosterior;
   Sex sex; // 0 = missing, 1 = male, 2 = female 
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   unsigned int X_posn;  //number of X chromosome
@@ -143,12 +139,6 @@ private:
   StepSizeTuner ThetaTuner;
   int w, NumberOfUpdates;
   double step, step0;
-
-  //parameter estimates for chib algorithm
-  double* ThetaHat;
-  double* ThetaXHat;
-  std::vector< double > _rhoHat;
-  std::vector< double > _rhoHat_X;
 
   //score test objects, static so they can accumulate sums over individuals
   static double *AffectedsScore;
@@ -186,10 +176,12 @@ private:
   void ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<vector<double> > &alpha);
   double ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome **C, vector<vector<double> > &alpha);
 
+  double LogPrior(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 
+				AdmixOptions *options, AlleleFreqs *A, double rhoalpha, double rhobeta, 
+				vector<vector<double> > &alpha);
+  double CalculateLogPosterior(AdmixOptions *options, double *theta, double *thetaX, vector<double> rho, vector<double> rhoX,
+				       vector<vector<double> > &alpha, double rhoalpha, double rhobeta);
 
-  void InitializeChib(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 
-		      AdmixOptions *options, AlleleFreqs *A, Chromosome **chrm, double rhoalpha, double rhobeta, 
-		      vector<vector<double> > &alpha, chib *MargLikelihood, LogWriter *Log);
 
   void setIsMissing(vector<unsigned int >& decoded);
 
