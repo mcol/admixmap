@@ -349,7 +349,7 @@ void CompositeLocus::setHaplotypeProbsMAP()
 {
   //HaplotypeProbs = HaplotypeProbsMAP;
   for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0)
-    HapPairProbs[h0] = HapPairProbsMAP[h0]; 
+    HapPairProbsMAP[h0] = HapPairProbs[h0]; 
 }
 
 // arguments: integer, length of bit array
