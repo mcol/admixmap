@@ -119,12 +119,12 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, std::vector<hapPair 
     for(unsigned int h = 0; h < HapPairs.size() ; ++h)
       if(RandomAlleleFreqs && chibindicator )
 	Probs[k0] += HapPairProbsMAP[HapPairs[h].haps[0] * NumberOfStates * Populations * Populations +
-					 HapPairs[h].haps[1] * Populations * Populations +
-					 k0];
+				     HapPairs[h].haps[1] * Populations * Populations +
+				     k0];
       else
 	Probs[k0] += HapPairProbs[HapPairs[h].haps[0] * NumberOfStates * Populations * Populations +
-					 HapPairs[h].haps[1] * Populations * Populations +
-					 k0];
+				  HapPairs[h].haps[1] * Populations * Populations +
+				  k0];
   }
 }
 
