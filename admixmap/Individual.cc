@@ -1112,7 +1112,7 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 
 
  // this function computes marginal likelihood by the Chib algorithm.  
-void Individual::Chib(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
+void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
 				AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, double globalrho,
 				double rhoalpha, double rhobeta, double *thetahat,
 				double *thetahatX, vector<double> &rhohat,
@@ -1122,34 +1122,36 @@ void Individual::Chib(int iteration, double *LogLikelihood, double *SumLogLikeli
     rho = _rho;
   else // global rho
     rho[0] = rho[1] = globalrho;
- 
 
   int K = Populations;
   size_t theta_size = Populations;
   if(options->isRandomMatingModel()) theta_size *=2;
+  double logLikelihood = 0.0;
+
+  // *** Every iteration ***
   
-  *LogLikelihood = getLogLikelihood(options, chrm);//gets loglikelihood at current parameter values
+  logLikelihood = getLogLikelihood(options, chrm);//gets loglikelihood at current parameter values
   
   if( K > 1 ){
     if( !options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
       if( options->isAdmixed(0) ){
-	*LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[0] );}
+	logLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[0] );}
       if(  options->isAdmixed(1) )
-	*LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[1] );
+	logLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[1] );
     }
     else if( options->logRhoFlatPrior() ){
       if( options->isAdmixed(0) )
-	*LogLikelihood -= log( rho[0] );
+	logLikelihood -= log( rho[0] );
       if(  options->isAdmixed(1) )
-	*LogLikelihood -= log( rho[1] );
+	logLikelihood -= log( rho[1] );
     }
-    *LogLikelihood+= getDirichletLogDensity(alpha[0], Theta) + getDirichletLogDensity(alpha[1], Theta + K);
+    logLikelihood+= getDirichletLogDensity(alpha[0], Theta) + getDirichletLogDensity(alpha[1], Theta + K);
   }
 
   // *** during BurnIn ***
   if( iteration <= options->getBurnIn() ){
     if( Populations > 1 ){  
-      if( *LogLikelihood > *MaxLogLikelihood ){
+      if( logLikelihood > *MaxLogLikelihood ){
 	
 	  Log->write("Admixture (gamete 1):");
 	  Log->write(Theta, K);Log->write("\n");
@@ -1157,7 +1159,7 @@ void Individual::Chib(int iteration, double *LogLikelihood, double *SumLogLikeli
 	  Log->write(Theta+K, K);Log->write("\n");
 	  Log->write("sumintensities: ");
 	  Log->write( rho[0]);Log->write( rho[1]);
-	  Log->write("\nLogLikelihood:");Log->write( *LogLikelihood);
+	  Log->write("\nLogLikelihood:");Log->write( logLikelihood);
 	  Log->write("\niteration: ");Log->write(iteration);Log->write("\n\n");
 	  
 	  //set parameter estimates at max loglikelihood
@@ -1172,8 +1174,8 @@ void Individual::Chib(int iteration, double *LogLikelihood, double *SumLogLikeli
     }//end if K>1
   
   
-    if( *LogLikelihood > *MaxLogLikelihood ){
-      *MaxLogLikelihood = *LogLikelihood;
+    if( logLikelihood > *MaxLogLikelihood ){
+      *MaxLogLikelihood = logLikelihood;
       
 	//set allelefreqsMAP to current values of allelefreqs
 	A->setAlleleFreqsMAP();
@@ -1194,28 +1196,30 @@ void Individual::Chib(int iteration, double *LogLikelihood, double *SumLogLikeli
     
     //loglikelihood at estimates
     MargLikelihood->setLogLikelihood( getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true) );
-    //logprior at estimates
-    MargLikelihood->setLogPrior(LogPrior(thetahat, thetahatX, rhohat, rhohatX, options, A, rhoalpha, rhobeta, alpha) );
+
   }
   
   // *** After BurnIn ***
   if( iteration > options->getBurnIn() ){
-    
+    //logprior at estimates
+    MargLikelihood->addLogPrior(LogPrior(thetahat, thetahatX, rhohat, rhohatX, options, A, rhoalpha, rhobeta, alpha) );
     double LogPosterior = 0;
     if( Populations > 1 )
       LogPosterior = CalculateLogPosterior(options, thetahat, thetahatX, rhohat, rhohatX, alpha, rhoalpha, rhobeta);
     if( A->IsRandom() ){
 	  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
 	    for( int k = 0; k < Populations; k++ ){
-	      LogPosterior += getDirichletLogDensity( A->GetPriorAlleleFreqs(j,k) + A->GetAlleleCounts(j,k), 
-						      A->getAlleleFreqsMAP(j, k) );
+	      vector<double> args = A->GetPriorAlleleFreqs(j,k);
+	      vector<int> counts = A->GetAlleleCounts(j,k);
+	      transform(counts.begin(), counts.end(), args.begin(), args.begin(), plus<double>());
+	      LogPosterior += getDirichletLogDensity( args, A->getAlleleFreqsMAP(j, k) );
 	    }
 	  }
     }
     MargLikelihood->addLogPosteriorObs( LogPosterior );
-    *SumLogLikelihood += *LogLikelihood;
+    *SumLogLikelihood += logLikelihood;
   }
-  
+  getLogLikelihood(options, chrm); 
 }
 
 double Individual::LogPrior(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 

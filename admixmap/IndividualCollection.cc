@@ -156,7 +156,8 @@ void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::
    }
 
   SumLogTheta = new double[ options->getPopulations()];
-  InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
+  if( options->getMLIndicator() )
+    InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
   MaxLogLikelihood.assign(NumInd, -9999999 );
 }
@@ -164,7 +165,6 @@ void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::
 // ** this function needs debugging
 void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, AdmixOptions * options, const DataMatrix &MLEMatrix){
   //set thetahat and rhohat, estimates of individual admixture and sumintensities
-  //NB NumInd = 1 here
 
    size_t size_admix;
    int K = options->getPopulations();
@@ -176,12 +176,24 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
    thetahat = new double[size_admix];
    thetahatX = new double[size_admix];
 
-   vector<double> r(2, rhoalpha/rhobeta );
-   rhohat = r;
-   rhohatX = r;
+   //initialise thetahat at initial values of individual 1's admixture props
+   for(unsigned k = 0; k < size_admix; ++k)
+     thetahat[k] = _child[0]->getAdmixtureProps()[k];
+
+   if(options->getRhoIndicator())
+     //initialise rhohat at initial value of Individual 1's sumintensities
+      rhohat = _child[0]->getRho();
+   else{
+   //initialise rhohat at initial value of globalsumintensities ie prior mean
+     vector<double> r(2, rhoalpha/rhobeta );
+     rhohat = r;
+     rhohatX = r;
+   }
+      //TODO: X objects
+
 
    //use previously read values from file, if available
-   if( NumInd ==1 && strlen(options->getMLEFilename())>0 ){
+   if( NumInd == 1 && strlen(options->getMLEFilename())>0 ){
       rhohat[0] = MLEMatrix.get( options->getPopulations(), 0 );
       if( options->getXOnlyAnalysis() ){
 	for(int k = 0; k < options->getPopulations(); ++k) thetahat[k] = MLEMatrix.get(k,0);
@@ -195,10 +207,10 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
       }
       setAdmixtureProps(thetahat, size_admix);
    }
-   else if( !options->getIndAdmixHierIndicator() ){
-      for(unsigned k = 0; k < size_admix; ++k)
-       thetahat[k] = _child[0]->getAdmixtureProps()[k];
-   }
+ 
+
+
+
  
 }
 
@@ -363,7 +375,7 @@ Regression *R0, Regression *R1, const double *poptheta,
     }   
 
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
-      _child[i]->Chib(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
+      _child[i]->Chib(iteration, &SumLogLikelihood, &(MaxLogLikelihood[i]),
 				options, chrm, alpha, globalrho, rhoalpha, rhobeta,
 				thetahat, thetahatX, rhohat, rhohatX, Log, &MargLikelihood, A);
   }

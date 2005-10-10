@@ -96,7 +96,7 @@ public:
  void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda,
 			   Chromosome **chrm, AlleleFreqs *A );
 
-  void Chib(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
+  void Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
 		      AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, double globalrho,
 		      double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
 		      vector<double> &rhohat, vector<double> &rhohatX,
