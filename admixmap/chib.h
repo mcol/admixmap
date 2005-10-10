@@ -32,23 +32,22 @@ class chib
 public:
   chib();
   void setLogLikelihood( double );
-  void setLogPrior( double );
+  void addLogPrior( double );
   void addLogPosteriorObs( double );
   double getLogPosterior();
   double getMarginalLikelihood();
   double getLogMarginalLikelihood();
-  double getLogPrior(){
-    return LogPrior;
-  };
+  double getLogPrior();
   double getLogLikelihood(){
     return LogLikelihood;
   };
 
 private:
   double LogLikelihood;
-  double LogPrior;
+  std::vector<double> LogPrior;
   std::vector<double> VecLogPosterior;
   double MaxLogPosterior;
+  double MaxLogPrior;
   
 };
 

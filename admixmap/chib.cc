@@ -27,9 +27,9 @@ using namespace std;
 
 chib::chib()
 {
-   LogPrior = 0;
    LogLikelihood = 0;
    MaxLogPosterior = -9999999;
+   MaxLogPrior = -9999999;
 }
 
 void chib::setLogLikelihood(double x)
@@ -37,9 +37,11 @@ void chib::setLogLikelihood(double x)
    LogLikelihood = x;
 }
 
-void chib::setLogPrior(double x)
+void chib::addLogPrior(double x)
 {
-   LogPrior = x;
+  if(x > MaxLogPrior)
+    MaxLogPrior = x;
+  LogPrior.push_back(x);
 }
 
 void chib::addLogPosteriorObs( double f )
@@ -61,8 +63,13 @@ double chib::getLogPosterior()
    return AverageOfLogs( VecLogPosterior, MaxLogPosterior );
 }
 
+double chib::getLogPrior(){
+  return AverageOfLogs(LogPrior, MaxLogPrior);
+}
+
 double chib::getLogMarginalLikelihood(){
   double LogPosterior = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
-  return LogLikelihood + LogPrior - LogPosterior;
+  double logprior = AverageOfLogs( LogPrior, MaxLogPrior );
+  return LogLikelihood + logprior - LogPosterior;
 }
 
