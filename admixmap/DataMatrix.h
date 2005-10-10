@@ -33,6 +33,7 @@ public:
   bool hasMissing(){return anyMissing;}
   std::vector<double> getRow(unsigned);
   std::vector<double> getCol(unsigned c);
+  std::vector<double> columnMeans();
   double get(unsigned, unsigned) const;
   void set(unsigned, unsigned, double);
   unsigned nRows()const;

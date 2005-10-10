@@ -98,35 +98,8 @@ void InputData::readFile(const char *fname, Matrix_s& data)
 
 
 /**
- *  Auxilary function that converts Matrix_s to Matrix_d
+ *  Auxilary function that converts Matrix_s to DataMatrix
  */
-static void convertMatrix(const Matrix_s& data, Matrix_d& m)
-{       
-    const size_t numRows = data.size();
-
-    // If there are no rows, return empty matrix.
-    if (0 == numRows) return;
-
-    // Verify that all rows have same length.
-    const size_t numCols = data[0].size();
-    for (size_t i = 1; i < numRows; ++i) {
-        if (numCols != data[i].size()) {
-            throw runtime_error("Invalid row length");
-        }
-    }
-    
-    // Form matrix.
-    m.SetNumberOfElements(numRows, numCols);
-    for (size_t i = 0; i < numRows; ++i) {
-        for (size_t j = 0; j < numCols; ++j) {
-            if (StringConvertor::isMissingValue(data[i][j])) {
-                m.SetMissingElement(i, j);
-            } else {
-                m(i, j) = StringConvertor::toFloat(data[i][j]);
-            }
-        }
-    }
-}
 static void convertMatrix(const Matrix_s& data, DataMatrix& m)
 {       
     const size_t numRows = data.size();
@@ -196,7 +169,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       }
       
       ::convertMatrix(outcomeVarData_, outcomeVarMatrix_);
-      ::convertMatrix(inputData_,  inputMatrix_);
+      ::convertMatrix(inputData_,  covariatesMatrix_);
       ::convertMatrix(alleleFreqData_, alleleFreqMatrix_);
       ::convertMatrix(historicalAlleleFreqData_, historicalAlleleFreqMatrix_);
       ::convertMatrix(priorAlleleFreqData_, priorAlleleFreqMatrix_);
@@ -218,7 +191,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
     options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator()) );
   if ( strlen( options->getCovariatesFilename() ) != 0 )
-    CheckCovariatesFile();
+    CheckCovariatesFile();//detects regression model
   if ( strlen( options->getReportedAncestryFilename() ) != 0 )
     CheckRepAncestryFile(options->getPopulations());
   
@@ -457,11 +430,11 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
 }
 
 void InputData::CheckCovariatesFile(){
-  if( NumIndividuals != inputMatrix_.GetNumberOfRows() - 1 ){
+  if( NumIndividuals != (int)covariatesMatrix_.nRows() - 1 ){
     Log->logmsg(true,"ERROR: Genotypes file has ");
     Log->logmsg(true,NumIndividuals);
     Log->logmsg(true," observations and Covariates file has ");
-    Log->logmsg(true,inputMatrix_.GetNumberOfRows() - 1);
+    Log->logmsg(true,covariatesMatrix_.nRows() - 1);
     Log->logmsg(true," observations.\n");
     exit(1);
   }
@@ -641,9 +614,9 @@ const DataMatrix& InputData::getReportedAncestryMatrix() const
     return reportedAncestryMatrix_;
 }
 
-const Matrix_d& InputData::getInputMatrix() const
+const DataMatrix& InputData::getCovariatesMatrix() const
 {
-    return inputMatrix_;
+    return covariatesMatrix_;
 }
 std::string *InputData::GetPopLabels() const{
   return PopulationLabels;

@@ -71,7 +71,7 @@ public:
    */    
   const DataMatrix& getLocusMatrix() const;
   const DataMatrix& getOutcomeVarMatrix() const;
-  const Matrix_d& getInputMatrix() const;
+  const DataMatrix& getCovariatesMatrix() const;
   const DataMatrix& getAlleleFreqMatrix() const;
   const DataMatrix& getHistoricalAlleleFreqMatrix() const;
   const DataMatrix& getPriorAlleleFreqMatrix() const;
@@ -107,7 +107,7 @@ private:
   Matrix_s reportedAncestryData_;
 
   DataMatrix locusMatrix_;
-  Matrix_d inputMatrix_;
+  DataMatrix covariatesMatrix_;
   DataMatrix outcomeVarMatrix_;
   DataMatrix alleleFreqMatrix_;
   DataMatrix historicalAlleleFreqMatrix_;

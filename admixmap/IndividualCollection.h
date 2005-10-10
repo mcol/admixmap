@@ -57,9 +57,9 @@ public:
   
   void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels);
 
-  void Update(int iteration, AlleleFreqs *A, Regression *R0, Regression *R1,  
-	      const double *poptheta, AdmixOptions *options, Chromosome **chrm, 
-	      std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta,
+  void Update(int iteration, AdmixOptions *options, Chromosome **chrm, AlleleFreqs *A,
+          Regression *R0, Regression *R1, const double *poptheta,
+	      std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
 	      LogWriter *Log);
 
   void ConjugateUpdateIndAdmixture(int iteration, Regression *R0, Regression *R1, const double *poptheta, 
@@ -110,7 +110,7 @@ private:
   Individual **_child; //array of pointers to Individual
   void getLabels(const Vector_s& data,  string *labels);
 
-  void LoadCovariates(InputData *);
+  void LoadCovariates(InputData *, AdmixOptions* options);
   void LoadOutcomeVar(InputData *);
   void LoadRepAncestry(InputData *);
   void InitialiseMLEs(double, double, AdmixOptions *, const DataMatrix&);
@@ -135,9 +135,9 @@ private:
   double **ExpectedY;
   DataMatrix Outcome;
   int NumOutcomes;
-  int NumCovariates;
-  Matrix_d Covariates;//all covariates, including admixture props
-  Matrix_d InputCovariates;//covariates from file
+  int NumCovariates;//covariates including admixture
+  int NumberOfInputCovariates;//covariates in file
+  DataMatrix Covariates;//all covariates, including admixture props
   std::string *CovariateLabels;
   DataType *OutcomeType;
 

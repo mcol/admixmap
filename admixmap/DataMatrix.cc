@@ -80,6 +80,20 @@ std::vector<double> DataMatrix::getCol(unsigned c){
   for(unsigned row = 0; row < nrows; ++row)col.push_back( data[row*ncols + c] );
   return col;
 }
+std::vector<double> DataMatrix::columnMeans(){
+  std::vector<double> mean(ncols);
+  for( unsigned j = 0; j < ncols; j++ ){
+    int count = 0;
+    mean[j] = 0.0;
+    for(unsigned i = 0; i < nrows; i++ )
+      if(!isMissing(i,j)){
+      mean[j] += get(i,j);
+      ++count;
+      }
+    mean[j] /= (double)count;
+    }
+  return mean;
+}
 DataMatrix DataMatrix::SubMatrix(unsigned r1, unsigned r2, unsigned c1, unsigned c2){
   if( r1>r2 || c1>c2 || r2 > nrows-1 || c2 > ncols-1)
     std::cerr<<"Error in DataMatrix::SubMatrix"<<std::endl;
@@ -93,26 +107,11 @@ DataMatrix DataMatrix::SubMatrix(unsigned r1, unsigned r2, unsigned c1, unsigned
 }
 
 void DataMatrix::SetMissingValuesToColumnMeans(){
-  double mean;
-  for(unsigned col = 0; col < ncols; ++col){
-    //find col mean
-    mean  = 0.0;
-    unsigned count;
-    for(unsigned row = 0; row < nrows; ++row){
-      if(!isMissing(row, col))mean += get(row, col);//sum of nonmissing values
-      count++;
-    }
-    if(count == 0){
-      std::cerr<<"Warning: column "<<col<<" of covariatesfile has all missing values\n";
-      exit(1);
-    }
-    mean /= (double)count;
-    //set missing values
-    for(unsigned row = 0; row < nrows; ++row){
-      if(isMissing(row, col))set(row, col, mean);
-    }
+  std::vector<double> mean = columnMeans();
 
-  }
+  for(unsigned row = 0; row < nrows; ++row)
+    for(unsigned col = 0; col < ncols; ++col)
+      if(isMissing(row, col))set(row, col, mean[col]);
 }
 
 void DataMatrix::Print(){
