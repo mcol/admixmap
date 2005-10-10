@@ -61,7 +61,7 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
       if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
 	_rho.assign(1,options->getRhoalpha());
       else
-	_rho.assign(2,1);
+	_rho.assign(1,1);
   }
   sumlogrho.assign(_rho.size(), 0.0);
   _rhoHat.assign(_rho.size(), 0.0);
@@ -436,7 +436,7 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
 
 void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 				  int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-				   Matrix_d &Covariates, double **beta, const double *poptheta,
+				   DataMatrix *Covariates, double **beta, const double *poptheta,
 				   AdmixOptions* options, Chromosome **chrm, 
 				   vector<vector<double> > &alpha, double rhoalpha, 
 				   double rhobeta,vector<double> sigma, double DInvLink, double dispersion)
@@ -574,7 +574,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
 
 void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMatrix *Outcome, Chromosome ** C,
                                  int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-                                  Matrix_d &Covariates, double **beta, const double *poptheta,
+                                  DataMatrix *Covariates, double **beta, const double *poptheta,
 			      AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma,
 			      double DInvLink, double dispersion, bool RW)
 // samples individual admixture proportions
@@ -599,7 +599,7 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMat
     for( int k = 0; k < NumOutcomes; k++ ){
       if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
       logpratio +=  LogAcceptanceRatioForRegressionModel( i, RegType, k, options->isRandomMatingModel(), K,
-							  NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
+							 NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
     }
   }
   //case of X only data
@@ -611,7 +611,7 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMat
 
  // update the value of admixture proportions used in the regression model  
   if( options->getNumberOfOutcomes() > 0 )
-    UpdateAdmixtureForRegression(i, K, NoCovariates, poptheta, options->isRandomMatingModel(),&(Covariates));
+    UpdateAdmixtureForRegression(i, K, NoCovariates, poptheta, options->isRandomMatingModel(), Covariates);
 
   if(iteration > options->getBurnIn()){
     unsigned G = 1;
@@ -762,7 +762,7 @@ void Individual::ProposeTheta(AdmixOptions *options, vector<double> sigma, vecto
 // returns log of ratio of likelihoods of new and old values of population admixture
 // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
 double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, int Populations,
-							 int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
+							 int NoCovariates, DataMatrix *Covariates, double **beta, double **ExpectedY,
 							 DataMatrix *Outcome, const double *poptheta, double *lambda)
 {
   double logprobratio = 0.0, Xbeta = 0.0;
@@ -773,7 +773,7 @@ double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType R
     for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
 
   for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates( i, jj ) * beta[ TI ][jj];
+    Xbeta += Covariates->get( i, jj ) * beta[ TI ][jj];
   for( int k = 1; k < Populations; k++ ){
     Xbeta += avgtheta[ k ] * beta[ TI ][NoCovariates - Populations + k ];
   }
@@ -817,7 +817,7 @@ double Individual::AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int 
 
 // update the individual admixture values (mean of both gametes) used in the regression model
 void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates,
-                                               const double *poptheta, bool RandomMatingModel, Matrix_d *Covariates)
+                                               const double *poptheta, bool RandomMatingModel, DataMatrix *Covariates)
 {
   double avgtheta[Populations];
   if(RandomMatingModel )//average over gametes
@@ -826,8 +826,7 @@ void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCova
   else
     for(int k = 0; k < Populations; ++k) avgtheta[k] = Theta[k];
   for( int k = 1; k < Populations ; k++ )
-    (*Covariates)( i, NoCovariates - Populations + k )
-      = avgtheta[ k ] - poptheta[ k ];
+    Covariates->set( i, NoCovariates - Populations + k, avgtheta[ k ] - poptheta[ k ] );
 }
 
 // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
@@ -1255,10 +1254,15 @@ void Individual::InitializeChib(double *theta, double *thetaX, vector<double> rh
   // more efficient algorithm based on HMM likelihood
 // Chib method for marginal likelihood should be rewritten to use the HMM likelihood, without sampling locus ancestry or arrivals
 void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
-				AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, 
+				AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, double globalrho,
 				double rhoalpha, double rhobeta, double *thetahat,
 				double *thetahatX, vector<double> &rhohat,
 				vector<double> &rhohatX, LogWriter *Log, chib *MargLikelihood, AlleleFreqs* A){
+vector<double> rho(2);
+if(options->getRhoIndicator())
+  rho = _rho;
+else // global rho
+  rho[0] = rho[1] = globalrho;
             
   //if( iteration <= options->getBurnIn() ){
   int K = Populations;
@@ -1270,15 +1274,15 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
     if( K > 1 ){
       if( !options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
 	if( options->isAdmixed(0) ){
-	  *LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, _rho[0] );}
+	  *LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[0] );}
 	if(  options->isAdmixed(1) )
-	  *LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, _rho[1] );
+	  *LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[1] );
       }
       else if( options->logRhoFlatPrior() ){
 	if( options->isAdmixed(0) )
-	  *LogLikelihood -= log( _rho[0] );
+	  *LogLikelihood -= log( rho[0] );
 	if(  options->isAdmixed(1) )
-	  *LogLikelihood -= log( _rho[1] );
+	  *LogLikelihood -= log( rho[1] );
       }
       *LogLikelihood+= getDirichletLogDensity(alpha[0], Theta)
 	+getDirichletLogDensity(alpha[1], Theta + K);
@@ -1288,7 +1292,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	Log->write("Admixture (gamete 2):");
 	Log->write(Theta+K, K);Log->write("\n");
 	Log->write("sumintensities: ");
-	Log->write( _rho[0]);Log->write( _rho[1]);
+	Log->write( rho[0]);Log->write( rho[1]);
 	Log->write("\nLogLikelihood:");Log->write( *LogLikelihood);
 	Log->write("\niteration: ");Log->write(iteration);Log->write("\n\n");
 
@@ -1297,7 +1301,7 @@ void Individual::ChibLikelihood(int iteration, double *LogLikelihood, double *Su
 	//during burnin
 	if( iteration <= options->getBurnIn() ){
 	  for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
-	  rhohat = _rho;
+	  rhohat = rho;
 	  A->setAlleleFreqsMAP();
 	  for( unsigned  j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
 	    CompositeLocus *locus = (CompositeLocus*)(A->getLocus(j));

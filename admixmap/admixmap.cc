@@ -168,7 +168,7 @@ void submain(AdmixOptions* options){
 	L.UpdateRhoWithRW(IC, chrm, LogL);
   
       // ** Update individual-level parameters  
-      IC->Update(iteration, &A, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha(), L.getrhoalpha(), L.getrhobeta(),
+      IC->Update(iteration, options, chrm, &A, &R0, &R1, L.getpoptheta(), L.getalpha(), L.getrho(), L.getrhoalpha(), L.getrhobeta(),
       	 &Log);
 //       if((iteration %2)){
 // 	L.Update(iteration, IC);//update pop admix params conditional on sums of ancestry states with jump indicators==1

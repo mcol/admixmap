@@ -84,21 +84,21 @@ public:
 
   void SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-			 Matrix_d &Covariates0, double **beta, const double *poptheta, AdmixOptions* options,
+			 DataMatrix *Covariates, double **beta, const double *poptheta, AdmixOptions* options,
 			 Chromosome **chrm, vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, vector<double> sigma, 
 			 double DInvLink, double dispersion);
 
   void SampleTheta( int i, int iteration, double *SumLogTheta, DataMatrix *Outcome, Chromosome **C,
 		    int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-		    Matrix_d &Covariates0, double **beta, const double *poptheta,
+		    DataMatrix *Covariates, double **beta, const double *poptheta,
 		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, double, double, bool);
 
  void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda,
 			   Chromosome **chrm, AlleleFreqs *A );
 
   void ChibLikelihood(int iteration, double *LogLikelihood, double *SumLogLikelihood, double *MaxLogLikelihood,
-		      AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha,  
+		      AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, double globalrho,
 		      double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
 		      vector<double> &rhohat, vector<double> &rhohatX,
 		      LogWriter *Log, chib *MargLikelihood, AlleleFreqs *A);
@@ -167,11 +167,11 @@ private:
   static double *LikRatio2;
 
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double *poptheta, bool ModelIndicator,
-				     Matrix_d *Covariates0);
+				     DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator, bool RW );
   double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
   double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, int Populations,
-					       int NoCovariates, Matrix_d &Covariates, double **beta, double **ExpectedY,
+					       int NoCovariates, DataMatrix *Covariates, double **beta, double **ExpectedY,
 					       DataMatrix *Outcome, const double *poptheta, double *lambda);
 
   bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, 
