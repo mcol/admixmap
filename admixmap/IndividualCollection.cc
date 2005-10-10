@@ -166,9 +166,6 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
   //set thetahat and rhohat, estimates of individual admixture and sumintensities
   //NB NumInd = 1 here
 
-  thetahat = new double *[NumInd];
-  thetahatX = new double *[NumInd];
-
    size_t size_admix;
    int K = options->getPopulations();
    if( options->isRandomMatingModel() )
@@ -176,48 +173,38 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
    else//assortative mating
      size_admix = K;
 
-   for(unsigned int i = 0; i < NumInd; ++i){
-   thetahat[i] = new double[size_admix];
-   thetahatX[i] = new double[size_admix];
-   }
+   thetahat = new double[size_admix];
+   thetahatX = new double[size_admix];
 
    vector<double> r(2, rhoalpha/rhobeta );
-   rhohat.resize( NumInd, r );
-   rhohatX.resize( NumInd, r );
+   rhohat = r;
+   rhohatX = r;
 
    //use previously read values from file, if available
    if( NumInd ==1 && strlen(options->getMLEFilename())>0 ){
-      rhohat[0][0] = MLEMatrix.get( options->getPopulations(), 0 );
+      rhohat[0] = MLEMatrix.get( options->getPopulations(), 0 );
       if( options->getXOnlyAnalysis() ){
-	for(int k = 0; k < options->getPopulations(); ++k) thetahat[0][k] = MLEMatrix.get(k,0);
+	for(int k = 0; k < options->getPopulations(); ++k) thetahat[k] = MLEMatrix.get(k,0);
       }
       else{
 	for(int k = 0; k < options->getPopulations(); ++k) {
-	  thetahat[0][k] = MLEMatrix.get(k,0);
-	  thetahat[0][k+ options->getPopulations()] = MLEMatrix.get(k,1);
+	  thetahat[k] = MLEMatrix.get(k,0);
+	  thetahat[k+ options->getPopulations()] = MLEMatrix.get(k,1);
 	}
-	rhohat[0][1] = MLEMatrix.get(options->getPopulations(), 1 );
+	rhohat[1] = MLEMatrix.get(options->getPopulations(), 1 );
       }
-      setAdmixtureProps(thetahat[0], size_admix);
+      setAdmixtureProps(thetahat, size_admix);
    }
    else if( !options->getIndAdmixHierIndicator() ){
-    for(unsigned int i = 0; i < NumInd; ++i){
       for(unsigned k = 0; k < size_admix; ++k)
-       thetahat[i][k] = _child[i]->getAdmixtureProps()[k];
-       }
+       thetahat[k] = _child[0]->getAdmixtureProps()[k];
    }
  
 }
 
 void IndividualCollection::LoadData(AdmixOptions *options, InputData *data_){
-      LoadCovariates(data_, options);
-   //if ( strlen( options->getCovariatesFilename() ) != 0 ){
-     //if( options->getTextIndicator() ){
-
-     //}
-
-   //}
-
+  LoadCovariates(data_, options);
+  
   if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
     LoadOutcomeVar(data_);
   }
@@ -378,7 +365,7 @@ Regression *R0, Regression *R1, const double *poptheta,
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
       _child[i]->Chib(iteration, &LogLikelihood, &SumLogLikelihood, &(MaxLogLikelihood[i]),
 				options, chrm, alpha, globalrho, rhoalpha, rhobeta,
-				thetahat[i], thetahatX[i], rhohat[i], rhohatX[i], Log, &MargLikelihood, A);
+				thetahat, thetahatX, rhohat, rhohatX, Log, &MargLikelihood, A);
   }
   if(iteration > options->getBurnIn()){
     SumDeviance += -2.0*LogLikelihood;
@@ -512,7 +499,7 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
 void IndividualCollection::OutputIndAdmixture()
 {
   indadmixoutput->visitIndividualCollection(*this);
-  for(unsigned int i=0; i<NumInd; i++){
+  for(unsigned int i = 0; i < NumInd; i++){
     indadmixoutput->visitIndividual(*_child[i], _locusfortest, LogLikelihood);
   }
 }
@@ -520,13 +507,13 @@ void IndividualCollection::OutputIndAdmixture()
 void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
   //Used only if marglikelihood = 1
   Log->write("Estimates used in Chib algorithm to estimate marginal likelihood for Individual 1:\n");
-  for(unsigned i = 0; i < NumInd; i++ ){
-    for(int k = 0; k < Populations; ++k)
-      Log->write(thetahat[i][k]);
-    for(int k = 0; k < Populations; ++k)
-      Log->write(thetahat[i][Populations +k]);
-    Log->write( rhohat[i][0]);Log->write( rhohat[i][1]);Log->write("\n");
-  }
+
+  for(int k = 0; k < Populations; ++k)
+    Log->write(thetahat[k]);
+  for(int k = 0; k < Populations; ++k)
+    Log->write(thetahat[Populations +k]);
+  Log->write( rhohat[0]);Log->write( rhohat[1]);Log->write("\n");
+
   Log->logmsg(true, "Individual 1:\n");
   Log->logmsg(true,   "Log likelihood (at estimates): ");Log->logmsg(true, MargLikelihood.getLogLikelihood());
   Log->logmsg(true, "\nLog prior      (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPrior());

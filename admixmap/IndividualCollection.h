@@ -118,9 +118,10 @@ private:
   unsigned int NumInd, NumCompLoci;
   //MLEs of Individual admixture and sumintensities
   //used to calculate marginal likelihood
-  vector< vector<double> > rhohat, rhohatX;
-  double **thetahat;
-  double **thetahatX;
+  vector<double> rhohat, rhohatX;
+  double *thetahat;
+  double *thetahatX;
+
   double *SumLogTheta;//sums of log individual admixture proportions
   vector<double> MaxLogLikelihood;
 

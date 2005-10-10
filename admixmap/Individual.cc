@@ -1123,30 +1123,34 @@ void Individual::Chib(int iteration, double *LogLikelihood, double *SumLogLikeli
   else // global rho
     rho[0] = rho[1] = globalrho;
  
-  //if( iteration <= options->getBurnIn() ){
+
   int K = Populations;
   size_t theta_size = Populations;
   if(options->isRandomMatingModel()) theta_size *=2;
   
   *LogLikelihood = getLogLikelihood(options, chrm);//gets loglikelihood at current parameter values
+  
+  if( K > 1 ){
+    if( !options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
+      if( options->isAdmixed(0) ){
+	*LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[0] );}
+      if(  options->isAdmixed(1) )
+	*LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[1] );
+    }
+    else if( options->logRhoFlatPrior() ){
+      if( options->isAdmixed(0) )
+	*LogLikelihood -= log( rho[0] );
+      if(  options->isAdmixed(1) )
+	*LogLikelihood -= log( rho[1] );
+    }
+    *LogLikelihood+= getDirichletLogDensity(alpha[0], Theta) + getDirichletLogDensity(alpha[1], Theta + K);
+  }
 
-    if( K > 1 ){
-      if( !options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
-	if( options->isAdmixed(0) ){
-	  *LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[0] );}
-	if(  options->isAdmixed(1) )
-	  *LogLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[1] );
-      }
-      else if( options->logRhoFlatPrior() ){
-	if( options->isAdmixed(0) )
-	  *LogLikelihood -= log( rho[0] );
-	if(  options->isAdmixed(1) )
-	  *LogLikelihood -= log( rho[1] );
-      }
-      *LogLikelihood+= getDirichletLogDensity(alpha[0], Theta) + getDirichletLogDensity(alpha[1], Theta + K);
-
+  // *** during BurnIn ***
+  if( iteration <= options->getBurnIn() ){
+    if( Populations > 1 ){  
       if( *LogLikelihood > *MaxLogLikelihood ){
-	if( iteration > options->getBurnIn() ){
+	
 	  Log->write("Admixture (gamete 1):");
 	  Log->write(Theta, K);Log->write("\n");
 	  Log->write("Admixture (gamete 2):");
@@ -1155,76 +1159,63 @@ void Individual::Chib(int iteration, double *LogLikelihood, double *SumLogLikeli
 	  Log->write( rho[0]);Log->write( rho[1]);
 	  Log->write("\nLogLikelihood:");Log->write( *LogLikelihood);
 	  Log->write("\niteration: ");Log->write(iteration);Log->write("\n\n");
-	}
-
-	*MaxLogLikelihood = *LogLikelihood;
-
-	// *** during BurnIn ***
-	if( iteration <= options->getBurnIn() ){
-	  //set allelefreqsMAP to current values of allelefreqs
-	  A->setAlleleFreqsMAP();
-	  //set HapPairProbsMAP to current values of HapPairProbs
-	  for( unsigned  j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-	    //if( locus->GetNumberOfLoci() > 2 )
-	      (*Loci)(j)->setHaplotypeProbsMAP();
-	  }
 	  
+	  //set parameter estimates at max loglikelihood
 	  for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
 	  rhohat = rho;
-
+	  
 	  if( Loci->isX_data() ){
-	  for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
+	    for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
 	    rhohatX = _rho_X;
 	  }
-	}//end during burnin block
       }//end if Loglikelihood > Max
     }//end if K>1
-
-    else{//single population
-      if( *LogLikelihood > *MaxLogLikelihood ){
-
-	*MaxLogLikelihood = *LogLikelihood;
-	if( iteration <= options->getBurnIn() ){
-	  A->setAlleleFreqsMAP();
-	  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-	    //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
-	      (*Loci)(j)->setHaplotypeProbsMAP();
-	  }
+  
+  
+    if( *LogLikelihood > *MaxLogLikelihood ){
+      *MaxLogLikelihood = *LogLikelihood;
+      
+	//set allelefreqsMAP to current values of allelefreqs
+	A->setAlleleFreqsMAP();
+	//set HapPairProbsMAP to current values of HapPairProbs
+	for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+	  //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
+	  (*Loci)(j)->setHaplotypeProbsMAP();
 	}
-      }
     }
+  }
 
-    // *** At end of BurnIn ***
-      if( iteration == options->getBurnIn() ){
-	//set parameter estimates
-	Log->write("Calculating posterior at individual admixture\n");
-	Log->write( thetahat, 2*Populations);
-	Log->write("\nand sumintensities\n");Log->write( rhohat[0]);Log->write(rhohat[1]);Log->write("\n");
-
-	//loglikelihood at estimates
-	MargLikelihood->setLogLikelihood( getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true) );
-	//logprior at estimates
-	MargLikelihood->setLogPrior(LogPrior(thetahat, thetahatX, rhohat, rhohatX, options, A, rhoalpha, rhobeta, alpha) );
-      }
-
-      // *** After BurnIn ***
-      if( iteration > options->getBurnIn() ){
-
-	double LogPosterior = 0;
-	if( Populations > 1 )
-	  LogPosterior = CalculateLogPosterior(options, thetahat, thetahatX, rhohat, rhohatX, alpha, rhoalpha, rhobeta);
-	if( A->IsRandom() ){
+  // *** At end of BurnIn ***
+  if( iteration == options->getBurnIn() ){
+    
+    Log->write("Calculating posterior at individual admixture\n");
+    Log->write( thetahat, 2*Populations);
+    Log->write("\nand sumintensities\n");Log->write( rhohat[0]);Log->write(rhohat[1]);Log->write("\n");
+    
+    //loglikelihood at estimates
+    MargLikelihood->setLogLikelihood( getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true) );
+    //logprior at estimates
+    MargLikelihood->setLogPrior(LogPrior(thetahat, thetahatX, rhohat, rhohatX, options, A, rhoalpha, rhobeta, alpha) );
+  }
+  
+  // *** After BurnIn ***
+  if( iteration > options->getBurnIn() ){
+    
+    double LogPosterior = 0;
+    if( Populations > 1 )
+      LogPosterior = CalculateLogPosterior(options, thetahat, thetahatX, rhohat, rhohatX, alpha, rhoalpha, rhobeta);
+    if( A->IsRandom() ){
 	  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
 	    for( int k = 0; k < Populations; k++ ){
 	      LogPosterior += getDirichletLogDensity( A->GetPriorAlleleFreqs(j,k) + A->GetAlleleCounts(j,k), 
 						      A->getAlleleFreqsMAP(j, k) );
 	    }
 	  }
-	}
-	MargLikelihood->addLogPosteriorObs( LogPosterior );
-	*SumLogLikelihood += *LogLikelihood;
-      }
-
+    }
+    MargLikelihood->addLogPosteriorObs( LogPosterior );
+    *SumLogLikelihood += *LogLikelihood;
+  }
+  
 }
 
 double Individual::LogPrior(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 
