@@ -148,9 +148,6 @@ public:
   bool getOutputFST() const;
   bool getLocusForTestIndicator() const;
   int getLocusForTest() const;
-
-  Vector_i getStratificationTestLoci() const;
-  
   
 private:
   long burnin;
