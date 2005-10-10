@@ -486,7 +486,7 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
   E = SumDeviance / (double) iterations;//ergodic average of deviance
   V = SumDevianceSq / (double)iterations - E*E;//ergodic variance of deviance 
 
-  Log->logmsg(true, "MeanDeviance    VarDeviance     GOFStat         DIC\n");
+  Log->logmsg(true, "MeanDeviance    VarDeviance     GOFStat         pD      DIC\n");
   Log->logmsg(true, E);Log->logmsg(true,"    ");
   Log->logmsg(true, V);Log->logmsg(true,"    ");
   Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "    ");
@@ -506,9 +506,10 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
     for(unsigned int i = 0; i < NumInd; i++ ){
       D += -2.0*_child[i]->getLogLikelihoodOnePop(false);
     }
-
+  double pD = E - D;
   double DIC = 2.0*E - D;
   
+  Log->logmsg(true, pD);Log->logmsg(true, "    ");
   Log->logmsg(true, DIC);Log->logmsg(true, "\n\n");
 }
 
