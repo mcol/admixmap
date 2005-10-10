@@ -12,8 +12,9 @@ double getGammaLogDensity(double alpha, double beta, double x);
 double getDirichletLogDensity(const Vector_d& a, const Vector_d& x);
 double getDirichletLogDensity(const std::vector<double>& a, const Vector_d& x);
 
-double getDirichletLogDensity(double *a, double *x, size_t K);
-double getDirichletLogDensity(const std::vector<double>& a, double *x);
+double getDirichletLogDensity(const double* const a, const double* const x, size_t K);
+double getDirichletLogDensity(const std::vector<double>& a, const double* const x);
+double getDirichletLogDensity(const std::vector<double>& a, const std::vector<double>& x);
 double getDirichletLogDensity_Softmax(const std::vector<double>& a, double *x);
 
 double AverageOfLogs(const std::vector<double>& vec, double max);
@@ -24,10 +25,7 @@ void inv_softmax(size_t K, const double* const mu, double *a, const bool* const 
 void softmax(size_t K, double *mu, const double* a, const bool* const b);
 
 //matrix algebra
-int HH_solve (Matrix_d A, Vector_d b, Vector_d *x);
 int HH_solve (size_t n, double *A, double *b, double *x);
-
-int HH_svx (Matrix_d A, Vector_d *x);
 int HH_svx (double *A, double *x);
 
 void add_matrix(double *a, double *b, size_t d1, size_t d2);

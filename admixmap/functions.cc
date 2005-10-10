@@ -8,6 +8,8 @@
 
 using namespace::std;
 
+// ************** Log Densities *******************
+
 double getGammaLogDensity(double alpha, double beta, double x)
 {
   return alpha * log(beta) - gsl_sf_lngamma(alpha) + (alpha-1.0)*log(x) - beta*x;
@@ -53,7 +55,7 @@ double getDirichletLogDensity(const Vector_d& a, const Vector_d& x)
 //calls gsl function for computing the logarithm of the probability density p(x_1, ... , x_K) 
 //for a Dirichlet distribution with parameters a[K]. 
 //a should be of length K but x can be of length K or K-1 since last element ignored
-double getDirichletLogDensity(double *alpha, double *x, size_t K)
+double getDirichletLogDensity(const double* const alpha, const double* const x, size_t K)
 {
   double f, xsum = 0.0, sumalpha = alpha[K-1];
   double theta[K];
@@ -73,7 +75,28 @@ double getDirichletLogDensity(double *alpha, double *x, size_t K)
   return f;
 }
 
-double getDirichletLogDensity(const std::vector<double>& a, double *x)
+double getDirichletLogDensity(const std::vector<double>& a, const double* const x)
+{
+  size_t K = a.size();
+  double f, xsum = 0.0;
+  double theta[K];
+
+  for(size_t k = 0; k < K-1; ++k){
+    theta[k] = x[k];
+     xsum += x[k];
+  }
+
+  theta[K-1] = 1.0 - xsum;
+
+  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
+  f = gsl_sf_lngamma( sum );
+  for( unsigned i = 0; i < K; i++ )
+    if( a[i] > 0.0 )
+      f += ( a[i] - 1 ) * log( theta[i] ) - gsl_sf_lngamma( a[i] );
+
+  return f;
+}
+double getDirichletLogDensity(const std::vector<double>& a, const std::vector<double>& x)
 {
   size_t K = a.size();
   double f, xsum = 0.0;
@@ -116,6 +139,7 @@ double getDirichletLogDensity_Softmax(const std::vector<double>& a, double *x)
   return f;
 }
 
+// ********** Misc. functions and transformations ******************
 double AverageOfLogs(const std::vector<double>& vec, double max)
 {
   double sum = 0;
@@ -159,71 +183,7 @@ void softmax(size_t K, double *mu, const double* a, const bool* const b){
   for(unsigned k = 0; k < K; ++k)mu[k] = b[k]*exp(a[k]) / z;
 }
 
-
-// int HH_solve (Matrix_d A, Vector_d b, Vector_d *x)
-// {
-//   //Caller for gsl_linalg_HH_solve
-//   //This function solves the system A x = b directly using Householder transformations. 
-//   //On output the solution is stored in x and b is not modified. The matrix AA is destroyed by the Householder transformations. 
-
-//   gsl_matrix *AA;
-//   gsl_vector *bb,*xx;
-
-//   AA = gsl_matrix_calloc(A.GetNumberOfRows(),A.GetNumberOfCols());
-//   bb = gsl_vector_calloc(b.GetNumberOfElements());
-//   xx = gsl_vector_calloc(x->GetNumberOfElements());
-
-//   for (int i=0; i < A.GetNumberOfRows(); i++){
-//     for (int j=0; j < A.GetNumberOfCols(); j++){
-//       int offset = i * AA->size2 + j;
-//       AA->data[offset] = A(i,j);
-//     }
-//   }
-//   for(int i=0;i < b.GetNumberOfElements();i++)
-//     bb->data[i] = b(i);
-
-//   int status = gsl_linalg_HH_solve(AA,bb,xx);
-//   for(int i=0;i < x->GetNumberOfElements();i++)
-//     (*x)(i) = xx->data[i];
-
-//   gsl_matrix_free(AA);
-//   gsl_vector_free(bb);
-//   gsl_vector_free(xx);
-//   return status;
-// }
-
-int HH_svx (Matrix_d A, Vector_d *x)
-{
-  //Caller for gsl_linalg_HH_svx
-  // This function solves the system A x = b in-place using Householder transformations. 
-  // On input x should contain the right-hand side b, which is replaced by the solution on output. 
-  // The matrix AA is destroyed by the Householder transformations. 
-
-  gsl_matrix *AA;
-  gsl_vector *xx;
-
-  AA = gsl_matrix_calloc(A.GetNumberOfRows(),A.GetNumberOfCols());
-  xx = gsl_vector_calloc(x->GetNumberOfElements());
-
-  for (int i=0; i < A.GetNumberOfRows(); i++){
-    for (int j=0; j < A.GetNumberOfCols(); j++){
-      int offset = i * AA->size2 + j;
-      AA->data[offset] = A(i,j);
-    }
-  }
-  for(int i=0;i < x->GetNumberOfElements();i++)
-    xx->data[i] = (*x)(i);
-
-  int status = gsl_linalg_HH_svx(AA,xx);
-  for(int i=0;i < x->GetNumberOfElements();i++)
-    (*x)(i) = xx->data[i];
-
-  gsl_matrix_free(AA);
-  gsl_vector_free(xx);
-
-  return status;
-}
-
+// ************* Matrix Algebra **************************************
 int HH_solve (size_t n, double *A, double *b, double *x)
 {
   //Caller for gsl_linalg_HH_solve

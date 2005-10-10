@@ -299,7 +299,8 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
   else{
     SetDefaultAlleleFreqs( Populations );
   }
-
+  if(options->getMLIndicator())
+    setAlleleFreqsMAP();
 }
 
 void AlleleFreqs::LoadAlleleFreqs(DataMatrix New, int i, bool oldformat){
@@ -573,12 +574,12 @@ double *AlleleFreqs::GetStatsForEta( int locus, int population)
   return stats;
 }
 
-void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<Vector_d>& mu)
+void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<vector<double> >& mu)
 //sets PriorAlleleFreqs to sum to eta after sampling of eta
 {
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       for(int h = 0; h < NumberOfStates[i]; ++h)
-	PriorAlleleFreqs[i][j*NumberOfStates[i]+h] = mu[i](h);
+	PriorAlleleFreqs[i][j*NumberOfStates[i]+h] = mu[i][h];
   }
 }
 
@@ -734,7 +735,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
 void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
   double etanew, LogPostRatio, AccProb;
   double mineta = 0;
-  vector< Vector_d > munew;
+  vector< vector<double> > munew;
   // propose etanew from truncated log-normal distribution.
   do{
     etanew = exp( gennor( log( eta[k] ), etastep[k] ) );
@@ -746,19 +747,25 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
   LogPostRatio += 2 * NumberOfCompositeLoci
     * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta[k] ) );
   for(int j = 0; j < NumberOfCompositeLoci; j++ ){
-    Vector_d mu = GetPriorAlleleFreqs(j,k);
+    std::vector<double> mu = GetPriorAlleleFreqs(j,k);
+    vector<double>::const_iterator it = min_element(mu.begin(), mu.end());
+
     //mineta is a lower bound for proposal etanew
-    if( mineta < 0.1 * eta[k] / mu.MinimumElement() )
-      mineta = 0.1 * eta[k] / mu.MinimumElement();
-    
+    if( mineta < 0.1 * eta[k] / *it )
+      mineta = 0.1 * eta[k] / *it;
+
+    munew.push_back( mu );
     //rescale munew so munew sums to etanew
-    munew.push_back( mu * etanew / eta[k] );
+    for( unsigned l = 0; l < mu.size(); l++ )
+      munew[j][l] *= etanew / eta[k];
+
+
     double *SumLogFreqs = GetStatsForEta(j,k);
-    for( int l = 0; l < (*Loci)(j)->GetNumberOfStates(); l++ ){
+    for( unsigned l = 0; (int)l < (*Loci)(j)->GetNumberOfStates(); l++ ){
       // Denominator of integrating constant
-      LogPostRatio += 2*(gsl_sf_lngamma( mu(l) ) - gsl_sf_lngamma( munew[j](l) ));
+      LogPostRatio += 2*(gsl_sf_lngamma( mu[l] ) - gsl_sf_lngamma( munew[j][l] ));
       // SumLogFreqs = log phi_1 + log phi_2
-      LogPostRatio += (munew[j](l) - mu(l))*SumLogFreqs[l];
+      LogPostRatio += (munew[j][l] - mu[l])*SumLogFreqs[l];
     }
     delete[] SumLogFreqs;
   }
@@ -940,11 +947,11 @@ bool AlleleFreqs::IsRandom()
  * a vector_d containing Dirichlet parameters for frequencies of each allele at the locus. 
  * Expected frequencies are calculated by dividing each parameter by the sum of parameters
  */
-Vector_d AlleleFreqs::GetPriorAlleleFreqs( int locus, int population )
+std::vector<double> AlleleFreqs::GetPriorAlleleFreqs( int locus, int population )
 {
-  Vector_d counts(NumberOfStates[locus]);
+  std::vector<double> counts(NumberOfStates[locus]);
   for(int s = 0; s < NumberOfStates[locus]; ++s)
-    counts(s) = PriorAlleleFreqs[locus][population*NumberOfStates[locus] + s];
+    counts[s] = PriorAlleleFreqs[locus][population*NumberOfStates[locus] + s];
   return counts;
 }
 
@@ -955,19 +962,19 @@ int *AlleleFreqs::GetAlleleCounts(int locus)
   return( AlleleCounts[locus] );
 }
 // this function returns counts for the population specified
-Vector_i AlleleFreqs::GetAlleleCounts( int locus, int population )
+std::vector<int> AlleleFreqs::GetAlleleCounts( int locus, int population )
 {
-  Vector_i counts(NumberOfStates[locus]);
+  std::vector<int> counts(NumberOfStates[locus]);
   for(int s = 0; s < NumberOfStates[locus]; ++s)
-    counts(s) = AlleleCounts[locus][s*Populations + population];
+    counts[s] = AlleleCounts[locus][s*Populations + population];
   return counts;
 }
-Vector_d AlleleFreqs::getAlleleFreqsMAP( int locus, int population )
+std::vector<double> AlleleFreqs::getAlleleFreqsMAP( int locus, int population )
 {
-  Vector_d A(NumberOfStates[locus]-1);
+  std::vector<double> A(NumberOfStates[locus]-1);
   for(int i = 0; i < NumberOfStates[locus]-1; ++i)
-    A(i) = AlleleFreqsMAP[locus][i*Populations+population];
-  //return( AlleleFreqsMAP[locus].GetColumn( population ) );
+    A[i] = AlleleFreqsMAP[locus][i*Populations+population];
+
   return A;
 }
 /**AlleleFreqs

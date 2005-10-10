@@ -67,9 +67,9 @@ public:
   void UpdateFst();
   double *GetStatsForEta( int , int locus);
   double GetAlleleProbsMAP( int x, int ancestry , int locus);
-  Vector_d GetPriorAlleleFreqs( int locus, int population );
-  Vector_i GetAlleleCounts( int locus, int population );
-  Vector_d getAlleleFreqsMAP( int locus, int population );
+  std::vector<double> GetPriorAlleleFreqs( int locus, int population );
+  std::vector<int> GetAlleleCounts( int locus, int population );
+  std::vector<double> getAlleleFreqsMAP( int locus, int population );
   Vector_d GetAlleleFreqs( int locus, int population );
   double *GetAlleleFreqs(int locus);
   double **GetAlleleFreqs();
@@ -143,7 +143,7 @@ private:
   void SamplePriorAlleleFreqsMultiDim( int);
   void SamplePriorAlleleFreqs();
   void SampleAlleleFreqs(int);
-  void UpdatePriorAlleleFreqs( int, const std::vector<Vector_d>& );
+  void UpdatePriorAlleleFreqs( int, const std::vector<std::vector<double> >& );
   void SampleEtaWithRandomWalk(int k, bool updateSumEta);
 
   void OpenOutputFile(AdmixOptions *options);

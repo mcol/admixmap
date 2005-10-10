@@ -23,6 +23,7 @@
  */
 
 #include "DispersionTest.h"
+#include <numeric>
 
 using namespace ::std;
 
@@ -62,7 +63,7 @@ void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
   Vector_i rep;
   Vector_d popfreqs;
 
-  Vector_i AlleleCount; 
+  vector<int> AlleleCount; 
   double LogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ], 
     RepLogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ];
   double sum[NumberOfPopulations], repsum[NumberOfPopulations];
@@ -81,7 +82,8 @@ void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
       popfreqs( numberofstates - 1 ) = 1 - popfreqs.Sum();
       // Generate replicate data conditional on locus ancestry
       AlleleCount = A->GetAlleleCounts(j, k);
-      rep = genmultinomial( AlleleCount.Sum(), popfreqs );
+      int sumcounts = accumulate(AlleleCount.begin(), AlleleCount.end(), 0, plus<int>());
+      rep = genmultinomial( sumcounts, popfreqs );
 
       // Calculate likelihood of observed and repliate data.
       LogLikelihood[j][k] =
