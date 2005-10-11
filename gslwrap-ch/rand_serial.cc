@@ -1,8 +1,6 @@
 #include <cassert>
 #include <cmath>
 #include <iostream>
-#include "vector_i.h"
-#include "vector_d.h"
 #include "rand.h"
 
 extern "C" {
@@ -62,35 +60,34 @@ unsigned int genpoi( double mu )
    return( gsl_ran_poisson( RandomNumberGenerator, mu ) );
 }
 
-Vector_i
-genmultinomial(int N, Vector_d theta)
+std::vector<int> genmultinomial2(int N, std::vector<double> theta)
 {
-  int K = (int)theta.GetNumberOfElements();
+  int K = (int)theta.size();
   unsigned int n[ K ];
   double p[ K ];
-  Vector_i sample( K );
+  std::vector<int> sample( K );
   for(int i = 0; i < K; i++){
-      p[i] = theta(i);
+      p[i] = theta[i];
   }
   gsl_ran_multinomial(RandomNumberGenerator, K, N, p, n);
-  for(int i = 0; i<K; i++){
-    sample(i) = n[i];
+  for(int i = 0; i < K; i++){
+    sample[i] = n[i];
   }
   return( sample );
 }
 
-double MultinomialLikelihood( Vector_i r, Vector_d theta )
+double MultinomialLikelihood( std::vector<int> r, std::vector<double> theta )
 {
-   if( r.GetNumberOfElements() != theta.GetNumberOfElements() ){
+   if( r.size() != theta.size() ){
       cout << "Length of vector arguments to MultinomialLikelihood not equal." << endl;
       exit(0);
    }
-   int K = (int)r.GetNumberOfElements();
+   unsigned K = (int)r.size();
    unsigned int n[ K ];
    double p[ K ];
    for( int i = 0; i < K; i++ ){
-      p[i] = theta(i);
-      n[i] = r(i);
+      p[i] = theta[i];
+      n[i] = r[i];
    }
    return( gsl_ran_multinomial_pdf( K, p , n ) );
 }

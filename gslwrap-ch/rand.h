@@ -1,7 +1,6 @@
 #include <iostream>
-class Vector_d;
-///
-class Vector_i;
+#include <vector>
+
 ///
 double myrand();
 ///
@@ -19,9 +18,9 @@ int genbinomial( int n, double p );
 //
 unsigned int genpoi( double );
 //
-Vector_i genmultinomial( int n, Vector_d p );
+std::vector<int> genmultinomial2( int n, std::vector<double> p );
 //
-double MultinomialLikelihood( Vector_i r, Vector_d theta );
+double MultinomialLikelihood( std::vector<int> r, std::vector<double> theta );
 ///
 ///Poisson generator
 long ignpoi(double mu);
