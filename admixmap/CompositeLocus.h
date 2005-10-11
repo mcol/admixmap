@@ -30,8 +30,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-class Vector_i;
-
 typedef struct  
 {
    int haps[2];
@@ -46,6 +44,7 @@ public:
   ~CompositeLocus();
 
   void setHaplotypeProbsMAP();
+  void UpdateSumHapPairProbs();
   void SetNumberOfLabels();
   void SetNumberOfPopulations( int );
   void SetRandomAlleleFreqs(bool);
@@ -64,7 +63,8 @@ public:
 
   void setPossibleHaplotypePairs(unsigned short **Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles);
-  void GetGenotypeProbs(double *Probs, std::vector<hapPair > &HaplotypePairs, bool fixed);
+  void GetGenotypeProbs(double *Probs, std::vector<hapPair > &HaplotypePairs, bool chibindicator);
+  double GetGenotypeProbsAtPosteriorMeans(std::vector<hapPair > &HapPairs, int iterations);
   void SetHapPairProbs();
   void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, int ancestry[2]);
   void Initialise(double*);
@@ -84,6 +84,7 @@ private:
   double **AlleleProbs;
   double *HapPairProbs; //haplotype pair probabilities
   double *HapPairProbsMAP; //Posterior estimates of hap pair probs
+  double *SumHapPairProbs;//Posterior means of HapPairProbs, used only if single population
   std::string *Label;
   int *base;
   bool RandomAlleleFreqs;
@@ -111,7 +112,7 @@ private:
   CompositeLocus& operator=(const CompositeLocus&);
 };
 
-double GetMarginalLikelihood( Vector_d PriorAlleleFreqs, Vector_d AlleleCounts );
+double GetMarginalLikelihood( std::vector<double> PriorAlleleFreqs, std::vector<int> AlleleCounts );
 
 inline void CompositeLocus::GetGenotypeProbs(double *Probs, std::vector<hapPair > &HapPairs, bool chibindicator){
   for(int k0 = 0; k0 < Populations * Populations; ++k0){

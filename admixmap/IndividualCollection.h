@@ -31,9 +31,7 @@
 #include "DataMatrix.h"
 #include "matrix.h"
 #include "matrix_d.h"
-#include "matrix_i.h"
-#include "vector.h"
-#include "vector_i.h"
+
 #include <vector>
 #include <string.h>
 #include <string>
@@ -93,7 +91,6 @@ public:
 
   Matrix_d getCovariates();
   DataType getOutcomeType(int);
-  Vector_i *getOutcomeType();
 
   void SetExpectedY(int,Matrix_d);
   void SetExpectedY(int,double *);

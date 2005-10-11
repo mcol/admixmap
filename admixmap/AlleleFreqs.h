@@ -70,7 +70,7 @@ public:
   std::vector<double> GetPriorAlleleFreqs( int locus, int population );
   std::vector<int> GetAlleleCounts( int locus, int population );
   std::vector<double> getAlleleFreqsMAP( int locus, int population );
-  Vector_d GetAlleleFreqs( int locus, int population );
+  std::vector<double> GetAlleleFreqs( int locus, int population );
   double *GetAlleleFreqs(int locus);
   double **GetAlleleFreqs();
   int *GetAlleleCounts(int locus);

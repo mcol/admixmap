@@ -311,23 +311,34 @@ bool Individual::IsMissing(unsigned int locus)
 double Individual::getLogLikelihoodOnePop(bool chibindicator)
 //Single population log-likelihood
 {
-   double Likelihood = 0.0;
+   double logLikelihood = 0.0;
    double *Prob;
    Prob = new double[1];//one pop so 1x1 array
    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
      if(!IsMissing(j)){
        (*Loci)(j)->GetGenotypeProbs(Prob,getPossibleHapPairs(j), chibindicator);
-       Likelihood += log( Prob[0] );
+       logLikelihood += log( Prob[0] );
      }
    }
-   return Likelihood;
+   return logLikelihood;
 }
 
 double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm){
   //use current parameter values
   return getLogLikelihood(options, chrm, Theta, ThetaX,_rho, _rho_X, false);
 }
+double Individual::getLogLikelihoodAtPosteriorMeansOnePop(int iterations){
+  double logLikelihood = 0.0;
+  double Prob;
+  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+    if(!IsMissing(j)){
+      Prob = (*Loci)(j)->GetGenotypeProbsAtPosteriorMeans(getPossibleHapPairs(j), iterations);
+      logLikelihood += log( Prob );
+    }
+  }
+  return logLikelihood;
 
+}
 double Individual::getLogLikelihoodAtPosteriorMeans(AdmixOptions* options, Chromosome **chrm){
   //TODO: X chromosome objects
   //obtain ergodic averages of (softmax)admixture props and (log)sumintensities and transform back
@@ -374,8 +385,8 @@ double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, d
 //************** Updating (Public) ***************************************************************************************
 
 // unnecessary duplication of code - ? should embed within method for > 1 population
-void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY,
-				      double *lambda, Chromosome **chrm, AlleleFreqs *A )
+void Individual::OnePopulationUpdate( int i, bool notBurnIn, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, 
+				      double **ExpectedY, double *lambda, Chromosome **chrm, AlleleFreqs *A )
 {
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
@@ -400,6 +411,7 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
 	// GetLocusAncestry(j,jj,anc);
 	int h[2]; //to store sampled hap pair
 	(*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
+	if(notBurnIn)(*Loci)(locus)->UpdateSumHapPairProbs();
 	A->UpdateAlleleCounts(locus, h, anc, true); // should fix this to work with haploid data: last argument should be isdiploid
       }
     }
@@ -1190,7 +1202,7 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
   // *** At end of BurnIn ***
   if( iteration == options->getBurnIn() ){
     
-    Log->write("Calculating posterior at individual admixture\n");
+    Log->write("Calculating loglikelihood at individual admixture\n");
     Log->write( thetahat, 2*Populations);
     Log->write("\nand sumintensities\n");Log->write( rhohat[0]);Log->write(rhohat[1]);Log->write("\n");
     
@@ -1211,7 +1223,7 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
 	    for( int k = 0; k < Populations; k++ ){
 	      vector<double> args = A->GetPriorAlleleFreqs(j,k);
 	      vector<int> counts = A->GetAlleleCounts(j,k);
-	      transform(counts.begin(), counts.end(), args.begin(), args.begin(), plus<double>());
+	      transform(counts.begin(), counts.end(), args.begin(), args.begin(), plus<double>());//PriorAlleleFreqs + AlleleCounts
 	      LogPosterior += getDirichletLogDensity( args, A->getAlleleFreqsMAP(j, k) );
 	    }
 	  }

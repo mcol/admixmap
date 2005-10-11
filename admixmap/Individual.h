@@ -68,6 +68,7 @@ public:
 
   double getLogLikelihood(AdmixOptions*, Chromosome**);
   double getLogLikelihoodAtPosteriorMeans(AdmixOptions* options, Chromosome **chrm);
+  double getLogLikelihoodAtPosteriorMeansOnePop(int iterations);
   double getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, double* theta, 
 			   vector<double > rho, vector<double> rho_X, bool chibindicator);
 
@@ -93,7 +94,7 @@ public:
 		    DataMatrix *Covariates, double **beta, const double *poptheta,
 		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, double, double, bool);
 
- void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda,
+  void OnePopulationUpdate( int i, bool notBurnIn, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda,
 			   Chromosome **chrm, AlleleFreqs *A );
 
   void Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,

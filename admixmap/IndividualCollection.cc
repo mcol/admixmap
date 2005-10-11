@@ -176,7 +176,7 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
    thetahat = new double[size_admix];
    thetahatX = new double[size_admix];
 
-   //initialise thetahat at initial values of individual 1's admixture props
+   //initialise thetahat at initial values of individual admixture
    for(unsigned k = 0; k < size_admix; ++k)
      thetahat[k] = _child[0]->getAdmixtureProps()[k];
 
@@ -369,7 +369,7 @@ Regression *R0, Regression *R1, const double *poptheta,
     }
     
     else{//single population 
-      _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
+      _child[i]->OnePopulationUpdate(i, (bool)(iteration > options->getBurnIn()), &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
 				     chrm, A);
       LogLikelihood += _child[i]->getLogLikelihoodOnePop(false);
     }   
@@ -492,17 +492,17 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
       C[j]->SetLociCorr(SumRho / (double)iterations);
 
   //accumulate deviance at posterior means for each individual
-  double D = 0.0;
+  double D = 0.0; // D = deviance at estimates
   if(options->getPopulations() > 1)
     for(unsigned int i = 0; i < NumInd; i++ ){
       D += -2.0*_child[i]->getLogLikelihoodAtPosteriorMeans(options, C);
     }
-  else
+  else//single population
     for(unsigned int i = 0; i < NumInd; i++ ){
-      D += -2.0*_child[i]->getLogLikelihoodOnePop(false);
+      D += -2.0*_child[i]->getLogLikelihoodAtPosteriorMeansOnePop(iterations);
     }
   double pD = E - D;
-  double DIC = 2.0*E - D;
+  double DIC = E + pD;
   
   Log->logmsg(true, pD);Log->logmsg(true, "    ");
   Log->logmsg(true, DIC);Log->logmsg(true, "\n\n");

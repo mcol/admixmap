@@ -24,6 +24,7 @@
 #include "AdaptiveRejection.h"
 #include "functions.h"
 #include <numeric>
+#include <gsl/gsl_linalg.h>
 
 using namespace::std;
 

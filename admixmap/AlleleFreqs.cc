@@ -944,7 +944,7 @@ bool AlleleFreqs::IsRandom()
  * population - the number of the population (zero based)
  * locus - the number of the locus
  * returns:
- * a vector_d containing Dirichlet parameters for frequencies of each allele at the locus. 
+ * a vector containing Dirichlet parameters for frequencies of each allele at the locus. 
  * Expected frequencies are calculated by dividing each parameter by the sum of parameters
  */
 std::vector<double> AlleleFreqs::GetPriorAlleleFreqs( int locus, int population )
@@ -988,11 +988,11 @@ double *AlleleFreqs::GetAlleleFreqs(int locus)
 {
   return( Freqs[locus] );
 }
-Vector_d AlleleFreqs::GetAlleleFreqs( int locus, int population )
+vector<double> AlleleFreqs::GetAlleleFreqs( int locus, int population )
 {
-  Vector_d A(NumberOfStates[locus]-1);
+  vector<double> A(NumberOfStates[locus]-1);
   for(int i = 0; i < NumberOfStates[locus]-1; ++i)
-    A(i) = Freqs[locus][i*Populations+population];
+    A[i] = Freqs[locus][i*Populations+population];
   return A;
 }
 double **AlleleFreqs::GetAlleleFreqs(){

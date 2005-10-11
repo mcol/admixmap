@@ -21,6 +21,7 @@
 
 #include "CompositeLocus.h"
 #include "functions.h"
+#include <numeric>
 
 using namespace std;
 
@@ -178,12 +179,17 @@ void CompositeLocus::Initialise(double *AFreqs){
   //set size of array of haplotype pair probs
   HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
   HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
+  if(Populations == 1){
+    SumHapPairProbs = new double[NumberOfStates*NumberOfStates];
+    fill(SumHapPairProbs, SumHapPairProbs + NumberOfStates*NumberOfStates, 0.0);
+  }
   SetAlleleProbs(AFreqs);
   SetHapPairProbs();
   SetNoMergeHaplotypes();
   //Initialise HapPairProbsMAP to values in HapPairProbs
-  for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0)
-    HapPairProbsMAP[h0] = HapPairProbs[h0]; 
+  for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
+    HapPairProbsMAP[h0] = HapPairProbs[h0];
+  } 
 }
 
 void CompositeLocus::SetAlleleProbs(double *AFreqs){
@@ -283,6 +289,29 @@ void CompositeLocus::SetHapPairProbs(){
       }
     }
   }
+}
+void CompositeLocus::UpdateSumHapPairProbs(){
+  //should use softmax here
+  if(Populations == 1){
+    double a[NumberOfStates*NumberOfStates];
+    inv_softmax(NumberOfStates*NumberOfStates, HapPairProbs, a);
+
+  for(int h = 0; h < NumberOfStates*NumberOfStates; ++h)
+    SumHapPairProbs[h] += a[h];
+  }
+}
+double CompositeLocus::GetGenotypeProbsAtPosteriorMeans(std::vector<hapPair > &HapPairs, int iterations){
+  double Probs = 0.0;
+  if(Populations == 1){
+    double mu[NumberOfStates*NumberOfStates];
+    for(int h = 0; h < NumberOfStates*NumberOfStates; ++h)SumHapPairProbs[h] /= (double)iterations;
+    softmax(NumberOfStates*NumberOfStates, mu, SumHapPairProbs);
+
+    for(unsigned int h = 0; h < HapPairs.size() ; ++h)
+      Probs += mu[HapPairs[h].haps[0] * NumberOfStates + HapPairs[h].haps[1]];
+
+  }
+  return Probs;
 }
 
 /*
@@ -674,13 +703,16 @@ int CompositeLocus::GetMergedHaplotype( int i )
 // apparently calculates contribution of allele freqs to marginal likelihood of model
 // by subtracting log prior density from log posterior
 // in current version, this function is not called anywhere
-double GetMarginalLikelihood( Vector_d PriorAlleleFreqs, Vector_d AlleleCounts )
+double GetMarginalLikelihood( std::vector<double> PriorAlleleFreqs, std::vector<int> AlleleCounts )
 {
-   double f = gsl_sf_lngamma( PriorAlleleFreqs.Sum() ) -
-      gsl_sf_lngamma( PriorAlleleFreqs.Sum() + AlleleCounts.Sum() );
-   for( int i = 0; i < PriorAlleleFreqs.GetNumberOfElements(); i++ )
-      f += gsl_sf_lngamma( PriorAlleleFreqs(i) + AlleleCounts(i) )
-         - gsl_sf_lngamma( PriorAlleleFreqs(i) );
+  double sumPrior = accumulate(PriorAlleleFreqs.begin(), PriorAlleleFreqs.end(), 0.0, std::plus<double>());
+  double sumCounts = accumulate(AlleleCounts.begin(), AlleleCounts.end(), 0.0, std::plus<double>());
+
+   double f = gsl_sf_lngamma( sumPrior ) -
+      gsl_sf_lngamma( sumPrior + sumCounts );
+   for( unsigned i = 0; i < PriorAlleleFreqs.size(); i++ )
+      f += gsl_sf_lngamma( PriorAlleleFreqs[i] + AlleleCounts[i] )
+         - gsl_sf_lngamma( PriorAlleleFreqs[i] );
    return(f);
 }
 

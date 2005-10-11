@@ -28,18 +28,19 @@ public:
 private:
   bool Test1, Test2;//indicators for the two tests
 
-  Matrix_d *ScoreGene;
-  Matrix_d *InfoGene;
-  Matrix_d *SumScoreGene;
-  Matrix_d *SumScoreGeneSq;
-  Matrix_d *SumInfoGene;
+  double **ScoreGene;
+  double **InfoGene;
+  double **SumScoreGene;
+  double **SumScoreGeneSq;
+  double **SumInfoGene;
   int NumTestLoci;     //number of comp loci with a single locus ie those used in scalar score test for misspecified allelefreqs
   int NumCompLoci; //number of composite loci
   int Populations;           //number of populations
 
-  Matrix_d **SumNewScore;
-  Matrix_d **SumNewScoreSq;
-  Matrix_d **SumNewInfo;
+  double ***SumNewScore;
+  double ***SumNewScoreSq;
+  double ***SumNewInfo;
+  int dim;
 
   std::ofstream allelefreqscorestream;
   std::ofstream allelefreqscorestream2;

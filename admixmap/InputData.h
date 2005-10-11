@@ -67,7 +67,7 @@ public:
   const Matrix_s& getReportedAncestryData() const;
 
   /**
-   *  Getters to retrieve data (converted to Matrix_d).
+   *  Getters to retrieve data (converted to DataMatrix).
    */    
   const DataMatrix& getLocusMatrix() const;
   const DataMatrix& getOutcomeVarMatrix() const;

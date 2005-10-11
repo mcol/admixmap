@@ -1,6 +1,5 @@
 #include "functions.h"
 #include <cassert>
-#include <gsl/gsl_sf_gamma.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include <numeric>
@@ -13,43 +12,6 @@ using namespace::std;
 double getGammaLogDensity(double alpha, double beta, double x)
 {
   return alpha * log(beta) - gsl_sf_lngamma(alpha) + (alpha-1.0)*log(x) - beta*x;
-}
-
-double getDirichletLogDensity(const Vector_d& a, const Vector_d& x)
-{
-//   double f;
-//   Vector_d xdash;    //This adds the implied last (kth) element of x
-//   xdash = x;                              //when x has length (k-1)
-//   int k = a.GetNumberOfElements();        //x must sum to 1
-//   if (k - 1 == x.GetNumberOfElements()) {
-//     xdash.AddElement( k - 1 );
-//     xdash( k - 1 ) = 1 - x.Sum();
-//   }
-//   assert( k == xdash.GetNumberOfElements() ); //Error in getDirichletLogDensity - lengths of vector arguments do not match.\n";
-
-//   f = gsl_sf_lngamma( a.Sum() );
-//   for( int i = 0; i < k; i++ )
-//     if( a(i) > 0.0 )
-//       f += ( a(i) - 1 ) * log( xdash(i) ) - gsl_sf_lngamma( a(i) );
-
-  size_t K = a.GetNumberOfElements();
-  double f, xsum = 0.0;
-  double theta[K];
-
-  for(size_t k = 0; k < K-1; ++k){
-    theta[k] = x(k);
-     xsum += x(k);
-  }
-
-  theta[K-1] = 1.0 - xsum;
-
-
-  f = gsl_sf_lngamma( a.Sum() );
-  for( unsigned i = 0; i < K; i++ )
-    if( a(i) > 0.0 )
-      f += ( a(i) - 1 ) * log( theta[i] ) - gsl_sf_lngamma( a(i) );
-
-  return f;
 }
 
 //calls gsl function for computing the logarithm of the probability density p(x_1, ... , x_K) 
@@ -161,9 +123,15 @@ void inv_softmax(size_t K, const double* const mu, double *a){
 }
 void softmax(size_t K, double *mu, const double* a){
   //inverse of softmax transformation above
-  double z = 0.0;
-  for(unsigned k = 0; k < K; ++k) z += exp(a[k]);
-  for(unsigned k = 0; k < K; ++k)mu[k] = exp(a[k]) / z;
+  double logz = 0.0;
+  double amax = a[0];
+  for(unsigned k = 1; k < K; ++k)amax = max(amax, a[k]);
+
+  for(unsigned k = 0; k < K; ++k)
+    logz += exp(a[k] - amax);
+  logz = amax + log(logz);
+
+  for(unsigned k = 0; k < K; ++k)mu[k] = exp(a[k] - logz);
 }
 void inv_softmax(size_t K, const double* const mu, double *a, const bool* const b){
   //b is an array of indicators
@@ -443,15 +411,6 @@ void equate_matrix(double **A, double **B, int m, int n){
       A[i][j] = B[i][j];
 }
 
-double **MatrixAsArray(Matrix_d &M){
-  double **A;
-  A = alloc2D_d(M.GetNumberOfRows(), M.GetNumberOfCols());
-  for(int row = 0; row < M.GetNumberOfRows(); ++row)
-    for(int col = 0; col < M.GetNumberOfCols(); ++col)
-      A[row][col] = M(row,col);
-  return A;
-}
-
 //adds matrix b to matrix a
 //dimensions must both be (d1 x d2)
 void add_matrix(double *a, double *b, size_t d1, size_t d2){
@@ -473,6 +432,15 @@ void matrix_product(double *a, double *b, double *c, size_t d1, size_t d2, size_
 
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, &A.matrix, &B.matrix, 0, &C.matrix); 
 }
+void matrix_product(double *a, double *c, size_t d1, size_t d2){
+  //computes c = a * a'
+  gsl_matrix_view A, At, C;
+  A = gsl_matrix_view_array(a, d1, d2);
+  At = gsl_matrix_view_array(a, d1, d2);
+  C = gsl_matrix_view_array(c, d1, d1);
+
+  gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1, &A.matrix, &At.matrix, 0, &C.matrix); 
+}
 void matrix_product(const double *a, const double *b, double *c, size_t d1, size_t d2, size_t d3){
   gsl_matrix_view A, B, C;
   A = gsl_matrix_view_array(const_cast<double *>(a), d1, d2);
@@ -488,6 +456,19 @@ void scale_matrix(double *a, const double c, size_t d1, size_t d2){
   gsl_matrix_scale(&A.matrix, c);
 }
 
+double determinant(double *a, size_t d){
+  gsl_permutation *permutation = gsl_permutation_alloc(d);
+  int signum;
+  double aa[d*d];
+  copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
+  gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
+
+  gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
+  double det = gsl_linalg_LU_det(&A.matrix, signum); 
+
+  gsl_permutation_free(permutation);
+  return det;
+}
 //useful for stl functions
 double xlog(double x){
   return log(x);

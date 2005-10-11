@@ -60,8 +60,8 @@ DispersionTest::~DispersionTest(){
 void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
 {
   int numberofstates;
-  Vector_i rep;
-  Vector_d popfreqs;
+  vector<int> rep;
+  vector<double> popfreqs;
 
   vector<int> AlleleCount; 
   double LogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ], 
@@ -78,12 +78,13 @@ void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
     //freqs = A->GetAlleleFreqs(j);
     for( int k = 0; k < NumberOfPopulations; k++ ){
       popfreqs =  A->GetAlleleFreqs(j, k );
-      popfreqs.AddElement( numberofstates - 1 );
-      popfreqs( numberofstates - 1 ) = 1 - popfreqs.Sum();
+      double sumfreqs = accumulate(popfreqs.begin(), popfreqs.end(), 1.0, minus<double>());
+      popfreqs.push_back( sumfreqs );
+
       // Generate replicate data conditional on locus ancestry
       AlleleCount = A->GetAlleleCounts(j, k);
       int sumcounts = accumulate(AlleleCount.begin(), AlleleCount.end(), 0, plus<int>());
-      rep = genmultinomial( sumcounts, popfreqs );
+      rep = genmultinomial2( sumcounts, popfreqs );
 
       // Calculate likelihood of observed and repliate data.
       LogLikelihood[j][k] =

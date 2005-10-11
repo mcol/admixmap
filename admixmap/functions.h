@@ -4,13 +4,9 @@
 
 #include <vector>
 #include <gsl/gsl_sf_psi.h>
-#include "vector_d.h"
-#include "matrix_d.h"
+#include <gsl/gsl_sf_gamma.h>
 
 double getGammaLogDensity(double alpha, double beta, double x);
-
-double getDirichletLogDensity(const Vector_d& a, const Vector_d& x);
-double getDirichletLogDensity(const std::vector<double>& a, const Vector_d& x);
 
 double getDirichletLogDensity(const double* const a, const double* const x, size_t K);
 double getDirichletLogDensity(const std::vector<double>& a, const double* const x);
@@ -30,9 +26,11 @@ int HH_svx (double *A, double *x);
 
 void add_matrix(double *a, double *b, size_t d1, size_t d2);
 void matrix_product(double *a, double *b, double *c, size_t d1, size_t d2, size_t d3);
+void matrix_product(double *a, double *c, size_t d1, size_t d2);
 void matrix_product(const double *a, const double *b, double *c, size_t d1, size_t d2, size_t d3);
 void scale_matrix(double *a, const double c, size_t d1, size_t d2);
 
+double determinant(double *a, size_t d);
 void CentredGaussianConditional( int kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim );
 double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim );
@@ -41,7 +39,7 @@ double **alloc2D_d(int m, int n);
 int **alloc2D_i(int m, int n);
 void free_matrix(double **, int);
 void free_matrix(int **, int);
-double **MatrixAsArray(Matrix_d &M);
+
 void submatrix(double **M, double **Sub, int r1, int r2, int c1, int c2);
 void submatrix(double *M, double *Sub, int Mcols, int r1, int r2, int c1, int c2);
 

@@ -90,7 +90,6 @@ private:
 
   LogWriter *Logptr;
 //OUTPUT
-  //void OutputTestsForLocusLinkage( int, std::ofstream *, Matrix_d *, Matrix_d *, Matrix_d *);
   
   void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
 			      double* Score, double* VarScore,

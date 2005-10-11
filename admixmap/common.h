@@ -7,11 +7,9 @@
 #include <stdexcept>
 #include <iostream>
 #include <utility>
-#include "vector.h"
-#include "vector_i.h"
-#include "vector_d.h"
+
 #include "matrix.h"
-#include "matrix_i.h"
+
 #include "matrix_d.h"
 
 typedef std::vector<std::string> Vector_s; //std vector of strings 
