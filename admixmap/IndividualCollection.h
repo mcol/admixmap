@@ -29,8 +29,6 @@
 #include "Individual.h"
 #include "IndAdmixOutputter.h"
 #include "DataMatrix.h"
-#include "matrix.h"
-#include "matrix_d.h"
 
 #include <vector>
 #include <string.h>
@@ -89,11 +87,10 @@ public:
   int GetNumCovariates() const;
   int GetNumberOfInputCovariates();
 
-  Matrix_d getCovariates();
+  const double* getCovariates()const;
   DataType getOutcomeType(int);
 
-  void SetExpectedY(int,Matrix_d);
-  void SetExpectedY(int,double *);
+  void SetExpectedY(int, const double*const );
   void calculateExpectedY(int);
   double getExpectedY(int);
 

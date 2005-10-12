@@ -27,13 +27,17 @@ int HH_svx (double *A, double *x);
 void add_matrix(double *a, double *b, size_t d1, size_t d2);
 void matrix_product(double *a, double *b, double *c, size_t d1, size_t d2, size_t d3);
 void matrix_product(double *a, double *c, size_t d1, size_t d2);
-void matrix_product(const double *a, const double *b, double *c, size_t d1, size_t d2, size_t d3);
+void matrix_product(const double* const a, const double* const b, double* c, size_t d1, size_t d2, size_t d3);
 void scale_matrix(double *a, const double c, size_t d1, size_t d2);
 
 double determinant(double *a, size_t d);
 void CentredGaussianConditional( int kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim );
 double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim );
+
+void matrix_inverse(const double* const a, double* inv, size_t d);
+void matrix_inverse(double* a, size_t d);
+void cholDecomp(const double* const a, double *L, int n);
 
 double **alloc2D_d(int m, int n);
 int **alloc2D_i(int m, int n);

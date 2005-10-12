@@ -1,5 +1,4 @@
 #include "Regression.h"
-#include "matrix_d.h"
 #include <numeric>
 
 std::ofstream Regression::outputstream;
@@ -10,6 +9,9 @@ Regression::Regression(){
   lambda1 = 0.0;
   SumLambda = 0;
   beta = 0;
+  beta0 = 0;
+  betan = 0;
+  n0 = 0;
   SumBeta = 0;
   NumOutcomeVars = 0;
   NumCovariates = 0;
@@ -18,7 +20,8 @@ Regression::Regression(){
   BetaParameters = 0;
   RegType = None;
 
-  aCovariates = 0;
+  X = 0;
+  XtY = 0;
   dims = 0;
 }
 
@@ -29,9 +32,12 @@ Regression::~Regression(){
     }
     delete[] BetaDrawArray;
     delete[] dims;
-    delete[] aCovariates;
   }
-
+  delete[] X;
+  delete[] XtY;
+  delete[] beta0;
+  delete[] betan;
+  delete[] n0;
   delete[] beta;
   delete[] SumBeta;
   delete[] BetaParameters;
@@ -105,18 +111,22 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
     fill(SumBeta, SumBeta + NumCovariates, 0.0);
 
     double p;
-    beta0.SetNumberOfElements(NumCovariates, 1 );
+    beta0 = new double[ NumCovariates ];
+    fill(beta0, beta0 + NumCovariates, 0.0);
     
     std::vector<double> v = individuals->getOutcome(RegNumber);
     p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
     if(RegType == Logistic )
-      beta0(0,0) = log( p / ( 1 - p ) );
+      beta0[0] = log( p / ( 1 - p ) );
     else if(RegType == Linear)
-      beta0(0,0) = p;
+      beta0[0] = p;
       
     for(int j = 0; j < NumCovariates; ++j){
-      beta[j] = beta0(j,0);
+      beta[j] = beta0[j];
     }
+
+    X = individuals->getCovariates();
+    XtY = new double[NumCovariates];
 
     // if linear regression, n0*lambda is the prior precision matrix of regression coefficients given lambda   
     // if logistic regression, lambda is the prior precision for regression coefficients 
@@ -125,9 +135,10 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
 
     // ** Initialise Linear Regression objects    
     if(RegType == Linear){
-       
-      n0.SetNumberOfElements( NumCovariates, NumCovariates );
-      n0.SetDiagonal( 1 ); // identity matrix
+      betan = new double[NumCovariates];
+      n0 = new double[ NumCovariates * NumCovariates ];
+      fill(n0, n0+NumCovariates*NumCovariates, 0.0);
+      for(int i = 0; i < NumCovariates; ++i)n0[i*NumCovariates +i] = 1.0; // identity matrix
     
       lambda0 = 0.01;//shape parameter for prior on lambda
       lambda1 = 0.01;//rate parameter for prior on lambda
@@ -156,20 +167,16 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
       BetaDrawArray[i] = 0;
     }
 
-    Matrix_d Cov = individuals->getCovariates();
-    aCovariates = new double[individuals->getSize() * NumCovariates];
-    for(int i = 0; i < Cov.GetNumberOfRows(); ++i)
-      for(int j = 0; j < Cov.GetNumberOfCols(); ++j)
-	aCovariates[i*NumCovariates +j] = Cov(i,j);
+
 
     dims = new int[2];
     dims[0] = individuals->getSize();
     dims[1] = NumCovariates;
     fill(BetaParameters, BetaParameters+NumCovariates+4, 0.0);
     BetaParameters[ NumCovariates + 1 ] = lambda;
-    BetaParameters[ NumCovariates + 3 ] = beta0(0,0);
+    BetaParameters[ NumCovariates + 3 ] = beta0[0];
     for( int i = 0; i < NumCovariates; i++ ){
-      BetaDrawArray[i] = new GaussianProposalMH( BetaParameters, lr, dlr, ddlr, dims, aCovariates );
+      BetaDrawArray[i] = new GaussianProposalMH( BetaParameters, lr, dlr, ddlr, dims, X );
     }
   }
   }//end else, AnalysisTypeIndicator >2
@@ -184,52 +191,72 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
   // Sample for regression model parameters beta
   // should make sure that matrix returned by getCovariates contains updated values of indiv admixture
   std::vector<double> Outcome = individuals->getOutcome(RegNumber);
-  Matrix_d Y(Outcome.size(), 1);
+  double Y[Outcome.size()];
   for(unsigned i = 0; i < Outcome.size(); ++i)
-  Y(i,0) = Outcome[i];
+    Y[i] = Outcome[i];
+  
+  X = individuals->getCovariates();
+  
+  int NumIndividuals = individuals->getSize();
+  matrix_product(Y, X, XtY, 1, NumIndividuals, NumCovariates);//XtY = Xt * Y
+  
+  
+  if( RegType == Linear ){
+    // full conditional for regression parameters has mean Beta_n = (n0 + X'X)^-1 (n0 Beta0 + X'Y)
+    // where Beta0  and n0*lambda are prior mean and prior precision matrix for regression parameters
+    // calculate (n0 + X'X)^-1
 
-    if( RegType == Linear ){
-      // full conditional for regression parameters has mean Beta_n = (n0 + X'X)^-1 (n0 Beta0 + X'Y)
-      // where Beta0  and n0*lambda are prior mean and prior precision matrix for regression parameters
-      // calculate (n0 + X'X)^-1
-      Matrix_d temporary = individuals->getCovariates().Transpose() * individuals->getCovariates() + n0;
-      temporary.InvertUsingLUDecomposition();
-      temporary.Symmetrize();
-      // postmultiply by (n0*beta0 + X'*Y) to obtain means of full conditional distribution
-      betan = ( n0 * beta0 + individuals->getCovariates().Transpose() * Y );
-      betan = temporary * betan;
-      // lambda_n is rate parameter of gamma full conditional distribution for dispersion parameter, given by  
-      // lambda1 + 0.5[(Y - X Beta)' Y + (Beta0 - Beta_n)' n0 Beta0]
-      double lambdan = lambda1 + 0.5 *
-	( (Y - individuals->getCovariates() * betan ).Transpose() * Y
-	  + (beta0 - betan).Transpose() * n0 * beta0 )(0,0);
-      lambda = gengam( lambdan, lambda0 + 0.5 * individuals->getSize() );
-      DrawBeta.SetMean( betan );
-      DrawBeta.SetCovariance( temporary / lambda);
-      DrawBeta.Draw(beta);
+    //compute (X'X + n0)^-1
+    double Covariance[NumCovariates*NumCovariates];
+
+    //TODO: this block should be hidden in matrix functions
+    gsl_matrix_view XX, C;
+    XX = gsl_matrix_view_array(const_cast<double *>(X), NumIndividuals, NumCovariates);
+    C = gsl_matrix_view_array(Covariance, NumCovariates, NumCovariates);
+    gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1, &XX.matrix, &XX.matrix, 0, &C.matrix); 
+    add_matrix(Covariance, n0, NumCovariates, NumCovariates);
+    matrix_inverse(Covariance, NumCovariates);
+
+    // compute betan = temp*(n0*beta0 + X'*Y) to obtain means of full conditional distribution
+    double temp2[NumCovariates];
+    matrix_product(n0, beta0, temp2, NumCovariates, NumCovariates, 1);
+    add_matrix(temp2, XtY, NumCovariates, 1);
+    matrix_product(Covariance, temp2, betan, NumCovariates, NumCovariates, 1);
+
+    // lambda_n is rate parameter of gamma full conditional distribution for dispersion parameter, given by  
+    // lambda1 + 0.5[(Y - X Beta)' Y + (Beta0 - Beta_n)' n0 Beta0]
+    double Xbetan[NumIndividuals];
+    matrix_product(X, betan, Xbetan, NumIndividuals, NumCovariates, 1);//Xbetan = X * betan
+    scale_matrix(Xbetan, -1.0, NumIndividuals, 1);
+    add_matrix(Xbetan, Y, NumIndividuals, 1);//Xbetan = Y - X* betan
+    double lambdan[1];
+    matrix_product(Xbetan, Y, lambdan, 1, NumIndividuals, 1);//lambdan = Xbetan' * Y
+    lambdan[0] *= 0.5;
+    lambdan[0] += lambda1; //lambdan = lambda1  + 0.5 * Xbetan' * Y
+
+    lambda = gengam( lambdan[0], lambda0 + 0.5 * individuals->getSize() );
+    scale_matrix(Covariance, lambda, NumCovariates, NumCovariates);
+
+    DrawBeta.SetMean( betan );
+    DrawBeta.SetCovariance( Covariance );
+    DrawBeta.Draw(beta);
+  }
+  
+  else if( RegType == Logistic ){
+   
+    for( int j = 0; j < NumCovariates; j++ ){
+      BetaDrawArray[j]->UpdateDoubleData( X );
+      BetaParameters[ NumCovariates + 2 ] = j;
+      BetaParameters[ NumCovariates ] = XtY[ j ];
+      BetaDrawArray[j]->UpdateParameters( BetaParameters );
+      acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ) );
+      BetaParameters[j] = beta[j];
     }
-
-    else if( RegType == Logistic ){
-      sum = Y.Transpose() * individuals->getCovariates();
-
-      Matrix_d Cov = individuals->getCovariates();
-      for(int i = 0; i < Cov.GetNumberOfRows(); ++i)
-	for(int j = 0; j < Cov.GetNumberOfCols(); ++j)
-	  aCovariates[i*NumCovariates +j] = Cov(i,j);
-
-      for( int j = 0; j < NumCovariates; j++ ){
-	BetaDrawArray[j]->UpdateDoubleData( aCovariates );
-	BetaParameters[ NumCovariates + 2 ] = j;
-	BetaParameters[ NumCovariates ] = sum( 0, j );
-	BetaDrawArray[j]->UpdateParameters( BetaParameters );
-	acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ) );
-	BetaParameters[j] = beta[j];
-      }
-    }
-    individuals->SetExpectedY(RegNumber,beta);
-    if( individuals->getOutcomeType(RegNumber) )
-      individuals->calculateExpectedY(RegNumber);
-
+  }
+  individuals->SetExpectedY(RegNumber,beta);
+  if( individuals->getOutcomeType(RegNumber) )
+    individuals->calculateExpectedY(RegNumber);
+  
   if(afterBurnIn)
     SumParameters();
 }//end Update

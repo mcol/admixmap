@@ -122,3 +122,10 @@ void DataMatrix::Print(){
   }
   std::cout<<std::endl;
 }
+
+// std::vector<double>::const_iterator DataMatrix::getData()const{
+//   return data.begin();
+// }
+const double* const DataMatrix::getData()const{
+  return &(data[0]);
+}

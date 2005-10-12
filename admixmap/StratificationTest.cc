@@ -1,6 +1,8 @@
 #include "StratificationTest.h"
 #include <numeric>
 #include "gsl/gsl_eigen.h"
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_blas.h>
 
 using namespace std;
 

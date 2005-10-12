@@ -9,7 +9,9 @@
 #include "GaussianProposalMH.h"
 #include "LogWriter.h"
 
-class Matrix_d;
+//can go once the blas code in update is removed
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_blas.h>
 
 class Regression{
 
@@ -41,17 +43,17 @@ private:
   // ** Linear Regression Objects
   double lambda0; //parameters of
   double lambda1; //Gamma prior for lambda
-  Matrix_d beta0; //beta prior mean
-  Matrix_d n0; //for linear regression, beta prior variance is lambda*n0
+  double *beta0; //beta prior mean
+  double *n0; //for linear regression, beta prior variance is lambda*n0
   Gaussian DrawBeta;//sampler
-  Matrix_d betan;
+  double *betan;
 
   // ** Logistic Regression Objects
   GaussianProposalMH** BetaDrawArray;
   double *BetaParameters;
   int acceptbeta;
-  Matrix_d sum;
-  double *aCovariates;
+  double* XtY;
+  const double *X;
   int *dims;
  
   static std::ofstream outputstream;//output to regparamfile

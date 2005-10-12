@@ -85,7 +85,7 @@ double MultinomialLikelihood( std::vector<int> r, std::vector<double> theta )
    unsigned K = (int)r.size();
    unsigned int n[ K ];
    double p[ K ];
-   for( int i = 0; i < K; i++ ){
+   for( unsigned i = 0; i < K; i++ ){
       p[i] = theta[i];
       n[i] = r[i];
    }

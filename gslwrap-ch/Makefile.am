@@ -24,13 +24,10 @@ LIBS = -lm -lgsl -lgslcblas
 MAINTAINERCLEANFILES	= Makefile.in
 
 INCLUDES		= -I$(top_builddir)
-pkginclude_HEADERS 	= matrix.h vector.h matrix_d.h vector_d.h \
-											matrix_i.h vector_i.h \
-											rand.h 
+pkginclude_HEADERS 	= rand.h 
 
 lib_LTLIBRARIES 		= libmat.la
 
-libmat_la_SOURCES	= matrix.cc vector.cc matrix_d.cc vector_d.cc \
-											matrix_i.cc vector_i.cc rand_serial.cc
+libmat_la_SOURCES	= rand_serial.cc
 
 libmat_la_LDFLAGS = -static

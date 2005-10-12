@@ -87,8 +87,7 @@ void GaussianProposalMH::NewtonRaphson()
   }while( fabs(df) > 0.001 );
 }
 
-double GaussianProposalMH::LogNormalDensity
-(double x, double mu, double lambda)
+double GaussianProposalMH::LogNormalDensity(double x, double mu, double lambda)
 {
   return( -0.5 * lambda * ( x - mu ) * ( x - mu ) );
 }

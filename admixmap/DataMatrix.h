@@ -41,7 +41,8 @@ public:
   DataMatrix SubMatrix(unsigned, unsigned, unsigned, unsigned);
   void SetMissingValuesToColumnMeans();
   void Print();
-
+  //std::vector<double>::const_iterator getData() const;
+  const double* const getData() const;// allows access to data without danger of changing it
 private:
   std::vector<double > data;
   std::vector<bool > missing;

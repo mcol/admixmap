@@ -420,7 +420,6 @@ void add_matrix(double *a, double *b, size_t d1, size_t d2){
   gsl_matrix_add(&A.matrix, &B.matrix);
 }
 
-
 //computes c = a * b, where all args are arrays representing matrices
 // and a is (d1 x d2) and b is (d2 x d3)
 //
@@ -441,7 +440,7 @@ void matrix_product(double *a, double *c, size_t d1, size_t d2){
 
   gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1, &A.matrix, &At.matrix, 0, &C.matrix); 
 }
-void matrix_product(const double *a, const double *b, double *c, size_t d1, size_t d2, size_t d3){
+void matrix_product(const double* const a, const double* const b, double* c, size_t d1, size_t d2, size_t d3){
   gsl_matrix_view A, B, C;
   A = gsl_matrix_view_array(const_cast<double *>(a), d1, d2);
   B = gsl_matrix_view_array(const_cast<double *>(b), d2, d3);
@@ -469,6 +468,66 @@ double determinant(double *a, size_t d){
   gsl_permutation_free(permutation);
   return det;
 }
+
+void matrix_inverse(const double* const a, double* inv, size_t d){
+//inverts a matrix using LU decomposition
+  gsl_permutation *permutation = gsl_permutation_alloc(d);
+  int signum;
+  double aa[d*d];
+  copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
+  gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
+
+  gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
+  gsl_matrix_view Inv = gsl_matrix_view_array(inv, d, d);
+  gsl_linalg_LU_invert (&A.matrix, permutation, &Inv.matrix);
+
+  gsl_permutation_free(permutation);
+}
+//can use this version to overwrite a with its inverse
+void matrix_inverse(double* a, size_t d){
+//inverts a matrix using LU decomposition
+  gsl_permutation *permutation = gsl_permutation_alloc(d);
+  int signum;
+  double aa[d*d];
+  copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
+  gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
+
+  gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
+  gsl_matrix_view Inv = gsl_matrix_view_array(a, d, d);
+  gsl_linalg_LU_invert (&A.matrix, permutation, &Inv.matrix);
+
+  gsl_permutation_free(permutation);
+}
+
+//Cholesky decomposition, Crout algorithm
+void cholDecomp(const double* const a, double *L, int n){
+  
+  for(int i = 0; i < n; ++i){
+    for(int j = i+1; j < n; ++j)L[i*n +j] = 0.0;
+ 
+    for(int j = i; j < n; ++j){
+  
+      double sum = a[i*n + j];
+      for(int k = 0; k < i ; ++k) sum-= L[i*n +k]*L[j*n+k];
+  
+      if(i == j){
+	if(sum <= 0.0) {cerr<<"Cholesky decomposition failed"<<endl;system("pause");exit(1);}
+	L[i*n +j] = sqrt(sum);
+      }
+      else                          {
+	L[j*n + i] = sum / L[i*n + i];
+	
+      }
+    }
+  }
+}
+
+// void invert_pds_matrix(const double* const a, double *Inv, int n){
+//   //inverts a positive-definite symmetric matrix using Cholesky decomposition
+
+
+// }
+
 //useful for stl functions
 double xlog(double x){
   return log(x);

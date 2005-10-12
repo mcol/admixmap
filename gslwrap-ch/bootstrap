@@ -20,7 +20,6 @@
 #! /bin/sh
 
 set -x
-perl generate
 aclocal -I config
 autoheader
 automake --foreign --add-missing --copy

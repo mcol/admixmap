@@ -316,19 +316,15 @@ void IndividualCollection::setAdmixtureProps(double *a, size_t size)
 
 void IndividualCollection::setAdmixturePropsX(double *a, size_t size)
 {
-  for(unsigned int i=0; i<NumInd; i++){
+  for(unsigned int i = 0; i < NumInd; i++){
     _child[i]->setAdmixturePropsX(a, size);
   }
 }
 
-void IndividualCollection::SetExpectedY(int k, double *beta){
+void IndividualCollection::SetExpectedY(int k, const double* const beta){
+  //sets ExpectedY = X * Beta
   if(ExpectedY){
-    Matrix_d Beta(Covariates.nCols(), 1);
-    Beta.SetElements(0.0);
-    for(unsigned i = 0; i < Covariates.nCols(); ++i)Beta(i, 0) = beta[i];
-      Beta = getCovariates() * Beta;  //possible memory leak
-      for(unsigned j = 0; j < Covariates.nRows(); ++j)
-        ExpectedY[k][j] = Beta(j,0);
+    matrix_product(Covariates.getData(), beta, ExpectedY[k], Covariates.nRows(), Covariates.nCols(), 1);
     }
 }
 
@@ -446,15 +442,8 @@ int IndividualCollection::GetNumCovariates() const{
   return NumCovariates;
 }
 
-Matrix_d IndividualCollection::getCovariates(){
-  Matrix_d Cov(1,1);
-  Cov.SetNumberOfElements(Covariates.nRows(), Covariates.nCols());
-  for(unsigned i = 0; i < Covariates.nRows(); ++i)
-    for(unsigned j = 0; j < Covariates.nCols(); ++j){
-      Cov(i,j) = Covariates.get(i,j);
-      if(Covariates.isMissing(i,j)) Cov.SetMissingElement(i,j);
-    }
-  return Cov;
+const double* IndividualCollection::getCovariates()const{
+  return Covariates.getData();
 }
 
 std::string IndividualCollection::getCovariateLabels(int i){
