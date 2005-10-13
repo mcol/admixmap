@@ -167,7 +167,7 @@ void HWTest::Output(Matrix_s LocusData){
 		 << double2R(complete - missing)                << "\t"
 		 << double2R(100*(complete - missing)/complete) << "\t"
 		 << double2R(zscore)   << "\t"
-		 << 2.0 * gsl_cdf_ugaussian_P (-abs(zscore)) << "\t" << endl;//p-value
+		 << 2.0 * gsl_cdf_ugaussian_P (-fabs(zscore)) << "\t" << endl;//p-value
   }
 }
 
