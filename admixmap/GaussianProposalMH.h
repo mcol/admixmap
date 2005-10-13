@@ -21,7 +21,7 @@
  */
 #ifndef GAUSSIANPROPOSALMH_H
 #define GAUSSIANPROPOSALMH_H 1
-
+#include <math.h>
 #include "rand.h"
 
 class GaussianProposalMH

@@ -2,6 +2,7 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H 1
 
+#include <math.h>
 #include <vector>
 #include <gsl/gsl_sf_psi.h>
 #include <gsl/gsl_sf_gamma.h>
