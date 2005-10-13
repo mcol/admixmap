@@ -103,7 +103,7 @@ my $arg_hash =
     genotypesfile                => "IndData/genotypes.txt",
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
 
-    indadmixhiermodel = 0,
+    indadmixhiermodel => 0,
     randommatingmodel            => 1,
     globalrho                    => 0,
     sumintensitiesalpha => 1.0, #flat prior on sumintensities
