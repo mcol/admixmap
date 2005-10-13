@@ -1,9 +1,0 @@
-make -f Makefile clean > /dev/null 2>&1
-	
-echo "bootstrapping" && sh bootstrap
-
-echo "running ./configure" && ./configure
-
-make
-
-make clean

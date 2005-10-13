@@ -132,6 +132,7 @@ void gendirichlet(const size_t K, const double alpha[], double theta[] )
    
 }
 
+
 void ddigam(  double *X, double *ddgam  )
 {
 //  FOLLOWS CLOSELY ALG AS 103 APPL.STATS.(1976) VOL 25
