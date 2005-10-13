@@ -33,7 +33,6 @@ Regression::~Regression(){
     delete[] BetaDrawArray;
     delete[] dims;
   }
-  delete[] X;
   delete[] XtY;
   delete[] beta0;
   delete[] betan;
