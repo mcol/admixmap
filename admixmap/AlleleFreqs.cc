@@ -439,8 +439,6 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 // Method samples allele frequency and prior allele frequency
 // parameters.
 void AlleleFreqs::Update(bool afterBurnIn){
-
-  if( IsRandom() ){
     // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
     if(IsHistoricAlleleFreq ){
       for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -479,7 +477,6 @@ void AlleleFreqs::Update(bool afterBurnIn){
     if( afterBurnIn && IsHistoricAlleleFreq ){
       UpdateFst();
     }
-  }//end isRandom
 }
 
 /*

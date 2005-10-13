@@ -94,10 +94,12 @@ void Chromosome::SetLociCorr(const double rho){
     }
 }
 
-void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptions* options,  
-				  std::vector< double > _rho, bool chibindicator, bool diploid, bool CalculateBackProbs){
+void Chromosome::UpdateHMMForwardProbs(Individual* ind, double *Admixture, AdmixOptions* options,  
+				  std::vector< double > _rho, bool chibindicator, bool diploid){
   //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
+
+  //_rho contains Individual sumintensities parameters, ignored if globalrho model
 
   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
   // required to calculate transition matrices 
@@ -115,6 +117,7 @@ void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptio
   //global rho case already dealt with
 
   int locus = _startLocus;
+  Diploid = diploid;//required for sampling of locus ancestry
   
   //construct Lambda
   for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
@@ -127,27 +130,29 @@ void Chromosome::UpdateParameters(Individual* ind, double *Admixture, AdmixOptio
     locus++;
   }
 
-  if(diploid){
+  if(Diploid){
     //construct StateArrivalProbs
     SampleStates.SetStateArrivalProbs(f, Admixture, options->isRandomMatingModel());
  
     //Update Forward/Backward Probs in HMM
     SampleStates.UpdateForwardProbsDiploid(f, Lambda);
-
-    if(CalculateBackProbs)
-      SampleStates.UpdateBackwardProbsDiploid(f, Lambda);
   }
-
   else{//haploid
-    SampleStates.UpdateProbsHaploid(f, Admixture, Lambda, CalculateBackProbs);
+    SampleStates.UpdateForwardProbsHaploid(f, Admixture, Lambda);
   }
 
 }
 
+void Chromosome::UpdateHMMBackwardProbs(double* hapAdmixture){
+  //call only after a call to UpdateHMMForwardProbs
+  //this is ok as whenever we need backward probs we also need forward probs but not vice versa
+  if(Diploid)  SampleStates.UpdateBackwardProbsDiploid(f, Lambda);
+  else SampleStates.UpdateBackwardProbsHaploid(f, hapAdmixture, Lambda);
+}
 
-void Chromosome::SampleLocusAncestry(int *OrderedStates, double *Admixture, bool isdiploid){
+void Chromosome::SampleLocusAncestry(int *OrderedStates, double *Admixture){
 
-  SampleStates.Sample(OrderedStates, Admixture, f, isdiploid);
+  SampleStates.Sample(OrderedStates, Admixture, f, Diploid);
 }
 
 void Chromosome::getAncestryProbs( int j, double AncestryProbs[][3] ){

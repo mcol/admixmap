@@ -36,7 +36,8 @@ public:
 
   void UpdateBackwardProbsDiploid(double *f[], double *lambda);
 
-  void UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, bool CalculateBeta);
+  void UpdateForwardProbsHaploid(double *f[], double *Admixture, double *lambda);
+  void UpdateBackwardProbsHaploid(double *f[], double *Admixture, double *lambda);
 
   void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
 		      double* oldProbs, double *newProbs); 

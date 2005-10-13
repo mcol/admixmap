@@ -296,7 +296,13 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, double Lo
     
     //get log likelihood at proposal rho and current admixture proportions
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
-    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, C);
+    for(int i = 0; i < IC->getSize(); ++i){
+      Individual* ind = IC->getIndividual(i);
+      std::vector<double> rhovec(2, rhoprop);//note that the values in here are irrelevant as Chromosome ignores them in a globalrho model
+      LogLikelihoodRatio += ind->getLogLikelihood(options, C, ind->getAdmixtureProps(), ind->getAdmixtureProps(),
+						  rhovec, rhovec, false);
+
+    }
     
     //compute prior ratio
     LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
@@ -305,20 +311,24 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, double Lo
     if(LogLikelihoodRatio + LogPriorRatio < 0.0) 
       LogAccProb = LogLikelihoodRatio + LogPriorRatio; 
     //accept/reject proposal
-    if(log( myrand() ) < LogAccProb){
+    if(log( myrand() ) < LogAccProb){//accept
       rho = rhoprop;
-
+      for(int i = 0; i < IC->getSize(); ++i)
+	IC->getIndividual(i)->HMMIsBad(true);//rho has changed so current stored loglikelihood is invalid and HMMs need to be updated
     }
+    else//reject
+      // restore f in Chromosomes
+      for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
+	C[j]->SetLociCorr(rho);
+
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){
       step = TuneRhoSampler.UpdateStepSize( exp(LogAccProb) );
     }
-    
-    // update f in Chromosomes, must do this regardless of whether proposal is accepted
-    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-      C[j]->SetLociCorr(rho);
-  }
-  else{
+
+  }//end if global rho model
+
+  else{//non global rho model
     // sample for location parameter of gamma distribution of sumintensities parameters 
     // in population 
     if( options->isRandomMatingModel() )

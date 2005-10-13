@@ -207,11 +207,6 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
       }
       setAdmixtureProps(thetahat, size_admix);
    }
- 
-
-
-
- 
 }
 
 void IndividualCollection::LoadData(AdmixOptions *options, InputData *data_){
@@ -348,7 +343,9 @@ Regression *R0, Regression *R1, const double *poptheta,
   LogLikelihood = 0.0; 
 
   for(unsigned int i = 0; i < NumInd; i++ ){
-    
+    int prev = i-1;
+    if(i==0)prev = NumInd-1;
+
     if( options->getPopulations() > 1 ){
       _child[i]->SampleParameters(i, SumLogTheta, &LogLikelihood, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
 				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
@@ -362,6 +359,9 @@ Regression *R0, Regression *R1, const double *poptheta,
  			       DerivativeInverseLinkFunction(i), 
  			       R0->getDispersion(), false);
 
+      if(NumInd > 1)_child[prev]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
+      //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
+      //still be valid as the allelefreqs, global rho and that individual's have not changed.
     }
     
     else{//single population 
@@ -544,9 +544,16 @@ double IndividualCollection::getSumLogTheta(int i){
 double *IndividualCollection::getSumLogTheta(){
   return SumLogTheta;
 }
-double IndividualCollection::getLL(){
-  //not currently used
-  return SumLogLikelihood;
+double IndividualCollection::getLogLikelihood(AdmixOptions *options, Chromosome **C){
+  double LogL = 0.0;
+  for(unsigned i = 0; i < NumInd; ++i){
+    int prev = i-1;
+    if(i==0)prev = NumInd-1;
+    LogL += _child[i]->getLogLikelihood(options, C);
+    if(NumInd > 1)_child[prev]->HMMIsBad(false);
+  }
+
+  return LogL;
 }
 
 //returns Derivative of Inverse Link Function for individual i

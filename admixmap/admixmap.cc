@@ -158,10 +158,9 @@ void submain(AdmixOptions* options){
 
       A.ResetAlleleCounts();
 
-    //compute loglikelihood and write to file
-    double LogL = 0.0;
-    for(int i = 0; i < IC->getSize(); ++i)LogL += IC->getIndividual(i)->getLogLikelihood(options, chrm);
-    loglikelihoodfile<< iteration<<" " <<LogL<<endl;
+      //compute loglikelihood and write to file
+      double LogL = IC->getLogLikelihood(options, chrm);
+      loglikelihoodfile<< iteration<<" " <<LogL<<endl;
 
       // ** update global sumintensities
       if((options->getPopulations() > 1) && (IC->getSize() > 1) && options->getIndAdmixHierIndicator() && (Loci.GetLengthOfGenome()> 0.0))
@@ -176,7 +175,13 @@ void submain(AdmixOptions* options){
 //       }
 
       // ** update allele frequencies
-      A.Update((iteration > options->getBurnIn()));
+      if(A.IsRandom()){
+	A.Update((iteration > options->getBurnIn()));
+	for(int i = 0; i < IC->getSize(); ++i)
+	  IC->getIndividual(i)->HMMIsBad(true); //if the allelefreqs are not fixed they are sampled between
+	//individual updates. Therefore the forward probs in the HMMs must be updated and the current stored 
+	//values of likelihood are invalid
+      }
       
       if( iteration > options->getBurnIn() ){
 	if( options->getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);

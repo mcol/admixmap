@@ -192,7 +192,7 @@ void HMM::UpdateBackwardProbsDiploid(double *f[], double *lambda)
   haploid case only
   Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
 */
-void HMM::UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, bool CalculateBeta){
+void HMM::UpdateForwardProbsHaploid(double *f[], double *Admixture, double *lambda){
 
   sumfactor = 0.0;
   //double factor = 0.0;
@@ -214,22 +214,25 @@ void HMM::UpdateProbsHaploid(double *f[], double *Admixture, double *lambda, boo
       alpha[t*States + j] *= lambda[(t+1)*States + j];
       //factor += alpha[t*States + j];
     }
-
   }
+  //TODO: rescale to avoid underflow
+}
 
-    if(CalculateBeta){
-      for( int t = Transitions-2; t >=0; t-- ){
-	Sum = 0.0;
-	for(int j = 0; j < States; ++j){
-	  Sum += Admixture[j]*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
-	}
-	for(int j=0;j<States;++j){
-	  beta[t*States + j] = f[t+1][0]*lambda[(t+1)*States + j]*beta[(t+1)*States + j] + (1.0 - f[0][t+1])*Sum;
-	}
-      }
-      
+void HMM::UpdateBackwardProbsHaploid(double *f[], double *Admixture, double *lambda){
+  double Sum;
+  for(int j = 0; j < States; ++j){
+    beta[(Transitions-1)*States + j] = 1.0;
+  }
+  
+  for( int t = Transitions-2; t >=0; t-- ){
+    Sum = 0.0;
+    for(int j = 0; j < States; ++j){
+      Sum += Admixture[j]*lambda[(t+1)*States + j]*beta[(t+1)*States + j];
     }
-
+    for(int j=0;j<States;++j){
+      beta[t*States + j] = f[t+1][0]*lambda[(t+1)*States + j]*beta[(t+1)*States + j] + (1.0 - f[0][t+1])*Sum;
+    }
+  }
 }
 
 /*

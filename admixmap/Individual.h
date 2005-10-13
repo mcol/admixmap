@@ -33,6 +33,13 @@
 using namespace::std;
 
 class AlleleFreqs;
+
+typedef struct{
+  double value;//loglikelihood at current parameter values, provided 'ready' is true
+  bool ready;//true iff value is the loglikelihood at the current parameter values
+  bool HMMisOK;//true iff values in HMM objects correspond to current parameter values
+}HMMLogLikelihood;
+
 class Individual
 {
 public:
@@ -41,6 +48,8 @@ public:
   Individual(int i,AdmixOptions*,InputData *Data,Genome&,Chromosome **);
  
   ~Individual();
+
+  void HMMIsBad(bool loglikisbad);
 
   static void SetStaticMembers(Genome *pLoci, AdmixOptions *options);
 
@@ -94,14 +103,15 @@ public:
 		    DataMatrix *Covariates, double **beta, const double *poptheta,
 		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, double, double, bool);
 
-  void OnePopulationUpdate( int i, bool notBurnIn, DataMatrix *Outcome, int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda,
-			   Chromosome **chrm, AlleleFreqs *A );
+  void OnePopulationUpdate( int i, bool notBurnIn, DataMatrix *Outcome, int NumOutcomes, 
+			    DataType* OutcomeType, double **ExpectedY, double *lambda,
+			    Chromosome **chrm, AlleleFreqs *A );
 
   void Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
-		      AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, double globalrho,
-		      double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
-		      vector<double> &rhohat, vector<double> &rhohatX,
-		      LogWriter *Log, chib *MargLikelihood, AlleleFreqs *A);
+	    AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, double globalrho,
+	    double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
+	    vector<double> &rhohat, vector<double> &rhohatX,
+	    LogWriter *Log, chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(AdmixOptions *options);
  
@@ -129,12 +139,12 @@ private:
   std::vector< double > _rho; //sum of intensities
   std::vector< double > _rho_X;//sum of intensities for X chromosome
   std::vector<double> sumlogrho;
+  double TruncationPt; // upper truncation point for sum intensities parameter rho
 
-  //double LogPosterior;
-  Sex sex; // 0 = missing, 1 = male, 2 = female 
+  Sex sex; 
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   unsigned int X_posn;  //number of X chromosome
-  double TruncationPt; // upper truncation point for sum intensities parameter rho
+  HMMLogLikelihood logLikelihood;
 
   //RWM sampler for individual admixture
   StepSizeTuner ThetaTuner;
@@ -165,9 +175,9 @@ private:
 					       int NoCovariates, DataMatrix *Covariates, double **beta, double **ExpectedY,
 					       DataMatrix *Outcome, const double *poptheta, double *lambda);
 
-  bool UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, 
+  void UpdateHMMForwardProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, 
 			  double* theta, double *thetaX,
-			  vector<double> rho, vector<double> rhoX, bool chibindicator, bool calcbackprobs);
+			  vector<double> rho, vector<double> rhoX, bool chibindicator);
 
   void SumAncestry(unsigned int j, Chromosome *chrm);
 

@@ -98,7 +98,7 @@ public:
   std::string getCovariateLabels(int);
   std::string *getCovariateLabels();
 
-  double getLL();
+  double getLogLikelihood(AdmixOptions *options, Chromosome **C);
   double DerivativeInverseLinkFunction(int i);
 private:
   Individual **_child; //array of pointers to Individual

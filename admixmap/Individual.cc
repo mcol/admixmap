@@ -159,7 +159,10 @@ Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Geno
   //need to choose sensible value for this initial RW sd
   step = step0;
   ThetaTuner.SetParameters( step0, 0.00, 10.0, 0.44);  
-   
+
+  logLikelihood.value = 0.0;
+  logLikelihood.ready = false;
+  logLikelihood.HMMisOK = false;   
 }
 
 //********** Destructor **********
@@ -242,7 +245,10 @@ void Individual::setAdmixturePropsX(double *a, size_t size)
 {
   for(unsigned i = 0; i < size; ++i)  ThetaX[i] = a[i];
 }
-
+void Individual::HMMIsBad(bool loglikisbad){
+  logLikelihood.HMMisOK = false;
+  if(loglikisbad)logLikelihood.ready = false;
+}
 //******************** Accessors ***********************************************************
 unsigned short **Individual::getGenotype(unsigned int locus){
   return genotypes[locus];
@@ -325,7 +331,22 @@ double Individual::getLogLikelihoodOnePop(bool chibindicator)
 
 double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm){
   //use current parameter values
-  return getLogLikelihood(options, chrm, Theta, ThetaX,_rho, _rho_X, false);
+  double LogLikelihood = 0.0;
+  if(!logLikelihood.ready){
+    if(Populations == 1)LogLikelihood = getLogLikelihoodOnePop(false);//in case this version called when only one population
+    else{
+      for( unsigned int j = 0; j < numChromosomes; j++ ){  
+	//need to run forward recursions in HMM if current forward probs do not correspond to current parameter values
+	if(!logLikelihood.HMMisOK)UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X, false);
+	LogLikelihood += chrm[j]->getLogLikelihood();
+      }
+    }
+    logLikelihood.value = LogLikelihood;
+  }
+  logLikelihood.ready = true;
+  logLikelihood.HMMisOK = true;//because forward probs now correspond to current parameter values 
+  //and UpdateHMMForwardProbs sets this to false
+  return logLikelihood.value;
 }
 double Individual::getLogLikelihoodAtPosteriorMeansOnePop(int iterations){
   double logLikelihood = 0.0;
@@ -374,11 +395,10 @@ double Individual::getLogLikelihood( AdmixOptions* options, Chromosome **chrm, d
    if(Populations == 1)LogLikelihood = getLogLikelihoodOnePop(chibindicator);//in case this version called when only one population
    else{
      for( unsigned int j = 0; j < numChromosomes; j++ ){      
-       UpdateForBackProbs(j, chrm[j], options, theta, thetaX, rho, rho_X, chibindicator, false);
+       UpdateHMMForwardProbs(j, chrm[j], options, theta, thetaX, rho, rho_X, chibindicator);
        LogLikelihood += chrm[j]->getLogLikelihood();
      }
    }
-
    return LogLikelihood;
 }
 
@@ -451,41 +471,41 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
 {
   // ** reset SumLocusAncestry and ThetaProposal **
   for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
-//  if(Loci->isX_data() ){
-    int J = Populations;
-    if(sex != male) J *=2;
-    for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
-//  }
-
+  //  if(Loci->isX_data() ){
+  int J = Populations;
+  if(sex != male) J *=2;
+  for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
+  //  }
+  
   size_t size_theta;
-   if( options->isRandomMatingModel() )
-     size_theta = Populations*2; // double the size for 2 gametes in RMM
-   else//assortative mating
-     size_theta = Populations;
-
-   for(unsigned k = 0; k < size_theta; ++k){
-     ThetaProposal[k] = 0.0;//may be unnecessary
-   }
-   if(ThetaXProposal){
-     size_theta = Populations;if(sex != male) size_theta *= 2;
-     for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
-   }
-
-   if(!(iteration %2))//update theta with random walk on odd-numbered iterations
-     SampleTheta(i, iteration, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
- 		 Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true);
-
+  if( options->isRandomMatingModel() )
+    size_theta = Populations*2; // double the size for 2 gametes in RMM
+  else//assortative mating
+    size_theta = Populations;
+  
+  for(unsigned k = 0; k < size_theta; ++k){
+    ThetaProposal[k] = 0.0;//may be unnecessary
+  }
+  if(ThetaXProposal){
+    size_theta = Populations;if(sex != male) size_theta *= 2;
+    for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
+  }
+  
+  if(!(iteration %2))//update theta with random walk on odd-numbered iterations
+    SampleTheta(i, iteration, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
+		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true);
+  
   //SumN is the number of arrivals between each pair of adjacent loci
-   SumN[0] = SumN[1] = 0;
-   SumN_X[0] = SumN_X[1] = 0;  
- 
-  bool isdiploid;
+  SumN[0] = SumN[1] = 0;
+  SumN_X[0] = SumN_X[1] = 0;  
+  
   bool calcbackprobs = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-
+    
     //Update Forward/Backward probs in HMM
-    isdiploid = UpdateForBackProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X, false, calcbackprobs);
-
+    if( !logLikelihood.HMMisOK )UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X, false);
+    if(calcbackprobs)chrm[j]->UpdateHMMBackwardProbs(Theta);//TODO: pass correct theta for haploid case
+    
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
       //Update affecteds only scores
@@ -501,7 +521,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
 
     //Sample locus ancestry
     // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
-    chrm[j]->SampleLocusAncestry(LocusAncestry[j], Theta, isdiploid);
+    chrm[j]->SampleLocusAncestry(LocusAncestry[j], Theta);
  
    //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
@@ -512,7 +532,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
 	  int h[2];//to store sampled hap pair
 	  //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
 	  (*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
-	  A->UpdateAlleleCounts(locus,h, anc, isdiploid);
+	  A->UpdateAlleleCounts(locus,h, anc, chrm[j]->isDiploid());
       }
      }   
 
@@ -633,60 +653,46 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, DataMat
 
 double Individual::ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome **C, vector<vector<double> > &alpha){
   //TODO: X-chromosome case
-    double LogLikelihoodRatio = 0.0;
-    double LogPriorRatio = 0.0;
-
-    //cout<<"Stepsize = "<<step<<", AccRate = "<<ThetaTuner.getExpectedAcceptanceRate()<<endl;
-
-    //generate proposals
-    unsigned G = 1;
-    if( options->isRandomMatingModel() )G = 2;//random mating model
-    for( unsigned int g = 0; g < G; g++ ){
-      //perform softmax transformation
-      bool b[Populations];
-      int last = -1;//index of last nonzero element of theta 
-      for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
-	b[k] = true; //to skip elements set to zero
-	++last;//last should be >0 unless unadmixed on this gamete
-      }
-      else b[k] = false;
-
-      double a[Populations];
-      inv_softmax(Populations, Theta+g*Populations, a, b);
-
-      //cout<<"a(current) = ";
-      a[Populations-1] = 0.0;
-	//random walk step
-      for(int k = 0; k < last; ++k)if(Theta[g*Populations + k]>0.0){
-	//cout<<a[k]<<" ";
-	a[k] = gennor(a[k], step0);
-	a[last] -= a[k];
-      }
-
-      //reverse transformation
-      softmax(Populations, ThetaProposal+g*Populations, a, b);
-      
-      //cout<<endl<<"a(prop) = "<<a[0]<<" "<<a[1]<<endl;
-
-      //compute prior ratio
-      LogPriorRatio += getDirichletLogDensity_Softmax(alpha[0], ThetaProposal+g*Populations) - 
-	getDirichletLogDensity_Softmax(alpha[0], Theta+g*Populations);
+  double LogLikelihoodRatio = 0.0;
+  double LogPriorRatio = 0.0;
+  
+  //generate proposals
+  unsigned G = 1;
+  if( options->isRandomMatingModel() )G = 2;//random mating model
+  for( unsigned int g = 0; g < G; g++ ){
+    //perform softmax transformation
+    bool b[Populations];
+    int last = -1;//index of last nonzero element of theta 
+    for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
+      b[k] = true; //to skip elements set to zero
+      ++last;//last should be >0 unless unadmixed on this gamete
     }
-    //get log likelihood at current parameter values
-    LogLikelihoodRatio -= getLogLikelihood(options, C);
- 
-    //cout<<"Current theta: "<<endl;
-    //for(int k = 0; k < Populations; ++k)cout<<Theta[k]<<" ";
-    //cout<<endl;
-    //cout<<"Proposal theta: "<<endl;
-    //for(int k = 0; k < Populations; ++k)cout<<ThetaProposal[k]<<" ";
-    //cout<<endl;
-    //get log likelihood at proposal theta and current rho
-    LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, ThetaXProposal,_rho, _rho_X, false);
-    //cout<<"LogLikelihood ratio = "<<LogLikelihoodRatio<<endl
-    //<<"Log Acceptance Prob = "<<LogLikelihoodRatio + LogPriorRatio<<endl;
+    else b[k] = false;
+    
+    double a[Populations];
+    inv_softmax(Populations, Theta+g*Populations, a, b);
+    
+    a[Populations-1] = 0.0;
+    //random walk step
+    for(int k = 0; k < last; ++k)if(Theta[g*Populations + k]>0.0){
+      a[k] = gennor(a[k], step0);
+      a[last] -= a[k];
+    }
+    
+    //reverse transformation
+    softmax(Populations, ThetaProposal+g*Populations, a, b);
+    
+    //compute prior ratio
+    LogPriorRatio += getDirichletLogDensity_Softmax(alpha[0], ThetaProposal+g*Populations) - 
+      getDirichletLogDensity_Softmax(alpha[0], Theta+g*Populations);
+  }
+  //get log likelihood at current parameter values
+  LogLikelihoodRatio -= getLogLikelihood(options, C);
+  
+  //get log likelihood at proposal theta and current rho
+  LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, ThetaXProposal,_rho, _rho_X, false);
 
-    return LogLikelihoodRatio + LogPriorRatio;
+  return LogLikelihoodRatio + LogPriorRatio;// = log Posterior ratio
 }
 
 // Samples individual admixture proportions conditional on sampled values of ancestry at loci where 
@@ -842,6 +848,16 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
        setAdmixtureProps(ThetaProposal, size_admix);
         if( xdata )
 	  setAdmixturePropsX(ThetaXProposal, size_admix);
+	if(RW)logLikelihood.HMMisOK = true;
+	//with a random-walk update, the current values in HMM now correspond to the proposal,
+	//which have now become the current values
+	//next time the loglikelihood at current parameter values is required, it can be pulled directly from HMM
+	else {
+	  //with a conjugate update the values in HMM currently correspond to old parameter values so the HMMs will need
+	  //to be updated again to get loglikelihood
+	  logLikelihood.HMMisOK = false;
+	}
+	  logLikelihood.ready = false;
      }
   }
   else{//logpratio >= 0 => always accept
@@ -861,30 +877,24 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
   }
 }
 
-//Updates forward and backward probabilities in HMM for chromosome j 
-bool Individual::UpdateForBackProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, 
+//Updates forward probabilities in HMM for chromosome j
+//also sets Diploid flag in Chromosome (last arg of UpdateParameters)
+void Individual::UpdateHMMForwardProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, 
 				    double* theta, double *thetaX,
-				    vector<double> rho, vector<double> rhoX, bool chibindicator, bool calcbackprobs){
-  bool isdiploid;
-
-  //Update Forward/Backward probs in HMM
-  if( j != X_posn ){
-    chrm->UpdateParameters(this, theta, options, rho, chibindicator, true, calcbackprobs);
-    isdiploid = true;
+				    vector<double> rho, vector<double> rhoX, bool chibindicator){
+  if( j != X_posn ){// NOT an X chromosome
+    chrm->UpdateHMMForwardProbs(this, theta, options, rho, chibindicator, true);
   }
-  else if( options->getXOnlyAnalysis() ){
-    chrm->UpdateParameters( this, theta, options, rho, chibindicator, false, calcbackprobs);
-    isdiploid = false;
+  else if( options->getXOnlyAnalysis() ){//X only data
+    chrm->UpdateHMMForwardProbs( this, theta, options, rho, chibindicator, false);
   }
-  else if( sex == male ){
-    chrm->UpdateParameters( this, thetaX, options, rhoX, chibindicator, false, calcbackprobs);
-    isdiploid = false;
+  else if( sex == male ){// X chromosome in male individual
+    chrm->UpdateHMMForwardProbs( this, thetaX, options, rhoX, chibindicator, false);
   }
-  else{
-    chrm->UpdateParameters( this, thetaX, options, rhoX, chibindicator, true, calcbackprobs);
-    isdiploid = true;
+  else{// X chromosome in female individual or individual whose sex is unknown
+    chrm->UpdateHMMForwardProbs( this, thetaX, options, rhoX, chibindicator, true);
   }
-  return isdiploid;
+  logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
 
 void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, 
@@ -913,9 +923,13 @@ void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, doub
       }
     }
   }
-  else{
+  else{//assortative mating
     _rho[0] = gengam( rhobeta + 2*L, rhoalpha + (double)(SumN[0] + SumN[1]) );
   }
+  //now that rho has changed, current stored value of loglikelihood is no longer valid and 
+  //HMMs will need to be updated before getting loglikelihood
+  logLikelihood.HMMisOK = false;
+  logLikelihood.ready = false;
 }
 
 void Individual::ResetScores(AdmixOptions *options){
@@ -1144,22 +1158,6 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
   
   logLikelihood = getLogLikelihood(options, chrm);//gets loglikelihood at current parameter values
   
-  if( K > 1 ){
-    if( !options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
-      if( options->isAdmixed(0) ){
-	logLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[0] );}
-      if(  options->isAdmixed(1) )
-	logLikelihood+=getGammaLogDensity( rhoalpha, rhobeta, rho[1] );
-    }
-    else if( options->logRhoFlatPrior() ){
-      if( options->isAdmixed(0) )
-	logLikelihood -= log( rho[0] );
-      if(  options->isAdmixed(1) )
-	logLikelihood -= log( rho[1] );
-    }
-    logLikelihood+= getDirichletLogDensity(alpha[0], Theta) + getDirichletLogDensity(alpha[1], Theta + K);
-  }
-
   // *** during BurnIn ***
   if( iteration <= options->getBurnIn() ){
     if( Populations > 1 ){  
@@ -1231,7 +1229,6 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
     MargLikelihood->addLogPosteriorObs( LogPosterior );
     *SumLogLikelihood += logLikelihood;
   }
-  getLogLikelihood(options, chrm); 
 }
 
 double Individual::LogPrior(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 

@@ -39,16 +39,19 @@ public:
   std::string GetLabel( int );
   int GetLocus(int);
   unsigned int GetSize();
+  void isDiploid(bool b){Diploid = b;};
+  bool isDiploid(){return Diploid;};
 
   void InitialiseLociCorr(const double rho);
   void SetLociCorr(const double rho);
-  double SetfProposal(const double rho);
 
-  void UpdateParameters(Individual* ind, double *Admixture, AdmixOptions* options,  
-			std::vector< double > _rho,  bool chibindicator, bool diploid, bool CalculateBackProbs);
+  void UpdateHMMForwardProbs(Individual* ind, double *Admixture, AdmixOptions* options,  
+			     std::vector< double > _rho, bool chibindicator, bool diploid);
+  void UpdateHMMBackwardProbs(double* hapAdmixture);  //call only after a call to UpdateHMMForwardProbs
+  //this is ok as whenever we need backward probs we also need forward probs but not vice versa
 
 
-  void SampleLocusAncestry(int *OrderedStates, double *Admixture, bool isdiploid);
+  void SampleLocusAncestry(int *OrderedStates, double *Admixture);
   void getAncestryProbs(int, double[][3]);
   double getLogLikelihood();
   void SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
@@ -61,6 +64,7 @@ private:
   std::string _Label;
   HMM SampleStates;
   double *Lambda;
+  bool Diploid;
   
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
   // With a global rho model, this array is same for all individuals and calculated only once.
