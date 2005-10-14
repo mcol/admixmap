@@ -826,7 +826,7 @@ plotAdmixtureDistribution <- function(alphas, samples, k) {
 
 writePosteriorMeansIndivAdmixture <- function(samples.meanparents, K) {
   ## compute posterior means of individual admixture and ancestry diversity
-  M.squared <- samples.meanparents[1:K,,]^2
+  M.squared <- array(samples.meanparents[1:K,,]^2, dim=dim(samples.meanparents), dimnames=c(dimnames(samples.meanparents)[[1]]))
   ancestry.diversity <- 1 - apply(M.squared, 2:3, sum)
   AncestryDiversity <- apply(ancestry.diversity, 1, mean)
   IndividualAdmixture <- t(apply(samples.meanparents[1:K,,], 1:2, mean))
@@ -1141,9 +1141,9 @@ if(!is.null(user.options$indadmixturefile)) {
   if(K > 1) {
     writePosteriorMeansIndivAdmixture(samples.meanparents, K)
   }
-  if(user.options$analysistypeindicator==-1 | user.options$analysistypeindicator==-2) {
+  ##if(dim(samples.meanparents)[2]==1) {
     ## plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels)
-  }
+  ##}
   
 } # ends block conditional on indadmixturefile
 print("Script completed")
