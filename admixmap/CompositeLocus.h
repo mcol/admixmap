@@ -44,7 +44,7 @@ public:
   ~CompositeLocus();
 
   void setHaplotypeProbsMAP();
-  void UpdateSumHapPairProbs();
+  void UpdateSumAlleleProbs();
   void SetNumberOfLabels();
   void SetNumberOfPopulations( int );
   void SetRandomAlleleFreqs(bool);
@@ -82,9 +82,9 @@ private:
   int Populations;
   int *NumberOfAlleles;
   double **AlleleProbs;
+  double *SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihoos at posterior means
   double *HapPairProbs; //haplotype pair probabilities
   double *HapPairProbsMAP; //Posterior estimates of hap pair probs
-  double *SumHapPairProbs;//Posterior means of HapPairProbs, used only if single population
   std::string *Label;
   int *base;
   bool RandomAlleleFreqs;

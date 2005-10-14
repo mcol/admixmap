@@ -43,6 +43,7 @@ CompositeLocus::CompositeLocus()
   NumberOfMergedHaplotypes = 0;
   NumberOfAlleles = 0;
   AlleleProbs = 0;
+  SumAlleleProbs = 0;
   HapPairProbs = 0;
   HapPairProbsMAP = 0;
 
@@ -60,6 +61,8 @@ CompositeLocus::~CompositeLocus()
   delete[] HapPairProbsMAP;
   delete[] MergeHaplotypes;
   delete[] HapLabels;
+  //delete[] AlleleProbs;
+  delete[] SumAlleleProbs;
 }
 
 /**
@@ -176,13 +179,13 @@ void CompositeLocus::AddLocus( int alleles )
 
 void CompositeLocus::Initialise(double *AFreqs){
   AlleleProbs = alloc2D_d(NumberOfStates, Populations);
+  if(Populations == 1){
+    SumAlleleProbs = new double[NumberOfStates];
+    for(int i = 0; i < NumberOfStates; ++i)SumAlleleProbs[i] = 0.0;
+  }
   //set size of array of haplotype pair probs
   HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
   HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  if(Populations == 1){
-    SumHapPairProbs = new double[NumberOfStates*NumberOfStates];
-    fill(SumHapPairProbs, SumHapPairProbs + NumberOfStates*NumberOfStates, 0.0);
-  }
   SetAlleleProbs(AFreqs);
   SetHapPairProbs();
   SetNoMergeHaplotypes();
@@ -290,28 +293,31 @@ void CompositeLocus::SetHapPairProbs(){
     }
   }
 }
-void CompositeLocus::UpdateSumHapPairProbs(){
-  //should use softmax here
+void CompositeLocus::UpdateSumAlleleProbs(){
   if(Populations == 1){
-    double a[NumberOfStates*NumberOfStates];
-    inv_softmax(NumberOfStates*NumberOfStates, HapPairProbs, a);
+    double a[NumberOfStates];
+    double probs[NumberOfStates];
+    for(int i = 0; i < NumberOfStates; ++i)probs[i] = AlleleProbs[i][0];
+    inv_softmax(NumberOfStates, probs, a);
 
-  for(int h = 0; h < NumberOfStates*NumberOfStates; ++h)
-    SumHapPairProbs[h] += a[h];
+  for(int h = 0; h < NumberOfStates; ++h)
+    SumAlleleProbs[h] += a[h];
   }
 }
 double CompositeLocus::GetGenotypeProbsAtPosteriorMeans(std::vector<hapPair > &HapPairs, int iterations){
-  double Probs = 0.0;
+  double Probs[1] = {0.0};
   if(Populations == 1){
-    double mu[NumberOfStates*NumberOfStates];
-    for(int h = 0; h < NumberOfStates*NumberOfStates; ++h)SumHapPairProbs[h] /= (double)iterations;
-    softmax(NumberOfStates*NumberOfStates, mu, SumHapPairProbs);
+    double mu[NumberOfStates];
+    softmax(NumberOfStates, mu, SumAlleleProbs);//no need to scale by number of iterations
 
-    for(unsigned int h = 0; h < HapPairs.size() ; ++h)
-      Probs += mu[HapPairs[h].haps[0] * NumberOfStates + HapPairs[h].haps[1]];
-
+    for(int h0 = 0; h0 < NumberOfStates; ++h0){
+      for(int h1 = 0; h1 < NumberOfStates; ++h1){
+	    HapPairProbs[h0 * NumberOfStates + h1] = mu[h0] * mu[h1];
+      }
+    }
+    GetGenotypeProbs(Probs, HapPairs, false);
   }
-  return Probs;
+  return Probs[0];
 }
 
 /*
