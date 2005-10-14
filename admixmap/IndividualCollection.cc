@@ -470,10 +470,9 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
   E = SumDeviance / (double) iterations;//ergodic average of deviance
   V = SumDevianceSq / (double)iterations - E*E;//ergodic variance of deviance 
 
-  Log->logmsg(true, "MeanDeviance    VarDeviance     GOFStat         pD      DIC\n");
-  Log->logmsg(true, E);Log->logmsg(true,"    ");
-  Log->logmsg(true, V);Log->logmsg(true,"    ");
-  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "    ");
+  Log->logmsg(true, "MeanDeviance:\t"); Log->logmsg(true, E);Log->logmsg(true,"\n");
+  Log->logmsg(true, "VarDeviance:\t");  Log->logmsg(true, V);Log->logmsg(true,"\n");
+  Log->logmsg(true, "GoFStat:\t");  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "\n");
 
   //update chromosomes using globalrho, for globalrho model
   if(options->isGlobalRho())
@@ -492,9 +491,9 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
     }
   double pD = E - D;
   double DIC = E + pD;
-  
-  Log->logmsg(true, pD);Log->logmsg(true, "    ");
-  Log->logmsg(true, DIC);Log->logmsg(true, "\n\n");
+
+  Log->logmsg(true, "pD:\t\t");  Log->logmsg(true, pD);Log->logmsg(true, "\n");
+  Log->logmsg(true, "DIC:\t\t");   Log->logmsg(true, DIC);Log->logmsg(true, "\n\n"); 
 }
 
 void IndividualCollection::OutputIndAdmixture()
@@ -509,17 +508,21 @@ void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
   //Used only if marglikelihood = 1
   Log->write("Estimates used in Chib algorithm to estimate marginal likelihood for Individual 1:\n");
 
-  for(int k = 0; k < Populations; ++k)
+  for(int k = 0; k < Populations; ++k){
     Log->write(thetahat[k]);
-  for(int k = 0; k < Populations; ++k)
+  }
+  for(int k = 0; k < Populations; ++k){
     Log->write(thetahat[Populations +k]);
-  Log->write( rhohat[0]);Log->write( rhohat[1]);Log->write("\n");
+  }
+  Log->write( rhohat[0]);Log->write( rhohat[1]);
+  Log->write("\n");
 
-  Log->logmsg(true, "Individual 1:\n");
-  Log->logmsg(true,   "Log likelihood (at estimates): ");Log->logmsg(true, MargLikelihood.getLogLikelihood());
-  Log->logmsg(true, "\nLog prior      (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPrior());
-  Log->logmsg(true, "\nLog posterior  (at estimates): ");Log->logmsg(true, MargLikelihood.getLogPosterior());
-  Log->logmsg(true, "\nLog marginal likelihood : ");Log->logmsg(true, MargLikelihood.getLogMarginalLikelihood());
+  Log->logmsg(true, "\nChib values at estimates:");
+  Log->logmsg(true, "\nDeviance:\t\t");Log->logmsg(true, -2.0*MargLikelihood.getLogLikelihood());
+  Log->logmsg(true, "\nLogLikelihood:\t\t");Log->logmsg(true, MargLikelihood.getLogLikelihood());
+  Log->logmsg(true, "\nLogPrior:\t\t");Log->logmsg(true, MargLikelihood.getLogPrior());
+  Log->logmsg(true, "\nLogPosterior:\t\t");Log->logmsg(true, MargLikelihood.getLogPosterior());
+  Log->logmsg(true, "\nLogMarginalLikelihood:\t");Log->logmsg(true, MargLikelihood.getLogMarginalLikelihood());
   Log->logmsg(true, "\n\n");
 }
 

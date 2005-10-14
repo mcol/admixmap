@@ -100,7 +100,7 @@ void LogWriter::write(const long number){
   LogFileStream<<number<<" ";
 }
 void LogWriter::write(const double number){
-  LogFileStream<<number<<" ";
+  LogFileStream<<number<<"\t";
 }
 void LogWriter::write(const double number, const unsigned prec){
   LogFileStream<<setprecision(prec)<<number<<" ";

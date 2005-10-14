@@ -1204,15 +1204,8 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
   // *** At end of BurnIn ***
   if( iteration == options->getBurnIn() ){
     
-    Log->write("Calculating loglikelihood at individual admixture\n");
-    Log->write( thetahat, 2*Populations);
-    Log->write("\nand sumintensities\n");Log->write( rhohat[0]);Log->write(rhohat[1]);
-    
     //loglikelihood at estimates
-    double LogLikelihoodAtEst =  getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true);
-    MargLikelihood->setLogLikelihood(LogLikelihoodAtEst);
-    double DevianceAtEst = -2.0*LogLikelihoodAtEst;
-    Log->write("\nwith deviance ");Log->write(DevianceAtEst);Log->write("\n\n");
+    MargLikelihood->setLogLikelihood(getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true));
   }
   
   // *** After BurnIn ***
