@@ -67,7 +67,7 @@ public:
 
   void OutputChibEstimates(LogWriter *, int);
 
-  void OutputErgodicAvg(int samples, std::ofstream *avgstream);
+  void OutputErgodicAvg(int samples, bool ML, std::ofstream *avgstream);
 
   int getSize();
 

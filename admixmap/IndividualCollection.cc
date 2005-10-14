@@ -524,9 +524,14 @@ void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
 }
 
 //for single individual analysis
-void IndividualCollection::OutputErgodicAvg(int samples, std::ofstream *avgstream){
-     *avgstream << SumLogLikelihood / samples << " "
-               << MargLikelihood.getLogPosterior();
+void IndividualCollection::OutputErgodicAvg(int samples, bool ML, std::ofstream *avgstream){
+  double E, V;
+  E = SumDeviance / (double) samples;//ergodic average of deviance
+  V = SumDevianceSq / (double)samples - E*E;//ergodic variance of deviance 
+  *avgstream << E<< " "<<V<<" ";
+  if(ML)
+    *avgstream //<< SumLogLikelihood / samples << " "
+      << MargLikelihood.getLogMarginalLikelihood();
 }
 
 void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels)

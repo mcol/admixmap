@@ -431,7 +431,7 @@ void Individual::OnePopulationUpdate( int i, bool notBurnIn, DataMatrix *Outcome
 	// GetLocusAncestry(j,jj,anc);
 	int h[2]; //to store sampled hap pair
 	(*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
-	if(notBurnIn)(*Loci)(locus)->UpdateSumHapPairProbs();
+	if(notBurnIn)(*Loci)(locus)->UpdateSumAlleleProbs();
 	A->UpdateAlleleCounts(locus, h, anc, true); // should fix this to work with haploid data: last argument should be isdiploid
       }
     }
@@ -509,13 +509,17 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
     //update score tests for linkage with ancestry for *previous* iteration
     if(iteration > options->getBurnIn()){
       //Update affecteds only scores
-      if( options->getTestForAffectedsOnly())
-	if(options->getNumberOfOutcomes() == 0 || Outcome->get(i, 0) == 1)
-	UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(),chrm );
+      if( options->getTestForAffectedsOnly()){
+	//determine which regression is logistic, in case of 2 outcomes
+	unsigned col = 0;
+	if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
+	if(options->getNumberOfOutcomes() == 0 || Outcome->get(i, col) == 1)
+	  UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(),chrm );
+      }
 
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){   
-	UpdateScoreForAncestry(j,dispersion, Outcome->get(i, 0) - ExpectedY[0][i], DInvLink,chrm);
+	UpdateScoreForAncestry(j, dispersion, Outcome->get(i, 0) - ExpectedY[0][i], DInvLink,chrm);
       }    
     }
 
@@ -1202,11 +1206,13 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
     
     Log->write("Calculating loglikelihood at individual admixture\n");
     Log->write( thetahat, 2*Populations);
-    Log->write("\nand sumintensities\n");Log->write( rhohat[0]);Log->write(rhohat[1]);Log->write("\n");
+    Log->write("\nand sumintensities\n");Log->write( rhohat[0]);Log->write(rhohat[1]);
     
     //loglikelihood at estimates
-    MargLikelihood->setLogLikelihood( getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true) );
-
+    double LogLikelihoodAtEst =  getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true);
+    MargLikelihood->setLogLikelihood(LogLikelihoodAtEst);
+    double DevianceAtEst = -2.0*LogLikelihoodAtEst;
+    Log->write("\nwith deviance ");Log->write(DevianceAtEst);Log->write("\n\n");
   }
   
   // *** After BurnIn ***
