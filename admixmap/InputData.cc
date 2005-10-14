@@ -162,11 +162,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       Log->logmsg(false,"\n");      
       // Form matrices.
       convertMatrix(locusData_, locusMatrix_);
-      if (options->getTextIndicator()) {
       locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);
-      } else {
-      locusMatrix_ = locusMatrix_.SubMatrix(0, locusMatrix_.nRows() - 1, 0, 1);
-      }
       
       ::convertMatrix(outcomeVarData_, outcomeVarMatrix_);
       ::convertMatrix(inputData_,  covariatesMatrix_);
@@ -301,7 +297,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
     infile = true;
     nrows = alleleFreqMatrix_.nRows()-1;
     expectednrows = NumberOfStates-NumberOfCompositeLoci;
-    Populations = alleleFreqMatrix_.nCols() - options->getTextIndicator();
+    Populations = alleleFreqMatrix_.nCols() - 1;// -1 for ids in first col
     ::getPopLabels(alleleFreqData_[0], Populations, &PopulationLabels);
   }
   
@@ -311,7 +307,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
     infile = true;
     nrows = historicalAlleleFreqMatrix_.nRows();
     expectednrows = NumberOfStates+1;
-    Populations = historicalAlleleFreqMatrix_.nCols() - options->getTextIndicator();
+    Populations = historicalAlleleFreqMatrix_.nCols() - 1;
     ::getPopLabels(historicalAlleleFreqData_[0], Populations, &PopulationLabels);
 
   }
@@ -321,7 +317,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
       infile = true;
       nrows = priorAlleleFreqMatrix_.nRows();
       expectednrows = NumberOfStates+1;
-      Populations = priorAlleleFreqMatrix_.nCols() - options->getTextIndicator();
+      Populations = priorAlleleFreqMatrix_.nCols() - 1;
       ::getPopLabels(priorAlleleFreqData_[0], Populations, &PopulationLabels);
   }
   if(infile){

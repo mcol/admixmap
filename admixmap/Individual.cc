@@ -50,7 +50,7 @@ Individual::Individual()
 
 Individual::Individual(int mynumber,AdmixOptions* options, InputData *Data, Genome& Loci,Chromosome **chrm)
 {
-  if( options->getRhoIndicator() ){
+  if( !options->isGlobalRho() ){
     TruncationPt = options->getTruncPt();
     if( options->isRandomMatingModel() )
       if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
@@ -539,14 +539,14 @@ void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikeli
     //sample number of arrivals and SumLocusAncestry
     bool isX = (j == X_posn);
     chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X, isX,
-				  SumN, SumN_X, options->getRhoIndicator());
+				  SumN, SumN_X, options->isGlobalRho());
 
     //accumulate LogLikelihood from HMM
     *LogLikelihood += chrm[j]->getLogLikelihood();
   }//end chromosome loop
 
   // sample sum of intensities parameter rho
-  if( options->getRhoIndicator() ){
+  if( !options->isGlobalRho() ){
      SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, 
 	       SumN, SumN_X);
   }
@@ -1144,7 +1144,7 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
 				double *thetahatX, vector<double> &rhohat,
 				vector<double> &rhohatX, LogWriter *Log, chib *MargLikelihood, AlleleFreqs* A){
   vector<double> rho(2);
-  if(options->getRhoIndicator())
+  if(!options->isGlobalRho())
     rho = _rho;
   else // global rho
     rho[0] = rho[1] = globalrho;

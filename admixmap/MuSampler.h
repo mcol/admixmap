@@ -25,6 +25,14 @@
 #include "HamiltonianMonteCarlo.h"
 #include "StepSizeTuner.h"
 
+typedef struct{
+  const int *counts;
+  const double *counts1;
+  unsigned H;
+  unsigned K;
+  double eta;
+} MuSamplerArgs;
+
 class MuSampler{
 
 public:

@@ -57,7 +57,7 @@ void Regression::OpenOutputFile(AdmixOptions *options, IndividualCollection *ind
       Log->logmsg(true,"Writing regression parameters to ");
       Log->logmsg(true, options->getRegressionOutputFilename());
       Log->logmsg(true,"\n");
-      if( options->getTextIndicator() )InitializeOutputFile(options, individuals, PopulationLabels);
+      InitializeOutputFile(options, individuals, PopulationLabels);
       }
     }
     else{

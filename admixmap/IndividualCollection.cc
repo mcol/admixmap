@@ -180,7 +180,7 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
    for(unsigned k = 0; k < size_admix; ++k)
      thetahat[k] = _child[0]->getAdmixtureProps()[k];
 
-   if(options->getRhoIndicator())
+   if(!options->isGlobalRho())
      //initialise rhohat at initial value of Individual 1's sumintensities
       rhohat = _child[0]->getRho();
    else{
@@ -476,7 +476,7 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
   Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "    ");
 
   //update chromosomes using globalrho, for globalrho model
-  if(!options->getRhoIndicator())
+  if(options->isGlobalRho())
     for( unsigned int j = 0; j < numChromosomes; j++ )
       C[j]->SetLociCorr(SumRho / (double)iterations);
 

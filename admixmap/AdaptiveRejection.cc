@@ -253,7 +253,7 @@ double AdaptiveRejection::TransformPoint(double u, double g, double s1, double s
     cerr<<"Error in arguments to TransformPoint"<<endl;
     exit(1);
   }
-  double x;
+  double x = u;
   double prop = (u-s1) / (s2-s1);//proportion of area between z1 and z2 that is to the left of u
   double maxterm = max(log(1.0 - prop) + g*z1, log(prop)+g*z2);//in case very steep gradient
   if(lower && upper){
@@ -452,7 +452,7 @@ double AdaptiveRejection::LowerHull(double x, double x0, double x1, double h0, d
   if( (lower && x < x0) || (upper && x>x1)){
     cerr<<"Error in LowerHull: "<<x0<<" "<<x<<" "<<x1<<endl;exit(1);
   }
-  double lh;
+  double lh = 0.0;
   if(upper && lower){
     lh = (h0*(x1-x) + h1*(x-x0)) / (x1-x0);
   }
@@ -524,7 +524,7 @@ double AdaptiveRejection::NewtonRaphson(const void* const args, double (*gradien
 // either side of the mode. Given these two points use most simple and
 // robust mode search SimpleModeSearch(). Two points chosen such that
 // they are 3 * second derivative from the mode.
-  double newnum, oldnum, step, dfnew, dfold, ddf, a, b;
+  double newnum = 0.0, oldnum, step, dfnew, dfold, ddf, a, b;
   
   do{
     oldnum = newnum;

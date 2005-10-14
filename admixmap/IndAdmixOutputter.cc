@@ -46,7 +46,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
   }
 
   //number of cols for sumintensities
-  if( _options->getRhoIndicator() ){
+  if( !_options->isGlobalRho() ){
      if(_options->isRandomMatingModel())
         dimOne += 2;
      else
@@ -67,7 +67,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
        _out << "\""<<_PopulationLabels[i] << "\",";
   }
 
-  if( _options->getRhoIndicator() ){
+  if( !_options->isGlobalRho() ){
      if(_options->isRandomMatingModel())
         _out << "\"rho0\",\"rho1\",";
      else
@@ -89,8 +89,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
   _out.close();
 }
 
-void
-IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, double LogLikelihood)
+void IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, double LogLikelihood)
 {
   for( int k = 0; k < _options->getPopulations(); k++ ){
      if(_options->isRandomMatingModel()){
@@ -99,7 +98,7 @@ IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, d
         _out << ind.getAdmixtureProps()[k] << ",";
      }
   }
-  if( _options->getRhoIndicator() ){
+  if( !_options->isGlobalRho() ){
      vector<double> rho = ind.getRho();
      if(_options->isRandomMatingModel())
         _out << rho[0] << "," << rho[1] << ",";

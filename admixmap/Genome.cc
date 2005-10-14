@@ -127,20 +127,15 @@ void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_
     //Log->logmsg(false," ");
   }
 
-  // checks of input data files should be in class InputData
-  if( options->getTextIndicator() ){
-
-    Vector_s labels = data_->getGeneticData()[0];//header of genotypes file
-
-    vector<double> vtemp = locifileData.getCol(1);
-    vtemp.insert(vtemp.begin(), 0.0);// Forces SetLabels method to ignore first row of loci.txt 
-    // Add a sex column if it is not included
-    if( ! options->getgenotypesSexColumn() ){
-      labels.insert(labels.begin(), "\"sexcol\"");
-    }
-    SetLabels(labels, vtemp);
+  Vector_s labels = data_->getGeneticData()[0];//header of genotypes file
+  
+  vector<double> vtemp = locifileData.getCol(1);
+  vtemp.insert(vtemp.begin(), 0.0);// Forces SetLabels method to ignore first row of loci.txt 
+  // Add a sex column if it is not included
+  if( ! options->getgenotypesSexColumn() ){
+    labels.insert(labels.begin(), "\"sexcol\"");
   }
-
+  SetLabels(labels, vtemp);
 }
 
 //Creates an array of pointers to Chromosome objects, sets their labels

@@ -92,12 +92,11 @@ public:
   int useCOUT() const;
   bool getFixedAlleleFreqs() const;
   bool getCorrelatedAlleleFreqs() const;
-  int getTextIndicator() const;
   bool isRandomMatingModel() const;
   int getNumberOfOutcomes() const;
   void setNumberOfOutcomes(int);
   void setRegType(RegressionType R);
-  bool getRhoIndicator() const;
+  bool isGlobalRho() const;
   bool getIndAdmixHierIndicator() const;
   bool getMLIndicator() const;
   bool getAnnealIndicator() const;
@@ -162,7 +161,6 @@ private:
   int Populations;
 
   int use_cout;
-  int TextIndicator;
   bool OutputFST;
   bool XOnlyAnalysis;
   bool isPedFile;
@@ -172,7 +170,7 @@ private:
   bool fixedallelefreqs;
   bool correlatedallelefreqs;
   bool RandomMatingModel;//random mating model
-  bool RhoIndicator;//indicator for non-global rho
+  bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool MLIndicator;//calculate marginal likelihood 
   bool AnnealIndicator;

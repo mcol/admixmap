@@ -22,7 +22,7 @@ DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops 
   SetSize(numind, numpops);
 }
 
-void DirichletParamSampler::SetSize( unsigned numind, unsigned numpops )
+void DirichletParamSampler::SetSize( unsigned /*numind*/, unsigned numpops )
   // sets number of elements in Dirichlet parameter vector
   // instantiates an adaptive rejection sampler object for each element
 //sets up MuSampler object 

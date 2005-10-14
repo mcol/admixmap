@@ -28,13 +28,6 @@
 
 using namespace::std;
 
-typedef struct{
-  const int *counts;
-  unsigned H;
-  unsigned K;
-  double eta;
-} MuSamplerArgs;
-
 MuSampler::MuSampler(){
   params = 0;
   muArgs = new double*[3];

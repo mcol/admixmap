@@ -56,7 +56,7 @@ public:
   double getLogLikelihood();
   void SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator);
+			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho);
 private:
   int _startLocus;
   int populations;

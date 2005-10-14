@@ -171,7 +171,7 @@ void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
 	  Log->logmsg(true,"Writing population-level parameters to ");
 	  Log->logmsg(true,options->getParameterFilename());
 	  Log->logmsg(true,"\n");
-	  if( options->getTextIndicator() )	InitializeOutputFile(PopulationLabels);
+	  InitializeOutputFile(PopulationLabels);
 	}
       }
       else{
@@ -281,7 +281,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
 
 void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, double LogL){
 
-  if( !options->getRhoIndicator() ){
+  if( options->isGlobalRho() ){
     double rhoprop;
     double LogLikelihoodRatio = 0.0;
     double LogPriorRatio = 0.0;
@@ -357,7 +357,7 @@ void Latent::InitializeOutputFile(std::string *PopulationLabels)
       outputstream << "\""<<PopulationLabels[i] << "\" ";
     }
     //SumIntensities
-    if( !options->getRhoIndicator() )
+    if( options->isGlobalRho() )
       outputstream << "\"sumIntensities\" ";
     else
       outputstream << "\"sumIntensities.beta\" ";
@@ -385,7 +385,7 @@ void Latent::OutputParams(int iteration){
 	Log->width(9);
 	Log->write(alpha[0][j], 6);
       }
-       if( options->getRhoIndicator() )
+       if( !options->isGlobalRho() )
 	Log->write(rhobeta,6);
       else
 	Log->write(rho,6);
@@ -398,7 +398,7 @@ void Latent::OutputParams(int iteration){
        (cout) << setprecision(6) << alpha[0][ j ] << " ";
       }
      (cout).width(9);
-      if( options->getRhoIndicator() )
+      if( !options->isGlobalRho() )
 	(cout) << setprecision(6) << rhobeta << " ";
       else
 	(cout) << setprecision(6) << rho << " ";
@@ -411,7 +411,7 @@ void Latent::OutputParams(int iteration){
       outputstream << setprecision(6) << alpha[0][ j ] << " ";}
     //output rho
     outputstream.width(9);
-    if( options->getRhoIndicator() )
+    if( !options->isGlobalRho() )
       (outputstream) << setprecision(6) << rhobeta << " ";
     else
       (outputstream) << setprecision(6) << rho << " ";

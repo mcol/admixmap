@@ -22,16 +22,9 @@
 #include "AlleleFreqs.h"
 #include "AdaptiveRejection.h"
 #include "functions.h"
+#include "MuSampler.h"
 #include <math.h>
 #include <numeric>
-
-typedef struct{
-  const int *counts0;
-  const double* counts1;
-  unsigned H;
-  unsigned K;
-  double eta;
-} MuSamplerArgs2;// 2 so as not to confuse with one in MuSampler
 
 AlleleFreqs::AlleleFreqs(Genome *pLoci){
   eta = 0;
@@ -264,9 +257,8 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions *options, InputData *data_)
   //Fixed AlleleFreqs
   if( strlen( options->getAlleleFreqFilename() ) ){
     temporary = data_->getAlleleFreqMatrix();
-    if( options->getTextIndicator() ){
-      temporary = temporary.SubMatrix( 1, temporary.nRows() - 1, 1, Populations );
-    }
+    temporary = temporary.SubMatrix( 1, temporary.nRows() - 1, 1, Populations );
+
     offset = 1;
     oldformat = true;
     file = true;
@@ -641,7 +633,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
   //Note: here NumberOfStates == 2  
 {
   double lefttruncation = 0.1;//should be smaller
-  MuSamplerArgs2 MuParameters;
+  MuSamplerArgs MuParameters;
   int counts0[2 * Populations];
   double counts1[2 * Populations];
 
@@ -659,7 +651,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
 
     MuParameters.eta = eta[j];
     MuParameters.K = j;
-    MuParameters.counts0 = counts0;
+    MuParameters.counts = counts0;
     MuParameters.counts1 = counts1;
 
     SampleMu.setUpperBound( eta[j] - lefttruncation );//set upper limit for sampler
@@ -799,19 +791,16 @@ void AlleleFreqs::InitializeEtaOutputFile(AdmixOptions *options, std::string *Po
     Log->logmsg(true,"Writing dispersion parameters to ");
     Log->logmsg(true,options->getEtaOutputFilename());
     Log->logmsg(true,"\n");
-    if( options->getTextIndicator() )
-      {
-	//Dispersion parameters (eta)
-	if(IsHistoricAlleleFreq){
-	  for( int k = 0; k < Populations; k++ ){
-	    outputstream << "\"eta." << PopulationLabels[k]<< "\"\t"; 
-	  }
-	  outputstream << endl;
-	}
-	else if(CorrelatedAlleleFreqs){
-	  outputstream << "\"eta\"" <<endl; 
-	}
+    //Dispersion parameters (eta)
+    if(IsHistoricAlleleFreq){
+      for( int k = 0; k < Populations; k++ ){
+	outputstream << "\"eta." << PopulationLabels[k]<< "\"\t"; 
       }
+      outputstream << endl;
+    }
+    else if(CorrelatedAlleleFreqs){
+      outputstream << "\"eta\"" <<endl; 
+    }
   }
 }
 
@@ -1089,10 +1078,10 @@ void AlleleFreqs::CloseOutputFile(int iterations, string* PopulationLabels)
 
 double fMu( double alpha, const void* const args )
 {
-  const MuSamplerArgs2* parameters = (const MuSamplerArgs2*) args;
+  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
-  const int *counts0 = parameters->counts0;
+  const int *counts0 = parameters->counts;
   const double *counts1 = parameters->counts1;
 
   //counts 0 are counts for admixed pop, counts1 for historic/unadmixed pop
@@ -1108,10 +1097,10 @@ double fMu( double alpha, const void* const args )
 
 double dfMu( double alpha, const void* const args )
 {
-  const MuSamplerArgs2* parameters = (const MuSamplerArgs2*) args;
+  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
-  const int *counts0 = parameters->counts0;
+  const int *counts0 = parameters->counts;
   const double *counts1 = parameters->counts1;
 
   double x, y1, y2;
@@ -1147,10 +1136,10 @@ double dfMu( double alpha, const void* const args )
 
 double ddfMu( double alpha, const void* const args )
 {
-  const MuSamplerArgs2* parameters = (const MuSamplerArgs2*) args;
+  const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
-  const int *counts0 = parameters->counts0;
+  const int *counts0 = parameters->counts;
   const double *counts1 = parameters->counts1;
 
   double x, y1, y2;

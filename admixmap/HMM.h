@@ -44,7 +44,7 @@ public:
 
   void SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
 			    const int startLocus, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			    unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator) ;
+			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho) ;
 private:
   int K;
   int States; //number of states of Markov chain, m in book

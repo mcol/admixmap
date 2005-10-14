@@ -103,7 +103,7 @@ void Chromosome::UpdateHMMForwardProbs(Individual* ind, double *Admixture, Admix
 
   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
   // required to calculate transition matrices 
-  if( options->getRhoIndicator() ){//non global rho case
+  if( !options->isGlobalRho() ){//non global rho case
 
     for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
       f[0][jj] = exp( -GetDistance( jj ) * _rho[0] );
@@ -177,11 +177,11 @@ double Chromosome::getLogLikelihood()
 //updates SumLocusAncestry
 void Chromosome::SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
 				      int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-				      unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
+				      unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho){
 
   SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes,_startLocus, 
 				    SumLocusAncestry, SumLocusAncestry_X, isX, 
-				    SumN, SumN_X, RhoIndicator);
+				    SumN, SumN_X, isGlobalRho);
 }
 
 

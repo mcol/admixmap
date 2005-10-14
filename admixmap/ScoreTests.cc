@@ -305,7 +305,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
     }
   }
 
-  if( options->getTextIndicator() )InitialiseAssocScoreFile(PLabels);
+  InitialiseAssocScoreFile(PLabels);
 }
 
 //Initialise ergodic average score file

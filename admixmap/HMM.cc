@@ -431,7 +431,7 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
 void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
 			       const int startLocus, 
 			       int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			       unsigned int SumN[], unsigned int SumN_X[], bool RhoIndicator){
+			       unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho){
 
   int locus;
   double Prob;
@@ -462,7 +462,7 @@ void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned i
 	else
 	  SumLocusAncestry_X[ LocusAncestry[jj + g*Transitions] + g*K ]++;
 	//sample number of arrivals where jump indicator is 1
-	if(RhoIndicator){
+	if(!isGlobalRho){
 	  double u = myrand();
 	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
 	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )

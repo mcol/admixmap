@@ -34,12 +34,6 @@ using namespace::std;
 
 class AlleleFreqs;
 
-typedef struct{
-  double value;//loglikelihood at current parameter values, provided 'ready' is true
-  bool ready;//true iff value is the loglikelihood at the current parameter values
-  bool HMMisOK;//true iff values in HMM objects correspond to current parameter values
-}HMMLogLikelihood;
-
 class Individual
 {
 public:
@@ -144,7 +138,12 @@ private:
   Sex sex; 
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   unsigned int X_posn;  //number of X chromosome
-  HMMLogLikelihood logLikelihood;
+
+  struct{
+    double value;//loglikelihood at current parameter values, provided 'ready' is true
+    bool ready;//true iff value is the loglikelihood at the current parameter values
+    bool HMMisOK;//true iff values in HMM objects correspond to current parameter values for this individual
+  }logLikelihood;
 
   //RWM sampler for individual admixture
   StepSizeTuner ThetaTuner;

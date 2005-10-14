@@ -90,25 +90,20 @@ void submain(AdmixOptions* options){
   Latent L( options, &Loci, &Log);    
   L.Initialise(IC->getSize(), data.GetPopLabels());
 
-  Regression R0;
-  Regression R1;
-  if(options->getNumberOfOutcomes() > 0){
-    R0.Initialise(0, IC, options, &Log);
-    if(options->getNumberOfOutcomes() == 2)R1.Initialise(1, IC, options, &Log);
-  }
+  Regression R[2];
+  for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+    R[r].Initialise(r, IC, options, &Log);
   Regression::OpenOutputFile(options, IC, data.GetPopLabels(), &Log);  
 
 
-  if( !options->getRhoIndicator() )
+  if( options->isGlobalRho() )
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
       chrm[j]->InitialiseLociCorr(L.getrho());
     }
   IC->Initialise(options, &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
   //set expected Y
-  if(options->getNumberOfOutcomes() > 0){
-    R0.SetExpectedY(IC);
-    if(options->getNumberOfOutcomes() == 2)R1.SetExpectedY(IC);
-  }		
+  for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+    R[r].SetExpectedY(IC);
 
   //   ** single individual, one population, allele frequencies 
    if( IC->getSize() == 1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
@@ -136,9 +131,8 @@ void submain(AdmixOptions* options){
     if( options->getHWTestIndicator() )
       HWtest.Initialise(options, Loci.GetTotalNumberOfLoci(), &Log);
 
-    if( options->getTextIndicator() ){
-      InitializeErgodicAvgFile(options,IC, &Log,&avgstream,data.GetPopLabels());
-      }
+    InitializeErgodicAvgFile(options,IC, &Log,&avgstream,data.GetPopLabels());
+
     string s = options->getResultsDir()+"/loglikelihoodfile.txt";
     ofstream loglikelihoodfile(s.c_str());
 
@@ -167,7 +161,7 @@ void submain(AdmixOptions* options){
 	L.UpdateRhoWithRW(IC, chrm, LogL);
   
       // ** Update individual-level parameters  
-      IC->Update(iteration, options, chrm, &A, &R0, &R1, L.getpoptheta(), L.getalpha(), L.getrho(), L.getrhoalpha(), L.getrhobeta(),
+      IC->Update(iteration, options, chrm, &A, &R[0], &R[1], L.getpoptheta(), L.getalpha(), L.getrho(), L.getrhoalpha(), L.getrhobeta(),
       	 &Log);
 //       if((iteration %2)){
 // 	L.Update(iteration, IC);//update pop admix params conditional on sums of ancestry states with jump indicators==1
@@ -192,10 +186,8 @@ void submain(AdmixOptions* options){
       L.Update(iteration, IC);
 
       // ** update regression parameters (if regression model)
-      if( options->getNumberOfOutcomes() > 0 ){
-	R0.Update((iteration > options->getBurnIn()), IC);
-      if( options->getNumberOfOutcomes() == 2) R1.Update((iteration > options->getBurnIn()), IC);
-      }
+      for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+	R[r].Update((iteration > options->getBurnIn()), IC);
 
       // ** set merged haplotypes for allelic association score test 
      if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
@@ -211,11 +203,9 @@ void submain(AdmixOptions* options){
 	  //** dispersion parameter (if dispersion model)
 	  A.OutputEta(iteration, options, &Log);
 	  // ** regression parameters
-	  if( options->getNumberOfOutcomes() > 0 ){
-	    R0.Output(iteration, options, &Log);
-	    if( options->getNumberOfOutcomes() == 2)
-	      R1.Output(iteration, options, &Log);
-	  }
+	  for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+	    R[r].Output(iteration, options, &Log);
+
 	  //** new line in logfile
 	  if( !options->useCOUT() || iteration == 0 ) Log.write("\n");
 	}
@@ -230,7 +220,7 @@ void submain(AdmixOptions* options){
       if( iteration > options->getBurnIn() ){
 	//score tests
 	if( options->getScoreTestIndicator() )
-	  Scoretest.Update(R0.getDispersion());//possible error? what if 2 regression models?
+	  Scoretest.Update(R[0].getDispersion());//possible error? what if 2 regression models?
 	//tests for mis-specified allelefreqs
 	if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
 	  AlleleFreqTest.Update(IC, &A, &Loci);
@@ -245,11 +235,8 @@ void submain(AdmixOptions* options){
 	  if ( strlen( options->getErgodicAverageFilename() ) ){
 	    int samples = iteration - options->getBurnIn();
 	    L.OutputErgodicAvg(samples,&avgstream);
-	    if( options->getNumberOfOutcomes() > 0 ){
-	      R0.OutputErgodicAvg(samples, &avgstream);
-	      if( options->getNumberOfOutcomes() == 2)
-		R1.OutputErgodicAvg(samples, &avgstream);
-	    }
+	    for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+	      R[r].OutputErgodicAvg(samples, &avgstream);
 	    A.OutputErgodicAvg(samples, &avgstream);
 	    if( IC->getSize()==1 ){
 	      IC->OutputErgodicAvg(samples, &avgstream);
@@ -325,7 +312,7 @@ void submain(AdmixOptions* options){
      }
 #endif
     
-     if( !options->getRhoIndicator() && options->getPopulations() > 1 ){
+     if( options->isGlobalRho() && options->getPopulations() > 1 ){
        Log.logmsg(true, "Expected acceptance rate in global sumintensities sampler: ");
        Log.logmsg(true, L.getRhoSamplerAccRate());
        Log.logmsg(true, "\nwith final step size of ");
@@ -445,7 +432,7 @@ void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *indiv
   for( int i = 0; i < options->getPopulations(); i++ ){
     *avgstream << "\""<<PopulationLabels[i] << "\" ";
   }
-  if( !options->getRhoIndicator() )
+  if( options->isGlobalRho() )
     *avgstream << " \"sumIntensities\"";
   else
     *avgstream << "\"sumIntensities.beta\" ";

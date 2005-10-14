@@ -61,7 +61,6 @@ AdmixOptions::AdmixOptions()
   Populations = 0;
 
   use_cout = 1; //should be bool
-  TextIndicator = 1;//should be bool
   OutputFST = false;
   XOnlyAnalysis = false;
   isPedFile = false; 
@@ -73,7 +72,7 @@ AdmixOptions::AdmixOptions()
   RandomMatingModel = false;
   NumberOfOutcomes = -1;
   RegType = None;
-  RhoIndicator = false;//corresponds to globalrho = 1;
+  GlobalRho = true;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
   MLIndicator = false;//calculate marginal likelihood
   AnnealIndicator = false;
@@ -123,7 +122,6 @@ AdmixOptions::AdmixOptions()
   OptionValues["popadmixpriormean"] = "1.0";
   OptionValues["popadmixpriorvar"] = "1.0";
   OptionValues["xonlyanalysis"] = "0";
-  OptionValues["textindicator"] = "1";
 }
 
 AdmixOptions::~AdmixOptions()
@@ -327,9 +325,9 @@ double AdmixOptions::getTruncPt() const
   return TruncPt;
 }
 
-bool AdmixOptions::getRhoIndicator() const
+bool AdmixOptions::isGlobalRho() const
 {
-  return RhoIndicator;
+  return GlobalRho;
 }
 
 bool AdmixOptions::getLocusForTestIndicator() const
@@ -498,11 +496,6 @@ const char *AdmixOptions::getEtaPriorFilename() const
   return EtaPriorFilename.c_str();
 }
 
-int AdmixOptions::getTextIndicator() const
-{
-  return TextIndicator;
-}
-
 int AdmixOptions::sizeInitAlpha() const
 {
   unsigned size = 0;
@@ -662,7 +655,6 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
-    {"textindicator",                         1, 0,  0 }, // int
     {"sumintensitiesalpha",                   1, 0,  0 }, // double
     {"sumintensitiesbeta",                    1, 0,  0 }, // double
     {"popadmixpriormean",                     1, 0,  0 }, //double
@@ -826,11 +818,11 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	}
       }else if (long_option_name == "globalrho") {
 	if (strtol(optarg, NULL, 10) == 1) {
-	  RhoIndicator = false;OptionValues["globalrho"]="1";
+	  GlobalRho = true;OptionValues["globalrho"]="1";
 	} else if (strtol(optarg, NULL, 10) == 0) {
-	  RhoIndicator = true;OptionValues["globalrho"]="0";
+	  GlobalRho = false;OptionValues["globalrho"]="0";
 	} else {
-	  cerr << "Set global rho to 0 or 1.\n";
+	  cerr << "ERROR: Please set globalrho to 0 or 1.\n";
 	  exit(1);
 	}
       } else if (long_option_name == "outcomevarfile") {
@@ -864,8 +856,6 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	 alpha0 = CstrToVec2(optarg);OptionValues["initalpha0"]=optarg;
       } else if (long_option_name == "initalpha1") {
 	 alpha1 = CstrToVec2(optarg);OptionValues["initalpha1"]=optarg;
-      } else if (long_option_name == "textindicator") {
-	 TextIndicator = (int)strtol(optarg, NULL, 10);OptionValues["textindicator"]=optarg;
       } else {
 	cerr << "Unknown option: " << long_option_name;
 	if (optarg) {
@@ -1022,7 +1012,7 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
     Log->logmsg(true,"Model assuming assortative mating.\n");
 
   // **** global rho ****
-  if( !RhoIndicator )
+  if( GlobalRho )
     Log->logmsg(true,"Model with global sumintensities.\n");
   else if( RandomMatingModel )
     Log->logmsg(true,"Model with gamete specific sumintensities.\n");
