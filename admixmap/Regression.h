@@ -18,7 +18,7 @@ class Regression{
 public:
   Regression();
    ~Regression();
-  void Initialise(unsigned RegNumber, IndividualCollection *, AdmixOptions *, LogWriter *);
+  void Initialise(unsigned RegNumber, IndividualCollection *, LogWriter *);
   void SetExpectedY(IndividualCollection *IC);
   void Update(bool afterBurnIn, IndividualCollection *individuals);
   static void OpenOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels, LogWriter *Log);  

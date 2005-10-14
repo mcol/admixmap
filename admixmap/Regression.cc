@@ -85,17 +85,9 @@ void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollectio
   outputstream << endl;
 }
 
-void Regression::Initialise(unsigned Number, IndividualCollection *individuals, AdmixOptions *options, 
-			    LogWriter *Log){
+void Regression::Initialise(unsigned Number, IndividualCollection *individuals, LogWriter *Log){
   //set regression number for this object
   RegNumber = Number;
-
-  //?? next 2 lines may be unecessary, not initalising unless there is a regression model
-  if( options->getNumberOfOutcomes() == 0 ){//no regression model
-    NumCovariates = 0;
-    RegType = None;
-  }
-  else{
 
     //determine regression type
     if( individuals->getOutcomeType(RegNumber)== Binary ) RegType = Logistic;
@@ -166,8 +158,6 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
       BetaDrawArray[i] = 0;
     }
 
-
-
     dims = new int[2];
     dims[0] = individuals->getSize();
     dims[1] = NumCovariates;
@@ -178,7 +168,6 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
       BetaDrawArray[i] = new GaussianProposalMH( BetaParameters, lr, dlr, ddlr, dims, X );
     }
   }
-  }//end else, AnalysisTypeIndicator >2
 }
 
 void Regression::SetExpectedY(IndividualCollection *IC){

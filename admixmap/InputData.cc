@@ -289,7 +289,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
   string freqtype = "";
   bool infile = false;//indicates whether either of the three allelefreq files are specified
   int nrows=0, expectednrows=0;
-  int Populations;
+  int Populations = options->getPopulations();
 
   //fixed allele freqs
   if( strlen( options->getAlleleFreqFilename() ) ){
@@ -335,7 +335,6 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoc
     options->setPopulations(Populations);
   }
   else{//'populations' option
-    Populations = options->getPopulations();
     if(Populations < 1){
       Log->logmsg(true, "ERROR: populations = ");
       Log->logmsg(true, options->getPopulations());
