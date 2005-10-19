@@ -431,44 +431,45 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 // Method samples allele frequency and prior allele frequency
 // parameters.
 void AlleleFreqs::Update(bool afterBurnIn){
-    // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
-    if(IsHistoricAlleleFreq ){
-      for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-	if( NumberOfStates[i] == 2 )
-	  SamplePriorAlleleFreqs1D( i);
-	else
-	  SamplePriorAlleleFreqsMultiDim( i);
-      }
-    }
-    else if(CorrelatedAlleleFreqs){
-      SamplePriorAlleleFreqs();
-    }
-    
-    // Sample allele frequencies conditional on Dirichlet priors 
-    // use these frequencies to set AlleleProbs in CompositeLocus
-    // then use AlleleProbs to set HapPairProbs in CompositeLocus
-    // this is the only point at which SetHapPairProbs is called, apart from when 
-    // the composite loci are initialized
+  // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
+  if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      SampleAlleleFreqs(i);
-      (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
-      (*Loci)(i)->SetHapPairProbs();
+      if( NumberOfStates[i] == 2 )
+	SamplePriorAlleleFreqs1D( i);
+      else
+	SamplePriorAlleleFreqsMultiDim( i);
     }
-    
-    // Sample for allele frequency dispersion parameters, eta, conditional on allelefreqs using
-    // Metropolis random-walk.
-    if(  IsHistoricAlleleFreq){ 
-      NumberOfEtaUpdates++;
-      for( int k = 0; k < Populations; k++ )SampleEtaWithRandomWalk(k, afterBurnIn);
-    }
-    else if(CorrelatedAlleleFreqs){
+  }
+  else if(CorrelatedAlleleFreqs){
+    SamplePriorAlleleFreqs();
+  }
+  
+  // Sample allele frequencies conditional on Dirichlet priors 
+  // use these frequencies to set AlleleProbs in CompositeLocus
+  // then use AlleleProbs to set HapPairProbs in CompositeLocus
+  // this is the only point at which SetHapPairProbs is called, apart from when 
+  // the composite loci are initialized
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    SampleAlleleFreqs(i);
+    (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
+    (*Loci)(i)->SetHapPairProbs();
+  }
+  
+  // Sample for allele frequency dispersion parameters, eta, conditional on allelefreqs using
+  // Metropolis random-walk.
+  if(  IsHistoricAlleleFreq){ 
+    NumberOfEtaUpdates++;
+    for( int k = 0; k < Populations; k++ )SampleEtaWithRandomWalk(k, afterBurnIn);
+  }
+  else if(CorrelatedAlleleFreqs){
     NumberOfEtaUpdates++;
     SampleEtaWithRandomWalk(0, afterBurnIn);
-    }
-    
-    if( afterBurnIn && IsHistoricAlleleFreq ){
-      UpdateFst();
-    }
+  }
+  
+  if( afterBurnIn && IsHistoricAlleleFreq ){
+    UpdateFst();
+  }
+
 }
 
 /*
