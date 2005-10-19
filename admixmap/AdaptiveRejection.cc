@@ -255,12 +255,12 @@ double AdaptiveRejection::TransformPoint(double u, double g, double s1, double s
   }
   double x = u;
   double prop = (u-s1) / (s2-s1);//proportion of area between z1 and z2 that is to the left of u
-  double maxterm = max(log(1.0 - prop) + g*z1, log(prop)+g*z2);//in case very steep gradient
+  //double maxterm = max(log(1.0 - prop) + g*z1, log(prop)+g*z2);//in case very steep gradient
   if(lower && upper){
-    if(fabs(g) > EPS)
-      x = (maxterm + log( exp( (g*z1) + log(1.0 - prop) - maxterm) + exp((g*z2) + log(prop)-maxterm) )) / g;
+    //if(fabs(g) > EPS)
+    //x = (maxterm + log( exp( (g*z1) + log(1.0 - prop) - maxterm) + exp((g*z2) + log(prop)-maxterm) )) / g;
     //else 
-
+    x = z1 + (z2 - z1) * prop;
     //need formula for g close to zero
   } else if(lower && g < 0) {//no upper limit and negative gradient
     x = z1 + exp( log(-log( 1.0 - prop)) - log( -g ) );
