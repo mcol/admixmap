@@ -7,20 +7,22 @@ WINDISTDIR		= ../test/admixmap-win
 
 LIBS			= -lm -static -lgsl -lgslcblas
 
-# Release version flags
-#DFLAGS = -O3
+# processor architecture flags
+I686FLAGS    = -march=i686 
+P4FLAGS      = -march=pentium4 -mfpmath=sse
+X86_64FLAGS  = -march=athlon64
 
-# Pentium 4 version flags
-# DFLAGS = -O3 -march=pentium4 -mfpmath=sse
-
-# Debug version flags
- DFLAGS = -g
-
-# Profiling version flags
+# flags for release version, debug version or profiling version
+# release 
+DFLAGS = -O3
+# debug  
+# DFLAGS = -g
+# profiling 
 # DFLAGS = -pg -O3
 
 CXXFLAGS		= 
-CPPFLAGS		= -W -Wall -march=i686 $(DFLAGS)
+CPPFLAGS		= -W -Wall $(I686FLAGS) $(DFLAGS)
+# CPPFLAGS		= -W -Wall $(P4FLAGS) $(DFLAGS)
 
 all:		rand admixmap .depend
 
@@ -37,7 +39,7 @@ clean:
 infiles		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o rand_serial.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o Individual.o GaussianProposalMH.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o DirichletParamSampler.o HamiltonianMonteCarlo.o DataMatrix.o MuSampler.o DispersionSampler.o
 
 rand:		
-		$(CXX) rand_serial.cc -g -O2 -c -o rand_serial.o 
+		$(CXX) $(CPPFLAGS) -c -o rand_serial.o rand_serial.cc 
 
 admixmap:	$(infiles)
 		$(CXX) $(CPPFLAGS) -o ../test/admixmap $(infiles) $(LIBS)
