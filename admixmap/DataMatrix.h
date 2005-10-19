@@ -28,19 +28,19 @@ public:
   DataMatrix();
   DataMatrix(unsigned, unsigned);
   void setDimensions(unsigned, unsigned);
-  bool isMissing(unsigned, unsigned);
+  bool isMissing(unsigned, unsigned)const;
   void isMissing(unsigned, unsigned, bool);
-  bool hasMissing(){return anyMissing;}
-  std::vector<double> getRow(unsigned);
-  std::vector<double> getCol(unsigned c);
-  std::vector<double> columnMeans();
+  bool hasMissing()const{return anyMissing;}
+  std::vector<double> getRow(unsigned)const;
+  std::vector<double> getCol(unsigned c)const;
+  std::vector<double> columnMeans()const;
   double get(unsigned, unsigned) const;
   void set(unsigned, unsigned, double);
   unsigned nRows()const;
   unsigned nCols()const;
   DataMatrix SubMatrix(unsigned, unsigned, unsigned, unsigned);
   void SetMissingValuesToColumnMeans();
-  void Print();
+  void Print()const;
   //std::vector<double>::const_iterator getData() const;
   const double* const getData() const;// allows access to data without danger of changing it
 private:

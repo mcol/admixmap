@@ -79,19 +79,19 @@ public:
   const DataMatrix& getMLEMatrix() const;
   const DataMatrix& getReportedAncestryMatrix() const;
 
-  void getOutcomeTypes(DataType*);
+  void getOutcomeTypes(DataType*)const;
   std::string *GetPopLabels() const;
 
-  bool determineIfPedFile(AdmixOptions *options);
+  bool determineIfPedFile(AdmixOptions *options)const;
   void convertGenotypesToIntArray(AdmixOptions *options);
   void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
 
-  Sex GetSexValue(int i);
-  int getNumberOfIndividuals();
-  int getNumberOfSimpleLoci();
-  unsigned getNumberOfCompositeLoci(){return NumCompositeLoci;};  
+  Sex GetSexValue(int i)const;
+  int getNumberOfIndividuals()const;
+  int getNumberOfSimpleLoci()const;
+  unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};  
 
-  void GetGenotype(int i, int SexColumn, Genome &Loci,unsigned short ****genotype);
+  void GetGenotype(int i, int SexColumn, Genome &Loci,unsigned short ****genotype)const;
   void CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates);
 
 private:    
@@ -124,11 +124,14 @@ private:
   bool IsPedFile;
   LogWriter *Log;
 
-  //Matrix_g genotypes_g; // 3-way array of genotypes: indivs, simple loci, alleles
-  
-  //std::vector<std::vector< std::vector<unsigned int> > > genotypes_c; 
-  // 3-way array of genotypes: indivs, composite loci, 2*simple loci    
-
+  void readFile(const char *fname, Matrix_s& data);
+  void CheckGeneticData(AdmixOptions *options)const;
+  void checkLociNames(int sexColumn)const;
+  unsigned determineNumberOfCompositeLoci()const;
+  RegressionType CheckOutcomeVarFile(int, int);
+  void CheckCovariatesFile()const;
+  void CheckRepAncestryFile(int populations)const;
+  void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
 
   /**
    *  UNIMPLEMENTED: to avoid undesired copying.
@@ -136,14 +139,6 @@ private:
   InputData(const InputData&);
   void operator=(const InputData&);
 
-  void readFile(const char *fname, Matrix_s& data);
-  void CheckGeneticData(AdmixOptions *options);
-  void checkLociNames(AdmixOptions *options);
-  unsigned determineNumberOfCompositeLoci();
-  RegressionType CheckOutcomeVarFile(int, int);
-  void CheckCovariatesFile();
-  void CheckRepAncestryFile(int populations);
-  void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles);
 };
 
 #endif /* !defined INPUT_DATA_H */

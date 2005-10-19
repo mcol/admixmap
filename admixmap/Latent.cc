@@ -23,6 +23,7 @@
 #include "functions.h"
 #include <algorithm>
 #include <numeric>
+#include "gsl/gsl_math.h"
 
 using namespace std;
 

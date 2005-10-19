@@ -51,7 +51,7 @@ void chib::addLogPosteriorObs( double f )
    VecLogPosterior.push_back(f);
 }
 
-double chib::getLogPosterior()
+double chib::getLogPosterior()const
 {
   //double x = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
   //if( isnan(x) ){
@@ -63,11 +63,11 @@ double chib::getLogPosterior()
    return AverageOfLogs( VecLogPosterior, MaxLogPosterior );
 }
 
-double chib::getLogPrior(){
+double chib::getLogPrior()const{
   return AverageOfLogs(LogPrior, MaxLogPrior);
 }
 
-double chib::getLogMarginalLikelihood(){
+double chib::getLogMarginalLikelihood()const{
   double LogPosterior = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
   double logprior = AverageOfLogs( LogPrior, MaxLogPrior );
   return LogLikelihood + logprior - LogPosterior;

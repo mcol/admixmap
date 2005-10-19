@@ -136,120 +136,159 @@ void submain(AdmixOptions* options){
     string s = options->getResultsDir()+"/loglikelihoodfile.txt";
     ofstream loglikelihoodfile(s.c_str());
 
- /*------------
-  |  MAIN LOOP |
-  ------------*/
-    for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
-      if( !(iteration % options->getSampleEvery()) ){
-	if(IC->getSize() >1)
-	  Log.Reset(iteration, (int)( log10((double)options->getTotalSamples())+1 ) );
-	if( options->useCOUT() ) {
-	  cout << setiosflags( ios::fixed );
-	  cout.width((int)( log10((double)options->getTotalSamples())+1 ) );
-	  cout << iteration << " ";
-	}
+    //initialise stuff for annealing
+    bool anneal = options->getAnnealIndicator();
+    double L_mod = 0.0, L_mod_sq = 0.0, marg_L = 0.0;//modified log-likelihood, square and marginal likelihood
+    double coolness = 1.0;
+    std::ofstream annealstream;//for monitoring modified log likelihood when annealing
+    int ci = options->getNumberOfAnnealedRuns();//defaults to starting at coolness of 1
+
+    if(anneal){
+      string s = options->getResultsDir()+"/annealmon.txt";
+      annealstream.open(s.c_str());
+      annealstream << "Coolness  Mean  Variance  logMargLikelihood"<<endl;
+      ci = 1;
+    }
+    for( ;ci <= options->getNumberOfAnnealedRuns() ;ci++ ){//loop over temperature
+      coolness = (double)ci / (double)options->getNumberOfAnnealedRuns();
+      //resets for start of each run
+      if(anneal){
+	L_mod = 0.0;//ergodic sum of modified loglikelihood
+	L_mod_sq = 0.0;//ergodic sum of square of modified loglikelihood
+	cout<<"\nChanging coolness to "<<coolness<<endl;
+	if(ci == options->getNumberOfAnnealedRuns()) anneal = false;//finished annealed runs, last run is with unannealed likelihood
       }
-
-      A.ResetAlleleCounts();
-
-      //compute loglikelihood and write to file
-      double LogL = IC->getLogLikelihood(options, chrm);
-      loglikelihoodfile<< iteration<<" " <<LogL<<endl;
-
-      // ** update global sumintensities
-      if((options->getPopulations() > 1) && (IC->getSize() > 1) && options->getIndAdmixHierIndicator() && (Loci.GetLengthOfGenome()> 0.0))
-	L.UpdateRhoWithRW(IC, chrm, LogL);
-  
-      // ** Update individual-level parameters  
-      IC->Update(iteration, options, chrm, &A, &R[0], &R[1], L.getpoptheta(), L.getalpha(), L.getrho(), L.getrhoalpha(), L.getrhobeta(),
-      	 &Log);
-//       if((iteration %2)){
-// 	L.Update(iteration, IC);//update pop admix params conditional on sums of ancestry states with jump indicators==1
-// 	IC->ConjugateUpdateIndAdmixture(iteration, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha());//conjugate update of theta
-//       }
-
-      // ** update allele frequencies
-      if(A.IsRandom()){
-	A.Update((iteration > options->getBurnIn()));
-	for(int i = 0; i < IC->getSize(); ++i)
-	  IC->getIndividual(i)->HMMIsBad(true); //if the allelefreqs are not fixed they are sampled between
-	//individual updates. Therefore the forward probs in the HMMs must be updated and the current stored 
-	//values of likelihood are invalid
-      }
+      Chromosome::setCoolness(coolness, &L_mod);//pass current coolness and pointer to L_mod to Chromosome
       
-      if( iteration > options->getBurnIn() ){
-	if( options->getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
-	if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
-								  options->getPopulations());
-      }  
- 
-      L.Update(iteration, IC);
-
-      // ** update regression parameters (if regression model)
-      for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
-	R[r].Update((iteration > options->getBurnIn()), IC);
-
-      // ** set merged haplotypes for allelic association score test 
-     if( iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
-       Scoretest.SetAllelicAssociationTest(L.getalpha0());
-      }
-      
-      // output every 'getSampleEvery()' iterations
-      if( !(iteration % options->getSampleEvery()) ){
-	if( options->getIndAdmixHierIndicator() ){
-	  //Only output population-level parameters when there is a hierarchical model on indadmixture
-	  // ** pop admixture, sumintensities
-	  if(options->getPopulations() > 1) L.OutputParams(iteration);
-	  //** dispersion parameter (if dispersion model)
-	  A.OutputEta(iteration, options, &Log);
-	  // ** regression parameters
-	  for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
-	    R[r].Output(iteration, options, &Log);
-
-	  //** new line in logfile
-	  if( !options->useCOUT() || iteration == 0 ) Log.write("\n");
-	}
-	if( options->useCOUT() ) cout << endl;
-	if( iteration > options->getBurnIn() ){
-	  // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
-	  if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
-	  if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
-	}
-      }     
-      //Updates and Output after BurnIn     
-      if( iteration > options->getBurnIn() ){
-	//score tests
-	if( options->getScoreTestIndicator() )
-	  Scoretest.Update(R[0].getDispersion());//possible error? what if 2 regression models?
-	//tests for mis-specified allelefreqs
-	if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
-	  AlleleFreqTest.Update(IC, &A, &Loci);
-	//test for Hardy-Weinberg eq
-	if( options->getHWTestIndicator() )
-	  HWtest.Update(IC, chrm, &Loci);
-
-	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
-	if (!(iteration % (options->getSampleEvery() * 10))){    
-
-	  //Ergodic averages
-	  if ( strlen( options->getErgodicAverageFilename() ) ){
-	    int samples = iteration - options->getBurnIn();
-	    L.OutputErgodicAvg(samples,&avgstream);
-	    for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
-	      R[r].OutputErgodicAvg(samples, &avgstream);
-	    A.OutputErgodicAvg(samples, &avgstream);
-	    //if( IC->getSize()==1 )
-	    IC->OutputErgodicAvg(samples, options->getMLIndicator(), &avgstream);
-	    
-	    avgstream << endl;
+      /*------------
+	|  MAIN LOOP |
+	------------*/
+      for( int iteration = 0; iteration <= options->getTotalSamples(); iteration++ ){
+	if(!anneal &&  !(iteration % options->getSampleEvery()) ){
+	  if(IC->getSize() >1)
+	    Log.Reset(iteration, (int)( log10((double)options->getTotalSamples())+1 ) );
+	  if( options->useCOUT() ) {
+	    cout << setiosflags( ios::fixed );
+	    cout.width((int)( log10((double)options->getTotalSamples())+1 ) );
+	    cout << iteration << " ";
 	  }
-	  //Score Test output
-	  if( options->getScoreTestIndicator() )  Scoretest.Output(iteration,data.GetPopLabels());
-	}//end of 'every'*10 output
-      }//end if after BurnIn
+	}
+	
+	A.ResetAlleleCounts();
+	
+	//compute loglikelihood and write to file
+	double LogL = IC->getLogLikelihood(options, chrm, options->getAnnealIndicator());
+	//includes calculation of unannealed loglikelihood
+	L_mod_sq += L_mod * L_mod;
 
+	loglikelihoodfile<< iteration<<" " <<LogL<<endl;
+	
+	// ** update global sumintensities
+	if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
+	   options->getIndAdmixHierIndicator() && (Loci.GetLengthOfGenome()> 0.0))
+	  L.UpdateRhoWithRW(IC, chrm, LogL);
+	
+	// ** Update individual-level parameters  
+	IC->Update(iteration, options, chrm, &A, R, L.getpoptheta(), L.getalpha(), L.getrho(), L.getrhoalpha(), L.getrhobeta(),
+		   &Log, anneal);
+	//if((iteration %2)){
+	//L.Update(iteration, IC);//update pop admix params conditional on sums of ancestry states with jump indicators==1
+	//IC->ConjugateUpdateIndAdmixture(iteration, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha());//conjugate update of theta
+	//       }
+	
+	// ** update allele frequencies
+	if(A.IsRandom()){
+	  A.Update((iteration > options->getBurnIn()));
+	  for(int i = 0; i < IC->getSize(); ++i)
+	    IC->getIndividual(i)->HMMIsBad(true); //if the allelefreqs are not fixed they are sampled between
+	  //individual updates. Therefore the forward probs in the HMMs must be updated and the current stored 
+	  //values of likelihood are invalid
+	}
+	
+	if( !anneal && iteration > options->getBurnIn() ){
+	  if( options->getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
+	  if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
+								    options->getPopulations());
+	}  
+	
+	L.Update(iteration, IC);
+	
+	// ** update regression parameters (if regression model)
+	for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+	  R[r].Update((iteration > options->getBurnIn()), IC);
+	
+	// ** set merged haplotypes for allelic association score test 
+	if( !anneal && iteration == options->getBurnIn() && options->getTestForAllelicAssociation() ){
+	  Scoretest.SetAllelicAssociationTest(L.getalpha0());
+	}
+	
+	// output every 'getSampleEvery()' iterations
+	if(!anneal &&  !(iteration % options->getSampleEvery()) ){
+	  if( options->getIndAdmixHierIndicator() ){
+	    //Only output population-level parameters when there is a hierarchical model on indadmixture
+	    // ** pop admixture, sumintensities
+	    if(options->getPopulations() > 1) L.OutputParams(iteration);
+	    //** dispersion parameter (if dispersion model)
+		A.OutputEta(iteration, options, &Log);
+	    // ** regression parameters
+	    for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+	      R[r].Output(iteration, options, &Log);
+	    
+	    //** new line in logfile
+		if( !options->useCOUT() || iteration == 0 ) Log.write("\n");
+	  }
+	  if( options->useCOUT() ) cout << endl;
+	  if( iteration > options->getBurnIn() ){
+	    // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
+	    if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
+	    if(options->getOutputAlleleFreq())A.OutputAlleleFreqs();
+	  }
+	}     
+	//Updates and Output after BurnIn     
+	if( !anneal && iteration > options->getBurnIn() ){
+	  //score tests
+	  if( options->getScoreTestIndicator() )
+	    Scoretest.Update(R[0].getDispersion());//possible error? what if 2 regression models?
+	  //tests for mis-specified allelefreqs
+	  if( options->getTestForMisspecifiedAlleleFreqs() || options->getTestForMisspecifiedAlleleFreqs2())
+	    AlleleFreqTest.Update(IC, &A, &Loci);
+	  //test for Hardy-Weinberg eq
+	  if( options->getHWTestIndicator() )
+	    HWtest.Update(IC, chrm, &Loci);
+	  
+	  // output every 'getSampleEvery() * 10' iterations (still after BurnIn)
+	  if (!(iteration % (options->getSampleEvery() * 10))){    
+	    
+	    //Ergodic averages
+	    if ( strlen( options->getErgodicAverageFilename() ) ){
+	      int samples = iteration - options->getBurnIn();
+	      L.OutputErgodicAvg(samples,&avgstream);
+	      for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+		R[r].OutputErgodicAvg(samples, &avgstream);
+	      A.OutputErgodicAvg(samples, &avgstream);
+	      //if( IC->getSize()==1 )
+	      IC->OutputErgodicAvg(samples, options->getMLIndicator(), &avgstream);
+	      
+	      avgstream << endl;
+	    }
+	    //Score Test output
+	    if( options->getScoreTestIndicator() )  Scoretest.Output(iteration,data.GetPopLabels());
+	  }//end of 'every'*10 output
+	}//end if after BurnIn
+	
+      }//end main loop
 
-    }//end main loop
+      if(options->getAnnealIndicator()){//cannot use 'anneal' as it is false for final run
+	//calculate mean and variance of L_mod and write to file
+	double E_L_mod = 0.0,Var_L_mod = 0.0;
+	E_L_mod = L_mod / ((double)options->getTotalSamples()-options->getBurnIn() + 1.0);
+	Var_L_mod = L_mod_sq/ ((double)options->getTotalSamples()-options->getBurnIn() + 1.0) - E_L_mod * E_L_mod;
+	annealstream << coolness << "  "<<E_L_mod << "  " << Var_L_mod; 
+	marg_L += 0.01 * L_mod;
+	annealstream <<"  "<<marg_L / ((double)options->getTotalSamples()-options->getBurnIn() + 1.0)<<endl;
+      }
+    }//end annealing loop
+
     // ** output at end
     //FST
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
@@ -276,8 +315,9 @@ void submain(AdmixOptions* options){
       //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
       IC->OutputChibEstimates(&Log, options->getPopulations());
     }
-    IC->OutputDeviance(options, chrm, &Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
+    IC->OutputDeviance(options, chrm, R, &Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
 
+    if(annealstream.is_open())annealstream.close();
     if(avgstream.is_open())avgstream.close();
  }//end else
    

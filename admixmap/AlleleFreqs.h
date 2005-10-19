@@ -63,13 +63,13 @@ public:
   void LoadAlleleFreqs(AdmixOptions *options, InputData *data);
 
   void ResetAlleleCounts();//resets Allelecounts to zero at start of iteration
-  bool IsRandom();
+  bool IsRandom()const;
   void UpdateFst();
   double *GetStatsForEta( int , int locus);
   double GetAlleleProbsMAP( int x, int ancestry , int locus);
-  std::vector<double> GetPriorAlleleFreqs( int locus, int population );
+  std::vector<double> GetPriorAlleleFreqs( int locus, int population )const;
   std::vector<int> GetAlleleCounts( int locus, int population );
-  std::vector<double> getAlleleFreqsMAP( int locus, int population );
+  std::vector<double> getAlleleFreqsMAP( int locus, int population )const;
   std::vector<double> GetAlleleFreqs( int locus, int population );
   double *GetAlleleFreqs(int locus);
   double **GetAlleleFreqs();

@@ -91,7 +91,7 @@ void Genome::SetLabels(const vector<string> &labels, vector<double> temp)
 }
 
 //gets contents of locusfile and genotypesfile and creates CompositeLocus array
-void Genome::loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_){
+void Genome::loadAlleleStatesAndDistances(const AdmixOptions* const options, const InputData* const data_){
 
   DataMatrix locifileData =  data_->getLocusMatrix();
   
@@ -287,43 +287,43 @@ void Genome::SetSizes(LogWriter *Log){
 }
 
 //Accessors
-unsigned int Genome::GetNumberOfCompositeLoci()
+unsigned int Genome::GetNumberOfCompositeLoci()const
 {
   return NumberOfCompositeLoci;
 }
 
-int Genome::getNumberOfLoci(int j){
+int Genome::getNumberOfLoci(int j)const{
   return TheArray[j]->GetNumberOfLoci();
 }
-unsigned int Genome::GetNumberOfChromosomes(){
+unsigned int Genome::GetNumberOfChromosomes()const{
   return NumberOfChromosomes;
 }
 
 //returns total number of simple loci
-unsigned int Genome::GetTotalNumberOfLoci(){
+unsigned int Genome::GetTotalNumberOfLoci()const{
   return TotalLoci;
 }
 //returns int array of chromosome sizes
-unsigned int *Genome::GetSizesOfChromosomes(){
+unsigned int *Genome::GetSizesOfChromosomes()const{
   return SizesOfChromosomes;
 }
 
-double *Genome::GetDistances()
+double *Genome::GetDistances()const
 {
   return( Distances );
 }
 
-double Genome::GetDistance( int locus )
+double Genome::GetDistance( int locus )const
 {
   return( Distances[ locus ] );
 }
 
 //returns number of states of a comp locus
-int Genome::GetNumberOfStates(int locus){
+int Genome::GetNumberOfStates(int locus)const{
   return TheArray[locus]->GetNumberOfStates();
 }
 //returns total number of states accross all comp loci
-int Genome::GetNumberOfStates()
+int Genome::GetNumberOfStates()const
 {
   int ret = 0;
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -332,23 +332,23 @@ int Genome::GetNumberOfStates()
   return ret;
 }
 
-vector<int> Genome::GetChrmAndLocus( int j ){
+vector<int> Genome::GetChrmAndLocus( int j )const{
   return _chrmandlocus[j];
 }
 
-vector<vector<int > > Genome::GetChrmAndLocus(){
+vector<vector<int > > Genome::GetChrmAndLocus()const{
   return _chrmandlocus;
 }
-bool Genome::isX_data()
+bool Genome::isX_data()const
 {
    return X_data;
 }
 
-double Genome::GetLengthOfGenome()
+double Genome::GetLengthOfGenome()const
 {
    return LengthOfGenome;
 }
-double Genome::GetLengthOfXchrm()
+double Genome::GetLengthOfXchrm()const
 {
    return LengthOfXchrm;
 }

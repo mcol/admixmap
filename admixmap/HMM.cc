@@ -101,7 +101,7 @@ void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
   }
 }
 
-void HMM::SetStateArrivalProbs(double *f[], double *Theta, int Mcol){
+void HMM::SetStateArrivalProbs(const double* const f[], const double* const Theta, int Mcol){
   for(int t = 1; t < Transitions; t++ ){        
     for(int j = 0; j < K; ++j){
       StateArrivalProbs[t*K*2 + j*2] = (1.0 - f[0][t]) * Theta[j];
@@ -120,14 +120,14 @@ void HMM::SetStateArrivalProbs(double *f[], double *Theta, int Mcol){
   j = j1, j' = j2, i = i1, i' = i2, 
   theta_j = Admixture(j,0),  theta'_j = Admixture(j,Mcol).
 */
-void HMM::UpdateForwardProbsDiploid(double *f[], double *lambda)
+void HMM::UpdateForwardProbsDiploid(const double* const f[], const double* const lambda, double coolness)
 {
   sumfactor = 0.0;
   double scaleFactor, Sum;
 
    for(int j = 0; j < States; ++j)
      //set alpha(0) = StationaryDist * lambda(0) 
-     alpha[j] =  ThetaThetaPrime[j] *lambda[j];
+     alpha[j] =  ThetaThetaPrime[j] * pow(lambda[j], coolness);
 
    for( int t = 1; t < Transitions; t++ ){        
 
@@ -147,13 +147,13 @@ void HMM::UpdateForwardProbsDiploid(double *f[], double *lambda)
      RecursionProbs(p[t], f2, StateArrivalProbs + t*K*2, alpha + (t-1)*States, alpha + t*States);
      
      for(int j = 0; j < States; ++j){
-       alpha[t*States +j] *= lambda[t*States +j];
+       alpha[t*States +j] *= pow(lambda[t*States +j], coolness);
        
      }
    }
 }
 
-void HMM::UpdateBackwardProbsDiploid(double *f[], double *lambda)
+void HMM::UpdateBackwardProbsDiploid(const double* const f[], const double* const lambda)
 {
   double rec[States];
   double scaleFactor, Sum;
@@ -192,7 +192,7 @@ void HMM::UpdateBackwardProbsDiploid(double *f[], double *lambda)
   haploid case only
   Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
 */
-void HMM::UpdateForwardProbsHaploid(double *f[], double *Admixture, double *lambda){
+void HMM::UpdateForwardProbsHaploid(const double* const f[], const double* const Admixture, const double* const lambda){
 
   sumfactor = 0.0;
   //double factor = 0.0;
@@ -218,7 +218,7 @@ void HMM::UpdateForwardProbsHaploid(double *f[], double *Admixture, double *lamb
   //TODO: rescale to avoid underflow
 }
 
-void HMM::UpdateBackwardProbsHaploid(double *f[], double *Admixture, double *lambda){
+void HMM::UpdateBackwardProbsHaploid(const double* const f[], const double* const Admixture, const double* const lambda){
   double Sum;
   for(int j = 0; j < States; ++j){
     beta[(Transitions-1)*States + j] = 1.0;
@@ -240,7 +240,7 @@ void HMM::UpdateBackwardProbsHaploid(double *f[], double *Admixture, double *lam
   probs - double array to store state probs
   K = #populations
 */
-void HMM::GetStateProbs( double * probs, int t)
+void HMM::GetStateProbs( double * probs, int t)const
 {
   double sum = 0.0;
   int State = 0;
@@ -256,7 +256,7 @@ void HMM::GetStateProbs( double * probs, int t)
    }
 }
 
-void HMM::Get3WayStateProbs( int t, double AncestryProbs[][3]){
+void HMM::Get3WayStateProbs( int t, double AncestryProbs[][3])const{
   double sum = 0.0;
   int State = 0;
   double probs[States];
@@ -285,7 +285,7 @@ void HMM::Get3WayStateProbs( int t, double AncestryProbs[][3]){
   and is the same for all t so it is convenient to compute for
   t = T-1 since beta here is 1. 
 */
-double HMM::getLikelihood()
+double HMM::getLogLikelihood()const
 {
    double sum = 0;
    for( int j = 0; j < States; j++ ){
@@ -300,7 +300,7 @@ double HMM::getLikelihood()
   SStates          - an int array to store the sampled states
   isdiploid  - indicator for diploidy
 */
-void HMM::Sample(int *SStates, double *Admixture, double *f[], bool isdiploid)
+void HMM::Sample(int *SStates, const double* const Admixture, const double* const f[], bool isdiploid)const
 {
   int j1,j2;
   double V[States];
@@ -428,10 +428,9 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
   newProbs[3] = 1 - Exp0 - Exp1 + newProbs[0];
 }
 
-void HMM::SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
-			       const int startLocus, 
-			       int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			       unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho){
+void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* const f[], const unsigned int gametes, 
+			       const int startLocus, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+			       unsigned SumN[], unsigned SumN_X[], bool isGlobalRho)const{
 
   int locus;
   double Prob;

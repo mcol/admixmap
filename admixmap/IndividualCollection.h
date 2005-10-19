@@ -49,27 +49,28 @@ public:
   void Initialise(AdmixOptions *, Genome *, std::string *PopulationLabels, 
 		  double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix);
 
-  void LoadData(AdmixOptions *options, InputData *);
+  void LoadData(const AdmixOptions* const options, const InputData* const);
   
   void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels);
 
-  void Update(int iteration, AdmixOptions *options, Chromosome **chrm, AlleleFreqs *A,
-          Regression *R0, Regression *R1, const double *poptheta,
-	      std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
-	      LogWriter *Log);
+  void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
+	      const Regression* const R, const double* const poptheta,
+	      const std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
+	      LogWriter *Log, bool anneal);
 
   void ConjugateUpdateIndAdmixture(int iteration, Regression *R0, Regression *R1, const double *poptheta, 
 				   AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha);
   
   void OutputIndAdmixture();
 
-  void OutputDeviance(AdmixOptions *options, Chromosome** C, LogWriter *Log, double SumRho, unsigned numChromosomes);
+  void OutputDeviance(const AdmixOptions* const options, Chromosome** C, Regression *R, LogWriter *Log, 
+		      double SumRho, unsigned numChromosomes);
 
-  void OutputChibEstimates(LogWriter *, int);
+  void OutputChibEstimates(LogWriter *, int)const;
 
   void OutputErgodicAvg(int samples, bool ML, std::ofstream *avgstream);
 
-  int getSize();
+  int getSize()const;
 
   void add(Individual*);
 
@@ -78,36 +79,35 @@ public:
   void setAdmixtureProps(double *, size_t);
   void setAdmixturePropsX(double *, size_t);
 
-  double GetSumrho();
-  double getSumLogTheta(int);
-  double *getSumLogTheta();
-  std::vector<double> getOutcome(int);
-  double getOutcome(int, int);
-  int getNumberOfOutcomeVars();
+  double GetSumrho()const;
+  double getSumLogTheta(int)const;
+  double *getSumLogTheta()const;
+  std::vector<double> getOutcome(int)const;
+  double getOutcome(int, int)const;
+  int getNumberOfOutcomeVars()const;
   int GetNumCovariates() const;
-  int GetNumberOfInputCovariates();
+  int GetNumberOfInputCovariates()const;
 
   const double* getCovariates()const;
-  DataType getOutcomeType(int);
+  DataType getOutcomeType(int)const;
 
   void SetExpectedY(int, const double*const );
   void calculateExpectedY(int);
-  double getExpectedY(int);
+  double getExpectedY(int)const;
 
-  std::string getTargetLabels(int);
-  std::string getCovariateLabels(int);
-  std::string *getCovariateLabels();
+  std::string getCovariateLabels(int)const;
+  std::string *getCovariateLabels()const;
 
-  double getLogLikelihood(AdmixOptions *options, Chromosome **C);
+  double getLogLikelihood(AdmixOptions *options, Chromosome **C, bool annealindicator);
   double DerivativeInverseLinkFunction(int i);
 private:
   Individual **_child; //array of pointers to Individual
   void getLabels(const Vector_s& data,  string *labels);
 
-  void LoadCovariates(InputData *, AdmixOptions* options);
-  void LoadOutcomeVar(InputData *);
-  void LoadRepAncestry(InputData *);
-  void InitialiseMLEs(double, double, AdmixOptions *, const DataMatrix&);
+  void LoadCovariates(const InputData*, const AdmixOptions* const options);
+  void LoadOutcomeVar(const InputData* const);
+  void LoadRepAncestry(const InputData* const);
+  void InitialiseMLEs(double, double, const AdmixOptions* const, const DataMatrix&);
 
   unsigned int NumInd, NumCompLoci;
   //MLEs of Individual admixture and sumintensities

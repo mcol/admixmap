@@ -106,7 +106,7 @@ void LogWriter::write(const double number, const unsigned prec){
   LogFileStream<<setprecision(prec)<<number<<" ";
   LogFileStream<<setprecision(6);//restore default
 }
-void LogWriter::write(const double *array, const size_t dim){
+void LogWriter::write(const double* const array, const size_t dim){
   if(array)//to avoid seg faults with unallocated arrays
     for(size_t i = 0; i < dim;++i)LogFileStream<<array[i]<<" ";
 }

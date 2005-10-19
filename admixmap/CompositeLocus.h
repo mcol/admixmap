@@ -44,7 +44,6 @@ public:
   ~CompositeLocus();
 
   void setHaplotypeProbsMAP();
-  void UpdateSumAlleleProbs();
   void SetNumberOfLabels();
   void SetNumberOfPopulations( int );
   void SetRandomAlleleFreqs(bool);
@@ -53,28 +52,28 @@ public:
   void SetNumberOfLoci( int );
   void SetNumberOfAllelesOfLocus( int, int );
   void AddLocus( int );
-  int GetNumberOfLoci();
-  int GetNumberOfStates();
-  std::string GetLabel(int);
-
-  int GetNumberOfAllelesOfLocus( int );
-
-  void getLocusAlleleProbs(double **P, int k);
-
-  void setPossibleHaplotypePairs(unsigned short **Genotype, std::vector<hapPair> &PossibleHapPairs);
-  void decodeIntAsHapAlleles(const int h, int *hapAlleles);
-  void GetGenotypeProbs(double *Probs, std::vector<hapPair > &HaplotypePairs, bool chibindicator);
-  double GetGenotypeProbsAtPosteriorMeans(std::vector<hapPair > &HapPairs, int iterations);
   void SetHapPairProbs();
-  void SampleHapPair(int hap[2], std::vector<hapPair > &HapPairs, int ancestry[2]);
-  void Initialise(double*);
-  void SetAlleleProbs(double *alleleFreqs);
+  void SetHapPairProbs(const double* const* alleleProbs);
+  void Initialise(const double* const allelefreqs);
+  void SetAlleleProbs(const double* const alleleFreqs, bool);
+
+  int GetNumberOfLoci()const;
+  int GetNumberOfStates()const;
+  std::string GetLabel(int)const;
+  int GetNumberOfAllelesOfLocus( int )const;
+  void getLocusAlleleProbs(double **P, int k)const;
+
+  void setPossibleHaplotypePairs(const unsigned short* const* Genotype, std::vector<hapPair> &PossibleHapPairs);
+  void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;
+  void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
+  void GetGenotypeProbsAtPosteriorMeans(double*, const std::vector<hapPair > &HapPairs, int iterations);
+  void SampleHapPair(int hap[2], const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
 
   //functions used for haplotype association score test 
-  int GetMergedHaplotype( int i );
-  int GetNumberOfMergedHaplotypes();
+  int GetMergedHaplotype( int i )const;
+  int GetNumberOfMergedHaplotypes()const;
   const int *GetHapLabels( int ) const;
-  void SetDefaultMergeHaplotypes( double *alpha);
+  void SetDefaultMergeHaplotypes( const double* const alpha);
 
 private: 
   int NumberOfLoci;
@@ -82,7 +81,7 @@ private:
   int Populations;
   int *NumberOfAlleles;
   double **AlleleProbs;
-  double *SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihoos at posterior means
+  double **SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihoos at posterior means
   double *HapPairProbs; //haplotype pair probabilities
   double *HapPairProbsMAP; //Posterior estimates of hap pair probs
   std::string *Label;
@@ -103,7 +102,7 @@ private:
   int codeHapAllelesAsInt(const int *hapAlleles);
   void codeHapAllelesPairAsIntPair(const int HapAllelesPair[][2], int *hpair);
   void permuteHetLoci(const bool *isHet, const int numHetLoci, const int permHet, 
-		      unsigned short **Genotype, int HapAllelesPair[][2]);
+		      const unsigned short* const* Genotype, int HapAllelesPair[][2]);
   void permuteMissingLoci(const bool *isMissing, const int numMissingLoci, const int permMissing, 
 			  const int HapAllelesPair[][2], const int baseMissing[][2], int HapAllelesPairNoMissing[][2]) ;
   // UNIMPLEMENTED
@@ -112,9 +111,9 @@ private:
   CompositeLocus& operator=(const CompositeLocus&);
 };
 
-double GetMarginalLikelihood( std::vector<double> PriorAlleleFreqs, std::vector<int> AlleleCounts );
+double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const std::vector<int> AlleleCounts );
 
-inline void CompositeLocus::GetGenotypeProbs(double *Probs, std::vector<hapPair > &HapPairs, bool chibindicator){
+inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator)const{
   for(int k0 = 0; k0 < Populations * Populations; ++k0){
     Probs[k0] = 0.0;
     for(unsigned int h = 0; h < HapPairs.size() ; ++h)

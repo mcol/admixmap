@@ -36,27 +36,32 @@ public:
   void ResetStuffForX();
   ~Chromosome();
   void SetLabel(std::string );
-  std::string GetLabel( int );
-  int GetLocus(int);
-  unsigned int GetSize();
+  std::string GetLabel( int )const;
+  int GetLocus(int)const;
+  unsigned int GetSize()const;
   void isDiploid(bool b){Diploid = b;};
-  bool isDiploid(){return Diploid;};
+  bool isDiploid()const{return Diploid;};
 
   void InitialiseLociCorr(const double rho);
   void SetLociCorr(const double rho);
 
-  void UpdateHMMForwardProbs(Individual* ind, double *Admixture, AdmixOptions* options,  
-			     std::vector< double > _rho, bool chibindicator, bool diploid);
-  void UpdateHMMBackwardProbs(double* hapAdmixture);  //call only after a call to UpdateHMMForwardProbs
+  static void setCoolness(double, double *);
+
+  void SetGenotypeProbs(double *Probs);
+  void SetGenotypeProbsToPosteriorMeans(Individual* const ind, int iterations);
+  void SetGenotypeProbs(Individual* const ind, bool chibindicator);
+  void UpdateHMMForwardProbs(const double* const Admixture, const AdmixOptions* const options,  
+			     const std::vector< double > _rho, bool diploid, bool annealindicator);
+  void UpdateHMMBackwardProbs(const double* const hapAdmixture);  //call only after a call to UpdateHMMForwardProbs
   //this is ok as whenever we need backward probs we also need forward probs but not vice versa
 
 
-  void SampleLocusAncestry(int *OrderedStates, double *Admixture);
-  void getAncestryProbs(int, double[][3]);
-  double getLogLikelihood();
-  void SampleJumpIndicators(int *LocusAncestry, const unsigned int gametes, 
+  void SampleLocusAncestry(int *OrderedStates, const double* const Admixture)const;
+  void getAncestryProbs(int, double[][3])const;
+  double getLogLikelihood()const;
+  void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho);
+			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const;
 private:
   int _startLocus;
   int populations;
@@ -71,6 +76,10 @@ private:
   // required to calculate transition matrices 
   double *f[2]; 
   int *CodedStates;//used to sample hidden states from HMM
+
+  //for marginal likelihood calculation
+  static double coolness;
+  static double *L_mod;
   
   // UNIMPLEMENTED
   // to avoid use

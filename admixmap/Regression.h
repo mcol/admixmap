@@ -18,17 +18,21 @@ class Regression{
 public:
   Regression();
    ~Regression();
-  void Initialise(unsigned RegNumber, IndividualCollection *, LogWriter *);
-  void SetExpectedY(IndividualCollection *IC);
-  void Update(bool afterBurnIn, IndividualCollection *individuals);
-  static void OpenOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels, LogWriter *Log);  
-  static void InitializeOutputFile(AdmixOptions *, IndividualCollection *individuals,std::string *PopulationLabels);
-  void Output(int iteration, AdmixOptions *, LogWriter *Log);
-  void OutputErgodicAvg(int iteration, std::ofstream *avgstream);
-  double *getbeta();
-  double getlambda();
-  int getNumCovariates();
-  double getDispersion();
+  void Initialise(unsigned RegNumber, const IndividualCollection* const, LogWriter *);
+  void SetExpectedY(IndividualCollection* IC)const;
+  void Update(bool afterBurnIn, IndividualCollection* individuals);
+  static void OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
+			     const std::string *PopulationLabels, LogWriter *Log);  
+  static void InitializeOutputFile(const AdmixOptions* const , const IndividualCollection* const individuals, 
+				   const std::string* const PopulationLabels);
+  void Output(int iteration, AdmixOptions *, LogWriter *Log)const;
+  void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
+  double *getbeta() const;
+  double getlambda() const ;
+  int getNumCovariates()const;
+  double getDispersion()const;
+  double getLogLikelihood(IndividualCollection *IC)const;
+  double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations);
 
 private:
   int NumCovariates, NumOutcomeVars;

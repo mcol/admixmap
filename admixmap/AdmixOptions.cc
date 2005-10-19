@@ -75,7 +75,7 @@ AdmixOptions::AdmixOptions()
   GlobalRho = true;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
   MLIndicator = false;//calculate marginal likelihood
-  AnnealIndicator = false;
+  AnnealedRuns = 1;
   ScoreTestIndicator = false; //indicator for any of the score tests in ScoreTests class
   TestForAdmixtureAssociation = false;
   StratificationTestIndicator = false;
@@ -317,9 +317,11 @@ bool AdmixOptions::getMLIndicator()const{
   return MLIndicator;
 }
 bool AdmixOptions::getAnnealIndicator()const{
-  return AnnealIndicator;
+  return (AnnealedRuns > 1);
 }
-
+int AdmixOptions::getNumberOfAnnealedRuns()const{
+  return AnnealedRuns;
+}
 double AdmixOptions::getTruncPt() const
 {
   return TruncPt;
@@ -651,7 +653,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
     {"globalrho",                             1, 0,  0 }, // int 0: 1
     {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
     {"marglikelihood",                        1, 0,  0 }, // int 0: 1
-    {"anneal",                                1, 0,  0 }, // int 0: 1
+    {"anneal",                                1, 0,  0 }, // int 1 or greater
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
@@ -813,9 +815,7 @@ void AdmixOptions::SetOptions(int nargs,char** args)
 	  MLIndicator = true;OptionValues["marglikelihood"]="1";
 	}
       }else if (long_option_name == "anneal") {
-	if (strtol(optarg, NULL, 10) == 1) {
-	  AnnealIndicator = true;OptionValues["anneal"]="1";
-	}
+	  AnnealedRuns = strtol(optarg, NULL, 10);OptionValues["anneal"]=optarg;
       }else if (long_option_name == "globalrho") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  GlobalRho = true;OptionValues["globalrho"]="1";
@@ -1126,6 +1126,17 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
   
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || TestForAdmixtureAssociation
 			|| TestForSNPsInHaplotype);
+
+  //check anneal >0
+  if(AnnealedRuns < 1){
+    Log->logmsg(true, "ERROR: 'anneal' must be > 0\n");
+    exit(1);
+  }
+  if(AnnealedRuns > 1){
+    Log->logmsg(false, "\nUsing ");Log->logmsg(false, AnnealedRuns);
+    Log->logmsg(false, " annealed runs to estimate marginal likelihood\n\n");
+   }
+
   return 1;
 }
 

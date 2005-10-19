@@ -34,11 +34,11 @@ public:
   void setLogLikelihood( double );
   void addLogPrior( double );
   void addLogPosteriorObs( double );
-  double getLogPosterior();
-  double getMarginalLikelihood();
-  double getLogMarginalLikelihood();
-  double getLogPrior();
-  double getLogLikelihood(){
+  double getLogPosterior()const;
+  double getMarginalLikelihood()const;
+  double getLogMarginalLikelihood()const;
+  double getLogPrior()const;
+  double getLogLikelihood()const{
     return LogLikelihood;
   };
 

@@ -24,27 +24,27 @@ public:
   ~HMM();
   void SetDimensions( int inTransitions, int pops, bool isdiploid );
 
-  void SetStateArrivalProbs(double *f[], double *Theta, int Mcol);
+  void SetStateArrivalProbs(const double* const f[], const double* const Theta, int Mcol);
   /* samples hidden states */
-  void Sample(int *SStates, double *Admixture, double *f[], bool isdiploid);
-  void GetStateProbs( double * probs, int t);
-  void Get3WayStateProbs( int j, double AncestryProbs[][3]);
+  void Sample(int *SStates, const double* const Admixture, const double* const f[], bool isdiploid)const;
+  void GetStateProbs( double * probs, int t)const;
+  void Get3WayStateProbs( int j, double AncestryProbs[][3])const;
 
-  double getLikelihood();
+  double getLogLikelihood()const;
 
-  void UpdateForwardProbsDiploid(double *f[], double *lambda);
+  void UpdateForwardProbsDiploid(const double* const f[], const double* const lambda, double coolness);
 
-  void UpdateBackwardProbsDiploid(double *f[], double *lambda);
+  void UpdateBackwardProbsDiploid(const double* const f[], const double* const lambda);
 
-  void UpdateForwardProbsHaploid(double *f[], double *Admixture, double *lambda);
-  void UpdateBackwardProbsHaploid(double *f[], double *Admixture, double *lambda);
+  void UpdateForwardProbsHaploid(const double* const f[], const double* const Admixture, const double* const lambda);
+  void UpdateBackwardProbsHaploid(const double* const f[], const double* const Admixture, const double* const lambda);
 
   void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
 		      double* oldProbs, double *newProbs); 
 
-  void SampleJumpIndicators(int *LocusAncestry, double *f[], const unsigned int gametes, 
+  void SampleJumpIndicators(const int* const LocusAncestry, const double* const f[], const unsigned int gametes, 
 			    const int startLocus, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho) ;
+			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const;
 private:
   int K;
   int States; //number of states of Markov chain, m in book

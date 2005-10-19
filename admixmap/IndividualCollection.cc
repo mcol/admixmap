@@ -163,7 +163,8 @@ void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::
 }
 
 // ** this function needs debugging
-void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, AdmixOptions * options, const DataMatrix &MLEMatrix){
+void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options, 
+					  const DataMatrix &MLEMatrix){
   //set thetahat and rhohat, estimates of individual admixture and sumintensities
 
    size_t size_admix;
@@ -209,7 +210,7 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, Admix
    }
 }
 
-void IndividualCollection::LoadData(AdmixOptions *options, InputData *data_){
+void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){
   LoadCovariates(data_, options);
   
   if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
@@ -220,7 +221,7 @@ void IndividualCollection::LoadData(AdmixOptions *options, InputData *data_){
   }
 }
 
-void IndividualCollection::LoadCovariates(InputData *data_, AdmixOptions *options){
+void IndividualCollection::LoadCovariates(const InputData* const data_, const AdmixOptions* const options){
   if ( strlen( options->getCovariatesFilename() ) > 0 ){
     DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
     NumberOfInputCovariates = CovData.nCols();
@@ -279,7 +280,7 @@ void IndividualCollection::LoadCovariates(InputData *data_, AdmixOptions *option
 
 }
 
-void IndividualCollection::LoadOutcomeVar(InputData *data_){
+void IndividualCollection::LoadOutcomeVar(const InputData* const data_){
   DataMatrix& OutcomeVarData = (DataMatrix&)data_->getOutcomeVarMatrix();
   NumOutcomes = OutcomeVarData.nCols();
   Outcome = data_->getOutcomeVarMatrix();;
@@ -289,7 +290,7 @@ void IndividualCollection::LoadOutcomeVar(InputData *data_){
   data_->getOutcomeTypes(OutcomeType);
 }
 
-void IndividualCollection::LoadRepAncestry(InputData *data_){
+void IndividualCollection::LoadRepAncestry(const InputData* const data_){
   ReportedAncestry = new DataMatrix[NumInd];
   DataMatrix& temporary = (DataMatrix&)data_->getReportedAncestryMatrix();
   for( unsigned i = 0; i < temporary.nRows() / 2; i++ )
@@ -331,15 +332,20 @@ void IndividualCollection::calculateExpectedY( int k)
 }
 
 // ************** UPDATING **************
-void IndividualCollection::Update(int iteration, AdmixOptions *options, Chromosome **chrm, AlleleFreqs *A,
-Regression *R0, Regression *R1, const double *poptheta,
-				   vector<vector<double> > &alpha, double globalrho,
-				  double rhoalpha, double rhobeta, LogWriter *Log){
+void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
+				  const Regression* const R, const double* const poptheta,
+				  const vector<vector<double> > &alpha, double globalrho,
+				  double rhoalpha, double rhobeta, LogWriter *Log, bool anneal=false){
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
-  double lambda[] = {R0->getlambda(), R1->getlambda()};
-  double *beta[] = {R0->getbeta(), R1->getbeta()};
+  double lambda[options->getNumberOfOutcomes()];
+  double *beta[options->getNumberOfOutcomes()];
+  for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+    lambda[i] = R[i].getlambda();
+    beta[i] = R[i].getbeta();
+  }
+
   LogLikelihood = 0.0; 
 
   for(unsigned int i = 0; i < NumInd; i++ ){
@@ -351,13 +357,13 @@ Regression *R0, Regression *R1, const double *poptheta,
 				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(i),
-				  R0->getDispersion()
+				  R[0].getDispersion()
 				  );
       if((iteration %2))//conjugate update of theta on even-numbered iterations
  	_child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
  			      & Covariates, beta, poptheta, options, alpha, sigma,
  			       DerivativeInverseLinkFunction(i), 
- 			       R0->getDispersion(), false);
+ 			       R[0].getDispersion(), false);
 
       if(NumInd > 1)_child[prev]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
       //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
@@ -365,9 +371,9 @@ Regression *R0, Regression *R1, const double *poptheta,
     }
     
     else{//single population 
-      _child[i]->OnePopulationUpdate(i, (bool)(iteration > options->getBurnIn()), &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
+      _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
 				     chrm, A);
-      LogLikelihood += _child[i]->getLogLikelihoodOnePop(false);
+      LogLikelihood += _child[i]->getLogLikelihoodOnePop();
     }   
 
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
@@ -375,7 +381,8 @@ Regression *R0, Regression *R1, const double *poptheta,
 				options, chrm, alpha, globalrho, rhoalpha, rhobeta,
 				thetahat, thetahatX, rhohat, rhohatX, Log, &MargLikelihood, A);
   }
-  if(iteration > options->getBurnIn()){
+  if(!anneal && iteration > options->getBurnIn()){
+    for(int c = 0; c < options->getNumberOfOutcomes(); ++c)LogLikelihood += R[c].getLogLikelihood(this);
     SumDeviance += -2.0*LogLikelihood;
     SumDevianceSq += 4.0*LogLikelihood*LogLikelihood;
   }
@@ -397,12 +404,12 @@ void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, Regression
 }
 
 // ************** ACCESSORS **************
-int IndividualCollection::getSize()
+int IndividualCollection::getSize()const
 {
   return NumInd;
 }
 
-double IndividualCollection::GetSumrho()
+double IndividualCollection::GetSumrho()const
 {
    double Sumrho = 0;
    for( unsigned int i = 0; i < NumInd; i++ )
@@ -410,19 +417,19 @@ double IndividualCollection::GetSumrho()
    return Sumrho;
 }
 
-vector<double> IndividualCollection::getOutcome(int j){
+vector<double> IndividualCollection::getOutcome(int j)const{
   return Outcome.getCol(j);
 }
 
-double IndividualCollection::getOutcome(int j, int ind){
+double IndividualCollection::getOutcome(int j, int ind)const{
     return Outcome.get(ind, j);
 }
 
-int IndividualCollection::getNumberOfOutcomeVars(){
+int IndividualCollection::getNumberOfOutcomeVars()const{
   return NumOutcomes;
 }
 
-DataType IndividualCollection::getOutcomeType(int i){
+DataType IndividualCollection::getOutcomeType(int i)const{
   return OutcomeType[i];
 }
 
@@ -435,7 +442,7 @@ Individual* IndividualCollection::getIndividual(int num)
   }
 }
 
-int IndividualCollection::GetNumberOfInputCovariates(){
+int IndividualCollection::GetNumberOfInputCovariates()const{
   return NumberOfInputCovariates;
 }
 int IndividualCollection::GetNumCovariates() const{
@@ -446,23 +453,29 @@ const double* IndividualCollection::getCovariates()const{
   return Covariates.getData();
 }
 
-std::string IndividualCollection::getCovariateLabels(int i){
+std::string IndividualCollection::getCovariateLabels(int i)const{
   return CovariateLabels[i];
   }
-std::string *IndividualCollection::getCovariateLabels(){
+std::string *IndividualCollection::getCovariateLabels()const{
   return CovariateLabels;
   }
 
-double IndividualCollection::getExpectedY(int i){
+double IndividualCollection::getExpectedY(int i)const{
   if(ExpectedY)
     return ExpectedY[0][i];
   else
     return 0.0;
  }
-
+double IndividualCollection::getSumLogTheta(int i)const{
+  return SumLogTheta[i];
+}
+double *IndividualCollection::getSumLogTheta()const{
+  return SumLogTheta;
+}
 // ************** OUTPUT **************
 
-void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C, LogWriter *Log, double SumRho, unsigned numChromosomes){
+void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chromosome** C, Regression *R, 
+					  LogWriter *Log, double SumRho, unsigned numChromosomes){
   //SumRho = ergodic sum of global sumintensities
 
   int iterations = options->getTotalSamples()-options->getBurnIn();
@@ -481,14 +494,12 @@ void IndividualCollection::OutputDeviance(AdmixOptions *options, Chromosome** C,
 
   //accumulate deviance at posterior means for each individual
   double D = 0.0; // D = deviance at estimates
-  if(options->getPopulations() > 1)
-    for(unsigned int i = 0; i < NumInd; i++ ){
-      D += -2.0*_child[i]->getLogLikelihoodAtPosteriorMeans(options, C);
-    }
-  else//single population
-    for(unsigned int i = 0; i < NumInd; i++ ){
-      D += -2.0*_child[i]->getLogLikelihoodAtPosteriorMeansOnePop(iterations);
-    }
+  for(unsigned int i = 0; i < NumInd; i++ ){
+    D += _child[i]->getLogLikelihoodAtPosteriorMeans(options, C);
+  }
+  for(int c = 0; c < options->getNumberOfOutcomes(); ++c)
+    D += R[c].getLogLikelihoodAtPosteriorMeans(this, iterations);
+  D *= -2.0;
   double pD = E - D;
   double DIC = E + pD;
 
@@ -504,7 +515,7 @@ void IndividualCollection::OutputIndAdmixture()
   }
 }
 
-void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations){
+void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations)const{
   //Used only if marglikelihood = 1
   Log->write("Estimates used in Chib algorithm to estimate marginal likelihood for Individual 1:\n");
 
@@ -542,22 +553,16 @@ void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::str
    Log->logmsg(true,"Log-likelihood for unadmixed ");
    Log->logmsg(true, (*PopulationLabels)[0]);
    Log->logmsg(true, ": ");
-   Log->logmsg(true, _child[0]->getLogLikelihoodOnePop(false));
+   Log->logmsg(true, _child[0]->getLogLikelihoodOnePop());
    Log->logmsg(true,"\n");
 
 }
-double IndividualCollection::getSumLogTheta(int i){
-  return SumLogTheta[i];
-}
-double *IndividualCollection::getSumLogTheta(){
-  return SumLogTheta;
-}
-double IndividualCollection::getLogLikelihood(AdmixOptions *options, Chromosome **C){
+double IndividualCollection::getLogLikelihood(AdmixOptions *options, Chromosome **C, bool annealindicator=false){
   double LogL = 0.0;
   for(unsigned i = 0; i < NumInd; ++i){
     int prev = i-1;
     if(i==0)prev = NumInd-1;
-    LogL += _child[i]->getLogLikelihood(options, C);
+    LogL += _child[i]->getLogLikelihood(options, C, annealindicator);
     if(NumInd > 1)_child[prev]->HMMIsBad(false);
   }
 

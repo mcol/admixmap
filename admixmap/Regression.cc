@@ -43,7 +43,8 @@ Regression::~Regression(){
 
 }
 
-void Regression::OpenOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels, LogWriter *Log){
+void Regression::OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
+				const std::string* const PopulationLabels, LogWriter *Log){
   //Open paramfile
   if ( options->getIndAdmixHierIndicator()){ 
     if ( strlen( options->getRegressionOutputFilename() ) ){
@@ -66,7 +67,8 @@ void Regression::OpenOutputFile(AdmixOptions *options, IndividualCollection *ind
   }
 }
 
-void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollection *individuals,std::string *PopulationLabels)
+void Regression::InitializeOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
+				      const std::string* const PopulationLabels)
 {
   // Header line of paramfile
   for( int kk = 0; kk < options->getNumberOfOutcomes(); kk++ ){
@@ -85,7 +87,7 @@ void Regression::InitializeOutputFile(AdmixOptions *options, IndividualCollectio
   outputstream << endl;
 }
 
-void Regression::Initialise(unsigned Number, IndividualCollection *individuals, LogWriter *Log){
+void Regression::Initialise(unsigned Number, const IndividualCollection* const individuals, LogWriter *Log){
   //set regression number for this object
   RegNumber = Number;
 
@@ -170,12 +172,12 @@ void Regression::Initialise(unsigned Number, IndividualCollection *individuals, 
   }
 }
 
-void Regression::SetExpectedY(IndividualCollection *IC){
+void Regression::SetExpectedY(IndividualCollection *IC)const{
   IC->SetExpectedY(RegNumber, beta);
   if( RegType == Logistic ) IC->calculateExpectedY(RegNumber);
 }
 
-void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
+void Regression::Update(bool afterBurnIn, IndividualCollection* individuals){
   // Sample for regression model parameters beta
   // should make sure that matrix returned by getCovariates contains updated values of indiv admixture
   std::vector<double> Outcome = individuals->getOutcome(RegNumber);
@@ -249,7 +251,7 @@ void Regression::Update(bool afterBurnIn, IndividualCollection *individuals){
     SumParameters();
 }//end Update
 
-void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log){
+void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log)const{
   //output to logfile
   if( !options->useCOUT() || iteration == 0 )
     {
@@ -300,7 +302,7 @@ void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log){
 	//output new line in paramfile when last regression model
   }
 }
-void Regression::OutputErgodicAvg(int samples, std::ofstream *avgstream){
+void Regression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
  //output to ergodicaveragefile
   if( RegType != None ){
     for( int j = 0; j < NumCovariates; j++ ){
@@ -320,15 +322,15 @@ void Regression::SumParameters(){
         SumBeta[j] += beta[j];
   SumLambda += lambda;
 }
-double *Regression::getbeta(){
+double *Regression::getbeta()const{
   if(beta)//in case beta not allocated (happens if no regression model); may be unnecessary if beta initialised to 0
     return beta;
   else return NULL;
 }
-double Regression::getlambda(){
+double Regression::getlambda()const{
   return lambda;
 }
-int Regression::getNumCovariates(){
+int Regression::getNumCovariates()const{
   return NumCovariates;
 }
 
@@ -435,7 +437,7 @@ double Regression::ddlr( const double* const parameters, const int* const dims, 
   return( f );
 }
 
-double Regression::getDispersion(){
+double Regression::getDispersion()const{
   //returns dispersion parameter
   double dispersion = 1.0;
   if( RegType == Linear ) dispersion = lambda;//linear regression
@@ -443,3 +445,31 @@ double Regression::getDispersion(){
   return dispersion;
 }
 
+double Regression::getLogLikelihood(IndividualCollection *IC)const{
+  int NumIndividuals = IC->getSize();
+  double dev[NumIndividuals];
+  double devsq[1];
+  for(int i = 0; i < NumIndividuals; ++i)
+    dev[i] = IC->getOutcome(RegNumber, i) - IC->getExpectedY(i);
+  matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);
+  return -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(lambda) + lambda*devsq[0]);
+
+}
+double Regression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations){
+  int NumIndividuals = IC->getSize();
+  double dev[NumIndividuals];
+  double devsq[1];
+
+  //set expected outcome at posterior means of regression parameters
+  for(int i = 0; i < NumCovariates; ++i)SumBeta[i] /= (double)iterations; 
+  IC->SetExpectedY(RegNumber,SumBeta);
+  for(int i = 0; i < NumCovariates; ++i)SumBeta[i] *= (double)iterations; 
+  if( IC->getOutcomeType(RegNumber) )
+    IC->calculateExpectedY(RegNumber);
+
+  for(int i = 0; i < NumIndividuals; ++i)
+    dev[i] = IC->getOutcome(RegNumber, i) - IC->getExpectedY(i);
+  matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);
+  return -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(lambda) + lambda*devsq[0]);
+
+}

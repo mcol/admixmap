@@ -57,7 +57,7 @@ public:
   void write(const long);
   void write(const double);
   void write(const double number, const unsigned prec);
-  void write(const double *array, const size_t dim);
+  void write(const double* const array, const size_t dim);
 
   void width(const unsigned w);//calls width function for LogFileStream
 

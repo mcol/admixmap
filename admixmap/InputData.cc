@@ -183,7 +183,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
 
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
-  checkLociNames(options);
+  checkLociNames(options->getgenotypesSexColumn());
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
     options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator()) );
   if ( strlen( options->getCovariatesFilename() ) != 0 )
@@ -197,23 +197,23 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
 }
 
 //determine number of individuals by counting lines in genotypesfile 
-int InputData::getNumberOfIndividuals() {
+int InputData::getNumberOfIndividuals()const {
   return(geneticData_.size() - 1);
 }
 
 //determine number of loci by counting rows of locusfile
-int InputData::getNumberOfSimpleLoci() {
+int InputData::getNumberOfSimpleLoci()const {
   return(locusData_.size() - 1);
 }
 //determines number of composite loci from locusfile
-unsigned InputData::determineNumberOfCompositeLoci(){
+unsigned InputData::determineNumberOfCompositeLoci()const{
   unsigned NumberOfCompositeLoci = locusMatrix_.nRows();
     for( unsigned i = 0; i < locusMatrix_.nRows(); i++ )
      if( locusMatrix_.get( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
     return NumberOfCompositeLoci;
 }
 
-bool InputData::determineIfPedFile(AdmixOptions *options) {
+bool InputData::determineIfPedFile(AdmixOptions *options)const {
   // Determine if genotype table is in pedfile format by testing if number of strings in row 1 equals
   // twice the number of strings in the header row minus one. 
   // 
@@ -224,7 +224,7 @@ bool InputData::determineIfPedFile(AdmixOptions *options) {
 }
 
 //checks number of loci in genotypes file is the same as in locusfile
-void InputData::CheckGeneticData(AdmixOptions *options){
+void InputData::CheckGeneticData(AdmixOptions *options)const{
 
   const size_t numLoci = locusData_.size() - 1; //number of loci in locus file
   int sexcol;
@@ -255,7 +255,7 @@ void InputData::CheckGeneticData(AdmixOptions *options){
   }
 }
 
-void InputData::checkLociNames(AdmixOptions *options){
+void InputData::checkLociNames(int sexColumn)const{
   // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
   
   // Check loci names are unique    
@@ -273,10 +273,10 @@ void InputData::checkLociNames(AdmixOptions *options){
 
     // Compare loci names in locus file and genotypes file.
     for (size_t i = 1; i <= numLoci; ++i) {
-        if (locusData_[i][0] != geneticData_[0][i + options->getgenotypesSexColumn()]) {
+        if (locusData_[i][0] != geneticData_[0][i + sexColumn]) {
             cout << "Error. Loci names in locus file and genotypes file are not the same." << endl;
             cout << "Loci names causing an error are: " << locusData_[i][0] << " and " 
-                 << geneticData_[0][i + options->getgenotypesSexColumn()] << endl;
+                 << geneticData_[0][i + sexColumn] << endl;
             //cout << options->getgenotypesSexColumn() << endl;
             exit(2);
         }
@@ -424,7 +424,7 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
   return RegType;
 }
 
-void InputData::CheckCovariatesFile(){
+void InputData::CheckCovariatesFile()const{
   if( NumIndividuals != (int)covariatesMatrix_.nRows() - 1 ){
     Log->logmsg(true,"ERROR: Genotypes file has ");
     Log->logmsg(true,NumIndividuals);
@@ -435,7 +435,7 @@ void InputData::CheckCovariatesFile(){
   }
 }
 
-void InputData::CheckRepAncestryFile(int populations){
+void InputData::CheckRepAncestryFile(int populations)const{
   if( (int)reportedAncestryMatrix_.nRows() != 2 * NumIndividuals ){
     Log->logmsg(false,"ERROR: ");
     Log->logmsg(false,"ReportedAncestry file");
@@ -462,7 +462,7 @@ void InputData::CheckRepAncestryFile(int populations){
 }
 
 //returns sex value from genotypes file for individual i
-Sex InputData::GetSexValue(int i){
+Sex InputData::GetSexValue(int i)const{
   //if (options->getgenotypesSexColumn() == 1) {
     int sex = StringConvertor::toInt(geneticData_[i][1]);
     if (sex > 2) {
@@ -473,7 +473,7 @@ Sex InputData::GetSexValue(int i){
     return (Sex) sex;
 }
 
-void InputData::GetGenotype(int i, int SexColumn, Genome &Loci, unsigned short ****genotype){
+void InputData::GetGenotype(int i, int SexColumn, Genome &Loci, unsigned short ****genotype)const{
   unsigned int lociI = 0;
   
   *genotype = new unsigned short **[Loci.GetNumberOfCompositeLoci()];
@@ -500,7 +500,7 @@ void InputData::GetGenotype(int i, int SexColumn, Genome &Loci, unsigned short *
     }
 }
 
-void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles){
+void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const{
   Log->logmsg(false, "Error in genotypes file:\n");
   Log->logmsg(false, "Individual ");
   Log->logmsg(false, ind);
@@ -515,7 +515,7 @@ void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0
     exit(1);
 }
 
-void InputData::getOutcomeTypes(DataType* T){
+void InputData::getOutcomeTypes(DataType* T)const{
   for(unsigned i = 0; i < outcomeVarMatrix_.nCols(); ++i)
     T[i] = OutcomeType[i];
 }

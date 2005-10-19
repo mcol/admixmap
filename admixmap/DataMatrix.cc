@@ -52,7 +52,7 @@ unsigned DataMatrix::nRows()const{
 unsigned DataMatrix::nCols()const{
   return ncols;
 }
-bool DataMatrix::isMissing(unsigned row, unsigned col){
+bool DataMatrix::isMissing(unsigned row, unsigned col)const{
   if (row >= nrows || col >= ncols) throw BoundsViolation();
   return missing[row*ncols +col];
 }
@@ -69,18 +69,18 @@ double DataMatrix::DataMatrix::get(unsigned row, unsigned col)const{
   if (row >= nrows || col >= ncols) throw BoundsViolation();
   return data[row*ncols +col];
 }
-std::vector<double> DataMatrix::getRow(unsigned r){
+std::vector<double> DataMatrix::getRow(unsigned r)const{
   std::vector<double> row(ncols);
   std::vector<double>::const_iterator it = data.begin()+r*ncols;
   copy(it, it + ncols, row.begin());
   return row;
 }
-std::vector<double> DataMatrix::getCol(unsigned c){
+std::vector<double> DataMatrix::getCol(unsigned c)const{
   std::vector<double> col;
   for(unsigned row = 0; row < nrows; ++row)col.push_back( data[row*ncols + c] );
   return col;
 }
-std::vector<double> DataMatrix::columnMeans(){
+std::vector<double> DataMatrix::columnMeans()const{
   std::vector<double> mean(ncols);
   for( unsigned j = 0; j < ncols; j++ ){
     int count = 0;
@@ -114,7 +114,7 @@ void DataMatrix::SetMissingValuesToColumnMeans(){
       if(isMissing(row, col))set(row, col, mean[col]);
 }
 
-void DataMatrix::Print(){
+void DataMatrix::Print()const{
   for(unsigned i = 0; i < nrows; ++i){
     std::vector<double> a = getRow(i);
     copy(a.begin(), a.end(), std::ostream_iterator<double>(std::cout, " "));

@@ -451,7 +451,7 @@ void AlleleFreqs::Update(bool afterBurnIn){
     // the composite loci are initialized
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       SampleAlleleFreqs(i);
-      (*Loci)(i)->SetAlleleProbs(Freqs[i]);
+      (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
       (*Loci)(i)->SetHapPairProbs();
     }
     
@@ -919,7 +919,7 @@ void AlleleFreqs::setAlleleFreqsMAP()
 
 // Indicates whether allele frequencies are fixed or random.
 // returns a boolean true if allele frequencies are random, false otherwise.
-bool AlleleFreqs::IsRandom()
+bool AlleleFreqs::IsRandom()const
 {
   return( RandomAlleleFreqs );
 }
@@ -933,7 +933,7 @@ bool AlleleFreqs::IsRandom()
  * a vector containing Dirichlet parameters for frequencies of each allele at the locus. 
  * Expected frequencies are calculated by dividing each parameter by the sum of parameters
  */
-std::vector<double> AlleleFreqs::GetPriorAlleleFreqs( int locus, int population )
+std::vector<double> AlleleFreqs::GetPriorAlleleFreqs( int locus, int population )const
 {
   std::vector<double> counts(NumberOfStates[locus]);
   for(int s = 0; s < NumberOfStates[locus]; ++s)
@@ -955,7 +955,7 @@ std::vector<int> AlleleFreqs::GetAlleleCounts( int locus, int population )
     counts[s] = AlleleCounts[locus][s*Populations + population];
   return counts;
 }
-std::vector<double> AlleleFreqs::getAlleleFreqsMAP( int locus, int population )
+std::vector<double> AlleleFreqs::getAlleleFreqsMAP( int locus, int population )const
 {
   std::vector<double> A(NumberOfStates[locus]-1);
   for(int i = 0; i < NumberOfStates[locus]-1; ++i)

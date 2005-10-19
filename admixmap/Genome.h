@@ -45,32 +45,32 @@ public:
   Genome(int);
   virtual ~Genome();
 
-  std::vector< int > GetChrmAndLocus( int );
+  std::vector< int > GetChrmAndLocus( int )const;
 
-  std::vector<  std::vector< int > >GetChrmAndLocus( );
+  std::vector<  std::vector< int > >GetChrmAndLocus( )const;
 
-   bool isX_data();
+  bool isX_data()const;
 
   CompositeLocus *&
   operator()(int) const;
 
   void SetLabels(const std::vector<std::string> &labels, std::vector<double> temp);
 
-  void loadAlleleStatesAndDistances(AdmixOptions *options,InputData *data_);
+  void loadAlleleStatesAndDistances(const AdmixOptions* const options, const InputData* const data_);
 
-  double *GetDistances();
+  double *GetDistances()const;
 
-  unsigned int GetNumberOfCompositeLoci();
+  unsigned int GetNumberOfCompositeLoci()const;
 
-  unsigned int GetNumberOfChromosomes();
+  unsigned int GetNumberOfChromosomes()const;
 
-  unsigned int GetTotalNumberOfLoci();
+  unsigned int GetTotalNumberOfLoci()const;
 
-  int getNumberOfLoci(int);
+  int getNumberOfLoci(int)const;
 
-  unsigned int *GetSizesOfChromosomes();
+  unsigned int *GetSizesOfChromosomes()const;
 
-  double GetDistance(int);
+  double GetDistance(int)const;
 
   void SetDistance(int,double);
 
@@ -78,11 +78,11 @@ public:
 
   void SetSizes(LogWriter *Log);
  
-  int GetNumberOfStates();
-  int GetNumberOfStates(int locus);
+  int GetNumberOfStates()const;
+  int GetNumberOfStates(int locus)const;
   
-  double GetLengthOfGenome();
-  double GetLengthOfXchrm();
+  double GetLengthOfGenome()const;
+  double GetLengthOfXchrm()const;
 
 protected:// to make available to Chromosome
   double *Distances;

@@ -39,82 +39,84 @@ class Individual
 public:
   Individual();
 
-  Individual(int i,AdmixOptions*,InputData *Data,Genome&,Chromosome **);
+  Individual(int i, AdmixOptions*, InputData *Data, Genome&, Chromosome **);
  
   ~Individual();
 
   void HMMIsBad(bool loglikisbad);
 
-  static void SetStaticMembers(Genome *pLoci, AdmixOptions *options);
+  static void SetStaticMembers(Genome *pLoci, const AdmixOptions* const options);
 
   static void DeleteStaticMembers();
 
-  Sex getSex();
+  Sex getSex()const ;
 
-  double *getAdmixtureProps();
+  double *getAdmixtureProps()const;
 
   void setAdmixtureProps(double *, size_t);
   
   void setAdmixturePropsX(double *, size_t);
   
-  unsigned short **getGenotype(unsigned int locus);
+  unsigned short **getGenotype(unsigned int locus)const;
 
-  std::vector<hapPair > &getPossibleHapPairs(unsigned int locus);
+  std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
 
-  bool IsMissing(unsigned int locus);
+  bool IsMissing(unsigned int locus)const;
 
-  double getSumrho();
+  double getSumrho()const;
 
-  std::vector<double> getRho();
+  std::vector<double> getRho()const;
 
-  int *getSumLocusAncestry();
+  int *getSumLocusAncestry()const;
 
-  double getLogLikelihood(AdmixOptions*, Chromosome**);
-  double getLogLikelihoodAtPosteriorMeans(AdmixOptions* options, Chromosome **chrm);
-  double getLogLikelihoodAtPosteriorMeansOnePop(int iterations);
-  double getLogLikelihood( AdmixOptions* options, Chromosome **chrm, double *theta, double* theta, 
-			   vector<double > rho, vector<double> rho_X, bool chibindicator);
+  double getLogLikelihood(const AdmixOptions* const , Chromosome**, bool annealindicator);
+  double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm);
+  double getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const double* const theta, const double* const theta, 
+			   const vector<double > rho, const vector<double> rho_X, bool chibindicator);
 
-  double getLogLikelihoodOnePop(bool chibindicator);
+  double getLogLikelihoodOnePop();
 
   double getLogPosteriorProb();
 
-  void GetLocusAncestry(int chrm, int locus, int Ancestry[2]);
+  void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
 
-  int GetLocusAncestry(int, int, int);
+  int GetLocusAncestry(int, int, int)const;
    
-  double IntegratingConst( double alpha, double beta, double a, double b );
+  double IntegratingConst( double alpha, double beta, double a, double b )const;
 
   void SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
-			 int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-			 DataMatrix *Covariates, double **beta, const double *poptheta, AdmixOptions* options,
-			 Chromosome **chrm, vector<vector<double> > &alpha,  
-			 double rhoalpha, double rhobeta, vector<double> sigma, 
+			 int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
+			 const double* const lambda, int NoCovariates,
+			 DataMatrix *Covariates, double **beta, const double *poptheta, const AdmixOptions* const options,
+			 Chromosome **chrm, const vector<vector<double> > &alpha,  
+			 double rhoalpha, double rhobeta, const vector<double> sigma, 
 			 double DInvLink, double dispersion);
 
-  void SampleTheta( int i, int iteration, double *SumLogTheta, DataMatrix *Outcome, Chromosome **C,
-		    int NumOutcomes, DataType* OutcomeType, double **ExpectedY, double *lambda, int NoCovariates,
-		    DataMatrix *Covariates, double **beta, const double *poptheta,
-		    AdmixOptions* options, vector<vector<double> > &alpha, vector<double> sigma, double, double, bool);
+  void SampleTheta( int i, int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
+		    int NumOutcomes, const DataType* const OutcomeType, const double* const* ExpectedY, 
+		    const double* const lambda, int NoCovariates,
+		    DataMatrix *Covariates, const double* const* beta, const double* const poptheta,
+		    const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
+		    double DInvLink, double dispersion, bool RW);
 
-  void OnePopulationUpdate( int i, bool notBurnIn, DataMatrix *Outcome, int NumOutcomes, 
-			    DataType* OutcomeType, double **ExpectedY, double *lambda,
-			    Chromosome **chrm, AlleleFreqs *A );
+  void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
+			    const double* const* ExpectedY, const double* constlambda, const Chromosome* const*chrm, 
+			    AlleleFreqs *A );
 
   void Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
-	    AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha, double globalrho,
+	    const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, double globalrho,
 	    double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
 	    vector<double> &rhohat, vector<double> &rhohatX,
-	    LogWriter *Log, chib *MargLikelihood, AlleleFreqs *A);
+	    LogWriter* Log, chib *MargLikelihood, AlleleFreqs *A);
 
-  static void ResetScores(AdmixOptions *options);
+  static void ResetScores(const AdmixOptions* const options);
  
   static void SumScoresForLinkageAffectedsOnly(int j, double *SumAffectedsScore, 
 					       double *SumAffectedsVarScore, double *SumAffectedsScore2, double *SumAffectedsInfo);
   static void SumScoresForAncestry(int j, double *SumAncestryScore, double *SumAncestryInfo, double *SumAncestryScore2,
 				   double *SumAncestryVarScore);
 
-  static void OutputLikRatios(const char *filename, int iterations, std::string *PopLabels);
+  static void OutputLikRatios(const char* const filename, int iterations, const std::string* const PopLabels);
 
 private:
   unsigned short ***genotypes;
@@ -166,37 +168,36 @@ private:
   static double *LikRatio1;
   static double *LikRatio2;
 
-  void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double *poptheta, bool ModelIndicator,
-				     DataMatrix *Covariates);
+  void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double* const poptheta, 
+				     bool ModelIndicator, DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator, bool RW );
-  double AcceptanceProbForTheta_XChrm(std::vector<double> &sigma, int Populations );
-  double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, int Populations,
-					       int NoCovariates, DataMatrix *Covariates, double **beta, double **ExpectedY,
-					       DataMatrix *Outcome, const double *poptheta, double *lambda);
+  double AcceptanceProbForTheta_XChrm(const std::vector<double> &sigma, int Populations );
+  double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, 
+					       int Populations, int NoCovariates, 
+					       const DataMatrix* const Covariates, const double* const* beta, 
+					       const double* const* ExpectedY, const DataMatrix* const Outcome, 
+					       const double* const poptheta, const double* const lambda);
 
-  void UpdateHMMForwardProbs(unsigned int j, Chromosome *chrm, AdmixOptions *options, 
-			  double* theta, double *thetaX,
-			  vector<double> rho, vector<double> rhoX, bool chibindicator);
-
-  void SumAncestry(unsigned int j, Chromosome *chrm);
+  void UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, const AdmixOptions* const options, 
+			  const double* const theta, const double* const thetaX,
+			     const vector<double> rho, const vector<double> rhoX, bool annealindicator);
 
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta,  
 		 unsigned int SumN[], unsigned int SumN_X[]);
 
-  void ProposeTheta(AdmixOptions *options, vector<double> sigma, vector<vector<double> > &alpha);
-  double ProposeThetaWithRandomWalk(AdmixOptions *options, Chromosome **C, vector<vector<double> > &alpha);
+  void ProposeTheta(const AdmixOptions* const options, const vector<double> sigma, const vector<vector<double> > &alpha);
+  double ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, const vector<vector<double> > &alpha);
 
-  double LogPrior(double *theta, double *thetaX, vector<double> rho, vector<double> rhoX, 
-				AdmixOptions *options, AlleleFreqs *A, double rhoalpha, double rhobeta, 
-				vector<vector<double> > &alpha);
-  double CalculateLogPosterior(AdmixOptions *options, double *theta, double *thetaX, vector<double> rho, vector<double> rhoX,
-				       vector<vector<double> > &alpha, double rhoalpha, double rhobeta);
+  double LogPrior(const double* const theta, const double* const thetaX, const vector<double> rho, const vector<double> rhoX, 
+		  const AdmixOptions* const options, const AlleleFreqs* const A, double rhoalpha, double rhobeta, 
+		  const vector<vector<double> > &alpha)const;
+  double CalculateLogPosterior(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
+			       const vector<double> rho, const vector<double> rhoX,
+			       const vector<vector<double> > &alpha, double rhoalpha, double rhobeta)const;
 
 
-  void setIsMissing(vector<unsigned int >& decoded);
-
-  void UpdateScoreForLinkageAffectedsOnly(int j, bool ModelIndicator, Chromosome **);
-  void UpdateScoreForAncestry(int j,double phi, double EY,double DInvLink, Chromosome **);
+  void UpdateScoreForLinkageAffectedsOnly(int j, bool ModelIndicator, const Chromosome* const*);
+  void UpdateScoreForAncestry(int j, double phi, double EY, double DInvLink, const Chromosome* const*);
   void UpdateB(double DInvLink, double dispersion);
 };
 

@@ -100,6 +100,7 @@ public:
   bool getIndAdmixHierIndicator() const;
   bool getMLIndicator() const;
   bool getAnnealIndicator() const;
+  int getNumberOfAnnealedRuns() const;
   double getTruncPt() const;  
   int getPopulations() const; 
   void setPopulations(int num);
@@ -173,7 +174,7 @@ private:
   bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool MLIndicator;//calculate marginal likelihood 
-  bool AnnealIndicator;
+  int AnnealedRuns;
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
   bool TestForAdmixtureAssociation;
   bool StratificationTestIndicator;
