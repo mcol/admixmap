@@ -826,12 +826,16 @@ plotAdmixtureDistribution <- function(alphas, samples, k) {
 
 writePosteriorMeansIndivAdmixture <- function(samples.meanparents, K) {
   ## compute posterior means of individual admixture and ancestry diversity
-  M.squared <- array(samples.meanparents[1:K,,]^2, dim=dim(samples.meanparents), dimnames=c(dimnames(samples.meanparents)[[1]]))
+  ## dim 1 is populations, dim2 is individuals, dim3 is samples
+  n.individuals <- dim(samples.meanparents)[2]
+  n.samples <- dim(samples.meanparents)[3]
+  
+  M.squared <- samples.meanparents[1:K,1:n.individuals,1:n.samples, drop=F]^2
   ancestry.diversity <- 1 - apply(M.squared, 2:3, sum)
   AncestryDiversity <- apply(ancestry.diversity, 1, mean)
-  IndividualAdmixture <- t(apply(samples.meanparents[1:K,,], 1:2, mean))
+  IndividualAdmixture <- t(apply(samples.meanparents, 1:2, mean))
   admixture.table <- data.frame(IndividualAdmixture, AncestryDiversity)
-  outputfile <- paste(resultsdir, "IndividualVarPosteriorMeans.txt", sep="/" )
+  outputfile <- paste(resultsdir, "IndivAdmixPosteriorMeans.txt", sep="/" )
   write.table(signif(admixture.table, digits=3), file=outputfile, sep="\t", 
               quote=FALSE, row.names=FALSE)
 }
@@ -1057,9 +1061,9 @@ if(!is.null(user.options$hwtestfile)){
 }
 
 if(!is.null(user.options$anneal)){
-  anneal.table <- read.table("annealmon.txt", header=TRUE, row.names = NULL)
-  postscript("annealplot.ps")
-  plot(anneal.table[,1],anneal.table[,2])
+  anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
+  postscript(paste(resultsdir, "annealplot.ps", sep="/"))
+  plot(anneal.table[,1],anneal.table[,2], xlab="coolness", ylab="mean logLikelihood")
   dev.off()
 }
 
@@ -1116,14 +1120,14 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
   
 if(!is.null(user.options$indadmixturefile)) {
   ## read posterior samples of individual admixture
-  print.default("Reading posterior samples of individual vars")
+  print.default("Reading posterior samples of individual params")
   samples <- dget(paste(resultsdir,user.options$indadmixturefile,sep="/"))
   n.iterations <- dim(samples)[3]
   n.individuals <- dim(samples)[2]
   ## reformat as 4-way array if random mating model
   if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
     ## drop any extra vars in the array
-    samples.adm <- samples[1:(2*K), , ]
+    samples.adm <- samples[1:(2*K),1:n.individuals ,1:n.iterations, drop=F]
     samples4way <- array(samples.adm, dim=c(2, K, dim(samples)[2:3]))
     dimnames(samples4way) <- list(c("Parent1", "Parent2"), population.labels,
                                   character(0), character(0))
@@ -1132,8 +1136,8 @@ if(!is.null(user.options$indadmixturefile)) {
                                  dim=c(K, 2*n.individuals, n.iterations))
     dimnames(samples.bothparents) <- list(population.labels, character(0), character(0))
   } else {
-    samples.meanparents <- samples
-    samples.bothparents <- samples
+    samples.meanparents <- samples[1:K, 1:n.individuals ,1:n.iterations, drop=F]
+    samples.bothparents <- samples[1:K, 1:n.individuals ,1:n.iterations, drop=F]
   }
   
   ## should plot only if subpopulations are identifiable in model
