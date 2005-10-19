@@ -66,7 +66,7 @@ public:
   void setPossibleHaplotypePairs(const unsigned short* const* Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
-  void GetGenotypeProbsAtPosteriorMeans(double*, const std::vector<hapPair > &HapPairs, int iterations);
+  void SetHapPairProbsToPosteriorMeans(int iterations);
   void SampleHapPair(int hap[2], const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
 
   //functions used for haplotype association score test 

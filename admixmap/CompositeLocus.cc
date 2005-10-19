@@ -213,19 +213,18 @@ string CompositeLocus::GetLabel(int index)const
    return( Label[index] );
 }
 
-void CompositeLocus::GetGenotypeProbsAtPosteriorMeans(double *Probs, const std::vector<hapPair > &HapPairs, int iterations){
+void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
   double **mu = alloc2D_d(Populations, NumberOfStates);
   for(int k = 0; k < Populations; ++k){
-    for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] /= (double)iterations;
-    softmax(NumberOfStates, mu[k], SumAlleleProbs[k]);//no need to scale by number of iterations
-    //for(int h = 0; h < NumberOfStates; ++h)cout<<mu[k][h]<<" ";
+    if(RandomAlleleFreqs)for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] /= (double)iterations;
+    softmax(NumberOfStates, mu[k], SumAlleleProbs[k]);
+    //if(RandomAlleleFreqs)for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] *= (double)iterations;
   }
-  //cout<<endl;
   SetHapPairProbs(mu);//sets HapPairProbs using posterior means of Haplotype Probs
   
-  GetGenotypeProbs(Probs, HapPairs, false);
   free_matrix(mu, Populations);
 }
+
 
 /*
   returns array of marginal alleleprobs for each allele of each locus, for ancestry state k,  within the composite locus

@@ -368,13 +368,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
 
     softmax(Populations, ThetaBar+g*Populations, SumSoftmaxTheta+g*Populations, b);
 
-    //if(myNumber==1){
-    //for(int k = 0; k < Populations; ++k)cout<<ThetaBar[g*Populations+k]<<" ";
-    //cout<<endl;
-    //if(options->isRandomMatingModel())cout<<sumlogrho[g]<<endl;
-    //}
   }
-  //cout<<endl;
 
   double LogLikelihood = 0.0;
   double Probs[Populations*Populations];
@@ -382,14 +376,13 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     if(Populations == 1){
       for(unsigned jj = 0; jj < chrm[j]->GetNumberOfCompositeLoci(); ++jj){
-	(*Loci)(j)->GetGenotypeProbsAtPosteriorMeans(Probs, getPossibleHapPairs(j), options->getTotalSamples()-options->getBurnIn());
+	(*Loci)(j)->GetGenotypeProbs(Probs, getPossibleHapPairs(j),false);
 	++locus;
       }
       LogLikelihood += log( Probs[0] );
     }
     else{
-      //chrm[j]->SetGenotypeProbs(this, false);
-      chrm[j]->SetGenotypeProbsToPosteriorMeans(this, options->getTotalSamples()-options->getBurnIn()); 
+      chrm[j]->SetGenotypeProbs(this, false);//will set genotype probs to posterior means as happairprobs are already so
       UpdateHMMForwardProbs(j, chrm[j], options, ThetaBar, ThetaBar, sumlogrho, sumlogrho, false);
       LogLikelihood += chrm[j]->getLogLikelihood();
     }

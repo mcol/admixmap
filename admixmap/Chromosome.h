@@ -48,7 +48,6 @@ public:
   static void setCoolness(double, double *);
 
   void SetGenotypeProbs(double *Probs);
-  void SetGenotypeProbsToPosteriorMeans(Individual* const ind, int iterations);
   void SetGenotypeProbs(Individual* const ind, bool chibindicator);
   void UpdateHMMForwardProbs(const double* const Admixture, const AdmixOptions* const options,  
 			     const std::vector< double > _rho, bool diploid, bool annealindicator);

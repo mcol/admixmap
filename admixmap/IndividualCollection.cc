@@ -489,9 +489,12 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
 
   //update chromosomes using globalrho, for globalrho model
   if(options->isGlobalRho())
-    //cout<<"globalrho: "<<exp(SumLogRho /(double)iterations)<<endl;
     for( unsigned int j = 0; j < numChromosomes; j++ )
       C[j]->SetLociCorr(exp(SumLogRho / (double)iterations));
+
+  for( unsigned int j = 0; j < numChromosomes; j++ )
+    for(unsigned jj = 0; jj < C[j]->GetNumberOfCompositeLoci(); ++jj)
+      (*C[j])(jj)->SetHapPairProbsToPosteriorMeans(iterations);
 
   //accumulate deviance at posterior means for each individual
   double D = 0.0; // D = deviance at estimates

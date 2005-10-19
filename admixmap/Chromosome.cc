@@ -116,19 +116,6 @@ void Chromosome::SetGenotypeProbs(Individual* const ind, bool chibindicator){
   }
 }
 
-void Chromosome::SetGenotypeProbsToPosteriorMeans(Individual* const ind, int iterations){
-  int locus = _startLocus;
-  for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
-    if( !(ind->IsMissing(locus)) ){
-      TheArray[j]->GetGenotypeProbsAtPosteriorMeans(Lambda+j*populations*populations, ind->getPossibleHapPairs(locus), iterations);
-      }
-    else{
-      for( int k = 0; k < populations*populations;k++) Lambda[j*populations*populations + k] = 1.0;
-    }
-    locus++;
-  }
-}
-
 void Chromosome::SetGenotypeProbs(double *Probs){
   //Probs is a Populations x Populations array containing genotype probs obtained from CompositeLocus
   copy(Probs, Probs + populations * populations, Lambda);

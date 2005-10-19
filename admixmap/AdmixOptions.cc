@@ -448,6 +448,7 @@ bool AdmixOptions::getTestForAllelicAssociation() const
 
 void AdmixOptions::setTestForAllelicAssociation(bool b){
   TestForAllelicAssociation = b;
+  if(!b)OptionValues.erase("allelicassociationscorefile");
 }
 
 bool AdmixOptions::getTestForDispersion() const
@@ -491,6 +492,7 @@ bool AdmixOptions::getTestForSNPsInHaplotype() const
 
 void AdmixOptions::setTestForSNPsInHaplotype(bool b){
   TestForSNPsInHaplotype = b;
+  if(!b)OptionValues.erase("haplotypeassociationscorefile");
 }
 
 const char *AdmixOptions::getEtaPriorFilename() const

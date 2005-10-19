@@ -119,6 +119,7 @@ public:
   static void OutputLikRatios(const char* const filename, int iterations, const std::string* const PopLabels);
 
 private:
+  unsigned myNumber;//number of this individual, counting from 1
   unsigned short ***genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
 
