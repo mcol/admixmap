@@ -48,8 +48,10 @@ Individual::Individual()
 {//should initialise pointers here
 }
 
-Individual::Individual(int mynumber, AdmixOptions* options, InputData *Data, Genome& Loci,Chromosome **chrm)
+Individual::Individual(int number, AdmixOptions* options, InputData *Data, Genome& Loci,Chromosome **chrm)
 {
+  myNumber = number;
+
   if( !options->isGlobalRho() ){
     TruncationPt = options->getTruncPt();
     if( options->isRandomMatingModel() )
@@ -68,7 +70,7 @@ Individual::Individual(int mynumber, AdmixOptions* options, InputData *Data, Gen
   // Read sex value if present.
   sex = male;
   if (options->getgenotypesSexColumn() == 1) {
-    sex = Data->GetSexValue(mynumber);
+    sex = Data->GetSexValue(myNumber);
   }
   
   int numCompositeLoci = Loci.GetNumberOfCompositeLoci();
@@ -145,7 +147,7 @@ Individual::Individual(int mynumber, AdmixOptions* options, InputData *Data, Gen
     
   }
   //retrieve genotypes
-  Data->GetGenotype(mynumber, options->getgenotypesSexColumn(), Loci, &genotypes);
+  Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), Loci, &genotypes);
   
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(int j=0;j<numCompositeLoci;++j) {
@@ -365,11 +367,14 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
     else b[k] = false;
 
     softmax(Populations, ThetaBar+g*Populations, SumSoftmaxTheta+g*Populations, b);
-    for(int k = 0; k < Populations; ++k)cout<<ThetaBar[g*Populations+k]<<" ";
-    cout<<endl;
-    cout<<sumlogrho[g]<<endl;
+
+    //if(myNumber==1){
+    //for(int k = 0; k < Populations; ++k)cout<<ThetaBar[g*Populations+k]<<" ";
+    //cout<<endl;
+    //if(options->isRandomMatingModel())cout<<sumlogrho[g]<<endl;
+    //}
   }
-  cout<<endl;
+  //cout<<endl;
 
   double LogLikelihood = 0.0;
   double Probs[Populations*Populations];

@@ -475,7 +475,7 @@ double *IndividualCollection::getSumLogTheta()const{
 // ************** OUTPUT **************
 
 void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chromosome** C, Regression *R, 
-					  LogWriter *Log, double SumRho, unsigned numChromosomes){
+					  LogWriter *Log, double SumLogRho, unsigned numChromosomes){
   //SumRho = ergodic sum of global sumintensities
 
   int iterations = options->getTotalSamples()-options->getBurnIn();
@@ -483,14 +483,15 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
   E = SumDeviance / (double) iterations;//ergodic average of deviance
   V = SumDevianceSq / (double)iterations - E*E;//ergodic variance of deviance 
 
-  Log->logmsg(true, "MeanDeviance:\t"); Log->logmsg(true, E);Log->logmsg(true,"\n");
+  Log->logmsg(true, "\nMeanDeviance:\t"); Log->logmsg(true, E);Log->logmsg(true,"\n");
   Log->logmsg(true, "VarDeviance:\t");  Log->logmsg(true, V);Log->logmsg(true,"\n");
   Log->logmsg(true, "GoFStat:\t");  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "\n");
 
   //update chromosomes using globalrho, for globalrho model
   if(options->isGlobalRho())
+    //cout<<"globalrho: "<<exp(SumLogRho /(double)iterations)<<endl;
     for( unsigned int j = 0; j < numChromosomes; j++ )
-      C[j]->SetLociCorr(SumRho / (double)iterations);
+      C[j]->SetLociCorr(exp(SumLogRho / (double)iterations));
 
   //accumulate deviance at posterior means for each individual
   double D = 0.0; // D = deviance at estimates

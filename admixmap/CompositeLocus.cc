@@ -137,7 +137,7 @@ void CompositeLocus::Initialise(const double* const AFreqs){
   //set size of array of haplotype pair probs
   HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
   HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  SetAlleleProbs(AFreqs, false);
+  SetAlleleProbs(AFreqs, !RandomAlleleFreqs);//if allelefreqs are fixed, SumAlleleProbs are initialised to AlleleProbs(==Allelefreqs)
   SetHapPairProbs();
   SetNoMergeHaplotypes();
   //Initialise HapPairProbsMAP to values in HapPairProbs
@@ -218,7 +218,9 @@ void CompositeLocus::GetGenotypeProbsAtPosteriorMeans(double *Probs, const std::
   for(int k = 0; k < Populations; ++k){
     for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] /= (double)iterations;
     softmax(NumberOfStates, mu[k], SumAlleleProbs[k]);//no need to scale by number of iterations
+    //for(int h = 0; h < NumberOfStates; ++h)cout<<mu[k][h]<<" ";
   }
+  //cout<<endl;
   SetHapPairProbs(mu);//sets HapPairProbs using posterior means of Haplotype Probs
   
   GetGenotypeProbs(Probs, HapPairs, false);
