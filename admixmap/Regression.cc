@@ -457,19 +457,38 @@ double Regression::getLogLikelihood(IndividualCollection *IC)const{
 }
 double Regression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations){
   int NumIndividuals = IC->getSize();
-  double dev[NumIndividuals];
-  double devsq[1];
+  double logL = 0.0;
 
   //set expected outcome at posterior means of regression parameters
   for(int i = 0; i < NumCovariates; ++i)SumBeta[i] /= (double)iterations; 
-  IC->SetExpectedY(RegNumber,SumBeta);
+  IC->SetExpectedY(RegNumber,SumBeta);//computes X * BetaBar
   for(int i = 0; i < NumCovariates; ++i)SumBeta[i] *= (double)iterations; 
-  if( IC->getOutcomeType(RegNumber) )
+
+  double Y;
+
+  if(RegType ==Linear){
+    //multivariate Gaussian density
+    double dev[NumIndividuals];
+    double devsq[1];
+    for(int i = 0; i < NumIndividuals; ++i){
+      Y = IC->getOutcome(RegNumber, i);
+      dev[i] = Y - IC->getExpectedY(i);
+    }
+    matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);//precision has form lambda * I so
+    //quadratic form in density is lambda * dev' * dev
+    logL = -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(lambda) + lambda*devsq[0]);
+  }
+  else if(RegType == Logistic){
+    //loglikelihood is sum of logs of bernoulli probabilities, given by EY
     IC->calculateExpectedY(RegNumber);
+    double pi;
+    for(int i = 0; i < NumIndividuals; ++i){
+      Y = IC->getOutcome(RegNumber, i);
+      pi = IC->getExpectedY(i);
+      if(Y == 1) logL += log(pi);
+      else if(Y == 0)logL += log(1.0-pi);
+    }
+  }
 
-  for(int i = 0; i < NumIndividuals; ++i)
-    dev[i] = IC->getOutcome(RegNumber, i) - IC->getExpectedY(i);
-  matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);
-  return -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(lambda) + lambda*devsq[0]);
-
+  return logL;
 }
