@@ -50,7 +50,7 @@ $arg_hash->{resultsdir}            = 'TwoPopsResults';
 doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 3 populations
-#$arg_hash->{populations}           = 3;
+$arg_hash->{populations}           = 3;
 $arg_hash->{resultsdir}            = 'ThreePopsResults';  
 doAnalysis($executable,$arg_hash);
 
