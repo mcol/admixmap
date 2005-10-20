@@ -259,9 +259,8 @@ double AdaptiveRejection::TransformPoint(double u, double g, double s1, double s
   if(lower && upper){
     if(fabs(g) > EPS)
     x = (maxterm + log( exp( (g*z1) + log(1.0 - prop) - maxterm) + exp((g*z2) + log(prop)-maxterm) )) / g;
-    else 
-    x = z1 + (z2 - z1) * prop;
-    //need formula for g close to zero
+    else //if g close to zero, we effectively have to transform from U(s1,s2) to U(z1, z2)
+      x = z1 + (z2 - z1) * prop;
   } else if(lower && g < 0) {//no upper limit and negative gradient
     x = z1 + exp( log(-log( 1.0 - prop)) - log( -g ) );
   } else if(upper && g > 0) {//no lower limit and positive gradient
