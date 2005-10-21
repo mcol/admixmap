@@ -29,7 +29,7 @@ using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
+Latent::Latent( AdmixOptions* op, const Genome* const loci, LogWriter *l)
 {
   options = 0;
   rho = 0.0;
@@ -50,7 +50,7 @@ Latent::Latent( AdmixOptions * op, Genome *loci, LogWriter *l)
 #endif
 }
 
-void Latent::Initialise(int Numindividuals, std::string *PopulationLabels){
+void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels){
   // ** Initialise population admixture distribution Dirichlet parameters alpha **
   int K = options->getPopulations();
   //ergodic average of population admixture, which is used to centre 
@@ -200,7 +200,7 @@ Latent::~Latent()
 #endif
 }
 
-void Latent::Update(int iteration, IndividualCollection *individuals)
+void Latent::Update(int iteration, const IndividualCollection* const individuals)
  {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
@@ -280,7 +280,7 @@ void Latent::Update(int iteration, IndividualCollection *individuals)
 //end Update
 
 
-void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, double LogL){
+void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C, double LogL){
 
   if( options->isGlobalRho() ){
     double rhoprop;
@@ -340,14 +340,14 @@ void Latent::UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, double Lo
 			rhoalpha* IC->getSize() + rhobeta0 );
   }
 }
-double Latent::getRhoSamplerAccRate(){
+double Latent::getRhoSamplerAccRate()const{
   return TuneRhoSampler.getExpectedAcceptanceRate();
 }
-double Latent::getRhoSamplerStepsize(){
+double Latent::getRhoSamplerStepsize()const{
   return step;
 }
 
-void Latent::InitializeOutputFile(std::string *PopulationLabels)
+void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 {
   // Header line of paramfile
 
@@ -424,26 +424,26 @@ void Latent::OutputParams(int iteration){
 
 
 
-vector<double > &Latent::getalpha0(){
+const vector<double > &Latent::getalpha0()const{
   return alpha[0];
 }
-std::vector<vector<double> > &Latent::getalpha(){
+const std::vector<vector<double> > &Latent::getalpha()const{
   return alpha;
 }
 
-double Latent::getrhoalpha(){
+double Latent::getrhoalpha()const{
   return rhoalpha;
 }
-double Latent::getrhobeta(){
+double Latent::getrhobeta()const{
   return rhobeta;
 }
-double Latent::getrho(){
+double Latent::getrho()const{
   return rho;
 }
-double Latent::getSumLogRho(){
+double Latent::getSumLogRho()const{
   return SumLogRho;
 }
-const double *Latent::getpoptheta(){
+const double *Latent::getpoptheta()const{
   return poptheta;
 }
 #if POPADMIXSAMPLER == 1
@@ -491,10 +491,10 @@ double Latent::ddlogf( double x, const void* const pars )
 #endif
 
 #if POPADMIXSAMPLER == 2
-float Latent::getEtaSamplerAcceptanceRate(){
+float Latent::getEtaSamplerAcceptanceRate()const{
   return PopAdmixSampler.getEtaExpectedAcceptanceRate();
 }
-float Latent::getEtaSamplerStepsize(){
+float Latent::getEtaSamplerStepsize()const{
   return PopAdmixSampler.getEtaStepSize();
 }
 // float Latent::getMuSamplerAcceptanceRate(){
@@ -506,10 +506,10 @@ float Latent::getEtaSamplerStepsize(){
 #endif
 
 #if POPADMIXSAMPLER == 3
-float Latent::getAlphaSamplerAcceptanceRate(){
+float Latent::getAlphaSamplerAcceptanceRate()const{
   return AlphaSampler.getAcceptanceRate();
 }
-float Latent::getAlphaSamplerStepsize(){
+float Latent::getAlphaSamplerStepsize()const{
   return AlphaSampler.getStepsize();
 }
 

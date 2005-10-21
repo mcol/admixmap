@@ -65,7 +65,7 @@ public:
 
   void SetCovariance( double NewValue );
 
-  void Draw(double *beta);
+  void Draw(double *beta)const;
 
 private:
 

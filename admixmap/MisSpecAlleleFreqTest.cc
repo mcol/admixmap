@@ -60,7 +60,7 @@ MisSpecAlleleFreqTest::~MisSpecAlleleFreqTest(){
 }
 
 
-void MisSpecAlleleFreqTest::Initialise(AdmixOptions *options, Genome *Loci, LogWriter *Log )
+void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter *Log )
 {
  if( strlen( options->getAlleleFreqFilename() ) || options->getFixedAlleleFreqs()){
 
@@ -147,7 +147,7 @@ void MisSpecAlleleFreqTest::Initialise(AdmixOptions *options, Genome *Loci, LogW
  }
 }
 
-void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreqs *A, Genome *Loci){
+void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci){
   if(Test1)
     for(int j = 0; j < NumCompLoci; ++j){
       fill(ScoreGene[j], ScoreGene[j]+Populations, 0.0);
@@ -157,7 +157,7 @@ void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreq
   if( Test1 ) {
     double** phi = alloc2D_d(Populations, Populations);
     for( int i = 0; i < individuals->getSize(); i++ ){
-      Individual* ind = individuals->getIndividual(i);
+      const Individual* ind = individuals->getIndividual(i);
       
       for( int k = 0; k < Populations; k++ )
 	for( int kk = 0; kk < Populations; kk++ )
@@ -197,7 +197,8 @@ void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreq
  * Updates what's required for the score tests. Only used with fixed
  * allele frequencies. This function is only used for monitoring.
  */
- void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j,  double** phi, unsigned short **x, double* AlleleFreqs)
+ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, const unsigned short* const* x, 
+								const double* const AlleleFreqs)
 {
    double Score[ Populations ];
    double Pi[3] = {0.0, 0.0, 0.0};
@@ -255,8 +256,8 @@ void MisSpecAlleleFreqTest::Update(IndividualCollection *individuals, AlleleFreq
 }
 
 // presumably this calculates score test for mis-spec allele freqs at multi-allelic loci
-void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus, const int NumberOfStates, double* AlleleFreqs, 
-								int* AlleleCounts)
+void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus, const int NumberOfStates, 
+								const double* const AlleleFreqs, const int* const AlleleCounts)
 {
    double rn, r, pj, pi, q;
    double NewScore[ NumberOfStates - 1], NewInfo[ (NumberOfStates - 1) * (NumberOfStates - 1 )];
@@ -290,7 +291,7 @@ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus,
 }
 
 
-void MisSpecAlleleFreqTest::Output(int samples, Genome *Loci,  std::string * PopLabels){
+void MisSpecAlleleFreqTest::Output(int samples, const Genome* const Loci, const std::string* const PopLabels){
     if( Test1){
       OutputTestsForMisSpecifiedAlleleFreqs(samples, Loci, PopLabels);
     }
@@ -299,7 +300,8 @@ void MisSpecAlleleFreqTest::Output(int samples, Genome *Loci,  std::string * Pop
     }
 }
 
-void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, Genome *Loci, std::string * PopLabels)
+void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, const Genome* const Loci, 
+								   const std::string* const PopLabels)
 {
   //int samples = iteration - options->getBurnIn();
   double /*ScoreMatrix[Populations], CompleteMatrix[Populations*Populations], */ObservedMatrix[Populations*Populations],
@@ -361,7 +363,8 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
   R_output3DarrayDimensions(&allelefreqscorestream,dimensions,labels);
 }
 
-void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples, Genome *Loci, std::string * PopLabels)
+void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples, const Genome* const Loci, 
+								    const std::string* const PopLabels)
 {
   for(int j = 0; j < NumCompLoci; j++ ){
     int NumberOfStates = (*Loci)(j)->GetNumberOfStates();
@@ -417,7 +420,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
 
 }
 
-void MisSpecAlleleFreqTest::R_output3DarrayDimensions(ofstream* stream,vector<int> dim,vector<string> labels)
+void MisSpecAlleleFreqTest::R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels)
 {
   *stream << ")," << endl;
   *stream << ".Dim = c(";

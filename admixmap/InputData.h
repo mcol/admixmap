@@ -91,7 +91,7 @@ public:
   int getNumberOfSimpleLoci()const;
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};  
 
-  void GetGenotype(int i, int SexColumn, Genome &Loci,unsigned short ****genotype)const;
+  void GetGenotype(int i, int SexColumn, const Genome &Loci,unsigned short ****genotype)const;
   void CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates);
 
 private:    

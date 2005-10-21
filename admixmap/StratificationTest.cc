@@ -13,7 +13,8 @@ StratificationTest::StratificationTest()
    T = 0;
 }
 
-void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, Chromosome **Chr, IndividualCollection *IC, LogWriter *Log )
+void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci, const Chromosome* const* Chr, 
+				     const IndividualCollection* const IC, LogWriter *Log )
 {
   if(options->getStratificationTest() ){
     float DistanceFromLast = 0;
@@ -90,8 +91,8 @@ void StratificationTest::Initialize( AdmixOptions* options, Genome &Loci, Chromo
   }
 }
 
-void StratificationTest::calculate( IndividualCollection* individuals, double** AlleleFreqs, vector<vector<int> > ChrmAndLocus, 
-				    int Populations )
+void StratificationTest::calculate( const IndividualCollection* const individuals, const double* const* AlleleFreqs, 
+				    const vector<vector<int> > ChrmAndLocus, int Populations )
 {
   // matrix of (observed minus expected copies allele 1) scores for each individual at each locus
   gsl_matrix *popX = gsl_matrix_calloc( individuals->getSize(), NumberOfTestLoci ); 
@@ -100,12 +101,14 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
   //bool flag = false;
   vector<unsigned short> genotype(2, 0);
   int ancestry[2];
+
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
-    double* freqs = AlleleFreqs[jj];  // array of length (NumberOfStates-1)*Populations
+    //const double* const freqs = AlleleFreqs[jj];  // array of length (NumberOfStates-1)*Populations
+
     for( int i = 0; i < individuals->getSize(); i++ ){
-      Individual* ind = individuals->getIndividual(i);
-      unsigned short **genotypeArray = ind->getGenotype(jj);
+      const Individual* const ind = individuals->getIndividual(i);
+      const unsigned short* const* const genotypeArray = ind->getGenotype(jj);
       // recode as vector<unsigned short>
       genotype[0] = genotypeArray[0][0];
       genotype[1] = genotypeArray[0][1];
@@ -114,10 +117,10 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
       // genotype = SampleHeterozygotePhase( freqs, ancestry ); // sample phase conditional on ordered diploid ancestry 
       //} else 
       if( genotype[0] == 0 ){ // if genotype is missing, sample it
-	genotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
+	genotype = SimGenotypeConditionalOnAncestry(AlleleFreqs[jj] , ancestry );
       }
       // ProbAllele1 = Prob( allele 1 ) conditional on individual admixture
-      vector<double> ProbAllele1 = GenerateExpectedGenotype( ind, freqs, Populations );
+      vector<double> ProbAllele1 = GenerateExpectedGenotype( ind, AlleleFreqs[jj], Populations );
       vector<unsigned short> repgenotype = SimGenotypeConditionalOnAdmixture( ProbAllele1 );
       // vector<unsigned short> repgenotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
       // Calculate score X = Obs0 + Obs1 - Expected0 - Expected1, where Obs0, Obs1 are coded 1 for allele 1, 0 for allele 2
@@ -169,8 +172,7 @@ void StratificationTest::calculate( IndividualCollection* individuals, double** 
   gsl_matrix_free(popRepX);
 }
 
-vector<double>
-StratificationTest::GenerateExpectedGenotype( Individual* ind, const double* freqs, const int Populations )
+vector<double> StratificationTest::GenerateExpectedGenotype( const Individual* const ind, const double* freqs, const int Populations )
 {
   vector<double> pA(2,0);
   for( int k = 0; k < Populations; k++ ){
@@ -183,8 +185,7 @@ StratificationTest::GenerateExpectedGenotype( Individual* ind, const double* fre
   return pA; // vector of length 2 specifying probs of allele 1 on each gamete
 }
 
-vector<unsigned short>
-StratificationTest::SimGenotypeConditionalOnAdmixture( const vector<double> ProbAllele1 )
+vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAdmixture( const vector<double> ProbAllele1 )
 {
   vector<unsigned short> repgenotype(2,0);
   if( ProbAllele1[0] > myrand() )
@@ -198,12 +199,11 @@ StratificationTest::SimGenotypeConditionalOnAdmixture( const vector<double> Prob
   return repgenotype;
 }
 
-vector<unsigned short>
-StratificationTest::SimGenotypeConditionalOnAncestry( const double* freqs, const int ancestry[2] )
+vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAncestry( const double* const freqs, const int ancestry[2] )
 {
   vector<unsigned short> repgenotype(2,0);
   if( freqs[ ancestry[0] ] > myrand() )
-    repgenotype[0] = 1;
+     repgenotype[0] = 1;
   else
     repgenotype[0] = 2;
   if( freqs[ ancestry[1] ] > myrand() )
@@ -251,7 +251,7 @@ void StratificationTest::Output(LogWriter *Log){
 }
 
 //this function should really be in CompositeLocus or AlleleFreqs or IndividualCollection
-int StratificationTest::GetAlleleCounts(int locus, int a, IndividualCollection *IC)
+int StratificationTest::GetAlleleCounts(int locus, int a, const IndividualCollection* const IC)
 {
   /**
    * returns a count of the copies of allele a at a comp locus
@@ -263,7 +263,7 @@ int StratificationTest::GetAlleleCounts(int locus, int a, IndividualCollection *
   for(int i = 0; i < IC->getSize(); ++i){
     Individual *ind = IC->getIndividual(i);
     if(!ind->IsMissing(locus)){
-      unsigned short **genotype = ind->getGenotype(locus);
+      const unsigned short* const* genotype = ind->getGenotype(locus);
 	if(genotype[0][0] == a){
 	  AlleleCounts++;
 	}

@@ -44,22 +44,24 @@ class IndividualCollection
 public:
   IndividualCollection();
   ~IndividualCollection();
-  IndividualCollection(AdmixOptions*,InputData *Data,Genome&,Chromosome **);
+  IndividualCollection(const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
+					   const Chromosome* const* chrm);
 
-  void Initialise(AdmixOptions *, Genome *, std::string *PopulationLabels, 
-		  double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix);
+  void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
+				      double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix);
 
   void LoadData(const AdmixOptions* const options, const InputData* const);
   
-  void getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels);
+  void getOnePopOneIndLogLikelihood(LogWriter *Log, const std::string* const PopulationLabels);
 
   void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
 	      const std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
 	      LogWriter *Log, bool anneal);
 
-  void ConjugateUpdateIndAdmixture(int iteration, Regression *R0, Regression *R1, const double *poptheta, 
-				   AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha);
+  void ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
+				   const AdmixOptions* const options, Chromosome **chrm, 
+				   const vector<vector<double> > &alpha);
   
   void OutputIndAdmixture();
 
@@ -74,14 +76,14 @@ public:
 
   void add(Individual*);
 
-  Individual* getIndividual(int);
+  Individual* getIndividual(int)const;
 
-  void setAdmixtureProps(double *, size_t);
-  void setAdmixturePropsX(double *, size_t);
+  void setAdmixtureProps(const double* const, size_t);
+  void setAdmixturePropsX(const double* const, size_t);
 
   double GetSumrho()const;
   double getSumLogTheta(int)const;
-  double *getSumLogTheta()const;
+  const double *getSumLogTheta()const;
   std::vector<double> getOutcome(int)const;
   double getOutcome(int, int)const;
   int getNumberOfOutcomeVars()const;
@@ -95,11 +97,11 @@ public:
   void calculateExpectedY(int);
   double getExpectedY(int)const;
 
-  std::string getCovariateLabels(int)const;
-  std::string *getCovariateLabels()const;
+  const std::string getCovariateLabels(int)const;
+  const std::string *getCovariateLabels()const;
 
-  double getLogLikelihood(AdmixOptions *options, Chromosome **C, bool annealindicator);
-  double DerivativeInverseLinkFunction(int i);
+  double getLogLikelihood(const AdmixOptions* const options, Chromosome **C, bool annealindicator);
+  double DerivativeInverseLinkFunction(int i)const;
 private:
   Individual **_child; //array of pointers to Individual
   void getLabels(const Vector_s& data,  string *labels);

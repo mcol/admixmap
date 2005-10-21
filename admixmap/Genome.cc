@@ -304,11 +304,11 @@ unsigned int Genome::GetTotalNumberOfLoci()const{
   return TotalLoci;
 }
 //returns int array of chromosome sizes
-unsigned int *Genome::GetSizesOfChromosomes()const{
+const unsigned int *Genome::GetSizesOfChromosomes()const{
   return SizesOfChromosomes;
 }
 
-double *Genome::GetDistances()const
+const double *Genome::GetDistances()const
 {
   return( Distances );
 }
@@ -332,11 +332,11 @@ int Genome::GetNumberOfStates()const
   return ret;
 }
 
-vector<int> Genome::GetChrmAndLocus( int j )const{
+const vector<int> Genome::GetChrmAndLocus( int j )const{
   return _chrmandlocus[j];
 }
 
-vector<vector<int > > Genome::GetChrmAndLocus()const{
+const vector<vector<int > > Genome::GetChrmAndLocus()const{
   return _chrmandlocus;
 }
 bool Genome::isX_data()const

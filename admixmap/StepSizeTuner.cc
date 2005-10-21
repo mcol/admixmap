@@ -49,7 +49,7 @@ void StepSizeTuner::SetParameters(double step0, double inmin, double inmax, doub
   SumAcceptanceProb = 0.0;
 }
 
-double StepSizeTuner::GetSigma()
+double StepSizeTuner::GetSigma()const
 {
   return sigma;
 }
@@ -69,12 +69,12 @@ double StepSizeTuner::UpdateStepSize(double AcceptanceProb)
   return step;
 }
 
-double StepSizeTuner::getStepSize()
+double StepSizeTuner::getStepSize()const
 {
   return step; 
 }
 
-double StepSizeTuner::getExpectedAcceptanceRate()
+double StepSizeTuner::getExpectedAcceptanceRate()const
 {
   if(count > 0)
     return SumAcceptanceProb / count;

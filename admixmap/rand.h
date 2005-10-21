@@ -18,14 +18,14 @@ int genbinomial( int n, double p );
 //
 unsigned int genpoi( double );
 //
-std::vector<int> genmultinomial2( int n, std::vector<double> p );
+std::vector<int> genmultinomial2( int n, const std::vector<double> p );
 //
-double MultinomialLikelihood( std::vector<int> r, std::vector<double> theta );
+double MultinomialLikelihood( const std::vector<int> r, const std::vector<double> theta );
 ///
 ///Poisson generator
 long ignpoi(double mu);
 ///
-int SampleFromDiscrete( double probs[] , int numberofelements);
+int SampleFromDiscrete( const double probs[] , int numberofelements);
 ///
 void gendirichlet(const size_t K, const double alpha[], double theta[] );
 ///

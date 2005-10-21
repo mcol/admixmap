@@ -43,8 +43,8 @@ public:
   void Sample(double* const alpha, double eta, const int* const Counts);
   void Sample1D(double* alpha, double eta, const int* const Counts);
 
-  float getAcceptanceRate();
-  float getStepsize();
+  float getAcceptanceRate()const;
+  float getStepsize()const;
 
 private:
   //dimensions

@@ -57,7 +57,7 @@ void Chromosome::SetLabel( string label )
    _Label = label;
 }
 
-string Chromosome::GetLabel( int )const
+const string Chromosome::GetLabel( int )const
 {
    return _Label;
 }
@@ -78,8 +78,7 @@ void Chromosome::setCoolness(double l, double *Lmod){
 // Returns the number of the num'th compositelocus on this chromosome
 // eg if chromosome 2 consists of compositeloci 5,6,7 and 8,
 // GetLocus(i) returns 5 + i
-int
-Chromosome::GetLocus(int num)const{
+int Chromosome::GetLocus(int num)const{
   return _startLocus + num;
 }
 
@@ -101,7 +100,7 @@ void Chromosome::SetLociCorr(const double rho){
     }
 }
 
-void Chromosome::SetGenotypeProbs(Individual* const ind, bool chibindicator){
+void Chromosome::SetGenotypeProbs(const Individual* const ind, bool chibindicator){
   //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
   int locus = _startLocus;

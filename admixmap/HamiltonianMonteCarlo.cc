@@ -129,12 +129,12 @@ void HamiltonianMonteCarlo::Sample(double* const x, const double* const* args){
   delete[] gnew;  
 }
 
-float HamiltonianMonteCarlo::getAcceptanceRate(){
+float HamiltonianMonteCarlo::getAcceptanceRate()const{
   //return (float)overall_accept_count/(float)totalsamples;
   return Tuner.getExpectedAcceptanceRate();
 }
 
-float HamiltonianMonteCarlo::getStepsize(){
+float HamiltonianMonteCarlo::getStepsize()const{
   return epsilon;
   //return Tuner.getStepsize();
 }

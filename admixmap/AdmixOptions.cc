@@ -556,7 +556,7 @@ const char*AdmixOptions::getLikRatioFilename() const{
   return LikRatioFilename.c_str();
 }
 
-void AdmixOptions::SetOptions(int nargs,char** args)
+void AdmixOptions::SetOptions(int nargs, char** args)
 {
 
   // This is the command-line parsing
@@ -981,7 +981,6 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
     }
   }
 
-
   // **** Hierarchical model on ind admixture ****
   if (!IndAdmixHierIndicator)
     {
@@ -1191,7 +1190,7 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
   return initalpha;
 }
 
-bool AdmixOptions::CheckInitAlpha( vector<double> &alphatemp)
+bool AdmixOptions::CheckInitAlpha( const vector<double> &alphatemp)const
 // check that Dirichlet parameter vector, if specified by user, has correct length
 //returns indicator for admixture as indicated by initalpha   
 {

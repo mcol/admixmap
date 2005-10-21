@@ -17,13 +17,13 @@ public:
   
   void SetSize( unsigned, unsigned );
   void SetPriorEta( double, double );
-  void SetPriorMu( double* );
-  void Sample( unsigned int, double*, double*, double* );
-  void Sample2( unsigned int, double*, double*, double*, int* );
-  double getEtaStepSize();
-  double getEtaExpectedAcceptanceRate();
-  double getMuStepSize();
-  double getMuExpectedAcceptanceRate();
+  void SetPriorMu( const double* const);
+  void Sample( unsigned int, const double* const, double*, double* );
+  void Sample2Sample2(unsigned n, const double* const sumlogtheta, const double* const eta, double *mu, const int* constcounts);
+  double getEtaStepSize()const;
+  double getEtaExpectedAcceptanceRate()const;
+  double getMuStepSize()const;
+  double getMuExpectedAcceptanceRate()const;
   
 private:
   StepSizeTuner TuneEta;
@@ -47,7 +47,7 @@ private:
 
   //MuSampler muSampler;
 
-  void SampleEta(unsigned n, double *sumlogtheta, double *eta, double *mu);
+  void SampleEta(unsigned n, const double* const sumlogtheta, double *eta, const double* const mu);
 
   static double logf( double, const void* const );
   

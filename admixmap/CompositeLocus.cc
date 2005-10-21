@@ -208,7 +208,7 @@ int CompositeLocus::GetNumberOfAllelesOfLocus( int locus )const
  * returns:
  * the name of this composite locus
  */
-string CompositeLocus::GetLabel(int index)const
+const string CompositeLocus::GetLabel(int index)const
 {
    return( Label[index] );
 }
@@ -407,7 +407,7 @@ void CompositeLocus::setBaseMissing(const int *missingLoci, const int numMissing
 }
 
 // updates 2D array MissingAlleles with alleles specified by permMissing
-void CompositeLocus::setMissingAlleles(const int baseMissing[][2], const int numMissingLoci, const int permMissing, int MissingAlleles[][2]) 
+void CompositeLocus::setMissingAlleles(const int baseMissing[][2], int numMissingLoci, int permMissing, int MissingAlleles[][2]) 
 {
   int remainder = permMissing; 
   for( int i = 0; i < numMissingLoci; i++ ) { // loop over loci and gametes to extract alleles by integer division

@@ -35,11 +35,11 @@ class HWTest{
 public:
   HWTest();
 
-  void Initialise(AdmixOptions *options, int nloci, LogWriter *Log);
+  void Initialise(const AdmixOptions* const options, int nloci, LogWriter *Log);
 
-  void Output(Matrix_s locusdata);
+  void Output(const Matrix_s locusdata);
 
-  void Update(IndividualCollection *IC, Chromosome **C, Genome *Loci);
+  void Update(const IndividualCollection* const IC, const Chromosome* const *C, const Genome* const Loci);
 
   ~HWTest();
 

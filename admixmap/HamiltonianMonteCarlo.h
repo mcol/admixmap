@@ -42,8 +42,8 @@ public:
 		     double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
 		     void (*pgradE)(unsigned d, const double* const theta, const double* const *args, double *g));
   //sets dimension, stepsize, number of steps and parameters for density function
-  float getAcceptanceRate();
-  float getStepsize();
+  float getAcceptanceRate()const;
+  float getStepsize()const;
   void Tune();
 
 private:

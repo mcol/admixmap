@@ -40,7 +40,7 @@ double *Individual::PrevB;
 double *Individual::Xcov;
 
 unsigned int Individual::numChromosomes;
-Genome *Individual::Loci;
+const Genome *Individual::Loci;
 int Individual::Populations;
 
 //******** Constructors **********
@@ -48,7 +48,8 @@ Individual::Individual()
 {//should initialise pointers here
 }
 
-Individual::Individual(int number, AdmixOptions* options, InputData *Data, Genome& Loci,Chromosome **chrm)
+Individual::Individual(int number, const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
+		       const Chromosome* const * chrm)
 {
   myNumber = number;
 
@@ -182,7 +183,7 @@ Individual::~Individual()
 }
 
 //********** Allocation and deletion of static objects for score tests
-void Individual::SetStaticMembers(Genome *pLoci, const AdmixOptions* const options){
+void Individual::SetStaticMembers(const Genome* const pLoci, const AdmixOptions* const options){
   Loci = pLoci;
   numChromosomes = Loci->GetNumberOfChromosomes();
   Populations = options->getPopulations();
@@ -238,12 +239,12 @@ void Individual::DeleteStaticMembers(){
 //********** Initialisation of Admixture porportions *********
 
 //should call this initialise not set
-void Individual::setAdmixtureProps(double *a, size_t size)
+void Individual::setAdmixtureProps(const double* const a, size_t size)
 {
   for(unsigned i = 0; i < size; ++i)  Theta[i] = a[i];
 }
 
-void Individual::setAdmixturePropsX(double *a, size_t size)
+void Individual::setAdmixturePropsX(const double* const a, size_t size)
 {
   for(unsigned i = 0; i < size; ++i)  ThetaX[i] = a[i];
 }
@@ -252,20 +253,20 @@ void Individual::HMMIsBad(bool loglikisbad){
   if(loglikisbad)logLikelihood.ready = false;
 }
 //******************** Accessors ***********************************************************
-unsigned short **Individual::getGenotype(unsigned int locus)const{
+const unsigned short* const* Individual::getGenotype(unsigned int locus)const{
   return genotypes[locus];
 }
 
-std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)const{
+const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)const{
   return PossibleHapPairs[locus];
 }
 
-double *Individual::getAdmixtureProps()const
+const double* Individual::getAdmixtureProps()const
 {
   return Theta;
 }
 
-Sex Individual::getSex()const 
+const Sex Individual::getSex()const 
 {
    return sex;
 }
@@ -280,7 +281,7 @@ double Individual::getSumrho()const
    return sumrho;
 }
 
-vector<double> Individual::getRho()const
+const vector<double> Individual::getRho()const
 {
    return _rho;
 }
@@ -297,7 +298,7 @@ int Individual::GetLocusAncestry(int chrm, int gamete, int locus)const{
   return LocusAncestry[chrm][g * Loci->GetSizesOfChromosomes()[chrm]  + locus] ;
 }
 
-int *Individual::getSumLocusAncestry()const{
+const int *Individual::getSumLocusAncestry()const{
   return SumLocusAncestry;
 }
 
@@ -477,7 +478,7 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
 void Individual::SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
 			 const double* const lambda, int NoCovariates,
-			 DataMatrix *Covariates, double **beta, const double *poptheta, const AdmixOptions* const options,
+			 DataMatrix *Covariates, const double* const* beta, const double *poptheta, const AdmixOptions* const options,
 			 Chromosome **chrm, const vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, const vector<double> sigma, 
 			 double DInvLink, double dispersion)

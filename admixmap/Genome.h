@@ -45,9 +45,9 @@ public:
   Genome(int);
   virtual ~Genome();
 
-  std::vector< int > GetChrmAndLocus( int )const;
+  const std::vector< int > GetChrmAndLocus( int )const;
 
-  std::vector<  std::vector< int > >GetChrmAndLocus( )const;
+  const std::vector<  std::vector< int > >GetChrmAndLocus( )const;
 
   bool isX_data()const;
 
@@ -58,7 +58,7 @@ public:
 
   void loadAlleleStatesAndDistances(const AdmixOptions* const options, const InputData* const data_);
 
-  double *GetDistances()const;
+  const double *GetDistances()const;
 
   unsigned int GetNumberOfCompositeLoci()const;
 
@@ -68,7 +68,7 @@ public:
 
   int getNumberOfLoci(int)const;
 
-  unsigned int *GetSizesOfChromosomes()const;
+  const unsigned int *GetSizesOfChromosomes()const;
 
   double GetDistance(int)const;
 

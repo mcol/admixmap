@@ -237,7 +237,7 @@ private:
   AdmixOptions& operator=(const AdmixOptions&);
   
   void SetOutputNames();
-  bool CheckInitAlpha( std::vector<double> &alphatemp);
+  bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
   };
 
 #endif /* ADMIX_OPTIONS_H */

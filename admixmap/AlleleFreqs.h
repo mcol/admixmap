@@ -39,53 +39,48 @@ class AlleleFreqs{
 public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
-  void Initialise(AdmixOptions *options, InputData *Data, LogWriter *Log);
+  void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter *Log);
   void Update(bool afterBurnIn);
 
   //initialize output file for samples of dispersion parameters
-  void InitializeEtaOutputFile(AdmixOptions *options, std::string *PopulationLabels, LogWriter *Log);
+  void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter *Log);
 
   //outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
   //output samples of dispersion parameters (eta) to dispparamfile
   void OutputEta(int iteration, AdmixOptions *options, LogWriter *Log);
 
-  Genome *getLoci();
-  CompositeLocus *getLocus(int);
-
-  int GetNumberOfCompositeLoci();
-
   void OutputAlleleFreqs();
-  void CloseOutputFile(int iterations, string* PopulationLabels);
+  void CloseOutputFile(int iterations, const string* const PopulationLabels);
 
   void OutputFST();
 
-  void LoadAlleleFreqs(AdmixOptions *options, InputData *data);
+  void LoadAlleleFreqs(AdmixOptions* const options, InputData* const data);
 
   void ResetAlleleCounts();//resets Allelecounts to zero at start of iteration
   bool IsRandom()const;
   void UpdateFst();
-  double *GetStatsForEta( int , int locus);
-  double GetAlleleProbsMAP( int x, int ancestry , int locus);
+  const double *GetStatsForEta( int , int locus)const;
+  double GetAlleleProbsMAP( int x, int ancestry , int locus)const;
   std::vector<double> GetPriorAlleleFreqs( int locus, int population )const;
-  std::vector<int> GetAlleleCounts( int locus, int population );
+  std::vector<int> GetAlleleCounts( int locus, int population )const;
   std::vector<double> getAlleleFreqsMAP( int locus, int population )const;
-  std::vector<double> GetAlleleFreqs( int locus, int population );
-  double *GetAlleleFreqs(int locus);
-  double **GetAlleleFreqs();
-  int *GetAlleleCounts(int locus);
+  std::vector<double> GetAlleleFreqs( int locus, int population )const;
+  const double *GetAlleleFreqs(int locus)const;
+  const double* const* GetAlleleFreqs()const;
+  const int *GetAlleleCounts(int locus)const;
   
-  void UpdateAlleleCounts(int locus, int h[2], int ancestry[2], bool diploid );
+  void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
 
-  float getEtaRWSamplerAcceptanceRate(int k);
-  float getEtaRWSamplerStepsize(int k); 
+  float getEtaRWSamplerAcceptanceRate(int k)const;
+  float getEtaRWSamplerStepsize(int k)const; 
 
-  float getAlphaSamplerAcceptanceRate(int);
-  float getAlphaSamplerStepsize(int);
-  float getEtaSamplerAcceptanceRate(int);
-  float getEtaSamplerStepsize(int);
+  float getAlphaSamplerAcceptanceRate(int)const;
+  float getAlphaSamplerStepsize(int)const;
+  float getEtaSamplerAcceptanceRate(int)const;
+  float getEtaSamplerStepsize(int)const;
 
 private:
   int Populations, NumberOfCompositeLoci;
@@ -134,9 +129,9 @@ private:
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
-  void OpenFSTFile(AdmixOptions *options,LogWriter *Log); 
+  void OpenFSTFile(const AdmixOptions* const options, LogWriter *Log); 
 
-  void LoadAlleleFreqs(DataMatrix NewFreqs, int i, bool);
+  void LoadAlleleFreqs(const DataMatrix NewFreqs, int i, bool);
   void SetDefaultAlleleFreqs(int Pops);
 
   void SamplePriorAlleleFreqs1D( int );
@@ -146,7 +141,7 @@ private:
   void UpdatePriorAlleleFreqs( int, const std::vector<std::vector<double> >& );
   void SampleEtaWithRandomWalk(int k, bool updateSumEta);
 
-  void OpenOutputFile(AdmixOptions *options);
+  void OpenOutputFile(const AdmixOptions* const options);
 
   static double muEnergyFunction(unsigned K, const double * const alpha, const double* const *args);
   static void muGradient(unsigned K, const double * const alpha, const double* const *args, double *g);

@@ -63,45 +63,44 @@ class IndividualCollection;
 class Latent
 {
 public:
-  Latent( AdmixOptions* ,Genome*,LogWriter *);
+  Latent( AdmixOptions*, const Genome* const, LogWriter *);
   
   ~Latent();
   
-  void Initialise(int Numindividuals,
-		  std::string *PopulationLabels);  
+  void Initialise(int Numindividuals, const std::string* const PopulationLabels);  
   
-  void  InitializeOutputFile(std::string *);
+  void  InitializeOutputFile(const std::string* const);
   
   //Updating every iteration
-  void UpdateRhoWithRW(IndividualCollection *IC, Chromosome **C, double LogL);
-  void Update(int iteration,IndividualCollection *);
+  void UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C, double LogL);
+  void Update(int iteration, const IndividualCollection* const);
   
   void OutputParams(int iteration); 
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
   
-  std::vector<double> &getalpha0();
-  std::vector<std::vector<double> > &getalpha();
-  double getrhoalpha();
-  double getrhobeta();
-  double getrho();
-  double getSumLogRho();
-  const double *getpoptheta();
+  const std::vector<double> &getalpha0()const;
+  const std::vector<std::vector<double> > &getalpha()const;
+  double getrhoalpha()const;
+  double getrhobeta()const;
+  double getrho()const;
+  double getSumLogRho()const;
+  const double *getpoptheta()const;
   
 #if POPADMIXSAMPLER == 2 
-  float getEtaSamplerAcceptanceRate();
-  float getEtaSamplerStepsize();
-  float getMuSamplerAcceptanceRate();
-  float getMuSamplerStepsize();
+  float getEtaSamplerAcceptanceRate()const;
+  float getEtaSamplerStepsize()const;
+  float getMuSamplerAcceptanceRate()const;
+  float getMuSamplerStepsize()const;
 #endif
   
   //#if POPADMIXSAMPLER == 3 
-  float getAlphaSamplerAcceptanceRate();
-  float getAlphaSamplerStepsize();
+  float getAlphaSamplerAcceptanceRate()const;
+  float getAlphaSamplerStepsize()const;
   //#endif
   
-  double getRhoSamplerAccRate();
-  double getRhoSamplerStepsize();
+  double getRhoSamplerAccRate()const;
+  double getRhoSamplerStepsize()const;
   
 private:
   
@@ -154,7 +153,7 @@ private:
   std::ofstream outputstream;//output to paramfile
 
   AdmixOptions *options;
-  Genome* Loci; 
+  const Genome* Loci; 
   LogWriter *Log; 
 
 // these methods are 'private static'

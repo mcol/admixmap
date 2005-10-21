@@ -29,7 +29,7 @@ HWTest::~HWTest(){
 }
 
 //void HWTest::Initialise(AdmixOptions *options, int nind, int nloci, LogWriter *Log){
-void HWTest::Initialise(AdmixOptions *options, int nloci, LogWriter *Log){
+void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter *Log){
 
   //NumInd = nind;
   NumLoci = nloci;
@@ -66,11 +66,11 @@ void HWTest::Initialise(AdmixOptions *options, int nloci, LogWriter *Log){
   }
 }    
 
-void HWTest::Update(IndividualCollection *IC, Chromosome **C, Genome *Loci){
+void HWTest::Update(const IndividualCollection* const IC, const Chromosome* const* C, const Genome* const Loci){
   double H;
   bool h;
   int locus = 0, complocus = 0, Ancestry0, Ancestry1;
-  unsigned short **genotype = 0;
+  const unsigned short* const* genotype = 0;
   Individual *ind = 0;
   double **Prob0 = 0, **Prob1 = 0;
 
@@ -145,7 +145,7 @@ void HWTest::Update(IndividualCollection *IC, Chromosome **C, Genome *Loci){
   ++samples;
 }
 
-void HWTest::Output(Matrix_s LocusData){
+void HWTest::Output(const Matrix_s LocusData){
   //header line
   outputfile <<"Locus Score CompleteInfo MissingInfo ObservedInfo \%Info z-score p-value"<<endl;
 

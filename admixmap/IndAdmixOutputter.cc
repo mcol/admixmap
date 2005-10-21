@@ -2,7 +2,7 @@
 
 using namespace std;
 
-IndAdmixOutputter::IndAdmixOutputter(AdmixOptions* options,Genome* Loci,string* PopulationLabels)
+IndAdmixOutputter::IndAdmixOutputter(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels)
 {
   _options           = options;
   _Loci              = Loci;
@@ -89,7 +89,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
   _out.close();
 }
 
-void IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusfortest, double LogLikelihood)
+void IndAdmixOutputter::visitIndividual(const Individual& ind, const vector<int> _locusfortest, double LogLikelihood)
 {
   for( int k = 0; k < _options->getPopulations(); k++ ){
      if(_options->isRandomMatingModel()){
@@ -114,7 +114,7 @@ void IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusforte
   if (_options->getLocusForTestIndicator()){
     int ancestry[2];
     ind.GetLocusAncestry( _locusfortest[0], _locusfortest[1], ancestry );
-     unsigned short **genotype = ind.getGenotype(_options->getLocusForTest());
+     const unsigned short* const* genotype = ind.getGenotype(_options->getLocusForTest());
      if(_options->getPopulations() > 1 ){
         _out << ancestry[0] << "," << ancestry[1] << ",";
      }
@@ -134,7 +134,7 @@ void IndAdmixOutputter::visitIndividual(Individual& ind, vector<int> _locusforte
   _currentIndividual++;
 }
 
-void IndAdmixOutputter::visitIndividualCollection(IndividualCollection& i)
+void IndAdmixOutputter::visitIndividualCollection(const IndividualCollection& i)
 {
   _iterations++;
   _totalIndividuals = i.getSize();

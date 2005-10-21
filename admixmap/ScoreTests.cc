@@ -97,12 +97,13 @@ ScoreTests::~ScoreTests(){
   delete[] locusObsIndicator;
 }
 
-void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Genome *Loci, Chromosome **c,std::string *PLabels,
+void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv,const Genome* const Loci, 
+			    const Chromosome* const* c, const std::string *PLabels,
 			    LogWriter *log){
   options = op;
   individuals = indiv;
   chrm = c;
-  Lociptr=Loci;
+  Lociptr = Loci;
   Logptr = log;
 
   int K = options->getPopulations();
@@ -299,7 +300,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
       }
     }
     else {
-      options->setTestForSNPsInHaplotype(false);
+      op->setTestForSNPsInHaplotype(false);
       Logptr->logmsg(true, "ERROR: Cannot test for haplotype associations if all loci are simple\n");
       Logptr->logmsg(true, "This option will be ignored\n");
     }
@@ -309,7 +310,7 @@ void ScoreTests::Initialise(AdmixOptions * op, IndividualCollection *indiv, Geno
 }
 
 //Initialise ergodic average score file
-void ScoreTests::InitialiseAssocScoreFile(std::string *PLabels){
+void ScoreTests::InitialiseAssocScoreFile(const std::string *PLabels){
   if( options->getTestForAdmixtureAssociation() ){
     PopLabels = PLabels;
     assocscorestream << "Ergodic averages of score statistic for populations:\n";
@@ -350,7 +351,7 @@ void ScoreTests::Reset(){
   }
 }
 
-void ScoreTests::SetAllelicAssociationTest(std::vector<double> &alpha0){
+void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
   /*
   Invokes merging of haplotypes in CompositeLocus and resizes arrays for allelic association test accordingly  
   alpha0 = alpha[0], pop admixture dirichlet params, from Latent
@@ -482,7 +483,7 @@ void ScoreTests::Update(double dispersion)
   }
 }
 
-void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinusEY, double phi, double DInvLink)
+void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, double YMinusEY, double phi, double DInvLink)
 {
   int locus = 0;
   int K = options->getPopulations();
@@ -544,7 +545,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( Individual* ind,double YMinus
   }
 }
 
-void ScoreTests::UpdateScoreForAdmixtureAssociation( double  *Theta, double YMinusEY, double phi, double DInvLink)
+void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY, double phi, double DInvLink)
 {
   //Updates score and info for score test for admixture association
   double x;
@@ -560,7 +561,8 @@ void ScoreTests::UpdateScoreForAdmixtureAssociation( double  *Theta, double YMin
 }
 
 // This method calculates score for allelic association at each simple locus within a compound locus
-void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int j, double YMinusEY,double phi, double DInvLink)
+void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int j, double YMinusEY, 
+							   double phi, double DInvLink)
 {
   int K = options->getPopulations();
   double x[ K + 1 ];
@@ -602,7 +604,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int 
  * should be generalized to deal with multi-allelic loci
  */
 
-int ScoreTests::GetAllele2CountsInHaplotype(int locus, unsigned short **genotype)
+int ScoreTests::GetAllele2CountsInHaplotype(int locus, const unsigned short* const* genotype)const
 {
   /**
    * AlleleCounts is the number of 2 alleles at a
@@ -647,7 +649,7 @@ void ScoreTests::SumScoreForWithinHaplotypeAssociation()
   delete[] info;
 }
 
-void ScoreTests::Output(int iteration,std::string * PLabels){
+void ScoreTests::Output(int iteration, const std::string * PLabels){
   PopLabels = PLabels;
   //Allelic association
   if( options->getTestForAllelicAssociation() ){
@@ -803,8 +805,8 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
 }
 
 void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
-					     double* Score, double* VarScore,
-					     double* Score2, double* Info )
+					     const double* Score, const double* VarScore,
+					     const double* Score2, const double* Info )
 //used for affectedsonly test and ancestry association test
 //Score2 = Score^2
 {
@@ -952,8 +954,7 @@ void ScoreTests::ROutput(){
   }
 }
 
-void
-ScoreTests::R_output3DarrayDimensions(ofstream* stream,vector<int> dim,vector<string> labels)
+void ScoreTests::R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels)
 {
   *stream << ")," << endl;
   *stream << ".Dim = c(";
@@ -975,8 +976,7 @@ ScoreTests::R_output3DarrayDimensions(ofstream* stream,vector<int> dim,vector<st
 
 
 }
-string
-ScoreTests::double2R( double x )
+string ScoreTests::double2R( double x )
 {
   if( isnan(x) )
     return "NaN";

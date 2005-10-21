@@ -31,15 +31,16 @@ class ScoreTests{
 public:
   ScoreTests();
 
-  void Initialise(AdmixOptions *,IndividualCollection *,Genome *,Chromosome **,std::string *, LogWriter *);
+  void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
+		  const Chromosome* const*, const std::string *, LogWriter *);
 
-  void InitialiseAssocScoreFile(std::string *);
+  void InitialiseAssocScoreFile(const std::string *);
 
-  void Output(int,std::string *);
+  void Output(int, const std::string *);
 
   void ROutput();
 
-  void SetAllelicAssociationTest(std::vector<double> &alpha0);
+  void SetAllelicAssociationTest(const std::vector<double> &alpha0);
 
   void Update(double);
 
@@ -81,19 +82,19 @@ private:
   std::ofstream * SNPsAssociationScoreStream;
   std::ofstream * affectedsOnlyScoreStream;
   std::ofstream genescorestream;
-  std::string *PopLabels;
+  const std::string *PopLabels;
 
-  AdmixOptions *options;
-  IndividualCollection *individuals;
-  Genome* Lociptr;//Pointer to Loci member of Latent
-  Chromosome** chrm;//Copy of pointer to array of chromosomes
+  const AdmixOptions *options;
+  const IndividualCollection *individuals;
+  const Genome* Lociptr;//Pointer to Loci member of Latent
+  const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
 
   LogWriter *Logptr;
 //OUTPUT
   
   void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
-			      double* Score, double* VarScore,
-			      double* Score2, double* Info );
+			      const double* Score, const double* VarScore,
+			      const double* Score2, const double* Info );
 
   void OutputTestsForAllelicAssociation( int );
   
@@ -101,22 +102,17 @@ private:
   
   void OutputAdmixtureScoreTest( int );
 
-  void UpdateScoreForWithinHaplotypeAssociation( Individual *ind, int locus, double p,double phi, double DInvLink);
-  int GetAllele2CountsInHaplotype(int locus, unsigned short **genotype);
+  void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int locus, double p,double phi, double DInvLink);
+  int GetAllele2CountsInHaplotype(int locus, const unsigned short* const* genotype)const;
   void SumScoreForWithinHaplotypeAssociation();
 
-  void UpdateScoreForLinkageAffectedsOnly( Individual*);
-  
-  void UpdateScoreForAllelicAssociation( Individual*, double,double, double);
+  void UpdateScoreForAllelicAssociation( const Individual* const , double, double, double);
 
-  //void UpdateScoreForAncestryOld( Individual* ind, double Y, int regressonindicator, double EY, double lambda0);
-
-  void UpdateScoreForAdmixtureAssociation( double *Theta, double YMinusEY,double phi, double DInvLink);
+  void UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY,double phi, double DInvLink);
 
   static std::string double2R( double );
 
-  static void 
-  R_output3DarrayDimensions(std::ofstream* stream,std::vector<int> dim,std::vector<std::string> labels);    
+  static void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);    
 
   void Reset();
 

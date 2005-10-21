@@ -36,7 +36,7 @@ public:
   void ResetStuffForX();
   ~Chromosome();
   void SetLabel(std::string );
-  std::string GetLabel( int )const;
+  const std::string GetLabel( int )const;
   int GetLocus(int)const;
   unsigned int GetSize()const;
   void isDiploid(bool b){Diploid = b;};
@@ -48,7 +48,7 @@ public:
   static void setCoolness(double, double *);
 
   void SetGenotypeProbs(double *Probs);
-  void SetGenotypeProbs(Individual* const ind, bool chibindicator);
+  void SetGenotypeProbs(const Individual* const ind, bool chibindicator);
   void UpdateHMMForwardProbs(const double* const Admixture, const AdmixOptions* const options,  
 			     const std::vector< double > _rho, bool diploid, bool annealindicator);
   void UpdateHMMBackwardProbs(const double* const hapAdmixture);  //call only after a call to UpdateHMMForwardProbs

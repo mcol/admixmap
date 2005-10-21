@@ -473,7 +473,7 @@ Sex InputData::GetSexValue(int i)const{
     return (Sex) sex;
 }
 
-void InputData::GetGenotype(int i, int SexColumn, Genome &Loci, unsigned short ****genotype)const{
+void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, unsigned short ****genotype)const{
   unsigned int lociI = 0;
   
   *genotype = new unsigned short **[Loci.GetNumberOfCompositeLoci()];

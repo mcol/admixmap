@@ -322,7 +322,7 @@ void Regression::SumParameters(){
         SumBeta[j] += beta[j];
   SumLambda += lambda;
 }
-double *Regression::getbeta()const{
+const double* const Regression::getbeta()const{
   if(beta)//in case beta not allocated (happens if no regression model); may be unnecessary if beta initialised to 0
     return beta;
   else return NULL;
@@ -445,7 +445,7 @@ double Regression::getDispersion()const{
   return dispersion;
 }
 
-double Regression::getLogLikelihood(IndividualCollection *IC)const{
+double Regression::getLogLikelihood(const IndividualCollection* const IC)const{
   int NumIndividuals = IC->getSize();
   double dev[NumIndividuals];
   double devsq[1];
@@ -476,7 +476,8 @@ double Regression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, in
     }
     matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);//precision has form lambda * I so
     //quadratic form in density is lambda * dev' * dev
-    logL = -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(lambda) + lambda*devsq[0]);
+    logL = -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(SumLambda/(double)iterations) + 
+		  (SumLambda/ (double)iterations)*devsq[0]);
   }
   else if(RegType == Logistic){
     //loglikelihood is sum of logs of bernoulli probabilities, given by EY

@@ -59,7 +59,7 @@ public:
 
   int GetNumberOfLoci()const;
   int GetNumberOfStates()const;
-  std::string GetLabel(int)const;
+  const std::string GetLabel(int)const;
   int GetNumberOfAllelesOfLocus( int )const;
   void getLocusAlleleProbs(double **P, int k)const;
 
@@ -98,7 +98,7 @@ private:
   void intToBits(int n, const int length, bool *bits) ;
   void setBaseForHapCode();
   void setBaseMissing(const int *missingLoci, const int numMissingLoci, int baseMissing[][2]);
-  void setMissingAlleles(const int baseMissing[][2], const int numMissingLoci, const int permMissing, int MissingAlleles[][2]) ;
+  void setMissingAlleles(const int baseMissing[][2], int numMissingLoci, int permMissing, int MissingAlleles[][2]) ;
   int codeHapAllelesAsInt(const int *hapAlleles);
   void codeHapAllelesPairAsIntPair(const int HapAllelesPair[][2], int *hpair);
   void permuteHetLoci(const bool *isHet, const int numHetLoci, const int permHet, 

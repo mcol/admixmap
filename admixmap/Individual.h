@@ -39,35 +39,36 @@ class Individual
 public:
   Individual();
 
-  Individual(int i, AdmixOptions*, InputData *Data, Genome&, Chromosome **);
+  Individual(int number, const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
+		       const Chromosome* const * chrm);
  
   ~Individual();
 
   void HMMIsBad(bool loglikisbad);
 
-  static void SetStaticMembers(Genome *pLoci, const AdmixOptions* const options);
+  static void SetStaticMembers(const Genome* const pLoci, const AdmixOptions* const options);
 
   static void DeleteStaticMembers();
 
-  Sex getSex()const ;
+  const Sex getSex()const ;
 
-  double *getAdmixtureProps()const;
+  const double* getAdmixtureProps()const;
 
-  void setAdmixtureProps(double *, size_t);
+  void setAdmixtureProps(const double* const, size_t);
   
-  void setAdmixturePropsX(double *, size_t);
+  void setAdmixturePropsX(const double* const, size_t);
   
-  unsigned short **getGenotype(unsigned int locus)const;
+  const unsigned short* const* getGenotype(unsigned int locus)const;
 
-  std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
+  const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
 
   bool IsMissing(unsigned int locus)const;
 
   double getSumrho()const;
 
-  std::vector<double> getRho()const;
+  const std::vector<double> getRho()const;
 
-  int *getSumLocusAncestry()const;
+  const int *getSumLocusAncestry()const;
 
   double getLogLikelihood(const AdmixOptions* const , Chromosome**, bool annealindicator);
   double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm);
@@ -87,7 +88,7 @@ public:
   void SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
 			 const double* const lambda, int NoCovariates,
-			 DataMatrix *Covariates, double **beta, const double *poptheta, const AdmixOptions* const options,
+			 DataMatrix *Covariates, const double* const* beta, const double *poptheta, const AdmixOptions* const options,
 			 Chromosome **chrm, const vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, const vector<double> sigma, 
 			 double DInvLink, double dispersion);
@@ -125,7 +126,7 @@ private:
 
   static unsigned int numChromosomes;
   static int Populations;
-  static Genome *Loci;
+  static const Genome *Loci;
   double *Theta, *ThetaX;//admixture proportions
   double *SumSoftmaxTheta;
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions

@@ -40,10 +40,10 @@ public:
   
   void SetParameters(double sigma0, double min, double max, double target);
     
-  double GetSigma();//returns log step size
+  double GetSigma()const;//returns log step size
   double UpdateStepSize(double AcceptanceProb);// returns step size after updating from current acceptance prob
-  double getStepSize(); 
-  double getExpectedAcceptanceRate();
+  double getStepSize()const; 
+  double getExpectedAcceptanceRate()const;
 
 private:
   double sigma0; // Initial value of stepsize.

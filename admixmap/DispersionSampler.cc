@@ -95,10 +95,10 @@ double DispersionSampler::Sample(){
   return exp(logeta[0]);
 }
 
-float DispersionSampler::getAcceptanceRate(){
+float DispersionSampler::getAcceptanceRate()const{
   return Sampler.getAcceptanceRate();
 }
-float DispersionSampler::getStepsize(){
+float DispersionSampler::getStepsize()const{
   return Sampler.getStepsize();
 }
 double DispersionSampler::etaEnergyFunction(unsigned , const double * const logeta, const double* const *args){

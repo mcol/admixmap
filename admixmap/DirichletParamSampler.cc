@@ -61,7 +61,7 @@ void DirichletParamSampler::SetPriorEta( double inEtaAlpha, double inEtaBeta )
    EtaBeta = inEtaBeta;
 }
 
-void DirichletParamSampler::SetPriorMu( double *ingamma )
+void DirichletParamSampler::SetPriorMu( const double* const ingamma )
 {
    for( unsigned int i = 0; i < d; i++ ){
       gamma[i] = ingamma[i];
@@ -69,7 +69,7 @@ void DirichletParamSampler::SetPriorMu( double *ingamma )
 }
 
 //sample mus with adaptive rejection sampler, conditional on frequencies sumlogtheta, and eta with RW
-void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double *eta, double *mu )
+void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogtheta, double *eta, double *mu )
 /*
   n = number of observations
 */
@@ -97,14 +97,15 @@ void DirichletParamSampler::Sample( unsigned int n, double *sumlogtheta, double 
 }
 
 // //sample mu with MuSampler (ARS for dim==2, HMC otherwise), conditional on counts, and eta with RW
-// void DirichletParamSampler::Sample2(unsigned n, double *sumlogtheta, double *eta, double *mu, int *counts){
+// void DirichletParamSampler::Sample2(unsigned n, const double* const sumlogtheta, const double* const eta, double *mu,
+//const int* constcounts){
 //   for(unsigned k=0; k < d; ++k)mu[k] *= *eta;
 //   muSampler.Sample(mu, *eta, counts);
 //   for(unsigned k=0; k < d; ++k)mu[k] /= *eta;
 //   SampleEta(n, sumlogtheta, eta, mu);
 // }
 
-void DirichletParamSampler::SampleEta(unsigned n, double *sumlogtheta, double *eta, double *mu){
+void DirichletParamSampler::SampleEta(unsigned n, const double* const sumlogtheta, double *eta, const double* const mu){
   // Dirichlet dispersion parameter eta is updated with a Metropolis random walk
   unsigned int i;
   double L1=0, P1=0, Proposal1=0;
@@ -129,12 +130,12 @@ void DirichletParamSampler::SampleEta(unsigned n, double *sumlogtheta, double *e
   step = TuneEta.UpdateStepSize( exp(LogAccProb) );
 }
 
-double DirichletParamSampler::getEtaStepSize()
+double DirichletParamSampler::getEtaStepSize()const
 {
     return TuneEta.getStepSize();
 }
 
-double DirichletParamSampler::getEtaExpectedAcceptanceRate()
+double DirichletParamSampler::getEtaExpectedAcceptanceRate()const
 {
     return TuneEta.getExpectedAcceptanceRate();
 }

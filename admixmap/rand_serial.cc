@@ -60,7 +60,7 @@ unsigned int genpoi( double mu )
    return( gsl_ran_poisson( RandomNumberGenerator, mu ) );
 }
 
-std::vector<int> genmultinomial2(int N, std::vector<double> theta)
+std::vector<int> genmultinomial2(int N, const std::vector<double> theta)
 {
   int K = (int)theta.size();
   unsigned int n[ K ];
@@ -76,7 +76,7 @@ std::vector<int> genmultinomial2(int N, std::vector<double> theta)
   return( sample );
 }
 
-double MultinomialLikelihood( std::vector<int> r, std::vector<double> theta )
+double MultinomialLikelihood( const std::vector<int> r, const std::vector<double> theta )
 {
    if( r.size() != theta.size() ){
       cout << "Length of vector arguments to MultinomialLikelihood not equal." << endl;
@@ -97,7 +97,7 @@ long ignpoi( double mu )
    return( gsl_ran_poisson( RandomNumberGenerator, mu ) );
 }
 
-int SampleFromDiscrete( double probs[] , int numberofelements)
+int SampleFromDiscrete( const double probs[] , int numberofelements)
 {
    double cdf[ numberofelements ];
    cdf[0] = probs[0];

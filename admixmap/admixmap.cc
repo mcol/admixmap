@@ -28,9 +28,9 @@
 
 using namespace std;
 
-int ReadArgsFromFile(char* filename,int* xargc,char **xargv);
-void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *individuals, LogWriter *Log, std::ofstream *avgstream, 
-			      std::string *PopulationLabels);
+int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
+void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
+			      LogWriter *Log, std::ofstream *avgstream, const string* const PopulationLabels);
 void ProcessingTime(LogWriter*, long);
 
 void PrintCopyrightNotice(){
@@ -120,7 +120,7 @@ void submain(AdmixOptions* options){
     std::ofstream avgstream; //output to ErgodicAverageFile
    
     if( options->getTestForDispersion() ){
-      DispTest.Initialise(options,&Log, A.GetNumberOfCompositeLoci());    
+      DispTest.Initialise(options,&Log, Loci.GetNumberOfCompositeLoci());    
     }
     if( options->getStratificationTest() )
       StratTest.Initialize( options, Loci, chrm, IC, &Log);
@@ -193,7 +193,7 @@ void submain(AdmixOptions* options){
 		   &Log, anneal);
 	//if((iteration %2)){
 	//L.Update(iteration, IC);//update pop admix params conditional on sums of ancestry states with jump indicators==1
-	//IC->ConjugateUpdateIndAdmixture(iteration, &R0, &R1, L.getpoptheta(),options, chrm, L.getalpha());//conjugate update of theta
+	//IC->ConjugateUpdateIndAdmixture(iteration, R, L.getpoptheta(),options, chrm, L.getalpha());//conjugate update of theta
 	//       }
 	
 	// ** update allele frequencies
@@ -208,7 +208,7 @@ void submain(AdmixOptions* options){
 	if( !anneal && iteration > options->getBurnIn() ){
 	  if( options->getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
 	  if( options->getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
-								    options->getPopulations());
+	  						    options->getPopulations());
 	}  
 	
 	L.Update(iteration, IC);
@@ -290,6 +290,12 @@ void submain(AdmixOptions* options){
     }//end annealing loop
 
     // ** output at end
+    if( options->getMLIndicator() ){
+      //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
+      IC->OutputChibEstimates(&Log, options->getPopulations());
+    }
+    IC->OutputDeviance(options, chrm, R, &Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
+
     //FST
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
       A.OutputFST();
@@ -311,12 +317,6 @@ void submain(AdmixOptions* options){
     if(options->getTestForAffectedsOnly())
       Individual::OutputLikRatios(options->getLikRatioFilename(), options->getTotalSamples()-options->getBurnIn(), data.GetPopLabels());
     
-    if( options->getMLIndicator() ){
-      //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
-      IC->OutputChibEstimates(&Log, options->getPopulations());
-    }
-    IC->OutputDeviance(options, chrm, R, &Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
-
     if(annealstream.is_open())annealstream.close();
     if(avgstream.is_open())avgstream.close();
  }//end else
@@ -420,7 +420,7 @@ int main( int argc , char** argv ){
   return 0;
 }//end of main
 
-int ReadArgsFromFile(char* filename,int* xargc,char **xargv){
+int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
   int  _maxLineLength=1024;
   ifstream fin(filename);
   std::string str;
@@ -451,8 +451,8 @@ int ReadArgsFromFile(char* filename,int* xargc,char **xargv){
 //this function is here because three different objects have to write to avgstream
 // for compatibility with parallelization, should rearrange output so that each object (L, R, A) writes one file 
 // containing draws and ergodic averages for the parameters that it updates
-void InitializeErgodicAvgFile(AdmixOptions *options, IndividualCollection *individuals, LogWriter *Log, std::ofstream *avgstream,
-			      std::string *PopulationLabels){
+void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
+			      LogWriter *Log, std::ofstream *avgstream, const std::string* const PopulationLabels){
   //Open ErgodicAverageFile  
   if ( strlen( options->getErgodicAverageFilename() ) )
     {

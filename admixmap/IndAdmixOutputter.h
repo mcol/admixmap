@@ -17,18 +17,18 @@ class Individual;
 class IndAdmixOutputter 
 {
 public:
-  IndAdmixOutputter(AdmixOptions*,Genome*,std::string*);
+  IndAdmixOutputter(const AdmixOptions* const, const Genome* const, const std::string* const);
   virtual ~IndAdmixOutputter();
-  void visitIndividual(Individual&, std::vector<int>,double);
-  void visitIndividualCollection(IndividualCollection&);
+  void visitIndividual(const Individual&, const std::vector<int>, double);
+  void visitIndividualCollection(const IndividualCollection&);
 
 
 private: 
   std::ofstream _out;
 
-  AdmixOptions* _options;
-  Genome* _Loci;
-  std::string* _PopulationLabels;
+  const AdmixOptions* _options;
+  const Genome* _Loci;
+  const std::string* _PopulationLabels;
 
   int _iterations;
   int _totalIndividuals;

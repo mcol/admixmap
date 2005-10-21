@@ -36,7 +36,8 @@ IndividualCollection::IndividualCollection()
   SumDeviance = SumDevianceSq = 0.0;
 }
 
-IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data, Genome& Loci, Chromosome **chrm)
+IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
+					   const Chromosome* const* chrm)
 {
   OutcomeType = 0;
   NumOutcomes = 0;
@@ -59,7 +60,7 @@ IndividualCollection::IndividualCollection(AdmixOptions* options,InputData *Data
   Individual::SetStaticMembers(&Loci, options);
     // Fill separate individuals.
   for (unsigned int i = 0; i < NumInd; ++i) {
-    _child[i] = new Individual(i+1,options, Data, Loci, chrm);
+    _child[i] = new Individual(i+1, options, Data, Loci, chrm);
     }
 }
 
@@ -81,14 +82,14 @@ IndividualCollection::~IndividualCollection()
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 
-void IndividualCollection::Initialise(AdmixOptions *options, Genome *Loci, std::string *PopulationLabels,
+void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
 				      double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix){
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
     Log->logmsg(true,"Writing individual-level parameters to ");
     Log->logmsg(true,options->getIndAdmixtureFilename());
     Log->logmsg(true,"\n");
-    indadmixoutput = new IndAdmixOutputter(options,Loci,PopulationLabels);
+    indadmixoutput = new IndAdmixOutputter(options, Loci, PopulationLabels);
   }
   else {
     Log->logmsg(true,"No indadmixturefile given\n");
@@ -303,14 +304,14 @@ void IndividualCollection::getLabels(const Vector_s& data, string *labels)
     labels[index++] = data[i];
   }
 }
-void IndividualCollection::setAdmixtureProps(double *a, size_t size)
+void IndividualCollection::setAdmixtureProps(const double* const a, size_t size)
 {
-  for(unsigned int i=0; i<NumInd; i++){
+  for(unsigned int i = 0; i < NumInd; i++){
     _child[i]->setAdmixtureProps(a, size);
   }
 }
 
-void IndividualCollection::setAdmixturePropsX(double *a, size_t size)
+void IndividualCollection::setAdmixturePropsX(const double* const a, size_t size)
 {
   for(unsigned int i = 0; i < NumInd; i++){
     _child[i]->setAdmixturePropsX(a, size);
@@ -324,7 +325,7 @@ void IndividualCollection::SetExpectedY(int k, const double* const beta){
     }
 }
 
-void IndividualCollection::calculateExpectedY( int k)
+void IndividualCollection::calculateExpectedY(int k)
 {
   if(ExpectedY)
     for(unsigned int i = 0; i < NumInd; i++ )
@@ -340,7 +341,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   double lambda[options->getNumberOfOutcomes()];
-  double *beta[options->getNumberOfOutcomes()];
+  const double* beta[options->getNumberOfOutcomes()];
   for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
     lambda[i] = R[i].getlambda();
     beta[i] = R[i].getbeta();
@@ -357,8 +358,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(i),
-				  R[0].getDispersion()
-				  );
+				  R[0].getDispersion() );
       if((iteration %2))//conjugate update of theta on even-numbered iterations
  	_child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
  			      & Covariates, beta, poptheta, options, alpha, sigma,
@@ -389,17 +389,22 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 
 }
 
-void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, Regression *R0, Regression *R1, const double *poptheta, 
-						       AdmixOptions *options, Chromosome **chrm, vector<vector<double> > &alpha){
+void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
+						       const AdmixOptions* const options, Chromosome **chrm, 
+						       const vector<vector<double> > &alpha){
   if( options->getPopulations() > 1 ){
-    double lambda[] = {R0->getlambda(), R1->getlambda()};
-    double *beta[] = {R0->getbeta(), R1->getbeta()};
+    double lambda[options->getNumberOfOutcomes()];
+    const double* beta[options->getNumberOfOutcomes()];
+    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+      lambda[i] = R[i].getlambda();
+      beta[i] = R[i].getbeta();
+    }
 
     for(unsigned int i = 0; i < NumInd; i++ )
       _child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
 			    &Covariates, beta, poptheta, options, alpha, sigma,
 			     DerivativeInverseLinkFunction(i), 
-			     R0->getDispersion(), false);
+			     R[0].getDispersion(), false);
   }
 }
 
@@ -433,7 +438,7 @@ DataType IndividualCollection::getOutcomeType(int i)const{
   return OutcomeType[i];
 }
 
-Individual* IndividualCollection::getIndividual(int num)
+Individual* IndividualCollection::getIndividual(int num)const
 {
   if (num < (int)NumInd){
     return _child[num];
@@ -453,10 +458,10 @@ const double* IndividualCollection::getCovariates()const{
   return Covariates.getData();
 }
 
-std::string IndividualCollection::getCovariateLabels(int i)const{
+const std::string IndividualCollection::getCovariateLabels(int i)const{
   return CovariateLabels[i];
   }
-std::string *IndividualCollection::getCovariateLabels()const{
+const std::string *IndividualCollection::getCovariateLabels()const{
   return CovariateLabels;
   }
 
@@ -469,7 +474,7 @@ double IndividualCollection::getExpectedY(int i)const{
 double IndividualCollection::getSumLogTheta(int i)const{
   return SumLogTheta[i];
 }
-double *IndividualCollection::getSumLogTheta()const{
+const double* IndividualCollection::getSumLogTheta()const{
   return SumLogTheta;
 }
 // ************** OUTPUT **************
@@ -552,7 +557,7 @@ void IndividualCollection::OutputErgodicAvg(int samples, bool ML, std::ofstream 
       << MargLikelihood.getLogMarginalLikelihood();
 }
 
-void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::string *PopulationLabels)
+void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, const string* const PopulationLabels)
 {
    Log->logmsg(true,"Log-likelihood for unadmixed ");
    Log->logmsg(true, (*PopulationLabels)[0]);
@@ -561,7 +566,7 @@ void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, std::str
    Log->logmsg(true,"\n");
 
 }
-double IndividualCollection::getLogLikelihood(AdmixOptions *options, Chromosome **C, bool annealindicator=false){
+double IndividualCollection::getLogLikelihood(const AdmixOptions* const options, Chromosome **C, bool annealindicator=false){
   double LogL = 0.0;
   for(unsigned i = 0; i < NumInd; ++i){
     int prev = i-1;
@@ -574,7 +579,7 @@ double IndividualCollection::getLogLikelihood(AdmixOptions *options, Chromosome 
 }
 
 //returns Derivative of Inverse Link Function for individual i
-double IndividualCollection::DerivativeInverseLinkFunction(int i){
+double IndividualCollection::DerivativeInverseLinkFunction(int i)const{
   double DInvLink = 1.0;
   
   if(OutcomeType){//in case no regression model

@@ -34,7 +34,7 @@ DispersionTest::DispersionTest(){
   options = 0;
 }
 
-void DispersionTest::Initialise(AdmixOptions *op,LogWriter *Log, int NumLoci){
+void DispersionTest::Initialise(const AdmixOptions* const op, LogWriter *Log, int NumLoci){
   options = op;
   NumberOfCompositeLoci = NumLoci;
   NumberOfPopulations = options->getPopulations();
@@ -57,9 +57,8 @@ DispersionTest::~DispersionTest(){
   free_matrix(divergentallelefreqstest, NumberOfCompositeLoci + 1);
 }
 
-void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
+void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const A)
 {
-  int numberofstates;
   vector<int> rep;
   vector<double> popfreqs;
 
@@ -73,9 +72,6 @@ void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
     repsum[k] = 0.0;
   }
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
-    numberofstates = A->getLocus(j)->GetNumberOfStates();
-    //AlleleCount = A->GetAlleleCounts(j);
-    //freqs = A->GetAlleleFreqs(j);
     for( int k = 0; k < NumberOfPopulations; k++ ){
       popfreqs =  A->GetAlleleFreqs(j, k );
       double sumfreqs = accumulate(popfreqs.begin(), popfreqs.end(), 1.0, minus<double>());
@@ -105,7 +101,7 @@ void DispersionTest::TestForDivergentAlleleFrequencies(AlleleFreqs *A)
   }
 }
 
-void DispersionTest::Output(int samples,Genome& Loci, std::string *PopLabels){
+void DispersionTest::Output(int samples, const Genome& Loci, const std::string* const PopLabels){
   //write header
   dispersionoutputstream << "Locus";
   for(int i = 0; i< NumberOfPopulations; ++i)

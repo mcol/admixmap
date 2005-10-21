@@ -38,8 +38,8 @@ public:
   double getEnergy(double);
   double getGradient(double);
 
-  float getAcceptanceRate();
-  float getStepsize();
+  float getAcceptanceRate()const;
+  float getStepsize()const;
 
 private:
   //dimensions

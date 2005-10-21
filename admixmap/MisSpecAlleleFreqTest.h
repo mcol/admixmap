@@ -21,9 +21,9 @@ public:
   MisSpecAlleleFreqTest();
   ~MisSpecAlleleFreqTest();
 
-  void Initialise(AdmixOptions *options, Genome *Loci, LogWriter *Log );
-  void Update(IndividualCollection *individuals, AlleleFreqs *A, Genome *Loci);
-  void Output(int iteration, Genome *Loci,  std::string * PopLabels);
+  void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter *Log );
+  void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
+  void Output(int iteration, const Genome* const Loci, const std::string* const PopLabels);
 
 private:
   bool Test1, Test2;//indicators for the two tests
@@ -45,13 +45,14 @@ private:
   std::ofstream allelefreqscorestream;
   std::ofstream allelefreqscorestream2;
 
-  void UpdateScoreForMisSpecOfAlleleFreqs(int j, double** phi, unsigned short **x, double* AlleleFreqs);
-  void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, double* AlleleFreqs, 
-					   int *AlleleCounts);
+  void UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, const unsigned short* const* x, 
+					  const double* const AlleleFreqs);
+  void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, const double* const AlleleFreqs, 
+					   const int* const AlleleCounts);
 
-  void OutputTestsForMisSpecifiedAlleleFreqs( int, Genome *Loci,  std::string * PopLabels);
-  void OutputTestsForMisSpecifiedAlleleFreqs2( int samples, Genome *Loci, std::string * PopLabels);
-  void R_output3DarrayDimensions(ofstream* stream,vector<int> dim,vector<string> labels);
+  void OutputTestsForMisSpecifiedAlleleFreqs( int, const Genome* const Loci, const std::string* const PopLabels);
+  void OutputTestsForMisSpecifiedAlleleFreqs2( int samples, const Genome* const Loci, const std::string* const PopLabels);
+  void R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels);
   string double2R( double x );
 };
 

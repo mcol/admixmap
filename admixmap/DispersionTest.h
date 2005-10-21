@@ -31,14 +31,14 @@ class DispersionTest{
  public:
   DispersionTest();
   ~DispersionTest();
-  void Initialise(AdmixOptions *,LogWriter *, int);
-  void Output(int , Genome &, std::string *PopLabels);
-  void TestForDivergentAlleleFrequencies(AlleleFreqs *);
+  void Initialise(const AdmixOptions* const, LogWriter *, int);
+  void Output(int, const Genome &, const std::string* const PopLabels);
+  void TestForDivergentAlleleFrequencies(const AlleleFreqs* const);
 
  private:
   int NumberOfCompositeLoci;
   int NumberOfPopulations;
-  AdmixOptions *options;
+  const AdmixOptions *options;
   std::ofstream dispersionoutputstream;
   int **divergentallelefreqstest;
 

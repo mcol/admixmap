@@ -158,7 +158,7 @@ int Gaussian::GetDimension() const
 }
 
 // *************** Draw from Gaussian Distribution **********************
-void Gaussian::Draw(double *beta)
+void Gaussian::Draw(double *beta)const
 {
   int i;
   double draw[Dimension];

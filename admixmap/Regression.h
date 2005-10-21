@@ -27,11 +27,11 @@ public:
 				   const std::string* const PopulationLabels);
   void Output(int iteration, AdmixOptions *, LogWriter *Log)const;
   void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
-  double *getbeta() const;
+  const double* const getbeta() const;
   double getlambda() const ;
   int getNumCovariates()const;
   double getDispersion()const;
-  double getLogLikelihood(IndividualCollection *IC)const;
+  double getLogLikelihood(const IndividualCollection* const IC)const;
   double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations);
 
 private:

@@ -107,10 +107,10 @@ void MuSampler::Sample1D(double* alpha, double eta, const int* const Counts )
   alpha[ 1 ] = eta - alpha[ 0 ];
 }
 
-float MuSampler::getAcceptanceRate(){
+float MuSampler::getAcceptanceRate()const{
   return muSampler.getAcceptanceRate();
 }
-float MuSampler::getStepsize(){
+float MuSampler::getStepsize()const{
   return muSampler.getStepsize();
 }
 
