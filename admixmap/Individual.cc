@@ -401,14 +401,14 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, Chromoso
    double Probs[Populations*Populations];
    int locus = 0;
    for( unsigned int j = 0; j < numChromosomes; j++ ){
-     if(Populations == 1){
+     if(Populations == 1){ // likelihood is calculated as product of genotype probs at all loci
        for(unsigned jj = 0; jj < chrm[j]->GetNumberOfCompositeLoci(); ++jj){
 	 (*Loci)(locus)->GetGenotypeProbs(Probs, getPossibleHapPairs(locus), chibindicator);
 	 ++locus;
        }
        LogLikelihood += log( Probs[0] );
      }
-     else{
+     else{ // likelihood calculated from HMM
        chrm[j]->SetGenotypeProbs(this, chibindicator); 
        UpdateHMMForwardProbs(j, chrm[j], options, theta, thetaX, rho, rho_X, false);
        LogLikelihood += chrm[j]->getLogLikelihood();
@@ -426,7 +426,7 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, Chromoso
 //    }
     return LogLikelihood;
 }
-double Individual::getLogLikelihoodOnePop(){
+double Individual::getLogLikelihoodOnePop(){ // should now be redundant
   double logLikelihood = 0.0;
   double *Prob;
   Prob = new double[1];//one pop so 1x1 array

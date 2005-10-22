@@ -488,9 +488,9 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
   E = SumDeviance / (double) iterations;//ergodic average of deviance
   V = SumDevianceSq / (double)iterations - E*E;//ergodic variance of deviance 
 
-  Log->logmsg(true, "\nMeanDeviance:\t"); Log->logmsg(true, E);Log->logmsg(true,"\n");
-  Log->logmsg(true, "VarDeviance:\t");  Log->logmsg(true, V);Log->logmsg(true,"\n");
-  Log->logmsg(true, "GoFStat:\t");  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "\n");
+  Log->logmsg(true, "\nMeanDeviance(D_bar)\t"); Log->logmsg(true, E);Log->logmsg(true,"\n");
+  Log->logmsg(true, "VarDeviance(V)\t");  Log->logmsg(true, V);Log->logmsg(true,"\n");
+  Log->logmsg(true, "PritchardStat(D_bar+0.25V)\t");  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "\n");
 
   //update chromosomes using globalrho, for globalrho model
   if(options->isGlobalRho())
@@ -512,8 +512,9 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
   double pD = E - D;
   double DIC = E + pD;
 
-  Log->logmsg(true, "pD:\t\t");  Log->logmsg(true, pD);Log->logmsg(true, "\n");
-  Log->logmsg(true, "DIC:\t\t");   Log->logmsg(true, DIC);Log->logmsg(true, "\n\n"); 
+  Log->logmsg(true, "DevianceAtPosteriorMean(D_hat)\t");  Log->logmsg(true, D);Log->logmsg(true, "\n");
+  Log->logmsg(true, "EffectiveNumParameters(pD)\t");  Log->logmsg(true, pD);Log->logmsg(true, "\n");
+  Log->logmsg(true, "DevianceInformationCriterion\t");   Log->logmsg(true, DIC);Log->logmsg(true, "\n\n"); 
 }
 
 void IndividualCollection::OutputIndAdmixture()
@@ -538,11 +539,11 @@ void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations)c
   Log->write("\n");
 
   Log->logmsg(true, "\nChib values at estimates:");
-  Log->logmsg(true, "\nDeviance:\t\t");Log->logmsg(true, -2.0*MargLikelihood.getLogLikelihood());
-  Log->logmsg(true, "\nLogLikelihood:\t\t");Log->logmsg(true, MargLikelihood.getLogLikelihood());
-  Log->logmsg(true, "\nLogPrior:\t\t");Log->logmsg(true, MargLikelihood.getLogPrior());
-  Log->logmsg(true, "\nLogPosterior:\t\t");Log->logmsg(true, MargLikelihood.getLogPosterior());
-  Log->logmsg(true, "\nLogMarginalLikelihood:\t");Log->logmsg(true, MargLikelihood.getLogMarginalLikelihood());
+  Log->logmsg(true, "\nDeviance\t");Log->logmsg(true, -2.0*MargLikelihood.getLogLikelihood());
+  Log->logmsg(true, "\nLogLikelihood\t");Log->logmsg(true, MargLikelihood.getLogLikelihood());
+  Log->logmsg(true, "\nLogPrior\t");Log->logmsg(true, MargLikelihood.getLogPrior());
+  Log->logmsg(true, "\nLogPosterior\t");Log->logmsg(true, MargLikelihood.getLogPosterior());
+  Log->logmsg(true, "\n\nLogMarginalLikelihood\t");Log->logmsg(true, MargLikelihood.getLogMarginalLikelihood());
   Log->logmsg(true, "\n\n");
 }
 
