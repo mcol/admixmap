@@ -237,9 +237,11 @@ checkConvergence <- function(table.samples, listname, outputfile) {
 
 plotErgodicAverages <- function(ergodicaveragefile, thinning) {
   table.averages <- read.table(file=ergodicaveragefile, header=TRUE)
+  iterations <- 10*thinning*seq(1:dim(table.averages)[1])	
+  leave.out <- seq(1:(length(iterations)/5))
   ## plot ergodic averages
   for(j in 1:dim(table.averages)[2]) {
-    plot(10*thinning*seq(1:dim(table.averages)[1]), table.averages[,j], type="l", 
+    plot(iterations[-leave.out], table.averages[-leave.out,j], type="l", 
          main="Running posterior mean", 
          xlab="Iterations", ylab=dimnames(table.averages)[[2]][j]) # should fix dimnames
   }
@@ -929,17 +931,6 @@ if(is.null(user.options$paramfile)) {
       postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
       plotAutocorrelations(param.samples, user.options$every)
       dev.off()
-      if(is.null(user.options$ergodicaveragefile)) {
-        print("ergodicaveragefile not specified")
-      } else {
-        if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
-          print("ergodicaveragefile empty")
-        } else {
-          postscript( paste(resultsdir, "ErgodicAverages.ps", sep="/" ))
-          plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
-          dev.off()
-        }
-      }
       
       if(K > 1) {
         ## extract Dirichlet admixture parameters
@@ -1019,6 +1010,19 @@ if(!is.null(param.samples)) {
   alphas <- post.quantiles[1:K, 1]
 } else {
   if(!is.null(user.options$initalpha0))alphas <- as.numeric(strsplit(user.options$initalpha0, ",")[[1]])
+}
+
+##plot ergodic averages
+if(is.null(user.options$ergodicaveragefile)) {
+  print("ergodicaveragefile not specified")
+} else {
+  if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
+    print("ergodicaveragefile empty")
+  } else {
+    postscript( paste(resultsdir, "ErgodicAverages.ps", sep="/" ))
+    plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
+    dev.off()
+  }
 }
 
 ## read output of score test for allelic association, and plot cumulative results
