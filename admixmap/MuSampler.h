@@ -54,10 +54,10 @@ private:
   //proportions are transformed using softmax transformation and sampled with a Hamiltonian Monte Carlo sampelr
   double *params;
   HamiltonianMonteCarlo muSampler;
-  double **muArgs;
+  MuSamplerArgs muArgs;
 
-  static double muEnergyFunction(unsigned , const double * const params, const double* const *args);
-  static void muGradient(unsigned , const double * const params, const double* const *args, double *g);
+  static double muEnergyFunction(const double * const params, const void* const args);
+  static void muGradient(const double * const params, const void* const args, double *g);
   static double fMu( double alpha, const void* const args );
   static double dfMu( double alpha, const void* const args );
   static double ddfMu( double alpha, const void* const args );

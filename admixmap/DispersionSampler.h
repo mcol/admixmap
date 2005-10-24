@@ -24,6 +24,16 @@
 #define DISPERSIONSAMPLER_H 1
 #include "HamiltonianMonteCarlo.h"
 
+typedef struct{
+  const int** counts;
+  const int *H;
+  unsigned K;
+  unsigned L;
+  const double** alpha;
+  double priorshape;
+  double priorrate;
+} EtaSamplerArgs;
+
 class DispersionSampler{
 
 public:
@@ -48,9 +58,9 @@ private:
 
   double logeta[1];
   HamiltonianMonteCarlo Sampler;
-  double **Args;
+  EtaSamplerArgs Args;
 
-  static double etaEnergyFunction(unsigned , const double * const logitmu, const double* const *args);
-  static void etaGradient(unsigned , const double * const logitmu, const double* const *args, double *g);
+  static double etaEnergyFunction(const double * const logitmu, const void* const args);
+  static void etaGradient(const double * const logitmu, const void* const args, double *g);
 };
 #endif

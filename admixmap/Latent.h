@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 2 //1 = original DARS sampler, 
+#define POPADMIXSAMPLER 2 //1 = original Adaptive Rejection sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
 
@@ -55,6 +55,15 @@
 #include "DirichletParamSampler.h"
 #elif POPADMIXSAMPLER == 3
 #include "HamiltonianMonteCarlo.h"
+
+typedef struct{
+  int dim;
+  int n;
+  double eps0;
+  double eps1;
+  const double* sumlogtheta;
+}AlphaSamplerArgs;
+
 #endif
 
 class InputData;
@@ -139,7 +148,7 @@ private:
   int *SumLocusAncestry;
 
 #elif POPADMIXSAMPLER == 3 //Hamiltonian sampler
-  double **AlphaArgs;
+  AlphaSamplerArgs AlphaArgs;
   double *logalpha;
   HamiltonianMonteCarlo AlphaSampler;
   double initialAlphaStepsize;
@@ -168,8 +177,8 @@ private:
   
   static double  ddlogf( double, const void* const );
 #elif POPADMIXSAMPLER == 3
-  static double findE(unsigned dim, const double* const theta, const double* const*args);
-  static void gradE(unsigned dim,const double* const theta, const double* const* args, double *g);
+  static double findE(const double* const theta, const void* const args);
+  static void gradE(const double* const theta, const void* const args, double *g);
 #endif  
   
   // UNIMPLEMENTED

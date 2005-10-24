@@ -115,14 +115,12 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     logalpha = new double[K];
     transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
     
-    AlphaArgs = new double*[4];
-    AlphaArgs[0] = new double[K];
-    for(unsigned i = 1; i < 4;++i)AlphaArgs[i] = new double[1];
     //elem 0 is sum of log admixture props
-    AlphaArgs[1][0] = (double)Numindividuals;// elem 1 is num individuals/gametes
-    if( options->isRandomMatingModel() )AlphaArgs[1][0] *= 2.0;
-    AlphaArgs[2][0] = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
-    AlphaArgs[3][0] = alphapriormean / alphapriorvar;
+    AlphaArgs.n = Numindividuals;//num individuals/gametes
+    AlphaArgs.dim = K;
+    if( options->isRandomMatingModel() )AlphaArgs.n *= 2;
+    AlphaArgs.eps0 = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
+    AlphaArgs.eps1 = alphapriormean / alphapriorvar;
     
     AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
@@ -194,8 +192,6 @@ Latent::~Latent()
   delete[] mu;
   delete[] SumLocusAncestry;
 #elif POPADMIXSAMPLER == 3
-  for(unsigned i = 0; i < 4;++i)delete[] AlphaArgs[i];
-  delete[] AlphaArgs;
   delete[] logalpha;
 #endif
 }
@@ -244,8 +240,8 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
       //for( int j = 0; j < options->getPopulations(); j++ ){
       //AlphaArgs[0][j] = individuals->getSumLogTheta(j);
       //}
-      copy(individuals->getSumLogTheta(), individuals->getSumLogTheta()+options->getPopulations(), AlphaArgs[0]);
-      AlphaSampler.Sample(logalpha, AlphaArgs);//sample new values for logalpha
+      AlphaArgs.sumlogtheta = individuals->getSumLogTheta();
+      AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
       transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
 
 #endif
@@ -514,44 +510,46 @@ float Latent::getAlphaSamplerStepsize()const{
 }
 
 //calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm
-double Latent::findE(unsigned dim, const double* const theta, const double* const* args){
+double Latent::findE(const double* const theta, const void* const vargs){
   /*
     theta = log dirichlet parameters (alpha)
-    args[1] = n = #individuals/gametes
-    args[0] = sumlogtheta (array, length dim) = sums of logs of individual admixture proportions
-    args[2] = eps0, args[3] = eps1 = parameters of Gamma prior for alpha
+    n = #individuals/gametes
+    sumlogtheta (array, length dim) = sums of logs of individual admixture proportions
+    eps0, eps1 = parameters of Gamma prior for alpha
   */
+  const AlphaSamplerArgs* args = (const AlphaSamplerArgs*)vargs;
 
   double E = 0.0;
   double sumalpha = 0.0, sumgamma = 0.0, sumtheta = 0.0, sume = 0.0;
   bool flag = true;
-  for(unsigned j = 0; j < dim;++j){
+  for(int j = 0; j < args->dim; ++j){
     if(exp(theta[j]) == 0.0){flag = false;break;} //to avoid underflow problems
     sumalpha += exp(theta[j]);
     sumgamma += gsl_sf_lngamma(exp(theta[j]));
-    sume += exp(theta[j]) * (args[3][0] - args[0][j]);
+    sume += exp(theta[j]) * (args->eps1 - args->sumlogtheta[j]);
     sumtheta += theta[j];
   }
   if(flag){
-    E = args[1][0] * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + args[2][0] * sumtheta;
+    E = args->n * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + args->eps0 * sumtheta;
     return -E;
   }
   else return -1.0;//is there a better return value? possibly use flag pointer
 }
 
 //calculate gradient for log alpha
-void Latent::gradE(unsigned dim, const double* const theta, const double* const* args, double *g){
+void Latent::gradE(const double* const theta, const void* const vargs, double *g){
+  const AlphaSamplerArgs* args = (const AlphaSamplerArgs*)vargs;
   double sumalpha = 0.0, x, y1, y2;
-  for(unsigned j = 0; j < dim; ++j) {
+  for(int j = 0; j < args->dim; ++j) {
     g[j] = 0.0;
     sumalpha += exp(theta[j]);
   }
     ddigam(&sumalpha, &y1);
-    for(unsigned j = 0; j < dim; ++j) {
+    for(int j = 0; j < args->dim; ++j) {
       x = exp(theta[j]);
       ddigam(&x, &y2);
       if(x > 0.0 && gsl_finite(y1) && gsl_finite(y2)){//to avoid over/underflow problems
-	g[j] = x *( args[1][0] *(y2 - y1) + (args[3][0] - args[0][j])) - args[2][0];
+	g[j] = x *( args->n *(y2 - y1) + (args->eps1 - args->sumlogtheta[j])) - args->eps0;
       }
     }
 }

@@ -114,6 +114,10 @@ void LogWriter::write(const double* const array, const size_t dim){
 void LogWriter::width(const unsigned w){
   LogFileStream.width(w);
 }
+void LogWriter::setPrecision(int p){
+  LogFileStream<<setprecision(p);
+  cout<<setprecision(p);
+}
 
 void LogWriter::StartMessage(tm *timer){
   LogFileStream << "-----------------------------------------------" << endl;

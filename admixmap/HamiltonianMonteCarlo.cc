@@ -40,8 +40,8 @@ HamiltonianMonteCarlo::~HamiltonianMonteCarlo(){
 
 //set dimensions
 void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double min, double max, unsigned pTau, float target,
-			  double (*pfindE)(unsigned d, const double* const theta, const double* const* args),
-			  void (*pgradE)(unsigned d, const double* const theta, const double* const* args, double *g)){
+			  double (*pfindE)(const double* const theta, const void* const args),
+			  void (*pgradE)(const double* const theta, const void* const args, double *g)){
   dim = pdim;
   epsilon = pepsilon;
   Tau = pTau;
@@ -53,7 +53,7 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double
   Tuner.SetParameters( epsilon, min, max, target);
 }
 
-void HamiltonianMonteCarlo::Sample(double* const x, const double* const* args){
+void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   /*
     x = position
     p = momentum
@@ -63,7 +63,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const double* const* args){
     dim = dimension (= K)
     gradE = gradient function
     findE = objective function = -log density
-    args = 2darray of arguments to gradE and findE, 2nd dimension is dim so effectively a vector of args for each scalar x 
+    args = pointer to object containing arguments to findE and gradE 
   */
 
   bool accept = false;
@@ -74,8 +74,8 @@ void HamiltonianMonteCarlo::Sample(double* const x, const double* const* args){
   xnew = new double[dim];
   gnew = new double[dim];
 
-  gradE (dim, x, args, g ) ; // set gradient using initial x
-  E = findE (dim, x, args ) ;// set objective function too
+  gradE (x, args, g ) ; // set gradient using initial x
+  E = findE (x, args ) ;// set objective function too
   epsilon = Tuner.getStepSize();
   
   for(unsigned i = 0; i < dim; ++i)p[i] = gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
@@ -91,7 +91,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const double* const* args){
       //cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
     }
     //cout<<endl<<endl;
-    gradE ( dim, xnew, args, gnew ) ; // find new gradient
+    gradE ( xnew, args, gnew ) ; // find new gradient
     for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
   }
   //cout<<endl;
@@ -100,7 +100,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const double* const* args){
      sumpsq += p[i]*p[i];
   }
 
-  Enew = findE ( dim, xnew, args ) ; // find new value of H
+  Enew = findE ( xnew, args ) ; // find new value of H
 
   AccProb = 0.0;
   if(Enew !=-1.0){// -1 means an error in calculation of energy function

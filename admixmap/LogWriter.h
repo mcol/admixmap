@@ -60,6 +60,7 @@ public:
   void write(const double* const array, const size_t dim);
 
   void width(const unsigned w);//calls width function for LogFileStream
+  void setPrecision(int);
 
   void StartMessage(tm *);//prints startup message
 
