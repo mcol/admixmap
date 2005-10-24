@@ -50,6 +50,14 @@ static std::vector<double> CstrToVec2(const char* str)
 
 AdmixOptions::AdmixOptions()
 {
+  Initialise();
+}
+AdmixOptions::AdmixOptions(int numoptions, char** options){
+  Initialise();
+  SetOptions(numoptions, options);
+}
+
+void AdmixOptions::Initialise(){
   // global variables store option values: variable names not necessarily same as 
   // command-line option names which are all lower-case 
   burnin = 100;
@@ -1134,8 +1142,8 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
     exit(1);
   }
   if(AnnealedRuns > 1){
-    Log->logmsg(false, "\nUsing ");Log->logmsg(false, AnnealedRuns);
-    Log->logmsg(false, " annealed runs to estimate marginal likelihood\n\n");
+    Log->logmsg(true, "\nUsing ");Log->logmsg(true, AnnealedRuns);
+    Log->logmsg(true, " annealed runs to estimate marginal likelihood\n\n");
    }
 
   return 1;

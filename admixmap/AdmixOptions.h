@@ -36,9 +36,10 @@ typedef map<const char*, char*> OptionMap;
 class AdmixOptions
 {
 public:
-    AdmixOptions();
-    ~AdmixOptions();
-
+  AdmixOptions();
+  AdmixOptions(int, char**);
+  ~AdmixOptions();
+  
   void SetOptions(int, char**);
   int checkOptions(LogWriter *Log, int NumberOfIndividuals);
   void PrintOptions();
@@ -232,12 +233,13 @@ private:
 
   OptionMap OptionValues;//to output user options
   
+  void Initialise();  
+  void SetOutputNames();
+  bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
+
   // UNIMPLIMENTED: to avoid use
   AdmixOptions(const AdmixOptions&);
   AdmixOptions& operator=(const AdmixOptions&);
-  
-  void SetOutputNames();
-  bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
-  };
+};
 
 #endif /* ADMIX_OPTIONS_H */
