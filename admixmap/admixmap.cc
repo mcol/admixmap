@@ -31,7 +31,6 @@ using namespace std;
 int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter *Log, std::ofstream *avgstream, const string* const PopulationLabels);
-void ProcessingTime(LogWriter*, long);
 
 void PrintCopyrightNotice(){
 
@@ -55,23 +54,20 @@ void submain(AdmixOptions* options){
   /*----------------
   | Initialisation |
    ----------------*/
-  //start timer
-  long StartTime = time(0);
-  tm timer;
-  timer = *localtime( &StartTime );
-
+  //open logfile, start timer and print start message
   LogWriter Log(options->getLogFilename(),options->useCOUT());
-  Log.StartMessage(&timer);
+  Log.StartMessage();
 
   smyrand( options->getSeed() );  // Initialise random number seed
 
   InputData data; //read data files and check (except allelefreq files)
   data.readData(options, &Log);//also sets 'numberofregressions' option
+
   //check user options
   options->checkOptions(&Log, data.getNumberOfIndividuals());
 
   Genome Loci;
-  Loci.loadAlleleStatesAndDistances(options, &data);//creates CompositeLocus objects
+  Loci.loadAlleleStatesAndDistances(options, &data);//reads locusfile and creates CompositeLocus objects
   
   AlleleFreqs A(&Loci);
   A.Initialise(options, &data, &Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
@@ -95,17 +91,16 @@ void submain(AdmixOptions* options){
     R[r].Initialise(r, IC, &Log);
   Regression::OpenOutputFile(options, IC, data.GetPopLabels(), &Log);  
 
-
   if( options->isGlobalRho() )
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
       chrm[j]->InitialiseLociCorr(L.getrho());
     }
   IC->Initialise(options, &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
-  //set expected Y
+  //set expected Outcome
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
     R[r].SetExpectedY(IC);
 
-  //   ** single individual, one population, allele frequencies 
+  //   ** single individual, one population, fixed allele frequencies 
    if( IC->getSize() == 1 && options->getPopulations() == 1 && strlen(options->getAlleleFreqFilename()) )
      IC->getOnePopOneIndLogLikelihood(&Log, data.GetPopLabels());
 
@@ -386,7 +381,7 @@ void submain(AdmixOptions* options){
 #endif
    }
    
-   ProcessingTime(&Log, StartTime);
+   Log.ProcessingTime();
 }
 
 int main( int argc , char** argv ){
@@ -513,62 +508,5 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
     {
       Log->logmsg(true,"No ergodicaveragefile given\n");
     }
-}
-
-void ProcessingTime(LogWriter *Log, long StartTime)
-{
-//   long Time = time(0);
-//   tm timer;
-//   timer = *localtime( &Time );
-  
-
-//   Log->logmsg(false,"\nProgram finished at ");
-//   Log->logmsg(false,timer.tm_hour);
-//   Log->logmsg(false,":");
-//   Log->logmsg(false,timer.tm_min < 10 ? "0" : "");
-//   Log->logmsg(false,timer.tm_min);
-//   Log->logmsg(false,".");
-//   Log->logmsg(false,timer.tm_sec < 10 ? "0" : "" );
-//   Log->logmsg(false,timer.tm_sec);
-//   Log->logmsg(false," ");
-//   Log->logmsg(false,timer.tm_mday);
-//   Log->logmsg(false,"/");
-//   Log->logmsg(false,timer.tm_mon+1);
-//   Log->logmsg(false,"/");
-//   Log->logmsg(false,1900+timer.tm_year);
-//   Log->logmsg(false,"\n");
-
-//   Time -= StartTime;
-//   timer = *localtime(&Time);
-
-//   Log->logmsg(true,"Elapsed time = ");
-//   if( timer.tm_mday > 1 ){
-//     Log->logmsg(true,timer.tm_mday - 1 );
-//     Log->logmsg(true," day(s) ");
-//   }
-//     if( timer.tm_hour > 0 ){
-//   Log->logmsg(true,timer.tm_hour);
-//   Log->logmsg(true,"hour");if(timer.tm_hour > 1)Log->logmsg(true,"s");
-//     }
-//   Log->logmsg(true,timer.tm_min < 10 ? "0" : "");
-//   Log->logmsg(true,timer.tm_min);
-//   Log->logmsg(true,"m, ");
-//   Log->logmsg(true,timer.tm_sec < 10 ? "0" : "");
-//   Log->logmsg(true,timer.tm_sec);
-//   Log->logmsg(true,"s\n");
-
-  double realtime = difftime(time(0), StartTime);
-  //realtime = pruntime();
-  Log->logmsg(true,"Elapsed time = ");
-  if(realtime > 3600.0){
-    Log->logmsg(true, (int)(realtime/3600));Log->logmsg(true,"h, ");
-    realtime = remainder(realtime, 3600.0);
-  }
-  //if(realtime > 60.0){
-    Log->logmsg(true, (int)(realtime/3600));Log->logmsg(true,"m, ");
-    realtime = remainder(realtime, 60.0);
-    //}
-  Log->setPrecision(2);
-  Log->logmsg(true, realtime);Log->logmsg(true, "s\n");
 }
 

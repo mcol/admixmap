@@ -62,11 +62,13 @@ public:
   void width(const unsigned w);//calls width function for LogFileStream
   void setPrecision(int);
 
-  void StartMessage(tm *);//prints startup message
+  void StartMessage();//prints startup message
+  void ProcessingTime();//prints finish time and time elapsed
 
 private:
   std::ofstream LogFileStream;
   bool useCOUTOption;
+  long StartTime;
 };
 
 #endif /* !defined LATENT_H */

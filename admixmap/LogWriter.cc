@@ -119,26 +119,67 @@ void LogWriter::setPrecision(int p){
   cout<<setprecision(p);
 }
 
-void LogWriter::StartMessage(tm *timer){
+void LogWriter::StartMessage(){
+  //start timer
+  StartTime = time(0);
+  tm timer = *localtime( &StartTime );
+
   LogFileStream << "-----------------------------------------------" << endl;
   LogFileStream << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
   LogFileStream << "-----------------------------------------------" << endl;
   logmsg(true,"Program started at ");
-  logmsg(true,timer->tm_hour);
+  logmsg(true,timer.tm_hour);
   logmsg(true,":");
-  logmsg(true,timer->tm_min < 10 ? "0" : "" );
-  logmsg(true,timer->tm_min);
+  logmsg(true,timer.tm_min < 10 ? "0" : "" );
+  logmsg(true,timer.tm_min);
   logmsg(true,".");
-  logmsg(true,timer->tm_sec < 10 ? "0" : "" );
-  logmsg(true,timer->tm_sec);
+  logmsg(true,timer.tm_sec < 10 ? "0" : "" );
+  logmsg(true,timer.tm_sec);
   logmsg(true," ");
-  logmsg(true,timer->tm_mday);
+  logmsg(true,timer.tm_mday);
   logmsg(true,"/");
-  logmsg(true,timer->tm_mon+1);
+  logmsg(true,timer.tm_mon+1);
   logmsg(true,"/");
-  logmsg(true,1900+timer->tm_year);
+  logmsg(true,1900+timer.tm_year);
   logmsg(true,"\n\n");
 }
+
+void LogWriter::ProcessingTime()
+{
+  long EndTime = time(0);
+  tm timer;
+  timer = *localtime( &EndTime );
+
+  logmsg(true,"\nProgram finished at ");
+  logmsg(true,timer.tm_hour);
+  logmsg(true,":");
+  logmsg(true,timer.tm_min < 10 ? "0" : "");
+  logmsg(true,timer.tm_min);
+  logmsg(true,".");
+  logmsg(true,timer.tm_sec < 10 ? "0" : "" );
+  logmsg(true,timer.tm_sec);
+  logmsg(true," ");
+  logmsg(true,timer.tm_mday);
+  logmsg(true,"/");
+  logmsg(true,timer.tm_mon+1);
+  logmsg(true,"/");
+  logmsg(true,1900+timer.tm_year);
+  logmsg(true,"\n");
+
+  double realtime = difftime(EndTime, StartTime);
+  logmsg(true,"Elapsed time = ");
+  if(realtime > 3600.0){
+    logmsg(true, (int)(realtime/3600));logmsg(true,"h, ");
+    realtime = remainder(realtime, 3600.0);
+  }
+  //if(realtime > 60.0){
+  logmsg(true, (int)(realtime/3600));logmsg(true,"m, ");
+  realtime = remainder(realtime, 60.0);
+  //}
+  
+  logmsg(true, (int)realtime);logmsg(true, "s\n");
+}
+
 void LogWriter::Reset(const int iteration, const int width){
   if( !useCOUTOption || iteration == 0 )
     //output params to log on first iteration and every other when coutindicator = 0
