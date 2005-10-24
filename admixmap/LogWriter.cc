@@ -169,12 +169,14 @@ void LogWriter::ProcessingTime()
   double realtime = difftime(EndTime, StartTime);
   logmsg(true,"Elapsed time = ");
   if(realtime > 3600.0){
-    logmsg(true, (int)(realtime/3600));logmsg(true,"h, ");
-    realtime = remainder(realtime, 3600.0);
+    int hours = (int)(realtime/3600);
+    logmsg(true, hours);logmsg(true,"h, ");
+    realtime -= (double)hours;
   }
   //if(realtime > 60.0){
-  logmsg(true, (int)(realtime/60));logmsg(true,"m, ");
-  realtime = remainder(realtime, 60.0);
+  int mins = (int)(realtime/60);
+  logmsg(true, mins);logmsg(true,"m, ");
+  realtime -= (double)mins;
   //}
   
   logmsg(true, (int)realtime);logmsg(true, "s\n");
