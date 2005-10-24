@@ -150,7 +150,7 @@ void submain(AdmixOptions* options){
       if(anneal){
 	L_mod = 0.0;//ergodic sum of modified loglikelihood
 	L_mod_sq = 0.0;//ergodic sum of square of modified loglikelihood
-	cout<<"\nChanging coolness to "<<coolness<<endl;
+	cout<<"\nSampling at coolness of "<<coolness<<endl;
 	if(ci == options->getNumberOfAnnealedRuns()) anneal = false;//finished annealed runs, last run is with unannealed likelihood
       }
       Chromosome::setCoolness(coolness, &L_mod);//pass current coolness and pointer to L_mod to Chromosome
@@ -291,6 +291,12 @@ void submain(AdmixOptions* options){
     }
     IC->OutputDeviance(options, chrm, R, &Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
 
+    if(options->getAnnealIndicator()){
+     Log.logmsg(true, "Marginal Likelihood from simulated annealing: ");
+     Log.logmsg(true, marg_L / ((double)options->getTotalSamples()-options->getBurnIn() + 1.0));
+     //Log.logmsg(true, "\nwith standard error of ");Log.logmsg(true, );Log.logmsg(true, "\n");
+    }
+
     //FST
     if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
       A.OutputFST();
@@ -315,6 +321,7 @@ void submain(AdmixOptions* options){
     if(annealstream.is_open())annealstream.close();
     if(avgstream.is_open())avgstream.close();
  }//end else
+
    
    for(unsigned i = 0; i < Loci.GetNumberOfChromosomes(); i++){
      delete chrm[i];
