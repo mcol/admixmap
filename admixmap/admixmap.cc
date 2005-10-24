@@ -150,8 +150,11 @@ void submain(AdmixOptions* options){
       if(anneal){
 	L_mod = 0.0;//ergodic sum of modified loglikelihood
 	L_mod_sq = 0.0;//ergodic sum of square of modified loglikelihood
-	cout<<"\nSampling at coolness of "<<coolness<<endl;
-	if(ci == options->getNumberOfAnnealedRuns()) anneal = false;//finished annealed runs, last run is with unannealed likelihood
+	cout<<"\rSampling at coolness of "<<coolness;
+	if(ci == options->getNumberOfAnnealedRuns()) {
+	  anneal = false;//finished annealed runs, last run is with unannealed likelihood
+	  cout<<".0"<<endl;
+	}
       }
       Chromosome::setCoolness(coolness, &L_mod);//pass current coolness and pointer to L_mod to Chromosome
       

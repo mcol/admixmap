@@ -173,7 +173,7 @@ void LogWriter::ProcessingTime()
     realtime = remainder(realtime, 3600.0);
   }
   //if(realtime > 60.0){
-  logmsg(true, (int)(realtime/3600));logmsg(true,"m, ");
+  logmsg(true, (int)(realtime/60));logmsg(true,"m, ");
   realtime = remainder(realtime, 60.0);
   //}
   
