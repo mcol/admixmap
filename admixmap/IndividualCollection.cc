@@ -502,17 +502,23 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
       (*C[j])(jj)->SetHapPairProbsToPosteriorMeans(iterations);
 
   //accumulate deviance at posterior means for each individual
-  double D = 0.0; // D = deviance at estimates
+  double Lhat = 0.0; // Lhat = loglikelihood at estimates
   for(unsigned int i = 0; i < NumInd; i++ ){
-    D += _child[i]->getLogLikelihoodAtPosteriorMeans(options, C);
+    Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options, C);
   }
-  for(int c = 0; c < options->getNumberOfOutcomes(); ++c)
-    D += R[c].getLogLikelihoodAtPosteriorMeans(this, iterations);
-  D *= -2.0;
-  double pD = E - D;
+
+  Log->logmsg(true, "DevianceAtPosteriorMean(IndAdmixture)");Log->logmsg(true, -2.0*Lhat);Log->logmsg(true, "\n");
+  for(int c = 0; c < options->getNumberOfOutcomes(); ++c){
+    double RegressionLogL = R[c].getLogLikelihoodAtPosteriorMeans(this, iterations);
+    Lhat += RegressionLogL;
+    Log->logmsg(true, "DevianceAtPosteriorMean(Regression ");Log->logmsg(true, c);Log->logmsg(true, ")");
+    Log->logmsg(true, -2.0*RegressionLogL);Log->logmsg(true, "\n");
+  }
+
+  double pD = E + 2.0*Lhat;
   double DIC = E + pD;
 
-  Log->logmsg(true, "DevianceAtPosteriorMean(D_hat)\t");  Log->logmsg(true, D);Log->logmsg(true, "\n");
+  Log->logmsg(true, "DevianceAtPosteriorMean(D_hat)\t");  Log->logmsg(true, -2.0*Lhat);Log->logmsg(true, "\n");
   Log->logmsg(true, "EffectiveNumParameters(pD)\t");  Log->logmsg(true, pD);Log->logmsg(true, "\n");
   Log->logmsg(true, "DevianceInformationCriterion\t");   Log->logmsg(true, DIC);Log->logmsg(true, "\n\n"); 
 }
