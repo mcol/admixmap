@@ -24,6 +24,7 @@ my $arg_hash =
     
 #output file options
     logfile                     => 'log.txt',
+    ergodicaveragefile          => 'cumulativeresults.txt',
     paramfile                   => 'popadmixparams.txt',
     regparamfile                => 'regparam.txt',
     
