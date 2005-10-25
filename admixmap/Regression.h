@@ -20,7 +20,7 @@ public:
    ~Regression();
   void Initialise(unsigned RegNumber, const IndividualCollection* const, LogWriter *);
   void SetExpectedY(IndividualCollection* IC)const;
-  void Update(bool afterBurnIn, IndividualCollection* individuals);
+  void Update(bool sumbeta, IndividualCollection* individuals);
   static void OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			     const std::string *PopulationLabels, LogWriter *Log);  
   static void InitializeOutputFile(const AdmixOptions* const , const IndividualCollection* const individuals, 

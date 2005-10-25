@@ -19,7 +19,7 @@ class IndAdmixOutputter
 public:
   IndAdmixOutputter(const AdmixOptions* const, const Genome* const, const std::string* const);
   virtual ~IndAdmixOutputter();
-  void visitIndividual(const Individual&, const std::vector<int>, double);
+  void visitIndividual(const Individual&, const std::vector<int>);
   void visitIndividualCollection(const IndividualCollection&);
 
 

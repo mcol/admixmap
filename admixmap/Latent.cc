@@ -196,7 +196,7 @@ Latent::~Latent()
 #endif
 }
 
-void Latent::Update(int iteration, const IndividualCollection* const individuals)
+void Latent::Update(int iteration, const IndividualCollection* const individuals, bool anneal=false)
  {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
@@ -266,11 +266,9 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
      fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
    }
    
-   if( iteration > options->getBurnIn() ){
+   if( !anneal && iteration > options->getBurnIn() && options->getPopulations() > 1 ){
      // accumulate sum of log of rho parameters after burnin.
-     if( options->getPopulations() > 1 ){
        SumLogRho += log(rho);
-     }
    }
 }
 //end Update
@@ -376,7 +374,7 @@ void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 
 void Latent::OutputParams(int iteration){
   //output to logfile for first iteration or every iteration if cout = 0
-  if( !options->useCOUT() || iteration == 0 )
+  if( iteration == 0 )
     {
       for( int j = 0; j < options->getPopulations(); j++ ){
 	Log->width(9);

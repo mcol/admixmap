@@ -70,7 +70,7 @@ public:
 
   const int *getSumLocusAncestry()const;
 
-  double getLogLikelihood(const AdmixOptions* const , Chromosome**, bool annealindicator);
+  double getLogLikelihood(const AdmixOptions* const , Chromosome**);
   double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm);
   double getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const double* const theta, const double* const theta, 
 			   const vector<double > rho, const vector<double> rho_X, bool chibindicator);
@@ -85,20 +85,20 @@ public:
    
   double IntegratingConst( double alpha, double beta, double a, double b )const;
 
-  void SampleParameters( int i, double *SumLogTheta, double *LogLikelihood, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
+  void SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
 			 const double* const lambda, int NoCovariates,
 			 DataMatrix *Covariates, const double* const* beta, const double *poptheta, const AdmixOptions* const options,
 			 Chromosome **chrm, const vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, const vector<double> sigma, 
-			 double DInvLink, double dispersion);
+			 double DInvLink, double dispersion, bool anneal);
 
   void SampleTheta( int i, int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
 		    int NumOutcomes, const DataType* const OutcomeType, const double* const* ExpectedY, 
 		    const double* const lambda, int NoCovariates,
 		    DataMatrix *Covariates, const double* const* beta, const double* const poptheta,
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
-		    double DInvLink, double dispersion, bool RW);
+		    double DInvLink, double dispersion, bool RW, bool anneal);
 
   void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
 			    const double* const* ExpectedY, const double* constlambda, const Chromosome* const*chrm, 
@@ -182,7 +182,7 @@ private:
 
   void UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, const AdmixOptions* const options, 
 			  const double* const theta, const double* const thetaX,
-			     const vector<double> rho, const vector<double> rhoX, bool annealindicator);
+			     const vector<double> rho, const vector<double> rhoX);
 
   void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta,  
 		 unsigned int SumN[], unsigned int SumN_X[]);

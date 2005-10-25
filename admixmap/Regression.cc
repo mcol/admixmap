@@ -177,7 +177,7 @@ void Regression::SetExpectedY(IndividualCollection *IC)const{
   if( RegType == Logistic ) IC->calculateExpectedY(RegNumber);
 }
 
-void Regression::Update(bool afterBurnIn, IndividualCollection* individuals){
+void Regression::Update(bool sumbeta, IndividualCollection* individuals){
   // Sample for regression model parameters beta
   // should make sure that matrix returned by getCovariates contains updated values of indiv admixture
   std::vector<double> Outcome = individuals->getOutcome(RegNumber);
@@ -247,13 +247,13 @@ void Regression::Update(bool afterBurnIn, IndividualCollection* individuals){
   if( individuals->getOutcomeType(RegNumber) )
     individuals->calculateExpectedY(RegNumber);
   
-  if(afterBurnIn)
+  if(sumbeta)
     SumParameters();
 }//end Update
 
 void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log)const{
   //output to logfile
-  if( !options->useCOUT() || iteration == 0 )
+  if( iteration == 0 )
     {
       if( RegType != None )
 	{

@@ -45,12 +45,12 @@ public:
   void InitialiseLociCorr(const double rho);
   void SetLociCorr(const double rho);
 
-  static void setCoolness(double, double *);
+  static void setCoolness(double);
 
   void SetGenotypeProbs(double *Probs);
   void SetGenotypeProbs(const Individual* const ind, bool chibindicator);
   void UpdateHMMForwardProbs(const double* const Admixture, const AdmixOptions* const options,  
-			     const std::vector< double > _rho, bool diploid, bool annealindicator);
+			     const std::vector< double > _rho, bool diploid);
   void UpdateHMMBackwardProbs(const double* const hapAdmixture);  //call only after a call to UpdateHMMForwardProbs
   //this is ok as whenever we need backward probs we also need forward probs but not vice versa
 
@@ -78,7 +78,6 @@ private:
 
   //for marginal likelihood calculation
   static double coolness;
-  static double *L_mod;
   
   // UNIMPLEMENTED
   // to avoid use

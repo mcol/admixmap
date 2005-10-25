@@ -44,7 +44,6 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   NumCovariates = 0;
   NumberOfInputCovariates = 0;
   indadmixoutput = 0;
-  LogLikelihood=0.0;
   SumLogLikelihood = 0.0;
   SumDeviance = SumDevianceSq = 0.0;
   CovariateLabels = 0;
@@ -347,23 +346,21 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     beta[i] = R[i].getbeta();
   }
 
-  LogLikelihood = 0.0; 
-
   for(unsigned int i = 0; i < NumInd; i++ ){
     int prev = i-1;
     if(i==0)prev = NumInd-1;
 
     if( options->getPopulations() > 1 ){
-      _child[i]->SampleParameters(i, SumLogTheta, &LogLikelihood, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
+      _child[i]->SampleParameters(i, SumLogTheta, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
 				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				  chrm, alpha, rhoalpha, rhobeta, sigma,  
 				  DerivativeInverseLinkFunction(i),
-				  R[0].getDispersion() );
+				  R[0].getDispersion(), anneal );
       if((iteration %2))//conjugate update of theta on even-numbered iterations
  	_child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
  			      & Covariates, beta, poptheta, options, alpha, sigma,
  			       DerivativeInverseLinkFunction(i), 
- 			       R[0].getDispersion(), false);
+ 			       R[0].getDispersion(), false, anneal);
 
       if(NumInd > 1)_child[prev]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
       //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
@@ -373,7 +370,6 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     else{//single population 
       _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
 				     chrm, A);
-      LogLikelihood += _child[i]->getLogLikelihoodOnePop();
     }   
 
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
@@ -381,32 +377,27 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 				options, chrm, alpha, globalrho, rhoalpha, rhobeta,
 				thetahat, thetahatX, rhohat, rhohatX, Log, &MargLikelihood, A);
   }
-  if(!anneal && iteration > options->getBurnIn()){
-    for(int c = 0; c < options->getNumberOfOutcomes(); ++c)LogLikelihood += R[c].getLogLikelihood(this);
-    SumDeviance += -2.0*LogLikelihood;
-    SumDevianceSq += 4.0*LogLikelihood*LogLikelihood;
-  }
 
 }
 
-void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
-						       const AdmixOptions* const options, Chromosome **chrm, 
-						       const vector<vector<double> > &alpha){
-  if( options->getPopulations() > 1 ){
-    double lambda[options->getNumberOfOutcomes()];
-    const double* beta[options->getNumberOfOutcomes()];
-    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-      lambda[i] = R[i].getlambda();
-      beta[i] = R[i].getbeta();
-    }
+// void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
+// 						       const AdmixOptions* const options, Chromosome **chrm, 
+// 						       const vector<vector<double> > &alpha){
+//   if( options->getPopulations() > 1 ){
+//     double lambda[options->getNumberOfOutcomes()];
+//     const double* beta[options->getNumberOfOutcomes()];
+//     for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+//       lambda[i] = R[i].getlambda();
+//       beta[i] = R[i].getbeta();
+//     }
 
-    for(unsigned int i = 0; i < NumInd; i++ )
-      _child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
-			    &Covariates, beta, poptheta, options, alpha, sigma,
-			     DerivativeInverseLinkFunction(i), 
-			     R[0].getDispersion(), false);
-  }
-}
+//     for(unsigned int i = 0; i < NumInd; i++ )
+//       _child[i]->SampleTheta(i, iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
+// 			    &Covariates, beta, poptheta, options, alpha, sigma,
+// 			     DerivativeInverseLinkFunction(i), 
+// 			     R[0].getDispersion(), false);
+//   }
+// }
 
 // ************** ACCESSORS **************
 int IndividualCollection::getSize()const
@@ -527,7 +518,7 @@ void IndividualCollection::OutputIndAdmixture()
 {
   indadmixoutput->visitIndividualCollection(*this);
   for(unsigned int i = 0; i < NumInd; i++){
-    indadmixoutput->visitIndividual(*_child[i], _locusfortest, LogLikelihood);
+    indadmixoutput->visitIndividual(*_child[i], _locusfortest);
   }
 }
 
@@ -573,15 +564,38 @@ void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, const st
    Log->logmsg(true,"\n");
 
 }
-double IndividualCollection::getLogLikelihood(const AdmixOptions* const options, Chromosome **C, bool annealindicator=false){
+double IndividualCollection::getLogLikelihood(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
+					      bool sumdeviance=false){
   double LogL = 0.0;
   for(unsigned i = 0; i < NumInd; ++i){
     int prev = i-1;
     if(i==0)prev = NumInd-1;
-    LogL += _child[i]->getLogLikelihood(options, C, annealindicator);
+    LogL += _child[i]->getLogLikelihood(options, C);
     if(NumInd > 1)_child[prev]->HMMIsBad(false);
   }
+  double LogLikelihood = LogL;
+  //accumulate deviance
+  if(sumdeviance){
+    for(int c = 0; c < options->getNumberOfOutcomes(); ++c)LogLikelihood += R[c].getLogLikelihood(this);
+    SumDeviance += -2.0*LogLikelihood;
+    SumDevianceSq += 4.0*LogLikelihood*LogLikelihood;
+  }
 
+  return LogL;
+}
+double IndividualCollection::getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness){
+  double LogL = 0.0;
+  Chromosome::setCoolness(1.0);
+
+  for(unsigned i = 0; i < NumInd; ++i){
+    int prev = i-1;
+    if(i==0)prev = NumInd-1;
+    _child[i]->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
+    LogL += _child[i]->getLogLikelihood(options, C);
+    if(NumInd > 1)_child[prev]->HMMIsBad(false);
+    if(coolness < 1.0)_child[i]->HMMIsBad(true);
+  }
+  Chromosome::setCoolness(coolness);
   return LogL;
 }
 

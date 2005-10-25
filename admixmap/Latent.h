@@ -82,7 +82,7 @@ public:
   
   //Updating every iteration
   void UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C, double LogL);
-  void Update(int iteration, const IndividualCollection* const);
+  void Update(int iteration, const IndividualCollection* const, bool anneal);
   
   void OutputParams(int iteration); 
   

@@ -100,7 +100,8 @@ public:
   const std::string getCovariateLabels(int)const;
   const std::string *getCovariateLabels()const;
 
-  double getLogLikelihood(const AdmixOptions* const options, Chromosome **C, bool annealindicator);
+  double getLogLikelihood(const AdmixOptions* const options, Chromosome **C, const Regression* R, bool sumdeviance);
+  double getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness);
   double DerivativeInverseLinkFunction(int i)const;
 private:
   Individual **_child; //array of pointers to Individual
@@ -124,7 +125,7 @@ private:
   DataMatrix *ReportedAncestry;
   std::vector<double> sigma;
   IndAdmixOutputter* indadmixoutput;
-  double LogLikelihood, SumLogLikelihood;
+  double SumLogLikelihood;
   double SumDeviance, SumDevianceSq;
   std::vector< int > _locusfortest;
  

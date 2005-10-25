@@ -121,8 +121,7 @@ int main( int argc , char** argv ){
   else
     {
 
-  // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
-
+      // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
       DispersionTest DispTest;
       StratificationTest StratTest;
       ScoreTests Scoretest;
@@ -147,9 +146,9 @@ int main( int argc , char** argv ){
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
 
-  // ******************* initialise stuff for annealing**************** *******************************
+      // ******************* initialise stuff for annealing ************************************************
       bool anneal = options.getAnnealIndicator();
-      double L_mod = 0.0, L_mod_sq = 0.0, marg_L = 0.0;//modified log-likelihood, square and marginal likelihood
+      double SumLogL = 0.0, SumLogLSq = 0.0, marg_L = 0.0;//modified log-likelihood, square and marginal likelihood
       double coolness = 1.0;
       std::ofstream annealstream;//for monitoring modified log likelihood when annealing
       int ci = options.getNumberOfAnnealedRuns();//defaults to starting at coolness of 1
@@ -163,18 +162,19 @@ int main( int argc , char** argv ){
       for( ;ci <= options.getNumberOfAnnealedRuns() ;ci++ ){//loop over temperature
 	coolness = (double)ci / (double)options.getNumberOfAnnealedRuns();
 	//resets for start of each run
+	SumLogL = 0.0;//cumulative sum of modified loglikelihood
+	SumLogLSq = 0.0;//cumulative sum of square of modified loglikelihood
 	if(anneal){
-	  L_mod = 0.0;//ergodic sum of modified loglikelihood
-	  L_mod_sq = 0.0;//ergodic sum of square of modified loglikelihood
 	  cout<<"\rSampling at coolness of "<<coolness;
 	  if(ci == options.getNumberOfAnnealedRuns()) {
 	    anneal = false;//finished annealed runs, last run is with unannealed likelihood
 	    cout<<".00"<<endl;
 	  }
 	}
-	Chromosome::setCoolness(coolness, &L_mod);//pass current coolness and pointer to L_mod to Chromosome
+	Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
       
 	// *************************** BEGIN MAIN LOOP ******************************************************
+	double LogL = IC->getLogLikelihood(&options, chrm, R, false);
 	for( int iteration = 0; iteration <= options.getTotalSamples(); iteration++ ){
 	  if(!anneal &&  !(iteration % options.getSampleEvery()) ){
 	    if(IC->getSize() >1)
@@ -188,14 +188,7 @@ int main( int argc , char** argv ){
 	  }
 	
 	  A.ResetAlleleCounts();
-	
-	  //compute loglikelihood and write to file
-	  double LogL = IC->getLogLikelihood(&options, chrm, options.getAnnealIndicator());
-	  //includes calculation of unannealed loglikelihood
-	  L_mod_sq += L_mod * L_mod;
 
-	  if(!anneal)loglikelihoodfile<< iteration<<" " <<LogL<<endl;
-	
 	  // ** update global sumintensities
 	  if((options.getPopulations() > 1) && (IC->getSize() > 1) && 
 	     options.getIndAdmixHierIndicator() && (Loci.GetLengthOfGenome()> 0.0))
@@ -211,7 +204,7 @@ int main( int argc , char** argv ){
 	
 	  // ** update allele frequencies
 	  if(A.IsRandom()){
-	    A.Update((iteration > options.getBurnIn()));
+	    A.Update((iteration > options.getBurnIn()), anneal);
 	    for(int i = 0; i < IC->getSize(); ++i)
 	      IC->getIndividual(i)->HMMIsBad(true); //if the allelefreqs are not fixed they are sampled between
 	    //individual updates. Therefore the forward probs in the HMMs must be updated and the current stored 
@@ -224,11 +217,24 @@ int main( int argc , char** argv ){
 								      options.getPopulations());
 	  }  
 	
-	  L.Update(iteration, IC);
+	  L.Update(iteration, IC, anneal);
 	
 	  // ** update regression parameters (if regression model)
 	  for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-	    R[r].Update((iteration > options.getBurnIn()), IC);
+	    R[r].Update((!anneal && iteration > options.getBurnIn()), IC);
+	
+	  //compute loglikelihood and write to file
+	  LogL = IC->getLogLikelihood(&options, chrm, R, (!anneal && iteration > options.getBurnIn()) );
+	  if(!anneal)loglikelihoodfile<< iteration<<" " <<LogL<<endl;
+	  //compute modified loglikelihood (at coolness of 1.0)
+	  double lmod = LogL;
+	  if(coolness < 1.0){
+	    lmod = IC->getModifiedLogLikelihood(&options, chrm, coolness);
+	  }
+	  if(iteration > options.getBurnIn()){
+	    SumLogL += lmod;
+	    SumLogLSq += lmod;
+	  }
 	
 	  // ** set merged haplotypes for allelic association score test 
 	  if( !anneal && iteration == options.getBurnIn() && options.getTestForAllelicAssociation() ){
@@ -295,11 +301,11 @@ int main( int argc , char** argv ){
 	if(options.getAnnealIndicator()){//cannot use 'anneal' as it is false for final run
 	  //calculate mean and variance of L_mod and write to file
 	  double E_L_mod = 0.0,Var_L_mod = 0.0;
-	  E_L_mod = L_mod / ((double)options.getTotalSamples()-options.getBurnIn() + 1.0);
-	  Var_L_mod = L_mod_sq/ ((double)options.getTotalSamples()-options.getBurnIn() + 1.0) - E_L_mod * E_L_mod;
+	  E_L_mod = SumLogL / ((double)options.getTotalSamples()-options.getBurnIn());
+	  Var_L_mod = SumLogLSq/ ((double)options.getTotalSamples()-options.getBurnIn()) - E_L_mod * E_L_mod;
 	  annealstream << coolness << "  "<<E_L_mod << "  " << Var_L_mod; 
-	  marg_L += 0.01 * L_mod;
-	  annealstream <<"  "<<marg_L / ((double)options.getTotalSamples()-options.getBurnIn() + 1.0)<<endl;
+	  marg_L += SumLogL / (double)options.getNumberOfAnnealedRuns();
+	  annealstream <<"  "<<marg_L / ((double)options.getTotalSamples()-options.getBurnIn())<<endl;
 	}
       }
       // *************************** END ANNEALING LOOP ******************************************************
@@ -313,7 +319,7 @@ int main( int argc , char** argv ){
 
       if(options.getAnnealIndicator()){
 	Log.logmsg(true, "Log Marginal Likelihood from simulated annealing: ");
-	Log.logmsg(true, marg_L / ((double)options.getTotalSamples()-options.getBurnIn() + 1.0));
+	Log.logmsg(true, marg_L / ((double)options.getTotalSamples()-options.getBurnIn()));
 	//Log.logmsg(true, "\nwith standard error of ");Log.logmsg(true, );Log.logmsg(true, "\n");
       }
 

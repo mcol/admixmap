@@ -28,7 +28,6 @@
 using namespace std;
 
 double Chromosome::coolness = 1;//initialising to 1 samples from posterior by default
-double *Chromosome::L_mod = 0;
 
 Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
 {
@@ -70,9 +69,8 @@ Chromosome::~Chromosome()
   delete[] f[1];
 }
 
-void Chromosome::setCoolness(double l, double *Lmod){
+void Chromosome::setCoolness(double l){
   coolness = l;
-  L_mod = Lmod;
 }
 
 // Returns the number of the num'th compositelocus on this chromosome
@@ -121,12 +119,10 @@ void Chromosome::SetGenotypeProbs(double *Probs){
 }
 
 void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, const AdmixOptions* const options, 
-				       const std::vector< double > _rho, bool diploid, bool annealindicator = false){
+				       const std::vector< double > _rho, bool diploid){
   //set annealindicator to true once per individual per iteration to accumulate unannealed loglikelihood stored in top level
 
   //_rho contains Individual sumintensities parameters, ignored if globalrho model
-
-  //SetGenotypeProbs(ind, chibindicator);
 
   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
   // required to calculate transition matrices 
@@ -149,16 +145,11 @@ void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, const Admi
     //construct StateArrivalProbs
     SampleStates.SetStateArrivalProbs(f, Admixture, options->isRandomMatingModel());
 
-    if(annealindicator) {
-      SampleStates.UpdateForwardProbsDiploid(f, Lambda, 1.0);
-      (*L_mod) += SampleStates.getLogLikelihood();
-    }
-
-    //if(coolness < 1.0)
     //Update Forward/Backward Probs in HMM
     SampleStates.UpdateForwardProbsDiploid(f, Lambda, coolness);
 
   }
+
   else{//haploid
     SampleStates.UpdateForwardProbsHaploid(f, Admixture, Lambda);
   }

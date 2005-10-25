@@ -52,9 +52,9 @@ IndAdmixOutputter::~IndAdmixOutputter()
      else
         dimOne++;
   }
-  //column for loglikelihood
-  if(_totalIndividuals == 1)
-    dimOne++;
+//   //column for loglikelihood
+//   if(_totalIndividuals == 1)
+//     dimOne++;
   
   _out << ")," << endl;
   _out << ".Dim = c(" << dimOne << "," << _totalIndividuals << "," << _iterations << ")," << endl;
@@ -74,9 +74,9 @@ IndAdmixOutputter::~IndAdmixOutputter()
         _out << "\"rho\",";
   }
 
-  if( (_totalIndividuals == 1) ){
-     _out << "\"Log-likelihood\"";
-  }
+//   if( (_totalIndividuals == 1) ){
+//      _out << "\"Log-likelihood\"";
+//   }
 
   if (_options->getLocusForTestIndicator()){
     if( _options->getPopulations() > 1 ){
@@ -89,7 +89,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
   _out.close();
 }
 
-void IndAdmixOutputter::visitIndividual(const Individual& ind, const vector<int> _locusfortest, double LogLikelihood)
+void IndAdmixOutputter::visitIndividual(const Individual& ind, const vector<int> _locusfortest)
 {
   for( int k = 0; k < _options->getPopulations(); k++ ){
      if(_options->isRandomMatingModel()){
@@ -107,9 +107,9 @@ void IndAdmixOutputter::visitIndividual(const Individual& ind, const vector<int>
   }
   
         
-  if( (_totalIndividuals == 1 ) ){
-     _out << LogLikelihood << ",";
-  }
+//   if( (_totalIndividuals == 1 ) ){
+//      _out << LogLikelihood << ",";
+//   }
 
   if (_options->getLocusForTestIndicator()){
     int ancestry[2];

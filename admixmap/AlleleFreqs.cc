@@ -471,7 +471,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 
 // Method samples allele frequency and prior allele frequency
 // parameters.
-void AlleleFreqs::Update(bool afterBurnIn){
+void AlleleFreqs::Update(bool afterBurnIn, bool anneal=false){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
   if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -492,7 +492,7 @@ void AlleleFreqs::Update(bool afterBurnIn){
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     SampleAlleleFreqs(i);
-    (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
+    (*Loci)(i)->SetAlleleProbs(Freqs[i], (!anneal && afterBurnIn));
     (*Loci)(i)->SetHapPairProbs();
   }
   
@@ -948,7 +948,7 @@ void AlleleFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 void AlleleFreqs::OutputEta(int iteration, AdmixOptions *options, LogWriter *Log){
   if( IsHistoricAlleleFreq ){
     //output to logfile
-    if( !options->useCOUT() || iteration == 0 )
+    if( iteration == 0 )
       {
 	for( int j = 0; j < Populations; j++ ){
 	  Log->width(9);
