@@ -171,12 +171,12 @@ void LogWriter::ProcessingTime()
   if(realtime > 3600.0){
     int hours = (int)(realtime/3600);
     logmsg(true, hours);logmsg(true,"h, ");
-    realtime -= (double)hours;
+    realtime -= (double)(hours*3600);
   }
   //if(realtime > 60.0){
   int mins = (int)(realtime/60);
   logmsg(true, mins);logmsg(true,"m, ");
-  realtime -= (double)mins;
+  realtime -= (double)(mins*60);
   //}
   
   logmsg(true, (int)realtime);logmsg(true, "s\n");
