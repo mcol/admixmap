@@ -23,7 +23,7 @@
 #define LATENT_H 1
 
 // ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 2 //1 = original Adaptive Rejection sampler, 
+#define POPADMIXSAMPLER 3 //1 = original Adaptive Rejection sampler, 
                           //2 = DirichletParamSampler, 
                           //3 = HamiltonianMonteCarlo
 

@@ -232,9 +232,6 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
 
       for( int j = 0; j < options->getPopulations(); j++ )
          alpha[0][j] = mu[j]*eta;
-
-
-
       
 #elif POPADMIXSAMPLER == 3
       //for( int j = 0; j < options->getPopulations(); j++ ){
@@ -243,12 +240,13 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
       AlphaArgs.sumlogtheta = individuals->getSumLogTheta();
       AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
       transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
-
+      //cout<<"eta = "<<accumulate(alpha[0].begin(), alpha[0].end(), 0.0, std::plus<double>())<<endl;
 #endif
       
-      // ** accumulate sum of Dirichlet parameter vector over iterations  **
-      transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
+
    }
+   // ** accumulate sum of Dirichlet parameter vector over iterations  **
+   transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
    
    if( iteration < options->getBurnIn() && options->getPopulations() > 1
        && options->getNumberOfOutcomes() > 0 ){
@@ -267,8 +265,11 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
    }
    
    if( !anneal && iteration > options->getBurnIn() && options->getPopulations() > 1 ){
-     // accumulate sum of log of rho parameters after burnin.
+     // accumulate sum of log of sumintensities after burnin.
+     if(options->isGlobalRho())
        SumLogRho += log(rho);
+     else SumLogRho += log(rhoalpha) - log(rhobeta);
+
    }
 }
 //end Update
@@ -345,21 +346,18 @@ void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 {
   // Header line of paramfile
 
-  if( options->getIndAdmixHierIndicator() ){
-
-    //Pop. Admixture
-    for( int i = 0; i < options->getPopulations(); i++ ){
-      outputstream << "\""<<PopulationLabels[i] << "\" ";
-    }
-    //SumIntensities
-    if( options->isGlobalRho() )
-      outputstream << "\"sumIntensities\" ";
-    else
-      outputstream << "\"sumIntensities.beta\" ";
-
-    outputstream << endl;
+  //Pop. Admixture
+  for( int i = 0; i < options->getPopulations(); i++ ){
+    outputstream << "\""<<PopulationLabels[i] << "\" ";
   }
-
+  
+  //SumIntensities
+  if( options->isGlobalRho() )
+    outputstream << "\"sumIntensities\" ";
+  else
+    outputstream << "\"sumIntensities.mean\" ";
+  
+  outputstream << endl;
 }
 
 void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
@@ -380,19 +378,21 @@ void Latent::OutputParams(int iteration){
 	Log->width(9);
 	Log->write(alpha[0][j], 6);
       }
-       if( !options->isGlobalRho() )
-	Log->write(rhobeta,6);
+      
+      if( !options->isGlobalRho() )
+	Log->write(rhoalpha / rhobeta, 4);
       else
-	Log->write(rho,6);
+	Log->write(rho, 4);
     }
   //output to screen
   if( options->useCOUT() )
     {
       for( int j = 0; j < options->getPopulations(); j++ ){
-       (cout).width(9);
-       (cout) << setprecision(6) << alpha[0][ j ] << " ";
+	(cout).width(9);
+	(cout) << setprecision(6) << alpha[0][ j ] << " ";
       }
-     (cout).width(9);
+
+      (cout).width(9);
       if( !options->isGlobalRho() )
 	(cout) << setprecision(6) << rhobeta << " ";
       else
@@ -403,17 +403,18 @@ void Latent::OutputParams(int iteration){
   if( iteration > options->getBurnIn() ){
     for( int j = 0; j < options->getPopulations(); j++ ){
       outputstream.width(9);
-      outputstream << setprecision(6) << alpha[0][ j ] << " ";}
-    //output rho
+      outputstream << setprecision(6) << alpha[0][ j ] << " ";
+    }
+
+  //output rho
     outputstream.width(9);
     if( !options->isGlobalRho() )
       (outputstream) << setprecision(6) << rhobeta << " ";
     else
       (outputstream) << setprecision(6) << rho << " ";
-
+    
     outputstream << endl;
   }
-
 }
 
 

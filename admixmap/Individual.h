@@ -184,7 +184,7 @@ private:
 			  const double* const theta, const double* const thetaX,
 			     const vector<double> rho, const vector<double> rhoX);
 
-  void SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta,  
+  void SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta,  
 		 unsigned int SumN[], unsigned int SumN_X[]);
 
   void ProposeTheta(const AdmixOptions* const options, const vector<double> sigma, const vector<vector<double> > &alpha);

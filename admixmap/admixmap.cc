@@ -166,6 +166,7 @@ int main( int argc , char** argv ){
 	SumLogLSq = 0.0;//cumulative sum of square of modified loglikelihood
 	if(anneal){
 	  cout<<"\rSampling at coolness of "<<coolness;
+	  if(!(ci%10) && ci < options.getNumberOfAnnealedRuns())cout<<"0";
 	  if(ci == options.getNumberOfAnnealedRuns()) {
 	    anneal = false;//finished annealed runs, last run is with unannealed likelihood
 	    cout<<".00"<<endl;
@@ -281,10 +282,12 @@ int main( int argc , char** argv ){
 	      //Ergodic averages
 	      if ( strlen( options.getErgodicAverageFilename() ) ){
 		int samples = iteration - options.getBurnIn();
-		L.OutputErgodicAvg(samples,&avgstream);
-		for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-		  R[r].OutputErgodicAvg(samples, &avgstream);
-		A.OutputErgodicAvg(samples, &avgstream);
+		if( options.getIndAdmixHierIndicator() ){
+		  L.OutputErgodicAvg(samples,&avgstream);
+		  for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
+		    R[r].OutputErgodicAvg(samples, &avgstream);
+		  A.OutputErgodicAvg(samples, &avgstream);
+		}
 		//if( IC->getSize()==1 )
 		IC->OutputErgodicAvg(samples, options.getMLIndicator(), &avgstream);
 	      
@@ -469,39 +472,40 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
       }
       
       // Header line of ergodicaveragefile
-      for( int i = 0; i < options->getPopulations(); i++ ){
-	*avgstream << "\""<<PopulationLabels[i] << "\" ";
-      }
-      if( options->isGlobalRho() )
-	*avgstream << " \"sumIntensities\"";
-      else
-	*avgstream << "\"sumIntensities.beta\" ";
-      
-      
-      // Regression parameters
-      if( options->getNumberOfOutcomes() > 0 ){
-	for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
-	  *avgstream << "       \"intercept\" ";
-	  if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
-	    for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-	      *avgstream << individuals->getCovariateLabels(i) << " ";
-	    }
-	  }
-	  if( !options->getTestForAdmixtureAssociation() ){
-	    for( int k = 1; k < options->getPopulations(); k++ ){
-	      *avgstream << "\""<<PopulationLabels[k] << "\" ";
-	    }
-	  }
-	  if( individuals->getOutcomeType(r)==0 )//linear regression
-	    *avgstream << "       \"precision\"";
+      if( options->getIndAdmixHierIndicator() ){
+	for( int i = 0; i < options->getPopulations(); i++ ){
+	  *avgstream << "\""<<PopulationLabels[i] << "\" ";
 	}
-      }
-      
-      
-      // dispersion parameters
-      if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-	for( int k = 0; k < options->getPopulations(); k++ ){
-	  *avgstream << " \"eta" << k << "\"";
+	if( options->isGlobalRho() )
+	  *avgstream << " \"sumIntensities\"";
+	else
+	  *avgstream << "\"sumIntensities.mean\" ";
+	
+	
+	// Regression parameters
+	if( options->getNumberOfOutcomes() > 0 ){
+	  for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
+	    *avgstream << "       \"intercept\" ";
+	    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
+	      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
+		*avgstream << individuals->getCovariateLabels(i) << " ";
+	      }
+	    }
+	    if( !options->getTestForAdmixtureAssociation() ){
+	      for( int k = 1; k < options->getPopulations(); k++ ){
+		*avgstream << "\""<<PopulationLabels[k] << "\" ";
+	      }
+	    }
+	    if( individuals->getOutcomeType(r)==0 )//linear regression
+	      *avgstream << "       \"precision\"";
+	  }
+	}
+		
+	// dispersion parameters
+	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+	  for( int k = 0; k < options->getPopulations(); k++ ){
+	    *avgstream << " \"eta" << k << "\"";
+	  }
 	}
       }
       *avgstream << "\"MeanDeviance\"\t \"VarDeviance\"\t ";
