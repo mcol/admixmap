@@ -238,10 +238,22 @@ checkConvergence <- function(table.samples, listname, outputfile) {
 plotErgodicAverages <- function(ergodicaveragefile, thinning) {
   table.averages <- read.table(file=ergodicaveragefile, header=TRUE)
   iterations <- 10*thinning*seq(1:dim(table.averages)[1])	
-  leave.out <- seq(1:(length(iterations)/5))
+  omit <- seq(1:(length(iterations)/5))#exclude first 20% from plot
   ## plot ergodic averages
-  for(j in 1:dim(table.averages)[2]) {
-    plot(iterations[-leave.out], table.averages[-leave.out,j], type="l", 
+  start <- 1
+  if( K > 1 && user.options$indadmixhiermodel==1){
+    start <- K+1
+    dispersion <- apply(table.averages[-omit,1:K], 1, sum)
+    plot(iterations[-omit],dispersion, type='l', main="Running posterior mean", 
+         xlab="Iterations", ylab="PopAdmix Dispersion");
+    for(j in 1:K){
+      plot(iterations[-omit], table.averages[-omit,j]/dispersion, type="l", 
+           main="Running posterior mean", 
+           xlab="Iterations", ylab=dimnames(table.averages)[[2]][j]) # should fix dimnames
+    }
+  }
+  for(j in start:dim(table.averages)[2]) {
+    plot(iterations[-omit], table.averages[-omit,j], type="l", 
          main="Running posterior mean", 
          xlab="Iterations", ylab=dimnames(table.averages)[[2]][j]) # should fix dimnames
   }
@@ -826,11 +838,11 @@ plotAdmixtureDistribution <- function(alphas, samples, k) {
   dev.off()
 }
 
-writePosteriorMeansIndivAdmixture <- function(samples.meanparents, K) {
+writePosteriorMeansIndivAdmixture <- function(samples, K) {
   ## compute posterior means of individual admixture and ancestry diversity
   ## dim 1 is populations, dim2 is individuals, dim3 is samples
-  n.individuals <- dim(samples.meanparents)[2]
-  n.samples <- dim(samples.meanparents)[3]
+  n.individuals <- dim(samples)[2]
+  n.samples <- dim(samples)[3]
   
   M.squared <- samples.meanparents[1:K,1:n.individuals,1:n.samples, drop=F]^2
   ancestry.diversity <- 1 - apply(M.squared, 2:3, sum)
@@ -1067,7 +1079,7 @@ if(!is.null(user.options$hwtestfile)){
 if(!is.null(user.options$anneal)){
   anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
   postscript(paste(resultsdir, "annealplot.ps", sep="/"))
-  plot(anneal.table[,1],anneal.table[,2], xlab="coolness", ylab="mean logLikelihood")
+  plot(anneal.table[,1],anneal.table[,2], xlab="coolness", ylab="mean logLikelihood", type = 'o')
   dev.off()
 }
 
@@ -1146,9 +1158,12 @@ if(!is.null(user.options$indadmixturefile)) {
   
   ## should plot only if subpopulations are identifiable in model
   plotAdmixtureDistribution(alphas, samples.bothparents, K)
-  if(K > 1) {
-    writePosteriorMeansIndivAdmixture(samples.meanparents, K)
-  }
+  ##if(K > 1) {
+    ##writePosteriorMeansIndivAdmixture(t(samples), K)
+  ##}
+  sample.means <- apply(samples, 1:2, mean)
+  write.table(t(sample.means), paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), row.names=F)
+  
   ##if(dim(samples.meanparents)[2]==1) {
     ## plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels)
   ##}
