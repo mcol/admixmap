@@ -1181,11 +1181,11 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
 
     initalpha.push_back(alpha0);
     initalpha.push_back(alpha1);
-    Log->logmsg(true, "Dirichlet prior for paternal gamete admixture: ");
+    Log->logmsg(true, "Dirichlet prior for maternal gamete admixture: ");
     for(size_t k = 0;k < alpha0.size(); ++k){Log->logmsg(true,alpha0[k]);Log->logmsg(true," ");}
     Log->logmsg(true,"\n");
     
-    Log->logmsg(true, "Dirichlet prior for maternal gamete admixture: ");
+    Log->logmsg(true, "Dirichlet prior for paternal gamete admixture: ");
     for(size_t k = 0;k < alpha1.size(); ++k){Log->logmsg(true,alpha1[k]);Log->logmsg(true," ");}
     Log->logmsg(true,"\n");
     
