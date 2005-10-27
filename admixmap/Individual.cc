@@ -588,8 +588,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 
   // sample sum of intensities parameter rho
   if( !options->isGlobalRho() ){
-     SampleRho( options->getXOnlyAnalysis(), options->isRandomMatingModel(), Loci->isX_data(), rhoalpha, rhobeta, 
-	       SumN, SumN_X);
+     SampleRho( options, Loci->isX_data(), rhoalpha, rhobeta, SumN, SumN_X);
   }
   if(!anneal && iteration > options->getBurnIn()){
     for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] += log(_rho[i]);
@@ -757,7 +756,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
     gendirichlet(K, temp, ThetaProposal );
   }
   else if( options->isRandomMatingModel() ){//random mating model
-    for( unsigned int g = 0; g < 2; g++ ){
+    for( unsigned int g = 0; g < 2; g++ )if(options->isAdmixed(g)){
       if( options->getIndAdmixHierIndicator() ){
          for(size_t k = 0; k < K; ++k){
             temp[k] = alpha[0][k] + SumLocusAncestry[k + K*g];
@@ -768,11 +767,13 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
 //         cout << endl;
       }
       else{//single individual
-         for(size_t k = 0; k < K; ++k){
+
+	  for(size_t k = 0; k < K; ++k){
             temp[k] = alpha[g][k] + SumLocusAncestry[k + K*g];
             if( g == 0 )
-               temp[k] += SumLocusAncestry_X[k];
-         }
+	      temp[k] += SumLocusAncestry_X[k];
+	  }
+	
       }
       gendirichlet(K, temp, ThetaProposal+g*K );
     }
@@ -943,20 +944,20 @@ void Individual::UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, c
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
 
-void Individual::SampleRho(bool XOnly, bool RandomMatingModel, bool X_data, double rhoalpha, double rhobeta, 
+void Individual::SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta, 
 			   unsigned int SumN[], unsigned int SumN_X[]){
   double L = Loci->GetLengthOfGenome(), L_X=0.0;
   if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
 
   // Samples sum of intensities parameter as conjugate gamma with Poisson likelihood
   // SumN is the number of arrivals between each pair of adjacent loci
-  if(XOnly ){
+  if(options->getXOnlyAnalysis() ){
     do{
       _rho[0] = gengam( rhobeta + L_X, rhoalpha + (double)SumN_X[0] );
     }while( _rho[0] > TruncationPt || _rho[0] < 1.0 );
   }
-  else if(RandomMatingModel ){
-    for( unsigned int g = 0; g < 2; g++ ){
+  else if(options->isRandomMatingModel() ){
+    for( unsigned int g = 0; g < 2; g++ )if(options->isAdmixed(g)){
       do{
 	_rho[g] = gengam( rhobeta + L, rhoalpha + (double)SumN[g] );
       }while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
