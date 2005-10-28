@@ -497,20 +497,20 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	      }
 	    }
 	    if( individuals->getOutcomeType(r)==0 )//linear regression
-	      *avgstream << "       \"precision\"";
+	      *avgstream << "       \"precision\" ";
 	  }
 	}
 		
 	// dispersion parameters
 	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
 	  for( int k = 0; k < options->getPopulations(); k++ ){
-	    *avgstream << " \"eta" << k << "\"";
+	    *avgstream << " \"eta" << k << "\" ";
 	  }
 	}
       }
       *avgstream << "\"MeanDeviance\"\t \"VarDeviance\"\t ";
       if(options->getMLIndicator()){//marginal likelihood calculation
-	*avgstream<<"\"LogMarginalLikelihood \" ";
+	*avgstream<<"\"LogPrior\" \t \"LogPosterior\" \t \"LogMarginalLikelihood\"";
       }
       *avgstream << "\n";
     }

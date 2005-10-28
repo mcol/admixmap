@@ -552,6 +552,7 @@ void IndividualCollection::OutputErgodicAvg(int samples, bool ML, std::ofstream 
   *avgstream << E<< " "<<V<<" ";
   if(ML)
     *avgstream //<< SumLogLikelihood / samples << " "
+      << MargLikelihood.getLogPrior()<< " " << MargLikelihood.getLogPosterior() << " "
       << MargLikelihood.getLogMarginalLikelihood();
 }
 

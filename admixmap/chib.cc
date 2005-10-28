@@ -39,28 +39,21 @@ void chib::setLogLikelihood(double x)
 
 void chib::addLogPrior(double x)
 {
-  if(x > MaxLogPrior)
-    MaxLogPrior = x;
   LogPrior.push_back(x);
+  if(LogPrior.size()==1)MaxLogPrior = x;
+  if(x > MaxLogPrior) MaxLogPrior = x;
 }
 
 void chib::addLogPosteriorObs( double f )
 {
-   if( f > MaxLogPosterior )
-      MaxLogPosterior = f;
    VecLogPosterior.push_back(f);
+   if(VecLogPosterior.size() == 1)MaxLogPosterior = f;
+   if( f > MaxLogPosterior )MaxLogPosterior = f;
 }
 
 double chib::getLogPosterior()const
 {
-  //double x = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
-  //if( isnan(x) ){
-  //  for( unsigned int i = 0; i < VecLogPosterior.size(); i++ )
-  //     cout << VecLogPosterior[i] << " ";
-  //  cout << endl;
-  //  exit(0);
-  //}
-   return AverageOfLogs( VecLogPosterior, MaxLogPosterior );
+  return AverageOfLogs( VecLogPosterior, MaxLogPosterior );
 }
 
 double chib::getLogPrior()const{
