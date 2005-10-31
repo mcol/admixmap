@@ -524,7 +524,7 @@ void IndividualCollection::OutputIndAdmixture()
 
 void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations)const{
   //Used only if marglikelihood = 1
-  Log->write("Estimates used in Chib algorithm to estimate marginal likelihood for Individual 1:\n");
+  Log->write("EstimatesUsedForChibAlgorithm\t");
 
   for(int k = 0; k < Populations; ++k){
     Log->write(thetahat[k]);
