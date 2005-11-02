@@ -75,6 +75,8 @@ public:
   double getRho() const;
   double getRhoalpha() const;
   double getRhobeta() const;
+  double getRhobetaShape()const;
+  double getRhobetaRate()const;
   bool RhoFlatPrior() const;
   bool logRhoFlatPrior() const;  
 
@@ -194,6 +196,7 @@ private:
 
   //priors
   double Rhoalpha, Rhobeta;//gamma parameters for sumintensities
+  double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
   std::vector<double> alpha0;
   std::vector<double> alpha1;
   double alphamean, alphavar;

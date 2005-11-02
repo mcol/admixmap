@@ -97,8 +97,9 @@ void AdmixOptions::Initialise(){
   HWTest = false;
   OutputAlleleFreq = false;
 
-  Rhoalpha = 3.0; 
-  Rhobeta = 0.5;  
+  Rhoalpha = 6.0; 
+  RhobetaShape = 3.0;
+  RhobetaRate = 3.0;  
   alphamean = 1;  //  gamma(0.25, 0.25)
   alphavar = 16;   //
   etamean = 100.0; //gamma(3, 0.01)
@@ -400,6 +401,12 @@ double AdmixOptions::getRhobeta() const
 {
   return Rhobeta;
 }
+double AdmixOptions::getRhobetaShape()const{
+  return RhobetaShape;
+}
+double AdmixOptions::getRhobetaRate()const{
+  return RhobetaRate;
+}
 double AdmixOptions::getAlphamean() const{
   return alphamean;
 }
@@ -668,7 +675,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
     {"sumintensitiesalpha",                   1, 0,  0 }, // double
-    {"sumintensitiesbeta",                    1, 0,  0 }, // double
+    {"sumintensitiesbetashape",               1, 0,  0 }, // double
+    {"sumintensitiesbetarate",                1, 0,  0 }, // double
     {"popadmixpriormean",                     1, 0,  0 }, //double
     {"popadmixpriorvar",                      1, 0,  0 }, //double
     {"etapriormean",                          1, 0,  0 }, //double
@@ -845,8 +853,10 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 Seed = strtol(optarg, NULL, 10);OptionValues["seed"]=optarg;
       } else if (long_option_name == "sumintensitiesalpha") {
 	 Rhoalpha = strtod(optarg, NULL);OptionValues["sumintensitiesalpha"]=optarg;
-      } else if (long_option_name == "sumintensitiesbeta") {
-	 Rhobeta = strtod(optarg, NULL);OptionValues["sumintensitiesbeta"]=optarg;
+      } else if (long_option_name == "sumintensitiesbetashape") {
+	 RhobetaShape = strtod(optarg, NULL);OptionValues["sumintensitiesbetashape"]=optarg;
+      } else if (long_option_name == "sumintensitiesbetarate") {
+	 RhobetaRate = strtod(optarg, NULL);OptionValues["sumintensitiesbetarate"]=optarg;
       } else if (long_option_name == "popadmixpriormean") {
 	 alphamean = strtod(optarg, NULL);OptionValues["popadmixpriormean"]=optarg;
       } else if (long_option_name == "popadmixpriorvar") {
@@ -971,8 +981,11 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
       NumberOfOutcomes = 2;
       Log->logmsg(true,"Cross sectional analysis, multiple outcome");
     }
-  if(MLIndicator)Log->logmsg(true, " with marginal likelihood calculation for first individual");
-  Log->logmsg(true, "\n");
+  if(MLIndicator){
+    Log->logmsg(true, " with marginal likelihood calculation ");
+    if(NumberOfIndividuals >1 )Log->logmsg(true, "for first individual");
+  }
+    Log->logmsg(true, "\n");
 
 
   if(OutcomeVarFilename.length() == 0){
@@ -992,7 +1005,7 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
   // **** Hierarchical model on ind admixture ****
   if (!IndAdmixHierIndicator)
     {
-      Log->logmsg(true,"No hierarchical model for individuals.\n");
+      Log->logmsg(true,"No hierarchical model for individual admixture.\n");
 
       if(ParameterFilename.length() > 0 ){
 	Log->logmsg(true, "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n");
@@ -1020,13 +1033,39 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
   else 
     Log->logmsg(true,"Model assuming assortative mating.\n");
 
-  // **** global rho ****
+  // **** sumintensities ****
   if( GlobalRho )
     Log->logmsg(true,"Model with global sumintensities.\n");
   else if( RandomMatingModel )
     Log->logmsg(true,"Model with gamete specific sumintensities.\n");
   else
     Log->logmsg(true,"Model with individual specific sumintensities.\n");
+  if(Rhoalpha <= 0.0){
+    Log->logmsg(true, "ERROR: prior shape parameter of sumintensities must be > 0\n");
+    exit(1);
+  }
+  if(RhobetaShape <= 0.0 || RhobetaRate <= 0.0){
+    Log->logmsg(true, "ERROR: parameters of prior on sumintensities prior rate parameter must be > 0\n");
+    exit(1);
+  }
+  Rhobeta = RhobetaShape / RhobetaRate;
+  Log->logmsg(true,"Gamma prior on sum-of-intensities with shape parameter: ");
+  Log->logmsg(true, Rhoalpha); Log->logmsg(false,"\n");
+  Log->logmsg(true," and Gamma prior on rate (1 / location) parameter with shape and rate parameters: ");
+  Log->logmsg(true, RhobetaShape); Log->logmsg(true," & ");
+  Log->logmsg(true, RhobetaRate); Log->logmsg(true,"\n");
+  Log->logmsg(true, "Effective prior mean of sumintensities is ");
+  double rhopriormean = 0.0;
+  if(RhobetaShape > 1.0)rhopriormean = Rhoalpha * RhobetaRate / (RhobetaShape - 1.0);
+  else rhopriormean = Rhoalpha / Rhobeta;
+  Log->logmsg(true, rhopriormean);
+  Log->logmsg(true, "\n");
+  if(RhobetaShape > 2.0){
+    Log->logmsg(true, "Effective prior variance of sumintensities is ");
+    Log->logmsg(true, rhopriormean * (rhopriormean + 1.0) / (RhobetaShape - 2) );
+    Log->logmsg(true, "\n");
+  }
+
 
   // **** Check whether genotypes file has been specified ****
   if ( GenotypesFilename.length() == 0 )
