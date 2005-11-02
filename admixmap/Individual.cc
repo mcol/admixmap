@@ -53,18 +53,18 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 {
   myNumber = number;
 
-  if( !options->isGlobalRho() ){
+  if( !options->isGlobalRho() ){//model with individual- or gamete-specific sumintensities
     TruncationPt = options->getTruncPt();
+    //determine initial value for rho as either prior mean or conditional prior mean
+    double alpha = options->getRhobetaShape();
+    double init = options->getRhoalpha(); 
+    if(alpha > 1)init *= options->getRhobetaRate() / (options->getRhobetaShape() - 1 );
+    else init *= options->getRhobetaRate() / options->getRhobetaShape() ;
+
     if( options->isRandomMatingModel() )
-      if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-	_rho.assign(2,options->getRhoalpha());
-      else
-	_rho.assign(2,1);
+      _rho.assign(2,init);
     else
-      if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-	_rho.assign(1,options->getRhoalpha());
-      else
-	_rho.assign(1,1);
+      _rho.assign(1,init);
   }
   sumlogrho.assign(_rho.size(), 0.0);
   
@@ -165,7 +165,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
-  logLikelihood.HMMisOK = false;   
+  logLikelihood.HMMisOK = false;
+ 
 }
 
 //********** Destructor **********
@@ -979,6 +980,7 @@ void Individual::SampleRho(const AdmixOptions* const options, bool X_data, doubl
   logLikelihood.ready = false;
 }
 
+//********************** Score Tests ***************************
 void Individual::ResetScores(const AdmixOptions* const options){
   int KK = Populations;
   if(Populations == 2)KK = 1;
@@ -1010,8 +1012,6 @@ void Individual::ResetScores(const AdmixOptions* const options){
     }
   }
 }
-
-//********************** Score Tests ***************************
 
 void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingModel, const Chromosome* const* chrm){
   // Different from the notation in McKeigue et  al. (2000). McKeigue
@@ -1255,16 +1255,25 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
   if( iteration > options->getBurnIn() ){
     //logprior at estimates
     MargLikelihood->addLogPrior(LogPrior(thetahat, thetahatX, rhohat, rhohatX, options, A, rhoalpha, rhobeta, alpha) );
-    double LogPosterior = 0;
-    if( Populations > 1 )
-      LogPosterior = CalculateLogPosterior(options, thetahat, thetahatX, rhohat, rhohatX, alpha, rhoalpha, rhobeta);
+    double LogPosterior = 0.0;
+    double LP = 0.0;;
+    if( Populations > 1 ){
+      LP = CalculateLogPosteriorTheta(options, thetahat, thetahatX, alpha);
+      logPosterior[0].push_back(LP);
+      LogPosterior += LP;
+      LP = CalculateLogPosteriorRho(options, rhohat, rhohatX, rhoalpha, rhobeta);
+      logPosterior[1].push_back(LP);
+      LogPosterior += LP;
+    }
     if( A->IsRandom() ){
 	  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
 	    for( int k = 0; k < Populations; k++ ){
 	      vector<double> args = A->GetPriorAlleleFreqs(j,k);
 	      vector<int> counts = A->GetAlleleCounts(j,k);
 	      transform(counts.begin(), counts.end(), args.begin(), args.begin(), plus<double>());//PriorAlleleFreqs + AlleleCounts
-	      LogPosterior += getDirichletLogDensity( args, A->getAlleleFreqsMAP(j, k) );
+	      LP = getDirichletLogDensity( args, A->getAlleleFreqsMAP(j, k));//LogPosterior for Allele Freqs
+	      logPosterior[2].push_back( LP  );
+	      LogPosterior += LP;
 	    }
 	  }
     }
@@ -1371,72 +1380,32 @@ double Individual::LogPrior(const double* const theta, const double* const theta
    return LogPrior;
 }
 
-
-
 //called on first individual after burnin
-double Individual::CalculateLogPosterior(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
-					 const vector<double> rho, const vector<double> rhoX,
-					 const vector<vector<double> > &alpha, double rhoalpha, double rhobeta)const{
+double Individual::CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
+					      const vector<vector<double> > &alpha) const{
   double LogPosterior = 0.0;
-  double L = Loci->GetLengthOfGenome(), L_X = 0.0;
-  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
 
-  double IntConst1;
- {
-   vector<double> alphaparams1(Populations), alphaparams0(Populations);
-    if( options->getXOnlyAnalysis() ){
-      LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[0], rhobeta + L_X, rho[0] );
-      if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-	IntConst1 = IntegratingConst(rhoalpha+(double)SumN_X[0], rhobeta+L_X, 1.0, options->getTruncPt() );
-      else
-	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[0], 1.0);
-      LogPosterior -= log(IntConst1);
-      transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry_X, alphaparams0.begin(), std::plus<double>());
+  vector<double> alphaparams1(Populations), alphaparams0(Populations);
+  if( options->getXOnlyAnalysis() ){
+    transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry_X, alphaparams0.begin(), std::plus<double>());
       LogPosterior += getDirichletLogDensity(alphaparams0, theta);
+  }
+  else if( Loci->isX_data() ){
+    for( unsigned int g = 0; g < 2; g++ ){
+      transform(alpha[g].begin(), alpha[g].end(), SumLocusAncestry +g*Populations, alphaparams0.begin(), std::plus<double>());
+      LogPosterior += getDirichletLogDensity(alphaparams0, theta + g*Populations);
     }
-    else if( Loci->isX_data() ){
-      for( unsigned int g = 0; g < 2; g++ ){
-	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[g], rhobeta + L, rho[g] );
-	if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-	  IntConst1 = IntegratingConst(rhoalpha+(double)SumN[g], rhobeta+L, 1.0, options->getTruncPt() );
-	else
-	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[g], 1.0);
-	LogPosterior -= log(IntConst1);
-	transform(alpha[g].begin(), alpha[g].end(), SumLocusAncestry +g*Populations, alphaparams0.begin(), std::plus<double>());
-	LogPosterior += getDirichletLogDensity(alphaparams0, theta + g*Populations);
-      }
-      for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
-	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[g], rhobeta + L_X, rhoX[g] );
-	if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
-	  IntConst1 = IntegratingConst(rhoalpha+(double)SumN_X[g], rhobeta+L_X, 1.0, options->getTruncPt() );
-	else
-	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[g], 1.0);
-	LogPosterior -= log(IntConst1);
-	transform(alpha[g].begin(), alpha[g].end(), SumLocusAncestry_X +g*Populations, alphaparams0.begin(), std::plus<double>());
-	LogPosterior += getDirichletLogDensity(alphaparams0, thetaX + g*Populations);
-      }
+    for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
+      transform(alpha[g].begin(), alpha[g].end(), SumLocusAncestry_X +g*Populations, alphaparams0.begin(), std::plus<double>());
+      LogPosterior += getDirichletLogDensity(alphaparams0, thetaX + g*Populations);
     }
-    else if( options->isSymmetric() ){//both gametes have same admixture
-      vector<double> x(2,0.0);
-      x[0] += getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[0] );
-      x[1] += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[0] );
-      x[0] += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[1] );
-      x[1] += getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[1] );
-      double IntConst1, IntConst2;
-      if( options->RhoFlatPrior() || options->logRhoFlatPrior() ){
-	IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, options->getTruncPt() );
-	IntConst2 = IntegratingConst(rhoalpha+(double)SumN[1], rhobeta+L, 1.0, options->getTruncPt() );
-      }
-      else{
-	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
-	IntConst2 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);
-      }
-      x[0] -= log(IntConst1);
-      x[1] -= log(IntConst2);
-      transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
-      x[0] += getDirichletLogDensity(alphaparams0, theta);
-      x[1] += getDirichletLogDensity(alphaparams0, theta+Populations);
-      transform(alpha[1].begin(), alpha[1].end(), SumLocusAncestry+Populations, alphaparams1.begin(), std::plus<double>());
+  }
+  else if( options->isSymmetric() ){//both gametes have same admixture
+    vector<double> x(2,0.0);
+    transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
+    x[0] += getDirichletLogDensity(alphaparams0, theta);
+    x[1] += getDirichletLogDensity(alphaparams0, theta+Populations);
+    transform(alpha[1].begin(), alpha[1].end(), SumLocusAncestry+Populations, alphaparams1.begin(), std::plus<double>());
       x[0] += getDirichletLogDensity(alphaparams1, theta+Populations);
       x[1] += getDirichletLogDensity(alphaparams1, theta);
       if( isnan(x[0]) || isinf(x[0]) )
@@ -1456,31 +1425,100 @@ double Individual::CalculateLogPosterior(const AdmixOptions* const options, cons
       //   PR(x[1]);
       //   exit(0);
       //}
+  }
+  else{//different admixtures for each gamete
+    if(  options->isAdmixed(0) ){//admixed first gamete
+      //alphaparams0 = alpha + SumLocusAncestry
+      transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
+      LogPosterior += getDirichletLogDensity(alphaparams0, theta);
     }
-    else{//different admixtures for each gamete
-      if(  options->isAdmixed(0) ){//admixed first gamete
-	LogPosterior = getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[0] );
-	if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
-	  IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, options->getTruncPt() );
-	else
-	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
-           LogPosterior -= log( IntConst1 );
-	   transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
-	   LogPosterior += getDirichletLogDensity(alphaparams0, theta);
-      }
-      if(  options->isAdmixed(1) ){//admixed second gamete
-	LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[1] );
-	if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
-	  IntConst1 = IntegratingConst(rhoalpha+(double)SumN[1], rhobeta+L, 1.0, options->getTruncPt() );
-	else
-	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);
-	LogPosterior -= log( IntConst1 );
-	transform(alpha[1].begin(), alpha[1].end(), SumLocusAncestry+Populations, alphaparams1.begin(), std::plus<double>());
-	LogPosterior += getDirichletLogDensity(alphaparams1, theta+Populations);
-      }
+    if(  options->isAdmixed(1) ){//admixed second gamete
+      transform(alpha[1].begin(), alpha[1].end(), SumLocusAncestry+Populations, alphaparams1.begin(), std::plus<double>());
+      LogPosterior += getDirichletLogDensity(alphaparams1, theta+Populations);
     }
   }
- return LogPosterior;
+  return LogPosterior;
+}
+double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options,  
+					    const vector<double> rho, const vector<double> rhoX,
+					    double rhoalpha, double rhobeta)const{
+  double LogPosterior = 0.0;
+  double L = Loci->GetLengthOfGenome(), L_X = 0.0;
+  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
+
+  double IntConst1;
+  vector<double> alphaparams1(Populations), alphaparams0(Populations);
+  if( options->getXOnlyAnalysis() ){
+    LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[0], rhobeta + L_X, rho[0] );
+    if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
+      IntConst1 = IntegratingConst(rhoalpha+(double)SumN_X[0], rhobeta+L_X, 1.0, options->getTruncPt() );
+    else
+      IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[0], 1.0);
+    LogPosterior -= log(IntConst1);
+  }
+  else if( Loci->isX_data() ){
+    for( unsigned int g = 0; g < 2; g++ ){
+      LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[g], rhobeta + L, rho[g] );
+      if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
+	IntConst1 = IntegratingConst(rhoalpha+(double)SumN[g], rhobeta+L, 1.0, options->getTruncPt() );
+      else
+	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[g], 1.0);
+      LogPosterior -= log(IntConst1);
+    }
+    for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
+      LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[g], rhobeta + L_X, rhoX[g] );
+      if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
+	IntConst1 = IntegratingConst(rhoalpha+(double)SumN_X[g], rhobeta+L_X, 1.0, options->getTruncPt() );
+	else
+	  IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[g], 1.0);
+      LogPosterior -= log(IntConst1);
+    }
+  }
+  else if( options->isSymmetric() ){//both gametes have same admixture
+    vector<double> x(2,0.0);
+    x[0] += getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[0] );
+    x[1] += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[0] );
+    x[0] += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[1] );
+    x[1] += getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[1] );
+    double IntConst1, IntConst2;
+    if( options->RhoFlatPrior() || options->logRhoFlatPrior() ){
+      IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, options->getTruncPt() );
+      IntConst2 = IntegratingConst(rhoalpha+(double)SumN[1], rhobeta+L, 1.0, options->getTruncPt() );
+    }
+      else{
+	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
+	IntConst2 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);
+      }
+    x[0] -= log(IntConst1);
+    x[1] -= log(IntConst2);
+      if( isnan(x[0]) || isinf(x[0]) )
+	LogPosterior = x[1] - log(2.0);
+      else if( isnan(x[1]) || isinf(x[1])  )
+	LogPosterior = x[0] - log(2.0);
+      else if( x[0] < x[1] )
+	LogPosterior = x[1] + log( 1 + exp( x[0] - x[1] ) ) - log(2.0);
+      else
+	LogPosterior = x[0] + log( 1 + exp( x[1] - x[0] ) ) - log(2.0);
+  }
+  else{//different admixtures for each gamete
+    if(  options->isAdmixed(0) ){//admixed first gamete
+      LogPosterior = getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[0] );
+      if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
+	IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, options->getTruncPt() );
+      else
+	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
+      LogPosterior -= log( IntConst1 );
+    }
+    if(  options->isAdmixed(1) ){//admixed second gamete
+      LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[1] );
+      if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
+	IntConst1 = IntegratingConst(rhoalpha+(double)SumN[1], rhobeta+L, 1.0, options->getTruncPt() );
+      else
+	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);
+      LogPosterior -= log( IntConst1 );
+    }
+  }
+  return LogPosterior;
 }
 
 double Individual::IntegratingConst( double alpha, double beta, double a, double b )const
@@ -1489,6 +1527,18 @@ double Individual::IntegratingConst( double alpha, double beta, double a, double
    return I;
 }
 
+double Individual::getLogPosteriorTheta()const{
+  std::vector<double>::const_iterator max = max_element(logPosterior[0].begin(), logPosterior[0].end());
+  return AverageOfLogs(logPosterior[0], *max);
+}
+double Individual::getLogPosteriorRho()const{
+  std::vector<double>::const_iterator max = max_element(logPosterior[1].begin(), logPosterior[1].end());
+  return AverageOfLogs(logPosterior[1], *max);
+}
+double Individual::getLogPosteriorAlleleFreqs()const{
+  std::vector<double>::const_iterator max = max_element(logPosterior[2].begin(), logPosterior[2].end());
+  return AverageOfLogs(logPosterior[2], *max);
+}
 //******************* Likelihood Ratios (Affecteds-only score test) ************************
 
 static string double2R( double x )

@@ -119,6 +119,10 @@ public:
 
   static void OutputLikRatios(const char* const filename, int iterations, const std::string* const PopLabels);
 
+  double getLogPosteriorTheta()const;
+  double getLogPosteriorRho()const;
+  double getLogPosteriorAlleleFreqs()const;
+
 private:
   unsigned myNumber;//number of this individual, counting from 1
   unsigned short ***genotypes;
@@ -148,6 +152,8 @@ private:
     bool ready;//true iff value is the loglikelihood at the current parameter values
     bool HMMisOK;//true iff values in HMM objects correspond to current parameter values for this individual
   }logLikelihood;
+
+  std::vector<double> logPosterior[3];
 
   //RWM sampler for individual admixture
   StepSizeTuner ThetaTuner;
@@ -193,9 +199,11 @@ private:
   double LogPrior(const double* const theta, const double* const thetaX, const vector<double> rho, const vector<double> rhoX, 
 		  const AdmixOptions* const options, const AlleleFreqs* const A, double rhoalpha, double rhobeta, 
 		  const vector<vector<double> > &alpha)const;
-  double CalculateLogPosterior(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
-			       const vector<double> rho, const vector<double> rhoX,
-			       const vector<vector<double> > &alpha, double rhoalpha, double rhobeta)const;
+  double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
+					      const vector<vector<double> > &alpha)const;
+  double CalculateLogPosteriorRho(const AdmixOptions* const options,  
+				  const vector<double> rho, const vector<double> rhoX,
+				  double rhoalpha, double rhobeta)const;
 
 
   void UpdateScoreForLinkageAffectedsOnly(int j, bool ModelIndicator, const Chromosome* const*);

@@ -126,28 +126,30 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 #endif
     
     // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
-    rho = options->getRhoalpha()/options->getRhobeta();
-    
-    if( options->RhoFlatPrior() ){
-      rhoalpha = 1.0;
-      rhobeta = 0.0;
-      Log->logmsg(true,"Flat prior on sumintensities.\n");
-    }
-    else if( options->logRhoFlatPrior() ){
-      rhoalpha = 0.0;
-      rhobeta = 0.0;
-      Log->logmsg(true,"Flat prior on log sumintensities.\n");
-    }
-    else{
+    rhobeta0 = options->getRhobetaShape();
+    rhobeta1 = options->getRhobetaRate();
+    rhobeta = rhobeta0 / rhobeta1;
+
+//    if( options->RhoFlatPrior() ){
+//       rhoalpha = 1.0;
+//       rhobeta = 0.0;
+//       Log->logmsg(true,"Flat prior on sumintensities.\n");
+//     }
+//     else if( options->logRhoFlatPrior() ){
+//       rhoalpha = 0.0;
+//       rhobeta = 0.0;
+//       Log->logmsg(true,"Flat prior on log sumintensities.\n");
+//     }
+//     else{
       rhoalpha = options->getRhoalpha();
-      rhobeta = options->getRhobeta();
-      Log->logmsg(false,"Gamma prior on sum-of-intensities with shape parameter: ");
-      Log->logmsg(false, rhoalpha); Log->logmsg(false,"\n");
-      Log->logmsg(false," and rate (1 / location) parameter: ");
-      Log->logmsg(false, rhobeta); Log->logmsg(false,"\n");
-    }
-    rhobeta0 = 1;
-    rhobeta1 = 1;
+      //rhobeta = options->getRhobeta();
+      //}
+
+    if(rhobeta0 > 1)
+      rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);
+    else
+      rho = rhoalpha / rhobeta;
+  
     
     // ** set up TuneRW object for global rho updates **
     NumberOfUpdates = 0;
@@ -266,8 +268,7 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
    
    if( !anneal && iteration > options->getBurnIn() && options->getPopulations() > 1 ){
      // accumulate sum of log of sumintensities after burnin.
-     if(options->isGlobalRho())
-       SumLogRho += log(rho);
+     if(options->isGlobalRho()) SumLogRho += log(rho);
      else SumLogRho += log(rhoalpha) - log(rhobeta);
 
    }
