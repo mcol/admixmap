@@ -553,6 +553,8 @@ void IndividualCollection::OutputErgodicAvg(int samples, bool ML, std::ofstream 
   if(ML)
     *avgstream //<< SumLogLikelihood / samples << " "
       << MargLikelihood.getLogPrior()<< " " << MargLikelihood.getLogPosterior() << " "
+      << _child[0]->getLogPosteriorTheta() << " " << _child[0]->getLogPosteriorRho()<< " " 
+      << _child[0]->getLogPosteriorAlleleFreqs() << " "
       << MargLikelihood.getLogMarginalLikelihood();
 }
 

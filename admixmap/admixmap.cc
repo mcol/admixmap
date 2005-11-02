@@ -120,7 +120,7 @@ int main( int argc , char** argv ){
   // **************************************************************************************************
   else
     {
-
+      int samples = options.getTotalSamples();
       // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
       DispersionTest DispTest;
       StratificationTest StratTest;
@@ -176,7 +176,7 @@ int main( int argc , char** argv ){
       
 	// *************************** BEGIN MAIN LOOP ******************************************************
 	double LogL = IC->getLogLikelihood(&options, chrm, R, false);
-	for( int iteration = 0; iteration <= options.getTotalSamples(); iteration++ ){
+	for( int iteration = 0; iteration <= samples; iteration++ ){
 	  if(!anneal &&  !(iteration % options.getSampleEvery()) ){
 	    if(IC->getSize() >1)
 	      Log.Reset(iteration, (int)( log10((double)options.getTotalSamples())+1 ) );
@@ -510,7 +510,8 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
       }
       *avgstream << "\"MeanDeviance\"\t \"VarDeviance\"\t ";
       if(options->getMLIndicator()){//marginal likelihood calculation
-	*avgstream<<"\"LogPrior\" \t \"LogPosterior\" \t \"LogMarginalLikelihood\"";
+	*avgstream<<"\"LogPrior\" \t \"LogPosterior\" \t \"LogPosteriorAdmixture\" \t \"LogPosteriorSumIntensities\" \t "
+		  <<"\"LogPosteriorAlleleFreqs\" \t \"LogMarginalLikelihood\"";
       }
       *avgstream << "\n";
     }
