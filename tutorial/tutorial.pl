@@ -35,11 +35,10 @@ my $arg_hash =
     hwscoretestfile                   => 'HardyWeinbergTest.txt'
 };
 
-# model with reference prior on allele freqs in 1 population, skin reflectance as outcome var
+# model with reference prior on allele freqs in 1 population, skin reflectance as continuous outcome var
 $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'SinglePopResults';  
-$arg_hash->{analysistypeindicator} = 2; # continuous outcome var
-$arg_hash->{targetindicator}       = 1; # skin reflectance
+$arg_hash->{targetindicator}       = 1; # skin reflectance as outcome
 doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 2 populations
@@ -67,11 +66,11 @@ $arg_hash->{ancestryassociationscorefile}  = 'ancestryassociationscorefile.txt';
 #$arg_hash->{every}                 = 5;
 doAnalysis($executable,$arg_hash);
 
-# model with prior allele freqs and diabetes as outcome var 
+# model with prior allele freqs and diabetes as binary outcome var 
 delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                = 'PriorFreqResultsDiabetes';  
-$arg_hash->{analysistypeindicator}     = 3; # binary outcome var
-$arg_hash->{targetindicator}           = 0; # diabetes
+$arg_hash->{targetindicator}           = 0; # diabetes as outcome
+$arg_hash->{outcomes} = 1;
 $arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
 doAnalysis($executable,$arg_hash);
 
@@ -81,7 +80,7 @@ delete $arg_hash->{dispersiontestfile};
 delete $arg_hash->{affectedsonlyscorefile};
 $arg_hash->{resultsdir}                = 'HistoricFreqResults';  
 $arg_hash->{randommatingmodel}         = 1;
-$arg_hash->{analysistypeindicator}     = 5; # both outcome vars
+$arg_hash->{outcomes}=2;
 $arg_hash->{historicallelefreqfile}    = "data/priorallelefreqs.txt";
 $arg_hash->{etapriorfile}              = "data/etapriors.txt";
 $arg_hash->{dispparamfile}             = "dispersionparams.txt";

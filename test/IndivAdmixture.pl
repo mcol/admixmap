@@ -24,10 +24,13 @@ my $arg_hash =
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
     randommatingmodel            => 1,
     globalrho                    => 0,
-    sumintensitiesalpha =>1.0,	   # prior on sum of intensities parameter rho is gamma with shape 
-    sumintensitiesbeta => 0.0,    # parameter alpha, scale parameter beta 
-                                         # alpha = beta = 0 (flat prior on log rho)
-                                         # alpha = 1, beta = 0 (flat prior on rho)
+sumintensitiesprior = "1,1,0";
+                                         # 0,1,0 =  flat prior on log rho
+                                         # 1,1,0  = flat prior on rho
+    #sumintensitiesalpha =>1.0,	   # prior on sum of intensities parameter rho is gamma with shape 
+    #sumintensitiesbeta => 0.0,    # parameter alpha, scale parameter beta 
+                                                   # prior on beta is gamma
+
 
                                          
     truncationpoint              => 15, # upper truncation point (lower truncation point is 1)

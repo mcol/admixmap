@@ -2,14 +2,11 @@
 # Test Script to test most of ADMIXMAP options and compare results with previous results
 # 
 print "OS is ";print $^O;
-$resultsdir = "results";
-if (-e $resultsdir){ 
-system("erase /q $resultsdir");
-system("mkdir $resultsdir");}
-else {system("mkdir $resultsdir");}
+#use strict;
+use File::Path;
 
 # Change this to the location of the admixmap executable
-my $executable = 'admixmap';
+my $executable = './admixmap';
 
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
@@ -29,6 +26,7 @@ my $arg_hash =
     coutindicator              => 1,
     
 # output files
+    resultsdir => 'results',
     logfile                    => 'logfile.txt',
     paramfile                  => 'param.txt',
     regparamfile  => 'regparam.txt',
@@ -44,12 +42,14 @@ my $arg_hash =
 
 # single population, reference prior on allele freqs  
 $arg_hash->{populations} = 1;
-doAnalysis($executable,$arg_hash, $resultsdir);
-&CompareThenMove("results", "results1");
+doAnalysis($executable,$arg_hash);
+CompareThenMove("results", "results1");
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{populations}     = 2;
-$arg_hash->{sumintensitiesalpha}  = 5;
+$arg_hash->{sumintensitiesprior}  = "5,11,10";
+$arg_hash->{sumintensitiesbetashape} = 10;
+$arg_hash->{sumintensitiesrate} = 11;
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results2");
 
@@ -106,13 +106,17 @@ my $arg_hash =
     indadmixhiermodel => 0,
     randommatingmodel            => 1,
     globalrho                    => 0,
-    sumintensitiesalpha => 1.0, #flat prior on sumintensities
-    sumintensitiesbeta => 0.0,
+    sumintensitiesprior => "1,1,0", #flat prior on sumintensities
+#equivalent to
+    #sumintensitiesalpha => 1.0, 
+    #sumintensitiesbetashape => 1.0,
+    #sumintensitiesbetarate => 0.0,
 
 #    fixedallelefreqs             => 1,
     initalpha0                   => "1,1,1",
     initalpha1                   => "1,1,0",
 
+    resultsdir => 'results',
     logfile                      => "logfile.txt",
     marglikelihood => 1,
     indadmixturefile             => "indadmixture.txt"
@@ -123,9 +127,19 @@ my $arg_hash =
 
 sub doAnalysis
 {
-    my ($prog, $args) = @_;
+    my ($prog,$args) = @_;
     my $command = $prog.getArguments($args);
-    system("$command");
+    print $args->{resultsdir};
+    unless (-e "$args->{resultsdir}"){
+	system("mkdir $args->{resultsdir}");
+    }
+
+    $ENV{'RESULTSDIR'} = $args->{resultsdir};
+    print "Results will be written to subdirectory $ENV{'RESULTSDIR'}";
+    system($command);
+    #print "Starting R script to process output\n";
+    #system("R CMD BATCH --quiet --no-save --no-restore ./AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
+    #print "R script completed\n\n";
 }
 
 sub getArguments
@@ -144,8 +158,13 @@ sub CompareThenMove{
     my ($sourcedir, $targetdir) = @_;
     my $prefix = "old_";
 #define commands for different OS's
-    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\";$delcmd="rmdir /s /q";}
-    else {$diffcmd = "diff -s"; $movecmd = "mv -f"; $slash="/";$delcmd="rm -r";}
+my $diffcmd;
+my $movecmd;
+my $slash;
+my $delcmd;
+
+    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\"; $delcmd="rmdir /s /q";}
+    else {$diffcmd = "diff -s"; $movecmd = "mv -f"; $slash="/"; $delcmd="rm -r";}
 ##
     if (-e $targetdir) { # compare with sourcedir
 	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
