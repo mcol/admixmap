@@ -680,13 +680,14 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"sumintensitiesalpha",                   1, 0,  0 }, // double
     {"sumintensitiesbetashape",               1, 0,  0 }, // double
     {"sumintensitiesbetarate",                1, 0,  0 }, // double
+    {"sumintensitiesprior",                   1, 0,  0 }, //vector of doubles
     {"popadmixpriormean",                     1, 0,  0 }, //double
     {"popadmixpriorvar",                      1, 0,  0 }, //double
     {"etapriormean",                          1, 0,  0 }, //double
     {"etapriorvar",                           1, 0,  0 }, //double
     {"truncationpoint",                       1, 0,  0 }, // double
-    {"initalpha0",                            1, 0,  0 }, // double
-    {"initalpha1",                            1, 0,  0 }, // double
+    {"initalpha0",                            1, 0,  0 }, // binary vector
+    {"initalpha1",                            1, 0,  0 }, // binary vector
     {"fixedallelefreqs",                      1, 0,  0 }, // int 0, 1
     {"correlatedallelefreqs",                 1, 0,  0 }, // int 0, 1
     {"xonlyanalysis",                         1, 0,  0 }, // int 0, 1
@@ -757,6 +758,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       exit(1);
 
     case 0:
+      // ** output files **
       if(long_option_name == "resultsdir"){
 	 ResultsDir = optarg;OptionValues["resultsdir"]=optarg;
       }else if (long_option_name == "regparamfile") {
@@ -781,12 +783,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "allelefreqscorefile2"){
 	 AlleleFreqScoreFilename2 = optarg;OptionValues["allelefreqscorefile2"]=optarg;
 	 TestForMisspecifiedAlleleFreqs2 = true;
-      } else if (long_option_name == "analysistypeindicator") {
-	;//do nothing
-      } else if (long_option_name == "covariatesfile") {
-	 CovariatesFilename = optarg;OptionValues["covariatesfile"]=optarg;
-      } else if (long_option_name == "mlefile") {
-	 MLEFilename = optarg;OptionValues["mlefile"]=optarg;
       } else if (long_option_name == "dispersiontestfile") {
 	DispersionTestFilename = optarg;OptionValues["dispersiontestfile"]=optarg;
 	 TestForDispersion = true;
@@ -801,6 +797,30 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "hwscoretestfile") {
 	 HWTestFilename = optarg;OptionValues["hwscoretestfile"]=optarg;
 	 HWTest = true;
+      } else if (long_option_name == "ancestryassociationscorefile") {
+	 AncestryAssociationScoreFilename = optarg;OptionValues["ancestryassociationscorefile"]=optarg;
+	 TestForLinkageWithAncestry = true; ScoreTestIndicator = true;
+      } else if (long_option_name == "logfile") {
+	 LogFilename = optarg;OptionValues["logfile"]=optarg;
+      } else if (long_option_name == "haplotypeassociationscorefile") {
+	 TestsForSNPsInHaplotypeOutputFilename = optarg;OptionValues["haplotypeassociationscorefile"]=optarg;
+	 TestForSNPsInHaplotype = true; ScoreTestIndicator = true;
+
+	 // ** input files **
+      } else if (long_option_name == "outcomevarfile") {
+	OutcomeVarFilename = optarg;OptionValues["outcomevarfile"]=optarg;
+      } else if (long_option_name == "priorallelefreqfile") {
+	 PriorAlleleFreqFilename = optarg;OptionValues["priorallelefreqfile"]=optarg;
+      } else if (long_option_name == "historicallelefreqfile") {
+	 HistoricalAlleleFreqFilename = optarg;OptionValues["historicallelefreqfile"]=optarg;
+      } else if (long_option_name == "covariatesfile") {
+	 CovariatesFilename = optarg;OptionValues["covariatesfile"]=optarg;
+      } else if (long_option_name == "mlefile") {
+	 MLEFilename = optarg;OptionValues["mlefile"]=optarg;
+
+	 // ** model specification **
+      } else if (long_option_name == "analysistypeindicator") {
+	;//do nothing
       } else if (long_option_name == "fixedallelefreqs") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  fixedallelefreqs = true;OptionValues["fixedallelefreqs"]="1";
@@ -813,16 +833,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	if (strtol(optarg, NULL, 10) == 1) {
 	  XOnlyAnalysis = true;OptionValues["xonlyanalysis"]="1";
 	}
-      } else if (long_option_name == "historicallelefreqfile") {
-	 HistoricalAlleleFreqFilename = optarg;OptionValues["historicallelefreqfile"]=optarg;
       } else if (long_option_name == "locusfortest") {
 	 LocusForTest = (int)strtol(optarg, NULL, 10);OptionValues["locusfortest"]=optarg;
 	 locusForTestIndicator = true;
-      } else if (long_option_name == "ancestryassociationscorefile") {
-	 AncestryAssociationScoreFilename = optarg;OptionValues["ancestryassociationscorefile"]=optarg;
-	 TestForLinkageWithAncestry = true; ScoreTestIndicator = true;
-      } else if (long_option_name == "logfile") {
-	 LogFilename = optarg;OptionValues["logfile"]=optarg;
       } else if (long_option_name == "randommatingmodel") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  RandomMatingModel = true;OptionValues["randommatingmodel"]="1";
@@ -846,14 +859,16 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	  cerr << "ERROR: Please set globalrho to 0 or 1.\n";
 	  exit(1);
 	}
-      } else if (long_option_name == "outcomevarfile") {
-	 OutcomeVarFilename = optarg;OptionValues["outcomevarfile"]=optarg;
       } else if (long_option_name == "populations") {
 	setPopulations((int)strtol(optarg, NULL, 10));OptionValues["populations"]=optarg;
-      } else if (long_option_name == "priorallelefreqfile") {
-	 PriorAlleleFreqFilename = optarg;OptionValues["priorallelefreqfile"]=optarg;
+
+	// ** Prior Specification **
       } else if (long_option_name == "seed") {
 	 Seed = strtol(optarg, NULL, 10);OptionValues["seed"]=optarg;
+      } else if (long_option_name == "sumintensitiesprior" ) {
+	std::vector<double> v = CstrToVec2(optarg);
+	OptionValues["sumintensitiesprior"] = optarg; 
+	Rhoalpha = v[0]; RhobetaShape = v[1]; RhobetaRate = v[2];
       } else if (long_option_name == "sumintensitiesalpha") {
 	 Rhoalpha = strtod(optarg, NULL);OptionValues["sumintensitiesalpha"]=optarg;
       } else if (long_option_name == "sumintensitiesbetashape") {
@@ -870,15 +885,13 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 etavar = strtod(optarg, NULL);OptionValues["etapriorvar"]=optarg;
       } else if (long_option_name == "truncationpoint") {
 	 TruncPt = strtod(optarg, NULL);OptionValues["truncationpoint"]=optarg;
-      } else if (long_option_name == "haplotypeassociationscorefile") {
-	 TestsForSNPsInHaplotypeOutputFilename = optarg;OptionValues["haplotypeassociationscorefile"]=optarg;
-	 TestForSNPsInHaplotype = true; ScoreTestIndicator = true;
       } else if (long_option_name == "etapriorfile") {
 	 EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
       } else if (long_option_name == "initalpha0" ) {
 	 alpha0 = CstrToVec2(optarg);OptionValues["initalpha0"]=optarg;
       } else if (long_option_name == "initalpha1") {
 	 alpha1 = CstrToVec2(optarg);OptionValues["initalpha1"]=optarg;
+
       } else {
 	cerr << "Unknown option: " << long_option_name;
 	if (optarg) {
