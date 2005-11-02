@@ -183,7 +183,7 @@ void LogWriter::ProcessingTime()
 }
 
 void LogWriter::Reset(const int iteration, const int width){
-  if( !useCOUTOption || iteration == 0 )
+  if( iteration == 0 )
     //output params to log on first iteration and every other when coutindicator = 0
     {
       LogFileStream << setiosflags( ios::fixed );
