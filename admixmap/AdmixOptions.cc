@@ -129,10 +129,8 @@ void AdmixOptions::Initialise(){
   OptionValues["marglikelihood"] = "0";
   OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
-  OptionValues["sumintensitiesalpha"] = "5.0";
-  OptionValues["sumintensitiesbeta"] = "1.0";
   OptionValues["popadmixpriormean"] = "1.0";
-  OptionValues["popadmixpriorvar"] = "1.0";
+  OptionValues["popadmixpriorvar"] = "16.0";
   OptionValues["xonlyanalysis"] = "0";
 }
 

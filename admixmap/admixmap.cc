@@ -75,7 +75,7 @@ int main( int argc , char** argv ){
   smyrand( options.getSeed() );  // Initialise random number seed
 
   InputData data; //read data files and check (except allelefreq files)
-  data.readData(&options, &Log);//also sets 'numberofregressions' option
+  data.readData(&options, &Log);//also sets 'numberofoutcomes' option
 
   //check user options
   options.checkOptions(&Log, data.getNumberOfIndividuals());

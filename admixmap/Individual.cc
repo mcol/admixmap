@@ -1259,7 +1259,7 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
     //logprior at estimates
     MargLikelihood->addLogPrior(LogPrior(thetahat, thetahatX, rhohat, rhohatX, options, A, rhoalpha, rhobeta, alpha) );
     double LogPosterior = 0.0;
-    double LP = 0.0;;
+    double LP = 0.0;
     if( Populations > 1 ){
       LP = CalculateLogPosteriorTheta(options, thetahat, thetahatX, alpha);
       logPosterior[0].push_back(LP);
@@ -1531,12 +1531,18 @@ double Individual::IntegratingConst( double alpha, double beta, double a, double
 }
 
 double Individual::getLogPosteriorTheta()const{
-  std::vector<double>::const_iterator max = max_element(logPosterior[0].begin(), logPosterior[0].end());
-  return AverageOfLogs(logPosterior[0], *max);
+  if(Populations > 1){
+    std::vector<double>::const_iterator max = max_element(logPosterior[0].begin(), logPosterior[0].end());
+    return AverageOfLogs(logPosterior[0], *max);
+  }
+  else return 0.0;
 }
 double Individual::getLogPosteriorRho()const{
-  std::vector<double>::const_iterator max = max_element(logPosterior[1].begin(), logPosterior[1].end());
-  return AverageOfLogs(logPosterior[1], *max);
+  if(Populations > 1){
+    std::vector<double>::const_iterator max = max_element(logPosterior[1].begin(), logPosterior[1].end());
+    return AverageOfLogs(logPosterior[1], *max);
+  }
+  else return 0.0;
 }
 double Individual::getLogPosteriorAlleleFreqs()const{
   std::vector<double>::const_iterator max = max_element(logPosterior[2].begin(), logPosterior[2].end());
