@@ -97,7 +97,7 @@ void AdmixOptions::Initialise(){
   HWTest = false;
   OutputAlleleFreq = false;
 
-  Rhoalpha = 6.0; 
+  Rhoalpha = 4.0; 
   RhobetaShape = 3.0;
   RhobetaRate = 3.0;  
   alphamean = 1;  //  gamma(0.25, 0.25)
