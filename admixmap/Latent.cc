@@ -129,26 +129,13 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     rhobeta0 = options->getRhobetaShape();
     rhobeta1 = options->getRhobetaRate();
     rhobeta = rhobeta0 / rhobeta1;
-
-//    if( options->RhoFlatPrior() ){
-//       rhoalpha = 1.0;
-//       rhobeta = 0.0;
-//       Log->logmsg(true,"Flat prior on sumintensities.\n");
-//     }
-//     else if( options->logRhoFlatPrior() ){
-//       rhoalpha = 0.0;
-//       rhobeta = 0.0;
-//       Log->logmsg(true,"Flat prior on log sumintensities.\n");
-//     }
-//     else{
-      rhoalpha = options->getRhoalpha();
-      //rhobeta = options->getRhobeta();
-      //}
+    rhoalpha = options->getRhoalpha();
 
     if(rhobeta0 > 1)
-      rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);
-    else
-      rho = rhoalpha / rhobeta;
+      rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);//initialise at prior mean
+    else if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
+      rho = rhoalpha / rhobeta;//initialise at conditional prior mean
+    else rho = 2.0;//initialise at min value if flat prior
   
     
     // ** set up TuneRW object for global rho updates **

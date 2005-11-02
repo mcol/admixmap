@@ -55,11 +55,14 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 
   if( !options->isGlobalRho() ){//model with individual- or gamete-specific sumintensities
     TruncationPt = options->getTruncPt();
-    //determine initial value for rho as either prior mean or conditional prior mean
+    //determine initial value for rho
     double alpha = options->getRhobetaShape();
-    double init = options->getRhoalpha(); 
-    if(alpha > 1)init *= options->getRhobetaRate() / (options->getRhobetaShape() - 1 );
-    else init *= options->getRhobetaRate() / options->getRhobetaShape() ;
+    double init = options->getRhoalpha();
+    if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
+      if(alpha > 1)init *= options->getRhobetaRate() / (options->getRhobetaShape() - 1 );//prior mean
+      else init *= options->getRhobetaRate() / options->getRhobetaShape() ;//conditional prior mean
+    }
+    else init = 2.0;//min value if flat prior
 
     if( options->isRandomMatingModel() )
       _rho.assign(2,init);
