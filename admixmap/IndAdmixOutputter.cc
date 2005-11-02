@@ -61,15 +61,21 @@ IndAdmixOutputter::~IndAdmixOutputter()
 
   _out << ".Dimnames=list(c(";
 
-  for( int i = 0; i < _options->getPopulations(); i++ ){
-    _out << "\""<<_PopulationLabels[i] << "\",";
-     if(_options->isRandomMatingModel() )
-       _out << "\""<<_PopulationLabels[i] << "\",";
-  }
+  for( int i = 0; i < _options->getPopulations(); i++ )
+    {
+      _out << "\""<<_PopulationLabels[i];
+    if(_options->isRandomMatingModel() )
+      _out << "1";
+    _out << "\",";
+    }
+  if(_options->isRandomMatingModel() )
+    for( int i = 0; i < _options->getPopulations(); i++ )
+      _out << "\""<<_PopulationLabels[i] << "2\",";
+  
 
   if( !_options->isGlobalRho() ){
      if(_options->isRandomMatingModel())
-        _out << "\"rho0\",\"rho1\",";
+        _out << "\"rho1\",\"rho2\",";
      else
         _out << "\"rho\",";
   }
@@ -91,19 +97,17 @@ IndAdmixOutputter::~IndAdmixOutputter()
 
 void IndAdmixOutputter::visitIndividual(const Individual& ind, const vector<int> _locusfortest)
 {
-  for( int k = 0; k < _options->getPopulations(); k++ ){
-     if(_options->isRandomMatingModel()){
-       _out << ind.getAdmixtureProps()[k] << "," << ind.getAdmixtureProps()[ k + _options->getPopulations()] << ",";
-    } else {
-        _out << ind.getAdmixtureProps()[k] << ",";
-     }
-  }
+  for( int k = 0; k < _options->getPopulations(); k++ )
+    _out << ind.getAdmixtureProps()[k] << ",";
+  if(_options->isRandomMatingModel())
+    for( int k = 0; k < _options->getPopulations(); k++ )
+      _out << ind.getAdmixtureProps()[ k + _options->getPopulations()] << ",";
+  
   if( !_options->isGlobalRho() ){
      vector<double> rho = ind.getRho();
+     _out << rho[0] << ","; 
      if(_options->isRandomMatingModel())
-        _out << rho[0] << "," << rho[1] << ",";
-     else
-        _out << rho[0] << ",";
+        _out << rho[1] << ",";
   }
   
         

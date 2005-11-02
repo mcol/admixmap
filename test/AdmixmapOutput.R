@@ -1162,7 +1162,7 @@ if(!is.null(user.options$indadmixturefile)) {
     ##writePosteriorMeansIndivAdmixture(t(samples), K)
   ##}
   sample.means <- apply(samples, 1:2, mean)
-  write.table(t(sample.means), paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), row.names=F)
+  write.table(round(t(sample.means), 3), paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), row.names=F)
   
   ##if(dim(samples.meanparents)[2]==1) {
     ## plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels)
