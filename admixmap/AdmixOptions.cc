@@ -1228,7 +1228,7 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
   }
   //if only initalpha0 specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed
-  else if( alpha0.size() == 1 ){
+  else if( alpha0.size() > 0 && alpha1.size() == 0 ){
     _admixed[0] = CheckInitAlpha( alpha0 );
     initalpha.push_back(alpha0);initalpha.push_back(alpha0);//put 2 copies of alpha[0] in alpha
     Log->logmsg(true, "Initial value for population admixture (Dirichlet) parameter vector: ");
@@ -1237,7 +1237,7 @@ vector<vector<double> > AdmixOptions::getAndCheckInitAlpha(LogWriter *Log){
   }
   //if both are specified and analysis is for a single individual,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
-  else if( !IndAdmixHierIndicator ){ // should be if indadmixhiermodel=0
+  else if( !IndAdmixHierIndicator ){ 
     _admixed[0] = CheckInitAlpha( alpha0 );    //gamete 1
     _admixed[1] = CheckInitAlpha( alpha1 );    //gamete 2
 
