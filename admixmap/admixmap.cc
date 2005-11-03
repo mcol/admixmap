@@ -157,10 +157,10 @@ int main( int argc , char** argv ){
 	string s = options.getResultsDir()+"/annealmon.txt";
 	annealstream.open(s.c_str());
 	annealstream << "Coolness  Mean  Variance  logMargLikelihood"<<endl;
-	ci = 1;
+	ci = 0;
       }
       for( ;ci <= options.getNumberOfAnnealedRuns() ;ci++ ){//loop over temperature
-	coolness = (double)ci / (double)options.getNumberOfAnnealedRuns();
+	coolness = ci / (double)options.getNumberOfAnnealedRuns();
 	//resets for start of each run
 	SumLogL = 0.0;//cumulative sum of modified loglikelihood
 	SumLogLSq = 0.0;//cumulative sum of square of modified loglikelihood
@@ -171,6 +171,7 @@ int main( int argc , char** argv ){
 	    anneal = false;//finished annealed runs, last run is with unannealed likelihood
 	    cout<<".00"<<endl;
 	  }
+	  cout<<flush;
 	}
 	Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
       
@@ -306,9 +307,13 @@ int main( int argc , char** argv ){
 	  double E_L_mod = 0.0,Var_L_mod = 0.0;
 	  E_L_mod = SumLogL / ((double)options.getTotalSamples()-options.getBurnIn());
 	  Var_L_mod = SumLogLSq/ ((double)options.getTotalSamples()-options.getBurnIn()) - E_L_mod * E_L_mod;
-	  annealstream << coolness << "  "<<E_L_mod << "  " << Var_L_mod; 
-	  marg_L += SumLogL / (double)options.getNumberOfAnnealedRuns();
-	  annealstream <<"  "<<marg_L / ((double)options.getTotalSamples()-options.getBurnIn())<<endl;
+	  annealstream << coolness << "  "<<E_L_mod << "  " << Var_L_mod;
+	  //use Simpson's rule to approximate integral
+	  if( (ci == 0) || (ci == options.getNumberOfAnnealedRuns())) marg_L += E_L_mod;
+	  else if( (ci%2) ) marg_L += 2.0*E_L_mod;
+	  else marg_L += 4.0*E_L_mod; 
+ 
+	  annealstream <<"  "<<marg_L / (double)(3*options.getNumberOfAnnealedRuns())<<endl;
 	}
       }
       // *************************** END ANNEALING LOOP ******************************************************
@@ -322,7 +327,7 @@ int main( int argc , char** argv ){
 
       if(options.getAnnealIndicator()){
 	Log.logmsg(true, "Log Marginal Likelihood from simulated annealing: ");
-	Log.logmsg(true, marg_L / ((double)options.getTotalSamples()-options.getBurnIn()));
+	Log.logmsg(true, marg_L / (double)(3*options.getNumberOfAnnealedRuns()));
 	//Log.logmsg(true, "\nwith standard error of ");Log.logmsg(true, );Log.logmsg(true, "\n");
       }
 
