@@ -1,20 +1,14 @@
 #!/usr/bin/perl
-# Test Script to test most of ADMIXMAP options and compare results with previous results
-# 
-print "OS is ";print $^O;
-#use strict;
+# Script to test most ADMIXMAP options and compare with previous results
+use strict;
 use File::Path;
+use File::Copy;
+print "OS is ";print $^O;
 
 # Change this to the location of the admixmap executable
 my $executable = './admixmap';
 
-# $arg_hash is a hash of parameters passed to
-# the executable as arguments.
-#
-# keys (left-hand side) are parameter names
-# values (right-hand side) are parameter values
-my $arg_hash = 
-{
+my $arg_hash = {
     samples                    => 20, 
     burnin                     => 5,
     every                      => 1,
@@ -26,18 +20,17 @@ my $arg_hash =
     coutindicator              => 1,
     
 # output files
-    resultsdir => 'results',
+    resultsdir                 => 'results',
     logfile                    => 'logfile.txt',
     paramfile                  => 'param.txt',
-    regparamfile  => 'regparam.txt',
+    regparamfile               => 'regparam.txt',
     indadmixturefile           => 'indadmixture.txt',
     ergodicaveragefile         => 'ergodicaverage.txt',
 
 # extra output files
     haplotypeassociationscorefile  => 'hapassocscore.txt',
     allelicassociationscorefile    => 'allelicassocscore.txt',
-    stratificationtestfile         => 'strat_test.txt',
-    allelefreqoutputfile           => 'allelefreqoutput.txt'
+    stratificationtestfile         => 'strat_test.txt'
 };
 
 # single population, reference prior on allele freqs  
@@ -47,9 +40,8 @@ CompareThenMove("results", "results1");
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{populations}     = 2;
-$arg_hash->{sumintensitiesprior}  = "5,11,10";
-$arg_hash->{sumintensitiesbetashape} = 10;
-$arg_hash->{sumintensitiesrate} = 11;
+$arg_hash->{globalrho}      = 0; # should not be necessary if option sumintensitiesprior is specified with 3 elements
+$arg_hash->{sumintensitiesprior}  = "8,11,10";
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results2");
 
@@ -72,6 +64,7 @@ $arg_hash->{randommatingmodel} = 1;
 delete $arg_hash->{allelefreqscorefile};
 delete $arg_hash->{allelefreqscorefile2};
 delete $arg_hash->{affectedsonlyscorefile};
+$arg_hash->{allelefreqoutputfile}  = 'allelefreqoutput.txt';
 $arg_hash->{dispersiontestfile}  = 'dispersiontest.txt';
 $arg_hash->{targetindicator} = 1; # skin reflectance
 $arg_hash->{outcomes}=1;
@@ -92,13 +85,11 @@ doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results5");
 
 #Single individual
-my $arg_hash = 
-{
+my $arg_hash = {
     burnin   => 10,
     samples  => 51,
     every    => 2,
     coutindicator   => 1,
-
     locusfile                    => "IndData/loci.txt",
     genotypesfile                => "IndData/genotypes.txt",
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
@@ -106,17 +97,12 @@ my $arg_hash =
     indadmixhiermodel => 0,
     randommatingmodel            => 1,
     globalrho                    => 0,
-    sumintensitiesprior => "1,1,0", #flat prior on sumintensities
-#equivalent to
-    #sumintensitiesalpha => 1.0, 
-    #sumintensitiesbetashape => 1.0,
-    #sumintensitiesbetarate => 0.0,
+    sumintensitiesprior => "6,5,4", 
 
-#    fixedallelefreqs             => 1,
     initalpha0                   => "1,1,1",
     initalpha1                   => "1,1,0",
 
-    resultsdir => 'results',
+    resultsdir                   => 'results',
     logfile                      => "logfile.txt",
     marglikelihood => 1,
     indadmixturefile             => "indadmixture.txt"
@@ -137,9 +123,6 @@ sub doAnalysis
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     print "Results will be written to subdirectory $ENV{'RESULTSDIR'}";
     system($command);
-    #print "Starting R script to process output\n";
-    #system("R CMD BATCH --quiet --no-save --no-restore ./AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
-    #print "R script completed\n\n";
 }
 
 sub getArguments
@@ -157,41 +140,39 @@ sub getArguments
 sub CompareThenMove{
     my ($sourcedir, $targetdir) = @_;
     my $prefix = "old_";
-#define commands for different OS's
-my $diffcmd;
-my $movecmd;
-my $slash;
-my $delcmd;
-
+    # define commands for different OS's
+    # should redo this using perl functions that work with any OS 
+    my $diffcmd;
+    my $movecmd;
+    my $slash;
+    my $delcmd;
     if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\"; $delcmd="rmdir /s /q";}
     else {$diffcmd = "diff -s"; $movecmd = "mv -f"; $slash="/"; $delcmd="rm -r";}
-##
     if (-e $targetdir) { # compare with sourcedir
 	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
 	while ( defined (my $file = readdir SOURCE) ) {
 	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt"));     # skip . and .. and logfile
 	    system("$diffcmd $sourcedir$slash$file $targetdir$slash$prefix$file");
-	if($^O eq "MSWin32"){system("pause")}  # for checking comparisons 
-	}#compare
-
-	closedir(SOURCE);
-
-	}
-###################
-    if (-e $sourcedir) {
-         if (-e $targetdir) {
-	 my $olddir = "$prefix$targetdir";
-	 if (-e $olddir){system("$delcmd $prefix$targetdir");} #delete old results directory (necessary for next command)
-         system("$movecmd $targetdir $prefix$targetdir");#preserve old results by renaming directory
-	     }  
-
-	 system("$movecmd $sourcedir $targetdir"); #rename results dir
-	 mkdir("$sourcedir");                      #we need results dir for next analysis
-	 opendir(TARGET, $targetdir) or die "can't open $targetdir folder: $!";
-	 while ( defined (my $file = readdir TARGET) ) {#for each results file
-	     next if $file =~ /^\.\.?$/;     # skip . and ..
-	     system("$movecmd $targetdir$slash$file $targetdir$slash$prefix$file ");} #prefix with "old_"
-	 closedir(TARGET);
-     }
+	    if($^O eq "MSWin32"){system("pause")}  # for checking comparisons 
+	} # compare
+	    closedir(SOURCE);
+    }
+    if (-e $sourcedir) { # if results directory exists
+	if (-e $targetdir) { # if resultsn directory exists
+	    my $olddir = "$prefix$targetdir"; # = old_resultsn
+	    if (-e $olddir) { # remove old_resultsn directory
+		rmtree $olddir;
+	    } 
+	    rename $targetdir, $olddir or die("Move from $targetdir to $olddir failed"); 
+	} 
+	rename $sourcedir, $targetdir or die("Move from $sourcedir to $targetdir failed");
+	mkdir("$sourcedir");                      
+	opendir(TARGET, $targetdir) or die("Can't open $targetdir folder: $!");
+	while ( defined (my $file = readdir TARGET) ) {
+	    ## for each results file
+	    next if $file =~ /^\.\.?$/;     # skip . and ..
+	    system("$movecmd $targetdir$slash$file $targetdir$slash$prefix$file ");} #prefix with "old_"
+	closedir(TARGET);
+    }
     else {print "$sourcedir does not exist\n"}
 }
