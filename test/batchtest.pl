@@ -36,7 +36,7 @@ my $arg_hash = {
 # single population, reference prior on allele freqs  
 $arg_hash->{populations} = 1;
 doAnalysis($executable,$arg_hash);
-CompareThenMove("results", "results1");
+&CompareThenMove("results", "results1");
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{populations}     = 2;
@@ -137,7 +137,7 @@ sub getArguments
 
 #SUBROUTINE TO COMPARE ALL FILES IN sourcedir WITH ORIGINALS 
 # AND MOVE
-sub CompareThenMove{
+sub CompareThenMove {
     my ($sourcedir, $targetdir) = @_;
     my $prefix = "old_";
     # define commands for different OS's
@@ -161,9 +161,9 @@ sub CompareThenMove{
 	if (-e $targetdir) { # if resultsn directory exists
 	    my $olddir = "$prefix$targetdir"; # = old_resultsn
 	    if (-e $olddir) { # remove old_resultsn directory
-		rmtree $olddir;
+		rmtree $olddir or die("Cannot remove directory $olddir");
 	    } 
-	    rename $targetdir, $olddir or die("Move from $targetdir to $olddir failed"); 
+	    rename $targetdir, $olddir or die("Rename of $targetdir as $olddir failed"); 
 	} 
 	rename $sourcedir, $targetdir or die("Move from $sourcedir to $targetdir failed");
 	mkdir("$sourcedir");                      
