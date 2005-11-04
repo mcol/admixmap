@@ -1018,10 +1018,13 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
 }
 
 ## get population admixture Dirichlet parameters: either posterior means, or values specified in model
-if(!is.null(param.samples)) {
-  alphas <- post.quantiles[1:K, 1]
-} else {
-  if(!is.null(user.options$initalpha0))alphas <- as.numeric(strsplit(user.options$initalpha0, ",")[[1]])
+if(K == 1){alphas <- c(1)
+}else{
+  if(!is.null(param.samples)) {
+    alphas <- post.quantiles[1:K, 1]
+  } else {
+    if(!is.null(user.options$initalpha0))alphas <- as.numeric(strsplit(user.options$initalpha0, ",")[[1]])
+  }
 }
 
 ##plot ergodic averages
@@ -1079,7 +1082,21 @@ if(!is.null(user.options$hwtestfile)){
 if(!is.null(user.options$anneal)){
   anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
   postscript(paste(resultsdir, "annealplot.ps", sep="/"))
-  plot(anneal.table[,1],anneal.table[,2], xlab="coolness", ylab="mean logLikelihood", type = 'o')
+  ##plot raw points
+  plot(anneal.table[,1],anneal.table[,2], xlab="coolness", ylab="mean logLikelihood", type = 'p')
+  ##fit smoothed spline and overlay on points
+  fit.spline <- smooth.spline(anneal.table[,1], anneal.table[,2], w=-1/anneal.table[,3],spar=0.6)
+  lines(fit.spline, lty=2)
+  fitted.points <- fit.spline$y
+  ##Simpson's rule for approximating area under curve
+  logML <- 0
+  for(i in 1:length(fitted.points)){
+    if(i==1 || i==length(fitted.points)){logML <- logML + fitted.points[i]}else
+    if( (i%%2)==0){logML <- logML + 4*fitted.points[i]}else
+    {logML <- logML + 2*fitted.points[i]}
+  }
+  logML <- logML / (3*(length(fitted.points)-1))
+  text(x=0.5, y=min(fitted.points),labels=paste("Estimated logMarginalLikelihood: ", format(logML)), cex=0.8)
   dev.off()
 }
 
@@ -1144,11 +1161,11 @@ if(!is.null(user.options$indadmixturefile)) {
   if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
     ## drop any extra vars in the array
     samples.adm <- samples[1:(2*K),1:n.individuals ,1:n.iterations, drop=F]
-    samples4way <- array(samples.adm, dim=c(2, K, dim(samples)[2:3]))
-    dimnames(samples4way) <- list(c("Parent1", "Parent2"), population.labels,
+    samples4way <- array(samples.adm, dim=c(K, 2, dim(samples)[2:3]))
+    dimnames(samples4way) <- list(population.labels,c("Parent1", "Parent2"),
                                   character(0), character(0))
     samples.meanparents <- apply(samples4way, 2:4, mean)
-    samples.bothparents <- array(aperm(samples4way, c(2,1,3,4)),
+    samples.bothparents <- array(samples4way,
                                  dim=c(K, 2*n.individuals, n.iterations))
     dimnames(samples.bothparents) <- list(population.labels, character(0), character(0))
   } else {
@@ -1162,7 +1179,7 @@ if(!is.null(user.options$indadmixturefile)) {
     ##writePosteriorMeansIndivAdmixture(t(samples), K)
   ##}
   sample.means <- apply(samples, 1:2, mean)
-  write.table(round(t(sample.means), 3), paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), row.names=F)
+  write.table(format(round(t(sample.means),3), nsmall=3), paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), quote=F, row.names=F, sep="\t")
   
   ##if(dim(samples.meanparents)[2]==1) {
     ## plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels)
