@@ -312,7 +312,7 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
 
   }//end if global rho model
 
-  else if(IC->size()>1){//non global rho model
+  else if(IC->getSize()>1){//non global rho model
     //if a single individual, rhobeta is fixed
     // sample for location parameter of gamma distribution of sumintensities parameters 
     // in population 
