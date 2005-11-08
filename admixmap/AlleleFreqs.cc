@@ -262,7 +262,6 @@ void AlleleFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, con
 
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_)
 {
-  data_->CheckAlleleFreqs(options, Loci->GetNumberOfCompositeLoci(), Loci->GetNumberOfStates());
   int newrow;
   int row = 0;
 

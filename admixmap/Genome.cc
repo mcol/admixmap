@@ -112,12 +112,13 @@ void Genome::loadAlleleStatesAndDistances(const AdmixOptions* const options, con
     //set numbers of alleles and distances for each locus
     if (m.size() == 4)
       ChrmLabels.push_back(m[3]);
-    TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData.get( i, 0 ) );
+    TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData.get( i, 0 ) );//sets number of alleles of first locus
     SetDistance( i, locifileData.get( index, 1 ) );
+    //loop through lines in locusfile for current complocus
     while( index < locifileData.nRows() - 1 && locifileData.get( index + 1, 1 ) == 0 ){
       ++next_line;
       
-      TheArray[i]->AddLocus( (int)locifileData.get( index + 1, 0 ) );
+      TheArray[i]->AddLocus( (int)locifileData.get( index + 1, 0 ) );//adds locus with number of alleles given as argument
       index++;
     }
     
@@ -267,6 +268,7 @@ void Genome::SetSizes(LogWriter *Log){
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     TotalLoci += TheArray[i]->GetNumberOfLoci();
   }
+  Log->logmsg(true, "\n");
   Log->logmsg(false, TotalLoci);
   Log->logmsg(false, " simple loci\n");
   Log->logmsg(false, NumberOfCompositeLoci);
@@ -283,7 +285,6 @@ void Genome::SetSizes(LogWriter *Log){
     Log->logmsg(true, LengthOfXchrm);
     Log->logmsg(true," Morgans.\n");
    }
-  Log->logmsg(true, "\n");
 }
 
 //Accessors

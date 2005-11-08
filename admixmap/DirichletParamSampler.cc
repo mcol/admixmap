@@ -28,6 +28,7 @@ void DirichletParamSampler::SetSize( unsigned /*numind*/, unsigned numpops )
 //sets up MuSampler object 
 {
    d = numpops;
+   //Dirichlet(gamma[0]...gamma[d-1]) prior on proportions mu
    gamma = new double[d];
    munew = new double[d];
    for( unsigned int i = 0; i < d; i++ )

@@ -57,18 +57,13 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
   // the values of individual admixture in the regression model  
   poptheta = new double[ K ];
   for( int i = 0; i < K; i++ )poptheta[i] = 0.0;
-  alpha = options->getAndCheckInitAlpha(Log);
+  alpha = options->getInitAlpha();
   SumAlpha.resize( K );
   if(!options->getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
 
   if(K > 1){
     double alphapriormean = options->getAlphamean();
     double alphapriorvar = options->getAlphavar();
-    Log->logmsg(true, "Gamma prior on population admixture Dirichlet parameters with mean ");
-    Log->logmsg(true, alphapriormean);
-    Log->logmsg(true, " and variance ");
-    Log->logmsg(true, alphapriorvar);
-    Log->logmsg(true, "\n");
     
     // ** set up sampler for alpha **
     

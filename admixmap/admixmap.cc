@@ -36,7 +36,7 @@ void PrintCopyrightNotice(){
   cout << "Programme Authors: " <<endl;
   cout << "David O'Donnell, Clive Hoggart and Paul McKeigue"<<endl;
   cout << "Copyright(c) 2002, 2003, 2004, 2005 LSHTM" <<endl;
-  cout << "Send any comments or queries to david.odonnell@ucd.ie"<<endl;
+  cout << "Send any comments or queries to david.odonnell @ucd.ie"<<endl;
   cout << "-----------------------------------------------"<<endl;
   cout << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl;
   cout << "under the terms of the GNU General Public License" <<endl;
@@ -75,21 +75,20 @@ int main( int argc , char** argv ){
   smyrand( options.getSeed() );  // Initialise random number seed
 
   InputData data; //read data files and check (except allelefreq files)
-  data.readData(&options, &Log);//also sets 'numberofoutcomes' option
+  data.readData(&options, &Log);//also sets 'numberofoutcomes' and 'populations' options
 
   //check user options
   options.checkOptions(&Log, data.getNumberOfIndividuals());
+
+  //print user options to args.txt; must be done after all options are set
+  options.PrintOptions();
 
   Genome Loci;
   Loci.loadAlleleStatesAndDistances(&options, &data);//reads locusfile and creates CompositeLocus objects
   
   AlleleFreqs A(&Loci);
   A.Initialise(&options, &data, &Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
-  //Note: this sets Populations option
-
-  //print user options to args.txt; must be done after all options are set
-  options.PrintOptions();
-
+ 
   Chromosome **chrm = 0; //Note: array of pointers to Chromosome
   chrm = Loci.GetChromosomes(options.getPopulations());  //create Chromosome objects
   Loci.SetSizes(&Log);//prints length of genome, num loci, num chromosomes

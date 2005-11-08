@@ -190,6 +190,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
     CheckCovariatesFile();//detects regression model
   if ( strlen( options->getReportedAncestryFilename() ) != 0 )
     CheckRepAncestryFile(options->getPopulations());
+  CheckAlleleFreqs(options);
   
   if(NumIndividuals > 1){
     Log->logmsg(false, NumIndividuals);Log->logmsg(false, " individuals\n");
@@ -285,18 +286,31 @@ void InputData::checkLociNames(int sexColumn)const{
 
 //checks consistency of supplied allelefreqs with locusfile
 //and determines number of populations and population labels
-void InputData::CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates){
+void InputData::CheckAlleleFreqs(AdmixOptions *options){
   string freqtype = "";
   bool infile = false;//indicates whether either of the three allelefreq files are specified
   int nrows=0, expectednrows=0;
   int Populations = options->getPopulations();
+  int NumberOfStates = 0;
+
+  unsigned index = 0;
+  for(unsigned i = 0; i < NumCompositeLoci; ++i){
+    int states = 1;
+    do{
+      states *= (int)locusMatrix_.get( index, 0 );
+      index++;
+    }
+    while( index < locusMatrix_.nRows() - 1 && locusMatrix_.get( index, 1 ) == 0 );
+    NumberOfStates += states;
+  }
+
 
   //fixed allele freqs
   if( strlen( options->getAlleleFreqFilename() ) ){
     freqtype = "";
     infile = true;
     nrows = alleleFreqMatrix_.nRows()-1;
-    expectednrows = NumberOfStates-NumberOfCompositeLoci;
+    expectednrows = NumberOfStates-NumCompositeLoci;
     Populations = alleleFreqMatrix_.nCols() - 1;// -1 for ids in first col
     ::getPopLabels(alleleFreqData_[0], Populations, &PopulationLabels);
   }

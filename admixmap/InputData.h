@@ -92,7 +92,6 @@ public:
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};  
 
   void GetGenotype(int i, int SexColumn, const Genome &Loci,unsigned short ****genotype)const;
-  void CheckAlleleFreqs(AdmixOptions *options, int NumberOfCompositeLoci, int NumberOfStates);
 
 private:    
   Matrix_s locusData_;
@@ -128,6 +127,7 @@ private:
   void CheckGeneticData(AdmixOptions *options)const;
   void checkLociNames(int sexColumn)const;
   unsigned determineNumberOfCompositeLoci()const;
+  void CheckAlleleFreqs(AdmixOptions *options);
   RegressionType CheckOutcomeVarFile(int, int);
   void CheckCovariatesFile()const;
   void CheckRepAncestryFile(int populations)const;

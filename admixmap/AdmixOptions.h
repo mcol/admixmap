@@ -81,8 +81,8 @@ public:
   bool logRhoFlatPrior() const;  
 
   vector<double> getInitAlpha(int) const;
+  std::vector<std::vector<double> > getInitAlpha()const;
   int sizeInitAlpha() const;
-  vector<vector<double> > getAndCheckInitAlpha(LogWriter *Log);
   double getAlphamean()const;
   double getAlphavar() const;
   double getEtaMean() const;
@@ -199,6 +199,7 @@ private:
   double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
   std::vector<double> alpha0;
   std::vector<double> alpha1;
+  std::vector< std::vector<double> > initalpha;
   double alphamean, alphavar;
   double etamean, etavar;//gamma parameters for dispersion parameter
 
@@ -238,6 +239,7 @@ private:
   
   void Initialise();  
   void SetOutputNames();
+  void setInitAlpha(LogWriter *Log);
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
 
   // UNIMPLIMENTED: to avoid use
