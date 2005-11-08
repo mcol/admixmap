@@ -78,6 +78,8 @@ results.colnames <- c("f.signed", "crude.p", "gc.p", "adj2.p", "adj.p")
 dimnames(null.results)[[2]] <- results.colnames
 dimnames(candidate.results)[[2]] <- results.colnames
 
+########################################################################################
+## simulations loop begins
 for(sims in 1:numsims) {
   ## simulate correlated allele freqs
   mu <- numeric(L) # ancestral freqs allele 1
@@ -258,6 +260,7 @@ for(sims in 1:numsims) {
        pch=plotchars, col=plotcols)
   dev.off()
 } # end simulations loop 
+##############################################################################
 
 write.table(null.results, file="TwoPopsResults/NullResults.txt", col.names=T, row.names=F, sep="\t")
 write.table(candidate.results, file="TwoPopsResults/CandidateResults.txt", col.names=T, row.names=F, sep="\t")
