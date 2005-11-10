@@ -21,15 +21,11 @@
 #include "GaussianProposalMH.h"
 
 GaussianProposalMH::GaussianProposalMH
-(const double *inparameters,
- double (*funct)( const double* const, const int* const, const double* const, const double ),
- double (*dfunct)( const double* const, const int* const, const double* const, const double ),
- double (*ddfunct)( const double* const, const int* const, const double* const, const double ),
- const int* const integer_data, const double* const double_data )
+(double (*funct)( const double, const void* const ),
+ double (*dfunct)( const double, const void* const ),
+ double (*ddfunct)( const double, const void* const )
+ ) 
 {
-   parameters = inparameters;
-   data_i = integer_data;
-   data_d = double_data;
    function = funct;
    dfunction = dfunct;
    ddfunction = ddfunct;
@@ -39,32 +35,17 @@ GaussianProposalMH::~GaussianProposalMH()
 {
 }
 
-void GaussianProposalMH::UpdateParameters( const double *inparameters )
-{//may be unnecessary
-  parameters = inparameters;
-}
-
-void GaussianProposalMH::UpdateIntegerData( const int* indata )
-{
-  data_i = indata;
-}
-
-void GaussianProposalMH::UpdateDoubleData( const double* indata )
-{
-  data_d = indata;
-}
-
-int GaussianProposalMH::Sample( double *x )
+int GaussianProposalMH::Sample( double *x, const void* const args )
 {
   int flag = 0;
   double xnew, LogPost, NewLogPost ,ProposalRatio, LogAcceptanceProb;
   newnum = *x;
-  NewtonRaphson();
+  NewtonRaphson(args);//sets ddf
 
   xnew = gennor( newnum, 1 / sqrt( -ddf ) );
 
-  LogPost = (*function)( parameters, data_i, data_d, *x );
-  NewLogPost = (*function)( parameters, data_i, data_d, xnew );
+  LogPost = (*function)( *x, args );
+  NewLogPost = (*function)( xnew, args );
 
   ProposalRatio = LogNormalDensity( xnew, newnum, -ddf ) - LogNormalDensity( *x, newnum, -ddf );
 
@@ -76,12 +57,12 @@ int GaussianProposalMH::Sample( double *x )
   return flag;
 }
 
-void GaussianProposalMH::NewtonRaphson()
+void GaussianProposalMH::NewtonRaphson(const void* const args)
 {
   double step, df;
   do{
-    ddf = (*ddfunction)( parameters, data_i, data_d, newnum );
-    df = (*dfunction)( parameters, data_i, data_d, newnum );
+    ddf = (*ddfunction)( newnum, args );
+    df = (*dfunction)( newnum, args );
     step = -df / ddf;
     newnum += step;
   }while( fabs(df) > 0.001 );

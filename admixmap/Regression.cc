@@ -17,7 +17,6 @@ Regression::Regression(){
   NumCovariates = 0;
   BetaDrawArray = 0;
   acceptbeta = 0;
-  BetaParameters = 0;
   RegType = None;
 
   X = 0;
@@ -39,8 +38,6 @@ Regression::~Regression(){
   delete[] n0;
   delete[] beta;
   delete[] SumBeta;
-  delete[] BetaParameters;
-
 }
 
 void Regression::OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
@@ -150,10 +147,6 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
     
     //  ** initialize sampler for logistic regression **
     acceptbeta = 0;
-    BetaParameters = new double[ NumCovariates + 4 ]; // array elements consist of 
-    // one beta param for each covariate followed by 
-    // precision of priors on logistic regression params for each outcome var, 
-    // followed by one intercept param for each outcome var
     BetaDrawArray = new GaussianProposalMH*[NumCovariates];
     
     for( int i = 0; i < NumCovariates; i++ ){
@@ -161,13 +154,12 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
     }
 
     dims = new int[2];
-    dims[0] = individuals->getSize();
-    dims[1] = NumCovariates;
-    fill(BetaParameters, BetaParameters+NumCovariates+4, 0.0);
-    BetaParameters[ NumCovariates + 1 ] = lambda;
-    BetaParameters[ NumCovariates + 3 ] = beta0[0];
+    BetaParameters.n = individuals->getSize();
+    BetaParameters.d = NumCovariates;
+    BetaParameters.lambda = lambda;
+    BetaParameters.beta0 = beta0[0];
     for( int i = 0; i < NumCovariates; i++ ){
-      BetaDrawArray[i] = new GaussianProposalMH( BetaParameters, lr, dlr, ddlr, dims, X );
+      BetaDrawArray[i] = new GaussianProposalMH( lr, dlr, ddlr);
     }
   }
 }
@@ -235,12 +227,13 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
   else if( RegType == Logistic ){
    
     for( int j = 0; j < NumCovariates; j++ ){
-      BetaDrawArray[j]->UpdateDoubleData( X );
-      BetaParameters[ NumCovariates + 2 ] = j;
-      BetaParameters[ NumCovariates ] = XtY[ j ];
-      BetaDrawArray[j]->UpdateParameters( BetaParameters );
-      acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ) );
-      BetaParameters[j] = beta[j];
+      BetaParameters.Covariates = X;
+      BetaParameters.beta = beta;
+      BetaParameters.index = j;
+      BetaParameters.XtY = XtY[ j ];
+
+      acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ), &BetaParameters );
+      //BetaParameters.beta[j] = beta[j];
     }
   }
   individuals->SetExpectedY(RegNumber,beta);
@@ -267,7 +260,6 @@ void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log)con
           if( RegType == Linear )
 	    {
 	      Log->write(lambda,6);
-	      //Log->write( lambda, 6);
 	    }
 	}
     }
@@ -334,105 +326,86 @@ int Regression::getNumCovariates()const{
   return NumCovariates;
 }
 
-double Regression::lr( const double* const parameters, const int* const dims, const double* const data, const double beta )
-{
-  //dims is an array of length 2 containing the dimensions of data
-  int n = dims[0];
-  int d = dims[1];
-  int index = (int)parameters[ d + 2 ];
-  double beta0 = 0;
-  if( index == 0 )
-    beta0 = parameters[ d + 3 ];
-  double *Xbeta, *beta1;
+void ExpectedOutcome(const double* const beta, const double* const X, double* Y, int n, int dim, int index, double betaj){
+  //given an array of regression parameters beta and covariates X, computes expected outcome Y = X * beta
+  double beta1[dim];
 
-  beta1 = new double[ d ];
-  Xbeta = new double[ n ];
-
-  double f = parameters[ d ] * beta
-    - 0.5 * parameters[ d + 1 ] * (beta - beta0) * (beta - beta0);
-  
-  for( int i = 0; i < d; i++ )
+  for( int i = 0; i < dim; i++ )
     {
       if( i != index )
-	beta1[ i ] = parameters[i];
+	beta1[ i ] = beta[i];
       else
-	beta1[ i ] = beta;
+	beta1[ i ] = betaj;
     }
+  //Xbeta = X * beta1;
+  matrix_product(X, beta1, Y, n, dim, 1);
+}
+
+double Regression::lr( const double beta, const void* const vargs )
+{
+  const BetaArgs* args = (const BetaArgs*)vargs;
+
+  int n = args->n;
+  int index = args->index ;
+  double beta0 = 0;
+  if( index == 0 )
+    beta0 = args->beta0;
+  double *Xbeta = new double[ n ];
+
+  double f = args->XtY * beta - 0.5 * args->lambda * (beta - beta0) * (beta - beta0);
   
-  //Xbeta = data * beta1;
-  matrix_product(data, beta1, Xbeta, n, d, 1);
+  ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, args->d, index, beta);
 
   for( int i = 0; i < n; i++ ){
-    f -= log( 1. + exp( Xbeta[ i ] ) );}
+    f -= log( 1.0 + exp( Xbeta[ i ] ) );}
   
-  delete[] beta1;
   delete[] Xbeta;
   return( f );
 }
 
 //a lot of duplicated code in the next 2 functions
 //can we find a way to use a single function to compute Xbeta?
-double Regression::dlr( const double* const parameters, const int* const dims, const double* const data, const double beta )
+double Regression::dlr( const double beta, const void* const vargs )
 {
-  //dims is an array of length 2 containing the dimensions of data
-  int n = dims[0];
-  int d = dims[1];
-  int index = (int)parameters[ d + 2 ];
+  const BetaArgs* args = (const BetaArgs*)vargs;
+
+  int n = args->n;
+  int d = args->d;
+  int index = args->index ;
   double beta0 = 0;
   if( index == 0 )
-    beta0 = parameters[ d + 3 ];
-  double f = parameters[ d ] - parameters[ d + 1 ] * (beta - beta0);
-  double *Xbeta, *beta1;
+    beta0 = args->beta0;
 
-  beta1 = new double[ d ];
-  Xbeta = new double[ n ];
+  double f = args->XtY - args->lambda * (beta - beta0);
+  double *Xbeta = new double[ n ];
   
-  for( int i = 0; i < d; i++ )
-    {
-      if( i != index )
-	beta1[ i ] = parameters[i];
-      else
-	beta1[ i ] = beta;
-    }
-  
-  //Xbeta = data * beta1;
-  matrix_product(data, beta1, Xbeta, n, d, 1);
+  ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
+
   for( int i = 0; i < n; i++ )
     {
-      f -= data[ i*d + index ] / ( 1. + exp( -Xbeta[ i ] ) );
+      f -= args->Covariates[ i*d + index ] / ( 1.0 + exp( -Xbeta[ i ] ) );
     }
-  delete[] beta1;
   delete[] Xbeta;
   return( f );
 }
 
-double Regression::ddlr( const double* const parameters, const int* const dims, const double* const data, const double beta )
+double Regression::ddlr( const double beta, const void* const vargs )
 {
-  //dims is an array of length 2 containing the dimensions of data
-  int n = dims[0];
-  int d = dims[1];
-  int index = (int)parameters[ d + 2 ];
-  double f = -parameters[ d + 1 ];
-   double *Xbeta, *beta1;
+  const BetaArgs* args = (const BetaArgs*)vargs;
 
-  beta1 = new double[ d ];
-  Xbeta = new double[ n ];
+  int n = args->n;
+  int d = args->d;
+  int index = args->index ;
+
+  double f = -args->lambda;
+  double *Xbeta = new double[ n ];
   
-  for( int i = 0; i < d; i++ )
-    {
-      if( i != index )
-	beta1[ i ] = parameters[i];
-      else
-	beta1[ i ] = beta;
-    }
-  
-  //Xbeta = data * beta1;
-  matrix_product(data, beta1, Xbeta, n, d, 1);
+  ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
+
   for( int i = 0; i < n; i++ )
     {
-      f -= data[ i*d + index ] * data[ i*d + index ] / ( 2. + exp( -Xbeta[ i ] ) + exp( Xbeta[ i ] ) );
+      f -= args->Covariates[ i*d + index ] * args->Covariates[ i*d + index ] / ( 2.0 + exp( -Xbeta[ i ] ) + exp( Xbeta[ i ] ) );
     }
-  delete[] beta1;
   delete[] Xbeta;
   return( f );
 }

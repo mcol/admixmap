@@ -27,32 +27,26 @@
 class GaussianProposalMH
 {
 public:
-  GaussianProposalMH(const double* inparameters,
-                     double (*funct)( const double* const, const int* const, const double* const, const double ),
-                     double (*dfunct)( const double* const, const int* const, const double* const, const double ),
-                     double (*ddfunct)( const double* const, const int* const, const double* const, const double ),
-                     const int* const, const double* const);
+  GaussianProposalMH(double (*funct)( const double, const void* const ),
+                     double (*dfunct)( const double, const void* const ),
+                     double (*ddfunct)( const double, const void* const )
+                     );
    
   ~GaussianProposalMH();
   
-  int Sample(double*);
-  void UpdateParameters(const double* inparameters);
-  void UpdateIntegerData(const int *);
-  void UpdateDoubleData(const double*);
+  int Sample(double*, const void* const);
 
 private: // members
   unsigned dim;
-  const double* parameters;
-  const int* data_i;
-  const double* data_d;
   double newnum;
   double ddf;
-  double (*function)( const double* const, const int* const, const double* const, const double );
-  double (*dfunction)( const double* const, const int* const, const double* const, const double );
-  double (*ddfunction)( const double* const, const int* const, const double* const, const double );
+
+  double (*function)( const double, const void* const );
+  double (*dfunction)( const double, const void* const );
+  double (*ddfunction)( const double, const void* const );
 
   // HELPER FUNCTIONS
-  void NewtonRaphson();
+  void NewtonRaphson(const void* const args);
   static double LogNormalDensity
   (double x, double mu, double lambda);
 

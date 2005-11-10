@@ -13,6 +13,18 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 
+typedef struct{
+  int n;//number of individuals
+  int d;//numberof covariates
+  int index;//index of current parameter
+  double beta0;//prior mean
+  double lambda;//prior precision 
+  double XtY;
+  const double* Covariates;
+  const double* beta;//regression parameters
+
+}BetaArgs;
+
 class Regression{
 
 public:
@@ -54,7 +66,7 @@ private:
 
   // ** Logistic Regression Objects
   GaussianProposalMH** BetaDrawArray;
-  double *BetaParameters;
+  BetaArgs BetaParameters;
   int acceptbeta;
   double* XtY;
   const double *X;
@@ -64,11 +76,11 @@ private:
 
   void SumParameters();
 
-  static double lr( const double* const, const int* const, const double* const, const double );
+  static double lr( const double beta, const void* const vargs );
   
-  static double dlr( const double* const, const int* const, const double* const, const double );
+  static double dlr( const double beta, const void* const vargs );
   
-  static double ddlr( const double* const, const int* const, const double* const, const double );
+  static double ddlr( const double beta, const void* const vargs );
   
 
 };
