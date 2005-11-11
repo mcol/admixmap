@@ -34,7 +34,7 @@ my $arg_hash = {
 # model with reference prior on allele freqs in 1 population, skin reflectance as continuous outcome var
 $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'SinglePopResults';
-$arg-hash->{outcomes}              = 1,
+$arg_hash->{outcomes}              = 1,
 $arg_hash->{targetindicator}       = 1; # skin reflectance
 doAnalysis($executable,$arg_hash);
 
@@ -75,7 +75,7 @@ delete $arg_hash->{affectedsonlyscorefile};
 $arg_hash->{resultsdir}                = 'HistoricFreqResults';  
 $arg_hash->{randommatingmodel}         = 1;
 $arg_hash->{outcomes}                  = 2; # both outcome vars
-$arg_hash->{historicallelefreqfile}    = "data/priorallelefreqsnew.txt";
+$arg_hash->{historicallelefreqfile}    = "data/priorallelefreqs.txt";
 $arg_hash->{etapriorfile}              = "data/etapriors.txt";
 $arg_hash->{dispparamfile}             = "dispersionparams.txt";
 $arg_hash->{fstoutputfile}             = "lociFst.txt";
