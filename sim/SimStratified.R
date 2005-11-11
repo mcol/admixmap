@@ -263,6 +263,7 @@ write.table(null.results, file="TwoPopsResults/NullResults.txt", col.names=T, ro
 write.table(candidate.results, file="TwoPopsResults/CandidateResults.txt", col.names=T, row.names=F,
             sep="\t")
 
+results.colnames <- c("f.signed", "crude.p", "gc.p", "adj2.p", "adj.p")
 ## convert p-values to error rates
 type1.error <- data.frame(null.results$f.signed,
                           null.results$crude.p < pthreshold,
