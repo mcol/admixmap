@@ -166,7 +166,7 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
 
 void Regression::SetExpectedY(IndividualCollection *IC)const{
   IC->SetExpectedY(RegNumber, beta);
-  if( RegType == Logistic ) IC->calculateExpectedY(RegNumber);
+  //if( RegType == Logistic ) IC->calculateExpectedY(RegNumber);
 }
 
 void Regression::Update(bool sumbeta, IndividualCollection* individuals){
@@ -237,11 +237,13 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
     }
   }
   individuals->SetExpectedY(RegNumber,beta);
-  if( individuals->getOutcomeType(RegNumber) )
-    individuals->calculateExpectedY(RegNumber);
+  //if( individuals->getOutcomeType(RegNumber) )
+  //individuals->calculateExpectedY(RegNumber);
   
-  if(sumbeta)
+  if(sumbeta){
     SumParameters();
+    individuals->UpdateSumResiduals();
+  }
 }//end Update
 
 void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log)const{
@@ -454,7 +456,7 @@ double Regression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, in
   }
   else if(RegType == Logistic){
     //loglikelihood is sum of logs of bernoulli probabilities, given by EY
-    IC->calculateExpectedY(RegNumber);
+    //IC->calculateExpectedY(RegNumber);
     double pi;
     for(int i = 0; i < NumIndividuals; ++i){
       Y = IC->getOutcome(RegNumber, i);

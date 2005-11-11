@@ -71,6 +71,7 @@ public:
   void OutputChibEstimates(LogWriter *, int)const;
 
   void OutputErgodicAvg(int samples, bool ML, std::ofstream *avgstream);
+  void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);
 
   int getSize()const;
 
@@ -94,7 +95,8 @@ public:
   DataType getOutcomeType(int)const;
 
   void SetExpectedY(int, const double*const );
-  void calculateExpectedY(int);
+  //void calculateExpectedY(int);
+  void UpdateSumResiduals();
   double getExpectedY(int)const;
 
   const std::string getCovariateLabels(int)const;
@@ -131,6 +133,7 @@ private:
  
   //Regression Objects
   double **ExpectedY;
+  double **SumResiduals;
   DataMatrix Outcome;
   int NumOutcomes;
   int NumCovariates;//covariates including admixture

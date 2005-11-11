@@ -55,6 +55,7 @@ public:
   const char *getErgodicAverageFilename() const;
   const char *getParameterFilename() const;
   const char *getRegressionOutputFilename() const;
+  const char* getResidualFilename()const;
   const char *getEtaOutputFilename() const;
   const char *getIndAdmixtureFilename() const;
   const char *getAlleleFreqOutputFilename() const;
@@ -217,6 +218,7 @@ private:
   string RegressionOutputFilename;
   string EtaOutputFilename;
   string DispersionTestFilename;
+  string ResidualFilename;
   string IndAdmixtureFilename;
   string FSTOutputFilename;
   string TestsForSNPsInHaplotypeOutputFilename;

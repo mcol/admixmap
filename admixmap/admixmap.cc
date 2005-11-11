@@ -330,6 +330,9 @@ int main( int argc , char** argv ){
 	//Log.logmsg(true, "\nwith standard error of ");Log.logmsg(true, );Log.logmsg(true, "\n");
       }
 
+      //Residuals
+      if(options.getNumberOfOutcomes() > 0)
+	IC->OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
       //FST
       if( strlen( options.getHistoricalAlleleFreqFilename() ) ){
 	A.OutputFST();

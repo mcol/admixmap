@@ -48,6 +48,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   SumDeviance = SumDevianceSq = 0.0;
   CovariateLabels = 0;
   ExpectedY = 0;
+  SumResiduals = 0;
   SumLogTheta = 0;
   ReportedAncestry = 0;
   NumInd = Data->getNumberOfIndividuals();
@@ -74,6 +75,7 @@ IndividualCollection::~IndividualCollection()
   delete indadmixoutput;
   delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
+  free_matrix(SumResiduals, NumOutcomes);
   delete[] SumLogTheta;
   delete[] CovariateLabels;
   delete[] ReportedAncestry;
@@ -153,6 +155,8 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   //Regression stuff
    if(options->getNumberOfOutcomes() > 0){
     ExpectedY = alloc2D_d(NumOutcomes, NumInd);
+    SumResiduals = alloc2D_d(NumOutcomes, NumInd);
+    for(int j = 0; j < NumOutcomes; ++j)fill(SumResiduals[j], SumResiduals[j] + NumInd, 0.0);
    }
 
   SumLogTheta = new double[ options->getPopulations()];
@@ -321,14 +325,25 @@ void IndividualCollection::SetExpectedY(int k, const double* const beta){
   //sets ExpectedY = X * Beta
   if(ExpectedY){
     matrix_product(Covariates.getData(), beta, ExpectedY[k], Covariates.nRows(), Covariates.nCols(), 1);
+    if(OutcomeType[k] == Binary)
+      //for binary outcome sets EY as logit^-1(X*beta)
+      for(unsigned int i = 0; i < NumInd; i++ )
+	ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
     }
 }
 
-void IndividualCollection::calculateExpectedY(int k)
-{
-  if(ExpectedY)
-    for(unsigned int i = 0; i < NumInd; i++ )
-      ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
+// void IndividualCollection::calculateExpectedY(int k)
+// {
+//   if(ExpectedY)
+//     for(unsigned int i = 0; i < NumInd; i++ )
+//       ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
+// }
+
+void IndividualCollection::UpdateSumResiduals(){
+  if(SumResiduals)
+    for(int k = 0; k < NumOutcomes; ++k)
+      for(unsigned i = 0; i < NumInd; ++i)
+	SumResiduals[k][i] += Outcome.get(i,k) - ExpectedY[k][i];
 }
 
 // ************** UPDATING **************
@@ -556,6 +571,25 @@ void IndividualCollection::OutputErgodicAvg(int samples, bool ML, std::ofstream 
       << _child[0]->getLogPosteriorTheta() << " " << _child[0]->getLogPosteriorRho()<< " " 
       << _child[0]->getLogPosteriorAlleleFreqs() << " "
       << MargLikelihood.getLogMarginalLikelihood();
+}
+
+void IndividualCollection::OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations){
+  std::ofstream ResidualStream(ResidualFilename, ios::out);
+  if( !ResidualStream )
+    {
+      cerr<< "WARNING: Couldn't open residualfile\n";
+    }
+  else{
+    for(int j = 0; j < NumOutcomes; ++j)
+      ResidualStream << Labels[j]<< "\t";
+    ResidualStream << endl;
+    for(unsigned i = 0; i < NumInd; ++i){
+      for(int j = 0; j < NumOutcomes; ++j)
+	ResidualStream << SumResiduals[j][i] / (double) iterations << "\t";
+      ResidualStream << endl;
+    }
+    ResidualStream.close();
+  }
 }
 
 void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, const string* const PopulationLabels)

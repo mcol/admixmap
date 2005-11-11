@@ -81,6 +81,7 @@ public:
 
   void getOutcomeTypes(DataType*)const;
   std::string *GetPopLabels() const;
+  Vector_s getOutcomeLabels()const;
 
   bool determineIfPedFile(AdmixOptions *options)const;
   void convertGenotypesToIntArray(AdmixOptions *options);
@@ -116,6 +117,7 @@ private:
   DataMatrix reportedAncestryMatrix_;
 
   std::string *PopulationLabels;
+  Vector_s OutcomeLabels;
   DataType* OutcomeType;
   int NumIndividuals;
   int NumSimpleLoci;

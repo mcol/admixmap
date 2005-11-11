@@ -432,6 +432,7 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
       }
       Log->logmsg(true,outcomeVarData_[0][j+Firstcol]);
       Log->logmsg(true,".\n");
+      OutcomeLabels.push_back(outcomeVarData_[0][j+Firstcol]);
     }
     Log->logmsg(true, "\n");
   }
@@ -629,4 +630,7 @@ const DataMatrix& InputData::getCovariatesMatrix() const
 }
 std::string *InputData::GetPopLabels() const{
   return PopulationLabels;
+}
+Vector_s InputData::getOutcomeLabels()const{
+  return OutcomeLabels;
 }

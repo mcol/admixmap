@@ -102,6 +102,7 @@ void AdmixOptions::Initialise(){
   Rhoalpha = 4.0; 
   RhobetaShape = 3.0;
   RhobetaRate = 3.0;
+  //TODO: for global rho, have gamma (3, 0.5) prior
   //gamma(0.25, 0.25) prior on pop admixture
   alphamean = 1;  
   alphavar = 16;
@@ -114,6 +115,7 @@ void AdmixOptions::Initialise(){
   LogFilename = "log.txt";
 
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
+  ResidualFilename = "Residuals.txt";
 
   // option names and option values are stored as strings in a map container 
   OptionValues["burnin"] = "100";
@@ -516,6 +518,10 @@ void AdmixOptions::setTestForSNPsInHaplotype(bool b){
 const char *AdmixOptions::getEtaPriorFilename() const
 {
   return EtaPriorFilename.c_str();
+}
+
+const char* AdmixOptions::getResidualFilename()const{
+  return ResidualFilename.c_str();
 }
 
 int AdmixOptions::sizeInitAlpha() const
@@ -947,6 +953,7 @@ void AdmixOptions::SetOutputNames(){
   if ( FSTOutputFilename != "") FSTOutputFilename = ResultsDir + "/" + FSTOutputFilename;
   if ( HWTestFilename != "") HWTestFilename = ResultsDir + "/" + HWTestFilename;
   if ( LikRatioFilename != "") LikRatioFilename = ResultsDir + "/" + LikRatioFilename;
+  ResidualFilename = ResultsDir + "/" + ResidualFilename;
 }
 
 void AdmixOptions::PrintOptions(){
