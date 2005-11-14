@@ -1064,20 +1064,24 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
 
   // **** sumintensities ****
   if( GlobalRho )
-    Log->logmsg(true,"Model with global sumintensities.\n");
+    Log->logmsg(true,"Model with global sum-intensities.\n");
   else if( RandomMatingModel )
-    Log->logmsg(true,"Model with gamete specific sumintensities.\n");
+    Log->logmsg(true,"Model with gamete specific sum-intensities.\n");
   else
-    Log->logmsg(true,"Model with individual specific sumintensities.\n");
+    Log->logmsg(true,"Model with individual-specific sum-intensities.\n");
 
   Rhobeta = RhobetaShape / RhobetaRate;
   if( RhoFlatPrior() ){
-    Log->logmsg(true,"Flat prior on sumintensities.\n");
+    Log->logmsg(true,"Flat prior on sum-intensities truncated at ");
+    Log->logmsg(true, TruncPt);
+    Log->logmsg(true,"\n");
   }
   else if( logRhoFlatPrior() ){
-    Log->logmsg(true,"Flat prior on log sumintensities.\n");
+    Log->logmsg(true,"Flat prior on log sum-intensities truncated at ");
+    Log->logmsg(true, TruncPt);
+    Log->logmsg(true,"\n");
   }
-  else{
+  else {
     //    if(Rhoalpha <= 0.0){
     //       Log->logmsg(true, "ERROR: prior shape parameter of sumintensities must be > 0\n");
     //       exit(1);
@@ -1086,21 +1090,30 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
       Log->logmsg(true, "ERROR: sumintensitiesbetashape must be > 0\n");
       exit(1);
     }
-    Log->logmsg(true,"Gamma prior on sum-of-intensities with shape parameter: ");
+    if( GlobalRho ) {
+    Log->logmsg(true,"Gamma prior on sum-intensities with shape parameter: ");
     Log->logmsg(true, Rhoalpha); Log->logmsg(false,"\n");
-    Log->logmsg(true," and Gamma prior on rate (1 / location) parameter with shape and rate parameters: ");
-    Log->logmsg(true, RhobetaShape); Log->logmsg(true," & ");
-    Log->logmsg(true, RhobetaRate); Log->logmsg(true,"\n");
-    Log->logmsg(true, "Effective prior mean of sumintensities is ");
-    double rhopriormean = 0.0;
-    if(RhobetaShape > 1.0)rhopriormean = Rhoalpha * RhobetaRate / (RhobetaShape - 1.0);
-    else rhopriormean = Rhoalpha / Rhobeta;
-    Log->logmsg(true, rhopriormean);
-    Log->logmsg(true, "\n");
-    if(RhobetaShape > 2.0){
-      Log->logmsg(true, "Effective prior variance of sumintensities is ");
-      Log->logmsg(true, rhopriormean * (rhopriormean + 1.0) / (RhobetaShape - 2) );
+      Log->logmsg(true, "and rate (1 / location) parameter ");
+      Log->logmsg(true, RhobetaRate / RhobetaShape);
       Log->logmsg(true, "\n");
+    }
+    else {
+      Log->logmsg(true,"Population distribution of sum-intensities specified as Gamma with shape parameter ");
+      Log->logmsg(true, Rhoalpha); Log->logmsg(false,"\n");
+      Log->logmsg(true,"and Gamma prior on rate (1 / location) parameter with shape and rate parameters: ");
+      Log->logmsg(true, RhobetaShape); Log->logmsg(true," & ");
+      Log->logmsg(true, RhobetaRate); Log->logmsg(true,"\n");
+      Log->logmsg(true, "Effective prior mean of sum-intensities is ");
+      double rhopriormean = 0.0;
+      if(RhobetaShape > 1.0)rhopriormean = Rhoalpha * RhobetaRate / (RhobetaShape - 1.0);
+      else rhopriormean = Rhoalpha / Rhobeta;
+      Log->logmsg(true, rhopriormean);
+      Log->logmsg(true, "\n");
+      if(RhobetaShape > 2.0){
+	Log->logmsg(true, "Effective prior variance of sum-intensities is ");
+	Log->logmsg(true, rhopriormean * (rhopriormean + 1.0) / (RhobetaShape - 2) );
+	Log->logmsg(true, "\n");
+      }
     }
   }
 
