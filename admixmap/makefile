@@ -1,53 +1,47 @@
-# makefile for compiling admixmap
-CC 			= gcc
-CXX 			= g++
+# makefile for compiling ADMIXMAP 
 
+CC			= gcc
+CXX 			= g++
 DISTDIR			= ../test/admixmap-linux
 WINDISTDIR		= ../test/admixmap-win
-
 LIBS			= -lm -static -lgsl -lgslcblas
-
 # processor architecture flags
 I686FLAGS    = -march=i686 
 P4FLAGS      = -march=pentium4 -mfpmath=sse
 X86_64FLAGS  = -march=athlon64
-
 # flags for release version, debug version or profiling version
-# release 
-DFLAGS = -O3
-# debug  
-# DFLAGS = -g
-# profiling 
-# DFLAGS = -pg -O3
+DFLAGS 		= -O3		# release
+# DFLAGS 	= -g    	# debug
+# DFLAGS 	= -pg -O3 	# profiling
 
-CXXFLAGS		= 
-CPPFLAGS		= -W -Wall $(I686FLAGS) $(DFLAGS)
-# CPPFLAGS		= -W -Wall $(P4FLAGS) $(DFLAGS)
+CXXFLAGS	= 
+CPPFLAGS	= -W -Wall $(I686FLAGS) $(DFLAGS)
+# CPPFLAGS	= -W -Wall $(P4FLAGS) $(DFLAGS)
 
-all:		rand admixmap .depend
+objects		= rand_serial.o admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o \
+AdaptiveRejection.o StepSizeTuner.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o \
+Individual.o GaussianProposalMH.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o \
+MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o \
+DirichletParamSampler.o HamiltonianMonteCarlo.o DataMatrix.o MuSampler.o DispersionSampler.o
 
-again: clean all
+all:		admixmap .depend
 
-clean:          
-		- rm -f del
+again: 		clean all
+
+clean:		          
 		rm -f *.o
 		rm -f .depend
 
-.depend: *.cc
-	$(CXX) $(CPPFLAGS) -MM *.cc >> .depend
+.depend: 	*.cc
+		$(CXX) $(CPPFLAGS) -MM *.cc >> .depend # -MM option outputs rule describing dependencies 
 
-infiles		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o rand_serial.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o Individual.o GaussianProposalMH.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o DirichletParamSampler.o HamiltonianMonteCarlo.o DataMatrix.o MuSampler.o DispersionSampler.o
-
-rand:		
-		$(CXX) $(CPPFLAGS) -c -o rand_serial.o rand_serial.cc 
-
-admixmap:	$(infiles)
-		$(CXX) $(CPPFLAGS) -o ../test/admixmap $(infiles) $(LIBS)
+admixmap:	$(objects)
+		$(CXX) $(CPPFLAGS) -o ../test/admixmap $(objects) $(LIBS)
 
 check:		all
 		perl ../test/batchtest.pl
 
-include: .depend
+include: 	.depend 
 
 #Compile  for Linux and repackage distribution with new exec
 linuxdist:      all
