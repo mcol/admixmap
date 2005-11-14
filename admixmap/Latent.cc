@@ -62,9 +62,6 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
   if(!options->getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
 
   if(K > 1){
-    double alphapriormean = options->getAlphamean();
-    double alphapriorvar = options->getAlphavar();
-    
     // ** set up sampler for alpha **
     
 #if POPADMIXSAMPLER == 1  
@@ -74,6 +71,8 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     // elements 2 and 3 are the parameters of the gamma prior
     // element 4 is the sum of log admixture proportions
     
+    double alphapriormean = options->getAlphamean();
+    double alphapriorvar = options->getAlphavar();
     if( options->isRandomMatingModel() ){
       AlphaParameters[0] = 2 * Numindividuals;
     } else {
@@ -107,6 +106,8 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     }
     SumLocusAncestry = new int[Numindividuals*K];
 #elif POPADMIXSAMPLER == 3
+    double alphapriormean = options->getAlphamean();
+    double alphapriorvar = options->getAlphavar();
     logalpha = new double[K];
     transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
     
