@@ -549,7 +549,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i)
       for(unsigned s = 0; s < NumStates-1; ++s)HistoricAlleleFreqs[i][s*Populations+j] = freqs[s];
     }
   }
-  
+  delete[] freqs;  
 }
 
 /**
