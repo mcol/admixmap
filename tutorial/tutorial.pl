@@ -17,7 +17,7 @@ my $arg_hash = {
     samples  => 1200,
     burnin   => 200,
     every    => 5,
-    coutindicator => 1, 
+    coutindicator => 0, 
 #output file options
     logfile                     => 'log.txt',
     ergodicaveragefile          => 'cumulativeresults.txt',
@@ -55,9 +55,6 @@ $arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqs.txt';
 $arg_hash->{dispersiontestfile}            = 'dispersionTest.txt';
 $arg_hash->{indadmixturefile}              = 'indivadmixture.txt';
 $arg_hash->{ancestryassociationscorefile}  = 'ancestryassociationscorefile.txt';
-#$arg_hash->{samples}               = 1100;
-#$arg_hash->{burnin}                = 100;
-#$arg_hash->{every}                 = 5;
 doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs and diabetes as binary outcome var 
@@ -101,11 +98,15 @@ sub doAnalysis {
     } 
     mkpath($args->{resultsdir});
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
+    my $rcmd = "R CMD";
+    if($^O eq "MSWin32") {
+	$rcmd = "Rcmd";
+    }
     print "Results will be written to subdirectory $ENV{'RESULTSDIR'}\n";
-    system($command);
+     system($command);
     print "Starting R script to process output\n";
-    system("RCMD BATCH --quiet --no-save --no-restore \
-            ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
+    print("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
+    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
     print "R script completed\n\n";
 }
 
