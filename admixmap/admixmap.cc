@@ -226,6 +226,7 @@ int main( int argc , char** argv ){
 	
 	  //compute loglikelihood and write to file
 	  LogL = IC->getLogLikelihood(&options, chrm, R, (!anneal && iteration > options.getBurnIn()) );
+
 	  if(!anneal)loglikelihoodfile<< iteration<<" " <<LogL<<endl;
 	  //compute modified loglikelihood (at coolness of 1.0)
 	  double lmod = LogL;

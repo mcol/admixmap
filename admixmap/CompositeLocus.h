@@ -81,7 +81,7 @@ private:
   int Populations;
   int *NumberOfAlleles;
   double **AlleleProbs;
-  double **SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihoos at posterior means
+  double **SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
   double *HapPairProbs; //haplotype pair probabilities
   double *HapPairProbsMAP; //Posterior estimates of hap pair probs
   std::string *Label;
@@ -97,14 +97,14 @@ private:
 
   void intToBits(int n, const int length, bool *bits) ;
   void setBaseForHapCode();
-  void setBaseMissing(const int *missingLoci, const int numMissingLoci, int baseMissing[][2]);
-  void setMissingAlleles(const int baseMissing[][2], int numMissingLoci, int permMissing, int MissingAlleles[][2]) ;
+  void setBaseMissing(const std::vector<int> missingLoci, const int numMissingLoci, std::vector<int> baseMissing[2]);
+  void setMissingAlleles(const std::vector<int> baseMissing[2], int numMissingLoci, int permMissing, std::vector<int> MissingAlleles[2]) ;
   int codeHapAllelesAsInt(const int *hapAlleles);
-  void codeHapAllelesPairAsIntPair(const int HapAllelesPair[][2], int *hpair);
-  void permuteHetLoci(const bool *isHet, const int numHetLoci, const int permHet, 
-		      const unsigned short* const* Genotype, int HapAllelesPair[][2]);
-  void permuteMissingLoci(const bool *isMissing, const int numMissingLoci, const int permMissing, 
-			  const int HapAllelesPair[][2], const int baseMissing[][2], int HapAllelesPairNoMissing[][2]) ;
+  void codeHapAllelesPairAsIntPair(const std::vector<int> HapAllelesPair[2], int *hpair);
+  void permuteHetLoci(const std::vector<bool> isHet, const int numHetLoci, const int permHet, 
+		      const unsigned short* const* Genotype, std::vector<int> HapAllelesPair[2]);
+  void permuteMissingLoci(const std::vector<bool> isMissing, const int numMissingLoci, const int permMissing, 
+			  const std::vector<int> HapAllelesPair[2], const std::vector<int> baseMissing[2], std::vector<int> HapAllelesPairNoMissing[2]) ;
   // UNIMPLEMENTED
   // to avoid use
   CompositeLocus(const CompositeLocus&);

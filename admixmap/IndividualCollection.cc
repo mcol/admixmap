@@ -354,11 +354,11 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
-  double lambda[options->getNumberOfOutcomes()];
-  const double* beta[options->getNumberOfOutcomes()];
+  vector<double> lambda;
+  vector<const double*> beta;
   for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-    lambda[i] = R[i].getlambda();
-    beta[i] = R[i].getbeta();
+    lambda.push_back( R[i].getlambda());
+    beta.push_back( R[i].getbeta());
   }
 
   for(unsigned int i = 0; i < NumInd; i++ ){
@@ -392,7 +392,6 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 				options, chrm, alpha, globalrho, rhoalpha, rhobeta,
 				thetahat, thetahatX, rhohat, rhohatX, Log, &MargLikelihood, A);
   }
-
 }
 
 // void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 

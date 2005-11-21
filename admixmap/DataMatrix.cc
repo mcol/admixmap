@@ -126,6 +126,6 @@ void DataMatrix::Print()const{
 // std::vector<double>::const_iterator DataMatrix::getData()const{
 //   return data.begin();
 // }
-const double* const DataMatrix::getData()const{
+const double* DataMatrix::getData()const{
   return &(data[0]);
 }

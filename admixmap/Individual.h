@@ -50,7 +50,7 @@ public:
 
   static void DeleteStaticMembers();
 
-  const Sex getSex()const ;
+  Sex getSex()const ;
 
   const double* getAdmixtureProps()const;
 
@@ -72,7 +72,7 @@ public:
 
   double getLogLikelihood(const AdmixOptions* const , Chromosome**);
   double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm);
-  double getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const double* const theta, const double* const theta, 
+  double getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const double* const theta, const double* const thetaX, 
 			   const vector<double > rho, const vector<double> rho_X, bool chibindicator);
 
   double getLogLikelihoodOnePop();
@@ -87,21 +87,22 @@ public:
 
   void SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
-			 const double* const lambda, int NoCovariates,
-			 DataMatrix *Covariates, const double* const* beta, const double *poptheta, const AdmixOptions* const options,
+			 const std::vector<double> lambda, int NoCovariates,
+			 DataMatrix *Covariates, const std::vector<const double*> beta, const double *poptheta, 
+			 const AdmixOptions* const options,
 			 Chromosome **chrm, const vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, const vector<double> sigma, 
 			 double DInvLink, double dispersion, bool anneal);
 
   void SampleTheta( int i, int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
 		    int NumOutcomes, const DataType* const OutcomeType, const double* const* ExpectedY, 
-		    const double* const lambda, int NoCovariates,
-		    DataMatrix *Covariates, const double* const* beta, const double* const poptheta,
+		    const std::vector<double> lambda, int NoCovariates,
+		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
 		    double DInvLink, double dispersion, bool RW, bool anneal);
 
   void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
-			    const double* const* ExpectedY, const double* constlambda, const Chromosome* const*chrm, 
+			    const double* const* ExpectedY, const std::vector<double> lambda, const Chromosome* const*chrm, 
 			    AlleleFreqs *A );
 
   void Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
@@ -182,9 +183,9 @@ private:
   double AcceptanceProbForTheta_XChrm(const std::vector<double> &sigma, int Populations );
   double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, 
 					       int Populations, int NoCovariates, 
-					       const DataMatrix* const Covariates, const double* const* beta, 
+					       const DataMatrix* const Covariates, const std::vector<const double*> beta, 
 					       const double* const* ExpectedY, const DataMatrix* const Outcome, 
-					       const double* const poptheta, const double* const lambda);
+					       const double* const poptheta, const std::vector<double> lambda);
 
   void UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, const AdmixOptions* const options, 
 			  const double* const theta, const double* const thetaX,

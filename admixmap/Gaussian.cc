@@ -161,8 +161,8 @@ int Gaussian::GetDimension() const
 void Gaussian::Draw(double *beta)const
 {
   int i;
-  double draw[Dimension];
-  double L[Dimension*Dimension];
+  double* draw = new double[Dimension];
+  double* L = new double[Dimension*Dimension];
  
   for ( i = 0; i < Dimension; i++ )
     draw[i] = gennor( (double)0.0, (double)1.0 );
@@ -175,4 +175,6 @@ void Gaussian::Draw(double *beta)const
     for(int j = 0; j < Dimension; ++j)beta[i] += L[i*Dimension + j]*draw[j];
     beta[i] += Mean[i];
   }
+  delete[] L;
+  delete[] draw;
 }

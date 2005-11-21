@@ -200,59 +200,59 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
  void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, const unsigned short* const* x, 
 								const double* const AlleleFreqs)
 {
-   double Score[ Populations ];
-   double Pi[3] = {0.0, 0.0, 0.0};
-
-   for( int k = 0; k < Populations; k++ ){
-      for( int kk = 0; kk < Populations; kk++ ){
-         Pi[0] += AlleleFreqs[ k ] * AlleleFreqs[ kk ] * phi[k][kk];
-         Pi[1] += ( ( 1 - AlleleFreqs[ k ] ) * AlleleFreqs[kk ] + ( 1 - AlleleFreqs[ kk ] ) * AlleleFreqs[ k ] ) *phi[k][kk];
-         Pi[2] += ( 1 - AlleleFreqs[ k ] ) * ( 1 - AlleleFreqs[ kk ] ) * phi[k][kk];
-      }
-   }
-
-   if( x[0][0] == 1 && x[0][1] == 1 ){
-      for( int k = 0; k < Populations; k++ ){
-         Score[k] = 2 * AlleleFreqs[ k ] * phi[k][k];
-         for( int kk = 0; kk < Populations; kk++ )
-            if( k != kk )
-               Score[k] += AlleleFreqs[ kk ] * (phi[k][kk] + phi[kk][k]);
-         Score[k] /= Pi[0];
-         ScoreGene[j][ k ] += Score[k];
-         InfoGene[j][ k*Populations + k ] += Score[k] * Score[k] - 2 * phi[k][k] / Pi[0];
-      }
-      for( int k = 0; k < Populations; k++ )
-         for( int kk = 0; kk < Populations; kk++ )
-             if( k != kk )
-                InfoGene[j][ k*Populations + kk ] += Score[k] * Score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[0];}
-   
-   else if( x[0][0] == 1 && x[0][1] != 1 ){
-      for( int k = 0; k < Populations; k++ ){
-         Score[k] = 2 * ( 1 - 2 * AlleleFreqs[ k ] ) * phi[k][k];
-         for( int kk = 0; kk < Populations; kk++ )
-            if( k != kk )
-                Score[k] += ( 1 - 2 * AlleleFreqs[  kk ] ) * (phi[k][kk] + phi[kk][k]);
+  vector<double> Score( Populations );
+  double Pi[3] = {0.0, 0.0, 0.0};
+  
+  for( int k = 0; k < Populations; k++ ){
+    for( int kk = 0; kk < Populations; kk++ ){
+      Pi[0] += AlleleFreqs[ k ] * AlleleFreqs[ kk ] * phi[k][kk];
+      Pi[1] += ( ( 1 - AlleleFreqs[ k ] ) * AlleleFreqs[kk ] + ( 1 - AlleleFreqs[ kk ] ) * AlleleFreqs[ k ] ) *phi[k][kk];
+      Pi[2] += ( 1 - AlleleFreqs[ k ] ) * ( 1 - AlleleFreqs[ kk ] ) * phi[k][kk];
+    }
+  }
+  
+  if( x[0][0] == 1 && x[0][1] == 1 ){
+    for( int k = 0; k < Populations; k++ ){
+      Score[k] = 2 * AlleleFreqs[ k ] * phi[k][k];
+      for( int kk = 0; kk < Populations; kk++ )
+	if( k != kk )
+	  Score[k] += AlleleFreqs[ kk ] * (phi[k][kk] + phi[kk][k]);
+      Score[k] /= Pi[0];
+      ScoreGene[j][ k ] += Score[k];
+      InfoGene[j][ k*Populations + k ] += Score[k] * Score[k] - 2 * phi[k][k] / Pi[0];
+    }
+    for( int k = 0; k < Populations; k++ )
+      for( int kk = 0; kk < Populations; kk++ )
+	if( k != kk )
+	  InfoGene[j][ k*Populations + kk ] += Score[k] * Score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[0];}
+  
+  else if( x[0][0] == 1 && x[0][1] != 1 ){
+    for( int k = 0; k < Populations; k++ ){
+      Score[k] = 2 * ( 1 - 2 * AlleleFreqs[ k ] ) * phi[k][k];
+      for( int kk = 0; kk < Populations; kk++ )
+	if( k != kk )
+	  Score[k] += ( 1 - 2 * AlleleFreqs[  kk ] ) * (phi[k][kk] + phi[kk][k]);
          Score[k] /= Pi[1];
          ScoreGene[j][ k ] += Score[k];
          InfoGene[j][ k*Populations + k ] += Score[k] * Score[k] + 4 * phi[k][k] / Pi[1];}
        for( int k = 0; k < Populations; k++ )
-          for( int kk = 0; kk < Populations; kk++ )
-             if( k != kk )
-                InfoGene[j][ k*Populations + kk ] += Score[k] * Score[kk] + 2*(phi[k][kk] + phi[kk][k]) / Pi[1];}
-   
-   else if( x[0][0] != 0 && x[0][0] != 1 && x[0][1] != 1 ){
-      for( int k = 0; k < Populations; k++ ){
-          Score[k] = -2 * ( 1 - AlleleFreqs[ k ] ) * phi[k][k];
-          for( int kk = 0; kk < Populations; kk++ )
-             if( k != kk )
-                Score[k] -= ( 1 - AlleleFreqs[ kk ] ) * (phi[k][kk] + phi[kk][k]);
-          Score[k] /= Pi[2];
-          ScoreGene[j][ k ] += Score[k];
-          InfoGene[j][ k*Populations + k ] += Score[k] * Score[k] - 2 * phi[k][k] / Pi[2];}
+	 for( int kk = 0; kk < Populations; kk++ )
+	   if( k != kk )
+	     InfoGene[j][ k*Populations + kk ] += Score[k] * Score[kk] + 2*(phi[k][kk] + phi[kk][k]) / Pi[1];}
+  
+  else if( x[0][0] != 0 && x[0][0] != 1 && x[0][1] != 1 ){
+    for( int k = 0; k < Populations; k++ ){
+      Score[k] = -2 * ( 1 - AlleleFreqs[ k ] ) * phi[k][k];
+      for( int kk = 0; kk < Populations; kk++ )
+	if( k != kk )
+	  Score[k] -= ( 1 - AlleleFreqs[ kk ] ) * (phi[k][kk] + phi[kk][k]);
+      Score[k] /= Pi[2];
+      ScoreGene[j][ k ] += Score[k];
+      InfoGene[j][ k*Populations + k ] += Score[k] * Score[k] - 2 * phi[k][k] / Pi[2];}
       for( int k = 0; k < Populations; k++ )
-         for( int kk = 0; kk < Populations; kk++ )
-            if( k != kk )
-               InfoGene[j][ k*Populations + kk ] += Score[k] * Score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[2];}
+	for( int kk = 0; kk < Populations; kk++ )
+	  if( k != kk )
+	    InfoGene[j][ k*Populations + kk ] += Score[k] * Score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[2];}
 }
 
 // presumably this calculates score test for mis-spec allele freqs at multi-allelic loci
@@ -260,7 +260,8 @@ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus,
 								const double* const AlleleFreqs, const int* const AlleleCounts)
 {
    double rn, r, pj, pi, q;
-   double NewScore[ NumberOfStates - 1], NewInfo[ (NumberOfStates - 1) * (NumberOfStates - 1 )];
+   double* NewScore = new double[ NumberOfStates - 1];
+   double* NewInfo = new double[ (NumberOfStates - 1) * (NumberOfStates - 1 )];
    for( int k = 0; k < Populations; k++ ){
      rn = (double)( AlleleCounts[ (NumberOfStates - 1)*Populations + k ] );
      q = 1.0;
@@ -288,6 +289,8 @@ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus,
       transform(NewScoreSq, NewScoreSq+(NumberOfStates-1)*(NumberOfStates-1), SumNewScoreSq[locus][k], SumNewScoreSq[locus][k], std::plus<double>());
 
    }
+   delete[] NewScore;
+   delete[] NewInfo;
 }
 
 
@@ -303,9 +306,8 @@ void MisSpecAlleleFreqTest::Output(int samples, const Genome* const Loci, const 
 void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, const Genome* const Loci, 
 								   const std::string* const PopLabels)
 {
-  //int samples = iteration - options->getBurnIn();
-  double /*ScoreMatrix[Populations], CompleteMatrix[Populations*Populations], */ObservedMatrix[Populations*Populations],
-    ScoreSq[Populations*Populations];
+  double* ObservedMatrix = new double[Populations*Populations];
+  double* ScoreSq = new double[Populations*Populations];
   for(int j = 0; j < NumCompLoci; j++ ){
     if( (*Loci)(j)->GetNumberOfLoci() == 1 ){
  
@@ -334,13 +336,12 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
 	  allelefreqscorestream  << "\"NA\"," << endl;
       }
       // Summary chi-sq test for mis-specification in all continental-populations.
-      //ObservedMatrix = ObservedMatrix.SubMatrix( 0, Populations - 1, 0, Populations - 1 );
-      //ScoreMatrix = ScoreMatrix.SubMatrix( 0, Populations - 1, 0, 0 );
-      //ObservedMatrix.InvertUsingLUDecomposition();
       double chisq = GaussianConditionalQuadraticForm(Populations, SumScoreGene[j], ObservedMatrix, Populations);
-      allelefreqscorestream << double2R(chisq)/*(ScoreMatrix.Transpose() * ObservedMatrix * ScoreMatrix)(0,0)*/ << "," << endl;
+      allelefreqscorestream << double2R(chisq)<< "," << endl;
     }
   }
+  delete[] ObservedMatrix;
+  delete[] ScoreSq; 
   /**
    * writes out the dimensions and labels of the 
    * R- array for old test for mis-specified allele frequencies
@@ -368,8 +369,10 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
 {
   for(int j = 0; j < NumCompLoci; j++ ){
     int NumberOfStates = (*Loci)(j)->GetNumberOfStates();
-    double score[NumberOfStates-1], completeinfo[(NumberOfStates-1)*(NumberOfStates-1)], 
-      observedinfo[(NumberOfStates-1)*(NumberOfStates-1)], scoresq[(NumberOfStates-1)*(NumberOfStates-1)];
+    double* score = new double[NumberOfStates-1];
+    double* completeinfo = new double[(NumberOfStates-1)*(NumberOfStates-1)];
+    double* observedinfo = new double[(NumberOfStates-1)*(NumberOfStates-1)];
+    double* scoresq = new double[(NumberOfStates-1)*(NumberOfStates-1)];
     
     //CompositeLocus *locus = (CompositeLocus*)(*Lociptr)(j);
     for( int k = 0; k < Populations; k++ ){
@@ -398,6 +401,10 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
       //observedinfo.InvertUsingLUDecomposition();
       allelefreqscorestream2 << double2R(chisq)/*double2R((score.Transpose() * observedinfo * score)(0,0))*/ << "," << endl;
     }
+    delete[] score;
+    delete[] completeinfo;
+    delete[] observedinfo;
+    delete[] scoresq;
   }//end comploci loop
   /**
    * writes out the dimensions and labels of the 

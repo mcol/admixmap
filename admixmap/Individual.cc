@@ -270,7 +270,7 @@ const double* Individual::getAdmixtureProps()const
   return Theta;
 }
 
-const Sex Individual::getSex()const 
+Sex Individual::getSex()const 
 {
    return sex;
 }
@@ -446,7 +446,7 @@ double Individual::getLogLikelihoodOnePop(){ //convenient for a single populatio
 
 // unnecessary duplication of code - ? should embed within method for > 1 population
 void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
-				      const double* const* ExpectedY, const double* const lambda, const Chromosome* const*chrm, 
+				      const double* const* ExpectedY, const vector<double> lambda, const Chromosome* const*chrm, 
 				      AlleleFreqs *A )
 {
   // sample missing values of outcome variable
@@ -480,11 +480,12 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
 }
 
 void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
-			 int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
-			 const double* const lambda, int NoCovariates,
-			 DataMatrix *Covariates, const double* const* beta, const double *poptheta, const AdmixOptions* const options,
-			 Chromosome **chrm, const vector<vector<double> > &alpha,  
-			 double rhoalpha, double rhobeta, const vector<double> sigma, 
+				   int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
+				   const vector<double> lambda, int NoCovariates,
+				   DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
+				   const AdmixOptions* const options,
+				   Chromosome **chrm, const vector<vector<double> > &alpha,  
+				   double rhoalpha, double rhobeta, const vector<double> sigma, 
 				   double DInvLink, double dispersion, bool anneal=false)
 /*arguments:
   i = this individuals's number-1
@@ -623,8 +624,8 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 
 void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
 			      int NumOutcomes, const DataType* const OutcomeType, const double* const* ExpectedY, 
-			      const double* const lambda, int NoCovariates,
-			      DataMatrix *Covariates, const double* const* beta, const double* const poptheta,
+			      const vector<double> lambda, int NoCovariates,
+			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
 			      const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
 			      double DInvLink, double dispersion, bool RW, bool anneal=false)
 // samples individual admixture proportions
@@ -801,9 +802,9 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
 // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
 double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, 
 							 int Populations, int NoCovariates, 
-							 const DataMatrix* const Covariates, const double* const* beta, 
+							 const DataMatrix* const Covariates, const vector<const double*> beta, 
 							 const double* const* ExpectedY, const DataMatrix* const Outcome, 
-							 const double* const poptheta, const double* const lambda)
+							 const double* const poptheta, const vector<double> lambda)
 {
   double logprobratio = 0.0, Xbeta = 0.0;
    double avgtheta[Populations];avgtheta[0] = 0.0;
@@ -1035,7 +1036,6 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingMode
   if(Populations ==2) {KK = 1;k1 = 1;}
   
   double theta[2];//paternal and maternal admixture proportions
-  double AProbs[Populations][3];
 
   double Pi[3];//probs of 0,1,2 copies of Pop1 given admixture
   int offset = 0;
@@ -1046,7 +1046,7 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingMode
   for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
     locus = chrm[j]->GetLocus(jj); 
     //retrieve AncestryProbs from HMM
-    chrm[j]->getAncestryProbs( jj, AProbs );
+    std::vector<std::vector<double> > AProbs = chrm[j]->getAncestryProbs( jj );
 
     for( int k = 0; k < KK; k++ ){
       theta[0] = Theta[ k+k1 ];
@@ -1056,8 +1056,8 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingMode
 	theta[1] = theta[0];
       
       //accumulate score, score variance, and info
-      AffectedsScore[locus *KK + k]+= 0.5*( AProbs[k+k1][1] + 2.0*AProbs[k+k1][2] - theta[0] - theta[1] );
-      AffectedsVarScore[locus * KK + k]+= 0.25 *( AProbs[k+k1][1]*(1.0 - AProbs[k+k1][1]) + 4.0*AProbs[k+k1][2]*AProbs[k+k1][0]); 
+      AffectedsScore[locus *KK + k]+= 0.5*( AProbs[1][k+k1] + 2.0*AProbs[2][k+k1] - theta[0] - theta[1] );
+      AffectedsVarScore[locus * KK + k]+= 0.25 *( AProbs[1][k+k1]*(1.0 - AProbs[1][k+k1]) + 4.0*AProbs[2][k+k1]*AProbs[0][k+k1]); 
       AffectedsInfo[locus * KK +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
 
       //probs of 0,1,2 copies of Pop1 given admixture
@@ -1066,9 +1066,9 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingMode
       Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
 
       //compute contribution to likelihood ratio
-      LikRatio1[locus *KK + k] += (AProbs[k+k1][0] + sqrt(r1)*AProbs[k+k1][1] + r1 * AProbs[k+k1][2]) / 
+      LikRatio1[locus *KK + k] += (AProbs[0][k+k1] + sqrt(r1)*AProbs[1][k+k1] + r1 * AProbs[2][k+k1]) / 
 	(Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
-      LikRatio2[locus *KK + k] += (AProbs[k+k1][0] + sqrt(r2)*AProbs[k+k1][1] + r2 * AProbs[k+k1][2]) / 
+      LikRatio2[locus *KK + k] += (AProbs[0][k+k1] + sqrt(r2)*AProbs[1][k+k1] + r2 * AProbs[2][k+k1]) / 
 	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
     }
     
@@ -1076,7 +1076,7 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingMode
   }
 }
 
-void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, double DInvLink, const Chromosome* const*chrm)
+void Individual::UpdateScoreForAncestry(int j, double phi, double YMinusEY, double DInvLink, const Chromosome* const*chrm)
 {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
@@ -1089,7 +1089,6 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   //Note that only the intercept and admixture proportions are used.
   // X is (A, cov)'  
   
-  double AProbs[Populations][3];
   double X[2 * Populations], Xcopy[2*Populations], XX[4*Populations*Populations];
   //Xcopy is an exact copy of X; We need two copies as one will be destroyed
   double xBx[1], BX[Populations];
@@ -1106,11 +1105,11 @@ void Individual::UpdateScoreForAncestry(int j,double phi, double YMinusEY, doubl
   int locus; 
   for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
     locus = chrm[j]->GetLocus(jj);      
-    chrm[j]->getAncestryProbs( jj, AProbs );//conditional locus ancestry probs      
+    std::vector<std::vector<double> >AProbs = chrm[j]->getAncestryProbs( jj );//conditional locus ancestry probs      
     
     for( int k = 0; k < Populations ; k++ ){
-      Xcopy[k] = X[k] = AProbs[k][1] + 2.0 * AProbs[k][2];//Conditional expectation of ancestry
-      VarA[k] = AProbs[k][1]*(1.0 - AProbs[k][1]) + 4.0*AProbs[k][2]*AProbs[k][0];//conditional variances
+      Xcopy[k] = X[k] = AProbs[1][k] + 2.0 * AProbs[2][k];//Conditional expectation of ancestry
+      VarA[k] = AProbs[1][k]*(1.0 - AProbs[1][k]) + 4.0*AProbs[2][k]*AProbs[0][k];//conditional variances
       }
     //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
     Xcopy[2*Populations-1] = 1;

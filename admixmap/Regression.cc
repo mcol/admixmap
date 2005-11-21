@@ -173,7 +173,7 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
   // Sample for regression model parameters beta
   // should make sure that matrix returned by getCovariates contains updated values of indiv admixture
   std::vector<double> Outcome = individuals->getOutcome(RegNumber);
-  double Y[Outcome.size()];
+  double* Y = new double[Outcome.size()];
   for(unsigned i = 0; i < Outcome.size(); ++i)
     Y[i] = Outcome[i];
   
@@ -189,7 +189,7 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
     // calculate (n0 + X'X)^-1
 
     //compute (X'X + n0)^-1
-    double Covariance[NumCovariates*NumCovariates];
+    double* Covariance = new double[NumCovariates*NumCovariates];
 
     //TODO: this block should be hidden in matrix functions
     gsl_matrix_view XX, C;
@@ -200,14 +200,14 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
     matrix_inverse(Covariance, NumCovariates);
 
     // compute betan = temp*(n0*beta0 + X'*Y) to obtain means of full conditional distribution
-    double temp2[NumCovariates];
+    double* temp2 = new double[NumCovariates];
     matrix_product(n0, beta0, temp2, NumCovariates, NumCovariates, 1);
     add_matrix(temp2, XtY, NumCovariates, 1);
     matrix_product(Covariance, temp2, betan, NumCovariates, NumCovariates, 1);
 
     // lambda_n is rate parameter of gamma full conditional distribution for dispersion parameter, given by  
     // lambda1 + 0.5[(Y - X Beta)' Y + (Beta0 - Beta_n)' n0 Beta0]
-    double Xbetan[NumIndividuals];
+    double* Xbetan = new double[NumIndividuals];
     matrix_product(X, betan, Xbetan, NumIndividuals, NumCovariates, 1);//Xbetan = X * betan
     scale_matrix(Xbetan, -1.0, NumIndividuals, 1);
     add_matrix(Xbetan, Y, NumIndividuals, 1);//Xbetan = Y - X* betan
@@ -222,6 +222,9 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
     DrawBeta.SetMean( betan );
     DrawBeta.SetCovariance( Covariance );
     DrawBeta.Draw(beta);
+    delete[] Covariance;
+    delete[] temp2;
+    delete[] Xbetan;
   }
   
   else if( RegType == Logistic ){
@@ -239,7 +242,8 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
   individuals->SetExpectedY(RegNumber,beta);
   //if( individuals->getOutcomeType(RegNumber) )
   //individuals->calculateExpectedY(RegNumber);
-  
+  delete[] Y;  
+
   if(sumbeta){
     SumParameters();
     individuals->UpdateSumResiduals();
@@ -316,7 +320,7 @@ void Regression::SumParameters(){
         SumBeta[j] += beta[j];
   SumLambda += lambda;
 }
-const double* const Regression::getbeta()const{
+const double* Regression::getbeta()const{
   if(beta)//in case beta not allocated (happens if no regression model); may be unnecessary if beta initialised to 0
     return beta;
   else return NULL;
@@ -330,7 +334,7 @@ int Regression::getNumCovariates()const{
 
 void ExpectedOutcome(const double* const beta, const double* const X, double* Y, int n, int dim, int index, double betaj){
   //given an array of regression parameters beta and covariates X, computes expected outcome Y = X * beta
-  double beta1[dim];
+  double* beta1 = new double[dim];
 
   for( int i = 0; i < dim; i++ )
     {
@@ -341,6 +345,7 @@ void ExpectedOutcome(const double* const beta, const double* const X, double* Y,
     }
   //Xbeta = X * beta1;
   matrix_product(X, beta1, Y, n, dim, 1);
+  delete[] beta1;
 }
 
 double Regression::lr( const double beta, const void* const vargs )
@@ -422,11 +427,12 @@ double Regression::getDispersion()const{
 
 double Regression::getLogLikelihood(const IndividualCollection* const IC)const{
   int NumIndividuals = IC->getSize();
-  double dev[NumIndividuals];
+  double* dev = new double[NumIndividuals];
   double devsq[1];
   for(int i = 0; i < NumIndividuals; ++i)
     dev[i] = IC->getOutcome(RegNumber, i) - IC->getExpectedY(i);
   matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);
+  delete[] dev;
   return -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(lambda) + lambda*devsq[0]);
 
 }
@@ -443,13 +449,14 @@ double Regression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, in
 
   if(RegType ==Linear){
     //multivariate Gaussian density
-    double dev[NumIndividuals];
+    double* dev = new double[NumIndividuals];
     double devsq[1];
     for(int i = 0; i < NumIndividuals; ++i){
       Y = IC->getOutcome(RegNumber, i);
       dev[i] = Y - IC->getExpectedY(i);
     }
     matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);//precision has form lambda * I so
+    delete[] dev;
     //quadratic form in density is lambda * dev' * dev
     logL = -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(SumLambda/(double)iterations) + 
 		  (SumLambda/ (double)iterations)*devsq[0]);

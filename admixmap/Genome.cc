@@ -113,7 +113,7 @@ void Genome::loadAlleleStatesAndDistances(const AdmixOptions* const options, con
     if (m.size() == 4)
       ChrmLabels.push_back(m[3]);
     TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData.get( i, 0 ) );//sets number of alleles of first locus
-    SetDistance( i, locifileData.get( index, 1 ) );
+    SetDistance( i, locifileData.get( index, 1 ) );//sets distance between locus i and i-1
     //loop through lines in locusfile for current complocus
     while( index < locifileData.nRows() - 1 && locifileData.get( index + 1, 1 ) == 0 ){
       ++next_line;
@@ -172,7 +172,7 @@ Chromosome** Genome::GetChromosomes( int populations)
     cfinish[cnum] = i;//locus number of last locus on currrent chromosome
   }
   
-  double LengthOfChrm[cnum+1];
+  double* LengthOfChrm = new double[cnum+1];
   NumberOfChromosomes = cnum +1;
   SizesOfChromosomes = new unsigned int[NumberOfChromosomes];//array to store lengths of the chromosomes
   
@@ -228,6 +228,7 @@ Chromosome** Genome::GetChromosomes( int populations)
   
   delete cstart;
   delete cfinish;
+  delete[] LengthOfChrm;
   return C;
 }
 

@@ -39,7 +39,7 @@ public:
 				   const std::string* const PopulationLabels);
   void Output(int iteration, AdmixOptions *, LogWriter *Log)const;
   void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
-  const double* const getbeta() const;
+  const double* getbeta() const;
   double getlambda() const ;
   int getNumCovariates()const;
   double getDispersion()const;

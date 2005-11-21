@@ -27,8 +27,8 @@ public:
   void SetStateArrivalProbs(const double* const f[], const double* const Theta, int Mcol);
   /* samples hidden states */
   void Sample(int *SStates, const double* const Admixture, const double* const f[], bool isdiploid)const;
-  void GetStateProbs( double * probs, int t)const;
-  void Get3WayStateProbs( int j, double AncestryProbs[][3])const;
+  //void GetStateProbs( double * probs, int t)const;
+  std::vector<std::vector<double> > Get3WayStateProbs( int t)const;
 
   double getLogLikelihood()const;
 
@@ -43,7 +43,7 @@ public:
 		      double* oldProbs, double *newProbs); 
 
   void SampleJumpIndicators(const int* const LocusAncestry, const double* const f[], const unsigned int gametes, 
-			    const int startLocus, int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+			    int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const;
 private:
   int K;

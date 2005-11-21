@@ -162,7 +162,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       Log->logmsg(false,"\n");      
       // Form matrices.
       convertMatrix(locusData_, locusMatrix_);
-      locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);
+      locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
       
       ::convertMatrix(outcomeVarData_, outcomeVarMatrix_);
       ::convertMatrix(inputData_,  covariatesMatrix_);
@@ -183,7 +183,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
 
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
-  checkLociNames(options->getgenotypesSexColumn());
+  checkLocusFile(options->getgenotypesSexColumn());
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
     options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator()) );
   if ( strlen( options->getCovariatesFilename() ) != 0 )
@@ -250,17 +250,22 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
     
     if (geneticData_[i].size()-1 != ExpCols) {//check each row of genotypesfile has the right number of fields
       cerr << "Wrong number of entries in line "<<i+1<<" of genotypesfile" << endl;
-      exit(0);
+      exit(1);
     }
     
   }
 }
 
-void InputData::checkLociNames(int sexColumn)const{
+void InputData::checkLocusFile(int sexColumn)const{
   // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
   
-  // Check loci names are unique    
-  for (size_t i = 1; i < locusData_.size(); ++i) {
+  for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
+    //check distances are not negative
+    if(locusMatrix_.get(i,1) < 0.0){
+      cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
+      exit(1);
+    }
+    // Check loci names are unique    
     for (size_t j = i + 1; j < locusData_.size(); ++j) {   
       if (locusData_[i][0] == locusData_[j][0]) {
 	cerr << "Error in locusfile. Two different loci have the same name. "
@@ -272,16 +277,16 @@ void InputData::checkLociNames(int sexColumn)const{
 
   const size_t numLoci = locusData_.size() - 1;//number of simple loci
 
-    // Compare loci names in locus file and genotypes file.
-    for (size_t i = 1; i <= numLoci; ++i) {
-        if (locusData_[i][0] != geneticData_[0][i + sexColumn]) {
-            cout << "Error. Loci names in locus file and genotypes file are not the same." << endl;
-            cout << "Loci names causing an error are: " << locusData_[i][0] << " and " 
-                 << geneticData_[0][i + sexColumn] << endl;
-            //cout << options->getgenotypesSexColumn() << endl;
-            exit(2);
-        }
-    } 
+  // Compare loci names in locus file and genotypes file.
+  for (size_t i = 1; i <= numLoci; ++i) {
+    if (locusData_[i][0] != geneticData_[0][i + sexColumn]) {
+      cout << "Error. Loci names in locus file and genotypes file are not the same." << endl;
+      cout << "Loci names causing an error are: " << locusData_[i][0] << " and " 
+	   << geneticData_[0][i + sexColumn] << endl;
+      //cout << options->getgenotypesSexColumn() << endl;
+      exit(2);
+    }
+  } 
 }
 
 //checks consistency of supplied allelefreqs with locusfile

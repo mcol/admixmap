@@ -530,7 +530,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i)
   // samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
   // and stores result in array Freqs 
   unsigned NumStates = NumberOfStates[i];
-  double temp[NumStates];
+  double* temp = new double[NumStates];
   double *freqs = new double[NumStates];
   
   int c = CorrelatedAlleleFreqs? 0 : 1; //indicates whether correlated allelefreqmodel
@@ -550,6 +550,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i)
     }
   }
   delete[] freqs;  
+  delete[] temp;
 }
 
 /**
@@ -606,7 +607,8 @@ void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
 {
 
   double LogAccProb;
-  double mu1[NumberOfStates[locus]], mu2[NumberOfStates[locus]];// mu1 is current vector of proportion parameters, mu2 is proposal
+  double* mu1 = new double[NumberOfStates[locus]];
+  double* mu2 = new double[NumberOfStates[locus]];// mu1 is current vector of proportion parameters, mu2 is proposal
 
   for( int j = 0; j < Populations; j++ ){
     double Proposal1=0, Proposal2=0, f1=0, f2=0;
@@ -646,6 +648,8 @@ void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
     }
     MuProposal[locus][j].UpdateStepSize(exp(LogAccProb));
   }
+  delete[] mu1;
+  delete[] mu2;
 }
 
 void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
@@ -660,8 +664,8 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
 {
   double lefttruncation = 0.1;//should be smaller
   MuSamplerArgs MuParameters;
-  int counts0[2 * Populations];
-  double counts1[2 * Populations];
+  int* counts0 = new int[2 * Populations];
+  double* counts1 = new double[2 * Populations];
 
   // Construct adaptive rejection sampler for mu.
   for(int i = 0; i < 2; ++i)//loop over the two states/alleles
@@ -688,6 +692,8 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
     // Last (second) prior frequency parameter is determined by sum of mu's = eta.
     PriorAlleleFreqs[locus][ j*2 +1 ] = eta[j] - PriorAlleleFreqs[locus][ j*2 ];
   }
+  delete[] counts0;
+  delete[] counts1;
 }
 
 //sampling of prior allelefreqs in historic or correlated allele freq model
@@ -695,7 +701,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
   if(IsHistoricAlleleFreq){
     for(int k = 0; k < Populations; ++k){
       for(int i = 0; i < NumberOfCompositeLoci; ++i){
-	int counts[2*NumberOfStates[i]];
+	int* counts = new int[2*NumberOfStates[i]];
 	for(int j = 0; j < NumberOfStates[i]; ++j)
 	  {
 	    counts[j*NumberOfStates[i]] = AlleleCounts[i][j*Populations +k];
@@ -706,7 +712,7 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
 
 	//EtaSampler[k].addAlphas(i, PriorAlleleFreqs[i] + (k*NumberOfStates[i]));
 	//EtaSampler[k].addCounts(i, counts);
-
+	delete[] counts;
       }
 
       //sample eta

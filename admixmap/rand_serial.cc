@@ -63,8 +63,8 @@ unsigned int genpoi( double mu )
 std::vector<int> genmultinomial2(int N, const std::vector<double> theta)
 {
   int K = (int)theta.size();
-  unsigned int n[ K ];
-  double p[ K ];
+  unsigned* n = new unsigned[ K ];
+  double* p = new double[ K ];
   std::vector<int> sample( K );
   for(int i = 0; i < K; i++){
       p[i] = theta[i];
@@ -73,6 +73,8 @@ std::vector<int> genmultinomial2(int N, const std::vector<double> theta)
   for(int i = 0; i < K; i++){
     sample[i] = n[i];
   }
+  delete[] n;
+  delete[] p;
   return( sample );
 }
 
@@ -83,12 +85,14 @@ double MultinomialLikelihood( const std::vector<int> r, const std::vector<double
       exit(0);
    }
    unsigned K = (int)r.size();
-   unsigned int n[ K ];
-   double p[ K ];
+   unsigned* n = new unsigned[ K ];
+   double* p = new double[ K ];
    for( unsigned i = 0; i < K; i++ ){
       p[i] = theta[i];
       n[i] = r[i];
    }
+   delete[] n;
+   delete[] p;
    return( gsl_ran_multinomial_pdf( K, p , n ) );
 }
 
@@ -99,7 +103,7 @@ long ignpoi( double mu )
 
 int SampleFromDiscrete( const double probs[] , int numberofelements)
 {
-   double cdf[ numberofelements ];
+   double* cdf = new double[ numberofelements ];
    cdf[0] = probs[0];
    for( int i = 1; i < numberofelements; i++ )
      cdf[i] = (cdf[i-1] + probs[i]); 
@@ -109,6 +113,7 @@ int SampleFromDiscrete( const double probs[] , int numberofelements)
    int k = 0;
    while( u > cdf[k] )
       k++;
+   delete[] cdf;
     return(k);
 }
 

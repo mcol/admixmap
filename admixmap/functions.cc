@@ -20,7 +20,7 @@ double getGammaLogDensity(double alpha, double beta, double x)
 double getDirichletLogDensity(const double* const alpha, const double* const x, size_t K)
 {
   double f, xsum = 0.0, sumalpha = alpha[K-1];
-  double theta[K];
+  vector<double> theta(K);
 
   for(size_t k = 0; k < K-1; ++k){
     theta[k] = x[k];
@@ -41,7 +41,7 @@ double getDirichletLogDensity(const std::vector<double>& a, const double* const 
 {
   size_t K = a.size();
   double f, xsum = 0.0;
-  double theta[K];
+  vector<double> theta(K);
 
   for(size_t k = 0; k < K-1; ++k){
     theta[k] = x[k];
@@ -62,7 +62,7 @@ double getDirichletLogDensity(const std::vector<double>& a, const std::vector<do
 {
   size_t K = a.size();
   double f, xsum = 0.0;
-  double theta[K];
+  vector<double> theta(K);
 
   for(size_t k = 0; k < K-1; ++k){
     theta[k] = x[k];
@@ -84,7 +84,7 @@ double getDirichletLogDensity_Softmax(const std::vector<double>& a, double *x)
 {
   size_t K = a.size();
   double f, xsum = 0.0;
-  double theta[K];
+  vector<double> theta(K);
 
   for(size_t k = 0; k < K-1; ++k){
     theta[k] = x[k];
@@ -458,7 +458,7 @@ void scale_matrix(double *a, const double c, size_t d1, size_t d2){
 double determinant(double *a, size_t d){
   gsl_permutation *permutation = gsl_permutation_alloc(d);
   int signum;
-  double aa[d*d];
+  double* aa = new double[d*d];
   copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
   gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
 
@@ -466,6 +466,7 @@ double determinant(double *a, size_t d){
   double det = gsl_linalg_LU_det(&A.matrix, signum); 
 
   gsl_permutation_free(permutation);
+  delete[] aa;
   return det;
 }
 
@@ -473,7 +474,7 @@ void matrix_inverse(const double* const a, double* inv, size_t d){
 //inverts a matrix using LU decomposition
   gsl_permutation *permutation = gsl_permutation_alloc(d);
   int signum;
-  double aa[d*d];
+  double* aa = new double[d*d];
   copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
   gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
 
@@ -481,6 +482,7 @@ void matrix_inverse(const double* const a, double* inv, size_t d){
   gsl_matrix_view Inv = gsl_matrix_view_array(inv, d, d);
   gsl_linalg_LU_invert (&A.matrix, permutation, &Inv.matrix);
 
+  delete[] aa;
   gsl_permutation_free(permutation);
 }
 //can use this version to overwrite a with its inverse
@@ -488,7 +490,7 @@ void matrix_inverse(double* a, size_t d){
 //inverts a matrix using LU decomposition
   gsl_permutation *permutation = gsl_permutation_alloc(d);
   int signum;
-  double aa[d*d];
+  double* aa = new double[d*d];
   copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
   gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
 
@@ -496,6 +498,7 @@ void matrix_inverse(double* a, size_t d){
   gsl_matrix_view Inv = gsl_matrix_view_array(a, d, d);
   gsl_linalg_LU_invert (&A.matrix, permutation, &Inv.matrix);
 
+  delete[] aa;
   gsl_permutation_free(permutation);
 }
 

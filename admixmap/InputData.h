@@ -127,7 +127,7 @@ private:
 
   void readFile(const char *fname, Matrix_s& data);
   void CheckGeneticData(AdmixOptions *options)const;
-  void checkLociNames(int sexColumn)const;
+  void checkLocusFile(int sexColumn)const;
   unsigned determineNumberOfCompositeLoci()const;
   void CheckAlleleFreqs(AdmixOptions *options);
   RegressionType CheckOutcomeVarFile(int, int);
