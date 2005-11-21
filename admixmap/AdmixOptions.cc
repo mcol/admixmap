@@ -1094,7 +1094,7 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
     Log->logmsg(true,"Gamma prior on sum-intensities with shape parameter: ");
     Log->logmsg(true, Rhoalpha); Log->logmsg(false,"\n");
       Log->logmsg(true, "and rate (1 / location) parameter ");
-      Log->logmsg(true, RhobetaRate / RhobetaShape);
+      Log->logmsg(true, RhobetaShape / RhobetaRate);
       Log->logmsg(true, "\n");
     }
     else {
