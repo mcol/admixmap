@@ -30,9 +30,8 @@ PROC = -tp amd64
 WFLAGS = 
 endif
 ifeq ($(CXX),icpc)#Hamilton flags
-PROJDIR = /ichec/home/users/doducd/share#path to gsl
-LFLAGS = -L$(PROJDIR)/lib
-INCLUDES = -I$(PROJDIR)/include
+LFLAGS = -L/usr/local/lib#gsl libraries
+INCLUDES = -I/usr/local/include#gsl headers
 WFLAGS = -w0#w0 for errors but no warnings, w1 for warnings too, w2 for comments
 PROC = #-mcpu=itanium2 #default option
 endif
