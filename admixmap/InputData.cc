@@ -162,8 +162,6 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
       Log->logmsg(false,"\n");      
       // Form matrices.
       convertMatrix(locusData_, locusMatrix_);
-      locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
-      
       ::convertMatrix(outcomeVarData_, outcomeVarMatrix_);
       ::convertMatrix(inputData_,  covariatesMatrix_);
       ::convertMatrix(alleleFreqData_, alleleFreqMatrix_);
@@ -184,6 +182,7 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
   checkLocusFile(options->getgenotypesSexColumn());
+  locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
     options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator()) );
   if ( strlen( options->getCovariatesFilename() ) != 0 )
@@ -208,9 +207,9 @@ int InputData::getNumberOfSimpleLoci()const {
 }
 //determines number of composite loci from locusfile
 unsigned InputData::determineNumberOfCompositeLoci()const{
-  unsigned NumberOfCompositeLoci = locusMatrix_.nRows();
-    for( unsigned i = 0; i < locusMatrix_.nRows(); i++ )
-     if( locusMatrix_.get( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
+  unsigned NumberOfCompositeLoci = locusMatrix_.nRows()-1;
+    for( unsigned i = 1; i < locusMatrix_.nRows(); i++ )
+     if( locusMatrix_.get( i, 2 ) == 0.0 ) NumberOfCompositeLoci--;
     return NumberOfCompositeLoci;
 }
 
@@ -261,7 +260,7 @@ void InputData::checkLocusFile(int sexColumn)const{
   
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
     //check distances are not negative
-    if(locusMatrix_.get(i,1) < 0.0){
+    if(locusMatrix_.get(i,2) < 0.0){
       cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
       exit(1);
     }
