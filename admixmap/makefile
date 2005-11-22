@@ -30,7 +30,7 @@ PROC = -tp amd64
 WFLAGS = 
 endif
 ifeq ($(CXX),icpc)#Hamilton flags
-PROJDIR = /ichec/home/users/doducd#path to gsl
+PROJDIR = /ichec/home/users/doducd/share#path to gsl
 LFLAGS = -L$(PROJDIR)/lib
 INCLUDES = -I$(PROJDIR)/include
 WFLAGS = -w0#w0 for errors but no warnings, w1 for warnings too, w2 for comments
