@@ -492,7 +492,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
     for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
 
       // Set x-co-ordinates of covariates in model
-      double X[dim_[locus]+K];
+      double* X = new double[dim_[locus]+K];
       fill(X, X+dim_[locus]+K, 0.0);
 
       X[ dim_[locus] ] = 1; 
@@ -541,6 +541,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 	}
       }
       locus++;
+      delete[] X;
     }
   }
 }
@@ -565,7 +566,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
 							   double phi, double DInvLink)
 {
   int K = options->getPopulations();
-  double x[ K + 1 ];
+  double* x = new double[ K + 1 ];
  
   double* info = new double[ (K + 1) * (K + 1 )];
 
@@ -585,6 +586,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
       add_matrix(InfoWithinHaplotype[j][l], info, K+1, K+1);//InfoWithinHaplotype += info
     }
   }
+  delete[] x;
   delete[] info;
 }
 

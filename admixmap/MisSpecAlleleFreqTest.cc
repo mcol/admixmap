@@ -176,9 +176,10 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
       //SumInfoGene[j] += InfoGene[j];
       transform(InfoGene[j], InfoGene[j]+Populations*Populations, SumInfoGene[j], SumInfoGene[j], std::plus<double>());
       //SumScoreGeneSq[j] += ScoreGene[j] * ScoreGene[j].Transpose();
-      double ScoreGeneSq[Populations*Populations];
+      double* ScoreGeneSq = new double[Populations*Populations];
       matrix_product(ScoreGene[j], ScoreGeneSq, Populations, 1);
       transform(ScoreGeneSq, ScoreGeneSq+Populations*Populations, SumScoreGeneSq[j], SumScoreGeneSq[j], std::plus<double>());
+      delete[] ScoreGeneSq;
     }
     free_matrix(phi, Populations);
   }
@@ -284,10 +285,10 @@ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus,
       //SumNewInfo[locus][k] += NewInfo;
       transform(NewInfo, NewInfo+(NumberOfStates-1)*(NumberOfStates-1), SumNewInfo[locus][k], SumNewInfo[locus][k], std::plus<double>());
       //SumNewScoreSq[locus][k] += NewScore * NewScore.Transpose();
-      double NewScoreSq[(NumberOfStates - 1) * (NumberOfStates - 1 )];
+      double* NewScoreSq = new double[(NumberOfStates - 1) * (NumberOfStates - 1 )];
       matrix_product(NewScore, NewScoreSq, NumberOfStates-1, 1);
       transform(NewScoreSq, NewScoreSq+(NumberOfStates-1)*(NumberOfStates-1), SumNewScoreSq[locus][k], SumNewScoreSq[locus][k], std::plus<double>());
-
+      delete[] NewScoreSq;
    }
    delete[] NewScore;
    delete[] NewInfo;

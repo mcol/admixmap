@@ -269,7 +269,6 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
 
     NumberOfUpdates++;
     rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
-    cout<<endl<<rho<<" "<<rhoprop<<" "<<step<<endl;
     
     //get log likelihood at current parameter values
     //    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C);
@@ -287,7 +286,7 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
     
     //compute prior ratio
     LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
-    cout<<LogPriorRatio<<" "<<LogL <<" "<<LogLikelihoodRatio<<endl;
+
     LogAccProb = 0.0;
     if(LogLikelihoodRatio + LogPriorRatio < 0.0) 
       LogAccProb = LogLikelihoodRatio + LogPriorRatio; 

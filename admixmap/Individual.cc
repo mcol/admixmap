@@ -21,6 +21,7 @@
 #include "Individual.h"
 #include "StringConvertor.h"
 #include <algorithm>
+
 #include <sstream>
 
 #define PR(x) cout << #x << " = " << x << endl;
@@ -376,7 +377,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
   }
 
   double LogLikelihood = 0.0;
-  double Probs[Populations*Populations];
+  double* Probs = new double[Populations*Populations];
   int locus = 0;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     if(Populations == 1){
@@ -392,6 +393,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
       LogLikelihood += chrm[j]->getLogLikelihood();
     }
   }
+  delete[] Probs;
   return LogLikelihood;
 }
 double Individual::getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const double* const theta, 
@@ -401,24 +403,24 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, Chromoso
 //(optional)chibindicator = true for computing LogL at MLEs; instructs CompositeLocus to use HapPairProbsMAP
 //instead of HapPairProbs, when allelefreqs are not fixed, in calculating GenotypeProbs.
 {
-   double LogLikelihood = 0.0;
-   double Probs[Populations*Populations];
-   int locus = 0;
-   for( unsigned int j = 0; j < numChromosomes; j++ ){
-     if(Populations == 1){ // likelihood is calculated as product of genotype probs at all loci
+  double LogLikelihood = 0.0;
+  double* Probs = new double[Populations*Populations];
+  int locus = 0;
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    if(Populations == 1){ // likelihood is calculated as product of genotype probs at all loci
        for(unsigned jj = 0; jj < chrm[j]->GetNumberOfCompositeLoci(); ++jj){
 	 (*Loci)(locus)->GetGenotypeProbs(Probs, getPossibleHapPairs(locus), chibindicator);
 	 ++locus;
        }
        LogLikelihood += log( Probs[0] );
-     }
+    }
      else{ // likelihood calculated from HMM
        chrm[j]->SetGenotypeProbs(this, chibindicator); 
        UpdateHMMForwardProbs(j, chrm[j], options, theta, thetaX, rho, rho_X);
        LogLikelihood += chrm[j]->getLogLikelihood();
      }
-   }
-
+  }
+  
 //    double LogLikelihood = 0.0;
 //    if(Populations == 1)LogLikelihood = getLogLikelihoodOnePop(chibindicator);//in case this version called when only one population
 //    else{
@@ -428,7 +430,8 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, Chromoso
 //        LogLikelihood += chrm[j]->getLogLikelihood();
 //      }
 //    }
-    return LogLikelihood;
+   delete[] Probs;
+   return LogLikelihood;
 }
 double Individual::getLogLikelihoodOnePop(){ //convenient for a single population as no arguments required
   double logLikelihood = 0.0;
@@ -669,16 +672,18 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, const D
     if( options->isRandomMatingModel() )G = 2;//random mating model
  
     for( unsigned int g = 0; g < G; g++ ){
-      bool b[Populations];
+      bool* b = new bool[Populations];
       for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
 	b[k] = true; //to skip elements set to zero
       }
       else b[k] = false;
 
-      double a[Populations];
+      double* a = new double[Populations];
       inv_softmax(Populations, Theta+g*Populations, a, b);
+      delete[] b;
 
       transform(a, a+Populations, SumSoftmaxTheta+g*Populations, SumSoftmaxTheta+g*Populations, std::plus<double>());
+      delete[] a;
       //transform(ThetaX, ThetaX+size_admix, ThetaXHat, ThetaXHat, std::plus<double>());
     }
   }
@@ -707,7 +712,7 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
   if( options->isRandomMatingModel() )G = 2;//random mating model
   for( unsigned int g = 0; g < G; g++ ){
     //perform softmax transformation
-    bool b[Populations];
+    bool* b = new bool[Populations];
     int last = -1;//index of last nonzero element of theta 
     for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
       b[k] = true; //to skip elements set to zero
@@ -715,7 +720,7 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
     }
     else b[k] = false;
     
-    double a[Populations];
+    double* a = new double[Populations];
     inv_softmax(Populations, Theta+g*Populations, a, b);
     
     a[Populations-1] = 0.0;
@@ -727,7 +732,8 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
     
     //reverse transformation
     softmax(Populations, ThetaProposal+g*Populations, a, b);
-    
+    delete[] a;
+    delete[] b; 
     //compute prior ratio
     LogPriorRatio += getDirichletLogDensity_Softmax(alpha[0], ThetaProposal+g*Populations) - 
       getDirichletLogDensity_Softmax(alpha[0], Theta+g*Populations);
@@ -807,7 +813,7 @@ double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType R
 							 const double* const poptheta, const vector<double> lambda)
 {
   double logprobratio = 0.0, Xbeta = 0.0;
-   double avgtheta[Populations];avgtheta[0] = 0.0;
+  vector<double> avgtheta(Populations);avgtheta[0] = 0.0;
   if( RandomMatingModel )
     for(int k = 1;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations ])/ 2.0 - poptheta[k];
   else
@@ -861,7 +867,7 @@ void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCova
                                                const double* const poptheta, bool RandomMatingModel, 
 					       DataMatrix *Covariates)
 {
-  double avgtheta[Populations];
+  vector<double> avgtheta(Populations);
   if(RandomMatingModel )//average over gametes
     for(int k = 0; k < Populations; ++k) avgtheta[k] = (Theta[k] + Theta[k + Populations]) / 2.0;    
   
@@ -1091,8 +1097,9 @@ void Individual::UpdateScoreForAncestry(int j, double phi, double YMinusEY, doub
   
   double X[2 * Populations], Xcopy[2*Populations], XX[4*Populations*Populations];
   //Xcopy is an exact copy of X; We need two copies as one will be destroyed
-  double xBx[1], BX[Populations];
-  double VarA[Populations];
+  double xBx[1];
+  double* BX = new double[Populations];
+  double* VarA = new double[Populations];
  
   X[ 2*Populations - 1] = 1;//intercept
   Xcov[Populations-1] = 1;
@@ -1133,6 +1140,8 @@ void Individual::UpdateScoreForAncestry(int j, double phi, double YMinusEY, doub
     }
     ++locus;
   }//end locus loop
+  delete[] BX;
+  delete[] VarA;
 }
 
 void Individual::UpdateB(double DInvLink, double dispersion){

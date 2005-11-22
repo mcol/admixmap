@@ -121,10 +121,11 @@ double MuSampler::muEnergyFunction(const double * const params, const void* cons
   double E = 0.0;
   //params in softmax format , of length H, but may not sum to zero
 
-  double mu[H];
-  double a[H];
+  double* mu = new double[H];
+  double* a = new double[H];
   softmax(H, mu, params);
   inv_softmax(H, mu, a); // normalized parameters; sum to zero
+  delete[] mu;
 
   E -= (double)(H); //logprior
 
@@ -142,6 +143,7 @@ double MuSampler::muEnergyFunction(const double * const params, const void* cons
     }
   }
   E -= logJacobian(a, z, H);
+  delete[] a;
   return E;
 }
 
@@ -165,7 +167,7 @@ void MuSampler::muGradient(const double * const params, const void* const vargs,
     z+= exp(a[h]);
   }
   double alphaH = eta * mu[H-1];
-  double dEdMu[H-1];fill(dEdMu, dEdMu+H-1, 0.0);
+  double* dEdMu = new double[H-1];fill(dEdMu, dEdMu+H-1, 0.0);
 
   //first compute gradient wrt mu
   for(int h = 0; h < H-1; ++h){
@@ -187,6 +189,7 @@ void MuSampler::muGradient(const double * const params, const void* const vargs,
       else g[h] -= dEdMu[i] * exp(a[i]) * mu[h] * mu[i]; 
     }
   }
+  delete[] dEdMu;
 }
 //****** Auxiliary function used in Energy function
 

@@ -147,7 +147,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Chromosome* cons
 
 void HWTest::Output(const Matrix_s LocusData){
   //header line
-  outputfile <<"Locus Score CompleteInfo MissingInfo ObservedInfo \%Info z-score p-value"<<endl;
+  outputfile <<"Locus Score CompleteInfo MissingInfo ObservedInfo PercentInfo z-score p-value"<<endl;
 
  double EU, missing, complete, zscore;
   for(int j = 0; j < NumLoci; j++ ){
