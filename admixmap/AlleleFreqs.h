@@ -40,7 +40,7 @@ public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter *Log);
-  void Update(bool afterBurnIn, bool anneal);
+  void Update(bool afterBurnIn);
 
   //initialize output file for samples of dispersion parameters
   void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter *Log);
@@ -48,7 +48,7 @@ public:
   //outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
   //output samples of dispersion parameters (eta) to dispparamfile
-  void OutputEta(int iteration, AdmixOptions *options, LogWriter *Log);
+  void OutputEta(int iteration, const AdmixOptions *options, LogWriter *Log);
 
   void OutputAlleleFreqs();
   void CloseOutputFile(int iterations, const string* const PopulationLabels);

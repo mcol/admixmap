@@ -482,6 +482,9 @@ double IndividualCollection::getSumLogTheta(int i)const{
 const double* IndividualCollection::getSumLogTheta()const{
   return SumLogTheta;
 }
+const chib* IndividualCollection::getChib()const{
+  return &MargLikelihood;
+}
 // ************** OUTPUT **************
 
 void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chromosome** C, Regression *R, 
@@ -548,7 +551,8 @@ void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations)c
   }
   Log->write( rhohat[0]);Log->write( rhohat[1]);
   Log->write("\n");
-
+}
+void IndividualCollection::OutputChibResults(LogWriter* Log)const{
   Log->logmsg(true, "\nChib values at estimates:");
   Log->logmsg(true, "\nDeviance\t");Log->logmsg(true, -2.0*MargLikelihood.getLogLikelihood());
   Log->logmsg(true, "\nLogLikelihood\t");Log->logmsg(true, MargLikelihood.getLogLikelihood());
@@ -645,4 +649,7 @@ double IndividualCollection::DerivativeInverseLinkFunction(int i)const{
     else if(OutcomeType[0] == Continuous)DInvLink = 1.0;
   }
   return DInvLink;    
+}
+void IndividualCollection::ResetChib(){
+  MargLikelihood.Reset();
 }

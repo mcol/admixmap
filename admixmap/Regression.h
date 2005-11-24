@@ -37,7 +37,8 @@ public:
 			     const std::string *PopulationLabels, LogWriter *Log);  
   static void InitializeOutputFile(const AdmixOptions* const , const IndividualCollection* const individuals, 
 				   const std::string* const PopulationLabels);
-  void Output(int iteration, AdmixOptions *, LogWriter *Log)const;
+  void Output(int iteration, const AdmixOptions *, LogWriter *Log);
+  void OutputParams(int iteration, ostream* out);
   void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
   const double* getbeta() const;
   double getlambda() const ;

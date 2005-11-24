@@ -250,16 +250,28 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
   }
 }//end Update
 
-void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log)const{
+void Regression::OutputParams(int iteration, ostream* out){
+  if( RegType != None ){
+    for( int j = 0; j < NumCovariates; j++ ){
+      out->width(9);
+      (*out) << setprecision(6) << beta[j] << " ";
+    }
+    out->width(9);
+    if( RegType == Linear )
+      (*out) << setprecision(6) << lambda << " ";
+  }
+}
+
+void Regression::Output(int iteration, const AdmixOptions *options, LogWriter *Log){
   //output to logfile
-  if( iteration == 0 )
+  if( iteration == -1 )
     {
       if( RegType != None )
 	{
-	  if(options->getNumberOfOutcomes()==2)Log->write("\nRegression ");Log->write((int)RegNumber);
+	  if(options->getNumberOfOutcomes()==2)Log->write("\nRegression ");Log->write((int)RegNumber);Log->write(": ");
           for( int j = 0; j < NumCovariates; j++ )
 	    {
-	      Log->width(9);
+	      //Log->width(9);
 	      Log->write(beta[j],6);
 	    }
           //Log->width(9);
@@ -272,32 +284,14 @@ void Regression::Output(int iteration, AdmixOptions *options, LogWriter *Log)con
   //output to screen
   if( options->useCOUT() )
     {
-      if( RegType != None ){
-	if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << " ";
-	for( int j = 0; j < NumCovariates; j++ ){
-	  (cout).width(9);
-	  cout << setprecision(6) << beta[j] << " ";
-	}
-	(cout).width(9);
-	if( RegType == Linear )
-	  cout << setprecision(6)
-	       << lambda<<" ";
-
-      }
+      if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << " ";
+      OutputParams(iteration, &cout);
     }
   //Output to paramfile after BurnIn
   if( iteration > options->getBurnIn() ){
-	if( RegType != None ){
-	  for( int j = 0; j < NumCovariates; j++ ){
-	    outputstream.width(9);
-	    outputstream << setprecision(6) << beta[j] << " ";
-	  }
-	  outputstream.width(9);
-     if( RegType == Linear )
-       outputstream << setprecision(6) << lambda << " ";
-	}
-	if(options->getNumberOfOutcomes()< 2 || RegNumber==1)outputstream << endl;
-	//output new line in paramfile when last regression model
+    OutputParams(iteration, &outputstream);
+    if(options->getNumberOfOutcomes()< 2 || RegNumber==1)outputstream << endl;
+    //output new line in paramfile when last regression model
   }
 }
 void Regression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{

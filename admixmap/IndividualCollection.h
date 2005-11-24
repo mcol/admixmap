@@ -69,6 +69,7 @@ public:
 		      double SumRho, unsigned numChromosomes);
 
   void OutputChibEstimates(LogWriter *, int)const;
+  void OutputChibResults(LogWriter*)const;
 
   void OutputErgodicAvg(int samples, bool ML, std::ofstream *avgstream);
   void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);
@@ -105,6 +106,8 @@ public:
   double getLogLikelihood(const AdmixOptions* const options, Chromosome **C, const Regression* R, bool sumdeviance);
   double getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness);
   double DerivativeInverseLinkFunction(int i)const;
+  void ResetChib();
+  const chib* getChib()const;
 private:
   Individual **_child; //array of pointers to Individual
   void getLabels(const Vector_s& data,  string *labels);

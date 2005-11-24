@@ -78,13 +78,14 @@ public:
   
   void Initialise(int Numindividuals, const std::string* const PopulationLabels);  
   
-  void  InitializeOutputFile(const std::string* const);
+  void InitializeOutputFile(const std::string* const);
   
   //Updating every iteration
   void UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C, double LogL);
   void Update(int iteration, const IndividualCollection* const, bool anneal);
   
-  void OutputParams(int iteration); 
+  void OutputParams(int iteration);
+  void OutputParams(int iteration, ostream* out); 
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
   

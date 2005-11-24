@@ -182,14 +182,3 @@ void LogWriter::ProcessingTime()
   logmsg(true, (int)realtime);logmsg(true, "s\n");
 }
 
-void LogWriter::Reset(const int iteration, const int width){
-  if( iteration == 0 )
-    //output params to log on first iteration and every other when coutindicator = 0
-    {
-      LogFileStream << setiosflags( ios::fixed );
-      LogFileStream.width( width );
-      LogFileStream << iteration << " ";
-    }
-
-}
-

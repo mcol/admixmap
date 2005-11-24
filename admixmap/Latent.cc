@@ -354,13 +354,25 @@ void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
   avgstream->width(9);
   *avgstream << setprecision(6) << exp(SumLogRho / samples) << " ";
 }
+void Latent::OutputParams(int iteration, ostream* out){
+  for( int j = 0; j < options->getPopulations(); j++ ){
+    out->width(9);
+    (*out) << setprecision(6) << alpha[0][ j ] << " ";
+  }
+  
+  out->width(9);
+  if( !options->isGlobalRho() )
+    (*out) << setprecision(6) << rhoalpha / rhobeta  << " ";
+  else
+    (*out) << setprecision(6) << rho << " ";
+}
 
 void Latent::OutputParams(int iteration){
-  //output to logfile for first iteration or every iteration if cout = 0
-  if( iteration == 0 )
+  //output initial values to logfile
+  if( iteration == -1 )
     {
       for( int j = 0; j < options->getPopulations(); j++ ){
-	Log->width(9);
+	//Log->width(9);
 	Log->write(alpha[0][j], 6);
       }
       
@@ -372,32 +384,11 @@ void Latent::OutputParams(int iteration){
   //output to screen
   if( options->useCOUT() )
     {
-      for( int j = 0; j < options->getPopulations(); j++ ){
-	(cout).width(9);
-	(cout) << setprecision(6) << alpha[0][ j ] << " ";
-      }
-
-      (cout).width(9);
-      if( !options->isGlobalRho() )
-	(cout) << setprecision(6) << rhobeta << " ";
-      else
-	(cout) << setprecision(6) << rho << " ";
+      OutputParams(iteration, &cout);
     }
   //Output to paramfile after BurnIn
-    //output alpha
   if( iteration > options->getBurnIn() ){
-    for( int j = 0; j < options->getPopulations(); j++ ){
-      outputstream.width(9);
-      outputstream << setprecision(6) << alpha[0][ j ] << " ";
-    }
-
-  //output rho
-    outputstream.width(9);
-    if( !options->isGlobalRho() )
-      (outputstream) << setprecision(6) << rhobeta << " ";
-    else
-      (outputstream) << setprecision(6) << rho << " ";
-    
+    OutputParams(iteration, &outputstream);
     outputstream << endl;
   }
 }
