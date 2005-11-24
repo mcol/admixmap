@@ -32,6 +32,14 @@ chib::chib()
    MaxLogPrior = -9999999;
 }
 
+void chib::Reset(){
+  VecLogPosterior.clear();
+  LogPrior.clear();
+  LogLikelihood = 0;
+  MaxLogPosterior = -9999999;
+  MaxLogPrior = -9999999;
+}
+
 void chib::setLogLikelihood(double x)
 {
    LogLikelihood = x;

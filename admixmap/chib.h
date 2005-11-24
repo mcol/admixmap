@@ -31,6 +31,7 @@ class chib
 {
 public:
   chib();
+  void Reset();
   void setLogLikelihood( double );
   void addLogPrior( double );
   void addLogPosteriorObs( double );
