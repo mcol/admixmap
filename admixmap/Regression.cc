@@ -41,25 +41,25 @@ Regression::~Regression(){
 }
 
 void Regression::OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-				const std::string* const PopulationLabels, LogWriter *Log){
+				const std::string* const PopulationLabels, LogWriter &Log){
   //Open paramfile
   if ( options->getIndAdmixHierIndicator()){ 
     if ( strlen( options->getRegressionOutputFilename() ) ){
       outputstream.open( options->getRegressionOutputFilename(), ios::out );
       if( !outputstream )
 	{
-	  Log->logmsg(true,"ERROR: Couldn't open regparamfile\n");
+	  Log.setDisplayMode(On);
+	  Log << "ERROR: Couldn't open regparamfile\n";
 	  exit( 1 );
 	}
       else{
-      Log->logmsg(true,"Writing regression parameters to ");
-      Log->logmsg(true, options->getRegressionOutputFilename());
-      Log->logmsg(true,"\n");
-      InitializeOutputFile(options, individuals, PopulationLabels);
+	Log.setDisplayMode(IfCOUT);
+	Log << "Writing regression parameters to " << options->getRegressionOutputFilename() << "\n";
+	InitializeOutputFile(options, individuals, PopulationLabels);
       }
     }
     else{
-      Log->logmsg(true,"No regparamfile given\n");
+      Log << "No regparamfile given\n";
     }
   }
 }
@@ -84,7 +84,8 @@ void Regression::InitializeOutputFile(const AdmixOptions* const options, const I
   outputstream << endl;
 }
 
-void Regression::Initialise(unsigned Number, const IndividualCollection* const individuals, LogWriter *Log){
+void Regression::Initialise(unsigned Number, const IndividualCollection* const individuals, LogWriter &Log){
+  Log.setDisplayMode(On);
   //set regression number for this object
   RegNumber = Number;
 
@@ -133,17 +134,15 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
       lambda0 = 0.01;//shape parameter for prior on lambda
       lambda1 = 0.01;//rate parameter for prior on lambda
       
-      Log->logmsg(true,"\nNormal-inverse-gamma prior for linear regression model with gamma shape parameter ");
-      Log->logmsg(true, lambda0);
-      Log->logmsg(true, " and rate parameter "); Log->logmsg(true, lambda1); Log->logmsg(true, "\n");
+      Log << "\nNormal-inverse-gamma prior for linear regression model with gamma shape parameter " << lambda0
+	  << " and rate parameter " << lambda1 << "\n";
       
       DrawBeta.SetDimension( NumCovariates );
     }
 
     // ** Initialise Logistic Regression objects
   else if( RegType == Logistic) {
-    Log->logmsg(true,"\nGaussian priors on logistic regression parameters with precision ");
-    Log->logmsg(true, lambda); Log->logmsg(true, "\n");
+    Log << "\nGaussian priors on logistic regression parameters with precision " << lambda << "\n";
     
     //  ** initialize sampler for logistic regression **
     acceptbeta = 0;
@@ -262,22 +261,24 @@ void Regression::OutputParams(ostream* out){
   }
 }
 
-void Regression::Output(int iteration, const AdmixOptions *options, LogWriter *Log){
+void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &Log){
   //output to logfile
   if( iteration == -1 )
     {
       if( RegType != None )
 	{
-	  if(options->getNumberOfOutcomes()==2)Log->write("\nRegression ");Log->write((int)RegNumber);Log->write(": ");
+	  Log.setDisplayMode(Off);
+	  Log.setPrecision(6);
+	  if(options->getNumberOfOutcomes()==2)Log <<"\nRegression " <<(int)RegNumber << ": ";
           for( int j = 0; j < NumCovariates; j++ )
 	    {
 	      //Log->width(9);
-	      Log->write(beta[j],6);
+	      Log << beta[j];
 	    }
           //Log->width(9);
           if( RegType == Linear )
 	    {
-	      Log->write(lambda,6);
+	      Log << lambda;
 	    }
 	}
     }

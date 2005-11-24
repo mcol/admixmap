@@ -60,7 +60,7 @@ MisSpecAlleleFreqTest::~MisSpecAlleleFreqTest(){
 }
 
 
-void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter *Log )
+void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log )
 {
  if( strlen( options->getAlleleFreqFilename() ) || options->getFixedAlleleFreqs()){
 
@@ -90,17 +90,14 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
        SumScoreGeneSq[i] = new double[ Populations * Populations ];
        fill(SumScoreGeneSq[i], SumScoreGeneSq[i]+Populations*Populations, 0.0);
     }
+     Log.setDisplayMode(On);
      allelefreqscorestream.open( options->getAlleleFreqScoreFilename() );
      if( !allelefreqscorestream ){
-      Log->logmsg(true,"ERROR: Couldn't open allelefreqscorefile\n");
-      Log->logmsg(true,options->getAlleleFreqScoreFilename());
-      Log->logmsg(true,"\n");
+       Log << "ERROR: Couldn't open allelefreqscorefile " << options->getAlleleFreqScoreFilename() << "\n";
       exit( 1 );
      }
     else{
-      Log->logmsg(true,"Writing score tests for mis-specified allele frequencies(1) to ");
-      Log->logmsg(true,options->getAlleleFreqScoreFilename());
-      Log->logmsg(true,"\n");
+      Log << "Writing score tests for mis-specified allele frequencies(1) to " << options->getAlleleFreqScoreFilename() << "\n";
       allelefreqscorestream << "structure(.Data=c(" << endl;
     }
    }
@@ -127,22 +124,18 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
      }
      allelefreqscorestream2.open( options->getAlleleFreqScoreFilename2() );
      if( !allelefreqscorestream2 ){
-       Log->logmsg(true,"ERROR: Couldn't open allelefreqscorefile\n");
-       Log->logmsg(true,options->getAlleleFreqScoreFilename2());
-       Log->logmsg(true,"\n");
+       Log << "ERROR: Couldn't open allelefreqscorefile " << options->getAlleleFreqScoreFilename2() << "\n";
        exit( 1 );
     }
      else{
-       Log->logmsg(true,"Writing score tests for mis-specified allele frequencies(2) to ");
-       Log->logmsg(true,options->getAlleleFreqScoreFilename2());
-       Log->logmsg(true,"\n");
+       Log << "Writing score tests for mis-specified allele frequencies(2) to " << options->getAlleleFreqScoreFilename2() << "\n";
        allelefreqscorestream2 << "structure(.Data=c(" << endl;
      }
    }
  }
  else{
-   Log->logmsg(true, "ERROR: cannot test for mis-specification of allele frequencies unless allelefrequencies are fixed\n");
-   Log->logmsg(true, "This option will be ignored\n");
+   Log << "ERROR: cannot test for mis-specification of allele frequencies unless allelefrequencies are fixed\n"
+       << "This option will be ignored\n";
    //TODO: set indicators in AdmixOptions to false, remove keys from option map.
  }
 }

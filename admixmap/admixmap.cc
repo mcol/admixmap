@@ -26,11 +26,11 @@ using namespace std;
 
 int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-			      LogWriter *Log, std::ofstream *avgstream, const string* const PopulationLabels);
+			      LogWriter &Log, std::ofstream *avgstream, const string* const PopulationLabels);
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, Chromosome **Chrm, LogWriter* Log, const double *LogL, bool anneal);
+		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, const double *LogL, bool anneal);
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      LogWriter* Log);
+		      LogWriter& Log);
 void WriteIterationNumber(const int iteration, const int width, bool verboseOutput);
 
 void PrintCopyrightNotice(){
@@ -80,10 +80,10 @@ int main( int argc , char** argv ){
   smyrand( options.getSeed() );  // Initialise random number seed
 
   InputData data; //read data files and check (except allelefreq files)
-  data.readData(&options, &Log);//also sets 'numberofoutcomes' and 'populations' options
+  data.readData(&options, Log);//also sets 'numberofoutcomes' and 'populations' options
 
   //check user options
-  options.checkOptions(&Log, data.getNumberOfIndividuals());
+  options.checkOptions(Log, data.getNumberOfIndividuals());
 
   //print user options to args.txt; must be done after all options are set
   options.PrintOptions();
@@ -92,42 +92,43 @@ int main( int argc , char** argv ){
   Loci.loadAlleleStatesAndDistances(&options, &data);//reads locusfile and creates CompositeLocus objects
   
   AlleleFreqs A(&Loci);
-  A.Initialise(&options, &data, &Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
+  A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
  
   Chromosome **chrm = 0; //Note: array of pointers to Chromosome
   chrm = Loci.GetChromosomes(options.getPopulations());  //create Chromosome objects
-  Loci.SetSizes(&Log);//prints length of genome, num loci, num chromosomes
+  Loci.SetSizes(Log);//prints length of genome, num loci, num chromosomes
     
   IndividualCollection *IC = new IndividualCollection(&options, &data, Loci, chrm);//NB call after A Initialise
   IC->LoadData(&options, &data);                             //and before L and R Initialise
 
-  Latent L( &options, &Loci, &Log);    
-  L.Initialise(IC->getSize(), data.GetPopLabels());
+  Latent L( &options, &Loci);    
+  L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
 
   Regression R[2];
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-    R[r].Initialise(r, IC, &Log);
-  Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), &Log);  
+    R[r].Initialise(r, IC, Log);
+  Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
 
   if( options.isGlobalRho() )
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
       chrm[j]->InitialiseLociCorr(L.getrho());
     }
-  IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), &Log, data.getMLEMatrix());
+  IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), Log, data.getMLEMatrix());
   //set expected Outcome
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
     R[r].SetExpectedY(IC);
 
   //Write Initial values
   if(options.getIndAdmixHierIndicator()  ){
-    Log.logmsg(false, "InitialParameterValues:\n");
-    OutputParameters(-1, IC, &L, &A, R, &options, &Log);
-    Log.logmsg(false, "\n");
+    Log.setDisplayMode(IfCOUT);
+    Log << "InitialParameterValues:\n";
+    OutputParameters(-1, IC, &L, &A, R, &options, Log);
+    Log << "\n";
   }
 
   //  ******** single individual, one population, fixed allele frequencies  ***************************
   if( IC->getSize() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )
-    IC->getOnePopOneIndLogLikelihood(&Log, data.GetPopLabels());
+    IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
   // **************************************************************************************************
   else
     {
@@ -141,18 +142,18 @@ int main( int argc , char** argv ){
       std::ofstream avgstream; //output to ErgodicAverageFile
       
       if( options.getTestForDispersion() ){
-	DispTest.Initialise(&options,&Log, Loci.GetNumberOfCompositeLoci());    
+	DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
       }
       if( options.getStratificationTest() )
-	StratTest.Initialize( &options, Loci, chrm, IC, &Log);
+	StratTest.Initialize( &options, Loci, chrm, IC, Log);
       if( options.getScoreTestIndicator() )
-	Scoretest.Initialise(&options, IC, &Loci, chrm,data.GetPopLabels(), &Log);
+	Scoretest.Initialise(&options, IC, &Loci, chrm,data.GetPopLabels(), Log);
       if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-	AlleleFreqTest.Initialise(&options, &Loci, &Log );  
+	AlleleFreqTest.Initialise(&options, &Loci, Log );  
       if( options.getHWTestIndicator() )
-	HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), &Log);
+	HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
 
-      InitializeErgodicAvgFile(&options,IC, &Log,&avgstream,data.GetPopLabels());
+      InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
 
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
@@ -194,7 +195,7 @@ int main( int argc , char** argv ){
 	    WriteIterationNumber(iteration, (int)( samples+1 ), options.useCOUT());
 	  }
 
-	  UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, &Log, &LogL, anneal);
+	  UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, &LogL, anneal);
 
 	  //compute loglikelihood and write to file
 	  LogL = IC->getLogLikelihood(&options, chrm, R, (!anneal && iteration > options.getBurnIn()) );
@@ -213,7 +214,7 @@ int main( int argc , char** argv ){
 	  if(!anneal){
 	    // output every 'getSampleEvery()' iterations
 	    if(!(iteration % options.getSampleEvery()) )
-	      OutputParameters(iteration, IC, &L, &A, R, &options, &Log);
+	      OutputParameters(iteration, IC, &L, &A, R, &options, Log);
 
 	    // ** set merged haplotypes for allelic association score test 
 	    if( iteration == options.getBurnIn() && options.getTestForAllelicAssociation() ){
@@ -274,7 +275,7 @@ int main( int argc , char** argv ){
 	      WriteIterationNumber(iteration-options.getBurnIn(), (int)(log10((double) samples+1.0 )), options.useCOUT());
 	      cout<<"\r"<<flush;
 	    }
-	    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, &Log, &LogL, false);
+	    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, &LogL, false);
 	  }
 	  chibLogPosteriorWithout = IC->getChib()->getLogPosterior();
 	}
@@ -297,26 +298,26 @@ int main( int argc , char** argv ){
 
       // *************************** OUTPUT AT END ***********************************************************
       if( options.getMLIndicator()){
-	  IC->OutputChibEstimates(&Log, options.getPopulations());
+	  IC->OutputChibEstimates(Log, options.getPopulations());
+	  Log.setDisplayMode(On);
 	if(IC->getSize()==1)
 	  //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
-	  IC->OutputChibResults(&Log);
+	  IC->OutputChibResults(Log);
 	else{
-	  Log.logmsg(true, "\nChib values at estimates:");
-	  Log.logmsg(true, "\nLogPosterior(ExcludingTestIndividual)\t");Log.logmsg(true, chibLogPosteriorWithout);
-	  Log.logmsg(true, "\nLogPosterior(IncludingTestIndividual)\t");Log.logmsg(true, chibLogPosteriorWith);
-	  Log.logmsg(true, "\nLogLikelihood\t\t");Log.logmsg(true, chibLogLikelihood);
-	  Log.logmsg(true, "\nLogMarginalLikelihood\t");
-	  Log.logmsg(true, chibLogLikelihood + chibLogPosteriorWithout - chibLogPosteriorWith);
-	  Log.logmsg(true, "\n\n");
+	  Log<< "\nChib values at estimates:"
+	     << "\nLogPosterior(ExcludingTestIndividual)\t" << chibLogPosteriorWithout
+	     << "\nLogPosterior(IncludingTestIndividual)\t" << chibLogPosteriorWith
+	     << "\nLogLikelihood\t\t" << chibLogLikelihood
+	     << "\nLogMarginalLikelihood\t"
+	     << chibLogLikelihood + chibLogPosteriorWithout - chibLogPosteriorWith << "\n\n" ;
 	}
       }
-      IC->OutputDeviance(&options, chrm, R, &Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
+      IC->OutputDeviance(&options, chrm, R, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
 
       if(options.getAnnealIndicator()){
-	Log.logmsg(true, "Log Marginal Likelihood from simulated annealing: ");
-	Log.logmsg(true, marg_L / (double)(3*options.getNumberOfAnnealedRuns()));
-	//Log.logmsg(true, "\nwith standard error of ");Log.logmsg(true, );Log.logmsg(true, "\n");
+	Log<< "Log Marginal Likelihood from simulated annealing: "
+	   <<  marg_L / (double)(3*options.getNumberOfAnnealedRuns());
+	//<< "\nwith standard error of " << "\n";
       }
 
       //Residuals
@@ -327,7 +328,7 @@ int main( int argc , char** argv ){
 	A.OutputFST();
       }
       //stratification test
-      if( options.getStratificationTest() ) StratTest.Output(&Log);
+      if( options.getStratificationTest() ) StratTest.Output(Log);
       //dispersion test
       if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetPopLabels());
       //tests for mis-specified allele frequencies
@@ -357,58 +358,59 @@ int main( int argc , char** argv ){
    
   // ******************* acceptance rates - output to screen and log ***************************
   if( options.getIndAdmixHierIndicator() ){
+    Log.setDisplayMode(On);
 #if POPADMIXSAMPLER == 2 
     if(options.getPopulations() > 1){
-      Log.logmsg(true,"Expected acceptance rate in admixture dispersion parameter sampler: ");
-      Log.logmsg(true, L.getEtaSamplerAcceptanceRate());
-      Log.logmsg(true, "\nwith final step size of ");
-      Log.logmsg(true, L.getEtaSamplerStepsize());Log.logmsg(true, "\n");
+      Log << "Expected acceptance rate in admixture dispersion parameter sampler: "
+	  << L.getEtaSamplerAcceptanceRate()
+	  << "\nwith final step size of "
+	  << L.getEtaSamplerStepsize() << "\n";
       //     if(options.getPopulations() > 2){
-      //       Log.logmsg(true,"Expected acceptance rate in admixture proportion parameter sampler: ");
-      //       Log.logmsg(true, L.getMuSamplerAcceptanceRate());
-      //       Log.logmsg(true, "\nwith final step size of ");
-      //       Log.logmsg(true, L.getMuSamplerStepsize());Log.logmsg(true, "\n");
+      //       Log << "Expected acceptance rate in admixture proportion parameter sampler: "
+      //           << L.getMuSamplerAcceptanceRate()
+      //           << "\nwith final step size of "
+      //           << L.getMuSamplerStepsize() << "\n"
       //       }
     }
 #elif POPADMIXSAMPLER == 3
     if(options.getPopulations() > 1){
-      Log.logmsg(true,"Expected acceptance rate in admixture parameter Hamiltonian sampler: ");
-      Log.logmsg(true, L.getAlphaSamplerAcceptanceRate());
-      Log.logmsg(true, "\nwith final step size of ");
-      Log.logmsg(true, L.getAlphaSamplerStepsize());Log.logmsg(true, "\n");
+      Log << "Expected acceptance rate in admixture parameter Hamiltonian sampler: "
+	  << L.getAlphaSamplerAcceptanceRate()
+	  << "\nwith final step size of "
+	  << L.getAlphaSamplerStepsize() << "\n";
     }
 #endif
     
     if( options.isGlobalRho() && options.getPopulations() > 1 ){
-      Log.logmsg(true, "Expected acceptance rate in global sumintensities sampler: ");
-      Log.logmsg(true, L.getRhoSamplerAccRate());
-      Log.logmsg(true, "\nwith final step size of ");
-      Log.logmsg(true, L.getRhoSamplerStepsize());
-      Log.logmsg(true, "\n");
+      Log << "Expected acceptance rate in global sumintensities sampler: "
+	  << L.getRhoSamplerAccRate()
+	  << "\nwith final step size of "
+	  << L.getRhoSamplerStepsize()
+	  << "\n";
     }
     if(options.getCorrelatedAlleleFreqs()){
-      Log.logmsg(true, "Expected acceptance rates in sampler for allele frequency prior parameters: \n");
+      Log<< "Expected acceptance rates in sampler for allele frequency proportion parameters: \n";
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
 	if(Loci(i)->GetNumberOfStates()>2)
-	  Log.logmsg(true, A.getAlphaSamplerAcceptanceRate(i));Log.logmsg(true, " ");
+	  Log << A.getAlphaSamplerAcceptanceRate(i) << " ";
       }
-      Log.logmsg(true, A.getEtaRWSamplerAcceptanceRate(0));
-      Log.logmsg(true, "\nwith final step sizes of \n");
+      Log<< "Expected acceptance rates in sampler for allele frequency dispersion parameter: \n";
+      Log << A.getEtaRWSamplerAcceptanceRate(0)
+	  << "\nwith final step sizes of \n";
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
 	if(Loci(i)->GetNumberOfStates()>2)
-	  Log.logmsg(true, A.getAlphaSamplerStepsize(i));Log.logmsg(true, " ");
+	  Log << A.getAlphaSamplerStepsize(i) << " " ;
       }
-      Log.logmsg(true, A.getEtaRWSamplerStepsize(0));
-      Log.logmsg(true, "\n");
+      Log <<  A.getEtaRWSamplerStepsize(0) << "\n" ;
     }
      
 #if ETASAMPLER ==1
     if( strlen( options.getHistoricalAlleleFreqFilename() )){
-      Log.logmsg(true, "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ");
-      for(int k = 0; k < options.getPopulations(); ++k){Log.logmsg(true, A.getEtaRWSamplerAcceptanceRate(k));Log.logmsg(true, " ");}
-      Log.logmsg(true, "\nwith final step sizes of ");
-      for(int k = 0; k < options.getPopulations(); ++k){Log.logmsg(true, A.getEtaRWSamplerStepsize(k));Log.logmsg(true, " ");}
-      Log.logmsg(true, "\n");
+      Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
+      for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaRWSamplerAcceptanceRate(k)<< " " ;}
+      Log << "\nwith final step sizes of ";
+      for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaRWSamplerStepsize(k) << " ";}
+      Log << "\n";
     }
 #endif
   }
@@ -452,19 +454,19 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
 // for compatibility with parallelization, should rearrange output so that each object (L, R, A) writes one file 
 // containing draws and ergodic averages for the parameters that it updates
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-			      LogWriter *Log, std::ofstream *avgstream, const std::string* const PopulationLabels){
+			      LogWriter &Log, std::ofstream *avgstream, const std::string* const PopulationLabels){
+  Log.setDisplayMode(On);
   //Open ErgodicAverageFile  
   if ( strlen( options->getErgodicAverageFilename() ) )
     {
       avgstream->open( options->getErgodicAverageFilename(), ios::out );
       if( !*avgstream ){
-	Log->logmsg(true,"ERROR: Couldn't open Ergodic Average file\n");
+	Log << "ERROR: Couldn't open Ergodic Average file\n";
 	//exit( 1 );
       }
       else{
-	Log->logmsg(true,"Writing ergodic averages of parameters to ");
-	Log->logmsg(true,options->getErgodicAverageFilename());
-	Log->logmsg(true,"\n\n");
+	Log << "Writing ergodic averages of parameters to "
+	    << options->getErgodicAverageFilename() << "\n\n";
       }
       
       // Header line of ergodicaveragefile
@@ -513,12 +515,12 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
     }
   else
     {
-      Log->logmsg(true,"No ergodicaveragefile given\n");
+      Log << "No ergodicaveragefile given\n";
     }
 }
 
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, Chromosome **Chrm, LogWriter* Log, const double *LogL, bool anneal){
+		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, const double *LogL, bool anneal){
   A->ResetAlleleCounts();
   
   // ** update global sumintensities
@@ -539,7 +541,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     //values of likelihood are invalid
   }
   //update population admixture Dirichlet parameters
-  L->Update(iteration, IC, anneal);
+  L->Update(iteration, IC, Log, anneal);
   
   // ** update regression parameters (if regression model)
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
@@ -547,11 +549,11 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
 }
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      LogWriter* Log){
+		      LogWriter& Log){
   if(options->getIndAdmixHierIndicator()  ){
     //Only output population-level parameters when there is a hierarchical model on indadmixture
     // ** pop admixture, sumintensities
-    if(options->getPopulations() > 1) L->OutputParams(iteration);
+    if(options->getPopulations() > 1) L->OutputParams(iteration,Log);
     //** dispersion parameter (if dispersion model)
 	A->OutputEta(iteration, options, Log);
     // ** regression parameters
@@ -559,7 +561,7 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
       R[r].Output(iteration, options, Log);
       
     //** new line in logfile
-	if( iteration == 0 ) Log->write("\n");
+	if( iteration == 0 ) {Log.setDisplayMode(Off);Log << "\n";}
   }
   if( options->useCOUT() ) cout << endl;
   if( iteration > options->getBurnIn() ){

@@ -34,7 +34,7 @@ DispersionTest::DispersionTest(){
   options = 0;
 }
 
-void DispersionTest::Initialise(const AdmixOptions* const op, LogWriter *Log, int NumLoci){
+void DispersionTest::Initialise(const AdmixOptions* const op, LogWriter &Log, int NumLoci){
   options = op;
   NumberOfCompositeLoci = NumLoci;
   NumberOfPopulations = options->getPopulations();
@@ -42,12 +42,12 @@ void DispersionTest::Initialise(const AdmixOptions* const op, LogWriter *Log, in
   divergentallelefreqstest = alloc2D_i(NumberOfCompositeLoci + 1, NumberOfPopulations );
   
   if( options->getTestForDispersion() ){
-    Log->logmsg(true, "Writing dispersion test results to ");
-    Log->logmsg(true,options->getDispersionTestFilename());
-    Log->logmsg(true,"\n");
+    Log.setDisplayMode(IfCOUT);
+    Log << "Writing dispersion test results to " << options->getDispersionTestFilename() << "\n";
     dispersionoutputstream.open( options->getDispersionTestFilename(), ios::out );
     if( !dispersionoutputstream ){
-      Log->logmsg(true,"ERROR: Couldn't open dispersiontestfile\n");
+    Log.setDisplayMode(On);
+    Log << "ERROR: Couldn't open dispersiontestfile\n";
    exit( 1 );
     }
   }

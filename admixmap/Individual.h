@@ -111,7 +111,7 @@ public:
 	    const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, double globalrho,
 	    double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
 	    vector<double> &rhohat, vector<double> &rhohatX,
-	    LogWriter* Log, chib *MargLikelihood, AlleleFreqs *A);
+	    LogWriter& Log, chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(const AdmixOptions* const options);
  

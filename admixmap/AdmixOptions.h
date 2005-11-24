@@ -41,7 +41,7 @@ public:
   ~AdmixOptions();
   
   void SetOptions(int, char**);
-  int checkOptions(LogWriter *Log, int NumberOfIndividuals);
+  int checkOptions(LogWriter &Log, int NumberOfIndividuals);
   void PrintOptions();
 
   long getBurnIn() const;
@@ -241,7 +241,7 @@ private:
   
   void Initialise();  
   void SetOutputNames();
-  void setInitAlpha(LogWriter *Log);
+  void setInitAlpha(LogWriter &Log);
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
 
   // UNIMPLIMENTED: to avoid use

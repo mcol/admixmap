@@ -24,6 +24,7 @@
 using namespace::std;
 
 LogWriter::LogWriter(){
+  toscreen = On;
 }
 
 LogWriter::LogWriter(const char *LogFilename, const bool useCout){
@@ -33,82 +34,59 @@ LogWriter::LogWriter(const char *LogFilename, const bool useCout){
     exit(1);
   }
   useCOUTOption = useCout;
+  toscreen = On;
 }
 
 LogWriter::~LogWriter(){
   if(LogFileStream.is_open())LogFileStream.close();
 }
 
-void LogWriter::logmsg (const bool display, const string message)
-{
+void LogWriter::setDisplayMode(DisplayMode d){
+  toscreen = d;
+}
+
+// ** Overloaded stream insertion operators, write to log and screen, unless DisplayMode switched off
+LogWriter& LogWriter::operator<<(const int message){
   LogFileStream << message;
-  if(useCOUTOption || display){
+  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
     cout << message;
   }
+  return *this;
 }
-
-void LogWriter::logmsg (const bool display, const char * message)
-{
+LogWriter& LogWriter::operator<<(const unsigned message){
   LogFileStream << message;
-  if(useCOUTOption || display){
+  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
     cout << message;
   }
+  return *this;
 }
-
-void LogWriter::logmsg (const bool display, const int number)
-{
-  LogFileStream << number;
-  if(useCOUTOption  || display){
-    cout << number;
+LogWriter& LogWriter::operator<<(const long message){
+  LogFileStream << message;
+  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+    cout << message;
   }
+  return *this;
 }
-
-void LogWriter::logmsg (const bool display, const unsigned number)
-{
-  LogFileStream << number;
-  if(useCOUTOption  || display){
-    cout << number;
+LogWriter& LogWriter::operator<<(const double message){
+  LogFileStream << message;
+  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+    cout << message;
   }
+  return *this;
 }
-
-void LogWriter::logmsg (const bool display, const long number)
-{
-  LogFileStream << number;
-  if(useCOUTOption || display ){
-    cout << number;
+LogWriter& LogWriter::operator<<(const string message){
+  LogFileStream << message;
+  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+    cout << message;
   }
+  return *this;
 }
-
-void LogWriter::logmsg (const bool display, const double number)
-{
-  LogFileStream << number;
-  if(useCOUTOption  || display){
-    cout << number;
+LogWriter& LogWriter::operator<<(const char* message){
+  LogFileStream << message;
+  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+    cout << message;
   }
-}
-
-void LogWriter::write(const char* message){
-  LogFileStream<<message<<" ";
-}
-void LogWriter::write(const string message){
-  LogFileStream<<message<<" ";
-}
-void LogWriter::write(const int number){
-  LogFileStream<<number<<" ";
-}
-void LogWriter::write(const long number){
-  LogFileStream<<number<<" ";
-}
-void LogWriter::write(const double number){
-  LogFileStream<<number<<"\t";
-}
-void LogWriter::write(const double number, const unsigned prec){
-  LogFileStream<<setprecision(prec)<<number<<" ";
-  LogFileStream<<setprecision(6);//restore default
-}
-void LogWriter::write(const double* const array, const size_t dim){
-  if(array)//to avoid seg faults with unallocated arrays
-    for(size_t i = 0; i < dim;++i)LogFileStream<<array[i]<<" ";
+  return *this;
 }
 
 void LogWriter::width(const unsigned w){
@@ -124,24 +102,13 @@ void LogWriter::StartMessage(){
   StartTime = time(0);
   tm timer = *localtime( &StartTime );
 
+  toscreen = On;
   LogFileStream << "-----------------------------------------------" << endl;
   LogFileStream << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
   LogFileStream << "-----------------------------------------------" << endl;
-  logmsg(true,"Program started at ");
-  logmsg(true,timer.tm_hour);
-  logmsg(true,":");
-  logmsg(true,timer.tm_min < 10 ? "0" : "" );
-  logmsg(true,timer.tm_min);
-  logmsg(true,".");
-  logmsg(true,timer.tm_sec < 10 ? "0" : "" );
-  logmsg(true,timer.tm_sec);
-  logmsg(true," ");
-  logmsg(true,timer.tm_mday);
-  logmsg(true,"/");
-  logmsg(true,timer.tm_mon+1);
-  logmsg(true,"/");
-  logmsg(true,1900+timer.tm_year);
-  logmsg(true,"\n\n");
+  *this << "Program started at "
+	<< timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")  << timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "") 
+	<< timer.tm_sec << " " << timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n\n";
 }
 
 void LogWriter::ProcessingTime()
@@ -150,35 +117,24 @@ void LogWriter::ProcessingTime()
   tm timer;
   timer = *localtime( &EndTime );
 
-  logmsg(true,"\nProgram finished at ");
-  logmsg(true,timer.tm_hour);
-  logmsg(true,":");
-  logmsg(true,timer.tm_min < 10 ? "0" : "");
-  logmsg(true,timer.tm_min);
-  logmsg(true,".");
-  logmsg(true,timer.tm_sec < 10 ? "0" : "" );
-  logmsg(true,timer.tm_sec);
-  logmsg(true," ");
-  logmsg(true,timer.tm_mday);
-  logmsg(true,"/");
-  logmsg(true,timer.tm_mon+1);
-  logmsg(true,"/");
-  logmsg(true,1900+timer.tm_year);
-  logmsg(true,"\n");
+  toscreen = On;
+  *this << "\nProgram finished at " << timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")
+	<< timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "")  << timer.tm_sec << " "
+	<< timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
 
   double realtime = difftime(EndTime, StartTime);
-  logmsg(true,"Elapsed time = ");
+  *this << "Elapsed time = ";
   if(realtime > 3600.0){
     int hours = (int)(realtime/3600);
-    logmsg(true, hours);logmsg(true,"h, ");
+    *this << hours << "h, ";
     realtime -= (double)(hours*3600);
   }
   //if(realtime > 60.0){
   int mins = (int)(realtime/60);
-  logmsg(true, mins);logmsg(true,"m, ");
+  *this <<  mins << "m, ";
   realtime -= (double)(mins*60);
   //}
   
-  logmsg(true, (int)realtime);logmsg(true, "s\n");
+  *this << (int)realtime << "s\n";
 }
 

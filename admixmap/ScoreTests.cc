@@ -99,12 +99,12 @@ ScoreTests::~ScoreTests(){
 
 void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv,const Genome* const Loci, 
 			    const Chromosome* const* c, const std::string *PLabels,
-			    LogWriter *log){
+			    LogWriter &Log){
   options = op;
   individuals = indiv;
   chrm = c;
   Lociptr = Loci;
-  Logptr = log;
+  Log.setDisplayMode(IfCOUT);
 
   int K = options->getPopulations();
   int L = Lociptr->GetNumberOfCompositeLoci();
@@ -117,12 +117,11 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     if ( strlen( options->getAssocScoreFilename() ) ){
       assocscorestream.open( options->getAssocScoreFilename(), ios::out );
       if( !assocscorestream ){
-	Logptr->logmsg(true,"ERROR: Couldn't open admixturescorefile\n");
+	Log.setDisplayMode(On);
+	Log << "ERROR: Couldn't open admixturescorefile\n";
 	exit( 1 );}
       else {
-	Logptr->logmsg(true,"Writing tests for admixture association to: ");    
-	Logptr->logmsg(true,options->getAssocScoreFilename());
-	Logptr->logmsg(true,"\n");
+	Log << "Writing tests for admixture association to: " << options->getAssocScoreFilename() << "\n";
 	assocscorestream << setiosflags( ios::fixed );
 
 	int NumOutcomeVars = indiv->getNumberOfOutcomeVars();
@@ -139,7 +138,8 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
       }
     }
     else{
-      Logptr->logmsg(true,"No admixturescorefile given\n");
+      Log.setDisplayMode(On);
+      Log << "No admixturescorefile given\n";
       exit(1);}
   }
 
@@ -149,15 +149,11 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
   if( options->getTestForAffectedsOnly() ){
     affectedsOnlyScoreStream = new ofstream(options->getAffectedsOnlyScoreFilename());
     if( !affectedsOnlyScoreStream ){
-      Logptr->logmsg(true,"ERROR: Couldn't open affectedsonlyscorefile");
-      Logptr->logmsg(true,options->getAffectedsOnlyScoreFilename());
-      Logptr->logmsg(true,"\n");
+      Log << "ERROR: Couldn't open affectedsonlyscorefile" << options->getAffectedsOnlyScoreFilename() << "\n";
       exit( 1 );//remove?
     }
     else{
-      Logptr->logmsg(true,"Writing affected only tests for association to ");
-      Logptr->logmsg(true,options->getAffectedsOnlyScoreFilename());
-      Logptr->logmsg(true,"\n");
+      Log << "Writing affected only tests for association to " << options->getAffectedsOnlyScoreFilename() << "\n";
       *affectedsOnlyScoreStream << "structure(.Data=c(" << endl;
 	
       //KK is the number of populations for which to perform test. For 2way admixture, we only want 2nd population.
@@ -181,13 +177,11 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
   if( options->getTestForLinkageWithAncestry() ){
     ancestryAssociationScoreStream = new ofstream(options->getAncestryAssociationScoreFilename());
     if( !ancestryAssociationScoreStream ){
-      Logptr->logmsg(true,"ERROR: Couldn't open ancestry association scorefile\n");
+      Log << "ERROR: Couldn't open ancestry association scorefile\n";
       exit( 1 );
     }
     else{
-      Logptr->logmsg(true,"Writing tests for locus linkage to ");
-      Logptr->logmsg(true,options->getAncestryAssociationScoreFilename());
-      Logptr->logmsg(true,"\n");
+      Log << "Writing tests for locus linkage to " << options->getAncestryAssociationScoreFilename() << "\n";
       *ancestryAssociationScoreStream << "structure(.Data=c(" << endl;
     }
 	
@@ -209,13 +203,11 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
   if( options->getTestForAllelicAssociation() ){
     genescorestream.open( options->getAllelicAssociationScoreFilename(), ios::out );
     if( !genescorestream ){
-      Logptr->logmsg(true,"ERROR: Couldn't open locusscorefile\n");
+      Log << "ERROR: Couldn't open locusscorefile\n";
       exit( 1 );
     }
     else{
-      Logptr->logmsg(false,"Test for allelic association written to ");
-      Logptr->logmsg(false,options->getAllelicAssociationScoreFilename());
-      Logptr->logmsg(false,"\n");
+      Log << "Test for allelic association written to " << options->getAllelicAssociationScoreFilename() << "\n";
       genescorestream << "structure(.Data=c(" << endl;
     }
     
@@ -289,20 +281,18 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
       SNPsAssociationScoreStream = new ofstream( options->getTestsForSNPsInHaplotypeOutputFilename(), ios::out );
       if( !SNPsAssociationScoreStream ){
-	Logptr->logmsg(true,"ERROR: Couldn't open haplotypeassociationscorefile\n");
+	Log.setDisplayMode(On);
+	Log << "ERROR: Couldn't open haplotypeassociationscorefile\n";
 	exit( 1 );
       }
       else{
-	Logptr->logmsg(true,"Tests for haplotype associations written to\n");
-	Logptr->logmsg(true,options->getTestsForSNPsInHaplotypeOutputFilename());
-	Logptr->logmsg(true,"\n");
+	Log << "Tests for haplotype associations written to\n" << options->getTestsForSNPsInHaplotypeOutputFilename() << "\n";
 	*SNPsAssociationScoreStream << "structure(.Data=c(" << endl;
       }
     }
     else {
       op->setTestForSNPsInHaplotype(false);
-      Logptr->logmsg(true, "ERROR: Cannot test for haplotype associations if all loci are simple\n");
-      Logptr->logmsg(true, "This option will be ignored\n");
+      Log << "ERROR: Cannot test for haplotype associations if all loci are simple\n" << "This option will be ignored\n";
     }
   }
 

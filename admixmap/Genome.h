@@ -76,7 +76,7 @@ public:
 
   Chromosome **GetChromosomes(int);
 
-  void SetSizes(LogWriter *Log);
+  void SetSizes(LogWriter &Log);
  
   int GetNumberOfStates()const;
   int GetNumberOfStates(int locus)const;

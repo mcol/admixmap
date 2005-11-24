@@ -30,14 +30,14 @@ class Regression{
 public:
   Regression();
    ~Regression();
-  void Initialise(unsigned RegNumber, const IndividualCollection* const, LogWriter *);
+  void Initialise(unsigned RegNumber, const IndividualCollection* const, LogWriter &);
   void SetExpectedY(IndividualCollection* IC)const;
   void Update(bool sumbeta, IndividualCollection* individuals);
   static void OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-			     const std::string *PopulationLabels, LogWriter *Log);  
+			     const std::string *PopulationLabels, LogWriter &Log);  
   static void InitializeOutputFile(const AdmixOptions* const , const IndividualCollection* const individuals, 
 				   const std::string* const PopulationLabels);
-  void Output(int iteration, const AdmixOptions *, LogWriter *Log);
+  void Output(int iteration, const AdmixOptions *, LogWriter &Log);
   void OutputParams(ostream* out);
   void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
   const double* getbeta() const;

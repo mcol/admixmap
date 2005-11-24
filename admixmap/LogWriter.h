@@ -27,6 +27,18 @@
 #include <iostream>
 #include <iomanip>
 
+enum DisplayMode {Off, IfCOUT, On};
+//set DisplayMode to Off to output only to logfile and not screen
+//                   IfCOUT        to logfile and if cout=1 to screen
+//                   On            to logfile and to screen
+//EXAMPLES:
+//(1) to write to logfile only (logging messages):
+//setDisplayMode(Off); Log<<message;
+//(2) to write to log and screen (important messages):
+//setDisplayMode(On); Log<<message;
+// (3) to write to log and let cout determine whether to write to screen (unimportant information)
+//setDisplayMode(IfCOUT); Log<<message;
+
 class LogWriter
 {
 public:
@@ -34,30 +46,14 @@ public:
   LogWriter(const char *LogFilename, const bool useCout);
   ~LogWriter();
 
-  void Reset(const int iteration, const int);
+  void setDisplayMode(DisplayMode);
 
-  //logmsg functions write to logfile
-  //also write to screen unless cout = 0 and first arg is false
-  void logmsg(const bool , const std::string message);
-
-  void logmsg(const bool , const char * message);
-
-  void logmsg(const bool , const int number);
-
-  void logmsg(const bool , const unsigned number);
-
-  void logmsg(const bool , const long number);
-
-  void logmsg(const bool, const double number);
-
-  //write functions write only to log with a space at end
-  void write(const char*);
-  void write (const std::string message);
-  void write(const int);
-  void write(const long);
-  void write(const double);
-  void write(const double number, const unsigned prec);
-  void write(const double* const array, const size_t dim);
+  LogWriter& operator<<(const int);
+  LogWriter& operator<<(const unsigned);
+  LogWriter& operator<<(const long);
+  LogWriter& operator<<(const double);
+  LogWriter& operator<<(const std::string);
+  LogWriter& operator<<(const char*);
 
   void width(const unsigned w);//calls width function for LogFileStream
   void setPrecision(int);
@@ -69,6 +65,7 @@ private:
   std::ofstream LogFileStream;
   bool useCOUTOption;
   long StartTime;
+  DisplayMode toscreen;
 };
 
 #endif /* !defined LATENT_H */

@@ -14,7 +14,7 @@ StratificationTest::StratificationTest()
 }
 
 void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci, const Chromosome* const* Chr, 
-				     const IndividualCollection* const IC, LogWriter *Log )
+				     const IndividualCollection* const IC, LogWriter &Log )
 {
   if(options->getStratificationTest() ){
     float DistanceFromLast = 0;
@@ -70,16 +70,16 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
       }
     }
     
-    
+    Log.setDisplayMode(On);
     if( NumberOfTestLoci < 2 ){
-      Log->logmsg(true,"Too few unlinked loci to run stratification test\n");
+      Log << "Too few unlinked loci to run stratification test\n";
       options->setStratificationTest(false);
     }
     else{
-      Log->logmsg(true, NumberOfTestLoci);
-      Log->logmsg(true, " loci used in stratification test.\n");
+      Log << NumberOfTestLoci << " loci used in stratification test.\n";
+      Log.setDisplayMode(Off);
       for(int i = 0; i < NumberOfTestLoci; i++){
-	Log->write(Loci(TestLoci[i])->GetLabel(0));Log->write("\n");
+	Log << Loci(TestLoci[i])->GetLabel(0) << "\n";
       }
       ModelIndicator = options->isRandomMatingModel();
       
@@ -87,7 +87,8 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
     }
   }
   else{
-    Log->logmsg(true,"No test for residual population stratification.\n");
+    Log.setDisplayMode(On);
+    Log << "No test for residual population stratification.\n";
   }
 }
 
@@ -229,25 +230,21 @@ vector<unsigned short> StratificationTest::SampleHeterozygotePhase( const double
   return genotype;
 }
 
-void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter *Log){
-
+void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter &Log){
+  Log.setDisplayMode(On);
   outputstream.open(OutputFilename, ios::out );
   if( !outputstream ){
-    Log->logmsg(false,"ERROR: Couldn't open stratificationtestfile");
-    Log->logmsg(false,OutputFilename);
-    Log->logmsg(false,"\n");
+    Log << "ERROR: Couldn't open stratificationtestfile" << OutputFilename << "\n";
     exit( 1 );
   }
-  Log->logmsg(true,"Writing results of test for residual population stratification to ");
-  Log->logmsg(true, OutputFilename);
-  Log->logmsg(true,"\n");
+  Log << "Writing results of test for residual population stratification to "
+      << OutputFilename << "\n";
   outputstream << "T_obs" << "\t" << "T_rep\n";
 }
 
-void StratificationTest::Output(LogWriter *Log){
-  Log->logmsg(true, "\nStratification test: posterior predictive check probability "); 
-  Log->logmsg(true, (float)T/count);
-  Log->logmsg(true,"\n\n");
+void StratificationTest::Output(LogWriter &Log){
+  Log.setDisplayMode(On);
+  Log << "\nStratification test: posterior predictive check probability " << (float)T/count << "\n\n";
 }
 
 //this function should really be in CompositeLocus or AlleleFreqs or IndividualCollection

@@ -62,7 +62,7 @@ void getLabels(const Vector_s& data, string *labels)
   }
 }
 
-void InputData::readFile(const char *fname, Matrix_s& data)
+void InputData::readFile(const char *fname, Matrix_s& data, LogWriter &Log)
 {
     if (0 == fname || 0 == strlen(fname)) return;
 
@@ -74,9 +74,7 @@ void InputData::readFile(const char *fname, Matrix_s& data)
         throw runtime_error(msg.c_str());
     }
     else {
-      Log->logmsg(false,"Loading ");
-      Log->logmsg(false,fname);
-      Log->logmsg(false,".\n");
+      Log << "Loading " << fname << ".\n";
     }
 
     data.clear();
@@ -142,24 +140,24 @@ InputData::~InputData()
   delete[] PopulationLabels;
 }
 
-void InputData::readData(AdmixOptions *options, LogWriter *log)
+void InputData::readData(AdmixOptions *options, LogWriter &Log)
 {
-  Log = log;
+  Log.setDisplayMode(IfCOUT);
   try
     {
       // Read all input files.
-      readFile(options->getLocusFilename(), locusData_);   //locusfile
-      readFile(options->getGenotypesFilename(), geneticData_); //genotypes file
-      readFile(options->getCovariatesFilename(), inputData_);         //covariates file
-      readFile(options->getOutcomeVarFilename(), outcomeVarData_);       //outcomevar file
-      readFile(options->getAlleleFreqFilename(), alleleFreqData_);
-      readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_);            
-      readFile(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_);
-      readFile(options->getEtaPriorFilename(), etaPriorData_);
-      readFile(options->getMLEFilename(), MLEData_);
-      readFile(options->getReportedAncestryFilename(), reportedAncestryData_);
+      readFile(options->getLocusFilename(), locusData_, Log);   //locusfile
+      readFile(options->getGenotypesFilename(), geneticData_, Log); //genotypes file
+      readFile(options->getCovariatesFilename(), inputData_, Log);         //covariates file
+      readFile(options->getOutcomeVarFilename(), outcomeVarData_, Log);       //outcomevar file
+      readFile(options->getAlleleFreqFilename(), alleleFreqData_, Log);
+      readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, Log);            
+      readFile(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_, Log);
+      readFile(options->getEtaPriorFilename(), etaPriorData_, Log);
+      readFile(options->getMLEFilename(), MLEData_, Log);
+      readFile(options->getReportedAncestryFilename(), reportedAncestryData_, Log);
 
-      Log->logmsg(false,"\n");      
+      Log << "\n";      
       // Form matrices.
       convertMatrix(locusData_, locusMatrix_);
       ::convertMatrix(outcomeVarData_, outcomeVarMatrix_);
@@ -179,20 +177,21 @@ void InputData::readData(AdmixOptions *options, LogWriter *log)
   NumCompositeLoci = determineNumberOfCompositeLoci();
   NumIndividuals = getNumberOfIndividuals();
 
+  Log.setDisplayMode(On);
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
   checkLocusFile(options->getgenotypesSexColumn());
   locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
-    options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator()) );
+    options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator(), Log));
   if ( strlen( options->getCovariatesFilename() ) != 0 )
-    CheckCovariatesFile();//detects regression model
+    CheckCovariatesFile(Log);//detects regression model
   if ( strlen( options->getReportedAncestryFilename() ) != 0 )
-    CheckRepAncestryFile(options->getPopulations());
-  CheckAlleleFreqs(options);
+    CheckRepAncestryFile(options->getPopulations(), Log);
+  CheckAlleleFreqs(options, Log);
   
   if(NumIndividuals > 1){
-    Log->logmsg(false, NumIndividuals);Log->logmsg(false, " individuals\n");
+    Log << NumIndividuals << " individuals\n";
   }
 }
 
@@ -290,7 +289,7 @@ void InputData::checkLocusFile(int sexColumn)const{
 
 //checks consistency of supplied allelefreqs with locusfile
 //and determines number of populations and population labels
-void InputData::CheckAlleleFreqs(AdmixOptions *options){
+void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
   string freqtype = "";
   bool infile = false;//indicates whether either of the three allelefreq files are specified
   int nrows=0, expectednrows=0;
@@ -340,23 +339,15 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options){
   }
   if(infile){
     if(nrows != expectednrows){
-      Log->logmsg(true,"Incorrect number of rows in ");
-      Log->logmsg(true, freqtype);
-      Log->logmsg(true, "allelefreqfile.\n");
-      Log->logmsg(true,"Expecting ");
-      Log->logmsg(true,expectednrows);
-      Log->logmsg(true," rows, but there are ");
-      Log->logmsg(true,nrows);
-      Log->logmsg(true," rows.\n");
+      Log << "Incorrect number of rows in " << freqtype << "allelefreqfile.\n" 
+	  << "Expecting " << expectednrows << " rows, but there are " << nrows << " rows.\n";
       exit(1);
     }
     options->setPopulations(Populations);
   }
   else{//'populations' option
     if(Populations < 1){
-      Log->logmsg(true, "ERROR: populations = ");
-      Log->logmsg(true, options->getPopulations());
-      Log->logmsg(true, "\n");
+      Log << "ERROR: populations = " << options->getPopulations() << "\n";
       exit(1);
     }
     PopulationLabels = new string[ Populations ];
@@ -369,23 +360,18 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options){
     }
 //     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 //       if(Loci->GetNumberOfStates(i) < 2){
-// 	Log->logmsg(true, "ERROR: The number of alleles at a locus is ");
-// 	Log->logmsg(true, Loci->GetNumberOfStates(i));
-// 	Log->logmsg(true, "\n");
+// 	Log << "ERROR: The number of alleles at a locus is " << Loci->GetNumberOfStates(i) << "\n";
 // 	exit(1);
 //       }
 //     }
   }
 }
 
-RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
+RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol, LogWriter& Log){
   //check outcomevarfile and genotypes file have the same number of cols
   if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
-    Log->logmsg(true,"ERROR: Genotypes file has ");
-    Log->logmsg(true,NumIndividuals);
-    Log->logmsg(true," observations and Outcomevar file has ");
-    Log->logmsg(true,outcomeVarMatrix_.nRows() - 1);
-    Log->logmsg(true," observations.\n");
+    Log << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
+	<< outcomeVarMatrix_.nRows() - 1 << " observations.\n";
     exit(1);
   }
   //check the number of outcomes specified is not more than the number of cols in outcomevarfile
@@ -393,8 +379,7 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
   if(NumOutcomes > -1){//options 'numberofregressions' used
     if((int)outcomeVarMatrix_.nCols() - Firstcol < NumOutcomes){
       numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;//adjusts if too large
-      Log->logmsg(true, "ERROR: 'outcomes' is too large, setting to ");
-      Log->logmsg(true, numoutcomes);
+      Log << "ERROR: 'outcomes' is too large, setting to " << numoutcomes;
     }
   }
   else numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;
@@ -421,61 +406,44 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol){
       
       //need to check for allmissing
       //     if(i == NumIndividuals){
-      //       Log->logmsg(true, "ERROR: all outcomes missing\n");
+      //       Log << "ERROR: all outcomes missing\n";
       //       exit(1);
       //     }
       
-      Log->logmsg(true,"Regressing on ");    
+      Log << "Regressing on ";    
       if( OutcomeType[j] == Binary ){
-	Log->logmsg(true,"Binary variable: ");
+	Log << "Binary variable: ";
 	if(numoutcomes==1)RegType = Logistic;
       }
       else if(OutcomeType[j] == Continuous ){
-	Log->logmsg(true,"Continuous variable: ");
+	Log << "Continuous variable: ";
 	if(numoutcomes==1)RegType = Linear;
       }
-      Log->logmsg(true,outcomeVarData_[0][j+Firstcol]);
-      Log->logmsg(true,".\n");
+      Log << outcomeVarData_[0][j+Firstcol];
+      Log << ".\n";
       OutcomeLabels.push_back(outcomeVarData_[0][j+Firstcol]);
     }
-    Log->logmsg(true, "\n");
+    Log << "\n";
   }
   return RegType;
 }
 
-void InputData::CheckCovariatesFile()const{
+void InputData::CheckCovariatesFile(LogWriter &Log)const{
   if( NumIndividuals != (int)covariatesMatrix_.nRows() - 1 ){
-    Log->logmsg(true,"ERROR: Genotypes file has ");
-    Log->logmsg(true,NumIndividuals);
-    Log->logmsg(true," observations and Covariates file has ");
-    Log->logmsg(true,covariatesMatrix_.nRows() - 1);
-    Log->logmsg(true," observations.\n");
+    Log << "ERROR: Genotypes file has " << NumIndividuals << " observations and Covariates file has "
+	<< covariatesMatrix_.nRows() - 1 << " observations.\n";
     exit(1);
   }
 }
 
-void InputData::CheckRepAncestryFile(int populations)const{
+void InputData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
   if( (int)reportedAncestryMatrix_.nRows() != 2 * NumIndividuals ){
-    Log->logmsg(false,"ERROR: ");
-    Log->logmsg(false,"ReportedAncestry file");
-    Log->logmsg(false," has ");
-    Log->logmsg(false,reportedAncestryMatrix_.nRows());
-    Log->logmsg(false," rows\n");
-    Log->logmsg(false,"Genotypesfile");
-    Log->logmsg(false," has ");
-    Log->logmsg(false,NumIndividuals);
-    Log->logmsg(false," rows\n");
+    Log << "ERROR: " << "ReportedAncestry file has " << reportedAncestryMatrix_.nRows() << " rows\n"
+	<<"Genotypesfile has " << NumIndividuals << " rows\n";
     exit(1);}
   if( (int)reportedAncestryMatrix_.nCols() != populations ){
-    Log->logmsg(false,"ERROR: ");
-    Log->logmsg(false,"ReportedAncestry file");
-    Log->logmsg(false," has ");
-    Log->logmsg(false,reportedAncestryMatrix_.nCols());
-    Log->logmsg(false," cols\n");
-    Log->logmsg(false, "AlleleFreq file");
-    Log->logmsg(false," has ");
-    Log->logmsg(false,populations);
-    Log->logmsg(false," cols\n");
+    Log << "ERROR: " << "ReportedAncestry file has " << reportedAncestryMatrix_.nCols() << " cols\n"
+	<< "AlleleFreq file has "<< populations << " cols\n";
     exit(1);
   }
 }
@@ -524,16 +492,10 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
 }
 
 void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const{
-  Log->logmsg(false, "Error in genotypes file:\n");
-  Log->logmsg(false, "Individual ");
-  Log->logmsg(false, ind);
-  Log->logmsg(false, " at locus ");
-  Log->logmsg(false, label);Log->logmsg(false, locus);
-  Log->logmsg(false, " has genotype ");
-  Log->logmsg(false, g0);Log->logmsg(false, ", ");
-  Log->logmsg(false, g1);Log->logmsg(false, " \n");
-  Log->logmsg(false, "Number of allelic states at locus = ");
-  Log->logmsg(false, numalleles);Log->logmsg(false, "\n");
+  cerr << "Error in genotypes file:\n"
+       << "Individual " << ind << " at locus " << label << locus
+       << " has genotype " << g0 << ", " << g1 << " \n"
+       << "Number of allelic states at locus = " << numalleles << "\n";
   if(ind == NumIndividuals)
     exit(1);
 }

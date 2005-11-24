@@ -29,7 +29,7 @@ using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-Latent::Latent( AdmixOptions* op, const Genome* const loci, LogWriter *l)
+Latent::Latent( AdmixOptions* op, const Genome* const loci)
 {
   options = 0;
   rho = 0.0;
@@ -38,7 +38,6 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci, LogWriter *l)
   SumLogRho = 0.0;
   options = op;
   Loci = loci;
-  Log = l;
   poptheta = 0;
 #if POPADMIXSAMPLER == 2
   mu = 0;
@@ -50,7 +49,8 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci, LogWriter *l)
 #endif
 }
 
-void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels){
+void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter &Log){
+  Log.setDisplayMode(On);
   // ** Initialise population admixture distribution Dirichlet parameters alpha **
   int K = options->getPopulations();
   //ergodic average of population admixture, which is used to centre 
@@ -148,18 +148,16 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	outputstream.open( options->getParameterFilename(), ios::out );
 	if( !outputstream )
 	  {
-	    Log->logmsg(true,"ERROR: Couldn't open paramfile\n");
+	    Log << "ERROR: Couldn't open paramfile\n";
 	    exit( 1 );
 	  }
 	else{
-	  Log->logmsg(true,"Writing population-level parameters to ");
-	  Log->logmsg(true,options->getParameterFilename());
-	  Log->logmsg(true,"\n");
+	  Log << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
 	  InitializeOutputFile(PopulationLabels);
 	}
       }
       else{
-	Log->logmsg(true,"No paramfile given\n");
+	Log << "No paramfile given\n";
       }
     }
   }//end if Populations > 1
@@ -181,7 +179,7 @@ Latent::~Latent()
 #endif
 }
 
-void Latent::Update(int iteration, const IndividualCollection* const individuals, bool anneal=false)
+void Latent::Update(int iteration, const IndividualCollection* const individuals, LogWriter &Log, bool anneal=false)
  {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
@@ -242,9 +240,10 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
    }
    
    if( iteration == options->getBurnIn() && options->getNumberOfOutcomes() > 0 ){
-     Log->write("Individual admixture centred in regression model around: ");
-     Log->write( poptheta, options->getPopulations());
-     Log->write("\n");
+     Log.setDisplayMode(Off);
+     Log << "Individual admixture centred in regression model around: ";
+     for(int i = 0; i < options->getPopulations(); ++i)Log << poptheta[i] << "\t";
+     Log << "\n";
      
      fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
    }
@@ -367,19 +366,21 @@ void Latent::OutputParams(ostream* out){
     (*out) << setprecision(6) << rho << " ";
 }
 
-void Latent::OutputParams(int iteration){
+void Latent::OutputParams(int iteration, LogWriter &Log){
   //output initial values to logfile
   if( iteration == -1 )
     {
+      Log.setDisplayMode(Off);
+      Log.setPrecision(6);
       for( int j = 0; j < options->getPopulations(); j++ ){
 	//Log->width(9);
-	Log->write(alpha[0][j], 6);
+	Log << alpha[0][j];
       }
       
       if( !options->isGlobalRho() )
-	Log->write(rhoalpha / rhobeta, 4);
+	Log << rhoalpha / rhobeta;
       else
-	Log->write(rho, 4);
+	Log << rho;
     }
   //output to screen
   if( options->useCOUT() )

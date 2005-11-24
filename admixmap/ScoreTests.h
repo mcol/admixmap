@@ -32,7 +32,7 @@ public:
   ScoreTests();
 
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
-		  const Chromosome* const*, const std::string *, LogWriter *);
+		  const Chromosome* const*, const std::string *, LogWriter &);
 
   void InitialiseAssocScoreFile(const std::string *);
 
@@ -89,7 +89,6 @@ private:
   const Genome* Lociptr;//Pointer to Loci member of Latent
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
 
-  LogWriter *Logptr;
 //OUTPUT
   
   void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,

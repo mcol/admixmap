@@ -84,16 +84,15 @@ IndividualCollection::~IndividualCollection()
 // ************** INITIALISATION AND LOADING OF DATA **************
 
 void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
-				      double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix){
+				      double rhoalpha, double rhobeta, LogWriter &Log, const DataMatrix &MLEMatrix){
+  Log.setDisplayMode(On);
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
-    Log->logmsg(true,"Writing individual-level parameters to ");
-    Log->logmsg(true,options->getIndAdmixtureFilename());
-    Log->logmsg(true,"\n");
+    Log << "Writing individual-level parameters to " << options->getIndAdmixtureFilename() <<"\n";
     indadmixoutput = new IndAdmixOutputter(options, Loci, PopulationLabels);
   }
   else {
-    Log->logmsg(true,"No indadmixturefile given\n");
+    Log << "No indadmixturefile given\n";
   }
   //Set locusfortest if specified
  if( options->getLocusForTestIndicator() )
@@ -350,7 +349,7 @@ void IndividualCollection::UpdateSumResiduals(){
 void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
 				  const vector<vector<double> > &alpha, double globalrho,
-				  double rhoalpha, double rhobeta, LogWriter *Log, bool anneal=false){
+				  double rhoalpha, double rhobeta, LogWriter &Log, bool anneal=false){
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
@@ -383,8 +382,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     }
     
     else{//single population 
-      _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda,
-				     chrm, A);
+      _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, chrm, A);
     }   
 
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
@@ -488,7 +486,7 @@ const chib* IndividualCollection::getChib()const{
 // ************** OUTPUT **************
 
 void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chromosome** C, Regression *R, 
-					  LogWriter *Log, double SumLogRho, unsigned numChromosomes){
+					  LogWriter &Log, double SumLogRho, unsigned numChromosomes){
   //SumRho = ergodic sum of global sumintensities
 
   int iterations = options->getTotalSamples()-options->getBurnIn();
@@ -496,9 +494,10 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
   E = SumDeviance / (double) iterations;//ergodic average of deviance
   V = SumDevianceSq / (double)iterations - E*E;//ergodic variance of deviance 
 
-  Log->logmsg(true, "\nMeanDeviance(D_bar)\t"); Log->logmsg(true, E);Log->logmsg(true,"\n");
-  Log->logmsg(true, "VarDeviance(V)\t");  Log->logmsg(true, V);Log->logmsg(true,"\n");
-  Log->logmsg(true, "PritchardStat(D_bar+0.25V)\t");  Log->logmsg(true, E + 0.25 *V);Log->logmsg(true, "\n");
+  Log.setDisplayMode(On);
+  Log << "\nMeanDeviance(D_bar)\t" << E << "\n"
+      << "VarDeviance(V)\t" << V << "\n"
+      << "PritchardStat(D_bar+0.25V)\t" << E + 0.25 *V << "\n";
 
   //update chromosomes using globalrho, for globalrho model
   if(options->isGlobalRho())
@@ -515,20 +514,20 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
     Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options, C);
   }
 
-  Log->logmsg(true, "DevianceAtPosteriorMean(IndAdmixture)");Log->logmsg(true, -2.0*Lhat);Log->logmsg(true, "\n");
+  Log << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
   for(int c = 0; c < options->getNumberOfOutcomes(); ++c){
     double RegressionLogL = R[c].getLogLikelihoodAtPosteriorMeans(this, iterations);
     Lhat += RegressionLogL;
-    Log->logmsg(true, "DevianceAtPosteriorMean(Regression ");Log->logmsg(true, c);Log->logmsg(true, ")");
-    Log->logmsg(true, -2.0*RegressionLogL);Log->logmsg(true, "\n");
+    Log << "DevianceAtPosteriorMean(Regression " << c << ")"
+	<< -2.0*RegressionLogL << "\n";
   }
 
   double pD = E + 2.0*Lhat;
   double DIC = E + pD;
 
-  Log->logmsg(true, "DevianceAtPosteriorMean(D_hat)\t");  Log->logmsg(true, -2.0*Lhat);Log->logmsg(true, "\n");
-  Log->logmsg(true, "EffectiveNumParameters(pD)\t");  Log->logmsg(true, pD);Log->logmsg(true, "\n");
-  Log->logmsg(true, "DevianceInformationCriterion\t");   Log->logmsg(true, DIC);Log->logmsg(true, "\n\n"); 
+  Log << "DevianceAtPosteriorMean(D_hat)\t" << -2.0*Lhat << "\n"
+      << "EffectiveNumParameters(pD)\t" << pD << "\n"
+      << "DevianceInformationCriterion\t" << DIC << "\n\n"; 
 }
 
 void IndividualCollection::OutputIndAdmixture()
@@ -539,27 +538,28 @@ void IndividualCollection::OutputIndAdmixture()
   }
 }
 
-void IndividualCollection::OutputChibEstimates(LogWriter *Log, int Populations)const{
+void IndividualCollection::OutputChibEstimates(LogWriter &Log, int Populations)const{
   //Used only if marglikelihood = 1
-  Log->write("EstimatesUsedForChibAlgorithm\t");
+  Log.setDisplayMode(Off);
+  Log << "EstimatesUsedForChibAlgorithm\t";
 
   for(int k = 0; k < Populations; ++k){
-    Log->write(thetahat[k]);
+    Log << thetahat[k] << "\t";
   }
   for(int k = 0; k < Populations; ++k){
-    Log->write(thetahat[Populations +k]);
+    Log << thetahat[Populations +k] << "\t";
   }
-  Log->write( rhohat[0]);Log->write( rhohat[1]);
-  Log->write("\n");
+  Log << rhohat[0] <<"\t" << rhohat[1] << "\n";
 }
-void IndividualCollection::OutputChibResults(LogWriter* Log)const{
-  Log->logmsg(true, "\nChib values at estimates:");
-  Log->logmsg(true, "\nDeviance\t");Log->logmsg(true, -2.0*MargLikelihood.getLogLikelihood());
-  Log->logmsg(true, "\nLogLikelihood\t");Log->logmsg(true, MargLikelihood.getLogLikelihood());
-  Log->logmsg(true, "\nLogPrior\t");Log->logmsg(true, MargLikelihood.getLogPrior());
-  Log->logmsg(true, "\nLogPosterior\t");Log->logmsg(true, MargLikelihood.getLogPosterior());
-  Log->logmsg(true, "\n\nLogMarginalLikelihood\t");Log->logmsg(true, MargLikelihood.getLogMarginalLikelihood());
-  Log->logmsg(true, "\n\n");
+void IndividualCollection::OutputChibResults(LogWriter& Log)const{
+  Log.setDisplayMode(On);
+  Log << "\nChib values at estimates:"
+      << "\nDeviance\t" << -2.0*MargLikelihood.getLogLikelihood()
+      << "\nLogLikelihood\t" << MargLikelihood.getLogLikelihood()
+      << "\nLogPrior\t" << MargLikelihood.getLogPrior()
+      << "\nLogPosterior\t" << MargLikelihood.getLogPosterior()
+      << "\n\nLogMarginalLikelihood\t" << MargLikelihood.getLogMarginalLikelihood()
+      << "\n\n";
 }
 
 //for single individual analysis
@@ -595,13 +595,11 @@ void IndividualCollection::OutputResiduals(const char* ResidualFilename, const V
   }
 }
 
-void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter *Log, const string* const PopulationLabels)
+void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const string* const PopulationLabels)
 {
-   Log->logmsg(true,"Log-likelihood for unadmixed ");
-   Log->logmsg(true, (*PopulationLabels)[0]);
-   Log->logmsg(true, ": ");
-   Log->logmsg(true, _child[0]->getLogLikelihoodOnePop());
-   Log->logmsg(true,"\n");
+  Log.setDisplayMode(On);
+  Log << "Log-likelihood for unadmixed "  << (*PopulationLabels)[0] << ": "
+      << _child[0]->getLogLikelihoodOnePop() << "\n";
 
 }
 double IndividualCollection::getLogLikelihood(const AdmixOptions* const options, Chromosome **C, const Regression* R, 

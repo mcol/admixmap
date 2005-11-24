@@ -35,7 +35,7 @@ class HWTest{
 public:
   HWTest();
 
-  void Initialise(const AdmixOptions* const options, int nloci, LogWriter *Log);
+  void Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log);
 
   void Output(const Matrix_s locusdata);
 

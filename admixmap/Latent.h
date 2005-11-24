@@ -72,19 +72,19 @@ class IndividualCollection;
 class Latent
 {
 public:
-  Latent( AdmixOptions*, const Genome* const, LogWriter *);
+  Latent( AdmixOptions*, const Genome* const);
   
   ~Latent();
   
-  void Initialise(int Numindividuals, const std::string* const PopulationLabels);  
+  void Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter& Log);  
   
   void InitializeOutputFile(const std::string* const);
   
   //Updating every iteration
   void UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C, double LogL);
-  void Update(int iteration, const IndividualCollection* const, bool anneal);
+  void Update(int iteration, const IndividualCollection* const, LogWriter &Log,  bool anneal);
   
-  void OutputParams(int iteration);
+  void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream* out); 
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
@@ -164,7 +164,6 @@ private:
 
   AdmixOptions *options;
   const Genome* Loci; 
-  LogWriter *Log; 
 
 // these methods are 'private static'
   // i.e. private helper methods that cannot

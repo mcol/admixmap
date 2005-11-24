@@ -48,16 +48,16 @@ public:
 					   const Chromosome* const* chrm);
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
-				      double rhoalpha, double rhobeta, LogWriter *Log, const DataMatrix &MLEMatrix);
+				      double rhoalpha, double rhobeta, LogWriter &Log, const DataMatrix &MLEMatrix);
 
   void LoadData(const AdmixOptions* const options, const InputData* const);
   
-  void getOnePopOneIndLogLikelihood(LogWriter *Log, const std::string* const PopulationLabels);
+  void getOnePopOneIndLogLikelihood(LogWriter &Log, const std::string* const PopulationLabels);
 
   void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
 	      const std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
-	      LogWriter *Log, bool anneal);
+	      LogWriter &Log, bool anneal);
 
   void ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
 				   const AdmixOptions* const options, Chromosome **chrm, 
@@ -65,11 +65,11 @@ public:
   
   void OutputIndAdmixture();
 
-  void OutputDeviance(const AdmixOptions* const options, Chromosome** C, Regression *R, LogWriter *Log, 
+  void OutputDeviance(const AdmixOptions* const options, Chromosome** C, Regression *R, LogWriter &Log, 
 		      double SumRho, unsigned numChromosomes);
 
-  void OutputChibEstimates(LogWriter *, int)const;
-  void OutputChibResults(LogWriter*)const;
+  void OutputChibEstimates(LogWriter &, int)const;
+  void OutputChibResults(LogWriter&)const;
 
   void OutputErgodicAvg(int samples, bool ML, std::ofstream *avgstream);
   void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);

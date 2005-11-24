@@ -76,8 +76,9 @@ AlleleFreqs::~AlleleFreqs(){
 
 // ************** Initialisation and loading of data  *******************
 
-void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data, LogWriter *Log){
+void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data, LogWriter &Log){
   LoadAlleleFreqs(options, data);
+  Log.setDisplayMode(On);
 
   if(IsRandom() &&  options->getOutputAlleleFreq() ){
     OpenOutputFile(options);
@@ -121,9 +122,8 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     // ** set eta priors **
     if( strlen(options->getEtaPriorFilename()) ){
       //specified by user in file
-      Log->logmsg(true,"Loading gamma prior parameters for allele frequency dispersion from ");
-      Log->logmsg(true,options->getEtaPriorFilename());
-      Log->logmsg(true,".\n");
+      Log << "Loading gamma prior parameters for allele frequency dispersion from "
+	  << options->getEtaPriorFilename() << ".\n";
       const DataMatrix& etaprior = data->getEtaPriorMatrix();
 
       for( unsigned k = 0; k < dim; k++ ){
@@ -140,18 +140,18 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     }
 
     if(IsHistoricAlleleFreq){
-      Log->logmsg(false, "Gamma prior on dispersion parameters with means and variances:\n");
+      Log << "Gamma prior on dispersion parameters with means and variances:\n";
       for( int k = 0; k < Populations; k++ ){
-	Log->logmsg(false, data->GetPopLabels()[k]);Log->logmsg(false, ": ");
-	Log->logmsg(false, psi[k]/tau[k]);Log->logmsg(false, "  ");Log->logmsg(false, psi[k]/(tau[k]*tau[k]));Log->logmsg(false, "\n");
+	Log << data->GetPopLabels()[k] << ": "
+	    << psi[k]/tau[k] << "  " << psi[k]/(tau[k]*tau[k]) << "\n";
       }
-      Log->logmsg(false, "\n");
+      Log << "\n";
     }
     else{//correlated allele freq model
-      Log->logmsg(false, "Gamma prior on dispersion parameter with mean and variance:\n");
-      Log->logmsg(false, psi[0]/tau[0]);Log->logmsg(false, "  ");Log->logmsg(false, psi[0]/(tau[0]*tau[0]));Log->logmsg(false, "\n");
+      Log << "Gamma prior on dispersion parameter with mean and variance:\n"
+	  << psi[0]/tau[0] << "  " << psi[0]/(tau[0]*tau[0]) << "\n";
     }
-    Log->logmsg(false, "\n");
+    Log << "\n";
   
 
     //double maxeta[ dim ];
@@ -211,7 +211,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	InitializeEtaOutputFile(options, data->GetPopLabels(), Log); 
       }
       else{
-	Log->logmsg(true,"No dispparamfile given\n");
+	Log << "No dispparamfile given\n";
 	//exit(1);
       }
     }
@@ -235,18 +235,17 @@ void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
   }
 }
 
-void AlleleFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter *Log)
+void AlleleFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log)
 {
+  Log.setDisplayMode(On);
   outputstream.open( options->getEtaOutputFilename(), ios::out );
   if( !outputstream )
     {
-      Log->logmsg(true,"ERROR: Couldn't open dispparamfile\n");
+      Log <<  "ERROR: Couldn't open dispparamfile\n";
       exit( 1 );
     }
   else{
-    Log->logmsg(true,"Writing dispersion parameters to ");
-    Log->logmsg(true,options->getEtaOutputFilename());
-    Log->logmsg(true,"\n");
+    Log << "Writing dispersion parameters to " << options->getEtaOutputFilename() << "\n";
     //Dispersion parameters (eta)
     if(IsHistoricAlleleFreq){
       for( int k = 0; k < Populations; k++ ){
@@ -950,14 +949,16 @@ void AlleleFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)
   }
 }
 
-void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWriter *Log){
+void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log){
   if( IsHistoricAlleleFreq ){
     //output to logfile
     if( iteration == -1 )
       {
+	Log.setDisplayMode(Off);
+	Log.setPrecision(6);
 	for( int j = 0; j < Populations; j++ ){
-	  //Log->width(9);
-	  Log->write(eta[j],6);
+	  //Log.width(9);
+	  Log << eta[j];
 	}
       }
     //output to screen
@@ -981,10 +982,12 @@ void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWrite
   else if(CorrelatedAlleleFreqs){
     
     //output to logfile
-    if( !options->useCOUT() || iteration == 0 )
+    if( !options->useCOUT() || iteration == -1 )
       {
-	Log->width(9);
-	Log->write(eta[0],6);
+	Log.setDisplayMode(Off);
+	Log.setPrecision(6);
+	Log.width(9);
+	Log << eta[0];
       }
     //output to screen
     if( options->useCOUT() )
@@ -1022,13 +1025,12 @@ void AlleleFreqs::CloseOutputFile(int iterations, const string* const Population
 } 
 
 // *** FST functions ****************************
-void AlleleFreqs::OpenFSTFile(const AdmixOptions* const options, LogWriter *Log){
-  Log->logmsg(true, "Writing ergodic averages of FSTs to: ");
-  Log->logmsg(true,options->getFSTOutputFilename());
-  Log->logmsg(true,"\n");
+void AlleleFreqs::OpenFSTFile(const AdmixOptions* const options, LogWriter &Log){
+  Log.setDisplayMode(On);
+  Log << "Writing ergodic averages of FSTs to: " << options->getFSTOutputFilename() << "\n";
   fstoutputstream.open( options->getFSTOutputFilename(), ios::out );
   if( !fstoutputstream ){
-    Log->logmsg(true,"ERROR: Couldn't open fstoutputfile\n");
+    Log << "ERROR: Couldn't open fstoutputfile\n";
     exit( 1 );
   }
 }

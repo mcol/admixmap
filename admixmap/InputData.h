@@ -49,7 +49,7 @@ public:
   /**
    *  Read all input data and store in internal structures.
    */    
-  void readData(AdmixOptions *options, LogWriter *log);    
+  void readData(AdmixOptions *options, LogWriter &log);    
 
 
   /**
@@ -123,16 +123,15 @@ private:
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
   bool IsPedFile;
-  LogWriter *Log;
 
-  void readFile(const char *fname, Matrix_s& data);
+  void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
   void CheckGeneticData(AdmixOptions *options)const;
   void checkLocusFile(int sexColumn)const;
   unsigned determineNumberOfCompositeLoci()const;
-  void CheckAlleleFreqs(AdmixOptions *options);
-  RegressionType CheckOutcomeVarFile(int, int);
-  void CheckCovariatesFile()const;
-  void CheckRepAncestryFile(int populations)const;
+  void CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log);
+  RegressionType CheckOutcomeVarFile(int, int, LogWriter &Log);
+  void CheckCovariatesFile(LogWriter &log)const;
+  void CheckRepAncestryFile(int populations, LogWriter &Log)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
 
   /**

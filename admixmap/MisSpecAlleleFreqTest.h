@@ -21,7 +21,7 @@ public:
   MisSpecAlleleFreqTest();
   ~MisSpecAlleleFreqTest();
 
-  void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter *Log );
+  void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
   void Output(int iteration, const Genome* const Loci, const std::string* const PopLabels);
 

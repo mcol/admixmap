@@ -975,57 +975,57 @@ void AdmixOptions::PrintOptions(){
   argstream.close();
 }
 
-int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
+int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   // **** analysis type  ****
-
+  Log.setDisplayMode(On);
   if (NumberOfIndividuals ==1)
     {
       IndAdmixHierIndicator = false;
-      Log->logmsg(true,"One individual analysis");
+      Log << "One individual analysis";
     }
 
   else if (RegType == None)
     {
       NumberOfOutcomes = 0;
       if(AffectedsOnlyScoreFilename.length()>0){
-	Log->logmsg(true,"Affecteds only analysis");
+	Log << "Affecteds only analysis";
       }
       else 
 	{
-	  Log->logmsg(true,"Cross sectional analysis, no outcome");
+	  Log << "Cross sectional analysis, no outcome";
 	}
     }
   else if (RegType == Linear)
     {
       NumberOfOutcomes = 1;
-      Log->logmsg(true,"Cross sectional analysis, continuous outcome");
+      Log << "Cross sectional analysis, continuous outcome";
     }
   else if (RegType == Logistic)
     {
       NumberOfOutcomes = 1;
-      Log->logmsg(true,"Cross sectional analysis, binary outcome");
+      Log << "Cross sectional analysis, binary outcome";
     }
   else if (RegType == Both)
     {
       NumberOfOutcomes = 2;
-      Log->logmsg(true,"Cross sectional analysis, multiple outcome");
+      Log << "Cross sectional analysis, multiple outcome";
     }
   if(MLIndicator){
-    Log->logmsg(true, " with marginal likelihood calculation ");
-    if(NumberOfIndividuals >1 )Log->logmsg(true, "for first individual");
+    Log << " with marginal likelihood calculation ";
+    if(NumberOfIndividuals >1 )Log << "for first individual";
   }
-    Log->logmsg(true, "\n");
+  Log << "\n";
 
 
   if(OutcomeVarFilename.length() == 0){
     if(NumberOfOutcomes > 0){
-      Log->logmsg(true, "ERROR: 'outcomes' > 0 and no outcomevarfile specified\n");
+      Log << "ERROR: 'outcomes' > 0 and no outcomevarfile specified\n";
       exit(1);
     }
     //should check for specified targetindicator too, simply ignoring for now
     if(RegressionOutputFilename.length() > 0){
-      Log->logmsg(true, "ERROR: regparamfile option is not valid without a regression model\n");
-      Log->logmsg(true, "\tThis option will be ignored\n");
+      Log << "ERROR: regparamfile option is not valid without a regression model\n"
+	  << "\tThis option will be ignored\n";
       RegressionOutputFilename = "";
       OptionValues.erase("regparamfile");
     }
@@ -1034,23 +1034,23 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
   // **** Hierarchical model on ind admixture ****
   if (!IndAdmixHierIndicator)
     {
-      Log->logmsg(true,"No hierarchical model for individual admixture.\n");
+      Log << "No hierarchical model for individual admixture.\n";
 
       if(ParameterFilename.length() > 0 ){
-	Log->logmsg(true, "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n");
-	Log->logmsg(true, "\tThis option will be ignored\n");
+	Log << "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n"
+	    << "\tThis option will be ignored\n";
 	 ParameterFilename = "";
 	OptionValues.erase("paramfile");
       }
       if(RegressionOutputFilename.length() > 0){
-	Log->logmsg(true, "ERROR: regparamfile option is not valid with indadmixhierindicator = 0\n");
-	Log->logmsg(true, "\tThis option will be ignored\n");
+	Log << "ERROR: regparamfile option is not valid with indadmixhierindicator = 0\n"
+	    << "\tThis option will be ignored\n";
 	RegressionOutputFilename = "";
 	OptionValues.erase("regparamfile");
 	 }
       if(EtaOutputFilename.length() > 0 ){
-	Log->logmsg(true, "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n");
-	Log->logmsg(true, "\tThis option will be ignored\n");
+	Log << "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n"
+	    << "\tThis option will be ignored\n";
 	EtaOutputFilename = "";
 	OptionValues.erase("dispparamfile");
       }
@@ -1058,61 +1058,52 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
 
   // **** Random Mating Model **** 
   if(RandomMatingModel )
-    Log->logmsg(true,"Model assuming random mating.\n");
+    Log << "Model assuming random mating.\n";
   else 
-    Log->logmsg(true,"Model assuming assortative mating.\n");
+    Log << "Model assuming assortative mating.\n";
 
   // **** sumintensities ****
   if( GlobalRho )
-    Log->logmsg(true,"Model with global sum-intensities.\n");
+    Log << "Model with global sum-intensities.\n";
   else if( RandomMatingModel )
-    Log->logmsg(true,"Model with gamete specific sum-intensities.\n");
+    Log << "Model with gamete specific sum-intensities.\n";
   else
-    Log->logmsg(true,"Model with individual-specific sum-intensities.\n");
+    Log << "Model with individual-specific sum-intensities.\n";
 
   Rhobeta = RhobetaShape / RhobetaRate;
   if( RhoFlatPrior() ){
-    Log->logmsg(true,"Flat prior on sum-intensities truncated at ");
-    Log->logmsg(true, TruncPt);
-    Log->logmsg(true,"\n");
+    Log << "Flat prior on sum-intensities truncated at " << TruncPt << "\n";
   }
   else if( logRhoFlatPrior() ){
-    Log->logmsg(true,"Flat prior on log sum-intensities truncated at ");
-    Log->logmsg(true, TruncPt);
-    Log->logmsg(true,"\n");
+    Log << "Flat prior on log sum-intensities truncated at " << TruncPt << "\n";
   }
   else {
     //    if(Rhoalpha <= 0.0){
-    //       Log->logmsg(true, "ERROR: prior shape parameter of sumintensities must be > 0\n");
+    //       Log << "ERROR: prior shape parameter of sumintensities must be > 0\n";
     //       exit(1);
     //     }
     if(RhobetaShape <= 0.0 ){
-      Log->logmsg(true, "ERROR: sumintensitiesbetashape must be > 0\n");
+      Log <<  "ERROR: sumintensitiesbetashape must be > 0\n";
       exit(1);
     }
     if( GlobalRho ) {
-    Log->logmsg(true,"Gamma prior on sum-intensities with shape parameter: ");
-    Log->logmsg(true, Rhoalpha); Log->logmsg(false,"\n");
-      Log->logmsg(true, "and rate (1 / location) parameter ");
-      Log->logmsg(true, RhobetaShape / RhobetaRate);
-      Log->logmsg(true, "\n");
+      Log << "Gamma prior on sum-intensities with shape parameter: " << Rhoalpha << "\n"
+	  << "and rate (1 / location) parameter " << RhobetaShape / RhobetaRate << "\n";
     }
     else {
-      Log->logmsg(true,"Population distribution of sum-intensities specified as Gamma with shape parameter ");
-      Log->logmsg(true, Rhoalpha); Log->logmsg(false,"\n");
-      Log->logmsg(true,"and Gamma prior on rate (1 / location) parameter with shape and rate parameters: ");
-      Log->logmsg(true, RhobetaShape); Log->logmsg(true," & ");
-      Log->logmsg(true, RhobetaRate); Log->logmsg(true,"\n");
-      Log->logmsg(true, "Effective prior mean of sum-intensities is ");
+      Log << "Population distribution of sum-intensities specified as Gamma with shape parameter "
+	  << Rhoalpha << "\n"
+	  << "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
+	  << RhobetaShape << " & "
+	  << RhobetaRate << "\n"
+	  << "Effective prior mean of sum-intensities is ";
       double rhopriormean = 0.0;
       if(RhobetaShape > 1.0)rhopriormean = Rhoalpha * RhobetaRate / (RhobetaShape - 1.0);
       else rhopriormean = Rhoalpha / Rhobeta;
-      Log->logmsg(true, rhopriormean);
-      Log->logmsg(true, "\n");
+      Log << rhopriormean << "\n";
       if(RhobetaShape > 2.0){
-	Log->logmsg(true, "Effective prior variance of sum-intensities is ");
-	Log->logmsg(true, rhopriormean * (rhopriormean + 1.0) / (RhobetaShape - 2) );
-	Log->logmsg(true, "\n");
+	Log << "Effective prior variance of sum-intensities is "
+	    << rhopriormean * (rhopriormean + 1.0) / (RhobetaShape - 2) << "\n";
       }
     }
   }
@@ -1121,28 +1112,25 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
   setInitAlpha(Log);
   if(Populations > 1 && NumberOfIndividuals > 1){
 #if POPADMIXSAMPLER == 2
-    Log->logmsg(true, "Flat Dirichlet prior on population admixture Dirichlet proportion parameters\n");
-    Log->logmsg(true, "Gamma(1, 1) prior on admixture dispersion parameter\n");
+    Log <<  "Flat Dirichlet prior on population admixture Dirichlet proportion parameters\n"
+	<< "Gamma(1, 1) prior on admixture dispersion parameter\n";
 
 #else
-    Log->logmsg(true, "Gamma prior on population admixture Dirichlet parameters with mean ");
-    Log->logmsg(true, alphamean);
-    Log->logmsg(true, " and variance ");
-    Log->logmsg(true, alphavar);
-    Log->logmsg(true, "\n");
+    Log << "Gamma prior on population admixture Dirichlet parameters with mean "
+	<< alphamean << " and variance " << alphavar << "\n";
 #endif
   }
 
   // **** Check whether genotypes file has been specified ****
   if ( GenotypesFilename.length() == 0 )
     {
-      Log->logmsg(true,"Must specify genotypesfile.\n");
+      Log << "Must specify genotypesfile.\n";
       exit( 1 );
     }
   // **** Check whether locus file has been specified ****
   if ( LocusFilename.length() == 0 )
     {
-      Log->logmsg(true,"Must specify locusfile.\n");
+      Log << "Must specify locusfile.\n";
       exit( 1 );
     }
 
@@ -1151,40 +1139,39 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
   //fixed allele freqs
   if( alleleFreqFilename.length() ||
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
-    Log->logmsg(true,"Analysis with fixed allele frequencies.\n");
+    Log << "Analysis with fixed allele frequencies.\n";
     if(OutputAlleleFreq){
-      Log->logmsg(true, "ERROR: allelefreqoutputfile option is invalid with fixed allele frequencies\n");
-      Log->logmsg(true, "       this option will be ignored\n");
+      Log << "ERROR: allelefreqoutputfile option is invalid with fixed allele frequencies\n"
+	  << "       this option will be ignored\n";
       OptionValues.erase("allelefreqoutputfile");
       OutputAlleleFreq = false;
     }
   }
   //prior allele freqs
   else if( PriorAlleleFreqFilename.length() && !fixedallelefreqs ){
-    Log->logmsg(true,"Analysis with prior allele frequencies.\n");
+    Log << "Analysis with prior allele frequencies.\n";
     if(correlatedallelefreqs) {
-      Log->logmsg(true,"Analysis with correlated allele frequencies\n");
+      Log << "Analysis with correlated allele frequencies\n";
     }
   }
   //historic allele freqs
   else if( HistoricalAlleleFreqFilename.length() > 0 ){
-    Log->logmsg(true,"Analysis with dispersion model for allele frequencies.\n");
+    Log << "Analysis with dispersion model for allele frequencies.\n";
   }
   //default priors ('populations' option)
   else if(Populations > 0 )
     {
-      Log->logmsg(true,"No allelefreq priorallelefreq or historicallelefreq filename given.\n");
-      Log->logmsg(true,"Default priors will be set for the allele frequencies with ");
-      Log->logmsg(true, Populations);
-      Log->logmsg(true," population(s)\n");
+      Log << "No allelefreq priorallelefreq or historicallelefreq filename given.\n"
+	  << "Default priors will be set for the allele frequencies with "
+	  << Populations << " population(s)\n";
       if(correlatedallelefreqs) {
-	Log->logmsg(true,"Analysis with correlated allele frequencies\n");
+	Log << "Analysis with correlated allele frequencies\n";
       }
     }
   
   if( (FSTOutputFilename.length() > 0) && (HistoricalAlleleFreqFilename.length() == 0) ){
-    Log->logmsg(true, "ERROR: fstoutputfile option is only valid with historicallelefreqfile option\n");
-    Log->logmsg(true, "       this option will be ignored\n");
+    Log << "ERROR: fstoutputfile option is only valid with historicallelefreqfile option\n"
+	<< "       this option will be ignored\n";
     OutputFST = false;
     FSTOutputFilename = "";
     OptionValues.erase("fstoutputfile");
@@ -1192,50 +1179,50 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
 
   // **** score tests ****
   if( TestForLinkageWithAncestry && Populations == 1 ){
-    Log->logmsg(true,"Cannot test for linkage with ancestry with 1 population.\n");
+    Log << "Cannot test for linkage with ancestry with 1 population.\n";
     exit(0);
   }
   if(TestForAdmixtureAssociation &&
       ( TestForLinkageWithAncestry || TestForAllelicAssociation ) ){
-    Log->logmsg(true,"Cannot test for linkage with ancestry or allelic association\n");
-    Log->logmsg(true,"with score test for association. Can only use affecteds only test\n");
-    Log->logmsg(true,"for linkage.\n");
-    Log->logmsg(true,"If admixturescorefile is selected, then please unselect both\n");
-    Log->logmsg(true,"allelicassociationscorefile and ancestryassociationscorefile\n");
+    Log << "Cannot test for linkage with ancestry or allelic association\n"
+	<< "with score test for association. Can only use affecteds only test\n"
+	<< "for linkage.\n"
+	<< "If admixturescorefile is selected, then please unselect both\n"
+	<< "allelicassociationscorefile and ancestryassociationscorefile\n";
     exit(1);
   }
 
   if( TestForMisspecifiedAlleleFreqs &&
       ( alleleFreqFilename.length()==0 && !(fixedallelefreqs) ) ){
-    Log->logmsg(true,"Cannot test for mis-specified allele frequencies unless allele frequencies are fixed.\n");
+    Log << "Cannot test for mis-specified allele frequencies unless allele frequencies are fixed.\n";
     exit(1);
   }
 
   if( TestForAffectedsOnly )
     if( RegType == Linear){
-      Log->logmsg(true,"ERROR: affectedsonly score test is not valid with a linear regression only.");
-      Log->logmsg(true," This option will be ignored.\n");
+      Log << "ERROR: affectedsonly score test is not valid with a linear regression only."
+	  << " This option will be ignored.\n";
       setTestForAffectedsOnly(false);
     }
     else   OptionValues["likratiofilename"] = "LikRatioFile.txt";
   if( TestForLinkageWithAncestry ){
     if(NumberOfOutcomes < 1){
-      Log->logmsg(true,"ERROR: ancestryassociation score test is not valid without a regression model.");
-      Log->logmsg(true," This option will be ignored.\n");
+      Log << "ERROR: ancestryassociation score test is not valid without a regression model."
+	  << " This option will be ignored.\n";
       setTestForLinkageWithAncestry(false);
     }
   }
   if( TestForAllelicAssociation ){
     if( NumberOfOutcomes < 1 ){
-      Log->logmsg(true,"ERROR: allelic association score test is not valid without a regression model.");
-      Log->logmsg(true," This option will be ignored.\n");
+      Log << "ERROR: allelic association score test is not valid without a regression model."
+	  << " This option will be ignored.\n";
       setTestForAllelicAssociation(false);
     }
   }
   if( TestForSNPsInHaplotype && !TestForAllelicAssociation ){
-      Log->logmsg(true,"ERROR: Can't test for haplotype associations if allelicassociationscorefile is not specified");
-      Log->logmsg(true, " This option will be ignored.\n");
-      setTestForSNPsInHaplotype(false);
+    Log << "ERROR: Can't test for haplotype associations if allelicassociationscorefile is not specified"
+	<< " This option will be ignored.\n";
+    setTestForSNPsInHaplotype(false);
     }
   
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || TestForAdmixtureAssociation
@@ -1243,40 +1230,40 @@ int AdmixOptions::checkOptions(LogWriter *Log, int NumberOfIndividuals){
 
   //check anneal >0
   if(AnnealedRuns < 1){
-    Log->logmsg(true, "ERROR: 'anneal' must be > 0\n");
+    Log << "ERROR: 'anneal' must be > 0\n";
     exit(1);
   }
   if(AnnealedRuns > 1){
     if(AnnealedRuns%2)AnnealedRuns += 1;//in case 'anneal' is odd
-    Log->logmsg(true, "\nUsing ");Log->logmsg(true, AnnealedRuns);
-    Log->logmsg(true, " annealed runs to estimate marginal likelihood\n\n");
+    Log << "\nUsing " << AnnealedRuns << " annealed runs to estimate marginal likelihood\n\n";
    }
 
   return 1;
 }
 
 //Note: requires Populations option to have already been set
-void AdmixOptions::setInitAlpha(LogWriter *Log){
+void AdmixOptions::setInitAlpha(LogWriter &Log){
   _admixed.resize(2,true);
   _symmetric = true;
   vector<double> alphatemp(Populations);
+  Log.setDisplayMode(On);
 
   //if no initalpha is specified, alpha for both gametes is initialised to 1.0 for each population  
   if( initalpha[0].size() == 0 && initalpha[1].size() == 0 ){
     fill( alphatemp.begin(), alphatemp.end(), 1.0);//fill alphatemp with 1s
     initalpha[0] = alphatemp; initalpha[1] = alphatemp;//put 2 copies of alphatemp in alpha
-    Log->logmsg(true,  "Initial value for population admixture (Dirichlet) parameter vector: ");
-    for(int k = 0;k < Populations; ++k){Log->logmsg(true,alphatemp[k]);Log->logmsg(true," ");}
-    Log->logmsg(true,"\n");
+    Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
+    for(int k = 0;k < Populations; ++k){Log << alphatemp[k] << " " ;}
+    Log << "\n";
   }
   //if only initalpha0 specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed
   else if( initalpha[0].size() > 0 && initalpha[1].size() == 0 ){
     _admixed[0] = CheckInitAlpha( initalpha[0] );
     initalpha[1] = initalpha[0];//put 2 copies of alpha[0] in alpha
-    Log->logmsg(true, "Initial value for population admixture (Dirichlet) parameter vector: ");
-    for(size_t k = 0;k < initalpha[0].size(); ++k){Log->logmsg(true, initalpha[0][k]);Log->logmsg(true," ");}
-    Log->logmsg(true,"\n");
+    Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
+    for(size_t k = 0;k < initalpha[0].size(); ++k){Log << initalpha[0][k] << " ";}
+    Log << "\n";
   }
   //if both are specified and analysis is for a single individual,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
@@ -1284,18 +1271,18 @@ void AdmixOptions::setInitAlpha(LogWriter *Log){
     _admixed[0] = CheckInitAlpha( initalpha[0] );    //gamete 1
     _admixed[1] = CheckInitAlpha( initalpha[1] );    //gamete 2
 
-    Log->logmsg(true, "Dirichlet prior for maternal gamete admixture: ");
-    for(size_t k = 0;k < initalpha[0].size(); ++k){Log->logmsg(true, initalpha[0][k]);Log->logmsg(true," ");}
-    Log->logmsg(true,"\n");
+    Log << "Dirichlet prior for maternal gamete admixture: ";
+    for(size_t k = 0;k < initalpha[0].size(); ++k){Log << initalpha[0][k] << " ";}
+    Log << "\n";
     
-    Log->logmsg(true, "Dirichlet prior for paternal gamete admixture: ");
-    for(size_t k = 0;k < initalpha[1].size(); ++k){Log->logmsg(true, initalpha[1][k]);Log->logmsg(true," ");}
-    Log->logmsg(true,"\n");
+    Log << "Dirichlet prior for paternal gamete admixture: ";
+    for(size_t k = 0;k < initalpha[1].size(); ++k){Log << initalpha[1][k] << " " ;}
+    Log << "\n";
     
     _symmetric = false;
   }
   else{
-    Log->logmsg(true,"ERROR: Can specify separate priors on admixture of each gamete only if indadmixhierindicator = 0\n");
+    Log << "ERROR: Can specify separate priors on admixture of each gamete only if indadmixhierindicator = 0\n";
     exit(1);
   }
 }

@@ -39,16 +39,16 @@ class AlleleFreqs{
 public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
-  void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter *Log);
+  void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter &Log);
   void Update(bool afterBurnIn);
 
   //initialize output file for samples of dispersion parameters
-  void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter *Log);
+  void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log);
 
   //outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
   //output samples of dispersion parameters (eta) to dispparamfile
-  void OutputEta(int iteration, const AdmixOptions *options, LogWriter *Log);
+  void OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log);
 
   void OutputAlleleFreqs();
   void CloseOutputFile(int iterations, const string* const PopulationLabels);
@@ -129,7 +129,7 @@ private:
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
-  void OpenFSTFile(const AdmixOptions* const options, LogWriter *Log); 
+  void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
   void LoadAlleleFreqs(const DataMatrix NewFreqs, int i, bool);
   void SetDefaultAlleleFreqs(int Pops);

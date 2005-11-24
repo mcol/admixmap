@@ -1204,7 +1204,7 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
 		      const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, 
 		      double globalrho, double rhoalpha, double rhobeta, double *thetahat,
 		      double *thetahatX, vector<double> &rhohat,
-		      vector<double> &rhohatX, LogWriter* Log, chib *MargLikelihood, AlleleFreqs* A){
+		      vector<double> &rhohatX, LogWriter& Log, chib *MargLikelihood, AlleleFreqs* A){
   vector<double> rho(2);
   if(!options->isGlobalRho())
     rho = _rho;
@@ -1224,27 +1224,26 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
   if( iteration <= options->getBurnIn() ){
     if( Populations > 1 ){  
       if( logLikelihood > *MaxLogLikelihood ){
+	Log.setDisplayMode(Off);
+	Log << "Admixture (gamete 1):";
+	for(int i = 0; i < K; ++i)Log << Theta[i] << "\t";
+	Log << "\n" << "Admixture (gamete 2):";
+	for(int i = K; i < K+K; ++i)Log << Theta[i] << "\t";
+	Log << "\nsumintensities: " <<  rho[0] << " " <<  rho[1]
+	    << "\nLogLikelihood: " << logLikelihood
+	    << "\niteration: " << iteration << "\n\n";
 	
-	  Log->write("Admixture (gamete 1):");
-	  Log->write(Theta, K);Log->write("\n");
-	  Log->write("Admixture (gamete 2):");
-	  Log->write(Theta+K, K);Log->write("\n");
-	  Log->write("sumintensities: ");
-	  Log->write( rho[0]);Log->write( rho[1]);
-	  Log->write("\nLogLikelihood:");Log->write( logLikelihood);
-	  Log->write("\niteration: ");Log->write(iteration);Log->write("\n\n");
-	  
-	  //set parameter estimates at max loglikelihood
-	  for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
-	  rhohat = rho;
-	  
-	  if( Loci->isX_data() ){
-	    for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
-	    rhohatX = _rho_X;
-	  }
+	//set parameter estimates at max loglikelihood
+	for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
+	rhohat = rho;
+	
+	if( Loci->isX_data() ){
+	  for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
+	  rhohatX = _rho_X;
+	}
       }//end if Loglikelihood > Max
     }//end if K>1
-  
+    
   
     if( logLikelihood > *MaxLogLikelihood ){
       *MaxLogLikelihood = logLikelihood;

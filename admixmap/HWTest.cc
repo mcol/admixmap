@@ -29,21 +29,20 @@ HWTest::~HWTest(){
 }
 
 //void HWTest::Initialise(AdmixOptions *options, int nind, int nloci, LogWriter *Log){
-void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter *Log){
+void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log){
 
   //NumInd = nind;
   NumLoci = nloci;
+  Log.setDisplayMode(On);
 
   if( options->getHWTestIndicator() ){//not really necessary
     if ( strlen( options->getHWTestFilename() ) ){
       outputfile.open( options->getHWTestFilename(), ios::out );
       if( !outputfile ){
-	Log->logmsg(true,"ERROR: Couldn't open hwtestfile\n");
+	Log << "ERROR: Couldn't open hwtestfile\n";
 	exit( 1 );}
       else {
-	Log->logmsg(true,"HW test file: ");    
-	Log->logmsg(true,options->getHWTestFilename());
-	Log->logmsg(true,"\n");
+	Log << "HW test file: " << options->getHWTestFilename() << "\n";
 	
 	//sumscore = alloc2D_d(NumInd, NumLoci);
 	//sumscore2 = alloc2D_d(NumInd, NumLoci);
@@ -60,7 +59,7 @@ void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter 
       }
     }
     else{
-      Log->logmsg(true,"No hwtestfile given\n");
+      Log << "No hwtestfile given\n";
       //exit(1);}
     }
   }

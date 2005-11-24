@@ -124,8 +124,8 @@ void Genome::loadAlleleStatesAndDistances(const AdmixOptions* const options, con
     
     TheArray[i]->SetNumberOfLabels();
     index++;
-    //Log->logmsg(false,(*Loci)(i)->GetNumberOfLoci());
-    //Log->logmsg(false," ");
+    //Log.setDisplayMode(IfCOUT);
+    //Log << (*Loci)(i)->GetNumberOfLoci() << " ";
   }
 
   Vector_s labels = data_->getGeneticData()[0];//header of genotypes file
@@ -264,27 +264,20 @@ void Genome::SetDistance( int locus, double distance )
   Distances[ locus ] = distance;
 }
 
-void Genome::SetSizes(LogWriter *Log){
+void Genome::SetSizes(LogWriter &Log){
   TotalLoci = 0;
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     TotalLoci += TheArray[i]->GetNumberOfLoci();
   }
-  Log->logmsg(true, "\n");
-  Log->logmsg(false, TotalLoci);
-  Log->logmsg(false, " simple loci\n");
-  Log->logmsg(false, NumberOfCompositeLoci);
-  Log->logmsg(false," compound loci; ");
-  Log->logmsg(false, NumberOfChromosomes);
-  Log->logmsg(false," chromosomes\n");
+  Log.setDisplayMode(On);
+  Log << "\n" << TotalLoci << " simple loci\n"
+      << NumberOfCompositeLoci << " compound loci; "
+      << NumberOfChromosomes << " chromosomes\n";
 
-  Log->logmsg(true,"Effective length of autosomes under study: ");
-  Log->logmsg(true, LengthOfGenome);
-  Log->logmsg(true," Morgans.\n");
+  Log << "Effective length of autosomes under study: " << LengthOfGenome << " Morgans.\n";
 
   if( isX_data() ){
-    Log->logmsg(true,"Effective length of X chromosome under study: ");
-    Log->logmsg(true, LengthOfXchrm);
-    Log->logmsg(true," Morgans.\n");
+    Log << "Effective length of X chromosome under study: " << LengthOfXchrm << " Morgans.\n";
    }
 }
 

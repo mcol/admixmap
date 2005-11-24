@@ -15,12 +15,12 @@ public:
    StratificationTest();
 
   void Initialize( AdmixOptions* const options, const Genome &Loci, const Chromosome* const* Chr, 
-				     const IndividualCollection* const IC, LogWriter *Log );
+				     const IndividualCollection* const IC, LogWriter &Log );
 
   void calculate( const IndividualCollection* const individuals, const double* const* AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );
 
-  void Output(LogWriter *);
+  void Output(LogWriter &);
 
   //float getStatistic();
 
@@ -32,7 +32,7 @@ private:
   bool ModelIndicator;
   std::ofstream outputstream;
 
-  void OpenOutputFile( const char * , LogWriter *);
+  void OpenOutputFile( const char * , LogWriter &);
 
   std::vector<double>
   GenerateExpectedGenotype( const Individual* const, const double*, const int  );
