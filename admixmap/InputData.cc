@@ -492,30 +492,34 @@ Sex InputData::GetSexValue(int i)const{
     return (Sex) sex;
 }
 
-void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, unsigned short ****genotype)const{
+void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes)const{
   unsigned int lociI = 0;
-  
-  *genotype = new unsigned short **[Loci.GetNumberOfCompositeLoci()];
 
     for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); ++j){
+      genotype G;
       // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype 
       int numLoci = Loci(j)->GetNumberOfLoci();
+      G.numloci = numLoci;
       
-      (*genotype)[j] = new unsigned short *[numLoci];
-      
+      unsigned int count = 0;
       for (int locus = 0; locus < numLoci; locus++) {
-	(*genotype)[j][locus] = new unsigned short[2];
+	vector<unsigned short> g(2);
 	int col = 1 + SexColumn + lociI;
 	if (IsPedFile)col = 1 + SexColumn + 2*lociI;
 	  
-	StringConvertor::toIntPair((*genotype)[j][locus],geneticData_[i][col]);
+	StringConvertor::toIntPair(&g, geneticData_[i][col]);
 
-	if((*genotype)[j][locus][0] > Loci(j)->GetNumberOfAllelesOfLocus(locus) ||
-	   (*genotype)[j][locus][1] > Loci(j)->GetNumberOfAllelesOfLocus(locus))
+	if(g[0] > Loci(j)->GetNumberOfAllelesOfLocus(locus) || (g[1] > Loci(j)->GetNumberOfAllelesOfLocus(locus)))
 	  throwGenotypeError(i, locus, Loci(j)->GetLabel(j), 
-			     (*genotype)[j][locus][0], (*genotype)[j][locus][1], Loci(j)->GetNumberOfAllelesOfLocus(locus) );
+			     g[0], g[1], Loci(j)->GetNumberOfAllelesOfLocus(locus) );
 	lociI++;
+	G.alleles.push_back(g);
+	count += g[0];
       }
+
+      G.missing = (count == 0);
+
+      genotypes->push_back(G);
     }
 }
 

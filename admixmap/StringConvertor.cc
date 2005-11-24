@@ -87,6 +87,24 @@ void StringConvertor::toIntPair(unsigned short *a,const string& str)
     }
                     
 }
+void StringConvertor::toIntPair(std::vector<unsigned short> *a,const string& str)
+{
+
+    const std::string tmp = dequote(str);
+    if(a->size() != 0) a->resize(2);
+    (*a)[0]=(*a)[1]=0;
+  
+    int i = tmp.find_first_of(",/"); 
+    if( tmp.find_first_of(",/") < tmp.length()){
+      (*a)[0] = atoi(tmp.substr(0,i).c_str());
+      (*a)[1] = atoi(tmp.substr(i+1,tmp.length()-i).c_str());
+    }
+    else{
+      (*a)[0] = (*a)[1] = 0;
+    }
+                    
+}
+
 bool StringConvertor::isMissingValue(const string& str)
 {
     static string MISSING[] = {"#", ".", "NA"};

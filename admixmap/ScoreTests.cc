@@ -606,7 +606,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
  * should be generalized to deal with multi-allelic loci
  */
 
-int ScoreTests::GetAllele2CountsInHaplotype(int locus, const unsigned short* const* genotype)const
+int ScoreTests::GetAllele2CountsInHaplotype(int locus, const vector<vector<unsigned short> > genotype)const
 {
   /**
    * AlleleCounts is the number of 2 alleles at a

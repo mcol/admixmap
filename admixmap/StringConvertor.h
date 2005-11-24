@@ -18,6 +18,7 @@ public:
   //static std::pair<int, int> toIntPair(const std::string& str);
   static void toIntPair(unsigned int *,const std::string& str);
   static void toIntPair(unsigned short *,const std::string& str);
+  static void toIntPair(std::vector<unsigned short>*, const std::string& str);
   
   static bool isMissingValue(const std::string& str);
   static std::string dequote(const std::string& str);

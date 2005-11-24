@@ -63,7 +63,7 @@ public:
   int GetNumberOfAllelesOfLocus( int )const;
   void getLocusAlleleProbs(double **P, int k)const;
 
-  void setPossibleHaplotypePairs(const unsigned short* const* Genotype, std::vector<hapPair> &PossibleHapPairs);
+  void setPossibleHaplotypePairs(const std::vector<std::vector<unsigned short> > Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
   void SetHapPairProbsToPosteriorMeans(int iterations);
@@ -102,7 +102,7 @@ private:
   int codeHapAllelesAsInt(const int *hapAlleles);
   void codeHapAllelesPairAsIntPair(const std::vector<int> HapAllelesPair[2], int *hpair);
   void permuteHetLoci(const std::vector<bool> isHet, const int numHetLoci, const int permHet, 
-		      const unsigned short* const* Genotype, std::vector<int> HapAllelesPair[2]);
+		      const std::vector<std::vector<unsigned short> > Genotype, std::vector<int> HapAllelesPair[2]);
   void permuteMissingLoci(const std::vector<bool> isMissing, const int numMissingLoci, const int permMissing, 
 			  const std::vector<int> HapAllelesPair[2], const std::vector<int> baseMissing[2], std::vector<int> HapAllelesPairNoMissing[2]) ;
   // UNIMPLEMENTED

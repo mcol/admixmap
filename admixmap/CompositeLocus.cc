@@ -469,7 +469,7 @@ void CompositeLocus::codeHapAllelesPairAsIntPair(const vector<int> HapAllelesPai
 // arguments: genotype as 2D array, hetLoci as array of col nums of het loci, isHet as array of length equal to NumberOfLoci
 // updates: haplotype pair array with permHet th permutation of alleles at heterozygous loci  
 void CompositeLocus::permuteHetLoci(const vector<bool> isHet, const int numHetLoci, const int permHet, 
-				   const unsigned short* const* Genotype, vector<int> HapAllelesPair[2])
+				   const vector<vector<unsigned short> > Genotype, vector<int> HapAllelesPair[2])
 {
   //recode permHet as array of bits, with length equal to NumHetLoci
   bool* permbits = new bool[numHetLoci];
@@ -514,7 +514,7 @@ void CompositeLocus::permuteMissingLoci(const vector<bool> isMissing, const int 
 // arguments: genotype is 2D array of alleles with 2 rows and NumberOfLoci cols
 // updates: PossibleHapPairs, an stl vector of arrays of 2 integers
 // call once for each individual at start of program 
-void CompositeLocus::setPossibleHaplotypePairs(const unsigned short* const* Genotype, vector<hapPair> &PossibleHapPairs)
+void CompositeLocus::setPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs)
 {
   setBaseForHapCode();
   int numHetLoci = 0;

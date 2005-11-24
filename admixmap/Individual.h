@@ -58,7 +58,9 @@ public:
   
   void setAdmixturePropsX(const double* const, size_t);
   
-  const unsigned short* const* getGenotype(unsigned int locus)const;
+  const std::vector<std::vector<unsigned short> > getGenotype(unsigned int locus)const;
+
+  void setGenotypesToMissing();
 
   const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
 
@@ -126,7 +128,7 @@ public:
 
 private:
   unsigned myNumber;//number of this individual, counting from 1
-  unsigned short ***genotypes;
+  std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
 
   static unsigned int numChromosomes;

@@ -155,8 +155,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), Loci, &genotypes);
   
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
-  for(int j=0;j<numCompositeLoci;++j) {
-    Loci(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+  for(int j = 0; j<numCompositeLoci; ++j) {
+    Loci(j)->setPossibleHaplotypePairs(genotypes[j].alleles, PossibleHapPairs[j]);
   }
   
   // ** set up StepSizeTuner object for random walk updates of admixture **
@@ -173,6 +173,9 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
  
 }
 
+void Individual::setGenotypesToMissing(){
+  for(int i = 0; i < genotypes.size(); ++i)genotypes[i].missing=true;
+}
 //********** Destructor **********
 Individual::~Individual()
 {
@@ -258,8 +261,8 @@ void Individual::HMMIsBad(bool loglikisbad){
   if(loglikisbad)logLikelihood.ready = false;
 }
 //******************** Accessors ***********************************************************
-const unsigned short* const* Individual::getGenotype(unsigned int locus)const{
-  return genotypes[locus];
+const vector<vector<unsigned short> > Individual::getGenotype(unsigned int locus)const{
+  return genotypes[locus].alleles;
 }
 
 const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)const{
@@ -312,12 +315,13 @@ const int *Individual::getSumLocusAncestry()const{
 //Indicates whether genotype is missing at all simple loci within a composite locus
 bool Individual::IsMissing(unsigned int locus)const
 {
-  unsigned int count = 0;
-  int NumberOfLoci = (*Loci)(locus)->GetNumberOfLoci();
-  for(int i = 0; i < NumberOfLoci; i++){
-    count += genotypes[locus][i][0];
-  }
-  return (count == 0);
+ //  unsigned int count = 0;
+//   int NumberOfLoci = (*Loci)(locus)->GetNumberOfLoci();
+//   for(int i = 0; i < NumberOfLoci; i++){
+//     count += genotypes[locus].alleles[i][0];
+//   }
+//   return (count == 0);
+  return genotypes[locus].missing;
 }
 
 //****************** Log-Likelihoods **********************

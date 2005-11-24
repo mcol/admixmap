@@ -198,7 +198,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
  * Updates what's required for the score tests. Only used with fixed
  * allele frequencies. This function is only used for monitoring.
  */
- void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, const unsigned short* const* x, 
+ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, const vector<vector<unsigned short> > x, 
 								const double* const AlleleFreqs)
 {
   vector<double> Score( Populations );

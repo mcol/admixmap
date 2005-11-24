@@ -108,7 +108,7 @@ void StratificationTest::calculate( const IndividualCollection* const individual
 
     for( int i = 0; i < individuals->getSize(); i++ ){
       const Individual* const ind = individuals->getIndividual(i);
-      const unsigned short* const* const genotypeArray = ind->getGenotype(jj);
+      const vector<vector<unsigned short> > genotypeArray = ind->getGenotype(jj);
       // recode as vector<unsigned short>
       genotype[0] = genotypeArray[0][0];
       genotype[1] = genotypeArray[0][1];
@@ -263,7 +263,7 @@ int StratificationTest::GetAlleleCounts(int locus, int a, const IndividualCollec
   for(int i = 0; i < IC->getSize(); ++i){
     Individual *ind = IC->getIndividual(i);
     if(!ind->IsMissing(locus)){
-      const unsigned short* const* genotype = ind->getGenotype(locus);
+      const vector<vector<unsigned short> > genotype = ind->getGenotype(locus);
 	if(genotype[0][0] == a){
 	  AlleleCounts++;
 	}

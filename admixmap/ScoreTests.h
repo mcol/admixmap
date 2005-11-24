@@ -103,7 +103,7 @@ private:
   void OutputAdmixtureScoreTest( int );
 
   void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int locus, double p,double phi, double DInvLink);
-  int GetAllele2CountsInHaplotype(int locus, const unsigned short* const* genotype)const;
+  int GetAllele2CountsInHaplotype(int locus, const std::vector<std::vector<unsigned short> > genotype)const;
   void SumScoreForWithinHaplotypeAssociation();
 
   void UpdateScoreForAllelicAssociation( const Individual* const , double, double, double);

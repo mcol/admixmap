@@ -70,7 +70,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Chromosome* cons
   double H;
   bool h;
   int locus = 0, complocus = 0, Ancestry0, Ancestry1;
-  const unsigned short* const* genotype = 0;
+  vector<vector<unsigned short> > genotype;
   Individual *ind = 0;
   double **Prob0 = 0, **Prob1 = 0;
 
@@ -131,7 +131,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Chromosome* cons
 	  //reset pointers ready to reuse next time	
 	  free_matrix(Prob0, Loci->getNumberOfLoci(complocus));
 	  free_matrix(Prob1, Loci->getNumberOfLoci(complocus));
-	  genotype = 0;
+	  
 	}
 	++complocus;
       }
