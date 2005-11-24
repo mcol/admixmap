@@ -250,7 +250,7 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
   }
 }//end Update
 
-void Regression::OutputParams(int iteration, ostream* out){
+void Regression::OutputParams(ostream* out){
   if( RegType != None ){
     for( int j = 0; j < NumCovariates; j++ ){
       out->width(9);
@@ -285,11 +285,11 @@ void Regression::Output(int iteration, const AdmixOptions *options, LogWriter *L
   if( options->useCOUT() )
     {
       if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << " ";
-      OutputParams(iteration, &cout);
+      OutputParams(&cout);
     }
   //Output to paramfile after BurnIn
   if( iteration > options->getBurnIn() ){
-    OutputParams(iteration, &outputstream);
+    OutputParams(&outputstream);
     if(options->getNumberOfOutcomes()< 2 || RegNumber==1)outputstream << endl;
     //output new line in paramfile when last regression model
   }

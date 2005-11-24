@@ -354,7 +354,7 @@ void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
   avgstream->width(9);
   *avgstream << setprecision(6) << exp(SumLogRho / samples) << " ";
 }
-void Latent::OutputParams(int iteration, ostream* out){
+void Latent::OutputParams(ostream* out){
   for( int j = 0; j < options->getPopulations(); j++ ){
     out->width(9);
     (*out) << setprecision(6) << alpha[0][ j ] << " ";
@@ -384,11 +384,11 @@ void Latent::OutputParams(int iteration){
   //output to screen
   if( options->useCOUT() )
     {
-      OutputParams(iteration, &cout);
+      OutputParams(&cout);
     }
   //Output to paramfile after BurnIn
   if( iteration > options->getBurnIn() ){
-    OutputParams(iteration, &outputstream);
+    OutputParams(&outputstream);
     outputstream << endl;
   }
 }

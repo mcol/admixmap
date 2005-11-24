@@ -174,7 +174,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 }
 
 void Individual::setGenotypesToMissing(){
-  for(int i = 0; i < genotypes.size(); ++i)genotypes[i].missing=true;
+  for(unsigned i = 0; i < genotypes.size(); ++i)genotypes[i].missing=true;
 }
 //********** Destructor **********
 Individual::~Individual()

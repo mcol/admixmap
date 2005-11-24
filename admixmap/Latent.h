@@ -85,7 +85,7 @@ public:
   void Update(int iteration, const IndividualCollection* const, bool anneal);
   
   void OutputParams(int iteration);
-  void OutputParams(int iteration, ostream* out); 
+  void OutputParams(ostream* out); 
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
   

@@ -156,7 +156,7 @@ int main( int argc , char** argv ){
 
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
-      double chibLogPosteriorWith, chibLogPosteriorWithout, chibLogLikelihood;
+      double chibLogPosteriorWith = 0.0, chibLogPosteriorWithout = 0.0, chibLogLikelihood = 0.0;
 
       // ******************* initialise stuff for annealing ************************************************
       bool anneal = options.getAnnealIndicator();
@@ -270,8 +270,10 @@ int main( int argc , char** argv ){
 	  IC->getIndividual(0)->setGenotypesToMissing();
 	  IC->ResetChib();
 	  for(int iteration = options.getBurnIn(); iteration <= options.getTotalSamples(); ++iteration){
-	    if(!(iteration % options.getSampleEvery()) )
-	      WriteIterationNumber(iteration-options.getBurnIn(), (int)( samples+1 ), options.useCOUT());
+	    if(!(iteration % options.getSampleEvery()) ){
+	      WriteIterationNumber(iteration-options.getBurnIn(), (int)(log10((double) samples+1.0 )), options.useCOUT());
+	      cout<<"\r"<<flush;
+	    }
 	    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, &Log, &LogL, false);
 	  }
 	  chibLogPosteriorWithout = IC->getChib()->getLogPosterior();
@@ -569,8 +571,8 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 void WriteIterationNumber(const int iteration, const int width, bool verboseOutput){
   if( verboseOutput ) {
     cout << setiosflags( ios::fixed );
-    //cout.width(width );
-    cout << iteration << " ";
+    cout.width(width );
+    cout << "\r"<< iteration << " ";
   }
   else cout << "\r"<< iteration<<flush;//displays iteration counter on screen
 
