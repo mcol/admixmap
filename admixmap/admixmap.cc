@@ -118,14 +118,6 @@ int main( int argc , char** argv ){
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
     R[r].SetExpectedY(IC);
 
-  //Write Initial values
-  if(options.getIndAdmixHierIndicator()  ){
-    Log.setDisplayMode(IfCOUT);
-    Log << "InitialParameterValues:\n";
-    OutputParameters(-1, IC, &L, &A, R, &options, Log);
-    Log << "\n";
-  }
-
   //  ******** single individual, one population, fixed allele frequencies  ***************************
   if( IC->getSize() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )
     IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
@@ -154,6 +146,14 @@ int main( int argc , char** argv ){
 	HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
 
       InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
+
+      //Write Initial values
+      if(options.getIndAdmixHierIndicator()  ){
+	Log.setDisplayMode(IfCOUT);
+	Log << "InitialParameterValues:\n";
+	OutputParameters(-1, IC, &L, &A, R, &options, Log);
+	Log << "\n";
+      }
 
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
@@ -192,7 +192,7 @@ int main( int argc , char** argv ){
 	double LogL = IC->getLogLikelihood(&options, chrm, R, false);
 	for( int iteration = 0; iteration <= samples; iteration++ ){
 	  if(!anneal &&  !(iteration % options.getSampleEvery()) ){
-	    WriteIterationNumber(iteration, (int)( samples+1 ), options.useCOUT());
+	    WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.useCOUT());
 	  }
 
 	  UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, &LogL, anneal);
