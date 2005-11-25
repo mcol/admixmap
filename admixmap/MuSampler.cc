@@ -125,7 +125,6 @@ double MuSampler::muEnergyFunction(const double * const params, const void* cons
   double* a = new double[H];
   softmax(H, mu, params);
   inv_softmax(H, mu, a); // normalized parameters; sum to zero
-  delete[] mu;
 
   E -= (double)(H); //logprior
 
@@ -143,6 +142,7 @@ double MuSampler::muEnergyFunction(const double * const params, const void* cons
     }
   }
   E -= logJacobian(a, z, H);
+  delete[] mu;
   delete[] a;
   return E;
 }
