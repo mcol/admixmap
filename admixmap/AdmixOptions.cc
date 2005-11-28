@@ -29,6 +29,8 @@
 #include <numeric> // for checkInitAlpha
 #include "Latent.h"// for POPADMIXSAMPLER
 
+#define NUMBEROFANNEALEDRUNS 100
+
 using namespace std;
 
 
@@ -69,7 +71,7 @@ void AdmixOptions::Initialise(){
   TruncPt = 99;
   Populations = 0;
 
-  use_cout = 1; //should be bool
+  displayLevel = 2; 
   OutputFST = false;
   XOnlyAnalysis = false;
   isPedFile = false; 
@@ -83,7 +85,8 @@ void AdmixOptions::Initialise(){
   RegType = None;
   GlobalRho = true;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true;//hierarchical model on ind admixture
-  MLIndicator = false;//calculate marginal likelihood
+  MLIndicator = false;//calculate marginal likelihood by Chib method
+  anneal = 0;
   AnnealedRuns = 1;
   ScoreTestIndicator = false; //indicator for any of the score tests in ScoreTests class
   TestForAdmixtureAssociation = false;
@@ -122,7 +125,7 @@ void AdmixOptions::Initialise(){
   OptionValues["samples"] = "1100";
   OptionValues["every"] = "100";
   OptionValues["targetindicator"] = "0";
-  OptionValues["coutindicator"] = "1";
+  OptionValues["displaylevel"] = "2";
   OptionValues["fixedallelefreqs"] = "0";
   OptionValues["correlatedallelefreqs"] = "0";
   OptionValues["logfile"] = "log.txt";
@@ -229,10 +232,12 @@ int AdmixOptions::getTargetIndicator() const
 {
   return TargetIndicator;
 }
-
-int AdmixOptions::useCOUT() const
+bool AdmixOptions::isParallel()const{
+  return parallel;
+}
+int AdmixOptions::getDisplayLevel() const
 {
-  return use_cout;
+  return displayLevel;
 }
 
 bool AdmixOptions::getScoreTestIndicator() const
@@ -330,8 +335,8 @@ bool AdmixOptions::getIndAdmixHierIndicator() const{
 bool AdmixOptions::getMLIndicator()const{
   return MLIndicator;
 }
-bool AdmixOptions::getAnnealIndicator()const{
-  return (AnnealedRuns > 1);
+int AdmixOptions::getAnnealIndicator()const{
+  return anneal;
 }
 int AdmixOptions::getNumberOfAnnealedRuns()const{
   return AnnealedRuns;
@@ -678,12 +683,14 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"likratiofilename",                       1, 0,  0 }, // string
 
     // Other options
+    {"parallel",                              1, 0,  0 }, // int 0: 1
     {"coutindicator",                         1, 0, 'c'}, // int 0: 1
+    {"displaylevel",                          1, 0,  0 }, // int 0: 2
     {"randommatingmodel",                     1, 0,  0 }, // int 0: 1
     {"globalrho",                             1, 0,  0 }, // int 0: 1
     {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
     {"marglikelihood",                        1, 0,  0 }, // int 0: 1
-    {"anneal",                                1, 0,  0 }, // int 1 or greater
+    {"anneal",                                1, 0,  0 }, // int 0, 1 or 2
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
@@ -726,7 +733,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       break;
 
     case 'c': // coutindicator
-      { use_cout = (int)strtol(optarg, NULL, 10);OptionValues["coutindicator"]=optarg;}
+      { if((int)strtol(optarg, NULL, 10)==0)displayLevel = 0;
+	OptionValues["displaylevel"]=optarg;}
       break;
 
     case 'e': // ergodicaveragefile
@@ -768,11 +776,13 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       exit(1);
 
     case 0:
-      // ** output files **
-      if(long_option_name == "resultsdir"){
-	 ResultsDir = optarg;OptionValues["resultsdir"]=optarg;
+      if(long_option_name == "displaylevel"){
+	displayLevel = (int)strtol(optarg, NULL, 10);OptionValues["displaylevel"]=optarg;
+	// ** output files **
+      }else if(long_option_name == "resultsdir"){
+	ResultsDir = optarg;OptionValues["resultsdir"]=optarg;
       }else if (long_option_name == "regparamfile") {
-	 RegressionOutputFilename = optarg;OptionValues["regparamfile"]=optarg;
+	RegressionOutputFilename = optarg;OptionValues["regparamfile"]=optarg;
       }else if (long_option_name == "dispparamfile") {
 	 EtaOutputFilename = optarg; OptionValues["dispparamfile"]=optarg;
       }else  if (long_option_name == "admixturescorefile") {
@@ -857,11 +867,12 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	  IndAdmixHierIndicator = false;OptionValues["indadmixhiermodel"]="0";
 	}
       }else if (long_option_name == "marglikelihood") {
-	if (strtol(optarg, NULL, 10) == 1) {
-	  MLIndicator = true;OptionValues["marglikelihood"]="1";
+	if(strtol(optarg, NULL, 10)==1){
+	  MLIndicator = true; OptionValues["marglikelihood"]=optarg;
 	}
       }else if (long_option_name == "anneal") {
-	  AnnealedRuns = strtol(optarg, NULL, 10);OptionValues["anneal"]=optarg;
+	if(strtol(optarg, NULL, 10)==1){anneal = 1; AnnealedRuns = NUMBEROFANNEALEDRUNS; OptionValues["anneal"]=optarg;}
+	else if(strtol(optarg, NULL, 10)==2){anneal = 2; AnnealedRuns = NUMBEROFANNEALEDRUNS;OptionValues["anneal"]=optarg;}
       }else if (long_option_name == "globalrho") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  GlobalRho = true;OptionValues["globalrho"]="1";
@@ -903,7 +914,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 initalpha[0] = CstrToVec2(optarg);OptionValues["initalpha0"]=optarg;
       } else if (long_option_name == "initalpha1") {
 	 initalpha[1] = CstrToVec2(optarg);OptionValues["initalpha1"]=optarg;
-
+      } else if (long_option_name == "parallel") {
+	if (strtol(optarg, NULL, 10) == 1) {parallel=true; OptionValues["parallel"]=optarg;}
+	else parallel = false;
       } else {
 	cerr << "Unknown option: " << long_option_name;
 	if (optarg) {
@@ -1235,7 +1248,9 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   }
   if(AnnealedRuns > 1){
     if(AnnealedRuns%2)AnnealedRuns += 1;//in case 'anneal' is odd
-    Log << "\nUsing " << AnnealedRuns << " annealed runs to estimate marginal likelihood\n\n";
+    Log << "\nUsing " << AnnealedRuns << " annealed runs to estimate marginal likelihood";
+    if(anneal == 1)Log << "for all individuals\n\n";
+    else if(anneal == 2)Log << "for first individual\n\n"; 
    }
 
   return 1;

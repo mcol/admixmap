@@ -92,8 +92,9 @@ public:
   unsigned int getgenotypesSexColumn() const;
   void setgenotypesSexColumn(unsigned int i);
   
-  //indicators and model options  
-  int useCOUT() const;
+  //indicators and model options
+  bool isParallel()const;  
+  int getDisplayLevel() const;
   bool getFixedAlleleFreqs() const;
   bool getCorrelatedAlleleFreqs() const;
   bool isRandomMatingModel() const;
@@ -103,7 +104,7 @@ public:
   bool isGlobalRho() const;
   bool getIndAdmixHierIndicator() const;
   bool getMLIndicator() const;
-  bool getAnnealIndicator() const;
+  int getAnnealIndicator() const;
   int getNumberOfAnnealedRuns() const;
   double getTruncPt() const;  
   int getPopulations() const; 
@@ -158,14 +159,13 @@ private:
   long TotalSamples;
   long SampleEvery;
   long Seed;
-  //int AnalysisTypeIndicator;
   int NumberOfOutcomes;
   RegressionType RegType;
   int TargetIndicator;
   double TruncPt;
   int Populations;
-
-  int use_cout;
+  bool parallel;//indicator for parallel version
+  int displayLevel;
   bool OutputFST;
   bool XOnlyAnalysis;
   bool isPedFile;
@@ -178,6 +178,7 @@ private:
   bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool MLIndicator;//calculate marginal likelihood 
+  int anneal;//calculate marginal likelihood using simulated annealing
   int AnnealedRuns;
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
   bool TestForAdmixtureAssociation;
