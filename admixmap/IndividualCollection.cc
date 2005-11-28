@@ -85,7 +85,7 @@ IndividualCollection::~IndividualCollection()
 
 void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
 				      double rhoalpha, double rhobeta, LogWriter &Log, const DataMatrix &MLEMatrix){
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
     Log << "Writing individual-level parameters to " << options->getIndAdmixtureFilename() <<"\n";
@@ -349,7 +349,7 @@ void IndividualCollection::UpdateSumResiduals(){
 void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
 				  const vector<vector<double> > &alpha, double globalrho,
-				  double rhoalpha, double rhobeta, LogWriter &Log, bool anneal=false){
+				  double rhoalpha, double rhobeta, LogWriter &Log, double coolness, bool anneal=false){
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
@@ -363,6 +363,8 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   for(unsigned int i = 0; i < NumInd; i++ ){
     int prev = i-1;
     if(i==0)prev = NumInd-1;
+    if(anneal && options->getAnnealIndicator()==1 && i==0)
+      Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
 
     if( options->getPopulations() > 1 ){
       _child[i]->SampleParameters(i, SumLogTheta, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
@@ -384,6 +386,8 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     else{//single population 
       _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, chrm, A);
     }   
+    if(anneal && options->getAnnealIndicator()==1 && i==0)
+      Chromosome::setCoolness(1.0);//reset coolness 
 
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
       _child[i]->Chib(iteration, &SumLogLikelihood, &(MaxLogLikelihood[i]),
@@ -625,6 +629,15 @@ double IndividualCollection::getModifiedLogLikelihood(const AdmixOptions* const 
   double LogL = 0.0;
   Chromosome::setCoolness(1.0);
 
+  if(options->getAnnealIndicator()==2){
+    int prev = NumInd-1;
+    _child[0]->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
+    LogL += _child[0]->getLogLikelihood(options, C);
+    if(NumInd > 1)_child[prev]->HMMIsBad(false);
+    if(coolness < 1.0)_child[0]->HMMIsBad(true);
+  }
+  else if(options->getAnnealIndicator()==1){
+
   for(unsigned i = 0; i < NumInd; ++i){
     int prev = i-1;
     if(i==0)prev = NumInd-1;
@@ -634,6 +647,7 @@ double IndividualCollection::getModifiedLogLikelihood(const AdmixOptions* const 
     if(coolness < 1.0)_child[i]->HMMIsBad(true);
   }
   Chromosome::setCoolness(coolness);
+  }
   return LogL;
 }
 

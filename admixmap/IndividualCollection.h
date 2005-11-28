@@ -57,7 +57,7 @@ public:
   void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
 	      const std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
-	      LogWriter &Log, bool anneal);
+	      LogWriter &Log, double coolness, bool anneal);
 
   void ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
 				   const AdmixOptions* const options, Chromosome **chrm, 
