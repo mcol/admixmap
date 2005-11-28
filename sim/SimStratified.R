@@ -1,3 +1,30 @@
+## Load the R MPI package if it is not already loaded
+if (!is.loaded("mpi_initialize")) { 
+#  library("Rmpi") 
+} 
+
+## Spawn as many slaves as possible 
+#mpi.spawn.Rslaves() 
+## In case R exits unexpectedly, have it automatically clean up 
+## resources taken up by Rmpi (slaves, memory, etc...) 
+.Last <- function() { 
+  if (is.loaded("mpi_initialize")) { 
+    if (mpi.comm.size(1) > 0){ 
+      print("Please use mpi.close.Rslaves() to close slaves.") 
+      mpi.close.Rslaves() 
+    } 
+    print("Please use mpi.quit() to quit R")
+    .Call("mpi_finalize") 
+  } 
+} 
+
+## Tell all slaves to return a message identifying themselves 
+#mpi.remote.exec(paste("I am",mpi.comm.rank(),"of",mpi.comm.size()))
+
+## Tell all slaves to close down, and exit the program 
+#mpi.close.Rslaves() 
+#mpi.quit()
+
 ## script to simulate data from stratified population for admixmap
 #######################################################################
 simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
@@ -231,7 +258,7 @@ numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 N <- 500
-numsims <- 100
+numsims <- 10
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
