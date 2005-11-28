@@ -142,7 +142,7 @@ InputData::~InputData()
 
 void InputData::readData(AdmixOptions *options, LogWriter &Log)
 {
-  Log.setDisplayMode(IfCOUT);
+  Log.setDisplayMode(Quiet);
   try
     {
       // Read all input files.
@@ -191,6 +191,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   CheckAlleleFreqs(options, Log);
   
   if(NumIndividuals > 1){
+    Log.setDisplayMode(Quiet);
     Log << NumIndividuals << " individuals\n";
   }
 }

@@ -33,12 +33,13 @@ void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter 
 
   //NumInd = nind;
   NumLoci = nloci;
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
 
   if( options->getHWTestIndicator() ){//not really necessary
     if ( strlen( options->getHWTestFilename() ) ){
       outputfile.open( options->getHWTestFilename(), ios::out );
       if( !outputfile ){
+	Log.setDisplayMode(Quiet);
 	Log << "ERROR: Couldn't open hwtestfile\n";
 	exit( 1 );}
       else {

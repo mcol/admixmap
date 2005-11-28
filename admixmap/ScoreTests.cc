@@ -104,7 +104,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
   individuals = indiv;
   chrm = c;
   Lociptr = Loci;
-  Log.setDisplayMode(IfCOUT);
+  Log.setDisplayMode(Quiet);
 
   int K = options->getPopulations();
   int L = Lociptr->GetNumberOfCompositeLoci();

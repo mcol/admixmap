@@ -42,7 +42,7 @@ void DispersionTest::Initialise(const AdmixOptions* const op, LogWriter &Log, in
   divergentallelefreqstest = alloc2D_i(NumberOfCompositeLoci + 1, NumberOfPopulations );
   
   if( options->getTestForDispersion() ){
-    Log.setDisplayMode(IfCOUT);
+    Log.setDisplayMode(Quiet);
     Log << "Writing dispersion test results to " << options->getDispersionTestFilename() << "\n";
     dispersionoutputstream.open( options->getDispersionTestFilename(), ios::out );
     if( !dispersionoutputstream ){

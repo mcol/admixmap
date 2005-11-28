@@ -26,6 +26,8 @@
 #include <math.h>
 #include <numeric>
 
+//#define DEBUGETA 1
+
 AlleleFreqs::AlleleFreqs(Genome *pLoci){
   eta = 0;
   psi = 0;
@@ -176,7 +178,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 
     // ** Settings for random walk sampler
     w = 1;
-    etastep0 = 0.3; // sd of proposal distribution for log eta
+    etastep0 = 0.1; // sd of proposal distribution for log eta
     etastep = new double[ dim ];
     for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
     NumberOfEtaUpdates = 0;
@@ -498,11 +500,14 @@ void AlleleFreqs::Update(bool afterBurnIn){
   // Metropolis random-walk.
   if(  IsHistoricAlleleFreq){ 
     NumberOfEtaUpdates++;
-    for( int k = 0; k < Populations; k++ )SampleEtaWithRandomWalk(k, afterBurnIn);
+    for( int k = 0; k < Populations; k++ ){
+      SampleEtaWithRandomWalk(k, afterBurnIn);
+    }
   }
   else if(CorrelatedAlleleFreqs){
     NumberOfEtaUpdates++;
     SampleEtaWithRandomWalk(0, afterBurnIn);
+    //if(!(NumberOfEtaUpdates % 100))TuneEtaSampler[0].Reset();
   }
   
   if( afterBurnIn && IsHistoricAlleleFreq ){
@@ -753,7 +758,8 @@ void AlleleFreqs::SamplePriorAlleleFreqs(){
 }
 
 void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
-  double etanew, LogPostRatio, AccProb;
+  double etanew, LogPostRatio = 0.0, LogLikelihoodRatio = 0.0, LogPriorRatio = 0.0, AccProb = 0.0;
+  double Denom = 0.0;
   double mineta = 0;
   vector< vector<double> > munew;
   // propose etanew from truncated log-normal distribution.
@@ -761,11 +767,9 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
     etanew = exp( gennor( log( eta[k] ), etastep[k] ) );
   }while( etanew > 5000.0 );
   // Prior log-odds ratio (proposal ratio cancels with a part of the prior ratio)   
-  LogPostRatio = ( psi[k] - 1 ) * (log(etanew) - log(eta[k]))
-    - tau[k] * ( etanew - eta[k] );
+  LogPriorRatio = ( psi[k] - 1 ) * (log(etanew) - log(eta[k])) - tau[k] * ( etanew - eta[k] );
   // Log-likelihood ratio; numerator of integrating constant
-  LogPostRatio += 2 * NumberOfCompositeLoci
-    * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta[k] ) );
+  LogLikelihoodRatio += 2 * NumberOfCompositeLoci * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( eta[k] ) );
   for(int j = 0; j < NumberOfCompositeLoci; j++ ){
     std::vector<double> mu = GetPriorAlleleFreqs(j,k);
     vector<double>::const_iterator it = min_element(mu.begin(), mu.end());
@@ -783,18 +787,24 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
     const double *SumLogFreqs = GetStatsForEta(j,k);
     for( unsigned l = 0; (int)l < (*Loci)(j)->GetNumberOfStates(); l++ ){
       // Denominator of integrating constant
-      LogPostRatio += 2*(gsl_sf_lngamma( mu[l] ) - gsl_sf_lngamma( munew[j][l] ));
+      Denom += 2*(gsl_sf_lngamma( mu[l] ) - gsl_sf_lngamma( munew[j][l] ));
       // SumLogFreqs = log phi_1 + log phi_2
-      LogPostRatio += (munew[j][l] - mu[l])*SumLogFreqs[l];
+      Denom += (munew[j][l] - mu[l])*SumLogFreqs[l];
     }
     delete[] SumLogFreqs;
   }
-  
+  LogPostRatio = LogPriorRatio + LogLikelihoodRatio + Denom;
   // Log acceptance probability = Log posterior ratio since the
   // proposal ratio (log-normal) cancels with prior.
   if(LogPostRatio > 0.0)LogPostRatio = 0.0;
   AccProb = 0.0; 
-  if(mineta < etanew )AccProb = exp(LogPostRatio);
+  if(mineta < etanew )AccProb = xexp(LogPostRatio);
+
+#ifdef DEBUGETA
+  cout<< "eta["<<k<<"] = "<< eta[k]<<" eta* = "<<etanew<< " stepsize = "<<etastep[k]<<endl;
+  cout << "LogPriorRatio= "<< LogPriorRatio <<" LogLikelihoodRatio= " << LogLikelihoodRatio <<endl
+       << "Denom = "<< Denom<< " AccProb= exp("<<LogPostRatio<<") = "<< AccProb<<endl<<endl;
+#endif
   
   // Acceptance test.
   if( log( myrand() ) < LogPostRatio && mineta < etanew ){
@@ -962,7 +972,7 @@ void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWrite
 	}
       }
     //output to screen
-    if( options->useCOUT() )
+    if( options->getDisplayLevel()>1 )
       {
 	for( int j = 0; j < Populations; j++ ){
 	  cout.width(9);
@@ -982,7 +992,7 @@ void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWrite
   else if(CorrelatedAlleleFreqs){
     
     //output to logfile
-    if( !options->useCOUT() || iteration == -1 )
+    if( iteration == -1 )
       {
 	Log.setDisplayMode(Off);
 	Log.setPrecision(6);
@@ -990,7 +1000,7 @@ void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWrite
 	Log << eta[0];
       }
     //output to screen
-    if( options->useCOUT() )
+    if( options->getDisplayLevel()>1 )
       {
 	cout.width(9);
 	cout << setprecision(6) << eta[0] << " ";

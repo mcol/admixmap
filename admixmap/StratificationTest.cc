@@ -16,6 +16,7 @@ StratificationTest::StratificationTest()
 void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci, const Chromosome* const* Chr, 
 				     const IndividualCollection* const IC, LogWriter &Log )
 {
+  Log.setDisplayMode(Quiet);
   if(options->getStratificationTest() ){
     float DistanceFromLast = 0;
     //OLD CODE
@@ -70,8 +71,8 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
       }
     }
     
-    Log.setDisplayMode(On);
     if( NumberOfTestLoci < 2 ){
+      Log.setDisplayMode(On);
       Log << "Too few unlinked loci to run stratification test\n";
       options->setStratificationTest(false);
     }
@@ -87,7 +88,6 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
     }
   }
   else{
-    Log.setDisplayMode(On);
     Log << "No test for residual population stratification.\n";
   }
 }

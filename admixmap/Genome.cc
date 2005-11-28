@@ -269,7 +269,7 @@ void Genome::SetSizes(LogWriter &Log){
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     TotalLoci += TheArray[i]->GetNumberOfLoci();
   }
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
   Log << "\n" << TotalLoci << " simple loci\n"
       << NumberOfCompositeLoci << " compound loci; "
       << NumberOfChromosomes << " chromosomes\n";

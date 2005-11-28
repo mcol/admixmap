@@ -97,6 +97,7 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
       exit( 1 );
      }
     else{
+      Log.setDisplayMode(Quiet);
       Log << "Writing score tests for mis-specified allele frequencies(1) to " << options->getAlleleFreqScoreFilename() << "\n";
       allelefreqscorestream << "structure(.Data=c(" << endl;
     }
@@ -128,6 +129,7 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
        exit( 1 );
     }
      else{
+       Log.setDisplayMode(Quiet);
        Log << "Writing score tests for mis-specified allele frequencies(2) to " << options->getAlleleFreqScoreFilename2() << "\n";
        allelefreqscorestream2 << "structure(.Data=c(" << endl;
      }

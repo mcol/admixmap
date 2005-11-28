@@ -144,10 +144,12 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     
     // ** Open paramfile **
     if ( options->getIndAdmixHierIndicator()){
+      Log.setDisplayMode(Quiet);
       if( strlen( options->getParameterFilename() ) ){
 	outputstream.open( options->getParameterFilename(), ios::out );
 	if( !outputstream )
 	  {
+	    Log.setDisplayMode(On);
 	    Log << "ERROR: Couldn't open paramfile\n";
 	    exit( 1 );
 	  }
@@ -198,32 +200,15 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
          AlphaParameters[1] += alpha[0][ j ];
       }
 #elif POPADMIXSAMPLER == 2
-//       if((iteration %2)){//even-numbered iterations
-// 	//sample mu conditional on sum of ancestry states where jump indicator==1
-// 	unsigned I = individuals->getSize();
-// 	unsigned K = options->getPopulations();
-// 	for(unsigned i = 0; i < I; ++i){
-// 	  int *SLA_ind = individuals->getIndividual(i)->getSumLocusAncestry();
-// 	  for(unsigned k = 0; k < K; ++k)
-// 	    SumLocusAncestry[k*I + i] = SLA_ind[k];	  
-// 	}
-// 	PopAdmixSampler.Sample2( obs, individuals->getSumLogTheta(), &eta, mu, SumLocusAncestry );
-//       }
-//       else//odd-numbered iterations; sample mu conditional on individual admixture proportions
+      //sample mu conditional on individual admixture proportions
       PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &eta, mu );
-
-
       for( int j = 0; j < options->getPopulations(); j++ )
          alpha[0][j] = mu[j]*eta;
       
 #elif POPADMIXSAMPLER == 3
-      //for( int j = 0; j < options->getPopulations(); j++ ){
-      //AlphaArgs[0][j] = individuals->getSumLogTheta(j);
-      //}
       AlphaArgs.sumlogtheta = individuals->getSumLogTheta();
       AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
       transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
-      //cout<<"eta = "<<accumulate(alpha[0].begin(), alpha[0].end(), 0.0, std::plus<double>())<<endl;
 #endif
       
 
@@ -383,7 +368,7 @@ void Latent::OutputParams(int iteration, LogWriter &Log){
 	Log << rho;
     }
   //output to screen
-  if( options->useCOUT() )
+  if( options->getDisplayLevel()>1 )
     {
       OutputParams(&cout);
     }

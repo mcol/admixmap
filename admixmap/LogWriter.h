@@ -27,9 +27,9 @@
 #include <iostream>
 #include <iomanip>
 
-enum DisplayMode {Off, IfCOUT, On};
+enum DisplayMode {Off, Quiet, On};
 //set DisplayMode to Off to output only to logfile and not screen
-//                   IfCOUT        to logfile and if cout=1 to screen
+//                   Quiet        to logfile and if cout=1 to screen
 //                   On            to logfile and to screen
 //EXAMPLES:
 //(1) to write to logfile only (logging messages):
@@ -37,13 +37,13 @@ enum DisplayMode {Off, IfCOUT, On};
 //(2) to write to log and screen (important messages):
 //setDisplayMode(On); Log<<message;
 // (3) to write to log and let cout determine whether to write to screen (unimportant information)
-//setDisplayMode(IfCOUT); Log<<message;
+//setDisplayMode(Quiet); Log<<message;
 
 class LogWriter
 {
 public:
   LogWriter();
-  LogWriter(const char *LogFilename, const bool useCout);
+  LogWriter(const char *LogFilename, const bool isverbose);
   ~LogWriter();
 
   void setDisplayMode(DisplayMode);
@@ -63,7 +63,7 @@ public:
 
 private:
   std::ofstream LogFileStream;
-  bool useCOUTOption;
+  bool verbose;
   long StartTime;
   DisplayMode toscreen;
 };

@@ -43,7 +43,7 @@ Regression::~Regression(){
 void Regression::OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 				const std::string* const PopulationLabels, LogWriter &Log){
   //Open paramfile
-  if ( options->getIndAdmixHierIndicator()){ 
+  if ( options->getIndAdmixHierIndicator() && options->getNumberOfOutcomes()>0){ 
     if ( strlen( options->getRegressionOutputFilename() ) ){
       outputstream.open( options->getRegressionOutputFilename(), ios::out );
       if( !outputstream )
@@ -53,7 +53,7 @@ void Regression::OpenOutputFile(const AdmixOptions* const options, const Individ
 	  exit( 1 );
 	}
       else{
-	Log.setDisplayMode(IfCOUT);
+	Log.setDisplayMode(Quiet);
 	Log << "Writing regression parameters to " << options->getRegressionOutputFilename() << "\n";
 	InitializeOutputFile(options, individuals, PopulationLabels);
       }
@@ -283,7 +283,7 @@ void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &L
 	}
     }
   //output to screen
-  if( options->useCOUT() )
+  if( options->getDisplayLevel()>1 )
     {
       if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << " ";
       OutputParams(&cout);

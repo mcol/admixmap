@@ -27,13 +27,13 @@ LogWriter::LogWriter(){
   toscreen = On;
 }
 
-LogWriter::LogWriter(const char *LogFilename, const bool useCout){
+LogWriter::LogWriter(const char *LogFilename, const bool isverbose){
   LogFileStream.open(LogFilename, ios::out );
   if(!LogFileStream.is_open()){
     cerr << "ERROR: unable to open logfile"<<endl;
     exit(1);
   }
-  useCOUTOption = useCout;
+  verbose = isverbose;
   toscreen = On;
 }
 
@@ -48,42 +48,42 @@ void LogWriter::setDisplayMode(DisplayMode d){
 // ** Overloaded stream insertion operators, write to log and screen, unless DisplayMode switched off
 LogWriter& LogWriter::operator<<(const int message){
   LogFileStream << message;
-  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+  if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const unsigned message){
   LogFileStream << message;
-  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+  if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const long message){
   LogFileStream << message;
-  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+  if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const double message){
   LogFileStream << message;
-  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+  if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const string message){
   LogFileStream << message;
-  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+  if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const char* message){
   LogFileStream << message;
-  if(toscreen==On || (useCOUTOption && toscreen==IfCOUT)){
+  if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
   return *this;
