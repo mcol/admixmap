@@ -294,7 +294,7 @@ int main( int argc , char** argv ){
       IC->OutputDeviance(&options, chrm, R, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
 
       if(options.getAnnealIndicator()){
-	Log<< "Log Marginal Likelihood from simulated annealing: "
+	Log<< "EstimatedLogMarginalLikelihood: "
 	   <<  marg_L / (double)(3*options.getNumberOfAnnealedRuns())
 	//<< "\nwith standard error of " 
 	<< "\n";

@@ -2,8 +2,10 @@
 #include <cassert>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
+#include "gsl/gsl_sf_exp.h"
 #include <numeric>
 #include <iostream>
+#include <gsl/gsl_math.h>
 
 using namespace::std;
 
@@ -536,7 +538,10 @@ double xlog(double x){
   return log(x);
 }
 double xexp(double x){
-  return exp(x);
+  double res = 0.0;
+  if(x < GSL_LOG_DBL_MIN)res = exp(x);
+  else res = gsl_sf_exp(x);
+  return res;
 }
 
 void print_vector(std::vector<double> a){
