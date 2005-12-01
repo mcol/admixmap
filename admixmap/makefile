@@ -40,6 +40,8 @@ PGCCFLAGS = $(PROC) $(DFLAGS)#         pgCC
 ## Library flags
 LIBS = -lm -static -lgsl -lgslcblas# serial version
 #LIBS = -lm -lgsl -lgslcblas -lmpich# parallel version
+LFLAGS = #-L/usr/local/lib
+INCLUDES = #-I/usr/local/include
 
 ## ** 
 CPPFLAGS = $(GNUFLAGS)
