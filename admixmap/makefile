@@ -1,48 +1,54 @@
 # makefile for compiling ADMIXMAP
+# edit to suit your system by commenting/uncommenting lines (with #)
 
+## ** Choose your preferred compiler
 CXX  = g++ # GNU compiler, all machines
 #CXX = icpc# Intel compiler for Hamilton
 #CXX = pgCC# Portland Group compiler, for Walton
+#CXX = mpiCC#
 
-DISTDIR			= ../test/admixmap-linux
-WINDISTDIR		= ../test/admixmap-win
-LIBS			= -lm -static -lgsl -lgslcblas
-EXEC = ../test/admixmap #where to put compiled exec
+## **Destination details
+DESTDIR = ../test# where to put compiled exec
+EXEC = admixmap# name of compiled executable
+DISTDIR			= $(DESTDIR)/admixmap-linux#directory for Linux distribution
+WINDISTDIR		= $(DESTDIR)/admixmap-win#  directory for Windows distribution
 
-#  g++ processor architecture flags
-I686FLAGS    = -march=i686 
-P4FLAGS      = -march=pentium4 -mfpmath=sse
-X86_64FLAGS  = -march=athlon64
-K8FLAGS      = -march=k8#Walton
-ITANIUMFLAGS = -mcpu=itanium2#Hamilton 
+## processor architecture flags
+## ** change this to your processor type
+## g++
+PROC = -march=i686# I686
+#PROC = -march=pentium4 -mfpmath=sse # Pentium4
+#PROC = -march=athlon64
+#PROC = -march=k8# Walton, g++
+## icpc
+#PROC = -mcpu=itanium2#Hamilton (default)
+## pgCC
+#PROC = -tp amd64# Walton
 
-ifeq ($(CXX), g++)
-LFLAGS = #path to extra libs
-INCLUDES = #path to extra header files
-PROC = $(I686FLAGS)
-WFLAGS = -W -Wall #Warning flags
-endif 
-ifeq ($(CXX),pgCC)#Walton Flags
-PROJDIR = /ichec/work/gsl#path to gsl
-LFLAGS = -L$(PROJDIR)/lib
-INCLUDES = -I$(PROJDIR)/include
-PROC = -tp amd64
-WFLAGS = 
-endif
-ifeq ($(CXX),icpc)#Hamilton flags
-LFLAGS = -L/usr/local/lib#gsl libraries
-INCLUDES = -I/usr/local/include#gsl headers
-WFLAGS = -w0#w0 for errors but no warnings, w1 for warnings too, w2 for comments
-PROC = #-mcpu=itanium2 #default option
-endif
 
-# flags for release version, debug version or profiling version
-DFLAGS 		= -O3# release
+## ** flags for release version, debug version or profiling version
+DFLAGS 		= -O3# release, optimized
 #DFLAGS 	= -g# debug
 # DFLAGS 	= -pg -O3# profiling
 
-CXXFLAGS	= 
-CPPFLAGS	= $(WFLAGS) $(PROC) $(DFLAGS)
+## **compiler/linker flags
+GNUFLAGS = -W -Wall $(PROC) $(DFLAGS)# g++ compiler
+ICPCFLAGS = -w0 $(DFLAGS)#             icpc
+MPICCFLAGS = -w0 $(DFLAGS)#            mpiCC
+PGCCFLAGS = $(PROC) $(DFLAGS)#         pgCC
+
+## Library flags
+LIBS = -lm -static -lgsl -lgslcblas# serial version
+#LIBS = -lm -lgsl -lgslcblas -lmpich# parallel version
+
+## ** 
+CPPFLAGS = $(GNUFLAGS)
+#CPPFLAGS = $(ICPCFLAGS)
+#CPPFLAGS = $(MPICCFLAGS)
+#CPPFLAGS = $(PGCCFLAGS)
+
+
+## DO NOT EDIT BELOW HERE ##
 
 objects		= rand_serial.o admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o \
 AdaptiveRejection.o StepSizeTuner.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o \
@@ -51,39 +57,41 @@ MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o String
 DirichletParamSampler.o HamiltonianMonteCarlo.o DataMatrix.o MuSampler.o DispersionSampler.o
 
 all:  	$(objects)
-	$(CXX) $(CPPFLAGS) -o $(EXEC) $(objects) $(LFLAGS) $(LIBS)
+	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
 
 %.o: %.cc#rule for compilation
 	$(CXX) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
 
 again: 		clean all
 
+parallel:#TODO 
+
 clean:		          
 	rm -f *.o
 
 realclean: 
 	rm -f *.o 
-	rm -f $(EXEC)
+	rm -f $(DESTDIR)/$(EXEC)
 
 check:		all
-		perl ../test/batchtest.pl
+		perl $(DESTDIR)/batchtest.pl
 
 #Compile  for Linux and repackage distribution with new exec
 linuxdist:      all
-		cp ../test/admixmap $(DISTDIR)
-		rm -f ../test/$(DISTDIR).tar.gz
-		tar -czf admixmap.tar.gz ../test/$(DISTDIR)
+		cp $(DESTDIR)/$(EXEC) $(DISTDIR)
+		rm -f $(DESTDIR)/$(EXEC).tar.gz
+		tar -czf $(EXEC).tar.gz $(DISTDIR)
 
 #Compile for Windows and prepare to repackage
 #Zipping cannot be done in Windows from command line unless a special zip app installed (eg Winzip, AlZip etc)
 windist:	all
-		cp ../test/admixmap.exe $(WINDISTDIR)
-		rm -f ../test/$(WINDISTDIR).zip
+		cp $(DESTDIR)/$(EXEC).exe $(WINDISTDIR)
+		rm -f $(DESTDIR)/$(EXEC).zip
 ## ALZip
-		alzip -a ../test/$(WINDISTDIR) ../test/admixmap.zip
+		alzip -a $(WINDISTDIR) $(DESTDIR)/$(EXEC).zip
 ## WinZip
 #		??
 ## pkzip
-# 		pkzip admixmap.zip ../test/$(WINDISTDIR)
+# 		pkzip $(EXEC).zip $(WINDISTDIR)
 
 
