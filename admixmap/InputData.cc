@@ -177,7 +177,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   NumCompositeLoci = determineNumberOfCompositeLoci();
   NumIndividuals = getNumberOfIndividuals();
 
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
   checkLocusFile(options->getgenotypesSexColumn());

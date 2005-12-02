@@ -85,7 +85,7 @@ void Regression::InitializeOutputFile(const AdmixOptions* const options, const I
 }
 
 void Regression::Initialise(unsigned Number, const IndividualCollection* const individuals, LogWriter &Log){
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
   //set regression number for this object
   RegNumber = Number;
 

@@ -283,10 +283,10 @@ int main( int argc , char** argv ){
       // *************************** END ANNEALING LOOP ******************************************************
 
       // *************************** OUTPUT AT END ***********************************************************
+      if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
+      else Log.setDisplayMode(On);
        if( options.getMLIndicator()){
 	  IC->OutputChibEstimates(Log, options.getPopulations());
-	  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
-	  else Log.setDisplayMode(On);
 	if(IC->getSize()==1)
 	  //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
 	  IC->OutputChibResults(Log);

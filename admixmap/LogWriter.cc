@@ -108,7 +108,7 @@ void LogWriter::StartMessage(){
   LogFileStream << "-----------------------------------------------" << endl;
   *this << "Program started at "
 	<< timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")  << timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "") 
-	<< timer.tm_sec << " " << timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n\n";
+	<< timer.tm_sec << " " << timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
 }
 
 void LogWriter::ProcessingTime()
@@ -118,7 +118,7 @@ void LogWriter::ProcessingTime()
   timer = *localtime( &EndTime );
 
   toscreen = On;
-  *this << "\nProgram finished at " << timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")
+  *this << "Program finished at " << timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")
 	<< timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "")  << timer.tm_sec << " "
 	<< timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
 

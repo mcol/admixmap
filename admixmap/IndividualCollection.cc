@@ -498,7 +498,8 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
   E = SumDeviance / (double) iterations;//ergodic average of deviance
   V = SumDevianceSq / (double)iterations - E*E;//ergodic variance of deviance 
 
-  Log.setDisplayMode(On);
+  if(options->getDisplayLevel()>0)Log.setDisplayMode(On);
+  else Log.setDisplayMode(Off);
   Log << "\nMeanDeviance(D_bar)\t" << E << "\n"
       << "VarDeviance(V)\t" << V << "\n"
       << "PritchardStat(D_bar+0.25V)\t" << E + 0.25 *V << "\n";

@@ -231,7 +231,7 @@ vector<unsigned short> StratificationTest::SampleHeterozygotePhase( const double
 }
 
 void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter &Log){
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
   outputstream.open(OutputFilename, ios::out );
   if( !outputstream ){
     Log << "ERROR: Couldn't open stratificationtestfile" << OutputFilename << "\n";
@@ -243,7 +243,7 @@ void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter 
 }
 
 void StratificationTest::Output(LogWriter &Log){
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
   Log << "\nStratification test: posterior predictive check probability " << (float)T/count << "\n\n";
 }
 

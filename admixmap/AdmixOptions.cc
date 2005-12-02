@@ -990,7 +990,7 @@ void AdmixOptions::PrintOptions(){
 
 int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   // **** analysis type  ****
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
   if (NumberOfIndividuals ==1)
     {
       IndAdmixHierIndicator = false;
@@ -1261,7 +1261,7 @@ void AdmixOptions::setInitAlpha(LogWriter &Log){
   _admixed.resize(2,true);
   _symmetric = true;
   vector<double> alphatemp(Populations);
-  Log.setDisplayMode(On);
+  Log.setDisplayMode(Quiet);
 
   //if no initalpha is specified, alpha for both gametes is initialised to 1.0 for each population  
   if( initalpha[0].size() == 0 && initalpha[1].size() == 0 ){
