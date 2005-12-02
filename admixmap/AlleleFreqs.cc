@@ -972,7 +972,7 @@ void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWrite
 	}
       }
     //output to screen
-    if( options->getDisplayLevel()>1 )
+    if( options->getDisplayLevel()>2 )
       {
 	for( int j = 0; j < Populations; j++ ){
 	  cout.width(9);
@@ -1000,7 +1000,7 @@ void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWrite
 	Log << eta[0];
       }
     //output to screen
-    if( options->getDisplayLevel()>1 )
+    if( options->getDisplayLevel()>2 )
       {
 	cout.width(9);
 	cout << setprecision(6) << eta[0] << " ";

@@ -368,7 +368,7 @@ void Latent::OutputParams(int iteration, LogWriter &Log){
 	Log << rho;
     }
   //output to screen
-  if( options->getDisplayLevel()>1 )
+  if( options->getDisplayLevel()>2 )
     {
       OutputParams(&cout);
     }

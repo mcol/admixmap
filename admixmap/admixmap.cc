@@ -49,8 +49,6 @@ void PrintCopyrightNotice(){
 }
 
 int main( int argc , char** argv ){
-  PrintCopyrightNotice();
-
   int    xargc = argc;
   char **xargv = argv;    
 
@@ -73,8 +71,12 @@ int main( int argc , char** argv ){
   //read user options
   AdmixOptions options(xargc, xargv);
 
+  if(options.getDisplayLevel()>0)
+    PrintCopyrightNotice();
+
   //open logfile, start timer and print start message
-  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>0));
+  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
+  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   Log.StartMessage();
 
   smyrand( options.getSeed() );  // Initialise random number seed
@@ -149,7 +151,7 @@ int main( int argc , char** argv ){
 
       //Write Initial values
       if(options.getIndAdmixHierIndicator()  ){
-	if(options.getDisplayLevel()>1)Log.setDisplayMode(Quiet);
+	if(options.getDisplayLevel()>2)Log.setDisplayMode(Quiet);
 	else Log.setDisplayMode(Off);
 	Log << "InitialParameterValues:\n";
 	OutputParameters(-1, IC, &L, &A, R, &options, Log);
@@ -177,7 +179,7 @@ int main( int argc , char** argv ){
 	//resets for start of each run
 	SumLogL = 0.0;//cumulative sum of modified loglikelihood
 	SumLogLSq = 0.0;//cumulative sum of square of modified loglikelihood
-	if(anneal){
+	if(anneal && options.getDisplayLevel() >0){
 	  cout<<"\rSampling at coolness of "<<coolness;
 	  if(!(ci%10) && ci < options.getNumberOfAnnealedRuns())cout<<"0";
 	  if(ci == options.getNumberOfAnnealedRuns()) {
@@ -281,9 +283,10 @@ int main( int argc , char** argv ){
       // *************************** END ANNEALING LOOP ******************************************************
 
       // *************************** OUTPUT AT END ***********************************************************
-      if( options.getMLIndicator()){
+       if( options.getMLIndicator()){
 	  IC->OutputChibEstimates(Log, options.getPopulations());
-	  Log.setDisplayMode(On);
+	  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
+	  else Log.setDisplayMode(On);
 	if(IC->getSize()==1)
 	  //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
 	  IC->OutputChibResults(Log);
@@ -338,7 +341,8 @@ int main( int argc , char** argv ){
    
   // ******************* acceptance rates - output to screen and log ***************************
   if( options.getIndAdmixHierIndicator() ){
-    Log.setDisplayMode(On);
+    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+    else Log.setDisplayMode(On);
 #if POPADMIXSAMPLER == 2 
     if(options.getPopulations() > 1){
       Log << "Expected acceptance rate in admixture dispersion parameter sampler: "
@@ -389,10 +393,13 @@ int main( int argc , char** argv ){
 #endif
   }
  
+  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   Log.ProcessingTime();
-  cout << "Finished\n";
-  for(unsigned i = 0; i < 80; ++i)cout<<"*";
-  cout<<endl;
+  if(options.getDisplayLevel()>0){
+    cout << "Finished\n";
+    for(unsigned i = 0; i < 80; ++i)cout<<"*";
+    cout<<endl;
+  }
   return 0;
 }//end of main
 
@@ -538,7 +545,7 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     //** new line in logfile
 	if( iteration == 0 ) {Log.setDisplayMode(Off);Log << "\n";}
   }
-  if( options->getDisplayLevel()>1 ) cout << endl;
+  if( options->getDisplayLevel()>2 ) cout << endl;
   if( iteration > options->getBurnIn() ){
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
     if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
@@ -546,12 +553,12 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   }
 }
 void WriteIterationNumber(const int iteration, const int width, int displayLevel){
-  if( displayLevel > 1 ) {
+  if( displayLevel > 2 ) {
     cout << setiosflags( ios::fixed );
     cout.width(width );
     cout << "\r"<< iteration << " ";
   }
-  else if( displayLevel > 0 ){
+  else if( displayLevel > 1 ){
     if(iteration==0)cout<<"Iterations so far:\n";
     cout << "\r"<< iteration<<flush;//displays iteration counter on screen
   }

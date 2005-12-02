@@ -283,7 +283,7 @@ void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &L
 	}
     }
   //output to screen
-  if( options->getDisplayLevel()>1 )
+  if( options->getDisplayLevel()>2 )
     {
       if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << " ";
       OutputParams(&cout);
