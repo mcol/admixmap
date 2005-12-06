@@ -126,8 +126,10 @@ void HMM::UpdateForwardProbsDiploid(const double* const f[], const double* const
   double scaleFactor, Sum;
 
    for(int j = 0; j < States; ++j)
-     //set alpha(0) = StationaryDist * lambda(0) 
-     alpha[j] =  ThetaThetaPrime[j] * pow(lambda[j], coolness);
+     //set alpha(0) = StationaryDist * lambda(0)
+     if(coolness > 1.0) 
+       alpha[j] =  ThetaThetaPrime[j] * pow(lambda[j], coolness);
+     else alpha[j] =  ThetaThetaPrime[j] * lambda[j];
 
    for( int t = 1; t < Transitions; t++ ){        
 
@@ -147,8 +149,10 @@ void HMM::UpdateForwardProbsDiploid(const double* const f[], const double* const
      RecursionProbs(p[t], f2, StateArrivalProbs + t*K*2, alpha + (t-1)*States, alpha + t*States);
      
      for(int j = 0; j < States; ++j){
-       alpha[t*States +j] *= pow(lambda[t*States +j], coolness);
-       
+       if(coolness > 1.0)
+	 alpha[t*States +j] *= pow(lambda[t*States +j], coolness);
+       else
+	 alpha[t*States +j] *= lambda[t*States +j];
      }
    }
 }
