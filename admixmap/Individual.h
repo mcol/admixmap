@@ -209,8 +209,9 @@ private:
 				  double rhoalpha, double rhobeta)const;
 
 
-  void UpdateScoreForLinkageAffectedsOnly(int j, bool ModelIndicator, const Chromosome* const*);
-  void UpdateScoreForAncestry(int j, double phi, double EY, double DInvLink, const Chromosome* const*);
+  void UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0, bool RandomMatingModel, 
+						    const vector<vector<double> > AProbs);
+  void UpdateScoreForAncestry(int locus, double phi, double EY, double DInvLink, const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion);
 };
 

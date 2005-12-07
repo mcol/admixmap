@@ -547,7 +547,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
   SumN[0] = SumN[1] = 0;
   SumN_X[0] = SumN_X[1] = 0;  
   
-  bool calcbackprobs = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
+  bool ancestrytest = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     
     //Update Forward/Backward probs in HMM
@@ -555,22 +555,40 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
       chrm[j]->SetGenotypeProbs(this, false);
       UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
     }
-    if(calcbackprobs)chrm[j]->UpdateHMMBackwardProbs(Theta);//TODO: pass correct theta for haploid case
+    if(ancestrytest && iteration > options->getBurnIn()){
+      chrm[j]->UpdateHMMBackwardProbs(Theta);//TODO: pass correct theta for haploid case
     
-    //update score tests for linkage with ancestry for *previous* iteration
-    if(iteration > options->getBurnIn()){
-      //Update affecteds only scores
+      //update score tests for linkage with ancestry for *previous* iteration
+      bool IamAffected = false;
+
       if( options->getTestForAffectedsOnly()){
 	//determine which regression is logistic, in case of 2 outcomes
 	unsigned col = 0;
 	if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
-	if(options->getNumberOfOutcomes() == 0 || Outcome->get(i, col) == 1)
-	  UpdateScoreForLinkageAffectedsOnly(j, options->isRandomMatingModel(),chrm );
+	//check if this individual is affected
+	if(options->getNumberOfOutcomes() == 0 || Outcome->get(i, col) == 1) IamAffected = true;
       }
-
-      //update ancestry score tests
-      if( options->getTestForLinkageWithAncestry() ){   
-	UpdateScoreForAncestry(j, dispersion, Outcome->get(i, 0) - ExpectedY[0][i], DInvLink,chrm);
+      
+      //we don't bother computing scores for the first population when there are two
+      int KK = Populations,k0 = 0;
+      if(Populations == 2) {KK = 1;k0 = 1;}
+      
+      int locus;
+      for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+	locus = chrm[j]->GetLocus(jj); 
+	//retrieve AncestryProbs from HMM
+	std::vector<std::vector<double> > AProbs = chrm[j]->getAncestryProbs( jj );
+	
+	//Update affecteds only scores      
+	if(IamAffected){
+	  UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, options->isRandomMatingModel(), AProbs );
+	}
+      
+	//update ancestry score tests
+	if( options->getTestForLinkageWithAncestry() ){
+	  UpdateScoreForAncestry(locus, dispersion, Outcome->get(i, 0) - ExpectedY[0][i], DInvLink, AProbs);
+	}
+	++locus;
       }    
     }
 
@@ -1027,7 +1045,8 @@ void Individual::ResetScores(const AdmixOptions* const options){
   }
 }
 
-void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingModel, const Chromosome* const* chrm){
+void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0, bool RandomMatingModel, 
+						    const vector<vector<double> > AProbs){
   // Different from the notation in McKeigue et  al. (2000). McKeigue
   // uses P0, P1, P2, which relate to individual admixture as follows;
   // P0 = ( 1 - theta0 ) * ( 1 - theta1 )
@@ -1038,55 +1057,47 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int j, bool RandomMatingMode
   // real line.  This test is on log r, which should have better
   // asymptotic properties.
 
+  //locus = locus under test
+  //Pops = # populations being tested
+  //k0 = first population
+  //AProbs = conditional probs of ancestry
+
   double r1 = 0.5;
   double r2 = 2.0;//hard-coding these for now, can make them vary later
 
-  //we don't bother computing scores for the first population when there are two
-  int KK = Populations,k1 = 0;
-  if(Populations ==2) {KK = 1;k1 = 1;}
-  
+
   double theta[2];//paternal and maternal admixture proportions
 
   double Pi[3];//probs of 0,1,2 copies of Pop1 given admixture
-  int offset = 0;
-  if(!RandomMatingModel)offset = Populations;
+  //int offset = 0;
+  //if(!RandomMatingModel)offset = Populations;
 
-
-  int locus;
-  for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-    locus = chrm[j]->GetLocus(jj); 
-    //retrieve AncestryProbs from HMM
-    std::vector<std::vector<double> > AProbs = chrm[j]->getAncestryProbs( jj );
-
-    for( int k = 0; k < KK; k++ ){
-      theta[0] = Theta[ k+k1 ];
-      if( RandomMatingModel )
-	theta[1] = Theta[ Populations + k+k1 ];
-      else
-	theta[1] = theta[0];
-      
-      //accumulate score, score variance, and info
-      AffectedsScore[locus *KK + k]+= 0.5*( AProbs[1][k+k1] + 2.0*AProbs[2][k+k1] - theta[0] - theta[1] );
-      AffectedsVarScore[locus * KK + k]+= 0.25 *( AProbs[1][k+k1]*(1.0 - AProbs[1][k+k1]) + 4.0*AProbs[2][k+k1]*AProbs[0][k+k1]); 
-      AffectedsInfo[locus * KK +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
-
-      //probs of 0,1,2 copies of Pop1 given admixture
-      Pi[2] = theta[0] * theta[1];
-      Pi[1] = theta[0] * (1.0 - theta[1]);
-      Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
-
-      //compute contribution to likelihood ratio
-      LikRatio1[locus *KK + k] += (AProbs[0][k+k1] + sqrt(r1)*AProbs[1][k+k1] + r1 * AProbs[2][k+k1]) / 
-	(Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
-      LikRatio2[locus *KK + k] += (AProbs[0][k+k1] + sqrt(r2)*AProbs[1][k+k1] + r2 * AProbs[2][k+k1]) / 
-	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
-    }
+  for( int k = 0; k < Pops; k++ ){
+    theta[0] = Theta[ k+k0 ];
+    if( RandomMatingModel )
+      theta[1] = Theta[ Populations + k+k0 ];
+    else
+      theta[1] = theta[0];
     
-    ++locus;
+    //accumulate score, score variance, and info
+    AffectedsScore[locus *Pops + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
+    AffectedsVarScore[locus * Pops + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
+    AffectedsInfo[locus * Pops +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
+    
+    //probs of 0,1,2 copies of Pop1 given admixture
+    Pi[2] = theta[0] * theta[1];
+    Pi[1] = theta[0] * (1.0 - theta[1]);
+    Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
+    
+    //compute contribution to likelihood ratio
+    LikRatio1[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r1)*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) / 
+      (Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
+    LikRatio2[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) / 
+      (Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
   }
 }
 
-void Individual::UpdateScoreForAncestry(int j, double phi, double YMinusEY, double DInvLink, const Chromosome* const*chrm)
+void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, double DInvLink, const vector<vector<double> > AProbs)
 {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
@@ -1113,37 +1124,32 @@ void Individual::UpdateScoreForAncestry(int j, double phi, double YMinusEY, doub
     BX[k] = Xcov[k] = Theta[ k+1 ];
   }
 
-  int locus; 
-  for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-    locus = chrm[j]->GetLocus(jj);      
-    std::vector<std::vector<double> >AProbs = chrm[j]->getAncestryProbs( jj );//conditional locus ancestry probs      
-    
-    for( int k = 0; k < Populations ; k++ ){
-      Xcopy[k] = X[k] = AProbs[1][k] + 2.0 * AProbs[2][k];//Conditional expectation of ancestry
-      VarA[k] = AProbs[1][k]*(1.0 - AProbs[1][k]) + 4.0*AProbs[2][k]*AProbs[0][k];//conditional variances
-      }
-    //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
-    Xcopy[2*Populations-1] = 1;
-    for( int k = 0; k < Populations-1; k++ )Xcopy[k + Populations] = Theta[ k+1 ];
-
-    // ** compute expectation of score **
-    scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
-    add_matrix(AncestryScore[locus], Xcopy, 2*Populations, 1);//AncestryScore[locus] += Xcopy
- 
-    // ** compute uncorrected info **
-    matrix_product(X, X, XX, 2*Populations, 1, 2*Populations);        //XX = X'X
-    scale_matrix(XX, DInvLink*phi, 2*Populations, 2*Populations);     //XX = DInvLink * phi * X'X
-    add_matrix(AncestryInfo[locus], XX, 2*Populations, 2*Populations);//AncestryInfo[locus] += XX
-
-    // ** compute variance of score and correction term for info **    
-    HH_solve(Populations, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
-    matrix_product(Xcov, BX, xBx, 1, Populations, 1);//xBx = Xcov' * BX
-    for( int k = 0; k < Populations ; k++ ){
-      AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
-      AncestryVarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
-    }
-    ++locus;
-  }//end locus loop
+  
+  for( int k = 0; k < Populations ; k++ ){
+    Xcopy[k] = X[k] = AProbs[1][k] + 2.0 * AProbs[2][k];//Conditional expectation of ancestry
+    VarA[k] = AProbs[1][k]*(1.0 - AProbs[1][k]) + 4.0*AProbs[2][k]*AProbs[0][k];//conditional variances
+  }
+  //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
+  Xcopy[2*Populations-1] = 1;
+  for( int k = 0; k < Populations-1; k++ )Xcopy[k + Populations] = Theta[ k+1 ];
+  
+  // ** compute expectation of score **
+  scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
+  add_matrix(AncestryScore[locus], Xcopy, 2*Populations, 1);//AncestryScore[locus] += Xcopy
+  
+  // ** compute uncorrected info **
+  matrix_product(X, X, XX, 2*Populations, 1, 2*Populations);        //XX = X'X
+  scale_matrix(XX, DInvLink*phi, 2*Populations, 2*Populations);     //XX = DInvLink * phi * X'X
+  add_matrix(AncestryInfo[locus], XX, 2*Populations, 2*Populations);//AncestryInfo[locus] += XX
+  
+  // ** compute variance of score and correction term for info **    
+  HH_solve(Populations, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
+  matrix_product(Xcov, BX, xBx, 1, Populations, 1);//xBx = Xcov' * BX
+  for( int k = 0; k < Populations ; k++ ){
+    AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
+    AncestryVarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
+  }
+  
   delete[] BX;
   delete[] VarA;
 }
