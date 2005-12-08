@@ -16,15 +16,13 @@ WINDISTDIR		= $(DESTDIR)/admixmap-win#  directory for Windows distribution
 ## processor architecture flags
 ## ** change this to your processor type
 ## g++
-PROC = -march=i686# I686
-#PROC = -march=pentium4 -mfpmath=sse # Pentium4
-#PROC = -march=athlon64
-#PROC = -march=k8# Walton, g++
+#PROC = -march=i686  # Intel 686
+PROC = -march=pentium4 -mfpmath=sse # Pentium4
+#PROC = -march=k8  # Walton, g++
 ## icpc
-#PROC = -mcpu=itanium2#Hamilton (default)
+#PROC = -mcpu=itanium2  #Hamilton (default)
 ## pgCC
-#PROC = -tp amd64# Walton
-
+#PROC = -tp amd64  # Walton
 
 ## ** flags for release version, debug version or profiling version
 DFLAGS 		= -O3# release, optimized
@@ -38,10 +36,10 @@ MPICCFLAGS = -w0 $(DFLAGS)#            mpiCC
 PGCCFLAGS = $(PROC) $(DFLAGS)#         pgCC
 
 ## Library flags
-LIBS = -lm -static -lgsl -lgslcblas# serial version
-#LIBS = -lm -lgsl -lgslcblas -lmpich# parallel version
-LFLAGS = #-L/usr/local/lib
-INCLUDES = #-I/usr/local/include
+LIBS = -lm -static -lgsl -lgslcblas  # serial version
+#LIBS = -lm -lgsl -lgslcblas -lmpich # parallel version
+LFLAGS =                             # -L/usr/local/lib
+INCLUDES =                           # -I/usr/local/include
 
 ## ** 
 CPPFLAGS = $(GNUFLAGS)
