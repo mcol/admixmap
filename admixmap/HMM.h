@@ -20,9 +20,9 @@ class HMM
 {
 public:
   HMM();
-  HMM( int inTransitions, int pops, bool isdiploid );
+  HMM( int inTransitions, int pops);
   ~HMM();
-  void SetDimensions( int inTransitions, int pops, bool isdiploid );
+  void SetDimensions( int inTransitions, int pops);
 
   void SetStateArrivalProbs(const double* const f[], const double* const Theta, int Mcol);
   /* samples hidden states */

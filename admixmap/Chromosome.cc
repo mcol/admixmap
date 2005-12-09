@@ -29,15 +29,15 @@ using namespace std;
 
 double Chromosome::coolness = 1;//initialising to 1 samples from posterior by default
 
-Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
+Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false) : Genome(size)
+		      //size = number of comp loci on chromosome
 {
   isChromosome = true;
   _startLocus = start;
   populations = inpopulations;
-  D = populations * populations;
+  isX = isx;
 
-  SampleStates.SetDimensions( size, populations, true );
-
+  SampleStates.SetDimensions( size, populations );
   Lambda = new double[size* populations * populations];
 
   CodedStates = new int[size];
@@ -45,10 +45,9 @@ Chromosome::Chromosome(int size, int start, int inpopulations) : Genome(size)
 
 }
 
-void Chromosome::ResetStuffForX()
+bool Chromosome::isXChromosome()const
 {
-  D = populations;
-  SampleStates.SetDimensions( NumberOfCompositeLoci, populations, false );
+  return isX;
 }
 
 void Chromosome::SetLabel( string label )
@@ -56,7 +55,7 @@ void Chromosome::SetLabel( string label )
    _Label = label;
 }
 
-const string Chromosome::GetLabel( int )const
+const string Chromosome::GetLabel( )const
 {
    return _Label;
 }
@@ -189,7 +188,7 @@ double Chromosome::getLogLikelihood()const
 //samples jump indicators xi for this chromosome, 
 //updates SumLocusAncestry
 void Chromosome::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
-				      int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+				      int *SumLocusAncestry, int *SumLocusAncestry_X, 
 				      unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const{
 
   SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, 

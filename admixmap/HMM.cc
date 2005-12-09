@@ -24,31 +24,9 @@ HMM::HMM()
 //not currently used
 //HMM objects are instantiated in Chromosome using default constructor above
 //and dimensions set by SetDimensions below
-HMM::HMM( int inTransitions, int pops, bool isdiploid )
+HMM::HMM( int inTransitions, int pops)
 {
-  //inTransitions = #transitions +1 = #Loci 
-  //pops = #populations
-  K = pops;
-  States = isdiploid? K*K : K;//K for haploid, K^2 for diploid
-
-  Transitions = inTransitions;
-
-  alpha = new double[Transitions*States];
-  beta =  new double[Transitions*States];
- 
-  sumfactor=0.0;
-  p = new double[Transitions];
-  LambdaBeta = new double[States];
-
-  if(K>2){
-    rowProb = new double[K];
-    colProb = new double[K];
-    Expectation0 = new double[K];
-    Expectation1 = new double[K];
-    rowSum = new double[K];
-    colSum = new double[K];
-    cov = alloc2D_d(K, K);
-  }
+  SetDimensions(inTransitions, pops);
 }
 
 HMM::~HMM()
@@ -68,28 +46,23 @@ HMM::~HMM()
   free_matrix(cov, K);
 }
 
-void HMM::SetDimensions( int inTransitions, int pops, bool isdiploid )
+void HMM::SetDimensions( int inTransitions, int pops)
 {
-  //TODO: delete arrays if already allocated
-  //this will happen for X chromosome
-
   //inTransitions = #transitions +1 = #Loci 
   //pops = #populations
   K = pops;
-  States = isdiploid? K*K : K;//K for haploid, K^2 for diploid
 
   Transitions = inTransitions;
 
-  int d = isdiploid? K:1;  
-  alpha = new double[Transitions*States];
-  beta =  new double[Transitions*States];
+  alpha = new double[Transitions*K*K];
+  beta =  new double[Transitions*K*K];
   
   sumfactor=0.0;
   p = new double[Transitions];
-  LambdaBeta = new double[K*d];
+  LambdaBeta = new double[K*K];
 
   StateArrivalProbs = new double[Transitions * K * 2];
-  ThetaThetaPrime = new double[States];
+  ThetaThetaPrime = new double[K*K];
   if(K>2){
     rowProb = new double[K];
     colProb = new double[K];
@@ -124,6 +97,7 @@ void HMM::UpdateForwardProbsDiploid(const double* const f[], const double* const
 {
   sumfactor = 0.0;
   double scaleFactor, Sum;
+  States = K*K;
 
    for(int j = 0; j < States; ++j)
      //set alpha(0) = StationaryDist * lambda(0)
@@ -201,6 +175,7 @@ void HMM::UpdateForwardProbsHaploid(const double* const f[], const double* const
   sumfactor = 0.0;
   //double factor = 0.0;
   double Sum;
+  States = K;
 
   for(int j = 0; j < States; ++j){
     alpha[j] = Admixture[j] * lambda[j];

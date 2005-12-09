@@ -32,15 +32,15 @@ class AdmixOptions;
 class Chromosome:public Genome
 {
 public:
-  Chromosome(int size,int start, int);
-  void ResetStuffForX();
-  ~Chromosome();
+  Chromosome(int size,int start, int, bool isx);
+   ~Chromosome();
   void SetLabel(std::string );
-  const std::string GetLabel( int )const;
+  const std::string GetLabel( )const;
   int GetLocus(int)const;
   unsigned int GetSize()const;
   void isDiploid(bool b){Diploid = b;};
   bool isDiploid()const{return Diploid;};
+  bool isXChromosome()const;
 
   void InitialiseLociCorr(const double rho);
   void SetLociCorr(const double rho);
@@ -59,15 +59,15 @@ public:
   std::vector<std::vector<double> > getAncestryProbs(int)const;
   double getLogLikelihood()const;
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
-			    int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
+			    int *SumLocusAncestry, int *SumLocusAncestry_X, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const;
 private:
   int _startLocus;
   int populations;
-  int D; 
   std::string _Label;
   HMM SampleStates;
   double *Lambda;
+  bool isX;
   bool Diploid;
   
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci

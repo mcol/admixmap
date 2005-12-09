@@ -108,10 +108,10 @@ void Genome::loadAlleleStatesAndDistances(const AdmixOptions* const options, con
     ++next_line;
     
     const Vector_s& m = data_->getLocusData()[next_line];
-    
+
+    //get chromosome labels from col 4 of locusfile, if there is one    
+    if (m.size() == 4) ChrmLabels.push_back(m[3]);
     //set numbers of alleles and distances for each locus
-    if (m.size() == 4)
-      ChrmLabels.push_back(m[3]);
     TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData.get( i, 0 ) );//sets number of alleles of first locus
     SetDistance( i, locifileData.get( index, 1 ) );//sets distance between locus i and i-1
     //loop through lines in locusfile for current complocus
@@ -147,8 +147,9 @@ Chromosome** Genome::GetChromosomes( int populations)
   int *cstart = new int[NumberOfCompositeLoci];
   int *cfinish = new int[NumberOfCompositeLoci];
   //since we don't know the number of chromsomes yet, these arrays have the maximum number, num. Comp. Loci, as size
+  //TODO: should use vectors and expand as necessary
 
-  int cnum = -1; //number of chromosomes -1
+  int cnum = -1; //cnum = number of chromosomes -1
   int lnum = 0;
   _chrmandlocus.resize(NumberOfCompositeLoci);
   X_data = false;
@@ -172,29 +173,34 @@ Chromosome** Genome::GetChromosomes( int populations)
     cfinish[cnum] = i;//locus number of last locus on currrent chromosome
   }
   
-  double* LengthOfChrm = new double[cnum+1];
   NumberOfChromosomes = cnum +1;
   SizesOfChromosomes = new unsigned int[NumberOfChromosomes];//array to store lengths of the chromosomes
   
   Chromosome **C = new Chromosome*[cnum+1]; 
   //C is an array of chromosome pointers
 
-  for(int i = 0; i <= cnum; i++){//loop over chromsomes
+  for(unsigned i = 0; i < NumberOfChromosomes; i++){//loop over chromsomes
     int size = cfinish[i] - cstart[i] + 1;//number of loci on chromosome i
-    C[i] = new Chromosome(size, cstart[i], populations);
-    //C[i] is a pointer to Chromosome
 
     //set chromosome label
-    stringstream label;
-    string result;
-    //default (if none supplied)
+    string label;
+    //default (if none supplied), numbered in sequence from 1
     if( ChrmLabels.size() == 0 ){
-      label << "\"" << i << "\"";
-      result = label.str();
-      C[i]->SetLabel(result);
+      stringstream labelstr;
+      labelstr << "\"" << i+1 << "\"";
+      label = labelstr.str();
     }
     else
-      C[i]->SetLabel(ChrmLabels[cstart[i]]);
+      label = ChrmLabels[cstart[i]];
+    //determine if X Chromosome
+    bool isX = false;
+    string s1("\"X\""), s2("X");
+    isX = ( (label == s1) || (label == s2));
+
+    C[i] = new Chromosome(size, cstart[i], populations, isX);
+    //C[i] is a pointer to Chromosome
+
+    C[i]->SetLabel(label);
 
     for(int j = 0; j < size; j++){//loop over loci on chromosome
       //assign pointers to composite locus objects
@@ -208,27 +214,23 @@ Chromosome** Genome::GetChromosomes( int populations)
       C[i]->SetDistance(j,GetDistance(cstart[i]+j));
 
       if( j != 0 ){
-	string s1("\"X\""), s2("X");
-	if( C[i]->GetLabel(0) != s1 && C[i]->GetLabel(0) != s2){
+	if( !isX ){
 	  LengthOfGenome += GetDistance(cstart[i]+j);
-	  LengthOfChrm[i] += GetDistance(cstart[i]+j);
 	  //              cout << i << " " << j << " " << GetDistance(cstart[i]+j) << endl;
-	  //NB length of genome and LengthOfChrm do not include X chromosome
+	  //NB length of genome does not include X chromosome
 	}
 	//case of X chromosome
 	else{
 	  LengthOfXchrm += GetDistance(cstart[i]+j);
 	  X_data = true;
-	  C[i]->ResetStuffForX();
 	}
       }
     }
     SizesOfChromosomes[i] = C[i]->GetSize(); 
   }
   
-  delete cstart;
-  delete cfinish;
-  delete[] LengthOfChrm;
+  delete[] cstart;
+  delete[] cfinish;
   return C;
 }
 
