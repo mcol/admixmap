@@ -38,7 +38,6 @@ typedef struct
 class CompositeLocus 
 {
 
-
 public:
   CompositeLocus();
   ~CompositeLocus();
@@ -113,20 +112,23 @@ private:
 
 double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const std::vector<int> AlleleCounts );
 
-inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator)const{
-  for(int k0 = 0; k0 < Populations * Populations; ++k0){
+inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
+  int Ksq = Populations*Populations;
+  double *p;
+  double *q;
+  if(!chibindicator) 
+    p = HapPairProbs;
+  else 
+    p = HapPairProbsMAP;
+  for(int k0 = 0; k0 < Ksq; ++k0) {
     Probs[k0] = 0.0;
-    for(unsigned int h = 0; h < HapPairs.size() ; ++h)
-      if(RandomAlleleFreqs && chibindicator )
-	Probs[k0] += HapPairProbsMAP[HapPairs[h].haps[0] * NumberOfStates * Populations * Populations +
-				     HapPairs[h].haps[1] * Populations * Populations +
-				     k0];
-      else
-	Probs[k0] += HapPairProbs[HapPairs[h].haps[0] * NumberOfStates * Populations * Populations +
-				  HapPairs[h].haps[1] * Populations * Populations +
-				  k0];
+    for(unsigned int h = 0; h < HapPairs.size() ; ++h) {
+      q = p + (HapPairs[h].haps[0] * NumberOfStates + HapPairs[h].haps[1]) * Ksq;
+      Probs[k0] += *q;  
+    }
+    p++;
   }
 }
-
+  
 
 #endif /* !COMPOSITE_LOCUS_H */
