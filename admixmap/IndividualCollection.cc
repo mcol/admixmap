@@ -199,7 +199,7 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const
    //use previously read values from file, if available
    if( NumInd == 1 && strlen(options->getMLEFilename())>0 ){
       rhohat[0] = MLEMatrix.get( options->getPopulations(), 0 );
-      if( options->getXOnlyAnalysis() ){
+      if( options->isXOnlyAnalysis() ){
 	for(int k = 0; k < options->getPopulations(); ++k) thetahat[k] = MLEMatrix.get(k,0);
       }
       else{
@@ -363,7 +363,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   for(unsigned int i = 0; i < NumInd; i++ ){
     int prev = i-1;
     if(i==0)prev = NumInd-1;
-    if(anneal && options->getAnnealIndicator()==1 && i==0)
+    if(anneal && (options->getAnnealIndicator()==1) || (options->getAnnealIndicator()==2 && i==0))
       Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
 
     if( options->getPopulations() > 1 ){
@@ -386,7 +386,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     else{//single population 
       _child[i]->OnePopulationUpdate(i, &Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, chrm, A);
     }   
-    if(anneal && options->getAnnealIndicator()==1 && i==0)
+    if(anneal && (options->getAnnealIndicator()==1) || (options->getAnnealIndicator()==2 && i==0))
       Chromosome::setCoolness(1.0);//reset coolness 
 
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
