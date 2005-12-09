@@ -162,7 +162,7 @@ int main( int argc , char** argv ){
       ofstream loglikelihoodfile(s.c_str());
 
       // ******************* initialise stuff for annealing ************************************************
-      bool anneal = options.getAnnealIndicator();
+      bool anneal = (bool)(options.getAnnealIndicator()>0);
       double SumLogL = 0.0, SumLogLSq = 0.0, marg_L = 0.0;//modified log-likelihood, square and marginal likelihood
       double coolness = 1.0;
       std::ofstream annealstream;//for monitoring modified log likelihood when annealing
