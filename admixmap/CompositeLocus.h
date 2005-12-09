@@ -116,7 +116,7 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<ha
   int Ksq = Populations*Populations;
   double *p;
   double *q;
-  if(!chibindicator) 
+  if(!chibindicator || !RandomAlleleFreqs) 
     p = HapPairProbs;
   else 
     p = HapPairProbsMAP;
