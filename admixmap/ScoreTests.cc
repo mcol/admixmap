@@ -239,12 +239,12 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     for( int j = 0; j < L; j++ ){
       int NumberOfLoci = (*Lociptr)(j)->GetNumberOfLoci();
       
-      if(NumberOfLoci > 1 )
+      if(NumberOfLoci > 1 )//haplotype
 	dim_[j] = 1;
-      else if((*Lociptr)(j)->GetNumberOfStates() == 2 )
+      else if((*Lociptr)(j)->GetNumberOfStates() == 2 )//simple diallelic locus
 	dim_[j] = 1;
       else
-	dim_[j] = (*Lociptr)(j)->GetNumberOfStates();
+	dim_[j] = (*Lociptr)(j)->GetNumberOfStates();//simple multiallelic locus
 
       //next two lines may not be necessary as these arrays are sized later
       LocusLinkageAlleleScore[j] = new double[ dim_[j] + K ];
@@ -759,19 +759,45 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
 {
   double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore;
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
-      if((* Lociptr)(j)->GetNumberOfLoci() == 1 ){
-	Score = SumLocusLinkageAlleleScore[j][0] / ( iteration - options->getBurnIn() );
-	CompleteInfo =  SumLocusLinkageAlleleInfo[j][0] / ( iteration - options->getBurnIn() );
-	MissingInfo = SumLocusLinkageAlleleScore2[j][0] / ( iteration - options->getBurnIn() ) - Score * Score;
-	ObservedInfo = CompleteInfo - MissingInfo;
+    //case of simple locus
+    if((* Lociptr)(j)->GetNumberOfLoci() == 1 )for(unsigned a = 0; a < dim_[j]; ++a){
+      Score = SumLocusLinkageAlleleScore[j][a] / ( iteration - options->getBurnIn() );
+      CompleteInfo =  SumLocusLinkageAlleleInfo[j][a] / ( iteration - options->getBurnIn() );
+      MissingInfo = SumLocusLinkageAlleleScore2[j][a] / ( iteration - options->getBurnIn() ) - Score * Score;
+      ObservedInfo = CompleteInfo - MissingInfo;
+
+      if(CompleteInfo > 0.0) {
+	PercentInfo = 100*ObservedInfo / CompleteInfo;
+	zscore = Score / sqrt( ObservedInfo );
       }
       else{
+	PercentInfo = 0.0;
+	
+      }
+      string label = (*Lociptr)(j)->GetLabel(0);
+      if(dim_[j]==1) genescorestream << label << ",";
+      else genescorestream << label.substr(0, label.size()-1)<< "("<<a+1<<")\",";
+      genescorestream << double2R(Score)        << ","
+		      << double2R(CompleteInfo) << ","
+		      << double2R(ObservedInfo) << ",";
+      if(CompleteInfo > 0.0) {
+	genescorestream << double2R(100*ObservedInfo / CompleteInfo) << ",";
+	genescorestream << double2R(Score / sqrt( ObservedInfo ))    << "," << endl;
+      }
+      else{
+	genescorestream << "NaN" << ","
+			<< "NaN" << "," << endl;
+      }
+      
+    }
+    
+    else
+    for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
+      //haplotype
 	Score = SumScoreWithinHaplotype[ j ][ l ] / ( iteration - options->getBurnIn() );
 	CompleteInfo = SumInfoWithinHaplotype[ j ][ l ] / ( iteration - options->getBurnIn() );
 	MissingInfo = SumScore2WithinHaplotype[ j ][ l ] / ( iteration - options->getBurnIn() ) - Score * Score;
 	ObservedInfo = CompleteInfo - MissingInfo;
-      }
       if(CompleteInfo > 0.0) {
 	PercentInfo = 100*ObservedInfo / CompleteInfo;
 	zscore = Score / sqrt( ObservedInfo );
@@ -792,8 +818,8 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration )
 	genescorestream << "NaN" << ","
 			<< "NaN" << ",";
       }
-    }
-  }
+    }//end l loop over loci within comp locus
+  }//end j loop over comp loci
 }
 
 void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
@@ -850,7 +876,8 @@ void ScoreTests::ROutput(){
   if(options->getTestForAllelicAssociation()){
     count = 0;
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-      count += (*Lociptr)(j)->GetNumberOfLoci();
+      if((* Lociptr)(j)->GetNumberOfLoci() == 1 ) count += dim_[j];
+      else count += (*Lociptr)(j)->GetNumberOfLoci();
     }         
     vector<int> dimensions(3,0);
     dimensions[0] = 6;
