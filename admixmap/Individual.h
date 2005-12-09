@@ -139,7 +139,7 @@ private:
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
 
   int **LocusAncestry, *SumLocusAncestry, *SumLocusAncestry_X;
-  unsigned SumN[2], SumN_X[2];
+  unsigned SumNumArrivals[2], SumNumArrivals_X[2];
 
   std::vector< double > _rho; //sum of intensities
   std::vector< double > _rho_X;//sum of intensities for X chromosome
@@ -182,7 +182,7 @@ private:
   void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator, bool RW );
-  double AcceptanceProbForTheta_XChrm(const std::vector<double> &sigma, int Populations );
+  double LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations );
   double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, 
 					       int Populations, int NoCovariates, 
 					       const DataMatrix* const Covariates, const std::vector<const double*> beta, 

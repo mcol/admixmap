@@ -111,7 +111,8 @@ public:
   void setPopulations(int num);
   bool IsPedFile() const;
   void IsPedFile(bool);
-  bool getXOnlyAnalysis() const;
+  bool isXOnlyAnalysis() const;
+  void isXOnlyAnalysis(bool);
   bool isAdmixed(unsigned) const;
   bool isSymmetric()const;
 

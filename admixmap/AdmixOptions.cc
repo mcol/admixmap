@@ -574,9 +574,12 @@ void AdmixOptions::setgenotypesSexColumn(unsigned int i)
   genotypesSexColumn = i;
 }
 
-bool AdmixOptions::getXOnlyAnalysis() const
+bool AdmixOptions::isXOnlyAnalysis() const
 {
   return XOnlyAnalysis;
+}
+void AdmixOptions::isXOnlyAnalysis(bool b){
+  XOnlyAnalysis = b;
 }
 bool AdmixOptions::isSymmetric()const{
   return _symmetric;
