@@ -423,19 +423,12 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
   double Prob;
   vector<bool> xi[2] = {vector<bool>(Transitions), vector<bool>(Transitions)};//jump indicators
   xi[0][0] = xi[1][0] = true;
-
   for( int jj = 1; jj < Transitions; jj++ ){
     xi[0][jj] = xi[1][jj] = true;    
     for( unsigned int g = 0; g < gametes; g++ ){
       if( LocusAncestry[g*Transitions + jj-1] == LocusAncestry[jj + g*Transitions] ){
-
-	Prob = StateArrivalProbs[jj*K*2 +LocusAncestry[jj + g*Transitions]*2 + g] / 
-	  (StateArrivalProbs[jj*K*2 + LocusAncestry[jj + g*Transitions]*2 +g] + f[g][jj] );
-	if( Prob > myrand() ){
-	  xi[g][jj] = true;
-	} else {
-	  xi[g][jj] = false;
-	}
+	Prob = StateArrivalProbs[jj*K*2 +LocusAncestry[jj + g*Transitions]*2 + g];  
+	xi[g][jj] = Prob / (Prob + f[g][jj]) > myrand();
       } else {
 	xi[g][jj] = true;
       }
