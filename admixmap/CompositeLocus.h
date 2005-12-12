@@ -112,23 +112,23 @@ private:
 
 double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const std::vector<int> AlleleCounts );
 
-inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
+inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, 
+					     bool chibindicator) const {
   int Ksq = Populations*Populations;
   double *p;
-  double *q;
   if(!chibindicator || !RandomAlleleFreqs) 
     p = HapPairProbs;
   else 
     p = HapPairProbsMAP;
   for(int k0 = 0; k0 < Ksq; ++k0) {
-    Probs[k0] = 0.0;
+    *Probs = 0.0;
     for(unsigned int h = 0; h < HapPairs.size() ; ++h) {
-      q = p + (HapPairs[h].haps[0] * NumberOfStates + HapPairs[h].haps[1]) * Ksq;
-      Probs[k0] += *q;  
+      *Probs += *(p + (HapPairs[h].haps[0] * NumberOfStates + HapPairs[h].haps[1]) * Ksq);
     }
     p++;
+    Probs++;
   }
 }
-  
+
 
 #endif /* !COMPOSITE_LOCUS_H */

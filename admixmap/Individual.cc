@@ -373,11 +373,9 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
       b[k] = true; //to skip elements set to zero
     }
     else b[k] = false;
-
     softmax(Populations, ThetaBar+g*Populations, SumSoftmaxTheta+g*Populations, b);
-
   }
-
+  
   double LogLikelihood = 0.0;
   double* Probs = new double[Populations*Populations];
   int locus = 0;
@@ -390,7 +388,8 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
       LogLikelihood += log( Probs[0] );
     }
     else{
-      chrm[j]->SetGenotypeProbs(this, false);//will set genotype probs to posterior means as happairprobs are already so
+      chrm[j]->SetGenotypeProbs(this, false);//will set genotype probs using happair probs calculated at 
+      // posterior means of allele freqs 
       UpdateHMMForwardProbs(j, chrm[j], options, ThetaBar, ThetaBar, sumlogrho, sumlogrho);
       LogLikelihood += chrm[j]->getLogLikelihood();
     }
