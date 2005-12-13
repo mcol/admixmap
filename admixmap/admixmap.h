@@ -20,10 +20,6 @@
 #include "MisSpecAlleleFreqTest.h"
 #include "HWTest.h"
 
-#define ADMIXMAP_VERSION "2.3"
-
-int main( int argc , char** argv );//not strictly necessary
-
-
+#define ADMIXMAP_VERSION "2.4"
 
 #endif /* ADMIXMAP_H */

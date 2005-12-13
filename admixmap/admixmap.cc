@@ -517,6 +517,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // ** update allele frequencies
   if(A->IsRandom()){
     A->Update((iteration > options->getBurnIn() && !anneal));
+    IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes());
     for(int i = 0; i < IC->getSize(); ++i)
       IC->getIndividual(i)->HMMIsBad(true); //if the allelefreqs are not fixed they are sampled between
     //individual updates. Therefore the forward probs in the HMMs must be updated and the current stored 

@@ -396,6 +396,14 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   }
 }
 
+void IndividualCollection::setGenotypeProbs(Chromosome** C, unsigned nchr){
+  for(unsigned int i = 0; i < NumInd; i++ ){
+    for(unsigned j = 0; j < nchr; ++j)
+      _child[i]->SetGenotypeProbs(j, C[j],false);
+  }
+
+}
+
 // void IndividualCollection::ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
 // 						       const AdmixOptions* const options, Chromosome **chrm, 
 // 						       const vector<vector<double> > &alpha){
@@ -509,9 +517,13 @@ void IndividualCollection::OutputDeviance(const AdmixOptions* const options, Chr
     for( unsigned int j = 0; j < numChromosomes; j++ )
       C[j]->SetLociCorr(exp(SumLogRho / (double)iterations));
 
+  //set haplotype pair probs to posterior means
   for( unsigned int j = 0; j < numChromosomes; j++ )
     for(unsigned jj = 0; jj < C[j]->GetNumberOfCompositeLoci(); ++jj)
       (*C[j])(jj)->SetHapPairProbsToPosteriorMeans(iterations);
+
+  //set genotype probs using happair probs calculated at posterior means of allele freqs 
+  setGenotypeProbs(C, numChromosomes);
 
   //accumulate deviance at posterior means for each individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates

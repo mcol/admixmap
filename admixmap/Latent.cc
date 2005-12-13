@@ -262,10 +262,10 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
     for(int i = 0; i < IC->getSize(); ++i){
       Individual* ind = IC->getIndividual(i);
-      std::vector<double> rhovec(2, rhoprop);//note that the values in here are irrelevant as Chromosome ignores them in a globalrho model
-      LogLikelihoodRatio += ind->getLogLikelihood(options, C, ind->getAdmixtureProps(), ind->getAdmixtureProps(),
-						  rhovec, rhovec, false);
-
+      ind->HMMIsBad(true);//to force HMM update
+      LogLikelihoodRatio += ind->getLogLikelihood(options, C);
+      ind->HMMIsBad(true);
+      //TODO: should only need this line in case of rejection. Current stored logl is at proposal.
     }
     
     //compute prior ratio
@@ -277,13 +277,13 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
     //accept/reject proposal
     if(log( myrand() ) < LogAccProb){//accept
       rho = rhoprop;
-      for(int i = 0; i < IC->getSize(); ++i)
-	IC->getIndividual(i)->HMMIsBad(true);//rho has changed so current stored loglikelihood is invalid and HMMs need to be updated
     }
-    else//reject
+    else{//reject
+
       // restore f in Chromosomes
       for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
 	C[j]->SetLociCorr(rho);
+    }
 
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){

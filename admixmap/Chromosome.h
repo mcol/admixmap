@@ -47,11 +47,9 @@ public:
 
   static void setCoolness(double);
 
-  void SetGenotypeProbs(double *Probs);
-  void SetGenotypeProbs(const Individual* const ind, bool chibindicator);
-  void UpdateHMMForwardProbs(const double* const Admixture, const AdmixOptions* const options,  
+  void UpdateHMMForwardProbs(const double* const Admixture, const double* const GenotypeProbs, const AdmixOptions* const options,  
 			     const std::vector< double > _rho, bool diploid);
-  void UpdateHMMBackwardProbs(const double* const hapAdmixture);  //call only after a call to UpdateHMMForwardProbs
+  void UpdateHMMBackwardProbs(const double* const hapAdmixture, const double* const GenotypeProbs);  //call only after a call to UpdateHMMForwardProbs
   //this is ok as whenever we need backward probs we also need forward probs but not vice versa
 
 
@@ -66,7 +64,6 @@ private:
   int populations;
   std::string _Label;
   HMM SampleStates;
-  double *Lambda;
   bool isX;
   bool Diploid;
   

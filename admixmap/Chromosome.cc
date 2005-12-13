@@ -38,7 +38,6 @@ Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false)
   isX = isx;
 
   SampleStates.SetDimensions( size, populations );
-  Lambda = new double[size* populations * populations];
 
   CodedStates = new int[size];
   for(int j = 0; j < 2; ++j) f[j] = new double[size];
@@ -63,7 +62,6 @@ const string Chromosome::GetLabel( )const
 Chromosome::~Chromosome()
 {
   delete[] CodedStates;
-  delete[] Lambda;
   delete[] f[0];
   delete[] f[1];
 }
@@ -97,27 +95,8 @@ void Chromosome::SetLociCorr(const double rho){
     }
 }
 
-void Chromosome::SetGenotypeProbs(const Individual* const ind, bool chibindicator){
-  //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
-  //instead of HapPairProbs when allelefreqs are not fixed.
-  int locus = _startLocus;
-  for(unsigned int j = 0; j < NumberOfCompositeLoci; j++ ){
-    if( !(ind->IsMissing(locus)) ){
-      TheArray[j]->GetGenotypeProbs(Lambda+j*populations*populations, ind->getPossibleHapPairs(locus), chibindicator);
-      }
-    else{
-      for( int k = 0; k < populations*populations;k++) Lambda[j*populations*populations + k] = 1.0;
-    }
-    locus++;
-  }
-}
-
-void Chromosome::SetGenotypeProbs(double *Probs){
-  //Probs is a Populations x Populations array containing genotype probs obtained from CompositeLocus
-  copy(Probs, Probs + populations * populations, Lambda);
-}
-
-void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, const AdmixOptions* const options, 
+void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, const double* const GenotypeProbs, 
+				       const AdmixOptions* const options, 
 				       const std::vector< double > _rho, bool diploid){
   //set annealindicator to true once per individual per iteration to accumulate unannealed loglikelihood stored in top level
 
@@ -145,21 +124,21 @@ void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, const Admi
     SampleStates.SetStateArrivalProbs(f, Admixture, options->isRandomMatingModel());
 
     //Update Forward/Backward Probs in HMM
-    SampleStates.UpdateForwardProbsDiploid(f, Lambda, coolness);
+    SampleStates.UpdateForwardProbsDiploid(f, GenotypeProbs, coolness);
 
   }
 
   else{//haploid
-    SampleStates.UpdateForwardProbsHaploid(f, Admixture, Lambda);
+    SampleStates.UpdateForwardProbsHaploid(f, Admixture, GenotypeProbs);
   }
 
 }
 
-void Chromosome::UpdateHMMBackwardProbs(const double* const hapAdmixture){
+void Chromosome::UpdateHMMBackwardProbs(const double* const hapAdmixture, const double* const GenotypeProbs){
   //call only after a call to UpdateHMMForwardProbs
   //this is ok as whenever we need backward probs we also need forward probs but not vice versa
-  if(Diploid)  SampleStates.UpdateBackwardProbsDiploid(f, Lambda);
-  else SampleStates.UpdateBackwardProbsHaploid(f, hapAdmixture, Lambda);
+  if(Diploid)  SampleStates.UpdateBackwardProbsDiploid(f, GenotypeProbs);
+  else SampleStates.UpdateBackwardProbsHaploid(f, hapAdmixture, GenotypeProbs);
 }
 
 void Chromosome::SampleLocusAncestry(int *OrderedStates, const double* const Admixture)const{

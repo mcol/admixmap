@@ -157,6 +157,13 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   for(int j = 0; j<numCompositeLoci; ++j) {
     Loci(j)->setPossibleHaplotypePairs(genotypes[j].alleles, PossibleHapPairs[j]);
   }
+
+  //initialise genotype probs array
+  GenotypeProbs = new double*[numChromosomes];
+  for(unsigned j = 0; j < numChromosomes; ++j){
+    GenotypeProbs[j] = new double[chrm[j]->GetSize()*Populations*Populations];
+    SetGenotypeProbs(j, chrm[j], false);
+  }
   
   // ** set up StepSizeTuner object for random walk updates of admixture **
   NumberOfUpdates = 0;
@@ -172,6 +179,21 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
  
 }
 
+void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator=false){
+  //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
+  //instead of HapPairProbs when allelefreqs are not fixed.
+  int locus = C->GetLocus(0);
+  for(unsigned int jj = 0; jj < C->GetSize(); jj++ ){
+    if( !(IsMissing(locus)) ){
+      (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], chibindicator);
+    }
+    else{
+      for( int k = 0; k < Populations*Populations;k++) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
+    }
+    locus++;
+  }
+}
+
 void Individual::setGenotypesToMissing(){
   for(unsigned i = 0; i < genotypes.size(); ++i)genotypes[i].missing=true;
 }
@@ -179,6 +201,7 @@ void Individual::setGenotypesToMissing(){
 Individual::~Individual()
 {
   delete[] PossibleHapPairs;
+  delete[] GenotypeProbs;//TODO: delete properly
   delete[] LocusAncestry;
   delete[] SumLocusAncestry;
   delete[] SumLocusAncestry_X;  
@@ -324,33 +347,40 @@ bool Individual::IsMissing(unsigned int locus)const
 }
 
 //****************** Log-Likelihoods **********************
+double Individual::getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
+				    const double* const theta, const double* const thetaX,
+				    const vector<double > rho, const vector<double> rho_X, bool updateHMM, bool chibindicator = false)
+{
+  double LogLikelihood = 0.0;
+  int locus = 0;
+
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    if(Populations == 1){
+      double Probs[1];
+      for(unsigned jj = 0; jj < chrm[j]->GetNumberOfCompositeLoci(); ++jj){
+	(*Loci)(locus)->GetGenotypeProbs(Probs, getPossibleHapPairs(locus), chibindicator);
+	++locus;
+      }
+      LogLikelihood += log( Probs[0] );
+    }
+    else{
+      //need to run forward recursions in HMM if current forward probs do not correspond to current parameter values
+      if(updateHMM){
+	UpdateHMMForwardProbs(j, chrm[j], options, theta, thetaX, rho, rho_X);
+      }
+      LogLikelihood += chrm[j]->getLogLikelihood();
+    }
+  }
+  return LogLikelihood;
+}
+
 double Individual::getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm){
   //use current parameter values
-  double LogLikelihood = 0.0;
-  double Probs[Populations*Populations];
-  int locus = 0;
   if(!logLikelihood.ready){
-      for( unsigned int j = 0; j < numChromosomes; j++ ){
-	if(Populations == 1){
-	  for(unsigned jj = 0; jj < chrm[j]->GetNumberOfCompositeLoci(); ++jj){
-	    (*Loci)(locus)->GetGenotypeProbs(Probs, getPossibleHapPairs(locus), false);
-	    ++locus;
-	  }
-	  LogLikelihood += log( Probs[0] );
-	}
-	else{
-	  //need to run forward recursions in HMM if current forward probs do not correspond to current parameter values
-	  if(!logLikelihood.HMMisOK){
-	    chrm[j]->SetGenotypeProbs(this, false);
-	    UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
-	  }
-	  LogLikelihood += chrm[j]->getLogLikelihood();
-	}
-      }
-    logLikelihood.value = LogLikelihood;
+    logLikelihood.value = getLogLikelihood(options, chrm, Theta, ThetaX, _rho, _rho_X, !logLikelihood.HMMisOK, false);
+    logLikelihood.ready = true;
+    logLikelihood.HMMisOK = true;//because forward probs now correspond to current parameter values 
   }
-  logLikelihood.ready = true;
-  logLikelihood.HMMisOK = true;//because forward probs now correspond to current parameter values 
   //and UpdateHMMForwardProbs sets this to false
   return logLikelihood.value;
 }
@@ -388,8 +418,6 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
       LogLikelihood += log( Probs[0] );
     }
     else{
-      chrm[j]->SetGenotypeProbs(this, false);//will set genotype probs using happair probs calculated at 
-      // posterior means of allele freqs 
       UpdateHMMForwardProbs(j, chrm[j], options, ThetaBar, ThetaBar, sumlogrho, sumlogrho);
       LogLikelihood += chrm[j]->getLogLikelihood();
     }
@@ -397,43 +425,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
   delete[] Probs;
   return LogLikelihood;
 }
-double Individual::getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const double* const theta, 
-				     const double* const thetaX,
-				     const vector<double > rho, const vector<double> rho_X, bool chibindicator = false)
-//updates forward probs in HMM and retrieves loglikelihood at supplied theta and rho
-//(optional)chibindicator = true for computing LogL at MLEs; instructs CompositeLocus to use HapPairProbsMAP
-//instead of HapPairProbs, when allelefreqs are not fixed, in calculating GenotypeProbs.
-{
-  double LogLikelihood = 0.0;
-  double* Probs = new double[Populations*Populations];
-  int locus = 0;
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    if(Populations == 1){ // likelihood is calculated as product of genotype probs at all loci
-       for(unsigned jj = 0; jj < chrm[j]->GetNumberOfCompositeLoci(); ++jj){
-	 (*Loci)(locus)->GetGenotypeProbs(Probs, getPossibleHapPairs(locus), chibindicator);
-	 ++locus;
-       }
-       LogLikelihood += log( Probs[0] );
-    }
-     else{ // likelihood calculated from HMM
-       chrm[j]->SetGenotypeProbs(this, chibindicator); 
-       UpdateHMMForwardProbs(j, chrm[j], options, theta, thetaX, rho, rho_X);
-       LogLikelihood += chrm[j]->getLogLikelihood();
-     }
-  }
-  
-//    double LogLikelihood = 0.0;
-//    if(Populations == 1)LogLikelihood = getLogLikelihoodOnePop(chibindicator);//in case this version called when only one population
-//    else{
-//      for( unsigned int j = 0; j < numChromosomes; j++ ){
-//        chrm[j]->SetGenotypeProbs(this, chibindicator);      
-//        UpdateHMMForwardProbs(j, chrm[j], options, theta, thetaX, rho, rho_X, false);
-//        LogLikelihood += chrm[j]->getLogLikelihood();
-//      }
-//    }
-   delete[] Probs;
-   return LogLikelihood;
-}
+
 double Individual::getLogLikelihoodOnePop(){ //convenient for a single population as no arguments required
   double logLikelihood = 0.0;
   double *Prob;
@@ -549,11 +541,10 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
     
     //Update Forward/Backward probs in HMM
     if( !logLikelihood.HMMisOK ){
-      chrm[j]->SetGenotypeProbs(this, false);
       UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
     }
     if(ancestrytest && iteration > options->getBurnIn()){
-      chrm[j]->UpdateHMMBackwardProbs(Theta);//TODO: pass correct theta for haploid case
+      chrm[j]->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
     
       //update score tests for linkage with ancestry for *previous* iteration
       bool IamAffected = false;
@@ -586,7 +577,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 	  UpdateScoreForAncestry(locus, dispersion, Outcome->get(i, 0) - ExpectedY[0][i], DInvLink, AProbs);
 	}
 	++locus;
-      }    
+      }//end within-chromosome loop    
     }
 
     //Sample locus ancestry
@@ -760,7 +751,7 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
   LogLikelihoodRatio -= getLogLikelihood(options, C);
   
   //get log likelihood at proposal theta and current rho
-  LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, ThetaXProposal,_rho, _rho_X, false);
+  LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, ThetaXProposal,_rho, _rho_X, true, false);
 
   return LogLikelihoodRatio + LogPriorRatio;// = log Posterior ratio
 }
@@ -958,16 +949,16 @@ void Individual::UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, c
 				       const vector<double> rho, const vector<double> rhoX){
 
   if( j != X_posn ){// NOT an X chromosome
-    chrm->UpdateHMMForwardProbs(theta, options, rho, true);
+    chrm->UpdateHMMForwardProbs(theta, GenotypeProbs[j], options, rho, true);
   }
   else if( options->isXOnlyAnalysis() ){//X only data
-    chrm->UpdateHMMForwardProbs(theta, options, rho, false);
+    chrm->UpdateHMMForwardProbs(theta, GenotypeProbs[j], options, rho, false);
   }
   else if( sex == male ){// X chromosome in male individual
-    chrm->UpdateHMMForwardProbs(thetaX, options, rhoX, false);
+    chrm->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], options, rhoX, false);
   }
   else{// X chromosome in female individual or individual whose sex is unknown
-    chrm->UpdateHMMForwardProbs(thetaX, options, rhoX, true);
+    chrm->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], options, rhoX, true);
   }
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
@@ -1265,7 +1256,9 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
   if( iteration == options->getBurnIn() ){
     
     //loglikelihood at estimates
-    MargLikelihood->setLogLikelihood(getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true));
+    for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j)
+      SetGenotypeProbs(j, chrm[j], true);//set genotype probs from happairprobsMAP
+    MargLikelihood->setLogLikelihood(getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true, true));
   }
   
   // *** After BurnIn ***

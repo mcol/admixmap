@@ -62,6 +62,7 @@ public:
   void ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
 				   const AdmixOptions* const options, Chromosome **chrm, 
 				   const vector<vector<double> > &alpha);
+  void setGenotypeProbs(Chromosome** C, unsigned nchr);
   
   void OutputIndAdmixture();
 

@@ -72,10 +72,11 @@ public:
 
   const int *getSumLocusAncestry()const;
 
+  double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
+			  const double* const theta, const double* const thetaX,
+			  const vector<double > rho, const vector<double> rho_X, bool updateHMM, bool chibindicator);
   double getLogLikelihood(const AdmixOptions* const , Chromosome**);
   double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm);
-  double getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const double* const theta, const double* const thetaX, 
-			   const vector<double > rho, const vector<double> rho_X, bool chibindicator);
 
   double getLogLikelihoodOnePop();
 
@@ -125,11 +126,13 @@ public:
   double getLogPosteriorTheta()const;
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
+  void SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator);
 
 private:
   unsigned myNumber;//number of this individual, counting from 1
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
+  double **GenotypeProbs;
 
   static unsigned int numChromosomes;
   static int Populations;
