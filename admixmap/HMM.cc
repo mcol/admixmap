@@ -124,7 +124,7 @@ void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda,
     RecursionProbs(p[t], f2, StateArrivalProbs + t*K*2, alpha + (t-1)*States, alpha + t*States);
     
     for(int j = 0; j < States; ++j){
-      if(coolness > 1.0)
+      if(coolness < 1.0)
 	alpha[t*States +j] *= pow(lambda[t*States +j], coolness);
       else
 	alpha[t*States +j] *= *lambdap++;  //lambda[t*States +j];
