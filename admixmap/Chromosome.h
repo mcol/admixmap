@@ -47,7 +47,7 @@ public:
 
   static void setCoolness(double);
 
-  void UpdateHMMForwardProbs(const double* const Admixture, const double* const GenotypeProbs, const AdmixOptions* const options,  
+  void UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, const AdmixOptions* const options,  
 			     const std::vector< double > _rho, bool diploid);
   void UpdateHMMBackwardProbs(const double* const hapAdmixture, const double* const GenotypeProbs);  //call only after a call to UpdateHMMForwardProbs
   //this is ok as whenever we need backward probs we also need forward probs but not vice versa
@@ -70,7 +70,7 @@ private:
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
   // With a global rho model, this array is same for all individuals and calculated only once.
   // required to calculate transition matrices 
-  double *f[2]; 
+  double *f; 
   int *CodedStates;//used to sample hidden states from HMM
 
   //for marginal likelihood calculation

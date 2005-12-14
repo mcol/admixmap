@@ -1,7 +1,7 @@
 /** 
  *   ADMIXMAP
  *   Chromosome.cc 
- *   Class to perform chrosome-wise updates and implement HMM class.
+ *   Class to perform chromosome-wise updates and implement HMM class.
  *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
@@ -40,8 +40,8 @@ Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false)
   SampleStates.SetDimensions( size, populations );
 
   CodedStates = new int[size];
-  for(int j = 0; j < 2; ++j) f[j] = new double[size];
-
+  //for(int j = 0; j < 2; ++j) f[j] = new double[size];
+  f = new double[2*size];
 }
 
 bool Chromosome::isXChromosome()const
@@ -62,8 +62,8 @@ const string Chromosome::GetLabel( )const
 Chromosome::~Chromosome()
 {
   delete[] CodedStates;
-  delete[] f[0];
-  delete[] f[1];
+  delete[] f;
+  //delete[] f[1];
 }
 
 void Chromosome::setCoolness(double l){
@@ -82,20 +82,21 @@ unsigned int Chromosome::GetSize()const{
   return NumberOfCompositeLoci;
 }
 
-//Initialises f for global rho. Necessary since individual-level parameters updated before global rho (in Latent)
+//Initialises locus ancestry correlations f.  Necessary since individual-level parameters updated before global rho (in Latent)
 void Chromosome::InitialiseLociCorr(const double rho){
+  f[0] = f[1] = 0.0;
   for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ )
-    f[0][j] = f[1][j] = ( -GetDistance( j ) * rho > -700) ? exp( -GetDistance( j ) * rho ) : 0.0;
+    f[2*j] = f[2*j + 1] = ( -GetDistance( j ) * rho > -700) ? exp( -GetDistance( j ) * rho ) : 0.0;
 }
 
 //sets f for global rho, call after global rho is updated
 void Chromosome::SetLociCorr(const double rho){
     for(unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
-      f[0][jj] = f[1][jj] = exp( -GetDistance( jj ) * rho );
+      f[2*jj] = f[2*jj + 1] = exp( -GetDistance( jj ) * rho );
     }
 }
 
-void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, const double* const GenotypeProbs, 
+void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, 
 				       const AdmixOptions* const options, 
 				       const std::vector< double > _rho, bool diploid){
   //set annealindicator to true once per individual per iteration to accumulate unannealed loglikelihood stored in top level
@@ -107,12 +108,12 @@ void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, const doub
   if( !options->isGlobalRho() ){//non global rho case
 
     for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
-      f[0][jj] = exp( -GetDistance( jj ) * _rho[0] );
+      f[2*jj] = exp( -GetDistance( jj ) * _rho[0] );
       if( options->isRandomMatingModel() ){
-	  f[1][jj] = exp( -GetDistance( jj ) * _rho[1] );
+	f[2*jj + 1] = exp( -GetDistance( jj ) * _rho[1] );
       }
       else
-	f[1][jj] = f[0][jj];
+	f[2*jj + 1] = f[2*jj];
     }
   }
   //global rho case already dealt with
@@ -127,11 +128,9 @@ void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, const doub
     SampleStates.UpdateForwardProbsDiploid(f, GenotypeProbs, coolness);
 
   }
-
   else{//haploid
     SampleStates.UpdateForwardProbsHaploid(f, Admixture, GenotypeProbs);
   }
-
 }
 
 void Chromosome::UpdateHMMBackwardProbs(const double* const hapAdmixture, const double* const GenotypeProbs){
@@ -142,7 +141,6 @@ void Chromosome::UpdateHMMBackwardProbs(const double* const hapAdmixture, const 
 }
 
 void Chromosome::SampleLocusAncestry(int *OrderedStates, const double* const Admixture)const{
-
   SampleStates.Sample(OrderedStates, Admixture, f, Diploid);
 }
 
@@ -169,7 +167,7 @@ double Chromosome::getLogLikelihood()const
 void Chromosome::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 				      int *SumLocusAncestry, int *SumLocusAncestry_X, 
 				      unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const{
-
+  
   SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, 
 				    SumLocusAncestry, SumLocusAncestry_X, isX, 
 				    SumN, SumN_X, isGlobalRho);

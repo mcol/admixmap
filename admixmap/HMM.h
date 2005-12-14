@@ -24,25 +24,25 @@ public:
   ~HMM();
   void SetDimensions( int inTransitions, int pops);
 
-  void SetStateArrivalProbs(const double* const f[], const double* const Theta, int Mcol);
+  void SetStateArrivalProbs(const double* const f, const double* const Theta, int Mcol);
   /* samples hidden states */
-  void Sample(int *SStates, const double* const Admixture, const double* const f[], bool isdiploid)const;
+  void Sample(int *SStates, const double* const Admixture, const double* const f, bool isdiploid)const;
   //void GetStateProbs( double * probs, int t)const;
   std::vector<std::vector<double> > Get3WayStateProbs( int t)const;
 
   double getLogLikelihood()const;
 
-  void UpdateForwardProbsDiploid(const double* const f[], const double* const lambda, double coolness);
+  void UpdateForwardProbsDiploid(const double* const f, double* const lambda, double coolness);
 
-  void UpdateBackwardProbsDiploid(const double* const f[], const double* const lambda);
+  void UpdateBackwardProbsDiploid(const double* const f, const double* const lambda);
 
-  void UpdateForwardProbsHaploid(const double* const f[], const double* const Admixture, const double* const lambda);
-  void UpdateBackwardProbsHaploid(const double* const f[], const double* const Admixture, const double* const lambda);
+  void UpdateForwardProbsHaploid(const double* const f, const double* const Admixture, const double* const lambda);
+  void UpdateBackwardProbsHaploid(const double* const f, const double* const Admixture, const double* const lambda);
 
   void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
 		      double* oldProbs, double *newProbs); 
 
-  void SampleJumpIndicators(const int* const LocusAncestry, const double* const f[], const unsigned int gametes, 
+  void SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
 			    int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const;
 private:
