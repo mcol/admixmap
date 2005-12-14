@@ -206,9 +206,9 @@ int main( int argc , char** argv ){
 	  if(!anneal)loglikelihoodfile<< iteration<<" " <<LogL<<endl;
 	  //compute modified loglikelihood (at coolness of 1.0)
 	  double lmod = LogL;
-	  if(coolness < 1.0){
+	  //if(coolness < 1.0){
 	    lmod = IC->getModifiedLogLikelihood(&options, chrm, coolness);
-	  }
+	    //}
 	  if(iteration > options.getBurnIn()){
 	    SumLogL += lmod;
 	    SumLogLSq += lmod;

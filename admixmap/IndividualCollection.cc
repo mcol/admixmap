@@ -647,20 +647,21 @@ double IndividualCollection::getModifiedLogLikelihood(const AdmixOptions* const 
     _child[0]->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
     LogL += _child[0]->getLogLikelihood(options, C);
     if(NumInd > 1)_child[prev]->HMMIsBad(false);
-    if(coolness < 1.0)_child[0]->HMMIsBad(true);
+    //if(coolness < 1.0)
+      _child[0]->HMMIsBad(true);
   }
   else if(options->getAnnealIndicator()==1){
+    for(unsigned i = 0; i < NumInd; ++i){
+      int prev = i-1;
+      if(i==0)prev = NumInd-1;
+      _child[i]->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
+      LogL += _child[i]->getLogLikelihood(options, C);
+      if(NumInd > 1)_child[prev]->HMMIsBad(false);
+      if(coolness < 1.0)_child[i]->HMMIsBad(true);
+    }
+    Chromosome::setCoolness(coolness);
+  }
 
-  for(unsigned i = 0; i < NumInd; ++i){
-    int prev = i-1;
-    if(i==0)prev = NumInd-1;
-    _child[i]->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
-    LogL += _child[i]->getLogLikelihood(options, C);
-    if(NumInd > 1)_child[prev]->HMMIsBad(false);
-    if(coolness < 1.0)_child[i]->HMMIsBad(true);
-  }
-  Chromosome::setCoolness(coolness);
-  }
   return LogL;
 }
 
