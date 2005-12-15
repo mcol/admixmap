@@ -480,44 +480,40 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
     for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-
+      
       // Set x-co-ordinates of covariates in model
       double* X = new double[dim_[locus]+K];
       fill(X, X+dim_[locus]+K, 0.0);
-
+      
       X[ dim_[locus] ] = 1; 
       for( int k = 1; k < K ; k++ ){ 
 	X[ dim_[locus] + k ] = ind->getAdmixtureProps()[k]; 
       }
-     
+      
       // Set x co-ordinate for regression parameter under test
-
       // This should call a function something like int GetNumCopiesAllele(ind, simplelocus, numallele)
       // or int GetNumCopiesHaplotype(ind, compositelocus, numhaplotype)
       // if diallelic, evaluate score for allele 2 only, otherwise evaluate score for all alleles or haplotypes
-.  
       // functions to calculate and store NumCopiesAllele and NumCopies haplotype should be hidden in class CompositeLocus. 
-
       // vectors containing NumCopiesAllele and NumCopiesHaplotype should be stored in Individual objects
       // NumCopiesAllele should be initialized at start of program when genotypes are stored.  
-
       // missing elements of NumCopiesAllele and NumCopiesHaplotype should be assigned 
       // when hap pairs are sampled for update of allele freqs
-
+      
       // special case for SNP (X has size K+1)
       if( (*Lociptr)(locus)->GetNumberOfStates() == 2 ){
 	// next line relies on alleles being encoding as 1, 2, 3, ...
 	X[ 0 ] = (int)(ind->getGenotype(locus)[0][0]) + (int)(ind->getGenotype(locus)[0][1] - 3.0);
-
+	
 	// general case for simple locus (X has size K + nStates)
       } else if((*Lociptr)(locus)->GetNumberOfLoci() == 1 ){
 	for( int k = 0; k < (*Lociptr)(locus)->GetNumberOfStates(); k++ ){
 	  if( (int)(ind->getGenotype(locus)[0][0]) == k + 1 )
-	   X[ k ]++;
+	    X[ k ]++;
 	  if( (int)(ind->getGenotype(locus)[0][1]) == k + 1 )
 	    X[ k ]++;
 	}
-
+	
 	// general case for composite locus (X has size (K + nMergedHaplotypes))
       } else {
 	UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
