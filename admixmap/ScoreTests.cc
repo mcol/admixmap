@@ -485,7 +485,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
       double* X = new double[dim_[locus]+K];
       fill(X, X+dim_[locus]+K, 0.0);
       
-      X[ dim_[locus] ] = 1; 
+      X[ dim_[locus] ] = 1; //intercept
       for( int k = 1; k < K ; k++ ){ 
 	X[ dim_[locus] + k ] = ind->getAdmixtureProps()[k]; 
       }
@@ -503,6 +503,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
       // special case for SNP (X has size K+1)
       if( (*Lociptr)(locus)->GetNumberOfStates() == 2 ){
 	// next line relies on alleles being encoding as 1, 2, 3, ...
+	//sets X[0] to -1, 0 or 1 according to whether genotype is 11, 12 or 22
 	X[ 0 ] = (int)(ind->getGenotype(locus)[0][0]) + (int)(ind->getGenotype(locus)[0][1] - 3.0);
 	
 	// general case for simple locus (X has size K + nStates)
@@ -518,14 +519,13 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
       } else {
 	UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
 	if( options->getTestForSNPsInHaplotype() ){
-	  int ancestry[2];
-	  ind->GetLocusAncestry( j, jj, ancestry );
-	  int hap[2] = {0,0};//to store a sampled haplotype pair
-	  (*Lociptr)(locus)->SampleHapPair(hap, ind->getPossibleHapPairs(locus), ancestry);
+	  //retreieve sampled hap pair from Individual
+	  const int* happair = ind->getSampledHapPair(locus);
+	  //count numbers of each haplotype
 	  for( int k = 0; k <(*Lociptr)(locus)->GetNumberOfStates(); k++ ){
-	    if( hap[0] == k )
+	    if( happair[0] == k )
 	      X[ (*Lociptr)(locus)->GetMergedHaplotype(k) ]++;
-	    if( hap[1] == k )
+	    if( happair[1] == k )
 	      X[ (*Lociptr)(locus)->GetMergedHaplotype(k) ]++;
 	  }
 	}
@@ -573,13 +573,15 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
     x[ k + 1 ] = ind->getAdmixtureProps()[k];
 
   for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
-    x[0] = GetAllele2CountsInHaplotype(l, ind->getGenotype(j));
+    int allelecount = 0;
+    bool nonmissing  = ind->GetAlleleCountsAtLocus(j, l, 2, &(allelecount));
+    x[0] = (double)allelecount;
     for( int k = 0; k < K + 1; k++ ){
-      if( x[0] != 99 )ScoreWithinHaplotype[j][l][ k ] += phi * x[k] * YMinusEY;
+      if( nonmissing )ScoreWithinHaplotype[j][l][ k ] += phi * x[k] * YMinusEY;
       for( int kk = 0; kk < K + 1; kk++ )
 	info[ k*(K+1) + kk ] = x[ k ] * x[ kk ];
     }
-    if( x[0] != 99 ){
+    if( nonmissing ){
       scale_matrix(info, phi*DInvLink, K+1, K+1);//info *= phi*DInvLink
       add_matrix(InfoWithinHaplotype[j][l], info, K+1, K+1);//InfoWithinHaplotype += info
     }
@@ -587,48 +589,6 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
   delete[] x;
   delete[] info;
 }
-
-
-/// This function should be hidden in CompositeLocus - doesn't belong here 
-/**
- * Called only by UpdateScoresForSNPsWithinHaplotype in ScoreTests
- * Given an unordered genotype, returns number of copies of allele
- * 2 a simple locus in a composite locus.
- * Used to test individual loci in haplotype for association.
- * 
- * genotype - a 2way array in which each element of
- * alleles coded as unsigned integers numbered from 1.  
- * 
- *returns:
- * the number of copies of allele 2 at each locus.
- *
- * n.b. this function is only useful in composite loci composed of diallelic simple loci
- * should be generalized to deal with multi-allelic loci
- */
-
-int ScoreTests::GetAllele2CountsInHaplotype(int locus, const vector<vector<unsigned short> > genotype)const
-{
-  /**
-   * AlleleCounts is the number of 2 alleles at a
-   * locus in haplotype.  Used to test individual loci in haplotype
-   * for association.  Only use for haplotypes made up of SNPs.
-   */
-
-  int AlleleCounts = 0;
-
-  if(genotype[locus][0]!=0 && genotype[locus][1]!=0){
-    if(genotype[locus][0] == 2){
-      AlleleCounts++;
-    }
-    if(genotype[locus][1] == 2){
-      AlleleCounts++;
-    }
-  } else {
-    AlleleCounts = 99;
-  }
-  return AlleleCounts;
-}
-
 
 void ScoreTests::SumScoreForWithinHaplotypeAssociation()
 {
