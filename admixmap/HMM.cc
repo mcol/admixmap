@@ -452,13 +452,13 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
     }
   }
   //finally for first locus, not included in above loop
-    for( unsigned int g = 0; g < gametes; g++ ){
-      if( xi[g][0] ){
-	if( !isX )
-	  SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ]++;
-	else
-	  SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
-      }
+  for( unsigned int g = 0; g < gametes; g++ ){
+    if( xi[g][0] ){
+      if( !isX )
+	++SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ];
+      else
+	++SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K];
     }
+  }
 }
 
