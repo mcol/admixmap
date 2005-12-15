@@ -156,6 +156,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(int j = 0; j<numCompositeLoci; ++j) {
     Loci(j)->setPossibleHaplotypePairs(genotypes[j].alleles, PossibleHapPairs[j]);
+    hapPair h;
+    sampledHapPairs.push_back(h);
   }
 
   //initialise genotype probs array
@@ -289,6 +291,31 @@ const vector<vector<unsigned short> > Individual::getGenotype(unsigned int locus
 
 const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)const{
   return PossibleHapPairs[locus];
+}
+
+/**
+ * Called only by UpdateScoresForSNPsWithinHaplotype in ScoreTests
+ * Given an unordered genotype, returns number of copies of allele
+ * a a simple locus in a composite locus.
+ * Used to test individual loci in haplotype for association.
+ * 
+ * n.b. this function is only useful in composite loci composed of diallelic simple loci
+ * should be generalized to deal with multi-allelic loci
+ */
+
+bool Individual::GetAlleleCountsAtLocus(int complocus, int locus, int allele, int* count)const
+{
+  int notmissing = true;
+  if(genotypes[complocus].alleles[locus][0]==0 || genotypes[complocus].alleles[locus][1]==0)
+    notmissing = false;
+  else{
+    (*count) = (genotypes[complocus].alleles[locus][0] == allele) + (genotypes[complocus].alleles[locus][1] == allele);
+  }
+  return notmissing;
+}
+
+const int* Individual::getSampledHapPair(int locus)const{
+  return sampledHapPairs[locus].haps;
 }
 
 const double* Individual::getAdmixtureProps()const
@@ -466,9 +493,9 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
       if( !(IsMissing(j)) ){
 	int anc[2] = {0, 0}; //ancestry states for single population
 	// GetLocusAncestry(j,jj,anc);
-	int h[2]; //to store sampled hap pair
-	(*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
-	A->UpdateAlleleCounts(locus, h, anc, true); // should fix this to work with haploid data: last argument should be isdiploid
+	(*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
+	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, true); 
+//TODO: should fix this to work with haploid data: last argument should be isdiploid
       }
     }
   }   
@@ -590,10 +617,9 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
       if( !(IsMissing(j)) ){
 	  int anc[2];//to store ancestry states
 	  GetLocusAncestry(j,jj,anc);
-	  int h[2];//to store sampled hap pair
 	  //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-	  (*Loci)(locus)->SampleHapPair(h, PossibleHapPairs[locus], anc);
-	  A->UpdateAlleleCounts(locus,h, anc, chrm[j]->isDiploid());
+	  (*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
+	  A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, chrm[j]->isDiploid());
       }
      }   
 

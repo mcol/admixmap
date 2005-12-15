@@ -58,11 +58,15 @@ public:
   
   void setAdmixturePropsX(const double* const, size_t);
   
+  bool GetAlleleCountsAtLocus(int complocus, int locus, int a, int* count)const;
+
   const std::vector<std::vector<unsigned short> > getGenotype(unsigned int locus)const;
 
   void setGenotypesToMissing();
 
   const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
+
+  const int* getSampledHapPair(int locus)const;
 
   bool IsMissing(unsigned int locus)const;
 
@@ -133,6 +137,7 @@ private:
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
   double **GenotypeProbs;
+  std::vector<hapPair> sampledHapPairs;
 
   static unsigned int numChromosomes;
   static int Populations;

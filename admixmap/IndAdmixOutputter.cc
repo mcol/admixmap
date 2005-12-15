@@ -123,13 +123,12 @@ void IndAdmixOutputter::visitIndividual(const Individual& ind, const vector<int>
         _out << ancestry[0] << "," << ancestry[1] << ",";
      }
      if((*_Loci)(_options->getLocusForTest() )->GetNumberOfLoci() > 1 ){
-       int hap[2] = {0,0};
-       (*_Loci)(_options->getLocusForTest())->
-	 SampleHapPair(hap,ind.getPossibleHapPairs(_options->getLocusForTest()),ancestry);
+       const int* happair = ind.getSampledHapPair(_options->getLocusForTest());
+
         if(_options->getPopulations() > 1 ){
            genotype_ = ind.getGenotype(_options->getLocusForTest() );
         }
-        _out << hap[0] << "," << hap[1] << ",";
+        _out << happair[0] << "," << happair[1] << ",";
      } else {
         _out << genotype_[0][0] << "," << genotype_[0][1] << ",";
      }
