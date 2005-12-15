@@ -1251,7 +1251,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   }
   if(AnnealedRuns > 1){
     if(AnnealedRuns%2)AnnealedRuns += 1;//in case 'anneal' is odd
-    Log << "\nUsing " << AnnealedRuns << " annealed runs to estimate marginal likelihood";
+    Log << "\nUsing " << AnnealedRuns << " annealed runs to estimate marginal likelihood ";
     if(anneal == 1)Log << "for all individuals\n\n";
     else if(anneal == 2)Log << "for first individual\n\n"; 
    }
