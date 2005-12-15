@@ -492,6 +492,18 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
      
       // Set x co-ordinate for regression parameter under test
 
+      // This should call a function something like int GetNumCopiesAllele(ind, simplelocus, numallele)
+      // or int GetNumCopiesHaplotype(ind, compositelocus, numhaplotype)
+      // if diallelic, evaluate score for allele 2 only, otherwise evaluate score for all alleles or haplotypes
+.  
+      // functions to calculate and store NumCopiesAllele and NumCopies haplotype should be hidden in class CompositeLocus. 
+
+      // vectors containing NumCopiesAllele and NumCopiesHaplotype should be stored in Individual objects
+      // NumCopiesAllele should be initialized at start of program when genotypes are stored.  
+
+      // missing elements of NumCopiesAllele and NumCopiesHaplotype should be assigned 
+      // when hap pairs are sampled for update of allele freqs
+
       // special case for SNP (X has size K+1)
       if( (*Lociptr)(locus)->GetNumberOfStates() == 2 ){
 	// next line relies on alleles being encoding as 1, 2, 3, ...
@@ -546,7 +558,7 @@ void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, 
       x = 0.5 * ( Theta[k] + Theta[ options->getPopulations() + k ] );
     else
       x = Theta[k];
-    AdmixtureScore[ k*NumOutcomeVars] += phi * x * YMinusEY;//only for 1st outcomevar ??
+    AdmixtureScore[ k*NumOutcomeVars] += phi * x * YMinusEY;// only for 1st outcomevar 
     AdmixtureInfo[ k*NumOutcomeVars] += phi * x * x *DInvLink;
   }
 }
@@ -580,6 +592,8 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
   delete[] info;
 }
 
+
+/// This function should be hidden in CompositeLocus - doesn't belong here 
 /**
  * Called only by UpdateScoresForSNPsWithinHaplotype in ScoreTests
  * Given an unordered genotype, returns number of copies of allele
