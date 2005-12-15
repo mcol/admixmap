@@ -473,77 +473,6 @@ void ScoreTests::Update(double dispersion)
   }
 }
 
-void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, double YMinusEY, double phi, double DInvLink)
-{
-  int locus = 0;
-  int K = options->getPopulations();
-
-  for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
-    for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      
-      // Set x-co-ordinates of covariates in model
-      double* X = new double[dim_[locus]+K];
-      fill(X, X+dim_[locus]+K, 0.0);
-      
-      X[ dim_[locus] ] = 1; //intercept
-      for( int k = 1; k < K ; k++ ){ 
-	X[ dim_[locus] + k ] = ind->getAdmixtureProps()[k]; 
-      }
-      
-      // Set x co-ordinate for regression parameter under test
-      // This should call a function something like int GetNumCopiesAllele(ind, simplelocus, numallele)
-      // or int GetNumCopiesHaplotype(ind, compositelocus, numhaplotype)
-      // if diallelic, evaluate score for allele 2 only, otherwise evaluate score for all alleles or haplotypes
-      // functions to calculate and store NumCopiesAllele and NumCopies haplotype should be hidden in class CompositeLocus. 
-      // vectors containing NumCopiesAllele and NumCopiesHaplotype should be stored in Individual objects
-      // NumCopiesAllele should be initialized at start of program when genotypes are stored.  
-      // missing elements of NumCopiesAllele and NumCopiesHaplotype should be assigned 
-      // when hap pairs are sampled for update of allele freqs
-      
-      // special case for SNP (X has size K+1)
-      if( (*Lociptr)(locus)->GetNumberOfStates() == 2 ){
-	// next line relies on alleles being encoding as 1, 2, 3, ...
-	//sets X[0] to -1, 0 or 1 according to whether genotype is 11, 12 or 22
-	X[ 0 ] = (int)(ind->getGenotype(locus)[0][0]) + (int)(ind->getGenotype(locus)[0][1] - 3.0);
-	
-	// general case for simple locus (X has size K + nStates)
-      } else if((*Lociptr)(locus)->GetNumberOfLoci() == 1 ){
-	for( int k = 0; k < (*Lociptr)(locus)->GetNumberOfStates(); k++ ){
-	  if( (int)(ind->getGenotype(locus)[0][0]) == k + 1 )
-	    X[ k ]++;
-	  if( (int)(ind->getGenotype(locus)[0][1]) == k + 1 )
-	    X[ k ]++;
-	}
-	
-	// general case for composite locus (X has size (K + nMergedHaplotypes))
-      } else {
-	UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
-	if( options->getTestForSNPsInHaplotype() ){
-	  //retreieve sampled hap pair from Individual
-	  const int* happair = ind->getSampledHapPair(locus);
-	  //count numbers of each haplotype
-	  for( int k = 0; k <(*Lociptr)(locus)->GetNumberOfStates(); k++ ){
-	    if( happair[0] == k )
-	      X[ (*Lociptr)(locus)->GetMergedHaplotype(k) ]++;
-	    if( happair[1] == k )
-	      X[ (*Lociptr)(locus)->GetMergedHaplotype(k) ]++;
-	  }
-	}
-      }
-
-      // Check if missing genotype
-      if( !(ind->IsMissing(locus)) ){
-	for(unsigned d = 0; d < dim_[locus]+K; ++d){
-	  LocusLinkageAlleleScore[locus][d] += X[d]*YMinusEY * phi;
-	  for(unsigned dd = 0; dd < dim_[locus]+K; ++dd)LocusLinkageAlleleInfo[locus][d*(dim_[locus]+K) + dd] += X[d]*X[dd]*phi*DInvLink;
-	}
-      }
-      locus++;
-      delete[] X;
-    }
-  }
-}
-
 void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY, double phi, double DInvLink)
 {
   //Updates score and info for score test for admixture association
@@ -559,9 +488,102 @@ void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, 
   }
 }
 
-// This method calculates score for allelic association at each simple locus within a compound locus
-void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int j, double YMinusEY, 
-							   double phi, double DInvLink)
+void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, double YMinusEY, double phi, double DInvLink)
+{
+  int locus = 0;
+  int K = options->getPopulations();
+
+  for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
+    for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+      
+      // Set x-co-ordinates of covariates in model
+      double* X = new double[dim_[locus]+K];
+      fill(X, X+dim_[locus]+K, 0.0);
+
+      //last K elements are intercept and admixture proportions (except first)      
+      X[ dim_[locus] ] = 1; //intercept
+      for( int k = 1; k < K ; k++ ){ 
+	X[ dim_[locus] + k ] = ind->getAdmixtureProps()[k]; 
+      }
+
+      //retrieve sampled hap pair from Individual
+      const int* happair = ind->getSampledHapPair(locus);
+      const unsigned numStates = (*Lociptr)(locus)->GetNumberOfStates();
+      const unsigned numLoci = (*Lociptr)(locus)->GetNumberOfLoci();
+      //decode haplotypes as arrays of alleles
+      int* hap1Alleles = new int[numLoci];
+      int* hap2Alleles = new int[numLoci];
+      (*Lociptr)(locus)->decodeIntAsHapAlleles(happair[0], hap1Alleles);
+      (*Lociptr)(locus)->decodeIntAsHapAlleles(happair[1], hap2Alleles);
+      //increment to count from 1 instead of 0
+      for(unsigned l = 0; l < numLoci; ++l){++hap1Alleles[l]; ++hap2Alleles[l];}
+      
+      // Set x co-ordinate for regression parameter under test
+      // This should call a function something like int GetNumCopiesAllele(ind, simplelocus, numallele)
+      // or int GetNumCopiesHaplotype(ind, compositelocus, numhaplotype)
+      // if diallelic, evaluate score for allele 2 only, otherwise evaluate score for all alleles or haplotypes
+      // functions to calculate and store NumCopiesAllele and NumCopies haplotype should be hidden in class CompositeLocus. 
+      // vectors containing NumCopiesAllele and NumCopiesHaplotype should be stored in Individual objects
+      // NumCopiesAllele should be initialized at start of program when genotypes are stored.  
+      // missing elements of NumCopiesAllele and NumCopiesHaplotype should be assigned 
+      // when hap pairs are sampled for update of allele freqs
+      
+      // special case for SNP (X has size K+1)
+      if( numStates == 2 ){
+	// next line relies on alleles being encoding as 1, 2, 3, ...
+// 	//sets X[0] to -1, 0 or 1 according to whether genotype is 11, 12 or 22
+// 	X[ 0 ] = (int)(ind->getGenotype(locus)[0][0]) + (int)(ind->getGenotype(locus)[0][1] - 3.0);
+	X[ 0 ] = hap1Alleles[0] + hap2Alleles[0] - 3;
+	
+	// general case for simple locus (X has size K + nStates)
+      } else if(numLoci == 1 ){
+	for( unsigned k = 0; k < numStates; k++ ){
+// 	  if( (int)(ind->getGenotype(locus)[0][0]) == (int)k + 1 )
+// 	    X[ k ]++;
+// 	  if( (int)(ind->getGenotype(locus)[0][1]) == (int)k + 1 )
+// 	    X[ k ]++;
+	  X[k] += (hap1Alleles[0] == ((int)k+1)) + (hap2Alleles[0] == ((int)k+1));
+	}
+	
+	// general case for composite locus (X has size (K + nMergedHaplotypes))
+      } else {
+	//	UpdateScoreForWithinHaplotypeAssociation(ind, locus, YMinusEY,phi , DInvLink);
+	//count copies of allele2
+	vector<int> allele2Counts(numLoci);
+	fill(allele2Counts.begin(), allele2Counts.end(), 0);
+	for(unsigned l = 0; l < numLoci; ++l) allele2Counts[l] += (hap1Alleles[l]==2) + (hap2Alleles[l]==2);
+	UpdateScoreForWithinHaplotypeAssociation(ind, allele2Counts, locus, YMinusEY,phi , DInvLink);
+	if( options->getTestForSNPsInHaplotype() ){
+
+	  //count numbers of each haplotype
+	  for( unsigned k = 0; k < numStates; k++ ){
+	    if( happair[0] == (int)k )
+	      X[ (*Lociptr)(locus)->GetMergedHaplotype(k) ]++;
+	    if( happair[1] == (int)k )
+	      X[ (*Lociptr)(locus)->GetMergedHaplotype(k) ]++;
+	  }
+	}
+      }
+
+      // Check if missing genotype
+      if( !(ind->IsMissing(locus)) ){
+	for(unsigned d = 0; d < dim_[locus]+K; ++d){
+	  LocusLinkageAlleleScore[locus][d] += X[d]*YMinusEY * phi;
+	  for(unsigned dd = 0; dd < dim_[locus]+K; ++dd)LocusLinkageAlleleInfo[locus][d*(dim_[locus]+K) + dd] += X[d]*X[dd]*phi*DInvLink;
+	}
+      }
+      locus++;
+      delete[] X;
+      delete[] hap1Alleles;
+      delete[] hap2Alleles;
+    }
+  }
+}
+
+// This function calculates score for allelic association at each simple locus within a compound locus
+//void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int j, double YMinusEY, 
+void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const vector<int> allele2Counts, 
+							   int j, double YMinusEY, double phi, double DInvLink)
 {
   int K = options->getPopulations();
   double* x = new double[ K + 1 ];
@@ -573,18 +595,20 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
     x[ k + 1 ] = ind->getAdmixtureProps()[k];
 
   for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
-    int allelecount = 0;
-    bool nonmissing  = ind->GetAlleleCountsAtLocus(j, l, 2, &(allelecount));
-    x[0] = (double)allelecount;
+//     int allelecount = 0;
+//     bool nonmissing  = ind->GetAlleleCountsAtLocus(j, l, 2, &(allelecount));
+//    x[0] = (double)allelecount;
+    x[0] = (double)allele2Counts[l];
     for( int k = 0; k < K + 1; k++ ){
-      if( nonmissing )ScoreWithinHaplotype[j][l][ k ] += phi * x[k] * YMinusEY;
+      //if( nonmissing )
+      ScoreWithinHaplotype[j][l][ k ] += phi * x[k] * YMinusEY;
       for( int kk = 0; kk < K + 1; kk++ )
 	info[ k*(K+1) + kk ] = x[ k ] * x[ kk ];
     }
-    if( nonmissing ){
+    //if( nonmissing ){
       scale_matrix(info, phi*DInvLink, K+1, K+1);//info *= phi*DInvLink
       add_matrix(InfoWithinHaplotype[j][l], info, K+1, K+1);//InfoWithinHaplotype += info
-    }
+      //}
   }
   delete[] x;
   delete[] info;
