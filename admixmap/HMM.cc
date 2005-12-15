@@ -305,7 +305,7 @@ void HMM::Sample(int *SStates, const double* const Admixture, const double* cons
 	V[State] = 
 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
 	V[State] *= alpha[t*States + i1*K + i2];
-	State++;
+	++State;
       }
       C[ t ] = SampleFromDiscrete( V, States );
       SStates[t] = (int)(C[t]/K);//paternal
@@ -433,9 +433,9 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
       if( xi[g][jj] ){
 	// sum ancestry states over loci where jump indicator is 1
 	if( !isX )
-	  SumLocusAncestry[ LocusAncestry[jj + g*Transitions] +  g*K ]++;
+	  ++SumLocusAncestry[ LocusAncestry[jj + g*Transitions] +  g*K ];
 	else
-	  SumLocusAncestry_X[ LocusAncestry[jj + g*Transitions] + g*K ]++;
+	  ++SumLocusAncestry_X[ LocusAncestry[jj + g*Transitions] + g*K ];
 	//sample number of arrivals where jump indicator is 1
 	if(!isGlobalRho){
 	  double u = myrand();

@@ -185,14 +185,14 @@ void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator
   //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
   int locus = C->GetLocus(0);
-  for(unsigned int jj = 0; jj < C->GetSize(); jj++ ){
+  for( unsigned int jj = 0; jj < C->GetSize(); ++jj ){
     if( !(IsMissing(locus)) ){
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], chibindicator);
     }
     else{
       for( int k = 0; k < Populations*Populations;k++) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
     }
-    locus++;
+    ++locus;
   }
 }
 

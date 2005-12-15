@@ -119,7 +119,7 @@ void CompositeLocus::AddLocus( int alleles )
 { 
   vector<int> temp(NumberOfLoci);
   for(int i=0;i<NumberOfLoci;++i)temp[i] = NumberOfAlleles[i];
-  NumberOfLoci++;
+  ++NumberOfLoci;
 
   delete[] NumberOfAlleles;
   NumberOfAlleles = new int[NumberOfLoci];
@@ -529,12 +529,12 @@ void CompositeLocus::setPossibleHaplotypePairs(const vector<vector<unsigned shor
     isMissing[i] = false;
     if( (Genotype[i][0] == 0) | (Genotype[i][1] == 0)  ) { // missing genotype
       isMissing[i] = true;
-      numMissingLoci ++;
+      ++numMissingLoci;
       numPermsMissing *= NumberOfAlleles[i] * NumberOfAlleles[i];
     } else {
       if( Genotype[i][0] !=  Genotype[i][1] ) { // heterozygous
 	isHet[i] = true; 
-	numHetLoci++;
+	++numHetLoci;
 	numPermsHet *= 2;
       }
     }
@@ -550,11 +550,11 @@ void CompositeLocus::setPossibleHaplotypePairs(const vector<vector<unsigned shor
   for( int i = 0; i < NumberOfLoci; i++ ) {
     if( isHet[i] ) {
       hetLoci[offsetHetLoci] = i;
-      offsetHetLoci++;
+      ++offsetHetLoci;
     }
     if( isMissing[i] ) {
       missingLoci[offsetMissingLoci] = i;
-      offsetMissingLoci++;
+      ++offsetMissingLoci;
     }
   }
   
@@ -628,7 +628,7 @@ void CompositeLocus::SetDefaultMergeHaplotypes( const double* const alpha)
       p /= sumalpha;
       if( p > 0.01 ){
          temp[ i ] = count;
-         count++;
+         ++count;
       }
       else
          temp[i] = NumberOfStates;
@@ -639,7 +639,7 @@ void CompositeLocus::SetDefaultMergeHaplotypes( const double* const alpha)
    p /= sumalpha;
    if( p > 0.01 ){
       temp[ NumberOfStates - 1 ] = count;
-      count++;
+      ++count;
    }
    else
       temp[ NumberOfStates - 1 ] = NumberOfStates;
@@ -650,7 +650,7 @@ void CompositeLocus::SetDefaultMergeHaplotypes( const double* const alpha)
       else{
          MergeHaplotypes[i] = temp[i];
          Merged[ count2 ] = i;
-         count2++;
+         ++count2;
       }
    }
 
