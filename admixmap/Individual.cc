@@ -490,13 +490,13 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
     //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
       int locus =  chrm[j]->GetLocus(jj);
-      if( !(IsMissing(j)) ){
+      //if( !(IsMissing(locus)) ){
 	int anc[2] = {0, 0}; //ancestry states for single population
 	// GetLocusAncestry(j,jj,anc);
 	(*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
 	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, true); 
 //TODO: should fix this to work with haploid data: last argument should be isdiploid
-      }
+	//}
     }
   }   
 
@@ -614,13 +614,13 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
    //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
       int locus =  chrm[j]->GetLocus(jj);
-      if( !(IsMissing(j)) ){
+      //if( !(IsMissing(locus)) ){
 	  int anc[2];//to store ancestry states
 	  GetLocusAncestry(j,jj,anc);
 	  //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
 	  (*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
 	  A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, chrm[j]->isDiploid());
-      }
+	  //}
      }   
 
     //sample number of arrivals and SumLocusAncestry
