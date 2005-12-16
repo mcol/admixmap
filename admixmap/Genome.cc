@@ -124,8 +124,7 @@ void Genome::loadAlleleStatesAndDistances(const AdmixOptions* const options, con
     
     TheArray[i]->SetNumberOfLabels();
     index++;
-    //Log.setDisplayMode(IfCOUT);
-    //Log << (*Loci)(i)->GetNumberOfLoci() << " ";
+    if(TheArray[i]->GetNumberOfLoci()>8) cerr << "WARNING: Composite locus with >8 loci\n";
   }
 
   Vector_s labels = data_->getGeneticData()[0];//header of genotypes file
