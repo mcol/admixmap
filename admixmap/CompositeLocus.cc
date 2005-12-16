@@ -466,6 +466,34 @@ void CompositeLocus::codeHapAllelesPairAsIntPair(const vector<int> HapAllelesPai
   }
 }
 
+//returns a vector of length NumberOfLoci of numbers of copies of allele a at this locus, as encoded in haplotype pair h
+const vector<int> CompositeLocus::getAlleleCounts(int a, const int* happair)const{
+  int* hap1Alleles = new int[NumberOfLoci];
+  int* hap2Alleles = new int[NumberOfLoci];
+  decodeIntAsHapAlleles(happair[0], hap1Alleles);
+  decodeIntAsHapAlleles(happair[1], hap2Alleles);
+
+  vector<int> counts(NumberOfLoci);
+  fill(counts.begin(), counts.end(), 0);
+  for(int l = 0; l < NumberOfLoci; ++l) counts[l] += (hap1Alleles[l]==a) + (hap2Alleles[l]==a);
+  //TODO: shortcut for SNP
+  
+  delete[] hap1Alleles;
+  delete[] hap2Alleles;
+  return counts;
+}
+
+//given a haplotype pair, returns a vector of haplotype counts
+const vector<int> CompositeLocus::getHaplotypeCounts(const int* happair){
+  vector<int> counts(NumberOfMergedHaplotypes);
+  fill(counts.begin(), counts.end(), 0);
+
+  counts[GetMergedHaplotype(happair[0]) ]++;
+  counts[GetMergedHaplotype(happair[1]) ]++;
+
+  return counts;
+}
+
 // arguments: genotype as 2D array, hetLoci as array of col nums of het loci, isHet as array of length equal to NumberOfLoci
 // updates: haplotype pair array with permHet th permutation of alleles at heterozygous loci  
 void CompositeLocus::permuteHetLoci(const vector<bool> isHet, const int numHetLoci, const int permHet, 

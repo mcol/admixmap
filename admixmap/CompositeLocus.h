@@ -62,6 +62,8 @@ public:
   int GetNumberOfAllelesOfLocus( int )const;
   void getLocusAlleleProbs(double **P, int k)const;
 
+  const std::vector<int> getAlleleCounts(int a, const int* happair)const;
+  const std::vector<int> getHaplotypeCounts(const int* happair);
   void setPossibleHaplotypePairs(const std::vector<std::vector<unsigned short> > Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
