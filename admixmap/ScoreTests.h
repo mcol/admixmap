@@ -95,7 +95,8 @@ private:
 			      const double* Score, const double* VarScore,
 			      const double* Score2, const double* Info );
 
-  void OutputTestsForAllelicAssociation( int );
+  void OutputTestsForAllelicAssociation( int iteration, int locus, unsigned dim, const double* score, const double* scoresq, 
+					 const double* info);
   
   void OutputTestsForSNPsInHaplotype( int );
   
@@ -105,7 +106,11 @@ private:
   void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const std::vector<int> allele2Counts, 
 						 int locus, double p,double phi, double DInvLink);
 
-  void SumScoreForWithinHaplotypeAssociation();
+  void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info, 
+				double *sumscore, double* sumscoresq, double* suminfo);
+
+  void UpdateAlleleScores( double* score, double* info, const double* admixtureProps, const vector<int> Counts, 
+			   double YMinusEY, double phi, double DInvLink);
 
   void UpdateScoreForAllelicAssociation( const Individual* const , double, double, double);
 
