@@ -92,7 +92,7 @@ public:
    
   double IntegratingConst( double alpha, double beta, double a, double b )const;
 
-  void SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
+  void SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
 			 const std::vector<double> lambda, int NoCovariates,
 			 DataMatrix *Covariates, const std::vector<const double*> beta, const double *poptheta, 
@@ -101,14 +101,14 @@ public:
 			 double rhoalpha, double rhobeta, const vector<double> sigma, 
 			 double DInvLink, double dispersion, bool anneal);
 
-  void SampleTheta( int i, int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
+  void SampleTheta( int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
 		    int NumOutcomes, const DataType* const OutcomeType, const double* const* ExpectedY, 
 		    const std::vector<double> lambda, int NoCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
 		    double DInvLink, double dispersion, bool RW, bool anneal);
 
-  void OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
+  void OnePopulationUpdate( DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
 			    const double* const* ExpectedY, const std::vector<double> lambda, const Chromosome* const*chrm, 
 			    AlleleFreqs *A );
 
@@ -187,11 +187,11 @@ private:
   static double *LikRatio1;
   static double *LikRatio2;
 
-  void UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates, const double* const poptheta, 
+  void UpdateAdmixtureForRegression( int Populations, int NoCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator, bool RW );
   double LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations );
-  double LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, 
+  double LogAcceptanceRatioForRegressionModel( RegressionType RegType, int TI,  bool RandomMatingModel, 
 					       int Populations, int NoCovariates, 
 					       const DataMatrix* const Covariates, const std::vector<const double*> beta, 
 					       const double* const* ExpectedY, const DataMatrix* const Outcome, 

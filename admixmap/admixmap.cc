@@ -99,7 +99,7 @@ int main( int argc , char** argv ){
   Chromosome **chrm = 0; //Note: array of pointers to Chromosome
   chrm = Loci.GetChromosomes(options.getPopulations());  //create Chromosome objects
   Loci.SetSizes(Log);//prints length of genome, num loci, num chromosomes
-    
+
   IndividualCollection *IC = new IndividualCollection(&options, &data, Loci, chrm);//NB call after A Initialise
   IC->LoadData(&options, &data);                             //and before L and R Initialise
 
@@ -335,7 +335,7 @@ int main( int argc , char** argv ){
   for(unsigned i = 0; i < Loci.GetNumberOfChromosomes(); i++){
     delete chrm[i];
   }
-  A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());  
+  A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
    
@@ -518,8 +518,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(A->IsRandom()){
     A->Update((iteration > options->getBurnIn() && !anneal));
     IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes());
-    for(int i = 0; i < IC->getSize(); ++i)
-      IC->getIndividual(i)->HMMIsBad(true); //if the allelefreqs are not fixed they are sampled between
+    IC->HMMIsBad(true); //if the allelefreqs are not fixed they are sampled between
     //individual updates. Therefore the forward probs in the HMMs must be updated and the current stored 
     //values of likelihood are invalid
   }

@@ -109,8 +109,13 @@ public:
   double DerivativeInverseLinkFunction(int i)const;
   void ResetChib();
   const chib* getChib()const;
+
+  void HMMIsBad(bool b);
+
+
 private:
   Individual **_child; //array of pointers to Individual
+  Individual* TestInd;//individual for whom to estimate marginal likelihood
   void getLabels(const Vector_s& data,  string *labels);
 
   void LoadCovariates(const InputData*, const AdmixOptions* const options);
@@ -118,7 +123,7 @@ private:
   void LoadRepAncestry(const InputData* const);
   void InitialiseMLEs(double, double, const AdmixOptions* const, const DataMatrix&);
 
-  unsigned int NumInd, NumCompLoci;
+  unsigned int NumInd, size, NumCompLoci;
   //MLEs of Individual admixture and sumintensities
   //used to calculate marginal likelihood
   vector<double> rhohat, rhohatX;

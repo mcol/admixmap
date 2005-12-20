@@ -185,14 +185,14 @@ void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator
   //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
   int locus = C->GetLocus(0);
-  for( unsigned int jj = 0; jj < C->GetSize(); ++jj ){
+  for(unsigned int jj = 0; jj < C->GetSize(); jj++ ){
     if( !(IsMissing(locus)) ){
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], chibindicator);
     }
     else{
       for( int k = 0; k < Populations*Populations;k++) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
     }
-    ++locus;
+    locus++;
   }
 }
 
@@ -468,20 +468,20 @@ double Individual::getLogLikelihoodOnePop(){ //convenient for a single populatio
 //************** Updating (Public) ***************************************************************************************
 
 // unnecessary duplication of code - ? should embed within method for > 1 population
-void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
+void Individual::OnePopulationUpdate( DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
 				      const double* const* ExpectedY, const vector<double> lambda, const Chromosome* const*chrm, 
 				      AlleleFreqs *A )
 {
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
-       if( Outcome->isMissing( i, k ) ){
+       if( Outcome->isMissing( myNumber-1, k ) ){
 	if( OutcomeType[k] == Continuous )
-	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
+	  Outcome->set( myNumber-1, k, gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
 	else{
-	  if( myrand() * ExpectedY[k][i] < 1 )
-	    Outcome->set( i, k, 1);
+	  if( myrand() * ExpectedY[k][myNumber-1] < 1 )
+	    Outcome->set( myNumber-1, k, 1);
 	  else
-	    Outcome->set( i, k, 0);
+	    Outcome->set( myNumber-1, k, 0);
 	}
       }
   }
@@ -502,7 +502,7 @@ void Individual::OnePopulationUpdate( int i, DataMatrix *Outcome, int NumOutcome
 
 }
 
-void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
+void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 				   int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
 				   const vector<double> lambda, int NoCovariates,
 				   DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
@@ -556,7 +556,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
   }
   
   if(!(iteration %2))//update theta with random walk on odd-numbered iterations
-    SampleTheta(i, iteration, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
+    SampleTheta(iteration, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
 		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
   
   //SumNumArrivals is the number of arrivals between each pair of adjacent loci
@@ -581,7 +581,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 	unsigned col = 0;
 	if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
 	//check if this individual is affected
-	if(options->getNumberOfOutcomes() == 0 || Outcome->get(i, col) == 1) IamAffected = true;
+	if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
       }
       
       //we don't bother computing scores for the first population when there are two
@@ -601,7 +601,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
       
 	//update ancestry score tests
 	if( options->getTestForLinkageWithAncestry() ){
-	  UpdateScoreForAncestry(locus, dispersion, Outcome->get(i, 0) - ExpectedY[0][i], DInvLink, AProbs);
+	  UpdateScoreForAncestry(locus, dispersion, Outcome->get(myNumber-1, 0) - ExpectedY[0][myNumber-1], DInvLink, AProbs);
 	}
 	++locus;
       }//end within-chromosome loop    
@@ -641,15 +641,15 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
     // sample missing values of outcome variable
     double u;
     for( int k = 0; k < NumOutcomes; k++ ){
-      if( Outcome->isMissing( i, k ) ){
+      if( Outcome->isMissing( myNumber-1, k ) ){
 	if( OutcomeType[k] == Continuous ) // linear regression
-	  Outcome->set( i, k, gennor( ExpectedY[k][i], 1 / sqrt( lambda[k] ) ));
+	  Outcome->set( myNumber-1, k, gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
 	else{// logistic regression
 	  u = myrand();
-	  if( u * ExpectedY[k][i] < 1 )
-	    Outcome->set( i, k, 1);
+	  if( u * ExpectedY[k][myNumber-1] < 1 )
+	    Outcome->set( myNumber-1, k, 1);
 	  else
-	    Outcome->set( i, k, 0);
+	    Outcome->set( myNumber-1, k, 0);
 	}
       }
     }
@@ -657,7 +657,7 @@ void Individual::SampleParameters( int i, double *SumLogTheta, AlleleFreqs *A, i
 
 }
 
-void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
+void Individual::SampleTheta( int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
 			      int NumOutcomes, const DataType* const OutcomeType, const double* const* ExpectedY, 
 			      const vector<double> lambda, int NoCovariates,
 			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
@@ -684,7 +684,7 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, const D
     RegressionType RegType;
     for( int k = 0; k < NumOutcomes; k++ ){
       if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
-      logpratio +=  LogAcceptanceRatioForRegressionModel( i, RegType, k, options->isRandomMatingModel(), K,
+      logpratio +=  LogAcceptanceRatioForRegressionModel( RegType, k, options->isRandomMatingModel(), K,
 							 NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
     }
   }
@@ -697,7 +697,7 @@ void Individual::SampleTheta( int i, int iteration, double *SumLogTheta, const D
 
  // update the value of admixture proportions used in the regression model  
   if( options->getNumberOfOutcomes() > 0 )
-    UpdateAdmixtureForRegression(i, K, NoCovariates, poptheta, options->isRandomMatingModel(), Covariates);
+    UpdateAdmixtureForRegression(K, NoCovariates, poptheta, options->isRandomMatingModel(), Covariates);
 
   if(!anneal && iteration > options->getBurnIn()){
     unsigned G = 1;
@@ -840,7 +840,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
 
 // returns log of ratio of likelihoods of new and old values of population admixture
 // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
-double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType RegType, int TI,  bool RandomMatingModel, 
+double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType, int TI,  bool RandomMatingModel, 
 							 int Populations, int NoCovariates, 
 							 const DataMatrix* const Covariates, const vector<const double*> beta, 
 							 const double* const* ExpectedY, const DataMatrix* const Outcome, 
@@ -854,20 +854,21 @@ double Individual::LogAcceptanceRatioForRegressionModel( int i, RegressionType R
     for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
 
   for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates->get( i, jj ) * beta[ TI ][jj];
+    Xbeta += Covariates->get( myNumber-1, jj ) * beta[ TI ][jj];
   for( int k = 1; k < Populations; k++ ){
     Xbeta += avgtheta[ k ] * beta[ TI ][NoCovariates - Populations + k ];
   }
   if(RegType == Linear){
-    logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][i] - Outcome->get( i, TI ) ) * ( ExpectedY[ TI ][i] - Outcome->get( i, TI ) )
-					 - ( Xbeta - Outcome->get( i, TI ) ) * ( Xbeta - Outcome->get( i, TI) ) );
+    logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][myNumber-1] - Outcome->get( myNumber-1, TI ) ) 
+					 * ( ExpectedY[ TI ][myNumber-1] - Outcome->get( myNumber-1, TI ) )
+					 - ( Xbeta - Outcome->get( myNumber-1, TI ) ) * ( Xbeta - Outcome->get( myNumber-1, TI) ) );
   }
   else if(RegType == Logistic){
     double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
-    if( Outcome->get( i, TI ) == 1 )
-      logprobratio = newExpectedY / ExpectedY[ TI ][i];
+    if( Outcome->get( myNumber-1, TI ) == 1 )
+      logprobratio = newExpectedY / ExpectedY[ TI ][myNumber-1];
     else
-      logprobratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY[ TI ][i] );
+      logprobratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY[ TI ][myNumber-1] );
     logprobratio = log(logprobratio);//We take the log here rather than compute 4 logs above
   }
   return( logprobratio );
@@ -897,7 +898,7 @@ double Individual::LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &s
 }
 
 // update the individual admixture values (mean of both gametes) used in the regression model
-void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCovariates,
+void Individual::UpdateAdmixtureForRegression( int Populations, int NoCovariates,
                                                const double* const poptheta, bool RandomMatingModel, 
 					       DataMatrix *Covariates)
 {
@@ -908,7 +909,7 @@ void Individual::UpdateAdmixtureForRegression( int i,int Populations, int NoCova
   else
     for(int k = 0; k < Populations; ++k) avgtheta[k] = Theta[k];
   for( int k = 1; k < Populations ; k++ )
-    Covariates->set( i, NoCovariates - Populations + k, avgtheta[ k ] - poptheta[ k ] );
+    Covariates->set( myNumber-1, NoCovariates - Populations + k, avgtheta[ k ] - poptheta[ k ] );
 }
 
 // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
