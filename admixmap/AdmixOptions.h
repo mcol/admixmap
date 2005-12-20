@@ -73,7 +73,6 @@ public:
   const char *getEtaPriorFilename() const;
   const char *getOutcomeVarFilename() const;  
   int getTargetIndicator() const;
-  double getRho() const;
   double getRhoalpha() const;
   double getRhobeta() const;
   double getRhobetaShape()const;
@@ -199,7 +198,8 @@ private:
 
   //priors
   double Rhoalpha, Rhobeta;//gamma parameters for sumintensities
-  double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
+  //double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
+  std::vector<double> rhoPrior;
   std::vector<double> alpha0;
   std::vector<double> alpha1;
   std::vector< std::vector<double> > initalpha;

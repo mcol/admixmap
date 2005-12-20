@@ -124,13 +124,13 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
     rhobeta0 = options->getRhobetaShape();
     rhobeta1 = options->getRhobetaRate();
-    rhobeta = rhobeta0 / rhobeta1;
+    rhobeta = options->getRhobeta();
     rhoalpha = options->getRhoalpha();
 
-    if(rhobeta0 > 1)
+    if(!options->isGlobalRho() && rhobeta0 > 1)
       rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);//initialise at prior mean
     else if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-      rho = rhoalpha / rhobeta;//initialise at conditional prior mean
+      rho = rhoalpha / rhobeta;//initialise at prior mean for globalrho
     else rho = 2.0;//initialise at min value if flat prior
   
     
