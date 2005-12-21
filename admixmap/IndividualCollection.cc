@@ -384,26 +384,21 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   if(options->getAnnealIndicator()==2){
     i0 = 1;
     Chromosome::setCoolness(coolness);
-    if( options->getPopulations() > 1 ){
-      TestInd->SampleParameters(SumLogTheta, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
-				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				  chrm, alpha, rhoalpha, rhobeta, sigma,  
-				  DerivativeInverseLinkFunction(0),
-				  R[0].getDispersion(), anneal );
-      if((iteration %2))//conjugate update of theta on even-numbered iterations
- 	TestInd->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
- 			      & Covariates, beta, poptheta, options, alpha, sigma,
- 			       DerivativeInverseLinkFunction(0), 
- 			       R[0].getDispersion(), false, anneal);
-
-      _child[size-1]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
-      //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
-      //still be valid as the allelefreqs, global rho and that individual's have not changed.
-    }
+    TestInd->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
+			      lambda, NumCovariates, &Covariates, beta, poptheta, options,
+			      chrm, alpha, rhoalpha, rhobeta, sigma,  
+			      DerivativeInverseLinkFunction(0),
+			      R[0].getDispersion(), anneal );
+    if(options->getPopulations() > 1 && (iteration %2))//conjugate update of theta on even-numbered iterations
+      TestInd->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
+			   & Covariates, beta, poptheta, options, alpha, sigma,
+			   DerivativeInverseLinkFunction(0), 
+			   R[0].getDispersion(), false, anneal);
     
-    else{//single population 
-      TestInd->OnePopulationUpdate(&Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, chrm, A);
-    }
+    _child[size-1]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
+    //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
+    //still be valid as the allelefreqs, global rho and that individual's have not changed.
+    
     Chromosome::setCoolness(1.0); 
     TestInd->HMMIsBad(false);  //TODO:
   }
@@ -411,28 +406,22 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   for(unsigned int i = 0; i < size; i++ ){
     int prev = i-1;
     if(i==0)prev = size-1;
-
-    if( options->getPopulations() > 1 ){
-      _child[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, NumOutcomes, OutcomeType, ExpectedY,
-				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				  chrm, alpha, rhoalpha, rhobeta, sigma,  
-				  DerivativeInverseLinkFunction(i+i0),
-				  R[0].getDispersion(), anneal );
-      if((iteration %2))//conjugate update of theta on even-numbered iterations
- 	_child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NumCovariates,
- 			      & Covariates, beta, poptheta, options, alpha, sigma,
- 			       DerivativeInverseLinkFunction(i+i0), 
- 			       R[0].getDispersion(), false, anneal);
-
-      if(size > 1)_child[prev]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
-      //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
-      //still be valid as the allelefreqs, global rho and that individual's have not changed.
-    }
     
-    else{//single population 
-      _child[i]->OnePopulationUpdate(&Outcome, NumOutcomes, OutcomeType, ExpectedY, lambda, chrm, A);
-    }    
-
+    _child[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
+				lambda, NumCovariates, &Covariates, beta, poptheta, options,
+				chrm, alpha, rhoalpha, rhobeta, sigma,  
+				DerivativeInverseLinkFunction(i+i0),
+				R[0].getDispersion(), anneal );
+    if(options->getPopulations() > 1 && (iteration %2))//conjugate update of theta on even-numbered iterations
+      _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
+			     & Covariates, beta, poptheta, options, alpha, sigma,
+			     DerivativeInverseLinkFunction(i+i0), 
+			     R[0].getDispersion(), false, anneal);
+    
+    if(size > 1)_child[prev]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
+    //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
+    //still be valid as the allelefreqs, global rho and that individual's have not changed.
+    
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
       _child[i]->Chib(iteration, &SumLogLikelihood, &(MaxLogLikelihood[i]),
 				options, chrm, alpha, globalrho, rhoalpha, rhobeta,

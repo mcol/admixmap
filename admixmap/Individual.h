@@ -93,8 +93,8 @@ public:
   double IntegratingConst( double alpha, double beta, double a, double b )const;
 
   void SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
-			 int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
-			 const std::vector<double> lambda, int NoCovariates,
+			 const DataType* const OutcomeType, const double* const * ExpectedY, 
+			 const std::vector<double> lambda, int NumCovariates,
 			 DataMatrix *Covariates, const std::vector<const double*> beta, const double *poptheta, 
 			 const AdmixOptions* const options,
 			 Chromosome **chrm, const vector<vector<double> > &alpha,  
@@ -102,15 +102,11 @@ public:
 			 double DInvLink, double dispersion, bool anneal);
 
   void SampleTheta( int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
-		    int NumOutcomes, const DataType* const OutcomeType, const double* const* ExpectedY, 
-		    const std::vector<double> lambda, int NoCovariates,
+		    const DataType* const OutcomeType, const double* const* ExpectedY, 
+		    const std::vector<double> lambda, int NumCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
 		    double DInvLink, double dispersion, bool RW, bool anneal);
-
-  void OnePopulationUpdate( DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
-			    const double* const* ExpectedY, const std::vector<double> lambda, const Chromosome* const*chrm, 
-			    AlleleFreqs *A );
 
   void Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
 	    const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, double globalrho,
@@ -187,12 +183,12 @@ private:
   static double *LikRatio1;
   static double *LikRatio2;
 
-  void UpdateAdmixtureForRegression( int Populations, int NoCovariates, const double* const poptheta, 
+  void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator, bool RW );
   double LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations );
   double LogAcceptanceRatioForRegressionModel( RegressionType RegType, int TI,  bool RandomMatingModel, 
-					       int Populations, int NoCovariates, 
+					       int Populations, int NumCovariates, 
 					       const DataMatrix* const Covariates, const std::vector<const double*> beta, 
 					       const double* const* ExpectedY, const DataMatrix* const Outcome, 
 					       const double* const poptheta, const std::vector<double> lambda);
@@ -221,6 +217,11 @@ private:
 						    const vector<vector<double> > AProbs);
   void UpdateScoreForAncestry(int locus, double phi, double EY, double DInvLink, const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion);
+
+  void SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
+			     const double* const* ExpectedY, const vector<double> lambda);
+  void UpdateScoreTests(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, Chromosome* chrm, 
+			double DInvLink, double dispersion, const double* const* ExpectedY);
 };
 
 

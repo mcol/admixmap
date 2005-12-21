@@ -467,44 +467,9 @@ double Individual::getLogLikelihoodOnePop(){ //convenient for a single populatio
 }
 //************** Updating (Public) ***************************************************************************************
 
-// unnecessary duplication of code - ? should embed within method for > 1 population
-void Individual::OnePopulationUpdate( DataMatrix *Outcome, int NumOutcomes, const DataType* const OutcomeType, 
-				      const double* const* ExpectedY, const vector<double> lambda, const Chromosome* const*chrm, 
-				      AlleleFreqs *A )
-{
-  // sample missing values of outcome variable
-  for( int k = 0; k < NumOutcomes; k++ ){
-       if( Outcome->isMissing( myNumber-1, k ) ){
-	if( OutcomeType[k] == Continuous )
-	  Outcome->set( myNumber-1, k, gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
-	else{
-	  if( myrand() * ExpectedY[k][myNumber-1] < 1 )
-	    Outcome->set( myNumber-1, k, 1);
-	  else
-	    Outcome->set( myNumber-1, k, 0);
-	}
-      }
-  }
-  // update allele counts
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    //loop over loci on current chromosome and update allele counts
-    for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      int locus =  chrm[j]->GetLocus(jj);
-      //if( !(IsMissing(locus)) ){
-	int anc[2] = {0, 0}; //ancestry states for single population
-	// GetLocusAncestry(j,jj,anc);
-	(*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
-	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, true); 
-//TODO: should fix this to work with haploid data: last argument should be isdiploid
-	//}
-    }
-  }   
-
-}
-
 void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
-				   int NumOutcomes, const DataType* const OutcomeType, const double* const * ExpectedY, 
-				   const vector<double> lambda, int NoCovariates,
+				   const DataType* const OutcomeType, const double* const * ExpectedY, 
+				   const vector<double> lambda, int NumCovariates,
 				   DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
 				   const AdmixOptions* const options,
 				   Chromosome **chrm, const vector<vector<double> > &alpha,  
@@ -516,11 +481,10 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   AlleleFreqs = pointer to AlleleFreqs, needed to update allele counts
   iteration = current iteration
   Outcome = Outcome variable(s)
-  NumOutcomes = number of outcomes
   OutcomeType = array of types of outcome (binary/continuous)   
   ExpectedY = expected outcome variable
   lambda = precision in linear regression model (if there is one)
-  NoCovariates = # covariates, including admixture
+  NumCovariates = # covariates, including admixture
   Covariates = Covariates array, including admixture
   beta = regression parameters
   poptheta = ergodic average of population admixture, used to centre the values of individual admixture in the regression model
@@ -533,133 +497,88 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 */
 {
-  // ** reset SumLocusAncestry and ThetaProposal **
-  for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
-  //  if(Loci->isX_data() ){
-  int J = Populations;
-  if(sex != male) J *=2;
-  for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
-  //  }
   
-  size_t size_theta;
-  if( options->isRandomMatingModel() )
-    size_theta = Populations*2; // double the size for 2 gametes in RMM
-  else//assortative mating
-    size_theta = Populations;
-  
-  for(unsigned k = 0; k < size_theta; ++k){
-    ThetaProposal[k] = 0.0;//may be unnecessary
+  if(Populations>1){
+    // ** reset SumLocusAncestry and ThetaProposal **
+    for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
+    //  if(Loci->isX_data() ){
+    int J = Populations;
+    if(sex != male) J *=2;
+    for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
+    //  }
+    
+    size_t size_theta;
+    if( options->isRandomMatingModel() )
+      size_theta = Populations*2; // double the size for 2 gametes in RMM
+    else//assortative mating
+      size_theta = Populations;
+    
+    for(unsigned k = 0; k < size_theta; ++k){
+      ThetaProposal[k] = 0.0;//may be unnecessary
+    }
+    if(ThetaXProposal){
+      size_theta = Populations;if(sex != male) size_theta *= 2;
+      for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
+    }
+    
+    if(Populations >1 && !(iteration %2))//update theta with random walk on odd-numbered iterations
+      SampleTheta(iteration, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
+		  Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
+    
+    //SumNumArrivals is the number of arrivals between each pair of adjacent loci
+    SumNumArrivals[0] = SumNumArrivals[1] = 0;
+    SumNumArrivals_X[0] = SumNumArrivals_X[1] = 0;  
   }
-  if(ThetaXProposal){
-    size_theta = Populations;if(sex != male) size_theta *= 2;
-    for(unsigned k = 0; k < size_theta; ++k) ThetaXProposal[k] = 0.0;
-  }
-  
-  if(!(iteration %2))//update theta with random walk on odd-numbered iterations
-    SampleTheta(iteration, SumLogTheta,Outcome, chrm, NumOutcomes, OutcomeType, ExpectedY, lambda, NoCovariates,
-		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
-  
-  //SumNumArrivals is the number of arrivals between each pair of adjacent loci
-  SumNumArrivals[0] = SumNumArrivals[1] = 0;
-  SumNumArrivals_X[0] = SumNumArrivals_X[1] = 0;  
-  
   bool ancestrytest = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    
-    //Update Forward/Backward probs in HMM
-    if( !logLikelihood.HMMisOK ){
-      UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
-    }
-    if(ancestrytest && iteration > options->getBurnIn()){
-      chrm[j]->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
-    
-      //update score tests for linkage with ancestry for *previous* iteration
-      bool IamAffected = false;
-
-      if( options->getTestForAffectedsOnly()){
-	//determine which regression is logistic, in case of 2 outcomes
-	unsigned col = 0;
-	if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
-	//check if this individual is affected
-	if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
+    if(Populations>1){
+      //Update Forward/Backward probs in HMM
+      if( !logLikelihood.HMMisOK ){
+	UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
+      }
+      if(ancestrytest && iteration > options->getBurnIn()){
+	//update score tests for linkage with ancestry for *previous* iteration
+	chrm[j]->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
+	UpdateScoreTests(options, Outcome, OutcomeType, chrm[j], DInvLink, dispersion, ExpectedY);
       }
       
-      //we don't bother computing scores for the first population when there are two
-      int KK = Populations,k0 = 0;
-      if(Populations == 2) {KK = 1;k0 = 1;}
-      
-      int locus;
-      for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-	locus = chrm[j]->GetLocus(jj); 
-	//retrieve AncestryProbs from HMM
-	std::vector<std::vector<double> > AProbs = chrm[j]->getAncestryProbs( jj );
-	
-	//Update affecteds only scores      
-	if(IamAffected){
-	  UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, options->isRandomMatingModel(), AProbs );
-	}
-      
-	//update ancestry score tests
-	if( options->getTestForLinkageWithAncestry() ){
-	  UpdateScoreForAncestry(locus, dispersion, Outcome->get(myNumber-1, 0) - ExpectedY[0][myNumber-1], DInvLink, AProbs);
-	}
-	++locus;
-      }//end within-chromosome loop    
-    }
+      //Sample locus ancestry
+      // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
+      chrm[j]->SampleLocusAncestry(LocusAncestry[j], Theta);
+    }//end populations>1 
 
-    //Sample locus ancestry
-    // sampling locus ancestry requires calculation of forward probability vectors alpha in HMM 
-    chrm[j]->SampleLocusAncestry(LocusAncestry[j], Theta);
- 
-   //loop over loci on current chromosome and update allele counts
+    //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
       int locus =  chrm[j]->GetLocus(jj);
       //if( !(IsMissing(locus)) ){
-	  int anc[2];//to store ancestry states
-	  GetLocusAncestry(j,jj,anc);
-	  //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-	  (*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
-	  A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, chrm[j]->isDiploid());
-	  //}
-     }   
-
-    //sample number of arrivals and SumLocusAncestry
-    chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X,
-				  SumNumArrivals, SumNumArrivals_X, options->isGlobalRho());
-
+      int anc[2];//to store ancestry states
+      GetLocusAncestry(j,jj,anc);
+      //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
+      (*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
+      A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, chrm[j]->isDiploid());
+      //}
+    }   
+    if(Populations>1)
+      //sample number of arrivals and SumLocusAncestry
+      chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X,
+				    SumNumArrivals, SumNumArrivals_X, options->isGlobalRho());
+    
   }//end chromosome loop
-
+  
   // sample sum of intensities parameter rho
-  if( !options->isGlobalRho() ){
-     SampleRho( options, Loci->isX_data(), rhoalpha, rhobeta, SumNumArrivals, SumNumArrivals_X);
+  if(Populations>1 &&  !options->isGlobalRho() ){
+    SampleRho( options, Loci->isX_data(), rhoalpha, rhobeta, SumNumArrivals, SumNumArrivals_X);
   }
   if(!anneal && iteration > options->getBurnIn()){
     for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] += log(_rho[i]);
   }
 
-  if( options->getNumberOfOutcomes() > 0 ){
-    // sample missing values of outcome variable
-    double u;
-    for( int k = 0; k < NumOutcomes; k++ ){
-      if( Outcome->isMissing( myNumber-1, k ) ){
-	if( OutcomeType[k] == Continuous ) // linear regression
-	  Outcome->set( myNumber-1, k, gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
-	else{// logistic regression
-	  u = myrand();
-	  if( u * ExpectedY[k][myNumber-1] < 1 )
-	    Outcome->set( myNumber-1, k, 1);
-	  else
-	    Outcome->set( myNumber-1, k, 0);
-	}
-      }
-    }
-  }
-
+  SampleMissingOutcomes(Outcome, OutcomeType, ExpectedY, lambda);
 }
 
 void Individual::SampleTheta( int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
-			      int NumOutcomes, const DataType* const OutcomeType, const double* const* ExpectedY, 
-			      const vector<double> lambda, int NoCovariates,
+			      const DataType* const OutcomeType, const double* const* ExpectedY, 
+			      const vector<double> lambda, int NumCovariates,
 			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
 			      const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
 			      double DInvLink, double dispersion, bool RW, bool anneal=false)
@@ -682,10 +601,11 @@ void Individual::SampleTheta( int iteration, double *SumLogTheta, const DataMatr
   //calculate Metropolis acceptance probability ratio for proposal theta    
   if(!options->getTestForAdmixtureAssociation()){
     RegressionType RegType;
+    int NumOutcomes = Outcome->nCols();
     for( int k = 0; k < NumOutcomes; k++ ){
       if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
       logpratio +=  LogAcceptanceRatioForRegressionModel( RegType, k, options->isRandomMatingModel(), K,
-							 NoCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
+							 NumCovariates, Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
     }
   }
   //case of X Chromosome and not X only data
@@ -697,7 +617,7 @@ void Individual::SampleTheta( int iteration, double *SumLogTheta, const DataMatr
 
  // update the value of admixture proportions used in the regression model  
   if( options->getNumberOfOutcomes() > 0 )
-    UpdateAdmixtureForRegression(K, NoCovariates, poptheta, options->isRandomMatingModel(), Covariates);
+    UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options->isRandomMatingModel(), Covariates);
 
   if(!anneal && iteration > options->getBurnIn()){
     unsigned G = 1;
@@ -841,7 +761,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
 // returns log of ratio of likelihoods of new and old values of population admixture
 // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
 double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType, int TI,  bool RandomMatingModel, 
-							 int Populations, int NoCovariates, 
+							 int Populations, int NumCovariates, 
 							 const DataMatrix* const Covariates, const vector<const double*> beta, 
 							 const double* const* ExpectedY, const DataMatrix* const Outcome, 
 							 const double* const poptheta, const vector<double> lambda)
@@ -853,10 +773,10 @@ double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType,
   else
     for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
 
-  for( int jj = 0; jj < NoCovariates - Populations + 1; jj++ )
+  for( int jj = 0; jj < NumCovariates - Populations + 1; jj++ )
     Xbeta += Covariates->get( myNumber-1, jj ) * beta[ TI ][jj];
   for( int k = 1; k < Populations; k++ ){
-    Xbeta += avgtheta[ k ] * beta[ TI ][NoCovariates - Populations + k ];
+    Xbeta += avgtheta[ k ] * beta[ TI ][NumCovariates - Populations + k ];
   }
   if(RegType == Linear){
     logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][myNumber-1] - Outcome->get( myNumber-1, TI ) ) 
@@ -898,7 +818,7 @@ double Individual::LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &s
 }
 
 // update the individual admixture values (mean of both gametes) used in the regression model
-void Individual::UpdateAdmixtureForRegression( int Populations, int NoCovariates,
+void Individual::UpdateAdmixtureForRegression( int Populations, int NumCovariates,
                                                const double* const poptheta, bool RandomMatingModel, 
 					       DataMatrix *Covariates)
 {
@@ -909,7 +829,7 @@ void Individual::UpdateAdmixtureForRegression( int Populations, int NoCovariates
   else
     for(int k = 0; k < Populations; ++k) avgtheta[k] = Theta[k];
   for( int k = 1; k < Populations ; k++ )
-    Covariates->set( myNumber-1, NoCovariates - Populations + k, avgtheta[ k ] - poptheta[ k ] );
+    Covariates->set( myNumber-1, NumCovariates - Populations + k, avgtheta[ k ] - poptheta[ k ] );
 }
 
 // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
@@ -1027,6 +947,24 @@ void Individual::SampleRho(const AdmixOptions* const options, bool X_data, doubl
   logLikelihood.ready = false;
 }
 
+void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
+				      const double* const* ExpectedY, const vector<double> lambda){
+  int NumOutcomes = Outcome->nCols();
+  // sample missing values of outcome variable
+  for( int k = 0; k < NumOutcomes; k++ ){
+       if( Outcome->isMissing( myNumber-1, k ) ){
+	if( OutcomeType[k] == Continuous )
+	  Outcome->set( myNumber-1, k, gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
+	else{
+	  if( myrand() * ExpectedY[k][myNumber-1] < 1 )
+	    Outcome->set( myNumber-1, k, 1);
+	  else
+	    Outcome->set( myNumber-1, k, 0);
+	}
+      }
+  }
+}
+
 //********************** Score Tests ***************************
 void Individual::ResetScores(const AdmixOptions* const options){
   int KK = Populations;
@@ -1058,6 +996,42 @@ void Individual::ResetScores(const AdmixOptions* const options){
       Xcov[k] = 0.0;
     }
   }
+}
+
+void Individual::UpdateScoreTests(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType,
+				  Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY){
+ 
+  bool IamAffected = false;
+  
+  if( options->getTestForAffectedsOnly()){
+    //determine which regression is logistic, in case of 2 outcomes
+    unsigned col = 0;
+    if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
+    //check if this individual is affected
+    if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
+  }
+  
+  //we don't bother computing scores for the first population when there are two
+  int KK = Populations,k0 = 0;
+  if(Populations == 2) {KK = 1;k0 = 1;}
+  
+  int locus;
+  for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
+    locus = chrm->GetLocus(jj); 
+    //retrieve AncestryProbs from HMM
+    std::vector<std::vector<double> > AProbs = chrm->getAncestryProbs( jj );
+    
+    //Update affecteds only scores      
+    if(IamAffected){
+      UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, options->isRandomMatingModel(), AProbs );
+    }
+    
+    //update ancestry score tests
+    if( options->getTestForLinkageWithAncestry() ){
+      UpdateScoreForAncestry(locus, dispersion, Outcome->get(myNumber-1, 0) - ExpectedY[0][myNumber-1], DInvLink, AProbs);
+    }
+    ++locus;
+  }//end within-chromosome loop    
 }
 
 void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0, bool RandomMatingModel, 
