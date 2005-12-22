@@ -23,14 +23,13 @@ my $arg_hash =
     every                      => 1,
     locusfile                  => 'data/loci.txt',
     genotypesfile              => 'data/genotypes.txt',
-    outcomevarfile             => 'data/outcomevar_diabetes.txt',
-    covariatesfile             => 'data/covariates3.txt',
+    outcomevarfile             => 'data/outcomevars.txt',
+    covariatesfile             => 'data/covariates3std.txt',
     targetindicator            => 0, # diabetes in column 1
-    outcomes => 2,
-    displaylevel              => 2,
+    analysistypeindicator      => 5, # one binary and one continuous outcome var 
+    coutindicator              => 1,
     
 # output files
-    #resultsdir => 'results',
     logfile                    => 'logfile.txt',
     paramfile                  => 'param.txt',
     regparamfile  => 'regparam.txt',
@@ -51,7 +50,7 @@ doAnalysis($executable,$arg_hash, $resultsdir);
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{populations}     = 2;
-$arg_hash->{sumintensitiesprior}  = "5,1";
+$arg_hash->{sumintensitiesalpha}  = 5;
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results2");
 
@@ -64,20 +63,18 @@ $arg_hash->{allelefreqscorefile2} = 'allelefreqscorefile2.txt';
 $arg_hash->{ancestryassociationscorefile} = 'ancestryassocscorefile.txt';
 $arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
 $arg_hash->{globalrho} = 0;
-$arg_hash->{sumintensitiesprior}  = "5,11,10";
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results3");
 
 # prior on allele freqs
 $arg_hash->{fixedallelefreqs} = 0;
 $arg_hash->{globalrho}        = 1;
-$arg_hash->{sumintensitiesprior}  = "5,1";
 $arg_hash->{randommatingmodel} = 1;
 delete $arg_hash->{allelefreqscorefile};
 delete $arg_hash->{allelefreqscorefile2};
 delete $arg_hash->{affectedsonlyscorefile};
 $arg_hash->{dispersiontestfile}  = 'dispersiontest.txt';
-$arg_hash->{outcomes} = 1;
+$arg_hash->{analysistypeindicator} = 2; # continuous outcome var
 $arg_hash->{targetindicator} = 1; # skin reflectance
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results4");
@@ -90,7 +87,7 @@ $arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
 $arg_hash->{fstoutputfile} = 'FSToutputfile.txt';
 $arg_hash->{dispparamfile} = 'disppar.txt';
 $arg_hash->{randommatingmodel} = 0;
-$arg_hash->{outcomes} = 1;
+$arg_hash->{analysistypeindicator} = 3; # binary outcome var
 $arg_hash->{targetindicator} = 0; # diabetes
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results5");
@@ -101,26 +98,24 @@ my $arg_hash =
     burnin   => 10,
     samples  => 51,
     every    => 2,
+    analysistypeindicator     => -1,  
     targetindicator => 1, # offset (from column 1) of column containing outcome variable
-    displaylevel   => 2,
+    coutindicator   => 1,
 
     locusfile                    => "IndData/loci.txt",
     genotypesfile                => "IndData/genotypes.txt",
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
     randommatingmodel            => 1,
     globalrho                    => 0,
-indadmixhiermodel => 0,
-marglikelihood => 1,
-
- #flat prior on sumintensities
-sumintensitiesprior => "1,0,1",
+    sumintensitiesalpha          => 1.0, #flat prior on sumintensities
+    sumintensitiesprior          => "4,3,3",
 
 #    fixedallelefreqs             => 1,
     initalpha0                   => "1,1,1",
     initalpha1                   => "1,1,0",
 
-    logfile                      => "indlogfile.txt",
-    #paramfile                    => "paramfile.txt",
+    logfile                      => "logfile.txt",
+    marglikelihood => 1,
     indadmixturefile             => "indadmixture.txt"
 };
 
