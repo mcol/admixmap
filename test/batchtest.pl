@@ -1,11 +1,11 @@
 #!/usr/bin/perl
-# Test Script to test most of ADMIXMAP options and compare results with previous results
-# 
+# script to test most ADMIXMAP options and compare results with previous results
+ 
 print "OS is ";print $^O;
 $resultsdir = "results";
 if (-e $resultsdir){ 
-system("erase /q $resultsdir");
-system("mkdir $resultsdir");}
+    system("erase /q $resultsdir");
+    system("mkdir $resultsdir");}
 else {system("mkdir $resultsdir");}
 
 # Change this to the location of the admixmap executable
@@ -26,25 +26,35 @@ my $arg_hash =
     outcomevarfile             => 'data/outcomevars.txt',
     covariatesfile             => 'data/covariates3std.txt',
     targetindicator            => 0, # diabetes in column 1
-    analysistypeindicator      => 5, # one binary and one continuous outcome var 
     coutindicator              => 1,
     
 # output files
     logfile                    => 'logfile.txt',
     paramfile                  => 'param.txt',
-    regparamfile  => 'regparam.txt',
+    regparamfile               => 'regparam.txt',
     indadmixturefile           => 'indadmixture.txt',
     ergodicaveragefile         => 'ergodicaverage.txt',
 
 # extra output files
     haplotypeassociationscorefile  => 'hapassocscore.txt',
     allelicassociationscorefile    => 'allelicassocscore.txt',
-    stratificationtestfile         => 'strat_test.txt',
     allelefreqoutputfile           => 'allelefreqoutput.txt'
 };
 
-# single population, reference prior on allele freqs  
+# single population, thermodynamic  
+$arg_hash->{anneal} = 1;
 $arg_hash->{populations} = 1;
+#$arg_hash->{indadmixhiermodel} = 0;
+#$arg_hash->{hapmixmodel}=1;
+doAnalysis($executable,$arg_hash, $resultsdir);
+&CompareThenMove("results", "results0");
+
+# single population, reference prior on allele freqs  
+$arg_hash->{anneal} = 0;
+$arg_hash->{populations} = 1;
+$arg_hash->{indadmixhiermodel} = 1;
+#$arg_hash->{hapmixmodel}=0;
+$arg_hash->{stratificationtestfile}  = 'strat_test.txt';
 doAnalysis($executable,$arg_hash, $resultsdir);
 &CompareThenMove("results", "results1");
 
@@ -74,7 +84,6 @@ delete $arg_hash->{allelefreqscorefile};
 delete $arg_hash->{allelefreqscorefile2};
 delete $arg_hash->{affectedsonlyscorefile};
 $arg_hash->{dispersiontestfile}  = 'dispersiontest.txt';
-$arg_hash->{analysistypeindicator} = 2; # continuous outcome var
 $arg_hash->{targetindicator} = 1; # skin reflectance
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results4");
@@ -87,7 +96,6 @@ $arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
 $arg_hash->{fstoutputfile} = 'FSToutputfile.txt';
 $arg_hash->{dispparamfile} = 'disppar.txt';
 $arg_hash->{randommatingmodel} = 0;
-$arg_hash->{analysistypeindicator} = 3; # binary outcome var
 $arg_hash->{targetindicator} = 0; # diabetes
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results5");
@@ -98,7 +106,7 @@ my $arg_hash =
     burnin   => 10,
     samples  => 51,
     every    => 2,
-    analysistypeindicator     => -1,  
+    #analysistypeindicator     => -1,  
     targetindicator => 1, # offset (from column 1) of column containing outcome variable
     coutindicator   => 1,
 
@@ -122,6 +130,7 @@ my $arg_hash =
  doAnalysis($executable,$arg_hash);
  &CompareThenMove("results", "Indresults");
 
+######################################################################################
 sub doAnalysis
 {
     my ($prog, $args) = @_;
