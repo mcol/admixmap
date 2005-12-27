@@ -64,10 +64,10 @@ CompositeLocus::~CompositeLocus()
 
 // ******** Initialisation *************************
 /**
- * Changes number of loci in this composite locus, then sets each
+ * sets number of simple loci in this composite locus, then sets each
  * locus to be diallelic (as for a SNP).
  *
- * NewNumberOfLoci - the number of loci to be represented by this
+ * NewNumberOfLoci - the number of simple loci to be represented by this
  * object.
  */
 void CompositeLocus::SetNumberOfLoci( int NewNumberOfLoci )
@@ -109,10 +109,10 @@ void CompositeLocus::SetNumberOfAllelesOfLocus( int locus, int alleles )
    NumberOfStates *= alleles;
 }
 /**
- * Extends the composite locus by adding one locus (containing a given
- * number of alleles) to the end of the composite locus.
+ * Extends the composite locus by adding one simple locus with given
+ * number of alleles to the end of the composite locus.
  *
- * alleles - the number of alleles in the locus to be added
+ * alleles - the number of alleles in the simple locus to be added
  */
 
 void CompositeLocus::AddLocus( int alleles )
@@ -164,10 +164,10 @@ void CompositeLocus::SetLabel( int index, string newlabel )
 
 // ****** Accessors ***************************************
 /**
- * Gets the number of loci in this composite locus.
+ * Gets the number of simple loci in this composite locus.
  * 
  * Returns:
- * the number of loci
+ * the number of simple loci
  */
 int CompositeLocus::GetNumberOfLoci()const
 {
@@ -175,8 +175,8 @@ int CompositeLocus::GetNumberOfLoci()const
 }
 
 /**
- * Returns the number of states which can exist within this composite 
- * locus. If this composite locus is composed of a single locus, the 
+ * Returns the number of states at this composite 
+ * locus. If this composite locus comprises a single locus, the 
  * number of states will be equal to the number of alleles. If there 
  * are more than one locus in this composite, the number of states 
  * will be equal to the number of possible haplotypes.
@@ -188,8 +188,8 @@ int CompositeLocus::GetNumberOfStates()const
 
 
 /**
- * Gets the number of alleles at a given locus.
- * Exits with an error if the locus does not exist.
+ * Gets the number of alleles at a given simple locus.
+ * Exits with an error if the simple locus does not exist.
  *
  * locus - the locus
  */
@@ -229,8 +229,8 @@ void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
 
 
 /*
-  returns array of marginal alleleprobs for each allele of each locus, for ancestry state k,  within the composite locus
-  P must be of correct dimensions ie a ragged array with dimensions #loci and #alleles
+  returns array of marginal probs for each allele at each simple locus, for ancestry state k,  within the composite locus
+  P must be of correct dimensions: ie a ragged array with dimensions #loci and #alleles
 */
 void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
 
@@ -326,42 +326,6 @@ void CompositeLocus::SampleHapPair(int hap[2], const std::vector<hapPair > &HapP
   hap[1] = HapPairs[h].haps[1];
 }
 
-
-/**
- * Given a list of possible haplotype pairs, returns sums of probabilities of these haplotypes
- * given each possible ordered pair of locus ancestry states 
- * 
- * Haplotypes - a list of possible haplotypes pair labels compatible with the observed genotypes
- *
- * chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
- * instead of HapPairProbs when allelefreqs are not fixed.
- *
- * RandomAlleleFreqs - indicates whether the allele frequencies are random 
- *
- * Probs
- * a k x k array with rows and cols indexing paternal and maternal ancestry. For 
- *   example, for African and European populations:
- *
- *       | AFR | EUR |
- *   ----|-----|-----|
- *   AFR | 0.5 | 0.2 |
- *   ----|-----|-----|
- *   EUR | 0.2 | 0.1 |
- *   ----|-----|-----|
- *
- *   n.b. the sum of all probabilities might not equal 1.0 - but
- *   probabilities are in correct proportions.
- */
-// void CompositeLocus::GetGenotypeProbs(double **Probs, std::vector<hapPair > &HapPairs, bool chibindicator){
-//   for(int k0 = 0; k0 < Populations; ++k0)for(int k1 = 0; k1 < Populations; ++k1){
-//     Probs[k0][k1] = 0.0;
-//     for(unsigned int h = 0; h < HapPairs.size() ; ++h)
-//       if( chibindicator && RandomAlleleFreqs )
-// 	Probs[k0][k1] += HapPairProbsMAP[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
-//       else
-// 	Probs[k0][k1] += HapPairProbs[HapPairs[h].haps[0]][HapPairs[h].haps[1]][k0][k1];
-//   }
-// }
 
 // doesn't really calculate posterior mode
 // just sets to current value of hap freqs.  ok for Chib algorithm if strong prior
@@ -474,7 +438,7 @@ const vector<int> CompositeLocus::getAlleleCounts(int a, const int* happair)cons
   int* hap2Alleles = new int[NumberOfLoci];
   decodeIntAsHapAlleles(happair[0], hap1Alleles);
   decodeIntAsHapAlleles(happair[1], hap2Alleles);
-
+  
   vector<int> counts(NumberOfLoci);
   fill(counts.begin(), counts.end(), 0);
   for(int l = 0; l < NumberOfLoci; ++l) counts[l] += (hap1Alleles[l]==a) + (hap2Alleles[l]==a);

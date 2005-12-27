@@ -163,67 +163,78 @@ int main( int argc , char** argv ){
 
       // ******************* initialise stuff for annealing ************************************************
       bool anneal = (bool)(options.getAnnealIndicator()>0);
-      double SumLogL = 0.0, SumLogLSq = 0.0, marg_L = 0.0;//modified log-likelihood, square and marginal likelihood
-      double coolness = 1.0;
-      std::ofstream annealstream;//for monitoring modified log likelihood when annealing
-      int ci = options.getNumberOfAnnealedRuns();//defaults to starting at coolness of 1
+      bool finished = false;  // loop stops when finished = true
+      double SumLogL = 0.0, SumLogLSq = 0.0, LogEvidence = 0.0;//modified log-likelihood, square and log marginal likelihood
+      double coolness = 1.0; //defaults to coolness of 1
+      double LastMeanEnergy = 0.0; 
+      std::ofstream annealstream;//for monitoring energy when annealing
+      int AnnealedRunNumber = 0;
+      double IntervalWidth = 0.0;
+  
+    // should have a command-line option for these next two parameters
+      double IntervalRatio = 1.03; // size of increments of coolness increases geometrically
+      double Increment0 = 0.003; // first term in geometric series of increments in coolness
 
       if(anneal){
 	string s = options.getResultsDir()+"/annealmon.txt";
 	annealstream.open(s.c_str());
-	annealstream << "Coolness  Mean  Variance  logMargLikelihood"<<endl;
-	ci = 0;
+	annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << endl;
+	coolness = 0.0;
       }
-      for( ;ci <= options.getNumberOfAnnealedRuns() ;ci++ ){//loop over temperature
-	coolness = ci / (double)options.getNumberOfAnnealedRuns();
+      
+      while( !finished ) { //loop over increments in coolness 
 	//resets for start of each run
 	SumLogL = 0.0;//cumulative sum of modified loglikelihood
 	SumLogLSq = 0.0;//cumulative sum of square of modified loglikelihood
+
+	if( !anneal ) finished = true; // single run with anneal = false terminates annealing loop
+	++AnnealedRunNumber; // counting starts at 1
+	if(coolness > 1.0) { // coolness has been incremented past 1  
+	  coolness = 1.0;  
+	  anneal = false; // initiates last run without annealing of likelihood
+	  cout<<"\rSampling at coolness of 1          \n";
+	  cout<<AnnealedRunNumber<<" annealing runs including this final one\n";
+	} 
 	if(anneal && options.getDisplayLevel() >0){
 	  cout<<"\rSampling at coolness of "<<coolness;
-	  if(!(ci%10) && ci < options.getNumberOfAnnealedRuns())cout<<"0";
-	  if(ci == options.getNumberOfAnnealedRuns()) {
-	    anneal = false;//finished annealed runs, last run is with unannealed likelihood
-	    cout<<".00"<<endl;
-	  }
 	  cout<<flush;
 	}
 	if(options.getAnnealIndicator()==1)
 	  Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
-      
+	
 	// *************************** BEGIN MAIN LOOP ******************************************************
 	double LogL = IC->getLogLikelihood(&options, chrm, R, false);
 	for( int iteration = 0; iteration <= samples; iteration++ ){
 	  if(!anneal &&  !(iteration % options.getSampleEvery()) ){
 	    WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
 	  }
-
+	  
 	  UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, &LogL, coolness, anneal);
-
+	  
 	  //compute loglikelihood and write to file
 	  LogL = IC->getLogLikelihood(&options, chrm, R, (!anneal && iteration > options.getBurnIn()) );
-
+	  
 	  if(!anneal)loglikelihoodfile<< iteration<<" " <<LogL<<endl;
 	  //compute modified loglikelihood (at coolness of 1.0)
 	  double lmod = LogL;
 	  //if(coolness < 1.0){
-	    lmod = IC->getModifiedLogLikelihood(&options, chrm, coolness);
-	    //}
+	  lmod = IC->getModifiedLogLikelihood(&options, chrm, coolness);
+	  //}
 	  if(iteration > options.getBurnIn()){
 	    SumLogL += lmod;
 	    SumLogLSq += lmod;
 	  }
-
+	  
 	  if(!anneal){
 	    // output every 'getSampleEvery()' iterations
 	    if(!(iteration % options.getSampleEvery()) )
 	      OutputParameters(iteration, IC, &L, &A, R, &options, Log);
-
+	    
 	    // ** set merged haplotypes for allelic association score test 
 	    if( iteration == options.getBurnIn() && options.getTestForAllelicAssociation() ){
 	      Scoretest.SetAllelicAssociationTest(L.getalpha0());
 	    }
-
+	    
 	    //Updates and Output after BurnIn     
 	    if( iteration > options.getBurnIn() ){
 	      //dispersion test
@@ -240,10 +251,10 @@ int main( int argc , char** argv ){
 	      //test for Hardy-Weinberg eq
 	      if( options.getHWTestIndicator() )
 		HWtest.Update(IC, chrm, &Loci);
-	  
+	      
 	      // output every 'getSampleEvery() * 10' iterations (still after BurnIn)
 	      if (!(iteration % (options.getSampleEvery() * 10))){    
-	    
+		
 		//Ergodic averages
 		if ( strlen( options.getErgodicAverageFilename() ) ){
 		  int samples = iteration - options.getBurnIn();
@@ -255,7 +266,7 @@ int main( int argc , char** argv ){
 		  }
 		  //if( IC->getSize()==1 )
 		  IC->OutputErgodicAvg(samples, options.getMLIndicator(), &avgstream);
-	      
+		  
 		  avgstream << endl;
 		}
 		//Score Test output
@@ -265,28 +276,32 @@ int main( int argc , char** argv ){
 	  }
 	}//end main loop
 	// *************************** END MAIN LOOP ******************************************************
-
+	
 	if(options.getAnnealIndicator()){//cannot use 'anneal' as it is false for final run
 	  //calculate mean and variance of L_mod and write to file
-	  double E_L_mod = 0.0,Var_L_mod = 0.0;
-	  E_L_mod = SumLogL / ((double)options.getTotalSamples()-options.getBurnIn());
-	  Var_L_mod = SumLogLSq/ ((double)options.getTotalSamples()-options.getBurnIn()) - E_L_mod * E_L_mod;
-	  annealstream << coolness << "  "<<E_L_mod << "  " << Var_L_mod;
-	  //use Simpson's rule to approximate integral
-	  if( (ci == 0) || (ci == options.getNumberOfAnnealedRuns())) marg_L += E_L_mod;
-	  else if( (ci%2) ) marg_L += 2.0*E_L_mod;
-	  else marg_L += 4.0*E_L_mod; 
- 
-	  annealstream <<"  "<<marg_L / (double)(3*options.getNumberOfAnnealedRuns())<<endl;
+	  double MeanEnergy = 0.0, VarEnergy = 0.0;
+	  MeanEnergy = -SumLogL / ((double)options.getTotalSamples()-options.getBurnIn());
+	  VarEnergy = SumLogLSq/ ((double)options.getTotalSamples()-options.getBurnIn()) - MeanEnergy * MeanEnergy;
+	  annealstream << coolness << "\t" << MeanEnergy << "\t" << VarEnergy;
+	  // use trapezium rule to approximate integral
+	  LogEvidence -= 0.5*(LastMeanEnergy + MeanEnergy) * IntervalWidth; // IntervalWidth is 0 on first run at coolness 0
+	  annealstream <<"\t"<< LogEvidence << endl; // / (double)(3*options.getNumberOfAnnealedRuns())<<endl;
+	  
+	  LastMeanEnergy = MeanEnergy;
+	  if(anneal) {  // if not final run
+	    if(AnnealedRunNumber == 1) IntervalWidth = Increment0; 
+	    else IntervalWidth *= IntervalRatio;
+	    coolness += IntervalWidth;
+	  }
 	}
       }
       // *************************** END ANNEALING LOOP ******************************************************
-
+      
       // *************************** OUTPUT AT END ***********************************************************
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
       else Log.setDisplayMode(On);
-       if( options.getMLIndicator()){
-	  IC->OutputChibEstimates(Log, options.getPopulations());
+      if( options.getMLIndicator()){
+	IC->OutputChibEstimates(Log, options.getPopulations());
 	if(IC->getSize()==1)
 	  //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
 	  IC->OutputChibResults(Log);
@@ -295,12 +310,12 @@ int main( int argc , char** argv ){
 	}
       }
       IC->OutputDeviance(&options, chrm, R, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
-
+      
       if(options.getAnnealIndicator()){
-	Log<< "EstimatedLogMarginalLikelihood: "
-	   <<  marg_L / (double)(3*options.getNumberOfAnnealedRuns())
-	//<< "\nwith standard error of " 
-	<< "\n";
+	Log << "Estimate of log evidence (marginal likelihood by thermodynamic integration: "
+	    <<  LogEvidence 
+	  //<< "\nwith standard error of " 
+	    << "\n";
       }
 
       //Residuals
@@ -516,11 +531,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   // ** update allele frequencies
   if(A->IsRandom()){
-    A->Update((iteration > options->getBurnIn() && !anneal));
+    A->Update((iteration > options->getBurnIn() && !anneal), coolness);
     IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes());
-    IC->HMMIsBad(true); //if the allelefreqs are not fixed they are sampled between
-    //individual updates. Therefore the forward probs in the HMMs must be updated and the current stored 
-    //values of likelihood are invalid
+    IC->HMMIsBad(true); // update of allele freqs requires HMM forward probs and likelihood to be recalculated before they are used again
   }
   //update population admixture Dirichlet parameters
   L->Update(iteration, IC, Log, anneal);

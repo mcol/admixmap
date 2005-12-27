@@ -155,6 +155,8 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
 
    //set initial values of admixture to 1 / (number of admixed pops)
    // eg 1 1 0 -> 1/2, 1/2, 1/2
+   // should draw initial values randomly from the prior so that different chains will have 
+   // different starting values
    for( int k = 0; k < K; k++ )admix_null[k] /= KK0;//gamete 1
    if( options->isRandomMatingModel() )   for( int k = 0; k < K; k++ )admix_null[K + k] /= KK1;//gamete 2
    
@@ -420,7 +422,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     
     if(size > 1)_child[prev]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
     //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
-    //still be valid as the allelefreqs, global rho and that individual's have not changed.
+    //still be valid until allelefreqs, global rho or individual admixture are updated.
     
     if( options->getMLIndicator() && (i == 0) )//compute marginal likelihood for first individual
       _child[i]->Chib(iteration, &SumLogLikelihood, &(MaxLogLikelihood[i]),

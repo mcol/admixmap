@@ -69,7 +69,7 @@ void AdmixOptions::Initialise(){
   Seed = 1;
   TargetIndicator = 0;
   TruncPt = 99;
-  Populations = 0;
+  Populations = 1;
 
   displayLevel = 2; 
   OutputFST = false;
@@ -84,7 +84,8 @@ void AdmixOptions::Initialise(){
   NumberOfOutcomes = -1;
   RegType = None;
   GlobalRho = true;//corresponds to globalrho = 1;
-  IndAdmixHierIndicator = true;//hierarchical model on ind admixture
+  IndAdmixHierIndicator = true; //hierarchical model on ind admixture
+  HapMixModelIndicator = false; //model haplotypes with mixture model
   MLIndicator = false;//calculate marginal likelihood by Chib method
   anneal = 0;
   AnnealedRuns = 1;
@@ -124,10 +125,10 @@ void AdmixOptions::Initialise(){
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
   ResidualFilename = "Residuals.txt";
 
-  // option names and option values are stored as strings in a map container 
+  // option names and default option values are stored as strings in a map container 
   OptionValues["burnin"] = "100";
   OptionValues["samples"] = "1100";
-  OptionValues["every"] = "100";
+  OptionValues["every"] = "50";
   OptionValues["targetindicator"] = "0";
   OptionValues["displaylevel"] = "2";
   OptionValues["fixedallelefreqs"] = "0";
@@ -137,6 +138,7 @@ void AdmixOptions::Initialise(){
   OptionValues["randommatingmodel"] = "0";
   OptionValues["globalrho"] = "1";
   OptionValues["indadmixhiermodel"] = "1";
+  OptionValues["hapmixmodel"] = "0";
   OptionValues["marglikelihood"] = "0";
   OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
@@ -335,6 +337,9 @@ bool AdmixOptions::isRandomMatingModel() const
 
 bool AdmixOptions::getIndAdmixHierIndicator() const{
   return IndAdmixHierIndicator;
+}
+bool AdmixOptions::getHapMixModelIndicator() const{
+  return HapMixModelIndicator;
 }
 bool AdmixOptions::getMLIndicator()const{
   return MLIndicator;
@@ -638,7 +643,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 
   static struct option long_options[] = {
     // Required options
-    {"analysistypeindicator",                 1, 0,  0 }, // int 0: 4 - redundant but kept for backward compatibility(does nothing)
+    {"analysistypeindicator",                 1, 0,  0 }, // int 0: 4 - kept for backward compatibility (does nothing)
     {"locusfile",                             1, 0, 'l'}, // string
     {"genotypesfile",                         1, 0, 'g'}, // string
     {"burnin",                                1, 0, 'b'}, // long
@@ -693,6 +698,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"randommatingmodel",                     1, 0,  0 }, // int 0: 1
     {"globalrho",                             1, 0,  0 }, // int 0: 1
     {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
+    {"hapmixmodel",                           1, 0,  0 }, // int 0: 1
     {"marglikelihood",                        1, 0,  0 }, // int 0: 1
     {"anneal",                                1, 0,  0 }, // int 0, 1 or 2
     {"reportedancestry",                      1, 0, 'r'}, // string 
@@ -869,6 +875,10 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "indadmixhiermodel") {
 	if (strtol(optarg, NULL, 10) == 0) {
 	  IndAdmixHierIndicator = false;OptionValues["indadmixhiermodel"]="0";
+	}
+      } else if (long_option_name == "hapmixmodel") {
+	if (strtol(optarg, NULL, 10) == 0) {
+	  HapMixModelIndicator = false;OptionValues["hapmixmodel"]="0";
 	}
       }else if (long_option_name == "marglikelihood") {
 	if(strtol(optarg, NULL, 10)==1){

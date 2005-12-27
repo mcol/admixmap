@@ -40,7 +40,7 @@ public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter &Log);
-  void Update(bool afterBurnIn);
+  void Update(bool afterBurnIn, const double coolness);
 
   //initialize output file for samples of dispersion parameters
   void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log);
@@ -137,7 +137,7 @@ private:
   void SamplePriorAlleleFreqs1D( int );
   void SamplePriorAlleleFreqsMultiDim( int);
   void SamplePriorAlleleFreqs();
-  void SampleAlleleFreqs(int);
+  void SampleAlleleFreqs(int, const double coolness);
   void UpdatePriorAlleleFreqs( int, const std::vector<std::vector<double> >& );
   void SampleEtaWithRandomWalk(int k, bool updateSumEta);
 

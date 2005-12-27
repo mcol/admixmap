@@ -102,6 +102,7 @@ public:
   void setRegType(RegressionType R);
   bool isGlobalRho() const;
   bool getIndAdmixHierIndicator() const;
+  bool getHapMixModelIndicator() const;
   bool getMLIndicator() const;
   int getAnnealIndicator() const;
   int getNumberOfAnnealedRuns() const;
@@ -177,6 +178,7 @@ private:
   bool RandomMatingModel;//random mating model
   bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
+  bool HapMixModelIndicator; //model haplotypes with mixture model
   bool MLIndicator;//calculate marginal likelihood 
   int anneal;//calculate marginal likelihood using simulated annealing
   int AnnealedRuns;

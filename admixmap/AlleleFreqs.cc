@@ -471,7 +471,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 
 // Method samples allele frequency and prior allele frequency
 // parameters.
-void AlleleFreqs::Update(bool afterBurnIn){
+void AlleleFreqs::Update(bool afterBurnIn, double coolness){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
   if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -491,7 +491,7 @@ void AlleleFreqs::Update(bool afterBurnIn){
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    SampleAlleleFreqs(i);
+    SampleAlleleFreqs(i, coolness);
     (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
     (*Loci)(i)->SetHapPairProbs();
   }
@@ -529,7 +529,7 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
   //and we only count once
 }
 
-void AlleleFreqs::SampleAlleleFreqs(int i)
+void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
 {
   // samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
   // and stores result in array Freqs 
@@ -540,8 +540,11 @@ void AlleleFreqs::SampleAlleleFreqs(int i)
   int c = CorrelatedAlleleFreqs? 0 : 1; //indicates whether correlated allelefreqmodel
   //if there is, the PriorAlleleFreqs are common across populations
   for( int j = 0; j < Populations; j++ ){
-    for(unsigned s = 0; s < NumStates; ++s)temp[s] = 
-      PriorAlleleFreqs[i][c*j*NumberOfStates[i] + s]+AlleleCounts[i][s*Populations +j];
+
+    // to flatten likelihood when annealing, multiply realized allele counts by coolness
+    for(unsigned s = 0; s < NumStates; ++s)
+      temp[s] = PriorAlleleFreqs[i][c*j*NumberOfStates[i] + s] + 
+	coolness*AlleleCounts[i][s*Populations +j];
     gendirichlet(NumStates, temp, freqs);
     for(unsigned s = 0; s < NumStates-1; ++s)Freqs[i][s*Populations+j] = freqs[s];
 
