@@ -28,13 +28,12 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter &Log, std::ofstream *avgstream, const string* const PopulationLabels);
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, const double *LogL, double coolness, bool anneal);
+		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, double coolness, bool anneal);
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      LogWriter& Log);
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
 
 void PrintCopyrightNotice(){
-
   cout << "\n-----------------------------------------------" << endl;
   cout << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
   cout << "-----------------------------------------------" << endl;
@@ -48,16 +47,25 @@ void PrintCopyrightNotice(){
   cout << "-----------------------------------------------" << endl;
 }
 
+void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs  & A, Regression *R, 
+		  AdmixOptions & options, 
+		  const Genome  & Loci, Chromosome **chrm, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+		  const double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
+		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
+		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data);
+
+void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream);
+
 int main( int argc , char** argv ){
   int    xargc = argc;
   char **xargv = argv;    
-
+  
   if (argc < 2) {
     cout << "Please specify an options file or command-line arguments\n"
 	 << "Usage:\n"
 	 << "1. (not recommended) admixmap --[optionname]=[value] ...\n"
 	 << "2. admixmap [optionfile], where optionfile is a text file containg a list of user options\n"
-	 << "3. use a perl script. See sample perl script supplied with this program.\n"
+	 << "3. use a Perl script to call the program with command-line arguments. \nSee sample script supplied with this program.\n"
 	 << "Consult the manual for a list of user options."
 	 << endl;
     exit(1); 
@@ -66,286 +74,248 @@ int main( int argc , char** argv ){
     xargv = new char*[50];  // change 50 to max number of options
     ReadArgsFromFile(argv[1], &xargc, xargv);        
   }
-
+  
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
   AdmixOptions options(xargc, xargv);
-
+  
   if(options.getDisplayLevel()>0)
     PrintCopyrightNotice();
-
+  
   //open logfile, start timer and print start message
   LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   Log.StartMessage();
-
+  
   smyrand( options.getSeed() );  // Initialise random number seed
-
+  
   InputData data; //read data files and check (except allelefreq files)
   data.readData(&options, Log);//also sets 'numberofoutcomes' and 'populations' options
-
+  
   //check user options
   options.checkOptions(Log, data.getNumberOfIndividuals());
-
+  
   //print user options to args.txt; must be done after all options are set
   options.PrintOptions();
-
+  
   Genome Loci;
   Loci.loadAlleleStatesAndDistances(&options, &data);//reads locusfile and creates CompositeLocus objects
   
   AlleleFreqs A(&Loci);
   A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
- 
+  
   Chromosome **chrm = 0; //Note: array of pointers to Chromosome
   chrm = Loci.GetChromosomes(options.getPopulations());  //create Chromosome objects
   Loci.SetSizes(Log);//prints length of genome, num loci, num chromosomes
-
+  
   IndividualCollection *IC = new IndividualCollection(&options, &data, Loci, chrm);//NB call after A Initialise
   IC->LoadData(&options, &data);                             //and before L and R Initialise
-
+  
   Latent L( &options, &Loci);    
   L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
-
+  
   Regression R[2];
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
     R[r].Initialise(r, IC, Log);
   Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
-
+  
   if( options.isGlobalRho() )
-    for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
+    for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ) {
       chrm[j]->InitialiseLociCorr(L.getrho());
     }
   IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), Log, data.getMLEMatrix());
+  
   //set expected Outcome
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
     R[r].SetExpectedY(IC);
+  
+  // should be possible to delete the InputData object at this point - 
 
   //  ******** single individual, one population, fixed allele frequencies  ***************************
+  // nothing to do except calculate likelihood
   if( IC->getSize() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )
     IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
   // **************************************************************************************************
-  else
-    {
-      int samples = options.getTotalSamples();
-      // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
-      DispersionTest DispTest;
-      StratificationTest StratTest;
-      ScoreTests Scoretest;
-      MisSpecAlleleFreqTest AlleleFreqTest;
-      HWTest HWtest;
-      std::ofstream avgstream; //output to ErgodicAverageFile
-      
-      if( options.getTestForDispersion() ){
-	DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
-      }
-      if( options.getStratificationTest() )
-	StratTest.Initialize( &options, Loci, chrm, IC, Log);
-      if( options.getScoreTestIndicator() )
-	Scoretest.Initialise(&options, IC, &Loci, chrm,data.GetPopLabels(), Log);
-      if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-	AlleleFreqTest.Initialise(&options, &Loci, Log );  
-      if( options.getHWTestIndicator() )
-	HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
-
-      InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
-
-      //Write Initial values
-      if(options.getIndAdmixHierIndicator()  ){
-	if(options.getDisplayLevel()>2)Log.setDisplayMode(Quiet);
-	else Log.setDisplayMode(Off);
-	Log << "InitialParameterValues:\n";
-	OutputParameters(-1, IC, &L, &A, R, &options, Log);
-	Log << "\n";
-      }
-
-      string s = options.getResultsDir()+"/loglikelihoodfile.txt";
-      ofstream loglikelihoodfile(s.c_str());
-
-      // ******************* initialise stuff for annealing ************************************************
-      bool anneal = (bool)(options.getAnnealIndicator()>0);
-      bool finished = false;  // loop stops when finished = true
-      double SumLogL = 0.0, SumLogLSq = 0.0, LogEvidence = 0.0;//modified log-likelihood, square and log marginal likelihood
-      double coolness = 1.0; //defaults to coolness of 1
-      double LastMeanEnergy = 0.0; 
-      std::ofstream annealstream;//for monitoring energy when annealing
-      int AnnealedRunNumber = 0;
-      double IntervalWidth = 0.0;
-  
-    // should have a command-line option for these next two parameters
-      double IntervalRatio = 1.03; // size of increments of coolness increases geometrically
-      double Increment0 = 0.003; // first term in geometric series of increments in coolness
-
-      if(anneal){
-	string s = options.getResultsDir()+"/annealmon.txt";
-	annealstream.open(s.c_str());
-	annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << endl;
-	coolness = 0.0;
-      }
-      
-      while( !finished ) { //loop over increments in coolness 
-	//resets for start of each run
-	SumLogL = 0.0;//cumulative sum of modified loglikelihood
-	SumLogLSq = 0.0;//cumulative sum of square of modified loglikelihood
-
-	if( !anneal ) finished = true; // single run with anneal = false terminates annealing loop
-	++AnnealedRunNumber; // counting starts at 1
-	if(coolness > 1.0) { // coolness has been incremented past 1  
-	  coolness = 1.0;  
-	  anneal = false; // initiates last run without annealing of likelihood
-	  cout<<"\rSampling at coolness of 1          \n";
-	  cout<<AnnealedRunNumber<<" annealing runs including this final one\n";
-	} 
-	if(anneal && options.getDisplayLevel() >0){
-	  cout<<"\rSampling at coolness of "<<coolness;
-	  cout<<flush;
-	}
-	if(options.getAnnealIndicator()==1)
-	  Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
-	
-	// *************************** BEGIN MAIN LOOP ******************************************************
-	double LogL = IC->getLogLikelihood(&options, chrm, R, false);
-	for( int iteration = 0; iteration <= samples; iteration++ ){
-	  if(!anneal &&  !(iteration % options.getSampleEvery()) ){
-	    WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
-	  }
-	  
-	  UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, &LogL, coolness, anneal);
-	  
-	  //compute loglikelihood and write to file
-	  LogL = IC->getLogLikelihood(&options, chrm, R, (!anneal && iteration > options.getBurnIn()) );
-	  
-	  if(!anneal)loglikelihoodfile<< iteration<<" " <<LogL<<endl;
-	  //compute modified loglikelihood (at coolness of 1.0)
-	  double lmod = LogL;
-	  //if(coolness < 1.0){
-	  lmod = IC->getModifiedLogLikelihood(&options, chrm, coolness);
-	  //}
-	  if(iteration > options.getBurnIn()){
-	    SumLogL += lmod;
-	    SumLogLSq += lmod;
-	  }
-	  
-	  if(!anneal){
-	    // output every 'getSampleEvery()' iterations
-	    if(!(iteration % options.getSampleEvery()) )
-	      OutputParameters(iteration, IC, &L, &A, R, &options, Log);
-	    
-	    // ** set merged haplotypes for allelic association score test 
-	    if( iteration == options.getBurnIn() && options.getTestForAllelicAssociation() ){
-	      Scoretest.SetAllelicAssociationTest(L.getalpha0());
-	    }
-	    
-	    //Updates and Output after BurnIn     
-	    if( iteration > options.getBurnIn() ){
-	      //dispersion test
-	      if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
-	      //stratification test
-	      if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
-								       options.getPopulations());
-	      //score tests
-	      if( options.getScoreTestIndicator() )
-		Scoretest.Update(R[0].getDispersion());//possible error? what if 2 regression models?
-	      //tests for mis-specified allelefreqs
-	      if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-		AlleleFreqTest.Update(IC, &A, &Loci);
-	      //test for Hardy-Weinberg eq
-	      if( options.getHWTestIndicator() )
-		HWtest.Update(IC, chrm, &Loci);
-	      
-	      // output every 'getSampleEvery() * 10' iterations (still after BurnIn)
-	      if (!(iteration % (options.getSampleEvery() * 10))){    
-		
-		//Ergodic averages
-		if ( strlen( options.getErgodicAverageFilename() ) ){
-		  int samples = iteration - options.getBurnIn();
-		  if( options.getIndAdmixHierIndicator() ){
-		    L.OutputErgodicAvg(samples,&avgstream);
-		    for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-		      R[r].OutputErgodicAvg(samples, &avgstream);
-		    A.OutputErgodicAvg(samples, &avgstream);
-		  }
-		  //if( IC->getSize()==1 )
-		  IC->OutputErgodicAvg(samples, options.getMLIndicator(), &avgstream);
-		  
-		  avgstream << endl;
-		}
-		//Score Test output
-		if( options.getScoreTestIndicator() )  Scoretest.Output(iteration,data.GetPopLabels());
-	      }//end of 'every'*10 output
-	    }//end if after BurnIn
-	  }
-	}//end main loop
-	// *************************** END MAIN LOOP ******************************************************
-	
-	if(options.getAnnealIndicator()){//cannot use 'anneal' as it is false for final run
-	  //calculate mean and variance of L_mod and write to file
-	  double MeanEnergy = 0.0, VarEnergy = 0.0;
-	  MeanEnergy = -SumLogL / ((double)options.getTotalSamples()-options.getBurnIn());
-	  VarEnergy = SumLogLSq/ ((double)options.getTotalSamples()-options.getBurnIn()) - MeanEnergy * MeanEnergy;
-	  annealstream << coolness << "\t" << MeanEnergy << "\t" << VarEnergy;
-	  // use trapezium rule to approximate integral
-	  LogEvidence -= 0.5*(LastMeanEnergy + MeanEnergy) * IntervalWidth; // IntervalWidth is 0 on first run at coolness 0
-	  annealstream <<"\t"<< LogEvidence << endl; // / (double)(3*options.getNumberOfAnnealedRuns())<<endl;
-	  
-	  LastMeanEnergy = MeanEnergy;
-	  if(anneal) {  // if not final run
-	    if(AnnealedRunNumber == 1) IntervalWidth = Increment0; 
-	    else IntervalWidth *= IntervalRatio;
-	    coolness += IntervalWidth;
-	  }
-	}
-      }
-      // *************************** END ANNEALING LOOP ******************************************************
-      
-      // *************************** OUTPUT AT END ***********************************************************
-      if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
-      else Log.setDisplayMode(On);
-      if( options.getMLIndicator()){
-	IC->OutputChibEstimates(Log, options.getPopulations());
-	if(IC->getSize()==1)
-	  //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
-	  IC->OutputChibResults(Log);
-	else{
-	  ;
-	}
-      }
-      IC->OutputDeviance(&options, chrm, R, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
-      
-      if(options.getAnnealIndicator()){
-	Log << "Estimate of log evidence (marginal likelihood by thermodynamic integration: "
-	    <<  LogEvidence 
-	  //<< "\nwith standard error of " 
-	    << "\n";
-      }
-
-      //Residuals
-      if(options.getNumberOfOutcomes() > 0)
-	IC->OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
-      //FST
-      if( strlen( options.getHistoricalAlleleFreqFilename() ) ){
-	A.OutputFST();
-      }
-      //stratification test
-      if( options.getStratificationTest() ) StratTest.Output(Log);
-      //dispersion test
-      if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetPopLabels());
-      //tests for mis-specified allele frequencies
-      if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-	AlleleFreqTest.Output(options.getTotalSamples() - options.getBurnIn(), &Loci, data.GetPopLabels()); 
-      //test for H-W eq
-      if( options.getHWTestIndicator() )
-	HWtest.Output(data.getLocusData()); 
-      //finish writing score test output as R objects
-      if( options.getScoreTestIndicator() ) Scoretest.ROutput();
-
-      //output to likelihood ratio file
-      if(options.getTestForAffectedsOnly())
-	Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
+  else {
+    // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
+    DispersionTest DispTest;
+    StratificationTest StratTest;
+    ScoreTests Scoretest;
+    MisSpecAlleleFreqTest AlleleFreqTest;
+    HWTest HWtest;
+    std::ofstream avgstream; //output to ErgodicAverageFile
     
-      if(annealstream.is_open())annealstream.close();
-      if(avgstream.is_open())avgstream.close();
-    }//end else
+    if( options.getTestForDispersion() ){
+      DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
+    }
+    if( options.getStratificationTest() )
+      StratTest.Initialize( &options, Loci, chrm, IC, Log);
+    if( options.getScoreTestIndicator() )
+      Scoretest.Initialise(&options, IC, &Loci, chrm,data.GetPopLabels(), Log);
+    if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
+      AlleleFreqTest.Initialise(&options, &Loci, Log );  
+    if( options.getHWTestIndicator() )
+      HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
+    
+    InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
+    
+    //Write initial values
+    if(options.getIndAdmixHierIndicator()  ){
+      if(options.getDisplayLevel()>2)Log.setDisplayMode(Quiet);
+      else Log.setDisplayMode(Off);
+      Log << "InitialParameterValues:\n"
+	  <<"PopulationAdmixtureDirichlet, SumIntensities, AlleleFreqDispersion, RegressionParams\n";
+      OutputParameters(-1, IC, &L, &A, R, &options, Log);
+      Log << "\n";
+    }
+    
+    string s = options.getResultsDir()+"/loglikelihoodfile.txt";
+    ofstream loglikelihoodfile(s.c_str());
+    
+    // ******************* initialise stuff for annealing ************************************************
+    // should have command-line options for next parameter
+    double IntervalRatio = 1.03; // size of increments of coolness increases geometrically
+    int NumAnnealedRuns = options.getNumAnnealedRuns(); // number of annealed runs excluding last run at coolness of 1
+    int samples = 1; // default for annealing runs - overridden for final unannealed run or if AnnealIndicator = true 
+    int burnin = 1;
+ 
+    double SumEnergy = 0.0, SumEnergySq = 0.0, LogEvidence = 0.0; 
+    double MeanEnergy = 0.0, VarEnergy = 0.0;
+    double LastMeanEnergy = 0.0; 
+    double coolness = 1.0; // default
+    bool AnnealedRun = false;
+    std::ofstream annealstream;//for monitoring energy when annealing
+     
+    // set annealing schedule
+    double *IntervalWidths;
+    double *Coolnesses;
+    IntervalWidths = new double[NumAnnealedRuns + 1];
+    Coolnesses = new double[NumAnnealedRuns + 1];
+    IntervalWidths[0] = 0.0;
+    Coolnesses[0] = 0.0;
+    if(NumAnnealedRuns > 0) {
+      // initial increment of coolness from 0 is set so that geometric series of increments will sum to 1 
+      // after NumAnnealedRuns additional terms
+      IntervalWidths[1] = (IntervalRatio - 1.0) /(pow(IntervalRatio, NumAnnealedRuns) - 1.0 ); 
+      Coolnesses[1] = IntervalWidths[1];
+      if(NumAnnealedRuns > 1) {
+	for(int run=2; run < NumAnnealedRuns+1; ++run) {
+	  IntervalWidths[run] = IntervalWidths[run - 1] * IntervalRatio; // geometric increments in interval width
+	  Coolnesses[run] = Coolnesses[run - 1] + IntervalWidths[run];  
+	}
+      }
+    }
+    Coolnesses[NumAnnealedRuns] = 1.0;
+    
+    if(options.getAnnealIndicator()) { // set up output for thermodynamic integration
+      string s = options.getResultsDir()+"/annealmon.txt";
+      annealstream.open(s.c_str());
+      annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << endl;
+      samples = options.getTotalSamples();
+      burnin = options.getBurnIn();
+    }
+    Log.setDisplayMode(On);
+    if(NumAnnealedRuns > 0) {
+    Log << NumAnnealedRuns << " annealing runs of " << samples 
+	<< " iteration(s) followed by final run of "; 
+    }
+    Log << options.getTotalSamples() << " iterations at coolness of 1\n";
+    
+    // ****************************** BEGIN ANNEALING LOOP ***************************************
+    for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
 
+      //resets for start of each run
+      SumEnergy = 0.0;//cumulative sum of modified loglikelihood
+      SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
+      if(run == NumAnnealedRuns) {
+	AnnealedRun = false;
+	samples = options.getTotalSamples();
+	burnin = options.getBurnIn();
+      } else AnnealedRun = true; 
+      coolness = Coolnesses[run];
+      Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
+      // shouldn't do it this way: instead should pass current coolness to individuals so that ProbGenotypes is flattened
+      if(NumAnnealedRuns > 0) {
+	cout <<"\rSampling at coolness of " << coolness << "         ";
+	cout << flush;
+      }
+
+      doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
+		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data);
+      
+      //calculate mean and variance of energy at this coolness
+      MeanEnergy = SumEnergy / ((double)options.getTotalSamples() - options.getBurnIn());
+      VarEnergy  = SumEnergySq / ((double)options.getTotalSamples() - options.getBurnIn()) - MeanEnergy * MeanEnergy;
+      if(options.getAnnealIndicator()){// calculate thermodynamic integral
+	annealstream << coolness << "\t" << MeanEnergy << "\t" << VarEnergy;
+	// use trapezium rule to approximate integral
+	LogEvidence -= 0.5*(LastMeanEnergy + MeanEnergy) * IntervalWidths[run]; 
+	annealstream <<"\t"<< LogEvidence << endl; 
+	LastMeanEnergy = MeanEnergy;
+      } 
+    } // *************************** END ANNEALING LOOP ******************************************************
+    delete[] IntervalWidths;
+    delete[] Coolnesses;
+    
+    // *************************** OUTPUT AT END ***********************************************************
+    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
+    else Log.setDisplayMode(On);
+    if( options.getMLIndicator()){
+      IC->OutputChibEstimates(Log, options.getPopulations());
+      if(IC->getSize()==1)
+	//MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
+	IC->OutputChibResults(Log);
+      else{
+	;
+      }
+    }
+    double Information = -LogEvidence - MeanEnergy;
+    double MeanDeviance = 2.0 * MeanEnergy; 
+    double VarDeviance = 4.0 * VarEnergy;
+    Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
+      << "VarDeviance(V)\t" << VarDeviance << "\n"
+      << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
+
+    double D_hat = IC->getDevianceAtPosteriorMean(&options, chrm, R, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
+    double pD = MeanDeviance - D_hat;
+    double DIC = MeanDeviance + pD;
+    Log << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
+      << "EffectiveNumParameters(pD)\t" << pD << "\n"
+      << "DevianceInformationCriterion\t" << DIC << "\n\n"; 
+
+    if(options.getAnnealIndicator()){
+      Log << "Log evidence (marginal likelihood) by thermodynamic integration: " <<  LogEvidence << "\n"; 
+      Log << "Information (nats): " << Information << "\n";
+    }
+    
+    //Residuals
+    if(options.getNumberOfOutcomes() > 0)
+      IC->OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
+    //FST
+    if( strlen( options.getHistoricalAlleleFreqFilename() ) ){
+      A.OutputFST();
+    }
+    //stratification test
+    if( options.getStratificationTest() ) StratTest.Output(Log);
+    //dispersion test
+    if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetPopLabels());
+    //tests for mis-specified allele frequencies
+    if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
+      AlleleFreqTest.Output(options.getTotalSamples() - options.getBurnIn(), &Loci, data.GetPopLabels()); 
+    //test for H-W eq
+    if( options.getHWTestIndicator() )
+      HWtest.Output(data.getLocusData()); 
+    //finish writing score test output as R objects
+    if( options.getScoreTestIndicator() ) Scoretest.ROutput();
+    
+    //output to likelihood ratio file
+    if(options.getTestForAffectedsOnly())
+      Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
+    
+    if(annealstream.is_open())annealstream.close();
+    if(avgstream.is_open())avgstream.close();
+  }//end else
+  
   // *************************** CLEAN UP ******************************************************  
   for(unsigned i = 0; i < Loci.GetNumberOfChromosomes(); i++){
     delete chrm[i];
@@ -353,7 +323,7 @@ int main( int argc , char** argv ){
   A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
   delete []chrm;
-   
+  
   // ******************* acceptance rates - output to screen and log ***************************
   if( options.getIndAdmixHierIndicator() ){
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
@@ -396,7 +366,7 @@ int main( int argc , char** argv ){
       }
       Log <<  A.getEtaRWSamplerStepsize(0) << "\n" ;
     }
-     
+    
 #if ETASAMPLER ==1
     if( strlen( options.getHistoricalAlleleFreqFilename() )){
       Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
@@ -407,7 +377,7 @@ int main( int argc , char** argv ){
     }
 #endif
   }
- 
+  
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   Log.ProcessingTime();
   if(options.getDisplayLevel()>0){
@@ -517,13 +487,13 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 }
 
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, const double *LogL, double coolness, bool anneal){
+		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, double coolness, bool anneal){
   A->ResetAlleleCounts();
   
   // ** update global sumintensities
   if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
      options->getIndAdmixHierIndicator() && (Loci->GetLengthOfGenome()> 0.0))
-    L->UpdateRhoWithRW(IC, Chrm, *LogL);
+    L->UpdateRhoWithRW(IC, Chrm);
   
   // ** Update individual-level parameters  
   IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), L->getalpha(), L->getrho(), L->getrhoalpha(), L->getrhobeta(),
@@ -533,7 +503,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(A->IsRandom()){
     A->Update((iteration > options->getBurnIn() && !anneal), coolness);
     IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes());
-    IC->HMMIsBad(true); // update of allele freqs requires HMM forward probs and likelihood to be recalculated before they are used again
+    IC->HMMIsBad(true); // update of allele freqs requires both HMM forward probs and likelihood to be recalculated before they are used again
   }
   //update population admixture Dirichlet parameters
   L->Update(iteration, IC, Log, anneal);
@@ -541,8 +511,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // ** update regression parameters (if regression model)
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
     R[r].Update((!anneal && iteration > options->getBurnIn()), IC);
-
 }
+
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      LogWriter& Log){
   if(options->getIndAdmixHierIndicator()  ){
@@ -565,6 +535,7 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     if(options->getOutputAlleleFreq())A->OutputAlleleFreqs();
   }
 }
+
 void WriteIterationNumber(const int iteration, const int width, int displayLevel){
   if( displayLevel > 2 ) {
     cout << setiosflags( ios::fixed );
@@ -572,8 +543,93 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
     cout << "\r"<< iteration << " ";
   }
   else if( displayLevel > 1 ){
-    if(iteration==0)cout<<"Iterations so far:\n";
+    if(iteration==0)cout<<"\nIterations so far:\n";
     cout << "\r"<< iteration<<flush;//displays iteration counter on screen
   }
+}
 
+void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs & A, 
+		  Regression *R, AdmixOptions & options, 
+		  const Genome & Loci, Chromosome **chrm, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
+		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
+		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data) {
+
+  double Energy = IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); 
+
+  for( int iteration = 0; iteration <= samples; iteration++ ) {
+    if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
+      WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
+    }
+  
+    //UpdateParameters requires the annealed log-likelihood as argument, not the energy
+    // LogL temporarily set to zero
+    // shouldn't have to pass logl as argument to this function 
+    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, coolness, AnnealedRun);
+    
+    if(iteration > burnin) {
+      //compute loglikelihood at coolness of 1.0
+      Energy = IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); // set HMMIsBad if AnnealedRun
+      // write to file if not AnnealedRun
+      if(!AnnealedRun) loglikelihoodfile<< iteration<<" " << Energy <<endl;
+      SumEnergy += Energy;
+      SumEnergySq += Energy*Energy;
+    }
+    
+    if(!AnnealedRun){
+      // output every 'getSampleEvery()' iterations
+      if(!(iteration % options.getSampleEvery()) )
+	OutputParameters(iteration, IC, &L, &A, R, &options, Log);
+      
+      // ** set merged haplotypes for allelic association score test 
+      if( iteration == burnin && options.getTestForAllelicAssociation() ){
+	Scoretest.SetAllelicAssociationTest(L.getalpha0());
+      }
+      
+      //Updates and Output after BurnIn     
+      if( iteration > burnin ){
+	//dispersion test
+	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
+	//stratification test
+	if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
+								 options.getPopulations());
+	//score tests
+	if( options.getScoreTestIndicator() )
+	  Scoretest.Update(R[0].getDispersion());//possible error? what if 2 regression models?
+	//tests for mis-specified allelefreqs
+	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
+	  AlleleFreqTest.Update(IC, &A, &Loci);
+	//test for Hardy-Weinberg eq
+	if( options.getHWTestIndicator() )
+	  HWtest.Update(IC, chrm, &Loci);
+	
+	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
+	if (!(iteration % (options.getSampleEvery() * 10))){    
+	  
+	  //Ergodic averages
+	  if ( strlen( options.getErgodicAverageFilename() ) ){
+	    int samples = iteration - burnin;
+	    if( options.getIndAdmixHierIndicator() ){
+	      L.OutputErgodicAvg(samples,&avgstream);
+	      for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
+		R[r].OutputErgodicAvg(samples, &avgstream);
+	      A.OutputErgodicAvg(samples, &avgstream);
+	    }
+	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq, &avgstream);
+	    if(options.getMLIndicator()) IC->OutputErgodicChib(&avgstream);
+	    avgstream << endl;
+	  }
+	  //Score Test output
+	  if( options.getScoreTestIndicator() )  Scoretest.Output(iteration, data.GetPopLabels());
+	}//end "if every'*10" block
+      }//end "if after BurnIn" block
+    } // end "if not AnnealedRun" block
+  }// end loop over iterations
+}
+
+void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream) {
+  double EAvDeviance, EVarDeviance;
+  EAvDeviance = 2.0*SumEnergy / (double) samples;//ergodic average of deviance
+  EVarDeviance = 4.0 * (SumEnergySq / (double)samples - EAvDeviance*EAvDeviance);//ergodic variance of deviance 
+  *avgstream << EAvDeviance << " "<< EVarDeviance <<" ";
 }

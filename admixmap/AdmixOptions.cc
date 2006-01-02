@@ -29,10 +29,7 @@
 #include <numeric> // for checkInitAlpha
 #include "Latent.h"// for POPADMIXSAMPLER
 
-#define NUMBEROFANNEALEDRUNS 100
-
 using namespace std;
-
 
 /**
  *   Convert Cstrings to vector (used on initalpha option)
@@ -87,8 +84,9 @@ void AdmixOptions::Initialise(){
   IndAdmixHierIndicator = true; //hierarchical model on ind admixture
   HapMixModelIndicator = false; //model haplotypes with mixture model
   MLIndicator = false;//calculate marginal likelihood by Chib method
-  anneal = 0;
-  AnnealedRuns = 1;
+  AnnealIndicator = false; // calculate marginal likelihood by thermodynamic method
+  TestOneIndivIndicator = false; // evaluate marginal likelihood for single individual
+  NumAnnealedRuns = 20; // default if option thermo not specified 
   ScoreTestIndicator = false; //indicator for any of the score tests in ScoreTests class
   TestForAdmixtureAssociation = false;
   StratificationTestIndicator = false;
@@ -128,7 +126,8 @@ void AdmixOptions::Initialise(){
   // option names and default option values are stored as strings in a map container 
   OptionValues["burnin"] = "100";
   OptionValues["samples"] = "1100";
-  OptionValues["every"] = "50";
+  OptionValues["every"] = "20";
+  OptionValues["numannealedruns"] = "20";
   OptionValues["targetindicator"] = "0";
   OptionValues["displaylevel"] = "2";
   OptionValues["fixedallelefreqs"] = "0";
@@ -139,7 +138,7 @@ void AdmixOptions::Initialise(){
   OptionValues["globalrho"] = "1";
   OptionValues["indadmixhiermodel"] = "1";
   OptionValues["hapmixmodel"] = "0";
-  OptionValues["marglikelihood"] = "0";
+  OptionValues["chib"] = "0";
   OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
   OptionValues["popadmixpriormean"] = "1.0";
@@ -344,11 +343,15 @@ bool AdmixOptions::getHapMixModelIndicator() const{
 bool AdmixOptions::getMLIndicator()const{
   return MLIndicator;
 }
-int AdmixOptions::getAnnealIndicator()const{
-  return anneal;
+bool AdmixOptions::getAnnealIndicator()const{
+  return AnnealIndicator;
 }
-int AdmixOptions::getNumberOfAnnealedRuns()const{
-  return AnnealedRuns;
+bool AdmixOptions::getTestOneIndivIndicator()const{
+  return TestOneIndivIndicator;
+}
+
+long AdmixOptions::getNumAnnealedRuns()const{
+  return NumAnnealedRuns;
 }
 double AdmixOptions::getTruncPt() const
 {
@@ -692,6 +695,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"likratiofilename",                       1, 0,  0 }, // string
 
     // Other options
+    {"numannealedruns",                       1, 0,  0 }, // long
     {"parallel",                              1, 0,  0 }, // int 0: 1
     {"coutindicator",                         1, 0, 'c'}, // int 0: 1
     {"displaylevel",                          1, 0,  0 }, // int 0: 2
@@ -699,8 +703,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"globalrho",                             1, 0,  0 }, // int 0: 1
     {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
     {"hapmixmodel",                           1, 0,  0 }, // int 0: 1
-    {"marglikelihood",                        1, 0,  0 }, // int 0: 1
-    {"anneal",                                1, 0,  0 }, // int 0, 1 or 2
+    {"chib",                                  1, 0,  0 }, // int 0: 1
+    {"thermo",                                1, 0,  0 }, // int 0: 1 
+    {"testoneindiv",                          1, 0,  0 }, // int 0: 1 
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
@@ -724,12 +729,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
   //options specified on command line
   while (1) {
     int option_index = 0;
-
     c = getopt_long (nargs, args, "a:b:c:e:g:i:l:o:p:r:s:t:",
 		     long_options, &option_index);
-
     string long_option_name = long_options[option_index].name;
-
     if (c == -1)
       break;
 
@@ -880,20 +882,30 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	if (strtol(optarg, NULL, 10) == 0) {
 	  HapMixModelIndicator = false;OptionValues["hapmixmodel"]="0";
 	}
-      }else if (long_option_name == "marglikelihood") {
+      }else if (long_option_name == "chib") {
 	if(strtol(optarg, NULL, 10)==1){
-	  MLIndicator = true; OptionValues["marglikelihood"]=optarg;
+	  MLIndicator = true; OptionValues["chib"]=optarg;
 	}
-      }else if (long_option_name == "anneal") {
-	if(strtol(optarg, NULL, 10)==1){anneal = 1; AnnealedRuns = NUMBEROFANNEALEDRUNS; OptionValues["anneal"]=optarg;}
-	else if(strtol(optarg, NULL, 10)==2){anneal = 2; AnnealedRuns = NUMBEROFANNEALEDRUNS;OptionValues["anneal"]=optarg;}
+      }else if (long_option_name == "thermo") {
+	if(strtol(optarg, NULL, 10)==1){
+	  AnnealIndicator = true; 
+	  OptionValues["thermo"]=optarg;
+	}
+      }else if (long_option_name == "numannealedruns") {
+	NumAnnealedRuns = strtol(optarg, NULL, 10); 
+	OptionValues["numannealedruns"]=optarg;
+      }else if (long_option_name == "testoneindiv") {
+	if(strtol(optarg, NULL, 10)==1){
+	  TestOneIndivIndicator = true; 
+	  OptionValues["testoneindiv"]=optarg;
+	}
       }else if (long_option_name == "globalrho") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  GlobalRho = true;OptionValues["globalrho"]="1";
 	} else if (strtol(optarg, NULL, 10) == 0) {
 	  GlobalRho = false;OptionValues["globalrho"]="0";
 	} else {
-	  cerr << "ERROR: Please set globalrho to 0 or 1.\n";
+	  cerr << "ERROR: globalrho must be set to 0 or 1.\n";
 	  exit(1);
 	}
       } else if (long_option_name == "populations") {
@@ -1271,20 +1283,17 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     setTestForSNPsInHaplotype(false);
     }
   
-  ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || TestForAdmixtureAssociation
-			|| TestForSNPsInHaplotype);
+  ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || 
+			TestForAdmixtureAssociation || TestForSNPsInHaplotype);
 
-  //check anneal >0
-  if(AnnealedRuns < 1){
-    Log << "ERROR: 'anneal' must be > 0\n";
-    exit(1);
+  if(AnnealIndicator) {
+    // for thermo integration, NumAnnealedRuns is set to default value of 100 
+    // if not specified as an option
+    if(NumAnnealedRuns==0) NumAnnealedRuns = 100;
+    Log << "\nUsing thermodynamic integration to calculate marginal likelihood ";
+    if(!TestOneIndivIndicator) Log << "for all individuals\n\n";
+    else Log << "for first individual\n\n"; 
   }
-  if(AnnealedRuns > 1){
-    if(AnnealedRuns%2)AnnealedRuns += 1;//in case 'anneal' is odd
-    Log << "\nUsing " << AnnealedRuns << " annealed runs to estimate marginal likelihood ";
-    if(anneal == 1)Log << "for all individuals\n\n";
-    else if(anneal == 2)Log << "for first individual\n\n"; 
-   }
 
   return 1;
 }

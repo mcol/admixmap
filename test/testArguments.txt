@@ -13,8 +13,8 @@
 ##Required Options
    samples  = 10
    burnin   = 5
-   every    = 1
-   analysistypeindicator        = 3
+   every = 1
+   numannealedruns = 0
 
 ##Misc. Options
     coutindicator                = 1

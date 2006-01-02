@@ -253,11 +253,11 @@ void Regression::OutputParams(ostream* out){
   if( RegType != None ){
     for( int j = 0; j < NumCovariates; j++ ){
       out->width(9);
-      (*out) << setprecision(6) << beta[j] << " ";
+      (*out) << setprecision(6) << beta[j] << "\t";
     }
     out->width(9);
     if( RegType == Linear )
-      (*out) << setprecision(6) << lambda << " ";
+      (*out) << setprecision(6) << lambda << "\t";
   }
 }
 
@@ -273,7 +273,7 @@ void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &L
           for( int j = 0; j < NumCovariates; j++ )
 	    {
 	      //Log->width(9);
-	      Log << beta[j];
+	      Log << beta[j] << "\t";
 	    }
           //Log->width(9);
           if( RegType == Linear )

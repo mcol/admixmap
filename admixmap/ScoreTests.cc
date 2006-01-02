@@ -757,6 +757,9 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration, int locus, uns
     if(CompleteInfo > 0.0) {
       PercentInfo = 100*ObservedInfo / CompleteInfo;
       zscore = Score / sqrt( ObservedInfo );
+    } else {
+      PercentInfo = 0;
+      zscore = 0;
     }
 
     string locuslabel = (*Lociptr)(locus)->GetLabel(a);
@@ -821,11 +824,10 @@ void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstre
   }
 }
 void ScoreTests::ROutput(){
-  int numPrintedIterations = options->getTotalSamples()/ options->getSampleEvery() / 10  -  options->getBurnIn() / options->getSampleEvery() / 10;
-
+  int numPrintedIterations = (options->getTotalSamples() - options->getBurnIn()) / (options->getSampleEvery() * 10);
   /**
    * writes out the dimensions and labels of the 
-   * R-matrix previously written to genescorestream
+   * R object previously written to genescorestream
    */
   int count;
   if(options->getTestForAllelicAssociation()){

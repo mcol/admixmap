@@ -182,8 +182,11 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 }
 
 void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator=false){
-  //chibindicator is only to facilitate the Chib algorithm in Individual; instructs CompositeLocus to use HapPairProbsMAP
+  //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
+
+  //this function should take AnnealIndicator and coolness as arguments
+  // should implement annealing of likelihood here, not in HMM class  
   int locus = C->GetLocus(0);
   for(unsigned int jj = 0; jj < C->GetSize(); jj++ ){
     if( !(IsMissing(locus)) ){
@@ -360,7 +363,6 @@ const int *Individual::getSumLocusAncestry()const{
 }
 
 //********** Missing Genotype Indicator *********************
-
 //Indicates whether genotype is missing at all simple loci within a composite locus
 bool Individual::IsMissing(unsigned int locus)const
 {
@@ -374,6 +376,7 @@ bool Individual::IsMissing(unsigned int locus)const
 }
 
 //****************** Log-Likelihoods **********************
+// gets log-likelihood at parameter values specified as arguments
 double Individual::getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
 				    const double* const theta, const double* const thetaX,
 				    const vector<double > rho, const vector<double> rho_X, bool updateHMM, bool chibindicator = false)
@@ -401,6 +404,7 @@ double Individual::getLogLikelihood(const AdmixOptions* const options, Chromosom
   return LogLikelihood;
 }
 
+// gets log-likelihood at current parameter values
 double Individual::getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm){
   //use current parameter values
   if(!logLikelihood.ready){
@@ -1192,9 +1196,10 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 }
 
 //******************** Chib Algorithm ***************************************
-
-
- // this function computes marginal likelihood by the Chib algorithm.  
+// this function accumulates parameter settings and posterior ordinate for 
+// computation of marginal likelihood by the Chib algorithm
+// function should not be called during annealing runs
+// should be named AccumulateChibValues  
 void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
 		      const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, 
 		      double globalrho, double rhoalpha, double rhobeta, double *thetahat,

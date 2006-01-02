@@ -42,15 +42,17 @@ my $arg_hash =
 };
 
 # single population, thermodynamic  
-$arg_hash->{anneal} = 1;
+$arg_hash->{thermo} = 1;
+$arg_hash->{numannealedruns} = 10;
 $arg_hash->{populations} = 1;
 #$arg_hash->{indadmixhiermodel} = 0;
 #$arg_hash->{hapmixmodel}=1;
 doAnalysis($executable,$arg_hash, $resultsdir);
 &CompareThenMove("results", "results0");
 
-# single population, reference prior on allele freqs  
-$arg_hash->{anneal} = 0;
+# single population, reference prior on allele freqs, annealing  
+$arg_hash->{thermo} = 0;
+$arg_hash->{numannealedruns} = 5;
 $arg_hash->{populations} = 1;
 $arg_hash->{indadmixhiermodel} = 1;
 #$arg_hash->{hapmixmodel}=0;
@@ -59,6 +61,7 @@ doAnalysis($executable,$arg_hash, $resultsdir);
 &CompareThenMove("results", "results1");
 
 # two populations, reference prior on allele freqs  
+$arg_hash->{numannealedruns} = 0;
 $arg_hash->{populations}     = 2;
 $arg_hash->{sumintensitiesalpha}  = 5;
 doAnalysis($executable,$arg_hash);
@@ -106,6 +109,7 @@ my $arg_hash =
     burnin   => 10,
     samples  => 51,
     every    => 2,
+    numannealedruns => 0, 
     #analysistypeindicator     => -1,  
     targetindicator => 1, # offset (from column 1) of column containing outcome variable
     coutindicator   => 1,
@@ -123,7 +127,7 @@ my $arg_hash =
     initalpha1                   => "1,1,0",
 
     logfile                      => "logfile.txt",
-    marglikelihood => 1,
+    chib                         => 1,
     indadmixturefile             => "indadmixture.txt"
 };
 

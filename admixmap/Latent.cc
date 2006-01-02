@@ -243,10 +243,11 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
 //end Update
 
 
-void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C, double LogL){
-
+void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C) {
   if( options->isGlobalRho() ){
     double rhoprop;
+    double LogLikelihood = 0.0;
+    double LogLikelihoodAtProposal = 0.0;
     double LogLikelihoodRatio = 0.0;
     double LogPriorRatio = 0.0;
     double LogAccProb;
@@ -254,35 +255,45 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
     NumberOfUpdates++;
     rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
     
-    //get log likelihood at current parameter values
-    //    for(int i = 0; i < IC->getSize(); ++i)LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C);
-    LogLikelihoodRatio -= LogL;
-    
-    //get log likelihood at proposal rho and current admixture proportions
+    //get log likelihood at current parameter values, annealed if this is an annealing run
+    // TO DO - IC object should store log HMM likelihood summed over individuals
+    // IC or individual objects should use annealed ProbGenotypes where necessary
+    for(int i = 0; i < IC->getSize(); ++i) {
+      Individual* ind = IC->getIndividual(i);
+      ind->HMMIsBad(true);//to force HMM update
+      LogLikelihood += ind->getLogLikelihood(options, C);
+      ind->HMMIsBad(true);
+   }
+
+    //get log HMM likelihood at proposal rho and current admixture proportions
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
     for(int i = 0; i < IC->getSize(); ++i){
       Individual* ind = IC->getIndividual(i);
-      ind->HMMIsBad(true);//to force HMM update
-      LogLikelihoodRatio += ind->getLogLikelihood(options, C);
+      LogLikelihoodAtProposal += ind->getLogLikelihood(options, C);
       ind->HMMIsBad(true);
-      //TODO: should only need this line in case of rejection. Current stored logl is at proposal.
+      // line above should not be needed - but commenting it out changes the results. Current stored logl is at proposal.
     }
-    
+    LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
+
     //compute prior ratio
     LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
-
     LogAccProb = 0.0;
     if(LogLikelihoodRatio + LogPriorRatio < 0.0) 
       LogAccProb = LogLikelihoodRatio + LogPriorRatio; 
+
     //accept/reject proposal
     if(log( myrand() ) < LogAccProb){//accept
       rho = rhoprop;
     }
     else{//reject
-
       // restore f in Chromosomes
       for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
 	C[j]->SetLociCorr(rho);
+      // set loglikelihood to bad 
+      for(int i = 0; i < IC->getSize(); ++i){
+	Individual* ind = IC->getIndividual(i);
+	ind->HMMIsBad(true);
+      }
     }
 
     //update sampler object every w updates

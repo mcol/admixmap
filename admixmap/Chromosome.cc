@@ -71,7 +71,7 @@ void Chromosome::setCoolness(double l){
 }
 
 // Returns the number of the num'th compositelocus on this chromosome
-// eg if chromosome 2 consists of compositeloci 5,6,7 and 8,
+// eg if chromosome 2 consists of compositeloci 5, 6, 7 and 8,
 // GetLocus(i) returns 5 + i
 int Chromosome::GetLocus(int num)const{
   return _startLocus + num;
@@ -145,7 +145,6 @@ void Chromosome::SampleLocusAncestry(int *OrderedStates, const double* const Adm
 }
 
 std::vector<std::vector<double> > Chromosome::getAncestryProbs( int j)const{
-  //
   //sets conditional probabilities of ancestry at locus j
   //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry from that population
   //i.e. (i,2) = p_{ii}

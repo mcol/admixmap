@@ -81,7 +81,7 @@ public:
   void InitializeOutputFile(const std::string* const);
   
   //Updating every iteration
-  void UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C, double LogL);
+  void UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C);
   void Update(int iteration, const IndividualCollection* const, LogWriter &Log,  bool anneal);
   
   void OutputParams(int iteration, LogWriter &Log);

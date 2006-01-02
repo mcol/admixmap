@@ -66,13 +66,12 @@ public:
   
   void OutputIndAdmixture();
 
-  void OutputDeviance(const AdmixOptions* const options, Chromosome** C, Regression *R, LogWriter &Log, 
+  double getDevianceAtPosteriorMean(const AdmixOptions* const options, Chromosome** C, Regression *R, LogWriter &Log, 
 		      double SumRho, unsigned numChromosomes);
 
   void OutputChibEstimates(LogWriter &, int)const;
   void OutputChibResults(LogWriter&)const;
 
-  void OutputErgodicAvg(int samples, bool ML, std::ofstream *avgstream);
   void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);
 
   int getSize()const;
@@ -104,10 +103,12 @@ public:
   const std::string getCovariateLabels(int)const;
   const std::string *getCovariateLabels()const;
 
-  double getLogLikelihood(const AdmixOptions* const options, Chromosome **C, const Regression* R, bool sumdeviance);
+  double getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
+			  const bool & annealed, const double & coolness);
   double getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness);
   double DerivativeInverseLinkFunction(int i)const;
   void ResetChib();
+  void OutputErgodicChib(std::ofstream *avgstream);
   const chib* getChib()const;
 
   void HMMIsBad(bool b);

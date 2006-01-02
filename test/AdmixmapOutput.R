@@ -1083,20 +1083,22 @@ if(!is.null(user.options$anneal)){
   anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
   postscript(paste(resultsdir, "annealplot.ps", sep="/"))
   ##plot raw points
-  plot(anneal.table[,1],anneal.table[,2], xlab="coolness", ylab="mean logLikelihood", type = 'p')
+  plot(anneal.table[,1],anneal.table[,2], xlab="Coolness", ylab="Mean energy", type = 'p')
   ##fit smoothed spline and overlay on points
   fit.spline <- smooth.spline(anneal.table[,1], anneal.table[,2], w=-1/anneal.table[,3],spar=0.6)
   lines(fit.spline, lty=2)
-  fitted.points <- fit.spline$y
+  
+  # fitted.points <- fit.spline$y
+  ## can't use Simpson's rule for points that are not evenly spaced
   ##Simpson's rule for approximating area under curve
-  logML <- 0
-  for(i in 1:length(fitted.points)){
-    if(i==1 || i==length(fitted.points)){logML <- logML + fitted.points[i]}else
-    if( (i%%2)==0){logML <- logML + 4*fitted.points[i]}else
-    {logML <- logML + 2*fitted.points[i]}
-  }
-  logML <- logML / (3*(length(fitted.points)-1))
-  text(x=0.5, y=min(fitted.points),labels=paste("Estimated logMarginalLikelihood: ", format(logML)), cex=0.8)
+  #logML <- 0
+  #for(i in 1:length(fitted.points)){
+  #  if(i==1 || i==length(fitted.points)){logML <- logML + fitted.points[i]}else
+  #  if( (i%%2)==0){logML <- logML + 4*fitted.points[i]}else
+  #  {logML <- logML + 2*fitted.points[i]}
+  #}
+  #logML <- logML / (3*(length(fitted.points)-1))
+  #text(x=0.5, y=min(fitted.points),labels=paste("Estimated logMarginalLikelihood: ", format(logML)), cex=0.8)
   dev.off()
 }
 

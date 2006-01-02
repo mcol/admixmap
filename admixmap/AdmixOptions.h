@@ -104,8 +104,9 @@ public:
   bool getIndAdmixHierIndicator() const;
   bool getHapMixModelIndicator() const;
   bool getMLIndicator() const;
-  int getAnnealIndicator() const;
-  int getNumberOfAnnealedRuns() const;
+  bool getAnnealIndicator() const;
+  bool getTestOneIndivIndicator() const;
+  long getNumAnnealedRuns() const;
   double getTruncPt() const;  
   int getPopulations() const; 
   void setPopulations(int num);
@@ -180,8 +181,9 @@ private:
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool HapMixModelIndicator; //model haplotypes with mixture model
   bool MLIndicator;//calculate marginal likelihood 
-  int anneal;//calculate marginal likelihood using simulated annealing
-  int AnnealedRuns;
+  bool AnnealIndicator;//calculate marginal likelihood using simulated annealing
+  bool TestOneIndivIndicator;//calculate marginal likelihood for one individual only
+  long NumAnnealedRuns;
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
   bool TestForAdmixtureAssociation;
   bool StratificationTestIndicator;

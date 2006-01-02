@@ -1,10 +1,7 @@
 #!/usr/bin/perl -w
 
-
-my $DEBUG = 1; # zero gives less output
-
 # Change this to the location of the admixmap executable
-my $executable = '.admixmap';
+my $executable = './admixmap';
 my $results = "IndResults";
 
 # $arg_hash is a hash of parameters passed to
@@ -14,29 +11,19 @@ my $results = "IndResults";
 # values (right-hand side) are parameter values
 my $arg_hash = 
 {
-    burnin   => 1000, 
-    samples  => 21000,
-    every    => 5,
-    analysistypeindicator     => -1, # -1 = single individual 
-    coutindicator   => 0,
+    burnin   => 500, 
+    samples  => 4500,
+    every    => 10,
     locusfile                    => "IndData/loci.txt",
     genotypesfile                => "IndData/genotypes.txt",
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
     randommatingmodel            => 1,
     globalrho                    => 0,
-sumintensitiesprior = "1,1,0";
-                                         # 0,1,0 =  flat prior on log rho
-                                         # 1,1,0  = flat prior on rho
-    #sumintensitiesalpha =>1.0,	   # prior on sum of intensities parameter rho is gamma with shape 
-    #sumintensitiesbeta => 0.0,    # parameter alpha, scale parameter beta 
-                                                   # prior on beta is gamma
-
-
-                                         
-    truncationpoint              => 15, # upper truncation point (lower truncation point is 1)
-    # fixedallelefreqs             => 1,
-    initalpha0                   => "1,1,0", # parameter vectors for Dirichlet prior on admixture 
+    initalpha0                   => "1,1,1", # parameter vectors for Dirichlet prior on admixture 
     initalpha1                   => "1,1,0",
+    chib                         => 1,
+    #thermo                       => 1,
+    #numannealedruns             => 100,
 
     resultsdir => "IndResults",
     logfile                      => "logfile.txt",
@@ -50,11 +37,11 @@ doAnalysis($executable,$arg_hash, "IndResults2Way");
 $arg_hash->{initalpha0} = "1,1,1";
 $arg_hash->{initalpha1} = "1,1,1";
 $arg_hash->{resultsdir} = "IndResults3Way";
-doAnalysis($executable,$arg_hash, "IndResults3Way");
+#doAnalysis($executable,$arg_hash, "IndResults3Way");
 
 $arg_hash->{fixedallelefreqs} = 1;
 $arg_hash->{resultsdir} = "IndResults3WayFixed";
-doAnalysis($executable,$arg_hash, "IndResults3WayFixed");
+#doAnalysis($executable,$arg_hash, "IndResults3WayFixed");
 
 
 sub doAnalysis
@@ -64,9 +51,7 @@ sub doAnalysis
     unless (-e "$resultsdir"){
 	system("mkdir $resultsdir");
     }
-    print $command if $DEBUG;
     system($command);
-
     print "Starting R script to process output\n";
      system("R --quiet --no-save --no-restore <AdmixmapOutput.R >results/Rlog.txt RESULTSDIR=$resultsdir");
     print "R script completed\n\n";
