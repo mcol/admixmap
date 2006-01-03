@@ -78,7 +78,7 @@ public:
 
   double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
 			  const double* const theta, const double* const thetaX,
-			  const vector<double > rho, const vector<double> rho_X, bool updateHMM, bool chibindicator);
+			  const vector<double > rho, const vector<double> rho_X, bool updateHMM);
   double getLogLikelihood(const AdmixOptions* const , Chromosome**);
   double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm);
 

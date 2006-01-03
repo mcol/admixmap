@@ -159,15 +159,6 @@ int main( int argc , char** argv ){
     
     InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
     
-    //Write initial values
-    if(options.getIndAdmixHierIndicator()  ){
-      if(options.getDisplayLevel()>2)Log.setDisplayMode(Quiet);
-      else Log.setDisplayMode(Off);
-      Log << "InitialParameterValues:\n"
-	  <<"PopulationAdmixtureDirichlet, SumIntensities, AlleleFreqDispersion, RegressionParams\n";
-      OutputParameters(-1, IC, &L, &A, R, &options, Log);
-      Log << "\n";
-    }
     
     string s = options.getResultsDir()+"/loglikelihoodfile.txt";
     ofstream loglikelihoodfile(s.c_str());
@@ -220,7 +211,16 @@ int main( int argc , char** argv ){
 	<< " iteration(s) followed by final run of "; 
     }
     Log << options.getTotalSamples() << " iterations at coolness of 1\n";
-    
+    //Write initial values
+    if(options.getIndAdmixHierIndicator()  ){
+      if(options.getDisplayLevel()>2)Log.setDisplayMode(On);
+      else Log.setDisplayMode(Quiet);
+      Log << "InitialParameterValues:\n"
+	  <<"PopulationAdmixtureDirichlet, SumIntensities, AlleleFreqDispersion, RegressionParams\n";
+      OutputParameters(-1, IC, &L, &A, R, &options, Log);
+      Log << "\n";
+    }
+   
     // ****************************** BEGIN ANNEALING LOOP ***************************************
     for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
 
@@ -240,6 +240,7 @@ int main( int argc , char** argv ){
 	cout << flush;
       }
 
+      // each call to this function should reset the stochastic approximation series in StepSizeTuner objects
       doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
 		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data);
       
@@ -439,44 +440,44 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
       // Header line of ergodicaveragefile
       if( options->getIndAdmixHierIndicator() ){
 	for( int i = 0; i < options->getPopulations(); i++ ){
-	  *avgstream << "\""<<PopulationLabels[i] << "\" ";
+	  *avgstream << "\""<<PopulationLabels[i] << "\"\t";
 	}
 	if( options->isGlobalRho() )
-	  *avgstream << " \"sumIntensities\"";
+	  *avgstream << " \"sumIntensities\"\t";
 	else
-	  *avgstream << "\"sumIntensities.mean\" ";
+	  *avgstream << "\"sumIntensities.mean\"\t";
 	
 	
 	// Regression parameters
 	if( options->getNumberOfOutcomes() > 0 ){
 	  for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
-	    *avgstream << "       \"intercept\" ";
+	    *avgstream << "       \"intercept\"\t";
 	    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
 	      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-		*avgstream << individuals->getCovariateLabels(i) << " ";
+		*avgstream << individuals->getCovariateLabels(i) << "\t";
 	      }
 	    }
 	    if( !options->getTestForAdmixtureAssociation() ){
 	      for( int k = 1; k < options->getPopulations(); k++ ){
-		*avgstream << "\""<<PopulationLabels[k] << "\" ";
+		*avgstream << "\""<<PopulationLabels[k] << "\"\t";
 	      }
 	    }
 	    if( individuals->getOutcomeType(r)==0 )//linear regression
-	      *avgstream << "       \"precision\" ";
+	      *avgstream << "       \"precision\"\t";
 	  }
 	}
 		
 	// dispersion parameters
 	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
 	  for( int k = 0; k < options->getPopulations(); k++ ){
-	    *avgstream << " \"eta" << k << "\" ";
+	    *avgstream << " \"eta" << k << "\"\t";
 	  }
 	}
       }
-      *avgstream << "\"MeanDeviance\"\t \"VarDeviance\"\t ";
+      *avgstream << "\"MeanDeviance\"\t\"VarDeviance\"\t";
       if(options->getMLIndicator()){//marginal likelihood calculation
-	*avgstream<<"\"LogPrior\" \t \"LogPosterior\" \t \"LogPosteriorAdmixture\" \t \"LogPosteriorSumIntensities\" \t "
-		  <<"\"LogPosteriorAlleleFreqs\" \t \"LogMarginalLikelihood\"";
+	*avgstream<<"\"LogPrior\"\t \"LogPosterior\"\t \"LogPosteriorAdmixture\"\t \"LogPosteriorSumIntensities\"\t"
+		  <<"\"LogPosteriorAlleleFreqs\"\t \"LogMarginalLikelihood\"";
       }
       *avgstream << "\n";
     }
@@ -515,25 +516,32 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      LogWriter& Log){
+  // fix this so that params can be output to console  
+  Log.setDisplayMode(Quiet);
   if(options->getIndAdmixHierIndicator()  ){
-    //Only output population-level parameters when there is a hierarchical model on indadmixture
+    //output population-level parameters only when there is a hierarchical model on indadmixture
     // ** pop admixture, sumintensities
-    if(options->getPopulations() > 1) L->OutputParams(iteration,Log);
+    if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
     //** dispersion parameter (if dispersion model)
 	A->OutputEta(iteration, options, Log);
     // ** regression parameters
     for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
       R[r].Output(iteration, options, Log);
     
-    //** new line in logfile
-	if( iteration == 0 ) {Log.setDisplayMode(Off);Log << "\n";}
+    //** new line in log file but not on screen 
+	if( iteration == 0 ) {
+	  Log.setDisplayMode(Off);
+	  Log << "\n";
+	  Log.setDisplayMode(Quiet);
+	}
   }
-  if( options->getDisplayLevel()>2 ) cout << endl;
+  //if( options->getDisplayLevel()>2 ) cout << endl;
   if( iteration > options->getBurnIn() ){
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
     if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
     if(options->getOutputAlleleFreq())A->OutputAlleleFreqs();
   }
+  cout << endl;  
 }
 
 void WriteIterationNumber(const int iteration, const int width, int displayLevel){
@@ -571,13 +579,14 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
       //compute loglikelihood at coolness of 1.0
       Energy = IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); // set HMMIsBad if AnnealedRun
       // write to file if not AnnealedRun
-      if(!AnnealedRun) loglikelihoodfile<< iteration<<" " << Energy <<endl;
+      if(!AnnealedRun) loglikelihoodfile << iteration<< "\t" << Energy <<endl;
       SumEnergy += Energy;
       SumEnergySq += Energy*Energy;
     }
-    
+    Log.setDisplayMode(Quiet);
     if(!AnnealedRun){
       // output every 'getSampleEvery()' iterations
+      // should change this so that output is written to console if coutindicator 
       if(!(iteration % options.getSampleEvery()) )
 	OutputParameters(iteration, IC, &L, &A, R, &options, Log);
       
@@ -607,6 +616,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	if (!(iteration % (options.getSampleEvery() * 10))){    
 	  
 	  //Ergodic averages
+	  Log.setDisplayMode(On);
 	  if ( strlen( options.getErgodicAverageFilename() ) ){
 	    int samples = iteration - burnin;
 	    if( options.getIndAdmixHierIndicator() ){
