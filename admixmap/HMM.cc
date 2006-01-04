@@ -96,10 +96,10 @@ void HMM::SetStateArrivalProbs(const double* const f, const double* const Theta,
 void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda, bool* const missing, double coolness)
 {
   // array lambda should be annealed before calling this function
-  // elements of missing are true if all elements of lambda equal to 1
-  // when true, can skip multiplication by lambda and maybe also skip scaling at next locus   
+  // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
   sumfactor = 0.0; // accumulates log-likelihood
-  double scaleFactor, Sum;
+  double Sum = 0.0;
+  double scaleFactor = 0.0;
   double *lambdap;
   lambdap = lambda; 
   States = K*K;
@@ -115,17 +115,19 @@ void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda,
   }
   
   double f2[2];
-  for( int t = 1; t < Transitions; t++ ){        
-    Sum = 0.0;
-    //scale previous alpha to sum to 1
-    for( int j = 0; j <  States; ++j ) {
-      Sum += alpha[(t-1)*States +j];
+  for( int t = 1; t < Transitions; t++ ){
+    if(!missing[t-1]) {
+      Sum = 0.0;
+      //scale previous alpha to sum to 1
+      for( int j = 0; j <  States; ++j ) {
+	Sum += alpha[(t-1)*States +j];
+      }
+      scaleFactor = 1.0 / Sum;
+      for( int j = 0; j <  States; ++j ) {
+	alpha[(t-1)*States +j] *= scaleFactor;
+      }
+      sumfactor += log(Sum);
     }
-    scaleFactor = 1.0 / Sum;
-    for( int j = 0; j <  States; ++j ) {
-      alpha[(t-1)*States +j] *= scaleFactor;
-    }
-    sumfactor += log(Sum);
     
     p[t] = f[2*t] * f[2*t + 1];
     f2[0] = f[2*t]; f2[1] = f[2*t + 1];
