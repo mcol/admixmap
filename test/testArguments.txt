@@ -17,8 +17,8 @@
    numannealedruns = 0
 
 ##Misc. Options
-    coutindicator                = 1
-    targetindicator              = 0
+   coutindicator                = 1
+   targetindicator              = 0
 
 ##Input Files
     genotypesfile                = data/genotypes.txt
