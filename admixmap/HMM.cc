@@ -93,21 +93,27 @@ void HMM::SetStateArrivalProbs(const double* const f, const double* const Theta,
   j = j1, j' = j2, i = i1, i' = i2, 
   theta_j = Admixture(j,0),  theta'_j = Admixture(j,Mcol).
 */
-void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda, double coolness)
+void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda, bool* const missing, double coolness)
 {
-  sumfactor = 0.0;
+  // array lambda should be annealed before calling this function
+  // elements of missing are true if all elements of lambda equal to 1
+  // when true, can skip multiplication by lambda and maybe also skip scaling at next locus   
+  sumfactor = 0.0; // accumulates log-likelihood
   double scaleFactor, Sum;
   double *lambdap;
-  lambdap = lambda;
+  lambdap = lambda; 
   States = K*K;
   
-  for(int j = 0; j < States; ++j)
-    //set alpha(0) = StationaryDist * lambda(0)
-     if(coolness < 1.0) 
-       alpha[j] =  ThetaThetaPrime[j] * pow(lambda[j], coolness);
-     else 
-    alpha[j] =  ThetaThetaPrime[j] * (*lambdap++);
-
+  for(int j = 0; j < States; ++j) {
+    if(!missing[0]) {
+      if(coolness < 1.0) alpha[j] =  ThetaThetaPrime[j] * pow(lambda[j], coolness);
+      else alpha[j] =  ThetaThetaPrime[j] * (*lambdap++);
+    } else {
+      alpha[j] = ThetaThetaPrime[j];
+      ++lambdap;
+    }
+  }
+  
   double f2[2];
   for( int t = 1; t < Transitions; t++ ){        
     Sum = 0.0;
@@ -126,14 +132,15 @@ void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda,
     RecursionProbs(p[t], f2, StateArrivalProbs + t*K*2, alpha + (t-1)*States, alpha + t*States);
     
     for(int j = 0; j < States; ++j){
-      if(coolness < 1.0)
-	alpha[t*States +j] *= pow(lambda[t*States +j], coolness);
+      if(!missing[t]) {
+	if(coolness < 1.0)
+	  alpha[t*States +j] *= pow(lambda[t*States +j], coolness);
 	else
-	alpha[t*States +j] *= *lambdap++;  //lambda[t*States +j];
+	  alpha[t*States +j] *= *lambdap++;  //lambda[t*States +j];
+      } else ++lambdap;
     }
   }
 }
-
 
 void HMM::UpdateBackwardProbsDiploid(const double* const f, const double* const lambda)
 {
@@ -268,8 +275,8 @@ std::vector<std::vector<double> > HMM::Get3WayStateProbs( int t)const{
   and is the same for all t so it is convenient to compute for
   t = T-1 since beta here is 1. 
 */
-double HMM::getLogLikelihood()const
-{
+double HMM::getLogLikelihood()const 
+{ 
    double sum = 0;
    for( int j = 0; j < States; j++ ){
      sum += alpha[(Transitions - 1)*States + j];

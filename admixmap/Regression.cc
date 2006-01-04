@@ -69,16 +69,16 @@ void Regression::InitializeOutputFile(const AdmixOptions* const options, const I
 {
   // Header line of paramfile
   for( int kk = 0; kk < options->getNumberOfOutcomes(); kk++ ){
-      outputstream << "\"intercept\" ";
+      outputstream << "intercept\t";
       for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-	outputstream << individuals->getCovariateLabels(i) << " ";
+	outputstream << individuals->getCovariateLabels(i) << "\t";
       }
       if( !options->getTestForAdmixtureAssociation() )
 	for( int k = 1; k < options->getPopulations(); k++ ){
-	  outputstream << "\"slope." << PopulationLabels[k] << "\" ";
+	  outputstream << "slope." << PopulationLabels[k] << "\t";
 	}
       if( individuals->getOutcomeType(kk) == Continuous ){
-	outputstream<< setprecision(6) << "\"precision\"";
+	outputstream<< setprecision(6) << "precision\t";
       }
     }
   outputstream << endl;
@@ -272,10 +272,8 @@ void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &L
 	  if(options->getNumberOfOutcomes()==2)Log <<"\nRegression " <<(int)RegNumber << ": ";
           for( int j = 0; j < NumCovariates; j++ )
 	    {
-	      //Log->width(9);
 	      Log << beta[j] << "\t";
 	    }
-          //Log->width(9);
           if( RegType == Linear )
 	    {
 	      Log << lambda;
@@ -285,13 +283,13 @@ void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &L
   //output to screen
   if( options->getDisplayLevel()>2 )
     {
-      if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << " ";
+      if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << "\t";
       OutputParams(&cout);
     }
   //Output to paramfile after BurnIn
   if( iteration > options->getBurnIn() ){
     OutputParams(&outputstream);
-    if(options->getNumberOfOutcomes()< 2 || RegNumber==1)outputstream << endl;
+    if(options->getNumberOfOutcomes()< 2 || RegNumber==1) outputstream << endl;
     //output new line in paramfile when last regression model
   }
 }
@@ -300,11 +298,11 @@ void Regression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
   if( RegType != None ){
     for( int j = 0; j < NumCovariates; j++ ){
       avgstream->width(9);
-      *avgstream << setprecision(6) << SumBeta[j] / samples << " ";
+      *avgstream << setprecision(6) << SumBeta[j] / samples << "\t";
     }
     avgstream->width(9);
     if( RegType == Linear )
-      *avgstream << setprecision(6) << SumLambda / samples << " ";
+      *avgstream << setprecision(6) << SumLambda / samples << "\t";
   }
 }
 

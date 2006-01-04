@@ -50,10 +50,8 @@ Individual::Individual()
 }
 
 Individual::Individual(int number, const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
-		       const Chromosome* const * chrm)
-{
+		       const Chromosome* const * chrm) {
   myNumber = number;
-
   if( !options->isGlobalRho() ){//model with individual- or gamete-specific sumintensities
     TruncationPt = options->getTruncPt();
     //determine initial value for rho
@@ -91,7 +89,6 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
   SumLocusAncestry = new int[options->getPopulations()*2];
   
-  
   if( options->isRandomMatingModel() ){//random mating model
     ThetaProposal = new double[ Populations * 2 ];
     Theta = new double[ Populations * 2 ];
@@ -124,13 +121,13 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   
   // vector of possible haplotype pairs - expect 2 integers per locus 
   // or 1 integer (haploid)
-  PossibleHapPairs = new vector<hapPair >[numCompositeLoci];
+  PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
   
   X_posn = 9999;
   size_t AncestrySize = 0;
   // set size of locus ancestry array
   //gametes holds the number of gametes for each chromosome, either 1 or 2
-  //X_posn is the number of the X chromosome. Note that this is not necessarily 22, even in humans
+  //X_posn is the position of the X chromosome in the sequence of chromosomes in the input data
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     if( !(chrm[j]->isXChromosome())){// if not X chromosome, set number of elements to 2, num loci
       AncestrySize = 2 * chrm[j]->GetSize() ;
@@ -160,13 +157,21 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     sampledHapPairs.push_back(h);
   }
 
-  //initialise genotype probs array
+  //initialise genotype probs array and array of indicators for genotypes missing at locus
   GenotypeProbs = new double*[numChromosomes];
-  for(unsigned j = 0; j < numChromosomes; ++j){
+  GenotypesMissing = new bool*[numChromosomes];
+  for(unsigned j = 0; j < numChromosomes; ++j) {
     GenotypeProbs[j] = new double[chrm[j]->GetSize()*Populations*Populations];
+    GenotypesMissing[j] = new bool[ chrm[j]->GetSize() ];
     SetGenotypeProbs(j, chrm[j], false);
+    int nlocus = chrm[j]->GetLocus(0);  
+    for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ) {
+      if( !(IsMissing(nlocus)) ) GenotypesMissing[j][jj] = false;
+      else GenotypesMissing[j][jj] = true;
+      nlocus++;
+    }
   }
-  
+
   // ** set up StepSizeTuner object for random walk updates of admixture **
   NumberOfUpdates = 0;
   w = 1;
@@ -190,14 +195,13 @@ void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator
   for(unsigned int jj = 0; jj < C->GetSize(); jj++ ){
     if( !(IsMissing(locus)) ){
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], chibindicator);
-    }
-    else{
+    } else {
       for( int k = 0; k < Populations*Populations; k++ ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
     }
     locus++;
   }
 }
-
+ 
 void Individual::setGenotypesToMissing(){
   for(unsigned i = 0; i < genotypes.size(); ++i)genotypes[i].missing=true;
 }
@@ -206,6 +210,7 @@ Individual::~Individual()
 {
   delete[] PossibleHapPairs;
   delete[] GenotypeProbs;//TODO: delete properly
+  delete[] GenotypesMissing;
   delete[] LocusAncestry;
   delete[] SumLocusAncestry;
   delete[] SumLocusAncestry_X;  
@@ -363,14 +368,7 @@ const int *Individual::getSumLocusAncestry()const{
 
 //********** Missing Genotype Indicator *********************
 //Indicates whether genotype is missing at all simple loci within a composite locus
-bool Individual::IsMissing(unsigned int locus)const
-{
- //  unsigned int count = 0;
-//   int NumberOfLoci = (*Loci)(locus)->GetNumberOfLoci();
-//   for(int i = 0; i < NumberOfLoci; i++){
-//     count += genotypes[locus].alleles[i][0];
-//   }
-//   return (count == 0);
+bool Individual::IsMissing(unsigned int locus)const {
   return genotypes[locus].missing;
 }
 
@@ -882,16 +880,16 @@ void Individual::UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, c
 				       const vector<double> rho, const vector<double> rhoX){
 
   if( j != X_posn ){// NOT an X chromosome
-    chrm->UpdateHMMForwardProbs(theta, GenotypeProbs[j], options, rho, true);
+    chrm->UpdateHMMForwardProbs(theta, GenotypeProbs[j], GenotypesMissing[j], options, rho, true);
   }
   else if( options->isXOnlyAnalysis() ){//X only data
-    chrm->UpdateHMMForwardProbs(theta, GenotypeProbs[j], options, rho, false);
+    chrm->UpdateHMMForwardProbs(theta, GenotypeProbs[j], GenotypesMissing[j], options, rho, false);
   }
   else if( sex == male ){// X chromosome in male individual
-    chrm->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], options, rhoX, false);
+    chrm->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, false);
   }
   else{// X chromosome in female individual or individual whose sex is unknown
-    chrm->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], options, rhoX, true);
+    chrm->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, true);
   }
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }

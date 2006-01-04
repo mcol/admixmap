@@ -78,7 +78,6 @@ int main( int argc , char** argv ){
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
   AdmixOptions options(xargc, xargv);
-  
   if(options.getDisplayLevel()>0)
     PrintCopyrightNotice();
   
@@ -130,6 +129,7 @@ int main( int argc , char** argv ){
     R[r].SetExpectedY(IC);
   
   // should be possible to delete the InputData object at this point - 
+  // remaining calls are to data.GetPopLabels, data.GetOutcomeLabels, data.GetLocusData
 
   //  ******** single individual, one population, fixed allele frequencies  ***************************
   // nothing to do except calculate likelihood
@@ -158,17 +158,15 @@ int main( int argc , char** argv ){
       HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
     
     InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
-    
-    
+        
     string s = options.getResultsDir()+"/loglikelihoodfile.txt";
     ofstream loglikelihoodfile(s.c_str());
     
     // ******************* initialise stuff for annealing ************************************************
-    // should have command-line options for next parameter
     double IntervalRatio = 1.03; // size of increments of coolness increases geometrically
     int NumAnnealedRuns = options.getNumAnnealedRuns(); // number of annealed runs excluding last run at coolness of 1
     int samples = 1; // default for annealing runs - overridden for final unannealed run or if AnnealIndicator = true 
-    int burnin = 1;
+    int burnin = 1; // for annealing runs we only want burnin
  
     double SumEnergy = 0.0, SumEnergySq = 0.0, LogEvidence = 0.0; 
     double MeanEnergy = 0.0, VarEnergy = 0.0;
@@ -179,7 +177,7 @@ int main( int argc , char** argv ){
      
     // set annealing schedule
     double *IntervalWidths;
-    double *Coolnesses;
+    double *Coolnesses; //  
     IntervalWidths = new double[NumAnnealedRuns + 1];
     Coolnesses = new double[NumAnnealedRuns + 1];
     IntervalWidths[0] = 0.0;
@@ -215,10 +213,10 @@ int main( int argc , char** argv ){
     if(options.getIndAdmixHierIndicator()  ){
       if(options.getDisplayLevel()>2)Log.setDisplayMode(On);
       else Log.setDisplayMode(Quiet);
-      Log << "InitialParameterValues:\n"
-	  <<"PopulationAdmixtureDirichlet, SumIntensities, AlleleFreqDispersion, RegressionParams\n";
-      OutputParameters(-1, IC, &L, &A, R, &options, Log);
-      Log << "\n";
+      //Log << "InitialParameterValues:\n"
+      //  <<"PopulationAdmixtureDirichlet, SumIntensities, AlleleFreqDispersion, RegressionParams\n";
+      //OutputParameters(-1, IC, &L, &A, R, &options, Log);
+      //Log << "\n";
     }
    
     // ****************************** BEGIN ANNEALING LOOP ***************************************
@@ -236,14 +234,14 @@ int main( int argc , char** argv ){
       Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
       // shouldn't do it this way: instead should pass current coolness to individuals so that ProbGenotypes is flattened
       if(NumAnnealedRuns > 0) {
-	cout <<"\rSampling at coolness of " << coolness << "         ";
-	cout << flush;
+	cout <<"\rSampling at coolness of " << coolness << "         " << flush;
       }
 
       // each call to this function should reset the stochastic approximation series in StepSizeTuner objects
       doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
 		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data);
-      
+
+      cout << "\rIterations completed           \n" << flush;
       //calculate mean and variance of energy at this coolness
       MeanEnergy = SumEnergy / ((double)options.getTotalSamples() - options.getBurnIn());
       VarEnergy  = SumEnergySq / ((double)options.getTotalSamples() - options.getBurnIn()) - MeanEnergy * MeanEnergy;
@@ -257,26 +255,22 @@ int main( int argc , char** argv ){
     } // *************************** END ANNEALING LOOP ******************************************************
     delete[] IntervalWidths;
     delete[] Coolnesses;
-    
+
     // *************************** OUTPUT AT END ***********************************************************
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
     else Log.setDisplayMode(On);
-    if( options.getMLIndicator()){
+    if( options.getMLIndicator()) {
       IC->OutputChibEstimates(Log, options.getPopulations());
-      if(IC->getSize()==1)
-	//MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
-	IC->OutputChibResults(Log);
-      else{
-	;
-      }
+      //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
+      if(IC->getSize()==1) IC->OutputChibResults(Log);
     }
+
     double Information = -LogEvidence - MeanEnergy;
     double MeanDeviance = 2.0 * MeanEnergy; 
     double VarDeviance = 4.0 * VarEnergy;
     Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
       << "VarDeviance(V)\t" << VarDeviance << "\n"
       << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
-
     double D_hat = IC->getDevianceAtPosteriorMean(&options, chrm, R, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
     double pD = MeanDeviance - D_hat;
     double DIC = MeanDeviance + pD;
@@ -286,7 +280,7 @@ int main( int argc , char** argv ){
 
     if(options.getAnnealIndicator()){
       Log << "Log evidence (marginal likelihood) by thermodynamic integration: " <<  LogEvidence << "\n"; 
-      Log << "Information (nats): " << Information << "\n";
+      Log << "Information (negative entropy, measured in nats): " << Information << "\n";
     }
     
     //Residuals
@@ -316,7 +310,7 @@ int main( int argc , char** argv ){
     if(annealstream.is_open())annealstream.close();
     if(avgstream.is_open())avgstream.close();
   }//end else
-  
+  cout << "Outputs to file completed\n" << flush;
   // *************************** CLEAN UP ******************************************************  
   for(unsigned i = 0; i < Loci.GetNumberOfChromosomes(); i++){
     delete chrm[i];
@@ -440,18 +434,18 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
       // Header line of ergodicaveragefile
       if( options->getIndAdmixHierIndicator() ){
 	for( int i = 0; i < options->getPopulations(); i++ ){
-	  *avgstream << "\""<<PopulationLabels[i] << "\"\t";
+	  *avgstream << PopulationLabels[i] << "\t";
 	}
 	if( options->isGlobalRho() )
-	  *avgstream << " \"sumIntensities\"\t";
+	  *avgstream << "sumIntensities\t";
 	else
-	  *avgstream << "\"sumIntensities.mean\"\t";
+	  *avgstream << "sumIntensities.mean\t";
 	
 	
 	// Regression parameters
 	if( options->getNumberOfOutcomes() > 0 ){
 	  for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
-	    *avgstream << "       \"intercept\"\t";
+	    *avgstream << "intercept\t";
 	    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
 	      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
 		*avgstream << individuals->getCovariateLabels(i) << "\t";
@@ -459,25 +453,25 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	    }
 	    if( !options->getTestForAdmixtureAssociation() ){
 	      for( int k = 1; k < options->getPopulations(); k++ ){
-		*avgstream << "\""<<PopulationLabels[k] << "\"\t";
+		*avgstream << PopulationLabels[k] << "\t";
 	      }
 	    }
 	    if( individuals->getOutcomeType(r)==0 )//linear regression
-	      *avgstream << "       \"precision\"\t";
+	      *avgstream << "precision\t";
 	  }
 	}
 		
 	// dispersion parameters
 	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
 	  for( int k = 0; k < options->getPopulations(); k++ ){
-	    *avgstream << " \"eta" << k << "\"\t";
+	    *avgstream << "eta" << k << "t";
 	  }
 	}
       }
-      *avgstream << "\"MeanDeviance\"\t\"VarDeviance\"\t";
-      if(options->getMLIndicator()){//marginal likelihood calculation
-	*avgstream<<"\"LogPrior\"\t \"LogPosterior\"\t \"LogPosteriorAdmixture\"\t \"LogPosteriorSumIntensities\"\t"
-		  <<"\"LogPosteriorAlleleFreqs\"\t \"LogMarginalLikelihood\"";
+      *avgstream << "MeanDeviance\tVarDeviance\t";
+      if(options->getMLIndicator()){// chib calculation
+	*avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
+		  << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
       }
       *avgstream << "\n";
     }
@@ -490,22 +484,22 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, double coolness, bool anneal){
   A->ResetAlleleCounts();
-  
   // ** update global sumintensities
   if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
      options->getIndAdmixHierIndicator() && (Loci->GetLengthOfGenome()> 0.0))
     L->UpdateRhoWithRW(IC, Chrm);
-  
+
   // ** Update individual-level parameters  
   IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), L->getalpha(), L->getrho(), L->getrhoalpha(), L->getrhobeta(),
 	     Log, coolness, anneal);
-  
+
   // ** update allele frequencies
   if(A->IsRandom()){
     A->Update((iteration > options->getBurnIn() && !anneal), coolness);
     IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes());
-    IC->HMMIsBad(true); // update of allele freqs requires both HMM forward probs and likelihood to be recalculated before they are used again
+    IC->HMMIsBad(true); // update of allele freqs requires both HMM forward probs and likelihood to be recalculated before use again
   }
+
   //update population admixture Dirichlet parameters
   L->Update(iteration, IC, Log, anneal);
   
@@ -516,7 +510,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      LogWriter& Log){
-  // fix this so that params can be output to console  
+  // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
   if(options->getIndAdmixHierIndicator()  ){
     //output population-level parameters only when there is a hierarchical model on indadmixture
@@ -541,19 +535,19 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
     if(options->getOutputAlleleFreq())A->OutputAlleleFreqs();
   }
-  cout << endl;  
+  // cout << endl;
 }
 
-void WriteIterationNumber(const int iteration, const int width, int displayLevel){
-  if( displayLevel > 2 ) {
+void WriteIterationNumber(const int iteration, const int width, int displayLevel) {
+  if( displayLevel > 2 ) { // display parameters on same line
     cout << setiosflags( ios::fixed );
     cout.width(width );
-    cout << "\r"<< iteration << " ";
+    cout << "\r"<< iteration << " ";  
   }
-  else if( displayLevel > 1 ){
-    if(iteration==0)cout<<"\nIterations so far:\n";
-    cout << "\r"<< iteration<<flush;//displays iteration counter on screen
+  else if( displayLevel > 1 ) { // display iteration counter only
+    cout << "\rIterations so far: " << iteration;
   }
+  cout.flush(); 
 }
 
 void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs & A, 
@@ -562,22 +556,16 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
 		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data) {
-
-  double Energy = IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); 
-
+  double Energy = 0.0; // IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); 
   for( int iteration = 0; iteration <= samples; iteration++ ) {
-    if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
-      WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
-    }
-  
-    //UpdateParameters requires the annealed log-likelihood as argument, not the energy
-    // LogL temporarily set to zero
-    // shouldn't have to pass logl as argument to this function 
+     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
+       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
+     }
     UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, coolness, AnnealedRun);
-    
     if(iteration > burnin) {
-      //compute loglikelihood at coolness of 1.0
-      Energy = IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); // set HMMIsBad if AnnealedRun
+      //compute energy as minus loglikelihood at coolness of 1.0
+      Energy = IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); // getEnergy sets HMMIsBad if AnnealedRun
+      // function to calculate loglikelihood should have option not to store log-likelihood 
       // write to file if not AnnealedRun
       if(!AnnealedRun) loglikelihoodfile << iteration<< "\t" << Energy <<endl;
       SumEnergy += Energy;
@@ -611,10 +599,9 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	//test for Hardy-Weinberg eq
 	if( options.getHWTestIndicator() )
 	  HWtest.Update(IC, chrm, &Loci);
-	
+
 	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
 	if (!(iteration % (options.getSampleEvery() * 10))){    
-	  
 	  //Ergodic averages
 	  Log.setDisplayMode(On);
 	  if ( strlen( options.getErgodicAverageFilename() ) ){
@@ -640,6 +627,6 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream) {
   double EAvDeviance, EVarDeviance;
   EAvDeviance = 2.0*SumEnergy / (double) samples;//ergodic average of deviance
-  EVarDeviance = 4.0 * (SumEnergySq / (double)samples - EAvDeviance*EAvDeviance);//ergodic variance of deviance 
+  EVarDeviance = 4.0 * SumEnergySq / (double)samples - EAvDeviance*EAvDeviance;//ergodic variance of deviance 
   *avgstream << EAvDeviance << " "<< EVarDeviance <<" ";
 }

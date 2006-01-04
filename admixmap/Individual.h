@@ -133,6 +133,7 @@ private:
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
   double **GenotypeProbs;
+  bool **GenotypesMissing;
   std::vector<hapPair> sampledHapPairs;
 
   static unsigned int numChromosomes;
@@ -223,7 +224,6 @@ private:
   void UpdateScoreTests(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, Chromosome* chrm, 
 			double DInvLink, double dispersion, const double* const* ExpectedY);
 };
-
 
 #endif /* INDIVIDUAL_H */
 

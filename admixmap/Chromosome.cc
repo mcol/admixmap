@@ -96,9 +96,8 @@ void Chromosome::SetLociCorr(const double rho){
     }
 }
 
-void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, 
-				       const AdmixOptions* const options, 
-				       const std::vector< double > _rho, bool diploid){
+void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
+				       const AdmixOptions* const options, const std::vector< double > _rho, bool diploid) {
   //set annealindicator to true once per individual per iteration to accumulate unannealed loglikelihood stored in top level
 
   //_rho contains Individual sumintensities parameters, ignored if globalrho model
@@ -125,7 +124,7 @@ void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* co
     SampleStates.SetStateArrivalProbs(f, Admixture, options->isRandomMatingModel());
 
     //Update Forward/Backward Probs in HMM
-    SampleStates.UpdateForwardProbsDiploid(f, GenotypeProbs, coolness);
+    SampleStates.UpdateForwardProbsDiploid(f, GenotypeProbs, GenotypesMissing, coolness);
 
   }
   else{//haploid

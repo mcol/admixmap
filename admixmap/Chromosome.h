@@ -47,8 +47,8 @@ public:
 
   static void setCoolness(double);
 
-  void UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, const AdmixOptions* const options,  
-			     const std::vector< double > _rho, bool diploid);
+  void UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
+			     const AdmixOptions* const options, const std::vector< double > _rho, bool diploid);
   void UpdateHMMBackwardProbs(const double* const hapAdmixture, const double* const GenotypeProbs);  //call only after a call to UpdateHMMForwardProbs
   //this is ok as whenever we need backward probs we also need forward probs but not vice versa
 

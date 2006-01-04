@@ -74,6 +74,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
 
 // ************** DESTRUCTOR **************
 IndividualCollection::~IndividualCollection() {
+  cout << "Deleting individual objects\n" << flush;
   Individual::DeleteStaticMembers();
   for(unsigned int i = 0; i < size; i++){
     delete _child[i];

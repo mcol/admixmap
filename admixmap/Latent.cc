@@ -224,12 +224,12 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
      for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
    }
    
-   if( iteration == options->getBurnIn() && options->getNumberOfOutcomes() > 0 ){
+   if( iteration == options->getBurnIn() && options->getNumberOfOutcomes() > 0 
+       && options->getPopulations() > 1) {
      Log.setDisplayMode(Off);
      Log << "Individual admixture centred in regression model around: ";
      for(int i = 0; i < options->getPopulations(); ++i)Log << poptheta[i] << "\t";
      Log << "\n";
-     
      fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
    }
    
@@ -325,18 +325,13 @@ double Latent::getRhoSamplerStepsize()const{
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 {
   // Header line of paramfile
-
   //Pop. Admixture
-  for( int i = 0; i < options->getPopulations(); i++ ){
+  for( int i = 0; i < options->getPopulations(); i++ ) {
     outputstream << "\""<<PopulationLabels[i] << "\" ";
   }
-  
   //SumIntensities
-  if( options->isGlobalRho() )
-    outputstream << "\"sumIntensities\" ";
-  else
-    outputstream << "\"sumIntensities.mean\" ";
-  
+  if( options->isGlobalRho() ) outputstream << "sumIntensities\t";
+  else outputstream << "sumIntensities.mean\t";
   outputstream << endl;
 }
 
@@ -344,22 +339,22 @@ void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 {
   for( int j = 0; j < options->getPopulations(); j++ ){
     avgstream->width(9);
-    *avgstream << setprecision(6) << SumAlpha[j] / samples << " ";
+    *avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
   }
   avgstream->width(9);
-  *avgstream << setprecision(6) << exp(SumLogRho / samples) << " ";
+  *avgstream << setprecision(6) << exp(SumLogRho / samples) << "\t";
 }
 void Latent::OutputParams(ostream* out){
   for( int j = 0; j < options->getPopulations(); j++ ){
     out->width(9);
-    (*out) << setprecision(6) << alpha[0][ j ] << " ";
+    (*out) << setprecision(6) << alpha[0][ j ] << "\t";
   }
   
   out->width(9);
   if( !options->isGlobalRho() )
-    (*out) << setprecision(6) << rhoalpha / rhobeta  << " ";
+    (*out) << setprecision(6) << rhoalpha / rhobeta  << "\t";
   else
-    (*out) << setprecision(6) << rho << " ";
+    (*out) << setprecision(6) << rho << "\t";
 }
 
 void Latent::OutputParams(int iteration, LogWriter &Log){
