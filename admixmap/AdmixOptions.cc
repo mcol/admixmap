@@ -124,6 +124,8 @@ void AdmixOptions::Initialise(){
   ResidualFilename = "Residuals.txt";
 
   // option names and default option values are stored as strings in a map container 
+  // these are default values
+  // other specified options will be appended to this array 
   OptionValues["burnin"] = "100";
   OptionValues["samples"] = "1100";
   OptionValues["every"] = "20";
@@ -139,6 +141,7 @@ void AdmixOptions::Initialise(){
   OptionValues["indadmixhiermodel"] = "1";
   OptionValues["hapmixmodel"] = "0";
   OptionValues["chib"] = "0";
+  OptionValues["thermo"] = "0";
   OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
   OptionValues["popadmixpriormean"] = "1.0";

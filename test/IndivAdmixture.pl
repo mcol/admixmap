@@ -5,12 +5,13 @@ use File::Path;
 my $executable = './admixmap';
 
 my $arg_hash = {
-    burnin   => 50, 
-    samples  => 450,
-    every    => 10,
+    burnin   => 10, 
+    samples  => 60,
+    every    => 1,
     locusfile                    => "IndData/loci.txt",
     genotypesfile                => "IndData/genotypes.txt",
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
+    fixedallelefreqs => 1,
     randommatingmodel            => 1,
     globalrho                    => 0,
     initalpha0                   => "1,1,1", # parameter vectors for Dirichlet prior on admixture 
@@ -24,12 +25,14 @@ my $arg_hash = {
     indadmixturefile             => "indadmixture.txt"
 };
 
+## no admixture model: one Afr, one Eur parent
 $arg_hash->{initalpha0} = "0,1,0";
 $arg_hash->{initalpha1} = "1,0,0";
 $arg_hash->{resultsdir} = "IndResults010-100";
-&doAnalysis($executable, $arg_hash);
+#&doAnalysis($executable, $arg_hash);
 
-$arg_hash->{initalpha0} = "0,1,0";
+## simplest admixture model: one Afr/Eur, one Afr parent 
+$arg_hash->{initalpha0} = "1,0,0"; 
 $arg_hash->{initalpha1} = "1,1,0";
 $arg_hash->{resultsdir} = "IndResults010-110";
 &doAnalysis($executable, $arg_hash);

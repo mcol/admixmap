@@ -1079,7 +1079,7 @@ if(!is.null(user.options$hwtestfile)){
   plotHWScoreTest(user.options$hwtestfile, K)
 }
 
-if(!is.null(user.options$anneal)){
+if(user.options$thermo == 1){
   anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
   postscript(paste(resultsdir, "annealplot.ps", sep="/"))
   ##plot raw points

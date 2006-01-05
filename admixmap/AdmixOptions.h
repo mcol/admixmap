@@ -250,7 +250,7 @@ private:
   void setInitAlpha(LogWriter &Log);
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
 
-  // UNIMPLIMENTED: to avoid use
+  // UNIMPLEMENTED: to avoid use
   AdmixOptions(const AdmixOptions&);
   AdmixOptions& operator=(const AdmixOptions&);
 };
