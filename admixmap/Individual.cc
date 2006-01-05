@@ -188,20 +188,29 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator=false){
   //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
-
-  //this function should take AnnealIndicator and coolness as arguments
-  // should implement annealing of likelihood here, not in HMM class  
   int locus = C->GetLocus(0);
   for(unsigned int jj = 0; jj < C->GetSize(); jj++ ){
     if( !(IsMissing(locus)) ){
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], chibindicator);
     } else {
-      for( int k = 0; k < Populations*Populations; k++ ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
+      for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
     }
     locus++;
   }
 }
- 
+
+void Individual::AnnealGenotypeProbs(int j, const Chromosome* C, const double coolness) {
+  // called after energy has been evaluated, before updating model parameters
+  int locus = C->GetLocus(0);
+  for(unsigned int jj = 0; jj < C->GetSize(); jj++ ){ // loop over composite loci
+    if( !(IsMissing(locus)) ) { 
+      for(int k = 0; k < Populations*Populations; ++k) // loop over ancestry states
+	GenotypeProbs[j][jj*Populations*Populations+k] = pow(GenotypeProbs[j][jj*Populations*Populations+k], coolness); 
+    }
+    locus++;
+  }
+}
+
 void Individual::setGenotypesToMissing(){
   for(unsigned i = 0; i < genotypes.size(); ++i)genotypes[i].missing=true;
 }
@@ -275,9 +284,8 @@ void Individual::DeleteStaticMembers(){
   free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
   free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
 }
-//********** Initialisation of Admixture porportions *********
+//********** set admixture proportions *********
 
-//should call this initialise not set
 void Individual::setAdmixtureProps(const double* const a, size_t size)
 {
   for(unsigned i = 0; i < size; ++i)  Theta[i] = a[i];
@@ -300,16 +308,7 @@ const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)
   return PossibleHapPairs[locus];
 }
 
-/**
- * Called only by UpdateScoresForSNPsWithinHaplotype in ScoreTests
- * Given an unordered genotype, returns number of copies of allele
- * a a simple locus in a composite locus.
- * Used to test individual loci in haplotype for association.
- * 
- * n.b. this function is only useful in composite loci composed of diallelic simple loci
- * should be generalized to deal with multi-allelic loci
- */
-
+// returns an indicator for non-missing genotype at simple locus, and updates allele count array  
 bool Individual::GetAlleleCountsAtLocus(int complocus, int locus, int allele, int* count)const
 {
   int notmissing = true;
@@ -373,7 +372,7 @@ bool Individual::IsMissing(unsigned int locus)const {
 }
 
 //****************** Log-Likelihoods **********************
-// gets log-likelihood at parameter values specified as arguments
+// gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
 double Individual::getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, const double* const theta, 
 				    const double* const thetaX, const vector<double > rho, const vector<double> rho_X, 
 				    bool updateHMM) {
@@ -381,25 +380,34 @@ double Individual::getLogLikelihood(const AdmixOptions* const options, Chromosom
   if(Populations == 1) LogLikelihood = getLogLikelihoodOnePop();
   else { 
     for( unsigned int j = 0; j < numChromosomes; j++ ){
-      if(updateHMM){// update forward recursions if current forward probs do not correspond to current parameter values
+      if(updateHMM){// force update of forward probs 
 	UpdateHMMForwardProbs(j, chrm[j], options, theta, thetaX, rho, rho_X);
       }
       LogLikelihood += chrm[j]->getLogLikelihood();
     }
   }
-  return LogLikelihood;
+  return LogLikelihood; // why call this function unless you want an HMM update - otherwise use stored loglikelihood.value  
 }
 
-// gets log-likelihood at current parameter values and also stores it in the logLikelihood struct
-double Individual::getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm){
-  //use current parameter values
-  if(!logLikelihood.ready){
-    logLikelihood.value = getLogLikelihood(options, chrm, Theta, ThetaX, _rho, _rho_X, !logLikelihood.HMMisOK);
-    logLikelihood.ready = true;
-    logLikelihood.HMMisOK = true; //because forward probs now correspond to current parameter values 
-  }                               //and call to UpdateHMMForwardProbs has set this to false
-  return logLikelihood.value;
+// gets log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
+// store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
+double Individual::getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const bool forceUpdate, const bool store) {
+  if (!logLikelihood.ready || forceUpdate) {
+    logLikelihood.tempvalue = getLogLikelihood(options, chrm, Theta, ThetaX, _rho, _rho_X, true);
+    if(store) {  
+      logLikelihood.value = logLikelihood.tempvalue; 
+      logLikelihood.ready = false; //true;
+      logLikelihood.HMMisOK = false; //true; //because forward probs now correspond to current parameter values 
+    }                               //and call to UpdateHMMForwardProbs has set this to false
+    return logLikelihood.tempvalue;   
+  } else return logLikelihood.value; // nothing was changed
 }
+
+void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Metropolis proposal is accepted
+  logLikelihood.value = logLikelihood.tempvalue; 
+  logLikelihood.ready = true;
+  if(setHMMAsOK) logLikelihood.HMMisOK = true; 
+}                               
 
 double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
@@ -515,7 +523,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   }
   bool ancestrytest = (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    if(Populations>1){
+    if(Populations>1){ // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
       //Update Forward/Backward probs in HMM
       if( !logLikelihood.HMMisOK ){
 	UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
@@ -549,7 +557,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     
   }//end chromosome loop
   
-  // sample sum of intensities parameter rho
+  // sample sum of intensities parameter rho if defined at individual level
   if(Populations>1 &&  !options->isGlobalRho() ){
     SampleRho( options, Loci->isX_data(), rhoalpha, rhobeta, SumNumArrivals, SumNumArrivals_X);
   }
@@ -677,13 +685,15 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
     LogPriorRatio += getDirichletLogDensity_Softmax(alpha[0], ThetaProposal+g*Populations) - 
       getDirichletLogDensity_Softmax(alpha[0], Theta+g*Populations);
   }
-  //get log likelihood at current parameter values
-  LogLikelihoodRatio -= getLogLikelihood(options, C);
+  //get log likelihood at current parameter values - do not force update, store result if update is required
+  LogLikelihoodRatio -= getLogLikelihood(options, C, false, true); 
   
-  //get log likelihood at proposal theta and current rho
-  LogLikelihoodRatio += getLogLikelihood(options, C, ThetaProposal, ThetaXProposal,_rho, _rho_X, true);
+  //get log likelihood at proposal theta and current rho - force update 
+  // store result in loglikelihood.tempvalue, and accumulate loglikelihood ratio   
+  logLikelihood.tempvalue = getLogLikelihood(options, C, ThetaProposal, ThetaXProposal,_rho, _rho_X, true);
+  LogLikelihoodRatio += logLikelihood.tempvalue;
 
-  return LogLikelihoodRatio + LogPriorRatio;// = log Posterior ratio
+  return LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
 }
 
 // Samples individual admixture proportions conditional on sampled values of ancestry at loci where 
@@ -694,8 +704,6 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
 // multinomial likelihood given by sampled values of ancestry at loci where jump indicator xi is 1
 // proposes new values for both gametes if random mating model 
 //
-// should have an alternative function to sample population mixture component membership and individual admixture proportions
-// conditional on genotype, not sampled locus ancestry
 void Individual::ProposeTheta(const AdmixOptions* const options, const vector<double> sigma, const vector<vector<double> > &alpha){
   size_t K = Populations;
   double dirparams[K];//used to hold dirichlet parameters of theta posterior
@@ -822,54 +830,42 @@ void Individual::UpdateAdmixtureForRegression( int Populations, int NumCovariate
 void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populations, bool RandomMatingModel, bool RW )
 {
   bool test = true;
+  bool accept = false;
   double AccProb = exp(logpratio);
-  // loop over populations: if any element of Dirichlet parameter vector is too small, do not update admixture proportions
+  // loop over populations: if any element of proposed Dirichlet parameter vector is too small, reject update without test step
   for( int k = 0; k < Populations; k++ ){
-    if( Theta[ k ] > 0.0 && ThetaProposal[ k ] < 0.0001 ){
+    if( Theta[ k ] > 0.0 && ThetaProposal[ k ] < 0.0001 ) {
       test = false;
-      AccProb = 0.0;
     }
-    else if( RandomMatingModel && Theta[k + Populations] > 0.0 && ThetaProposal[ k + Populations ] < 0.0001 ){
+    else if( RandomMatingModel && Theta[k + Populations] > 0.0 && ThetaProposal[ k + Populations ] < 0.0001 ) {
       test = false;
-      AccProb = 0.0;
     }
   }
 
+  // these should be initialized in constructor 
   size_t size_admix;
   if(RandomMatingModel) size_admix = Populations *2;
   else size_admix = Populations;
-  // generic Metropolis rejection step
-  if( logpratio < 0 ){
-     if( test && log(myrand()) < logpratio ){
-       setAdmixtureProps(ThetaProposal, size_admix);
-        if( xdata )
-	  setAdmixturePropsX(ThetaXProposal, size_admix);
-	if(RW)logLikelihood.HMMisOK = true;
-	//with a random-walk update, the current values in HMM now correspond to the proposal,
-	//which have now become the current values
-	//next time the loglikelihood at current parameter values is required, it can be pulled directly from HMM
-	else {
-	  //with a conjugate update the values in HMM currently correspond to old parameter values so the HMMs will need
-	  //to be updated again to get loglikelihood
-	  logLikelihood.HMMisOK = false;
-	}
-	  logLikelihood.ready = false;
-     }
-  }
-  else{//logpratio >= 0 => always accept
-    if(test){
-    AccProb = 1.0;
-    setAdmixtureProps(ThetaProposal, size_admix);
-     if( xdata )
-       setAdmixturePropsX(ThetaXProposal, size_admix);
-    }
-  }
 
-  if(RW){
-    //update sampler object every w updates
-    if( !( NumberOfUpdates % w ) ){
-      step = ThetaTuner.UpdateStepSize( AccProb );
-    }
+  if(test) { // generic Metropolis step
+    if( logpratio < 0 ) { 
+      if( log(myrand()) < logpratio ) accept=true;
+    } else accept = true;  
+  }
+  
+  if(accept) { // set proposed values as new values    
+      setAdmixtureProps(ThetaProposal, size_admix);
+      if( xdata ) setAdmixturePropsX(ThetaXProposal, size_admix);
+      if(RW) { //if random-walk update, store the temp log-likelihood and set loglikelihood.HMMisOK to true
+ 	storeLogLikelihood(true); 
+      } else { // conjugate update of parameters invalidates both HMM forward probs and stored loglikelihood
+	logLikelihood.HMMisOK = false;
+	logLikelihood.ready = false;
+      }
+  } // if RW proposal is rejected, loglikelihood.HMMisOK is already set to false, and stored log-likelihood is still valid 
+  
+  if(RW) { //update sampler object every w updates
+    if( !( NumberOfUpdates % w ) ) step = ThetaTuner.UpdateStepSize( AccProb );
   }
 }
 
@@ -1198,11 +1194,12 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
 
   // *** Every iteration ***
   
-  logLikelihood = getLogLikelihood(options, chrm);//gets loglikelihood at current parameter values
+  logLikelihood = getLogLikelihood(options, chrm, false, true); //get loglikelihood at current parameter values
+  // do not force update, store new value if updated 
   
   // *** during BurnIn ***
   if( iteration <= options->getBurnIn() ){
-    if( Populations > 1 ){  
+    if( Populations > 1 ) {  
       if( logLikelihood > *MaxLogLikelihood ){
 	Log.setDisplayMode(Off);
 	Log << "Admixture (gamete 1):";
@@ -1249,7 +1246,7 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
   
   // *** After BurnIn ***
   if( iteration > options->getBurnIn() ){
-    //logprior at estimates
+    //accumulates vector of sampled values of log posterior density at estimates
     MargLikelihood->addLogPrior(LogPrior(thetahat, thetahatX, rhohat, rhohatX, options, A, rhoalpha, rhobeta, alpha) );
     double LogPosterior = 0.0;
     double LP = 0.0;
@@ -1280,9 +1277,7 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
 
 double Individual::LogPrior(const double* const theta, const double* const thetaX, const vector<double> rho, const vector<double> rhoX, 
 			    const AdmixOptions* const options, const AlleleFreqs* const A, double rhoalpha, double rhobeta, 
-			    const vector<vector<double> > &alpha)const
-//Computes LogPrior at supplied parameter values
-{
+			    const vector<vector<double> > &alpha) const {//Computes LogPrior at supplied parameter values
   int K = Populations;
   size_t theta_size = Populations;
   if(options->isRandomMatingModel()) theta_size *=2;
@@ -1376,11 +1371,12 @@ double Individual::LogPrior(const double* const theta, const double* const theta
    return LogPrior;
 }
 
-//called on first individual after burnin
+//called on test individual after burnin
 double Individual::CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
 					      const vector<vector<double> > &alpha) const{
+  // calculates log full conditional at theta, conditional on realized locus ancestry states and jump indicators
   double LogPosterior = 0.0;
-
+  
   vector<double> alphaparams1(Populations), alphaparams0(Populations);
   if( options->isXOnlyAnalysis() ){
     transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry_X, alphaparams0.begin(), std::plus<double>());
@@ -1438,6 +1434,7 @@ double Individual::CalculateLogPosteriorTheta(const AdmixOptions* const options,
 double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options,  
 					    const vector<double> rho, const vector<double> rhoX,
 					    double rhoalpha, double rhobeta)const{
+  // calculates log full conditional density at sum-intensities rho, conditional on realized number of arrivals
   double LogPosterior = 0.0;
   double L = Loci->GetLengthOfGenome(), L_X = 0.0;
   if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
@@ -1608,7 +1605,5 @@ void Individual::OutputLikRatios(const char* const filename, int iterations, con
     }
   }
   outputstream << "), character(0)))" << endl;
-
   outputstream.close();
-
 }

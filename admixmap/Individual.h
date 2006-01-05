@@ -79,7 +79,9 @@ public:
   double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
 			  const double* const theta, const double* const thetaX,
 			  const vector<double > rho, const vector<double> rho_X, bool updateHMM);
-  double getLogLikelihood(const AdmixOptions* const , Chromosome**);
+  double getLogLikelihood(const AdmixOptions* const , Chromosome**, const bool forceUpdate, const bool store);
+  void storeLogLikelihood(const bool setHMMAsOK); // to call if a Metropolis proposal is accepted
+
   double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm);
 
   double getLogLikelihoodOnePop();
@@ -127,6 +129,7 @@ public:
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
   void SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator);
+  void AnnealGenotypeProbs(int j, const Chromosome* C, const double coolness);
 
 private:
   unsigned myNumber;//number of this individual, counting from 1
@@ -155,19 +158,20 @@ private:
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   unsigned int X_posn;  //number of X chromosome
 
-  struct{
-    double value;//loglikelihood at current parameter values, provided 'ready' is true
+  struct {
+    double value; //loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true
+    double tempvalue; // to store values temporarily: holds unnanealed value (-energy), or value at proposed update   
     bool ready;//true iff value is the loglikelihood at the current parameter values
     bool HMMisOK;//true iff values in HMM objects correspond to current parameter values for this individual
-  }logLikelihood;
-
+  } logLikelihood;
+  
   std::vector<double> logPosterior[3];
-
+  
   //RWM sampler for individual admixture
   StepSizeTuner ThetaTuner;
   int w, NumberOfUpdates;
   double step, step0;
-
+  
   //score test objects, static so they can accumulate sums over individuals
   static double *AffectedsScore;
   static double *AffectedsVarScore;
@@ -180,10 +184,10 @@ private:
   static double *PrevB;//holds B for previous iteration while B accumulates for this iteration
   static double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
-
+  
   static double *LikRatio1;
   static double *LikRatio2;
-
+  
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator, bool RW );
@@ -193,36 +197,35 @@ private:
 					       const DataMatrix* const Covariates, const std::vector<const double*> beta, 
 					       const double* const* ExpectedY, const DataMatrix* const Outcome, 
 					       const double* const poptheta, const std::vector<double> lambda);
-
+  
   void UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, const AdmixOptions* const options, 
-			  const double* const theta, const double* const thetaX,
+			     const double* const theta, const double* const thetaX,
 			     const vector<double> rho, const vector<double> rhoX);
-
+  
   void SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta,  
 		 unsigned int SumN[], unsigned int SumN_X[]);
-
+  
   void ProposeTheta(const AdmixOptions* const options, const vector<double> sigma, const vector<vector<double> > &alpha);
   double ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, const vector<vector<double> > &alpha);
-
+  
   double LogPrior(const double* const theta, const double* const thetaX, const vector<double> rho, const vector<double> rhoX, 
 		  const AdmixOptions* const options, const AlleleFreqs* const A, double rhoalpha, double rhobeta, 
 		  const vector<vector<double> > &alpha)const;
   double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
-					      const vector<vector<double> > &alpha)const;
+				    const vector<vector<double> > &alpha)const;
   double CalculateLogPosteriorRho(const AdmixOptions* const options,  
 				  const vector<double> rho, const vector<double> rhoX,
 				  double rhoalpha, double rhobeta)const;
-
-
+  
   void UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0, bool RandomMatingModel, 
-						    const vector<vector<double> > AProbs);
+					  const vector<vector<double> > AProbs);
   void UpdateScoreForAncestry(int locus, double phi, double EY, double DInvLink, const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion);
-
+  
   void SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
 			     const double* const* ExpectedY, const vector<double> lambda);
-  void UpdateScoreTests(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, Chromosome* chrm, 
-			double DInvLink, double dispersion, const double* const* ExpectedY);
+  void UpdateScoreTests(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
+			Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY);
 };
 
 #endif /* INDIVIDUAL_H */

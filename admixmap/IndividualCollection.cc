@@ -54,13 +54,13 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
   sigma.resize(2);
   sigma[0] = sigma[1] = 1.0;
-  TestInd = 0;
+  TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer?) which is used as a bool 
 
   Individual::SetStaticMembers(&Loci, options);
-  unsigned i0 = 0;
-    // Fill separate individuals.
-  if(options->getAnnealIndicator()==2){
-
+  
+  unsigned i0 = 0; // used to offset numbering of other individuals (not the one under test)
+  // Fill separate individuals.
+  if(options->getTestOneIndivIndicator()) {
     TestInd = new Individual(1, options, Data, Loci, chrm); 
     i0 = 1;
     --size;
@@ -361,7 +361,6 @@ void IndividualCollection::UpdateSumResiduals(){
 }
 
 void IndividualCollection::HMMIsBad(bool b){
-  // should be renamed to make clear that this function sets test individual only 
   if(TestInd)TestInd->HMMIsBad(b);
   for(unsigned i = 0; i < size; ++i)
     _child[i]->HMMIsBad(b);
@@ -371,7 +370,10 @@ void IndividualCollection::HMMIsBad(bool b){
 void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
 				  const vector<vector<double> > &alpha, double globalrho,
-				  double rhoalpha, double rhobeta, LogWriter &Log, double coolness, bool anneal=false){
+				  double rhoalpha, double rhobeta, LogWriter &Log, bool anneal=false){
+  // coolness is not passed as argument to this function because annealing has already been implemented by 
+  // calling annealGenotypeProbs 
+  // but we need a similar function to anneal outcome data on each individual for regressions 
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
@@ -381,31 +383,28 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     lambda.push_back( R[i].getlambda());
     beta.push_back( R[i].getbeta());
   }
+  // clumsy to have two blocks of duplicated code - combine into one function
   int i0 = 0;
-  if(options->getTestOneIndivIndicator()){ // anneal likelihood for test individual only 
+  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
-    Chromosome::setCoolness(coolness);
     TestInd->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 			      lambda, NumCovariates, &Covariates, beta, poptheta, options,
 			      chrm, alpha, rhoalpha, rhobeta, sigma,  
 			      DerivativeInverseLinkFunction(0),
 			      R[0].getDispersion(), anneal );
-    if(options->getPopulations() > 1 && (iteration %2))//conjugate update of theta on even-numbered iterations
+    // if individual sum-intensities parameters, log-likelihood is now bad
+    if(options->getPopulations() > 1 && (iteration %2)) //conjugate update of theta on even-numbered iterations
       TestInd->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
 			   & Covariates, beta, poptheta, options, alpha, sigma,
 			   DerivativeInverseLinkFunction(0), 
 			   R[0].getDispersion(), false, anneal);
-    
-    _child[size-1]->HMMIsBad(false);// HMMs are shared between individuals so if there are two or more individuals
-    //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
-    //still be valid as the allelefreqs, global rho and that individual's have not changed.
-    Chromosome::setCoolness(1.0); 
-    TestInd->HMMIsBad(false);  //TODO:
+    if(size > 1) TestInd->HMMIsBad(true); // HMM is bad because update of next individual will overwrite HMM probs
+    // log-likelihood is bad if individual sum-intensities parameters have been updated, or if conjugate update of theta
   }
 
   for(unsigned int i = 0; i < size; i++ ){
     int prev = i-1;
-    if(i==0)prev = size-1;
+    if(i==0) prev = size-1;
     
     _child[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
@@ -417,10 +416,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 			     & Covariates, beta, poptheta, options, alpha, sigma,
 			     DerivativeInverseLinkFunction(i+i0), 
 			     R[0].getDispersion(), false, anneal);
-    
-    if(size > 1)_child[prev]->HMMIsBad(false);//The HMMs are shared between individuals so if there are two or more individuals
-    //an update of one will overwrite the HMM and Chromosome values for the other. However, the stored value of loglikelihood will
-    //still be valid until allelefreqs, global rho or individual admixture are updated.
+    if(size > 1)_child[prev]->HMMIsBad(true); // HMM is bad - see above
     
     if( options->getMLIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
       _child[i]->Chib(iteration, &SumLogLikelihood, &(MaxLogLikelihood[i]),
@@ -433,15 +429,24 @@ void IndividualCollection::setGenotypeProbs(Chromosome** C, unsigned nchr){
   if(TestInd)
     for(unsigned j = 0; j < nchr; ++j)
       TestInd->SetGenotypeProbs(j, C[j],false);
-  for(unsigned int i = 0; i < size; i++ ){
+  for(unsigned int i = 0; i < size; i++ ) {
     for(unsigned j = 0; j < nchr; ++j)
       _child[i]->SetGenotypeProbs(j, C[j],false);
   }
+}  
 
+void IndividualCollection::annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness){
+  if(TestInd) { // anneal test individual only
+    for(unsigned j = 0; j < nchr; ++j) TestInd->AnnealGenotypeProbs(j, C[j], coolness);
+  } else { // anneal all individuals
+    for(unsigned int i = 0; i < size; ++i) {
+      for(unsigned j = 0; j < nchr; ++j) _child[i]->AnnealGenotypeProbs(j, C[j], coolness);
+    }
+  }
 }
+
 // ************** ACCESSORS **************
-int IndividualCollection::getSize()const
-{
+int IndividualCollection::getSize()const {
   return size;
 }
 
@@ -575,16 +580,17 @@ void IndividualCollection::OutputChibEstimates(LogWriter &Log, int Populations)c
   }
   Log << rhohat[0] <<"\t" << rhohat[1] << "\n";
 }
+
 void IndividualCollection::OutputChibResults(LogWriter& Log)const{
   Log.setDisplayMode(On);
-  Log << "\nCalculation of Chib algorithm:"
+  Log << "\nCalculation of Chib algorithm using parameter values with max likelihood during burn-in:"
       << "\nDeviance\t" << -2.0*MargLikelihood.getLogLikelihood()
       << "\nLogLikelihood\t" << MargLikelihood.getLogLikelihood()
       << "\nLogPrior\t" << MargLikelihood.getLogPrior()
       << "\nLogPosterior\t" << MargLikelihood.getLogPosterior()
       << "\n\nLogMarginalLikelihoodFromChibAlgorithm\t" << MargLikelihood.getLogMarginalLikelihood()
       << "\n";
-}
+} 
 
 void IndividualCollection::OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations){
   std::ofstream ResidualStream(ResidualFilename, ios::out);
@@ -605,73 +611,38 @@ void IndividualCollection::OutputResiduals(const char* ResidualFilename, const V
   }
 }
 
-void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const string* const PopulationLabels)
-{
+void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const string* const PopulationLabels) {
   Log.setDisplayMode(On);
   Log << "Log-likelihood for unadmixed "  << (*PopulationLabels)[0] << ": "
       << _child[0]->getLogLikelihoodOnePop() << "\n";
-
 }
 
 double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
-					      const bool & annealed, const double & coolness) {
+					      const bool & annealed) {
   // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
   // returns the energy of the system (either all individuals or test individual
-  // called every iteration after burnin
-  // if not annealed, accumulates sums of deviance and squared deviance
+  // called every iteration after burnin, after update of genotype probs and before annealing
+  // accumulates sums of deviance and squared deviance
   double LogLikHMM = 0.0;
   double LogLikRegression = 0.0;
   double Energy = 0.0;
-  if(annealed) { // if annealing, set coolness to 1 before calculating loglik
-    Chromosome::setCoolness(1.0);
-  }
-  // calculate unannealed HMM likelihood
+  // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
   if( !options->getTestOneIndivIndicator() ) { // evaluate likelihood for all individuals
     for(unsigned i = 0; i < size; ++i) {
-      if(annealed)  _child[i]->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
-      LogLikHMM += _child[i]->getLogLikelihood(options, C);
-      if(annealed)  _child[i]->HMMIsBad(true);
+      LogLikHMM += _child[i]->getLogLikelihood(options, C, true, !annealed); //force HMM update, store result if not an annealed run
+      if(annealed)  _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
+      else _child[i]->HMMIsBad(false); 
     } 
   } else { // evaluate likelihood for test individual only
-    if(annealed)  TestInd->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
-    LogLikHMM += TestInd->getLogLikelihood(options, C);
-    if(annealed)  TestInd->HMMIsBad(true);
-  }
-  if(annealed) { // if annealing, reset coolness 
-    Chromosome::setCoolness(coolness); // coolness should be stored with ProbGenotypesGivenAncestry
+    LogLikHMM += TestInd->getLogLikelihood(options, C, true, !annealed); // force HMM update, store result if not an annealing run 
+    if(annealed)  TestInd->HMMIsBad(true); // HMM is bad, stored loglikelihood bad
+    else  TestInd->HMMIsBad(false); // if not annealed and size = 1, HMM could be set as ok
   }
   // get regression log-likelihood 
   for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c].getLogLikelihood(this);
   Energy = -(LogLikHMM + LogLikRegression);
   return (Energy);
 }
-
-// double IndividualCollection::getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness){
-//   // coolness is passed as an argument to this function so that 
-//   double LogL = 0.0;
-//   Chromosome::setCoolness(1.0);
-
-//   if(options->getTestOneIndivIndicator()) { // formerly if getAnnealIndicator==2
-//     TestInd->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
-//     LogL += TestInd->getLogLikelihood(options, C);
-//     _child[size-1]->HMMIsBad(false);
-//     //if(coolness < 1.0)
-//     TestInd->HMMIsBad(true);
-//   }
-//   else if(options->getAnnealIndicator() && !options->getTestOneIndivIndicator()) { // formerly if getAnnealIndicator==1
-//     for(unsigned i = 0; i < size; ++i){
-//       int prev = i-1;
-//       if(i==0)prev = size-1;
-//       _child[i]->HMMIsBad(true);//to force HMM update and recalculation of log likelihood
-//       LogL += _child[i]->getLogLikelihood(options, C);
-//       if(size > 1)_child[prev]->HMMIsBad(false);
-//       if(coolness < 1.0)_child[i]->HMMIsBad(true);
-//     }
-//     Chromosome::setCoolness(coolness);
-//   }
-
-//   return LogL;
-// }
 
 //returns Derivative of Inverse Link Function for individual i
 double IndividualCollection::DerivativeInverseLinkFunction(int i)const{

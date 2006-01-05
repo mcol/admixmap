@@ -57,12 +57,13 @@ public:
   void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
 	      const std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
-	      LogWriter &Log, double coolness, bool anneal);
+	      LogWriter &Log, bool anneal);
 
   void ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
 				   const AdmixOptions* const options, Chromosome **chrm, 
 				   const vector<vector<double> > &alpha);
   void setGenotypeProbs(Chromosome** C, unsigned nchr);
+  void annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness);
   
   void OutputIndAdmixture();
 
@@ -104,7 +105,7 @@ public:
   const std::string *getCovariateLabels()const;
 
   double getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
-			  const bool & annealed, const double & coolness);
+			  const bool & annealed);
   double getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness);
   double DerivativeInverseLinkFunction(int i)const;
   void ResetChib();
@@ -115,8 +116,8 @@ public:
 
 
 private:
-  Individual **_child; //array of pointers to Individual
-  Individual* TestInd;//individual for whom to estimate marginal likelihood
+  Individual **_child; //array of pointers to Individual objects
+  Individual* TestInd;// pointer to individual for whom to estimate marginal likelihood
   void getLabels(const Vector_s& data,  string *labels);
 
   void LoadCovariates(const InputData*, const AdmixOptions* const options);

@@ -250,7 +250,8 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
     double LogLikelihoodAtProposal = 0.0;
     double LogLikelihoodRatio = 0.0;
     double LogPriorRatio = 0.0;
-    double LogAccProb;
+    double LogAccProbRatio = 0.0;
+    bool accept = false;
 
     NumberOfUpdates++;
     rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
@@ -261,44 +262,45 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
     for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
       ind->HMMIsBad(true);//to force HMM update
-      LogLikelihood += ind->getLogLikelihood(options, C);
-      ind->HMMIsBad(true);
+      LogLikelihood += ind->getLogLikelihood(options, C, false, true); // don't force update, store result if updated
+      ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
    }
-
-    //get log HMM likelihood at proposal rho and current admixture proportions
+    
+    // set ancestry correlations using proposed value of sum-intensities 
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
-    for(int i = 0; i < IC->getSize(); ++i){
+    //get log HMM likelihood at proposal rho and current admixture proportions
+    for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
-      LogLikelihoodAtProposal += ind->getLogLikelihood(options, C);
-      ind->HMMIsBad(true);
-      // line above should not be needed - but commenting it out changes the results. Current stored logl is at proposal.
+      LogLikelihoodAtProposal += ind->getLogLikelihood(options, C, true, false); // force update, do not store result 
+      ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
+      // line above should not be needed for a forced update with result not stored
     }
     LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
 
     //compute prior ratio
     LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
-    LogAccProb = 0.0;
-    if(LogLikelihoodRatio + LogPriorRatio < 0.0) 
-      LogAccProb = LogLikelihoodRatio + LogPriorRatio; 
+    LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
 
-    //accept/reject proposal
-    if(log( myrand() ) < LogAccProb){//accept
+    // generic Metropolis step
+    if( LogAccProbRatio < 0 ) {
+      if( log(myrand()) < LogAccProbRatio ) accept = true;
+    } else accept = true;  
+    
+    if(accept) {
       rho = rhoprop;
-    }
-    else{//reject
-      // restore f in Chromosomes
-      for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-	C[j]->SetLociCorr(rho);
-      // set loglikelihood to bad 
       for(int i = 0; i < IC->getSize(); ++i){
 	Individual* ind = IC->getIndividual(i);
-	ind->HMMIsBad(true);
+	ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
       }
-    }
+    } else { 
+      // restore ancestry correlations in Chromosomes using original value of sum-intensities
+      for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
+	C[j]->SetLociCorr(rho);
+    } // stored loglikelihoods are still ok
 
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){
-      step = TuneRhoSampler.UpdateStepSize( exp(LogAccProb) );
+      step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
     }
 
   }//end if global rho model

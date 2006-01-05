@@ -33,19 +33,7 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 		      LogWriter& Log);
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
 
-void PrintCopyrightNotice(){
-  cout << "\n-----------------------------------------------" << endl;
-  cout << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
-  cout << "-----------------------------------------------" << endl;
-  cout << "Programme Authors: " <<endl;
-  cout << "David O'Donnell, Clive Hoggart and Paul McKeigue"<<endl;
-  cout << "Copyright(c) 2002, 2003, 2004, 2005 LSHTM" <<endl;
-  cout << "Send any comments or queries to david.odonnell @ucd.ie"<<endl;
-  cout << "-----------------------------------------------"<<endl;
-  cout << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl;
-  cout << "under the terms of the GNU General Public License" <<endl;
-  cout << "-----------------------------------------------" << endl;
-}
+void PrintCopyrightNotice(); 
 
 void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs  & A, Regression *R, 
 		  AdmixOptions & options, 
@@ -56,18 +44,14 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 
 void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream);
 
+void PrintOptionsMessage();
+
 int main( int argc , char** argv ){
   int    xargc = argc;
   char **xargv = argv;    
   
   if (argc < 2) {
-    cout << "Please specify an options file or command-line arguments\n"
-	 << "Usage:\n"
-	 << "1. (not recommended) admixmap --[optionname]=[value] ...\n"
-	 << "2. admixmap [optionfile], where optionfile is a text file containg a list of user options\n"
-	 << "3. use a Perl script to call the program with command-line arguments. \nSee sample script supplied with this program.\n"
-	 << "Consult the manual for a list of user options."
-	 << endl;
+    PrintOptionsMessage();
     exit(1); 
   } else if (argc == 2) {     // using options text file        
     xargc = 1;//NB initialise to 1 to mimic argc (arg 0 is prog name), otherwise first option is ignored later
@@ -132,10 +116,9 @@ int main( int argc , char** argv ){
   // remaining calls are to data.GetPopLabels, data.GetOutcomeLabels, data.GetLocusData
 
   //  ******** single individual, one population, fixed allele frequencies  ***************************
-  // nothing to do except calculate likelihood
   if( IC->getSize() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )
+    // nothing to do except calculate likelihood
     IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
-  // **************************************************************************************************
   else {
     // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
     DispersionTest DispTest;
@@ -214,14 +197,12 @@ int main( int argc , char** argv ){
       if(options.getDisplayLevel()>2)Log.setDisplayMode(On);
       else Log.setDisplayMode(Quiet);
       //Log << "InitialParameterValues:\n"
-      //  <<"PopulationAdmixtureDirichlet, SumIntensities, AlleleFreqDispersion, RegressionParams\n";
       //OutputParameters(-1, IC, &L, &A, R, &options, Log);
       //Log << "\n";
     }
    
     // ****************************** BEGIN ANNEALING LOOP ***************************************
     for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
-
       //resets for start of each run
       SumEnergy = 0.0;//cumulative sum of modified loglikelihood
       SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
@@ -231,17 +212,15 @@ int main( int argc , char** argv ){
 	burnin = options.getBurnIn();
       } else AnnealedRun = true; 
       coolness = Coolnesses[run];
-      Chromosome::setCoolness(coolness);//pass current coolness to Chromosome
-      // shouldn't do it this way: instead should pass current coolness to individuals so that ProbGenotypes is flattened
       if(NumAnnealedRuns > 0) {
 	cout <<"\rSampling at coolness of " << coolness << "         " << flush;
       }
 
-      // each call to this function should reset the stochastic approximation series in StepSizeTuner objects
+      // each call to doIterations should reset the stochastic approximation series in StepSizeTuner objects
       doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
 		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data);
+      if(!AnnealedRun) cout << "\rIterations completed                       \n" << flush;
 
-      cout << "\rIterations completed           \n" << flush;
       //calculate mean and variance of energy at this coolness
       MeanEnergy = SumEnergy / ((double)options.getTotalSamples() - options.getBurnIn());
       VarEnergy  = SumEnergySq / ((double)options.getTotalSamples() - options.getBurnIn()) - MeanEnergy * MeanEnergy;
@@ -253,9 +232,10 @@ int main( int argc , char** argv ){
 	LastMeanEnergy = MeanEnergy;
       } 
     } // *************************** END ANNEALING LOOP ******************************************************
+
     delete[] IntervalWidths;
     delete[] Coolnesses;
-
+    
     // *************************** OUTPUT AT END ***********************************************************
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
     else Log.setDisplayMode(On);
@@ -311,6 +291,7 @@ int main( int argc , char** argv ){
     if(avgstream.is_open())avgstream.close();
   }//end else
   cout << "Outputs to file completed\n" << flush;
+
   // *************************** CLEAN UP ******************************************************  
   for(unsigned i = 0; i < Loci.GetNumberOfChromosomes(); i++){
     delete chrm[i];
@@ -383,6 +364,81 @@ int main( int argc , char** argv ){
   return 0;
 }//end of main
 
+void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs & A, 
+		  Regression *R, AdmixOptions & options, 
+		  const Genome & Loci, Chromosome **chrm, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
+		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
+		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data) {
+  double Energy = 0.0; 
+  for( int iteration = 0; iteration <= samples; iteration++ ) {
+    if(iteration > burnin) {
+      //accumulate energy as minus loglikelihood, calculated using unnanealed genotype probs
+      Energy = IC->getEnergy(&options, chrm, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
+      SumEnergy += Energy;
+      SumEnergySq += Energy*Energy;
+      // write to file if not AnnealedRun
+      if(!AnnealedRun) loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+    }
+    if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
+      WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
+    }
+    
+    // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
+    if(AnnealedRun) IC->annealGenotypeProbs(chrm, Loci.GetNumberOfChromosomes(), coolness); 
+    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, coolness, AnnealedRun);
+    Log.setDisplayMode(Quiet);
+    if(!AnnealedRun){
+      // output every 'getSampleEvery()' iterations
+      if(!(iteration % options.getSampleEvery()) )
+	OutputParameters(iteration, IC, &L, &A, R, &options, Log);
+      
+      // ** set merged haplotypes for allelic association score test 
+      if( iteration == burnin && options.getTestForAllelicAssociation() ){
+	Scoretest.SetAllelicAssociationTest(L.getalpha0());
+      }
+      
+      //Updates and Output after BurnIn     
+      if( iteration > burnin ){
+	//dispersion test
+	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
+	//stratification test
+	if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
+								 options.getPopulations());
+	//score tests
+	if( options.getScoreTestIndicator() )
+	  Scoretest.Update(R[0].getDispersion());//score tests evaluated for first outcome var only
+	//tests for mis-specified allelefreqs
+	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
+	  AlleleFreqTest.Update(IC, &A, &Loci);
+	//test for Hardy-Weinberg eq
+	if( options.getHWTestIndicator() )
+	  HWtest.Update(IC, chrm, &Loci);
+
+	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
+	if (!(iteration % (options.getSampleEvery() * 10))){    
+	  //Ergodic averages
+	  Log.setDisplayMode(On);
+	  if ( strlen( options.getErgodicAverageFilename() ) ){
+	    int samples = iteration - burnin;
+	    if( options.getIndAdmixHierIndicator() ){
+	      L.OutputErgodicAvg(samples,&avgstream);
+	      for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
+		R[r].OutputErgodicAvg(samples, &avgstream);
+	      A.OutputErgodicAvg(samples, &avgstream);
+	    }
+	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq, &avgstream);
+	    if(options.getMLIndicator()) IC->OutputErgodicChib(&avgstream);
+	    avgstream << endl;
+	  }
+	  //Score Test output
+	  if( options.getScoreTestIndicator() )  Scoretest.Output(iteration, data.GetPopLabels());
+	}//end "if every'*10" block
+      }//end "if after BurnIn" block
+    } // end "if not AnnealedRun" block
+  }// end loop over iterations
+}
+
 int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
   int  _maxLineLength=1024;
   ifstream fin(filename);
@@ -412,98 +468,94 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
 }
 
 //this function is here because three different objects have to write to avgstream
-// for compatibility with parallelization, should rearrange output so that each object (L, R, A) writes one file 
-// containing draws and ergodic averages for the parameters that it updates
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter &Log, std::ofstream *avgstream, const std::string* const PopulationLabels){
   Log.setDisplayMode(Quiet);
   //Open ErgodicAverageFile  
-  if ( strlen( options->getErgodicAverageFilename() ) )
-    {
-      avgstream->open( options->getErgodicAverageFilename(), ios::out );
-      if( !*avgstream ){
-	Log.setDisplayMode(On);
-	Log << "ERROR: Couldn't open Ergodic Average file\n";
-	//exit( 1 );
+  if( strlen( options->getErgodicAverageFilename() ) ) {
+    avgstream->open( options->getErgodicAverageFilename(), ios::out );
+    if( !*avgstream ){
+      Log.setDisplayMode(On);
+      Log << "ERROR: Couldn't open Ergodic Average file\n";
+      //exit( 1 );
+    } else {
+      Log << "Writing ergodic averages of parameters to "
+	  << options->getErgodicAverageFilename() << "\n\n";
+    }
+    
+    // Header line of ergodicaveragefile
+    if( options->getIndAdmixHierIndicator() ){
+      for( int i = 0; i < options->getPopulations(); i++ ){
+	*avgstream << PopulationLabels[i] << "\t";
       }
-      else{
-	Log << "Writing ergodic averages of parameters to "
-	    << options->getErgodicAverageFilename() << "\n\n";
+      if( options->isGlobalRho() ) *avgstream << "sumIntensities\t";
+      else *avgstream << "sumIntensities.mean\t";
+      
+      // Regression parameters
+      if( options->getNumberOfOutcomes() > 0 ){
+	for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
+	  *avgstream << "intercept\t";
+	  if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
+	    for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
+	      *avgstream << individuals->getCovariateLabels(i) << "\t";
+	    }
+	  }
+	  if( !options->getTestForAdmixtureAssociation() ){
+	    for( int k = 1; k < options->getPopulations(); k++ ){
+	      *avgstream << PopulationLabels[k] << "\t";
+	    }
+	  }
+	  if( individuals->getOutcomeType(r)==0 )//linear regression
+	    *avgstream << "precision\t";
+	}
       }
       
-      // Header line of ergodicaveragefile
-      if( options->getIndAdmixHierIndicator() ){
-	for( int i = 0; i < options->getPopulations(); i++ ){
-	  *avgstream << PopulationLabels[i] << "\t";
-	}
-	if( options->isGlobalRho() )
-	  *avgstream << "sumIntensities\t";
-	else
-	  *avgstream << "sumIntensities.mean\t";
-	
-	
-	// Regression parameters
-	if( options->getNumberOfOutcomes() > 0 ){
-	  for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
-	    *avgstream << "intercept\t";
-	    if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
-	      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-		*avgstream << individuals->getCovariateLabels(i) << "\t";
-	      }
-	    }
-	    if( !options->getTestForAdmixtureAssociation() ){
-	      for( int k = 1; k < options->getPopulations(); k++ ){
-		*avgstream << PopulationLabels[k] << "\t";
-	      }
-	    }
-	    if( individuals->getOutcomeType(r)==0 )//linear regression
-	      *avgstream << "precision\t";
-	  }
-	}
-		
-	// dispersion parameters
-	if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
-	  for( int k = 0; k < options->getPopulations(); k++ ){
-	    *avgstream << "eta" << k << "t";
-	  }
+      // dispersion parameters
+      if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+	for( int k = 0; k < options->getPopulations(); k++ ){
+	  *avgstream << "eta" << k << "\t";
 	}
       }
-      *avgstream << "MeanDeviance\tVarDeviance\t";
-      if(options->getMLIndicator()){// chib calculation
-	*avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
-		  << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
-      }
-      *avgstream << "\n";
     }
-  else
-    {
-      Log << "No ergodicaveragefile given\n";
+    *avgstream << "MeanDeviance\tVarDeviance\t";
+    if(options->getMLIndicator()){// chib calculation
+      *avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
+		 << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
     }
+    *avgstream << "\n";
+  } else {
+    Log << "No ergodicaveragefile given\n";
+  }
 }
 
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, double coolness, bool anneal){
   A->ResetAlleleCounts();
-  // ** update global sumintensities
+  // ** update global sumintensities conditional on genotype probs and individual admixture proportions
   if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
      options->getIndAdmixHierIndicator() && (Loci->GetLengthOfGenome()> 0.0))
-    L->UpdateRhoWithRW(IC, Chrm);
+    L->UpdateRhoWithRW(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
 
-  // ** Update individual-level parameters  
+  // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
+  // individual admixture and sum-intensities 
   IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), L->getalpha(), L->getrho(), L->getrhoalpha(), L->getrhobeta(),
-	     Log, coolness, anneal);
+	     Log, anneal);
+  // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level  
 
-  // ** update allele frequencies
+  // ** update allele frequencies conditional on locus ancestry states, then update genotype probs
   if(A->IsRandom()){
+    // this requires fixing to anneal allele freqs for historicallelefreq model 
     A->Update((iteration > options->getBurnIn() && !anneal), coolness);
-    IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes());
-    IC->HMMIsBad(true); // update of allele freqs requires both HMM forward probs and likelihood to be recalculated before use again
+    IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes()); // sets unannealed probs ready for getEnergy
+    IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
+    // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
+    // or from update of individual-level parameters otherwise 
   }
 
-  //update population admixture Dirichlet parameters
+  //update population admixture Dirichlet parameters conditional on individual admixture
   L->Update(iteration, IC, Log, anneal);
   
-  // ** update regression parameters (if regression model)
+  // ** update regression parameters (if regression model) conditional on individual admixture
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
     R[r].Update((!anneal && iteration > options->getBurnIn()), IC);
 }
@@ -550,83 +602,33 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
   cout.flush(); 
 }
 
-void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs & A, 
-		  Regression *R, AdmixOptions & options, 
-		  const Genome & Loci, Chromosome **chrm, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
-		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
-		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
-		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data) {
-  double Energy = 0.0; // IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); 
-  for( int iteration = 0; iteration <= samples; iteration++ ) {
-     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
-       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
-     }
-    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, coolness, AnnealedRun);
-    if(iteration > burnin) {
-      //compute energy as minus loglikelihood at coolness of 1.0
-      Energy = IC->getEnergy(&options, chrm, R, AnnealedRun, coolness); // getEnergy sets HMMIsBad if AnnealedRun
-      // function to calculate loglikelihood should have option not to store log-likelihood 
-      // write to file if not AnnealedRun
-      if(!AnnealedRun) loglikelihoodfile << iteration<< "\t" << Energy <<endl;
-      SumEnergy += Energy;
-      SumEnergySq += Energy*Energy;
-    }
-    Log.setDisplayMode(Quiet);
-    if(!AnnealedRun){
-      // output every 'getSampleEvery()' iterations
-      // should change this so that output is written to console if coutindicator 
-      if(!(iteration % options.getSampleEvery()) )
-	OutputParameters(iteration, IC, &L, &A, R, &options, Log);
-      
-      // ** set merged haplotypes for allelic association score test 
-      if( iteration == burnin && options.getTestForAllelicAssociation() ){
-	Scoretest.SetAllelicAssociationTest(L.getalpha0());
-      }
-      
-      //Updates and Output after BurnIn     
-      if( iteration > burnin ){
-	//dispersion test
-	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
-	//stratification test
-	if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
-								 options.getPopulations());
-	//score tests
-	if( options.getScoreTestIndicator() )
-	  Scoretest.Update(R[0].getDispersion());//possible error? what if 2 regression models?
-	//tests for mis-specified allelefreqs
-	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-	  AlleleFreqTest.Update(IC, &A, &Loci);
-	//test for Hardy-Weinberg eq
-	if( options.getHWTestIndicator() )
-	  HWtest.Update(IC, chrm, &Loci);
-
-	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
-	if (!(iteration % (options.getSampleEvery() * 10))){    
-	  //Ergodic averages
-	  Log.setDisplayMode(On);
-	  if ( strlen( options.getErgodicAverageFilename() ) ){
-	    int samples = iteration - burnin;
-	    if( options.getIndAdmixHierIndicator() ){
-	      L.OutputErgodicAvg(samples,&avgstream);
-	      for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-		R[r].OutputErgodicAvg(samples, &avgstream);
-	      A.OutputErgodicAvg(samples, &avgstream);
-	    }
-	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq, &avgstream);
-	    if(options.getMLIndicator()) IC->OutputErgodicChib(&avgstream);
-	    avgstream << endl;
-	  }
-	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretest.Output(iteration, data.GetPopLabels());
-	}//end "if every'*10" block
-      }//end "if after BurnIn" block
-    } // end "if not AnnealedRun" block
-  }// end loop over iterations
-}
 
 void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream) {
   double EAvDeviance, EVarDeviance;
   EAvDeviance = 2.0*SumEnergy / (double) samples;//ergodic average of deviance
   EVarDeviance = 4.0 * SumEnergySq / (double)samples - EAvDeviance*EAvDeviance;//ergodic variance of deviance 
   *avgstream << EAvDeviance << " "<< EVarDeviance <<" ";
+}
+void PrintCopyrightNotice(){
+  cout << "\n-----------------------------------------------" << endl;
+  cout << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
+  cout << "-----------------------------------------------" << endl;
+  cout << "Programme Authors: " <<endl;
+  cout << "David O'Donnell, Clive Hoggart and Paul McKeigue"<<endl;
+  cout << "Copyright(c) 2002, 2003, 2004, 2005 LSHTM" <<endl;
+  cout << "Send any comments or queries to david.odonnell@ucd.ie"<<endl;
+  cout << "-----------------------------------------------"<<endl;
+  cout << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl;
+  cout << "under the terms of the GNU General Public License" <<endl;
+  cout << "-----------------------------------------------" << endl;
+}
+
+void PrintOptionsMessage() {
+  cout << "You must specify an options file or list of arguments on command line\n"
+       << "Usage:\n"
+       << "1. (not recommended) admixmap --[optionname]=[value] ...\n"
+       << "2. admixmap [optionfile], where optionfile is a text file containg a list of user options\n"
+       << "3. use a Perl script to call the program with command-line arguments. \nSee sample script supplied with this program.\n"
+	 << "Consult the manual for a list of user options."
+       << endl;
 }

@@ -27,8 +27,6 @@
 
 using namespace std;
 
-double Chromosome::coolness = 1;//initialising to 1 samples from posterior by default
-
 Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false) : Genome(size)
 		      //size = number of comp loci on chromosome
 {
@@ -64,10 +62,6 @@ Chromosome::~Chromosome()
   delete[] CodedStates;
   delete[] f;
   //delete[] f[1];
-}
-
-void Chromosome::setCoolness(double l){
-  coolness = l;
 }
 
 // Returns the number of the num'th compositelocus on this chromosome
@@ -118,14 +112,11 @@ void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* co
   //global rho case already dealt with
 
   Diploid = diploid;//required for sampling of locus ancestry
-  
   if(Diploid){
     //construct StateArrivalProbs
     SampleStates.SetStateArrivalProbs(f, Admixture, options->isRandomMatingModel());
-
     //Update Forward/Backward Probs in HMM
-    SampleStates.UpdateForwardProbsDiploid(f, GenotypeProbs, GenotypesMissing, coolness);
-
+    SampleStates.UpdateForwardProbsDiploid(f, GenotypeProbs, GenotypesMissing);
   }
   else{//haploid
     SampleStates.UpdateForwardProbsHaploid(f, Admixture, GenotypeProbs);

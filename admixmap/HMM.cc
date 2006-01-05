@@ -93,9 +93,8 @@ void HMM::SetStateArrivalProbs(const double* const f, const double* const Theta,
   j = j1, j' = j2, i = i1, i' = i2, 
   theta_j = Admixture(j,0),  theta'_j = Admixture(j,Mcol).
 */
-void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda, bool* const missing, double coolness)
+void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda, bool* const missing)
 {
-  // array lambda should be annealed before calling this function
   // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
   sumfactor = 0.0; // accumulates log-likelihood
   double Sum = 0.0;
@@ -106,8 +105,7 @@ void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda,
   
   for(int j = 0; j < States; ++j) {
     if(!missing[0]) {
-      if(coolness < 1.0) alpha[j] =  ThetaThetaPrime[j] * pow(lambda[j], coolness);
-      else alpha[j] =  ThetaThetaPrime[j] * (*lambdap++);
+      alpha[j] =  ThetaThetaPrime[j] * (*lambdap++);
     } else {
       alpha[j] = ThetaThetaPrime[j];
       ++lambdap;
@@ -135,10 +133,7 @@ void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda,
     
     for(int j = 0; j < States; ++j){
       if(!missing[t]) {
-	if(coolness < 1.0)
-	  alpha[t*States +j] *= pow(lambda[t*States +j], coolness);
-	else
-	  alpha[t*States +j] *= *lambdap++;  //lambda[t*States +j];
+	alpha[t*States +j] *= *lambdap++;  //lambda[t*States +j];
       } else ++lambdap;
     }
   }

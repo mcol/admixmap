@@ -56,6 +56,7 @@ double StepSizeTuner::GetSigma()const
 
 double StepSizeTuner::UpdateStepSize(double AcceptanceProb)
 {
+  if(AcceptanceProb > 1.0) AcceptanceProb = 0;
   sigma = sigma + ( AcceptanceProb - target ) / k; 
   // initial adjustment to step size will be of the order of exp(0.5) fold 
   if( sigma > max )
