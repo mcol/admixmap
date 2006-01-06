@@ -93,7 +93,8 @@ IndividualCollection::~IndividualCollection() {
 // ************** INITIALISATION AND LOADING OF DATA **************
 
 void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
-				      double rhoalpha, double rhobeta, LogWriter &Log, const DataMatrix &MLEMatrix){
+				      const std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta, 
+				      LogWriter &Log, const DataMatrix &MLEMatrix){
   Log.setDisplayMode(Quiet);
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
@@ -103,78 +104,42 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   else {
     Log << "No indadmixturefile given\n";
   }
+
   //Set locusfortest if specified
- if( options->getLocusForTestIndicator() )
-     _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
+  if( options->getLocusForTestIndicator() )
+    _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
+  
+  //draw initial values for individual admixture proportions
+  for(unsigned int i = 0; i < size; i++) _child[0]->drawInitialAdmixtureProps(alpha);
 
- //Initialise Admixture Proportions
- //admix_null holds initial values of admixture props, assigned to each Individual
- //indexed first by gamete, then by population
-  double *admix_null;
-  size_t size_admix;
-  int K = options->getPopulations();
-   if( options->isRandomMatingModel() )
-     size_admix = K*2; // double the size for 2 gametes in RMM
-   else//assortative mating
-     size_admix = K;
-
-   admix_null = new double[size_admix];
-   for(unsigned i = 0; i< size_admix; ++i) admix_null[i] = (double)1.0;
-   
-   vector<double >alphatemp(K);
-   
-   int KK0=K, KK1=K;
-   if( options->sizeInitAlpha() == 0 ){
-     fill(alphatemp.begin(), alphatemp.end(), 1.0 );
-   }
-   else if( options->sizeInitAlpha() == 1 ){
-    alphatemp = options->getInitAlpha(0);
-   }
-   else  if( !options->getIndAdmixHierIndicator() ){
-     alphatemp = options->getInitAlpha(0);
-     
-     for( int k = 0; k < K; k++ ){
-       if( alphatemp[k] == 0 ) {
-	 admix_null[k] = 0.0;
-	 KK0--;
-       }
-     }
-     
-     alphatemp = options->getInitAlpha(1);
-     
-     //possible problem if not randommating model ?
-     for( int k = 0; k < K; k++ ){
-       if( alphatemp[k] == 0 ) {
-	 admix_null[K + k] = 0.0;
-	 KK1--;
-       }
-     }
-   }
-
-   //set initial values of admixture to 1 / (number of admixed pops)
-   // eg 1 1 0 -> 1/2, 1/2, 1/2
-   // should draw initial values randomly from the prior so that different chains will have 
-   // different starting values
-   for( int k = 0; k < K; k++ )admix_null[k] /= KK0;//gamete 1
-   if( options->isRandomMatingModel() )   for( int k = 0; k < K; k++ )admix_null[K + k] /= KK1;//gamete 2
-   
-   setAdmixtureProps(admix_null, size_admix);
-   if( Loci->isX_data() )setAdmixturePropsX(admix_null, size_admix);
-   delete[] admix_null;
-   
-  //Regression stuff
-   if(options->getNumberOfOutcomes() > 0){
+//   // set priors on individual admixture to be passed to individual if no hierarchical model
+//   admixtureprior.resize(2);
+//   admixtureprior[0].resize(K);
+//   admixtureprior[1].resize(K);
+//   fill(admixtureprior[0].begin(), admixtureprior[0].end(), 1.0); // set default of flat prior on individual admixture
+//   fill(admixtureprior[1].begin(), admixtureprior[1].end(), 1.0);
+//   if( !options->getIndAdmixHierIndicator() && options->sizeInitAlpha() > 0 ) { 
+//     admixtureprior[0] = options->getInitAlpha(0); // returns a vector of doubles of length K
+//     admixtureprior[1] = options->getInitAlpha(options->sizeInitAlpha() - 1);
+//   } // if hierarchical model, no need to set prior on individual admixture
+  
+  // allocate arrays for expected outcome vars and residuals in regression model
+  if(options->getNumberOfOutcomes() > 0){
     ExpectedY = alloc2D_d(NumOutcomes, NumInd);
     SumResiduals = alloc2D_d(NumOutcomes, NumInd);
     for(int j = 0; j < NumOutcomes; ++j)fill(SumResiduals[j], SumResiduals[j] + NumInd, 0.0);
-   }
-
+  }
+  
+  // allocate array of sufficient statistics for update of population admixture parameters
   SumLogTheta = new double[ options->getPopulations()];
+
+  // this function probably not required
   if( options->getMLIndicator() )
     InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
   MaxLogLikelihood.assign(NumInd, -9999999 );
 }
+
 
 // ** this function needs debugging
 void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options, 
@@ -317,6 +282,8 @@ void IndividualCollection::getLabels(const Vector_s& data, string *labels)
     labels[index++] = data[i];
   }
 }
+
+// shouldn't need this function any more
 void IndividualCollection::setAdmixtureProps(const double* const a, size_t thetasize)
 {
   if(TestInd)
@@ -367,6 +334,7 @@ void IndividualCollection::HMMIsBad(bool b){
 }
 
 // ************** UPDATING **************
+// pass reference to alpha: either dirichlet parameters from Latent, or admixtureprior set at initialization of this object  
 void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
 				  const vector<vector<double> > &alpha, double globalrho,
@@ -383,6 +351,9 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     lambda.push_back( R[i].getlambda());
     beta.push_back( R[i].getbeta());
   }
+
+  //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
+
   // clumsy to have two blocks of duplicated code - combine into one function
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 

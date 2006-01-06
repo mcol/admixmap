@@ -106,7 +106,8 @@ int main( int argc , char** argv ){
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ) {
       chrm[j]->InitialiseLociCorr(L.getrho());
     }
-  IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getrhoalpha(), L.getrhobeta(), Log, data.getMLEMatrix());
+  cout << flush; 
+  IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log, data.getMLEMatrix());
   
   //set expected Outcome
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
@@ -537,25 +538,25 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
      options->getIndAdmixHierIndicator() && (Loci->GetLengthOfGenome()> 0.0))
     L->UpdateRhoWithRW(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
-
+  
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
   // individual admixture and sum-intensities 
   IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), L->getalpha(), L->getrho(), L->getrhoalpha(), L->getrhobeta(),
 	     Log, anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level  
-
-  if(A->IsRandom()) {  // update allele frequencies conditional on locus ancestry states, then update genotype probs
-    // this requires fixing to anneal allele freqs for historicallelefreq model 
-    A->Update((iteration > options->getBurnIn() && !anneal), coolness);
+  
+  // update allele frequencies conditional on locus ancestry states
+  // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
+  if( A->IsRandom() ) A->Update((iteration > options->getBurnIn() && !anneal), coolness);
+  
+  if(A->IsRandom() || anneal) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
     IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes()); // sets unannealed probs ready for getEnergy
     IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
-  } else if(anneal) { // for fixed allele freqs, must reset annealed genotype probs as unnannealed  
-    IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes()); // sets unannealed probs ready for getEnergy
-    IC->HMMIsBad(true); 
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
+  
     // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
-    // or from update of individual-level parameters otherwise 
-
+    // or from update of individual-level parameters otherwise
+  
   //update population admixture Dirichlet parameters conditional on individual admixture
   L->Update(iteration, IC, Log, anneal);
   

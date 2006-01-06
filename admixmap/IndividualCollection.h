@@ -48,7 +48,8 @@ public:
 					   const Chromosome* const* chrm);
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
-				      double rhoalpha, double rhobeta, LogWriter &Log, const DataMatrix &MLEMatrix);
+		  const std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta, 
+		  LogWriter &Log, const DataMatrix &MLEMatrix);
 
   void LoadData(const AdmixOptions* const options, const InputData* const);
   
@@ -97,7 +98,6 @@ public:
   DataType getOutcomeType(int)const;
 
   void SetExpectedY(int, const double*const );
-  //void calculateExpectedY(int);
   void UpdateSumResiduals();
   double getExpectedY(int)const;
 
@@ -131,6 +131,7 @@ private:
   vector<double> rhohat, rhohatX;
   double *thetahat;
   double *thetahatX;
+  std::vector< std::vector<double> > admixtureprior;
 
   double *SumLogTheta;//sums of log individual admixture proportions
   vector<double> MaxLogLikelihood;

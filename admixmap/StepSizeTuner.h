@@ -38,6 +38,7 @@ public:
   StepSizeTuner();//default constructor, initialises k only
   ~StepSizeTuner();
   
+  void resetApproximator(int newk);
   void SetParameters(double sigma0, double min, double max, double target);
     
   double GetSigma()const;//returns log step size

@@ -54,6 +54,7 @@ public:
 
   const double* getAdmixtureProps()const;
 
+  void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
   void setAdmixtureProps(const double* const, size_t);
   
   void setAdmixturePropsX(const double* const, size_t);
@@ -133,6 +134,7 @@ public:
 
 private:
   unsigned myNumber;//number of this individual, counting from 1
+  unsigned NumIndGametes; // 1 if assortative mating, 2 if random mating
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
   double **GenotypeProbs;

@@ -27,6 +27,7 @@ StepSizeTuner::StepSizeTuner()
   k = 1;   
 }
 
+
 StepSizeTuner::StepSizeTuner(double insigma0, double inmin, double inmax, double intarget)
 {
   SetParameters(insigma0, inmin, inmax, intarget);
@@ -34,6 +35,10 @@ StepSizeTuner::StepSizeTuner(double insigma0, double inmin, double inmax, double
 
 StepSizeTuner::~StepSizeTuner()
 {
+}
+
+void StepSizeTuner::resetApproximator(int newk) {
+  k = newk;   
 }
 
 void StepSizeTuner::SetParameters(double step0, double inmin, double inmax, double intarget)
