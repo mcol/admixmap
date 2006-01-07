@@ -38,7 +38,7 @@ StepSizeTuner::~StepSizeTuner()
 }
 
 void StepSizeTuner::resetApproximator(int newk) {
-  k = newk;   
+  if(k > newk) k = newk;   
 }
 
 void StepSizeTuner::SetParameters(double step0, double inmin, double inmax, double intarget)

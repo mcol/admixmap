@@ -85,7 +85,7 @@ int main( int argc , char** argv ){
   Loci.loadAlleleStatesAndDistances(&options, &data);//reads locusfile and creates CompositeLocus objects
   
   AlleleFreqs A(&Loci);
-  A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele frequencies and finishes setting up Composite Loci
+  A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   
   Chromosome **chrm = 0; //Note: array of pointers to Chromosomes
   chrm = Loci.GetChromosomes(options.getPopulations());  //create Chromosome objects
@@ -204,6 +204,7 @@ int main( int argc , char** argv ){
    
     // ****************************** BEGIN ANNEALING LOOP ***************************************
     for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
+      // should call a posterior mode-finding algorithm before last run at coolness of 1
       //resets for start of each run
       SumEnergy = 0.0;//cumulative sum of modified loglikelihood
       SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
@@ -215,9 +216,9 @@ int main( int argc , char** argv ){
       coolness = Coolnesses[run];
       if(NumAnnealedRuns > 0) {
 	cout <<"\rSampling at coolness of " << coolness << "         " << flush;
+	IC->resetStepSizeApproximators(NumAnnealedRuns); // reset k <= NumAnnealedRuns in step size tuners
       }
 
-      // each call to doIterations should reset the stochastic approximation series in StepSizeTuner objects
       doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
 		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data);
       if(!AnnealedRun) cout << "\rIterations completed                       \n" << flush;
@@ -233,7 +234,6 @@ int main( int argc , char** argv ){
 	LastMeanEnergy = MeanEnergy;
       } 
     } // *************************** END ANNEALING LOOP ******************************************************
-
     delete[] IntervalWidths;
     delete[] Coolnesses;
     
@@ -291,7 +291,7 @@ int main( int argc , char** argv ){
     if(annealstream.is_open())annealstream.close();
     if(avgstream.is_open())avgstream.close();
   }//end else
-  cout << "Outputs to file completed\n" << flush;
+  cout << "Output to files completed\n" << flush;
 
   // *************************** CLEAN UP ******************************************************  
   for(unsigned i = 0; i < Loci.GetNumberOfChromosomes(); i++){
@@ -363,7 +363,7 @@ int main( int argc , char** argv ){
     cout<<endl;
   }
   return 0;
-}//end of main
+} //end of main
 
 void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs & A, 
 		  Regression *R, AdmixOptions & options, 

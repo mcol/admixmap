@@ -5,8 +5,8 @@ use File::Path;
 my $executable = './admixmap';
 
 my $arg_hash = {
-    burnin   => 10, 
-    samples  => 60,
+    burnin   => 50, 
+    samples  => 550,
     every    => 1,
     locusfile                    => "IndData/loci.txt",
     genotypesfile                => "IndData/genotypes.txt",
@@ -14,8 +14,8 @@ my $arg_hash = {
     fixedallelefreqs => 1,
     randommatingmodel            => 1,
     globalrho                    => 0,
-    initalpha0                   => "1,1,1", # parameter vectors for Dirichlet prior on admixture 
-    initalpha1                   => "1,1,0",
+    admixtureprior               => "1,1,1", # parameter vectors for Dirichlet prior on admixture 
+    admixtureprior1              => "1,1,0",
     chib                         => 1,
     thermo                       => 1,
     numannealedruns             => 100,
@@ -26,14 +26,14 @@ my $arg_hash = {
 };
 
 ## no admixture model: one Afr, one Eur parent
-$arg_hash->{initalpha0} = "0,1,0";
-$arg_hash->{initalpha1} = "1,0,0";
+$arg_hash->{admixtureprior} = "0,1,0";
+$arg_hash->{admixtureprior1} = "1,0,0";
 $arg_hash->{resultsdir} = "IndResults010-100";
 #&doAnalysis($executable, $arg_hash);
 
 ## simplest admixture model: one Afr/Eur, one Afr parent 
-$arg_hash->{initalpha0} = "1,0,0"; 
-$arg_hash->{initalpha1} = "1,1,0";
+$arg_hash->{admixtureprior} = "1,0,0"; 
+$arg_hash->{admixtureprior1} = "1,1,0";
 $arg_hash->{resultsdir} = "IndResults010-110";
 &doAnalysis($executable, $arg_hash);
 

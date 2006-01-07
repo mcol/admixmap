@@ -111,6 +111,8 @@ public:
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
 		    double DInvLink, double dispersion, bool RW, bool anneal);
 
+  void resetStepSizeApproximator(int k);
+
   void Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
 	    const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, double globalrho,
 	    double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
@@ -144,6 +146,7 @@ private:
   static unsigned int numChromosomes;
   static int Populations;
   static const Genome *Loci;
+  double *dirparams; // dirichlet parameters of full conditional for conjugate updates
   double *Theta, *ThetaX;//admixture proportions
   double *SumSoftmaxTheta;
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions

@@ -77,7 +77,6 @@ public:
   void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);
 
   int getSize()const;
-
   void add(Individual*);
 
   Individual* getIndividual(int)const;
@@ -88,19 +87,17 @@ public:
   double GetSumrho()const;
   double getSumLogTheta(int)const;
   const double *getSumLogTheta()const;
+
   std::vector<double> getOutcome(int)const;
   double getOutcome(int, int)const;
   int getNumberOfOutcomeVars()const;
   int GetNumCovariates() const;
   int GetNumberOfInputCovariates()const;
-
   const double* getCovariates()const;
   DataType getOutcomeType(int)const;
-
   void SetExpectedY(int, const double*const );
   void UpdateSumResiduals();
   double getExpectedY(int)const;
-
   const std::string getCovariateLabels(int)const;
   const std::string *getCovariateLabels()const;
 
@@ -113,7 +110,7 @@ public:
   const chib* getChib()const;
 
   void HMMIsBad(bool b);
-
+  void resetStepSizeApproximators(int k); 
 
 private:
   Individual **_child; //array of pointers to Individual objects

@@ -721,8 +721,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"etapriormean",                          1, 0,  0 }, //double
     {"etapriorvar",                           1, 0,  0 }, //double
     {"truncationpoint",                       1, 0,  0 }, // double
-    {"initalpha0",                            1, 0,  0 }, // binary vector
-    {"initalpha1",                            1, 0,  0 }, // binary vector
+    {"admixtureprior",                        1, 0,  0 }, // binary vector
+    {"admixtureprior1",                       1, 0,  0 }, // binary vector
     {"fixedallelefreqs",                      1, 0,  0 }, // int 0, 1
     {"correlatedallelefreqs",                 1, 0,  0 }, // int 0, 1
     {"xonlyanalysis",                         1, 0,  0 }, // int 0, 1
@@ -939,9 +939,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 TruncPt = strtod(optarg, NULL);OptionValues["truncationpoint"]=optarg;
       } else if (long_option_name == "etapriorfile") {
 	 EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
-      } else if (long_option_name == "initalpha0" ) {
+      } else if (long_option_name == "admixtureprior" ) {
 	 initalpha[0] = CstrToVec(optarg);OptionValues["initalpha0"]=optarg;
-      } else if (long_option_name == "initalpha1") {
+      } else if (long_option_name == "admixtureprior1") {
 	 initalpha[1] = CstrToVec(optarg);OptionValues["initalpha1"]=optarg;
       } else if (long_option_name == "parallel") {
 	if (strtol(optarg, NULL, 10) == 1) {parallel=true; OptionValues["parallel"]=optarg;}
@@ -1348,13 +1348,13 @@ void AdmixOptions::setInitAlpha(LogWriter &Log){
 }
 
 bool AdmixOptions::CheckInitAlpha( const vector<double> &alphatemp)const
-// check that Dirichlet parameter vector, if specified by user, has correct length
 //returns indicator for admixture as indicated by initalpha   
+// also check that Dirichlet parameter vector, if specified by user, has correct length
 {
    bool admixed = true;
    int count = 0;
    for( size_t i = 0; i < alphatemp.size(); i++ )
-      if( alphatemp[i] != 0.0 )
+      if( alphatemp[i] > 0.0 )
          count++;
    if( count == 1 )
      admixed = false;//unadmixed if eg 1 0 0

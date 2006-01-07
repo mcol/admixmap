@@ -112,40 +112,57 @@ double AverageOfLogs(const std::vector<double>& vec, double max)
 }
 
 void inv_softmax(size_t K, const double* const mu, double *a){
-  double sumlogmu = 0.0;
-  for(unsigned k = 0; k < K; ++k)sumlogmu += log(mu[k]);
-  double logz = -sumlogmu / (double)K;
-
-  for(unsigned k = 0; k< K; ++k)a[k] = log(mu[k]) + logz;
-}
-void softmax(size_t K, double *mu, const double* a){
-  //inverse of softmax transformation above
+  // transforms proportions mu to numbers a on real line 
+  // elements of a sum to 0
   double logz = 0.0;
-  double amax = a[0];
-  for(unsigned k = 1; k < K; ++k)amax = max(amax, a[k]);
-
-  for(unsigned k = 0; k < K; ++k)
-    logz += exp(a[k] - amax);
-  logz = amax + log(logz);
-
-  for(unsigned k = 0; k < K; ++k)mu[k] = exp(a[k] - logz);
+  for(unsigned k = 0; k < K; ++k) {
+    a[k] = log(mu[k]);
+    logz -= a[k];
+  }
+  logz /= (double)K;
+  for(unsigned k = 0; k< K; ++k) a[k] += logz;
 }
-void inv_softmax(size_t K, const double* const mu, double *a, const bool* const b){
-  //b is an array of indicators
-  //transformation is only applied to elements with b=true
-  double sumlogmu = 0.0;
-  for(unsigned k = 0; k < K; ++k)if(b[k])sumlogmu += log(mu[k]);
-  double logz = -sumlogmu / (double)K;
 
-  for(unsigned k = 0; k< K; ++k)if(b[k])a[k] = log(mu[k]) + logz;
-}
-void softmax(size_t K, double *mu, const double* a, const bool* const b){
-  //inverse of softmax transformation
-  //b is an array of indicators
-  //transformation is only applied to elements with b=true
+void softmax(size_t K, double *mu, const double* a){
+  //inverse of inv_softmax transformation above
+  // elements of array a need not sum to zero 
   double z = 0.0;
-  for(unsigned k = 0; k < K; ++k) z += exp(a[k])*b[k];
-  for(unsigned k = 0; k < K; ++k)mu[k] = b[k]*exp(a[k]) / z;
+  double amax = a[0];
+  // standardize a so that max argument to exp() is 0 
+  for(unsigned k = 1; k < K; ++k) amax = max(amax, a[k]);
+  for(unsigned k = 0; k < K; ++k) {
+    mu[k] = exp(a[k] - amax);
+    z += mu[k];
+  }
+  for(unsigned k = 0; k < K; ++k) mu[k] /= z;
+}
+
+void inv_softmax(size_t K, const double* const mu, double *a, const bool* const b){
+  //transformation is applied only to elements with b=true
+  double logz = 0.0;
+  for(unsigned k = 0; k < K; ++k) {
+    if(b[k]) {
+      a[k] = log(mu[k]);
+      logz -= a[k];
+    }
+  }
+  logz /= (double)K;
+  for(unsigned k = 0; k< K; ++k) if(b[k]) a[k] += logz;
+}
+
+void softmax(size_t K, double *mu, const double* a, const bool* const b){
+  //transformation is applied only to elements with b=true
+  double z = 0.0;
+  double amax = a[0];
+  // standardize a so that max argument to exp() is 0 
+  for(unsigned k = 1; k < K; ++k) if(b[k]) amax = max(amax, a[k]);
+  for(unsigned k = 0; k < K; ++k) {
+    if(b[k]) {
+      mu[k] = exp(a[k] - amax);
+      z += mu[k];
+    }
+  }
+  for(unsigned k = 0; k < K; ++k) if(b[k]) mu[k] /= z;
 }
 
 // ************* Matrix Algebra **************************************
@@ -377,6 +394,7 @@ void free_matrix(double **M, int m){
     exit(1);
   }
 }
+
 //delete int matrix
 void free_matrix(int **M, int m){
   try{
@@ -524,8 +542,6 @@ void cholDecomp(const double* const a, double *L, int n){
 
 // void invert_pds_matrix(const double* const a, double *Inv, int n){
 //   //inverts a positive-definite symmetric matrix using Cholesky decomposition
-
-
 // }
 
 //useful for stl functions

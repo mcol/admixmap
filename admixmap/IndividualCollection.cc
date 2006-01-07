@@ -80,6 +80,7 @@ IndividualCollection::~IndividualCollection() {
     delete _child[i];
   }
   delete[] _child;
+  cout << flush;
   delete TestInd;
   delete indadmixoutput;
   delete[] OutcomeType;
@@ -110,7 +111,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
     _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
   
   //draw initial values for individual admixture proportions
-  for(unsigned int i = 0; i < size; i++) _child[0]->drawInitialAdmixtureProps(alpha);
+  for(unsigned int i = 0; i < size; i++) _child[i]->drawInitialAdmixtureProps(alpha);
 
 //   // set priors on individual admixture to be passed to individual if no hierarchical model
 //   admixtureprior.resize(2);
@@ -133,7 +134,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   // allocate array of sufficient statistics for update of population admixture parameters
   SumLogTheta = new double[ options->getPopulations()];
 
-  // this function probably not required
+//   // this call required for chib algorithm 
   if( options->getMLIndicator() )
     InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
@@ -141,11 +142,11 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
 }
 
 
-// ** this function needs debugging
+// // ** this function needs debugging
+// required for chib algorithm but all necessary code could be moved to individual 
 void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options, 
 					  const DataMatrix &MLEMatrix){
   //set thetahat and rhohat, estimates of individual admixture and sumintensities
-
    size_t size_admix;
    int K = options->getPopulations();
    if( options->isRandomMatingModel() )
@@ -331,6 +332,11 @@ void IndividualCollection::HMMIsBad(bool b){
   if(TestInd)TestInd->HMMIsBad(b);
   for(unsigned i = 0; i < size; ++i)
     _child[i]->HMMIsBad(b);
+}
+
+void IndividualCollection::resetStepSizeApproximators(int k) {
+  for(unsigned i = 0; i < size; ++i)
+    _child[i]->resetStepSizeApproximator(k);
 }
 
 // ************** UPDATING **************

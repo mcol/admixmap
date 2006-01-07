@@ -17,7 +17,7 @@ my $executable = 'admixmap';
 # keys (left-hand side) are parameter names
 # values (right-hand side) are parameter values
 my $arg_hash = {
-    samples                    => 50, 
+    samples                    => 15, 
     burnin                     => 5,
     every                      => 1,
     locusfile                  => 'data/loci.txt',
@@ -42,29 +42,29 @@ my $arg_hash = {
 
 # single population, thermodynamic  
 $arg_hash->{thermo} = 1;
-$arg_hash->{numannealedruns} = 10;
+$arg_hash->{numannealedruns} = 4;
 $arg_hash->{populations} = 1;
 #$arg_hash->{indadmixhiermodel} = 0;
 #$arg_hash->{hapmixmodel}=1;
-#doAnalysis($executable,$arg_hash, $resultsdir);
-#&CompareThenMove("results", "results0");
+doAnalysis($executable,$arg_hash, $resultsdir);
+&CompareThenMove("results", "results0");
 
 # single population, reference prior on allele freqs, annealing  
 $arg_hash->{thermo} = 0;
-$arg_hash->{numannealedruns} = 5;
+$arg_hash->{numannealedruns} = 4;
 $arg_hash->{populations} = 1;
 $arg_hash->{indadmixhiermodel} = 1;
-#$arg_hash->{hapmixmodel}=0;
+$arg_hash->{hapmixmodel}=0;
 $arg_hash->{stratificationtestfile}  = 'strat_test.txt';
-#doAnalysis($executable,$arg_hash, $resultsdir);
-#&CompareThenMove("results", "results1");
+doAnalysis($executable,$arg_hash, $resultsdir);
+&CompareThenMove("results", "results1");
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{numannealedruns} = 0;
 $arg_hash->{populations}     = 2;
 $arg_hash->{sumintensitiesalpha}  = 5;
-#doAnalysis($executable,$arg_hash);
-#&CompareThenMove("results", "results2");
+doAnalysis($executable,$arg_hash);
+&CompareThenMove("results", "results2");
 
 # fixed allele freqs
 delete $arg_hash->{populations};
@@ -75,8 +75,8 @@ $arg_hash->{allelefreqscorefile2} = 'allelefreqscorefile2.txt';
 $arg_hash->{ancestryassociationscorefile} = 'ancestryassocscorefile.txt';
 $arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
 $arg_hash->{globalrho} = 0;
-#doAnalysis($executable,$arg_hash);
-#&CompareThenMove("results", "results3");
+doAnalysis($executable,$arg_hash);
+&CompareThenMove("results", "results3");
 
 # prior on allele freqs
 $arg_hash->{fixedallelefreqs} = 0;
@@ -87,8 +87,8 @@ delete $arg_hash->{allelefreqscorefile2};
 delete $arg_hash->{affectedsonlyscorefile};
 $arg_hash->{dispersiontestfile}  = 'dispersiontest.txt';
 $arg_hash->{targetindicator} = 1; # skin reflectance
-#doAnalysis($executable,$arg_hash);
-#&CompareThenMove("results", "results4");
+doAnalysis($executable,$arg_hash);
+&CompareThenMove("results", "results4");
 
 # dispersion model for allele freqs 
 delete $arg_hash->{priorallelefreqfile};
@@ -99,8 +99,8 @@ $arg_hash->{fstoutputfile} = 'FSToutputfile.txt';
 $arg_hash->{dispparamfile} = 'disppar.txt';
 $arg_hash->{randommatingmodel} = 0;
 $arg_hash->{targetindicator} = 0; # diabetes
-#doAnalysis($executable,$arg_hash);
-#&CompareThenMove("results", "results5");
+doAnalysis($executable,$arg_hash);
+&CompareThenMove("results", "results5");
 
 #Single individual
 my $arg_hash = {
@@ -118,11 +118,11 @@ my $arg_hash = {
     sumintensitiesalpha          => 1.0, #flat prior on sumintensities
     sumintensitiesprior          => "4,3,3",
 #    fixedallelefreqs             => 1,
-    initalpha0                   => "1,1,1",
-    initalpha1                   => "1,1,1",
+    admixtureprior                   => "1,1,0",
+    admixtureprior1                   => "1,1,1",
 
     logfile                      => "logfile.txt",
-    # chib                         => 1,
+    chib                         => 1,
     indadmixturefile             => "indadmixture.txt"
 };
 
