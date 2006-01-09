@@ -370,13 +370,13 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 			      DerivativeInverseLinkFunction(0),
 			      R[0].getDispersion(), anneal );
     // if individual sum-intensities parameters, log-likelihood is now bad
-    if(options->getPopulations() > 1 && (iteration %2)) //conjugate update of theta on even-numbered iterations
-      TestInd->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
-			   & Covariates, beta, poptheta, options, alpha, sigma,
-			   DerivativeInverseLinkFunction(0), 
-			   R[0].getDispersion(), false, anneal);
-    if(size > 1) TestInd->HMMIsBad(true); // HMM is bad because update of next individual will overwrite HMM probs
-    // log-likelihood is bad if individual sum-intensities parameters have been updated, or if conjugate update of theta
+//     if(options->getPopulations() > 1 && (iteration %2)) //conjugate update of theta on even-numbered iterations
+//       TestInd->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
+// 			   & Covariates, beta, poptheta, options, alpha, sigma,
+// 			   DerivativeInverseLinkFunction(0), 
+// 			   R[0].getDispersion(), false, anneal);
+//     if(size > 1) TestInd->HMMIsBad(true); // HMM is bad because update of next individual will overwrite HMM probs
+//     // log-likelihood is bad if individual sum-intensities parameters have been updated, or if conjugate update of theta
   }
 
   for(unsigned int i = 0; i < size; i++ ){
@@ -388,11 +388,11 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 				chrm, alpha, rhoalpha, rhobeta, sigma,  
 				DerivativeInverseLinkFunction(i+i0),
 				R[0].getDispersion(), anneal );
-    if(options->getPopulations() > 1 && (iteration %2))//conjugate update of theta on even-numbered iterations
-      _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
-			     & Covariates, beta, poptheta, options, alpha, sigma,
-			     DerivativeInverseLinkFunction(i+i0), 
-			     R[0].getDispersion(), false, anneal);
+//     if(options->getPopulations() > 1 && (iteration %2))//conjugate update of theta on even-numbered iterations
+//       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
+// 			     & Covariates, beta, poptheta, options, alpha, sigma,
+// 			     DerivativeInverseLinkFunction(i+i0), 
+// 			     R[0].getDispersion(), false, anneal);
     if(size > 1)_child[prev]->HMMIsBad(true); // HMM is bad - see above
     
     if( options->getMLIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
@@ -606,7 +606,9 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromo
   // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
   if( !options->getTestOneIndivIndicator() ) { // evaluate likelihood for all individuals
     for(unsigned i = 0; i < size; ++i) {
-      LogLikHMM += _child[i]->getLogLikelihood(options, C, true, !annealed); //force HMM update, store result if not an annealed run
+      LogLikHMM += _child[i]->getLogLikelihood(options, C, false, !annealed); // store result if not an annealed run
+      // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
+
       if(annealed)  _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
       else _child[i]->HMMIsBad(false); 
     } 

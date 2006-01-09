@@ -60,7 +60,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     double alpha = options->getRhobetaShape();
     double init = options->getRhoalpha();
     if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
-      if(alpha > 1)init *= options->getRhobetaRate() / (options->getRhobetaShape() - 1 );//prior mean
+      if(alpha > 1) init *= options->getRhobetaRate() / (options->getRhobetaShape() - 1 );//prior mean
       else init *= options->getRhobetaRate() / options->getRhobetaShape() ;//conditional prior mean
     }
     else init = 2.0;//min value if flat prior
@@ -166,7 +166,6 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   w = 1;
   step0 = 0.3; // initial sd of random walk proposal distribution 
   step = step0;
-  // cout << "initial step size " << step << endl << flush;
   ThetaTuner.SetParameters( step0, 0.00, 10.0, 0.44);  
 
   logLikelihood.value = 0.0;
@@ -239,6 +238,7 @@ void Individual::SetStaticMembers(const Genome* const pLoci, const AdmixOptions*
   Loci = pLoci;
   numChromosomes = Loci->GetNumberOfChromosomes();
   Populations = options->getPopulations();
+  int K = Populations;
   int L = Loci->GetNumberOfCompositeLoci();
 
   LikRatio1 = 0;
@@ -253,8 +253,6 @@ void Individual::SetStaticMembers(const Genome* const pLoci, const AdmixOptions*
   B = 0;
   PrevB = 0;
   Xcov = 0;
-
-  int K = Populations;
 
   if( options->getTestForAffectedsOnly() ){
     if(Populations == 2) K = 1;
@@ -328,13 +326,11 @@ const int* Individual::getSampledHapPair(int locus)const{
   return sampledHapPairs[locus].haps;
 }
 
-const double* Individual::getAdmixtureProps()const
-{
+const double* Individual::getAdmixtureProps()const {
   return Theta;
 }
 
-Sex Individual::getSex()const 
-{
+Sex Individual::getSex()const {
    return sex;
 }
 
@@ -350,7 +346,7 @@ const vector<double> Individual::getRho()const {
    return _rho;
 }
 
-void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const{
+void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const {
   Ancestry[0]  = LocusAncestry[chrm][locus];
   if((unsigned)chrm == X_posn)Ancestry[1] = Ancestry[0];
   else Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
@@ -413,13 +409,13 @@ void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Met
 double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
   //TODO: X chromosome objects
-  //obtain ergodic averages of (softmax)admixture props and (log)sumintensities and transform back
+  //obtain ergodic averages of (inv_softmax)admixture props and (log)sumintensities and transform back
   //to original scales
   unsigned size = Populations; if(options->isRandomMatingModel())size *=2;
   for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (options->getTotalSamples() - options->getBurnIn());
   for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] = exp(sumlogrho[i]/(options->getTotalSamples() - options->getBurnIn()));
 
-  //apply inverse softmax transformation to obtain thetabar
+  //apply softmax transformation to obtain thetabar
   unsigned G = 1;
   if( options->isRandomMatingModel() )G = 2;//random mating model
   double ThetaBar[G*Populations];
@@ -427,8 +423,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
     bool b[Populations];
     for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
       b[k] = true; //to skip elements set to zero
-    }
-    else b[k] = false;
+    } else b[k] = false;
     softmax(Populations, ThetaBar+g*Populations, SumSoftmaxTheta+g*Populations, b);
   }
   
@@ -487,9 +482,19 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     should model this with a Dirichlet dispersion parameter  
   DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
   dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
+
+to make this find posterior mode we need options to:
+1. accept rw proposals only if logpratio > 0;
+2. accumulate sums and means of sufficient statistics: numarrivals and locus ancestry
+3. propose updates only every n iterations
+4. conjugate updates to mode 
+
+// calling function should specify num iterations for each EM step, and max num EM steps.  
+// then use existing code to output result to log
+ 
 */
   
-  if(Populations>1)`{
+  if(Populations>1) {
     // ** reset SumLocusAncestry to zero
     for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
     //  if(Loci->isX_data() ){
@@ -504,7 +509,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     else//assortative mating
       size_theta = Populations;
     
-    if(Populations >1 && !(iteration %2))//update theta with random walk on odd-numbered iterations
+    if(Populations >1 && !(iteration %2))//update theta with random walk proposal on odd-numbered iterations
       SampleTheta(iteration, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
 		  Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
     
@@ -546,10 +551,10 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
       chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X,
 				    SumNumArrivals, SumNumArrivals_X, options->isGlobalRho());
     
-  }//end chromosome loop
+  } //end chromosome loop
   
   // sample sum of intensities parameter rho if defined at individual level - then set HMM and loglikelihood as bad 
-  if(Populations>1 &&  !options->isGlobalRho() ){
+  if(Populations>1 &&  !options->isGlobalRho() ) {
     SampleRho( options, Loci->isX_data(), rhoalpha, rhobeta, SumNumArrivals, SumNumArrivals_X);
     HMMIsBad(true);
   }
@@ -557,6 +562,12 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(unsigned i = 0; i < _rho.size(); ++i) sumlogrho[i] += log(_rho[i]);
   }
 
+  if(Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on even-numbered iterations
+    SampleTheta(iteration, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
+		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
+    HMMIsBad(true); // because admixture props have changed
+  }  
+  // after an odd-numbered iteration with a global sum-intensities model, stored log-likelihood is still ok.  
   SampleMissingOutcomes(Outcome, OutcomeType, ExpectedY, lambda);
 }
 
@@ -685,7 +696,6 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
 // proposes new values for both gametes if random mating model 
 void Individual::ProposeTheta(const AdmixOptions* const options, const vector<double> sigma, const vector<vector<double> > &alpha){
   size_t K = Populations;
-  // if no regression model, sample admixture proportions theta as a conjugate Dirichlet posterior   
   if( options->isXOnlyAnalysis() ){
     for(size_t k = 0; k < K; ++k) dirparams[k] = alpha[0][k] + SumLocusAncestry_X[k];
     gendirichlet(K, dirparams, ThetaProposal );
@@ -730,8 +740,7 @@ double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType,
 							 int Populations, int NumCovariates, 
 							 const DataMatrix* const Covariates, const vector<const double*> beta, 
 							 const double* const* ExpectedY, const DataMatrix* const Outcome, 
-							 const double* const poptheta, const vector<double> lambda)
-{
+							 const double* const poptheta, const vector<double> lambda) {
   double logprobratio = 0.0, Xbeta = 0.0;
   vector<double> avgtheta(Populations);avgtheta[0] = 0.0;
   if( RandomMatingModel )
@@ -759,39 +768,37 @@ double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType,
   }
   return( logprobratio );
 }
-double Individual::LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations )
-{
-   int gametes = 1;
-   if( sex == female )
-      gametes = 2;
-   double logpratio = 0, sum1 = 0.0, sum2 = 0.0;
 
-   for( int g = 0; g < gametes; g++ ){
-     sum1 = sum2 = 0.0;
-     for( int k = 0; k < Populations; k++ ) {
-       sum1 += ThetaProposal[g*Populations + k];
-       sum2 += Theta[g*Populations + k];
-     }
-     logpratio += gsl_sf_lngamma( sigma[g]*sum1 )
-       - gsl_sf_lngamma( sigma[g]*sum2 );
-     for( int k = 0; k < Populations; k++ ){
-       logpratio += gsl_sf_lngamma( sigma[g]*Theta[g*Populations + k] ) - gsl_sf_lngamma( sigma[g]*ThetaProposal[g*Populations +k] );
-       logpratio += (sigma[g]*ThetaProposal[g*Populations + k]-1.0)*log(ThetaXProposal[g*Populations +k]) - 
-	 (sigma[g]*Theta[g*Populations + k]-1.0) *log(ThetaX[g*Populations + k]);
-     }
-   }
-   return logpratio;
+double Individual::LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations ) {
+  int gametes = 1;
+  if( sex == female )
+    gametes = 2;
+  double logpratio = 0, sum1 = 0.0, sum2 = 0.0;
+  
+  for( int g = 0; g < gametes; g++ ){
+    sum1 = sum2 = 0.0;
+    for( int k = 0; k < Populations; k++ ) {
+      sum1 += ThetaProposal[g*Populations + k];
+      sum2 += Theta[g*Populations + k];
+    }
+    logpratio += gsl_sf_lngamma( sigma[g]*sum1 )
+      - gsl_sf_lngamma( sigma[g]*sum2 );
+    for( int k = 0; k < Populations; k++ ){
+      logpratio += gsl_sf_lngamma( sigma[g]*Theta[g*Populations + k] ) - gsl_sf_lngamma( sigma[g]*ThetaProposal[g*Populations +k] );
+      logpratio += (sigma[g]*ThetaProposal[g*Populations + k]-1.0)*log(ThetaXProposal[g*Populations +k]) - 
+	(sigma[g]*Theta[g*Populations + k]-1.0) *log(ThetaX[g*Populations + k]);
+    }
+  }
+  return logpratio;
 }
 
 // update the individual admixture values (mean of both gametes) used in the regression model
 void Individual::UpdateAdmixtureForRegression( int Populations, int NumCovariates,
                                                const double* const poptheta, bool RandomMatingModel, 
-					       DataMatrix *Covariates)
-{
+					       DataMatrix *Covariates) {
   vector<double> avgtheta(Populations);
   if(RandomMatingModel )//average over gametes
     for(int k = 0; k < Populations; ++k) avgtheta[k] = (Theta[k] + Theta[k + Populations]) / 2.0;    
-  
   else
     for(int k = 0; k < Populations; ++k) avgtheta[k] = Theta[k];
   for( int k = 1; k < Populations ; k++ )
@@ -803,7 +810,6 @@ void Individual::UpdateAdmixtureForRegression( int Populations, int NumCovariate
 // if no regression model, logpratio remains set to 0, so all proposals are accepted 
 void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populations, bool RandomMatingModel, bool RW )
 {
-  //if(myNumber < 3) cout << "\nlogpratio " << logpratio << flush;
   bool test = true;
   bool accept = false;
   double AccProb = exp(logpratio);
