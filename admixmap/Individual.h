@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   Individual.h 
  *   header file for Individual class
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -102,9 +102,19 @@ public:
 			 const AdmixOptions* const options,
 			 Chromosome **chrm, const vector<vector<double> > &alpha,  
 			 double rhoalpha, double rhobeta, const vector<double> sigma, 
-			 double DInvLink, double dispersion, bool anneal);
+			 double DInvLink, double dispersion, bool anneal, bool, bool, bool);
 
-  void SampleTheta( int iteration, double *SumLogTheta, const DataMatrix* const Outcome, Chromosome ** C,
+  void FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMatrix *Outcome,
+			  const DataType* const OutcomeType, const double* const * ExpectedY, 
+			  const vector<double> lambda, int NumCovariates,
+			  DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
+			  const AdmixOptions* const options,
+			  Chromosome **chrm, const vector<vector<double> > &alpha,  
+			  double rhoalpha, double rhobeta, const vector<double> sigma, 
+			  double DInvLink, double dispersion, std::ofstream &modefile);
+
+  void SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
+		    const DataMatrix* const Outcome, Chromosome ** C,
 		    const DataType* const OutcomeType, const double* const* ExpectedY, 
 		    const std::vector<double> lambda, int NumCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
@@ -148,6 +158,7 @@ private:
   static const Genome *Loci;
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
   double *Theta, *ThetaX;//admixture proportions
+  double* ThetaMode;
   double *SumSoftmaxTheta;
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
 
@@ -155,6 +166,7 @@ private:
   unsigned SumNumArrivals[2], SumNumArrivals_X[2];
 
   std::vector< double > _rho; //sum of intensities
+  std::vector< double > rhoMode;
   std::vector< double > _rho_X;//sum of intensities for X chromosome
   std::vector<double> sumlogrho;
   double TruncationPt; // upper truncation point for sum intensities parameter rho
@@ -208,9 +220,12 @@ private:
 			     const vector<double> rho, const vector<double> rhoX);
   
   void SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta,  
-		 unsigned int SumN[], unsigned int SumN_X[]);
+		 unsigned int SumN[], unsigned int SumN_X[], 
+		 vector<double>* rho, vector<double>*rho_X);
   
-  void ProposeTheta(const AdmixOptions* const options, const vector<double> sigma, const vector<vector<double> > &alpha);
+  void ProposeTheta(const AdmixOptions* const options, const vector<double> sigma, const vector<vector<double> > &alpha,
+		    int *SumLocusAncestry, int* SumLocusAncestry_X);
+
   double ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, const vector<vector<double> > &alpha);
   
   double LogPrior(const double* const theta, const double* const thetaX, const vector<double> rho, const vector<double> rhoX, 

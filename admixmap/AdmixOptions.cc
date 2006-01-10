@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   AdmixOptions.cc 
  *   Class to hold program options
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -239,9 +239,6 @@ long AdmixOptions::getTotalSamples() const
 int AdmixOptions::getTargetIndicator() const
 {
   return TargetIndicator;
-}
-bool AdmixOptions::isParallel()const{
-  return parallel;
 }
 int AdmixOptions::getDisplayLevel() const
 {
@@ -603,6 +600,9 @@ bool AdmixOptions::isAdmixed(unsigned gamete)const{
 const char*AdmixOptions::getLikRatioFilename() const{
   return LikRatioFilename.c_str();
 }
+const char* AdmixOptions::getIndAdmixModeFilename()const{
+  return IndAdmixModeFilename.c_str();
+}
 
 void AdmixOptions::SetOptions(int nargs, char** args)
 {
@@ -695,11 +695,11 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"dispersiontestfile",                    1, 0,  0 }, // string
     {"fstoutputfile",                         1, 0,  0 }, // string
     {"hwscoretestfile",                       1, 0,  0 }, // string
-    {"likratiofilename",                       1, 0,  0 }, // string
+    {"likratiofilename",                      1, 0,  0 }, // string
+    {"indadmixmodefilename",                  1, 0,  0 }, // string
 
     // Other options
     {"numannealedruns",                       1, 0,  0 }, // long
-    {"parallel",                              1, 0,  0 }, // int 0: 1
     {"coutindicator",                         1, 0, 'c'}, // int 0: 1
     {"displaylevel",                          1, 0,  0 }, // int 0: 2
     {"randommatingmodel",                     1, 0,  0 }, // int 0: 1
@@ -842,6 +842,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 TestForSNPsInHaplotype = true; ScoreTestIndicator = true;
       } else if (long_option_name == "likratiofilename") {
 	LikRatioFilename = optarg;//OptionValues["likratiofilename"]=optarg;
+      }else if (long_option_name == "indadmixmodefilename"){
+	IndAdmixModeFilename = optarg; 
+	OptionValues["indadmixmodes"] = optarg;
 
 	 // ** input files **
       } else if (long_option_name == "outcomevarfile") {
@@ -943,9 +946,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 initalpha[0] = CstrToVec(optarg);OptionValues["initalpha0"]=optarg;
       } else if (long_option_name == "admixtureprior1") {
 	 initalpha[1] = CstrToVec(optarg);OptionValues["initalpha1"]=optarg;
-      } else if (long_option_name == "parallel") {
-	if (strtol(optarg, NULL, 10) == 1) {parallel=true; OptionValues["parallel"]=optarg;}
-	else parallel = false;
       } else {
 	cerr << "Unknown option: " << long_option_name;
 	if (optarg) {
@@ -996,6 +996,7 @@ void AdmixOptions::SetOutputNames(){
   if ( HWTestFilename != "") HWTestFilename = ResultsDir + "/" + HWTestFilename;
   if ( LikRatioFilename != "") LikRatioFilename = ResultsDir + "/" + LikRatioFilename;
   ResidualFilename = ResultsDir + "/" + ResidualFilename;
+  if(IndAdmixModeFilename != "") IndAdmixModeFilename = ResultsDir + "/" + IndAdmixModeFilename;
 }
 
 void AdmixOptions::PrintOptions(){

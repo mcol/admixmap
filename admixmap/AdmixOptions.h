@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   AdmixOptions.h 
  *   header file for AdmixOptions class
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -92,7 +92,6 @@ public:
   void setgenotypesSexColumn(unsigned int i);
   
   //indicators and model options
-  bool isParallel()const;  
   int getDisplayLevel() const;
   bool getFixedAlleleFreqs() const;
   bool getCorrelatedAlleleFreqs() const;
@@ -107,7 +106,7 @@ public:
   bool getAnnealIndicator() const;
   bool getTestOneIndivIndicator() const;
   long getNumAnnealedRuns() const;
-  double getTruncPt() const;  
+  double getTruncPt() const;
   int getPopulations() const; 
   void setPopulations(int num);
   bool IsPedFile() const;
@@ -127,6 +126,7 @@ public:
   const char *getAssocScoreFilename() const;
   const char *getHWTestFilename() const;
   const char* getLikRatioFilename() const;
+  const char* getIndAdmixModeFilename()const;
 
   //score test indicators 
   bool getScoreTestIndicator() const; //indicator for any score test (except misspec allelefreqs) 
@@ -166,7 +166,6 @@ private:
   int TargetIndicator;
   double TruncPt;
   int Populations;
-  bool parallel;//indicator for parallel version
   int displayLevel;
   bool OutputFST;
   bool XOnlyAnalysis;
@@ -232,6 +231,7 @@ private:
   string AncestryAssociationScoreFilename;
   string HWTestFilename;
   string LikRatioFilename;
+  string IndAdmixModeFilename;
 
   string LocusFilename;
   string GenotypesFilename;

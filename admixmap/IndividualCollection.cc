@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   IndividualCollection.cc 
  *   Class to hold an array of Individuals
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,7 +54,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
   sigma.resize(2);
   sigma[0] = sigma[1] = 1.0;
-  TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer?) which is used as a bool 
+  TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer) 
 
   Individual::SetStaticMembers(&Loci, options);
   
@@ -68,7 +68,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
 
   _child = new Individual*[size];
   for (unsigned int i = 0; i < size; ++i) {
-    _child[i] = new Individual(i+i0+1, options, Data, Loci, chrm);
+    _child[i] = new Individual(i+i0+1, options, Data, Loci, chrm);//NB: first arg sets Individual's number
     }
 }
 
@@ -80,8 +80,8 @@ IndividualCollection::~IndividualCollection() {
     delete _child[i];
   }
   delete[] _child;
-  cout << flush;
   delete TestInd;
+  cout << flush;
   delete indadmixoutput;
   delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
@@ -360,7 +360,6 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 
   //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
 
-  // clumsy to have two blocks of duplicated code - combine into one function
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
@@ -368,15 +367,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 			      lambda, NumCovariates, &Covariates, beta, poptheta, options,
 			      chrm, alpha, rhoalpha, rhobeta, sigma,  
 			      DerivativeInverseLinkFunction(0),
-			      R[0].getDispersion(), anneal );
-    // if individual sum-intensities parameters, log-likelihood is now bad
-//     if(options->getPopulations() > 1 && (iteration %2)) //conjugate update of theta on even-numbered iterations
-//       TestInd->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
-// 			   & Covariates, beta, poptheta, options, alpha, sigma,
-// 			   DerivativeInverseLinkFunction(0), 
-// 			   R[0].getDispersion(), false, anneal);
-//     if(size > 1) TestInd->HMMIsBad(true); // HMM is bad because update of next individual will overwrite HMM probs
-//     // log-likelihood is bad if individual sum-intensities parameters have been updated, or if conjugate update of theta
+			      R[0].getDispersion(), anneal, true, true, true );
   }
 
   for(unsigned int i = 0; i < size; i++ ){
@@ -387,12 +378,8 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				chrm, alpha, rhoalpha, rhobeta, sigma,  
 				DerivativeInverseLinkFunction(i+i0),
-				R[0].getDispersion(), anneal );
-//     if(options->getPopulations() > 1 && (iteration %2))//conjugate update of theta on even-numbered iterations
-//       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
-// 			     & Covariates, beta, poptheta, options, alpha, sigma,
-// 			     DerivativeInverseLinkFunction(i+i0), 
-// 			     R[0].getDispersion(), false, anneal);
+				R[0].getDispersion(), (anneal && !options->getTestOneIndivIndicator()), true, true, true );
+
     if(size > 1)_child[prev]->HMMIsBad(true); // HMM is bad - see above
     
     if( options->getMLIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
@@ -415,11 +402,60 @@ void IndividualCollection::setGenotypeProbs(Chromosome** C, unsigned nchr){
 void IndividualCollection::annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness){
   if(TestInd) { // anneal test individual only
     for(unsigned j = 0; j < nchr; ++j) TestInd->AnnealGenotypeProbs(j, C[j], coolness);
-  } else { // anneal all individuals
+
+  } else { // anneal all individuals`
     for(unsigned int i = 0; i < size; ++i) {
       for(unsigned j = 0; j < nchr; ++j) _child[i]->AnnealGenotypeProbs(j, C[j], coolness);
     }
   }
+}
+
+void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
+				  const Regression* const R, const double* const poptheta,
+				  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta){
+  cout<<"Searching for posterior modes of individual admixture..."<<endl;
+  //open output file and write header
+  ofstream modefile(options->getIndAdmixModeFilename());
+  modefile << "Individual \t";
+  if(!options->isGlobalRho()){
+    if(options->isRandomMatingModel())modefile << "rho0 \t rho1 \t";
+    else modefile << "rho \t";
+  }
+  if(options->isRandomMatingModel()){
+    for(int g = 0; g < 2; ++g)
+      for(int k = 0; k < options->getPopulations(); ++k)modefile << "theta"<<g<<k<<" \t";//should use poplabels
+  }
+  else{
+    for(int k = 0; k < options->getPopulations(); ++k)modefile << "theta"<<k<<" \t";//should use poplabels
+  }
+  modefile <<endl;
+
+  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+
+  vector<double> lambda;
+  vector<const double*> beta;
+  for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+    lambda.push_back( R[i].getlambda());
+    beta.push_back( R[i].getbeta());
+  }
+  int i0 = 0;
+  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
+    i0 = 1;
+    TestInd->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
+				lambda, NumCovariates, &Covariates, beta, poptheta, options,
+				chrm, alpha, rhoalpha, rhobeta, sigma,  
+				DerivativeInverseLinkFunction(0),
+				R[0].getDispersion(), modefile);
+  }
+  for(unsigned int i = 0; i < size; i++ ){
+    _child[i]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
+				lambda, NumCovariates, &Covariates, beta, poptheta, options,
+				chrm, alpha, rhoalpha, rhobeta, sigma,  
+				DerivativeInverseLinkFunction(i+i0),
+				  R[0].getDispersion(), modefile);
+    modefile << endl;
+  }
+  modefile.close();
 }
 
 // ************** ACCESSORS **************

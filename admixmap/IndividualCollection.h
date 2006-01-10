@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   IndividualCollection.h 
  *   header file for IndividualCollection class
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,9 +60,10 @@ public:
 	      const std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
 	      LogWriter &Log, bool anneal);
 
-  void ConjugateUpdateIndAdmixture(int iteration, const Regression* const R, const double* const poptheta, 
-				   const AdmixOptions* const options, Chromosome **chrm, 
-				   const vector<vector<double> > &alpha);
+  void FindPosteriorModes(const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
+			  const Regression* const R, const double* const poptheta,
+			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta);
+
   void setGenotypeProbs(Chromosome** C, unsigned nchr);
   void annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness);
   

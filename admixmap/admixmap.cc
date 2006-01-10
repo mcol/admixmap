@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   admixmap.cc 
  *   Top-level source file
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -263,6 +263,12 @@ int main( int argc , char** argv ){
       Log << "Log evidence (marginal likelihood) by thermodynamic integration: " <<  LogEvidence << "\n"; 
       Log << "Information (negative entropy, measured in nats): " << Information << "\n";
     }
+
+    //posterior modes of individual admixture
+    if(strlen(options.getIndAdmixModeFilename())){
+      IC->FindPosteriorModes(&options, chrm, &A, R, L.getpoptheta(), L.getalpha(), L.getrhoalpha(), L.getrhobeta());
+    }
+    //TODO: output to file when ready
     
     //Residuals
     if(options.getNumberOfOutcomes() > 0)
@@ -371,7 +377,8 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
 		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data) {
-  double Energy = 0.0; 
+  double Energy = 0.0;
+  if(!AnnealedRun) cout << endl;
   for( int iteration = 0; iteration <= samples; iteration++ ) {
     if(iteration > burnin) {
       //accumulate energy as minus loglikelihood, calculated using unnanealed genotype probs
@@ -379,8 +386,9 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
       SumEnergy += Energy;
       SumEnergySq += Energy*Energy;
       // write to file if not AnnealedRun
-      if(!AnnealedRun) loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+      if(!AnnealedRun)loglikelihoodfile << iteration<< "\t" << Energy <<endl;
     }
+      
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
@@ -620,7 +628,7 @@ void PrintCopyrightNotice(){
   cout << "-----------------------------------------------" << endl;
   cout << "Programme Authors: " <<endl;
   cout << "David O'Donnell, Clive Hoggart and Paul McKeigue"<<endl;
-  cout << "Copyright(c) 2002, 2003, 2004, 2005 LSHTM" <<endl;
+  cout << "Copyright(c) 2002-2006 LSHTM" <<endl;
   cout << "Send any comments or queries to david.odonnell@ucd.ie"<<endl;
   cout << "-----------------------------------------------"<<endl;
   cout << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl;
@@ -634,6 +642,6 @@ void PrintOptionsMessage() {
        << "1. (not recommended) admixmap --[optionname]=[value] ...\n"
        << "2. admixmap [optionfile], where optionfile is a text file containg a list of user options\n"
        << "3. use a Perl script to call the program with command-line arguments. \nSee sample script supplied with this program.\n"
-	 << "Consult the manual for a list of user options."
+       << "Consult the manual for a list of user options."
        << endl;
 }
