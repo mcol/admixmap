@@ -62,7 +62,8 @@ public:
 
   void FindPosteriorModes(const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 			  const Regression* const R, const double* const poptheta,
-			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta);
+			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
+			  const std::string* const PopulationLabels);
 
   void setGenotypeProbs(Chromosome** C, unsigned nchr);
   void annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness);

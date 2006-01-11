@@ -266,9 +266,8 @@ int main( int argc , char** argv ){
 
     //posterior modes of individual admixture
     if(strlen(options.getIndAdmixModeFilename())){
-      IC->FindPosteriorModes(&options, chrm, &A, R, L.getpoptheta(), L.getalpha(), L.getrhoalpha(), L.getrhobeta());
+      IC->FindPosteriorModes(&options, chrm, &A, R, L.getpoptheta(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), data.GetPopLabels());
     }
-    //TODO: output to file when ready
     
     //Residuals
     if(options.getNumberOfOutcomes() > 0)

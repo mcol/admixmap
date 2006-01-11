@@ -411,8 +411,9 @@ void IndividualCollection::annealGenotypeProbs(Chromosome** C, unsigned nchr, co
 }
 
 void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
-				  const Regression* const R, const double* const poptheta,
-				  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta){
+					      const Regression* const R, const double* const poptheta,
+					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
+					      const std::string* const PopulationLabels){
   cout<<"Searching for posterior modes of individual admixture..."<<endl;
   //open output file and write header
   ofstream modefile(options->getIndAdmixModeFilename());
@@ -423,10 +424,10 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   }
   if(options->isRandomMatingModel()){
     for(int g = 0; g < 2; ++g)
-      for(int k = 0; k < options->getPopulations(); ++k)modefile << "theta"<<g<<k<<" \t";//should use poplabels
+      for(int k = 0; k < options->getPopulations(); ++k)modefile << "theta"<<g<<PopulationLabels[k]<<" \t";
   }
   else{
-    for(int k = 0; k < options->getPopulations(); ++k)modefile << "theta"<<k<<" \t";//should use poplabels
+    for(int k = 0; k < options->getPopulations(); ++k)modefile << "theta"<<PopulationLabels[k]<<" \t";
   }
   modefile <<endl;
 
