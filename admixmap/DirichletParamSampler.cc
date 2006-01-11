@@ -1,4 +1,6 @@
 #include "DirichletParamSampler.h"
+#include <algorithm>
+#include <numeric>
 
 using namespace std;
 
@@ -6,30 +8,37 @@ using namespace std;
 
 DirichletParamSampler::DirichletParamSampler()
 {
+#if SAMPLERTYPE==1
   step0 = 0.1; //sd of proposal distribution for log eta
   // need to choose sensible value for this initial RW sd
   step = step0;
   TuneEta.SetParameters( step0, 0.01, 10, 0.44); 
   EtaAlpha = 1;
   EtaBeta = 1;
+  mu = 0;
   munew = 0;
   gamma = 0;
   DirParamArray = 0;
+#elif SAMPLERTYPE==2
+
+#endif
 }
 
-DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops )
+DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops, double priormean, double priorvar )
 {
-  SetSize(numind, numpops);
+  SetSize(numind, numpops, priormean, priorvar);
 }
 
-void DirichletParamSampler::SetSize( unsigned /*numind*/, unsigned numpops )
+void DirichletParamSampler::SetSize( unsigned /*numind*/, unsigned numpops, double /*priormean*/, double /*priorvar*/ )
   // sets number of elements in Dirichlet parameter vector
   // instantiates an adaptive rejection sampler object for each element
 //sets up MuSampler object 
 {
    d = numpops;
+#if SAMPLERTYPE==1
    //Dirichlet(gamma[0]...gamma[d-1]) prior on proportions mu
    gamma = new double[d];
+   mu = new double[d];
    munew = new double[d];
    for( unsigned int i = 0; i < d; i++ )
       gamma[i] = 1.0;
@@ -40,11 +49,26 @@ void DirichletParamSampler::SetSize( unsigned /*numind*/, unsigned numpops )
       DirParamArray[j]->Initialise(true, true, 0.0, 1.0, logf, dlogf);
       DirParamArray[j]->setLowerBound(0.00);
    }
-   //muSampler.setDimensions(numind, numpops, 0.00001 , 0.0, 1.0, 0.44);//may need to modify initial stepsize (arg 3)
+
+#elif SAMPLERTYPE==2
+   logalpha = new double[d];
+   transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
+   
+   //elem 0 is sum of log admixture props
+   AlphaArgs.n = numind;//num individuals/gametes
+   AlphaArgs.dim = d;
+   if( options->isRandomMatingModel() )AlphaArgs.n *= 2;
+   AlphaArgs.eps0 = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
+   AlphaArgs.eps1 = alphapriormean / alphapriorvar;
+   
+   AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
+#endif
 }
 
 DirichletParamSampler::~DirichletParamSampler()
 {
+#if SAMPLERTYPE==1
+  delete[] mu;
   delete [] munew;
   delete [] gamma;
   if(DirParamArray){//in case not allocated
@@ -54,6 +78,9 @@ DirichletParamSampler::~DirichletParamSampler()
     }
     delete[] DirParamArray;
   }
+#elif SAMPLERTYPE==2
+  delete[] logalpha;
+#endif
 }
 
 void DirichletParamSampler::SetPriorEta( double inEtaAlpha, double inEtaBeta )
@@ -69,18 +96,24 @@ void DirichletParamSampler::SetPriorMu( const double* const ingamma )
    }
 }
 
-//sample mus with adaptive rejection sampler, conditional on frequencies sumlogtheta, and eta with RW
-void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogtheta, double *eta, double *mu )
+void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogtheta, std::vector<double> *alpha )
 /*
   n = number of observations
+  sumlogtheta = summary from Individuals
 */
 {
+  // *** sample mus with adaptive rejection sampler, conditional on frequencies sumlogtheta, and eta with RW
+#if SAMPLERTYPE==1
+  eta = accumulate(alpha->begin(), alpha->end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
+    for( unsigned i = 0; i < d; i++ ){
+      mu[i] = (*alpha)[i]/eta;
+    }
 
   double b = mu[d-1] + mu[0];//upper bound for sampler
    double summu = 1.0 - mu[d-1];
    AlphaParameters[0] = n;
    for( unsigned int j = 0; j < d-1; j++ ){
-     AlphaParameters[1] = *eta; // dispersion parameter
+     AlphaParameters[1] = eta; // dispersion parameter
      AlphaParameters[2] = summu - mu[j]; // 1 - last proportion parameter
      AlphaParameters[3] = sumlogtheta[d-1]; 
      AlphaParameters[4] = sumlogtheta[j];
@@ -93,19 +126,21 @@ void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogth
    }
    mu[d-1] = 1.0 - summu;
    
-   SampleEta(n, sumlogtheta, eta, mu);
+   SampleEta(n, sumlogtheta, &eta, mu);
+
+   for( unsigned j = 0; j < d; j++ )
+     (*alpha)[j] = mu[j]*eta;
+
+   // *** Hamiltonian sampler for alpha
+#elif SAMPLERTYPE==2
+   AlphaArgs.sumlogtheta = individuals->getSumLogTheta();
+   AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
+   transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
+#endif
 
 }
 
-// //sample mu with MuSampler (ARS for dim==2, HMC otherwise), conditional on counts, and eta with RW
-// void DirichletParamSampler::Sample2(unsigned n, const double* const sumlogtheta, const double* const eta, double *mu,
-//const int* constcounts){
-//   for(unsigned k=0; k < d; ++k)mu[k] *= *eta;
-//   muSampler.Sample(mu, *eta, counts);
-//   for(unsigned k=0; k < d; ++k)mu[k] /= *eta;
-//   SampleEta(n, sumlogtheta, eta, mu);
-// }
-
+#if SAMPLERTYPE==1
 void DirichletParamSampler::SampleEta(unsigned n, const double* const sumlogtheta, double *eta, const double* const mu){
   // Dirichlet dispersion parameter eta is updated with a Metropolis random walk
   unsigned int i;
@@ -140,21 +175,10 @@ double DirichletParamSampler::getEtaExpectedAcceptanceRate()const
 {
     return TuneEta.getExpectedAcceptanceRate();
 }
-// double DirichletParamSampler::getMuStepSize()
-// {
-//     return muSampler.getStepsize();
-// }
-
-// double DirichletParamSampler::getMuExpectedAcceptanceRate()
-// {
-//     return muSampler.getAcceptanceRate();
-// }
-
 
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // Dirichlet proportion parameters
-double
-DirichletParamSampler::logf( double x, const void* const pars )
+double DirichletParamSampler::logf( double x, const void* const pars )
 {
   const double* parameters = (const double*) pars;
    int n = (int)parameters[0];
@@ -165,8 +189,7 @@ DirichletParamSampler::logf( double x, const void* const pars )
   return f;
 }
 
-double
-DirichletParamSampler::dlogf( double x, const void* const pars )
+double DirichletParamSampler::dlogf( double x, const void* const pars )
 {
   const double* parameters = (const double*) pars;
   double f,x2,y1,y2;
@@ -186,8 +209,7 @@ DirichletParamSampler::dlogf( double x, const void* const pars )
   return f;
 }
 
-double
-DirichletParamSampler::ddlogf( double x, const void* const pars)
+double DirichletParamSampler::ddlogf( double x, const void* const pars)
 {
   const double* parameters = (const double*) pars;
   double f,x2,y1,y2;
@@ -203,3 +225,51 @@ DirichletParamSampler::ddlogf( double x, const void* const pars)
   
   return(f);
 }
+
+#elif SAMPLERTYPE==2
+//calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm
+double DirichletParamSampler::findE(const double* const theta, const void* const vargs){
+  /*
+    theta = log dirichlet parameters (alpha)
+    n = #individuals/gametes
+    sumlogtheta (array, length dim) = sums of logs of individual admixture proportions
+    eps0, eps1 = parameters of Gamma prior for alpha
+  */
+  const AlphaSamplerArgs* args = (const AlphaSamplerArgs*)vargs;
+
+  double E = 0.0;
+  double sumalpha = 0.0, sumgamma = 0.0, sumtheta = 0.0, sume = 0.0;
+  bool flag = true;
+  for(int j = 0; j < args->dim; ++j){
+    if(exp(theta[j]) == 0.0){flag = false;break;} //to avoid underflow problems
+    sumalpha += exp(theta[j]);
+    sumgamma += gsl_sf_lngamma(exp(theta[j]));
+    sume += exp(theta[j]) * (args->eps1 - args->sumlogtheta[j]);
+    sumtheta += theta[j];
+  }
+  if(flag){
+    E = args->n * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + args->eps0 * sumtheta;
+    return -E;
+  }
+  else return -1.0;//is there a better return value? possibly use flag pointer
+}
+
+//calculate gradient for log alpha
+void DirichletParamSampler::gradE(const double* const theta, const void* const vargs, double *g){
+  const AlphaSamplerArgs* args = (const AlphaSamplerArgs*)vargs;
+  double sumalpha = 0.0, x, y1, y2;
+  for(int j = 0; j < args->dim; ++j) {
+    g[j] = 0.0;
+    sumalpha += exp(theta[j]);
+  }
+    ddigam(&sumalpha, &y1);
+    for(int j = 0; j < args->dim; ++j) {
+      x = exp(theta[j]);
+      ddigam(&x, &y2);
+      if(x > 0.0 && gsl_finite(y1) && gsl_finite(y2)){//to avoid over/underflow problems
+	g[j] = x *( args->n *(y2 - y1) + (args->eps1 - args->sumlogtheta[j])) - args->eps0;
+      }
+    }
+}
+
+#endif

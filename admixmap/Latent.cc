@@ -40,7 +40,7 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci)
   Loci = loci;
   poptheta = 0;
 #if POPADMIXSAMPLER == 2
-  mu = 0;
+
   SumLocusAncestry = 0;
 #elif POPADMIXSAMPLER == 3
   logalpha = 0;
@@ -93,32 +93,15 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       DirParamArray[j]->setLowerBound( 0.1 );
     }
 #elif POPADMIXSAMPLER == 2
-    eta = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
-    mu = new double[ K ];
-    PopAdmixSampler.SetSize( Numindividuals, K );
-    for( int i = 0; i < K; i++ ){
-      mu[i] = alpha[0][i]/eta;
-    }
+    PopAdmixSampler.SetSize( Numindividuals, K,  options->getAlphamean(), options->getAlphavar());
+
     if( options->isRandomMatingModel() ){
       obs = 2 * Numindividuals;
     } else {
       obs = Numindividuals;
     }
     SumLocusAncestry = new int[Numindividuals*K];
-#elif POPADMIXSAMPLER == 3
-    double alphapriormean = options->getAlphamean();
-    double alphapriorvar = options->getAlphavar();
-    logalpha = new double[K];
-    transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
-    
-    //elem 0 is sum of log admixture props
-    AlphaArgs.n = Numindividuals;//num individuals/gametes
-    AlphaArgs.dim = K;
-    if( options->isRandomMatingModel() )AlphaArgs.n *= 2;
-    AlphaArgs.eps0 = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
-    AlphaArgs.eps1 = alphapriormean / alphapriorvar;
-    
-    AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
+
 #endif
     
     // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
@@ -174,10 +157,7 @@ Latent::~Latent()
     delete DirParamArray[i];
   }
 #elif POPADMIXSAMPLER == 2
-  delete[] mu;
   delete[] SumLocusAncestry;
-#elif POPADMIXSAMPLER == 3
-  delete[] logalpha;
 #endif
 }
 
@@ -200,18 +180,9 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
          AlphaParameters[1] += alpha[0][ j ];
       }
 #elif POPADMIXSAMPLER == 2
-      //sample mu conditional on individual admixture proportions
-      PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &eta, mu );
-      for( int j = 0; j < options->getPopulations(); j++ )
-         alpha[0][j] = mu[j]*eta;
-      
-#elif POPADMIXSAMPLER == 3
-      AlphaArgs.sumlogtheta = individuals->getSumLogTheta();
-      AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
-      transform(logalpha, logalpha+options->getPopulations(), alpha[0].begin(), xexp);//alpha = exp(logalpha)
+      //sample alpha conditional on individual admixture proportions
+      PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &alpha[0] );
 #endif
-      
-
    }
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
@@ -462,12 +433,7 @@ float Latent::getEtaSamplerAcceptanceRate()const{
 float Latent::getEtaSamplerStepsize()const{
   return PopAdmixSampler.getEtaStepSize();
 }
-// float Latent::getMuSamplerAcceptanceRate(){
-//   return PopAdmixSampler.getMuExpectedAcceptanceRate();
-// }
-// float Latent::getMuSamplerStepsize(){
-//   return PopAdmixSampler.getMuStepSize();
-//}
+
 #endif
 
 #if POPADMIXSAMPLER == 3
@@ -478,49 +444,5 @@ float Latent::getAlphaSamplerStepsize()const{
   return AlphaSampler.getStepsize();
 }
 
-//calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm
-double Latent::findE(const double* const theta, const void* const vargs){
-  /*
-    theta = log dirichlet parameters (alpha)
-    n = #individuals/gametes
-    sumlogtheta (array, length dim) = sums of logs of individual admixture proportions
-    eps0, eps1 = parameters of Gamma prior for alpha
-  */
-  const AlphaSamplerArgs* args = (const AlphaSamplerArgs*)vargs;
-
-  double E = 0.0;
-  double sumalpha = 0.0, sumgamma = 0.0, sumtheta = 0.0, sume = 0.0;
-  bool flag = true;
-  for(int j = 0; j < args->dim; ++j){
-    if(exp(theta[j]) == 0.0){flag = false;break;} //to avoid underflow problems
-    sumalpha += exp(theta[j]);
-    sumgamma += gsl_sf_lngamma(exp(theta[j]));
-    sume += exp(theta[j]) * (args->eps1 - args->sumlogtheta[j]);
-    sumtheta += theta[j];
-  }
-  if(flag){
-    E = args->n * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + args->eps0 * sumtheta;
-    return -E;
-  }
-  else return -1.0;//is there a better return value? possibly use flag pointer
-}
-
-//calculate gradient for log alpha
-void Latent::gradE(const double* const theta, const void* const vargs, double *g){
-  const AlphaSamplerArgs* args = (const AlphaSamplerArgs*)vargs;
-  double sumalpha = 0.0, x, y1, y2;
-  for(int j = 0; j < args->dim; ++j) {
-    g[j] = 0.0;
-    sumalpha += exp(theta[j]);
-  }
-    ddigam(&sumalpha, &y1);
-    for(int j = 0; j < args->dim; ++j) {
-      x = exp(theta[j]);
-      ddigam(&x, &y2);
-      if(x > 0.0 && gsl_finite(y1) && gsl_finite(y2)){//to avoid over/underflow problems
-	g[j] = x *( args->n *(y2 - y1) + (args->eps1 - args->sumlogtheta[j])) - args->eps0;
-      }
-    }
-}
 
 #endif

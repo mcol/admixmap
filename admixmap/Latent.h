@@ -25,7 +25,7 @@
 // ** define which sampler to use for pop admixture Dirichlet parameters
 #define POPADMIXSAMPLER 2 //1 = original Adaptive Rejection sampler, 
                           //2 = DirichletParamSampler, 
-                          //3 = HamiltonianMonteCarlo
+
 
 #include "common.h"
 #include <sstream>
@@ -49,20 +49,9 @@
 
 #if POPADMIXSAMPLER==1
 #include "AdaptiveRejection.h"
-#endif
 
-#if POPADMIXSAMPLER == 2
+#elif POPADMIXSAMPLER == 2
 #include "DirichletParamSampler.h"
-#elif POPADMIXSAMPLER == 3
-#include "HamiltonianMonteCarlo.h"
-
-typedef struct{
-  int dim;
-  int n;
-  double eps0;
-  double eps1;
-  const double* sumlogtheta;
-}AlphaSamplerArgs;
 
 #endif
 
@@ -142,20 +131,11 @@ private:
   double AlphaParameters[5];
   AdaptiveRejection** DirParamArray;
 #elif POPADMIXSAMPLER == 2//DirichletParamSampler
-  double eta;
-  double *mu;
   unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
   int *SumLocusAncestry;
 
-#elif POPADMIXSAMPLER == 3 //Hamiltonian sampler
-  AlphaSamplerArgs AlphaArgs;
-  double *logalpha;
-  HamiltonianMonteCarlo AlphaSampler;
-  double initialAlphaStepsize;
-  float targetAlphaAcceptRate;
 #endif
-
 
   double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
                        //in the regression model
@@ -176,9 +156,7 @@ private:
   static double  dlogf( double, const void* const );
   
   static double  ddlogf( double, const void* const );
-#elif POPADMIXSAMPLER == 3
-  static double findE(const double* const theta, const void* const args);
-  static void gradE(const double* const theta, const void* const args, double *g);
+
 #endif  
   
   // UNIMPLEMENTED
