@@ -595,7 +595,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 				    double DInvLink, double dispersion, ofstream &modefile){
 
   //uses an EM algorithm to search for posterior modes of individual parameters
-  unsigned numEMiters = 5;
+  unsigned numEMiters = 50;
   unsigned NumEstepiters = 50;
 
 //   //obtain posterior means as starting values (could alternatively use final values)
@@ -611,13 +611,13 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 //   } 
 
 //use current final parameter values as initial values
-
+  double *SumLocusAncestryHat = new double[2*Populations];
+  int *SumLocusAncestry_XHat = 0;
   for(unsigned EMiter = 0; EMiter < numEMiters; ++EMiter){
-    int *SumLocusAncestryHat = new int[2*Populations];
-    int *SumLocusAncestry_XHat = 0;
-    unsigned SumNumArrivalsHat[2] = {0,0}, SumNumArrivals_XHat[2] = {0,0};
 
-    fill(SumLocusAncestryHat, SumLocusAncestryHat + 2*Populations, 0);
+    double SumNumArrivalsHat[2] = {0,0}, SumNumArrivals_XHat[2] = {0,0};
+
+    fill(SumLocusAncestryHat, SumLocusAncestryHat + 2*Populations, 0.0);
     //TODO: SumLocusAncestry_XHat
 
     //do{
@@ -632,26 +632,26 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 			false, true, false );
       SumNumArrivalsHat[0] += SumNumArrivals[0];	SumNumArrivals_XHat[0] += SumNumArrivals_X[0];
       SumNumArrivalsHat[1] += SumNumArrivals[1];	SumNumArrivals_XHat[1] += SumNumArrivals_X[1];
-      transform(SumLocusAncestry, SumLocusAncestry+2*Populations, SumLocusAncestryHat, SumLocusAncestryHat, std::plus<int>());
+      transform(SumLocusAncestry, SumLocusAncestry+2*Populations, SumLocusAncestryHat, SumLocusAncestryHat, std::plus<double>());
       //TODO: line for SumLocusAncestry_X;
     }
     //E2: set SumLocusAncestry and SumNumArrivals to their averages
     for(int i = 0; i < 2*Populations; ++i){
-      SumLocusAncestryHat[i] /= NumEstepiters;// potentialproblem: integer division
+      SumLocusAncestryHat[i] /= (double)NumEstepiters;// potentialproblem: integer division
       //TODO: X 
     }
-    SumNumArrivalsHat[0] /= NumEstepiters;   SumNumArrivalsHat[1] /= NumEstepiters;// and here
+    SumNumArrivalsHat[0] /= (double)NumEstepiters;   SumNumArrivalsHat[1] /= (double)NumEstepiters;// and here
     SumNumArrivals_XHat[0] /= NumEstepiters; SumNumArrivals_XHat[1] /= NumEstepiters;
     
     //M-step:
-    //max likelihood estimates of theta, rho using sstats
+    //set params to posterior modes
     for(unsigned g = 0; g < NumIndGametes; ++g){
       if(!options->isGlobalRho()){
-	if(rhoalpha + SumNumArrivalsHat[g] > 1.0)
-	  _rho[g] = (rhoalpha + SumNumArrivalsHat[g] - 1.0) / (rhobeta * Loci->GetLengthOfGenome());
-	else{cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
+	//if(rhoalpha + SumNumArrivalsHat[g] > 1.0)
+	  _rho[g] = (rhoalpha + SumNumArrivalsHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfGenome());
+	//else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
       if( Loci->isX_data() && !options->isXOnlyAnalysis() )
-	_rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g] - 1.0) / (rhobeta * Loci->GetLengthOfXchrm());
+	_rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfXchrm());
 	 }
 
       unsigned gg = g; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
@@ -665,9 +665,9 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 	  + accumulate(SumLocusAncestry_XHat+g*Populations, SumLocusAncestry_XHat+NumIndGametes*Populations, 0.0, std::plus<double>())
 	  - Populations;
       for(int k = 0; k < Populations; ++k){
-	if(alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] > 1.0)
+	//if(alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] > 1.0)
 	  Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
-	else{cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
+	  //else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
 	if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	  ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k] - 1.0) / sum_X;
       }
@@ -678,17 +678,19 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     //should test for convergence
     //while(  )
     //print values to file
-    if(myNumber==1){
+    if(myNumber==2){
       if(!options->isGlobalRho())for(unsigned i = 0; i < NumIndGametes; ++i)cout<<_rho[i]<<" ";
       for(unsigned i = 0; i < NumIndGametes; ++i)for(int k = 0; k < Populations; ++k)cout<<Theta[i*Populations +k]<<" ";
       cout<<endl;
     }
   }//end EM outer loop
   {
+    modefile<<setiosflags(ios::fixed)<<setprecision(3);
     modefile << myNumber << "\t";
     if(!options->isGlobalRho())for(unsigned i = 0; i < NumIndGametes; ++i)modefile<<_rho[i]<<"\t ";
     for(unsigned i = 0; i < NumIndGametes; ++i)for(int k = 0; k < Populations; ++k)modefile<<Theta[i*Populations +k]<<"\t ";
   }
+  delete[] SumLocusAncestryHat;
 }
 
 
