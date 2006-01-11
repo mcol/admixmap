@@ -57,6 +57,7 @@ public:
 
   void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
+	      const std::string* const PopulationLabels, 
 	      const std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
 	      LogWriter &Log, bool anneal);
 
@@ -73,7 +74,7 @@ public:
   double getDevianceAtPosteriorMean(const AdmixOptions* const options, Chromosome** C, Regression *R, LogWriter &Log, 
 		      double SumRho, unsigned numChromosomes);
 
-  void OutputChibEstimates(LogWriter &, int)const;
+  void OutputChibEstimates(bool, LogWriter &, int)const;
   void OutputChibResults(LogWriter&)const;
 
   void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);

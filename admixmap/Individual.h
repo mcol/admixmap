@@ -40,7 +40,7 @@ public:
   Individual();
 
   Individual(int number, const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
-		       const Chromosome* const * chrm);
+	     const Chromosome* const * chrm, bool undertest);
  
   ~Individual();
 
@@ -111,7 +111,8 @@ public:
 			  const AdmixOptions* const options,
 			  Chromosome **chrm, const vector<vector<double> > &alpha,  
 			  double rhoalpha, double rhobeta, const vector<double> sigma, 
-			  double DInvLink, double dispersion, std::ofstream &modefile);
+			  double DInvLink, double dispersion, std::ofstream &modefile,
+			  double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX);
 
   void SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
 		    const DataMatrix* const Outcome, Chromosome ** C,
@@ -146,6 +147,7 @@ public:
 
 private:
   unsigned myNumber;//number of this individual, counting from 1
+  bool IAmUnderTest;//true if not in Individual array
   unsigned NumIndGametes; // 1 if assortative mating, 2 if random mating
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype

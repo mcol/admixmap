@@ -61,14 +61,14 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   unsigned i0 = 0; // used to offset numbering of other individuals (not the one under test)
   // Fill separate individuals.
   if(options->getTestOneIndivIndicator()) {
-    TestInd = new Individual(1, options, Data, Loci, chrm); 
+    TestInd = new Individual(1, options, Data, Loci, chrm, true); 
     i0 = 1;
     --size;
   }
 
   _child = new Individual*[size];
   for (unsigned int i = 0; i < size; ++i) {
-    _child[i] = new Individual(i+i0+1, options, Data, Loci, chrm);//NB: first arg sets Individual's number
+    _child[i] = new Individual(i+i0+1, options, Data, Loci, chrm, false);//NB: first arg sets Individual's number
     }
 }
 
@@ -343,13 +343,12 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
 // pass reference to alpha: either dirichlet parameters from Latent, or admixtureprior set at initialization of this object  
 void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
+				  const std::string* const PopulationLabels,
 				  const vector<vector<double> > &alpha, double globalrho,
 				  double rhoalpha, double rhobeta, LogWriter &Log, bool anneal=false){
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 
   // but we need a similar function to anneal outcome data on each individual for regressions 
-  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-  if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   vector<double> lambda;
   vector<const double*> beta;
@@ -369,6 +368,9 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 			      DerivativeInverseLinkFunction(0),
 			      R[0].getDispersion(), anneal, true, true, true );
   }
+  //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
+  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+  if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   for(unsigned int i = 0; i < size; i++ ){
     int prev = i-1;
@@ -381,6 +383,11 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 				R[0].getDispersion(), (anneal && !options->getTestOneIndivIndicator()), true, true, true );
 
     if(size > 1)_child[prev]->HMMIsBad(true); // HMM is bad - see above
+
+    //posterior modes of individual admixture
+    if(!anneal && iteration == options->getBurnIn() && strlen(options->getIndAdmixModeFilename())){
+      FindPosteriorModes(options, chrm, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
+    }
     
     if( options->getMLIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
       _child[i]->Chib(iteration, &SumLogLikelihood, &(MaxLogLikelihood[i]),
@@ -446,14 +453,16 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				chrm, alpha, rhoalpha, rhobeta, sigma,  
 				DerivativeInverseLinkFunction(0),
-				R[0].getDispersion(), modefile);
+				R[0].getDispersion(), modefile, 
+				thetahat, thetahatX, rhohat, rhohatX);
   }
   for(unsigned int i = 0; i < size; i++ ){
     _child[i]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
-				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				chrm, alpha, rhoalpha, rhobeta, sigma,  
-				DerivativeInverseLinkFunction(i+i0),
-				  R[0].getDispersion(), modefile);
+				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
+				  chrm, alpha, rhoalpha, rhobeta, sigma,  
+				  DerivativeInverseLinkFunction(i+i0),
+				  R[0].getDispersion(), modefile, 
+				  thetahat, thetahatX, rhohat, rhohatX);
     modefile << endl;
   }
   modefile.close();
@@ -581,7 +590,7 @@ void IndividualCollection::OutputIndAdmixture()
   }
 }
 
-void IndividualCollection::OutputChibEstimates(LogWriter &Log, int Populations)const{
+void IndividualCollection::OutputChibEstimates(bool RandomMating, LogWriter &Log, int Populations)const{
   //Used only if chib = 1
   Log.setDisplayMode(Off);
   Log << "Parameter Values used for Chib Algorithm\t";
@@ -589,10 +598,13 @@ void IndividualCollection::OutputChibEstimates(LogWriter &Log, int Populations)c
   for(int k = 0; k < Populations; ++k){
     Log << thetahat[k] << "\t";
   }
+  if(RandomMating)
   for(int k = 0; k < Populations; ++k){
     Log << thetahat[Populations +k] << "\t";
   }
-  Log << rhohat[0] <<"\t" << rhohat[1] << "\n";
+  Log << rhohat[0];
+  if(RandomMating)Log <<"\t" << rhohat[1];
+  Log << "\n";
 }
 
 void IndividualCollection::OutputChibResults(LogWriter& Log)const{

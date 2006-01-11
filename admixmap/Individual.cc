@@ -49,8 +49,9 @@ Individual::Individual() {//should initialise pointers here
 }
 
 Individual::Individual(int number, const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
-		       const Chromosome* const * chrm) {
+		       const Chromosome* const * chrm, bool undertest=false) {
   myNumber = number;
+  IAmUnderTest = undertest;
   NumIndGametes = 1;
   if( options->isRandomMatingModel() ) NumIndGametes = 2;
 
@@ -530,7 +531,7 @@ to make this find posterior mode we need options to:
 	if( !logLikelihood.HMMisOK ){
 	  UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
 	}
-	if(ancestrytest && iteration > options->getBurnIn()){
+	if(!IAmUnderTest && ancestrytest && iteration > options->getBurnIn()){
 	  //update of score tests for linkage with ancestry requires update of backward probs 
 	  chrm[j]->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
 	  UpdateScoreTests(options, Outcome, OutcomeType, chrm[j], DInvLink, dispersion, ExpectedY);
@@ -540,7 +541,7 @@ to make this find posterior mode we need options to:
 	chrm[j]->SampleLocusAncestry(LocusAncestry[j], Theta);
       }//end populations>1 
       
-      if(sampleparams){//if(sampleSStats) is implicit
+      if(!IAmUnderTest && sampleparams){//if(sampleSStats) is implicit
 	//loop over loci on current chromosome and update allele counts
 	for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
 	  int locus =  chrm[j]->GetLocus(jj);
@@ -586,34 +587,23 @@ to make this find posterior mode we need options to:
 }
 
 void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMatrix *Outcome,
-				   const DataType* const OutcomeType, const double* const * ExpectedY, 
-				   const vector<double> lambda, int NumCovariates,
-				   DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
-				   const AdmixOptions* const options,
-				   Chromosome **chrm, const vector<vector<double> > &alpha,  
-				   double rhoalpha, double rhobeta, const vector<double> sigma, 
-				    double DInvLink, double dispersion, ofstream &modefile){
+				    const DataType* const OutcomeType, const double* const * ExpectedY, 
+				    const vector<double> lambda, int NumCovariates,
+				    DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
+				    const AdmixOptions* const options,
+				    Chromosome **chrm, const vector<vector<double> > &alpha,  
+				    double rhoalpha, double rhobeta, const vector<double> sigma, 
+				    double DInvLink, double dispersion, ofstream &modefile,
+				    double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX){
 
   //uses an EM algorithm to search for posterior modes of individual parameters
   unsigned numEMiters = 50;
-  unsigned NumEstepiters = 50;
-
-//   //obtain posterior means as starting values (could alternatively use final values)
-//   vector<double> rho = sumlogrho;//if called after getLogLikelihoodAtPosteriorMeans, sumlogrho
-//   //                               and SumSoftmaxTheta contain posterior means 
-//   double theta[NumIndGametes*Populations];
-//   for( unsigned int g = 0; g < NumIndGametes; g++ ){
-//     bool b[Populations];
-//     for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
-//       b[k] = true; //to skip elements set to zero
-//     } else b[k] = false;
-//     softmax(Populations, theta+g*Populations, SumSoftmaxTheta+g*Populations, b);
-//   } 
+  float NumEstepiters = 10.0;
 
 //use current final parameter values as initial values
   double *SumLocusAncestryHat = new double[2*Populations];
   int *SumLocusAncestry_XHat = 0;
-  for(unsigned EMiter = 0; EMiter < numEMiters; ++EMiter){
+  for(unsigned EMiter = 0; EMiter < numEMiters; ++EMiter, NumEstepiters*=1.1){
 
     double SumNumArrivalsHat[2] = {0,0}, SumNumArrivals_XHat[2] = {0,0};
 
@@ -623,7 +613,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     //do{
     //E-step: 
     //E1:fix theta and rho, sample Locus Ancestry and Number of Arrivals
-    for(unsigned Estepiters = 0; Estepiters < NumEstepiters; ++Estepiters){
+    for(unsigned Estepiters = 0; Estepiters < (unsigned)NumEstepiters ; ++Estepiters){
       SampleParameters( SumLogTheta, A, EMiter, Outcome,
 			OutcomeType, ExpectedY, lambda, NumCovariates,
 			Covariates, beta, poptheta, 
@@ -657,17 +647,17 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
       unsigned gg = g; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
       if(options->getIndAdmixHierIndicator()) gg = 0;
       double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
-	+ accumulate(SumLocusAncestryHat+g*Populations, SumLocusAncestryHat+NumIndGametes*Populations, 0.0, std::plus<double>())
+	+ accumulate(SumLocusAncestryHat+g*Populations, SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>())
 	-Populations;
       double sum_X;
       if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	sum_X = accumulate(ThetaX+g*Populations, ThetaX+NumIndGametes*Populations,0.0, std::plus<double>())
-	  + accumulate(SumLocusAncestry_XHat+g*Populations, SumLocusAncestry_XHat+NumIndGametes*Populations, 0.0, std::plus<double>())
+	  + accumulate(SumLocusAncestry_XHat+g*Populations, SumLocusAncestry_XHat+(g+1)*Populations, 0.0, std::plus<double>())
 	  - Populations;
       for(int k = 0; k < Populations; ++k){
 	//if(alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] > 1.0)
-	  Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
-	  //else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
+	  if(alpha[gg][k]>0.0)Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
+	//else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
 	if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	  ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k] - 1.0) / sum_X;
       }
@@ -677,13 +667,8 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     //}
     //should test for convergence
     //while(  )
-    //print values to file
-    if(myNumber==2){
-      if(!options->isGlobalRho())for(unsigned i = 0; i < NumIndGametes; ++i)cout<<_rho[i]<<" ";
-      for(unsigned i = 0; i < NumIndGametes; ++i)for(int k = 0; k < Populations; ++k)cout<<Theta[i*Populations +k]<<" ";
-      cout<<endl;
-    }
   }//end EM outer loop
+    //print values to file
   {
     modefile<<setiosflags(ios::fixed)<<setprecision(3);
     modefile << myNumber << "\t";
@@ -691,6 +676,16 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     for(unsigned i = 0; i < NumIndGametes; ++i)for(int k = 0; k < Populations; ++k)modefile<<Theta[i*Populations +k]<<"\t ";
   }
   delete[] SumLocusAncestryHat;
+  if(myNumber==1){
+    //copy modes into hat arrays to use in chib algorithm
+    for(unsigned k = 0; k < Populations*NumIndGametes; ++k)thetahat[k] = Theta[k];
+    copy(_rho.begin(), _rho.end(), rhohat.begin());
+    
+    if( Loci->isX_data() ){
+      for(unsigned k = 0; k < Populations*NumIndGametes; ++k)thetahatX[k] = ThetaX[k];
+      copy(_rho_X.begin(), _rho_X.end(), rhohatX.begin());
+    }
+  }
 }
 
 
@@ -751,17 +746,19 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
     }
   }
 
-  for( int k = 0; k < K; k++ ){
-    SumLogTheta[ k ] += log( Theta[ k ] );
+  if(!IAmUnderTest){
+    for( int k = 0; k < K; k++ ){
+      SumLogTheta[ k ] += log( Theta[ k ] );
       if(options->isRandomMatingModel() && !options->isXOnlyAnalysis() )
 	SumLogTheta[ k ] += log( Theta[ K + k ] );
     }
-
-//   //increment B using new Admixture Props
-//   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
-   if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
-     UpdateB(DInvLink, dispersion);
-   }
+    
+    //   //increment B using new Admixture Props
+    //   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
+    if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
+      UpdateB(DInvLink, dispersion);
+    }
+  }
 }
 
 double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, 
@@ -1285,38 +1282,41 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
   double logLikelihood = 0.0;
 
   // *** Every iteration ***
-  
-  logLikelihood = getLogLikelihood(options, chrm, false, true); //get loglikelihood at current parameter values
+  if(strlen(options->getIndAdmixModeFilename())==0)
+    logLikelihood = getLogLikelihood(options, chrm, false, true); //get loglikelihood at current parameter values
   // do not force update, store new value if updated 
+  else//use stored modes
+    logLikelihood = getLogLikelihood(options, chrm, thetahat, thetahatX, rhohat, rhohatX, true);
   
   // *** during BurnIn ***
   if( iteration <= options->getBurnIn() ){
-    if( Populations > 1 ) {  
-      if( logLikelihood > *MaxLogLikelihood ){
-	Log.setDisplayMode(Off);
-	Log << "Admixture (gamete 1):";
-	for(int i = 0; i < K; ++i)Log << Theta[i] << "\t";
-	Log << "\n" << "Admixture (gamete 2):";
-	for(int i = K; i < K+K; ++i)Log << Theta[i] << "\t";
-	Log << "\nsumintensities: " <<  rho[0] << " " <<  rho[1]
-	    << "\nLogLikelihood: " << logLikelihood
-	    << "\niteration: " << iteration << "\n\n";
-	
-	//set parameter estimates at max loglikelihood
-	for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
-	rhohat = rho;
-	
-	if( Loci->isX_data() ){
-	  for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
-	  rhohatX = _rho_X;
-	}
-      }//end if Loglikelihood > Max
-    }//end if K>1
-    
-  
-    if( logLikelihood > *MaxLogLikelihood ){
-      *MaxLogLikelihood = logLikelihood;
+    if(strlen(options->getIndAdmixModeFilename())==0){
+      if( Populations > 1 ) {  
+	if( logLikelihood > *MaxLogLikelihood ){
+	  Log.setDisplayMode(Off);
+	  Log << "Admixture (gamete 1):";
+	  for(int i = 0; i < K; ++i)Log << Theta[i] << "\t";
+	    Log << "\n" << "Admixture (gamete 2):";
+	    for(int i = K; i < K+K; ++i)Log << Theta[i] << "\t";
+	    Log << "\nsumintensities: " <<  rho[0] << " " <<  rho[1]
+	      << "\nLogLikelihood: " << logLikelihood
+		<< "\niteration: " << iteration << "\n\n";
+	    
+	    //set parameter estimates at max loglikelihood
+	    for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
+	    rhohat = rho;
+	    
+	    if( Loci->isX_data() ){
+	      for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
+	      rhohatX = _rho_X;
+	    }
+	}//end if Loglikelihood > Max
+      }//end if K>1
+    }
       
+      if( logLikelihood > *MaxLogLikelihood ){
+	*MaxLogLikelihood = logLikelihood;
+	
 	//set allelefreqsMAP to current values of allelefreqs
 	A->setAlleleFreqsMAP();
 	//set HapPairProbsMAP to current values of HapPairProbs
@@ -1324,8 +1324,8 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
 	  //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
 	  (*Loci)(j)->setHaplotypeProbsMAP();
 	}
+      }
     }
-  }
 
   // *** At end of BurnIn ***
   if( iteration == options->getBurnIn() ){

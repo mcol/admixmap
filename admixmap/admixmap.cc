@@ -28,7 +28,8 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter &Log, std::ofstream *avgstream, const string* const PopulationLabels);
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, double coolness, bool anneal);
+		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, const std::string* const PopulationLabels, 
+		      double coolness, bool anneal);
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      LogWriter& Log);
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
@@ -241,7 +242,7 @@ int main( int argc , char** argv ){
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
     else Log.setDisplayMode(On);
     if( options.getMLIndicator()) {
-      IC->OutputChibEstimates(Log, options.getPopulations());
+      IC->OutputChibEstimates(options.isRandomMatingModel(), Log, options.getPopulations());
       //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
       if(IC->getSize()==1) IC->OutputChibResults(Log);
     }
@@ -264,11 +265,6 @@ int main( int argc , char** argv ){
       Log << "Information (negative entropy, measured in nats): " << Information << "\n";
     }
 
-    //posterior modes of individual admixture
-    if(strlen(options.getIndAdmixModeFilename())){
-      IC->FindPosteriorModes(&options, chrm, &A, R, L.getpoptheta(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), data.GetPopLabels());
-    }
-    
     //Residuals
     if(options.getNumberOfOutcomes() > 0)
       IC->OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
@@ -395,8 +391,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
     // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
     if(AnnealedRun) IC->annealGenotypeProbs(chrm, Loci.GetNumberOfChromosomes(), coolness); 
     
-    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, coolness, AnnealedRun);
-    
+    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, data.GetPopLabels(), coolness, AnnealedRun);
     Log.setDisplayMode(Quiet);
     if(!AnnealedRun){
       // output every 'getSampleEvery()' iterations
@@ -539,7 +534,8 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 }
 
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, double coolness, bool anneal){
+		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, const std::string* const PopulationLabels,
+		      double coolness, bool anneal){
   A->ResetAlleleCounts();
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
   if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
@@ -548,7 +544,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
   // individual admixture and sum-intensities 
-  IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), L->getalpha(), L->getrho(), L->getrhoalpha(), L->getrhobeta(),
+  IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(), L->getrho(), 
+	     L->getrhoalpha(), L->getrhobeta(),
 	     Log, anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level  
   
