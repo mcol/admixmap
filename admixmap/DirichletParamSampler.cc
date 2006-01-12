@@ -20,7 +20,9 @@ DirichletParamSampler::DirichletParamSampler()
   gamma = 0;
   DirParamArray = 0;
 #elif SAMPLERTYPE==2
-
+  logalpha = 0;
+  initialAlphaStepsize = 0.05;//need a way of setting this without recompiling, or a sensible fixed value
+  targetAlphaAcceptRate = 0.44;//need to choose suitable value for this
 #endif
 }
 

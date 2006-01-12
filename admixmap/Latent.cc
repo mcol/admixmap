@@ -40,12 +40,7 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci)
   Loci = loci;
   poptheta = 0;
 #if POPADMIXSAMPLER == 2
-
   SumLocusAncestry = 0;
-#elif POPADMIXSAMPLER == 3
-  logalpha = 0;
-  initialAlphaStepsize = 0.05;//need a way of setting this without recompiling, or a sensible fixed value
-  targetAlphaAcceptRate = 0.44;//need to choose suitable value for this
 #endif
 }
 
