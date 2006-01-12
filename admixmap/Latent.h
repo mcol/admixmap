@@ -34,7 +34,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include <stdio.h>
 #include <gsl/gsl_cdf.h>
 
 #include "rand.h"

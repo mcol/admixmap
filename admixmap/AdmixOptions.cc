@@ -957,7 +957,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       break;
 
     default:
-      fprintf(stderr, "?? getopt returned character code 0%o ??\n", c);
+      cerr << "?? getopt returned character code 0"<<c<<" ??\n";
     }
   }
 
