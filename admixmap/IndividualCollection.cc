@@ -54,15 +54,21 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
   sigma.resize(2);
   sigma[0] = sigma[1] = 1.0;
-  TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer) 
+  TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer)
+  sizeTestInd = 0; 
 
   Individual::SetStaticMembers(&Loci, options);
   
   unsigned i0 = 0; // used to offset numbering of other individuals (not the one under test)
   // Fill separate individuals.
   if(options->getTestOneIndivIndicator()) {
-    TestInd = new Individual(1, options, Data, Loci, chrm, true); 
-    i0 = 1;
+    sizeTestInd = options->getNumAnnealedRuns()+1;
+    //create array of copies of TestInd
+    TestInd = new Individual*[sizeTestInd];
+    for(int i = 0; i < sizeTestInd; ++i){
+      TestInd[i] = new Individual(1, options, Data, Loci, chrm, true); 
+    }     
+    ++i0;
     --size;
   }
 
@@ -79,8 +85,12 @@ IndividualCollection::~IndividualCollection() {
   for(unsigned int i = 0; i < size; i++){
     delete _child[i];
   }
+  if(TestInd){
+    for(int i = 0; i < sizeTestInd; ++i)delete TestInd[i];
+  }
+
   delete[] _child;
-  delete TestInd;
+  delete[] TestInd;
   cout << flush;
   delete indadmixoutput;
   delete[] OutcomeType;
@@ -288,7 +298,8 @@ void IndividualCollection::getLabels(const Vector_s& data, string *labels)
 void IndividualCollection::setAdmixtureProps(const double* const a, size_t thetasize)
 {
   if(TestInd)
-    TestInd->setAdmixtureProps(a, thetasize);
+    for(int i = 0; i < sizeTestInd; ++i)
+      TestInd[i]->setAdmixtureProps(a, thetasize);
   for(unsigned int i = 0; i < size; i++){
     _child[i]->setAdmixtureProps(a, thetasize);
   }
@@ -297,7 +308,8 @@ void IndividualCollection::setAdmixtureProps(const double* const a, size_t theta
 void IndividualCollection::setAdmixturePropsX(const double* const a, size_t thetasize)
 {
   if(TestInd)
-    TestInd->setAdmixtureProps(a, thetasize);
+    for(int i = 0; i < sizeTestInd; ++i)
+      TestInd[i]->setAdmixtureProps(a, thetasize);
   for(unsigned int i = 0; i < size; i++){
     _child[i]->setAdmixturePropsX(a, thetasize);
   }
@@ -329,7 +341,7 @@ void IndividualCollection::UpdateSumResiduals(){
 }
 
 void IndividualCollection::HMMIsBad(bool b){
-  if(TestInd)TestInd->HMMIsBad(b);
+  if(TestInd)    for(int i = 0; i < sizeTestInd; ++i)TestInd[i]->HMMIsBad(b);
   for(unsigned i = 0; i < size; ++i)
     _child[i]->HMMIsBad(b);
 }
@@ -362,11 +374,14 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
-    TestInd->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
-			      lambda, NumCovariates, &Covariates, beta, poptheta, options,
-			      chrm, alpha, rhoalpha, rhobeta, sigma,  
-			      DerivativeInverseLinkFunction(0),
-			      R[0].getDispersion(), anneal, true, true, true );
+    for(int i = 0; i < sizeTestInd; ++i){
+      cout << "TestInd at coolness "<<i<<endl; 
+      TestInd[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
+				lambda, NumCovariates, &Covariates, beta, poptheta, options,
+				chrm, alpha, rhoalpha, rhobeta, sigma,  
+				DerivativeInverseLinkFunction(0),
+				R[0].getDispersion(), anneal, true, true, true );
+    }
   }
   //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
@@ -398,19 +413,21 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 
 void IndividualCollection::setGenotypeProbs(Chromosome** C, unsigned nchr){
   if(TestInd)
-    for(unsigned j = 0; j < nchr; ++j)
-      TestInd->SetGenotypeProbs(j, C[j],false);
+    for(int i = 0; i < sizeTestInd; ++i)
+      for(unsigned j = 0; j < nchr; ++j)
+	TestInd[i]->SetGenotypeProbs(j, C[j],false);
   for(unsigned int i = 0; i < size; i++ ) {
     for(unsigned j = 0; j < nchr; ++j)
       _child[i]->SetGenotypeProbs(j, C[j],false);
   }
 }  
 
-void IndividualCollection::annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness){
+void IndividualCollection::annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness, const double* Coolnesses){
   if(TestInd) { // anneal test individual only
-    for(unsigned j = 0; j < nchr; ++j) TestInd->AnnealGenotypeProbs(j, C[j], coolness);
+    for(int i = 0; i < sizeTestInd; ++i)
+      for(unsigned j = 0; j < nchr; ++j) TestInd[i]->AnnealGenotypeProbs(j, C[j], Coolnesses[i]);
 
-  } else { // anneal all individuals`
+    } else { // anneal all individuals`
     for(unsigned int i = 0; i < size; ++i) {
       for(unsigned j = 0; j < nchr; ++j) _child[i]->AnnealGenotypeProbs(j, C[j], coolness);
     }
@@ -449,7 +466,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
-    TestInd->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
+    TestInd[sizeTestInd-1]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				chrm, alpha, rhoalpha, rhobeta, sigma,  
 				DerivativeInverseLinkFunction(0),
@@ -584,7 +601,7 @@ void IndividualCollection::OutputIndAdmixture()
 {
   indadmixoutput->visitIndividualCollection(*this);
   if(TestInd)
-    indadmixoutput->visitIndividual(*TestInd, _locusfortest);
+    indadmixoutput->visitIndividual(*(TestInd[sizeTestInd-1]), _locusfortest);
   for(unsigned int i = 0; i < size; i++){
     indadmixoutput->visitIndividual(*_child[i], _locusfortest);
   }
@@ -662,9 +679,11 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromo
       else _child[i]->HMMIsBad(false); 
     } 
   } else { // evaluate likelihood for test individual only
-    LogLikHMM += TestInd->getLogLikelihood(options, C, true, !annealed); // force HMM update, store result if not an annealing run 
-    if(annealed)  TestInd->HMMIsBad(true); // HMM is bad, stored loglikelihood bad
-    else  TestInd->HMMIsBad(false); // if not annealed and size = 1, HMM could be set as ok
+    for(int i = 0; i < sizeTestInd; ++i){
+      LogLikHMM += TestInd[i]->getLogLikelihood(options, C, true, !annealed); // force HMM update, store result if not an annealing run 
+      if(annealed)  TestInd[i]->HMMIsBad(true); // HMM is bad, stored loglikelihood bad
+      else  TestInd[i]->HMMIsBad(false); // if not annealed and size = 1, HMM could be set as ok
+    }
   }
   // get regression log-likelihood 
   for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c].getLogLikelihood(this);

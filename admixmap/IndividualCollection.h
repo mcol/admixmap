@@ -67,7 +67,7 @@ public:
 			  const std::string* const PopulationLabels);
 
   void setGenotypeProbs(Chromosome** C, unsigned nchr);
-  void annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness);
+  void annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness, const double* Coolnesses);
   
   void OutputIndAdmixture();
 
@@ -117,7 +117,8 @@ public:
 
 private:
   Individual **_child; //array of pointers to Individual objects
-  Individual* TestInd;// pointer to individual for whom to estimate marginal likelihood
+  Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
+  int sizeTestInd;
   void getLabels(const Vector_s& data,  string *labels);
 
   void LoadCovariates(const InputData*, const AdmixOptions* const options);

@@ -41,7 +41,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 		  const Genome  & Loci, Chromosome **chrm, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  const double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
-		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data);
+		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, const double* Coolnesses);
 
 void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream);
 
@@ -202,7 +202,7 @@ int main( int argc , char** argv ){
       //OutputParameters(-1, IC, &L, &A, R, &options, Log);
       //Log << "\n";
     }
-   
+    if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
     // ****************************** BEGIN ANNEALING LOOP ***************************************
     for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
       // should call a posterior mode-finding algorithm before last run at coolness of 1
@@ -221,7 +221,7 @@ int main( int argc , char** argv ){
       }
 
       doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
-		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data);
+		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
       if(!AnnealedRun) cout << "\rIterations completed                       \n" << flush;
 
       //calculate mean and variance of energy at this coolness
@@ -371,7 +371,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 		  const Genome & Loci, Chromosome **chrm, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
-		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data) {
+		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, const double* Coolnesses) {
   double Energy = 0.0;
   if(!AnnealedRun) cout << endl;
   for( int iteration = 0; iteration <= samples; iteration++ ) {
@@ -389,7 +389,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
     }
     
     // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
-    if(AnnealedRun) IC->annealGenotypeProbs(chrm, Loci.GetNumberOfChromosomes(), coolness); 
+    if(AnnealedRun) IC->annealGenotypeProbs(chrm, Loci.GetNumberOfChromosomes(), coolness, Coolnesses); 
     
     UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, data.GetPopLabels(), coolness, AnnealedRun);
     Log.setDisplayMode(Quiet);
