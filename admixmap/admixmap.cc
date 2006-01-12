@@ -116,6 +116,7 @@ int main( int argc , char** argv ){
   
   // should be possible to delete the InputData object at this point - 
   // remaining calls are to data.GetPopLabels, data.GetOutcomeLabels, data.GetLocusData
+  data.Delete();
 
   //  ******** single individual, one population, fixed allele frequencies  ***************************
   if( IC->getSize() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )
@@ -281,7 +282,7 @@ int main( int argc , char** argv ){
       AlleleFreqTest.Output(options.getTotalSamples() - options.getBurnIn(), &Loci, data.GetPopLabels()); 
     //test for H-W eq
     if( options.getHWTestIndicator() )
-      HWtest.Output(data.getLocusData()); 
+      HWtest.Output(data.getLocusLabels()); 
     //finish writing score test output as R objects
     if( options.getScoreTestIndicator() ) Scoretest.ROutput();
     

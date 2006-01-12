@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   InputData.cc 
  *   Class to read and check all input data files
- *   Copyright (c) 2005 LSHTM
+ *   Copyright (c) 2005, 2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -255,7 +255,7 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
   }
 }
 
-void InputData::checkLocusFile(int sexColumn)const{
+void InputData::checkLocusFile(int sexColumn){
   // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
   
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
@@ -264,6 +264,7 @@ void InputData::checkLocusFile(int sexColumn)const{
       cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
       exit(1);
     }
+    LocusLabels.push_back(locusData_[i][0]);
     // Check loci names are unique    
     for (size_t j = i + 1; j < locusData_.size(); ++j) {   
       if (locusData_[i][0] == locusData_[j][0]) {
@@ -604,4 +605,51 @@ std::string *InputData::GetPopLabels() const{
 }
 Vector_s InputData::getOutcomeLabels()const{
   return OutcomeLabels;
+}
+std::vector<std::string> InputData::getLocusLabels()const{
+  return LocusLabels;
+}
+void InputData::Delete(){
+  //erase string matrices
+  for(unsigned i = 0; i < locusData_.size(); ++i)
+    locusData_[i].clear();
+  locusData_.clear();
+  for(unsigned i = 0; i < geneticData_.size(); ++i)
+    geneticData_[i].clear();
+  geneticData_.clear();
+  for(unsigned i = 0; i < inputData_.size(); ++i)
+    inputData_[i].clear();
+  inputData_.clear();
+  for(unsigned i = 0; i < outcomeVarData_.size(); ++i)
+    outcomeVarData_[i].clear();
+  outcomeVarData_.clear();
+  for(unsigned i = 0; i < alleleFreqData_.size(); ++i)
+    alleleFreqData_[i].clear();
+  alleleFreqData_.clear();
+  for(unsigned i = 0; i < priorAlleleFreqData_.size(); ++i)
+    priorAlleleFreqData_[i].clear();
+  priorAlleleFreqData_.clear();
+  for(unsigned i = 0; i < historicalAlleleFreqData_.size(); ++i)
+    historicalAlleleFreqData_[i].clear();
+  historicalAlleleFreqData_.clear();
+  for(unsigned i = 0; i < etaPriorData_.size(); ++i)
+    etaPriorData_[i].clear();
+  etaPriorData_.clear();
+  for(unsigned i = 0; i < MLEData_.size(); ++i)
+    MLEData_[i].clear();
+  MLEData_.clear();
+  for(unsigned i = 0; i < reportedAncestryData_.size(); ++i)
+    reportedAncestryData_[i].clear();
+  reportedAncestryData_.clear();
+
+  //erase data matrices 
+  locusMatrix_.clear();
+  covariatesMatrix_.clear();
+  outcomeVarMatrix_.clear();
+  alleleFreqMatrix_.clear();
+  historicalAlleleFreqMatrix_.clear();
+  priorAlleleFreqMatrix_.clear();
+  etaPriorMatrix_.clear();
+  MLEMatrix_.clear();
+  reportedAncestryMatrix_.clear();
 }

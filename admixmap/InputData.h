@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   InputData.h 
  *   header file for InputData class
- *   Copyright (c) 2005 LSHTM
+ *   Copyright (c) 2005, 2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ public:
    */    
   ~InputData();
     
-
+  void Delete();//erases (nearly) all memory used by object
   /**
    *  Read all input data and store in internal structures.
    */    
@@ -82,6 +82,7 @@ public:
   void getOutcomeTypes(DataType*)const;
   std::string *GetPopLabels() const;
   Vector_s getOutcomeLabels()const;
+  std::vector<std::string> getLocusLabels()const;
 
   bool determineIfPedFile(AdmixOptions *options)const;
   void convertGenotypesToIntArray(AdmixOptions *options);
@@ -116,7 +117,8 @@ private:
   DataMatrix MLEMatrix_;
   DataMatrix reportedAncestryMatrix_;
 
-  std::string *PopulationLabels;
+  std::string* PopulationLabels;
+  std::vector<std::string> LocusLabels;
   Vector_s OutcomeLabels;
   DataType* OutcomeType;
   int NumIndividuals;
@@ -126,7 +128,7 @@ private:
 
   void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
   void CheckGeneticData(AdmixOptions *options)const;
-  void checkLocusFile(int sexColumn)const;
+  void checkLocusFile(int sexColumn);
   unsigned determineNumberOfCompositeLoci()const;
   void CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log);
   RegressionType CheckOutcomeVarFile(int, int, LogWriter &Log);

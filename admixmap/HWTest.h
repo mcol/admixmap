@@ -37,7 +37,7 @@ public:
 
   void Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log);
 
-  void Output(const Matrix_s locusdata);
+  void Output(const Vector_s locuslabels);
 
   void Update(const IndividualCollection* const IC, const Chromosome* const *C, const Genome* const Loci);
 

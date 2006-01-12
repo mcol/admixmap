@@ -145,7 +145,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Chromosome* cons
   ++samples;
 }
 
-void HWTest::Output(const Matrix_s LocusData){
+void HWTest::Output(const Vector_s LocusLabels){
   //header line
   outputfile <<"Locus\tScore\tCompleteInfo\tMissingInfo\tObservedInfo\tPercentInfo\tz-score\tp-value"<<endl;
 
@@ -153,7 +153,7 @@ void HWTest::Output(const Matrix_s LocusData){
   for(int j = 0; j < NumLoci; j++ ){
   //output locus labels from locus file
     //need same code as in ScoreTests to do for comp loci
-    outputfile << LocusData[j+1][0] << "\t";
+    outputfile << LocusLabels[j] << "\t";
 
     EU = sumscore[ j ] / (double) samples;
     missing = sumscore2[ j ] / (double) samples - EU * EU;

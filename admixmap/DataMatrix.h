@@ -27,6 +27,7 @@ class DataMatrix{
 public:
   DataMatrix();
   DataMatrix(unsigned, unsigned);
+  void clear();//clears vectors
   void setDimensions(unsigned, unsigned);
   bool isMissing(unsigned, unsigned)const;
   void isMissing(unsigned, unsigned, bool);

@@ -129,3 +129,7 @@ void DataMatrix::Print()const{
 const double* DataMatrix::getData()const{
   return &(data[0]);
 }
+void DataMatrix::clear(){
+  data.clear();
+  missing.clear();
+}
