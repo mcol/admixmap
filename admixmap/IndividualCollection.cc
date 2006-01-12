@@ -375,7 +375,6 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
     for(int i = 0; i < sizeTestInd; ++i){
-      cout << "TestInd at coolness "<<i<<endl; 
       TestInd[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				chrm, alpha, rhoalpha, rhobeta, sigma,  
