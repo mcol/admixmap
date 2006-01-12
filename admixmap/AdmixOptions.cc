@@ -109,9 +109,9 @@ void AdmixOptions::Initialise(){
   rhoPrior.push_back(3.0);//rhobeta shape
   rhoPrior.push_back(3.0);//rhobeta rate
 
-  //gamma(0.25, 0.25) prior on pop admixture
+  //gamma(1, 1) prior on pop admixture
   alphamean = 1;  
-  alphavar = 16;
+  alphavar = 1;
   initalpha.resize(2);
   //gamma(3, 0.01) prior on dispersion parameter
   etamean = 100.0; 
@@ -145,7 +145,7 @@ void AdmixOptions::Initialise(){
   OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
   OptionValues["popadmixpriormean"] = "1.0";
-  OptionValues["popadmixpriorvar"] = "16.0";
+  OptionValues["popadmixpriorvar"] = "1.0";
   OptionValues["xonlyanalysis"] = "0";
 }
 
@@ -943,9 +943,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "etapriorfile") {
 	 EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
       } else if (long_option_name == "admixtureprior" ) {
-	 initalpha[0] = CstrToVec(optarg);OptionValues["initalpha0"]=optarg;
+	 initalpha[0] = CstrToVec(optarg);OptionValues["admixtureprior"]=optarg;
       } else if (long_option_name == "admixtureprior1") {
-	 initalpha[1] = CstrToVec(optarg);OptionValues["initalpha1"]=optarg;
+	 initalpha[1] = CstrToVec(optarg);OptionValues["admixtureprior1"]=optarg;
       } else {
 	cerr << "Unknown option: " << long_option_name;
 	if (optarg) {
