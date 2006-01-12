@@ -34,6 +34,29 @@ getUserOptions <- function(argsfilename) {
   return(user.options)
 }
 
+getAdmixturePrior <- function(K, user.options) {
+  AdmixturePrior <- matrix(data=1, nrow=2, ncol=K)
+  if(!is.null(user.options$admixtureprior)) {
+    AdmixturePrior[1, ] <- as.numeric(unlist(strsplit(user.options$admixtureprior, ",")))
+    AdmixturePrior[2, ] <- as.numeric(unlist(strsplit(user.options$admixtureprior, ",")))
+  }
+  if(!is.null(user.options$admixtureprior1)) {
+    AdmixturePrior[2, ] <- as.numeric(unlist(strsplit(user.options$admixtureprior1, ",")))
+  }
+  return(AdmixturePrior)
+}
+
+getParentsIdentified <- function(AdmixturePrior) {
+  return(sum(AdmixturePrior[1, ] != AdmixturePrior[2, ]))
+}
+
+getIsAdmixed <- function(AdmixturePrior) {
+  IsAdmixed <- logical(2)
+  IsAdmixed[1] <- sum(AdmixturePrior[1, ]==0) < dim(AdmixturePrior)[2] - 1
+  IsAdmixed[2] <- sum(AdmixturePrior[2, ]==0) < dim(AdmixturePrior)[2] - 1
+  return(IsAdmixed)
+}
+  
 readLoci <- function(locusfile) {
   ## read table of loci, number chromosomes and calculate map positions
   loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", "."))
@@ -854,48 +877,79 @@ writePosteriorMeansIndivAdmixture <- function(samples, K) {
               quote=FALSE, row.names=FALSE)
 }
 
-plotPosteriorDensityIndivAdmixture <- function(samples4way, user.options, population.labels) {
+plotPosteriorDensityIndivAdmixture <- function(samples4way, user.options, population.labels,
+                                               AdmixturePrior, IsAdmixed, ParentsIdentified) {
+  ## TODO: fix to concatenate arrays where parents not identifiable
+  ## also TODO: should take array for one individual only
   ## plot posterior densities of individual admixture proportions
+  ## samples4way: 4-way array with dimensions that index subpopulations, parents, individuals, draws
   outputfile <- paste(resultsdir, "IndivAdmixture.ps", sep="/")
   postscript(outputfile)
   popcols <- c("grey", "blue", "red", "yellow", "orange", "green")
-  for(pop in 1:K) {
-    if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
-      plot(density(0.5*(samples4way[1, pop, 1, ] + samples4way[2, pop, 1, ]),
-                   adjust=0.5, from=0, to=1),
-           main=paste(population.labels[pop], "admixture proportion: mean of both parents"),
-           ylab="Posterior density", xlim=c(0,1))
-      plot(density(abs(samples4way[1, pop, 1, ] - samples4way[2, pop, 1, ]),
-                   adjust=0.5, from=0, to=1), 
-           main=paste(population.labels[pop], "admixture proportion: difference between parents"),
-           ylab="Posterior density", xlim=c(0,1))
-      plot(density(samples4way.1moreAfr[1, pop, 1, ],
-                   adjust=0.5, from=0, to=1),
-           main=paste(population.labels[pop], "admixture proportion of parent with more",
-             population.labels[1], "ancestry"),
-           ylab="Posterior density", xlim=c(0,1))
-      plot(density(samples4way.1moreAfr[2, pop, 1, ],
-                   adjust=0.5, from=0, to=1), 
-           main=paste(population.labels[pop], "admixture proportion of parent with less Afr ancestry"),
-           ylab="Posterior density", xlim=c(0,1))
-      parents.pop <- kde2d(samples4way[1, pop,,],samples4way[2,pop, ,], lims=c(0,1,0,1))
-      contour(parents.pop$x, parents.pop$y, parents.pop$z,
-              main=paste("Contour plot of posterior density of parental", population.labels[pop],
-                "admixture proportions"),
-              xlab="Parent 1", ylab="Parent 2")
-      persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
-            main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
-              "admixture proportions"),
-            xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
-    } else {
-      plot(density(samples[pop, 1, ],
-                   adjust=0.5, from=0, to=1),
-           main=paste(population.labels[pop], "admixture proportion: assumed same for both parents"),
-           ylab="Posterior density", xlim=c(0,1))
+  if(IsAdmixed[1] & IsAdmixed[2]) { # both parents admixed
+    if(ParentsIdentified) { # bivariate plots if both parents have ancestry from pop
+      for(pop in 1:K) {
+        if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
+          parents.pop <- kde2d(samples4way[pop, 1, , ],samples4way[pop, 2, , ], lims=c(0,1,0,1))
+          contour(parents.pop$x, parents.pop$y, parents.pop$z,
+                  main=paste("Contour plot of posterior density of parental", population.labels[pop],
+                    "admixture proportions"),
+                  xlab="Parent 1", ylab="Parent 2")
+          persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
+                main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
+                  "admixture proportions"),
+                xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
+        }
+      }
+    } else { # parents unidentified - concatenate array and do univariate plots
+    }
+  } else { # only one parent admixed - univariate plots
+    admixedParent <- 0
+    if(IsAdmixed[1]) admixedParent <- 1
+    if(IsAdmixed[2]) admixedParent <- 2
+    if(admixedParent > 0) {
+      for(pop in 1:K) {
+        plot(density(samples4way[pop, admixedParent, 1, ], adjust=0.5, from=0, to=1),
+             main=paste(population.labels[pop], "admixture proportion: parent ", admixedParent),
+             ylab="Posterior density", xlim=c(0,1))
+      }
     }
   }
   dev.off()
 }
+
+plotPosteriorDensitySumIntensities <- function(samples.sumintensities, user.options, IsAdmixed,
+                                               ParentsIdentified) {
+  ## 3-way array samples.sumintensities is indexed by parent, individual, draws
+  outputfile <- paste(resultsdir, "SumIntensities.ps", sep="/")
+  postscript(outputfile)
+  if(IsAdmixed[1] & IsAdmixed[2]) { # both parents admixed
+    if(ParentsIdentified) { # bivariate plots 
+      parents.pop <- kde2d(samples.sumintensities[1, 1, ],samples.sumintensities[2, 1, ],
+                           lims=c(1,20,1,20))
+      contour(parents.pop$x, parents.pop$y, parents.pop$z,
+              main="Contour plot of posterior density of parental sum-intensities",
+              xlab="Parent 1", ylab="Parent 2")
+      persp(parents.pop$x, parents.pop$y, parents.pop$z, col="blue",
+            main="Perspective plot of bivariate density of parental sum-intensities",
+            xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
+    } else { # both parents admixed but parents unidentified
+      # should concatenate arrays and do univariate plot
+    }
+  } else { # only one parent admixed - univariate plot
+    admixedParent <- 0
+    if(IsAdmixed[1]) admixedParent <- 1
+    if(IsAdmixed[2]) admixedParent <- 2
+    if(admixedParent > 0) {
+      plot(density(samples.sumintensities[admixedParent, 1, ], 
+                   adjust=0.5, from=1, to=10),
+           main=paste("Sum-intensities for parent ", admixedParent),
+           ylab="Posterior density", xlim=c(1,20))
+    }
+    dev.off()
+  }
+}
+
 ###################################################################################
 ## start of script
 ###################################################################################
@@ -914,7 +968,10 @@ n.chr <- nlevels(factor(loci.compound$Chromosome))
 
 K <- getNumSubpopulations(user.options)
 population.labels <- getPopulationLabels(K, user.options)
-
+AdmixturePrior <- getAdmixturePrior(K, user.options)
+ParentsIdentified <- getParentsIdentified(AdmixturePrior)
+IsAdmixed <- getIsAdmixed(AdmixturePrior)
+                                            
 param.samples <- NULL
 effect.pop <- NULL
 pop.admix.prop <- NULL
@@ -1018,15 +1075,18 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
 }
 
 ## get population admixture Dirichlet parameters: either posterior means, or values specified in model
-if(K == 1){alphas <- c(1)
-}else{
+if(K == 1){
+  alphas <- c(1)
+} else {
   if(!is.null(param.samples)) {
     alphas <- post.quantiles[1:K, 1]
   } else {
-    if(!is.null(user.options$initalpha0))alphas <- as.numeric(strsplit(user.options$initalpha0, ",")[[1]])
+    if(!is.null(user.options$admixtureprior)) {
+      alphas <- AdmixturePrior[1]
+    }
   }
 }
-
+  
 ##plot ergodic averages
 if(is.null(user.options$ergodicaveragefile)) {
   print("ergodicaveragefile not specified")
@@ -1070,10 +1130,6 @@ if(!is.null(user.options$allelefreqscorefile)) {
   plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
 }
 
-#if(!is.null(user.options$allelefreqscorefile2)) {
-#  plotScoreTestAlleleFreqs2(user.options$allelefreqscorefile2)
-#}
-
 #read output of test for heterozygosity and plot
 if(!is.null(user.options$hwtestfile)){
   plotHWScoreTest(user.options$hwtestfile, K)
@@ -1087,18 +1143,6 @@ if(user.options$thermo == 1){
   ##fit smoothed spline and overlay on points
   fit.spline <- smooth.spline(anneal.table[,1], anneal.table[,2], w=-1/anneal.table[,3],spar=0.6)
   lines(fit.spline, lty=2)
-  
-  # fitted.points <- fit.spline$y
-  ## can't use Simpson's rule for points that are not evenly spaced
-  ##Simpson's rule for approximating area under curve
-  #logML <- 0
-  #for(i in 1:length(fitted.points)){
-  #  if(i==1 || i==length(fitted.points)){logML <- logML + fitted.points[i]}else
-  #  if( (i%%2)==0){logML <- logML + 4*fitted.points[i]}else
-  #  {logML <- logML + 2*fitted.points[i]}
-  #}
-  #logML <- logML / (3*(length(fitted.points)-1))
-  #text(x=0.5, y=min(fitted.points),labels=paste("Estimated logMarginalLikelihood: ", format(logML)), cex=0.8)
   dev.off()
 }
 
@@ -1163,6 +1207,7 @@ if(!is.null(user.options$indadmixturefile)) {
   if(!is.null(user.options$randommatingmodel) && user.options$randommatingmodel==1) {
     ## drop any extra vars in the array
     samples.adm <- samples[1:(2*K),1:n.individuals ,1:n.iterations, drop=F]
+    samples.sumintensities <- samples[-c(1:(2*K)),1:n.individuals ,1:n.iterations, drop=F]
     samples4way <- array(samples.adm, dim=c(K, 2, dim(samples)[2:3]))
     dimnames(samples4way) <- list(population.labels,c("Parent1", "Parent2"),
                                   character(0), character(0))
@@ -1176,16 +1221,20 @@ if(!is.null(user.options$indadmixturefile)) {
   }
   
   ## should plot only if subpopulations are identifiable in model
-  plotAdmixtureDistribution(alphas, samples.bothparents, K)
-  ##if(K > 1) {
+  if(dim(samples.meanparents)[2] > 1) {
+    plotAdmixtureDistribution(alphas, samples.bothparents, K)
+    ##if(K > 1) {
     ##writePosteriorMeansIndivAdmixture(t(samples), K)
-  ##}
-  sample.means <- apply(samples, 1:2, mean)
-  write.table(format(round(t(sample.means),3), nsmall=3), paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), quote=F, row.names=F, sep="\t")
-  
-  ##if(dim(samples.meanparents)[2]==1) {
-    ## plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels)
-  ##}
-  
+    ##}
+    sample.means <- apply(samples, 1:2, mean)
+    write.table(format(round(t(sample.means),3), nsmall=3),
+                paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), quote=F, row.names=F, sep="\t")
+    
+  } else { #if(dim(samples.meanparents)[2]==1) 
+    plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels, AdmixturePrior,
+                                       IsAdmixed, ParentsIdentified)
+    plotPosteriorDensitySumIntensities(samples.sumintensities, user.options, IsAdmixed,
+                                       ParentsIdentified)
+  }
 } # ends block conditional on indadmixturefile
 print("Script completed")
