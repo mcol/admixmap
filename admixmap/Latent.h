@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   Latent.h 
  *   header file for Latent class
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,6 @@
 #ifndef LATENT_H
 #define LATENT_H 1
 
-// ** define which sampler to use for pop admixture Dirichlet parameters
-#define POPADMIXSAMPLER 2 //1 = original Adaptive Rejection sampler, 
-                          //2 = DirichletParamSampler, 
-
-
 #include "common.h"
 #include <sstream>
 #include <fstream>
@@ -44,15 +39,8 @@
 #include "Genome.h"
 #include "LogWriter.h"
 
-#include "StepSizeTuner.h"
-
-#if POPADMIXSAMPLER==1
-#include "AdaptiveRejection.h"
-
-#elif POPADMIXSAMPLER == 2
-#include "DirichletParamSampler.h"
-
-#endif
+#include "StepSizeTuner.h"//for sampling globalrho
+#include "DirichletParamSampler.h"//for sampling pop admix
 
 class InputData;
 class IndividualCollection;
@@ -85,17 +73,13 @@ public:
   double getSumLogRho()const;
   const double *getpoptheta()const;
   
-#if POPADMIXSAMPLER == 2 
   float getEtaSamplerAcceptanceRate()const;
   float getEtaSamplerStepsize()const;
   float getMuSamplerAcceptanceRate()const;
   float getMuSamplerStepsize()const;
-#endif
   
-  //#if POPADMIXSAMPLER == 3 
   float getAlphaSamplerAcceptanceRate()const;
   float getAlphaSamplerStepsize()const;
-  //#endif
   
   double getRhoSamplerAccRate()const;
   double getRhoSamplerStepsize()const;
@@ -126,15 +110,9 @@ private:
   std::vector<double> SumAlpha; //ergodic sums of alphas
   //sampler for alpha
   
-#if POPADMIXSAMPLER == 1 //DARS sampler
-  double AlphaParameters[5];
-  AdaptiveRejection** DirParamArray;
-#elif POPADMIXSAMPLER == 2//DirichletParamSampler
   unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
   int *SumLocusAncestry;
-
-#endif
 
   double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
                        //in the regression model
@@ -144,20 +122,6 @@ private:
   AdmixOptions *options;
   const Genome* Loci; 
 
-// these methods are 'private static'
-  // i.e. private helper methods that cannot
-  // access any object variables, nor be used
-  // outside of Latent.cc
-  //
-#if POPADMIXSAMPLER == 1
-  static double logf( double, const void* const );
-  
-  static double  dlogf( double, const void* const );
-  
-  static double  ddlogf( double, const void* const );
-
-#endif  
-  
   // UNIMPLEMENTED
   // to avoid use
   Latent();

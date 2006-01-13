@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   Latent.cc 
  *   Class to hold and update population admixture and sumintensities parameters and their priors
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002 - 2006 LSHTM
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,9 +39,7 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci)
   options = op;
   Loci = loci;
   poptheta = 0;
-#if POPADMIXSAMPLER == 2
   SumLocusAncestry = 0;
-#endif
 }
 
 void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter &Log){
@@ -59,35 +57,6 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
   if(K > 1){
     // ** set up sampler for alpha **
     
-#if POPADMIXSAMPLER == 1  
-    // AlphaParameters is an array with 5 elements
-    // element 0 is num individuals or num gametes (if random mating model)
-    // element 1 is the sum of the Dirichlet parameter vector
-    // elements 2 and 3 are the parameters of the gamma prior
-    // element 4 is the sum of log admixture proportions
-    
-    double alphapriormean = options->getAlphamean();
-    double alphapriorvar = options->getAlphavar();
-    if( options->isRandomMatingModel() ){
-      AlphaParameters[0] = 2 * Numindividuals;
-    } else {
-      AlphaParameters[0] = Numindividuals;
-    }
-    //if( NumIndividuals > 1 ){
-    AlphaParameters[1] = accumulate(alpha[0].begin(), alpha[0].end(), 0.0, plus<double>());//sum of alpha[0]
-    AlphaParameters[2] = alphapriormean*alphapriormean / alphapriorvar; // shape parameter of gamma prior
-    AlphaParameters[3] = alphapriormean / alphapriorvar; // rate parameter of gamma prior
-    AlphaParameters[4] = 1;
-    //}
-    
-    
-    DirParamArray = new AdaptiveRejection*[ K ];
-    for( int j = 0; j < K; j++ ){
-      DirParamArray[j] = new Adaptiverejection();
-      DirParamArray[j]->Initialise(false, true, 0, 1, logf, dlogf);
-      DirParamArray[j]->setLowerBound( 0.1 );
-    }
-#elif POPADMIXSAMPLER == 2
     PopAdmixSampler.SetSize( Numindividuals, K,  options->getAlphamean(), options->getAlphavar());
 
     if( options->isRandomMatingModel() ){
@@ -97,8 +66,6 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     }
     SumLocusAncestry = new int[Numindividuals*K];
 
-#endif
-    
     // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
     rhobeta0 = options->getRhobetaShape();
     rhobeta1 = options->getRhobetaRate();
@@ -146,14 +113,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 Latent::~Latent()
 {
   delete[] poptheta;
-
-#if POPADMIXSAMPLER == 1
-  for(int i=0; i<options->getPopulations(); i++){
-    delete DirParamArray[i];
-  }
-#elif POPADMIXSAMPLER == 2
   delete[] SumLocusAncestry;
-#endif
 }
 
 void Latent::Update(int iteration, const IndividualCollection* const individuals, LogWriter &Log, bool anneal=false)
@@ -166,18 +126,9 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
    // of components, we will have one Dirichlet parameter vector for each component, 
    // updated only from those individuals who belong to the component
    
-#if POPADMIXSAMPLER == 1
-      for( int j = 0; j < options->getPopulations(); j++ ){
-         AlphaParameters[1] -= alpha[0][ j ];
-         AlphaParameters[4] = individuals->getSumLogTheta(j);
-         // elements of Dirichlet parameter vector are updated one at a time
-         alpha[0][ j ] = DirParamArray[j]->Sample(&AlphaParameters, ddlogf);
-         AlphaParameters[1] += alpha[0][ j ];
-      }
-#elif POPADMIXSAMPLER == 2
-      //sample alpha conditional on individual admixture proportions
-      PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &alpha[0] );
-#endif
+     //sample alpha conditional on individual admixture proportions
+     PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &alpha[0] );
+     copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin());//alpha[1] = alpha[0]
    }
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
@@ -353,8 +304,6 @@ void Latent::OutputParams(int iteration, LogWriter &Log){
   }
 }
 
-
-
 const vector<double > &Latent::getalpha0()const{
   return alpha[0];
 }
@@ -377,67 +326,10 @@ double Latent::getSumLogRho()const{
 const double *Latent::getpoptheta()const{
   return poptheta;
 }
-#if POPADMIXSAMPLER == 1
-// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
-// Dirichlet population admixture parameters
-double Latent::logf( double x, const void* const pars)
-{
-  const double* parameters = (const double*)pars;
-  double f = parameters[0] * ( gsl_sf_lngamma( x + parameters[1] ) - gsl_sf_lngamma( x ) ) - 
-    x * ( parameters[3] - parameters[4] ) + (parameters[2] - 1) * log(x);
-  
-  return(f);
-}
 
-double Latent::dlogf( double x, const void* const pars )
-{
-  const double* parameters = (const double*)pars;
-  double f,x2,y1,y2;
-  
-  x2 = x + parameters[1];
-   if(x < 0)cout<<"\nError in Latent::dlogf - arg x to ddigam is negative\n";   
-  ddigam( &x , &y1 );
-  if(x2 < 0)cout<<"\nError in Latent::dlogf - arg x2 to ddigam is negative\n";   
-  ddigam( &x2 , &y2 );
-  
-  f = parameters[0] * ( y2 - y1 ) - ( parameters[3] - parameters[4] ) + (parameters[2] - 1)/x;
-  
-  return(f);
-}
-
-double Latent::ddlogf( double x, const void* const pars )
-{
-  const double* parameters = (const double*)pars;
-  double f,x2,y1,y2;
-  
-  x2 = x + parameters[1];
-  
-  trigam( &x, &y1 );
-  trigam( &x2, &y2 );
-  
-  f = parameters[0] * ( y2 - y1 ) - (parameters[2] - 1)/ (x*x);
-  
-  return(f);
-}
-#endif
-
-#if POPADMIXSAMPLER == 2
 float Latent::getEtaSamplerAcceptanceRate()const{
   return PopAdmixSampler.getEtaExpectedAcceptanceRate();
 }
 float Latent::getEtaSamplerStepsize()const{
   return PopAdmixSampler.getEtaStepSize();
 }
-
-#endif
-
-#if POPADMIXSAMPLER == 3
-float Latent::getAlphaSamplerAcceptanceRate()const{
-  return AlphaSampler.getAcceptanceRate();
-}
-float Latent::getAlphaSamplerStepsize()const{
-  return AlphaSampler.getStepsize();
-}
-
-
-#endif
