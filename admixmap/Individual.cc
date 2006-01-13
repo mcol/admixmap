@@ -186,13 +186,13 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
   // TODO: for X chromosome  
   size_t K = Populations;
   for( unsigned g = 0; g < NumIndGametes; ++g ) { //loop over array of Dirichlet params
-    // may need a fix for where some param elements are 0, or gamete is unadmixed
-    unsigned gg = g; // index of alpha to use
-    //TODO: set alpha[0] == alpha[1] by default. only different if no indadmixhiermodel
-    //if(options->getIndAdmixHierIndicator()) gg = 0;
-    for(size_t k = 0; k < K; ++k) dirparams[k] = alpha[gg][k];
+    int sum = 0;
+    for(size_t k = 0; k < K; ++k) {
+      Theta[g*K+k]=dirparams[k] = alpha[g][k];
+      if(alpha[g][k]>0.0)++sum;
+    }
     //generate proposal theta from Dirichlet with parameters dirparams
-    gendirichlet(K, dirparams, Theta+g*K );
+    if(sum>1)gendirichlet(K, dirparams, Theta+g*K );
   } // end block looping over gametes
 }
 
@@ -635,40 +635,43 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     
     //M-step:
     //set params to posterior modes
-    for(unsigned g = 0; g < NumIndGametes; ++g){
-      if(!options->isGlobalRho()){
-	//if(rhoalpha + SumNumArrivalsHat[g] > 1.0)
+
+    for(unsigned g = 0; g < NumIndGametes; ++g)
+      if( options->isAdmixed(g) ){
+	if(!options->isGlobalRho()){
+	  //if(rhoalpha + SumNumArrivalsHat[g] > 1.0)
 	  _rho[g] = (rhoalpha + SumNumArrivalsHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfGenome());
-	//else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
-      if( Loci->isX_data() && !options->isXOnlyAnalysis() )
-	_rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfXchrm());
-	 }
-
-      unsigned gg = g; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
-      if(options->getIndAdmixHierIndicator()) gg = 0;
-      double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
-	+ accumulate(SumLocusAncestryHat+g*Populations, SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>())
-	-Populations;
-      double sum_X;
-      if( Loci->isX_data() && !options->isXOnlyAnalysis() )
-	sum_X = accumulate(ThetaX+g*Populations, ThetaX+NumIndGametes*Populations,0.0, std::plus<double>())
-	  + accumulate(SumLocusAncestry_XHat+g*Populations, SumLocusAncestry_XHat+(g+1)*Populations, 0.0, std::plus<double>())
-	  - Populations;
-      for(int k = 0; k < Populations; ++k){
-	//if(alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] > 1.0)
-	  if(alpha[gg][k]>0.0)Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
-	//else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
+	  //else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
+	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
+	    _rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfXchrm());
+	}
+	
+	unsigned gg = g; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
+	if(options->getIndAdmixHierIndicator()) gg = 0;
+	double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
+	  + accumulate(SumLocusAncestryHat+g*Populations, SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>())
+	  -Populations;
+	double sum_X = 0.0;
 	if( Loci->isX_data() && !options->isXOnlyAnalysis() )
-	  ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k] - 1.0) / sum_X;
-      }
-    }
-
-
+	  sum_X = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
+	    + accumulate(SumLocusAncestry_XHat+g*Populations, SumLocusAncestry_XHat+(g+1)*Populations, 0.0, std::plus<double>())
+	    - Populations;
+	for(int k = 0; k < Populations; ++k){
+	  //if(alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] > 1.0)
+	  //without above line, Theta may not sum to 1
+	  if(alpha[gg][k]>0.0)Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
+	  //else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
+	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
+	    ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k] - 1.0) / sum_X;
+	}
+      }//end isadmixed
+    
+    
     //}
     //should test for convergence
     //while(  )
   }//end EM outer loop
-    //print values to file
+  //print values to file
   {
     modefile<<setiosflags(ios::fixed)<<setprecision(3);
     modefile << myNumber << "\t";
@@ -676,9 +679,34 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     for(unsigned i = 0; i < NumIndGametes; ++i)for(int k = 0; k < Populations; ++k)modefile<<Theta[i*Populations +k]<<"\t ";
   }
   delete[] SumLocusAncestryHat;
-  if(myNumber==1){
+  if(myNumber==1 && options->getMLIndicator()){
     //copy modes into hat arrays to use in chib algorithm
-    for(unsigned k = 0; k < Populations*NumIndGametes; ++k)thetahat[k] = Theta[k];
+    for(unsigned k = 0; k < Populations*NumIndGametes; ++k){
+      thetahat[k] = Theta[k];
+
+    }
+    //check for zeros where not specified by prior
+    for(unsigned i = 0; i < NumIndGametes; ++i){
+     unsigned gg = i; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
+      if(options->getIndAdmixHierIndicator()) gg = 0;
+      unsigned NumAdmixed = 0;
+      double sum = 0.0;
+      for(int k = 0; k < Populations; ++k){
+	if(alpha[gg][k]>0.0)++NumAdmixed;
+	sum += Theta[i*Populations+k];
+      }
+      int k0;
+      for(int k = 0; k < Populations; ++k){
+	thetahat[i*Populations+k] /= sum;//correct to sum to 1
+	if(alpha[gg][k]>0.0 && thetahat[i*Populations+k]<0.001){
+	  k0 = k;
+	  for(int kk = 0; kk < Populations; ++kk)if(alpha[gg][kk]>0.0 && kk!=k0)
+	    thetahat[i*Populations+kk]-= 0.001 / (double)(NumAdmixed);
+	  thetahat[i*Populations+k] = 0.001;
+	}
+      }
+    }//end gamete loop
+
     copy(_rho.begin(), _rho.end(), rhohat.begin());
     
     if( Loci->isX_data() ){
@@ -769,29 +797,34 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
   
   //generate proposals
 
-  for( unsigned int g = 0; g < NumIndGametes; g++ ) {
-    // inverse softmax transformation from proportions to numbers on real line that sum to 0
-    bool* b = new bool[Populations];
-    double* a = new double[Populations]; // should be at class scope
-    for(int k = 0; k < Populations; ++k) {
-      if(Theta[g*Populations + k] > 0.0) {
-	b[k] = true; //to skip elements set to zero
-      } else b[k] = false;
+  for( unsigned int g = 0; g < NumIndGametes; g++ ){
+    if(options->isAdmixed(g)){
+      // inverse softmax transformation from proportions to numbers on real line that sum to 0
+      bool* b = new bool[Populations];
+      double* a = new double[Populations]; // should be at class scope
+      for(int k = 0; k < Populations; ++k) {
+	if(Theta[g*Populations + k] > 0.0) {
+	  b[k] = true; //to skip elements set to zero
+	} else b[k] = false;
+      }
+      inv_softmax(Populations, Theta+g*Populations, a, b);
+      //random walk step - on all elements of array a
+      for(int k = 0; k < Populations; ++k) {
+	if( b[k] ) a[k] = gennor(a[k], step);  //cout << " proposal " << a[k] << endl;
+      }
+      //reverse transformation from numbers on real line to proportions 
+      softmax(Populations, ThetaProposal+g*Populations, a, b);
+      delete[] a;
+      delete[] b; 
+      
+      //compute contribution of this gamete to log prior ratio 
+      LogPriorRatio += getDirichletLogDensity_Softmax(alpha[g], ThetaProposal+g*Populations) - 
+	getDirichletLogDensity_Softmax(alpha[g], Theta+g*Populations);
     }
-    inv_softmax(Populations, Theta+g*Populations, a, b);
-    //random walk step - on all elements of array a
-    for(int k = 0; k < Populations; ++k) {
-      if( b[k] ) a[k] = gennor(a[k], step);  //cout << " proposal " << a[k] << endl;
-    }
-    //reverse transformation from numbers on real line to proportions 
-    softmax(Populations, ThetaProposal+g*Populations, a, b);
-    delete[] a;
-    delete[] b; 
-    
-    //compute contribution of this gamete to log prior ratio 
-    LogPriorRatio += getDirichletLogDensity_Softmax(alpha[g], ThetaProposal+g*Populations) - 
-      getDirichletLogDensity_Softmax(alpha[g], Theta+g*Populations);
-  } // end loop over gametes
+    else
+      copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
+  }// end loop over gametes
+
   
   //cout << "\nlogpriorratio " << LogPriorRatio << endl;
 
@@ -827,16 +860,18 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
 	  dirparams[k] = alpha[gg][k] + sumLocusAncestry[k + K*g];
 	  if( g == 0 ) dirparams[k] += sumLocusAncestry_X[k];
 	}
+	
+	//generate proposal theta from Dirichlet with parameters dirparams
+	gendirichlet(K, dirparams, ThetaProposal+g*K );
+	
+	//sample theta for X chromosome from 
+	if( Loci->isX_data() && g < gametes[X_posn]){
+	  for(size_t k = 0; k < K; ++k)
+	    dirparams[k] = SumLocusAncestry_X[g*K + k] + ThetaProposal[g*K + k]*sigma[g];
+	  gendirichlet(K, dirparams, ThetaXProposal + g*K );
+	}
       }
-      //generate proposal theta from Dirichlet with parameters dirparams
-      gendirichlet(K, dirparams, ThetaProposal+g*K );
-      
-      //sample theta for X chromosome from 
-      if( Loci->isX_data() && g < gametes[X_posn]){
-	for(size_t k = 0; k < K; ++k)
-	  dirparams[k] = SumLocusAncestry_X[g*K + k] + ThetaProposal[g*K + k]*sigma[g];
-	gendirichlet(K, dirparams, ThetaXProposal + g*K );
-      }
+      else copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
     } // end loop over gametes
   } else { //assortative mating model
     for(size_t k = 0; k < K; ++k)dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
