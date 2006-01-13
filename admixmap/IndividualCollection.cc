@@ -375,6 +375,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
     for(int i = 0; i < sizeTestInd; ++i){
+
       TestInd[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				chrm, alpha, rhoalpha, rhobeta, sigma,  
@@ -385,6 +386,11 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
+
+  //posterior modes of individual admixture
+  if(!anneal && iteration == options->getBurnIn() && strlen(options->getIndAdmixModeFilename())){
+    FindPosteriorModes(options, chrm, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
+  }
 
   for(unsigned int i = 0; i < size; i++ ){
     int prev = i-1;
@@ -398,10 +404,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 
     if(size > 1)_child[prev]->HMMIsBad(true); // HMM is bad - see above
 
-    //posterior modes of individual admixture
-    if(!anneal && iteration == options->getBurnIn() && strlen(options->getIndAdmixModeFilename())){
-      FindPosteriorModes(options, chrm, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
-    }
+
     
     if( options->getMLIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
       _child[i]->Chib(iteration, &SumLogLikelihood, &(MaxLogLikelihood[i]),
@@ -437,7 +440,8 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 					      const Regression* const R, const double* const poptheta,
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 					      const std::string* const PopulationLabels){
-  cout<<"Searching for posterior modes of individual admixture..."<<endl;
+  if(options->getDisplayLevel()>2)
+    cout<<"Searching for posterior modes of individual admixture..."<<endl;
   //open output file and write header
   ofstream modefile(options->getIndAdmixModeFilename());
   modefile << "Individual \t";
