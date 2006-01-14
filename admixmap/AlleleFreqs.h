@@ -96,7 +96,7 @@ private:
   double **Freqs;// allele frequencies except for last allele
   double **AlleleFreqsMAP; // posterior mode of allele freqs
   double **HistoricAlleleFreqs;
-  int **AlleleCounts;
+  int **AlleleCounts; 
   double **HistoricAlleleCounts;
   double **PriorAlleleFreqs;
 
@@ -134,9 +134,9 @@ private:
   void LoadAlleleFreqs(const DataMatrix NewFreqs, int i, bool);
   void SetDefaultAlleleFreqs(int Pops);
 
-  void SamplePriorAlleleFreqs1D( int );
-  void SamplePriorAlleleFreqsMultiDim( int);
-  void SamplePriorAlleleFreqs();
+  void SampleDirichletParams1D( int );
+  void SampleDirichletParamsMultiDim( int);
+  void SampleDirichletParams();
   void SampleAlleleFreqs(int, const double coolness);
   void UpdatePriorAlleleFreqs( int, const std::vector<std::vector<double> >& );
   void SampleEtaWithRandomWalk(int k, bool updateSumEta);

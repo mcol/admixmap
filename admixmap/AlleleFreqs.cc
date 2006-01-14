@@ -476,13 +476,13 @@ void AlleleFreqs::Update(bool afterBurnIn, double coolness){
   if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       if( NumberOfStates[i] == 2 )
-	SamplePriorAlleleFreqs1D( i);
+	SampleDirichletParams1D( i);
       else
-	SamplePriorAlleleFreqsMultiDim( i);
+	SampleDirichletParamsMultiDim( i);
     }
   }
   else if(CorrelatedAlleleFreqs){
-    SamplePriorAlleleFreqs();
+    SampleDirichletParams();
   }
   
   // Sample allele frequencies conditional on Dirichlet priors 
@@ -538,7 +538,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
   double *freqs = new double[NumStates];
   
   int c = CorrelatedAlleleFreqs? 0 : 1; //indicates whether correlated allelefreqmodel
-  //if there is, the PriorAlleleFreqs are common across populations
+  //if there is, the Dirichlet params are common across populations
   for( int j = 0; j < Populations; j++ ){
 
     // to flatten likelihood when annealing, multiply realized allele counts by coolness
@@ -606,7 +606,7 @@ void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<vector<double> >& m
   }
 }
 
-void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
+void AlleleFreqs::SampleDirichletParamsMultiDim( int locus)
   // problem here is to sample the Dirichlet parameters of a multinomial-Dirichlet distribution
   // for a multi-allelic locus, we sample the Dirichlet proportion parameters conditional on the  
   // dispersion parameter and the allele counts in admixed and historic populations
@@ -659,7 +659,7 @@ void AlleleFreqs::SamplePriorAlleleFreqsMultiDim( int locus)
   delete[] mu2;
 }
 
-void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
+void AlleleFreqs::SampleDirichletParams1D( int locus)
   // with a dispersion model, we sample PriorAlleleFreqs conditional on the observed counts 
   // (with the realized allele freqs integrated out) from a distribution that is 
   // proportional to the product of two binomial-beta likelihoods (for a diallelic locus)
@@ -703,8 +703,8 @@ void AlleleFreqs::SamplePriorAlleleFreqs1D( int locus)
   delete[] counts1;
 }
 
-//sampling of prior allelefreqs in historic or correlated allele freq model
-void AlleleFreqs::SamplePriorAlleleFreqs(){
+//sampling of Dirichlet parameters for allelefreqs in historic or correlated allele freq model
+void AlleleFreqs::SampleDirichletParams(){
   if(IsHistoricAlleleFreq){
     for(int k = 0; k < Populations; ++k){
       for(int i = 0; i < NumberOfCompositeLoci; ++i){
@@ -823,7 +823,7 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
     SumEta[k]+=eta[k];
 }
 
-void AlleleFreqs::ResetAlleleCounts(){
+void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     fill(AlleleCounts[i], AlleleCounts[i]+NumberOfStates[i]*Populations, 0);
   }
@@ -1154,8 +1154,8 @@ double dfMu( double alpha, const void* const args )
   return f;
 }
 
-double ddfMu( double alpha, const void* const args )
-{
+double ddfMu( double alpha, const void* const args ) {
+  // 
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int pop = parameters->K;// number of populations
   double eta = parameters->eta;
