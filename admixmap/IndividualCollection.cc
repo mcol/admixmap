@@ -55,7 +55,8 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   sigma.resize(2);
   sigma[0] = sigma[1] = 1.0;
   TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer)
-  sizeTestInd = 0; 
+  sizeTestInd = 0;
+  SumEnergy = 0; SumEnergySq = 0; 
 
   Individual::SetStaticMembers(&Loci, options);
   
@@ -65,6 +66,11 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
     sizeTestInd = options->getNumAnnealedRuns()+1;
     //create array of copies of TestInd
     TestInd = new Individual*[sizeTestInd];
+    SumEnergy = new double[sizeTestInd];
+    fill(SumEnergy, SumEnergy+sizeTestInd, 0.0);
+    SumEnergySq = new double[sizeTestInd];
+    fill(SumEnergySq, SumEnergySq+sizeTestInd, 0.0);
+
     for(int i = 0; i < sizeTestInd; ++i){
       TestInd[i] = new Individual(1, options, Data, Loci, chrm, true); 
     }     
@@ -121,7 +127,8 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
     _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
   
   //draw initial values for individual admixture proportions
-  for(unsigned int i = 0; i < size; i++) _child[i]->drawInitialAdmixtureProps(alpha);
+  for(unsigned i = 0; i < size; i++) _child[i]->drawInitialAdmixtureProps(alpha);
+  if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
 
 //   // set priors on individual admixture to be passed to individual if no hierarchical model
 //   admixtureprior.resize(2);
@@ -144,7 +151,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   // allocate array of sufficient statistics for update of population admixture parameters
   SumLogTheta = new double[ options->getPopulations()];
 
-//   // this call should no longer be required for chib algorithm 
+//   // this call should no longer be required for chib algorithm
   if( options->getMLIndicator() )
     InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
@@ -152,7 +159,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
 }
 
 
-// // ** this function should no longer be required 
+// // ** this function needs debugging
 // required for chib algorithm but all necessary code could be moved to individual 
 void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options, 
 					  const DataMatrix &MLEMatrix){
@@ -179,25 +186,25 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const
      vector<double> r(2, rhoalpha/rhobeta );
      rhohat = r;
      rhohatX = r;
-  }
-  //TODO: X objects
+   }
+   //TODO: X objects
 
 
-//    //use previously read values from file, if available
-//    if( NumInd == 1 && strlen(options->getMLEFilename())>0 ) {
-//      rhohat[0] = MLEMatrix.get( options->getPopulations(), 0 );
-//      if( options->isXOnlyAnalysis() ){
-//        for(int k = 0; k < options->getPopulations(); ++k) thetahat[k] = MLEMatrix.get(k,0);
-//      }
-//      else{
-//        for(int k = 0; k < options->getPopulations(); ++k) {
-// 	 thetahat[k] = MLEMatrix.get(k,0);
-// 	 thetahat[k+ options->getPopulations()] = MLEMatrix.get(k,1);
-//        }
-//        rhohat[1] = MLEMatrix.get(options->getPopulations(), 1 );
-//      }
-//      setAdmixtureProps(thetahat, size_admix);
-//    }
+   //use previously read values from file, if available
+   if( NumInd == 1 && strlen(options->getMLEFilename())>0 ){
+      rhohat[0] = MLEMatrix.get( options->getPopulations(), 0 );
+      if( options->isXOnlyAnalysis() ){
+	for(int k = 0; k < options->getPopulations(); ++k) thetahat[k] = MLEMatrix.get(k,0);
+      }
+      else{
+	for(int k = 0; k < options->getPopulations(); ++k) {
+	  thetahat[k] = MLEMatrix.get(k,0);
+	  thetahat[k+ options->getPopulations()] = MLEMatrix.get(k,1);
+	}
+	rhohat[1] = MLEMatrix.get(options->getPopulations(), 1 );
+      }
+      setAdmixtureProps(thetahat, size_admix);
+   }
 }
 
 void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){
@@ -356,7 +363,7 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
 void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
 				  const std::string* const PopulationLabels,
-				  const vector<vector<double> > &alpha, // double globalrho,
+				  const vector<vector<double> > &alpha, //double globalrho,
 				  double rhoalpha, double rhobeta, //LogWriter &Log, 
 				  bool anneal=false){
   // coolness is not passed as argument to this function because annealing has already been implemented by 
@@ -376,7 +383,6 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
     for(int i = 0; i < sizeTestInd; ++i){
-
       TestInd[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				chrm, alpha, rhoalpha, rhobeta, sigma,  
@@ -389,11 +395,10 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   //posterior modes of individual admixture
-  if(!anneal && iteration == options->getBurnIn() && 
-     (options->getMLIndicator() || strlen(options->getIndAdmixModeFilename()))) {
+  if(!anneal && iteration == options->getBurnIn() && (options->getMLIndicator() || strlen(options->getIndAdmixModeFilename()))) {
     FindPosteriorModes(options, chrm, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
   }
-  
+
   for(unsigned int i = 0; i < size; i++ ){
     int prev = i-1;
     if(i==0) prev = size-1;
@@ -432,7 +437,7 @@ void IndividualCollection::annealGenotypeProbs(Chromosome** C, unsigned nchr, co
     for(int i = 0; i < sizeTestInd; ++i)
       for(unsigned j = 0; j < nchr; ++j) TestInd[i]->AnnealGenotypeProbs(j, C[j], Coolnesses[i]);
 
-    } else { // anneal all individuals`
+    } else { // anneal all individuals
     for(unsigned int i = 0; i < size; ++i) {
       for(unsigned j = 0; j < nchr; ++j) _child[i]->AnnealGenotypeProbs(j, C[j], coolness);
     }
@@ -461,7 +466,8 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   }
   modefile <<endl;
 
-  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0 as mode-finding function changes it
+  //may be unecessary if SUmLogTheta zeroed after call to this function(FindPosteriorModes)
 
   vector<double> lambda;
   vector<const double*> beta;
@@ -478,8 +484,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 				DerivativeInverseLinkFunction(0),
 				R[0].getDispersion(), modefile, 
 				thetahat, thetahatX, rhohat, rhohatX);
-  } 
-  
+  }
   for(unsigned int i = 0; i < size; i++ ){
     _child[i]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
 				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
@@ -687,7 +692,10 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromo
     } 
   } else { // evaluate likelihood for test individual only
     for(int i = 0; i < sizeTestInd; ++i){
-      LogLikHMM += TestInd[i]->getLogLikelihood(options, C, true, !annealed); // force HMM update, store result if not an annealing run 
+      //LogLikHMM += TestInd[i]->getLogLikelihood(options, C, true, !annealed); // force HMM update, store result if not an annealing run 
+      Energy += TestInd[i]->getLogLikelihood(options, C, true, false); // force HMM update, store result if not an annealing run
+      SumEnergy[i] += Energy;
+      SumEnergySq[i] += Energy*Energy;
       if(annealed)  TestInd[i]->HMMIsBad(true); // HMM is bad, stored loglikelihood bad
       else  TestInd[i]->HMMIsBad(false); // if not annealed and size = 1, HMM could be set as ok
     }
@@ -698,6 +706,12 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromo
   return (Energy);
 }
 
+double* IndividualCollection::getSumEnergy(){
+  return SumEnergy;
+}
+double* IndividualCollection::getSumEnergySq(){
+  return SumEnergySq;
+}
 //returns Derivative of Inverse Link Function for individual i
 double IndividualCollection::DerivativeInverseLinkFunction(int i)const{
   double DInvLink = 1.0;

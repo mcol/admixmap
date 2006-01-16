@@ -58,9 +58,8 @@ public:
   void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
 	      const std::string* const PopulationLabels, 
-	      const std::vector<std::vector<double> > &alpha, // double globalrho, 
-	      double rhoalpha, double rhobeta,
-	      // LogWriter &Log, 
+	      const std::vector<std::vector<double> > &alpha, //double globalrho, 
+	      double rhoalpha, double rhobeta, //LogWriter &Log, 
 	      bool anneal);
 
   void FindPosteriorModes(const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
@@ -108,7 +107,9 @@ public:
 
   double getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
 			  const bool & annealed);
-  double getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness);
+  double* getSumEnergy();
+  double* getSumEnergySq();
+  //double getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness);
   double DerivativeInverseLinkFunction(int i)const;
   void ResetChib();
   void OutputErgodicChib(std::ofstream *avgstream);
@@ -121,6 +122,7 @@ private:
   Individual **_child; //array of pointers to Individual objects
   Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
   int sizeTestInd;
+  double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
   void getLabels(const Vector_s& data,  string *labels);
 
   void LoadCovariates(const InputData*, const AdmixOptions* const options);
