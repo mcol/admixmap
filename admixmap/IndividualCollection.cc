@@ -111,7 +111,7 @@ IndividualCollection::~IndividualCollection() {
 
 void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
 				      const std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta, 
-				      LogWriter &Log, const DataMatrix &MLEMatrix){
+				      LogWriter &Log){
   Log.setDisplayMode(Quiet);
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
@@ -151,9 +151,9 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   // allocate array of sufficient statistics for update of population admixture parameters
   SumLogTheta = new double[ options->getPopulations()];
 
-//   // this call should no longer be required for chib algorithm
+//   allocate and set initial values for estimates used in Chib algorithm
   if( options->getMLIndicator() )
-    InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
+    InitialiseMLEs(rhoalpha,rhobeta,options);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
   MaxLogLikelihood.assign(NumInd, -9999999 );
 }
@@ -161,8 +161,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
 
 // // ** this function needs debugging
 // required for chib algorithm but all necessary code could be moved to individual 
-void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options, 
-					  const DataMatrix &MLEMatrix){
+void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options){
   //set thetahat and rhohat, estimates of individual admixture and sumintensities
    size_t size_admix;
    int K = options->getPopulations();
@@ -188,23 +187,6 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const
      rhohatX = r;
    }
    //TODO: X objects
-
-
-   //use previously read values from file, if available
-   if( NumInd == 1 && strlen(options->getMLEFilename())>0 ){
-      rhohat[0] = MLEMatrix.get( options->getPopulations(), 0 );
-      if( options->isXOnlyAnalysis() ){
-	for(int k = 0; k < options->getPopulations(); ++k) thetahat[k] = MLEMatrix.get(k,0);
-      }
-      else{
-	for(int k = 0; k < options->getPopulations(); ++k) {
-	  thetahat[k] = MLEMatrix.get(k,0);
-	  thetahat[k+ options->getPopulations()] = MLEMatrix.get(k,1);
-	}
-	rhohat[1] = MLEMatrix.get(options->getPopulations(), 1 );
-      }
-      setAdmixtureProps(thetahat, size_admix);
-   }
 }
 
 void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){

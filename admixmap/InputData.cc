@@ -154,7 +154,6 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
       readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, Log);            
       readFile(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_, Log);
       readFile(options->getEtaPriorFilename(), etaPriorData_, Log);
-      readFile(options->getMLEFilename(), MLEData_, Log);
       readFile(options->getReportedAncestryFilename(), reportedAncestryData_, Log);
 
       Log << "\n";      
@@ -166,7 +165,6 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
       ::convertMatrix(historicalAlleleFreqData_, historicalAlleleFreqMatrix_);
       ::convertMatrix(priorAlleleFreqData_, priorAlleleFreqMatrix_);
       ::convertMatrix(etaPriorData_, etaPriorMatrix_);
-      ::convertMatrix(MLEData_, MLEMatrix_);
       ::convertMatrix(reportedAncestryData_, reportedAncestryMatrix_);
       
     } catch (const exception& e) {
@@ -546,11 +544,6 @@ const Matrix_s& InputData::getEtaPriorData() const
     return etaPriorData_;
 }
 
-const Matrix_s& InputData::getMLEData() const
-{
-    return MLEData_;
-}
-
 const Matrix_s& InputData::getReportedAncestryData() const
 {
     return reportedAncestryData_;
@@ -559,11 +552,6 @@ const Matrix_s& InputData::getReportedAncestryData() const
 const DataMatrix& InputData::getEtaPriorMatrix() const
 {
     return etaPriorMatrix_;
-}
-
-const DataMatrix& InputData::getMLEMatrix() const
-{
-    return MLEMatrix_;
 }
 
 const DataMatrix& InputData::getLocusMatrix() const
@@ -635,9 +623,6 @@ void InputData::Delete(){
   for(unsigned i = 0; i < etaPriorData_.size(); ++i)
     etaPriorData_[i].clear();
   etaPriorData_.clear();
-  for(unsigned i = 0; i < MLEData_.size(); ++i)
-    MLEData_[i].clear();
-  MLEData_.clear();
   for(unsigned i = 0; i < reportedAncestryData_.size(); ++i)
     reportedAncestryData_[i].clear();
   reportedAncestryData_.clear();
@@ -650,6 +635,5 @@ void InputData::Delete(){
   historicalAlleleFreqMatrix_.clear();
   priorAlleleFreqMatrix_.clear();
   etaPriorMatrix_.clear();
-  MLEMatrix_.clear();
   reportedAncestryMatrix_.clear();
 }

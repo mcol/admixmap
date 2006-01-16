@@ -63,7 +63,6 @@ public:
   const Matrix_s& getHistoricalAlleleFreqData() const;
   const Matrix_s& getPriorAlleleFreqData() const;
   const Matrix_s& getEtaPriorData() const;
-  const Matrix_s& getMLEData() const;
   const Matrix_s& getReportedAncestryData() const;
 
   /**
@@ -76,7 +75,6 @@ public:
   const DataMatrix& getHistoricalAlleleFreqMatrix() const;
   const DataMatrix& getPriorAlleleFreqMatrix() const;
   const DataMatrix& getEtaPriorMatrix() const;
-  const DataMatrix& getMLEMatrix() const;
   const DataMatrix& getReportedAncestryMatrix() const;
 
   void getOutcomeTypes(DataType*)const;
@@ -104,7 +102,6 @@ private:
   Matrix_s historicalAlleleFreqData_;
   Matrix_s priorAlleleFreqData_;
   Matrix_s etaPriorData_;
-  Matrix_s MLEData_;
   Matrix_s reportedAncestryData_;
 
   DataMatrix locusMatrix_;
@@ -114,7 +111,6 @@ private:
   DataMatrix historicalAlleleFreqMatrix_;
   DataMatrix priorAlleleFreqMatrix_;
   DataMatrix etaPriorMatrix_;
-  DataMatrix MLEMatrix_;
   DataMatrix reportedAncestryMatrix_;
 
   std::string* PopulationLabels;

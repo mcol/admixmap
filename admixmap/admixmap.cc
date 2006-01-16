@@ -108,7 +108,7 @@ int main( int argc , char** argv ){
       chrm[j]->InitialiseLociCorr(L.getrho());
     }
   cout << flush; 
-  IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log, data.getMLEMatrix());
+  IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log);
   
   //set expected Outcome
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r)

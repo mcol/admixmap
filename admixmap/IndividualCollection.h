@@ -49,7 +49,7 @@ public:
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
 		  const std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta, 
-		  LogWriter &Log, const DataMatrix &MLEMatrix);
+		  LogWriter &Log);
 
   void LoadData(const AdmixOptions* const options, const InputData* const);
   
@@ -109,7 +109,7 @@ public:
 			  const bool & annealed);
   double* getSumEnergy();
   double* getSumEnergySq();
-  //double getModifiedLogLikelihood(const AdmixOptions* const options, Chromosome **C, double coolness);
+
   double DerivativeInverseLinkFunction(int i)const;
   void ResetChib();
   void OutputErgodicChib(std::ofstream *avgstream);
@@ -128,7 +128,7 @@ private:
   void LoadCovariates(const InputData*, const AdmixOptions* const options);
   void LoadOutcomeVar(const InputData* const);
   void LoadRepAncestry(const InputData* const);
-  void InitialiseMLEs(double, double, const AdmixOptions* const, const DataMatrix&);
+  void InitialiseMLEs(double, double, const AdmixOptions* const);
 
   unsigned int NumInd, size, NumCompLoci;
   //MLEs of Individual admixture and sumintensities
