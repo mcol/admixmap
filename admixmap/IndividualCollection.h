@@ -58,8 +58,10 @@ public:
   void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
 	      const std::string* const PopulationLabels, 
-	      const std::vector<std::vector<double> > &alpha, double globalrho, double rhoalpha, double rhobeta,
-	      LogWriter &Log, bool anneal);
+	      const std::vector<std::vector<double> > &alpha, // double globalrho, 
+	      double rhoalpha, double rhobeta,
+	      // LogWriter &Log, 
+	      bool anneal);
 
   void FindPosteriorModes(const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 			  const Regression* const R, const double* const poptheta,

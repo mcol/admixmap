@@ -1296,78 +1296,78 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 
 //******************** Chib Algorithm ***************************************
 // this function does three things:
-// 1. sets parameters for max log-likelihood during burnin
-// 2. calculates log-likelihood at these param values
-// 3. accumulates posterior ordinate for Chib algorithm
+// 1. sets allele freqs at their prior mean at end of burnin
+// 2. calculates log-likelihood and log prior at thetahat, rhohat, allelefreqsMAP at end of burnin
+// 3. accumulates posterior ordinate at thetahat, rhohat, allelefreqsMAP at every iteration after burnin 
 // should split into three. 
 // function should not be called during annealing runs
-void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
+void Individual::Chib(int iteration, // double *SumLogLikelihood, double *MaxLogLikelihood,
 		      const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, 
-		      double globalrho, double rhoalpha, double rhobeta, double *thetahat,
-		      double *thetahatX, vector<double> &rhohat,
-		      vector<double> &rhohatX, LogWriter& Log, chib *MargLikelihood, AlleleFreqs* A){
-  vector<double> rho(2);
-  if(!options->isGlobalRho())
-    rho = _rho;
-  else // global rho
-    rho[0] = rho[1] = globalrho;
-
-  int K = Populations;
-  size_t theta_size = Populations * NumIndGametes;
-  double logLikelihood = 0.0;
-
-  // *** Every iteration ***
-  if(strlen(options->getIndAdmixModeFilename())==0)
-    logLikelihood = getLogLikelihood(options, chrm, false, true); //get loglikelihood at current parameter values
-  // do not force update, store new value if updated 
-  else//use stored modes
-    logLikelihood = getLogLikelihood(options, chrm, thetahat, thetahatX, rhohat, rhohatX, true);
+		      // double globalrho, 
+		      double rhoalpha, double rhobeta, double *thetahat,
+		      double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX, // LogWriter& Log, 
+		      chib *MargLikelihood, AlleleFreqs* A){
+//   vector<double> rho(2);
+//   if(!options->isGlobalRho())
+//     rho = _rho;
+//   else // global rho
+//     rho[0] = rho[1] = globalrho;
   
-  // *** during BurnIn ***
-  if( iteration <= options->getBurnIn() ){
-    if(strlen(options->getIndAdmixModeFilename())==0){
-      if( Populations > 1 ) {  
-	if( logLikelihood > *MaxLogLikelihood ){
-	  Log.setDisplayMode(Off);
-	  Log << "Admixture (gamete 1):";
-	  for(int i = 0; i < K; ++i)Log << Theta[i] << "\t";
-	    Log << "\n" << "Admixture (gamete 2):";
-	    for(int i = K; i < K+K; ++i)Log << Theta[i] << "\t";
-	    Log << "\nsumintensities: " <<  rho[0] << " " <<  rho[1]
-	      << "\nLogLikelihood: " << logLikelihood
-		<< "\niteration: " << iteration << "\n\n";
-	    
-	    //set parameter estimates at max loglikelihood
-	    for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
-	    rhohat = rho;
-	    
-	    if( Loci->isX_data() ){
-	      for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
-	      rhohatX = _rho_X;
-	    }
-	}//end if Loglikelihood > Max
-      }//end if K>1
-    }
-      
-      if( logLikelihood > *MaxLogLikelihood ){
-	*MaxLogLikelihood = logLikelihood;
-	
-	//set allelefreqsMAP to current values of allelefreqs
-	A->setAlleleFreqsMAP();
-	//set HapPairProbsMAP to current values of HapPairProbs
-	for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-	  //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
-	  (*Loci)(j)->setHaplotypeProbsMAP();
-	}
-      }
-    }
+  // int K = Populations;
+  //size_t theta_size = Populations * NumIndGametes;
+  // double logLikelihood = 0.0;
+  
+  // *** Every iteration ***
+  //  if(strlen(options->getIndAdmixModeFilename())==0)
+  //    logLikelihood = getLogLikelihood(options, chrm, false, true); //get loglikelihood at current parameter values
+  //  // do not force update, store new value if updated 
+  //  else //use stored modes
+  //    logLikelihood = getLogLikelihood(options, chrm, thetahat, thetahatX, rhohat, rhohatX, true);
+  
+  //   // *** during BurnIn ***
+  //   if( iteration <= options->getBurnIn() ){
+  //     if(strlen(options->getIndAdmixModeFilename())==0){
+  //       if( Populations > 1 ) {  
+  // 	if( logLikelihood > *MaxLogLikelihood ){
+  // 	  Log.setDisplayMode(Off);
+  // 	  Log << "Admixture (gamete 1):";
+  // 	  for(int i = 0; i < K; ++i)Log << Theta[i] << "\t";
+  // 	    Log << "\n" << "Admixture (gamete 2):";
+  // 	    for(int i = K; i < K+K; ++i)Log << Theta[i] << "\t";
+  // 	    Log << "\nsumintensities: " <<  rho[0] << " " <<  rho[1]
+  // 	      << "\nLogLikelihood: " << logLikelihood
+  // 		<< "\niteration: " << iteration << "\n\n";
+  
+  // 	    //set parameter estimates at max loglikelihood
+  // 	    for(unsigned k = 0; k < theta_size; ++k)thetahat[k] = Theta[k];
+  // 	    rhohat = rho;
+  
+  // 	    if( Loci->isX_data() ){
+  // 	      for(unsigned k = 0; k < theta_size; ++k)thetahatX[k] = ThetaX[k];
+  // 	      rhohatX = _rho_X;
+  // 	    }
+  // 	}//end if Loglikelihood > Max
+  //       }//end if K>1
+  //     }
+  
+  //       if( logLikelihood > *MaxLogLikelihood ){
+  // 	*MaxLogLikelihood = logLikelihood;
+ 
 
   // *** At end of BurnIn ***
   if( iteration == options->getBurnIn() ){
+    //set allelefreqsMAP to current values of allelefreqs
+    A->setAlleleFreqsMAP();
+    //set HapPairProbsMAP to current values of HapPairProbs
+    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+      //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
+      (*Loci)(j)->setHaplotypeProbsMAP();
+    }
     
     //loglikelihood at estimates
     for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j)
       SetGenotypeProbs(j, chrm[j], true);//set genotype probs from happairprobsMAP
+    // make sure that genotype probs are reset before next update
     MargLikelihood->setLogLikelihood(getLogLikelihood( options, chrm, thetahat, thetahatX, rhohat, rhohatX, true));
   }
   
@@ -1398,7 +1398,7 @@ void Individual::Chib(int iteration, double *SumLogLikelihood, double *MaxLogLik
 	  }
     }
     MargLikelihood->addLogPosteriorObs( LogPosterior );
-    *SumLogLikelihood += logLikelihood;
+    // *SumLogLikelihood += logLikelihood; // no point in accumulating this
   }
 }
 

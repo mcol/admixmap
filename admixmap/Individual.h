@@ -124,11 +124,10 @@ public:
 
   void resetStepSizeApproximator(int k);
 
-  void Chib(int iteration, double *SumLogLikelihood, double *MaxLogLikelihood,
-	    const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, double globalrho,
+  void Chib(int iteration, // double *SumLogLikelihood, double *MaxLogLikelihood,
+	    const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, // double globalrho,
 	    double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
-	    vector<double> &rhohat, vector<double> &rhohatX,
-	    LogWriter& Log, chib *MargLikelihood, AlleleFreqs *A);
+	    vector<double> &rhohat, vector<double> &rhohatX, chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(const AdmixOptions* const options);
  

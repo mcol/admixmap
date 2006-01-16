@@ -144,7 +144,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   // allocate array of sufficient statistics for update of population admixture parameters
   SumLogTheta = new double[ options->getPopulations()];
 
-//   // this call required for chib algorithm 
+//   // this call should no longer be required for chib algorithm 
   if( options->getMLIndicator() )
     InitialiseMLEs(rhoalpha,rhobeta,options, MLEMatrix);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
@@ -152,7 +152,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
 }
 
 
-// // ** this function needs debugging
+// // ** this function should no longer be required 
 // required for chib algorithm but all necessary code could be moved to individual 
 void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options, 
 					  const DataMatrix &MLEMatrix){
@@ -179,25 +179,25 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const
      vector<double> r(2, rhoalpha/rhobeta );
      rhohat = r;
      rhohatX = r;
-   }
-   //TODO: X objects
+  }
+  //TODO: X objects
 
 
-   //use previously read values from file, if available
-   if( NumInd == 1 && strlen(options->getMLEFilename())>0 ){
-      rhohat[0] = MLEMatrix.get( options->getPopulations(), 0 );
-      if( options->isXOnlyAnalysis() ){
-	for(int k = 0; k < options->getPopulations(); ++k) thetahat[k] = MLEMatrix.get(k,0);
-      }
-      else{
-	for(int k = 0; k < options->getPopulations(); ++k) {
-	  thetahat[k] = MLEMatrix.get(k,0);
-	  thetahat[k+ options->getPopulations()] = MLEMatrix.get(k,1);
-	}
-	rhohat[1] = MLEMatrix.get(options->getPopulations(), 1 );
-      }
-      setAdmixtureProps(thetahat, size_admix);
-   }
+//    //use previously read values from file, if available
+//    if( NumInd == 1 && strlen(options->getMLEFilename())>0 ) {
+//      rhohat[0] = MLEMatrix.get( options->getPopulations(), 0 );
+//      if( options->isXOnlyAnalysis() ){
+//        for(int k = 0; k < options->getPopulations(); ++k) thetahat[k] = MLEMatrix.get(k,0);
+//      }
+//      else{
+//        for(int k = 0; k < options->getPopulations(); ++k) {
+// 	 thetahat[k] = MLEMatrix.get(k,0);
+// 	 thetahat[k+ options->getPopulations()] = MLEMatrix.get(k,1);
+//        }
+//        rhohat[1] = MLEMatrix.get(options->getPopulations(), 1 );
+//      }
+//      setAdmixtureProps(thetahat, size_admix);
+//    }
 }
 
 void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){
@@ -356,8 +356,9 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
 void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
 				  const std::string* const PopulationLabels,
-				  const vector<vector<double> > &alpha, double globalrho,
-				  double rhoalpha, double rhobeta, LogWriter &Log, bool anneal=false){
+				  const vector<vector<double> > &alpha, // double globalrho,
+				  double rhoalpha, double rhobeta, //LogWriter &Log, 
+				  bool anneal=false){
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 
   // but we need a similar function to anneal outcome data on each individual for regressions 
@@ -388,10 +389,11 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   //posterior modes of individual admixture
-  if(!anneal && iteration == options->getBurnIn() && strlen(options->getIndAdmixModeFilename())){
+  if(!anneal && iteration == options->getBurnIn() && 
+     (options->getMLIndicator() || strlen(options->getIndAdmixModeFilename()))) {
     FindPosteriorModes(options, chrm, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
   }
-
+  
   for(unsigned int i = 0; i < size; i++ ){
     int prev = i-1;
     if(i==0) prev = size-1;
@@ -407,9 +409,10 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 
     
     if( options->getMLIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
-      _child[i]->Chib(iteration, &SumLogLikelihood, &(MaxLogLikelihood[i]),
-		      options, chrm, alpha, globalrho, rhoalpha, rhobeta,
-		      thetahat, thetahatX, rhohat, rhohatX, Log, &MargLikelihood, A);
+      _child[i]->Chib(iteration, //&SumLogLikelihood, &(MaxLogLikelihood[i]),
+		      options, chrm, alpha, //globalrho, 
+		      rhoalpha, rhobeta,
+		      thetahat, thetahatX, rhohat, rhohatX, &MargLikelihood, A);
   }
 }
 
@@ -440,8 +443,8 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 					      const Regression* const R, const double* const poptheta,
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 					      const std::string* const PopulationLabels){
-  if(options->getDisplayLevel()>2)
-    cout<<"Searching for posterior modes of individual admixture..."<<endl;
+  if(options->getDisplayLevel()>1)
+    cout<< endl << "Finding posterior mode of individual parameters ..." << endl;
   //open output file and write header
   ofstream modefile(options->getIndAdmixModeFilename());
   modefile << "Individual \t";
@@ -467,7 +470,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
     beta.push_back( R[i].getbeta());
   }
   int i0 = 0;
-  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
+  if(options->getTestOneIndivIndicator()) {// find posterior mode for test individual only 
     i0 = 1;
     TestInd[sizeTestInd-1]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
@@ -475,7 +478,8 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 				DerivativeInverseLinkFunction(0),
 				R[0].getDispersion(), modefile, 
 				thetahat, thetahatX, rhohat, rhohatX);
-  }
+  } 
+  
   for(unsigned int i = 0; i < size; i++ ){
     _child[i]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
 				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
@@ -629,7 +633,7 @@ void IndividualCollection::OutputChibEstimates(bool RandomMating, LogWriter &Log
 
 void IndividualCollection::OutputChibResults(LogWriter& Log)const{
   Log.setDisplayMode(On);
-  Log << "\nCalculation of Chib algorithm using parameter values with max likelihood during burn-in:"
+  Log << "\nCalculation of Chib algorithm using posterior mode of admixture and sum-intensities, prior mean of allele freqs"
       << "\nDeviance\t" << -2.0*MargLikelihood.getLogLikelihood()
       << "\nLogLikelihood\t" << MargLikelihood.getLogLikelihood()
       << "\nLogPrior\t" << MargLikelihood.getLogPrior()

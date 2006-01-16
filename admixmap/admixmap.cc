@@ -545,9 +545,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
   // individual admixture and sum-intensities 
-  IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(), L->getrho(), 
+  IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(), // L->getrho(), 
 	     L->getrhoalpha(), L->getrhobeta(),
-	     Log, anneal);
+	     //Log, 
+	     anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level  
   
   // update allele frequencies conditional on locus ancestry states
