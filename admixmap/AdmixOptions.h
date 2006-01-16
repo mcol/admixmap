@@ -65,7 +65,6 @@ public:
   const char *getLocusFilename() const;
   const char *getGenotypesFilename() const;
   const char *getCovariatesFilename() const;  
-  const char *getMLEFilename() const;
   const char *getHistoricalAlleleFreqFilename() const;
   const char *getPriorAlleleFreqFilename() const;
   const char *getAlleleFreqFilename() const;
@@ -239,7 +238,6 @@ private:
   string PriorAlleleFreqFilename;
   string CovariatesFilename;
   string OutcomeVarFilename;
-  string MLEFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;
 

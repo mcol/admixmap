@@ -324,11 +324,6 @@ const char *AdmixOptions::getCovariatesFilename() const
   return CovariatesFilename.c_str();
 }
 
-const char *AdmixOptions::getMLEFilename() const
-{
-  return MLEFilename.c_str();
-}
-
 bool AdmixOptions::isRandomMatingModel() const
 {
   return RandomMatingModel;
@@ -664,7 +659,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 
     {"outcomevarfile",                        1, 0,  0 }, // string
     {"covariatesfile",                        1, 0,  0 }, // string
-    {"mlefile",                               1, 0,  0 }, // string
 
     // Optional if specify outcomevarfile
     {"outcomes",                              1, 0, 'o'}, // int 1: no. of cols in outcomvarfile
@@ -695,8 +689,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"dispersiontestfile",                    1, 0,  0 }, // string
     {"fstoutputfile",                         1, 0,  0 }, // string
     {"hwscoretestfile",                       1, 0,  0 }, // string
-    {"likratiofilename",                      1, 0,  0 }, // string
-    {"indadmixmodefilename",                  1, 0,  0 }, // string
+    {"likratiofile",                      1, 0,  0 }, // string
+    {"indadmixmodefile",                  1, 0,  0 }, // string
 
     // Other options
     {"numannealedruns",                       1, 0,  0 }, // long
@@ -840,11 +834,11 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "haplotypeassociationscorefile") {
 	 TestsForSNPsInHaplotypeOutputFilename = optarg;OptionValues["haplotypeassociationscorefile"]=optarg;
 	 TestForSNPsInHaplotype = true; ScoreTestIndicator = true;
-      } else if (long_option_name == "likratiofilename") {
-	LikRatioFilename = optarg;//OptionValues["likratiofilename"]=optarg;
-      }else if (long_option_name == "indadmixmodefilename"){
+      } else if (long_option_name == "likratiofile") {
+	LikRatioFilename = optarg;//OptionValues["likratiofile"]=optarg;
+      }else if (long_option_name == "indadmixmodefile"){
 	IndAdmixModeFilename = optarg; 
-	OptionValues["indadmixmodes"] = optarg;
+	OptionValues["indadmixmodefile"] = optarg;
 
 	 // ** input files **
       } else if (long_option_name == "outcomevarfile") {
@@ -855,8 +849,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 HistoricalAlleleFreqFilename = optarg;OptionValues["historicallelefreqfile"]=optarg;
       } else if (long_option_name == "covariatesfile") {
 	 CovariatesFilename = optarg;OptionValues["covariatesfile"]=optarg;
-      } else if (long_option_name == "mlefile") {
-	 MLEFilename = optarg;OptionValues["mlefile"]=optarg;
 
 	 // ** model specification **
       } else if (long_option_name == "analysistypeindicator") {
