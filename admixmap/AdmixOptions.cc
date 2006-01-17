@@ -97,7 +97,7 @@ void AdmixOptions::Initialise(){
   globalrhoPrior.push_back(0.5);//rhobeta
 
   // non-global rho: default gamma-gamma prior with parameters 4, 3, 3
-  // effective prior mean is 4*3/(3-1) = 6 and effective prior variance is 6*7 / 2 = 21
+  // effective prior mean is 4*3/(3-1) = 6 and effective prior variance is 6*7 / (3 -2) = 42
   rhoPrior.push_back(4.0);//rhoalpha 
   rhoPrior.push_back(3.0);//rhobeta shape
   rhoPrior.push_back(3.0);//rhobeta rate
@@ -409,17 +409,16 @@ double AdmixOptions::getRhoalpha() const {
     return rhoPrior[0];
   }
 }
-
-double AdmixOptions::getRhobeta() const
-{
+double AdmixOptions::getRhobeta() const {
   return globalrhoPrior[1];
 }
-double AdmixOptions::getRhobetaShape()const{
+double AdmixOptions::getRhobetaShape()const {
   return rhoPrior[1];
 }
-double AdmixOptions::getRhobetaRate()const{
+double AdmixOptions::getRhobetaRate()const {
   return rhoPrior[2];
 }
+
 double AdmixOptions::getAlphamean() const{
   return alphamean;
 }

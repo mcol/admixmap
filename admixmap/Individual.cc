@@ -47,22 +47,23 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   NumIndGametes = 1;
   if( options->isRandomMatingModel() ) NumIndGametes = 2;
 
-  if( !options->isGlobalRho() ){//model with individual- or gamete-specific sumintensities
-    TruncationPt = options->getTruncPt();
+  if( !options->isGlobalRho() ) { //model with individual- or gamete-specific sumintensities
     //determine initial value for rho
+    double init = 0;
+    TruncationPt = options->getTruncPt(); // shouldn't use this if hierarchical model
     double alpha = options->getRhobetaShape();
-    double init = options->getRhoalpha();
-    if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() ){
-      if(alpha > 1) init *= options->getRhobetaRate() / (options->getRhobetaShape() - 1 );//prior mean
-      else init *= options->getRhobetaRate() / options->getRhobetaShape() ;//conditional prior mean
-    }
-    else init = 2.0;//min value if flat prior
-
+    if( alpha > 1 && options->getRhobetaRate() > 1 && options->getRhobetaShape() > 1 ) {
+      if( options->getRhobetaShape() > 2 ) {
+	init = alpha*(options->getRhobetaShape() - 1 ) / options->getRhobetaRate(); //prior mean
+      } else { 
+	init = alpha*options->getRhobetaShape() / options->getRhobetaRate(); //conditional prior mean
+      }
+    } else init = 2.0;//min value if flat prior
     _rho.assign(NumIndGametes,init);
-   }
+  }
   sumlogrho.assign(_rho.size(), 0.0);
   
-  // Read sex value if present.
+  // Read sex value if present - should determine this from number of integers in genotypes on X chr.
   sex = male;
   if (options->getgenotypesSexColumn() == 1) {
     sex = Data->GetSexValue(myNumber);
@@ -684,13 +685,15 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
       unsigned NumAdmixed = 0;
       double sum = 0.0;
       for(int k = 0; k < Populations; ++k){
-	if(alpha[gg][k]>0.0)++NumAdmixed;
+	if(alpha[gg][k]>0.0) ++NumAdmixed;
 	sum += Theta[i*Populations+k];
       }
       int k0;
       for(int k = 0; k < Populations; ++k){
 	thetahat[i*Populations+k] /= sum;//correct to sum to 1
-	if(alpha[gg][k]>0.0 && thetahat[i*Populations+k]<0.001){
+	// kludge to fix problem where prior proportion is non zero and mode is at zero
+	// fix chib algorithm to use posterior/prior density ratio at thetahat   
+	if(alpha[gg][k]>0.0 && thetahat[i*Populations+k]<0.001) {
 	  k0 = k;
 	  for(int kk = 0; kk < Populations; ++kk)if(alpha[gg][kk]>0.0 && kk!=k0)
 	    thetahat[i*Populations+kk]-= 0.001 / (double)(NumAdmixed);
