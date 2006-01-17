@@ -3,21 +3,13 @@
  *   AlleleFreqs.cc 
  *   Class to hold and update allele frequencies, their prior parameters, allele counts and sums. Also holds and updates dispersion
  *   parameter eta and its prior parameters, for a dispersion model. Also computes Fst if required.
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "AlleleFreqs.h"
 #include "AdaptiveRejection.h"
@@ -330,7 +322,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   else{
     SetDefaultAlleleFreqs( Populations );
   }
-  if(options->getMLIndicator())
+  if(options->getChibIndicator())
     setAlleleFreqsMAP();
 }
 
@@ -543,8 +535,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
 
     // to flatten likelihood when annealing, multiply realized allele counts by coolness
     for(unsigned s = 0; s < NumStates; ++s)
-      temp[s] = PriorAlleleFreqs[i][c*j*NumberOfStates[i] + s] + 
-	coolness*AlleleCounts[i][s*Populations +j];
+      temp[s] = PriorAlleleFreqs[i][c*j*NumberOfStates[i] + s] + coolness*AlleleCounts[i][s*Populations +j];
     gendirichlet(NumStates, temp, freqs);
     for(unsigned s = 0; s < NumStates-1; ++s)Freqs[i][s*Populations+j] = freqs[s];
 

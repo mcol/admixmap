@@ -174,7 +174,7 @@ int main( int argc , char** argv ){
     }
     Coolnesses[NumAnnealedRuns] = 1.0;
     
-    if(options.getAnnealIndicator()) { // set up output for thermodynamic integration
+    if(options.getThermoIndicator()) { // set up output for thermodynamic integration
       string s = options.getResultsDir()+"/annealmon.txt";
       annealstream.open(s.c_str());
       annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << endl;
@@ -240,7 +240,7 @@ int main( int argc , char** argv ){
 	double LastMeanEnergy = 0.0; 
 	MeanEnergy = SumEnergy / ((double)options.getTotalSamples() - options.getBurnIn());
 	VarEnergy  = SumEnergySq / ((double)options.getTotalSamples() - options.getBurnIn()) - MeanEnergy * MeanEnergy;
-	if(options.getAnnealIndicator()){// calculate thermodynamic integral
+	if(options.getThermoIndicator()){// calculate thermodynamic integral
 	  annealstream << coolness << "\t" << MeanEnergy << "\t" << VarEnergy;
 	  // use trapezium rule to approximate integral
 	  LogEvidence -= 0.5*(LastMeanEnergy + MeanEnergy) * IntervalWidths[run]; 
@@ -255,7 +255,7 @@ int main( int argc , char** argv ){
     // *************************** OUTPUT AT END ***********************************************************
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
     else Log.setDisplayMode(On);
-    if( options.getMLIndicator()) {
+    if( options.getChibIndicator()) {
       IC->OutputChibEstimates(options.isRandomMatingModel(), Log, options.getPopulations());
       //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
       if(IC->getSize()==1) IC->OutputChibResults(Log);
@@ -274,7 +274,7 @@ int main( int argc , char** argv ){
       << "EffectiveNumParameters(pD)\t" << pD << "\n"
       << "DevianceInformationCriterion\t" << DIC << "\n\n"; 
 
-    if(options.getAnnealIndicator()){
+    if(options.getThermoIndicator()){
       Log << "thermodynamic integration for marginal likelihood yields:\n";
       Log << "LogEvidence: " <<  LogEvidence << "\n"; 
       Log << "Information (negative entropy, measured in nats): " << Information << "\n";
@@ -436,7 +436,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	      A.OutputErgodicAvg(samples, &avgstream);
 	    }
 	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq, &avgstream);
-	    if(options.getMLIndicator()) IC->OutputErgodicChib(&avgstream);
+	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream);
 	    avgstream << endl;
 	  }
 	  //Score Test output
@@ -526,7 +526,7 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
       }
     }
     *avgstream << "MeanDeviance\tVarDeviance\t";
-    if(options->getMLIndicator()){// chib calculation
+    if(options->getChibIndicator()){// chib calculation
       *avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
 		 << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
     }
