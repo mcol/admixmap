@@ -100,11 +100,12 @@ void AdmixOptions::Initialise(){
   HWTest = false;
   OutputAlleleFreq = false;
 
-  //Gamma prior with mean 6 on sumintensities
-  //global rho, gamma (3, 0.5) prior
-  Rhoalpha = 3.0;
-  Rhobeta = 0.5; 
-  //non-global rho
+  //global rho: default gamma (3, 0.5) prior has mean 6, variance 12 
+  globalrhoPrior.push_back(3.0);//rhoalpha 
+  globalrhoPrior.push_back(0.5);//rhobeta
+
+  // non-global rho: default gamma-gamma prior with parameters 4, 3, 3
+  // effective prior mean is 4*3/(3-1) = 6 and effective prior variance is 6*7 / 2 = 21
   rhoPrior.push_back(4.0);//rhoalpha 
   rhoPrior.push_back(3.0);//rhobeta shape
   rhoPrior.push_back(3.0);//rhobeta rate
@@ -142,6 +143,8 @@ void AdmixOptions::Initialise(){
   OptionValues["hapmixmodel"] = "0";
   OptionValues["chib"] = "0";
   OptionValues["thermo"] = "0";
+  OptionValues["globalsumintensitiesprior"] = "3.0,0.5";
+  OptionValues["sumintensitiesprior"] = "4.0,3.0,3.0";
   OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
   OptionValues["popadmixpriormean"] = "1.0";
@@ -407,13 +410,17 @@ long AdmixOptions::getSeed() const
   return Seed;
 }
 
-double AdmixOptions::getRhoalpha() const
-{
-  return rhoPrior[0];
+double AdmixOptions::getRhoalpha() const {
+  if(GlobalRho) {
+    return globalrhoPrior[0];
+  } else {
+    return rhoPrior[0];
+  }
 }
+
 double AdmixOptions::getRhobeta() const
 {
-  return Rhobeta;
+  return globalrhoPrior[1];
 }
 double AdmixOptions::getRhobetaShape()const{
   return rhoPrior[1];
@@ -434,12 +441,12 @@ double AdmixOptions::getEtaVar() const{
   return etavar;
 }
 
-bool AdmixOptions::RhoFlatPrior() const{
-  if( Rhoalpha==99 || ((Rhoalpha==1) && (Rhobeta==0)) ) return true;
+bool AdmixOptions::RhoFlatPrior() const {
+  if( globalrhoPrior[0]==1 && globalrhoPrior[1]==0 ) return true;
   else return false;
 }
 bool AdmixOptions::logRhoFlatPrior() const{
-  if( Rhoalpha==98 || ((Rhoalpha==0) && (Rhobeta==0)) ) return true;
+  if( globalrhoPrior[0]==0 && globalrhoPrior[1]==0 ) return true;
   else return false;
 }
 
@@ -706,10 +713,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
-    {"sumintensitiesalpha",                   1, 0,  0 }, // double
-    //{"sumintensitiesbetashape",               1, 0,  0 }, // double
-    //{"sumintensitiesbetarate",                1, 0,  0 }, // double
-    {"sumintensitiesprior",                   1, 0,  0 }, //vector of doubles
+    {"globalsumintensitiesprior",             1, 0,  0 }, // vector of doubles of length 2
+    {"sumintensitiesprior",                   1, 0,  0 }, // vector of doubles of length 3 
     {"popadmixpriormean",                     1, 0,  0 }, //double
     {"popadmixpriorvar",                      1, 0,  0 }, //double
     {"etapriormean",                          1, 0,  0 }, //double
@@ -914,14 +919,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 Seed = strtol(optarg, NULL, 10);OptionValues["seed"]=optarg;
       } else if (long_option_name == "sumintensitiesprior" ) {
 	rhoPrior = CstrToVec(optarg);
-	Rhoalpha = rhoPrior[0];Rhobeta = rhoPrior[1];
 	OptionValues["sumintensitiesprior"] = optarg; 
-      } else if (long_option_name == "sumintensitiesalpha") {
-	 Rhoalpha = strtod(optarg, NULL);OptionValues["sumintensitiesalpha"]=optarg;
-//       } else if (long_option_name == "sumintensitiesbetashape") {
-// 	 RhobetaShape = strtod(optarg, NULL);OptionValues["sumintensitiesbetashape"]=optarg;
-//       } else if (long_option_name == "sumintensitiesbetarate") {
-// 	 RhobetaRate = strtod(optarg, NULL);OptionValues["sumintensitiesbetarate"]=optarg;
+      } else if (long_option_name == "globalsumintensitiesprior") {
+	globalrhoPrior = CstrToVec(optarg);
       } else if (long_option_name == "popadmixpriormean") {
 	 alphamean = strtod(optarg, NULL);OptionValues["popadmixpriormean"]=optarg;
       } else if (long_option_name == "popadmixpriorvar") {
@@ -1018,7 +1018,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       IndAdmixHierIndicator = false;
       Log << "One individual analysis";
     }
-
+  
   else if (RegType == None)
     {
       NumberOfOutcomes = 0;
@@ -1066,16 +1066,16 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       OptionValues.erase("regparamfile");
     }
   }
-
+  
   // **** Hierarchical model on ind admixture ****
   if (!IndAdmixHierIndicator)
     {
       Log << "No hierarchical model for individual admixture.\n";
-
+      
       if(ParameterFilename.length() > 0 ){
 	Log << "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n"
 	    << "\tThis option will be ignored\n";
-	 ParameterFilename = "";
+	ParameterFilename = "";
 	OptionValues.erase("paramfile");
       }
       if(RegressionOutputFilename.length() > 0){
@@ -1083,7 +1083,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	    << "\tThis option will be ignored\n";
 	RegressionOutputFilename = "";
 	OptionValues.erase("regparamfile");
-	 }
+      }
       if(EtaOutputFilename.length() > 0 ){
 	Log << "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n"
 	    << "\tThis option will be ignored\n";
@@ -1091,77 +1091,71 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	OptionValues.erase("dispparamfile");
       }
     }
-
+  
   // **** Random Mating Model **** 
   if(RandomMatingModel )
     Log << "Model assuming random mating.\n";
   else 
     Log << "Model assuming assortative mating.\n";
-
+  
   // **** sumintensities ****
-  if( GlobalRho ){
+  if( GlobalRho ) {
     Log << "Model with global sum-intensities.\n";
-//     if(rhoPrior.size() != 2){
-//       Log.setDisplayMode(On);
-//       Log << "ERROR: sumintensitiesprior has wrong length for globalrho model\n";
-//       exit(1);
-//     }
-  }
-  else {
+    if(globalrhoPrior.size() != 2) {
+      Log.setDisplayMode(On);
+      Log << "ERROR: globalsumintensitiesprior must have length 2\n";
+      exit(1);
+    } 
+  } else { // sumintensities at individual or gamete level
     if( RandomMatingModel )
       Log << "Model with gamete specific sum-intensities.\n";
     else
       Log << "Model with individual-specific sum-intensities.\n";
-    if(rhoPrior.size() != 3){
+    
+    if(rhoPrior.size() != 3) {
       Log.setDisplayMode(On);
-      Log << "ERROR: sumintensitiesprior must have length 3 for non-globalrho model\n";
+      Log << "ERROR: sumintensitiesprior must have length 3\n";
       exit(1);
     }
-    Rhoalpha = rhoPrior[0];
-    if(rhoPrior[2] <= 0.0 ){
+    if(rhoPrior[1] <= 1.0) {
       Log.setDisplayMode(On);
-      Log <<  "ERROR: rate parameter of sumintensities prior must be > 0\n";
+      Log << "ERROR: second element of sumintensitiesprior must be > 1\n";
+      exit(1);
+    }  
+    if(rhoPrior[2] <= 2.0 ){
+      Log.setDisplayMode(On);
+      Log <<  "ERROR: third element of sumintensitiesprior must be > 2\n"; 
       exit(1);
     }
-    Rhobeta = rhoPrior[1] / rhoPrior[2];
   }
 
-
-
-  if( RhoFlatPrior() ){
-    Log << "Flat prior on sum-intensities truncated at " << TruncPt << "\n";
+  if( GlobalRho ) {
+    if( RhoFlatPrior() ) {
+      Log << "Flat prior on sum-intensities truncated at " << TruncPt << "\n";
+    } else {
+      if( logRhoFlatPrior() ) {
+	Log << "Flat prior on log sum-intensities truncated at " << TruncPt << "\n";
+      } else {
+	Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
+	    << "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
+	Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
+	Log << "Effective prior variance of sum-intensities is " << 
+	  globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << "\n";
+      } 
+    } 
+  } else {
+    double rhopriormean = 0.0;
+    rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
+    Log << "Population distribution of sum-intensities specified as Gamma with shape parameter "
+	<< rhoPrior[0] << "\n"
+	<< "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
+	<< rhoPrior[1] << " & "
+	<< rhoPrior[2] << "\n"
+	<< "Effective prior mean of sum-intensities is " << rhopriormean << "\n";
+    Log << "Effective prior variance of sum-intensities is ";
+    Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
   }
-  else if( logRhoFlatPrior() ){
-    Log << "Flat prior on log sum-intensities truncated at " << TruncPt << "\n";
-  }
-  else {
-    //    if(Rhoalpha <= 0.0){
-    //       Log << "ERROR: prior shape parameter of sumintensities must be > 0\n";
-    //       exit(1);
-    //     }
-
-    if( GlobalRho ) {
-      Log << "Gamma prior on sum-intensities with shape parameter: " << Rhoalpha << "\n"
-	  << "and rate (1 / location) parameter " << Rhobeta << "\n";
-    }
-    else {
-      Log << "Population distribution of sum-intensities specified as Gamma with shape parameter "
-	  << Rhoalpha << "\n"
-	  << "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
-	  << rhoPrior[1] << " & "
-	  << rhoPrior[2] << "\n"
-	  << "Effective prior mean of sum-intensities is ";
-      double rhopriormean = 0.0;
-      if(rhoPrior[1] > 1.0)rhopriormean = Rhoalpha * rhoPrior[2] / (rhoPrior[1] - 1.0);
-      else rhopriormean = Rhoalpha / Rhobeta;
-      Log << rhopriormean << "\n";
-      if(rhoPrior[1] > 2.0){
-	Log << "Effective prior variance of sum-intensities is "
-	    << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
-      }
-    }
-  }
-
+  
   //Prior on admixture
   setInitAlpha(Log);
   if(Populations > 1 && NumberOfIndividuals > 1){

@@ -66,11 +66,15 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     }
     SumLocusAncestry = new int[Numindividuals*K];
 
-    // ** Initialise sum-of-intensities parameter rho and the parameters of its prior, rhoalpha and rhobeta **
-    rhobeta0 = options->getRhobetaShape();
-    rhobeta1 = options->getRhobetaRate();
-    rhobeta = options->getRhobeta();
+    // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
+    if( options->isGlobalRho() ) {
+      rhobeta = options->getRhobeta();
+    } else { // get prior on rate parameter beta and initialize at prior mean
+      rhobeta0 = options->getRhobetaShape();
+      rhobeta1 = options->getRhobetaRate();
+      rhobeta = rhobeta0 / rhobeta1;
+    }
 
     if(!options->isGlobalRho() && rhobeta0 > 1)
       rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);//initialise at prior mean
@@ -161,7 +165,8 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
 
 
 void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C) {
-  if( options->isGlobalRho() ){
+  // misnamed - should be updateSumIntensities
+  if( options->isGlobalRho() ) {
     double rhoprop;
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
@@ -169,19 +174,17 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
     double LogPriorRatio = 0.0;
     double LogAccProbRatio = 0.0;
     bool accept = false;
-
+    
     NumberOfUpdates++;
     rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values, annealed if this is an annealing run
-    // TO DO - IC object should store log HMM likelihood summed over individuals
-    // IC or individual objects should use annealed ProbGenotypes where necessary
     for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
       ind->HMMIsBad(true);//to force HMM update
       LogLikelihood += ind->getLogLikelihood(options, C, false, true); // don't force update, store result if updated
       ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
-   }
+    }
     
     // set ancestry correlations using proposed value of sum-intensities 
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
@@ -193,11 +196,11 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
       // line above should not be needed for a forced update with result not stored
     }
     LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
-
+    
     //compute prior ratio
     LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
     LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
-
+    
     // generic Metropolis step
     if( LogAccProbRatio < 0 ) {
       if( log(myrand()) < LogAccProbRatio ) accept = true;
@@ -214,26 +217,25 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
       for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
 	C[j]->SetLociCorr(rho);
     } // stored loglikelihoods are still ok
-
+    
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){
       step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
     }
-
-  }//end if global rho model
-
-  else if(IC->getSize()>1){//non global rho model
-    //if a single individual, rhobeta is fixed
-    // sample for location parameter of gamma distribution of sumintensities parameters 
-    // in population 
-    if( options->isRandomMatingModel() )
-      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			2*rhoalpha * IC->getSize() + rhobeta0 );
-    else
-      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			rhoalpha* IC->getSize() + rhobeta0 );
+    
+  } else  { //non global rho model
+    if(IC->getSize()>1) { //if single individual, rhobeta is not updated, and remains fixed at prior mean
+      // sample for location parameter of gamma distribution of sumintensities parameters 
+      if( options->isRandomMatingModel() )
+	rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			  2*rhoalpha * IC->getSize() + rhobeta0 );
+      else
+	rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			  rhoalpha* IC->getSize() + rhobeta0 );
+    }
   }
 }
+
 double Latent::getRhoSamplerAccRate()const{
   return TuneRhoSampler.getExpectedAcceptanceRate();
 }

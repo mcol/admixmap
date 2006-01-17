@@ -199,8 +199,9 @@ private:
   bool _symmetric;         
 
   //priors
-  double Rhoalpha, Rhobeta;//gamma parameters for sumintensities
+  //double Rhoalpha, Rhobeta;//gamma parameters for sumintensities
   //double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
+  std::vector<double> globalrhoPrior;
   std::vector<double> rhoPrior;
   std::vector<double> alpha0;
   std::vector<double> alpha1;
