@@ -5,19 +5,11 @@
  *   header file for Individual class
  *   Copyright (c) 2002-2006 LSHTM
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H 1
@@ -229,9 +221,11 @@ private:
 
   double ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, const vector<vector<double> > &alpha);
   
-  double LogPrior(const double* const theta, const double* const thetaX, const vector<double> rho, const vector<double> rhoX, 
-		  const AdmixOptions* const options, const AlleleFreqs* const A, double rhoalpha, double rhobeta, 
-		  const vector<vector<double> > &alpha)const;
+  double LogPriorTheta(const double* const theta, const double* const thetaX,  
+		       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
+  double LogPriorRho(const vector<double> rho, const vector<double> rhoX, 
+		     const AdmixOptions* const options, double rhoalpha, double rhobeta)const; 
+
   double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
 				    const vector<vector<double> > &alpha)const;
   double CalculateLogPosteriorRho(const AdmixOptions* const options,  
