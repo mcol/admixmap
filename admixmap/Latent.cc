@@ -69,9 +69,8 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 
     if(!options->isGlobalRho() && rhobeta0 > 1)
       rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);//initialise at prior mean
-    else if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
+    else
       rho = rhoalpha / rhobeta;//initialise at prior mean for globalrho
-    else rho = 2.0;//initialise at min value if flat prior
     
     // ** set up TuneRW object for global rho updates **
     NumberOfUpdates = 0;
