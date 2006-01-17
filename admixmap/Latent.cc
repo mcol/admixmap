@@ -81,7 +81,6 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     else if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
       rho = rhoalpha / rhobeta;//initialise at prior mean for globalrho
     else rho = 2.0;//initialise at min value if flat prior
-  
     
     // ** set up TuneRW object for global rho updates **
     NumberOfUpdates = 0;
@@ -165,8 +164,7 @@ void Latent::Update(int iteration, const IndividualCollection* const individuals
 
 
 void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C) {
-  // misnamed - should be updateSumIntensities
-  if( options->isGlobalRho() ) {
+  if( options->isGlobalRho() ){
     double rhoprop;
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
@@ -174,17 +172,19 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
     double LogPriorRatio = 0.0;
     double LogAccProbRatio = 0.0;
     bool accept = false;
-    
+
     NumberOfUpdates++;
     rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values, annealed if this is an annealing run
+    // TO DO - IC object should store log HMM likelihood summed over individuals
+    // IC or individual objects should use annealed ProbGenotypes where necessary
     for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
       ind->HMMIsBad(true);//to force HMM update
       LogLikelihood += ind->getLogLikelihood(options, C, false, true); // don't force update, store result if updated
       ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
-    }
+   }
     
     // set ancestry correlations using proposed value of sum-intensities 
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
@@ -196,11 +196,11 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
       // line above should not be needed for a forced update with result not stored
     }
     LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
-    
+
     //compute prior ratio
     LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
     LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
-    
+
     // generic Metropolis step
     if( LogAccProbRatio < 0 ) {
       if( log(myrand()) < LogAccProbRatio ) accept = true;
@@ -217,25 +217,26 @@ void Latent::UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **
       for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
 	C[j]->SetLociCorr(rho);
     } // stored loglikelihoods are still ok
-    
+
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){
       step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
     }
-    
-  } else  { //non global rho model
-    if(IC->getSize()>1) { //if single individual, rhobeta is not updated, and remains fixed at prior mean
-      // sample for location parameter of gamma distribution of sumintensities parameters 
-      if( options->isRandomMatingModel() )
-	rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			  2*rhoalpha * IC->getSize() + rhobeta0 );
-      else
-	rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			  rhoalpha* IC->getSize() + rhobeta0 );
-    }
+
+  }//end if global rho model
+
+  else if(IC->getSize()>1){//non global rho model
+    //if a single individual, rhobeta is fixed
+    // sample for location parameter of gamma distribution of sumintensities parameters 
+    // in population 
+    if( options->isRandomMatingModel() )
+      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			2*rhoalpha * IC->getSize() + rhobeta0 );
+    else
+      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			rhoalpha* IC->getSize() + rhobeta0 );
   }
 }
-
 double Latent::getRhoSamplerAccRate()const{
   return TuneRhoSampler.getExpectedAcceptanceRate();
 }
@@ -329,9 +330,15 @@ const double *Latent::getpoptheta()const{
   return poptheta;
 }
 
-float Latent::getEtaSamplerAcceptanceRate()const{
-  return PopAdmixSampler.getEtaExpectedAcceptanceRate();
-}
-float Latent::getEtaSamplerStepsize()const{
-  return PopAdmixSampler.getEtaStepSize();
+void Latent::printAcceptanceRates(LogWriter &Log){
+  Log << "Expected acceptance rate in admixture dispersion parameter sampler: "
+      << PopAdmixSampler.getEtaExpectedAcceptanceRate()
+      << "\nwith final step size of "
+      << PopAdmixSampler.getEtaStepSize() << "\n";
+#if SAMPLERTYPE == 2
+  Log << "Expected acceptance rate in admixture parameter Hamiltonian sampler: "
+      << L.getAlphaSamplerAcceptanceRate()
+      << "\nwith final step size of "
+      << L.getAlphaSamplerStepsize() << "\n";
+#endif
 }

@@ -2,21 +2,13 @@
  *   ADMIXMAP
  *   admixmap.cc 
  *   Top-level source file
- *   Copyright (c) 2002-2006 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
 #include "admixmap.h"
@@ -329,28 +321,16 @@ int main( int argc , char** argv ){
   if( options.getIndAdmixHierIndicator() ){
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
     else Log.setDisplayMode(On);
-#if POPADMIXSAMPLER == 2 
     if(options.getPopulations() > 1){
-      Log << "Expected acceptance rate in admixture dispersion parameter sampler: "
-	  << L.getEtaSamplerAcceptanceRate()
-	  << "\nwith final step size of "
-	  << L.getEtaSamplerStepsize() << "\n";
-    }
-#elif POPADMIXSAMPLER == 3
-    if(options.getPopulations() > 1){
-      Log << "Expected acceptance rate in admixture parameter Hamiltonian sampler: "
-	  << L.getAlphaSamplerAcceptanceRate()
-	  << "\nwith final step size of "
-	  << L.getAlphaSamplerStepsize() << "\n";
-    }
-#endif
-    
-    if( options.isGlobalRho() && options.getPopulations() > 1 ){
-      Log << "Expected acceptance rate in global sumintensities sampler: "
-	  << L.getRhoSamplerAccRate()
-	  << "\nwith final step size of "
-	  << L.getRhoSamplerStepsize()
-	  << "\n";
+      L.printAcceptanceRates(Log);
+      
+      if( options.isGlobalRho() ){
+	Log << "Expected acceptance rate in global sumintensities sampler: "
+	    << L.getRhoSamplerAccRate()
+	    << "\nwith final step size of "
+	    << L.getRhoSamplerStepsize()
+	    << "\n";
+      }
     }
     if(options.getCorrelatedAlleleFreqs()){
       Log<< "Expected acceptance rates in sampler for allele frequency proportion parameters: \n";
@@ -642,17 +622,16 @@ void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnerg
   *avgstream << EAvDeviance << " "<< EVarDeviance <<" ";
 }
 void PrintCopyrightNotice(){
-  cout << "\n-----------------------------------------------" << endl;
+  cout << "\n-------------------------------------------------------" << endl;
   cout << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
-  cout << "-----------------------------------------------" << endl;
-  cout << "Programme Authors: " <<endl;
+  cout << "-------------------------------------------------------" << endl;
+  cout << "Copyright(c) 2002-2006 " <<endl;
   cout << "David O'Donnell, Clive Hoggart and Paul McKeigue"<<endl;
-  cout << "Copyright(c) 2002-2006 LSHTM" <<endl;
-  cout << "Send any comments or queries to david.odonnell@ucd.ie"<<endl;
-  cout << "-----------------------------------------------"<<endl;
+  cout << "Send any comments or queries to david . odonnell@ucd.ie"<<endl;
+  cout << "-------------------------------------------------------"<<endl;
   cout << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl;
-  cout << "under the terms of the GNU General Public License" <<endl;
-  cout << "-----------------------------------------------" << endl;
+  cout << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl;
+  cout << "-------------------------------------------------------" << endl;
 }
 
 void PrintOptionsMessage() {
