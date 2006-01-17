@@ -152,7 +152,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   SumLogTheta = new double[ options->getPopulations()];
 
 //   allocate and set initial values for estimates used in Chib algorithm
-  if( options->getMLIndicator() )
+  if( options->getChibIndicator() )
     InitialiseMLEs(rhoalpha,rhobeta,options);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
   MaxLogLikelihood.assign(NumInd, -9999999 );
@@ -315,13 +315,6 @@ void IndividualCollection::SetExpectedY(int k, const double* const beta){
     }
 }
 
-// void IndividualCollection::calculateExpectedY(int k)
-// {
-//   if(ExpectedY)
-//     for(unsigned int i = 0; i < NumInd; i++ )
-//       ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
-// }
-
 void IndividualCollection::UpdateSumResiduals(){
   if(SumResiduals)
     for(int k = 0; k < NumOutcomes; ++k)
@@ -377,7 +370,8 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   //posterior modes of individual admixture
-  if(!anneal && iteration == options->getBurnIn() && (options->getMLIndicator() || strlen(options->getIndAdmixModeFilename()))) {
+  //search at start of burn-in, once annealing is finished
+  if(!anneal && iteration == 0 && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
     FindPosteriorModes(options, chrm, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
   }
 
@@ -395,7 +389,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 
 
     
-    if( options->getMLIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
+    if( options->getChibIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
       _child[i]->Chib(iteration, //&SumLogLikelihood, &(MaxLogLikelihood[i]),
 		      options, chrm, alpha, //globalrho, 
 		      rhoalpha, rhobeta,
