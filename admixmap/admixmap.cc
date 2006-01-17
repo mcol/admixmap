@@ -543,7 +543,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
   if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
      options->getIndAdmixHierIndicator() && (Loci->GetLengthOfGenome()> 0.0))
-    L->UpdateRhoWithRW(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
+    L->UpdateSumIntensities(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
   
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
   // individual admixture and sum-intensities 
@@ -565,7 +565,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // or from update of individual-level parameters otherwise
   
   //update population admixture Dirichlet parameters conditional on individual admixture
-  L->Update(iteration, IC, Log, anneal);
+  L->UpdatePopAdmixParams(iteration, IC, Log, anneal);
   
   // ** update regression parameters (if regression model) conditional on individual admixture
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)

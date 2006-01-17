@@ -5,19 +5,11 @@
  *   header file for Latent class
  *   Copyright (c) 2002-2006 LSHTM
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #ifndef LATENT_H
 #define LATENT_H 1
@@ -56,9 +48,8 @@ public:
   
   void InitializeOutputFile(const std::string* const);
   
-  //Updating every iteration
-  void UpdateRhoWithRW(const IndividualCollection* const IC, Chromosome **C);
-  void Update(int iteration, const IndividualCollection* const, LogWriter &Log,  bool anneal);
+  void UpdateSumIntensities(const IndividualCollection* const IC, Chromosome **C);
+  void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log,  bool anneal);
   
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream* out); 
@@ -72,11 +63,8 @@ public:
   double getrho()const;
   double getSumLogRho()const;
   const double *getpoptheta()const;
-  
-  float getEtaSamplerAcceptanceRate()const;
-  float getEtaSamplerStepsize()const;
-  float getMuSamplerAcceptanceRate()const;
-  float getMuSamplerStepsize()const;
+
+  void printAcceptanceRates(LogWriter &Log);
   
   float getAlphaSamplerAcceptanceRate()const;
   float getAlphaSamplerStepsize()const;
