@@ -75,8 +75,8 @@ void AdmixOptions::Initialise(){
   GlobalRho = true;//corresponds to globalrho = 1;
   IndAdmixHierIndicator = true; //hierarchical model on ind admixture
   HapMixModelIndicator = false; //model haplotypes with mixture model
-  MLIndicator = false;//calculate marginal likelihood by Chib method
-  AnnealIndicator = false; // calculate marginal likelihood by thermodynamic method
+  chibIndicator = false;//calculate marginal likelihood by Chib method
+  thermoIndicator = false; // calculate marginal likelihood by thermodynamic method
   TestOneIndivIndicator = false; // evaluate marginal likelihood for single individual
   NumAnnealedRuns = 20; // default if option thermo not specified 
   ScoreTestIndicator = false; //indicator for any of the score tests in ScoreTests class
@@ -96,8 +96,8 @@ void AdmixOptions::Initialise(){
   globalrhoPrior.push_back(3.0);//rhoalpha 
   globalrhoPrior.push_back(0.5);//rhobeta
 
-  // non-global rho: default gamma-gamma prior with parameters 4, 3, 3
-  // effective prior mean is 4*3/(3-1) = 6 and effective prior variance is 6*7 / (3 -2) = 42
+  // non-global rho: default gamma-gamma prior with parameters n=4, alpha=3, beta=3
+  // effective prior mean is 4*3/(3-1) = 6 and effective prior variance is 6*7 / 2 = 21
   rhoPrior.push_back(4.0);//rhoalpha 
   rhoPrior.push_back(3.0);//rhobeta shape
   rhoPrior.push_back(3.0);//rhobeta rate
@@ -330,11 +330,11 @@ bool AdmixOptions::getIndAdmixHierIndicator() const{
 bool AdmixOptions::getHapMixModelIndicator() const{
   return HapMixModelIndicator;
 }
-bool AdmixOptions::getMLIndicator()const{
-  return MLIndicator;
+bool AdmixOptions::getChibIndicator()const{
+  return chibIndicator;
 }
-bool AdmixOptions::getAnnealIndicator()const{
-  return AnnealIndicator;
+bool AdmixOptions::getThermoIndicator()const{
+  return thermoIndicator;
 }
 bool AdmixOptions::getTestOneIndivIndicator()const{
   return TestOneIndivIndicator;
@@ -409,16 +409,17 @@ double AdmixOptions::getRhoalpha() const {
     return rhoPrior[0];
   }
 }
-double AdmixOptions::getRhobeta() const {
+
+double AdmixOptions::getRhobeta() const
+{
   return globalrhoPrior[1];
 }
-double AdmixOptions::getRhobetaShape()const {
+double AdmixOptions::getRhobetaShape()const{
   return rhoPrior[1];
 }
-double AdmixOptions::getRhobetaRate()const {
+double AdmixOptions::getRhobetaRate()const{
   return rhoPrior[2];
 }
-
 double AdmixOptions::getAlphamean() const{
   return alphamean;
 }
@@ -430,15 +431,6 @@ double AdmixOptions::getEtaMean() const{
 }
 double AdmixOptions::getEtaVar() const{
   return etavar;
-}
-
-bool AdmixOptions::RhoFlatPrior() const {
-  if( globalrhoPrior[0]==1 && globalrhoPrior[1]==0 ) return true;
-  else return false;
-}
-bool AdmixOptions::logRhoFlatPrior() const{
-  if( globalrhoPrior[0]==0 && globalrhoPrior[1]==0 ) return true;
-  else return false;
 }
 
 bool AdmixOptions::getStratificationTest() const
@@ -878,11 +870,11 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	}
       }else if (long_option_name == "chib") {
 	if(strtol(optarg, NULL, 10)==1){
-	  MLIndicator = true; OptionValues["chib"]=optarg;
+	  chibIndicator = true; OptionValues["chib"]=optarg;
 	}
       }else if (long_option_name == "thermo") {
 	if(strtol(optarg, NULL, 10)==1){
-	  AnnealIndicator = true; 
+	  thermoIndicator = true; 
 	  OptionValues["thermo"]=optarg;
 	}
       }else if (long_option_name == "numannealedruns") {
@@ -1036,7 +1028,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       NumberOfOutcomes = 2;
       Log << "Cross sectional analysis, multiple outcome";
     }
-  if(MLIndicator){
+  if(chibIndicator){
     Log << " with marginal likelihood calculation ";
     if(NumberOfIndividuals >1 )Log << "for first individual";
   }
@@ -1096,6 +1088,11 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       Log.setDisplayMode(On);
       Log << "ERROR: globalsumintensitiesprior must have length 2\n";
       exit(1);
+      if(globalrhoPrior[0] <= 0.0 || globalrhoPrior[1] <= 0.0) {
+	Log.setDisplayMode(On);
+	Log << "ERROR: all elements of globalsumintensitiesprior must be > 0\n";
+	exit(1);
+      }  
     } 
   } else { // sumintensities at individual or gamete level
     if( RandomMatingModel )
@@ -1108,56 +1105,39 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       Log << "ERROR: sumintensitiesprior must have length 3\n";
       exit(1);
     }
-    if(rhoPrior[1] <= 1.0) {
+    if(rhoPrior[0] <= 0.0 || rhoPrior[1] <= 0.0 || rhoPrior[2]<=0.0) {
       Log.setDisplayMode(On);
-      Log << "ERROR: second element of sumintensitiesprior must be > 1\n";
+      Log << "ERROR: all elements of sumintensitiesprior must be > 0\n";
       exit(1);
     }  
-    if(rhoPrior[2] <= 2.0 ){
-      Log.setDisplayMode(On);
-      Log <<  "ERROR: third element of sumintensitiesprior must be > 2\n"; 
-      exit(1);
-    }
   }
 
   if( GlobalRho ) {
-    if( RhoFlatPrior() ) {
-      Log << "Flat prior on sum-intensities truncated at " << TruncPt << "\n";
-    } else {
-      if( logRhoFlatPrior() ) {
-	Log << "Flat prior on log sum-intensities truncated at " << TruncPt << "\n";
-      } else {
-	Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
-	    << "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
-	Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
-	Log << "Effective prior variance of sum-intensities is " << 
-	  globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << "\n";
-      } 
-    } 
+    Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
+	<< "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
+    Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
+    Log << "Effective prior variance of sum-intensities is " 
+	<< globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << "\n";
+
   } else {
-    double rhopriormean = 0.0;
-    rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
+    double rhopriormean = rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
     Log << "Population distribution of sum-intensities specified as Gamma with shape parameter "
 	<< rhoPrior[0] << "\n"
 	<< "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
 	<< rhoPrior[1] << " & "
 	<< rhoPrior[2] << "\n"
-	<< "Effective prior mean of sum-intensities is " << rhopriormean << "\n";
+	<< "Effective prior mean of sum-intensities is ";
+    if(rhoPrior[1]>1)Log << rhopriormean << "\n";else Log << "undefined\n";
     Log << "Effective prior variance of sum-intensities is ";
-    Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
+    if(rhoPrior[1]>2)
+      Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
+    else Log <<"undefined\n";
   }
   
   //Prior on admixture
   setInitAlpha(Log);
   if(Populations > 1 && NumberOfIndividuals > 1){
-#if POPADMIXSAMPLER == 2
-    Log <<  "Flat Dirichlet prior on population admixture Dirichlet proportion parameters\n"
-	<< "Gamma(1, 1) prior on admixture dispersion parameter\n";
-
-#else
-    Log << "Gamma prior on population admixture Dirichlet parameters with mean "
-	<< alphamean << " and variance " << alphavar << "\n";
-#endif
+    Log << "Gamma(1, 1) prior on population admixture Dirichlet parameters.";
   }
 
   // **** Check whether genotypes file has been specified ****
@@ -1267,7 +1247,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || 
 			TestForAdmixtureAssociation || TestForSNPsInHaplotype);
 
-  if(AnnealIndicator) {
+  if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
     // if not specified as an option
     if(NumAnnealedRuns==0) NumAnnealedRuns = 100;

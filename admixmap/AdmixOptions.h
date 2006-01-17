@@ -76,8 +76,6 @@ public:
   double getRhobeta() const;
   double getRhobetaShape()const;
   double getRhobetaRate()const;
-  bool RhoFlatPrior() const;
-  bool logRhoFlatPrior() const;  
 
   vector<double> getInitAlpha(int) const;
   std::vector<std::vector<double> > getInitAlpha()const;
@@ -101,8 +99,8 @@ public:
   bool isGlobalRho() const;
   bool getIndAdmixHierIndicator() const;
   bool getHapMixModelIndicator() const;
-  bool getMLIndicator() const;
-  bool getAnnealIndicator() const;
+  bool getChibIndicator() const;
+  bool getThermoIndicator() const;
   bool getTestOneIndivIndicator() const;
   long getNumAnnealedRuns() const;
   double getTruncPt() const;
@@ -178,8 +176,8 @@ private:
   bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool HapMixModelIndicator; //model haplotypes with mixture model
-  bool MLIndicator;//calculate marginal likelihood 
-  bool AnnealIndicator;//calculate marginal likelihood using simulated annealing
+  bool chibIndicator;//calculate marginal likelihood using Chib method
+  bool thermoIndicator;//calculate marginal likelihood using simulated annealing
   bool TestOneIndivIndicator;//calculate marginal likelihood for one individual only
   long NumAnnealedRuns;
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
