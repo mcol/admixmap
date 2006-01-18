@@ -62,7 +62,7 @@ doAnalysis($executable,$arg_hash, $resultsdir);
 # two populations, reference prior on allele freqs  
 $arg_hash->{numannealedruns} = 0;
 $arg_hash->{populations}     = 2;
-$arg_hash->{sumintensitiesalpha}  = 5;
+$arg_hash->{globalsumintensitiesprior}     = "3.0,0.5"; 
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results2");
 
@@ -115,9 +115,8 @@ my $arg_hash = {
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
     randommatingmodel            => 1,
     globalrho                    => 0,
-    sumintensitiesalpha          => 1.0, #flat prior on sumintensities
     sumintensitiesprior          => "4,3,3",
-#    fixedallelefreqs             => 1,
+    fixedallelefreqs             => 1,
     admixtureprior                   => "1,1,0",
     admixtureprior1                   => "1,1,1",
 

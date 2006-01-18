@@ -2,7 +2,7 @@
 library(MASS)
 ## script should be invoked from folder one level above subfolder specified by resultsdir
 ## to run this script from an R console session, set environment variable RESULTSDIR
-## by typing 'Sys.putenv("RESULTSDIR" = <path to directory containing results>'
+## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
 if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
   resultsdir <- Sys.getenv("RESULTSDIR")
 } else {
@@ -44,6 +44,14 @@ getAdmixturePrior <- function(K, user.options) {
     AdmixturePrior[2, ] <- as.numeric(unlist(strsplit(user.options$admixtureprior1, ",")))
   }
   return(AdmixturePrior)
+}
+
+getSumIntensitiesPrior <- function(user.options) {
+  SumIntensitiesPrior <- numeric(2)
+  if(!is.null(user.options$sumintensitiesprior)) {
+    SumIntensitiesPrior <- as.numeric(unlist(strsplit(user.options$globalsumintensitiesprior, ",")))
+   }
+  return(SumIntensitiesPrior)
 }
 
 getParentsIdentified <- function(AdmixturePrior) {
@@ -877,20 +885,17 @@ writePosteriorMeansIndivAdmixture <- function(samples, K) {
               quote=FALSE, row.names=FALSE)
 }
 
-plotPosteriorDensityIndivAdmixture <- function(samples4way, user.options, population.labels,
-                                               AdmixturePrior, IsAdmixed, ParentsIdentified) {
-  ## TODO: fix to concatenate arrays where parents not identifiable
-  ## also TODO: should take array for one individual only
-  ## plot posterior densities of individual admixture proportions
-  ## samples4way: 4-way array with dimensions that index subpopulations, parents, individuals, draws
-  outputfile <- paste(resultsdir, "IndivAdmixture.ps", sep="/")
+plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIntensities, user.options,
+                                                population.labels, AdmixturePrior, IsAdmixed, ParentsIdentified) {
+  ## samples.admixture: 3-way array with dimensions that index subpopulations, parents, draws
+  outputfile <- paste(resultsdir, "IndivParameters.ps", sep="/")
   postscript(outputfile)
   popcols <- c("grey", "blue", "red", "yellow", "orange", "green")
   if(IsAdmixed[1] & IsAdmixed[2]) { # both parents admixed
     if(ParentsIdentified) { # bivariate plots if both parents have ancestry from pop
       for(pop in 1:K) {
         if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
-          parents.pop <- kde2d(samples4way[pop, 1, , ],samples4way[pop, 2, , ], lims=c(0,1,0,1))
+          parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ], lims=c(0,1,0,1))
           contour(parents.pop$x, parents.pop$y, parents.pop$z,
                   main=paste("Contour plot of posterior density of parental", population.labels[pop],
                     "admixture proportions"),
@@ -901,7 +906,27 @@ plotPosteriorDensityIndivAdmixture <- function(samples4way, user.options, popula
                 xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
         }
       }
-    } else { # parents unidentified - concatenate array and do univariate plots
+      parents.pop <- kde2d(samples.sumIntensities[1, ],samples.sumIntensities[2, ], lims=c(1,20,1,20))
+      contour(parents.pop$x, parents.pop$y, parents.pop$z,
+              main="Contour plot of posterior density of parental sum-intensities",
+              xlab="Parent 1", ylab="Parent 2")
+      persp(parents.pop$x, parents.pop$y, parents.pop$z, col="blue",
+            main="Perspective plot of bivariate density of parental sum-intensities",
+            xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
+    } else { # parents unidentified - concatenate array and do bivariate plots 
+      samples.admixture <- rbind(t(samples.admixture[,1,]), t(samples.admixture[,2,]))
+      samples.sumIntensities <- c(samples.sumIntensities[1, ], samples.sumIntensities[2, ])
+      for(pop in 1:K) {
+        if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
+          parents.pop <- kde2d(samples.admixture[pop, ], samples.sumIntensities, lims=c(0,1,1,20))
+          contour(parents.pop$x, parents.pop$y, parents.pop$z,
+                  main=paste("Contour plot of posterior density of parental", population.labels[pop],
+                    "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
+          persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
+                main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
+                  "admixture proportions"), xlab="Admixture propotion", ylab="Sum-intensities", zlab="Posterior density")
+        }
+      }
     }
   } else { # only one parent admixed - univariate plots
     admixedParent <- 0
@@ -909,46 +934,24 @@ plotPosteriorDensityIndivAdmixture <- function(samples4way, user.options, popula
     if(IsAdmixed[2]) admixedParent <- 2
     if(admixedParent > 0) {
       for(pop in 1:K) {
-        plot(density(samples4way[pop, admixedParent, 1, ], adjust=0.5, from=0, to=1),
-             main=paste(population.labels[pop], "admixture proportion: parent ", admixedParent),
-             ylab="Posterior density", xlim=c(0,1))
+        if(AdmixturePrior[admixedParent, pop] > 0) {
+          plot(density(samples.admixture[pop, admixedParent, ], adjust=0.5, from=0, to=1),
+               main=paste(population.labels[pop], "admixture proportion: parent ", admixedParent),
+               ylab="Posterior density", xlim=c(0,1))
+        }
       }
+      plot(density(samples.sumIntensities[admixedParent, ], adjust=0.5, from=1, to=20),
+           main=paste("Sum-intensities for parent ", admixedParent),
+           ylab="Posterior density", xlim=c(1,20))
+      x <- seq(1,20, by=0.1)
+      prior <- getSumIntensitiesPrior(user.options)
+      print(prior)
+      points(x, dgamma(x, prior[1], rate=prior[2]), type="l", col="blue")
     }
   }
   dev.off()
 }
 
-plotPosteriorDensitySumIntensities <- function(samples.sumintensities, user.options, IsAdmixed,
-                                               ParentsIdentified) {
-  ## 3-way array samples.sumintensities is indexed by parent, individual, draws
-  outputfile <- paste(resultsdir, "SumIntensities.ps", sep="/")
-  postscript(outputfile)
-  if(IsAdmixed[1] & IsAdmixed[2]) { # both parents admixed
-    if(ParentsIdentified) { # bivariate plots 
-      parents.pop <- kde2d(samples.sumintensities[1, 1, ],samples.sumintensities[2, 1, ],
-                           lims=c(1,20,1,20))
-      contour(parents.pop$x, parents.pop$y, parents.pop$z,
-              main="Contour plot of posterior density of parental sum-intensities",
-              xlab="Parent 1", ylab="Parent 2")
-      persp(parents.pop$x, parents.pop$y, parents.pop$z, col="blue",
-            main="Perspective plot of bivariate density of parental sum-intensities",
-            xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
-    } else { # both parents admixed but parents unidentified
-      # should concatenate arrays and do univariate plot
-    }
-  } else { # only one parent admixed - univariate plot
-    admixedParent <- 0
-    if(IsAdmixed[1]) admixedParent <- 1
-    if(IsAdmixed[2]) admixedParent <- 2
-    if(admixedParent > 0) {
-      plot(density(samples.sumintensities[admixedParent, 1, ], 
-                   adjust=0.5, from=1, to=10),
-           main=paste("Sum-intensities for parent ", admixedParent),
-           ylab="Posterior density", xlim=c(1,20))
-    }
-    dev.off()
-  }
-}
 
 ###################################################################################
 ## start of script
@@ -1140,9 +1143,9 @@ if(user.options$thermo == 1){
   postscript(paste(resultsdir, "annealplot.ps", sep="/"))
   ##plot raw points
   plot(anneal.table[,1],anneal.table[,2], xlab="Coolness", ylab="Mean energy", type = 'p')
-  ##fit smoothed spline and overlay on points
-  fit.spline <- smooth.spline(anneal.table[,1], anneal.table[,2], w=-1/anneal.table[,3],spar=0.6)
-  lines(fit.spline, lty=2)
+##  ##fit smoothed spline and overlay on points
+##  fit.spline <- smooth.spline(anneal.table[,1], anneal.table[,2], w=-1/anneal.table[,3],spar=0.6)
+##  lines(fit.spline, lty=2)
   dev.off()
 }
 
@@ -1230,11 +1233,14 @@ if(!is.null(user.options$indadmixturefile)) {
     write.table(format(round(t(sample.means),3), nsmall=3),
                 paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), quote=F, row.names=F, sep="\t")
     
-  } else { #if(dim(samples.meanparents)[2]==1) 
-    plotPosteriorDensityIndivAdmixture(samples4way, user.options, population.labels, AdmixturePrior,
-                                       IsAdmixed, ParentsIdentified)
-    plotPosteriorDensitySumIntensities(samples.sumintensities, user.options, IsAdmixed,
-                                       ParentsIdentified)
+  } else { #if(dim(samples.meanparents)[2]==1)
+    if(IsAdmixed[1] | IsAdmixed[2]) {
+      ## convert samples4way to 3way array
+      samplesOneIndiv <- samples4way[, , 1, ]
+      samples.sumintensities <- samples.sumintensities[, 1, ]
+      plotPosteriorDensityIndivParameters(samplesOneIndiv, samples.sumintensities, user.options,
+                                          population.labels, AdmixturePrior, IsAdmixed, ParentsIdentified)
+    }
   }
 } # ends block conditional on indadmixturefile
 print("Script completed")
