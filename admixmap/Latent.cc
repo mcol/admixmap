@@ -59,7 +59,8 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
-    if( options->isGlobalRho() ) {
+    if( options->isGlobalRho() || !options->getIndAdmixHierIndicator() || Numindividuals==1) {
+      // no hierarchical model on sumintensities if only one individual
       rhobeta = options->getRhobeta();
     } else { // get prior on rate parameter beta and initialize at prior mean
       rhobeta0 = options->getRhobetaShape();
@@ -154,8 +155,7 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
 
 
 void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromosome **C) {
-  //updates rho with random walk MH
-  if( options->isGlobalRho() ){
+  if( options->isGlobalRho() ) { // update rho with random walk MH
     double rhoprop;
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
@@ -168,8 +168,6 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values, annealed if this is an annealing run
-    // TO DO - IC object should store log HMM likelihood summed over individuals
-    // IC or individual objects should use annealed ProbGenotypes where necessary
     for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
       ind->HMMIsBad(true);//to force HMM update
@@ -216,21 +214,23 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
 
   }//end if global rho model
 
-  else if(IC->getSize()>1){//non global rho model
-    //if a single individual, rhobeta is fixed
-    // sample for location parameter of gamma distribution of sumintensities parameters 
-    // in population 
-    if( options->isRandomMatingModel() )
-      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			2*rhoalpha * IC->getSize() + rhobeta0 );
-    else
-      rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			rhoalpha* IC->getSize() + rhobeta0 );
+  else { //non global rho model
+    if(IC->getSize()>1 && options->getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
+      // update scale parameter of gamma distribution of sumintensities in population 
+      if( options->isRandomMatingModel() )
+	rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			  2*rhoalpha * IC->getSize() + rhobeta0 );
+      else
+	rhobeta = gengam( IC->GetSumrho() + rhobeta1,
+			  rhoalpha* IC->getSize() + rhobeta0 );
+    } // otherwise do not update rhobeta
   }
 }
+
 double Latent::getRhoSamplerAccRate()const{
   return TuneRhoSampler.getExpectedAcceptanceRate();
 }
+
 double Latent::getRhoSamplerStepsize()const{
   return step;
 }

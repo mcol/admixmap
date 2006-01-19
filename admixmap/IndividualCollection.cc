@@ -649,37 +649,36 @@ void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const st
 }
 
 double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
-					      const bool & annealed) {
+				       const bool & annealed) {
   // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
-  // returns the energy of the system (either all individuals or test individual
   // called every iteration after burnin, after update of genotype probs and before annealing
   // accumulates sums of deviance and squared deviance
   double LogLikHMM = 0.0;
   double LogLikRegression = 0.0;
   double Energy = 0.0;
   // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
-  if( !options->getTestOneIndivIndicator() ) { // evaluate likelihood for all individuals
-    for(unsigned i = 0; i < size; ++i) {
-      LogLikHMM += _child[i]->getLogLikelihood(options, C, false, !annealed); // store result if not an annealed run
-      // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
-
-      if(annealed)  _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
-      else _child[i]->HMMIsBad(false); 
-    } 
-  } else { // evaluate likelihood for test individual only
-    for(int i = 0; i < sizeTestInd; ++i){
-      //LogLikHMM += TestInd[i]->getLogLikelihood(options, C, true, !annealed); // force HMM update, store result if not an annealing run 
-      Energy += TestInd[i]->getLogLikelihood(options, C, true, false); // force HMM update, store result if not an annealing run
-      SumEnergy[i] += Energy;
-      SumEnergySq[i] += Energy*Energy;
-      if(annealed)  TestInd[i]->HMMIsBad(true); // HMM is bad, stored loglikelihood bad
-      else  TestInd[i]->HMMIsBad(false); // if not annealed and size = 1, HMM could be set as ok
-    }
+  for(unsigned i = 0; i < size; ++i) {
+    LogLikHMM += _child[i]->getLogLikelihood(options, C, false, !annealed); // store result if not an annealed run
+    // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
+    
+    if(annealed)  _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
+    else _child[i]->HMMIsBad(false); 
   }
   // get regression log-likelihood 
   for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c].getLogLikelihood(this);
   Energy = -(LogLikHMM + LogLikRegression);
-  return (Energy);
+  return Energy;
+} 
+
+
+void IndividualCollection::accumulateEnergyArrays(const AdmixOptions* const options, Chromosome **C) {
+  double Energy = 0.0;
+  for(int i = 0; i < sizeTestInd; ++i){ // loop over coolnesses - one copy of test individual at each coolness 
+    Energy = -TestInd[i]->getLogLikelihood(options, C, true, false); // force HMM update, do not store result  
+    SumEnergy[i] += Energy;
+    SumEnergySq[i] += Energy*Energy;
+    TestInd[i]->HMMIsBad(true); // HMM is bad, stored loglikelihood bad
+  }
 }
 
 double* IndividualCollection::getSumEnergy(){

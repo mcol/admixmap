@@ -49,12 +49,19 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 
   if( !options->isGlobalRho() ){//model with individual- or gamete-specific sumintensities
     TruncationPt = options->getTruncPt();
+    double init=0.0;
     //determine initial value for rho
-    double alpha = options->getRhobetaShape();
-    double init = options->getRhoalpha();
-    if(alpha > 1) init *= options->getRhobetaRate() / (options->getRhobetaShape() - 1 );//prior mean
-    else init *= options->getRhobetaRate() / options->getRhobetaShape() ;//conditional prior mean
-    
+    if(options->getIndAdmixHierIndicator()) { // hierarchical model for sumintensities
+      if(options->getRhobetaShape() > 1) { 
+	//double alpha = options->getRhobetaShape();
+	init = options->getRhoalpha() * options->getRhobetaRate() / (options->getRhobetaShape() - 1 );
+	//if(alpha > 1) init *= options->getRhobetaRate() / (options->getRhobetaShape() - 1 );//prior mean
+      } else {
+	init = options->getRhoalpha() * options->getRhobetaRate() / options->getRhobetaShape() ;//conditional prior mean
+      } 
+    } else { // no hierarchical model
+      init = options->getRhoalpha() / options->getRhobeta();
+    }
     _rho.assign(NumIndGametes,init);
   }
   sumlogrho.assign(_rho.size(), 0.0);

@@ -107,6 +107,7 @@ public:
 
   double getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
 			  const bool & annealed);
+  void accumulateEnergyArrays(const AdmixOptions* const options, Chromosome **C);
   double* getSumEnergy();
   double* getSumEnergySq();
 

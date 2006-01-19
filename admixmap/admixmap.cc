@@ -136,7 +136,7 @@ int main( int argc , char** argv ){
       HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
     
     InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
-        
+    
     string s = options.getResultsDir()+"/loglikelihoodfile.txt";
     ofstream loglikelihoodfile(s.c_str());
     
@@ -145,14 +145,15 @@ int main( int argc , char** argv ){
     int NumAnnealedRuns = options.getNumAnnealedRuns(); // number of annealed runs excluding last run at coolness of 1
     int samples = 1; // default for annealing runs - overridden for final unannealed run or if AnnealIndicator = true 
     int burnin = 1; // for annealing runs we only want burnin
- 
+    
     double SumEnergy = 0.0, SumEnergySq = 0.0, LogEvidence = 0.0;
     double MeanEnergy = 0.0, VarEnergy = 0.0;
-
+    double LastMeanEnergy = 0.0;
+    
     double coolness = 1.0; // default
     bool AnnealedRun = false;
     std::ofstream annealstream;//for monitoring energy when annealing
-     
+    
     // set annealing schedule
     double *IntervalWidths;
     double *Coolnesses; //  
@@ -184,11 +185,11 @@ int main( int argc , char** argv ){
     Log.setDisplayMode(On);
     if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
     if(NumAnnealedRuns > 0) {
-    Log << NumAnnealedRuns << " annealing runs of " << samples 
-	<< " iteration(s) followed by final run of "; 
+      Log << NumAnnealedRuns << " annealing runs of " << samples 
+	  << " iteration(s) followed by final run of "; 
     }
     Log << options.getTotalSamples() << " iterations at coolness of 1\n";
-
+    
     //Write initial values
     if(options.getIndAdmixHierIndicator()  ){
       if(options.getDisplayLevel()>2)Log.setDisplayMode(On);
@@ -197,60 +198,66 @@ int main( int argc , char** argv ){
       //OutputParameters(-1, IC, &L, &A, R, &options, Log);
       //Log << "\n";
     }
-
-    // ****************************** BEGIN ANNEALING LOOP ***************************************
-    for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
-      // should call a posterior mode-finding algorithm before last run at coolness of 1
-      //resets for start of each run
-      SumEnergy = 0.0;//cumulative sum of modified loglikelihood
-      SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
-      if(run == NumAnnealedRuns) {
-	AnnealedRun = false;
-	samples = options.getTotalSamples();//redundant?
-	burnin = options.getBurnIn();
-      } else AnnealedRun = true; 
-      coolness = Coolnesses[run];
-      if(NumAnnealedRuns > 0) {
-	cout <<"\rSampling at coolness of " << coolness << "         " << flush;
-	IC->resetStepSizeApproximators(NumAnnealedRuns); // reset k <= NumAnnealedRuns in step size tuners
-      }
-      doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
-		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
-      if(!AnnealedRun) cout << "\rIterations completed                       \n" << flush;
-
-      if(options.getTestOneIndivIndicator()){
-	double *MeanEner = IC->getSumEnergy();//currently SumEnergy
-	double *VarEner = IC->getSumEnergySq();
-	double LastMeanEnergy = 0.0; 
-	for(int ii = 0; ii < options.getNumAnnealedRuns()+1; ++ii){
-	  //calculate mean and variance of energy at each coolness
-	  MeanEner[ii] /=  ((double)options.getTotalSamples() - options.getBurnIn());
-	  VarEner[ii] = VarEner[ii] /  ((double)options.getTotalSamples() - options.getBurnIn()) - MeanEner[ii]*MeanEner[ii];
-	  annealstream << Coolnesses[ii] << "\t" << MeanEner[ii] << "\t" << VarEner[ii];
-	  // use trapezium rule to approximate integral
-	  LogEvidence -= 0.5*(LastMeanEnergy + MeanEner[ii]) * IntervalWidths[ii]; 
-	  annealstream <<"\t"<< LogEvidence << endl; 
-	  LastMeanEnergy = MeanEner[ii];
+    
+    if(!options.getTestOneIndivIndicator()) { // ************* BEGIN ANNEALING LOOP ***************************
+      for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
+	// should call a posterior mode-finding algorithm before last run at coolness of 1
+	//resets for start of each run
+	SumEnergy = 0.0;//cumulative sum of modified loglikelihood
+	SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
+	if(run == NumAnnealedRuns) {
+	  AnnealedRun = false;
+	  samples = options.getTotalSamples();//redundant?
+	  burnin = options.getBurnIn();
+	} else AnnealedRun = true; 
+	coolness = Coolnesses[run];
+	if(NumAnnealedRuns > 0) {
+	  cout <<"\rSampling at coolness of " << coolness << "         " << flush;
+	  IC->resetStepSizeApproximators(NumAnnealedRuns); // reset k <= NumAnnealedRuns in step size tuners
 	}
-	MeanEnergy = MeanEner[options.getNumAnnealedRuns()];//mean at coolness of 1;
-	VarEnergy = VarEner[options.getNumAnnealedRuns()];//var at   ""
-      }
-      else{
+	// accumulate scalars SumEnergy and SumEnergySq at this coolness
+	// array Coolnesses is not used unless TestOneIndivIndicator is true
+	doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
+		     loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
+	
 	//calculate mean and variance of energy at this coolness
-	double LastMeanEnergy = 0.0; 
 	MeanEnergy = SumEnergy / ((double)options.getTotalSamples() - options.getBurnIn());
 	VarEnergy  = SumEnergySq / ((double)options.getTotalSamples() - options.getBurnIn()) - MeanEnergy * MeanEnergy;
 	if(options.getThermoIndicator()){// calculate thermodynamic integral
 	  annealstream << coolness << "\t" << MeanEnergy << "\t" << VarEnergy;
-	  // use trapezium rule to approximate integral
-	  LogEvidence -= 0.5*(LastMeanEnergy + MeanEnergy) * IntervalWidths[run]; 
+	  if(run > 0) { // use trapezium rule to approximate integral
+	    LogEvidence -= 0.5*(LastMeanEnergy + MeanEnergy) * IntervalWidths[run];
+	  } 
 	  annealstream <<"\t"<< LogEvidence << endl; 
 	  LastMeanEnergy = MeanEnergy;
 	} 
+      } // *************************** END ANNEALING LOOP ******************************************************
+    } else { // yevaluate energy for test individual only at all coolnesses simultaneously
+      // call with argument AnnealedRun false - copies of test individual will be annealed anyway  
+      doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, 1.0, false, 
+		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
+      // arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls
+      double *MeanEner = IC->getSumEnergy(); 
+      double *VarEner = IC->getSumEnergySq();
+
+      double LastMeanEnergy = 0.0; 
+      for(int ii = 0; ii < options.getNumAnnealedRuns()+1; ++ii) { // loop over coolnesses to evaluate integral
+	//calculate mean and variance of energy at each coolness
+	MeanEner[ii] /=  ((double)options.getTotalSamples() - options.getBurnIn());
+	VarEner[ii] = VarEner[ii] /  ((double)options.getTotalSamples() - options.getBurnIn()) - MeanEner[ii]*MeanEner[ii];
+	annealstream << Coolnesses[ii] << "\t" << MeanEner[ii] << "\t" << VarEner[ii];
+	// use trapezium rule to approximate integral
+	LogEvidence -= 0.5*(LastMeanEnergy + MeanEner[ii]) * IntervalWidths[ii]; 
+	annealstream <<"\t"<< LogEvidence << endl; 
+	LastMeanEnergy = MeanEner[ii];
       }
-    } // *************************** END ANNEALING LOOP ******************************************************
+      MeanEnergy = MeanEner[options.getNumAnnealedRuns()];//mean at coolness of 1;
+      VarEnergy = VarEner[options.getNumAnnealedRuns()];//var at   ""
+    } // end evaluation of test individual
+  
     delete[] IntervalWidths;
     delete[] Coolnesses;
+    cout << "\rIterations completed                       \n" << flush;
     
     // *************************** OUTPUT AT END ***********************************************************
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
@@ -380,11 +387,15 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
   for( int iteration = 0; iteration <= samples; iteration++ ) {
     if(iteration > burnin) {
       //accumulate energy as minus loglikelihood, calculated using unnanealed genotype probs
-      Energy = IC->getEnergy(&options, chrm, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
-      SumEnergy += Energy;
-      SumEnergySq += Energy*Energy;
-      // write to file if not AnnealedRun
-      if(!AnnealedRun)loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+      if( !options.getTestOneIndivIndicator() ) {
+	Energy = IC->getEnergy(&options, chrm, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
+	SumEnergy += Energy;
+	SumEnergySq += Energy*Energy;
+	// write to file if not AnnealedRun
+	if(!AnnealedRun)loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+      } else {  
+	IC->accumulateEnergyArrays(&options, chrm);
+      }
     }
       
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
