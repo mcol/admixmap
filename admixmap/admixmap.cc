@@ -188,7 +188,10 @@ int main( int argc , char** argv ){
       Log << NumAnnealedRuns << " annealing runs of " << samples 
 	  << " iteration(s) followed by final run of "; 
     }
-    Log << options.getTotalSamples() << " iterations at coolness of 1\n";
+    Log << options.getTotalSamples() << " iterations at ";
+    if( options.getTestOneIndivIndicator() )Log << options.getNumAnnealedRuns()+1 
+						<<" coolnesses for test individual. Other individuals at ";
+    Log << "coolness of 1.\n";
     
     //Write initial values
     if(options.getIndAdmixHierIndicator()  ){
@@ -232,7 +235,7 @@ int main( int argc , char** argv ){
 	  LastMeanEnergy = MeanEnergy;
 	} 
       } // *************************** END ANNEALING LOOP ******************************************************
-    } else { // yevaluate energy for test individual only at all coolnesses simultaneously
+    } else { // evaluate energy for test individual only at all coolnesses simultaneously
       // call with argument AnnealedRun false - copies of test individual will be annealed anyway  
       doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, 1.0, false, 
 		   loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
