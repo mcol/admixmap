@@ -17,7 +17,7 @@ DirichletParamSampler::DirichletParamSampler()
   EtaBeta = 1;
   mu = 0;
   munew = 0;
-  gamma = 0;
+  muDirichletParams = 0;
   DirParamArray = 0;
 #elif SAMPLERTYPE==2
   logalpha = 0;
@@ -26,24 +26,26 @@ DirichletParamSampler::DirichletParamSampler()
 #endif
 }
 
-DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops, double priormean, double priorvar )
+DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops)
 {
-  SetSize(numind, numpops, priormean, priorvar);
+  SetSize(numind, numpops);
 }
 
-void DirichletParamSampler::SetSize( unsigned /*numind*/, unsigned numpops, double /*priormean*/, double /*priorvar*/ )
+void DirichletParamSampler::SetSize( unsigned /*numind*/, unsigned numpops)
   // sets number of elements in Dirichlet parameter vector
   // instantiates an adaptive rejection sampler object for each element
 //sets up MuSampler object 
 {
    d = numpops;
 #if SAMPLERTYPE==1
-   //Dirichlet(gamma[0]...gamma[d-1]) prior on proportions mu
-   gamma = new double[d];
+   EtaAlpha = 1;//should be d for compatibility with gamma(1, 1) prior on alpha
+  EtaBeta = 1;
+   //Dirichlet(1, ..., 1) prior on proportions mu
+   muDirichletParams = new double[d];
    mu = new double[d];
    munew = new double[d];
    for( unsigned int i = 0; i < d; i++ )
-      gamma[i] = 1.0;
+      muDirichletParams[i] = 1.0;
 
    DirParamArray = new AdaptiveRejection*[ d ];
    for( unsigned int j = 0; j < d; j++ ){
@@ -60,8 +62,8 @@ void DirichletParamSampler::SetSize( unsigned /*numind*/, unsigned numpops, doub
    AlphaArgs.n = numind;//num individuals/gametes
    AlphaArgs.dim = d;
    if( options->isRandomMatingModel() )AlphaArgs.n *= 2;
-   AlphaArgs.eps0 = alphapriormean*alphapriormean / alphapriorvar;//params of gamma prior
-   AlphaArgs.eps1 = alphapriormean / alphapriorvar;
+   AlphaArgs.eps0 = 1.0;//Gamma(1, 1) prior on alpha
+   AlphaArgs.eps1 = 1.0;
    
    AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
@@ -72,7 +74,7 @@ DirichletParamSampler::~DirichletParamSampler()
 #if SAMPLERTYPE==1
   delete[] mu;
   delete [] munew;
-  delete [] gamma;
+  delete [] muDirichletParams;
   if(DirParamArray){//in case not allocated
     for(unsigned int i = 0; i < d; i++){
       if(DirParamArray[i])
@@ -94,7 +96,7 @@ void DirichletParamSampler::SetPriorEta( double inEtaAlpha, double inEtaBeta )
 void DirichletParamSampler::SetPriorMu( const double* const ingamma )
 {
    for( unsigned int i = 0; i < d; i++ ){
-      gamma[i] = ingamma[i];
+      muDirichletParams[i] = ingamma[i];
    }
 }
 

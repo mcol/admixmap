@@ -619,7 +619,7 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
     cout.width(width );
     cout << "\r"<< iteration << " ";  
   }
-  else if( displayLevel > 1 ) { // display iteration counter only
+  else if( displayLevel > 1 && iteration >0) { // display iteration counter only
     cout << "\rIterations so far: " << iteration;
   }
   cout.flush(); 

@@ -363,8 +363,6 @@ double Regression::lr( const double beta, const void* const vargs )
   return( f );
 }
 
-//a lot of duplicated code in the next 2 functions
-//can we find a way to use a single function to compute Xbeta?
 double Regression::dlr( const double beta, const void* const vargs )
 {
   const BetaArgs* args = (const BetaArgs*)vargs;

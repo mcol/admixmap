@@ -48,7 +48,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
   if(K > 1){
     // ** set up sampler for alpha **
     
-    PopAdmixSampler.SetSize( Numindividuals, K,  options->getAlphamean(), options->getAlphavar());
+    PopAdmixSampler.SetSize( Numindividuals, K );
 
     if( options->isRandomMatingModel() ){
       obs = 2 * Numindividuals;

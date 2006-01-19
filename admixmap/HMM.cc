@@ -88,10 +88,6 @@ void HMM::SetStateArrivalProbs(const double* const f, const double* const Theta,
 /*
   Updates Forward probabilities alpha and array p (=f0*f1)
   diploid case only
-  -----------------------------------------------------------
-  relates to notation in docs as follows:
-  j = j1, j' = j2, i = i1, i' = i2, 
-  theta_j = Admixture(j,0),  theta'_j = Admixture(j,Mcol).
 */
 void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda, bool* const missing)
 {
@@ -309,7 +305,7 @@ void HMM::Sample(int *SStates, const double* const Admixture, const double* cons
 	V[State] = 
 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
 	V[State] *= alpha[t*States + i1*K + i2];
-	++State;
+	State++;
       }
       C[ t ] = SampleFromDiscrete( V, States );
       SStates[t] = (int)(C[t]/K);//paternal
@@ -437,9 +433,9 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
       if( xi[g][jj] ){
 	// sum ancestry states over loci where jump indicator is 1
 	if( !isX )
-	  ++SumLocusAncestry[ LocusAncestry[jj + g*Transitions] +  g*K ];
+	  SumLocusAncestry[ LocusAncestry[jj + g*Transitions] +  g*K ]++;
 	else
-	  ++SumLocusAncestry_X[ LocusAncestry[jj + g*Transitions] + g*K ];
+	  SumLocusAncestry_X[ LocusAncestry[jj + g*Transitions] + g*K ]++;
 	//sample number of arrivals where jump indicator is 1
 	if(!isGlobalRho){
 	  double u = myrand();
@@ -456,13 +452,13 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
     }
   }
   //finally for first locus, not included in above loop
-  for( unsigned int g = 0; g < gametes; g++ ){
-    if( xi[g][0] ){
-      if( !isX )
-	++SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ];
-      else
-	++SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K];
+    for( unsigned int g = 0; g < gametes; g++ ){
+      if( xi[g][0] ){
+	if( !isX )
+	  SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ]++;
+	else
+	  SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
+      }
     }
-  }
 }
 

@@ -3,21 +3,13 @@
  *   ADMIXMAP
  *   AdmixOptions.h 
  *   header file for AdmixOptions class
- *   Copyright (c) 2002-2006 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
 #ifndef ADMIX_OPTIONS_H
@@ -80,8 +72,6 @@ public:
   vector<double> getInitAlpha(int) const;
   std::vector<std::vector<double> > getInitAlpha()const;
   int sizeInitAlpha() const;
-  double getAlphamean()const;
-  double getAlphavar() const;
   double getEtaMean() const;
   double getEtaVar() const;
 
@@ -204,7 +194,6 @@ private:
   std::vector<double> alpha0;
   std::vector<double> alpha1;
   std::vector< std::vector<double> > initalpha;
-  double alphamean, alphavar;
   double etamean, etavar;//gamma parameters for dispersion parameter
 
   string ResultsDir;

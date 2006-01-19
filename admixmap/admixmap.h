@@ -1,3 +1,15 @@
+/** 
+ *   ADMIXMAP
+ *   admixmap.h 
+ *   
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 // *-*-C++-*-*
 #ifndef ADMIXMAP_H
 #define ADMIXMAP_H 1
@@ -20,6 +32,6 @@
 #include "MisSpecAlleleFreqTest.h"
 #include "HWTest.h"
 
-#define ADMIXMAP_VERSION "3.x (alpha)"
+#define ADMIXMAP_VERSION "3.x"
 
 #endif /* ADMIXMAP_H */

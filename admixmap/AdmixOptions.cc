@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   AdmixOptions.cc 
  *   Class to hold program options
- *   Copyright (c) 2002-2006 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -102,10 +102,7 @@ void AdmixOptions::Initialise(){
   rhoPrior.push_back(3.0);//rhobeta shape
   rhoPrior.push_back(3.0);//rhobeta rate
 
-  //gamma(1, 1) prior on pop admixture
-  alphamean = 1;  
-  alphavar = 1;
-  initalpha.resize(2);
+  initalpha.resize(2);//TODO: check if this is necessary
   //gamma(3, 0.01) prior on dispersion parameter
   etamean = 100.0; 
   etavar = 2500.0; 
@@ -420,12 +417,6 @@ double AdmixOptions::getRhobetaShape()const{
 double AdmixOptions::getRhobetaRate()const{
   return rhoPrior[2];
 }
-double AdmixOptions::getAlphamean() const{
-  return alphamean;
-}
-double AdmixOptions::getAlphavar() const{
-  return alphavar;
-}
 double AdmixOptions::getEtaMean() const{
   return etamean;
 }
@@ -679,8 +670,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"dispersiontestfile",                    1, 0,  0 }, // string
     {"fstoutputfile",                         1, 0,  0 }, // string
     {"hwscoretestfile",                       1, 0,  0 }, // string
-    {"likratiofile",                      1, 0,  0 }, // string
-    {"indadmixmodefile",                  1, 0,  0 }, // string
+    {"likratiofile",                          1, 0,  0 }, // string
+    {"indadmixmodefile",                      1, 0,  0 }, // string
 
     // Other options
     {"numannealedruns",                       1, 0,  0 }, // long
@@ -698,8 +689,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"etapriorfile",                          1, 0,  0 }, // string      
     {"globalsumintensitiesprior",             1, 0,  0 }, // vector of doubles of length 2
     {"sumintensitiesprior",                   1, 0,  0 }, // vector of doubles of length 3 
-    {"popadmixpriormean",                     1, 0,  0 }, //double
-    {"popadmixpriorvar",                      1, 0,  0 }, //double
     {"etapriormean",                          1, 0,  0 }, //double
     {"etapriorvar",                           1, 0,  0 }, //double
     {"truncationpoint",                       1, 0,  0 }, // double
@@ -905,10 +894,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	OptionValues["sumintensitiesprior"] = optarg; 
       } else if (long_option_name == "globalsumintensitiesprior") {
 	globalrhoPrior = CstrToVec(optarg);
-      } else if (long_option_name == "popadmixpriormean") {
-	 alphamean = strtod(optarg, NULL);OptionValues["popadmixpriormean"]=optarg;
-      } else if (long_option_name == "popadmixpriorvar") {
-	 alphavar = strtod(optarg, NULL);OptionValues["popadmixpriorvar"]=optarg;
       } else if (long_option_name == "etapriormean") {
 	 etamean = strtod(optarg, NULL);OptionValues["etapriormean"]=optarg;
       } else if (long_option_name == "etapriorvar") {
@@ -1002,16 +987,11 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       Log << "One individual analysis";
     }
   
-  else if (RegType == None)
+  else if (RegType == None)//no regression
     {
       NumberOfOutcomes = 0;
-      if(AffectedsOnlyScoreFilename.length()>0){
-	Log << "Affecteds only analysis";
-      }
-      else 
-	{
-	  Log << "Cross sectional analysis, no outcome";
-	}
+      if(AffectedsOnlyScoreFilename.length()>0)	Log << "Affecteds only analysis";
+      else  Log << "Cross sectional analysis, no outcome";
     }
   else if (RegType == Linear)
     {
@@ -1250,7 +1230,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
     // if not specified as an option
-    if(NumAnnealedRuns==0) NumAnnealedRuns = 100;
+    //if(NumAnnealedRuns==0) NumAnnealedRuns = 100;
     Log << "\nUsing thermodynamic integration to calculate marginal likelihood ";
     if(!TestOneIndivIndicator) Log << "for all individuals\n\n";
     else Log << "for first individual\n\n"; 

@@ -278,7 +278,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     | haplotype association |
      ----------------------*/  
   if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){
-    if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
+    if(Lociptr->GetTotalNumberOfLoci() >= Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
       SNPsAssociationScoreStream = new ofstream( options->getTestsForSNPsInHaplotypeOutputFilename(), ios::out );
       if( !SNPsAssociationScoreStream ){
 	Log.setDisplayMode(On);
@@ -434,9 +434,9 @@ void ScoreTests::Update(double dispersion)
   if( options->getNumberOfOutcomes() > 0 ){//no updates if no regression model
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
 
-      //-----------------------
-      // haplotype association 
-      //-----------------------  
+      /*-------------------------------------
+	| Allelic and haplotype association  |
+	-------------------------------------*/
       if( options->getTestForAllelicAssociation() ){
 	//loop over simple loci within haplotypes
 	if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
@@ -446,10 +446,7 @@ void ScoreTests::Update(double dispersion)
 	  }
 	}
       }
-      
-      /*----------------------
-	| Allelic association  |
-	-----------------------*/
+
       if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
 	//if(locusObsIndicator[j]){//skip loci with no observed genotypes
 	  CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
@@ -506,18 +503,18 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 
       // if diallelic, evaluate score for allele 2 only, otherwise evaluate score for all alleles or haplotypes
 
-      // special case for SNP (X has size K+1)
+      // special case for SNP (counts has size 1)
       if( numStates == 2 ){
- 	//sets X[0] to -1, 0 or 1 according to whether genotype is 11, 12 or 22
+ 	//sets counts to -1, 0 or 1 according to whether happair is 11, 12 or 22
 	counts.push_back((*Lociptr)(locus)->getAlleleCounts(2, happair)[0] - 1 );
 	
-	// general case for simple locus (X has size K + nStates)
+	// general case for simple locus (counts has size nStates)
       } else if(numLoci == 1 ){
  	for( unsigned k = 0; k < numStates; k++ ){
 	  counts.push_back((*Lociptr)(locus)->getAlleleCounts(k+1, happair)[0] );
  	}
       }
-      // general case for composite locus (X has size (K + nMergedHaplotypes))
+      // general case for composite locus (counts has size nMergedHaplotypes)
       else {
 	//count copies of allele2
 	const vector<int> allele2Counts = (*Lociptr)(locus)->getAlleleCounts(2, happair);

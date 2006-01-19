@@ -29,10 +29,10 @@ class DirichletParamSampler
 {
 public:
   DirichletParamSampler();
-  DirichletParamSampler(unsigned, unsigned, double, double);
+  DirichletParamSampler(unsigned, unsigned);
   ~DirichletParamSampler();
   
-  void SetSize( unsigned, unsigned, double, double );
+  void SetSize( unsigned, unsigned);
   void SetPriorEta( double, double );
   void SetPriorMu( const double* const);
   void Sample( unsigned int, const double* const, std::vector<double> *alpha);
@@ -49,9 +49,9 @@ private:
   double *mu;
   double etanew;
   double *munew;
-  double *gamma;
-  double EtaAlpha;
-  double EtaBeta;
+  double *muDirichletParams;
+  double EtaAlpha;//shape parameter of prior on eta
+  double EtaBeta;//rate parameter of prior on eta
   double step, step0;
   double LogAccProb;
 
