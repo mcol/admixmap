@@ -11,7 +11,7 @@ my $arg_hash = {
     locusfile                    => "IndData/loci.txt",
     genotypesfile                => "IndData/genotypes.txt",
     priorallelefreqfile          => "IndData/priorallelefreqs3way.txt",
-    fixedallelefreqs => 1,
+    #fixedallelefreqs             => 1,
     randommatingmodel            => 1,
     globalrho                    => 0,
     admixtureprior               => "1,1,1", # parameter vectors for Dirichlet prior on admixture 
@@ -61,8 +61,7 @@ sub doAnalysis {
 	$rcmd = "Rcmd";
     }
     print "Starting R script to process output\n";
-    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R \
-            $args->{resultsdir}/Rlog.txt\n");
+    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
     print "R script completed\n\n";
 }
 

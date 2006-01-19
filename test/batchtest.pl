@@ -46,8 +46,8 @@ $arg_hash->{numannealedruns} = 4;
 $arg_hash->{populations} = 1;
 #$arg_hash->{indadmixhiermodel} = 0;
 #$arg_hash->{hapmixmodel}=1;
-doAnalysis($executable,$arg_hash, $resultsdir);
-&CompareThenMove("results", "results0");
+#doAnalysis($executable,$arg_hash, $resultsdir);
+#&CompareThenMove("results", "results0");
 
 # single population, reference prior on allele freqs, annealing  
 $arg_hash->{thermo} = 0;
@@ -56,32 +56,43 @@ $arg_hash->{populations} = 1;
 $arg_hash->{indadmixhiermodel} = 1;
 $arg_hash->{hapmixmodel}=0;
 $arg_hash->{stratificationtestfile}  = 'strat_test.txt';
-doAnalysis($executable,$arg_hash, $resultsdir);
-&CompareThenMove("results", "results1");
+#doAnalysis($executable,$arg_hash, $resultsdir);
+#&CompareThenMove("results", "results1");
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{numannealedruns} = 0;
 $arg_hash->{populations}     = 2;
 $arg_hash->{globalsumintensitiesprior}     = "3.0,0.5"; 
-doAnalysis($executable,$arg_hash);
-&CompareThenMove("results", "results2");
+#doAnalysis($executable,$arg_hash);
+#&CompareThenMove("results", "results2");
 
-# fixed allele freqs
+# fixed allele freqs, individual sumintensities, testoneindiv
+# possible problem here - changing numannealedruns should not change output except for annealmon.txt
 delete $arg_hash->{populations};
+delete $arg_hash->{allelefreqoutputfile};
 $arg_hash->{fixedallelefreqs} = 1;
+$arg_hash->{testoneindiv} = 1;
 $arg_hash->{priorallelefreqfile}  = 'data/priorallelefreqs.txt',
 $arg_hash->{allelefreqscorefile}  = 'allelefreqscorefile.txt';
 $arg_hash->{allelefreqscorefile2} = 'allelefreqscorefile2.txt';
 $arg_hash->{ancestryassociationscorefile} = 'ancestryassocscorefile.txt';
 $arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
 $arg_hash->{globalrho} = 0;
+$arg_hash->{numannealedruns} = 10;
+$arg_hash->{testoneindiv} = 1;
+$arg_hash->{numannealedruns} = 100;
+$arg_hash->{thermo} = 1;
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results3");
 
 # prior on allele freqs
+$arg_hash->{testoneindiv} = 0;
+$arg_hash->{numannealedruns} = 0;
+$arg_hash->{thermo} = 0;
 $arg_hash->{fixedallelefreqs} = 0;
 $arg_hash->{globalrho}        = 1;
 $arg_hash->{randommatingmodel} = 1;
+$arg_hash->{allelefreqoutputfile}     = 'allelefreqoutput.txt';
 delete $arg_hash->{allelefreqscorefile};
 delete $arg_hash->{allelefreqscorefile2};
 delete $arg_hash->{affectedsonlyscorefile};
