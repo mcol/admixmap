@@ -5,8 +5,8 @@ use File::Path;
 my $executable = './admixmap';
 
 my $arg_hash = {
-    burnin   => 50, 
-    samples  => 550,
+    burnin   => 10, 
+    samples  => 110,
     every    => 1,
     locusfile                    => "IndData/loci.txt",
     genotypesfile                => "IndData/genotypes.txt",
@@ -20,7 +20,7 @@ my $arg_hash = {
     thermo                       => 1,
     numannealedruns             => 100,
 
-    resultsdir => "IndResults",
+    resultsdir                   => "IndResults",
     logfile                      => "logfile.txt",
     indadmixturefile             => "indadmixture.txt"
 };
@@ -29,11 +29,11 @@ my $arg_hash = {
 $arg_hash->{admixtureprior} = "0,1,0";
 $arg_hash->{admixtureprior1} = "1,0,0";
 $arg_hash->{resultsdir} = "IndResults010-100";
-#&doAnalysis($executable, $arg_hash);
+&doAnalysis($executable, $arg_hash);
 
 ## simplest admixture model: one Afr/Eur, one Afr parent 
-$arg_hash->{admixtureprior} = "1,0,0"; 
 $arg_hash->{admixtureprior1} = "1,1,0";
+$arg_hash->{admixtureprior} = "1,0,0"; 
 $arg_hash->{resultsdir} = "IndResults010-110";
 &doAnalysis($executable, $arg_hash);
 
@@ -54,14 +54,15 @@ sub doAnalysis {
     } 
     mkpath($args->{resultsdir});
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
+    print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}";
     system($command);
     my $rcmd = "R CMD";
     if($^O eq "MSWin32") {
 	$rcmd = "Rcmd";
     }
     print "Starting R script to process output\n";
-    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
+    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R \
+            $args->{resultsdir}/Rlog.txt\n");
     print "R script completed\n\n";
 }
 
