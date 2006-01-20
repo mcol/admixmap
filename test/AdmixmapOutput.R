@@ -918,7 +918,7 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
       samples.sumIntensities <- c(samples.sumIntensities[1, ], samples.sumIntensities[2, ])
       for(pop in 1:K) {
         if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
-          parents.pop <- kde2d(samples.admixture[pop, ], samples.sumIntensities, lims=c(0,1,1,20))
+          parents.pop <- kde2d(samples.admixture[, pop], samples.sumIntensities, lims=c(0,1,1,20))
           contour(parents.pop$x, parents.pop$y, parents.pop$z,
                   main=paste("Contour plot of posterior density of parental", population.labels[pop],
                     "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
