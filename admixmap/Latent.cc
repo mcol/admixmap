@@ -67,19 +67,20 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       rhobeta1 = options->getRhobetaRate();
       rhobeta = rhobeta0 / rhobeta1;
     }
-
-    if(!options->isGlobalRho() && rhobeta0 > 1)
-      rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);//initialise at prior mean
-    else
-      rho = rhoalpha / rhobeta;//initialise at prior mean for globalrho
     
-    // ** set up TuneRW object for global rho updates **
-    NumberOfUpdates = 0;
-    w = 1;
-    step0 = 1.0; // sd of proposal distribution for log rho
-    //need to choose sensible value for this initial RW sd
-    step = step0;
-    TuneRhoSampler.SetParameters( step0, 0.01, 10, 0.44);  
+    //     if(!options->isGlobalRho() && rhobeta0 > 1)
+    //       rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);//initialise at prior mean
+    //     else
+    if(options->isGlobalRho()) {
+      rho = rhoalpha / rhobeta;//initialise global sumintensities parameter at prior mean for globalrho
+      // ** set up TuneRW object for global rho updates **
+      NumberOfUpdates = 0;
+      w = 1;
+      step0 = 1.0; // sd of proposal distribution for log rho
+      //need to choose sensible value for this initial RW sd
+      step = step0;
+      TuneRhoSampler.SetParameters( step0, 0.01, 10, 0.44);  
+    }
     
     // ** Open paramfile **
     if ( options->getIndAdmixHierIndicator()){

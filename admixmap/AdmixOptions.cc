@@ -96,11 +96,11 @@ void AdmixOptions::Initialise(){
   globalrhoPrior.push_back(3.0);//rhoalpha 
   globalrhoPrior.push_back(0.5);//rhobeta
 
-  // non-global rho: default gamma-gamma prior with parameters n=4, alpha=3, beta=3
-  // effective prior mean is 4*3/(3-1) = 6 and effective prior variance is 6*7 / 2 = 21
-  rhoPrior.push_back(4.0);//rhoalpha 
-  rhoPrior.push_back(3.0);//rhobeta shape
-  rhoPrior.push_back(3.0);//rhobeta rate
+  // non-global rho: default gamma-gamma prior with parameters n=6, alpha=4, beta=5
+  // effective prior mean is 6*4/(5-2=1) = 6 and effective prior variance is 6*7 / (5-2) = 14
+  rhoPrior.push_back(6.0);//rhoalpha 
+  rhoPrior.push_back(5.0);//rhobeta shape
+  rhoPrior.push_back(4.0);//rhobeta rate
 
   initalpha.resize(2);//TODO: check if this is necessary
   //gamma(3, 0.01) prior on dispersion parameter
@@ -400,7 +400,7 @@ long AdmixOptions::getSeed() const
 }
 
 double AdmixOptions::getRhoalpha() const {
-  if(GlobalRho) {
+  if(GlobalRho || !IndAdmixHierIndicator) {
     return globalrhoPrior[0];
   } else {
     return rhoPrior[0];
@@ -981,33 +981,27 @@ void AdmixOptions::PrintOptions(){
 int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   // **** analysis type  ****
   Log.setDisplayMode(Quiet);
-  if (NumberOfIndividuals ==1)
-    {
-      IndAdmixHierIndicator = false;
-      Log << "One individual analysis";
+  if (NumberOfIndividuals==1) {
+    IndAdmixHierIndicator = false;
+    Log << "One individual analysis";
+  } else if (RegType == None) { //no regression
+    NumberOfOutcomes = 0;
+    if(AffectedsOnlyScoreFilename.length()>0) {
+      Log << "Affecteds-only analysis";
+    } else {
+      Log << "Cross sectional analysis, no outcome";
     }
+  } else if (RegType == Linear) {
+    NumberOfOutcomes = 1;
+    Log << "Cross sectional analysis, continuous outcome";
+  } else if (RegType == Logistic) {
+    NumberOfOutcomes = 1;
+    Log << "Case-control or cross sectional analysis, binary outcome";
+  } else if (RegType == Both) {
+    NumberOfOutcomes = 2;
+    Log << "Cross sectional analysis, multiple outcome";
+  }
   
-  else if (RegType == None)//no regression
-    {
-      NumberOfOutcomes = 0;
-      if(AffectedsOnlyScoreFilename.length()>0)	Log << "Affecteds only analysis";
-      else  Log << "Cross sectional analysis, no outcome";
-    }
-  else if (RegType == Linear)
-    {
-      NumberOfOutcomes = 1;
-      Log << "Cross sectional analysis, continuous outcome";
-    }
-  else if (RegType == Logistic)
-    {
-      NumberOfOutcomes = 1;
-      Log << "Cross sectional analysis, binary outcome";
-    }
-  else if (RegType == Both)
-    {
-      NumberOfOutcomes = 2;
-      Log << "Cross sectional analysis, multiple outcome";
-    }
   if(chibIndicator){
     Log << " with marginal likelihood calculation ";
     if(NumberOfIndividuals >1 )Log << "for first individual";
@@ -1033,7 +1027,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   // **** Hierarchical model on ind admixture ****
   if (!IndAdmixHierIndicator)
     {
-      Log << "No hierarchical model for individual admixture.\n";
+      Log << "No hierarchical model for individual admixture or sum-intensities.\n";
       
       if(ParameterFilename.length() > 0 ){
 	Log << "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n"
@@ -1092,15 +1086,15 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     }  
   }
 
-  if( GlobalRho ) {
+  if( GlobalRho || !IndAdmixHierIndicator || NumberOfIndividuals==1) {
     Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
 	<< "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
     Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
     Log << "Effective prior variance of sum-intensities is " 
 	<< globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << "\n";
-
-  } else {
-    double rhopriormean = rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
+    
+  } else {  
+    double rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
     Log << "Population distribution of sum-intensities specified as Gamma with shape parameter "
 	<< rhoPrior[0] << "\n"
 	<< "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
@@ -1182,7 +1176,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     exit(0);
   }
   if(TestForAdmixtureAssociation &&
-      ( TestForLinkageWithAncestry || TestForAllelicAssociation ) ){
+      ( TestForLinkageWithAncestry || TestForAllelicAssociation ) ) {
     Log << "Cannot test for linkage with ancestry or allelic association\n"
 	<< "with score test for association. Can only use affecteds only test\n"
 	<< "for linkage.\n"
