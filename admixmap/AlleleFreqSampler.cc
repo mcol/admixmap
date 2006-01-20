@@ -1,45 +1,59 @@
-//compile with:
-//g++ AlleleFreqSampler.cc HamiltonianMonteCarlo.cc StepSizeTuner.cc functions.cc rand_serial.cc -lgsl -lgslcblas -o AlleleFreqSampler
+#include "AlleleFreqSampler.h"
 
+AlleleFreqSampler::AlleleFreqSampler(){
 
-//To sample allele freqs for a single compound locus
-#include "common.h"
-#include <math.h>
-#include <stdlib.h>
-#include "functions.h"
-#include "HamiltonianMonteCarlo.h"
-#include <algorithm>
-#include <gsl/gsl_linalg.h>
+}
 
-typedef struct //from CompositeLocus.h 
-{
-  int haps[2];
-} hapPair; 
-HamiltonianMonteCarlo Sampler;
+//requires: AlleleFreqs phi, parameters of Dirichlet prior Prior, pointer to individuals, current locus number, 
+//number of alleles/haplotypes NumStates, number of populations, NumPops
+void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, IndividualCollection* IC, unsigned locus, 
+					  unsigned NumStates, unsigned NumPops){
+  unsigned dim = NumStates*NumPops;
 
-typedef struct{
-  unsigned NumPops;
-  unsigned NumStates;
-  const int AncestryPair[2];
-  const std::vector<hapPair> HapPairs;
-  const double* PriorParams;
+  Args.IP = IC;
+  Args.NumStates = NumStates;
+  Args.NumPops = NumPops;
+  Args.locus = locus;
+  Args.PriorParams = Prior;
 
-}AlleleFreqArgs;
+  //initialise Hamiltonian Sampler
+  double step0 = 0.1;//initial step size
+  double min = -100.0, max = 100.0; //min and max parameter values
+  Sampler.SetDimensions(dim, step0, min, max, 20, 0.44, getEnergy, gradient);
 
-//to begin with, just one individual, then sum over individuals
+  //transform phi 
+  double* params = new double[dim];
+  double freqs[NumStates];//frequencies for one population
+  for(unsigned k = 0; k < NumPops; ++k){
+    for(unsigned s = 0; s < NumStates; ++s) freqs[s] = phi[s*NumPops+k];
+    inv_softmax(NumStates, freqs, params+k*NumStates);
+  }
+
+  //call Sample on transformed variables 
+  Sampler.Sample(params, &Args);
+
+  //reverse transformation
+  for(unsigned k = 0; k < NumPops; ++k){
+    softmax(NumStates, freqs, params+k*NumStates);
+    for(unsigned s = 0; s < NumStates; ++s) phi[s*NumPops+k] = freqs[s];
+  }
+
+  delete[] params;
+}
 
 // requires: sampled ancestry pair A, PossibleHapPairs (compatible with genotype) H, current values of AlleleFreqs at this locus, phi
 //, number of alleles/haplotypes NumStates, number of populations, NumPops
 
-double ::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumStates, unsigned NumPops){
+double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
+					unsigned NumStates){
   double sum = 0.0, sum2 = 0.0;//sums of products and products of squares
   double phiphi;
   unsigned NumPossHapPairs = H.size();
   for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
     unsigned j0 = H[hpair].haps[0];//j
     unsigned j1 = H[hpair].haps[1];//j'
-    int index0 = j0 * NumPops +Anc[0];//jk
-    int index1 = j1 * NumPops +Anc[1];//j'k'
+    int index0 = Anc[0]*NumStates + j0;//jk
+    int index1 = Anc[1]*NumStates + j1;//j'k'
     phiphi = phi[index0] * phi[index1];
     sum += phiphi;
     sum2 += phiphi*phiphi;
@@ -47,23 +61,21 @@ double ::logLikelihood(const double *phi, const int Anc[2], const std::vector<ha
   return log(sum2) - log(sum);
 }
 
-double ::logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates){
+double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates){
   double logprior = 0.0;
   std::vector<double> DirichletParams(NumStates);
-  std::vector<double> freqs(NumStates);
 
   for(unsigned k = 0; k < NumPops; ++k){
-    for(int s = 0; s < NumStates; ++s){
+    for(unsigned s = 0; s < NumStates; ++s){
     DirichletParams[s] = PriorParams[k*NumStates + s];
-    freqs[s] = phi[k*NumStates + s];
     }
 
-    logprior += getDirichletLogDensity( DirichletParams, freqs );
+    logprior += getDirichletLogDensity( DirichletParams, phi+k*NumStates );
   }
   return logprior;
 }
 
-double ::logJacobian(const double* a, const double z, unsigned H){
+double AlleleFreqSampler::logJacobian(const double* a, const double z, unsigned H){
   //computes logJacobian for softmax transformation
 
   //construct matrix
@@ -90,27 +102,75 @@ double ::logJacobian(const double* a, const double z, unsigned H){
 }
 
 //energy function for Hamiltonian sampler
-double ::getEnergy(const double * const phi, const void* const vargs){
+double AlleleFreqSampler::getEnergy(const double * const params, const void* const vargs){
   const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
   double energy = 0.0;
-  energy -= logPrior(args->PriorParams, phi, args->NumPops, args->NumStates) 
-    + logLikelihood(phi, args->AncestryPair, args->HapPairs, args->NumStates, args->NumPops);
-  for(unsigned k = 0; k < args->NumPops; ++k){
-    double freqs[args->NumStates];
-    double z = 0.0;
-    for(int s = 0; s < args->NumStates; ++s){
-      freqs[s] = phi[k*args->NumStates + s];
-      z += exp(freqs[s]);
-    }   
-    energy -= logJacobian(freqs, z, args->NumStates);
+  unsigned States = args->NumStates;
 
+  //transform params to freqs
+  double phi[args->NumStates * args->NumPops];
+  for(unsigned k = 0; k < args->NumPops; ++k)
+    softmax(States, phi + k*States, params + k*States); 
+
+  energy -= logPrior(args->PriorParams, phi, args->NumPops, States) ;
+
+  //accumulate likelihood over individuals
+  for(int i = 0; i < args->IP->getSize(); ++i){
+    const Individual* ind = args->IP->getIndividual(i);
+    int Anc[2];
+    ind->GetLocusAncestry(args->locus, Anc);
+    energy -= logLikelihood(phi, Anc, ind->getPossibleHapPairs(args->locus), States);
+  }
+  //add Jacobian
+  for(unsigned k = 0; k < args->NumPops; ++k){
+    double z = 0.0;
+    for(unsigned s = 0; s < States; ++s){
+      z += exp(phi[s]);
+    }   
+    energy -= logJacobian(phi+k*States, z, States);
   }
   return energy;
 }
 
+void AlleleFreqSampler::gradient(const double * const params, const void* const vargs, double* g){
+  const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
+  unsigned States = args->NumStates;
+  //transform params to freqs
+  double phi[States * args->NumPops];
+  for(unsigned k = 0; k < args->NumPops; ++k)
+    softmax(States, phi + k*States, params + k*States); 
+
+  double* dEdphi = new double[States * args->NumPops];fill(dEdphi, dEdphi+States*args->NumPops, 0.0);
+  for(int i = 0; i < args->IP->getSize(); ++i){
+    const Individual* ind = args->IP->getIndividual(i);
+    int Anc[2];
+    ind->GetLocusAncestry(args->locus, Anc);
+    //first compute gradient wrt phi
+    logLikelihoodFirstDeriv(phi, Anc, ind->getPossibleHapPairs(args->locus), States, args->NumPops, dEdphi);
+  }
+  //subtract derivative of log prior
+  for(unsigned s = 0; s < States; ++s)
+    for(unsigned k = 0; k < args->NumPops; ++k){
+      if(args->PriorParams[s*args->NumPops +k] > 0.0)
+	dEdphi[k*States+s] -= (args->PriorParams[s*args->NumPops +k] - 1.0) / phi[k*States+s]; 
+    }
+  
+   //now use chain rule to obtain gradient wrt args
+  for(unsigned k = 0; k < args->NumPops; ++k){
+    double sum = 0.0;
+    for(unsigned s = 0; s < States; ++s){
+      for(unsigned s1 = 0; s1 < States; ++s1)sum += exp(params[k*States+s1]);
+      for(unsigned s1 = 0; s1 < States; ++s1)
+	g[k*States+s] -= dEdphi[k*States+s1] * exp(params[k*States+s1])*exp(params[k*States+s]) / (sum*sum); 
+
+    }
+  }
+  delete[] dEdphi;
+}
+
 //first derivative of log likelihood
-void ::logLikelihoodFirstDeriv(double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumStates, unsigned NumPops,
-			       double* FirstDeriv){
+void AlleleFreqSampler::logLikelihoodFirstDeriv(double *phi, const int Anc[2], const std::vector<hapPair > H, 
+						unsigned NumStates, unsigned NumPops, double* FirstDeriv){
   unsigned NumPossHapPairs = H.size();
   unsigned dim = NumStates*NumPops;
 
@@ -126,8 +186,8 @@ void ::logLikelihoodFirstDeriv(double *phi, const int Anc[2], const std::vector<
   for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
     unsigned j0 = H[hpair].haps[0];//j
     unsigned j1 = H[hpair].haps[1];//j'
-    int index0 = j0 * NumPops +Anc[0];//jk
-    int index1 = j1 * NumPops +Anc[1];//j'k'
+    int index0 = Anc[0]*NumStates + j0;//jk
+    int index1 = Anc[1]*NumStates + j1;//j'k'
     phiphi = phi[index0] * phi[index1];
     sum += phiphi;
     sum2 += phiphi*phiphi;
@@ -150,38 +210,14 @@ void ::logLikelihoodFirstDeriv(double *phi, const int Anc[2], const std::vector<
     C[d] = sum - A[d]*phi2 - B[d]*phi[d];
     F[d] = sum2 - D[d]*phi4 - E[d]*phi2;
 
-    FirstDeriv[d] = ( (4*D[d]*phi3 + 2*E[d]*phi[d]) / sum2 ) - ( (2*A[d]*phi[d] + B[d]) / sum );
+    FirstDeriv[d] -= ( (4*D[d]*phi3 + 2*E[d]*phi[d]) / sum2 ) - ( (2*A[d]*phi[d] + B[d]) / sum );
   }
 
 }
 
-//adds derivative of log prior to derivative of log likelihood
-void ::addLogPriorDeriv(double *phi, const double* PriorParams, unsigned NumStates, unsigned NumPops,
-			       double* FirstDeriv){
-
-}
-
-void gradient(const double * const phi, const void* const vargs, double* g){
-  const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
-  logLikelihoodFirstDeriv(phi, args->AncestryPair, args->HapPairs, args->NumStates, args->NumPops, g);
-  addLogPriorDeriv(phi, args->PriorParams, args->NumStates, args->NumPops, g);
-  //TODO: g should be negative of this
-}
-
-void ::SampleAlleleFreqs(double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumStates, unsigned NumPops){
-  unsigned dim = NumStates*NumPops;
-
-  //initialise Hamiltonian
-
-  //transform phi 
-
-  //call Sample on transformed variables 
-
-  //reverse transformation
-}
-
-int main(){
 
 
-  return 0;
-}
+
+
+
+
