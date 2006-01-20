@@ -81,6 +81,7 @@ public:
 
   double getLogPosteriorProb();
 
+  void GetLocusAncestry(int locus, int Ancestry[2])const;
   void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
 
   int GetLocusAncestry(int, int, int)const;

@@ -72,7 +72,6 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   }
   
   int numCompositeLoci = Loci.GetNumberOfCompositeLoci();
-  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers 
   Theta = 0;
   ThetaX = 0;
   ThetaProposal = 0;
@@ -106,7 +105,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
-  
+
+  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   size_t AncestrySize = 0;  // set size of locus ancestry array
   //gametes holds the number of gametes for each chromosome, either 1 or 2
@@ -205,7 +205,6 @@ void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator
     locus++;
   }
 }
-
 
 void Individual::AnnealGenotypeProbs(int j, const Chromosome* C, const double coolness) {
   // called after energy has been evaluated, before updating model parameters
@@ -337,6 +336,10 @@ const vector<double> Individual::getRho()const {
    return _rho;
 }
 
+void Individual::GetLocusAncestry(int locus, int Ancestry[2])const{
+  const vector<int> locustable = Loci->GetChrmAndLocus(locus);
+  GetLocusAncestry(locustable[0], locustable[1], Ancestry);
+}
 void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const {
   Ancestry[0]  = LocusAncestry[chrm][locus];
   if((unsigned)chrm == X_posn)Ancestry[1] = Ancestry[0];
@@ -604,41 +607,34 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     
     //M-step:
     //set params to posterior modes
-    // for density as function of log rho, or Dirichlet density in softmax basis, minus ones in exponents disappear
 
     for(unsigned g = 0; g < NumIndGametes; ++g)
       if( options->isAdmixed(g) ){
 	if(!options->isGlobalRho()){
 	  //if(rhoalpha + SumNumArrivalsHat[g] > 1.0)
-	  _rho[g] = (rhoalpha + SumNumArrivalsHat[g]) / (rhobeta + Loci->GetLengthOfGenome());
-	  //_rho[g] = (rhoalpha + SumNumArrivalsHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfGenome());
+	  _rho[g] = (rhoalpha + SumNumArrivalsHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfGenome());
 	  //else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
 	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
-	    // _rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfXchrm());
-	    _rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g]) / (rhobeta + Loci->GetLengthOfXchrm());
+	    _rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g] - 1.0) / (rhobeta + Loci->GetLengthOfXchrm());
 	}
 	
-	unsigned gg = g; // index of which Dirichlet prior to use, 1 only for second gamete and no indadmixhiermodel
+	unsigned gg = g; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
 	if(options->getIndAdmixHierIndicator()) gg = 0;
 	double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
-	  + accumulate(SumLocusAncestryHat+g*Populations, SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>());
-	  //  -Populations;
+	  + accumulate(SumLocusAncestryHat+g*Populations, SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>())
+	  -Populations;
 	double sum_X = 0.0;
 	if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	  sum_X = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
-	    + accumulate(SumLocusAncestry_XHat+g*Populations, SumLocusAncestry_XHat+(g+1)*Populations, 0.0, std::plus<double>());
-	//   - Populations;
+	    + accumulate(SumLocusAncestry_XHat+g*Populations, SumLocusAncestry_XHat+(g+1)*Populations, 0.0, std::plus<double>())
+	    - Populations;
 	for(int k = 0; k < Populations; ++k){
 	  //if(alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] > 1.0)
 	  //without above line, Theta may not sum to 1
-	  if(alpha[gg][k]>0.0) {
-	    Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
-	    //Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
-	  }
+	  if(alpha[gg][k]>0.0)Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
 	  //else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
 	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
-	    Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
-	  //ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k] - 1.0) / sum_X;
+	    ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k] - 1.0) / sum_X;
 	}
       }//end isadmixed
     

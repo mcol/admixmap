@@ -167,8 +167,8 @@ Chromosome** Genome::GetChromosomes( int populations)
     }else{
       lnum++;
     }
-    _chrmandlocus[i][0] = cnum;
-    _chrmandlocus[i][1] = lnum;
+    _chrmandlocus[i][0] = cnum;//chromosome on which locus i is located
+    _chrmandlocus[i][1] = lnum;//number on chromosome cnum of locus i
     cfinish[cnum] = i;//locus number of last locus on currrent chromosome
   }
   
