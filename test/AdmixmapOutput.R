@@ -906,7 +906,8 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
                 xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
         }
       }
-      parents.pop <- kde2d(samples.sumIntensities[1, ],samples.sumIntensities[2, ], lims=c(1,20,1,20))
+      parents.pop <- kde2d(log(samples.sumIntensities[1, ]),
+                           log(samples.sumIntensities[2, ]), lims=c(-1,3,-1,3))
       contour(parents.pop$x, parents.pop$y, parents.pop$z,
               main="Contour plot of posterior density of parental sum-intensities",
               xlab="Parent 1", ylab="Parent 2")
@@ -918,13 +919,26 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
       samples.sumIntensities <- c(samples.sumIntensities[1, ], samples.sumIntensities[2, ])
       for(pop in 1:K) {
         if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
-          parents.pop <- kde2d(samples.admixture[, pop], samples.sumIntensities, lims=c(0,1,1,20))
+          parents.pop <- kde2d(samples.admixture[, pop], log(samples.sumIntensities), lims=c(0,1,-1,3))
           contour(parents.pop$x, parents.pop$y, parents.pop$z,
                   main=paste("Contour plot of posterior density of parental", population.labels[pop],
                     "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
           persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
                 main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
                   "admixture proportions"), xlab="Admixture propotion", ylab="Sum-intensities", zlab="Posterior density")
+        }
+      }
+      if(K > 2) {
+        for(pop1 in 1:K) {
+          for(pop2 in 2:K) {
+            if((AdmixturePrior[1, pop1] > 0 & AdmixturePrior[2, pop2] > 0) & (pop1 < pop2)) { # bivariate plot
+              parents.pop <- kde2d(samples.admixture[, pop], samples.admixture[, pop], lims=c(0,1,0,1))
+              contour(parents.pop$x, parents.pop$y, parents.pop$z,
+                      main="Contour plot of posterior density of parental admixture proportions",
+                      xlab=paste(population.labels[pop1], "admixture proportion"),
+                      ylab=paste(population.labels[pop2], "admixture proportion"))
+            }
+          }
         }
       }
     }
