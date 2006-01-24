@@ -33,7 +33,7 @@ public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter &Log);
-  void Update(IndividualCollection* IC, bool afterBurnIn, const double coolness);
+  void Update(IndividualCollection* IC, bool afterBurnIn, const double coolness, bool annealingUpdate);
 
   //initialize output file for samples of dispersion parameters
   void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log);

@@ -13,7 +13,6 @@
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
 
-//#define DEBUG 1
 
 AlleleFreqSampler::AlleleFreqSampler(){
   //default do-nothing constructor
@@ -37,9 +36,6 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
   double min = -100.0, max = 100.0; //min and max parameter values
   Sampler.SetDimensions(dim, step0, min, max, 20, 0.44, getEnergy, gradient);
 
-#ifdef DEBUG 
-  cout<< "Current values of Allelefreqs at locus "<< locus << ":\n"; 
-#endif
   //transform phi 
   double* params = new double[dim];
   double freqs[NumStates];//frequencies for one population
@@ -49,17 +45,8 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
       freqs[s] = phi[s*NumPops+k];
       freqs[NumStates-1] -= freqs[s];
     }
-#ifdef DEBUG
-    for(unsigned s = 0; s < NumStates; ++s)
-      cout << freqs[s]<< " ";
-#endif
     inv_softmax(NumStates, freqs, params+k*NumStates);
   }
-#ifdef DEBUG
-  cout <<endl << "transformed to:\n";
-  for(unsigned k = 0; k < dim; ++k) cout << params[k] << " "; 
-  system("pause");
-#endif
 
   //call Sample on transformed variables 
   Sampler.Sample(params, &Args);
@@ -151,7 +138,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
     ind->GetLocusAncestry(args->locus, Anc);
     energy -= logLikelihood(phi, Anc, ind->getPossibleHapPairs(args->locus), States);
   }
-  energy *= args->coolness;
+  energy *= args->coolness;//NOTE: here coolness wil always be <1 as otherwise the other sampler is in use
 
   energy -= logPrior(args->PriorParams, phi, args->NumPops, States) ;
   //add Jacobian
@@ -202,17 +189,17 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
   delete[] dEdphi;
 }
 
-//first derivative of log likelihood
+//first derivative of  -log likelihood
 void AlleleFreqSampler::logLikelihoodFirstDeriv(double *phi, const int Anc[2], const std::vector<hapPair > H, 
 						unsigned NumStates, unsigned NumPops, double* FirstDeriv){
   unsigned NumPossHapPairs = H.size();
   unsigned dim = NumStates*NumPops;
 
-  double A[dim], B[dim], C[dim], D[dim], E[dim], F[dim];
+  double A[dim], B[dim], /*C[dim],*/ D[dim], E[dim]/*, F[dim]*/;
   //fill(A, A+dim, 0.0);  fill(B, B+dim, 0.0); fill(C, C+dim, 0.0);
   //fill(D, D+dim, 0.0);  fill(E, E+dim, 0.0); fill(F, F+dim, 0.0);
   for(unsigned d = 0; d < dim; ++d){
-    A[d] = B[d] = C[d] = D[d] = E[d] = F[d] = 0.0;
+    A[d] = B[d] = /*C[d] =*/ D[d] = E[d] = /*F[d] =*/ 0.0;
   }
 
   double sum = 0.0, sum2 = 0.0;//sums of products and products of squares
@@ -239,16 +226,15 @@ void AlleleFreqSampler::logLikelihoodFirstDeriv(double *phi, const int Anc[2], c
   for(unsigned d = 0;d < dim; ++d){
     double phi2 = phi[d]*phi[d];//phi^2
     double phi3 = phi[d]*phi2;//phi^3
-    double phi4 = phi2*phi2;//phi^4
+    //double phi4 = phi2*phi2;//phi^4
 
-    C[d] = sum - A[d]*phi2 - B[d]*phi[d];
-    F[d] = sum2 - D[d]*phi4 - E[d]*phi2;
+    //C[d] = sum - A[d]*phi2 - B[d]*phi[d];
+    //F[d] = sum2 - D[d]*phi4 - E[d]*phi2;
 
     FirstDeriv[d] -= ( (4*D[d]*phi3 + 2*E[d]*phi[d]) / sum2 ) - ( (2*A[d]*phi[d] + B[d]) / sum );
   }
 
 }
-
 
 
 

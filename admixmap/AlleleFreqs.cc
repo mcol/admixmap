@@ -431,7 +431,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     NumberOfStates[i] = (*Loci)(i)->GetNumberOfStates();
-    // more duplicated code - should do this within method InitializePriorAlleleFreqs
+    // more duplicated code - should do this within InitializePriorAlleleFreqs
     (*Loci)(i)->SetNumberOfPopulations(Pops);
     if(CorrelatedAlleleFreqs){
       PriorAlleleFreqs[i] = new double[NumberOfStates[i]];
@@ -462,7 +462,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 // ************************** Sampling and Updating *****************************************
 
 // samples allele frequency and prior allele frequency parameters.
-void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool annealUpdate){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
   if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -482,9 +482,10 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    if(coolness < 1.0)
+    if(annealUpdate)//use long method when computing marginal likelihood
       FreqSampler.SampleAlleleFreqs(Freqs[i], PriorAlleleFreqs[i], IC, i, NumberOfStates[i], Populations, coolness);
-    else SampleAlleleFreqs(i, coolness);
+    else //use standard conjugate update
+      SampleAlleleFreqs(i, coolness);
     (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
     (*Loci)(i)->SetHapPairProbs();
   }
