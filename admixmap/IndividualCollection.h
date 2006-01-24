@@ -16,7 +16,7 @@
 
 #include "Genome.h"
 #include "Chromosome.h"
-#include "AlleleFreqs.h"
+//#include "AlleleFreqs.h"
 #include "chib.h"
 #include "Individual.h"
 #include "IndAdmixOutputter.h"
@@ -30,6 +30,8 @@ class Regression;
 class Individual;
 class IndAdmixOutputter;
 class LogWriter;
+class AlleleFreqs;
+class AlleleFreqSampler;
 
 class IndividualCollection
 {
