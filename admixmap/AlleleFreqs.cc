@@ -461,8 +461,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 
 // ************************** Sampling and Updating *****************************************
 
-// Method samples allele frequency and prior allele frequency
-// parameters.
+// samples allele frequency and prior allele frequency parameters.
 void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
   if(IsHistoricAlleleFreq ){
@@ -483,8 +482,9 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    //SampleAlleleFreqs(i, coolness);
-    FreqSampler.SampleAlleleFreqs(Freqs[i], PriorAlleleFreqs[i], IC, i, NumberOfStates[i], Populations, coolness);
+    if(coolness < 1.0)
+      FreqSampler.SampleAlleleFreqs(Freqs[i], PriorAlleleFreqs[i], IC, i, NumberOfStates[i], Populations, coolness);
+    else SampleAlleleFreqs(i, coolness);
     (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
     (*Loci)(i)->SetHapPairProbs();
   }
