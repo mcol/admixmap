@@ -3,7 +3,7 @@
  *   AlleleFreqs.cc 
  *   Class to hold and update allele frequencies, their prior parameters, allele counts and sums. Also holds and updates dispersion
  *   parameter eta and its prior parameters, for a dispersion model. Also computes Fst if required.
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -463,7 +463,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int Pops){
 
 // Method samples allele frequency and prior allele frequency
 // parameters.
-void AlleleFreqs::Update(bool afterBurnIn, double coolness){
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
   if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -483,7 +483,8 @@ void AlleleFreqs::Update(bool afterBurnIn, double coolness){
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    SampleAlleleFreqs(i, coolness);
+    //SampleAlleleFreqs(i, coolness);
+    FreqSampler.SampleAlleleFreqs(Freqs[i], PriorAlleleFreqs[i], IC, i, NumberOfStates[i], Populations, coolness);
     (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
     (*Loci)(i)->SetHapPairProbs();
   }

@@ -191,7 +191,7 @@ int main( int argc , char** argv ){
     Log << options.getTotalSamples() << " iterations at ";
     if( options.getTestOneIndivIndicator() )Log << options.getNumAnnealedRuns()+1 
 						<<" coolnesses for test individual. Other individuals at ";
-    Log << "coolness of 1.\n";
+    Log << "coolness of 1\n";
     
     //Write initial values
     if(options.getIndAdmixHierIndicator()  ){
@@ -568,7 +568,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
-  if( A->IsRandom() ) A->Update((iteration > options->getBurnIn() && !anneal), coolness);
+  if( A->IsRandom() ) A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
   
   if(A->IsRandom() || anneal) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
     IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes()); // sets unannealed probs ready for getEnergy

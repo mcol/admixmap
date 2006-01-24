@@ -1,13 +1,28 @@
+/** 
+ *   ADMIXMAP
+ *   AlleleFreqSampler.cc 
+ *   Class to sample allele/haplotype frequencies.
+ *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "AlleleFreqSampler.h"
+#include "IndividualCollection.h"
+
+//#define DEBUG 1
 
 AlleleFreqSampler::AlleleFreqSampler(){
-
+  //default do-nothing constructor
 }
 
 //requires: AlleleFreqs phi, parameters of Dirichlet prior Prior, pointer to individuals, current locus number, 
 //number of alleles/haplotypes NumStates, number of populations, NumPops
 void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, IndividualCollection* IC, unsigned locus, 
-					  unsigned NumStates, unsigned NumPops){
+					  unsigned NumStates, unsigned NumPops, double coolness){
   unsigned dim = NumStates*NumPops;
 
   Args.IP = IC;
@@ -15,19 +30,36 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
   Args.NumPops = NumPops;
   Args.locus = locus;
   Args.PriorParams = Prior;
+  Args.coolness = coolness;
 
   //initialise Hamiltonian Sampler
   double step0 = 0.1;//initial step size
   double min = -100.0, max = 100.0; //min and max parameter values
   Sampler.SetDimensions(dim, step0, min, max, 20, 0.44, getEnergy, gradient);
 
+#ifdef DEBUG 
+  cout<< "Current values of Allelefreqs at locus "<< locus << ":\n"; 
+#endif
   //transform phi 
   double* params = new double[dim];
   double freqs[NumStates];//frequencies for one population
   for(unsigned k = 0; k < NumPops; ++k){
-    for(unsigned s = 0; s < NumStates; ++s) freqs[s] = phi[s*NumPops+k];
+    freqs[NumStates-1] = 1.0;
+    for(unsigned s = 0; s < NumStates - 1; ++s) {//NB supplied frequencies are missing last element
+      freqs[s] = phi[s*NumPops+k];
+      freqs[NumStates-1] -= freqs[s];
+    }
+#ifdef DEBUG
+    for(unsigned s = 0; s < NumStates; ++s)
+      cout << freqs[s]<< " ";
+#endif
     inv_softmax(NumStates, freqs, params+k*NumStates);
   }
+#ifdef DEBUG
+  cout <<endl << "transformed to:\n";
+  for(unsigned k = 0; k < dim; ++k) cout << params[k] << " "; 
+  system("pause");
+#endif
 
   //call Sample on transformed variables 
   Sampler.Sample(params, &Args);
@@ -35,7 +67,7 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
   //reverse transformation
   for(unsigned k = 0; k < NumPops; ++k){
     softmax(NumStates, freqs, params+k*NumStates);
-    for(unsigned s = 0; s < NumStates; ++s) phi[s*NumPops+k] = freqs[s];
+    for(unsigned s = 0; s < NumStates - 1; ++s) phi[s*NumPops+k] = freqs[s];
   }
 
   delete[] params;
@@ -112,8 +144,6 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   for(unsigned k = 0; k < args->NumPops; ++k)
     softmax(States, phi + k*States, params + k*States); 
 
-  energy -= logPrior(args->PriorParams, phi, args->NumPops, States) ;
-
   //accumulate likelihood over individuals
   for(int i = 0; i < args->IP->getSize(); ++i){
     const Individual* ind = args->IP->getIndividual(i);
@@ -121,6 +151,9 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
     ind->GetLocusAncestry(args->locus, Anc);
     energy -= logLikelihood(phi, Anc, ind->getPossibleHapPairs(args->locus), States);
   }
+  energy *= args->coolness;
+
+  energy -= logPrior(args->PriorParams, phi, args->NumPops, States) ;
   //add Jacobian
   for(unsigned k = 0; k < args->NumPops; ++k){
     double z = 0.0;
@@ -135,6 +168,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
 void AlleleFreqSampler::gradient(const double * const params, const void* const vargs, double* g){
   const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
   unsigned States = args->NumStates;
+  fill(g, g+States* args->NumPops, 0.0);
   //transform params to freqs
   double phi[States * args->NumPops];
   for(unsigned k = 0; k < args->NumPops; ++k)

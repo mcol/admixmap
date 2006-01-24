@@ -1,14 +1,29 @@
 // *-*-C++-*-*
-//To sample allele freqs for a single compound locus
+/** 
+ *   ADMIXMAP
+ *   AlleleFreqSampler.h 
+ *   Class to sample allele/haplotype frequencies at a given composite locus.
+ *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
+
+#ifndef ALLELEFREQSAMPLER_H
+#define ALLELEFREQSAMPLER_H
 #include "common.h"
 #include <math.h>
 #include <stdlib.h>
 #include "functions.h"
 #include "HamiltonianMonteCarlo.h"
-#include "IndividualCollection.h"
+#include "CompositeLocus.h"
 #include <algorithm>
 #include <gsl/gsl_linalg.h>
 
+class IndividualCollection;
 // typedef struct //from CompositeLocus.h 
 // {
 //   int haps[2];
@@ -21,14 +36,14 @@ typedef struct{
   unsigned locus;// current locus
   const IndividualCollection* IP;//pointer to individuals
   const double* PriorParams;//parameters of Dirichlet prior on allele freqs
-
+  double coolness;
 }AlleleFreqArgs;
 
 class AlleleFreqSampler{
 public:
   AlleleFreqSampler();
   void SampleAlleleFreqs(double *phi, const double* Prior, IndividualCollection* IC, unsigned locus, 
-					  unsigned NumStates, unsigned NumPops);
+			 unsigned NumStates, unsigned NumPops, double coolness);
 
 
 
@@ -45,3 +60,4 @@ private:
   static double getEnergy(const double * const phi, const void* const vargs);
   static void gradient(const double * const phi, const void* const vargs, double* g);
 };
+#endif
