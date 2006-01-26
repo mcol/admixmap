@@ -768,7 +768,6 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
   double LogPriorRatio = 0.0;
   
   //generate proposals
-
   for( unsigned int g = 0; g < NumIndGametes; g++ ){
     if(options->isAdmixed(g)){
       // inverse softmax transformation from proportions to numbers on real line that sum to 0
@@ -786,18 +785,22 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
       }
       //reverse transformation from numbers on real line to proportions 
       softmax(Populations, ThetaProposal+g*Populations, a, b);
+      //compute contribution of this gamete to log prior ratio
+      for(int k = 0; k < Populations; ++k) {
+	if( b[k] ) { 
+	  LogPriorRatio += (alpha[g][k] - 1.0)*(log(ThetaProposal[g*Populations+k]) - 
+						 log(Theta[g*Populations+k])); 
+	}
+      }
+      //     //compute contribution of this gamete to log prior ratio 
+      //       LogPriorRatio += getDirichletLogDensity_Softmax(alpha[g], ThetaProposal+g*Populations) - 
+      // 	getDirichletLogDensity_Softmax(alpha[g], Theta+g*Populations);
       delete[] a;
       delete[] b; 
-      
-      //compute contribution of this gamete to log prior ratio 
-      LogPriorRatio += getDirichletLogDensity_Softmax(alpha[g], ThetaProposal+g*Populations) - 
-	getDirichletLogDensity_Softmax(alpha[g], Theta+g*Populations);
     }
     else
       copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
   }// end loop over gametes
-
-  
   //cout << "\nlogpriorratio " << LogPriorRatio << endl;
 
   //get log likelihood at current parameter values - do not force update, store result of update
@@ -808,7 +811,6 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
   // store result in loglikelihood.tempvalue, and accumulate loglikelihood ratio   
   logLikelihood.tempvalue = getLogLikelihood(options, C, ThetaProposal, ThetaXProposal,_rho, _rho_X, true);
   LogLikelihoodRatio += logLikelihood.tempvalue;
-
   return LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
 }
 
