@@ -484,7 +484,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
     //  }
     
-    if(sampleparams && Populations >1 && !(iteration %2))//update theta with random walk proposal on even-numbered iterations
+    if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on odd-numbered iterations
       SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
 		  ExpectedY, lambda, NumCovariates,
 		  Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
@@ -546,12 +546,11 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(unsigned i = 0; i < _rho.size(); ++i) sumlogrho[i] += log(_rho[i]);
   }
 
-  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on odd-numbered iterations
+  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on even-numbered iterations
     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
 		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
     HMMIsBad(true); // because admixture props have changed
   }  
-  // after an even-numbered iteration with a global sum-intensities model, stored log-likelihood is still ok.
 
   //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
   SampleMissingOutcomes(Outcome, OutcomeType, ExpectedY, lambda);
