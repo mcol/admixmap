@@ -286,25 +286,31 @@ double HMM::getLogLikelihood()const
 void HMM::Sample(int *SStates, const double* const Admixture, const double* const f, bool isdiploid)const
 {
   int j1,j2;
-  double* V = new double[States];
-  int* C = new int[Transitions];
+  double* V = new double[States]; //probability vector for possible states (haploid or diploid)
+  int* C = new int[Transitions]; // sampled state (haploid or diploid) coded as integer
 
   if(isdiploid) { 
-    // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete   
+    // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete 
+
     int State = 0;
+    
+    // sample rightmost locus  
     for( int j = 0; j < States; j++ ) V[State++] = alpha[(Transitions - 1)*States + j];
-    C[ Transitions - 1 ] = SampleFromDiscrete( V, States ); // sample rightmost locus
+    C[ Transitions - 1 ] = SampleFromDiscrete( V, States ); 
     SStates[Transitions-1] = (int)(C[Transitions-1]/K);
     SStates[Transitions - 1 + Transitions] = (C[Transitions-1] % K);
     
     for( int t =  Transitions - 2; t >= 0; t-- ) { // loop from right to left
-      j1 = (int) (C[t+1]/K);//j
-      j2 = C[t+1]-K*j1;     //j'
+      j1 = (int) (C[t+1]/K);// ancestry on gamete 0 at locus t+1
+      j2 = C[t+1]-K*j1;     // ancestry on gamete 1 at locus t+1
       
       State = 0;
       for(int i1 = 0; i1 < K; i1++)for(int i2 = 0; i2 < K; ++i2) {
 	V[State] = 
-	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
+// 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * 
+// 	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
+	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + i1*2] ) * 
+	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + i2*2 +1] );
 	V[State] *= alpha[t*States + i1*K + i2];
 	State++;
       }
@@ -325,6 +331,15 @@ void HMM::Sample(int *SStates, const double* const Admixture, const double* cons
   }
   delete[] V;
   delete[] C;
+  //     cout << "\n\nsampledstates\n";
+  //     for( unsigned int g = 0; g < (1+isdiploid); g++ ){
+  //       cout << "gamete" << g << " ";
+  //       for(int t =0; t <= Transitions; ++t) {
+  //         cout << SStates[t + g*Transitions] << " ";
+  //       }
+  //       cout << endl;
+  //     }
+  //cout << "\n";
 }
 
 // argument oldProbs is square array of size K, K
@@ -466,12 +481,13 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
 	SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
     }
   }
-  //   cout << "sumlocusancestry\t";
-  //   for( unsigned int g = 0; g < gametes; g++ ){
-  //     for(int k =0; k < K; ++k) {
-  //       cout << SumLocusAncestry[k + g*K] << "\t";
-  //     }
-  //   }
-  //   cout << "\n";
+  
+//     cout << "sumlocusancestry\t";
+//     for( unsigned int g = 0; g < gametes; g++ ){
+//       for(int k =0; k < K; ++k) {
+//         cout << SumLocusAncestry[k + g*K] << "\t";
+//       }
+//     }
+//     cout << "\n";
 }
 
