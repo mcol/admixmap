@@ -586,7 +586,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   // ** update regression parameters (if regression model) conditional on individual admixture
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
-    R[r].Update((!anneal && iteration > options->getBurnIn()), IC);
+    R[r].Update((!anneal && iteration > options->getBurnIn()), IC, coolness);
 }
 
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 

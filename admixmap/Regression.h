@@ -1,4 +1,16 @@
 // *-*-C++-*-*
+/** 
+ *   ADMIXMAP
+ *   Regression.h
+ *   Class to represent and update parameters of a regression model as used in admixmap
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #ifndef REGRESSION_H
 #define REGRESSION_H 1
 
@@ -22,6 +34,7 @@ typedef struct{
   double XtY;
   const double* Covariates;
   const double* beta;//regression parameters
+  double coolness;//for annealing
 
 }BetaArgs;
 
@@ -32,7 +45,7 @@ public:
    ~Regression();
   void Initialise(unsigned RegNumber, const IndividualCollection* const, LogWriter &);
   void SetExpectedY(IndividualCollection* IC)const;
-  void Update(bool sumbeta, IndividualCollection* individuals);
+  void Update(bool sumbeta, IndividualCollection* individuals, double coolness);
   static void OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			     const std::string *PopulationLabels, LogWriter &Log);  
   static void InitializeOutputFile(const AdmixOptions* const , const IndividualCollection* const individuals, 

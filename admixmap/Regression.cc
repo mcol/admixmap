@@ -1,3 +1,15 @@
+/** 
+ *   ADMIXMAP
+ *   Regression.cc 
+ *   Class to represent and update parameters of a regression model as used in admixmap
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "Regression.h"
 #include <numeric>
 
@@ -168,7 +180,7 @@ void Regression::SetExpectedY(IndividualCollection *IC)const{
   //if( RegType == Logistic ) IC->calculateExpectedY(RegNumber);
 }
 
-void Regression::Update(bool sumbeta, IndividualCollection* individuals){
+void Regression::Update(bool sumbeta, IndividualCollection* individuals, double coolness){
   // Sample for regression model parameters beta
   // should make sure that matrix returned by getCovariates contains updated values of indiv admixture
   std::vector<double> Outcome = individuals->getOutcome(RegNumber);
@@ -227,7 +239,7 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals){
   }
   
   else if( RegType == Logistic ){
-   
+    BetaParameters.coolness = coolness;   
     for( int j = 0; j < NumCovariates; j++ ){
       BetaParameters.Covariates = X;
       BetaParameters.beta = beta;
@@ -341,6 +353,7 @@ void ExpectedOutcome(const double* const beta, const double* const X, double* Y,
   delete[] beta1;
 }
 
+//(unnormalised)log posterior for a single regression parameter
 double Regression::lr( const double beta, const void* const vargs )
 {
   const BetaArgs* args = (const BetaArgs*)vargs;
@@ -352,17 +365,24 @@ double Regression::lr( const double beta, const void* const vargs )
     beta0 = args->beta0;
   double *Xbeta = new double[ n ];
 
-  double f = args->XtY * beta - 0.5 * args->lambda * (beta - beta0) * (beta - beta0);
+  //log likelihood contribution
+  double f = args->XtY * beta;
   
   ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, args->d, index, beta);
 
   for( int i = 0; i < n; i++ ){
     f -= log( 1.0 + exp( Xbeta[ i ] ) );}
+
+  //anneal likelihood
+  f *= args->coolness;
   
   delete[] Xbeta;
+  f -= 0.5 * args->lambda * (beta - beta0) * (beta - beta0); //log prior contribution
   return( f );
 }
 
+//first and second derivatives of log posterior for a single regression parameter; 
+//used in Newton-Raphson algorithm in MH sampler
 double Regression::dlr( const double beta, const void* const vargs )
 {
   const BetaArgs* args = (const BetaArgs*)vargs;
@@ -374,7 +394,7 @@ double Regression::dlr( const double beta, const void* const vargs )
   if( index == 0 )
     beta0 = args->beta0;
 
-  double f = args->XtY - args->lambda * (beta - beta0);
+  double f = args->XtY;
   double *Xbeta = new double[ n ];
   
   ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
@@ -384,6 +404,9 @@ double Regression::dlr( const double beta, const void* const vargs )
       f -= args->Covariates[ i*d + index ] / ( 1.0 + exp( -Xbeta[ i ] ) );
     }
   delete[] Xbeta;
+  f *= args->coolness;
+
+  f -= args->lambda * (beta - beta0);//log prior contribution
   return( f );
 }
 
@@ -395,7 +418,7 @@ double Regression::ddlr( const double beta, const void* const vargs )
   int d = args->d;
   int index = args->index ;
 
-  double f = -args->lambda;
+  double f = 0.0;
   double *Xbeta = new double[ n ];
   
   ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
@@ -405,6 +428,9 @@ double Regression::ddlr( const double beta, const void* const vargs )
       f -= args->Covariates[ i*d + index ] * args->Covariates[ i*d + index ] / ( 2.0 + exp( -Xbeta[ i ] ) + exp( Xbeta[ i ] ) );
     }
   delete[] Xbeta;
+  f *= args->coolness;
+
+  f -= args->lambda;//log prior contribution
   return( f );
 }
 
