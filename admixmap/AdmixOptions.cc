@@ -136,8 +136,6 @@ void AdmixOptions::Initialise(){
   OptionValues["sumintensitiesprior"] = "4.0,3.0,3.0";
   OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
-  OptionValues["popadmixpriormean"] = "1.0";
-  OptionValues["popadmixpriorvar"] = "1.0";
   OptionValues["xonlyanalysis"] = "0";
 }
 
@@ -1274,6 +1272,7 @@ void AdmixOptions::setInitAlpha(LogWriter &Log){
     _symmetric = false;
   }
   else{
+    Log.setDisplayMode(On);
     Log << "ERROR: Can specify separate priors on admixture of each gamete only if indadmixhierindicator = 0\n";
     exit(1);
   }
