@@ -37,38 +37,40 @@ GaussianProposalMH::~GaussianProposalMH()
 
 int GaussianProposalMH::Sample( double *x, const void* const args )
 {
-  int flag = 0;
-  double xnew, LogPost, NewLogPost ,ProposalRatio, LogAcceptanceProb;
   newnum = *x;
-  NewtonRaphson(args);//sets ddf
+  NewtonRaphson(args);//sets ddf, 2nd derivative at mode, used to set precision of proposal distribution
 
-  xnew = gennor( newnum, 1 / sqrt( -ddf ) );
+  //generate proposal from Normal distribution centred on mode of target distribution with precision 
+  //given as sqrt of 2nd derivative at the mode
+  double xnew = gennor( newnum, 1 / sqrt( -ddf ) );
 
-  LogPost = (*function)( *x, args );
-  NewLogPost = (*function)( xnew, args );
+  double LogTarget = (*function)( *x, args );//log posterior at current value
+  double NewLogTarget = (*function)( xnew, args );//log posterior at proposal
 
-  ProposalRatio = LogNormalDensity( xnew, newnum, -ddf ) - LogNormalDensity( *x, newnum, -ddf );
+  double ProposalRatio = LogNormalDensity( xnew, newnum, -ddf ) - LogNormalDensity( *x, newnum, -ddf );
 
-  LogAcceptanceProb = NewLogPost - LogPost + ProposalRatio;
+  double LogAcceptanceProb = NewLogTarget - LogTarget + ProposalRatio;
+  int flag = 0;
   if( log( myrand() ) < LogAcceptanceProb ){
     *x = xnew;
     flag = 1;
   }
-  return flag;
+  return flag;//returns indicator variable for acceptance
 }
 
 void GaussianProposalMH::NewtonRaphson(const void* const args)
 {
   double step, df;
   do{
-    ddf = (*ddfunction)( newnum, args );
-    df = (*dfunction)( newnum, args );
+    ddf = (*ddfunction)( newnum, args );//2nd derivative
+    df = (*dfunction)( newnum, args );//1st derivative
     step = -df / ddf;
     newnum += step;
   }while( fabs(df) > 0.001 );
 }
 
 double GaussianProposalMH::LogNormalDensity(double x, double mu, double lambda)
+//returns log density of Normal distribution with mean mu and precision lambda at x
 {
   return( -0.5 * lambda * ( x - mu ) * ( x - mu ) );
 }
