@@ -289,19 +289,20 @@ void HMM::Sample(int *SStates, const double* const Admixture, const double* cons
   double* V = new double[States];
   int* C = new int[Transitions];
 
-  if(isdiploid){
+  if(isdiploid) { 
+    // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete   
     int State = 0;
-    for( int j = 0; j < States; j++ )V[State++] = alpha[(Transitions - 1)*States + j];
-    C[ Transitions - 1 ] = SampleFromDiscrete( V, States );
+    for( int j = 0; j < States; j++ ) V[State++] = alpha[(Transitions - 1)*States + j];
+    C[ Transitions - 1 ] = SampleFromDiscrete( V, States ); // sample rightmost locus
     SStates[Transitions-1] = (int)(C[Transitions-1]/K);
     SStates[Transitions - 1 + Transitions] = (C[Transitions-1] % K);
     
-    for( int t =  Transitions - 2; t >= 0; t-- ){
+    for( int t =  Transitions - 2; t >= 0; t-- ) { // loop from right to left
       j1 = (int) (C[t+1]/K);//j
       j2 = C[t+1]-K*j1;     //j'
-
+      
       State = 0;
-      for(int i1 = 0; i1 < K; i1++)for(int i2 = 0; i2 < K; ++i2){
+      for(int i1 = 0; i1 < K; i1++)for(int i2 = 0; i2 < K; ++i2) {
 	V[State] = 
 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
 	V[State] *= alpha[t*States + i1*K + i2];
@@ -311,8 +312,7 @@ void HMM::Sample(int *SStates, const double* const Admixture, const double* cons
       SStates[t] = (int)(C[t]/K);//paternal
       SStates[t + Transitions] = (C[t] % K);//maternal
     }
-   }
-  else{//haploid
+  } else {//haploid
     for( int j = 0; j < States; j++ )V[j] = alpha[(Transitions - 1)*States + j ];
     C[ Transitions - 1 ] = SampleFromDiscrete( V, States );
     SStates[Transitions-1] = C[Transitions-1];
@@ -413,31 +413,36 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
   newProbs[3] = 1 - Exp0 - Exp1 + newProbs[0];
 }
 
+
 void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
 			       int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			       unsigned SumN[], unsigned SumN_X[], bool isGlobalRho)const{
-
-  double Prob;
+  
+  double Prob; // prob jump indicator is 1
+  
+  // should be defined at class scope
   vector<bool> xi[2] = {vector<bool>(Transitions), vector<bool>(Transitions)};//jump indicators
   xi[0][0] = xi[1][0] = true;
-  for( int jj = 1; jj < Transitions; jj++ ){
+
+  for( int jj = 1; jj < Transitions; jj++ ) {
     xi[0][jj] = xi[1][jj] = true;    
     for( unsigned int g = 0; g < gametes; g++ ){
       if( LocusAncestry[g*Transitions + jj-1] == LocusAncestry[jj + g*Transitions] ){
 	Prob = StateArrivalProbs[jj*K*2 +LocusAncestry[jj + g*Transitions]*2 + g];  
 	xi[g][jj] = Prob / (Prob + f[2*jj+g]) > myrand();
-      } else {
-	xi[g][jj] = true;
-      }
- 
+      } 
+      //       else { // redundant
+      // 	xi[g][jj] = true;
+      //       }
+      
       if( xi[g][jj] ){
 	// sum ancestry states over loci where jump indicator is 1
 	if( !isX )
-	  SumLocusAncestry[ LocusAncestry[jj + g*Transitions] +  g*K ]++;
+	  SumLocusAncestry[ LocusAncestry[jj+g*Transitions] +  g*K ]++;
 	else
-	  SumLocusAncestry_X[ LocusAncestry[jj + g*Transitions] + g*K ]++;
-	//sample number of arrivals where jump indicator is 1
-	if(!isGlobalRho){
+	  SumLocusAncestry_X[ LocusAncestry[jj+g*Transitions] + g*K ]++;
+
+	if(!isGlobalRho) { // sample number of arrivals where jump indicator is 1
 	  double u = myrand();
 	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
 	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
@@ -450,15 +455,23 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
 	}
       }
     }
-  }
+  } // ends loop over intervals
+
   //finally for first locus, not included in above loop
-    for( unsigned int g = 0; g < gametes; g++ ){
-      if( xi[g][0] ){
-	if( !isX )
-	  SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ]++;
-	else
-	  SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
-      }
+  for( unsigned int g = 0; g < gametes; g++ ){
+    if( xi[g][0] ){
+      if( !isX )
+	SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ]++;
+      else
+	SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
     }
+  }
+  //   cout << "sumlocusancestry\t";
+  //   for( unsigned int g = 0; g < gametes; g++ ){
+  //     for(int k =0; k < K; ++k) {
+  //       cout << SumLocusAncestry[k + g*K] << "\t";
+  //     }
+  //   }
+  //   cout << "\n";
 }
 

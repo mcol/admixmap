@@ -527,6 +527,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
       }
       if(Populations>1)
 	//sample number of arrivals, update SumNumArrivals and SumLocusAncestry
+	//element SumLocusAncestry is updated as 
 	chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X,
 				      SumNumArrivals, SumNumArrivals_X, options->isGlobalRho());
       
@@ -547,9 +548,9 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   }
 
   if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on even-numbered iterations
-    SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
-		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
-    HMMIsBad(true); // because admixture props have changed
+    //     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
+    // 		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
+    //     HMMIsBad(true); // because admixture props have changed
   }  
 
   //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
@@ -825,11 +826,14 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
     gendirichlet(K, dirparams, ThetaProposal );
   }
   else if( options->isRandomMatingModel() ){ //random mating model
+    cout << "\n\nsumlocusancestry\t";
     for( unsigned int g = 0; g < 2; g++ ) {
       if(options->isAdmixed(g)) {
 	unsigned gg = g; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
 	if(options->getIndAdmixHierIndicator()) gg = 0;
+	cout << "gamete" << g << "\t";
 	for(size_t k = 0; k < K; ++k){
+	  cout << sumLocusAncestry[k+K*g] << "\t";
 	  dirparams[k] = alpha[gg][k] + sumLocusAncestry[k + K*g];
 	  if( g == 0 ) dirparams[k] += sumLocusAncestry_X[k];
 	}
@@ -846,6 +850,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
       }
       else copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
     } // end loop over gametes
+    cout << endl;
   } else { //assortative mating model
     for(size_t k = 0; k < K; ++k)dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
     gendirichlet(K, dirparams, ThetaProposal );
@@ -965,14 +970,33 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
 	logLikelihood.ready = false;
       }
   } // if RW proposal is rejected, loglikelihood.HMMisOK is already set to false, and stored log-likelihood is still valid 
+
+  //  cout << "\nlogpratio at met step " << logpratio << endl;
+  //   cout << "Proposed\t";  
+  //   for( int k = 0; k < Populations; k++ ) {
+  //     cout << ThetaProposal[k] << "\t";
+  //     if( RandomMatingModel ) {
+  //       cout << ThetaProposal[k+Populations] << "\t";
+  //     }
+  //   }
+  //   cout << accept << endl;
+  //   if(accept) cout << "Accepted\t";
+  //   else cout << "rejected\t";
+  //   for( int k = 0; k < Populations; k++ ) {
+  //     cout << Theta[k] << "\t";
+  //     if( RandomMatingModel ) {
+  //       cout << Theta[k+Populations] << "\t";
+  //     }
+  //   }
+  //   cout << endl;
   
   if(RW) { //update step size in tuner object every w updates
     if( !( NumberOfUpdates % w ) ) {
       step = ThetaTuner.UpdateStepSize( AccProb );
-//       if(myNumber < 3) {
-// 	cout << "\nstep size for individual " << myNumber << " updated to " << step <<  
-//       " with expected acceptance rate " << ThetaTuner.getExpectedAcceptanceRate() << endl << flush;
-//      }
+      //       if(myNumber < 3) {
+      // 	cout << "\nstep size for individual " << myNumber << " updated to " << step <<  
+      //       " with expected acceptance rate " << ThetaTuner.getExpectedAcceptanceRate() << endl << flush;
+      //      }
     }
   }
 }
