@@ -48,7 +48,7 @@ distanceFromLast <- function(v.Chr, v.Position) {
 ## Start of script
 N <- 1
 K <- 2 # num subpopulations
-rho1 <- 8 # sum-of-intensities
+rho1 <- 10 # sum-of-intensities
 rho2 <- 2
 spacing <- 5 # 40 cM spacing gives 99 loci
 

@@ -925,7 +925,7 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
                     "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
           persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
                 main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
-                  "admixture proportions"), xlab="Admixture propotion", ylab="Sum-intensities", zlab="Posterior density")
+                  "admixture proportions"), xlab="Admixture propotion", ylab="log sum-intensities", zlab="Posterior density")
         }
       }
       if(K > 2) {

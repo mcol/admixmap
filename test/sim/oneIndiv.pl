@@ -8,11 +8,12 @@ my $executable = 'c:/cvs/genepi/test/admixmap';
 
 my $arg_hash = 
 {
-    burnin   => 5,
-    samples  => 25,
+    burnin   => 50,
+    samples  => 250,
     every    => 1,
-    #indadmixhiermodel            => 0,
-    chib                         => 1,
+    #numannealedruns => 0,
+    indadmixhiermodel            => 0,
+    #chib                         => 1,
     randommatingmodel            => 1,
     globalrho                    => 0,
     fixedallelefreqs             => 1,
@@ -21,7 +22,7 @@ my $arg_hash =
     priorallelefreqfile          => 'data/trueallelefreqs.txt',
     logfile                      => 'log.txt',
     indadmixturefile             => 'individualVarSamples.txt',
-    indadmixmodefile             => 'posteriormode.txt'
+    #indadmixmodefile             => 'posteriormode.txt'
 };
 
 $arg_hash->{resultsdir}         = 'results-11-11';

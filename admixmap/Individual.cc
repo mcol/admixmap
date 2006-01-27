@@ -484,22 +484,22 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
     //  }
     
-    //if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on even-numbered iterations
-      SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
-		  ExpectedY, lambda, NumCovariates,
-		  Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
+    //if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on odd-numbered iterations
+    SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
+		ExpectedY, lambda, NumCovariates,
+		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
     
     //SumNumArrivals is the number of arrivals between each pair of adjacent loci
     SumNumArrivals[0] = SumNumArrivals[1] = 0;
     SumNumArrivals_X[0] = SumNumArrivals_X[1] = 0;  
   }
 
-  if(sampleSStats){
+  if(sampleSStats) {
     bool ancestrytest = updatescores && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
     for( unsigned int j = 0; j < numChromosomes; j++ ){
       if(Populations>1){ // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
 	//Update Forward/Backward probs in HMM
-	if( !logLikelihood.HMMisOK ){
+	if( !logLikelihood.HMMisOK ) {
 	  UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
 	}
 	if(!IAmUnderTest && ancestrytest && iteration > options->getBurnIn()){
@@ -507,12 +507,11 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
 	  chrm[j]->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
 	  UpdateScoreTests(options, Outcome, OutcomeType, chrm[j], DInvLink, dispersion, ExpectedY);
 	}
-	
 	// sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
 	chrm[j]->SampleLocusAncestry(LocusAncestry[j], Theta);
       }//end populations>1 
       
-      if(!IAmUnderTest && sampleparams){//if(sampleSStats) is implicit
+      if(!IAmUnderTest && sampleparams) {//if(sampleSStats) is implicit
 	//loop over loci on current chromosome and update allele counts
 	for( unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
 	  int locus =  chrm[j]->GetLocus(jj);
@@ -525,14 +524,35 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
 	  //}
 	}   
       }
-      if(Populations>1)
+      if(Populations>1) {
+	// don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
 	//sample number of arrivals, update SumNumArrivals and SumLocusAncestry
-	//element SumLocusAncestry is updated as 
 	chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X,
 				      SumNumArrivals, SumNumArrivals_X, options->isGlobalRho());
-      
+// 	if(j==0) {
+// 	  cout << "\nchr 0 locusancestry\n";
+// 	  for( unsigned int g = 0; g < gametes[j]; g++ ) {
+// 	    cout << "gamete" << g << " ";
+// 	    for( int jj = 1; jj < chrm[j]->GetSize(); jj++ ) {
+// 	      cout << LocusAncestry[j][jj+g*chrm[j]->GetSize()] << " ";
+// 	    }
+// 	    cout << "\n";
+// 	  }
+// 	}
+ 
+     } // end if(Populations>1) block  
     } //end chromosome loop
   }
+  
+//   cout << "\nsumlocusancestry\t";
+//   for( unsigned int g = 0; g < NumIndGametes; g++ ) {
+//     cout << "gamete" << g << "\t";
+//     for(int k =0; k < Populations; ++k) {
+//       cout << SumLocusAncestry[k + g*Populations] << "\t";
+//     }
+//   }
+//   cout << "\n";
+  
   
   // sample sum of intensities parameter rho if defined at individual level - then set HMM and loglikelihood as bad 
   if(sampleparams && Populations>1 &&  !options->isGlobalRho() ) {
@@ -547,10 +567,10 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(unsigned i = 0; i < _rho.size(); ++i) sumlogrho[i] += log(_rho[i]);
   }
 
-  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on odd-numbered iterations
-    //     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
-    // 		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
-    //     HMMIsBad(true); // because admixture props have changed
+  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on even-numbered iterations
+//         SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
+//     		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
+//         HMMIsBad(true); // because admixture props have changed
   }  
 
   //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
@@ -607,7 +627,6 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     
     //M-step:
     //set params to posterior modes
-
     for(unsigned g = 0; g < NumIndGametes; ++g)
       if( options->isAdmixed(g) ){
 	if(!options->isGlobalRho()){
@@ -631,7 +650,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 	for(int k = 0; k < Populations; ++k){
 	  //if(alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] > 1.0)
 	  //without above line, Theta may not sum to 1
-	  if(alpha[gg][k]>0.0)Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
+	  if(alpha[gg][k]>0.0) Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k] - 1.0) / sum;
 	  //else{if(options->getDisplayLevel()>1)cerr<<"Cannot find modes for individual "<<myNumber<<", aborting"<<endl;return;}
 	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	    ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k] - 1.0) / sum_X;
@@ -826,21 +845,30 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
     gendirichlet(K, dirparams, ThetaProposal );
   }
   else if( options->isRandomMatingModel() ){ //random mating model
-    cout << "\n\nsumlocusancestry\t";
+    cout << "\nIsAdmixed\t" << options->isAdmixed(0) << " " << options->isAdmixed(1) << endl;
     for( unsigned int g = 0; g < 2; g++ ) {
       if(options->isAdmixed(g)) {
-	unsigned gg = g; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
-	if(options->getIndAdmixHierIndicator()) gg = 0;
 	cout << "gamete" << g << "\t";
-	for(size_t k = 0; k < K; ++k){
-	  cout << sumLocusAncestry[k+K*g] << "\t";
+	unsigned gg = g; // index of which prior (alpha) to use - use alpha[1] if second gamete and no indadmixhiermodel
+	if(options->getIndAdmixHierIndicator()) gg = 0;
+	for(size_t k = 0; k < K; ++k) { // parameters of conjugate Dirichlet update
 	  dirparams[k] = alpha[gg][k] + sumLocusAncestry[k + K*g];
 	  if( g == 0 ) dirparams[k] += sumLocusAncestry_X[k];
 	}
 	
 	//generate proposal theta from Dirichlet with parameters dirparams
 	gendirichlet(K, dirparams, ThetaProposal+g*K );
-	
+	cout << "dirichlet\t";
+	for(size_t k=0; k<K; ++k) {
+	  cout << dirparams[k] << "\t";
+	}
+	cout << endl;
+	cout << "thetaproposal" << "\t";
+	for(size_t k=0; k<K; ++k) {
+	  cout << ThetaProposal[g*K + k] << "\t";
+	}
+	cout << endl;
+
 	//sample theta for X chromosome from 
 	if( Loci->isX_data() && g < gametes[X_posn]){
 	  for(size_t k = 0; k < K; ++k)
@@ -850,7 +878,6 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
       }
       else copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
     } // end loop over gametes
-    cout << endl;
   } else { //assortative mating model
     for(size_t k = 0; k < K; ++k)dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
     gendirichlet(K, dirparams, ThetaProposal );
@@ -971,24 +998,24 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
       }
   } // if RW proposal is rejected, loglikelihood.HMMisOK is already set to false, and stored log-likelihood is still valid 
 
-  //  cout << "\nlogpratio at met step " << logpratio << endl;
-  //   cout << "Proposed\t";  
-  //   for( int k = 0; k < Populations; k++ ) {
-  //     cout << ThetaProposal[k] << "\t";
-  //     if( RandomMatingModel ) {
-  //       cout << ThetaProposal[k+Populations] << "\t";
-  //     }
-  //   }
-  //   cout << accept << endl;
-  //   if(accept) cout << "Accepted\t";
-  //   else cout << "rejected\t";
-  //   for( int k = 0; k < Populations; k++ ) {
-  //     cout << Theta[k] << "\t";
-  //     if( RandomMatingModel ) {
-  //       cout << Theta[k+Populations] << "\t";
-  //     }
-  //   }
-  //   cout << endl;
+//    cout << "\nlogpratio at met step " << logpratio << endl;
+//     cout << "Proposed\t";  
+//     for( int k = 0; k < Populations; k++ ) {
+//       cout << ThetaProposal[k] << "\t";
+//       if( RandomMatingModel ) {
+//         cout << ThetaProposal[k+Populations] << "\t";
+//       }
+//     }
+//     cout << accept << endl;
+//     if(accept) cout << "Accepted\t";
+//     else cout << "rejected\t";
+//     for( int k = 0; k < Populations; k++ ) {
+//       cout << Theta[k] << "\t";
+//       if( RandomMatingModel ) {
+//         cout << Theta[k+Populations] << "\t";
+//       }
+//     }
+//     cout << endl;
   
   if(RW) { //update step size in tuner object every w updates
     if( !( NumberOfUpdates % w ) ) {
