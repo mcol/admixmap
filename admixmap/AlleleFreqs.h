@@ -64,6 +64,7 @@ public:
   const int *GetAlleleCounts(int locus)const;
   
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid );
+  void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
 
@@ -89,7 +90,8 @@ private:
   double **Freqs;// allele frequencies except for last allele
   double **AlleleFreqsMAP; // posterior mode of allele freqs
   double **HistoricAlleleFreqs;
-  int **AlleleCounts; 
+  int **AlleleCounts;
+  int** hetCounts;//counts of het individuals with distinct ancestry states at SNPs
   double **HistoricAlleleCounts;
   double **PriorAlleleFreqs;
 
@@ -127,7 +129,7 @@ private:
   void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
   void LoadAlleleFreqs(const DataMatrix NewFreqs, int i, bool);
-  void SetDefaultAlleleFreqs(int Pops);
+  void SetDefaultAlleleFreqs(int i);
 
   void SampleDirichletParams1D( int );
   void SampleDirichletParamsMultiDim( int);

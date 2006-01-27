@@ -36,6 +36,8 @@ typedef struct{
   unsigned locus;// current locus
   const IndividualCollection* IP;//pointer to individuals
   const double* PriorParams;//parameters of Dirichlet prior on allele freqs
+  const int* AlleleCounts;
+  const int* hetCounts;
   double coolness;
 }AlleleFreqArgs;
 
@@ -44,7 +46,8 @@ public:
   AlleleFreqSampler();
   void SampleAlleleFreqs(double *phi, const double* Prior, IndividualCollection* IC, unsigned locus, 
 			 unsigned NumStates, unsigned NumPops, double coolness);
-
+  void SampleSNPFreqs(double *phi, const double* Prior, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
+			 unsigned NumPops, double coolness);
 
 
 private:
@@ -59,5 +62,7 @@ private:
 
   static double getEnergy(const double * const phi, const void* const vargs);
   static void gradient(const double * const phi, const void* const vargs, double* g);
+  static double getEnergySNP(const double * const phi, const void* const vargs);
+  static void gradientSNP(const double * const phi, const void* const vargs, double* g);
 };
 #endif

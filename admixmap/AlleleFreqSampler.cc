@@ -13,6 +13,7 @@
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
 
+//#define DEBUG 1
 
 AlleleFreqSampler::AlleleFreqSampler(){
   //default do-nothing constructor
@@ -33,8 +34,9 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
 
   //initialise Hamiltonian Sampler
   double step0 = 0.1;//initial step size
-  double min = -100.0, max = 100.0; //min and max parameter values
-  Sampler.SetDimensions(dim, step0, min, max, 20, 0.44, getEnergy, gradient);
+  double min = -100.0, max = 100.0; //min and max stepsize
+  int numleapfrogsteps = 1;
+  Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.44/*target acceptrate*/, getEnergy, gradient);
 
   //transform phi 
   double* params = new double[dim];
@@ -57,6 +59,44 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
     for(unsigned s = 0; s < NumStates - 1; ++s) phi[s*NumPops+k] = freqs[s];
   }
 
+  delete[] params;
+}
+
+void AlleleFreqSampler::SampleSNPFreqs(double *phi, const double* Prior, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
+				  unsigned NumPops, double coolness){
+  Args.IP = 0;
+  Args.NumStates = 2;
+  Args.NumPops = NumPops;
+  Args.locus = locus;
+  Args.PriorParams = Prior;
+  Args.coolness = coolness;
+  Args.AlleleCounts = AlleleCounts;
+  Args.hetCounts = hetCounts;
+
+  //initialise Hamiltonian Sampler
+  double step0 = 0.1;//initial step size
+  double min = -100.0, max = 100.0; //min and max stepsize
+  int numleapfrogsteps = 20;
+  Sampler.SetDimensions(2*NumPops, step0, min, max, numleapfrogsteps, 0.44, getEnergySNP, gradientSNP);
+
+  //transform phi 
+  double* params = new double[2*NumPops];
+  double freqs[2];//frequencies for one population
+
+  for(unsigned k = 0; k < NumPops; ++k){
+    freqs[0] = phi[k];
+    freqs[1] = 1.0-phi[k];
+    inv_softmax(2, freqs, params+k*2);
+  }
+
+  //call Sample on transformed variables 
+  Sampler.Sample(params, &Args);
+
+  //reverse transformation
+  for(unsigned k = 0; k < NumPops; ++k){
+    softmax(2, freqs, params+k*2);
+    phi[k] = freqs[0];
+  }
   delete[] params;
 }
 
@@ -138,7 +178,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
     ind->GetLocusAncestry(args->locus, Anc);
     energy -= logLikelihood(phi, Anc, ind->getPossibleHapPairs(args->locus), States);
   }
-  energy *= args->coolness;//NOTE: here coolness wil always be <1 as otherwise the other sampler is in use
+  energy *= args->coolness;//NOTE: here coolness will always be <1 as otherwise the other sampler is in use
 
   energy -= logPrior(args->PriorParams, phi, args->NumPops, States) ;
   //add Jacobian
@@ -236,8 +276,82 @@ void AlleleFreqSampler::logLikelihoodFirstDeriv(double *phi, const int Anc[2], c
 
 }
 
+//energy function for Hamiltonian sampler, case of SNP
+double AlleleFreqSampler::getEnergySNP(const double * const params, const void* const vargs){
+  const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
+  double energy = 0.0;
+  unsigned Pops = args->NumPops;
+  //transform params to freqs
+  double phi[2 * Pops];
+  for(unsigned k = 0; k < Pops; ++k)
+    softmax(2, phi + k*2, params + k*2);
 
+  //get loglikelihood
+  for(unsigned k = 0; k < Pops; ++k){
+    energy -= args->AlleleCounts[k] * log(phi[k*2])/*1k*/ + args->AlleleCounts[Pops + k] * log(phi[k*2+1])/*2k*/;
+    for(unsigned k1 = k+1; k1< Pops; ++k1)
+      energy -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
+	( log(phi[k*2]*phi[k*2]*phi[k1*2+1]*phi[k1*2+1] + phi[k*2+1]*phi[k*2+1]*phi[k1*2]*phi[k1*2]) 
+	  - log(phi[k*2]*phi[k1*2+1] + phi[k*2+1]*phi[k1*2]) );
+  }
 
+  energy *= args->coolness;//NOTE: here coolness will always be <1 as otherwise the other sampler is in use
+  
+  energy -= logPrior(args->PriorParams, phi, Pops, 2) ;
+  //add Jacobian
+  for(unsigned k = 0; k < Pops; ++k){
+    double z = 0.0;
+    for(unsigned s = 0; s < 2; ++s){
+      z += exp(phi[s]);
+    }   
+    energy -= logJacobian(phi+k*2, z, 2);
+  }
+  return energy;
+}
 
+void AlleleFreqSampler::gradientSNP(const double * const params, const void* const vargs, double* g){
+  const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
+  fill(g, g+ 2* args->NumPops, 0.0);
+  unsigned Pops = args->NumPops;
+  //transform params to freqs
+  double phi[2 * Pops];
+  for(unsigned k = 0; k < Pops; ++k)
+    softmax(2, phi + k*2, params + k*2);
+
+  double* dEdphi = new double[2 * Pops];fill(dEdphi, dEdphi+ 2*Pops, 0.0);
+  //derivative of log likelihood
+  for(unsigned k  = 0; k < Pops; ++k){
+    dEdphi[2*k] -= args->AlleleCounts[k] / phi[k*2];//allele1
+    dEdphi[2*k+1] -= args->AlleleCounts[Pops + k] / phi[k*2+1];//allele2
+    for(unsigned k1 = 0; k1 < Pops; ++k1)if(k!=k1){
+      double denom1 = (phi[k*2]*phi[k*2]*phi[k1*2+1]*phi[k1*2+1] + phi[k*2+1]*phi[k*2+1]*phi[k1*2]*phi[k1*2]);
+      double denom2 = (phi[k*2]*phi[k1*2+1] + phi[k*2+1]*phi[k1*2]);
+
+      dEdphi[2*k] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
+	((2*phi[k1*2+1]*phi[k1*2+1]*phi[k*2]) / denom1  - (phi[k1*2+1]) / denom2);
+      dEdphi[2*k+1] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 	
+	((2*phi[k1*2]*phi[k1*2]*phi[k*2+1]) / denom1 - (phi[k1*2]) / denom2);
+    }
+  }
+
+  //subtract derivative of log prior
+  for(unsigned s = 0; s < 2; ++s)
+    for(unsigned k = 0; k < Pops; ++k){
+      if(args->PriorParams[s*Pops +k] > 0.0)
+	dEdphi[k*2+s] -= (args->PriorParams[s*Pops +k] - 1.0) / phi[k*2+s]; 
+    }
+  
+   //now use chain rule to obtain gradient wrt args
+  for(unsigned k = 0; k < Pops; ++k){
+    double sum = 0.0;
+    for(unsigned s = 0; s < 2; ++s){
+      for(unsigned s1 = 0; s1 < 2; ++s1)sum += exp(params[k*2+s1]);
+      for(unsigned s1 = 0; s1 < 2; ++s1)
+	g[k*2+s] -= dEdphi[k*2+s1] * exp(params[k*2+s1])*exp(params[k*2+s]) / (sum*sum); 
+
+    }
+  }
+  delete[] dEdphi;
+}
 
 
