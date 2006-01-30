@@ -484,7 +484,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
     //  }
     //cout "sampletheta" << flush;
-    //if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on odd-numbered iterations
+    if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on odd-numbered iterations
     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
 		ExpectedY, lambda, NumCovariates,
 		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
@@ -568,9 +568,9 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   }
 
   if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on even-numbered iterations
-    //         SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, NumCovariates,
-    //     		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
-    //         HMMIsBad(true); // because admixture props have changed
+    SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
+		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
+    HMMIsBad(true); // because admixture props have changed
   }  
   
   //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
@@ -654,7 +654,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 	  sum_X = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
 	    + accumulate(SumLocusAncestry_XHat+g*Populations, 
 			 SumLocusAncestry_XHat+(g+1)*Populations, 0.0, std::plus<double>());
-	for(int k = 0; k < Populations; ++k){
+	for(int k = 0; k < Populations; ++k) {
 	  if(alpha[gg][k]>0.0) Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
 	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	    ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k]) / sum_X;
@@ -746,7 +746,7 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
     logpratio += LogAcceptanceRatioForTheta_XChrm( sigma, K);
 
  //Accept or reject proposed value - if no regression model, proposal will be accepted because logpratio = 0
-  if(RW) { //TEMP FIX: switch off conjugate updating
+  //if(RW) { //TEMP FIX: switch off conjugate updating
     Accept_Reject_Theta(logpratio, Loci->isX_data(), K, options->isRandomMatingModel(), RW );
     
     // update the value of admixture proportions used in the regression model  
@@ -781,7 +781,7 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
 	UpdateB(DInvLink, dispersion);
       }
     }
-  } // end TEMP FIX block
+    // } // end TEMP FIX block
 }
 
 double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, 
@@ -851,7 +851,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
   else if( options->isRandomMatingModel() ){ //random mating model
     for( unsigned int g = 0; g < 2; g++ ) {
       if(options->isAdmixed(g)) {
-	cout << "\tgamete" << g << "\t";
+	//cout << "\tgamete" << g << "\t";
 	unsigned gg = g; // index of which prior (alpha) to use - use alpha[1] if second gamete and no indadmixhiermodel
 	if(options->getIndAdmixHierIndicator()) gg = 0;
 	for(size_t k = 0; k < K; ++k) { // parameters of conjugate Dirichlet update
@@ -861,10 +861,10 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
 	
 	//generate proposal theta from Dirichlet with parameters dirparams
 	gendirichlet(K, dirparams, ThetaProposal+g*K );
-	cout << "dirichlet\t";
-	for(size_t k=0; k<K; ++k) {
-	  cout << dirparams[k] << "\t";
-	}
+// 	cout << "dirichlet\t";
+// 	for(size_t k=0; k<K; ++k) {
+// 	  cout << dirparams[k] << "\t";
+// 	}
 // 	cout << "thetaproposal" << "\t";
 // 	for(size_t k=0; k<K; ++k) {
 // 	  cout << ThetaProposal[g*K + k] << "\t";
@@ -879,7 +879,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
       }
       else copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
     } // end loop over gametes
-    cout << endl;
+    //cout << endl;
   } else { //assortative mating model
     for(size_t k = 0; k < K; ++k)dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
     gendirichlet(K, dirparams, ThetaProposal );
