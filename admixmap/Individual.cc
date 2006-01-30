@@ -50,7 +50,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   if( !options->isGlobalRho() ){//model with individual- or gamete-specific sumintensities
     TruncationPt = options->getTruncPt();
     double init=0.0;
-    //determine initial value for rho
+    //set prior mean as initial value for rho 
     if(options->getIndAdmixHierIndicator()) { // hierarchical model for sumintensities
       // TODO: fix so that if single individual, indadmixhierindicator is set to false
       if(options->getRhobetaShape() > 1) { 
@@ -61,7 +61,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     } else { // no hierarchical model, use globalrho prior
       init = options->getRhoalpha() / options->getRhobeta();
     }
-    _rho.assign(NumIndGametes,init);
+    _rho.assign(NumIndGametes, init);
   }
   sumlogrho.assign(_rho.size(), 0.0);
   
@@ -80,7 +80,6 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   
   // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
   SumLocusAncestry = new int[options->getPopulations()*2];
-  
   dirparams = new double[Populations]; //to hold dirichlet parameters for conjugate updates of theta
 
   ThetaProposal = new double[ Populations * NumIndGametes ];
@@ -180,15 +179,15 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
   // draw initial values for admixture proportions theta from Dirichlet prior 
   // TODO: for X chromosome  
   size_t K = Populations;
-  for( unsigned g = 0; g < NumIndGametes; ++g ) { //loop over array of Dirichlet params
+  for( unsigned g = 0; g < NumIndGametes; ++g ) { 
     int sum = 0;
-    for(size_t k = 0; k < K; ++k) {
-      Theta[g*K+k]=dirparams[k] = alpha[g][k];
-      if(alpha[g][k]>0.0)++sum;
+    for(size_t k = 0; k < K; ++k) { //loop over array of Dirichlet params
+      Theta[g*K+k] = dirparams[k] = alpha[g][k]; // default value if elements of alpha sum to <= 1
+      if(alpha[g][k]>0.0) ++sum;
     }
     //generate proposal theta from Dirichlet with parameters dirparams
     if(sum>1)gendirichlet(K, dirparams, Theta+g*K );
-  } // end block looping over gametes
+  } // end loop over gametes
 }
 
 void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator=false){
@@ -467,7 +466,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   poptheta = ergodic average of population admixture, used to centre the values of individual admixture in the regression model
   options = pointer to program options
   chrm = array of Chromosome pointers
-  alpha = pop admixture Dirichlet parameters
+  alpha = Dirichlet prior on admixture proportions: either fixed or updated in Latent 
   rhoalpha, rhobeta = shape and scale parameters in prior for rho
   sigma = parameter for dispersion between autosomal and X-chromosome admixture proportions - 
     should model this with a Dirichlet dispersion parameter  
@@ -568,9 +567,9 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   }
 
   if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on even-numbered iterations
-    SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
-		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
-    HMMIsBad(true); // because admixture props have changed
+//     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
+// 		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
+//     HMMIsBad(true); // because admixture props have changed
   }  
   
   //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
@@ -661,9 +660,13 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 	}
       } //end isadmixed
     } // end loop over gametes
-    double LogUnnormalizedPosterior  = LogPriorTheta_Softmax(Theta, ThetaX, options, alpha)
-      + LogPriorRho(_rho, _rho_X, options, rhoalpha, rhobeta) + getLogLikelihood(options, chrm, false, true);
-    cout << "LogPosteriorUnNorm " << LogUnnormalizedPosterior << endl << flush;
+    double logpriorhat =  LogPriorTheta_Softmax(Theta, ThetaX, options, alpha) + 
+      LogPriorRho_LogBasis(_rho, _rho_X, options, rhoalpha, rhobeta);
+    double loglikhat =  getLogLikelihood(options, chrm, false, true);
+    double LogUnnormalizedPosterior  = logpriorhat + loglikhat;
+    //cout << LogPriorTheta_Softmax(Theta, ThetaX, options, alpha) << " " << LogPriorRho_LogBasis(_rho, _rho_X, options, rhoalpha, rhobeta) << endl;
+    cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior  " << 
+      LogUnnormalizedPosterior << endl << flush;
     // TODO: reject new values unless logposterior increases
   } //end EM outer loop
   //print values to file
