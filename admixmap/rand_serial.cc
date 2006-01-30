@@ -1,4 +1,4 @@
-#include <cassert>
+//#include <cassert>
 #include <cmath>
 #include <iostream>
 #include "rand.h"
@@ -15,49 +15,48 @@ static gsl_rng *RandomNumberGenerator = gsl_rng_alloc( gsl_rng_taus );
 
 double myrand()
 {
-   return( gsl_rng_uniform( RandomNumberGenerator ) );
+  return( gsl_rng_uniform( RandomNumberGenerator ) );
 }
 
 double myrandRange( double Min, double Max )
 {
-   double Range = Max - Min;
-
-   return( Min + Range * gsl_rng_uniform( RandomNumberGenerator ) );
+  double Range = Max - Min;
+  return( Min + Range * gsl_rng_uniform( RandomNumberGenerator ) );
 }
 
 void smyrand( long seed )
 {
-   gsl_rng_set(RandomNumberGenerator,
-               static_cast< unsigned long int >( seed ) );
+  gsl_rng_set(RandomNumberGenerator,
+	      static_cast< unsigned long int >( seed ) );
 }
 
 double gengam( double bb, double aa )
 {
   double x = 0.0;
   do
-   x =  gsl_ran_gamma( RandomNumberGenerator, aa, 1.0 / bb ) ;
-   while (x < 0.000001);
+    x =  gsl_ran_gamma( RandomNumberGenerator, aa, 1.0 / bb ) ;
+  while (x < 0.000001);
   return x;
 }
 
 double genbet( double aa, double bb )
 {
-   return( gsl_ran_beta( RandomNumberGenerator, aa, bb ) );
+  return( gsl_ran_beta( RandomNumberGenerator, aa, bb ) );
 }
 
 double gennor( double av, double sd )
 {
-   return( av + gsl_ran_gaussian( RandomNumberGenerator, sd ) );
+  return( av + gsl_ran_gaussian( RandomNumberGenerator, sd ) );
 }
 
 int genbinomial( int n, double p )
 {
-   return( gsl_ran_binomial( RandomNumberGenerator, p, n ) );
+  return( gsl_ran_binomial( RandomNumberGenerator, p, n ) );
 }
 
 unsigned int genpoi( double mu )
 {
-   return( gsl_ran_poisson( RandomNumberGenerator, mu ) );
+  return( gsl_ran_poisson( RandomNumberGenerator, mu ) );
 }
 
 std::vector<int> genmultinomial2(int N, const std::vector<double> theta)
@@ -67,7 +66,7 @@ std::vector<int> genmultinomial2(int N, const std::vector<double> theta)
   double* p = new double[ K ];
   std::vector<int> sample( K );
   for(int i = 0; i < K; i++){
-      p[i] = theta[i];
+    p[i] = theta[i];
   }
   gsl_ran_multinomial(RandomNumberGenerator, K, N, p, n);
   for(int i = 0; i < K; i++){
@@ -80,20 +79,19 @@ std::vector<int> genmultinomial2(int N, const std::vector<double> theta)
 
 double MultinomialLikelihood( const std::vector<int> r, const std::vector<double> theta )
 {
-   if( r.size() != theta.size() ){
-      cout << "Length of vector arguments to MultinomialLikelihood not equal." << endl;
-      exit(0);
-   }
-   unsigned K = (int)r.size();
-   unsigned* n = new unsigned[ K ];
-   double* p = new double[ K ];
-   for( unsigned i = 0; i < K; i++ ){
-      p[i] = theta[i];
-      n[i] = r[i];
-   }
-   delete[] n;
-   delete[] p;
-   return( gsl_ran_multinomial_pdf( K, p , n ) );
+  if( r.size() != theta.size() ){
+    throw string("Unequal lengths of vector arguments to MultinomialLikelihood");
+  }
+  unsigned K = (int)r.size();
+  unsigned* n = new unsigned[ K ];
+  double* p = new double[ K ];
+  for( unsigned i = 0; i < K; i++ ){
+    p[i] = theta[i];
+    n[i] = r[i];
+  }
+  delete[] n;
+  delete[] p;
+  return( gsl_ran_multinomial_pdf( K, p , n ) );
 }
 
 long ignpoi( double mu )
@@ -103,38 +101,32 @@ long ignpoi( double mu )
 
 int SampleFromDiscrete( const double probs[] , int numberofelements)
 {
-   double* cdf = new double[ numberofelements ];
-   cdf[0] = probs[0];
-   for( int i = 1; i < numberofelements; i++ )
-     cdf[i] = (cdf[i-1] + probs[i]); 
+  double* cdf = new double[ numberofelements ];
+  cdf[0] = probs[0];
+  for( int i = 1; i < numberofelements; i++ )
+    cdf[i] = (cdf[i-1] + probs[i]); 
   for( int i = 0; i < numberofelements; i++ )
     cdf[i] /= cdf[ numberofelements - 1 ];
-   double u = myrand();
-   int k = 0;
-   while( u > cdf[k] )
-      k++;
-   delete[] cdf;
-    return(k);
+  double u = myrand();
+  int k = 0;
+  while( u > cdf[k] )
+    k++;
+  delete[] cdf;
+  return(k);
 }
 
-void gendirichlet(const size_t K, const double alpha[], double theta[] )
-{
-   double sum = 0.0;
-
-   for( unsigned int i = 0; i < K; i++ )
-     {
-       if( alpha[i] > 0 )
-	 theta[i] = gengam( 1.0, alpha[i] );
-	 
-       else
-         theta[i] = 0.0;
-       sum += theta[i]; 
-     }
-   //need to do proper error catching here
-   assert( sum > 0.0 );
-   for( unsigned int i = 0; i < K; i++ )
-     theta[i] /= sum;
-   
+void gendirichlet(const size_t K, const double alpha[], double theta[] ) {
+  double sum = 0.0;
+  for( unsigned int i = 0; i < K; i++ ) {
+    if( alpha[i] > 0 )
+      theta[i] = gengam( 1.0, alpha[i] );
+    else theta[i] = 0.0;
+    sum += theta[i]; 
+  }
+  if( sum > 0.0 ) {
+    for( unsigned int i = 0; i < K; i++ )
+      theta[i] /= sum;
+  } else throw string("all gamma draws zero in function gendirichlet"); 
 }
 
 
@@ -163,8 +155,8 @@ void ddigam(  double *X, double *ddgam  )
    *ddgam=0.0;
    Y=*X;
    if(Y < 0.0){
-      std::cout << " ARG OF DIGAMMA FN = " << Y << ". ARG MUST BE POSITIVE " << std::endl;
-      exit(1);}
+     throw string("Negative value passed as argument to digamma functio ddigam");
+   }
 
 //  USE APPROXIMATION IF ARGUMENT .LE.S
 
