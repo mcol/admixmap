@@ -224,8 +224,14 @@ private:
   
   double LogPriorTheta(const double* const theta, const double* const thetaX,  
 		       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
+  double LogPriorTheta_Softmax(const double* const theta, const double* const thetaX,  
+			       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
+    //Computes LogPrior density in softmax basis at supplied parameter values 
+
   double LogPriorRho(const vector<double> rho, const vector<double> rhoX, 
 		     const AdmixOptions* const options, double rhoalpha, double rhobeta)const; 
+  double LogPriorRho_LogBasis(const vector<double> rho, const vector<double> rhoX, 
+			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const;
 
   double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
 				    const vector<vector<double> > &alpha)const;

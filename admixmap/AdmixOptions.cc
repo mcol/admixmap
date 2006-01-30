@@ -1072,9 +1072,9 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     else
       Log << "Model with individual-specific sum-intensities.\n";
     
-    if(rhoPrior.size() != 3) {
+    if( (rhoPrior.size() != 3) && IndAdmixHierIndicator ) {
       Log.setDisplayMode(On);
-      Log << "ERROR: sumintensitiesprior must have length 3\n";
+      Log << "ERROR: for hierarchical model, sumintensitiesprior must have length 3\n";
       exit(1);
     }
     if(rhoPrior[0] <= 0.0 || rhoPrior[1] <= 0.0 || rhoPrior[2]<=0.0) {

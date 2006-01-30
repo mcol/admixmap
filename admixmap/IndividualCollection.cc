@@ -378,7 +378,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   for(unsigned int i = 0; i < size; i++ ){
     int prev = i-1;
     if(i==0) prev = size-1;
-    
+    cout << flush;
     _child[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
 				chrm, alpha, rhoalpha, rhobeta, sigma,  

@@ -400,7 +400,6 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	IC->accumulateEnergyArrays(&options, chrm);
       }
     }
-      
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
