@@ -8,11 +8,12 @@
 #include <gsl/gsl_sf_gamma.h>
 
 double getGammaLogDensity(double alpha, double beta, double x);
+double getGammaLogDensity_LogBasis(double alpha, double beta, double x);
 
 double getDirichletLogDensity(const double* const a, const double* const x, size_t K);
 double getDirichletLogDensity(const std::vector<double>& a, const double* const x);
 double getDirichletLogDensity(const std::vector<double>& a, const std::vector<double>& x);
-double getDirichletLogDensity_Softmax(const std::vector<double>& a, double *x);
+double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double* const x);
 
 double AverageOfLogs(const std::vector<double>& vec, double max);
 

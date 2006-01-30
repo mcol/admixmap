@@ -1,5 +1,5 @@
 #include "functions.h"
-#include <cassert>
+//#include <cassert>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include "gsl/gsl_sf_exp.h"
@@ -11,90 +11,89 @@ using namespace::std;
 
 // ************** Log Densities *******************
 
-double getGammaLogDensity(double alpha, double beta, double x)
-{
+double getGammaLogDensity(double alpha, double beta, double x) {
   return alpha * log(beta) - gsl_sf_lngamma(alpha) + (alpha-1.0)*log(x) - beta*x;
 }
 
-//calls gsl function for computing the logarithm of the probability density p(x_1, ... , x_K) 
-//for a Dirichlet distribution with parameters a[K]. 
-//a should be of length K but x can be of length K or K-1 since last element ignored
-double getDirichletLogDensity(const double* const alpha, const double* const x, size_t K)
-{
-  double f, xsum = 0.0, sumalpha = alpha[K-1];
-  vector<double> theta(K);
+double getGammaLogDensity_LogBasis(double alpha, double beta, double x) {
+  return - gsl_sf_lngamma(alpha) + alpha*(log(beta) + log(x)) - beta*x;
+}
 
-  for(size_t k = 0; k < K-1; ++k){
+
+double getDirichletLogDensity(const double* const alpha, const double* const x, size_t K) {
+  // version with array arguments
+  // calls gsl function for computing the logarithm of the probability density p(x_1, ... , x_K) 
+  // for a Dirichlet distribution with parameters a[K]. 
+  // a should be of length K but x can be of length K or K-1 since K th element is recalculated by subtraction
+  vector<double> theta(K);
+  double sumalpha = alpha[K-1];
+  theta[K-1] = 1.0;
+  for(size_t k = 0; k < K-1; ++k) {
     theta[k] = x[k];
-    xsum += x[k];
+    theta[K-1] -= x[k];
     sumalpha += alpha[k];
   }
-  theta[K-1] = 1.0 - xsum;
-
-  f = gsl_sf_lngamma( sumalpha );
-  for( size_t i = 0; i < K; i++ )
-    if( alpha[i] > 0.0 )// to avoid bug in gsl_sf_lngamma
+  double f = gsl_sf_lngamma( sumalpha );
+  for( size_t i = 0; i < K; ++i ) {
+    if( alpha[i] > 0.0 ) { // to avoid bug in gsl_sf_lngamma
       f += ( alpha[i] - 1 ) * log( theta[i] ) - gsl_sf_lngamma( alpha[i] );
-
-  return f;
-}
-
-double getDirichletLogDensity(const std::vector<double>& a, const double* const x)
-{
-  size_t K = a.size();
-  double f, xsum = 0.0;
-  vector<double> theta(K);
-
-  for(size_t k = 0; k < K-1; ++k){
-    theta[k] = x[k];
-     xsum += x[k];
+    }
   }
-
-  theta[K-1] = 1.0 - xsum;
-
-  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
-  f = gsl_sf_lngamma( sum );
-  for( unsigned i = 0; i < K; i++ )
-    if( a[i] > 0.0 )
-      f += ( a[i] - 1 ) * log( theta[i] ) - gsl_sf_lngamma( a[i] );
-
-  return f;
-}
-double getDirichletLogDensity(const std::vector<double>& a, const std::vector<double>& x)
-{
-  size_t K = a.size();
-  double f, xsum = 0.0;
-  vector<double> theta(K);
-
-  for(size_t k = 0; k < K-1; ++k){
-    theta[k] = x[k];
-     xsum += x[k];
-  }
-
-  theta[K-1] = 1.0 - xsum;
-
-  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
-  f = gsl_sf_lngamma( sum );
-  for( unsigned i = 0; i < K; i++ )
-    if( a[i] > 0.0 )
-      f += ( a[i] - 1 ) * log( theta[i] ) - gsl_sf_lngamma( a[i] );
-
   return f;
 }
 
-double getDirichletLogDensity_Softmax(const std::vector<double>& a, double *x) {
+double getDirichletLogDensity(const std::vector<double>& a, const double* const x) {
+  // version with parameters as std vector, proportions as array 
   size_t K = a.size();
-  double f = 0.0;
   vector<double> theta(K);
   theta[K-1] = 1.0;
-  
   for(size_t k = 0; k < K-1; ++k) {
     theta[k] = x[k];
     theta[K-1] -= x[k];
   }
-  
-  for( unsigned i = 0; i < K; i++ )
-    if( a[i] > 0.0 ) f += ( a[i] ) * log( theta[i] );
+  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
+  double f = gsl_sf_lngamma( sum );
+  for( unsigned i = 0; i < K; ++i )
+    if( a[i] > 0.0 )
+      f += ( a[i] - 1 ) * log( theta[i] ) - gsl_sf_lngamma( a[i] );
+  return f;
+}
+
+double getDirichletLogDensity(const std::vector<double>& a, const std::vector<double>& x) {
+  // version with both arguments as std vectors
+  size_t K = a.size();
+  vector<double> theta(K);
+  theta[K-1] = 1.0;
+  for(size_t k = 0; k < K-1; ++k) {
+    theta[k] = x[k];
+    theta[K-1] -= x[k];
+  }
+  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
+  double f = gsl_sf_lngamma( sum );
+  for( unsigned i = 0; i < K; ++i ) {
+    if( a[i] > 0.0 ) {
+      f += ( a[i] - 1 ) * log( theta[i] ) - gsl_sf_lngamma( a[i] );
+    }
+  }
+  return f;
+}
+
+double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double* const x) {
+  // version with parameters as std vector, proportions as array
+  size_t K = a.size();
+  vector<double> theta(K);
+  theta[K-1] = 1.0;
+  for(size_t k = 0; k < K-1; ++k) {
+    theta[k] = x[k];
+    theta[K-1] -= x[k];
+  }
+  double sum = accumulate(a.begin(), a.end(), 0.0, std::plus<double>());//sum of a
+  double f = gsl_sf_lngamma( sum );
+  for( unsigned i = 0; i < K; ++i ) {
+    if( a[i] > 0.0 ) {
+      f += ( a[i] ) * log( theta[i] ) - gsl_sf_lngamma( a[i] );
+    }
+  }
   return f;
 }
 
