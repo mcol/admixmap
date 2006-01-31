@@ -501,8 +501,8 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
 	if( !logLikelihood.HMMisOK ) {
 	  UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
 	}
-	if(!IAmUnderTest && ancestrytest && iteration > options->getBurnIn()){
-	  //update of score tests for linkage with ancestry requires update of backward probs 
+	if(!IAmUnderTest && ancestrytest && iteration > options->getBurnIn()) {
+	  //update of score tests for linkage with ancestry requires update of backward probs
 	  chrm[j]->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
 	  UpdateScoreTests(options, Outcome, OutcomeType, chrm[j], DInvLink, dispersion, ExpectedY);
 	}
@@ -1146,38 +1146,40 @@ void Individual::ResetScores(const AdmixOptions* const options){
 
 void Individual::UpdateScoreTests(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType,
 				  Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY){
- 
   bool IamAffected = false;
-  
-  if( options->getTestForAffectedsOnly()){
-    //determine which regression is logistic, in case of 2 outcomes
-    unsigned col = 0;
-    if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
-    //check if this individual is affected
-    if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
+  try {
+    if( options->getTestForAffectedsOnly()){
+      //determine which regression is logistic, in case of 2 outcomes
+      unsigned col = 0;
+      if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
+      //check if this individual is affected
+      if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
+    }
+    
+    //we don't bother computing scores for the first population when there are two
+    int KK = Populations,k0 = 0;
+    if(Populations == 2) {KK = 1;k0 = 1;}
+    
+    int locus;
+    for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
+      locus = chrm->GetLocus(jj); 
+      //retrieve AncestryProbs from HMM
+      std::vector<std::vector<double> > AProbs = chrm->getAncestryProbs( jj );
+      
+      //Update affecteds only scores      
+      if(IamAffected){
+	UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, options->isRandomMatingModel(), AProbs );
+      }
+      
+      //update ancestry score tests
+      if( options->getTestForLinkageWithAncestry() ){
+	UpdateScoreForAncestry(locus, dispersion, Outcome->get(myNumber-1, 0) - ExpectedY[0][myNumber-1], DInvLink, AProbs);
+      }
+      ++locus;
+    }//end within-chromosome loop
+  } catch (string msg) {
+    cout << msg;
   }
-  
-  //we don't bother computing scores for the first population when there are two
-  int KK = Populations,k0 = 0;
-  if(Populations == 2) {KK = 1;k0 = 1;}
-  
-  int locus;
-  for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
-    locus = chrm->GetLocus(jj); 
-    //retrieve AncestryProbs from HMM
-    std::vector<std::vector<double> > AProbs = chrm->getAncestryProbs( jj );
-    
-    //Update affecteds only scores      
-    if(IamAffected){
-      UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, options->isRandomMatingModel(), AProbs );
-    }
-    
-    //update ancestry score tests
-    if( options->getTestForLinkageWithAncestry() ){
-      UpdateScoreForAncestry(locus, dispersion, Outcome->get(myNumber-1, 0) - ExpectedY[0][myNumber-1], DInvLink, AProbs);
-    }
-    ++locus;
-  }//end within-chromosome loop    
 }
 
 void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0, bool RandomMatingModel, 
@@ -1218,8 +1220,8 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0,
   }
 }
 
-void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, double DInvLink, const vector<vector<double> > AProbs)
-{
+void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, double DInvLink, 
+					const vector<vector<double> > AProbs) {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
   //Notes: 1/phi is dispersion parameter
@@ -1245,7 +1247,6 @@ void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, 
     BX[k] = Xcov[k] = Theta[ k+1 ];
   }
 
-  
   for( int k = 0; k < Populations ; k++ ){
     Xcopy[k] = X[k] = AProbs[1][k] + 2.0 * AProbs[2][k];//Conditional expectation of ancestry
     VarA[k] = AProbs[1][k]*(1.0 - AProbs[1][k]) + 4.0*AProbs[2][k]*AProbs[0][k];//conditional variances
@@ -1257,12 +1258,10 @@ void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, 
   // ** compute expectation of score **
   scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
   add_matrix(AncestryScore[locus], Xcopy, 2*Populations, 1);//AncestryScore[locus] += Xcopy
-  
   // ** compute uncorrected info **
   matrix_product(X, X, XX, 2*Populations, 1, 2*Populations);        //XX = X'X
   scale_matrix(XX, DInvLink*phi, 2*Populations, 2*Populations);     //XX = DInvLink * phi * X'X
   add_matrix(AncestryInfo[locus], XX, 2*Populations, 2*Populations);//AncestryInfo[locus] += XX
-  
   // ** compute variance of score and correction term for info **    
   HH_solve(Populations, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
   matrix_product(Xcov, BX, xBx, 1, Populations, 1);//xBx = Xcov' * BX
@@ -1309,7 +1308,7 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
   CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], score, info, 2*Populations );
   
   //accumulate over iterations
-  //for two populations, we only accumulate the scores for the second population
+  //for two populations, accumulate the scores for second population only
   int KK = Populations, k1 = 0;
   if(Populations == 2){KK = 1; k1 = 1;}
      
