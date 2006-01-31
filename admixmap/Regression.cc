@@ -133,7 +133,7 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
 
     // if linear regression, n0*lambda is the prior precision matrix of regression coefficients given lambda   
     // if logistic regression, lambda is the prior precision for regression coefficients 
-    lambda = 0.01; 
+    lambda = 1.0; 
     SumLambda = lambda;
 
     // ** Initialise Linear Regression objects    
@@ -363,20 +363,25 @@ double Regression::lr( const double beta, const void* const vargs )
   double beta0 = 0;
   if( index == 0 )
     beta0 = args->beta0;
-  double *Xbeta = new double[ n ];
+  double f = 0.0; 
 
-  //log likelihood contribution
-  double f = args->XtY * beta;
-  
-  ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, args->d, index, beta);
+  if(args->coolness > 0.0){
 
-  for( int i = 0; i < n; i++ ){
-    f -= log( 1.0 + exp( Xbeta[ i ] ) );}
+    //log likelihood contribution
+    f += args->XtY * beta;
 
-  //anneal likelihood
-  f *= args->coolness;
-  
-  delete[] Xbeta;
+    double *Xbeta = new double[ n ];    
+    ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, args->d, index, beta);
+    
+    for( int i = 0; i < n; i++ ){
+      f -= log( 1.0 + exp( Xbeta[ i ] ) );}
+    
+    //anneal likelihood
+    f *= args->coolness;
+    
+    delete[] Xbeta;
+  }
+
   f -= 0.5 * args->lambda * (beta - beta0) * (beta - beta0); //log prior contribution
   return( f );
 }
@@ -393,18 +398,21 @@ double Regression::dlr( const double beta, const void* const vargs )
   double beta0 = 0;
   if( index == 0 )
     beta0 = args->beta0;
+  double f = 0.0;
 
-  double f = args->XtY;
-  double *Xbeta = new double[ n ];
-  
-  ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
-
-  for( int i = 0; i < n; i++ )
-    {
-      f -= args->Covariates[ i*d + index ] / ( 1.0 + exp( -Xbeta[ i ] ) );
-    }
-  delete[] Xbeta;
-  f *= args->coolness;
+  if(args->coolness > 0.0){
+    f += args->XtY;
+    
+    double *Xbeta = new double[ n ];
+    
+    ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
+    for( int i = 0; i < n; i++ )
+      {
+	f -= args->Covariates[ i*d + index ] / ( 1.0 + exp( -Xbeta[ i ] ) );
+      }
+    delete[] Xbeta;
+    f *= args->coolness;
+  }
 
   f -= args->lambda * (beta - beta0);//log prior contribution
   return( f );
@@ -419,16 +427,19 @@ double Regression::ddlr( const double beta, const void* const vargs )
   int index = args->index ;
 
   double f = 0.0;
-  double *Xbeta = new double[ n ];
-  
-  ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
 
-  for( int i = 0; i < n; i++ )
-    {
-      f -= args->Covariates[ i*d + index ] * args->Covariates[ i*d + index ] / ( 2.0 + exp( -Xbeta[ i ] ) + exp( Xbeta[ i ] ) );
-    }
-  delete[] Xbeta;
-  f *= args->coolness;
+  if(args->coolness > 0.0){
+    double *Xbeta = new double[ n ];
+    
+    ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
+    
+    for( int i = 0; i < n; i++ )
+      {
+	f -= args->Covariates[ i*d + index ] * args->Covariates[ i*d + index ] / ( 2.0 + exp( -Xbeta[ i ] ) + exp( Xbeta[ i ] ) );
+      }
+    delete[] Xbeta;
+    f *= args->coolness;
+  }
 
   f -= args->lambda;//log prior contribution
   return( f );
