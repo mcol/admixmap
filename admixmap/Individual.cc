@@ -483,7 +483,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
     //  }
     //cout "sampletheta" << flush;
-    if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on odd-numbered iterations
+    //if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on odd-numbered iterations
     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
 		ExpectedY, lambda, NumCovariates,
 		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
@@ -567,9 +567,9 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   }
 
   if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on even-numbered iterations
-//     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
-// 		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
-//     HMMIsBad(true); // because admixture props have changed
+//      SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
+//  		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
+//      HMMIsBad(true); // because admixture props have changed
   }  
   
   //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
@@ -674,8 +674,12 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
   {
     modefile<<setiosflags(ios::fixed)<<setprecision(3);
     modefile << myNumber << "\t";
-    if(!options->isGlobalRho())for(unsigned i = 0; i < NumIndGametes; ++i)modefile<<_rho[i]<<"\t ";
-    for(unsigned i = 0; i < NumIndGametes; ++i)for(int k = 0; k < Populations; ++k)modefile<<Theta[i*Populations +k]<<"\t ";
+    if(!options->isGlobalRho()) {
+      for(unsigned i = 0; i < NumIndGametes; ++i) modefile<<_rho[i]<<"\t ";
+    }
+    for(unsigned i = 0; i < NumIndGametes; ++i) { //loop over populations within gametes
+      for(int k = 0; k < Populations; ++k) modefile<<Theta[i*Populations +k]<<"\t ";
+    }
   }
   delete[] SumLocusAncestryHat;
   
@@ -748,43 +752,41 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
   if( Loci->isX_data() && !options->isXOnlyAnalysis() )
     logpratio += LogAcceptanceRatioForTheta_XChrm( sigma, K);
 
- //Accept or reject proposed value - if no regression model, proposal will be accepted because logpratio = 0
-  //if(RW) { //TEMP FIX: switch off conjugate updating
-    Accept_Reject_Theta(logpratio, Loci->isX_data(), K, options->isRandomMatingModel(), RW );
+  //Accept or reject proposed value - if conjugate update and no regression model, proposal will be accepted because logpratio = 0
+  Accept_Reject_Theta(logpratio, Loci->isX_data(), K, options->isRandomMatingModel(), RW );
+  
+  // update the value of admixture proportions used in the regression model  
+  if( options->getNumberOfOutcomes() > 0 )
+    UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options->isRandomMatingModel(), Covariates);
+  
+  if(!anneal && iteration > options->getBurnIn()){ // accumulate sums in softmax basis for calculation of posterior means 
     
-    // update the value of admixture proportions used in the regression model  
-    if( options->getNumberOfOutcomes() > 0 )
-      UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options->isRandomMatingModel(), Covariates);
-    
-    if(!anneal && iteration > options->getBurnIn()){ // accumulate sums in softmax basis for calculation of posterior means 
-      
-      for( unsigned int g = 0; g < NumIndGametes; g++ ){
-	bool* b = new bool[Populations];
-	double* a = new double[Populations];
-	for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
-	  b[k] = true; //to skip elements set to zero
-	} else b[k] = false;
-	inv_softmax(Populations, Theta+g*Populations, a, b);
-	transform(a, a+Populations, SumSoftmaxTheta+g*Populations, SumSoftmaxTheta+g*Populations, std::plus<double>());
+    for( unsigned int g = 0; g < NumIndGametes; g++ ){
+      bool* b = new bool[Populations];
+      double* a = new double[Populations];
+      for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
+	b[k] = true; //to skip elements set to zero
+      } else b[k] = false;
+      inv_softmax(Populations, Theta+g*Populations, a, b);
+      transform(a, a+Populations, SumSoftmaxTheta+g*Populations, SumSoftmaxTheta+g*Populations, std::plus<double>());
 	delete[] b;
 	delete[] a;
 	//transform(ThetaX, ThetaX+size_admix, ThetaXHat, ThetaXHat, std::plus<double>());
-      }
     }
-    if(!IAmUnderTest){
-      for( int k = 0; k < K; k++ ){
-	SumLogTheta[ k ] += log( Theta[ k ] );
-	if(options->isRandomMatingModel() && !options->isXOnlyAnalysis() )
-	  SumLogTheta[ k ] += log( Theta[ K + k ] );
-      }
-      
-      //   //increment B using new Admixture Props
-      //   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
-      if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
-	UpdateB(DInvLink, dispersion);
-      }
+  }
+  if(!IAmUnderTest){
+    for( int k = 0; k < K; k++ ){
+      SumLogTheta[ k ] += log( Theta[ k ] );
+      if(options->isRandomMatingModel() && !options->isXOnlyAnalysis() )
+	SumLogTheta[ k ] += log( Theta[ K + k ] );
     }
-    // } // end TEMP FIX block
+    
+    //   //increment B using new Admixture Props
+    //   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
+    if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
+      UpdateB(DInvLink, dispersion);
+    }
+  }
 }
 
 double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, 

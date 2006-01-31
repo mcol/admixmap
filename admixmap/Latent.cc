@@ -30,56 +30,52 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci)
   options = op;
   Loci = loci;
   poptheta = 0;
-  SumLocusAncestry = 0;
+  //SumLocusAncestry = 0;
 }
 
 void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter &Log){
   Log.setDisplayMode(On);
-  // ** Initialise population admixture distribution Dirichlet parameters alpha **
-  int K = options->getPopulations();
+  K = options->getPopulations();
+
   //ergodic average of population admixture, which is used to centre 
   // the values of individual admixture in the regression model  
   poptheta = new double[ K ];
-  for( int i = 0; i < K; i++ )poptheta[i] = 0.0;
+  for( int i = 0; i < K; i++ ) poptheta[i] = 0.0;
+
+  // ** Initialise population admixture distribution Dirichlet parameters alpha **
   alpha = options->getInitAlpha();
   SumAlpha.resize( K );
   if(!options->getIndAdmixHierIndicator())  copy(alpha[0].begin(), alpha[0].end(), SumAlpha.begin());
 
   if(K > 1){
     // ** set up sampler for alpha **
-    
     PopAdmixSampler.SetSize( Numindividuals, K );
-
     if( options->isRandomMatingModel() ){
       obs = 2 * Numindividuals;
     } else {
       obs = Numindividuals;
     }
-    SumLocusAncestry = new int[Numindividuals*K];
+    //SumLocusAncestry = new int[Numindividuals*K]; // ? redundant
 
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
-    if( options->isGlobalRho() || !options->getIndAdmixHierIndicator() || Numindividuals==1) {
-      // no hierarchical model on sumintensities if only one individual
+    if( options->isGlobalRho()) { 
       rhobeta = options->getRhobeta();
-    } else { // get prior on rate parameter beta and initialize at prior mean
+      // set up sampler for global variable if  hierarchical model and > 1 individual
+      if( options->getIndAdmixHierIndicator() && Numindividuals > 1 ) {
+	rho = rhoalpha / rhobeta;//initialise global sumintensities parameter at prior mean for globalrho
+	// ** set up TuneRW object for global rho updates **
+	NumberOfUpdates = 0;
+	w = 1;
+	step0 = 1.0; // sd of proposal distribution for log rho
+	//need to choose sensible value for this initial RW sd
+	step = step0;
+	TuneRhoSampler.SetParameters( step0, 0.01, 10, 0.44);
+      }  
+    } else { // get prior on rate parameter beta and initialize it at prior mean
       rhobeta0 = options->getRhobetaShape();
       rhobeta1 = options->getRhobetaRate();
       rhobeta = rhobeta0 / rhobeta1;
-    }
-    
-    //     if(!options->isGlobalRho() && rhobeta0 > 1)
-    //       rho = rhoalpha * rhobeta1 / (rhobeta0 - 1);//initialise at prior mean
-    //     else
-    if(options->isGlobalRho()) {
-      rho = rhoalpha / rhobeta;//initialise global sumintensities parameter at prior mean for globalrho
-      // ** set up TuneRW object for global rho updates **
-      NumberOfUpdates = 0;
-      w = 1;
-      step0 = 1.0; // sd of proposal distribution for log rho
-      //need to choose sensible value for this initial RW sd
-      step = step0;
-      TuneRhoSampler.SetParameters( step0, 0.01, 10, 0.44);  
     }
     
     // ** Open paramfile **
@@ -108,7 +104,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 Latent::~Latent()
 {
   delete[] poptheta;
-  delete[] SumLocusAncestry;
+  //delete[] SumLocusAncestry;
 }
 
 void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* const individuals, LogWriter &Log, bool anneal=false)
@@ -122,9 +118,21 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    // updated only from those individuals who belong to the component
    
      //sample alpha conditional on individual admixture proportions
+     for( int i = 0; i < K; i++ ) {
+       cout << individuals->getSumLogTheta(i) << "\t";
+     }
+     cout << endl;
+
      PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &alpha[0] );
-     copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin());//alpha[1] = alpha[0]
-   }
+     copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
+
+     cout << endl;
+      for( int i = 0; i < K; i++ ) {
+       cout << individuals->getSumLogTheta(i) << "\t";
+       cout << alpha[0][i] << "\t";
+     }
+     cout << endl;
+  }
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
    
@@ -152,8 +160,6 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
 
    }
 }
-//end Update
-
 
 void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromosome **C) {
   if( options->isGlobalRho() ) { // update rho with random walk MH
@@ -329,8 +335,8 @@ void Latent::printAcceptanceRates(LogWriter &Log){
       << PopAdmixSampler.getEtaStepSize() << "\n";
 #if SAMPLERTYPE == 2
   Log << "Expected acceptance rate in admixture parameter Hamiltonian sampler: "
-      << L.getAlphaSamplerAcceptanceRate()
+      << PopAdmixSampler.getAlphaSamplerAcceptanceRate()
       << "\nwith final step size of "
-      << L.getAlphaSamplerStepsize() << "\n";
+      << PopAdmixSampler.getAlphaSamplerStepsize() << "\n";
 #endif
 }

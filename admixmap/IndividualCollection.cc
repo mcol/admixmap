@@ -435,15 +435,15 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   }
   if(options->isRandomMatingModel()){
     for(int g = 0; g < 2; ++g)
-      for(int k = 0; k < options->getPopulations(); ++k)modefile << "theta"<<g<<PopulationLabels[k]<<" \t";
+      for(int k = 0; k < options->getPopulations(); ++k) modefile << "mu" <<g<<"."<<PopulationLabels[k]<<"\t";
   }
   else{
-    for(int k = 0; k < options->getPopulations(); ++k)modefile << "theta"<<PopulationLabels[k]<<" \t";
+    for(int k = 0; k < options->getPopulations(); ++k)modefile << "mu"<<PopulationLabels[k]<<"\t";
   }
   modefile <<endl;
 
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0 as mode-finding function changes it
-  //may be unecessary if SUmLogTheta zeroed after call to this function(FindPosteriorModes)
+  //may be unecessary if SumLogTheta zeroed after call to this function(FindPosteriorModes)
 
   vector<double> lambda;
   vector<const double*> beta;

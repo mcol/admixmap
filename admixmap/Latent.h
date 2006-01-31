@@ -82,6 +82,7 @@ private:
    * rho is the sumofintensities parameter. It has a beta prior with shape and scale parameters rhoalpha and rhobeta.
    * rhobeta has a beta hyperprior with parameters rhobeta0 and rhobeta1
    */
+  int K;
   double rho; 
   double rhoalpha;
   double rhobeta; 
@@ -100,7 +101,7 @@ private:
   
   unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
-  int *SumLocusAncestry;
+  //int *SumLocusAncestry;
 
   double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
                        //in the regression model

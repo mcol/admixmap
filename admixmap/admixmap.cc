@@ -106,8 +106,6 @@ int main( int argc , char** argv ){
   for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
     R[r].SetExpectedY(IC);
   
-  // should be possible to delete the InputData object at this point - 
-  // remaining calls are to data.GetPopLabels, data.GetOutcomeLabels, data.GetLocusData
   data.Delete();
 
   //  ******** single individual, one population, fixed allele frequencies  ***************************
@@ -159,8 +157,10 @@ int main( int argc , char** argv ){
     double *Coolnesses; //  
     IntervalWidths = new double[NumAnnealedRuns + 1];
     Coolnesses = new double[NumAnnealedRuns + 1];
-    IntervalWidths[0] = 0.0;
-    Coolnesses[0] = 0.0;
+    for(int run=0; run < NumAnnealedRuns; ++run) {
+      IntervalWidths[run] = 0.0;
+      Coolnesses[run] = 0.0;
+    }
     if(NumAnnealedRuns > 0) {
       // initial increment of coolness from 0 is set so that geometric series of increments will sum to 1 
       // after NumAnnealedRuns additional terms
