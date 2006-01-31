@@ -1,6 +1,8 @@
 #include "DirichletParamSampler.h"
 #include <algorithm>
 #include <numeric>
+#include "functions.h"
+#include <gsl/gsl_math.h>
 
 using namespace std;
 
@@ -8,6 +10,16 @@ using namespace std;
 
 DirichletParamSampler::DirichletParamSampler()
 {
+  Initialise();
+}
+
+DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops)
+{
+  Initialise();
+  SetSize(numind, numpops);
+}
+
+void DirichletParamSampler::Initialise(){
 #if SAMPLERTYPE==1
   step0 = 0.1; //sd of proposal distribution for log eta
   // need to choose sensible value for this initial RW sd
@@ -19,14 +31,9 @@ DirichletParamSampler::DirichletParamSampler()
   DirParamArray = 0;
 #elif SAMPLERTYPE==2
   logalpha = 0;
-  initialAlphaStepsize = 0.05;//need a way of setting this without recompiling, or a sensible fixed value
+  initialAlphaStepsize = 0.01;//need a way of setting this without recompiling, or a sensible fixed value
   targetAlphaAcceptRate = 0.44;//need to choose suitable value for this
 #endif
-}
-
-DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops)
-{
-  SetSize(numind, numpops);
 }
 
 void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
@@ -53,7 +60,6 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    
 #elif SAMPLERTYPE==2
    logalpha = new double[K];
-   //transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
    
    //elem 0 is sum of log admixture props
    AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sample method
@@ -61,7 +67,7 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    //if( options->isRandomMatingModel() )AlphaArgs.n *= 2;
    AlphaArgs.eps0 = 1.0; //Gamma(1, 1) prior on alpha
    AlphaArgs.eps1 = 1.0;
-   AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 10.0, 20, targetAlphaAcceptRate, findE, gradE);
+   AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 100.0, 20, targetAlphaAcceptRate, findE, gradE);
 #endif
 }
 
@@ -135,9 +141,11 @@ void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogth
 #elif SAMPLERTYPE==2
   // *** Hamiltonian sampler for alpha
   AlphaArgs.n = n;
-  for (unsigned int k = 0; k < K; ++j) {
-    AlphaArgs.sumlogtheta[k] = sumlogtheta[k];
-  }
+  AlphaArgs.sumlogtheta = sumlogtheta;
+//   for (unsigned int k = 0; k < K; ++k) {
+//     AlphaArgs.sumlogtheta[k] = sumlogtheta[k];
+//   }
+  transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
   AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
   transform(logalpha, logalpha+K, alpha[0].begin(), xexp);//alpha = exp(logalpha)
 #endif
@@ -224,11 +232,11 @@ double DirichletParamSampler::ddlogf( double x, const void* const pars)
 
 #elif SAMPLERTYPE==2
 double DirichletParamSampler::getAlphaSamplerStepsize()const {
-    return AlphaSampler.getStepSize();
+    return AlphaSampler.getStepsize();
 }
 
 double DirichletParamSampler::getAlphaSamplerAcceptanceRate()const {
-    return AlphaSampler.getExpectedAcceptanceRate();
+    return AlphaSampler.getAcceptanceRate();
 }
 
 //calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm

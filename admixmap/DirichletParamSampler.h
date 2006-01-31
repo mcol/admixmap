@@ -2,7 +2,7 @@
 #ifndef DirichletParamSampler_H
 #define DirichletParamSampler_H 1
 
-#define SAMPLERTYPE 1 // 1 = ARS + MHRW
+#define SAMPLERTYPE 2 // 1 = ARS + MHRW
                      // 2 = Hamiltonian 
 
 #include <gsl/gsl_sf_gamma.h>
@@ -63,6 +63,7 @@ private:
   // element 4 is 
   double AlphaParameters[5];
   //MuSampler muSampler;
+
   void SampleEta(unsigned n, const double* const sumlogtheta, double *eta, const double* const mu);
   static double logf( double, const void* const );
   static double dlogf( double, const void* const );
@@ -78,6 +79,8 @@ private:
   static double findE(const double* const theta, const void* const args);
   static void gradE(const double* const theta, const void* const args, double *g);
 #endif
+
+  void Initialise();
 };
 
 #endif /* ! DirichletParamSampler_H */
