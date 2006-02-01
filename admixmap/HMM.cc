@@ -301,14 +301,11 @@ void HMM::Sample(int *SStates, const double* const Admixture, const double* cons
     SStates[Transitions - 1 + Transitions] = (C[Transitions-1] % K);
     
     for( int t =  Transitions - 2; t >= 0; t-- ) { // loop from right to left
-      j1 = (int) (C[t+1]/K);// ancestry on gamete 0 at locus t+1
-      j2 = C[t+1]-K*j1;     // ancestry on gamete 1 at locus t+1
-      
+      j1 = SStates[t+1];                     // ancestry on gamete 0 at locus t+1
+      j2 = SStates[Transitions + t + 1];     // ancestry on gamete 1 at locus t+1
       State = 0;
       for(int i1 = 0; i1 < K; i1++)for(int i2 = 0; i2 < K; ++i2) {
 	V[State] = 
-// 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * 
-// 	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + i1*2] ) * 
 	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + i2*2 +1] );
 	V[State] *= alpha[t*States + i1*K + i2];

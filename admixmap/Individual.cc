@@ -190,7 +190,7 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
       // if(alpha[g][k]>0.0) ++sum;
     }
     //generate proposal theta from Dirichlet with parameters dirparams
-    // if(sum>1)gendirichlet(K, dirparams, Theta+g*K );
+    if(sum>1)gendirichlet(K, dirparams, Theta+g*K );
   } // end loop over gametes
 }
 
@@ -487,7 +487,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
     //  }
     //cout "sampletheta" << flush;
-    //if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on even-numbered iterations
+    if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on even-numbered iterations
     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
 		ExpectedY, lambda, NumCovariates,
 		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
@@ -571,9 +571,9 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   }
 
   if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on odd-numbered iterations
-//      SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
-//  		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
-//      HMMIsBad(true); // because admixture props have changed
+     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
+ 		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
+     HMMIsBad(true); // because admixture props have changed
   }  
   
   //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
@@ -820,7 +820,10 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
       //compute contribution of this gamete to log prior ratio
       for(int k = 0; k < Populations; ++k) {
 	if( b[k] ) { 
-	  LogPriorRatio += (alpha[g][k] - 1.0)*(log(ThetaProposal[g*Populations+k]) - 
+	  //	  LogPriorRatio += (alpha[g][k] - 1.0)*(log(ThetaProposal[g*Populations+k]) - 
+	  //					 log(Theta[g*Populations+k])); 
+	  // prior densities must be evaluated in softmax basis
+	  LogPriorRatio += alpha[g][k]*(log(ThetaProposal[g*Populations+k]) - 
 						 log(Theta[g*Populations+k])); 
 	}
       }
@@ -976,14 +979,13 @@ void Individual::UpdateAdmixtureForRegression( int Populations, int NumCovariate
 
 // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
 // uses log ratio because this is easier than ratio to calculate for linear regression model
-// if no regression model, logpratio remains set to 0, so all proposals are accepted 
-void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populations, bool RandomMatingModel, bool RW )
-{
+// if conjugate update and no regression model, logpratio remains set to 0, so all proposals are accepted 
+void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populations, bool RandomMatingModel, bool RW ) {
   bool test = true;
   bool accept = false;
-  double AccProb = exp(logpratio);
+  double AccProb = 1.0; 
   // loop over populations: if any element of proposed Dirichlet parameter vector is too small, reject update without test step
-  for( int k = 0; k < Populations; k++ ){
+  for( int k = 0; k < Populations; k++ ) {
     if( Theta[ k ] > 0.0 && ThetaProposal[ k ] < 0.0001 ) {
       test = false;
     }
@@ -993,48 +995,51 @@ void Individual::Accept_Reject_Theta( double logpratio, bool xdata, int Populati
   }
 
   if(test) { // generic Metropolis step
-    if( logpratio < 0 ) { 
-      if( log(myrand()) < logpratio ) accept=true;
-    } else accept = true;  
+    if( logpratio < 0 ) {
+      AccProb = exp(logpratio); 
+      if( myrand() < AccProb ) accept=true;
+    } else {
+      accept = true;
+    }
   }
   
   if(accept) { // set proposed values as new values    
-      setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
-      if( xdata ) setAdmixturePropsX(ThetaXProposal, NumIndGametes * Populations);
-      if(RW) { //if random-walk update, store the temp log-likelihood and set loglikelihood.HMMisOK to true
- 	storeLogLikelihood(true); 
-      } else { // conjugate update of parameters invalidates both HMM forward probs and stored loglikelihood
-	logLikelihood.HMMisOK = false;
-	logLikelihood.ready = false;
-      }
+    setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
+    if( xdata ) setAdmixturePropsX(ThetaXProposal, NumIndGametes * Populations);
+    if(RW) { //if random-walk update, store the temp log-likelihood and set loglikelihood.HMMisOK to true
+      storeLogLikelihood(true); 
+    } else { // conjugate update of parameters invalidates both HMM forward probs and stored loglikelihood
+      logLikelihood.HMMisOK = false;
+      logLikelihood.ready = false;
+    }
   } // if RW proposal is rejected, loglikelihood.HMMisOK is already set to false, and stored log-likelihood is still valid 
-
-//    cout << "\nlogpratio at met step " << logpratio << endl;
-//     cout << "Proposed\t";  
-//     for( int k = 0; k < Populations; k++ ) {
-//       cout << ThetaProposal[k] << "\t";
-//       if( RandomMatingModel ) {
-//         cout << ThetaProposal[k+Populations] << "\t";
-//       }
-//     }
-//     cout << accept << endl;
-//     if(accept) cout << "Accepted\t";
-//     else cout << "rejected\t";
-//     for( int k = 0; k < Populations; k++ ) {
-//       cout << Theta[k] << "\t";
-//       if( RandomMatingModel ) {
-//         cout << Theta[k+Populations] << "\t";
-//       }
-//     }
-//     cout << endl;
+  
+  //    cout << "\nlogpratio at met step " << logpratio << endl;
+  //     cout << "Proposed\t";  
+  //     for( int k = 0; k < Populations; k++ ) {
+  //       cout << ThetaProposal[k] << "\t";
+  //       if( RandomMatingModel ) {
+  //         cout << ThetaProposal[k+Populations] << "\t";
+  //       }
+  //     }
+  //     cout << accept << endl;
+  //     if(accept) cout << "Accepted\t";
+  //     else cout << "rejected\t";
+  //     for( int k = 0; k < Populations; k++ ) {
+  //       cout << Theta[k] << "\t";
+  //       if( RandomMatingModel ) {
+  //         cout << Theta[k+Populations] << "\t";
+  //       }
+  //     }
+  //     cout << endl;
   
   if(RW) { //update step size in tuner object every w updates
     if( !( NumberOfUpdates % w ) ) {
       step = ThetaTuner.UpdateStepSize( AccProb );
-      //       if(myNumber < 3) {
-      // 	cout << "\nstep size for individual " << myNumber << " updated to " << step <<  
-      //       " with expected acceptance rate " << ThetaTuner.getExpectedAcceptanceRate() << endl << flush;
-      //      }
+//       if(myNumber == 101) {
+//       	cout << "\nAccProb " << AccProb << "step size for individual " << myNumber << " updated to " << step <<  
+// 	  " with expected acceptance rate " << ThetaTuner.getExpectedAcceptanceRate() << endl << flush;
+//       }
     }
   }
 }

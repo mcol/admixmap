@@ -1,12 +1,8 @@
 #!/usr/bin/perl -w
 use strict;
 
-my $DEBUG = 0; # zero gives less output
-
 # Change this to the location of the admixmap executable
 my $executable = './admixmap';
-# Change this to desired name of results directory
-my $resultsdir = "results";
 
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
@@ -25,13 +21,16 @@ my $arg_hash =
 #main options
     displaylevel   => 3, #verbose output
     #targetindicator => 0, # diabetes in column 1
+    outcomes => 1,
     samples  => 600,
     burnin   => 100,
     every    => 5,
     numannealedruns  => 0,
+    #indadmixhiermodel => 1,
+    #fixedallelefreqs => 1,
 
 #output files
-    resultsdir               => "$resultsdir",
+    resultsdir               => "resultsNoAnneal",
     logfile                     => 'logfile.txt',
     paramfile               => 'paramfile.txt',
     # regparamfile          => 'regparamfile.txt',
@@ -48,6 +47,12 @@ my $arg_hash =
 };
 
 
+#doAnalysis($executable,$arg_hash);
+
+$arg_hash->{resultsdir} = "resultsAnneal";
+$arg_hash->{numannealedruns} = 100;
+#$arg_hash->{samples}  = 6000;
+#$arg_hash->{burnin}   = 1000;
 doAnalysis($executable,$arg_hash);
 
 sub getArguments
@@ -64,16 +69,14 @@ sub doAnalysis
 {
     my ($prog,$args) = @_;
     my $command = $prog.getArguments($args);
-    unless (-e "results"){
-	system("mkdir results");
+    unless (-e "$args->{resultsdir}"){
+	mkdir("$args->{resultsdir}");
     }
-
-    print $command if $DEBUG;
     system($command);
 
 # Comment out the next three lines to run admixmap without R script
     print "Starting R script to process output\n";
-    system("R --quiet --no-save --no-restore <AdmixmapOutput.R >results/Rlog.txt RESULTSDIR=$resultsdir");
+    system("R --quiet --no-save --no-restore <AdmixmapOutput.R >results/Rlog.txt RESULTSDIR=$args->{resultsdir}");
     print "R script completed\n\n";
 }
 

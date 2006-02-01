@@ -43,6 +43,7 @@ void StepSizeTuner::resetApproximator(int newk) {
 
 void StepSizeTuner::SetParameters(double step0, double inmin, double inmax, double intarget)
 {
+  // step, inmin, inmax must be positive real numbers
   step = step0;
   sigma0 = log(step);
   sigma = sigma0;
@@ -61,7 +62,7 @@ double StepSizeTuner::GetSigma()const
 
 double StepSizeTuner::UpdateStepSize(double AcceptanceProb)
 {
-  if(AcceptanceProb > 1.0) AcceptanceProb = 0;
+  if(AcceptanceProb > 1.0) AcceptanceProb = 1.0;
   sigma = sigma + ( AcceptanceProb - target ) / k; 
   // initial adjustment to step size will be of the order of exp(0.5) fold 
   if( sigma > max )
@@ -72,7 +73,7 @@ double StepSizeTuner::UpdateStepSize(double AcceptanceProb)
   SumAcceptanceProb += AcceptanceProb; // accumulate sum of acceptance probs
   count++;
   k++;
-  return step;
+  return step; // returns step as a positive real number
 }
 
 double StepSizeTuner::getStepSize()const

@@ -2,7 +2,7 @@
 #ifndef DirichletParamSampler_H
 #define DirichletParamSampler_H 1
 
-#define SAMPLERTYPE 2 // 1 = ARS + MHRW
+#define SAMPLERTYPE 1 // 1 = ARS + MHRW
                      // 2 = Hamiltonian 
 
 #include <gsl/gsl_sf_gamma.h>
