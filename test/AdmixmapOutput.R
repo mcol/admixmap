@@ -1092,7 +1092,7 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
 }
 
 ## get population admixture Dirichlet parameters: either posterior means, or values specified in model
-if(K == 1){
+if(K == 1) {
   alphas <- c(1)
 } else {
   if(!is.null(param.samples)) {
@@ -1100,10 +1100,10 @@ if(K == 1){
   } else {
     if(!is.null(user.options$admixtureprior)) {
       alphas <- AdmixturePrior[1]
-    }
+    } else alphas <- rep(1, K)
   }
 }
-  
+
 ##plot ergodic averages
 if(is.null(user.options$ergodicaveragefile)) {
   print("ergodicaveragefile not specified")
@@ -1238,7 +1238,7 @@ if(!is.null(user.options$indadmixturefile)) {
   }
   
   ## should plot only if subpopulations are identifiable in model
-  if(dim(samples.meanparents)[2] > 1) {
+  if(n.individuals > 1) { # dim(samples.meanparents)[2] > 1) {
     plotAdmixtureDistribution(alphas, samples.bothparents, K)
     ##if(K > 1) {
     ##writePosteriorMeansIndivAdmixture(t(samples), K)
