@@ -49,13 +49,13 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 
   if(K > 1){
     // ** set up sampler for alpha **
+    // should be able to pass initial step size to the sampler
     PopAdmixSampler.SetSize( Numindividuals, K );
     if( options->isRandomMatingModel() ){
       obs = 2 * Numindividuals;
     } else {
       obs = Numindividuals;
     }
-    //SumLocusAncestry = new int[Numindividuals*K]; // ? redundant
 
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
@@ -118,20 +118,18 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    // updated only from those individuals who belong to the component
    
      //sample alpha conditional on individual admixture proportions
-     for( int i = 0; i < K; i++ ) {
-       cout << individuals->getSumLogTheta(i) << "\t";
-     }
-     cout << endl;
-
      PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &alpha[0] );
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
 
-     cout << endl;
-      for( int i = 0; i < K; i++ ) {
-       cout << individuals->getSumLogTheta(i) << "\t";
-       cout << alpha[0][i] << "\t";
-     }
-     cout << endl;
+//      cout << endl << obs << endl << "sumlogtheta\t";
+//       for( int i = 0; i < K; i++ ) {
+//        cout << individuals->getSumLogTheta(i) << "\t";
+//      }
+//      cout << endl;
+//       for( int i = 0; i < K; i++ ) {
+//        cout << alpha[0][i] << "\t";
+//      }
+//      cout << endl;
   }
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
@@ -328,15 +326,9 @@ const double *Latent::getpoptheta()const{
   return poptheta;
 }
 
-void Latent::printAcceptanceRates(LogWriter &Log){
-  Log << "Expected acceptance rate in admixture dispersion parameter sampler: "
-      << PopAdmixSampler.getEtaExpectedAcceptanceRate()
+void Latent::printAcceptanceRates(LogWriter &Log) {
+  Log << "Expected acceptance rate in population admixture sampler: "
+      << PopAdmixSampler.getExpectedAcceptanceRate()
       << "\nwith final step size of "
-      << PopAdmixSampler.getEtaStepSize() << "\n";
-#if SAMPLERTYPE == 2
-  Log << "Expected acceptance rate in admixture parameter Hamiltonian sampler: "
-      << PopAdmixSampler.getAlphaSamplerAcceptanceRate()
-      << "\nwith final step size of "
-      << PopAdmixSampler.getAlphaSamplerStepsize() << "\n";
-#endif
+      << PopAdmixSampler.getStepSize() << "\n";
 }

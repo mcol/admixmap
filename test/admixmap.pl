@@ -19,31 +19,31 @@ my $arg_hash =
     genotypesfile                   => 'data/genotypes.txt',
     locusfile                          => 'data/loci.txt',
     priorallelefreqfile             => 'data/priorallelefreqs.txt',
-    covariatesfile                  => 'data/covariates3.txt',
-    outcomevarfile               => 'data/outcomevar_diabetes.txt',
+    #covariatesfile                  => 'data/covariates2std.txt',
+    #outcomevarfile               => 'data/outcomevars.txt',
 
 #main options
-    analysistypeindicator     => 3,# binary outcome var
-    coutindicator   => 0, #verbose output
-    targetindicator => 0, # diabetes in column 1
-    samples  => 20,
-    burnin   => 5,
-    every    => 1,
+    displaylevel   => 3, #verbose output
+    #targetindicator => 0, # diabetes in column 1
+    samples  => 600,
+    burnin   => 100,
+    every    => 5,
+    numannealedruns  => 0,
 
 #output files
     resultsdir               => "$resultsdir",
     logfile                     => 'logfile.txt',
     paramfile               => 'paramfile.txt',
-    regparamfile          => 'regparamfile.txt',
+    # regparamfile          => 'regparamfile.txt',
     indadmixturefile     => 'indadmixture.txt',
     ergodicaveragefile => 'ergodicaverage.txt',
     allelefreqoutputfile  => 'allelefreqoutputfile.dat',
 
 #optional tests
-    allelicassociationscorefile       => 'allelicassociationscorefile.dat',
-    ancestryassociationscorefile  => 'ancestryassociationscorefile.dat',
-    affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    haplotypeassociationscorefile => 'hapassocscore.txt',
+    #allelicassociationscorefile       => 'allelicassociationscorefile.dat',
+    #ancestryassociationscorefile  => 'ancestryassociationscorefile.dat',
+    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
+    #haplotypeassociationscorefile => 'hapassocscore.txt',
     stratificationtestfile                   => 'strat_test.txt'
 };
 

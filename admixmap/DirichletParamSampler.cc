@@ -31,7 +31,7 @@ void DirichletParamSampler::Initialise(){
   DirParamArray = 0;
 #elif SAMPLERTYPE==2
   logalpha = 0;
-  initialAlphaStepsize = 0.01;//need a way of setting this without recompiling, or a sensible fixed value
+  initialAlphaStepsize = 0.02;//need a way of setting this without recompiling, or a sensible fixed value
   targetAlphaAcceptRate = 0.44;//need to choose suitable value for this
 #endif
 }
@@ -178,15 +178,6 @@ void DirichletParamSampler::SampleEta(unsigned n, const double* const sumlogthet
   step = TuneEta.UpdateStepSize( exp(LogAccProb) );
 }
 
-double DirichletParamSampler::getEtaStepSize()const
-{
-    return TuneEta.getStepSize();
-}
-
-double DirichletParamSampler::getEtaExpectedAcceptanceRate()const
-{
-    return TuneEta.getExpectedAcceptanceRate();
-}
 
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // Dirichlet proportion parameters
@@ -231,13 +222,6 @@ double DirichletParamSampler::ddlogf( double x, const void* const pars)
 }
 
 #elif SAMPLERTYPE==2
-double DirichletParamSampler::getAlphaSamplerStepsize()const {
-    return AlphaSampler.getStepsize();
-}
-
-double DirichletParamSampler::getAlphaSamplerAcceptanceRate()const {
-    return AlphaSampler.getAcceptanceRate();
-}
 
 //calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm
 double DirichletParamSampler::findE(const double* const theta, const void* const vargs){
@@ -283,6 +267,21 @@ void DirichletParamSampler::gradE(const double* const theta, const void* const v
       }
     }
 }
-
-
 #endif
+
+double DirichletParamSampler::getStepSize()const {
+#if SAMPLERTYPE==1
+    return TuneEta.getStepSize();
+#elif SAMPLERTYPE==2
+    return AlphaSampler.getStepsize();
+#endif
+}
+
+double DirichletParamSampler::getExpectedAcceptanceRate()const {
+#if SAMPLERTYPE==1
+    return TuneEta.getExpectedAcceptanceRate();
+#elif SAMPLERTYPE==2
+    return AlphaSampler.getAcceptanceRate();
+#endif
+}
+

@@ -50,9 +50,9 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   if( !options->isGlobalRho() ){//model with individual- or gamete-specific sumintensities
     TruncationPt = options->getTruncPt();
     double init=0.0;
-    //set prior mean as initial value for rho 
     if(options->getIndAdmixHierIndicator()) { // hierarchical model for sumintensities
       // TODO: fix so that if single individual, indadmixhierindicator is set to false
+      //set prior mean as initial value for rho 
       if(options->getRhobetaShape() > 1) { 
 	init = options->getRhoalpha() * options->getRhobetaRate() / (options->getRhobetaShape() - 1 );
       } else {
@@ -81,12 +81,12 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
   SumLocusAncestry = new int[options->getPopulations()*2];
   dirparams = new double[Populations]; //to hold dirichlet parameters for conjugate updates of theta
-
+  
   ThetaProposal = new double[ Populations * NumIndGametes ];
   Theta = new double[ Populations * NumIndGametes ];
   SumSoftmaxTheta = new double[ Populations * NumIndGametes ];
   fill(SumSoftmaxTheta, SumSoftmaxTheta + Populations*NumIndGametes, 0.0);
-
+  
   // X chromosome objects
   SumLocusAncestry_X = 0;    
   // if(Loci.isX_data() ){
@@ -101,10 +101,10 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     //ThetaXHat = new double[ Populations * 2 ];
     SumLocusAncestry_X = new int[Populations * 2 ];
   }
-
+  
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
-
+  
   LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   size_t AncestrySize = 0;  // set size of locus ancestry array
@@ -126,7 +126,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   }
   //retrieve genotypes
   Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), Loci, &genotypes);
-    // loop over composite loci to set possible haplotype pairs compatible with genotype 
+  // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(int j = 0; j<numCompositeLoci; ++j) {
     Loci(j)->setPossibleHaplotypePairs(genotypes[j].alleles, PossibleHapPairs[j]);
     hapPair h;
@@ -180,13 +180,17 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
   // TODO: for X chromosome  
   size_t K = Populations;
   for( unsigned g = 0; g < NumIndGametes; ++g ) { 
-    int sum = 0;
+    double sum = 0.0;
     for(size_t k = 0; k < K; ++k) { //loop over array of Dirichlet params
-      Theta[g*K+k] = dirparams[k] = alpha[g][k]; // default value if elements of alpha sum to <= 1
-      if(alpha[g][k]>0.0) ++sum;
+      dirparams[k] = alpha[g][k]; // default value if elements of alpha sum to <= 1
+      sum += alpha[g][k];
+    }
+    for(size_t k = 0; k < K; ++k) { //loop over array of Dirichlet params
+      Theta[g*K+k] = alpha[g][k] / sum; // default value if elements of alpha sum to <= 1
+      // if(alpha[g][k]>0.0) ++sum;
     }
     //generate proposal theta from Dirichlet with parameters dirparams
-    if(sum>1)gendirichlet(K, dirparams, Theta+g*K );
+    // if(sum>1)gendirichlet(K, dirparams, Theta+g*K );
   } // end loop over gametes
 }
 
@@ -483,7 +487,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
     //  }
     //cout "sampletheta" << flush;
-    //if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on odd-numbered iterations
+    //if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on even-numbered iterations
     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
 		ExpectedY, lambda, NumCovariates,
 		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
@@ -566,7 +570,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(unsigned i = 0; i < _rho.size(); ++i) sumlogrho[i] += log(_rho[i]);
   }
 
-  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on even-numbered iterations
+  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on odd-numbered iterations
 //      SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
 //  		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
 //      HMMIsBad(true); // because admixture props have changed

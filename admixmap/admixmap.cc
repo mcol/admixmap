@@ -153,14 +153,11 @@ int main( int argc , char** argv ){
     std::ofstream annealstream;//for monitoring energy when annealing
     
     // set annealing schedule
-    double *IntervalWidths;
-    double *Coolnesses; //  
+    double *IntervalWidths = 0;
+    double *Coolnesses = 0; // 
     IntervalWidths = new double[NumAnnealedRuns + 1];
     Coolnesses = new double[NumAnnealedRuns + 1];
-    for(int run=0; run < NumAnnealedRuns; ++run) {
-      IntervalWidths[run] = 0.0;
-      Coolnesses[run] = 0.0;
-    }
+
     if(NumAnnealedRuns > 0) {
       // initial increment of coolness from 0 is set so that geometric series of increments will sum to 1 
       // after NumAnnealedRuns additional terms
@@ -262,7 +259,6 @@ int main( int argc , char** argv ){
       Log << msg;
     }
   
-    
     delete[] IntervalWidths;
     delete[] Coolnesses;
     cout << "\rIterations completed                       \n" << flush;

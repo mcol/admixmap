@@ -34,12 +34,8 @@ public:
   void SetPriorEta( double, double );
   void SetPriorMu( const double* const);
   void Sample( unsigned int, const double* const, std::vector<double> *alpha);
-  double getEtaStepSize()const;
-  double getEtaExpectedAcceptanceRate()const;
-  double getMuStepSize()const;
-  double getMuExpectedAcceptanceRate()const;
-  double getAlphaSamplerStepsize()const;
-  double getAlphaSamplerAcceptanceRate()const;
+  double getStepSize()const;
+  double getExpectedAcceptanceRate()const;
     
 private:
   unsigned int K;

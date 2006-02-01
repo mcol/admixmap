@@ -11,14 +11,14 @@
 #
 
 ##Required Options
-   samples  = 10
-   burnin   = 5
+   samples  = 60
+   burnin   = 1
    every = 1
    numannealedruns = 0
 
 ##Misc. Options
-   coutindicator                = 1
-   targetindicator              = 0
+   displaylevel                = 2
+   targetindicator             = 0
 
 ##Input Files
     genotypesfile                = data/genotypes.txt
@@ -35,7 +35,7 @@
   ergodicaveragefile           = ergodicaverage.txt 
   allelefreqoutputfile = allelefreqoutput.txt
 
-##Optional Output Files
+## Optional Output Files
   stratificationtestfile       = strattestfile.txt
   allelicassociationscorefile  = allelicassocscore.txt
   ancestryassociationscorefile = ancestryassocscore.txt
