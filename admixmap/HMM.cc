@@ -435,31 +435,31 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
   // should be defined at class scope
   vector<bool> xi[2] = {vector<bool>(Transitions), vector<bool>(Transitions)};//jump indicators
   xi[0][0] = xi[1][0] = true;
-
-  for( int jj = 1; jj < Transitions; jj++ ) {
-    xi[0][jj] = xi[1][jj] = true;    
+  
+  // first locus not included in loop below
+  for( unsigned int g = 0; g < gametes; g++ ){
+    if( !isX ) SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ]++;
+    else SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
+  }
+  for( int t = 1; t < Transitions; t++ ) {
+    xi[0][t] = xi[1][t] = true;    
     for( unsigned int g = 0; g < gametes; g++ ){
-      if( LocusAncestry[g*Transitions + jj-1] == LocusAncestry[jj + g*Transitions] ){
-	Prob = StateArrivalProbs[jj*K*2 +LocusAncestry[jj + g*Transitions]*2 + g];  
-	xi[g][jj] = Prob / (Prob + f[2*jj+g]) > myrand();
+      if( LocusAncestry[g*Transitions + t-1] == LocusAncestry[t + g*Transitions] ){
+	Prob = StateArrivalProbs[t*K*2 +LocusAncestry[t + g*Transitions]*2 + g];  
+	xi[g][t] = Prob / (Prob + f[2*t+g]) > myrand();
       } 
-      //       else { // redundant
-      // 	xi[g][jj] = true;
-      //       }
-      
-      if( xi[g][jj] ){
-	// sum ancestry states over loci where jump indicator is 1
+      if( xi[g][t] ){ // increment sumlocusancestry if jump indicator is 1
 	if( !isX )
-	  SumLocusAncestry[ LocusAncestry[jj+g*Transitions] +  g*K ]++;
+	  SumLocusAncestry[ LocusAncestry[t+g*Transitions] +  g*K ]++;
 	else
-	  SumLocusAncestry_X[ LocusAncestry[jj+g*Transitions] + g*K ]++;
+	  SumLocusAncestry_X[ LocusAncestry[t+g*Transitions] + g*K ]++;
 
 	if(!isGlobalRho) { // sample number of arrivals where jump indicator is 1
 	  double u = myrand();
 	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
 	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
 	  // algorithm does not require rho or d, only u and f
-	  unsigned int sample = genpoi( log( (1 - u*( 1 - f[2*jj+g])) / f[2*jj+g] ) );
+	  unsigned int sample = genpoi( log( (1 - u*( 1 - f[2*t+g])) / f[2*t+g] ) );
 	  if( !isX )
 	    SumN[g] += sample + 1;
 	  else
@@ -469,15 +469,6 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
     }
   } // ends loop over intervals
 
-  //finally for first locus, not included in above loop
-  for( unsigned int g = 0; g < gametes; g++ ){
-    if( xi[g][0] ){
-      if( !isX )
-	SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ]++;
-      else
-	SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
-    }
-  }
   
 //     cout << "sumlocusancestry\t";
 //     for( unsigned int g = 0; g < gametes; g++ ){
