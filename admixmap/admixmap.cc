@@ -261,7 +261,7 @@ int main( int argc , char** argv ){
   
     delete[] IntervalWidths;
     delete[] Coolnesses;
-    cout << "\rIterations completed                       \n" << flush;
+    cout << "\nIterations completed                       \n" << flush;
     
     // *************************** OUTPUT AT END ***********************************************************
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
@@ -603,12 +603,12 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
       R[r].Output(iteration, options, Log);
     
-    //** new line in log file but not on screen 
-	if( iteration == 0 ) {
-	  Log.setDisplayMode(Off);
-	  Log << "\n";
-	  Log.setDisplayMode(Quiet);
-	}
+    // ** new line in log file but not on screen 
+    if( iteration == 0 ) {
+      Log.setDisplayMode(Off);
+      Log << "\n";
+      Log.setDisplayMode(Quiet);
+    }
   }
   //if( options->getDisplayLevel()>2 ) cout << endl;
   if( iteration > options->getBurnIn() ){
