@@ -99,7 +99,6 @@ private:
   std::vector<double> SumAlpha; //ergodic sums of alphas
   //sampler for alpha
   
-  unsigned int obs;
   DirichletParamSampler PopAdmixSampler;
   //int *SumLocusAncestry;
 

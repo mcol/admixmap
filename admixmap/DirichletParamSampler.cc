@@ -37,12 +37,14 @@ void DirichletParamSampler::Initialise(){
 }
 
 void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
-  // sets number of elements in Dirichlet parameter vector
-  // instantiates an adaptive rejection sampler object for each element
-//sets up MuSampler object 
+// sets number of elements in Dirichlet parameter vector
+// instantiates an adaptive rejection sampler object for each element
+//sets up Sampler object
+//  numobs = number of observations 
 {
    K = numpops;
 #if SAMPLERTYPE==1
+   AlphaParameters[0] = numobs;
    EtaAlpha = K; // for compatibility with gamma(1, 1) prior on alpha
    EtaBeta = 1;
    //Dirichlet(1, ..., 1) prior on proportions mu
@@ -62,7 +64,7 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    logalpha = new double[K];
    
    //elem 0 is sum of log admixture props
-   AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sample method
+   AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sampler
    AlphaArgs.dim = K;
    //if( options->isRandomMatingModel() )AlphaArgs.n *= 2;
    AlphaArgs.eps0 = 1.0; //Gamma(1, 1) prior on alpha
@@ -102,9 +104,8 @@ void DirichletParamSampler::SetPriorMu( const double* const ingamma ) {
 }
 #endif
 
-void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogtheta, std::vector<double> *alpha )
+void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector<double> *alpha )
 /*
-  n = number of observations
   sumlogtheta = sum log theta from Individuals
 */
 {
@@ -117,7 +118,7 @@ void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogth
   
   double b = mu[K-1] + mu[0];//upper bound for sampler
   double summu = 1.0 - mu[K-1];
-  AlphaParameters[0] = n;
+
   for( unsigned int j = 0; j < K-1; j++ ){
     AlphaParameters[1] = eta; // dispersion parameter
     AlphaParameters[2] = summu - mu[j]; // 1 - last proportion parameter
@@ -132,7 +133,7 @@ void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogth
   }
   mu[K-1] = 1.0 - summu;
   
-  SampleEta(n, sumlogtheta, &eta, mu);
+  SampleEta((unsigned)AlphaParameters[0], sumlogtheta, &eta, mu);//first arg is num obs
   
   for( unsigned j = 0; j < K; j++ )
     (*alpha)[j] = mu[j]*eta;
@@ -140,7 +141,6 @@ void DirichletParamSampler::Sample( unsigned int n, const double* const sumlogth
   
 #elif SAMPLERTYPE==2
   // *** Hamiltonian sampler for alpha
-  AlphaArgs.n = n;
   AlphaArgs.sumlogtheta = sumlogtheta;
 //   for (unsigned int k = 0; k < K; ++k) {
 //     AlphaArgs.sumlogtheta[k] = sumlogtheta[k];

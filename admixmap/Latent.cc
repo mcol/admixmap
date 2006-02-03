@@ -50,12 +50,12 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
   if(K > 1){
     // ** set up sampler for alpha **
     // should be able to pass initial step size to the sampler
-    PopAdmixSampler.SetSize( Numindividuals, K );
+    unsigned obs = Numindividuals;
     if( options->isRandomMatingModel() ){
-      obs = 2 * Numindividuals;
-    } else {
-      obs = Numindividuals;
-    }
+      obs *= 2;//for 2 gametes per individual
+    } 
+    PopAdmixSampler.SetSize( obs, K );
+
 
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
@@ -118,10 +118,10 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    // updated only from those individuals who belong to the component
    
      //sample alpha conditional on individual admixture proportions
-     PopAdmixSampler.Sample( obs, individuals->getSumLogTheta(), &alpha[0] );
+     PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0] );
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
 
-//      cout << endl << obs << endl << "sumlogtheta\t";
+//      cout << endl << "sumlogtheta\t";
 //       for( int i = 0; i < K; i++ ) {
 //        cout << individuals->getSumLogTheta(i) << "\t";
 //      }
