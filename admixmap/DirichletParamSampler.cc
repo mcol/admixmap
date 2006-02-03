@@ -21,10 +21,10 @@ DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops)
 
 void DirichletParamSampler::Initialise(){
 #if SAMPLERTYPE==1
-  step0 = 0.1; //sd of proposal distribution for log eta
-  // need to choose sensible value for this initial RW sd
-  step = step0;
-  TuneEta.SetParameters( step0, 0.01, 10, 0.44); 
+//   step0 = 0.1; //sd of proposal distribution for log eta
+//   // need to choose sensible value for this initial RW sd
+//   step = step0;
+//   TuneEta.SetParameters( step0, 0.01, 10, 0.44); 
   mu = 0;
   munew = 0;
   muDirichletParams = 0;
@@ -45,8 +45,8 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    K = numpops;
 #if SAMPLERTYPE==1
    AlphaParameters[0] = numobs;
-   EtaAlpha = K; // for compatibility with gamma(1, 1) prior on alpha
-   EtaBeta = 1;
+//    EtaAlpha = K; // for compatibility with gamma(1, 1) prior on alpha
+//    EtaBeta = 1;
    //Dirichlet(1, ..., 1) prior on proportions mu
    muDirichletParams = new double[K];
    mu = new double[K];
@@ -59,7 +59,13 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
      DirParamArray[j]->Initialise(true, true, 0.0, 1.0, logf, dlogf);
      DirParamArray[j]->setLowerBound(0.00);
    }
-   
+
+   EtaArgs.priorshape = K; // for compatibility with gamma(1, 1) prior on alpha
+   EtaArgs.priorrate = 1;
+   EtaArgs.numpops = numpops;
+   EtaArgs.numobs = numobs; 
+   EtaSampler.SetDimensions(1, 0.01/*initial stepsize*/, 0.01/*min stepsize*/, 100.0/*max stepsize*/, 20/*num leapforgs*/, 
+			    0.44/*target accept rate*/, etaEnergy, etaGradient);  
 #elif SAMPLERTYPE==2
    logalpha = new double[K];
    
@@ -94,8 +100,10 @@ DirichletParamSampler::~DirichletParamSampler()
 
 #if SAMPLERTYPE==1
 void DirichletParamSampler::SetPriorEta( double inEtaAlpha, double inEtaBeta ) {
-  EtaAlpha = inEtaAlpha;
-  EtaBeta = inEtaBeta;
+//   EtaAlpha = inEtaAlpha;
+//   EtaBeta = inEtaBeta;
+   EtaArgs.priorshape = inEtaAlpha; 
+   EtaArgs.priorrate = inEtaBeta;
 }
 void DirichletParamSampler::SetPriorMu( const double* const ingamma ) {
    for( unsigned int i = 0; i < K; i++ ){
@@ -133,7 +141,12 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
   }
   mu[K-1] = 1.0 - summu;
   
-  SampleEta((unsigned)AlphaParameters[0], sumlogtheta, &eta, mu);//first arg is num obs
+  //SampleEta((unsigned)AlphaParameters[0], sumlogtheta, &eta, mu);//first arg is num obs
+  EtaArgs.sumlogtheta = sumlogtheta;
+  EtaArgs.mu = mu;
+  etanew = log(eta);//sample for log of dispersion parameter
+  EtaSampler.Sample(&etanew, &EtaArgs);
+  eta = exp(etanew);
   
   for( unsigned j = 0; j < K; j++ )
     (*alpha)[j] = mu[j]*eta;
@@ -153,31 +166,72 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
 }
 
 #if SAMPLERTYPE==1
-void DirichletParamSampler::SampleEta(unsigned n, const double* const sumlogtheta, double *eta, const double* const mu){
-  // Dirichlet dispersion parameter eta is updated with a Metropolis random walk
-  unsigned int i;
-  double L1=0, P1=0, Proposal1=0;
+// void DirichletParamSampler::SampleEta(unsigned n, const double* const sumlogtheta, double *eta, const double* const mu){
+//   // Dirichlet dispersion parameter eta is updated with a Metropolis random walk
+//   unsigned int i;
+//   double L1=0, P1=0, Proposal1=0;
 
-  etanew = exp( gennor( log( *eta ), step ) );
-  Proposal1 = log(etanew) - log(*eta);
-  // log prior ratio P1 
-  P1 = ( EtaAlpha - 1.0 ) * ( log(etanew) - log(*eta) ) - EtaBeta * ( etanew - *eta );
-  // log likelihood ratio L1
-  L1 = n * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( *eta ) );
-  for( i = 0; i < K; i++ )
-    L1 += mu[i] * (etanew - *eta) * sumlogtheta[i] - n*gsl_sf_lngamma( etanew * mu[i] ) + n*gsl_sf_lngamma( *eta * mu[i] );
-  // calculate log acceptance probability ratio
-  LogAccProb = 0.0;
-  if(P1 + L1 + Proposal1 < 0.0)  
-    LogAccProb = P1 + L1 + Proposal1; 
-  //accept/reject proposal
-  if( log(myrand()) < LogAccProb ){
-    *eta = etanew;
-  }
-  //update step size
-  step = TuneEta.UpdateStepSize( exp(LogAccProb) );
+//   etanew = exp( gennor( log( *eta ), step ) );
+//   Proposal1 = log(etanew) - log(*eta);
+//   // log prior ratio P1 
+//   P1 = ( EtaAlpha - 1.0 ) * ( log(etanew) - log(*eta) ) - EtaBeta * ( etanew - *eta );
+//   // log likelihood ratio L1
+//   L1 = n * ( gsl_sf_lngamma( etanew ) - gsl_sf_lngamma( *eta ) );
+//   for( i = 0; i < K; i++ )
+//     L1 += mu[i] * (etanew - *eta) * sumlogtheta[i] - n*gsl_sf_lngamma( etanew * mu[i] ) + n*gsl_sf_lngamma( *eta * mu[i] );
+//   // calculate log acceptance probability ratio
+//   LogAccProb = 0.0;
+//   if(P1 + L1 + Proposal1 < 0.0)  
+//     LogAccProb = P1 + L1 + Proposal1; 
+//   //accept/reject proposal
+//   if( log(myrand()) < LogAccProb ){
+//     *eta = etanew;
+//   }
+//   //update step size
+//   step = TuneEta.UpdateStepSize( exp(LogAccProb) );
+// }
+
+double DirichletParamSampler::etaEnergy( const double* const x, const void* const vargs )
+{
+  const PopAdmixEtaSamplerArgs* args = (const PopAdmixEtaSamplerArgs* )vargs;
+  double eta = exp(*x);
+  double E = 0.0;
+  const double*mu = args->mu;
+  const double* sumlogtheta = args->sumlogtheta;
+
+  // log prior  
+  E += ( args->priorshape - 1.0 ) * ( log(eta) ) - args->priorrate *  eta ;
+  // log likelihood 
+  E += args->numobs * ( gsl_sf_lngamma( eta ) );
+  for( unsigned i = 0; i < args->numpops; i++ )
+    E += mu[i] * eta  * sumlogtheta[i] -  args->numobs * gsl_sf_lngamma( eta * mu[i] );
+  //Jacobian
+  E += eta;
+  return -E;
 }
 
+void DirichletParamSampler::etaGradient( const double* const x, const void* const vargs, double* g )
+{
+  const PopAdmixEtaSamplerArgs* args = (const PopAdmixEtaSamplerArgs* )vargs;
+  const double* mu = args->mu;
+  const double* sumlogtheta = args->sumlogtheta;
+  double eta = exp(*x);
+  double psi;
+
+  g[0] = 0;
+  // log prior  
+  g[0] -= ( args->priorshape - 1.0 ) / eta - args->priorrate;
+  // log likelihood
+  ddigam(&eta, &psi); 
+  g[0] -= args->numobs * psi;//( gsl_sf_psi( eta ) );
+  for( unsigned i = 0; i < args->numpops; i++ ){
+    double alpha = eta*mu[i];
+    ddigam(&alpha, &psi);
+    g[0] -= mu[i] * sumlogtheta[i] -  args->numobs * mu[i] * psi;//gsl_sf_psi( eta * mu[i] );
+  }
+  //Jacobian
+  g[0] *= eta;
+}
 
 // these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
 // Dirichlet proportion parameters
@@ -271,7 +325,8 @@ void DirichletParamSampler::gradE(const double* const theta, const void* const v
 
 double DirichletParamSampler::getStepSize()const {
 #if SAMPLERTYPE==1
-    return TuneEta.getStepSize();
+  //return TuneEta.getStepSize();
+  return EtaSampler.getStepsize();
 #elif SAMPLERTYPE==2
     return AlphaSampler.getStepsize();
 #endif
@@ -279,7 +334,8 @@ double DirichletParamSampler::getStepSize()const {
 
 double DirichletParamSampler::getExpectedAcceptanceRate()const {
 #if SAMPLERTYPE==1
-    return TuneEta.getExpectedAcceptanceRate();
+  //return TuneEta.getExpectedAcceptanceRate();
+  return EtaSampler.getAcceptanceRate();
 #elif SAMPLERTYPE==2
     return AlphaSampler.getAcceptanceRate();
 #endif

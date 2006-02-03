@@ -7,12 +7,11 @@
 
 #include <gsl/gsl_sf_gamma.h>
 #include "rand.h"
-#include "StepSizeTuner.h"
+//#include "StepSizeTuner.h"
+#include "HamiltonianMonteCarlo.h"
 
 #if SAMPLERTYPE==1
 #include "AdaptiveRejection.h"
-#elif SAMPLERTYPE==2
-#include "HamiltonianMonteCarlo.h"
 #endif
 
 typedef struct{
@@ -22,6 +21,15 @@ typedef struct{
   double eps1;
   const double* sumlogtheta;
 }AlphaSamplerArgs;
+
+typedef struct{
+  unsigned numpops;
+  unsigned numobs;
+  const double* mu;
+  const double* sumlogtheta;
+  double priorshape;
+  double priorrate;
+} PopAdmixEtaSamplerArgs;
 
 class DirichletParamSampler
 {
@@ -40,16 +48,19 @@ public:
 private:
   unsigned int K;
 #if SAMPLERTYPE==1
-  StepSizeTuner TuneEta;
+  //StepSizeTuner TuneEta;
+  HamiltonianMonteCarlo EtaSampler;
+  PopAdmixEtaSamplerArgs EtaArgs;
+
   double eta;
   double *mu;
   double etanew;
   double *munew;
   double *muDirichletParams;
-  double EtaAlpha;//shape parameter of prior on eta
-  double EtaBeta;//rate parameter of prior on eta
-  double step, step0;
-  double LogAccProb;
+//   double EtaAlpha;//shape parameter of prior on eta
+//   double EtaBeta;//rate parameter of prior on eta
+  //double step, step0;
+  //double LogAccProb;
   AdaptiveRejection** DirParamArray;
   // AlphaParameters is an array with 5 elements
   // element 0 is number of observations
@@ -65,6 +76,8 @@ private:
   static double dlogf( double, const void* const );
   static double ddlogf( double, const void* const );
 
+  static double etaEnergy( const double* const eta, const void* const vargs );
+  static void etaGradient( const double* const eta, const void* const vargs, double* g );
 #elif SAMPLERTYPE==2
   AlphaSamplerArgs AlphaArgs;
   double *logalpha;
@@ -74,6 +87,7 @@ private:
 
   static double findE(const double* const theta, const void* const args);
   static void gradE(const double* const theta, const void* const args, double *g);
+
 #endif
 
   void Initialise();
