@@ -487,10 +487,10 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j)SumLocusAncestry_X[j] = 0;
     //  }
     //cout "sampletheta" << flush;
-    if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on even-numbered iterations
-    SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
-		ExpectedY, lambda, NumCovariates,
-		Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
+    //if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on even-numbered iterations
+      SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
+		  ExpectedY, lambda, NumCovariates,
+		  Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, true, anneal);
     
     //SumNumArrivals is the number of arrivals between each pair of adjacent loci
     SumNumArrivals[0] = SumNumArrivals[1] = 0;
@@ -570,11 +570,11 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(unsigned i = 0; i < _rho.size(); ++i) sumlogrho[i] += log(_rho[i]);
   }
 
-  //  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on odd-numbered iterations
-//      SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
+  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on odd-numbered iterations
+//     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
 //  		NumCovariates, Covariates, beta, poptheta, options, alpha, sigma, DInvLink, dispersion, false, anneal);
-//      HMMIsBad(true); // because admixture props have changed
-     //  }  
+//     HMMIsBad(true); // because admixture props have changed
+  }  
   
   //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
   SampleMissingOutcomes(Outcome, OutcomeType, ExpectedY, lambda);
@@ -735,20 +735,18 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
 // called with RW true for a random-walk proposal, false for a conjugate proposal
 {
   double logpratio = 0.0;
+  int K = Populations;
+  RegressionType RegType;
+  int NumOutcomes = Outcome->nCols();
   if(RW) {
     NumberOfUpdates++;
     logpratio += ProposeThetaWithRandomWalk(options, C, alpha); 
   } else ProposeTheta(options, sigma, alpha, sumLocusAncestry, sumLocusAncestry_X);       
-
-  int K = Populations;
-
   //calculate Metropolis acceptance probability ratio for proposal theta    
   if(!options->getTestForAdmixtureAssociation()){
-    RegressionType RegType;
-    int NumOutcomes = Outcome->nCols();
-    for( int k = 0; k < NumOutcomes; k++ ){
-      if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
-      logpratio +=  LogAcceptanceRatioForRegressionModel( RegType, k, options->isRandomMatingModel(), K, NumCovariates, 
+   for( int m = 0; m < NumOutcomes; ++m ){
+      if(OutcomeType[m] == Binary) RegType = Logistic; else RegType = Linear;
+      logpratio +=  LogAcceptanceRatioForRegressionModel( RegType, m, options->isRandomMatingModel(), K, NumCovariates, 
 							  Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
     }
   }
@@ -758,28 +756,29 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
 
   //Accept or reject proposed value - if conjugate update and no regression model, proposal will be accepted because logpratio = 0
   Accept_Reject_Theta(logpratio, Loci->isX_data(), K, options->isRandomMatingModel(), RW );
+  //if(myNumber==101) cout << getLogLikelihood(options, C, false, false) << endl;
   
-  // update the value of admixture proportions used in the regression model  
-  if( options->getNumberOfOutcomes() > 0 )
+  if( NumOutcomes > 0 ) // update value of admixture proportions used in regression model  
     UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options->isRandomMatingModel(), Covariates);
-  
+
   if(!anneal && iteration > options->getBurnIn()){ // accumulate sums in softmax basis for calculation of posterior means 
-    
     for( unsigned int g = 0; g < NumIndGametes; g++ ){
       bool* b = new bool[Populations];
       double* a = new double[Populations];
-      for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
-	b[k] = true; //to skip elements set to zero
-      } else b[k] = false;
+      for(int k = 0; k < Populations; ++k) {
+	if(Theta[g*Populations + k] > 0.0) {
+	  b[k] = true; //to skip elements set to zero
+	} else b[k] = false;
+      }
       inv_softmax(Populations, Theta+g*Populations, a, b);
       transform(a, a+Populations, SumSoftmaxTheta+g*Populations, SumSoftmaxTheta+g*Populations, std::plus<double>());
-	delete[] b;
-	delete[] a;
-	//transform(ThetaX, ThetaX+size_admix, ThetaXHat, ThetaXHat, std::plus<double>());
+      delete[] b;
+      delete[] a;
+      //transform(ThetaX, ThetaX+size_admix, ThetaXHat, ThetaXHat, std::plus<double>());
     }
   }
-  if(!IAmUnderTest){
-    for( int k = 0; k < K; k++ ){
+  if(!IAmUnderTest) { //accumulate SumLogTheta in Latent
+    for( int k = 0; k < K; k++ ) {
       SumLogTheta[ k ] += log( Theta[ k ] );
       if(options->isRandomMatingModel() && !options->isXOnlyAnalysis() )
 	SumLogTheta[ k ] += log( Theta[ K + k ] );
@@ -787,7 +786,7 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
     
     //   //increment B using new Admixture Props
     //   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
-    if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
+    if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()) {
       UpdateB(DInvLink, dispersion);
     }
   }
@@ -798,7 +797,6 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
   //TODO: X-chromosome case
   double LogLikelihoodRatio = 0.0;
   double LogPriorRatio = 0.0;
-  
   //generate proposals
   for( unsigned int g = 0; g < NumIndGametes; g++ ){
     if(options->isAdmixed(g)){
@@ -826,10 +824,8 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
       delete[] a;
       delete[] b; 
     }
-    else
-      copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
+    else copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
   }// end loop over gametes
-
   //get log likelihood at current parameter values - do not force update, store result of update
   LogLikelihoodRatio -= getLogLikelihood(options, C, false, true); 
   //get log likelihood at proposal theta and current rho - force update 
@@ -852,8 +848,9 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
   }
   for( unsigned int g = 0; g < NumIndGametes; g++ ) {
     if(options->isAdmixed(g)) {
-      //cout << "\tgamete" << g << "\t";
+      //if(myNumber==101)  cout << "\nprior" << g << "\t";
       for(size_t k = 0; k < K; ++k) { // parameters of conjugate Dirichlet update
+	//if(myNumber==101) cout << alpha[g][k] << " ";
 	dirparams[k] = alpha[g][k] + sumLocusAncestry[k + K*g];
 	if(NumIndGametes==1) {
 	  dirparams[k] += sumLocusAncestry[k + K];
@@ -861,10 +858,10 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
       }
       //generate proposal theta from Dirichlet with parameters dirparams
       gendirichlet(K, dirparams, ThetaProposal+g*K );
-      // 	cout << "dirichlet\t";
-      // 	for(size_t k=0; k<K; ++k) {
-      // 	  cout << dirparams[k] << "\t";
-      // 	}
+      //if(myNumber==101) cout << "counts\t";
+//       for(size_t k=0; k<K; ++k) {
+// 	//if(myNumber==101) cout << sumLocusAncestry[k] + sumLocusAncestry[k+K] << "\t";
+//       }
       // 	cout << "thetaproposal" << "\t";
       // 	for(size_t k=0; k<K; ++k) {
       // 	  cout << ThetaProposal[g*K + k] << "\t";
@@ -879,7 +876,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<do
       }
     } else copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
   } // end loop over gametes
-    //cout << endl;
+  //if(myNumber==101) cout << endl;
 } 
 // else { //assortative mating model
 // //     if(myNumber==101) cout << "alpha[0] ";

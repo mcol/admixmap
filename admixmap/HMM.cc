@@ -430,29 +430,29 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
 			       int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
 			       unsigned SumN[], unsigned SumN_X[], bool isGlobalRho)const{
   
-  double Prob; // prob jump indicator is 1
+  double ProbJump; // prob jump indicator is 1
   
   // should be defined at class scope
   vector<bool> xi[2] = {vector<bool>(Transitions), vector<bool>(Transitions)};//jump indicators
+
   xi[0][0] = xi[1][0] = true;
-  
   // first locus not included in loop below
   for( unsigned int g = 0; g < gametes; g++ ){
-    if( !isX ) SumLocusAncestry[ LocusAncestry[g*Transitions] + g*K ]++;
-    else SumLocusAncestry_X[ LocusAncestry[g*Transitions] + g*K] ++;
+    if( !isX ) SumLocusAncestry[ g*K + LocusAncestry[g*Transitions] ]++;
+    else SumLocusAncestry_X[ g*K + LocusAncestry[g*Transitions] ] ++;
   }
   for( int t = 1; t < Transitions; t++ ) {
     xi[0][t] = xi[1][t] = true;    
     for( unsigned int g = 0; g < gametes; g++ ){
-      if( LocusAncestry[g*Transitions + t-1] == LocusAncestry[t + g*Transitions] ){
-	Prob = StateArrivalProbs[t*K*2 +LocusAncestry[t + g*Transitions]*2 + g];  
-	xi[g][t] = Prob / (Prob + f[2*t+g]) > myrand();
+      if( LocusAncestry[g*Transitions + t-1] == LocusAncestry[g*Transitions + t] ){
+	ProbJump = StateArrivalProbs[t*K*2 +LocusAncestry[t + g*Transitions]*2 + g];  
+	xi[g][t] = ProbJump / (ProbJump + f[2*t+g]) > myrand();
       } 
       if( xi[g][t] ){ // increment sumlocusancestry if jump indicator is 1
 	if( !isX )
-	  SumLocusAncestry[ LocusAncestry[t+g*Transitions] +  g*K ]++;
+	  SumLocusAncestry[ g*K + LocusAncestry[t+g*Transitions] ]++;
 	else
-	  SumLocusAncestry_X[ LocusAncestry[t+g*Transitions] + g*K ]++;
+	  SumLocusAncestry_X[ g*K + LocusAncestry[t+g*Transitions] ]++;
 
 	if(!isGlobalRho) { // sample number of arrivals where jump indicator is 1
 	  double u = myrand();
