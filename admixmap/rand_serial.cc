@@ -77,11 +77,12 @@ std::vector<int> genmultinomial2(int N, const std::vector<double> theta)
   return( sample );
 }
 
-double MultinomialLikelihood( const std::vector<int> r, const std::vector<double> theta )
+double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta )
 {
   if( r.size() != theta.size() ){
     throw string("Unequal lengths of vector arguments to MultinomialLikelihood");
   }
+  double f = 0.0;
   unsigned K = (int)r.size();
   unsigned* n = new unsigned[ K ];
   double* p = new double[ K ];
@@ -89,9 +90,10 @@ double MultinomialLikelihood( const std::vector<int> r, const std::vector<double
     p[i] = theta[i];
     n[i] = r[i];
   }
+  f = gsl_ran_multinomial_pdf( K, p , n );
   delete[] n;
   delete[] p;
-  return( gsl_ran_multinomial_pdf( K, p , n ) );
+  return( f );
 }
 
 long ignpoi( double mu )
