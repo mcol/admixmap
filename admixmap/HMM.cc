@@ -428,27 +428,24 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
 
 void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
 			       int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			       unsigned SumN[], unsigned SumN_X[], bool isGlobalRho)const{
+			       unsigned SumNumArrivals[], unsigned SumNumArrivals_X[], bool isGlobalRho)const{
   
+  bool xi;//jump indicator
   double ProbJump; // prob jump indicator is 1
-  
-  // should be defined at class scope
-  vector<bool> xi[2] = {vector<bool>(Transitions), vector<bool>(Transitions)};//jump indicators
 
-  xi[0][0] = xi[1][0] = true;
   // first locus not included in loop below
   for( unsigned int g = 0; g < gametes; g++ ){
     if( !isX ) SumLocusAncestry[ g*K + LocusAncestry[g*Transitions] ]++;
     else SumLocusAncestry_X[ g*K + LocusAncestry[g*Transitions] ] ++;
   }
   for( int t = 1; t < Transitions; t++ ) {
-    xi[0][t] = xi[1][t] = true;    
     for( unsigned int g = 0; g < gametes; g++ ){
+      xi = true;
       if( LocusAncestry[g*Transitions + t-1] == LocusAncestry[g*Transitions + t] ){
 	ProbJump = StateArrivalProbs[t*K*2 +LocusAncestry[t + g*Transitions]*2 + g];  
-	xi[g][t] = ProbJump / (ProbJump + f[2*t+g]) > myrand();
+	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > myrand());
       } 
-      if( xi[g][t] ){ // increment sumlocusancestry if jump indicator is 1
+      if( xi ){ // increment sumlocusancestry if jump indicator is 1
 	if( !isX )
 	  SumLocusAncestry[ g*K + LocusAncestry[t+g*Transitions] ]++;
 	else
@@ -461,12 +458,12 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
 	  // algorithm does not require rho or d, only u and f
 	  unsigned int sample = genpoi( log( (1 - u*( 1 - f[2*t+g])) / f[2*t+g] ) );
 	  if( !isX )
-	    SumN[g] += sample + 1;
+	    SumNumArrivals[g] += sample + 1;
 	  else
-	    SumN_X[g] += sample + 1;
+	    SumNumArrivals_X[g] += sample + 1;
 	}
-      }
-    }
+      }//end if xi true
+    }//end gamete loop
   } // ends loop over intervals
 
   
