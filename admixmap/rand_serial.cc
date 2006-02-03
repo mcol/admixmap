@@ -80,7 +80,7 @@ std::vector<int> genmultinomial2(int N, const std::vector<double> theta)
 double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta )
 {
   if( r.size() != theta.size() ){
-    throw string("Unequal lengths of vector arguments to MultinomialLikelihood");
+    throw string("Unequal lengths of vector arguments to MultinomialPDF");
   }
   double f = 0.0;
   unsigned K = (int)r.size();

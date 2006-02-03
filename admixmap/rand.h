@@ -20,7 +20,7 @@ unsigned int genpoi( double );
 //
 std::vector<int> genmultinomial2( int n, const std::vector<double> p );
 //
-double MultinomialLikelihood( const std::vector<int> r, const std::vector<double> theta );
+double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta );
 ///
 ///Poisson generator
 long ignpoi(double mu);

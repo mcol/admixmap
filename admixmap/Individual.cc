@@ -592,7 +592,8 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 
   //uses an EM algorithm to search for posterior modes of individual parameters
   unsigned numEMiters = 10;
-  unsigned NumEstepiters = 10; // TODO: test for convergence
+  unsigned NumEstepiters = 10; 
+  double LogUnnormalizedPosterior = -100000000.0; // should be minus infinity
 
   //use current parameter values as initial values
   double *SumLocusAncestryHat = new double[2*Populations];
@@ -640,10 +641,13 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     SumNumArrivals_XHat[1] /= NumEstepiters;
     
     //M-step: set mode for log rho and for theta in softmax basis - no minus ones in exponents
+    // use vector rhohat and array ThetaProposal to store updates before accept/reject 
     for(unsigned g = 0; g < NumIndGametes; ++g) {
       if( options->isAdmixed(g) ) {
 	if(!options->isGlobalRho()){
-	  _rho[g] = (rhoalpha + SumNumArrivalsHat[g]) / (rhobeta + Loci->GetLengthOfGenome());
+
+	  rhohat[g] = (rhoalpha + SumNumArrivalsHat[g]) / (rhobeta + Loci->GetLengthOfGenome());
+
 	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	    _rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g]) / (rhobeta + Loci->GetLengthOfXchrm());
 	}
@@ -658,24 +662,29 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 	    + accumulate(SumLocusAncestry_XHat+g*Populations, 
 			 SumLocusAncestry_XHat+(g+1)*Populations, 0.0, std::plus<double>());
 	for(int k = 0; k < Populations; ++k) {
-	  if(alpha[gg][k]>0.0) Theta[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
+ 
+	  if(alpha[gg][k]>0.0) ThetaProposal[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
+
 	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	    ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k]) / sum_X;
 	}
       } //end isadmixed
     } // end loop over gametes
-    double logpriorhat =  LogPriorTheta_Softmax(Theta, ThetaX, options, alpha) + 
-      LogPriorRho_LogBasis(_rho, _rho_X, options, rhoalpha, rhobeta);
-    double loglikhat =  getLogLikelihood(options, chrm, false, true);
-    double LogUnnormalizedPosterior  = logpriorhat + loglikhat;
-    //cout << LogPriorTheta_Softmax(Theta, ThetaX, options, alpha) << " " << LogPriorRho_LogBasis(_rho, _rho_X, options, rhoalpha, rhobeta) << endl;
+    double logpriorhat =  LogPriorTheta_Softmax(ThetaProposal, ThetaX, options, alpha) + 
+      LogPriorRho_LogBasis(rhohat, _rho_X, options, rhoalpha, rhobeta);
+    double loglikhat = getLogLikelihood(options, chrm, ThetaProposal, ThetaX, rhohat, _rho_X, false);
+    double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
+    if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
+      setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
+      copy(rhohat.begin(), rhohat.end(), _rho.begin());
+      LogUnnormalizedPosterior = LogUnnormalizedPosteriorHat;
+    }
     cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior  " << 
       LogUnnormalizedPosterior << endl << flush;
-    // TODO: reject new values unless logposterior increases
   } //end EM outer loop
-  //print values to file
-  
-  {
+
+
+  { //print values to file
     modefile<<setiosflags(ios::fixed)<<setprecision(3);
     modefile << myNumber << "\t";
     if(!options->isGlobalRho()) {
@@ -687,8 +696,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
   }
   delete[] SumLocusAncestryHat;
   
-  if(myNumber==1 && options->getChibIndicator()){
-    //copy modes into hat arrays to use in chib algorithm
+  if(myNumber==1 && options->getChibIndicator()){ // copy modes into hat arrays to use in chib algorithm
     for(unsigned k = 0; k < Populations*NumIndGametes; ++k){
       thetahat[k] = Theta[k];
     }
