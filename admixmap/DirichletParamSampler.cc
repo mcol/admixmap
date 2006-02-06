@@ -19,14 +19,9 @@ DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops)
 
 void DirichletParamSampler::Initialise() {
 #if SAMPLERTYPE==1
-//   step0 = 0.1; //sd of proposal distribution for log eta
-//   // need to choose sensible value for this initial RW sd
-//   step = step0;
-//   TuneEta.SetParameters( step0, 0.01, 10, 0.44); 
   mu = 0;
   munew = 0;
   muDirichletParams = 0;
-  //  DirParamArray = 0;
 #elif SAMPLERTYPE==2
   logalpha = 0;
   initialAlphaStepsize = 0.02;//need a way of setting this without recompiling, or a sensible fixed value
@@ -48,14 +43,7 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    munew = new double[K];
    for( unsigned int i = 0; i < K; i++ )
      muDirichletParams[i] = 1.0;
-   //DirParamArray = new AdaptiveRejection();
-   DirParamArray.Initialise(true, true, 1.0, 0.00001, logf, dlogf);
-//      DirParamArray[j]->setLowerBound(0.0);
-//   for( unsigned int j = 0; j < K; j++ ){
-//      DirParamArray[j] = new AdaptiveRejection();
-//      DirParamArray[j]->Initialise(true, true, 0.0, 1.0, logf, dlogf);
-//      DirParamArray[j]->setLowerBound(0.0);
-//   }
+   DirParamArray.Initialise(true, true, 1.0, 0.00001, logf, dlogf); // to avoid singularity at mu[j]=0
 
    EtaArgs.priorshape = K; // for compatibility with gamma(1, 1) prior on alpha
    EtaArgs.priorrate = 1;
@@ -65,11 +53,8 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
 			    0.44/*target accept rate*/, etaEnergy, etaGradient);  
 #elif SAMPLERTYPE==2
    logalpha = new double[K];
-   
-   //elem 0 is sum of log admixture props
    AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sampler
    AlphaArgs.dim = K;
-   //if( options->isRandomMatingModel() )AlphaArgs.n *= 2;
    AlphaArgs.eps0 = 1.0; //Gamma(1, 1) prior on alpha
    AlphaArgs.eps1 = 1.0;
    AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 100.0, 20, targetAlphaAcceptRate, findE, gradE);
@@ -80,10 +65,8 @@ DirichletParamSampler::~DirichletParamSampler()
 {
 #if SAMPLERTYPE==1
   delete[] mu;
-  delete [] munew;
-  delete [] muDirichletParams;
-  //if(DirParamArray) delete[] DirParamArray;
-
+  delete[] munew;
+  delete[] muDirichletParams;
 #elif SAMPLERTYPE==2
   delete[] logalpha;
 #endif
@@ -91,8 +74,6 @@ DirichletParamSampler::~DirichletParamSampler()
 
 #if SAMPLERTYPE==1
 void DirichletParamSampler::SetPriorEta( double inEtaAlpha, double inEtaBeta ) {
-//   EtaAlpha = inEtaAlpha;
-//   EtaBeta = inEtaBeta;
    EtaArgs.priorshape = inEtaAlpha; 
    EtaArgs.priorrate = inEtaBeta;
 }
@@ -111,13 +92,11 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
   // *** sample elements of mu with adaptive rejection sampler, conditional on frequencies sumlogtheta, and eta with RW
 #if SAMPLERTYPE==1
   eta = accumulate(alpha->begin(), alpha->end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
-  for( unsigned i = 0; i < K; i++ ){
+  for( unsigned i = 0; i < K; i++ ) {
     mu[i] = (*alpha)[i]/eta;
   }
   
-  double b = 0.0; // mu[K-1] + mu[0];//upper bound for sampler
-  //double summu = 1.0 - mu[K-1];
-
+  double b = 0.0; 
   // loop over elements j,k of mu to update mu[j] conditional on (mu[j] + mu[k]), mu[i] where i neq j,k 
   for( unsigned int j = 1; j < K; ++j ) {
     for( unsigned int k = 0; k < j; ++k ) {
@@ -126,9 +105,7 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
       AlphaParameters[2] = b; 
       AlphaParameters[3] = sumlogtheta[j]; 
       AlphaParameters[4] = sumlogtheta[k];
-      DirParamArray.setUpperBound(b-0.00001);
-//       cout << "AlphaParameters " << AlphaParameters[0] << " " <<  AlphaParameters[1] << " " << 
-// 	AlphaParameters[2] << " " <<  AlphaParameters[3] << " " <<  AlphaParameters[4] << " " << endl;
+      DirParamArray.setUpperBound(b-0.00001); // to avoid singularity at b=0
       try {
 	mu[j] = DirParamArray.Sample(AlphaParameters, ddlogf);
       } catch(string msg) {
@@ -137,9 +114,7 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
       }
       mu[k] = b - mu[j];
     }
-    //cout << "mu" << j << " " << mu[j] << "\t";
   }
-  //cout << endl << endl;
 
   //SampleEta((unsigned)AlphaParameters[0], sumlogtheta, &eta, mu);//first arg is num obs
   EtaArgs.sumlogtheta = sumlogtheta;
@@ -147,8 +122,7 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
   etanew = log(eta);//sample for log of dispersion parameter
   EtaSampler.Sample(&etanew, &EtaArgs);
   eta = exp(etanew);
-  for( unsigned j = 0; j < K; j++ )
-    (*alpha)[j] = mu[j]*eta;
+  for( unsigned j = 0; j < K; j++ ) (*alpha)[j] = mu[j]*eta;
   
   
 #elif SAMPLERTYPE==2
@@ -243,7 +217,7 @@ double DirichletParamSampler::logf( double muj, const void* const pars ) {
    } 
    double f = eta * muj * ( sumlogpj - sumlogpk )
      - n * ( gsl_sf_lngamma(muj*eta) + gsl_sf_lngamma( (b - muj)*eta) );
-   //cout << "\nlog density function passed muj " << muj<< "\treturns logdensity " << f << endl;
+   //cout << "\nlog density function passed muj " << muj << "\treturns logdensity " << f << endl;
   return f;
 }
 
