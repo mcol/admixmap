@@ -2,8 +2,9 @@
 #ifndef DirichletParamSampler_H
 #define DirichletParamSampler_H 1
 
-#define SAMPLERTYPE 1 // 1 = ARS + MHRW
-                     // 2 = Hamiltonian 
+#define SAMPLERTYPE 1 // 1 = adaptive rejection sampler on pairwise elements of proportion vector mu
+                      //     Hamiltonian on dispersion parameter etaARS + MHRW
+                      // 2 = Hamiltonian on parameter vector alpha
 
 #include <gsl/gsl_sf_gamma.h>
 #include "rand.h"
@@ -20,7 +21,7 @@ typedef struct{
   double eps0;
   double eps1;
   const double* sumlogtheta;
-}AlphaSamplerArgs;
+} AlphaSamplerArgs;
 
 typedef struct{
   unsigned numpops;
@@ -31,8 +32,7 @@ typedef struct{
   double priorrate;
 } PopAdmixEtaSamplerArgs;
 
-class DirichletParamSampler
-{
+class DirichletParamSampler {
 public:
   DirichletParamSampler();
   DirichletParamSampler(unsigned, unsigned);
@@ -47,6 +47,7 @@ public:
     
 private:
   unsigned int K;
+
 #if SAMPLERTYPE==1
   //StepSizeTuner TuneEta;
   HamiltonianMonteCarlo EtaSampler;
@@ -61,14 +62,15 @@ private:
 //   double EtaBeta;//rate parameter of prior on eta
   //double step, step0;
   //double LogAccProb;
-  AdaptiveRejection** DirParamArray;
+  AdaptiveRejection DirParamArray;
+  double AlphaParameters[5];
   // AlphaParameters is an array with 5 elements
   // element 0 is number of observations
   // element 1 is dispersion parameter
-  // element 2 is 1 - last proportion parameter
-  // element 3 is 
-  // element 4 is 
-  double AlphaParameters[5];
+  // element 2 is mu[k]
+  // element 3 is sum log p[j]
+  // element 4 is sum log p[k]
+
   //MuSampler muSampler;
 
   void SampleEta(unsigned n, const double* const sumlogtheta, double *eta, const double* const mu);
@@ -78,19 +80,19 @@ private:
 
   static double etaEnergy( const double* const eta, const void* const vargs );
   static void etaGradient( const double* const eta, const void* const vargs, double* g );
+
 #elif SAMPLERTYPE==2
   AlphaSamplerArgs AlphaArgs;
   double *logalpha;
   HamiltonianMonteCarlo AlphaSampler;
   double initialAlphaStepsize;
   float targetAlphaAcceptRate;
-
   static double findE(const double* const theta, const void* const args);
   static void gradE(const double* const theta, const void* const args, double *g);
-
 #endif
 
   void Initialise();
 };
 
-#endif /* ! DirichletParamSampler_H */
+#endif 
+/* ! DirichletParamSampler_H */

@@ -8,18 +8,16 @@ using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-DirichletParamSampler::DirichletParamSampler()
-{
+DirichletParamSampler::DirichletParamSampler() {
   Initialise();
 }
 
-DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops)
-{
+DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops) {
   Initialise();
   SetSize(numind, numpops);
 }
 
-void DirichletParamSampler::Initialise(){
+void DirichletParamSampler::Initialise() {
 #if SAMPLERTYPE==1
 //   step0 = 0.1; //sd of proposal distribution for log eta
 //   // need to choose sensible value for this initial RW sd
@@ -28,7 +26,7 @@ void DirichletParamSampler::Initialise(){
   mu = 0;
   munew = 0;
   muDirichletParams = 0;
-  DirParamArray = 0;
+  //  DirParamArray = 0;
 #elif SAMPLERTYPE==2
   logalpha = 0;
   initialAlphaStepsize = 0.02;//need a way of setting this without recompiling, or a sensible fixed value
@@ -45,20 +43,19 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    K = numpops;
 #if SAMPLERTYPE==1
    AlphaParameters[0] = numobs;
-//    EtaAlpha = K; // for compatibility with gamma(1, 1) prior on alpha
-//    EtaBeta = 1;
-   //Dirichlet(1, ..., 1) prior on proportions mu
    muDirichletParams = new double[K];
    mu = new double[K];
    munew = new double[K];
    for( unsigned int i = 0; i < K; i++ )
      muDirichletParams[i] = 1.0;
-   DirParamArray = new AdaptiveRejection*[ K ];
-   for( unsigned int j = 0; j < K; j++ ){
-     DirParamArray[j] = new AdaptiveRejection();
-     DirParamArray[j]->Initialise(true, true, 0.0, 1.0, logf, dlogf);
-     DirParamArray[j]->setLowerBound(0.00);
-   }
+   //DirParamArray = new AdaptiveRejection();
+   DirParamArray.Initialise(true, true, 1.0, 0.00001, logf, dlogf);
+//      DirParamArray[j]->setLowerBound(0.0);
+//   for( unsigned int j = 0; j < K; j++ ){
+//      DirParamArray[j] = new AdaptiveRejection();
+//      DirParamArray[j]->Initialise(true, true, 0.0, 1.0, logf, dlogf);
+//      DirParamArray[j]->setLowerBound(0.0);
+//   }
 
    EtaArgs.priorshape = K; // for compatibility with gamma(1, 1) prior on alpha
    EtaArgs.priorrate = 1;
@@ -85,13 +82,7 @@ DirichletParamSampler::~DirichletParamSampler()
   delete[] mu;
   delete [] munew;
   delete [] muDirichletParams;
-  if(DirParamArray){ //in case not allocated
-    for(unsigned int i = 0; i < K; i++){
-      if(DirParamArray[i])
-	delete DirParamArray[i];
-    }
-    delete[] DirParamArray;
-  }
+  //if(DirParamArray) delete[] DirParamArray;
 
 #elif SAMPLERTYPE==2
   delete[] logalpha;
@@ -124,30 +115,38 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
     mu[i] = (*alpha)[i]/eta;
   }
   
-  double b = mu[K-1] + mu[0];//upper bound for sampler
-  double summu = 1.0 - mu[K-1];
+  double b = 0.0; // mu[K-1] + mu[0];//upper bound for sampler
+  //double summu = 1.0 - mu[K-1];
 
-  for( unsigned int j = 0; j < K-1; j++ ){
-    AlphaParameters[1] = eta; // dispersion parameter
-    AlphaParameters[2] = summu - mu[j]; // 1 - last proportion parameter
-    AlphaParameters[3] = sumlogtheta[K-1]; 
-    AlphaParameters[4] = sumlogtheta[j];
-    
-    DirParamArray[j]->setUpperBound(b);
-    // Dirichlet proportion parameters mu[j] are updated one at a time
-    mu[j] = DirParamArray[j]->Sample(AlphaParameters, ddlogf);
-    b = b - mu[j] + mu[j+1];
-    summu = AlphaParameters[2] + mu[j];
+  // loop over elements j,k of mu to update mu[j] conditional on (mu[j] + mu[k]), mu[i] where i neq j,k 
+  for( unsigned int j = 1; j < K; ++j ) {
+    for( unsigned int k = 0; k < j; ++k ) {
+      b = mu[j] + mu[k]; 
+      AlphaParameters[1] = eta; // dispersion parameter
+      AlphaParameters[2] = b; 
+      AlphaParameters[3] = sumlogtheta[j]; 
+      AlphaParameters[4] = sumlogtheta[k];
+      DirParamArray.setUpperBound(b-0.00001);
+//       cout << "AlphaParameters " << AlphaParameters[0] << " " <<  AlphaParameters[1] << " " << 
+// 	AlphaParameters[2] << " " <<  AlphaParameters[3] << " " <<  AlphaParameters[4] << " " << endl;
+      try {
+	mu[j] = DirParamArray.Sample(AlphaParameters, ddlogf);
+      } catch(string msg) {
+	cout << msg << endl;
+	exit(1);
+      }
+      mu[k] = b - mu[j];
+    }
+    //cout << "mu" << j << " " << mu[j] << "\t";
   }
-  mu[K-1] = 1.0 - summu;
-  
+  //cout << endl << endl;
+
   //SampleEta((unsigned)AlphaParameters[0], sumlogtheta, &eta, mu);//first arg is num obs
   EtaArgs.sumlogtheta = sumlogtheta;
   EtaArgs.mu = mu;
   etanew = log(eta);//sample for log of dispersion parameter
   EtaSampler.Sample(&etanew, &EtaArgs);
   eta = exp(etanew);
-  
   for( unsigned j = 0; j < K; j++ )
     (*alpha)[j] = mu[j]*eta;
   
@@ -233,45 +232,51 @@ void DirichletParamSampler::etaGradient( const double* const x, const void* cons
   g[0] *= eta;
 }
 
-// these 3 functions calculate log-likelihood and derivatives for adaptive rejection sampling of 
-// Dirichlet proportion parameters
-double DirichletParamSampler::logf( double x, const void* const pars )
-{
+// these 3 functions calculate log density and derivatives for adaptive rejection sampling of 
+// a pair of elements of the proportion parameter of the Dirichlet distribution
+double DirichletParamSampler::logf( double muj, const void* const pars ) {
   const double* parameters = (const double*) pars;
    int n = (int)parameters[0];
-   double eta = parameters[1], summu = parameters[2], sumlj = parameters[4], sumln = parameters[3];
-   double f = eta * ( x*sumlj + (1.0-summu-x)*sumln )
-      - n * ( gsl_sf_lngamma(x*eta) + gsl_sf_lngamma((1.0-summu-x)*eta) );
+   double eta = parameters[1], b = parameters[2], sumlogpj = parameters[3], sumlogpk = parameters[4];
+   if(muj < 0 || (b - muj < 0)) {
+     throw string("\nDirichletParamSampler: negative argument to lngamma function\n");
+   } 
+   double f = eta * muj * ( sumlogpj - sumlogpk )
+     - n * ( gsl_sf_lngamma(muj*eta) + gsl_sf_lngamma( (b - muj)*eta) );
+   //cout << "\nlog density function passed muj " << muj<< "\treturns logdensity " << f << endl;
   return f;
 }
 
-double DirichletParamSampler::dlogf( double x, const void* const pars )
-{
+double DirichletParamSampler::dlogf( double muj, const void* const pars ) {
   const double* parameters = (const double*) pars;
-  double f,x2,y1,y2;
+  double f, x1, x2, y1, y2;
   int n = (int)parameters[0];
-  double eta = parameters[1], summu = parameters[2], sumlj = parameters[4], sumln = parameters[3];
-  x2 = eta*x;
-  if(x2 < 0)cout<<"\nError in  DirichletParamSampler::dlogf - arg x to ddigam is negative\n";   
-  ddigam( &x2 , &y1 );
-  x2 = eta*(1.0-x-summu);
-  if(x2 < 0)cout<<"\nError in  DirichletParamSampler::dlogf - arg x2 to ddigam is negative\n";   
-  ddigam( &x2 , &y2 );
-  f =  eta * ( sumlj - sumln ) - n * eta * ( y1 - y2 );
+  double eta = parameters[1], b = parameters[2], sumlogpj = parameters[3], sumlogpk = parameters[4];
+  if(muj < 0 || (b - muj < 0)) {
+    throw string("\nDirichletParamSampler: negative argument to digamma function\n");
+  } 
+  x1 = eta*muj;
+  x2 = eta*(b - muj);
+  ddigam( &x1, &y1 );
+  ddigam( &x2, &y2 );
+  f =  eta * ( sumlogpj - sumlogpk - n*( y1 - y2) );
+  //cout << "\ngradient function passed muj "<< muj << "\treturns gradient " << f << flush;
   return f;
 }
 
-double DirichletParamSampler::ddlogf( double x, const void* const pars)
-{
+double DirichletParamSampler::ddlogf( double muj, const void* const pars) {
   const double* parameters = (const double*) pars;
-  double f,x2,y1,y2;
+  double f, x1, x2, y1, y2;
   int n = (int)parameters[0];
-  double eta = parameters[1], summu = parameters[2];
-  x2 = eta*x;
-  trigam( &x2, &y1 );
-  x2 = eta*(1.0-x-summu);
+  double eta = parameters[1], b = parameters[2];
+  x1 = eta*muj;
+  x2 = eta*(b - muj);
+  trigam( &x1, &y1 );
   trigam( &x2, &y2 );
-  f = -n*eta*eta*( y2+y1 );
+  f = -n * eta * eta *( y1 + y2 );
+  if(f >= 0) {
+    throw string("DirichletParamSsampler: 2nd derivative non-negative\n");
+  }
   return(f);
 }
 
