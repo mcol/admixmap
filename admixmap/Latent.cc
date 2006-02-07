@@ -134,20 +134,20 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
    
-   if( iteration < options->getBurnIn() && options->getPopulations() > 1
-       && options->getNumberOfOutcomes() > 0 ){
+   if( iteration < options->getBurnIn() && options->getPopulations() > 1) {
      // accumulate ergodic average of population admixture, which is used to centre 
      // the values of individual admixture in the regression model
      double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
-     for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
+     if(options->getNumberOfOutcomes() > 0)for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
    }
    
-   if( iteration == options->getBurnIn() && options->getNumberOfOutcomes() > 0 
-       && options->getPopulations() > 1) {
-     Log.setDisplayMode(Off);
-     Log << "Individual admixture centred in regression model around: ";
-     for(int i = 0; i < options->getPopulations(); ++i)Log << poptheta[i] << "\t";
-     Log << "\n";
+   if( iteration == options->getBurnIn() && options->getPopulations() > 1) {
+     if(options->getNumberOfOutcomes() > 0){
+       Log.setDisplayMode(Off);
+       Log << "Individual admixture centred in regression model around: ";
+       for(int i = 0; i < options->getPopulations(); ++i)Log << poptheta[i] << "\t";
+       Log << "\n";
+     }
      fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
    }
    
