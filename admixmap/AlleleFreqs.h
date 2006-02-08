@@ -113,8 +113,6 @@ private:
   double etastep0;
   int w;//The eta sampler is tuned every w updates.
 
-
-  
   //sampler for univariate mu (beta proportion parameters)
   //    DARS SampleMu;
   // DARS SampleMu is now initialized each time the allele freqs at a locus in a population are sampled
