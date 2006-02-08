@@ -71,7 +71,7 @@ void HMM::SetDimensions( int inTransitions, int pops)
     rowSum = new double[K];
     colSum = new double[K];
     cov = alloc2D_d(K,K);
-  }
+    }
 }
 
 void HMM::SetStateArrivalProbs(const double* const f, const double* const Theta, int Mcol){
@@ -89,22 +89,20 @@ void HMM::SetStateArrivalProbs(const double* const f, const double* const Theta,
   Updates Forward probabilities alpha and array p (=f0*f1)
   diploid case only
 */
-void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda, bool* const missing)
+void HMM::UpdateForwardProbsDiploid(const double* const f, const double* lambda, bool* const missing)
 {
   // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
   sumfactor = 0.0; // accumulates log-likelihood
   double Sum = 0.0;
   double scaleFactor = 0.0;
-  double *lambdap;
-  lambdap = lambda; 
   States = K*K;
   
   for(int j = 0; j < States; ++j) {
     if(!missing[0]) {
-      alpha[j] =  ThetaThetaPrime[j] * (*lambdap++);
+      alpha[j] =  ThetaThetaPrime[j] * (*lambda++);
     } else {
       alpha[j] = ThetaThetaPrime[j];
-      ++lambdap;
+      ++lambda;
     }
   }
   
@@ -129,8 +127,8 @@ void HMM::UpdateForwardProbsDiploid(const double* const f, double* const lambda,
     
     for(int j = 0; j < States; ++j){
       if(!missing[t]) {
-	alpha[t*States +j] *= *lambdap++;  //lambda[t*States +j];
-      } else ++lambdap;
+	alpha[t*States +j] *=  *lambda++; ;
+      } else ++lambda;
     }
   }
 }
@@ -287,35 +285,37 @@ void HMM::Sample(int *SStates, const double* const Admixture, const double* cons
 {
   int j1,j2;
   double* V = new double[States]; //probability vector for possible states (haploid or diploid)
-  int* C = new int[Transitions]; // sampled state (haploid or diploid) coded as integer
 
   if(isdiploid) { 
+  int C = 0; // sampled state (haploid or diploid) coded as integer
     // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete 
 
     int State = 0;
     
     // sample rightmost locus  
     for( int j = 0; j < States; j++ ) V[State++] = alpha[(Transitions - 1)*States + j];
-    C[ Transitions - 1 ] = SampleFromDiscrete( V, States ); 
-    SStates[Transitions-1] = (int)(C[Transitions-1]/K);
-    SStates[Transitions - 1 + Transitions] = (C[Transitions-1] % K);
+
+    C = SampleFromDiscrete( V, States ); 
+    SStates[Transitions-1] = (int)(C/K);
+    SStates[Transitions - 1 + Transitions] = (C % K);
     
     for( int t =  Transitions - 2; t >= 0; t-- ) { // loop from right to left
       j1 = SStates[t+1];                     // ancestry on gamete 0 at locus t+1
       j2 = SStates[Transitions + t + 1];     // ancestry on gamete 1 at locus t+1
       State = 0;
-      for(int i1 = 0; i1 < K; i1++)for(int i2 = 0; i2 < K; ++i2) {
+      for(int i1 = 0; i1 < K; ++i1)for(int i2 = 0; i2 < K; ++i2) {
 	V[State] = 
-	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + i1*2] ) * 
-	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + i2*2 +1] );
+	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * 
+	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
 	V[State] *= alpha[t*States + i1*K + i2];
 	State++;
       }
-      C[ t ] = SampleFromDiscrete( V, States );
-      SStates[t] = (int)(C[t]/K);//paternal
-      SStates[t + Transitions] = (C[t] % K);//maternal
+      C = SampleFromDiscrete( V, States );
+      SStates[t] = (int)(C/K);//paternal
+      SStates[t + Transitions] = (C % K);//maternal
     }
   } else {//haploid
+    int* C = new int[Transitions]; // sampled state (haploid or diploid) coded as integer
     for( int j = 0; j < States; j++ )V[j] = alpha[(Transitions - 1)*States + j ];
     C[ Transitions - 1 ] = SampleFromDiscrete( V, States );
     SStates[Transitions-1] = C[Transitions-1];
@@ -325,18 +325,10 @@ void HMM::Sample(int *SStates, const double* const Admixture, const double* cons
       C[ t ] = SampleFromDiscrete( V, States );
       SStates[t] = C[t];
     }
+    delete[] C;
   }
+
   delete[] V;
-  delete[] C;
-  //     cout << "\n\nsampledstates\n";
-  //     for( unsigned int g = 0; g < (1+isdiploid); g++ ){
-  //       cout << "gamete" << g << " ";
-  //       for(int t =0; t <= Transitions; ++t) {
-  //         cout << SStates[t + g*Transitions] << " ";
-  //       }
-  //       cout << endl;
-  //     }
-  //cout << "\n";
 }
 
 // argument oldProbs is square array of size K, K

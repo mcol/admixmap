@@ -32,7 +32,7 @@ public:
 
   double getLogLikelihood()const;
 
-  void UpdateForwardProbsDiploid(const double* const f, double* const lambda, bool* const missing);
+  void UpdateForwardProbsDiploid(const double* const f, const double* lambda, bool* const missing);
 
   void UpdateBackwardProbsDiploid(const double* const f, const double* const lambda);
 
