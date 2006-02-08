@@ -39,7 +39,7 @@ double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size
 
 void matrix_inverse(const double* const a, double* inv, size_t d);
 void matrix_inverse(double* a, size_t d);
-void cholDecomp(const double* const a, double *L, int n);
+int cholDecomp(const double* const a, double *L, int n);
 
 double **alloc2D_d(int m, int n);
 int **alloc2D_i(int m, int n);

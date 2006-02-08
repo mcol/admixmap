@@ -168,7 +168,10 @@ void Gaussian::Draw(double *beta)const
     draw[i] = gennor( (double)0.0, (double)1.0 );
   
   //cholesky decomposition
-  cholDecomp(Covariance, L, Dimension);
+  if(cholDecomp(Covariance, L, Dimension)) {
+    cerr << "Cholesky decomposition failed in Gaussian::Draw"<<endl;
+    exit(1);
+  }
 
   for ( i = 0; i < Dimension; i++ ){
     beta[i] = 0.0;

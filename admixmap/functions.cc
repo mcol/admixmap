@@ -170,6 +170,7 @@ int HH_solve (size_t n, double *A, double *b, double *x)
   //Caller for gsl_linalg_HH_solve
   //This function solves the system A x = b directly using Householder transformations. 
   //On output the solution is stored in x and b is not modified. The matrix AA is destroyed by the Householder transformations. 
+
   gsl_matrix *AA;
   gsl_vector_view bb,xx;
 
@@ -178,11 +179,14 @@ int HH_solve (size_t n, double *A, double *b, double *x)
   for (size_t i = 0; i < n*n; i++){
       AA->data[i] = A[i];
     }
+
   bb = gsl_vector_view_array(b, n);
   xx = gsl_vector_view_array(x, n);
+
   int status = gsl_linalg_HH_solve(AA, &bb.vector, &xx.vector);
+
   gsl_matrix_free(AA);
-  return status; 
+  return status;
 }
 
 int HH_svx (size_t n, double *A, double *x)
@@ -209,10 +213,10 @@ int HH_svx (size_t n, double *A, double *x)
 
 void CentredGaussianConditional( int kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim )
-//Computes the conditional mean and variance of a centred subvector of length kk of a zero-mean multivariate Gaussian vector
+//Computes the conditional mean and variance of a centred subvector of length kk of a zero-mean Multivariate Gaussian vector
 //of length dim
 {
-  //Note that matrix_views do not allocate new data
+  //Note that matrix_view's do not allocate new data
   gsl_matrix_view mean_matrix = gsl_matrix_view_array(mean, dim, 1);
   gsl_matrix_view var_matrix = gsl_matrix_view_array(var, dim, dim);
 
@@ -513,7 +517,7 @@ void matrix_inverse(double* a, size_t d){
 }
 
 //Cholesky decomposition, Crout algorithm
-void cholDecomp(const double* const a, double *L, int n){
+int cholDecomp(const double* const a, double *L, int n){
   
   for(int i = 0; i < n; ++i){
     for(int j = i+1; j < n; ++j)L[i*n +j] = 0.0;
@@ -524,7 +528,7 @@ void cholDecomp(const double* const a, double *L, int n){
       for(int k = 0; k < i ; ++k) sum-= L[i*n +k]*L[j*n+k];
   
       if(i == j){
-	if(sum <= 0.0) {cerr<<"Cholesky decomposition failed"<<endl;system("pause");exit(1);}
+	if(sum <= 0.0) {return 1;}
 	L[i*n +j] = sqrt(sum);
       }
       else                          {
@@ -533,6 +537,7 @@ void cholDecomp(const double* const a, double *L, int n){
       }
     }
   }
+  return 0;
 }
 
 // void invert_pds_matrix(const double* const a, double *Inv, int n){
@@ -545,7 +550,7 @@ double xlog(double x){
 }
 double xexp(double x){
   double res = 0.0;
-  if(x < GSL_LOG_DBL_MIN) res = exp(x);
+  if(x < GSL_LOG_DBL_MIN)res = exp(x);
   else res = gsl_sf_exp(x);
   return res;
 }
