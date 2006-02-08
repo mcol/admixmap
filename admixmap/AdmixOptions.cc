@@ -1045,6 +1045,8 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	EtaOutputFilename = "";
 	OptionValues.erase("dispparamfile");
       }
+      GlobalRho = false;
+      OptionValues["globalrho"] = "0";
     }
   
   // **** Random Mating Model **** 
@@ -1109,7 +1111,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   //Prior on admixture
   setInitAlpha(Log);
   if(Populations > 1 && NumberOfIndividuals > 1){
-    Log << "Gamma(1, 1) prior on population admixture Dirichlet parameters.";
+    Log << "Gamma(1, 1) prior on population admixture Dirichlet parameters.\n";
   }
 
   // **** Check whether genotypes file has been specified ****
