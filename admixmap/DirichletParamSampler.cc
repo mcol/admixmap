@@ -3,6 +3,8 @@
 #include <numeric>
 #include "functions.h"
 #include <gsl/gsl_math.h>
+#include <gsl/gsl_sf_psi.h>
+#include<gsl/gsl_sf_result.h>
 
 using namespace std;
 
@@ -43,7 +45,7 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    munew = new double[K];
    for( unsigned int i = 0; i < K; i++ )
      muDirichletParams[i] = 1.0;
-   DirParamArray.Initialise(true, true, 1.0, 0.00001, logf, dlogf); // to avoid singularity at mu[j]=0
+   DirParamArray.Initialise(true, true, 1.0, 0.0001, logf, dlogf); // to avoid singularity at mu[j]=0
 
    EtaArgs.priorshape = K; // for compatibility with gamma(1, 1) prior on alpha
    EtaArgs.priorrate = 1;
@@ -105,7 +107,7 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
 	AlphaParameters[2] = b; 
 	AlphaParameters[3] = sumlogtheta[j]; 
 	AlphaParameters[4] = sumlogtheta[k];
-	DirParamArray.setUpperBound(b-0.00001); // to avoid singularity at b=0
+	DirParamArray.setUpperBound(b-0.0001); // to avoid singularity at b=0
 	try {
 	  mu[j] = DirParamArray.Sample(AlphaParameters, ddlogf);
 	} catch(string msg) {
@@ -215,25 +217,43 @@ double DirichletParamSampler::logf( double muj, const void* const pars ) {
    double eta = parameters[1], b = parameters[2], sumlogpj = parameters[3], sumlogpk = parameters[4];
    if(muj < 0 || (b - muj < 0)) {
      throw string("\nDirichletParamSampler: negative argument to lngamma function\n");
-   } 
+   }
+   int status = 0;
+   double y1, y2;
+   gsl_sf_result lngamma_result;
+   status = gsl_sf_lngamma_e( muj*eta, &lngamma_result );
+   if(status) throw string("gsl lngamma error\n");
+   y1 = lngamma_result.val;
+   status = gsl_sf_lngamma_e( (b-muj)*eta, &lngamma_result );
+   if(status) throw string("gsl lngamma error\n");
+   y2 = lngamma_result.val;
    double f = eta * muj * ( sumlogpj - sumlogpk )
-     - n * ( gsl_sf_lngamma(muj*eta) + gsl_sf_lngamma( (b - muj)*eta) );
+     - n * ( y1 + y2 );
+   //     - n * ( gsl_sf_lngamma(muj*eta) + gsl_sf_lngamma( (b - muj)*eta) );
    //cout << "\nlog density function passed muj " << muj << "\treturns logdensity " << f << endl;
-  return f;
+   return f;
 }
 
 double DirichletParamSampler::dlogf( double muj, const void* const pars ) {
   const double* parameters = (const double*) pars;
   double f, x1, x2, y1, y2;
   int n = (int)parameters[0];
+  int status = 0;
   double eta = parameters[1], b = parameters[2], sumlogpj = parameters[3], sumlogpk = parameters[4];
   if(muj < 0 || (b - muj < 0)) {
     throw string("\nDirichletParamSampler: negative argument to digamma function\n");
   } 
   x1 = eta*muj;
   x2 = eta*(b - muj);
-  ddigam( &x1, &y1 );
-  ddigam( &x2, &y2 );
+  //ddigam( &x1, &y1 );
+  //ddigam( &x2, &y2 );
+  gsl_sf_result psi_result;
+  status = gsl_sf_psi_e(x1, &psi_result);
+  if(status) throw string("gsl digamma error\n");
+  y1 = psi_result.val;
+  status = gsl_sf_psi_e(x2, &psi_result);
+  if(status) throw string("gsl digamma error\n");
+  y2 = psi_result.val;
   f =  eta * ( sumlogpj - sumlogpk - n*( y1 - y2) );
   //cout << "\ngradient function passed muj "<< muj << "\treturns gradient " << f << flush;
   return f;
@@ -246,8 +266,16 @@ double DirichletParamSampler::ddlogf( double muj, const void* const pars) {
   double eta = parameters[1], b = parameters[2];
   x1 = eta*muj;
   x2 = eta*(b - muj);
-  trigam( &x1, &y1 );
-  trigam( &x2, &y2 );
+  //trigam( &x1, &y1 );
+  //trigam( &x2, &y2 );
+  int status = 0;
+  gsl_sf_result psi1_result;
+  status = gsl_sf_psi_n_e(1, x1, &psi1_result);
+  if(status) throw string("gsl trigamma error\n");
+  y1 = psi1_result.val;
+  status = gsl_sf_psi_n_e(1, x2, &psi1_result);
+  if(status) throw string("gsl trigamma error\n");
+  y2 = psi1_result.val;
   f = -n * eta * eta *( y1 + y2 );
   if(f >= 0) {
     throw string("DirichletParamSsampler: 2nd derivative non-negative\n");
