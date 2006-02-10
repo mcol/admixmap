@@ -693,18 +693,18 @@ int CompositeLocus::GetMergedHaplotype( int i )const
 // apparently calculates contribution of allele freqs to marginal likelihood of model
 // by subtracting log prior density from log posterior
 // in current version, this function is not called anywhere
-double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const std::vector<int> AlleleCounts )
-{
-  double sumPrior = accumulate(PriorAlleleFreqs.begin(), PriorAlleleFreqs.end(), 0.0, std::plus<double>());
-  double sumCounts = accumulate(AlleleCounts.begin(), AlleleCounts.end(), 0.0, std::plus<double>());
+// double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const std::vector<int> AlleleCounts )
+// {
+//   double sumPrior = accumulate(PriorAlleleFreqs.begin(), PriorAlleleFreqs.end(), 0.0, std::plus<double>());
+//   double sumCounts = accumulate(AlleleCounts.begin(), AlleleCounts.end(), 0.0, std::plus<double>());
 
-   double f = gsl_sf_lngamma( sumPrior ) -
-      gsl_sf_lngamma( sumPrior + sumCounts );
-   for( unsigned i = 0; i < PriorAlleleFreqs.size(); i++ )
-      f += gsl_sf_lngamma( PriorAlleleFreqs[i] + AlleleCounts[i] )
-         - gsl_sf_lngamma( PriorAlleleFreqs[i] );
-   return(f);
-}
+//    double f = gsl_sf_lngamma( sumPrior ) -
+//       gsl_sf_lngamma( sumPrior + sumCounts );
+//    for( unsigned i = 0; i < PriorAlleleFreqs.size(); i++ )
+//       f += gsl_sf_lngamma( PriorAlleleFreqs[i] + AlleleCounts[i] )
+//          - gsl_sf_lngamma( PriorAlleleFreqs[i] );
+//    return(f);
+// }
 
 
 
