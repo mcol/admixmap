@@ -56,7 +56,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
     p = momentum
     H = Hamiltonian
     epsilon = step size
-    Tau = number of. leapfrog steps
+    Tau = number of leapfrog steps
     dim = dimension (= K)
     gradE = gradient function
     findE = objective function = -log density
@@ -85,8 +85,12 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   }
   for(unsigned tau = 0; tau < Tau; ++tau){ // make Tau `leapfrog' steps
     for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
-    for(unsigned i = 0; i < dim; ++i) {xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
+    for(unsigned i = 0; i < dim; ++i) {
+      xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
       //cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
+      if( isinf(xnew[i]) ) {
+	throw string("\nleapfrog to infinity in Hamiltonian sampler - try using more small steps");
+      }
     }
     //cout<<endl<<endl;
     gradE ( xnew, args, gnew ) ; // find new gradient

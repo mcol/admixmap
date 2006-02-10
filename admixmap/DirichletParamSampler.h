@@ -3,7 +3,7 @@
 #define DirichletParamSampler_H 1
 
 #define SAMPLERTYPE 1 // 1 = adaptive rejection sampler on pairwise elements of proportion vector mu
-                      //     Hamiltonian on dispersion parameter etaARS + MHRW
+                      //     Hamiltonian on dispersion parameter 
                       // 2 = Hamiltonian on parameter vector alpha
 
 #include <gsl/gsl_sf_gamma.h>

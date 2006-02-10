@@ -27,7 +27,7 @@ void DirichletParamSampler::Initialise() {
 #elif SAMPLERTYPE==2
   logalpha = 0;
   initialAlphaStepsize = 0.02;//need a way of setting this without recompiling, or a sensible fixed value
-  targetAlphaAcceptRate = 0.44;//need to choose suitable value for this
+  targetAlphaAcceptRate = 0.7;// use high value with many leapfrog steps
 #endif
 }
 
@@ -51,15 +51,15 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    EtaArgs.priorrate = 1;
    EtaArgs.numpops = numpops;
    EtaArgs.numobs = numobs; 
-   EtaSampler.SetDimensions(1, 0.01/*initial stepsize*/, 0.01/*min stepsize*/, 100.0/*max stepsize*/, 20/*num leapforgs*/, 
-			    0.44/*target accept rate*/, etaEnergy, etaGradient);  
+   EtaSampler.SetDimensions(1, 0.005/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 40/*num leapfrogs*/, 
+			    0.7/*target accept rate*/, etaEnergy, etaGradient);  
 #elif SAMPLERTYPE==2
    logalpha = new double[K];
    AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sampler
    AlphaArgs.dim = K;
    AlphaArgs.eps0 = 1.0; //Gamma(1, 1) prior on alpha
    AlphaArgs.eps1 = 1.0;
-   AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 100.0, 20, targetAlphaAcceptRate, findE, gradE);
+   AlphaSampler.SetDimensions(K, initialAlphaStepsize, 0.01, 100.0, 50, targetAlphaAcceptRate, findE, gradE);
 #endif
 }
 
@@ -89,13 +89,14 @@ void DirichletParamSampler::SetPriorMu( const double* const ingamma ) {
 void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector<double> *alpha ) {
   // sumlogtheta = sum log observed proportions
   // update elements of mu with adaptive rejection sampler conditional on sumlogtheta
-  // update eta with Hamiltonian
+  // update eta with Hamiltonian  
 #if SAMPLERTYPE==1
+  gsl_set_error_handler_off();
   eta = accumulate(alpha->begin(), alpha->end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
   for( unsigned i = 0; i < K; i++ ) {
     mu[i] = (*alpha)[i]/eta;
+    //cout << (*alpha)[i] << " ";
   }
-  
   double b = 0.0; 
 
   for(int updates=0; updates < 2; ++ updates) {
@@ -122,8 +123,14 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
   //SampleEta((unsigned)AlphaParameters[0], sumlogtheta, &eta, mu);//first arg is num obs
   EtaArgs.sumlogtheta = sumlogtheta;
   EtaArgs.mu = mu;
+  // cout << "eta " << eta << endl << flush;
   etanew = log(eta);//sample for log of dispersion parameter
-  EtaSampler.Sample(&etanew, &EtaArgs);
+  try {
+    EtaSampler.Sample(&etanew, &EtaArgs);
+  } catch(string msg) {
+    cout << msg << endl;
+    exit(1);
+  }
   eta = exp(etanew);
   for( unsigned j = 0; j < K; j++ ) (*alpha)[j] = mu[j]*eta;
   
@@ -178,9 +185,16 @@ double DirichletParamSampler::etaEnergy( const double* const x, const void* cons
   // log prior  
   E += ( args->priorshape - 1.0 ) * ( log(eta) ) - args->priorrate *  eta ;
   // log likelihood 
-  E += args->numobs * ( gsl_sf_lngamma( eta ) );
-  for( unsigned i = 0; i < args->numpops; i++ )
-    E += mu[i] * eta  * sumlogtheta[i] -  args->numobs * gsl_sf_lngamma( eta * mu[i] );
+  int status = 0;
+  gsl_sf_result lngamma_result;
+  status = gsl_sf_lngamma_e( eta, &lngamma_result );
+  if(status) throw string("gsl lngamma error\n");
+  E += args->numobs * lngamma_result.val;
+  for( unsigned i = 0; i < args->numpops; i++ ) {
+    status = gsl_sf_lngamma_e( eta*mu[i], &lngamma_result );
+    if(status) throw string("gsl lngamma error\n");
+    E += mu[i] * eta  * sumlogtheta[i] -  args->numobs * lngamma_result.val; // gsl_sf_lngamma( eta * mu[i] );
+  }
   //Jacobian
   E += eta;
   return -E;
@@ -192,18 +206,30 @@ void DirichletParamSampler::etaGradient( const double* const x, const void* cons
   const double* mu = args->mu;
   const double* sumlogtheta = args->sumlogtheta;
   double eta = exp(*x);
-  double psi;
+  //double psi;
 
   g[0] = 0;
   // log prior  
   g[0] -= ( args->priorshape - 1.0 ) / eta - args->priorrate;
   // log likelihood
-  ddigam(&eta, &psi); 
-  g[0] -= args->numobs * psi;//( gsl_sf_psi( eta ) );
+  int status = 0;
+  gsl_sf_result psi_result;
+  status = gsl_sf_psi_e(eta, &psi_result);
+  if(status) {
+    cout << "\n" << eta <<" as argument eta to digamma function";
+    throw string("\nERROR in etaGradient: gsl digamma function\n");
+  }
+  //ddigam(&eta, &psi); 
+  g[0] -= args->numobs * psi_result.val;//( gsl_sf_psi( eta ) );
   for( unsigned i = 0; i < args->numpops; i++ ){
-    double alpha = eta*mu[i];
-    ddigam(&alpha, &psi);
-    g[0] -= mu[i] * sumlogtheta[i] -  args->numobs * mu[i] * psi;//gsl_sf_psi( eta * mu[i] );
+    //double alpha = eta*mu[i];
+    status = gsl_sf_psi_e(eta*mu[i], &psi_result);
+    if(status) {
+      cout << "\n" << eta*mu[i] <<" as argument eta*mu to digamma function";
+      throw string("\nERROR in etaGradient: gsl digamma error\n");
+    }
+    //ddigam(&alpha, &psi);
+    g[0] -= mu[i] * sumlogtheta[i] -  args->numobs * mu[i] * psi_result.val;//gsl_sf_psi( eta * mu[i] );
   }
   //Jacobian
   g[0] *= eta;
@@ -238,7 +264,6 @@ double DirichletParamSampler::dlogf( double muj, const void* const pars ) {
   const double* parameters = (const double*) pars;
   double f, x1, x2, y1, y2;
   int n = (int)parameters[0];
-  int status = 0;
   double eta = parameters[1], b = parameters[2], sumlogpj = parameters[3], sumlogpk = parameters[4];
   if(muj < 0 || (b - muj < 0)) {
     throw string("\nDirichletParamSampler: negative argument to digamma function\n");
@@ -247,6 +272,7 @@ double DirichletParamSampler::dlogf( double muj, const void* const pars ) {
   x2 = eta*(b - muj);
   //ddigam( &x1, &y1 );
   //ddigam( &x2, &y2 );
+  int status = 0;
   gsl_sf_result psi_result;
   status = gsl_sf_psi_e(x1, &psi_result);
   if(status) throw string("gsl digamma error\n");
