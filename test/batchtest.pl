@@ -111,7 +111,32 @@ $arg_hash->{targetindicator} = 0; # diabetes
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results5");
 
-#Single individual
+# autosomal and X chromosome data
+my $arg_hash = {
+    genotypesfile                   => 'Cattledata/ngu_complete2.txt',
+    locusfile                          => 'Cattledata/loci.txt',
+    populations => 2,
+    analysistypeindicator     => 1, #no outcome var
+    globalrho => 1,
+    samples  => 25,
+    burnin   => 5,
+    every    => 1,
+    resultsdir               => "$resultsdir",
+    logfile                     => 'log.txt',
+    paramfile               => 'paramfile.txt',
+    indadmixturefile     => 'indadmixture.txt',
+    ergodicaveragefile => 'ergodicaverages.txt',
+    allelefreqoutputfile  => 'allelefreqs.txt',
+    #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
+    #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
+    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
+    #haplotypeassociationscorefile => 'hapassocscore.txt',
+    #stratificationtestfile                   => 'strat_test.txt'
+};
+doAnalysis($executable,$arg_hash);
+&CompareThenMove("results", "cattleresults");
+
+# Single individual
 my $arg_hash = {
     burnin   => 10,
     samples  => 60,
@@ -127,12 +152,10 @@ my $arg_hash = {
     fixedallelefreqs             => 1,
     admixtureprior                   => "1,1,0",
     admixtureprior1                   => "1,1,1",
-
     logfile                      => "logfile.txt",
     chib                         => 1,
     indadmixturefile             => "indadmixture.txt"
 };
-
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "Indresults");
 
