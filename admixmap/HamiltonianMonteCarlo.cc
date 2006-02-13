@@ -75,6 +75,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   gradE (x, args, g ) ; // set gradient using initial x
   E = findE (x, args ) ;// set objective function too
   epsilon = Tuner.getStepSize();
+  //cout<<"epsilon = "<<epsilon<<endl;
   
   for(unsigned i = 0; i < dim; ++i)p[i] = gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
   for(unsigned i = 0; i < dim; ++i)sumpsq += p[i]*p[i];
@@ -87,14 +88,14 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
     for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
     for(unsigned i = 0; i < dim; ++i) {
       xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
-      //cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
       if( isinf(xnew[i]) ) {
 	throw string("\nleapfrog to infinity in Hamiltonian sampler - try using more small steps");
       }
     }
-    //cout<<endl<<endl;
     gradE ( xnew, args, gnew ) ; // find new gradient
-    for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
+    for(unsigned i = 0; i < dim; ++i) {p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
+      //cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
+    }
   }
   //cout<<endl;
   sumpsq = 0.0;
