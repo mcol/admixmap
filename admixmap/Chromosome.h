@@ -56,8 +56,9 @@ public:
   std::vector<std::vector<double> > getAncestryProbs(int)const;
   double getLogLikelihood()const;
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
-			    int *SumLocusAncestry, int *SumLocusAncestry_X, 
-			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const;
+			    int *SumLocusAncestry, //int *SumLocusAncestry_X, 
+			    unsigned int SumN[], //unsigned int SumN_X[], 
+			    bool SampleArrivals)const;
 private:
   int _startLocus;
   int populations;

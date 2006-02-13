@@ -24,8 +24,7 @@ HMM::HMM()
 //not currently used
 //HMM objects are instantiated in Chromosome using default constructor above
 //and dimensions set by SetDimensions below
-HMM::HMM( int inTransitions, int pops)
-{
+HMM::HMM( int inTransitions, int pops) {
   SetDimensions(inTransitions, pops);
 }
 
@@ -214,27 +213,6 @@ void HMM::UpdateBackwardProbsHaploid(const double* const f, const double* const 
   }
 }
 
-/*
-  computes conditional state probabilities at "time" t
-  probs - double array to store state probs
-  K = #populations
-*/
-// void HMM::GetStateProbs( double * probs, int t)const
-// {
-//   double sum = 0.0;
-//   int State = 0;
-
-//   for(int i = 0; i < K; ++i)
-//    for( int j = 0; j < K; j++ ){
-//      probs[State++] = alpha[t*States + i*K +j] * beta[t*States + i*K +j];
-//      sum += probs[State-1];
-//    }
-
-//    for( int j = 0; j < States; j++ ){
-//      probs[j] /= sum;
-//    }
-// }
-
 std::vector<std::vector<double> > HMM::Get3WayStateProbs( int t)const{
   double sum = 0.0;
   int State = 0;
@@ -419,16 +397,12 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
 
 
 void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
-			       int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			       unsigned SumNumArrivals[], unsigned SumNumArrivals_X[], bool isGlobalRho)const{
-  
+			       int *SumLocusAncestry, unsigned SumNumArrivals[], bool SampleArrivals)const {
   bool xi;//jump indicator
   double ProbJump; // prob jump indicator is 1
-
   // first locus not included in loop below
   for( unsigned int g = 0; g < gametes; g++ ){
-    if( !isX ) SumLocusAncestry[ g*K + LocusAncestry[g*Transitions] ]++;
-    else SumLocusAncestry_X[ g*K + LocusAncestry[g*Transitions] ] ++;
+    SumLocusAncestry[ g*K + LocusAncestry[g*Transitions] ]++;
   }
   for( int t = 1; t < Transitions; t++ ) {
     for( unsigned int g = 0; g < gametes; g++ ){
@@ -438,21 +412,14 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
 	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > myrand());
       } 
       if( xi ){ // increment sumlocusancestry if jump indicator is 1
-	if( !isX )
-	  SumLocusAncestry[ g*K + LocusAncestry[t+g*Transitions] ]++;
-	else
-	  SumLocusAncestry_X[ g*K + LocusAncestry[t+g*Transitions] ]++;
-
-	if(!isGlobalRho) { // sample number of arrivals where jump indicator is 1
+	SumLocusAncestry[ g*K + LocusAncestry[t+g*Transitions] ]++;
+	if(SampleArrivals) { // sample number of arrivals where jump indicator is 1
 	  double u = myrand();
 	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
 	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
 	  // algorithm does not require rho or d, only u and f
 	  unsigned int sample = genpoi( log( (1 - u*( 1 - f[2*t+g])) / f[2*t+g] ) );
-	  if( !isX )
 	    SumNumArrivals[g] += sample + 1;
-	  else
-	    SumNumArrivals_X[g] += sample + 1;
 	}
       }//end if xi true
     }//end gamete loop

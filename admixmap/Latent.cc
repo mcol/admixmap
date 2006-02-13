@@ -57,6 +57,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     PopAdmixSampler.SetSize( obs, K );
 
 
+
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
     if( options->isGlobalRho()) { 
@@ -180,8 +181,12 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
       ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
    }
     
-    // set ancestry correlations using proposed value of sum-intensities 
-    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) C[j]->SetLociCorr(rhoprop);
+    // set ancestry correlations using proposed value of sum-intensities
+    // value for X chromosome set to half the autosomal value 
+    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) {
+      if( !C[j]->isXChromosome() ) C[j]->SetLociCorr(rhoprop);
+      else  C[j]->SetLociCorr(0.5 * rhoprop);
+    }
     //get log HMM likelihood at proposal rho and current admixture proportions
     for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
@@ -209,7 +214,8 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     } else { 
       // restore ancestry correlations in Chromosomes using original value of sum-intensities
       for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-	C[j]->SetLociCorr(rho);
+      if( !C[j]->isXChromosome() ) C[j]->SetLociCorr(rho);
+      else  C[j]->SetLociCorr(0.5 * rho);
     } // stored loglikelihoods are still ok
 
     //update sampler object every w updates

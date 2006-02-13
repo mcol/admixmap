@@ -38,7 +38,6 @@ Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false)
   SampleStates.SetDimensions( size, populations );
 
   CodedStates = new int[size];
-  //for(int j = 0; j < 2; ++j) f[j] = new double[size];
   f = new double[2*size];
 }
 
@@ -93,9 +92,7 @@ void Chromosome::SetLociCorr(const double rho){
 void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
 				       const AdmixOptions* const options, const std::vector< double > _rho, bool diploid) {
   //set annealindicator to true once per individual per iteration to accumulate unannealed loglikelihood stored in top level
-
   //_rho contains Individual sumintensities parameters, ignored if globalrho model
-
   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
   // required to calculate transition matrices 
   if( !options->isGlobalRho() ){//non global rho case
@@ -154,12 +151,8 @@ double Chromosome::getLogLikelihood()const
 //samples jump indicators xi for this chromosome, 
 //updates SumLocusAncestry
 void Chromosome::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
-				      int *SumLocusAncestry, int *SumLocusAncestry_X, 
-				      unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const{
-  
-  SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, 
-				    SumLocusAncestry, SumLocusAncestry_X, isX, 
-				    SumN, SumN_X, isGlobalRho);
+				      int *SumLocusAncestry, unsigned int SumN[], bool SampleArrivals)const {
+  SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, SumLocusAncestry, SumN, SampleArrivals);
 }
 
 

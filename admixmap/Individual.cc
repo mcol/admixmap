@@ -13,7 +13,7 @@
 #include "Individual.h"
 #include "StringConvertor.h"
 #include <algorithm>
-
+#include <limits>
 #include <sstream>
 
 #define PR(x) cout << #x << " = " << x << endl;
@@ -60,7 +60,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   } else { // no hierarchical model or globalrho prior
       init = options->getRhoalpha() / options->getRhobeta();
   }
-  _rho.assign(NumIndGametes, init);
+  _rho.assign(NumIndGametes, init); // for global rho, Latent should assign initial value 
   
   sumlogrho.assign(_rho.size(), 0.0);
   
@@ -425,7 +425,8 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
   if(Populations == 1) LogLikelihood = getLogLikelihoodOnePop();
   else {
     for( unsigned int j = 0; j < numChromosomes; j++ ) {
-      UpdateHMMForwardProbs(j, chrm[j], options, ThetaBar, ThetaBar, sumlogrho, sumlogrho);
+      UpdateHMMForwardProbs(j, chrm[j], options, ThetaBar, ThetaBar, sumlogrho, sumlogrho); // ?sumlogrho is posterior mean of rho
+      // should replace 2nd sumlogrho by half its value
       LogLikelihood += chrm[j]->getLogLikelihood();
     }
   }
@@ -529,9 +530,13 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
       if(Populations>1) {
 	// don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
 	//sample number of arrivals, update SumNumArrivals and SumLocusAncestry
-	chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumLocusAncestry_X,
-				      SumNumArrivals, SumNumArrivals_X, options->isGlobalRho());
-     } // end if(Populations>1) block  
+	if( !chrm[j]->isXChromosome() )
+	  chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumNumArrivals, 
+					!options->isGlobalRho());
+	else 
+	  chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry_X, SumNumArrivals_X, 
+					!options->isGlobalRho());
+      } // end if(Populations>1) block  
     } //end chromosome loop
   }
   
@@ -571,7 +576,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
   //uses an EM algorithm to search for posterior modes of individual parameters
   unsigned numEMiters = 10;
   unsigned NumEstepiters = 10; 
-  double LogUnnormalizedPosterior = -100000000.0; // should be minus infinity
+  double LogUnnormalizedPosterior = - numeric_limits<double>::max( );  
 
   //use current parameter values as initial values
   double *SumLocusAncestryHat = new double[2*Populations];
@@ -625,7 +630,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 	if(!options->isGlobalRho()){
 
 	  rhohat[g] = (rhoalpha + SumNumArrivalsHat[g]) / (rhobeta + Loci->GetLengthOfGenome());
-
+	  // TODO - fix this for rhoX = 0.5*rho
 	  if( Loci->isX_data() && !options->isXOnlyAnalysis() )
 	    _rho_X[g] = (rhoalpha + SumNumArrivals_XHat[g]) / (rhobeta + Loci->GetLengthOfXchrm());
 	}
@@ -1005,7 +1010,7 @@ void Individual::resetStepSizeApproximator(int k) {
 //also sets Diploid flag in Chromosome (last arg of UpdateParameters)
 void Individual::UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, const AdmixOptions* const options, 
 				       const double* const theta, const double* const thetaX, 
-				       const vector<double> rho, const vector<double> rhoX){
+				       const vector<double> rho, const vector<double> rhoX) {
 
   if( j != X_posn ){// NOT an X chromosome
     chrm->UpdateHMMForwardProbs(theta, GenotypeProbs[j], GenotypesMissing[j], options, rho, true);
@@ -1023,54 +1028,72 @@ void Individual::UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, c
 }
 
 void Individual::SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta, 
-				     unsigned int SumNumArrivals[], unsigned int SumNumArrivals_X[], 
-				     vector<double>* rho, vector<double>*rho_X){
-  double L = Loci->GetLengthOfGenome(), L_X=0.0;
-  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
-
+			   unsigned int SumNumArrivals[], unsigned int SumNumArrivals_X[], 
+			   vector<double>* rho, vector<double>*rho_X) {
+  // rho_X is set to 0.5*rho - equivalent to re-scaling the length of X chromosome by half
+  // conjugate gamma update for rho includes arrivals on X chromosome, and 0.5 * length of X chromosome 
+  double L = Loci->GetLengthOfGenome(); 
+  //, L_X=0.0;
+  if( Loci->isX_data() ) L += 0.5 * Loci->GetLengthOfXchrm();
+  
   // Samples sum of intensities parameter as conjugate gamma with Poisson likelihood
   // SumNumArrivals is the number of arrivals between each pair of adjacent loci
-  if(options->isXOnlyAnalysis() ){
-    do{
-      (*rho)[0] = gengam( rhobeta + L_X, rhoalpha + (double)SumNumArrivals_X[0] );
-    }while( (*rho)[0] > TruncationPt || (*rho)[0] < 1.0 );
-  }
-  else if(options->isRandomMatingModel() ){
-    for( unsigned int g = 0; g < 2; g++ )if(options->isAdmixed(g)){
-      //autosomes
-      do{
-	(*rho)[g] = gengam( rhobeta + L, rhoalpha + (double)SumNumArrivals[g] );
-      }while( (*rho)[g] > TruncationPt || (*rho)[g] < 1.0 );
-      //X chromosome
-      if(X_data && g < gametes[X_posn] ){//update second gamete only if female
-	do{
-	  (*rho_X)[g] = gengam( rhobeta + L_X, rhoalpha + (double)SumNumArrivals_X[g] );
-	}while( (*rho_X)[g] > TruncationPt || (*rho_X)[g] < 1.0 );
+  //     do{
+  //       (*rho)[0] = gengam( rhobeta + L_X, rhoalpha + (double)SumNumArrivals_X[0] );
+  //     }while( (*rho)[0] > TruncationPt || (*rho)[0] < 1.0 );
+  //   if(options->isXOnlyAnalysis() ){
+  //     do{
+  //       (*rho)[0] = gengam( rhobeta + L_X, rhoalpha + (double)SumNumArrivals_X[0] );
+  //     }while( (*rho)[0] > TruncationPt || (*rho)[0] < 1.0 );
+  //   } else 
+  
+  if(options->isRandomMatingModel() ) {
+    // this should work if SumNumArrivals_X[g] is set to 0 for g=0 in male 
+    for( unsigned int g = 0; g < 2; g++ )if(options->isAdmixed(g)) {
+      do {
+	(*rho)[g] = gengam( rhobeta + L, rhoalpha + (double)(SumNumArrivals[g] + SumNumArrivals_X[g]) );
+      } while( (*rho)[g] > TruncationPt || (*rho)[g] < 1.0 );
+      if(X_data) {
+	// if g = 0 (paternal gamete) and sex is male,  there is no X chr to assign
+	// if g = 1 (maternal gamete) there is always an X chr if X_data
+	(*rho_X)[g] = 0.5 * (*rho)[g];
       }
+      //      //X chromosome
+      //       if(X_data && g < gametes[X_posn] ){//update second gamete only if female
+      // 	do{
+      // 	  (*rho_X)[g] = gengam( rhobeta + L_X, rhoalpha + (double)SumNumArrivals_X[g] );
+      // 	}while( (*rho_X)[g] > TruncationPt || (*rho_X)[g] < 1.0 );
+      //       }
+      //     }
+    } 
+  } else {//assortative mating
+    (*rho)[0] = gengam( rhobeta + 2.0*L, 
+			rhoalpha + (double)(SumNumArrivals[0] + SumNumArrivals[1] + 
+					    SumNumArrivals_X[0] + SumNumArrivals_X[1]) );
+    
+    if(X_data) {
+      (*rho_X)[0] = 0.5 * (*rho)[0];
     }
-  }
-  else{//assortative mating
-    (*rho)[0] = gengam( rhobeta + 2*L, rhoalpha + (double)(SumNumArrivals[0] + SumNumArrivals[1]) );
-    if(X_data)
-      (*rho_X)[0] = gengam( rhobeta + 2*L_X, rhoalpha + (double)(SumNumArrivals_X[0] + SumNumArrivals_X[1]) );
+    //     if(X_data)
+    //       (*rho_X)[0] = gengam( rhobeta + 2*L_X, rhoalpha + (double)(SumNumArrivals_X[0] + SumNumArrivals_X[1]) );
   }
 }
 
 void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
-				      const double* const* ExpectedY, const vector<double> lambda){
+				       const double* const* ExpectedY, const vector<double> lambda){
   int NumOutcomes = Outcome->nCols();
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
-       if( Outcome->isMissing( myNumber-1, k ) ){
-	if( OutcomeType[k] == Continuous )
-	  Outcome->set( myNumber-1, k, gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
-	else{
-	  if( myrand() * ExpectedY[k][myNumber-1] < 1 )
-	    Outcome->set( myNumber-1, k, 1);
-	  else
-	    Outcome->set( myNumber-1, k, 0);
-	}
+    if( Outcome->isMissing( myNumber-1, k ) ){
+      if( OutcomeType[k] == Continuous )
+	Outcome->set( myNumber-1, k, gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
+      else{
+	if( myrand() * ExpectedY[k][myNumber-1] < 1 )
+	  Outcome->set( myNumber-1, k, 1);
+	else
+	  Outcome->set( myNumber-1, k, 0);
       }
+    }
   }
 }
 

@@ -43,8 +43,10 @@ public:
 		      double* oldProbs, double *newProbs); 
 
   void SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
-			    int *SumLocusAncestry, int *SumLocusAncestry_X, bool isX, 
-			    unsigned int SumN[], unsigned int SumN_X[], bool isGlobalRho)const;
+			    int *SumLocusAncestry, //int *SumLocusAncestry_X, bool isX, 
+			    unsigned int SumN[], 
+			    //unsigned int SumN_X[], 
+			    bool SampleArrivals)const;
 private:
   int K;
   int States; //number of states of Markov chain, m in book

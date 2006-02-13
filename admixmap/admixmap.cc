@@ -556,11 +556,13 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   A->ResetAlleleCounts();
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
   if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
-     options->getIndAdmixHierIndicator() && (Loci->GetLengthOfGenome()> 0.0))
+     options->getIndAdmixHierIndicator() && (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
     L->UpdateSumIntensities(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
+  // this function also sets ancestry correlations
   
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
   // individual admixture and sum-intensities 
+  // no need to pass global sumintensities parameter as global ancestry correlations have already been set
   IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(), //L->getrho(), 
 	     L->getrhoalpha(), L->getrhobeta(), //Log, 
 	     anneal);

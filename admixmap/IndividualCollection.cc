@@ -180,7 +180,7 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const
    if(!options->isGlobalRho())
      //initialise rhohat at initial value of Individual 1's sumintensities
       rhohat = _child[0]->getRho();
-   else{
+   else {
    //initialise rhohat at initial value of globalsumintensities ie prior mean
      vector<double> r(2, rhoalpha/rhobeta );
      rhohat = r;
