@@ -1216,7 +1216,7 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
 }
 
   
-if(!is.null(user.options$indadmixturefile)) {
+if(!is.null(user.options$indadmixturefile) && K >1) {
   ## read posterior samples of individual admixture
   print.default("Reading posterior samples of individual params")
   samples <- dget(paste(resultsdir,user.options$indadmixturefile,sep="/"))
