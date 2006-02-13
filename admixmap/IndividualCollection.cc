@@ -52,8 +52,8 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   NumInd = Data->getNumberOfIndividuals();
   size = NumInd;
   NumCompLoci = Loci.GetNumberOfCompositeLoci();
-  sigma.resize(2);
-  sigma[0] = sigma[1] = 1.0;
+  //sigma.resize(2);
+  //sigma[0] = sigma[1] = 1.0;
   TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer)
   sizeTestInd = 0;
   SumEnergy = 0; SumEnergySq = 0; 
@@ -360,7 +360,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     for(int i = 0; i < sizeTestInd; ++i){
       TestInd[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				chrm, alpha, rhoalpha, rhobeta, sigma,  
+				   chrm, alpha, rhoalpha, rhobeta, //sigma,  
 				DerivativeInverseLinkFunction(0),
 				R[0].getDispersion(), anneal, true, true, true );
     }
@@ -381,7 +381,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     cout << flush;
     _child[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				chrm, alpha, rhoalpha, rhobeta, sigma,  
+				chrm, alpha, rhoalpha, rhobeta, //sigma,  
 				DerivativeInverseLinkFunction(i+i0),
 				R[0].getDispersion(), (anneal && !options->getTestOneIndivIndicator()), true, true, true );
 
@@ -456,7 +456,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
     i0 = 1;
     TestInd[sizeTestInd-1]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				chrm, alpha, rhoalpha, rhobeta, sigma,  
+					       chrm, alpha, rhoalpha, rhobeta, //sigma,  
 				DerivativeInverseLinkFunction(0),
 				R[0].getDispersion(), modefile, 
 				thetahat, thetahatX, rhohat, rhohatX);
@@ -464,7 +464,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   for(unsigned int i = 0; i < size; i++ ){
     _child[i]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
 				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				  chrm, alpha, rhoalpha, rhobeta, sigma,  
+				  chrm, alpha, rhoalpha, rhobeta, //sigma,  
 				  DerivativeInverseLinkFunction(i+i0),
 				  R[0].getDispersion(), modefile, 
 				  thetahat, thetahatX, rhohat, rhohatX);

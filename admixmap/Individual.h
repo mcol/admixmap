@@ -86,7 +86,6 @@ public:
 
   int GetLocusAncestry(int, int, int)const;
    
-  double IntegratingConst( double alpha, double beta, double a, double b )const;
 
   void SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
 			 const DataType* const OutcomeType, const double* const * ExpectedY, 
@@ -94,7 +93,7 @@ public:
 			 DataMatrix *Covariates, const std::vector<const double*> beta, const double *poptheta, 
 			 const AdmixOptions* const options,
 			 Chromosome **chrm, const vector<vector<double> > &alpha,  
-			 double rhoalpha, double rhobeta, const vector<double> sigma, 
+			 double rhoalpha, double rhobeta, //const vector<double> sigma, 
 			 double DInvLink, double dispersion, bool anneal, bool, bool, bool);
 
   void FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMatrix *Outcome,
@@ -103,7 +102,7 @@ public:
 			  DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
 			  const AdmixOptions* const options,
 			  Chromosome **chrm, const vector<vector<double> > &alpha,  
-			  double rhoalpha, double rhobeta, const vector<double> sigma, 
+			  double rhoalpha, double rhobeta, //const vector<double> sigma, 
 			  double DInvLink, double dispersion, std::ofstream &modefile,
 			  double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX);
 
@@ -112,7 +111,7 @@ public:
 		    const DataType* const OutcomeType, const double* const* ExpectedY, 
 		    const std::vector<double> lambda, int NumCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
-		    const AdmixOptions* const options, const vector<vector<double> > &alpha, const vector<double> sigma,
+		    const AdmixOptions* const options, const vector<vector<double> > &alpha, //const vector<double> sigma,
 		    double DInvLink, double dispersion, bool RW, bool anneal);
 
   void resetStepSizeApproximator(int k);
@@ -140,7 +139,13 @@ public:
 private:
   unsigned myNumber;//number of this individual, counting from 1
   bool IAmUnderTest;//true if not in Individual array
+  bool SexIsFemale;
+  bool Xdata;
+  Sex sex; 
+  std::vector< unsigned int > gametes;// number of gametes on each chromosome
+  unsigned int X_posn;  //number of X chromosome
   unsigned NumIndGametes; // 1 if assortative mating, 2 if random mating
+
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
   double **GenotypeProbs;
@@ -165,9 +170,6 @@ private:
   std::vector<double> sumlogrho;
   double TruncationPt; // upper truncation point for sum intensities parameter rho
 
-  Sex sex; 
-  std::vector< unsigned int > gametes;// number of gametes on each chromosome
-  unsigned int X_posn;  //number of X chromosome
 
   struct {
     double value; //loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true
@@ -199,10 +201,11 @@ private:
   static double *LikRatio1;
   static double *LikRatio2;
   
+  double IntegratingConst( double alpha, double beta, double a, double b )const;
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);
-  void Accept_Reject_Theta( double p, bool xdata, int Populations, bool ModelIndicator, bool RW );
-  double LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations );
+  void Accept_Reject_Theta( double p, /*bool xdata,*/ int Populations, bool ModelIndicator, bool RW );
+  //double LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations );
   double LogAcceptanceRatioForRegressionModel( RegressionType RegType, int TI,  bool RandomMatingModel, 
 					       int Populations, int NumCovariates, 
 					       const DataMatrix* const Covariates, const std::vector<const double*> beta, 
@@ -217,7 +220,7 @@ private:
 		 unsigned int SumN[], unsigned int SumN_X[], 
 		 vector<double>* rho, vector<double>*rho_X);
   
-  void ProposeTheta(const AdmixOptions* const options, const vector<double> sigma, const vector<vector<double> > &alpha,
+  void ProposeTheta(const AdmixOptions* const options, /*const vector<double> sigma,*/ const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
 
   double ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, const vector<vector<double> > &alpha);

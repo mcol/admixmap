@@ -137,7 +137,7 @@ private:
   vector<double> MaxLogLikelihood;
 
   DataMatrix *ReportedAncestry;
-  std::vector<double> sigma;
+  //std::vector<double> sigma;
   IndAdmixOutputter* indadmixoutput;
   double SumLogLikelihood;
   double SumDeviance, SumDevianceSq;
