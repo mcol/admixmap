@@ -268,28 +268,30 @@ checkConvergence <- function(table.samples, listname, outputfile) {
 
 plotErgodicAverages <- function(ergodicaveragefile, thinning) {
   table.averages <- read.table(file=ergodicaveragefile, header=TRUE)
-  iterations <- 10*thinning*seq(1:dim(table.averages)[1])	
-  omit <- seq(1:(length(iterations)/5))#exclude first 20% from plot
-  ## plot ergodic averages
-  start <- 1
-  if( K > 1 && user.options$indadmixhiermodel==1){
-    start <- K+1
-    dispersion <- apply(table.averages[-omit,1:K], 1, sum)
-    plot(iterations[-omit],dispersion, type='l', main="Running posterior mean", 
-         xlab="Iterations", ylab="PopAdmix Dispersion");
-    for(j in 1:K){
-      plot(iterations[-omit], table.averages[-omit,j]/dispersion, type="l", 
+  if(dim(table.averages)[1] > 5) {
+    iterations <- 10*thinning*seq(1:dim(table.averages)[1])	
+    omit <- seq( 1:(floor(length(iterations)/5)) ) #exclude first 20% from plot
+    ## plot ergodic averages
+    start <- 1
+    if( K > 1 && user.options$indadmixhiermodel==1) {
+      start <- K+1
+      dispersion <- apply(table.averages[-omit,1:K], 1, sum)
+      plot(iterations[-omit],dispersion, type='l', main="Running posterior mean", 
+           xlab="Iterations", ylab="PopAdmix Dispersion");
+      for(j in 1:K){
+        plot(iterations[-omit], table.averages[-omit,j]/dispersion, type="l", 
+             main="Running posterior mean", 
+             xlab="Iterations", ylab=dimnames(table.averages)[[2]][j]) # should fix dimnames
+      }
+    }
+    for(j in start:dim(table.averages)[2]) {
+      plot(iterations[-omit], table.averages[-omit,j], type="l", 
            main="Running posterior mean", 
            xlab="Iterations", ylab=dimnames(table.averages)[[2]][j]) # should fix dimnames
     }
   }
-  for(j in start:dim(table.averages)[2]) {
-    plot(iterations[-omit], table.averages[-omit,j], type="l", 
-         main="Running posterior mean", 
-         xlab="Iterations", ylab=dimnames(table.averages)[[2]][j]) # should fix dimnames
-  }
 }
-  
+
 popAdmixProportions <- function(population.labels, params, k) {
   ## calculate population admixture proportions from Dirichlet parameters
   pop.admix.prop <- as.data.frame(matrix(data=NA, nrow=n, ncol=k))
@@ -1117,6 +1119,26 @@ if(is.null(user.options$ergodicaveragefile)) {
   }
 }
 
+if(!is.null(user.options$thermo) && user.options$thermo == 1){
+  anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
+  postscript(paste(resultsdir, "annealplot.ps", sep="/"))
+  ##plot raw points
+  plot(anneal.table[,1],anneal.table[,2], xlab="Coolness", ylab="Mean energy", type = 'p')
+##  ##fit smoothed spline and overlay on points
+##  fit.spline <- smooth.spline(anneal.table[,1], anneal.table[,2], w=-1/anneal.table[,3],spar=0.6)
+##  lines(fit.spline, lty=2)
+  dev.off()
+}
+
+## read output of score test for mis-specified allele freqs and plot cumulative results
+if(!is.null(user.options$allelefreqscorefile)) {
+  plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
+}
+
+#read output of test for heterozygosity and plot
+if(!is.null(user.options$hwtestfile)){
+  plotHWScoreTest(user.options$hwtestfile, K)
+}
 ## read output of score test for allelic association, and plot cumulative results
 if(!is.null(user.options$allelicassociationscorefile)) {
   outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
@@ -1142,26 +1164,6 @@ if(!is.null(user.options$affectedsonlyscorefile)) {
   plotAncestryScoreTest(user.options$affectedsonlyscorefile, "TestsAffectedsOnly",K, population.labels, user.options$every)
 }
 
-## read output of score test for mis-specified allele freqs and plot cumulative results
-if(!is.null(user.options$allelefreqscorefile)) {
-  plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
-}
-
-#read output of test for heterozygosity and plot
-if(!is.null(user.options$hwtestfile)){
-  plotHWScoreTest(user.options$hwtestfile, K)
-}
-
-if(!is.null(user.options$thermo) && user.options$thermo == 1){
-  anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
-  postscript(paste(resultsdir, "annealplot.ps", sep="/"))
-  ##plot raw points
-  plot(anneal.table[,1],anneal.table[,2], xlab="Coolness", ylab="Mean energy", type = 'p')
-##  ##fit smoothed spline and overlay on points
-##  fit.spline <- smooth.spline(anneal.table[,1], anneal.table[,2], w=-1/anneal.table[,3],spar=0.6)
-##  lines(fit.spline, lty=2)
-  dev.off()
-}
 
 if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1) {
   print("allelefreqoutputfile not specified")
