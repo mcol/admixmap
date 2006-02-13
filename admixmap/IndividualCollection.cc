@@ -294,15 +294,15 @@ void IndividualCollection::setAdmixtureProps(const double* const a, size_t theta
   }
 }
 
-void IndividualCollection::setAdmixturePropsX(const double* const a, size_t thetasize)
-{
-  if(TestInd)
-    for(int i = 0; i < sizeTestInd; ++i)
-      TestInd[i]->setAdmixtureProps(a, thetasize);
-  for(unsigned int i = 0; i < size; i++){
-    _child[i]->setAdmixturePropsX(a, thetasize);
-  }
-}
+// void IndividualCollection::setAdmixturePropsX(const double* const a, size_t thetasize)
+// {
+//   if(TestInd)
+//     for(int i = 0; i < sizeTestInd; ++i)
+//       TestInd[i]->setAdmixtureProps(a, thetasize);
+//   for(unsigned int i = 0; i < size; i++){
+//     _child[i]->setAdmixturePropsX(a, thetasize);
+//   }
+// }
 
 void IndividualCollection::SetExpectedY(int k, const double* const beta){
   //sets ExpectedY = X * Beta

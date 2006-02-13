@@ -49,7 +49,7 @@ public:
   void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
   void setAdmixtureProps(const double* const, size_t);
   
-  void setAdmixturePropsX(const double* const, size_t);
+  //void setAdmixturePropsX(const double* const, size_t);
   
   bool GetAlleleCountsAtLocus(int complocus, int locus, int a, int* count)const;
 
@@ -69,9 +69,6 @@ public:
 
   const int *getSumLocusAncestry()const;
 
-  double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
-			  const double* const theta, const double* const thetaX,
-			  const vector<double > rho, const vector<double> rho_X, bool updateHMM);
   double getLogLikelihood(const AdmixOptions* const , Chromosome**, const bool forceUpdate, const bool store);
   void storeLogLikelihood(const bool setHMMAsOK); // to call if a Metropolis proposal is accepted
 
@@ -201,6 +198,10 @@ private:
   static double *LikRatio1;
   static double *LikRatio2;
   
+  double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
+			  const double* const theta, const double* const thetaX,
+			  const vector<double > rho, const vector<double> rho_X, bool updateHMM);
+
   double IntegratingConst( double alpha, double beta, double a, double b )const;
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);

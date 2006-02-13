@@ -95,10 +95,12 @@ int main( int argc , char** argv ){
     R[r].Initialise(r, IC, Log);
   Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
   
-  if( options.isGlobalRho() )
+  if( options.isGlobalRho() ) {
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ) {
-      chrm[j]->InitialiseLociCorr(L.getrho());
+      if( !chrm[j]->isXChromosome() ) chrm[j]->InitialiseLociCorr(L.getrho());
+      else chrm[j]->InitialiseLociCorr(0.5*L.getrho());
     }
+  }
   cout << flush; 
   IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log);
   

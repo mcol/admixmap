@@ -80,7 +80,7 @@ public:
   Individual* getIndividual(int)const;
 
   void setAdmixtureProps(const double* const, size_t);
-  void setAdmixturePropsX(const double* const, size_t);
+  //void setAdmixturePropsX(const double* const, size_t);
 
   double GetSumrho()const;
   double getSumLogTheta(int)const;

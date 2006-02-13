@@ -217,6 +217,7 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
       if( !C[j]->isXChromosome() ) C[j]->SetLociCorr(rho);
       else  C[j]->SetLociCorr(0.5 * rho);
     } // stored loglikelihoods are still ok
+    // cout << "\nlogpratio " << LogAccProbRatio << "\trho " << rho;
 
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){
