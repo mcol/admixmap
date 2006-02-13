@@ -72,7 +72,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   }
   // this bool will be used to replace the sex struct
   SexIsFemale = false;
-  if(sex = female) SexIsFemale = true;
+  if(sex == female) SexIsFemale = true;
   Xdata = Loci.isX_data();
   
   int numCompositeLoci = Loci.GetNumberOfCompositeLoci();
@@ -1001,7 +1001,7 @@ void Individual::UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, c
   if( j != X_posn ){// autosome
     chrm->UpdateHMMForwardProbs(theta, GenotypeProbs[j], GenotypesMissing[j], options, rho, true);
   } else {
-    if( !SexIsFemale ){ // X chromosome in male individual, haploid
+    if( !SexIsFemale ) { // X chromosome in male individual, haploid
       chrm->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, false);
     } else { // X chromosome in female individual, diploid
       chrm->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, true);
