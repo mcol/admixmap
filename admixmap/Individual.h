@@ -103,14 +103,6 @@ public:
 			  double DInvLink, double dispersion, std::ofstream &modefile,
 			  double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX);
 
-  void SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
-		    const DataMatrix* const Outcome, Chromosome ** C,
-		    const DataType* const OutcomeType, const double* const* ExpectedY, 
-		    const std::vector<double> lambda, int NumCovariates,
-		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
-		    const AdmixOptions* const options, const vector<vector<double> > &alpha, //const vector<double> sigma,
-		    double DInvLink, double dispersion, bool RW, bool anneal);
-
   void resetStepSizeApproximator(int k);
 
   void Chib(int iteration, // double *SumLogLikelihood, double *MaxLogLikelihood,
@@ -210,8 +202,8 @@ private:
   double LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel, 
 					       int Populations, int NumCovariates, 
 					       const DataMatrix* const Covariates, const double* beta, 
-					       const double ExpectedY, const double Outcome, 
-					       const double* const poptheta, const double lambda);
+					       //const double ExpectedY, 
+					       const double Outcome, const double* const poptheta, const double lambda);
   
   void UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, const AdmixOptions* const options, 
 			     const double* const theta, const double* const thetaX,
@@ -220,6 +212,15 @@ private:
   void SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta,  
 		 unsigned int SumN[], unsigned int SumN_X[], 
 		 vector<double>* rho, vector<double>*rho_X);
+
+  void SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
+		    const DataMatrix* const Outcome, Chromosome ** C,
+		    const DataType* const OutcomeType, //const double* const* ExpectedY, 
+		    const std::vector<double> lambda, int NumCovariates,
+		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
+		    const AdmixOptions* const options, const vector<vector<double> > &alpha, //const vector<double> sigma,
+		    double DInvLink, double dispersion, bool RW, bool anneal);
+
   
   void ProposeTheta(const AdmixOptions* const options, /*const vector<double> sigma,*/ const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);

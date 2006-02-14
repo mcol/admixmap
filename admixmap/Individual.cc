@@ -510,9 +510,8 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     //  }
 
     if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on even-numbered iterations
-    SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType, 
-		ExpectedY, lambda, NumCovariates,
-		Covariates, beta, poptheta, options, alpha, /*sigma,*/ DInvLink, dispersion, true, anneal);
+      SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType,//ExpectedY, 
+		  lambda, NumCovariates, Covariates, beta, poptheta, options, alpha, /*sigma,*/ DInvLink, dispersion, true, anneal);
     
     //SumNumArrivals is the number of arrivals between each pair of adjacent loci
     SumNumArrivals[0] = SumNumArrivals[1] = 0;
@@ -576,8 +575,8 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   }
 
   if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on odd-numbered iterations
-     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, ExpectedY, lambda, 
-		 NumCovariates, Covariates, beta, poptheta, options, alpha, /*sigma,*/ DInvLink, dispersion, false, anneal);
+    SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, //ExpectedY, 
+		 lambda, NumCovariates, Covariates, beta, poptheta, options, alpha, /*sigma,*/ DInvLink, dispersion, false, anneal);
      HMMIsBad(true); // because admixture props have changed
   }  
   
@@ -739,7 +738,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 
 void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
 			      const DataMatrix* const Outcome, Chromosome ** C,
-			      const DataType* const OutcomeType, const double* const* ExpectedY, 
+			      const DataType* const OutcomeType, //const double* const* ExpectedY, 
 			      const vector<double> lambda, int NumCovariates,
 			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
 			      const AdmixOptions* const options, const vector<vector<double> > &alpha, //const vector<double> sigma,
@@ -762,7 +761,7 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
     for( int k = 0; k < NumOutcomes; k++ ){
       if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
       logpratio +=  LogAcceptanceRatioForRegressionModel( RegType, options->isRandomMatingModel(), K, NumCovariates, 
-							  Covariates, beta[k], ExpectedY[ k ][myNumber-1], 
+							  Covariates, beta[k], //ExpectedY[ k ][myNumber-1], 
 							  Outcome->get( myNumber-1, k ), poptheta, lambda[k]);
     }
   }
@@ -900,34 +899,45 @@ void Individual::ProposeTheta(const AdmixOptions* const options, /*const vector<
 double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel, 
 							 int Populations, int NumCovariates, 
 							 const DataMatrix* const Covariates, const double* beta, 
-							 const double ExpectedY, const double Outcome, 
-							 const double* const poptheta, const double lambda) {
+							 //const double ExpectedY, 
+							 const double Outcome, const double* const poptheta, const double lambda) {
   // returns log of ratio of likelihoods of new and old values of population admixture
   // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
   double logprobratio = 0.0, Xbeta = 0.0;
+  double currentEY = 0.0;
   vector<double> avgtheta(Populations);avgtheta[0] = 0.0;
+  vector<double> currentavgtheta(Populations);currentavgtheta[0] = 0.0;
   if( RandomMatingModel )
-    for(int k = 1;k < Populations; ++k)avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations ])/ 2.0 - poptheta[k];
+    for(int k = 1;k < Populations; ++k){
+      avgtheta[k] = (ThetaProposal[k] + ThetaProposal[k + Populations ])/ 2.0 - poptheta[k];
+      currentavgtheta[k] = (Theta[k] + Theta[k + Populations ])/ 2.0 - poptheta[k];
+    }
   else
-    for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
+    for(int k = 1;k < Populations; ++k){
+      avgtheta[k] = ThetaProposal[k]  - poptheta[k];
+      currentavgtheta[k] = Theta[k]  - poptheta[k];
+    }
 
-  for( int jj = 0; jj < NumCovariates - Populations + 1; jj++ )
+  for( int jj = 0; jj < NumCovariates - Populations + 1; jj++ ){
     Xbeta += Covariates->get( myNumber-1, jj ) * beta[jj];
+    currentEY += Covariates->get( myNumber-1, jj ) * beta[jj];
+  }
   for( int k = 1; k < Populations; k++ ){
     Xbeta += avgtheta[ k ] * beta[NumCovariates - Populations + k ];
+    currentEY += currentavgtheta[ k ] * beta[NumCovariates - Populations + k]; 
   }
   if(RegType == Linear){
     logprobratio = 0.5 * lambda * //( ( ExpectedY - Outcome ) * ( ExpectedY - Outcome )
       // 				   - ( Xbeta - Outcome ) * ( Xbeta - Outcome) );
-      ((Xbeta - ExpectedY) * (Outcome + Outcome - ExpectedY - Xbeta) );
+      ((Xbeta - currentEY) * (Outcome + Outcome - currentEY - Xbeta) );
 
   }
   else if(RegType == Logistic){
     double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
     if( Outcome == 1 )
-      logprobratio = newExpectedY / ExpectedY;
+      logprobratio = newExpectedY / currentEY;
     else
-      logprobratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY );
+      logprobratio = ( 1 - newExpectedY ) / ( 1 - currentEY );
     logprobratio = log(logprobratio);//We take the log here rather than compute 4 logs above
   }
   return( logprobratio );
