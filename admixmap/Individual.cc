@@ -761,8 +761,9 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
     int NumOutcomes = Outcome->nCols();
     for( int k = 0; k < NumOutcomes; k++ ){
       if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
-      logpratio +=  LogAcceptanceRatioForRegressionModel( RegType, k, options->isRandomMatingModel(), K, NumCovariates, 
-							  Covariates, beta, ExpectedY, Outcome, poptheta,lambda);
+      logpratio +=  LogAcceptanceRatioForRegressionModel( RegType, options->isRandomMatingModel(), K, NumCovariates, 
+							  Covariates, beta[k], ExpectedY[ k ][myNumber-1], 
+							  Outcome->get( myNumber-1, k ), poptheta, lambda[k]);
     }
   }
   //   //case of X Chromosome and not X only data
@@ -896,11 +897,11 @@ void Individual::ProposeTheta(const AdmixOptions* const options, /*const vector<
   }
 }
 
-double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType, int TI,  bool RandomMatingModel, 
+double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel, 
 							 int Populations, int NumCovariates, 
-							 const DataMatrix* const Covariates, const vector<const double*> beta, 
-							 const double* const* ExpectedY, const DataMatrix* const Outcome, 
-							 const double* const poptheta, const vector<double> lambda) {
+							 const DataMatrix* const Covariates, const double* beta, 
+							 const double ExpectedY, const double Outcome, 
+							 const double* const poptheta, const double lambda) {
   // returns log of ratio of likelihoods of new and old values of population admixture
   // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
   double logprobratio = 0.0, Xbeta = 0.0;
@@ -911,21 +912,22 @@ double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType,
     for(int k = 1;k < Populations; ++k)avgtheta[k] = ThetaProposal[k]  - poptheta[k];
 
   for( int jj = 0; jj < NumCovariates - Populations + 1; jj++ )
-    Xbeta += Covariates->get( myNumber-1, jj ) * beta[ TI ][jj];
+    Xbeta += Covariates->get( myNumber-1, jj ) * beta[jj];
   for( int k = 1; k < Populations; k++ ){
-    Xbeta += avgtheta[ k ] * beta[ TI ][NumCovariates - Populations + k ];
+    Xbeta += avgtheta[ k ] * beta[NumCovariates - Populations + k ];
   }
   if(RegType == Linear){
-    logprobratio = 0.5 * lambda[ TI ] * (( ExpectedY[ TI ][myNumber-1] - Outcome->get( myNumber-1, TI ) ) 
-					 * ( ExpectedY[ TI ][myNumber-1] - Outcome->get( myNumber-1, TI ) )
-					 - ( Xbeta - Outcome->get( myNumber-1, TI ) ) * ( Xbeta - Outcome->get( myNumber-1, TI) ) );
+    logprobratio = 0.5 * lambda * //( ( ExpectedY - Outcome ) * ( ExpectedY - Outcome )
+      // 				   - ( Xbeta - Outcome ) * ( Xbeta - Outcome) );
+      ((Xbeta - ExpectedY) * (Outcome + Outcome - ExpectedY - Xbeta) );
+
   }
   else if(RegType == Logistic){
     double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
-    if( Outcome->get( myNumber-1, TI ) == 1 )
-      logprobratio = newExpectedY / ExpectedY[ TI ][myNumber-1];
+    if( Outcome == 1 )
+      logprobratio = newExpectedY / ExpectedY;
     else
-      logprobratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY[ TI ][myNumber-1] );
+      logprobratio = ( 1 - newExpectedY ) / ( 1 - ExpectedY );
     logprobratio = log(logprobratio);//We take the log here rather than compute 4 logs above
   }
   return( logprobratio );

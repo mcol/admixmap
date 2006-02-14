@@ -207,11 +207,11 @@ private:
 				     bool ModelIndicator, DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, /*bool xdata,*/ int Populations, bool ModelIndicator, bool RW );
   //double LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations );
-  double LogAcceptanceRatioForRegressionModel( RegressionType RegType, int TI,  bool RandomMatingModel, 
+  double LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel, 
 					       int Populations, int NumCovariates, 
-					       const DataMatrix* const Covariates, const std::vector<const double*> beta, 
-					       const double* const* ExpectedY, const DataMatrix* const Outcome, 
-					       const double* const poptheta, const std::vector<double> lambda);
+					       const DataMatrix* const Covariates, const double* beta, 
+					       const double ExpectedY, const double Outcome, 
+					       const double* const poptheta, const double lambda);
   
   void UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, const AdmixOptions* const options, 
 			     const double* const theta, const double* const thetaX,
