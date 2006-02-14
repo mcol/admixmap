@@ -23,4 +23,12 @@ enum RegressionType {Linear, Logistic, None, Both};
 enum DataType {Continuous, Binary};
 enum Sex {unknown, male, female};
 
+class AdmixException : public std::runtime_error {
+public:
+  AdmixException(const std::string s) : std::runtime_error(s){
+    std::cerr << std::endl<< s; }
+  AdmixException(const char* s) : std::runtime_error(s){
+    std::cerr << std::endl<< s; }
+
+};
 #endif /* !defined COMMON_H */
