@@ -12,6 +12,8 @@
  */
 #include "Regression.h"
 #include <numeric>
+#include <gsl/gsl_linalg.h>
+#include <gsl/gsl_blas.h>
 
 std::ofstream Regression::outputstream;
 
@@ -21,9 +23,14 @@ Regression::Regression(){
   lambda1 = 0.0;
   SumLambda = 0;
   beta = 0;
-  beta0 = 0;
-  betan = 0;
-  n0 = 0;
+  betamean = 0;
+  betaprecision = 0;
+  R = 0;
+  QY = 0;
+  QX = 0;
+  V = 0;
+  betahat = 0;
+
   SumBeta = 0;
   NumOutcomeVars = 0;
   NumCovariates = 0;
@@ -32,6 +39,7 @@ Regression::Regression(){
   RegType = None;
 
   X = 0;
+  Y = 0;
   XtY = 0;
   dims = 0;
 }
@@ -45,11 +53,16 @@ Regression::~Regression(){
     delete[] dims;
   }
   delete[] XtY;
-  delete[] beta0;
-  delete[] betan;
-  delete[] n0;
   delete[] beta;
   delete[] SumBeta;
+
+  delete[] betamean;
+  delete[] betaprecision;
+  delete[] R;
+  delete[] QY;
+  delete[] QX;
+  delete[] V;
+  delete[] betahat;
 }
 
 void Regression::OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
@@ -107,27 +120,28 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
 
     //** Objects common to both regression types
     NumCovariates = individuals->GetNumCovariates();
+    NumIndividuals = individuals->getSize();
 
     beta = new double[ NumCovariates ];
     SumBeta = new double[ NumCovariates ];
     fill(beta, beta + NumCovariates, 0.0);
     fill(SumBeta, SumBeta + NumCovariates, 0.0);
 
-    double p;
-    beta0 = new double[ NumCovariates ];
-    fill(beta0, beta0 + NumCovariates, 0.0);
+    betamean = new double[ NumCovariates ];
+    fill(betamean, betamean + NumCovariates, 0.0);
     
     std::vector<double> v = individuals->getOutcome(RegNumber);
-    p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
+    double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
     if(RegType == Logistic )
-      beta0[0] = log( p / ( 1 - p ) );
-    else if(RegType == Linear)
-      beta0[0] = p;
-      
+      betamean[0] = log( p / ( 1 - p ) );
+    //     else if(RegType == Linear)
+    //       betamean[0] = p;
+    
+    //initialise regression params at prior mean
     for(int j = 0; j < NumCovariates; ++j){
-      beta[j] = beta0[j];
+      beta[j] = betamean[j];
     }
-
+    
     X = individuals->getCovariates();
     XtY = new double[NumCovariates];
 
@@ -138,17 +152,31 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
 
     // ** Initialise Linear Regression objects    
     if(RegType == Linear){
-      betan = new double[NumCovariates];
-      n0 = new double[ NumCovariates * NumCovariates ];
-      fill(n0, n0+NumCovariates*NumCovariates, 0.0);
-      for(int i = 0; i < NumCovariates; ++i)n0[i*NumCovariates +i] = 1.0; // identity matrix
+      betaprecision = new double[NumCovariates];//prior precision for beta (prior covariances are zero)
     
       lambda0 = 0.01;//shape parameter for prior on lambda
       lambda1 = 0.01;//rate parameter for prior on lambda
+      lambda = lambda1 / lambda0;//initialise to prior mean
+
+      betaprecision = new double[NumCovariates];
+      fill(betaprecision, betaprecision + NumCovariates, 0.0001);
+
+      Log << "\nGaussian priors on linear regression parameters with zero mean and precision "<< betaprecision[0] << "\n";
+      Log << "Gamma("<< lambda0 << ", " << lambda1 << ") prior on data precision.\n";
       
-      Log << "\nNormal-inverse-gamma prior for linear regression model with gamma shape parameter " << lambda0
-	  << " and rate parameter " << lambda1 << "\n";
-      
+      betahat = new double[NumCovariates];
+      V = new double[NumCovariates*NumCovariates];
+      QX = new double[(NumIndividuals+NumCovariates)*NumCovariates];
+      QY = new double[NumIndividuals+NumCovariates];
+      R = new double[NumCovariates*NumCovariates];
+      // Augment data matrices
+      for(int i = 0; i < NumCovariates; ++i){
+	QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
+	QX[(i+NumIndividuals)*NumCovariates + i] = sqrt(betaprecision[i]);//prior precision on beta
+	for(int j = i+1; j < NumCovariates; ++j)
+	  QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
+      }
+
       DrawBeta.SetDimension( NumCovariates );
     }
 
@@ -165,10 +193,10 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
     }
 
     dims = new int[2];
-    BetaParameters.n = individuals->getSize();
+    BetaParameters.n = NumIndividuals;
     BetaParameters.d = NumCovariates;
     BetaParameters.lambda = lambda;
-    BetaParameters.beta0 = beta0[0];
+    BetaParameters.beta0 = betamean[0];
     for( int i = 0; i < NumCovariates; i++ ){
       BetaDrawArray[i] = new GaussianProposalMH( lr, dlr, ddlr);
     }
@@ -177,69 +205,29 @@ void Regression::Initialise(unsigned Number, const IndividualCollection* const i
 
 void Regression::SetExpectedY(IndividualCollection *IC)const{
   IC->SetExpectedY(RegNumber, beta);
-  //if( RegType == Logistic ) IC->calculateExpectedY(RegNumber);
 }
 
 void Regression::Update(bool sumbeta, IndividualCollection* individuals, double coolness){
   // Sample for regression model parameters beta
-  // should make sure that matrix returned by getCovariates contains updated values of indiv admixture
+  //and precision in linear regression
   std::vector<double> Outcome = individuals->getOutcome(RegNumber);
-  double* Y = new double[Outcome.size()];
-  for(unsigned i = 0; i < Outcome.size(); ++i)
-    Y[i] = Outcome[i];
-  
+
+  Y = &(Outcome[0]);
   X = individuals->getCovariates();
-  
-  int NumIndividuals = individuals->getSize();
-  matrix_product(Y, X, XtY, 1, NumIndividuals, NumCovariates);//XtY = Xt * Y
-  
+//   double sumNAm = 0.0;
+//   for(int i = 0; i < NumIndividuals; ++i)
+//     sumNAm += X[i*NumCovariates + 4];
+//   cout<< "SumNAm ="<<sumNAm<<endl;
   
   if( RegType == Linear ){
-    // full conditional for regression parameters has mean Beta_n = (n0 + X'X)^-1 (n0 Beta0 + X'Y)
-    // where Beta0  and n0*lambda are prior mean and prior precision matrix for regression parameters
-    // calculate (n0 + X'X)^-1
-
-    //compute (X'X + n0)^-1
-    double* Covariance = new double[NumCovariates*NumCovariates];
-
-    //TODO: this block should be hidden in matrix functions
-    gsl_matrix_view XX, C;
-    XX = gsl_matrix_view_array(const_cast<double *>(X), NumIndividuals, NumCovariates);
-    C = gsl_matrix_view_array(Covariance, NumCovariates, NumCovariates);
-    gsl_blas_dgemm(CblasTrans, CblasNoTrans, 1, &XX.matrix, &XX.matrix, 0, &C.matrix); 
-    add_matrix(Covariance, n0, NumCovariates, NumCovariates);
-    matrix_inverse(Covariance, NumCovariates);
-
-    // compute betan = temp*(n0*beta0 + X'*Y) to obtain means of full conditional distribution
-    double* temp2 = new double[NumCovariates];
-    matrix_product(n0, beta0, temp2, NumCovariates, NumCovariates, 1);
-    add_matrix(temp2, XtY, NumCovariates, 1);
-    matrix_product(Covariance, temp2, betan, NumCovariates, NumCovariates, 1);
-
-    // lambda_n is rate parameter of gamma full conditional distribution for dispersion parameter, given by  
-    // lambda1 + 0.5[(Y - X Beta)' Y + (Beta0 - Beta_n)' n0 Beta0]
-    double* Xbetan = new double[NumIndividuals];
-    matrix_product(X, betan, Xbetan, NumIndividuals, NumCovariates, 1);//Xbetan = X * betan
-    scale_matrix(Xbetan, -1.0, NumIndividuals, 1);
-    add_matrix(Xbetan, Y, NumIndividuals, 1);//Xbetan = Y - X* betan
-    double lambdan[1];
-    matrix_product(Xbetan, Y, lambdan, 1, NumIndividuals, 1);//lambdan = Xbetan' * Y
-    lambdan[0] *= 0.5;
-    lambdan[0] += lambda1; //lambdan = lambda1  + 0.5 * Xbetan' * Y
-
-    lambda = gengam( lambdan[0], lambda0 + 0.5 * individuals->getSize() );
-    scale_matrix(Covariance, lambda, NumCovariates, NumCovariates);
-
-    DrawBeta.SetMean( betan );
-    DrawBeta.SetCovariance( Covariance );
-    DrawBeta.Draw(beta);
-    delete[] Covariance;
-    delete[] temp2;
-    delete[] Xbetan;
+    AugmentDataMatrices(Y, X, lambda);
+    SampleRegressionParametersWithAnnealing(beta, &lambda, coolness);
   }
   
   else if( RegType == Logistic ){
-    BetaParameters.coolness = coolness;   
+    BetaParameters.coolness = coolness; 
+    matrix_product(Y, X, XtY, 1, NumIndividuals, NumCovariates);//XtY = X' * Y
+  
     for( int j = 0; j < NumCovariates; j++ ){
       BetaParameters.Covariates = X;
       BetaParameters.beta = beta;
@@ -247,13 +235,9 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals, double 
       BetaParameters.XtY = XtY[ j ];
 
       acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ), &BetaParameters );
-      //BetaParameters.beta[j] = beta[j];
     }
   }
   individuals->SetExpectedY(RegNumber,beta);
-  //if( individuals->getOutcomeType(RegNumber) )
-  //individuals->calculateExpectedY(RegNumber);
-  delete[] Y;  
 
   if(sumbeta){
     SumParameters();
@@ -502,4 +486,144 @@ double Regression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, in
   }
 
   return logL;
+}
+
+//solves Ax = b by QR decomposition
+//on exit R is the inverse of the R matrix in decomposition and V is RR', ready for use later
+void Regression::QRSolve(int dim1, int dim2, double* a, double* b, double* x){
+
+  //note that views do not allocate memory
+  //copy A into QR as QR decomp function destroys argument
+  gsl_matrix_view Aview = gsl_matrix_view_array(a, dim1, dim2);
+  gsl_matrix* QR = gsl_matrix_alloc(dim1, dim2);
+  for(int i1 = 0; i1 < dim1; ++i1)
+    for(int i2 = 0; i2 < dim2; ++i2)
+      gsl_matrix_set(QR, i1, i2, a[i1*dim2 + i2]); 
+  
+  gsl_vector* tau = gsl_vector_alloc(dim2);
+  gsl_vector_view bview = gsl_vector_view_array(b, dim1);
+  gsl_vector_view xview = gsl_vector_view_array(x, dim2);
+  
+  gsl_vector* residuals = gsl_vector_alloc(dim1);   
+  int status = 0;
+  std::string errstring;
+  try{    
+    if(gsl_linalg_QR_decomp(QR, tau))throw ("QR decomp failed...");
+
+    status = gsl_linalg_QR_lssolve(QR, tau, &bview.vector, &xview.vector, residuals);    
+    if(status){
+      errstring = "QRsolve failed, "; errstring.append( gsl_strerror (status));
+      throw(errstring);
+    }
+    gsl_vector_free(tau);
+    gsl_vector_free(residuals);
+    
+    gsl_permutation* p = gsl_permutation_alloc(dim2);
+    gsl_permutation_init(p);//sets to identity permutation
+    //copy R into V
+    for(int i = 0; i < dim2; ++i){
+      V[i*dim2+i] = gsl_matrix_get(QR, i,i);
+      for(int j = i+1; j < dim2; ++j){
+	V[i*dim2+j] = gsl_matrix_get(QR, i,j);
+	V[j*dim2+i] = 0.0;
+      }
+    }
+    gsl_matrix_free(QR);
+    
+    //V is R, which is its own LU decomposition with identity permutation
+    gsl_matrix_view Rview = gsl_matrix_view_array(R, dim2, dim2);
+    gsl_matrix_view Vview = gsl_matrix_view_array(V, dim2, dim2);
+    if(gsl_linalg_LU_invert(&Vview.matrix, p, &Rview.matrix))throw("Inversion of R failed") ;
+    gsl_permutation_free(p);
+    //R now contains R^-1
+    if(gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1, &Rview.matrix, &Rview.matrix, 0, &Vview.matrix))
+      throw("X'X multiplication failed...");
+    //V now contains R * R' = inv(X'X) 
+  }
+  catch(const std::string s){
+    //tidy up and throw error message up
+    gsl_vector_free(tau);
+    gsl_vector_free(residuals);
+    gsl_matrix_free(QR);
+    throw AdmixException(s);
+    exit(1);
+  }
+}
+void Regression::SampleRegressionParams(double* beta, double* lambda, double* Y, double* X, int NumIndivs, int NumCovars, double s2n){
+  /*
+  Samples regression parameters in a linear regression model as described in "Bayesian Data Analysis"
+  by Gelman et al (Ch8)
+  supply:
+  beta - regression parameters
+  lambda - precision parameter
+  Y - vector of NumIndividuals outcomes
+  X - matrix of NumIndividuals * NumCovariates covariates
+  */
+
+  // compute betahat using QR decomposition
+  QRSolve(NumIndivs, NumCovars, X, Y, betahat);
+
+  double *Xbetahat = new double[NumIndivs];
+  //compute X * betahat
+  matrix_product(X, betahat, Xbetahat, NumIndivs, NumCovars, 1);
+
+  //compute s^2
+  double s2 = 0.0;
+  for(int i = 0; i < NumIndivs; ++i){
+    double dev = (Y[i] - Xbetahat[i]);
+    s2 += dev*dev / *lambda;
+  }
+  s2 /= (double)(NumIndivs - NumCovars);
+
+  //draw lambda from chisq (n+n0, (2lambda1 + ns2) / (2lambda0 + n) )
+  //ie draw from Gamma(n-k/2, 1/2) and multiply by 2nd term
+  //this includes prior info as Ga(lambda0, lambda1) prior on lambda
+
+  //*lambda = s2* gengam(0.5, 0.5*(NumIndivs -NumCovars));//noninformative prior
+  double df = (s2n + 2.0*lambda0);//degrees-of-freedom
+  s2 = (2.0*lambda1 + s2n*s2) / (2.0*lambda0 + s2n);
+  *lambda = gengam(0.5 * (df * s2 ), 0.5*df);
+
+
+  //V currently holds (X'X)^-1
+  //compute posterior variance by dividing by lambda
+  //scale_matrix(V, 1.0/ *lambda, NumCovars, NumCovars);
+
+  //draw beta from N(betahat, V^-1)
+  DrawBeta.SetMean( betahat );
+  DrawBeta.SetCovariance( V );
+  DrawBeta.Draw(beta);
+
+  delete[] Xbetahat;
+}
+
+void Regression::AugmentDataMatrices(const double* Y, const double* X, double lambda){
+
+  //for the case of Var(Y_i) = 1/ (lambda* w_i) 
+
+  //augment X and Y with prior as extra 'data points'
+  for(int i = 0; i < NumIndividuals; ++i){
+    QY[i] = Y[i] * sqrt(lambda);
+    for(int j = 0; j < NumCovariates; ++j)
+      QX[i*NumCovariates +j] = X[i*NumCovariates+j]*sqrt(lambda);
+  }
+//   for(int i = 0; i < NumCovariates; ++i){
+//     QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
+//     QX[(i+NumIndividuals)*NumCovariates + i] = sqrt(betaprecision[i]);//prior precision on beta
+//     for(int j = i+1; j < NumCovariates; ++j)
+//       QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
+//   }
+
+}
+
+void Regression::SampleRegressionParametersWithAnnealing(double* beta, double* lambda, double coolness){
+  //compute Q^{-1/2}Y and Q^{-1/2}X
+  for(int i = 0; i < NumIndividuals; ++i){
+    QY[i] *= coolness;
+    for(int j = 0; j < NumCovariates; ++j)
+      QX[i*NumCovariates +j] *= coolness;
+  }
+
+  //use standard update algorithm with QX and QY
+  SampleRegressionParams(beta, lambda, QY, QX, NumIndividuals+NumCovariates, NumCovariates, coolness*NumIndividuals+NumCovariates);
 }

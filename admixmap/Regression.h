@@ -14,16 +14,12 @@
 #ifndef REGRESSION_H
 #define REGRESSION_H 1
 
-
+#include "common.h"
 #include "Gaussian.h"
 #include "AdmixOptions.h"
 #include "IndividualCollection.h"
 #include "GaussianProposalMH.h"
 #include "LogWriter.h"
-
-//can go once the blas code in update is removed
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_blas.h>
 
 typedef struct{
   int n;//number of individuals
@@ -61,22 +57,28 @@ public:
   double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations);
 
 private:
-  int NumCovariates, NumOutcomeVars;
+  int NumCovariates, NumOutcomeVars, NumIndividuals;
   RegressionType RegType;
   unsigned RegNumber;
 
   double *beta;//regression parameters
+  double *betamean; //beta prior mean
   double *SumBeta;//running sums (for ergodic averages)
   double lambda; //precision parameter
   double SumLambda;
+  double* Y;
 
   // ** Linear Regression Objects
   double lambda0; //parameters of
   double lambda1; //Gamma prior for lambda
-  double *beta0; //beta prior mean
-  double *n0; //for linear regression, beta prior variance is lambda*n0
+  double *betaprecision; //prior precision for beta
+  double *R, *QY, *QX, *V, *betahat;
   Gaussian DrawBeta;//sampler
-  double *betan;
+
+  void QRSolve(int dim1, int dim2, double* a, double* b, double* x);
+  void SampleRegressionParams(double* beta, double* lambda, double* Y, double* X, int NumIndivs, int NumCovars, double s2n);
+  void AugmentDataMatrices(const double* Y, const double* X, double lambda);
+  void SampleRegressionParametersWithAnnealing(double* beta, double* lambda, double coolness);
 
   // ** Logistic Regression Objects
   GaussianProposalMH** BetaDrawArray;
