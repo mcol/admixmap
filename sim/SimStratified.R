@@ -180,7 +180,7 @@ simulateSamples <- function(N, numsims, NumSubPops, popadmixparams, rho, eta, be
                 row.names=FALSE)                               
     
     ## run admixmap with outcome var and single population
-    system("../test/admixmap SinglePopArgs.txt")
+    system("../test/admixmap argsSinglePop.txt")
     Sys.putenv("RESULTSDIR" = "SinglePopResults")
     source("../test/AdmixmapOutput.R")
     ## run genomic control analysis - must set L and pthreshold in gcdriver.txt
@@ -258,7 +258,7 @@ numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 N <- 500
-numsims <- 10
+numsims <- 1
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
