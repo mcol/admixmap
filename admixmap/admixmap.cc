@@ -13,10 +13,12 @@
 
 #include "admixmap.h"
 #include <fstream>
+#include <dirent.h>//for OpenResultsDir
 
 using namespace std;
 
 int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
+void MakeResultsDir(const char* dirname, bool verbose);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter &Log, std::ofstream *avgstream, const string* const PopulationLabels);
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
@@ -57,7 +59,9 @@ int main( int argc , char** argv ){
   AdmixOptions options(xargc, xargv);
   if(options.getDisplayLevel()>0)
     PrintCopyrightNotice();
-  
+
+  MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>1));
+ 
   //open logfile, start timer and print start message
   LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
@@ -663,4 +667,53 @@ void PrintOptionsMessage() {
        << "3. use a Perl script to call the program with command-line arguments. \nSee sample script supplied with this program.\n"
        << "Consult the manual for a list of user options."
        << endl;
+}
+
+void MakeResultsDir(const char* dirname, bool verbose){
+  if(strlen(dirname) && strcmp(dirname, ".") && strcmp(dirname, "..")){
+    DIR *pdir;
+    struct dirent *pent;
+    
+    string dirpath = "./";
+    dirpath.append(dirname);
+    pdir=opendir(dirpath.c_str()); //"." refers to the current dir
+    if (!pdir){//dir does not exist
+      cout << "Creating directory "<< dirpath <<endl;
+      //this block is safer but only works in Windows
+      //int status = mkdir(dirpath.c_str()/*, POSIX permissions go here*/);
+      //if(status){
+      //cout<< "Unable to create directory. Exiting." << endl;
+      //exit(1);
+      //}
+      //KLUDGE: 'mkdir' not guaranteed to work on all systems; no error-checking
+      //should be ok for normal use
+      string cmd = "mkdir ";cmd.append(dirname);
+      system(cmd.c_str());
+    }
+    else {
+      cout << "Directory " << dirname << " exists. Contents will be deleted."<<endl;
+      
+      //list and delete contents of directory
+      errno=0;
+      while ((pent=readdir(pdir))){//read filenames
+	if(strcmp(pent->d_name, ".") && strcmp(pent->d_name, "..")){//skip . and ..
+	  string filepath = dirpath + "/"; 
+	  filepath.append(pent->d_name);
+	  if(verbose)
+	    cout << "Deleting  " <<  filepath <<endl;
+	  remove(filepath.c_str());//delete
+	}
+      }
+      if (errno){//should use error catching here
+	cerr << "readdir() failure; terminating";
+	exit(1);
+      }
+      closedir(pdir);
+      //rmdir("./stuff");
+    }
+  }
+  else {
+    cerr << "Invalid resultsdir. Exiting\n";
+    exit(1);
+  }
 }
