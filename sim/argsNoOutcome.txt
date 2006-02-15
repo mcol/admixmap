@@ -15,4 +15,5 @@ paramfile=paramfile.txt
 dispparamfile=dispparam.txt
 indadmixturefile=indadmixture.txt
 etapriormean=51
-etapriorvar=100
+etapriorvar=50
+numannealedruns=50

@@ -184,6 +184,7 @@ simulateSamples <- function(N, numsims, NumSubPops, popadmixparams, rho, eta, be
     Sys.putenv("RESULTSDIR" = "SinglePopResults")
     source("../test/AdmixmapOutput.R")
     ## run genomic control analysis - must set L and pthreshold in gcdriver.txt
+    if(logistic) system("gcLogist.pl") else system("gcLinear.pl")
     source("gcf.R")
     ## run admixmap with no outcomevar and two populations
     system("../test/admixmap argsNoOutcome.txt")
@@ -252,23 +253,26 @@ simulateSamples <- function(N, numsims, NumSubPops, popadmixparams, rho, eta, be
 }
 
 ##########################################################################
-## start of script
+################## start of script #######################################
 
 numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 N <- 500
-numsims <- 1
+numsims <- 4
 NumSubPops <- 2 # num subpopulations
+logistic <- T # logistic or linear
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
 spacing <- 25 # 40 cM spacing gives 99 loci, 30 cM spacing 128 loci, 25 cM 151 loci
 eta <- 51 # allele freq dispersion parameter 
-beta <- 2.5 # regression slope for effect of admixture
+if(logistic) {
+  beta <- 3 # log odds ratio for effect of admixture
+} else {
+  beta <- 2 # regression slope for effect of admixture
+}
 gamma <- 0.25 # effect of allele 2 at candidate locus: standardized effect size if linear reg
-                                        # log odds ratio if logistic reg
 pthreshold <- 0.01
-logistic <- F # logistic or linear
 
 ## assign map distances
 x <- numeric(0)

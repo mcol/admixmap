@@ -11,10 +11,12 @@ locusfile=data/loci.txt
 genotypesfile=data/genotypes.txt
 outcomevarfile=data/outcome.txt
 logfile=log.txt
-resultsdir=TwoPopsResultsparamfile=paramfile.txt
+resultsdir=TwoPopsResults
+paramfile=paramfile.txt
 regparamfile=regparamfile.txt
 dispparamfile=dispparam.txt
 indadmixturefile=indadmixture.txt
 allelicassociationscorefile=allelicassociationscores.txt
 etapriormean=51
-etapriorvar=100
+etapriorvar=50
+numannealedruns=50

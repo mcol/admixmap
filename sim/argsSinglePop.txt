@@ -13,7 +13,6 @@ populations=1
 locusfile=data/loci.txt
 genotypesfile=data/genotypes.txt
 outcomevarfile=data/outcome.txt
-paramfile=paramfile.txt
 regparamfile=regparamfile.txt
 allelicassociationscorefile=allelicassociationscores.txt
 stratificationtestfile=stratificationTest.txt
