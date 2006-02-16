@@ -195,7 +195,9 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
    }
     //generate proposal theta from Dirichlet with parameters dirparams
     if(sum>1)gendirichlet(K, dirparams, Theta+g*K );
-  } // end loop over gametes: TODO: initialize thetaX
+  } // end loop over gametes: 
+  if(Xdata) 
+    setAdmixturePropsX(Theta, K*NumIndGametes);
 }
 
 void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator=false){
@@ -290,23 +292,21 @@ void Individual::setAdmixtureProps(const double* const a, size_t size) {
   for(unsigned i = 0; i < size; ++i)  {
     Theta[i] = a[i];
   }
-  if(Xdata) {
-    if(SexIsFemale || size == (unsigned)Populations) { // if female or size_t=K, assign theta_X[i] = theta[i] 
-      for(unsigned i = 0; i < size; ++i)  {
-	ThetaX[i] = a[i];
-      }
-    } else { // if male and size_t = 2K, assign thetaX = maternal gamete admixture props
-      for(unsigned i = 0; i < (unsigned)Populations; ++i) {
-	ThetaX[i] = a[Populations + i];
-      }
+  if(Xdata) 
+    setAdmixturePropsX(Theta, size);
+}
+
+void Individual::setAdmixturePropsX(const double* const a, size_t size) {
+  if(SexIsFemale || size == (unsigned)Populations) { // if female or size_t=K, assign theta_X[i] = theta[i] 
+    for(unsigned i = 0; i < size; ++i)  {
+      ThetaX[i] = a[i];
+    }
+  } else { // if male and size_t = 2K, assign thetaX = maternal gamete admixture props
+    for(unsigned i = 0; i < (unsigned)Populations; ++i) {
+      ThetaX[i] = a[Populations + i];
     }
   }
 }
-
-// do not use
-// void Individual::setAdmixturePropsX(const double* const a, size_t size) {
-//   for(unsigned i = 0; i < size; ++i)  ThetaX[i] = a[i];
-// }
 
 void Individual::HMMIsBad(bool loglikisbad) {
   logLikelihood.HMMisOK = false;
@@ -387,6 +387,7 @@ bool Individual::IsMissing(unsigned int locus)const {
 // calls private method to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
 // store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
 double Individual::getLogLikelihood( const AdmixOptions* const options, Chromosome **chrm, const bool forceUpdate, const bool store) {
+
   if (!logLikelihood.ready || forceUpdate) {
     logLikelihood.tempvalue = getLogLikelihood(options, chrm, Theta, ThetaX, _rho, _rho_X, true);
     if(store) {  

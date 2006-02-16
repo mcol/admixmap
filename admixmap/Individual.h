@@ -49,7 +49,7 @@ public:
   void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
   void setAdmixtureProps(const double* const, size_t);
   
-  //void setAdmixturePropsX(const double* const, size_t);
+  void setAdmixturePropsX(const double* const, size_t);
   
   bool GetAlleleCountsAtLocus(int complocus, int locus, int a, int* count)const;
 
