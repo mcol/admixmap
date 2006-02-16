@@ -29,8 +29,8 @@ if (!is.loaded("mpi_initialize")) {
 #######################################################################
 simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
   ## M is proportionate admixture from pop 1 
-  gameteAncestry <- numeric(L)  
-  simAlleles <- numeric(L)
+  gameteAncestry <- integer(L)  
+  simAlleles <- integer(L)
   randAnc <- runif(L)  
   gameteAncestry[1] <- ifelse(randAnc[1] < M, 1, 2) 
   ## Tmatrix[i,j] is prob ancestry at t+1 = j given ancestry at t = i
@@ -259,19 +259,21 @@ numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 N <- 500
-numsims <- 4
+numsims <- 2
 NumSubPops <- 2 # num subpopulations
 logistic <- T # logistic or linear
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
 spacing <- 25 # 40 cM spacing gives 99 loci, 30 cM spacing 128 loci, 25 cM 151 loci
-eta <- 51 # allele freq dispersion parameter 
 if(logistic) {
+  eta <- 41 # allele freq dispersion parameter
   beta <- 3 # log odds ratio for effect of admixture
+  gamma <- 0.4 # effect of allele 2 at candidate locus
 } else {
+  eta <- 51 # allele freq dispersion parameter
   beta <- 2 # regression slope for effect of admixture
+  gamma <- 0.25 # effect of allele 2 at candidate locus: standardized effect size if linear reg
 }
-gamma <- 0.25 # effect of allele 2 at candidate locus: standardized effect size if linear reg
 pthreshold <- 0.01
 
 ## assign map distances
