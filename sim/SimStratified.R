@@ -270,7 +270,7 @@ if(logistic) {
   beta <- 3 # log odds ratio for effect of admixture
   gamma <- 0.4 # effect of allele 2 at candidate locus
 } else {
-  eta <- 51 # allele freq dispersion parameter
+  eta <- 41 # allele freq dispersion parameter
   beta <- 2 # regression slope for effect of admixture
   gamma <- 0.25 # effect of allele 2 at candidate locus: standardized effect size if linear reg
 }
