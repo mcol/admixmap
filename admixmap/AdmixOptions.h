@@ -111,6 +111,7 @@ public:
   const char *getAlleleFreqScoreFilename() const;
   const char *getAlleleFreqScoreFilename2() const;
   const char *getAssocScoreFilename() const;
+  const char* getResidualAllelicAssocScoreFilename()const;
   const char *getHWTestFilename() const;
   const char* getLikRatioFilename() const;
   const char* getIndAdmixModeFilename()const;
@@ -125,7 +126,8 @@ public:
   bool getTestForSNPsInHaplotype() const;
   void setTestForSNPsInHaplotype(bool);
   bool getTestForLinkageWithAncestry() const;
-  void setTestForLinkageWithAncestry(bool);   
+  void setTestForLinkageWithAncestry(bool);
+  bool getTestForResidualAllelicAssoc()const;   
   bool getTestForMisspecifiedAlleleFreqs() const;
   bool getTestForMisspecifiedAlleleFreqs2() const;
   bool getHWTestIndicator() const;
@@ -176,6 +178,7 @@ private:
   bool TestForAffectedsOnly;
   bool TestForAllelicAssociation;
   bool TestForSNPsInHaplotype;
+  bool TestForResidualAllelicAssoc;
   bool TestForDispersion;
   bool TestForLinkageWithAncestry;
   bool TestForMisspecifiedAlleleFreqs;
@@ -216,6 +219,7 @@ private:
   string TestsForSNPsInHaplotypeOutputFilename;
   string AllelicAssociationScoreFilename;
   string AncestryAssociationScoreFilename;
+  string ResidualAllelicAssocScoreFilename;
   string HWTestFilename;
   string LikRatioFilename;
   string IndAdmixModeFilename;

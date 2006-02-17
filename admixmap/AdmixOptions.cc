@@ -87,6 +87,7 @@ void AdmixOptions::Initialise(){
   TestForSNPsInHaplotype = false;
   TestForDispersion = false;
   TestForLinkageWithAncestry = false;
+  TestForResidualAllelicAssoc = false;
   TestForMisspecifiedAlleleFreqs = false;
   TestForMisspecifiedAlleleFreqs2 = false;
   HWTest = false;
@@ -110,6 +111,7 @@ void AdmixOptions::Initialise(){
   ResultsDir = "results";
   LogFilename = "log.txt";
 
+  ResidualAllelicAssocScoreFilename = "ResidualAllelicAssocScoreFile.txt";
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
   ResidualFilename = "Residuals.txt";
 
@@ -392,6 +394,13 @@ bool AdmixOptions::getTestForAdmixtureAssociation() const
   return TestForAdmixtureAssociation;
 }
 
+bool AdmixOptions::getTestForResidualAllelicAssoc()const{
+  return TestForResidualAllelicAssoc;
+}
+const char* AdmixOptions::getResidualAllelicAssocScoreFilename()const{
+  return ResidualAllelicAssocScoreFilename.c_str();
+}
+
 long AdmixOptions::getSeed() const
 {
   return Seed;
@@ -657,6 +666,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
    
     // Extra output options
     {"allelicassociationscorefile",           1, 0,  0 }, // string
+    {"residualallelicassocscorefile",         1, 0,  0 }, // string
     {"ancestryassociationscorefile",          1, 0,  0 }, // string
     {"affectedsonlyscorefile",                1, 0,  0 }, // string
     {"stratificationtestfile",                1, 0,  0 }, // string
@@ -778,6 +788,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "allelicassociationscorefile") {
 	 AllelicAssociationScoreFilename = optarg;OptionValues["allelicassociationscorefile"]=optarg;
 	 TestForAllelicAssociation = true; ScoreTestIndicator = true;
+      } else if (long_option_name == "residualallelicassocscorefile") {
+	 ResidualAllelicAssocScoreFilename = optarg;OptionValues["residualallelicassocscorefile"]=optarg;
+	 TestForResidualAllelicAssoc = true; ScoreTestIndicator = true;
       } else if (long_option_name == "allelefreqoutputfile") {
 	 AlleleFreqOutputFilename = optarg;OptionValues["allelefreqoutputfile"]=optarg;
 	 OutputAlleleFreq = true;
@@ -852,8 +865,10 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	  IndAdmixHierIndicator = false;OptionValues["indadmixhiermodel"]="0";
 	}
       } else if (long_option_name == "hapmixmodel") {
-	if (strtol(optarg, NULL, 10) == 0) {
-	  HapMixModelIndicator = false;OptionValues["hapmixmodel"]="0";
+	if (strtol(optarg, NULL, 10) == 1) {
+	  HapMixModelIndicator = true;OptionValues["hapmixmodel"]="1";
+	  TestForResidualAllelicAssoc = true;
+	  OptionValues["residualallelicassocscorefile"] = (char*)ResidualAllelicAssocScoreFilename.c_str();
 	}
       }else if (long_option_name == "chib") {
 	if(strtol(optarg, NULL, 10)==1){
@@ -1219,7 +1234,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     }
   
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || 
-			TestForAdmixtureAssociation || TestForSNPsInHaplotype);
+			TestForAdmixtureAssociation || TestForSNPsInHaplotype || TestForResidualAllelicAssoc);
 
   if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
