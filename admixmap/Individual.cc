@@ -934,12 +934,9 @@ double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType,
 
   }
   else if(RegType == Logistic){
-    double newExpectedY = 1.0 / ( 1.0 + exp( -Xbeta ) );
-    if( Outcome == 1 )
-      logprobratio = newExpectedY / currentEY;
-    else
-      logprobratio = ( 1 - newExpectedY ) / ( 1 - currentEY );
-    logprobratio = log(logprobratio);//We take the log here rather than compute 4 logs above
+    logprobratio =  log( ( 1.0 + exp( -currentEY ) ) / ( 1.0 + exp( -Xbeta ) ) );
+    if( Outcome == 0 )
+      logprobratio *= currentEY - Xbeta;//logprobratio = -logprobratio;
   }
   return( logprobratio );
 }
