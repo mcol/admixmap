@@ -51,8 +51,9 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    EtaArgs.priorrate = 1;
    EtaArgs.numpops = numpops;
    EtaArgs.numobs = numobs; 
-   EtaSampler.SetDimensions(1, 0.005/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 40/*num leapfrogs*/, 
-			    0.7/*target accept rate*/, etaEnergy, etaGradient);  
+   // use many small steps to ensure that leapfrog algorithm does not jump to minus infinity
+   EtaSampler.SetDimensions(1, 0.01/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 50/*num leapfrogs*/, 
+			    0.5/*target accept rate*/, etaEnergy, etaGradient);  
 #elif SAMPLERTYPE==2
    logalpha = new double[K];
    AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sampler
@@ -155,21 +156,19 @@ double DirichletParamSampler::etaEnergy( const double* const x, const void* cons
   const double*mu = args->mu;
   const double* sumlogtheta = args->sumlogtheta;
 
-  // log prior  
-  E += ( args->priorshape - 1.0 ) * ( log(eta) ) - args->priorrate *  eta ;
+  // log of prior density for log eta - in this basis there is no minus one in exponent 
+  E += args->priorshape  *  log(eta)  - args->priorrate *  eta ;
   // log likelihood 
   int status = 0;
   gsl_sf_result lngamma_result;
-  status = gsl_sf_lngamma_e( eta, &lngamma_result );
+  status = gsl_sf_lngamma_e( eta, &lngamma_result ); // calculates lngamma(eta)
   if(status) throw string("gsl lngamma error\n");
   E += args->numobs * lngamma_result.val;
-  for( unsigned i = 0; i < args->numpops; i++ ) {
+  for( unsigned i = 0; i < args->numpops; ++i ) {
     status = gsl_sf_lngamma_e( eta*mu[i], &lngamma_result );
     if(status) throw string("gsl lngamma error\n");
     E += mu[i] * eta  * sumlogtheta[i] -  args->numobs * lngamma_result.val; // gsl_sf_lngamma( eta * mu[i] );
   }
-  //Jacobian
-  E += eta;
   return -E;
 }
 
@@ -182,8 +181,8 @@ void DirichletParamSampler::etaGradient( const double* const x, const void* cons
   //double psi;
 
   g[0] = 0;
-  // log prior  
-  g[0] -= ( args->priorshape - 1.0 ) / eta - args->priorrate;
+  // log of prior density for log eta  
+  g[0] -= args->priorshape / eta - args->priorrate;
   // log likelihood
   int status = 0;
   gsl_sf_result psi_result;
@@ -202,7 +201,7 @@ void DirichletParamSampler::etaGradient( const double* const x, const void* cons
     }
     g[0] -= mu[i] * sumlogtheta[i] -  args->numobs * mu[i] * psi_result.val;//gsl_sf_psi( eta * mu[i] );
   }
-  //Jacobian
+  // d eta / d log eta
   g[0] *= eta;
 }
 
@@ -291,13 +290,18 @@ double DirichletParamSampler::findE(const double* const theta, const void* const
   bool flag = true;
   for(int j = 0; j < args->dim; ++j){
     if(exp(theta[j]) == 0.0){flag = false;break;} //to avoid underflow problems
+    // log likelihood
+    // E -= args->eps1 - args->sumlogtheta[j]); 3rd term in log-likelihood
     sumalpha += exp(theta[j]);
     sumgamma += gsl_sf_lngamma(exp(theta[j]));
     sume += exp(theta[j]) * (args->eps1 - args->sumlogtheta[j]);
     sumtheta += theta[j];
   }
   if(flag){
+    // E -= args->n * (gsl_sf_lngamma(sumalpha) - sumalpha); // 1st and 2nd terms in log-likelihood
     E = args->n * (gsl_sf_lngamma(sumalpha) - sumgamma) - sume + args->eps0 * sumtheta;
+    // sum of log priors for log alpha_k 
+    // E -= args->eps0 * sumtheta - args->eps1 * sumalpha;
     return -E;
   }
   else return -1.0;//is there a better return value? possibly use flag pointer
