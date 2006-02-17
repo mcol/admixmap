@@ -961,6 +961,7 @@ void AdmixOptions::SetOutputNames(){
   if ( StratTestFilename != "") StratTestFilename = ResultsDir + "/" + StratTestFilename;
   if ( AssocScoreFilename != "") AssocScoreFilename = ResultsDir + "/" + AssocScoreFilename;
   if ( TestsForSNPsInHaplotypeOutputFilename != "") TestsForSNPsInHaplotypeOutputFilename = ResultsDir + "/" + TestsForSNPsInHaplotypeOutputFilename;
+  if(TestForResidualAllelicAssoc)ResidualAllelicAssocScoreFilename = ResultsDir + "/" + ResidualAllelicAssocScoreFilename;
   if ( AlleleFreqOutputFilename != "") AlleleFreqOutputFilename = ResultsDir + "/" + AlleleFreqOutputFilename;
   if ( AlleleFreqScoreFilename2 != "") AlleleFreqScoreFilename2 = ResultsDir + "/" + AlleleFreqScoreFilename2;
   if ( AlleleFreqScoreFilename != "") AlleleFreqScoreFilename = ResultsDir + "/" + AlleleFreqScoreFilename;
