@@ -37,12 +37,14 @@ public:
   void InitialiseAssocScoreFile(const std::string *);
 
   void Output(int, const std::string *);
+  void OutputTestsForResidualAllelicAssociation(int iterations);
 
   void ROutput();
 
   void SetAllelicAssociationTest(const std::vector<double> &alpha0);
 
   void Update(double);
+  void UpdateScoresForResidualAllelicAssociation(const double* const * AlleleFreqs);
 
   ~ScoreTests();
 
@@ -77,16 +79,21 @@ private:
   double* SumAdmixtureScore2; 
   double* SumAdmixtureInfo;
 
+  double*** SumAlleleScore;
+  double*** SumAlleleScore2;
+  double*** AlleleInfo;
+
   std::ofstream assocscorestream;
   std::ofstream * ancestryAssociationScoreStream;
   std::ofstream * SNPsAssociationScoreStream;
   std::ofstream * affectedsOnlyScoreStream;
   std::ofstream genescorestream;
+  std::ofstream ResAlleleScoreFile;
   const std::string *PopLabels;
 
   const AdmixOptions *options;
   const IndividualCollection *individuals;
-  const Genome* Lociptr;//Pointer to Loci member of Latent
+  const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
 
 //OUTPUT
@@ -116,6 +123,11 @@ private:
 
   void UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY,double phi, double DInvLink);
 
+
+  static int ResidualAlleleInfoIndex(int M, int N, int m1, int n1, int m2, int n2);
+
+  void UpdateScoresForResidualAllelicAssociation(int c, int locus, 
+						 const double* const AlleleFreqsA, const double* const AlleleFreqsB);
   static std::string double2R( double );
 
   static void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);    
