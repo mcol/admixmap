@@ -889,7 +889,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, /*const vector<
     for(size_t k = 0; k < K; ++k) {
       dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
       if( Loci->isX_data() ) {
-      // if male, paternal elements (0 to K-1) of sumLocusAncestry will be zero
+      // if male, paternal elements (0 to K-1) of sumLocusAncestry_X will be zero
 	dirparams[k] += (double)(sumLocusAncestry_X[k] + sumLocusAncestry_X[K + k]); 
       }
     }
@@ -900,12 +900,10 @@ void Individual::ProposeTheta(const AdmixOptions* const options, /*const vector<
 double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel, 
 							 int Populations, int NumCovariates, 
 							 const DataMatrix* const Covariates, const double* beta, 
-							 //const double ExpectedY, 
 							 const double Outcome, const double* const poptheta, const double lambda) {
   // returns log of ratio of likelihoods of new and old values of population admixture
   // in regression models.  individual admixture theta is standardized about the mean poptheta calculated during burn-in. 
-  double logprobratio = 0.0, Xbeta = 0.0;
-  double currentEY = 0.0;
+  double logprobratio = 0.0, XBeta = 0.0, currentXBeta = 0.0;
   vector<double> avgtheta(Populations);avgtheta[0] = 0.0;
   vector<double> currentavgtheta(Populations);currentavgtheta[0] = 0.0;
   if( RandomMatingModel )
@@ -918,25 +916,25 @@ double Individual::LogAcceptanceRatioForRegressionModel( RegressionType RegType,
       avgtheta[k] = ThetaProposal[k]  - poptheta[k];
       currentavgtheta[k] = Theta[k]  - poptheta[k];
     }
-
+  
   for( int jj = 0; jj < NumCovariates - Populations + 1; jj++ ){
-    Xbeta += Covariates->get( myNumber-1, jj ) * beta[jj];
-    currentEY += Covariates->get( myNumber-1, jj ) * beta[jj];
+    XBeta += Covariates->get( myNumber-1, jj ) * beta[jj];
+    currentXBeta += Covariates->get( myNumber-1, jj ) * beta[jj];
   }
   for( int k = 1; k < Populations; k++ ){
-    Xbeta += avgtheta[ k ] * beta[NumCovariates - Populations + k ];
-    currentEY += currentavgtheta[ k ] * beta[NumCovariates - Populations + k]; 
+    XBeta += avgtheta[ k ] * beta[NumCovariates - Populations + k ];
+    currentXBeta += currentavgtheta[ k ] * beta[NumCovariates - Populations + k]; 
   }
-  if(RegType == Linear){
-    logprobratio = 0.5 * lambda * //( ( ExpectedY - Outcome ) * ( ExpectedY - Outcome )
-      // 				   - ( Xbeta - Outcome ) * ( Xbeta - Outcome) );
-      ((Xbeta - currentEY) * (Outcome + Outcome - currentEY - Xbeta) );
-
+  if(RegType == Linear) {
+    logprobratio = 0.5 * lambda * (XBeta - currentXBeta) * (Outcome + Outcome - currentXBeta - XBeta);
+    // ( currentXBeta - Outcome )^2 - ( XBeta - Outcome )^2 factorized 
   }
-  else if(RegType == Logistic){
-    logprobratio =  log( ( 1.0 + exp( -currentEY ) ) / ( 1.0 + exp( -Xbeta ) ) );
-    if( Outcome == 0 )
-      logprobratio *= currentEY - Xbeta;//logprobratio = -logprobratio;
+  else if(RegType == Logistic) {
+    if( Outcome == 1 ) {
+      logprobratio =  log( ( 1.0 + exp( -currentXBeta ) ) / ( 1.0 + exp( -XBeta ) ) );
+    } else { 
+      logprobratio =  log( ( 1.0 + exp( currentXBeta ) ) / ( 1.0 + exp( XBeta ) ) );
+    }
   }
   return( logprobratio );
 }

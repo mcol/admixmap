@@ -52,8 +52,8 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    EtaArgs.numpops = numpops;
    EtaArgs.numobs = numobs; 
    // use many small steps to ensure that leapfrog algorithm does not jump to minus infinity
-   EtaSampler.SetDimensions(1, 0.01/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 50/*num leapfrogs*/,
-			    0.5/*target accept rate*/, etaEnergy, etaGradient);
+   EtaSampler.SetDimensions(1, 0.005/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 100/*num leapfrogs*/,
+			    0.8/*target accept rate*/, etaEnergy, etaGradient);
 #elif SAMPLERTYPE==2
    logalpha = new double[K];
    AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sampler
@@ -219,10 +219,10 @@ double DirichletParamSampler::logf( double muj, const void* const pars ) {
    double y1, y2;
    gsl_sf_result lngamma_result;
    status = gsl_sf_lngamma_e( muj*eta, &lngamma_result );
-   if(status) throw string("gsl lngamma error\n");
+   if(status) throw string("\nERROR in DirichletParamSampler::logf - gsl lngamma error\n");
    y1 = lngamma_result.val;
    status = gsl_sf_lngamma_e( (b-muj)*eta, &lngamma_result );
-   if(status) throw string("gsl lngamma error\n");
+   if(status) throw string("\nERROR in DirichletParamSampler::logf - gsl lngamma error\n");
    y2 = lngamma_result.val;
    double f = eta * muj * ( sumlogpj - sumlogpk ) - n * ( y1 + y2 );
    //cout << "\nlog density function passed muj " << muj << "\treturns logdensity " << f << endl;
