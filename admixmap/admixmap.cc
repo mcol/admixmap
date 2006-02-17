@@ -696,6 +696,7 @@ void MakeResultsDir(const char* dirname, bool verbose){
       //list and delete contents of directory
       errno=0;
       while ((pent=readdir(pdir))){//read filenames
+	// errno is set to 2 if function returns /* No such file or directory */
 	if(strcmp(pent->d_name, ".") && strcmp(pent->d_name, "..")){//skip . and ..
 	  string filepath = dirpath + "/"; 
 	  filepath.append(pent->d_name);
@@ -704,7 +705,7 @@ void MakeResultsDir(const char* dirname, bool verbose){
 	  remove(filepath.c_str());//delete
 	}
       }
-      if (errno){//should use error catching here
+      if ( errno && !(errno==2) ){//should use error catching here
 	cerr << "readdir() failure; terminating";
 	exit(1);
       }
