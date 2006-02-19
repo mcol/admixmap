@@ -67,10 +67,10 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
   double dfa = 1, dfb = -1; //gradient at upper and lower bound (if there are any) should be +ve and -ve respectively
   double mode;  
 
-  if( hasLowerBound ) // if bounded below, evaluate gradient at lower bound 
+  if( hasLowerBound ) // if bounded below, evaluate gradient just above lower bound 
     dfa = (*gradient)( LowerBound +EPS, args );
   //if(isinf(dfa))dfa = (*gradient)(LowerBound+EPS, args);
-  if( hasUpperBound ) // if bounded above, evaluate gradient at upper bound
+  if( hasUpperBound ) // if bounded above, evaluate gradient just below upper bound
     dfb = (*gradient)( UpperBound - EPS, args );
   //if(isinf(dfb))dfb = (*gradient)(UpperBound-EPS, args);
   
@@ -78,7 +78,7 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
   if( dfa > 0.0 && dfb < 0.0 ){
     // Mode search
     if( hasLowerBound && hasUpperBound ){ // if bounded below and above 
-      mode = SimpleModeSearch( LowerBound, UpperBound, args, gradient);
+      mode = SimpleModeSearch(LowerBound, UpperBound, args, gradient);
     }
     else{ // if unbounded below or above
       mode = NewtonRaphson(args, gradient, secondDeriv); // assigns x[1] as mode, x[0], x[2] as +/- 3 times 2nd deriv
@@ -94,7 +94,7 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
   }
 
   else if( dfb > 0 ){ // mode at upper bound; 
-    //only true if there is a UB since dfb initialise to -1
+    //only true if there is a UB since dfb initialised to -1
     x[2] = UpperBound;
     if( hasLowerBound ){ // if bounded below
       x[0] = LowerBound;
@@ -106,10 +106,11 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
     }
   }
   else{ // mode at lower bound
-    //only true if there is an LB since dfa initialised to 1 
+    //only true if there is a LB since dfa initialised to 1 
     x[0] = LowerBound;
     if( hasUpperBound ){ // assign x[1] as mean of x[0] and x[2]
       x[2] = UpperBound;
+
       x[1] = (x[0] + x[2]) / 2;
     }
     else{ // use gradient at min
@@ -117,7 +118,6 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
       x[2] = x[1] - 2/dfa;
     }
   }
-
   return ARS(args, x, K);
 }
 
@@ -475,45 +475,52 @@ void AdaptiveRejection::TestForLogConcavity(){
   }
 }
 
-double AdaptiveRejection::SimpleModeSearch( double a, double b, const void* const args,
-			       double (*gradient)(double, const void* const) )
-//searches for mode between aa and bb
+double AdaptiveRejection::SimpleModeSearch( const double a, const double b, const void* const args,
+					    double (*gradient)(double, const void* const) )
+  //searches for mode between a and b, without evaluating gradient at a or b 
 {
-  double newnum;
-  double num, df2, df1;
+  double x = 0.0, gradx = 0.0, upper = 0.0, lower = 0.0, gradupper = 0.0, gradlower = 0.0, 
+    deriv2nd = 0.0;
   int count = 0;
-  
-  newnum = ( a + b ) / 2;
-  do{
-    count++; //?? to stop if no mode found after ? iterations
-    df1 = (*gradient)(newnum, args);
-    if( df1 > 0.0 ){
-      num = (newnum + b) / 2;
-      df2 = (*gradient)(num, args);
-      if( df2 < df1 ){
-	a = newnum;
-	newnum = num;
-	df1 = df2;
-      }
-      else{
-	b = num;
-      }
+  // step 1: find two values either side of mode at which gradient can be evaluated
+  x = 0.5 * (a + b);
+  gradx = (*gradient)(x, args);
+  if(gradx > 0.0) { // step to right until gradient is negative 
+    lower = x;
+    gradlower = gradx;
+    do {
+      x = 0.5 * (x + b);
+      gradx = (*gradient)(x, args);
+      ++count;
+    } while(gradx > 0.0);
+    upper = x;
+    gradupper = gradx;
+  } else {
+    upper = x;
+    gradupper = gradx;
+    do {
+      x = 0.5 * (a + x);
+      gradx = (*gradient)(x, args);
+      ++count;
+    } while(gradx < 0.0);
+    lower = x;
+    gradlower = gradx;
+  }
+  // step 2: iterate using average 2nd derivative for approximate newton-raphson update 
+  do {
+    deriv2nd = (gradupper - gradlower) / (upper - lower);
+    x = lower - gradlower / deriv2nd;
+    gradx = (*gradient)(x, args);
+    if(gradx > 0.0) {
+      lower = x;
+      gradlower = gradx;
+    } else {
+      upper = x;
+      gradupper = gradx;
     }
-    else{
-      num = (newnum + a) / 2;
-      df2 = (*gradient)(num, args);
-      if( df2 > df1 ){
-	b = newnum;
-	newnum = num;
-	df1 = df2;
-      }
-      else{
-	a = num;
-      }
-    }
-  }while( fabs(df1) > 0.01 );
-
-  return newnum;
+    ++count;
+  } while(fabs(gradx) > 0.001);
+  return x;
 }
 
 double AdaptiveRejection::NewtonRaphson(const void* const args, double (*gradient)(double, const void* const),

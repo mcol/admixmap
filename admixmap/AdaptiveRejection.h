@@ -97,7 +97,8 @@ private:
   void Update();
   void TestForLogConcavity();
 
-  double SimpleModeSearch( double aa, double bb, const void* const args, double (*gradient)(double, const void* const) );
+  double SimpleModeSearch( const double a, const double b, const void* const args, 
+			   double (*gradient)(double, const void* const) );
 
   double NewtonRaphson(const void* const args, double (*gradient)(double, const void* const), 
 			       double (*secondDeriv)(double, const void* const) );
