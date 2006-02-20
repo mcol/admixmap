@@ -7,21 +7,14 @@
  *   (3) Score test for within-halpotype association
  *   (4) Score test for linkage with locus ancestry
  *   (5) Affecteds-only score test for linkage with locus ancestry
- *   Copyright (c) 2005 LSHTM
+ *   (6) Score test for residual allelic association between adjacent pairs of linked loci
+ *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
 #include "ScoreTests.h"
@@ -60,6 +53,10 @@ ScoreTests::ScoreTests(){
   SumAdmixtureScore2 = 0;
   SumAdmixtureInfo = 0;
 
+  SumAlleleScore= 0;
+  SumAlleleScore2 = 0;
+  AlleleInfo = 0;
+
   ancestryAssociationScoreStream = 0;
   SNPsAssociationScoreStream = 0;
   affectedsOnlyScoreStream = 0;
@@ -96,10 +93,13 @@ ScoreTests::~ScoreTests(){
   delete[] SumLocusLinkageAlleleInfo;
   delete[] locusObsIndicator;
 
-  //ResAlleleScoreFile.close();
+  delete[] SumAlleleScore;
+  delete[] SumAlleleScore2;
+  delete[] AlleleInfo;
+
 }
 
-void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv,const Genome* const Loci, 
+void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 			    const Chromosome* const* c, const std::string *PLabels,
 			    LogWriter &Log){
   options = op;
