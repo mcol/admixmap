@@ -566,7 +566,7 @@ void Regression::SamplePrecision(double* lambda, const double* Y, const double* 
   *lambda = gengam( lambda0 + coolness * NumIndivs, lambda1 + coolness*0.5*s2);
   
   //cout << "sampled " << *lambda << " from Gamma( " << 0.5*df << ", " << 0.5 * (df * s2 ) << ")" << endl;
-  delete[] Xbetahat;
+  //delete[] Xbetahat;
 }
 
 void Regression::SampleLinearRegressionParams(double* beta, /*double* lambda, */const double* Y, const double* X, 
