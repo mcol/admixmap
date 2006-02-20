@@ -530,7 +530,9 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
 	if(!IAmUnderTest && ancestrytest && iteration > options->getBurnIn()) {
 	  //update of score tests for linkage with ancestry requires update of backward probs
 	  chrm[j]->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
-	  UpdateScoreTests(options, Outcome, OutcomeType, chrm[j], DInvLink, dispersion, ExpectedY);
+	  double admixtureCovars[Populations-1];
+	  for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
+	  UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, chrm[j], DInvLink, dispersion, ExpectedY);
 	}
 	// sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
 	chrm[j]->SampleLocusAncestry(LocusAncestry[j], Theta);
@@ -1034,7 +1036,7 @@ void Individual::SampleRho(const AdmixOptions* const options, bool X_data, doubl
 	// effective length of genome is L + 0.5*LX if there is an X chrm: i.e. if g=1 or sex is female
 	if(g || SexIsFemale) EffectiveL = L + 0.5*LX;
 	else EffectiveL = L;
-	(*rho)[g] = gengam( rhobeta + EffectiveL, rhoalpha + (double)(SumNumArrivals[g] + SumNumArrivals_X[g]) );
+	(*rho)[g] = gengam( rhoalpha + (double)(SumNumArrivals[g] + SumNumArrivals_X[g]), rhobeta + EffectiveL );
       } while( (*rho)[g] > TruncationPt || (*rho)[g] < 1.0 );
       if( X_data && (g = 1 || SexIsFemale) ) { // no assignment if g = 0 (paternal gamete) and sex is male
 	(*rho_X)[g] = 0.5 * (*rho)[g];
@@ -1044,9 +1046,8 @@ void Individual::SampleRho(const AdmixOptions* const options, bool X_data, doubl
     // effective length of genome is  2*(L + 0.5*LX) if sex is female, 2*L + 0.5*LX if sex is male
     if( SexIsFemale) EffectiveL =  2.0 * L + LX;
     else EffectiveL = 2.0 * L + 0.5 * LX;
-    (*rho)[0] = gengam( rhobeta + EffectiveL, 
-			rhoalpha + (double)(SumNumArrivals[0] + SumNumArrivals[1] + 
-					    SumNumArrivals_X[0] + SumNumArrivals_X[1]) );
+    (*rho)[0] = gengam( rhoalpha + (double)(SumNumArrivals[0] + SumNumArrivals[1] + SumNumArrivals_X[0] + SumNumArrivals_X[1]), 
+			rhobeta + EffectiveL );
     if(X_data) {
       (*rho_X)[0] = 0.5 * (*rho)[0];
     }
@@ -1104,7 +1105,8 @@ void Individual::ResetScores(const AdmixOptions* const options){
   }
 }
 
-void Individual::UpdateScoreTests(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType,
+void Individual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
+				  const DataType* const OutcomeType,
 				  Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY){
   bool IamAffected = false;
   try {
@@ -1133,7 +1135,8 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, DataMatrix 
       
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){
-	UpdateScoreForAncestry(locus, dispersion, Outcome->get(myNumber-1, 0) - ExpectedY[0][myNumber-1], DInvLink, AProbs);
+	UpdateScoreForAncestry(locus, admixtureCovars, dispersion, Outcome->get(myNumber-1, 0) - ExpectedY[0][myNumber-1], 
+			       DInvLink, AProbs);
       }
       ++locus;
     }//end within-chromosome loop
@@ -1180,7 +1183,7 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0,
   }
 }
 
-void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, double DInvLink, 
+void Individual::UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double YMinusEY, double DInvLink, 
 					const vector<vector<double> > AProbs) {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
@@ -1189,6 +1192,7 @@ void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, 
   //       YMinusEY = Y - E(Y) = Y - g^{-1}(\eta_i)
   //       VarX = Var(X)
   //       DInvLink = {d  g^{-1}(\eta)} / d\eta = derivative of inverse-link function
+  // admixtureCovars are the centred admixture proportions (except first one) used in regression model
   //Xcov is a vector of covariates
   //Note that only the intercept and admixture proportions are used.
   // X is (A, cov)'  
@@ -1203,8 +1207,8 @@ void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, 
   Xcov[Populations-1] = 1;
   //set covariates, admixture props for pops 2 to K 
   for( int k = 0; k < Populations - 1; k++ ){
-    X[ Populations + k] = Theta[ k+1 ];
-    BX[k] = Xcov[k] = Theta[ k+1 ];
+    X[ Populations + k] = admixtureCovars[k];//Theta[ k+1 ];
+    BX[k] = Xcov[k] = admixtureCovars[k];//Theta[ k+1 ];
   }
 
   for( int k = 0; k < Populations ; k++ ){
@@ -1213,7 +1217,7 @@ void Individual::UpdateScoreForAncestry(int locus, double phi, double YMinusEY, 
   }
   //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
   Xcopy[2*Populations-1] = 1;
-  for( int k = 0; k < Populations-1; k++ )Xcopy[k + Populations] = Theta[ k+1 ];
+  for( int k = 0; k < Populations-1; k++ )Xcopy[k + Populations] = admixtureCovars[k];//Theta[ k+1 ];
   
   // ** compute expectation of score **
   scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi

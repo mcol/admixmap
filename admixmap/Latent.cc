@@ -180,8 +180,7 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
       LogLikelihood += ind->getLogLikelihood(options, C, false, true); // don't force update, store result if updated
       ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
    }
-    
-    // set ancestry correlations using proposed value of sum-intensities
+     // set ancestry correlations using proposed value of sum-intensities
     // value for X chromosome set to half the autosomal value 
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) {
       if( !C[j]->isXChromosome() ) C[j]->SetLociCorr(rhoprop);
@@ -230,11 +229,9 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     if(IC->getSize()>1 && options->getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
       // update scale parameter of gamma distribution of sumintensities in population 
       if( options->isRandomMatingModel() )
-	rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			  2*rhoalpha * IC->getSize() + rhobeta0 );
+	rhobeta = gengam( 2*rhoalpha * IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
       else
-	rhobeta = gengam( IC->GetSumrho() + rhobeta1,
-			  rhoalpha* IC->getSize() + rhobeta0 );
+	rhobeta = gengam( rhoalpha* IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
     } // otherwise do not update rhobeta
   }
 }

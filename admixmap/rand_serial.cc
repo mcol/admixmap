@@ -30,11 +30,11 @@ void smyrand( long seed )
 	      static_cast< unsigned long int >( seed ) );
 }
 
-double gengam( double bb, double aa )
+double gengam( double shape, double rate )
 {
   double x = 0.0;
   do
-    x =  gsl_ran_gamma( RandomNumberGenerator, aa, 1.0 / bb ) ;
+    x =  gsl_ran_gamma( RandomNumberGenerator, shape, 1.0 / rate ) ;
   while (x < 0.000001);
   return x;
 }
@@ -121,7 +121,7 @@ void gendirichlet(const size_t K, const double alpha[], double theta[] ) {
   double sum = 0.0;
   for( unsigned int i = 0; i < K; i++ ) {
     if( alpha[i] > 0 )
-      theta[i] = gengam( 1.0, alpha[i] );
+      theta[i] = gengam( alpha[i], 1.0 );
     else theta[i] = 0.0;
     sum += theta[i]; 
   }
