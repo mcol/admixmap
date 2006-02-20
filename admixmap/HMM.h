@@ -1,9 +1,8 @@
 // *-*-C++-*-*
 
-/* Class to implement Hidden Markov Models (see MacDonald and Zucchini)
+/* Class to implement hidden Markov model for haploid or diploid Poisson arrivals
    Instantiated in class Chromosome
 */
-
 
 #ifndef HMM_H
 #define HMM_H 1
@@ -23,30 +22,21 @@ public:
   HMM( int inTransitions, int pops);
   ~HMM();
   void SetDimensions( int inTransitions, int pops);
-
   void SetStateArrivalProbs(const double* const f, const double* const Theta, int Mcol);
-  /* samples hidden states */
+
   void Sample(int *SStates, const double* const Admixture, const double* const f, bool isdiploid)const;
-  //void GetStateProbs( double * probs, int t)const;
   std::vector<std::vector<double> > Get3WayStateProbs( int t)const;
-
   double getLogLikelihood()const;
+  void SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
+			    int *SumLocusAncestry, unsigned int SumNumArrivals[], bool SampleArrivals)const;
 
+
+  // these four methods should be private
   void UpdateForwardProbsDiploid(const double* const f, const double* lambda, bool* const missing);
-
   void UpdateBackwardProbsDiploid(const double* const f, const double* const lambda);
-
   void UpdateForwardProbsHaploid(const double* const f, const double* const Admixture, const double* const lambda);
   void UpdateBackwardProbsHaploid(const double* const f, const double* const Admixture, const double* const lambda);
 
-  void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
-		      double* oldProbs, double *newProbs); 
-
-  void SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
-			    int *SumLocusAncestry, //int *SumLocusAncestry_X, bool isX, 
-			    unsigned int SumN[], 
-			    //unsigned int SumN_X[], 
-			    bool SampleArrivals)const;
 private:
   int K;
   int States; //number of states of Markov chain, m in book
@@ -73,9 +63,10 @@ private:
   double *colSum;
   double **cov;
 
-void RecursionProbs2(const double ff, const double f[2], 
-		     const double* const stateArrivalProbs, const double* const oldProbs, double *newProbs) ;
-
+  void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
+		      double* oldProbs, double *newProbs); 
+  void RecursionProbs2(const double ff, const double f[2], const double* const stateArrivalProbs, 
+		       const double* const oldProbs, double *newProbs);
 };
 
 #endif /* ! HMM_H */
