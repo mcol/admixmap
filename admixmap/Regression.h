@@ -66,7 +66,7 @@ private:
   double *SumBeta;//running sums (for ergodic averages)
   double lambda; //precision parameter
   double SumLambda;
-  double* Y;
+  const double* Y;
 
   // ** Linear Regression Objects
   double lambda0; //parameters of
@@ -75,10 +75,11 @@ private:
   double *R, *QY, *QX, *V, *betahat;
   Gaussian DrawBeta;//sampler
 
-  void QRSolve(int dim1, int dim2, double* a, double* b, double* x);
-  void SampleRegressionParams(double* beta, double* lambda, double* Y, double* X, int NumIndivs, int NumCovars, double s2n);
-  void AugmentDataMatrices(const double* Y, const double* X, double lambda);
-  void SampleRegressionParametersWithAnnealing(double* beta, double* lambda, double coolness);
+  void QRSolve(int dim1, int dim2, const double* a, const double* b, double* x);
+  void SamplePrecision(double* lambda, const double* Y, const double* X, int NumIndivs, int NumCovars, double coolness);
+  void SampleLinearRegressionParams(double* beta, const double* Y, const double* X, int NumIndivs, int NumCovars);
+  void SampleLinearRegressionParametersWithAnnealing(const double* Y, const double* X, double* beta, double *lambda, 
+							       double coolness);
 
   // ** Logistic Regression Objects
   GaussianProposalMH** BetaDrawArray;

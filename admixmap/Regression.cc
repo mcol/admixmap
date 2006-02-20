@@ -220,8 +220,7 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals, double 
 //   cout<< "SumNAm ="<<sumNAm<<endl;
   
   if( RegType == Linear ){
-    AugmentDataMatrices(Y, X, lambda);
-    SampleRegressionParametersWithAnnealing(beta, &lambda, coolness);
+    SampleLinearRegressionParametersWithAnnealing(Y, X, beta, &lambda, coolness);
   }
   
   else if( RegType == Logistic ){
@@ -490,18 +489,18 @@ double Regression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, in
 
 //solves Ax = b by QR decomposition
 //on exit R is the inverse of the R matrix in decomposition and V is RR', ready for use later
-void Regression::QRSolve(int dim1, int dim2, double* a, double* b, double* x){
+void Regression::QRSolve(int dim1, int dim2, const double* a, const double* b, double* x){
 
   //note that views do not allocate memory
   //copy A into QR as QR decomp function destroys argument
-  gsl_matrix_view Aview = gsl_matrix_view_array(a, dim1, dim2);
+  gsl_matrix_view Aview = gsl_matrix_view_array(const_cast<double *>(a), dim1, dim2);
   gsl_matrix* QR = gsl_matrix_alloc(dim1, dim2);
   for(int i1 = 0; i1 < dim1; ++i1)
     for(int i2 = 0; i2 < dim2; ++i2)
       gsl_matrix_set(QR, i1, i2, a[i1*dim2 + i2]); 
   
   gsl_vector* tau = gsl_vector_alloc(dim2);
-  gsl_vector_view bview = gsl_vector_view_array(b, dim1);
+  gsl_vector_view bview = gsl_vector_view_array(const_cast<double *>(b), dim1);
   gsl_vector_view xview = gsl_vector_view_array(x, dim2);
   
   gsl_vector* residuals = gsl_vector_alloc(dim1);   
@@ -549,7 +548,29 @@ void Regression::QRSolve(int dim1, int dim2, double* a, double* b, double* x){
     exit(1);
   }
 }
-void Regression::SampleRegressionParams(double* beta, double* lambda, double* Y, double* X, int NumIndivs, int NumCovars, double s2n){
+
+void Regression::SamplePrecision(double* lambda, const double* Y, const double* X, int NumIndivs, int NumCovars, double coolness){
+
+  double *Xbeta = new double[NumIndivs];
+  //compute X * betahat
+  matrix_product(X, beta, Xbeta, NumIndivs, NumCovars, 1);
+
+  //compute s^2
+  double s2 = 0.0;
+  for(int i = 0; i < NumIndivs; ++i){
+    double dev = (Y[i] - Xbeta[i]);
+    s2 += dev*dev;
+  }
+
+  //draw lambda from Gamma posterior
+  *lambda = gengam( lambda0 + coolness * NumIndivs, lambda1 + coolness*0.5*s2);
+  
+  //cout << "sampled " << *lambda << " from Gamma( " << 0.5*df << ", " << 0.5 * (df * s2 ) << ")" << endl;
+  delete[] Xbetahat;
+}
+
+void Regression::SampleLinearRegressionParams(double* beta, /*double* lambda, */const double* Y, const double* X, 
+					      int NumIndivs, int NumCovars){
   /*
   Samples regression parameters in a linear regression model as described in "Bayesian Data Analysis"
   by Gelman et al (Ch8)
@@ -560,33 +581,10 @@ void Regression::SampleRegressionParams(double* beta, double* lambda, double* Y,
   X - matrix of NumIndividuals * NumCovariates covariates
   */
 
-  // compute betahat using QR decomposition
+  // compute betahat using QR decomposition and then V
   QRSolve(NumIndivs, NumCovars, X, Y, betahat);
 
-  double *Xbetahat = new double[NumIndivs];
-  //compute X * betahat
-  matrix_product(X, betahat, Xbetahat, NumIndivs, NumCovars, 1);
-
-  //compute s^2
-  double s2 = 0.0;
-  for(int i = 0; i < NumIndivs; ++i){
-    double dev = (Y[i] - Xbetahat[i]);
-    s2 += dev*dev / *lambda;
-  }
-  s2 /= (double)(NumIndivs - NumCovars);
-
-  //draw lambda from chisq (n+n0, (2lambda1 + ns2) / (2lambda0 + n) )
-  //ie draw from Gamma(n-k/2, 1/2) and multiply by 2nd term
-  //this includes prior info as Ga(lambda0, lambda1) prior on lambda
-
-  //*lambda = s2* gengam(0.5, 0.5*(NumIndivs -NumCovars));//noninformative prior
-  double df = (s2n + 2.0*lambda0);//degrees-of-freedom
-  s2 = (2.0*lambda1 + s2n*s2) / (2.0*lambda0 + s2n);
-  *lambda = gengam(0.5 * (df * s2 ), 0.5*df);
-
-
   //V currently holds (X'X)^-1
-  //compute posterior variance by dividing by lambda
   //scale_matrix(V, 1.0/ *lambda, NumCovars, NumCovars);
 
   //draw beta from N(betahat, V^-1)
@@ -594,18 +592,21 @@ void Regression::SampleRegressionParams(double* beta, double* lambda, double* Y,
   DrawBeta.SetCovariance( V );
   DrawBeta.Draw(beta);
 
-  delete[] Xbetahat;
 }
 
-void Regression::AugmentDataMatrices(const double* Y, const double* X, double lambda){
+void Regression::SampleLinearRegressionParametersWithAnnealing(const double* Y, const double* X, double* beta, double *lambda, 
+							       double coolness){
+  //sample precision
+  SamplePrecision(lambda, Y, X, NumIndividuals, NumCovariates, coolness);
 
-  //for the case of Var(Y_i) = 1/ (lambda* w_i) 
+
+ //for the case of Var(Y_i) = 1/ (lambda* w_i) 
 
   //augment X and Y with prior as extra 'data points'
   for(int i = 0; i < NumIndividuals; ++i){
-    QY[i] = Y[i] * sqrt(lambda);
+    QY[i] = Y[i] * sqrt(*lambda);
     for(int j = 0; j < NumCovariates; ++j)
-      QX[i*NumCovariates +j] = X[i*NumCovariates+j]*sqrt(lambda);
+      QX[i*NumCovariates +j] = X[i*NumCovariates+j]*sqrt(*lambda);
   }
 //   for(int i = 0; i < NumCovariates; ++i){
 //     QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
@@ -614,9 +615,6 @@ void Regression::AugmentDataMatrices(const double* Y, const double* X, double la
 //       QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
 //   }
 
-}
-
-void Regression::SampleRegressionParametersWithAnnealing(double* beta, double* lambda, double coolness){
   //compute Q^{-1/2}Y and Q^{-1/2}X
   for(int i = 0; i < NumIndividuals; ++i){
     QY[i] *= coolness;
@@ -625,5 +623,6 @@ void Regression::SampleRegressionParametersWithAnnealing(double* beta, double* l
   }
 
   //use standard update algorithm with QX and QY
-  SampleRegressionParams(beta, lambda, QY, QX, NumIndividuals+NumCovariates, NumCovariates, coolness*NumIndividuals+NumCovariates);
+  SampleLinearRegressionParams(beta, QY, QX, NumIndividuals+NumCovariates, NumCovariates);
 }
+
