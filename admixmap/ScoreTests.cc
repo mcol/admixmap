@@ -26,7 +26,7 @@
 
 #include "ScoreTests.h"
 #include <numeric>
-
+#include "gsl/gsl_cdf.h" //for residual allelic assoc test
 
 using namespace std;
 
@@ -95,6 +95,8 @@ ScoreTests::~ScoreTests(){
   delete[] SumLocusLinkageAlleleScore2;
   delete[] SumLocusLinkageAlleleInfo;
   delete[] locusObsIndicator;
+
+  //ResAlleleScoreFile.close();
 }
 
 void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv,const Genome* const Loci, 
@@ -663,7 +665,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,
   int N = (*chrm[c])(locus+1)->GetNumberOfStates();
   int MN = M*N;
   int Populations = options->getPopulations();
-  vector<double> AlleleScore(MN);//temporary array to hold sums ofmscores over indidividuals. 
+  vector<double> AlleleScore(MN);//temporary array to hold sums of scores over individuals. 
                                   //Note that the dimensions vary between calls
   fill(AlleleScore.begin(), AlleleScore.end(), 0.0);
   int count = 0;
@@ -711,16 +713,17 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,
 
 void ScoreTests::Output(int iteration, const std::string * PLabels){
   PopLabels = PLabels;
+  int iterations = iteration - options->getBurnIn();
   //Allelic association
   if( options->getTestForAllelicAssociation() ){
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
       //case of simple locus
       if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
-	OutputTestsForAllelicAssociation(iteration, j, dim_[j], SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
+	OutputTestsForAllelicAssociation(iterations, j, dim_[j], SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
 					 SumLocusLinkageAlleleInfo[j]);
       //case of haplotype
       else
-	OutputTestsForAllelicAssociation(iteration, j, (*Lociptr)(j)->GetNumberOfLoci(), SumScoreWithinHaplotype[ j ], 
+	OutputTestsForAllelicAssociation(iterations, j, (*Lociptr)(j)->GetNumberOfLoci(), SumScoreWithinHaplotype[ j ], 
 					 SumScore2WithinHaplotype[ j ], SumInfoWithinHaplotype[ j ]);
       
       
@@ -729,42 +732,44 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
   
   //haplotype association
   if( options->getTestForSNPsInHaplotype() ){
-    OutputTestsForSNPsInHaplotype( iteration );
+    OutputTestsForSNPsInHaplotype( iterations );
   }
   
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
     
-    OutputTestsForLocusLinkage( iteration, ancestryAssociationScoreStream,
+    OutputTestsForLocusLinkage( iterations, ancestryAssociationScoreStream,
 				SumAncestryScore, SumAncestryVarScore,
 				SumAncestryScore2, SumAncestryInfo );
   }
   //affectedonly
   if( options->getTestForAffectedsOnly() ){
-    OutputTestsForLocusLinkage( iteration, affectedsOnlyScoreStream,
+    OutputTestsForLocusLinkage( iterations, affectedsOnlyScoreStream,
 				SumAffectedsScore, SumAffectedsVarScore,
 				SumAffectedsScore2, SumAffectedsInfo );
   }
   
   //admixture association
   if( options->getTestForAdmixtureAssociation() ){
-    OutputAdmixtureScoreTest( iteration );
+    OutputAdmixtureScoreTest( iterations );
   }
-  
+  //residual allelic association
+  if(options->getTestForResidualAllelicAssoc())
+    OutputTestsForResidualAllelicAssociation(iterations);
 }
 
 // next few function calculate score tests from the cumulative sums of
 // the score, score squared, and information score and info can be
 // scalars, or respectively a vector and a matrix should have just one
 // method or class to do this
-void ScoreTests::OutputAdmixtureScoreTest(int iteration)
+void ScoreTests::OutputAdmixtureScoreTest(int iterations)
 {
   int NumOutcomeVars = individuals->getNumberOfOutcomeVars();
   for( int j = 0; j < options->getPopulations(); j++ ){
     for( int jj = 0; jj < NumOutcomeVars; jj++ ){
-      double EU = SumAdmixtureScore[ j*NumOutcomeVars + jj ] / ( iteration - options->getBurnIn() );
-      double complete = SumAdmixtureInfo[ j*NumOutcomeVars + jj ] / ( iteration - options->getBurnIn() );
-      double missing = SumAdmixtureScore2[ j*NumOutcomeVars + jj ] / ( iteration - options->getBurnIn() ) - EU * EU;
+      double EU = SumAdmixtureScore[ j*NumOutcomeVars + jj ] / ( iterations );
+      double complete = SumAdmixtureInfo[ j*NumOutcomeVars + jj ] / ( iterations );
+      double missing = SumAdmixtureScore2[ j*NumOutcomeVars + jj ] / ( iterations ) - EU * EU;
       assocscorestream.width(9);
       assocscorestream << setprecision(6) << double2R(complete) << " ";
       assocscorestream.width(9);
@@ -776,7 +781,7 @@ void ScoreTests::OutputAdmixtureScoreTest(int iteration)
   assocscorestream << endl;
 }
 
-void ScoreTests::OutputTestsForSNPsInHaplotype( int iteration )
+void ScoreTests::OutputTestsForSNPsInHaplotype( int iterations )
 // misleading name for this method - should be called OutputTestsForHaplotypeAssociation
 // loops over composite loci that have 2 or more simple loci, and calculates score tests for each 
 // haplotype separately, together with a summary chi-square
@@ -790,16 +795,16 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iteration )
       
       ScoreVector = new double[dim_[j]];
       copy(SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore[j]+dim_[j], ScoreVector);
-      scale_matrix(ScoreVector, 1.0/( iteration - options->getBurnIn()), dim_[j], 1);
+      scale_matrix(ScoreVector, 1.0/( iterations), dim_[j], 1);
       
       CompleteMatrix = new double[dim_[j]*dim_[j]];
       copy(SumLocusLinkageAlleleInfo[j], SumLocusLinkageAlleleInfo[j]+ dim_[j]*dim_[j], CompleteMatrix);
-      scale_matrix(CompleteMatrix, 1.0/( iteration - options->getBurnIn()), dim_[j], dim_[j]);
+      scale_matrix(CompleteMatrix, 1.0/( iterations), dim_[j], dim_[j]);
       
       ObservedMatrix = new double[dim_[j]*dim_[j]];
       for(unsigned d1 = 0; d1 < dim_[j]; ++d1)for(unsigned d2 = 0; d2 < dim_[j]; ++d2)
 	ObservedMatrix[d1*dim_[j] + d2] = CompleteMatrix[d1*dim_[j]+d2] + ScoreVector[d1]*ScoreVector[d2] -
-	  SumLocusLinkageAlleleScore2[j][d1*dim_[j]+d2]/( iteration - options->getBurnIn() );
+	  SumLocusLinkageAlleleScore2[j][d1*dim_[j]+d2]/( iterations );
       
       NumberOfMergedHaplotypes = dim_[j];
       for( int k = 0; k < NumberOfMergedHaplotypes; k++ ){
@@ -837,14 +842,14 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iteration )
   }//end loop over loci
 }
 
-void ScoreTests::OutputTestsForAllelicAssociation( int iteration, int locus, unsigned dim, const double* score, const double* scoresq, 
+void ScoreTests::OutputTestsForAllelicAssociation( int iterations, int locus, unsigned dim, const double* score, const double* scoresq, 
 						   const double* info)
 {
   double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore;
   for(unsigned a = 0; a < dim; ++a){
-    Score = score[a] / ( iteration - options->getBurnIn() );
-    CompleteInfo = info[a] / ( iteration - options->getBurnIn() );
-    MissingInfo = scoresq[a] / ( iteration - options->getBurnIn() ) - Score * Score;
+    Score = score[a] / ( iterations );
+    CompleteInfo = info[a] / ( iterations );
+    MissingInfo = scoresq[a] / ( iterations ) - Score * Score;
     ObservedInfo = CompleteInfo - MissingInfo;
     
     if(CompleteInfo > 0.0) {
@@ -873,7 +878,7 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iteration, int locus, uns
   }
 }
 
-void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
+void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstream,
 					     const double* Score, const double* VarScore,
 					     const double* Score2, const double* Info )
 //used for affectedsonly test and ancestry association test
@@ -894,10 +899,10 @@ void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstre
       *outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
       *outputstream << "\""<<PopLabels[k+k1] << "\","; //need offset to get second poplabel for 2pops
       
-      EU = Score[ j*KK + k] / ( iteration - options->getBurnIn() );
-      VU = VarScore[ j*KK + k ] / ( iteration - options->getBurnIn() );
-      missing = Score2[ j*KK + k ] / ( iteration - options->getBurnIn() ) - EU * EU + VU;
-      complete =  Info[ j*KK + k ] / ( iteration - options->getBurnIn() );
+      EU = Score[ j*KK + k] / ( iterations );
+      VU = VarScore[ j*KK + k ] / ( iterations );
+      missing = Score2[ j*KK + k ] / ( iterations ) - EU * EU + VU;
+      complete =  Info[ j*KK + k ] / ( iterations );
       
       *outputstream << double2R(EU)                                << ","//score
 		    << double2R(complete)                          << ","//complete info
@@ -918,31 +923,41 @@ void ScoreTests::OutputTestsForLocusLinkage( int iteration, ofstream* outputstre
 }
 
 void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations){
-  double *ObservedInfo;
+  double *Score, *ObservedInfo;
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
     for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
       int M = (*chrm[c])(j)->GetNumberOfStates();
       int N = (*chrm[c])(j+1)->GetNumberOfStates();
       int MN = M*N;
+      Score = new double[MN];
       ObservedInfo = new double[MN*MN];
+
       for(int i = 0; i < MN; ++i){
-	SumAlleleScore[c][j][i] /= (double) iterations; //score
+	Score[i] = SumAlleleScore[c][j][i]/(double) iterations; //score
 	for(int ii = 0; ii < MN; ++ii){
 	  AlleleInfo[c][j][i*MN +ii] /= (double) iterations; //complete info
-	  ObservedInfo[i*MN +ii] = AlleleInfo[c][j][i*MN+ii] + SumAlleleScore[c][j][i]*SumAlleleScore[c][j][ii] 
+	  ObservedInfo[i*MN +ii] = AlleleInfo[c][j][i*MN+ii] + Score[i]*Score[ii] 
 	    - SumAlleleScore2[c][j][i*MN+ii]/(double)iterations;
 	}
       }
       //compute chi-squared statistic
       double VinvU[MN];
-      HH_solve(MN, ObservedInfo, SumAlleleScore[c][j], VinvU);
+      HH_solve(MN, ObservedInfo, Score, VinvU);
       double chisq = 0.0;
-      for(int i = 0; i < MN; ++i)chisq += SumAlleleScore[c][j][i] * VinvU[i];
-      //output labels etc here
-      ResAlleleScoreFile << chisq <<endl;
+      for(int i = 0; i < MN; ++i)chisq += Score[i] * VinvU[i];
+
+      //compute p-value
+      int df = (M-1)*(N-1);
+      double pvalue = gsl_cdf_chisq_Q (chisq, df);
+
+      //output labels
+      ResAlleleScoreFile << "\"" << (*chrm[c])(j)->GetLabel(0) << " / " << (*chrm[c])(j+1)->GetLabel(0) << "\"\t";
+
+      ResAlleleScoreFile << df << "\t" << chisq << "\t" << pvalue << endl;
+      delete[] Score;
+      delete[] ObservedInfo;
     }
-  //finish writing R object
-  ResAlleleScoreFile.close();
+
 }
 
 void ScoreTests::ROutput(){
@@ -1050,6 +1065,26 @@ void ScoreTests::ROutput(){
     
     R_output3DarrayDimensions(affectedsOnlyScoreStream,dimensions,labels);
   }
+
+  /**
+   * writes out the dimensions and labels of the 
+   * R-matrix previously written to ResAlleleScoreFile
+   */
+  if(options->getTestForResidualAllelicAssoc()){
+    vector<int> dimensions(3,0);
+    dimensions[0] = 4;
+    dimensions[1] = Lociptr->GetNumberOfCompositeLoci() - Lociptr->GetNumberOfChromosomes();
+    dimensions[2] = (int)(numPrintedIterations);
+    
+    vector<string> labels(4,"");
+    labels[0] = "Loci";
+    labels[1] = "df";
+    labels[2] = "ChiSquare";
+    labels[3] = "P-value";
+
+    R_output3DarrayDimensions(&ResAlleleScoreFile, dimensions, labels);
+  }
+
 }
 
 void ScoreTests::R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels)
