@@ -30,7 +30,7 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci)
   options = op;
   Loci = loci;
   poptheta = 0;
-  //SumLocusAncestry = 0;
+  globaltheta = 0;
 }
 
 void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter &Log){
@@ -56,7 +56,10 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     } 
     PopAdmixSampler.SetSize( obs, K );
 
-
+    //initialise global admixture proportions
+    if(options->getHapMixModelIndicator()){
+      globaltheta = new double[K];
+    }
 
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
@@ -105,11 +108,20 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 Latent::~Latent()
 {
   delete[] poptheta;
-  //delete[] SumLocusAncestry;
+  delete[] globaltheta;
+}
+
+void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals, Chromosome** C){
+  if(options->getHapMixModelIndicator()){
+    if(!(iteration%2))ConjugateUpdateGlobalTheta(individuals->getSumLocusAncestry(options->getPopulations()));
+    else
+      UpdateGlobalThetaWithRandomWalk(individuals, C); 
+  }
 }
 
 void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* const individuals, LogWriter &Log, bool anneal=false)
  {
+   
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
 
@@ -122,15 +134,6 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
      PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0] );
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
 
-//      cout << endl << "sumlogtheta\t";
-//       for( int i = 0; i < K; i++ ) {
-//        cout << individuals->getSumLogTheta(i) << "\t";
-//      }
-//      cout << endl;
-//       for( int i = 0; i < K; i++ ) {
-//        cout << alpha[0][i] << "\t";
-//      }
-//      cout << endl;
   }
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
@@ -234,6 +237,95 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
 	rhobeta = gengam( rhoalpha* IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
     } // otherwise do not update rhobeta
   }
+}
+
+void Latent::ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry){
+  //sumlocusancestry is summed over all individuals
+  size_t K = options->getPopulations();
+  double dirparams[K];
+  for(size_t k = 0; k < K; ++k) {
+    dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
+    
+    gendirichlet(K, dirparams, globaltheta );
+  }
+}
+
+void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC, Chromosome** C) {
+  double LogLikelihoodRatio = 0.0;
+  double LogPriorRatio = 0.0;
+  double logpratio = 0.0;
+  
+  //generate proposals
+  // inverse softmax transformation from proportions to numbers on real line that sum to 0
+  bool* b = new bool[K];
+  double* a = new double[K]; // should be at class scope
+  for(int k = 0; k < K; ++k) {
+    if(globaltheta[k] > 0.0) {
+      b[k] = true; //to skip elements set to zero
+    } else b[k] = false;
+  }
+  inv_softmax(K, globaltheta, a, b);
+  //random walk step - on all elements of array a
+  for(int k = 0; k < K; ++k) {
+    if( b[k] ) a[k] = gennor(a[k], thetastep);  
+  }
+  //reverse transformation from numbers on real line to proportions 
+  softmax(K, globalthetaproposal, a, b);
+  //compute contribution of this gamete to log prior ratio
+  for(int k = 0; k < K; ++k) {
+    if( b[k] ) { 
+      // prior densities must be evaluated in softmax basis
+      LogPriorRatio += alpha[0][k]*( log(globalthetaproposal[k]) - log(globaltheta[k]) ); 
+    }
+  }
+  delete[] a;
+  delete[] b; 
+
+  vector<double> dummyrho(1);dummyrho[0] = rho;
+  for(int i = 0; i < IC->getSize(); ++i){
+    //get log likelihood at current parameter values - do not force update, store result of update
+    LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C, false, true); 
+    
+    //get log likelihood at proposal theta and current rho - force update 
+    LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, C, globaltheta, globaltheta, dummyrho, dummyrho, true);
+  }
+  IC->HMMIsBad(true);
+
+  logpratio = LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
+  Accept_Reject_Theta(logpratio, K);
+}
+
+void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
+  // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
+  bool test = true;
+  bool accept = false;
+  double AccProb = 1.0; 
+  // loop over populations: if any element of proposed parameter vector is too small, reject update without test step
+  for( int k = 0; k < Populations; k++ ) {
+    if( globaltheta[ k ] > 0.0 && globalthetaproposal[ k ] < 0.0001 ) {
+      test = false;
+    }
+  }
+
+  if(test) { // generic Metropolis step
+    if( logpratio < 0 ) {
+      AccProb = exp(logpratio); 
+      if( myrand() < AccProb ) accept=true;
+    } else {
+      accept = true;
+    }
+  }
+  
+  if(accept) { // set proposed values as new values    
+    copy(globalthetaproposal, globalthetaproposal+K, globaltheta);
+    //possibly need to reset loglikelihood in Individuals
+  } 
+  
+  //update step size in tuner object every w updates
+  if( !( NumberOfUpdates % w ) ) {
+    thetastep = ThetaTuner.UpdateStepSize( AccProb );
+  }
+
 }
 
 double Latent::getRhoSamplerAccRate()const{

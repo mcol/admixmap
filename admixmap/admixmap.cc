@@ -591,8 +591,11 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
     // or from update of individual-level parameters otherwise
   
-  //update population admixture Dirichlet parameters conditional on individual admixture
-  L->UpdatePopAdmixParams(iteration, IC, Log, anneal);
+  if(options->getHapMixModelIndicator())
+    L->UpdateGlobalTheta(iteration, IC, Chrm);
+  else
+    //update population admixture Dirichlet parameters conditional on individual admixture
+    L->UpdatePopAdmixParams(iteration, IC, Log, anneal);
   
   // ** update regression parameters (if regression model) conditional on individual admixture
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)

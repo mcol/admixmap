@@ -31,7 +31,7 @@
 #include "Genome.h"
 #include "LogWriter.h"
 
-#include "StepSizeTuner.h"//for sampling globalrho
+#include "StepSizeTuner.h"//for sampling globalrho and globaltheta
 #include "DirichletParamSampler.h"//for sampling pop admix
 
 class InputData;
@@ -50,6 +50,7 @@ public:
   
   void UpdateSumIntensities(const IndividualCollection* const IC, Chromosome **C);
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log,  bool anneal);
+  void UpdateGlobalTheta(int iteration, IndividualCollection* individuals, Chromosome** C);
   
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream* out); 
@@ -100,15 +101,23 @@ private:
   //sampler for alpha
   
   DirichletParamSampler PopAdmixSampler;
-  //int *SumLocusAncestry;
 
   double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
                        //in the regression model
+
+  double* globaltheta;//global admixture proportions in a hapmixmodel
+  double* globalthetaproposal;//for random walk update
+  StepSizeTuner ThetaTuner;
+  double thetastep;
 
   std::ofstream outputstream;//output to paramfile
 
   AdmixOptions *options;
   const Genome* Loci; 
+
+  void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
+  void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC, Chromosome** C);
+  void Accept_Reject_Theta( double logpratio, int Populations);
 
   // UNIMPLEMENTED
   // to avoid use

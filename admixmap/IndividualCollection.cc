@@ -335,7 +335,6 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
 }
 
 // ************** UPDATING **************
-// pass reference to alpha: either dirichlet parameters from Latent, or admixtureprior set at initialization of this object  
 void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
 				  const std::string* const PopulationLabels,
@@ -344,7 +343,6 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 				  bool anneal=false){
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 
-  // but we need a similar function to anneal outcome data on each individual for regressions 
 
   vector<double> lambda;
   vector<const double*> beta;
