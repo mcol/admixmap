@@ -323,8 +323,11 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
 	int locus = chrm[j]->GetLocus(k);
 	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()) * ((*Lociptr)(locus+1)->GetNumberOfStates());
 	SumAlleleScore[j][k] = new double[dim];
+	fill(SumAlleleScore[j][k], SumAlleleScore[j][k]+dim, 0.0);
 	SumAlleleScore2[j][k] = new double[dim*dim];
+	fill(SumAlleleScore2[j][k], SumAlleleScore2[j][k]+dim*dim, 0.0);
 	AlleleInfo[j][k] = new double[dim*dim];
+	fill(AlleleInfo[j][k], AlleleInfo[j][k]+dim*dim, 0.0);
       }
 
     }
@@ -936,8 +939,8 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations){
 	Score[i] = SumAlleleScore[c][j][i]/(double) iterations; //score
 	for(int ii = 0; ii < MN; ++ii){
 	  AlleleInfo[c][j][i*MN +ii] /= (double) iterations; //complete info
-	  ObservedInfo[i*MN +ii] = AlleleInfo[c][j][i*MN+ii] + Score[i]*Score[ii] 
-	    - SumAlleleScore2[c][j][i*MN+ii]/(double)iterations;
+	  ObservedInfo[i*MN +ii] = AlleleInfo[c][j][i*MN+ii] + Score[i]*Score[ii];
+	    //- SumAlleleScore2[c][j][i*MN+ii]/(double)iterations;
 	}
       }
       //compute chi-squared statistic
