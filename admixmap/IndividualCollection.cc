@@ -198,6 +198,7 @@ void IndividualCollection::LoadData(const AdmixOptions* const options, const Inp
   if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
     LoadRepAncestry(data_);
   }
+
 }
 
 void IndividualCollection::LoadCovariates(const InputData* const data_, const AdmixOptions* const options){
@@ -524,23 +525,52 @@ const double* IndividualCollection::getCovariates()const{
 
 const std::string IndividualCollection::getCovariateLabels(int i)const{
   return CovariateLabels[i];
-  }
+}
 const std::string *IndividualCollection::getCovariateLabels()const{
   return CovariateLabels;
-  }
+}
 
 double IndividualCollection::getExpectedY(int i)const{
   if(ExpectedY)
     return ExpectedY[0][i];
   else
     return 0.0;
- }
+}
+double IndividualCollection::getExpectedY(int i, int k)const{
+  if(ExpectedY)
+    return ExpectedY[k][i];
+  else
+    return 0.0;
+}
 double IndividualCollection::getSumLogTheta(int i)const{
   return SumLogTheta[i];
 }
 const double* IndividualCollection::getSumLogTheta()const{
   return SumLogTheta;
 }
+const vector<int> IndividualCollection::getSumLocusAncestry(int K)const{
+  vector<int> sumlocusancestry(2*K, 0);
+  const int* indivsla;
+  for(unsigned i = 0; i < size; ++i){
+    indivsla = _child[i]->getSumLocusAncestry();
+    transform(indivsla, indivsla+2*K, sumlocusancestry.begin(), sumlocusancestry.begin(), std::plus<int>());
+  }
+
+  return sumlocusancestry;
+}
+const vector<int> IndividualCollection::getSumLocusAncestryX(int K)const{
+  vector<int> sumlocusancestry(2*K, 0);
+  const int* indivsla;
+  int length;
+  for(unsigned i = 0; i < size; ++i){
+    indivsla = _child[i]->getSumLocusAncestryX();
+    if(_child[i]->getSex()==female)length = 2*K; else length = K;//two gametes in females, otherwise one
+    transform(indivsla, indivsla+length, sumlocusancestry.begin(), sumlocusancestry.begin(), std::plus<int>());
+  }
+
+  return sumlocusancestry;
+}
+
 const chib* IndividualCollection::getChib()const{
   return &MargLikelihood;
 }

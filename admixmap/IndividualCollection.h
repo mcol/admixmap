@@ -85,6 +85,8 @@ public:
   double GetSumrho()const;
   double getSumLogTheta(int)const;
   const double *getSumLogTheta()const;
+  const vector<int> getSumLocusAncestry(int k)const;
+  const vector<int> getSumLocusAncestryX(int k)const;
 
   std::vector<double> getOutcome(int)const;
   double getOutcome(int, int)const;
@@ -96,6 +98,7 @@ public:
   void SetExpectedY(int, const double*const );
   void UpdateSumResiduals();
   double getExpectedY(int)const;
+  double getExpectedY(int, int)const;
   const std::string getCovariateLabels(int)const;
   const std::string *getCovariateLabels()const;
 
