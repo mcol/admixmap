@@ -273,7 +273,8 @@ void Genome::SetSizes(LogWriter &Log){
   Log.setDisplayMode(Quiet);
   Log << "\n" << TotalLoci << " simple loci\n"
       << NumberOfCompositeLoci << " compound loci; "
-      << NumberOfChromosomes << " chromosomes\n";
+      << NumberOfChromosomes << " chromosome"; if(NumberOfChromosomes > 1) Log << "s";
+  Log << "\n";
 
   Log << "Effective length of autosomes under study: " << LengthOfGenome << " Morgans.\n";
 

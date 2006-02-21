@@ -280,6 +280,7 @@ void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &L
     {
       if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << "\t";
       OutputParams(&cout);
+      cout << endl;
     }
   //Output to paramfile after BurnIn
   if( iteration > options->getBurnIn() ){
@@ -552,7 +553,7 @@ void Regression::QRSolve(int dim1, int dim2, const double* a, const double* b, d
 void Regression::SamplePrecision(double* lambda, const double* Y, const double* X, int NumIndivs, int NumCovars, double coolness){
 
   double *Xbeta = new double[NumIndivs];
-  //compute X * betahat
+  //compute X * beta
   matrix_product(X, beta, Xbeta, NumIndivs, NumCovars, 1);
 
   //compute s^2
@@ -565,8 +566,8 @@ void Regression::SamplePrecision(double* lambda, const double* Y, const double* 
   //draw lambda from Gamma posterior
   *lambda = gengam( lambda0 + coolness * NumIndivs, lambda1 + coolness*0.5*s2);
   
-  //cout << "sampled " << *lambda << " from Gamma( " << 0.5*df << ", " << 0.5 * (df * s2 ) << ")" << endl;
-  //delete[] Xbetahat;
+  //cout << "sampled " << *lambda << " from Gamma( " << lambda0 + coolness * NumIndivs << ", " << lambda1 + coolness*0.5*s2 << ")" << endl;
+  delete[] Xbeta;
 }
 
 void Regression::SampleLinearRegressionParams(double* beta, /*double* lambda, */const double* Y, const double* X, 
