@@ -563,8 +563,9 @@ void Regression::SamplePrecision(double* lambda, const double* Y, const double* 
     s2 += dev*dev;
   }
 
-  //draw lambda from Gamma posterior
-  *lambda = gengam( lambda0 + coolness * NumIndivs, lambda1 + coolness*0.5*s2);
+  //draw lambda given beta from conjugate Gamma update
+  // should replace this with an update that marginalizes over beta
+  *lambda = gengam( lambda0 + coolness*0.5*NumIndivs, lambda1 + coolness*0.5*s2);
   
   //cout << "sampled " << *lambda << " from Gamma( " << lambda0 + coolness * NumIndivs << ", " << lambda1 + coolness*0.5*s2 << ")" << endl;
   delete[] Xbeta;
