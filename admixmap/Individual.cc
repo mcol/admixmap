@@ -200,6 +200,13 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
     setAdmixturePropsX(Theta, K*NumIndGametes);
 }
 
+void Individual::setOutcome(double* Y){
+  Outcome = Y;
+}
+void Individual::setCovariates(double* X){
+  Covariates = X;
+}
+
 void Individual::SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator=false){
   //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
@@ -376,6 +383,9 @@ int Individual::GetLocusAncestry(int chrm, int gamete, int locus)const{
 const int *Individual::getSumLocusAncestry()const{
   return SumLocusAncestry;
 }
+const int *Individual::getSumLocusAncestryX()const{
+  return SumLocusAncestry_X;
+}
 
 //Indicates whether genotype is missing at all simple loci within a composite locus
 bool Individual::IsMissing(unsigned int locus)const {
@@ -551,7 +561,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
 	  //}
 	}   
       }
-      if(Populations>1) {
+      if(Populations>1 && !options->getHapMixModelIndicator()) {
 	// don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
 	//sample number of arrivals, update SumNumArrivals and SumLocusAncestry
 	if( !chrm[j]->isXChromosome() )
@@ -565,7 +575,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   }
   
   // sample sum of intensities parameter rho if defined at individual level - then set HMM and loglikelihood as bad 
-  if(sampleparams && Populations>1 &&  !options->isGlobalRho() ) {
+  if(sampleparams && Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) {
     SampleRho( options, Loci->isX_data(), rhoalpha, rhobeta, SumNumArrivals, SumNumArrivals_X, &_rho, &_rho_X);
 
   //now that rho has changed, current stored value of loglikelihood is no longer valid and 
@@ -577,7 +587,8 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(unsigned i = 0; i < _rho.size(); ++i) sumlogrho[i] += log(_rho[i]);
   }
 
-  if(sampleparams && Populations >1 && (iteration %2)) {//update admixture props with conjugate proposal on odd-numbered iterations
+  if((iteration %2) && sampleparams && Populations >1 && !options->getHapMixModelIndicator() ) {
+    //update admixture props with conjugate proposal on odd-numbered iterations
     SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, chrm, OutcomeType, //ExpectedY, 
 		 lambda, NumCovariates, Covariates, beta, poptheta, options, alpha, /*sigma,*/ DInvLink, dispersion, false, anneal);
      HMMIsBad(true); // because admixture props have changed
