@@ -261,8 +261,10 @@ int main( int argc , char** argv ){
 	MeanEnergy = MeanEner[options.getNumAnnealedRuns()];//mean at coolness of 1;
 	VarEnergy = VarEner[options.getNumAnnealedRuns()];//var at   ""
       } // end evaluation of test individual
-    } catch (string msg) {
-      Log << msg;
+    } catch (string msg) {//catch any stray error messages passed upwards
+      Log.setDisplayMode(On);
+      Log << "\n" << msg << "\n Exiting...\n";
+      exit(1);
     }
   
     delete[] IntervalWidths;

@@ -87,8 +87,8 @@ private:
   HamiltonianMonteCarlo AlphaSampler;
   double initialAlphaStepsize;
   float targetAlphaAcceptRate;
-  static double findE(const double* const theta, const void* const args);
-  static void gradE(const double* const theta, const void* const args, double *g);
+  static double alphaEnergy(const double* const theta, const void* const args);
+  static void alphaGradient(const double* const theta, const void* const args, double *g);
 #endif
 
   void Initialise();

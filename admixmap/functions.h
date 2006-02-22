@@ -1,4 +1,16 @@
 // *-*-C++-*-*
+/** 
+ *   ADMIXMAP
+ *   functions.h 
+ *   Miscellaneous functions for admixmap, not belonging to any class
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H 1
 
@@ -7,6 +19,7 @@
 #include <gsl/gsl_sf_psi.h>
 #include <gsl/gsl_sf_gamma.h>
 
+// ************** Densities *******************
 double getGammaLogDensity(double alpha, double beta, double x);
 double getGammaLogDensity_LogBasis(double alpha, double beta, double x);
 
@@ -15,6 +28,13 @@ double getDirichletLogDensity(const std::vector<double>& a, const double* const 
 double getDirichletLogDensity(const std::vector<double>& a, const std::vector<double>& x);
 double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double* const x);
 
+double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta );
+
+void ddigam( double *, double * );
+
+void trigam( double *, double * );
+
+// transformations
 double AverageOfLogs(const std::vector<double>& vec, double max);
 
 void inv_softmax(size_t K, const double* const mu, double *a);

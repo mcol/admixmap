@@ -474,21 +474,28 @@ void ScoreTests::Update(double dispersion)
       /*-------------------------------------
 	| Allelic and haplotype association  |
 	-------------------------------------*/
-      if( options->getTestForAllelicAssociation() ){
-	//loop over simple loci within haplotypes
-	if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-	  for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
-	    CentreAndSum(1, ScoreWithinHaplotype[j][l], InfoWithinHaplotype[j][l], &(SumScoreWithinHaplotype[ j ][ l ]),
-			 &(SumScore2WithinHaplotype[j][l]), &(SumInfoWithinHaplotype[ j ][ l ]));
+      try{
+	if( options->getTestForAllelicAssociation() ){
+	  //loop over simple loci within haplotypes
+	  if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
+	    for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
+	      CentreAndSum(1, ScoreWithinHaplotype[j][l], InfoWithinHaplotype[j][l], &(SumScoreWithinHaplotype[ j ][ l ]),
+			   &(SumScore2WithinHaplotype[j][l]), &(SumInfoWithinHaplotype[ j ][ l ]));
+	    }
 	  }
 	}
+	
+	if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
+	  //if(locusObsIndicator[j]){//skip loci with no observed genotypes
+	  CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
+		       SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
+	  //}
+	}
       }
-
-      if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
-	//if(locusObsIndicator[j]){//skip loci with no observed genotypes
-	CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
-		     SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
-	//}
+      catch(string s){
+	string error_string = "Error accumulating scores for allelicassociation or haplotype association scoretest\n";
+	error_string.append(s);
+	throw(error_string);
       }
 
       /*-----------------------
@@ -834,10 +841,20 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iterations )
 	}
       }//end loop over haplotypes
       // calculate summary chi-square statistic
-      double chisq = GaussianConditionalQuadraticForm( NumberOfMergedHaplotypes - 1, ScoreVector, ObservedMatrix, dim_[j] );
-      if(chisq == -1)	*SNPsAssociationScoreStream  << "NaN" << "," << endl;// -1 means ObservedMatrix is rank deficient
-      else
+      double chisq = 0.0;
+      try{
+	chisq = GaussianConditionalQuadraticForm( NumberOfMergedHaplotypes - 1, ScoreVector, ObservedMatrix, dim_[j] );
 	*SNPsAssociationScoreStream  << double2R(chisq) << "," << endl;
+      }
+//       catch(string s){
+// 	string error_string = "Error computing chi-squared statistic in outputting haplotype association score test\n";
+// 	error_string.append(s);
+// 	throw(error_string);
+//       }
+      catch(...){
+	*SNPsAssociationScoreStream  << "NaN" << "," << endl;// if ObservedMatrix is rank deficient
+      }
+
       delete[] ScoreVector;
       delete[] CompleteMatrix;
       delete[] ObservedMatrix;
@@ -945,7 +962,16 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations){
       }
       //compute chi-squared statistic
       double VinvU[MN];
-      HH_solve(MN, ObservedInfo, Score, VinvU);
+      try{
+	HH_solve(MN, ObservedInfo, Score, VinvU);
+      }
+      catch(string s){
+	delete[] Score;
+	delete[] ObservedInfo;
+	std::string error_string = "Error computing chi-squared statistic in OutputTestsForResidualAllelicAssociation:\n ";
+	error_string.append(s);
+	throw (error_string);
+      }
       double chisq = 0.0;
       for(int i = 0; i < MN; ++i)chisq += Score[i] * VinvU[i];
 

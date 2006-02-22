@@ -1229,17 +1229,26 @@ void Individual::UpdateScoreForAncestry(int locus, const double* admixtureCovars
   //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
   Xcopy[2*Populations-1] = 1;
   for( int k = 0; k < Populations-1; k++ )Xcopy[k + Populations] = admixtureCovars[k];//Theta[ k+1 ];
-  
-  // ** compute expectation of score **
-  scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
-  add_matrix(AncestryScore[locus], Xcopy, 2*Populations, 1);//AncestryScore[locus] += Xcopy
-  // ** compute uncorrected info **
-  matrix_product(X, X, XX, 2*Populations, 1, 2*Populations);        //XX = X'X
-  scale_matrix(XX, DInvLink*phi, 2*Populations, 2*Populations);     //XX = DInvLink * phi * X'X
-  add_matrix(AncestryInfo[locus], XX, 2*Populations, 2*Populations);//AncestryInfo[locus] += XX
-  // ** compute variance of score and correction term for info **    
-  HH_solve(Populations, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
-  matrix_product(Xcov, BX, xBx, 1, Populations, 1);//xBx = Xcov' * BX
+
+  try{
+    // ** compute expectation of score **
+    scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
+    add_matrix(AncestryScore[locus], Xcopy, 2*Populations, 1);//AncestryScore[locus] += Xcopy
+    // ** compute uncorrected info **
+    matrix_product(X, X, XX, 2*Populations, 1, 2*Populations);        //XX = X'X
+    scale_matrix(XX, DInvLink*phi, 2*Populations, 2*Populations);     //XX = DInvLink * phi * X'X
+    add_matrix(AncestryInfo[locus], XX, 2*Populations, 2*Populations);//AncestryInfo[locus] += XX
+    // ** compute variance of score and correction term for info **    
+    HH_solve(Populations, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
+    matrix_product(Xcov, BX, xBx, 1, Populations, 1);//xBx = Xcov' * BX
+  }
+  catch(string s){
+    delete[] BX;
+    delete[] VarA;
+    std::string error_string = "Error in Individual::UpdateScoreForAncestry:\n";
+    error_string.append(s);
+    throw(error_string);//throw error message to top level
+  }
   for( int k = 0; k < Populations ; k++ ){
     AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
     AncestryVarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
@@ -1280,7 +1289,14 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 				      double *SumAncestryVarScore){
 
   double *score = new double[Populations], *info = new double[Populations*Populations];
-  CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], score, info, 2*Populations );
+  try{
+    CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], score, info, 2*Populations );
+  }
+  catch(string s){
+    string error = "Error centring ancestry association scores in Individual:\n";
+    error.append(s);
+    throw(error);
+  }
   
   //accumulate over iterations
   //for two populations, accumulate the scores for second population only

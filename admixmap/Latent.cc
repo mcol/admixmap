@@ -31,6 +31,7 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci)
   Loci = loci;
   poptheta = 0;
   globaltheta = 0;
+  globalthetaproposal = 0;
 }
 
 void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter &Log){
@@ -59,6 +60,8 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     //initialise global admixture proportions
     if(options->getHapMixModelIndicator()){
       globaltheta = new double[K];
+      globalthetaproposal = new double[K];
+      fill(globaltheta, globaltheta+K, 1.0/(double)K);
     }
 
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
@@ -109,6 +112,7 @@ Latent::~Latent()
 {
   delete[] poptheta;
   delete[] globaltheta;
+  delete[] globalthetaproposal;
 }
 
 void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals, Chromosome** C){
@@ -245,9 +249,8 @@ void Latent::ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry){
   double dirparams[K];
   for(size_t k = 0; k < K; ++k) {
     dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
-    
-    gendirichlet(K, dirparams, globaltheta );
   }
+  gendirichlet(K, dirparams, globaltheta );
 }
 
 void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC, Chromosome** C) {
@@ -361,7 +364,10 @@ void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 void Latent::OutputParams(ostream* out){
   for( int j = 0; j < options->getPopulations(); j++ ){
     out->width(9);
-    (*out) << setprecision(6) << alpha[0][ j ] << "\t";
+    if(options->getHapMixModelIndicator())
+      (*out) << setprecision(6) << globaltheta[ j ] << "\t";
+    else
+      (*out) << setprecision(6) << alpha[0][ j ] << "\t";
   }
   
   out->width(9);

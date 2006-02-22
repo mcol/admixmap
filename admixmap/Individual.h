@@ -42,6 +42,9 @@ public:
 
   static void DeleteStaticMembers();
 
+  void setOutcome(double*);
+  void setCovariates(double*);
+
   Sex getSex()const ;
 
   const double* getAdmixtureProps()const;
@@ -68,6 +71,11 @@ public:
   const std::vector<double> getRho()const;
 
   const int *getSumLocusAncestry()const;
+  const int *getSumLocusAncestryX()const;
+
+  double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
+			  const double* const theta, const double* const thetaX,
+			  const vector<double > rho, const vector<double> rho_X, bool updateHMM);
 
   double getLogLikelihood(const AdmixOptions* const , Chromosome**, const bool forceUpdate, const bool store);
   void storeLogLikelihood(const bool setHMMAsOK); // to call if a Metropolis proposal is accepted
@@ -159,6 +167,8 @@ private:
   std::vector<double> sumlogrho;
   double TruncationPt; // upper truncation point for sum intensities parameter rho
 
+  double* Outcome;
+  double* Covariates;
 
   struct {
     double value; //loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true
@@ -190,10 +200,6 @@ private:
   static double *LikRatio1;
   static double *LikRatio2;
   
-  double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
-			  const double* const theta, const double* const thetaX,
-			  const vector<double > rho, const vector<double> rho_X, bool updateHMM);
-
   double IntegratingConst( double alpha, double beta, double a, double b )const;
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);

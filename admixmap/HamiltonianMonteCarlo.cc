@@ -2,24 +2,16 @@
  *   ADMIXMAP
  *   HMC.cc 
  *   Class to implement a Hamiltonian (or hybrid )Monte Carlo sampler
- *   Copyright (c) 2005 LSHTM
+ *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  */
 #include "HamiltonianMonteCarlo.h"
 #include "gsl/gsl_math.h"
+#include <sstream>//for error handling
 
 using namespace::std;
 
@@ -72,38 +64,59 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   xnew = new double[dim];
   gnew = new double[dim];
 
-  gradE (x, args, g ) ; // set gradient using initial x
-  E = findE (x, args ) ;// set objective function too
-  epsilon = Tuner.getStepSize();
-  //cout<<"epsilon = "<<epsilon<<endl;
-  
-  for(unsigned i = 0; i < dim; ++i)p[i] = gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
-  for(unsigned i = 0; i < dim; ++i)sumpsq += p[i]*p[i];
-  H = 0.5 * sumpsq + E ; // evaluate H(x,p)
-  for(unsigned i = 0; i < dim; ++i) {//reset xnew and gnew
-    xnew[i] = x[i]; 
-    gnew[i] = g[i];
+  try{
+    gradE (x, args, g ) ; // set gradient using initial x
+    E = findE (x, args ) ;// set objective function too
+    epsilon = Tuner.getStepSize();
   }
-  for(unsigned tau = 0; tau < Tau; ++tau){ // make Tau `leapfrog' steps
-    for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
-    for(unsigned i = 0; i < dim; ++i) {
-      xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
-      if( isinf(xnew[i]) ) {
-	throw string("\nleapfrog to infinity in Hamiltonian sampler - try using more small steps");
+  catch(string s){
+    std::ostringstream error_string;
+    error_string << "Error in HamiltonianSampler:\n" << s
+		 << " \nProbably passing bad arguments: x = ";
+    for(unsigned i = 0; i < dim; ++i)error_string << x[i] <<" ";
+  }
+  try{
+    for(unsigned i = 0; i < dim; ++i)p[i] = gennor( 0.0, 1.0 ) ; // initial momentum is Normal(0,1)
+    for(unsigned i = 0; i < dim; ++i)sumpsq += p[i]*p[i];
+    H = 0.5 * sumpsq + E ; // evaluate H(x,p)
+    for(unsigned i = 0; i < dim; ++i) {//reset xnew and gnew
+      xnew[i] = x[i]; 
+      gnew[i] = g[i];
+    }
+    for(unsigned tau = 0; tau < Tau; ++tau){ // make Tau `leapfrog' steps
+      for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
+      for(unsigned i = 0; i < dim; ++i) {
+	xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
+	if( isinf(xnew[i]) ) {
+	  throw ("\nleapfrog to infinity in Hamiltonian sampler - try using more small steps");
+	}
+      }
+      gradE ( xnew, args, gnew ) ; // find new gradient
+      for(unsigned i = 0; i < dim; ++i) {p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
+	//cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
       }
     }
-    gradE ( xnew, args, gnew ) ; // find new gradient
-    for(unsigned i = 0; i < dim; ++i) {p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
-      //cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
+    //cout<<endl;
+    sumpsq = 0.0;
+    for(unsigned i = 0; i < dim; ++i){
+      sumpsq += p[i]*p[i];
     }
+    
+    Enew = findE ( xnew, args ) ; // find new value of H
   }
-  //cout<<endl;
-  sumpsq = 0.0;
-  for(unsigned i = 0; i < dim; ++i){
-     sumpsq += p[i]*p[i];
-  }
+  catch(string s){
+    std::ostringstream error_string;
+    error_string << "Error in HamiltonianSampler:\n" << s
+		 << " \nPassing argument x = ";
+    for(unsigned i = 0; i < dim; ++i)error_string << xnew[i] <<" ";
+    error_string << "\nCurrent stepsize = " << epsilon
+		 << "\nCurrent momentum = ";
+    for(unsigned i = 0; i < dim; ++i)error_string << p[i] <<" ";
+    error_string << "\n and gradient = ";
+    for(unsigned i = 0; i < dim; ++i)error_string << gnew[i] <<" ";
 
-  Enew = findE ( xnew, args ) ; // find new value of H
+    throw(error_string.str());
+  }
 
   AccProb = 0.0;
   if(Enew !=-1.0){// -1 means an error in calculation of energy function

@@ -534,7 +534,9 @@ void Regression::QRSolve(int dim1, int dim2, const double* a, const double* b, d
     gsl_vector_free(tau);
     gsl_vector_free(residuals);
     gsl_matrix_free(QR);
-    throw AdmixException(s);
+    std::string error_string = "Regression::QRSolve failed\n";
+    error_string.append(s);
+    throw (error_string);
     exit(1);
   }
 }
@@ -573,7 +575,13 @@ void Regression::SampleLinearRegressionParams(double* beta, /*double* lambda, */
   */
 
   // compute betahat using QR decomposition and then V
-  QRSolve(NumIndivs, NumCovars, X, Y, betahat);
+  try{
+    QRSolve(NumIndivs, NumCovars, X, Y, betahat);
+  }catch(string s){
+    string error_string = "Error occurred while updating Linear Regression parameters:\n";
+    error_string.append(s);
+    throw(error_string);
+  }
 
   //V currently holds (X'X)^-1
   //scale_matrix(V, 1.0/ *lambda, NumCovars, NumCovars);

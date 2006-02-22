@@ -332,8 +332,13 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
 	  allelefreqscorestream  << "\"NA\"," << endl;
       }
       // Summary chi-sq test for mis-specification in all continental-populations.
-      double chisq = GaussianConditionalQuadraticForm(Populations, SumScoreGene[j], ObservedMatrix, Populations);
-      allelefreqscorestream << double2R(chisq)<< "," << endl;
+      try{
+	double chisq = GaussianConditionalQuadraticForm(Populations, SumScoreGene[j], ObservedMatrix, Populations);
+	allelefreqscorestream << double2R(chisq)<< "," << endl;
+      }
+      catch(...){
+	allelefreqscorestream << "NaN"<< "," << endl;
+      }
     }
   }
   delete[] ObservedMatrix;
@@ -393,9 +398,15 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
       allelefreqscorestream2 << double2R(det1) << ",";
       allelefreqscorestream2 << double2R(det2) << ",";
       allelefreqscorestream2 << double2R(100*det2 / det1) << ",";
-      double chisq = GaussianConditionalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
-      //observedinfo.InvertUsingLUDecomposition();
-      allelefreqscorestream2 << double2R(chisq)/*double2R((score.Transpose() * observedinfo * score)(0,0))*/ << "," << endl;
+      try{
+	double chisq = GaussianConditionalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
+	//observedinfo.InvertUsingLUDecomposition();
+	allelefreqscorestream2 << double2R(chisq)/*double2R((score.Transpose() * observedinfo * score)(0,0))*/ << "," << endl;
+      }
+      catch(...){
+	allelefreqscorestream2 <<"NaN";
+      }
+
     }
     delete[] score;
     delete[] completeinfo;

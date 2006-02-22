@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   IndividualCollection.h 
  *   header file for IndividualCollection class
- *   Copyright (c) 2002-2006 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 

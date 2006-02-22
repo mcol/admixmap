@@ -1,11 +1,24 @@
+/** 
+ *   ADMIXMAP
+ *   functions.cc 
+ *   Miscellaneous functions for admixmap, not belonging to any class
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
+
 #include "functions.h"
-//#include <cassert>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include "gsl/gsl_sf_exp.h"
 #include <numeric>
 #include <iostream>
 #include <gsl/gsl_math.h>
+#include <gsl/gsl_randist.h>
 
 using namespace::std;
 
@@ -97,6 +110,114 @@ double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double
   return f;
 }
 
+void ddigam(  double *X, double *ddgam  )
+{
+//  FOLLOWS CLOSELY ALG AS 103 APPL.STATS.(1976) VOL 25
+//  CALCS DIGAMMA(X)=D(LOG(GAMMA(X)))/DX
+//
+//  SET CONSTANTS.SN=NTH STIRLING COEFFICIENT,D1=DIGAMMA(1.)
+//
+   double S, C, S3, S4, S5, D1, Y, R;
+
+   S = 1.0e-5;
+   C = 8.5e0;
+   S3 = 8.333333333e-2; 
+   S4 = 8.333333333e-3;
+   S5 = 3.968253968e-3;
+   D1 = -0.5772156649;
+
+//      DATA S,C,S3,S4,S5,D1/1.0D-5,8.5D0,8.333333333D-2,
+//    1  8.333333333D-3,3.968253968D-3,-0.5772156649D0/
+
+
+//  CHECK ARGUMENT IS POSITIVE
+
+   *ddgam=0.0;
+   Y=*X;
+   if(Y < 0.0){
+     throw string("Negative value passed as argument to digamma function ddigam");
+   }
+
+//  USE APPROXIMATION IF ARGUMENT .LE.S
+
+   if(Y > S){
+
+//  REDUCE TO DIGAMMA(X+N),(X+N).GE.C
+
+      while( Y < C ){
+         *ddgam=*ddgam-(1.0/Y);
+         Y=Y+1.0;}
+   
+//  USE STIRLING IF ARGUMENT .GE.C
+
+      R=1.0/Y;
+      *ddgam=*ddgam+log(Y)-0.5*R;
+      R=R*R;
+      *ddgam=*ddgam-R*(S3-R*(S4-R*S5));}
+   else
+      *ddgam=D1-1.0/Y;
+}
+
+void trigam( double *x, double *trgam )
+{
+/*
+ * closely follows alg. as 121 appl.stats. (1978) 
+ * vol 27, 97-99. (b.e. schneider)
+ *
+ * calculates trigamma(x)=d**2(log(gamma(x)))/dx**2
+ */
+   double a=1.0e-4,b=5.0,one=1.0,half=0.5,y,z,trigam1=0.0;
+   double b2=0.1666666667,b4=-0.03333333333;
+   double b6=0.02380952381,b8=-0.0333333333;
+/*
+ *  b2,b4,b6,b8 are bernoulli numbers
+ *
+ *  check that argument is positive
+ *
+ */ 
+   z=*x;
+/*
+ *  use small value approximation if x.le.a
+ */
+   if(z<=a){ 
+      trigam1=1.0/(z*z);
+      *trgam=trigam1;}
+   else{
+/*
+ *  increase argument to (x+i).ge.b
+ */
+      while(z<b){
+         trigam1=trigam1+1.0/(z*z);
+         z=z+1.0;
+      }
+/*
+ *  apply asymptotic formula if argument.ge.b
+ */
+      y=1.0/(z*z);
+      trigam1=trigam1+half*y+(one+y*(b2+y*(b4+y*(b6+y*b8))))/z;
+      *trgam=trigam1;
+   }
+}
+
+double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta )
+{
+  if( r.size() != theta.size() ){
+    throw string("Unequal lengths of vector arguments to MultinomialPDF");
+  }
+  double f = 0.0;
+  unsigned K = (int)r.size();
+  unsigned* n = new unsigned[ K ];
+  double* p = new double[ K ];
+  for( unsigned i = 0; i < K; i++ ){
+    p[i] = theta[i];
+    n[i] = r[i];
+  }
+  f = gsl_ran_multinomial_pdf( K, p , n );
+  delete[] n;
+  delete[] p;
+  return( f );
+}
+
 // ********** Misc. functions and transformations ******************
 double AverageOfLogs(const std::vector<double>& vec, double max)
 {
@@ -183,10 +304,19 @@ int HH_solve (size_t n, double *A, double *b, double *x)
   bb = gsl_vector_view_array(b, n);
   xx = gsl_vector_view_array(x, n);
 
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   int status = gsl_linalg_HH_solve(AA, &bb.vector, &xx.vector);
 
+  //clean up  
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   gsl_matrix_free(AA);
-  return status;
+
+  //check for success
+  if(status){
+    std::string errstring = "HH_solve failed, "; errstring.append(gsl_strerror(status));
+    throw(errstring) ;//throw error message up and let caller decide what to do
+  }
+  return 0;//will only get here if successful
 }
 
 int HH_svx (size_t n, double *A, double *x)
@@ -204,11 +334,17 @@ int HH_svx (size_t n, double *A, double *x)
   for (size_t i = 0; i < n*n; i++){
       AA->data[i] = A[i];
     }
-
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   int status = gsl_linalg_HH_svx(AA, &xx.vector);
 
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   gsl_matrix_free(AA);
-  return status;
+  //check for success
+  if(status){
+    std::string errstring = "HH_svx failed, "; errstring.append(gsl_strerror(status));
+    throw(errstring) ;//throw error message up and let caller decide what to do
+  }
+  return 0;//will only get here if successful
 }
 
 void CentredGaussianConditional( int kk, double *mean, double *var,
@@ -216,6 +352,7 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
 //Computes the conditional mean and variance of a centred subvector of length kk of a zero-mean Multivariate Gaussian vector
 //of length dim
 {
+  int status = 0;
   //Note that matrix_view's do not allocate new data
   gsl_matrix_view mean_matrix = gsl_matrix_view_array(mean, dim, 1);
   gsl_matrix_view var_matrix = gsl_matrix_view_array(var, dim, dim);
@@ -255,29 +392,32 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
 
   //compute inv(Vbb) * mean2 
   //cannot call gsl function directly as it would destroy Vbb
-  HH_svx(dim-kk, Vbb->data, mean2->data);
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  status = HH_svx(dim-kk, Vbb->data, mean2->data);
   //mean2 now holds the solution
 
-  //compute new mean as mean1 - Vab * Vbb^-1 * mean2 = mean1 - Vab * mean2
-  gsl_matrix *C = gsl_matrix_alloc(kk,1);
-  gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1, Vab, mean2, 0, C);
-  gsl_matrix_sub(&newmean_view.matrix, C);
-  gsl_matrix_free(C);
+  if(!status){
+    //compute new mean as mean1 - Vab * Vbb^-1 * mean2 = mean1 - Vab * mean2
+    gsl_matrix *C = gsl_matrix_alloc(kk,1);
+    gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1, Vab, mean2, 0, C);
+    gsl_matrix_sub(&newmean_view.matrix, C);
+    gsl_matrix_free(C);
+    
+    //compute new var
+    gsl_matrix *V = gsl_matrix_alloc(dim-kk, kk);
+    double *x = new double[dim-kk];
+    
+    //compute V = Vbb * tr(Vab), column by column
+    for(int i = 0; i< kk; i++){
+      //copy column of Vba (=row of Vab)into x since we still need Vab and x will be overwritten
+      for(size_t j = 0; j < dim-kk; ++j)x[j] = gsl_matrix_get(Vab, i, j);
+      status = HH_svx(dim-kk, Vbb->data, x);//cannot call gsl function directly as it would destroy Vbb
+      
+      //set column of V to x
+      for(size_t j = 0; j < dim-kk; ++j)gsl_matrix_set(V, j, i, x[j]);//V->data[j*kk +i] = x[j];
+    }
+    delete[] x;
 
-  //compute new var
-  gsl_matrix *V = gsl_matrix_alloc(dim-kk, kk);
-  double *x = new double[dim-kk];
-
-  //compute V = Vbb * tr(Vab), column by column
-  for(int i = 0; i< kk; i++){
-    //copy column of Vba (=row of Vab)into x since we still need Vab and x will be overwritten
-    for(size_t j = 0; j < dim-kk; ++j)x[j] = gsl_matrix_get(Vab, i, j);
-    HH_svx(dim-kk, Vbb->data, x);//cannot call gsl function directly as it would destroy Vbb
-
-    //set column of V to x
-    for(size_t j = 0; j < dim-kk; ++j)gsl_matrix_set(V, j, i, x[j]);//V->data[j*kk +i] = x[j];
-  }
-  delete[] x;
   //now compute newvar = Vaa - Vab * V
 
   //compute Vab * V
@@ -287,16 +427,23 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
   //subtract from newvar
   gsl_matrix_sub(&newvar_view.matrix, D);
   gsl_matrix_free(D);
+  }
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   gsl_matrix_free(mean1);
   gsl_matrix_free(mean2);
   gsl_matrix_free(Vaa);
   gsl_matrix_free(Vbb);
   gsl_matrix_free(Vab);
+  if(status){
+    std::string errstring = "CentredGaussianConditional failed, "; errstring.append(gsl_strerror(status));
+    throw(errstring) ;//throw error message up and let caller decide what to do
+  }
 
 }
 
 double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim )
 {
+  int status = 0;
   //Note that matrix_view's do not allocate new data
   gsl_matrix *Q = gsl_matrix_alloc(1, 1);
 
@@ -311,7 +458,7 @@ double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size
       V11->data[i*kk +j] = var[i*dim +j];
     }
 
-  if(gsl_linalg_LU_det (V11, 1)==0.0) return -1;//potentially dangerous but works
+  //if(gsl_linalg_LU_det (V11, 1)==0.0) throw;//matrix is rank-deficient
 
 
   //compute V = V11^-1 * U1
@@ -319,14 +466,28 @@ double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size
   gsl_vector *x = gsl_vector_alloc(kk);
 
   for(int j = 0; j < kk; ++j)gsl_vector_set(x, j, gsl_matrix_get(U1, 0, j));
-  gsl_linalg_HH_svx(V11, x);
-  
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  status = gsl_linalg_HH_svx(V11, x);
+
+  if(status){
+    string error_string = "Error in HH_svx in GaussianConditionalQuadraticForm:\n";
+    error_string.append(gsl_strerror(status));
+    throw(error_string);
+  }
+
   //set column of V to x
   for(int j = 0; j < kk; ++j)gsl_matrix_set(V, j, 0, gsl_vector_get(x, j));  
   gsl_vector_free(x);
 
   //compute Q = U1' * V
-  gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1, U1, V, 0, Q);
+  status = gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1, U1, V, 0, Q);
+
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  if(status){
+    string error_string = "Error with matrix multiplication in GaussianConditionalQuadraticForm:\n";
+    error_string.append(gsl_strerror(status));
+    throw(error_string);
+  }
 
   gsl_matrix_free(V);
   gsl_matrix_free(U1);
@@ -352,8 +513,8 @@ double **alloc2D_d(int m, int n)
     }
   }
   catch(int i){
-    cout<<"Unable to allocate space for matrix"<<endl;
-    exit(1);
+    string s = "Unable to allocate space for matrix";
+    throw(s);
   }
   return M;
 }
@@ -373,8 +534,8 @@ int **alloc2D_i(int m, int n)
     }
   }
   catch(int i){
-    cout<<"Unable to allocate space for matrix"<<endl;
-    exit(1);
+    string s = "Unable to allocate space for matrix";
+    throw(s);
   }
   return M;
 }
@@ -389,8 +550,8 @@ void free_matrix(double **M, int m){
     }
   }
   catch(...){
-    cout<<"unable to delete matrix"<<endl;
-    exit(1);
+    string s = "Unable to delete matrix";
+    throw(s);
   }
 }
 
@@ -403,7 +564,8 @@ void free_matrix(int **M, int m){
     }
   }
   catch(...){
-    cout<<"unable to delete matrix"<<endl;
+    string s = "Unable to delete matrix";
+    throw(s);
   }
 
 }
@@ -476,7 +638,13 @@ double determinant(double *a, size_t d){
   copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
   gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
 
-  gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  int status = gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
+  if(status){
+    std::string errstring = "failed to compute determinant, "; errstring.append(gsl_strerror(status));
+    throw(errstring) ;//throw error message up and let caller decide what to do
+  }
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   double det = gsl_linalg_LU_det(&A.matrix, signum); 
 
   gsl_permutation_free(permutation);
@@ -492,12 +660,20 @@ void matrix_inverse(const double* const a, double* inv, size_t d){
   copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
   gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
 
-  gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
-  gsl_matrix_view Inv = gsl_matrix_view_array(inv, d, d);
-  gsl_linalg_LU_invert (&A.matrix, permutation, &Inv.matrix);
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  int status = gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
+  if(!status){
+    gsl_matrix_view Inv = gsl_matrix_view_array(inv, d, d);
+    status = gsl_linalg_LU_invert (&A.matrix, permutation, &Inv.matrix);
+  }
 
   delete[] aa;
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   gsl_permutation_free(permutation);
+  if(status){
+    std::string errstring = "failed to compute matrix inverse, "; errstring.append(gsl_strerror(status));
+    throw(errstring) ;//throw error message up and let caller decide what to do
+  }
 }
 //can use this version to overwrite a with its inverse
 void matrix_inverse(double* a, size_t d){
@@ -508,12 +684,20 @@ void matrix_inverse(double* a, size_t d){
   copy(a, a+d*d, aa);//make copy as LUdecomp will destroy a
   gsl_matrix_view A  = gsl_matrix_view_array(aa, d, d);
 
-  gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
-  gsl_matrix_view Inv = gsl_matrix_view_array(a, d, d);
-  gsl_linalg_LU_invert (&A.matrix, permutation, &Inv.matrix);
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  int status =  gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
+  if(!status){
+    gsl_matrix_view Inv = gsl_matrix_view_array(a, d, d);
+   status =  gsl_linalg_LU_invert (&A.matrix, permutation, &Inv.matrix);
+  }
 
   delete[] aa;
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   gsl_permutation_free(permutation);
+  if(status){
+    std::string errstring = "failed to compute matrix inverse, "; errstring.append(gsl_strerror(status));
+    throw(errstring) ;//throw error message up and let caller decide what to do
+  }
 }
 
 //Cholesky decomposition, Crout algorithm

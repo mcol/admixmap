@@ -75,16 +75,16 @@ LogWriter& LogWriter::operator<<(const double message){
   return *this;
 }
 LogWriter& LogWriter::operator<<(const string message){
-  LogFileStream << message;
+  LogFileStream << message << flush;
   if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message;
+    cout << message << flush;
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const char* message){
-  LogFileStream << message;
+  LogFileStream << message << flush;
   if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message;
+    cout << message << flush;
   }
   return *this;
 }
