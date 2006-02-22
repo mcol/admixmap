@@ -711,7 +711,8 @@ void MakeResultsDir(const char* dirname, bool verbose){
 	  remove(filepath.c_str());//delete
 	}
       }
-      if (errno){//should use error catching here
+      // cout << "errno = " << errno << endl << flush;
+      if (errno && !errno==2){ // empty directory sets errno=2
 	cerr << "readdir() failure; terminating";
 	exit(1);
       }
