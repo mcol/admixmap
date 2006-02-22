@@ -54,7 +54,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
     findE = objective function = -log density
     args = pointer to object containing arguments to findE and gradE 
   */
-  double E;         //value of objective function
+  double E = 0.0;         //value of objective function
   double *g = new double[dim];        //gradient (multidim)
   bool accept = false;
   double AccProb;
@@ -87,7 +87,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
       for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
       for(unsigned i = 0; i < dim; ++i) {
 	xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
-	if( isinf(xnew[i]) ) {
+	if( isinf(xnew[i]) || isinf(-xnew[i]) ) {
 	  throw ("\nleapfrog to infinity in Hamiltonian sampler - try using more small steps");
 	}
       }
