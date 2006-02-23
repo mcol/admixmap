@@ -73,7 +73,7 @@ private:
 
   double*** SumAlleleScore;
   double*** SumAlleleScore2;
-  double*** AlleleInfo;
+  double*** SumAlleleInfo;
 
   std::ofstream assocscorestream;
   std::ofstream * ancestryAssociationScoreStream;
@@ -89,7 +89,7 @@ private:
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
 
 //OUTPUT
-  
+  void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
   void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
 			      const double* Score, const double* VarScore,
 			      const double* Score2, const double* Info );
@@ -120,6 +120,8 @@ private:
 
   void UpdateScoresForResidualAllelicAssociation(int c, int locus, 
 						 const double* const AlleleFreqsA, const double* const AlleleFreqsB);
+  void UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,  
+						    const double* const AlleleFreqsA, const double* const AlleleFreqsB);
   static std::string double2R( double );
 
   static void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);    
