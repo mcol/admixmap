@@ -354,7 +354,8 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     for( int j = 0; j < Populations; j++ ){
       stringstream poplabel;
       string result;
-      poplabel << "Pop" << j+1;
+      if(options->getHapMixModelIndicator()) poplabel << "Block" << j+1;
+      else poplabel << "Pop" << j+1;
       result = poplabel.str();
       PopulationLabels[j] = result;
     }
