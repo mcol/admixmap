@@ -67,7 +67,7 @@ void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter 
 }    
 
 void HWTest::Update(const IndividualCollection* const IC, const Chromosome* const* C, const Genome* const Loci){
-  double H;
+  double H; // prob heterozygous
   bool h;
   int locus = 0, complocus = 0, Ancestry0, Ancestry1;
   vector<vector<unsigned short> > genotype;
@@ -87,7 +87,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Chromosome* cons
       for(unsigned int j = 0; j < C[chr]->GetSize(); ++j){                  //loop over comp loci on chromosome
 	Ancestry0 = ind->GetLocusAncestry( (int)chr, 0, j);
 	Ancestry1 = ind->GetLocusAncestry( (int)chr, 1, j);
-	if(Ancestry0 == Ancestry1){
+	// if(Ancestry0 == Ancestry1) {
 
 	  genotype = ind->getGenotype(complocus);
 
@@ -104,35 +104,29 @@ void HWTest::Update(const IndividualCollection* const IC, const Chromosome* cons
 	  (*Loci)(complocus)->getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
 	  (*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);   
 	  
-	  
 	  for(int jj = 0; jj < Loci->getNumberOfLoci(complocus); ++jj){       //loop over loci within comp locus
 	    if( genotype[jj][0] != 0){ //non-missing genotype, assumes second gamete missing if first is
 	      h = (genotype[jj][0] != genotype[jj][1]);
-	      
 	      H = 1.0;
 	      //compute prob of heterozygosity by subtracting from 1 the prob of homozygosity, ie sum of diagonal products	    
 	      for(int a = 0; a < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
 		H -= Prob0[jj][a] * Prob1[jj][a];
 	      }
-	      
 	      //accumulate score over individuals
-	      if( h ){//heterozygous
-		score[locus] += -0.5; 
+	      if( h ){//heterozygous - prob H under null
+		score[locus] -= 1.0 - H; 
 	      }
-	      else{//homozygous
-		score[locus] += 0.5 * ( H  / ( 1.0 - H ) ); 
+	      else{//homozygous - prob (1-H) under null
+		score[locus] += H;  // 0.5 * ( H  / ( 1.0 - H ) ); 
 	      }
-	      suminfo[locus] += 0.25 *( H /  (1.0 - H) );
-	      //suminfo[locus] += score[locus] * score[locus];
-    
+	      suminfo[locus] += H * (1.0 - H); // += 0.25 *( H /  (1.0 - H) );
 	    }
 	    ++locus;
 	  }
 	  //reset pointers ready to reuse next time	
 	  free_matrix(Prob0, Loci->getNumberOfLoci(complocus));
 	  free_matrix(Prob1, Loci->getNumberOfLoci(complocus));
-	  
-	}
+	  // }
 	++complocus;
       }
     }
