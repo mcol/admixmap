@@ -20,6 +20,7 @@
 #include "ScoreTests.h"
 #include <numeric>
 #include "gsl/gsl_cdf.h" //for residual allelic assoc test
+#include "StringConvertor.h"
 
 using namespace std;
 
@@ -55,7 +56,7 @@ ScoreTests::ScoreTests(){
 
   SumAlleleScore= 0;
   SumAlleleScore2 = 0;
-  AlleleInfo = 0;
+  SumAlleleInfo = 0;
 
   ancestryAssociationScoreStream = 0;
   SNPsAssociationScoreStream = 0;
@@ -95,7 +96,7 @@ ScoreTests::~ScoreTests(){
 
   delete[] SumAlleleScore;
   delete[] SumAlleleScore2;
-  delete[] AlleleInfo;
+  delete[] SumAlleleInfo;
 
 }
 
@@ -314,20 +315,20 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
 
     SumAlleleScore = new double**[Lociptr->GetNumberOfChromosomes()];
     SumAlleleScore2 = new double**[Lociptr->GetNumberOfChromosomes()];
-    AlleleInfo = new double**[Lociptr->GetNumberOfChromosomes()];
+    SumAlleleInfo = new double**[Lociptr->GetNumberOfChromosomes()];
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       SumAlleleScore[j] = new double*[chrm[j]->GetSize()-1];
       SumAlleleScore2[j] = new double*[chrm[j]->GetSize()-1];
-      AlleleInfo[j] = new double*[chrm[j]->GetSize()-1];
+      SumAlleleInfo[j] = new double*[chrm[j]->GetSize()-1];
       for(unsigned k = 0; k < chrm[j]->GetSize()-1; ++k){
 	int locus = chrm[j]->GetLocus(k);
-	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()) * ((*Lociptr)(locus+1)->GetNumberOfStates());
+	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
 	SumAlleleScore[j][k] = new double[dim];
 	fill(SumAlleleScore[j][k], SumAlleleScore[j][k]+dim, 0.0);
 	SumAlleleScore2[j][k] = new double[dim*dim];
 	fill(SumAlleleScore2[j][k], SumAlleleScore2[j][k]+dim*dim, 0.0);
-	AlleleInfo[j][k] = new double[dim*dim];
-	fill(AlleleInfo[j][k], AlleleInfo[j][k]+dim*dim, 0.0);
+	SumAlleleInfo[j][k] = new double[dim*dim];
+	fill(SumAlleleInfo[j][k], SumAlleleInfo[j][k]+dim*dim, 0.0);
       }
 
     }
@@ -665,60 +666,114 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const double* const* 
     }
 }
 
-int ScoreTests::ResidualAlleleInfoIndex(int M, int N, int m1, int n1, int m2, int n2){
-  return (m1*N+n1) * M*N + (m2*N+n2);
+
+int delta(int i, int j){
+  return (i == j);
 }
 
 void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,  
 							   const double* const AlleleFreqsA, const double* const AlleleFreqsB){
-  int M = (*chrm[c])(locus)->GetNumberOfStates();
-  int N = (*chrm[c])(locus+1)->GetNumberOfStates();
-  int MN = M*N;
-  int Populations = options->getPopulations();
-  vector<double> AlleleScore(MN);//temporary array to hold sums of scores over individuals. 
-                                  //Note that the dimensions vary between calls
-  fill(AlleleScore.begin(), AlleleScore.end(), 0.0);
-  int count = 0;
+  int M = (*chrm[c])(locus)->GetNumberOfStates()-1;
+  int N = (*chrm[c])(locus+1)->GetNumberOfStates()-1;
+  int dim = M*N;
+  if(dim == 1)UpdateScoresForResidualAllelicAssociation_1D(c, locus, AlleleFreqsA, AlleleFreqsB);
+  else{
+    
+    int Populations = options->getPopulations();
+    //compute frequencies of last haplotype as AlleleFreqs omits it
+    double lastFreqsA[Populations];fill(lastFreqsA, lastFreqsA+Populations, 1.0);
+    double lastFreqsB[Populations];fill(lastFreqsB, lastFreqsB+Populations, 1.0);
+    for(int k = 0; k < Populations; ++k){
+      for(int i = 0; i < M; ++i)lastFreqsA[k] -= AlleleFreqsA[i*Populations+k];
+      for(int j = 0; j < N; ++j)lastFreqsB[k] -= AlleleFreqsB[j*Populations+k];
+    }
 
-  vector<int> r(MN);//vector of counts of gametes with each combination of haplotypes
-  fill(r.begin(), r.end(), 0);
+    vector<double> AlleleScore(dim);//temporary array to hold sums of scores over individuals. 
+    vector<double> AlleleInfo(dim*dim);
+    //Note that the dimensions vary between calls
+    fill(AlleleScore.begin(), AlleleScore.end(), 0.0);
+    fill(AlleleInfo.begin(), AlleleInfo.end(), 0.0);
+    int count = 0;
+    
+    int ancA[2];//ancestry at A
+    int ancB[2];//ancestry at B
+    int abslocus = chrm[c]->GetLocus(locus);//number of this locus
+    for(int i = 0; i < individuals->getSize(); ++i){
+      Individual* ind = individuals->getIndividual(i);
+      ind->GetLocusAncestry(c, locus, ancA);
+      ind->GetLocusAncestry(c, locus+1, ancB);
+      const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
+      const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
+      for(int g = 0; g < 2; ++g){
+	//if(ancA[g] == ancB[g]){ 
+	  ++count;//count number of gametes with ancestry states the same at both loci
+	  
+	  for(int i = 0; i < M; ++i)
+	    for(int j = 0; j < N; ++j){
+	      //update score
+	      AlleleScore[i*N +j] += ( delta(hA[g], i) - delta(hA[g], M) ) * ( delta(hB[g], j) - delta(hB[g], N) ) //observed
+		- ( AlleleFreqsA[i*Populations + ancA[g]] - lastFreqsA[ancA[g]] ) 
+		* ( AlleleFreqsB[j*Populations + ancB[g]] - lastFreqsB[ancB[g]]);// - expected
+
+	      for(int m = 0; m < M ; ++m)for(int n = 0; n < N; ++n){
+	      //update info
+		AlleleInfo[(i*N+m) * dim + (j*N+m)] += 
+		    ( delta(i,m)*AlleleFreqsA[i*Populations + ancA[g]] + lastFreqsA[ancA[g]] ) 
+		  * ( delta(j,n)*AlleleFreqsB[j*Populations + ancB[g]] + lastFreqsB[ancB[g]] );
+	      }
+	    }
+	  
+	}//end gamete loop
+      //}//end condition (ancestry equal)
+    }//end ind loop
+    
+    //accumulate score and score squared
+    for(int j = 0; j < dim; ++j){
+      SumAlleleScore[c][locus][j] += AlleleScore[j];
+      for(int jj = 0; jj < dim; ++jj){
+	SumAlleleScore2[c][locus][j*dim +jj] += AlleleScore[j]*AlleleScore[jj];
+	SumAlleleInfo[c][locus][j*dim +jj] = AlleleInfo[j*dim + jj] * (double)count;
+      }
+    }
+  }//end else
+}
+void ScoreTests::UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,  
+							   const double* const AlleleFreqsA, const double* const AlleleFreqsB){
   int ancA[2];
   int ancB[2];
+  //int Populations = options->getPopulations();
+  int count = 0;
+  double AlleleScore = 0.0;
+
   int abslocus = chrm[c]->GetLocus(locus);
   for(int i = 0; i < individuals->getSize(); ++i){
     Individual* ind = individuals->getIndividual(i);
     ind->GetLocusAncestry(c, locus, ancA);
     ind->GetLocusAncestry(c, locus+1, ancB);
+    const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
+    const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
+
     for(int g = 0; g < 2; ++g){
       if(ancA[g] == ancB[g]){ 
 	++count;//count number of gametes with ancestry states the same at both loci
-	const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
-	const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
-	
-	double P = AlleleFreqsA[hA[g]*Populations+ancA[g]] * AlleleFreqsB[hA[g]*Populations+ancB[g]];
-	++r[hA[g]*N + hB[g]];//increment observed counts
-	AlleleScore[hA[g]*N + hB[g]] -= P; //increment expected frequencies
-	//update info
-	AlleleInfo[c][locus][ResidualAlleleInfoIndex(M, N, hA[g], hB[g], hA[g], hB[g])] += P * (1.0-P) ;//diagonal elements
-	for(int m = 0; m < M ; ++m)for(int n = 0; n < N; ++n){//others
-	  double Pmn = AlleleFreqsA[m*Populations+ancA[g]] * AlleleFreqsB[n*Populations+ancB[g]];
-	  AlleleInfo[c][locus][ResidualAlleleInfoIndex(M, N, hA[g], hB[g], m, n)] += P * Pmn;
-	  AlleleInfo[c][locus][ResidualAlleleInfoIndex(M, N, m, n, hA[g], hB[g])] += P * Pmn;
-	}
-	
-      }//end gamete loop
-    }//end condition (ancestry equal)
-  }//end ind loop
+	int h = (hA[g] == hB[g]);//indicator for homozygosity
+	double phiA = AlleleFreqsA[ancA[g]];//frequency of first allele in this gamete's ancestry state at locus A
+	double phiB = AlleleFreqsB[ancB[g]];
 
+	//h - (1-h) evaluates to 1 if allele states equal, -1 if not
+	//expected counts factorises to  --\/
+	AlleleScore += h - (1-h) - (2*phiA - 1.0)*(2*phiB - 1.0);
+
+      }//end condition on equal ancestry states
+    }//end gamete loop
+  }//end individual loop
   //accumulate score and score squared
-  for(int j = 0; j < MN; ++j){
-    AlleleScore[j] += r[j] / (double)count; //calculate score as observed freqs - expected freqs
-    SumAlleleScore[c][locus][j] += AlleleScore[j];
-    for(int jj = 0; jj < MN; ++jj)
-      SumAlleleScore2[c][locus][j*MN +jj] += AlleleScore[j]*AlleleScore[jj];
-  }
-}
 
+  SumAlleleScore[c][locus][0] += AlleleScore;
+  SumAlleleScore2[c][locus][0] += AlleleScore*AlleleScore;
+  SumAlleleInfo[c][locus][0] += (double)count;
+
+}
 // ********** OUTPUT **********************************************************
 
 void ScoreTests::Output(int iteration, const std::string * PLabels){
@@ -946,46 +1001,55 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations){
   double *Score, *ObservedInfo;
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
     for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
-      int M = (*chrm[c])(j)->GetNumberOfStates();
-      int N = (*chrm[c])(j+1)->GetNumberOfStates();
-      int MN = M*N;
-      Score = new double[MN];
-      ObservedInfo = new double[MN*MN];
+      int M = (*chrm[c])(j)->GetNumberOfStates()-1;
+      int N = (*chrm[c])(j+1)->GetNumberOfStates()-1;
+      int dim = M*N;
+      Score = new double[dim];
+      ObservedInfo = new double[dim*dim];
+      double obsinfo = 0.0;
+      double compinfo = 0.0;
 
-      for(int i = 0; i < MN; ++i){
+      for(int i = 0; i < dim; ++i){
 	Score[i] = SumAlleleScore[c][j][i]/(double) iterations; //score
-	for(int ii = 0; ii < MN; ++ii){
-	  AlleleInfo[c][j][i*MN +ii] /= (double) iterations; //complete info
-	  ObservedInfo[i*MN +ii] = AlleleInfo[c][j][i*MN+ii] + Score[i]*Score[ii];
-	    //- SumAlleleScore2[c][j][i*MN+ii]/(double)iterations;
+	for(int ii = 0; ii < dim; ++ii){
+	  ObservedInfo[i*dim +ii] = SumAlleleInfo[c][j][i*dim+ii]/ (double) iterations//complete info
+	    + Score[i]*Score[ii] - SumAlleleScore2[c][j][i*dim+ii]/(double)iterations;//-missing info
 	}
+	obsinfo += ObservedInfo[i*dim +i];//trace of Observed Info
+	compinfo += SumAlleleInfo[c][j][i*dim+i]/ (double) iterations;//trace of Complete Info
       }
-      //compute chi-squared statistic
-      double VinvU[MN];
-      try{
-	HH_solve(MN, ObservedInfo, Score, VinvU);
-      }
-      catch(string s){
-	delete[] Score;
-	delete[] ObservedInfo;
-	std::string error_string = "Error computing chi-squared statistic in OutputTestsForResidualAllelicAssociation:\n ";
-	error_string.append(s);
-	throw (error_string);
-      }
-      double chisq = 0.0;
-      for(int i = 0; i < MN; ++i)chisq += Score[i] * VinvU[i];
-
-      //compute p-value
-      int df = (M-1)*(N-1);
-      double pvalue = gsl_cdf_chisq_Q (chisq, df);
 
       //output labels
-      ResAlleleScoreFile << "\"" << (*chrm[c])(j)->GetLabel(0) << " / " << (*chrm[c])(j+1)->GetLabel(0) << "\"\t";
+      StringConvertor dequoter;
+      string label1 = dequoter.dequote((*chrm[c])(j)->GetLabel(0));
+      string label2 = dequoter.dequote((*chrm[c])(j+1)->GetLabel(0));
+      ResAlleleScoreFile << "\"" << label1 << "/" << label2 << "\","
+			 << Score[0] << "," << compinfo << "," <<obsinfo << ",";
 
-      ResAlleleScoreFile << df << "\t" << chisq << "\t" << pvalue << endl;
+      //compute chi-squared statistic
+      double VinvU[dim];
+      try{
+	HH_solve(dim, ObservedInfo, Score, VinvU);
+	double chisq = 0.0;
+	for(int i = 0; i < dim; ++i){
+	  chisq += Score[i] * VinvU[i];
+	}
+	
+	ResAlleleScoreFile << (obsinfo*100)/compinfo << ","<< dim << ",";
+	if(chisq < 0.0)ResAlleleScoreFile << "NA, NA," << endl;
+	else {
+	  //compute p-value
+	  double pvalue = gsl_cdf_chisq_Q (chisq, dim);
+	  ResAlleleScoreFile << chisq << "," << pvalue << "," << endl;
+	}
+      }
+      catch(...){//in case ObservedInfo is rank deficient
+	ResAlleleScoreFile  << "NA" << ","<< dim 
+			    << "," << "NA" << "," << "NA" << "," << endl;
+      }
       delete[] Score;
       delete[] ObservedInfo;
-    }
+    }//end loop over loci on chromosome
 
 }
 
@@ -1101,15 +1165,19 @@ void ScoreTests::ROutput(){
    */
   if(options->getTestForResidualAllelicAssoc()){
     vector<int> dimensions(3,0);
-    dimensions[0] = 4;
+    dimensions[0] = 8;
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() - Lociptr->GetNumberOfChromosomes();
     dimensions[2] = (int)(numPrintedIterations);
     
-    vector<string> labels(4,"");
+    vector<string> labels(8,"");
     labels[0] = "Loci";
-    labels[1] = "df";
-    labels[2] = "ChiSquare";
-    labels[3] = "P-value";
+    labels[1] = "Score";
+    labels[2] = "CompleteInfo";
+    labels[3] = "ObservedInfo";
+    labels[4] = "PercentInfo";
+    labels[5] = "df";
+    labels[6] = "ChiSquare";
+    labels[7] = "P-value";
 
     R_output3DarrayDimensions(&ResAlleleScoreFile, dimensions, labels);
   }
