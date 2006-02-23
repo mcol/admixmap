@@ -206,16 +206,16 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
     DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
     NumberOfInputCovariates = CovData.nCols();
 
-    if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 ){
+    if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator()){
       Covariates.setDimensions(NumInd, CovData.nCols() + options->getPopulations());
       for(unsigned i = 0; i < NumInd; ++i)for(int j = 0; j < options->getPopulations()-1; ++j)
          Covariates.set(i, j + CovData.nCols() + 1,  1.0 / (double)options->getPopulations() );
       }
     else
-      Covariates.setDimensions(NumInd, CovData.nCols()+1);
+      Covariates.setDimensions(NumInd, CovData.nCols()+1);//+1 for intercept
     for(unsigned i = 0; i < NumInd; ++i)for(unsigned j = 0; j < CovData.nCols(); ++j)
       {
-      Covariates.set(i,0, 1.0); //for intercept
+      Covariates.set(i,0, 1.0); //set to 1 for intercept
       Covariates.set(i,j+1, CovData.get(i+1, j) );
       Covariates.isMissing(i,j+1, CovData.isMissing(i+1,j));
       }
@@ -226,6 +226,7 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
     //vector<double> mean(NumberOfInputCovariates);
     
     //centre covariates about their means
+    // (this should already be done by user)
     //    for( int j = 0; j < NumberOfInputCovariates; j++ ){
     //    int count = 0;
     //  mean[j] = 0.0;
@@ -241,19 +242,19 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
     // for( int j = 0; j < NumberOfInputCovariates; j++ )
     //Covariates( i, j+1 ) -= mean[j];
   }
-  else {
-    if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 ){
+  else {//no covariatesfile
+    if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator() ){
       Covariates.setDimensions(NumInd, options->getPopulations());
         for(unsigned i = 0; i < NumInd; ++i)for(int j = 1; j < options->getPopulations(); ++j)
           Covariates.set(i, j, 1.0 / (double)options->getPopulations() );
     }
     else
-      Covariates.setDimensions(NumInd, 1);
+      Covariates.setDimensions(NumInd, 1);//just an intercept
     for(unsigned i = 0; i < NumInd; ++i)
     Covariates.set(i,0, 1.0 );
     }
 
-  if( options->getTestForAdmixtureAssociation() )
+  if( options->getTestForAdmixtureAssociation()  || options->getHapMixModelIndicator())
        NumCovariates = NumberOfInputCovariates + 1;
   else
        NumCovariates = NumberOfInputCovariates + options->getPopulations();
