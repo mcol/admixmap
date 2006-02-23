@@ -440,14 +440,14 @@ double Regression::getDispersion()const{
 double Regression::getLogLikelihood(const IndividualCollection* const IC)const{
   int NumIndividuals = IC->getSize();
   double loglikelihood = 0.0;
-  if(RegType==Linear){    //multivariate Gaussian density
+  if(RegType==Linear){    //univariate Gaussian likelihood
     double* dev = new double[NumIndividuals];
     double devsq[1];
     for(int i = 0; i < NumIndividuals; ++i)
       dev[i] = IC->getOutcome(RegNumber, i) - IC->getExpectedY(i, RegNumber);
     matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);
     delete[] dev;
-    loglikelihood = -0.5* (NumIndividuals * NumCovariates*log(2.0*3.14159) - NumIndividuals*log(lambda) + lambda*devsq[0]);
+    loglikelihood = -0.5* ( NumIndividuals * (log(2.0*3.14159) - log(lambda)) + lambda * devsq[0] );
   }
   else if(RegType==Logistic){//loglikelihood is sum of logs of bernoulli probabilities, given by EY
     for(int i = 0; i < NumIndividuals; ++i){
