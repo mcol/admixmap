@@ -520,7 +520,8 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j) SumLocusAncestry_X[j] = 0;
     //  }
 
-    if(sampleparams && Populations >1 && !(iteration %2))//update theta with random-walk proposal on even-numbered iterations
+    if(sampleparams && Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
+      //update theta with random-walk proposal on even-numbered iterations
       SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, chrm, OutcomeType,//ExpectedY, 
 		  lambda, NumCovariates, Covariates, beta, poptheta, options, alpha, /*sigma,*/ DInvLink, dispersion, true, anneal);
     
