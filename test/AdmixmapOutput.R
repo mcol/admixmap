@@ -847,7 +847,7 @@ writeAlleleFreqs <- function(allelefreq.params.list, k, loci.compound, populatio
                                   round(allelefreq.params,digits=2),
                                   check.rows=FALSE)
   dimnames(allelefreq.params)[[2]] <- c("Locus", population.labels)
-  write.table(allelefreq.params, file=outputfile, row.names=FALSE, sep=" ")
+  write.table(allelefreq.params, file=outputfile, row.names=FALSE, sep="\t")
 }
 
 plotAdmixtureDistribution <- function(alphas, samples, k) {
