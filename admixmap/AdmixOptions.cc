@@ -1022,7 +1022,9 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   }
   Log << "\n";
 
-
+  if(HapMixModelIndicator)
+    Log << "Haplotype Mixture Model with " << Populations << " block";if(Populations>1)Log << "s"; Log << "\n";
+ 
   if(OutcomeVarFilename.length() == 0){
     if(NumberOfOutcomes > 0){
       Log.setDisplayMode(On);
@@ -1126,7 +1128,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   
   //Prior on admixture
   setInitAlpha(Log);
-  if(Populations > 1 && NumberOfIndividuals > 1){
+  if(Populations > 1 && IndAdmixHierIndicator && !HapMixModelIndicator){
     Log << "Gamma(1, 1) prior on population admixture Dirichlet parameters.\n";
   }
 
@@ -1170,9 +1172,10 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   //default priors ('populations' option)
   else if(Populations > 0 )
     {
-      Log << "No allelefreq priorallelefreq or historicallelefreq filename given.\n"
-	  << "Default priors will be set for the allele frequencies with "
-	  << Populations << " population(s)\n";
+      Log << "No allelefreqfile, priorallelefreqfile or historicallelefreqfile supplied;\n"
+	  << "Default priors will be set for the allele frequencies";
+      if(!HapMixModelIndicator)
+	Log << " with " << Populations << " population(s)\n";
       if(correlatedallelefreqs) {
 	Log << "Analysis with correlated allele frequencies\n";
       }
@@ -1260,7 +1263,10 @@ void AdmixOptions::setInitAlpha(LogWriter &Log){
   if( initalpha[0].size() == 0 && initalpha[1].size() == 0 ){
     fill( alphatemp.begin(), alphatemp.end(), 1.0);//fill alphatemp with 1s
     initalpha[0] = alphatemp; initalpha[1] = alphatemp;//put 2 copies of alphatemp in alpha
-    Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
+    if(HapMixModelIndicator || !IndAdmixHierIndicator)
+      Log << "Dirichlet parameters of prior on admixture: ";
+    else 
+      Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
     for(int k = 0;k < Populations; ++k){Log << alphatemp[k] << " " ;}
     Log << "\n";
   }
