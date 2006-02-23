@@ -77,7 +77,7 @@ int main( int argc , char** argv ){
   
   //print user options to args.txt; must be done after all options are set
   options.PrintOptions();
-  
+
   Genome Loci;
   Loci.loadAlleleStatesAndDistances(&options, &data);//reads locusfile and creates CompositeLocus objects
   
@@ -119,6 +119,7 @@ int main( int argc , char** argv ){
     // nothing to do except calculate likelihood
     IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
   else {
+    try{
     // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
     DispersionTest DispTest;
     StratificationTest StratTest;
@@ -197,14 +198,14 @@ int main( int argc , char** argv ){
     Log << "coolness of 1\n";
     
     //Write initial values
-    if(options.getIndAdmixHierIndicator()  ){
-      if(options.getDisplayLevel()>2)Log.setDisplayMode(On);
-      else Log.setDisplayMode(Quiet);
-      //Log << "InitialParameterValues:\n"
-      //OutputParameters(-1, IC, &L, &A, R, &options, Log);
-      //Log << "\n";
-    }
-    try {
+//     if(options.getIndAdmixHierIndicator()  ){
+//       if(options.getDisplayLevel()>2)Log.setDisplayMode(On);
+//       else Log.setDisplayMode(Quiet);
+//       //Log << "InitialParameterValues:\n"
+//       //OutputParameters(-1, IC, &L, &A, R, &options, Log);
+//       //Log << "\n";
+//     }
+    //try {
       if(!options.getTestOneIndivIndicator()) {  
 	for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
 	  // should call a posterior mode-finding algorithm before last run at coolness of 1
@@ -261,11 +262,7 @@ int main( int argc , char** argv ){
 	MeanEnergy = MeanEner[options.getNumAnnealedRuns()];//mean at coolness of 1;
 	VarEnergy = VarEner[options.getNumAnnealedRuns()];//var at   ""
       } // end evaluation of test individual
-    } catch (string msg) {//catch any stray error messages passed upwards
-      Log.setDisplayMode(On);
-      Log << "\n" << msg << "\n Exiting...\n";
-      exit(1);
-    }
+
   
     delete[] IntervalWidths;
     delete[] Coolnesses;
@@ -325,6 +322,11 @@ int main( int argc , char** argv ){
     
     if(annealstream.is_open())annealstream.close();
     if(avgstream.is_open())avgstream.close();
+    } catch (string msg) {//catch any stray error messages passed upwards
+      Log.setDisplayMode(On);
+      Log << "\n" << msg << "\n Exiting...\n";
+      exit(1);
+    }
   }//end else
   cout << "Output to files completed\n" << flush;
 
