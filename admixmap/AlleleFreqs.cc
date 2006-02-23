@@ -347,7 +347,11 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
       row = newrow;
     }
     else{  //Default Allele Freqs
-      SetDefaultAlleleFreqs(i);
+      // reference prior on allele freqs: all elements of parameter vector set to 0.5
+      // this is unrealistic for large haplotypes - should set all elements to sum to 1
+      double defaultpriorparams = 0.5;
+      if(options->getHapMixModelIndicator())defaultpriorparams = 0.1;
+      SetDefaultAlleleFreqs(i, defaultpriorparams);
     }
   }
 
@@ -444,7 +448,7 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix New, int i, bool oldformat){
 
 }
 
-void AlleleFreqs::SetDefaultAlleleFreqs(int i){
+void AlleleFreqs::SetDefaultAlleleFreqs(int i, double defaultpriorparams){
   /**
    * Given the number of ancestral populations, sets default values for
    * allele frequencies (in Freqs) and prior allele frequencies (in PriorAlleleFreqs).
@@ -458,9 +462,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i){
   }
   else{
     PriorAlleleFreqs[i] = new double[NumberOfStates[i]* Populations];
-    // reference prior on allele freqs: all elements of parameter vector set to 0.5
-    // this is unrealistic for large haplotypes - should set all elements to sum to 1
-    fill(PriorAlleleFreqs[i], PriorAlleleFreqs[i] + NumberOfStates[i]* Populations, 0.5);
+    fill(PriorAlleleFreqs[i], PriorAlleleFreqs[i] + NumberOfStates[i]* Populations, defaultpriorparams);
   }
   
   // initialize frequencies as equal for all alleles at locus

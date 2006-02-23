@@ -127,7 +127,7 @@ private:
   void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
   void LoadAlleleFreqs(const DataMatrix NewFreqs, int i, bool);
-  void SetDefaultAlleleFreqs(int i);
+  void SetDefaultAlleleFreqs(int i, double defaultpriorparams);
 
   void SampleDirichletParams1D( int );
   void SampleDirichletParamsMultiDim( int);
