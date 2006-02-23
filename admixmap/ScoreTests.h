@@ -76,9 +76,9 @@ private:
   double*** SumAlleleInfo;
 
   std::ofstream assocscorestream;
-  std::ofstream * ancestryAssociationScoreStream;
-  std::ofstream * SNPsAssociationScoreStream;
-  std::ofstream * affectedsOnlyScoreStream;
+  std::ofstream ancestryAssociationScoreStream;
+  std::ofstream SNPsAssociationScoreStream;
+  std::ofstream affectedsOnlyScoreStream;
   std::ofstream genescorestream;
   std::ofstream ResAlleleScoreFile;
   const std::string *PopLabels;

@@ -58,10 +58,6 @@ ScoreTests::ScoreTests(){
   SumAlleleScore2 = 0;
   SumAlleleInfo = 0;
 
-  ancestryAssociationScoreStream = 0;
-  SNPsAssociationScoreStream = 0;
-  affectedsOnlyScoreStream = 0;
-
   options = 0;
   individuals = 0;
 
@@ -118,6 +114,8 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
   //TODO check conditions on this test
   if( options->getTestForAdmixtureAssociation() ){
     if ( strlen( options->getAssocScoreFilename() ) ){
+      //can't use this yet as this test doesn't write an R object
+      //OpenFile(Log, &assocscorestream, options->getAssocScoreFilename(), "Tests for admixture association");
       assocscorestream.open( options->getAssocScoreFilename(), ios::out );
       if( !assocscorestream ){
 	Log.setDisplayMode(On);
@@ -150,43 +148,26 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     |affecteds only linkage with ancestry |
     ------------------------------------*/ 
   if( options->getTestForAffectedsOnly() ){
-    affectedsOnlyScoreStream = new ofstream(options->getAffectedsOnlyScoreFilename());
-    if( !affectedsOnlyScoreStream ){
-      Log << "ERROR: Couldn't open affectedsonlyscorefile" << options->getAffectedsOnlyScoreFilename() << "\n";
-      exit( 1 );//remove?
-    }
-    else{
-      Log << "Writing affected only tests for association to " << options->getAffectedsOnlyScoreFilename() << "\n";
-      *affectedsOnlyScoreStream << "structure(.Data=c(" << endl;
-	
-      //KK is the number of populations for which to perform test. For 2way admixture, we only want 2nd population.
-      int KK = K;
-      if(K == 2)KK = 1;
-
-      SumAffectedsScore2 = new double[L * KK];
-      SumAffectedsScore = new double[L * KK];
-      SumAffectedsVarScore = new double[L * KK];
-      SumAffectedsInfo = new double[L * KK];
-      fill(SumAffectedsScore, SumAffectedsScore +L*KK, 0.0);
-      fill(SumAffectedsScore2, SumAffectedsScore2 +L*KK, 0.0);
-      fill(SumAffectedsInfo, SumAffectedsInfo + L*KK, 0.0);
-      fill(SumAffectedsVarScore, SumAffectedsVarScore + L*KK, 0.0);
-    }
+    OpenFile(Log, &affectedsOnlyScoreStream, options->getAffectedsOnlyScoreFilename(), "Affected-only tests for association");
+    //KK is the number of populations for which to perform test. For 2way admixture, we only want 2nd population.
+    int KK = K;
+    if(K == 2)KK = 1;
+    
+    SumAffectedsScore2 = new double[L * KK];
+    SumAffectedsScore = new double[L * KK];
+    SumAffectedsVarScore = new double[L * KK];
+    SumAffectedsInfo = new double[L * KK];
+    fill(SumAffectedsScore, SumAffectedsScore +L*KK, 0.0);
+    fill(SumAffectedsScore2, SumAffectedsScore2 +L*KK, 0.0);
+    fill(SumAffectedsInfo, SumAffectedsInfo + L*KK, 0.0);
+    fill(SumAffectedsVarScore, SumAffectedsVarScore + L*KK, 0.0);
   }
 
   /*-----------------------
     | Linkage with ancestry  |
     -----------------------*/
   if( options->getTestForLinkageWithAncestry() ){
-    ancestryAssociationScoreStream = new ofstream(options->getAncestryAssociationScoreFilename());
-    if( !ancestryAssociationScoreStream ){
-      Log << "ERROR: Couldn't open ancestry association scorefile\n";
-      exit( 1 );
-    }
-    else{
-      Log << "Writing tests for locus linkage to " << options->getAncestryAssociationScoreFilename() << "\n";
-      *ancestryAssociationScoreStream << "structure(.Data=c(" << endl;
-    }
+    OpenFile(Log, &ancestryAssociationScoreStream, options->getAncestryAssociationScoreFilename(), "Tests for locus linkage");
 	
     int KK = K;
     if(K == 2)KK = 1;//only keeping scores for second population when 2 populations
@@ -204,15 +185,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     | Allelic association  |
     -----------------------*/
   if( options->getTestForAllelicAssociation() ){
-    genescorestream.open( options->getAllelicAssociationScoreFilename(), ios::out );
-    if( !genescorestream ){
-      Log << "ERROR: Couldn't open locusscorefile\n";
-      exit( 1 );
-    }
-    else{
-      Log << "Test for allelic association written to " << options->getAllelicAssociationScoreFilename() << "\n";
-      genescorestream << "structure(.Data=c(" << endl;
-    }
+    OpenFile(Log, &genescorestream, options->getAllelicAssociationScoreFilename(), "Test for allelic association");
     
     dim_ = new unsigned[L];//dimensions of arrays
     LocusLinkageAlleleScore = new double*[L];
@@ -282,16 +255,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     ----------------------*/  
   if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){
     if(Lociptr->GetTotalNumberOfLoci() >= Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
-      SNPsAssociationScoreStream = new ofstream( options->getTestsForSNPsInHaplotypeOutputFilename(), ios::out );
-      if( !SNPsAssociationScoreStream ){
-	Log.setDisplayMode(On);
-	Log << "ERROR: Couldn't open haplotypeassociationscorefile\n";
-	exit( 1 );
-      }
-      else{
-	Log << "Tests for haplotype associations written to\n" << options->getTestsForSNPsInHaplotypeOutputFilename() << "\n";
-	*SNPsAssociationScoreStream << "structure(.Data=c(" << endl;
-      }
+      OpenFile(Log, &SNPsAssociationScoreStream, options->getTestsForSNPsInHaplotypeOutputFilename(), "Tests for haplotype associations");
     }
     else {
       op->setTestForSNPsInHaplotype(false);
@@ -304,14 +268,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     -------------------------------*/
   if(options->getTestForResidualAllelicAssoc()){
     //open output file
-    ResAlleleScoreFile.open(options->getResidualAllelicAssocScoreFilename(), ios::out);
-    if(!ResAlleleScoreFile){
-      Log.setDisplayMode(On);
-      Log << "ERROR: Couldn't open residualallelicassocscorefile\n";
-      exit( 1 );
-    }
-    Log << "Tests for residual allelic association written to " << options->getResidualAllelicAssocScoreFilename() <<"\n";
-    ResAlleleScoreFile << "structure(.Data=c(" << endl;
+    OpenFile(Log, &ResAlleleScoreFile, options->getResidualAllelicAssocScoreFilename(), "Tests for residual allelic association");
 
     SumAlleleScore = new double**[Lociptr->GetNumberOfChromosomes()];
     SumAlleleScore2 = new double**[Lociptr->GetNumberOfChromosomes()];
@@ -337,6 +294,18 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
   InitialiseAssocScoreFile(PLabels);
 }
 
+void ScoreTests::OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname){
+  outputstream->open(filename, ios::out);
+  if(!outputstream->is_open()){
+    string error_string = "ERROR: could not open ";
+    error_string.append(filename);
+    throw(error_string);
+  }
+  Log << testname << " written to " << filename << "\n";
+  //start writing R object
+  *outputstream << "structure(.Data=c(" << endl;
+
+}
 //Initialise ergodic average score file
 void ScoreTests::InitialiseAssocScoreFile(const std::string *PLabels){
   if( options->getTestForAdmixtureAssociation() ){
@@ -803,13 +772,13 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
     
-    OutputTestsForLocusLinkage( iterations, ancestryAssociationScoreStream,
+    OutputTestsForLocusLinkage( iterations, &ancestryAssociationScoreStream,
 				SumAncestryScore, SumAncestryVarScore,
 				SumAncestryScore2, SumAncestryInfo );
   }
   //affectedonly
   if( options->getTestForAffectedsOnly() ){
-    OutputTestsForLocusLinkage( iterations, affectedsOnlyScoreStream,
+    OutputTestsForLocusLinkage( iterations, &affectedsOnlyScoreStream,
 				SumAffectedsScore, SumAffectedsVarScore,
 				SumAffectedsScore2, SumAffectedsInfo );
   }
@@ -873,41 +842,36 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iterations )
       
       NumberOfMergedHaplotypes = dim_[j];
       for( int k = 0; k < NumberOfMergedHaplotypes; k++ ){
-	*SNPsAssociationScoreStream  << (*Lociptr)(j)->GetLabel(0) << ",";
+	SNPsAssociationScoreStream  << (*Lociptr)(j)->GetLabel(0) << ",";
 	if( k < NumberOfMergedHaplotypes - 1 ){
 	  hap = (*Lociptr)(j)->GetHapLabels(k);
-	  *SNPsAssociationScoreStream  << "\"";
+	  SNPsAssociationScoreStream  << "\"";
 	  for( int kk = 0; kk < (*Lociptr)(j)->GetNumberOfLoci() - 1; kk++ ){
-	    *SNPsAssociationScoreStream  << hap[kk] << "-";
+	    SNPsAssociationScoreStream  << hap[kk] << "-";
 	  }
-	  *SNPsAssociationScoreStream  << hap[(*Lociptr)(j)->GetNumberOfLoci() - 1] << "\",";
+	  SNPsAssociationScoreStream  << hap[(*Lociptr)(j)->GetNumberOfLoci() - 1] << "\",";
 	}
 	else
-	  *SNPsAssociationScoreStream  << "\"others\",";
-	*SNPsAssociationScoreStream  << double2R(ScoreVector[k]) << ",";
-	*SNPsAssociationScoreStream  << double2R(CompleteMatrix[k*dim_[j]+k]) << ",";
-	*SNPsAssociationScoreStream  << double2R(ObservedMatrix[k*dim_[j]+k]) << ",";
-	*SNPsAssociationScoreStream  << double2R(100*ObservedMatrix[k*dim_[j]+k] / CompleteMatrix[k*dim_[j]+k]) << ",";
-	*SNPsAssociationScoreStream  << double2R(ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim_[j]+k] ));
-	*SNPsAssociationScoreStream  << ",";
+	  SNPsAssociationScoreStream  << "\"others\",";
+	SNPsAssociationScoreStream  << double2R(ScoreVector[k]) << ",";
+	SNPsAssociationScoreStream  << double2R(CompleteMatrix[k*dim_[j]+k]) << ",";
+	SNPsAssociationScoreStream  << double2R(ObservedMatrix[k*dim_[j]+k]) << ",";
+	SNPsAssociationScoreStream  << double2R(100*ObservedMatrix[k*dim_[j]+k] / CompleteMatrix[k*dim_[j]+k]) << ",";
+	SNPsAssociationScoreStream  << double2R(ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim_[j]+k] ));
+	SNPsAssociationScoreStream  << ",";
 	// if not last allele at locus, output unquoted "NA" in chi-square column
 	if( k != NumberOfMergedHaplotypes - 1 ){
-	  *SNPsAssociationScoreStream  << "NA," << endl;
+	  SNPsAssociationScoreStream  << "NA," << endl;
 	}
       }//end loop over haplotypes
       // calculate summary chi-square statistic
       double chisq = 0.0;
       try{
 	chisq = GaussianConditionalQuadraticForm( NumberOfMergedHaplotypes - 1, ScoreVector, ObservedMatrix, dim_[j] );
-	*SNPsAssociationScoreStream  << double2R(chisq) << "," << endl;
+	SNPsAssociationScoreStream  << double2R(chisq) << "," << endl;
       }
-//       catch(string s){
-// 	string error_string = "Error computing chi-squared statistic in outputting haplotype association score test\n";
-// 	error_string.append(s);
-// 	throw(error_string);
-//       }
       catch(...){
-	*SNPsAssociationScoreStream  << "NaN" << "," << endl;// if ObservedMatrix is rank deficient
+	SNPsAssociationScoreStream  << "NaN" << "," << endl;// if ObservedMatrix is rank deficient
       }
 
       delete[] ScoreVector;
@@ -1104,7 +1068,7 @@ void ScoreTests::ROutput(){
     labels[5] = "PercentInfo";
     labels[6] = "StdNormal";
     labels[7] = "ChiSquare";
-    R_output3DarrayDimensions(SNPsAssociationScoreStream,dimensions,labels);
+    R_output3DarrayDimensions(&SNPsAssociationScoreStream,dimensions,labels);
   }
   
   /**
@@ -1130,7 +1094,7 @@ void ScoreTests::ROutput(){
     labels[7] = "Missing2";
     labels[8] = "StdNormal";
     
-    R_output3DarrayDimensions(ancestryAssociationScoreStream,dimensions,labels);
+    R_output3DarrayDimensions(&ancestryAssociationScoreStream,dimensions,labels);
   }
   
   /**
@@ -1156,7 +1120,7 @@ void ScoreTests::ROutput(){
     labels[7] = "Missing2"; 
     labels[8] = "StdNormal";
     
-    R_output3DarrayDimensions(affectedsOnlyScoreStream,dimensions,labels);
+    R_output3DarrayDimensions(&affectedsOnlyScoreStream,dimensions,labels);
   }
 
   /**
