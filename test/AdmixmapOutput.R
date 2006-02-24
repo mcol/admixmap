@@ -637,6 +637,18 @@ plotInfoMap <- function(loci.compound, info.content, K, testname) {
   dev.off()
 }
 
+plotResidualAllelicAssocScoreTest <- function(scorefile, outfilePlot, thinning){
+  scoretest <- dget(paste(resultsdir,scorefile,sep="/"));
+
+  scoretest <- array(as.numeric(scoretest), dim=dim(scoretest),dimnames=dimnames(scoretest))
+  scoretest[is.nan(scoretest)] <- NA
+
+  pvalues <- scoretest[dim(scoretest)[1],,]
+  if(is.vector(pvalues))pvalues <- as.matrix(pvalues)
+  plotpvalues(outputfilePlot, pvalues,
+              10*thinning, "Running computation of p-values for residual allelic association")
+}
+
 plotScoreTestAlleleFreqs <- function(scorefile) {
   scoretest.allelefreq <- dget(paste(resultsdir,scorefile,sep="/"))
 
@@ -1164,6 +1176,11 @@ if(!is.null(user.options$affectedsonlyscorefile)) {
   plotAncestryScoreTest(user.options$affectedsonlyscorefile, "TestsAffectedsOnly",K, population.labels, user.options$every)
 }
 
+## read output of score test for residual allelic association, and plot cumulative results
+if(!is.null(user.options$residualallelicassocscorefile)) {
+  outputfilePlot <- paste(resultsdir, "TestsResidualAllelicAssoc.ps", sep="/")
+  plotResidualAllelicAssocScoreTest(user.options$residualallelicassocscorefile, outfilePlot, user.options$every)
+}
 
 if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1) {
   print("allelefreqoutputfile not specified")
