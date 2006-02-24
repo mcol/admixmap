@@ -562,7 +562,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
 	  //}
 	}   
       }
-      if(Populations>1 && !options->getHapMixModelIndicator()) {
+      if(Populations>1 ) {
 	// don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
 	//sample number of arrivals, update SumNumArrivals and SumLocusAncestry
 	if( !chrm[j]->isXChromosome() )
