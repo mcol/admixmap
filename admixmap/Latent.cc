@@ -62,6 +62,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       globaltheta = new double[K];
       globalthetaproposal = new double[K];
       fill(globaltheta, globaltheta+K, 1.0/(double)K);
+      ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
     }
 
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
@@ -121,6 +122,7 @@ void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals,
     else
       UpdateGlobalThetaWithRandomWalk(individuals, C); 
   }
+  individuals->setAdmixtureProps(globaltheta, options->getPopulations());//shouldn't be necessary
 }
 
 void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* const individuals, LogWriter &Log, bool anneal=false)
@@ -331,14 +333,6 @@ void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
 
 }
 
-double Latent::getRhoSamplerAccRate()const{
-  return TuneRhoSampler.getExpectedAcceptanceRate();
-}
-
-double Latent::getRhoSamplerStepsize()const{
-  return step;
-}
-
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 {
   // Header line of paramfile
@@ -429,8 +423,23 @@ const double *Latent::getpoptheta()const{
 }
 
 void Latent::printAcceptanceRates(LogWriter &Log) {
-  Log << "Expected acceptance rate in population admixture sampler: "
-      << PopAdmixSampler.getExpectedAcceptanceRate()
-      << "\nwith final step size of "
-      << PopAdmixSampler.getStepSize() << "\n";
+  if(options->getHapMixModelIndicator()){
+    Log << "Expected acceptance rate in global admixture sampler: "
+	<< ThetaTuner.getExpectedAcceptanceRate()
+	<< "\nwith final step size of "
+	<< thetastep << "\n";
+  }
+  else{
+    Log << "Expected acceptance rate in population admixture sampler: "
+	<< PopAdmixSampler.getExpectedAcceptanceRate()
+	<< "\nwith final step size of "
+	<< PopAdmixSampler.getStepSize() << "\n";
+  }
+}
+double Latent::getRhoSamplerAccRate()const{
+  return TuneRhoSampler.getExpectedAcceptanceRate();
+}
+
+double Latent::getRhoSamplerStepsize()const{
+  return step;
 }
