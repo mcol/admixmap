@@ -13,17 +13,17 @@ my $arg_hash = {
     covariatesfile                  => 'data/covariates2std.txt', # age, sex 
     outcomevarfile                  => 'data/outcomevars.txt',
 #main options
-    samples  => 550,
-    burnin   => 50,
-    every    => 5,
-    numannealedruns => 0, 
-    #displaylevel => 3,
-    coutindicator => 1, 
+    samples  => 700,
+    burnin   => 200,
+    every    => 10,
+    numannealedruns => 0, #100, 
+    displaylevel => 3,
 #output file options
     logfile                     => 'log.txt',
     regparamfile                => 'regparam.txt',
     ergodicaveragefile          => 'cumulativeAverages.txt',
 # optional tests
+    #residualallelicassocscorefile       => 'residualLDscoretests.txt',
     allelicassociationscorefile       => 'allelicassociationscoretests.txt',
     haplotypeassociationscorefile     => 'hapassocscoretests.txt',
     stratificationtestfile            => 'stratificationtest.txt',
@@ -46,7 +46,7 @@ $arg_hash->{resultsdir}            = 'TwoPopsResults';
 # model with reference prior on allele freqs in 3 populations
 $arg_hash->{populations}           = 3;
 $arg_hash->{resultsdir}            = 'ThreePopsResults';  
-&doAnalysis($executable,$arg_hash);
+#&doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs 
 delete $arg_hash->{populations};
@@ -62,6 +62,8 @@ delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                = 'PriorFreqResultsDiabetes';  
 $arg_hash->{targetindicator}           = 0; # diabetes as outcome
 $arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
+#$arg_hash->{thermo}    = 1;
+#$arg_hash->{numannealedruns}    = 100;
 &doAnalysis($executable,$arg_hash);
 
 # model with historic allele freqs and both outcome vars
@@ -69,6 +71,7 @@ delete $arg_hash->{targetindicator};
 delete $arg_hash->{priorallelefreqfile};
 delete $arg_hash->{dispersiontestfile};
 delete $arg_hash->{affectedsonlyscorefile};
+$arg_hash->{numannealedruns}    = 0;
 $arg_hash->{resultsdir}                = 'HistoricFreqResults';  
 $arg_hash->{randommatingmodel}         = 1;
 $arg_hash->{outcomes}                  = 2; # both outcome vars - overrides targetindicator
@@ -77,7 +80,7 @@ $arg_hash->{etapriorfile}              = "data/etapriors.txt";
 $arg_hash->{dispparamfile}             = "dispersionparams.txt";
 $arg_hash->{fstoutputfile}             = "lociFst.txt";
 $arg_hash->{allelefreqoutputfile}      = "allelefreqs.txt";
-&doAnalysis($executable,$arg_hash);
+#&doAnalysis($executable,$arg_hash);
 
 ############### DO NOT EDIT BELOW THIS LINE ############################
 
@@ -105,7 +108,8 @@ sub doAnalysis {
 	$rcmd = "Rcmd";
     }
     print "Starting R script to process output\n";
-    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
+    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R \
+            $args->{resultsdir}/Rlog.txt\n");
     print "R script completed\n\n";
 }
 

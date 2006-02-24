@@ -5,8 +5,7 @@ use File::Path;
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 
 # Change this to the location of the admixmap executable
-my $executable = 'c:/cvs/genepi/test/admixmap.exe';
-# command-line options are stored in an associative array (known as a hash in perl)  
+my $executable = 'c:/cvs/genepi/test/admixmap';
 my $arg_hash = 
 {
 #data files
@@ -19,7 +18,7 @@ my $arg_hash =
     burnin   => 10,
     every    => 1,
     displaylevel => 3, 
-    #hapmixmodel => 1,
+    hapmixmodel => 1,
     
 #output file options
     logfile                     => 'log.txt',
@@ -27,16 +26,15 @@ my $arg_hash =
     regparamfile                => 'regparam.txt',
     
 # optional tests
+    residualallelicassocscorefile => 'residualLDscoretests.txt',
     allelicassociationscorefile       => 'allelicassociationscoretests.txt',
-    #haplotypeassociationscorefile     => 'hapassocscoretests.txt',
     stratificationtestfile            => 'stratificationtest.txt',
     hwscoretestfile                   => 'HardyWeinbergtest.txt'
 };
 
-# model with reference prior on allele freqs in 1 population, skin reflectance as outcome var
-$arg_hash->{populations}           = 1;
-$arg_hash->{resultsdir}            = 'SinglePopResults';  
-#$arg_hash->{analysistypeindicator} = 3; # continuous outcome var
+# model with reference prior on allele freqs in 2 populations
+$arg_hash->{populations}           = 2;
+$arg_hash->{resultsdir}            = 'TwoStateResults';  
 doAnalysis($executable,$arg_hash);
 
 ############### DO NOT EDIT BELOW THIS LINE ############################

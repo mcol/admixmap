@@ -45,8 +45,8 @@ $arg_hash->{thermo} = 1;
 $arg_hash->{numannealedruns} = 4;
 $arg_hash->{populations} = 1;
 #$arg_hash->{hapmixmodel}=1;
-doAnalysis($executable,$arg_hash, $resultsdir);
-&CompareThenMove("results", "results0");
+#doAnalysis($executable,$arg_hash, $resultsdir);
+#&CompareThenMove("results", "results0");
 
 # single population, reference prior on allele freqs, annealing  
 $arg_hash->{thermo} = 0;
