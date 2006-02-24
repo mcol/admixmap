@@ -274,7 +274,7 @@ void IndividualCollection::LoadRepAncestry(const InputData* const data_){
     ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.nCols() - 1 );
  
 }
-void IndividualCollection::getLabels(const Vector_s& data, Vector_s labels)
+void IndividualCollection::getLabels(const Vector_s& data, Vector_s& labels)
 {
   for (size_t i = 0; i < data.size(); ++i) {
     labels.push_back(StringConvertor::dequote(data[i]));

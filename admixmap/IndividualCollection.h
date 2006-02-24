@@ -121,7 +121,7 @@ private:
   Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
   int sizeTestInd;
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
-  void getLabels(const Vector_s& data, Vector_s labels);
+  void getLabels(const Vector_s& data, Vector_s& labels);
 
   void LoadCovariates(const InputData*, const AdmixOptions* const options);
   void LoadOutcomeVar(const InputData* const);
