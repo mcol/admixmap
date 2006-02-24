@@ -100,7 +100,7 @@ public:
   double getExpectedY(int)const;
   double getExpectedY(int, int)const;
   const std::string getCovariateLabels(int)const;
-  const std::string *getCovariateLabels()const;
+  const Vector_s getCovariateLabels()const;
 
   double getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
 			  const bool & annealed);
@@ -121,7 +121,7 @@ private:
   Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
   int sizeTestInd;
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
-  void getLabels(const Vector_s& data,  string *labels);
+  void getLabels(const Vector_s& data, Vector_s labels);
 
   void LoadCovariates(const InputData*, const AdmixOptions* const options);
   void LoadOutcomeVar(const InputData* const);
@@ -154,7 +154,7 @@ private:
   int NumCovariates;//covariates including admixture
   int NumberOfInputCovariates;//covariates in file
   DataMatrix Covariates;//all covariates, including admixture props
-  std::string *CovariateLabels;
+  Vector_s CovariateLabels;
   DataType *OutcomeType;
 
   chib MargLikelihood;

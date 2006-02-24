@@ -95,10 +95,11 @@ void Regression::InitializeOutputFile(const AdmixOptions* const options, const I
   // Header line of paramfile
   for( int kk = 0; kk < options->getNumberOfOutcomes(); kk++ ){
       outputstream << "intercept\t";
-      for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-	outputstream << individuals->getCovariateLabels(i) << "\t";
+      const Vector_s& labels = individuals->getCovariateLabels();
+      for( unsigned i = 0; i < labels.size(); i++ ){
+	outputstream << labels[i] << "\t";
       }
-      if( !options->getTestForAdmixtureAssociation() )
+      if( !options->getTestForAdmixtureAssociation() && !options->getHapMixModelIndicator() )
 	for( int k = 1; k < options->getPopulations(); k++ ){
 	  outputstream << "slope." << PopulationLabels[k] << "\t";
 	}

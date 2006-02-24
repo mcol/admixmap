@@ -28,7 +28,6 @@ using namespace std;
 IndividualCollection::IndividualCollection() {
   SumLogTheta = 0;
   OutcomeType = 0;
-  CovariateLabels = 0;
   NumCovariates = 0;
   NumberOfInputCovariates = 0;
   ReportedAncestry = 0;
@@ -44,7 +43,6 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   indadmixoutput = 0;
   SumLogLikelihood = 0.0;
   SumDeviance = SumDevianceSq = 0.0;
-  CovariateLabels = 0;
   ExpectedY = 0;
   SumResiduals = 0;
   SumLogTheta = 0;
@@ -103,7 +101,6 @@ IndividualCollection::~IndividualCollection() {
   free_matrix(ExpectedY, NumOutcomes);
   free_matrix(SumResiduals, NumOutcomes);
   delete[] SumLogTheta;
-  delete[] CovariateLabels;
   delete[] ReportedAncestry;
 }
 
@@ -220,7 +217,6 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
       Covariates.isMissing(i,j+1, CovData.isMissing(i+1,j));
       }
     if ( Covariates.hasMissing() ) Covariates.SetMissingValuesToColumnMeans();
-    CovariateLabels = new string[ NumberOfInputCovariates ];
     getLabels(data_->getInputData()[0], CovariateLabels);
 
     //vector<double> mean(NumberOfInputCovariates);
@@ -278,14 +274,13 @@ void IndividualCollection::LoadRepAncestry(const InputData* const data_){
     ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.nCols() - 1 );
  
 }
-void IndividualCollection::getLabels(const Vector_s& data, string *labels)
+void IndividualCollection::getLabels(const Vector_s& data, Vector_s labels)
 {
-  for (size_t i = 0, index = 0; i < data.size(); ++i) {
-    labels[index++] = data[i];
+  for (size_t i = 0; i < data.size(); ++i) {
+    labels.push_back(StringConvertor::dequote(data[i]));
   }
 }
 
-// shouldn't need this function any more
 void IndividualCollection::setAdmixtureProps(const double* const a, size_t thetasize)
 {
   if(TestInd)
@@ -525,7 +520,7 @@ const double* IndividualCollection::getCovariates()const{
 const std::string IndividualCollection::getCovariateLabels(int i)const{
   return CovariateLabels[i];
 }
-const std::string *IndividualCollection::getCovariateLabels()const{
+const Vector_s IndividualCollection::getCovariateLabels()const{
   return CovariateLabels;
 }
 
