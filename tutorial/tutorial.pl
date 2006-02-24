@@ -1,6 +1,35 @@
 #!/usr/bin/perl
 use strict; 
 use File::Path;
+
+sub getArguments {
+    my $hash = $_[0];
+    my $arg = '';
+    foreach my $key (keys %$hash){
+	$arg .= ' --'. $key .'='. $hash->{$key};
+    }
+    return $arg;
+}
+
+sub doAnalysis {
+    my ($prog,$args) = @_;
+    my $command = $prog.getArguments($args);
+    if (-e $args->{resultsdir}) {
+	rmtree($args->{resultsdir});
+    } 
+    mkpath($args->{resultsdir});
+    $ENV{'RESULTSDIR'} = $args->{resultsdir};
+    print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
+    system($command);
+    my $rcmd = "R CMD";
+    if($^O eq "MSWin32") {
+	$rcmd = "Rcmd";
+    }
+    print "Starting R script to process output\n";
+    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
+    print "R script completed\n\n";
+}
+
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 
 # Change this to the location of the admixmap executable
@@ -13,10 +42,10 @@ my $arg_hash = {
     covariatesfile                  => 'data/covariates2std.txt', # age, sex 
     outcomevarfile                  => 'data/outcomevars.txt',
 #main options
-    samples  => 700,
-    burnin   => 200,
-    every    => 10,
-    numannealedruns => 0, #100, 
+    samples  => 120,
+    burnin   => 20,
+    every    => 5,
+    numannealedruns => 0, #200, # 100, 
     displaylevel => 3,
 #output file options
     logfile                     => 'log.txt',
@@ -82,6 +111,8 @@ $arg_hash->{fstoutputfile}             = "lociFst.txt";
 $arg_hash->{allelefreqoutputfile}      = "allelefreqs.txt";
 #&doAnalysis($executable,$arg_hash);
 
+<<<<<<< tutorial.pl
+=======
 ############### DO NOT EDIT BELOW THIS LINE ############################
 
 sub getArguments {
@@ -113,3 +144,4 @@ sub doAnalysis {
     print "R script completed\n\n";
 }
 
+>>>>>>> 1.16
