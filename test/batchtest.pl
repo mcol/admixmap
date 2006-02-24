@@ -11,11 +11,6 @@ else {system("mkdir $resultsdir");}
 # Change this to the location of the admixmap executable
 my $executable = 'admixmap';
 
-# $arg_hash is a hash of parameters passed to
-# the executable as arguments.
-#
-# keys (left-hand side) are parameter names
-# values (right-hand side) are parameter values
 my $arg_hash = {
     samples                    => 15, 
     burnin                     => 5,
