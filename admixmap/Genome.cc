@@ -109,15 +109,15 @@ void Genome::loadAlleleStatesAndDistances(const InputData* const data_){
     //get chromosome labels from col 4 of locusfile, if there is one    
     if (m.size() == 4) ChrmLabels.push_back(m[3]);
     //set numbers of alleles and distances for each locus
-    TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData.get( i, 0 ) );//sets number of alleles of first locus
+    TheArray[i]->SetNumberOfAllelesOfLocus( 0, (int)locifileData.get( index, 0 ) );//sets number of alleles of first locus
     SetDistance( i, locifileData.get( index, 1 ) );//sets distance between locus i and i-1
     //loop through lines in locusfile for current complocus
     while( index < locifileData.nRows() - 1 && locifileData.get( index + 1, 1 ) == 0 ){
       ++next_line;
-      
       TheArray[i]->AddLocus( (int)locifileData.get( index + 1, 0 ) );//adds locus with number of alleles given as argument
       index++;
     }
+
     
     TheArray[i]->SetNumberOfLabels();
     index++;
