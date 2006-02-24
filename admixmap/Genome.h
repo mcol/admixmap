@@ -54,9 +54,9 @@ public:
   CompositeLocus *&
   operator()(int) const;
 
-  void SetLabels(const std::vector<std::string> &labels, std::vector<double> temp);
+  void SetLabels(const std::vector<std::string> &labels, const std::vector<double> &distances);
 
-  void loadAlleleStatesAndDistances(const AdmixOptions* const options, const InputData* const data_);
+  void loadAlleleStatesAndDistances(const InputData* const data_);
 
   const double *GetDistances()const;
 

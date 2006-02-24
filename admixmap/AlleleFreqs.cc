@@ -958,8 +958,7 @@ void AlleleFreqs::OutputAlleleFreqs()
 {
   if( IsRandom() ){
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
-      for( int state = 0; state < NumberOfStates[locus]-1; state++ ) {
-	// must quote labels here if R is to read the array
+      for( int state = 0; state < NumberOfStates[locus]-1; state++ ){
 	allelefreqoutput << "\"" << (*Loci)(locus)->GetLabel(0) << "\",";
 	for( int pop = 0; pop < Populations; pop++ ){
 	  allelefreqoutput <<  Freqs[locus][state*Populations + pop] << ",";

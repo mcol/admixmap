@@ -1702,7 +1702,7 @@ void Individual::OutputLikRatios(const char* const filename, int iterations, con
 
   for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
     for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
-      outputstream << (*Loci)(j)->GetLabel(0) << ",";
+      outputstream << "\"" << (*Loci)(j)->GetLabel(0) << "\",";
       outputstream << "\""<<PopLabels[k+k1] << "\","; //need offset to get second poplabel for 2pops
       
       L1 = LikRatio1[ j*KK + k] / ( iterations );

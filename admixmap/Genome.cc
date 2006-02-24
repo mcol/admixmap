@@ -72,26 +72,23 @@ Genome::~Genome()
 
 //sets the labels of all composite loci in TheArray using SetLabel function in CompositeLocus
 //all loci within each composite locus are assigned the same label from labels vector
-void Genome::SetLabels(const vector<string> &labels, vector<double> temp)
+void Genome::SetLabels(const vector<string> &labels, const vector<double> &distances)
 {
-    int index = -1; // counts through number of composite loci
-    int locus = 0;
+    int index = -1; // counts through composite loci
+    int locus = 0;//counts through loci on a comp locus
 
-    for (size_t count = 2; count < labels.size(); ++count) {
+    for (size_t count = 0; count < labels.size(); ++count) {
         const string& label = labels[count];
-        if (temp.size() == 1 || temp[count - 1]) {
-            index++;
+        if (distances[count] > 0.0) {//new comp locus
             locus = 0;
-            TheArray[index]->SetLabel(0,label);
-        } else if( count != 0 ) {
-            locus++;
-            TheArray[index]->SetLabel(locus,label);
-        }
+	    ++index;
+        } 
+	TheArray[index]->SetLabel(locus++,label);
     }
 }
 
 //gets contents of locusfile and genotypesfile and creates CompositeLocus array
-void Genome::loadAlleleStatesAndDistances(const AdmixOptions* const options, const InputData* const data_){
+void Genome::loadAlleleStatesAndDistances(const InputData* const data_){
 
   DataMatrix locifileData =  data_->getLocusMatrix();
   
@@ -127,15 +124,7 @@ void Genome::loadAlleleStatesAndDistances(const AdmixOptions* const options, con
     if(TheArray[i]->GetNumberOfLoci()>8) cerr << "WARNING: Composite locus with >8 loci\n";
   }
 
-  Vector_s labels = data_->getGeneticData()[0];//header of genotypes file
-  
-  vector<double> vtemp = locifileData.getCol(1);
-  vtemp.insert(vtemp.begin(), 0.0);// Forces SetLabels method to ignore first row of loci.txt 
-  // Add a sex column if it is not included
-  if( ! options->getgenotypesSexColumn() ){
-    labels.insert(labels.begin(), "\"sexcol\"");
-  }
-  SetLabels(labels, vtemp);
+  SetLabels(data_->getLocusLabels(), locifileData.getCol(1));
 }
 
 //Creates an array of pointers to Chromosome objects, sets their labels

@@ -22,6 +22,7 @@
 #ifndef INPUT_DATA_H
 #define INPUT_DATA_H 1
 #include "common.h"
+#include "StringConvertor.h"
 #include "DataMatrix.h"
 
 /**
@@ -31,8 +32,8 @@ class AdmixOptions;
 class LogWriter;
 class Chromosome;
 class Genome;
-class InputData
-{
+
+class InputData{
 public:    
 
   /**
@@ -122,6 +123,8 @@ private:
   unsigned NumCompositeLoci;
   bool IsPedFile;
 
+  StringConvertor dequoter;
+  void getPopLabels(const Vector_s& data, size_t Populations, std::string **labels);
   void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
   void CheckGeneticData(AdmixOptions *options)const;
   void checkLocusFile(int sexColumn);

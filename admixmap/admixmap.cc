@@ -79,7 +79,7 @@ int main( int argc , char** argv ){
   options.PrintOptions();
 
   Genome Loci;
-  Loci.loadAlleleStatesAndDistances(&options, &data);//reads locusfile and creates CompositeLocus objects
+  Loci.loadAlleleStatesAndDistances(&data);//reads locusfile and creates CompositeLocus objects
   
   AlleleFreqs A(&Loci);
   A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci

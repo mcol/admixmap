@@ -678,15 +678,15 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,
 	  ++count;//count number of gametes with ancestry states the same at both loci
 	  
 	  for(int i = 0; i < M; ++i)
-	    for(int j = 0; j < N; ++j){
+	    for(int j = 0; j < N; ++j){//i and j index rows
 	      //update score
 	      AlleleScore[i*N +j] += ( delta(hA[g], i) - delta(hA[g], M) ) * ( delta(hB[g], j) - delta(hB[g], N) ) //observed
 		- ( AlleleFreqsA[i*Populations + ancA[g]] - lastFreqsA[ancA[g]] ) 
 		* ( AlleleFreqsB[j*Populations + ancB[g]] - lastFreqsB[ancB[g]]);// - expected
 
-	      for(int m = 0; m < M ; ++m)for(int n = 0; n < N; ++n){
+	      for(int m = 0; m < M ; ++m)for(int n = 0; n < N; ++n){//m and n index columns
 	      //update info
-		AlleleInfo[(i*N+m) * dim + (j*N+m)] += 
+		AlleleInfo[(i*N+j) * dim + (m*N+n)] += 
 		    ( delta(i,m)*AlleleFreqsA[i*Populations + ancA[g]] + lastFreqsA[ancA[g]] ) 
 		  * ( delta(j,n)*AlleleFreqsB[j*Populations + ancB[g]] + lastFreqsB[ancB[g]] );
 	      }
@@ -842,7 +842,7 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iterations )
       
       NumberOfMergedHaplotypes = dim_[j];
       for( int k = 0; k < NumberOfMergedHaplotypes; k++ ){
-	SNPsAssociationScoreStream  << (*Lociptr)(j)->GetLabel(0) << ",";
+	SNPsAssociationScoreStream  << "\"" << (*Lociptr)(j)->GetLabel(0) << "\",";
 	if( k < NumberOfMergedHaplotypes - 1 ){
 	  hap = (*Lociptr)(j)->GetHapLabels(k);
 	  SNPsAssociationScoreStream  << "\"";
@@ -900,8 +900,8 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iterations, int locus, un
     }
     
     string locuslabel = (*Lociptr)(locus)->GetLabel(a);
-    if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) genescorestream << locuslabel << ",";
-    else genescorestream << locuslabel.substr(0, locuslabel.size()-1)<< "("<<a+1<<")\",";
+    if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) genescorestream << "\"" << locuslabel << "\",";
+    else genescorestream << "\"" << locuslabel<< "("<<a+1<<")\",";
     genescorestream << double2R(Score)        << ","
 		    << double2R(CompleteInfo) << ","
 		    << double2R(ObservedInfo) << ",";
@@ -935,8 +935,8 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
   double VU, EU, missing, complete;
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
-      *outputstream << (*Lociptr)(j)->GetLabel(0) << ",";
-      *outputstream << "\""<<PopLabels[k+k1] << "\","; //need offset to get second poplabel for 2pops
+      *outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\",";
+      *outputstream << "\"" << PopLabels[k+k1] << "\","; //need offset to get second poplabel for 2pops
       
       EU = Score[ j*KK + k] / ( iterations );
       VU = VarScore[ j*KK + k ] / ( iterations );
@@ -984,10 +984,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations){
       }
 
       //output labels
-      StringConvertor dequoter;
-      string label1 = dequoter.dequote((*chrm[c])(j)->GetLabel(0));
-      string label2 = dequoter.dequote((*chrm[c])(j+1)->GetLabel(0));
-      ResAlleleScoreFile << "\"" << label1 << "/" << label2 << "\","
+      ResAlleleScoreFile << "\"" << (*chrm[c])(j)->GetLabel(0) << "/" << (*chrm[c])(j+1)->GetLabel(0) << "\","
 			 << Score[0] << "," << compinfo << "," <<obsinfo << ",";
 
       //compute chi-squared statistic

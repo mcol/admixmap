@@ -21,7 +21,6 @@
 #include "InputData.h"
 #include "AdmixOptions.h"
 #include "StringSplitter.h"
-#include "StringConvertor.h"
 #include "Genome.h"
 #include "Chromosome.h"
 
@@ -45,20 +44,20 @@ static bool isWhiteLine(const char *p)
 }
 
 //Extracts population labels from header line of allelefreq input file
-static void getPopLabels(const Vector_s& data, size_t Populations, string **labels)
+void InputData::getPopLabels(const Vector_s& data, size_t Populations, string **labels)
 {
   if(data.size() != Populations+1){cout << "Error in getPopLabels\n";exit(1);}
   *labels = new string[ Populations ];
-  StringConvertor S;
+  //StringConvertor S;
 
     for (size_t i = 0; i < Populations; ++i) {
-      (*labels)[i] = S.dequote(data[i+1]);
+      (*labels)[i] = StringConvertor::dequote(data[i+1]);
     }
 }
 void getLabels(const Vector_s& data, string *labels)
 {
   for (size_t i = 0, index = 0; i < data.size(); ++i) {
-    labels[index++] = data[i];
+    labels[index++] = StringConvertor::dequote(data[i]);
   }
 }
 
@@ -187,7 +186,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   if ( strlen( options->getReportedAncestryFilename() ) != 0 )
     CheckRepAncestryFile(options->getPopulations(), Log);
   CheckAlleleFreqs(options, Log);
-  
+ 
   if(NumIndividuals > 1){
     Log.setDisplayMode(Quiet);
     Log << NumIndividuals << " individuals\n";
@@ -262,9 +261,9 @@ void InputData::checkLocusFile(int sexColumn){
       cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
       exit(1);
     }
-    LocusLabels.push_back(locusData_[i][0]);
+    LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
     // Check loci names are unique    
-    for (size_t j = i + 1; j < locusData_.size(); ++j) {   
+    for (size_t j = 0; j < i-1; ++j) {   
       if (locusData_[i][0] == locusData_[j][0]) {
 	cerr << "Error in locusfile. Two different loci have the same name. "
 	     << locusData_[i][0] << endl;
@@ -315,7 +314,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     nrows = alleleFreqMatrix_.nRows()-1;
     expectednrows = NumberOfStates-NumCompositeLoci;
     Populations = alleleFreqMatrix_.nCols() - 1;// -1 for ids in first col
-    ::getPopLabels(alleleFreqData_[0], Populations, &PopulationLabels);
+    getPopLabels(alleleFreqData_[0], Populations, &PopulationLabels);
   }
   
   //Historic allelefreqs
@@ -325,7 +324,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     nrows = historicalAlleleFreqMatrix_.nRows();
     expectednrows = NumberOfStates+1;
     Populations = historicalAlleleFreqMatrix_.nCols() - 1;
-    ::getPopLabels(historicalAlleleFreqData_[0], Populations, &PopulationLabels);
+    getPopLabels(historicalAlleleFreqData_[0], Populations, &PopulationLabels);
 
   }
   //prior allelefreqs
@@ -335,7 +334,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
       nrows = priorAlleleFreqMatrix_.nRows();
       expectednrows = NumberOfStates+1;
       Populations = priorAlleleFreqMatrix_.nCols() - 1;
-      ::getPopLabels(priorAlleleFreqData_[0], Populations, &PopulationLabels);
+      getPopLabels(priorAlleleFreqData_[0], Populations, &PopulationLabels);
   }
   if(infile){
     if(nrows != expectednrows){
