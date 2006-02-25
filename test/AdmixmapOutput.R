@@ -370,13 +370,15 @@ plotlogpvalues <- function(psfilename, log10pvalues, table.every, title ) {
   ## function to plot cumulative p-values
   ## arguments: psfilename, matrix of -log10pvalues, table.every, plot title
   postscript(psfilename)
+  ntests <- dim(log10pvalues)[2]
+  evaluations <- dim(log10pvalues)[2]
   ## generate plot for test 1
-  plot(table.every*seq(1:dim(log10pvalues)[2]), log10pvalues[1,],
-       type="l", ylim=c(0,max(log10pvalues*is.finite(log10pvalues),na.rm=T)),
+  plot(table.every*seq(1:evaluations), log10pvalues[1,],
+       type="l", ylim=c(0, 4), ## c( 0, max(log10pvalues*is.finite(log10pvalues), na.rm=T) ),
        main=title, xlab="Iterations", ylab="-log10(p-value)")
   ## add lines to plot for all other tests 
-  for(test in 2:dim(log10pvalues)[1]) {
-    lines(table.every*seq(1:dim(log10pvalues)[2]), log10pvalues[test,], type="l")
+  for(test in 2:ntests) {
+    lines(table.every*seq(1:evaluations), log10pvalues[test,], type="l")
   }
   ## label lines for which final p<0.01
   log10pvalues.final <- log10pvalues[, dim(log10pvalues)[2]]
@@ -387,9 +389,12 @@ plotlogpvalues <- function(psfilename, log10pvalues, table.every, title ) {
   if(length(siglabels) > 0) {
     text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
   }
-  hist(exp(-log10pvalues[, dim(log10pvalues)[2]]))
+  # histogram of p-values
+  hist(10^(-log10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
+       main="Histogram of one-sided p-values")
   dev.off()
 }
+
 plotpvalues <- function(psfilename, stdnormdeviates, table.every, title ) {
   ## function to plot cumulative p-values
   ## arguments: psfilename, matrix of cumulative stdnormdeviates, table.every, plot title
@@ -664,18 +669,21 @@ plotInfoMap <- function(loci.compound, info.content, K, testname) {
 plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"));
   ## dimensions are cols (8), pairs of loci, number of evaluations
-  print(dim(scoretest))
+  #print(dim(scoretest))
   evaluations <- dim(scoretest)[3]
-  scoretest <- array(as.numeric(scoretest), dim=dim(scoretest), dimnames=dimnames(scoretest))
-  scoretest[is.nan(scoretest)] <- NA
+  ntests <- dim(scoretest)[2]
+  locusnames <- scoretest[1,,evaluations]
   scoretest.final <- t(scoretest[, , dim(scoretest)[3]])
-  print(scoretest.final)
-  write.table(scoretest.final, file="ResidualLDTestFinal.txt", row.names=F, quote=F, sep="\t")
-
-  pvalues <- scoretest[dim(scoretest)[1],,]
-  if(is.vector(pvalues)) pvalues <- as.matrix(pvalues)
-  print(pvalues)
-  postscript(outputfile)
+  # scoretest.final[, 1] <- locusnames
+  scoretest.final[, -1][is.nan(scoretest.final[, -1])] <- NA
+  #print(scoretest.final)
+  write.table(scoretest.final, file=paste(resultsdir, "ResidualLDTestFinal.txt", sep="/"),
+              row.names=F, quote=F, sep="\t")
+  pvalues <- as.numeric(scoretest[8, , ])
+  pvalues[is.nan(pvalues)] <- NA
+  pvalues <- data.frame(matrix(data=pvalues, nrow=ntests, ncol=evaluations))
+  dimnames(pvalues)[[1]] <- locusnames
+  #print(pvalues)
   plotlogpvalues(outputfile, -log10(pvalues), 10*thinning,
                  "Running computation of p-values for residual allelic association")
 }
@@ -1015,6 +1023,8 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
 ###################################################################################
 ## start of script
 ###################################################################################
+
+#debug(plotResidualAllelicAssocScoreTest)
 
 options(echo=TRUE)
 par(cex=2,las=1)
