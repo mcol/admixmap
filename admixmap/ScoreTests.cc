@@ -438,9 +438,9 @@ void ScoreTests::Update(double dispersion)
 	SumAdmixtureScore2[ k*NumOutcomeVars + kk ] += AdmixtureScore[ k*NumOutcomeVars + kk ] * AdmixtureScore[ k*NumOutcomeVars + kk ];
   }
   
-  if( options->getNumberOfOutcomes() > 0 ){//no updates if no regression model
-    for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-
+  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+    if( options->getNumberOfOutcomes() > 0 ){//no updates if no regression model
+      
       /*-------------------------------------
 	| Allelic and haplotype association  |
 	-------------------------------------*/
@@ -467,21 +467,27 @@ void ScoreTests::Update(double dispersion)
 	error_string.append(s);
 	throw(error_string);
       }
-
+      
       /*-----------------------
 	| Linkage with ancestry  |
 	-----------------------*/
       if( options->getTestForLinkageWithAncestry() ){
 	Individual::SumScoresForAncestry(j, SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
       } 
-      /*------------------------------------
-	|affecteds-only linkage with ancestry |
-	------------------------------------*/ 
-      if( options->getTestForAffectedsOnly() ){
-	Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
-      }
+      //       /*------------------------------------
+      // 	|affecteds-only linkage with ancestry |
+      // 	------------------------------------*/ 
+      //       if( options->getTestForAffectedsOnly() ){
+      // 	Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
+      //       }
+    } // end block conditional on regression model
+    /*------------------------------------
+      |affecteds-only linkage with ancestry |
+      ------------------------------------*/ 
+    if( options->getTestForAffectedsOnly() ) {
+      Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
     }
-  }
+  } // end loop over composite loci
 }
 
 void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY, double phi, double DInvLink)
@@ -771,13 +777,12 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
   
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
-    
     OutputTestsForLocusLinkage( iterations, &ancestryAssociationScoreStream,
 				SumAncestryScore, SumAncestryVarScore,
 				SumAncestryScore2, SumAncestryInfo );
   }
   //affectedonly
-  if( options->getTestForAffectedsOnly() ){
+  if( options->getTestForAffectedsOnly() ) {
     OutputTestsForLocusLinkage( iterations, &affectedsOnlyScoreStream,
 				SumAffectedsScore, SumAffectedsVarScore,
 				SumAffectedsScore2, SumAffectedsInfo );

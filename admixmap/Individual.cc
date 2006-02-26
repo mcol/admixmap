@@ -1128,7 +1128,7 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, const doubl
       if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
       //check if this individual is affected
       if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
-    }
+     }
     
     //we don't bother computing scores for the first population when there are two
     int KK = Populations,k0 = 0;
@@ -1142,7 +1142,7 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, const doubl
       
       //Update affecteds only scores      
       if(IamAffected){
-	UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, options->isRandomMatingModel(), AProbs );
+ 	UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, options->isRandomMatingModel(), AProbs );
       }
       
       //update ancestry score tests
@@ -1181,7 +1181,7 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0,
     AffectedsScore[locus *Pops + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
     AffectedsVarScore[locus * Pops + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
     AffectedsInfo[locus * Pops +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
-    
+   
     //probs of 0,1,2 copies of Pop1 given admixture
     Pi[2] = theta[0] * theta[1];
     Pi[1] = theta[0] * (1.0 - theta[1]);

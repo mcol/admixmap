@@ -438,8 +438,9 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
 								 options.getPopulations());
 	//score tests
-	if( options.getScoreTestIndicator() )
+	if( options.getScoreTestIndicator() ) {
 	  Scoretest.Update(R[0].getDispersion());//score tests evaluated for first outcome var only
+	}
 	if(options.getTestForResidualAllelicAssoc())
 	  Scoretest.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs());
 	//tests for mis-specified allelefreqs
@@ -466,7 +467,9 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	    avgstream << endl;
 	  }
 	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretest.Output(iteration, data.GetPopLabels());
+	  if( options.getScoreTestIndicator() )  {
+	    Scoretest.Output(iteration, data.GetPopLabels());
+	  }
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
     } // end "if not AnnealedRun" block
