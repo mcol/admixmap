@@ -97,8 +97,8 @@ void AdmixOptions::Initialise(){
   globalrhoPrior.push_back(3.0);//rhoalpha 
   globalrhoPrior.push_back(0.5);//rhobeta
 
-  // non-global rho: default gamma-gamma prior with parameters n=6, alpha=4, beta=5
-  // effective prior mean is 6*4/(5-2=1) = 6 and effective prior variance is 6*7 / (5-2) = 14
+  // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
+  // effective prior mean is 6*4/(5-1) = 6 and effective prior variance is 6*7 / (5-2) = 14
   rhoPrior.push_back(6.0);//rhoalpha 
   rhoPrior.push_back(5.0);//rhobeta shape
   rhoPrior.push_back(4.0);//rhobeta rate
@@ -111,7 +111,7 @@ void AdmixOptions::Initialise(){
   ResultsDir = "results";
   LogFilename = "log.txt";
 
-  ResidualAllelicAssocScoreFilename = "ResidualAllelicAssocScoreFile.txt";
+  ResidualAllelicAssocScoreFilename = "ResidualAllelicAssocScoreTest.txt";
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
   ResidualFilename = "Residuals.txt";
 
@@ -867,8 +867,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "hapmixmodel") {
 	if (strtol(optarg, NULL, 10) == 1) {
 	  HapMixModelIndicator = true;OptionValues["hapmixmodel"]="1";
-	  TestForResidualAllelicAssoc = true;
-	  OptionValues["residualallelicassocscorefile"] = (char*)ResidualAllelicAssocScoreFilename.c_str();
+	  // 	  TestForResidualAllelicAssoc = true;
+	  // 	  OptionValues["residualallelicassocscorefile"] = (char*)ResidualAllelicAssocScoreFilename.c_str();
 	}
       }else if (long_option_name == "chib") {
 	if(strtol(optarg, NULL, 10)==1){
@@ -907,6 +907,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	OptionValues["sumintensitiesprior"] = optarg; 
       } else if (long_option_name == "globalsumintensitiesprior") {
 	globalrhoPrior = CstrToVec(optarg);
+	OptionValues["globalsumintensitiesprior"] = optarg; 
       } else if (long_option_name == "etapriormean") {
 	 etamean = strtod(optarg, NULL);OptionValues["etapriormean"]=optarg;
       } else if (long_option_name == "etapriorvar") {
@@ -1023,7 +1024,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   Log << "\n";
 
   if(HapMixModelIndicator)
-    Log << "Haplotype Mixture Model with " << Populations << " block";if(Populations>1)Log << "s"; Log << "\n";
+    Log << "Haplotype mixture model with " << Populations << " block state";if(Populations>1)Log << "s"; Log << "\n";
  
   if(OutcomeVarFilename.length() == 0){
     if(NumberOfOutcomes > 0){
@@ -1075,7 +1076,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   
   // **** sumintensities ****
   if( GlobalRho ) {
-    Log << "Model with global sum-intensities.\n";
+    Log << "Model with global sum-intensities\n";
     if(globalrhoPrior.size() != 2) {
       Log.setDisplayMode(On);
       Log << "ERROR: globalsumintensitiesprior must have length 2\n";
