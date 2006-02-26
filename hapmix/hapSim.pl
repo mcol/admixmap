@@ -36,25 +36,39 @@ my $arg_hash = {
 #data files
     genotypesfile                   => 'data/genotypes.txt',
     locusfile                       => 'data/loci.txt',
-    priorallelefreqfile             => 'data/allelefreqs.txt',
-    fixedallelefreqs                => 1,
-#main options
-    samples  => 6,
-    burnin   => 1,
+    #priorallelefreqfile             => 'data/allelefreqs.txt',
+    #fixedallelefreqs                => 1,
+
+    samples  => 250,
+    burnin   => 50,
     every    => 1,
+    numannealedruns => 0,
     displaylevel => 3, 
-    hapmixmodel => 1,
-    sumintensitiesprior => "40,1",
-#output file options
-    logfile                     => 'log.txt',
-# optional tests
-    residualallelicassocscorefile => 'residualLDscoretests.txt',
-    hwscoretestfile                   => 'HardyWeinbergtest.txt'
+    globalsumintensitiesprior        => "40,1",
+    logfile                          => 'log.txt',
+
+    residualallelicassocscorefile    => 'residualLDTests.txt',
 };
+
+# model with single block states
+$arg_hash->{populations}           = 1;
+$arg_hash->{resultsdir}            = 'resultsSim1State';  
+doAnalysis($executable,$arg_hash);
+
+# model with 2 block states
+$arg_hash->{hapmixmodel}           = 1;
+$arg_hash->{populations}           = 2;
+$arg_hash->{resultsdir}            = 'resultsSim2States';  
+doAnalysis($executable,$arg_hash);
+
+# model with 3 block states
+$arg_hash->{populations}           = 3;
+$arg_hash->{resultsdir}            = 'resultsSim3States';  
+doAnalysis($executable,$arg_hash);
 
 # model with 4 block states
 $arg_hash->{populations}           = 4;
-$arg_hash->{resultsdir}            = 'resultsSim4';  
+$arg_hash->{resultsdir}            = 'resultsSim4States';  
 doAnalysis($executable,$arg_hash);
 
 ############### DO NOT EDIT BELOW THIS LINE ############################
