@@ -1023,8 +1023,9 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   }
   Log << "\n";
 
-  if(HapMixModelIndicator)
+  if(HapMixModelIndicator){
     Log << "Haplotype mixture model with " << Populations << " block state";if(Populations>1)Log << "s"; Log << "\n";
+  }
  
   if(OutcomeVarFilename.length() == 0){
     if(NumberOfOutcomes > 0){
