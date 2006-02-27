@@ -67,10 +67,16 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
-    if( options->isGlobalRho()) { 
+    if(/*options->getHapMixModelIndicator() ||*/ (options->getIndAdmixHierIndicator() && !options->isGlobalRho() )){
+      // get prior on rate parameter beta and initialize it at prior mean
+      rhobeta0 = options->getRhobetaShape();
+      rhobeta1 = options->getRhobetaRate();
+      rhobeta = rhobeta0 / rhobeta1;
+    }
+    else{
       rhobeta = options->getRhobeta();
-      // set up sampler for global variable if  hierarchical model and > 1 individual
-      if( options->getIndAdmixHierIndicator() && Numindividuals > 1 ) {
+      if( options->isGlobalRho()){
+	// set up sampler for global variable
 	rho = rhoalpha / rhobeta;//initialise global sumintensities parameter at prior mean for globalrho
 	// ** set up TuneRW object for global rho updates **
 	NumberOfUpdates = 0;
@@ -79,13 +85,9 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	//need to choose sensible value for this initial RW sd
 	step = step0;
 	TuneRhoSampler.SetParameters( step0, 0.01, 10, 0.44);
-      }  
-    } else { // get prior on rate parameter beta and initialize it at prior mean
-      rhobeta0 = options->getRhobetaShape();
-      rhobeta1 = options->getRhobetaRate();
-      rhobeta = rhobeta0 / rhobeta1;
+      }
     }
-    
+
     // ** Open paramfile **
     if ( options->getIndAdmixHierIndicator()){
       Log.setDisplayMode(Quiet);
