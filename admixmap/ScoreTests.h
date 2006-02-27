@@ -77,9 +77,9 @@ private:
 
   std::ofstream assocscorestream;
   std::ofstream ancestryAssociationScoreStream;
-  std::ofstream SNPsAssociationScoreStream;
+  std::ofstream HaplotypeAssocScoreStream;
   std::ofstream affectedsOnlyScoreStream;
-  std::ofstream genescorestream;
+  std::ofstream allelicAssocScoreStream;
   std::ofstream ResAlleleScoreFile;
   const std::string *PopLabels;
 
@@ -94,10 +94,10 @@ private:
 			      const double* Score, const double* VarScore,
 				   const double* Score2, const double* Info, string sep );
 
-  void OutputTestsForAllelicAssociation( int iteration, int locus, unsigned dim, const double* score, const double* scoresq, 
-					 const double* info);
+  void OutputTestsForAllelicAssociation( int iterations, ofstream* outputstream, int locus, unsigned dim, 
+					 const double* score, const double* scoresq, const double* info, string sep);
   
-  void OutputTestsForSNPsInHaplotype( int );
+  void OutputTestsForHaplotypeAssociation( int iterations, ofstream* outputstream, string sep );
   
   void OutputAdmixtureScoreTest( int );
 

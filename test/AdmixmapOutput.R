@@ -395,12 +395,12 @@ plotlogpvalues <- function(psfilename, log10pvalues, table.every, title ) {
   dev.off()
 }
 
-plotpvalues <- function(psfilename, stdnormdeviates, table.every, title ) {
+plotpvalues <- function(psfilename, pvalues, table.every, title ) {
   ## function to plot cumulative p-values
-  ## arguments: psfilename, matrix of cumulative stdnormdeviates, table.every, plot title
+  ## arguments: psfilename, matrix of cumulative pvalues, table.every, plot title
   postscript(psfilename)
   ## compute matrix of cumulative log10pvalues: rows index tests, cols iterations 
-  log10pvalues <- -log10(2*pnorm(-abs(stdnormdeviates)))
+  log10pvalues <- -log10(pvalues)
   ## generate plot for test 1
   plot(table.every*seq(1:dim(log10pvalues)[2]), log10pvalues[1,],
        type="l", ylim=c(0,max(log10pvalues*is.finite(log10pvalues),na.rm=T)),
@@ -454,12 +454,13 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
   dev.off()
 }
 
-plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal, thinning) {
+##used for allelic and haplotype association score tests
+plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
   dim.names <- dimnames(scoretest)
   
   ## rows are: locus,(haplotype), score, completeinfo, observedinfo,
-  ##           pctinfo, stdnormdev, (chisquare)
+  ##           pctinfo, stdnormdev, pvalue, (chisquare)
   ## extract testnames and drop 1st row
   if (!haplotypes) {
     testnames <- as.vector(scoretest[1,,1])
@@ -477,28 +478,12 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, outputfileFinal
   ## convert to numeric
   scoretest <- array(as.numeric(scoretest), dim=dims,dimnames=dim.names)
   scoretest[is.nan(scoretest)] <- NA
-  ## extract matrix of standard normal deviates
-  stdNormDev <- scoretest[5,,]
-  if(is.vector(stdNormDev))stdNormDev <- as.matrix(stdNormDev)
-  plotpvalues(outputfilePlot, stdNormDev,
+  ## extract matrix of pvalues
+  pvalues <- scoretest[6,,]
+  if(is.vector(pvalues))pvalues <- as.matrix(pvalues)
+
+  plotpvalues(outputfilePlot, pvalues,
               10*thinning, "Running computation of p-values for allelic association")
-  ## extract last table
-  scoretest.final <- t(scoretest[,,dim(scoretest)[3]])
-  pvalues.final <- signif(2*pnorm(-abs(as.numeric(scoretest.final[,5]))), digits=2)
-  scoretest.table <- data.frame(testnames,
-                                signif(scoretest.final[,1:3], digits=3),
-                                round(scoretest.final[,4], digits=0),
-                                round(scoretest.final[,5], digits=2),
-                                pvalues.final)
-  dimnames(scoretest.table)[[2]] <- c("Locus", "Score", "CompleteInfo", "ObsInfo",
-                                      "PercentInfo", "StdNormDev", "ScalarPValue")
-  if (haplotypes) {
-    chisquare <- scoretest.final[, 6]
-    scoretest.table <- data.frame(scoretest.table, chisquare)
-    ## dimnames(scoretest.table)[[2]] <- c(dimnames(scoretest.table)[[2]], "ChiSquare")
-  }
-  write.table(scoretest.table, file=outputfileFinal, quote=FALSE, sep="\t",
-              row.names=FALSE, col.names=TRUE)
 }
 
 #used to plot output of score test for heterozygosity
@@ -1172,15 +1157,13 @@ if(!is.null(user.options$hwtestfile)){
 ## read output of score test for allelic association, and plot cumulative results
 if(!is.null(user.options$allelicassociationscorefile)) {
   outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
-  outputfileFinal <- paste(resultsdir, "TestsAllelicAssociationFinal.txt", sep="/" )
-  plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, outputfileFinal, user.options$every)
+  plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, user.options$every)
 }
 
 ## read output of score test for association with haplotypes, and plot cumulative results
 if(!is.null(user.options$haplotypeassociationscorefile)) {
   outputfilePlot <- paste(resultsdir, "TestsHaplotypeAssociation.ps", sep="/" )
-  outputfileFinal <- paste(resultsdir, "TestsHaplotypeAssociationFinal.txt", sep="/" )
-  plotScoreTest(user.options$haplotypeassociationscorefile, TRUE, outputfilePlot, outputfileFinal, user.options$every)
+  plotScoreTest(user.options$haplotypeassociationscorefile, TRUE, outputfilePlot, user.options$every)
 }
 
 ## read output of regression model score test for ancestry, and plot cumulative results

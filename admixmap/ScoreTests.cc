@@ -185,7 +185,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     | Allelic association  |
     -----------------------*/
   if( options->getTestForAllelicAssociation() ){
-    OpenFile(Log, &genescorestream, options->getAllelicAssociationScoreFilename(), "Test for allelic association");
+    OpenFile(Log, &allelicAssocScoreStream, options->getAllelicAssociationScoreFilename(), "Test for allelic association");
     
     dim_ = new unsigned[L];//dimensions of arrays
     LocusLinkageAlleleScore = new double*[L];
@@ -253,12 +253,12 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
   /*----------------------
     | haplotype association |
     ----------------------*/  
-  if( strlen( options->getTestsForSNPsInHaplotypeOutputFilename() ) ){
+  if( strlen( options->getHaplotypeAssociationScoreFilename() ) ){
     if(Lociptr->GetTotalNumberOfLoci() >= Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
-      OpenFile(Log, &SNPsAssociationScoreStream, options->getTestsForSNPsInHaplotypeOutputFilename(), "Tests for haplotype associations");
+      OpenFile(Log, &HaplotypeAssocScoreStream, options->getHaplotypeAssociationScoreFilename(), "Tests for haplotype associations");
     }
     else {
-      op->setTestForSNPsInHaplotype(false);
+      op->setTestForHaplotypeAssociation(false);
       Log << "ERROR: Cannot test for haplotype associations if all loci are simple\n" << "This option will be ignored\n";
     }
   }
@@ -454,7 +454,7 @@ void ScoreTests::Update(double dispersion)
 	}
       }
       
-      if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
+      if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForHaplotypeAssociation() ){
 	//if(locusObsIndicator[j]){//skip loci with no observed genotypes
 	CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
 		     SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
@@ -540,7 +540,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 	// 	}
 
 	
-	if( options->getTestForSNPsInHaplotype() ){
+	if( options->getTestForHaplotypeAssociation() ){
 	  //count numbers of each haplotype
 	  counts = (*Lociptr)(locus)->getHaplotypeCounts(happair);
 	}
@@ -751,20 +751,20 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
        //case of simple locus
       if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
-	OutputTestsForAllelicAssociation(iterations, j, dim_[j], SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
-					 SumLocusLinkageAlleleInfo[j]);
+	OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, dim_[j], 
+					 SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
+					 SumLocusLinkageAlleleInfo[j], ",");
       //case of haplotype
       else
-	OutputTestsForAllelicAssociation(iterations, j, (*Lociptr)(j)->GetNumberOfLoci(), SumScoreWithinHaplotype[ j ], 
-					 SumScore2WithinHaplotype[ j ], SumInfoWithinHaplotype[ j ]);
-      
-      
+	OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, (*Lociptr)(j)->GetNumberOfLoci(), 
+					 SumScoreWithinHaplotype[ j ], SumScore2WithinHaplotype[ j ], 
+					 SumInfoWithinHaplotype[ j ], ",");
     }//end j loop over comp loci
   }
   
   //haplotype association
-  if( options->getTestForSNPsInHaplotype() ){
-    OutputTestsForSNPsInHaplotype( iterations );
+  if( options->getTestForHaplotypeAssociation() ){
+    OutputTestsForHaplotypeAssociation( iterations, &HaplotypeAssocScoreStream, "," );
   }
   
   //ancestry association
@@ -817,13 +817,44 @@ void ScoreTests::WriteFinalTables(){
 				SumAffectedsScore2, SumAffectedsInfo, "\t" );
     finalTable.close();
   }
+
   //residual allelic association
   if(options->getTestForResidualAllelicAssoc()){
     string filename(options->getResultsDir());
-    filename.append("/TestsResidualLDTestFinal.txt");
+    filename.append("/ResidualLDTestFinal.txt");
     finalTable.open(filename.c_str(), ios::out);
     finalTable << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue\n";
     OutputTestsForResidualAllelicAssociation(iterations, &finalTable, "\t");
+    finalTable.close();
+  }
+  //haplotype association
+  if( options->getTestForHaplotypeAssociation() ){
+    string filename(options->getResultsDir());
+    filename.append("/HaplotypeAssocTestsFinal.txt");
+    finalTable.open(filename.c_str(), ios::out);
+    finalTable << "Locus\tHaplotype\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare\n";
+    OutputTestsForHaplotypeAssociation( iterations, &finalTable, "\t" );
+    finalTable.close();
+  }
+  //Allelic association
+  if( options->getTestForAllelicAssociation() )    {
+    string filename(options->getResultsDir());
+    filename.append("/AllelicAssocTestsFinal.txt");
+    finalTable.open(filename.c_str(), ios::out);
+    finalTable << "Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\n";
+    for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+       //case of simple locus
+      if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
+	OutputTestsForAllelicAssociation(iterations, &finalTable, j, dim_[j], 
+					 SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
+					 SumLocusLinkageAlleleInfo[j], "\t");
+      //case of haplotype
+      else
+	OutputTestsForAllelicAssociation(iterations, &finalTable, j, (*Lociptr)(j)->GetNumberOfLoci(), 
+					 SumScoreWithinHaplotype[ j ], SumScore2WithinHaplotype[ j ], 
+					 SumInfoWithinHaplotype[ j ], "\t");
+    }//end j loop over comp loci
+    finalTable.close();
   }
 }
 
@@ -850,8 +881,7 @@ void ScoreTests::OutputAdmixtureScoreTest(int iterations)
   assocscorestream << endl;
 }
 
-void ScoreTests::OutputTestsForSNPsInHaplotype( int iterations )
-// misleading name for this method - should be called OutputTestsForHaplotypeAssociation
+void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* outputstream, string sep )
 // loops over composite loci that have 2 or more simple loci, and calculates score tests for each 
 // haplotype separately, together with a summary chi-square
 {
@@ -877,36 +907,38 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iterations )
       
       NumberOfMergedHaplotypes = dim_[j];
       for( int k = 0; k < NumberOfMergedHaplotypes; k++ ){
-	SNPsAssociationScoreStream  << "\"" << (*Lociptr)(j)->GetLabel(0) << "\",";
+	*outputstream  << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << sep;
 	if( k < NumberOfMergedHaplotypes - 1 ){
 	  hap = (*Lociptr)(j)->GetHapLabels(k);
-	  SNPsAssociationScoreStream  << "\"";
+	  *outputstream  << "\"";
 	  for( int kk = 0; kk < (*Lociptr)(j)->GetNumberOfLoci() - 1; kk++ ){
-	    SNPsAssociationScoreStream  << hap[kk] << "-";
+	    *outputstream  << hap[kk] << "-";
 	  }
-	  SNPsAssociationScoreStream  << hap[(*Lociptr)(j)->GetNumberOfLoci() - 1] << "\",";
+	  *outputstream  << hap[(*Lociptr)(j)->GetNumberOfLoci() - 1] << "\"" << sep;
 	}
 	else
-	  SNPsAssociationScoreStream  << "\"others\",";
-	SNPsAssociationScoreStream  << double2R(ScoreVector[k]) << ",";
-	SNPsAssociationScoreStream  << double2R(CompleteMatrix[k*dim_[j]+k]) << ",";
-	SNPsAssociationScoreStream  << double2R(ObservedMatrix[k*dim_[j]+k]) << ",";
-	SNPsAssociationScoreStream  << double2R(100*ObservedMatrix[k*dim_[j]+k] / CompleteMatrix[k*dim_[j]+k]) << ",";
-	SNPsAssociationScoreStream  << double2R(ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim_[j]+k] ));
-	SNPsAssociationScoreStream  << ",";
+	  *outputstream  << "\"others\"" << sep;
+	*outputstream  << double2R(ScoreVector[k], 3) << sep
+		       << double2R(CompleteMatrix[k*dim_[j]+k], 3) << sep
+		       << double2R(ObservedMatrix[k*dim_[j]+k], 3) << sep
+		       << double2R(100*ObservedMatrix[k*dim_[j]+k] / CompleteMatrix[k*dim_[j]+k], 2) << sep;//%Observed Info
+	double zscore = ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim_[j]+k] );
+	*outputstream  << double2R(zscore, 2) << sep;//z-score
+	double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+	*outputstream << double2R(pvalue, 2) << sep;
 	// if not last allele at locus, output unquoted "NA" in chi-square column
 	if( k != NumberOfMergedHaplotypes - 1 ){
-	  SNPsAssociationScoreStream  << "NA," << endl;
+	  *outputstream  << "NA" << sep << endl;
 	}
       }//end loop over haplotypes
       // calculate summary chi-square statistic
       double chisq = 0.0;
       try{
 	chisq = GaussianConditionalQuadraticForm( NumberOfMergedHaplotypes - 1, ScoreVector, ObservedMatrix, dim_[j] );
-	SNPsAssociationScoreStream  << double2R(chisq) << "," << endl;
+	*outputstream  << double2R(chisq, 2) << sep << endl;
       }
       catch(...){
-	SNPsAssociationScoreStream  << "NaN" << "," << endl;// if ObservedMatrix is rank deficient
+	*outputstream  << "NaN" << sep << endl;// if ObservedMatrix is rank deficient
       }
 
       delete[] ScoreVector;
@@ -916,38 +948,32 @@ void ScoreTests::OutputTestsForSNPsInHaplotype( int iterations )
   }//end loop over loci
 }
 
-void ScoreTests::OutputTestsForAllelicAssociation( int iterations, int locus, unsigned dim, const double* score, const double* scoresq, 
-						   const double* info)
+void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* outputstream, int locus, unsigned dim, 
+						   const double* score, const double* scoresq, const double* info, string sep)
 {
-  double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore;
+  double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
   for(unsigned a = 0; a < dim; ++a){
     Score = score[a] / ( iterations );
     CompleteInfo = info[a] / ( iterations );
     MissingInfo = scoresq[a] / ( iterations ) - Score * Score;
     ObservedInfo = CompleteInfo - MissingInfo;
     
+    string locuslabel = (*Lociptr)(locus)->GetLabel(a);
+    if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) *outputstream << "\"" << locuslabel << "\"" << sep;
+    else *outputstream << "\"" << locuslabel<< "("<<a+1<<")\""<< sep;
+    *outputstream << double2R(Score, 3)        << sep
+		  << double2R(CompleteInfo, 3) << sep
+		  << double2R(ObservedInfo, 3) << sep;
     if(CompleteInfo > 0.0) {
       PercentInfo = 100*ObservedInfo / CompleteInfo;
       zscore = Score / sqrt( ObservedInfo );
-    } else {
-      PercentInfo = 0;
-      zscore = 0;
-    }
-    
-    string locuslabel = (*Lociptr)(locus)->GetLabel(a);
-    //cout <<"At locus " << locus <<" " <<a<< ", label is " << locuslabel << "with " << dim << " states\n";
-    if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) genescorestream << "\"" << locuslabel << "\",";
-    else genescorestream << "\"" << locuslabel<< "("<<a+1<<")\",";
-    genescorestream << double2R(Score)        << ","
-		    << double2R(CompleteInfo) << ","
-		    << double2R(ObservedInfo) << ",";
-    if(CompleteInfo > 0.0) {
-      genescorestream << double2R(PercentInfo) << ",";
-      genescorestream << double2R(zscore)    << "," << endl;
+      pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+      *outputstream << double2R(PercentInfo, 2) << sep
+		    << double2R(zscore, 2)    << sep 
+		    << double2R(pvalue, 2) << sep << endl;
     }
     else{
-      genescorestream << "NaN" << ","
-		      << "NaN" << "," << endl;
+      *outputstream << "NaN" << sep << "NaN" << sep << endl;
     }
     
   }
@@ -1060,7 +1086,7 @@ void ScoreTests::ROutput(){
   int numPrintedIterations = (options->getTotalSamples() - options->getBurnIn()) / (options->getSampleEvery() * 10);
   /**
    * writes out the dimensions and labels of the 
-   * R object previously written to genescorestream
+   * R object previously written to allelicAssocScoreStream
    */
   int count;
   if(options->getTestForAllelicAssociation()){
@@ -1070,7 +1096,7 @@ void ScoreTests::ROutput(){
       else count += (*Lociptr)(j)->GetNumberOfLoci();
     }         
     vector<int> dimensions(3,0);
-    dimensions[0] = 6;
+    dimensions[0] = 7;
     dimensions[1] = count;
     dimensions[2] = (int)(numPrintedIterations);
     vector<string> labels(dimensions[0],"");
@@ -1080,14 +1106,15 @@ void ScoreTests::ROutput(){
     labels[3] = "ObservedInfo";
     labels[4] = "PercentInfo";
     labels[5] = "StdNormal";
-    R_output3DarrayDimensions(&genescorestream,dimensions,labels);
+    labels[6] = "Pvalue";
+    R_output3DarrayDimensions(&allelicAssocScoreStream,dimensions,labels);
   }
   
   /** 
    * writes out the dimensions and labels of the        
    * R-matrix for score tests of SNPs in haplotypes.        
      */ 
-  if( options->getTestForSNPsInHaplotype()  ){      
+  if( options->getTestForHaplotypeAssociation()  ){      
     count = 0;
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
       if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
@@ -1095,7 +1122,7 @@ void ScoreTests::ROutput(){
       }
     }         
     vector<int> dimensions(3,0);
-    dimensions[0] = 8;
+    dimensions[0] = 9;
     dimensions[1] = count;
     dimensions[2] = (int)(numPrintedIterations);
     vector<string> labels(dimensions[0],"");
@@ -1106,8 +1133,9 @@ void ScoreTests::ROutput(){
     labels[4] = "ObservedInfo";
     labels[5] = "PercentInfo";
     labels[6] = "StdNormal";
-    labels[7] = "ChiSquare";
-    R_output3DarrayDimensions(&SNPsAssociationScoreStream,dimensions,labels);
+    labels[7] = "PValue";
+    labels[8] = "ChiSquare";
+    R_output3DarrayDimensions(&HaplotypeAssocScoreStream,dimensions,labels);
   }
   
   /**
@@ -1122,7 +1150,7 @@ void ScoreTests::ROutput(){
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * KK;
     dimensions[2] = (int)(numPrintedIterations);
     
-    vector<string> labels(10,"");
+    vector<string> labels(dimensions[0],"");
     labels[0] = "Locus";
     labels[1] = "Population";
     labels[2] = "Score";
@@ -1149,7 +1177,7 @@ void ScoreTests::ROutput(){
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * KK;
     dimensions[2] = (int)(numPrintedIterations);
     
-    vector<string> labels(10,"");
+    vector<string> labels(dimensions[0],"");
     labels[0] = "Locus";
     labels[1] = "Population";
     labels[2] = "Score";
@@ -1173,7 +1201,7 @@ void ScoreTests::ROutput(){
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() - Lociptr->GetNumberOfChromosomes();
     dimensions[2] = (int)(numPrintedIterations);
     
-    vector<string> labels(8,"");
+    vector<string> labels(dimensions[0],"");
     labels[0] = "Loci";
     labels[1] = "Score";
     labels[2] = "CompleteInfo";
