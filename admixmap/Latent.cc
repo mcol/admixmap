@@ -23,7 +23,6 @@ using namespace std;
 Latent::Latent( AdmixOptions* op, const Genome* const loci)
 {
   options = 0;
-  rho = 0.0;
   rhoalpha = 0.0;
   rhobeta = 0.0;
   SumLogRho = 0.0;
@@ -32,6 +31,7 @@ Latent::Latent( AdmixOptions* op, const Genome* const loci)
   poptheta = 0;
   globaltheta = 0;
   globalthetaproposal = 0;
+  rho.push_back(0.0);
 }
 
 void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter &Log){
@@ -72,12 +72,17 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       rhobeta0 = options->getRhobetaShape();
       rhobeta1 = options->getRhobetaRate();
       rhobeta = rhobeta0 / rhobeta1;
+      if(options->getHapMixModelIndicator()){
+	//initialise rho vector
+	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j)
+	  rho.push_back(rhoalpha / rhobeta);
+      }
     }
     else{
       rhobeta = options->getRhobeta();
       if( options->isGlobalRho()){
 	// set up sampler for global variable
-	rho = rhoalpha / rhobeta;//initialise global sumintensities parameter at prior mean for globalrho
+	rho[0] = rhoalpha / rhobeta ;//initialise global sumintensities parameter at prior mean for globalrho
 	// ** set up TuneRW object for global rho updates **
 	NumberOfUpdates = 0;
 	w = 1;
@@ -165,15 +170,15 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    
    if( !anneal && iteration > options->getBurnIn() && options->getPopulations() > 1 ){
      // accumulate sum of log of sumintensities after burnin.
-     if(options->isGlobalRho()) SumLogRho += log(rho);
+     if(options->isGlobalRho()) SumLogRho += log(rho[0]);
      else SumLogRho += log(rhoalpha) - log(rhobeta);
 
    }
 }
 
 void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromosome **C) {
-  if( options->isGlobalRho() ) { // update rho with random walk MH
-    double rhoprop;
+  if( options->isGlobalRho() || options->getHapMixModelIndicator()) { // update rho with random walk MH
+    vector<double> rhoprop(rho.size(), 0.0);
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
     double LogLikelihoodRatio = 0.0;
@@ -182,7 +187,8 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     bool accept = false;
 
     NumberOfUpdates++;
-    rhoprop = exp(gennor(log(rho), step)); // propose log rho from normal distribution with SD step
+    for(unsigned j = 0; j < rho.size(); ++j)
+      rhoprop[j] = exp(gennor(log(rho[j]), step)); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values, annealed if this is an annealing run
     for(int i = 0; i < IC->getSize(); ++i) {
@@ -194,8 +200,7 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
      // set ancestry correlations using proposed value of sum-intensities
     // value for X chromosome set to half the autosomal value 
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) {
-      if( !C[j]->isXChromosome() ) C[j]->SetLociCorr(rhoprop);
-      else  C[j]->SetLociCorr(0.5 * rhoprop);
+      C[j]->SetLociCorr(rhoprop);
     }
     //get log HMM likelihood at proposal rho and current admixture proportions
     for(int i = 0; i < IC->getSize(); ++i) {
@@ -207,7 +212,9 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
 
     //compute prior ratio
-    LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho);
+    LogPriorRatio = 0.0;
+    for(unsigned j = 0; j < rho.size(); ++j)
+      LogPriorRatio += getGammaLogDensity(rhoalpha, rhobeta, rhoprop[j]) - getGammaLogDensity(rhoalpha, rhobeta, rho[j]);
     LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
 
     // generic Metropolis step
@@ -216,7 +223,7 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     } else accept = true;  
     
     if(accept) {
-      rho = rhoprop;
+      copy(rhoprop.begin(), rhoprop.end(), rho.begin());
       for(int i = 0; i < IC->getSize(); ++i){
 	Individual* ind = IC->getIndividual(i);
 	ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
@@ -224,10 +231,8 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     } else { 
       // restore ancestry correlations in Chromosomes using original value of sum-intensities
       for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-      if( !C[j]->isXChromosome() ) C[j]->SetLociCorr(rho);
-      else  C[j]->SetLociCorr(0.5 * rho);
+      C[j]->SetLociCorr(rho);
     } // stored loglikelihoods are still ok
-    // cout << "\nlogpratio " << LogAccProbRatio << "\trho " << rho;
 
     //update sampler object every w updates
     if( !( NumberOfUpdates % w ) ){
@@ -288,7 +293,7 @@ void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC, Chromosom
   delete[] a;
   delete[] b; 
 
-  vector<double> dummyrho(1);dummyrho[0] = rho;
+  vector<double> dummyrho(1);dummyrho[0] = rho[0];
   for(int i = 0; i < IC->getSize(); ++i){
     //get log likelihood at current parameter values - do not force update, store result of update
     LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C, false, true); 
@@ -332,8 +337,12 @@ void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
   if( !( NumberOfUpdates % w ) ) {
     thetastep = ThetaTuner.UpdateStepSize( AccProb );
   }
-
 }
+
+// void Latent::UpdateSumIntensities(){
+
+
+// }
 
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 {
@@ -370,7 +379,7 @@ void Latent::OutputParams(ostream* out){
   if( !options->isGlobalRho() )
     (*out) << setprecision(6) << rhoalpha / rhobeta  << "\t";
   else
-    (*out) << setprecision(6) << rho << "\t";
+    (*out) << setprecision(6) << rho[0] << "\t";
 }
 
 void Latent::OutputParams(int iteration, LogWriter &Log){
@@ -387,7 +396,7 @@ void Latent::OutputParams(int iteration, LogWriter &Log){
       if( !options->isGlobalRho() )
 	Log << rhoalpha / rhobeta;
       else
-	Log << rho;
+	Log << rho[0];
     }
   //output to screen
   if( options->getDisplayLevel() > 2 )
@@ -414,7 +423,10 @@ double Latent::getrhoalpha()const{
 double Latent::getrhobeta()const{
   return rhobeta;
 }
-double Latent::getrho()const{
+double Latent::getglobalrho()const{
+  return rho[0];
+}
+const vector<double> &Latent::getrho()const{
   return rho;
 }
 double Latent::getSumLogRho()const{

@@ -61,7 +61,8 @@ public:
   const std::vector<std::vector<double> > &getalpha()const;
   double getrhoalpha()const;
   double getrhobeta()const;
-  double getrho()const;
+  double getglobalrho()const;
+  const vector<double>& getrho()const;
   double getSumLogRho()const;
   const double *getpoptheta()const;
 
@@ -84,7 +85,7 @@ private:
    * rhobeta has a beta hyperprior with parameters rhobeta0 and rhobeta1
    */
   int K;
-  double rho; 
+  std::vector<double> rho; 
   double rhoalpha;
   double rhobeta; 
   double rhobeta0;
