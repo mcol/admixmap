@@ -76,17 +76,42 @@ unsigned int Chromosome::GetSize()const{
 }
 
 //Initialises locus ancestry correlations f.  Necessary since individual-level parameters updated before global rho (in Latent)
-void Chromosome::InitialiseLociCorr(const double rho){
+void Chromosome::InitialiseLociCorr(const double rho_){
+  double rho = rho_;
+  if(isX)rho *= 0.5;
   f[0] = f[1] = 0.0;
   for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ )
     f[2*j] = f[2*j + 1] = ( -GetDistance( j ) * rho > -700) ? exp( -GetDistance( j ) * rho ) : 0.0;
 }
+void Chromosome::InitialiseLociCorr(const vector<double> rho_){
+  if(rho_.size() == 1)InitialiseLociCorr(rho_[0]);
+  else{
+    f[0] = f[1] = 0.0;
+    for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
+      double rho = rho_[j + _startLocus];
+      if(isX)rho *= 0.5;
+      f[2*j] = f[2*j + 1] = ( -GetDistance( j ) * rho > -700) ? exp( -GetDistance( j ) * rho ) : 0.0;
+    }
+  }
+}
 
 //sets f for global rho, call after global rho is updated
-void Chromosome::SetLociCorr(const double rho){
-    for(unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
-      f[2*jj] = f[2*jj + 1] = exp( -GetDistance( jj ) * rho );
+void Chromosome::SetLociCorr(const double rho_){
+  double rho = rho_;
+  if(isX)rho *= 0.5;
+  for(unsigned j = 1; j < NumberOfCompositeLoci; j++ ){
+    f[2*j] = f[2*j + 1] = exp( -GetDistance( j ) * rho );
+  }
+}
+void Chromosome::SetLociCorr(const vector<double> rho_){
+  if(rho_.size() == 1)SetLociCorr(rho_[0]);
+  else{
+    for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
+      double rho = rho_[j+_startLocus];
+      if(isX)rho *= 0.5;
+      f[2*j] = f[2*j + 1] = exp( -GetDistance( j ) * rho );
     }
+  }
 }
 
 void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
@@ -95,7 +120,7 @@ void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* co
   //_rho contains Individual sumintensities parameters, ignored if globalrho model
   // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
   // required to calculate transition matrices 
-  if( !options->isGlobalRho() ){//non global rho case
+  if( !options->isGlobalRho()  && !options->getHapMixModelIndicator()){//case of individual or gamete-specific rho
 
     for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
       f[2*jj] = exp( -GetDistance( jj ) * _rho[0] );

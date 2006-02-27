@@ -99,10 +99,9 @@ int main( int argc , char** argv ){
     R[r].Initialise(r, IC, Log);
   Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
   
-  if( options.isGlobalRho() ) {
+  if( options.isGlobalRho() || options.getHapMixModelIndicator()) {
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ) {
-      if( !chrm[j]->isXChromosome() ) chrm[j]->InitialiseLociCorr(L.getrho());
-      else chrm[j]->InitialiseLociCorr(0.5*L.getrho());
+      chrm[j]->InitialiseLociCorr(L.getrho());
     }
   }
   cout << flush; 
@@ -570,16 +569,16 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 		      double coolness, bool anneal){
   A->ResetAlleleCounts();
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
-  if((options->getPopulations() > 1) && (IC->getSize() > 1) && 
-     options->getIndAdmixHierIndicator() && (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
+  if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && 
+     (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
     L->UpdateSumIntensities(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
   // this function also sets ancestry correlations
   
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
   // individual admixture and sum-intensities 
   // no need to pass global sumintensities parameter as global ancestry correlations have already been set
-  IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(), //L->getrho(), 
-	     L->getrhoalpha(), L->getrhobeta(), //Log, 
+  IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(),  
+	     L->getrhoalpha(), L->getrhobeta(), 
 	     anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level  
   
