@@ -29,7 +29,7 @@ public:
   void InitialiseAssocScoreFile(const std::string *);
 
   void Output(int, const std::string *);
-  void OutputTestsForResidualAllelicAssociation(int iterations);
+  void WriteFinalTables();
 
   void ROutput();
 
@@ -92,7 +92,7 @@ private:
   void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
   void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
 			      const double* Score, const double* VarScore,
-			      const double* Score2, const double* Info );
+				   const double* Score2, const double* Info, string sep );
 
   void OutputTestsForAllelicAssociation( int iteration, int locus, unsigned dim, const double* score, const double* scoresq, 
 					 const double* info);
@@ -100,6 +100,8 @@ private:
   void OutputTestsForSNPsInHaplotype( int );
   
   void OutputAdmixtureScoreTest( int );
+
+  void OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, string separator);
 
   //void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int locus, double p,double phi, double DInvLink);
   void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const std::vector<int> allele2Counts, 
@@ -123,6 +125,7 @@ private:
   void UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,  
 						    const double* const AlleleFreqsA, const double* const AlleleFreqsB);
   static std::string double2R( double );
+  static std::string double2R( double x, int precision );
 
   static void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);    
 

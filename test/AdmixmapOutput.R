@@ -421,11 +421,11 @@ plotpvalues <- function(psfilename, stdnormdeviates, table.every, title ) {
   dev.off()
 }
 
-plotPValuesKPopulations <- function(outfile, stdNormDev, thinning) {
+plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
   ## stdNormDev is a 3-way array: k populations, loci, draws 
-  log10pvalues <- -log10(2*pnorm(-abs(stdNormDev)))
+  log10pvalues <- -log10(pvalues)
   outputfile <- paste(resultsdir, outfile, sep="/")
-  outputfile <- paste(outputfile, "Tests.ps", sep="")
+  outputfile <- paste(outputfile, ".ps", sep="")
   postscript(outputfile)
   colours <- c("black", "blue", "red", "green")
   header <- paste("Running computation of p-values for ",outfile,sep="")
@@ -533,16 +533,15 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   scoretests.n <- array(data=scoretests[-c(1:2),,],dim=c(dim(scoretests)[1]-2,dim(scoretests)[2],dim(scoretests)[3]))
   dim3way <- dim(scoretests.n)
   dim4way <- c(dim3way[1], KK, dim3way[2]/KK, dim3way[3])
-  dimnames4way <- list(c("Score", "CompleteInfo", "ObservedInfo",
-                         "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params", "StdNormal"),
-                       poplabels, locusnames, NULL)
+  dimnames4way <- list(dimnames(scoretests)[[1]][-c(1:2)], poplabels, locusnames, NULL)
   scoretests4way <- array(as.numeric(as.vector(scoretests.n)), dim=dim4way, dimnames=dimnames4way)
   scoretests4way[is.nan(scoretests4way)] <- NA
   
   ## plot cumulative p-values in K colours
-  stdnormdev<-array(data=scoretests4way[7,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
-  plotPValuesKPopulations(testname, stdnormdev, thinning)
+  pvalues <- array(data=scoretests4way[8,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
+  plotPValuesKPopulations(testname, pvalues, thinning)
   ## extract final table as 3-way array: statistic, locus, population
+  
   scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
                            dimnames=c(dimnames(scoretests4way)[1:3]))
   
@@ -550,40 +549,6 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   if(getOutcomeType(dimnames(param.samples)[[2]]) == 1){#continuous outcome
     scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
   }
-  pvalues <- 2*pnorm(-abs(scoretest.final[7,,]))
-  
-  ## output scoretest.final as 2-way array, in which rows index pops within loci
-  scoretest.final2 <- array(data=scoretests4way[,,,dim(scoretests4way)[4]], dim=c(7,length(testnames)))
-  scoretest.final2 <- data.frame(testnames, t(scoretest.final2), as.vector(pvalues))
-  
-  scoretest.final2[, 2:4] <- round(scoretest.final2[, 2:4], digits=3)
-  scoretest.final2[, 5:7] <- round(scoretest.final2[, 5:7], digits=0)
-  scoretest.final2[, 8] <-  round(scoretest.final2[, 8], digits=2)
-  scoretest.final2[, 9] <- signif(scoretest.final2[, 9], digits=2)
-  
-  dimnames(scoretest.final2)[[2]] <-
-    c("Locus.Population", "Score", "CompleteInfo", "ObservedInfo",
-      "PercentInfo", "MissingInfo.Locus", "MissingInfo.Params",
-      "StdNormalDev", "p.value")
-  outputfile <- paste(resultsdir, testname, sep="/" )
-  outputfile <- paste(outputfile, "Final.txt", sep="")
-  write.table(scoretest.final2, file=outputfile,
-              quote=FALSE, row.names=FALSE, sep="\t")
-
-  #qq plot of scores
-  point.list <- scoretest.final2[,8]
-  if(length(point.list[!is.na(point.list)]) > 0){
-    outputfile <- paste(resultsdir, "QQPlot", sep="/" )
-    outputfile <- paste(outputfile, testname, sep="")
-    outputfile <- paste(outputfile, ".ps", sep="")
-    
-    postscript(outputfile)
-    title <- paste("QQ plot of z-scores,", testname,sep="" )
-    point.list <- qqnorm(scoretest.final2[,8], main = title)
-    lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
-    dev.off()
-  }
-
   ##plot z-scores across genome
   zscores <- array(data=scoretest.final[7,,], dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
   plotScoreMap(loci.compound,zscores, KK, testname) 
@@ -601,6 +566,23 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   r.exclude.hi <- exp(u/v + sqrt(u^2 + 2*v*log(100))/v)
   r.exclude.lo <- exp(u/v - sqrt(u^2 + 2*v*log(100))/v)
   ## plotExclusionMap not implemented at present
+
+
+  #qq plot of scores
+  if(length(zscores[!is.na(zscores)]) > 0){
+    outputfile <- paste(resultsdir, "QQPlot", sep="/" )
+    outputfile <- paste(outputfile, testname, sep="")
+    outputfile <- paste(outputfile, ".ps", sep="")
+    
+    postscript(outputfile)
+    title <- paste("QQ plot of z-scores,", testname,sep="" )
+    for(k in 1:(nrow(zscores))){
+      point.list <- qqnorm(zscores[k,], main = title, sub=poplabels[k])
+      lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
+    }
+    dev.off()
+  }
+
 }
 
 plotScoreMap <- function(loci.compound, zscores, K, testname){
@@ -673,12 +655,7 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   evaluations <- dim(scoretest)[3]
   ntests <- dim(scoretest)[2]
   locusnames <- scoretest[1,,evaluations]
-  scoretest.final <- t(scoretest[, , dim(scoretest)[3]])
-  # scoretest.final[, 1] <- locusnames
-  scoretest.final[, -1][is.nan(scoretest.final[, -1])] <- NA
-  #print(scoretest.final)
-  write.table(scoretest.final, file=paste(resultsdir, "ResidualLDTestFinal.txt", sep="/"),
-              row.names=F, quote=F, sep="\t")
+
   pvalues <- as.numeric(scoretest[8, , ])
   pvalues[is.nan(pvalues)] <- NA
   pvalues <- data.frame(matrix(data=pvalues, nrow=ntests, ncol=evaluations))

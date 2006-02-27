@@ -439,55 +439,47 @@ void ScoreTests::Update(double dispersion)
   }
   
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    if( options->getNumberOfOutcomes() > 0 ){//no updates if no regression model
-      
-      /*-------------------------------------
-	| Allelic and haplotype association  |
-	-------------------------------------*/
-      try{
-	if( options->getTestForAllelicAssociation() ){
-	  //loop over simple loci within haplotypes
-	  if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-	    for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
-	      CentreAndSum(1, ScoreWithinHaplotype[j][l], InfoWithinHaplotype[j][l], &(SumScoreWithinHaplotype[ j ][ l ]),
-			   &(SumScore2WithinHaplotype[j][l]), &(SumInfoWithinHaplotype[ j ][ l ]));
-	    }
+    
+    /*-------------------------------------
+      | Allelic and haplotype association  |
+      -------------------------------------*/
+    try{
+      if( options->getTestForAllelicAssociation() ){
+	//loop over simple loci within haplotypes
+	if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
+	  for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
+	    CentreAndSum(1, ScoreWithinHaplotype[j][l], InfoWithinHaplotype[j][l], &(SumScoreWithinHaplotype[ j ][ l ]),
+			 &(SumScore2WithinHaplotype[j][l]), &(SumInfoWithinHaplotype[ j ][ l ]));
 	  }
 	}
-	
-	if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
-	  //if(locusObsIndicator[j]){//skip loci with no observed genotypes
-	  CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
-		       SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
-	  //}
-	}
-      }
-      catch(string s){
-	string error_string = "Error accumulating scores for allelicassociation or haplotype association scoretest\n";
-	error_string.append(s);
-	throw(error_string);
       }
       
-      /*-----------------------
-	| Linkage with ancestry  |
-	-----------------------*/
-      if( options->getTestForLinkageWithAncestry() ){
-	Individual::SumScoresForAncestry(j, SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
-      } 
-      //       /*------------------------------------
-      // 	|affecteds-only linkage with ancestry |
-      // 	------------------------------------*/ 
-      //       if( options->getTestForAffectedsOnly() ){
-      // 	Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
-      //       }
-    } // end block conditional on regression model
+      if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForSNPsInHaplotype() ){
+	//if(locusObsIndicator[j]){//skip loci with no observed genotypes
+	CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
+		     SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
+	//}
+      }
+    }
+    catch(string s){
+      string error_string = "Error accumulating scores for allelicassociation or haplotype association scoretest\n";
+      error_string.append(s);
+      throw(error_string);
+    }
+    
+    /*-----------------------
+      | Linkage with ancestry  |
+      -----------------------*/
+    if( options->getTestForLinkageWithAncestry() ){
+      Individual::SumScoresForAncestry(j, SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
+    } 
     /*------------------------------------
       |affecteds-only linkage with ancestry |
       ------------------------------------*/ 
-    if( options->getTestForAffectedsOnly() ) {
+    if( options->getTestForAffectedsOnly() ){
       Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
     }
-  } // end loop over composite loci
+  }
 }
 
 void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY, double phi, double DInvLink)
@@ -755,9 +747,9 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
   PopLabels = PLabels;
   int iterations = iteration - options->getBurnIn();
   //Allelic association
-  if( options->getTestForAllelicAssociation() ){
-    for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-      //case of simple locus
+  if( options->getTestForAllelicAssociation() )    {
+    for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+       //case of simple locus
       if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
 	OutputTestsForAllelicAssociation(iterations, j, dim_[j], SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
 					 SumLocusLinkageAlleleInfo[j]);
@@ -777,15 +769,16 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
   
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
+    
     OutputTestsForLocusLinkage( iterations, &ancestryAssociationScoreStream,
 				SumAncestryScore, SumAncestryVarScore,
-				SumAncestryScore2, SumAncestryInfo );
+				SumAncestryScore2, SumAncestryInfo, "," );
   }
   //affectedonly
-  if( options->getTestForAffectedsOnly() ) {
+  if( options->getTestForAffectedsOnly() ){
     OutputTestsForLocusLinkage( iterations, &affectedsOnlyScoreStream,
 				SumAffectedsScore, SumAffectedsVarScore,
-				SumAffectedsScore2, SumAffectedsInfo );
+				SumAffectedsScore2, SumAffectedsInfo, "," );
   }
   
   //admixture association
@@ -793,8 +786,45 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
     OutputAdmixtureScoreTest( iterations );
   }
   //residual allelic association
-  if(options->getTestForResidualAllelicAssoc())
-    OutputTestsForResidualAllelicAssociation(iterations);
+  if(options->getTestForResidualAllelicAssoc()){
+
+    OutputTestsForResidualAllelicAssociation(iterations, &ResAlleleScoreFile, ",");
+  }
+}
+
+void ScoreTests::WriteFinalTables(){
+  ofstream finalTable;
+  int iterations = options->getTotalSamples() - options->getBurnIn();
+  //ancestry association
+  if( options->getTestForLinkageWithAncestry() ){
+    string filename(options->getResultsDir());
+    filename.append("/TestsAncestryAssocFinal.txt");
+    finalTable.open(filename.c_str(), ios::out);
+    finalTable <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
+    OutputTestsForLocusLinkage( iterations, &finalTable,
+				SumAncestryScore, SumAncestryVarScore,
+				SumAncestryScore2, SumAncestryInfo, "\t" );
+    finalTable.close();
+  }
+  //affectedonly
+  if( options->getTestForAffectedsOnly() ){
+    string filename(options->getResultsDir());
+    filename.append("/TestsAffectedsOnlyFinal.txt");
+    finalTable.open(filename.c_str(), ios::out);
+    finalTable <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
+    OutputTestsForLocusLinkage( iterations, &finalTable,
+				SumAffectedsScore, SumAffectedsVarScore,
+				SumAffectedsScore2, SumAffectedsInfo, "\t" );
+    finalTable.close();
+  }
+  //residual allelic association
+  if(options->getTestForResidualAllelicAssoc()){
+    string filename(options->getResultsDir());
+    filename.append("/TestsResidualLDTestFinal.txt");
+    finalTable.open(filename.c_str(), ios::out);
+    finalTable << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue\n";
+    OutputTestsForResidualAllelicAssociation(iterations, &finalTable, "\t");
+  }
 }
 
 // next few function calculate score tests from the cumulative sums of
@@ -905,6 +935,7 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iterations, int locus, un
     }
     
     string locuslabel = (*Lociptr)(locus)->GetLabel(a);
+    //cout <<"At locus " << locus <<" " <<a<< ", label is " << locuslabel << "with " << dim << " states\n";
     if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) genescorestream << "\"" << locuslabel << "\",";
     else genescorestream << "\"" << locuslabel<< "("<<a+1<<")\",";
     genescorestream << double2R(Score)        << ","
@@ -924,7 +955,7 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iterations, int locus, un
 
 void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstream,
 					     const double* Score, const double* VarScore,
-					     const double* Score2, const double* Info )
+					     const double* Score2, const double* Info, string separator )
 //used for affectedsonly test and ancestry association test
 //Score2 = Score^2
 {
@@ -940,34 +971,38 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
   double VU, EU, missing, complete;
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
-      *outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\",";
-      *outputstream << "\"" << PopLabels[k+k1] << "\","; //need offset to get second poplabel for 2pops
+      *outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << separator;
+      *outputstream << "\"" << PopLabels[k+k1] << "\"" << separator; //need offset to get second poplabel for 2pops
       
       EU = Score[ j*KK + k] / ( iterations );
       VU = VarScore[ j*KK + k ] / ( iterations );
       missing = Score2[ j*KK + k ] / ( iterations ) - EU * EU + VU;
       complete =  Info[ j*KK + k ] / ( iterations );
-      
-      *outputstream << double2R(EU)                                << ","//score
-		    << double2R(complete)                          << ","//complete info
-		    << double2R(complete - missing)                << ","//observed info
-		    << double2R(100*(complete - missing)/complete) << ",";//%observed info
+
+      *outputstream << double2R(EU, 3)                                << separator//score
+		    << double2R(complete, 3)                          << separator//complete info
+		    << double2R(complete - missing, 3)                << separator//observed info
+		    << double2R(100*(complete - missing)/complete, 2) << separator;//%observed info
       if(complete > 0.0){
-	*outputstream << double2R(100*(VU/complete))                 << ","//%missing info attributable to locus ancestry
-		      << double2R(100*(missing-VU)/complete)         << ",";//%remainder of missing info      
-	if(complete - missing > 0.0)
-	  *outputstream << double2R(EU / sqrt( complete - missing ))   << "," << endl;
-	else *outputstream << "NaN,"  << endl;
+	*outputstream << double2R(100*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
+		      << double2R(100*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
+	if(complete - missing > 0.0){
+	  double zscore = EU / sqrt( complete - missing );
+	  double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+	  *outputstream << double2R(zscore, 2)  << separator << double2R(pvalue, 2) << separator << endl;
+	}
+	else *outputstream << "NaN" << separator << "NaN" << separator << endl;
 	}
       else{
-	*outputstream << "NaN,NaN,NaN," << endl; 
+	*outputstream << "NaN" << separator << "NaN" << separator << "NaN" << separator << "NaN" << separator << endl; 
       }
     }
   }
 }
 
-void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations){
+void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, string separator){
   double *Score, *ObservedInfo;
+  *outputstream << setiosflags(ios::fixed) << setprecision(3) ;
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
     for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
       int M = (*chrm[c])(j)->GetNumberOfStates()-1;
@@ -989,8 +1024,8 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations){
       }
 
       //output labels
-      ResAlleleScoreFile << "\"" << (*chrm[c])(j)->GetLabel(0) << "/" << (*chrm[c])(j+1)->GetLabel(0) << "\","
-			 << Score[0] << "," << compinfo << "," <<obsinfo << ",";
+      *outputstream << "\"" << (*chrm[c])(j)->GetLabel(0) << "/" << (*chrm[c])(j+1)->GetLabel(0) << "\""<< separator
+			 << Score[0] << separator << compinfo << separator <<obsinfo << separator;
 
       //compute chi-squared statistic
       double VinvU[dim];
@@ -1001,22 +1036,24 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations){
 	  chisq += Score[i] * VinvU[i];
 	}
 	
-	ResAlleleScoreFile << (obsinfo*100)/compinfo << ","<< dim << ",";
-	if(chisq < 0.0)ResAlleleScoreFile << "NA, NA," << endl;
+	*outputstream << (obsinfo*100)/compinfo << separator<< dim << separator;
+
+	if(chisq < 0.0){
+	  *outputstream << "NA" << separator << "NA" << separator << endl;
+	}
 	else {
 	  //compute p-value
 	  double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-	  ResAlleleScoreFile << chisq << "," << pvalue << "," << endl;
+	  *outputstream << chisq << separator << pvalue << separator << endl;
 	}
       }
       catch(...){//in case ObservedInfo is rank deficient
-	ResAlleleScoreFile  << "NA" << ","<< dim 
-			    << "," << "NA" << "," << "NA" << "," << endl;
+	*outputstream  << "NA" << separator << dim 
+			    << separator << "NA" << separator << "NA" << separator << endl;
       }
       delete[] Score;
       delete[] ObservedInfo;
     }//end loop over loci on chromosome
-
 }
 
 void ScoreTests::ROutput(){
@@ -1081,11 +1118,11 @@ void ScoreTests::ROutput(){
     int KK = options->getPopulations();
     if(KK ==2 )KK = 1;
     vector<int> dimensions(3,0);
-    dimensions[0] = 9;
+    dimensions[0] = 10;
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * KK;
     dimensions[2] = (int)(numPrintedIterations);
     
-    vector<string> labels(9,"");
+    vector<string> labels(10,"");
     labels[0] = "Locus";
     labels[1] = "Population";
     labels[2] = "Score";
@@ -1095,6 +1132,7 @@ void ScoreTests::ROutput(){
     labels[6] = "Missing1";
     labels[7] = "Missing2";
     labels[8] = "StdNormal";
+    labels[9] = "PValue";
     
     R_output3DarrayDimensions(&ancestryAssociationScoreStream,dimensions,labels);
   }
@@ -1107,11 +1145,11 @@ void ScoreTests::ROutput(){
     int KK = options->getPopulations();
     if(KK ==2 )KK = 1;
     vector<int> dimensions(3,0);
-    dimensions[0] = 9;
+    dimensions[0] = 10;
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * KK;
     dimensions[2] = (int)(numPrintedIterations);
     
-    vector<string> labels(9,"");
+    vector<string> labels(10,"");
     labels[0] = "Locus";
     labels[1] = "Population";
     labels[2] = "Score";
@@ -1121,7 +1159,7 @@ void ScoreTests::ROutput(){
     labels[6] = "Missing1";
     labels[7] = "Missing2"; 
     labels[8] = "StdNormal";
-    
+    labels[9] = "PValue";
     R_output3DarrayDimensions(&affectedsOnlyScoreStream,dimensions,labels);
   }
 
@@ -1179,6 +1217,17 @@ string ScoreTests::double2R( double x )
   else{
     stringstream ret;
     ret << x;
+    return( ret.str() );
+  }
+}
+string ScoreTests::double2R( double x, int precision )
+{
+  if( isnan(x) )
+    return "NaN";
+  else{
+    stringstream ret;
+
+    ret << setiosflags(ios::fixed) << setprecision(precision)<< x;
     return( ret.str() );
   }
 }
