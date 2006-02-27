@@ -25,8 +25,8 @@ public:
   void SetStateArrivalProbs(const double* const f, const double* const Theta, int Mcol);
 
   void Sample(int *SStates, const double* const Admixture, const double* const f, bool isdiploid)const;
-  std::vector<std::vector<double> > Get3WayStateProbs( int t)const;
-  double getLogLikelihood()const;
+  std::vector<std::vector<double> > Get3WayStateProbs( const bool isDiploid, int t )const;
+  double getLogLikelihood(bool isDiploid)const;
   void SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
 			    int *SumLocusAncestry, unsigned int SumNumArrivals[], bool SampleArrivals)const;
 
@@ -39,8 +39,8 @@ public:
 
 private:
   int K;
-  int States; //number of states of Markov chain, m in book
-  //There are k*k (=D in Chromosome)states since k populations and 2 chromosomes
+  int DStates; //number of diploid states 
+  //There are K*K (=D in Chromosome) states since K populations and 2 chromosomes
   
   int Transitions; //length of chain
   // = # composite Loci, (=L in Chromosome)

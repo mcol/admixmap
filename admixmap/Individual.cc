@@ -423,7 +423,7 @@ double Individual::getLogLikelihood(const AdmixOptions* const options, Chromosom
       if(updateHMM){// force update of forward probs 
 	UpdateHMMForwardProbs(j, chrm[j], options, theta, thetaX, rho, rho_X);
       }
-      LogLikelihood += chrm[j]->getLogLikelihood();
+      LogLikelihood += chrm[j]->getLogLikelihood( !chrm[j]->isXChromosome() || SexIsFemale );
       // if(myNumber==1) cout << "\n " << j << " " << LogLikelihood << endl;
     }
   }
@@ -462,7 +462,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
     for( unsigned int j = 0; j < numChromosomes; j++ ) {
       UpdateHMMForwardProbs(j, chrm[j], options, ThetaBar, ThetaBar, sumlogrho, sumlogrho); // ?sumlogrho is posterior mean of rho
       // should replace 2nd sumlogrho by half its value
-      LogLikelihood += chrm[j]->getLogLikelihood();
+      LogLikelihood += chrm[j]->getLogLikelihood( !chrm[j]->isXChromosome() || SexIsFemale );
     }
   }
   return LogLikelihood;
@@ -1138,7 +1138,8 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, const doubl
     for( unsigned int jj = 0; jj < chrm->GetSize(); jj++ ){
       locus = chrm->GetLocus(jj); 
       //retrieve AncestryProbs from HMM
-      std::vector<std::vector<double> > AProbs = chrm->getAncestryProbs( jj );
+      std::vector<std::vector<double> > AProbs = 
+	chrm->getAncestryProbs(!chrm->isXChromosome() || SexIsFemale,  jj );
       
       //Update affecteds only scores      
       if(IamAffected){

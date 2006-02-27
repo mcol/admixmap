@@ -53,8 +53,8 @@ public:
 
 
   void SampleLocusAncestry(int *OrderedStates, const double* const Admixture)const;
-  std::vector<std::vector<double> > getAncestryProbs(int)const;
-  double getLogLikelihood()const;
+  std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int)const;
+  double getLogLikelihood(const bool isDiploid)const;
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, //int *SumLocusAncestry_X, 
 			    unsigned int SumN[], //unsigned int SumN_X[], 

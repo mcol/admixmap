@@ -131,7 +131,7 @@ void Chromosome::SampleLocusAncestry(int *OrderedStates, const double* const Adm
   SampleStates.Sample(OrderedStates, Admixture, f, Diploid);
 }
 
-std::vector<std::vector<double> > Chromosome::getAncestryProbs( int j)const{
+std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDiploid, int j)const{
   //sets conditional probabilities of ancestry at locus j
   //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry from that population
   //i.e. (i,2) = p_{ii}
@@ -139,13 +139,13 @@ std::vector<std::vector<double> > Chromosome::getAncestryProbs( int j)const{
   //     (i,0) = 1.0 - (i,1) - (i,2)
   //where p's are probs in StateProbs from HMM
 
-  return SampleStates.Get3WayStateProbs(j);
+  return SampleStates.Get3WayStateProbs(isDiploid, j);
 }
 
 //accessor for HMM Likelihood
-double Chromosome::getLogLikelihood()const
+double Chromosome::getLogLikelihood(const bool isDiploid)const
 {
-  return SampleStates.getLogLikelihood();
+  return SampleStates.getLogLikelihood(isDiploid);
 }
 
 //samples jump indicators xi for this chromosome, 
