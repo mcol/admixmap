@@ -105,7 +105,7 @@ public:
 
   //Score test file names
   const char *getAffectedsOnlyScoreFilename() const;
-  const char *getTestsForSNPsInHaplotypeOutputFilename() const;
+  const char *getHaplotypeAssociationScoreFilename() const;
   const char *getAllelicAssociationScoreFilename() const; 
   const char *getAncestryAssociationScoreFilename() const;
   const char *getAlleleFreqScoreFilename() const;
@@ -123,8 +123,8 @@ public:
   void setTestForAffectedsOnly(bool);  
   bool getTestForAllelicAssociation() const;
   void setTestForAllelicAssociation(bool); 
-  bool getTestForSNPsInHaplotype() const;
-  void setTestForSNPsInHaplotype(bool);
+  bool getTestForHaplotypeAssociation() const;
+  void setTestForHaplotypeAssociation(bool);
   bool getTestForLinkageWithAncestry() const;
   void setTestForLinkageWithAncestry(bool);
   bool getTestForResidualAllelicAssoc()const;   
@@ -177,7 +177,7 @@ private:
   bool StratificationTestIndicator;
   bool TestForAffectedsOnly;
   bool TestForAllelicAssociation;
-  bool TestForSNPsInHaplotype;
+  bool TestForHaplotypeAssociation;
   bool TestForResidualAllelicAssoc;
   bool TestForDispersion;
   bool TestForLinkageWithAncestry;
@@ -216,7 +216,7 @@ private:
   string ResidualFilename;
   string IndAdmixtureFilename;
   string FSTOutputFilename;
-  string TestsForSNPsInHaplotypeOutputFilename;
+  string HaplotypeAssociationScoreFilename;
   string AllelicAssociationScoreFilename;
   string AncestryAssociationScoreFilename;
   string ResidualAllelicAssocScoreFilename;

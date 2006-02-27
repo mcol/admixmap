@@ -84,7 +84,7 @@ void AdmixOptions::Initialise(){
   StratificationTestIndicator = false;
   TestForAffectedsOnly = false;
   TestForAllelicAssociation = false;
-  TestForSNPsInHaplotype = false;
+  TestForHaplotypeAssociation = false;
   TestForDispersion = false;
   TestForLinkageWithAncestry = false;
   TestForResidualAllelicAssoc = false;
@@ -497,18 +497,18 @@ bool AdmixOptions::getTestForMisspecifiedAlleleFreqs2() const
   return TestForMisspecifiedAlleleFreqs2;
 }
 
-const char *AdmixOptions::getTestsForSNPsInHaplotypeOutputFilename() const
+const char *AdmixOptions::getHaplotypeAssociationScoreFilename() const
 {
-  return TestsForSNPsInHaplotypeOutputFilename.c_str();
+  return HaplotypeAssociationScoreFilename.c_str();
 }
 
-bool AdmixOptions::getTestForSNPsInHaplotype() const
+bool AdmixOptions::getTestForHaplotypeAssociation() const
 {
-  return TestForSNPsInHaplotype;
+  return TestForHaplotypeAssociation;
 }
 
-void AdmixOptions::setTestForSNPsInHaplotype(bool b){
-  TestForSNPsInHaplotype = b;
+void AdmixOptions::setTestForHaplotypeAssociation(bool b){
+  TestForHaplotypeAssociation = b;
   if(!b)OptionValues.erase("haplotypeassociationscorefile");
 }
 
@@ -820,8 +820,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "logfile") {
 	 LogFilename = optarg;OptionValues["logfile"]=optarg;
       } else if (long_option_name == "haplotypeassociationscorefile") {
-	 TestsForSNPsInHaplotypeOutputFilename = optarg;OptionValues["haplotypeassociationscorefile"]=optarg;
-	 TestForSNPsInHaplotype = true; ScoreTestIndicator = true;
+	 HaplotypeAssociationScoreFilename = optarg;OptionValues["haplotypeassociationscorefile"]=optarg;
+	 TestForHaplotypeAssociation = true; ScoreTestIndicator = true;
       } else if (long_option_name == "likratiofile") {
 	LikRatioFilename = optarg;//OptionValues["likratiofile"]=optarg;
       }else if (long_option_name == "indadmixmodefile"){
@@ -961,7 +961,7 @@ void AdmixOptions::SetOutputNames(){
   if ( ErgodicAverageFilename != "") ErgodicAverageFilename = ResultsDir + "/" + ErgodicAverageFilename;
   if ( StratTestFilename != "") StratTestFilename = ResultsDir + "/" + StratTestFilename;
   if ( AssocScoreFilename != "") AssocScoreFilename = ResultsDir + "/" + AssocScoreFilename;
-  if ( TestsForSNPsInHaplotypeOutputFilename != "") TestsForSNPsInHaplotypeOutputFilename = ResultsDir + "/" + TestsForSNPsInHaplotypeOutputFilename;
+  if ( HaplotypeAssociationScoreFilename != "") HaplotypeAssociationScoreFilename = ResultsDir + "/" + HaplotypeAssociationScoreFilename;
   if(TestForResidualAllelicAssoc)ResidualAllelicAssocScoreFilename = ResultsDir + "/" + ResidualAllelicAssocScoreFilename;
   if ( AlleleFreqOutputFilename != "") AlleleFreqOutputFilename = ResultsDir + "/" + AlleleFreqOutputFilename;
   if ( AlleleFreqScoreFilename2 != "") AlleleFreqScoreFilename2 = ResultsDir + "/" + AlleleFreqScoreFilename2;
@@ -1232,14 +1232,14 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       setTestForAllelicAssociation(false);
     }
   }
-  if( TestForSNPsInHaplotype && !TestForAllelicAssociation ){
+  if( TestForHaplotypeAssociation && !TestForAllelicAssociation ){
     Log << "ERROR: Can't test for haplotype associations if allelicassociationscorefile is not specified"
 	<< " This option will be ignored.\n";
-    setTestForSNPsInHaplotype(false);
+    setTestForHaplotypeAssociation(false);
     }
   
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || 
-			TestForAdmixtureAssociation || TestForSNPsInHaplotype || TestForResidualAllelicAssoc);
+			TestForAdmixtureAssociation || TestForHaplotypeAssociation || TestForResidualAllelicAssoc);
 
   if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
