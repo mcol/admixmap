@@ -176,9 +176,9 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    }
 }
 
-void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromosome **C) {
-  if( options->isGlobalRho() || options->getHapMixModelIndicator()) { // update rho with random walk MH
-    vector<double> rhoprop(rho.size(), 0.0);
+void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, Chromosome **C) {
+  if( options->isGlobalRho() ) { // update rho with random walk MH
+    double rhoprop = rho[0];
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
     double LogLikelihoodRatio = 0.0;
@@ -187,8 +187,7 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     bool accept = false;
 
     NumberOfUpdates++;
-    for(unsigned j = 0; j < rho.size(); ++j)
-      rhoprop[j] = exp(gennor(log(rho[j]), step)); // propose log rho from normal distribution with SD step
+    rhoprop = exp(gennor(log(rho[0]), step)); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values, annealed if this is an annealing run
     for(int i = 0; i < IC->getSize(); ++i) {
@@ -212,9 +211,7 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
 
     //compute prior ratio
-    LogPriorRatio = 0.0;
-    for(unsigned j = 0; j < rho.size(); ++j)
-      LogPriorRatio += getGammaLogDensity(rhoalpha, rhobeta, rhoprop[j]) - getGammaLogDensity(rhoalpha, rhobeta, rho[j]);
+    LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
     LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
 
     // generic Metropolis step
@@ -223,7 +220,7 @@ void Latent::UpdateSumIntensities(const IndividualCollection* const IC, Chromoso
     } else accept = true;  
     
     if(accept) {
-      copy(rhoprop.begin(), rhoprop.end(), rho.begin());
+      rho[0] = rhoprop;
       for(int i = 0; i < IC->getSize(); ++i){
 	Individual* ind = IC->getIndividual(i);
 	ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
@@ -339,10 +336,12 @@ void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
   }
 }
 
-// void Latent::UpdateSumIntensities(){
-
-
-// }
+void Latent::SampleSumIntensities(const vector<unsigned> SumNumArrivals) {
+  double EffectiveL = 2.0 * Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm();//check this;
+  for(unsigned j = 1; j < rho.size(); ++j){
+    rho[j] = gengam( rhoalpha + (double)(SumNumArrivals[j]), rhobeta + EffectiveL );
+  }
+}
 
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 {

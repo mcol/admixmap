@@ -347,7 +347,7 @@ int main( int argc , char** argv ){
     if(options.getPopulations() > 1){
       L.printAcceptanceRates(Log);
       
-      if( options.isGlobalRho() ){
+      if( options.isGlobalRho() && !options.getHapMixModelIndicator()){
 	Log << "Expected acceptance rate in global sumintensities sampler: "
 	    << L.getRhoSamplerAccRate()
 	    << "\nwith final step size of "
@@ -569,9 +569,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 		      double coolness, bool anneal){
   A->ResetAlleleCounts();
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
-  if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && 
+  if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && !options->getHapMixModelIndicator() && 
      (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
-    L->UpdateSumIntensities(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
+    L->UpdateGlobalSumIntensities(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
   // this function also sets ancestry correlations
   
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
@@ -597,8 +597,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
     // or from update of individual-level parameters otherwise
   
-  if(options->getHapMixModelIndicator())
+  if(options->getHapMixModelIndicator()){
     L->UpdateGlobalTheta(iteration, IC, Chrm);
+    L->SampleSumIntensities(IC->getSumNumArrivals());
+  }
   else
     //update population admixture Dirichlet parameters conditional on individual admixture
     L->UpdatePopAdmixParams(iteration, IC, Log, anneal);
@@ -702,7 +704,7 @@ void MakeResultsDir(const char* dirname, bool verbose){
       system(cmd.c_str());
     }
     else {
-      cout << "Directory " << dirname << " exists. Contents will be deleted."<<endl;
+      cout << "Directory \"" << dirname << "\" exists. Contents will be deleted."<<endl;
       
       //list and delete contents of directory
       errno=0;
