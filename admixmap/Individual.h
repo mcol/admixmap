@@ -72,6 +72,9 @@ public:
 
   const int *getSumLocusAncestry()const;
   const int *getSumLocusAncestryX()const;
+  const std::vector<unsigned> getSumNumArrivals()const;
+  const std::vector<unsigned> getSumNumArrivals_X()const;
+  void getSumNumArrivals(std::vector<unsigned> &sum)const;
 
   double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
 			  const double* const theta, const double* const thetaX,
@@ -159,7 +162,7 @@ private:
   double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
 
   int **LocusAncestry, *SumLocusAncestry, *SumLocusAncestry_X;
-  unsigned SumNumArrivals[2], SumNumArrivals_X[2];
+  std::vector<unsigned> SumNumArrivals;
 
   std::vector< double > _rho; //sum of intensities
   std::vector< double > rhoMode;
@@ -216,8 +219,7 @@ private:
 			     const vector<double> rho, const vector<double> rhoX);
   
   void SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta,  
-		 unsigned int SumN[], unsigned int SumN_X[], 
-		 vector<double>* rho, vector<double>*rho_X);
+		 vector<unsigned> SumN, vector<unsigned> SumN_X, vector<double>* rho, vector<double>*rho_X);
 
   void SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
 		    const DataMatrix* const Outcome, Chromosome ** C,

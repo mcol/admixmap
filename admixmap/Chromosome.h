@@ -50,8 +50,7 @@ public:
   std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int)const;
   double getLogLikelihood(const bool isDiploid)const;
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
-			    int *SumLocusAncestry, //int *SumLocusAncestry_X, 
-			    unsigned int SumN[], //unsigned int SumN_X[], 
+			    int *SumLocusAncestry, std::vector<unsigned> &SumN, 
 			    bool SampleArrivals)const;
 private:
   int _startLocus;

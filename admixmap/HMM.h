@@ -28,7 +28,7 @@ public:
   std::vector<std::vector<double> > Get3WayStateProbs( const bool isDiploid, int t )const;
   double getLogLikelihood(bool isDiploid)const;
   void SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
-			    int *SumLocusAncestry, unsigned int SumNumArrivals[], bool SampleArrivals)const;
+			    int *SumLocusAncestry, std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;
 
 
   // these four methods should be private

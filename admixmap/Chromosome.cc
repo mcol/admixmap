@@ -176,8 +176,8 @@ double Chromosome::getLogLikelihood(const bool isDiploid)const
 //samples jump indicators xi for this chromosome, 
 //updates SumLocusAncestry
 void Chromosome::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
-				      int *SumLocusAncestry, unsigned int SumN[], bool SampleArrivals)const {
-  SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, SumLocusAncestry, SumN, SampleArrivals);
+				      int *SumLocusAncestry, vector<unsigned> &SumN, bool SampleArrivals)const {
+  SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, SumLocusAncestry, SumN, SampleArrivals, _startLocus);
 }
 
 

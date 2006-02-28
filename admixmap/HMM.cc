@@ -403,7 +403,7 @@ void HMM::RecursionProbs2(const double ff, const double f[2], const double* cons
 
 
 void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
-			       int *SumLocusAncestry, unsigned SumNumArrivals[], bool SampleArrivals)const {
+			       int *SumLocusAncestry, vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const {
   bool xi;//jump indicator
   double ProbJump; // prob jump indicator is 1
   // first locus not included in loop below
@@ -425,7 +425,7 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const double* con
 	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
 	  // algorithm does not require rho or d, only u and f
 	  unsigned int sample = genpoi( log( (1 - u*( 1 - f[2*t+g])) / f[2*t+g] ) );
-	    SumNumArrivals[g] += sample + 1;
+	  SumNumArrivals[2*(startlocus + t) + g] += sample + 1;
 	}
       }//end if xi true
     }//end gamete loop

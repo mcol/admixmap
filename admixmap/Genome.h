@@ -69,6 +69,9 @@ public:
   int getNumberOfLoci(int)const;
 
   const unsigned int *GetSizesOfChromosomes()const;
+  unsigned GetSizeOfChromosome(unsigned)const;
+
+  unsigned getFirstXLocus()const;
 
   double GetDistance(int)const;
 
@@ -98,6 +101,7 @@ private:
   unsigned int TotalLoci;//number of simple loci;
   unsigned int *SizesOfChromosomes;
   bool X_data;
+  unsigned XChromosomeIndex;
   std::vector< std::vector< int > > _chrmandlocus;
   std::vector<std::string> ChrmLabels;
 

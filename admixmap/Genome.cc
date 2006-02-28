@@ -211,6 +211,7 @@ Chromosome** Genome::GetChromosomes( int populations)
 	else{
 	  LengthOfXchrm += GetDistance(cstart[i]+j);
 	  X_data = true;
+	  XChromosomeIndex = cstart[i];
 	}
       }
     }
@@ -293,7 +294,9 @@ unsigned int Genome::GetTotalNumberOfLoci()const{
 const unsigned int *Genome::GetSizesOfChromosomes()const{
   return SizesOfChromosomes;
 }
-
+unsigned Genome::GetSizeOfChromosome(unsigned j)const{
+  return SizesOfChromosomes[j];
+}
 const double *Genome::GetDistances()const
 {
   return( Distances );
@@ -339,7 +342,10 @@ double Genome::GetLengthOfXchrm()const
    return LengthOfXchrm;
 }
 
-
+unsigned Genome::getFirstXLocus()const{
+  if(X_data)return XChromosomeIndex;
+  else return NumberOfCompositeLoci;
+}
 
 
 
