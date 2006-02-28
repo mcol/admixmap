@@ -1023,10 +1023,6 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   }
   Log << "\n";
 
-  if(HapMixModelIndicator){
-    Log << "Haplotype mixture model with " << Populations << " block state";if(Populations>1)Log << "s"; Log << "\n";
-  }
- 
   if(OutcomeVarFilename.length() == 0){
     if(NumberOfOutcomes > 0){
       Log.setDisplayMode(On);
@@ -1076,37 +1072,42 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     Log << "Model assuming assortative mating.\n";
   
   // **** sumintensities ****
-  if( GlobalRho ) {
-    Log << "Model with global sum-intensities\n";
-    if(globalrhoPrior.size() != 2) {
-      Log.setDisplayMode(On);
-      Log << "ERROR: globalsumintensitiesprior must have length 2\n";
-      exit(1);
-      if(globalrhoPrior[0] <= 0.0 || globalrhoPrior[1] <= 0.0) {
+  if(HapMixModelIndicator){
+    Log << "Haplotype mixture model with " << Populations << " block state";if(Populations>1)Log << "s"; Log << "\n";
+  }
+  else {
+    if( GlobalRho ) {
+      Log << "Model with global sum-intensities\n";
+      if(globalrhoPrior.size() != 2) {
 	Log.setDisplayMode(On);
-	Log << "ERROR: all elements of globalsumintensitiesprior must be > 0\n";
+	Log << "ERROR: globalsumintensitiesprior must have length 2\n";
+	exit(1);
+	if(globalrhoPrior[0] <= 0.0 || globalrhoPrior[1] <= 0.0) {
+	  Log.setDisplayMode(On);
+	  Log << "ERROR: all elements of globalsumintensitiesprior must be > 0\n";
+	  exit(1);
+	}  
+      } 
+    } else { // sumintensities at individual or gamete level
+      if( RandomMatingModel )
+	Log << "Model with gamete specific sum-intensities.\n";
+      else
+	Log << "Model with individual-specific sum-intensities.\n";
+      
+      if( (rhoPrior.size() != 3) && IndAdmixHierIndicator ) {
+	Log.setDisplayMode(On);
+	Log << "ERROR: for hierarchical model, sumintensitiesprior must have length 3\n";
+	exit(1);
+      }
+      if(rhoPrior[0] <= 0.0 || rhoPrior[1] <= 0.0 || rhoPrior[2]<=0.0) {
+	Log.setDisplayMode(On);
+	Log << "ERROR: all elements of sumintensitiesprior must be > 0\n";
 	exit(1);
       }  
-    } 
-  } else { // sumintensities at individual or gamete level
-    if( RandomMatingModel )
-      Log << "Model with gamete specific sum-intensities.\n";
-    else
-      Log << "Model with individual-specific sum-intensities.\n";
-    
-    if( (rhoPrior.size() != 3) && IndAdmixHierIndicator ) {
-      Log.setDisplayMode(On);
-      Log << "ERROR: for hierarchical model, sumintensitiesprior must have length 3\n";
-      exit(1);
     }
-    if(rhoPrior[0] <= 0.0 || rhoPrior[1] <= 0.0 || rhoPrior[2]<=0.0) {
-      Log.setDisplayMode(On);
-      Log << "ERROR: all elements of sumintensitiesprior must be > 0\n";
-      exit(1);
-    }  
   }
 
-  if( GlobalRho || !IndAdmixHierIndicator || NumberOfIndividuals==1) {
+  if( !HapMixModelIndicator && (GlobalRho || !IndAdmixHierIndicator ) ) {
     Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
 	<< "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
     Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
@@ -1115,7 +1116,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     
   } else {  
     double rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
-    Log << "Population distribution of sum-intensities specified as Gamma with shape parameter "
+    Log << "Population prior distribution of sum-intensities specified as Gamma with shape parameter "
 	<< rhoPrior[0] << "\n"
 	<< "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
 	<< rhoPrior[1] << " & "
@@ -1247,8 +1248,8 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     // if not specified as an option
     //if(NumAnnealedRuns==0) NumAnnealedRuns = 100;
     Log << "\nUsing thermodynamic integration to calculate marginal likelihood ";
-    if(!TestOneIndivIndicator) Log << "for all individuals\n\n";
-    else Log << "for first individual\n\n"; 
+    if(!TestOneIndivIndicator) Log << "for all individuals\n";
+    else Log << "for first individual\n"; 
   }
 
   return 1;
