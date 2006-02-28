@@ -56,7 +56,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       obs *= 2;//for 2 gametes per individual
     } 
     PopAdmixSampler.SetSize( obs, K );
-
+    
     //initialise global admixture proportions
     if(options->getHapMixModelIndicator()){
       globaltheta = new double[K];
@@ -64,10 +64,10 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       fill(globaltheta, globaltheta+K, 1.0/(double)K);
       ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
     }
-
+    
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
-    if(/*options->getHapMixModelIndicator() ||*/ (options->getIndAdmixHierIndicator() && !options->isGlobalRho() )){
+    if(options->getHapMixModelIndicator() || (options->getIndAdmixHierIndicator() && !options->isGlobalRho() )){
       // get prior on rate parameter beta and initialize it at prior mean
       rhobeta0 = options->getRhobetaShape();
       rhobeta1 = options->getRhobetaRate();
