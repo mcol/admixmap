@@ -79,15 +79,11 @@ int main( int argc , char** argv ){
   options.PrintOptions();
 
   Genome Loci;
-  Loci.loadAlleleStatesAndDistances(&data);//reads locusfile and creates CompositeLocus objects
-  
+  Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
+
   AlleleFreqs A(&Loci);
   A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
-  
-  //Chromosome **chrm = 0; //Note: array of pointers to Chromosomes
-  Loci.GetChromosomes(options.getPopulations());  //create Chromosome objects
-  Loci.SetSizes(Log);//prints length of genome, num loci, num chromosomes
-  
+
   IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
   IC->LoadData(&options, &data);                             //and before L and R Initialise
   

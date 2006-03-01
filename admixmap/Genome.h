@@ -35,18 +35,17 @@ public:
   Genome(int);
   virtual ~Genome();
 
+  void Initialise(const InputData* const data_, int populations, LogWriter &Log);
+
   const std::vector< int > GetChrmAndLocus( int )const;
 
   const std::vector<  std::vector< int > >GetChrmAndLocus( )const;
 
   bool isX_data()const;
 
-  CompositeLocus *&
-  operator()(int) const;
+  CompositeLocus* operator()(int) const;
 
   void SetLabels(const std::vector<std::string> &labels, const std::vector<double> &distances);
-
-  void loadAlleleStatesAndDistances(const InputData* const data_);
 
   const double *GetDistances()const;
 
@@ -72,7 +71,7 @@ public:
   const Chromosome* const* getChromosomes()const;
   Chromosome* getChromosome(unsigned);
 
-  void SetSizes(LogWriter &Log);
+  void PrintSizes(LogWriter &Log);
  
   int GetNumberOfStates()const;
   int GetNumberOfStates(int locus)const;
@@ -88,7 +87,7 @@ private:
   Chromosome **C;
   double *Distances;
   unsigned int NumberOfCompositeLoci;
-  CompositeLocus **TheArray; 
+  CompositeLocus *LocusArray; 
   double LengthOfGenome;
   double LengthOfXchrm;
 
@@ -100,8 +99,7 @@ private:
   std::vector< std::vector< int > > LocusTable;
   std::vector<std::string> ChrmLabels;
 
-  void InitialiseCompositeLoci();
-
+  void InitialiseChromosomes(const int* cstart, const int* cfinish, int populations);
   // UNIMPLEMENTED
   // to avoid use
   Genome(const Genome&);

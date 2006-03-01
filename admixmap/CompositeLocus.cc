@@ -42,13 +42,11 @@ CompositeLocus::CompositeLocus()
 
   MergeHaplotypes = 0;
   HapLabels = 0;
-  Label = 0;
 }
 
 // ******** Destructor *************************
 CompositeLocus::~CompositeLocus()
 {
-  delete[] Label;
   delete[] base;
   delete[] HapPairProbs;
   delete[] HapPairProbsMAP;
@@ -111,14 +109,15 @@ void CompositeLocus::SetRandomAlleleFreqs(bool b){
  * alleles - the number of alleles in the simple locus to be added
  */
 
-void CompositeLocus::AddLocus( int alleles )
+void CompositeLocus::AddLocus( int alleles, string label = "")
 { 
   NumberOfAlleles.push_back(alleles);
   ++NumberOfLoci;
   NumberOfStates *= alleles;
+  Label.push_back(label);
 }
 
-void CompositeLocus::Initialise(const double* const AFreqs){
+void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
   AlleleProbs = alloc2D_d(Populations, NumberOfStates);
   SumAlleleProbs = alloc2D_d(Populations, NumberOfStates);
   for(int i = 0; i < Populations; ++i)fill(SumAlleleProbs[i], SumAlleleProbs[i]+NumberOfStates, 0.0);
@@ -135,21 +134,16 @@ void CompositeLocus::Initialise(const double* const AFreqs){
   } 
 }
 
-void CompositeLocus::SetNumberOfLabels()
-{
-   Label = new string[ NumberOfLoci ];
-}
-
 /**
- * Sets the name of this composite locus (usually from the 
- * allelefreqs.txt file
+ * Sets the label of a locus
  *
  * newlabel - the name of this composite locus
  */
-void CompositeLocus::SetLabel( int index, string newlabel )
-{
-   Label[index] = newlabel;
-}
+// void CompositeLocus::SetLabel( int locus, string newlabel )
+// {
+//   if(locus < Label.size())
+//     Label[locus] = newlabel;
+// }
 
 // ****** Accessors ***************************************
 /**

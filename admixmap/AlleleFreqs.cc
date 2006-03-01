@@ -94,7 +94,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    (*Loci)(i)->Initialise(Freqs[i]);
+    (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
   }
 
   // ** settings for sampling of dispersion parameter **

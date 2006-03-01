@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <sstream>
 #include "Genome.h"
-#include "Chromosome.h"
 #include "DataMatrix.h"
 
 using namespace std;
@@ -23,7 +22,7 @@ Genome::Genome()
 {
   NumberOfCompositeLoci = 0;
   NumberOfChromosomes = 0;
-  TheArray = 0;
+  LocusArray = 0;
   LengthOfGenome = 0;
   LengthOfXchrm = 0;
   TotalLoci = 0;
@@ -31,32 +30,9 @@ Genome::Genome()
   SizesOfChromosomes = 0;
 }
 
-//used by Chromosome
-Genome::Genome( int size )
-{
-  if ( size < 1 ){
-    size = 1;
-  }
-  NumberOfCompositeLoci = size;
-  TheArray = new CompositeLocus*[ NumberOfCompositeLoci ];
-  Distances = new double[ NumberOfCompositeLoci ];
-  LengthOfGenome = 0;
-  LengthOfXchrm = 0;
-  TotalLoci = 0;
-  SizesOfChromosomes = 0;
-}
-
-
 Genome::~Genome()
 {
-  if(NumberOfCompositeLoci > 0) 
-    //The CompositeLocus objects are owned by a pure Genome object (Loci)
-    //Chromosomes only have an array of pointers so they are not allowed to delete any CompositeLoci
-    //otherwise the destruction of the lead Genome object would trigger an illegal second attempt at their destruction
-    for(unsigned int i = 0; i < NumberOfCompositeLoci; i++){
-      delete TheArray[i];
-    }
-  delete[] TheArray;
+  delete[] LocusArray;
   delete[] SizesOfChromosomes;
   delete[] Distances; 
   for(unsigned i = 0; i < NumberOfChromosomes; i++){
@@ -65,101 +41,78 @@ Genome::~Genome()
   delete[] C;
 }
 
-//sets the labels of all composite loci in TheArray using SetLabel function in CompositeLocus
-//all loci within each composite locus are assigned the same label from labels vector
-void Genome::SetLabels(const vector<string> &labels, const vector<double> &distances)
-{
-    int index = -1; // counts through composite loci
-    int locus = 0;//counts through loci on a comp locus
-
-    for (size_t count = 0; count < labels.size(); ++count) {
-        const string& label = labels[count];
-        if (distances[count] > 0.0) {//new comp locus
-            locus = 0;
-	    ++index;
-        } 
-	TheArray[index]->SetLabel(locus++,label);
-    }
-}
-
-//gets contents of locusfile and genotypesfile and creates CompositeLocus array
-void Genome::loadAlleleStatesAndDistances(const InputData* const data_){
+//gets contents of locusfile and genotypesfile, creates CompositeLocus array and creates Chromosome array
+void Genome::Initialise(const InputData* const data_, int populations, LogWriter &Log){
 
   DataMatrix locifileData =  data_->getLocusMatrix();//locus file converted to doubles
+  Vector_s locusLabels = data_->getLocusLabels();
   
   //determine number of composite loci
   NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
   
-  //set up CompositeLocus objects
-  InitialiseCompositeLoci();
+  //create array of CompositeLocus objects
+  LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
+  Distances = new double[ NumberOfCompositeLoci ];
   
   // Set number of alleles at each locus
   unsigned row = 0;//counts lines in locusfile
-  size_t next_line = 0;
-  for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
-    ++next_line;
-    
-    //get chromosome labels from col 4 of locusfile, if there is one    
-    const Vector_s& m = data_->getLocusData()[next_line];
-    if (m.size() == 4) ChrmLabels.push_back(m[3]);
-
-    //set numbers of alleles and distances for each locus
-    TheArray[i]->AddLocus( (int)locifileData.get( row, 0 ) );//sets number of alleles of first locus
-    SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
-
-    //loop through lines in locusfile for current complocus
-    while( row < locifileData.nRows() - 1 && locifileData.get( row + 1, 1 ) == 0 ){
-      ++next_line;
-      TheArray[i]->AddLocus( (int)locifileData.get( row + 1, 0 ) );//adds locus with number of alleles given as argument
-      row++;
-    }
-    
-    TheArray[i]->SetNumberOfLabels();
-    row++;
-    if(TheArray[i]->GetNumberOfLoci()>8) cerr << "WARNING: Composite locus with >8 loci\n";
-  }
-
-  SetLabels(data_->getLocusLabels(), locifileData.getCol(1));
-}
-
-//Creates an array of pointers to Chromosome objects, sets their labels
-//also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
-//LengthOfXChrm and chrmandlocus
-void Genome::GetChromosomes( int populations)
-{
   int *cstart = new int[NumberOfCompositeLoci];
   int *cfinish = new int[NumberOfCompositeLoci];
   //since we don't know the number of chromsomes yet, these arrays have the maximum number, num. Comp. Loci, as size
-  //TODO: should use vectors and expand as necessary
-
   int cnum = -1; //cnum = number of chromosomes -1
   int lnum = 0;
   LocusTable.resize(NumberOfCompositeLoci);
   X_data = false;
   
-  TotalLoci = 0;
-  for(unsigned int i = 0; i < NumberOfCompositeLoci; i++){
-    
+  for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     LocusTable[i].resize(2);
     
-    if (GetDistance(i) >= 100){//new chromosome
+    //retrieve first row of this comp locus from locusfile
+    const Vector_s& m = data_->getLocusData()[row+1];//+1 because LocusData has a header, LocusMatrix doesn't
+    //get chromosome labels from col 4 of locusfile, if there is one   
+    if (m.size() == 4) ChrmLabels.push_back(m[3]);
+
+    SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
+    if(locifileData.isMissing(row, 1) || Distances[i] >= 100){//new chromosome, triggered by missing value or 
       cnum++;
       lnum = 0; 
       cstart[cnum] = i; //locus number of first locus on new chromosome
     } else if(cnum==-1){
-      cerr << "first locus should have distance of >=100, but doesn't" << endl;
+      Log << "first locus should have distance of >=100, but doesn't\n";
     }else{
       lnum++;
     }
     LocusTable[i][0] = cnum;//chromosome on which locus i is located
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
     cfinish[cnum] = i;//locus number of last locus on currrent chromosome
+
+    //set number of alleles of first locus in comp locus
+    LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
+    //loop through lines in locusfile for current complocus
+    while( row < locifileData.nRows() - 1 && !locifileData.isMissing( row + 1, 1 ) && locifileData.get( row + 1, 1 ) == 0 ){
+      LocusArray[i].AddLocus( (int)locifileData.get( row+1, 0 ), locusLabels[row+1] );
+      //adds locus with number of alleles given as argument
+      row++;
+    }
+    row++;
+    if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
+    TotalLoci += LocusArray[i].GetNumberOfLoci();
   }
-  
   NumberOfChromosomes = cnum +1;
   SizesOfChromosomes = new unsigned int[NumberOfChromosomes];//array to store lengths of the chromosomes
   
-  C = new Chromosome*[cnum+1]; 
+  InitialiseChromosomes(cstart, cfinish, populations);
+  
+  delete[] cstart;
+  delete[] cfinish;
+  PrintSizes(Log);//prints length of genome, num loci, num chromosomes
+}
+
+//Creates an array of pointers to Chromosome objects, sets their labels
+//also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
+//LengthOfXChrm 
+void Genome::InitialiseChromosomes(const int* cstart, const int* cfinish, int populations){
+  C = new Chromosome*[NumberOfChromosomes]; 
   //C is an array of chromosome pointers
 
   for(unsigned i = 0; i < NumberOfChromosomes; i++){//loop over chromsomes
@@ -205,9 +158,6 @@ void Genome::GetChromosomes( int populations)
     }
     SizesOfChromosomes[i] = C[i]->GetSize(); 
   }
-  
-  delete[] cstart;
-  delete[] cfinish;
 }
 
 const Chromosome* const* Genome::getChromosomes()const{
@@ -218,7 +168,7 @@ Chromosome* Genome::getChromosome(unsigned j){
 }
 
 //accesses a composite locus
-CompositeLocus*& Genome::operator() ( int ElementNumber ) const
+CompositeLocus* Genome::operator() ( int ElementNumber ) const
 {
   if ( ElementNumber >= (int)NumberOfCompositeLoci ){
     cout << "WARNING: Genome::operator() Element Number";
@@ -229,18 +179,7 @@ CompositeLocus*& Genome::operator() ( int ElementNumber ) const
     cout << ElementNumber << " < 0 accessed." << endl;
   }
 
-  return TheArray[ElementNumber];
-}
-
-//creates array of CompositeLocus objects
-void Genome::InitialiseCompositeLoci()
-{
-  TheArray = new CompositeLocus*[ NumberOfCompositeLoci ];
-  Distances = new double[ NumberOfCompositeLoci ];
-  for(unsigned int i = 0; i < NumberOfCompositeLoci;i++){
-    //each element in the array is a pointer to a CompositeLocus object
-    TheArray[i] = new CompositeLocus();
-  }
+  return &(LocusArray[ElementNumber]);
 }
 
 void Genome::SetDistance( int locus, double distance )
@@ -248,11 +187,7 @@ void Genome::SetDistance( int locus, double distance )
   Distances[ locus ] = distance;
 }
 
-void Genome::SetSizes(LogWriter &Log){
-  TotalLoci = 0;
-  for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
-    TotalLoci += TheArray[i]->GetNumberOfLoci();
-  }
+void Genome::PrintSizes(LogWriter &Log){
   Log.setDisplayMode(Quiet);
   Log << "\n" << TotalLoci << " simple loci\n"
       << NumberOfCompositeLoci << " compound loci; "
@@ -273,7 +208,7 @@ unsigned int Genome::GetNumberOfCompositeLoci()const
 }
 
 int Genome::getNumberOfLoci(int j)const{
-  return TheArray[j]->GetNumberOfLoci();
+  return LocusArray[j].GetNumberOfLoci();
 }
 unsigned int Genome::GetNumberOfChromosomes()const{
   return NumberOfChromosomes;
@@ -302,14 +237,14 @@ double Genome::GetDistance( int locus )const
 
 //returns number of states of a comp locus
 int Genome::GetNumberOfStates(int locus)const{
-  return TheArray[locus]->GetNumberOfStates();
+  return LocusArray[locus].GetNumberOfStates();
 }
 //returns total number of states accross all comp loci
 int Genome::GetNumberOfStates()const
 {
   int ret = 0;
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
-    ret += TheArray[i]->GetNumberOfStates();
+    ret += LocusArray[i].GetNumberOfStates();
   }
   return ret;
 }
