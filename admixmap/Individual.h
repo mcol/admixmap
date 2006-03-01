@@ -31,14 +31,13 @@ class Individual
 public:
   Individual();
 
-  Individual(int number, const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
-	     const Chromosome* const * chrm, bool undertest);
+  Individual(int number, const AdmixOptions* const options, const InputData* const Data, bool undertest);
  
   ~Individual();
 
   void HMMIsBad(bool loglikisbad);
 
-  static void SetStaticMembers(const Genome* const pLoci, const AdmixOptions* const options);
+  static void SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options);
 
   static void DeleteStaticMembers();
 
@@ -76,14 +75,14 @@ public:
   const std::vector<unsigned> getSumNumArrivals_X()const;
   void getSumNumArrivals(std::vector<unsigned> *sum)const;
 
-  double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
+  double getLogLikelihood(const AdmixOptions* const options, 
 			  const double* const theta, const double* const thetaX,
 			  const vector<double > rho, const vector<double> rho_X, bool updateHMM);
 
-  double getLogLikelihood(const AdmixOptions* const , Chromosome**, const bool forceUpdate, const bool store);
+  double getLogLikelihood(const AdmixOptions* const , const bool forceUpdate, const bool store);
   void storeLogLikelihood(const bool setHMMAsOK); // to call if a Metropolis proposal is accepted
 
-  double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options, Chromosome **chrm);
+  double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options);
 
   double getLogLikelihoodOnePop();
 
@@ -99,25 +98,23 @@ public:
 			 const DataType* const OutcomeType, const double* const * ExpectedY, 
 			 const std::vector<double> lambda, int NumCovariates,
 			 DataMatrix *Covariates, const std::vector<const double*> beta, const double *poptheta, 
-			 const AdmixOptions* const options,
-			 Chromosome **chrm, const vector<vector<double> > &alpha,  
-			 double rhoalpha, double rhobeta, //const vector<double> sigma, 
+			 const AdmixOptions* const options, const vector<vector<double> > &alpha,  
+			 double rhoalpha, double rhobeta,  
 			 double DInvLink, double dispersion, bool anneal, bool, bool, bool);
 
   void FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMatrix *Outcome,
 			  const DataType* const OutcomeType, const double* const * ExpectedY, 
 			  const vector<double> lambda, int NumCovariates,
 			  DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
-			  const AdmixOptions* const options,
-			  Chromosome **chrm, const vector<vector<double> > &alpha,  
-			  double rhoalpha, double rhobeta, //const vector<double> sigma, 
+			  const AdmixOptions* const options, const vector<vector<double> > &alpha,  
+			  double rhoalpha, double rhobeta,  
 			  double DInvLink, double dispersion, std::ofstream &modefile,
 			  double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX);
 
   void resetStepSizeApproximator(int k);
 
   void Chib(int iteration, // double *SumLogLikelihood, double *MaxLogLikelihood,
-	    const AdmixOptions* const options, Chromosome **chrm, const vector<vector<double> > &alpha, // double globalrho,
+	    const AdmixOptions* const options, const vector<vector<double> > &alpha, // double globalrho,
 	    double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
 	    vector<double> &rhohat, vector<double> &rhohatX, chib *MargLikelihood, AlleleFreqs *A);
 
@@ -133,8 +130,8 @@ public:
   double getLogPosteriorTheta()const;
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
-  void SetGenotypeProbs(int j, const Chromosome* C, bool chibindicator);
-  void AnnealGenotypeProbs(int j, const Chromosome* C, const double coolness);
+  void SetGenotypeProbs(int j, bool chibindicator);
+  void AnnealGenotypeProbs(int j, const double coolness);
 
 private:
   unsigned myNumber;//number of this individual, counting from 1
@@ -154,7 +151,7 @@ private:
 
   static unsigned int numChromosomes;
   static int Populations;
-  static const Genome *Loci;
+  static Genome *Loci;
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
   double *Theta, *ThetaX;//admixture proportions
   double* ThetaMode;
@@ -214,7 +211,7 @@ private:
 					       //const double ExpectedY, 
 					       const double Outcome, const double* const poptheta, const double lambda);
   
-  void UpdateHMMForwardProbs(unsigned int j, Chromosome* const chrm, const AdmixOptions* const options, 
+  void UpdateHMMForwardProbs(unsigned int j, const AdmixOptions* const options, 
 			     const double* const theta, const double* const thetaX,
 			     const vector<double> rho, const vector<double> rhoX);
   
@@ -222,18 +219,18 @@ private:
 		 vector<unsigned> SumN, vector<unsigned> SumN_X, vector<double>* rho, vector<double>*rho_X);
 
   void SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
-		    const DataMatrix* const Outcome, Chromosome ** C,
+		    const DataMatrix* const Outcome, 
 		    const DataType* const OutcomeType, //const double* const* ExpectedY, 
 		    const std::vector<double> lambda, int NumCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
-		    const AdmixOptions* const options, const vector<vector<double> > &alpha, //const vector<double> sigma,
+		    const AdmixOptions* const options, const vector<vector<double> > &alpha, 
 		    double DInvLink, double dispersion, bool RW, bool anneal);
 
   
   void ProposeTheta(const AdmixOptions* const options, /*const vector<double> sigma,*/ const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
 
-  double ProposeThetaWithRandomWalk(const AdmixOptions* const options, Chromosome **C, const vector<vector<double> > &alpha);
+  double ProposeThetaWithRandomWalk(const AdmixOptions* const options, const vector<vector<double> > &alpha);
   
   double LogPriorTheta(const double* const theta, const double* const thetaX,  
 		       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;

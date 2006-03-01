@@ -66,7 +66,7 @@ void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter 
   }
 }    
 
-void HWTest::Update(const IndividualCollection* const IC, const Chromosome* const* C, const Genome* const Loci){
+void HWTest::Update(const IndividualCollection* const IC, const Genome* const Loci){
   double H; // prob heterozygous
   bool h;
   int locus = 0, complocus = 0, Ancestry0, Ancestry1;
@@ -84,7 +84,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Chromosome* cons
     locus = 0;    //absolute locus number
     complocus = 0;//absolute comp locus number
     for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr){ //loop over chromosomes
-      for(unsigned int j = 0; j < C[chr]->GetSize(); ++j){                  //loop over comp loci on chromosome
+      for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j){                  //loop over comp loci on chromosome
 	Ancestry0 = ind->GetLocusAncestry( (int)chr, 0, j);
 	Ancestry1 = ind->GetLocusAncestry( (int)chr, 1, j);
 	// if(Ancestry0 == Ancestry1) {

@@ -14,7 +14,7 @@ class StratificationTest
 public:
    StratificationTest();
 
-  void Initialize( AdmixOptions* const options, const Genome &Loci, const Chromosome* const* Chr, 
+  void Initialize( AdmixOptions* const options, const Genome &Loci,  
 				     const IndividualCollection* const IC, LogWriter &Log );
 
   void calculate( const IndividualCollection* const individuals, const double* const* AlleleFreqs,

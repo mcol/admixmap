@@ -24,7 +24,7 @@ public:
   ScoreTests();
 
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
-		  const Chromosome* const*, const std::string *, LogWriter &);
+		  const std::string *, LogWriter &);
 
   void InitialiseAssocScoreFile(const std::string *);
 

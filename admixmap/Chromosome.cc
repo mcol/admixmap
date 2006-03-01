@@ -27,13 +27,17 @@
 
 using namespace std;
 
-Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false) : Genome(size)
+Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false) 
 		      //size = number of comp loci on chromosome
 {
-  isChromosome = true;
   _startLocus = start;
   populations = inpopulations;
   isX = isx;
+  if ( size < 1 ){
+    size = 1;
+  }
+  NumberOfCompositeLoci = size;
+  Distances = new double[ NumberOfCompositeLoci ];
 
   SampleStates.SetDimensions( size, populations );
 
@@ -56,11 +60,25 @@ const string Chromosome::GetLabel( )const
    return _Label;
 }
 
+void Chromosome::SetDistance( int locus, double distance )
+{
+  Distances[ locus ] = distance;
+}
+const double *Chromosome::GetDistances()const
+{
+  return( Distances );
+}
+
+double Chromosome::GetDistance( int locus )const
+{
+  return( Distances[ locus ] );
+}
+
 Chromosome::~Chromosome()
 {
   delete[] CodedStates;
   delete[] f;
-  //delete[] f[1];
+  delete[] Distances; 
 }
 
 // Returns the number of the num'th compositelocus on this chromosome
@@ -72,6 +90,10 @@ int Chromosome::GetLocus(int num)const{
 
 //returns number of composite loci in the chromosome
 unsigned int Chromosome::GetSize()const{
+  return NumberOfCompositeLoci;
+}
+unsigned int Chromosome::GetNumberOfCompositeLoci()const
+{
   return NumberOfCompositeLoci;
 }
 

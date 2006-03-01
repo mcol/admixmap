@@ -15,7 +15,7 @@
 #define INDIVIDUAL_COLLECTION_H 1
 
 #include "Genome.h"
-#include "Chromosome.h"
+//#include "Chromosome.h"
 //#include "AlleleFreqs.h"
 #include "chib.h"
 #include "Individual.h"
@@ -38,8 +38,7 @@ class IndividualCollection
 public:
   IndividualCollection();
   ~IndividualCollection();
-  IndividualCollection(const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
-					   const Chromosome* const* chrm);
+  IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
 		  const std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta, 
@@ -49,24 +48,24 @@ public:
   
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const std::string* const PopulationLabels);
 
-  void Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
+  void Update(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
 	      const std::string* const PopulationLabels, 
 	      const std::vector<std::vector<double> > &alpha, //double globalrho, 
 	      double rhoalpha, double rhobeta, //LogWriter &Log, 
 	      bool anneal);
 
-  void FindPosteriorModes(const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
+  void FindPosteriorModes(const AdmixOptions* const options, AlleleFreqs *A,
 			  const Regression* const R, const double* const poptheta,
 			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 			  const std::string* const PopulationLabels);
 
-  void setGenotypeProbs(Chromosome** C, unsigned nchr);
-  void annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness, const double* Coolnesses);
+  void setGenotypeProbs(unsigned nchr);
+  void annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses);
   
   void OutputIndAdmixture();
 
-  double getDevianceAtPosteriorMean(const AdmixOptions* const options, Chromosome** C, Regression *R, LogWriter &Log, 
+  double getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci, LogWriter &Log, 
 		      double SumRho, unsigned numChromosomes);
 
   void OutputChibEstimates(bool, LogWriter &, int)const;
@@ -103,9 +102,9 @@ public:
   const std::string getCovariateLabels(int)const;
   const Vector_s getCovariateLabels()const;
 
-  double getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
+  double getEnergy(const AdmixOptions* const options, const Regression* R, 
 			  const bool & annealed);
-  void accumulateEnergyArrays(const AdmixOptions* const options, Chromosome **C);
+  void accumulateEnergyArrays(const AdmixOptions* const options);
   double* getSumEnergy();
   double* getSumEnergySq();
 

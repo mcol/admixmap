@@ -97,11 +97,11 @@ ScoreTests::~ScoreTests(){
 }
 
 void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
-			    const Chromosome* const* c, const std::string *PLabels,
+			    const std::string *PLabels,
 			    LogWriter &Log){
   options = op;
   individuals = indiv;
-  chrm = c;
+  chrm = Loci->getChromosomes();
   Lociptr = Loci;
   Log.setDisplayMode(Quiet);
 
@@ -640,8 +640,9 @@ int delta(int i, int j){
 
 void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,  
 							   const double* const AlleleFreqsA, const double* const AlleleFreqsB){
-  int M = (*chrm[c])(locus)->GetNumberOfStates()-1;
-  int N = (*chrm[c])(locus+1)->GetNumberOfStates()-1;
+  int abslocus = chrm[c]->GetLocus(locus);//number of this locus
+  int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
+  int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
   int dim = M*N;
   if(dim == 1)UpdateScoresForResidualAllelicAssociation_1D(c, locus, AlleleFreqsA, AlleleFreqsB);
   else{
@@ -664,7 +665,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,
     
     int ancA[2];//ancestry at A
     int ancB[2];//ancestry at B
-    int abslocus = chrm[c]->GetLocus(locus);//number of this locus
+
     for(int i = 0; i < individuals->getSize(); ++i){
       Individual* ind = individuals->getIndividual(i);
       ind->GetLocusAncestry(c, locus, ancA);
@@ -1031,8 +1032,9 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
   *outputstream << setiosflags(ios::fixed) << setprecision(3) ;
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
     for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
-      int M = (*chrm[c])(j)->GetNumberOfStates()-1;
-      int N = (*chrm[c])(j+1)->GetNumberOfStates()-1;
+      int abslocus = chrm[c]->GetLocus(j);
+      int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
+      int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
       int dim = M*N;
       Score = new double[dim];
       ObservedInfo = new double[dim*dim];
@@ -1050,7 +1052,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
       }
 
       //output labels
-      *outputstream << "\"" << (*chrm[c])(j)->GetLabel(0) << "/" << (*chrm[c])(j+1)->GetLabel(0) << "\""<< separator
+      *outputstream << "\"" << (*Lociptr)(abslocus)->GetLabel(0) << "/" << (*Lociptr)(abslocus+1)->GetLabel(0) << "\""<< separator
 			 << Score[0] << separator << compinfo << separator <<obsinfo << separator;
 
       //compute chi-squared statistic

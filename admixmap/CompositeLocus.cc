@@ -28,16 +28,13 @@ using namespace std;
 // ******** Constructor *************************
 CompositeLocus::CompositeLocus()
 {
-  NumberOfLoci = 1;
-  NumberOfAlleles = new int[NumberOfLoci];
-  NumberOfAlleles[0] = 2;
-  NumberOfStates = 2;
+  NumberOfLoci = 0;
+  NumberOfStates = 1;
   base = 0;
   
   Populations = 0;
   RandomAlleleFreqs = false;
   NumberOfMergedHaplotypes = 0;
-  NumberOfAlleles = 0;
   AlleleProbs = 0;
   SumAlleleProbs = 0;
   HapPairProbs = 0;
@@ -53,7 +50,6 @@ CompositeLocus::~CompositeLocus()
 {
   delete[] Label;
   delete[] base;
-  delete[] NumberOfAlleles;
   delete[] HapPairProbs;
   delete[] HapPairProbsMAP;
   delete[] MergeHaplotypes;
@@ -70,15 +66,15 @@ CompositeLocus::~CompositeLocus()
  * NewNumberOfLoci - the number of simple loci to be represented by this
  * object.
  */
-void CompositeLocus::SetNumberOfLoci( int NewNumberOfLoci )
-{
-   NumberOfLoci = NewNumberOfLoci;
-   NumberOfAlleles = new int[NumberOfLoci];
-   NumberOfAlleles[0] = 2;
-   NumberOfStates = (int)pow( 2.0, NumberOfLoci );
-   base = new int[NumberOfLoci];
-   setBaseForHapCode();
-}
+// void CompositeLocus::SetNumberOfLoci( int NewNumberOfLoci )
+// {
+//    NumberOfLoci = NewNumberOfLoci;
+//    NumberOfAlleles = new int[NumberOfLoci];
+//    NumberOfAlleles[0] = 2;
+//    NumberOfStates = (int)pow( 2.0, NumberOfLoci );
+//    base = new int[NumberOfLoci];
+//    setBaseForHapCode();
+// }
 void CompositeLocus::SetNumberOfStates( int newNumberOfStates )
 {
    NumberOfStates= newNumberOfStates;
@@ -97,17 +93,17 @@ void CompositeLocus::SetRandomAlleleFreqs(bool b){
  * alleles - the number of alleles that exist at a given locus
  * locus - the given locus
  */
-void CompositeLocus::SetNumberOfAllelesOfLocus( int locus, int alleles )
-{
-   if( locus > NumberOfLoci - 1 ){
-      cout << "Input to SetNumberOfAllelesOfLocus > NumberOfLoci\n";
-      exit(1);
-   }
+// void CompositeLocus::SetNumberOfAllelesOfLocus( int locus, int alleles )
+// {
+//    if( locus > NumberOfLoci - 1 ){
+//       cout << "Input to SetNumberOfAllelesOfLocus > NumberOfLoci\n";
+//       exit(1);
+//    }
 
-   NumberOfStates /= NumberOfAlleles[ locus ];
-   NumberOfAlleles[ locus ] = alleles;
-   NumberOfStates *= alleles;
-}
+//    NumberOfStates /= NumberOfAlleles[ locus ];
+//    NumberOfAlleles[ locus ] = alleles;
+//    NumberOfStates *= alleles;
+// }
 /**
  * Extends the composite locus by adding one simple locus with given
  * number of alleles to the end of the composite locus.
@@ -117,15 +113,8 @@ void CompositeLocus::SetNumberOfAllelesOfLocus( int locus, int alleles )
 
 void CompositeLocus::AddLocus( int alleles )
 { 
-  vector<int> temp(NumberOfLoci);
-  for(int i=0;i<NumberOfLoci;++i)temp[i] = NumberOfAlleles[i];
-  NumberOfLoci++;
-
-  delete[] NumberOfAlleles;
-  NumberOfAlleles = new int[NumberOfLoci];
-  NumberOfAlleles[NumberOfLoci-1] = alleles;
-  for(int i=0; i< NumberOfLoci-1; ++i)NumberOfAlleles[i] = temp[i]; 
-
+  NumberOfAlleles.push_back(alleles);
+  ++NumberOfLoci;
   NumberOfStates *= alleles;
 }
 

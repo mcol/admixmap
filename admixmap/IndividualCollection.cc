@@ -26,8 +26,7 @@ IndividualCollection::IndividualCollection() {
   SumDeviance = SumDevianceSq = 0.0;
 }
 
-IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, const Genome& Loci, 
-					   const Chromosome* const* chrm) {
+IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
   OutcomeType = 0;
   NumOutcomes = 0;
   NumCovariates = 0;
@@ -41,14 +40,14 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   ReportedAncestry = 0;
   NumInd = Data->getNumberOfIndividuals();
   size = NumInd;
-  NumCompLoci = Loci.GetNumberOfCompositeLoci();
+  NumCompLoci = Loci->GetNumberOfCompositeLoci();
   //sigma.resize(2);
   //sigma[0] = sigma[1] = 1.0;
   TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer)
   sizeTestInd = 0;
   SumEnergy = 0; SumEnergySq = 0; 
 
-  Individual::SetStaticMembers(&Loci, options);
+  Individual::SetStaticMembers(Loci, options);
   
   unsigned i0 = 0; // used to offset numbering of other individuals (not the one under test)
   // Fill separate individuals.
@@ -62,7 +61,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
     fill(SumEnergySq, SumEnergySq+sizeTestInd, 0.0);
 
     for(int i = 0; i < sizeTestInd; ++i){
-      TestInd[i] = new Individual(1, options, Data, Loci, chrm, true); 
+      TestInd[i] = new Individual(1, options, Data, true); 
     }     
     ++i0;
     --size;
@@ -70,7 +69,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
 
   _child = new Individual*[size];
   for (unsigned int i = 0; i < size; ++i) {
-    _child[i] = new Individual(i+i0+1, options, Data, Loci, chrm, false);//NB: first arg sets Individual's number
+    _child[i] = new Individual(i+i0+1, options, Data, false);//NB: first arg sets Individual's number
     }
 }
 
@@ -323,7 +322,7 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
 }
 
 // ************** UPDATING **************
-void IndividualCollection::Update(int iteration, const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
+void IndividualCollection::Update(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
 				  const std::string* const PopulationLabels,
 				  const vector<vector<double> > &alpha, //double globalrho,
@@ -346,10 +345,10 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     i0 = 1;
     for(int i = 0; i < sizeTestInd; ++i){
       TestInd[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
-				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				   chrm, alpha, rhoalpha, rhobeta, //sigma,  
-				DerivativeInverseLinkFunction(0),
-				R[0].getDispersion(), anneal, true, true, true );
+				   lambda, NumCovariates, &Covariates, beta, poptheta, options,
+				   alpha, rhoalpha, rhobeta, 
+				   DerivativeInverseLinkFunction(0),
+				   R[0].getDispersion(), anneal, true, true, true );
     }
   }
   //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
@@ -359,7 +358,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   //posterior modes of individual admixture
   //search at start of burn-in, once annealing is finished
   if(!anneal && iteration == 0 && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
-    FindPosteriorModes(options, chrm, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
+    FindPosteriorModes(options, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
   }
 
   for(unsigned int i = 0; i < size; i++ ){
@@ -368,7 +367,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     cout << flush;
     _child[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				chrm, alpha, rhoalpha, rhobeta, //sigma,  
+				alpha, rhoalpha, rhobeta,  
 				DerivativeInverseLinkFunction(i+i0),
 				R[0].getDispersion(), (anneal && !options->getTestOneIndivIndicator()), true, true, true );
 
@@ -378,36 +377,36 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     
     if( options->getChibIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
       _child[i]->Chib(iteration, //&SumLogLikelihood, &(MaxLogLikelihood[i]),
-		      options, chrm, alpha, //globalrho, 
+		      options, alpha, //globalrho, 
 		      rhoalpha, rhobeta,
 		      thetahat, thetahatX, rhohat, rhohatX, &MargLikelihood, A);
   }
 }
 
-void IndividualCollection::setGenotypeProbs(Chromosome** C, unsigned nchr){
+void IndividualCollection::setGenotypeProbs(unsigned nchr){
   if(TestInd)
     for(int i = 0; i < sizeTestInd; ++i)
       for(unsigned j = 0; j < nchr; ++j)
-	TestInd[i]->SetGenotypeProbs(j, C[j],false);
+	TestInd[i]->SetGenotypeProbs(j, false);
   for(unsigned int i = 0; i < size; i++ ) {
     for(unsigned j = 0; j < nchr; ++j)
-      _child[i]->SetGenotypeProbs(j, C[j],false);
+      _child[i]->SetGenotypeProbs(j, false);
   }
 }  
 
-void IndividualCollection::annealGenotypeProbs(Chromosome** C, unsigned nchr, const double coolness, const double* Coolnesses){
+void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses){
   if(TestInd) { // anneal test individual only
     for(int i = 0; i < sizeTestInd; ++i)
-      for(unsigned j = 0; j < nchr; ++j) TestInd[i]->AnnealGenotypeProbs(j, C[j], Coolnesses[i]);
+      for(unsigned j = 0; j < nchr; ++j) TestInd[i]->AnnealGenotypeProbs(j, Coolnesses[i]);
 
     } else { // anneal all individuals
     for(unsigned int i = 0; i < size; ++i) {
-      for(unsigned j = 0; j < nchr; ++j) _child[i]->AnnealGenotypeProbs(j, C[j], coolness);
+      for(unsigned j = 0; j < nchr; ++j) _child[i]->AnnealGenotypeProbs(j, coolness);
     }
   }
 }
 
-void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, Chromosome **chrm, AlleleFreqs *A,
+void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, AlleleFreqs *A,
 					      const Regression* const R, const double* const poptheta,
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 					      const std::string* const PopulationLabels){
@@ -443,7 +442,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
     i0 = 1;
     TestInd[sizeTestInd-1]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
 				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-					       chrm, alpha, rhoalpha, rhobeta, //sigma,  
+					       alpha, rhoalpha, rhobeta, //sigma,  
 				DerivativeInverseLinkFunction(0),
 				R[0].getDispersion(), modefile, 
 				thetahat, thetahatX, rhohat, rhohatX);
@@ -451,7 +450,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   for(unsigned int i = 0; i < size; i++ ){
     _child[i]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
 				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				  chrm, alpha, rhoalpha, rhobeta, //sigma,  
+				  alpha, rhoalpha, rhobeta, //sigma,  
 				  DerivativeInverseLinkFunction(i+i0),
 				  R[0].getDispersion(), modefile, 
 				  thetahat, thetahatX, rhohat, rhohatX);
@@ -561,7 +560,7 @@ const vector<unsigned> IndividualCollection::getSumNumArrivals(){
   //returns a vector of sums over gametes of numbers of arrivals between pairs of loci
   vector<unsigned>sumNumArrivals(NumCompLoci, 0);
   for(unsigned i = 0; i < size; ++i)
-    _child[i]->getSumNumArrivals(sumNumArrivals);
+    _child[i]->getSumNumArrivals(&sumNumArrivals);
   return sumNumArrivals;
 }
 
@@ -570,7 +569,7 @@ const chib* IndividualCollection::getChib()const{
 }
 // ************** OUTPUT **************
 
-double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Chromosome** C, Regression *R, 
+double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci,
 					  LogWriter &Log, double SumLogRho, unsigned numChromosomes){
   // renamed from OutputDeviance
 
@@ -583,21 +582,20 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   //update chromosomes using globalrho, for globalrho model
   if(options->isGlobalRho())
     for( unsigned int j = 0; j < numChromosomes; j++ )
-      C[j]->SetLociCorr(exp(SumLogRho / (double)iterations));
+      Loci->getChromosome(j)->SetLociCorr(exp(SumLogRho / (double)iterations));
   
   //set haplotype pair probs to posterior means
-  for( unsigned int j = 0; j < numChromosomes; j++ )
-    for(unsigned jj = 0; jj < C[j]->GetNumberOfCompositeLoci(); ++jj)
-      (*C[j])(jj)->SetHapPairProbsToPosteriorMeans(iterations);
+  for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
+    (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
   
   //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  setGenotypeProbs(C, numChromosomes);
+  setGenotypeProbs(numChromosomes);
   
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates
   for(unsigned int i = 0; i < size; i++ ){
-    Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options, C);
+    Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
   Log << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
   for(int c = 0; c < options->getNumberOfOutcomes(); ++c){
@@ -672,7 +670,7 @@ void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const st
       << _child[0]->getLogLikelihoodOnePop() << "\n";
 }
 
-double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromosome **C, const Regression* R, 
+double IndividualCollection::getEnergy(const AdmixOptions* const options, const Regression* R, 
 				       const bool & annealed) {
   // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
   // called every iteration after burnin, after update of genotype probs and before annealing
@@ -682,7 +680,7 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromo
   double Energy = 0.0;
   // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
   for(unsigned i = 0; i < size; ++i) {
-    LogLikHMM += _child[i]->getLogLikelihood(options, C, false, !annealed); // store result if not an annealed run
+    LogLikHMM += _child[i]->getLogLikelihood(options, false, !annealed); // store result if not an annealed run
     // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
     
     if(annealed)  _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
@@ -695,10 +693,10 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, Chromo
 } 
 
 
-void IndividualCollection::accumulateEnergyArrays(const AdmixOptions* const options, Chromosome **C) {
+void IndividualCollection::accumulateEnergyArrays(const AdmixOptions* const options) {
   double Energy = 0.0;
   for(int i = 0; i < sizeTestInd; ++i){ // loop over coolnesses - one copy of test individual at each coolness 
-    Energy = -TestInd[i]->getLogLikelihood(options, C, true, false); // force HMM update, do not store result  
+    Energy = -TestInd[i]->getLogLikelihood(options, true, false); // force HMM update, do not store result  
     SumEnergy[i] += Energy;
     SumEnergySq[i] += Energy*Energy;
     TestInd[i]->HMMIsBad(true); // HMM is bad, stored loglikelihood bad

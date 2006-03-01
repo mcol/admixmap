@@ -39,7 +39,7 @@ public:
 
   void Output(const Vector_s locuslabels);
 
-  void Update(const IndividualCollection* const IC, const Chromosome* const *C, const Genome* const Loci);
+  void Update(const IndividualCollection* const IC, const Genome* const Loci);
 
   ~HWTest();
 

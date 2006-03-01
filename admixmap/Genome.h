@@ -3,28 +3,20 @@
  *   ADMIXMAP
  *   Genome.h
  *   header file for Genome class (formerly known as GeneticArray)
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
 #ifndef GENETIC_ARRAY_H
 #define GENETIC_ARRAY_H 1
 
 #include "CompositeLocus.h"
-//#include "Chromosome.h"
+#include "Chromosome.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -32,10 +24,8 @@
 #include "AdmixOptions.h"
 #include "InputData.h"
 
-class Chromosome;//declared here to avoid circular includes
-                 //not necessary if getChromosomes function moved out
 class Genome 
-// Object is an array of objects of class CompositeLocus
+// Object is an array of Chromosome objects
 // Used to loop over composite loci on a single chromosome, or an entire genome  
 {
 
@@ -72,12 +62,15 @@ public:
   unsigned GetSizeOfChromosome(unsigned)const;
 
   unsigned getFirstXLocus()const;
+  unsigned isXChromosome(unsigned);
 
   double GetDistance(int)const;
 
   void SetDistance(int,double);
 
-  Chromosome **GetChromosomes(int);
+  void GetChromosomes(int);
+  const Chromosome* const* getChromosomes()const;
+  Chromosome* getChromosome(unsigned);
 
   void SetSizes(LogWriter &Log);
  
@@ -86,14 +79,16 @@ public:
   
   double GetLengthOfGenome()const;
   double GetLengthOfXchrm()const;
+  void InitialiseLociCorr(const std::vector<double> rho);
+  void SetLociCorr(const std::vector<double> rho);
+  void InitialiseLociCorr(double rho);
+  void SetLociCorr(double rho);
 
-protected:// to make available to Chromosome
+private:
+  Chromosome **C;
   double *Distances;
   unsigned int NumberOfCompositeLoci;
-  CompositeLocus **TheArray;
-  bool isChromosome;
-
-private: 
+  CompositeLocus **TheArray; 
   double LengthOfGenome;
   double LengthOfXchrm;
 
@@ -102,7 +97,7 @@ private:
   unsigned int *SizesOfChromosomes;
   bool X_data;
   unsigned XChromosomeIndex;
-  std::vector< std::vector< int > > _chrmandlocus;
+  std::vector< std::vector< int > > LocusTable;
   std::vector<std::string> ChrmLabels;
 
   void InitialiseCompositeLoci();

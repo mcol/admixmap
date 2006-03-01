@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <values.h>
+#include <vector>
 
 class HMM
 {

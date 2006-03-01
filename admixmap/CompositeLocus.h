@@ -80,7 +80,7 @@ private:
   int NumberOfLoci;
   int NumberOfStates;
   int Populations;
-  int *NumberOfAlleles;
+  std::vector<int> NumberOfAlleles;
   double **AlleleProbs;
   double **SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
   double *HapPairProbs; //haplotype pair probabilities

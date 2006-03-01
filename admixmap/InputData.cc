@@ -254,23 +254,31 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
 
 void InputData::checkLocusFile(int sexColumn){
   // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
-  
+  bool flag = false;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
     //check distances are not negative
     if(locusMatrix_.get(i,2) < 0.0){
+      flag = true;
       cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
-      exit(1);
     }
+    //check distances are not too large 
+    bool flag = false;
+    if(locusMatrix_.get(i,2) < 100 && locusMatrix_.get(i,2) > 10) {//TODO: finalize thresholds here
+      flag = true;
+      cerr << "Warning: distance of " <<locusMatrix_.get(i,2)<< "  at locus " <<i<<endl;
+    }
+
     LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
     // Check loci names are unique    
     for (size_t j = 0; j < i-1; ++j) {   
       if (locusData_[i][0] == locusData_[j][0]) {
+	flag = true;
 	cerr << "Error in locusfile. Two different loci have the same name. "
 	     << locusData_[i][0] << endl;
-	exit(2);            
       }
     }
   }
+  if(flag)exit(1);
 
   const size_t numLoci = locusData_.size() - 1;//number of simple loci
 

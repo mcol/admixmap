@@ -14,22 +14,25 @@
 #ifndef CHROMOSOME_H
 #define CHROMOSOME_H 1
 
-#include "Genome.h"
 #include "HMM.h"
-#include <vector>
 
 class Individual;
 class AdmixOptions;
 
-class Chromosome:public Genome
+class Chromosome
 {
 public:
   Chromosome(int size,int start, int, bool isx);
    ~Chromosome();
   void SetLabel(std::string );
+  void SetDistance(int,double);
   const std::string GetLabel( )const;
   int GetLocus(int)const;
   unsigned int GetSize()const;
+  unsigned int GetNumberOfCompositeLoci()const;
+  const double *GetDistances()const;
+  double GetDistance(int)const;
+
   void isDiploid(bool b){Diploid = b;};
   bool isDiploid()const{return Diploid;};
   bool isXChromosome()const;
@@ -53,6 +56,9 @@ public:
 			    int *SumLocusAncestry, std::vector<unsigned> &SumN, 
 			    bool SampleArrivals)const;
 private:
+  double *Distances;
+  unsigned int NumberOfCompositeLoci;
+ 
   int _startLocus;
   int populations;
   std::string _Label;

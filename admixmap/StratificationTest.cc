@@ -13,7 +13,7 @@ StratificationTest::StratificationTest()
    T = 0;
 }
 
-void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci, const Chromosome* const* Chr, 
+void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci,  
 				     const IndividualCollection* const IC, LogWriter &Log )
 {
   Log.setDisplayMode(Quiet);
@@ -35,6 +35,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
 //       }
 //     }
     //NEW CODE
+    unsigned abslocus = 0;
     for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
       int j = -1;
       double max = 0;
@@ -42,8 +43,8 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
       double ExpHet;//expected heterozygosity
       //select most informative locus (with greatest exp heteroxygosity), from those with
       //less than 5% missing genotypes, on each chromosome
-      for(unsigned locus = 0; locus < Chr[c]->GetSize(); ++locus){
-	if((*Chr[c])(locus)->GetNumberOfStates() == 2){// test uses only diallelic loci
+      for(unsigned locus = 0; locus < Loci.GetSizeOfChromosome(c); ++locus){
+	if(Loci(abslocus)->GetNumberOfStates() == 2){// test uses only diallelic loci
 	  //count number of missing genotypes at locus
 	  long count = 0;
 	  for(int i = 0; i < IC->getSize(); ++i){
@@ -58,10 +59,11 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
 	    ExpHet = 2.0 * (n1*n2) / ((n1+n2)*(n1+n2)); 
 	    if( ExpHet > max){
 	      max  = ExpHet;
-	      j = Chr[c]->GetLocus(locus);//gets locus number (on genome) of this locus
+	      j = abslocus;//gets locus number (on genome) of this locus
 	    }
 	  }
 	}
+	++abslocus;
       }
       //j is the most informative locus
       if(j > -1){

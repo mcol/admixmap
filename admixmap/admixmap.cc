@@ -22,7 +22,7 @@ void MakeResultsDir(const char* dirname, bool verbose);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter &Log, std::ofstream *avgstream, const string* const PopulationLabels);
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, const std::string* const PopulationLabels, 
+		      const Genome *Loci, LogWriter& Log, const std::string* const PopulationLabels, 
 		      double coolness, bool anneal);
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      LogWriter& Log);
@@ -32,7 +32,7 @@ void PrintCopyrightNotice();
 
 void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs  & A, Regression *R, 
 		  AdmixOptions & options, 
-		  const Genome  & Loci, Chromosome **chrm, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+		  const Genome  & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  const double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
 		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, const double* Coolnesses);
@@ -84,11 +84,11 @@ int main( int argc , char** argv ){
   AlleleFreqs A(&Loci);
   A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   
-  Chromosome **chrm = 0; //Note: array of pointers to Chromosomes
-  chrm = Loci.GetChromosomes(options.getPopulations());  //create Chromosome objects
+  //Chromosome **chrm = 0; //Note: array of pointers to Chromosomes
+  Loci.GetChromosomes(options.getPopulations());  //create Chromosome objects
   Loci.SetSizes(Log);//prints length of genome, num loci, num chromosomes
   
-  IndividualCollection *IC = new IndividualCollection(&options, &data, Loci, chrm);//NB call after A Initialise
+  IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
   IC->LoadData(&options, &data);                             //and before L and R Initialise
   
   Latent L( &options, &Loci);    
@@ -100,9 +100,7 @@ int main( int argc , char** argv ){
   Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
   
   if( options.isGlobalRho() || options.getHapMixModelIndicator()) {
-    for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ) {
-      chrm[j]->InitialiseLociCorr(L.getrho());
-    }
+    Loci.InitialiseLociCorr(L.getrho());
   }
   cout << flush; 
   IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log);
@@ -131,9 +129,9 @@ int main( int argc , char** argv ){
       DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
     }
     if( options.getStratificationTest() )
-      StratTest.Initialize( &options, Loci, chrm, IC, Log);
+      StratTest.Initialize( &options, Loci, IC, Log);
     if( options.getScoreTestIndicator() )
-      Scoretest.Initialise(&options, IC, &Loci, chrm,data.GetPopLabels(), Log);
+      Scoretest.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
     if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
       AlleleFreqTest.Initialise(&options, &Loci, Log );  
     if( options.getHWTestIndicator() )
@@ -224,7 +222,7 @@ int main( int argc , char** argv ){
 	  }
 	  // accumulate scalars SumEnergy and SumEnergySq at this coolness
 	  // array Coolnesses is not used unless TestOneIndivIndicator is true
-	  doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
+	  doIterations(samples, burnin, IC, L, A, R, options, Loci, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
 		       loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
 	  
 	  //calculate mean and variance of energy at this coolness
@@ -241,7 +239,7 @@ int main( int argc , char** argv ){
 	} // end loop over coolnesses
       } else { // evaluate energy for test individual only at all coolnesses simultaneously
 	// call with argument AnnealedRun false - copies of test individual will be annealed anyway  
-	doIterations(samples, burnin, IC, L, A, R, options, Loci, chrm, Log, SumEnergy, SumEnergySq, 1.0, false, 
+	doIterations(samples, burnin, IC, L, A, R, options, Loci, Log, SumEnergy, SumEnergySq, 1.0, false, 
 		     loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
 	// arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls
 	double *MeanEner = IC->getSumEnergy(); 
@@ -282,7 +280,7 @@ int main( int argc , char** argv ){
     Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
       << "VarDeviance(V)\t" << VarDeviance << "\n"
       << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
-    double D_hat = IC->getDevianceAtPosteriorMean(&options, chrm, R, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
+    double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
     double pD = MeanDeviance - D_hat;
     double DIC = MeanDeviance + pD;
     Log << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
@@ -390,7 +388,7 @@ int main( int argc , char** argv ){
 
 void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs & A, 
 		  Regression *R, AdmixOptions & options, 
-		  const Genome & Loci, Chromosome **chrm, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+		  const Genome & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
 		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, const double* Coolnesses) {
@@ -400,13 +398,13 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
     if(iteration > burnin) {
       //accumulate energy as minus loglikelihood, calculated using unnanealed genotype probs
       if( !options.getTestOneIndivIndicator() ) {
-	Energy = IC->getEnergy(&options, chrm, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
+	Energy = IC->getEnergy(&options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
 	SumEnergy += Energy;
 	SumEnergySq += Energy*Energy;
 	// write to file if not AnnealedRun
 	if(!AnnealedRun)loglikelihoodfile << iteration<< "\t" << Energy <<endl;
       } else {  
-	IC->accumulateEnergyArrays(&options, chrm);
+	IC->accumulateEnergyArrays(&options);
       }
     }
     if( !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
@@ -414,9 +412,9 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
     }
     
     // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
-    if(AnnealedRun || options.getTestOneIndivIndicator()) IC->annealGenotypeProbs(chrm, Loci.GetNumberOfChromosomes(), coolness, Coolnesses); 
+    if(AnnealedRun || options.getTestOneIndivIndicator()) IC->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses); 
     
-    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, chrm, Log, data.GetPopLabels(), coolness, AnnealedRun);
+    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, Log, data.GetPopLabels(), coolness, AnnealedRun);
     Log.setDisplayMode(Quiet);
     if(!AnnealedRun){
       // output every 'getSampleEvery()' iterations
@@ -445,7 +443,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	  AlleleFreqTest.Update(IC, &A, &Loci);
 	//test for Hardy-Weinberg eq
 	if( options.getHWTestIndicator() )
-	  HWtest.Update(IC, chrm, &Loci);
+	  HWtest.Update(IC, &Loci);
 
 	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
 	if (!( (iteration - burnin) % (options.getSampleEvery() * 10))){    
@@ -561,19 +559,19 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 }
 
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, Chromosome **Chrm, LogWriter& Log, const std::string* const PopulationLabels,
+		      const Genome *Loci, LogWriter& Log, const std::string* const PopulationLabels,
 		      double coolness, bool anneal){
   A->ResetAlleleCounts();
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
   if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && !options->getHapMixModelIndicator() && 
      (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
-    L->UpdateGlobalSumIntensities(IC, Chrm); // should leave individuals with HMM probs bad, stored likelihood ok
+    L->UpdateGlobalSumIntensities(IC); // should leave individuals with HMM probs bad, stored likelihood ok
   // this function also sets ancestry correlations
   
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
   // individual admixture and sum-intensities 
   // no need to pass global sumintensities parameter as global ancestry correlations have already been set
-  IC->Update(iteration, options, Chrm, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(),  
+  IC->Update(iteration, options, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(),  
 	     L->getrhoalpha(), L->getrhobeta(), 
 	     anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level  
@@ -586,7 +584,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   }
   
   if(A->IsRandom() || anneal) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
-    IC->setGenotypeProbs(Chrm, Loci->GetNumberOfChromosomes()); // sets unannealed probs ready for getEnergy
+    IC->setGenotypeProbs(Loci->GetNumberOfChromosomes()); // sets unannealed probs ready for getEnergy
     IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   
@@ -594,8 +592,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // or from update of individual-level parameters otherwise
   
   if(options->getHapMixModelIndicator()){
-    L->UpdateGlobalTheta(iteration, IC, Chrm);
-    L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), Chrm);
+    L->UpdateGlobalTheta(iteration, IC);
+    L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize());
   }
 
   else

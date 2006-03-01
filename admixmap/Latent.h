@@ -40,7 +40,7 @@ class IndividualCollection;
 class Latent
 {
 public:
-  Latent( AdmixOptions*, const Genome* const);
+  Latent( AdmixOptions*, Genome* );
   
   ~Latent();
   
@@ -48,10 +48,10 @@ public:
   
   void InitializeOutputFile(const std::string* const);
   
-  void UpdateGlobalSumIntensities(const IndividualCollection* const IC, Chromosome **C);
-  void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, Chromosome **C); 
+  void UpdateGlobalSumIntensities(const IndividualCollection* const IC);
+  void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n); 
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log,  bool anneal);
-  void UpdateGlobalTheta(int iteration, IndividualCollection* individuals, Chromosome** C);
+  void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream* out); 
@@ -115,10 +115,10 @@ private:
   std::ofstream outputstream;//output to paramfile
 
   AdmixOptions *options;
-  const Genome* Loci; 
+  Genome* Loci; 
 
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
-  void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC, Chromosome** C);
+  void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);
 
   // UNIMPLEMENTED

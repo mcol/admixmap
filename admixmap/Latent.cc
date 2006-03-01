@@ -20,7 +20,7 @@ using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-Latent::Latent( AdmixOptions* op, const Genome* const loci)
+Latent::Latent( AdmixOptions* op, Genome* loci)
 {
   options = 0;
   rhoalpha = 0.0;
@@ -124,11 +124,11 @@ Latent::~Latent()
   delete[] globalthetaproposal;
 }
 
-void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals, Chromosome** C){
+void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals){
   if(options->getHapMixModelIndicator()){
     if(!(iteration%2))ConjugateUpdateGlobalTheta(individuals->getSumLocusAncestry(options->getPopulations()));
     else
-      UpdateGlobalThetaWithRandomWalk(individuals, C); 
+      UpdateGlobalThetaWithRandomWalk(individuals); 
   }
   individuals->setAdmixtureProps(globaltheta, options->getPopulations());//shouldn't be necessary
 }
@@ -177,7 +177,7 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    }
 }
 
-void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, Chromosome **C) {
+void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC) {
   if( options->isGlobalRho() ) { // update rho with random walk MH
     double rhoprop = rho[0];
     double LogLikelihood = 0.0;
@@ -194,18 +194,17 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, Ch
     for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
       ind->HMMIsBad(true);//to force HMM update
-      LogLikelihood += ind->getLogLikelihood(options, C, false, true); // don't force update, store result if updated
+      LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
       ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
    }
      // set ancestry correlations using proposed value of sum-intensities
     // value for X chromosome set to half the autosomal value 
-    for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ) {
-      C[j]->SetLociCorr(rhoprop);
-    }
+    Loci->SetLociCorr(rhoprop);
+
     //get log HMM likelihood at proposal rho and current admixture proportions
     for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
-      LogLikelihoodAtProposal += ind->getLogLikelihood(options, C, true, false); // force update, do not store result 
+      LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
       ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
       // line above should not be needed for a forced update with result not stored
     }
@@ -228,8 +227,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, Ch
       }
     } else { 
       // restore ancestry correlations in Chromosomes using original value of sum-intensities
-      for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-      C[j]->SetLociCorr(rho);
+      Loci->SetLociCorr(rho);
     } // stored loglikelihoods are still ok
 
     //update sampler object every w updates
@@ -260,7 +258,7 @@ void Latent::ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry){
   gendirichlet(K, dirparams, globaltheta );
 }
 
-void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC, Chromosome** C) {
+void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC) {
   double LogLikelihoodRatio = 0.0;
   double LogPriorRatio = 0.0;
   double logpratio = 0.0;
@@ -294,10 +292,10 @@ void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC, Chromosom
   vector<double> dummyrho(1);dummyrho[0] = rho[0];
   for(int i = 0; i < IC->getSize(); ++i){
     //get log likelihood at current parameter values - do not force update, store result of update
-    LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, C, false, true); 
+    LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, false, true); 
     
     //get log likelihood at proposal theta and current rho - force update 
-    LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, C, globaltheta, globaltheta, dummyrho, dummyrho, true);
+    LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, globaltheta, globaltheta, dummyrho, dummyrho, true);
   }
   IC->HMMIsBad(true);
 
@@ -337,17 +335,15 @@ void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
   }
 }
 
-void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, Chromosome** C) {
+void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals) {
   double sum = 0.0;
   for(unsigned j = 1; j < rho.size(); ++j){
     double EffectiveL = Loci->GetDistance(j) * 2 * NumIndividuals;//length of interval * # gametes
-    //TODO: fix for Xchr
     rho[j] = gengam( rhoalpha + (double)(SumNumArrivals[j]), rhobeta + EffectiveL );
     sum += rho[j];
   }
   rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
-  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
-    C[j]->SetLociCorr(rho);
+  Loci->SetLociCorr(rho);
 }
 
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
