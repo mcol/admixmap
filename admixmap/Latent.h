@@ -49,7 +49,7 @@ public:
   void InitializeOutputFile(const std::string* const);
   
   void UpdateGlobalSumIntensities(const IndividualCollection* const IC, Chromosome **C);
-  void SampleSumIntensities(const std::vector<unsigned> SumNumArrivals); 
+  void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, Chromosome **C); 
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log,  bool anneal);
   void UpdateGlobalTheta(int iteration, IndividualCollection* individuals, Chromosome** C);
   

@@ -333,12 +333,8 @@ int main( int argc , char** argv ){
   cout << "Output to files completed\n" << flush;
 
   // *************************** CLEAN UP ******************************************************  
-  for(unsigned i = 0; i < Loci.GetNumberOfChromosomes(); i++){
-    delete chrm[i];
-  }
   A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
-  delete []chrm;
   
   // ******************* acceptance rates - output to screen and log ***************************
   if( options.getIndAdmixHierIndicator() ){
@@ -599,8 +595,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   if(options->getHapMixModelIndicator()){
     L->UpdateGlobalTheta(iteration, IC, Chrm);
-    L->SampleSumIntensities(IC->getSumNumArrivals());
+    L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), Chrm);
   }
+
   else
     //update population admixture Dirichlet parameters conditional on individual admixture
     L->UpdatePopAdmixParams(iteration, IC, Log, anneal);

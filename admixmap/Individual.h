@@ -74,7 +74,7 @@ public:
   const int *getSumLocusAncestryX()const;
   const std::vector<unsigned> getSumNumArrivals()const;
   const std::vector<unsigned> getSumNumArrivals_X()const;
-  void getSumNumArrivals(std::vector<unsigned> &sum)const;
+  void getSumNumArrivals(std::vector<unsigned> *sum)const;
 
   double getLogLikelihood(const AdmixOptions* const options, Chromosome **chrm, 
 			  const double* const theta, const double* const thetaX,

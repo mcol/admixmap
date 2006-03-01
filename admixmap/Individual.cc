@@ -414,10 +414,10 @@ const vector<unsigned>Individual::getSumNumArrivals_X()const{
   }
   return SumN;
 }
-void Individual::getSumNumArrivals(std::vector<unsigned> &sum)const{
+void Individual::getSumNumArrivals(std::vector<unsigned> *sum)const{
   //should check size of argument
-  for(unsigned i = 0; i < sum.size(); ++i){//sum over gametes
-    sum[i] += SumNumArrivals[2*i] + SumNumArrivals[2*i + 1];
+  for(unsigned i = 0; i < sum->size(); ++i){//sum over gametes
+    (*sum)[i] += SumNumArrivals[2*i] + SumNumArrivals[2*i + 1];
   }
 }
 
@@ -544,7 +544,6 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
   dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
 */
-  
   if(Populations>1) {
     // ** reset SumLocusAncestry to zero
     for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
@@ -566,7 +565,7 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
   if(sampleSStats) {
     bool ancestrytest = updatescores && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
     for( unsigned int j = 0; j < numChromosomes; j++ ){
-      if(Populations>1){ // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
+       if(Populations>1){ // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
 	//Update Forward/Backward probs in HMM
 	if( !logLikelihood.HMMisOK ) {
 	  UpdateHMMForwardProbs(j, chrm[j], options, Theta, ThetaX, _rho, _rho_X);
@@ -600,14 +599,13 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
 	//sample number of arrivals, update SumNumArrivals and SumLocusAncestry
 	if( !chrm[j]->isXChromosome() )
 	  chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumNumArrivals, 
-					!options->isGlobalRho());
+					(!options->isGlobalRho() || options->getHapMixModelIndicator()));
 	else 
 	  chrm[j]->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry_X, SumNumArrivals, 
-					!options->isGlobalRho());
+					(!options->isGlobalRho() || options->getHapMixModelIndicator()));
       } // end if(Populations>1) block  
     } //end chromosome loop
   }
-  
   // sample sum of intensities parameter rho if defined at individual level - then set HMM and loglikelihood as bad 
   if(sampleparams && Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) {
     SampleRho( options, Loci->isX_data(), rhoalpha, rhobeta, getSumNumArrivals(), getSumNumArrivals_X(), &_rho, &_rho_X);

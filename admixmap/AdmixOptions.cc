@@ -407,7 +407,7 @@ long AdmixOptions::getSeed() const
 }
 
 double AdmixOptions::getRhoalpha() const {
-  if(GlobalRho || !IndAdmixHierIndicator) {
+  if(!HapMixModelIndicator && (GlobalRho || !IndAdmixHierIndicator)) {
     return globalrhoPrior[0];
   } else {
     return rhoPrior[0];

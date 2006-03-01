@@ -68,14 +68,15 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
     if(options->getHapMixModelIndicator() || (options->getIndAdmixHierIndicator() && !options->isGlobalRho() )){
-      // get prior on rate parameter beta and initialize it at prior mean
+       // get prior on rate parameter beta and initialize it at prior mean
       rhobeta0 = options->getRhobetaShape();
       rhobeta1 = options->getRhobetaRate();
       rhobeta = rhobeta0 / rhobeta1;
+      rho[0] = rhoalpha * rhobeta0 / (rhobeta1 - 1.0);
       if(options->getHapMixModelIndicator()){
 	//initialise rho vector
 	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j)
-	  rho.push_back(rhoalpha / rhobeta);
+	  rho.push_back(rho[0]);
       }
     }
     else{
@@ -336,11 +337,17 @@ void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
   }
 }
 
-void Latent::SampleSumIntensities(const vector<unsigned> SumNumArrivals) {
-  double EffectiveL = 2.0 * Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm();//check this;
+void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, Chromosome** C) {
+  double sum = 0.0;
   for(unsigned j = 1; j < rho.size(); ++j){
+    double EffectiveL = Loci->GetDistance(j) * 2 * NumIndividuals;//length of interval * # gametes
+    //TODO: fix for Xchr
     rho[j] = gengam( rhoalpha + (double)(SumNumArrivals[j]), rhobeta + EffectiveL );
+    sum += rho[j];
   }
+  rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
+  for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ )
+    C[j]->SetLociCorr(rho);
 }
 
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
@@ -348,12 +355,17 @@ void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
   // Header line of paramfile
   //Pop. Admixture
   for( int i = 0; i < options->getPopulations(); i++ ) {
-    outputstream << "\""<<PopulationLabels[i] << "\" ";
+    outputstream << "\""<<PopulationLabels[i] << "\"\t";
   }
   //SumIntensities
-  if( options->isGlobalRho() ) outputstream << "sumIntensities\t";
-  else outputstream << "sumIntensities.mean\t";
+  if(options->getHapMixModelIndicator())
+    outputstream << "SumIntensities.Mean\tSumIntensities.Variance";
+  else{
+    if( options->isGlobalRho() ) outputstream << "sumIntensities\t";
+    else outputstream << "sumIntensities.mean\t";
+  }
   outputstream << endl;
+  
 }
 
 void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
@@ -375,10 +387,19 @@ void Latent::OutputParams(ostream* out){
   }
   
   out->width(9);
-  if( !options->isGlobalRho() )
-    (*out) << setprecision(6) << rhoalpha / rhobeta  << "\t";
-  else
-    (*out) << setprecision(6) << rho[0] << "\t";
+  if(options->getHapMixModelIndicator()){
+    double sum = accumulate(rho.begin()+1, rho.end(), 0.0, std::plus<double>());
+    double var = 0.0;
+    for(unsigned j = 1; j < rho.size(); ++j)var += rho[j]*rho[j];
+    var = var - (sum*sum) / (double)rho.size();
+    (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / rho.size() << "\t" << var /(rho.size()-1) << "\t";
+  }
+  else{
+    if( options->isGlobalRho() )
+      (*out) << setprecision(6) << rho[0] << "\t";
+    else
+      (*out) << setprecision(6) << rhoalpha / rhobeta  << "\t";
+  }
 }
 
 void Latent::OutputParams(int iteration, LogWriter &Log){
