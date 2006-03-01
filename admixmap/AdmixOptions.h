@@ -68,6 +68,7 @@ public:
   double getRhobeta() const;
   double getRhobetaShape()const;
   double getRhobetaRate()const;
+  double getRhoPriorMean()const;
 
   vector<double> getInitAlpha(int) const;
   std::vector<std::vector<double> > getInitAlpha()const;

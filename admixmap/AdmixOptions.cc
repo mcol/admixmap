@@ -400,7 +400,12 @@ bool AdmixOptions::getTestForResidualAllelicAssoc()const{
 const char* AdmixOptions::getResidualAllelicAssocScoreFilename()const{
   return ResidualAllelicAssocScoreFilename.c_str();
 }
-
+double AdmixOptions::getRhoPriorMean()const{
+  if( !HapMixModelIndicator && (GlobalRho || !IndAdmixHierIndicator ) )
+    return globalrhoPrior[0] / globalrhoPrior[1];
+  else 
+    return rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
+}
 long AdmixOptions::getSeed() const
 {
   return Seed;

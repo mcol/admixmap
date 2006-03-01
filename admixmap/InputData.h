@@ -127,7 +127,7 @@ private:
   void getPopLabels(const Vector_s& data, size_t Populations, std::string **labels);
   void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
   void CheckGeneticData(AdmixOptions *options)const;
-  void checkLocusFile(int sexColumn);
+  void checkLocusFile(int sexColumn, double threshold);
   unsigned determineNumberOfCompositeLoci()const;
   void CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log);
   RegressionType CheckOutcomeVarFile(int, int, LogWriter &Log);

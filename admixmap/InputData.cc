@@ -177,7 +177,9 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   Log.setDisplayMode(Quiet);
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
-  checkLocusFile(options->getgenotypesSexColumn());
+
+  double threshold = 100 / options->getRhoPriorMean();
+  checkLocusFile(options->getgenotypesSexColumn(), threshold);
   locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
     options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator(), Log));
@@ -206,7 +208,7 @@ int InputData::getNumberOfSimpleLoci()const {
 unsigned InputData::determineNumberOfCompositeLoci()const{
   unsigned NumberOfCompositeLoci = locusMatrix_.nRows()-1;
     for( unsigned i = 1; i < locusMatrix_.nRows(); i++ )
-     if( locusMatrix_.get( i, 2 ) == 0.0 ) NumberOfCompositeLoci--;
+      if( !locusMatrix_.isMissing(i,2) && locusMatrix_.get( i, 2 ) == 0.0 ) NumberOfCompositeLoci--;
     return NumberOfCompositeLoci;
 }
 
@@ -252,7 +254,7 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
   }
 }
 
-void InputData::checkLocusFile(int sexColumn){
+void InputData::checkLocusFile(int sexColumn, double threshold){
   // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
   bool flag = false;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
@@ -262,10 +264,10 @@ void InputData::checkLocusFile(int sexColumn){
       cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
     }
     //check distances are not too large 
-    bool flag = false;
-    if(locusMatrix_.get(i,2) < 100 && locusMatrix_.get(i,2) > 10) {//TODO: finalize thresholds here
-      flag = true;
+    if(locusMatrix_.get(i,2) < 100 && locusMatrix_.get(i,2) > threshold) {
+      //flag = true;
       cerr << "Warning: distance of " <<locusMatrix_.get(i,2)<< "  at locus " <<i<<endl;
+      locusMatrix_.isMissing(i,2, true);
     }
 
     LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
@@ -310,7 +312,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
       states *= (int)locusMatrix_.get( index, 0 );
       index++;
     }
-    while( index < locusMatrix_.nRows() - 1 && locusMatrix_.get( index, 1 ) == 0 );
+    while( index < locusMatrix_.nRows() - 1 && !locusMatrix_.isMissing(index, 1) && locusMatrix_.get( index, 1 ) == 0 );
     NumberOfStates += states;
   }
 
