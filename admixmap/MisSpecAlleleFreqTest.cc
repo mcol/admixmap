@@ -1,14 +1,25 @@
-/*
-  Implements score tests for mis-specified allele frequencies
- * Only used with fixed allele frequencies and only for monitoring. 
+/** 
+ *   ADMIXMAP
+ *   MisSpecAlleleFreqTest.cc 
+ *   Implements score tests for mis-specified allele frequencies
+ *   Only used with fixed allele frequencies and only for monitoring. 
 
-  There are currently two tests:
-  1. scalar test carried out only at composite loci with a single locus
-  2. a generalized test , not fully implemented yet
+ * There are currently two tests:
+ * 1. scalar test carried out only at composite loci with a single locus
+ * 2. a generalized test , not fully implemented yet
+ *
+ * Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 
-*/
 #include "MisSpecAlleleFreqTest.h"
 #include "functions.h"
+#include "gsl/gsl_cdf.h"//for pvalues
 
 MisSpecAlleleFreqTest::MisSpecAlleleFreqTest(){
   ScoreGene = 0;
@@ -90,19 +101,16 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
        SumScoreGeneSq[i] = new double[ Populations * Populations ];
        fill(SumScoreGeneSq[i], SumScoreGeneSq[i]+Populations*Populations, 0.0);
     }
-     Log.setDisplayMode(On);
      allelefreqscorestream.open( options->getAlleleFreqScoreFilename() );
-     if( !allelefreqscorestream ){
-       Log << "ERROR: Couldn't open allelefreqscorefile " << options->getAlleleFreqScoreFilename() << "\n";
-      exit( 1 );
+     if(!allelefreqscorestream.is_open()){
+       string error_string = "ERROR: could not open ";
+       error_string.append(options->getAlleleFreqScoreFilename());
+       throw(error_string);
      }
-    else{
-      Log.setDisplayMode(Quiet);
-      Log << "Writing score tests for mis-specified allele frequencies(1) to " << options->getAlleleFreqScoreFilename() << "\n";
-      allelefreqscorestream << "structure(.Data=c(" << endl;
-    }
+     Log << "Writing score tests for mis-specified allele frequencies(1) to " << options->getAlleleFreqScoreFilename() << "\n";
+     allelefreqscorestream << "Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tChiSquared\tPValue"<< endl;
    }
-   
+
    if(Test2){
      SumNewScore = new double**[NumCompLoci];
      SumNewInfo = new double**[NumCompLoci];
@@ -124,15 +132,13 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
        }
      }
      allelefreqscorestream2.open( options->getAlleleFreqScoreFilename2() );
-     if( !allelefreqscorestream2 ){
-       Log << "ERROR: Couldn't open allelefreqscorefile " << options->getAlleleFreqScoreFilename2() << "\n";
-       exit( 1 );
-    }
-     else{
-       Log.setDisplayMode(Quiet);
-       Log << "Writing score tests for mis-specified allele frequencies(2) to " << options->getAlleleFreqScoreFilename2() << "\n";
-       allelefreqscorestream2 << "structure(.Data=c(" << endl;
+     if(!allelefreqscorestream2.is_open()){
+       string error_string = "ERROR: could not open ";
+       error_string.append(options->getAlleleFreqScoreFilename2());
+       throw(error_string);
      }
+     Log << "Writing score tests for mis-specified allele frequencies(2) to " << options->getAlleleFreqScoreFilename2() << "\n";
+     allelefreqscorestream2 << "Locus\tPopulation\tCompleteInfo\tObservedInfo\tPercentInfo\tChiSquared" << endl;
    }
  }
  else{
@@ -304,6 +310,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
 {
   double* ObservedMatrix = new double[Populations*Populations];
   double* ScoreSq = new double[Populations*Populations];
+  allelefreqscorestream << setiosflags(ios::fixed) << setprecision(2);//output 2 decimal places
   for(int j = 0; j < NumCompLoci; j++ ){
     if( (*Loci)(j)->GetNumberOfLoci() == 1 ){
  
@@ -317,57 +324,47 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
 
       //ObservedMatrix = CompleteMatrix + ScoreMatrix * ScoreMatrix.Transpose() - SumScoreGeneSq[j] / samples;
 
-
-
       for( int k = 0; k < Populations; k++ ){
+	double observedinfo = ObservedMatrix[ k*Populations + k ];
+	double completeinfo = SumInfoGene[j][ k*Populations + k ];
 	// Test for mis-specification within each continental-population.
-	allelefreqscorestream << "\"" <<  (*Loci)(j)->GetLabel(0) << "\",";
-	allelefreqscorestream << "\""<<PopLabels[k] << "\",";
-	allelefreqscorestream << double2R(SumScoreGene[j][ k ] ) << ",";
-	allelefreqscorestream << double2R(SumInfoGene[j][ k*Populations + k ] ) << ",";
-	allelefreqscorestream << double2R(ObservedMatrix[ k*Populations + k ] ) << ",";
-	allelefreqscorestream << double2R(100*ObservedMatrix[ k*Populations + k ] / SumInfoGene[j][ k*Populations + k ] ) << ",";
-	allelefreqscorestream << double2R(SumScoreGene[j][ k ] / sqrt( ObservedMatrix[ k*Populations + k ] ) ) << ",";
+	allelefreqscorestream << (*Loci)(j)->GetLabel(0) << "\t"
+			      << PopLabels[k] << "\t"
+			      << SumScoreGene[j][ k ]  << "\t" //score
+			      << completeinfo  << "\t"//complete info
+			      << observedinfo  << "\t";//observed info
+	if(completeinfo > 0.0)
+	  allelefreqscorestream << 100*observedinfo / completeinfo  << "\t";
+	else allelefreqscorestream << "NA\t";
+
+	if(observedinfo > 0.0){
+	  double zscore = SumScoreGene[j][ k ] / sqrt( observedinfo );
+	  double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+	  allelefreqscorestream << zscore << "\t" << pvalue  << "\t";
+	}
+	else allelefreqscorestream << "NA\tNA\t";
+
 	if( k < Populations - 1 )
-	  allelefreqscorestream  << "\"NA\"," << endl;
+	  allelefreqscorestream  << "NA" << endl;//output NA in chisq column
       }
       // Summary chi-sq test for mis-specification in all continental-populations.
       try{
 	double chisq = GaussianConditionalQuadraticForm(Populations, SumScoreGene[j], ObservedMatrix, Populations);
-	allelefreqscorestream << double2R(chisq)<< "," << endl;
+	allelefreqscorestream << chisq<< endl;
       }
       catch(...){
-	allelefreqscorestream << "NaN"<< "," << endl;
+	allelefreqscorestream << "NA" << endl;
       }
     }
-  }
+  }//end locus loop
   delete[] ObservedMatrix;
   delete[] ScoreSq; 
-  /**
-   * writes out the dimensions and labels of the 
-   * R- array for old test for mis-specified allele frequencies
-   */
-  vector<int> dimensions(3,0);
-  dimensions[0] = 8;
-  dimensions[1] = NumTestLoci * Populations;
-  dimensions[2] = 1;//(int)(numPrintedIterations);
-  
-  vector<string> labels(8,"");
-  labels[0] = "Locus";
-  labels[1] = "Population";
-  labels[2] = "Score";
-  labels[3] = "CompleteInfo";
-  labels[4] = "ObservedInfo";
-  labels[5] = "PercentInfo";
-  labels[6] = "StdNormal";
-  labels[7] = "ChiSquared";
-  
-  R_output3DarrayDimensions(&allelefreqscorestream,dimensions,labels);
 }
 
 void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples, const Genome* const Loci, 
 								    const std::string* const PopLabels)
 {
+  //allelefreqscorestream2 << setiosflags(ios::fixed) << setprecision(2);//output 2 decimal places
   for(int j = 0; j < NumCompLoci; j++ ){
     int NumberOfStates = (*Loci)(j)->GetNumberOfStates();
     double* score = new double[NumberOfStates-1];
@@ -390,21 +387,25 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
       //score = SumNewScore[j][k] / samples;
       //completeinfo = SumNewInfo[j][k] / samples;
       //observedinfo = completeinfo + score * score.Transpose() - SumNewScoreSq[j][k] / samples;
-      double det1 = determinant(completeinfo, NumberOfStates-1);
-      double det2 = determinant(observedinfo, NumberOfStates-1);
-
-      allelefreqscorestream2 << "\"" << (*Loci)(j)->GetLabel(0) << "\",";
-      allelefreqscorestream2 << "\""<<PopLabels[k] << "\",";
-      allelefreqscorestream2 << double2R(det1) << ",";
-      allelefreqscorestream2 << double2R(det2) << ",";
-      allelefreqscorestream2 << double2R(100*det2 / det1) << ",";
+      allelefreqscorestream2 << (*Loci)(j)->GetLabel(0) << "\t"
+			     << PopLabels[k] << "\t";
+      try{
+	double det1 = determinant(completeinfo, NumberOfStates-1);
+	double det2 = determinant(observedinfo, NumberOfStates-1);
+	allelefreqscorestream2 << det1 << "\t"
+			       << det2 << "\t"
+			       << 100*det2 / det1 << "\t";
+	}
+	catch(...){
+	allelefreqscorestream2 << "NA\tNA\tNA\t";
+	}
       try{
 	double chisq = GaussianConditionalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
 	//observedinfo.InvertUsingLUDecomposition();
-	allelefreqscorestream2 << double2R(chisq)/*double2R((score.Transpose() * observedinfo * score)(0,0))*/ << "," << endl;
+	allelefreqscorestream2 << chisq/*double2R((score.Transpose() * observedinfo * score)(0,0))*/  << endl;
       }
       catch(...){
-	allelefreqscorestream2 <<"NaN";
+	allelefreqscorestream2 <<"NA" << endl;
       }
 
     }
@@ -413,56 +414,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
     delete[] observedinfo;
     delete[] scoresq;
   }//end comploci loop
-  /**
-   * writes out the dimensions and labels of the 
-   * R-array for new test for mis-specified allele frequencies
-   */
-    vector<int> dimensions(3,0);
-    dimensions[0] = 6;
-    dimensions[1] = NumCompLoci * Populations;
-    dimensions[2] = 1;//(int)(numPrintedIterations);
-
-    vector<string> labels(6,"");
-    labels[0] = "Locus";
-    labels[1] = "Population";
-    labels[2] = "CompleteInfo";
-    labels[3] = "ObservedInfo";
-    labels[4] = "PercentInfo";
-    labels[5] = "ChiSquared";
-
-    R_output3DarrayDimensions(&allelefreqscorestream2,dimensions,labels);
 
 }
 
-void MisSpecAlleleFreqTest::R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels)
-{
-  *stream << ")," << endl;
-  *stream << ".Dim = c(";
-  for(unsigned int i=0;i<dim.size();i++){
-    *stream << dim[i];
-    if(i != dim.size() - 1){
-      *stream << ",";
-    }
-  }
-  *stream << ")," << endl;
-  *stream << ".Dimnames=list(c(";
-  for(unsigned int i=0;i<labels.size();i++){
-    *stream << "\"" << labels[i] << "\"";
-    if(i != labels.size() - 1){
-      *stream << ",";
-    }
-  }
-  *stream << "), character(0), character(0)))" << endl;
 
-
-}
-string MisSpecAlleleFreqTest::double2R( double x )
-{
-  if( isnan(x) )
-    return "NaN";
-  else{
-    stringstream ret;
-    ret << x;
-    return( ret.str() );
-  }
-}

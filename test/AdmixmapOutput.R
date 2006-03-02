@@ -67,7 +67,7 @@ getIsAdmixed <- function(AdmixturePrior) {
   
 readLoci <- function(locusfile) {
   ## read table of loci, number chromosomes and calculate map positions
-  loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", "."))
+  loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", "."), comment.char="")
   ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
   num.sloci <- dim(loci.simple)[1]
   loci.compound <- loci.simple[1, ] # table with 1 row 
@@ -650,60 +650,6 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
                  "Running computation of p-values for residual allelic association")
 }
 
-plotScoreTestAlleleFreqs <- function(scorefile) {
-  scoretest.allelefreq <- dget(paste(resultsdir,scorefile,sep="/"))
-
-  dimnames(scoretest.allelefreq)[[2]] <- scoretest.allelefreq[1,,1]
-  dim.names <- dimnames(scoretest.allelefreq)
-  dim.names[[1]] <- dim.names[[1]][-1]
-  
-  scoretest.allelefreq <- scoretest.allelefreq[-1,,]
-  if(is.matrix(scoretest.allelefreq))scoretest.allelefreq <- array(scoretest.allelefreq, dim=c(dim(scoretest.allelefreq), 1),
-                                                                   dimnames=dim.names)
-  
-  popnames <- scoretest.allelefreq[1,,1]
-  scoretest.allelefreq <- 
-  array(as.numeric(scoretest.allelefreq), dim=dim(scoretest.allelefreq),
-                               dimnames=dimnames(scoretest.allelefreq))
-  scoretest.allelefreq[is.nan(scoretest.allelefreq)] <- NA
-  scoretest.allelefreq.final <- t(scoretest.allelefreq[,,dim(scoretest.allelefreq)[3]])
-  scalar.pvalues <- 2*pnorm(-abs(scoretest.allelefreq.final[,6]))
-  scoretest.allelefreq.withp <- data.frame(dimnames(scoretest.allelefreq.final)[[1]], popnames,
-                                           round(scoretest.allelefreq.final[,2:4], digits=2),
-                                           round(scoretest.allelefreq.final[,5], digits=0), 
-                                           round(scoretest.allelefreq.final[,6:7], digits=2), 
-                                           signif(scalar.pvalues, digits=2)
-                                           )
-  dimnames(scoretest.allelefreq.withp)[[2]] <-
-    c("Locus", "Population", "Score", "CompleteInfo",
-      "ObsInfo", "PercentInfo", "StdNormDev", "Chi-square", "Scalar p-value") 
-  outputfile <- paste(resultsdir, "TestsAlleleFreqFinal.txt", sep="/" )
-  write.table(scoretest.allelefreq.withp, file=outputfile,
-              quote=FALSE,row.names=FALSE, sep="\t")
-}
-
-plotScoreTestAlleleFreqs2 <- function(scorefile) {
-  scoretest.allelefreq <- dget(paste(resultsdir,scorefile,sep="/"))
-  dimnames(scoretest.allelefreq)[[2]] <- scoretest.allelefreq[1,,1]
-  scoretest.allelefreq <- scoretest.allelefreq[-1,,]
-  popnames <- scoretest.allelefreq[1,,1]
-  scoretest.allelefreq <- 
-  array(as.numeric(scoretest.allelefreq), dim=dim(scoretest.allelefreq),
-                               dimnames=dimnames(scoretest.allelefreq))
-  scoretest.allelefreq[is.nan(scoretest.allelefreq)] <- NA
-  scoretest.allelefreq.final <- t(scoretest.allelefreq[,,dim(scoretest.allelefreq)[3]])
-
-  scoretest.allelefreq.withp <- data.frame(dimnames(scoretest.allelefreq.final)[[1]], popnames,
-                                           round(scoretest.allelefreq.final[,2:5], digits=2)
-                                           )
-  dimnames(scoretest.allelefreq.withp)[[2]] <-
-    c("Locus", "Population", "CompleteInfo",
-      "ObsInfo", "PercentInfo", "Chi-square") 
-  outputfile <- paste(resultsdir, "TestsAlleleFreqFinal2.txt", sep="" )
-  write.table(scoretest.allelefreq.withp, file=outputfile,
-              quote=FALSE,row.names=FALSE, sep="\t")
-}
-
 convertAlleleFreqs <- function(allelefreq.samples) {
   ## argument is a 3-way array of allele frequencies (locusname + pops, alleles x loci, draws)
   ## converts to a list of 3-way arrays each holding alleles x pops x draws for one locus
@@ -997,8 +943,8 @@ ps.options(pointsize=16)
 user.options <- getUserOptions(paste(resultsdir, "args.txt", sep="/"))
 
 ## read table of loci and calculate map positions
-loci.compound <- readLoci(user.options$locusfile)
-n.chr <- nlevels(factor(loci.compound$Chromosome))
+#loci.compound <- readLoci(user.options$locusfile)
+#n.chr <- nlevels(factor(loci.compound$Chromosome))
 
 K <- getNumSubpopulations(user.options)
 population.labels <- getPopulationLabels(K, user.options)
@@ -1146,9 +1092,9 @@ if(!is.null(user.options$thermo) && user.options$thermo == 1){
 }
 
 ## read output of score test for mis-specified allele freqs and plot cumulative results
-if(!is.null(user.options$allelefreqscorefile)) {
-  plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
-}
+##if(!is.null(user.options$allelefreqscorefile)) {
+  ##plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
+##}
 
 #read output of test for heterozygosity and plot
 if(!is.null(user.options$hwtestfile)){

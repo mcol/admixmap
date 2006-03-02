@@ -632,6 +632,7 @@ void scale_matrix(double *a, const double c, size_t d1, size_t d2){
 }
 
 double determinant(double *a, size_t d){
+  double det = 0.0;
   gsl_permutation *permutation = gsl_permutation_alloc(d);
   int signum;
   double* aa = new double[d*d];
@@ -640,15 +641,18 @@ double determinant(double *a, size_t d){
 
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   int status = gsl_linalg_LU_decomp( &A.matrix, permutation, &signum );//LU decomposition
+  gsl_permutation_free(permutation);
+
   if(status){
+    delete[] aa;
     std::string errstring = "failed to compute determinant, "; errstring.append(gsl_strerror(status));
     throw(errstring) ;//throw error message up and let caller decide what to do
   }
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  double det = gsl_linalg_LU_det(&A.matrix, signum); 
 
-  gsl_permutation_free(permutation);
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  det = gsl_linalg_LU_det(&A.matrix, signum); 
   delete[] aa;
+
   return det;
 }
 
