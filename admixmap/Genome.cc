@@ -73,14 +73,12 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     if (m.size() == 4) ChrmLabels.push_back(m[3]);
 
     SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
-    if(locifileData.isMissing(row, 1) || Distances[i] >= 100){//new chromosome, triggered by missing value or 
+    if(locifileData.isMissing(row, 1) ){//new chromosome, triggered by missing value
       cnum++;
       lnum = 0; 
       cstart[cnum] = i; //locus number of first locus on new chromosome
-    } else if(cnum==-1){
-      Log << "first locus should have distance of >=100, but doesn't\n";
-    }else{
-      lnum++;
+    } else{
+      lnum++;//one more locus on chromosome
     }
     LocusTable[i][0] = cnum;//chromosome on which locus i is located
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
@@ -199,6 +197,7 @@ void Genome::PrintSizes(LogWriter &Log){
   if( isX_data() ){
     Log << "Effective length of X chromosome under study: " << LengthOfXchrm << " Morgans.\n";
    }
+  Log << "\n";
 }
 
 //Accessors

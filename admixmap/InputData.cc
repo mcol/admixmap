@@ -256,6 +256,8 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
 
 void InputData::checkLocusFile(int sexColumn, double threshold){
   // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
+  //also determines number of chromosomes
+  //NumChromosomes = 0;
   bool flag = false;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
     //check distances are not negative
@@ -264,10 +266,11 @@ void InputData::checkLocusFile(int sexColumn, double threshold){
       cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
     }
     //check distances are not too large 
-    if(locusMatrix_.get(i,2) < 100 && locusMatrix_.get(i,2) > threshold) {
+    if(locusMatrix_.get(i,2) > threshold) {
       //flag = true;
-      cerr << "Warning: distance of " <<locusMatrix_.get(i,2)<< "  at locus " <<i<<endl;
-      locusMatrix_.isMissing(i,2, true);
+      if(locusMatrix_.get(i,2) < 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome      
+	cerr << "Warning: distance of " <<locusMatrix_.get(i,2)<< "  at locus " <<i<<endl;
+      locusMatrix_.isMissing(i,2, true);//missing value for distance denotes new chromosome
     }
 
     LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
@@ -275,20 +278,21 @@ void InputData::checkLocusFile(int sexColumn, double threshold){
     for (size_t j = 0; j < i-1; ++j) {   
       if (locusData_[i][0] == locusData_[j][0]) {
 	flag = true;
-	cerr << "Error in locusfile. Two different loci have the same name. "
+	cerr << "Error in locusfile. Two different loci have the same name: "
 	     << locusData_[i][0] << endl;
       }
     }
-  }
+    //if(locusMatrix_.isMissing(i,2))++NumChromosomes;
+  }//end loop over loci
   if(flag)exit(1);
 
   const size_t numLoci = locusData_.size() - 1;//number of simple loci
 
   // Compare loci names in locus file and genotypes file.
   for (size_t i = 1; i <= numLoci; ++i) {
-    if (locusData_[i][0] != geneticData_[0][i + sexColumn]) {
-      cout << "Error. Loci names in locus file and genotypes file are not the same." << endl;
-      cout << "Loci names causing an error are: " << locusData_[i][0] << " and " 
+    if (StringConvertor::dequote(locusData_[i][0]) != StringConvertor::dequote(geneticData_[0][i + sexColumn])) {
+      cout << "Error. Locus names in locus file and genotypes file are not the same." << endl;
+      cout << "Locus names causing an error are: " << locusData_[i][0] << " and " 
 	   << geneticData_[0][i + sexColumn] << endl;
       //cout << options->getgenotypesSexColumn() << endl;
       exit(2);
