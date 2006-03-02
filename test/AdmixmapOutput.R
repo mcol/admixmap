@@ -67,7 +67,7 @@ getIsAdmixed <- function(AdmixturePrior) {
   
 readLoci <- function(locusfile) {
   ## read table of loci, number chromosomes and calculate map positions
-  loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", "."), comment.char="")
+  loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="")
   ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
   num.sloci <- dim(loci.simple)[1]
   loci.compound <- loci.simple[1, ] # table with 1 row 
@@ -75,7 +75,7 @@ readLoci <- function(locusfile) {
   num.haps <- loci.compound[1, 2]
   ## loop over simple loci
   for(slocus in 2:num.sloci) {
-    if(loci.simple[slocus, 3] > 0) { # new compound locus
+    if(is.na(loci.simple[slocus, 3]) | loci.simple[slocus, 3] > 0) { # new compound locus
       ## increment number of compound locus 
       clocus <- clocus + 1
       ## assign num haplotypes at previous compound locus
