@@ -75,7 +75,7 @@ readLoci <- function(locusfile) {
   num.haps <- loci.compound[1, 2]
   ## loop over simple loci
   for(slocus in 2:num.sloci) {
-    if(loci.simple[slocus, 3] > 0) { # new compound locus
+    if(is.na(loci.simple[slocus, 3]) | loci.simple[slocus, 3] > 0) { # new compound locus
       ## increment number of compound locus 
       clocus <- clocus + 1
       ## assign num haplotypes at previous compound locus
