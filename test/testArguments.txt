@@ -11,8 +11,8 @@
 #
 
 ##Required Options
-   samples  = 60
-   burnin   = 1
+   samples  = 15
+   burnin   = 5
    every = 1
    numannealedruns = 0
 
