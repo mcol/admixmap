@@ -14,6 +14,7 @@
 #include <cmath>
 #include <iostream>
 #include "rand.h"
+#include <limits>
 
 extern "C" {
 #include <gsl/gsl_rng.h>
@@ -47,8 +48,8 @@ double gengam( double shape, double rate )
 {
   double x = 0.0;
   do
-    x =  gsl_ran_gamma( RandomNumberGenerator, shape, 1.0 / rate ) ;
-  while (x < 0.000001);
+    x = gsl_ran_gamma( RandomNumberGenerator, shape, 1.0 / rate ) ;
+  while (x < numeric_limits<double>::min( ));
   return x;
 }
 // ** Beta distribution **
@@ -124,7 +125,7 @@ void gendirichlet(const size_t K, const double alpha[], double theta[] ) {
   if( sum > 0.0 ) {
     for( unsigned int i = 0; i < K; i++ )
       theta[i] /= sum;
-  } else throw string("all gamma draws zero in function gendirichlet"); 
+  } else throw("all gamma draws zero in function gendirichlet"); 
 }
 
 
