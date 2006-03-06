@@ -93,22 +93,29 @@ public:
 
   int GetLocusAncestry(int, int, int)const;
    
+  void ResetSufficientStats();
+  void SampleLocusAncestry(const AdmixOptions* const options);
+  void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
+		    DataMatrix *Covariates, double DInvLink, double dispersion,const double* const * ExpectedY);
+  void SampleHapPair(AlleleFreqs *A);
+  void SampleJumpIndicators(bool sampleArrivals);
+  void SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta,  
+		 bool updateSumLogRho);
 
-  void SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
-			 const DataType* const OutcomeType, const double* const * ExpectedY, 
-			 const std::vector<double> lambda, int NumCovariates,
-			 DataMatrix *Covariates, const std::vector<const double*> beta, const double *poptheta, 
-			 const AdmixOptions* const options, const vector<vector<double> > &alpha,  
-			 double rhoalpha, double rhobeta,  
-			 double DInvLink, double dispersion, bool anneal, bool, bool, bool);
+  void SampleTheta( int iteration, double *SumLogTheta, 
+		    const DataMatrix* const Outcome, 
+		    const DataType* const OutcomeType, //const double* const* ExpectedY, 
+		    const std::vector<double> lambda, int NumCovariates,
+		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
+		    const AdmixOptions* const options, const vector<vector<double> > &alpha, 
+		    double DInvLink, double dispersion, bool RW, bool anneal);
 
-  void FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMatrix *Outcome,
-			  const DataType* const OutcomeType, const double* const * ExpectedY, 
-			  const vector<double> lambda, int NumCovariates,
-			  DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
-			  const AdmixOptions* const options, const vector<vector<double> > &alpha,  
-			  double rhoalpha, double rhobeta,  
-			  double DInvLink, double dispersion, std::ofstream &modefile,
+  void SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
+			     const double* const* ExpectedY, const vector<double> lambda);
+ 
+  void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
+			  double rhoalpha, double rhobeta, //const vector<double> sigma, 
+			  ofstream &modefile,
 			  double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX);
 
   void resetStepSizeApproximator(int k);
@@ -215,18 +222,6 @@ private:
 			     const double* const theta, const double* const thetaX,
 			     const vector<double> rho, const vector<double> rhoX);
   
-  void SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta,  
-		 vector<unsigned> SumN, vector<unsigned> SumN_X, vector<double>* rho, vector<double>*rho_X);
-
-  void SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
-		    const DataMatrix* const Outcome, 
-		    const DataType* const OutcomeType, //const double* const* ExpectedY, 
-		    const std::vector<double> lambda, int NumCovariates,
-		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
-		    const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-		    double DInvLink, double dispersion, bool RW, bool anneal);
-
-  
   void ProposeTheta(const AdmixOptions* const options, /*const vector<double> sigma,*/ const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
 
@@ -254,9 +249,7 @@ private:
   void UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double EY, double DInvLink, const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion);
   
-  void SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
-			     const double* const* ExpectedY, const vector<double> lambda);
-  void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
+ void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
 			const DataType* const OutcomeType, 
 			Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY);
 };

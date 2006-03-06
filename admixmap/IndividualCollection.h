@@ -55,8 +55,8 @@ public:
 	      double rhoalpha, double rhobeta, //LogWriter &Log, 
 	      bool anneal);
 
-  void FindPosteriorModes(const AdmixOptions* const options, AlleleFreqs *A,
-			  const Regression* const R, const double* const poptheta,
+  void FindPosteriorModes(const AdmixOptions* const options, 
+			  const Regression* const R, 
 			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 			  const std::string* const PopulationLabels);
 

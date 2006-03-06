@@ -330,7 +330,7 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 				  bool anneal=false){
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 
-
+  int Populations = options->getPopulations();
   vector<double> lambda;
   vector<const double*> beta;
   for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
@@ -340,16 +340,35 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 
   //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
 
+  // ** Test Individuals
+  // ---------------------------------------------------------------------------------------------
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
     for(int i = 0; i < sizeTestInd; ++i){
-      TestInd[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
-				   lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				   alpha, rhoalpha, rhobeta, 
-				   DerivativeInverseLinkFunction(0),
-				   R[0].getDispersion(), anneal, true, true, true );
-    }
+    // ** set SumLocusAncestry and SumNumArrivals to 0
+    TestInd[i]->ResetSufficientStats();
+    // ** update theta with random-walk proposal on even-numbered iterations
+    if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
+      TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
+			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(0), 
+			     R[0].getDispersion(), true, anneal);
+    // ** Run HMM forward recursions and Sample Locus Ancestry
+    if(Populations >1)TestInd[i]->SampleLocusAncestry(options);
+    // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
+    if(Populations >1)TestInd[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+    // ** Sample individual- or gamete-specific sumintensities
+    if(Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) 
+      TestInd[i]->SampleRho( options, rhoalpha, rhobeta,   
+		 (!anneal && iteration > options->getBurnIn()));
+    // ** update admixture props with conjugate proposal on odd-numbered iterations
+    if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ) 
+      TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
+			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(0), R[0].getDispersion(), false, anneal);
+    // ** Sample missing values of outcome variable
+    TestInd[i]->SampleMissingOutcomes(&Outcome, OutcomeType, ExpectedY, lambda);
+    
+    }//end loop over test individuals
   }
   //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
@@ -358,19 +377,45 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
   //posterior modes of individual admixture
   //search at start of burn-in, once annealing is finished
   if(!anneal && iteration == 0 && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
-    FindPosteriorModes(options, A, R, poptheta, alpha, rhoalpha, rhobeta, PopulationLabels);
+    FindPosteriorModes(options, R, alpha, rhoalpha, rhobeta, PopulationLabels);
   }
-
+  // -----------------------------------------------------------------------------------------------------
+  // ** Non-test individuals
+  bool _anneal = (anneal && !options->getTestOneIndivIndicator());
   for(unsigned int i = 0; i < size; i++ ){
     int prev = i-1;
     if(i==0) prev = size-1;
     cout << flush;
-    _child[i]->SampleParameters(SumLogTheta, A, iteration , &Outcome, OutcomeType, ExpectedY,
-				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				alpha, rhoalpha, rhobeta,  
-				DerivativeInverseLinkFunction(i+i0),
-				R[0].getDispersion(), (anneal && !options->getTestOneIndivIndicator()), true, true, true );
 
+    // ** set SumLocusAncestry and SumNumArrivals to 0
+    _child[i]->ResetSufficientStats();
+    // ** update theta with random-walk proposal on even-numbered iterations
+    if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
+      _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
+			     beta, poptheta, options, alpha,DerivativeInverseLinkFunction(i+i0), 
+			     R[0].getDispersion(), true, _anneal);
+    // ** Run HMM forward recursions and Sample Locus Ancestry
+    if(Populations >1)_child[i]->SampleLocusAncestry(options);
+    // ** Sample Haplotype Pair
+    _child[i]->SampleHapPair(A);//also updates allele counts
+    // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
+    if(Populations >1)_child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+    // ** Update score, info and score^2 for ancestry score tests
+    if(iteration > options->getBurnIn() && Populations >1 
+       && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
+      _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
+			      R[0].getDispersion(), ExpectedY);
+    // ** Sample individual- or gamete-specific sumintensities
+    if(Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) 
+      _child[i]->SampleRho( options, rhoalpha, rhobeta,   
+		 (!_anneal && iteration > options->getBurnIn()));
+    // ** update admixture props with conjugate proposal on odd-numbered iterations
+    if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ) 
+      _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
+			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(i+i0), R[0].getDispersion(), false, _anneal);
+    // ** Sample missing values of outcome variable
+    _child[i]->SampleMissingOutcomes(&Outcome, OutcomeType, ExpectedY, lambda);
+    
     if(size > 1)_child[prev]->HMMIsBad(true); // HMM is bad - see above
 
 
@@ -406,8 +451,8 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
   }
 }
 
-void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, AlleleFreqs *A,
-					      const Regression* const R, const double* const poptheta,
+void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, 
+					      const Regression* const R, 
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 					      const std::string* const PopulationLabels){
   if(options->getDisplayLevel()>1)
@@ -440,20 +485,12 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// find posterior mode for test individual only 
     i0 = 1;
-    TestInd[sizeTestInd-1]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
-				lambda, NumCovariates, &Covariates, beta, poptheta, options,
-					       alpha, rhoalpha, rhobeta, //sigma,  
-				DerivativeInverseLinkFunction(0),
-				R[0].getDispersion(), modefile, 
-				thetahat, thetahatX, rhohat, rhohatX);
+    TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
+					       modefile, thetahat, thetahatX, rhohat, rhohatX);
   }
   for(unsigned int i = 0; i < size; i++ ){
-    _child[i]->FindPosteriorModes(SumLogTheta, A, &Outcome, OutcomeType, ExpectedY,
-				  lambda, NumCovariates, &Covariates, beta, poptheta, options,
-				  alpha, rhoalpha, rhobeta, //sigma,  
-				  DerivativeInverseLinkFunction(i+i0),
-				  R[0].getDispersion(), modefile, 
-				  thetahat, thetahatX, rhohat, rhohatX);
+    _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,
+				   modefile, thetahat, thetahatX, rhohat, rhohatX);
     modefile << endl;
   }
   modefile.close();

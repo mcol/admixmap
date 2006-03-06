@@ -516,32 +516,7 @@ double Individual::getLogLikelihoodOnePop(){ //convenient for a single populatio
 }
 
 //************** Updating (Public) ***************************************************************************************
-void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iteration , DataMatrix *Outcome,
-				   const DataType* const OutcomeType, const double* const * ExpectedY, 
-				   const vector<double> lambda, int NumCovariates,
-				   DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
-				   const AdmixOptions* const options, const vector<vector<double> > &alpha,  
-				   double rhoalpha, double rhobeta, //const vector<double> sigma, 
-				   double DInvLink, double dispersion, bool anneal=false, 
-				   bool sampleparams=true, bool sampleSStats = true, bool updatescores = true ) {
-/*arguments:
-  SumLogTheta = array in IndividualCollection holding sums of log admixture props
-  AlleleFreqs = pointer to AlleleFreqs, needed to update allele counts
-  iteration = current iteration
-  Outcome = Outcome variable(s)
-  OutcomeType = array of types of outcome (binary/continuous)   
-  ExpectedY = expected outcome variable
-  lambda = precision in linear regression model (if there is one)
-  NumCovariates = # covariates, including admixture
-  Covariates = Covariates array, including admixture
-  beta = regression parameters
-  poptheta = ergodic average of population admixture, used to centre the values of individual admixture in the regression model
-  options = pointer to program options
-  alpha = Dirichlet prior on admixture proportions: either fixed or updated in Latent 
-  rhoalpha, rhobeta = shape and scale parameters in prior for rho
-  DInvLink = Derivative Inverse Link function in regression model, used in ancestry score test
-  dispersion = dispersion parameter in regression model (if there is one) = lambda for linear reg, 1 for logistic
-*/
+void Individual::ResetSufficientStats(){
   if(Populations>1) {
     // ** reset SumLocusAncestry to zero
     for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
@@ -551,91 +526,75 @@ void Individual::SampleParameters( double *SumLogTheta, AlleleFreqs *A, int iter
     for(int j = 0; j < J ;++j) SumLocusAncestry_X[j] = 0;
     //  }
 
-    if(sampleparams && Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
-      //update theta with random-walk proposal on even-numbered iterations
-      SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta, Outcome, OutcomeType,//ExpectedY, 
-		  lambda, NumCovariates, Covariates, beta, poptheta, options, alpha, /*sigma,*/ DInvLink, dispersion, true, anneal);
-    
     //SumNumArrivals is the number of arrivals between each pair of adjacent loci
     fill(SumNumArrivals.begin(), SumNumArrivals.end(), 0);
   }
-
-  if(sampleSStats) {
-    bool ancestrytest = updatescores && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
-    for( unsigned int j = 0; j < numChromosomes; j++ ){
-      Chromosome* C = Loci->getChromosome(j);
-       if(Populations>1){ // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
-	//Update Forward/Backward probs in HMM
-	if( !logLikelihood.HMMisOK ) {
-	  UpdateHMMForwardProbs(j, options, Theta, ThetaX, _rho, _rho_X);
-	}
-	if(!IAmUnderTest && ancestrytest && iteration > options->getBurnIn()) {
-	  //update of score tests for linkage with ancestry requires update of backward probs
-	  C->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
-	  double admixtureCovars[Populations-1];
-	  for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
-	  UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);
-	}
-	// sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
-	C->SampleLocusAncestry(LocusAncestry[j], Theta);
-      }//end populations>1 
-      
-      if(!IAmUnderTest && sampleparams) {//if(sampleSStats) is implicit
-	//loop over loci on current chromosome and update allele counts
-	for( unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-	  int locus =  C->GetLocus(jj);
-	  //if( !(IsMissing(locus)) ){
-	  int anc[2];//to store ancestry states
-	  GetLocusAncestry(j,jj,anc);
-	  //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-	  (*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
-	  A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid());
-	  //}
-	}   
-      }
-      if(Populations>1 ) {
-	// don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
-	//sample number of arrivals, update SumNumArrivals and SumLocusAncestry
-	if( !Loci->isXChromosome(j) )
-	  C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumNumArrivals, 
-					(!options->isGlobalRho() || options->getHapMixModelIndicator()));
-	else 
-	  C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry_X, SumNumArrivals, 
-					(!options->isGlobalRho() || options->getHapMixModelIndicator()));
-      } // end if(Populations>1) block  
-    } //end chromosome loop
-  }
-  // sample sum of intensities parameter rho if defined at individual level - then set HMM and loglikelihood as bad 
-  if(sampleparams && Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) {
-    SampleRho( options, Loci->isX_data(), rhoalpha, rhobeta, getSumNumArrivals(), getSumNumArrivals_X(), &_rho, &_rho_X);
-
-  //now that rho has changed, current stored value of loglikelihood is no longer valid and 
-  //HMMs will need to be updated before getting loglikelihood
-  logLikelihood.HMMisOK = false;
-  logLikelihood.ready = false;
-  }
-  if(sampleparams && !anneal && iteration > options->getBurnIn()) { // accumulate log rho for calculation of posterior mean
-    for(unsigned i = 0; i < _rho.size(); ++i) sumlogrho[i] += log(_rho[i]);
-  }
-
-  if((iteration %2) && sampleparams && Populations >1 && !options->getHapMixModelIndicator() ) {
-    //update admixture props with conjugate proposal on odd-numbered iterations
-    SampleTheta(iteration, SumLocusAncestry, SumLocusAncestry_X, SumLogTheta,Outcome, OutcomeType, //ExpectedY, 
-		 lambda, NumCovariates, Covariates, beta, poptheta, options, alpha, /*sigma,*/ DInvLink, dispersion, false, anneal);
-     HMMIsBad(true); // because admixture props have changed
-  }  
-  
-  //TODO: sample missing outcome in E or M step of mode-finding? Not required for no regression model.
-  SampleMissingOutcomes(Outcome, OutcomeType, ExpectedY, lambda);
 }
 
-void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMatrix *Outcome,
-				    const DataType* const OutcomeType, const double* const * ExpectedY, 
-				    const vector<double> lambda, int NumCovariates,
-				    DataMatrix *Covariates, const vector<const double*> beta, const double *poptheta, 
-				    const AdmixOptions* const options, const vector<vector<double> > &alpha,  
+void Individual::SampleLocusAncestry(const AdmixOptions* const options){
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    Chromosome* C = Loci->getChromosome(j);
+    // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
+      //Update Forward/Backward probs in HMM
+      if( !logLikelihood.HMMisOK ) {
+	UpdateHMMForwardProbs(j, options, Theta, ThetaX, _rho, _rho_X);
+      }
+      // sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
+      C->SampleLocusAncestry(LocusAncestry[j], Theta);
+  } //end chromosome loop
+}
+
+void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
+			      DataMatrix *Covariates, double DInvLink, double dispersion,const double* const * ExpectedY){//merge with updatescoretests
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    Chromosome* C = Loci->getChromosome(j);
+    // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
+      //Update Forward/Backward probs in HMM
+      if( !logLikelihood.HMMisOK ) {
+	UpdateHMMForwardProbs(j, options, Theta, ThetaX, _rho, _rho_X);
+      }
+      //update of score tests for linkage with ancestry requires update of backward probs
+      C->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
+      double admixtureCovars[Populations-1];
+      for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
+      UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);
+  } //end chromosome loop
+}
+
+void Individual::SampleHapPair(AlleleFreqs *A){
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    Chromosome* C = Loci->getChromosome(j);
+      //loop over loci on current chromosome and update allele counts
+      for( unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+	int locus =  C->GetLocus(jj);
+	//if( !(IsMissing(locus)) ){
+	int anc[2];//to store ancestry states
+	GetLocusAncestry(j,jj,anc);
+	//might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
+	(*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
+	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid());
+	//}
+      }   
+  } //end chromosome loop
+}
+
+void Individual::SampleJumpIndicators(bool sampleArrivals){
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    Chromosome* C = Loci->getChromosome(j);
+    // don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
+    //sample number of arrivals, update SumNumArrivals and SumLocusAncestry
+    if( !Loci->isXChromosome(j) )
+      C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumNumArrivals, 
+			      sampleArrivals);
+    else 
+      C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry_X, SumNumArrivals, 
+			      sampleArrivals);
+  } //end chromosome loop
+}
+
+void Individual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 				    double rhoalpha, double rhobeta, //const vector<double> sigma, 
-				    double DInvLink, double dispersion, ofstream &modefile,
+				    ofstream &modefile,
 				    double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX){
 
   //uses an EM algorithm to search for posterior modes of individual parameters
@@ -655,12 +614,12 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
     NumEstepiters *= 2;
     for(unsigned Estepiters = 0; Estepiters < (unsigned)NumEstepiters ; ++Estepiters) {
  
-      SampleParameters( SumLogTheta, A, EMiter, Outcome,
-			OutcomeType, ExpectedY, lambda, NumCovariates,
-			Covariates, beta, poptheta, 
-			options, alpha, rhoalpha, rhobeta, //sigma, 
-			DInvLink, dispersion, false, 
-			false, true, false );
+      if(Populations >1){
+	ResetSufficientStats();
+	SampleLocusAncestry(options);
+	SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+      }
+
       vector<unsigned> SumN = getSumNumArrivals();
       vector<unsigned> SumN_X = getSumNumArrivals_X();
 
@@ -782,7 +741,7 @@ void Individual::FindPosteriorModes(double *SumLogTheta, AlleleFreqs *A, DataMat
 
 // ****** End Public Interface *******
 
-void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocusAncestry_X, double *SumLogTheta, 
+void Individual::SampleTheta( int iteration, double *SumLogTheta, 
 			      const DataMatrix* const Outcome, 
 			      const DataType* const OutcomeType, //const double* const* ExpectedY, 
 			      const vector<double> lambda, int NumCovariates,
@@ -796,7 +755,7 @@ void Individual::SampleTheta( int iteration, int* sumLocusAncestry, int* sumLocu
   if(RW) {
     NumberOfUpdates++;
     logpratio += ProposeThetaWithRandomWalk(options, alpha); 
-  } else ProposeTheta(options, /*sigma,*/ alpha, sumLocusAncestry, sumLocusAncestry_X);       
+  } else ProposeTheta(options, /*sigma,*/ alpha, SumLocusAncestry, SumLocusAncestry_X);       
 
   int K = Populations;
 
@@ -1062,9 +1021,10 @@ void Individual::UpdateHMMForwardProbs(unsigned int j, const AdmixOptions* const
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
 
-void Individual::SampleRho(const AdmixOptions* const options, bool X_data, double rhoalpha, double rhobeta, 
-			   vector<unsigned> sumNumArrivals, vector<unsigned> sumNumArrivals_X, 
-			   vector<double>* rho, vector<double>*rho_X) {
+void Individual::SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta, 
+			   bool updateSumLogRho) {
+  vector<unsigned> sumNumArrivals = getSumNumArrivals();
+  vector<unsigned> sumNumArrivals_X = getSumNumArrivals_X();
   // rho_X is set to 0.5*rho - equivalent to setting effective length of X chromosome as half length in morgans
   // conjugate gamma update for rho includes arrivals on X chromosome, and 0.5 * length of X chromosome
   double L = Loci->GetLengthOfGenome(); 
@@ -1078,21 +1038,29 @@ void Individual::SampleRho(const AdmixOptions* const options, bool X_data, doubl
 	// effective length of genome is L + 0.5*LX if there is an X chrm: i.e. if g=1 or sex is female
 	if(g || SexIsFemale) EffectiveL = L + 0.5*LX;
 	else EffectiveL = L;
-	(*rho)[g] = gengam( rhoalpha + (double)(sumNumArrivals[g] + sumNumArrivals_X[g]), rhobeta + EffectiveL );
-      } while( (*rho)[g] > TruncationPt || (*rho)[g] < 1.0 );
-      if( X_data && (g = 1 || SexIsFemale) ) { // no assignment if g = 0 (paternal gamete) and sex is male
-	(*rho_X)[g] = 0.5 * (*rho)[g];
+	_rho[g] = gengam( rhoalpha + (double)(sumNumArrivals[g] + sumNumArrivals_X[g]), rhobeta + EffectiveL );
+      } while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
+      if( Loci->isX_data()  && (g = 1 || SexIsFemale) ) { // no assignment if g = 0 (paternal gamete) and sex is male
+	_rho_X[g] = 0.5 * _rho[g];
       }
     } 
   } else {//assortative mating
     // effective length of genome is  2*(L + 0.5*LX) if sex is female, 2*L + 0.5*LX if sex is male
     if( SexIsFemale) EffectiveL =  2.0 * L + LX;
     else EffectiveL = 2.0 * L + 0.5 * LX;
-    (*rho)[0] = gengam( rhoalpha + (double)(sumNumArrivals[0] + sumNumArrivals[1] + sumNumArrivals_X[0] + sumNumArrivals_X[1]), 
+    _rho[0] = gengam( rhoalpha + (double)(sumNumArrivals[0] + sumNumArrivals[1] + sumNumArrivals_X[0] + sumNumArrivals_X[1]), 
 			rhobeta + EffectiveL );
-    if(X_data) {
-      (*rho_X)[0] = 0.5 * (*rho)[0];
+    if(Loci->isX_data()) {
+      _rho_X[0] = 0.5 * _rho[0];
     }
+  }
+  //now that rho has changed, current stored value of loglikelihood is no longer valid and 
+  //HMMs will need to be updated before getting loglikelihood
+  logLikelihood.HMMisOK = false;
+  logLikelihood.ready = false;
+
+  if(updateSumLogRho) { // accumulate log rho for calculation of posterior mean
+    for(unsigned i = 0; i < _rho.size(); ++i) sumlogrho[i] += log(_rho[i]);
   }
 }
 
