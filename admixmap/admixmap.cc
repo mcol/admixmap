@@ -588,7 +588,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // or from update of individual-level parameters otherwise
   
   if(options->getHapMixModelIndicator()){
-    L->UpdateGlobalTheta(iteration, IC);
+    //L->UpdateGlobalTheta(iteration, IC);
     L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize());
   }
 
