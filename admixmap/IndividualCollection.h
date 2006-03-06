@@ -48,12 +48,16 @@ public:
   
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const std::string* const PopulationLabels);
 
-  void Update(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
+  void HMMUpdates(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
 	      const Regression* const R, const double* const poptheta,
-	      const std::string* const PopulationLabels, 
-	      const std::vector<std::vector<double> > &alpha, //double globalrho, 
-	      double rhoalpha, double rhobeta, //LogWriter &Log, 
+	      const std::vector<std::vector<double> > &alpha,
 	      bool anneal);
+  void SampleParameters(int iteration, const AdmixOptions* const options,
+			const Regression* const R, const double* const poptheta,
+			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
+			bool anneal);
+  void UpdateChib(int iteration, const AdmixOptions* const options,const vector<vector<double> > &alpha, 
+		  double rhoalpha, double rhobeta, AlleleFreqs *A);
 
   void FindPosteriorModes(const AdmixOptions* const options, 
 			  const Regression* const R, 

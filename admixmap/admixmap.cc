@@ -22,7 +22,7 @@ void MakeResultsDir(const char* dirname, bool verbose);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter &Log, std::ofstream *avgstream, const string* const PopulationLabels);
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, LogWriter& Log, const std::string* const PopulationLabels, 
+		      const Genome *Loci, ScoreTests *S, LogWriter& Log, const std::string* const PopulationLabels, 
 		      double coolness, bool anneal);
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
 		      LogWriter& Log);
@@ -410,7 +410,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
     // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
     if(AnnealedRun || options.getTestOneIndivIndicator()) IC->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses); 
     
-    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, Log, data.GetPopLabels(), coolness, AnnealedRun);
+    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, &Scoretest, Log, data.GetPopLabels(), coolness, AnnealedRun);
     Log.setDisplayMode(Quiet);
     if(!AnnealedRun){
       // output every 'getSampleEvery()' iterations
@@ -423,17 +423,12 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
       }
       
       //Updates and Output after BurnIn     
-      if( iteration > burnin ){
+      if( !AnnealedRun && iteration > burnin ){
 	//dispersion test
 	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
 	//stratification test
 	if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
 								 options.getPopulations());
-	//score tests
-	if( options.getScoreTestIndicator() )
-	  Scoretest.Update(R[0].getDispersion());//score tests evaluated for first outcome var only
-	if(options.getTestForResidualAllelicAssoc())
-	  Scoretest.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs());
 	//tests for mis-specified allelefreqs
 	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
 	  AlleleFreqTest.Update(IC, &A, &Loci);
@@ -555,7 +550,7 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 }
 
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      const Genome *Loci, LogWriter& Log, const std::string* const PopulationLabels,
+		      const Genome *Loci, ScoreTests *S, LogWriter& Log, const std::string* const PopulationLabels,
 		      double coolness, bool anneal){
   A->ResetAlleleCounts();
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
@@ -564,14 +559,31 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     L->UpdateGlobalSumIntensities(IC); // should leave individuals with HMM probs bad, stored likelihood ok
   // this function also sets ancestry correlations
   
-  // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals, 
+  //posterior modes of individual admixture
+  //search at start of burn-in, once annealing is finished
+  if(!anneal && iteration == 0 && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
+    IC->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), PopulationLabels);
+  }
+
+  // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals 
+  IC->HMMUpdates(iteration, options, A, R, L->getpoptheta(), L->getalpha(), anneal);
+
+  if( !anneal && iteration > options->getBurnIn() ){
+    //score tests
+    if( options->getScoreTestIndicator() )
+      S->Update(R[0].getDispersion());//score tests evaluated for first outcome var only
+    if(options->getTestForResidualAllelicAssoc())
+      S->UpdateScoresForResidualAllelicAssociation(A->GetAlleleFreqs());
+  }
+
   // individual admixture and sum-intensities 
-  // no need to pass global sumintensities parameter as global ancestry correlations have already been set
-  IC->Update(iteration, options, A, R, L->getpoptheta(), PopulationLabels, L->getalpha(),  
-	     L->getrhoalpha(), L->getrhobeta(), 
-	     anneal);
-  // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level  
+  IC->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),  
+		       L->getrhoalpha(), L->getrhobeta(), anneal);
+  // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level
   
+  if( options->getChibIndicator() && !anneal )IC->UpdateChib(iteration, options, L->getalpha(),  
+							     L->getrhoalpha(), L->getrhobeta(), A);      
+
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
   if( A->IsRandom() ) {

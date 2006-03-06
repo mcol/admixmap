@@ -322,12 +322,12 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
 }
 
 // ************** UPDATING **************
-void IndividualCollection::Update(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
+void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
 				  const Regression* const R, const double* const poptheta,
-				  const std::string* const PopulationLabels,
-				  const vector<vector<double> > &alpha, //double globalrho,
-				  double rhoalpha, double rhobeta, //LogWriter &Log, 
-				  bool anneal=false){
+				  const vector<vector<double> > &alpha, 
+				   bool anneal=false){
+  //Individual-level updates requiring update of HMM
+
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 
   int Populations = options->getPopulations();
@@ -340,7 +340,57 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
 
   //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
 
+  int i0 = 0;
+  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
+    i0 = 1;
+  }
+  //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
+  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+  if(iteration > options->getBurnIn())Individual::ResetScores(options);
+
+  bool _anneal = (anneal && !options->getTestOneIndivIndicator());
+  for(unsigned int i = 0; i < size; i++ ){
+
+    // ** set SumLocusAncestry and SumNumArrivals to 0
+    _child[i]->ResetSufficientStats();
+    // ** update theta with random-walk proposal on even-numbered iterations
+    if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
+      _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
+			     beta, poptheta, options, alpha,DerivativeInverseLinkFunction(i+i0), 
+			     R[0].getDispersion(), true, _anneal);
+    // ** Run HMM forward recursions and sample locus ancestry
+    if(Populations >1)_child[i]->SampleLocusAncestry(options);
+    // ** Sample Haplotype Pair
+    _child[i]->SampleHapPair(A);//also updates allele counts
+    // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
+    if(Populations >1)_child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+    // ** Update score, info and score^2 for ancestry score tests
+    if(iteration > options->getBurnIn() && Populations >1 
+       && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
+      _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
+			      R[0].getDispersion(), ExpectedY);
+  }
+
+}
+
+void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* const options,
+					    const Regression* const R, const double* const poptheta,
+					    const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
+					    bool anneal=false){
+  //samples individual-level sumintensities and admixture
+  //sufficient statistics have been stored in Individuals
+
+  // coolness is not passed as argument to this function because annealing has already been implemented by 
+  // calling annealGenotypeProbs 
+  int Populations = options->getPopulations();
+  vector<double> lambda;
+  vector<const double*> beta;
+  for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+    lambda.push_back( R[i].getlambda());
+    beta.push_back( R[i].getbeta());
+  }
   // ** Test Individuals
+  // these are updated completely here as they contribute nothing to the score tests or update of allele freqs
   // ---------------------------------------------------------------------------------------------
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
@@ -370,62 +420,33 @@ void IndividualCollection::Update(int iteration, const AdmixOptions* const optio
     
     }//end loop over test individuals
   }
-  //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
-  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-  if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
-  //posterior modes of individual admixture
-  //search at start of burn-in, once annealing is finished
-  if(!anneal && iteration == 0 && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
-    FindPosteriorModes(options, R, alpha, rhoalpha, rhobeta, PopulationLabels);
-  }
   // -----------------------------------------------------------------------------------------------------
   // ** Non-test individuals
-  bool _anneal = (anneal && !options->getTestOneIndivIndicator());
   for(unsigned int i = 0; i < size; i++ ){
-    int prev = i-1;
-    if(i==0) prev = size-1;
-    cout << flush;
-
-    // ** set SumLocusAncestry and SumNumArrivals to 0
-    _child[i]->ResetSufficientStats();
-    // ** update theta with random-walk proposal on even-numbered iterations
-    if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
-      _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-			     beta, poptheta, options, alpha,DerivativeInverseLinkFunction(i+i0), 
-			     R[0].getDispersion(), true, _anneal);
-    // ** Run HMM forward recursions and Sample Locus Ancestry
-    if(Populations >1)_child[i]->SampleLocusAncestry(options);
-    // ** Sample Haplotype Pair
-    _child[i]->SampleHapPair(A);//also updates allele counts
-    // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-    if(Populations >1)_child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
-    // ** Update score, info and score^2 for ancestry score tests
-    if(iteration > options->getBurnIn() && Populations >1 
-       && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-      _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
-			      R[0].getDispersion(), ExpectedY);
     // ** Sample individual- or gamete-specific sumintensities
     if(Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) 
       _child[i]->SampleRho( options, rhoalpha, rhobeta,   
-		 (!_anneal && iteration > options->getBurnIn()));
+			    (!anneal && iteration > options->getBurnIn()));
     // ** update admixture props with conjugate proposal on odd-numbered iterations
     if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ) 
       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(i+i0), R[0].getDispersion(), false, _anneal);
+			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(i+i0), R[0].getDispersion(), false, anneal);
     // ** Sample missing values of outcome variable
     _child[i]->SampleMissingOutcomes(&Outcome, OutcomeType, ExpectedY, lambda);
-    
+    int prev = i-1;
+    if(i==0) prev = size-1;
     if(size > 1)_child[prev]->HMMIsBad(true); // HMM is bad - see above
-
-
-    
-    if( options->getChibIndicator() && (i == 0) && !anneal ) // if chib option and first individual and not an annealing run
-      _child[i]->Chib(iteration, //&SumLogLikelihood, &(MaxLogLikelihood[i]),
-		      options, alpha, //globalrho, 
-		      rhoalpha, rhobeta,
-		      thetahat, thetahatX, rhohat, rhohatX, &MargLikelihood, A);
   }
+}
+
+void IndividualCollection::UpdateChib(int iteration, const AdmixOptions* const options,const vector<vector<double> > &alpha, 
+				      double rhoalpha, double rhobeta, AlleleFreqs *A){
+    _child[0]->Chib(iteration, //&SumLogLikelihood, &(MaxLogLikelihood[i]),
+		    options, alpha, //globalrho, 
+		    rhoalpha, rhobeta,
+		    thetahat, thetahatX, rhohat, rhohatX, &MargLikelihood, A);
+
 }
 
 void IndividualCollection::setGenotypeProbs(unsigned nchr){
