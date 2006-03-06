@@ -524,7 +524,9 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   
   ## plot cumulative p-values in K colours
   pvalues <- array(data=scoretests4way[8,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
-  plotPValuesKPopulations(testname, pvalues, thinning)
+  if(length(!is.na(pvalues)) > 0) {
+    plotPValuesKPopulations(testname, pvalues, thinning)
+  }
   ## extract final table as 3-way array: statistic, locus, population
   
   scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
@@ -552,22 +554,21 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   r.exclude.lo <- exp(u/v - sqrt(u^2 + 2*v*log(100))/v)
   ## plotExclusionMap not implemented at present
 
-
-  #qq plot of scores
-  if(length(zscores[!is.na(zscores)]) > 0){
-    outputfile <- paste(resultsdir, "QQPlot", sep="/" )
-    outputfile <- paste(outputfile, testname, sep="")
-    outputfile <- paste(outputfile, ".ps", sep="")
-    
-    postscript(outputfile)
-    title <- paste("QQ plot of z-scores,", testname,sep="" )
-    for(k in 1:(nrow(zscores))){
+  ##qq plot of scores
+  outputfile <- paste(resultsdir, "QQPlot", sep="/" )
+  outputfile <- paste(outputfile, testname, sep="")
+  outputfile <- paste(outputfile, ".ps", sep="")
+  
+  postscript(outputfile)
+  title <- paste("QQ plot of z-scores,", testname,sep="" )
+  for(k in 1:(nrow(zscores))){
+    if( length(zscores[k, ][!is.na(zscores[k, ])]) > 0 ) {
       point.list <- qqnorm(zscores[k,], main = title, sub=poplabels[k])
-      lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)))
+      lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T),
+                                                                           max(point.list$x,na.rm=T)))
     }
-    dev.off()
   }
-
+  dev.off()
 }
 
 plotScoreMap <- function(loci.compound, zscores, K, testname){
