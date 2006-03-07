@@ -49,7 +49,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
 	  long count = 0;
 	  for(int i = 0; i < IC->getSize(); ++i){
 	    Individual *ind = IC->getIndividual(i);
-	    if(ind->IsMissing(locus)){
+	    if(ind->GenotypeIsMissing(locus)){
 	      ++count;
 	    }
 	  }
@@ -261,7 +261,7 @@ int StratificationTest::GetAlleleCounts(int locus, int a, const IndividualCollec
 
   for(int i = 0; i < IC->getSize(); ++i){
     Individual *ind = IC->getIndividual(i);
-    if(!ind->IsMissing(locus)){
+    if(!ind->GenotypeIsMissing(locus)){
       const vector<vector<unsigned short> > genotype = ind->getGenotype(locus);
 	if(genotype[0][0] == a){
 	  AlleleCounts++;

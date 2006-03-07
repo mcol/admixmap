@@ -165,7 +165,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
 	  phi[k][ kk ] = ind->getAdmixtureProps()[k] * ind->getAdmixtureProps()[kk];
       
       for(int j = 0; j < NumCompLoci; j++ ){
-	if( !(ind->IsMissing(j)) && 
+	if( !(ind->GenotypeIsMissing(j)) && 
 	    (*Loci)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) ){
 	  UpdateScoreForMisSpecOfAlleleFreqs( j, phi, ind->getGenotype(j), A->GetAlleleFreqs(j) );
 	}

@@ -63,7 +63,7 @@ public:
 
   const int* getSampledHapPair(int locus)const;
 
-  bool IsMissing(unsigned int locus)const;
+  bool GenotypeIsMissing(unsigned int locus)const;
 
   double getSumrho()const;
 
