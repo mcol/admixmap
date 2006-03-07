@@ -928,9 +928,9 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
 		       << double2R(ObservedMatrix[k*dim_[j]+k], 3) << sep
 		       << double2R(100*ObservedMatrix[k*dim_[j]+k] / CompleteMatrix[k*dim_[j]+k], 2) << sep;//%Observed Info
 	double zscore = ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim_[j]+k] );
-	*outputstream  << double2R(zscore, 2) << sep;//z-score
+	*outputstream  << double2R(zscore, 3) << sep;//z-score
 	double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	*outputstream << double2R(pvalue, 2) << sep;
+	*outputstream << pvalue << sep;
 	// if not last allele at locus, output unquoted "NA" in chi-square column
 	if( k != NumberOfMergedHaplotypes - 1 ){
 	  *outputstream  << "NA" << sep << endl;
@@ -974,8 +974,8 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* out
       zscore = Score / sqrt( ObservedInfo );
       pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
       *outputstream << double2R(PercentInfo, 2) << sep
-		    << double2R(zscore, 2)    << sep 
-		    << double2R(pvalue, 2) << sep << endl;
+		    << double2R(zscore,3)   << sep 
+		    << pvalue << sep << endl;
     }
     else{
       *outputstream << "NaN" << sep << "NaN" << sep << endl;
@@ -1020,7 +1020,7 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
 	if(complete - missing > 0.0){
 	  double zscore = EU / sqrt( complete - missing );
 	  double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	  *outputstream << double2R(zscore, 2)  << separator << double2R(pvalue, 2) << separator << endl;
+	  *outputstream << double2R(zscore,3)  << separator << pvalue << separator << endl;
 	}
 	else *outputstream << "NaN" << separator << "NaN" << separator << endl;
 	}
@@ -1033,7 +1033,6 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
 
 void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, string separator){
   double *Score, *ObservedInfo;
-  *outputstream << setiosflags(ios::fixed) << setprecision(3) ;
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
     for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
       int abslocus = chrm[c]->GetLocus(j);
@@ -1057,7 +1056,8 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 
       //output labels
       *outputstream << "\"" << (*Lociptr)(abslocus)->GetLabel(0) << "/" << (*Lociptr)(abslocus+1)->GetLabel(0) << "\""<< separator
-			 << Score[0] << separator << compinfo << separator <<obsinfo << separator;
+		    << setiosflags(ios::fixed) << setprecision(3) //output 3 decimal places
+		    << Score[0] << separator << compinfo << separator <<obsinfo << separator;
 
       //compute chi-squared statistic
       double VinvU[dim];
@@ -1076,7 +1076,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 	else {
 	  //compute p-value
 	  double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-	  *outputstream << chisq << separator << pvalue << separator << endl;
+	  *outputstream << chisq << separator << resetiosflags(ios::fixed) << pvalue << separator << endl;
 	}
       }
       catch(...){//in case ObservedInfo is rank deficient
