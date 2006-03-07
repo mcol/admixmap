@@ -206,7 +206,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     for(int j = 0; j < L; ++j){
       locusObsIndicator[j] = false;
       for(int i = 0; i < indiv->getSize(); ++i){
-	if(!indiv->getIndividual(i)->IsMissing(j)){
+	if(!indiv->getIndividual(i)->GenotypeIsMissing(j)){
 	  locusObsIndicator[j] = true;
 	}
       }
@@ -455,10 +455,10 @@ void ScoreTests::Update(double dispersion)
       }
       
       if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForHaplotypeAssociation() ){
-	//if(locusObsIndicator[j]){//skip loci with no observed genotypes
-	CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
-		     SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
-	//}
+	if(locusObsIndicator[j]){//skip loci with no observed genotypes
+	  CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
+		       SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
+	}
       }
     }
     catch(string s){
@@ -504,51 +504,51 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
     for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      
-      //retrieve sampled hap pair from Individual
-      const int* happair = ind->getSampledHapPair(locus);
-      const unsigned numStates = (*Lociptr)(locus)->GetNumberOfStates();
-      const unsigned numLoci = (*Lociptr)(locus)->GetNumberOfLoci();
-
-      // count alleles / haplotypes      
-      vector<int> counts;
-
-      // if diallelic, evaluate score for allele 2 only, otherwise evaluate score for all alleles or haplotypes
-
-      // special case for SNP (counts has size 1)
-      if( numStates == 2 ){
-	//sets counts to -1, 0 or 1 according to whether happair is 11, 12 or 22
-	counts.push_back((*Lociptr)(locus)->getAlleleCounts(2, happair)[0] - 1 );
+      if(!ind->GenotypeIsMissing(locus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
+	//retrieve sampled hap pair from Individual
+	const int* happair = ind->getSampledHapPair(locus);
+	const unsigned numStates = (*Lociptr)(locus)->GetNumberOfStates();
+	const unsigned numLoci = (*Lociptr)(locus)->GetNumberOfLoci();
 	
-	// general case for simple locus (counts has size nStates)
-      } else if(numLoci == 1 ){
-	for( unsigned k = 0; k < numStates; k++ ){
-	  counts.push_back((*Lociptr)(locus)->getAlleleCounts(k+1, happair)[0] );
-	}
-      }
-      // general case for composite locus (counts has size nMergedHaplotypes)
-      else {
-	//count copies of allele2
-	const vector<int> allele2Counts = (*Lociptr)(locus)->getAlleleCounts(2, happair);
-	UpdateScoreForWithinHaplotypeAssociation(ind, allele2Counts, locus, YMinusEY,phi , DInvLink);
-
-	//update score and info for each simple locus within a compound locus
-	// 	for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
-	// 	  vector<int> a(1, allele2Counts[0]);
-	// 	  UpdateAlleleScores(ScoreWithinHaplotype[locus][l], InfoWithinHaplotype[locus][l], ind->getAdmixtureProps(), a, 
-	// 			     YMinusEY, phi, DInvLink);
-	// 	}
-
+	// count alleles / haplotypes      
+	vector<int> counts;
 	
-	if( options->getTestForHaplotypeAssociation() ){
-	  //count numbers of each haplotype
-	  counts = (*Lociptr)(locus)->getHaplotypeCounts(happair);
+	// if diallelic, evaluate score for allele 2 only, otherwise evaluate score for all alleles or haplotypes
+	
+	// special case for SNP (counts has size 1)
+	if( numStates == 2 ){
+	  //sets counts to -1, 0 or 1 according to whether happair is 11, 12 or 22
+	  counts.push_back((*Lociptr)(locus)->getAlleleCounts(2, happair)[0] - 1 );
+	  
+	  // general case for simple locus (counts has size nStates)
+	} else if(numLoci == 1 ){
+	  for( unsigned k = 0; k < numStates; k++ ){
+	    counts.push_back((*Lociptr)(locus)->getAlleleCounts(k+1, happair)[0] );
+	  }
 	}
+	// general case for composite locus (counts has size nMergedHaplotypes)
+	else {
+	  //count copies of allele2
+	  const vector<int> allele2Counts = (*Lociptr)(locus)->getAlleleCounts(2, happair);
+	  UpdateScoreForWithinHaplotypeAssociation(ind, allele2Counts, locus, YMinusEY,phi , DInvLink);
+	  
+	  //update score and info for each simple locus within a compound locus
+	  // 	for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
+	  // 	  vector<int> a(1, allele2Counts[0]);
+	  // 	  UpdateAlleleScores(ScoreWithinHaplotype[locus][l], InfoWithinHaplotype[locus][l], ind->getAdmixtureProps(), a, 
+	  // 			     YMinusEY, phi, DInvLink);
+	  // 	}
+	  
+	  
+	  if( options->getTestForHaplotypeAssociation() ){
+	    //count numbers of each haplotype
+	    counts = (*Lociptr)(locus)->getHaplotypeCounts(happair);
+	  }
+	}
+	
+	UpdateAlleleScores(LocusLinkageAlleleScore[locus],LocusLinkageAlleleInfo[locus], ind->getAdmixtureProps(), counts, 
+			   YMinusEY, phi, DInvLink);
       }
-
-      UpdateAlleleScores(LocusLinkageAlleleScore[locus],LocusLinkageAlleleInfo[locus], ind->getAdmixtureProps(), counts, 
-			 YMinusEY, phi, DInvLink);
-
       locus++;
     }
   }
@@ -668,12 +668,13 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,
 
     for(int i = 0; i < individuals->getSize(); ++i){
       Individual* ind = individuals->getIndividual(i);
-      ind->GetLocusAncestry(c, locus, ancA);
-      ind->GetLocusAncestry(c, locus+1, ancB);
-      const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
-      const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
-      for(int g = 0; g < 2; ++g){
-	//if(ancA[g] == ancB[g]){ 
+      if(!ind->GenotypeIsMissing(abslocus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
+	ind->GetLocusAncestry(c, locus, ancA);
+	ind->GetLocusAncestry(c, locus+1, ancB);
+	const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
+	const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
+	for(int g = 0; g < 2; ++g){
+	  //if(ancA[g] == ancB[g]){ 
 	  ++count;//count number of gametes with ancestry states the same at both loci
 	  
 	  for(int i = 0; i < M; ++i)
@@ -682,17 +683,18 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,
 	      AlleleScore[i*N +j] += ( delta(hA[g], i) - delta(hA[g], M) ) * ( delta(hB[g], j) - delta(hB[g], N) ) //observed
 		- ( AlleleFreqsA[i*Populations + ancA[g]] - lastFreqsA[ancA[g]] ) 
 		* ( AlleleFreqsB[j*Populations + ancB[g]] - lastFreqsB[ancB[g]]);// - expected
-
+	      
 	      for(int m = 0; m < M ; ++m)for(int n = 0; n < N; ++n){//m and n index columns
-	      //update info
+		//update info
 		AlleleInfo[(i*N+j) * dim + (m*N+n)] += 
-		    ( delta(i,m)*AlleleFreqsA[i*Populations + ancA[g]] + lastFreqsA[ancA[g]] ) 
+		  ( delta(i,m)*AlleleFreqsA[i*Populations + ancA[g]] + lastFreqsA[ancA[g]] ) 
 		  * ( delta(j,n)*AlleleFreqsB[j*Populations + ancB[g]] + lastFreqsB[ancB[g]] );
 	      }
 	    }
 	  
 	}//end gamete loop
-      //}//end condition (ancestry equal)
+	//}//end condition (ancestry equal)
+      }
     }//end ind loop
     
     //accumulate score and score squared
@@ -716,24 +718,26 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,
   int abslocus = chrm[c]->GetLocus(locus);
   for(int i = 0; i < individuals->getSize(); ++i){
     Individual* ind = individuals->getIndividual(i);
-    ind->GetLocusAncestry(c, locus, ancA);
-    ind->GetLocusAncestry(c, locus+1, ancB);
-    const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
-    const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
-
-    for(int g = 0; g < 2; ++g){
-      if(ancA[g] == ancB[g]){ 
-	++count;//count number of gametes with ancestry states the same at both loci
-	int h = (hA[g] == hB[g]);//indicator for homozygosity
-	double phiA = AlleleFreqsA[ancA[g]];//frequency of first allele in this gamete's ancestry state at locus A
-	double phiB = AlleleFreqsB[ancB[g]];
-
-	//h - (1-h) evaluates to 1 if allele states equal, -1 if not
-	//expected counts factorises to  --\/
-	AlleleScore += h - (1-h) - (2*phiA - 1.0)*(2*phiB - 1.0);
-
-      }//end condition on equal ancestry states
-    }//end gamete loop
+    if(!ind->GenotypeIsMissing(abslocus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
+      ind->GetLocusAncestry(c, locus, ancA);
+      ind->GetLocusAncestry(c, locus+1, ancB);
+      const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
+      const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
+      
+      for(int g = 0; g < 2; ++g){
+	//if(ancA[g] == ancB[g]){ 
+	  ++count;//count number of gametes with ancestry states the same at both loci
+	  int h = (hA[g] == hB[g]);//indicator for homozygosity
+	  double phiA = AlleleFreqsA[ancA[g]];//frequency of first allele in this gamete's ancestry state at locus A
+	  double phiB = AlleleFreqsB[ancB[g]];
+	  
+	  //h - (1-h) evaluates to 1 if allele states equal, -1 if not
+	  //expected counts factorises to  --\/
+	  AlleleScore += h - (1-h) - (2*phiA - 1.0)*(2*phiB - 1.0);
+	  
+	  //}//end condition on equal ancestry states
+      }//end gamete loop
+    }
   }//end individual loop
   //accumulate score and score squared
 
