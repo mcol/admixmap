@@ -34,6 +34,7 @@ int main(){
   string genotype;
   string obs;//observed genotype
   string SNPID;
+  vector<string> BadLoci;
   vector<string> INDIVID;
   vector<int> indisvalid;
   vector<int> sex;//1 = male, 2 = female
@@ -46,21 +47,24 @@ int main(){
 
   //read info file for indiv id, sex
   NUMIND = 0;
+
   while(!infofile.eof()){
-    string _id;
     int _sex, valid;
-
+    string _id;
     infofile >> _id >> _sex >> valid;
-    INDIVID.push_back(_id);
-    sex.push_back(_sex);
-    indisvalid.push_back(valid);
-    //cout << _id << " " << valid << endl;
-
-    ++indiv;
+    if(_id.find_first_not_of(" \t\n\r")!=string::npos){//check for empty lines
+      INDIVID.push_back(_id);
+      sex.push_back(_sex);
+      indisvalid.push_back(valid);
+      //cout << _id << " " << valid << endl;
+      ++indiv;
+      if(valid)++NUMVALIDINDS;
+    }
   }
-  NUMIND = indiv-1;
+  NUMIND = indiv;
   infofile.close();
   cout << NUMIND << " individuals" <<endl;
+  cout << NUMVALIDINDS << " unrelated individuals" << endl;
 
   //write locus file and header of genotypesfile 
   genotypesfile << "\"Individ\"\t";
@@ -76,31 +80,40 @@ int main(){
      //locusfile.open(s.str().c_str());
      //}
      prev = position;
-     cout << "\rLocus    " << locus << flush;
+     //cout << "\rLocus    " << locus+1 << flush;
      //we want cols: 0(snpid), 1(alleles), 3(position in basepairs), 11 onwards(indiv genotypes)
      genotypesin >> SNPID >> alleles
  		>> scrap >> position;
-     //write locusfile
-     locusfile << SNPID << "\t" <<  2 << "\t";
-     if(locus==0) locusfile << "#";
-     else locusfile << 0.0000013 * (position-prev); 
-     locusfile << /*chrnumber <<*/ endl;
-     //write header of genotypesfile
-     genotypesfile << SNPID << "\t";
- 
+     if(SNPID.find_first_not_of(" \t\n\r")!=string::npos){//check for empty lines
+       //write locusfile
+       if((position-prev)<0) BadLoci.push_back(SNPID);//excludes loci out of sequence
+       else{
+	 locusfile << SNPID << "\t" <<  2 << "\t";
+	 if(locus==0) locusfile << "#" ;
+	 else 
+	   locusfile << 0.0000013 * (position-prev);//converts position in basepairs to distance in Morgans 
+	 locusfile << /*chrnumber <<*/ endl;
+	 //write header of genotypesfile
+	 genotypesfile << SNPID << "\t";
+	 ++locus;
+       }
+       
+     }       
      //skip rest of line
      getline(genotypesin, scrap);
-
-     ++locus;
    }
-   NUMLOCI  = locus-1;
+   NUMLOCI  = locus;
    locusfile.close();
    cout << "\nFinished writing locusfile. " << NUMLOCI <<  " loci" << endl;
+   if(BadLoci.size()){
+     cout << BadLoci.size() << " loci excluded: ";
+     for(vector<string>::const_iterator i = BadLoci.begin(); i < BadLoci.end(); ++i)cout << *i << " "; 
+     cout << endl;
+   }
 
    genotypesfile << endl;
    for(indiv = 0; indiv < NUMIND; ++indiv) if(indisvalid[indiv]){
-     ++NUMVALIDINDS;
-     //cout << INDIVID[indiv] << " "  << indisvalid[indiv] << endl << flush;
+     cout << "\r" << indiv+1 << " " << INDIVID[indiv] << " "  << indisvalid[indiv] << flush;
      //write indiv id and sex
      genotypesfile << INDIVID[indiv] << "\t";// << sex[indiv] <<"\t";
      //rewind to start of file
@@ -123,7 +136,7 @@ int main(){
     genotypesfile << endl;
    }
    cout << "\nFinished writing genotypesfile" << endl;
-   cout << NUMVALIDINDS << " unrelated individuals" << endl;
+
    
    genotypesfile.close();
    genotypesin.close();
