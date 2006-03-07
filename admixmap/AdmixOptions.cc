@@ -1070,17 +1070,19 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       OptionValues["globalrho"] = "0";
     }
   
-  // **** Random Mating Model **** 
-  if(RandomMatingModel )
-    Log << "Model assuming random mating.\n";
-  else 
-    Log << "Model assuming assortative mating.\n";
-  
   // **** sumintensities ****
   if(HapMixModelIndicator){
     Log << "Haplotype mixture model with " << Populations << " block state";if(Populations>1)Log << "s"; Log << "\n";
+    RandomMatingModel = false;OptionValues["randommatingmodel"] = "0";
+    GlobalRho = false; OptionValues["globalrho"] = "0";
   }
   else {
+    // **** Random Mating Model **** 
+    if(RandomMatingModel )
+      Log << "Model assuming random mating.\n";
+    else 
+      Log << "Model assuming assortative mating.\n";
+    
     if( GlobalRho ) {
       Log << "Model with global sum-intensities\n";
       if(globalrhoPrior.size() != 2) {
