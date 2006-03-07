@@ -98,7 +98,8 @@ int main(){
 	 ++locus;
        }
        
-     }       
+     }
+     SNPID.clear();       
      //skip rest of line
      getline(genotypesin, scrap);
    }
@@ -120,20 +121,26 @@ int main(){
      genotypesin.clear(); // to clear fail status caused by eof
      genotypesin.seekg(0);
      getline(genotypesin, scrap);//skip header
-     
+
+     position = 0.0;     
      //read genotypes, one locus (row) at a time
-    for(locus = 0; locus < NUMLOCI; ++locus){
-      genotypesin >> SNPID >> alleles;
-      for(int col = 0; col < 9+indiv; ++col)genotypesin >> scrap;//skip to col for this individual, genotypes atart at col 11
-      genotypesin >> obs;
-      
-      //write to genotypesfile in admixmap format
-      genotypesfile << getGenotype(obs, alleles) << "\t";
-      //cout << indiv << " "  << INDIVID[indiv] << " " << locus << " " << SNPID << " " << obs << " " <<  alleles << " " << getGenotype(obs, alleles) << endl << flush;
-      //if(!(locus%10))system("pause");
-      getline(genotypesin, scrap);//skip remaining individuals in line
-    }
-    genotypesfile << endl;
+     for(locus = 0; locus < NUMLOCI+ BadLoci.size(); ++locus){
+       prev = position;
+       genotypesin >> SNPID >> alleles >> scrap >> position;
+       if(position-prev >=0.0){//skip loci out of sequence
+	 //cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
+	 for(int col = 0; col < 7+indiv; ++col)genotypesin >> scrap;//skip to col for this individual, genotypes start at col 11
+	 genotypesin >> obs;
+	 
+	 //write to genotypesfile in admixmap format
+	 genotypesfile << getGenotype(obs, alleles) << "\t";
+	 //cout << indiv << " "  << INDIVID[indiv] << " " << locus << " " << SNPID << " " << obs << " " <<  alleles << " " << getGenotype(obs, alleles) << endl << flush;
+	 //if(!(locus%10))system("pause");
+       }
+       //else 	 cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
+       getline(genotypesin, scrap);//skip remaining individuals in line
+     }
+     genotypesfile << endl;
    }
    cout << "\nFinished writing genotypesfile" << endl;
 
