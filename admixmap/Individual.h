@@ -207,6 +207,7 @@ private:
   static double *LikRatio1;
   static double *LikRatio2;
   
+  void SetDefaultAdmixtureProps();
   double IntegratingConst( double alpha, double beta, double a, double b )const;
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);
@@ -247,7 +248,7 @@ private:
   void UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0, bool RandomMatingModel, 
 					  const vector<vector<double> > AProbs);
   void UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double EY, double DInvLink, const vector<vector<double> > AProbs);
-  void UpdateB(double DInvLink, double dispersion);
+  void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
   
  void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
 			const DataType* const OutcomeType, 

@@ -80,7 +80,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   ThetaProposal = 0;
   ThetaXProposal = 0;
   SumSoftmaxTheta = 0;
-  
+
   // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
   SumLocusAncestry = new int[options->getPopulations()*2];
 
@@ -107,7 +107,11 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     //ThetaXHat = new double[ Populations * 2 ];
     SumLocusAncestry_X = new int[Populations * 2 ];
   }
-  
+
+  if(options->getHapMixModelIndicator()){
+    SetDefaultAdmixtureProps();
+  }
+    
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
   
@@ -183,7 +187,6 @@ Individual::~Individual() {
 
 void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha) {
   // draw initial values for admixture proportions theta from Dirichlet prior 
-  // TODO: for X chromosome  
   size_t K = Populations;
   for( unsigned g = 0; g < NumIndGametes; ++g ) { 
     double sum = 0.0;
@@ -201,7 +204,13 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
   if(Xdata) 
     setAdmixturePropsX(Theta, K*NumIndGametes);
 }
-
+void Individual::SetDefaultAdmixtureProps(){
+  size_t K = Populations;
+  for( unsigned g = 0; g < NumIndGametes; ++g ) { 
+    for(size_t k = 0; k < K; ++k)
+      Theta[g*K+k] = 1.0 / K;
+  }
+}
 void Individual::setOutcome(double* Y){
   Outcome = Y;
 }
@@ -544,23 +553,6 @@ void Individual::SampleLocusAncestry(const AdmixOptions* const options){
   } //end chromosome loop
 }
 
-void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
-			      DataMatrix *Covariates, double DInvLink, double dispersion,const double* const * ExpectedY){//merge with updatescoretests
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    Chromosome* C = Loci->getChromosome(j);
-    // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
-      //Update Forward/Backward probs in HMM
-      if( !logLikelihood.HMMisOK ) {
-	UpdateHMMForwardProbs(j, options, Theta, ThetaX, _rho, _rho_X);
-      }
-      //update of score tests for linkage with ancestry requires update of backward probs
-      C->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
-      double admixtureCovars[Populations-1];
-      for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
-      UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);
-  } //end chromosome loop
-}
-
 void Individual::SampleHapPair(AlleleFreqs *A){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
@@ -806,7 +798,9 @@ void Individual::SampleTheta( int iteration, double *SumLogTheta,
     //increment B using new Admixture Props
     //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
     if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
-      UpdateB(DInvLink, dispersion);
+      double admixtureCovars[Populations-1];
+      for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
+      UpdateB(DInvLink, dispersion, admixtureCovars);
     }
   }
 }
@@ -1115,6 +1109,23 @@ void Individual::ResetScores(const AdmixOptions* const options){
   }
 }
 
+void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
+			      DataMatrix *Covariates, double DInvLink, double dispersion,const double* const * ExpectedY){//merge with updatescoretests
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    Chromosome* C = Loci->getChromosome(j);
+    // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
+      //Update Forward/Backward probs in HMM
+      if( !logLikelihood.HMMisOK ) {
+	UpdateHMMForwardProbs(j, options, Theta, ThetaX, _rho, _rho_X);
+      }
+      //update of score tests for linkage with ancestry requires update of backward probs
+      C->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
+      double admixtureCovars[Populations-1];
+      for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
+      UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);
+  } //end chromosome loop
+}
+
 void Individual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
 				  const DataType* const OutcomeType,
 				  Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY){
@@ -1258,12 +1269,12 @@ void Individual::UpdateScoreForAncestry(int locus, const double* admixtureCovars
   delete[] VarA;
 }
 
-void Individual::UpdateB(double DInvLink, double dispersion){
+void Individual::UpdateB(double DInvLink, double dispersion, const double* admixtureCovars){
   //increment B using new Admixture Props
   //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
     Xcov[Populations-1] = 1;//last entry is intercept
     for( int k = 0; k < Populations - 1; k++ ){
-      Xcov[k] = Theta[ k]; 
+      Xcov[k] = admixtureCovars[k]; //centred admixture covariates
     }
     double *temp = new double[Populations*Populations];
     matrix_product(Xcov, Xcov, temp, Populations, 1, Populations);
