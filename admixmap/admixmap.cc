@@ -506,12 +506,14 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
     
     // Header line of ergodicaveragefile
     if( options->getIndAdmixHierIndicator() ){
-      if(!options->getHapMixModelIndicator())
-	for( int i = 0; i < options->getPopulations(); i++ ){
-	  *avgstream << PopulationLabels[i] << "\t";
-	}
-      if( options->isGlobalRho() ) *avgstream << "sumIntensities\t";
-      else *avgstream << "sumIntensities.mean\t";
+      if(options->getPopulations()>1){
+	if(!options->getHapMixModelIndicator())
+	  for( int i = 0; i < options->getPopulations(); i++ ){
+	    *avgstream << PopulationLabels[i] << "\t";
+	  }
+	if( options->isGlobalRho() ) *avgstream << "sumIntensities\t";
+	else *avgstream << "sumIntensities.mean\t";
+      }
       
       // Regression parameters
       if( options->getNumberOfOutcomes() > 0 ){
@@ -557,7 +559,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // ** update global sumintensities conditional on genotype probs and individual admixture proportions
   if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && !options->getHapMixModelIndicator() && 
      (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
-    L->UpdateGlobalSumIntensities(IC); // should leave individuals with HMM probs bad, stored likelihood ok
+    L->UpdateGlobalSumIntensities(IC, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1)); 
+  // should leave individuals with HMM probs bad, stored likelihood ok
   // this function also sets ancestry correlations
   
   //posterior modes of individual admixture
@@ -602,12 +605,13 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   if(options->getHapMixModelIndicator()){
     //L->UpdateGlobalTheta(iteration, IC);
-    L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize());
+    L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
+			    (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1));
   }
 
   else
     //update population admixture Dirichlet parameters conditional on individual admixture
-    L->UpdatePopAdmixParams(iteration, IC, Log, anneal);
+    L->UpdatePopAdmixParams(iteration, IC, Log);
   
   // ** update regression parameters (if regression model) conditional on individual admixture
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)

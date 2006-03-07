@@ -48,9 +48,9 @@ public:
   
   void InitializeOutputFile(const std::string* const);
   
-  void UpdateGlobalSumIntensities(const IndividualCollection* const IC);
-  void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n); 
-  void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log,  bool anneal);
+  void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
+  void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho); 
+  void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
   void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   
   void OutputParams(int iteration, LogWriter &Log);
@@ -64,7 +64,7 @@ public:
   double getrhobeta()const;
   double getglobalrho()const;
   const vector<double>& getrho()const;
-  double getSumLogRho()const;
+  const vector<double>& getSumLogRho()const;
   const double *getpoptheta()const;
 
   void printAcceptanceRates(LogWriter &Log);
@@ -91,7 +91,7 @@ private:
   double rhobeta; 
   double rhobeta0;
   double rhobeta1;
-  double SumLogRho; //ergodic sum of log(rho)
+  std::vector<double> SumLogRho; //ergodic sum of log(rho)
   
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;

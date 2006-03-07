@@ -272,15 +272,15 @@ void IndividualCollection::getLabels(const Vector_s& data, Vector_s& labels)
   }
 }
 
-void IndividualCollection::setAdmixtureProps(const double* const a, size_t thetasize)
-{
-  if(TestInd)
-    for(int i = 0; i < sizeTestInd; ++i)
-      TestInd[i]->setAdmixtureProps(a, thetasize);
-  for(unsigned int i = 0; i < size; i++){
-    _child[i]->setAdmixtureProps(a, thetasize);
-  }
-}
+// void IndividualCollection::setAdmixtureProps(const double* const a, size_t thetasize)
+// {
+//   if(TestInd)
+//     for(int i = 0; i < sizeTestInd; ++i)
+//       TestInd[i]->setAdmixtureProps(a, thetasize);
+//   for(unsigned int i = 0; i < size; i++){
+//     _child[i]->setAdmixtureProps(a, thetasize);
+//   }
+// }
 
 // void IndividualCollection::setAdmixturePropsX(const double* const a, size_t thetasize)
 // {
@@ -628,7 +628,7 @@ const chib* IndividualCollection::getChib()const{
 // ************** OUTPUT **************
 
 double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci,
-					  LogWriter &Log, double SumLogRho, unsigned numChromosomes){
+					  LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes){
   // renamed from OutputDeviance
 
   //SumRho = ergodic sum of global sumintensities
@@ -638,9 +638,12 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   else Log.setDisplayMode(Off);
   
   //update chromosomes using globalrho, for globalrho model
-  if(options->isGlobalRho())
+  if(options->getPopulations() >1 && (options->isGlobalRho() || options->getHapMixModelIndicator()) ){
+    vector<double> RhoBar;
+    for(vector<double>::const_iterator i = SumLogRho.begin(); i < SumLogRho.end(); ++i)RhoBar.push_back(exp(*i / (double)iterations));
     for( unsigned int j = 0; j < numChromosomes; j++ )
-      Loci->getChromosome(j)->SetLociCorr(exp(SumLogRho / (double)iterations));
+      Loci->getChromosome(j)->SetLociCorr(RhoBar);
+  }
   
   //set haplotype pair probs to posterior means
   for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )

@@ -70,7 +70,7 @@ public:
   void OutputIndAdmixture();
 
   double getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci, LogWriter &Log, 
-		      double SumRho, unsigned numChromosomes);
+		      const vector<double>& SumRho, unsigned numChromosomes);
 
   void OutputChibEstimates(bool, LogWriter &, int)const;
   void OutputChibResults(LogWriter&)const;

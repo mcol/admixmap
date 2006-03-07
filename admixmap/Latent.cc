@@ -25,7 +25,6 @@ Latent::Latent( AdmixOptions* op, Genome* loci)
   options = 0;
   rhoalpha = 0.0;
   rhobeta = 0.0;
-  SumLogRho = 0.0;
   options = op;
   Loci = loci;
   poptheta = 0;
@@ -65,6 +64,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
     }
     
+    SumLogRho.push_back(0.0);
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
     if(options->getHapMixModelIndicator() || (options->getIndAdmixHierIndicator() && !options->isGlobalRho() )){
@@ -75,8 +75,10 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       rho[0] = rhoalpha * rhobeta0 / (rhobeta1 - 1.0);
       if(options->getHapMixModelIndicator()){
 	//initialise rho vector
-	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j)
+	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j){
 	  rho.push_back(rho[0]);
+	  SumLogRho.push_back(0.0);
+	}
       }
     }
     else{
@@ -124,16 +126,16 @@ Latent::~Latent()
   delete[] globalthetaproposal;
 }
 
-void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals){
-  if(options->getHapMixModelIndicator()){
-    if(!(iteration%2))ConjugateUpdateGlobalTheta(individuals->getSumLocusAncestry(options->getPopulations()));
-    else
-      UpdateGlobalThetaWithRandomWalk(individuals); 
-  }
-  individuals->setAdmixtureProps(globaltheta, options->getPopulations());//shouldn't be necessary
-}
+// void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals){
+//   if(options->getHapMixModelIndicator()){
+//     if(!(iteration%2))ConjugateUpdateGlobalTheta(individuals->getSumLocusAncestry(options->getPopulations()));
+//     else
+//       UpdateGlobalThetaWithRandomWalk(individuals); 
+//   }
+//   individuals->setAdmixtureProps(globaltheta, options->getPopulations());//shouldn't be necessary
+// }
 
-void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* const individuals, LogWriter &Log, bool anneal=false)
+void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* const individuals, LogWriter &Log)
  {
    
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
@@ -150,6 +152,7 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
 
   }
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
+
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
    
    if( iteration < options->getBurnIn() && options->getPopulations() > 1) {
@@ -168,16 +171,10 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
      }
      fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
    }
-   
-   if( !anneal && iteration > options->getBurnIn() && options->getPopulations() > 1 ){
-     // accumulate sum of log of sumintensities after burnin.
-     if(options->isGlobalRho()) SumLogRho += log(rho[0]);
-     else SumLogRho += log(rhoalpha) - log(rhobeta);
-
-   }
+  
 }
 
-void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC) {
+void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogrho) {
   if( options->isGlobalRho() ) { // update rho with random walk MH
     double rhoprop = rho[0];
     double LogLikelihood = 0.0;
@@ -234,10 +231,10 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC) {
     if( !( NumberOfUpdates % w ) ){
       step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
     }
-
+    if(sumlogrho )SumLogRho[0] += log(rho[0]);// accumulate sum of log of sumintensities after burnin.
   }//end if global rho model
 
-  else { //non global rho model
+  else if(!options->getHapMixModelIndicator()){ //individual- or gamete-specific rho model
     if(IC->getSize()>1 && options->getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
       // update scale parameter of gamma distribution of sumintensities in population 
       if( options->isRandomMatingModel() )
@@ -245,6 +242,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC) {
       else
 	rhobeta = gengam( rhoalpha* IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
     } // otherwise do not update rhobeta
+    if(sumlogrho )SumLogRho[0] += log(rhoalpha) - log(rhobeta);// accumulate sum of log of mean of sumintensities after burnin.
   }
 }
 
@@ -335,15 +333,22 @@ void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
   }
 }
 
-void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals) {
+//conjugate update of locus-specific sumintensities, conditional on observed numbers of arrivals
+void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, bool sumlogrho) {
   double sum = 0.0;
   for(unsigned j = 1; j < rho.size(); ++j){
     double EffectiveL = Loci->GetDistance(j) * 2 * NumIndividuals;//length of interval * # gametes
     rho[j] = gengam( rhoalpha + (double)(SumNumArrivals[j]), rhobeta + EffectiveL );
     sum += rho[j];
   }
+  //sample rate parameter of gamma prior on rho
   rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
+  //set locus correlation
   Loci->SetLociCorr(rho);
+
+  //accumulate sums of log of rho
+  if(sumlogrho)
+    transform(rho.begin(), rho.end(), SumLogRho.begin(), SumLogRho.begin(), std::plus<double>());
 }
 
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
@@ -367,13 +372,15 @@ void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 
 void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 {
-  if(!options->getHapMixModelIndicator())
-    for( int j = 0; j < options->getPopulations(); j++ ){
-      avgstream->width(9);
-      *avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
-    }
-  avgstream->width(9);
-  *avgstream << setprecision(6) << exp(SumLogRho / samples) << "\t";
+  if(options->getPopulations()>1){
+    if(!options->getHapMixModelIndicator())
+      for( int j = 0; j < options->getPopulations(); j++ ){
+	avgstream->width(9);
+	*avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
+      }
+    avgstream->width(9);
+    *avgstream << setprecision(6) << exp(SumLogRho[0] / samples) << "\t";
+  }
 }
 
 //output to given output stream
@@ -448,7 +455,7 @@ double Latent::getglobalrho()const{
 const vector<double> &Latent::getrho()const{
   return rho;
 }
-double Latent::getSumLogRho()const{
+const vector<double> &Latent::getSumLogRho()const{
   return SumLogRho;
 }
 const double *Latent::getpoptheta()const{
