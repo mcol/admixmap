@@ -1271,12 +1271,14 @@ void AdmixOptions::setInitAlpha(LogWriter &Log){
   if( initalpha[0].size() == 0 && initalpha[1].size() == 0 ){
     fill( alphatemp.begin(), alphatemp.end(), 1.0);//fill alphatemp with 1s
     initalpha[0] = alphatemp; initalpha[1] = alphatemp;//put 2 copies of alphatemp in alpha
-    if(HapMixModelIndicator || !IndAdmixHierIndicator)
-      Log << "Dirichlet parameters of prior on admixture: ";
-    else 
-      Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
-    for(int k = 0;k < Populations; ++k){Log << alphatemp[k] << " " ;}
-    Log << "\n";
+    if(!HapMixModelIndicator){
+      if(!IndAdmixHierIndicator)
+	Log << "Dirichlet parameters of prior on admixture: ";
+      else 
+	Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
+      for(int k = 0;k < Populations; ++k){Log << alphatemp[k] << " " ;}
+      Log << "\n";
+    }
   }
   //if only initalpha0 specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed

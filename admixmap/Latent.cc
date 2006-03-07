@@ -350,9 +350,10 @@ void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 {
   // Header line of paramfile
   //Pop. Admixture
-  for( int i = 0; i < options->getPopulations(); i++ ) {
-    outputstream << "\""<<PopulationLabels[i] << "\"\t";
-  }
+  if(!options->getHapMixModelIndicator())
+    for( int i = 0; i < options->getPopulations(); i++ ) {
+      outputstream << "\""<<PopulationLabels[i] << "\"\t";
+    }
   //SumIntensities
   if(options->getHapMixModelIndicator())
     outputstream << "SumIntensities.Mean\tSumIntensities.Variance";
@@ -366,22 +367,24 @@ void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 
 void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 {
-  for( int j = 0; j < options->getPopulations(); j++ ){
-    avgstream->width(9);
-    *avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
-  }
+  if(!options->getHapMixModelIndicator())
+    for( int j = 0; j < options->getPopulations(); j++ ){
+      avgstream->width(9);
+      *avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
+    }
   avgstream->width(9);
   *avgstream << setprecision(6) << exp(SumLogRho / samples) << "\t";
 }
+
+//output to given output stream
 void Latent::OutputParams(ostream* out){
-  for( int j = 0; j < options->getPopulations(); j++ ){
-    out->width(9);
-    if(options->getHapMixModelIndicator())
-      (*out) << setprecision(6) << globaltheta[ j ] << "\t";
-    else
+  //pop admixture params
+  if(!options->getHapMixModelIndicator())
+    for( int j = 0; j < options->getPopulations(); j++ ){
+      out->width(9);
       (*out) << setprecision(6) << alpha[0][ j ] << "\t";
-  }
-  
+    }
+  //sumintensities
   out->width(9);
   if(options->getHapMixModelIndicator()){
     double sum = accumulate(rho.begin()+1, rho.end(), 0.0, std::plus<double>());

@@ -418,7 +418,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	OutputParameters(iteration, IC, &L, &A, R, &options, Log);
       
       // ** set merged haplotypes for allelic association score test 
-      if( iteration == burnin && options.getTestForAllelicAssociation() ){
+      if( iteration == options.getBurnIn() && options.getTestForAllelicAssociation() ){
 	Scoretest.SetAllelicAssociationTest(L.getalpha0());
       }
       
@@ -506,9 +506,10 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
     
     // Header line of ergodicaveragefile
     if( options->getIndAdmixHierIndicator() ){
-      for( int i = 0; i < options->getPopulations(); i++ ){
-	*avgstream << PopulationLabels[i] << "\t";
-      }
+      if(!options->getHapMixModelIndicator())
+	for( int i = 0; i < options->getPopulations(); i++ ){
+	  *avgstream << PopulationLabels[i] << "\t";
+	}
       if( options->isGlobalRho() ) *avgstream << "sumIntensities\t";
       else *avgstream << "sumIntensities.mean\t";
       
