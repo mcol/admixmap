@@ -414,7 +414,7 @@ void ScoreTests::Update(double dispersion)
       }
       //allelic association
       if( options->getTestForAllelicAssociation() )
-	UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink);
+	UpdateScoreForAllelicAssociation( ind, YMinusEY, dispersion, DInvLink);
     }
   }
   
@@ -456,8 +456,11 @@ void ScoreTests::Update(double dispersion)
       
       if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForHaplotypeAssociation() ){
 	if(locusObsIndicator[j]){//skip loci with no observed genotypes
-	  CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
-		       SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
+	  CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j], SumLocusLinkageAlleleScore[j],
+		       SumLocusLinkageAlleleScore2[j], SumLocusLinkageAlleleInfo[j]); 
+	  // 	  if(dim_[j] > 1) cout << "\ninfo0 " << SumLocusLinkageAlleleInfo[j][0] 
+	  // 				<< "info1 " << SumLocusLinkageAlleleInfo[j][1] << 
+	  //	  "info2 " << SumLocusLinkageAlleleInfo[j][2]; 
 	}
       }
     }
@@ -560,15 +563,11 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
 {
   int K = options->getPopulations();
   double* x = new double[ K + 1 ];
-
-
   x[ K ] = 1.0;
   for( int k = 0; k < K - 1; k++ )
     x[ k + 1 ] = ind->getAdmixtureProps()[k];
-
   for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
     x[0] = (double)allele2Counts[l];
-
     for( int k = 0; k < K + 1; k++ ){
       ScoreWithinHaplotype[j][l][ k ] += phi * x[k] * YMinusEY;
       for( int kk = 0; kk < K + 1; kk++ )
@@ -577,6 +576,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
   }
   delete[] x;
 }
+
 void ScoreTests::UpdateAlleleScores( double* score, double* info, const double* admixtureProps, const vector<int> Counts, 
 				     double YMinusEY, double phi, double DInvLink)
 {
@@ -593,12 +593,12 @@ void ScoreTests::UpdateAlleleScores( double* score, double* info, const double* 
   //x[ dim+k ] = admixtureProps[k];
   copy(admixtureProps+1, admixtureProps+K, x+dim+1);
 
-
   //accumulate score and info
   for( unsigned k = 0; k < K + dim; k++ ){
     score[ k ] += phi * x[k] * YMinusEY;
-    for( unsigned kk = 0; kk < K + dim; kk++ )
+    for( unsigned kk = 0; kk < K + dim; kk++ ) {
       info[ k*(K+dim) + kk ] += x[ k ] * x[ kk ] * phi*DInvLink;
+    }
   }
   
   delete[] x;
@@ -754,13 +754,11 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
   //Allelic association
   if( options->getTestForAllelicAssociation() )    {
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-       //case of simple locus
-      if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
+      if((* Lociptr)(j)->GetNumberOfLoci() == 1 )  //compound locus consists of one simple locus
 	OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, dim_[j], 
 					 SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
 					 SumLocusLinkageAlleleInfo[j], ",");
-      //case of haplotype
-      else
+      else //compound locus consists of > 1 simple locus
 	OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, (*Lociptr)(j)->GetNumberOfLoci(), 
 					 SumScoreWithinHaplotype[ j ], SumScore2WithinHaplotype[ j ], 
 					 SumInfoWithinHaplotype[ j ], ",");
@@ -962,7 +960,7 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* out
     CompleteInfo = info[a] / ( iterations );
     MissingInfo = scoresq[a] / ( iterations ) - Score * Score;
     ObservedInfo = CompleteInfo - MissingInfo;
-    
+    // if(dim > 1) cout << "\ninfo" << a << " " << info[a];  
     string locuslabel = (*Lociptr)(locus)->GetLabel(a);
     if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) *outputstream << "\"" << locuslabel << "\"" << sep;
     else *outputstream << "\"" << locuslabel<< "("<<a+1<<")\""<< sep;
@@ -975,10 +973,10 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* out
       pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
       *outputstream << double2R(PercentInfo, 2) << sep
 		    << double2R(zscore,3)   << sep 
-		    << pvalue << sep << endl;
+		    << double2R(pvalue) << sep << endl;
     }
     else{
-      *outputstream << "NaN" << sep << "NaN" << sep << endl;
+      *outputstream << "NaN" << sep << "NaN" << sep << "NaN" << sep << endl;
     }
     
   }
@@ -1098,8 +1096,10 @@ void ScoreTests::ROutput(){
   if(options->getTestForAllelicAssociation()){
     count = 0;
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-      if((* Lociptr)(j)->GetNumberOfLoci() == 1 ) count += dim_[j];
-      else count += (*Lociptr)(j)->GetNumberOfLoci();
+      if((* Lociptr)(j)->GetNumberOfLoci() == 1 ) 
+      count += dim_[j];
+      else count += (*Lociptr)(j)->GetNumberOfLoci(); // assumes all simple loci within compound locus are diallelic
+      //cout << "clocus " << j << "\tnumTests " << dim_[j] << "\tcount " << count << endl;
     }         
     vector<int> dimensions(3,0);
     dimensions[0] = 7;
