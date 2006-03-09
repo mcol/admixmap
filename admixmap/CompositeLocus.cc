@@ -577,20 +577,17 @@ void CompositeLocus::SetDefaultMergeHaplotypes( const double* const alpha)
 {
    int count = 0, count2 = 0;
    double p, sumalpha = 0.0;
-   double* sumAlleleProbs = new double[Populations];
    vector<int> temp( NumberOfStates ), Merged( NumberOfStates );
    fill(Merged.begin(), Merged.end(), 0);
    MergeHaplotypes = new int[ NumberOfStates ];
    for( int j = 0; j < Populations; j++ ){
      sumalpha +=alpha[j];
-     sumAlleleProbs[j] = 0.0;
    }
 
    for( int i = 0; i < NumberOfStates - 1; i++ ){
       p = 0;
       for( int j = 0; j < Populations; j++ ){
 	p += alpha[j] * AlleleProbs[j*NumberOfStates +i];
-	sumAlleleProbs[j] += AlleleProbs[j*NumberOfStates +i];
       }
       p /= sumalpha;
       if( p > 0.01 ){
@@ -602,7 +599,7 @@ void CompositeLocus::SetDefaultMergeHaplotypes( const double* const alpha)
    }
    p = 0;
    for( int j = 0; j < Populations; j++ )
-      p += alpha[j] * ( 1 - sumAlleleProbs[j] );
+      p += alpha[j] * ( AlleleProbs[j*NumberOfStates +NumberOfStates-1] );
    p /= sumalpha;
    if( p > 0.01 ){
       temp[ NumberOfStates - 1 ] = count;
@@ -635,7 +632,6 @@ void CompositeLocus::SetDefaultMergeHaplotypes( const double* const alpha)
    delete[] haplotype;
    for( int j = 0; j < NumberOfLoci; j++ )
      HapLabels[ (NumberOfMergedHaplotypes - 1)*NumberOfLoci + j ] = 99;
-   delete[] sumAlleleProbs;
 }
 
 const int *CompositeLocus::GetHapLabels( int i )const

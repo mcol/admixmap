@@ -601,22 +601,19 @@ const double *AlleleFreqs::GetStatsForEta( int locus, int population)const
   fill(stats, stats+NumberOfStates[locus], 0.0);
   if(IsHistoricAlleleFreq){
     // calculates sufficient stats for update of dispersion parameter
-    double sumHistoric = 0.0, sum = 0.0;
+    double sumHistoric = 0.0;
     for( int i = 0; i < NumberOfStates[locus] - 1; i++ ){
       stats[ i ] = log( Freqs[locus][ i + population*NumberOfStates[locus] ] ) + log( HistoricAlleleFreqs[locus][ i*Populations + population ] );
-      sum +=Freqs[locus][i + population*NumberOfStates[locus] ];
       sumHistoric +=  HistoricAlleleFreqs[locus][ i*Populations + population ];
     }
-    stats[ NumberOfStates[locus] - 1 ] = log( 1 - sum ) + log( 1 - sumHistoric );
+    stats[ NumberOfStates[locus] - 1 ] = log( Freqs[locus][NumberOfStates[locus]-1 + population*NumberOfStates[locus]] ) 
+      + log( 1 - sumHistoric );
   }
   else{//correlated allelefreqs model, sum over populations
     for(int k = 0; k < Populations; ++k){
-      double sum = 0.0;
-      for( int i = 0; i < NumberOfStates[locus] - 1; i++ ){
+      for( int i = 0; i < NumberOfStates[locus] ; i++ ){
 	stats[ i ] += log( Freqs[locus][ i + k*NumberOfStates[i] ] );
-	sum +=Freqs[locus][ i + k*NumberOfStates[i] ];
       }
-      stats[ NumberOfStates[locus] - 1 ] += log( 1 - sum );
     }
   }
 
@@ -934,8 +931,8 @@ const double* AlleleFreqs::GetAlleleFreqs(int locus)const
 }
 vector<double> AlleleFreqs::GetAlleleFreqs( int locus, int population )const
 {
-  vector<double> A(NumberOfStates[locus]-1);
-  for(int i = 0; i < NumberOfStates[locus]-1; ++i)
+  vector<double> A(NumberOfStates[locus]);
+  for(int i = 0; i < NumberOfStates[locus]; ++i)
     A[i] = Freqs[locus][i + population*NumberOfStates[locus]];
   return A;
 }

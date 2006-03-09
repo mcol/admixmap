@@ -66,8 +66,6 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
   for( int j = 0; j < NumberOfCompositeLoci; j++ ){
     for( int k = 0; k < NumberOfPopulations; k++ ){
       popfreqs =  A->GetAlleleFreqs(j, k );
-      double sumfreqs = accumulate(popfreqs.begin(), popfreqs.end(), 1.0, minus<double>());
-      popfreqs.push_back( sumfreqs );
 
       // Generate replicate data conditional on locus ancestry
       AlleleCount = A->GetAlleleCounts(j, k);
