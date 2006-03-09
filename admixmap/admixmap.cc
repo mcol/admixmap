@@ -337,7 +337,7 @@ int main( int argc , char** argv ){
     if(options.getPopulations() > 1){
       L.printAcceptanceRates(Log);
       
-      if( options.isGlobalRho() && !options.getHapMixModelIndicator()){
+      if( options.isGlobalRho() || options.getHapMixModelIndicator()){
 	Log << "Expected acceptance rate in global sumintensities sampler: "
 	    << L.getRhoSamplerAccRate()
 	    << "\nwith final step size of "
@@ -605,7 +605,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   if(options->getHapMixModelIndicator()){
     //L->UpdateGlobalTheta(iteration, IC);
-    L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
+    //conjugate sampler, using numbers of arrivals. NB: requires sampling of jump indicators in Individuals
+    //    L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
+    //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
+    L->SampleSumIntensities(IC->getSumAncestry(),  
 			    (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1));
   }
 

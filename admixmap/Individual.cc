@@ -553,6 +553,29 @@ void Individual::SampleLocusAncestry(const AdmixOptions* const options){
   } //end chromosome loop
 }
 
+void Individual::AccumulateAncestry(int* SumAncestry){
+  unsigned locus = 0;
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    Chromosome* C = Loci->getChromosome(j);
+    ++locus;//skip first locus on each chromosome
+      for(unsigned l = 1; l < C->GetSize(); ++l){
+	if( LocusAncestry[j][l-1] != LocusAncestry[j][l])//first gamete
+	  ++SumAncestry[l*(Populations+1)];
+	else
+	  ++SumAncestry[l*(Populations+1) + LocusAncestry[j][l] + 1];
+	if(!j==X_posn || SexIsFemale){//second gamete
+	if( LocusAncestry[j][C->GetSize() + l-1] != LocusAncestry[j][C->GetSize() + l])
+	  ++SumAncestry[l*(Populations+1)];
+	else
+	  ++SumAncestry[l*(Populations+1) + LocusAncestry[j][C->GetSize()+l]];
+
+	}
+	++locus;
+      }
+  } //end chromosome loop
+
+}
+
 void Individual::SampleHapPair(AlleleFreqs *A){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);

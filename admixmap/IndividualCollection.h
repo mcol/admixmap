@@ -88,6 +88,7 @@ public:
   double GetSumrho()const;
   double getSumLogTheta(int)const;
   const double *getSumLogTheta()const;
+  const int* getSumAncestry()const;
   const vector<int> getSumLocusAncestry(int k)const;
   const vector<int> getSumLocusAncestryX(int k)const;
   const vector<unsigned> getSumNumArrivals();
@@ -149,6 +150,7 @@ private:
   double SumLogLikelihood;
   double SumDeviance, SumDevianceSq;
   std::vector< int > _locusfortest;
+  int* SumAncestry;//for update of locus-specific sumintensities
  
   //Regression Objects
   double **ExpectedY;

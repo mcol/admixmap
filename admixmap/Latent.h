@@ -37,6 +37,14 @@
 class InputData;
 class IndividualCollection;
 
+typedef struct {
+  unsigned NumPops;
+  unsigned NumLoci;
+  const int* SumAncestry;
+  const double* Distances;
+  const double* theta; 
+}RhoArguments;
+
 class Latent
 {
 public:
@@ -49,7 +57,8 @@ public:
   void InitializeOutputFile(const std::string* const);
   
   void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
-  void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho); 
+  void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);
+  void SampleSumIntensities(const int* SumAncestry, bool sumlogrho) ;
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
   void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   
@@ -86,12 +95,16 @@ private:
    * rhobeta has a beta hyperprior with parameters rhobeta0 and rhobeta1
    */
   int K;
-  std::vector<double> rho; 
+  std::vector<double> rho;
+  double* logrho; 
   double rhoalpha;
   double rhobeta; 
   double rhobeta0;
   double rhobeta1;
   std::vector<double> SumLogRho; //ergodic sum of log(rho)
+
+  RhoArguments RhoArgs;
+  HamiltonianMonteCarlo* RhoSampler;
   
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
@@ -108,9 +121,9 @@ private:
                        //in the regression model
 
   double* globaltheta;//global admixture proportions in a hapmixmodel
-  double* globalthetaproposal;//for random walk update
-  StepSizeTuner ThetaTuner;
-  double thetastep;
+  //double* globalthetaproposal;//for random walk update
+  //StepSizeTuner ThetaTuner;
+  //double thetastep;
 
   std::ofstream outputstream;//output to paramfile
 
@@ -121,6 +134,8 @@ private:
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);
 
+  static double RhoEnergy(const double* const x, const void* const vargs);
+  static void RhoGradient( const double* const x, const void* const vargs, double* g );
   // UNIMPLEMENTED
   // to avoid use
   Latent();

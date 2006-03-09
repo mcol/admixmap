@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <numeric>
 #include "gsl/gsl_math.h"
+#include "gsl/gsl_specfunc.h"
 
 using namespace std;
 
@@ -29,8 +30,9 @@ Latent::Latent( AdmixOptions* op, Genome* loci)
   Loci = loci;
   poptheta = 0;
   globaltheta = 0;
-  globalthetaproposal = 0;
+  //globalthetaproposal = 0;
   rho.push_back(0.0);
+  RhoSampler = 0;
 }
 
 void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter &Log){
@@ -59,9 +61,9 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     //initialise global admixture proportions
     if(options->getHapMixModelIndicator()){
       globaltheta = new double[K];
-      globalthetaproposal = new double[K];
+      //globalthetaproposal = new double[K];
       fill(globaltheta, globaltheta+K, 1.0/(double)K);
-      ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
+      //ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
     }
     
     SumLogRho.push_back(0.0);
@@ -72,13 +74,21 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       rhobeta0 = options->getRhobetaShape();
       rhobeta1 = options->getRhobetaRate();
       rhobeta = rhobeta0 / rhobeta1;
-      rho[0] = rhoalpha * rhobeta0 / (rhobeta1 - 1.0);
+      rho[0] = rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
       if(options->getHapMixModelIndicator()){
 	//initialise rho vector
 	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j){
 	  rho.push_back(rho[0]);
 	  SumLogRho.push_back(0.0);
 	}
+	RhoArgs.NumPops = K;
+	RhoArgs.NumLoci = Loci->GetNumberOfCompositeLoci();
+	RhoArgs.Distances = Loci->GetDistances();
+	RhoSampler = new HamiltonianMonteCarlo[Loci->GetNumberOfChromosomes()];
+	for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c)
+	  RhoSampler[c].SetDimensions(Loci->GetSizeOfChromosome(c)-1, 0.0001/*initial stepsize*/, 0.000/*min stepsize*/, 
+				      1.0/*max stepsize*/, 10/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
+    
       }
     }
     else{
@@ -123,7 +133,8 @@ Latent::~Latent()
 {
   delete[] poptheta;
   delete[] globaltheta;
-  delete[] globalthetaproposal;
+  //delete[] globalthetaproposal;
+  delete[] RhoSampler;
 }
 
 // void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals){
@@ -246,92 +257,92 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
   }
 }
 
-void Latent::ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry){
-  //sumlocusancestry is summed over all individuals
-  size_t K = options->getPopulations();
-  double dirparams[K];
-  for(size_t k = 0; k < K; ++k) {
-    dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
-  }
-  gendirichlet(K, dirparams, globaltheta );
-}
+// void Latent::ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry){
+//   //sumlocusancestry is summed over all individuals
+//   size_t K = options->getPopulations();
+//   double dirparams[K];
+//   for(size_t k = 0; k < K; ++k) {
+//     dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
+//   }
+//   gendirichlet(K, dirparams, globaltheta );
+// }
 
-void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC) {
-  double LogLikelihoodRatio = 0.0;
-  double LogPriorRatio = 0.0;
-  double logpratio = 0.0;
+// void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC) {
+//   double LogLikelihoodRatio = 0.0;
+//   double LogPriorRatio = 0.0;
+//   double logpratio = 0.0;
   
-  //generate proposals
-  // inverse softmax transformation from proportions to numbers on real line that sum to 0
-  bool* b = new bool[K];
-  double* a = new double[K]; // should be at class scope
-  for(int k = 0; k < K; ++k) {
-    if(globaltheta[k] > 0.0) {
-      b[k] = true; //to skip elements set to zero
-    } else b[k] = false;
-  }
-  inv_softmax(K, globaltheta, a, b);
-  //random walk step - on all elements of array a
-  for(int k = 0; k < K; ++k) {
-    if( b[k] ) a[k] = gennor(a[k], thetastep);  
-  }
-  //reverse transformation from numbers on real line to proportions 
-  softmax(K, globalthetaproposal, a, b);
-  //compute contribution of this gamete to log prior ratio
-  for(int k = 0; k < K; ++k) {
-    if( b[k] ) { 
-      // prior densities must be evaluated in softmax basis
-      LogPriorRatio += alpha[0][k]*( log(globalthetaproposal[k]) - log(globaltheta[k]) ); 
-    }
-  }
-  delete[] a;
-  delete[] b; 
+//   //generate proposals
+//   // inverse softmax transformation from proportions to numbers on real line that sum to 0
+//   bool* b = new bool[K];
+//   double* a = new double[K]; // should be at class scope
+//   for(int k = 0; k < K; ++k) {
+//     if(globaltheta[k] > 0.0) {
+//       b[k] = true; //to skip elements set to zero
+//     } else b[k] = false;
+//   }
+//   inv_softmax(K, globaltheta, a, b);
+//   //random walk step - on all elements of array a
+//   for(int k = 0; k < K; ++k) {
+//     if( b[k] ) a[k] = gennor(a[k], thetastep);  
+//   }
+//   //reverse transformation from numbers on real line to proportions 
+//   softmax(K, globalthetaproposal, a, b);
+//   //compute contribution of this gamete to log prior ratio
+//   for(int k = 0; k < K; ++k) {
+//     if( b[k] ) { 
+//       // prior densities must be evaluated in softmax basis
+//       LogPriorRatio += alpha[0][k]*( log(globalthetaproposal[k]) - log(globaltheta[k]) ); 
+//     }
+//   }
+//   delete[] a;
+//   delete[] b; 
 
-  vector<double> dummyrho(1);dummyrho[0] = rho[0];
-  for(int i = 0; i < IC->getSize(); ++i){
-    //get log likelihood at current parameter values - do not force update, store result of update
-    LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, false, true); 
+//   vector<double> dummyrho(1);dummyrho[0] = rho[0];
+//   for(int i = 0; i < IC->getSize(); ++i){
+//     //get log likelihood at current parameter values - do not force update, store result of update
+//     LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, false, true); 
     
-    //get log likelihood at proposal theta and current rho - force update 
-    LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, globaltheta, globaltheta, dummyrho, dummyrho, true);
-  }
-  IC->HMMIsBad(true);
+//     //get log likelihood at proposal theta and current rho - force update 
+//     LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, globaltheta, globaltheta, dummyrho, dummyrho, true);
+//   }
+//   IC->HMMIsBad(true);
 
-  logpratio = LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
-  Accept_Reject_Theta(logpratio, K);
-}
+//   logpratio = LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
+//   Accept_Reject_Theta(logpratio, K);
+// }
 
-void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
-  // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
-  bool test = true;
-  bool accept = false;
-  double AccProb = 1.0; 
-  // loop over populations: if any element of proposed parameter vector is too small, reject update without test step
-  for( int k = 0; k < Populations; k++ ) {
-    if( globaltheta[ k ] > 0.0 && globalthetaproposal[ k ] < 0.0001 ) {
-      test = false;
-    }
-  }
+// void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
+//   // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
+//   bool test = true;
+//   bool accept = false;
+//   double AccProb = 1.0; 
+//   // loop over populations: if any element of proposed parameter vector is too small, reject update without test step
+//   for( int k = 0; k < Populations; k++ ) {
+//     if( globaltheta[ k ] > 0.0 && globalthetaproposal[ k ] < 0.0001 ) {
+//       test = false;
+//     }
+//   }
 
-  if(test) { // generic Metropolis step
-    if( logpratio < 0 ) {
-      AccProb = exp(logpratio); 
-      if( myrand() < AccProb ) accept=true;
-    } else {
-      accept = true;
-    }
-  }
+//   if(test) { // generic Metropolis step
+//     if( logpratio < 0 ) {
+//       AccProb = exp(logpratio); 
+//       if( myrand() < AccProb ) accept=true;
+//     } else {
+//       accept = true;
+//     }
+//   }
   
-  if(accept) { // set proposed values as new values    
-    copy(globalthetaproposal, globalthetaproposal+K, globaltheta);
-    //possibly need to reset loglikelihood in Individuals
-  } 
+//   if(accept) { // set proposed values as new values    
+//     copy(globalthetaproposal, globalthetaproposal+K, globaltheta);
+//     //possibly need to reset loglikelihood in Individuals
+//   } 
   
-  //update step size in tuner object every w updates
-  if( !( NumberOfUpdates % w ) ) {
-    thetastep = ThetaTuner.UpdateStepSize( AccProb );
-  }
-}
+//   //update step size in tuner object every w updates
+//   if( !( NumberOfUpdates % w ) ) {
+//     thetastep = ThetaTuner.UpdateStepSize( AccProb );
+//   }
+// }
 
 //conjugate update of locus-specific sumintensities, conditional on observed numbers of arrivals
 void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, bool sumlogrho) {
@@ -341,6 +352,7 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
     rho[j] = gengam( rhoalpha + (double)(SumNumArrivals[j]), rhobeta + EffectiveL );
     sum += rho[j];
   }
+
   //sample rate parameter of gamma prior on rho
   rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
   //set locus correlation
@@ -349,6 +361,88 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
   //accumulate sums of log of rho
   if(sumlogrho)
     transform(rho.begin(), rho.end(), SumLogRho.begin(), SumLogRho.begin(), std::plus<double>());
+}
+
+void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
+  RhoArgs.SumAncestry = SumAncestry;
+  RhoArgs.theta = globaltheta;
+  vector<double>::iterator p = rho.begin()+1;
+  double sum = 0.0;
+  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+    Chromosome* C = Loci->getChromosome(c); 
+    //take logs of rho
+    for(unsigned i = 0; i < C->GetSize()-1; ++i)
+      *(p + i) = log(*(p +i));
+    RhoArgs.NumLoci = C->GetSize();
+    RhoArgs.Distances = C->GetDistances();
+
+    RhoSampler[c].Sample(&(*p), &RhoArgs);// *p is the element in rho corresponding to second locus on current chromosome
+    //take exponents of logrho
+    for(unsigned i = 0; i < C->GetSize()-1; ++i){
+      *(p + i) = exp(*(p + i));
+      sum += *(p+i);
+    }
+    p += C->GetSize();
+    RhoArgs.SumAncestry += C->GetSize()*(options->getPopulations()+1);
+   }
+  //sample rate parameter of gamma prior on rho
+  rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
+  //set locus correlation
+  Loci->SetLociCorr(rho);
+
+  //accumulate sums of log of rho
+  if(sumlogrho)
+    for(vector<double>::iterator i = SumLogRho.begin(), p=rho.begin(); i < SumLogRho.end(); ++i, ++p)*i += log(*p); 
+}
+
+double Latent::RhoEnergy(const double* const x, const void* const vargs){
+  //x is the log of rho, with length NumLoci - 1
+  const RhoArguments* args = (const RhoArguments*)vargs;
+  unsigned K = args->NumPops;
+  unsigned L = args->NumLoci;
+  const int* n = args->SumAncestry;
+  const double* d = args->Distances;
+  const double* theta = args->theta;
+  double rho, f;
+  double E = 0.0;
+  gsl_sf_result result;
+  int status = 0;
+
+  for(unsigned j = 1; j < L; ++j){
+    rho = exp(x[j-1]);
+    status = gsl_sf_exp_e(d[j]*rho, &result);
+    if(status)throw("exp error in RhoEnergy");
+    f = result.val;
+    status = gsl_sf_lngamma_e(1.0-f, &result);
+    if(status)throw("log error in RhoEnergy");
+    E += n[j*(K+1)] * result.val;
+    for(unsigned k = 0; k < K; ++k)
+      E += n[j*(K+1) + k+1] * log(f + theta[k]*(1.0 - f));
+  }
+  return -E; 
+}
+
+void Latent::RhoGradient( const double* const x, const void* const vargs, double* g ){
+  const RhoArguments* args = (const RhoArguments*)vargs;
+  unsigned K = args->NumPops;
+  unsigned L = args->NumLoci;
+  const int* n = args->SumAncestry;
+  const double* d = args->Distances;
+  const double* theta = args->theta;
+  double rho, f;
+  gsl_sf_result result;
+  int status = 0;
+
+  for(unsigned j = 1; j < L; ++j){
+    rho = exp(x[j-1]);
+    status = gsl_sf_exp_e(d[j]*rho, &result);
+    if(status)throw("exp error in RhoGradient");
+    f = result.val;
+    g[j-1] = n[j*(K+1)] / (1.0 - f);
+    for(unsigned k = 0; k < K; ++k)
+      g[j-1] -= (n[j*(K+1) + k+1]*(1.0 - theta[k])) / (f + theta[k]*(1.0 - f));
+    g[j-1] *= rho*d[j]*f;//jacobian
+  }
 }
 
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
@@ -463,13 +557,13 @@ const double *Latent::getpoptheta()const{
 }
 
 void Latent::printAcceptanceRates(LogWriter &Log) {
-  if(options->getHapMixModelIndicator()){
-    Log << "Expected acceptance rate in global admixture sampler: "
-	<< ThetaTuner.getExpectedAcceptanceRate()
-	<< "\nwith final step size of "
-	<< thetastep << "\n";
-  }
-  else{
+  if(!options->getHapMixModelIndicator()){
+//     Log << "Expected acceptance rate in global admixture sampler: "
+// 	<< ThetaTuner.getExpectedAcceptanceRate()
+// 	<< "\nwith final step size of "
+// 	<< thetastep << "\n";
+//   }
+//   else{
     Log << "Expected acceptance rate in population admixture sampler: "
 	<< PopAdmixSampler.getExpectedAcceptanceRate()
 	<< "\nwith final step size of "
@@ -477,9 +571,15 @@ void Latent::printAcceptanceRates(LogWriter &Log) {
   }
 }
 double Latent::getRhoSamplerAccRate()const{
-  return TuneRhoSampler.getExpectedAcceptanceRate();
+  if(options->getHapMixModelIndicator())
+    return RhoSampler[0].getAcceptanceRate();
+  else
+    return TuneRhoSampler.getExpectedAcceptanceRate();
 }
 
 double Latent::getRhoSamplerStepsize()const{
-  return step;
+  if(options->getHapMixModelIndicator())
+    return RhoSampler[0].getStepsize();
+  else
+    return step;
 }

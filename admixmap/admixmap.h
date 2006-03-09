@@ -32,6 +32,6 @@
 #include "MisSpecAlleleFreqTest.h"
 #include "HWTest.h"
 
-#define ADMIXMAP_VERSION "3.0"
+#define ADMIXMAP_VERSION "3.1"
 
 #endif /* ADMIXMAP_H */

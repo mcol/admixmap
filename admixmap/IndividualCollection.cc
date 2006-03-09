@@ -24,6 +24,7 @@ IndividualCollection::IndividualCollection() {
   NumberOfInputCovariates = 0;
   ReportedAncestry = 0;
   SumDeviance = SumDevianceSq = 0.0;
+  SumAncestry = 0;
 }
 
 IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
@@ -37,6 +38,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   ExpectedY = 0;
   SumResiduals = 0;
   SumLogTheta = 0;
+  SumAncestry = 0;
   ReportedAncestry = 0;
   NumInd = Data->getNumberOfIndividuals();
   size = NumInd;
@@ -92,6 +94,7 @@ IndividualCollection::~IndividualCollection() {
   free_matrix(ExpectedY, NumOutcomes);
   free_matrix(SumResiduals, NumOutcomes);
   delete[] SumLogTheta;
+  delete[] SumAncestry;
   delete[] ReportedAncestry;
 }
 
@@ -114,9 +117,11 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   if( options->getLocusForTestIndicator() )
     _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
   
+  if(!options->getHapMixModelIndicator()){
   //draw initial values for individual admixture proportions
-  for(unsigned i = 0; i < size; i++) _child[i]->drawInitialAdmixtureProps(alpha);
-  if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
+    for(unsigned i = 0; i < size; i++) _child[i]->drawInitialAdmixtureProps(alpha);
+    if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
+  }
 
 //   // set priors on individual admixture to be passed to individual if no hierarchical model
 //   admixtureprior.resize(2);
@@ -138,6 +143,9 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   
   // allocate array of sufficient statistics for update of population admixture parameters
   SumLogTheta = new double[ options->getPopulations()];
+
+  //allocate array of sufficient statistics for update of locus-specific sumintensities
+  if(options->getHapMixModelIndicator()) SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*(options->getPopulations()+1)];
 
 //   allocate and set initial values for estimates used in Chib algorithm
   if( options->getChibIndicator() )
@@ -323,9 +331,9 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
 
 // ************** UPDATING **************
 void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
-				  const Regression* const R, const double* const poptheta,
-				  const vector<vector<double> > &alpha, 
-				   bool anneal=false){
+				      const Regression* const R, const double* const poptheta,
+				      const vector<vector<double> > &alpha, 
+				      bool anneal=false){
   //Individual-level updates requiring update of HMM
 
   // coolness is not passed as argument to this function because annealing has already been implemented by 
@@ -346,6 +354,7 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
   }
   //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+  if(options->getHapMixModelIndicator())fill(SumAncestry, SumAncestry + (Populations+1)*NumCompLoci, 0);
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
@@ -360,10 +369,12 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
 			     R[0].getDispersion(), true, _anneal);
     // ** Run HMM forward recursions and sample locus ancestry
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
+    if(options->getHapMixModelIndicator())_child[i]->AccumulateAncestry(SumAncestry);
     // ** Sample Haplotype Pair
     _child[i]->SampleHapPair(A);//also updates allele counts
     // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-    if(Populations >1)_child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+    if(Populations >1 && !options->getHapMixModelIndicator())//no need in hapmixmodel
+      _child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
     // ** Update score, info and score^2 for ancestry score tests
     if(iteration > options->getBurnIn() && Populations >1 
        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
@@ -591,6 +602,9 @@ double IndividualCollection::getSumLogTheta(int i)const{
 const double* IndividualCollection::getSumLogTheta()const{
   return SumLogTheta;
 }
+const int* IndividualCollection::getSumAncestry()const{
+  return SumAncestry;
+}
 const vector<int> IndividualCollection::getSumLocusAncestry(int K)const{
   vector<int> sumlocusancestry(2*K, 0);
   const int* indivsla;
@@ -656,7 +670,8 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   // fix this to be test individual only if single individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates
   for(unsigned int i = 0; i < size; i++ ){
-    Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
+    if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
+    else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
   Log << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
   for(int c = 0; c < options->getNumberOfOutcomes(); ++c){
