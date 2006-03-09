@@ -15,10 +15,12 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include "gsl/gsl_sf_exp.h"
+#include "gsl/gsl_sf_log.h"
 #include <numeric>
 #include <iostream>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_randist.h>
+#include <sstream>
 
 using namespace::std;
 
@@ -235,12 +237,26 @@ void inv_softmax(size_t K, const double* const mu, double *a){
   // transforms proportions mu to numbers a on real line 
   // elements of a sum to 0
   double logz = 0.0;
+  gsl_sf_result result;
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  int status = 0;
+
   for(unsigned k = 0; k < K; ++k) {
-    a[k] = log(mu[k]);
+    status = gsl_sf_log_e(mu[k], &result);
+    if(status){
+      stringstream err;
+      err << "error in inv_softmax: " << gsl_strerror(status) << ": " << mu[k];
+      throw(err.str());
+    }
+    a[k] = result.val;
     logz -= a[k];
   }
   logz /= (double)K;
-  for(unsigned k = 0; k< K; ++k) a[k] += logz;
+  for(unsigned k = 0; k< K; ++k) {
+    a[k] += logz;
+    if( !gsl_finite(a[k]) )throw string("error in inv_softmax");
+  }
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
 }
 
 void softmax(size_t K, double *mu, const double* a){

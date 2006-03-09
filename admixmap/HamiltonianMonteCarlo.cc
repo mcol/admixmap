@@ -87,16 +87,17 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
       for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
       for(unsigned i = 0; i < dim; ++i) {
 	xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
-	if( isinf(xnew[i]) || isinf(-xnew[i]) ) {
-	  throw ("\nleapfrog to infinity in Hamiltonian sampler - try using more small steps");
+	if( !gsl_finite(xnew[i]) ) {
+	  throw string("\nleapfrog to infinity in Hamiltonian sampler - try using more small steps");
 	}
       }
       gradE ( xnew, args, gnew ) ; // find new gradient
       for(unsigned i = 0; i < dim; ++i) {p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
-	//cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
+	//cout<<x[i]<<" "<<(isinf(xnew[i])||isinf(-xnew[i]))<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
       }
     }
     //cout<<endl;
+    //system("pause");
     sumpsq = 0.0;
     for(unsigned i = 0; i < dim; ++i){
       sumpsq += p[i]*p[i];
