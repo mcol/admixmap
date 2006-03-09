@@ -40,14 +40,14 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
 
   //transform phi 
   double* params = new double[dim];
-  double freqs[NumStates];//frequencies for one population
+  //double freqs[NumStates];//frequencies for one population
   for(unsigned k = 0; k < NumPops; ++k){
-    freqs[NumStates-1] = 1.0;
-    for(unsigned s = 0; s < NumStates - 1; ++s) {//NB supplied frequencies are missing last element
-      freqs[s] = phi[s*NumPops+k];
-      freqs[NumStates-1] -= freqs[s];
-    }
-    inv_softmax(NumStates, freqs, params+k*NumStates);
+    //freqs[NumStates-1] = 1.0;
+    //for(unsigned s = 0; s < NumStates - 1; ++s) {//NB supplied frequencies are missing last element
+    //freqs[s] = phi[s*NumPops + k*NumStates];
+    //freqs[NumStates-1] -= freqs[s];
+    //}
+    inv_softmax(NumStates, phi+k*NumStates, params+k*NumStates);
   }
 
   //call Sample on transformed variables 
@@ -55,8 +55,8 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
 
   //reverse transformation
   for(unsigned k = 0; k < NumPops; ++k){
-    softmax(NumStates, freqs, params+k*NumStates);
-    for(unsigned s = 0; s < NumStates - 1; ++s) phi[s*NumPops+k] = freqs[s];
+    softmax(NumStates, phi+k*NumStates, params+k*NumStates);
+    //for(unsigned s = 0; s < NumStates; ++s) phi[s*NumPops+k] = freqs[s];
   }
 
   delete[] params;
@@ -81,12 +81,12 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const double* Prior, const i
 
   //transform phi 
   double* params = new double[2*NumPops];
-  double freqs[2];//frequencies for one population
+  //double freqs[2];//frequencies for one population
 
   for(unsigned k = 0; k < NumPops; ++k){
-    freqs[0] = phi[k];
-    freqs[1] = 1.0-phi[k];
-    inv_softmax(2, freqs, params+k*2);
+  //freqs[0] = phi[k];
+    //freqs[1] = 1.0-phi[k];
+    inv_softmax(2, phi+k*2, params+k*2);
   }
 
   //call Sample on transformed variables 
@@ -94,8 +94,9 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const double* Prior, const i
 
   //reverse transformation
   for(unsigned k = 0; k < NumPops; ++k){
-    softmax(2, freqs, params+k*2);
-    phi[k] = freqs[0];
+    softmax(2, phi+k*2, params+k*2);
+    //phi[k] = freqs[0];
+    //phi[NumPops+k] = freqs[1];
   }
   delete[] params;
 }

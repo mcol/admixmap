@@ -58,7 +58,7 @@ private:
   std::ofstream allelefreqscorestream2;
 
   void UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, const std::vector<std::vector<unsigned short> > x, 
-					  const double* const AlleleFreqs);
+					  const double* const AlleleFreqs, int NumStates);
   void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, const double* const AlleleFreqs, 
 					   const int* const AlleleCounts);
 

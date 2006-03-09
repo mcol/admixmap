@@ -395,12 +395,16 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix New, int i, bool oldformat){
 
   // set size of allele freqs array for this locus
   // Freqs array has only NumberOfStates - 1 elements for each population
-  Freqs[i] = new double[(NumberOfStates[i]-1)* Populations];
+  Freqs[i] = new double[(NumberOfStates[i])* Populations];
 
   if(oldformat){//old format allelefreqfile
-    for(int j = 0; j < NumberOfStates[i]-1; ++j)
-      for(int k = 0; k < Populations; ++k)
-	Freqs[i][j*Populations+k] = New.get(j,k);
+    for(int k = 0; k < Populations; ++k){
+      Freqs[i][(NumberOfStates[i]-1) + k*NumberOfStates[i]] = 1.0;
+      for(int j = 0; j < NumberOfStates[i]-1; ++j){
+	Freqs[i][j+ k*NumberOfStates[i]] = New.get(j,k);
+	Freqs[i][(NumberOfStates[i]-1) + k*NumberOfStates[i]] -= New.get(j,k);
+      }
+    }
   }
   else{
     double sumalpha;
@@ -409,8 +413,8 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix New, int i, bool oldformat){
     for( int j = 0; j < Populations; j++ ){
       vector<double> NewCol = New.getCol(j);
       sumalpha = accumulate( NewCol.begin(), NewCol.end(), 0.0, std::plus<double>() );
-      for( int k = 0; k < NumberOfStates[i] - 1; k++ )
-	Freqs[i][ k*Populations + j ] = ( New.get( k, (!CorrelatedAlleleFreqs)* j ) ) / sumalpha;
+      for( int k = 0; k < NumberOfStates[i] ; k++ )
+	Freqs[i][ k + j*NumberOfStates[i] ] = ( New.get( k, (!CorrelatedAlleleFreqs)* j ) ) / sumalpha;
     }
   }
   
@@ -466,8 +470,8 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i, double defaultpriorparams){
   }
   
   // initialize frequencies as equal for all alleles at locus
-  Freqs[i] = new double[(NumberOfStates[i]-1)*Populations];
-  for(int j = 0; j < (NumberOfStates[i]-1)*Populations; ++j)
+  Freqs[i] = new double[(NumberOfStates[i])*Populations];
+  for(int j = 0; j < (NumberOfStates[i])*Populations; ++j)
     Freqs[i][j] = 1.0/NumberOfStates[i];
   
 
@@ -500,10 +504,12 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
       if(NumberOfStates[i]==2) //shortcut for SNPs
 	FreqSampler.SampleSNPFreqs(Freqs[i], PriorAlleleFreqs[i], AlleleCounts[i], hetCounts[i], i, Populations, coolness);
       else FreqSampler.SampleAlleleFreqs(Freqs[i], PriorAlleleFreqs[i], IC, i, NumberOfStates[i], Populations, coolness);
-    }
+   }
     else //use standard conjugate update
       SampleAlleleFreqs(i, coolness);
-    (*Loci)(i)->SetAlleleProbs(Freqs[i], afterBurnIn);
+    if(afterBurnIn)
+      (*Loci)(i)->AccumulateAlleleProbs();
+    //no need to update alleleprobs
     (*Loci)(i)->SetHapPairProbs();
   }
   
@@ -566,8 +572,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
     // to flatten likelihood when annealing, multiply realized allele counts by coolness
     for(unsigned s = 0; s < NumStates; ++s)
       temp[s] = PriorAlleleFreqs[i][c*j*NumberOfStates[i] + s] + coolness*AlleleCounts[i][s*Populations +j];
-    gendirichlet(NumStates, temp, freqs);
-    for(unsigned s = 0; s < NumStates-1; ++s)Freqs[i][s*Populations+j] = freqs[s];
+    gendirichlet(NumStates, temp, Freqs[i]+j*NumberOfStates[i]);
 
     // sample HistoricAlleleFreqs as a conjugate Dirichlet update with prior specified by PriorAlleleFreqs
     if( IsHistoricAlleleFreq ){
@@ -598,8 +603,8 @@ const double *AlleleFreqs::GetStatsForEta( int locus, int population)const
     // calculates sufficient stats for update of dispersion parameter
     double sumHistoric = 0.0, sum = 0.0;
     for( int i = 0; i < NumberOfStates[locus] - 1; i++ ){
-      stats[ i ] = log( Freqs[locus][ i*Populations+ population ] ) + log( HistoricAlleleFreqs[locus][ i*Populations + population ] );
-      sum +=Freqs[locus][ i*Populations + population ];
+      stats[ i ] = log( Freqs[locus][ i + population*NumberOfStates[locus] ] ) + log( HistoricAlleleFreqs[locus][ i*Populations + population ] );
+      sum +=Freqs[locus][i + population*NumberOfStates[locus] ];
       sumHistoric +=  HistoricAlleleFreqs[locus][ i*Populations + population ];
     }
     stats[ NumberOfStates[locus] - 1 ] = log( 1 - sum ) + log( 1 - sumHistoric );
@@ -608,8 +613,8 @@ const double *AlleleFreqs::GetStatsForEta( int locus, int population)const
     for(int k = 0; k < Populations; ++k){
       double sum = 0.0;
       for( int i = 0; i < NumberOfStates[locus] - 1; i++ ){
-	stats[ i ] += log( Freqs[locus][ i*Populations+ k ] );
-	sum +=Freqs[locus][ i*Populations + k ];
+	stats[ i ] += log( Freqs[locus][ i + k*NumberOfStates[i] ] );
+	sum +=Freqs[locus][ i + k*NumberOfStates[i] ];
       }
       stats[ NumberOfStates[locus] - 1 ] += log( 1 - sum );
     }
@@ -864,7 +869,7 @@ void AlleleFreqs::setAlleleFreqsMAP()
     if(AlleleFreqsMAP[i]==0)
       AlleleFreqsMAP[i] = new double[(NumberOfStates[i]-1)*Populations];
     for(int j = 0; j < NumberOfStates[i] - 1; ++j)for(int k = 0; k < Populations; ++k)
-      AlleleFreqsMAP[i][j*Populations+k] = Freqs[i][j*Populations+k];
+      AlleleFreqsMAP[i][j*Populations+k] = Freqs[i][j + k*NumberOfStates[i]];
   }
 }
 
@@ -931,7 +936,7 @@ vector<double> AlleleFreqs::GetAlleleFreqs( int locus, int population )const
 {
   vector<double> A(NumberOfStates[locus]-1);
   for(int i = 0; i < NumberOfStates[locus]-1; ++i)
-    A[i] = Freqs[locus][i*Populations+population];
+    A[i] = Freqs[locus][i + population*NumberOfStates[locus]];
   return A;
 }
 const double* const* AlleleFreqs::GetAlleleFreqs()const{
@@ -961,7 +966,7 @@ void AlleleFreqs::OutputAlleleFreqs()
       for( int state = 0; state < NumberOfStates[locus]-1; state++ ){
 	allelefreqoutput << "\"" << (*Loci)(locus)->GetLabel(0) << "\",";
 	for( int pop = 0; pop < Populations; pop++ ){
-	  allelefreqoutput <<  Freqs[locus][state*Populations + pop] << ",";
+	  allelefreqoutput <<  Freqs[locus][state + pop*NumberOfStates[locus]] << ",";
 	  // allelefreqoutput << "count " << AlleleCounts[locus][state*Populations + pop] <<"; ";
 	}
 	allelefreqoutput << endl;
@@ -1083,11 +1088,11 @@ void AlleleFreqs::UpdateFst()
       q_admix=1.0;
       
       for( int i = 0; i < NumberOfStates[locus] - 1; i++ ){
-	H_admix += Freqs[locus][ i *Populations+ k ] * Freqs[locus][ i*Populations+ k ];
+	H_admix += Freqs[locus][ i + k*NumberOfStates[locus] ] * Freqs[locus][ i + k*NumberOfStates[locus] ];
 	H_parental += HistoricAlleleFreqs[locus][ i*Populations+ k ] * HistoricAlleleFreqs[locus][ i*Populations+ k ];
-	pbar = 0.5 * ( Freqs[locus][ i *Populations+ k ] + HistoricAlleleFreqs[locus][ i*Populations+ k ] );
+	pbar = 0.5 * ( Freqs[locus][ i + k*NumberOfStates[locus] ] + HistoricAlleleFreqs[locus][ i*Populations+ k ] );
 	H_combined += pbar * pbar;
-	q_admix -= Freqs[locus][i*Populations +k];
+	q_admix -= Freqs[locus][i + k*NumberOfStates[locus]];
       }
       
       H_admix += q_admix * q_admix;

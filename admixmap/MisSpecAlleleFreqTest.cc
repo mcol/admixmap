@@ -166,8 +166,9 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
       
       for(int j = 0; j < NumCompLoci; j++ ){
 	if( !(ind->GenotypeIsMissing(j)) && 
-	    (*Loci)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) ){
-	  UpdateScoreForMisSpecOfAlleleFreqs( j, phi, ind->getGenotype(j), A->GetAlleleFreqs(j) );
+	    (*Loci)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) ){//CHECK: do only for SNPs?
+	  int NumStates = Loci->GetNumberOfStates(j);
+	  UpdateScoreForMisSpecOfAlleleFreqs( j, phi, ind->getGenotype(j), A->GetAlleleFreqs(j), NumStates );
 	}
       }
     }
@@ -198,27 +199,28 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
  * N.B. This only works for a single SNiP.
  * Updates what's required for the score tests. Only used with fixed
  * allele frequencies. This function is only used for monitoring.
+ * Here, the number of states is 2
  */
  void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, const vector<vector<unsigned short> > x, 
-								const double* const AlleleFreqs)
+								const double* const AlleleFreqs, int NumStates)
 {
   vector<double> Score( Populations );
   double Pi[3] = {0.0, 0.0, 0.0};
   
   for( int k = 0; k < Populations; k++ ){
     for( int kk = 0; kk < Populations; kk++ ){
-      Pi[0] += AlleleFreqs[ k ] * AlleleFreqs[ kk ] * phi[k][kk];
-      Pi[1] += ( ( 1 - AlleleFreqs[ k ] ) * AlleleFreqs[kk ] + ( 1 - AlleleFreqs[ kk ] ) * AlleleFreqs[ k ] ) *phi[k][kk];
-      Pi[2] += ( 1 - AlleleFreqs[ k ] ) * ( 1 - AlleleFreqs[ kk ] ) * phi[k][kk];
+      Pi[0] += AlleleFreqs[ NumStates*k ] * AlleleFreqs[ NumStates*kk ] * phi[k][kk];
+      Pi[1] += ( ( 1 - AlleleFreqs[ NumStates*k ] ) * AlleleFreqs[ NumStates*kk ] + ( 1 - AlleleFreqs[ NumStates*kk ] ) * AlleleFreqs[ NumStates*k ] ) *phi[k][kk];
+      Pi[2] += ( 1 - AlleleFreqs[ NumStates*k ] ) * ( 1 - AlleleFreqs[ NumStates*kk ] ) * phi[k][kk];
     }
   }
   
   if( x[0][0] == 1 && x[0][1] == 1 ){
     for( int k = 0; k < Populations; k++ ){
-      Score[k] = 2 * AlleleFreqs[ k ] * phi[k][k];
+      Score[k] = 2 * AlleleFreqs[ NumStates*k ] * phi[k][k];
       for( int kk = 0; kk < Populations; kk++ )
 	if( k != kk )
-	  Score[k] += AlleleFreqs[ kk ] * (phi[k][kk] + phi[kk][k]);
+	  Score[k] += AlleleFreqs[ NumStates*kk ] * (phi[k][kk] + phi[kk][k]);
       Score[k] /= Pi[0];
       ScoreGene[j][ k ] += Score[k];
       InfoGene[j][ k*Populations + k ] += Score[k] * Score[k] - 2 * phi[k][k] / Pi[0];
@@ -230,10 +232,10 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
   
   else if( x[0][0] == 1 && x[0][1] != 1 ){
     for( int k = 0; k < Populations; k++ ){
-      Score[k] = 2 * ( 1 - 2 * AlleleFreqs[ k ] ) * phi[k][k];
+      Score[k] = 2 * ( 1 - 2 * AlleleFreqs[ NumStates*k ] ) * phi[k][k];
       for( int kk = 0; kk < Populations; kk++ )
 	if( k != kk )
-	  Score[k] += ( 1 - 2 * AlleleFreqs[  kk ] ) * (phi[k][kk] + phi[kk][k]);
+	  Score[k] += ( 1 - 2 * AlleleFreqs[ NumStates*kk ] ) * (phi[k][kk] + phi[kk][k]);
          Score[k] /= Pi[1];
          ScoreGene[j][ k ] += Score[k];
          InfoGene[j][ k*Populations + k ] += Score[k] * Score[k] + 4 * phi[k][k] / Pi[1];}
@@ -244,10 +246,10 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
   
   else if( x[0][0] != 0 && x[0][0] != 1 && x[0][1] != 1 ){
     for( int k = 0; k < Populations; k++ ){
-      Score[k] = -2 * ( 1 - AlleleFreqs[ k ] ) * phi[k][k];
+      Score[k] = -2 * ( 1 - AlleleFreqs[ NumStates*k ] ) * phi[k][k];
       for( int kk = 0; kk < Populations; kk++ )
 	if( k != kk )
-	  Score[k] -= ( 1 - AlleleFreqs[ kk ] ) * (phi[k][kk] + phi[kk][k]);
+	  Score[k] -= ( 1 - AlleleFreqs[ NumStates*kk ] ) * (phi[k][kk] + phi[kk][k]);
       Score[k] /= Pi[2];
       ScoreGene[j][ k ] += Score[k];
       InfoGene[j][ k*Populations + k ] += Score[k] * Score[k] - 2 * phi[k][k] / Pi[2];}
@@ -268,15 +270,15 @@ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus,
      rn = (double)( AlleleCounts[ (NumberOfStates - 1)*Populations + k ] );
      q = 1.0;
      for( int j = 0; j < NumberOfStates - 1; j++ )
-       q -= AlleleFreqs[j*Populations+k];
+       q -= AlleleFreqs[j + k*NumberOfStates];
       for( int j = 0; j < NumberOfStates - 1; j++ ){
          r = AlleleCounts[ j*Populations + k ];
-         pj = AlleleFreqs[ j*Populations+ k ];
+         pj = AlleleFreqs[ j + k*NumberOfStates ];
          NewScore[ j ] = ( r / pj - rn / q ) * pj * ( 1 - pj );
          NewInfo[ j*(NumberOfStates-1) + j ] = pj * ( 1 - pj )
             * ( r - ( rn / q ) * ( 2*pj - 1.0 - pj / q + pj * pj / q ) );
          for( int i = j+1; i < NumberOfStates - 1; i++ ){
-            pi = AlleleFreqs[ i*Populations+ k ];
+            pi = AlleleFreqs[i + k*NumberOfStates ];
             NewInfo[ j*(NumberOfStates-1) + i ] = rn * pj * ( 1 - pj ) * pi * ( 1 - pi ) / ( q * q );
             NewInfo[ i*(NumberOfStates-1) + j ] = NewInfo[ j*(NumberOfStates-1) + i ];
          }

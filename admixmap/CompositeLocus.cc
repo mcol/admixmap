@@ -52,7 +52,7 @@ CompositeLocus::~CompositeLocus()
   delete[] HapPairProbsMAP;
   delete[] MergeHaplotypes;
   delete[] HapLabels;
-  //delete[] AlleleProbs;
+  delete[] AlleleProbs;
   //delete[] SumAlleleProbs;
 }
 
@@ -118,14 +118,13 @@ void CompositeLocus::AddLocus( int alleles, string label = "")
 }
 
 void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
-  AlleleProbs = alloc2D_d(Populations, NumberOfStates);
-  SumAlleleProbs = alloc2D_d(Populations, NumberOfStates);
-  for(int i = 0; i < Populations; ++i)fill(SumAlleleProbs[i], SumAlleleProbs[i]+NumberOfStates, 0.0);
+  AlleleProbs = AFreqs;//set AlleleProbs to point to allele freqs in AlleleFreqs
+  SumAlleleProbs = alloc2D_d(Populations, NumberOfStates);//allocates and fills with zeros
 
   //set size of array of haplotype pair probs
   HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
   HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  SetAlleleProbs(AFreqs, !RandomAlleleFreqs);//if allelefreqs are fixed, SumAlleleProbs are initialised to AlleleProbs(==Allelefreqs)
+  if(!RandomAlleleFreqs)AccumulateAlleleProbs();//if allelefreqs are fixed, SumAlleleProbs are initialised to AlleleProbs(==Allelefreqs)
   SetHapPairProbs();
   SetNoMergeHaplotypes();
   //Initialise HapPairProbsMAP to values in HapPairProbs
@@ -200,15 +199,15 @@ const string CompositeLocus::GetLabel(int index)const
 
 void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
   if(RandomAlleleFreqs){//if fixed allele freqs there is nothing to do
-    double **mu = alloc2D_d(Populations, NumberOfStates);
+    double *mu = new double[Populations * NumberOfStates];
     for(int k = 0; k < Populations; ++k){
       for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] /= (double)iterations;
-      softmax(NumberOfStates, mu[k], SumAlleleProbs[k]);
+      softmax(NumberOfStates, mu+k*NumberOfStates, SumAlleleProbs[k]);
       //if(RandomAlleleFreqs)for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] *= (double)iterations;
     }
     SetHapPairProbs(mu);//sets HapPairProbs using posterior means of Haplotype Probs
   
-    free_matrix(mu, Populations);
+    delete[] mu;;
   }
 }
 
@@ -229,7 +228,7 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
     decodeIntAsHapAlleles(h, hA);
     //compute marginal probs by summing over relevant hap probs
     for(int j = 0; j < NumberOfLoci; ++j)
-      P[j][hA[j]-1] += AlleleProbs[k][h]; 
+      P[j][hA[j]-1] += AlleleProbs[k*NumberOfStates + h]; 
   }
   delete[] hA;
 }
@@ -240,43 +239,32 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
 void CompositeLocus::SetHapPairProbs(){
   SetHapPairProbs(AlleleProbs);//at current values
 }
-void CompositeLocus::SetHapPairProbs(const double* const* alleleProbs){
+void CompositeLocus::SetHapPairProbs(const double* alleleProbs){
   for(int h0 = 0; h0 < NumberOfStates; ++h0){
     for(int h1 = 0; h1 < NumberOfStates; ++h1){
       for(int k0 = 0; k0 < Populations; ++k0){
 	for(int k1 = 0; k1 < Populations; ++k1)
 	  HapPairProbs[h0 * NumberOfStates * Populations * Populations +
 		       h1 * Populations * Populations +
-		       k0 * Populations + k1] = alleleProbs[k0][h0] * alleleProbs[k1][h1];
+		       k0 * Populations + k1] = alleleProbs[k0*NumberOfStates + h0] * alleleProbs[k1*NumberOfStates + h1];
       }
     }
   }
 }
 
-void CompositeLocus::SetAlleleProbs(const double* const AFreqs, bool updateSums){
-  try{
-    if(!AlleleProbs)throw("AlleleProbs not allocated");
-  }
-  catch(char * str){
-    cout<<"Error in CompositeLocus::SetAlleleProbs: "<<str<<endl;
-  }
-
-  // put ones in last row
+void CompositeLocus::AccumulateAlleleProbs(){
   for (int k = 0; k < Populations; k++ ) {
-    AlleleProbs[k][NumberOfStates - 1] = 1.0; 
-    
-    for( int a = 0; a < NumberOfStates - 1; a++ ) {
-      // set allele probs in all but last row
-      AlleleProbs[k][a] = AFreqs[a*Populations+k];
-      // accumulate subtraction from 1 in last row 
-      AlleleProbs[k][NumberOfStates-1] -= AFreqs[a*Populations+k];
+    double* temp = new double[NumberOfStates];
+    try{
+      inv_softmax(NumberOfStates, AlleleProbs+k*NumberOfStates, temp);
     }
-    if(updateSums){
-      double* temp = new double[NumberOfStates];
-      inv_softmax(NumberOfStates, AlleleProbs[k], temp);
-      for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] += temp[h];
-      delete[] temp;
+    catch(string str){
+      string err = "Error accumulating alleleprobs: ";
+      err.append(str);
+      throw(err);
     }
+    for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] += temp[h];
+    delete[] temp;
   }
 }
 
@@ -601,8 +589,8 @@ void CompositeLocus::SetDefaultMergeHaplotypes( const double* const alpha)
    for( int i = 0; i < NumberOfStates - 1; i++ ){
       p = 0;
       for( int j = 0; j < Populations; j++ ){
-	p += alpha[j] * AlleleProbs[j][i];
-	sumAlleleProbs[j] += AlleleProbs[j][i];
+	p += alpha[j] * AlleleProbs[j*NumberOfStates +i];
+	sumAlleleProbs[j] += AlleleProbs[j*NumberOfStates +i];
       }
       p /= sumalpha;
       if( p > 0.01 ){

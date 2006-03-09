@@ -51,9 +51,9 @@ public:
   void SetNumberOfAllelesOfLocus( int, int );
   void AddLocus( int, std::string );
   void SetHapPairProbs();
-  void SetHapPairProbs(const double* const* alleleProbs);
+  void SetHapPairProbs(const double* alleleProbs);
   void InitialiseHapPairProbs(const double* const allelefreqs);
-  void SetAlleleProbs(const double* const alleleFreqs, bool);
+  void AccumulateAlleleProbs();
 
   int GetNumberOfLoci()const;
   int GetNumberOfStates()const;
@@ -80,7 +80,7 @@ private:
   int NumberOfStates;
   int Populations;
   std::vector<int> NumberOfAlleles;
-  double **AlleleProbs;
+  const double *AlleleProbs;//pointer to allele frequencies held in AlleleFreqs
   double **SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
   double *HapPairProbs; //haplotype pair probabilities
   double *HapPairProbsMAP; //Posterior estimates of hap pair probs
