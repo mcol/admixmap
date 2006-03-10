@@ -128,7 +128,7 @@ void Chromosome::SetLociCorr(const vector<double> rho_){
   }
 }
 
-void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
+void Chromosome::UpdateHMMInputs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
 				       const AdmixOptions* const options, const std::vector< double > _rho, bool diploid) {
   //set annealindicator to true once per individual per iteration to accumulate unannealed loglikelihood stored in top level
   //_rho contains Individual sumintensities parameters, ignored if globalrho model
@@ -148,29 +148,15 @@ void Chromosome::UpdateHMMForwardProbs(const double* const Admixture, double* co
   //global rho case already dealt with
 
   Diploid = diploid;//required for sampling of locus ancestry
-  if(Diploid){
-    //construct StateArrivalProbs
-    SampleStates.SetStateArrivalProbs(f, Admixture, options->isRandomMatingModel());
-    //Update Forward/Backward Probs in HMM
-    SampleStates.UpdateForwardProbsDiploid(f, GenotypeProbs, GenotypesMissing);
-  }
-  else{//haploid
-    SampleStates.UpdateForwardProbsHaploid(f, Admixture, GenotypeProbs);
-  }
+  //construct StateArrivalProbs
+  SampleStates.SetInputs(f, Admixture, GenotypeProbs, GenotypesMissing, options->isRandomMatingModel(), Diploid);
 }
 
-void Chromosome::UpdateHMMBackwardProbs(const double* const hapAdmixture, const double* const GenotypeProbs){
-  //call only after a call to UpdateHMMForwardProbs
-  //this is ok as whenever we need backward probs we also need forward probs but not vice versa
-  if(Diploid)  SampleStates.UpdateBackwardProbsDiploid(f, GenotypeProbs);
-  else SampleStates.UpdateBackwardProbsHaploid(f, hapAdmixture, GenotypeProbs);
+void Chromosome::SampleLocusAncestry(int *OrderedStates){
+  SampleStates.Sample(OrderedStates, Diploid);
 }
 
-void Chromosome::SampleLocusAncestry(int *OrderedStates, const double* const Admixture)const{
-  SampleStates.Sample(OrderedStates, Admixture, f, Diploid);
-}
-
-std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDiploid, int j)const{
+std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDiploid, int j){
   //sets conditional probabilities of ancestry at locus j
   //One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry from that population
   //i.e. (i,2) = p_{ii}
@@ -182,7 +168,7 @@ std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDipl
 }
 
 //accessor for HMM Likelihood
-double Chromosome::getLogLikelihood(const bool isDiploid)const
+double Chromosome::getLogLikelihood(const bool isDiploid)
 {
   return SampleStates.getLogLikelihood(isDiploid);
 }
@@ -191,7 +177,7 @@ double Chromosome::getLogLikelihood(const bool isDiploid)const
 //updates SumLocusAncestry
 void Chromosome::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 				      int *SumLocusAncestry, vector<unsigned> &SumN, bool SampleArrivals)const {
-  SampleStates.SampleJumpIndicators(LocusAncestry, f, gametes, SumLocusAncestry, SumN, SampleArrivals, _startLocus);
+  SampleStates.SampleJumpIndicators(LocusAncestry, gametes, SumLocusAncestry, SumN, SampleArrivals, _startLocus);
 }
 
 

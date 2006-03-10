@@ -447,7 +447,7 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, const bo
       logLikelihood.value = logLikelihood.tempvalue; 
       logLikelihood.ready = false; //true;
       logLikelihood.HMMisOK = false; //true; //because forward probs now correspond to current parameter values 
-    }                               //and call to UpdateHMMForwardProbs has set this to false
+    }                               //and call to UpdateHMM has set this to false
     return logLikelihood.tempvalue;   
   } else return logLikelihood.value; // nothing was changed
 }
@@ -460,14 +460,11 @@ double Individual::getLogLikelihood(const AdmixOptions* const options, const dou
   double LogLikelihood = 0.0;
   if(Populations == 1) LogLikelihood = getLogLikelihoodOnePop();
   else { 
-    //   if(myNumber==1) cout << "\nprivate method: theta[0] " << theta[0] << " " << theta[1] << " thetaX[0] " << thetaX[0] << " " << thetaX[1] 
-    //                        << " rho[0] " << rho[0] << " rhoX[0] " << rho_X[0] << endl; 
     for( unsigned int j = 0; j < numChromosomes; j++ ){
       if(updateHMM){// force update of forward probs 
-	UpdateHMMForwardProbs(j, options, theta, thetaX, rho, rho_X);
+	UpdateHMMInputs(j, options, theta, thetaX, rho, rho_X);
       }
       LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !Loci->isXChromosome(j) || SexIsFemale );
-      // if(myNumber==1) cout << "\n " << j << " " << LogLikelihood << endl;
     }
   }
   return LogLikelihood; // argument updateHMM is unnecessary - why call this function unless you want an HMM update
@@ -503,7 +500,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
   if(Populations == 1) LogLikelihood = getLogLikelihoodOnePop();
   else {
     for( unsigned int j = 0; j < numChromosomes; j++ ) {
-      UpdateHMMForwardProbs(j, options, ThetaBar, ThetaBar, sumlogrho, sumlogrho); // ?sumlogrho is posterior mean of rho
+      UpdateHMMInputs(j, options, ThetaBar, ThetaBar, sumlogrho, sumlogrho); // ?sumlogrho is posterior mean of rho
       // should replace 2nd sumlogrho by half its value
       LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !Loci->isXChromosome(j) || SexIsFemale );
     }
@@ -546,10 +543,10 @@ void Individual::SampleLocusAncestry(const AdmixOptions* const options){
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
       //Update Forward/Backward probs in HMM
       if( !logLikelihood.HMMisOK ) {
-	UpdateHMMForwardProbs(j, options, Theta, ThetaX, _rho, _rho_X);
+	UpdateHMMInputs(j, options, Theta, ThetaX, _rho, _rho_X);
       }
       // sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
-      C->SampleLocusAncestry(LocusAncestry[j], Theta);
+      C->SampleLocusAncestry(LocusAncestry[j]);
   } //end chromosome loop
 }
 
@@ -1021,18 +1018,18 @@ void Individual::resetStepSizeApproximator(int k) {
 }
 
 
-void Individual::UpdateHMMForwardProbs(unsigned int j, const AdmixOptions* const options, 
-				       const double* const theta, const double* const thetaX, 
-				       const vector<double> rho, const vector<double> rhoX) {
+void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
+				 const double* const theta, const double* const thetaX, 
+				 const vector<double> rho, const vector<double> rhoX) {
   //Updates forward probabilities in HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of UpdateParameters)
   if( j != X_posn ){// autosome
-    Loci->getChromosome(j)->UpdateHMMForwardProbs(theta, GenotypeProbs[j], GenotypesMissing[j], options, rho, true);
+    Loci->getChromosome(j)->UpdateHMMInputs(theta, GenotypeProbs[j], GenotypesMissing[j], options, rho, true);
   } else {
     if( !SexIsFemale ) { // X chromosome in male individual, haploid
-      Loci->getChromosome(j)->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, false);
+      Loci->getChromosome(j)->UpdateHMMInputs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, false);
     } else { // X chromosome in female individual, diploid
-      Loci->getChromosome(j)->UpdateHMMForwardProbs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, true);
+      Loci->getChromosome(j)->UpdateHMMInputs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, true);
     }
   }
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
@@ -1139,10 +1136,9 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
       //Update Forward/Backward probs in HMM
       if( !logLikelihood.HMMisOK ) {
-	UpdateHMMForwardProbs(j, options, Theta, ThetaX, _rho, _rho_X);
+	UpdateHMMInputs(j, options, Theta, ThetaX, _rho, _rho_X);
       }
       //update of score tests for linkage with ancestry requires update of backward probs
-      C->UpdateHMMBackwardProbs(Theta, GenotypeProbs[j]);//TODO: pass correct theta for haploid case
       double admixtureCovars[Populations-1];
       for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
       UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);

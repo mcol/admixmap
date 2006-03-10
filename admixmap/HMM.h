@@ -23,20 +23,14 @@ public:
   HMM( int inTransitions, int pops);
   ~HMM();
   void SetDimensions( int inTransitions, int pops);
-  void SetStateArrivalProbs(const double* const f, const double* const Theta, int Mcol);
+  void SetInputs(const double* const fin, const double* const Theta, const double* lambdain, 
+			    const bool* const missing, int Mcol, bool isdiploid);
 
-  void Sample(int *SStates, const double* const Admixture, const double* const f, bool isdiploid)const;
-  std::vector<std::vector<double> > Get3WayStateProbs( const bool isDiploid, int t )const;
-  double getLogLikelihood(bool isDiploid)const;
-  void SampleJumpIndicators(const int* const LocusAncestry, const double* const f, const unsigned int gametes, 
+  void Sample(int *SStates, bool isdiploid);
+  std::vector<std::vector<double> > Get3WayStateProbs( const bool isDiploid, int t );
+  double getLogLikelihood(bool isDiploid);
+  void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;
-
-
-  // these four methods should be private
-  void UpdateForwardProbsDiploid(const double* const f, const double* lambda, bool* const missing);
-  void UpdateBackwardProbsDiploid(const double* const f, const double* const lambda);
-  void UpdateForwardProbsHaploid(const double* const f, const double* const Admixture, const double* const lambda);
-  void UpdateBackwardProbsHaploid(const double* const f, const double* const Admixture, const double* const lambda);
 
 private:
   int K;
@@ -55,6 +49,12 @@ private:
   double *StateArrivalProbs;
   double *ThetaThetaPrime;
 
+  const double* f;
+  const double* theta;
+  const double* Lambda;
+  const bool* missingGenotypes;
+  bool alphaIsBad, betaIsBad;
+
   //arrays for RecursionProbs
   double *rowProb;
   double *colProb;
@@ -64,6 +64,10 @@ private:
   double *colSum;
   double **cov;
 
+  void UpdateForwardProbsDiploid();
+  void UpdateForwardProbsHaploid();
+  void UpdateBackwardProbsDiploid();
+  void UpdateBackwardProbsHaploid();
   void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
 		      double* oldProbs, double *newProbs); 
   void RecursionProbs2(const double ff, const double f[2], const double* const stateArrivalProbs, 

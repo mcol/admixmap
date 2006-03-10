@@ -42,16 +42,16 @@ public:
   void InitialiseLociCorr(const std::vector<double> rho);
   void SetLociCorr(const std::vector<double> rho);
 
-  void UpdateHMMForwardProbs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
+  void UpdateHMMInputs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
 			     const AdmixOptions* const options, const std::vector< double > _rho, bool diploid);
-  void UpdateHMMBackwardProbs(const double* const hapAdmixture, const double* const GenotypeProbs);  
+
   //call only after a call to UpdateHMMForwardProbs
   //this is ok as whenever we need backward probs we also need forward probs but not vice versa
 
 
-  void SampleLocusAncestry(int *OrderedStates, const double* const Admixture)const;
-  std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int)const;
-  double getLogLikelihood(const bool isDiploid)const;
+  void SampleLocusAncestry(int *OrderedStates);
+  std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int);
+  double getLogLikelihood(const bool isDiploid);
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, std::vector<unsigned> &SumN, 
 			    bool SampleArrivals)const;

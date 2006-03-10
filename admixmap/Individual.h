@@ -220,7 +220,7 @@ private:
 					       //const double ExpectedY, 
 					       const double Outcome, const double* const poptheta, const double lambda);
   
-  void UpdateHMMForwardProbs(unsigned int j, const AdmixOptions* const options, 
+  void UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
 			     const double* const theta, const double* const thetaX,
 			     const vector<double> rho, const vector<double> rhoX);
   
