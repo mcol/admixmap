@@ -923,7 +923,7 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
 	double zscore = ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim_[j]+k] );
 	*outputstream  << double2R(zscore, 3) << sep;//z-score
 	double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	*outputstream << pvalue << sep;
+	*outputstream << double2R(pvalue) << sep;
 	// if not last allele at locus, output unquoted "NA" in chi-square column
 	if( k != NumberOfMergedHaplotypes - 1 ){
 	  *outputstream  << "NA" << sep << endl;
