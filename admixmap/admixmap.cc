@@ -97,6 +97,13 @@ int main( int argc , char** argv ){
   
   if( options.isGlobalRho() || options.getHapMixModelIndicator()) {
     Loci.InitialiseLocusCorrelation(L.getrho());
+    if(options.getHapMixModelIndicator())
+      for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ )
+	//set global state arrival probs in hapmixmodel
+	//TODO: can skip this if xonly analysis with no females
+	//KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
+	Loci.getChromosome(j)->SetStateArrivalProbs(IC->getIndividual(0)->getAdmixtureProps(), options.isRandomMatingModel(), true);
+
   }
   cout << flush; 
   IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log);
