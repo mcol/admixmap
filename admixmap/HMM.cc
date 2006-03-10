@@ -226,6 +226,10 @@ void HMM::Sample(int *SStates, bool isdiploid)
 }
 
 std::vector<std::vector<double> > HMM::Get3WayStateProbs( const bool isDiploid, int t){
+  if(alphaIsBad){
+    if(isDiploid)UpdateForwardProbsDiploid();
+    else UpdateForwardProbsHaploid();
+  }
   if(betaIsBad){
     if(isDiploid)UpdateBackwardProbsDiploid();
     else UpdateBackwardProbsHaploid();
