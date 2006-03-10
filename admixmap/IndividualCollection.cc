@@ -487,6 +487,8 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 					      const Regression* const R, 
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 					      const std::string* const PopulationLabels){
+  //TODO: check this for hapmixmodel
+
   if(options->getDisplayLevel()>1)
     cout<< endl << "Finding posterior mode of individual parameters ..." << endl;
   //open output file and write header
@@ -655,8 +657,14 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   if(options->getPopulations() >1 && (options->isGlobalRho() || options->getHapMixModelIndicator()) ){
     vector<double> RhoBar;
     for(vector<double>::const_iterator i = SumLogRho.begin(); i < SumLogRho.end(); ++i)RhoBar.push_back(exp(*i / (double)iterations));
-    for( unsigned int j = 0; j < numChromosomes; j++ )
-      Loci->getChromosome(j)->SetLociCorr(RhoBar);
+    //set locus correlation
+    Loci->SetLocusCorrelation(RhoBar);
+    if(options->getHapMixModelIndicator())
+      for( unsigned int j = 0; j < numChromosomes; j++ )
+	//set global state arrival probs in hapmixmodel
+	//TODO: can skip this if xonly analysis with no females
+	//KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
+	Loci->getChromosome(j)->SetStateArrivalProbs(_child[0]->getAdmixtureProps(), options->isRandomMatingModel(), true);
   }
   
   //set haplotype pair probs to posterior means

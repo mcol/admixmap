@@ -37,13 +37,21 @@ Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false)
   f = new double[2*size];
 }
 
+Chromosome::~Chromosome()
+{
+  delete[] CodedStates;
+  delete[] f;
+  delete[] Distances; 
+}
+
+// ******** Chromosome information **********************************
 bool Chromosome::isXChromosome()const
 {
   return isX;
 }
 
 void Chromosome::SetLabel( string label )
-{
+{//sets label for this chromosome, usually "1", "2", etc or "X"
    _Label = label;
 }
 
@@ -62,15 +70,8 @@ const double *Chromosome::GetDistances()const
 }
 
 double Chromosome::GetDistance( int locus )const
-{
+{//returns distance between a locus and the previous locus
   return( Distances[ locus ] );
-}
-
-Chromosome::~Chromosome()
-{
-  delete[] CodedStates;
-  delete[] f;
-  delete[] Distances; 
 }
 
 // Returns the number of the num'th compositelocus on this chromosome
@@ -79,7 +80,7 @@ Chromosome::~Chromosome()
 int Chromosome::GetLocus(int num)const{
   return _startLocus + num;
 }
-
+//??: remove either of these functions
 //returns number of composite loci in the chromosome
 unsigned int Chromosome::GetSize()const{
   return NumberOfCompositeLoci;
@@ -89,16 +90,18 @@ unsigned int Chromosome::GetNumberOfCompositeLoci()const
   return NumberOfCompositeLoci;
 }
 
+// ****************** Setting of locus correlation, f *************************
+
 //Initialises locus ancestry correlations f.  Necessary since individual-level parameters updated before global rho (in Latent)
-void Chromosome::InitialiseLociCorr(const double rho_){
+void Chromosome::InitialiseLocusCorrelation(const double rho_){
   double rho = rho_;
   if(isX)rho *= 0.5;
   f[0] = f[1] = 0.0;
   for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ )
     f[2*j] = f[2*j + 1] = ( -GetDistance( j ) * rho > -700) ? exp( -GetDistance( j ) * rho ) : 0.0;
 }
-void Chromosome::InitialiseLociCorr(const vector<double> rho_){
-  if(rho_.size() == 1)InitialiseLociCorr(rho_[0]);
+void Chromosome::InitialiseLocusCorrelation(const vector<double> rho_){
+  if(rho_.size() == 1)InitialiseLocusCorrelation(rho_[0]);
   else{
     f[0] = f[1] = 0.0;
     for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
@@ -110,46 +113,51 @@ void Chromosome::InitialiseLociCorr(const vector<double> rho_){
 }
 
 //sets f for global rho, call after global rho is updated
-void Chromosome::SetLociCorr(const double rho_){
+void Chromosome::SetLocusCorrelation(const double rho_){
   double rho = rho_;
   if(isX)rho *= 0.5;
   for(unsigned j = 1; j < NumberOfCompositeLoci; j++ ){
     f[2*j] = f[2*j + 1] = exp( -GetDistance( j ) * rho );
   }
 }
-void Chromosome::SetLociCorr(const vector<double> rho_){
-  if(rho_.size() == 1)SetLociCorr(rho_[0]);
+void Chromosome::SetLocusCorrelation(const vector<double> rho_, bool global, bool RandomMating=false){
+  //rho should be either
+  //(1) vector of length 1 containing a global (global rho model) or 
+  //    individual-level (non globalrho and assortative mating) sumintensities
+  //(2) vector of length 2 containing gamete-specific sumintensities for a single individual
+  //(3) vector of length #loci, containing locus-specific sumintensities
+  if(global){//global or individual-specific
+    SetLocusCorrelation(rho_[0]);
+  }
   else{
-    for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
-      double rho = rho_[j+_startLocus];
-      if(isX)rho *= 0.5;
-      f[2*j] = f[2*j + 1] = exp( -GetDistance( j ) * rho );
+    if(RandomMating){//gamete-specific
+      if(rho_.size()!=2)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
+      for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
+	f[2*jj] = exp( -GetDistance( jj ) * rho_[0] );
+	f[2*jj + 1] = exp( -GetDistance( jj ) * rho_[1] );
+	//TODO: ?? case of X chromosome: use 0.5*rho
+      }
+    }
+    else{//locus-specific
+      if(rho_.size()<NumberOfCompositeLoci)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
+      for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
+	double rho = rho_[j+_startLocus];
+	if(isX)rho *= 0.5;
+	f[2*j] = f[2*j + 1] = exp( -GetDistance( j ) * rho );
+      }
     }
   }
 }
 
-void Chromosome::UpdateHMMInputs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
-				       const AdmixOptions* const options, const std::vector< double > _rho, bool diploid) {
-  //set annealindicator to true once per individual per iteration to accumulate unannealed loglikelihood stored in top level
-  //_rho contains Individual sumintensities parameters, ignored if globalrho model
-  // f0 and f1 are arrays of scalars of the form exp - rho*x, where x is distance between loci
-  // required to calculate transition matrices 
-  if( !options->isGlobalRho()  && !options->getHapMixModelIndicator()){//case of individual or gamete-specific rho
-
-    for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
-      f[2*jj] = exp( -GetDistance( jj ) * _rho[0] );
-      if( options->isRandomMatingModel() ){
-	f[2*jj + 1] = exp( -GetDistance( jj ) * _rho[1] );
-      }
-      else
-	f[2*jj + 1] = f[2*jj];
-    }
-  }
-  //global rho case already dealt with
+// ********** Interface to HMM ****************************************
+void Chromosome::SetGenotypeProbs(double* const GenotypeProbs, bool* const GenotypesMissing) {
+  SampleStates.SetGenotypeProbs(GenotypeProbs, GenotypesMissing);
+}
+void Chromosome::SetStateArrivalProbs(const double* const Admixture, bool RandomMating, bool diploid) {
 
   Diploid = diploid;//required for sampling of locus ancestry
   //construct StateArrivalProbs
-  SampleStates.SetInputs(f, Admixture, GenotypeProbs, GenotypesMissing, options->isRandomMatingModel(), Diploid);
+  SampleStates.SetStateArrivalProbs(f, Admixture, RandomMating, Diploid);
 }
 
 void Chromosome::SampleLocusAncestry(int *OrderedStates){

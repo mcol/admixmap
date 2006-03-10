@@ -78,10 +78,10 @@ public:
   
   double GetLengthOfGenome()const;
   double GetLengthOfXchrm()const;
-  void InitialiseLociCorr(const std::vector<double> rho);
-  void SetLociCorr(const std::vector<double> rho);
-  void InitialiseLociCorr(double rho);
-  void SetLociCorr(double rho);
+  void InitialiseLocusCorrelation(const std::vector<double> rho);
+  void SetLocusCorrelation(const std::vector<double> rho);
+  void InitialiseLocusCorrelation(double rho);
+  void SetLocusCorrelation(double rho);
 
 private:
   Chromosome **C;

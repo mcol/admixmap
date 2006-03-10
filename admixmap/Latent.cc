@@ -207,7 +207,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
    }
      // set ancestry correlations using proposed value of sum-intensities
     // value for X chromosome set to half the autosomal value 
-    Loci->SetLociCorr(rhoprop);
+    Loci->SetLocusCorrelation(rhoprop);
 
     //get log HMM likelihood at proposal rho and current admixture proportions
     for(int i = 0; i < IC->getSize(); ++i) {
@@ -235,7 +235,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
       }
     } else { 
       // restore ancestry correlations in Chromosomes using original value of sum-intensities
-      Loci->SetLociCorr(rho);
+      Loci->SetLocusCorrelation(rho);
     } // stored loglikelihoods are still ok
 
     //update sampler object every w updates
@@ -356,7 +356,7 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
   //sample rate parameter of gamma prior on rho
   rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
   //set locus correlation
-  Loci->SetLociCorr(rho);
+  Loci->SetLocusCorrelation(rho);
 
   //accumulate sums of log of rho
   if(sumlogrho)
@@ -384,11 +384,16 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
     }
     p += C->GetSize();
     RhoArgs.SumAncestry += C->GetSize()*(options->getPopulations()+1);
-   }
+  //set locus correlation
+    C->SetLocusCorrelation(rho, false, false);
+  //set global state arrival probs in hapmixmodel
+  //TODO: can skip this if xonly analysis with no females
+    C->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
+  }
   //sample rate parameter of gamma prior on rho
   rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
-  //set locus correlation
-  Loci->SetLociCorr(rho);
+  ////set locus correlation
+  //Loci->SetLocusCorrelation(rho);
 
   //accumulate sums of log of rho
   if(sumlogrho)

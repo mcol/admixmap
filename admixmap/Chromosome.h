@@ -24,6 +24,7 @@ class Chromosome
 public:
   Chromosome(int size,int start, int, bool isx);
    ~Chromosome();
+// ******** Chromosome information **********************************
   void SetLabel(std::string );
   void SetDistance(int,double);
   const std::string GetLabel( )const;
@@ -36,18 +37,18 @@ public:
   void isDiploid(bool b){Diploid = b;};
   bool isDiploid()const{return Diploid;};
   bool isXChromosome()const;
+// ****************** Setting of locus correlation, f *************************
+  void InitialiseLocusCorrelation(const double rho);
+  void SetLocusCorrelation(const double rho);
+  void InitialiseLocusCorrelation(const std::vector<double> rho);
+  void SetLocusCorrelation(const std::vector<double> rho);
+  void SetLocusCorrelation(const std::vector<double> rho_, bool global, bool RandomMating);
 
-  void InitialiseLociCorr(const double rho);
-  void SetLociCorr(const double rho);
-  void InitialiseLociCorr(const std::vector<double> rho);
-  void SetLociCorr(const std::vector<double> rho);
-
+// ********** Interface to HMM ****************************************
+  void SetGenotypeProbs(double* const GenotypeProbs, bool* const GenotypesMissing);
+  void SetStateArrivalProbs(const double* const Admixture, bool RandomMating, bool diploid);
   void UpdateHMMInputs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
-			     const AdmixOptions* const options, const std::vector< double > _rho, bool diploid);
-
-  //call only after a call to UpdateHMMForwardProbs
-  //this is ok as whenever we need backward probs we also need forward probs but not vice versa
-
+  		     const AdmixOptions* const options, const std::vector< double > _rho, bool diploid);
 
   void SampleLocusAncestry(int *OrderedStates);
   std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int);

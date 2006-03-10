@@ -23,8 +23,8 @@ public:
   HMM( int inTransitions, int pops);
   ~HMM();
   void SetDimensions( int inTransitions, int pops);
-  void SetInputs(const double* const fin, const double* const Theta, const double* lambdain, 
-			    const bool* const missing, int Mcol, bool isdiploid);
+  void SetGenotypeProbs(const double* lambdain, const bool* const missing);
+  void SetStateArrivalProbs(const double* const fin, const double* const Theta, int Mcol, bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
   std::vector<std::vector<double> > Get3WayStateProbs( const bool isDiploid, int t );

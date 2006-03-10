@@ -78,13 +78,18 @@ void HMM::SetDimensions( int inTransitions, int pops)
     }
 }
 
-void HMM::SetInputs(const double* const fin, const double* const Theta, const double* lambdain, 
-		    const bool* const missing, int Mcol, bool isdiploid){
-  f = fin;
-  theta = Theta;
+void HMM::SetGenotypeProbs(const double* lambdain, const bool* const missing){
   Lambda = lambdain;
   missingGenotypes = missing;
-  alphaIsBad = true;
+  alphaIsBad = true;//new input so reset
+  betaIsBad = true;
+}
+
+
+void HMM::SetStateArrivalProbs(const double* const fin, const double* const Theta, int Mcol, bool isdiploid){
+  f = fin;
+  theta = Theta;
+  alphaIsBad = true;//new input so reset
   betaIsBad = true;
   if(isdiploid){
     for(int t = 1; t < Transitions; t++ ){        

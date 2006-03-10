@@ -277,24 +277,29 @@ unsigned Genome::getFirstXLocus()const{
   else return NumberOfCompositeLoci;
 }
 
-void Genome::InitialiseLociCorr(const vector<double> rho){
+void Genome::InitialiseLocusCorrelation(const vector<double> rho){
   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-    C[j]->InitialiseLociCorr(rho);
+    C[j]->InitialiseLocusCorrelation(rho);
   }
 }
-void Genome::SetLociCorr(const vector<double> rho){
+// void Genome::InitialiseLocusCorrelation(double rho){
+//   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
+//     C[j]->InitialiseLocusCorrelation(rho);
+//   }
+// }
+
+//set global locus correlation across all chromosomes
+void Genome::SetLocusCorrelation(const vector<double> rho){
   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-    C[j]->SetLociCorr(rho);
+    //in case of global rho model (rho has length 1), sets f globally across loci
+    //in hapmixmodel, sets locus-specific f
+    C[j]->SetLocusCorrelation(rho, (rho.size()==1), false);
   }
 }
-void Genome::InitialiseLociCorr(double rho){
+
+void Genome::SetLocusCorrelation(double rho){
   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-    C[j]->InitialiseLociCorr(rho);
-  }
-}
-void Genome::SetLociCorr(double rho){
-  for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-    C[j]->SetLociCorr(rho);
+    C[j]->SetLocusCorrelation(rho);
   }
 }
 

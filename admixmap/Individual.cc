@@ -1021,15 +1021,24 @@ void Individual::resetStepSizeApproximator(int k) {
 void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
 				 const double* const theta, const double* const thetaX, 
 				 const vector<double> rho, const vector<double> rhoX) {
-  //Updates forward probabilities in HMM for chromosome j
+  //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of UpdateParameters)
+  Chromosome* C = Loci->getChromosome(j);
+  C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
+
   if( j != X_posn ){// autosome
-    Loci->getChromosome(j)->UpdateHMMInputs(theta, GenotypeProbs[j], GenotypesMissing[j], options, rho, true);
-  } else {
-    if( !SexIsFemale ) { // X chromosome in male individual, haploid
-      Loci->getChromosome(j)->UpdateHMMInputs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, false);
-    } else { // X chromosome in female individual, diploid
-      Loci->getChromosome(j)->UpdateHMMInputs(thetaX, GenotypeProbs[j], GenotypesMissing[j], options, rhoX, true);
+    if(!options->getHapMixModelIndicator()){
+      if(!options->isGlobalRho())
+	C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
+      C->SetStateArrivalProbs(theta, options->isRandomMatingModel(), true);
+    }
+  } else {//X chromosome
+    if(!options->getHapMixModelIndicator()){
+      if(!options->isGlobalRho()){
+	C->SetLocusCorrelation(rhoX, !options->isRandomMatingModel(), options->isRandomMatingModel());
+      }
+      // X chromosome -  haploid in male individual; diploid in female
+      C->SetStateArrivalProbs(thetaX, options->isRandomMatingModel(), SexIsFemale);
     }
   }
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed

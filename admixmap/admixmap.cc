@@ -96,7 +96,7 @@ int main( int argc , char** argv ){
   Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
   
   if( options.isGlobalRho() || options.getHapMixModelIndicator()) {
-    Loci.InitialiseLociCorr(L.getrho());
+    Loci.InitialiseLocusCorrelation(L.getrho());
   }
   cout << flush; 
   IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log);
@@ -561,7 +561,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
      (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
     L->UpdateGlobalSumIntensities(IC, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1)); 
   // should leave individuals with HMM probs bad, stored likelihood ok
-  // this function also sets ancestry correlations
+  // this function also sets locus correlations in Chromosomes
   
   //posterior modes of individual admixture
   //search at start of burn-in, once annealing is finished
