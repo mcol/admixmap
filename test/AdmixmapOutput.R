@@ -26,7 +26,7 @@ cbindIfNotNull <- function(table1, table2) {
 
 getUserOptions <- function(argsfilename) {
   ## read table of user options written by Perl script
-  args <- read.table(argsfilename, sep="=", header=FALSE)
+  args <- read.table(argsfilename, sep="=", header=FALSE, comment.char="")
   user.options <- as.data.frame(matrix(data=NA, nrow=1, ncol=dim(args)[1]))
   user.options[1,] <- args[,2]
   dimnames(user.options) <- list("Value", args[,1])
@@ -65,52 +65,60 @@ getIsAdmixed <- function(AdmixturePrior) {
   return(IsAdmixed)
 }
   
-readLoci <- function(locusfile) {
+readLoci <- function(locusfilestr) {
   ## read table of loci, number chromosomes and calculate map positions
-  loci.simple <- read.table(locusfile, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="")
+  row1 <- read.table(locusfilestr, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
+                     nrows=1)
+  if(dim(row1)[2] == 3) {
+    loci.simple <- read.table(locusfilestr, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
+                              colClasses=c("character", "integer", "numeric"))
+  } else {
+    loci.simple <- read.table(locusfilestr, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
+                              colClasses=c("character", "integer", "numeric", "character"))
+  }
   ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
   num.sloci <- dim(loci.simple)[1]
-  loci.compound <- loci.simple[1, ] # table with 1 row 
+  loci.simple[, 3][loci.simple[, 3] >=100] <- NA
+  new.clocus <- is.na(loci.simple[, 3]) | loci.simple[, 3] > 0
+  num.cloci <- table(new.clocus)[1]
+  LocusName <- character(num.cloci)
+  NumHaps <- integer(num.cloci)
+  MapPosition <- numeric(num.cloci)
+  Chromosome <- integer(num.cloci)
+  loci.compound <- data.frame(LocusName, NumHaps, MapPosition, Chromosome)
+  loci.compound$LocusName <- as.vector(loci.compound$LocusName)
   clocus <- 1
-  num.haps <- loci.compound[1, 2]
+  numhaps <- loci.simple[1, 2]
+  map.position <- 0
+  chr <- 1
+  loci.compound$LocusName[1] <- loci.simple[1, 1]
+  loci.compound$MapPosition[1] <- 0
+  loci.compound$Chromosome[1] <- 1
   ## loop over simple loci
   for(slocus in 2:num.sloci) {
-    if(is.na(loci.simple[slocus, 3]) | loci.simple[slocus, 3] > 0) { # new compound locus
-      ## increment number of compound locus 
+    if(new.clocus[slocus]) { # new compound locus
+      ## increment number of compound locus  
       clocus <- clocus + 1
+      loci.compound[clocus, 1] <- loci.simple[slocus, 1]
+      if(is.na(loci.simple[slocus, 3])) {
+        chr <- chr + 1
+        map.position <- 0
+      } else {
+        map.position <- map.position + 100*loci.simple[slocus, 3]
+      }
+      loci.compound[clocus, 3] <- map.position
+      loci.compound[clocus, 4] <- chr
       ## assign num haplotypes at previous compound locus
-      loci.compound[clocus-1, 2] <- num.haps
+      loci.compound[clocus-1, 2] <- numhaps
       ## restart counting num haplotypes
-      num.haps <- loci.simple[slocus, 2]
-      ## add row to loci.compound
-      loci.compound <- rbind(loci.compound, loci.simple[slocus, ])
+      numhaps <- loci.simple[slocus, 2]
     } else {
       ## continue counting num haplotypes
-      num.haps <- num.haps * loci.simple[slocus, 2]
+      numhaps <- numhaps * loci.simple[slocus, 2]
     }
   }
   ## assign num haplotypes at last compound locus
-  loci.compound[clocus, 2] <- num.haps
-  
-  ## add two columns for map position and chromosome
-  loci.compound <- data.frame(loci.compound, numeric(dim(loci.compound)[1]),
-                              numeric(dim(loci.compound)[1]))
-  dimnames(loci.compound)[[2]][4:5] <- c("MapPosition","Chromosome")
-  loci.compound[,3][loci.compound[,3]==100] <- NA
-  ## calculate map positions
-  map.position <- 0
-  chr <- 0
-  ## loop over compound loci
-  for(i in 1:dim(loci.compound)[1]) {
-    if(is.na(loci.compound[i,3])) {
-      chr <- chr + 1
-      map.position <- 0
-    } else {
-      map.position <- map.position + 100*loci.compound[i,3]
-      loci.compound[i,4] <- map.position
-    }
-    loci.compound[i,5] <- chr
-  }
+  loci.compound[clocus, 2] <- numhaps
   return(loci.compound)
 }
 
