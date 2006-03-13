@@ -644,18 +644,18 @@ plotInfoMap <- function(loci.compound, info.content, K, testname) {
 
 plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"));
-  ## dimensions are cols (8), pairs of loci, number of evaluations
+  ## dimensions are cols (2), pairs of loci, number of evaluations
   #print(dim(scoretest))
   evaluations <- dim(scoretest)[3]
   ntests <- dim(scoretest)[2]
   locusnames <- scoretest[1,,evaluations]
 
-  pvalues <- as.numeric(scoretest[8, , ])
-  pvalues[is.nan(pvalues)] <- NA
-  pvalues <- data.frame(matrix(data=pvalues, nrow=ntests, ncol=evaluations))
-  dimnames(pvalues)[[1]] <- locusnames
+  log10pvalues <- as.numeric(scoretest[2, , ])
+  log10pvalues[is.nan(log10pvalues)] <- NA
+  log10pvalues <- data.frame(matrix(data=log10pvalues, nrow=ntests, ncol=evaluations))
+  dimnames(log10pvalues)[[1]] <- locusnames
   #print(pvalues)
-  plotlogpvalues(outputfile, -log10(pvalues), 10*thinning,
+  plotlogpvalues(outputfile, -log10pvalues, 10*thinning,
                  "Running computation of p-values for residual allelic association")
 }
 
@@ -979,25 +979,31 @@ if(is.null(user.options$paramfile)) {
                                         # global sum of intensities or gamma shape param if hierarchical
       param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE)
       n <- dim(param.samples)[1]
-      for(pop in 1:K) {
-        dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
-                                                   population.labels[pop], sep="")
-      }
-      ## Geweke convergence diagnostics,  autocorrelations and ergodic average plots
-      checkConvergence(param.samples, "Population admixture parameters",
-                       paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
-      postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
-      plotAutocorrelations(param.samples, user.options$every)
-      dev.off()
-      
-      if(K > 1) {
-        ## extract Dirichlet admixture parameters
-        admixparams <- param.samples[, 1:K,drop=FALSE]
-        ## calculate population admixture proportions from Dirichlet parameters
-        pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
-      } else {
-        pop.admix.prop <- NULL
-      }
+      if(user.options$hapmixmodel ==1){
+        dimnames(param.samples)[[2]] <- c("SumIntensities.Mean", "SumIntensities.Var")
+        checkConvergence(param.samples, "Population sumintensities parameters",
+                         paste(resultsdir, "SumIntensitiesConvergenceDiags.txt", sep="/"));
+      }else{
+        for(pop in 1:K) {
+          dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
+                                                     population.labels[pop], sep="")
+        }
+        ## Geweke convergence diagnostics,  autocorrelations and ergodic average plots
+        checkConvergence(param.samples, "Population admixture parameters",
+                         paste(resultsdir, "PopAdmixParamConvergenceDiags.txt", sep="/"));
+        postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
+        plotAutocorrelations(param.samples, user.options$every)
+        dev.off()
+        
+        if(K > 1) {
+          ## extract Dirichlet admixture parameters
+          admixparams <- param.samples[, 1:K,drop=FALSE]
+          ## calculate population admixture proportions from Dirichlet parameters
+          pop.admix.prop <- popAdmixProportions(population.labels, admixparams, K)
+        } else {
+          pop.admix.prop <- NULL
+        }
+      }##end nonhapmixmodel block
     }
   }
 }
@@ -1067,12 +1073,16 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
 if(K == 1) {
   alphas <- c(1)
 } else {
-  if(!is.null(param.samples)) {
-    alphas <- post.quantiles[1:K, 1]
-  } else {
-    if(!is.null(user.options$admixtureprior)) {
-      alphas <- AdmixturePrior[1]
-    } else alphas <- rep(1, K)
+  if(user.options$hapmixmodel==1){
+    alphas <- rep(1/K, K)
+  }else{
+    if(!is.null(param.samples)) {
+      alphas <- post.quantiles[1:K, 1]
+    } else {
+      if(!is.null(user.options$admixtureprior)) {
+        alphas <- AdmixturePrior[1]
+      } else alphas <- rep(1, K)
+    }
   }
 }
 

@@ -786,7 +786,7 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
   //residual allelic association
   if(options->getTestForResidualAllelicAssoc()){
 
-    OutputTestsForResidualAllelicAssociation(iterations, &ResAlleleScoreFile, ",");
+    OutputTestsForResidualAllelicAssociation(iterations, &ResAlleleScoreFile, false);
   }
 }
 
@@ -822,7 +822,7 @@ void ScoreTests::WriteFinalTables(){
     filename.append("/ResidualLDTestFinal.txt");
     finalTable.open(filename.c_str(), ios::out);
     finalTable << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue\n";
-    OutputTestsForResidualAllelicAssociation(iterations, &finalTable, "\t");
+    OutputTestsForResidualAllelicAssociation(iterations, &finalTable, true);
     finalTable.close();
   }
   //haplotype association
@@ -1024,8 +1024,10 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
   }
 }
 
-void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, string separator){
+void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final){
   double *Score, *ObservedInfo;
+  string separator = final? "\t" : ",";
+
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
     for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
       int abslocus = chrm[c]->GetLocus(j);
@@ -1048,8 +1050,8 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
       }
 
       //output labels
-      *outputstream << "\"" << (*Lociptr)(abslocus)->GetLabel(0) << "/" << (*Lociptr)(abslocus+1)->GetLabel(0) << "\""<< separator
-		    << setiosflags(ios::fixed) << setprecision(3) //output 3 decimal places
+      *outputstream << "\"" << (*Lociptr)(abslocus)->GetLabel(0) << "/" << (*Lociptr)(abslocus+1)->GetLabel(0) << "\""<< separator;
+      if(final)*outputstream << setiosflags(ios::fixed) << setprecision(3) //output 3 decimal places
 		    << Score[0] << separator << compinfo << separator <<obsinfo << separator;
 
       //compute chi-squared statistic
@@ -1061,20 +1063,24 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 	  chisq += Score[i] * VinvU[i];
 	}
 	
-	*outputstream << (obsinfo*100)/compinfo << separator<< dim << separator;
+	if(final)*outputstream << (obsinfo*100)/compinfo << separator<< dim << separator;
 
 	if(chisq < 0.0){
-	  *outputstream << "NA" << separator << "NA" << separator << endl;
+	  *outputstream << "NA" << separator;
+	  if(final) *outputstream << "NA" << separator;
+	  *outputstream << endl;
 	}
 	else {
 	  //compute p-value
 	  double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-	  *outputstream << chisq << separator << resetiosflags(ios::fixed)<< pvalue << separator << endl;
+	  if(final)*outputstream << chisq << separator << resetiosflags(ios::fixed)<< pvalue << separator << endl;
+	  else *outputstream << resetiosflags(ios::fixed)<< log10(pvalue) << separator << endl;
 	}
       }
       catch(...){//in case ObservedInfo is rank deficient
-	*outputstream  << "NA" << separator << dim 
-			    << separator << "NA" << separator << "NA" << separator << endl;
+	*outputstream  << "NA" << separator ;
+	if(final)*outputstream << dim << separator << "NA" << separator << "NA" << separator;
+	*outputstream << endl;
       }
       delete[] Score;
       delete[] ObservedInfo;
@@ -1196,19 +1202,13 @@ void ScoreTests::ROutput(){
    */
   if(options->getTestForResidualAllelicAssoc()){
     vector<int> dimensions(3,0);
-    dimensions[0] = 8;
+    dimensions[0] = 2;
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() - Lociptr->GetNumberOfChromosomes();
     dimensions[2] = (int)(numPrintedIterations);
     
     vector<string> labels(dimensions[0],"");
     labels[0] = "Loci";
-    labels[1] = "Score";
-    labels[2] = "CompleteInfo";
-    labels[3] = "ObservedInfo";
-    labels[4] = "PercentInfo";
-    labels[5] = "df";
-    labels[6] = "ChiSquare";
-    labels[7] = "P-value";
+    labels[1] = "log10P-value";
 
     R_output3DarrayDimensions(&ResAlleleScoreFile, dimensions, labels);
   }
