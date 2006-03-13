@@ -39,9 +39,8 @@ class IndividualCollection;
 
 typedef struct {
   unsigned NumPops;
-  unsigned NumLoci;
   const int* SumAncestry;
-  const double* Distances;
+  double Distance;
   const double* theta; 
 }RhoArguments;
 

@@ -82,12 +82,10 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	  SumLogRho.push_back(0.0);
 	}
 	RhoArgs.NumPops = K;
-	RhoArgs.NumLoci = Loci->GetNumberOfCompositeLoci();
-	RhoArgs.Distances = Loci->GetDistances();
-	RhoSampler = new HamiltonianMonteCarlo[Loci->GetNumberOfChromosomes()];
-	for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c)
-	  RhoSampler[c].SetDimensions(Loci->GetSizeOfChromosome(c)-1, 0.0001/*initial stepsize*/, 0.000/*min stepsize*/, 
-				      1.0/*max stepsize*/, 10/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
+	RhoSampler = new HamiltonianMonteCarlo[Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes()];
+	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); ++j)
+	  RhoSampler[j].SetDimensions(1, 0.001/*initial stepsize*/, 0.000/*min stepsize*/, 
+				      1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
     
       }
     }
@@ -364,90 +362,97 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
 }
 
 void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
-  RhoArgs.SumAncestry = SumAncestry;
   RhoArgs.theta = globaltheta;
-  vector<double>::iterator p = rho.begin()+1;
   double sum = 0.0;
-  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-    Chromosome* C = Loci->getChromosome(c); 
-    //take logs of rho
-    for(unsigned i = 0; i < C->GetSize()-1; ++i)
-      *(p + i) = log(*(p +i));
-    RhoArgs.NumLoci = C->GetSize();
-    RhoArgs.Distances = C->GetDistances();
+  int locus = 0;
+  int index = 0;
 
-    RhoSampler[c].Sample(&(*p), &RhoArgs);// *p is the element in rho corresponding to second locus on current chromosome
-    //take exponents of logrho
-    for(unsigned i = 0; i < C->GetSize()-1; ++i){
-      *(p + i) = exp(*(p + i));
-      sum += *(p+i);
+  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+    ++locus;//skip first locus on each chromosome
+    Chromosome* C = Loci->getChromosome(c); 
+    
+    for(unsigned i = 1; i < C->GetSize(); ++i){
+      rho[locus] = log(rho[locus]);//sampler is on log scale
+      RhoArgs.Distance = C->GetDistance(i);
+      RhoArgs.SumAncestry = SumAncestry + locus*options->getPopulations()+1;
+      
+      //cout << index << " " << RhoSampler[index].getAcceptanceRate() << " " << RhoSampler[index].getStepsize()<< endl;
+      RhoSampler[index++].Sample(&(rho[locus]), &RhoArgs);
+      //accumulate sums of log of rho
+      if(sumlogrho)
+	SumLogRho[locus]+= rho[locus];
+      //take exponents of logrho
+      rho[locus] = exp(rho[locus]);
+      sum += rho[locus];
+      ++locus;
     }
-    p += C->GetSize();
-    RhoArgs.SumAncestry += C->GetSize()*(options->getPopulations()+1);
-  //set locus correlation
+    
+    //set locus correlation
     C->SetLocusCorrelation(rho, false, false);
-  //set global state arrival probs in hapmixmodel
-  //TODO: can skip this if xonly analysis with no females
+    //set global state arrival probs in hapmixmodel
+    //TODO: can skip this if xonly analysis with no females
     C->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
   }
   //sample rate parameter of gamma prior on rho
-  rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
-  ////set locus correlation
+  rhobeta = gengam( rhoalpha * (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes())/* <-NumIntervals*/ + rhobeta0, 
+  	    sum + rhobeta1 );
+  //set locus correlation
   //Loci->SetLocusCorrelation(rho);
-
-  //accumulate sums of log of rho
-  if(sumlogrho)
-    for(vector<double>::iterator i = SumLogRho.begin(), p=rho.begin(); i < SumLogRho.end(); ++i, ++p)*i += log(*p); 
 }
 
 double Latent::RhoEnergy(const double* const x, const void* const vargs){
-  //x is the log of rho, with length NumLoci - 1
+  //x is the log of rho
   const RhoArguments* args = (const RhoArguments*)vargs;
   unsigned K = args->NumPops;
-  unsigned L = args->NumLoci;
   const int* n = args->SumAncestry;
-  const double* d = args->Distances;
+  const double d = args->Distance;
   const double* theta = args->theta;
-  double rho, f;
   double E = 0.0;
   gsl_sf_result result;
   int status = 0;
 
-  for(unsigned j = 1; j < L; ++j){
-    rho = exp(x[j-1]);
-    status = gsl_sf_exp_e(d[j]*rho, &result);
-    if(status)throw("exp error in RhoEnergy");
-    f = result.val;
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  double rho = exp(*x);
+  try{
+    status = gsl_sf_exp_e(-d*rho, &result);
+    if(status)throw string("exp error in RhoEnergy");
+    double f = result.val;
+    
     status = gsl_sf_lngamma_e(1.0-f, &result);
-    if(status)throw("log error in RhoEnergy");
-    E += n[j*(K+1)] * result.val;
+    if(status)throw string("log error in RhoEnergy");
+    E += n[0] * result.val;
     for(unsigned k = 0; k < K; ++k)
-      E += n[j*(K+1) + k+1] * log(f + theta[k]*(1.0 - f));
+      E += n[k+1] * log(f + theta[k]*(1.0 - f));
+  }catch(const char* s){
+    gsl_set_error_handler (old_handler);//restore gsl error handler 
+    throw string(s);
   }
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   return -E; 
 }
 
 void Latent::RhoGradient( const double* const x, const void* const vargs, double* g ){
   const RhoArguments* args = (const RhoArguments*)vargs;
   unsigned K = args->NumPops;
-  unsigned L = args->NumLoci;
   const int* n = args->SumAncestry;
-  const double* d = args->Distances;
+  const double d = args->Distance;
   const double* theta = args->theta;
-  double rho, f;
   gsl_sf_result result;
   int status = 0;
 
-  for(unsigned j = 1; j < L; ++j){
-    rho = exp(x[j-1]);
-    status = gsl_sf_exp_e(d[j]*rho, &result);
-    if(status)throw("exp error in RhoGradient");
-    f = result.val;
-    g[j-1] = n[j*(K+1)] / (1.0 - f);
-    for(unsigned k = 0; k < K; ++k)
-      g[j-1] -= (n[j*(K+1) + k+1]*(1.0 - theta[k])) / (f + theta[k]*(1.0 - f));
-    g[j-1] *= rho*d[j]*f;//jacobian
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  double rho = exp(*x);
+  status = gsl_sf_exp_e(-d*rho, &result);
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  if(status){
+    throw string("exp error in RhoGradient");
   }
+  double f = result.val;
+  g[0] = n[0] / (1.0 - f);
+  for(unsigned k = 0; k < K; ++k)
+    g[0] -= (n[k+1]*(1.0 - theta[k])) / (f + theta[k]*(1.0 - f));
+  g[0] *= rho*d*f;//jacobian
+
 }
 
 void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
@@ -493,11 +498,20 @@ void Latent::OutputParams(ostream* out){
   //sumintensities
   out->width(9);
   if(options->getHapMixModelIndicator()){
-    double sum = accumulate(rho.begin()+1, rho.end(), 0.0, std::plus<double>());
+    double sum = 0.0;
     double var = 0.0;
-    for(unsigned j = 1; j < rho.size(); ++j)var += rho[j]*rho[j];
-    var = var - (sum*sum) / (double)rho.size();
-    (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / rho.size() << "\t" << var /(rho.size()-1) << "\t";
+    unsigned locus = 0;
+    for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+      ++locus;//skip first locus on each chromosome
+      for(unsigned j = 1; j < Loci->GetSizeOfChromosome(c); ++j){
+	sum += rho[locus];
+	var += rho[locus]*rho[locus];
+	++locus; 
+      }
+    }
+    double size = (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
+    var = var - (sum*sum) / size;
+    (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t";
   }
   else{
     if( options->isGlobalRho() )
@@ -576,15 +590,24 @@ void Latent::printAcceptanceRates(LogWriter &Log) {
   }
 }
 double Latent::getRhoSamplerAccRate()const{
-  if(options->getHapMixModelIndicator())
-    return RhoSampler[0].getAcceptanceRate();
+  if(options->getHapMixModelIndicator()){
+    double av = 0;//average acceptance rate
+    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); ++j){
+      av += RhoSampler[j].getAcceptanceRate();
+    }
+    return av / (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
+  }
   else
     return TuneRhoSampler.getExpectedAcceptanceRate();
 }
 
 double Latent::getRhoSamplerStepsize()const{
-  if(options->getHapMixModelIndicator())
-    return RhoSampler[0].getStepsize();
+  if(options->getHapMixModelIndicator()){
+    double av = 0;//average stepsize
+    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); ++j)
+      av += RhoSampler[j].getStepsize();
+    return av / (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
+  }
   else
     return step;
 }
