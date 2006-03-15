@@ -212,6 +212,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
       }
     }
     
+    unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
     for( int j = 0; j < L; j++ ){
       int NumberOfLoci = (*Lociptr)(j)->GetNumberOfLoci();
       
@@ -223,8 +224,8 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
 	dim_[j] = (*Lociptr)(j)->GetNumberOfStates();//simple multiallelic locus
 
       //next two lines may not be necessary as these arrays are sized later
-      LocusLinkageAlleleScore[j] = new double[ dim_[j] + K ];
-      LocusLinkageAlleleInfo[j] = new double[( dim_[j] + K) * (dim_[j] + K )];
+      LocusLinkageAlleleScore[j] = new double[ dim_[j] + NumCovars ];
+      LocusLinkageAlleleInfo[j] = new double[( dim_[j] + NumCovars) * (dim_[j] + NumCovars )];
 
       SumLocusLinkageAlleleScore[j] = new double[ dim_[j] ];
       SumLocusLinkageAlleleInfo[j] = new double[( dim_[j]) * (dim_[j] )];
@@ -237,8 +238,8 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
 	ScoreWithinHaplotype[ j ] = new double*[NumberOfLoci];
 	InfoWithinHaplotype[ j ] = new double*[NumberOfLoci];
 	for(int jj = 0; jj < NumberOfLoci; ++jj){
-	  ScoreWithinHaplotype[j][jj] = new double[1 + K];
-	  InfoWithinHaplotype[j][jj] = new double[(1 + K)*(1 + K)];
+	  ScoreWithinHaplotype[j][jj] = new double[1 + NumCovars];
+	  InfoWithinHaplotype[j][jj] = new double[(1 + NumCovars)*(1 + NumCovars)];
 	}
 	SumScoreWithinHaplotype[j] = new double[ NumberOfLoci ];
 	SumScore2WithinHaplotype[j] = new double[ NumberOfLoci ];
@@ -333,7 +334,7 @@ void ScoreTests::Reset(){
   }
 
   if( options->getTestForAllelicAssociation() ){
-    int K = options->getPopulations();
+    int K = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
       fill(LocusLinkageAlleleScore[j], LocusLinkageAlleleScore[j]+dim_[j]+K, 0.0);
       fill(LocusLinkageAlleleInfo[j], LocusLinkageAlleleInfo[j]+(dim_[j]+K)*(dim_[j]+K), 0.0);
@@ -360,6 +361,7 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
   for( int k = 0; k < options->getPopulations(); k++ )
     alphaScaled[k] = alpha0[k] / sum;
 
+  unsigned NumCovars = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
   //merge rare haplotypes
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){//skip simple loci
@@ -376,8 +378,8 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
       // merged haplotypes if compound locus, to number of states
       // if >2 alleles
       dim_[j] = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
-      LocusLinkageAlleleScore[j] = new double[ dim_[j] + options->getPopulations()];
-      LocusLinkageAlleleInfo[j] = new double[( dim_[j] + options->getPopulations()) * (dim_[j] + options->getPopulations() )];
+      LocusLinkageAlleleScore[j] = new double[ dim_[j] + NumCovars];
+      LocusLinkageAlleleInfo[j] = new double[( dim_[j] + NumCovars) * (dim_[j] + NumCovars )];
 
       SumLocusLinkageAlleleScore[j] = new double[ dim_[j] ];
       SumLocusLinkageAlleleInfo[j] = new double[( dim_[j]) * (dim_[j] )];
@@ -558,13 +560,13 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const vector<int> allele2Counts, 
 							   int j, double YMinusEY, double phi, double DInvLink)
 {
-  int K = options->getPopulations();
+  int K = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
   double* x = new double[ K + 1 ];
 
 
   x[ K ] = 1.0;
   for( int k = 0; k < K - 1; k++ )
-    x[ k + 1 ] = ind->getAdmixtureProps()[k];
+    x[ k + 1 ] = ind->getAdmixtureProps()[k];//?? should be [k+1]
 
   for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
     x[0] = (double)allele2Counts[l];
@@ -580,7 +582,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
 void ScoreTests::UpdateAlleleScores( double* score, double* info, const double* admixtureProps, const vector<int> Counts, 
 				     double YMinusEY, double phi, double DInvLink)
 {
-  int K = options->getPopulations();
+  int K = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
   unsigned dim = Counts.size();
   double* x = new double[ K + dim ];
 
@@ -589,9 +591,10 @@ void ScoreTests::UpdateAlleleScores( double* score, double* info, const double* 
  
   // ** Set x-co-ordinates of covariates in model
   x[ dim ] = 1.0;//intercept
-  //for( int k = 1; k < K; k++ )
-  //x[ dim+k ] = admixtureProps[k];
-  copy(admixtureProps+1, admixtureProps+K, x+dim+1);
+  for( int k = 1; k < K; k++ )
+    x[ dim+k ] = admixtureProps[k];
+  //if(!options->getHapMixModelIndicator())
+  //copy(admixtureProps+1, admixtureProps+K, x+dim+1);
 
 
   //accumulate score and info
@@ -613,7 +616,8 @@ void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info,
   double *cscore = new double[dim];
   double *cinfo = new double[dim*dim];
 
-  CentredGaussianConditional( dim, score, info, cscore, cinfo, options->getPopulations()+dim );
+  unsigned NumCovars = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
+  CentredGaussianConditional( dim, score, info, cscore, cinfo, NumCovars+dim );
   for(unsigned d = 0; d < dim; ++d){
     *(sumscore + d) += cscore[d];
     for(unsigned dd = 0; dd < dim; ++dd){
@@ -730,7 +734,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,
 	  
 	  //}//end condition on equal ancestry states
       }//end gamete loop
-    }
+      }
   }//end individual loop
   //accumulate score and score squared
 
@@ -949,31 +953,33 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
 void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* outputstream, int locus, unsigned dim, 
 						   const double* score, const double* scoresq, const double* info, string sep)
 {
-  double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
-  for(unsigned a = 0; a < dim; ++a){
-    Score = score[a] / ( iterations );
-    CompleteInfo = info[a] / ( iterations );
-    MissingInfo = scoresq[a] / ( iterations ) - Score * Score;
-    ObservedInfo = CompleteInfo - MissingInfo;
-    
-    string locuslabel = (*Lociptr)(locus)->GetLabel(a);
-    if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) *outputstream << "\"" << locuslabel << "\"" << sep;
-    else *outputstream << "\"" << locuslabel<< "("<<a+1<<")\""<< sep;
-    *outputstream << double2R(Score, 3)        << sep
-		  << double2R(CompleteInfo, 3) << sep
-		  << double2R(ObservedInfo, 3) << sep;
-    if(CompleteInfo > 0.0) {
-      PercentInfo = 100*ObservedInfo / CompleteInfo;
-      zscore = Score / sqrt( ObservedInfo );
-      pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-      *outputstream << double2R(PercentInfo, 2) << sep
-		    << double2R(zscore,3)   << sep 
-		    << pvalue << sep << endl;
+  if(locusObsIndicator[locus]){
+    double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
+    for(unsigned a = 0; a < dim; ++a){
+      Score = score[a] / ( iterations );
+      CompleteInfo = info[a] / ( iterations );
+      MissingInfo = scoresq[a] / ( iterations ) - Score * Score;
+      ObservedInfo = CompleteInfo - MissingInfo;
+      
+      string locuslabel = (*Lociptr)(locus)->GetLabel(a);
+      if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) *outputstream << "\"" << locuslabel << "\"" << sep;
+      else *outputstream << "\"" << locuslabel<< "("<<a+1<<")\""<< sep;
+      *outputstream << double2R(Score, 3)        << sep
+		    << double2R(CompleteInfo, 3) << sep
+		    << double2R(ObservedInfo, 3) << sep;
+      if(CompleteInfo > 0.0) {
+	PercentInfo = 100*ObservedInfo / CompleteInfo;
+	zscore = Score / sqrt( ObservedInfo );
+	pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+	*outputstream << double2R(PercentInfo, 2) << sep
+		      << double2R(zscore,3)   << sep 
+		      << pvalue << sep << endl;
+      }
+      else{
+	*outputstream << "NaN" << sep << "NaN" << sep << "NaN" << sep << endl;
+      }
+      
     }
-    else{
-      *outputstream << "NaN" << sep << "NaN" << sep << "NaN" << sep << endl;
-    }
-    
   }
 }
 
