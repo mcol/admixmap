@@ -572,13 +572,13 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
     // to flatten likelihood when annealing, multiply realized allele counts by coolness
     for(unsigned s = 0; s < NumStates; ++s)
       temp[s] = PriorAlleleFreqs[i][c*j*NumberOfStates[i] + s] + coolness*AlleleCounts[i][s*Populations +j];
-    gendirichlet(NumStates, temp, Freqs[i]+j*NumberOfStates[i]);
+    Rand::gendirichlet(NumStates, temp, Freqs[i]+j*NumberOfStates[i]);
 
     // sample HistoricAlleleFreqs as a conjugate Dirichlet update with prior specified by PriorAlleleFreqs
     if( IsHistoricAlleleFreq ){
       for(unsigned s = 0; s < NumStates; ++s)
 	temp[s] = PriorAlleleFreqs[i][c*j*NumberOfStates[i] + s] + HistoricAlleleCounts[i][s*Populations+j];
-      gendirichlet(NumStates, temp, freqs);
+      Rand::gendirichlet(NumStates, temp, freqs);
       for(unsigned s = 0; s < NumStates-1; ++s)HistoricAlleleFreqs[i][s*Populations+j] = freqs[s];
     }
   }
@@ -648,7 +648,7 @@ void AlleleFreqs::SampleDirichletParamsMultiDim( int locus)
     // propose mu2 from Dirichlet distribution with vector of expectations given by mu1
     // step size parameter controls variance: small step size gives small variance
 
-    gendirichlet(NumberOfStates[locus], mu1, mu2);
+    Rand::gendirichlet(NumberOfStates[locus], mu1, mu2);
  
         
     for( int i = 0; i < NumberOfStates[locus]; i++ ){
@@ -673,7 +673,7 @@ void AlleleFreqs::SampleDirichletParamsMultiDim( int locus)
     LogAccProb = f2-f1-Proposal2 + Proposal1;
     if(LogAccProb > 0.0) LogAccProb = 0.0;
 
-    if( log(myrand()) < LogAccProb ){
+    if( log(Rand::myrand()) < LogAccProb ){
       for(int s = 0; s < NumberOfStates[locus]; ++s)PriorAlleleFreqs[locus][j*NumberOfStates[locus] + s] = mu2[s]*eta[j];
     }
     MuProposal[locus][j].UpdateStepSize(exp(LogAccProb));
@@ -790,7 +790,7 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
   vector< vector<double> > munew;
   // propose etanew from truncated log-normal distribution.
   do{
-    etanew = exp( gennor( log( eta[k] ), etastep[k] ) );
+    etanew = exp( Rand::gennor( log( eta[k] ), etastep[k] ) );
   }while( etanew > 5000.0 );
   // Prior log-odds ratio (proposal ratio cancels with a part of the prior ratio)   
   LogPriorRatio = ( psi[k] - 1 ) * (log(etanew) - log(eta[k])) - tau[k] * ( etanew - eta[k] );
@@ -833,7 +833,7 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
 #endif
   
   // Acceptance test.
-  if( log( myrand() ) < LogPostRatio && mineta < etanew ){
+  if( log( Rand::myrand() ) < LogPostRatio && mineta < etanew ){
     eta[k] = etanew;
     UpdatePriorAlleleFreqs( k, munew );
   }

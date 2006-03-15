@@ -165,7 +165,7 @@ void Gaussian::Draw(double *beta)const
   double* L = new double[Dimension*Dimension];
  
   for ( i = 0; i < Dimension; i++ )
-    draw[i] = gennor( (double)0.0, (double)1.0 );
+    draw[i] = Rand::gennor( (double)0.0, (double)1.0 );
   
   //cholesky decomposition
   if(cholDecomp(Covariance, L, Dimension)) {

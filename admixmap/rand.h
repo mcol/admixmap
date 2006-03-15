@@ -11,32 +11,48 @@
  * See the file COPYING for details.
  * 
  */
-
+#ifndef RAND_H
+#define RAND_H 
 #include <iostream>
 #include <vector>
+extern "C" {
+#include <gsl/gsl_rng.h>
+}
 
-///
-double myrand();
-///
-double myrandRange( double Min, double Max );
-///
-void smyrand( long seed );
-///
-double gengam(double aa,double bb);
-///
-double genbet(double aa,double bb);
-///
-double gennor(double av,double sd);
-//
-int genbinomial( int n, double p );
-//
-unsigned int genpoi( double );
-//
-std::vector<int> genmultinomial2( int n, const std::vector<double> p );
+class Rand{
+public:
+  Rand();
+  ~Rand();
+  //
+  static double myrand();
+  //standard uniform
+  static double myrandRange( double Min, double Max );
+  //set seed 
+  static void setSeed( long seed );
+  //gamma
+  static double gengam(double aa,double bb);
+  //beta
+  static double genbet(double aa,double bb);
+  //univariate normal
+  static double gennor(double av,double sd);
+  //binomial
+  static int genbinomial( int n, double p );
+  //Poisson
+  static unsigned int genpoi( double );
+  //multinomial
+  static std::vector<int> genmultinomial( int n, const std::vector<double> p );
+  
+  //Poisson generator
+  static long ignpoi(double mu);
 
-///Poisson generator
-long ignpoi(double mu);
-///
-int SampleFromDiscrete( const double probs[] , int numberofelements);
-///
-void gendirichlet(const size_t K, const double alpha[], double theta[] );
+  static int SampleFromDiscrete( const double probs[] , int numberofelements);
+  //Dirichlet
+  static void gendirichlet(const size_t K, const double alpha[], double theta[] );
+
+private:
+  static gsl_rng *RandomNumberGenerator;
+
+  Rand(const Rand&);
+  Rand& operator=(const Rand);
+};
+#endif

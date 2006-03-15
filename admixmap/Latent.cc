@@ -194,7 +194,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
     bool accept = false;
 
     NumberOfUpdates++;
-    rhoprop = exp(gennor(log(rho[0]), step)); // propose log rho from normal distribution with SD step
+    rhoprop = exp(Rand::gennor(log(rho[0]), step)); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values, annealed if this is an annealing run
     for(int i = 0; i < IC->getSize(); ++i) {
@@ -222,7 +222,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
 
     // generic Metropolis step
     if( LogAccProbRatio < 0 ) {
-      if( log(myrand()) < LogAccProbRatio ) accept = true;
+      if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
     } else accept = true;  
     
     if(accept) {
@@ -247,9 +247,9 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
     if(IC->getSize()>1 && options->getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
       // update scale parameter of gamma distribution of sumintensities in population 
       if( options->isRandomMatingModel() )
-	rhobeta = gengam( 2*rhoalpha * IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
+	rhobeta = Rand::gengam( 2*rhoalpha * IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
       else
-	rhobeta = gengam( rhoalpha* IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
+	rhobeta = Rand::gengam( rhoalpha* IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
     } // otherwise do not update rhobeta
     if(sumlogrho )SumLogRho[0] += log(rhoalpha) - log(rhobeta);// accumulate sum of log of mean of sumintensities after burnin.
   }
@@ -262,7 +262,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
 //   for(size_t k = 0; k < K; ++k) {
 //     dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
 //   }
-//   gendirichlet(K, dirparams, globaltheta );
+//   Rand::gendirichlet(K, dirparams, globaltheta );
 // }
 
 // void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC) {
@@ -282,7 +282,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
 //   inv_softmax(K, globaltheta, a, b);
 //   //random walk step - on all elements of array a
 //   for(int k = 0; k < K; ++k) {
-//     if( b[k] ) a[k] = gennor(a[k], thetastep);  
+//     if( b[k] ) a[k] = Rand::gennor(a[k], thetastep);  
 //   }
 //   //reverse transformation from numbers on real line to proportions 
 //   softmax(K, globalthetaproposal, a, b);
@@ -325,7 +325,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
 //   if(test) { // generic Metropolis step
 //     if( logpratio < 0 ) {
 //       AccProb = exp(logpratio); 
-//       if( myrand() < AccProb ) accept=true;
+//       if( Rand::myrand() < AccProb ) accept=true;
 //     } else {
 //       accept = true;
 //     }
@@ -347,12 +347,12 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
   double sum = 0.0;
   for(unsigned j = 1; j < rho.size(); ++j){
     double EffectiveL = Loci->GetDistance(j) * 2 * NumIndividuals;//length of interval * # gametes
-    rho[j] = gengam( rhoalpha + (double)(SumNumArrivals[j]), rhobeta + EffectiveL );
+    rho[j] = Rand::gengam( rhoalpha + (double)(SumNumArrivals[j]), rhobeta + EffectiveL );
     sum += rho[j];
   }
 
   //sample rate parameter of gamma prior on rho
-  rhobeta = gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
+  rhobeta = Rand::gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
   //set locus correlation
   Loci->SetLocusCorrelation(rho);
 
@@ -394,7 +394,7 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
     C->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
   }
   //sample rate parameter of gamma prior on rho
-  rhobeta = gengam( rhoalpha * (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes())/* <-NumIntervals*/ + rhobeta0, 
+  rhobeta = Rand::gengam( rhoalpha * (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes())/* <-NumIntervals*/ + rhobeta0, 
   	    sum + rhobeta1 );
   //set locus correlation
   //Loci->SetLocusCorrelation(rho);

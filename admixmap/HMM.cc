@@ -118,16 +118,16 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned in
       xi = true;
       if( LocusAncestry[g*Transitions + t-1] == LocusAncestry[g*Transitions + t] ){
 	ProbJump = StateArrivalProbs[t*K*2 +LocusAncestry[t + g*Transitions]*2 + g];  
-	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > myrand());
+	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > Rand::myrand());
       } 
       if( xi ){ // increment sumlocusancestry if jump indicator is 1
 	SumLocusAncestry[ g*K + LocusAncestry[t+g*Transitions] ]++;
 	if(SampleArrivals) { // sample number of arrivals where jump indicator is 1
-	  double u = myrand();
+	  double u = Rand::myrand();
 	  // sample distance dlast back to last arrival, as dlast = -log[1 - u(1-f)] / rho
 	  // then sample number of arrivals before last as Poisson( rho*(d - dlast) )
 	  // algorithm does not require rho or d, only u and f
-	  unsigned int sample = genpoi( log( (1 - u*( 1 - f[2*t+g])) / f[2*t+g] ) );
+	  unsigned int sample = Rand::genpoi( log( (1 - u*( 1 - f[2*t+g])) / f[2*t+g] ) );
 	  SumNumArrivals[2*(startlocus + t) + g] += sample + 1;
 	}
       }//end if xi true
@@ -188,7 +188,7 @@ void HMM::Sample(int *SStates, bool isdiploid)
     // sample rightmost locus  
     for( int j = 0; j < DStates; j++ ) V[State++] = alpha[(Transitions - 1)*DStates + j];
     
-    C = SampleFromDiscrete( V, DStates ); 
+    C = Rand::SampleFromDiscrete( V, DStates ); 
     SStates[Transitions-1] = (int)(C/K);
     SStates[Transitions - 1 + Transitions] = (C % K);
     
@@ -203,7 +203,7 @@ void HMM::Sample(int *SStates, bool isdiploid)
 	V[State] *= alpha[t*DStates + i1*K + i2];
 	State++;
       }
-      C = SampleFromDiscrete( V, DStates );
+      C = Rand::SampleFromDiscrete( V, DStates );
       SStates[t] = (int)(C/K);//paternal
       SStates[t + Transitions] = (C % K);//maternal
     }
@@ -212,12 +212,12 @@ void HMM::Sample(int *SStates, bool isdiploid)
     double* V = new double[K]; //probability vector for possible states (haploid or diploid)
     int* C = new int[Transitions]; // sampled state (haploid or diploid) coded as integer
     for( int j = 0; j < K; j++ )V[j] = alpha[(Transitions - 1)*K + j ];
-    C[ Transitions - 1 ] = SampleFromDiscrete( V, K );
+    C[ Transitions - 1 ] = Rand::SampleFromDiscrete( V, K );
     SStates[Transitions-1] = C[Transitions-1];
     for( int t =  Transitions - 2; t >= 0; t-- ){
       for(int j = 0; j < K; j++)V[j] = (j == C[t+1])*f[2*t+1]+theta[C[t+1]]*(1.0 - f[2*t]);
       for( int j = 0; j < K; j++ )	V[j] *= alpha[t*K + j];
-      C[ t ] = SampleFromDiscrete( V, K );
+      C[ t ] = Rand::SampleFromDiscrete( V, K );
       SStates[t] = C[t];
     }
     delete[] C;

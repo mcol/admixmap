@@ -303,7 +303,7 @@ void AdaptiveRejection::InitialisePoints(double x[3], const void* const args){
   
 void AdaptiveRejection::SamplePoint(const void* const args){
   //sample from standard uniform
-  double u = myrand();
+  double u = Rand::myrand();
 #if DEBUG ==1
   cout<<"Sampled u = "<<u<<endl;;
 #endif
@@ -388,7 +388,7 @@ void AdaptiveRejection::SamplePoint(const void* const args){
 }
 
 bool AdaptiveRejection::TestNewPoint(){
-  double w = myrand();
+  double w = Rand::myrand();
   bool accept = false;
   //squeeze test
   if (w <= exp(NewPoint.lower - NewPoint.upper) ) {accept = true;

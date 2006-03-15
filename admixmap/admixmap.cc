@@ -67,7 +67,8 @@ int main( int argc , char** argv ){
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   Log.StartMessage();
   
-  smyrand( options.getSeed() );  // Initialise random number seed
+  Rand RNG;
+  RNG.setSeed( options.getSeed() );  // set random number seed
   
   InputData data; //read data files and check (except allelefreq files)
   data.readData(&options, Log);//also sets 'numberofoutcomes' and 'populations' options
@@ -329,6 +330,9 @@ int main( int argc , char** argv ){
       Log.setDisplayMode(On);
       Log << "\n" << msg << "\n Exiting...\n";
       exit(1);
+    }
+    catch (char *msg){
+      throw string(msg);
     }
   }//end else
   cout << "Output to files completed\n" << flush;

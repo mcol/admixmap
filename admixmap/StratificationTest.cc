@@ -191,11 +191,11 @@ vector<double> StratificationTest::GenerateExpectedGenotype( const Individual* c
 vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAdmixture( const vector<double> ProbAllele1 )
 {
   vector<unsigned short> repgenotype(2,0);
-  if( ProbAllele1[0] > myrand() )
+  if( ProbAllele1[0] > Rand::myrand() )
     repgenotype[0] = 1;
   else
     repgenotype[0] = 2;
-  if( ProbAllele1[1] > myrand() )
+  if( ProbAllele1[1] > Rand::myrand() )
     repgenotype[1] = 1;
   else
     repgenotype[1] = 2;
@@ -205,11 +205,11 @@ vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAdmixture( co
 vector<unsigned short> StratificationTest::SimGenotypeConditionalOnAncestry( const double* const freqs, const int ancestry[2] )
 {
   vector<unsigned short> repgenotype(2,0);
-  if( freqs[ ancestry[0]*2 ] > myrand() )
+  if( freqs[ ancestry[0]*2 ] > Rand::myrand() )
      repgenotype[0] = 1;
   else
     repgenotype[0] = 2;
-  if( freqs[ ancestry[1]*2 ] > myrand() )
+  if( freqs[ ancestry[1]*2 ] > Rand::myrand() )
     repgenotype[1] = 1;
   else
     repgenotype[1] = 2;
@@ -221,7 +221,7 @@ vector<unsigned short> StratificationTest::SampleHeterozygotePhase( const double
   vector<unsigned short> genotype(2, 0);
   double q1 = freqs[ Ancestry[0]*2 ] * ( 1 - freqs[ Ancestry[1]*2 ] );
   double q2 = freqs[ Ancestry[1]*2 ] * ( 1 - freqs[ Ancestry[0]*2 ] );
-  if( myrand() > q1 / ( q1 + q2 ) ){
+  if( Rand::myrand() > q1 / ( q1 + q2 ) ){
     genotype[0] = 2;
     genotype[1] = 1;
   }

@@ -35,7 +35,7 @@ int GaussianProposalMH::Sample( double *x, const void* const args )
 
   //generate proposal from Normal distribution centred on mode of target distribution with precision 
   //given as sqrt of -2nd derivative at the mode
-  double xnew = gennor( newnum, 1 / sqrt( -ddf ) );
+  double xnew = Rand::gennor( newnum, 1 / sqrt( -ddf ) );
 
   double LogTarget = (*function)( *x, args );//log of target dist at current value
   double NewLogTarget = (*function)( xnew, args );//log of target dist at proposal
@@ -44,7 +44,7 @@ int GaussianProposalMH::Sample( double *x, const void* const args )
 
   double LogAcceptanceProb = NewLogTarget - LogTarget + ProposalRatio;
   int accept = 0;
-  if( log( myrand() ) < LogAcceptanceProb ){
+  if( log( Rand::myrand() ) < LogAcceptanceProb ){
     *x = xnew;
     accept = 1;
   }
@@ -72,7 +72,7 @@ double GaussianProposalMH::FindModeByNewtonRaphson(double init, const void* cons
     else{//use simple random walk to find a point nearer the mode
       //flast = f; 
       do{
-	step = gennor(newnum, 0.1 / sqrt( -ddf ) );//could improve this, maybe with StepSizeTuner
+	step = Rand::gennor(newnum, 0.1 / sqrt( -ddf ) );//could improve this, maybe with StepSizeTuner
 	f = (*function)(step, args);
       }
       while(f < flast);//repeat until loglikelihood increases

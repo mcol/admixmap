@@ -50,7 +50,7 @@ CPPFLAGS = $(GNUFLAGS)
 
 ## DO NOT EDIT BELOW HERE ##
 
-objects		= rand_serial.o admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o \
+objects		= rand.o admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o \
 AdaptiveRejection.o StepSizeTuner.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o \
 Individual.o GaussianProposalMH.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o \
 MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o \

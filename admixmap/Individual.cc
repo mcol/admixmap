@@ -199,7 +199,7 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
       // if(alpha[g][k]>0.0) ++sum;
    }
     //generate proposal theta from Dirichlet with parameters dirparams
-    if(sum>1)gendirichlet(K, dirparams, Theta+g*K );
+   if(sum>1)Rand::gendirichlet(K, dirparams, Theta+g*K );
   } // end loop over gametes: 
   if(Xdata) 
     setAdmixturePropsX(Theta, K*NumIndGametes);
@@ -585,7 +585,7 @@ void Individual::SampleHapPair(AlleleFreqs *A){
 	//might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
 	(*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
 	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid());
-      }
+	}
     }   
   } //end chromosome loop
 }
@@ -844,7 +844,7 @@ double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options,
       inv_softmax(Populations, Theta+g*Populations, a, b);
       //random walk step - on all elements of array a
       for(int k = 0; k < Populations; ++k) {
-	if( b[k] ) a[k] = gennor(a[k], step);  
+	if( b[k] ) a[k] = Rand::gennor(a[k], step);  
       }
       //reverse transformation from numbers on real line to proportions 
       softmax(Populations, ThetaProposal+g*Populations, a, b);
@@ -898,7 +898,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, /*const vector<
 	  }
 	}
 	//generate proposal theta from Dirichlet with parameters dirparams
-	gendirichlet(K, dirparams, ThetaProposal+g*K );
+	Rand::gendirichlet(K, dirparams, ThetaProposal+g*K );
       } else copy(Theta+g*Populations, Theta+(g+1)*Populations, ThetaProposal+g*Populations);
     } // end loop over gametes
 
@@ -910,7 +910,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, /*const vector<
 	dirparams[k] += (double)(sumLocusAncestry_X[k] + sumLocusAncestry_X[K + k]); 
       }
     }
-    gendirichlet(K, dirparams, ThetaProposal );
+    Rand::gendirichlet(K, dirparams, ThetaProposal );
   }
 }
 
@@ -989,7 +989,7 @@ void Individual::Accept_Reject_Theta( double logpratio, /*bool xdata, */ int Pop
   if(test) { // generic Metropolis step
     if( logpratio < 0 ) {
       AccProb = exp(logpratio); 
-      if( myrand() < AccProb ) accept=true;
+      if( Rand::myrand() < AccProb ) accept=true;
     } else {
       accept = true;
     }
@@ -1061,7 +1061,7 @@ void Individual::SampleRho(const AdmixOptions* const options, double rhoalpha, d
 	// effective length of genome is L + 0.5*LX if there is an X chrm: i.e. if g=1 or sex is female
 	if(g || SexIsFemale) EffectiveL = L + 0.5*LX;
 	else EffectiveL = L;
-	_rho[g] = gengam( rhoalpha + (double)(sumNumArrivals[g] + sumNumArrivals_X[g]), rhobeta + EffectiveL );
+	_rho[g] = Rand::gengam( rhoalpha + (double)(sumNumArrivals[g] + sumNumArrivals_X[g]), rhobeta + EffectiveL );
       } while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
       if( Loci->isX_data()  && (g = 1 || SexIsFemale) ) { // no assignment if g = 0 (paternal gamete) and sex is male
 	_rho_X[g] = 0.5 * _rho[g];
@@ -1071,7 +1071,7 @@ void Individual::SampleRho(const AdmixOptions* const options, double rhoalpha, d
     // effective length of genome is  2*(L + 0.5*LX) if sex is female, 2*L + 0.5*LX if sex is male
     if( SexIsFemale) EffectiveL =  2.0 * L + LX;
     else EffectiveL = 2.0 * L + 0.5 * LX;
-    _rho[0] = gengam( rhoalpha + (double)(sumNumArrivals[0] + sumNumArrivals[1] + sumNumArrivals_X[0] + sumNumArrivals_X[1]), 
+    _rho[0] = Rand::gengam( rhoalpha + (double)(sumNumArrivals[0] + sumNumArrivals[1] + sumNumArrivals_X[0] + sumNumArrivals_X[1]), 
 			rhobeta + EffectiveL );
     if(Loci->isX_data()) {
       _rho_X[0] = 0.5 * _rho[0];
@@ -1094,9 +1094,9 @@ void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const DataType* cons
   for( int k = 0; k < NumOutcomes; k++ ){
     if( Outcome->isMissing( myNumber-1, k ) ){
       if( OutcomeType[k] == Continuous )
-	Outcome->set( myNumber-1, k, gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
+	Outcome->set( myNumber-1, k, Rand::gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
       else{
-	if( myrand() * ExpectedY[k][myNumber-1] < 1 )
+	if( Rand::myrand() * ExpectedY[k][myNumber-1] < 1 )
 	  Outcome->set( myNumber-1, k, 1);
 	else
 	  Outcome->set( myNumber-1, k, 0);

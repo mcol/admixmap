@@ -70,7 +70,7 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
       // Generate replicate data conditional on locus ancestry
       AlleleCount = A->GetAlleleCounts(j, k);
       int sumcounts = accumulate(AlleleCount.begin(), AlleleCount.end(), 0, plus<int>());
-      rep = genmultinomial2( sumcounts, popfreqs );
+      rep = Rand::genmultinomial( sumcounts, popfreqs );
 
       // Calculate likelihood of observed and repliate data.
       LogLikelihood[j][k] =
