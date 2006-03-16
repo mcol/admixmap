@@ -362,6 +362,9 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
 }
 
 void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
+  //SumAncestry is a (NumberOfCompositeLoci) * (Populations+1) array of counts of ancestry states that are
+  // unequal (element 0) and equal to each possible ancestry states
+  //sumlogrho indicates whether to accumulate sums of log rho
   RhoArgs.theta = globaltheta;
   double sum = 0.0;
   int locus = 0;
@@ -373,8 +376,8 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
     
     for(unsigned i = 1; i < C->GetSize(); ++i){
       rho[locus] = log(rho[locus]);//sampler is on log scale
-      RhoArgs.Distance = C->GetDistance(i);
-      RhoArgs.SumAncestry = SumAncestry + locus*options->getPopulations()+1;
+      RhoArgs.Distance = C->GetDistance(i);//distance between this locus and last
+      RhoArgs.SumAncestry = SumAncestry + locus*(options->getPopulations()+1);//sums of ancestry for this locus
       
       //cout << index << " " << RhoSampler[index].getAcceptanceRate() << " " << RhoSampler[index].getStepsize()<< endl;
       RhoSampler[index++].Sample(&(rho[locus]), &RhoArgs);
@@ -413,21 +416,17 @@ double Latent::RhoEnergy(const double* const x, const void* const vargs){
 
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   double rho = exp(*x);
-  try{
-    status = gsl_sf_exp_e(-d*rho, &result);
-    if(status)throw string("exp error in RhoEnergy");
-    double f = result.val;
-    
-    status = gsl_sf_lngamma_e(1.0-f, &result);
-    if(status)throw string("log error in RhoEnergy");
-    E += n[0] * result.val;
-    for(unsigned k = 0; k < K; ++k)
-      E += n[k+1] * log(f + theta[k]*(1.0 - f));
-  }catch(const char* s){
-    gsl_set_error_handler (old_handler);//restore gsl error handler 
-    throw string(s);
-  }
+  status = gsl_sf_exp_e(-d*rho, &result);
+  if(status)throw string("exp error in RhoEnergy");
+  double f = result.val;
+  
+  status = gsl_sf_lngamma_e(1.0-f, &result);
   gsl_set_error_handler (old_handler);//restore gsl error handler 
+  if(status)throw string("log error in RhoEnergy");
+  E += n[0] * result.val;
+  for(unsigned k = 0; k < K; ++k)
+    E += n[k+1] * log(f + theta[k]*(1.0 - f));
+  
   return -E; 
 }
 
