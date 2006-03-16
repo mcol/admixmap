@@ -326,12 +326,13 @@ int main( int argc , char** argv ){
     
     if(annealstream.is_open())annealstream.close();
     if(avgstream.is_open())avgstream.close();
-    } catch (string msg) {//catch any stray error messages passed upwards
+    } catch (string msg) {//catch any stray error messages thrown upwards
       Log.setDisplayMode(On);
       Log << "\n" << msg << "\n Exiting...\n";
+      Log.ProcessingTime();
       exit(1);
     }
-    catch (char *msg){
+    catch (char *msg){//in case error messages thrown as char arrays instead of strings
       throw string(msg);
     }
   }//end else
@@ -535,7 +536,7 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	      *avgstream << individuals->getCovariateLabels(i) << "\t";
 	    }
 	  }
-	  if( !options->getTestForAdmixtureAssociation() ){
+	  if( !options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation() ){
 	    for( int k = 1; k < options->getPopulations(); k++ ){
 	      *avgstream << PopulationLabels[k] << "\t";
 	    }
