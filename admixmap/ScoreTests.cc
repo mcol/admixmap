@@ -185,7 +185,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     | Allelic association  |
     -----------------------*/
   if( options->getTestForAllelicAssociation() ){
-    OpenFile(Log, &allelicAssocScoreStream, options->getAllelicAssociationScoreFilename(), "Test for allelic association");
+    OpenFile(Log, &allelicAssocScoreStream, options->getAllelicAssociationScoreFilename(), "Tests for allelic association");
     
     dim_ = new unsigned[L];//dimensions of arrays
     LocusLinkageAlleleScore = new double*[L];
@@ -506,7 +506,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
     for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      if(!ind->GenotypeIsMissing(locus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
+      if(ind->GenotypeIsMissing(locus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
 	//retrieve sampled hap pair from Individual
 	const int* happair = ind->getSampledHapPair(locus);
 	const unsigned numStates = (*Lociptr)(locus)->GetNumberOfStates();
@@ -967,7 +967,7 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* out
       *outputstream << double2R(Score, 3)        << sep
 		    << double2R(CompleteInfo, 3) << sep
 		    << double2R(ObservedInfo, 3) << sep;
-      if(CompleteInfo > 0.0) {
+      if(CompleteInfo > 0.0 && ObservedInfo > 0.0) {
 	PercentInfo = 100*ObservedInfo / CompleteInfo;
 	zscore = Score / sqrt( ObservedInfo );
 	pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
@@ -1102,7 +1102,7 @@ void ScoreTests::ROutput(){
   int count;
   if(options->getTestForAllelicAssociation()){
     count = 0;
-    for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+    for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )if(locusObsIndicator[j]){
       if((* Lociptr)(j)->GetNumberOfLoci() == 1 ) count += dim_[j];
       else count += (*Lociptr)(j)->GetNumberOfLoci();
     }         
