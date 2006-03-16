@@ -74,7 +74,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       rhobeta0 = options->getRhobetaShape();
       rhobeta1 = options->getRhobetaRate();
       rhobeta = rhobeta0 / rhobeta1;
-      rho[0] = rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
+      rho[0] = 20.0;//rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
       if(options->getHapMixModelIndicator()){
 	//initialise rho vector
 	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j){
@@ -82,10 +82,13 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	  SumLogRho.push_back(0.0);
 	}
 	RhoArgs.NumPops = K;
+	RhoArgs.rhoalpha = rhoalpha;
+	RhoArgs.rhobeta0 = rhobeta0;
+	RhoArgs.rhobeta1 = rhobeta1;
 	RhoSampler = new HamiltonianMonteCarlo[Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes()];
 	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); ++j)
-	  RhoSampler[j].SetDimensions(1, 0.001/*initial stepsize*/, 0.000/*min stepsize*/, 
-				      1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
+	  RhoSampler[j].SetDimensions(1, 0.005/*initial stepsize*/, 0.000/*min stepsize*/, 
+				      1.0/*max stepsize*/, 40/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
     
       }
     }
@@ -426,7 +429,12 @@ double Latent::RhoEnergy(const double* const x, const void* const vargs){
   E += n[0] * result.val;
   for(unsigned k = 0; k < K; ++k)
     E += n[k+1] * log(f + theta[k]*(1.0 - f));
-  
+ 
+  //log prior
+  (args->rhoalpha - 1.0)* (*x) - (args->rhoalpha + args->rhobeta0)*log(args->rhobeta1 + rho);
+  //Jacobian
+  E-= (*x);
+
   return -E; 
 }
 
@@ -450,7 +458,12 @@ void Latent::RhoGradient( const double* const x, const void* const vargs, double
   g[0] = n[0] / (1.0 - f);
   for(unsigned k = 0; k < K; ++k)
     g[0] -= (n[k+1]*(1.0 - theta[k])) / (f + theta[k]*(1.0 - f));
-  g[0] *= rho*d*f;//jacobian
+  g[0] *= d*f;
+  g[0] -= *(x);//derivative of jacobian
+  //derivative of log prior
+  g[0] -= (args->rhoalpha - 1.0) / rho - (args->rhoalpha + args->rhobeta0) / (args->rhobeta1 + rho);
+
+  g[0] *= rho;//jacobian (d\rho / d x )
 
 }
 
@@ -475,14 +488,21 @@ void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
 
 void Latent::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 {
-  if(options->getPopulations()>1){
-    if(!options->getHapMixModelIndicator())
+  if(!options->getHapMixModelIndicator()){
+    if(options->getPopulations()>1){
       for( int j = 0; j < options->getPopulations(); j++ ){
 	avgstream->width(9);
 	*avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
       }
+      avgstream->width(9);
+      *avgstream << setprecision(6) << exp(SumLogRho[0] / samples) << "\t";
+    }
+  }
+  else{
+    double sum = 0.0;//TODO: skip first locus on each chromosome
+    for(vector<double>::const_iterator i = SumLogRho.begin(); i < SumLogRho.end(); ++i)sum += exp(*i / samples);
     avgstream->width(9);
-    *avgstream << setprecision(6) << exp(SumLogRho[0] / samples) << "\t";
+    *avgstream << setprecision(6) << sum / (Loci->GetNumberOfCompositeLoci() - Loci->GetNumberOfChromosomes()) << "\t";
   }
 }
 

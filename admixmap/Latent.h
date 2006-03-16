@@ -41,7 +41,10 @@ typedef struct {
   unsigned NumPops;
   const int* SumAncestry;
   double Distance;
-  const double* theta; 
+  const double* theta;
+  double rhoalpha;
+  double rhobeta0;
+  double rhobeta1; 
 }RhoArguments;
 
 class Latent
