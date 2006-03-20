@@ -168,7 +168,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   unsigned States = args->NumStates;
 
   //transform params to freqs
-  double phi[args->NumStates * args->NumPops];
+  double* phi = new double[args->NumStates * args->NumPops];
   for(unsigned k = 0; k < args->NumPops; ++k)
     softmax(States, phi + k*States, params + k*States); 
 
@@ -190,6 +190,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
     }   
     energy -= logJacobian(phi+k*States, z, States);
   }
+  delete[] phi;
   return energy;
 }
 
@@ -198,7 +199,7 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
   unsigned States = args->NumStates;
   fill(g, g+States* args->NumPops, 0.0);
   //transform params to freqs
-  double phi[States * args->NumPops];
+  double* phi = new double[States * args->NumPops];
   for(unsigned k = 0; k < args->NumPops; ++k)
     softmax(States, phi + k*States, params + k*States); 
 
@@ -227,6 +228,7 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
 
     }
   }
+  delete[] phi;
   delete[] dEdphi;
 }
 
@@ -236,7 +238,7 @@ void AlleleFreqSampler::logLikelihoodFirstDeriv(double *phi, const int Anc[2], c
   unsigned NumPossHapPairs = H.size();
   unsigned dim = NumStates*NumPops;
 
-  double A[dim], B[dim], /*C[dim],*/ D[dim], E[dim]/*, F[dim]*/;
+  vector<double> A(dim), B(dim), /*C(dim),*/ D(dim), E(dim)/*, F(dim)*/;
   //fill(A, A+dim, 0.0);  fill(B, B+dim, 0.0); fill(C, C+dim, 0.0);
   //fill(D, D+dim, 0.0);  fill(E, E+dim, 0.0); fill(F, F+dim, 0.0);
   for(unsigned d = 0; d < dim; ++d){
@@ -283,7 +285,7 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
   double energy = 0.0;
   unsigned Pops = args->NumPops;
   //transform params to freqs
-  double phi[2 * Pops];
+  double* phi = new double[2 * Pops];
   for(unsigned k = 0; k < Pops; ++k)
     softmax(2, phi + k*2, params + k*2);
 
@@ -307,6 +309,7 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
     }   
     energy -= logJacobian(phi+k*2, z, 2);
   }
+  delete[] phi;
   return energy;
 }
 
@@ -315,7 +318,7 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
   fill(g, g+ 2* args->NumPops, 0.0);
   unsigned Pops = args->NumPops;
   //transform params to freqs
-  double phi[2 * Pops];
+  double* phi = new double[2 * Pops];
   for(unsigned k = 0; k < Pops; ++k)
     softmax(2, phi + k*2, params + k*2);
 
@@ -352,6 +355,7 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
 
     }
   }
+  delete[] phi;
   delete[] dEdphi;
 }
 
