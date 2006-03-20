@@ -374,11 +374,11 @@ calculateAndPlotQuantiles <- function(param.samples, nvars) {
   return(post.quantiles)
 }
 
-plotlogpvalues <- function(psfilename, log10pvalues, table.every, title ) {
+plotlogpvalues <- function(psfilename, log10pvalues, table.every, title, hist ) {
   ## function to plot cumulative p-values
   ## arguments: psfilename, matrix of -log10pvalues, table.every, plot title
   postscript(psfilename)
-  ntests <- dim(log10pvalues)[2]
+  ntests <- dim(log10pvalues)[1]
   evaluations <- dim(log10pvalues)[2]
   ## generate plot for test 1
   plot(table.every*seq(1:evaluations), log10pvalues[1,],
@@ -397,34 +397,10 @@ plotlogpvalues <- function(psfilename, log10pvalues, table.every, title ) {
   if(length(siglabels) > 0) {
     text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
   }
-  # histogram of p-values
-  hist(10^(-log10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
-       main="Histogram of one-sided p-values")
-  dev.off()
-}
-
-plotpvalues <- function(psfilename, pvalues, table.every, title ) {
-  ## function to plot cumulative p-values
-  ## arguments: psfilename, matrix of cumulative pvalues, table.every, plot title
-  postscript(psfilename)
-  ## compute matrix of cumulative log10pvalues: rows index tests, cols iterations 
-  log10pvalues <- -log10(pvalues)
-  ## generate plot for test 1
-  plot(table.every*seq(1:dim(log10pvalues)[2]), log10pvalues[1,],
-       type="l", ylim=c(0,max(log10pvalues*is.finite(log10pvalues),na.rm=T)),
-       main=title, xlab="Iterations", ylab="-log10(p-value)")
-  ## add lines to plot for all other tests 
-  for(test in 2:dim(log10pvalues)[1]) {
-    lines(table.every*seq(1:dim(log10pvalues)[2]), log10pvalues[test,], type="l")
-  }
-  ## label lines for which final p<0.01
-  log10pvalues.final <- log10pvalues[, dim(log10pvalues)[2]]
-  siglabels <- dimnames(log10pvalues)[[1]][log10pvalues.final > 2 | is.na(log10pvalues.final)]
-  siglabels.x <- 0.9*table.every*dim(log10pvalues)[2]
-  siglabels.y <- as.vector(log10pvalues.final[log10pvalues.final > 2])
-  siglabels.y[is.na(siglabels.y)] <- -1
-  if(length(siglabels) > 0) {
-    text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
+  if(hist){
+    ## histogram of p-values
+    hist(10^(-log10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
+         main="Histogram of one-sided p-values")
   }
   dev.off()
 }
@@ -465,33 +441,23 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
 ##used for allelic and haplotype association score tests
 plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
-  dim.names <- dimnames(scoretest)
   
-  ## rows are: locus,(haplotype), score, completeinfo, observedinfo,
-  ##           pctinfo, stdnormdev, pvalue, (chisquare)
+  ## rows are: locus,(haplotype), -log10pvalue
   ## extract testnames and drop 1st row
   if (!haplotypes) {
     testnames <- as.vector(scoretest[1,,1])
-    scoretest <- scoretest[-1, ,]
-    dim.names[[1]] <- dim.names[[1]][-1]
+    ## convert pvalues to numeric
+    log10pvalues <- matrix(as.numeric(scoretest[-1, ,]), nrow=dim(scoretest)[[2]], ncol=dim(scoretest)[[3]])
   } else {
     testnames <- as.vector(paste(scoretest[1,,1], scoretest[2,,1]))
-    scoretest <- scoretest[-c(1:2), ,]
-    dim.names[[1]] <- dim.names[[1]][-c(1:2)]
+    log10pvalues <- matrix(as.numeric(scoretest[-c(1:2), ,]), nrow=dim(scoretest)[[2]], ncol=dim(scoretest)[[3]])
   }
-  dims <- dim(scoretest)
-  if(length(dim(scoretest))==2){
-    dims <- c(dims,1)
-   }
-  ## convert to numeric
-  scoretest <- array(as.numeric(scoretest), dim=dims,dimnames=dim.names)
-  scoretest[is.nan(scoretest)] <- NA
-  ## extract matrix of pvalues
-  pvalues <- scoretest[6,,]
-  if(is.vector(pvalues))pvalues <- as.matrix(pvalues)
 
-  plotpvalues(outputfilePlot, pvalues,
-              10*thinning, "Running computation of p-values for allelic association")
+  dimnames(log10pvalues) <- list(testnames, NULL)
+  log10pvalues[is.nan(log10pvalues)] <- NA
+
+  plotlogpvalues(outputfilePlot, log10pvalues,
+              10*thinning, "Running computation of p-values for allelic association", F)
 }
 
 #used to plot output of score test for heterozygosity
@@ -656,7 +622,7 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   dimnames(log10pvalues)[[1]] <- locusnames
   #print(pvalues)
   plotlogpvalues(outputfile, -log10pvalues, 10*thinning,
-                 "Running computation of p-values for residual allelic association")
+                 "Running computation of p-values for residual allelic association", T)
 }
 
 convertAlleleFreqs <- function(allelefreq.samples) {

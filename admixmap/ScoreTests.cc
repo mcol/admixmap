@@ -502,11 +502,10 @@ void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, 
 void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, double YMinusEY, double phi, double DInvLink)
 {
   int locus = 0;
-  //int K = options->getPopulations();
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
     for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-      if(ind->GenotypeIsMissing(locus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
+      if(!ind->GenotypeIsMissing(locus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
 	//retrieve sampled hap pair from Individual
 	const int* happair = ind->getSampledHapPair(locus);
 	const unsigned numStates = (*Lociptr)(locus)->GetNumberOfStates();
@@ -755,18 +754,18 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
       if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
 	OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, dim_[j], 
 					 SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
-					 SumLocusLinkageAlleleInfo[j], ",");
+					 SumLocusLinkageAlleleInfo[j], false);
       //case of haplotype
       else
 	OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, (*Lociptr)(j)->GetNumberOfLoci(), 
 					 SumScoreWithinHaplotype[ j ], SumScore2WithinHaplotype[ j ], 
-					 SumInfoWithinHaplotype[ j ], ",");
+					 SumInfoWithinHaplotype[ j ], false);
     }//end j loop over comp loci
   }
   
   //haplotype association
   if( options->getTestForHaplotypeAssociation() ){
-    OutputTestsForHaplotypeAssociation( iterations, &HaplotypeAssocScoreStream, "," );
+    OutputTestsForHaplotypeAssociation( iterations, &HaplotypeAssocScoreStream, false );
   }
   
   //ancestry association
@@ -835,7 +834,7 @@ void ScoreTests::WriteFinalTables(){
     filename.append("/HaplotypeAssocTestsFinal.txt");
     finalTable.open(filename.c_str(), ios::out);
     finalTable << "Locus\tHaplotype\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare\n";
-    OutputTestsForHaplotypeAssociation( iterations, &finalTable, "\t" );
+    OutputTestsForHaplotypeAssociation( iterations, &finalTable, true );
     finalTable.close();
   }
   //Allelic association
@@ -849,12 +848,12 @@ void ScoreTests::WriteFinalTables(){
       if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
 	OutputTestsForAllelicAssociation(iterations, &finalTable, j, dim_[j], 
 					 SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
-					 SumLocusLinkageAlleleInfo[j], "\t");
+					 SumLocusLinkageAlleleInfo[j], true);
       //case of haplotype
       else
 	OutputTestsForAllelicAssociation(iterations, &finalTable, j, (*Lociptr)(j)->GetNumberOfLoci(), 
 					 SumScoreWithinHaplotype[ j ], SumScore2WithinHaplotype[ j ], 
-					 SumInfoWithinHaplotype[ j ], "\t");
+					 SumInfoWithinHaplotype[ j ], true);
     }//end j loop over comp loci
     finalTable.close();
   }
@@ -883,13 +882,14 @@ void ScoreTests::OutputAdmixtureScoreTest(int iterations)
   assocscorestream << endl;
 }
 
-void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* outputstream, string sep )
+void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* outputstream, bool final )
 // loops over composite loci that have 2 or more simple loci, and calculates score tests for each 
 // haplotype separately, together with a summary chi-square
 {
   int NumberOfMergedHaplotypes;
   const int *hap;
   double *ScoreVector, *CompleteMatrix, *ObservedMatrix;
+  string sep = final? "\t" : ",";
   
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){ // compound locus contains 2 or more simple loci
@@ -908,6 +908,7 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
 	  SumLocusLinkageAlleleScore2[j][d1*dim_[j]+d2]/( iterations );
       
       NumberOfMergedHaplotypes = dim_[j];
+      // ** output labels
       for( int k = 0; k < NumberOfMergedHaplotypes; k++ ){
 	*outputstream  << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << sep;
 	if( k < NumberOfMergedHaplotypes - 1 ){
@@ -920,27 +921,31 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
 	}
 	else
 	  *outputstream  << "\"others\"" << sep;
-	*outputstream  << double2R(ScoreVector[k], 3) << sep
-		       << double2R(CompleteMatrix[k*dim_[j]+k], 3) << sep
-		       << double2R(ObservedMatrix[k*dim_[j]+k], 3) << sep
-		       << double2R(100*ObservedMatrix[k*dim_[j]+k] / CompleteMatrix[k*dim_[j]+k], 2) << sep;//%Observed Info
+	if(final)
+	  *outputstream  << double2R(ScoreVector[k], 3) << sep
+			 << double2R(CompleteMatrix[k*dim_[j]+k], 3) << sep
+			 << double2R(ObservedMatrix[k*dim_[j]+k], 3) << sep
+			 << double2R(100*ObservedMatrix[k*dim_[j]+k] / CompleteMatrix[k*dim_[j]+k], 2) << sep;//%Observed Info
 	double zscore = ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim_[j]+k] );
-	*outputstream  << double2R(zscore, 3) << sep;//z-score
+	if(final)*outputstream  << double2R(zscore, 3) << sep;//z-score
 	double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	*outputstream << double2R(pvalue) << sep;
+	if(final)*outputstream << double2R(pvalue) << sep;
+	else *outputstream << double2R(-log10(pvalue)) << sep << endl;
 	// if not last allele at locus, output unquoted "NA" in chi-square column
-	if( k != NumberOfMergedHaplotypes - 1 ){
+	if( final && k != NumberOfMergedHaplotypes - 1 ){
 	  *outputstream  << "NA" << sep << endl;
 	}
       }//end loop over haplotypes
-      // calculate summary chi-square statistic
-      double chisq = 0.0;
-      try{
-	chisq = GaussianConditionalQuadraticForm( NumberOfMergedHaplotypes - 1, ScoreVector, ObservedMatrix, dim_[j] );
-	*outputstream  << double2R(chisq, 2) << sep << endl;
-      }
-      catch(...){
-	*outputstream  << "NaN" << sep << endl;// if ObservedMatrix is rank deficient
+      if(final){
+	// calculate summary chi-square statistic
+	double chisq = 0.0;
+	try{
+	  chisq = GaussianConditionalQuadraticForm( NumberOfMergedHaplotypes - 1, ScoreVector, ObservedMatrix, dim_[j] );
+	  *outputstream  << double2R(chisq, 2) << sep << endl;
+	}
+	catch(...){
+	  *outputstream  << "NaN" << sep << endl;// if ObservedMatrix is rank deficient
+	}
       }
 
       delete[] ScoreVector;
@@ -951,32 +956,38 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
 }
 
 void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* outputstream, int locus, unsigned dim, 
-						   const double* score, const double* scoresq, const double* info, string sep)
+						   const double* score, const double* scoresq, const double* info, bool final)
 {
   if(locusObsIndicator[locus]){
     double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
+    string sep = final? "\t" : ",";
     for(unsigned a = 0; a < dim; ++a){
       Score = score[a] / ( iterations );
       CompleteInfo = info[a] / ( iterations );
       MissingInfo = scoresq[a] / ( iterations ) - Score * Score;
       ObservedInfo = CompleteInfo - MissingInfo;
-      
+      //output label
       string locuslabel = (*Lociptr)(locus)->GetLabel(a);
       if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) *outputstream << "\"" << locuslabel << "\"" << sep;
       else *outputstream << "\"" << locuslabel<< "("<<a+1<<")\""<< sep;
-      *outputstream << double2R(Score, 3)        << sep
-		    << double2R(CompleteInfo, 3) << sep
-		    << double2R(ObservedInfo, 3) << sep;
+      if(final)
+	*outputstream << double2R(Score, 3)        << sep
+		      << double2R(CompleteInfo, 3) << sep
+		      << double2R(ObservedInfo, 3) << sep;
       if(CompleteInfo > 0.0 && ObservedInfo > 0.0) {
 	PercentInfo = 100*ObservedInfo / CompleteInfo;
 	zscore = Score / sqrt( ObservedInfo );
 	pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	*outputstream << double2R(PercentInfo, 2) << sep
-		      << double2R(zscore,3)   << sep 
-		      << pvalue << sep << endl;
+	if(final)
+	  *outputstream << double2R(PercentInfo, 2) << sep
+			<< double2R(zscore,3)   << sep 
+			<< double2R(pvalue) << sep << endl;
+	else
+	  *outputstream << double2R(-log10(pvalue)) << sep << endl;
       }
       else{
-	*outputstream << "NaN" << sep << "NaN" << sep << "NaN" << sep << endl;
+	if(final)*outputstream << "NaN" << sep << "NaN" << sep;
+	*outputstream << "NaN" << sep << endl;
       }
       
     }
@@ -1019,7 +1030,7 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
 	if(complete - missing > 0.0){
 	  double zscore = EU / sqrt( complete - missing );
 	  double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	  *outputstream << double2R(zscore,3)  << separator << pvalue << separator << endl;
+	  *outputstream << double2R(zscore,3)  << separator << double2R(pvalue) << separator << endl;
 	}
 	else *outputstream << "NaN" << separator << "NaN" << separator << endl;
 	}
@@ -1107,17 +1118,12 @@ void ScoreTests::ROutput(){
       else count += (*Lociptr)(j)->GetNumberOfLoci();
     }         
     vector<int> dimensions(3,0);
-    dimensions[0] = 7;
+    dimensions[0] = 2;
     dimensions[1] = count;
     dimensions[2] = (int)(numPrintedIterations);
     vector<string> labels(dimensions[0],"");
     labels[0] = "Locus";
-    labels[1] = "Score";
-    labels[2] = "CompleteInfo";
-    labels[3] = "ObservedInfo";
-    labels[4] = "PercentInfo";
-    labels[5] = "StdNormal";
-    labels[6] = "Pvalue";
+    labels[1] = "log10Pvalue";
     R_output3DarrayDimensions(&allelicAssocScoreStream,dimensions,labels);
   }
   
@@ -1133,19 +1139,13 @@ void ScoreTests::ROutput(){
       }
     }         
     vector<int> dimensions(3,0);
-    dimensions[0] = 9;
+    dimensions[0] = 3;
     dimensions[1] = count;
     dimensions[2] = (int)(numPrintedIterations);
     vector<string> labels(dimensions[0],"");
     labels[0] = "Locus";
     labels[1] = "Haplotype";
-    labels[2] = "Score";
-    labels[3] = "CompleteInfo";
-    labels[4] = "ObservedInfo";
-    labels[5] = "PercentInfo";
-    labels[6] = "StdNormal";
-    labels[7] = "PValue";
-    labels[8] = "ChiSquare";
+    labels[2] = "log10PValue";
     R_output3DarrayDimensions(&HaplotypeAssocScoreStream,dimensions,labels);
   }
   
@@ -1214,7 +1214,7 @@ void ScoreTests::ROutput(){
     
     vector<string> labels(dimensions[0],"");
     labels[0] = "Loci";
-    labels[1] = "log10P-value";
+    labels[1] = "log10Pvalue";
 
     R_output3DarrayDimensions(&ResAlleleScoreFile, dimensions, labels);
   }
