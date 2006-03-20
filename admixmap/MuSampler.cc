@@ -155,17 +155,16 @@ void MuSampler::muGradient(const double * const params, const void* const vargs,
   double eta = args->eta;//dispersion parameter
   //params in softmax format , of length H, but may not sum to zero
 
-  double mu[H];
-  double a[H];
+  double* mu = new double[H];
+  double* a = new double[H];
   softmax(H, mu, params);
   inv_softmax(H, mu, a); // normalized parameters; sum to zero
-
-
   //prior term is zero
   double z = 0.0;
   for(int h = 0; h < H; ++h){
     z+= exp(a[h]);
   }
+  delete[] a;
   double alphaH = eta * mu[H-1];
   double* dEdMu = new double[H-1];fill(dEdMu, dEdMu+H-1, 0.0);
 
@@ -189,6 +188,7 @@ void MuSampler::muGradient(const double * const params, const void* const vargs,
       else g[h] -= dEdMu[i] * exp(a[i]) * mu[h] * mu[i]; 
     }
   }
+  delete[] mu;
   delete[] dEdMu;
 }
 //****** Auxiliary function used in Energy function
