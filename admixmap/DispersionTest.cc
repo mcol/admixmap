@@ -55,8 +55,10 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
   vector<double> popfreqs;
 
   vector<int> AlleleCount; 
-  double LogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ], 
-    RepLogLikelihood[NumberOfCompositeLoci + 1][ NumberOfPopulations ];
+  vector<double> temp(NumberOfPopulations, 0.0);
+  vector<vector<double> > LogLikelihood(NumberOfCompositeLoci + 1, temp);
+  vector<vector<double> > RepLogLikelihood(LogLikelihood);
+  temp.clear();
   double sum[NumberOfPopulations], repsum[NumberOfPopulations];
 
   for( int k = 0; k < NumberOfPopulations; k++ ){

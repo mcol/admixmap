@@ -357,7 +357,7 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
 
   //first scale alphas so they sum to 1
   const unsigned K = options->getPopulations();
-  double alphaScaled[K];
+  double* alphaScaled = new double[K];
   double sum  = accumulate(alpha0.begin(), alpha0.end(), 0.0, std::plus<double>());//sum of alpha0 over pops
   for( int k = 0; k < options->getPopulations(); k++ )
     alphaScaled[k] = alpha0[k] / sum;
@@ -390,6 +390,7 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
       fill(SumLocusLinkageAlleleScore2[j], SumLocusLinkageAlleleScore2[j] + dim_[j]*dim_[j], 0.0);
     }
   }
+  delete[] alphaScaled;
 }
 
 // ****************************** UPDATES ****************************
