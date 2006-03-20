@@ -18,7 +18,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
 {
   Log.setDisplayMode(Quiet);
   if(options->getStratificationTest() ){
-    float DistanceFromLast = 0;
+    //float DistanceFromLast = 0;
     //OLD CODE
 //     for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){
 //       DistanceFromLast += Loci.GetDistance(j);
@@ -69,7 +69,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
       if(j > -1){
 	TestLoci.push_back(j);
 	NumberOfTestLoci++;
-	DistanceFromLast = 0;
+	//DistanceFromLast = 0;
       }
     }
     

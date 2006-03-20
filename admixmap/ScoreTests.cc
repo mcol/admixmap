@@ -1051,7 +1051,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
       int abslocus = chrm[c]->GetLocus(j);
       int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
       int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
-      const int dim = M*N;
+      int dim = M*N;
       Score = new double[dim];
       ObservedInfo = new double[dim*dim];
       double obsinfo = 0.0;
@@ -1073,13 +1073,14 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 		    << Score[0] << separator << compinfo << separator <<obsinfo << separator;
 
       //compute chi-squared statistic
-      double VinvU[dim];
       try{
+	double* VinvU = new double[dim];
 	HH_solve(dim, ObservedInfo, Score, VinvU);
 	double chisq = 0.0;
 	for(int i = 0; i < dim; ++i){
 	  chisq += Score[i] * VinvU[i];
 	}
+	delete[] VinvU;
 	
 	if(final)*outputstream << (obsinfo*100)/compinfo << separator<< dim << separator;
 
