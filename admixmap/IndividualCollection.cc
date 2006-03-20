@@ -516,9 +516,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
     lambda.push_back( R[i].getlambda());
     beta.push_back( R[i].getbeta());
   }
-  int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// find posterior mode for test individual only 
-    i0 = 1;
     TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
 					       modefile, thetahat, thetahatX, rhohat, rhohatX);
   }

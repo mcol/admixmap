@@ -136,9 +136,9 @@ int Rand::SampleFromDiscrete( const double probs[] , int numberofelements)
 }
 // ** Dirichlet distribution **
 void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] ) {
-  bool invalid = false;
+  //bool invalid = false;
   //do{
-    invalid = false;
+  //invalid = false;
     double sum = 0.0;
     for( unsigned int i = 0; i < K; i++ ) {
       if( alpha[i] > 0 ){

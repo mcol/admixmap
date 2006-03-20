@@ -107,7 +107,7 @@ private:
   void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const std::vector<int> allele2Counts, 
 						 int locus, double p,double phi, double DInvLink);
 
-  void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info, 
+  void CentreAndSum(unsigned dim, double *score, double* info, 
 				double *sumscore, double* sumscoresq, double* suminfo);
 
   void UpdateAlleleScores( double* score, double* info, const double* admixtureProps, const vector<int> Counts, 

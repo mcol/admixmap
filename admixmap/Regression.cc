@@ -538,8 +538,7 @@ void Regression::QRSolve(int dim1, int dim2, const double* a, const double* b, d
     std::string error_string = "Regression::QRSolve failed\n";
     error_string.append(s);
     throw (error_string);
-    exit(1);
-  }
+   }
 }
 
 void Regression::SamplePrecision(double* lambda, const double* Y, const double* X, int NumIndivs, int NumCovars, double coolness){

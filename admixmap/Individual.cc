@@ -487,9 +487,9 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
   for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] = exp(sumlogrho[i]/(options->getTotalSamples() - options->getBurnIn()));
 
   //apply softmax transformation to obtain thetabar
-  double ThetaBar[NumIndGametes*Populations];
+  double* ThetaBar = new double[NumIndGametes*Populations];
+  bool* b = new bool[Populations];
   for( unsigned int g = 0; g < NumIndGametes; g++ ){
-    bool b[Populations];
     for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
       b[k] = true; //to skip elements set to zero
     } else b[k] = false;
@@ -505,6 +505,8 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
       LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !Loci->isXChromosome(j) || SexIsFemale );
     }
   }
+  delete[] b;
+  delete[] ThetaBar;
   return LogLikelihood;
 }
 double Individual::getLogLikelihoodOnePop(){ //convenient for a single population as no arguments required
@@ -818,9 +820,10 @@ void Individual::SampleTheta( int iteration, double *SumLogTheta,
     //increment B using new Admixture Props
     //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
     if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
-      double admixtureCovars[Populations-1];
+      double* admixtureCovars = new double[Populations-1];
       for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
       UpdateB(DInvLink, dispersion, admixtureCovars);
+      delete[] admixtureCovars;
     }
   }
 }
@@ -1148,9 +1151,10 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
 	UpdateHMMInputs(j, options, Theta, ThetaX, _rho, _rho_X);
       }
       //update of score tests for linkage with ancestry requires update of backward probs
-      double admixtureCovars[Populations-1];
+      double* admixtureCovars = new double[Populations-1];
       for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
       UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);
+      delete[] admixtureCovars;
   } //end chromosome loop
 }
 
@@ -1247,7 +1251,7 @@ void Individual::UpdateScoreForAncestry(int locus, const double* admixtureCovars
   //Note that only the intercept and admixture proportions are used.
   // X is (A, cov)'  
   
-  double X[2 * Populations], Xcopy[2*Populations], XX[4*Populations*Populations];
+  double *X = new double [2 * Populations], *Xcopy = new double[2*Populations], *XX = new double[4*Populations*Populations];
   //Xcopy is an exact copy of X; We need two copies as one will be destroyed
   double xBx[1];
   double* BX = new double[Populations];
@@ -1282,6 +1286,8 @@ void Individual::UpdateScoreForAncestry(int locus, const double* admixtureCovars
     matrix_product(Xcov, BX, xBx, 1, Populations, 1);//xBx = Xcov' * BX
   }
   catch(string s){
+    delete[] X; delete[] Xcopy;
+    delete[] XX;
     delete[] BX;
     delete[] VarA;
     std::string error_string = "Error in Individual::UpdateScoreForAncestry:\n";
@@ -1292,7 +1298,8 @@ void Individual::UpdateScoreForAncestry(int locus, const double* admixtureCovars
     AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
     AncestryVarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
   }
-  
+  delete[] X; delete[] Xcopy;
+  delete[] XX;
   delete[] BX;
   delete[] VarA;
 }
