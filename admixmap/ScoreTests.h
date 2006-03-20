@@ -95,9 +95,9 @@ private:
 				   const double* Score2, const double* Info, string sep );
 
   void OutputTestsForAllelicAssociation( int iterations, ofstream* outputstream, int locus, unsigned dim, 
-					 const double* score, const double* scoresq, const double* info, string sep);
+					 const double* score, const double* scoresq, const double* info, bool final);
   
-  void OutputTestsForHaplotypeAssociation( int iterations, ofstream* outputstream, string sep );
+  void OutputTestsForHaplotypeAssociation( int iterations, ofstream* outputstream, bool final );
   
   void OutputAdmixtureScoreTest( int );
 
