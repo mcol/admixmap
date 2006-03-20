@@ -1091,7 +1091,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 	  //compute p-value
 	  double pvalue = gsl_cdf_chisq_Q (chisq, dim);
 	  if(final)*outputstream << chisq << separator << resetiosflags(ios::fixed)<< pvalue << separator << endl;
-	  else *outputstream << resetiosflags(ios::fixed)<< log10(pvalue) << separator << endl;
+	  else *outputstream << resetiosflags(ios::fixed)<< -log10(pvalue) << separator << endl;
 	}
       }
       catch(...){//in case ObservedInfo is rank deficient
