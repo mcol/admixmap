@@ -356,7 +356,8 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
   */
 
   //first scale alphas so they sum to 1
-  double alphaScaled[options->getPopulations()];
+  const unsigned K = options->getPopulations();
+  double alphaScaled[K];
   double sum  = accumulate(alpha0.begin(), alpha0.end(), 0.0, std::plus<double>());//sum of alpha0 over pops
   for( int k = 0; k < options->getPopulations(); k++ )
     alphaScaled[k] = alpha0[k] / sum;
@@ -1050,7 +1051,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
       int abslocus = chrm[c]->GetLocus(j);
       int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
       int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
-      int dim = M*N;
+      const int dim = M*N;
       Score = new double[dim];
       ObservedInfo = new double[dim*dim];
       double obsinfo = 0.0;

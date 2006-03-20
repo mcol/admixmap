@@ -16,6 +16,7 @@
 
 #include <math.h>
 #include <vector>
+#include <string>
 #include <gsl/gsl_sf_psi.h>
 #include <gsl/gsl_sf_gamma.h>
 
