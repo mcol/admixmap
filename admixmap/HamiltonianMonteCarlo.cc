@@ -93,11 +93,10 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
       }
       gradE ( xnew, args, gnew ) ; // find new gradient
       for(unsigned i = 0; i < dim; ++i) {p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
-	//cout<<x[i]<<" "<<(isinf(xnew[i])||isinf(-xnew[i]))<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
+	//cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
       }
     }
-    //cout<<endl;
-    //system("pause");
+
     sumpsq = 0.0;
     for(unsigned i = 0; i < dim; ++i){
       sumpsq += p[i]*p[i];
@@ -123,6 +122,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   if(Enew !=-1.0){// -1 means an error in calculation of energy function
       Hnew = sumpsq *0.5 + Enew ;
       dH = Hnew - H ; // Decide whether to accept
+      //cout << dH << " " << E << " " << Enew << " ";
       if ( dH < 0.0 ) {accept = true ;AccProb = 1.0;}
       else {
 	AccProb = exp(-dH);
@@ -139,6 +139,8 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
 	E = Enew ;
       }
   }
+  //cout << endl;
+
   Tuner.UpdateStepSize(AccProb);
   //++totalsamples;
   delete[] p;

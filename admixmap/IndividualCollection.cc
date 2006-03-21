@@ -145,7 +145,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   SumLogTheta = new double[ options->getPopulations()];
 
   //allocate array of sufficient statistics for update of locus-specific sumintensities
-  if(options->getHapMixModelIndicator()) SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*(options->getPopulations()+1)];
+  if(options->getHapMixModelIndicator()) SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
 
 //   allocate and set initial values for estimates used in Chib algorithm
   if( options->getChibIndicator() )
@@ -354,7 +354,7 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
   }
   //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-  if(options->getHapMixModelIndicator())fill(SumAncestry, SumAncestry + (Populations+1)*NumCompLoci, 0);
+  if(options->getHapMixModelIndicator())fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());

@@ -39,12 +39,15 @@ class IndividualCollection;
 
 typedef struct {
   unsigned NumPops;
+  unsigned NumIntervals;
   const int* SumAncestry;
   double Distance;
   const double* theta;
   double rhoalpha;
   double rhobeta0;
   double rhobeta1; 
+  double sumrho;
+  double sumlogrho;
 }RhoArguments;
 
 class Latent

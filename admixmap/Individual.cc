@@ -559,20 +559,18 @@ void Individual::AccumulateAncestry(int* SumAncestry){
     ++locus;//skip first locus on each chromosome
       for(unsigned l = 1; l < C->GetSize(); ++l){
 	if( LocusAncestry[j][l-1] != LocusAncestry[j][l])//first gamete
-	  ++SumAncestry[l*(Populations+1)];
+	  ++SumAncestry[locus*2];
 	else
-	  ++SumAncestry[l*(Populations+1) + LocusAncestry[j][l] + 1];
-	if(!j==X_posn || SexIsFemale){//second gamete
+	  ++SumAncestry[locus*2 + 1];
+	if((j!=X_posn) || SexIsFemale){//second gamete
 	if( LocusAncestry[j][C->GetSize() + l-1] != LocusAncestry[j][C->GetSize() + l])
-	  ++SumAncestry[l*(Populations+1)];
+	  ++SumAncestry[locus*2];
 	else
-	  ++SumAncestry[l*(Populations+1) + LocusAncestry[j][C->GetSize()+l]];
-
+	  ++SumAncestry[locus*2 + 1];
 	}
 	++locus;
       }
   } //end chromosome loop
-
 }
 
 void Individual::SampleHapPair(AlleleFreqs *A){
