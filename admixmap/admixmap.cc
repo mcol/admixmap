@@ -53,7 +53,6 @@ int main( int argc , char** argv ){
     xargv = new char*[50];  // change 50 to max number of options
     ReadArgsFromFile(argv[1], &xargc, xargv);        
   }
-  
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
   AdmixOptions options(xargc, xargv);
@@ -66,7 +65,8 @@ int main( int argc , char** argv ){
   LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   Log.StartMessage();
-  
+
+  try{  
   Rand RNG;
   RNG.setSeed( options.getSeed() );  // set random number seed
   
@@ -120,7 +120,7 @@ int main( int argc , char** argv ){
     // nothing to do except calculate likelihood
     IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
   else {
-    try{
+    //try{
     // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
     DispersionTest DispTest;
     StratificationTest StratTest;
@@ -326,22 +326,22 @@ int main( int argc , char** argv ){
     
     if(annealstream.is_open())annealstream.close();
     if(avgstream.is_open())avgstream.close();
-    } catch (string msg) {//catch any stray error messages thrown upwards
-      Log.setDisplayMode(On);
-      Log << "\n" << msg << "\n Exiting...\n";
-      Log.ProcessingTime();
-      exit(1);
-    }
-    catch (char *msg){//in case error messages thrown as char arrays instead of strings
-      throw string(msg);
-    }
+//   } catch (string msg) {//catch any stray error messages thrown upwards
+//       Log.setDisplayMode(On);
+//       Log << "\n" << msg << "\n Exiting...\n";
+//       Log.ProcessingTime();
+//       exit(1);
+//     }
+//     catch (char *msg){//in case error messages thrown as char arrays instead of strings
+//       throw string(msg);
+//     }
   }//end else
   cout << "Output to files completed\n" << flush;
 
   // *************************** CLEAN UP ******************************************************  
   A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
   delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
-  
+    
   // ******************* acceptance rates - output to screen and log ***************************
   if( options.getIndAdmixHierIndicator() ){
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
@@ -391,6 +391,16 @@ int main( int argc , char** argv ){
     for(unsigned i = 0; i < 80; ++i)cout<<"*";
     cout<<endl;
   }
+  } catch (string msg) {//catch any stray error messages thrown upwards
+    Log.setDisplayMode(On);
+    Log << "\n" << msg << "\n Exiting...\n";
+    Log.ProcessingTime();
+    exit(1);
+  }
+  catch (char *msg){//in case error messages thrown as char arrays instead of strings
+    throw string(msg);
+  }  
+
   return 0;
 } //end of main
 
@@ -618,7 +628,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(options->getHapMixModelIndicator()){
     //L->UpdateGlobalTheta(iteration, IC);
     //conjugate sampler, using numbers of arrivals. NB: requires sampling of jump indicators in Individuals
-    //    L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
+    //L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
     //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
     L->SampleSumIntensities(IC->getSumAncestry(),  
 			    (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1));
