@@ -10,17 +10,12 @@
  * See the file COPYING for details.
  * 
  */
-
 #include <cmath>
 #include <iostream>
 #include "rand.h"
 #include <limits>
 
 extern "C" {
-  //#include <gsl/gsl_rng.h>
-#ifdef PARALLEL
-#include "gsl-sprng.h"//includes sprng.h and defines SIMPLE_SPRNG and USE_MPI
-#endif
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_sf_gamma.h>
 }
@@ -29,7 +24,9 @@ using namespace std;
 
 #ifdef PARALLEL
   //allocate a sprng generator
+const gsl_rng_type *gsl_rng_sprng20 = &sprng_type;
 gsl_rng *Rand::RandomNumberGenerator = gsl_rng_alloc( gsl_rng_sprng20 );
+
 #else
   //allocate a Tausworthe generator
 gsl_rng *Rand::RandomNumberGenerator = gsl_rng_alloc( gsl_rng_taus );
@@ -136,9 +133,9 @@ int Rand::SampleFromDiscrete( const double probs[] , int numberofelements)
 }
 // ** Dirichlet distribution **
 void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] ) {
-  //bool invalid = false;
+    //bool invalid = false;
   //do{
-  //invalid = false;
+    //invalid = false;
     double sum = 0.0;
     for( unsigned int i = 0; i < K; i++ ) {
       if( alpha[i] > 0 ){

@@ -1,4 +1,4 @@
-// *-*-C++-*-*
+    // *-*-C++-*-*
 /** 
  *   ADMIXMAP
  *   rand.h 
@@ -13,10 +13,14 @@
  */
 #ifndef RAND_H
 #define RAND_H 
+//#define PARALLEL
 #include <iostream>
 #include <vector>
 extern "C" {
 #include <gsl/gsl_rng.h>
+#ifdef PARALLEL
+#include "gsl-sprng.h"
+#endif
 }
 
 class Rand{
@@ -55,4 +59,5 @@ private:
   Rand(const Rand&);
   Rand& operator=(const Rand);
 };
+
 #endif

@@ -20,7 +20,8 @@ http://www.staff.ncl.ac.uk/d.j.wilkinson/
 Last updated: 28/8/2002
 
 */
-
+#ifndef GSL_SPRNG_H
+#define GSL_SPRNG_H
 
 #define SIMPLE_SPRNG
 #define USE_MPI
@@ -28,17 +29,17 @@ Last updated: 28/8/2002
 
 static void sprng_set(void * vstate,unsigned long int s)
 {
-  init_sprng(DEFAULT_RNG_TYPE,s,SPRNG_DEFAULT);
+    //init_sprng(DEFAULT_RNG_TYPE, s, SPRNG_DEFAULT);
 }
 
 static unsigned long sprng_get(void * vstate)
 {
-  return( (long) isprng() );
+    return( (long) isprng() );
 }
 
 static double sprng_get_double(void * vstate)
 {
-  return( (double) sprng());
+    return( (double) sprng());
 }
 
 static const gsl_rng_type sprng_type =
@@ -50,7 +51,8 @@ static const gsl_rng_type sprng_type =
    &sprng_get,          /* get integer RN */
    &sprng_get_double};  /* get double RN */
 
-const gsl_rng_type *gsl_rng_sprng20 = &sprng_type;
+//const gsl_rng_type *gsl_rng_sprng20 = &sprng_type;
 
 /* eof */
 
+#endif
