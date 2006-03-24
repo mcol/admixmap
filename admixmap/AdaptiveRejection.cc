@@ -22,6 +22,7 @@
 #include "AdaptiveRejection.h"
 #include "rand.h"
 #include <iostream>
+#include <sstream>
 
 
 #define DEBUG 0 //set to 1 for debug info
@@ -118,6 +119,9 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
       x[2] = x[1] - 2/dfa;
     }
   }
+  if(isinf(x[0]) || isnan(x[0])){
+    system("pause");
+  }
   return ARS(args, x, K);
 }
 
@@ -212,16 +216,15 @@ double AdaptiveRejection::AreaUnderTangentCurve(double x1, double h, double g, d
   // lower=true if lower bound, upper=true if upper bound
   double unscaled = 0.0;
   if(z2 < z1 ){
-    cerr<<"AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve: z1 > z2 \n"; 
-    exit(1);
+    cout << z1 << " " << z2 << endl;
+    system("pause");
+    throw string("AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve: z1 > z2 \n"); 
   }
   if(lower && (x1 < z1)){
-    cerr<<"AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve: x < z1 \n"; 
-    exit(1);
+    throw string("AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve: x < z1 \n"); 
   }
   if(upper && (x1 > z2)){
-    cerr<<"AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve: x > z2 \n"; 
-    exit(1);
+    throw string("AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve: x > z2 \n"); 
   }
 
   // to prevent computational underflow, could return unscaled with h = log scale factor
@@ -238,8 +241,7 @@ double AdaptiveRejection::AreaUnderTangentCurve(double x1, double h, double g, d
   } else if(upper && g > 0) {//no lower limit and positive gradient
     unscaled = exp(g*(z2 - x1)) / g;
   } else {
-    cerr << "AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve \n";
-    exit(1);
+    throw string("AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve \n");
   }
   return exp(h) * unscaled;
 } 
@@ -250,8 +252,7 @@ double AdaptiveRejection::TransformPoint(double u, double g, double s1, double s
   //u = draw from standard uniform, g = gradient of tangent at point in interval, s1, s2 = cumulative areas at z1 and z2
   //z1, z2 = endpoints of interval on real line, lower, upper = indicators for lower and upper bounds
   if(s1>s2 || u<s1 || u>s2 || (!lower && g<0) || (!upper && g>0) ){
-    cerr<<"Error in arguments to TransformPoint"<<endl;
-    exit(1);
+    throw string("AdaptiveRejectionSampler: Error in arguments to TransformPoint\n");
   }
   double x = u;
   double prop = (u-s1) / (s2-s1);//proportion of area between z1 and z2 that is to the left of u
@@ -266,8 +267,7 @@ double AdaptiveRejection::TransformPoint(double u, double g, double s1, double s
   } else if(upper && g > 0) {//no lower limit and positive gradient
     x = z2 - exp( log(-log(prop)) - log( g ) );
   } else {
-    cout << "AdaptiveRejectionSampler: Error in arguments passed to TransformPoint \n";
-    exit(1);
+    throw string("AdaptiveRejectionSampler: Error in arguments passed to TransformPoint \n");
   }
   return x;
 } 
@@ -357,8 +357,9 @@ void AdaptiveRejection::SamplePoint(const void* const args){
   if( ( (hasUpperBound || pos<K-1) && NewPoint.abscissa > Points[pos].z ) //too big
       || (pos>0 && NewPoint.abscissa < Points[pos-1].z) || (pos==0 && hasLowerBound && NewPoint.abscissa < LowerBound))//too small
     {
-      cerr<<"AdaptiveRejectionSampler: Error: miscalculated point: "<<NewPoint.abscissa<<endl;
-      exit(1);
+      stringstream err;
+      err << "AdaptiveRejectionSampler: Error: miscalculated point: "<<NewPoint.abscissa<<endl;
+      throw err.str();
     }
 #if DEBUG ==1
   cout<<"New point at x = "<<NewPoint.abscissa<<endl;
@@ -434,8 +435,9 @@ double AdaptiveRejection::TangentIntersection(double x0, double x1, double h0, d
   //h0, h1 = heights at two points
   //g0, g1 = gradients at the two points
   if(fabs(g0 - g1) < EPS){
-    cerr<<"AdaptiveRejectionSampler: Error in args passed to TangentIntersection: g0 = "<<g0<<", g1 = "<<g1<<endl;
-    exit(1);
+    stringstream err;
+    err << "AdaptiveRejectionSampler: Error in args passed to TangentIntersection: g0 = "<<g0<<", g1 = "<<g1<<endl;
+    throw err.str();
   }
   return (h1 - h0 - x1*g1 + x0*g0) / (g0 - g1);
 }
@@ -449,7 +451,7 @@ double AdaptiveRejection::UpperHull(double x, double x0, double h, double g){
 double AdaptiveRejection::LowerHull(double x, double x0, double x1, double h0, double h1, bool lower, bool upper){
   //computes value of lower hull between x0 and x1 at x
   if( (lower && x < x0) || (upper && x>x1)){
-    cerr<<"Error in LowerHull: "<<x0<<" "<<x<<" "<<x1<<endl;exit(1);
+    cerr<<"AdaptiveRejectionSampler: Error in LowerHull: "<<x0<<" "<<x<<" "<<x1<<endl;exit(1);
   }
   double lh = 0.0;
   if(upper && lower){
@@ -467,10 +469,11 @@ double AdaptiveRejection::LowerHull(double x, double x0, double x1, double h0, d
 void AdaptiveRejection::TestForLogConcavity(){
   for(unsigned i = 0; i < K-1; ++i){
     if(Points[i].gradient < Points[i+1].gradient){
-      cerr<<"AdaptiveRejectionSampler: Error: failed test for log-concavity"<<endl;
+      stringstream err;
+      err << "AdaptiveRejectionSampler: Error: failed test for log-concavity\n";
       for(unsigned j = 0; j < K; ++j)
-	cerr<<"x["<<j<<"] = "<<Points[j].abscissa<<", g["<<j<<"] = "<<Points[j].gradient<<endl;
-      exit(2);
+	err << "x["<<j<<"] = "<<Points[j].abscissa<<", g["<<j<<"] = "<<Points[j].gradient<<endl;
+      throw(err.str());
     }
   }
 }
@@ -579,11 +582,17 @@ void AdaptiveRejection::SetInitialPoints(double mode, double x[3], const void* c
   
   double ddf = (*secondDeriv)( mode, args );
   x[0] = x[1] - 2.5 / sqrt(-ddf);
+  if(isinf(x[0]) || isnan(x[0])){
+    cout << x[0] << " " << ddf<<endl;
+  }
   if( hasLowerBound && x[0] < LowerBound )
     x[0] = LowerBound;
 
   ddf = (*secondDeriv)( mode, args );
   x[2] = x[1] + 2.5 / sqrt(-ddf);
+  if(isinf(x[2]) || isnan(x[2])){
+    cout << x[2] << " " << ddf<<endl;
+  }
   if( hasUpperBound && x[2] > UpperBound )
     x[2] = UpperBound;
 }
