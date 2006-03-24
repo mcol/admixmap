@@ -25,6 +25,7 @@
 #include "functions.h"
 #include <numeric>
 #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_sf_psi.h>
 
 using namespace::std;
 
@@ -46,7 +47,7 @@ void MuSampler::setDimensions(unsigned inK, unsigned inH, double mustep0, double
   muArgs.H = H;
   muArgs.K = K;
 
-  muSampler.SetDimensions(H, mustep0, mumin, mumax, 20, mutarget, 
+  muSampler.SetDimensions(H, mustep0, mumin, mumax, 30, mutarget, 
 			  muEnergyFunction, muGradient);
 
 }
@@ -81,7 +82,7 @@ void MuSampler::Sample1D(double* alpha, double eta, const int* const Counts )
 {
   //Counts has dimension 2 * K
   //alpha has dimension 2
-  double leftbound = 0.1;
+  double leftbound = 0.0001;
   MuSamplerArgs MuParameters;
 
   AdaptiveRejection SampleMu;
@@ -93,9 +94,9 @@ void MuSampler::Sample1D(double* alpha, double eta, const int* const Counts )
   MuParameters.K = K;
   MuParameters.counts = Counts;
   
-  SampleMu.setUpperBound( eta - leftbound );//set upper limit for sampler
+  SampleMu.setUpperBound( 0.9999 );//set upper limit for sampler
 
-  alpha[ 0 ] = SampleMu.Sample(&MuParameters, ddfMu); //first state/allele
+  alpha[ 0 ] = eta * SampleMu.Sample(&MuParameters, ddfMu); //first state/allele
   // Last (second) prior frequency parameter is determined by sum of mu's = eta.
   alpha[ 1 ] = eta - alpha[ 0 ];
 }
@@ -134,16 +135,27 @@ double MuSampler::muEnergyFunction(const double * const params, const void* cons
     z+= exp(a[h]);
   }
 
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  int status  = 0;
+  gsl_sf_result psi1, psi2;
+
   for(int h = 0; h < H; ++h){
+    if(status)break;
     double alpha = eta * mu[h];
   for(int k = 0; k < K; ++k){
       int offset = h*K +k;
-      E += gsl_sf_lngamma(alpha) - gsl_sf_lngamma(args->counts[offset] + alpha);//log likelihood
+      status = gsl_sf_lngamma_e(alpha, &psi1);if(status)break;
+      status = gsl_sf_lngamma_e(args->counts[offset]+alpha, &psi2);if(status)break;
+      E += psi1.val - psi2.val;//log likelihood
     }
   }
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   E -= logJacobian(a, z, H);
   delete[] mu;
   delete[] a;
+  if(status){
+    throw string("lngamma error in muEnergy");
+  }
   return E;
 }
 
@@ -154,42 +166,53 @@ void MuSampler::muGradient(const double * const params, const void* const vargs,
   int K = args->K;// Number of populations
   double eta = args->eta;//dispersion parameter
   //params in softmax format , of length H, but may not sum to zero
+  int status  = 0;
+  gsl_sf_result psi1, psi2;
 
   double* mu = new double[H];
   double* a = new double[H];
   softmax(H, mu, params);
   inv_softmax(H, mu, a); // normalized parameters; sum to zero
+
   //prior term is zero
   double z = 0.0;
   for(int h = 0; h < H; ++h){
     z+= exp(a[h]);
   }
   delete[] a;
-  double alphaH = eta * mu[H-1];
-  double* dEdMu = new double[H-1];fill(dEdMu, dEdMu+H-1, 0.0);
 
+  double* dEdMu = new double[H];fill(dEdMu, dEdMu+H, 0.0);
+
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   //first compute gradient wrt mu
-  for(int h = 0; h < H-1; ++h){
+  for(int h = 0; h < H; ++h){
+    if(status)break;
     double alpha = eta * mu[h];
 
     for(int k = 0; k < K; ++k){
-      
       int offset = h*K +k;
-      
-      dEdMu[h] += eta * (gsl_sf_psi(alpha) - gsl_sf_psi(args->counts[offset]+alpha));//log likelihood term
-      dEdMu[h] += eta * (gsl_sf_psi(alphaH) - gsl_sf_psi(args->counts[offset]+alphaH));
+      status = gsl_sf_psi_e(alpha, &psi1);if(status)break;
+      status = gsl_sf_psi_e(args->counts[offset]+alpha, &psi2);if(status)break;
+      dEdMu[h] += psi1.val - psi2.val;//log likelihood term
     }
+    dEdMu[h] *= eta;
   }
    //now use chain rule to obtain gradient wrt args
-  for(int h = 0; h < H-1; ++h){
+  for(int h = 0; h < H; ++h){
     g[h] = 0.0;
-    for(int i = 0; i < H-1; ++i){
+    for(int i = 0; i < H; ++i){
       if(i == h)g[h] += dEdMu[h] * mu[h] * (1.0 - mu[h]);
       else g[h] -= dEdMu[i] * exp(a[i]) * mu[h] * mu[i]; 
     }
   }
+
   delete[] mu;
   delete[] dEdMu;
+
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  if(status){
+    throw string("digamma error in muGradient");
+  }
 }
 //****** Auxiliary function used in Energy function
 
@@ -220,79 +243,107 @@ double MuSampler::logJacobian(const double* a, const double z, unsigned H){
 }
 
 //******* Logdensity and derivatives for Adaptive rejection sampler
-double MuSampler::fMu( double alpha, const void* const args )
+double MuSampler::fMu( double mu, const void* const args )
 {
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int K = parameters->K;
   double eta = parameters->eta;
   const int *counts = parameters->counts;
-  //double mu = alpha / eta;
-  double logprior = 0.0;//0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1.1, 1.1) prior
-  double f = logprior - 2 * gsl_sf_lngamma( alpha ) - 2 * gsl_sf_lngamma( eta - alpha );
+  double alpha = mu * eta;
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  int status  = 0;
+  gsl_sf_result psi1, psi2;
+  double f = 0.0;
 
-  for(int k = 0; k < K; ++k){
-    f += gsl_sf_lngamma( alpha+counts[k] ) + gsl_sf_lngamma( eta-alpha+counts[K + k] );//state 1 + state 2
+  try{
+    double logprior = 0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1.1, 1.1) prior
+    status = gsl_sf_lngamma_e( alpha, &psi1 );if(status)throw(1);
+    status = gsl_sf_lngamma_e( eta - alpha, &psi2 );if(status)throw(1);
+    f += logprior - 2 * psi1.val - 2 * psi2.val;
+    
+    for(int k = 0; k < K; ++k){
+      status = gsl_sf_lngamma_e( alpha+counts[k], &psi1 );if(status)throw(1);
+      status = gsl_sf_lngamma_e( eta - alpha+counts[K + k], &psi2 );if(status)throw(1);
+      f += psi1.val + psi2.val;//state 1 + state 2
+    }
+    gsl_set_error_handler (old_handler);//restore gsl error handler 
   }
-
+  catch(int){
+    throw string("lngamma error in fMu");
+  }
   return f;
 }
 
-double MuSampler::dfMu( double alpha, const void* const args )
+double MuSampler::dfMu( double mu, const void* const args )
 {
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int K = parameters->K;
   double eta = parameters->eta;
   const int *counts = parameters->counts;
+  double alpha = mu * eta;
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  int status  = 0;
+  gsl_sf_result psi1, psi2;
 
-  double x, y1, y2;
-  double logprior = 0.0;//0.1 / alpha - 0.1 / ( eta - alpha );//Beta(1.1, 1.1) prior
-  double f = logprior;
+  double logprior = 0.1 / mu - 0.1 / ( 1.0 - mu );//Beta(1.1, 1.1) prior
+  double f = 0.0;
 
-  x = eta - alpha;
-  if(alpha < 0)cout<<"\nError in dfMu in MuSampler.cc - arg alpha to ddigam is negative\n"; 
-  ddigam( &alpha, &y1 );
-  if(x < 0)cout<<"\nError in dfMu in MuSampler.cc - arg (eta-alpha) to ddigam is negative\n"; 
-  ddigam( &x, &y2 );
-  f += 2 * ( y2 - y1 );
-
-  for(int k = 0; k < K; ++k){
-    //first state/allele
-    x = alpha + counts[k];
-    ddigam( &x, &y2 );
-    f += y2;
-    //second state/allele
-    x = eta - alpha + counts[K+k];
-    ddigam( &x, &y2 );
-    f -= y2;
+  try{
+    status = gsl_sf_psi_e( alpha, &psi1 );if(status)throw(1);
+    status = gsl_sf_psi_e( eta - alpha, &psi2 );if(status)throw(1);
+    f += 2 * ( psi2.val - psi1.val );
+    
+    for(int k = 0; k < K; ++k){
+      status = gsl_sf_psi_e( alpha+counts[k], &psi1 );if(status)throw(1);
+      status = gsl_sf_psi_e( eta - alpha+counts[K + k], &psi2 );if(status)throw(1);
+      //first state/allele
+      f += psi1.val;
+      //second state/allele
+      f -= psi2.val;
+    }
+    f *= eta;
+    f += logprior;
   }
-
+  catch(int){
+    throw string("lngamma error in dfMu");
+  }
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   return f;
 }
 
-double MuSampler::ddfMu( double alpha, const void* const args )
+double MuSampler::ddfMu( double mu, const void* const args )
 {
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int K = parameters->K;
   double eta = parameters->eta;
   const int *counts = parameters->counts;
+  double alpha = mu * eta;
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  int status  = 0;
+  gsl_sf_result psi1, psi2;
 
-  double x, y1, y2;
-  if(alpha > eta) return 0.00001;
-  double logprior = 0.0;//-0.1 / (alpha*alpha) - 0.1 / (( eta - alpha ) * ( eta - alpha ) );
-  double f = logprior;
-  x = eta - alpha;
-  trigam( &alpha, &y1 );
-  trigam( &x, &y2 );
-  f -= 2 * ( y2 + y1 );
+  if(alpha > eta) return 0.00001;// ??
+  double logprior = -0.1 / ( mu * mu) - 0.1 / (( 1.0 - mu ) * ( 1.0 - mu ) );
+  double f = 0.0;
 
-  for(int k = 0; k < K; ++k){
-    x = alpha + counts[k];
-    trigam( &x, &y2 );
-    f += y2;
-    x = eta - alpha + counts[K+k];
-    trigam( &x, &y2 );
-    f += y2;
+  try{
+    status = gsl_sf_psi_n_e( 1, alpha, &psi1);
+    status = gsl_sf_psi_n_e( 1, eta - alpha, &psi2);
+    f -= 2 * ( psi2.val + psi1.val );
+    
+    for(int k = 0; k < K; ++k){
+      status = gsl_sf_psi_n_e( 1, alpha+counts[k], &psi1 );if(status)throw(1);
+      status = gsl_sf_psi_n_e( 1, eta - alpha+counts[K + k], &psi2 );if(status)throw(1);
+      f += psi1.val;
+      f += psi2.val;
+    }
+    f*= eta*eta;
+    f += logprior;
   }
+  catch(int){
+    throw string("lngamma error in ddfMu");
+  }
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
   return f;
 }
 

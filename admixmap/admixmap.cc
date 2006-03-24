@@ -358,19 +358,27 @@ int main( int argc , char** argv ){
       }
     }
     if(options.getCorrelatedAlleleFreqs()){
-      Log<< "Expected acceptance rates in sampler for allele frequency proportion parameters: \n";
+      Log << "\nAverage expected acceptance rates in samplers for allele frequency proportion parameters: ";
+      double av = 0.0;
+      int count = 0;
+      for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
+	if(Loci(i)->GetNumberOfStates()>2){
+	  av += A.getAlphaSamplerAcceptanceRate(i);
+	  ++count;
+	}
+      }
+      Log << av / (double)count << "\n "
+	  << "with average final step size of ";
+      av = 0.0;
       for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
 	if(Loci(i)->GetNumberOfStates()>2)
-	  Log << A.getAlphaSamplerAcceptanceRate(i) << " ";
+	  av += A.getAlphaSamplerStepsize(i);
       }
-      Log<< "Expected acceptance rate in sampler for allele frequency dispersion parameter: \n";
+      Log << av / (double)count << "\n ";
+      Log << "\nExpected acceptance rate in sampler for allele frequency dispersion parameter: \n";
       Log << A.getEtaRWSamplerAcceptanceRate(0)
-	  << "\nwith final step sizes of \n";
-      for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
-	if(Loci(i)->GetNumberOfStates()>2)
-	  Log << A.getAlphaSamplerStepsize(i) << " " ;
-      }
-      Log <<  A.getEtaRWSamplerStepsize(0) << "\n" ;
+	  << "\nwith final step size of "
+	  <<  A.getEtaRWSamplerStepsize(0) << "\n" ;
     }
     
 #if ETASAMPLER ==1

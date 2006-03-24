@@ -17,7 +17,7 @@
 #include "MuSampler.h"
 #include <math.h>
 #include <numeric>
-
+#include <sstream>
 //#define DEBUGETA 1
 
 AlleleFreqs::AlleleFreqs(Genome *pLoci){
@@ -113,7 +113,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       dim = 1;
       muSampler = new MuSampler[NumberOfCompositeLoci];
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	muSampler[i].setDimensions(Populations, NumberOfStates[i], 0.002, 0.0, 10.0, 0.44);
+	muSampler[i].setDimensions(Populations, NumberOfStates[i], 0.0002, 0.0, 10.0, 0.44);
     }
     
     // ** dispersion parameter(s) and priors **
@@ -612,7 +612,7 @@ const double *AlleleFreqs::GetStatsForEta( int locus, int population)const
   else{//correlated allelefreqs model, sum over populations
     for(int k = 0; k < Populations; ++k){
       for( int i = 0; i < NumberOfStates[locus] ; i++ ){
-	stats[ i ] += log( Freqs[locus][ i + k*NumberOfStates[i] ] );
+	stats[ i ] += log( Freqs[locus][ i + k*NumberOfStates[locus] ] );
       }
     }
   }
@@ -763,7 +763,14 @@ void AlleleFreqs::SampleDirichletParams(){
   
   else if(CorrelatedAlleleFreqs){
     for(int i = 0; i < NumberOfCompositeLoci; ++i){
-      muSampler[i].Sample(PriorAlleleFreqs[i], eta[0], AlleleCounts[i]);
+      try{
+	muSampler[i].Sample(PriorAlleleFreqs[i], eta[0], AlleleCounts[i]);
+      }
+      catch(string s){
+	stringstream err;
+	err << "Error sampling Dirichlet prior params for locus " << i+1 << "(" << (*Loci)(i)->GetLabel(0) << ") : \n" << s;
+	throw(err.str());
+      }
       //EtaSampler[0].addAlphas(i, PriorAlleleFreqs[i]);
       //EtaSampler[0].addCounts(i, AlleleCounts[i]);
 	}
