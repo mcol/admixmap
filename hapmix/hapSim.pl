@@ -45,8 +45,9 @@ my $arg_hash = {
     every    => 1,
     numannealedruns => 0,
     displaylevel => 3, 
-    globalsumintensitiesprior        => "40,1",
+    sumintensitiesprior        => "40,5,4",
     logfile                          => 'log.txt',
+    paramfile                  => "params.txt",
 
     residualallelicassocscorefile    => 'residualLDTests.txt',
 };
