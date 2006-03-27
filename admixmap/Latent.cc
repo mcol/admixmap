@@ -74,7 +74,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       rhobeta0 = options->getRhobetaShape();
       rhobeta1 = options->getRhobetaRate();
       rhobeta = rhobeta0 / rhobeta1;
-      rho[0] = 50.0;//rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
+      rho[0] = rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
       if(options->getHapMixModelIndicator()){
 	//initialise rho vector
 	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j){
@@ -91,8 +91,8 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	RhoArgs.sumlogrho = numIntervals * log(rho[0]);
 	RhoSampler = new HamiltonianMonteCarlo[numIntervals];
 	for(unsigned j = 0; j < numIntervals; ++j)
-	  RhoSampler[j].SetDimensions(1, 0.05/*initial stepsize*/, 0.000/*min stepsize*/, 
-				      1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
+	  RhoSampler[j].SetDimensions(1, 0.1/*initial stepsize*/, 0.000/*min stepsize*/, 
+				      1.0/*max stepsize*/, 10/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
     
       }
     }
@@ -459,7 +459,7 @@ double Latent::RhoEnergy(const double* const x, const void* const vargs){
 
   gsl_set_error_handler (old_handler);//restore gsl error handler 
   if(status)throw string("log error in RhoEnergy");
-  return -E; 
+  return E; 
 }
 
 void Latent::RhoGradient( const double* const x, const void* const vargs, double* g ){
