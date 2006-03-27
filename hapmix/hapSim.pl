@@ -2,8 +2,7 @@
 use strict; 
 use File::Path;
 
-sub getArguments
-{
+sub getArguments {
     my $hash = $_[0];
     my $arg = '';
     foreach my $key (keys %$hash){
@@ -12,8 +11,7 @@ sub getArguments
     return $arg;
 }
 
-sub doAnalysis
-{
+sub doAnalysis {
     my ($prog,$args) = @_;
     my $command = $prog.getArguments($args);
     if (-e $args->{resultsdir}) {
@@ -21,19 +19,22 @@ sub doAnalysis
     } 
     mkpath($args->{resultsdir});
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}";
+    print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
     system($command);
+    my $rcmd = "R CMD";
+    if($^O eq "MSWin32") {
+	$rcmd = "Rcmd";
+    }
     print "Starting R script to process output\n";
-    system("RCMD BATCH --quiet --no-save --no-restore c:/cvs/genepi/test/AdmixmapOutput.R \
-            $args->{resultsdir}/Rlog.txt");
+    system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
     print "R script completed\n\n";
 }
 
-################### DO NOT EDIT ABOVE THIS LINE ########################
-my $executable = 'c:/cvs/genepi/test/admixmap';
+#####################################################################
+
+my $executable = '../test/admixmap';
 
 my $arg_hash = {
-#data files
     genotypesfile                   => 'data/genotypes.txt',
     locusfile                       => 'data/loci.txt',
     #priorallelefreqfile             => 'data/allelefreqs.txt',
