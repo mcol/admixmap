@@ -91,8 +91,8 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	RhoArgs.sumlogrho = numIntervals * log(rho[0]);
 	RhoSampler = new HamiltonianMonteCarlo[numIntervals];
 	for(unsigned j = 0; j < numIntervals; ++j)
-	  RhoSampler[j].SetDimensions(1, 0.1/*initial stepsize*/, 0.000/*min stepsize*/, 
-				      1.0/*max stepsize*/, 10/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
+	  RhoSampler[j].SetDimensions(1, 0.04/*initial stepsize*/, 0.0001/*min stepsize*/, 
+				      1.0/*max stepsize*/, 40/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
     
       }
     }
