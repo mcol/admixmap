@@ -888,14 +888,13 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
 // loops over composite loci that have 2 or more simple loci, and calculates score tests for each 
 // haplotype separately, together with a summary chi-square
 {
-  int NumberOfMergedHaplotypes;
-  const int *hap;
-  double *ScoreVector, *CompleteMatrix, *ObservedMatrix;
+  double *ScoreVector = 0, *CompleteMatrix = 0, *ObservedMatrix = 0;
+  int NumberOfMergedHaplotypes = 0;
+  const int *hap = 0;
   string sep = final? "\t" : ",";
   
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){ // compound locus contains 2 or more simple loci
-      
       ScoreVector = new double[dim_[j]];
       copy(SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore[j]+dim_[j], ScoreVector);
       scale_matrix(ScoreVector, 1.0/( iterations), dim_[j], 1);
@@ -1044,7 +1043,7 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
 }
 
 void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final){
-  double *Score, *ObservedInfo;
+  double *Score = 0, *ObservedInfo = 0;
   string separator = final? "\t" : ",";
 
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
@@ -1071,7 +1070,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
       //output labels
       *outputstream << "\"" << (*Lociptr)(abslocus)->GetLabel(0) << "/" << (*Lociptr)(abslocus+1)->GetLabel(0) << "\""<< separator;
       if(final)*outputstream << setiosflags(ios::fixed) << setprecision(3) //output 3 decimal places
-		    << Score[0] << separator << compinfo << separator <<obsinfo << separator;
+			     << Score[0] << separator << compinfo << separator <<obsinfo << separator;
 
       //compute chi-squared statistic
       try{
@@ -1083,18 +1082,18 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 	}
 	delete[] VinvU;
 	
-	if(final)*outputstream << (obsinfo*100)/compinfo << separator<< dim << separator;
+	if(final)*outputstream << double2R((obsinfo*100)/compinfo) << separator<< dim << separator;
 
-	if(chisq < 0.0){
+	if(chisq > 0.0){
+	  //compute p-value
+	  double pvalue = gsl_cdf_chisq_Q (chisq, dim);
+	  if(final)*outputstream << chisq << separator << double2R(pvalue) << separator << endl;
+	  else *outputstream << double2R(-log10(pvalue)) << separator << endl;
+	}
+	else {
 	  *outputstream << "NA" << separator;
 	  if(final) *outputstream << "NA" << separator;
 	  *outputstream << endl;
-	}
-	else {
-	  //compute p-value
-	  double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-	  if(final)*outputstream << chisq << separator << resetiosflags(ios::fixed)<< pvalue << separator << endl;
-	  else *outputstream << resetiosflags(ios::fixed)<< -log10(pvalue) << separator << endl;
 	}
       }
       catch(...){//in case ObservedInfo is rank deficient
@@ -1248,7 +1247,7 @@ void ScoreTests::R_output3DarrayDimensions(ofstream* stream, const vector<int> d
 }
 string ScoreTests::double2R( double x )
 {
-  if( isnan(x) )
+  if( isnan(x) || isinf(x) )
     return "NaN";
   else{
     stringstream ret;
