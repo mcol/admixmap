@@ -1007,36 +1007,33 @@ if(is.null(user.options$regparamfile) ||
   }
 }
 
-## read regression parameter samples
-if(is.null(user.options$regparamfile) ||
-           length(scan(paste(resultsdir, user.options$regparamfile, sep="/"),
+## read allele freq dispersion parameter samples
+if(is.null(user.options$dispparamfile)||
+           length(scan(paste(resultsdir, user.options$dispparamfile, sep="/"),
                        what='character',quiet=TRUE)) == 0)  {
-  print("No regression paramfile");
-  regparam.samples <- NULL
-  beta.admixture<-NULL
+  eta.samples <- NULL
 } else {
-  regparam.samples <- read.table(paste(resultsdir, user.options$regparamfile, sep="/"), header=TRUE)
-  n.covariates <- getNumCovariates(user.options)
-  
-  ## Geweke convergence diagnostics, autocorrelation and ergodic average plots
-  checkConvergence(regparam.samples, "Regression parameters",
-                   paste(resultsdir, "RegressionParamConvergenceDiags.txt", sep="/"))
-  postscript(paste(resultsdir, "RegressionParamAutocorrelations.ps", sep="/" ))     
-  plotAutocorrelations(regparam.samples, user.options$every)
-  dev.off()
-  
-  #beta.admixture <- getRegressionParamsForAdmixture(user.options, K, n.covariates, population.labels)
-  #if(K > 2 && !is.null(pop.admix.prop)) {
-    ## calculate estimate of effect of each pop vs all others if there are >2 populations
-    #effect.pop <- effectEstimates(beta.admixture, pop.admix.prop, n, K)
-  #} else {
-  #  effect.pop <- NULL
-  #}
-  outcome.continuous <- getOutcomeType(dimnames(param.samples)[[2]])  
-  ## calculate residual standard deviation
-  if(outcome.continuous == 1) {
-    residual.SD <- getPrecision(user.options)^-0.5
+  eta.samples<-read.table(paste(resultsdir, user.options$dispparamfile,sep="/"), header=TRUE)
+  ## label dispersion parameters
+  if(!is.null(user.options$historicallelefreqfile)) {
+    dimnames(eta.samples)[[2]] <- paste("eta", population.labels, sep="." )
   }
+  checkConvergence(eta.samples, "Dispersion parameters",
+                   paste(resultsdir, "DispParamConvergenceDiags.txt", sep="/"))
+  postscript(paste(resultsdir, "DispParamAutocorrelations.ps", sep="/" ))     
+  plotAutocorrelations(eta.samples, user.options$every)
+  dev.off()
+}   
+
+## combine samples of Dirichlet params, admixture proportions, dispersion params, regression params
+param.samples.all <- cbindIfNotNull(param.samples, pop.admix.prop)
+param.samples.all <- cbindIfNotNull(param.samples.all, eta.samples)
+param.samples.all <- cbindIfNotNull(param.samples.all, regparam.samples)
+param.samples.all <- cbindIfNotNull(param.samples.all, effect.pop)
+## calculate posterior quantiles
+if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
+  nvars <- dim(param.samples.all)[2]
+  post.quantiles <- calculateAndPlotQuantiles(param.samples.all, nvars)
 }
 
 ## get population admixture Dirichlet parameters: either posterior means, or values specified in model
