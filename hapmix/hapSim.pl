@@ -42,7 +42,7 @@ my $arg_hash = {
 
     samples  => 250,
     burnin   => 50,
-    every    => 1,
+    every    => 5,
     numannealedruns => 0,
     displaylevel => 3, 
     sumintensitiesprior        => "40,5,4",
@@ -55,22 +55,22 @@ my $arg_hash = {
 # model with single block states
 $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'resultsSim1State';  
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 # model with 2 block states
 $arg_hash->{hapmixmodel}           = 1;
 $arg_hash->{populations}           = 2;
 $arg_hash->{resultsdir}            = 'resultsSim2States';  
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 # model with 3 block states
 $arg_hash->{populations}           = 3;
 $arg_hash->{resultsdir}            = 'resultsSim3States';  
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
-# model with 4 block states
-$arg_hash->{populations}           = 4;
-$arg_hash->{resultsdir}            = 'resultsSim4States';  
+# model with 6 block states
+$arg_hash->{populations}           = 6;
+$arg_hash->{resultsdir}            = 'resultsSim6States';  
 doAnalysis($executable,$arg_hash);
 
 ############### DO NOT EDIT BELOW THIS LINE ############################
