@@ -46,7 +46,7 @@ HMM::~HMM()
   delete[] Expectation1;
   delete[] rowSum;
   delete[] colSum;
-  free_matrix(cov, K);
+  delete[] cov; //free_matrix(cov, K);
 }
 
 void HMM::SetDimensions( int inTransitions, int pops)
@@ -74,7 +74,7 @@ void HMM::SetDimensions( int inTransitions, int pops)
     Expectation1 = new double[K];
     rowSum = new double[K];
     colSum = new double[K];
-    cov = alloc2D_d(K,K);
+    cov = new double[K*K]; // alloc2D_d(K,K);
     }
 }
 
@@ -427,7 +427,7 @@ void HMM::RecursionProbs(const double ff, const double f2[2],
     // calculate covariance of ancestry states as ff * deviation from product of row and col probs
     for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
       for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-	cov[j0][j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
+	cov[j0*K + j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
       }
     }
     
@@ -436,26 +436,26 @@ void HMM::RecursionProbs(const double ff, const double f2[2],
       rowSum[j0] = 0.0;
       colSum[j0] = 0.0;
       for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-	rowSum[j0] += cov[j0][j1];
-	colSum[j0] += cov[j1][j0];
+	rowSum[j0] += cov[j0*K + j1];
+	colSum[j0] += cov[j1*K + j0];
       }
     }
     // calculate last row except for last col, by subtracting colSum from 0
     // also accumulate sum of covariances for K th row over first K-1 cols
     rowSum[K-1] = 0.0;
     for( int j = 0; j < K-1; ++j ) {
-      cov[K-1][j] =  -colSum[j];
-      rowSum[K-1] += cov[K-1][j];
+      cov[(K-1)*K + j] =  -colSum[j];
+      rowSum[K-1] += cov[(K-1)*K +j];
     }
     // calculate last col by subtracting rowSum from 0
     for( int j = 0; j < K; ++j ) {
-      cov[j][K-1] =  -rowSum[j];
+      cov[j*K + K-1] =  -rowSum[j];
     }
     
     // calculate expectation of product as covariance plus product of expectations
     for(int j0 = 0; j0 < K; ++j0) {
       for(int j1 =0; j1 < K; ++j1) {
-	newProbs[j0*K + j1] = cov[j0][j1] + Expectation0[j0] * Expectation1[j1];
+	newProbs[j0*K + j1] = cov[j0*K + j1] + Expectation0[j0] * Expectation1[j1];
 	// newProbs[1] is prob(paternal=1, maternal=0)
       }
     }
