@@ -62,7 +62,7 @@ private:
   double *Expectation1;
   double *rowSum;
   double *colSum;
-  double **cov;
+  double *cov;
 
   void UpdateForwardProbsDiploid();
   void UpdateForwardProbsHaploid();
