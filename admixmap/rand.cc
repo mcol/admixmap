@@ -116,18 +116,18 @@ std::vector<int> Rand::genmultinomial(int N, const std::vector<double> theta)
 }
 
 // ** sample from discrete probability distribution gievn by probs **
-int Rand::SampleFromDiscrete( const double probs[] , int numberofelements)
+int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
 {
   double* cdf = new double[ numberofelements ];
   cdf[0] = probs[0];
   for( int i = 1; i < numberofelements; i++ )
     cdf[i] = (cdf[i-1] + probs[i]); 
-  for( int i = 0; i < numberofelements; i++ )
-    cdf[i] /= cdf[ numberofelements - 1 ];
-  double u = myrand();
+  //   for( int i = 0; i < numberofelements; i++ )
+  //     cdf[i] /= cdf[ numberofelements - 1 ];
+  double u = myrand()* cdf[ numberofelements - 1 ];
   int k = 0;
   while( u > cdf[k] )
-    k++;
+    ++k;
   delete[] cdf;
   return(k);
 }
