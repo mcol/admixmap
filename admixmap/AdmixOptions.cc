@@ -92,6 +92,7 @@ void AdmixOptions::Initialise(){
   TestForMisspecifiedAlleleFreqs2 = false;
   HWTest = false;
   OutputAlleleFreq = false;
+  checkData = true;
 
   //global rho: default gamma (3, 0.5) prior has mean 6, variance 12 
   globalrhoPrior.push_back(3.0);//rhoalpha 
@@ -591,6 +592,9 @@ const char*AdmixOptions::getLikRatioFilename() const{
 const char* AdmixOptions::getIndAdmixModeFilename()const{
   return IndAdmixModeFilename.c_str();
 }
+bool AdmixOptions::CheckData()const{
+    return checkData;
+}
 
 void AdmixOptions::SetOptions(int nargs, char** args)
 {
@@ -710,6 +714,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"fixedallelefreqs",                      1, 0,  0 }, // int 0, 1
     {"correlatedallelefreqs",                 1, 0,  0 }, // int 0, 1
     {"xonlyanalysis",                         1, 0,  0 }, // int 0, 1
+    {"checkdata",                         1, 0,  'd' }, // int 0, 1
     {0, 0, 0, 0}    // marks end of array
   };
 
@@ -735,7 +740,10 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       { if((int)strtol(optarg, NULL, 10)==0)displayLevel = 0;
 	OptionValues["displaylevel"]=optarg;}
       break;
-
+	case 'd':
+	{checkData = false;
+	OptionValues["checkdata"]="0";
+	}break;
     case 'e': // ergodicaveragefile
       { ErgodicAverageFilename = optarg;OptionValues["ergodicaveragefile"]=optarg;}
       break;

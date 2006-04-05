@@ -103,6 +103,7 @@ public:
   void isXOnlyAnalysis(bool);
   bool isAdmixed(unsigned) const;
   bool isSymmetric()const;
+    bool CheckData()const;
 
   //Score test file names
   const char *getAffectedsOnlyScoreFilename() const;
@@ -186,6 +187,7 @@ private:
   bool TestForMisspecifiedAlleleFreqs2;
   bool HWTest;
   bool OutputAlleleFreq;
+    bool checkData;
 
   std::vector<bool> _admixed;
   bool _symmetric;         
