@@ -111,6 +111,7 @@ private:
 
   RhoArguments RhoArgs;
   HamiltonianMonteCarlo* RhoSampler;
+  HamiltonianMonteCarlo RhoPriorParamSampler;
   
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
