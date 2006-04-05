@@ -469,8 +469,8 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
       dim_[j] = (*Lociptr)(j)->GetNumberOfMergedHaplotypes();
       
       //resize arrays for Allelic association test
-      deletearray( LocusLinkageAlleleScore[j]);
-      deletearray( LocusLinkageAlleleInfo[j]);
+      delete[] LocusLinkageAlleleScore[j];
+      delete[] LocusLinkageAlleleInfo[j];
       LocusLinkageAlleleScore[j] = new double[ dim_[j] + NumCovars];
       LocusLinkageAlleleInfo[j] = new double[( dim_[j] + NumCovars) * (dim_[j] + NumCovars )];
 
@@ -1074,8 +1074,8 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
 // haplotype separately, together with a summary chi-square
 {
   int NumberOfMergedHaplotypes;
-  const int *hap;
-  double *ScoreVector, *CompleteMatrix, *ObservedMatrix;
+  const int *hap = 0;
+  double *ScoreVector = 0, *CompleteMatrix = 0, *ObservedMatrix = 0;
   string sep = final? "\t" : ",";
   
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
