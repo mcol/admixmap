@@ -17,7 +17,10 @@
 #include "MuSampler.h"
 #include <math.h>
 #include <numeric>
-#include <sstream>
+#ifdef PARALLEL
+#include <mpe.h>
+#endif
+
 //#define DEBUGETA 1
 
 AlleleFreqs::AlleleFreqs(Genome *pLoci){
@@ -46,7 +49,10 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   w = 1;
   NumberOfEtaUpdates  = 0;
   etastep = 0;
-
+#ifdef PARALLEL
+  sendcounts = 0;
+  recvcounts = 0;
+#endif
 }
 
 AlleleFreqs::~AlleleFreqs(){
@@ -79,6 +85,10 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] etastep;
   delete[] TuneEtaSampler;
 #endif
+#ifdef PARALLEL
+  delete[] sendcounts;
+  delete[] recvcounts;
+#endif
 }
 
 // ************** Initialisation and loading of data  *******************
@@ -90,12 +100,22 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   if(IsRandom() &&  options->getOutputAlleleFreq() ){
     OpenOutputFile(options);
   }
+#ifdef PARALLEL
+  int count = 0;
+#endif
 
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
+#ifdef PARALLEL
+    count += NumberOfStates[i];
+#endif
   }
+#ifdef PARALLEL
+  sendcounts = new int[options->getPopulations()*count];
+  if(MPI::COMM_WORLD.Get_rank() ==0)recvcounts = new int[options->getPopulations()*count];
+#endif
 
   // ** settings for sampling of dispersion parameter **
   if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs){
@@ -113,7 +133,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       dim = 1;
       muSampler = new MuSampler[NumberOfCompositeLoci];
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	muSampler[i].setDimensions(Populations, NumberOfStates[i], 0.0002, 0.0, 10.0, 0.44);
+	muSampler[i].setDimensions(Populations, NumberOfStates[i], 0.002, 0.0, 10.0, 0.44);
     }
     
     // ** dispersion parameter(s) and priors **
@@ -281,12 +301,12 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   Freqs = new double*[NumberOfCompositeLoci];
   AlleleFreqsMAP = new double*[NumberOfCompositeLoci];
   HistoricAlleleFreqs = new double*[NumberOfCompositeLoci];
-  AlleleCounts = new int*[NumberOfCompositeLoci];
   hetCounts = new int*[NumberOfCompositeLoci];
   HistoricAlleleCounts = new double*[NumberOfCompositeLoci];
   PriorAlleleFreqs = new double*[NumberOfCompositeLoci];
   MuProposal = new std::vector<StepSizeTuner>[NumberOfCompositeLoci];
   NumberOfStates = new int[NumberOfCompositeLoci];
+  AlleleCounts = new int*[NumberOfCompositeLoci];
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     Freqs[i] = 0;
@@ -335,7 +355,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     // allele counts array has NumberOfStates elements for each population 
     //TODO: may not be necessary to allocate AlleleCounts if fixed allele freqs
     AlleleCounts[i] = new int[NumberOfStates[i] * Populations];
-    fill(AlleleCounts[i], AlleleCounts[i]+ NumberOfStates[i]*Populations, 0);
+    //fill(AlleleCounts[i], AlleleCounts[i]+ NumberOfStates[i]*Populations, 0);
     if(NumberOfStates[i]==2){//fill hetCounts for SNPs
       hetCounts[i] = new int[Populations * Populations];
       fill(hetCounts[i], hetCounts[i]+ Populations*Populations, 0);
@@ -533,6 +553,17 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 
 }
 
+void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+      fill(AlleleCounts[i], AlleleCounts[i]+NumberOfStates[i]*Populations, 0);
+
+    //TODO: only do next line if thermo = 1 and testoneindiv = 0 and annealing
+    if(NumberOfStates[i]==2)
+      fill(hetCounts[i], hetCounts[i]+Populations*Populations, 0);
+  }
+
+}
+
 /*
   Given a haplotype pair, h, and the ordered ancestry states at a locus,
   updates the counts of alleles observed in each state of ancestry.
@@ -556,6 +587,41 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, std::vector<unsigned short> geno
   }
   //TODO: check haploid case
 }
+#ifdef PARALLEL
+void AlleleFreqs::SumAlleleCountsOverProcesses(){
+//todo: hetcounts
+    int rank = MPI::COMM_WORLD.Get_rank();
+    int index = 0;
+    int count = 0;
+//pack local allele counts into a single array, sendcounts
+    MPE_Log_event(9, 0, "CopyCountstart");
+    for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
+	copy(AlleleCounts[locus], AlleleCounts[locus]+Populations*NumberOfStates[locus], sendcounts+index);
+	index += Populations*NumberOfStates[locus];
+	count += NumberOfStates[locus];//total number of alleles/haplotypes
+    }
+    MPE_Log_event(10, 0, "CopyCountend");
+//synchronise processes
+    MPE_Log_event(13, 0, "Barrier");
+    MPI::COMM_WORLD.Barrier();
+    MPE_Log_event(14, 0, "BarrEnd");    
+//sum allele counts
+    MPE_Log_event(5, 0, "RedCountstart");
+    MPI::COMM_WORLD.Reduce(sendcounts, recvcounts, count*Populations, MPI::INT, MPI::SUM, 0);
+    MPE_Log_event(6, 0, "RedCountend");
+//unpack totals on top process
+    if(rank==0){
+	index = 0;
+	MPE_Log_event(9, 0, "CopyCountstart");
+	for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
+	    copy(recvcounts+index, recvcounts+index+Populations*NumberOfStates[locus], AlleleCounts[locus]);
+	    index += Populations*NumberOfStates[locus];
+	}
+	MPE_Log_event(10, 0, "CopyCountend");
+    }
+
+}
+#endif
 
 void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
 {
@@ -612,7 +678,7 @@ const double *AlleleFreqs::GetStatsForEta( int locus, int population)const
   else{//correlated allelefreqs model, sum over populations
     for(int k = 0; k < Populations; ++k){
       for( int i = 0; i < NumberOfStates[locus] ; i++ ){
-	stats[ i ] += log( Freqs[locus][ i + k*NumberOfStates[locus] ] );
+	stats[ i ] += log( Freqs[locus][ i + k*NumberOfStates[i] ] );
       }
     }
   }
@@ -763,14 +829,7 @@ void AlleleFreqs::SampleDirichletParams(){
   
   else if(CorrelatedAlleleFreqs){
     for(int i = 0; i < NumberOfCompositeLoci; ++i){
-      try{
-	muSampler[i].Sample(PriorAlleleFreqs[i], eta[0], AlleleCounts[i]);
-      }
-      catch(string s){
-	stringstream err;
-	err << "Error sampling Dirichlet prior params for locus " << i+1 << "(" << (*Loci)(i)->GetLabel(0) << ") : \n" << s;
-	throw(err.str());
-      }
+      muSampler[i].Sample(PriorAlleleFreqs[i], eta[0], AlleleCounts[i]);
       //EtaSampler[0].addAlphas(i, PriorAlleleFreqs[i]);
       //EtaSampler[0].addCounts(i, AlleleCounts[i]);
 	}
@@ -851,16 +910,6 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
   
   if( updateSumEta )
     SumEta[k]+=eta[k];
-}
-
-void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    fill(AlleleCounts[i], AlleleCounts[i]+NumberOfStates[i]*Populations, 0);
-    //TODO: only do next line if thermo = 1 and testoneindiv = 0 and annealing
-    if(NumberOfStates[i]==2)
-      fill(hetCounts[i], hetCounts[i]+Populations*Populations, 0);
-  }
-
 }
 
 // sets posterior mode of allelefreqs as current value

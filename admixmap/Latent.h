@@ -63,7 +63,7 @@ public:
   
   void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
   void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);
-  void SampleSumIntensities(const int* SumAncestry, bool sumlogrho) ;
+  void SampleSumIntensities(const int* SumAncestry, bool sumlogrho, int iteration) ;
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
   void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   
@@ -80,6 +80,7 @@ public:
   const vector<double>& getrho()const;
   const vector<double>& getSumLogRho()const;
   const double *getpoptheta()const;
+    const double* getGlobalTheta()const;
 
   void printAcceptanceRates(LogWriter &Log);
   
@@ -141,6 +142,9 @@ private:
 
   static double RhoEnergy(const double* const x, const void* const vargs);
   static void RhoGradient( const double* const x, const void* const vargs, double* g );
+  static double RhoPriorParamsEnergy(const double* const x, const void* const vargs);
+  static void RhoPriorParamsGradient( const double* const x, const void* const vargs, double* g );
+
   // UNIMPLEMENTED
   // to avoid use
   Latent();

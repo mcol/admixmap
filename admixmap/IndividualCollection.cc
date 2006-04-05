@@ -13,7 +13,10 @@
 #include "IndividualCollection.h"
 #include "StringSplitter.h"
 #include "Regression.h"
-
+#include "admixmap.h"//for MPI stuff
+#ifdef PARALLEL
+#include <mpe.h>//for MPI event logging
+#endif
 using namespace std;
 
 // **** CONSTRUCTORS  ****
@@ -28,6 +31,13 @@ IndividualCollection::IndividualCollection() {
 }
 
 IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
+    rank = 0;
+    NumProcs = 1;
+#ifdef PARALLEL
+    rank = MPI::COMM_WORLD.Get_rank();
+    NumProcs = MPI::COMM_WORLD.Get_size();
+    GlobalSumAncestry = 0;
+#endif
   OutcomeType = 0;
   NumOutcomes = 0;
   NumCovariates = 0;
@@ -70,16 +80,17 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   }
 
   _child = new Individual*[size];
-  for (unsigned int i = 0; i < size; ++i) {
+  for (unsigned int i = rank; i < size; i += NumProcs) {
     _child[i] = new Individual(i+i0+1, options, Data, false);//NB: first arg sets Individual's number
     }
 }
 
 // ************** DESTRUCTOR **************
 IndividualCollection::~IndividualCollection() {
-  cout << "Deleting individual objects\n" << flush;
+    if(rank==0)
+	cout << "\n Deleting individual objects\n" << flush;
   Individual::DeleteStaticMembers();
-  for(unsigned int i = 0; i < size; i++){
+  for(unsigned int i = rank; i < size; i+=NumProcs){
     delete _child[i];
   }
   if(TestInd){
@@ -96,6 +107,9 @@ IndividualCollection::~IndividualCollection() {
   delete[] SumLogTheta;
   delete[] SumAncestry;
   delete[] ReportedAncestry;
+#ifdef PARALLEL
+  delete[] GlobalSumAncestry;
+#endif
 }
 
 // ************** INITIALISATION AND LOADING OF DATA **************
@@ -145,7 +159,12 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   SumLogTheta = new double[ options->getPopulations()];
 
   //allocate array of sufficient statistics for update of locus-specific sumintensities
-  if(options->getHapMixModelIndicator()) SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
+  if(options->getHapMixModelIndicator()) {
+      SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
+#ifdef PARALLEL
+      GlobalSumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
+#endif
+  }
 
 //   allocate and set initial values for estimates used in Chib algorithm
   if( options->getChibIndicator() )
@@ -320,12 +339,12 @@ void IndividualCollection::UpdateSumResiduals(){
 
 void IndividualCollection::HMMIsBad(bool b){
   if(TestInd)    for(int i = 0; i < sizeTestInd; ++i)TestInd[i]->HMMIsBad(b);
-  for(unsigned i = 0; i < size; ++i)
+  for(unsigned i = rank; i < size; i+= NumProcs)
     _child[i]->HMMIsBad(b);
 }
 
 void IndividualCollection::resetStepSizeApproximators(int k) {
-  for(unsigned i = 0; i < size; ++i)
+  for(unsigned i = rank; i < size; i+= NumProcs)
     _child[i]->resetStepSizeApproximator(k);
 }
 
@@ -354,11 +373,16 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
   }
   //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-  if(options->getHapMixModelIndicator())fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
+  if(options->getHapMixModelIndicator()){
+      fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
+#ifdef PARALLEL
+      if(rank==0)fill(GlobalSumAncestry, GlobalSumAncestry + 2*NumCompLoci, 0);
+#endif
+      }
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
-  for(unsigned int i = 0; i < size; i++ ){
+  for(unsigned int i = rank; i < size; i+=NumProcs ){
 
     // ** set SumLocusAncestry and SumNumArrivals to 0
     _child[i]->ResetSufficientStats();
@@ -371,7 +395,7 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
     if(options->getHapMixModelIndicator())_child[i]->AccumulateAncestry(SumAncestry);
     // ** Sample Haplotype Pair
-    _child[i]->SampleHapPair(A);//also updates allele counts
+    _child[i]->SampleHapPair(A, options->getHapMixModelIndicator());//also updates allele counts
     // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
     if(Populations >1 && !options->getHapMixModelIndicator())//no need in hapmixmodel
       _child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
@@ -381,7 +405,15 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
       _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
 			      R[0].getDispersion(), ExpectedY);
   }
+#ifdef PARALLEL
+  MPE_Log_event(11, iteration, "Barrier");
+  MPI::COMM_WORLD.Barrier();
+  MPE_Log_event(12, iteration, "BarrEnd");
 
+  MPE_Log_event(3, iteration, "RedAncStart");
+  MPI::COMM_WORLD.Reduce(SumAncestry, GlobalSumAncestry, 2*NumCompLoci, MPI::INT, MPI::SUM, 0); 
+  MPE_Log_event(4, iteration, "RedAncEnd");
+#endif
 }
 
 void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* const options,
@@ -434,7 +466,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
 
   // -----------------------------------------------------------------------------------------------------
   // ** Non-test individuals
-  for(unsigned int i = 0; i < size; i++ ){
+  for(unsigned int i = rank; i < size; i+=NumProcs ){
     // ** Sample individual- or gamete-specific sumintensities
     if(Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) 
       _child[i]->SampleRho( options, rhoalpha, rhobeta,   
@@ -445,9 +477,6 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
 			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(i+i0), R[0].getDispersion(), false, anneal);
     // ** Sample missing values of outcome variable
     _child[i]->SampleMissingOutcomes(&Outcome, OutcomeType, ExpectedY, lambda);
-    int prev = i-1;
-    if(i==0) prev = size-1;
-    if(size > 1)_child[prev]->HMMIsBad(true); // HMM is bad - see above
   }
 }
 
@@ -465,7 +494,7 @@ void IndividualCollection::setGenotypeProbs(unsigned nchr){
     for(int i = 0; i < sizeTestInd; ++i)
       for(unsigned j = 0; j < nchr; ++j)
 	TestInd[i]->SetGenotypeProbs(j, false);
-  for(unsigned int i = 0; i < size; i++ ) {
+  for(unsigned int i = rank; i < size; i+= NumProcs ) {
     for(unsigned j = 0; j < nchr; ++j)
       _child[i]->SetGenotypeProbs(j, false);
   }
@@ -477,7 +506,7 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
       for(unsigned j = 0; j < nchr; ++j) TestInd[i]->AnnealGenotypeProbs(j, Coolnesses[i]);
 
     } else { // anneal all individuals
-    for(unsigned int i = 0; i < size; ++i) {
+    for(unsigned int i = rank; i < size; i+= NumProcs) {
       for(unsigned j = 0; j < nchr; ++j) _child[i]->AnnealGenotypeProbs(j, coolness);
     }
   }
@@ -520,7 +549,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
     TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
 					       modefile, thetahat, thetahatX, rhohat, rhohatX);
   }
-  for(unsigned int i = 0; i < size; i++ ){
+  for(unsigned int i = rank; i < size; i+= NumProcs ){
     _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,
 				   modefile, thetahat, thetahatX, rhohat, rhohatX);
     modefile << endl;
@@ -536,7 +565,7 @@ int IndividualCollection::getSize()const {
 double IndividualCollection::GetSumrho()const
 {
    double Sumrho = 0;
-   for( unsigned int i = 0; i < size; i++ )
+   for( unsigned int i = rank; i < size; i+=NumProcs )
       Sumrho += (*_child[i]).getSumrho();
    return Sumrho;
 }
@@ -548,7 +577,9 @@ vector<double> IndividualCollection::getOutcome(int j)const{
 double IndividualCollection::getOutcome(int j, int ind)const{
     return Outcome.get(ind, j);
 }
-
+bool IndividualCollection::isMissingOutcome(int j, int i)const{
+    return Outcome.isMissing(i, j);
+}
 int IndividualCollection::getNumberOfOutcomeVars()const{
   return NumOutcomes;
 }
@@ -605,36 +636,36 @@ const double* IndividualCollection::getSumLogTheta()const{
 const int* IndividualCollection::getSumAncestry()const{
   return SumAncestry;
 }
-const vector<int> IndividualCollection::getSumLocusAncestry(int K)const{
-  vector<int> sumlocusancestry(2*K, 0);
-  const int* indivsla;
-  for(unsigned i = 0; i < size; ++i){
-    indivsla = _child[i]->getSumLocusAncestry();
-    transform(indivsla, indivsla+2*K, sumlocusancestry.begin(), sumlocusancestry.begin(), std::plus<int>());
-  }
+// const vector<int> IndividualCollection::getSumLocusAncestry(int K)const{
+//   vector<int> sumlocusancestry(2*K, 0);
+//   const int* indivsla;
+//   for(unsigned i = 0; i < size; ++i){
+//     indivsla = _child[i]->getSumLocusAncestry();
+//     transform(indivsla, indivsla+2*K, sumlocusancestry.begin(), sumlocusancestry.begin(), std::plus<int>());
+//   }
 
-  return sumlocusancestry;
-}
-const vector<int> IndividualCollection::getSumLocusAncestryX(int K)const{
-  vector<int> sumlocusancestry(2*K, 0);
-  const int* indivsla;
-  int length;
-  for(unsigned i = 0; i < size; ++i){
-    indivsla = _child[i]->getSumLocusAncestryX();
-    if(_child[i]->getSex()==female)length = 2*K; else length = K;//two gametes in females, otherwise one
-    transform(indivsla, indivsla+length, sumlocusancestry.begin(), sumlocusancestry.begin(), std::plus<int>());
-  }
+//   return sumlocusancestry;
+// }
+// const vector<int> IndividualCollection::getSumLocusAncestryX(int K)const{
+//   vector<int> sumlocusancestry(2*K, 0);
+//   const int* indivsla;
+//   int length;
+//   for(unsigned i = 0; i < size; ++i){
+//     indivsla = _child[i]->getSumLocusAncestryX();
+//     if(_child[i]->getSex()==female)length = 2*K; else length = K;//two gametes in females, otherwise one
+//     transform(indivsla, indivsla+length, sumlocusancestry.begin(), sumlocusancestry.begin(), std::plus<int>());
+//   }
 
-  return sumlocusancestry;
-}
+//   return sumlocusancestry;
+// }
 
-const vector<unsigned> IndividualCollection::getSumNumArrivals(){
-  //returns a vector of sums over gametes of numbers of arrivals between pairs of loci
-  vector<unsigned>sumNumArrivals(NumCompLoci, 0);
-  for(unsigned i = 0; i < size; ++i)
-    _child[i]->getSumNumArrivals(&sumNumArrivals);
-  return sumNumArrivals;
-}
+// const vector<unsigned> IndividualCollection::getSumNumArrivals(){
+//   //returns a vector of sums over gametes of numbers of arrivals between pairs of loci
+//   vector<unsigned>sumNumArrivals(NumCompLoci, 0);
+//   for(unsigned i = 0; i < size; ++i)
+//     _child[i]->getSumNumArrivals(&sumNumArrivals);
+//   return sumNumArrivals;
+// }
 
 const chib* IndividualCollection::getChib()const{
   return &MargLikelihood;
@@ -675,7 +706,7 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates
-  for(unsigned int i = 0; i < size; i++ ){
+  for(unsigned int i = rank; i < size; i+= NumProcs ){
     if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
     else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
@@ -694,7 +725,7 @@ void IndividualCollection::OutputIndAdmixture()
   indadmixoutput->visitIndividualCollection(*this);
   if(TestInd)
     indadmixoutput->visitIndividual(*(TestInd[sizeTestInd-1]), _locusfortest);
-  for(unsigned int i = 0; i < size; i++){
+  for(unsigned int i = rank; i < size; i+=NumProcs){
     indadmixoutput->visitIndividual(*_child[i], _locusfortest);
   }
 }
@@ -761,7 +792,7 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
   double LogLikRegression = 0.0;
   double Energy = 0.0;
   // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
-  for(unsigned i = 0; i < size; ++i) {
+  for(unsigned i = rank; i < size; i+= NumProcs) {
     LogLikHMM += _child[i]->getLogLikelihood(options, false, !annealed); // store result if not an annealed run
     // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
     

@@ -25,6 +25,7 @@
 #include "MuSampler.h"
 #include "DispersionSampler.h"
 #include "StepSizeTuner.h"
+#include "common.h"
 class StepSizeTuner;
 
 class AlleleFreqs{
@@ -65,6 +66,9 @@ public:
   
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid );
   void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
+#ifdef PARALLEL
+    void SumAlleleCountsOverProcesses();
+#endif
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
 
@@ -92,6 +96,11 @@ private:
   double **HistoricAlleleFreqs;
   int **AlleleCounts;
   int** hetCounts;//counts of het individuals with distinct ancestry states at SNPs
+#ifdef PARALLEL
+    int* sendcounts;
+    int* recvcounts;
+#endif
+
   double **HistoricAlleleCounts;
   double **PriorAlleleFreqs;
 

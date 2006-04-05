@@ -28,11 +28,17 @@ LogWriter::LogWriter(){
 }
 
 LogWriter::LogWriter(const char *LogFilename, const bool isverbose){
-  LogFileStream.open(LogFilename, ios::out );
-  if(!LogFileStream.is_open()){
-    cerr << "ERROR: unable to open logfile"<<endl;
-    exit(1);
-  }
+    rank = 0;
+#ifdef PARALLEL 
+   rank = MPI::COMM_WORLD.Get_rank();
+#endif
+    if(rank==0){ 
+	LogFileStream.open(LogFilename, ios::out );
+	if(!LogFileStream.is_open()){
+	    cerr << "ERROR: unable to open logfile"<<endl;
+	    exit(1);
+	}
+    }
   verbose = isverbose;
   toscreen = On;
 }
@@ -47,72 +53,98 @@ void LogWriter::setDisplayMode(DisplayMode d){
 
 // ** Overloaded stream insertion operators, write to log and screen, unless DisplayMode switched off
 LogWriter& LogWriter::operator<<(const int message){
+    if(rank==0){
   LogFileStream << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const unsigned message){
-  LogFileStream << message;
+    if(rank==0){
+    LogFileStream << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const long message){
+    if(rank==0){
   LogFileStream << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const double message){
+    if(rank==0){
   LogFileStream << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const string message){
+    if(rank==0){
   LogFileStream << message << flush;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message << flush;
   }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const char* message){
+    if(rank==0){
   LogFileStream << message << flush;
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message << flush;
   }
+    }
   return *this;
 }
 
 void LogWriter::width(const unsigned w){
+    if(rank==0){
   LogFileStream.width(w);
+    }
 }
 void LogWriter::setPrecision(int p){
+    if(rank==0){
   LogFileStream<<setprecision(p);
   cout<<setprecision(p);
+    }
 }
 
 void LogWriter::StartMessage(){
+    if(rank==0){
   //start timer
+//#ifdef PARALLEL
+	//StartTime = MPI::Wtime();
+//#else
   StartTime = time(0);
+//#endif
   tm timer = *localtime( &StartTime );
 
   toscreen = On;
   LogFileStream << "-----------------------------------------------" << endl;
   LogFileStream << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
   LogFileStream << "-----------------------------------------------" << endl;
+#ifdef PARALLEL
+  *this << "Running on " << MPI::COMM_WORLD.Get_size() << " processors\n";
+#endif
   *this << "Program started at "
 	<< timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")  << timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "") 
 	<< timer.tm_sec << " " << timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
+    }
 }
 
 void LogWriter::ProcessingTime()
 {
+    if(rank==0){
   long EndTime = time(0);
   tm timer;
   timer = *localtime( &EndTime );
@@ -136,5 +168,6 @@ void LogWriter::ProcessingTime()
   //}
   
   *this << (int)realtime << "s\n";
+    }
 }
 

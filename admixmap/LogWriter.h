@@ -66,6 +66,7 @@ private:
   bool verbose;
   long StartTime;
   DisplayMode toscreen;
+    int rank;
 };
 
 #endif /* !defined LATENT_H */

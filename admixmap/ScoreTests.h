@@ -1,7 +1,7 @@
 // *-*-C++-*-*
 /** 
  *   ADMIXMAP
- *   admixmap.cc 
+ *   ScoreTests.h 
  *   header file for Scoretests class
  *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -17,7 +17,7 @@
 #include <sstream>
 #include "IndividualCollection.h"
 #include "LogWriter.h"
-
+#include "common.h"
 class ScoreTests{
 
 public:
@@ -71,9 +71,28 @@ private:
   double* SumAdmixtureScore2; 
   double* SumAdmixtureInfo;
 
+    double*** AlleleScore;
+    double*** AlleleInfo;
   double*** SumAlleleScore;
   double*** SumAlleleScore2;
   double*** SumAlleleInfo;
+
+#ifdef PARALLEL
+  double *sendallelescore;
+  double *sendalleleinfo;
+  double *recvallelescore;
+  double *recvalleleinfo;
+  double *sendhapscore;
+  double *sendhapinfo;
+  double *recvhapscore;
+  double *recvhapinfo;
+    double* sendresallelescore;
+    double* recvresallelescore;
+    double* sendresalleleinfo;
+    double* recvresalleleinfo;
+    int dimresallelescore, dimresalleleinfo;
+    int dimallelescore, dimalleleinfo, dimhapscore, dimhapinfo;
+#endif
 
   std::ofstream assocscorestream;
   std::ofstream ancestryAssociationScoreStream;
@@ -87,6 +106,7 @@ private:
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
+    int rank, NumProcs;
 
 //OUTPUT
   void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
@@ -113,7 +133,7 @@ private:
   void UpdateAlleleScores( double* score, double* info, const double* admixtureProps, const vector<int> Counts, 
 			   double YMinusEY, double phi, double DInvLink);
 
-  void UpdateScoreForAllelicAssociation( const Individual* const , double, double, double);
+  void UpdateScoreForAllelicAssociation( const Individual* const , double, double, double, bool);
 
   void UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY,double phi, double DInvLink);
 

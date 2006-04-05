@@ -21,6 +21,7 @@
 #include "Individual.h"
 #include "IndAdmixOutputter.h"
 #include "DataMatrix.h"
+#include "admixmap.h"//for PARALLEL
 
 #include <vector>
 #include <string.h>
@@ -95,6 +96,7 @@ public:
 
   std::vector<double> getOutcome(int)const;
   double getOutcome(int, int)const;
+    bool isMissingOutcome(int, int)const;
   int getNumberOfOutcomeVars()const;
   int GetNumCovariates() const;
   int GetNumberOfInputCovariates()const;
@@ -124,7 +126,8 @@ public:
 private:
   Individual **_child; //array of pointers to Individual objects
   Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
-  int sizeTestInd;
+    int sizeTestInd;
+    int rank, NumProcs;
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
   void getLabels(const Vector_s& data, Vector_s& labels);
 
@@ -151,6 +154,9 @@ private:
   double SumDeviance, SumDevianceSq;
   std::vector< int > _locusfortest;
   int* SumAncestry;//for update of locus-specific sumintensities
+#ifdef PARALLEL
+    int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
+#endif
  
   //Regression Objects
   double **ExpectedY;

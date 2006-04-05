@@ -341,16 +341,16 @@ const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)
 }
 
 // returns an indicator for non-missing genotype at simple locus, and updates allele count array  
-bool Individual::GetAlleleCountsAtLocus(int complocus, int locus, int allele, int* count)const
-{
-  int notmissing = true;
-  if(genotypes[complocus].alleles[locus][0]==0 || genotypes[complocus].alleles[locus][1]==0)
-    notmissing = false;
-  else{
-    (*count) = (genotypes[complocus].alleles[locus][0] == allele) + (genotypes[complocus].alleles[locus][1] == allele);
-  }
-  return notmissing;
-}
+// bool Individual::GetAlleleCountsAtLocus(int complocus, int locus, int allele, int* count)const
+// {
+//   int notmissing = true;
+//   if(genotypes[complocus].alleles[locus][0]==0 || genotypes[complocus].alleles[locus][1]==0)
+//     notmissing = false;
+//   else{
+//     (*count) = (genotypes[complocus].alleles[locus][0] == allele) + (genotypes[complocus].alleles[locus][1] == allele);
+//   }
+//   return notmissing;
+// }
 
 const int* Individual::getSampledHapPair(int locus)const{
   return sampledHapPairs[locus].haps;
@@ -573,13 +573,13 @@ void Individual::AccumulateAncestry(int* SumAncestry){
   } //end chromosome loop
 }
 
-void Individual::SampleHapPair(AlleleFreqs *A){
+void Individual::SampleHapPair(AlleleFreqs *A, bool hapmixmodel){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
     //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
       int locus =  C->GetLocus(jj);
-      if( !(GenotypeIsMissing(locus)) ){
+      if( hapmixmodel || !(GenotypeIsMissing(locus))){
 	int anc[2];//to store ancestry states
 	GetLocusAncestry(j,jj,anc);
 	//might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample

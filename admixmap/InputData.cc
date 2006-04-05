@@ -179,7 +179,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   CheckGeneticData(options);
 
   double threshold = 100 / options->getRhoPriorMean();
-  checkLocusFile(options->getgenotypesSexColumn(), threshold);
+  checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
   locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
     options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator(), Log));
@@ -254,12 +254,13 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
   }
 }
 
-void InputData::checkLocusFile(int sexColumn, double threshold){
+void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
   // Check that loci labels in locusfile are unique and that they match the names in the genotypes file.
   //also determines number of chromosomes
   //NumChromosomes = 0;
   bool flag = false;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
+      if(check){
     //check distances are not negative
     if(locusMatrix_.get(i,2) < 0.0){
       flag = true;
@@ -272,8 +273,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold){
 	cerr << "Warning: distance of " <<locusMatrix_.get(i,2)<< "  at locus " <<i<<endl;
       locusMatrix_.isMissing(i,2, true);//missing value for distance denotes new chromosome
     }
-
-    LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
+      
     // Check loci names are unique    
     for (size_t j = 0; j < i-1; ++j) {   
       if (locusData_[i][0] == locusData_[j][0]) {
@@ -283,9 +283,11 @@ void InputData::checkLocusFile(int sexColumn, double threshold){
       }
     }
     //if(locusMatrix_.isMissing(i,2))++NumChromosomes;
+      }
+    LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
   }//end loop over loci
   if(flag)exit(1);
-
+  if(check){
   const size_t numLoci = locusData_.size() - 1;//number of simple loci
 
   // Compare loci names in locus file and genotypes file.
@@ -297,6 +299,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold){
       //cout << options->getgenotypesSexColumn() << endl;
       exit(2);
     }
+  }
   } 
 }
 

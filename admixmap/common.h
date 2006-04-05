@@ -23,4 +23,10 @@ enum RegressionType {Linear, Logistic, None, Both};
 enum DataType {Continuous, Binary};
 enum Sex {unknown, male, female};
 
+//uncomment the next line for parallel version
+//#define PARALLEL
+#ifdef PARALLEL
+#include "mpi++.h"
+#endif
+
 #endif /* !defined COMMON_H */

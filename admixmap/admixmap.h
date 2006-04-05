@@ -32,6 +32,10 @@
 #include "MisSpecAlleleFreqTest.h"
 #include "HWTest.h"
 
-#define ADMIXMAP_VERSION "3.1"
+#ifdef PARALLEL
+#define ADMIXMAP_VERSION "3.2 (Parallel)"
+#else
+#define ADMIXMAP_VERSION "3.2 (Serial)"
+#endif
 
 #endif /* ADMIXMAP_H */
