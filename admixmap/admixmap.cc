@@ -152,7 +152,7 @@ int main( int argc , char** argv ){
       //try{
       // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
       DispersionTest DispTest;
-      StratificationTest StratTest;
+      StratificationTest StratTest(options.getStratTestFilename(), Log);
       ScoreTests Scoretest;
       MisSpecAlleleFreqTest AlleleFreqTest;
       HWTest HWtest;
@@ -164,8 +164,8 @@ int main( int argc , char** argv ){
 	if( options.getTestForDispersion() ){
 	  DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
 	}
-	if( options.getStratificationTest() )
-	  StratTest.Initialize( &options, Loci, IC, Log);
+	//if( options.getStratificationTest() )
+	//StratTest.Initialize( &options, Loci, IC, Log);
 	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
 	  AlleleFreqTest.Initialise(&options, &Loci, Log );  
 	if( options.getHWTestIndicator() )
@@ -504,8 +504,8 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
       if( iteration == options.getBurnIn() ){
 	if(options.getTestForAllelicAssociation())
 	  Scoretest.SetAllelicAssociationTest(L.getalpha0());
-	//if( options.getStratificationTest() )
-	//StratTest.Initialize( &options, Loci, IC, Log);
+	if( options.getStratificationTest() )
+	  StratTest.Initialize( &options, Loci, IC, Log, rank);
       }
 	    
       //Updates and Output after BurnIn     

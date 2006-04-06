@@ -1,3 +1,15 @@
+/** 
+ *   ADMIXMAP
+ *   StratificationTest.cc 
+ *   Class to implement a test for residual population stratification
+ *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "StratificationTest.h"
 #include <numeric>
 #include "gsl/gsl_eigen.h"
@@ -12,9 +24,17 @@ StratificationTest::StratificationTest()
    count = 0;
    T = 0;
 }
+StratificationTest::StratificationTest(const char* filename, LogWriter &Log)
+{
+   NumberOfTestLoci = 0;
+   count = 0;
+   T = 0;
+   if(strlen(filename))
+     OpenOutputFile(filename, Log);
+}
 
 void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci,  
-				     const IndividualCollection* const IC, LogWriter &Log )
+				     const IndividualCollection* const IC, LogWriter &Log, int rank )
 {
   Log.setDisplayMode(Quiet);
   if(options->getStratificationTest() ){
@@ -45,17 +65,13 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
       //less than 5% missing genotypes, on each chromosome
       for(unsigned locus = 0; locus < Loci.GetSizeOfChromosome(c); ++locus){
 	if(Loci(abslocus)->GetNumberOfStates() == 2){// test uses only diallelic loci
-	  //count number of missing genotypes at locus
-	  long count = 0;
-	  for(int i = 0; i < IC->getSize(); ++i){
-	    Individual *ind = IC->getIndividual(i);
-	    if(ind->GenotypeIsMissing(locus)){
-	      ++count;
-	    }
-	  }
+
+ 	  //count number of missing genotypes at locus
+	  int count = IC->getNumberOfMissingGenotypes(locus);
+
 	  if( ( (double)count / (double)(IC->getSize()) ) < 0.1){//exclude loci with >10% missing genotypes
-	    n1 = (double) GetAlleleCounts(locus, 1, IC);//# copies of allele1
-	    n2 = (double) GetAlleleCounts(locus, 2, IC);//# copies of allele2
+	    n1 = (double) IC->GetSNPAlleleCounts(locus, 1);//# copies of allele1
+	    n2 = (double) IC->GetSNPAlleleCounts(locus, 2);//# copies of allele2
 	    ExpHet = 2.0 * (n1*n2) / ((n1+n2)*(n1+n2)); 
 	    if( ExpHet > max){
 	      max  = ExpHet;
@@ -66,31 +82,33 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
 	++abslocus;
       }
       //j is the most informative locus
-      if(j > -1){
+      if(j > -1 && rank == 0){
 	TestLoci.push_back(j);
 	NumberOfTestLoci++;
 	//DistanceFromLast = 0;
       }
     }
-    
-    if( NumberOfTestLoci < 2 ){
-      Log.setDisplayMode(On);
-      Log << "Too few unlinked loci to run stratification test\n";
-      options->setStratificationTest(false);
-    }
-    else{
-      Log.setDisplayMode(Off);
-      Log << NumberOfTestLoci << " loci used in stratification test.\n";
-      for(int i = 0; i < NumberOfTestLoci; i++){
-	Log << Loci(TestLoci[i])->GetLabel(0) << "\n";
+    if(rank == 0){
+      if( NumberOfTestLoci < 2 ){
+	Log.setDisplayMode(On);
+	Log << "Too few unlinked loci to run stratification test\n";
+	options->setStratificationTest(false);
+	if(outputstream.is_open())outputstream.close();
       }
-      ModelIndicator = options->isRandomMatingModel();
-      
-      OpenOutputFile(options->getStratTestFilename(),Log);
+      else{
+	Log.setDisplayMode(Off);
+	Log << NumberOfTestLoci << " loci used in stratification test.\n";
+	for(int i = 0; i < NumberOfTestLoci; i++){
+	  Log << Loci(TestLoci[i])->GetLabel(0) << "\n";
+	}
+	ModelIndicator = options->isRandomMatingModel();
+	
+	outputstream << "T_obs" << "\t" << "T_rep\n";
+      }
     }
   }
   else{
-    Log << "No test for residual population stratification.\n";
+    if( rank == 0)Log << "No test for residual population stratification.\n";
   }
 }
 
@@ -238,41 +256,14 @@ vector<unsigned short> StratificationTest::SampleHeterozygotePhase( const double
 void StratificationTest::OpenOutputFile( const char * OutputFilename, LogWriter &Log){
   Log.setDisplayMode(Quiet);
   outputstream.open(OutputFilename, ios::out );
-  if( !outputstream ){
-    Log << "ERROR: Couldn't open stratificationtestfile" << OutputFilename << "\n";
-    exit( 1 );
+  if( !outputstream.is_open() ){
+    throw string("ERROR: Couldn't open stratificationtestfile");
   }
   Log << "Writing results of test for residual population stratification to "
       << OutputFilename << "\n";
-  outputstream << "T_obs" << "\t" << "T_rep\n";
 }
 
 void StratificationTest::Output(LogWriter &Log){
   Log.setDisplayMode(Quiet);
   Log << "\nStratification test: posterior predictive check probability " << (float)T/count << "\n\n";
-}
-
-//this function should really be in CompositeLocus or AlleleFreqs or IndividualCollection
-int StratificationTest::GetAlleleCounts(int locus, int a, const IndividualCollection* const IC)
-{
-  /**
-   * returns a count of the copies of allele a at a comp locus
-   * only works for diallelic loci. 
-   */
-
-  int AlleleCounts = 0;
-
-  for(int i = 0; i < IC->getSize(); ++i){
-    Individual *ind = IC->getIndividual(i);
-    if(!ind->GenotypeIsMissing(locus)){
-      const vector<vector<unsigned short> > genotype = ind->getGenotype(locus);
-	if(genotype[0][0] == a){
-	  AlleleCounts++;
-	}
-	if(genotype[0][1] == a){
-	  AlleleCounts++;
-	}
-    }
-  }
-  return AlleleCounts;
 }

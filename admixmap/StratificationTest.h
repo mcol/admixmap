@@ -1,4 +1,16 @@
 // *-*-C++-*-*
+/** 
+ *   ADMIXMAP
+ *   StratificationTest.h 
+ *   Class to implement a test for residual population stratification
+ *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #ifndef STRATIFICATIONTEST
 #define STRATIFICATIONTEST 1
 
@@ -12,17 +24,16 @@
 class StratificationTest
 {
 public:
-   StratificationTest();
-
+  StratificationTest();
+  StratificationTest(const char* filename, LogWriter &Log);
+  
   void Initialize( AdmixOptions* const options, const Genome &Loci,  
-				     const IndividualCollection* const IC, LogWriter &Log );
+		   const IndividualCollection* const IC, LogWriter &Log, int rank );
 
   void calculate( const IndividualCollection* const individuals, const double* const* AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );
 
   void Output(LogWriter &);
-
-  //float getStatistic();
 
 private:
   int T;
@@ -44,9 +55,6 @@ private:
   SimGenotypeConditionalOnAncestry( const double*, const int ancestry[2] );
 
   std::vector<unsigned short> SampleHeterozygotePhase( const double*, const int ancestry[2] );
-
-  int GetAlleleCounts(int locus, int a, const IndividualCollection* const IC);
-
 };
 
 #endif /* !defined STRATIFICATIONTEST_H */
