@@ -185,7 +185,7 @@ void Genome::SetDistance( int locus, double distance )
   Distances[ locus ] = distance;
 }
 
-void Genome::PrintSizes(LogWriter &Log){
+void Genome::PrintSizes(LogWriter &Log)const{
   Log.setDisplayMode(Quiet);
   Log << "\n" << TotalLoci << " simple loci\n"
       << NumberOfCompositeLoci << " compound loci; "
@@ -255,6 +255,10 @@ const vector<int> Genome::GetChrmAndLocus( int j )const{
 const vector<vector<int > > Genome::GetChrmAndLocus()const{
   return LocusTable;
 }
+void Genome::GetChrmAndLocus(unsigned locus, unsigned* c, unsigned* l){
+  *c = LocusTable[locus][0];
+  *l = LocusTable[locus][1];
+}
 bool Genome::isX_data()const
 {
    return X_data;
@@ -303,7 +307,7 @@ void Genome::SetLocusCorrelation(double rho){
   }
 }
 
-void Genome::PrintLocusTable(const char* filename){
+void Genome::PrintLocusTable(const char* filename)const{
   ofstream outfile(filename);
   outfile << "LocusName\tNumHaps\tMapPosition\tChromosome" << endl;
   unsigned locus = 0;

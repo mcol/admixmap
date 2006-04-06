@@ -40,6 +40,7 @@ public:
   const std::vector< int > GetChrmAndLocus( int )const;
 
   const std::vector<  std::vector< int > >GetChrmAndLocus( )const;
+  void GetChrmAndLocus(unsigned locus, unsigned* c, unsigned* l);
 
   bool isX_data()const;
 
@@ -71,8 +72,8 @@ public:
   const Chromosome* const* getChromosomes()const;
   Chromosome* getChromosome(unsigned);
 
-  void PrintSizes(LogWriter &Log);
-  void PrintLocusTable(const char* filename);
+  void PrintSizes(LogWriter &Log)const;
+  void PrintLocusTable(const char* filename)const;
  
   int GetNumberOfStates()const;
   int GetNumberOfStates(int locus)const;
