@@ -1,5 +1,14 @@
 # rm(list = ls())  ## remove (almost) everything in the working environment.
 library(MASS)
+## script should be invoked from folder one level above subfolder specified by resultsdir
+## to run this script from an R console session, set environment variable RESULTSDIR
+## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
+if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
+  resultsdir <- Sys.getenv("RESULTSDIR")
+} else {
+  ## resultsdir set to default directory 
+  resultsdir <- "results"
+}
 
 cbindIfNotNull <- function(table1, table2) {
 ## cbind two tables if both are not null
@@ -56,60 +65,10 @@ getIsAdmixed <- function(AdmixturePrior) {
   return(IsAdmixed)
 }
   
-readLoci <- function(locusfilestr) {
-  ## read table of loci, number chromosomes and calculate map positions
-  row1 <- read.table(locusfilestr, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
-                     nrows=1)
-  if(dim(row1)[2] == 3) {
-    loci.simple <- read.table(locusfilestr, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
-                              colClasses=c("character", "integer", "numeric"))
-  } else {
-    loci.simple <- read.table(locusfilestr, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
-                              colClasses=c("character", "integer", "numeric", "character"))
-  }
-  ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
-  num.sloci <- dim(loci.simple)[1]
-  loci.simple[, 3][loci.simple[, 3] >=100] <- NA
-  new.clocus <- is.na(loci.simple[, 3]) | loci.simple[, 3] > 0
-  num.cloci <- table(new.clocus)[1]
-  LocusName <- character(num.cloci)
-  NumHaps <- integer(num.cloci)
-  MapPosition <- numeric(num.cloci)
-  Chromosome <- integer(num.cloci)
-  loci.compound <- data.frame(LocusName, NumHaps, MapPosition, Chromosome)
-  loci.compound$LocusName <- as.vector(loci.compound$LocusName)
-  clocus <- 1
-  numhaps <- loci.simple[1, 2]
-  map.position <- 0
-  chr <- 1
-  loci.compound$LocusName[1] <- loci.simple[1, 1]
-  loci.compound$MapPosition[1] <- 0
-  loci.compound$Chromosome[1] <- 1
-  ## loop over simple loci
-  for(slocus in 2:num.sloci) {
-    if(new.clocus[slocus]) { # new compound locus
-      ## increment number of compound locus  
-      clocus <- clocus + 1
-      loci.compound[clocus, 1] <- loci.simple[slocus, 1]
-      if(is.na(loci.simple[slocus, 3])) {
-        chr <- chr + 1
-        map.position <- 0
-      } else {
-        map.position <- map.position + 100*loci.simple[slocus, 3]
-      }
-      loci.compound[clocus, 3] <- map.position
-      loci.compound[clocus, 4] <- chr
-      ## assign num haplotypes at previous compound locus
-      loci.compound[clocus-1, 2] <- numhaps
-      ## restart counting num haplotypes
-      numhaps <- loci.simple[slocus, 2]
-    } else {
-      ## continue counting num haplotypes
-      numhaps <- numhaps * loci.simple[slocus, 2]
-    }
-  }
-  ## assign num haplotypes at last compound locus
-  loci.compound[clocus, 2] <- numhaps
+readLoci <- function(){
+  filename <- paste(resultsdir, "LocusTable.txt", sep="/")
+  ##cols are locus name, number of allele/haplotypes, map distance in cM, chromosome number
+loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "integer"))
   return(loci.compound)
 }
 
@@ -900,16 +859,6 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
 
 #debug(plotResidualAllelicAssocScoreTest)
 
-## script should be invoked from folder one level above subfolder specified by resultsdir
-## to run this script from an R console session, set environment variable RESULTSDIR
-## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
-if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
-  resultsdir <- Sys.getenv("RESULTSDIR")
-} else {
-  ## resultsdir set to default directory 
-  resultsdir <- "results"
-}
-
 options(echo=TRUE)
 par(cex=2,las=1)
 graphics.off()
@@ -919,7 +868,7 @@ ps.options(pointsize=16)
 user.options <- getUserOptions(paste(resultsdir, "args.txt", sep="/"))
 
 ## read table of loci and calculate map positions
-loci.compound <- readLoci(user.options$locusfile)
+loci.compound <- readLoci()
 n.chr <- nlevels(factor(loci.compound$Chromosome))
 
 K <- getNumSubpopulations(user.options)

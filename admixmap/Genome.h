@@ -72,6 +72,7 @@ public:
   Chromosome* getChromosome(unsigned);
 
   void PrintSizes(LogWriter &Log);
+  void PrintLocusTable(const char* filename);
  
   int GetNumberOfStates()const;
   int GetNumberOfStates(int locus)const;

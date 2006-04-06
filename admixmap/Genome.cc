@@ -303,6 +303,20 @@ void Genome::SetLocusCorrelation(double rho){
   }
 }
 
-
+void Genome::PrintLocusTable(const char* filename){
+  ofstream outfile(filename);
+  outfile << "LocusName\tNumHaps\tMapPosition\tChromosome" << endl;
+  unsigned locus = 0;
+  for(unsigned c = 0; c < NumberOfChromosomes; ++c){
+    double mapPosition = 0.0;
+    for(unsigned j  = 0; j < SizesOfChromosomes[c]; ++j){
+      mapPosition += Distances[locus];
+      outfile << LocusArray[locus].GetLabel(0) << "\t" << LocusArray[locus].GetNumberOfStates() << "\t" 
+	      << mapPosition*100.0 << "\t" << c+1 << endl;
+      ++locus;
+    }
+  }
+  outfile.close();
+}
 
 

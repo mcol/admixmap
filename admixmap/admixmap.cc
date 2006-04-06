@@ -106,6 +106,11 @@ int main( int argc , char** argv ){
 
     Genome Loci;
     Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
+    //print table of loci for R script to read
+    string locustable = options.getResultsDir();
+    locustable.append("/");locustable.append("LocusTable.txt");
+    Loci.PrintLocusTable(locustable.c_str());
+    locustable.clear();
 
     AlleleFreqs A(&Loci);
     A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
