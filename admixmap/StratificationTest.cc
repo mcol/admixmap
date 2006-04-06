@@ -103,7 +103,6 @@ void StratificationTest::calculate( const IndividualCollection* const individual
   gsl_matrix *popRepX = gsl_matrix_calloc( individuals->getSize(), NumberOfTestLoci );
   //bool flag = false;
   vector<unsigned short> genotype(2, 0);
-  int ancestry[2];
 
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
@@ -111,17 +110,21 @@ void StratificationTest::calculate( const IndividualCollection* const individual
 
     for( int i = 0; i < individuals->getSize(); i++ ){
       const Individual* const ind = individuals->getIndividual(i);
-      const vector<vector<unsigned short> > genotypeArray = ind->getGenotype(jj);
-      // recode as vector<unsigned short>
-      genotype[0] = genotypeArray[0][0];
-      genotype[1] = genotypeArray[0][1];
-      ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
+      if(ind->GenotypeIsMissing(jj)){// if genotype is missing, sample it
+	int ancestry[2];
+	ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
+	genotype = SimGenotypeConditionalOnAncestry(AlleleFreqs[jj] , ancestry );
+      }
+      else{//get sample haplotype pair
+	// (the number of copies of allele1 is the same as in the observed genotype)
+	const int* genotypeArray = ind->getSampledHapPair(jj);
+	genotype[0] = genotypeArray[0]+1;
+	genotype[1] = genotypeArray[1]+1;
+      }
       //if( genotype[0] != genotype[1] ){ // if heterozygous
       // genotype = SampleHeterozygotePhase( freqs, ancestry ); // sample phase conditional on ordered diploid ancestry 
       //} else 
-      if( genotype[0] == 0 ){ // if genotype is missing, sample it
-	genotype = SimGenotypeConditionalOnAncestry(AlleleFreqs[jj] , ancestry );
-      }
+      
       // ProbAllele1 = Prob( allele 1 ) conditional on individual admixture
       vector<double> ProbAllele1 = GenerateExpectedGenotype( ind, AlleleFreqs[jj], Populations );
       vector<unsigned short> repgenotype = SimGenotypeConditionalOnAdmixture( ProbAllele1 );
