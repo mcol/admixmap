@@ -112,6 +112,12 @@ IndividualCollection::~IndividualCollection() {
 #endif
 }
 
+void IndividualCollection::DeleteGenotypes(){
+  for (unsigned int i = rank; i < size; i += NumProcs) {
+    _child[i]->DeleteGenotypes();
+  }
+}
+
 // ************** INITIALISATION AND LOADING OF DATA **************
 
 void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,

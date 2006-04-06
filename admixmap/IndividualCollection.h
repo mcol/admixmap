@@ -40,6 +40,7 @@ public:
   IndividualCollection();
   ~IndividualCollection();
   IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
+  void DeleteGenotypes();
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
 		  const std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta, 
