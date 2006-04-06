@@ -41,7 +41,7 @@ public:
   void SetSize( unsigned, unsigned);
   void SetPriorEta( double, double );
   void SetPriorMu( const double* const);
-  void Sample( const double* const, std::vector<double> *alpha);
+  void Sample( const double* const, std::vector<double> *alpha, bool fixedprops);
   double getStepSize()const;
   double getExpectedAcceptanceRate()const;
     

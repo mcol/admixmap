@@ -168,7 +168,7 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    // updated only from those individuals who belong to the component
    
      //sample alpha conditional on individual admixture proportions
-     PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0] );
+     PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0], options->PopAdmixturePropsAreEqual() );
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
 
   }
@@ -383,7 +383,7 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
     transform(rho.begin(), rho.end(), SumLogRho.begin(), SumLogRho.begin(), std::plus<double>());
 }
 
-void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho, int iteration){
+void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
   //SumAncestry is a (NumberOfCompositeLoci) * (Populations+1) array of counts of ancestry states that are
   // unequal (element 0) and equal to each possible ancestry states
   //sumlogrho indicates whether to accumulate sums of log rho
@@ -431,13 +431,13 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho, int it
 //broadcast rho to all processes
 //no need to broadcast globaltheta if it is kept fixed
 #ifdef PARALLEL
-  MPE_Log_event(7, iteration, "Barrier");
+  MPE_Log_event(7, 0, "Barrier");
   MPI::COMM_WORLD.Barrier();
-  MPE_Log_event(8, iteration, "BarrEnd");
+  MPE_Log_event(8, 0, "BarrEnd");
 
-  MPE_Log_event(1, iteration, "Bcastrho");
+  MPE_Log_event(1, 0, "Bcastrho");
   MPI::COMM_WORLD.Bcast(&(*(rho.begin())), rho.size(), MPI::DOUBLE, 0);
-  MPE_Log_event(2, iteration, "Bcasted");
+  MPE_Log_event(2, 0, "Bcasted");
 #endif    
   //set locus correlation
   Loci->SetLocusCorrelation(rho);

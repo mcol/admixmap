@@ -73,6 +73,7 @@ void AdmixOptions::Initialise(){
   NumberOfOutcomes = -1;
   RegType = None;
   GlobalRho = true;//corresponds to globalrho = 1;
+  PopAdmixPropsAreEqual = false;
   IndAdmixHierIndicator = true; //hierarchical model on ind admixture
   HapMixModelIndicator = false; //model haplotypes with mixture model
   chibIndicator = false;//calculate marginal likelihood by Chib method
@@ -595,6 +596,9 @@ const char* AdmixOptions::getIndAdmixModeFilename()const{
 bool AdmixOptions::CheckData()const{
     return checkData;
 }
+bool AdmixOptions::PopAdmixturePropsAreEqual()const{
+  return PopAdmixPropsAreEqual;
+}
 
 void AdmixOptions::SetOptions(int nargs, char** args)
 {
@@ -690,19 +694,11 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"likratiofile",                          1, 0,  0 }, // string
     {"indadmixmodefile",                      1, 0,  0 }, // string
 
-    // Other options
-    {"numannealedruns",                       1, 0,  0 }, // long
-    {"coutindicator",                         1, 0, 'c'}, // int 0: 1
-    {"displaylevel",                          1, 0,  0 }, // int 0: 2
+    //prior and model specification
     {"randommatingmodel",                     1, 0,  0 }, // int 0: 1
     {"globalrho",                             1, 0,  0 }, // int 0: 1
     {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
     {"hapmixmodel",                           1, 0,  0 }, // int 0: 1
-    {"chib",                                  1, 0,  0 }, // int 0: 1
-    {"thermo",                                1, 0,  0 }, // int 0: 1 
-    {"testoneindiv",                          1, 0,  0 }, // int 0: 1 
-    {"reportedancestry",                      1, 0, 'r'}, // string 
-    {"seed",                                  1, 0,  0 }, // long
     {"etapriorfile",                          1, 0,  0 }, // string      
     {"globalsumintensitiesprior",             1, 0,  0 }, // vector of doubles of length 2
     {"sumintensitiesprior",                   1, 0,  0 }, // vector of doubles of length 3 
@@ -712,8 +708,19 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"admixtureprior",                        1, 0,  0 }, // binary vector
     {"admixtureprior1",                       1, 0,  0 }, // binary vector
     {"fixedallelefreqs",                      1, 0,  0 }, // int 0, 1
+    {"popadmixproportionsequal",              1, 0,  0 }, //int 0, 1
     {"correlatedallelefreqs",                 1, 0,  0 }, // int 0, 1
     {"xonlyanalysis",                         1, 0,  0 }, // int 0, 1
+
+    // Other options
+    {"numannealedruns",                       1, 0,  0 }, // long
+    {"coutindicator",                         1, 0, 'c'}, // int 0: 1
+    {"displaylevel",                          1, 0,  0 }, // int 0: 2
+    {"chib",                                  1, 0,  0 }, // int 0: 1
+    {"thermo",                                1, 0,  0 }, // int 0: 1 
+    {"testoneindiv",                          1, 0,  0 }, // int 0: 1 
+    {"reportedancestry",                      1, 0, 'r'}, // string 
+    {"seed",                                  1, 0,  0 }, // long
     {"checkdata",                         1, 0,  'd' }, // int 0, 1
     {0, 0, 0, 0}    // marks end of array
   };
@@ -933,6 +940,10 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 initalpha[0] = CstrToVec(optarg);OptionValues["admixtureprior"]=optarg;
       } else if (long_option_name == "admixtureprior1") {
 	 initalpha[1] = CstrToVec(optarg);OptionValues["admixtureprior1"]=optarg;
+      } else if(long_option_name == "popadmixproportionsequal"){
+	if (strtol(optarg, NULL, 10) == 1){
+	  PopAdmixPropsAreEqual = true; OptionValues["popadmixproportionsequal"]="1";
+	}
       } else {
 	cerr << "Unknown option: " << long_option_name;
 	if (optarg) {

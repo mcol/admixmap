@@ -63,7 +63,7 @@ public:
   
   void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
   void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);
-  void SampleSumIntensities(const int* SumAncestry, bool sumlogrho, int iteration) ;
+  void SampleSumIntensities(const int* SumAncestry, bool sumlogrho) ;
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
   void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   

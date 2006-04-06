@@ -108,7 +108,7 @@ int main( int argc , char** argv ){
     Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
     //print table of loci for R script to read
     string locustable = options.getResultsDir();
-    locustable.append("/");locustable.append("LocusTable.txt");
+    locustable.append("/LocusTable.txt");
     Loci.PrintLocusTable(locustable.c_str());
     locustable.clear();
 
@@ -173,7 +173,7 @@ int main( int argc , char** argv ){
 		
 	InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
       }
-    
+      //IC->DeleteGenotypes();
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
     
@@ -501,8 +501,11 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	OutputParameters(iteration, IC, &L, &A, R, &options, Log);
 	    
       // ** set merged haplotypes for allelic association score test 
-      if( iteration == options.getBurnIn() && options.getTestForAllelicAssociation() ){
-	Scoretest.SetAllelicAssociationTest(L.getalpha0());
+      if( iteration == options.getBurnIn() ){
+	if(options.getTestForAllelicAssociation())
+	  Scoretest.SetAllelicAssociationTest(L.getalpha0());
+	//if( options.getStratificationTest() )
+	//StratTest.Initialize( &options, Loci, IC, Log);
       }
 	    
       //Updates and Output after BurnIn     
@@ -707,7 +710,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     //L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
     //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
     L->SampleSumIntensities(IC->getSumAncestry(),  
-			    (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1), iteration);
+			    (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1));
   }
 
   else

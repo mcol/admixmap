@@ -99,31 +99,34 @@ void DirichletParamSampler::SetPriorMu( const double* const ingamma ) {
 }
 #endif
 
-void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector<double> *alpha ) {
+void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector<double> *alpha, bool fixedprops ) {
   // sumlogtheta = sum log observed proportions
+  //fixed props indicates whether proportions are to be fixed or sampled
   // update elements of mu with adaptive rejection sampler conditional on sumlogtheta
   // update eta with Hamiltonian  
 #if SAMPLERTYPE==1
-  gsl_set_error_handler_off();
+  //gsl_set_error_handler_off();
   eta = accumulate(alpha->begin(), alpha->end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
   for( unsigned i = 0; i < K; i++ ) {
     mu[i] = (*alpha)[i]/eta;
     //cout << (*alpha)[i] << " ";
   }
-  double b = 0.0; 
 
-  for(int updates=0; updates < 2; ++ updates) { // loop twice 
-    // loop over elements j,k of mu to update mu[j] conditional on (mu[j] + mu[k]), mu[i] where i neq j,k 
-    for( unsigned int j = 1; j < K; ++j ) {
-      for( unsigned int k = 0; k < j; ++k ) {
-	b = mu[j] + mu[k]; 
-	AlphaParameters[1] = eta; // dispersion parameter
-	AlphaParameters[2] = b; 
-	AlphaParameters[3] = sumlogtheta[j]; 
-	AlphaParameters[4] = sumlogtheta[k];
-	DirParamArray.setUpperBound(b); // avoid singularity at b
-	mu[j] = DirParamArray.Sample(AlphaParameters, ddlogf);
-	mu[k] = b - mu[j];
+  if(!fixedprops){
+    double b = 0.0; 
+    for(int updates=0; updates < 2; ++ updates) { // loop twice 
+      // loop over elements j,k of mu to update mu[j] conditional on (mu[j] + mu[k]), mu[i] where i neq j,k 
+      for( unsigned int j = 1; j < K; ++j ) {
+	for( unsigned int k = 0; k < j; ++k ) {
+	  b = mu[j] + mu[k]; 
+	  AlphaParameters[1] = eta; // dispersion parameter
+	  AlphaParameters[2] = b; 
+	  AlphaParameters[3] = sumlogtheta[j]; 
+	  AlphaParameters[4] = sumlogtheta[k];
+	  DirParamArray.setUpperBound(b); // avoid singularity at b
+	  mu[j] = DirParamArray.Sample(AlphaParameters, ddlogf);
+	  mu[k] = b - mu[j];
+	}
       }
     }
   }

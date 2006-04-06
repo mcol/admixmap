@@ -88,6 +88,7 @@ public:
   void setNumberOfOutcomes(int);
   void setRegType(RegressionType R);
   bool isGlobalRho() const;
+  bool PopAdmixturePropsAreEqual()const;
   bool getIndAdmixHierIndicator() const;
   bool getHapMixModelIndicator() const;
   bool getChibIndicator() const;
@@ -173,6 +174,7 @@ private:
   bool chibIndicator;//calculate marginal likelihood using Chib method
   bool thermoIndicator;//calculate marginal likelihood using simulated annealing
   bool TestOneIndivIndicator;//calculate marginal likelihood for one individual only
+  bool PopAdmixPropsAreEqual;
   long NumAnnealedRuns;
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
   bool TestForAdmixtureAssociation;
@@ -187,7 +189,7 @@ private:
   bool TestForMisspecifiedAlleleFreqs2;
   bool HWTest;
   bool OutputAlleleFreq;
-    bool checkData;
+  bool checkData;
 
   std::vector<bool> _admixed;
   bool _symmetric;         
