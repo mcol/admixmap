@@ -583,13 +583,19 @@ void Individual::SampleHapPair(AlleleFreqs *A, bool hapmixmodel){
 	int anc[2];//to store ancestry states
 	GetLocusAncestry(j,jj,anc);
 	//might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-	(*Loci)(locus)->SampleHapPair(&(sampledHapPairs[locus]), PossibleHapPairs[locus], anc);
-	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid());
+	if(PossibleHapPairs[locus].size() == 1){// no need to sample if only one possible hap pair
+	  sampledHapPairs[locus].haps[0] = PossibleHapPairs[locus][0].haps[0];
+	  sampledHapPairs[locus].haps[1] = PossibleHapPairs[locus][0].haps[1];
 	}
+	else{
+ 	(*Loci)(locus)->SampleHapPair(&(sampledHapPairs[locus]), PossibleHapPairs[locus], anc);
+	}//now update allelecounts in AlleleFreqs using sampled hap pair
+	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid());
+      }
     }   
   } //end chromosome loop
 }
-
+  
 void Individual::SampleJumpIndicators(bool sampleArrivals){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
