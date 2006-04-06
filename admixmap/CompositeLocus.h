@@ -32,16 +32,7 @@
 
 typedef struct
  {
-   //  hapPair(){};
-   //~hapPair(){};
    int haps[2];
-   //hapPair& operator=(const hapPair& h){
-   //if(&h != this){
-   // haps[0] = h.haps[0];
-   // haps[1] = h.haps[1];
-   //}
-   //return *this;
-   //};
 }hapPair  ; 
 
 class CompositeLocus 

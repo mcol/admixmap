@@ -13,11 +13,7 @@
 typedef std::vector<std::string> Vector_s; //std vector of strings 
 typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors
 
-typedef struct{
-  unsigned numloci;
-  std::vector<std::vector<unsigned short> > alleles;
-  bool missing;
-}genotype;
+typedef std::vector<std::vector<unsigned short> > genotype;
 
 enum RegressionType {Linear, Logistic, None, Both};
 enum DataType {Continuous, Binary};

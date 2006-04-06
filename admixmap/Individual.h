@@ -35,6 +35,8 @@ public:
  
   ~Individual();
 
+  void DeleteGenotypes();
+
   void HMMIsBad(bool loglikisbad);
 
   static void SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options);

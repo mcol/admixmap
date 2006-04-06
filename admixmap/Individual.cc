@@ -114,7 +114,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
-  
+
+  GenotypesMissing = new bool*[numChromosomes];  
   LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   size_t AncestrySize = 0;  // set size of locus ancestry array
@@ -131,30 +132,24 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
       AncestrySize = 2 * Loci->GetSizeOfChromosome(j) ;
       gametes.push_back(2);
       X_posn = j;
-    } LocusAncestry[j] = new int[ AncestrySize];
+    } 
+    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
+    LocusAncestry[j] = new int[ AncestrySize];
     for(unsigned i = 0; i < AncestrySize; ++i) LocusAncestry[j][i] = 0;
   }
   //retrieve genotypes
-  Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes);
+  Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(int j = 0; j < numCompositeLoci; ++j) {
-    (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j].alleles, PossibleHapPairs[j]);
+    (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
     hapPair h;
     sampledHapPairs.push_back(h);
   }
   //initialise genotype probs array and array of indicators for genotypes missing at locus
   GenotypeProbs = new double*[numChromosomes];
-  GenotypesMissing = new bool*[numChromosomes];
   for(unsigned j = 0; j < numChromosomes; ++j) {
     GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations*Populations];
-    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
     SetGenotypeProbs(j, false);
-    int nlocus = Loci->getChromosome(j)->GetLocus(0);  
-    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
-      if( !(GenotypeIsMissing(nlocus)) ) GenotypesMissing[j][jj] = false;
-      else GenotypesMissing[j][jj] = true;
-      nlocus++;
-    }
   }
 
   // ** set up StepSizeTuner object for random walk updates of admixture **
@@ -223,7 +218,7 @@ void Individual::SetGenotypeProbs(int j, bool chibindicator=false){
   //instead of HapPairProbs when allelefreqs are not fixed.
   int locus = Loci->getChromosome(j)->GetLocus(0);
   for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-    if( !(GenotypeIsMissing(locus)) ){
+    if( !GenotypesMissing[j][jj] ){
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
 				       chibindicator);
     } else {
@@ -237,7 +232,7 @@ void Individual::AnnealGenotypeProbs(int j, const double coolness) {
   // called after energy has been evaluated, before updating model parameters
   int locus = Loci->getChromosome(j)->GetLocus(0);
   for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
-    if( !(GenotypeIsMissing(locus)) ) { 
+    if( !GenotypesMissing[j][jj] ) { 
       for(int k = 0; k < Populations*Populations; ++k) // loop over ancestry states
 	GenotypeProbs[j][jj*Populations*Populations+k] = pow(GenotypeProbs[j][jj*Populations*Populations+k], coolness); 
     }
@@ -246,9 +241,18 @@ void Individual::AnnealGenotypeProbs(int j, const double coolness) {
 }
 
 void Individual::setGenotypesToMissing(){
-  for(unsigned i = 0; i < genotypes.size(); ++i)genotypes[i].missing=true;
+  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c)
+    for(unsigned j = 0; j < Loci->GetSizeOfChromosome(c); ++j)
+      GenotypesMissing[c][j] = true;
 }
-
+void Individual::DeleteGenotypes(){
+  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
+    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k)
+      genotypes[j][k].clear();
+    genotypes[j].clear();
+  }
+  genotypes.clear();
+}
 //********** Allocation and deletion of static objects for score tests
 void Individual::SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options){
   Loci = pLoci;
@@ -333,7 +337,7 @@ void Individual::HMMIsBad(bool loglikisbad) {
 
 //******************** Accessors ***********************************************************
 const vector<vector<unsigned short> > Individual::getGenotype(unsigned int locus)const{
-  return genotypes[locus].alleles;
+  return genotypes[locus];
 }
 
 const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)const{
@@ -344,10 +348,10 @@ const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)
 // bool Individual::GetAlleleCountsAtLocus(int complocus, int locus, int allele, int* count)const
 // {
 //   int notmissing = true;
-//   if(genotypes[complocus].alleles[locus][0]==0 || genotypes[complocus].alleles[locus][1]==0)
+//   if(genotypes[complocus][locus][0]==0 || genotypes[complocus][locus][1]==0)
 //     notmissing = false;
 //   else{
-//     (*count) = (genotypes[complocus].alleles[locus][0] == allele) + (genotypes[complocus].alleles[locus][1] == allele);
+//     (*count) = (genotypes[complocus][locus][0] == allele) + (genotypes[complocus][locus][1] == allele);
 //   }
 //   return notmissing;
 // }
@@ -376,8 +380,9 @@ const vector<double> Individual::getRho()const {
 }
 
 void Individual::GetLocusAncestry(int locus, int Ancestry[2])const{
-  const vector<int> locustable = Loci->GetChrmAndLocus(locus);
-  GetLocusAncestry(locustable[0], locustable[1], Ancestry);
+  unsigned c, l;
+  Loci->GetChrmAndLocus(locus, &c, &l);
+  GetLocusAncestry(c, l, Ancestry);
 }
 void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const {
   Ancestry[0]  = LocusAncestry[chrm][locus];
@@ -432,7 +437,9 @@ void Individual::getSumNumArrivals(std::vector<unsigned> *sum)const{
 
 //Indicates whether genotype is missing at all simple loci within a composite locus
 bool Individual::GenotypeIsMissing(unsigned int locus)const {
-  return genotypes[locus].missing;
+  unsigned c, l;
+  Loci->GetChrmAndLocus(locus, &c, &l);
+  return GenotypesMissing[c][l];
 }
 
 //****************** Log-Likelihoods **********************
@@ -579,7 +586,7 @@ void Individual::SampleHapPair(AlleleFreqs *A, bool hapmixmodel){
     //loop over loci on current chromosome and update allele counts
     for( unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
       int locus =  C->GetLocus(jj);
-      if( hapmixmodel || !(GenotypeIsMissing(locus))){
+      if( hapmixmodel || !GenotypesMissing[j][jj]){
 	int anc[2];//to store ancestry states
 	GetLocusAncestry(j,jj,anc);
 	//might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample

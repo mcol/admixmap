@@ -92,7 +92,7 @@ public:
   int getNumberOfSimpleLoci()const;
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};  
 
-  void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes)const;
+  void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
 
 private:    
   Matrix_s locusData_;

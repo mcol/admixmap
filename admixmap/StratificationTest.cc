@@ -41,7 +41,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
       double max = 0;
       double n1, n2;
       double ExpHet;//expected heterozygosity
-      //select most informative locus (with greatest exp heteroxygosity), from those with
+      //select most informative locus (with greatest exp heterozygosity), from those with
       //less than 5% missing genotypes, on each chromosome
       for(unsigned locus = 0; locus < Loci.GetSizeOfChromosome(c); ++locus){
 	if(Loci(abslocus)->GetNumberOfStates() == 2){// test uses only diallelic loci
@@ -79,8 +79,8 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
       options->setStratificationTest(false);
     }
     else{
-      Log << NumberOfTestLoci << " loci used in stratification test.\n";
       Log.setDisplayMode(Off);
+      Log << NumberOfTestLoci << " loci used in stratification test.\n";
       for(int i = 0; i < NumberOfTestLoci; i++){
 	Log << Loci(TestLoci[i])->GetLabel(0) << "\n";
       }

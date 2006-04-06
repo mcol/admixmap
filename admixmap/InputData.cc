@@ -477,14 +477,14 @@ Sex InputData::GetSexValue(int i)const{
     return (Sex) sex;
 }
 
-void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes)const{
+void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
   unsigned int lociI = 0;
-
-    for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); ++j){
+  unsigned complocus = 0;
+  for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
+    for(unsigned int j = 0; j < Loci.GetSizeOfChromosome(c); ++j){
       genotype G;
       // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype 
-      int numLoci = Loci(j)->GetNumberOfLoci();
-      G.numloci = numLoci;
+      int numLoci = Loci(complocus)->GetNumberOfLoci();
       
       unsigned int count = 0;
       for (int locus = 0; locus < numLoci; locus++) {
@@ -494,18 +494,20 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
 	  
 	StringConvertor::toIntPair(&g, geneticData_[i][col]);
 
-	if(g[0] > Loci(j)->GetNumberOfAllelesOfLocus(locus) || (g[1] > Loci(j)->GetNumberOfAllelesOfLocus(locus)))
-	  throwGenotypeError(i, locus, Loci(j)->GetLabel(j), 
-			     g[0], g[1], Loci(j)->GetNumberOfAllelesOfLocus(locus) );
+	if(g[0] > Loci(complocus)->GetNumberOfAllelesOfLocus(locus) || (g[1] > Loci(complocus)->GetNumberOfAllelesOfLocus(locus)))
+	  throwGenotypeError(i, locus, Loci(complocus)->GetLabel(0), 
+			     g[0], g[1], Loci(complocus)->GetNumberOfAllelesOfLocus(locus) );
 	lociI++;
-	G.alleles.push_back(g);
+	G.push_back(g);
 	count += g[0];
       }
 
-      G.missing = (count == 0);
+      Missing[c][j] = (count == 0);
 
       genotypes->push_back(G);
+      ++complocus;
     }
+  }
 }
 
 void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const{
