@@ -583,7 +583,7 @@ void Individual::SampleHapPair(AlleleFreqs *A, bool hapmixmodel){
 	int anc[2];//to store ancestry states
 	GetLocusAncestry(j,jj,anc);
 	//might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-	(*Loci)(locus)->SampleHapPair(sampledHapPairs[locus].haps, PossibleHapPairs[locus], anc);
+	(*Loci)(locus)->SampleHapPair(&(sampledHapPairs[locus]), PossibleHapPairs[locus], anc);
 	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid());
 	}
     }   

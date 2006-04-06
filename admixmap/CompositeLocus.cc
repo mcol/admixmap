@@ -279,24 +279,22 @@ void CompositeLocus::AccumulateAlleleProbs(){
  *
  */
 //TODO: change hap to hapPair
-void CompositeLocus::SampleHapPair(int hap[2], const std::vector<hapPair > &HapPairs, const int ancestry[2])const{
+void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &HapPairs, const int ancestry[2])const{
   double* Probs = new double[HapPairs.size()];//1way array of hap.pair probs
-
-  for(unsigned k = 0; k < HapPairs.size(); ++k){
-    Probs[k] = HapPairProbs[ HapPairs[k].haps[0] * NumberOfStates * Populations * Populations + 
-			     HapPairs[k].haps[1] * Populations * Populations +
+  double* p = Probs;
+  happairiter end = HapPairs.end();
+  happairiter hiter = HapPairs.begin();
+  for( ; hiter != end ; ++hiter, ++p) {
+    *p = HapPairProbs[ hiter->haps[0] * NumberOfStates * Populations * Populations + 
+			     hiter->haps[1] * Populations * Populations +
 			     ancestry[0] * Populations  + ancestry[1]];
   }
 
   int h = Rand::SampleFromDiscrete(Probs, HapPairs.size());
   delete[] Probs;
-  //hap should really be a HapPair object
-  // so we can do
-  //return HapPairs[h];
-  //or
-  //hap = HapPairs[h];
-  hap[0] = HapPairs[h].haps[0];
-  hap[1] = HapPairs[h].haps[1];
+
+  hap->haps[0] = HapPairs[h].haps[0];
+  hap->haps[1] = HapPairs[h].haps[1];
 }
 
 

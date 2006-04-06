@@ -30,10 +30,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-typedef struct  
-{
+typedef struct
+ {
+   //  hapPair(){};
+   //~hapPair(){};
    int haps[2];
-} hapPair; 
+   //hapPair& operator=(const hapPair& h){
+   //if(&h != this){
+   // haps[0] = h.haps[0];
+   // haps[1] = h.haps[1];
+   //}
+   //return *this;
+   //};
+}hapPair  ; 
 
 class CompositeLocus 
 {
@@ -67,7 +76,7 @@ public:
   void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
   void SetHapPairProbsToPosteriorMeans(int iterations);
-  void SampleHapPair(int hap[2], const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
+  void SampleHapPair(hapPair*, const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
 
   //functions used for haplotype association score test 
   int GetMergedHaplotype( int i )const;
@@ -113,21 +122,24 @@ private:
 
 double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const std::vector<int> AlleleCounts );
 
+typedef std::vector<hapPair>::const_iterator happairiter;
+
 inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
   int Ksq = Populations*Populations;
-  double *p;
-  double *q;
+  double *p, *q = Probs;
   if(!chibindicator || !RandomAlleleFreqs) 
     p = HapPairProbs;
   else 
     p = HapPairProbsMAP;
   for(int k0 = 0; k0 < Ksq; ++k0) {
-    Probs[k0] = 0.0;
-    for(unsigned int h = 0; h < HapPairs.size() ; ++h) {
-      q = p + (HapPairs[h].haps[0] * NumberOfStates + HapPairs[h].haps[1]) * Ksq;
-      Probs[k0] += *q;  
+    *q = 0.0;
+   happairiter end = HapPairs.end();
+   happairiter h = HapPairs.begin();
+    for( ; h != end ; ++h) {
+      *q += *(p + (h->haps[0] * NumberOfStates + h->haps[1]) * Ksq);
     }
     p++;
+    q++;
   }
 }
 
