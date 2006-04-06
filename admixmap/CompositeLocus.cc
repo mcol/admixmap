@@ -405,18 +405,22 @@ void CompositeLocus::codeHapAllelesPairAsIntPair(const vector<int> HapAllelesPai
 
 //returns a vector of length NumberOfLoci of numbers of copies of allele a at this locus, as encoded in haplotype pair h
 const vector<int> CompositeLocus::getAlleleCounts(int a, const int* happair)const{
-  int* hap1Alleles = new int[NumberOfLoci];
-  int* hap2Alleles = new int[NumberOfLoci];
-  decodeIntAsHapAlleles(happair[0], hap1Alleles);
-  decodeIntAsHapAlleles(happair[1], hap2Alleles);
-  
   vector<int> counts(NumberOfLoci);
-  fill(counts.begin(), counts.end(), 0);
-  for(int l = 0; l < NumberOfLoci; ++l) counts[l] += (hap1Alleles[l]==a) + (hap2Alleles[l]==a);
-  //TODO: shortcut for SNP
-  
-  delete[] hap1Alleles;
-  delete[] hap2Alleles;
+  if(NumberOfStates == 2){
+    counts[0] = (happair[0] == a-1) + (happair[1] == a-1);
+  }
+  else{
+    int* hap1Alleles = new int[NumberOfLoci];
+    int* hap2Alleles = new int[NumberOfLoci];
+    decodeIntAsHapAlleles(happair[0], hap1Alleles);
+    decodeIntAsHapAlleles(happair[1], hap2Alleles);
+    
+    fill(counts.begin(), counts.end(), 0);
+    for(int l = 0; l < NumberOfLoci; ++l) counts[l] += (hap1Alleles[l]==a) + (hap2Alleles[l]==a);
+    
+    delete[] hap1Alleles;
+    delete[] hap2Alleles;
+  }
   return counts;
 }
 
