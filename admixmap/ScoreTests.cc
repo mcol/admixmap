@@ -20,7 +20,6 @@
 #include "ScoreTests.h"
 #include <numeric>
 #include "gsl/gsl_cdf.h" //for residual allelic assoc test
-#include "StringConvertor.h"
 
 using namespace std;
 
