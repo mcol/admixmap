@@ -168,7 +168,8 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
 	if( !(ind->GenotypeIsMissing(j)) && 
 	    (*Loci)(j)->GetNumberOfLoci() == 1  && !(A->IsRandom()) ){//CHECK: do only for SNPs?
 	  int NumStates = Loci->GetNumberOfStates(j);
-	  UpdateScoreForMisSpecOfAlleleFreqs( j, phi, ind->getGenotype(j), A->GetAlleleFreqs(j), NumStates );
+	  const vector<int> NumCopiesAllele1 = (*Loci)(j)->getAlleleCounts(1, ind->getSampledHapPair(j));
+	  UpdateScoreForMisSpecOfAlleleFreqs( j, phi, NumCopiesAllele1[0], A->GetAlleleFreqs(j), NumStates );
 	}
       }
     }
@@ -201,7 +202,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
  * allele frequencies. This function is only used for monitoring.
  * Here, the number of states is 2
  */
- void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, const vector<vector<unsigned short> > x, 
+void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, int NumCopiesAllele1,
 								const double* const AlleleFreqs, int NumStates)
 {
   vector<double> Score( Populations );
@@ -215,7 +216,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
     }
   }
   
-  if( x[0][0] == 1 && x[0][1] == 1 ){
+  if( NumCopiesAllele1 == 2 ){
     for( int k = 0; k < Populations; k++ ){
       Score[k] = 2 * AlleleFreqs[ NumStates*k ] * phi[k][k];
       for( int kk = 0; kk < Populations; kk++ )
@@ -230,7 +231,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
 	if( k != kk )
 	  InfoGene[j][ k*Populations + kk ] += Score[k] * Score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[0];}
   
-  else if( x[0][0] == 1 && x[0][1] != 1 ){
+  else if( NumCopiesAllele1 == 1 ){
     for( int k = 0; k < Populations; k++ ){
       Score[k] = 2 * ( 1 - 2 * AlleleFreqs[ NumStates*k ] ) * phi[k][k];
       for( int kk = 0; kk < Populations; kk++ )
@@ -244,7 +245,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
 	   if( k != kk )
 	     InfoGene[j][ k*Populations + kk ] += Score[k] * Score[kk] + 2*(phi[k][kk] + phi[kk][k]) / Pi[1];}
   
-  else if( x[0][0] != 0 && x[0][0] != 1 && x[0][1] != 1 ){
+  else if( NumCopiesAllele1 == 0 ){
     for( int k = 0; k < Populations; k++ ){
       Score[k] = -2 * ( 1 - AlleleFreqs[ NumStates*k ] ) * phi[k][k];
       for( int kk = 0; kk < Populations; kk++ )
