@@ -673,6 +673,51 @@ const int* IndividualCollection::getSumAncestry()const{
 //   return sumNumArrivals;
 // }
 
+unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)const{
+  /**
+   * returns a count of the copies of allele a at a comp locus
+   * only works for diallelic loci.
+   * used in strat test to determine loci with given percentage of observed genotypes 
+   */
+
+  int AlleleCounts = 0;
+  for(unsigned i = rank; i < size; i += NumProcs){
+    if(!_child[i]->GenotypeIsMissing(locus)){
+      const int* haps = _child[i]->getSampledHapPair(locus);
+      if(haps[0] == allele-1){// -1 because alleles count from 1 and haps count from 0
+	AlleleCounts++;
+      }
+      if(haps[1] == allele-1){
+	AlleleCounts++;
+      }
+    }
+  }
+#ifdef PARALLEL
+  MPI::COMM_WORLD.Barrier();
+  int totalCounts;
+  MPI::COMM_WORLD.Reduce(&AlleleCounts, &totalCounts, 1, MPI::INT, MPI::SUM, 0);
+  AlleleCounts = totalCounts;
+#endif
+  return AlleleCounts;
+}
+
+int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
+  //count number of missing genotypes at locus
+  int count = 0;
+  for(unsigned i = rank; i < size; i += NumProcs){
+    if(_child[i]->GenotypeIsMissing(locus)){
+      ++count;
+    }
+  }
+#ifdef PARALLEL
+  MPI::COMM_WORLD.Barrier();
+  int totalCount;
+  MPI::COMM_WORLD.Reduce(&count, &totalCount, 1, MPI::INT, MPI::SUM, 0);
+  count = totalCount;
+#endif
+  return count;
+}
+
 const chib* IndividualCollection::getChib()const{
   return &MargLikelihood;
 }

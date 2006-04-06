@@ -94,6 +94,8 @@ public:
   const vector<int> getSumLocusAncestry(int k)const;
   const vector<int> getSumLocusAncestryX(int k)const;
   const vector<unsigned> getSumNumArrivals();
+  unsigned GetSNPAlleleCounts(unsigned locus, int allele)const;
+  int getNumberOfMissingGenotypes(unsigned locus)const;
 
   std::vector<double> getOutcome(int)const;
   double getOutcome(int, int)const;
