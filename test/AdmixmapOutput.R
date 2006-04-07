@@ -896,11 +896,13 @@ if(is.null(user.options$paramfile)) {
       param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE)
       n <- dim(param.samples)[1]
       if(user.options$hapmixmodel ==1){
-        dimnames(param.samples)[[2]] <- c("SumIntensities.Mean", "SumIntensities.Var")
         checkConvergence(param.samples, "Population sumintensities parameters",
                          paste(resultsdir, "SumIntensitiesConvergenceDiags.txt", sep="/"));
+        postscript( paste(resultsdir, "PopSumIntensitiesAutocorrelations.ps", sep="/" ))     
+        plotAutocorrelations(param.samples, user.options$every)
+        dev.off()
       }else{
-        for(pop in 1:K) {
+        for(pop in 1:K) {##prepend "Dirichlet." to labels of Dirichlet params 
           dimnames(param.samples)[[2]][pop] <- paste("Dirichlet.",
                                                      population.labels[pop], sep="")
         }
