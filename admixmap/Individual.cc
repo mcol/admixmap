@@ -116,6 +116,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
 
   GenotypesMissing = new bool*[numChromosomes];  
+  missingGenotypes = 0;//allocated later, if needed
   LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   size_t AncestrySize = 0;  // set size of locus ancestry array
@@ -145,6 +146,11 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     hapPair h;
     sampledHapPairs.push_back(h);
   }
+  //Now the PossibleHapPairs have ben determined and missing genotype indicators have been set, 
+  //the genotypes are deleted as they are no longer needed 
+  if( options->getHWTestIndicator())SetMissingGenotypes();
+  DeleteGenotypes();
+
   //initialise genotype probs array and array of indicators for genotypes missing at locus
   GenotypeProbs = new double*[numChromosomes];
   for(unsigned j = 0; j < numChromosomes; ++j) {
@@ -178,6 +184,7 @@ Individual::~Individual() {
   delete[] ThetaProposal;
   delete[] ThetaXProposal;
   delete[] SumSoftmaxTheta;
+  delete[] missingGenotypes;
 }
 
 void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha) {
@@ -245,6 +252,7 @@ void Individual::setGenotypesToMissing(){
     for(unsigned j = 0; j < Loci->GetSizeOfChromosome(c); ++j)
       GenotypesMissing[c][j] = true;
 }
+
 void Individual::DeleteGenotypes(){
   for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
     for(int k = 0; k < Loci->getNumberOfLoci(j); ++k)
@@ -253,6 +261,20 @@ void Individual::DeleteGenotypes(){
   }
   genotypes.clear();
 }
+
+void Individual::SetMissingGenotypes(){
+  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
+  //used in HW score test; NB call before genotypes are deleted
+  if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
+  missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
+  unsigned index = 0;
+  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
+      missingGenotypes[index++] = (genotypes[j][k][0] == 0);
+    }
+
+}
+
 //********** Allocation and deletion of static objects for score tests
 void Individual::SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options){
   Loci = pLoci;
@@ -337,6 +359,7 @@ void Individual::HMMIsBad(bool loglikisbad) {
 
 //******************** Accessors ***********************************************************
 const vector<vector<unsigned short> > Individual::getGenotype(unsigned int locus)const{
+  if(genotypes[locus].size()==0)throw string("Invalid call to getGenotype()");
   return genotypes[locus];
 }
 
@@ -441,7 +464,12 @@ bool Individual::GenotypeIsMissing(unsigned int locus)const {
   Loci->GetChrmAndLocus(locus, &c, &l);
   return GenotypesMissing[c][l];
 }
-
+//Indicates whether genotype is missing at a simple locus
+//used by HW score test
+bool Individual::simpleGenotypeIsMissing(unsigned locus)const{
+  if(!missingGenotypes)throw string("missingGenotypes not allocated");
+  return missingGenotypes[locus];
+}
 //****************** Log-Likelihoods **********************
 // public method: 
 // calls private method to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue

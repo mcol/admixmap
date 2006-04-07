@@ -173,7 +173,7 @@ int main( int argc , char** argv ){
 		
 	InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
       }
-      //IC->DeleteGenotypes();
+
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
     

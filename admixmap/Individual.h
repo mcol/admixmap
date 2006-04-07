@@ -60,12 +60,14 @@ public:
   const std::vector<std::vector<unsigned short> > getGenotype(unsigned int locus)const;
 
   void setGenotypesToMissing();
+  void SetMissingGenotypes();
 
   const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
 
   const int* getSampledHapPair(int locus)const;
 
-  bool GenotypeIsMissing(unsigned int locus)const;
+  bool GenotypeIsMissing(unsigned int locus)const;//locus is a comp locus
+  bool simpleGenotypeIsMissing(unsigned locus)const;//locus is a simple locus
 
   double getSumrho()const;
 
@@ -156,7 +158,8 @@ private:
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
   double **GenotypeProbs;
-  bool **GenotypesMissing;
+  bool **GenotypesMissing;//indicators for missing genotypes at comp loci
+  bool *missingGenotypes;//indicators for missing genotypes at simple loci
   std::vector<hapPair> sampledHapPairs;
 
   static unsigned int numChromosomes;
