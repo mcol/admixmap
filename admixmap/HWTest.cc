@@ -70,7 +70,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
   double H; // prob heterozygous
   bool h;
   int locus = 0, complocus = 0, Ancestry0, Ancestry1;
-  vector<vector<unsigned short> > genotype;
+  //vector<vector<unsigned short> > genotype;
   Individual *ind = 0;
   double **Prob0 = 0, **Prob1 = 0;
 
@@ -89,7 +89,12 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 	Ancestry1 = ind->GetLocusAncestry( (int)chr, 1, j);
 	// if(Ancestry0 == Ancestry1) {
 
-	  genotype = ind->getGenotype(complocus);
+	//genotype = ind->getGenotype(complocus);
+	const int* happair = ind->getSampledHapPair(complocus);
+	int* alleles0 = new int[(*Loci)(complocus)->GetNumberOfLoci()];
+	int* alleles1 = new int[(*Loci)(complocus)->GetNumberOfLoci()];
+	(*Loci)(complocus)->decodeIntAsHapAlleles(happair[0], alleles0);
+	(*Loci)(complocus)->decodeIntAsHapAlleles(happair[1], alleles1);
 
 	  //allocate arrays to hold marginal alleleprobs; could be done in function but easier to control here.      
 	  Prob0 = new double*[(*Loci)(complocus)->GetNumberOfLoci()];
@@ -105,8 +110,8 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 	  (*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);   
 	  
 	  for(int jj = 0; jj < Loci->getNumberOfLoci(complocus); ++jj){       //loop over loci within comp locus
-	    if( genotype[jj][0] != 0){ //non-missing genotype, assumes second gamete missing if first is
-	      h = (genotype[jj][0] != genotype[jj][1]);
+	    if( !ind->simpleGenotypeIsMissing(locus)){ //non-missing genotype, assumes second gamete missing if first is
+	      h = alleles0[jj] != alleles1[jj];
 	      H = 1.0;
 	      //compute prob of heterozygosity by subtracting from 1 the prob of homozygosity, ie sum of diagonal products	    
 	      for(int a = 0; a < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
@@ -128,7 +133,9 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 	  free_matrix(Prob1, Loci->getNumberOfLoci(complocus));
 	  // }
 	++complocus;
-      }
+	delete[] alleles0;
+	delete[] alleles1;
+      }//end chromosome loop
     }
     ind = 0;
   }
