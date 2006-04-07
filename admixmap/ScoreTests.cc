@@ -1432,7 +1432,7 @@ void ScoreTests::R_output3DarrayDimensions(ofstream* stream, const vector<int> d
 }
 string ScoreTests::double2R( double x )
 {
-  if( isnan(x) )
+  if( isnan(x) || isinf(x) )
     return "NaN";
   else{
     stringstream ret;
@@ -1442,7 +1442,7 @@ string ScoreTests::double2R( double x )
 }
 string ScoreTests::double2R( double x, int precision )
 {
-  if( isnan(x) )
+  if( isnan(x) || isinf(x) )
     return "NaN";
   else{
     stringstream ret;
