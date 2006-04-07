@@ -118,20 +118,20 @@ void IndAdmixOutputter::visitIndividual(const Individual& ind, const vector<int>
   if (_options->getLocusForTestIndicator()){
     int ancestry[2];
     ind.GetLocusAncestry( _locusfortest[0], _locusfortest[1], ancestry );
-     vector<vector<unsigned short> > genotype_ = ind.getGenotype(_options->getLocusForTest());
+    //vector<vector<unsigned short> > genotype_ = ind.getGenotype(_options->getLocusForTest());
      if(_options->getPopulations() > 1 ){
         _out << ancestry[0] << "," << ancestry[1] << ",";
      }
-     if((*_Loci)(_options->getLocusForTest() )->GetNumberOfLoci() > 1 ){
+     //if((*_Loci)(_options->getLocusForTest() )->GetNumberOfLoci() > 1 ){
        const int* happair = ind.getSampledHapPair(_options->getLocusForTest());
 
-        if(_options->getPopulations() > 1 ){
-           genotype_ = ind.getGenotype(_options->getLocusForTest() );
-        }
+       //if(_options->getPopulations() > 1 ){
+       //  genotype_ = ind.getGenotype(_options->getLocusForTest() );
+       //}
         _out << happair[0] << "," << happair[1] << ",";
-     } else {
-        _out << genotype_[0][0] << "," << genotype_[0][1] << ",";
-     }
+	//} else {
+        //_out << genotype_[0][0] << "," << genotype_[0][1] << ",";
+	//}
   }
   _out << endl;
   _currentIndividual++;

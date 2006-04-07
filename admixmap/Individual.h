@@ -55,10 +55,6 @@ public:
   
   void setAdmixturePropsX(const double* const, size_t);
   
-  bool GetAlleleCountsAtLocus(int complocus, int locus, int a, int* count)const;
-
-  const std::vector<std::vector<unsigned short> > getGenotype(unsigned int locus)const;
-
   void setGenotypesToMissing();
   void SetMissingGenotypes();
 

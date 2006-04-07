@@ -358,26 +358,10 @@ void Individual::HMMIsBad(bool loglikisbad) {
 }
 
 //******************** Accessors ***********************************************************
-const vector<vector<unsigned short> > Individual::getGenotype(unsigned int locus)const{
-  if(genotypes[locus].size()==0)throw string("Invalid call to getGenotype()");
-  return genotypes[locus];
-}
 
 const std::vector<hapPair > &Individual::getPossibleHapPairs(unsigned int locus)const{
   return PossibleHapPairs[locus];
 }
-
-// returns an indicator for non-missing genotype at simple locus, and updates allele count array  
-// bool Individual::GetAlleleCountsAtLocus(int complocus, int locus, int allele, int* count)const
-// {
-//   int notmissing = true;
-//   if(genotypes[complocus][locus][0]==0 || genotypes[complocus][locus][1]==0)
-//     notmissing = false;
-//   else{
-//     (*count) = (genotypes[complocus][locus][0] == allele) + (genotypes[complocus][locus][1] == allele);
-//   }
-//   return notmissing;
-// }
 
 const int* Individual::getSampledHapPair(int locus)const{
   return sampledHapPairs[locus].haps;
