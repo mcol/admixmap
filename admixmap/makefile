@@ -1,26 +1,45 @@
+###############################################################################################
 # makefile for compiling ADMIXMAP
-# edit to suit your system by commenting/uncommenting lines (with #)
-
-##default is to make serial version with gcc compiler. To make parallel version, edit lines below or use make VERSION=parallel
-##remember to use make [VERSION=...] new when switching between versions
-##for debug (or profiling), use make [VERSION=...] DFLAGS=-g (or-pg) new
-
-VERSION = serial
-#VERSION = parallel
+#
+# The default is to make serial version with gcc compiler and optimised for i686 machines. 
+# For other versions, edit the following variables or specify on the command line. 
+# Use make[...] new to recompile from scratch.
+#
+# Serial/Parallel version: VERSION = [serial/parallel]
+# Processor type: ARCH = [i686/P4/AMD64/itanium2]
+# Compiler: CC = [g++/icpc/pgCC]
+# MPI wrapper for compiler PCC = [mpiCC/]
+# debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
+#
+###############################################################################################
 
 ##paths
-GSL_PATH =#only needed if in nonstandard location 
-MPICH_PATH = /usr/local/mpich/gcc##parallel only
-#MPICH_PATH = /usr/local/mpich2/gcc##parallel only, mpich2
-SPRNG_PATH = /opt/packages/sprng-2.0##parallel only
-MPICH_LIBDIR = lib64#this sometimes has different names
+GSL_PATH =# only needed if in nonstandard location 
+MPICH_PATH = /usr/local/mpich/gcc## parallel only
+#MPICH_PATH = /usr/local/mpich2/gcc## parallel only, mpich2
+SPRNG_PATH = /opt/packages/sprng-2.0## parallel only
+MPICH_LIBDIR = lib64# this sometimes has different names
 
-## ** Choose your preferred compiler
+## compiler definitions
 GNU_COMPILER  = g++ # GNU compiler, all machines
 INTEL_COMPILER = icpc# Intel compiler for Hamilton
 PORTLAND_COMPILER = pgCC# Portland Group compiler, for Walton
 MPICC = $(MPICH_PATH)/bin/mpiCC# MPI wrapper for gnu, MPI 1
 MPICXX = $(MPICH_PATH)/bin/mpicxx# MPI wrapper for gnu, MPI 2
+
+## DEFAULTS
+VERSION = serial
+#VERSION = parallel
+
+## processor type
+ARCH = i686# Intel 686
+#ARCH = P4#Pentium4
+#ARCH = AMD64# Walton
+#ARCH= itanium2# Hamilton (default)
+
+# compiler
+CC = $(GNU_COMPILER)#serial
+PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
 DESTDIR = ../test# where to put compiled exec
@@ -28,33 +47,47 @@ SERIAL_EXEC = admixmap# name of compiled executable
 DISTDIR			= $(DESTDIR)/admixmap-linux#directory for Linux distribution
 WINDISTDIR		= $(DESTDIR)/admixmap-win#  directory for Windows distribution
 
-## processor architecture flags
-## ** change this to your processor type
-## g++
-#PROC = -march=i686  # Intel 686
-#PROC = -march=pentium4 -mfpmath=sse # Pentium4
-PROC = -march=k8  # Walton, g++
-## icpc
-#PROC = -mcpu=itanium2  #Hamilton (default)
-## pgCC
-#PROC = -tp amd64  # Walton
-
 ## ** flags for release version, debug version or profiling version
 DFLAGS 		= -O3# release, optimized
 #DFLAGS 	= -g# debug
 # DFLAGS 	= -pg -O3# profiling
 
-## **compiler/linker flags
-GNUFLAGS = -W -Wall $(PROC) $(DFLAGS)# g++ compiler
-ICPCFLAGS = -w0 $(DFLAGS)#             icpc
-MPICCFLAGS = -w0 $(DFLAGS)#            mpiCC, ?redundant, use GNUFLAGS
-PGCCFLAGS = $(PROC) $(DFLAGS)#         pgCC
+#warning flags for compiler
+WFLAGS =
 
-## ** 
-CPPFLAGS = $(GNUFLAGS)
-#CPPFLAGS = $(ICPCFLAGS)
-#CPPFLAGS = $(MPICCFLAGS)
-#CPPFLAGS = $(PGCCFLAGS)
+# processor architecture flags
+PROC =
+
+## DO NOT EDIT BELOW HERE, except to add processor/compiler types
+ifeq ($(CC),$(GNU_COMPILER))
+WFLAGS = -W -Wall
+ifeq ($(ARCH),i686)
+PROC = -march=i686  # Intel 686
+else
+ifeq ($(ARCH),P4)
+PROC = -march=pentium4 -mfpmath=sse # Pentium4
+else
+ifeq ($(ARCH),AMD64)
+PROC = -march=k8  
+endif
+endif
+endif
+endif
+
+ifeq ($(CC),$(INTEL_COMPILER))
+WFLAGS = -w0
+ifeq ($(ARCH),itanium2)
+PROC = -mcpu=itanium2
+endif
+endif
+
+ifeq ($(CC),$(PORTLAND_COMPILER))
+ifeq ($(ARCH),AMD64)
+PROC = -tp amd64
+endif
+endif
+
+####  DO NOT EDIT BELOW HERE ####
 
 ## Library flags
 # math, GSL, GSL's CBLAS (linear algebra)
@@ -69,20 +102,21 @@ PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPICH_PATH)/$(MPICH_LIBDIR)  # -L/usr/
 PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPICH_PATH)/include# -I/usr/local/include
 
 ifeq ($(VERSION),parallel)
-CXX = $(MPICC)
+CXX = $(PCC)
 LIBS = $(PARALLEL_LIBS)
 LFLAGS = $(PARALLEL_LFLAGS)
 INCLUDES = $(PARALLEL_INCLUDES)
 EXEC = adm-para
 else
-CXX = $(GNU_COMPILER)
+CXX = $(CC)
 LIBS = $(SERIAL_LIBS)
 LFLAGS = 
 INCLUDES = 
 EXEC = $(SERIAL_EXEC)
 endif
 
-## DO NOT EDIT BELOW HERE ##
+## **compiler/linker flags
+CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 
 objects		= rand.o admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o \
 AdaptiveRejection.o StepSizeTuner.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o \
