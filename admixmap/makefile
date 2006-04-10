@@ -1,15 +1,19 @@
 # makefile for compiling ADMIXMAP
 # edit to suit your system by commenting/uncommenting lines (with #)
 
+#VERSION = serial
+VERSION = parallel
+
 ## ** Choose your preferred compiler
-CXX  = g++ # GNU compiler, all machines
-#CXX = icpc# Intel compiler for Hamilton
-#CXX = pgCC# Portland Group compiler, for Walton
-#CXX = mpiCC#
+GNU_COMPILER  = g++ # GNU compiler, all machines
+INTEL_COMPILER = icpc# Intel compiler for Hamilton
+PORTLAND_COMPILER = pgCC# Portland Group compiler, for Walton
+MPICC = /usr/local/mpich/gcc/bin/mpiCC# MPI wrapper for gnu, MPI 1
+#CXX = /usr/local/mpich2/gcc/bin/mpicxx# MPI wrapper for gnu, MPI 2
 
 ## **Destination details
 DESTDIR = ../test# where to put compiled exec
-EXEC = admixmap# name of compiled executable
+#EXEC = adm-para# name of compiled executable
 DISTDIR			= $(DESTDIR)/admixmap-linux#directory for Linux distribution
 WINDISTDIR		= $(DESTDIR)/admixmap-win#  directory for Windows distribution
 
@@ -17,12 +21,13 @@ WINDISTDIR		= $(DESTDIR)/admixmap-win#  directory for Windows distribution
 ## ** change this to your processor type
 ## g++
 #PROC = -march=i686  # Intel 686
-PROC = -march=pentium4 -mfpmath=sse # Pentium4
-#PROC = -march=k8  # Walton, g++
+#PROC = -march=pentium4 -mfpmath=sse # Pentium4
+PROC = -march=k8  # Walton, g++
 ## icpc
 #PROC = -mcpu=itanium2  #Hamilton (default)
 ## pgCC
 #PROC = -tp amd64  # Walton
+
 
 ## ** flags for release version, debug version or profiling version
 DFLAGS 		= -O3# release, optimized
@@ -32,14 +37,19 @@ DFLAGS 		= -O3# release, optimized
 ## **compiler/linker flags
 GNUFLAGS = -W -Wall $(PROC) $(DFLAGS)# g++ compiler
 ICPCFLAGS = -w0 $(DFLAGS)#             icpc
-MPICCFLAGS = -w0 $(DFLAGS)#            mpiCC
+MPICCFLAGS = -w0 $(DFLAGS)#            mpiCC, ?redundant, use GNUFLAGS
 PGCCFLAGS = $(PROC) $(DFLAGS)#         pgCC
 
 ## Library flags
-LIBS = -lm -static -lgsl -lgslcblas  # serial version
-#LIBS = -lm -lgsl -lgslcblas -lmpich # parallel version
-LFLAGS =                             # -L/usr/local/lib
-INCLUDES =                           # -I/usr/local/include
+# math, GSL, GSL's CBLAS (linear algebra)
+SERIAL_LIBS = -lm -lgsl -lgslcblas  #-static # serial version
+PARALLEL_LIBS = -lm -lgsl -lgslcblas -lmpich -lsprng -lgmp -lmpe# parallel version
+#mpich, sprng(parallel RNG), GNU message passing
+##NB: do not use -static on cluster
+
+##library flags for sprng in parallel version
+PARALLEL_LFLAGS = -L/opt/packages/sprng-2.0/lib -L/usr/local/mpich/gcc/lib64  # -L/usr/local/lib
+PARALLEL_INCLUDES = -I/opt/packages/sprng-2.0/include  -I/usr/local/mpich/gcc/include# -I/usr/local/include
 
 ## ** 
 CPPFLAGS = $(GNUFLAGS)
@@ -47,6 +57,19 @@ CPPFLAGS = $(GNUFLAGS)
 #CPPFLAGS = $(MPICCFLAGS)
 #CPPFLAGS = $(PGCCFLAGS)
 
+ifeq ($(VERSION),parallel)
+CXX = $(MPICC)
+LIBS = $(PARALLEL_LIBS)
+LFLAGS = $(PARALLEL_LFLAGS)
+INCLUDES = $(PARALLEL_INCLUDES)
+EXEC = adm-para
+else
+CXX = $(GNU_COMPILER)
+LIBS = $(SERIAL_LIBS)
+LFLAGS = 
+INCLUDES = 
+EXEC = admixmap
+endif
 
 ## DO NOT EDIT BELOW HERE ##
 
@@ -63,8 +86,6 @@ all:  	$(objects)
 	$(CXX) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
 
 again: 		clean all
-
-parallel:#TODO 
 
 clean:		          
 	rm -f *.o
