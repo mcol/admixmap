@@ -72,7 +72,7 @@ int main(int argc, char **argv){
   cout << NUMIND << " individuals" <<endl;
   cout << NUMVALIDINDS << " unrelated individuals" << endl;
 
-  //write locus file and header of genotypesfile 
+  // *** write locus file and header of genotypesfile 
   genotypesfile << "\"Individ\"\t";
   locusfile << "\"SNPid\"\t\"NumAlleles\"\t\"Distance\"\n";
   locusfile << setiosflags(ios::fixed) << setprecision(8);
@@ -126,42 +126,47 @@ int main(int argc, char **argv){
    }
 
    genotypesfile << endl;
-   for(indiv = 0; indiv < NUMIND; ++indiv) if(indisvalid[indiv]){
-     cout << "\r" << indiv+1 << " " << INDIVID[indiv] << " "  << indisvalid[indiv] << flush;
-     //write indiv id and sex
-     genotypesfile << INDIVID[indiv] << "\t";// << sex[indiv] <<"\t";
-     //rewind to start of file
-     genotypesin.clear(); // to clear fail status caused by eof
-     genotypesin.seekg(0);
-     getline(genotypesin, scrap);//skip header
 
-     position = 0.0;     
-     //read genotypes, one locus (row) at a time
-     for(locus = 0; locus < 1000/*NUMLOCI+ BadLoci.size()*/; ++locus){
-       prev = position;
-       genotypesin >> SNPID >> alleles >> scrap >> position;
-       if(position-prev >=0.0){//skip loci out of sequence
-	 //cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
-	 for(int col = 0; col < 7+indiv; ++col)genotypesin >> scrap;//skip to col for this individual, genotypes start at col 11
-	 genotypesin >> obs;
-	 
-	 //write to genotypesfile in admixmap format
-	 //set 50% to missing at half the loci
-	 if(indiv%2 && locus%2)genotypesfile << "\"0,0\"" << "\t";
-	 else
-	   genotypesfile << getGenotype(obs, alleles) << "\t";
-	 //cout << indiv << " "  << INDIVID[indiv] << " " << locus << " " << SNPID << " " << obs << " " <<  alleles << " " << getGenotype(obs, alleles) << endl << flush;
-	 //if(!(locus%10))system("pause");
-       }
-       //else 	 cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
-       getline(genotypesin, scrap);//skip remaining individuals in line
-     }
-     genotypesfile << endl;
-   }
-   cout << "\nFinished writing genotypesfile" << endl;
-
-   
-   genotypesfile.close();
-   genotypesin.close();
-   
+   // *** Write genotypesfile
+  for(unsigned chr = CHRNUM; chr <= lastchr; ++chr){
+    stringstream ss;
+    ss << "genotypes_chr" << chr+1 << "_CEU.b35.txt";
+    genotypesin.open(ss.str().c_str());
+    
+    for(indiv = 0; indiv < NUMIND; ++indiv) if(indisvalid[indiv]){
+      cout << "\r" << indiv+1 << " " << INDIVID[indiv] << " "  << indisvalid[indiv] << flush;
+      //write indiv id and sex
+      genotypesfile << INDIVID[indiv] << "\t";// << sex[indiv] <<"\t";
+      //rewind to start of file
+      genotypesin.clear(); // to clear fail status caused by eof
+      genotypesin.seekg(0);
+      getline(genotypesin, scrap);//skip header
+      
+      position = 0.0;     
+      //read genotypes, one locus (row) at a time
+      for(locus = 0; locus < 1000/*NUMLOCI+ BadLoci.size()*/; ++locus){
+	prev = position;
+	genotypesin >> SNPID >> alleles >> scrap >> position;
+	if(position-prev >=0.0){//skip loci out of sequence
+	  //cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
+	  for(int col = 0; col < 7+indiv; ++col)genotypesin >> scrap;//skip to col for this individual, genotypes start at col 11
+	  genotypesin >> obs;
+	  
+	  //write to genotypesfile in admixmap format
+	  //set 50% to missing at half the loci
+	  if(indiv%2 && locus%2)genotypesfile << "\"0,0\"" << "\t";
+	  else
+	    genotypesfile << getGenotype(obs, alleles) << "\t";
+	  //cout << indiv << " "  << INDIVID[indiv] << " " << locus << " " << SNPID << " " << obs << " " <<  alleles << " " << getGenotype(obs, alleles) << endl << flush;
+	  //if(!(locus%10))system("pause");
+	}
+	//else 	 cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
+	getline(genotypesin, scrap);//skip remaining individuals in line
+      }
+      genotypesfile << endl;
+    }
+    genotypesin.close();
+  }
+  genotypesfile.close();
+  cout << "\nFinished writing genotypesfile" << endl;
 }
