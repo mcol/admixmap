@@ -211,7 +211,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     if(options->getHapMixModelIndicator()){
       int NumProcs = 1;
 #ifdef PARALLEL
-      bool* temp = new bool[L];
+      int* temp = new int[L];
       dimallelescore = 0, dimalleleinfo = 0, dimhapscore = 0, dimhapinfo = 0;
       NumProcs = MPI::COMM_WORLD.Get_size();
 #endif
