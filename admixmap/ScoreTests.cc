@@ -192,14 +192,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     if(rank==0)OpenFile(Log, &allelicAssocScoreStream, options->getAllelicAssociationScoreFilename(), "Tests for allelic association");
     
     dim_ = new unsigned[L];//dimensions of arrays
-    int NumProcs = 1;
 
-#ifdef PARALLEL
-    bool* temp = new bool[L];
-    dimallelescore = 0, dimalleleinfo = 0, dimhapscore = 0, dimhapinfo = 0;
-    NumProcs = MPI::COMM_WORLD.Get_size();
-#endif
- 
     LocusLinkageAlleleScore = new double*[L];
     LocusLinkageAlleleInfo = new double*[L];
     ScoreWithinHaplotype = new double**[ L ];
@@ -215,28 +208,33 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     SumInfoWithinHaplotype = new double*[L];
     }
 
-    locusObsIndicator = new bool[L];
-    
-    //search for loci with no observed genotypes
-    for(int j = 0; j < L; ++j){
-      locusObsIndicator[j] = false;
-      for(int i = rank; i < indiv->getSize(); i+= NumProcs){
-	  bool condition = true;
-	  if(options->getHapMixModelIndicator())condition = true;//indiv->isMissingOutcome(0,i);
-	  else condition = !indiv->getIndividual(i)->GenotypeIsMissing(j);
-	if(condition){
-	  locusObsIndicator[j] = true;
+    if(options->getHapMixModelIndicator()){
+      int NumProcs = 1;
+#ifdef PARALLEL
+      bool* temp = new bool[L];
+      dimallelescore = 0, dimalleleinfo = 0, dimhapscore = 0, dimhapinfo = 0;
+      NumProcs = MPI::COMM_WORLD.Get_size();
+#endif
+      locusObsIndicator = new int[L];
+      
+      //search for loci with no observed genotypes
+      for(int j = 0; j < L; ++j){
+	locusObsIndicator[j] = false;
+	for(int i = rank; i < indiv->getSize(); i+= NumProcs){
+	  if(!indiv->getIndividual(i)->GenotypeIsMissing(j)){
+	    locusObsIndicator[j] = true;
+	  }
 	}
       }
-    }
-// #ifdef PARALLEL
-// //accumulate over individuals (processes)
-//     MPI::COMM_WORLD.Barrier();
-//     MPI::COMM_WORLD.Reduce(locusObsIndicator, temp, L, MPI::INT, MPI::LOR, 0);
-//     delete[] locusObsIndicator;
-//     locusObsIndicator = temp;
-// #endif
     
+#ifdef PARALLEL
+//accumulate over individuals (processes)
+    MPI::COMM_WORLD.Barrier();
+    MPI::COMM_WORLD.Allreduce(locusObsIndicator, temp, L, MPI::INT, MPI::SUM);
+    delete[] locusObsIndicator;
+    locusObsIndicator = temp;
+#endif
+    }    
     unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
     for( int j = 0; j < L; j++ ){
       int NumberOfLoci = (*Lociptr)(j)->GetNumberOfLoci();
@@ -647,18 +645,18 @@ void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, 
   }
 }
 
-void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, double YMinusEY, double phi, double DInvLink, bool /*missingOutcome*/)
+void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, double YMinusEY, double phi, double DInvLink, bool missingOutcome)
 {
   int locus = 0;
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
     for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
-//skip loci with missing genotypes as hap pairs have not been sampled for these
-	bool condition = !ind->GenotypeIsMissing(locus);
+      //skip loci with missing genotypes as hap pairs have not been sampled for these
+	bool condition = true;
 
-	if(options->getHapMixModelIndicator())condition = true;//ind->GenotypeIsMissing(locus) ;
-//in hapmixmodel, skip individuals with observed outcome
-//condition = !missingOutcome;
+	if(options->getHapMixModelIndicator())condition = !missingOutcome;
+	else condition = !ind->GenotypeIsMissing(locus);
+	//in hapmixmodel, skip individuals with observed outcome
       if(condition){
 	//retrieve sampled hap pair from Individual
 	const int* happair = ind->getSampledHapPair(locus);

@@ -56,7 +56,7 @@ private:
   double **SumLocusLinkageAlleleScore2;
   double **SumLocusLinkageAlleleScore;
   double **SumLocusLinkageAlleleInfo;
-  bool *locusObsIndicator;
+  int *locusObsIndicator;
   unsigned *dim_;
 
   double ***ScoreWithinHaplotype;
