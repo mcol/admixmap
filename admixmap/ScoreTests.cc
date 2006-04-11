@@ -208,7 +208,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     SumInfoWithinHaplotype = new double*[L];
     }
 
-    if(options->getHapMixModelIndicator()){
+    if(!options->getHapMixModelIndicator()){
       int NumProcs = 1;
 #ifdef PARALLEL
       int* temp = new int[L];
@@ -935,10 +935,15 @@ void ScoreTests::Output(int iteration, const std::string * PLabels){
   if( options->getTestForAllelicAssociation() )    {
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
        //case of simple locus
-      if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
-	OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, dim_[j], 
-					 SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
-					 SumLocusLinkageAlleleInfo[j], false);
+      if((* Lociptr)(j)->GetNumberOfLoci() == 1 ){
+	if((* Lociptr)(j)->GetNumberOfStates()==2)
+	  OutputTestsForAllelicAssociation1D(iterations, &allelicAssocScoreStream, j, dim_[j], 
+					     SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
+					     SumLocusLinkageAlleleInfo[j], false);
+	else OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, dim_[j], 
+					     SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
+					     SumLocusLinkageAlleleInfo[j], false);
+      }
       //case of haplotype
       else
 	OutputTestsForAllelicAssociation(iterations, &allelicAssocScoreStream, j, (*Lociptr)(j)->GetNumberOfLoci(), 
@@ -1029,10 +1034,15 @@ void ScoreTests::WriteFinalTables(){
     finalTable << "Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\n";
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
        //case of simple locus
-      if((* Lociptr)(j)->GetNumberOfLoci() == 1 )
-	OutputTestsForAllelicAssociation(iterations, &finalTable, j, dim_[j], 
+      if((* Lociptr)(j)->GetNumberOfLoci() == 1 ){
+	if((* Lociptr)(j)->GetNumberOfStates()==2)
+	OutputTestsForAllelicAssociation1D(iterations, &finalTable, j, dim_[j], 
 					 SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
 					 SumLocusLinkageAlleleInfo[j], true);
+	else OutputTestsForAllelicAssociation(iterations, &finalTable, j, dim_[j], 
+					      SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
+					      SumLocusLinkageAlleleInfo[j], true);
+      }
       //case of haplotype
       else
 	OutputTestsForAllelicAssociation(iterations, &finalTable, j, (*Lociptr)(j)->GetNumberOfLoci(), 
@@ -1139,21 +1149,79 @@ void ScoreTests::OutputTestsForHaplotypeAssociation( int iterations, ofstream* o
   }//end loop over loci
 }
 
-void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* outputstream, int locus, unsigned dim, 
+void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* outputstream, int j, unsigned NumAlleles, 
+						   const double* score, const double* scoresq, const double* info, bool final )
+//multiallelic case
+//j = locus
+{
+  double *ScoreVector = 0, *CompleteMatrix = 0, *ObservedMatrix = 0;
+  string sep = final? "\t" : ",";
+  
+  ScoreVector = new double[NumAlleles];
+  copy(score, score+NumAlleles, ScoreVector);
+  scale_matrix(ScoreVector, 1.0/( iterations), NumAlleles, 1);
+  
+  CompleteMatrix = new double[NumAlleles*NumAlleles];
+  copy(info, info + NumAlleles*NumAlleles, CompleteMatrix);
+  scale_matrix(CompleteMatrix, 1.0/( iterations), NumAlleles, NumAlleles);
+  
+  ObservedMatrix = new double[NumAlleles*NumAlleles];
+  for(unsigned d1 = 0; d1 < NumAlleles; ++d1)for(unsigned d2 = 0; d2 < NumAlleles; ++d2)
+    ObservedMatrix[d1*NumAlleles + d2] = CompleteMatrix[d1*NumAlleles+d2] + ScoreVector[d1]*ScoreVector[d2] -
+      scoresq[d1*NumAlleles+d2]/( iterations );
+  
+  for( unsigned k = 0; k < NumAlleles; k++ ){
+  // ** output labels
+    if((*Lociptr)(j)->GetNumberOfLoci()>1) *outputstream << "\"" << (*Lociptr)(j)->GetLabel(k) << "\"" << sep;
+    else *outputstream << "\"" << (*Lociptr)(j)->GetLabel(0)<< "("<<k+1<<")\""<< sep;
+
+    if(final)
+      *outputstream  << double2R(ScoreVector[k], 3) << sep
+		     << double2R(CompleteMatrix[k*NumAlleles+k], 3) << sep
+		     << double2R(ObservedMatrix[k*NumAlleles+k], 3) << sep
+		     << double2R(100*ObservedMatrix[k*NumAlleles+k] / CompleteMatrix[k*dim_[j]+k], 2) << sep;//%Observed Info
+    double zscore = ScoreVector[ k ] / sqrt( ObservedMatrix[k*NumAlleles+k] );
+    if(final)*outputstream  << double2R(zscore, 3) << sep;//z-score
+    double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+    if(final)*outputstream << double2R(pvalue) << sep << endl;
+    else *outputstream << double2R(-log10(pvalue)) << sep << endl;
+    // if not last allele at locus, output unquoted "NA" in chi-square column
+    //if( final && k != NumAlleles - 1 ){
+    //*outputstream  << "NA" << sep << endl;
+    //}
+  }//end loop over alleles
+//   if(final){
+//     // calculate summary chi-square statistic
+//     double chisq = 0.0;
+//     try{
+//       chisq = GaussianConditionalQuadraticForm( NumAlleles - 1, ScoreVector, ObservedMatrix, NumAlleles );
+//       *outputstream  << double2R(chisq, 2) << sep << endl;
+//     }
+//     catch(...){
+//       *outputstream  << "NaN" << sep << endl;// if ObservedMatrix is rank deficient
+//     }
+//   }
+  
+  delete[] ScoreVector;
+  delete[] CompleteMatrix;
+  delete[] ObservedMatrix;
+}
+
+void ScoreTests::OutputTestsForAllelicAssociation1D( int iterations, ofstream* outputstream, int locus, unsigned dim, 
 						   const double* score, const double* scoresq, const double* info, bool final)
 {
+  //case of diallelic locus
   if(locusObsIndicator[locus]){
     double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
     string sep = final? "\t" : ",";
-    for(unsigned a = 0; a < dim; ++a){
-      Score = score[a] / ( iterations );
-      CompleteInfo = info[a] / ( iterations );
-      MissingInfo = scoresq[a] / ( iterations ) - Score * Score;
+      Score = score[0] / ( iterations );
+      CompleteInfo = info[0] / ( iterations );
+      MissingInfo = scoresq[0] / ( iterations ) - Score * Score;
       ObservedInfo = CompleteInfo - MissingInfo;
       //output label
-      string locuslabel = (*Lociptr)(locus)->GetLabel(a);
+      string locuslabel = (*Lociptr)(locus)->GetLabel(0);
       if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) *outputstream << "\"" << locuslabel << "\"" << sep;
-      else *outputstream << "\"" << locuslabel<< "("<<a+1<<")\""<< sep;
+      //else *outputstream << "\"" << locuslabel<< "("<<a+1<<")\""<< sep;
       if(final)
 	*outputstream << double2R(Score, 3)        << sep
 		      << double2R(CompleteInfo, 3) << sep
@@ -1174,7 +1242,6 @@ void ScoreTests::OutputTestsForAllelicAssociation( int iterations, ofstream* out
 	*outputstream << "NaN" << sep << endl;
       }
       
-    }
   }
 }
 
