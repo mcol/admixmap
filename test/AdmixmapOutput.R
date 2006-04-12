@@ -1081,7 +1081,7 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
     ## calculate posterior means of sampled fvalues at each locus
     if(K > 1) { 
       fValues.means <- calculateLocusfValues(allelefreq.samples.list)
-      fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=3))
+      fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=4))
       dimnames(fValues.means)[[2]] <- c("LocusName",
                                         paste(population.labels[1], population.labels[2], sep="."))
       write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
