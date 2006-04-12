@@ -114,7 +114,7 @@ private:
 				   const double* Score2, const double* Info, string sep );
 
   void OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
-			const double* score, const double* scoresq, const double* info, bool final );
+			const double* score, const double* scoresq, const double* info, bool final, unsigned );
 
   void OutputTestsForAllelicAssociation1D( int iterations, ofstream* outputstream, int locus, unsigned dim, 
 					 const double* score, const double* scoresq, const double* info, bool final);

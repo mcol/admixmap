@@ -959,7 +959,7 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
 	  }
 	  OutputScoreTest(iterations, outfile, dim_[j], labels, 
 			   SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
-			   SumLocusLinkageAlleleInfo[j], final);
+			  SumLocusLinkageAlleleInfo[j], final, dim_[j]);
 	}
       }
       //case of haplotype
@@ -967,7 +967,7 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
 	for(int i = 0; i < (*Lociptr)(j)->GetNumberOfLoci(); ++i)labels.push_back("\""+(*Lociptr)(j)->GetLabel(i)+"\"");
 	OutputScoreTest(iterations, outfile, (*Lociptr)(j)->GetNumberOfLoci(), labels,
 			SumScoreWithinHaplotype[ j ], SumScore2WithinHaplotype[ j ], 
-			SumInfoWithinHaplotype[ j ], final);
+			SumInfoWithinHaplotype[ j ], final, (*Lociptr)(j)->GetNumberOfLoci());
       }
     }//end j loop over comp loci
     if(final)delete outfile;
@@ -1004,7 +1004,7 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
 	labels.push_back(ss.str());
       }
       OutputScoreTest(iterations, outfile, dim_[j], labels, SumLocusLinkageAlleleScore[j], 
-		      SumLocusLinkageAlleleScore2[j], SumLocusLinkageAlleleInfo[j], final);
+		      SumLocusLinkageAlleleScore2[j], SumLocusLinkageAlleleInfo[j], final, dim_[j]-1);
     }
     if(final)delete outfile;
   }
@@ -1039,6 +1039,7 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
 
   //residual allelic association
   if(options->getTestForResidualAllelicAssoc()){
+    //vector<string> labels;
     if(final){
       string filename(options->getResultsDir());
       filename.append("/ResidualLDTestFinal.txt");
@@ -1046,6 +1047,15 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
       *outfile << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue\n";
     }else outfile = &ResAlleleScoreFile;
     OutputTestsForResidualAllelicAssociation(iterations, outfile, final);
+//     for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
+//       for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
+// 	int abslocus = chrm[c]->GetLocus(j);
+// 	labels.clear();
+// 	labels.push_back("\"" + (*Lociptr)(abslocus)->GetLabel(0) + "/" + (*Lociptr)(abslocus+1)->GetLabel(0) + "\"");
+// 	int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
+// 	int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
+// 	OutputScoreTest(iterations, outfile, M*N, labels, SumAlleleScore[c][j], SumAlleleScore2[c][j], SumAlleleInfo[c][j], final);
+//       }
     if(final)delete outfile;
   }
   
@@ -1228,25 +1238,25 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 }
 
 void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, vector<string> labels,
-				  const double* score, const double* scoresq, const double* info, bool final )
+				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
 {
-  //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with both z-scores for each entry and a summary chi-square statistic
+  //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element, if scalartest=true.
   //if final=false, only the log(-pvalue)'s are printed
 
-  double *ScoreVector = 0, *CompleteMatrix = 0, *ObservedMatrix = 0;
+  double *ScoreVector = 0, *CompleteInfo = 0, *ObservedInfo = 0;
   string sep = final? "\t" : ",";
   
   ScoreVector = new double[dim];
   copy(score, score+dim, ScoreVector);
   scale_matrix(ScoreVector, 1.0/( iterations), dim, 1);
   
-  CompleteMatrix = new double[dim*dim];
-  copy(info, info + dim*dim, CompleteMatrix);
-  scale_matrix(CompleteMatrix, 1.0/( iterations), dim, dim);
+  CompleteInfo = new double[dim*dim];
+  copy(info, info + dim*dim, CompleteInfo);
+  scale_matrix(CompleteInfo, 1.0/( iterations), dim, dim);
   
-  ObservedMatrix = new double[dim*dim];
+  ObservedInfo = new double[dim*dim];
   for(unsigned d1 = 0; d1 < dim; ++d1)for(unsigned d2 = 0; d2 < dim; ++d2)
-    ObservedMatrix[d1*dim + d2] = CompleteMatrix[d1*dim+d2] + ScoreVector[d1]*ScoreVector[d2] -
+    ObservedInfo[d1*dim + d2] = CompleteInfo[d1*dim+d2] + ScoreVector[d1]*ScoreVector[d2] -
       scoresq[d1*dim+d2]/( iterations );
   
   for( unsigned k = 0; k < dim; k++ ){
@@ -1255,10 +1265,10 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
 
     if(final)
       *outputstream  << double2R(ScoreVector[k], 3) << sep
-		     << double2R(CompleteMatrix[k*dim+k], 3) << sep//prints diagonal of CI matrix
-		     << double2R(ObservedMatrix[k*dim+k], 3) << sep//   "      "     "  MI   "
-		     << double2R(100*ObservedMatrix[k*dim+k] / CompleteMatrix[k*dim+k], 2) << sep;//%Observed Info
-    double zscore = ScoreVector[ k ] / sqrt( ObservedMatrix[k*dim+k] );
+		     << double2R(CompleteInfo[k*dim+k], 3) << sep//prints diagonal of CI matrix
+		     << double2R(ObservedInfo[k*dim+k], 3) << sep//   "      "     "  MI   "
+		     << double2R(100*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
+    double zscore = ScoreVector[ k ] / sqrt( ObservedInfo[k*dim+k] );
     if(final)*outputstream  << double2R(zscore, 3) << sep;//z-score
     double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
     if(final)*outputstream << double2R(pvalue) << sep;
@@ -1268,21 +1278,25 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
     *outputstream  << "NA" << sep << endl;
     }
   }//end loop over alleles
+
   if(final){
-    // calculate summary chi-square statistic
-    double chisq = 0.0;
+    double chisq=0.0;
     try{
-      chisq = GaussianConditionalQuadraticForm( dim - 1, ScoreVector, ObservedMatrix, dim );
-      *outputstream  << double2R(chisq, 2) << sep << endl;
+      if(dim2==dim) chisq = GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
+      else chisq = GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
+      if(chisq < 0.0)
+	*outputstream << "NA" << sep << endl;
+      else *outputstream << double2R(chisq) << sep << endl;
     }
-    catch(...){
-      *outputstream  << "NaN" << sep << endl;// if ObservedMatrix is rank deficient
+    catch(...){//in case ObservedInfo is rank deficient
+      *outputstream  << "NA" << sep << endl;
     }
   }
-  
+  //TODO:?? output p-value for chisq
+	
   delete[] ScoreVector;
-  delete[] CompleteMatrix;
-  delete[] ObservedMatrix;
+  delete[] CompleteInfo;
+  delete[] ObservedInfo;
 }
 
 
