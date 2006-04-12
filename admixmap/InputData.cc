@@ -93,7 +93,6 @@ void InputData::readFile(const char *fname, Matrix_s& data, LogWriter &Log)
     }
 }
 
-
 /**
  *  Auxilary function that converts Matrix_s to DataMatrix
  */
@@ -178,7 +177,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   IsPedFile = determineIfPedFile( options );
   CheckGeneticData(options);
 
-  double threshold = 100 / options->getRhoPriorMean();
+  double threshold = 100.0;if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
   checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
   locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
