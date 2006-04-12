@@ -54,7 +54,9 @@ void matrix_product(const double* const a, const double* const b, double* c, siz
 void scale_matrix(double *a, const double c, size_t d1, size_t d2);
 
 double determinant(double *a, size_t d);
-void CentredGaussianConditional( int kk, double *mean, double *var,
+void CentredGaussianConditional( size_t kk, double *mean, double *var,
+				 double *newmean, double *newvar, size_t dim );
+void CentredGaussianConditional( double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim );
 double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim );
 

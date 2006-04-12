@@ -369,11 +369,15 @@ int HH_svx (size_t n, double *A, double *x)
   return 0;//will only get here if successful
 }
 
-void CentredGaussianConditional( int kk, double *mean, double *var,
+void CentredGaussianConditional( size_t kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim )
 //Computes the conditional mean and variance of a centred subvector of length kk of a zero-mean Multivariate Gaussian vector
 //of length dim
 {
+  if(dim == (kk+1)){
+    CentredGaussianConditional(mean, var, newmean, newvar, dim);
+    return;
+  }
   int status = 0;
   //Note that matrix_view's do not allocate new data
   gsl_matrix_view mean_matrix = gsl_matrix_view_array(mean, dim, 1);
@@ -390,7 +394,7 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
            <- kk ->
   */
   gsl_matrix *mean1 = gsl_matrix_alloc(kk, 1);
-  for(int i = 0; i< kk; ++i){
+  for(size_t i = 0; i< kk; ++i){
     mean1->data[i] = mean[i];
     newmean[i] = mean[i];     //copy mean1 into new mean
   }
@@ -398,8 +402,8 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
   for(size_t i = 0; i< dim-kk; ++i) mean2->data[i] = mean[i+kk];
 
   gsl_matrix *Vaa = gsl_matrix_alloc(kk, kk);
-  for(int i = 0; i < kk; ++i)
-    for(int j = 0; j < kk; ++j){
+  for(size_t i = 0; i < kk; ++i)
+    for(size_t j = 0; j < kk; ++j){
       Vaa->data[i*kk +j] = var[i*dim +j];
       newvar[i*kk +j] = var[i*dim +j];  //copy Vaa into newvar
     }
@@ -409,7 +413,7 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
     for(size_t j = 0; j < dim-kk; ++j)Vbb->data[i*(dim-kk) +j] = var[(i+kk)*dim + j+kk];
 
   gsl_matrix *Vab = gsl_matrix_alloc(kk, dim-kk);
-  for(int i = 0; i < kk; ++i)
+  for(size_t i = 0; i < kk; ++i)
     for(size_t j = 0; j < dim-kk; ++j)Vab->data[i*(dim-kk) +j] = var[i*dim +j+kk];
 
   //compute inv(Vbb) * mean2 
@@ -430,7 +434,7 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
     double *x = new double[dim-kk];
     
     //compute V = Vbb * tr(Vab), column by column
-    for(int i = 0; i< kk; i++){
+    for(size_t i = 0; i< kk; i++){
       //copy column of Vba (=row of Vab)into x since we still need Vab and x will be overwritten
       for(size_t j = 0; j < dim-kk; ++j)x[j] = gsl_matrix_get(Vab, i, j);
       status = HH_svx(dim-kk, Vbb->data, x);//cannot call gsl function directly as it would destroy Vbb
@@ -463,6 +467,15 @@ void CentredGaussianConditional( int kk, double *mean, double *var,
 
 }
 
+void CentredGaussianConditional( double *mean, double *var,
+				 double *newmean, double *newvar, size_t dim ){
+  //special case of above with kk=dim-1
+  for(unsigned i = 0; i < dim-1; ++i){
+    newmean[i] = mean[i] - var[i*dim + dim-1] * mean[dim-1]/var[dim*dim-1];
+    for(unsigned j = 0; j < dim-1; ++j)
+      newvar[i*(dim-1)+j] = var[i*dim+j] - var[i*dim + dim-1]*var[(dim-1)*dim + j] / var[dim*dim-1];
+  }
+}
 double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim )
 {
   int status = 0;
