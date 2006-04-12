@@ -476,8 +476,9 @@ void CentredGaussianConditional( double *mean, double *var,
       newvar[i*(dim-1)+j] = var[i*dim+j] - var[i*dim + dim-1]*var[(dim-1)*dim + j] / var[dim*dim-1];
   }
 }
-double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim )
+double GaussianMarginalQuadraticForm( int kk, double *mean, double *var, size_t dim )
 {
+  //returns the quadratic form in the density of the marginal distribution of the subvector of length kk of a zero-mean Gaussian vector of length dim. Useful for score tests. 
   int status = 0;
   //Note that matrix_view's do not allocate new data
   gsl_matrix *Q = gsl_matrix_alloc(1, 1);
@@ -533,6 +534,16 @@ double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size
   return result;
 }
 
+double GaussianQuadraticForm(double* mean, double* var, unsigned dim){
+  double* VinvU = new double[dim];
+  HH_solve(dim, mean, var, VinvU);
+  double result = 0.0;
+  for(unsigned i = 0; i < dim; ++i){
+    result += mean[i] * VinvU[i];
+  }
+  delete[] VinvU;
+  return result;
+}
 //allocate space for 2-way rectangular array of doubles and initialise to zero
 double **alloc2D_d(int m, int n)
 {

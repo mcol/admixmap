@@ -352,7 +352,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs( int samples, 
       }
       // Summary chi-sq test for mis-specification in all continental-populations.
       try{
-	double chisq = GaussianConditionalQuadraticForm(Populations, SumScoreGene[j], ObservedMatrix, Populations);
+	double chisq = GaussianMarginalQuadraticForm(Populations, SumScoreGene[j], ObservedMatrix, Populations);
 	allelefreqscorestream << chisq<< endl;
       }
       catch(...){
@@ -403,7 +403,7 @@ void MisSpecAlleleFreqTest::OutputTestsForMisSpecifiedAlleleFreqs2( int samples,
 	allelefreqscorestream2 << "NA\tNA\tNA\t";
 	}
       try{
-	double chisq = GaussianConditionalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
+	double chisq = GaussianMarginalQuadraticForm(NumberOfStates-1, score, observedinfo, NumberOfStates-1);      
 	//observedinfo.InvertUsingLUDecomposition();
 	allelefreqscorestream2 << chisq/*double2R((score.Transpose() * observedinfo * score)(0,0))*/  << endl;
       }

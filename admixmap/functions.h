@@ -58,7 +58,8 @@ void CentredGaussianConditional( size_t kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim );
 void CentredGaussianConditional( double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim );
-double GaussianConditionalQuadraticForm( int kk, double *mean, double *var, size_t dim );
+double GaussianMarginalQuadraticForm( int kk, double *mean, double *var, size_t dim );
+double GaussianQuadraticForm(double* mean, double* var, unsigned dim);
 
 void matrix_inverse(const double* const a, double* inv, size_t d);
 void matrix_inverse(double* a, size_t d);
