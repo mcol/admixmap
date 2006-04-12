@@ -358,10 +358,12 @@ int main( int argc , char** argv ){
 	//test for H-W eq
 	if( options.getHWTestIndicator() )
 	  HWtest.Output(data.getLocusLabels()); 
-	//finish writing score test output as R objects
+
 	if( options.getScoreTestIndicator()) {
+	//finish writing score test output as R objects
 	  Scoretest.ROutput();
-	  Scoretest.WriteFinalTables();
+	  //write final tables
+	  Scoretest.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), true);
 	}
     
 	//output to likelihood ratio file
@@ -539,7 +541,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	    avgstream << endl;
 	  }
 	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretest.Output(iteration, data.GetPopLabels());
+	  if( options.getScoreTestIndicator() )  Scoretest.Output(iteration-burnin, data.GetPopLabels(), false);
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
     } // end "if not AnnealedRun" block

@@ -28,8 +28,7 @@ public:
 
   void InitialiseAssocScoreFile(const std::string *);
 
-  void Output(int, const std::string *);
-  void WriteFinalTables();
+  void Output(int iterations, const std::string * PLabels, bool final);
 
   void ROutput();
 
@@ -114,13 +113,11 @@ private:
 			      const double* Score, const double* VarScore,
 				   const double* Score2, const double* Info, string sep );
 
+  void OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
+			const double* score, const double* scoresq, const double* info, bool final );
+
   void OutputTestsForAllelicAssociation1D( int iterations, ofstream* outputstream, int locus, unsigned dim, 
 					 const double* score, const double* scoresq, const double* info, bool final);
-  void OutputTestsForAllelicAssociation( int iterations, ofstream* outputstream, int j, unsigned NumAlleles, 
-					 const double* score, const double* scoresq, const double* info, bool final );
-  
-  void OutputTestsForHaplotypeAssociation( int iterations, ofstream* outputstream, bool final );
-  
   void OutputAdmixtureScoreTest( int );
 
   void OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final);
