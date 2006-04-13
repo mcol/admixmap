@@ -266,7 +266,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
       cerr<<"Error: distance on line "<<i<<" of locusfile is negative."<<endl;
     }
     //check distances are not too large 
-    if(locusMatrix_.get(i,2) > threshold) {
+    if(locusMatrix_.get(i,2) >= threshold) {
       //flag = true;
       if(locusMatrix_.get(i,2) < 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome      
 	cerr << "Warning: distance of " <<locusMatrix_.get(i,2)<< "  at locus " <<i<<endl;
