@@ -1240,7 +1240,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, vector<string> labels,
 				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
 {
-  //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element, if scalartest=true.
+  //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element.
   //if final=false, only the log(-pvalue)'s are printed
 
   double *ScoreVector = 0, *CompleteInfo = 0, *ObservedInfo = 0;
@@ -1258,16 +1258,18 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
   for(unsigned d1 = 0; d1 < dim; ++d1)for(unsigned d2 = 0; d2 < dim; ++d2)
     ObservedInfo[d1*dim + d2] = CompleteInfo[d1*dim+d2] + ScoreVector[d1]*ScoreVector[d2] -
       scoresq[d1*dim+d2]/( iterations );
-  
   for( unsigned k = 0; k < dim; k++ ){
   // ** output labels
     *outputstream << labels[k] << sep;
-
-    if(final)
+    if(final){
       *outputstream  << double2R(ScoreVector[k], 3) << sep
 		     << double2R(CompleteInfo[k*dim+k], 3) << sep//prints diagonal of CI matrix
-		     << double2R(ObservedInfo[k*dim+k], 3) << sep//   "      "     "  MI   "
-		     << double2R(100*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
+		     << double2R(ObservedInfo[k*dim+k], 3) << sep;//   "      "     "  MI   "
+      if(CompleteInfo[k*dim+k]>0.0)
+      *outputstream<< double2R(100*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
+      else 
+	*outputstream << "NA" << sep;
+    }
     double zscore = ScoreVector[ k ] / sqrt( ObservedInfo[k*dim+k] );
     if(final)*outputstream  << double2R(zscore, 3) << sep;//z-score
     double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
@@ -1278,7 +1280,6 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
     *outputstream  << "NA" << sep << endl;
     }
   }//end loop over alleles
-
   if(final){
     double chisq=0.0;
     try{
@@ -1456,7 +1457,9 @@ string ScoreTests::double2R( double x, int precision )
   else{
     stringstream ret;
 
-    ret << setiosflags(ios::fixed) << setprecision(precision)<< x;
+    if(x < numeric_limits<float>::max( ))
+      ret << setiosflags(ios::fixed) << setprecision(precision);
+    ret << x;
     return( ret.str() );
   }
 }
