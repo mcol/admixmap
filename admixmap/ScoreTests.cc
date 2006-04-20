@@ -601,7 +601,7 @@ if(rank==0){
 	}
       }
       
-      if( (options->getTestForAllelicAssociation()  && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForHaplotypeAssociation() ){
+      if( (options->getTestForAllelicAssociation() && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForHaplotypeAssociation() ){
 	if(options->getHapMixModelIndicator() || locusObsIndicator[j]){//skip loci with no observed genotypes
 	  CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
 		       SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
@@ -718,7 +718,7 @@ void ScoreTests::UpdateScoreForWithinHaplotypeAssociation( const Individual* con
   for( int k = 0; k < K - 1; k++ )
     x[ k + 1 ] = ind->getAdmixtureProps()[k];//?? should be [k+1]
 
-  for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
+  for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){//loop over simple loci within compound locus
     x[0] = (double)allele2Counts[l];
 
     for( int k = 0; k < K + 1; k++ ){
@@ -746,7 +746,6 @@ void ScoreTests::UpdateAlleleScores( double* score, double* info, const double* 
   //if(!options->getHapMixModelIndicator())
   //copy(admixtureProps+1, admixtureProps+K, x+dim+1);
 
-
   //accumulate score and info
   for( unsigned k = 0; k < K + dim; k++ ){
     score[ k ] += phi * x[k] * YMinusEY;
@@ -763,8 +762,8 @@ void ScoreTests::UpdateAlleleScores( double* score, double* info, const double* 
 void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info, 
 			      double *sumscore, double* sumscoresq, double* suminfo)
 {
-  double *cscore = new double[dim];
-  double *cinfo = new double[dim*dim];
+  double *cscore = new double[dim];//centred score
+  double *cinfo = new double[dim*dim];//centred info
 
   unsigned NumCovars = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
   CentredGaussianConditional( dim, score, info, cscore, cinfo, NumCovars+dim );
@@ -942,34 +941,38 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
     *outfile << "Locus\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquare\n";
     }
     else outfile = &allelicAssocScoreStream;
-    vector<string> labels;
-    for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-      labels.clear();
-       //case of simple locus
-      if((* Lociptr)(j)->GetNumberOfLoci() == 1 ){
-	if((* Lociptr)(j)->GetNumberOfStates()==2)
-	  OutputTestsForAllelicAssociation1D(iterations, outfile, j, dim_[j], 
-					     SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
-					     SumLocusLinkageAlleleInfo[j], final);
-	else {
-	  for(unsigned i = 0; i < dim_[j]; ++i){
-	    stringstream ss;
-	    ss << "\"" << (*Lociptr)(j)->GetLabel(0) << "(" << i+1 << ")\"";
-	    labels.push_back(ss.str());
+    for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
+      if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
+	//case of simple locus
+	if((* Lociptr)(j)->GetNumberOfLoci() == 1 ){
+	  if((* Lociptr)(j)->GetNumberOfStates()==2){//SNP
+	    string locuslabel = (*Lociptr)(j)->GetLabel(0);
+	    OutputScalarScoreTest(iterations, outfile, locuslabel,
+				  SumLocusLinkageAlleleScore[j][0], SumLocusLinkageAlleleScore2[j][0], 
+				  SumLocusLinkageAlleleInfo[j][0], final);
 	  }
-	  OutputScoreTest(iterations, outfile, dim_[j], labels, 
-			   SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
-			  SumLocusLinkageAlleleInfo[j], final, dim_[j]);
+	  else {//multiallelic simple locus
+	    vector<string> labels;
+	    for(unsigned i = 0; i < dim_[j]; ++i){
+	      stringstream ss;
+	      ss << "\"" << (*Lociptr)(j)->GetLabel(0) << "(" << i+1 << ")\"";
+	      labels.push_back(ss.str());
+	    }
+	    OutputScoreTest(iterations, outfile, dim_[j], labels, 
+			    SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
+			    SumLocusLinkageAlleleInfo[j], final, dim_[j]);
+	  }
 	}
-      }
-      //case of haplotype
-      else{
-	for(int i = 0; i < (*Lociptr)(j)->GetNumberOfLoci(); ++i)labels.push_back("\""+(*Lociptr)(j)->GetLabel(i)+"\"");
-	OutputScoreTest(iterations, outfile, (*Lociptr)(j)->GetNumberOfLoci(), labels,
-			SumScoreWithinHaplotype[ j ], SumScore2WithinHaplotype[ j ], 
-			SumInfoWithinHaplotype[ j ], final, (*Lociptr)(j)->GetNumberOfLoci());
-      }
-    }//end j loop over comp loci
+	//case of haplotype
+	else{
+	  //for(int i = 0; i < (*Lociptr)(j)->GetNumberOfLoci(); ++i)labels.push_back("\""+(*Lociptr)(j)->GetLabel(i)+"\"");
+	  for(int simplelocus = 0; simplelocus < (*Lociptr)(j)->GetNumberOfLoci(); ++simplelocus){
+	    string locuslabel = (*Lociptr)(j)->GetLabel(simplelocus);
+	    OutputScalarScoreTest(iterations, outfile, locuslabel, SumScoreWithinHaplotype[ j ][simplelocus], 
+				  SumScore2WithinHaplotype[ j ][simplelocus], SumInfoWithinHaplotype[ j ][simplelocus], final);
+	  }
+	}
+      }//end j loop over comp loci
     if(final)delete outfile;
   }
   
@@ -1068,6 +1071,109 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
 // next few function calculate score tests from the cumulative sums of
 // the score, score squared, and information score and info can be
 // scalars, or respectively a vector and a matrix
+
+// generic scalar score test
+//TODO: move output of NA in chisq column outside as it is only required if along with vector tests
+void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
+					const double score, const double scoresq, const double info, bool final)
+{
+  double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
+  string sep = final? "\t" : ",";
+  Score = score / ( iterations );
+  CompleteInfo = info / ( iterations );
+  MissingInfo = scoresq / ( iterations ) - Score * Score;
+  ObservedInfo = CompleteInfo - MissingInfo;
+  //output label
+  *outputstream << "\"" << label << "\"" << sep;
+  if(final)
+    *outputstream << double2R(Score, 3)        << sep
+		  << double2R(CompleteInfo, 3) << sep
+		  << double2R(ObservedInfo, 3) << sep;
+  if(CompleteInfo > 0.0 && (MissingInfo < CompleteInfo)) {
+    PercentInfo = 100*ObservedInfo / CompleteInfo;
+    zscore = Score / sqrt( ObservedInfo );
+    pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+    if(final)
+      *outputstream << double2R(PercentInfo, 2) << sep
+		    << double2R(zscore,3)   << sep 
+		    << double2R(pvalue) << sep;// << endl;
+    else
+      *outputstream << double2R(-log10(pvalue)) << sep;// << endl;
+  }
+  else{
+    if(final)*outputstream << "NaN" << sep << "NaN" << sep;
+    *outputstream << "NaN" << sep;// << endl;
+  }
+  if(final)*outputstream << "NA";//NA in chisquare column in final table 
+  *outputstream << endl;
+}
+
+//generic vector score test
+void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, vector<string> labels,
+				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
+{
+  //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element.
+  //if final=false, only the log(-pvalue)'s are printed
+
+  double *ScoreVector = 0, *CompleteInfo = 0, *ObservedInfo = 0;
+  string sep = final? "\t" : ",";
+  
+  ScoreVector = new double[dim];
+  copy(score, score+dim, ScoreVector);
+  scale_matrix(ScoreVector, 1.0/( iterations), dim, 1);
+  
+  CompleteInfo = new double[dim*dim];
+  copy(info, info + dim*dim, CompleteInfo);
+  scale_matrix(CompleteInfo, 1.0/( iterations), dim, dim);
+  
+  ObservedInfo = new double[dim*dim];
+  for(unsigned d1 = 0; d1 < dim; ++d1)for(unsigned d2 = 0; d2 < dim; ++d2)
+    ObservedInfo[d1*dim + d2] = CompleteInfo[d1*dim+d2] + ScoreVector[d1]*ScoreVector[d2] -
+      scoresq[d1*dim+d2]/( iterations );
+  for( unsigned k = 0; k < dim; k++ ){
+  // ** output labels
+    *outputstream << labels[k] << sep;
+    if(final){
+      *outputstream  << double2R(ScoreVector[k], 3) << sep
+		     << double2R(CompleteInfo[k*dim+k], 3) << sep//prints diagonal of CI matrix
+		     << double2R(ObservedInfo[k*dim+k], 3) << sep;//   "      "     "  MI   "
+      if(CompleteInfo[k*dim+k]>0.0)
+      *outputstream<< double2R(100*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
+      else 
+	*outputstream << "NA" << sep;
+    }
+    double zscore = ScoreVector[ k ] / sqrt( ObservedInfo[k*dim+k] );
+    if(final)*outputstream  << double2R(zscore, 3) << sep;//z-score
+    double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+    if(final)*outputstream << double2R(pvalue) << sep;
+    else *outputstream << double2R(-log10(pvalue)) << sep << endl;
+    // if not last allele at locus, output unquoted "NA" in chi-square column
+    if( final && k != dim - 1 ){
+    *outputstream  << "NA" << sep << endl;
+    }
+  }//end loop over alleles
+  if(final){
+    double chisq=0.0;
+    try{
+      if(dim2==dim) chisq = GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
+      else chisq = GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
+      if(chisq < 0.0)
+	*outputstream << "NA" << sep << endl;
+      else *outputstream << double2R(chisq) << sep << endl;
+    }
+    catch(...){//in case ObservedInfo is rank deficient
+      *outputstream  << "NA" << sep << endl;
+    }
+  }
+  //TODO:?? output p-value for chisq
+	
+  delete[] ScoreVector;
+  delete[] CompleteInfo;
+  delete[] ObservedInfo;
+}
+
+// the next functions are for specific tests
+
 void ScoreTests::OutputAdmixtureScoreTest(int iterations)
 {
   int NumOutcomeVars = individuals->getNumberOfOutcomeVars();
@@ -1085,45 +1191,6 @@ void ScoreTests::OutputAdmixtureScoreTest(int iterations)
     }
   }
   assocscorestream << endl;
-}
-
-void ScoreTests::OutputTestsForAllelicAssociation1D( int iterations, ofstream* outputstream, int locus, unsigned dim, 
-						   const double* score, const double* scoresq, const double* info, bool final)
-{
-  //case of diallelic locus
-  if(options->getHapMixModelIndicator() || locusObsIndicator[locus]){
-    double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
-    string sep = final? "\t" : ",";
-      Score = score[0] / ( iterations );
-      CompleteInfo = info[0] / ( iterations );
-      MissingInfo = scoresq[0] / ( iterations ) - Score * Score;
-      ObservedInfo = CompleteInfo - MissingInfo;
-      //output label
-      string locuslabel = (*Lociptr)(locus)->GetLabel(0);
-      if(dim==1 || (*Lociptr)(locus)->GetNumberOfLoci()>1) *outputstream << "\"" << locuslabel << "\"" << sep;
-      //else *outputstream << "\"" << locuslabel<< "("<<a+1<<")\""<< sep;
-      if(final)
-	*outputstream << double2R(Score, 3)        << sep
-		      << double2R(CompleteInfo, 3) << sep
-		      << double2R(ObservedInfo, 3) << sep;
-      if(CompleteInfo > 0.0 && ObservedInfo > 0.0) {
-	PercentInfo = 100*ObservedInfo / CompleteInfo;
-	zscore = Score / sqrt( ObservedInfo );
-	pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	if(final)
-	  *outputstream << double2R(PercentInfo, 2) << sep
-			<< double2R(zscore,3)   << sep 
-			<< double2R(pvalue) << sep;// << endl;
-	else
-	  *outputstream << double2R(-log10(pvalue)) << sep;// << endl;
-      }
-      else{
-	if(final)*outputstream << "NaN" << sep << "NaN" << sep;
-	*outputstream << "NaN" << sep;// << endl;
-      }
-      if(final)*outputstream << "NA";//NA in chisquare column in final table 
-      *outputstream << endl;
-  }
 }
 
 void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstream,
@@ -1236,70 +1303,6 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
       delete[] ObservedInfo;
     }//end loop over loci on chromosome
 }
-
-void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, vector<string> labels,
-				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
-{
-  //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element.
-  //if final=false, only the log(-pvalue)'s are printed
-
-  double *ScoreVector = 0, *CompleteInfo = 0, *ObservedInfo = 0;
-  string sep = final? "\t" : ",";
-  
-  ScoreVector = new double[dim];
-  copy(score, score+dim, ScoreVector);
-  scale_matrix(ScoreVector, 1.0/( iterations), dim, 1);
-  
-  CompleteInfo = new double[dim*dim];
-  copy(info, info + dim*dim, CompleteInfo);
-  scale_matrix(CompleteInfo, 1.0/( iterations), dim, dim);
-  
-  ObservedInfo = new double[dim*dim];
-  for(unsigned d1 = 0; d1 < dim; ++d1)for(unsigned d2 = 0; d2 < dim; ++d2)
-    ObservedInfo[d1*dim + d2] = CompleteInfo[d1*dim+d2] + ScoreVector[d1]*ScoreVector[d2] -
-      scoresq[d1*dim+d2]/( iterations );
-  for( unsigned k = 0; k < dim; k++ ){
-  // ** output labels
-    *outputstream << labels[k] << sep;
-    if(final){
-      *outputstream  << double2R(ScoreVector[k], 3) << sep
-		     << double2R(CompleteInfo[k*dim+k], 3) << sep//prints diagonal of CI matrix
-		     << double2R(ObservedInfo[k*dim+k], 3) << sep;//   "      "     "  MI   "
-      if(CompleteInfo[k*dim+k]>0.0)
-      *outputstream<< double2R(100*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
-      else 
-	*outputstream << "NA" << sep;
-    }
-    double zscore = ScoreVector[ k ] / sqrt( ObservedInfo[k*dim+k] );
-    if(final)*outputstream  << double2R(zscore, 3) << sep;//z-score
-    double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-    if(final)*outputstream << double2R(pvalue) << sep;
-    else *outputstream << double2R(-log10(pvalue)) << sep << endl;
-    // if not last allele at locus, output unquoted "NA" in chi-square column
-    if( final && k != dim - 1 ){
-    *outputstream  << "NA" << sep << endl;
-    }
-  }//end loop over alleles
-  if(final){
-    double chisq=0.0;
-    try{
-      if(dim2==dim) chisq = GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
-      else chisq = GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
-      if(chisq < 0.0)
-	*outputstream << "NA" << sep << endl;
-      else *outputstream << double2R(chisq) << sep << endl;
-    }
-    catch(...){//in case ObservedInfo is rank deficient
-      *outputstream  << "NA" << sep << endl;
-    }
-  }
-  //TODO:?? output p-value for chisq
-	
-  delete[] ScoreVector;
-  delete[] CompleteInfo;
-  delete[] ObservedInfo;
-}
-
 
 void ScoreTests::ROutput(){
   int numPrintedIterations = (options->getTotalSamples() - options->getBurnIn()) / (options->getSampleEvery() * 10);
@@ -1418,6 +1421,7 @@ void ScoreTests::ROutput(){
 
 }
 
+//finishes writing scoretest output as R object
 void ScoreTests::R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels)
 {
   *stream << ")," << endl;
@@ -1437,9 +1441,10 @@ void ScoreTests::R_output3DarrayDimensions(ofstream* stream, const vector<int> d
     }
   }
   *stream << "), character(0), character(0)))" << endl;
-  
-  
 }
+
+//converts a double to a string for R to read
+//useful only for converting infs and nans to "NaN"
 string ScoreTests::double2R( double x )
 {
   if( isnan(x) || isinf(x) )
@@ -1457,7 +1462,7 @@ string ScoreTests::double2R( double x, int precision )
   else{
     stringstream ret;
 
-    if(x < numeric_limits<float>::max( ))
+    if(x < numeric_limits<float>::max( ))//in case x too large to represent as floating point number
       ret << setiosflags(ios::fixed) << setprecision(precision);
     ret << x;
     return( ret.str() );
