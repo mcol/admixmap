@@ -67,7 +67,8 @@ public:
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid );
   void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
 #ifdef PARALLEL
-    void SumAlleleCountsOverProcesses();
+  void SumAlleleCountsOverProcesses();
+  void BroadcastAlleleFreqs();
 #endif
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
@@ -99,6 +100,7 @@ private:
 #ifdef PARALLEL
     int* sendcounts;
     int* recvcounts;
+  double *sendfreqs;
 #endif
 
   double **HistoricAlleleCounts;

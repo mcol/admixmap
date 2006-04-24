@@ -52,6 +52,7 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
 #ifdef PARALLEL
   sendcounts = 0;
   recvcounts = 0;
+  sendfreqs = 0;
 #endif
 }
 
@@ -88,6 +89,7 @@ AlleleFreqs::~AlleleFreqs(){
 #ifdef PARALLEL
   delete[] sendcounts;
   delete[] recvcounts;
+  delete[] sendfreqs;
 #endif
 }
 
@@ -114,7 +116,10 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   }
 #ifdef PARALLEL
   sendcounts = new int[options->getPopulations()*count];
-  if(MPI::COMM_WORLD.Get_rank() ==0)recvcounts = new int[options->getPopulations()*count];
+  if(MPI::COMM_WORLD.Get_rank() ==0){
+    recvcounts = new int[options->getPopulations()*count];
+    sendfreqs = new double[options->getPopulations()*count];
+  }
 #endif
 
   // ** settings for sampling of dispersion parameter **
@@ -618,6 +623,34 @@ void AlleleFreqs::SumAlleleCountsOverProcesses(){
 	    index += Populations*NumberOfStates[locus];
 	}
 	MPE_Log_event(10, 0, "CopyCountend");
+    }
+
+}
+void AlleleFreqs::BroadcastAlleleFreqs(){
+    int rank = MPI::COMM_WORLD.Get_rank();
+    int index = 0;
+    int count = 0;
+//pack allele counts into a single array, sendcounts
+    if(rank==0){
+      for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
+	copy(Freqs[locus], Freqs[locus]+Populations*NumberOfStates[locus], sendfreqs+index);
+	index += Populations*NumberOfStates[locus];
+	count += NumberOfStates[locus];//total number of alleles/haplotypes
+      }
+    }
+
+//synchronise processes
+    MPE_Log_event(13, 0, "Barrier");
+    MPI::COMM_WORLD.Barrier();
+    MPE_Log_event(14, 0, "BarrEnd");    
+//broadcast freqs
+    MPI::COMM_WORLD.Bcast(sendcounts, count*Populations, MPI::DOUBLE, 0);
+
+//unpack freqs
+    index = 0;
+    for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
+      copy(sendcounts+index, sendcounts+index+Populations*NumberOfStates[locus], Freqs[locus]);
+      index += Populations*NumberOfStates[locus];
     }
 
 }

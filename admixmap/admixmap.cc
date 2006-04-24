@@ -106,8 +106,8 @@ int main( int argc , char** argv ){
 
     Genome Loci;
     Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
-    //print table of loci for R script to read
     if(rank==0){
+      //print table of loci for R script to read
       string locustable = options.getResultsDir();
       locustable.append("/LocusTable.txt");
       Loci.PrintLocusTable(locustable.c_str());
@@ -695,9 +695,12 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
-  if( rank==0 && A->IsRandom() ) {
-    bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
-    A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
+  if( A->IsRandom() ) {
+    if(rank==0){
+      bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
+      A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
+    }
+    A->BroadcastAlleleFreqs();
   }
   
   if(A->IsRandom() || anneal) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
