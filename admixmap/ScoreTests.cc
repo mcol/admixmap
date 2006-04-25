@@ -601,7 +601,7 @@ if(rank==0){
 	}
       }
       
-      if( (options->getTestForAllelicAssociation() && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForHaplotypeAssociation() ){
+      if((options->getTestForAllelicAssociation() && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForHaplotypeAssociation()){
 	if(options->getHapMixModelIndicator() || locusObsIndicator[j]){//skip loci with no observed genotypes
 	  CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
 		       SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
@@ -921,7 +921,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,
 	  
 	  //}//end condition on equal ancestry states
       }//end gamete loop
-      }
+    }
   }//end individual loop
   AlleleInfo[c][locus][0] = (double)count;
 }
@@ -1241,7 +1241,7 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
 }
 
 void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final){
-  double *Score, *ObservedInfo;
+  double *Score = 0, *ObservedInfo = 0;
   string separator = final? "\t" : ",";
 
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
@@ -1257,6 +1257,8 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
 
       for(int i = 0; i < dim; ++i){
 	Score[i] = SumAlleleScore[c][j][i]/(double) iterations; //score
+      }
+      for(int i = 0; i < dim; ++i){
 	for(int ii = 0; ii < dim; ++ii){
 	  ObservedInfo[i*dim +ii] = SumAlleleInfo[c][j][i*dim+ii]/ (double) iterations//complete info
 	    + Score[i]*Score[ii] - SumAlleleScore2[c][j][i*dim+ii]/(double)iterations;//-missing info
