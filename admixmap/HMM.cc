@@ -59,7 +59,7 @@ void HMM::SetDimensions( int inTransitions, int pops)
   Transitions = inTransitions;
   
   alpha = new double[Transitions*K*K];
-  beta =  new double[Transitions*K*K];
+  //beta =  new double[Transitions*K*K];
   
   sumfactor=0.0;
   p = new double[Transitions];
@@ -74,7 +74,7 @@ void HMM::SetDimensions( int inTransitions, int pops)
     Expectation1 = new double[K];
     rowSum = new double[K];
     colSum = new double[K];
-    cov = new double[K*K]; // alloc2D_d(K,K);
+    cov = new double[K*K]; 
     }
 }
 
@@ -321,6 +321,8 @@ void HMM::UpdateForwardProbsDiploid()
 void HMM::UpdateBackwardProbsDiploid()
 {
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
+  //allocate beta if not done already
+  if(!beta) beta =  new double[Transitions*K*K];
   vector<double> rec(DStates);
   double scaleFactor, Sum;
   
@@ -364,7 +366,6 @@ void HMM::UpdateForwardProbsHaploid(){
   double Sum;
   for(int j = 0; j < K; ++j){
     alpha[j] = theta[j] * Lambda[j];
-    beta[(Transitions-1)*K + j] = 1.0;
   }
   
   for( int t = 1; t < Transitions; t++ ){
@@ -385,6 +386,8 @@ void HMM::UpdateForwardProbsHaploid(){
 
 void HMM::UpdateBackwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
+  //allocate beta if not done already
+  if(!beta) beta =  new double[Transitions*K*K];
   double Sum;
   for(int j = 0; j < K; ++j){
     beta[(Transitions-1)*K + j] = 1.0;

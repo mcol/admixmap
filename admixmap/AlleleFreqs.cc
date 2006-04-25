@@ -384,7 +384,6 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   }
 
   if(options->getChibIndicator()){
-    AlleleFreqsMAP = new double*[NumberOfCompositeLoci];
     setAlleleFreqsMAP();
   }
 }
@@ -955,8 +954,13 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
 // set AlleleFreqsMAP and getAlleleFreqs are called by Individual object
 void AlleleFreqs::setAlleleFreqsMAP()
 {
+  bool allocate = false;
+  if(!AlleleFreqsMAP || AlleleFreqsMAP==Freqs){
+    allocate = true;
+    AlleleFreqsMAP = new double*[NumberOfCompositeLoci];
+  }
   for(int i = 0; i < NumberOfCompositeLoci;++i){
-    if(AlleleFreqsMAP[i]==0)
+    if(allocate)
       AlleleFreqsMAP[i] = new double[(Loci->GetNumberOfStates(i)-1)*Populations];
     for(int j = 0; j < Loci->GetNumberOfStates(i) - 1; ++j)for(int k = 0; k < Populations; ++k)
       AlleleFreqsMAP[i][j*Populations+k] = Freqs[i][j + k*Loci->GetNumberOfStates(i)];
