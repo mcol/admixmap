@@ -700,7 +700,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
       bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
       A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
     }
+#ifdef PARALLEL
     A->BroadcastAlleleFreqs();
+#endif
   }
   
   if(A->IsRandom() || anneal) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
