@@ -83,7 +83,6 @@ public:
 
 private:
   int Populations, NumberOfCompositeLoci;
-  int *NumberOfStates;
   double *eta; //dispersion parameter
   double *SumEta;
   double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
@@ -108,6 +107,7 @@ private:
 
   AlleleFreqSampler FreqSampler;
 
+  bool calculateFST;
   double** Fst;
   double** SumFst;
   bool IsHistoricAlleleFreq;//indicator for dispersion model

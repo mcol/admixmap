@@ -53,6 +53,7 @@ public:
   void SetHapPairProbs();
   void SetHapPairProbs(const double* alleleProbs);
   void InitialiseHapPairProbs(const double* const allelefreqs);
+  void InitialiseHapPairProbsMAP();
   void AccumulateAlleleProbs();
 
   int GetNumberOfLoci()const;
@@ -124,8 +125,8 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<ha
     p = HapPairProbsMAP;
   for(int k0 = 0; k0 < Ksq; ++k0) {
     *q = 0.0;
-   happairiter end = HapPairs.end();
-   happairiter h = HapPairs.begin();
+    happairiter end = HapPairs.end();
+    happairiter h = HapPairs.begin();
     for( ; h != end ; ++h) {
       *q += *(p + (h->haps[0] * NumberOfStates + h->haps[1]) * Ksq);
     }

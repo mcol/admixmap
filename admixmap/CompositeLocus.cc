@@ -48,8 +48,8 @@ CompositeLocus::CompositeLocus()
 CompositeLocus::~CompositeLocus()
 {
   delete[] base;
+  if(HapPairProbsMAP != HapPairProbs)  delete[] HapPairProbsMAP;
   delete[] HapPairProbs;
-  delete[] HapPairProbsMAP;
   delete[] MergeHaplotypes;
   delete[] HapLabels;
   delete[] AlleleProbs;
@@ -123,16 +123,18 @@ void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
 
   //set size of array of haplotype pair probs
   HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
+  HapPairProbsMAP = HapPairProbs;
   if(!RandomAlleleFreqs)AccumulateAlleleProbs();//if allelefreqs are fixed, SumAlleleProbs are initialised to AlleleProbs(==Allelefreqs)
   SetHapPairProbs();
-  SetNoMergeHaplotypes();
+}
+
+void CompositeLocus::InitialiseHapPairProbsMAP(){
+  HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
   //Initialise HapPairProbsMAP to values in HapPairProbs
   for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
     HapPairProbsMAP[h0] = HapPairProbs[h0];
   } 
 }
-
 /**
  * Sets the label of a locus
  *
@@ -303,9 +305,9 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Ha
 //this either misnamed or misdefined
 void CompositeLocus::setHaplotypeProbsMAP()
 {
-  //HaplotypeProbs = HaplotypeProbsMAP;
+  //HaplotypeProbsMAP = HaplotypeProbs;
   for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0)
-    HapPairProbsMAP[h0] = HapPairProbs[h0]; 
+  HapPairProbsMAP[h0] = HapPairProbs[h0]; 
 }
 
 // arguments: integer, length of bit array
@@ -555,18 +557,18 @@ void CompositeLocus::setPossibleHaplotypePairs(const vector<vector<unsigned shor
 //      SCORE TEST FUNCTIONS
 
 
-/**
- * Sets behaviour to not merge any haplotypes.
- * (Usually, rare haplotypes can be merged).
- * This function is only used for monitoring.
- */
-void CompositeLocus::SetNoMergeHaplotypes()
-{
-   MergeHaplotypes = new int[ NumberOfStates ];
-   for( int i = 0; i < NumberOfStates; i++ )
-      MergeHaplotypes[i] = i;
-   NumberOfMergedHaplotypes = NumberOfStates;
-}
+// /**
+//  * Sets behaviour to not merge any haplotypes.
+//  * (Usually, rare haplotypes can be merged).
+//  * This function is only used for monitoring.
+//  */
+// void CompositeLocus::SetNoMergeHaplotypes()
+// {
+//    MergeHaplotypes = new int[ NumberOfStates ];
+//    for( int i = 0; i < NumberOfStates; i++ )
+//       MergeHaplotypes[i] = i;
+//    NumberOfMergedHaplotypes = NumberOfStates;
+// }
 
 /**
  * Decides which haplotypes to merge for score test, based on
