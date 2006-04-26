@@ -179,16 +179,15 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
     ind->GetLocusAncestry(args->locus, Anc);
     energy -= logLikelihood(phi, Anc, ind->getPossibleHapPairs(args->locus), States);
   }
-  energy *= args->coolness;//NOTE: here coolness will always be <1 as otherwise the other sampler is in use
+  energy *= args->coolness;
 
-  energy -= logPrior(args->PriorParams, phi, args->NumPops, States) ;
-  //add Jacobian
-  for(unsigned k = 0; k < args->NumPops; ++k){
-    double z = 0.0;
-    for(unsigned s = 0; s < States; ++s){
-      z += exp(phi[s]);
-    }   
-    energy -= logJacobian(phi+k*States, z, States);
+  //log prior
+  for(unsigned k = 0; k < Pops; ++k){
+    for( unsigned i = 0; i < States; ++i ) {
+      if( args->PriorParams[i] > 0.0 ) {
+	energy -=( *(args->PriorParams+k*States+i) ) * log(*( params+k*States+i) );
+      }
+    }
   }
   delete[] phi;
   return energy;
@@ -298,16 +297,15 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
 	  - log(phi[k*2]*phi[k1*2+1] + phi[k*2+1]*phi[k1*2]) );
   }
 
-  energy *= args->coolness;//NOTE: here coolness will always be <1 as otherwise the other sampler is in use
+  energy *= args->coolness;
   
-  energy -= logPrior(args->PriorParams, phi, Pops, 2) ;
-  //add Jacobian
+//log prior
   for(unsigned k = 0; k < Pops; ++k){
-    double z = 0.0;
-    for(unsigned s = 0; s < 2; ++s){
-      z += exp(phi[s]);
-    }   
-    energy -= logJacobian(phi+k*2, z, 2);
+    for( unsigned i = 0; i < 2; ++i ) {
+      if( args->PriorParams[i] > 0.0 ) {
+	energy -=( *(args->PriorParams+k*2+i) ) * log(*( params+k*2+i) );
+      }
+    }
   }
   delete[] phi;
   return energy;
