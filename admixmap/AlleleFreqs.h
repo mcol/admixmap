@@ -64,8 +64,8 @@ public:
   const double* const* GetAlleleFreqs()const;
   const int *GetAlleleCounts(int locus)const;
   
-  void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid );
-  void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
+  void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
+  //void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
 #ifdef PARALLEL
   void SumAlleleCountsOverProcesses();
   void BroadcastAlleleFreqs();

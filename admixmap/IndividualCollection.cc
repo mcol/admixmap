@@ -112,8 +112,9 @@ IndividualCollection::~IndividualCollection() {
 #endif
 }
 
-void IndividualCollection::DeleteGenotypes(){
+void IndividualCollection::DeleteGenotypes(bool setmissing=false){
   for (unsigned int i = rank; i < size; i += NumProcs) {
+    if(setmissing)_child[i]->SetMissingGenotypes();
     _child[i]->DeleteGenotypes();
   }
 }
@@ -401,7 +402,7 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
     if(options->getHapMixModelIndicator())_child[i]->AccumulateAncestry(SumAncestry);
     // ** Sample Haplotype Pair
-    _child[i]->SampleHapPair(A, options->getHapMixModelIndicator());//also updates allele counts
+    _child[i]->SampleHapPair(A, options->getHapMixModelIndicator(), (anneal && options->getThermoIndicator()));//also updates allele counts
     // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
     if(Populations >1 && !options->getHapMixModelIndicator())//no need in hapmixmodel
       _child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));

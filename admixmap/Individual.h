@@ -98,7 +98,7 @@ public:
   void AccumulateAncestry(int* SumAncestry);
   void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
 		    DataMatrix *Covariates, double DInvLink, double dispersion,const double* const * ExpectedY);
-  void SampleHapPair(AlleleFreqs *A, bool hapmixmodel);
+  void SampleHapPair(AlleleFreqs *A, bool hapmixmodel, bool anneal);
   void SampleJumpIndicators(bool sampleArrivals);
   void SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta,  
 		 bool updateSumLogRho);

@@ -592,7 +592,7 @@ void Individual::AccumulateAncestry(int* SumAncestry){
   } //end chromosome loop
 }
 
-void Individual::SampleHapPair(AlleleFreqs *A, bool hapmixmodel){
+void Individual::SampleHapPair(AlleleFreqs *A, bool hapmixmodel, bool anneal){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
     //loop over loci on current chromosome and update allele counts
@@ -609,7 +609,7 @@ void Individual::SampleHapPair(AlleleFreqs *A, bool hapmixmodel){
 	else{
  	(*Loci)(locus)->SampleHapPair(&(sampledHapPairs[locus]), PossibleHapPairs[locus], anc);
 	}//now update allelecounts in AlleleFreqs using sampled hap pair
-	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid());
+	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid(), anneal);
       }
     }   
   } //end chromosome loop
