@@ -182,7 +182,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   energy *= args->coolness;
 
   //log prior
-  for(unsigned k = 0; k < Pops; ++k){
+  for(unsigned k = 0; k < args->NumPops; ++k){
     for( unsigned i = 0; i < States; ++i ) {
       if( args->PriorParams[i] > 0.0 ) {
 	energy -=( *(args->PriorParams+k*States+i) ) * log(*( params+k*States+i) );
@@ -299,7 +299,7 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
 
   energy *= args->coolness;
   
-//log prior
+  //log prior
   for(unsigned k = 0; k < Pops; ++k){
     for( unsigned i = 0; i < 2; ++i ) {
       if( args->PriorParams[i] > 0.0 ) {
