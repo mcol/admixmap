@@ -722,6 +722,28 @@ int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
 const chib* IndividualCollection::getChib()const{
   return &MargLikelihood;
 }
+
+double IndividualCollection::getSampleVarianceOfOutcome(int j)const{
+  //returns sample variance of jth outcome variable
+  double sum = 0.0, sumsq = 0.0, x = 0.0;
+  for(unsigned i = 0; i < Outcome.nRows(); ++i){
+    x = Outcome.get(j,i);
+    sum += x;
+    sumsq += x*x;
+  }
+  return (sumsq - sum*sum / (double)Outcome.nRows()) / (double)Outcome.nRows();
+}
+double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
+  //returns sample variance of jth covariate
+  double sum = 0.0, sumsq = 0.0, x = 0.0;
+  for(unsigned i = 0; i < Covariates.nRows(); ++i){
+    x = Covariates.get(j,i);
+    sum += x;
+    sumsq += x*x;
+  }
+  return (sumsq - sum*sum / (double)Covariates.nRows()) / (double)Covariates.nRows();
+
+}
 // ************** OUTPUT **************
 
 double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci,

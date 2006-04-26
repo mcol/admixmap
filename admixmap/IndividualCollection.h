@@ -111,6 +111,8 @@ public:
   double getExpectedY(int, int)const;
   const std::string getCovariateLabels(int)const;
   const Vector_s getCovariateLabels()const;
+  double getSampleVarianceOfOutcome(int j)const;
+  double getSampleVarianceOfCovariate(int j)const;
 
   double getEnergy(const AdmixOptions* const options, const Regression* R, 
 			  const bool & annealed);
