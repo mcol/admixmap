@@ -110,6 +110,7 @@ void AdmixOptions::Initialise(){
   etamean = 100.0; 
   etavar = 2500.0; 
 
+  regressionPriorPrecision = 0.25;
   ResultsDir = "results";
   LogFilename = "log.txt";
 
@@ -141,6 +142,7 @@ void AdmixOptions::Initialise(){
   OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
   OptionValues["xonlyanalysis"] = "0";
+  OptionValues["regressionpriorprecision"] = "0.25";
 }
 
 AdmixOptions::~AdmixOptions()
@@ -437,6 +439,9 @@ double AdmixOptions::getEtaMean() const{
 double AdmixOptions::getEtaVar() const{
   return etavar;
 }
+double AdmixOptions::getRegressionPriorPrecision()const{
+  return regressionPriorPrecision;
+}
 
 bool AdmixOptions::getStratificationTest() const
 {
@@ -704,6 +709,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"sumintensitiesprior",                   1, 0,  0 }, // vector of doubles of length 3 
     {"etapriormean",                          1, 0,  0 }, //double
     {"etapriorvar",                           1, 0,  0 }, //double
+    {"regressionpriorprecision",              1, 0,  0 }, //double
     {"truncationpoint",                       1, 0,  0 }, // double
     {"admixtureprior",                        1, 0,  0 }, // binary vector
     {"admixtureprior1",                       1, 0,  0 }, // binary vector
@@ -944,6 +950,9 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	if (strtol(optarg, NULL, 10) == 1){
 	  PopAdmixPropsAreEqual = true; OptionValues["popadmixproportionsequal"]="1";
 	}
+      }
+      else if(long_option_name == "regressionpriorprecision"){
+	regressionPriorPrecision = strtod(optarg, NULL);OptionValues["regressionpriorprecision"]=optarg;
       } else {
 	cerr << "Unknown option: " << long_option_name;
 	if (optarg) {

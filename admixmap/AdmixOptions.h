@@ -75,6 +75,7 @@ public:
   int sizeInitAlpha() const;
   double getEtaMean() const;
   double getEtaVar() const;
+  double getRegressionPriorPrecision()const;
 
   unsigned int getgenotypesSexColumn() const;
   void setgenotypesSexColumn(unsigned int i);
@@ -203,6 +204,7 @@ private:
   std::vector<double> alpha1;
   std::vector< std::vector<double> > initalpha;
   double etamean, etavar;//gamma parameters for dispersion parameter
+  double regressionPriorPrecision;
 
   string ResultsDir;
   string LogFilename;
