@@ -142,12 +142,21 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   for(int j = 0; j < NumCovariates; ++j){
     beta[j] = betamean[j];
   }
+
+  betaprecision = new double[NumCovariates];
+  double outcomeSampleVariance = individuals->getSampleVarianceOfOutcome(RegNumber);
+  betaprecision[0] = priorPrecision / outcomeSampleVariance;
+  Log << "\nGaussian priors on " << (RegType==Linear? "Linear" : "Logistic") << " regression parameters with zero means and precisions\n ("<< betaprecision[0];
+  
+  for(int j = 1; j < NumCovariates; ++j){
+    betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j) / outcomeSampleVariance;
+    Log << ", " << betaprecision[j];
+  }
+  Log << ")\n";
   
   X = individuals->getCovariates();
   XtY = new double[NumCovariates];
   
-  // if linear regression, n0*lambda is the prior precision matrix of regression coefficients given lambda   
-  // if logistic regression, lambda is the prior precision for regression coefficients 
   lambda = 1.0; 
   SumLambda = lambda;
   
@@ -159,16 +168,6 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
     lambda1 = 0.01;//rate parameter for prior on lambda
     lambda = lambda1 / lambda0;//initialise to prior mean
     
-    betaprecision = new double[NumCovariates];
-    betaprecision[0] = priorPrecision;
-    Log << "\nGaussian priors on linear regression parameters with zero mean and precision ("<< betaprecision[0];
-
-    double outcomeSampleVariance = individuals->getSampleVarianceOfOutcome(RegNumber);
-    for(int j = 1; j < NumCovariates; ++j){
-      betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j) / outcomeSampleVariance;
-      Log << ", " << betaprecision[j];
-    }
-    Log << ")\n";
     //fill(betaprecision, betaprecision + NumCovariates, 0.0001);
     
     Log << "Gamma("<< lambda0 << ", " << lambda1 << ") prior on data precision.\n";
@@ -191,7 +190,7 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   
   // ** Initialise Logistic Regression objects
   else if( RegType == Logistic) {
-    Log << "\nGaussian priors on logistic regression parameters with precision " << lambda << "\n";
+    //Log << "\nGaussian priors on logistic regression parameters with precision " << lambda << "\n";
     
     //  ** initialize sampler for logistic regression **
     acceptbeta = 0;
@@ -204,7 +203,6 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
     dims = new int[2];
     BetaParameters.n = NumIndividuals;
     BetaParameters.d = NumCovariates;
-    BetaParameters.lambda = lambda;
     BetaParameters.beta0 = betamean[0];
     for( int i = 0; i < NumCovariates; i++ ){
       BetaDrawArray[i] = new GaussianProposalMH( lr, dlr, ddlr);
@@ -239,6 +237,8 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals, double 
     for( int j = 0; j < NumCovariates; j++ ){
       BetaParameters.Covariates = X;
       BetaParameters.beta = beta;
+      BetaParameters.beta0 = betamean[j];
+      BetaParameters.priorprecision = betaprecision[j];
       BetaParameters.index = j;
       BetaParameters.XtY = XtY[ j ];
 
@@ -375,7 +375,7 @@ double Regression::lr( const double beta, const void* const vargs )
     delete[] Xbeta;
   }
 
-  f -= 0.5 * args->lambda * (beta - beta0) * (beta - beta0); //log prior contribution
+  f -= 0.5 * args->priorprecision * (beta - beta0) * (beta - beta0); //log prior contribution
   return( f );
 }
 
@@ -407,7 +407,7 @@ double Regression::dlr( const double beta, const void* const vargs )
     f *= args->coolness;
   }
 
-  f -= args->lambda * (beta - beta0);//log prior contribution
+  f -= args->priorprecision * (beta - beta0);//log prior contribution
   return( f );
 }
 
@@ -434,7 +434,7 @@ double Regression::ddlr( const double beta, const void* const vargs )
     f *= args->coolness;
   }
 
-  f -= args->lambda;//log prior contribution
+  f -= args->priorprecision;//log prior contribution
   return( f );
 }
 
