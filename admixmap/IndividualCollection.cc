@@ -727,7 +727,7 @@ double IndividualCollection::getSampleVarianceOfOutcome(int j)const{
   //returns sample variance of jth outcome variable
   double sum = 0.0, sumsq = 0.0, x = 0.0;
   for(unsigned i = 0; i < Outcome.nRows(); ++i){
-    x = Outcome.get(j,i);
+    x = Outcome.get(i,j);
     sum += x;
     sumsq += x*x;
   }
@@ -735,13 +735,16 @@ double IndividualCollection::getSampleVarianceOfOutcome(int j)const{
 }
 double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
   //returns sample variance of jth covariate
-  double sum = 0.0, sumsq = 0.0, x = 0.0;
-  for(unsigned i = 0; i < Covariates.nRows(); ++i){
-    x = Covariates.get(j,i);
-    sum += x;
-    sumsq += x*x;
+  if((OutcomeType[j] == Continuous) && (j < NumCovariates - NumberOfInputCovariates)){
+    double sum = 0.0, sumsq = 0.0, x = 0.0;
+    for(unsigned i = 0; i < Covariates.nRows(); ++i){
+      x = Covariates.get(i,j);
+      sum += x;
+      sumsq += x*x;
+    }
+    return (sumsq - sum*sum / (double)Covariates.nRows()) / (double)Covariates.nRows();
   }
-  return (sumsq - sum*sum / (double)Covariates.nRows()) / (double)Covariates.nRows();
+  else return 1.0;
 
 }
 // ************** OUTPUT **************
