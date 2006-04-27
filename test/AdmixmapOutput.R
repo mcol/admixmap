@@ -647,6 +647,30 @@ calculateLocusfValues <- function(allelefreq.samples.list) {
   ## return(locusfValues.samples.list)  
 }
 
+entropy <- function(p) {
+  return(-sum(p*log(p)))
+}
+  
+calculateLocusKLInfo <- function(allelefreq.samples.list) {
+  ## calculates locus KL information content for ancestry
+  num.loci <- length(allelefreq.samples.list)
+  num.draws <- dim(allelefreq.samples.list[[1]])[3]
+  KLInfo.samples <- matrix(data=NA, nrow=num.draws, ncol=num.loci) 
+  ## 3-way array (alleles-1 x pops x draws) of allele freqs at each locus
+  for(locus in 1:num.loci) {
+    for(draw in 1:num.draws) {
+      ## a alleles, K pops
+      p <- matrix(allelefreq.samples.list[[locus]],
+                  nrow=dim(allelefreq.samples.list[[locus]])[1], ncol=K)
+      p <- rbind(p, 1 - apply(p, 2, sum))
+      pbar <- apply(p, 2, mean) # mean freq of allele over K populations
+      KLInfo.samples[draw, locus]  <- entropy(pbar) - mean(apply(p, 2, entropy))
+    }
+    KLInfo.means <- apply(KLInfo.samples, 2, mean)
+  }
+  return(KLInfo.means) 
+}
+
 listFreqMeansCovs <- function(allelefreq.samples.list) {
   ## generate lists to hold allele freq means and covariances
   allelefreq.means.list <- list()
@@ -1090,7 +1114,19 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
                   file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
                   row.names=FALSE, col.names=TRUE)
     }
-    
+
+    ## calculate posterior means of KL info for ancestry at each locus
+    if(K > 1) { 
+      KLInfo.means <- calculateLocusKLInfo(allelefreq.samples.list)
+      KLInfo.means <- data.frame(as.vector(loci.compound[,1]), round(KLInfo.means, digits=4))
+      dimnames(KLInfo.means)[[2]] <- c("LocusName", "KLInfo")
+      write.table(KLInfo.means, file=paste(resultsdir,"LocusKLInfo.txt", sep="/"),
+                  row.names=TRUE, col.names=TRUE)
+      write.table(KLInfo.means[order(KLInfo.means[, 2], decreasing=TRUE), ],
+                  file=paste(resultsdir,"LocusKLInfoSorted.txt", sep="/"),
+                  row.names=FALSE, col.names=TRUE)
+    }
+
     ## generate lists to hold allele freq means and covariances
     freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
     allelefreq.means.list <- freqMeansCovs[[1]]
