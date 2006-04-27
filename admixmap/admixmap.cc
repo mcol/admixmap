@@ -19,6 +19,7 @@
 #endif
 
 using namespace std;
+double coolness = 1.0; // default
 
 int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
 void MakeResultsDir(const char* dirname, bool verbose);
@@ -125,7 +126,7 @@ int main( int argc , char** argv ){
   
     Regression R[2];
     for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-      R[r].Initialise(r, IC, Log);
+      R[r].Initialise(r, options.getRegressionPriorPrecision(), IC, Log);
     if(rank==0)Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
   
     if( options.isGlobalRho() || options.getHapMixModelIndicator()) {
@@ -151,7 +152,6 @@ int main( int argc , char** argv ){
       // nothing to do except calculate likelihood
       IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
     else {
-      //try{
       // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
       DispersionTest DispTest;
       StratificationTest StratTest(options.getStratTestFilename(), Log);
@@ -189,7 +189,7 @@ int main( int argc , char** argv ){
       double MeanEnergy = 0.0, VarEnergy = 0.0;
       double LastMeanEnergy = 0.0;
     
-      double coolness = 1.0; // default
+      coolness = 1.0; // default
       bool AnnealedRun = false;
       std::ofstream annealstream;//for monitoring energy when annealing
     
@@ -198,7 +198,7 @@ int main( int argc , char** argv ){
       double *Coolnesses = 0; // 
       IntervalWidths = new double[NumAnnealedRuns + 1];
       Coolnesses = new double[NumAnnealedRuns + 1];
-
+      Coolnesses[0] = 0.0;
       if(NumAnnealedRuns > 0) {
 	// initial increment of coolness from 0 is set so that geometric series of increments will sum to 1 
 	// after NumAnnealedRuns additional terms
@@ -499,11 +499,12 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
     UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, &Scoretest, Log, data.GetPopLabels(), coolness, AnnealedRun);
 
     Log.setDisplayMode(Quiet);
-    if(!AnnealedRun){
+ 
+    if(!AnnealedRun){    
       // output every 'getSampleEvery()' iterations
       if(!(iteration % options.getSampleEvery()) && rank==0)
 	OutputParameters(iteration, IC, &L, &A, R, &options, Log);
-	    
+      
       // ** set merged haplotypes for allelic association score test 
       if( iteration == options.getBurnIn() ){
 	if(options.getTestForAllelicAssociation())
@@ -753,10 +754,11 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
       Log.setDisplayMode(Quiet);
     }
   }
+  
   //if( options->getDisplayLevel()>2 ) cout << endl;
   if( iteration > options->getBurnIn() ){
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
-    if ( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
+    if( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
     if(options->getOutputAlleleFreq())A->OutputAlleleFreqs();
   }
   // cout << endl;
