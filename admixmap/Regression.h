@@ -26,7 +26,7 @@ typedef struct{
   int d;//numberof covariates
   int index;//index of current parameter
   double beta0;//prior mean
-  double lambda;//prior precision 
+  double priorprecision;//prior precision 
   double XtY;
   const double* Covariates;
   const double* beta;//regression parameters
