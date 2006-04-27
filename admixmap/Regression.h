@@ -39,7 +39,7 @@ class Regression{
 public:
   Regression();
    ~Regression();
-  void Initialise(unsigned RegNumber, const IndividualCollection* const, LogWriter &);
+  void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
   void SetExpectedY(IndividualCollection* IC)const;
   void Update(bool sumbeta, IndividualCollection* individuals, double coolness);
   static void OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 

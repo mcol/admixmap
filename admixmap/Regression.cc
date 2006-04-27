@@ -110,78 +110,86 @@ void Regression::InitializeOutputFile(const AdmixOptions* const options, const I
   outputstream << endl;
 }
 
-void Regression::Initialise(unsigned Number, const IndividualCollection* const individuals, LogWriter &Log){
+void Regression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
   Log.setDisplayMode(Quiet);
   //set regression number for this object
   RegNumber = Number;
-
-    //determine regression type
-    if( individuals->getOutcomeType(RegNumber)== Binary ) RegType = Logistic;
-    else if( individuals->getOutcomeType(RegNumber)== Continuous )RegType = Linear;
-
-    //** Objects common to both regression types
-    NumCovariates = individuals->GetNumCovariates();
-    NumIndividuals = individuals->getSize();
-
-    beta = new double[ NumCovariates ];
-    SumBeta = new double[ NumCovariates ];
-    fill(beta, beta + NumCovariates, 0.0);
-    fill(SumBeta, SumBeta + NumCovariates, 0.0);
-
-    betamean = new double[ NumCovariates ];
-    fill(betamean, betamean + NumCovariates, 0.0);
+  
+  //determine regression type
+  if( individuals->getOutcomeType(RegNumber)== Binary ) RegType = Logistic;
+  else if( individuals->getOutcomeType(RegNumber)== Continuous )RegType = Linear;
+  
+  // ** Objects common to both regression types
+  NumCovariates = individuals->GetNumCovariates();
+  NumIndividuals = individuals->getSize();
+  
+  beta = new double[ NumCovariates ];
+  SumBeta = new double[ NumCovariates ];
+  fill(beta, beta + NumCovariates, 0.0);
+  fill(SumBeta, SumBeta + NumCovariates, 0.0);
+  
+  betamean = new double[ NumCovariates ];
+  fill(betamean, betamean + NumCovariates, 0.0);
+  
+  std::vector<double> v = individuals->getOutcome(RegNumber);
+  double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
+  if(RegType == Logistic )
+    betamean[0] = log( p / ( 1 - p ) );
+  //     else if(RegType == Linear)
+  //       betamean[0] = p;
+  
+  //initialise regression params at prior mean
+  for(int j = 0; j < NumCovariates; ++j){
+    beta[j] = betamean[j];
+  }
+  
+  X = individuals->getCovariates();
+  XtY = new double[NumCovariates];
+  
+  // if linear regression, n0*lambda is the prior precision matrix of regression coefficients given lambda   
+  // if logistic regression, lambda is the prior precision for regression coefficients 
+  lambda = 1.0; 
+  SumLambda = lambda;
+  
+  // ** Initialise Linear Regression objects    
+  if(RegType == Linear){
+    betaprecision = new double[NumCovariates];//prior precision for beta (prior covariances are zero)
     
-    std::vector<double> v = individuals->getOutcome(RegNumber);
-    double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
-    if(RegType == Logistic )
-      betamean[0] = log( p / ( 1 - p ) );
-    //     else if(RegType == Linear)
-    //       betamean[0] = p;
+    lambda0 = 0.01;//shape parameter for prior on lambda
+    lambda1 = 0.01;//rate parameter for prior on lambda
+    lambda = lambda1 / lambda0;//initialise to prior mean
     
-    //initialise regression params at prior mean
-    for(int j = 0; j < NumCovariates; ++j){
-      beta[j] = betamean[j];
+    betaprecision = new double[NumCovariates];
+    betaprecision[0] = priorPrecision;
+    Log << "\nGaussian priors on linear regression parameters with zero mean and precision ("<< betaprecision[0];
+
+    double outcomeSampleVariance = individuals->getSampleVarianceOfOutcome(RegNumber);
+    for(int j = 1; j < NumCovariates; ++j){
+      betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j) / outcomeSampleVariance;
+      Log << ", " << betaprecision[j];
+    }
+    Log << ")\n";
+    //fill(betaprecision, betaprecision + NumCovariates, 0.0001);
+    
+    Log << "Gamma("<< lambda0 << ", " << lambda1 << ") prior on data precision.\n";
+    
+    betahat = new double[NumCovariates];
+    V = new double[NumCovariates*NumCovariates];
+    QX = new double[(NumIndividuals+NumCovariates)*NumCovariates];
+    QY = new double[NumIndividuals+NumCovariates];
+    R = new double[NumCovariates*NumCovariates];
+    // Augment data matrices
+    for(int i = 0; i < NumCovariates; ++i){
+      QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
+      QX[(i+NumIndividuals)*NumCovariates + i] = sqrt(betaprecision[i]);//prior precision on beta
+      for(int j = i+1; j < NumCovariates; ++j)
+	QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
     }
     
-    X = individuals->getCovariates();
-    XtY = new double[NumCovariates];
-
-    // if linear regression, n0*lambda is the prior precision matrix of regression coefficients given lambda   
-    // if logistic regression, lambda is the prior precision for regression coefficients 
-    lambda = 1.0; 
-    SumLambda = lambda;
-
-    // ** Initialise Linear Regression objects    
-    if(RegType == Linear){
-      betaprecision = new double[NumCovariates];//prior precision for beta (prior covariances are zero)
-    
-      lambda0 = 0.01;//shape parameter for prior on lambda
-      lambda1 = 0.01;//rate parameter for prior on lambda
-      lambda = lambda1 / lambda0;//initialise to prior mean
-
-      betaprecision = new double[NumCovariates];
-      fill(betaprecision, betaprecision + NumCovariates, 0.0001);
-
-      Log << "\nGaussian priors on linear regression parameters with zero mean and precision "<< betaprecision[0] << "\n";
-      Log << "Gamma("<< lambda0 << ", " << lambda1 << ") prior on data precision.\n";
-      
-      betahat = new double[NumCovariates];
-      V = new double[NumCovariates*NumCovariates];
-      QX = new double[(NumIndividuals+NumCovariates)*NumCovariates];
-      QY = new double[NumIndividuals+NumCovariates];
-      R = new double[NumCovariates*NumCovariates];
-      // Augment data matrices
-      for(int i = 0; i < NumCovariates; ++i){
-	QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
-	QX[(i+NumIndividuals)*NumCovariates + i] = sqrt(betaprecision[i]);//prior precision on beta
-	for(int j = i+1; j < NumCovariates; ++j)
-	  QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
-      }
-
-      DrawBeta.SetDimension( NumCovariates );
-    }
-
-    // ** Initialise Logistic Regression objects
+    DrawBeta.SetDimension( NumCovariates );
+  }
+  
+  // ** Initialise Logistic Regression objects
   else if( RegType == Logistic) {
     Log << "\nGaussian priors on logistic regression parameters with precision " << lambda << "\n";
     
