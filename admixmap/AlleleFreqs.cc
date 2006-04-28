@@ -120,7 +120,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   sendcounts = new int[options->getPopulations()*count];
   if(MPI::COMM_WORLD.Get_rank() ==0){
     recvcounts = new int[options->getPopulations()*count];
-    sendfreqs = new double[options->getPopulations()*count];
+    sendfreqs = new double[options->getPopulations()*(count- NumberOfCompositeLoci)];
   }
 #endif
 
@@ -645,9 +645,12 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
 //pack allele counts into a single array, sendcounts
     if(rank==0){
       for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
-	copy(Freqs[locus], Freqs[locus]+Populations*Loci->GetNumberOfStates(locus), sendfreqs+index);
-	index += Populations*Loci->GetNumberOfStates(locus);
-	count += Loci->GetNumberOfStates(locus);//total number of alleles/haplotypes
+	int NumberOfStates = Loci->GetNumberOfStates(locus);
+	for(int k = 0; k < Populations; ++k){
+	  copy(Freqs[locus]+k*NumberOfStates, Freqs[locus]+(k+1)*NumberOfStates-1, sendfreqs+index);
+	  index += (NumberOfStates-1);
+	}
+	count += NumberOfStates-1;//count number of freqs to send
       }
     }
 
@@ -656,13 +659,21 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
     MPI::COMM_WORLD.Barrier();
     MPE_Log_event(14, 0, "BarrEnd");    
 //broadcast freqs
-    MPI::COMM_WORLD.Bcast(sendcounts, count*Populations, MPI::DOUBLE, 0);
+    MPI::COMM_WORLD.Bcast(sendfreqs, count*Populations, MPI::DOUBLE, 0);
 
 //unpack freqs
     index = 0;
     for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
-      copy(sendcounts+index, sendcounts+index+Populations*Loci->GetNumberOfStates(locus), Freqs[locus]);
-      index += Populations*Loci->GetNumberOfStates(locus);
+      int NumberOfStates = Loci->GetNumberOfStates(locus);
+      for(int k = 0; k < Populations; ++k){
+	Freqs[locus][(k+1)*NumberOfStates -1] = 1.0;
+	for(int s = 0; s < NumberOfStates-1; ++s){
+	  double f = sendfreqs[index+s];
+	  Freqs[locus][k*NumberOfStates+s] = f;
+	  Freqs[locus][(k+1)*NumberOfStates -1] -= f;//compute last freq by subtraction from 1
+	}
+	index += Loci->GetNumberOfStates(locus)-1;
+      }
     }
 
 }
