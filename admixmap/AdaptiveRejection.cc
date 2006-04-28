@@ -119,9 +119,6 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
       x[2] = x[1] - 2/dfa;
     }
   }
-  if(isinf(x[0]) || isnan(x[0])){
-    system("pause");
-  }
   return ARS(args, x, K);
 }
 
@@ -216,8 +213,6 @@ double AdaptiveRejection::AreaUnderTangentCurve(double x1, double h, double g, d
   // lower=true if lower bound, upper=true if upper bound
   double unscaled = 0.0;
   if(z2 < z1 ){
-    cout << z1 << " " << z2 << endl;
-    system("pause");
     throw string("AdaptiveRejectionSampler: Error in arguments passed to AreaUnderTangentCurve: z1 > z2 \n"); 
   }
   if(lower && (x1 < z1)){
