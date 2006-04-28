@@ -50,10 +50,12 @@ public:
   
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const std::string* const PopulationLabels);
 
-  void HMMUpdates(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
-	      const Regression* const R, const double* const poptheta,
-	      const std::vector<std::vector<double> > &alpha,
-	      bool anneal);
+  void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
+			   const Regression* const R, const double* const poptheta,
+			   const vector<vector<double> > &alpha, 
+			   bool anneal);
+  void SampleHapPairsAndUpdateScores(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
+				     const Regression* const R, bool anneal);
   void SampleParameters(int iteration, const AdmixOptions* const options,
 			const Regression* const R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
@@ -131,11 +133,11 @@ public:
 private:
   Individual **_child; //array of pointers to Individual objects
   Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
-    int sizeTestInd;
-    int rank, NumProcs;
+  int sizeTestInd;
+  int rank, NumProcs;
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
   void getLabels(const Vector_s& data, Vector_s& labels);
-
+  
   void LoadCovariates(const InputData*, const AdmixOptions* const options);
   void LoadOutcomeVar(const InputData* const);
   void LoadRepAncestry(const InputData* const);
@@ -160,7 +162,7 @@ private:
   std::vector< int > _locusfortest;
   int* SumAncestry;//for update of locus-specific sumintensities
 #ifdef PARALLEL
-    int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
+  int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
 #endif
  
   //Regression Objects

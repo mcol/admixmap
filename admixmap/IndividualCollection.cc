@@ -356,14 +356,20 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
 }
 
 // ************** UPDATING **************
-void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
-				      const Regression* const R, const double* const poptheta,
-				      const vector<vector<double> > &alpha, 
-				      bool anneal=false){
-  //Individual-level updates requiring update of HMM
+void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
+					       const Regression* const R, const double* const poptheta,
+					       const vector<vector<double> > &alpha, 
+					       bool anneal=false){
+  /*
+    (1) Samples individual admixture proportions on even-numbered iterations
+    (2) Samples Locus Ancestry (after updating HMM)
+    (3) accumulates sums of ancestry states in hapmixmodel
+    coolness is not passed as argument to this function because annealing has already been implemented by 
+    calling annealGenotypeProbs 
+*/
 
-  // coolness is not passed as argument to this function because annealing has already been implemented by 
-  // calling annealGenotypeProbs 
+  //first, some preliminaries
+  //
   int Populations = options->getPopulations();
   vector<double> lambda;
   vector<const double*> beta;
@@ -378,17 +384,20 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
   }
-  //next 2 lines go here to prevent test individual contributing to SumLogTheta or sum of scores
+
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-  if(options->getHapMixModelIndicator()){
-      fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
-#ifdef PARALLEL
-      if(rank==0)fill(GlobalSumAncestry, GlobalSumAncestry + 2*NumCompLoci, 0);
-#endif
-      }
+  //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
   if(iteration > options->getBurnIn())Individual::ResetScores(options);
 
+  if(options->getHapMixModelIndicator()){
+    fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
+#ifdef PARALLEL
+    if(rank==0)fill(GlobalSumAncestry, GlobalSumAncestry + 2*NumCompLoci, 0);
+#endif
+  }
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
+
+  //now loop over individuals
   for(unsigned int i = rank; i < size; i+=NumProcs ){
 
     // ** set SumLocusAncestry and SumNumArrivals to 0
@@ -401,8 +410,41 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
     // ** Run HMM forward recursions and sample locus ancestry
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
     if(options->getHapMixModelIndicator())_child[i]->AccumulateAncestry(SumAncestry);
+
+  }
+#ifdef PARALLEL
+  if(options->getHapMixModelIndicator()){
+    MPE_Log_event(11, iteration, "Barrier");
+    MPI::COMM_WORLD.Barrier();
+    MPE_Log_event(12, iteration, "BarrEnd");
+    
+    MPE_Log_event(3, iteration, "RedAncStart");
+    MPI::COMM_WORLD.Reduce(SumAncestry, GlobalSumAncestry, 2*NumCompLoci, MPI::INT, MPI::SUM, 0); 
+    MPE_Log_event(4, iteration, "RedAncEnd");
+  }
+#endif
+}
+void IndividualCollection::SampleHapPairsAndUpdateScores(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
+							  const Regression* const R, bool anneal=false){
+  /*
+    (1) Samples Haplotype pairs and upates allele/haplotype counts
+    (2) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
+    (3) updates score, info and score squared for ancestry score tests
+  */
+
+  // ** preliminaries
+
+  int Populations = options->getPopulations();
+  bool _anneal = (anneal && !options->getTestOneIndivIndicator());
+  int i0 = 0;
+  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
+    i0 = 1;
+  }
+
+  // loop over individuals
+  for(unsigned int i = rank; i < size; i+=NumProcs ){
     // ** Sample Haplotype Pair
-    _child[i]->SampleHapPair(A, options->getHapMixModelIndicator(), (anneal && options->getThermoIndicator()));//also updates allele counts
+    _child[i]->SampleHapPair(A, options->getHapMixModelIndicator(), (_anneal && options->getThermoIndicator()));//also updates allele counts
     // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
     if(Populations >1 && !options->getHapMixModelIndicator())//no need in hapmixmodel
       _child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
@@ -412,15 +454,6 @@ void IndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const o
       _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
 			      R[0].getDispersion(), ExpectedY);
   }
-#ifdef PARALLEL
-  MPE_Log_event(11, iteration, "Barrier");
-  MPI::COMM_WORLD.Barrier();
-  MPE_Log_event(12, iteration, "BarrEnd");
-
-  MPE_Log_event(3, iteration, "RedAncStart");
-  MPI::COMM_WORLD.Reduce(SumAncestry, GlobalSumAncestry, 2*NumCompLoci, MPI::INT, MPI::SUM, 0); 
-  MPE_Log_event(4, iteration, "RedAncEnd");
-#endif
 }
 
 void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* const options,

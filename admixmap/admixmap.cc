@@ -669,7 +669,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   }
 
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals 
-  IC->HMMUpdates(iteration, options, A, R, L->getpoptheta(), L->getalpha(), anneal);
+  IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
+
+  IC->SampleHapPairsAndUpdateScores(iteration, options, A, R, anneal);
 #ifdef PARALLEL
   MPE_Log_event(13, iteration, "Barrier");
   MPI::COMM_WORLD.Barrier();
@@ -728,8 +730,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     L->UpdatePopAdmixParams(iteration, IC, Log);
   
   // ** update regression parameters (if regression model) conditional on individual admixture
-  for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
-    R[r].Update((!anneal && iteration > options->getBurnIn()), IC, coolness);
+  for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
+     R[r].Update((!anneal && iteration > options->getBurnIn()), IC, coolness);
+  }
     
 }
 
