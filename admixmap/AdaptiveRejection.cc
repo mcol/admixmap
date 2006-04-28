@@ -291,7 +291,7 @@ void AdaptiveRejection::InitialisePoints(double x[3], const void* const args){
     Points[i].upper -= heightAtMode;
   }
 
-  stable_sort(Points.begin(), Points.end()); // PROBLEM: can garble points; redundant if x is sorted
+  //stable_sort(Points.begin(), Points.end()); // PROBLEM: can garble points; redundant if x is sorted
   for(unsigned i = 0; i < K-1; ++i){
     Points[i].z = TangentIntersection(Points[i].abscissa, Points[i+1].abscissa, Points[i].height, Points[i+1].height, 
 				      Points[i].gradient, Points[i+1].gradient);
@@ -439,7 +439,9 @@ double AdaptiveRejection::TangentIntersection(double x0, double x1, double h0, d
     err << "AdaptiveRejectionSampler: Error in args passed to TangentIntersection: g0 = "<<g0<<", g1 = "<<g1<<endl;
     throw err.str();
   }
-  return (h1 - h0 - x1*g1 + x0*g0) / (g0 - g1);
+  double ret = (h1 - h0 - x1*g1 + x0*g0) / (g0 - g1);
+  if(ret < LowerBound || ret > UpperBound)throw string("point out of bounds in AdaptiveRejection::TangentIntersection");
+  return ret;
 }
 
 double AdaptiveRejection::UpperHull(double x, double x0, double h, double g){

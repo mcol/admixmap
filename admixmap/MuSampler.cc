@@ -259,7 +259,7 @@ double MuSampler::fMu( double mu, const void* const args )
     double logprior = 0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1.1, 1.1) prior
     status = gsl_sf_lngamma_e( alpha, &psi1 );if(status)throw(1);
     status = gsl_sf_lngamma_e( eta - alpha, &psi2 );if(status)throw(1);
-    f += logprior - 2 * psi1.val - 2 * psi2.val;
+    f += logprior - K * (psi1.val + psi2.val);
     
     for(int k = 0; k < K; ++k){
       status = gsl_sf_lngamma_e( alpha+counts[k], &psi1 );if(status)throw(1);
@@ -291,7 +291,7 @@ double MuSampler::dfMu( double mu, const void* const args )
   try{
     status = gsl_sf_psi_e( alpha, &psi1 );if(status)throw(1);
     status = gsl_sf_psi_e( eta - alpha, &psi2 );if(status)throw(1);
-    f += 2 * ( psi2.val - psi1.val );
+    f += K * ( psi2.val - psi1.val );
     
     for(int k = 0; k < K; ++k){
       status = gsl_sf_psi_e( alpha+counts[k], &psi1 );if(status)throw(1);
@@ -329,7 +329,7 @@ double MuSampler::ddfMu( double mu, const void* const args )
   try{
     status = gsl_sf_psi_n_e( 1, alpha, &psi1);
     status = gsl_sf_psi_n_e( 1, eta - alpha, &psi2);
-    f -= 2 * ( psi2.val + psi1.val );
+    f -= K * ( psi2.val + psi1.val );
     
     for(int k = 0; k < K; ++k){
       status = gsl_sf_psi_n_e( 1, alpha+counts[k], &psi1 );if(status)throw(1);
