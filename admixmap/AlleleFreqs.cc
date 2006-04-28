@@ -118,9 +118,9 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   }
 #ifdef PARALLEL
   sendcounts = new int[options->getPopulations()*count];
+  sendfreqs = new double[options->getPopulations()*(count- NumberOfCompositeLoci)];
   if(MPI::COMM_WORLD.Get_rank() ==0){
     recvcounts = new int[options->getPopulations()*count];
-    sendfreqs = new double[options->getPopulations()*(count- NumberOfCompositeLoci)];
   }
 #endif
 
@@ -672,10 +672,13 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
 	  Freqs[locus][k*NumberOfStates+s] = f;
 	  Freqs[locus][(k+1)*NumberOfStates -1] -= f;//compute last freq by subtraction from 1
 	}
-	index += Loci->GetNumberOfStates(locus)-1;
+	index += NumberOfStates-1;
       }
-    }
+      if(rank>0)
+	//no need to update alleleprobs
+	(*Loci)(locus)->SetHapPairProbs();
 
+    }
 }
 #endif
 
