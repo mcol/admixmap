@@ -162,8 +162,6 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   
   // ** Initialise Linear Regression objects    
   if(RegType == Linear){
-    betaprecision = new double[NumCovariates];//prior precision for beta (prior covariances are zero)
-    
     lambda0 = 0.01;//shape parameter for prior on lambda
     lambda1 = 0.01;//rate parameter for prior on lambda
     lambda = lambda1 / lambda0;//initialise to prior mean
