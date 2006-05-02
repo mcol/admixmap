@@ -1,27 +1,25 @@
 INSTALL-CVS.TXT
 
-This file contains instructions for downloading and compiling  the
+This file contains instructions for downloading and compiling the
 program ADMIXMAP from the source code held in the CVS repository. 
 
-Admixmap can be installed directly on machines running Linux or Unix.  
-
-If you are installing it on a Windows PC, you must first install MinGW which provides a Unix-like console on a Windows PC. Instructions for setting up MinGW are included at the end of this file.
+If you are compiling it on a Windows PC, you must first install MinGW which provides a Unix-like console on a Windows PC. Instructions for setting up MinGW are included at the end of this file. 
 
 You should also set the environment variables required to access the CVS repository. Instructions for this are at the end of this file. 
 
-Instructions for Installing Admixmap.
+Instructions for Installing ADMIXMAP.
 ------------------------------------  
 These instructions assume that you are working in a Linux, Unix or MinGW console window.  Installing R and the GNU Scientific library requires root/administrator privileges. 
 
-To install Admixmap, perform the following steps.
+To install ADMIXMAP, perform the following steps.
 
-(1) Install R for your operating system, which requires root/administrator privileges. See www.r-project.org  If you are using Windows you will need to add the path for R to your environment variable PATH. For windows XP, go to Start-Control Panel-System. On the Advanced tab, click on Environment Variables. Select the PATH variable and click on Edit. Add the path of the R bin directory to the end of the path variable. This is usually something like ";C:\Program Files\R\bin".
+(1) Install R for your operating system, which requires root/administrator privileges. See www.r-project.org . You will need to add the path for R to your environment variable PATH. For Windows XP, go to Start-Control Panel-System. On the Advanced tab, click on Environment Variables. Select the PATH variable and click on Edit. Add the path of the R bin directory to the end of the path variable. This is usually something like ";C:\Program Files\R\bin". For Linux/Unix, add 'export PATH=$PATH:<path to R>' to the shell script that is run whenever you log on (usually something like .bashrc or .bash_profile).
 
 (2) Download and install gsl (the GNU Scientific Library) on your system. You can download the source code for gsl by following the instructions at http://www.gnu.org/order/ftp.html  You should download the latest gsl-<version>.tar.gz file and follow the instructions contained in the readme file.   
 
 If you are installing gsl on MinGW, you may need to run configure with the option --prefix=c:/mingw. If you are using the Novell client on a networked PC running Windows, you may have to disconnect before running the configure command. 
 
-(3) Create a directory called genepi and change toit. Log in to the CVS repository and checkout the genepi/admixmap and genepi/test directories by typing 
+(3) Create a directory called genepi and change to it. Log in to the CVS repository and checkout the genepi/admixmap and genepi/test directories by typing 
 
     CVS checkout genepi/admixmap
     CVS checkout genepi/test
@@ -34,17 +32,14 @@ Change to the admixmap subdirectory and create the admixmap executable by typing
 
 The executable will be placed in the test subdirectory. 
 
-You can edit the makefile to optimize for the processor you are using, with
-the flag "-march=<processor name> defined in variable CPPFLAGS, to change the optimiser (-O2, -O3 etc) or to compile with debug information (-g flag).  
+You can edit the makefile or specify command-line variables to optimize for the processor you are using or to compile with debug information. See the information in the makefile for details. 
 
-(4) You should  now be  able to run admixmap with a test dataset by
+(4) You should  now be  able to run ADMIXMAP with a test dataset by
     changing to the test directory and typing the command:
 
   ./admixmap testArguments.txt 
 
 This will run the program with the user options that are specified in the file testArguments.txt. These user options specify that data files are in subdirectory test/data, and that results should be written to subdirectory test/results. 
-
-You may need to create the test/results subdirectory first. 
 
 Alternatively, you  can run the program by running a Perl script in which the user options are specified in a hash (a table of keys paired with values) and passed to ADMIXMAP on the command line. An  example script "admixmap.pl" is supplied with the program to run the test data files. See the README file for more details. Further examples are available in the tutorial in the genepi/tutorial CVS directory.
 
@@ -54,36 +49,36 @@ Access to the CVS repository (bioinf.ucd.ie:/dsk3/cvs)
 
 For read-only access to the repository, you can use the username 'anon' and password 'cvs'. 
 
-(1) To access the CVS repository you must have installed a CVS client, and you must set the CVSROOT environment variable. If you are working in Windows, we recommend the free program WinCVS, which provides a CVS client with a graphical interface.  Use View-Preferences in WinCVS to specify authentication as pserver, path as /dsk3/cvs, host address as bioinf.ucd.ie, and your CVS username.  This will define the CVSROOT variable.  
+(1) To access the CVS repository you must have installed a CVS client, and you must set the CVSROOT environment variable. If you are working in Windows, we recommend the free program WinCVS, available from http://www.wincvs.org, which provides a CVS client with a graphical interface.  Where required, enter the CVSROOT as :pserver:<username>:<password>@actin.ucd.ie:/dsk3/cvs .  
 
-(2) For Linux or Unix you must find the shell script that is run when you logon. This file will reside in your home directory and will be called something like, .bashrc, .bash_profile or .profile.   In MinGW this file is named profile, and is in a subdirectory named /etc somewhere below your msys directory
+(2) For Linux or Unix you must find the shell script that is run when you logon. This file will reside in your home directory and will be called something like .bashrc, .bash_profile or .profile. In MinGW this file is named profile, and is in a subdirectory named /etc somewhere below your msys directory
 
 Add the following line somewhere in this login file:
 
-  export CVSROOT=:pserver:<username>:<password>@bioinf.ucd.ie:/dsk3/cvs
+  export CVSROOT=:pserver:<username>:<password>@actin.ucd.ie:/dsk3/cvs
 
 where <username> and <password> are replaced by your CVS username and password.  If you leave the password blank, you will be prompted for a password if one is needed.     
 
 To login, type the command below directly into a console session: 
 
-  cvs -d :pserver:<username>@bioinf.ucd.ie:/dsk3/cvs login   
+  cvs login   
 
-You will be prompted for your cvs password if one is required.  
+You will be prompted for your cvs password if required.  
 
 
 Installing MinGW.
 ----------------
 MinGW provides a Unix-like environment in Windows. You can downlaod MinGW from http://www.mingw.org/. Install in the following order:- 
 
-1) Download MinGW-3.1.0-1.exe, MSYS-1.0.11.exe, and msysDTK-1.0.1.exe (or the current stable versions).
+1) Download MinGW-3.1.0.exe, MSYS-1.0.11.exe, and msysDTK-1.0.1.exe (or the current stable versions).
 
-2) Run MinGW*.exe to install the MinGW C++ compiler. We recommend installing into the default directory C:\MinGW.
+2) Run MinGW-<version>.exe to install the MinGW C++ compiler. We recommend installing into the default directory C:\MinGW.
 
-3) Run MSYS*.exe to install support programs which give you a Linux-like environment under Windows. Install into the MinGW directory created in step (2).
+3) Run MSYS-<version>.exe to install support programs which give you a Linux-like environment under Windows. Install into the MinGW directory created in step (2).
 
-4) Run msysDTK-1.0.1.exe to install the Developer's Kit.	
+4) Run msysDTK-<version>.exe to install the Developer's Kit.	
 
-5) Click on  the MSYS icon to  start up a bash  shell (console window)
+5) Click on the MSYS icon to start up a bash shell (console window)
    under Windows. Your home directory is /home/username.  In your bash
    shell, the C drive is  mapped as a subdirectory of the root.
    Thus, for example, to change to the Windows folder C:\cvs\genepi\admixmap, type: 
