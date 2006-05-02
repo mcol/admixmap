@@ -6,7 +6,6 @@
 
 /**
  *  Utility class used to convert string to other types.
- *  String can be enclosed to doouble quotes.
  */
 class StringConvertor
 {
@@ -21,6 +20,7 @@ public:
   static void toIntPair(std::vector<unsigned short>*, const std::string& str);
   
   static bool isMissingValue(const std::string& str);
+  static bool isWhiteLine(const char *p);
   static std::string dequote(const std::string& str);
 
 };

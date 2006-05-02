@@ -110,3 +110,15 @@ bool StringConvertor::isMissingValue(const string& str)
     static string MISSING[] = {"#", ".", "NA"};
     return MISSING + 3 != find(MISSING, MISSING + 3, str);
 }
+
+//determines if a char array consists only of whitespace
+bool StringConvertor::isWhiteLine(const char *p)
+{
+    while (*p) {
+        if (!isspace(*p++)) {
+            return false;
+        }
+    }
+
+    return true;
+}

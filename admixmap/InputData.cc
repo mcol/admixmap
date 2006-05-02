@@ -21,6 +21,7 @@
 #include "InputData.h"
 #include "AdmixOptions.h"
 #include "StringSplitter.h"
+#include "StringConvertor.h"
 #include "Genome.h"
 #include "Chromosome.h"
 
@@ -29,26 +30,11 @@
 
 using namespace std;
 
-/**
- *  Auxilary functions to read data from file.
- */
-static bool isWhiteLine(const char *p)
-{
-    while (*p) {
-        if (!isspace(*p++)) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 //Extracts population labels from header line of allelefreq input file
 void InputData::getPopLabels(const Vector_s& data, size_t Populations, string **labels)
 {
   if(data.size() != Populations+1){cout << "Error in getPopLabels\n";exit(1);}
   *labels = new string[ Populations ];
-  //StringConvertor S;
 
     for (size_t i = 0; i < Populations; ++i) {
       (*labels)[i] = StringConvertor::dequote(data[i+1]);
@@ -83,7 +69,7 @@ void InputData::readFile(const char *fname, Matrix_s& data, LogWriter &Log)
         string line;        
 
         while (getline(in, line)) {
-            if (!isWhiteLine(line.c_str())) {
+	  if (!StringConvertor::isWhiteLine(line.c_str())) {
 	      data.push_back(splitter.split(line.c_str()));
             }
         }
@@ -154,7 +140,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
       readFile(options->getEtaPriorFilename(), etaPriorData_, Log);
       readFile(options->getReportedAncestryFilename(), reportedAncestryData_, Log);
 
-      Log << "\n";      
+      Log << "\n";
       // Form matrices.
       convertMatrix(locusData_, locusMatrix_);
       ::convertMatrix(outcomeVarData_, outcomeVarMatrix_);
@@ -246,7 +232,7 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
       ExpCols = NumSimpleLoci + sexcol;
     
     if (geneticData_[i].size()-1 != ExpCols) {//check each row of genotypesfile has the right number of fields
-      cerr << "Wrong number of entries in line "<<i+1<<" of genotypesfile" << endl;
+      cerr << "Wrong number of entries ("<< geneticData_[i].size() <<")  in line "<<i+1<<" of genotypesfile" << endl;
       exit(1);
     }
     
