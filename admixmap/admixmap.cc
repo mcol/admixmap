@@ -13,6 +13,7 @@
 #include "admixmap.h"
 #include <fstream>
 #include <dirent.h>//for OpenResultsDir
+#include "StringConvertor.h"//for isWhiteLine in ReadArgsFromFile
 #ifdef PARALLEL
 #include <mpi++.h>
 #include <mpe.h>
@@ -38,7 +39,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 		  AdmixOptions & options, 
 		  const Genome  & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  const double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
-		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
+		  ScoreTests & Scoretests, DispersionTest & DispTest, StratificationTest & StratTest, 
 		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, const double* Coolnesses);
 
 void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream);
@@ -155,12 +156,12 @@ int main( int argc , char** argv ){
       // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
       DispersionTest DispTest;
       StratificationTest StratTest(options.getStratTestFilename(), Log);
-      ScoreTests Scoretest;
+      ScoreTests Scoretests;
       MisSpecAlleleFreqTest AlleleFreqTest;
       HWTest HWtest;
       std::ofstream avgstream; //output to ErgodicAverageFile
       if( options.getScoreTestIndicator() )
-	Scoretest.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
+	Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
 
       if(rank==0){
 	if( options.getTestForDispersion() ){
@@ -266,7 +267,7 @@ int main( int argc , char** argv ){
 	  // accumulate scalars SumEnergy and SumEnergySq at this coolness
 	  // array Coolnesses is not used unless TestOneIndivIndicator is true
 	  doIterations(samples, burnin, IC, L, A, R, options, Loci, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
-		       loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
+		       loglikelihoodfile, Scoretests, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
 #ifdef PARALLEL
 	  t2 = MPI::Wtime()-t1;
 #endif
@@ -288,7 +289,7 @@ int main( int argc , char** argv ){
       else { // evaluate energy for test individual only at all coolnesses simultaneously
 	// call with argument AnnealedRun false - copies of test individual will be annealed anyway  
 	doIterations(samples, burnin, IC, L, A, R, options, Loci, Log, SumEnergy, SumEnergySq, 1.0, false, 
-		     loglikelihoodfile, Scoretest, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
+		     loglikelihoodfile, Scoretests, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
 	// arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls
 	double *MeanEner = IC->getSumEnergy(); 
 	double *VarEner = IC->getSumEnergySq();
@@ -363,9 +364,9 @@ int main( int argc , char** argv ){
 
 	if( options.getScoreTestIndicator()) {
 	//finish writing score test output as R objects
-	  Scoretest.ROutput();
+	  Scoretests.ROutput();
 	  //write final tables
-	  Scoretest.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), true);
+	  Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), true);
 	}
     
 	//output to likelihood ratio file
@@ -466,7 +467,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 		  Regression *R, AdmixOptions & options, 
 		  const Genome & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
-		  ScoreTests & Scoretest, DispersionTest & DispTest, StratificationTest & StratTest, 
+		  ScoreTests & Scoretests, DispersionTest & DispTest, StratificationTest & StratTest, 
 		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, const double* Coolnesses) {
 #ifdef PARALLEL
   const int rank = MPI::COMM_WORLD.Get_rank();
@@ -496,7 +497,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
     // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
     if(AnnealedRun || options.getTestOneIndivIndicator()) IC->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses); 
     
-    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, &Scoretest, Log, data.GetPopLabels(), coolness, AnnealedRun);
+    UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, &Scoretests, Log, data.GetPopLabels(), coolness, AnnealedRun);
 
     Log.setDisplayMode(Quiet);
  
@@ -508,7 +509,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
       // ** set merged haplotypes for allelic association score test 
       if( iteration == options.getBurnIn() ){
 	if(options.getTestForAllelicAssociation())
-	  Scoretest.SetAllelicAssociationTest(L.getalpha0());
+	  Scoretests.SetAllelicAssociationTest(L.getalpha0());
 	if( options.getStratificationTest() )
 	  StratTest.Initialize( &options, Loci, IC, Log, rank);
       }
@@ -544,7 +545,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	    avgstream << endl;
 	  }
 	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretest.Output(iteration-burnin, data.GetPopLabels(), false);
+	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), false);
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
     } // end "if not AnnealedRun" block
@@ -559,7 +560,8 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
   //read in line from file
   while (getline(fin,str,'\n')){
 
-    if(str.length()){    //skip blank lines. **should skip also lines with only whitespace
+    if (!StringConvertor::isWhiteLine(str.c_str()))
+      {    //skip blank lines. 
       str.erase(0,str.find_first_not_of(" \t\n\r"));//trim leading whitespace
       if(str[0]!= '#'){ //ignore lines commented out with #
 	if(str.find_first_of("#")<str.length())str.erase(str.find_first_of("#"));//ignore #comments
