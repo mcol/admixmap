@@ -643,17 +643,16 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
     int index = 0;
     int count = 0;
 //pack allele counts into a single array, sendcounts
-    if(rank==0){
-      for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
+    for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
 	int NumberOfStates = Loci->GetNumberOfStates(locus);
-	for(int k = 0; k < Populations; ++k){
-	  copy(Freqs[locus]+k*NumberOfStates, Freqs[locus]+(k+1)*NumberOfStates-1, sendfreqs+index);
-	  index += (NumberOfStates-1);
-	}
-	count += NumberOfStates-1;//count number of freqs to send
-      }
+	if(rank==0)
+	    for(int k = 0; k < Populations; ++k){
+		copy(Freqs[locus]+k*NumberOfStates, Freqs[locus]+(k+1)*NumberOfStates-1, sendfreqs+index);
+		index += (NumberOfStates-1);
+	    }
+	count += NumberOfStates-1;//count number of freqs to send. All procs do this.
     }
-
+    
 //synchronise processes
     MPE_Log_event(13, 0, "Barrier");
     MPI::COMM_WORLD.Barrier();
@@ -662,23 +661,24 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
     MPI::COMM_WORLD.Bcast(sendfreqs, count*Populations, MPI::DOUBLE, 0);
 
 //unpack freqs
-    index = 0;
-    for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
-      int NumberOfStates = Loci->GetNumberOfStates(locus);
-      for(int k = 0; k < Populations; ++k){
-	Freqs[locus][(k+1)*NumberOfStates -1] = 1.0;
-	for(int s = 0; s < NumberOfStates-1; ++s){
-	  double f = sendfreqs[index+s];
-	  Freqs[locus][k*NumberOfStates+s] = f;
-	  Freqs[locus][(k+1)*NumberOfStates -1] -= f;//compute last freq by subtraction from 1
+    if(rank>0){
+	index = 0;
+	for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
+	    int NumberOfStates = Loci->GetNumberOfStates(locus);
+	    for(int k = 0; k < Populations; ++k){
+		Freqs[locus][(k+1)*NumberOfStates -1] = 1.0;
+		for(int s = 0; s < NumberOfStates-1; ++s){
+		    double f = sendfreqs[index+s];
+		    Freqs[locus][k*NumberOfStates+s] = f;
+		    Freqs[locus][(k+1)*NumberOfStates -1] -= f;//compute last freq by subtraction from 1
+		}
+		index += NumberOfStates-1;
+	    }
+	    //no need to update alleleprobs
+	    (*Loci)(locus)->SetHapPairProbs();
 	}
-	index += NumberOfStates-1;
-      }
-      if(rank>0)
-	//no need to update alleleprobs
-	(*Loci)(locus)->SetHapPairProbs();
-
     }
+    MPI::COMM_WORLD.Barrier();
 }
 #endif
 
