@@ -12,6 +12,7 @@
  */
 #include "IndividualCollection.h"
 #include "StringSplitter.h"
+#include "StringConvertor.h"
 #include "Regression.h"
 #include "admixmap.h"//for MPI stuff
 #ifdef PARALLEL
