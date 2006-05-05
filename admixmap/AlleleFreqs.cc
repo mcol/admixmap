@@ -299,7 +299,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   int newrow;
   int row = 0;
 
-  DataMatrix temporary;
+  const DataMatrix* temporary = 0;
 
   RandomAlleleFreqs = !options->getFixedAlleleFreqs();
   CorrelatedAlleleFreqs = options->getCorrelatedAlleleFreqs();
@@ -308,23 +308,20 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
   Freqs = new double*[NumberOfCompositeLoci];
   AlleleFreqsMAP = Freqs;
-  hetCounts = new int*[NumberOfCompositeLoci];
+  if(options->getThermoIndicator())hetCounts = new int*[NumberOfCompositeLoci];
   PriorAlleleFreqs = new double*[NumberOfCompositeLoci];
   AlleleCounts = new int*[NumberOfCompositeLoci];
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     Freqs[i] = 0;
     PriorAlleleFreqs[i] = 0;
-    AlleleCounts[i] = 0;
-    hetCounts[i] = 0;
   }
   int offset = 0;
   bool oldformat = false;
   bool file = false;
   //Fixed AlleleFreqs
   if( strlen( options->getAlleleFreqFilename() ) ){
-    temporary = data_->getAlleleFreqMatrix();
-    temporary = temporary.SubMatrix( 1, temporary.nRows() - 1, 1, Populations );
+    temporary = &(data_->getAlleleFreqMatrix());
 
     offset = 1;
     oldformat = true;
@@ -345,15 +342,14 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
 	SumFst = alloc2D_d(NumberOfCompositeLoci, Populations);
       }
       MuProposal = new std::vector<StepSizeTuner>[NumberOfCompositeLoci];
-      temporary = data_->getHistoricalAlleleFreqMatrix();
+      temporary = &(data_->getHistoricalAlleleFreqMatrix());
       IsHistoricAlleleFreq = true;
       
     } else {
       //Prior on AlleleFreqs
-      temporary = data_->getPriorAlleleFreqMatrix();
+      temporary = &(data_->getPriorAlleleFreqMatrix());
       IsHistoricAlleleFreq = false;
     }
-    temporary = temporary.SubMatrix( 1, temporary.nRows() - 1, 1, Populations );
   }
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -361,17 +357,16 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     (*Loci)(i)->SetNumberOfPopulations(Populations);
     // set size of allele counts array
     // allele counts array has NumberOfStates elements for each population 
-    //TODO: may not be necessary to allocate AlleleCounts if fixed allele freqs
     AlleleCounts[i] = new int[Loci->GetNumberOfStates(i) * Populations];
     //fill(AlleleCounts[i], AlleleCounts[i]+ Loci->GetNumberOfStates(i)*Populations, 0);
-    if(Loci->GetNumberOfStates(i)==2){//fill hetCounts for SNPs
+    if(options->getThermoIndicator() && Loci->GetNumberOfStates(i)==2){//fill hetCounts for SNPs
       hetCounts[i] = new int[Populations * Populations];
       fill(hetCounts[i], hetCounts[i]+ Populations*Populations, 0);
     }
     
     if(file){
       newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
-      LoadAlleleFreqs( temporary.SubMatrix( row, newrow - 1, 0, Populations - 1 ), i, oldformat);
+      LoadAlleleFreqs( *temporary, i, row+1, oldformat);//row+1 is the first row for this locus (+1 for the header).
       row = newrow;
     }
     else{  //Default Allele Freqs
@@ -388,7 +383,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   }
 }
 
-void AlleleFreqs::LoadAlleleFreqs(const DataMatrix New, int i, bool oldformat){
+void AlleleFreqs::LoadAlleleFreqs(const DataMatrix& New, int i, unsigned row0, bool oldformat){
   /**
    * Initialises the frequencies of each haplotype in the ith
    * composite locus, given Dirichlet priors (oldformat=false) or frequencies (oldformat=true)in matrix New.  
@@ -424,15 +419,15 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix New, int i, bool oldformat){
 
   // set size of allele freqs array for this locus
   // Freqs array has only NumberOfStates - 1 elements for each population
-  int NumberOfStates = Loci->GetNumberOfStates(i);
+  unsigned NumberOfStates = Loci->GetNumberOfStates(i);
   Freqs[i] = new double[NumberOfStates* Populations];
 
   if(oldformat){//old format allelefreqfile
     for(int k = 0; k < Populations; ++k){
       Freqs[i][(NumberOfStates-1) + k*NumberOfStates] = 1.0;
-      for(int j = 0; j < NumberOfStates-1; ++j){
-	Freqs[i][j+ k*NumberOfStates] = New.get(j,k);
-	Freqs[i][(NumberOfStates-1) + k*NumberOfStates] -= New.get(j,k);
+      for(unsigned j = 0; j < NumberOfStates-1; ++j){
+	Freqs[i][j+ k*NumberOfStates] = New.get(row0+j,k+1);
+	Freqs[i][(NumberOfStates-1) + k*NumberOfStates] -= New.get(row0+j,k+1);
       }
     }
   }
@@ -441,24 +436,26 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix New, int i, bool oldformat){
     // allele frequencies are initialised as expectations over the Dirichlet prior distribution, 
     // by dividing each prior parameter by the sum of the parameters.
     for( int j = 0; j < Populations; j++ ){
-      vector<double> NewCol = New.getCol(j);
-      sumalpha = accumulate( NewCol.begin(), NewCol.end(), 0.0, std::plus<double>() );
-      for( int k = 0; k < NumberOfStates ; k++ )
-	Freqs[i][ k + j*NumberOfStates ] = ( New.get( k, (!CorrelatedAlleleFreqs)* j ) ) / sumalpha;
+      //vector<double> NewCol = New.getCol(j);
+      //sumalpha = accumulate( NewCol.begin(), NewCol.end(), 0.0, std::plus<double>() );
+      sumalpha = 0.0;
+      for( unsigned k = 0; k < NumberOfStates ; k++ )sumalpha+= New.get(row0+k, j+1);
+      for( unsigned k = 0; k < NumberOfStates ; k++ )
+	Freqs[i][ k + j*NumberOfStates ] = ( New.get( row0+k, (!CorrelatedAlleleFreqs)* j +1) ) / sumalpha;
     }
   }
   
   if(RandomAlleleFreqs){
-    PriorAlleleFreqs[i] = new double[New.nRows()*New.nCols()];
+    PriorAlleleFreqs[i] = new double[NumberOfStates* Populations];
     if(IsHistoricAlleleFreq){
       HistoricAlleleFreqs[i] = new double[(NumberOfStates - 1)* Populations];
       fill(HistoricAlleleFreqs[i],HistoricAlleleFreqs[i] + (NumberOfStates - 1)* Populations, 0.0);
-      HistoricAlleleCounts[i] = new double[New.nRows()*New.nCols()];
+      HistoricAlleleCounts[i] = new double[NumberOfStates* Populations];
       
-      for(unsigned row = 0; row < New.nRows(); ++row)
-	for(unsigned col = 0; col < New.nCols(); ++col){
-	  HistoricAlleleCounts[i][row*New.nCols() +col] = New.get(row, col);
-	  PriorAlleleFreqs[i][col*New.nRows() + row] = New.get(row, col) + 0.501; // why add 0.501? 
+      for(unsigned row = 0; row < NumberOfStates; ++row)
+	for(unsigned col = 0; col < Populations; ++col){
+	  HistoricAlleleCounts[i][row*Populations +col] = New.get(row0+row, col+1);
+	  PriorAlleleFreqs[i][col*NumberOfStates + row] = New.get(row0+row, col+1) + 0.501; // why add 0.501? 
 	}
       // set size of vector MuProposal
       if( NumberOfStates > 2 ){
@@ -470,9 +467,9 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix New, int i, bool oldformat){
     }
     else{ // priorallelefreqs model, with or without correlated allelefreqs
       RandomAlleleFreqs = true;
-      for(unsigned row = 0; row < New.nRows(); ++row)
-	for(unsigned col = 0; col < New.nCols(); ++col){
-	  PriorAlleleFreqs[i][col*New.nRows() + row] = New.get(row, col); 
+      for(unsigned row = 0; row < NumberOfStates; ++row)
+	for(unsigned col = 0; col < Populations; ++col){
+	  PriorAlleleFreqs[i][col*NumberOfStates + row] = New.get(row0+row, col+1); 
 	}
     }
   }
@@ -562,10 +559,10 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 
 void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      fill(AlleleCounts[i], AlleleCounts[i] + Loci->GetNumberOfStates(i)*Populations, 0);
+      if(AlleleCounts)fill(AlleleCounts[i], AlleleCounts[i] + Loci->GetNumberOfStates(i)*Populations, 0);
 
     //TODO: only do next line if thermo = 1 and testoneindiv = 0 and annealing
-    if(Loci->GetNumberOfStates(i)==2)
+      if(hetCounts && Loci->GetNumberOfStates(i)==2)
       fill(hetCounts[i], hetCounts[i]+Populations*Populations, 0);
   }
 

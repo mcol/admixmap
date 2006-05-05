@@ -284,9 +284,8 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
 }
 
 void IndividualCollection::LoadOutcomeVar(const InputData* const data_){
-  DataMatrix& OutcomeVarData = (DataMatrix&)data_->getOutcomeVarMatrix();
-  NumOutcomes = OutcomeVarData.nCols();
-  Outcome = data_->getOutcomeVarMatrix();;
+  Outcome = data_->getOutcomeVarMatrix();
+  NumOutcomes = Outcome.nCols();
  
   delete[] OutcomeType;
   OutcomeType = new DataType[ NumOutcomes ];
