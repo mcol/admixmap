@@ -33,9 +33,9 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
   Args.coolness = coolness;
 
   //initialise Hamiltonian Sampler
-  double step0 = 0.1;//initial step size
+  double step0 = 0.01;//initial step size
   double min = -100.0, max = 100.0; //min and max stepsize
-  int numleapfrogsteps = 1;
+  int numleapfrogsteps = 10;
   Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.44/*target acceptrate*/, getEnergy, gradient);
 
   //transform phi 
@@ -74,9 +74,9 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const double* Prior, const i
   Args.hetCounts = hetCounts;
 
   //initialise Hamiltonian Sampler
-  double step0 = 0.1;//initial step size
+  double step0 = 0.01;//initial step size
   double min = -100.0, max = 100.0; //min and max stepsize
-  int numleapfrogsteps = 20;
+  int numleapfrogsteps = 40;
   Sampler.SetDimensions(2*NumPops, step0, min, max, numleapfrogsteps, 0.44, getEnergySNP, gradientSNP);
 
   //transform phi 
