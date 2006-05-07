@@ -398,15 +398,15 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol, Log
     //determine type of outcome - binary/continuous
     OutcomeType = new DataType[numoutcomes];
     for( int j = 0; j < numoutcomes; j++ ){
-      
+      OutcomeType[j] = Binary; // default type
       for(int i = 0; i < NumIndividuals; ++i)
-	if(!outcomeVarMatrix_.isMissing(i, j) && (outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) )
-	  OutcomeType[j] = Binary;
-	else OutcomeType[j] = Continuous;
-      //in this way, the outcome type is set as binary only if all individuals have outcome values of 1 or 0
-      //otherwise, a continuous outcome of 1.0 or 0.0 could lead to the type being wrongly set to binary.
-      
-      //need to check for allmissing
+	if(!outcomeVarMatrix_.isMissing(i, j) && 
+	   !(outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) ) {
+	  OutcomeType[j] = Continuous; 
+	}
+      // type of jth outcome is set as continuous if any individual has value that is 
+      // (not missing) and not (0 or 1)
+      // maybe should check for all values missing
       //     if(i == NumIndividuals){
       //       Log << "ERROR: all outcomes missing\n";
       //       exit(1);
