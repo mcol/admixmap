@@ -1,15 +1,16 @@
 #!/usr/bin/perl
 # script to test most ADMIXMAP options and compare results with previous results
+use strict;
+use File::Path;
  
-print "OS is ";print $^O;
-$resultsdir = "results";
-if (-e $resultsdir){ 
-    system("erase /q $resultsdir");
-    system("mkdir $resultsdir");}
-else {system("mkdir $resultsdir");}
+print "OS is ";print "$^O\n";
+my $resultsdir = "results";
+if (-e $resultsdir) { 
+    rmtree($resultsdir);
+    }
+mkpath($resultsdir);
 
-# Change this to the location of the admixmap executable
-my $executable = 'admixmap';
+my $executable = './admixmap';
 
 my $arg_hash = {
     samples                    => 15, 
@@ -40,8 +41,8 @@ $arg_hash->{thermo} = 1;
 $arg_hash->{numannealedruns} = 4;
 $arg_hash->{populations} = 1;
 #$arg_hash->{hapmixmodel}=1;
-#doAnalysis($executable,$arg_hash, $resultsdir);
-#&CompareThenMove("results", "results0");
+doAnalysis($executable,$arg_hash, $resultsdir);
+&CompareThenMove("results", "results0");
 
 # single population, reference prior on allele freqs, annealing  
 $arg_hash->{thermo} = 0;
@@ -175,8 +176,8 @@ sub CompareThenMove {
     my ($sourcedir, $targetdir) = @_;
     my $prefix = "old_";
 # define commands for different OS's
-    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\";$delcmd="rmdir /s /q";}
-    else {$diffcmd = "diff -s"; $movecmd = "mv -f"; $slash="/";$delcmd="rm -r";}
+    my $diffcmd = "diff -s"; my $movecmd = "mv -f"; my $slash="/"; my $delcmd="rm -r";
+    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\"; $delcmd="rmdir /s /q";}
     if (-e $targetdir) { # compare with sourcedir
 	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
 	while ( defined (my $file = readdir SOURCE) ) {
