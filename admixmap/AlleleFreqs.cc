@@ -111,7 +111,9 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   //NB: HaplotypePairProbs in Individual must be set first
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
+#ifndef PARALLEL
     if(options->getChibIndicator())(*Loci)(i)->InitialiseHapPairProbsMAP();
+#endif
 #ifdef PARALLEL
     count += Loci->GetNumberOfStates(i);
 #endif
@@ -453,7 +455,7 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix& New, int i, unsigned row0, b
       HistoricAlleleCounts[i] = new double[NumberOfStates* Populations];
       
       for(unsigned row = 0; row < NumberOfStates; ++row)
-	for(unsigned col = 0; col < Populations; ++col){
+	for(int col = 0; col < Populations; ++col){
 	  HistoricAlleleCounts[i][row*Populations +col] = New.get(row0+row, col+1);
 	  PriorAlleleFreqs[i][col*NumberOfStates + row] = New.get(row0+row, col+1) + 0.501; // why add 0.501? 
 	}
@@ -468,7 +470,7 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix& New, int i, unsigned row0, b
     else{ // priorallelefreqs model, with or without correlated allelefreqs
       RandomAlleleFreqs = true;
       for(unsigned row = 0; row < NumberOfStates; ++row)
-	for(unsigned col = 0; col < Populations; ++col){
+	for(int col = 0; col < Populations; ++col){
 	  PriorAlleleFreqs[i][col*NumberOfStates + row] = New.get(row0+row, col+1); 
 	}
     }
@@ -533,8 +535,10 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
       SampleAlleleFreqs(i, coolness);
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
+#ifndef PARALLEL
     //no need to update alleleprobs
     (*Loci)(i)->SetHapPairProbs();
+#endif
   }
   
   // Sample for allele frequency dispersion parameters, eta, conditional on allelefreqs using
@@ -672,7 +676,7 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
 		index += NumberOfStates-1;
 	    }
 	    //no need to update alleleprobs
-	    (*Loci)(locus)->SetHapPairProbs();
+	    //(*Loci)(locus)->SetHapPairProbs();
 	}
     }
     MPI::COMM_WORLD.Barrier();

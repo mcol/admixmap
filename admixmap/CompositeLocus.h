@@ -70,8 +70,10 @@ private:
   std::vector<int> NumberOfAlleles;
   const double *AlleleProbs;//pointer to allele frequencies held in AlleleFreqs
   double **SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
+#ifndef PARALLEL
   double *HapPairProbs; //haplotype pair probabilities
   double *HapPairProbsMAP; //Posterior estimates of hap pair probs
+#endif
   std::vector<std::string> Label;
   int *base;
   bool RandomAlleleFreqs;
@@ -103,24 +105,45 @@ double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const 
 
 typedef std::vector<hapPair>::const_iterator happairiter;
 
+#ifdef PARALLEL
+inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
+  //TODO: happairprobsMAP
+  double *q = Probs;
+
+  happairiter end = HapPairs.end();
+  for(int k0 = 0; k0 < Populations; ++k0)
+    for(int k1 = 0; k1 < Populations; ++k1) {
+    *q = 0.0;
+    happairiter h = HapPairs.begin();
+    for( ; h != end ; ++h) {
+      //in parallel version, the happairprobs are not stored so we calculate them from allele probs
+      *q += AlleleProbs[k0*NumberOfStates+h->haps[0]] * AlleleProbs[k1*NumberOfStates+h->haps[1]];
+    }
+    q++;
+  }
+}
+#else
 inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
   int Ksq = Populations*Populations;
-  double *p, *q = Probs;
+  double *q = Probs;
+  double *p;
   if(!chibindicator || !RandomAlleleFreqs) 
     p = HapPairProbs;
   else 
     p = HapPairProbsMAP;
+
+  happairiter end = HapPairs.end();
   for(int k0 = 0; k0 < Ksq; ++k0) {
     *q = 0.0;
-    happairiter end = HapPairs.end();
     happairiter h = HapPairs.begin();
     for( ; h != end ; ++h) {
       *q += *(p + (h->haps[0] * NumberOfStates + h->haps[1]) * Ksq);
+
     }
     p++;
     q++;
   }
 }
-
+#endif
 
 #endif /* !COMPOSITE_LOCUS_H */
