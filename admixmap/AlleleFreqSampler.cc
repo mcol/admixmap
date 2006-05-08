@@ -202,19 +202,21 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
   for(unsigned k = 0; k < args->NumPops; ++k)
     softmax(States, phi + k*States, params + k*States); 
 
-  double* dEdphi = new double[States * args->NumPops];fill(dEdphi, dEdphi+States*args->NumPops, 0.0);
+  double* dE_dphi = new double[States * args->NumPops];fill(dE_dphi, dE_dphi+States*args->NumPops, 0.0);
   for(int i = 0; i < args->IP->getSize(); ++i){
     const Individual* ind = args->IP->getIndividual(i);
     int Anc[2];
     ind->GetLocusAncestry(args->locus, Anc);
     //first compute gradient wrt phi
-    logLikelihoodFirstDeriv(phi, Anc, ind->getPossibleHapPairs(args->locus), States, args->NumPops, dEdphi);
+    logLikelihoodFirstDeriv(phi, Anc, ind->getPossibleHapPairs(args->locus), States, args->NumPops, dE_dphi);
   }
+
   //subtract derivative of log prior
   for(unsigned s = 0; s < States; ++s)
     for(unsigned k = 0; k < args->NumPops; ++k){
+      dE_dphi[k*States+s]*=args->coolness;
       if(args->PriorParams[s*args->NumPops +k] > 0.0)
-	dEdphi[k*States+s] -= (args->PriorParams[s*args->NumPops +k] - 1.0) / phi[k*States+s]; 
+	dE_dphi[k*States+s] -= (args->PriorParams[s*args->NumPops +k] - 1.0) / phi[k*States+s]; 
     }
   
    //now use chain rule to obtain gradient wrt args
@@ -223,12 +225,12 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
     for(unsigned s = 0; s < States; ++s){
       for(unsigned s1 = 0; s1 < States; ++s1)sum += exp(params[k*States+s1]);
       for(unsigned s1 = 0; s1 < States; ++s1)
-	g[k*States+s] -= dEdphi[k*States+s1] * exp(params[k*States+s1])*exp(params[k*States+s]) / (sum*sum); 
+	g[k*States+s] -= dE_dphi[k*States+s1] * exp(params[k*States+s1])*exp(params[k*States+s]) / (sum*sum); 
 
     }
   }
   delete[] phi;
-  delete[] dEdphi;
+  delete[] dE_dphi;
 }
 
 //first derivative of  -log likelihood
@@ -320,18 +322,18 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
   for(unsigned k = 0; k < Pops; ++k)
     softmax(2, phi + k*2, params + k*2);
 
-  double* dEdphi = new double[2 * Pops];fill(dEdphi, dEdphi+ 2*Pops, 0.0);
+  double* dE_dphi = new double[2 * Pops];fill(dE_dphi, dE_dphi+ 2*Pops, 0.0);// derivative of energy wrt phi
   //derivative of log likelihood
   for(unsigned k  = 0; k < Pops; ++k){
-    dEdphi[2*k] -= args->AlleleCounts[k] / phi[k*2];//allele1
-    dEdphi[2*k+1] -= args->AlleleCounts[Pops + k] / phi[k*2+1];//allele2
+    dE_dphi[2*k] -= args->AlleleCounts[k] / phi[k*2];//allele1
+    dE_dphi[2*k+1] -= args->AlleleCounts[Pops + k] / phi[k*2+1];//allele2
     for(unsigned k1 = 0; k1 < Pops; ++k1)if(k!=k1){
       double denom1 = (phi[k*2]*phi[k*2]*phi[k1*2+1]*phi[k1*2+1] + phi[k*2+1]*phi[k*2+1]*phi[k1*2]*phi[k1*2]);
       double denom2 = (phi[k*2]*phi[k1*2+1] + phi[k*2+1]*phi[k1*2]);
 
-      dEdphi[2*k] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
+      dE_dphi[2*k] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
 	((2*phi[k1*2+1]*phi[k1*2+1]*phi[k*2]) / denom1  - (phi[k1*2+1]) / denom2);
-      dEdphi[2*k+1] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 	
+      dE_dphi[2*k+1] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 	
 	((2*phi[k1*2]*phi[k1*2]*phi[k*2+1]) / denom1 - (phi[k1*2]) / denom2);
     }
   }
@@ -339,8 +341,9 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
   //subtract derivative of log prior
   for(unsigned s = 0; s < 2; ++s)
     for(unsigned k = 0; k < Pops; ++k){
+      dE_dphi[k*2+s] *= args->coolness;
       if(args->PriorParams[s*Pops +k] > 0.0)
-	dEdphi[k*2+s] -= (args->PriorParams[s*Pops +k] - 1.0) / phi[k*2+s]; 
+	dE_dphi[k*2+s] -= (args->PriorParams[s*Pops +k] - 1.0) / phi[k*2+s]; 
     }
   
    //now use chain rule to obtain gradient wrt args
@@ -349,12 +352,12 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
     for(unsigned s = 0; s < 2; ++s){
       for(unsigned s1 = 0; s1 < 2; ++s1)sum += exp(params[k*2+s1]);
       for(unsigned s1 = 0; s1 < 2; ++s1)
-	g[k*2+s] -= dEdphi[k*2+s1] * exp(params[k*2+s1])*exp(params[k*2+s]) / (sum*sum); 
+	g[k*2+s] -= dE_dphi[k*2+s1] * exp(params[k*2+s1])*exp(params[k*2+s]) / (sum*sum); 
 
     }
   }
   delete[] phi;
-  delete[] dEdphi;
+  delete[] dE_dphi;
 }
 
 
