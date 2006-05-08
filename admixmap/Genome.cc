@@ -44,8 +44,8 @@ Genome::~Genome()
 //gets contents of locusfile and genotypesfile, creates CompositeLocus array and creates Chromosome array
 void Genome::Initialise(const InputData* const data_, int populations, LogWriter &Log){
 
-  DataMatrix locifileData =  data_->getLocusMatrix();//locus file converted to doubles
-  Vector_s locusLabels = data_->getLocusLabels();
+  const DataMatrix& locifileData =  data_->getLocusMatrix();//locus file converted to doubles
+  const Vector_s& locusLabels = data_->getLocusLabels();
   
   //determine number of composite loci
   NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
