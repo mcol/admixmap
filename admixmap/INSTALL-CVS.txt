@@ -32,7 +32,8 @@ Change to the admixmap subdirectory and create the admixmap executable by typing
 
 The executable will be placed in the test subdirectory. 
 
-You can edit the makefile or specify command-line variables to optimize for the processor you are using or to compile with debug information. See the information in the makefile for details. 
+You can edit the makefile or specify command-line variables to optimize for the processor you are using or to compile with debug information. See the information in the makefile for details. If running under Linux or Unix and you cannot use static libraries, you will need to  specify LIBTYPE=-shared and add the path to the gsl shared library (libgsl.so) to your dynamic library path (eg export LD_LIBRARY_PATH=[path to gsl lib] in bash )
+
 
 (4) You should  now be  able to run ADMIXMAP with a test dataset by
     changing to the test directory and typing the command:

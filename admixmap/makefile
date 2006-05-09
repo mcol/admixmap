@@ -10,22 +10,39 @@
 # Compiler: CC = [g++/icpc/pgCC]
 # MPI wrapper for compiler PCC = [mpiCC/]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
+# paths to gsl, mpi, sprng: GSL_LIBPATH, GSL_INCLUDEPATH, MPI_PATH, MPI_LIBPATH, SPRNG_PATH
+# name of compiled executable: EXEC
+#
+# [the following does not apply to Windows]
+# To use shared libraries, leave LIBTYPE blank and add the paths to gsl 
+# (and possibly mpi and sprng in parallel version) shared libs (.so) to your dynamic library path (LD_LIBRARY_PATH in bash)
+# To use static libraries, specify LIBTYPE=-static.
 #
 ###############################################################################################
 
-##paths
-GSL_PATH =# only needed if in nonstandard location 
-MPICH_PATH = /usr/local/mpich/gcc## parallel only
-#MPICH_PATH = /usr/local/mpich2/gcc## parallel only, mpich2
-SPRNG_PATH = /opt/packages/sprng-2.0## parallel only
-MPICH_LIBDIR = lib64# this sometimes has different names
+# GSL - only needed if in nonstandard location 
+GSL_LIBPATH =#standard is /usr/local/lib
+GSL_INCLUDEPATH=#standard is /usr/local/include
+
+## for parallel version only
+# path to mpi top level directory
+MPI_PATH = /usr/local/mpich/gcc#mpich 
+#MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
+MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
+
+# path to sprng top level directory
+SPRNG_PATH = /opt/packages/sprng-2.0
+
+#leave this one empty for shared libraries (eg libgsl.so) or as -static for static libs (eg libgsl.a)
+#NB do not use -static on ICHEC cluster
+LIBTYPE =#-static
 
 ## compiler definitions
 GNU_COMPILER  = g++ # GNU compiler, all machines
 INTEL_COMPILER = icpc# Intel compiler for Hamilton
 PORTLAND_COMPILER = pgCC# Portland Group compiler, for Walton
-MPICC = $(MPICH_PATH)/bin/mpiCC# MPI wrapper for gnu, MPI 1
-MPICXX = $(MPICH_PATH)/bin/mpicxx# MPI wrapper for gnu, MPI 2
+MPICC = $(MPI_PATH)/bin/mpiCC# MPI wrapper for gnu, MPI 1
+MPICXX = $(MPI_PATH)/bin/mpicxx# MPI wrapper for gnu, MPI 2
 
 ## DEFAULTS
 VERSION = serial
@@ -91,27 +108,40 @@ endif
 
 ## Library flags
 # math, GSL, GSL's CBLAS (linear algebra)
-SERIAL_LIBS = -lm -lgsl -lgslcblas  #-static # serial version
-##NB: do not use -static on cluster
+SERIAL_LIBS = -lm -lgsl -lgslcblas $(LIBTYPE)
 
-PARALLEL_LIBS = -lm -lgsl -lgslcblas -lmpich -lsprng -lgmp -lmpe# parallel version
+PARALLEL_LIBS = -lm -lgsl -lgslcblas -lmpich -lsprng -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
 
-##library flags for sprng in parallel version
-PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPICH_PATH)/$(MPICH_LIBDIR)  # -L/usr/local/lib
-PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPICH_PATH)/include# -I/usr/local/include
+ifeq ($(GSL_LIBPATH),)
+SERIAL_LFLAGS =
+else
+SERIAL_LFLAGS = -L$(GSL_LIBPATH)
+endif
 
+ifeq ($(GSL_INCLUDEPATH),)
+SERIAL_INCLUDES =
+else
+SERIAL_INCLUDES = -I$(GSL_INCLUDEPATH)
+endif
+
+##library flags for sprng in parallel version
+PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPI_LIBPATH)
+PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+
+## parallel version
 ifeq ($(VERSION),parallel)
 CXX = $(PCC)
-LIBS = $(PARALLEL_LIBS)
-LFLAGS = $(PARALLEL_LFLAGS)
+LIBS = $(SERIAL_LIBS) $(PARALLEL_LIBS)
+LFLAGS = $(SERIAL_INCLUDES) $(PARALLEL_LFLAGS)
 INCLUDES = $(PARALLEL_INCLUDES)
 EXEC = adm-para
+##serial version
 else
 CXX = $(CC)
 LIBS = $(SERIAL_LIBS)
-LFLAGS = 
-INCLUDES = 
+LFLAGS = $(SERIAL_LFLAGS)
+INCLUDES = $(SERIAL_INCLUDES)
 EXEC = $(SERIAL_EXEC)
 endif
 
