@@ -310,7 +310,8 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
   Freqs = new double*[NumberOfCompositeLoci];
   AlleleFreqsMAP = Freqs;
-  if(options->getThermoIndicator())hetCounts = new int*[NumberOfCompositeLoci];
+  //if(options->getThermoIndicator())
+    hetCounts = new int*[NumberOfCompositeLoci];
   PriorAlleleFreqs = new double*[NumberOfCompositeLoci];
   AlleleCounts = new int*[NumberOfCompositeLoci];
 
@@ -361,7 +362,8 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     // allele counts array has NumberOfStates elements for each population 
     AlleleCounts[i] = new int[Loci->GetNumberOfStates(i) * Populations];
     //fill(AlleleCounts[i], AlleleCounts[i]+ Loci->GetNumberOfStates(i)*Populations, 0);
-    if(options->getThermoIndicator() && Loci->GetNumberOfStates(i)==2){//fill hetCounts for SNPs
+    if(//options->getThermoIndicator() && 
+       Loci->GetNumberOfStates(i)==2){//fill hetCounts for SNPs
       hetCounts[i] = new int[Populations * Populations];
       fill(hetCounts[i], hetCounts[i]+ Populations*Populations, 0);
     }
@@ -506,7 +508,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i, double defaultpriorparams){
 // ************************** Sampling and Updating *****************************************
 
 // samples allele frequency and prior allele frequency parameters.
-void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool annealUpdate){
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool /*annealUpdate*/){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
   if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -526,13 +528,13 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    if(annealUpdate){//use long method when computing marginal likelihood
+    //if(annealUpdate){//use long method when computing marginal likelihood
       if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
 	FreqSampler.SampleSNPFreqs(Freqs[i], PriorAlleleFreqs[i], AlleleCounts[i], hetCounts[i], i, Populations, coolness);
       else FreqSampler.SampleAlleleFreqs(Freqs[i], PriorAlleleFreqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, coolness);
-   }
-    else //use standard conjugate update
-      SampleAlleleFreqs(i, coolness);
+      //}
+      //else //use standard conjugate update
+      //SampleAlleleFreqs(i, coolness);
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
 #ifndef PARALLEL
@@ -577,9 +579,9 @@ void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
   updates the counts of alleles observed in each state of ancestry.
   * should use hap pairs stored in Individual object
   */
-void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal )
+void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool /*anneal*/ )
 {
-  if(anneal && Loci->GetNumberOfStates(locus)==2){
+  if(/*anneal &&*/ Loci->GetNumberOfStates(locus)==2){
     if( (h[0] != h[1]) && (ancestry[0] !=ancestry[1]))//heterozygous with distinct ancestry states
       ++hetCounts[locus][ancestry[0]*Populations + ancestry[1]];
     else{
