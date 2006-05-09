@@ -79,7 +79,9 @@ public:
   void OutputChibEstimates(bool, LogWriter &, int)const;
   void OutputChibResults(LogWriter&)const;
 
-  void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);
+  //void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);
+  void OpenExpectedYFile(const char* Filename, LogWriter & Log);
+  void OutputExpectedY(int k);
 
   int getSize()const;
   void add(Individual*);
@@ -108,7 +110,7 @@ public:
   const double* getCovariates()const;
   DataType getOutcomeType(int)const;
   void SetExpectedY(int, const double*const );
-  void UpdateSumResiduals();
+  //void UpdateSumResiduals();
   double getExpectedY(int)const;
   double getExpectedY(int, int)const;
   const std::string getCovariateLabels(int)const;
@@ -167,7 +169,7 @@ private:
  
   //Regression Objects
   double **ExpectedY;
-  double **SumResiduals;
+  //double **SumResiduals;
   DataMatrix Outcome;
   int NumOutcomes;
   int NumCovariates;//covariates including admixture
@@ -175,6 +177,7 @@ private:
   DataMatrix Covariates;//all covariates, including admixture props
   Vector_s CovariateLabels;
   DataType *OutcomeType;
+  std::ofstream EYStream;//output file for expected outcome
 
   chib MargLikelihood;
 };

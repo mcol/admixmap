@@ -47,7 +47,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   SumLogLikelihood = 0.0;
   SumDeviance = SumDevianceSq = 0.0;
   ExpectedY = 0;
-  SumResiduals = 0;
+  //SumResiduals = 0;
   SumLogTheta = 0;
   SumAncestry = 0;
   ReportedAncestry = 0;
@@ -104,7 +104,7 @@ IndividualCollection::~IndividualCollection() {
   delete indadmixoutput;
   delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
-  free_matrix(SumResiduals, NumOutcomes);
+  //free_matrix(SumResiduals, NumOutcomes);
   delete[] SumLogTheta;
   delete[] SumAncestry;
   delete[] ReportedAncestry;
@@ -159,8 +159,8 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   // allocate arrays for expected outcome vars and residuals in regression model
   if(options->getNumberOfOutcomes() > 0){
     ExpectedY = alloc2D_d(NumOutcomes, NumInd);
-    SumResiduals = alloc2D_d(NumOutcomes, NumInd);
-    for(int j = 0; j < NumOutcomes; ++j)fill(SumResiduals[j], SumResiduals[j] + NumInd, 0.0);
+    //SumResiduals = alloc2D_d(NumOutcomes, NumInd);
+    //for(int j = 0; j < NumOutcomes; ++j)fill(SumResiduals[j], SumResiduals[j] + NumInd, 0.0);
   }
   
   // allocate array of sufficient statistics for update of population admixture parameters
@@ -337,12 +337,54 @@ void IndividualCollection::SetExpectedY(int k, const double* const beta){
     }
 }
 
-void IndividualCollection::UpdateSumResiduals(){
-  if(SumResiduals)
-    for(int k = 0; k < NumOutcomes; ++k)
-      for(unsigned i = 0; i < NumInd; ++i)
-	SumResiduals[k][i] += Outcome.get(i,k) - ExpectedY[k][i];
+void IndividualCollection::OpenExpectedYFile(const char* Filename, LogWriter & Log){
+  EYStream.open(Filename, ios::out);
+  if( !EYStream.is_open() )
+    {
+      Log<< "WARNING: Couldn't open residualfile\n";
+    }
+  else{
+    Log << "Writing expected values of outcome variable to " << Filename << "\n";
+  //for(int j = 0; j < NumOutcomes; ++j)
+  //EYStream << Labels[j]<< "\t";
+  // EYStream << endl;
+   }
 }
+void IndividualCollection::OutputExpectedY(int k){
+  //output kth Expected Outcome to file
+  //TODO: fix for more than one outcome
+  if(EYStream.is_open()){
+    for(unsigned i = rank; i < size; i+= NumProcs)
+      EYStream << ExpectedY[k][i] << "\t";
+    EYStream << endl;
+  }  
+}
+
+// void IndividualCollection::UpdateSumResiduals(){
+//   if(SumResiduals)
+//     for(int k = 0; k < NumOutcomes; ++k)
+//       for(unsigned i = 0; i < NumInd; ++i)
+// 	SumResiduals[k][i] += Outcome.get(i,k) - ExpectedY[k][i];
+// }
+// void IndividualCollection::OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations){
+//   std::ofstream ResidualStream(ResidualFilename, ios::out);
+//   if( !ResidualStream )
+//     {
+//       cerr<< "WARNING: Couldn't open residualfile\n";
+//     }
+//   else{
+//     for(int j = 0; j < NumOutcomes; ++j)
+//       ResidualStream << Labels[j]<< "\t";
+//     ResidualStream << endl;
+//     for(unsigned i = 0; i < size; ++i){
+//       for(int j = 0; j < NumOutcomes; ++j)
+// 	ResidualStream << SumResiduals[j][i] / (double) iterations << "\t";
+//       ResidualStream << endl;
+//     }
+//     ResidualStream.close();
+//   }
+// }
+
 
 void IndividualCollection::HMMIsBad(bool b){
   if(TestInd)    for(int i = 0; i < sizeTestInd; ++i)TestInd[i]->HMMIsBad(b);
@@ -870,25 +912,6 @@ void IndividualCollection::OutputChibResults(LogWriter& Log)const{
       << "\n\nLogMarginalLikelihoodFromChibAlgorithm\t" << MargLikelihood.getLogMarginalLikelihood()
       << "\n";
 } 
-
-void IndividualCollection::OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations){
-  std::ofstream ResidualStream(ResidualFilename, ios::out);
-  if( !ResidualStream )
-    {
-      cerr<< "WARNING: Couldn't open residualfile\n";
-    }
-  else{
-    for(int j = 0; j < NumOutcomes; ++j)
-      ResidualStream << Labels[j]<< "\t";
-    ResidualStream << endl;
-    for(unsigned i = 0; i < size; ++i){
-      for(int j = 0; j < NumOutcomes; ++j)
-	ResidualStream << SumResiduals[j][i] / (double) iterations << "\t";
-      ResidualStream << endl;
-    }
-    ResidualStream.close();
-  }
-}
 
 void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const string* const PopulationLabels) {
   Log.setDisplayMode(On);

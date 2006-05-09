@@ -116,7 +116,7 @@ void AdmixOptions::Initialise(){
 
   ResidualAllelicAssocScoreFilename = "ResidualAllelicAssocScoreTest.txt";
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
-  ResidualFilename = "Residuals.txt";
+  ResidualFilename = "ExpectedOutcomes.txt";
 
   // option names and default option values are stored as strings in a map container 
   // these are default values
