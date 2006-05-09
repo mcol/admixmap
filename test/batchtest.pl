@@ -2,12 +2,12 @@
 # script to test most ADMIXMAP options and compare results with previous results
 use strict;
 use File::Path;
- 
+
 print "OS is ";print "$^O\n";
 my $resultsdir = "results";
 if (-e $resultsdir) { 
     rmtree($resultsdir);
-    }
+}
 mkpath($resultsdir);
 
 my $executable = './admixmap';
@@ -21,7 +21,7 @@ my $arg_hash = {
     outcomevarfile             => 'data/outcomevars.txt',
     covariatesfile             => 'data/covariates3std.txt',
     targetindicator            => 0, # diabetes in column 1
-    coutindicator              => 1,
+    displaylevel              => 2,
     
 # output files
     logfile                    => 'logfile.txt',
@@ -138,7 +138,7 @@ my $arg_hash = {
     samples  => 60,
     every    => 1,
     numannealedruns => 0, 
-    coutindicator   => 1,
+    displaylevel   => 2,
 
     locusfile                    => "IndData/loci.txt",
     genotypesfile                => "IndData/genotypes.txt",
@@ -146,8 +146,8 @@ my $arg_hash = {
     randommatingmodel            => 1,
     globalrho                    => 0,
     fixedallelefreqs             => 1,
-    admixtureprior                   => "1,1,0",
-    admixtureprior1                   => "1,1,1",
+    admixtureprior               => "1,1,0",
+    admixtureprior1              => "1,1,1",
     logfile                      => "logfile.txt",
     chib                         => 1,
     indadmixturefile             => "indadmixture.txt"
@@ -176,8 +176,8 @@ sub CompareThenMove {
     my ($sourcedir, $targetdir) = @_;
     my $prefix = "old_";
 # define commands for different OS's
-    my $diffcmd = "diff -s"; my $movecmd = "mv -f"; my $slash="/"; my $delcmd="rm -r";
-    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\"; $delcmd="rmdir /s /q";}
+    my $diffcmd = "diff -s"; my $movecmd = "mv -f"; my $slash="/"; 
+    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\";} 
     if (-e $targetdir) { # compare with sourcedir
 	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
 	while ( defined (my $file = readdir SOURCE) ) {
@@ -190,11 +190,11 @@ sub CompareThenMove {
     if (-e $sourcedir) {
 	if (-e $targetdir) {
 	    my $olddir = "$prefix$targetdir";
-	    if (-e $olddir){system("$delcmd $prefix$targetdir");} #delete old results directory (necessary for next command)
+	    if (-e $olddir){rmtree("$prefix$targetdir");} #delete old results directory (necessary for next command)
 	    system("$movecmd $targetdir $prefix$targetdir"); #preserve old results by renaming directory
-	    }  
+	}  
 	system("$movecmd $sourcedir $targetdir"); #rename results dir
-	mkdir("$sourcedir");                      #we need results dir for next analysis
+	mkpath("$sourcedir");                      #we need results dir for next analysis
 	opendir(TARGET, $targetdir) or die "can't open $targetdir folder: $!";
 	while ( defined (my $file = readdir TARGET) ) { #for each results file
 	    next if $file =~ /^\.\.?$/;     # skip . and ..
