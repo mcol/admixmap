@@ -121,7 +121,7 @@ int main( int argc , char** argv ){
 
     IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
     IC->LoadData(&options, &data);                             //and before L and R Initialise
-    if(options.getNumberOfOutcomes()==1)IC->OpenExpectedYFile(options.getResidualFilename(), Log );
+    IC->OpenExpectedYFile(options.getResidualFilename(), Log );
   
     Latent L( &options, &Loci);    
     L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
@@ -347,7 +347,8 @@ int main( int argc , char** argv ){
 		
 	//Residuals
 	//if(options.getNumberOfOutcomes() > 0)
-	//IC->OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
+	IC->//OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
+	  FinishWritingEYAsRObject(options.getTotalSamples()-options.getBurnIn(), data.getOutcomeLabels());
 	//FST
 	if( strlen( options.getHistoricalAlleleFreqFilename() ) ){
 	  A.OutputFST();

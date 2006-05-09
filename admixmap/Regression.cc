@@ -248,7 +248,7 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals, double 
   if(sumbeta){
     SumParameters();
     //individuals->UpdateSumResiduals();
-    if(RegNumber==0)individuals->OutputExpectedY(RegNumber);
+    individuals->OutputExpectedY(RegNumber);
   }
 }//end Update
 

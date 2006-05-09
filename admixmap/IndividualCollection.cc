@@ -102,6 +102,7 @@ IndividualCollection::~IndividualCollection() {
   delete[] TestInd;
   cout << flush;
   delete indadmixoutput;
+
   delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
   //free_matrix(SumResiduals, NumOutcomes);
@@ -113,6 +114,21 @@ IndividualCollection::~IndividualCollection() {
 #endif
 }
 
+void IndividualCollection::FinishWritingEYAsRObject(unsigned NumIterations, const Vector_s Labels){
+  //finish writing expected outcome as R object
+  //dimensions are NumIndividuals, NumOutcomes, NumIterations
+  if(EYStream.is_open()){
+    EYStream << ")," << endl << ".Dim = c(" << size << "," << NumOutcomes << "," << NumIterations << ")," << endl
+	     << ".Dimnames=list(character(0),c(";
+    //write outcome var labels
+    for(unsigned j = 0; j < Labels.size(); ++j){
+      EYStream << Labels[j];
+      if(j < Labels.size()-1) EYStream << ",";
+    }
+    EYStream << ") , character(0)))" << endl;
+    EYStream.close();  
+  }
+}
 void IndividualCollection::DeleteGenotypes(bool setmissing=false){
   for (unsigned int i = rank; i < size; i += NumProcs) {
     if(setmissing)_child[i]->SetMissingGenotypes();
@@ -341,10 +357,11 @@ void IndividualCollection::OpenExpectedYFile(const char* Filename, LogWriter & L
   EYStream.open(Filename, ios::out);
   if( !EYStream.is_open() )
     {
-      Log<< "WARNING: Couldn't open residualfile\n";
+      Log<< "WARNING: Couldn't open expectedoutcomefile\n";
     }
   else{
-    Log << "Writing expected values of outcome variable to " << Filename << "\n";
+    Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
+    EYStream << "structure(.Data=c(" << endl;
   //for(int j = 0; j < NumOutcomes; ++j)
   //EYStream << Labels[j]<< "\t";
   // EYStream << endl;
@@ -355,7 +372,7 @@ void IndividualCollection::OutputExpectedY(int k){
   //TODO: fix for more than one outcome
   if(EYStream.is_open()){
     for(unsigned i = rank; i < size; i+= NumProcs)
-      EYStream << ExpectedY[k][i] << "\t";
+      EYStream << ExpectedY[k][i] << ",";
     EYStream << endl;
   }  
 }

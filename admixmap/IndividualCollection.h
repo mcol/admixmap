@@ -82,6 +82,7 @@ public:
   //void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);
   void OpenExpectedYFile(const char* Filename, LogWriter & Log);
   void OutputExpectedY(int k);
+  void FinishWritingEYAsRObject(unsigned NumIterations, const Vector_s Labels);
 
   int getSize()const;
   void add(Individual*);
