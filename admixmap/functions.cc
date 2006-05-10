@@ -271,8 +271,12 @@ void softmax(size_t K, double *mu, const double* a){
   for(unsigned k = 1; k < K; ++k) amax = max(amax, a[k]);
   for(unsigned k = 0; k < K; ++k) {
     status = gsl_sf_exp_e(a[k] - amax, &result);
-    if(status)throw string("error in softmax");
-    mu[k] = result.val;
+      if(status){
+	string s = "error in softmax: ";
+	s.append(gsl_strerror(status));
+	throw s;
+      }
+      mu[k] = result.val;
     z += mu[k];
   }
   gsl_set_error_handler (old_handler);//restore gsl error handler 
