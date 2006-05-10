@@ -264,17 +264,24 @@ void softmax(size_t K, double *mu, const double* a){
   // elements of array a need not sum to zero 
   double z = 0.0;
   double amax = a[0];
+  double amin= a[0];
   gsl_sf_result result;
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   int status = 0;
   // standardize a so that max argument to exp() is 0 
-  for(unsigned k = 1; k < K; ++k) amax = max(amax, a[k]);
+  for(unsigned k = 1; k < K; ++k) {
+    amax = max(amax, a[k]);
+    amin = min(amin, a[k]);
+  }
   for(unsigned k = 0; k < K; ++k) {
-    status = gsl_sf_exp_e(a[k] - amax, &result);
+    status = gsl_sf_exp_e(a[k] + 0.5*(amax+amin), &result);
       if(status){
-	string s = "error in softmax: ";
-	s.append(gsl_strerror(status));
-	throw s;
+	stringstream s;
+	s << "error in softmax: ";
+	s << gsl_strerror(status)<< "\n";
+	for(unsigned t = 0; t < K; ++t) s << a[t] << " ";
+	throw s.str();
+
       }
       mu[k] = result.val;
     z += mu[k];
