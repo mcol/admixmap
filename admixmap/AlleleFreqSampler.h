@@ -38,6 +38,7 @@ typedef struct{
   const double* PriorParams;//parameters of Dirichlet prior on allele freqs
   const int* AlleleCounts;
   const int* hetCounts;
+  const double *phi;//freqs on original scale
   double coolness;
 }AlleleFreqArgs;
 
@@ -57,7 +58,7 @@ private:
   static double logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumPops);
   static double logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates);
   static double logJacobian(const double* a, const double z, unsigned H);
-  static void logLikelihoodFirstDeriv(double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumStates, unsigned NumPops,
+  static void logLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumStates, unsigned NumPops,
 			       double* FirstDeriv);
 
   static double getEnergy(const double * const phi, const void* const vargs);

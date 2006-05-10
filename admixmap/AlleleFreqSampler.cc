@@ -31,6 +31,7 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
   Args.locus = locus;
   Args.PriorParams = Prior;
   Args.coolness = coolness;
+  Args.phi = phi;
 
   //initialise Hamiltonian Sampler
   double step0 = 0.01;//initial step size
@@ -72,6 +73,7 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const double* Prior, const i
   Args.coolness = coolness;
   Args.AlleleCounts = AlleleCounts;
   Args.hetCounts = hetCounts;
+  Args.phi = phi;
 
   //initialise Hamiltonian Sampler
   double step0 = 0.01;//initial step size
@@ -168,9 +170,10 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   unsigned States = args->NumStates;
 
   //transform params to freqs
-  double* phi = new double[args->NumStates * args->NumPops];
-  for(unsigned k = 0; k < args->NumPops; ++k)
-    softmax(States, phi + k*States, params + k*States); 
+  const double* phi = args->phi;
+// new double[args->NumStates * args->NumPops];
+//   for(unsigned k = 0; k < args->NumPops; ++k)
+//     softmax(States, phi + k*States, params + k*States); 
 
   //accumulate likelihood over individuals
   for(int i = 0; i < args->IP->getSize(); ++i){
@@ -189,7 +192,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
       }
     }
   }
-  delete[] phi;
+  //delete[] phi;
   return energy;
 }
 
@@ -198,9 +201,10 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
   unsigned States = args->NumStates;
   fill(g, g+States* args->NumPops, 0.0);
   //transform params to freqs
-  double* phi = new double[States * args->NumPops];
-  for(unsigned k = 0; k < args->NumPops; ++k)
-    softmax(States, phi + k*States, params + k*States); 
+  const double* phi = args->phi;
+// new double[States * args->NumPops];
+//   for(unsigned k = 0; k < args->NumPops; ++k)
+//     softmax(States, phi + k*States, params + k*States); 
 
   double* dE_dphi = new double[States * args->NumPops];fill(dE_dphi, dE_dphi+States*args->NumPops, 0.0);
   for(int i = 0; i < args->IP->getSize(); ++i){
@@ -229,12 +233,12 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
 
     }
   }
-  delete[] phi;
+  //delete[] phi;
   delete[] dE_dphi;
 }
 
 //first derivative of  -log likelihood
-void AlleleFreqSampler::logLikelihoodFirstDeriv(double *phi, const int Anc[2], const std::vector<hapPair > H, 
+void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
 						unsigned NumStates, unsigned NumPops, double* FirstDeriv){
   unsigned NumPossHapPairs = H.size();
   unsigned dim = NumStates*NumPops;
@@ -286,9 +290,10 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
   double energy = 0.0;
   unsigned Pops = args->NumPops;
   //transform params to freqs
-  double* phi = new double[2 * Pops];
-  for(unsigned k = 0; k < Pops; ++k)
-    softmax(2, phi + k*2, params + k*2);
+  const double* phi = args->phi;
+// new double[2 * Pops];
+//   for(unsigned k = 0; k < Pops; ++k)
+//     softmax(2, phi + k*2, params + k*2);
 
   //get loglikelihood
   for(unsigned k = 0; k < Pops; ++k){
@@ -309,7 +314,7 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
       }
     }
   }
-  delete[] phi;
+  //delete[] phi;
   return energy;
 }
 
@@ -318,9 +323,10 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
   fill(g, g+ 2* args->NumPops, 0.0);
   unsigned Pops = args->NumPops;
   //transform params to freqs
-  double* phi = new double[2 * Pops];
-  for(unsigned k = 0; k < Pops; ++k)
-    softmax(2, phi + k*2, params + k*2);
+  const double* phi = args->phi;
+// new double[2 * Pops];
+//   for(unsigned k = 0; k < Pops; ++k)
+//     softmax(2, phi + k*2, params + k*2);
 
   double* dE_dphi = new double[2 * Pops];fill(dE_dphi, dE_dphi+ 2*Pops, 0.0);// derivative of energy wrt phi
   //derivative of log likelihood
@@ -356,7 +362,7 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
 
     }
   }
-  delete[] phi;
+  //delete[] phi;
   delete[] dE_dphi;
 }
 
