@@ -38,7 +38,6 @@ typedef struct{
   const double* PriorParams;//parameters of Dirichlet prior on allele freqs
   const int* AlleleCounts;
   const int* hetCounts;
-  const double *phi;//freqs on original scale
   double coolness;
 }AlleleFreqArgs;
 
