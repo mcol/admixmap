@@ -102,7 +102,6 @@ private:
    */
   int K;
   std::vector<double> rho;
-  double* logrho; 
   double rhoalpha;
   double rhobeta; 
   double rhobeta0;
