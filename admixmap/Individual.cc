@@ -81,31 +81,35 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   ThetaXProposal = 0;
   SumSoftmaxTheta = 0;
 
-  // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1  
-  SumLocusAncestry = new int[options->getPopulations()*2];
-
-  SumNumArrivals.resize(2*numCompositeLoci);  
+  // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1 
+  SumLocusAncestry = 0; 
+  if(!options->getHapMixModelIndicator()){
+    SumLocusAncestry = new int[options->getPopulations()*2];
+    if(!options->isGlobalRho())SumNumArrivals.resize(2*numCompositeLoci);  
+  }
 
   dirparams = new double[Populations]; //to hold dirichlet parameters for conjugate updates of theta
   
-  ThetaProposal = new double[ Populations * NumIndGametes ];
   Theta = new double[ Populations * NumIndGametes ];
   SumSoftmaxTheta = new double[ Populations * NumIndGametes ];
   fill(SumSoftmaxTheta, SumSoftmaxTheta + Populations*NumIndGametes, 0.0);
   
   // X chromosome objects
-  SumLocusAncestry_X = 0;    
-  // if(Loci->isX_data() ){
-  if( !SexIsFemale ){
-    ThetaXProposal = new double[ Populations];
-    ThetaX = new double[Populations];
-    // ThetaXHat = new double[Populations];
-    SumLocusAncestry_X = new int[Populations]; 
-  } else {
-    ThetaXProposal = new double[ Populations * 2 ];
-    ThetaX = new double[ Populations * 2 ];
-    //ThetaXHat = new double[ Populations * 2 ];
-    SumLocusAncestry_X = new int[Populations * 2 ];
+  SumLocusAncestry_X = 0;
+  if(!options->getHapMixModelIndicator()){
+    ThetaProposal = new double[ Populations * NumIndGametes ];
+    // if(Loci->isX_data() ){
+    if( !SexIsFemale ){
+      ThetaXProposal = new double[ Populations];
+      ThetaX = new double[Populations];
+      // ThetaXHat = new double[Populations];
+      SumLocusAncestry_X = new int[Populations]; 
+    } else {
+      ThetaXProposal = new double[ Populations * 2 ];
+      ThetaX = new double[ Populations * 2 ];
+      //ThetaXHat = new double[ Populations * 2 ];
+      SumLocusAncestry_X = new int[Populations * 2 ];
+    }
   }
 
   if(options->getHapMixModelIndicator()){
@@ -1227,13 +1231,8 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0,
   // values of ancestry risk ratio at which likelihood ratio is evaluated
   double r1 = 0.5;
   double r2 = 2.0;//hard-coding these for now, can make them vary later
-
-
   double theta[2];//paternal and maternal admixture proportions
-
-  double Pi[3];//probs of 0,1,2 copies of Pop1 given admixture
-  //int offset = 0;
-  //if(!RandomMatingModel)offset = Populations;
+  double Pi[3];//probs of 0,1,2 copies of Pop k given admixture
 
   for( int k = 0; k < Pops; k++ ){
     theta[0] = Theta[ k+k0 ];
@@ -1247,9 +1246,9 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0,
     AffectedsVarScore[locus * Pops + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
     AffectedsInfo[locus * Pops +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
     
-    //probs of 0,1,2 copies of Pop1 given admixture
+    //probs of 0,1,2 copies of Pop k given admixture
     Pi[2] = theta[0] * theta[1];
-    Pi[1] = theta[0] * (1.0 - theta[1]);
+    Pi[1] = theta[0] * (1.0 - theta[1]) + theta[1] * (1.0 - theta[0]);
     Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
     
     //compute contribution to likelihood ratio
