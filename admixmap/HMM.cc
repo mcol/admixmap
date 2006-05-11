@@ -63,7 +63,6 @@ void HMM::SetDimensions( int inTransitions, int pops)
   
   sumfactor=0.0;
   p = new double[Transitions];
-  LambdaBeta = new double[K*K];
   
   StateArrivalProbs = new double[Transitions * K * 2];
   ThetaThetaPrime = new double[K*K];
@@ -323,6 +322,7 @@ void HMM::UpdateBackwardProbsDiploid()
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
   //allocate beta if not done already
   if(!beta) beta =  new double[Transitions*K*K];
+  if(!LambdaBeta)LambdaBeta = new double[K*K];
   vector<double> rec(DStates);
   double scaleFactor, Sum;
   
