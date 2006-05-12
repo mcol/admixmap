@@ -79,4 +79,6 @@ void print_vector(std::vector<std::string> a);
 
 double xlog(double x);
 double xexp(double x);
+double mylog(double x);
+double myexp(double x);
 #endif /* !FUNCTIONS_H */
