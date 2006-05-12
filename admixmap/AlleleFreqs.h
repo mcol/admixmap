@@ -105,7 +105,7 @@ private:
   double **HistoricAlleleCounts;
   double **PriorAlleleFreqs;
 
-  AlleleFreqSampler FreqSampler;
+  std::vector<AlleleFreqSampler*> FreqSampler;
 
   bool calculateFST;
   double** Fst;
@@ -137,7 +137,7 @@ private:
 
   void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
-  void LoadAlleleFreqs(const DataMatrix& NewFreqs, int i, unsigned row0, bool);
+  void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
   void SetDefaultAlleleFreqs(int i, double defaultpriorparams);
 
   void SampleDirichletParams1D( int );

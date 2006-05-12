@@ -92,6 +92,9 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] recvcounts;
   delete[] sendfreqs;
 #endif
+
+  for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
+    delete *i;
 }
 
 // ************** Initialisation and loading of data  *******************
@@ -103,17 +106,19 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   if(IsRandom() &&  options->getOutputAlleleFreq() ){
     OpenOutputFile(options);
   }
+
 #ifdef PARALLEL
   int count = 0;
 #endif
 
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+  //set up samplers for allelefreqs
+    FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), PriorAlleleFreqs[i]));
+
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
-#ifndef PARALLEL
     if(options->getChibIndicator())(*Loci)(i)->InitialiseHapPairProbsMAP();
-#endif
 #ifdef PARALLEL
     count += Loci->GetNumberOfStates(i);
 #endif
@@ -301,7 +306,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   int newrow;
   int row = 0;
 
-  const DataMatrix* temporary = 0;
+  const Matrix_s* temporary = 0;
 
   RandomAlleleFreqs = !options->getFixedAlleleFreqs();
   CorrelatedAlleleFreqs = options->getCorrelatedAlleleFreqs();
@@ -324,7 +329,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   bool file = false;
   //Fixed AlleleFreqs
   if( strlen( options->getAlleleFreqFilename() ) ){
-    temporary = &(data_->getAlleleFreqMatrix());
+    temporary = &(data_->getAlleleFreqData());
 
     offset = 1;
     oldformat = true;
@@ -345,12 +350,12 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
 	SumFst = alloc2D_d(NumberOfCompositeLoci, Populations);
       }
       MuProposal = new std::vector<StepSizeTuner>[NumberOfCompositeLoci];
-      temporary = &(data_->getHistoricalAlleleFreqMatrix());
+      temporary = &(data_->getHistoricalAlleleFreqData());
       IsHistoricAlleleFreq = true;
       
     } else {
       //Prior on AlleleFreqs
-      temporary = &(data_->getPriorAlleleFreqMatrix());
+      temporary = &(data_->getPriorAlleleFreqData());
       IsHistoricAlleleFreq = false;
     }
   }
@@ -387,7 +392,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   }
 }
 
-void AlleleFreqs::LoadAlleleFreqs(const DataMatrix& New, int i, unsigned row0, bool oldformat){
+void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, bool oldformat){
   /**
    * Initialises the frequencies of each haplotype in the ith
    * composite locus, given Dirichlet priors (oldformat=false) or frequencies (oldformat=true)in matrix New.  
@@ -424,14 +429,16 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix& New, int i, unsigned row0, b
   // set size of allele freqs array for this locus
   // Freqs array has only NumberOfStates - 1 elements for each population
   unsigned NumberOfStates = Loci->GetNumberOfStates(i);
+  double d = 0.0;
   Freqs[i] = new double[NumberOfStates* Populations];
 
   if(oldformat){//old format allelefreqfile
     for(int k = 0; k < Populations; ++k){
       Freqs[i][(NumberOfStates-1) + k*NumberOfStates] = 1.0;
       for(unsigned j = 0; j < NumberOfStates-1; ++j){
-	Freqs[i][j+ k*NumberOfStates] = New.get(row0+j,k+1);
-	Freqs[i][(NumberOfStates-1) + k*NumberOfStates] -= New.get(row0+j,k+1);
+	d = atof(New[row0+j][k+1].c_str());
+	Freqs[i][j+ k*NumberOfStates] = d;//New.get(row0+j,k+1);
+	Freqs[i][(NumberOfStates-1) + k*NumberOfStates] -= d;//New.get(row0+j,k+1);
       }
     }
   }
@@ -443,9 +450,10 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix& New, int i, unsigned row0, b
       //vector<double> NewCol = New.getCol(j);
       //sumalpha = accumulate( NewCol.begin(), NewCol.end(), 0.0, std::plus<double>() );
       sumalpha = 0.0;
-      for( unsigned k = 0; k < NumberOfStates ; k++ )sumalpha+= New.get(row0+k, j+1);
+      for( unsigned k = 0; k < NumberOfStates ; k++ )sumalpha+= atof(New[row0+k][j+1].c_str());//New.get(row0+k, j+1);
       for( unsigned k = 0; k < NumberOfStates ; k++ )
-	Freqs[i][ k + j*NumberOfStates ] = ( New.get( row0+k, (!CorrelatedAlleleFreqs)* j +1) ) / sumalpha;
+	Freqs[i][ k + j*NumberOfStates ] = ( atof(New[row0+k][(!CorrelatedAlleleFreqs)*j+1].c_str())
+	  /*New.get( row0+k, (!CorrelatedAlleleFreqs)* j +1)*/ ) / sumalpha;
     }
   }
   
@@ -458,8 +466,9 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix& New, int i, unsigned row0, b
       
       for(unsigned row = 0; row < NumberOfStates; ++row)
 	for(int col = 0; col < Populations; ++col){
-	  HistoricAlleleCounts[i][row*Populations +col] = New.get(row0+row, col+1);
-	  PriorAlleleFreqs[i][col*NumberOfStates + row] = New.get(row0+row, col+1) + 0.501; // why add 0.501? 
+	  d = atof(New[row0+row][col+1].c_str());
+	  HistoricAlleleCounts[i][row*Populations +col] = d;//New.get(row0+row, col+1);
+	  PriorAlleleFreqs[i][col*NumberOfStates + row] = d/*New.get(row0+row, col+1)*/ + 0.501; // why add 0.501? 
 	}
       // set size of vector MuProposal
       if( NumberOfStates > 2 ){
@@ -473,7 +482,7 @@ void AlleleFreqs::LoadAlleleFreqs(const DataMatrix& New, int i, unsigned row0, b
       RandomAlleleFreqs = true;
       for(unsigned row = 0; row < NumberOfStates; ++row)
 	for(int col = 0; col < Populations; ++col){
-	  PriorAlleleFreqs[i][col*NumberOfStates + row] = New.get(row0+row, col+1); 
+	  PriorAlleleFreqs[i][col*NumberOfStates + row] = atof(New[row0+row][col+1].c_str());//New.get(row0+row, col+1); 
 	}
     }
   }
@@ -508,7 +517,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i, double defaultpriorparams){
 // ************************** Sampling and Updating *****************************************
 
 // samples allele frequency and prior allele frequency parameters.
-void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool /*annealUpdate*/){
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool annealUpdate){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
   if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -529,18 +538,16 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     //if(annealUpdate){//use long method when computing marginal likelihood
-      if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
-	FreqSampler.SampleSNPFreqs(Freqs[i], PriorAlleleFreqs[i], AlleleCounts[i], hetCounts[i], i, Populations, coolness);
-      else FreqSampler.SampleAlleleFreqs(Freqs[i], PriorAlleleFreqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, coolness);
-      //}
-      //else //use standard conjugate update
-      //SampleAlleleFreqs(i, coolness);
+    if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
+      FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, coolness);
+    else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, coolness);
+    //}
+    //else //use standard conjugate update
+    //SampleAlleleFreqs(i, coolness);
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
-#ifndef PARALLEL
     //no need to update alleleprobs
     (*Loci)(i)->SetHapPairProbs();
-#endif
   }
   
   // Sample for allele frequency dispersion parameters, eta, conditional on allelefreqs using
@@ -579,9 +586,9 @@ void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
   updates the counts of alleles observed in each state of ancestry.
   * should use hap pairs stored in Individual object
   */
-void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool /*anneal*/ )
+void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal )
 {
-  if(/*anneal &&*/ Loci->GetNumberOfStates(locus)==2){
+  if(Loci->GetNumberOfStates(locus)==2){
     if( (h[0] != h[1]) && (ancestry[0] !=ancestry[1]))//heterozygous with distinct ancestry states
       ++hetCounts[locus][ancestry[0]*Populations + ancestry[1]];
     else{
@@ -678,7 +685,7 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
 		index += NumberOfStates-1;
 	    }
 	    //no need to update alleleprobs
-	    //(*Loci)(locus)->SetHapPairProbs();
+	    (*Loci)(locus)->SetHapPairProbs();
 	}
     }
     MPI::COMM_WORLD.Barrier();

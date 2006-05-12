@@ -18,29 +18,44 @@
 
 AlleleFreqSampler::AlleleFreqSampler(){
   //default do-nothing constructor
+  params = 0;
+}
+
+AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const double* const Prior){
+  unsigned dim = NumStates*NumPops;
+  params = new double[dim];
+  //initialise Hamiltonian Sampler
+  double step0 = 0.002;//initial step size
+  double min = -100.0, max = 100.0; //min and max stepsize
+  int numleapfrogsteps = 10;
+  Args.PriorParams = Prior;
+
+  if(NumStates ==2){//case of SNP
+    step0 = 0.01;//initial step size
+    numleapfrogsteps = 20;
+    Sampler.SetDimensions(2*NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
+  }
+  else{
+    Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.7/*target acceptrate*/, getEnergy, gradient);
+  }
+}
+
+AlleleFreqSampler::~AlleleFreqSampler(){
+  delete[] params;
 }
 
 //requires: AlleleFreqs phi, parameters of Dirichlet prior Prior, pointer to individuals, current locus number, 
 //number of alleles/haplotypes NumStates, number of populations, NumPops
-void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, IndividualCollection* IC, unsigned locus, 
+void AlleleFreqSampler::SampleAlleleFreqs(double *phi,  IndividualCollection* IC, unsigned locus, 
 					  unsigned NumStates, unsigned NumPops, double coolness){
   unsigned dim = NumStates*NumPops;
-
   Args.IP = IC;
   Args.NumStates = NumStates;
   Args.NumPops = NumPops;
   Args.locus = locus;
-  Args.PriorParams = Prior;
   Args.coolness = coolness;
 
-  //initialise Hamiltonian Sampler
-  double step0 = 0.005;//initial step size
-  double min = -100.0, max = 100.0; //min and max stepsize
-  int numleapfrogsteps = 10;
-  Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.7/*target acceptrate*/, getEnergy, gradient);
-
   //transform phi 
-  double* params = new double[dim];
   //double freqs[NumStates];//frequencies for one population
   for(unsigned k = 0; k < NumPops; ++k){
     //freqs[NumStates-1] = 1.0;
@@ -60,25 +75,17 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
     //for(unsigned s = 0; s < NumStates; ++s) phi[s*NumPops+k] = freqs[s];
   }
 
-  delete[] params;
 }
 
-void AlleleFreqSampler::SampleSNPFreqs(double *phi, const double* Prior, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
+void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
 				  unsigned NumPops, double coolness){
   Args.IP = 0;
   Args.NumStates = 2;
   Args.NumPops = NumPops;
   Args.locus = locus;
-  Args.PriorParams = Prior;
   Args.coolness = coolness;
   Args.AlleleCounts = AlleleCounts;
   Args.hetCounts = hetCounts;
-
-  //initialise Hamiltonian Sampler
-  double step0 = 0.01;//initial step size
-  double min = -100.0, max = 100.0; //min and max stepsize
-  int numleapfrogsteps = 20;
-  Sampler.SetDimensions(2*NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
 
   //transform phi 
   double* params = new double[2*NumPops];

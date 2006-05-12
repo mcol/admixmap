@@ -44,15 +44,18 @@ typedef struct{
 class AlleleFreqSampler{
 public:
   AlleleFreqSampler();
-  void SampleAlleleFreqs(double *phi, const double* Prior, IndividualCollection* IC, unsigned locus, 
+  ~AlleleFreqSampler();
+  AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const double* const Prior);
+  void SampleAlleleFreqs(double *phi, IndividualCollection* IC, unsigned locus, 
 			 unsigned NumStates, unsigned NumPops, double coolness);
-  void SampleSNPFreqs(double *phi, const double* Prior, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
+  void SampleSNPFreqs(double *phi, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
 			 unsigned NumPops, double coolness);
 
 
 private:
   HamiltonianMonteCarlo Sampler;
   AlleleFreqArgs Args;
+  double* params;
 
   static double logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumPops);
   static double logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates);
@@ -64,5 +67,8 @@ private:
   static void gradient(const double * const phi, const void* const vargs, double* g);
   static double getEnergySNP(const double * const phi, const void* const vargs);
   static void gradientSNP(const double * const phi, const void* const vargs, double* g);
+
+  AlleleFreqSampler(const AlleleFreqSampler&);
+  void operator=(const AlleleFreqSampler&);
 };
 #endif
