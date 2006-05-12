@@ -53,6 +53,7 @@ private:
   unsigned dim;     //dimension
   double epsilon;   //stepsize
   double Tau;       //# leapfrog steps
+  double* xnew, *g, *gnew, *p;
   long overall_accept_count;
   long totalsamples;//  "        "      "     "   "    "  in total
   StepSizeTuner Tuner;

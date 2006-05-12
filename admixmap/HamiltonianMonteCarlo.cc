@@ -23,10 +23,17 @@ HamiltonianMonteCarlo::HamiltonianMonteCarlo(){
   findE = 0;
   gradE = 0;
   //totalsamples = 0;
-};
+  xnew = 0;
+  g = 0;
+  gnew = 0;
+  p = 0;
+}
 
 HamiltonianMonteCarlo::~HamiltonianMonteCarlo(){
-
+  delete[] p;
+  delete[] xnew;
+  delete[] gnew;
+  delete[] g;
 }
 
 //set dimensions
@@ -38,6 +45,10 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double
   Tau = pTau;
   findE = pfindE;
   gradE = pgradE;
+  g = new double[dim];        //gradient (multidim)
+  p = new double[dim];
+  xnew = new double[dim];
+  gnew = new double[dim];
 
   Tuner.SetParameters( epsilon, min, max, target);
 }
@@ -55,14 +66,10 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
     args = pointer to object containing arguments to findE and gradE 
   */
   double E = 0.0;         //value of objective function
-  double *g = new double[dim];        //gradient (multidim)
   bool accept = false;
   double AccProb;
-  double *p = new double[dim];
   double H, Hnew, dH, sumpsq = 0.0;
-  double *gnew, *xnew, Enew;
-  xnew = new double[dim];
-  gnew = new double[dim];
+  double Enew;
 
   try{
     gradE (x, args, g ) ; // set gradient using initial x
@@ -143,10 +150,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
 
   Tuner.UpdateStepSize(AccProb);
   //++totalsamples;
-  delete[] p;
-  delete[] xnew;
-  delete[] gnew;
-  delete[] g;  
+  
 }
 
 float HamiltonianMonteCarlo::getAcceptanceRate()const{
