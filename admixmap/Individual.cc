@@ -793,11 +793,16 @@ void Individual::SampleTheta( int iteration, double *SumLogTheta,
 // called with RW true for a random-walk proposal, false for a conjugate proposal
 {
   double logpratio = 0.0;
-  if(RW) {
-    NumberOfUpdates++;
-    logpratio += ProposeThetaWithRandomWalk(options, alpha); 
-  } else ProposeTheta(options, /*sigma,*/ alpha, SumLocusAncestry, SumLocusAncestry_X);       
-
+  try{
+    if(RW) {
+      NumberOfUpdates++;
+      logpratio += ProposeThetaWithRandomWalk(options, alpha); 
+    } else ProposeTheta(options, /*sigma,*/ alpha, SumLocusAncestry, SumLocusAncestry_X);       
+  }
+  catch(string s){
+    string err = "Error encountered while generating proposal individual admixture proportions:\n" + s;
+    throw err;
+  }
   int K = Populations;
 
   //calculate Metropolis acceptance probability ratio for proposal theta    
@@ -922,7 +927,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, /*const vector<
 	if(options->getIndAdmixHierIndicator()) gg = 0;
 	for(size_t k = 0; k < K; ++k) { // parameters of conjugate Dirichlet update
 	  dirparams[k] = alpha[gg][k] + (double)sumLocusAncestry[k + K*g];
-	  if( Loci->isX_data() ) {
+	  if( Loci->isX_data() && (g==0 || SexIsFemale)) {//skip if paternal gemete in male
 	    // if male, paternal elements (0 to K-1) of sumLocusAncestry will be zero
 	    dirparams[k] += (double)sumLocusAncestry_X[g*K + k]; 
 	  }
@@ -936,8 +941,8 @@ void Individual::ProposeTheta(const AdmixOptions* const options, /*const vector<
     for(size_t k = 0; k < K; ++k) {
       dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
       if( Loci->isX_data() ) {
-      // if male, paternal elements (0 to K-1) of sumLocusAncestry_X will be zero
-	dirparams[k] += (double)(sumLocusAncestry_X[k] + sumLocusAncestry_X[K + k]); 
+	dirparams[k] += (double)(sumLocusAncestry_X[k]);//first gamete
+	if(SexIsFemale)dirparams[k] +=(double) sumLocusAncestry_X[K + k];//second gamete, females only 
       }
     }
     Rand::gendirichlet(K, dirparams, ThetaProposal );
