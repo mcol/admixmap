@@ -517,7 +517,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i, double defaultpriorparams){
 // ************************** Sampling and Updating *****************************************
 
 // samples allele frequency and prior allele frequency parameters.
-void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool annealUpdate){
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool /*annealUpdate*/){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
   if(IsHistoricAlleleFreq ){
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -586,7 +586,7 @@ void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
   updates the counts of alleles observed in each state of ancestry.
   * should use hap pairs stored in Individual object
   */
-void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal )
+void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool /*anneal*/ )
 {
   if(Loci->GetNumberOfStates(locus)==2){
     if( (h[0] != h[1]) && (ancestry[0] !=ancestry[1]))//heterozygous with distinct ancestry states

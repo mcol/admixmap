@@ -48,7 +48,6 @@ AlleleFreqSampler::~AlleleFreqSampler(){
 //number of alleles/haplotypes NumStates, number of populations, NumPops
 void AlleleFreqSampler::SampleAlleleFreqs(double *phi,  IndividualCollection* IC, unsigned locus, 
 					  unsigned NumStates, unsigned NumPops, double coolness){
-  unsigned dim = NumStates*NumPops;
   Args.IP = IC;
   Args.NumStates = NumStates;
   Args.NumPops = NumPops;
