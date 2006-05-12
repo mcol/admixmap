@@ -122,7 +122,7 @@ void IndividualCollection::FinishWritingEYAsRObject(unsigned NumIterations, cons
 	     << ".Dimnames=list(character(0),c(";
     //write outcome var labels
     for(unsigned j = 0; j < Labels.size(); ++j){
-      EYStream << Labels[j];
+      EYStream << "\"" << Labels[j] << "\"";
       if(j < Labels.size()-1) EYStream << ",";
     }
     EYStream << ") , character(0)))" << endl;
