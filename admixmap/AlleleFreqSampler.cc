@@ -12,6 +12,7 @@
  */
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
+#include "functions.h"
 
 //#define DEBUG 1
 
@@ -43,7 +44,7 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi, const double* Prior, Indi
   //double freqs[NumStates];//frequencies for one population
   for(unsigned k = 0; k < NumPops; ++k){
     //freqs[NumStates-1] = 1.0;
-    //for(unsigned s = 0; s < NumStates - 1; ++s) {//NB supplied frequencies are missing last element
+    //for(unsigned s = 0; s < NumStates - 1; ++s) {
     //freqs[s] = phi[s*NumPops + k*NumStates];
     //freqs[NumStates-1] -= freqs[s];
     //}
@@ -118,7 +119,7 @@ double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], con
     sum += phiphi;
     sum2 += phiphi*phiphi;
   }
-  return log(sum2) - log(sum);
+  return mylog(sum2) - mylog(sum);
 }
 
 double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates){
@@ -185,7 +186,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   for(unsigned k = 0; k < args->NumPops; ++k){
     for( unsigned i = 0; i < States; ++i ) {
       if( args->PriorParams[i] > 0.0 ) {
-	energy -=( *(args->PriorParams+k*States+i) ) * log(*( params+k*States+i) );
+	energy -=( *(args->PriorParams+k*States+i) ) * mylog(*( phi+k*States+i) );
       }
     }
   }
@@ -292,11 +293,11 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
 
   //get loglikelihood
   for(unsigned k = 0; k < Pops; ++k){
-    energy -= args->AlleleCounts[k] * log(phi[k*2])/*1k*/ + args->AlleleCounts[Pops + k] * log(phi[k*2+1])/*2k*/;
+    energy -= args->AlleleCounts[k] * mylog(phi[k*2])/*1k*/ + args->AlleleCounts[Pops + k] * mylog(phi[k*2+1])/*2k*/;
     for(unsigned k1 = k+1; k1< Pops; ++k1)
       energy -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
-	( log(phi[k*2]*phi[k*2]*phi[k1*2+1]*phi[k1*2+1] + phi[k*2+1]*phi[k*2+1]*phi[k1*2]*phi[k1*2]) 
-	  - log(phi[k*2]*phi[k1*2+1] + phi[k*2+1]*phi[k1*2]) );
+	( mylog(phi[k*2]*phi[k*2]*phi[k1*2+1]*phi[k1*2+1] + phi[k*2+1]*phi[k*2+1]*phi[k1*2]*phi[k1*2]) 
+	  - mylog(phi[k*2]*phi[k1*2+1] + phi[k*2+1]*phi[k1*2]) );
   }
 
   energy *= args->coolness;
@@ -305,7 +306,7 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
   for(unsigned k = 0; k < Pops; ++k){
     for( unsigned i = 0; i < 2; ++i ) {
       if( args->PriorParams[i] > 0.0 ) {
-	energy -=( *(args->PriorParams+k*2+i) ) * log(*( params+k*2+i) );
+	energy -=( *(args->PriorParams+k*2+i) ) * mylog(*( phi+k*2+i) );
       }
     }
   }
