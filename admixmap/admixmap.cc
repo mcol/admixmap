@@ -739,7 +739,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
      R[r].Update(condition, IC, coolness);
      //IC->UpdateSumResiduals();
      //output expected values of outcome variables to file every 'every' iterations after burnin
-     if(condition && !(iteration % options.getSampleEvery()) ) IC->OutputExpectedY(r);
+     if(condition && !(iteration % options->getSampleEvery()) ) IC->OutputExpectedY(r);
   }
     
 }
