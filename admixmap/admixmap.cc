@@ -734,8 +734,12 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     L->UpdatePopAdmixParams(iteration, IC, Log);
   
   // ** update regression parameters (if regression model) conditional on individual admixture
+  bool condition = (!anneal && iteration > options->getBurnIn());
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
-     R[r].Update((!anneal && iteration > options->getBurnIn()), IC, coolness);
+     R[r].Update(condition, IC, coolness);
+     //IC->UpdateSumResiduals();
+     //output expected values of outcome variables to file every 'every' iterations after burnin
+     if(condition && !(iteration % options.getSampleEvery()) ) IC->OutputExpectedY(r);
   }
     
 }

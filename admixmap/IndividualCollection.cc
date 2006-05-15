@@ -362,14 +362,10 @@ void IndividualCollection::OpenExpectedYFile(const char* Filename, LogWriter & L
   else{
     Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
     EYStream << "structure(.Data=c(" << endl;
-  //for(int j = 0; j < NumOutcomes; ++j)
-  //EYStream << Labels[j]<< "\t";
-  // EYStream << endl;
    }
 }
 void IndividualCollection::OutputExpectedY(int k){
   //output kth Expected Outcome to file
-  //TODO: fix for more than one outcome
   if(EYStream.is_open()){
     for(unsigned i = rank; i < size; i+= NumProcs)
       EYStream << ExpectedY[k][i] << ",";
