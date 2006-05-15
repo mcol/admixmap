@@ -118,9 +118,11 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
-    if(options->getChibIndicator())(*Loci)(i)->InitialiseHapPairProbsMAP();
 #ifdef PARALLEL
     count += Loci->GetNumberOfStates(i);
+#else
+    if(options->getChibIndicator())(*Loci)(i)->InitialiseHapPairProbsMAP();
+
 #endif
   }
 #ifdef PARALLEL
@@ -546,8 +548,10 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
     //SampleAlleleFreqs(i, coolness);
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
+#ifndef PARALLEL
     //no need to update alleleprobs
     (*Loci)(i)->SetHapPairProbs();
+#endif
   }
   
   // Sample for allele frequency dispersion parameters, eta, conditional on allelefreqs using
@@ -685,7 +689,7 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
 		index += NumberOfStates-1;
 	    }
 	    //no need to update alleleprobs
-	    (*Loci)(locus)->SetHapPairProbs();
+	    //(*Loci)(locus)->SetHapPairProbs();
 	}
     }
     MPI::COMM_WORLD.Barrier();
