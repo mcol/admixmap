@@ -25,7 +25,7 @@ cbindIfNotNull <- function(table1, table2) {
 }
 
 getUserOptions <- function(argsfilename) {
-  ## read table of user options written by Perl script
+  ## read table of user options
   args <- read.table(argsfilename, sep="=", header=FALSE, comment.char="")
   user.options <- as.data.frame(matrix(data=NA, nrow=1, ncol=dim(args)[1]))
   user.options[1,] <- args[,2]
@@ -68,7 +68,7 @@ getIsAdmixed <- function(AdmixturePrior) {
 readLoci <- function(){
   filename <- paste(resultsdir, "LocusTable.txt", sep="/")
   ##cols are locus name, number of allele/haplotypes, map distance in cM, chromosome number
-loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "integer"))
+  loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "integer"))
   return(loci.compound)
 }
 
@@ -575,6 +575,41 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
                  "Running computation of p-values for residual allelic association", T)
 }
 
+## offline score tests for genotypes at loci that have not been included in the model (because we can't model large haplotypes)
+ExtraScoreTests <- function(testgenotypesfile, outcomevarfile, expectedoutcomefile){
+  p <- dget(file=expectedoutcomefile)
+  p <- p[, 1, ] # first outcome var
+  testvars <- read.table(testgenotypesfile, header=T, as.is=T, sep="\t")
+  y <- read.table(outcomevarfile, header=T, as.is=T, sep="\t")[, 1]
+  
+  scoretable <- matrix(nrow=0, ncol=4)
+  numvars <- dim(testvars)[2]
+  numdraws <- dim(p)[2]
+  scoredraws <- numeric(numdraws)
+  infodraws <- numeric(numdraws)
+  for(j in 1:numvars) {
+    x <- testvars[, j] - mean(testvars[, j], na.rm=T)
+    for(draw in 1:numdraws) { # evaluate score and info for each realization of complete data 
+      scoredraws[draw] <- sum((y - p[, draw])*x, na.rm=T)
+      infodraws[draw] <- sum(p[, draw]*(1 - p[, draw])*x^2, na.rm=T)
+    }
+    ## evaluate expectations over posterior distribution 
+    score <- mean(scoredraws)
+    completeinfo <- mean(infodraws)
+    missinfo <- var(scoredraws)
+    obsinfo <- completeinfo - missinfo
+    ## calculate test statistic
+    z <- score / sqrt(obsinfo)
+    result <- c(score, completeinfo, obsinfo, z)
+    scoretable <- rbind(scoretable, result)
+  }
+  
+  dimnames(scoretable)[[1]] <- dimnames(testvars)[[2]]
+  dimnames(scoretable)[[2]] <- c("score", "complete.info", "observed.info", "z")
+  print(scoretable)
+  write.table(scoretable, file=paste(resultsdir, "ExtraScoreTests.txt", sep="/"), sep="\t")
+}
+
 convertAlleleFreqs <- function(allelefreq.samples) {
   ## argument is a 3-way array of allele frequencies (locusname + pops, alleles x loci, draws)
   ## converts to a list of 3-way arrays each holding alleles x pops x draws for one locus
@@ -881,8 +916,6 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
 ## start of script
 ###################################################################################
 
-#debug(plotResidualAllelicAssocScoreTest)
-
 options(echo=TRUE)
 par(cex=2,las=1)
 graphics.off()
@@ -1088,6 +1121,10 @@ if(!is.null(user.options$affectedsonlyscorefile)) {
 if(!is.null(user.options$residualallelicassocscorefile)) {
   psfile <- paste(resultsdir, "TestsResidualAllelicAssoc.ps", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$residualallelicassocscorefile, psfile, user.options$every)
+}
+
+if(!is.null(user.options$outcomevarfile) && !is.null(user.options$testgenotypesfile)){
+  ExtraScoreTests(user.options$testgenotypesfile, user.options$outcomevarfile, paste(resultsdir, "ExpectedOutcomes.txt", sep="/"))
 }
 
 if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1) {
