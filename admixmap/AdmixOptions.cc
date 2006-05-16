@@ -853,6 +853,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       }else if (long_option_name == "indadmixmodefile"){
 	IndAdmixModeFilename = optarg; 
 	OptionValues["indadmixmodefile"] = optarg;
+      }else if (long_option_name == "testgenotypesfile"){
+	OptionValues["testgenotypesfile"] = optarg;
 
 	 // ** input files **
       } else if (long_option_name == "outcomevarfile") {
