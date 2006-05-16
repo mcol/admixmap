@@ -68,7 +68,7 @@ public:
 			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 			  const std::string* const PopulationLabels);
 
-  void setGenotypeProbs(unsigned nchr);
+  void setGenotypeProbs(const Genome * const G);
   void annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses);
   
   void OutputIndAdmixture();
@@ -137,7 +137,7 @@ private:
   Individual **_child; //array of pointers to Individual objects
   Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
   int sizeTestInd;
-  int rank, NumProcs;
+  int worker_rank, NumWorkers;
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
   void getLabels(const Vector_s& data, Vector_s& labels);
   
@@ -166,6 +166,9 @@ private:
   int* SumAncestry;//for update of locus-specific sumintensities
 #ifdef PARALLEL
   int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
+  int rank_with_freqs;
+  //communicators for workers (Individual updaters) and workers+freqsampler
+  MPI::Intracomm workers, workers_and_freqs;
 #endif
  
   //Regression Objects

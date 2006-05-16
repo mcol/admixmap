@@ -48,6 +48,7 @@ public:
   const std::string GetLabel(int)const;
   int GetNumberOfAllelesOfLocus( int )const;
   void getLocusAlleleProbs(double **P, int k)const;
+  const double* getAlleleProbs()const{return AlleleProbs;}
 
   const std::vector<int> getAlleleCounts(int a, const int* happair)const;
   const std::vector<int> getHaplotypeCounts(const int* happair);

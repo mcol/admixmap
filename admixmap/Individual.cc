@@ -157,9 +157,13 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 
   //initialise genotype probs array and array of indicators for genotypes missing at locus
   GenotypeProbs = new double*[numChromosomes];
+  unsigned locus = 0;
   for(unsigned j = 0; j < numChromosomes; ++j) {
     GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations*Populations];
-    SetGenotypeProbs(j, false);
+    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+      SetGenotypeProbs(j, jj, locus, false);
+      locus++;
+    }
   }
 
   // ** set up StepSizeTuner object for random walk updates of admixture **
@@ -223,21 +227,39 @@ void Individual::setOutcome(double* Y){
 void Individual::setCovariates(double* X){
   Covariates = X;
 }
-
-void Individual::SetGenotypeProbs(int j, bool chibindicator=false){
-  //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
-  //instead of HapPairProbs when allelefreqs are not fixed.
-  int locus = Loci->getChromosome(j)->GetLocus(0);
-  for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-    if( !GenotypesMissing[j][jj] ){
-      (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
-				       chibindicator);
-    } else {
-      for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
-    }
-    locus++;
+#ifdef PARALLEL
+//this version can also be used in non-parallel version
+void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const unsigned NumberOfStates, const double* const AlleleProbs){
+  if( !GenotypesMissing[j][jj] ){
+    double *q = GenotypeProbs[j]+jj*Populations*Populations;
+    
+    happairiter end = PossibleHapPairs[locus].end();
+    for(int k0 = 0; k0 < Populations; ++k0)
+      for(int k1 = 0; k1 < Populations; ++k1) {
+	*q = 0.0;
+	happairiter h = PossibleHapPairs[locus].begin();
+	for( ; h != end ; ++h) {
+	  *q += AlleleProbs[k0*NumberOfStates+h->haps[0]] * AlleleProbs[k1*NumberOfStates+h->haps[1]];
+	}
+	q++;
+      }
+    
+  } else {
+    for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
   }
 }
+#else
+void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator=false){
+  //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
+  //instead of HapPairProbs when allelefreqs are not fixed.
+  if( !GenotypesMissing[j][jj] ){
+    (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
+				     chibindicator);
+  } else {
+    for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
+  }
+}
+#endif
 
 void Individual::AnnealGenotypeProbs(int j, const double coolness) {
   // called after energy has been evaluated, before updating model parameters
@@ -1411,8 +1433,14 @@ void Individual::Chib(int iteration, // double *SumLogLikelihood, double *MaxLog
     }
     
     //loglikelihood at estimates
-    for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j)
-      SetGenotypeProbs(j, true);//set genotype probs from happairprobsMAP
+    for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
+      unsigned locus = Loci->getChromosome(j)->GetLocus(0);
+      for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+	SetGenotypeProbs(j, jj, locus, true);//set genotype probs from happairprobsMAP
+	locus++;
+      }
+    }
+
     // make sure that genotype probs are reset before next update
     MargLikelihood->setLogLikelihood(getLogLikelihood( options, thetahat, thetahatX, rhohat, rhohatX, true));
   }

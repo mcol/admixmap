@@ -32,12 +32,23 @@ IndividualCollection::IndividualCollection() {
 }
 
 IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
-    rank = 0;
-    NumProcs = 1;
+    worker_rank = 0;
+    NumWorkers = 1;
 #ifdef PARALLEL
-    rank = MPI::COMM_WORLD.Get_rank();
+    global_rank = MPI::COMM_WORLD.Get_rank();
     NumProcs = MPI::COMM_WORLD.Get_size();
     GlobalSumAncestry = 0;
+    //create communicator for workers and find size of and rank within this group
+    workers = MPI::COMM_WORLD.Split( (global_rank>1), global_rank);
+    NumWorkers = workers.Get_size();
+    if(global_rank >1)
+      worker_rank =workers.Get_rank();
+    else worker_rank = size;//so that non-workers will not loop over Individuals
+
+    //create communicator for messages between freqsampler and workers
+    workers_and_freqs = MPI::COMM_WORLD.Split( (global_rank > 0), global_rank);
+    rank_with_freqs = workers_and_freqs.Get_rank();
+
 #endif
   OutcomeType = 0;
   NumOutcomes = 0;
@@ -81,17 +92,17 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   }
 
   _child = new Individual*[size];
-  for (unsigned int i = rank; i < size; i += NumProcs) {
+  for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
     _child[i] = new Individual(i+i0+1, options, Data, false);//NB: first arg sets Individual's number
     }
 }
 
 // ************** DESTRUCTOR **************
 IndividualCollection::~IndividualCollection() {
-    if(rank==0)
+  if(worker_rank==0)
 	cout << "\n Deleting individual objects\n" << flush;
   Individual::DeleteStaticMembers();
-  for(unsigned int i = rank; i < size; i+=NumProcs){
+  for(unsigned int i = worker_rank; i < size; i+=NumWorkers){
     delete _child[i];
   }
   if(TestInd){
@@ -130,7 +141,7 @@ void IndividualCollection::FinishWritingEYAsRObject(unsigned NumIterations, cons
   }
 }
 void IndividualCollection::DeleteGenotypes(bool setmissing=false){
-  for (unsigned int i = rank; i < size; i += NumProcs) {
+  for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
     if(setmissing)_child[i]->SetMissingGenotypes();
     _child[i]->DeleteGenotypes();
   }
@@ -367,7 +378,7 @@ void IndividualCollection::OpenExpectedYFile(const char* Filename, LogWriter & L
 void IndividualCollection::OutputExpectedY(int k){
   //output kth Expected Outcome to file
   if(EYStream.is_open()){
-    for(unsigned i = rank; i < size; i+= NumProcs)
+    for(unsigned i = worker_rank; i < size; i+= NumWorkers)
       EYStream << ExpectedY[k][i] << ",";
     EYStream << endl;
   }  
@@ -401,13 +412,58 @@ void IndividualCollection::OutputExpectedY(int k){
 
 void IndividualCollection::HMMIsBad(bool b){
   if(TestInd)    for(int i = 0; i < sizeTestInd; ++i)TestInd[i]->HMMIsBad(b);
-  for(unsigned i = rank; i < size; i+= NumProcs)
+  for(unsigned i = worker_rank; i < size; i+= NumWorkers)
     _child[i]->HMMIsBad(b);
 }
 
 void IndividualCollection::resetStepSizeApproximators(int k) {
-  for(unsigned i = rank; i < size; i+= NumProcs)
+  for(unsigned i = worker_rank; i < size; i+= NumWorkers)
     _child[i]->resetStepSizeApproximator(k);
+}
+
+void IndividualCollection::setGenotypeProbs(const Genome* const Loci){
+  unsigned nchr = Loci->GetNumberOfChromosomes();
+  unsigned locus = 0;
+  for(unsigned j = 0; j < nchr; ++j){
+    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+#ifdef PARALLEL
+      //broadcast current values of allele probs to workers 
+      const unsigned NumberOfStates = (*Loci)(locus)->GetNumberOfStates();
+      double* AlleleProbs;
+      if(rank_with_freqs == 0)AlleleProbs = (*Loci)(locus)->getAlleleProbs();
+      else AlleleProbs  = new double[NumberOfStates*Populations];
+      workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
+#endif
+
+      if(TestInd)
+	for(int i = 0; i < sizeTestInd; ++i)
+	  TestInd[i]->SetGenotypeProbs(j, jj, locus, false);
+      
+      for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
+#ifdef PARALLEL
+	_child[i]->SetGenotypeProbs(j, jj, locus, NumberOfStates, AlleleProbs);
+#else
+	_child[i]->SetGenotypeProbs(j, jj, locus, false);
+#endif
+      }
+      locus++;
+    }
+  }
+}  
+
+void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses){
+  for(unsigned j = 0; j < nchr; ++j){
+    
+    if(TestInd) { // anneal test individual only
+      for(int i = 0; i < sizeTestInd; ++i)
+	TestInd[i]->AnnealGenotypeProbs(j, Coolnesses[i]);
+
+    } else { // anneal all individuals
+      for(unsigned int i = worker_rank; i < size; i+= NumWorkers) {
+	_child[i]->AnnealGenotypeProbs(j, coolness);
+      }
+    }
+  }
 }
 
 // ************** UPDATING **************
@@ -453,7 +509,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
 
   //now loop over individuals
-  for(unsigned int i = rank; i < size; i+=NumProcs ){
+  for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
 
     // ** set SumLocusAncestry and SumNumArrivals to 0
     _child[i]->ResetSufficientStats();
@@ -497,7 +553,7 @@ void IndividualCollection::SampleHapPairsAndUpdateScores(int iteration, const Ad
   }
 
   // loop over individuals
-  for(unsigned int i = rank; i < size; i+=NumProcs ){
+  for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** Sample Haplotype Pair
     _child[i]->SampleHapPair(A, options->getHapMixModelIndicator(), (_anneal && options->getThermoIndicator()));//also updates allele counts
     // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
@@ -561,7 +617,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
 
   // -----------------------------------------------------------------------------------------------------
   // ** Non-test individuals
-  for(unsigned int i = rank; i < size; i+=NumProcs ){
+  for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** Sample individual- or gamete-specific sumintensities
     if(Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) 
       _child[i]->SampleRho( options, rhoalpha, rhobeta,   
@@ -582,29 +638,6 @@ void IndividualCollection::UpdateChib(int iteration, const AdmixOptions* const o
 		    rhoalpha, rhobeta,
 		    thetahat, thetahatX, rhohat, rhohatX, &MargLikelihood, A);
 
-}
-
-void IndividualCollection::setGenotypeProbs(unsigned nchr){
-  if(TestInd)
-    for(int i = 0; i < sizeTestInd; ++i)
-      for(unsigned j = 0; j < nchr; ++j)
-	TestInd[i]->SetGenotypeProbs(j, false);
-  for(unsigned int i = rank; i < size; i+= NumProcs ) {
-    for(unsigned j = 0; j < nchr; ++j)
-      _child[i]->SetGenotypeProbs(j, false);
-  }
-}  
-
-void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses){
-  if(TestInd) { // anneal test individual only
-    for(int i = 0; i < sizeTestInd; ++i)
-      for(unsigned j = 0; j < nchr; ++j) TestInd[i]->AnnealGenotypeProbs(j, Coolnesses[i]);
-
-    } else { // anneal all individuals
-    for(unsigned int i = rank; i < size; i+= NumProcs) {
-      for(unsigned j = 0; j < nchr; ++j) _child[i]->AnnealGenotypeProbs(j, coolness);
-    }
-  }
 }
 
 void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, 
@@ -644,7 +677,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
     TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
 					       modefile, thetahat, thetahatX, rhohat, rhohatX);
   }
-  for(unsigned int i = rank; i < size; i+= NumProcs ){
+  for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
     _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,
 				   modefile, thetahat, thetahatX, rhohat, rhohatX);
     modefile << endl;
@@ -660,7 +693,7 @@ int IndividualCollection::getSize()const {
 double IndividualCollection::GetSumrho()const
 {
    double Sumrho = 0;
-   for( unsigned int i = rank; i < size; i+=NumProcs )
+   for( unsigned int i = worker_rank; i < size; i+=NumWorkers )
       Sumrho += (*_child[i]).getSumrho();
    return Sumrho;
 }
@@ -770,7 +803,7 @@ unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)con
    */
 
   int AlleleCounts = 0;
-  for(unsigned i = rank; i < size; i += NumProcs){
+  for(unsigned i = worker_rank; i < size; i += NumWorkers){
     if(!_child[i]->GenotypeIsMissing(locus)){
       const int* haps = _child[i]->getSampledHapPair(locus);
       if(haps[0] == allele-1){// -1 because alleles count from 1 and haps count from 0
@@ -793,7 +826,7 @@ unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)con
 int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
   //count number of missing genotypes at locus
   int count = 0;
-  for(unsigned i = rank; i < size; i += NumProcs){
+  for(unsigned i = worker_rank; i < size; i += NumWorkers){
     if(_child[i]->GenotypeIsMissing(locus)){
       ++count;
     }
@@ -841,7 +874,7 @@ double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
 // ************** OUTPUT **************
 
 double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci,
-					  LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes){
+							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes){
   // renamed from OutputDeviance
 
   //SumRho = ergodic sum of global sumintensities
@@ -869,12 +902,12 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
     (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
   
   //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  setGenotypeProbs(numChromosomes);
+  setGenotypeProbs(Loci);
   
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates
-  for(unsigned int i = rank; i < size; i+= NumProcs ){
+  for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
     if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
     else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
@@ -893,7 +926,7 @@ void IndividualCollection::OutputIndAdmixture()
   indadmixoutput->visitIndividualCollection(*this);
   if(TestInd)
     indadmixoutput->visitIndividual(*(TestInd[sizeTestInd-1]), _locusfortest);
-  for(unsigned int i = rank; i < size; i+=NumProcs){
+  for(unsigned int i = worker_rank; i < size; i+=NumWorkers){
     indadmixoutput->visitIndividual(*_child[i], _locusfortest);
   }
 }
@@ -941,7 +974,7 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
   double LogLikRegression = 0.0;
   double Energy = 0.0;
   // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
-  for(unsigned i = rank; i < size; i+= NumProcs) {
+  for(unsigned i = worker_rank; i < size; i+= NumWorkers) {
     LogLikHMM += _child[i]->getLogLikelihood(options, false, !annealed); // store result if not an annealed run
     // don't have to force an HMM update here - on even-numbered iterations with globalrho, stored loglikelihood is still valid
     

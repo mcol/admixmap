@@ -713,7 +713,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   }
   
   if(A->IsRandom() || anneal) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
-    IC->setGenotypeProbs(Loci->GetNumberOfChromosomes()); // sets unannealed probs ready for getEnergy
+    IC->setGenotypeProbs(Loci); // sets unannealed probs ready for getEnergy
     IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   
