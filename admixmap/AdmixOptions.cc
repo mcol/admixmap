@@ -698,6 +698,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"hwscoretestfile",                       1, 0,  0 }, // string
     {"likratiofile",                          1, 0,  0 }, // string
     {"indadmixmodefile",                      1, 0,  0 }, // string
+    {"testgenotypesfile",                     1, 0,  0 }, //string
 
     //prior and model specification
     {"randommatingmodel",                     1, 0,  0 }, // int 0: 1
