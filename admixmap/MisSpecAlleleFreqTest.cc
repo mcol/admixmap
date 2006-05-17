@@ -190,7 +190,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
   if( Test2 )    
     for( int j = 0; j < NumCompLoci; j++ ){
       for( int i = 0; i < individuals->getSize(); i++ ){
-	UpdateScoreForMisSpecOfAlleleFreqs2(j, (*Loci)(j)->GetNumberOfStates(), A->GetAlleleFreqs(j), A->GetAlleleCounts(j));
+	UpdateScoreForMisSpecOfAlleleFreqs2(j, (*Loci)(j)->GetNumberOfStates(), A->GetAlleleFreqs(j), individuals);
       }
     }
 
@@ -262,18 +262,20 @@ void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs(int j, const doub
 
 // presumably this calculates score test for mis-spec allele freqs at multi-allelic loci
 void MisSpecAlleleFreqTest::UpdateScoreForMisSpecOfAlleleFreqs2(const int locus, const int NumberOfStates, 
-								const double* const AlleleFreqs, const int* const AlleleCounts)
+								const double* const AlleleFreqs, 
+								const IndividualCollection* const individuals)
 {
    double rn, r, pj, pi, q;
    double* NewScore = new double[ NumberOfStates - 1];
    double* NewInfo = new double[ (NumberOfStates - 1) * (NumberOfStates - 1 )];
    for( int k = 0; k < Populations; k++ ){
-     rn = (double)( AlleleCounts[ (NumberOfStates - 1)*Populations + k ] );
+     vector<int> AlleleCounts = individuals->getAlleleCounts(locus, k, NumberOfStates);
+     rn = (double)( AlleleCounts[ NumberOfStates - 1] );
      q = 1.0;
      for( int j = 0; j < NumberOfStates - 1; j++ )
        q -= AlleleFreqs[j + k*NumberOfStates];
       for( int j = 0; j < NumberOfStates - 1; j++ ){
-         r = AlleleCounts[ j*Populations + k ];
+         r = AlleleCounts[ j ];
          pj = AlleleFreqs[ j + k*NumberOfStates ];
          NewScore[ j ] = ( r / pj - rn / q ) * pj * ( 1 - pj );
          NewInfo[ j*(NumberOfStates-1) + j ] = pj * ( 1 - pj )

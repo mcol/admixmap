@@ -17,6 +17,8 @@
 #ifdef PARALLEL
 #include <mpi++.h>
 #include <mpe.h>
+
+MPI::Intracomm workers_and_master;
 #endif
 
 using namespace std;
@@ -50,6 +52,7 @@ int main( int argc , char** argv ){
 #ifdef PARALLEL
   MPI::Init(argc, argv);
   const int rank = MPI::COMM_WORLD.Get_rank();
+  workers_and_master = MPI::COMM_WORLD.Split((rank!=1), rank);//excludes process that will update freqs
   double t1 = 0, t2 = 0, t3 = 0, t0 = MPI::Wtime();
   MPE_Init_log();
   //define states for logging
@@ -121,10 +124,14 @@ int main( int argc , char** argv ){
 
     IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
     IC->LoadData(&options, &data);                             //and before L and R Initialise
-    IC->OpenExpectedYFile(options.getResidualFilename(), Log );
+    if(rank==0)IC->OpenExpectedYFile(options.getResidualFilename(), Log );
   
     Latent L( &options, &Loci);    
-    L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
+    if(rank!=1)L.Initialise(IC->getSize(), data.GetPopLabels(), Log
+#ifdef PARALLEL
+			    , workers_and_master
+#endif
+);
   
     Regression R[2];
     for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
@@ -519,7 +526,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
       //Updates and Output after BurnIn     
       if( !AnnealedRun && iteration > burnin && rank==0){
 	//dispersion test
-	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A);
+	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A, IC);
 	//stratification test
 	if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
 								 options.getPopulations());
@@ -673,9 +680,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   }
 
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals 
-  IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
-
-  IC->SampleHapPairsAndUpdateScores(iteration, options, A, R, anneal);
+  {
+    IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
+    IC->SampleHapPairs(options, A, anneal);
+  }
 #ifdef PARALLEL
   MPE_Log_event(13, iteration, "Barrier");
   MPI::COMM_WORLD.Barrier();
@@ -725,8 +733,12 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     //conjugate sampler, using numbers of arrivals. NB: requires sampling of jump indicators in Individuals
     //L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
     //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
-    L->SampleSumIntensities(IC->getSumAncestry(),  
-			    (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1));
+    if(rank!=1)L->SampleSumIntensities(IC->getSumAncestry(),  
+				       (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1)
+#ifdef PARALLEL
+				       , workers_and_master
+#endif
+);
   }
 
   else

@@ -33,7 +33,7 @@ class DispersionTest{
   ~DispersionTest();
   void Initialise(const AdmixOptions* const, LogWriter &, int);
   void Output(int, const Genome &, const std::string* const PopLabels);
-  void TestForDivergentAlleleFrequencies(const AlleleFreqs* const);
+  void TestForDivergentAlleleFrequencies(const AlleleFreqs* const, const IndividualCollection* const IC);
 
  private:
   int NumberOfCompositeLoci;

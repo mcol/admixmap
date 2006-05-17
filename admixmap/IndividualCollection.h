@@ -54,8 +54,8 @@ public:
 			   const Regression* const R, const double* const poptheta,
 			   const vector<vector<double> > &alpha, 
 			   bool anneal);
-  void SampleHapPairsAndUpdateScores(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
-				     const Regression* const R, bool anneal);
+  void SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A,
+				     bool anneal);
   void SampleParameters(int iteration, const AdmixOptions* const options,
 			const Regression* const R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
@@ -101,6 +101,7 @@ public:
   const vector<unsigned> getSumNumArrivals();
   unsigned GetSNPAlleleCounts(unsigned locus, int allele)const;
   int getNumberOfMissingGenotypes(unsigned locus)const;
+  const vector<int> getAlleleCounts(unsigned locus, int pop, unsigned NumStates)const;
 
   std::vector<double> getOutcome(int)const;
   double getOutcome(int, int)const;
@@ -167,8 +168,8 @@ private:
 #ifdef PARALLEL
   int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
   int rank_with_freqs;
-  //communicators for workers (Individual updaters) and workers+freqsampler
-  MPI::Intracomm workers, workers_and_freqs;
+  //communicators for workers (Individual updaters),  workers+freqsampler and workers+master
+  MPI::Intracomm workers, workers_and_freqs, workers_and_master;
 #endif
  
   //Regression Objects

@@ -60,7 +60,7 @@ private:
   void UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, int NumCopiesAllele1,
 					  const double* const AlleleFreqs, int NumStates);
   void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, const double* const AlleleFreqs, 
-					   const int* const AlleleCounts);
+					   const IndividualCollection* const individuals);
 
   void OutputTestsForMisSpecifiedAlleleFreqs( int, const Genome* const Loci, const std::string* const PopLabels);
   void OutputTestsForMisSpecifiedAlleleFreqs2( int samples, const Genome* const Loci, const std::string* const PopLabels);

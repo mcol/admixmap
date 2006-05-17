@@ -49,7 +49,7 @@ DispersionTest::~DispersionTest(){
   free_matrix(divergentallelefreqstest, NumberOfCompositeLoci + 1);
 }
 
-void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const A)
+void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const A, const IndividualCollection* const IC)
 {
   vector<int> rep;
   vector<double> popfreqs;
@@ -70,7 +70,8 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
       popfreqs =  A->GetAlleleFreqs(j, k );
 
       // Generate replicate data conditional on locus ancestry
-      AlleleCount = A->GetAlleleCounts(j, k);
+      //AlleleCount = A->GetAlleleCounts(j, k);
+      AlleleCount = IC->getAlleleCounts(j, k, popfreqs.size());
       int sumcounts = accumulate(AlleleCount.begin(), AlleleCount.end(), 0, plus<int>());
       rep = Rand::genmultinomial( sumcounts, popfreqs );
 
