@@ -49,6 +49,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
     workers_and_freqs = MPI::COMM_WORLD.Split( (global_rank > 0), global_rank);
     rank_with_freqs = workers_and_freqs.Get_rank();
 
+    workers_and_master = MPI::COMMM_WORLD.Split((global_rank!=1), global_rank);
 #endif
   OutcomeType = 0;
   NumOutcomes = 0;
@@ -197,7 +198,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   if(options->getHapMixModelIndicator()) {
       SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
 #ifdef PARALLEL
-      GlobalSumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
+      if(workers_and_master.Get_rank()==0)GlobalSumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
 #endif
   }
 
@@ -447,6 +448,9 @@ void IndividualCollection::setGenotypeProbs(const Genome* const Loci){
 #endif
       }
       locus++;
+#ifdef PARALLEL
+      if(rank_with_freqs >0)delete[] AlleleProbs;
+#endif
     }
   }
 }  
@@ -503,7 +507,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   if(options->getHapMixModelIndicator()){
     fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
 #ifdef PARALLEL
-    if(rank==0)fill(GlobalSumAncestry, GlobalSumAncestry + 2*NumCompLoci, 0);
+    if(workers_and_master.Get_rank()==0)fill(GlobalSumAncestry, GlobalSumAncestry + 2*NumCompLoci, 0);
 #endif
   }
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
@@ -521,22 +525,30 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     // ** Run HMM forward recursions and sample locus ancestry
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
     if(options->getHapMixModelIndicator())_child[i]->AccumulateAncestry(SumAncestry);
+    // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
+    if(Populations >1 && !options->getHapMixModelIndicator())//no need in hapmixmodel
+      _child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+    // ** Update score, info and score^2 for ancestry score tests
+    if(iteration > options->getBurnIn() && Populations >1 
+       && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
+      _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
+			      R[0].getDispersion(), ExpectedY);
 
   }
 #ifdef PARALLEL
   if(options->getHapMixModelIndicator()){
     MPE_Log_event(11, iteration, "Barrier");
-    MPI::COMM_WORLD.Barrier();
+    workers_and_master.Barrier();
     MPE_Log_event(12, iteration, "BarrEnd");
     
     MPE_Log_event(3, iteration, "RedAncStart");
-    MPI::COMM_WORLD.Reduce(SumAncestry, GlobalSumAncestry, 2*NumCompLoci, MPI::INT, MPI::SUM, 0); 
+    workers_and_master.Reduce(SumAncestry, GlobalSumAncestry, 2*NumCompLoci, MPI::INT, MPI::SUM, 0); 
     MPE_Log_event(4, iteration, "RedAncEnd");
   }
 #endif
 }
-void IndividualCollection::SampleHapPairsAndUpdateScores(int iteration, const AdmixOptions* const options, AlleleFreqs *A,
-							  const Regression* const R, bool anneal=false){
+void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A,
+							 bool anneal=false){
   /*
     (1) Samples Haplotype pairs and upates allele/haplotype counts
     (2) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
@@ -545,7 +557,6 @@ void IndividualCollection::SampleHapPairsAndUpdateScores(int iteration, const Ad
 
   // ** preliminaries
 
-  int Populations = options->getPopulations();
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
@@ -556,14 +567,7 @@ void IndividualCollection::SampleHapPairsAndUpdateScores(int iteration, const Ad
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** Sample Haplotype Pair
     _child[i]->SampleHapPair(A, options->getHapMixModelIndicator(), (_anneal && options->getThermoIndicator()));//also updates allele counts
-    // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-    if(Populations >1 && !options->getHapMixModelIndicator())//no need in hapmixmodel
-      _child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
-    // ** Update score, info and score^2 for ancestry score tests
-    if(iteration > options->getBurnIn() && Populations >1 
-       && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-      _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
-			      R[0].getDispersion(), ExpectedY);
+
   }
 }
 
@@ -762,7 +766,11 @@ const double* IndividualCollection::getSumLogTheta()const{
   return SumLogTheta;
 }
 const int* IndividualCollection::getSumAncestry()const{
+#ifdef PARALLEL
+  return GlobalSumAncestry;
+#else
   return SumAncestry;
+#endif
 }
 // const vector<int> IndividualCollection::getSumLocusAncestry(int K)const{
 //   vector<int> sumlocusancestry(2*K, 0);
@@ -821,6 +829,20 @@ unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)con
   AlleleCounts = totalCounts;
 #endif
   return AlleleCounts;
+}
+
+const vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop, unsigned NumStates)const{
+  int ancestry[2];
+  vector<int> counts(NumStates);
+  fill(counts.begin(), counts.end(), 0);
+  for(unsigned i = worker_rank; i < size; i += NumWorkers)
+    if( !_child[i]->GenotypeIsMissing(locus)){
+      _child[i]->GetLocusAncestry(locus, ancestry);
+      const int* happair = _child[i]->getSampledHapPair(locus);
+      if(ancestry[0] == pop)++counts[happair[0]];
+      if(ancestry[1] == pop)++counts[happair[1]];
+    }
+  return counts;
 }
 
 int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
