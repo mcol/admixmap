@@ -54,8 +54,8 @@ public:
 			   const Regression* const R, const double* const poptheta,
 			   const vector<vector<double> > &alpha, 
 			   bool anneal);
-  void SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A,
-				     bool anneal);
+  void SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
+		      bool anneal);
   void SampleParameters(int iteration, const AdmixOptions* const options,
 			const Regression* const R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,

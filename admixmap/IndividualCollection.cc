@@ -442,7 +442,7 @@ void IndividualCollection::setGenotypeProbs(const Genome* const Loci){
       
       for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
 #ifdef PARALLEL
-	_child[i]->SetGenotypeProbs(j, jj, locus, NumberOfStates, AlleleProbs);
+	_child[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
 #else
 	_child[i]->SetGenotypeProbs(j, jj, locus, false);
 #endif
@@ -479,6 +479,8 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     (1) Samples individual admixture proportions on even-numbered iterations
     (2) Samples Locus Ancestry (after updating HMM)
     (3) accumulates sums of ancestry states in hapmixmodel
+    (4) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
+    (5) updates score, info and score squared for ancestry score tests
     coolness is not passed as argument to this function because annealing has already been implemented by 
     calling annealGenotypeProbs 
 */
@@ -547,27 +549,40 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   }
 #endif
 }
-void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A,
-							 bool anneal=false){
+void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
+					  bool anneal=false){
   /*
-    (1) Samples Haplotype pairs and upates allele/haplotype counts
-    (2) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
-    (3) updates score, info and score squared for ancestry score tests
+    Samples Haplotype pairs and upates allele/haplotype counts
   */
-
-  // ** preliminaries
-
-  bool _anneal = (anneal && !options->getTestOneIndivIndicator());
-  int i0 = 0;
-  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
-    i0 = 1;
-  }
-
-  // loop over individuals
-  for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
-    // ** Sample Haplotype Pair
-    _child[i]->SampleHapPair(A, options->getHapMixModelIndicator(), (_anneal && options->getThermoIndicator()));//also updates allele counts
-
+  unsigned nchr = Loci->GetNumberOfChromosomes();
+  unsigned locus = 0;
+  for(unsigned j = 0; j < nchr; ++j){
+    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+#ifdef PARALLEL
+      //broadcast current values of allele probs to workers 
+      const unsigned NumberOfStates = (*Loci)(locus)->GetNumberOfStates();
+      const double* AlleleProbs;
+      if(rank_with_freqs == 0) AlleleProbs = (*Loci)(locus)->getAlleleProbs();
+      else AlleleProbs  = new double[NumberOfStates*Populations];
+      workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
+#endif
+      
+      // loop over individuals
+      //condition for determining which allele freq sampler is in use
+      bool condition = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator() );
+      for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
+	// ** Sample Haplotype Pair
+#ifdef PARALLEL
+	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), condition, AlleleProbs);
+#else
+	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), condition);//also updates allele counts
+#endif
+      }
+      locus++;
+#ifdef PARALLEL
+      if(rank_with_freqs >0)delete[] AlleleProbs;
+#endif
+    }
   }
 }
 

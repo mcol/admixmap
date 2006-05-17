@@ -98,7 +98,9 @@ public:
   void AccumulateAncestry(int* SumAncestry);
   void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
 		    DataMatrix *Covariates, double DInvLink, double dispersion,const double* const * ExpectedY);
-  void SampleHapPair(AlleleFreqs *A, bool hapmixmodel, bool anneal);
+  void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal);
+  void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal, 
+		     const double* const AlleleProbs);
   void SampleJumpIndicators(bool sampleArrivals);
   void SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta,  
 		 bool updateSumLogRho);
@@ -138,7 +140,7 @@ public:
   double getLogPosteriorTheta()const;
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
-  void SetGenotypeProbs(int j, int jj, unsigned locus, const unsigned NumberOfStates, const double* const AlleleProbs);
+  void SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs);
   void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
   void AnnealGenotypeProbs(int j, const double coolness);
 

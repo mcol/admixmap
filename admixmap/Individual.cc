@@ -147,8 +147,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(int j = 0; j < numCompositeLoci; ++j) {
     (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
-    hapPair h;
-    sampledHapPairs.push_back(h);
+    //initialise sampledHapPairs with the first of the possible happairs. Then, if there is only one, sampling of hap pair can be skipped.
+    sampledHapPairs.push_back(PossibleHapPairs[j][0]);
   }
   //Now the PossibleHapPairs have ben determined and missing genotype indicators have been set, 
   //the genotypes are deleted as they are no longer needed 
@@ -229,11 +229,12 @@ void Individual::setCovariates(double* X){
 }
 #ifdef PARALLEL
 //this version can also be used in non-parallel version
-void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const unsigned NumberOfStates, const double* const AlleleProbs){
+void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
   if( !GenotypesMissing[j][jj] ){
     double *q = GenotypeProbs[j]+jj*Populations*Populations;
     
     happairiter end = PossibleHapPairs[locus].end();
+    const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
     for(int k0 = 0; k0 < Populations; ++k0)
       for(int k1 = 0; k1 < Populations; ++k1) {
 	*q = 0.0;
@@ -617,30 +618,48 @@ void Individual::AccumulateAncestry(int* SumAncestry){
       }
   } //end chromosome loop
 }
+#ifdef PARALLEL
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal, 
+			       const double* const AlleleProbs){
+  int ancestry[2];//to store ancestry states
+  GetLocusAncestry(j,jj,ancestry);
+  if( hapmixmodel || !GenotypesMissing[j][jj]){
+    //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
+    if(PossibleHapPairs[locus].size()> 1){// no need to sample if only one possible hap pair
 
-void Individual::SampleHapPair(AlleleFreqs *A, bool hapmixmodel, bool anneal){
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    Chromosome* C = Loci->getChromosome(j);
-    //loop over loci on current chromosome and update allele counts
-    for( unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-      int locus =  C->GetLocus(jj);
-      if( hapmixmodel || !GenotypesMissing[j][jj]){
-	int anc[2];//to store ancestry states
-	GetLocusAncestry(j,jj,anc);
-	//might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-	if(PossibleHapPairs[locus].size() == 1){// no need to sample if only one possible hap pair
-	  sampledHapPairs[locus].haps[0] = PossibleHapPairs[locus][0].haps[0];
-	  sampledHapPairs[locus].haps[1] = PossibleHapPairs[locus][0].haps[1];
-	}
-	else{
- 	(*Loci)(locus)->SampleHapPair(&(sampledHapPairs[locus]), PossibleHapPairs[locus], anc);
-	}//now update allelecounts in AlleleFreqs using sampled hap pair
-	A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, C->isDiploid(), anneal);
+     //code taken from CompositeLocus. workers have no CompositeLocus objects so this must be done here
+      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
+      double* Probs = new double[PossibleHapPairs[locus].size()];//1way array of hap.pair probs
+      double* p = Probs;
+      happairiter end = PossibleHapPairs[locus].end();
+      for(happairiter hiter = PossibleHapPairs[locus].begin() ; hiter != end ; ++hiter, ++p) {
+	*p = AlleleProbs[ancestry[0] * NumberOfStates + hiter->haps[0] ] * AlleleProbs[ancestry[1] * NumberOfStates + hiter->haps[1] ];
       }
-    }   
-  } //end chromosome loop
+      
+      int h = Rand::SampleFromDiscrete(Probs, PossibleHapPairs[locus].size());
+      delete[] Probs;
+      
+      sampledHapPairs[locus].haps[0] = PossibleHapPairs[locus][h].haps[0];
+      sampledHapPairs[locus].haps[1] = PossibleHapPairs[locus][h].haps[1];
+
+    }//now update allelecounts in AlleleFreqs using sampled hap pair
+    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, ancestry, (gametes[j]==2), anneal);
+  }
 }
-  
+#else
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal){
+  if( hapmixmodel || !GenotypesMissing[j][jj]){
+    int anc[2];//to store ancestry states
+    GetLocusAncestry(j,jj,anc);
+    //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
+    if(PossibleHapPairs[locus].size() > 1){// no need to sample if only one possible hap pair
+      (*Loci)(locus)->SampleHapPair(&(sampledHapPairs[locus]), PossibleHapPairs[locus], anc);
+    }//now update allelecounts in AlleleFreqs using sampled hap pair
+    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), anneal);
+  }
+}
+#endif
+
 void Individual::SampleJumpIndicators(bool sampleArrivals){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);

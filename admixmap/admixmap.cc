@@ -682,7 +682,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals 
   {
     IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
-    IC->SampleHapPairs(options, A, anneal);
+    IC->SampleHapPairs(options, A, Loci, anneal);
   }
 #ifdef PARALLEL
   MPE_Log_event(13, iteration, "Barrier");

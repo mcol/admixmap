@@ -299,13 +299,9 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Ha
   happairiter end = HapPairs.end();
   happairiter hiter = HapPairs.begin();
   for( ; hiter != end ; ++hiter, ++p) {
-#ifdef PARALLEL
-    *p = AlleleProbs[hiter->haps[0] * NumberOfStates + ancestry[0] ] * AlleleProbs[hiter->haps[1] * NumberOfStates + ancestry[1] ];
-#else
     *p = HapPairProbs[ hiter->haps[0] * NumberOfStates * Populations * Populations + 
-			     hiter->haps[1] * Populations * Populations +
-			     ancestry[0] * Populations  + ancestry[1]];
-#endif
+		       hiter->haps[1] * Populations * Populations +
+		       ancestry[0] * Populations  + ancestry[1]];
   }
 
   int h = Rand::SampleFromDiscrete(Probs, HapPairs.size());
