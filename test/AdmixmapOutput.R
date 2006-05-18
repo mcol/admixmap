@@ -917,7 +917,7 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
 ###################################################################################
 
 options(echo=TRUE)
-par(cex=2,las=1)
+#par(cex=2,las=1)  # ? this line causes X connection to break
 graphics.off()
 ps.options(pointsize=16)
 
