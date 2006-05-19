@@ -293,6 +293,7 @@ void CompositeLocus::AccumulateAlleleProbs(){
  *   might represent european paternal and african maternal).
  *
  */
+#ifndef PARALLEL 
 void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &HapPairs, const int ancestry[2])const{
   double* Probs = new double[HapPairs.size()];//1way array of hap.pair probs
   double* p = Probs;
@@ -310,6 +311,7 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Ha
   hap->haps[0] = HapPairs[h].haps[0];
   hap->haps[1] = HapPairs[h].haps[1];
 }
+#endif
 
 // doesn't really calculate posterior mode
 // just sets to current value of hap freqs.  ok for Chib algorithm if strong prior

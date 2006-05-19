@@ -157,13 +157,13 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 
   //initialise genotype probs array and array of indicators for genotypes missing at locus
   GenotypeProbs = new double*[numChromosomes];
-  unsigned locus = 0;
+  // unsigned locus = 0;
   for(unsigned j = 0; j < numChromosomes; ++j) {
     GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations*Populations];
-    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-      SetGenotypeProbs(j, jj, locus, false);
-      locus++;
-    }
+//     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+//       SetGenotypeProbs(j, jj, locus, false);
+//       locus++;
+//     }
   }
 
   // ** set up StepSizeTuner object for random walk updates of admixture **
@@ -249,7 +249,7 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* c
     for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
   }
 }
-#else
+#endif
 void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator=false){
   //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
@@ -260,7 +260,6 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindica
     for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
   }
 }
-#endif
 
 void Individual::AnnealGenotypeProbs(int j, const double coolness) {
   // called after energy has been evaluated, before updating model parameters
@@ -621,9 +620,9 @@ void Individual::AccumulateAncestry(int* SumAncestry){
 #ifdef PARALLEL
 void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal, 
 			       const double* const AlleleProbs){
-  int ancestry[2];//to store ancestry states
-  GetLocusAncestry(j,jj,ancestry);
   if( hapmixmodel || !GenotypesMissing[j][jj]){
+    int ancestry[2];//to store ancestry states
+    GetLocusAncestry(j,jj,ancestry);
     //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
     if(PossibleHapPairs[locus].size()> 1){// no need to sample if only one possible hap pair
 

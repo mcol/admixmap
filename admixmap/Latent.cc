@@ -67,8 +67,14 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
       fill(globaltheta, globaltheta+K, 1.0/(double)K);
       //ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
     }
+
+#ifdef PARALLEL
+    const int rank = MPI::COMM_WORLD.Get_rank();
+#else 
+    const int rank = 0;
+#endif
     
-    SumLogRho.push_back(0.0);
+    if(rank==0)SumLogRho.push_back(0.0);
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
     rhoalpha = options->getRhoalpha();
     if(options->getHapMixModelIndicator() || (options->getIndAdmixHierIndicator() && !options->isGlobalRho() )){
@@ -81,25 +87,27 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	//initialise rho vector
 	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j){
 	  rho.push_back(rho[0]);
-	  SumLogRho.push_back(0.0);
+	  if(rank==0)SumLogRho.push_back(0.0);
 	}
-	RhoArgs.NumPops = K;
-	RhoArgs.rhoalpha = rhoalpha;
-	RhoArgs.rhobeta0 = rhobeta0;
-	RhoArgs.rhobeta1 = rhobeta1;
-	unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
-	RhoArgs.NumIntervals = numIntervals;
-	RhoArgs.sumrho  = numIntervals * rho[0];
-	RhoArgs.sumlogrho = numIntervals * log(rho[0]);
-	RhoSampler = new HamiltonianMonteCarlo[numIntervals];
-	for(unsigned j = 0; j < numIntervals; ++j)
-	  RhoSampler[j].SetDimensions(1, 0.05/*initial stepsize*/, 0.000/*min stepsize*/, 
-				      1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
-    
+	if(rank==0){
+	  RhoArgs.NumPops = K;
+	  RhoArgs.rhoalpha = rhoalpha;
+	  RhoArgs.rhobeta0 = rhobeta0;
+	  RhoArgs.rhobeta1 = rhobeta1;
+	  unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
+	  RhoArgs.NumIntervals = numIntervals;
+	  RhoArgs.sumrho  = numIntervals * rho[0];
+	  RhoArgs.sumlogrho = numIntervals * log(rho[0]);
+	  RhoSampler = new HamiltonianMonteCarlo[numIntervals];
+	  for(unsigned j = 0; j < numIntervals; ++j)
+	    RhoSampler[j].SetDimensions(1, 0.05/*initial stepsize*/, 0.000/*min stepsize*/, 
+					1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
+	  
+	  RhoPriorParamSampler.SetDimensions(3, 0.05/*initial stepsize*/, 0.000/*min stepsize*/, 
+					     1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, 
+					     RhoPriorParamsEnergy, RhoPriorParamsGradient);
+	}
       }
-      RhoPriorParamSampler.SetDimensions(3, 0.05/*initial stepsize*/, 0.000/*min stepsize*/, 
-					 1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, 
-					 RhoPriorParamsEnergy, RhoPriorParamsGradient);
     }
     else{
       rhobeta = options->getRhobeta();
@@ -383,7 +391,11 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
     transform(rho.begin(), rho.end(), SumLogRho.begin(), SumLogRho.begin(), std::plus<double>());
 }
 
-void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
+void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
+#ifdef PARALLEL
+				  , MPI::Intracomm& Comm
+#endif
+){
   //SumAncestry is a (NumberOfCompositeLoci) * (Populations+1) array of counts of ancestry states that are
   // unequal (element 0) and equal to each possible ancestry states
   //sumlogrho indicates whether to accumulate sums of log rho
@@ -393,7 +405,7 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
   int locus = 0;
   int index = 0;
 #ifdef PARALLEL
-  const int rank = MPI::COMM_WORLD.Get_rank();
+  const int rank = Comm.Get_rank();
 #else 
   const int rank = 0;
 #endif
@@ -401,11 +413,10 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
   if(rank==0){
     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
       ++locus;//skip first locus on each chromosome
-      Chromosome* C = Loci->getChromosome(c); 
-      for(unsigned i = 1; i < C->GetSize(); ++i){
+      for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
 	RhoArgs.sumrho -= rho[locus];
 	rho[locus] = log(rho[locus]);//sampler is on log scale
-	RhoArgs.Distance = C->GetDistance(i);//distance between this locus and last
+	RhoArgs.Distance = Loci->GetDistance(locus);//distance between this locus and last
 	RhoArgs.SumAncestry = SumAncestry + locus*2;//sums of ancestry for this locus
 	
 	//cout << index << " " << RhoSampler[index].getAcceptanceRate() << " " << RhoSampler[index].getStepsize()<< endl;
@@ -428,15 +439,15 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
       }
     }
   }
-//broadcast rho to all processes
+//broadcast rho to all processes, in Comm (excludes freqsampler)
 //no need to broadcast globaltheta if it is kept fixed
 #ifdef PARALLEL
   MPE_Log_event(7, 0, "Barrier");
-  MPI::COMM_WORLD.Barrier();
+  Comm.Barrier();
   MPE_Log_event(8, 0, "BarrEnd");
 
   MPE_Log_event(1, 0, "Bcastrho");
-  MPI::COMM_WORLD.Bcast(&(*(rho.begin())), rho.size(), MPI::DOUBLE, 0);
+  Comm.Bcast(&(*(rho.begin())), rho.size(), MPI::DOUBLE, 0);
   MPE_Log_event(2, 0, "Bcasted");
 #endif    
   //set locus correlation
@@ -444,6 +455,9 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
   for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
     //set global state arrival probs in hapmixmodel
     //TODO: can skip this if xonly analysis with no females
+#ifdef PARALLEL
+    if(rank>0)//workers only in parallel version
+#endif
     Loci->getChromosome(c)->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
   }
   if(rank==0){

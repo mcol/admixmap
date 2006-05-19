@@ -35,7 +35,7 @@ public:
   Genome(int);
   virtual ~Genome();
 
-  void Initialise(const InputData* const data_, int populations, LogWriter &Log);
+  void Initialise(const InputData* const data_, int populations, LogWriter &Log, int rank);
 
   const std::vector< int > GetChrmAndLocus( int )const;
 

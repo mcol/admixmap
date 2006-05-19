@@ -42,23 +42,28 @@ Genome::~Genome()
 }
 
 //gets contents of locusfile and genotypesfile, creates CompositeLocus array and creates Chromosome array
-void Genome::Initialise(const InputData* const data_, int populations, LogWriter &Log){
+void Genome::Initialise(const InputData* const data_, int populations, LogWriter &Log, int rank){
+  // in parallel version: rank0 needs distances for updating sumintensities
+  //                      rank1 needs CompLocus objects
+  //                      other ranks need chromosomes and distances
 
   const DataMatrix& locifileData =  data_->getLocusMatrix();//locus file converted to doubles
   const Vector_s& locusLabels = data_->getLocusLabels();
+  bool isWorker = (rank <0 || rank>1);//a worker updates individuals, so needs chromosomes
   
   //determine number of composite loci
   NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
+  NumberOfChromosomes = data_->getNumberOfChromosomes();
   
   //create array of CompositeLocus objects
-  LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
-  Distances = new double[ NumberOfCompositeLoci ];
+  if(rank ==1 || rank==-1)LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
+  if(rank!=1)Distances = new double[ NumberOfCompositeLoci ];
   
   // Set number of alleles at each locus
   unsigned row = 0;//counts lines in locusfile
-  int *cstart = new int[NumberOfCompositeLoci];
-  int *cfinish = new int[NumberOfCompositeLoci];
-  //since we don't know the number of chromsomes yet, these arrays have the maximum number, num. Comp. Loci, as size
+  int *cstart = new int[NumberOfChromosomes];
+  int *cfinish = new int[NumberOfChromosomes];
+ 
   int cnum = -1; //cnum = number of chromosomes -1
   int lnum = 0;
   LocusTable.resize(NumberOfCompositeLoci);
@@ -72,7 +77,8 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     //get chromosome labels from col 4 of locusfile, if there is one   
     if (m.size() == 4) ChrmLabels.push_back(m[3]);
 
-    SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
+    if(rank!=0)SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
+
     if(locifileData.isMissing(row, 1) ){//new chromosome, triggered by missing value
       cnum++;
       lnum = 0; 
@@ -83,26 +89,34 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     LocusTable[i][0] = cnum;//chromosome on which locus i is located
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
     cfinish[cnum] = i;//locus number of last locus on currrent chromosome
-
+    
+    
     //set number of alleles of first locus in comp locus
-    LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
+    if(rank ==1 || rank==-1)LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
     //loop through lines in locusfile for current complocus
     while( row < locifileData.nRows() - 1 && !locifileData.isMissing( row + 1, 1 ) && locifileData.get( row + 1, 1 ) == 0 ){
-      LocusArray[i].AddLocus( (int)locifileData.get( row+1, 0 ), locusLabels[row+1] );
+      if(rank ==1 || rank==-1)LocusArray[i].AddLocus( (int)locifileData.get( row+1, 0 ), locusLabels[row+1] );
       //adds locus with number of alleles given as argument
       row++;
     }
     row++;
-    if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
-    TotalLoci += LocusArray[i].GetNumberOfLoci();
-  }
+    if(rank ==1 || rank==-1){
+      if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
+      TotalLoci += LocusArray[i].GetNumberOfLoci();
+    }
+  }//end comp loci loop
   NumberOfChromosomes = cnum +1;
+  
   SizesOfChromosomes = new unsigned int[NumberOfChromosomes];//array to store lengths of the chromosomes
+  for(unsigned c = 0; c < NumberOfChromosomes; ++c) SizesOfChromosomes[c] = cfinish[c] - cstart[c] +1;
+  if(isWorker){
+    InitialiseChromosomes(cstart, cfinish, populations);
+  }
   
-  InitialiseChromosomes(cstart, cfinish, populations);
-  
-  delete[] cstart;
-  delete[] cfinish;
+  if(isWorker){
+    delete[] cstart;
+    delete[] cfinish;
+  }
   PrintSizes(Log);//prints length of genome, num loci, num chromosomes
 }
 
@@ -154,7 +168,7 @@ void Genome::InitialiseChromosomes(const int* cstart, const int* cfinish, int po
 	}
       }
     }
-    SizesOfChromosomes[i] = C[i]->GetSize(); 
+    //SizesOfChromosomes[i] = C[i]->GetSize(); 
   }
 }
 

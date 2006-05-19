@@ -33,8 +33,8 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   RandomAlleleFreqs = false;
   IsHistoricAlleleFreq = false;
   CorrelatedAlleleFreqs = false;
-  AlleleCounts = 0;
-  hetCounts = 0;
+  AlleleCounts.array = 0;
+  hetCounts.array = 0;
   Freqs = 0;
   AlleleFreqsMAP = 0;
   HistoricAlleleFreqs = 0;
@@ -51,9 +51,8 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   NumberOfEtaUpdates  = 0;
   etastep = 0;
 #ifdef PARALLEL
-  sendcounts = 0;
-  recvcounts = 0;
-  sendfreqs = 0;
+  globalAlleleCounts = 0;
+  globalHetCounts = 0;
 #endif
 }
 
@@ -71,8 +70,8 @@ AlleleFreqs::~AlleleFreqs(){
 //    }
   if(AlleleFreqsMAP!= Freqs)delete[] AlleleFreqsMAP;
   delete[] Freqs;
-  delete[] AlleleCounts;
-  delete[] hetCounts;
+  delete[] AlleleCounts.array;
+  delete[] hetCounts.array;
   delete[] PriorAlleleFreqs;
   delete[] HistoricAlleleCounts;
   delete[] HistoricAlleleFreqs;
@@ -88,9 +87,8 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] TuneEtaSampler;
 #endif
 #ifdef PARALLEL
-  delete[] sendcounts;
-  delete[] recvcounts;
-  delete[] sendfreqs;
+  delete[] globalAlleleCounts;
+  delete[] globalHetCounts;
 #endif
 
   for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
@@ -125,13 +123,6 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 
 #endif
   }
-#ifdef PARALLEL
-  sendcounts = new int[options->getPopulations()*count];
-  sendfreqs = new double[options->getPopulations()*(count- NumberOfCompositeLoci)];
-  if(MPI::COMM_WORLD.Get_rank() ==0){
-    recvcounts = new int[options->getPopulations()*count];
-  }
-#endif
 
   // ** settings for sampling of dispersion parameter **
   if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs){
@@ -317,10 +308,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
   Freqs = new double*[NumberOfCompositeLoci];
   AlleleFreqsMAP = Freqs;
-  //if(options->getThermoIndicator())
-    hetCounts = new int*[NumberOfCompositeLoci];
   PriorAlleleFreqs = new double*[NumberOfCompositeLoci];
-  AlleleCounts = new int*[NumberOfCompositeLoci];
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     Freqs[i] = 0;
@@ -365,16 +353,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     (*Loci)(i)->SetRandomAlleleFreqs(RandomAlleleFreqs);
     (*Loci)(i)->SetNumberOfPopulations(Populations);
-    // set size of allele counts array
-    // allele counts array has NumberOfStates elements for each population 
-    AlleleCounts[i] = new int[Loci->GetNumberOfStates(i) * Populations];
-    //fill(AlleleCounts[i], AlleleCounts[i]+ Loci->GetNumberOfStates(i)*Populations, 0);
-    if(//options->getThermoIndicator() && 
-       Loci->GetNumberOfStates(i)==2){//fill hetCounts for SNPs
-      hetCounts[i] = new int[Populations * Populations];
-      fill(hetCounts[i], hetCounts[i]+ Populations*Populations, 0);
-    }
-    
+
     if(file){
       newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
       LoadAlleleFreqs( *temporary, i, row+1, oldformat);//row+1 is the first row for this locus (+1 for the header).
@@ -392,6 +371,40 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   if(options->getChibIndicator()){
     setAlleleFreqsMAP();
   }
+}
+
+void AlleleFreqs::AllocateAlleleCountArrays(){
+#ifdef ARRAY2D
+  AlleleCounts.array = new int*[NumberOfCompositeLoci];
+  hetCounts.array = new int*[NumberOfCompositeLoci];
+
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    // set size of allele counts array
+    // allele counts array has NumberOfStates elements for each population 
+    AlleleCounts.array[i] = new int[Populations*Loci->GetNumberOfStates(i)];
+    //fill(AlleleCounts[i], AlleleCounts[i]+ Loci->GetNumberOfStates(i)*Populations, 0);
+    if(//options->getThermoIndicator() && 
+       Loci->GetNumberOfStates(i)==2){//fill hetCounts for SNPs
+      hetCounts.array[i] = new int[Populations * Populations];
+      fill(hetCounts[i], hetCounts[i]+ Populations*Populations, 0);
+    }
+  }
+
+#else
+  AlleleCounts.array = new int[NumberOfCompositeLoci*Populations*2];
+  AlleleCounts.stride = Populations*2;
+  //if(options->getThermoIndicator()){
+  hetCounts.array = new int[NumberOfCompositeLoci*Populations*Populations];
+  hetCounts.stride = Populations*Populations;
+  //}
+#ifdef PARALLEL
+  if(MPI::COMM_WORLD.Get_rank() == 1){
+    globalAlleleCounts = new int[NumberOfCompositeLoci * Populations*2];
+    globalHetCounts = new int[NumberOfCompositeLoci*Populations*Populations];
+  }
+#endif
+#endif
+
 }
 
 void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, bool oldformat){
@@ -534,7 +547,6 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   }
   
   // Sample allele frequencies conditional on Dirichlet priors 
-  // use these frequencies to set AlleleProbs in CompositeLocus
   // then use AlleleProbs to set HapPairProbs in CompositeLocus
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
@@ -576,10 +588,10 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 
 void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      if(AlleleCounts)fill(AlleleCounts[i], AlleleCounts[i] + Loci->GetNumberOfStates(i)*Populations, 0);
+      if(AlleleCounts.array)fill(AlleleCounts[i], AlleleCounts[i] + Loci->GetNumberOfStates(i)*Populations, 0);
 
     //TODO: only do next line if thermo = 1 and testoneindiv = 0 and annealing
-      if(hetCounts && Loci->GetNumberOfStates(i)==2)
+      if(hetCounts.array && Loci->GetNumberOfStates(i)==2)
       fill(hetCounts[i], hetCounts[i]+Populations*Populations, 0);
   }
 
@@ -619,81 +631,30 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
 //   //TODO: check haploid case
 // }
 #ifdef PARALLEL
-void AlleleFreqs::SumAlleleCountsOverProcesses(){
-//todo: hetcounts
-    int rank = MPI::COMM_WORLD.Get_rank();
-    int index = 0;
-    int count = 0;
-//pack local allele counts into a single array, sendcounts
-    MPE_Log_event(9, 0, "CopyCountstart");
-    for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
-      copy(AlleleCounts[locus], AlleleCounts[locus]+Populations*Loci->GetNumberOfStates(locus), sendcounts+index);
-      index += Populations*Loci->GetNumberOfStates(locus);
-	count += Loci->GetNumberOfStates(locus);//total number of alleles/haplotypes
-    }
-    MPE_Log_event(10, 0, "CopyCountend");
+void AlleleFreqs::SumAlleleCountsOverProcesses(MPI::Intracomm comm){
+  //comm is an intracommunicator consisting of the allele freq updater (rank 0) and the workers
+    int rank = comm.Get_rank();
+
 //synchronise processes
     MPE_Log_event(13, 0, "Barrier");
     MPI::COMM_WORLD.Barrier();
     MPE_Log_event(14, 0, "BarrEnd");    
 //sum allele counts
     MPE_Log_event(5, 0, "RedCountstart");
-    MPI::COMM_WORLD.Reduce(sendcounts, recvcounts, count*Populations, MPI::INT, MPI::SUM, 0);
+    comm.Reduce(AlleleCounts.array, globalAlleleCounts, NumberOfCompositeLoci*Populations*2, MPI::INT, MPI::SUM, 0);
+    comm.Reduce(hetCounts.array, globalHetCounts, NumberOfCompositeLoci*Populations*Populations, MPI::INT, MPI::SUM, 0);
     MPE_Log_event(6, 0, "RedCountend");
-//unpack totals on top process
+//put totals back into AlleleCounts on top process, by swapping addresses
     if(rank==0){
-	index = 0;
-	MPE_Log_event(9, 0, "CopyCountstart");
-	for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
-	    copy(recvcounts+index, recvcounts+index+Populations*Loci->GetNumberOfStates(locus), AlleleCounts[locus]);
-	    index += Populations*Loci->GetNumberOfStates(locus);
-	}
-	MPE_Log_event(10, 0, "CopyCountend");
+      int* temp = AlleleCounts.array;
+      AlleleCounts.array = globalAlleleCounts;
+      globalAlleleCounts = temp;
+      temp = hetCounts.array;
+      hetCounts.array = globalHetCounts;
+      globalHetCounts = temp;
     }
-
 }
-void AlleleFreqs::BroadcastAlleleFreqs(){
-    int rank = MPI::COMM_WORLD.Get_rank();
-    int index = 0;
-    int count = 0;
-//pack allele counts into a single array, sendcounts
-    for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
-	int NumberOfStates = Loci->GetNumberOfStates(locus);
-	if(rank==0)
-	    for(int k = 0; k < Populations; ++k){
-		copy(Freqs[locus]+k*NumberOfStates, Freqs[locus]+(k+1)*NumberOfStates-1, sendfreqs+index);
-		index += (NumberOfStates-1);
-	    }
-	count += NumberOfStates-1;//count number of freqs to send. All procs do this.
-    }
-    
-//synchronise processes
-    MPE_Log_event(13, 0, "Barrier");
-    MPI::COMM_WORLD.Barrier();
-    MPE_Log_event(14, 0, "BarrEnd");    
-//broadcast freqs
-    MPI::COMM_WORLD.Bcast(sendfreqs, count*Populations, MPI::DOUBLE, 0);
 
-//unpack freqs
-    if(rank>0){
-	index = 0;
-	for(int locus = 0; locus < NumberOfCompositeLoci; ++locus){
-	    int NumberOfStates = Loci->GetNumberOfStates(locus);
-	    for(int k = 0; k < Populations; ++k){
-		Freqs[locus][(k+1)*NumberOfStates -1] = 1.0;
-		for(int s = 0; s < NumberOfStates-1; ++s){
-		    double f = sendfreqs[index+s];
-		    Freqs[locus][k*NumberOfStates+s] = f;
-		    Freqs[locus][(k+1)*NumberOfStates -1] -= f;//compute last freq by subtraction from 1
-		}
-		index += NumberOfStates-1;
-	    }
-	    //no need to update alleleprobs
-	    //(*Loci)(locus)->SetHapPairProbs();
-	}
-    }
-    MPI::COMM_WORLD.Barrier();
-}
 #endif
 
 void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
@@ -1033,10 +994,10 @@ std::vector<double> AlleleFreqs::GetPriorAlleleFreqs( int locus, int population 
 
 // AlleleCounts is a 2D array: 1st dimension is locus, 2nd dimension is state*population
 // this function returns counts for all populations 
-const int *AlleleFreqs::GetAlleleCounts(int locus)const
-{
-  return( AlleleCounts[locus] );
-}
+// const int *AlleleFreqs::GetAlleleCounts(int locus)const
+// {
+//   return( AlleleCounts[locus] );
+// }
 // this function returns counts for the population specified
 std::vector<int> AlleleFreqs::GetAlleleCounts( int locus, int population )const
 {

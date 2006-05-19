@@ -35,8 +35,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
     worker_rank = 0;
     NumWorkers = 1;
 #ifdef PARALLEL
-    global_rank = MPI::COMM_WORLD.Get_rank();
-    NumProcs = MPI::COMM_WORLD.Get_size();
+    int global_rank = MPI::COMM_WORLD.Get_rank();
     GlobalSumAncestry = 0;
     //create communicator for workers and find size of and rank within this group
     workers = MPI::COMM_WORLD.Split( (global_rank>1), global_rank);
@@ -49,7 +48,8 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
     workers_and_freqs = MPI::COMM_WORLD.Split( (global_rank > 0), global_rank);
     rank_with_freqs = workers_and_freqs.Get_rank();
 
-    workers_and_master = MPI::COMMM_WORLD.Split((global_rank!=1), global_rank);
+    workers_and_master = MPI::COMM_WORLD.Split((global_rank!=1), global_rank);
+    Populations = options->getPopulations();
 #endif
   OutcomeType = 0;
   NumOutcomes = 0;
@@ -431,26 +431,27 @@ void IndividualCollection::setGenotypeProbs(const Genome* const Loci){
       //broadcast current values of allele probs to workers 
       const unsigned NumberOfStates = (*Loci)(locus)->GetNumberOfStates();
       double* AlleleProbs;
-      if(rank_with_freqs == 0)AlleleProbs = (*Loci)(locus)->getAlleleProbs();
+      if(rank_with_freqs == 0)AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
       else AlleleProbs  = new double[NumberOfStates*Populations];
+      workers_and_freqs.Barrier();// wait till everyone is ready for next locus
       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
-#endif
 
+      for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
+	_child[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
+      }
+      if(TestInd)
+	for(int i = 0; i < sizeTestInd; ++i)
+	  TestInd[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
+      if(rank_with_freqs >0)delete[] AlleleProbs;
+#else
+      for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
+	_child[i]->SetGenotypeProbs(j, jj, locus, false);
+      }
       if(TestInd)
 	for(int i = 0; i < sizeTestInd; ++i)
 	  TestInd[i]->SetGenotypeProbs(j, jj, locus, false);
-      
-      for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
-#ifdef PARALLEL
-	_child[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
-#else
-	_child[i]->SetGenotypeProbs(j, jj, locus, false);
 #endif
-      }
       locus++;
-#ifdef PARALLEL
-      if(rank_with_freqs >0)delete[] AlleleProbs;
-#endif
     }
   }
 }  
@@ -513,6 +514,8 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
 #endif
   }
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
+  double dispersion = 0.0; 
+  if(options->getNumberOfOutcomes()>0) dispersion = R[0].getDispersion();
 
   //now loop over individuals
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
@@ -523,7 +526,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
 			     beta, poptheta, options, alpha,DerivativeInverseLinkFunction(i+i0), 
-			     R[0].getDispersion(), true, _anneal);
+			     dispersion, true, _anneal);
     // ** Run HMM forward recursions and sample locus ancestry
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
     if(options->getHapMixModelIndicator())_child[i]->AccumulateAncestry(SumAncestry);
@@ -534,7 +537,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     if(iteration > options->getBurnIn() && Populations >1 
        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
       _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
-			      R[0].getDispersion(), ExpectedY);
+			      dispersion, ExpectedY);
 
   }
 #ifdef PARALLEL
@@ -561,9 +564,10 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
 #ifdef PARALLEL
       //broadcast current values of allele probs to workers 
       const unsigned NumberOfStates = (*Loci)(locus)->GetNumberOfStates();
-      const double* AlleleProbs;
-      if(rank_with_freqs == 0) AlleleProbs = (*Loci)(locus)->getAlleleProbs();
+      double* AlleleProbs;
+      if(rank_with_freqs == 0) AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
       else AlleleProbs  = new double[NumberOfStates*Populations];
+      workers_and_freqs.Barrier();
       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
 #endif
       
@@ -602,6 +606,8 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
     lambda.push_back( R[i].getlambda());
     beta.push_back( R[i].getbeta());
   }
+  double dispersion = 0.0; 
+  if(options->getNumberOfOutcomes()>0) dispersion = R[0].getDispersion();
   // ** Test Individuals
   // these are updated completely here as they contribute nothing to the score tests or update of allele freqs
   // ---------------------------------------------------------------------------------------------
@@ -615,7 +621,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
     if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
       TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
 			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(0), 
-			     R[0].getDispersion(), true, anneal);
+			     dispersion, true, anneal);
     // ** Run HMM forward recursions and Sample Locus Ancestry
     if(Populations >1)TestInd[i]->SampleLocusAncestry(options);
     // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
@@ -627,7 +633,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
     // ** update admixture props with conjugate proposal on odd-numbered iterations
     if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ) 
       TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(0), R[0].getDispersion(), false, anneal);
+			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(0), dispersion, false, anneal);
     // ** Sample missing values of outcome variable
     TestInd[i]->SampleMissingOutcomes(&Outcome, OutcomeType, ExpectedY, lambda);
     
@@ -644,7 +650,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
     // ** update admixture props with conjugate proposal on odd-numbered iterations
     if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ) 
       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(i+i0), R[0].getDispersion(), false, anneal);
+			     beta, poptheta, options, alpha, DerivativeInverseLinkFunction(i+i0), dispersion, false, anneal);
     // ** Sample missing values of outcome variable
     _child[i]->SampleMissingOutcomes(&Outcome, OutcomeType, ExpectedY, lambda);
   }

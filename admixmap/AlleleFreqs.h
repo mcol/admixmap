@@ -28,12 +28,55 @@
 #include "common.h"
 class StepSizeTuner;
 
+
+//struct to hold allelecounts in either a 1d (where Number of alleles is fixed) or 2d array 
+//usage, 1d array:
+// array_of_allelecounts AlleleCounts;
+// AlleleCounts.stride = K*2;
+// AlleleCounts.array = new int[ NumberOfLoci*K*2];
+
+// usage, 2darray:
+// AlleleCounts.array = new int*[NumberOfLoci ];
+// for(unsigned i = 0; i < NumberOfLoci; ++i) AlleleCounts.array[i] = new int[K*NumberOfStates[i]];
+//
+// AlleleCounts[i]; //accesses counts for ith locus
+// AlleleCounts[i][k*2 +a]; //accesses count of ath allele in kth pop at ith locus
+#ifndef PARALLEL
+#define ARRAY2D
+#endif
+ 
+typedef struct{
+#ifdef ARRAY2D
+  int **array;
+
+  int* operator[](unsigned i){//for reading or writing element
+    return array[i];
+  };
+  const int* operator[](unsigned i)const{//for read-only
+    return array[i];
+  };
+
+#else
+  int* array;
+  unsigned stride;
+
+  int* operator[](unsigned i){
+    return array + i*stride;
+  };
+  const int* operator[](unsigned i)const{
+    return array + i*stride;
+  };
+
+#endif
+}array_of_allelecounts;
+
 class AlleleFreqs{
 
 public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter &Log);
+  void AllocateAlleleCountArrays();
   void Update(IndividualCollection* IC, bool afterBurnIn, const double coolness, bool annealingUpdate);
 
   //initialize output file for samples of dispersion parameters
@@ -67,8 +110,8 @@ public:
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
   //void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
 #ifdef PARALLEL
-  void SumAlleleCountsOverProcesses();
-  void BroadcastAlleleFreqs();
+  void SumAlleleCountsOverProcesses(MPI::Intracomm comm);
+  //void BroadcastAlleleFreqs();
 #endif
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
@@ -94,12 +137,11 @@ private:
   double **Freqs;// allele frequencies except for last allele
   double **AlleleFreqsMAP; // posterior mode of allele freqs
   double **HistoricAlleleFreqs;
-  int **AlleleCounts;
-  int** hetCounts;//counts of het individuals with distinct ancestry states at SNPs
+  array_of_allelecounts AlleleCounts;
+  array_of_allelecounts hetCounts;//counts of het individuals with distinct ancestry states at SNPs
 #ifdef PARALLEL
-    int* sendcounts;
-    int* recvcounts;
-  double *sendfreqs;
+  int* globalAlleleCounts;
+  int* globalHetCounts;
 #endif
 
   double **HistoricAlleleCounts;
