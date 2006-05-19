@@ -148,8 +148,10 @@ getPrecision <- function(user.options) {
 
 plotAutocorrelations <- function(table.samples, thinning) {
   ## plot autocorrelations
-  ## drop columns with zero variance
-  table.samples <- table.samples[, apply(table.samples,2,var)>0]
+  ## drop columns with zero variance or NaN
+  vcols <- apply(table.samples,2,var)
+  pcols <- !is.nan(vcols) & vcols > 0
+  table.samples <- table.samples[, pcols]
   if(is.null(dim(table.samples))) {
     table.samples <- data.frame(table.samples)
   }
@@ -313,9 +315,11 @@ calculateAndPlotQuantiles <- function(param.samples, nvars) {
   for(j in 1:nvars) {
     post.quantiles[j, c(1,3,4)] <- quantile(param.samples[,j], probs = c(0.5, 0.025, 0.975), na.rm = T)
     post.quantiles[j, 2] <- mean(param.samples[,j], na.rm=T) 
-    ## plots kernel density of each variable  
-    plot(density(param.samples[,j], adjust=0.5), 
-         main="Posterior kernel density", xlab=dimnames(post.quantiles)[[1]][j])
+    ## plots kernel density of each variable
+    if(is.finite(post.quantiles[j, 2])) {
+      plot(density(param.samples[,j], adjust=0.5), 
+           main="Posterior kernel density", xlab=dimnames(post.quantiles)[[1]][j])
+    }
   }
   dev.off()
   outputfile <- paste(resultsdir, "PosteriorQuantiles.txt", sep="/" )
