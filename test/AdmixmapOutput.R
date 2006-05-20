@@ -1059,7 +1059,7 @@ if(K == 1) {
       alphas <- post.quantiles[1:K, 1]
     } else {
       if(!is.null(user.options$admixtureprior)) {
-        alphas <- AdmixturePrior[1]
+        alphas <- AdmixturePrior[1, ]
       } else alphas <- rep(1, K)
     }
   }
