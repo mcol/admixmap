@@ -68,7 +68,7 @@ Regression::~Regression(){
 void Regression::OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 				const std::string* const PopulationLabels, LogWriter &Log){
   //Open paramfile
-  if ( options->getIndAdmixHierIndicator() && options->getNumberOfOutcomes()>0){ 
+  if ( options->getNumberOfOutcomes()>0){ 
     if ( strlen( options->getRegressionOutputFilename() ) ){
       outputstream.open( options->getRegressionOutputFilename(), ios::out );
       if( !outputstream )

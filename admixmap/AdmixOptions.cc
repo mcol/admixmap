@@ -1085,12 +1085,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	ParameterFilename = "";
 	OptionValues.erase("paramfile");
       }
-      if(RegressionOutputFilename.length() > 0){
-	Log << "ERROR: regparamfile option is not valid with indadmixhierindicator = 0\n"
-	    << "\tThis option will be ignored\n";
-	RegressionOutputFilename = "";
-	OptionValues.erase("regparamfile");
-      }
+
       if(EtaOutputFilename.length() > 0 ){
 	Log << "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n"
 	    << "\tThis option will be ignored\n";

@@ -550,11 +550,12 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	  if ( strlen( options.getErgodicAverageFilename() ) ){
 	    int samples = iteration - burnin;
 	    if( options.getIndAdmixHierIndicator() ){
-	      L.OutputErgodicAvg(samples,&avgstream);
-	      for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-		R[r].OutputErgodicAvg(samples, &avgstream);
-	      A.OutputErgodicAvg(samples, &avgstream);
+	      L.OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
+	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model
 	    }
+	    for(int r = 0; r < options.getNumberOfOutcomes(); ++r)//regression params
+	      R[r].OutputErgodicAvg(samples, &avgstream);
+
 	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq, &avgstream);
 	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream);
 	    avgstream << endl;
@@ -624,32 +625,33 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	else *avgstream << "sumIntensities.mean\t";
       }
       
-      // Regression parameters
-      if( options->getNumberOfOutcomes() > 0 ){
-	for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
-	  *avgstream << "intercept\t";
-	  if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
-	    for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-	      *avgstream << individuals->getCovariateLabels(i) << "\t";
-	    }
-	  }
-	  if( !options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation() ){
-	    for( int k = 1; k < options->getPopulations(); k++ ){
-	      *avgstream << PopulationLabels[k] << "\t";
-	    }
-	  }
-	  if( individuals->getOutcomeType(r)==0 )//linear regression
-	    *avgstream << "precision\t";
-	}
-      }
-      
       // dispersion parameters
       if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
 	for( int k = 0; k < options->getPopulations(); k++ ){
 	  *avgstream << "eta" << k << "\t";
 	}
       }
+    }//end if hierarchical model
+
+    // Regression parameters
+    if( options->getNumberOfOutcomes() > 0 ){
+      for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
+	*avgstream << "intercept\t";
+	if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
+	  for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
+	    *avgstream << individuals->getCovariateLabels(i) << "\t";//write covariate labels to header
+	  }
+	}
+	if( !options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation() ){
+	  for( int k = 1; k < options->getPopulations(); k++ ){
+	    *avgstream << PopulationLabels[k] << "\t";//write population labels (admixture covariates) to header
+	  }
+	}
+	if( individuals->getOutcomeType(r)==0 )//linear regression
+	  *avgstream << "precision\t";
+      }
     }
+
     *avgstream << "MeanDeviance\tVarDeviance\t";
     if(options->getChibIndicator()){// chib calculation
       *avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
@@ -771,16 +773,16 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
     //** dispersion parameter (if dispersion model)
 	A->OutputEta(iteration, options, Log);
-    // ** regression parameters
-    for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
-      R[r].Output(iteration, options, Log);
-    
-    // ** new line in log file but not on screen 
-    if( iteration == 0 ) {
-      Log.setDisplayMode(Off);
-      Log << "\n";
-      Log.setDisplayMode(Quiet);
-    }
+  }
+  // ** regression parameters
+  for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+    R[r].Output(iteration, options, Log);
+  
+  // ** new line in log file but not on screen 
+  if( iteration == 0 && (options->getIndAdmixHierIndicator() || options->getNumberOfOutcomes())) {
+    Log.setDisplayMode(Off);
+    Log << "\n";
+    Log.setDisplayMode(Quiet);
   }
   
   //if( options->getDisplayLevel()>2 ) cout << endl;
