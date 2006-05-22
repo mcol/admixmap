@@ -101,7 +101,8 @@ private:
   std::vector< std::vector< int > > LocusTable;
   std::vector<std::string> ChrmLabels;
 
-  void InitialiseChromosomes(const int* cstart, const int* cfinish, int populations);
+  void InitialiseChromosomes(const vector<unsigned> cstart, int populations);
+
   // UNIMPLEMENTED
   // to avoid use
   Genome(const Genome&);

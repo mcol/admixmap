@@ -92,7 +92,6 @@ public:
   int getNumberOfIndividuals()const;
   int getNumberOfSimpleLoci()const;
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};
-  unsigned getNumberOfChromosomes()const{return NumberOfChromosomes;};
 
   void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
 
@@ -123,7 +122,6 @@ private:
   int NumIndividuals;
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
-  unsigned NumberOfChromosomes;
   bool IsPedFile;
 
   void getPopLabels(const Vector_s& data, size_t Populations, std::string **labels);

@@ -53,7 +53,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   
   //determine number of composite loci
   NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
-  NumberOfChromosomes = data_->getNumberOfChromosomes();
+  //NumberOfChromosomes = data_->getNumberOfChromosomes();
   
   //create array of CompositeLocus objects
   if(rank ==1 || rank==-1)LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
@@ -61,8 +61,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   
   // Set number of alleles at each locus
   unsigned row = 0;//counts lines in locusfile
-  int *cstart = new int[NumberOfChromosomes];
-  int *cfinish = new int[NumberOfChromosomes];
+  vector<unsigned int> cstart;
  
   int cnum = -1; //cnum = number of chromosomes -1
   int lnum = 0;
@@ -82,14 +81,12 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     if(locifileData.isMissing(row, 1) ){//new chromosome, triggered by missing value
       cnum++;
       lnum = 0; 
-      cstart[cnum] = i; //locus number of first locus on new chromosome
+      cstart.push_back(i);//locus number of first locus on new chromosome
     } else{
       lnum++;//one more locus on chromosome
     }
     LocusTable[i][0] = cnum;//chromosome on which locus i is located
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
-    cfinish[cnum] = i;//locus number of last locus on currrent chromosome
-    
     
     //set number of alleles of first locus in comp locus
     if(rank ==1 || rank==-1)LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
@@ -108,27 +105,24 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   NumberOfChromosomes = cnum +1;
   
   SizesOfChromosomes = new unsigned int[NumberOfChromosomes];//array to store lengths of the chromosomes
-  for(unsigned c = 0; c < NumberOfChromosomes; ++c) SizesOfChromosomes[c] = cfinish[c] - cstart[c] +1;
+  cstart.push_back(NumberOfCompositeLoci);
+  for(unsigned c = 0; c < NumberOfChromosomes; ++c) SizesOfChromosomes[c] = cstart[c+1] - cstart[c];
   if(isWorker){
-    InitialiseChromosomes(cstart, cfinish, populations);
+    InitialiseChromosomes(cstart, populations);
   }
   
-  if(isWorker){
-    delete[] cstart;
-    delete[] cfinish;
-  }
   PrintSizes(Log);//prints length of genome, num loci, num chromosomes
 }
 
 //Creates an array of pointers to Chromosome objects, sets their labels
 //also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
 //LengthOfXChrm 
-void Genome::InitialiseChromosomes(const int* cstart, const int* cfinish, int populations){
+void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int populations){
   C = new Chromosome*[NumberOfChromosomes]; 
   //C is an array of chromosome pointers
 
   for(unsigned i = 0; i < NumberOfChromosomes; i++){//loop over chromsomes
-    int size = cfinish[i] - cstart[i] + 1;//number of loci on chromosome i
+    int size = cstart[i+1] - cstart[i];//number of loci on chromosome i
 
     //set chromosome label
     string label;
@@ -168,7 +162,6 @@ void Genome::InitialiseChromosomes(const int* cstart, const int* cfinish, int po
 	}
       }
     }
-    //SizesOfChromosomes[i] = C[i]->GetSize(); 
   }
 }
 
