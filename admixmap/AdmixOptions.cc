@@ -282,9 +282,8 @@ void AdmixOptions::setNumberOfOutcomes(int i){
 }
 void AdmixOptions::setRegType(RegressionType R){
   RegType = R;
-  if(R == Both)NumberOfOutcomes = 2;
-  else if(R != None) NumberOfOutcomes = 1;
-  else setNumberOfOutcomes(0);
+  if(R == None)
+    setNumberOfOutcomes(0);
 }
 const char *AdmixOptions::getAssocScoreFilename() const
 {
@@ -1043,13 +1042,10 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       Log << "Cross sectional analysis, no outcome";
     }
   } else if (RegType == Linear) {
-    NumberOfOutcomes = 1;
     Log << "Cross sectional analysis, continuous outcome";
   } else if (RegType == Logistic) {
-    NumberOfOutcomes = 1;
     Log << "Case-control or cross sectional analysis, binary outcome";
-  } else if (RegType == Both) {
-    NumberOfOutcomes = 2;
+  } else{ //if (RegType == Both) {
     Log << "Cross sectional analysis, multiple outcome";
   }
   
@@ -1247,7 +1243,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   }
 
   if( TestForAffectedsOnly )
-    if( RegType == Linear){
+    if( RegType == Linear || RegType == Mlinear){
       Log << "ERROR: affectedsonly score test is not valid with a linear regression only."
 	  << " This option will be ignored.\n";
       setTestForAffectedsOnly(false);

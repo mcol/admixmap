@@ -175,7 +175,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   if(rank<1)checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
   //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
-    options->setRegType( CheckOutcomeVarFile( options->getNumberOfOutcomes(), options->getTargetIndicator(), Log));
+    CheckOutcomeVarFile( options, Log);
   if ( strlen( options->getCovariatesFilename() ) != 0 )
     CheckCovariatesFile(Log);//detects regression model
   if ( strlen( options->getReportedAncestryFilename() ) != 0 )
@@ -270,7 +270,6 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
 void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
   // if check = true, Checks that loci labels in locusfile are unique and that they match the names in the genotypes file.
   //also extracts locus labels
-  NumberOfChromosomes = 0;
   bool flag = false;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
     if(check){
@@ -286,7 +285,6 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
 	  cerr << "Warning: distance of " <<locusMatrix_.get(i-1,1)<< "  at locus " <<i<<endl;
 	locusMatrix_.isMissing(i-1,1, true);//missing value for distance denotes new chromosome
       }
-      if(locusMatrix_.isMissing(i-1,1))++NumberOfChromosomes;
       
       // Check loci names are unique    
       for (size_t j = 0; j < i-1; ++j) {   
@@ -296,7 +294,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
 	       << locusData_[i][0] << endl;
 	}
       }
-      //if(locusMatrix_.isMissing(i,1))++NumChromosomes;
+
     }//end if check
     LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
   }//end loop over loci
@@ -396,8 +394,11 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
   }
 }
 
-RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol, LogWriter& Log){
+void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log){
   //check outcomevarfile and genotypes file have the same number of rows
+
+  int Firstcol = options->getTargetIndicator();
+  int NumOutcomes = options->getNumberOfOutcomes();
   if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
     Log << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
 	<< outcomeVarMatrix_.nRows() - 1 << " observations.\n";
@@ -412,10 +413,11 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol, Log
     }
   }
   else numoutcomes = (int)outcomeVarMatrix_.nCols() - Firstcol;
+  options->setNumberOfOutcomes(numoutcomes);
 
   RegressionType RegType = None;  
   if(numoutcomes >0){
-    RegType = Both;
+    //RegType = Both;
     //extract portion of outcomevarfile needed
     std::string* OutcomeVarLabels = new string[ outcomeVarMatrix_.nCols() ];
     getLabels(outcomeVarData_[0], OutcomeVarLabels);
@@ -443,11 +445,19 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol, Log
       Log << "Regressing on ";    
       if( OutcomeType[j] == Binary ){
 	Log << "Binary variable: ";
-	if(numoutcomes==1)RegType = Logistic;
+	if(numoutcomes==1)RegType = Logistic;//one logistic regression
+	else {
+	  if(RegType == Logistic) RegType = Mlogistic;//more than one logistic regression
+	  else RegType = Multiple;//linear and logistic 
+	}
       }
       else if(OutcomeType[j] == Continuous ){
 	Log << "Continuous variable: ";
-	if(numoutcomes==1)RegType = Linear;
+	if(numoutcomes==1)RegType = Linear;//one linear regression
+	else {
+	  if(RegType == Linear) RegType = Mlinear;//more than one linear regression
+	  else RegType = Multiple;//linear and logistic 
+	}
       }
       Log << outcomeVarData_[0][j+Firstcol];
       Log << ".\n";
@@ -455,7 +465,7 @@ RegressionType InputData::CheckOutcomeVarFile(int NumOutcomes, int Firstcol, Log
     }
     Log << "\n";
   }
-  return RegType;
+  options->setRegType(RegType);
 }
 
 void InputData::CheckCovariatesFile(LogWriter &Log)const{
