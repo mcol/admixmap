@@ -156,7 +156,7 @@ private:
   std::vector< std::vector<double> > admixtureprior;
 
   double *SumLogTheta;//sums of log individual admixture proportions
-  vector<double> MaxLogLikelihood;
+  //vector<double> MaxLogLikelihood;
 
   DataMatrix *ReportedAncestry;
   //std::vector<double> sigma;

@@ -107,7 +107,7 @@ double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const 
 typedef std::vector<hapPair>::const_iterator happairiter;
 
 #ifdef PARALLEL
-inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
+inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool /*chibindicator*/) const {
   //TODO: happairprobsMAP
   double *q = Probs;
 

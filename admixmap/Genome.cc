@@ -50,13 +50,14 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   const DataMatrix& locifileData =  data_->getLocusMatrix();//locus file converted to doubles
   const Vector_s& locusLabels = data_->getLocusLabels();
   bool isWorker = (rank <0 || rank>1);//a worker updates individuals, so needs chromosomes
+  bool isFreqUpdater = (rank ==1 || rank==-1);
   
   //determine number of composite loci
   NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
   //NumberOfChromosomes = data_->getNumberOfChromosomes();
   
   //create array of CompositeLocus objects
-  if(rank ==1 || rank==-1)LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
+  if(isFreqUpdater)LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
   if(rank!=1)Distances = new double[ NumberOfCompositeLoci ];
   
   // Set number of alleles at each locus
@@ -76,9 +77,9 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     //get chromosome labels from col 4 of locusfile, if there is one   
     if (m.size() == 4) ChrmLabels.push_back(m[3]);
 
-    if(rank!=0)SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
+    if(rank!=1)SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
 
-    if(locifileData.isMissing(row, 1) ){//new chromosome, triggered by missing value
+    if(locifileData.isMissing(row, 1) || locifileData.get(row, 1)>=100.0){//new chromosome, triggered by missing value
       cnum++;
       lnum = 0; 
       cstart.push_back(i);//locus number of first locus on new chromosome
@@ -89,15 +90,19 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
     
     //set number of alleles of first locus in comp locus
-    if(rank ==1 || rank==-1)LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
+    if(isFreqUpdater)LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
     //loop through lines in locusfile for current complocus
     while( row < locifileData.nRows() - 1 && !locifileData.isMissing( row + 1, 1 ) && locifileData.get( row + 1, 1 ) == 0 ){
-      if(rank ==1 || rank==-1)LocusArray[i].AddLocus( (int)locifileData.get( row+1, 0 ), locusLabels[row+1] );
+      if(isFreqUpdater)LocusArray[i].AddLocus( (int)locifileData.get( row+1, 0 ), locusLabels[row+1] );
       //adds locus with number of alleles given as argument
       row++;
     }
     row++;
-    if(rank ==1 || rank==-1){
+    if(isFreqUpdater){
+#ifdef PARALLEL 
+      if(LocusArray[i].GetNumberOfStates()>2)
+	throw string("sorry, I can only handle diallelic loci");
+#endif
       if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
       TotalLoci += LocusArray[i].GetNumberOfLoci();
     }
@@ -214,7 +219,11 @@ unsigned int Genome::GetNumberOfCompositeLoci()const
 }
 
 int Genome::getNumberOfLoci(int j)const{
+#ifdef PARALLEL
+  return 1;
+#else
   return LocusArray[j].GetNumberOfLoci();
+#endif
 }
 unsigned int Genome::GetNumberOfChromosomes()const{
   return NumberOfChromosomes;
@@ -243,16 +252,24 @@ double Genome::GetDistance( int locus )const
 
 //returns number of states of a comp locus
 int Genome::GetNumberOfStates(int locus)const{
+#ifdef PARALLEL
+  return 2;
+#else
   return LocusArray[locus].GetNumberOfStates();
+#endif
 }
 //returns total number of states accross all comp loci
 int Genome::GetNumberOfStates()const
 {
+#ifdef PARALLEL
+  return NumberOfCompositeLoci*2;
+#else
   int ret = 0;
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     ret += LocusArray[i].GetNumberOfStates();
   }
   return ret;
+#endif
 }
 
 const vector<int> Genome::GetChrmAndLocus( int j )const{

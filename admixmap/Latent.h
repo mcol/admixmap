@@ -65,7 +65,7 @@ public:
   void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);
   void SampleSumIntensities(const int* SumAncestry, bool sumlogrho
 #ifdef PARALLEL
-			    , MPI:Intracomm& Comm
+			    , MPI::Intracomm& Comm
 #endif
 			    ) ;
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
@@ -139,10 +139,6 @@ private:
 
   AdmixOptions *options;
   Genome* Loci; 
-
-#ifdef PARALLEL
-  MPI::Intracommm workers_and_master;
-#endif
 
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);

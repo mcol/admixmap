@@ -172,7 +172,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
     }
 
   double threshold = 100.0;if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
-  if(rank<1)checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
+  if(rank<2)checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
   //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
   if ( strlen( options->getOutcomeVarFilename() ) != 0 )
     CheckOutcomeVarFile( options, Log);
@@ -188,6 +188,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
     MPI::COMM_WORLD.Bcast(&K, 1, MPI::INT, 1);
     options->setPopulations(K);
   }
+
   //tell nonworkers how many individuals there are
   if(rank==2){
     MPI::COMM_WORLD.Send(&NumIndividuals, 1, MPI::INT, 0, 0);
@@ -506,20 +507,29 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
   for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
     for(unsigned int j = 0; j < Loci.GetSizeOfChromosome(c); ++j){
       genotype G;
-      // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype 
-      int numLoci = Loci(complocus)->GetNumberOfLoci();
+      // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype
+#ifdef PARALLEL
+      const int numLoci = 1; 
+#else
+      const int numLoci = Loci(complocus)->GetNumberOfLoci();
+#endif
       
       unsigned int count = 0;
       for (int locus = 0; locus < numLoci; locus++) {
+#ifdef PARALLEL
+      const int numalleles = 2;
+#else
+      const int numalleles = Loci(complocus)->GetNumberOfAllelesOfLocus(locus);
+#endif
 	vector<unsigned short> g(2);
 	int col = 1 + SexColumn + lociI;
 	if (IsPedFile)col = 1 + SexColumn + 2*lociI;
 	  
 	StringConvertor::toIntPair(&g, geneticData_[i][col]);
 
-	if(g[0] > Loci(complocus)->GetNumberOfAllelesOfLocus(locus) || (g[1] > Loci(complocus)->GetNumberOfAllelesOfLocus(locus)))
+	if( (g[0] > numalleles) || (g[1] > numalleles))
 	  throwGenotypeError(i, locus, Loci(complocus)->GetLabel(0), 
-			     g[0], g[1], Loci(complocus)->GetNumberOfAllelesOfLocus(locus) );
+			     g[0], g[1], numalleles );
 	lociI++;
 	G.push_back(g);
 	count += g[0];

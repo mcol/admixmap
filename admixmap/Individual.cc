@@ -146,7 +146,12 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(int j = 0; j < numCompositeLoci; ++j) {
+#ifdef PARALLEL
+    SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
+#else
     (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+#endif
+
     //initialise sampledHapPairs with the first of the possible happairs. Then, if there is only one, sampling of hap pair can be skipped.
     sampledHapPairs.push_back(PossibleHapPairs[j][0]);
   }
@@ -227,6 +232,35 @@ void Individual::setOutcome(double* Y){
 void Individual::setCovariates(double* X){
   Covariates = X;
 }
+
+void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
+  //sets possible hap pairs for a single SNP
+  if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
+  hapPair hpair;
+  PossibleHapPairs.clear();
+  if(Genotype[0][0] == 0 || Genotype[0][1]==0){//missing genotype
+    hpair.haps[0] = 0; hpair.haps[1] = 0;
+    PossibleHapPairs.push_back(hpair);//(1,1)
+    hpair.haps[1] = 1;
+    PossibleHapPairs.push_back(hpair);//(1,2)
+    hpair.haps[0] = 1; hpair.haps[1] = 0;
+    PossibleHapPairs.push_back(hpair);//(2,1)
+    hpair.haps[1] = 1;
+    PossibleHapPairs.push_back(hpair);//(2,2)
+  }
+  //case of homozygote - only one possible happair
+  else if(Genotype[0][0] == Genotype[0][1]){
+    hpair.haps[0] = hpair.haps[1] = Genotype[0][0]-1;
+    PossibleHapPairs.push_back(hpair);
+  }
+  else{//heterozygote - two possibilities
+    hpair.haps[0] = 0; hpair.haps[1] = 1;
+    PossibleHapPairs.push_back(hpair);//(1,2)
+    hpair.haps[0] = 1; hpair.haps[1] = 0;
+    PossibleHapPairs.push_back(hpair);//(2,1)
+  }
+}
+
 #ifdef PARALLEL
 //this version can also be used in non-parallel version
 void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
@@ -281,8 +315,12 @@ void Individual::setGenotypesToMissing(){
 
 void Individual::DeleteGenotypes(){
   for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
+#ifdef PARALLEL
+      genotypes[j][0].clear();
+#else
     for(int k = 0; k < Loci->getNumberOfLoci(j); ++k)
       genotypes[j][k].clear();
+#endif
     genotypes[j].clear();
   }
   genotypes.clear();

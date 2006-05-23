@@ -75,7 +75,7 @@ int main( int argc , char** argv ){
 
   int    xargc = argc;
   char **xargv = argv;    
-  
+
   if (argc < 2) {
     PrintOptionsMessage();
     exit(1); 
@@ -111,16 +111,15 @@ int main( int argc , char** argv ){
   
     //print user options to args.txt; must be done after all options are set
     if(rank<1)options.PrintOptions();
-
     Genome Loci;
     Loci.Initialise(&data, options.getPopulations(), Log, rank);//reads locusfile and creates CompositeLocus objects
-    if(rank<1){
-      //print table of loci for R script to read
-      string locustable = options.getResultsDir();
-      locustable.append("/LocusTable.txt");
-      Loci.PrintLocusTable(locustable.c_str());
-      locustable.clear();
-    }
+//     if(rank==1 || rank==-1){
+//       //print table of loci for R script to read
+//       string locustable = options.getResultsDir();
+//       locustable.append("/LocusTable.txt");
+//       Loci.PrintLocusTable(locustable.c_str());
+//       locustable.clear();
+//     }
 
     AlleleFreqs A(&Loci);
     if(rank ==-1 || rank ==1)//allele freq updater only
@@ -128,10 +127,10 @@ int main( int argc , char** argv ){
     if(rank!=0)A.AllocateAlleleCountArrays();
 
     IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
-    IC->LoadData(&options, &data);                             //and before L and R Initialise
+    if(rank==-1 || rank >1)IC->LoadData(&options, &data);                             //and before L and R Initialise
     if(options.getNumberOfOutcomes()>0 && rank<1)IC->OpenExpectedYFile(options.getResidualFilename(), Log );
     if(rank!=0)IC->setGenotypeProbs(&Loci); // sets unannealed probs
-  
+
     Latent L( &options, &Loci);    
     if(rank!=1)L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
   
@@ -143,7 +142,7 @@ int main( int argc , char** argv ){
       if(rank<1)Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
     }
   
-    if( rank!=1 && options.isGlobalRho() || options.getHapMixModelIndicator()) {
+    if( (options.isGlobalRho() || options.getHapMixModelIndicator()) && (rank>1 || rank==-1)) {
       Loci.InitialiseLocusCorrelation(L.getrho());
       if(options.getHapMixModelIndicator())
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ )

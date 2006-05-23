@@ -32,25 +32,7 @@ IndividualCollection::IndividualCollection() {
 }
 
 IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
-    worker_rank = 0;
-    NumWorkers = 1;
-#ifdef PARALLEL
-    int global_rank = MPI::COMM_WORLD.Get_rank();
-    GlobalSumAncestry = 0;
-    //create communicator for workers and find size of and rank within this group
-    workers = MPI::COMM_WORLD.Split( (global_rank>1), global_rank);
-    NumWorkers = workers.Get_size();
-    if(global_rank >1)
-      worker_rank =workers.Get_rank();
-    else worker_rank = size;//so that non-workers will not loop over Individuals
 
-    //create communicator for messages between freqsampler and workers
-    workers_and_freqs = MPI::COMM_WORLD.Split( (global_rank > 0), global_rank);
-    rank_with_freqs = workers_and_freqs.Get_rank();
-
-    workers_and_master = MPI::COMM_WORLD.Split((global_rank!=1), global_rank);
-    Populations = options->getPopulations();
-#endif
   OutcomeType = 0;
   NumOutcomes = 0;
   NumCovariates = 0;
@@ -72,6 +54,26 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   sizeTestInd = 0;
   SumEnergy = 0; SumEnergySq = 0; 
 
+  worker_rank = 0;
+  NumWorkers = 1;
+#ifdef PARALLEL
+    int global_rank = MPI::COMM_WORLD.Get_rank();
+    GlobalSumAncestry = 0;
+    //create communicator for workers and find size of and rank within this group
+    workers = MPI::COMM_WORLD.Split( (global_rank>1), global_rank);
+    NumWorkers = workers.Get_size();
+    if(global_rank >1)
+      worker_rank =workers.Get_rank();
+    else worker_rank = size;//so that non-workers will not loop over Individuals
+
+    //create communicator for messages between freqsampler and workers
+    workers_and_freqs = MPI::COMM_WORLD.Split( (global_rank > 0), global_rank);
+    rank_with_freqs = workers_and_freqs.Get_rank();
+
+    workers_and_master = MPI::COMM_WORLD.Split((global_rank!=1), global_rank);
+    Populations = options->getPopulations();
+#endif
+
   Individual::SetStaticMembers(Loci, options);
   
   unsigned i0 = 0; // used to offset numbering of other individuals (not the one under test)
@@ -92,10 +94,12 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
     --size;
   }
 
-  _child = new Individual*[size];
-  for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
-    _child[i] = new Individual(i+i0+1, options, Data, false);//NB: first arg sets Individual's number
+  if(worker_rank < (int)size){
+    _child = new Individual*[size];
+    for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
+      _child[i] = new Individual(i+i0+1, options, Data, false);//NB: first arg sets Individual's number
     }
+  }
 }
 
 // ************** DESTRUCTOR **************
@@ -206,7 +210,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   if( options->getChibIndicator() )
     InitialiseMLEs(rhoalpha,rhobeta,options);
   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
-  MaxLogLikelihood.assign(NumInd, -9999999 );
+  //MaxLogLikelihood.assign(NumInd, -9999999 );
 }
 
 
@@ -429,7 +433,7 @@ void IndividualCollection::setGenotypeProbs(const Genome* const Loci){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 #ifdef PARALLEL
       //broadcast current values of allele probs to workers 
-      const unsigned NumberOfStates = (*Loci)(locus)->GetNumberOfStates();
+      const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
       double* AlleleProbs;
       if(rank_with_freqs == 0)AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
       else AlleleProbs  = new double[NumberOfStates*Populations];
@@ -521,7 +525,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
 
     // ** set SumLocusAncestry and SumNumArrivals to 0
-    _child[i]->ResetSufficientStats();
+    if(!options->getHapMixModelIndicator())_child[i]->ResetSufficientStats();
     // ** update theta with random-walk proposal on even-numbered iterations
     if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
@@ -563,7 +567,7 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 #ifdef PARALLEL
       //broadcast current values of allele probs to workers 
-      const unsigned NumberOfStates = (*Loci)(locus)->GetNumberOfStates();
+      const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
       double* AlleleProbs;
       if(rank_with_freqs == 0) AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
       else AlleleProbs  = new double[NumberOfStates*Populations];

@@ -237,7 +237,7 @@ private:
 		       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
   double LogPriorTheta_Softmax(const double* const theta, const double* const thetaX,  
 			       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
-    //Computes LogPrior density in softmax basis at supplied parameter values 
+  //Computes LogPrior density in softmax basis at supplied parameter values 
 
   double LogPriorRho(const vector<double> rho, const vector<double> rhoX, 
 		     const AdmixOptions* const options, double rhoalpha, double rhobeta)const; 
@@ -255,9 +255,11 @@ private:
   void UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double EY, double DInvLink, const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
   
- void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
+  void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
 			const DataType* const OutcomeType, 
 			Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY);
+
+  static void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
 };
 
 #endif /* INDIVIDUAL_H */
