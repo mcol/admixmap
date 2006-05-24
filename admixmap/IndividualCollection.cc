@@ -920,12 +920,7 @@ double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
 // ************** OUTPUT **************
 
 double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
-#ifdef PARALLEL
-							, MPI::Intracomm& workers_and_master
-#endif
-){
-  // renamed from OutputDeviance
+							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes){
 
 #ifdef PARALLEL
  const int rank = MPI::COMM_WORLD.Get_rank();
@@ -975,12 +970,23 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
     if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
     else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
-  Log << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
-  for(int c = 0; c < options->getNumberOfOutcomes(); ++c){
-    double RegressionLogL = R[c].getLogLikelihoodAtPosteriorMeans(this, iterations);
-    Lhat += RegressionLogL;
-    Log << "DevianceAtPosteriorMean(Regression " << c << ")"
-	<< -2.0*RegressionLogL << "\n";
+#ifdef PARALLEL
+  if(rank!=1){
+    double globalLhat = 0.0;
+    workers_and_master.Barrier();
+    workers_and_master.Reduce(&Lhat, &globalLhat, 1, MPI::DOUBLE, MPI::SUM, 0);
+    Lhat = globalLhat;
+  }
+#endif
+
+  if(rank <1){
+    Log << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
+    for(int c = 0; c < options->getNumberOfOutcomes(); ++c){
+      double RegressionLogL = R[c].getLogLikelihoodAtPosteriorMeans(this, iterations);
+      Lhat += RegressionLogL;
+      Log << "DevianceAtPosteriorMean(Regression " << c << ")"
+	  << -2.0*RegressionLogL << "\n";
+    }
   }
   return(-2.0*Lhat);
 }
@@ -1045,6 +1051,13 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
     if(annealed)  _child[i]->HMMIsBad(true); // HMM probs bad, stored loglikelihood bad
     else _child[i]->HMMIsBad(false); 
   }
+#ifdef PARALLEL
+  //send total to master
+  double globalLogLikHMM = 0.0;
+  workers_and_master.Barrier();
+  workers_and_master.Reduce(&LogLikHMM, &globalLogLikHMM, 1, MPI::DOUBLE, MPI::SUM, 0);
+  LogLikHMM = globalLogLikHMM;
+#endif
   // get regression log-likelihood 
   for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c].getLogLikelihood(this);
   Energy = -(LogLikHMM + LogLikRegression);

@@ -342,11 +342,7 @@ int main( int argc , char** argv ){
 	Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
 	    << "VarDeviance(V)\t" << VarDeviance << "\n"
 	    << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
-	double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes()
-#ifdef PARALLEL
-							, workers_and_master
-#endif
-);
+	double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
 	double pD = MeanDeviance - D_hat;
 	double DIC = MeanDeviance + pD;
 	Log << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
@@ -497,14 +493,16 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
   double Energy = 0.0;
   if(rank==0 && !AnnealedRun) cout << endl;
   for( int iteration = 0; iteration <= samples; iteration++ ) {
-    if(rank==0 && iteration > burnin) {//TODO: parallelize this bit
+    if(rank!=1 && iteration > burnin) {
       //accumulate energy as minus loglikelihood, calculated using unnanealed genotype probs
       if( !options.getTestOneIndivIndicator() ) {
 	Energy = IC->getEnergy(&options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
-	SumEnergy += Energy;
-	SumEnergySq += Energy*Energy;
-	// write to file if not AnnealedRun
-	if(!AnnealedRun)loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+	if(rank==0){
+	  SumEnergy += Energy;
+	  SumEnergySq += Energy*Energy;
+	  // write to file if not AnnealedRun
+	  if(!AnnealedRun)loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+	}
       } else {  
 	IC->accumulateEnergyArrays(&options);
       }
