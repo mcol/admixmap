@@ -721,14 +721,12 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
-  if( A->IsRandom() ) {
-    if(rank==-1 || rank==1){
+  if( (rank==-1 || rank==1) && A->IsRandom()){//may be a tautology, non freq updaters have RandomAlleleFreqs=false
       bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
       A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
-    }
   }
   
-  if(rank!=0 && (A->IsRandom() || anneal)) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
+  if(rank!=0 && (!options->getFixedAlleleFreqs() || anneal)) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
     IC->setGenotypeProbs(Loci); // sets unannealed probs ready for getEnergy
     IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad

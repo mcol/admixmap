@@ -57,7 +57,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   
   //determine number of composite loci
   NumberOfCompositeLoci = data_->getNumberOfCompositeLoci();
-  //NumberOfChromosomes = data_->getNumberOfChromosomes();
+  TotalLoci = data_->getNumberOfSimpleLoci();
   
   //create array of CompositeLocus objects
   if(isFreqUpdater)LocusArray = new CompositeLocus[ NumberOfCompositeLoci ];
@@ -82,7 +82,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
 
     if(rank!=1)SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
 
-    if(locifileData.isMissing(row, 1) || locifileData.get(row, 1)>=100.0){//new chromosome, triggered by missing value
+    if(locifileData.isMissing(row, 1) || locifileData.get(row, 1)>=100.0){//new chromosome, triggered by missing value or value of >=100 for distance
       cnum++;
       lnum = 0; 
       cstart.push_back(i);//locus number of first locus on new chromosome
@@ -103,23 +103,24 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     row++;
     if(isFreqUpdater){
 #ifdef PARALLEL 
+//at present, parallel version can only handle diallelic loci
       if(LocusArray[i].GetNumberOfStates()>2)
 	throw string("sorry, I can only handle diallelic loci");
 #endif
       if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
-      TotalLoci += LocusArray[i].GetNumberOfLoci();
+      //TotalLoci += LocusArray[i].GetNumberOfLoci();
     }
   }//end comp loci loop
+
   NumberOfChromosomes = cnum +1;
-  
   SizesOfChromosomes = new unsigned int[NumberOfChromosomes];//array to store lengths of the chromosomes
-  cstart.push_back(NumberOfCompositeLoci);
+  cstart.push_back(NumberOfCompositeLoci);//add extra element for next line to work
   for(unsigned c = 0; c < NumberOfChromosomes; ++c) SizesOfChromosomes[c] = cstart[c+1] - cstart[c];
-  if(isWorker){
+  if(isWorker){//create Chromosome objects
     InitialiseChromosomes(cstart, populations);
   }
   
-  PrintSizes(Log);//prints length of genome, num loci, num chromosomes
+  if(rank !=1 )PrintSizes(Log);//prints length of genome, num loci, num chromosomes
 }
 
 //Creates an array of pointers to Chromosome objects, sets their labels
@@ -201,6 +202,22 @@ void Genome::SetDistance( int locus, double distance )
 }
 
 void Genome::PrintSizes(LogWriter &Log)const{
+#ifdef PARALLEL
+//1st worker tells master length of autosomes and xchrm
+//(this is determined during creation of chromosomes, which master doesn't do)
+//only master is allowed to write to logfile
+    const int rank = MPI::COMM_WORLD.Get_rank();
+    if(rank == 2) {
+	MPI::COMM_WORLD.Send(&LengthOfGenome, 1, MPI::DOUBLE, 0, 0);
+	MPI::COMM_WORLD.Send(&LengthOfXchrm, 1, MPI::DOUBLE, 0, 1);
+    }
+    if(rank==0){
+	MPI::Status status;
+	MPI::COMM_WORLD.Recv((double*)&LengthOfGenome, 1, MPI::DOUBLE, 2, 0, status);
+	MPI::COMM_WORLD.Recv((double*)&LengthOfXchrm, 1, MPI::DOUBLE, 2, 1, status);
+    }
+#endif
+
   Log.setDisplayMode(Quiet);
   Log << "\n" << TotalLoci << " simple loci\n"
       << NumberOfCompositeLoci << " compound loci; "

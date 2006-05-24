@@ -185,7 +185,7 @@ bool AdmixOptions::getOutputFST() const
 
 bool AdmixOptions::getFixedAlleleFreqs() const
 {
-  return fixedallelefreqs;
+  return (fixedallelefreqs || alleleFreqFilename.length());
 }
 bool AdmixOptions::getCorrelatedAlleleFreqs() const
 {
