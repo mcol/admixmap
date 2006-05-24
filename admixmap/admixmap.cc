@@ -124,7 +124,7 @@ int main( int argc , char** argv ){
     AlleleFreqs A(&Loci);
     if(rank ==-1 || rank ==1)//allele freq updater only
       A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
-    if(rank!=0)A.AllocateAlleleCountArrays();
+    if(rank!=0)A.AllocateAlleleCountArrays(options.getPopulations());
 
     IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
     if(rank==-1 || rank >1)IC->LoadData(&options, &data);                             //and before L and R Initialise
@@ -342,7 +342,11 @@ int main( int argc , char** argv ){
 	Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
 	    << "VarDeviance(V)\t" << VarDeviance << "\n"
 	    << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
-	double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
+	double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes()
+#ifdef PARALLEL
+							, workers_and_master
+#endif
+);
 	double pD = MeanDeviance - D_hat;
 	double DIC = MeanDeviance + pD;
 	Log << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
@@ -451,6 +455,7 @@ int main( int argc , char** argv ){
     Log << "\n" << msg << "\n Exiting...\n";
     Log.ProcessingTime();
 #ifdef PARALLEL
+    cerr << "rank " << rank << ": " << msg << endl;
     MPI::COMM_WORLD.Abort(1);
 #else
     exit(1);
@@ -670,7 +675,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 #else 
   const int rank = -1;
 #endif
-  A->ResetAlleleCounts();
+  A->ResetAlleleCounts(options->getPopulations());
 
 
   if(rank<1){
@@ -695,7 +700,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   }
 #ifdef PARALLEL
   if(rank>0)
-    A->SumAlleleCountsOverProcesses(workers_and_freqs);
+    A->SumAlleleCountsOverProcesses(workers_and_freqs, options->getPopulations());
 #endif
 
   if( !anneal && iteration > options->getBurnIn() ){
