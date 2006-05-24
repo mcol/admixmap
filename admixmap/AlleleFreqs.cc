@@ -373,34 +373,35 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   }
 }
 
-void AlleleFreqs::AllocateAlleleCountArrays(){
+void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
+    const int L = Loci->GetNumberOfCompositeLoci();
 #ifdef ARRAY2D
-  AlleleCounts.array = new int*[NumberOfCompositeLoci];
-  hetCounts.array = new int*[NumberOfCompositeLoci];
+  AlleleCounts.array = new int*[L];
+  hetCounts.array = new int*[L];
 
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+  for( int i = 0; i < L; i++ ){
     // set size of allele counts array
     // allele counts array has NumberOfStates elements for each population 
-    AlleleCounts.array[i] = new int[Populations*Loci->GetNumberOfStates(i)];
+    AlleleCounts.array[i] = new int[K*Loci->GetNumberOfStates(i)];
     //fill(AlleleCounts[i], AlleleCounts[i]+ Loci->GetNumberOfStates(i)*Populations, 0);
     if(//options->getThermoIndicator() && 
        Loci->GetNumberOfStates(i)==2){//fill hetCounts for SNPs
-      hetCounts.array[i] = new int[Populations * Populations];
-      fill(hetCounts[i], hetCounts[i]+ Populations*Populations, 0);
+      hetCounts.array[i] = new int[K * K];
+      fill(hetCounts[i], hetCounts[i]+ K*K, 0);
     }
   }
 
 #else
-  AlleleCounts.array = new int[NumberOfCompositeLoci*Populations*2];
-  AlleleCounts.stride = Populations*2;
+  AlleleCounts.array = new int[L*K*2];
+  AlleleCounts.stride = K*2;
   //if(options->getThermoIndicator()){
-  hetCounts.array = new int[NumberOfCompositeLoci*Populations*Populations];
-  hetCounts.stride = Populations*Populations;
+  hetCounts.array = new int[L*K*K];
+  hetCounts.stride = K*K;
   //}
 #ifdef PARALLEL
   if(MPI::COMM_WORLD.Get_rank() == 1){
-    globalAlleleCounts = new int[NumberOfCompositeLoci * Populations*2];
-    globalHetCounts = new int[NumberOfCompositeLoci*Populations*Populations];
+    globalAlleleCounts = new int[L * K*2];
+    globalHetCounts = new int[L*K*K];
   }
 #endif
 #endif
@@ -586,15 +587,26 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 
 }
 
-void AlleleFreqs::ResetAlleleCounts() { // resets all counts to 0
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      if(AlleleCounts.array)fill(AlleleCounts[i], AlleleCounts[i] + Loci->GetNumberOfStates(i)*Populations, 0);
-
+void AlleleFreqs::ResetAlleleCounts(unsigned K) { // resets all counts to 0
+    const int L = Loci->GetNumberOfCompositeLoci();
+  for( int i = 0; i < L; i++ ){
+#ifdef PARALLEL
+      int NumberOfStates = 2;
+#else
+      int NumberOfStates = Loci->GetNumberOfStates(i);
+#endif
+      if(AlleleCounts.array)fill(AlleleCounts[i], AlleleCounts[i] + NumberOfStates*K, 0);
     //TODO: only do next line if thermo = 1 and testoneindiv = 0 and annealing
-      if(hetCounts.array && Loci->GetNumberOfStates(i)==2)
-      fill(hetCounts[i], hetCounts[i]+Populations*Populations, 0);
+      if(hetCounts.array && NumberOfStates==2)
+      fill(hetCounts[i], hetCounts[i]+K*K, 0);
   }
-
+#ifdef PARALLEL
+      if(globalAlleleCounts)
+	  fill(globalAlleleCounts, globalAlleleCounts + L*2*K, 0);
+    //TODO: only do next line if thermo = 1 and testoneindiv = 0 and annealing
+      if(globalHetCounts)
+	  fill(globalHetCounts, globalHetCounts+L*K*K, 0);
+#endif
 }
 
 /*
@@ -631,18 +643,20 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
 //   //TODO: check haploid case
 // }
 #ifdef PARALLEL
-void AlleleFreqs::SumAlleleCountsOverProcesses(MPI::Intracomm comm){
+void AlleleFreqs::SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K){
   //comm is an intracommunicator consisting of the allele freq updater (rank 0) and the workers
     int rank = comm.Get_rank();
-
+    const int L = Loci->GetNumberOfCompositeLoci();
 //synchronise processes
-    MPE_Log_event(13, 0, "Barrier");
-    MPI::COMM_WORLD.Barrier();
-    MPE_Log_event(14, 0, "BarrEnd");    
+//    MPE_Log_event(13, 0, "Barrier");
+//    comm.Barrier();
+//    MPE_Log_event(14, 0, "BarrEnd");    
 //sum allele counts
     MPE_Log_event(5, 0, "RedCountstart");
-    comm.Reduce(AlleleCounts.array, globalAlleleCounts, NumberOfCompositeLoci*Populations*2, MPI::INT, MPI::SUM, 0);
-    comm.Reduce(hetCounts.array, globalHetCounts, NumberOfCompositeLoci*Populations*Populations, MPI::INT, MPI::SUM, 0);
+    comm.Barrier();
+    comm.Reduce(AlleleCounts.array, globalAlleleCounts, L*K*2, MPI::INT, MPI::SUM, 0);
+    comm.Barrier();
+    comm.Reduce(hetCounts.array, globalHetCounts, L*K*K, MPI::INT, MPI::SUM, 0);
     MPE_Log_event(6, 0, "RedCountend");
 //put totals back into AlleleCounts on top process, by swapping addresses
     if(rank==0){

@@ -22,38 +22,37 @@ using namespace std;
 
 // **** CONSTRUCTORS  ****
 IndividualCollection::IndividualCollection() {
-  SumLogTheta = 0;
-  OutcomeType = 0;
-  NumCovariates = 0;
-  NumberOfInputCovariates = 0;
-  ReportedAncestry = 0;
-  SumDeviance = SumDevianceSq = 0.0;
-  SumAncestry = 0;
+    SetNullValues();
 }
-
-IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
-
+void IndividualCollection::SetNullValues(){
   OutcomeType = 0;
   NumOutcomes = 0;
   NumCovariates = 0;
   NumberOfInputCovariates = 0;
+  ExpectedY = 0;
+  ReportedAncestry = 0;
+  SumDeviance = SumDevianceSq = 0.0;
+  SumEnergy = 0; SumEnergySq = 0; 
+  SumAncestry = 0;
+  _child = 0;
+  TestInd = 0;
+  sizeTestInd = 0;
   indadmixoutput = 0;
   SumLogLikelihood = 0.0;
-  SumDeviance = SumDevianceSq = 0.0;
-  ExpectedY = 0;
   //SumResiduals = 0;
   SumLogTheta = 0;
   SumAncestry = 0;
   ReportedAncestry = 0;
+  //sigma.resize(2);
+  //sigma[0] = sigma[1] = 1.0;
+}
+
+IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
+    SetNullValues();
+
   NumInd = Data->getNumberOfIndividuals();
   size = NumInd;
   NumCompLoci = Loci->GetNumberOfCompositeLoci();
-  //sigma.resize(2);
-  //sigma[0] = sigma[1] = 1.0;
-  TestInd = 0;  // TestInd was declared as a pointer to an Individual object, defaults to 0 (null pointer)
-  sizeTestInd = 0;
-  SumEnergy = 0; SumEnergySq = 0; 
-
   worker_rank = 0;
   NumWorkers = 1;
 #ifdef PARALLEL
@@ -921,9 +920,19 @@ double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
 // ************** OUTPUT **************
 
 double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes){
+							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
+#ifdef PARALLEL
+							, MPI::Intracomm& workers_and_master
+#endif
+){
   // renamed from OutputDeviance
 
+#ifdef PARALLEL
+ const int rank = MPI::COMM_WORLD.Get_rank();
+//TODO: broadcast SumLogRho to workers
+#else
+ const int rank = -1;
+#endif
   //SumRho = ergodic sum of global sumintensities
   int iterations = options->getTotalSamples()-options->getBurnIn();
   
@@ -932,24 +941,32 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   
   //update chromosomes using globalrho, for globalrho model
   if(options->getPopulations() >1 && (options->isGlobalRho() || options->getHapMixModelIndicator()) ){
-    vector<double> RhoBar;
-    for(vector<double>::const_iterator i = SumLogRho.begin(); i < SumLogRho.end(); ++i)RhoBar.push_back(exp(*i / (double)iterations));
+    vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
+    if(rank<1)//master only
+    for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
+#ifdef PARALLEL
+    workers_and_master.Barrier();
+    workers_and_master.Bcast(&(*(RhoBar.begin())), RhoBar.size(), MPI::DOUBLE, 0);
+#endif
     //set locus correlation
-    Loci->SetLocusCorrelation(RhoBar);
-    if(options->getHapMixModelIndicator())
-      for( unsigned int j = 0; j < numChromosomes; j++ )
+    if(rank<0 || rank >1){//workers only
+	Loci->SetLocusCorrelation(RhoBar);
+	    if(options->getHapMixModelIndicator())
+	      for( unsigned int j = 0; j < numChromosomes; j++ )
 	//set global state arrival probs in hapmixmodel
 	//TODO: can skip this if xonly analysis with no females
 	//KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-	Loci->getChromosome(j)->SetStateArrivalProbs(_child[0]->getAdmixtureProps(), options->isRandomMatingModel(), true);
+	      Loci->getChromosome(j)->SetStateArrivalProbs(_child[worker_rank]->getAdmixtureProps(), options->isRandomMatingModel(), true);
+						      }
   }
   
   //set haplotype pair probs to posterior means
+  if(rank==1 || rank==-1)
   for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
     (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
   
   //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  setGenotypeProbs(Loci);
+  if(rank!=0)setGenotypeProbs(Loci);
   
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual

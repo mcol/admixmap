@@ -28,6 +28,7 @@ Genome::Genome()
   TotalLoci = 0;
   Distances = 0;
   SizesOfChromosomes = 0;
+  C = 0;
 }
 
 Genome::~Genome()
@@ -35,10 +36,12 @@ Genome::~Genome()
   delete[] LocusArray;
   delete[] SizesOfChromosomes;
   delete[] Distances; 
-  for(unsigned i = 0; i < NumberOfChromosomes; i++){
-    delete C[i];
+  if(C){
+      for(unsigned i = 0; i < NumberOfChromosomes; i++){
+	  delete C[i];
+      }
+      delete[] C;
   }
-  delete[] C;
 }
 
 //gets contents of locusfile and genotypesfile, creates CompositeLocus array and creates Chromosome array
@@ -218,10 +221,12 @@ unsigned int Genome::GetNumberOfCompositeLoci()const
   return NumberOfCompositeLoci;
 }
 
-int Genome::getNumberOfLoci(int j)const{
+int Genome::getNumberOfLoci(int 
 #ifdef PARALLEL
+    )const{
   return 1;
 #else
+  j)const{
   return LocusArray[j].GetNumberOfLoci();
 #endif
 }
@@ -251,10 +256,12 @@ double Genome::GetDistance( int locus )const
 }
 
 //returns number of states of a comp locus
-int Genome::GetNumberOfStates(int locus)const{
+int Genome::GetNumberOfStates(int
 #ifdef PARALLEL
-  return 2;
+    )const{
+    return 2;
 #else
+    locus)const{
   return LocusArray[locus].GetNumberOfStates();
 #endif
 }

@@ -22,6 +22,7 @@ class AdmixOptions;
 class Chromosome
 {
 public:
+    Chromosome();
   Chromosome(int size,int start, int, bool isx);
    ~Chromosome();
 // ******** Chromosome information **********************************
@@ -76,7 +77,6 @@ private:
   // UNIMPLEMENTED
   // to avoid use
  // Private default constructor
-  Chromosome();
   Chromosome(const Chromosome&);
   Chromosome& operator=(const Chromosome&);
 };

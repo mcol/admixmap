@@ -40,6 +40,7 @@ public:
   IndividualCollection();
   ~IndividualCollection();
   IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
+  void SetNullValues();
   void DeleteGenotypes(bool);
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
@@ -74,7 +75,11 @@ public:
   void OutputIndAdmixture();
 
   double getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci, LogWriter &Log, 
-		      const vector<double>& SumRho, unsigned numChromosomes);
+		      const vector<double>& SumRho, unsigned numChromosomes
+#ifdef PARALLEL
+							, MPI::Intracomm& workers_and_master
+#endif
+);
 
   void OutputChibEstimates(bool, LogWriter &, int)const;
   void OutputChibResults(LogWriter&)const;

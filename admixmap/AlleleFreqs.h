@@ -76,7 +76,7 @@ public:
   AlleleFreqs(Genome *pLoci);
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter &Log);
-  void AllocateAlleleCountArrays();
+  void AllocateAlleleCountArrays(unsigned K);
   void Update(IndividualCollection* IC, bool afterBurnIn, const double coolness, bool annealingUpdate);
 
   //initialize output file for samples of dispersion parameters
@@ -94,7 +94,7 @@ public:
 
   void LoadAlleleFreqs(AdmixOptions* const options, InputData* const data);
 
-  void ResetAlleleCounts();//resets Allelecounts to zero at start of iteration
+  void ResetAlleleCounts(unsigned K);//resets Allelecounts to zero at start of iteration
   bool IsRandom()const;
   void UpdateFst();
   const double *GetStatsForEta( int , int locus)const;
@@ -110,7 +110,7 @@ public:
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
   //void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
 #ifdef PARALLEL
-  void SumAlleleCountsOverProcesses(MPI::Intracomm comm);
+  void SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K);
   //void BroadcastAlleleFreqs();
 #endif
   void ResetSumAlleleFreqs();

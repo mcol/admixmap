@@ -19,6 +19,16 @@
 
 using namespace std;
 
+Chromosome::Chromosome(){
+    Distances = 0;
+    NumberOfCompositeLoci = 0;
+    populations = 0;
+    isX = false;
+    Diploid = true;
+    f = 0;
+    CodedStates = 0;
+}
+
 Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false) 
 		      //size = number of comp loci on chromosome
 {

@@ -58,7 +58,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     if( options->isRandomMatingModel() ){
       obs *= 2;//for 2 gametes per individual
     } 
-    PopAdmixSampler.SetSize( obs, K );
+    if(!options->getHapMixModelIndicator())PopAdmixSampler.SetSize( obs, K );
     
     //initialise global admixture proportions
     if(options->getHapMixModelIndicator()){
@@ -125,7 +125,7 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
     }
 
     // ** Open paramfile **
-    if ( options->getIndAdmixHierIndicator()){
+    if ( rank==0 && options->getIndAdmixHierIndicator()){
       Log.setDisplayMode(Quiet);
       if( strlen( options->getParameterFilename() ) ){
 	outputstream.open( options->getParameterFilename(), ios::out );
@@ -407,10 +407,10 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
 #ifdef PARALLEL
   const int rank = Comm.Get_rank();
 #else 
-  const int rank = 0;
+  const int rank = -1;
 #endif
   
-  if(rank==0){
+  if(rank<1){
     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
       ++locus;//skip first locus on each chromosome
       for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
@@ -450,17 +450,17 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
   Comm.Bcast(&(*(rho.begin())), rho.size(), MPI::DOUBLE, 0);
   MPE_Log_event(2, 0, "Bcasted");
 #endif    
-  //set locus correlation
-  Loci->SetLocusCorrelation(rho);
-  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-    //set global state arrival probs in hapmixmodel
-    //TODO: can skip this if xonly analysis with no females
-#ifdef PARALLEL
-    if(rank>0)//workers only in parallel version
-#endif
-    Loci->getChromosome(c)->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
+  //set locus correlation (workers only)
+if(rank!=0)  
+ {
+    Loci->SetLocusCorrelation(rho);
+    for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+	//set global state arrival probs in hapmixmodel
+	//TODO: can skip this if xonly analysis with no females
+	Loci->getChromosome(c)->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
   }
-  if(rank==0){
+}
+  if(rank<1){
     //sample rate parameter of gamma prior on rho
     //rhobeta = Rand::gengam( rhoalpha * (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes())/* <-NumIntervals*/ 
     //+ rhobeta0, sum + rhobeta1 );
