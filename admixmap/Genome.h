@@ -73,7 +73,7 @@ public:
   Chromosome* getChromosome(unsigned);
 
   void PrintSizes(LogWriter &Log)const;
-  void PrintLocusTable(const char* filename)const;
+  void PrintLocusTable(const char* filename, const std::vector<double>& Distances)const;
  
   int GetNumberOfStates()const;
   int GetNumberOfStates(int locus)const;

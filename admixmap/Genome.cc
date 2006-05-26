@@ -355,17 +355,26 @@ void Genome::SetLocusCorrelation(double rho){
   }
 }
 
-void Genome::PrintLocusTable(const char* filename)const{
+void Genome::PrintLocusTable(const char* filename, const vector<double>& Dist)const{
+  //could use Distances array member but in parallel version the processor calling this function will not have this array
+  //so we use the raw distances from the locusfile instead
   ofstream outfile(filename);
   outfile << "LocusName\tNumHaps\tMapPosition\tChromosome" << endl;
-  unsigned locus = 0;
+  unsigned locus = 0;//counter for composite locus
+  unsigned simple_locus = 0;//need to count simple loci to step through vector of distances
   for(unsigned c = 0; c < NumberOfChromosomes; ++c){
     double mapPosition = 0.0;
-    for(unsigned j  = 0; j < SizesOfChromosomes[c]; ++j){
-      mapPosition += Distances[locus];
+    //first locus on chromosome
+    outfile << LocusArray[locus].GetLabel(0) << "\t" << LocusArray[locus].GetNumberOfStates() << "\t" 
+	    << 0.0 << "\t" << c+1 << endl;
+    ++locus;
+    simple_locus += LocusArray[locus].GetNumberOfLoci();
+    for(unsigned j  = 1; j < SizesOfChromosomes[c]; ++j){//step through rest of loci on chromosome
+      mapPosition += Dist[simple_locus];//increment map position by distance of first locus in complocus
       outfile << LocusArray[locus].GetLabel(0) << "\t" << LocusArray[locus].GetNumberOfStates() << "\t" 
 	      << mapPosition*100.0 << "\t" << c+1 << endl;
       ++locus;
+      simple_locus += LocusArray[locus].GetNumberOfLoci();
     }
   }
   outfile.close();

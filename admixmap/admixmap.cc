@@ -113,13 +113,13 @@ int main( int argc , char** argv ){
     if(rank<1)options.PrintOptions();
     Genome Loci;
     Loci.Initialise(&data, options.getPopulations(), Log, rank);//reads locusfile and creates CompositeLocus objects
-//     if(rank==1 || rank==-1){
-//       //print table of loci for R script to read
-//       string locustable = options.getResultsDir();
-//       locustable.append("/LocusTable.txt");
-//       Loci.PrintLocusTable(locustable.c_str());
-//       locustable.clear();
-//     }
+    if(rank==1 || rank==-1){
+      //print table of loci for R script to read
+      string locustable = options.getResultsDir();
+      locustable.append("/LocusTable.txt");
+      Loci.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1));
+      locustable.clear();
+    }
 
     AlleleFreqs A(&Loci);
     if(rank ==-1 || rank ==1)//allele freq updater only
