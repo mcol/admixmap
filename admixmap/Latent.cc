@@ -411,6 +411,9 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
 #endif
   
   if(rank<1){
+#ifdef PARALLEL
+    MPE_Log_event(9, 0, "sampleRho");
+#endif
     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
       ++locus;//skip first locus on each chromosome
       for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
@@ -438,17 +441,17 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
 	++locus;
       }
     }
+#ifdef PARALLEL
+    MPE_Log_event(10, 0, "sampledRho");
+#endif
   }
 //broadcast rho to all processes, in Comm (excludes freqsampler)
 //no need to broadcast globaltheta if it is kept fixed
 #ifdef PARALLEL
-  MPE_Log_event(7, 0, "Barrier");
+  MPE_Log_event(17, 0, "Bcastrho");
   Comm.Barrier();
-  MPE_Log_event(8, 0, "BarrEnd");
-
-  MPE_Log_event(1, 0, "Bcastrho");
   Comm.Bcast(&(*(rho.begin())), rho.size(), MPI::DOUBLE, 0);
-  MPE_Log_event(2, 0, "Bcasted");
+  MPE_Log_event(18, 0, "Bcasted");
 #endif    
   //set locus correlation (workers only)
 if(rank!=0)  
