@@ -367,14 +367,14 @@ void Genome::PrintLocusTable(const char* filename, const vector<double>& Dist)co
     //first locus on chromosome
     outfile << LocusArray[locus].GetLabel(0) << "\t" << LocusArray[locus].GetNumberOfStates() << "\t" 
 	    << 0.0 << "\t" << c+1 << endl;
-    ++locus;
     simple_locus += LocusArray[locus].GetNumberOfLoci();
+    ++locus;
     for(unsigned j  = 1; j < SizesOfChromosomes[c]; ++j){//step through rest of loci on chromosome
       mapPosition += Dist[simple_locus];//increment map position by distance of first locus in complocus
       outfile << LocusArray[locus].GetLabel(0) << "\t" << LocusArray[locus].GetNumberOfStates() << "\t" 
 	      << mapPosition*100.0 << "\t" << c+1 << endl;
-      ++locus;
       simple_locus += LocusArray[locus].GetNumberOfLoci();
+      ++locus;
     }
   }
   outfile.close();
