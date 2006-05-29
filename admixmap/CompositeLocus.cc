@@ -51,8 +51,7 @@ CompositeLocus::~CompositeLocus()
 #endif
   delete[] MergeHaplotypes;
   delete[] HapLabels;
-  delete[] AlleleProbs;
-  //delete[] SumAlleleProbs;
+  delete[] SumAlleleProbs;
 }
 
 // ******** Initialisation *************************
@@ -127,15 +126,17 @@ void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
   SetHapPairProbs();
 #endif
 }
-#ifndef PARALLEL
+
 void CompositeLocus::InitialiseHapPairProbsMAP(){
+#ifndef PARALLEL
   HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
   //Initialise HapPairProbsMAP to values in HapPairProbs
   for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
     HapPairProbsMAP[h0] = HapPairProbs[h0];
   } 
-}
 #endif
+}
+
 /**
  * Sets the label of a locus
  *
