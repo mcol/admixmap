@@ -425,27 +425,27 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
     _child[i]->resetStepSizeApproximator(k);
 }
 
-void IndividualCollection::setGenotypeProbs(const Genome* const Loci){
+void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const AlleleFreqs* const A){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 #ifdef PARALLEL
-      //broadcast current values of allele probs to workers 
-      const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
-      double* AlleleProbs;
-      if(rank_with_freqs == 0)AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
-      else AlleleProbs  = new double[NumberOfStates*Populations];
-      workers_and_freqs.Barrier();// wait till everyone is ready for next locus
-      workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
-
+//       //broadcast current values of allele probs to workers 
+//       const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
+//       double* AlleleProbs;
+//       if(rank_with_freqs == 0)AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
+//       else AlleleProbs  = new double[NumberOfStates*Populations];
+//       workers_and_freqs.Barrier();// wait till everyone is ready for next locus
+//       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
+//get pointer to allele probs for this locus
+      const double* AlleleProbs = A->GetAlleleFreqs(locus);
       for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
 	_child[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
       }
       if(TestInd)
 	for(int i = 0; i < sizeTestInd; ++i)
 	  TestInd[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
-      if(rank_with_freqs >0)delete[] AlleleProbs;
 #else
       for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
 	_child[i]->SetGenotypeProbs(j, jj, locus, false);
@@ -514,6 +514,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
 #ifdef PARALLEL
     if(workers_and_master.Get_rank()==0)fill(GlobalSumAncestry, GlobalSumAncestry + 2*NumCompLoci, 0);
+    if(worker_rank<(int)size)MPE_Log_event(15, iteration, "Sampleancestry");
 #endif
   }
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
@@ -544,12 +545,12 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
 
   }
 #ifdef PARALLEL
+  if(worker_rank<(int)size)MPE_Log_event(16, iteration, "Sampledancestry");
   if(options->getHapMixModelIndicator()){
-    MPE_Log_event(11, iteration, "Barrier");
+    MPE_Log_event(1, iteration, "BarrierStart");
     workers_and_master.Barrier();
-    MPE_Log_event(12, iteration, "BarrEnd");
-    
-    MPE_Log_event(3, iteration, "RedAncStart");
+    MPE_Log_event(2, iteration, "Barrierend");
+    MPE_Log_event(3, iteration, "RedAncStart");    
     workers_and_master.Reduce(SumAncestry, GlobalSumAncestry, 2*NumCompLoci, MPI::INT, MPI::SUM, 0); 
     MPE_Log_event(4, iteration, "RedAncEnd");
   }
@@ -565,13 +566,15 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 #ifdef PARALLEL
-      //broadcast current values of allele probs to workers 
-      const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
-      double* AlleleProbs;
-      if(rank_with_freqs == 0) AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
-      else AlleleProbs  = new double[NumberOfStates*Populations];
-      workers_and_freqs.Barrier();
-      workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
+//       //broadcast current values of allele probs to workers 
+//       const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
+//       double* AlleleProbs;
+//       if(rank_with_freqs == 0) AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
+//       else AlleleProbs  = new double[NumberOfStates*Populations];
+//       workers_and_freqs.Barrier();
+//       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
+//get pointer to allele probs for this locus
+      const double* AlleleProbs = A->GetAlleleFreqs(locus);
 #endif
       
       // loop over individuals
@@ -586,9 +589,9 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
 #endif
       }
       locus++;
-#ifdef PARALLEL
-      if(rank_with_freqs >0)delete[] AlleleProbs;
-#endif
+// #ifdef PARALLEL
+//       if(rank_with_freqs >0)delete[] AlleleProbs;
+// #endif
     }
   }
 }
@@ -920,13 +923,13 @@ double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
 // ************** OUTPUT **************
 
 double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes){
-
+							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
+							, AlleleFreqs* A){
 #ifdef PARALLEL
- const int rank = MPI::COMM_WORLD.Get_rank();
-//TODO: broadcast SumLogRho to workers
+  const int rank = MPI::COMM_WORLD.Get_rank();
+  //TODO: broadcast SumLogRho to workers
 #else
- const int rank = -1;
+  const int rank = -1;
 #endif
   //SumRho = ergodic sum of global sumintensities
   int iterations = options->getTotalSamples()-options->getBurnIn();
@@ -955,13 +958,18 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
 						      }
   }
   
-  //set haplotype pair probs to posterior means
+  //set haplotype pair probs to posterior means (in parallel version, sets AlleleProbs(Freqs) to posterior means
   if(rank==1 || rank==-1)
   for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
     (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
+
+#ifdef PARALLEL
+  //broadcast allele freqs
+  if(rank!=0)A->BroadcastAlleleFreqs(workers_and_freqs);
+#endif
   
   //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  if(rank!=0)setGenotypeProbs(Loci);
+  if(rank==-1 || rank>1)setGenotypeProbs(Loci, A);
   
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual
@@ -1102,3 +1110,4 @@ void IndividualCollection::OutputErgodicChib(std::ofstream *avgstream) {
 	     << _child[0]->getLogPosteriorAlleleFreqs() << " "
 	     << MargLikelihood.getLogMarginalLikelihood();
 }
+
