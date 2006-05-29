@@ -1,0 +1,243 @@
+{
+GSL_HH_svx
+   Memcheck:Cond
+   fun:gsl_linalg_HH_svx
+   fun:gsl_linalg_HH_solve
+}
+
+
+{
+GSL_Matrix_mult	
+   Memcheck:Cond
+   fun:cblas_dgemm
+   fun:gsl_blas_dgemm
+   fun:_Z14matrix_productPdS_S_mmm
+}
+
+{
+GSL_ugaussian
+   Memcheck:Cond
+   fun:gsl_cdf_ugaussian_P
+}
+
+{
+floor_in_ugaussian
+   Memcheck:Cond
+   fun:floor
+   fun:get_del
+   fun:gauss_medium
+   fun:gsl_cdf_ugaussian_P
+}
+
+{
+exp_in_ugaussian
+   Memcheck:Cond
+   fun:exp
+   fun:get_del
+   fun:gauss_medium
+   fun:gsl_cdf_ugaussian_P
+}
+
+{
+Gaussian_Destructor
+   Memcheck:Free
+   fun:_ZdlPv
+   fun:_ZN8GaussianD1Ev
+   fun:_ZN10RegressionD1Ev
+   fun:main
+}
+
+{
+delete_array_of_freqs
+   Memcheck:Addr8
+   fun:_ZN20array_of_allelefreqs7deallocEi
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Free
+   fun:_ZdaPv
+   fun:_ZN20array_of_allelefreqs7deallocEi
+}
+
+{
+double2R_in_ScoreTests
+   Memcheck:Cond
+   fun:_ZN10ScoreTests8double2REdi
+   fun:_ZN10ScoreTests26OutputTestsForLocusLinkageEiPSt14basic_ofstreamIcSt11char_traitsIcEEPKdS6_S6_S6_Ss
+   fun:_ZN10ScoreTests6OutputEiPKSsb
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10ScoreTests8double2REd
+}
+
+{
+Insert_double_to_stringstream
+   Memcheck:Cond
+   fun:__printf_fp
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Value8
+   fun:__printf_fp
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Value8
+   fun:memcpy
+}
+
+{
+Another_libc_error
+   Memcheck:Cond
+   fun:__mpn_extract_double
+}
+{
+And_another
+   Memcheck:Value8
+   fun:__mpn_lshift
+}
+{
+And_yet_another
+   Memcheck:Value8
+   fun:__mpn_rshift
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:__mpn_rshift
+}
+
+{
+Something_to_do_with_copying_vectors
+   Memcheck:Cond
+   fun:memcpy
+}
+
+{
+another_stream_error
+   Memcheck:Value8
+   fun:__mpn_cmp
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:__mpn_cmp
+}
+
+{
+Another_double2R_error
+   Memcheck:Cond
+   fun:hack_digit.0
+}
+{
+   <insert a suppression name here>
+   Memcheck:Value8
+   fun:hack_digit.0
+}
+
+{
+double_2R_Again
+   Memcheck:Value8
+   fun:__mpn_divrem
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:__mpn_divrem
+}
+
+{
+Yet_another_double2R
+   Memcheck:Value8
+   fun:__mpn_mul_1
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:__mpn_mul_1
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Value8
+   fun:__mpn_mul
+}
+
+{
+Yet_one_more_double2R
+   Memcheck:Cond
+   fun:memchr
+}
+
+{
+A_stringstream_error
+   Memcheck:Cond
+   fun:_ZNSt15basic_stringbufIcSt11char_traitsIcESaIcEE8overflowEi
+   fun:_ZNSt15basic_streambufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE16_M_convert_floatIdEES3_S3_RSt8ios_baseccT_
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE6do_putES3_RSt8ios_basecd
+   fun:_ZNSolsEd
+}
+{
+Another_Stringstream_error
+   Memcheck:Cond
+   fun:_ZNSt15basic_streambufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE16_M_convert_floatIdEES3_S3_RSt8ios_baseccT_
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE6do_putES3_RSt8ios_basecd
+   fun:_ZNSolsEd
+}
+
+{
+Scoretest_output
+   Memcheck:Cond
+   fun:_ZN10ScoreTests26OutputTestsForLocusLinkageEiPSt14basic_ofstreamIcSt11char_traitsIcEEPKdS6_S6_S6_Ss
+   fun:_ZN10ScoreTests6OutputEiPKSsb
+   fun:main
+}
+{
+sqrt
+   Memcheck:Cond
+   fun:sqrt
+}
+{
+exp
+   Memcheck:Value8
+   fun:exp
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Param
+   write(buf)
+   fun:__write_nocancel
+   fun:_IO_file_write@@GLIBC_2.2.5
+   fun:new_do_write
+   fun:_IO_do_write@@GLIBC_2.2.5
+   fun:_IO_file_sync@@GLIBC_2.2.5
+   fun:fflush
+   fun:_ZNSt12__basic_fileIcE4syncEv
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE18_M_really_overflowEi
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE4syncEv
+   fun:_ZNSo5flushEv
+   fun:_ZSt5flushIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_
+   fun:_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_
+}
+
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10ScoreTests26OutputTestsForLocusLinkageEiPSt14basic_ofstreamIcSt11char_traitsIcEEPKdS6_S6_S6_Ss
+   fun:_ZN10ScoreTests6OutputEiPKSsb
+   fun:main
+}
+
