@@ -825,3 +825,17 @@ double mylog(double x){
   }
   return result.val;
 }
+double myexp(double x){
+  //exp function with error handling
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  gsl_sf_result result;
+  int status = gsl_sf_exp_e(x, &result);
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  if(status){
+    stringstream s;
+    s << "Error in exp(" << x << "): "<< gsl_strerror(status);
+    throw s.str();
+  }
+  return result.val;
+
+}
