@@ -20,7 +20,7 @@ enum DataType {Continuous, Binary};
 enum Sex {unknown, male, female};
 
 //uncomment the next line for parallel version
-#define PARALLEL
+//#define PARALLEL
 #ifdef PARALLEL
 #include "mpi++.h"
 #endif
