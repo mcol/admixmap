@@ -45,17 +45,18 @@ MPICC = $(MPI_PATH)/bin/mpiCC# MPI wrapper for gnu, MPI 1
 MPICXX = $(MPI_PATH)/bin/mpicxx# MPI wrapper for gnu, MPI 2
 
 ## DEFAULTS
-VERSION = serial
-#VERSION = parallel
+#VERSION = serial
+VERSION = parallel
 
 ## processor type
-ARCH = i686# Intel 686
+#ARCH = i686# Intel 686
 #ARCH = P4#Pentium4
-#ARCH = AMD64# Walton
+ARCH = AMD64# Walton
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
 CC = $(GNU_COMPILER)#serial
+#CC = $(PORTLAND_COMPILER)
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
@@ -100,7 +101,7 @@ endif
 
 ifeq ($(CC),$(PORTLAND_COMPILER))
 ifeq ($(ARCH),AMD64)
-PROC = -tp amd64
+PROC = -tp k8-64#amd64
 endif
 endif
 
@@ -136,6 +137,7 @@ LIBS = $(SERIAL_LIBS) $(PARALLEL_LIBS)
 LFLAGS = $(SERIAL_INCLUDES) $(PARALLEL_LFLAGS)
 INCLUDES = $(PARALLEL_INCLUDES)
 EXEC = adm-para
+
 ##serial version
 else
 CXX = $(CC)

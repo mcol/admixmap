@@ -446,6 +446,7 @@ void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const Alle
       if(TestInd)
 	for(int i = 0; i < sizeTestInd; ++i)
 	  TestInd[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
+      if(rank_with_freqs >0)delete[] AlleleProbs;
 #else
       for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
 	_child[i]->SetGenotypeProbs(j, jj, locus, false);
@@ -1110,4 +1111,3 @@ void IndividualCollection::OutputErgodicChib(std::ofstream *avgstream) {
 	     << _child[0]->getLogPosteriorAlleleFreqs() << " "
 	     << MargLikelihood.getLogMarginalLikelihood();
 }
-

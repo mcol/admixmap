@@ -36,6 +36,7 @@ Gaussian::Gaussian()
 {
   Mean = 0;
   Covariance = 0;
+  Dimension = 1;
   SetDimension(1);
 }
 
@@ -43,7 +44,10 @@ Gaussian::Gaussian( int NewDimension )
 {
   Mean = 0;
   Covariance = 0;
-  if ( NewDimension < 1 )SetDimension(1);
+  if ( NewDimension < 1 ){
+    Dimension = 1;
+    SetDimension(1);
+  }
   else SetDimension(NewDimension);
 }
 
@@ -51,6 +55,7 @@ Gaussian::Gaussian( int NewDimension, const double* const NewMean, const double*
 {
   Mean = 0;
   Covariance = 0;
+  Dimension = NewDimension;
   SetDimension(NewDimension);
 
   SetMean(NewMean);

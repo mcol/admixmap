@@ -61,6 +61,7 @@ ScoreTests::ScoreTests(){
   individuals = 0;
   rank = 0;
   NumProcs = 1;
+  dim_ = 0;
 }
 
 ScoreTests::~ScoreTests(){
@@ -94,6 +95,7 @@ ScoreTests::~ScoreTests(){
   delete[] SumAlleleScore2;
   delete[] SumAlleleInfo;
 
+  delete[] dim_;
 }
 
 void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 

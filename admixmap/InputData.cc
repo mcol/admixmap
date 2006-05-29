@@ -118,11 +118,13 @@ void InputData::convertMatrix(const Matrix_s& data, DataMatrix& m, size_t row0, 
 InputData::InputData()
 {
   PopulationLabels = 0;
+  OutcomeType = 0;
 }
 
 InputData::~InputData()
 {
   delete[] PopulationLabels;
+  delete[] OutcomeType;
 }
 
 void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
@@ -465,6 +467,7 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
       OutcomeLabels.push_back(outcomeVarData_[0][j+Firstcol]);
     }
     Log << "\n";
+    delete[] OutcomeVarLabels;
   }
   options->setRegType(RegType);
 }
