@@ -778,7 +778,7 @@ void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info,
   delete[] cinfo;
 }
 
-void ScoreTests::UpdateScoresForResidualAllelicAssociation(const double* const* AlleleFreqs){
+void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allelefreqs& AlleleFreqs){
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
     for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
       int abslocus = chrm[c]->GetLocus(j);

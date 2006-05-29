@@ -45,8 +45,10 @@ class StepSizeTuner;
 #define ARRAY2D
 #endif
  
-typedef struct{
+
 #ifdef ARRAY2D
+typedef struct{
+
   int **array;
 
   int* operator[](unsigned i){//for reading or writing element
@@ -55,8 +57,36 @@ typedef struct{
   const int* operator[](unsigned i)const{//for read-only
     return array[i];
   };
+  void dealloc(int L){
+    for(int i = L-1; i >=0 ; --i)
+      if(array[i]){
+	delete[] array[i];
+	array[i] = 0;
+      }
+    if(array){
+      delete[]array;
+      array = 0;
+    }
+  };
+}array_of_allelecounts;
+typedef struct{
 
+  double **array;
+
+  double* operator[](unsigned i){//for reading or writing element
+    return array[i];
+  };
+  const double* operator[](unsigned i)const{//for read-only
+    return array[i];
+  };
+  void dealloc(int L){
+    for(int i = L-1; i >=0 ; --i)
+      if(array[i])delete[] array[i];
+    if(array)delete[] array;
+  };
+}array_of_allelefreqs;
 #else
+typedef struct{
   int* array;
   unsigned stride;
 
@@ -66,9 +96,32 @@ typedef struct{
   const int* operator[](unsigned i)const{
     return array + i*stride;
   };
-
-#endif
+  void dealloc(int ){
+    if(array){
+      delete[] array;
+      array = 0;
+    }
+  };
 }array_of_allelecounts;
+typedef struct{
+  double* array;
+  unsigned stride;
+
+  double* operator[](unsigned i){
+    return array + i*stride;
+  };
+  const double* operator[](unsigned i)const{
+    return array + i*stride;
+  };
+  void dealloc(int ){
+    if(array){
+      delete[] array;
+      array = 0;
+    }
+  };
+}array_of_allelefreqs;
+#endif
+
 
 class AlleleFreqs{
 
@@ -104,14 +157,14 @@ public:
   std::vector<double> getAlleleFreqsMAP( int locus, int population )const;
   std::vector<double> GetAlleleFreqs( int locus, int population )const;
   const double *GetAlleleFreqs(int locus)const;
-  const double* const* GetAlleleFreqs()const;
+  const array_of_allelefreqs& GetAlleleFreqs()const;
   const int *GetAlleleCounts(int locus)const;
   
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
   //void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
 #ifdef PARALLEL
   void SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K);
-  //void BroadcastAlleleFreqs();
+  void BroadcastAlleleFreqs(MPI::Intracomm& comm);
 #endif
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
@@ -134,14 +187,16 @@ private:
   //new sampler for eta
   DispersionSampler *EtaSampler;
  
-  double **Freqs;// allele frequencies except for last allele
-  double **AlleleFreqsMAP; // posterior mode of allele freqs
+  array_of_allelefreqs Freqs;// allele frequencies
+  array_of_allelefreqs AlleleFreqsMAP; // posterior mode of allele freqs
   double **HistoricAlleleFreqs;
   array_of_allelecounts AlleleCounts;
   array_of_allelecounts hetCounts;//counts of het individuals with distinct ancestry states at SNPs
 #ifdef PARALLEL
   int* globalAlleleCounts;
   int* globalHetCounts;
+  //MPI_Aint stride;//stride of Freqs array for datatype definition
+  //MPI::Datatype AlleleFreqArrayType;//datatype for a 2d array
 #endif
 
   double **HistoricAlleleCounts;

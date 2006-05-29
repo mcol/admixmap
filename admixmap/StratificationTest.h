@@ -30,7 +30,7 @@ public:
   void Initialize( AdmixOptions* const options, const Genome &Loci,  
 		   const IndividualCollection* const IC, LogWriter &Log, int rank );
 
-  void calculate( const IndividualCollection* const individuals, const double* const* AlleleFreqs,
+  void calculate( const IndividualCollection* const individuals, const array_of_allelefreqs& AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );
 
   void Output(LogWriter &);

@@ -34,7 +34,7 @@ StratificationTest::StratificationTest(const char* filename, LogWriter &Log)
 }
 
 void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci,  
-				     const IndividualCollection* const IC, LogWriter &Log, int rank )
+				     const IndividualCollection* const IC, LogWriter &Log, int rank/*rank of processor (for parallel version)*/ )
 {
   Log.setDisplayMode(Quiet);
   if(options->getStratificationTest() ){
@@ -112,7 +112,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
   }
 }
 
-void StratificationTest::calculate( const IndividualCollection* const individuals, const double* const* AlleleFreqs, 
+void StratificationTest::calculate( const IndividualCollection* const individuals, const array_of_allelefreqs& AlleleFreqs, 
 				    const vector<vector<int> > ChrmAndLocus, int Populations )
 {
   // matrix of (observed minus expected copies allele 1) scores for each individual at each locus

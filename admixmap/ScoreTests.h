@@ -35,7 +35,7 @@ public:
   void SetAllelicAssociationTest(const std::vector<double> &alpha0);
 
   void Update(double);
-  void UpdateScoresForResidualAllelicAssociation(const double* const * AlleleFreqs);
+  void UpdateScoresForResidualAllelicAssociation(const array_of_allelefreqs& Allelefreqs);
 
   ~ScoreTests();
 
