@@ -59,14 +59,16 @@ int main( int argc , char** argv ){
   MPE_Init_log();
   //define states for logging
   if(rank==0){
-    MPE_Describe_state(1, 2, "Bcast", "red:gray");
+    MPE_Describe_state(1, 2, "Barrier", "red:vlines1");
     MPE_Describe_state(3, 4, "ReduceAncestry", "blue:vlines3");
-    MPE_Describe_state(5, 6, "ReduceAlleleCounts", "green:gray3");
-    MPE_Describe_state(7, 8, "BarrierBcast", "yellow:gray2");
-    MPE_Describe_state(11, 12, "Barrieranc", "cyan:gray2");
-    MPE_Describe_state(13, 14, "Barriercounts", "magenta:gray2");
-    MPE_Describe_state(15, 16, "Barrier", "gray:gray2");
-    MPE_Describe_state(9, 10, "copyAlleleCounts", "green:gray3");
+    MPE_Describe_state(5, 6, "ReduceAlleleCounts", "gray:gray2");
+    MPE_Describe_state(7, 8, "SampleAlleleFreqs", "yellow:gray3");
+    MPE_Describe_state(9, 10, "SampleRho", "cyan:gray3");
+    MPE_Describe_state(11, 12, "SetGenotypeProbs", "green:hlines2");
+    MPE_Describe_state(13, 14, "SampleHapPairs", "magenta:vlines2");
+    MPE_Describe_state(15, 16, "SampleAncestry", "aqua:vlines3");
+    MPE_Describe_state(17, 18, "Bcastrho", "violet:gray");
+    MPE_Describe_state(19, 20, "BcastFreqs", "gray2:hlines3");
   }
 #else
   const int rank = -1;
@@ -125,11 +127,18 @@ int main( int argc , char** argv ){
     if(rank ==-1 || rank ==1)//allele freq updater only
       A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
     if(rank!=0)A.AllocateAlleleCountArrays(options.getPopulations());
+#ifdef PARALLEL
+    //broadcast initial values of freqs
+    //TODO: might save time by having workers set freqs from data. This requires workers reading extra data files and careful rigging of allelefreq initialisation so that workers only allocate Freqs arrays
+    MPE_Log_event(19, 0, "BcastFreqs"); 
+    if(rank!=0)A.BroadcastAlleleFreqs(workers_and_freqs);
+    MPE_Log_event(20, 0, "FreqsBcasted"); 
+#endif
 
     IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
     if(rank==-1 || rank >1)IC->LoadData(&options, &data);                             //and before L and R Initialise
     if(options.getNumberOfOutcomes()>0 && rank<1)IC->OpenExpectedYFile(options.getResidualFilename(), Log );
-    if(rank!=0)IC->setGenotypeProbs(&Loci); // sets unannealed probs
+    if(rank!=0 && rank!=1)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
 
     Latent L( &options, &Loci);    
     if(rank!=1)L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
@@ -342,7 +351,7 @@ int main( int argc , char** argv ){
 	Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
 	    << "VarDeviance(V)\t" << VarDeviance << "\n"
 	    << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
-	double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes());
+	double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
 	double pD = MeanDeviance - D_hat;
 	double DIC = MeanDeviance + pD;
 	Log << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
@@ -694,11 +703,21 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // ** Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals 
   {
     if(rank!=1)IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
+#ifdef PARALLEL
+    MPE_Log_event(13, iteration, "sampleHapPairs");
+#endif
     if(rank!=0)IC->SampleHapPairs(options, A, Loci, anneal);
+#ifdef PARALLEL
+    MPE_Log_event(14, iteration, "sampledHapPairs");
+#endif
+
   }
 #ifdef PARALLEL
-  if(rank>0)
+  if(rank>0){
+    MPE_Log_event(5, iteration, "RedCountstart");
     A->SumAlleleCountsOverProcesses(workers_and_freqs, options->getPopulations());
+    MPE_Log_event(6, iteration, "RedCountend");
+  }
 #endif
 
   if( !anneal && iteration > options->getBurnIn() ){
@@ -720,13 +739,30 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
   if( (rank==-1 || rank==1) && A->IsRandom()){//may be a tautology, non freq updaters have RandomAlleleFreqs=false
-      bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
-      A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
+#ifdef PARALLEL
+    MPE_Log_event(7, iteration, "SampleFreqs");
+#endif
+    bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
+    A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
+#ifdef PARALLEL
+    MPE_Log_event(8, iteration, "SampledFreqs");
+#endif
   }
   
-  if(rank!=0 && (!options->getFixedAlleleFreqs() || anneal)) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed  
-    IC->setGenotypeProbs(Loci); // sets unannealed probs ready for getEnergy
+  if(rank!=0 && (!options->getFixedAlleleFreqs() || anneal)) { // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
+#ifdef PARALLEL
+    MPE_Log_event(19, iteration, "BcastFreqs"); 
+    A->BroadcastAlleleFreqs(workers_and_freqs);
+    MPE_Log_event(20, iteration, "FreqsBcasted"); 
+
+    MPE_Log_event(11, iteration, "setGenotypeProbs"); 
+#endif
+    if(rank!=1)  
+      IC->setGenotypeProbs(Loci, A); // sets unannealed probs ready for getEnergy
     IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
+#ifdef PARALLEL
+    MPE_Log_event(12, iteration, "GenotypeProbsSet"); 
+#endif
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   
     // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
@@ -734,7 +770,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     
   if(options->getHapMixModelIndicator()){
 #ifdef PARALLEL
+    MPE_Log_event(1, iteration, "BarrierStart");
     workers_and_master.Barrier();//force master to wait until workers have finished
+    MPE_Log_event(2, iteration, "BarrierEnd");
 #endif
     //L->UpdateGlobalTheta(iteration, IC);
     //conjugate sampler, using numbers of arrivals. NB: requires sampling of jump indicators in Individuals

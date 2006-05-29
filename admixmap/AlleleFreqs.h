@@ -58,12 +58,12 @@ typedef struct{
     return array[i];
   };
   void dealloc(int L){
-    for(int i = L-1; i >=0 ; --i)
-      if(array[i]){
-	delete[] array[i];
-	array[i] = 0;
-      }
     if(array){
+      for(int i = L-1; i >=0 ; --i)
+	if(array[i]){
+	  delete[] array[i];
+	  array[i] = 0;
+	}
       delete[]array;
       array = 0;
     }
@@ -80,9 +80,12 @@ typedef struct{
     return array[i];
   };
   void dealloc(int L){
-    for(int i = L-1; i >=0 ; --i)
-      if(array[i])delete[] array[i];
-    if(array)delete[] array;
+    if(array){
+      for(int i = L-1; i >=0 ; --i)
+	if(array[i])delete[] array[i];
+      delete[] array;
+      array = 0;
+    }
   };
 }array_of_allelefreqs;
 #else

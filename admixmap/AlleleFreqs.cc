@@ -61,16 +61,23 @@ AlleleFreqs::~AlleleFreqs(){
   AlleleFreqsMAP.dealloc(NumberOfCompositeLoci);
   AlleleCounts.dealloc(NumberOfCompositeLoci);
   hetCounts.dealloc(NumberOfCompositeLoci);
-   for(int i = 0; i < NumberOfCompositeLoci; ++i){
-      delete[] PriorAlleleFreqs[i];
-      if(IsHistoricAlleleFreq){
-        delete[] HistoricAlleleCounts[i];
-        delete[] HistoricAlleleFreqs[i];
-      }
+
+  if(PriorAlleleFreqs){
+    for(int i = 0; i < NumberOfCompositeLoci; ++i){
+      if(PriorAlleleFreqs[i])delete[] PriorAlleleFreqs[i];
     }
-  delete[] PriorAlleleFreqs;
-  delete[] HistoricAlleleCounts;
-  delete[] HistoricAlleleFreqs;
+    delete[] PriorAlleleFreqs;
+  }
+
+  if(IsHistoricAlleleFreq){
+    for(int i = 0; i < NumberOfCompositeLoci; ++i){
+      delete[] HistoricAlleleCounts[i];
+      delete[] HistoricAlleleFreqs[i];
+    }
+    delete[] HistoricAlleleCounts;
+    delete[] HistoricAlleleFreqs;
+  }
+
   delete[] Fst;
   delete[] SumFst;
   delete[] psi;

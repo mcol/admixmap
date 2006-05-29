@@ -69,13 +69,13 @@ public:
 			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 			  const std::string* const PopulationLabels);
 
-  void setGenotypeProbs(const Genome * const G);
+  void setGenotypeProbs(const Genome * const G, const AlleleFreqs* const A);
   void annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses);
   
   void OutputIndAdmixture();
 
   double getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci, LogWriter &Log, 
-		      const vector<double>& SumRho, unsigned numChromosomes);
+				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A);
 
   void OutputChibEstimates(bool, LogWriter &, int)const;
   void OutputChibResults(LogWriter&)const;
@@ -190,3 +190,4 @@ private:
 };
 
 #endif /* !defined INDIVIDUAL_COLLECTION_H */
+

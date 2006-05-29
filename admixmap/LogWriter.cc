@@ -58,7 +58,7 @@ LogWriter& LogWriter::operator<<(const int message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
-    }
+  }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const unsigned message){
@@ -67,16 +67,16 @@ LogWriter& LogWriter::operator<<(const unsigned message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
-    }
+  }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const long message){
     if(rank==0){
-  LogFileStream << message;
-  if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message;
+	LogFileStream << message;
+	if(toscreen==On || (verbose && toscreen==Quiet)){
+	    cout << message;
+	}
   }
-    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const double message){
@@ -85,7 +85,7 @@ LogWriter& LogWriter::operator<<(const double message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
-    }
+  }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const string message){
@@ -94,7 +94,7 @@ LogWriter& LogWriter::operator<<(const string message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message << flush;
   }
-    }
+  }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const char* message){
@@ -103,20 +103,20 @@ LogWriter& LogWriter::operator<<(const char* message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message << flush;
   }
-    }
+  }
   return *this;
 }
 
 void LogWriter::width(const unsigned w){
     if(rank==0){
   LogFileStream.width(w);
-    }
+  }
 }
 void LogWriter::setPrecision(int p){
     if(rank==0){
   LogFileStream<<setprecision(p);
   cout<<setprecision(p);
-    }
+  }
 }
 
 void LogWriter::StartMessage(){
@@ -145,29 +145,29 @@ void LogWriter::StartMessage(){
 void LogWriter::ProcessingTime()
 {
     if(rank==0){
-  long EndTime = time(0);
-  tm timer;
-  timer = *localtime( &EndTime );
-
-  toscreen = On;
-  *this << "Program finished at " << timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")
-	<< timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "")  << timer.tm_sec << " "
-	<< timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
-
-  double realtime = difftime(EndTime, StartTime);
-  *this << "Elapsed time = ";
-  if(realtime > 3600.0){
-    int hours = (int)(realtime/3600);
-    *this << hours << "h, ";
-    realtime -= (double)(hours*3600);
-  }
-  //if(realtime > 60.0){
-  int mins = (int)(realtime/60);
-  *this <<  mins << "m, ";
-  realtime -= (double)(mins*60);
-  //}
-  
-  *this << (int)realtime << "s\n";
+	long EndTime = time(0);
+	tm timer;
+	timer = *localtime( &EndTime );
+	
+	toscreen = On;
+	*this << "Program finished at " << timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")
+	      << timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "")  << timer.tm_sec << " "
+	      << timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
+	
+	double realtime = difftime(EndTime, StartTime);
+	*this << "Elapsed time = ";
+	if(realtime > 3600.0){
+	    int hours = (int)(realtime/3600);
+	    *this << hours << "h, ";
+	    realtime -= (double)(hours*3600);
+	}
+	//if(realtime > 60.0){
+	int mins = (int)(realtime/60);
+	*this <<  mins << "m, ";
+	realtime -= (double)(mins*60);
+	//}
+	
+	*this << (int)realtime << "s\n";
     }
 }
 
