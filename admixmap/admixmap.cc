@@ -456,6 +456,11 @@ int main( int argc , char** argv ){
     cout << "Finished" << endl;
 #endif
     //}
+
+  if(xargv != argv){
+    for(int i = 1; i < xargc; ++i)delete[] xargv[i];
+    delete[] xargv;
+  }
 	
   } catch (string msg) {//catch any stray error messages thrown upwards
     Log.setDisplayMode(On);
@@ -472,10 +477,6 @@ int main( int argc , char** argv ){
     throw string(msg);
   }
 
-  if(xargv != argv){
-    for(int i = 1; i < xargc; ++i)delete[] xargv[i];
-    delete[] xargv;
-  }
 #ifdef PARALLEL
   catch(MPI::Exception e){
     cout << "Error in process " << rank << ": " << e.Get_error_code() << endl;
