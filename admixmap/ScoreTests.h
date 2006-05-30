@@ -70,11 +70,11 @@ private:
   double* SumAdmixtureScore2; 
   double* SumAdmixtureInfo;
 
-  double*** AlleleScore;
-  double*** AlleleInfo;
-  double*** SumAlleleScore;
-  double*** SumAlleleScore2;
-  double*** SumAlleleInfo;
+  double*** ResAllelicAssocScore;
+  double*** ResAllelicAssocInfo;
+  double*** SumResAllelicAssocScore;
+  double*** SumResAllelicAssocScore2;
+  double*** SumResAllelicAssocInfo;
 
 #ifdef PARALLEL
   double *sendallelescore;
