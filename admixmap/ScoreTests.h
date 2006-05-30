@@ -70,8 +70,8 @@ private:
   double* SumAdmixtureScore2; 
   double* SumAdmixtureInfo;
 
-    double*** AlleleScore;
-    double*** AlleleInfo;
+  double*** AlleleScore;
+  double*** AlleleInfo;
   double*** SumAlleleScore;
   double*** SumAlleleScore2;
   double*** SumAlleleInfo;
@@ -85,12 +85,12 @@ private:
   double *sendhapinfo;
   double *recvhapscore;
   double *recvhapinfo;
-    double* sendresallelescore;
-    double* recvresallelescore;
-    double* sendresalleleinfo;
-    double* recvresalleleinfo;
-    int dimresallelescore, dimresalleleinfo;
-    int dimallelescore, dimalleleinfo, dimhapscore, dimhapinfo;
+  double* sendresallelescore;
+  double* recvresallelescore;
+  double* sendresalleleinfo;
+  double* recvresalleleinfo;
+  int dimresallelescore, dimresalleleinfo;
+  int dimallelescore, dimalleleinfo, dimhapscore, dimhapinfo;
 #endif
 
   std::ofstream assocscorestream;
@@ -105,7 +105,7 @@ private:
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
-    int rank, NumProcs;
+  int rank, NumProcs;
 
 //OUTPUT
   void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
@@ -150,7 +150,7 @@ private:
 
   void Reset();
 
-
+  void DeleteScores();
 };
 
 

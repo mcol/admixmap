@@ -13,7 +13,6 @@
 #include "admixmap.h"
 #include <fstream>
 #include <dirent.h>//for OpenResultsDir
-#include "StringConvertor.h"//for isWhiteLine in ReadArgsFromFile
 #ifdef PARALLEL
 #include <mpi++.h>
 #include <mpe.h>
@@ -21,8 +20,8 @@
 MPI::Intracomm workers_and_master, workers_and_freqs;
 #endif
 
-#define MAXNUMOPTIONS 50//maximum number of options specified
-#define MAXOPTIONLENGTH 1024//maximum number of characters in an option line (optionname = value)
+#define MAXNUMOPTIONS 50//maximum number of options specifiable.
+#define MAXOPTIONLENGTH 1024//maximum number of characters in an option line (excluding spaces)
 
 using namespace std;
 double coolness = 1.0; // default
@@ -41,11 +40,11 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
 void PrintCopyrightNotice(); 
 
 void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs  & A, Regression *R, 
-		  AdmixOptions & options, 
-		  const Genome  & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+		  AdmixOptions & options,  const Genome  & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  const double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretests, DispersionTest & DispTest, StratificationTest & StratTest, 
-		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, const double* Coolnesses);
+		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, 
+		  const double* Coolnesses);
 
 void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream);
 
@@ -187,18 +186,18 @@ int main( int argc , char** argv ){
 	Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
 
       //if(rank==0){
-	if( options.getTestForDispersion() ){
-	  DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
-	}
-	//if( options.getStratificationTest() )
-	//StratTest.Initialize( &options, Loci, IC, Log);
-	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-	  AlleleFreqTest.Initialise(&options, &Loci, Log );  
-	if( options.getHWTestIndicator() )
-	  HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
-	if(rank<1)
+      if( options.getTestForDispersion() ){
+	DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
+      }
+      //if( options.getStratificationTest() )
+      //StratTest.Initialize( &options, Loci, IC, Log);
+      if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
+	AlleleFreqTest.Initialise(&options, &Loci, Log );  
+      if( options.getHWTestIndicator() )
+	HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
+      if(rank<1)
 	InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
-	//}
+      //}
 
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
@@ -340,65 +339,65 @@ int main( int argc , char** argv ){
     
       // *************************** OUTPUT AT END ***********************************************************
 
-	if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
-	else Log.setDisplayMode(On);
-	if( options.getChibIndicator()) {
-	  IC->OutputChibEstimates(options.isRandomMatingModel(), Log, options.getPopulations());
-	  //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
-	  if(IC->getSize()==1) IC->OutputChibResults(Log);
-	}
+      if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
+      else Log.setDisplayMode(On);
+      if( options.getChibIndicator()) {
+	IC->OutputChibEstimates(options.isRandomMatingModel(), Log, options.getPopulations());
+	//MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
+	if(IC->getSize()==1) IC->OutputChibResults(Log);
+      }
 		
-	double Information = -LogEvidence - MeanEnergy;
-	double MeanDeviance = 2.0 * MeanEnergy; 
-	double VarDeviance = 4.0 * VarEnergy;
-	Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
-	    << "VarDeviance(V)\t" << VarDeviance << "\n"
-	    << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
-	double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
-	double pD = MeanDeviance - D_hat;
-	double DIC = MeanDeviance + pD;
-	Log << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
-	    << "EffectiveNumParameters(pD)\t" << pD << "\n"
-	    << "DevianceInformationCriterion\t" << DIC << "\n\n"; 
+      double Information = -LogEvidence - MeanEnergy;
+      double MeanDeviance = 2.0 * MeanEnergy; 
+      double VarDeviance = 4.0 * VarEnergy;
+      Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
+	  << "VarDeviance(V)\t" << VarDeviance << "\n"
+	  << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
+      double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
+      double pD = MeanDeviance - D_hat;
+      double DIC = MeanDeviance + pD;
+      Log << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
+	  << "EffectiveNumParameters(pD)\t" << pD << "\n"
+	  << "DevianceInformationCriterion\t" << DIC << "\n\n"; 
 		
-	if(options.getThermoIndicator()){
-	  Log << "thermodynamic integration for marginal likelihood yields:\n";
-	  Log << "LogEvidence: " <<  LogEvidence << "\n"; 
-	  Log << "Information (negative entropy, measured in nats): " << Information << "\n";
-	}
+      if(options.getThermoIndicator()){
+	Log << "thermodynamic integration for marginal likelihood yields:\n";
+	Log << "LogEvidence: " <<  LogEvidence << "\n"; 
+	Log << "Information (negative entropy, measured in nats): " << Information << "\n";
+      }
 		
-	//Residuals
-	if(rank <1 && options.getNumberOfOutcomes() > 0)
-	  IC->//OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
-	    FinishWritingEYAsRObject(options.getTotalSamples()-options.getBurnIn(), data.getOutcomeLabels());
-	//FST
-	if( strlen( options.getHistoricalAlleleFreqFilename()) && (rank==-1 || rank==1)  ){
-	  A.OutputFST();
-	}
-	//stratification test
-	if( options.getStratificationTest() ) StratTest.Output(Log);
-	//dispersion test
-	if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetPopLabels());
-	//tests for mis-specified allele frequencies
-	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-	  AlleleFreqTest.Output(options.getTotalSamples() - options.getBurnIn(), &Loci, data.GetPopLabels()); 
-	//test for H-W eq
-	if( options.getHWTestIndicator() )
-	  HWtest.Output(data.getLocusLabels()); 
+      //Residuals
+      if(rank <1 && options.getNumberOfOutcomes() > 0)
+	IC->//OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
+	  FinishWritingEYAsRObject(options.getTotalSamples()-options.getBurnIn(), data.getOutcomeLabels());
+      //FST
+      if( strlen( options.getHistoricalAlleleFreqFilename()) && (rank==-1 || rank==1)  ){
+	A.OutputFST();
+      }
+      //stratification test
+      if( options.getStratificationTest() ) StratTest.Output(Log);
+      //dispersion test
+      if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetPopLabels());
+      //tests for mis-specified allele frequencies
+      if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
+	AlleleFreqTest.Output(options.getTotalSamples() - options.getBurnIn(), &Loci, data.GetPopLabels()); 
+      //test for H-W eq
+      if( options.getHWTestIndicator() )
+	HWtest.Output(data.getLocusLabels()); 
 
-	if( options.getScoreTestIndicator() && (rank <1) ) {
+      if( options.getScoreTestIndicator() && (rank <1) ) {
 	//finish writing score test output as R objects
-	  Scoretests.ROutput();
-	  //write final tables
-	  Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), true);
-	}
+	Scoretests.ROutput();
+	//write final tables
+	Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), true);
+      }
     
-	//output to likelihood ratio file
-	if(options.getTestForAffectedsOnly())
-	  Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
+      //output to likelihood ratio file
+      if(options.getTestForAffectedsOnly())
+	Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
 		
-	if(annealstream.is_open())annealstream.close();
-	if(avgstream.is_open())avgstream.close();
+      if(annealstream.is_open())annealstream.close();
+      if(avgstream.is_open())avgstream.close();
 
     }//end else
 
@@ -433,15 +432,15 @@ int main( int argc , char** argv ){
       }
     
 #if ETASAMPLER ==1
-	if( strlen( options.getHistoricalAlleleFreqFilename() )){
-	  Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
-	  for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaRWSamplerAcceptanceRate(k)<< " " ;}
-	  Log << "\nwith final step sizes of ";
-	  for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaRWSamplerStepsize(k) << " ";}
-	  Log << "\n";
-	}
-#endif
+      if( strlen( options.getHistoricalAlleleFreqFilename() )){
+	Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
+	for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaRWSamplerAcceptanceRate(k)<< " " ;}
+	Log << "\nwith final step sizes of ";
+	for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaRWSamplerStepsize(k) << " ";}
+	Log << "\n";
       }
+#endif
+    }
     if(rank<1){
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
       Log.ProcessingTime();
@@ -592,26 +591,25 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
   ifstream fin(filename);
   std::string str;
   //read in line from file
-  while (getline(fin,str,'\n')){
+  while (getline(fin,str,'\n')){// ## apparent memory leak 
 
-    if (!StringConvertor::isWhiteLine(str.c_str()))
-      {    //skip blank lines. 
-      str.erase(0,str.find_first_not_of(" \t\n\r"));//trim leading whitespace
-      if(str[0]!= '#'){ //ignore lines commented out with #
-	if(str.find_first_of("#")<str.length())str.erase(str.find_first_of("#"));//ignore #comments
+    if( str.find_first_of("#") < str.length() ) str.erase( str.find_first_of("#") );//ignore #comments
+    if(str.find_first_not_of(" \t\n\r") < str.length() )//skip blank lines. 
+      {   
+	str.erase(0, str.find_first_not_of(" \t\n\r") );//trim leading whitespace
 	//trim remaining whitespace
-	str.erase(str.find_last_not_of(" \t\n\r")+1);//trailing whitespace
-	if(str.find_first_of(" \t\n\r") <= str.length()){//check for any whitespace left
-	  if(str.find_first_of(" \t\n\r") < str.find("="))//check for space before '='
-	    str.erase(str.find_first_of(" \t\n\r"),str.find("=")-str.find_first_of(" \t\n\r"));//before '='
-	  str.erase(str.find_first_of(" \t\n\r"),str.find_last_of(" \t\n")-str.find_first_of(" \t\n\r")+1);//after '='
+	str.erase( str.find_last_not_of(" \t\n\r") + 1 );//trailing whitespace
+	if( str.find_first_of(" \t\n\r") <= str.length() ){//check for any whitespace left
+	  if( str.find_first_of(" \t\n\r") < str.find("=") )//check for space before '='
+	    str.erase( str.find_first_of(" \t\n\r"), str.find("=") - str.find_first_of(" \t\n\r") );//before '='
+	  str.erase( str.find_first_of(" \t\n\r"), str.find_last_of(" \t\n") - str.find_first_of(" \t\n\r") +1 );//after '='
 	}
 	//add line to xargv
 	xargv[*xargc]=new char[MAXOPTIONLENGTH];
 	strcpy(xargv[*xargc],"--");
 	strcat(xargv[*xargc],str.c_str());
 	++(*xargc);
-      }}
+      }
     str.clear();
   }
   fin.close();
@@ -731,8 +729,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
   if( !anneal && iteration > options->getBurnIn() ){
     //score tests
-    if( options->getScoreTestIndicator() )
-      S->Update(R[0].getDispersion());//score tests evaluated for first outcome var only
+    if( options->getScoreTestIndicator() ){
+      double dispersion = (options->getNumberOfOutcomes()>0) ? R[0].getDispersion() : 1.0;
+      S->Update(dispersion);//score tests evaluated for first outcome var only
+    }
     if(options->getTestForResidualAllelicAssoc())
       S->UpdateScoresForResidualAllelicAssociation(A->GetAlleleFreqs());
   }
@@ -792,7 +792,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 #ifdef PARALLEL
 				       , workers_and_master
 #endif
-);
+				       );
   }
 
   else
@@ -802,10 +802,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // ** update regression parameters (if regression model) conditional on individual admixture
   bool condition = (!anneal && iteration > options->getBurnIn());
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
-     R[r].Update(condition, IC, coolness);
-     //IC->UpdateSumResiduals();
-     //output expected values of outcome variables to file every 'every' iterations after burnin
-     if(condition && !(iteration % options->getSampleEvery()) ) IC->OutputExpectedY(r);
+    R[r].Update(condition, IC, coolness);
+    //IC->UpdateSumResiduals();
+    //output expected values of outcome variables to file every 'every' iterations after burnin
+    if(condition && !(iteration % options->getSampleEvery()) ) IC->OutputExpectedY(r);
   }
     
 }
