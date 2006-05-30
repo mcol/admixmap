@@ -25,8 +25,6 @@ floor_in_ugaussian
    Memcheck:Cond
    fun:floor
    fun:get_del
-   fun:gauss_medium
-   fun:gsl_cdf_ugaussian_P
 }
 
 {
@@ -34,8 +32,6 @@ exp_in_ugaussian
    Memcheck:Cond
    fun:exp
    fun:get_del
-   fun:gauss_medium
-   fun:gsl_cdf_ugaussian_P
 }
 
 {
@@ -101,6 +97,11 @@ Another_libc_error
 {
 And_another
    Memcheck:Value8
+   fun:__mpn_lshift
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
    fun:__mpn_lshift
 }
 {
@@ -216,6 +217,12 @@ exp
 
 {
    <insert a suppression name here>
+   Memcheck:Cond
+   fun:exp
+}
+
+{
+   <insert a suppression name here>
    Memcheck:Param
    write(buf)
    fun:__write_nocancel
@@ -241,3 +248,11 @@ exp
    fun:main
 }
 
+{
+bogus_leak_in_stl_string_functions
+   Memcheck:Leak
+   fun:_Znwm
+   fun:_ZNSt24__default_alloc_templateILb1ELi0EE14_S_chunk_allocEmRi
+   fun:_ZNSt24__default_alloc_templateILb1ELi0EE9_S_refillEm
+   fun:_ZNSt24__default_alloc_templateILb1ELi0EE8allocateEm
+}
