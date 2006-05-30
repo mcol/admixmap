@@ -21,6 +21,9 @@
 MPI::Intracomm workers_and_master, workers_and_freqs;
 #endif
 
+#define MAXNUMOPTIONS 50//maximum number of options specified
+#define MAXOPTIONLENGTH 1024//maximum number of characters in an option line (optionname = value)
+
 using namespace std;
 double coolness = 1.0; // default
 
@@ -83,7 +86,7 @@ int main( int argc , char** argv ){
     exit(1); 
   } else if (argc == 2) {     // using options text file        
     xargc = 1;//NB initialise to 1 to mimic argc (arg 0 is prog name), otherwise first option is ignored later
-    xargv = new char*[50];  // change 50 to max number of options
+    xargv = new char*[MAXNUMOPTIONS];  
     ReadArgsFromFile(argv[1], &xargc, xargv);        
   }
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
@@ -469,6 +472,11 @@ int main( int argc , char** argv ){
   catch (char *msg){//in case error messages thrown as char arrays instead of strings
     throw string(msg);
   }
+
+  if(xargv != argv){
+    for(int i = 1; i < xargc; ++i)delete[] xargv[i];
+    delete[] xargv;
+  }
 #ifdef PARALLEL
   catch(MPI::Exception e){
     cout << "Error in process " << rank << ": " << e.Get_error_code() << endl;
@@ -581,7 +589,6 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 }
 
 int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
-  int  _maxLineLength=1024;
   ifstream fin(filename);
   std::string str;
   //read in line from file
@@ -600,11 +607,13 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
 	  str.erase(str.find_first_of(" \t\n\r"),str.find_last_of(" \t\n")-str.find_first_of(" \t\n\r")+1);//after '='
 	}
 	//add line to xargv
-	xargv[*xargc]=new char[_maxLineLength];
+	xargv[*xargc]=new char[MAXOPTIONLENGTH];
 	strcpy(xargv[*xargc],"--");
 	strcat(xargv[*xargc],str.c_str());
 	++(*xargc);
-      }}}
+      }}
+    str.clear();
+  }
   fin.close();
   return 1;
 }

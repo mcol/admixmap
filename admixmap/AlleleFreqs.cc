@@ -57,8 +57,8 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
 }
 
 AlleleFreqs::~AlleleFreqs(){
+  if(AlleleFreqsMAP.array != Freqs.array)AlleleFreqsMAP.dealloc(NumberOfCompositeLoci);
   Freqs.dealloc(NumberOfCompositeLoci);
-  AlleleFreqsMAP.dealloc(NumberOfCompositeLoci);
   AlleleCounts.dealloc(NumberOfCompositeLoci);
   hetCounts.dealloc(NumberOfCompositeLoci);
 
