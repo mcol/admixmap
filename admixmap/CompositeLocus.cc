@@ -51,7 +51,7 @@ CompositeLocus::~CompositeLocus()
 #endif
   delete[] MergeHaplotypes;
   delete[] HapLabels;
-  delete[] SumAlleleProbs;
+  free_matrix( SumAlleleProbs, Populations);
 }
 
 // ******** Initialisation *************************

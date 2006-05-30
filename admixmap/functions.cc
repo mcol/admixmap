@@ -491,6 +491,7 @@ double GaussianMarginalQuadraticForm( int kk, double *mean, double *var, size_t 
 {
   //returns the quadratic form in the density of the marginal distribution of the subvector of length kk of a zero-mean Gaussian vector of length dim. Useful for score tests. 
   int status = 0;
+  string error_string;
   //Note that matrix_view's do not allocate new data
   gsl_matrix *Q = gsl_matrix_alloc(1, 1);
 
@@ -516,32 +517,35 @@ double GaussianMarginalQuadraticForm( int kk, double *mean, double *var, size_t 
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   status = gsl_linalg_HH_svx(V11, x);
 
-  if(status){
-    string error_string = "Error in HH_svx in GaussianConditionalQuadraticForm:\n";
+  if(status){//stop if svx failed
+    error_string = "Error in HH_svx in GaussianConditionalQuadraticForm:\n";
     error_string.append(gsl_strerror(status));
-    throw(error_string);
+  }
+  else{
+    //set column of V to x
+    for(int j = 0; j < kk; ++j)gsl_matrix_set(V, j, 0, gsl_vector_get(x, j));  
+    
+    //compute Q = U1' * V
+    status = gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1, U1, V, 0, Q);
+
+    if(status){
+      string error_string = "Error with matrix multiplication in GaussianConditionalQuadraticForm:\n";
+      error_string.append(gsl_strerror(status));
+    }
   }
 
-  //set column of V to x
-  for(int j = 0; j < kk; ++j)gsl_matrix_set(V, j, 0, gsl_vector_get(x, j));  
-  gsl_vector_free(x);
-
-  //compute Q = U1' * V
-  status = gsl_blas_dgemm (CblasNoTrans, CblasNoTrans, 1, U1, V, 0, Q);
-
+  //clean up
   gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-    string error_string = "Error with matrix multiplication in GaussianConditionalQuadraticForm:\n";
-    error_string.append(gsl_strerror(status));
-    throw(error_string);
-  }
-
+  gsl_vector_free(x);
+  
   gsl_matrix_free(V);
   gsl_matrix_free(U1);
   gsl_matrix_free(V11);
 
   double result = gsl_matrix_get(Q, 0,0);
   gsl_matrix_free(Q);
+
+  if(status) throw(error_string);
   return result;
 }
 
@@ -602,7 +606,8 @@ void free_matrix(double **M, int m){
   try{
     if(M){
       for(unsigned i = (unsigned)m; i > 0 ; --i) 
-	if(M[i-1])delete[] M[i-1];
+	if(M[i-1])
+	  delete[] M[i-1];
       delete[] M;
     }
   }

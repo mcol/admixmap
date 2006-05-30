@@ -186,9 +186,19 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 //********** Destructor **********
 Individual::~Individual() {
   delete[] PossibleHapPairs;
-  delete[] GenotypeProbs; //TODO: delete properly
-  delete[] GenotypesMissing;
-  delete[] LocusAncestry;
+  if(GenotypeProbs){
+    for(unsigned j = 0; j < numChromosomes; ++j) delete[] GenotypeProbs[j];
+    delete[] GenotypeProbs; 
+  }
+  if(GenotypesMissing){
+    for(unsigned j = 0; j < numChromosomes; ++j)delete[] GenotypesMissing[j];
+    delete[] GenotypesMissing;
+  }
+  if(LocusAncestry){
+    for(unsigned j = 0; j < numChromosomes; ++j)delete[] LocusAncestry[j];
+    delete[] LocusAncestry;
+  }
+
   delete[] SumLocusAncestry;
   delete[] SumLocusAncestry_X;
   delete[] dirparams;
@@ -387,6 +397,9 @@ void Individual::DeleteStaticMembers(){
   delete[] AffectedsVarScore;
   delete[] LikRatio1;
   delete[] LikRatio2;
+  delete[] B;
+  delete[] PrevB;
+  delete[] Xcov;
   free_matrix(AncestryScore, Loci->GetNumberOfCompositeLoci());
   free_matrix(AncestryInfo, Loci->GetNumberOfCompositeLoci());  
   free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
