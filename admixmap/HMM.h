@@ -24,7 +24,7 @@ public:
   ~HMM();
   void SetDimensions( int inTransitions, int pops);
   void SetGenotypeProbs(const double* lambdain, const bool* const missing);
-  void SetStateArrivalProbs(const double* const fin, const double* const Theta, int Mcol, bool isdiploid);
+  void SetStateArrivalProbs(const double* const fin, const double* const Theta, const int Mcol, const bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
   std::vector<std::vector<double> > Get3WayStateProbs( const bool isDiploid, int t );
@@ -60,8 +60,8 @@ private:
   double *colProb;
   double *Expectation0;
   double *Expectation1;
-  double *rowSum;
-  double *colSum;
+  //double *rowSum;
+  //double *colSum;
   double *cov;
 
   void UpdateForwardProbsDiploid();
@@ -69,7 +69,7 @@ private:
   void UpdateBackwardProbsDiploid();
   void UpdateBackwardProbsHaploid();
   void RecursionProbs(const double ff, const double f[2], const double* const stateArrivalProbs,
-		      double* oldProbs, double *newProbs); 
+		      const double* const oldProbs, double *newProbs); 
   void RecursionProbs2(const double ff, const double f[2], const double* const stateArrivalProbs, 
 		       const double* const oldProbs, double *newProbs);
 };

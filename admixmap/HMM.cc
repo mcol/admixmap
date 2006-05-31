@@ -15,8 +15,8 @@ HMM::HMM()
   colProb = 0;
   Expectation0 = 0;
   Expectation1 = 0;
-  rowSum = 0;
-  colSum = 0;
+  //rowSum = 0;
+  //colSum = 0;
   rowProb = 0;
   cov = 0;
   f = 0;
@@ -44,8 +44,6 @@ HMM::~HMM()
   delete[] colProb;
   delete[] Expectation0;
   delete[] Expectation1;
-  delete[] rowSum;
-  delete[] colSum;
   delete[] cov; //free_matrix(cov, K);
 }
 
@@ -71,8 +69,6 @@ void HMM::SetDimensions( int inTransitions, int pops)
     colProb = new double[K];
     Expectation0 = new double[K];
     Expectation1 = new double[K];
-    rowSum = new double[K];
-    colSum = new double[K];
     cov = new double[K*K]; 
     }
 }
@@ -85,7 +81,8 @@ void HMM::SetGenotypeProbs(const double* lambdain, const bool* const missing){
 }
 
 
-void HMM::SetStateArrivalProbs(const double* const fin, const double* const Theta, int Mcol, bool isdiploid){
+void HMM::SetStateArrivalProbs(const double* const fin, const double* const Theta, const int Mcol, 
+			       const bool isdiploid){
   f = fin;
   theta = Theta;
   alphaIsBad = true;//new input so reset
@@ -172,7 +169,7 @@ double HMM::getLogLikelihood(bool isdiploid)
   SStates          - an int array to store the sampled states
   isdiploid  - indicator for diploidy
 */
-void HMM::Sample(int *SStates, bool isdiploid)
+void HMM::Sample(int *SStates, const bool isdiploid)
 {
   if(alphaIsBad){
     if(isdiploid)UpdateForwardProbsDiploid();
@@ -278,14 +275,15 @@ void HMM::UpdateForwardProbsDiploid()
   double Sum = 0.0;
   double scaleFactor = 0.0;
   DStates = K*K;
-  const double* lam = Lambda;
+  //const double* lam = Lambda;
   
   for(int j = 0; j < DStates; ++j) {
     if(!missingGenotypes[0]) {
-      alpha[j] =  ThetaThetaPrime[j] * (*lam++);
+      alpha[j] =  ThetaThetaPrime[j] * Lambda[j]; //(*lam++);
+      //++lam;
     } else {
       alpha[j] = ThetaThetaPrime[j];
-      ++lam;
+      //++lam;
     }
   }
   
@@ -310,8 +308,9 @@ void HMM::UpdateForwardProbsDiploid()
     
     for(int j = 0; j < DStates; ++j){
       if(!missingGenotypes[t]) {
-	alpha[t*DStates +j] *=  *lam++; ;
-      } else ++lam;
+	alpha[t*DStates +j] *=  Lambda[t*DStates + j]; //*lam++; 
+	//++lam;
+      } //else ++lam;
     }
   }
   alphaIsBad = false;
@@ -406,11 +405,10 @@ void HMM::UpdateBackwardProbsHaploid(){
 }
 
 // argument oldProbs is square array of size K, K
-// for forward recursions, pass alpha_t and multiply newProbs by observation probs 
+// for forward recursions, pass alpha_t and multiply newProbs by emission probs lambda_t 
 // for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
-// updates oldProbs (scaled to sum to 1), newProbs and sumfactor if forward = true (for alphas)
-void HMM::RecursionProbs(const double ff, const double f2[2], 
-			 const double* const stateArrivalProbs, double* oldProbs, double *newProbs) {
+void HMM::RecursionProbs(const double ff, const double f2[2], const double* const stateArrivalProbs, 
+			 const double* const oldProbs, double *newProbs) {
   if(K==2) RecursionProbs2(ff, f2, stateArrivalProbs, oldProbs, newProbs);
   else {
     for( int j0 = 0; j0 <  K; ++j0 ) {
@@ -422,39 +420,14 @@ void HMM::RecursionProbs(const double ff, const double f2[2],
       }
     }
     // calculate expectations of indicator variables for each ancestry state on each gamete
-    for( int j = 0; j <  K; ++j ) {
-      Expectation0[j] = f2[0]*rowProb[j] + stateArrivalProbs[j*2];
-      Expectation1[j] = f2[1]*colProb[j] + stateArrivalProbs[j*2 + 1];
-      
-    }
-    // calculate covariance of ancestry states as ff * deviation from product of row and col probs
-    for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
-      for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
+    for( int j0 = 0; j0 <  K; ++j0 ) {
+      Expectation0[j0] = f2[0]*rowProb[j0] + stateArrivalProbs[j0*2];
+      Expectation1[j0] = f2[1]*colProb[j0] + stateArrivalProbs[j0*2 + 1];
+      for(int j1 =0; j1 < K; ++j1) { // leave out last col
 	cov[j0*K + j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
       }
     }
-    
-    // accumulate sums of covariances over first K-1 rows and K-1 cols
-    for(int j0 = 0; j0 <  K-1; ++j0) { // leave out last row
-      rowSum[j0] = 0.0;
-      colSum[j0] = 0.0;
-      for(int j1 =0; j1 < K-1; ++j1) { // leave out last col
-	rowSum[j0] += cov[j0*K + j1];
-	colSum[j0] += cov[j1*K + j0];
-      }
-    }
-    // calculate last row except for last col, by subtracting colSum from 0
-    // also accumulate sum of covariances for K th row over first K-1 cols
-    rowSum[K-1] = 0.0;
-    for( int j = 0; j < K-1; ++j ) {
-      cov[(K-1)*K + j] =  -colSum[j];
-      rowSum[K-1] += cov[(K-1)*K +j];
-    }
-    // calculate last col by subtracting rowSum from 0
-    for( int j = 0; j < K; ++j ) {
-      cov[j*K + K-1] =  -rowSum[j];
-    }
-    
+
     // calculate expectation of product as covariance plus product of expectations
     for(int j0 = 0; j0 < K; ++j0) {
       for(int j1 =0; j1 < K; ++j1) {
