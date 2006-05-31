@@ -78,6 +78,46 @@ void InputData::readFile(const char *fname, Matrix_s& data, LogWriter &Log)
         throw;
     }
 }
+#ifdef PARALLEL
+void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
+{
+  int worker_rank = MPI::COMM_WORLD.Get_rank() - 2;
+  int NumWorkers = MPI::COMM_WORLD.Get_size() - 2;
+
+    if (0 == fname || 0 == strlen(fname)) return;
+
+    ifstream in(fname);
+    if (!in.is_open()) {
+        string msg = "Cannot open file for reading: \"";
+        msg += fname;
+        msg += "\"";
+        throw runtime_error(msg.c_str());
+    }
+
+    data.clear();
+    try {
+        StringSplitter splitter;
+        string line;        
+	int linenumber = 0;
+	Vector_s empty;
+
+        while (getline(in, line)) {
+
+	  if( ( ( (linenumber-1)%NumWorkers) == worker_rank) || linenumber==0){
+	    if (!StringConvertor::isWhiteLine(line.c_str())) {//skip blank lines
+	      data.push_back(splitter.split(line.c_str()));//split lines into strings
+            }
+	  }
+	  else data.push_back(empty);//insert empty string vector
+
+	  ++linenumber;
+        }
+    } catch (...) {
+        in.close();
+        throw;
+    }
+}
+#endif
 
 /**
  *  Auxilary function that converts a submatrix (starting at (row0, col0))of Matrix_s to DataMatrix
@@ -134,9 +174,14 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
     {
       // Read all input files.
       readFile(options->getLocusFilename(), locusData_, Log);   //locusfile
-      if(rank==-1 || rank>1)//only workers read genotypes
+#ifdef PARALLEL
+      if(rank==0) Log << "Loading " << options->getGenotypesFilename() << ".\n";
+      if(rank>1)//only workers read genotypes
+	readGenotypesFile(options->getGenotypesFilename(), geneticData_); //genotypes file
+#else
 	readFile(options->getGenotypesFilename(), geneticData_, Log); //genotypes file
-      //TODO:have each worker read only its own genotypes
+#endif
+
       readFile(options->getCovariatesFilename(), inputData_, Log);         //covariates file
       readFile(options->getOutcomeVarFilename(), outcomeVarData_, Log);       //outcomevar file
       if(rank==-1 || rank == 1){//only one process reads freq files

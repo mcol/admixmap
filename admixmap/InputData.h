@@ -126,6 +126,7 @@ private:
 
   void getPopLabels(const Vector_s& data, size_t Populations, std::string **labels);
   void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
+  void readGenotypesFile(const char *fname, Matrix_s& data);
   void CheckGeneticData(AdmixOptions *options)const;
   void checkLocusFile(int sexColumn, double threshold, bool);
   unsigned determineNumberOfCompositeLoci()const;
