@@ -15,8 +15,6 @@ HMM::HMM()
   colProb = 0;
   Expectation0 = 0;
   Expectation1 = 0;
-  //rowSum = 0;
-  //colSum = 0;
   rowProb = 0;
   cov = 0;
   f = 0;
@@ -53,15 +51,11 @@ void HMM::SetDimensions( int inTransitions, int pops)
   //pops = #populations
   K = pops;
   DStates = K*K;
-  
   Transitions = inTransitions;
-  
   alpha = new double[Transitions*K*K];
   //beta =  new double[Transitions*K*K];
-  
   sumfactor=0.0;
   p = new double[Transitions];
-  
   StateArrivalProbs = new double[Transitions * K * 2];
   ThetaThetaPrime = new double[K*K];
   if(K>2){
@@ -93,6 +87,7 @@ void HMM::SetStateArrivalProbs(const double* const fin, const double* const Thet
 	StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * Theta[j];
 	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * Theta[K*Mcol +j ];
       }
+    p[t] = f[2*t] * f[2*t + 1];
     }
     for(int j0 = 0; j0 < K; ++j0)for(int j1 = 0; j1 < K; ++j1)
       ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
@@ -274,7 +269,7 @@ void HMM::UpdateForwardProbsDiploid()
   sumfactor = 0.0; // accumulates log-likelihood
   double Sum = 0.0;
   double scaleFactor = 0.0;
-  DStates = K*K;
+  // DStates = K*K;
   //const double* lam = Lambda;
   
   for(int j = 0; j < DStates; ++j) {
@@ -287,7 +282,6 @@ void HMM::UpdateForwardProbsDiploid()
     }
   }
   
-  double f2[2];
   for( int t = 1; t < Transitions; t++ ){
     if(!missingGenotypes[t-1]) {
       Sum = 0.0;
@@ -302,7 +296,8 @@ void HMM::UpdateForwardProbsDiploid()
       sumfactor += log(Sum);
     }
     
-    p[t] = f[2*t] * f[2*t + 1];
+    //p[t] = f[2*t] * f[2*t + 1];
+    double f2[2];
     f2[0] = f[2*t]; f2[1] = f[2*t + 1];
     RecursionProbs(p[t], f2, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, alpha + t*DStates);
     
