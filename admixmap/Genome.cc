@@ -104,8 +104,12 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     if(isFreqUpdater){
 #ifdef PARALLEL 
 //at present, parallel version can only handle diallelic loci
-      if(LocusArray[i].GetNumberOfStates()>2)
-	throw string("sorry, I can only handle diallelic loci");
+      if(LocusArray[i].GetNumberOfStates()>2){
+	stringstream err;
+	err << "sorry, I can only handle diallelic loci. Composite locus " << i+1 << " has " 
+	    << LocusArray[i].GetNumberOfLoci() << " simple loci and " << LocusArray[i].GetNumberOfStates() << " alleles/haplotypes";
+	throw err.str();
+      }
 #endif
       if(LocusArray[i].GetNumberOfLoci()>8) Log << "WARNING: Composite locus with >8 loci\n";
       //TotalLoci += LocusArray[i].GetNumberOfLoci();
