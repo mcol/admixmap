@@ -17,9 +17,9 @@
 #include "MuSampler.h"
 #include <math.h>
 #include <numeric>
-// #ifdef PARALLEL
-// #include <mpe.h>
-// #endif
+#ifdef PARALLEL
+#include <mpe.h>
+#endif
 
 //#define DEBUGETA 1
 
@@ -662,10 +662,18 @@ void AlleleFreqs::SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K)
     int rank = comm.Get_rank();
     const int L = Loci->GetNumberOfCompositeLoci();
 //synchronise processes
+    MPE_Log_event(1, 0, "CountsBarrier");
     comm.Barrier();
+    MPE_Log_event(2, 0, "CountsBarrierEnd");
+    MPE_Log_event(5, 0, "RedCountstart");
     comm.Reduce(AlleleCounts.array, globalAlleleCounts, L*K*2, MPI::INT, MPI::SUM, 0);
+    MPE_Log_event(6, 0, "RedCountend");
+    MPE_Log_event(1, 0, "CountsBarrier");
     comm.Barrier();
+    MPE_Log_event(2, 0, "hetCountsBarrierEnd");
+    MPE_Log_event(5, 0, "RedhetCountstart");
     comm.Reduce(hetCounts.array, globalHetCounts, L*K*K, MPI::INT, MPI::SUM, 0);
+    MPE_Log_event(6, 0, "RedhetCountend");
 
 //put totals back into AlleleCounts on top process, by swapping addresses
     if(rank==0){
@@ -679,9 +687,13 @@ void AlleleFreqs::SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K)
 }
 
 void AlleleFreqs::BroadcastAlleleFreqs(MPI::Intracomm& comm){
+  MPE_Log_event(1, 0, "FreqsBarrier");
   comm.Barrier();
+  MPE_Log_event(2, 0, "FreqsBarrierEnd");
+  MPE_Log_event(19, 0, "BcastFreqs"); 
   //comm.Bcast(*Freqs, 1, AlleleFreqArrayType, 0);//NB *Freqs = address of first element
   comm.Bcast(Freqs.array, (Loci->GetNumberOfCompositeLoci()) * (Freqs.stride), MPI::DOUBLE, 0 );
+  MPE_Log_event(20, 0, "FreqsBcasted"); 
 }
 
 #endif
