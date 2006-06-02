@@ -179,11 +179,12 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
       if(rank>1)//only workers read genotypes
 	readGenotypesFile(options->getGenotypesFilename(), geneticData_); //genotypes file
 #else
-	readFile(options->getGenotypesFilename(), geneticData_, Log); //genotypes file
+      readFile(options->getGenotypesFilename(), geneticData_, Log); //genotypes file
 #endif
-
-      readFile(options->getCovariatesFilename(), inputData_, Log);         //covariates file
-      readFile(options->getOutcomeVarFilename(), outcomeVarData_, Log);       //outcomevar file
+      if(rank!=1){
+	readFile(options->getCovariatesFilename(), inputData_, Log);         //covariates file
+	readFile(options->getOutcomeVarFilename(), outcomeVarData_, Log);       //outcomevar file
+      }
       if(rank==-1 || rank == 1){//only one process reads freq files
 	readFile(options->getAlleleFreqFilename(), alleleFreqData_, Log);
 	readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, Log);            
@@ -209,7 +210,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   }
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumCompositeLoci = determineNumberOfCompositeLoci();
-  NumIndividuals = getNumberOfIndividuals();
+  if(rank !=0 && rank !=1) NumIndividuals = geneticData_.size() - 1;
 
   Log.setDisplayMode(Quiet);
   if(rank<0 || rank>1)
@@ -221,12 +222,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   double threshold = 100.0;if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
   if(rank<2)checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
   //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
-  if ( strlen( options->getOutcomeVarFilename() ) != 0 )
-    CheckOutcomeVarFile( options, Log);
-  if ( strlen( options->getCovariatesFilename() ) != 0 )
-    CheckCovariatesFile(Log);//detects regression model
-  if ( strlen( options->getReportedAncestryFilename() ) != 0 )
-    CheckRepAncestryFile(options->getPopulations(), Log);
+
   if(rank==-1 || rank ==1)CheckAlleleFreqs(options, Log);
 #ifdef PARALLEL
   if(strlen(options->getAlleleFreqFilename()) || strlen(options->getPriorAlleleFreqFilename()) || strlen(options->getHistoricalAlleleFreqFilename())){
@@ -247,6 +243,15 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   }
 #endif
   
+  if(rank!=1 ){
+    if ( strlen( options->getOutcomeVarFilename() ) != 0 )
+      CheckOutcomeVarFile( options, Log);
+    if ( strlen( options->getCovariatesFilename() ) != 0 )
+      CheckCovariatesFile(Log);//detects regression model
+    if ( strlen( options->getReportedAncestryFilename() ) != 0 )
+      CheckRepAncestryFile(options->getPopulations(), Log);
+  }
+
   if(NumIndividuals > 1){
     Log.setDisplayMode(Quiet);
     Log << NumIndividuals << " individuals\n";
@@ -255,7 +260,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
 
 //determine number of individuals by counting lines in genotypesfile 
 int InputData::getNumberOfIndividuals()const {
-  return(geneticData_.size() - 1);
+  return(NumIndividuals);
 }
 
 //determine number of loci by counting rows of locusfile
@@ -448,9 +453,10 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
   int Firstcol = options->getTargetIndicator();
   int NumOutcomes = options->getNumberOfOutcomes();
   if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
-    Log << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
+    stringstream s;
+    s << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
 	<< outcomeVarMatrix_.nRows() - 1 << " observations.\n";
-    exit(1);
+    throw(s.str());
   }
   //check the number of outcomes specified is not more than the number of cols in outcomevarfile
   int numoutcomes = NumOutcomes;

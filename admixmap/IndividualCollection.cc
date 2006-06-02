@@ -62,7 +62,7 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
     workers = MPI::COMM_WORLD.Split( (global_rank>1), global_rank);
     NumWorkers = workers.Get_size();
     if(global_rank >1)
-      worker_rank =workers.Get_rank();
+      worker_rank = workers.Get_rank();
     else worker_rank = size;//so that non-workers will not loop over Individuals
 
     //create communicator for messages between freqsampler and workers
@@ -244,10 +244,9 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const
 }
 
 void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){
-  LoadCovariates(data_, options);
-  
   if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
     LoadOutcomeVar(data_);
+    LoadCovariates(data_, options);
   }
   if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
     LoadRepAncestry(data_);
@@ -256,18 +255,19 @@ void IndividualCollection::LoadData(const AdmixOptions* const options, const Inp
 }
 
 void IndividualCollection::LoadCovariates(const InputData* const data_, const AdmixOptions* const options){
+  unsigned NumInds = Outcome.nRows();
   if ( strlen( options->getCovariatesFilename() ) > 0 ){
     DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
     NumberOfInputCovariates = CovData.nCols();
 
     if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator()){
-      Covariates.setDimensions(NumInd, CovData.nCols() + options->getPopulations());
-      for(unsigned i = 0; i < NumInd; ++i)for(int j = 0; j < options->getPopulations()-1; ++j)
+      Covariates.setDimensions(NumInds, CovData.nCols() + options->getPopulations());
+      for(unsigned i = 0; i < NumInds; ++i)for(int j = 0; j < options->getPopulations()-1; ++j)
          Covariates.set(i, j + CovData.nCols() + 1,  1.0 / (double)options->getPopulations() );
       }
     else
-      Covariates.setDimensions(NumInd, CovData.nCols()+1);//+1 for intercept
-    for(unsigned i = 0; i < NumInd; ++i)for(unsigned j = 0; j < CovData.nCols(); ++j)
+      Covariates.setDimensions(NumInds, CovData.nCols()+1);//+1 for intercept
+    for(unsigned i = 0; i < NumInds; ++i)for(unsigned j = 0; j < CovData.nCols(); ++j)
       {
       Covariates.set(i,0, 1.0); //set to 1 for intercept
       Covariates.set(i,j+1, CovData.get(i+1, j) );
@@ -283,7 +283,7 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
     //    for( int j = 0; j < NumberOfInputCovariates; j++ ){
     //    int count = 0;
     //  mean[j] = 0.0;
-    //for(unsigned int i = 0; i < NumInd; i++ )
+    //for(unsigned int i = 0; i < NumInds; i++ )
     //if(!Covariates.IsMissingValue(i,j+1)){
     // mean[j] += Covariates(i,j+1);
     //++count;
@@ -291,20 +291,20 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
     //mean[j] /= (double)count;
     //}
     
-    //for(unsigned int i = 0; i < NumInd; i++ )
+    //for(unsigned int i = 0; i < NumInds; i++ )
     // for( int j = 0; j < NumberOfInputCovariates; j++ )
     //Covariates( i, j+1 ) -= mean[j];
   }
   else {//no covariatesfile
     if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator() ){
-      Covariates.setDimensions(NumInd, options->getPopulations());
-        for(unsigned i = 0; i < NumInd; ++i)for(int j = 1; j < options->getPopulations(); ++j)
+      Covariates.setDimensions(NumInds, options->getPopulations());
+        for(unsigned i = 0; i < NumInds; ++i)for(int j = 1; j < options->getPopulations(); ++j)
           Covariates.set(i, j, 1.0 / (double)options->getPopulations() );
     }
     else
-      Covariates.setDimensions(NumInd, 1);//just an intercept
-    for(unsigned i = 0; i < NumInd; ++i)
-    Covariates.set(i,0, 1.0 );
+      Covariates.setDimensions(NumInds, 1);//just an intercept
+    for(unsigned i = 0; i < NumInds; ++i)
+      Covariates.set(i,0, 1.0 );
     }
 
   if( options->getTestForAdmixtureAssociation()  || options->getHapMixModelIndicator())
@@ -494,9 +494,11 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   int Populations = options->getPopulations();
   vector<double> lambda;
   vector<const double*> beta;
-  for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-    lambda.push_back( R[i].getlambda());
-    beta.push_back( R[i].getbeta());
+  if(!options->getHapMixModelIndicator()){//required only for random walk update of individual admixture and ancestry scoretests
+    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+      lambda.push_back( R[i].getlambda());
+      beta.push_back( R[i].getbeta());
+    }
   }
 
   //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
@@ -519,7 +521,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   }
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
   double dispersion = 0.0; 
-  if(options->getNumberOfOutcomes()>0) dispersion = R[0].getDispersion();
+  if(!options->getHapMixModelIndicator() && options->getNumberOfOutcomes()>0) dispersion = R[0].getDispersion();
 
   //now loop over individuals
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
@@ -606,14 +608,18 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 
   int Populations = options->getPopulations();
+
   vector<double> lambda;
   vector<const double*> beta;
-  for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-    lambda.push_back( R[i].getlambda());
-    beta.push_back( R[i].getbeta());
-  }
   double dispersion = 0.0; 
-  if(options->getNumberOfOutcomes()>0) dispersion = R[0].getDispersion();
+  if(worker_rank==(int)size || (worker_rank==0 && NumWorkers==1)){//master only
+    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+      lambda.push_back( R[i].getlambda());
+      beta.push_back( R[i].getbeta());
+    }
+    if(options->getNumberOfOutcomes()>0) dispersion = R[0].getDispersion();
+  }
+
   // ** Test Individuals
   // these are updated completely here as they contribute nothing to the score tests or update of allele freqs
   // ---------------------------------------------------------------------------------------------
@@ -1051,6 +1057,7 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
   double LogLikHMM = 0.0;
   double LogLikRegression = 0.0;
   double Energy = 0.0;
+  int global_rank = 0;
   // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
   for(unsigned i = worker_rank; i < size; i+= NumWorkers) {
     LogLikHMM += _child[i]->getLogLikelihood(options, false, !annealed); // store result if not an annealed run
@@ -1065,9 +1072,11 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
   workers_and_master.Barrier();
   workers_and_master.Reduce(&LogLikHMM, &globalLogLikHMM, 1, MPI::DOUBLE, MPI::SUM, 0);
   LogLikHMM = globalLogLikHMM;
+  global_rank = MPI::COMM_WORLD.Get_rank();
 #endif
   // get regression log-likelihood 
-  for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c].getLogLikelihood(this);
+  if(global_rank==0)
+    for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c].getLogLikelihood(this);
   Energy = -(LogLikHMM + LogLikRegression);
   return Energy;
 } 
