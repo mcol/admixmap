@@ -40,8 +40,13 @@ public:
   Regression();
    ~Regression();
   void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
+  void Initialise(unsigned Number, const IndividualCollection* const individuals);
   void SetExpectedY(IndividualCollection* IC)const;
-  void Update(bool sumbeta, IndividualCollection* individuals, double coolness);
+  void Update(bool sumbeta, IndividualCollection* individuals, double coolness
+#ifdef PARALLEL
+			, MPI::Intracomm &Comm
+#endif
+);
   static void OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			     const std::string *PopulationLabels, LogWriter &Log);  
   static void InitializeOutputFile(const AdmixOptions* const , const IndividualCollection* const individuals, 

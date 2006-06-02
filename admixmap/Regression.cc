@@ -46,10 +46,12 @@ Regression::Regression(){
 
 Regression::~Regression(){
   if(RegType == Logistic){
-    for(int i = 0; i < NumCovariates; i++){
-      delete BetaDrawArray[i];
+    if(BetaDrawArray){
+      for(int i = 0; i < NumCovariates; i++){
+	delete BetaDrawArray[i];
+      }
+      delete[] BetaDrawArray;
     }
-    delete[] BetaDrawArray;
     delete[] dims;
   }
   delete[] XtY;
@@ -108,6 +110,19 @@ void Regression::InitializeOutputFile(const AdmixOptions* const options, const I
       }
     }
   outputstream << endl;
+}
+
+void Regression::Initialise(unsigned Number, const IndividualCollection* const individuals){
+  //set regression number for this object
+  RegNumber = Number;
+  
+  //determine regression type
+  if( individuals->getOutcomeType(RegNumber)== Binary ) RegType = Logistic;
+  else if( individuals->getOutcomeType(RegNumber)== Continuous )RegType = Linear;
+  // ** Objects common to both regression types
+  NumCovariates = individuals->GetNumCovariates();
+  beta = new double[ NumCovariates ];
+  lambda = 1.0; 
 }
 
 void Regression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
@@ -212,7 +227,14 @@ void Regression::SetExpectedY(IndividualCollection *IC)const{
   IC->SetExpectedY(RegNumber, beta);
 }
 
-void Regression::Update(bool sumbeta, IndividualCollection* individuals, double coolness){
+void Regression::Update(bool sumbeta, IndividualCollection* individuals, double coolness
+#ifdef PARALLEL
+			, MPI::Intracomm &Comm){
+  if(Comm.Get_rank() == 0){
+#else 
+  ){
+#endif
+
   // Sample for regression model parameters beta
   //and precision in linear regression
   std::vector<double> Outcome = individuals->getOutcome(RegNumber);
@@ -243,6 +265,14 @@ void Regression::Update(bool sumbeta, IndividualCollection* individuals, double 
       acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ), &BetaParameters );
     }
   }
+#ifdef PARALLEL
+  }
+  //broadcast parameters to workers
+  Comm.Barrier();
+  Comm.Bcast(beta, NumCovariates, MPI::DOUBLE, 0);
+  if(RegType == Linear)Comm.Bcast(&lambda, 1, MPI::DOUBLE, 0);
+#endif
+
   individuals->SetExpectedY(RegNumber,beta);
 
   if(sumbeta){
