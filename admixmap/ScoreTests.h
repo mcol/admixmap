@@ -25,6 +25,9 @@ public:
 
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
 		  const std::string *, LogWriter &);
+#ifdef PARALLEL
+  void SetComm(const MPI::Intracomm* c, const std::vector<std::string>* locuslabels);
+#endif
 
   void InitialiseAssocScoreFile(const std::string *);
 
@@ -91,6 +94,9 @@ private:
   double* recvresalleleinfo;
   int dimresallelescore, dimresalleleinfo;
   int dimallelescore, dimalleleinfo, dimhapscore, dimhapinfo;
+
+  const std::vector<std::string> * LocusLabels;
+  const MPI::Intracomm * Comm;//pointer to the workers_and_master communicator in admixmap.cc
 #endif
 
   std::ofstream assocscorestream;
@@ -105,7 +111,7 @@ private:
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
-  int rank, NumProcs;
+  int rank, worker_rank, NumWorkers;
 
 //OUTPUT
   void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);

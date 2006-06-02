@@ -60,8 +60,12 @@ ScoreTests::ScoreTests(){
   options = 0;
   individuals = 0;
   rank = 0;
-  NumProcs = 1;
+  worker_rank = 0;
+  NumWorkers = 1;
   dim_ = 0;
+#ifdef PARALLEL
+  Comm = 0;
+#endif
 }
 
 ScoreTests::~ScoreTests(){
@@ -172,19 +176,24 @@ ScoreTests::~ScoreTests(){
 void ScoreTests::DeleteScores(){
 }
 
-void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
-			    const std::string *PLabels,
-			    LogWriter &Log){
 #ifdef PARALLEL
-  rank = MPI::COMM_WORLD.Get_rank();
-  NumProcs = MPI::COMM_WORLD.Get_size();
+void ScoreTests::SetComm(const MPI::Intracomm* c, const std::vector<std::string>* locuslabels){
+  Comm = c;
+  rank = Comm->Get_rank();
+  worker_rank = rank - 1;
+  NumWorkers = Comm->Get_size()-1;
+  LocusLabels = locuslabels;
+}
 #endif
 
+void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
+			    const std::string *PLabels, LogWriter &Log){
   options = op;
   individuals = indiv;
   chrm = Loci->getChromosomes();
   Lociptr = Loci;
   Log.setDisplayMode(Quiet);
+  if(worker_rank==-1) worker_rank =indiv->getSize();//to stop master iterating through individuals
 
   int K = options->getPopulations();
   int L = Lociptr->GetNumberOfCompositeLoci();
@@ -285,18 +294,16 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     }
 
     if(!options->getHapMixModelIndicator()){
-      int NumProcs = 1;
 #ifdef PARALLEL
       int* temp = new int[L];
       dimallelescore = 0, dimalleleinfo = 0, dimhapscore = 0, dimhapinfo = 0;
-      NumProcs = MPI::COMM_WORLD.Get_size();
 #endif
       locusObsIndicator = new int[L];
       
       //search for loci with no observed genotypes
       for(int j = 0; j < L; ++j){
 	locusObsIndicator[j] = false;
-	for(int i = rank; i < indiv->getSize(); i+= NumProcs){
+	for(int i = worker_rank; i < indiv->getSize(); i+= NumWorkers){
 	  if(!indiv->getIndividual(i)->GenotypeIsMissing(j)){
 	    locusObsIndicator[j] = true;
 	  }
@@ -305,22 +312,28 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     
 #ifdef PARALLEL
       //accumulate over individuals (processes)
-      MPI::COMM_WORLD.Barrier();
-      MPI::COMM_WORLD.Allreduce(locusObsIndicator, temp, L, MPI::INT, MPI::SUM);
+      Comm->Barrier();
+      Comm->Allreduce(locusObsIndicator, temp, L, MPI::INT, MPI::SUM);
       delete[] locusObsIndicator;
       locusObsIndicator = temp;
 #endif
     }    
     unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
     for( int j = 0; j < L; j++ ){
+#ifdef PARALLEL
+      int NumberOfStates = 2;
+      int NumberOfLoci = 1;
+#else
+      int NumberOfStates = (*Lociptr)(j)->GetNumberOfStates();
       int NumberOfLoci = (*Lociptr)(j)->GetNumberOfLoci();
+#endif
       
       if(NumberOfLoci > 1 )//haplotype
 	dim_[j] = 1;
-      else if((*Lociptr)(j)->GetNumberOfStates() == 2 )//simple diallelic locus
+      else if(NumberOfStates == 2 )//simple diallelic locus
 	dim_[j] = 1;
       else
-	dim_[j] = (*Lociptr)(j)->GetNumberOfStates();//simple multiallelic locus
+	dim_[j] = NumberOfStates;//simple multiallelic locus
 #ifdef PARALLEL
       dimallelescore += dim_[j] + NumCovars;
       dimalleleinfo += (dim_[j] + NumCovars) * (dim_[j] + NumCovars);
@@ -419,11 +432,13 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
       ResAllelicAssocInfo[j] = new double*[NumberOfLoci-1];
 
       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
-	int locus = chrm[j]->GetLocus(k);
-	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
 #ifdef PARALLEL
+	unsigned dim = 1;
 	dimresallelescore += dim;
 	dimresalleleinfo += dim*dim;
+#else
+	int locus = chrm[j]->GetLocus(k);
+	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
 #endif
 	if(rank==0){
 	  SumResAllelicAssocScore[j][k] = new double[dim];
@@ -495,19 +510,25 @@ void ScoreTests::Reset(){
       fill(LocusLinkageAlleleScore[j], LocusLinkageAlleleScore[j]+dim_[j]+K, 0.0);
       fill(LocusLinkageAlleleInfo[j], LocusLinkageAlleleInfo[j]+(dim_[j]+K)*(dim_[j]+K), 0.0);
 	    
+#ifndef PARALLEL
       if((* Lociptr)(j)->GetNumberOfLoci() > 1 ){
 	for(int jj = 0; jj < (* Lociptr)(j)->GetNumberOfLoci(); ++jj){
 	  fill(ScoreWithinHaplotype[j][jj], ScoreWithinHaplotype[j][jj]+K+1, 0.0);
 	  fill(InfoWithinHaplotype[j][jj], InfoWithinHaplotype[j][jj]+(K+1)*(K+1), 0.0);
 	}
       }
+#endif
     }
   }
   if(options->getTestForResidualAllelicAssoc()){
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
-      for(unsigned k = 0; k < chrm[j]->GetSize()-1; ++k){
+      for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
+#ifdef PARALLEL
+	unsigned dim = 1;
+#else
 	int locus = chrm[j]->GetLocus(k);
 	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
+#endif
 	fill(ResAllelicAssocScore[j][k], ResAllelicAssocScore[j][k]+dim, 0.0);
 	fill(ResAllelicAssocInfo[j][k], ResAllelicAssocInfo[j][k]+dim*dim, 0.0);
       }
@@ -589,11 +610,12 @@ void ScoreTests::Update(double dispersion)
 {
   Reset();//set sums over individuals to zero
   double DInvLink;
-  
+  int NumberOfIndividuals = individuals->getSize();
   //------------------------------------------------------
   // Accumulate Scores over individuals for this iteration
   //------------------------------------------------------
-  for( int i = rank; i < individuals->getSize(); i+=NumProcs ){
+
+    for( int i = worker_rank; i < NumberOfIndividuals; i+=NumWorkers ){
     if(options->getNumberOfOutcomes() > 0){//if regressionmodel
       Individual* ind = individuals->getIndividual(i);
       double YMinusEY = individuals->getOutcome(0, i) - individuals->getExpectedY(i);//individual outcome - its expectation
@@ -607,7 +629,7 @@ void ScoreTests::Update(double dispersion)
       }
       //allelic association
       if( options->getTestForAllelicAssociation() )
-	UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink, missingOutcome);
+	UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
     }
   }
 
@@ -623,9 +645,9 @@ void ScoreTests::Update(double dispersion)
       index2 += (dim_[j] + NumCovars)*(dim_[j] + NumCovars);
     }
     //sum over individuals on master process
-    MPI::COMM_WORLD.Barrier();
-    MPI::COMM_WORLD.Reduce(sendallelescore, recvallelescore, dimallelescore, MPI::DOUBLE, MPI::SUM, 0);
-    MPI::COMM_WORLD.Reduce(sendalleleinfo, recvalleleinfo, dimalleleinfo, MPI::DOUBLE, MPI::SUM, 0);
+    Comm->Barrier();
+    Comm->Reduce(sendallelescore, recvallelescore, dimallelescore, MPI::DOUBLE, MPI::SUM, 0);
+    Comm->Reduce(sendalleleinfo, recvalleleinfo, dimalleleinfo, MPI::DOUBLE, MPI::SUM, 0);
       
     //unpack
     if(rank==0){
@@ -663,22 +685,27 @@ void ScoreTests::Update(double dispersion)
     }
   
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    
+#ifdef PARALLEL
+      const int NumberOfLoci = 1;    
+#else 
+      const int NumberOfLoci = (*Lociptr)(j)->GetNumberOfLoci();
+#endif
+
       /*-------------------------------------
 	| Allelic and haplotype association  |
 	-------------------------------------*/
       try{
 	if( options->getTestForAllelicAssociation() ){
 	  //loop over simple loci within haplotypes
-	  if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){
-	    for( int l = 0; l < (*Lociptr)(j)->GetNumberOfLoci(); l++ ){
+	  if( NumberOfLoci > 1 ){
+	    for( int l = 0; l < NumberOfLoci; l++ ){
 	      CentreAndSum(1, ScoreWithinHaplotype[j][l], InfoWithinHaplotype[j][l], &(SumScoreWithinHaplotype[ j ][ l ]),
 			   &(SumScore2WithinHaplotype[j][l]), &(SumInfoWithinHaplotype[ j ][ l ]));
 	    }
 	  }
 	}
       
-	if((options->getTestForAllelicAssociation() && (*Lociptr)(j)->GetNumberOfLoci() == 1) || options->getTestForHaplotypeAssociation()){
+	if((options->getTestForAllelicAssociation() && NumberOfLoci == 1) || options->getTestForHaplotypeAssociation()){
 	  if(options->getHapMixModelIndicator() || locusObsIndicator[j]){//skip loci with no observed genotypes
 	    CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
 			 SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
@@ -727,7 +754,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
   int locus = 0;
 
   for(unsigned int j = 0; j < Lociptr->GetNumberOfChromosomes(); j++ ){
-    for(unsigned int jj = 0; jj < chrm[j]->GetSize(); jj++ ){
+    for(unsigned int jj = 0; jj < Lociptr->GetSizeOfChromosome(j); jj++ ){
       //skip loci with missing genotypes as hap pairs have not been sampled for these
       bool condition = true;
 
@@ -737,8 +764,14 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
       if(condition){
 	//retrieve sampled hap pair from Individual
 	const int* happair = ind->getSampledHapPair(locus);
+#ifdef PARALLEL
+	const unsigned numStates = 2;
+	const unsigned numLoci = 1;
+#else
 	const unsigned numStates = (*Lociptr)(locus)->GetNumberOfStates();
 	const unsigned numLoci = (*Lociptr)(locus)->GetNumberOfLoci();
+#endif
+
 	
 	// count alleles / haplotypes      
 	vector<int> counts;
@@ -748,7 +781,8 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 	// special case for SNP (counts has size 1)
 	if( numStates == 2 ){
 	  //sets counts to -1, 0 or 1 according to whether happair is 11, 12 or 22
-	  counts.push_back((*Lociptr)(locus)->getAlleleCounts(2, happair)[0] - 1 );
+	  unsigned allele2counts = (happair[0]==2) + (happair[1]==2);
+	  counts.push_back(allele2counts/*(*Lociptr)(locus)->getAlleleCounts(2, happair)[0]*/ - 1 );
 	  
 	  // general case for simple locus (counts has size nStates)
 	} else if(numLoci == 1 ){
@@ -856,18 +890,26 @@ void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info,
 }
 
 void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allelefreqs& AlleleFreqs){
-  for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
-    for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
-      int abslocus = chrm[c]->GetLocus(j);
+  int abslocus = 0;
+  if(worker_rank < individuals->getSize())
+  for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){
+    for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
       UpdateScoresForResidualAllelicAssociation(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
+      ++abslocus;
     }
+    ++abslocus;//for last locus on chrm
+  }
 #ifdef PARALLEL
   //pack score and info into arrays ready to send
   int scoreindex = 0, infoindex = 0;
   for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
-    for(unsigned k = 0; k < chrm[j]->GetSize()-1; ++k){
+    for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
+#ifdef PARALLEL
+      unsigned dim = 1;
+#else
       int locus = chrm[j]->GetLocus(k);
       unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
+#endif
       copy(ResAllelicAssocScore[j][k], ResAllelicAssocScore[j][k]+dim, sendresallelescore+scoreindex);
       copy(ResAllelicAssocInfo[j][k], ResAllelicAssocInfo[j][k]+dim, sendresalleleinfo+infoindex);
       scoreindex += dim;
@@ -875,17 +917,21 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allele
     }
   }
   //reduce into receive arrays on master process
-  MPI::COMM_WORLD.Barrier();
-  MPI::COMM_WORLD.Reduce(sendresallelescore, recvresallelescore, dimresallelescore, MPI::DOUBLE, MPI::SUM, 0);
-  MPI::COMM_WORLD.Reduce(sendresalleleinfo, recvresalleleinfo, dimresalleleinfo, MPI::DOUBLE, MPI::SUM, 0);
+  Comm->Barrier();
+  Comm->Reduce(sendresallelescore, recvresallelescore, dimresallelescore, MPI::DOUBLE, MPI::SUM, 0);
+  Comm->Reduce(sendresalleleinfo, recvresalleleinfo, dimresalleleinfo, MPI::DOUBLE, MPI::SUM, 0);
 
   if(rank==0){
     //accumulate score, square of score and info on master process
     scoreindex = 0; infoindex = 0;
     for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
-      for(unsigned k = 0; k < chrm[c]->GetSize()-1; ++k){
-	int locus = chrm[c]->GetLocus(k);
-	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
+      for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(c)-1; ++k){
+#ifdef PARALLEL
+      unsigned dim = 1;
+#else
+      int locus = chrm[c]->GetLocus(k);
+      unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
+#endif
 	for(unsigned j = 0; j < dim; ++j){
 	  SumResAllelicAssocScore[c][k][j] += recvresallelescore[scoreindex + j];
 	  for(unsigned jj = 0; jj < dim; ++jj){
@@ -901,9 +947,13 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allele
 
   //accumulate score, square of score and info
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
-    for(unsigned k = 0; k < chrm[c]->GetSize()-1; ++k){
+    for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(c)-1; ++k){
       int locus = chrm[c]->GetLocus(k);
+#ifdef PARALLEL
+      unsigned dim = 1;
+#else
       unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
+#endif
       for(unsigned j = 0; j < dim; ++j){
 	SumResAllelicAssocScore[c][k][j] += ResAllelicAssocScore[c][k][j];
 	for(unsigned jj = 0; jj < dim; ++jj){
@@ -923,8 +973,12 @@ int delta(int i, int j){
 void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,  
 							   const double* const AlleleFreqsA, const double* const AlleleFreqsB){
   int abslocus = chrm[c]->GetLocus(locus);//number of this locus
+#ifdef PARALLEL
+  int M = 1, N = 1;
+#else
   int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
   int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
+#endif
   int dim = M*N;
   if(dim == 1)UpdateScoresForResidualAllelicAssociation_1D(c, locus, AlleleFreqsA, AlleleFreqsB);
   else{
@@ -935,7 +989,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,
     int ancA[2];//ancestry at A
     int ancB[2];//ancestry at B
 
-    for(int i = rank; i < individuals->getSize(); i += NumProcs){
+    for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers){
       Individual* ind = individuals->getIndividual(i);
       if(!ind->GenotypeIsMissing(abslocus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
 	ind->GetLocusAncestry(c, locus, ancA);
@@ -977,7 +1031,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,
   int count = 0;
 
   int abslocus = chrm[c]->GetLocus(locus);
-  for(int i = rank; i < individuals->getSize(); i += NumProcs){
+  for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers){
     Individual* ind = individuals->getIndividual(i);
     if(!ind->GenotypeIsMissing(abslocus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
       ind->GetLocusAncestry(c, locus, ancA);
@@ -1020,10 +1074,19 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
     else outfile = &allelicAssocScoreStream;
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
       if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
+#ifdef PARALLEL
+	const int NumberOfLoci = 1;
+	const int NumberOfStates = 2;
+	const string locuslabel = (*LocusLabels)[j];
+#else
+	const int NumberOfLoci = (* Lociptr)(j)->GetNumberOfLoci();
+	const int NumberOfStates = (* Lociptr)(j)->GetNumberOfStates();
+	const string locuslabel = (*Lociptr)(j)->GetLabel(0);
+#endif
 	//case of simple locus
-	if((* Lociptr)(j)->GetNumberOfLoci() == 1 ){
-	  if((* Lociptr)(j)->GetNumberOfStates()==2){//SNP
-	    string locuslabel = (*Lociptr)(j)->GetLabel(0);
+	if( NumberOfLoci == 1 ){
+	  if(NumberOfStates==2)
+	    {//SNP
 	    OutputScalarScoreTest(iterations, outfile, locuslabel,
 				  SumLocusLinkageAlleleScore[j][0], SumLocusLinkageAlleleScore2[j][0], 
 				  SumLocusLinkageAlleleInfo[j][0], final);
@@ -1032,20 +1095,20 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
 	    vector<string> labels;
 	    for(unsigned i = 0; i < dim_[j]; ++i){
 	      stringstream ss;
-	      ss << "\"" << (*Lociptr)(j)->GetLabel(0) << "(" << i+1 << ")\"";
+	      ss << "\"" << locuslabel << "(" << i+1 << ")\"";
 	      labels.push_back(ss.str());
 	    }
 	    OutputScoreTest(iterations, outfile, dim_[j], labels, 
 			    SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
 			    SumLocusLinkageAlleleInfo[j], final, dim_[j]);
 	  }
-	}
+	}//end if simple locus
 	//case of haplotype
 	else{
 	  //for(int i = 0; i < (*Lociptr)(j)->GetNumberOfLoci(); ++i)labels.push_back("\""+(*Lociptr)(j)->GetLabel(i)+"\"");
-	  for(int simplelocus = 0; simplelocus < (*Lociptr)(j)->GetNumberOfLoci(); ++simplelocus){
-	    string locuslabel = (*Lociptr)(j)->GetLabel(simplelocus);
-	    OutputScalarScoreTest(iterations, outfile, locuslabel, SumScoreWithinHaplotype[ j ][simplelocus], 
+	  for(int simplelocus = 0; simplelocus < NumberOfLoci; ++simplelocus){
+	    string simplelocuslabel = (*Lociptr)(j)->GetLabel(simplelocus);
+	    OutputScalarScoreTest(iterations, outfile, simplelocuslabel, SumScoreWithinHaplotype[ j ][simplelocus], 
 				  SumScore2WithinHaplotype[ j ][simplelocus], SumInfoWithinHaplotype[ j ][simplelocus], final);
 	  }
 	}
@@ -1321,11 +1384,19 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
   double *Score = 0, *ObservedInfo = 0;
   string separator = final? "\t" : ",";
 
-  for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
-    for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
-      int abslocus = chrm[c]->GetLocus(j);
+  int abslocus = 0;
+  for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ ){
+    for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
+#ifdef PARALLEL
+      int M = 1, N = 1;
+      const string label1 = (*LocusLabels)[abslocus];
+      const string label2 = (*LocusLabels)[abslocus+1];
+#else
       int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
       int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
+      const string label1 = (*Lociptr)(abslocus)->GetLabel(0);
+      const string label2 = (*Lociptr)(abslocus+1)->GetLabel(0);
+#endif
       int dim = M*N;
       Score = new double[dim];
       ObservedInfo = new double[dim*dim];
@@ -1345,7 +1416,7 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
       }
 
       //output labels
-      *outputstream << "\"" << (*Lociptr)(abslocus)->GetLabel(0) << "/" << (*Lociptr)(abslocus+1)->GetLabel(0) << "\""<< separator;
+      *outputstream << "\"" << label1 << "/" << label2 << "\""<< separator;
       if(final)*outputstream << setiosflags(ios::fixed) << setprecision(3) //output 3 decimal places
 			     << Score[0] << separator << compinfo << separator <<obsinfo << separator;
 
@@ -1380,7 +1451,10 @@ void ScoreTests::OutputTestsForResidualAllelicAssociation(int iterations, ofstre
       }
       delete[] Score;
       delete[] ObservedInfo;
+      ++abslocus;
     }//end loop over loci on chromosome
+    ++abslocus;//for last locus on chromosome
+  }
 }
 
 void ScoreTests::ROutput(){
@@ -1393,8 +1467,13 @@ void ScoreTests::ROutput(){
   if(options->getTestForAllelicAssociation()){
     count = 0;
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
-      if((* Lociptr)(j)->GetNumberOfLoci() == 1 ) count += dim_[j];
-      else count += (*Lociptr)(j)->GetNumberOfLoci();
+#ifdef PARALLEL
+      const int NumberOfLoci = 1;
+#else
+      const int NumberOfLoci = (* Lociptr)(j)->GetNumberOfLoci();
+#endif
+      if( NumberOfLoci == 1 ) count += dim_[j];
+      else count += NumberOfLoci;
     }         
     vector<int> dimensions(3,0);
     dimensions[0] = 2;
