@@ -108,7 +108,7 @@ void MisSpecAlleleFreqTest::Initialise(const AdmixOptions* const options, const 
        throw(error_string);
      }
      Log << "Writing score tests for mis-specified allele frequencies(1) to " << options->getAlleleFreqScoreFilename() << "\n";
-     allelefreqscorestream << "Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tChiSquared\tPValue"<< endl;
+     allelefreqscorestream << "Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tStdNormal\tPValue\tChiSquared"<< endl;
    }
 
    if(Test2){
