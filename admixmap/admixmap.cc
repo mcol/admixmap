@@ -484,7 +484,7 @@ int main( int argc , char** argv ){
     Log << "\n" << msg << "\n Exiting...\n";
     Log.ProcessingTime();
 #ifdef PARALLEL//print error message to screen as only master is allowed write with LogWriter
-    cerr << "rank " << rank << ": " << msg << endl;
+    if(rank>0)cerr << "rank " << rank << ": " << msg << endl;
     MPI::COMM_WORLD.Abort(1);
 #else
     exit(1);
