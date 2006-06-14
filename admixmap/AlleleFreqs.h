@@ -82,7 +82,10 @@ typedef struct{
   void dealloc(int L){
     if(array){
       for(int i = L-1; i >=0 ; --i)
-	if(array[i])delete[] array[i];
+	if(array[i]){
+	  delete[] array[i];
+	  array[i] = 0;
+	}
       delete[] array;
       array = 0;
     }
@@ -198,9 +201,15 @@ private:
 #ifdef PARALLEL
   int* globalAlleleCounts;
   int* globalHetCounts;
+  double * globalFreqs;
+  int startlocus;
+  int* LociCounts;
+  int* displs;
   //MPI_Aint stride;//stride of Freqs array for datatype definition
   //MPI::Datatype AlleleFreqArrayType;//datatype for a 2d array
 #endif
+  int worker_rank;
+  int NumWorkers;
 
   double **HistoricAlleleCounts;
   double **PriorAlleleFreqs;

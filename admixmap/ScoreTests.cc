@@ -771,7 +771,6 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 	const unsigned numStates = (*Lociptr)(locus)->GetNumberOfStates();
 	const unsigned numLoci = (*Lociptr)(locus)->GetNumberOfLoci();
 #endif
-
 	
 	// count alleles / haplotypes      
 	vector<int> counts;
@@ -782,7 +781,7 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 	if( numStates == 2 ){
 	  //sets counts to -1, 0 or 1 according to whether happair is 00, 01 or 11 (ie alleles 11, 12 or 22)
 	  unsigned allele2counts = (happair[0]==1) + (happair[1]==1);
-	  //unsigned a2c = (*Lociptr)(locus)->getAlleleCounts(2, happair)[0];
+	  // (*Lociptr)(locus)->getAlleleCounts(2, happair)[0];
 	  counts.push_back( allele2counts );
 	  
 	  // general case for simple locus (counts has size nStates)
