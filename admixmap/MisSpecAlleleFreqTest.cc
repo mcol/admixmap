@@ -160,6 +160,7 @@ void MisSpecifiedAlleleFreqTest::Reset(){
 
 void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci){
 
+  Reset();
   if( test ) {
     double** phi = alloc2D_d(Populations, Populations);
     for( int i = 0; i < individuals->getSize(); i++ ){
