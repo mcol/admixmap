@@ -26,7 +26,61 @@
 #include "Genome.h"
 #include "AdmixOptions.h"
 #include "LogWriter.h"
+#include "ScoreTestBase.h"
 
+//a scalar test for SNPs only
+class MisSpecifiedAlleleFreqTest : public ScoreTestBase{
+public:
+  MisSpecifiedAlleleFreqTest();
+  ~MisSpecifiedAlleleFreqTest();
+
+  void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
+  void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
+  void Output(int iteration, const Genome* const Loci, const std::string* const PopLabels);
+  void Reset();
+  
+private:
+  double **Score;
+  double **Info;
+  double **SumScore;
+  double **SumScoreSq;
+  double **SumInfo;
+  int NumTestLoci;     //number of comp loci with a single locus ie those used in scalar score test for misspecified allelefreqs
+   int NumCompLoci; //number of composite loci
+  int Populations;           //number of populations
+  
+  void UpdateLocus(int j, const double* const* phi, int NumCopiesAllele1,
+		   const double* const AlleleFreqs, int NumStates);
+  
+};
+
+//a vector test, not fully tested
+class MisSpecifiedAlleleFreqTest2: public ScoreTestBase{
+public:
+  MisSpecifiedAlleleFreqTest2();
+  ~MisSpecifiedAlleleFreqTest2();
+  
+  void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
+  void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
+  void Output(int iteration, const Genome* const Loci, const std::string* const PopLabels);
+  void Reset(){};
+
+private:
+  int NumCompLoci; //number of composite loci
+  int Populations;           //number of populations
+
+  double ***SumScore;
+  double ***SumScoreSq;
+  double ***SumInfo;
+
+  void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, const double* const AlleleFreqs, 
+					   const IndividualCollection* const individuals);
+
+  void OutputTestsForMisSpecifiedAlleleFreqs2( int samples, const Genome* const Loci, const std::string* const PopLabels);
+
+};
+
+// a container class for the tests
 class MisSpecAlleleFreqTest{
 
 public:
@@ -38,33 +92,12 @@ public:
   void Output(int iteration, const Genome* const Loci, const std::string* const PopLabels);
 
 private:
-  bool Test1, Test2;//indicators for the two tests
+  bool doTest1, doTest2;//indicators for the two tests
 
-  double **ScoreGene;
-  double **InfoGene;
-  double **SumScoreGene;
-  double **SumScoreGeneSq;
-  double **SumInfoGene;
-  int NumTestLoci;     //number of comp loci with a single locus ie those used in scalar score test for misspecified allelefreqs
-  int NumCompLoci; //number of composite loci
-  int Populations;           //number of populations
-
-  double ***SumNewScore;
-  double ***SumNewScoreSq;
-  double ***SumNewInfo;
-  int dim;
-
-  std::ofstream allelefreqscorestream;
-  std::ofstream allelefreqscorestream2;
-
-  void UpdateScoreForMisSpecOfAlleleFreqs(int j, const double* const* phi, int NumCopiesAllele1,
-					  const double* const AlleleFreqs, int NumStates);
-  void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, const double* const AlleleFreqs, 
-					   const IndividualCollection* const individuals);
-
-  void OutputTestsForMisSpecifiedAlleleFreqs( int, const Genome* const Loci, const std::string* const PopLabels);
-  void OutputTestsForMisSpecifiedAlleleFreqs2( int samples, const Genome* const Loci, const std::string* const PopLabels);
+  MisSpecifiedAlleleFreqTest Test1;
+  MisSpecifiedAlleleFreqTest2 Test2;
 
 };
 
 #endif
+
