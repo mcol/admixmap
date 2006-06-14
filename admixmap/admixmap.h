@@ -1,3 +1,4 @@
+// *-*-C++-*-*
 /** 
  *   ADMIXMAP
  *   admixmap.h 
@@ -10,7 +11,6 @@
  * See the file COPYING for details.
  * 
  */
-// *-*-C++-*-*
 #ifndef ADMIXMAP_H
 #define ADMIXMAP_H 1
 
@@ -33,9 +33,9 @@
 #include "HWTest.h"
 
 #ifdef PARALLEL
-#define ADMIXMAP_VERSION "3.2 (Parallel)"
+#define ADMIXMAP_VERSION "3.3 (Parallel)"
 #else
-#define ADMIXMAP_VERSION "3.2 (Serial)"
+#define ADMIXMAP_VERSION "3.3"
 #endif
 
 #endif /* ADMIXMAP_H */
