@@ -414,32 +414,38 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
 #ifdef PARALLEL
     MPE_Log_event(9, 0, "sampleRho");
 #endif
-    for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-      ++locus;//skip first locus on each chromosome
-      for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
-	RhoArgs.sumrho -= rho[locus];
-	rho[locus] = log(rho[locus]);//sampler is on log scale
-	RhoArgs.Distance = Loci->GetDistance(locus);//distance between this locus and last
-	RhoArgs.SumAncestry = SumAncestry + locus*2;//sums of ancestry for this locus
-	
-	//cout << index << " " << RhoSampler[index].getAcceptanceRate() << " " << RhoSampler[index].getStepsize()<< endl;
-	RhoArgs.sumlogrho -= rho[locus];
-	//cout << "sumrho = " << RhoArgs.sumrho << ", sumlogrho = " << RhoArgs.sumlogrho <<endl;
-	//sample new value
-	RhoSampler[index++].Sample(&(rho[locus]), &RhoArgs);
-	//update sums of log rho
-	RhoArgs.sumlogrho += rho[locus];
-	//accumulate sums of log of rho
-	if(sumlogrho)
-	  SumLogRho[locus]+= rho[locus];
-	//take exponents of logrho
-	rho[locus] = exp(rho[locus]);
-	//update sumrho
-	RhoArgs.sumrho += rho[locus];
-	//accumulate sums, used to sample rhobeta
-	//sum += rho[locus];
-	++locus;
+    try{
+      for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+	++locus;//skip first locus on each chromosome
+	for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+	  RhoArgs.sumrho -= rho[locus];
+	  rho[locus] = log(rho[locus]);//sampler is on log scale
+	  RhoArgs.Distance = Loci->GetDistance(locus);//distance between this locus and last
+	  RhoArgs.SumAncestry = SumAncestry + locus*2;//sums of ancestry for this locus
+	  
+	  //cout << index << " " << RhoSampler[index].getAcceptanceRate() << " " << RhoSampler[index].getStepsize()<< endl;
+	  RhoArgs.sumlogrho -= rho[locus];
+	  //cout << "sumrho = " << RhoArgs.sumrho << ", sumlogrho = " << RhoArgs.sumlogrho <<endl;
+	  //sample new value
+	  RhoSampler[index++].Sample(&(rho[locus]), &RhoArgs);
+	  //update sums of log rho
+	  RhoArgs.sumlogrho += rho[locus];
+	  //accumulate sums of log of rho
+	  if(sumlogrho)
+	    SumLogRho[locus]+= rho[locus];
+	  //take exponents of logrho
+	  rho[locus] = exp(rho[locus]);
+	  //update sumrho
+	  RhoArgs.sumrho += rho[locus];
+	  //accumulate sums, used to sample rhobeta
+	  //sum += rho[locus];
+	  ++locus;
+	}
       }
+    }
+    catch(string s){
+      string err = "Error encountered while sampling sumintensities:\n" + s;
+      throw(err);
     }
 #ifdef PARALLEL
     MPE_Log_event(10, 0, "sampledRho");
@@ -470,7 +476,14 @@ if(rank!=0)
     
     //sample prior params, rhoalpha, rhobeta0 and rhobeta1
     double logparams[3] = {log(rhoalpha), log(rhobeta0), log(rhobeta1)};
-    RhoPriorParamSampler.Sample(logparams, &RhoArgs);
+    try{
+      RhoPriorParamSampler.Sample(logparams, &RhoArgs);
+    }
+    catch(string s){
+      string err = "Error encountered while sampling sumintensities prior params:\n" + s;
+      throw(err);
+    }
+    
     rhoalpha = exp(logparams[0]);
     rhobeta0 = exp(logparams[1]);
     rhobeta1 = exp(logparams[2]);
@@ -491,7 +504,11 @@ double Latent::RhoEnergy(const double* const x, const void* const vargs){
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   double rho = exp(*x);
   status = gsl_sf_exp_e(-d*rho, &result);
-  if(status)throw string("exp error in RhoEnergy");
+  if(status){
+    stringstream s;
+    s << "exp error in RhoEnergy: " << -d*rho << ":  " << gsl_strerror(status); 
+    throw s.str();
+  }
   double f = result.val;
   
   int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
@@ -525,7 +542,9 @@ void Latent::RhoGradient( const double* const x, const void* const vargs, double
   status = gsl_sf_exp_e(-d*rho, &result);
   gsl_set_error_handler (old_handler);//restore gsl error handler 
   if(status){
-    throw string("exp error in RhoGradient");
+    stringstream s;
+    s << "exp error in RhoGradient: " << -d*rho << ":  " << gsl_strerror(status); 
+    throw s.str();
   }
   double f = result.val;
   //first compute dE / df
