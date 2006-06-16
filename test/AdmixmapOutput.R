@@ -494,8 +494,12 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
       point.list <- qqnorm(zscores[k,], main = title, sub=poplabels[k])
       lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T),
                                                                            max(point.list$x,na.rm=T)))
-    }
-  }
+    }    ## write posterior means of allele freqs to file
+    writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
+                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
+  }    ## write posterior means of allele freqs to file
+    writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
+                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
   dev.off()
 }
 
@@ -610,31 +614,36 @@ ExtraScoreTests <- function(testgenotypesfile, outcomevarfile, expectedoutcomefi
   
   dimnames(scoretable)[[1]] <- dimnames(testvars)[[2]]
   dimnames(scoretable)[[2]] <- c("score", "complete.info", "observed.info", "z")
-  print(scoretable)
+  #print(scoretable)
   write.table(scoretable, file=paste(resultsdir, "ExtraScoreTests.txt", sep="/"), sep="\t")
 }
 
 convertAlleleFreqs <- function(allelefreq.samples) {
+  ## drop first row containing locus names
+  converted <- allelefreq.samples[-1,,]
+  ## if this is a 2-way array (single population), rearrange as 3-way array
+  if(length(dim(converted))==2) {
+    converted <- array(as.numeric(converted), dim=c(1, dim(converted)))
+  }
+  ## permute so that dimension 1 is alleles x loci, dimension 2 is pops, dimension 3 is draws
+  converted <- aperm(converted, c(2,1,3))
+  ## convert array to numeric
+  converted <- array(as.numeric(converted), dim=dim(converted),
+                              dimnames=dimnames(converted))
+  return(converted)
+} 
+
+listAlleleFreqs <- function(allelefreq.samples) {
   ## argument is a 3-way array of allele frequencies (locusname + pops, alleles x loci, draws)
   ## converts to a list of 3-way arrays each holding alleles x pops x draws for one locus
   ## dimension 1 of each array is number of alleles minus 1 
   ## extract vector of locus names
+  converted.samples <- convertAlleleFreqs(allelefreq.samples)
   draws <- dim(allelefreq.samples)[3]
   locusnames <- allelefreq.samples[1, , 1]
-  loci.compound <- unique(locusnames) ## vector of names of compound loci 
   ## generate vector with locusnames coded as levels of a factor
-  row.locusnumber <- match(locusnames, loci.compound)
-  ## drop first row containing locus names
-  allelefreq.samples <- allelefreq.samples[-1,,]
-  ## if this is a 2-way array (single population), rearrange as 3-way array
-  if(length(dim(allelefreq.samples))==2) {
-    allelefreq.samples <- array(as.numeric(allelefreq.samples), dim=c(1, dim(allelefreq.samples)))
-  }
-  ## permute so that dimension 1 is alleles x loci, dimension 2 is pops, dimension 3 is draws
-  allelefreq.samples <- aperm(allelefreq.samples, c(2,1,3))
-  ## convert array to numeric
-  allelefreq.samples <- array(as.numeric(allelefreq.samples), dim=dim(allelefreq.samples),
-                              dimnames=dimnames(allelefreq.samples))
+  row.locusnumber <- match(locusnames, unique(locusnames))
+  
   ## generate list holding 3-way arrays (alleles-1 x pops x draws) of allele freqs at each locus
   allelefreq.samples.list <- list()
   ## loop over loci
@@ -644,7 +653,7 @@ convertAlleleFreqs <- function(allelefreq.samples) {
     ## lastrow is position in dimension 1 of last allele (but one) at j th locus
     lastrow <- length(row.locusnumber) + 1 - match(j, rev(row.locusnumber))
     ## freqarray should always be 3-way array even if diallelic locus or single population 
-    freqarray <- allelefreq.samples[firstrow:lastrow, , ,drop=FALSE]
+    freqarray <- converted.samples[firstrow:lastrow, , ,drop=FALSE]
     ##if(is.vector(freqarray)) { 
       ##freqarray <- array(freqarray, dim=c(1, 1, draws))
     ##} else {
@@ -749,33 +758,39 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
   allelefreq.params.list  <- list()
   allelefreq.sumalphas <- matrix(data=NA, nrow=length(allelefreq.means.list), ncol=k)
   for(locus in 1:length(allelefreq.means.list)) {
-    for(pop in 1:k) {
-      p <- allelefreq.means.list[[locus]][[pop]]#[-1]
-      v <- allelefreq.covs.list[[locus]][[pop]] #[-1,-1]
-      if(length(p)==2) {
-        factor <- p[1]*(1 - p[1])/v[1,1]
-      } else {
-        covar.predicted <- matrix(data=NA, nrow=length(p), ncol=length(p))
-        for(i in 1:length(p)) {
-          for(j in 1:length(p)) {
-            ## predicted covariance if sum.alphas = 0
-            covar.predicted[i,j] <- ifelse(i==j, p[i]*(1-p[i]), p[i]*p[j])
+    allelefreq.params.list[[locus]] <- list()
+    for(pop in 1:k){
+        p <- allelefreq.means.list[[locus]][[pop]]#[-1]
+        v <- allelefreq.covs.list[[locus]][[pop]] #[-1,-1]
+
+      if(sum(v)>0){
+        if(length(p)==2) {#diallelic locus
+          factor <- p[1]*(1 - p[1])/v[1,1]
+        } else {
+          covar.predicted <- matrix(data=NA, nrow=length(p), ncol=length(p))
+          for(i in 1:length(p)) {
+            for(j in 1:length(p)) {
+              ## predicted covariance if sum.alphas = 0
+              covar.predicted[i,j] <- ifelse(i==j, p[i]*(1-p[i]), p[i]*p[j])
+            }
           }
+          d.predicted <- sum(diag(covar.predicted))##det(covar.predicted)
+          d.observed <- sum(diag(v))##det(v)
+          factor <- (d.predicted/d.observed)##^(1/length(p))
         }
-        d.predicted <- sum(diag(covar.predicted))##det(covar.predicted)
-        d.observed <- sum(diag(v))##det(v)
-        factor <- (d.predicted/d.observed)##^(1/length(p))
-        }
-      if(pop==1) { # create matrix of allele freqs: rows index alleles, cols index populations  
-        allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=length(p), ncol=k,
-                                                  dimnames=dimnames(allelefreq.means.list[[locus]][-1]))
-                                                  #list(character(0), population.labels))
+##        if(pop==1) { # create matrix of allele freqs: rows index alleles, cols index populations  
+##          allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=length(p), ncol=k,
+##                                                    dimnames=dimnames(allelefreq.means.list[[locus]][-1]))
+##                                        #list(character(0), population.labels))
+##        }
+        allelefreq.sumalphas[locus,pop] <- factor - 1
+        allelefreq.params.list[[locus]][[pop]] <-
+          allelefreq.sumalphas[locus,pop]*allelefreq.means.list[[locus]][[pop]] 
+      }else{
+        allelefreq.params.list[[locus]][[pop]] <-allelefreq.means.list[[locus]][[pop]]
       }
-      allelefreq.sumalphas[locus,pop] <- factor - 1
-      allelefreq.params.list[[locus]][,pop] <-
-        allelefreq.sumalphas[locus,pop]*allelefreq.means.list[[locus]][[pop]] 
-    }
-  }
+    }##end pop loop
+  }## end locus loop
   return(allelefreq.params.list)
 }
 
@@ -788,7 +803,11 @@ writeAlleleFreqs <- function(allelefreq.params.list, k, loci.compound, populatio
   for(locus in 1:length(allelefreq.params.list)) {
     allelefreq.params.names <- c(allelefreq.params.names,
                                  rep(as.vector(loci.compound[locus, 1]), loci.compound[locus, 2]))
-    allelefreq.params <- rbind(allelefreq.params, allelefreq.params.list[[locus]])
+
+    freqs.atlocus <- numeric(0)
+    for(j in 1: length(allelefreq.params.list[[locus]]))
+      freqs.atlocus <- cbind(freqs.atlocus, allelefreq.params.list[[locus]][[j]])
+    allelefreq.params <- rbind(allelefreq.params, freqs.atlocus)
   }
   allelefreq.params <- data.frame(allelefreq.params.names,
                                   round(allelefreq.params,digits=2),
@@ -1059,7 +1078,7 @@ if(K == 1) {
       alphas <- post.quantiles[1:K, 1]
     } else {
       if(!is.null(user.options$admixtureprior)) {
-        alphas <- AdmixturePrior[1, ]
+        alphas <- AdmixturePrior[1,]
       } else alphas <- rep(1, K)
     }
   }
@@ -1141,7 +1160,8 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
   } else {
     ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
     print.default("Converting allele frequency samples array to list")
-    allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
+    allelefreq.samples.list <- listAlleleFreqs(allelefreq.samples)
+    ##allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
     
     ## calculate posterior means of sampled fvalues at each locus
     if(K > 1) { 
@@ -1172,6 +1192,11 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
     freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
     allelefreq.means.list <- freqMeansCovs[[1]]
     allelefreq.covs.list <- freqMeansCovs[[2]]
+
+    ## write posterior means of allele freqs to file
+    writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
+                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
+    
     ## fit Dirichlet parameters by equating posterior means and variances
     allelefreq.params.list <- fitDirichletParams(allelefreq.means.list, allelefreq.covs.list) 
     
@@ -1182,14 +1207,7 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
     writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
                      paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
     
-    ## write posterior means of allele freqs to file
-    allelefreq.means.matrix.list <- list()
-    for(locus in 1:length(allelefreq.params.list)) {
-      allelefreq.means.matrix.list[[locus]] <-
-        allelefreq.params.list[[locus]]/colSums(allelefreq.params.list[[locus]])
-    }
-    writeAlleleFreqs(allelefreq.means.matrix.list, K, loci.compound, population.labels,
-                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
+
   }
 }
 
