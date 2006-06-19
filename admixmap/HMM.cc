@@ -418,14 +418,12 @@ void HMM::RecursionProbs(const double ff, const double f2[2], const double* cons
     for( int j0 = 0; j0 <  K; ++j0 ) {
       Expectation0[j0] = f2[0]*rowProb[j0] + stateArrivalProbs[j0*2];
       Expectation1[j0] = f2[1]*colProb[j0] + stateArrivalProbs[j0*2 + 1];
-      for(int j1 =0; j1 < K; ++j1) { // leave out last col
-	cov[j0*K + j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
-      }
     }
 
     // calculate expectation of product as covariance plus product of expectations
     for(int j0 = 0; j0 < K; ++j0) {
       for(int j1 =0; j1 < K; ++j1) {
+	cov[j0*K + j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
 	newProbs[j0*K + j1] = cov[j0*K + j1] + Expectation0[j0] * Expectation1[j1];
 	// newProbs[1] is prob(paternal=1, maternal=0)
       }
