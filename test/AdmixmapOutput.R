@@ -647,7 +647,7 @@ listAlleleFreqs <- function(allelefreq.samples) {
   ## generate list holding 3-way arrays (alleles-1 x pops x draws) of allele freqs at each locus
   allelefreq.samples.list <- list()
   ## loop over loci
-  for(j in 1:length(loci.compound)) {
+  for(j in 1:nrow(loci.compound)) {
     ## firstrow is position in dimension 1 of first allele at j th locus 
     firstrow <- match(j, row.locusnumber)
     ## lastrow is position in dimension 1 of last allele (but one) at j th locus
@@ -944,7 +944,7 @@ options(echo=TRUE)
 graphics.off()
 ps.options(pointsize=16)
 
-## read table of user options written by Perl script
+## read table of user options
 user.options <- getUserOptions(paste(resultsdir, "args.txt", sep="/"))
 
 ## read table of loci and calculate map positions
