@@ -45,7 +45,7 @@ class AlleleFreqSampler{
 public:
   AlleleFreqSampler();
   ~AlleleFreqSampler();
-  AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const double* const Prior);
+  AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const double* const Prior, bool);
   void SampleAlleleFreqs(double *phi, IndividualCollection* IC, unsigned locus, 
 			 unsigned NumStates, unsigned NumPops, double coolness);
   void SampleSNPFreqs(double *phi, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
@@ -56,6 +56,7 @@ private:
   HamiltonianMonteCarlo Sampler;
   AlleleFreqArgs Args;
   double* params;
+  static bool ishapmixmodel;
 
   static double logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumPops);
   static double logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates);

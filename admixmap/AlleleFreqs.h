@@ -182,7 +182,11 @@ public:
   float getAlphaSamplerStepsize(int)const;
   float getEtaSamplerAcceptanceRate(int)const;
   float getEtaSamplerStepsize(int)const;
+  float getHapMixPriorSamplerAcceptanceRate()const;
+  float getHapMixPriorSamplerStepSize()const;
 
+  double getHapMixPriorRate()const{return HapMixPriorRate;};
+  //double getSumLambda const{return SumLambda;};
 private:
   int Populations, NumberOfCompositeLoci;
   double *eta; //dispersion parameter
@@ -213,8 +217,15 @@ private:
 
   double **HistoricAlleleCounts;
   double **PriorAlleleFreqs;
+  double* HapMixPriorParams;//params of Dirichlet prior on frequencies
+  double HapMixPriorShape;//params of Gamma prior on Dirichlet params
+  double HapMixPriorRate;//
+  double HapMixPriorRatePriorShape;// params of Gamma Prior on params of Gamma prior on params of Dirichlet prior on freqs
+  double HapMixPriorRatePriorRate;
+  double SumLambda;// cumulative sum of HapMixPriorRatePriorRate
 
   std::vector<AlleleFreqSampler*> FreqSampler;
+  StepSizeTuner* HapMixPriorParamSampler;
 
   bool calculateFST;
   double** Fst;
@@ -247,8 +258,10 @@ private:
   void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
   void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
-  void SetDefaultAlleleFreqs(int i, double defaultpriorparams);
+  void SetDefaultAlleleFreqs(int i);
+  void SetDefaultPriorParams(int i, double defaultpriorparams);
 
+  void SampleHapMixPriorParams();
   void SampleDirichletParams1D( int );
   void SampleDirichletParamsMultiDim( int);
   void SampleDirichletParams();

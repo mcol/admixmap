@@ -16,12 +16,14 @@
 
 //#define DEBUG 1
 
+bool AlleleFreqSampler::ishapmixmodel;
+
 AlleleFreqSampler::AlleleFreqSampler(){
   //default do-nothing constructor
   params = 0;
 }
 
-AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const double* const Prior){
+AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const double* const Prior, bool hapmixmodel = false){
   unsigned dim = NumStates*NumPops;
   params = new double[dim];
   //initialise Hamiltonian Sampler
@@ -29,6 +31,7 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const
   double min = -100.0, max = 100.0; //min and max stepsize
   int numleapfrogsteps = 10;
   Args.PriorParams = Prior;
+  ishapmixmodel = hapmixmodel;
 
   if(NumStates ==2){//case of SNP
     step0 = 0.01;//initial step size
@@ -132,12 +135,16 @@ double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi,
   double logprior = 0.0;
   std::vector<double> DirichletParams(NumStates);
 
-  for(unsigned k = 0; k < NumPops; ++k){
-    for(unsigned s = 0; s < NumStates; ++s){
-    DirichletParams[s] = PriorParams[k*NumStates + s];
+  if(ishapmixmodel)
+    logprior = NumPops * NumStates * (* PriorParams);
+  else{
+    for(unsigned k = 0; k < NumPops; ++k){
+      for(unsigned s = 0; s < NumStates; ++s){
+	DirichletParams[s] = PriorParams[k*NumStates + s];
+      }
+      
+      logprior += getDirichletLogDensity( DirichletParams, phi+k*NumStates );
     }
-
-    logprior += getDirichletLogDensity( DirichletParams, phi+k*NumStates );
   }
   return logprior;
 }
@@ -189,10 +196,14 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   energy *= args->coolness;
 
   //log prior
-  for(unsigned k = 0; k < args->NumPops; ++k){
-    for( unsigned i = 0; i < States; ++i ) {
-      if( args->PriorParams[i] > 0.0 ) {
-	energy -=( *(args->PriorParams+k*States+i) ) * mylog(*( phi+k*States+i) );
+  if(ishapmixmodel)
+    energy -= args->NumPops * States * *(args->PriorParams );
+  else{
+    for(unsigned k = 0; k < args->NumPops; ++k){
+      for( unsigned i = 0; i < States; ++i ) {
+	if( args->PriorParams[i] > 0.0 ) {
+	  energy -=( *(args->PriorParams+k*States+i) ) * mylog(*( phi+k*States+i) );
+	}
       }
     }
   }
@@ -222,9 +233,14 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
   for(unsigned s = 0; s < States; ++s)
     for(unsigned k = 0; k < args->NumPops; ++k){
       dE_dphi[k*States+s]*=args->coolness;
-      if(args->PriorParams[s*args->NumPops +k] > 0.0)
-	dE_dphi[k*States+s] -= (args->PriorParams[s*args->NumPops +k] - 1.0) / phi[k*States+s]; 
+      if(ishapmixmodel)
+	dE_dphi[k*States+s] -=  ( *(args->PriorParams) - 1.0)/ phi[k*States+s]; 
+      else{
+	if(args->PriorParams[s*args->NumPops +k] > 0.0)
+	  dE_dphi[k*States+s] -= (args->PriorParams[s*args->NumPops +k] - 1.0) / phi[k*States+s]; 
+      }
     }
+
   
    //now use chain rule to obtain gradient wrt args
   for(unsigned k = 0; k < args->NumPops; ++k){
@@ -307,12 +323,16 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
   }
 
   energy *= args->coolness;
-  
-  //log prior
-  for(unsigned k = 0; k < Pops; ++k){
-    for( unsigned i = 0; i < 2; ++i ) {
-      if( args->PriorParams[i] > 0.0 ) {
-	energy -=( *(args->PriorParams+k*2+i) ) * mylog(*( phi+k*2+i) );
+
+  if(ishapmixmodel)
+    energy -= Pops * 2 * *(args->PriorParams);
+  else{
+    //log prior
+    for(unsigned k = 0; k < Pops; ++k){
+      for( unsigned i = 0; i < 2; ++i ) {
+	if( args->PriorParams[i] > 0.0 ) {
+	  energy -=( *(args->PriorParams+k*2+i) ) * mylog(*( phi+k*2+i) );
+	}
       }
     }
   }
@@ -349,8 +369,12 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
   for(unsigned s = 0; s < 2; ++s)
     for(unsigned k = 0; k < Pops; ++k){
       dE_dphi[k*2+s] *= args->coolness;
-      if(args->PriorParams[s*Pops +k] > 0.0)
-	dE_dphi[k*2+s] -= (args->PriorParams[s*Pops +k] - 1.0) / phi[k*2+s]; 
+      if(ishapmixmodel)
+	dE_dphi[k*2+s] -= ( *(args->PriorParams) - 1.0) / phi[k*2+s]; 
+      else{
+	if(args->PriorParams[s*Pops +k] > 0.0)
+	  dE_dphi[k*2+s] -= (args->PriorParams[s*Pops +k] - 1.0) / phi[k*2+s]; 
+      }
     }
   
    //now use chain rule to obtain gradient wrt args

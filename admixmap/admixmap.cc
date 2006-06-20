@@ -458,6 +458,10 @@ int main( int argc , char** argv ){
       }
 #endif
     }
+    if(options.getHapMixModelIndicator()){
+      Log << "Average expected Acceptance rate in allele frequency prior parameter sampler:\n" << A.getHapMixPriorSamplerAcceptanceRate()
+	  << "\nwith average final step size of " << A.getHapMixPriorSamplerStepSize() << "\n";
+    }
     if(rank<1){
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
       Log.ProcessingTime();
@@ -509,6 +513,7 @@ int main( int argc , char** argv ){
   if(rank<1){//print line of *s
     cout <<setfill('*') << setw(80) << "*" <<endl;
   }
+  putenv("ADMIXMAPCLEANEXIT=1");
   return 0;
 } //end of main
 
@@ -670,6 +675,11 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	}
       }
     }//end if hierarchical model
+
+    //rate parameter of prior on frequency Dirichlet prior params
+    if(options->getHapMixModelIndicator()){
+      *avgstream << "FreqPriorRate\t"; 
+    }
 
     // Regression parameters
     if( options->getNumberOfOutcomes() > 0 ){
@@ -871,9 +881,10 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     //output population-level parameters only when there is a hierarchical model on indadmixture
     // ** pop admixture, sumintensities
     if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
-    //** dispersion parameter (if dispersion model)
-	A->OutputEta(iteration, options, Log);
+    // ** dispersion parameter (if dispersion model)
+    A->OutputEta(iteration, options, Log);
   }
+  if(options->getHapMixModelIndicator() && (options->getDisplayLevel() > 2))cout << A->getHapMixPriorRate() << " " ;
   // ** regression parameters
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
     R[r].Output(iteration, options, Log);
@@ -895,10 +906,10 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 }
 
 void WriteIterationNumber(const int iteration, const int width, int displayLevel) {
-  if( displayLevel > 2 ) { // display parameters on same line
+  if( displayLevel > 2 ) { 
     cout << setiosflags( ios::fixed );
     cout.width(width );
-    cout << "\r"<< iteration << " ";  
+    cout << "\n"<< iteration << " ";  
   }
   else if( displayLevel > 1 && iteration >0) { // display iteration counter only
     cout << "\rIterations so far: " << iteration;

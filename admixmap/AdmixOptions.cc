@@ -13,7 +13,7 @@
 
 #include "AdmixOptions.h"
 #include "LogWriter.h"
-#include "StringSplitter.h"
+//#include "StringSplitter.h"
 #include "StringConvertor.h"
 #include <getopt.h>    /* for getopt and getopt_long */
 #include <string.h>
@@ -22,23 +22,6 @@
 #include "Latent.h"// for POPADMIXSAMPLER
 
 using namespace std;
-
-/**
- *   Convert Cstrings to vector (used on initalpha option)
- */
-static std::vector<double> CstrToVec(const char* str)
-{
-  // Split string to separate elems.
-  StringSplitter splitter;
-  vector<string> elems = splitter.split(str);
-
-  // Convert elements to doubles and fill resulting vector.
-  vector<double> x(elems.size());
-  for (size_t i = 0; i < elems.size(); i++) {
-    x[i] = StringConvertor::toFloat(elems[i]);
-  }    
-  return x;
-}
 
 AdmixOptions::AdmixOptions()
 {
@@ -113,6 +96,11 @@ void AdmixOptions::Initialise(){
   regressionPriorPrecision = 0.25;
   ResultsDir = "results";
   LogFilename = "log.txt";
+
+  //prior on frequency Dirichlet prior params in hapmixmodel
+  allelefreqprior.push_back(0.01);//shape
+  allelefreqprior.push_back(0.1);//prior shape of rate
+  allelefreqprior.push_back(1.0);//prior rate of rate
 
   ResidualAllelicAssocScoreFilename = "ResidualAllelicAssocScoreTest.txt";
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
@@ -603,7 +591,16 @@ bool AdmixOptions::CheckData()const{
 bool AdmixOptions::PopAdmixturePropsAreEqual()const{
   return PopAdmixPropsAreEqual;
 }
+const vector<float>& AdmixOptions::getrhoSamplerParams()const{
+  return rhoSamplerParams;
+}
+const vector<float>& AdmixOptions::getrhoPriorParamSamplerParams() const{
+  return rhoPriorParamSamplerParams;
+}
 
+const std::vector<double> & AdmixOptions::getAlleleFreqPriorParams()const{
+  return allelefreqprior;
+}
 void AdmixOptions::SetOptions(int nargs, char** args)
 {
 
@@ -706,7 +703,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"hapmixmodel",                           1, 0,  0 }, // int 0: 1
     {"etapriorfile",                          1, 0,  0 }, // string      
     {"globalsumintensitiesprior",             1, 0,  0 }, // vector of doubles of length 2
-    {"sumintensitiesprior",                   1, 0,  0 }, // vector of doubles of length 3 
+    {"sumintensitiesprior",                   1, 0,  0 }, // vector of doubles of length 3
+    {"allelefreqprior",                       1, 0,  0 },// vector of doubles of length 3
     {"etapriormean",                          1, 0,  0 }, //double
     {"etapriorvar",                           1, 0,  0 }, //double
     {"regressionpriorprecision",              1, 0,  0 }, //double
@@ -717,6 +715,10 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"popadmixproportionsequal",              1, 0,  0 }, //int 0, 1
     {"correlatedallelefreqs",                 1, 0,  0 }, // int 0, 1
     {"xonlyanalysis",                         1, 0,  0 }, // int 0, 1
+
+    //sampler settings
+    {"rhosamplerparams",                      1, 0,  0 }, // vector of doubles of length 4 or 5 
+    {"rhopriorsamplerparams",                 1, 0,  0 }, // vector of doubles of length 5 
 
     // Other options
     {"numannealedruns",                       1, 0,  0 }, // long
@@ -931,11 +933,14 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "seed") {
 	 Seed = strtol(optarg, NULL, 10);OptionValues["seed"]=optarg;
       } else if (long_option_name == "sumintensitiesprior" ) {
-	rhoPrior = CstrToVec(optarg);
+	StringConvertor::CstrToVec(optarg, rhoPrior);
 	OptionValues["sumintensitiesprior"] = optarg; 
       } else if (long_option_name == "globalsumintensitiesprior") {
-	globalrhoPrior = CstrToVec(optarg);
-	OptionValues["globalsumintensitiesprior"] = optarg; 
+	StringConvertor::CstrToVec(optarg, globalrhoPrior);
+	OptionValues["globalsumintensitiesprior"] = optarg;
+      } else if (long_option_name == "allelefreqprior"){
+	StringConvertor::CstrToVec(optarg, allelefreqprior);
+	OptionValues["allelefreqprior"] = optarg;
       } else if (long_option_name == "etapriormean") {
 	 etamean = strtod(optarg, NULL);OptionValues["etapriormean"]=optarg;
       } else if (long_option_name == "etapriorvar") {
@@ -945,16 +950,19 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "etapriorfile") {
 	 EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
       } else if (long_option_name == "admixtureprior" ) {
-	 initalpha[0] = CstrToVec(optarg);OptionValues["admixtureprior"]=optarg;
+	StringConvertor::CstrToVec(optarg, initalpha[0]);OptionValues["admixtureprior"]=optarg;
       } else if (long_option_name == "admixtureprior1") {
-	 initalpha[1] = CstrToVec(optarg);OptionValues["admixtureprior1"]=optarg;
+	StringConvertor::CstrToVec(optarg, initalpha[1]);OptionValues["admixtureprior1"]=optarg;
       } else if(long_option_name == "popadmixproportionsequal"){
 	if (strtol(optarg, NULL, 10) == 1){
 	  PopAdmixPropsAreEqual = true; OptionValues["popadmixproportionsequal"]="1";
 	}
-      }
-      else if(long_option_name == "regressionpriorprecision"){
+      } else if(long_option_name == "regressionpriorprecision"){
 	regressionPriorPrecision = strtod(optarg, NULL);OptionValues["regressionpriorprecision"]=optarg;
+      }else if(long_option_name == "rhosamplerparams"){
+	StringConvertor::CstrToVec(optarg, rhoSamplerParams);
+      }else if(long_option_name == "rhopriorsamplerparams"){
+	StringConvertor::CstrToVec(optarg, rhoPriorParamSamplerParams);
       } else {
 	cerr << "Unknown option: " << long_option_name;
 	if (optarg) {
@@ -1157,6 +1165,19 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
     else Log <<"undefined\n";
   }
+
+  //TODO: output info on allelefreq prior
+  if(HapMixModelIndicator){
+    if(allelefreqprior.size() !=3) {
+      Log << "Error: 'allelefreqprior' must have length 3\n";
+      exit(1);
+    }
+    Log << "Dirichlet prior on allele frequencies. ";
+    Log << "Gamma prior on Dirichlet parameters with shape " << allelefreqprior[0] << " and Gamma( " << allelefreqprior[1] << ", " 
+	<< allelefreqprior[2] << " ) prior on rate.\n"; 
+  }
+  else if(allelefreqprior.size())
+    Log << "Warning: option 'allelefreqprior' is valid only with a hapmixmodel. This option will be ignored\n";
   
   //Prior on admixture
   setInitAlpha(Log);

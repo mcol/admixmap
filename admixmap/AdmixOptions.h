@@ -69,6 +69,7 @@ public:
   double getRhobetaShape()const;
   double getRhobetaRate()const;
   double getRhoPriorMean()const;
+  const std::vector<double> & getAlleleFreqPriorParams()const;
 
   vector<double> getInitAlpha(int) const;
   std::vector<std::vector<double> > getInitAlpha()const;
@@ -76,6 +77,8 @@ public:
   double getEtaMean() const;
   double getEtaVar() const;
   double getRegressionPriorPrecision()const;
+  const vector<float>& getrhoSamplerParams()const;
+  const vector<float>& getrhoPriorParamSamplerParams() const;
 
   unsigned int getgenotypesSexColumn() const;
   void setgenotypesSexColumn(unsigned int i);
@@ -105,7 +108,7 @@ public:
   void isXOnlyAnalysis(bool);
   bool isAdmixed(unsigned) const;
   bool isSymmetric()const;
-    bool CheckData()const;
+  bool CheckData()const;
 
   //Score test file names
   const char *getAffectedsOnlyScoreFilename() const;
@@ -203,9 +206,12 @@ private:
   std::vector<double> alpha0;
   std::vector<double> alpha1;
   std::vector< std::vector<double> > initalpha;
+  std::vector<double> allelefreqprior;
   double etamean, etavar;//gamma parameters for dispersion parameter
   double regressionPriorPrecision;
 
+  std::vector<float> rhoSamplerParams;
+  std::vector<float> rhoPriorParamSamplerParams;
   string ResultsDir;
   string LogFilename;
   string AffectedsOnlyScoreFilename;
