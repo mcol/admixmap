@@ -99,6 +99,26 @@ int main( int argc , char** argv ){
     xargv = new char*[MAXNUMOPTIONS];  
     ReadArgsFromFile(argv[1], &xargc, xargv);        
   }
+  else {//fix broken arguments
+    xargv = new char*[argc];
+    xargv[1] = new char[strlen(argv[1])];
+    strcpy(xargv[1], argv[1]);
+    int ii = 2;
+    for(int i = 2; i <argc; ++i)
+      if( argv[i][0] != '-')  {//any 'args' not starting with '-' are appended to the previous line 
+	strcat(xargv[ii-1], argv[i]);
+	-- xargc;
+      }
+      else {
+	xargv[ii] = new char[strlen(argv[i])];
+	strcpy(xargv[ii], argv[i]);
+	++ii;
+      }
+  }
+  for(int i = 1; i < xargc; ++i){
+    cout << xargv[i] << endl;
+  }
+
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
   AdmixOptions options(xargc, xargv);
@@ -625,9 +645,13 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
 	//trim remaining whitespace
 	str.erase( str.find_last_not_of(" \t\n\r") + 1 );//trailing whitespace
 	if( str.find_first_of(" \t\n\r") <= str.length() ){//check for any whitespace left
-	  if( str.find_first_of(" \t\n\r") < str.find("=") )//check for space before '='
-	    str.erase( str.find_first_of(" \t\n\r"), str.find("=") - str.find_first_of(" \t\n\r") );//before '='
-	  str.erase( str.find_first_of(" \t\n\r"), str.find_last_of(" \t\n") - str.find_first_of(" \t\n\r") +1 );//after '='
+	  string::size_type eq = str.find("="), pos = str.find_first_of(" \t\n\r");
+	  if( pos < eq )//check for space before '='
+	    str.erase( pos, eq - pos );//remove space before '='
+	  //str.erase( str.find_first_of(" \t\n\r"),str.find_last_of(" \t\n") - str.find_first_of(" \t\n\r") +1 );//after '='
+	  eq = str.find("=");
+	  pos = str.find_first_of(" \t\n\r", eq);//position of first space after the = 
+	  str.erase( pos, str.find_first_not_of(" \t\n", pos) - pos );//remove space after '='
 	}
 	//add line to xargv
 	xargv[*xargc]=new char[MAXOPTIONLENGTH];
