@@ -1,4 +1,5 @@
 #include "StringConvertor.h"
+#include "StringSplitter.h"
 
 using namespace std;
 
@@ -121,4 +122,38 @@ bool StringConvertor::isWhiteLine(const char *p)
     }
 
     return true;
+}
+
+void StringConvertor::CstrToVec(const char* s, std::vector<double>& vec)
+{
+  string str(s);
+  string::size_type start = str.find_first_not_of("\" "), size = 0;
+  str = str.substr(start, str.find_first_of("\"", start)-1);
+  start = 0;
+  size += str.find_first_of(" ,", start);
+
+  vec.clear();
+  while(start != string::npos){
+    // Convert elements to doubles and fill resulting vector.
+    vec.push_back( toFloat(str.substr(start, size)) );
+    start = str.find_first_not_of(" ,", size);
+    size = str.find_first_of(" ,", start);
+  }
+}
+
+void StringConvertor::CstrToVec(const char* s, std::vector<float>& vec)
+{
+  string str(s);
+  string::size_type start = str.find_first_not_of("\" "), size = 0;
+  str = str.substr(start, str.find_first_of("\"", start)-1);
+  start = 0;
+  size += str.find_first_of(" ,", start);
+
+  vec.clear();
+  while(start != string::npos){
+    // Convert elements to doubles and fill resulting vector.
+    vec.push_back( toFloat(str.substr(start, size)) );
+    start = str.find_first_not_of(" ,", size);
+    size = str.find_first_of(" ,", start);
+  }
 }
