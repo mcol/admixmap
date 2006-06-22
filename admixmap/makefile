@@ -7,8 +7,8 @@
 #
 # Serial/Parallel version: VERSION = [serial/parallel]
 # Processor type: ARCH = [i686/P4/AMD64/itanium2]
-# Compiler: CC = [g++/icpc/pgCC]
-# MPI wrapper for compiler PCC = [mpiCC/]
+# Compiler: CC = [g++/icpc/pgCC/pathCC]
+# MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
 # paths to gsl, mpi, sprng: GSL_LIBPATH, GSL_INCLUDEPATH, MPI_PATH, MPI_LIBPATH, SPRNG_PATH
 # name of compiled executable: EXEC
@@ -26,7 +26,9 @@ GSL_INCLUDEPATH=#standard is /usr/local/include
 
 ## for parallel version only
 # path to mpi top level directory
-MPI_PATH = /usr/local/mpich/gcc#mpich 
+MPI_PATH = /usr/local/mpich/gcc# mpich with gcc 3
+#MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
+#MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
 #MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
 MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
 
@@ -40,9 +42,10 @@ LIBTYPE =#-static
 ## compiler definitions
 GNU_COMPILER  = g++ # GNU compiler, all machines
 INTEL_COMPILER = icpc# Intel compiler for Hamilton
-PORTLAND_COMPILER = pgCC# Portland Group compiler, for Walton
-MPICC = $(MPI_PATH)/bin/mpiCC# MPI wrapper for gnu, MPI 1
-MPICXX = $(MPI_PATH)/bin/mpicxx# MPI wrapper for gnu, MPI 2
+PATHSCALE_COMPILER = pathCC# Pathscale compiler,( Walton )
+PORTLAND_COMPILER = pgCC# Portland Group compiler ( Walton )
+MPICC = $(MPI_PATH)/bin/mpiCC# MPI 1 wrapper
+MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
 VERSION = serial
@@ -65,7 +68,7 @@ DISTDIR			= $(DESTDIR)/admixmap-linux#directory for Linux distribution
 WINDISTDIR		= $(DESTDIR)/admixmap-win#  directory for Windows distribution
 
 ## ** flags for release version, debug version or profiling version
-DFLAGS 		= -O3# release, optimized
+#DFLAGS 		= -O3# release, optimized
 #DFLAGS 	= -g# debug
 # DFLAGS 	= -pg -O3# profiling
 
@@ -98,9 +101,16 @@ PROC = -mcpu=itanium2
 endif
 endif
 
+ifeq ($(CC),$(PATHSCALE_COMPILER))
+ifeq ($(ARCH),AMD64)
+PROC = -mcpu=auto
+endif
+endif
+
 ifeq ($(CC),$(PORTLAND_COMPILER))
 ifeq ($(ARCH),AMD64)
 PROC = -tp amd64
+#DFLAGS = $(DFLAGS) -ipa
 endif
 endif
 
