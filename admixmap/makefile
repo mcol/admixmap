@@ -36,8 +36,8 @@ MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
 SPRNG_PATH = /opt/packages/sprng-2.0
 
 #leave this one empty for shared libraries (eg libgsl.so) or as -static for static libs (eg libgsl.a)
-#NB do not use -static on ICHEC cluster
-LIBTYPE =#-static
+#NB do not use -static with parallel version
+#LIBTYPE =-static
 
 ## compiler definitions
 GNU_COMPILER  = g++ # GNU compiler, all machines
@@ -118,7 +118,7 @@ endif
 
 ## Library flags
 # math, GSL, GSL's CBLAS (linear algebra)
-SERIAL_LIBS = -lm -lgsl -lgslcblas $(LIBTYPE)
+SERIAL_LIBS = -lm -lgsl -lgslcblas 
 
 PARALLEL_LIBS = -lm -lgsl -lgslcblas -lmpich -lsprng -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
@@ -149,7 +149,7 @@ EXEC = adm-para
 ##serial version
 else
 CXX = $(CC)
-LIBS = $(SERIAL_LIBS)
+LIBS = $(SERIAL_LIBS) -static
 LFLAGS = $(SERIAL_LFLAGS)
 INCLUDES = $(SERIAL_INCLUDES)
 EXEC = $(SERIAL_EXEC)
