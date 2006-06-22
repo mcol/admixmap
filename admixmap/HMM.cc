@@ -227,7 +227,7 @@ std::vector<std::vector<double> > HMM::Get3WayStateProbs( const bool isDiploid, 
   }
 
   double sum = 0.0;
-  int State = 0;
+  // int State = 0;
   int States = 0;
   if(isDiploid) {
     States=DStates;
@@ -238,8 +238,9 @@ std::vector<std::vector<double> > HMM::Get3WayStateProbs( const bool isDiploid, 
   std::vector<std::vector<double> >AncestryProbs(3);
 
   for( int j = 0; j < States; j++ ){
-    probs[State++] = alpha[t*States + j] * beta[t*States + j];
-    sum += probs[State-1];
+    probs[j] = alpha[t*States + j] * beta[t*States + j];
+    sum += probs[j];
+    //  ++State;
   }
 
    for( int j = 0; j < States; j++ ){
@@ -270,15 +271,14 @@ void HMM::UpdateForwardProbsDiploid()
   double Sum = 0.0;
   double scaleFactor = 0.0;
   // DStates = K*K;
-  //const double* lam = Lambda;
   
-  for(int j = 0; j < DStates; ++j) {
-    if(!missingGenotypes[0]) {
-      alpha[j] =  ThetaThetaPrime[j] * Lambda[j]; //(*lam++);
-      //++lam;
-    } else {
+  if(!missingGenotypes[0]) {
+    for(int j = 0; j < DStates; ++j) {
+      alpha[j] =  ThetaThetaPrime[j] * Lambda[j];
+    } 
+  } else {
+    for(int j = 0; j < DStates; ++j) {
       alpha[j] = ThetaThetaPrime[j];
-      //++lam;
     }
   }
   
