@@ -17,11 +17,13 @@
 
 #include "common.h"
 
+///struct to hold a pair of haplotypes, coded as integers
 typedef struct
  {
    int haps[2];
 }hapPair  ; 
 
+///   Class to represent a composite locus
 class CompositeLocus 
 {
 
@@ -30,8 +32,8 @@ public:
   ~CompositeLocus();
 
   void setHaplotypeProbsMAP();
-  void SetNumberOfPopulations( int );
-  void SetRandomAlleleFreqs(bool);
+  static void SetNumberOfPopulations( int );
+  static void SetRandomAlleleFreqs(bool);
   void SetNumberOfStates( int );
   void SetLabel( int, std::string );
   void SetNumberOfLoci( int );
@@ -67,7 +69,7 @@ public:
 private: 
   int NumberOfLoci;
   int NumberOfStates;
-  int Populations;
+  static int Populations;
   std::vector<int> NumberOfAlleles;
   const double *AlleleProbs;//pointer to allele frequencies held in AlleleFreqs
   double **SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
@@ -77,7 +79,7 @@ private:
 #endif
   std::vector<std::string> Label;
   int *base;
-  bool RandomAlleleFreqs;
+  static bool RandomAlleleFreqs;
 
   //possibly move out
   int *MergeHaplotypes;
