@@ -108,6 +108,7 @@ AlleleFreqs::~AlleleFreqs(){
 
   for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
     delete *i;
+  if( allelefreqoutput.is_open()) allelefreqoutput.close();
 }
 
 // ************** Initialisation and loading of data  *******************
@@ -287,42 +288,6 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 
 }
 
-void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
-{
-  allelefreqoutput.open(options->getAlleleFreqOutputFilename(), ios::out );
-  if( !allelefreqoutput && options->getIndAdmixHierIndicator()){
-    cerr << "Warning: Couldn't open allelefreqoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
-    exit( 1 );
-  }
-  else{
-    allelefreqoutput << "structure(.Data=c(" << endl;
-  }
-}
-
-void AlleleFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log)
-{
-  Log.setDisplayMode(On);
-  outputstream.open( options->getEtaOutputFilename(), ios::out );
-  if( !outputstream )
-    {
-      Log <<  "ERROR: Couldn't open dispparamfile\n";
-      exit( 1 );
-    }
-  else{
-    Log << "Writing dispersion parameters to " << options->getEtaOutputFilename() << "\n";
-    //Dispersion parameters (eta)
-    if(IsHistoricAlleleFreq){
-      for( int k = 0; k < Populations; k++ ){
-	outputstream << "\"eta." << PopulationLabels[k]<< "\"\t"; 
-      }
-      outputstream << endl;
-    }
-    else if(CorrelatedAlleleFreqs){
-      outputstream << "\"eta\"" <<endl; 
-    }
-  }
-}
-
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_)
 {
   int newrow;
@@ -396,10 +361,10 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
       IsHistoricAlleleFreq = false;
     }
   }
-
+  //set static members of CompositeLocus
+  CompositeLocus::SetRandomAlleleFreqs(RandomAlleleFreqs);
+  CompositeLocus::SetNumberOfPopulations(Populations);
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    (*Loci)(i)->SetRandomAlleleFreqs(RandomAlleleFreqs);
-    (*Loci)(i)->SetNumberOfPopulations(Populations);
 #ifdef ARRAY2D
     Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
 #endif
@@ -472,40 +437,38 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
 #endif
 }
 
+/**
+ * Initialises the frequencies of each haplotype in the ith
+ * composite locus, given Dirichlet priors (oldformat=false) or frequencies (oldformat=true)in matrix New.  
+ * If oldformat=false, Allele freqs are set to their prior expectation. 
+ * If fixed, allele freqs will be fixed at their prior expectations   
+ *
+ * New - a matrix containing either frequencies or
+ *   parameters for the Dirichlet prior distribution of the allele frequencies. The first dimension is the allele number, 
+ *   being in the range of zero to one less than the number of states.
+ *   The sum of the prior parameters over all alleles in a population 
+ *   (sumalpha) can be interpreted as 
+ *   the "prior sample size". The second dimension is the population. Thus, for a 
+ *   composite locus with four states and European and African 
+ *   populations, the matrix might be:
+ *
+ *             Population
+ *
+ *            | EUR | AFR |
+ *         ---|-----|-----|
+ *          0 | 9.0 | 3.0 |
+ *   State  1 | 3.0 | 4.0 |
+ *          2 | 1.0 | 8.0 |
+ *          3 | 2.0 | 1.0 |
+ *
+ * It is also permissable to have one column, in which case the parameters are (initially) the same across all
+ * populations. This is required for a correlated allelefreqs model.
+ * If Historic is true, sets "historical allele frequencies", where the model has been specified to allow the 
+ * allele freqs in the admixed population 
+ * to vary from the historical allele frequencies in the unadmixed ancestral populations that have 
+ * been sampled. 
+ */
 void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, bool oldformat){
-  /**
-   * Initialises the frequencies of each haplotype in the ith
-   * composite locus, given Dirichlet priors (oldformat=false) or frequencies (oldformat=true)in matrix New.  
-   * If oldformat=false, Allele freqs are set to their prior expectation. 
-   * If fixed, allele freqs will be fixed at their prior expectations   
-   *
-   * New - a matrix containing either frequencies or
-   *   parameters for the Dirichlet prior distribution of the allele frequencies. The first dimension is the allele number, 
-   *   being in the range of zero to one less than the number of states.
-   *   The sum of the prior parameters over all alleles in a population 
-   *   (sumalpha) can be interpreted as 
-   *   the "prior sample size". The second dimension is the population. Thus, for a 
-   *   composite locus with four states and European and African 
-   *   populations, the matrix might be:
-   *
-   *             Population
-   *
-   *            | EUR | AFR |
-   *         ---|-----|-----|
-   *          0 | 9.0 | 3.0 |
-   *   State  1 | 3.0 | 4.0 |
-   *          2 | 1.0 | 8.0 |
-   *          3 | 2.0 | 1.0 |
-   *
-   * It is also permissable to have one column, in which case the parameters are (initially) the same across all
-   * populations. This is required for a correlated allelefreqs model.
-   * If Historic is true, sets "historical allele frequencies", where the model has been specified to allow the 
-   * allele freqs in the admixed population 
-   * to vary from the historical allele frequencies in the unadmixed ancestral populations that have 
-   * been sampled. 
-   */
-
-
   // set size of allele freqs array for this locus
   // Freqs array has only NumberOfStates - 1 elements for each population
   unsigned NumberOfStates = Loci->GetNumberOfStates(i);
@@ -568,11 +531,11 @@ void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, boo
 
 }
 
+/**
+ * Given the number of ancestral populations, sets default values for
+ * allele frequencies (in Freqs) and prior allele frequencies (in PriorAlleleFreqs).
+ */
 void AlleleFreqs::SetDefaultPriorParams(int i, double defaultpriorparams){
-  /**
-   * Given the number of ancestral populations, sets default values for
-   * allele frequencies (in Freqs) and prior allele frequencies (in PriorAlleleFreqs).
-   */
   int NumberOfStates = Loci->GetNumberOfStates(i);
   if(CorrelatedAlleleFreqs){
     PriorAlleleFreqs[i] = new double[NumberOfStates];
@@ -595,7 +558,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i){
 
 // ************************** Sampling and Updating *****************************************
 
-// samples allele frequency and prior allele frequency parameters.
+/// samples allele frequency and prior allele frequency parameters.
 void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool /*annealUpdate*/){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
 
@@ -656,7 +619,8 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 
 }
 
-void AlleleFreqs::ResetAlleleCounts(unsigned K) { // resets all counts to 0
+/// resets all counts to 0
+void AlleleFreqs::ResetAlleleCounts(unsigned K) { 
     const int L = Loci->GetNumberOfCompositeLoci();
   for( int i = 0; i < L; i++ ){
 #ifdef PARALLEL
@@ -678,11 +642,11 @@ void AlleleFreqs::ResetAlleleCounts(unsigned K) { // resets all counts to 0
 #endif
 }
 
-/*
-  Given a haplotype pair, h, and the ordered ancestry states at a locus,
-  updates the counts of alleles observed in each state of ancestry.
-  * should use hap pairs stored in Individual object
-  */
+/**
+   Updates the counts of alleles observed in each state of ancestry.
+   Given a haplotype pair, h, and the ordered ancestry states at a locus.
+   * should use hap pairs stored in Individual object
+   */
 void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool /*anneal*/ )
 {
   if(Loci->GetNumberOfStates(locus)==2){
@@ -711,6 +675,7 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
 //   }
 //   //TODO: check haploid case
 // }
+
 #ifdef PARALLEL
 void AlleleFreqs::SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K){
   //comm is an intracommunicator consisting of the allele freq updater (rank 0) and the workers
@@ -753,10 +718,11 @@ void AlleleFreqs::BroadcastAlleleFreqs(MPI::Intracomm& comm){
 
 #endif
 
+/** samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
+ and stores result in array Freqs 
+*/
 void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
 {
-  // samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
-  // and stores result in array Freqs 
   unsigned NumStates = Loci->GetNumberOfStates(i);
   double* temp = new double[NumStates];
   double *freqs = new double[NumStates];
@@ -782,8 +748,8 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
   delete[] temp;
 }
 
+///sample prior params using random walk
 void AlleleFreqs::SampleHapMixPriorParams(){
-  //sample prior params using random walk
   double sum = 0.0;
   for( int locus = 0; locus < NumberOfCompositeLoci; ++locus ){
     double LogLikelihoodRatio = 0.0, LogPriorRatio = 0.0;
@@ -794,10 +760,10 @@ void AlleleFreqs::SampleHapMixPriorParams(){
     if(proposal > 0.0){
       LogPriorRatio = (HapMixPriorShape - 1.0) *( log(proposal) - log(current) )
 	- HapMixPriorRate *(proposal - current);
-      LogLikelihoodRatio += Populations *  ( gsl_sf_psi(proposal) - gsl_sf_psi(current) );
+      LogLikelihoodRatio += Populations *  ( gsl_sf_lngamma(proposal) - gsl_sf_lngamma(current) );
       int NumberOfStates = Loci->GetNumberOfStates(locus);
-      LogLikelihoodRatio -= Populations * NumberOfStates * ( gsl_sf_psi(proposal / (double)NumberOfStates ) 
-							     - gsl_sf_psi(current / (double)NumberOfStates ) ) ;
+      LogLikelihoodRatio -= Populations * NumberOfStates * ( gsl_sf_lngamma(proposal / (double)NumberOfStates ) 
+							     - gsl_sf_lngamma(current / (double)NumberOfStates ) ) ;
       double sumlogfreqs = 0.0;
       for(int k = 0; k < Populations; ++k)
 	for(int s = 0; s < NumberOfStates; ++s)
@@ -853,8 +819,8 @@ const double *AlleleFreqs::GetStatsForEta( int locus, int population)const
   return stats;
 }
 
+///sets PriorAlleleFreqs to sum to eta after sampling of eta
 void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<vector<double> >& mu)
-//sets PriorAlleleFreqs to sum to eta after sampling of eta
 {
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       for(int h = 0; h < Loci->GetNumberOfStates(i); ++h)
@@ -862,11 +828,11 @@ void AlleleFreqs::UpdatePriorAlleleFreqs(int j, const vector<vector<double> >& m
   }
 }
 
+// problem here is to sample the Dirichlet parameters of a multinomial-Dirichlet distribution
+// for a multi-allelic locus, we sample the Dirichlet proportion parameters conditional on the  
+// dispersion parameter and the allele counts in admixed and historic populations
+// by a Metropolis random walk
 void AlleleFreqs::SampleDirichletParamsMultiDim( int locus)
-  // problem here is to sample the Dirichlet parameters of a multinomial-Dirichlet distribution
-  // for a multi-allelic locus, we sample the Dirichlet proportion parameters conditional on the  
-  // dispersion parameter and the allele counts in admixed and historic populations
-  // by a Metropolis random walk
 {
   int NumberOfStates = Loci->GetNumberOfStates(locus);
   double LogAccProb;
@@ -959,7 +925,7 @@ void AlleleFreqs::SampleDirichletParams1D( int locus)
   delete[] counts1;
 }
 
-//sampling of Dirichlet parameters for allelefreqs in historic or correlated allele freq model
+///sampling of Dirichlet parameters for allelefreqs in historic or correlated allele freq model
 void AlleleFreqs::SampleDirichletParams(){
   if(IsHistoricAlleleFreq){
     for(int k = 0; k < Populations; ++k){
@@ -1079,10 +1045,11 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
     SumEta[k]+=eta[k];
 }
 
-// sets posterior mode of allelefreqs as current value
-// probably doesn't matter where there is strong prior on allele freqs, and used in Chib algorithm 
-// which just requires a value near the posterior mode
-// set AlleleFreqsMAP and getAlleleFreqs are called by Individual object
+/** sets posterior mode of allelefreqs as current value
+    probably doesn't matter where there is strong prior on allele freqs, and used in Chib algorithm 
+    which just requires a value near the posterior mode
+    set AlleleFreqsMAP and getAlleleFreqs are called by Individual object
+*/
 void AlleleFreqs::setAlleleFreqsMAP()
 {
   bool allocate = false;
@@ -1106,14 +1073,14 @@ void AlleleFreqs::setAlleleFreqsMAP()
 
 // ************ Accessors **********************************************************
 
-// Indicates whether allele frequencies are fixed or random.
-// returns a boolean true if allele frequencies are random, false otherwise.
+/// Indicates whether allele frequencies are fixed or random.
+/// returns a boolean true if allele frequencies are random, false otherwise.
 bool AlleleFreqs::IsRandom()const
 {
   return( RandomAlleleFreqs );
 }
 
-/**PriorAlleleFreqs
+/**
  * Returns Dirichlet parameters for allele frequencies for a particular population and locus.
  * 
  * population - the number of the population (zero based)
@@ -1136,7 +1103,8 @@ std::vector<double> AlleleFreqs::GetPriorAlleleFreqs( int locus, int population 
 // {
 //   return( AlleleCounts[locus] );
 // }
-// this function returns counts for the population specified
+
+/// returns counts for the population specified
 std::vector<int> AlleleFreqs::GetAlleleCounts( int locus, int population )const
 {
   std::vector<int> counts(Loci->GetNumberOfStates(locus));
@@ -1152,7 +1120,7 @@ std::vector<double> AlleleFreqs::getAlleleFreqsMAP( int locus, int population )c
 
   return A;
 }
-/**AlleleFreqs
+/**
  * Gets the frequencies of each haplotype in a composite locus.
  *
  * returns:
@@ -1190,6 +1158,20 @@ const array_of_allelefreqs& AlleleFreqs::GetAlleleFreqs()const{
 // }
 
 // ******************** Output **************************
+void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
+{
+  allelefreqoutput.open(options->getAlleleFreqOutputFilename(), ios::out );
+  if( !allelefreqoutput && options->getIndAdmixHierIndicator()){
+    cerr << "Warning: Couldn't open allelefreqoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
+    exit( 1 );
+  }
+  if(options->getHapMixModelIndicator()){
+    allelefreqoutput << "eta.Mean\teta.Var\tlambda" << endl;
+  }
+  else{
+    allelefreqoutput << "structure(.Data=c(" << endl;
+  }
+}
 void AlleleFreqs::OutputAlleleFreqs()
 {
   if( IsRandom() ){
@@ -1204,8 +1186,66 @@ void AlleleFreqs::OutputAlleleFreqs()
       }
       allelefreqoutput << endl;
     }
+    allelefreqoutput << endl;
   }
-  allelefreqoutput << endl;
+}
+void AlleleFreqs::OutputPriorParams(){
+  //to be used only in hapmixmodel
+  unsigned L = Loci->GetNumberOfCompositeLoci();
+  double sum = 0.0, sumsq = 0.0;
+  for(unsigned j = 0; j < L; ++j){
+    sum += HapMixPriorParams[j];
+    sumsq += HapMixPriorParams[j] *HapMixPriorParams[j];
+  }
+  double mean = sum / (double) L;
+  double var = sumsq / (double)L - mean*mean;
+  allelefreqoutput << mean << "\t" << var << "\t" << HapMixPriorRate << endl;
+
+}
+void AlleleFreqs::CloseOutputFile(int iterations, const string* const PopulationLabels)
+{
+  int nrows = 0;
+  for(int j = 0; j < NumberOfCompositeLoci; ++j)
+    nrows += Loci->GetNumberOfStates(j)-1;
+  allelefreqoutput << ")," << endl;
+  allelefreqoutput << ".Dim = c(";
+  allelefreqoutput << Populations+1 << ",";
+  allelefreqoutput << nrows << ",";
+  allelefreqoutput << iterations;
+  allelefreqoutput << ")," << endl;
+  allelefreqoutput << ".Dimnames=list(c(\"Locus\",";
+  for (int i = 0; i < Populations; i++){
+    allelefreqoutput << "\""<<PopulationLabels[i]<<"\"";
+    if(i < Populations-1){
+      allelefreqoutput << ",";
+    }
+  }
+  allelefreqoutput << "), character(0), character(0)))" << endl;
+  allelefreqoutput.close();
+} 
+
+void AlleleFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log)
+{
+  Log.setDisplayMode(On);
+  outputstream.open( options->getEtaOutputFilename(), ios::out );
+  if( !outputstream )
+    {
+      Log <<  "ERROR: Couldn't open dispparamfile\n";
+      exit( 1 );
+    }
+  else{
+    Log << "Writing dispersion parameters to " << options->getEtaOutputFilename() << "\n";
+    //Dispersion parameters (eta)
+    if(IsHistoricAlleleFreq){
+      for( int k = 0; k < Populations; k++ ){
+	outputstream << "\"eta." << PopulationLabels[k]<< "\"\t"; 
+      }
+      outputstream << endl;
+    }
+    else if(CorrelatedAlleleFreqs){
+      outputstream << "\"eta\"" <<endl; 
+    }
+  }
 }
 
 void AlleleFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)
@@ -1278,28 +1318,6 @@ void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWrite
     }
   }
 }
-
-void AlleleFreqs::CloseOutputFile(int iterations, const string* const PopulationLabels)
-{
-  int nrows = 0;
-  for(int j = 0; j < NumberOfCompositeLoci; ++j)
-    nrows += Loci->GetNumberOfStates(j)-1;
-  allelefreqoutput << ")," << endl;
-  allelefreqoutput << ".Dim = c(";
-  allelefreqoutput << Populations+1 << ",";
-  allelefreqoutput << nrows << ",";
-  allelefreqoutput << iterations;
-  allelefreqoutput << ")," << endl;
-  allelefreqoutput << ".Dimnames=list(c(\"Locus\",";
-  for (int i = 0; i < Populations; i++){
-    allelefreqoutput << "\""<<PopulationLabels[i]<<"\"";
-    if(i < Populations-1){
-      allelefreqoutput << ",";
-    }
-  }
-  allelefreqoutput << "), character(0), character(0)))" << endl;
-  allelefreqoutput.close();
-} 
 
 // *** FST functions ****************************
 void AlleleFreqs::OpenFSTFile(const AdmixOptions* const options, LogWriter &Log){

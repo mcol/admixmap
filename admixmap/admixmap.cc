@@ -115,9 +115,7 @@ int main( int argc , char** argv ){
 	++ii;
       }
   }
-  for(int i = 1; i < xargc; ++i){
-    cout << xargv[i] << endl;
-  }
+
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
@@ -441,7 +439,7 @@ int main( int argc , char** argv ){
     delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
     delete[] R;
 
-    if(rank==-1 || rank==1)
+    if((rank==-1 || rank==1) && !options.getHapMixModelIndicator())
       A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
     if(rank<1)cout << "Output to files completed\n" << flush;
     
@@ -924,7 +922,12 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if( iteration > options->getBurnIn() ){
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
     if( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
-    if(options->getOutputAlleleFreq())A->OutputAlleleFreqs();
+    if(options->getOutputAlleleFreq()){
+      if(options->getHapMixModelIndicator())
+	A->OutputPriorParams();
+      else
+	A->OutputAlleleFreqs();
+    }
   }
   // cout << endl;
 }

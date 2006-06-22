@@ -28,24 +28,25 @@
 #include "common.h"
 class StepSizeTuner;
 
-
-//struct to hold allelecounts in either a 1d (where Number of alleles is fixed) or 2d array 
-//usage, 1d array:
-// array_of_allelecounts AlleleCounts;
-// AlleleCounts.stride = K*2;
-// AlleleCounts.array = new int[ NumberOfLoci*K*2];
-
-// usage, 2darray:
-// AlleleCounts.array = new int*[NumberOfLoci ];
-// for(unsigned i = 0; i < NumberOfLoci; ++i) AlleleCounts.array[i] = new int[K*NumberOfStates[i]];
-//
-// AlleleCounts[i]; //accesses counts for ith locus
-// AlleleCounts[i][k*2 +a]; //accesses count of ath allele in kth pop at ith locus
 #ifndef PARALLEL
 #define ARRAY2D
 #endif
  
-
+/**
+   struct to hold allelecounts in either a 1d (where Number of alleles is fixed) or 2d array. 
+   usage, 1d array:
+   array_of_allelecounts AlleleCounts;
+   AlleleCounts.stride = K*2;
+   AlleleCounts.array = new int[ NumberOfLoci*K*2];
+   
+   usage, 2darray:
+   AlleleCounts.array = new int*[NumberOfLoci ];
+   for(unsigned i = 0; i < NumberOfLoci; ++i) AlleleCounts.array[i] = new int[K*NumberOfStates[i]];
+   
+   AlleleCounts[i]; //accesses counts for ith locus
+   
+   AlleleCounts[i][k*2 +a]; //accesses count of ath allele in kth pop at ith locus
+   */
 #ifdef ARRAY2D
 typedef struct{
 
@@ -69,6 +70,11 @@ typedef struct{
     }
   };
 }array_of_allelecounts;
+
+/**
+   struct to hold allelefreqs in either a 1d (where Number of alleles is fixed) or 2d array. 
+   See array_of_allelecounts for details.
+*/
 typedef struct{
 
   double **array;
@@ -109,6 +115,11 @@ typedef struct{
     }
   };
 }array_of_allelecounts;
+/**
+   struct to hold allelefreqs in either a 1d (where Number of alleles is fixed) or 2d array. 
+   See array_of_allelecounts for details.
+*/
+
 typedef struct{
   double* array;
   unsigned stride;
@@ -128,7 +139,7 @@ typedef struct{
 }array_of_allelefreqs;
 #endif
 
-
+/// Class to hold allele/haplotype frequencies and their priors.
 class AlleleFreqs{
 
 public:
@@ -138,22 +149,23 @@ public:
   void AllocateAlleleCountArrays(unsigned K);
   void Update(IndividualCollection* IC, bool afterBurnIn, const double coolness, bool annealingUpdate);
 
-  //initialize output file for samples of dispersion parameters
+  ///initialize output file for samples of dispersion parameters
   void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log);
 
-  //outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
+  ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
-  //output samples of dispersion parameters (eta) to dispparamfile
+  ///output samples of dispersion parameters (eta) to dispparamfile
   void OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log);
 
   void OutputAlleleFreqs();
+  void OutputPriorParams();
   void CloseOutputFile(int iterations, const string* const PopulationLabels);
 
   void OutputFST();
 
   void LoadAlleleFreqs(AdmixOptions* const options, InputData* const data);
-
-  void ResetAlleleCounts(unsigned K);//resets Allelecounts to zero at start of iteration
+  ///resets Allelecounts to zero at start of iteration
+  void ResetAlleleCounts(unsigned K);
   bool IsRandom()const;
   void UpdateFst();
   const double *GetStatsForEta( int , int locus)const;
@@ -236,7 +248,7 @@ private:
 
   Genome *Loci;//pointer to Loci object
 
-  //adaptive RW sampler for eta
+  ///adaptive RW sampler for eta
   StepSizeTuner *TuneEtaSampler;
   int NumberOfEtaUpdates;
   int *NumberAccepted; 
