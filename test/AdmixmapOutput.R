@@ -494,12 +494,8 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
       point.list <- qqnorm(zscores[k,], main = title, sub=poplabels[k])
       lines(x = c(min(point.list$x,na.rm=T), max(point.list$x,na.rm=T)), y = c(min(point.list$x,na.rm=T),
                                                                            max(point.list$x,na.rm=T)))
-    }    ## write posterior means of allele freqs to file
-    writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
-                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
-  }    ## write posterior means of allele freqs to file
-    writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
-                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
+    }
+  }
   dev.off()
 }
 
