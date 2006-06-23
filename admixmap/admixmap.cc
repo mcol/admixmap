@@ -397,8 +397,8 @@ int main( int argc , char** argv ){
 		
       if(options.getThermoIndicator()){
 	Log << "thermodynamic integration for marginal likelihood yields:\n";
-	Log << "LogEvidence: " <<  LogEvidence << "\n"; 
-	Log << "Information (negative entropy, measured in nats): " << Information << "\n";
+	Log << "LogEvidence " <<  LogEvidence << "\n"; 
+	Log << "Information (negative entropy, measured in nats) " << Information << "\n";
       }
 		
       //Residuals
