@@ -476,7 +476,7 @@ int main( int argc , char** argv ){
       }
 #endif
     }
-    if(options.getHapMixModelIndicator()){
+    if(options.getHapMixModelIndicator() && (rank == -1 || rank== 1)){
       Log << "Average expected Acceptance rate in allele frequency prior parameter sampler:\n" << A.getHapMixPriorSamplerAcceptanceRate()
 	  << "\nwith average final step size of " << A.getHapMixPriorSamplerStepSize() << "\n";
     }
