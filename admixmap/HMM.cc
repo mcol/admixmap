@@ -87,10 +87,13 @@ void HMM::SetStateArrivalProbs(const double* const fin, const double* const Thet
 	StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * Theta[j];
 	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * Theta[K*Mcol +j ];
       }
-    p[t] = f[2*t] * f[2*t + 1];
+      p[t] = f[2*t] * f[2*t + 1];
     }
-    for(int j0 = 0; j0 < K; ++j0)for(int j1 = 0; j1 < K; ++j1)
-      ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
+    for(int j0 = 0; j0 < K; ++j0) {
+      for(int j1 = 0; j1 < K; ++j1) {
+	ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
+      }
+    }
   }
 }
 
@@ -243,7 +246,7 @@ std::vector<std::vector<double> > HMM::Get3WayStateProbs( const bool isDiploid, 
     //  ++State;
   }
 
-   for( int j = 0; j < States; j++ ){
+  for( int j = 0; j < States; j++ ){ //vectorization successful
      probs[j] /= sum;
    }
    for( int k1 = 0; k1 < K; k1++ ){
@@ -342,7 +345,7 @@ void HMM::UpdateBackwardProbsDiploid()
     }
     
     RecursionProbs(p[t+1], f2, StateArrivalProbs+ (t+1)*K*2, LambdaBeta, beta+ t*DStates);
-    for(int j = 0; j < DStates; ++j){
+    for(int j = 0; j < DStates; ++j){ // vectorization successful
       beta[t*DStates + j] *= rec[j];
     }
   }
@@ -356,22 +359,19 @@ void HMM::UpdateBackwardProbsDiploid()
 void HMM::UpdateForwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
   sumfactor = 0.0;
-  //double factor = 0.0;
   double Sum;
   for(int j = 0; j < K; ++j){
     alpha[j] = theta[j] * Lambda[j];
   }
   
-  for( int t = 1; t < Transitions; t++ ){
+  for( int t = 1; t < Transitions; t++ ) {
     Sum = 0.0;
     for(int j = 0; j < K; ++j){
       Sum += alpha[(t-1)*K + j];
     }
-    //factor = 0.0;
     for(int j = 0; j < K; ++j){
       alpha[t*K + j] = f[2*t] + (1.0 - f[2*t]) * theta[j] * Sum;
       alpha[t*K + j] *= Lambda[(t+1)*K + j];
-      //factor += alpha[t*K + j];
     }
   }
   alphaIsBad =  false;
@@ -406,6 +406,7 @@ void HMM::RecursionProbs(const double ff, const double f2[2], const double* cons
 			 const double* const oldProbs, double *newProbs) {
   if(K==2) RecursionProbs2(ff, f2, stateArrivalProbs, oldProbs, newProbs);
   else {
+    int j0K = 0;
     for( int j0 = 0; j0 <  K; ++j0 ) {
       rowProb[j0] = 0.0;
       colProb[j0] = 0.0;
@@ -422,9 +423,10 @@ void HMM::RecursionProbs(const double ff, const double f2[2], const double* cons
 
     // calculate expectation of product as covariance plus product of expectations
     for(int j0 = 0; j0 < K; ++j0) {
-      for(int j1 =0; j1 < K; ++j1) {
-	cov[j0*K + j1] = ff * ( oldProbs[j0*K + j1] - rowProb[j0] * colProb[j1] );
-	newProbs[j0*K + j1] = cov[j0*K + j1] + Expectation0[j0] * Expectation1[j1];
+      for(int j1 = 0; j1 < K; ++j1) {
+        j0K = j0 * K;
+	cov[j0K + j1] = ff * ( oldProbs[j0K + j1] - rowProb[j0] * colProb[j1] );
+	newProbs[j0K + j1] = cov[j0K + j1] + Expectation0[j0] * Expectation1[j1];
 	// newProbs[1] is prob(paternal=1, maternal=0)
       }
     }
