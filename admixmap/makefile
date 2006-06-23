@@ -37,7 +37,7 @@ SPRNG_PATH = /opt/packages/sprng-2.0
 
 #leave this one empty for shared libraries (eg libgsl.so) or as -static for static libs (eg libgsl.a)
 #NB do not use -static with parallel version
-#LIBTYPE =-static
+LIBTYPE =-static
 
 ## compiler definitions
 GNU_COMPILER  = g++ # GNU compiler, all machines
@@ -64,11 +64,9 @@ PCC = $(MPICC)#parallel wrapper for serial
 ## **Destination details
 DESTDIR = ../test# where to put compiled exec
 SERIAL_EXEC = admixmap# name of compiled executable
-DISTDIR			= $(DESTDIR)/admixmap-linux#directory for Linux distribution
-WINDISTDIR		= $(DESTDIR)/admixmap-win#  directory for Windows distribution
 
 ## ** flags for release version, debug version or profiling version
-#DFLAGS 		= -O3# release, optimized
+DFLAGS 		= -O3# release, optimized
 #DFLAGS 	= -g# debug
 # DFLAGS 	= -pg -O3# profiling
 
@@ -120,38 +118,38 @@ endif
 # math, GSL, GSL's CBLAS (linear algebra)
 SERIAL_LIBS = -lm -lgsl -lgslcblas 
 
-PARALLEL_LIBS = -lm -lgsl -lgslcblas -lmpich -lsprng -lgmp -lmpe
+PARALLEL_LIBS = $(SERIAL_LIBS) -lmpich -lsprng -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
 
 ifeq ($(GSL_LIBPATH),)
-SERIAL_LFLAGS =
+GSL_LFLAGS =
 else
-SERIAL_LFLAGS = -L$(GSL_LIBPATH)
+GSL_LFLAGS = -L$(GSL_LIBPATH)
 endif
 
 ifeq ($(GSL_INCLUDEPATH),)
-SERIAL_INCLUDES =
+GSL_INCLUDES =
 else
-SERIAL_INCLUDES = -I$(GSL_INCLUDEPATH)
+GSL_INCLUDES = -I$(GSL_INCLUDEPATH)
 endif
 
-##library flags for sprng in parallel version
+##library flags for sprng and mpich in parallel version
 PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPI_LIBPATH)
 PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 
 ## parallel version
 ifeq ($(VERSION),parallel)
 CXX = $(PCC)
-LIBS = $(SERIAL_LIBS) $(PARALLEL_LIBS)
-LFLAGS = $(SERIAL_INCLUDES) $(PARALLEL_LFLAGS)
-INCLUDES = $(PARALLEL_INCLUDES)
+LIBS = $(PARALLEL_LIBS)
+LFLAGS = $(GSL_LFLAGS) $(PARALLEL_LFLAGS)
+INCLUDES = $(GSL_INCLUDES) $(PARALLEL_INCLUDES)
 EXEC = adm-para
 ##serial version
 else
 CXX = $(CC)
-LIBS = $(SERIAL_LIBS) -static
-LFLAGS = $(SERIAL_LFLAGS)
-INCLUDES = $(SERIAL_INCLUDES)
+LIBS = $(SERIAL_LIBS) $(LIBTYPE)
+LFLAGS = $(GSL_LFLAGS)
+INCLUDES = $(GSL_INCLUDES)
 EXEC = $(SERIAL_EXEC)
 endif
 
@@ -181,22 +179,4 @@ realclean:
 
 check:		all
 		perl $(DESTDIR)/batchtest.pl
-
-#Compile  for Linux and repackage distribution with new exec
-linuxdist:      all
-		cp $(DESTDIR)/$(EXEC) $(DISTDIR)
-		rm -f $(DESTDIR)/$(EXEC).tar.gz
-		tar -czf $(EXEC).tar.gz $(DISTDIR)
-
-#Compile for Windows and prepare to repackage
-#Zipping cannot be done in Windows from command line unless a special zip app installed (eg Winzip, AlZip etc)
-windist:	all
-		cp $(DESTDIR)/$(EXEC).exe $(WINDISTDIR)
-		rm -f $(DESTDIR)/$(EXEC).zip
-## ALZip
-		alzip -a $(WINDISTDIR) $(DESTDIR)/$(EXEC).zip
-## WinZip
-#		??
-## pkzip
-# 		pkzip $(EXEC).zip $(WINDISTDIR)
 
