@@ -603,10 +603,6 @@ const std::vector<double> & AdmixOptions::getAlleleFreqPriorParams()const{
 }
 void AdmixOptions::SetOptions(int nargs, char** args)
 {
-
-  // This is the command-line parsing
-  int c;
-
   /**
    * long_options is a pointer to the first element of an array of struct option
    * declared in <getopt.h> as
@@ -733,7 +729,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {0, 0, 0, 0}    // marks end of array
   };
 
-  //options specified on command line
+  // This is the command-line parsing
+  int c;
   while (1) {
     int option_index = 0;
     c = getopt_long (nargs, args, "a:b:c:e:g:i:l:o:p:r:s:t:",
@@ -1176,8 +1173,8 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     Log << "Gamma prior on Dirichlet parameters with shape " << allelefreqprior[0] << " and Gamma( " << allelefreqprior[1] << ", " 
 	<< allelefreqprior[2] << " ) prior on rate.\n"; 
   }
-  else if(allelefreqprior.size())
-    Log << "Warning: option 'allelefreqprior' is valid only with a hapmixmodel. This option will be ignored\n";
+  //else if(allelefreqprior.size())
+  //Log << "Warning: option 'allelefreqprior' is valid only with a hapmixmodel. This option will be ignored\n";
   
   //Prior on admixture
   setInitAlpha(Log);
