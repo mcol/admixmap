@@ -27,9 +27,9 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const
   unsigned dim = NumStates*NumPops;
   params = new double[dim];
   //initialise Hamiltonian Sampler
-  double step0 = 0.002;//initial step size
+  double step0 = 0.005;//initial step size
   double min = -100.0, max = 100.0; //min and max stepsize
-  int numleapfrogsteps = 10;
+  int numleapfrogsteps = 5; // 10;
   Args.PriorParams = Prior;
   ishapmixmodel = hapmixmodel;
 
@@ -260,9 +260,10 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
 void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
 						unsigned NumStates, unsigned NumPops, double* FirstDeriv){
   unsigned NumPossHapPairs = H.size();
-  unsigned dim = NumStates*NumPops;
 
-  vector<double> A(dim), B(dim), /*D(dim), */ E(dim); 
+  unsigned dim = NumStates*NumPops; // could allocate these vectors when object is constructed
+  vector<double> A(dim), B(dim), E(dim); 
+
   for(unsigned d = 0; d < dim; ++d) {
     A[d] = B[d] /*= D[d] */ = E[d] = 0.0;
   }
@@ -281,7 +282,6 @@ void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc
     //    if(Anc[0] == Anc[1]){ // ? wrong
     if( index0 == index1 ) {
       A[index0] = 1.0; // indicator for quadratic term in sum
-      // D[index0] = 1.0; 
     } else {
       B[index0] += phi[index1]; // accumulate coefficient of linear term in sum
       B[index1] += phi[index0];
@@ -291,7 +291,7 @@ void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc
   }
   
   for(unsigned d = 0;d < dim; ++d) { // this loop may be very large, skip iterations that don't contribute to result
-    if(A[d] > 0 || B[d] > 0) { // otherwise no contribution to d th element of vector 
+    if(A[d] > 0 || B[d] > 0) { // otherwise skip, no contribution to d th element of vector 
       FirstDeriv[d] -=  -(2*A[d]*phi[d] + B[d]) / sum;
       if(A[d] > 0) {
 	A[d] = phi[d]*phi[d]*phi[d]; //phi^3
