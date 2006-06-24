@@ -262,45 +262,43 @@ void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc
   unsigned NumPossHapPairs = H.size();
   unsigned dim = NumStates*NumPops;
 
-  vector<double> A(dim), B(dim), /*C(dim),*/ D(dim), E(dim)/*, F(dim)*/;
-  //fill(A, A+dim, 0.0);  fill(B, B+dim, 0.0); fill(C, C+dim, 0.0);
-  //fill(D, D+dim, 0.0);  fill(E, E+dim, 0.0); fill(F, F+dim, 0.0);
-  for(unsigned d = 0; d < dim; ++d){
-    A[d] = B[d] = /*C[d] =*/ D[d] = E[d] = /*F[d] =*/ 0.0;
+  vector<double> A(dim), B(dim), /*D(dim), */ E(dim); 
+  for(unsigned d = 0; d < dim; ++d) {
+    A[d] = B[d] /*= D[d] */ = E[d] = 0.0;
   }
 
-  double sum = 0.0, sum2 = 0.0;//sums of products and products of squares
+  double sum = 0.0, sum2 = 0.0;//sum of products, sum of squared products
   double phiphi;
   for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
     unsigned j0 = H[hpair].haps[0];//j
     unsigned j1 = H[hpair].haps[1];//j'
     int index0 = Anc[0]*NumStates + j0;//jk
     int index1 = Anc[1]*NumStates + j1;//j'k'
-    phiphi = phi[index0] * phi[index1];
+    phiphi = phi[index0] * phi[index1]; // phi_jk * phi_j'k'
     sum += phiphi;
     sum2 += phiphi*phiphi;
-
-    if(Anc[0] == Anc[1]){
-      A[index0] = A[index1] = 1.0;
-      D[index0] = D[index1] = 1.0;
+    
+    //    if(Anc[0] == Anc[1]){ // ? wrong
+    if( index0 == index1 ) {
+      A[index0] = 1.0; // indicator for quadratic term in sum
+      // D[index0] = 1.0; 
+    } else {
+      B[index0] += phi[index1]; // accumulate coefficient of linear term in sum
+      B[index1] += phi[index0];
+      E[index0] += phi[index1]*phi[index1]; // accumulate coefficient of quadratic term in sum2
+      E[index1] += phi[index0]*phi[index0];
     }
-    B[index0] += phi[index1];
-    B[index1] += phi[index0];
-    E[index0] += phi[index1]*phi[index1];
-    E[index1] += phi[index0]*phi[index0];
-
   }
-  for(unsigned d = 0;d < dim; ++d){
-    double phi2 = phi[d]*phi[d];//phi^2
-    double phi3 = phi[d]*phi2;//phi^3
-    //double phi4 = phi2*phi2;//phi^4
-
-    //C[d] = sum - A[d]*phi2 - B[d]*phi[d];
-    //F[d] = sum2 - D[d]*phi4 - E[d]*phi2;
-
-    FirstDeriv[d] -= ( (4*D[d]*phi3 + 2*E[d]*phi[d]) / sum2 ) - ( (2*A[d]*phi[d] + B[d]) / sum );
+  
+  for(unsigned d = 0;d < dim; ++d) { // this loop may be very large, skip iterations that don't contribute to result
+    if(A[d] > 0 || B[d] > 0) { // otherwise no contribution to d th element of vector 
+      FirstDeriv[d] -=  -(2*A[d]*phi[d] + B[d]) / sum;
+      if(A[d] > 0) {
+	A[d] = phi[d]*phi[d]*phi[d]; //phi^3
+      }
+      FirstDeriv[d] -= (4*A[d] + 2*E[d]*phi[d]) / sum2;
+    }
   }
-
 }
 
 //energy function for Hamiltonian sampler, case of SNP
