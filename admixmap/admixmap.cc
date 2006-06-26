@@ -91,7 +91,7 @@ int main( int argc , char** argv ){
   int    xargc = argc;
   char **xargv = argv;    
 
-  if (argc < 2) {
+   if (argc < 2) {
     PrintOptionsMessage();
     exit(1); 
   } else if (argc == 2) {     // using options text file        
@@ -110,13 +110,11 @@ int main( int argc , char** argv ){
 	-- xargc;
       }
       else {
-	xargv[ii] = new char[strlen(argv[i])];
-	strcpy(xargv[ii], argv[i]);
+	  xargv[ii] = argv[i];
 	++ii;
       }
   }
-
-
+ 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
   AdmixOptions options(xargc, xargv);
@@ -138,8 +136,8 @@ int main( int argc , char** argv ){
   
     InputData data; //read data files and check (except allelefreq files)
     data.readData(&options, Log, rank);//also sets 'numberofoutcomes' and 'populations' options
-  
-    //check user options
+
+     //check user options
     options.checkOptions(Log, data.getNumberOfIndividuals());
   
     //print user options to args.txt; must be done after all options are set
@@ -173,7 +171,7 @@ int main( int argc , char** argv ){
 
     Latent L( &options, &Loci);    
     if(rank!=1)L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
-  
+
     Regression* R = 0;
     if (options.getNumberOfOutcomes()>0 && rank !=1){
       R = new Regression[options.getNumberOfOutcomes()];
@@ -183,7 +181,7 @@ int main( int argc , char** argv ){
       }
       if(rank<1)Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
     }
-  
+    
     if( (options.isGlobalRho() || options.getHapMixModelIndicator()) && (rank>1 || rank==-1)) {
       Loci.InitialiseLocusCorrelation(L.getrho());
       if(options.getHapMixModelIndicator())
@@ -192,14 +190,14 @@ int main( int argc , char** argv ){
 	  //TODO: can skip this if xonly analysis with no females
 	  Loci.getChromosome(j)->SetStateArrivalProbs(L.getGlobalTheta(), options.isRandomMatingModel(), true);
     }
- 
+    
     if(rank !=1)IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log);
   
     //set expected Outcome
     if(rank < 1)
       for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
 	R[r].SetExpectedY(IC);
-  
+
     data.Delete();
 
     //  ******** single individual, one population, fixed allele frequencies  ***************************
