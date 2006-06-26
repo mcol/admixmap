@@ -100,6 +100,7 @@ endif
 endif
 
 ifeq ($(CC),$(PATHSCALE_COMPILER))
+WFLAGS = -fullwarn -LNO:simd_verbose
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
 endif
