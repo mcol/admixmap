@@ -128,9 +128,8 @@ IndividualCollection::~IndividualCollection() {
   delete[] GlobalSumAncestry;
 #endif
 }
-
+///finish writing expected outcome as R object
 void IndividualCollection::FinishWritingEYAsRObject(unsigned NumIterations, const Vector_s Labels){
-  //finish writing expected outcome as R object
   //dimensions are NumIndividuals, NumOutcomes, NumIterations
   if(EYStream.is_open()){
     EYStream << ")," << endl << ".Dim = c(" << size << "," << NumOutcomes << "," << NumIterations << ")," << endl
@@ -372,9 +371,11 @@ void IndividualCollection::OpenExpectedYFile(const char* Filename, LogWriter & L
   EYStream.open(Filename, ios::out);
   if( !EYStream.is_open() )
     {
+      Log.setDisplayMode(On);
       Log<< "WARNING: Couldn't open expectedoutcomefile\n";
     }
   else{
+    Log.setDisplayMode(Quiet);
     Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
     EYStream << "structure(.Data=c(" << endl;
    }
@@ -425,7 +426,11 @@ void IndividualCollection::resetStepSizeApproximators(int k) {
     _child[i]->resetStepSizeApproximator(k);
 }
 
-void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const AlleleFreqs* const A){
+void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const AlleleFreqs* const 
+#ifdef PARALLEL
+					    A
+#endif
+					    ){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   for(unsigned j = 0; j < nchr; ++j){
@@ -439,7 +444,7 @@ void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const Alle
 //       workers_and_freqs.Barrier();// wait till everyone is ready for next locus
 //       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
 //get pointer to allele probs for this locus
-      const double* AlleleProbs = A->GetAlleleFreqs(locus);
+      const double* AlleleProbs = A->GetAlleleFreqs(locus);//need to get alleleprobs from A as workers have no CompositeLocus objects
       for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
 	_child[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
       }
@@ -558,11 +563,11 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   }
 #endif
 }
+/**
+   Samples Haplotype pairs and upates allele/haplotype counts
+*/
 void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
 					  bool anneal=false){
-  /*
-    Samples Haplotype pairs and upates allele/haplotype counts
-  */
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   for(unsigned j = 0; j < nchr; ++j){
@@ -597,13 +602,12 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
     }
   }
 }
-
+///samples individual-level sumintensities and admixture
 void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* const options,
 					    const Regression* const R, const double* const poptheta,
 					    const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 					    bool anneal=false){
-  //samples individual-level sumintensities and admixture
-  //sufficient statistics have been stored in Individuals
+   //sufficient statistics have been stored in Individuals
 
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 
@@ -836,13 +840,12 @@ const int* IndividualCollection::getSumAncestry()const{
 //   return sumNumArrivals;
 // }
 
+/**
+ * returns a count of the copies of allele a at a comp locus.
+ * Only works for diallelic loci.
+ * used in strat test to determine loci with given percentage of observed genotypes 
+ */
 unsigned IndividualCollection::GetSNPAlleleCounts(unsigned locus, int allele)const{
-  /**
-   * returns a count of the copies of allele a at a comp locus
-   * only works for diallelic loci.
-   * used in strat test to determine loci with given percentage of observed genotypes 
-   */
-
   int AlleleCounts = 0;
   for(unsigned i = worker_rank; i < size; i += NumWorkers){
     if(!_child[i]->GenotypeIsMissing(locus)){
@@ -877,9 +880,8 @@ const vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop,
     }
   return counts;
 }
-
+///count number of missing genotypes at locus
 int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
-  //count number of missing genotypes at locus
   int count = 0;
   for(unsigned i = worker_rank; i < size; i += NumWorkers){
     if(_child[i]->GenotypeIsMissing(locus)){
@@ -898,9 +900,8 @@ int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
 const chib* IndividualCollection::getChib()const{
   return &MargLikelihood;
 }
-
+///returns sample variance of jth outcome variable
 double IndividualCollection::getSampleVarianceOfOutcome(int j)const{
-  //returns sample variance of jth outcome variable
   if(OutcomeType[j] == Continuous){
     double sum = 0.0, sumsq = 0.0, x = 0.0;
     for(unsigned i = 0; i < Outcome.nRows(); ++i){
@@ -912,8 +913,8 @@ double IndividualCollection::getSampleVarianceOfOutcome(int j)const{
   }
   else return 1.0;
 }
+///returns sample variance of jth covariate
 double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
-  //returns sample variance of jth covariate
   if(j < NumberOfInputCovariates+1){
     double sum = 0.0, sumsq = 0.0, x = 0.0;
     for(unsigned i = 0; i < Covariates.nRows(); ++i){
@@ -1098,7 +1099,7 @@ double* IndividualCollection::getSumEnergy(){
 double* IndividualCollection::getSumEnergySq(){
   return SumEnergySq;
 }
-//returns Derivative of Inverse Link Function for individual i
+///returns Derivative of Inverse Link Function for individual i
 double IndividualCollection::DerivativeInverseLinkFunction(int i)const{
   double DInvLink = 1.0;
   if(OutcomeType){//in case no regression model
