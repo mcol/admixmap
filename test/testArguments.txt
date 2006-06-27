@@ -41,3 +41,4 @@
   ancestryassociationscorefile = ancestryassocscore.txt
   affectedsonlyscorefile       = affectedsonlyscore.txt
   haplotypeassociationscorefile = hapassocscore.txt
+  hwscoretestfile = HWtest.txt
