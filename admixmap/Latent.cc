@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   Latent.cc 
  *   Class to hold and update population admixture and sumintensities parameters and their priors
- *   Copyright (c) 2002 - 2006 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -98,13 +98,30 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	  RhoArgs.NumIntervals = numIntervals;
 	  RhoArgs.sumrho  = numIntervals * rho[0];
 	  RhoArgs.sumlogrho = numIntervals * log(rho[0]);
+
+	  //set up Hamiltonian sampler for rho
 	  RhoSampler = new HamiltonianMonteCarlo[numIntervals];
+	  const vector<float>& rhosamplerparams = options->getrhoSamplerParams();
+	  size_t size = rhosamplerparams.size();
+	  float initial_stepsize = size? rhosamplerparams[0] : 0.05;
+	  float min_stepsize = size? rhosamplerparams[1] : 0.000;
+	  float max_stepsize = size? rhosamplerparams[2] : 1.0;
+	  float target_acceptrate = size? rhosamplerparams[3] : 0.8;
+	  int num_leapfrog_steps = size? (int)rhosamplerparams[4] : 20;
+
 	  for(unsigned j = 0; j < numIntervals; ++j)
-	    RhoSampler[j].SetDimensions(1, 0.05/*initial stepsize*/, 0.000/*min stepsize*/, 
-					1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, RhoEnergy, RhoGradient);
+	    RhoSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, target_acceptrate, 
+					RhoEnergy, RhoGradient);
+
+	  const vector<float>& rhopriorsamplerparams = options->getrhoPriorParamSamplerParams();
+	  size = rhopriorsamplerparams.size();
+	  initial_stepsize = size? rhopriorsamplerparams[0] : 0.05;
+	  min_stepsize = size? rhopriorsamplerparams[1] : 0.000;
+	  max_stepsize = size? rhopriorsamplerparams[2] : 1.0;
+	  target_acceptrate = size? rhopriorsamplerparams[3] : 0.8;
+	  num_leapfrog_steps = size? (int)rhopriorsamplerparams[4] : 20;
 	  
-	  RhoPriorParamSampler.SetDimensions(3, 0.05/*initial stepsize*/, 0.000/*min stepsize*/, 
-					     1.0/*max stepsize*/, 20/*num leapfrogs*/,  0.8/*target accept rate*/, 
+	  RhoPriorParamSampler.SetDimensions(3, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, target_acceptrate, 
 					     RhoPriorParamsEnergy, RhoPriorParamsGradient);
 	}
       }
@@ -120,7 +137,14 @@ void Latent::Initialise(int Numindividuals, const std::string* const PopulationL
 	step0 = 1.0; // sd of proposal distribution for log rho
 	//need to choose sensible value for this initial RW sd
 	step = step0;
-	TuneRhoSampler.SetParameters( step0, 0.01, 10, 0.44);
+	const vector<float>& rhosamplerparams = options->getrhoSamplerParams();
+	size_t size = rhosamplerparams.size();
+	float initial_stepsize = size? rhosamplerparams[0] : step0;
+	float min_stepsize = size? rhosamplerparams[1] : 0.01;
+	float max_stepsize = size? rhosamplerparams[2] : 10;
+	float target_acceptrate = size? rhosamplerparams[3] : 0.44;
+
+	TuneRhoSampler.SetParameters( initial_stepsize, min_stepsize, max_stepsize, target_acceptrate);
       }
     }
 
@@ -362,7 +386,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
 //   }
 // }
 
-//conjugate update of locus-specific sumintensities, conditional on observed numbers of arrivals
+///conjugate update of locus-specific sumintensities, conditional on observed numbers of arrivals
 void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, bool sumlogrho) {
   double sum = 0.0;
   int locus = 0;
@@ -498,32 +522,22 @@ double Latent::RhoEnergy(const double* const x, const void* const vargs){
   //  const double* theta = args->theta;
   double theta = 1.0 / (double)K;
   double E = 0.0;
-  gsl_sf_result result;
-  int status = 0;
 
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  double rho = exp(*x);
-  status = gsl_sf_exp_e(-d*rho, &result);
-  if(status){
-    stringstream s;
-    s << "exp error in RhoEnergy: " << -d*rho << ":  " << gsl_strerror(status); 
-    throw s.str();
+  try{
+    double rho = myexp(*x);
+    double f = myexp(-d*rho);
+    
+    int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
+    
+    E -= sumnotequal * myexp((1.0-f)*theta);
+    E -= sumequal * log(f + theta*(1.0 - f));
+    
+    //log prior
+    E -= (args->rhoalpha) * (*x )- (args->rhoalpha*args->NumIntervals + args->rhobeta0) * mylog(args->rhobeta1 + (args->sumrho + rho));
   }
-  double f = result.val;
-  
-  int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
-
-  status = gsl_sf_log_e((1.0-f)*theta, &result);
-  if(status)throw string("log error in RhoEnergy");
-  E -= sumnotequal * result.val;
-  E -= sumequal * log(f + theta*(1.0 - f));
-  
-  //log prior
-  status = gsl_sf_log_e(args->rhobeta1 + (args->sumrho + rho), &result);
-  E -= (args->rhoalpha) * (*x )- (args->rhoalpha*args->NumIntervals + args->rhobeta0) * result.val;
-
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status)throw string("log error in RhoEnergy");
+  catch(string s){
+    throw string("Error in RhoEnergy: " + s);
+  }
   return E; 
 }
 
@@ -533,30 +547,24 @@ void Latent::RhoGradient( const double* const x, const void* const vargs, double
   const double d = args->Distance;
   //  const double* theta = args->theta;
   double theta = 1.0 / (double)K;
-  gsl_sf_result result;
-  int status = 0;
 
   g[0] = 0.0;
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  double rho = exp(*x);
-  status = gsl_sf_exp_e(-d*rho, &result);
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-    stringstream s;
-    s << "exp error in RhoGradient: " << -d*rho << ":  " << gsl_strerror(status); 
-    throw s.str();
+  try{
+    double rho = myexp(*x);
+    double f = myexp(-d*rho);
+    //first compute dE / df
+    int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
+    
+    g[0] += sumnotequal / (1.0 - f);
+    g[0] -= (sumequal*(1.0 - theta)) / (f + theta*(1.0 - f));
+    g[0] *= -rho*d*f;//jacobian (df / d x )
+    
+    //derivative of log prior wrt log rho
+    g[0] -= args->rhoalpha - rho*(args->rhoalpha*args->NumIntervals + args->rhobeta0) / (args->rhobeta1 + args->sumrho + rho);
   }
-  double f = result.val;
-  //first compute dE / df
-  int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
-
-  g[0] += sumnotequal / (1.0 - f);
-  g[0] -= (sumequal*(1.0 - theta)) / (f + theta*(1.0 - f));
-  g[0] *= -rho*d*f;//jacobian (df / d x )
-
-  //derivative of log prior wrt log rho
-  g[0] -= args->rhoalpha - rho*(args->rhoalpha*args->NumIntervals + args->rhobeta0) / (args->rhobeta1 + args->sumrho + rho);
-
+  catch(string s){
+    throw string("Error in RhoGradient: " + s);
+  }
 }
 
 double Latent::RhoPriorParamsEnergy(const double* const x, const void* const vargs){
@@ -565,30 +573,26 @@ double Latent::RhoPriorParamsEnergy(const double* const x, const void* const var
   unsigned K = args->NumPops;
   const double d = args->Distance;
   double theta = 1.0 / (double)K;
-  gsl_sf_result result;
-  int status = 0;
   double E = 0.0;
 
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
-  for(unsigned i = 0; i <3; ++i){
-    double rho = exp(x[i]);
-    status = gsl_sf_exp_e(-d*rho, &result);
-    if(status)throw string("exp error in RhoEnergy");
-    double f = result.val;
-    
-    status = gsl_sf_log_e((1.0-f)*theta, &result);
-    if(status)throw string("log error in RhoEnergy");
-    E -= sumnotequal * result.val;
-    E -= sumequal * log(f + theta*(1.0 - f));
-    
-    //log prior
-    // priors are hard-coded as Ga(1,1)
-    E -= (x[i] - exp(x[i]));
+  try{
+    for(unsigned i = 0; i <3; ++i){
+      double rho = exp(x[i]);
+      double f = myexp(-d*rho);
+      
+      E -= sumnotequal * mylog((1.0-f)*theta);
+      E -= sumequal * mylog(f + theta*(1.0 - f));
+      
+      //log prior
+      // priors are hard-coded as Ga(1,1)
+      E -= (x[i] - myexp(x[i]));
+    }
   }
 
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status)throw string("log error in RhoEnergy");
+  catch(string s){
+    throw string("Error in RhoPriorParamsEnergy: " +s);
+  }
   return E;
 }
 
@@ -598,30 +602,26 @@ void Latent::RhoPriorParamsGradient( const double* const x, const void* const va
   const double d = args->Distance;
   //  const double* theta = args->theta;
   double theta = 1.0 / (double)K;
-  gsl_sf_result result;
-  int status = 0;
 
   int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  for(unsigned i = 0; i <3; ++i){
-    g[i] = 0.0;
-    double rho = exp(x[i]);
-    status = gsl_sf_exp_e(-d*rho, &result);
-    gsl_set_error_handler (old_handler);//restore gsl error handler 
-    if(status){
-      throw string("exp error in RhoGradient");
+  try{
+    for(unsigned i = 0; i <3; ++i){
+      g[i] = 0.0;
+      double rho = exp(x[i]);
+      double f = myexp(-d*rho);
+      //first compute dE / df
+      
+      g[i] += sumnotequal / (1.0 - f);
+      g[i] -= (sumequal*(1.0 - theta)) / (f + theta*(1.0 - f));
+      g[i] *= -rho*d*f;//jacobian (df / d x )
+      
+      //derivative of log prior wrt log 
+      // priors are hard-coded as Ga(1,1)
+      g[i] += rho;
     }
-    double f = result.val;
-    //first compute dE / df
-    
-    g[i] += sumnotequal / (1.0 - f);
-    g[i] -= (sumequal*(1.0 - theta)) / (f + theta*(1.0 - f));
-    g[i] *= -rho*d*f;//jacobian (df / d x )
-    
-    //derivative of log prior wrt log 
-    // priors are hard-coded as Ga(1,1)
-    
-    g[i] += exp(x[i]);
+  }
+  catch(string s){
+    throw string("Error in RhoPriorParamsGradient: " +s);
   }
 }
 
