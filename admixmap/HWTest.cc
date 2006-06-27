@@ -69,76 +69,72 @@ void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter 
 void HWTest::Update(const IndividualCollection* const IC, const Genome* const Loci){
   double H; // prob heterozygous
   bool h;
-  int locus = 0, complocus = 0, Ancestry0, Ancestry1;
-  //vector<vector<unsigned short> > genotype;
+  int locus = 0; // absolute simple locus number within loop over individuals
+  int slocus = 0,; // incremented with loop over composite loci 
+  int complocus = 0;  // absolute comp locus number
+  int Ancestry0, Ancestry1;
   Individual *ind = 0;
   double **Prob0 = 0, **Prob1 = 0;
-
   //reset score
   for(int j = 0; j < NumLoci; ++j){
     score[j] = 0.0;
   }
-  for(int i = 0; i < IC->getSize(); ++i){
 
-    ind = IC->getIndividual(i);
-    locus = 0;    //absolute locus number
-    complocus = 0;//absolute comp locus number
-    for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr){ //loop over chromosomes
-      for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j){                  //loop over comp loci on chromosome
+  for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr){ //loop over chromosomes
+    for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j){ //loop over comp loci on chromosome
+      int* alleles0 = new int[(*Loci)(complocus)->GetNumberOfLoci()];
+      int* alleles1 = new int[(*Loci)(complocus)->GetNumberOfLoci()];
+      //allocate arrays to hold marginal alleleprobs; could be done in function but easier to control here.      
+      Prob0 = new double*[(*Loci)(complocus)->GetNumberOfLoci()];
+      Prob1 = new double*[(*Loci)(complocus)->GetNumberOfLoci()];
+      for(int jj = 0; jj < (*Loci)(complocus)->GetNumberOfLoci(); ++jj){
+	Prob0[jj] = new double[ (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj)];
+	Prob1[jj] = new double[ (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj)];
+      }
+      
+      for(int i = 0; i < IC->getSize(); ++i) { // loop over individuals to get locus ancestry
+	ind = IC->getIndividual(i);
 	Ancestry0 = ind->GetLocusAncestry( (int)chr, 0, j);
 	Ancestry1 = ind->GetLocusAncestry( (int)chr, 1, j);
-	// if(Ancestry0 == Ancestry1) {
-
-	//genotype = ind->getGenotype(complocus);
 	const int* happair = ind->getSampledHapPair(complocus);
-	int* alleles0 = new int[(*Loci)(complocus)->GetNumberOfLoci()];
-	int* alleles1 = new int[(*Loci)(complocus)->GetNumberOfLoci()];
 	(*Loci)(complocus)->decodeIntAsHapAlleles(happair[0], alleles0);
 	(*Loci)(complocus)->decodeIntAsHapAlleles(happair[1], alleles1);
-
-	  //allocate arrays to hold marginal alleleprobs; could be done in function but easier to control here.      
-	  Prob0 = new double*[(*Loci)(complocus)->GetNumberOfLoci()];
-	  Prob1 = new double*[(*Loci)(complocus)->GetNumberOfLoci()];
-	  
-	  for(int jj = 0; jj < (*Loci)(complocus)->GetNumberOfLoci(); ++jj){
-	    Prob0[jj] = new double[ (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj)];
-	    Prob1[jj] = new double[ (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj)];
-	    
-	  }
-	  //retrieve marginal alleleprobs for composite locus complocus, given current ancestry states on each gamete of ind
-	  (*Loci)(complocus)->getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
-	  (*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);   
-	  
-	  for(int jj = 0; jj < Loci->getNumberOfLoci(complocus); ++jj){       //loop over loci within comp locus
-	    if( !ind->simpleGenotypeIsMissing(locus)){ //non-missing genotype, assumes second gamete missing if first is
-	      h = alleles0[jj] != alleles1[jj];
-	      H = 1.0;
-	      //compute prob of heterozygosity by subtracting from 1 the prob of homozygosity, ie sum of diagonal products	    
-	      for(int a = 0; a < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
-		H -= Prob0[jj][a] * Prob1[jj][a];
-	      }
-	      //accumulate score over individuals
-	      if( h ){//heterozygous - prob H under null
-		score[locus] -= 1.0 - H; 
-	      }
-	      else{//homozygous - prob (1-H) under null
-		score[locus] += H;  // 0.5 * ( H  / ( 1.0 - H ) ); 
-	      }
-	      suminfo[locus] += H * (1.0 - H); // += 0.25 *( H /  (1.0 - H) );
+	//retrieve marginal alleleprobs for composite locus complocus, given current ancestry states on each gamete of ind
+	(*Loci)(complocus)->getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
+	(*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);
+	locus = slocus;
+	
+	for(int jj = 0; jj < Loci->getNumberOfLoci(complocus); ++jj){       //loop over simple loci within comp locus
+	  if( !ind->simpleGenotypeIsMissing(locus)){ //non-missing genotype, assumes second gamete missing if first is
+	    h = alleles0[jj] != alleles1[jj];
+	    H = 1.0;
+	    //compute prob of heterozygosity by subtracting from 1 the prob of homozygosity, ie sum of diagonal products	    
+	    for(int a = 0; a < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
+	      H -= Prob0[jj][a] * Prob1[jj][a];
 	    }
-	    ++locus;
-	  }
-	  //reset pointers ready to reuse next time	
-	  free_matrix(Prob0, Loci->getNumberOfLoci(complocus));
-	  free_matrix(Prob1, Loci->getNumberOfLoci(complocus));
-	  // }
-	++complocus;
-	delete[] alleles0;
-	delete[] alleles1;
-      }//end chromosome loop
-    }
-    ind = 0;
-  }
+	    //accumulate score over individuals
+	    if( h ){//heterozygous - prob H under null
+	      score[locus + jj] -= 1.0 - H; 
+	    }
+	    else {//homozygous - prob (1-H) under null
+	      score[locus + jj] += H;   
+	    }
+	    suminfo[locus + jj] += H * (1.0 - H); 
+	  } 
+	  locus += Loci->getNumberOfLoci(complocus);
+	} // ends loop over simple loci within compound locus
+	ind = 0;
+      } // ends loop over individuals 
+
+      //reset pointers for next compound locus	
+      free_matrix(Prob0, Loci->getNumberOfLoci(complocus));
+      free_matrix(Prob1, Loci->getNumberOfLoci(complocus));
+      delete[] alleles0;
+      delete[] alleles1;
+      slocus += Loci->getNumberOfLoci(complocus);
+      ++complocus;
+    }//end loop over compound loci
+  } // end loop over chromosomes
   for(int j = 0; j < NumLoci; ++j){
     sumscore[j] += score[j];
     sumscore2[j] += score[j] * score[j];
