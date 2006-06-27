@@ -1,57 +1,44 @@
 #!/usr/bin/perl -w
 use strict;
 
-my $DEBUG = 0; # zero gives less output
-
-# Change this to the location of the admixmap executable
 my $executable = './admixmap';
-
-# $arg_hash is a hash of parameters passed to
-# the executable as arguments.
-#
-# keys (left-hand side) are parameter names
-# values (right-hand side) are parameter values
-my $arg_hash = 
-{
+my $arg_hash = {
 #data files
-    genotypesfile                   => 'sim/genotypes.txt',
-    locusfile                          => 'sim/loci.txt',
-    priorallelefreqfile             => 'sim/priorallelefreqs.txt',
+    genotypesfile                   => 'simdata/genotypes.txt',
+    locusfile                       => 'simdata/loci.txt',
+    priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
     # covariatesfile                  => 'data/covariates3.txt',
-    # outcomevarfile               => 'sim/outcome.txt',
+    outcomevarfile                  => 'simdata/outcome.txt',
 
 #main options
-    analysistypeindicator     => 1, # no outcome # 2,# 
-    coutindicator   => 1, #verbose output
-    samples  => 500,
-    burnin   => 100,
+    displaylevel   => 3, #verbose output
+    samples  => 700,
+    burnin   => 200,
     every    => 5,
+    populations => 2,
+    numannealedruns => 0,
 
 #output files
-    resultsdir               => "sim",
-    logfile                     => 'logfile.txt',
-    paramfile               => 'paramfile.txt',
-    indadmixturefile     => 'indadmixture.txt',
-    ergodicaveragefile => 'ergodicaverage.txt'
+    resultsdir               => "simResults",
+    logfile                  => 'logfile.txt',
+    paramfile                => 'paramfile.txt',
+    #regparamfile             => 'regparam.txt',
+    indadmixturefile         => 'indadmixture.txt',
+    ergodicaveragefile       => 'ergodicaverage.txt',
     # allelefreqoutputfile  => 'allelefreqoutputfile.dat',
 
 #optional tests
     # allelicassociationscorefile       => 'allelicassociationscorefile.dat',
     # ancestryassociationscorefile  => 'ancestryassociationscorefile.dat',
-    # affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
+    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
     # haplotypeassociationscorefile => 'hapassocscore.txt',
-    # stratificationtestfile                   => 'strat_test.txt'
+    dispersiontestfile                   => 'dispersiontest.txt',
+    hwscoretestfile                  => 'HardyWeinbergTest.txt'
 };
 
 doAnalysis($executable,$arg_hash);
 
-#$arg_hash->{outcomevarfile} = 'sim/outcome.txt';
-#$arg_hash->{analysistypeindicator} = 2;
-#$arg_hash->{regparamfile} = 'regparamfile.txt';
-#doAnalysis($executable,$arg_hash);
-
-sub getArguments
-{
+sub getArguments {
     my $hash = $_[0];
     my $arg = '';
     foreach my $key (keys %$hash){
@@ -60,22 +47,16 @@ sub getArguments
     return $arg;
 }
 
-sub doAnalysis
-{
+sub doAnalysis {
     my ($prog,$args) = @_;
     my $command = $prog.getArguments($args);
-    unless (-e "results"){
-	system("mkdir results");
-    }
-    
-    print $command if $DEBUG;
+    $ENV{'RESULTSDIR'} = $args->{resultsdir};
     system($command);
-    
-# Comment out the next three lines to run admixmap without R script
+    my $rcmd = "R CMD";
+    if($^O eq "MSWin32") {
+	$rcmd = "Rcmd";
+    }
     print "Starting R script to process output\n";
-    system("R --quiet --no-save --no-restore <AdmixmapOutput.R >results/Rlog.txt RESULTSDIR=$arg_hash->{resultsdir}");
+    system("$rcmd BATCH --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
     print "R script completed\n\n";
 }
-
-
-
