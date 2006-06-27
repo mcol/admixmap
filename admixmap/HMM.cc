@@ -180,7 +180,7 @@ void HMM::Sample(int *SStates, const bool isdiploid)
     // array Sstates: elements 0 to T-1 represent paternal gamete, elements T to 2T-1 represent maternal gamete 
     int State = 0;
     // sample rightmost locus  
-    for( int j = 0; j < DStates; j++ ) V[State++] = alpha[(Transitions - 1)*DStates + j];
+    for( int j = 0; j < DStates; ++j ) V[State++] = alpha[(Transitions - 1)*DStates + j];
     
     C = Rand::SampleFromDiscrete( V, DStates ); 
     SStates[Transitions-1] = (int)(C/K);
@@ -195,7 +195,7 @@ void HMM::Sample(int *SStates, const bool isdiploid)
 	  ( (i1==j1)*f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + j1*2] ) * 
 	  ( (i2==j2)*f[2*t+3] + StateArrivalProbs[(t+1)*K*2 + j2*2 +1] );
 	V[State] *= alpha[t*DStates + i1*K + i2];
-	State++;
+	++State;
       }
       C = Rand::SampleFromDiscrete( V, DStates );
       SStates[t] = (int)(C/K);//paternal
@@ -263,8 +263,7 @@ std::vector<std::vector<double> > HMM::Get3WayStateProbs( const bool isDiploid, 
 // ****** End Public Interface *******
 
 /*
-  Updates Forward probabilities alpha and array p (=f0*f1)
-  diploid case only
+  Updates Forward probabilities alpha, diploid case only
 */
 void HMM::UpdateForwardProbsDiploid()
 {
@@ -273,7 +272,6 @@ void HMM::UpdateForwardProbsDiploid()
   sumfactor = 0.0; // accumulates log-likelihood
   double Sum = 0.0;
   double scaleFactor = 0.0;
-  // DStates = K*K;
   
   if(!missingGenotypes[0]) {
     for(int j = 0; j < DStates; ++j) {
@@ -285,7 +283,7 @@ void HMM::UpdateForwardProbsDiploid()
     }
   }
   
-  for( int t = 1; t < Transitions; t++ ){
+  for( int t = 1; t < Transitions; ++t ){
     if(!missingGenotypes[t-1]) {
       Sum = 0.0;
       //scale previous alpha to sum to 1
@@ -299,10 +297,7 @@ void HMM::UpdateForwardProbsDiploid()
       sumfactor += log(Sum);
     }
     
-    //p[t] = f[2*t] * f[2*t + 1];
-    double f2[2];
-    f2[0] = f[2*t]; f2[1] = f[2*t + 1];
-    RecursionProbs(p[t], f2, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, alpha + t*DStates);
+    RecursionProbs(p[t], f + 2*t, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, alpha + t*DStates);
     
     for(int j = 0; j < DStates; ++j){
       if(!missingGenotypes[t]) {
@@ -440,18 +435,14 @@ void HMM::RecursionProbs2(const double ff, const double f2[2], const double* con
   double col0Prob;
   double Exp0;
   double Exp1;
-  double cov0;
-  double Product;
   // sum row 0 and col 0  
   row0Prob = ( oldProbs[0] + oldProbs[2] );
   col0Prob = ( oldProbs[0] + oldProbs[1] );
   // calculate expectations of indicator variables for ancestry=0 on each gamete
   Exp0 = f2[0]*row0Prob + stateArrivalProbs[0]; // paternal gamete
   Exp1 = f2[1]*col0Prob + stateArrivalProbs[1]; // maternal gamete
-  Product = Exp0 * Exp1;
   // calculate covariance of indicator variables as ff * deviation from product of row and col probs
-  cov0 = ff * ( oldProbs[0] - row0Prob * col0Prob );
-  newProbs[0] = Product + cov0; 
+  newProbs[0] = Exp0 * Exp1 + ff * ( oldProbs[0] - row0Prob * col0Prob );; 
   newProbs[1] = Exp0 - newProbs[0]; //prob paternal ancestry=1, maternal=0 
   newProbs[2] = Exp1 - newProbs[0]; //prob paternal ancestry=0, maternal=1 
   newProbs[3] = 1 - Exp0 - Exp1 + newProbs[0];
