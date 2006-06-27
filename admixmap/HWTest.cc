@@ -70,7 +70,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
   double H; // prob heterozygous
   bool h;
   int locus = 0; // absolute simple locus number within loop over individuals
-  int slocus = 0,; // incremented with loop over composite loci 
+  int slocus = 0; // incremented with loop over composite loci 
   int complocus = 0;  // absolute comp locus number
   int Ancestry0, Ancestry1;
   Individual *ind = 0;
