@@ -16,6 +16,7 @@
 #include <gsl/gsl_blas.h>
 #include "gsl/gsl_sf_exp.h"
 #include "gsl/gsl_sf_log.h"
+#include <gsl/gsl_sf_psi.h>
 #include <numeric>
 #include <iostream>
 #include <gsl/gsl_math.h>
@@ -111,12 +112,13 @@ double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double
   }
   return f;
 }
-
+/**
+   digamma function.
+  FOLLOWS CLOSELY ALG AS 103 APPL.STATS.(1976) VOL 25
+  CALCS DIGAMMA(X)=D(LOG(GAMMA(X)))/DX
+*/
 void ddigam(  double *X, double *ddgam  )
 {
-//  FOLLOWS CLOSELY ALG AS 103 APPL.STATS.(1976) VOL 25
-//  CALCS DIGAMMA(X)=D(LOG(GAMMA(X)))/DX
-//
 //  SET CONSTANTS.SN=NTH STIRLING COEFFICIENT,D1=DIGAMMA(1.)
 //
    double S, C, S3, S4, S5, D1, Y, R;
@@ -160,14 +162,16 @@ void ddigam(  double *X, double *ddgam  )
       *ddgam=D1-1.0/Y;
 }
 
-void trigam( double *x, double *trgam )
-{
-/*
+/**
+   trigamma function.
  * closely follows alg. as 121 appl.stats. (1978) 
  * vol 27, 97-99. (b.e. schneider)
  *
  * calculates trigamma(x)=d**2(log(gamma(x)))/dx**2
  */
+
+void trigam( double *x, double *trgam )
+{
    double a=1.0e-4,b=5.0,one=1.0,half=0.5,y,z,trigam1=0.0;
    double b2=0.1666666667,b4=-0.03333333333;
    double b6=0.02380952381,b8=-0.0333333333;
@@ -232,10 +236,10 @@ double AverageOfLogs(const std::vector<double>& vec, double max)
 
   return log(sum) + max;
 }
-
+///inverse softmax transformation.
+/// Transforms proportions mu to numbers a on real line.  
+/// elements of a sum to 0
 void inv_softmax(size_t K, const double* const mu, double *a){
-  // transforms proportions mu to numbers a on real line 
-  // elements of a sum to 0
   double logz = 0.0;
   gsl_sf_result result;
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
@@ -259,9 +263,10 @@ void inv_softmax(size_t K, const double* const mu, double *a){
   gsl_set_error_handler (old_handler);//restore gsl error handler 
 }
 
+/// softmax transformation
+/// Inverse of inv_softmax transformation. 
+/// elements of array a need not sum to zero 
 void softmax(size_t K, double *mu, const double* a){
-  //inverse of inv_softmax transformation above
-  // elements of array a need not sum to zero 
   double z = 0.0;
   double amax = a[0];
   double amin= a[0];
@@ -289,9 +294,9 @@ void softmax(size_t K, double *mu, const double* a){
   gsl_set_error_handler (old_handler);//restore gsl error handler 
   for(unsigned k = 0; k < K; ++k) mu[k] /= z;
 }
-
+///partial inverse-softmax transformation.
+///transformation is applied only to elements with b=true
 void inv_softmax(size_t K, const double* const mu, double *a, const bool* const b){
-  //transformation is applied only to elements with b=true
   double logz = 0.0;
   for(unsigned k = 0; k < K; ++k) {
     if(b[k]) {
@@ -303,8 +308,9 @@ void inv_softmax(size_t K, const double* const mu, double *a, const bool* const 
   for(unsigned k = 0; k< K; ++k) if(b[k]) a[k] += logz;
 }
 
+///partial softmax transformation
+///transformation is applied only to elements with b=true
 void softmax(size_t K, double *mu, const double* a, const bool* const b){
-  //transformation is applied only to elements with b=true
   double z = 0.0;
   double amax = a[0];
   // standardize a so that max argument to exp() is 0 
@@ -319,12 +325,12 @@ void softmax(size_t K, double *mu, const double* a, const bool* const b){
 }
 
 // ************* Matrix Algebra **************************************
+
+///Caller for gsl_linalg_HH_solve.
+///This function solves the system A x = b directly using Householder transformations. 
+///On output the solution is stored in x and b is not modified. The matrix AA is destroyed by the Householder transformations. 
 int HH_solve (size_t n, double *A, double *b, double *x)
 {
-  //Caller for gsl_linalg_HH_solve
-  //This function solves the system A x = b directly using Householder transformations. 
-  //On output the solution is stored in x and b is not modified. The matrix AA is destroyed by the Householder transformations. 
-
   gsl_matrix *AA;
   gsl_vector_view bb,xx;
 
@@ -352,13 +358,12 @@ int HH_solve (size_t n, double *A, double *b, double *x)
   return 0;//will only get here if successful
 }
 
+///Caller for gsl_linalg_HH_svx.
+/// This function solves the system A x = b in-place using Householder transformations. 
+/// On input x should contain the right-hand side b, which is replaced by the solution on output. 
+/// The matrix AA is destroyed by the Householder transformations. 
 int HH_svx (size_t n, double *A, double *x)
 {
-  //Caller for gsl_linalg_HH_svx
-  // This function solves the system A x = b in-place using Householder transformations. 
-  // On input x should contain the right-hand side b, which is replaced by the solution on output. 
-  // The matrix AA is destroyed by the Householder transformations. 
-
   gsl_matrix *AA; //cannot use a matrix view because of above
   gsl_vector_view xx = gsl_vector_view_array(x,n); 
 
@@ -380,10 +385,10 @@ int HH_svx (size_t n, double *A, double *x)
   return 0;//will only get here if successful
 }
 
+///Computes the conditional mean and variance of a centred subvector of length kk of a zero-mean Multivariate Gaussian vector
+///of length dim
 void CentredGaussianConditional( size_t kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim )
-//Computes the conditional mean and variance of a centred subvector of length kk of a zero-mean Multivariate Gaussian vector
-//of length dim
 {
   if(dim == (kk+1)){
     CentredGaussianConditional(mean, var, newmean, newvar, dim);
@@ -478,18 +483,20 @@ void CentredGaussianConditional( size_t kk, double *mean, double *var,
 
 }
 
+///special case of above with kk=dim-1
 void CentredGaussianConditional( double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim ){
-  //special case of above with kk=dim-1
   for(unsigned i = 0; i < dim-1; ++i){
     newmean[i] = mean[i] - var[i*dim + dim-1] * mean[dim-1]/var[dim*dim-1];
     for(unsigned j = 0; j < dim-1; ++j)
       newvar[i*(dim-1)+j] = var[i*dim+j] - var[i*dim + dim-1]*var[(dim-1)*dim + j] / var[dim*dim-1];
   }
 }
+
+///returns the quadratic form in the density of the marginal distribution of the subvector of length kk of a zero-mean Gaussian vector of length dim. 
+///Useful for score tests. 
 double GaussianMarginalQuadraticForm( int kk, double *mean, double *var, size_t dim )
 {
-  //returns the quadratic form in the density of the marginal distribution of the subvector of length kk of a zero-mean Gaussian vector of length dim. Useful for score tests. 
   int status = 0;
   string error_string;
   //Note that matrix_view's do not allocate new data
@@ -559,7 +566,7 @@ double GaussianQuadraticForm(double* mean, double* var, unsigned dim){
   delete[] VinvU;
   return result;
 }
-//allocate space for 2-way rectangular array of doubles and initialise to zero
+///allocates space for 2-way rectangular array of doubles and initialise to zero
 double **alloc2D_d(int m, int n)
 {
   double **M = 0;
@@ -580,7 +587,7 @@ double **alloc2D_d(int m, int n)
   return M;
 }
 
-//allocate space for 2-way rectangular array of ints and initialise to zero
+///allocates space for 2-way rectangular array of ints and initialises to zero
 int **alloc2D_i(int m, int n)
 {
   int **M = 0;
@@ -601,7 +608,7 @@ int **alloc2D_i(int m, int n)
   return M;
 }
 
-//delete double matrix, even nonrectangular
+///delete double matrix, even nonrectangular
 void free_matrix(double **M, int m){
   try{
     if(M){
@@ -617,7 +624,7 @@ void free_matrix(double **M, int m){
   }
 }
 
-//delete int matrix
+///deletes int matrix
 void free_matrix(int **M, int m){
   try{
     if(M){
@@ -631,9 +638,8 @@ void free_matrix(int **M, int m){
   }
 
 }
-
+///sets Sub as submatrix of M consisting of rows r1 to r2 and cols c1 to c2
 void submatrix(double **M, double **Sub, int r1, int r2, int c1, int c2){
-  //sets Sub as submatrix of M consisting of rows r1 to r2 and cols c1 to c2
   for(int row = r1; row < r2; ++row)
     for(int col = c1; col < c2; ++col)
       Sub[row-r1][col-c1] = M[row][col];
@@ -643,24 +649,24 @@ void submatrix(double *M, double *Sub, int Mcols, int r1, int r2, int c1, int c2
     for(int col = c1; col < c2; ++col)
       Sub[(row-r1)*(r2-r1+1) + (col-c1)] = M[row*Mcols +col];
 }
+///equates two matrices
 void equate_matrix(double **A, double **B, int m, int n){
   for(int i = 0; i < m; ++i)
     for(int j = 0; j < n; ++j)
       A[i][j] = B[i][j];
 }
-
-//adds matrix b to matrix a
-//dimensions must both be (d1 x d2)
+///adds two matrices.
+///adds matrix b to matrix a
+///dimensions must both be (d1 x d2)
 void add_matrix(double *a, double *b, size_t d1, size_t d2){
   gsl_matrix_view A, B;
   A = gsl_matrix_view_array(a, d1, d2);
   B = gsl_matrix_view_array(b, d1, d2);
   gsl_matrix_add(&A.matrix, &B.matrix);
 }
-
-//computes c = a * b, where all args are arrays representing matrices
-// and a is (d1 x d2) and b is (d2 x d3)
-//
+///multiplies two matrices.
+///computes c = a * b, where all args are arrays representing matrices
+/// and a is (d1 x d2) and b is (d2 x d3)
 void matrix_product(double *a, double *b, double *c, size_t d1, size_t d2, size_t d3){
   gsl_matrix_view A, B, C;
   A = gsl_matrix_view_array(a, d1, d2);
@@ -669,8 +675,8 @@ void matrix_product(double *a, double *b, double *c, size_t d1, size_t d2, size_
 
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, &A.matrix, &B.matrix, 0, &C.matrix); 
 }
+///computes c = a * a'
 void matrix_product(double *a, double *c, size_t d1, size_t d2){
-  //computes c = a * a'
   gsl_matrix_view A, At, C;
   A = gsl_matrix_view_array(a, d1, d2);
   At = gsl_matrix_view_array(a, d1, d2);
@@ -687,7 +693,7 @@ void matrix_product(const double* const a, const double* const b, double* c, siz
   gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1, &A.matrix, &B.matrix, 0, &C.matrix); 
 }
 
-//multiplies (d1 x d2) matrix a by c
+///multiplies (d1 x d2) matrix a by c
 void scale_matrix(double *a, const double c, size_t d1, size_t d2){
   gsl_matrix_view A = gsl_matrix_view_array(a, d1, d2);
   gsl_matrix_scale(&A.matrix, c);
@@ -717,9 +723,8 @@ double determinant(double *a, size_t d){
 
   return det;
 }
-
+///inverts a matrix using LU decomposition
 void matrix_inverse(const double* const a, double* inv, size_t d){
-//inverts a matrix using LU decomposition
   gsl_permutation *permutation = gsl_permutation_alloc(d);
   int signum;
   double* aa = new double[d*d];
@@ -741,7 +746,8 @@ void matrix_inverse(const double* const a, double* inv, size_t d){
     throw(errstring) ;//throw error message up and let caller decide what to do
   }
 }
-//can use this version to overwrite a with its inverse
+///inverts a matrix using LU decomposition, overwriting original matrix
+///can use this version to overwrite a with its inverse
 void matrix_inverse(double* a, size_t d){
 //inverts a matrix using LU decomposition
   gsl_permutation *permutation = gsl_permutation_alloc(d);
@@ -766,7 +772,7 @@ void matrix_inverse(double* a, size_t d){
   }
 }
 
-//Cholesky decomposition, Crout algorithm
+///Cholesky decomposition, Crout algorithm
 int cholDecomp(const double* const a, double *L, int n){
   
   for(int i = 0; i < n; ++i){
@@ -804,21 +810,23 @@ double xexp(double x){
   else res = gsl_sf_exp(x);
   return res;
 }
-
+///prints a vector of doubles to screen
 void print_vector(std::vector<double> a){
   copy(a.begin(), a.end(), ostream_iterator<double>(cout, " "));
   cout<<endl;
 }
+///prints a vector of strings to screen
 void print_vector(std::vector<std::string> a){
   copy(a.begin(), a.end(), ostream_iterator<std::string>(cout, " "));
   cout<<endl;
 }
+///prints a vector of ints to screen
 void print_vector(std::vector<int> a){
   copy(a.begin(), a.end(), ostream_iterator<int>(cout, " "));
   cout<<endl;
 }
+///log function with error handling
 double mylog(double x){
-  //log function with error handling
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   gsl_sf_result result;
   int status = gsl_sf_log_e(x, &result);
@@ -830,17 +838,46 @@ double mylog(double x){
   }
   return result.val;
 }
+///exp function with error handling
 double myexp(double x){
-  //exp function with error handling
+  if(x < GSL_LOG_DBL_MIN)return 0.0;//avoids underflow
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   gsl_sf_result result;
   int status = gsl_sf_exp_e(x, &result);
   gsl_set_error_handler (old_handler);//restore gsl error handler 
   if(status){
-    stringstream s;
-    s << "Error in exp(" << x << "): "<< gsl_strerror(status);
-    throw s.str();
+     stringstream s;
+     s << "Error in exp(" << x << "): "<< gsl_strerror(status);
+     throw s.str();
+    return 0.0;
   }
   return result.val;
-
+}
+///lngamma function with error handling
+double lngamma(double x){
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  gsl_sf_result result;
+  int status = gsl_sf_lngamma_e(x, &result);
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  if(status){
+    stringstream s;
+    s << "Error in lngamma(" << x << "): "<< gsl_strerror(status);
+    throw s.str();
+    return 0.0;
+  }
+  return result.val;
+}
+///digamma function with error handling
+double digamma(double x){
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  gsl_sf_result result;
+  int status = gsl_sf_psi_e(x, &result);
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  if(status){
+    stringstream s;
+    s << "Error in digamma(" << x << "): "<< gsl_strerror(status);
+    throw s.str();
+    return 0.0;
+  }
+  return result.val;
 }
