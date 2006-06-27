@@ -94,7 +94,7 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] psi;
   delete[] tau;
   delete[] SumEta;
-  delete MuProposal;
+  delete[] MuProposal;
 
 #if ETASAMPLER ==1
   delete[] etastep;
@@ -657,7 +657,8 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
       if(diploid)++AlleleCounts[locus][h[1]*Populations + ancestry[1]];
     }
   }
-  else{
+  else
+{
     AlleleCounts[locus][ h[0]*Populations + ancestry[0] ]++;
     if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[1] ]++;
     //if haploid(ie diploid = false), h[0]==h[1]==genotypes[locus] and ancestry[0]==ancestry[1]
