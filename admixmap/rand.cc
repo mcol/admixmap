@@ -10,6 +10,7 @@
  * See the file COPYING for details.
  * 
  */
+
 #include <cmath>
 #include <iostream>
 #include "rand.h"
@@ -23,12 +24,12 @@ extern "C" {
 using namespace std;
 
 #ifdef PARALLEL
-  //allocate a sprng generator
+/// allocate a sprng generator
 const gsl_rng_type *gsl_rng_sprng20 = &sprng_type;
 gsl_rng *Rand::RandomNumberGenerator = gsl_rng_alloc( gsl_rng_sprng20 );
 
 #else
-  //allocate a Tausworthe generator
+///allocate a Tausworthe generator
 gsl_rng *Rand::RandomNumberGenerator = gsl_rng_alloc( gsl_rng_taus );
 #endif
 
@@ -39,21 +40,21 @@ Rand::~Rand(){
   gsl_rng_free(RandomNumberGenerator);
 }
 
-//standard uniform number generator
+///standard uniform number generator
 double Rand::myrand()
 {
   return( gsl_rng_uniform( RandomNumberGenerator ) );
   //?? should use gsl_rng_uniform_pos to exclude 0
 }
 
-// ** U(Min, Max) 
+/// ** U(Min, Max) 
 double Rand::myrandRange( double Min, double Max )
 {
   double Range = Max - Min;
   return( Min + Range * gsl_rng_uniform( RandomNumberGenerator ) );
 }
 
-//set random number seed
+///set random number seed
 void Rand::setSeed( long seed )
 {
   gsl_rng_set(RandomNumberGenerator,
@@ -61,7 +62,7 @@ void Rand::setSeed( long seed )
   //in sprng20 case, calls init_sprng
 }
 
-// ** Gamma distribution **
+/// ** Gamma distribution **
 double Rand::gengam( double shape, double rate )
 {
   double x = 0.0;
@@ -70,22 +71,22 @@ double Rand::gengam( double shape, double rate )
   while (x < numeric_limits<double>::min( ));
   return x;
 }
-// ** Beta distribution **
+/// ** Beta distribution **
 double Rand::genbet( double aa, double bb )
 {
   return( gsl_ran_beta( RandomNumberGenerator, aa, bb ) );
 }
-// ** (univariate) Normal distribution **
+/// ** (univariate) Normal distribution **
 double Rand::gennor( double av, double sd )
 {
   return( av + gsl_ran_gaussian( RandomNumberGenerator, sd ) );
 }
-// ** Binomial distribution **
+/// ** Binomial distribution **
 int Rand::genbinomial( int n, double p )
 {
   return( gsl_ran_binomial( RandomNumberGenerator, p, n ) );
 }
-// ** Poisson distribution **
+/// ** Poisson distribution **
 unsigned int Rand::genpoi( double mu )
 {
   return( gsl_ran_poisson( RandomNumberGenerator, mu ) );
@@ -96,26 +97,44 @@ long Rand::ignpoi( double mu )
    return( gsl_ran_poisson( RandomNumberGenerator, mu ) );
 }
 
-// ** Multinomial distribution **
-std::vector<int> Rand::genmultinomial(int N, const std::vector<double> theta)
+/// ** Multinomial distribution **
+std::vector<int> Rand::genmultinomial(int N, const std::vector<double> p)
 {
-  int K = (int)theta.size();
-  unsigned* n = new unsigned[ K ];
-  double* p = new double[ K ];
-  std::vector<int> sample( K );
-  for(int i = 0; i < K; i++){
-    p[i] = theta[i];
-  }
-  gsl_ran_multinomial(RandomNumberGenerator, K, N, p, n);
-  for(int i = 0; i < K; i++){
-    sample[i] = n[i];
-  }
-  delete[] n;
-  delete[] p;
-  return( sample );
+  int K = (int)p.size();
+  std::vector<int> n( K );
+  //gsl_ran_multinomial(RandomNumberGenerator, K, N, p, n);
+  double norm = 0.0;
+  double sum_p = 0.0;
+  unsigned int sum_n = 0;
+
+  /* p[k] may contain non-negative weights that do not sum to 1.0.
+   * Even a probability distribution will not exactly sum to 1.0
+   * due to rounding errors. 
+   */
+  
+  for (int k = 0; k < K; k++)
+    {
+      norm += p[k];
+    }
+  
+  for (int k = 0; k < K; k++)
+    {
+      if (p[k] > 0.0)
+        {
+          n[k] = gsl_ran_binomial (RandomNumberGenerator, p[k] / (norm - sum_p), N - sum_n);
+        }
+      else
+        {
+          n[k] = 0;
+        }
+      
+      sum_p += p[k];
+      sum_n += n[k];
+    }
+  return( n );
 }
 
-// ** sample from discrete probability distribution gievn by probs **
+/// ** sample from discrete probability distribution gievn by probs **
 int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
 {
   double* cdf = new double[ numberofelements ];
@@ -131,18 +150,23 @@ int Rand::SampleFromDiscrete( const double probs[] , int numberofelements )
   delete[] cdf;
   return(k);
 }
-// ** Dirichlet distribution **
+/// ** Dirichlet distribution **
 void Rand::gendirichlet(const size_t K, const double alpha[], double theta[] ) {
     //bool invalid = false;
   //do{
     //invalid = false;
     double sum = 0.0;
-    for( unsigned int i = 0; i < K; i++ ) {
-      if( alpha[i] > 0 ){
-	theta[i] = gengam( alpha[i], 1.0 );
+    try{
+      for( unsigned int i = 0; i < K; i++ ) {
+	if( alpha[i] > 0 ){
+	  theta[i] = gengam( alpha[i], 1.0 );
+	}
+	else theta[i] = 0.0;
+	sum += theta[i]; 
       }
-      else theta[i] = 0.0;
-      sum += theta[i]; 
+    }
+    catch(...){
+      throw string ("Error in gendirichlet");
     }
     if( sum > 0.0 )
       for( unsigned int i = 0; i < K; i++ ){
