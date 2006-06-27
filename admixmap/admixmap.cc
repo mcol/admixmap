@@ -495,7 +495,7 @@ int main( int argc , char** argv ){
     //}
 
     if(xargv != argv){
-      for(int i = 1; i < xargc; ++i)delete[] xargv[i];
+      for(int i = 1; i < xargc; ++i)if(xargv[i] != argv[i])delete[] xargv[i];
       delete[] xargv;
     }
 	
