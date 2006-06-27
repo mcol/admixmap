@@ -100,16 +100,17 @@ endif
 endif
 
 ifeq ($(CC),$(PATHSCALE_COMPILER))
-WFLAGS = -fullwarn -LNO:simd_verbose
+WFLAGS = -fullwarn -LNO:simd_verbose=ON
+#WFLAGS = -Wall 
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
+DFLAGS = -O3 -OPT:Ofast -fno-math-errno -ffast-math#equivalent to -Ofast but without ipa
 endif
 endif
 
 ifeq ($(CC),$(PORTLAND_COMPILER))
 ifeq ($(ARCH),AMD64)
 PROC = -tp amd64
-#DFLAGS = $(DFLAGS) -ipa
 endif
 endif
 
