@@ -24,11 +24,9 @@
 #include "AdmixOptions.h"
 #include "InputData.h"
 
+///Container class for Chromosome and CompositeLocus objects.
 class Genome 
-// Object is an array of Chromosome objects
-// Used to loop over composite loci on a single chromosome, or an entire genome  
 {
-
 public:
 
   Genome();
@@ -72,7 +70,7 @@ public:
   const Chromosome* const* getChromosomes()const;
   Chromosome* getChromosome(unsigned);
 
-  void PrintSizes(LogWriter &Log)const;
+  void PrintSizes(LogWriter &Log, const string unit)const;
   void PrintLocusTable(const char* filename, const std::vector<double>& Distances)const;
  
   int GetNumberOfStates()const;

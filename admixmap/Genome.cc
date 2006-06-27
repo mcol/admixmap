@@ -44,7 +44,7 @@ Genome::~Genome()
   }
 }
 
-//gets contents of locusfile and genotypesfile, creates CompositeLocus array and creates Chromosome array
+///gets contents of locusfile and creates CompositeLocus array and Chromosome array
 void Genome::Initialise(const InputData* const data_, int populations, LogWriter &Log, int rank){
   // in parallel version: rank0 needs distances for updating sumintensities
   //                      rank1 needs CompLocus objects
@@ -124,12 +124,20 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     InitialiseChromosomes(cstart, populations);
   }
   
-  if(rank !=1 )PrintSizes(Log);//prints length of genome, num loci, num chromosomes
+  if(rank !=1 ){
+    string unit;
+    string distance_header = data_->getLocusData()[0][2];
+    if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
+       || distance_header.find("cM")!=string::npos) unit = "centiMorgans";
+    else unit = "Morgans";
+
+    PrintSizes(Log, unit);//prints length of genome, num loci, num chromosomes
+  }
 }
 
-//Creates an array of pointers to Chromosome objects, sets their labels
-//also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
-//LengthOfXChrm 
+///Creates an array of pointers to Chromosome objects and sets their labels.
+///Also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
+///LengthOfXChrm 
 void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int populations){
   C = new Chromosome*[NumberOfChromosomes]; 
   //C is an array of chromosome pointers
@@ -177,15 +185,16 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
     }
   }
 }
-
+///accesses the entire chromosome array
 const Chromosome* const* Genome::getChromosomes()const{
   return C;
 }
+///accesses a chromosome
 Chromosome* Genome::getChromosome(unsigned j){
   return C[j];
 }
 
-//accesses a composite locus
+///accesses a composite locus
 CompositeLocus* Genome::operator() ( int ElementNumber ) const
 {
   if ( ElementNumber >= (int)NumberOfCompositeLoci ){
@@ -199,17 +208,18 @@ CompositeLocus* Genome::operator() ( int ElementNumber ) const
 
   return &(LocusArray[ElementNumber]);
 }
-
+///sets the distance between a locus and the previous one
 void Genome::SetDistance( int locus, double distance )
 {
   Distances[ locus ] = distance;
 }
-
-void Genome::PrintSizes(LogWriter &Log)const{
+/// Writes numbers of loci and chromosomes and length of genome to Log and screen.
+/// unit is the unit of measurement of the distances in the locusfile (Morgans/centiMorgans) 
+void Genome::PrintSizes(LogWriter &Log, const string unit)const{
 #ifdef PARALLEL
-//1st worker tells master length of autosomes and xchrm
-//(this is determined during creation of chromosomes, which master doesn't do)
-//only master is allowed to write to logfile
+///1st worker tells master length of autosomes and xchrm
+///(this is determined during creation of chromosomes, which master doesn't do)
+///only master is allowed to write to logfile
     const int rank = MPI::COMM_WORLD.Get_rank();
     if(rank == 2) {
 	MPI::COMM_WORLD.Send(&LengthOfGenome, 1, MPI::DOUBLE, 0, 0);
@@ -228,20 +238,22 @@ void Genome::PrintSizes(LogWriter &Log)const{
       << NumberOfChromosomes << " chromosome"; if(NumberOfChromosomes > 1) Log << "s";
   Log << "\n";
 
-  Log << "Effective length of autosomes under study: " << LengthOfGenome << " Morgans.\n";
+  Log << "Effective length of autosomes under study: " << LengthOfGenome << " " << unit << ".\n";
 
   if( isX_data() ){
-    Log << "Effective length of X chromosome under study: " << LengthOfXchrm << " Morgans.\n";
+    Log << "Effective length of X chromosome under study: " << LengthOfXchrm << " " << unit << ".\n";
    }
   Log << "\n";
 }
 
 //Accessors
+
+/// returns the number of composite loci
 unsigned int Genome::GetNumberOfCompositeLoci()const
 {
   return NumberOfCompositeLoci;
 }
-
+///returns the number of loci in a given composite locus
 int Genome::getNumberOfLoci(int 
 #ifdef PARALLEL
     )const{
@@ -251,32 +263,35 @@ int Genome::getNumberOfLoci(int
   return LocusArray[j].GetNumberOfLoci();
 #endif
 }
+///returns the number of chromosomes
 unsigned int Genome::GetNumberOfChromosomes()const{
   return NumberOfChromosomes;
 }
 
-//returns total number of simple loci
+///returns total number of simple loci
 unsigned int Genome::GetTotalNumberOfLoci()const{
   return TotalLoci;
 }
-//returns int array of chromosome sizes
+///returns int array of chromosome sizes
 const unsigned int *Genome::GetSizesOfChromosomes()const{
   return SizesOfChromosomes;
 }
+///returns the number of loci on a given chromosome
 unsigned Genome::GetSizeOfChromosome(unsigned j)const{
   return SizesOfChromosomes[j];
 }
+/// returns the vector of distances between loci
 const double *Genome::GetDistances()const
 {
   return( Distances );
 }
-
+///returns distance between a given locus and the previous one
 double Genome::GetDistance( int locus )const
 {
   return( Distances[ locus ] );
 }
 
-//returns number of states of a comp locus
+///returns number of states of a comp locus
 int Genome::GetNumberOfStates(int
 #ifdef PARALLEL
     )const{
@@ -286,7 +301,7 @@ int Genome::GetNumberOfStates(int
   return LocusArray[locus].GetNumberOfStates();
 #endif
 }
-//returns total number of states accross all comp loci
+///returns total number of states accross all comp loci
 int Genome::GetNumberOfStates()const
 {
 #ifdef PARALLEL
@@ -307,27 +322,31 @@ const vector<int> Genome::GetChrmAndLocus( int j )const{
 const vector<vector<int > > Genome::GetChrmAndLocus()const{
   return LocusTable;
 }
+/// For a given (composite) locus, returns the number of the chromosome it is on and the position on that chromosome.
 void Genome::GetChrmAndLocus(unsigned locus, unsigned* c, unsigned* l){
   *c = LocusTable[locus][0];
   *l = LocusTable[locus][1];
 }
+///indicates whether there is an X chromosome
 bool Genome::isX_data()const
 {
    return X_data;
 }
-
+///returns length of Genome in Morgans
 double Genome::GetLengthOfGenome()const
 {
    return LengthOfGenome;
 }
+//returns length of X chromosome in Morgans
 double Genome::GetLengthOfXchrm()const
 {
    return LengthOfXchrm;
 }
+///indicates if a chromosome is an X chromosome
 unsigned Genome::isXChromosome(unsigned j){
   return C[j]->isXChromosome();
 }
-
+/// returns index of X chromosome
 unsigned Genome::getFirstXLocus()const{
   if(X_data)return XChromosomeIndex;
   else return NumberOfCompositeLoci;
@@ -344,7 +363,7 @@ void Genome::InitialiseLocusCorrelation(const vector<double> rho){
 //   }
 // }
 
-//set global locus correlation across all chromosomes
+///set global locus correlation across all chromosomes, case of vector-valued rho
 void Genome::SetLocusCorrelation(const vector<double> rho){
   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
     //in case of global rho model (rho has length 1), sets f globally across loci
@@ -352,13 +371,14 @@ void Genome::SetLocusCorrelation(const vector<double> rho){
     C[j]->SetLocusCorrelation(rho, (rho.size()==1), false);
   }
 }
-
+///set global locus correlation across all chromosomes, case of global rho
 void Genome::SetLocusCorrelation(double rho){
   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
     C[j]->SetLocusCorrelation(rho);
   }
 }
 
+///Prints table of cpmposite loci for R script to read
 void Genome::PrintLocusTable(const char* filename, const vector<double>& Dist)const{
   //could use Distances array member but in parallel version the processor calling this function will not have this array
   //so we use the raw distances from the locusfile instead
