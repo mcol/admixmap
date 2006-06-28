@@ -105,9 +105,10 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] globalHetCounts;
   // AlleleFreqArrayType.Free();
 #endif
-
+#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
   for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
     delete *i;
+#endif
   if( allelefreqoutput.is_open()) allelefreqoutput.close();
 }
 
@@ -139,6 +140,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   }
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
   //set up samplers for allelefreqs
     if(options->getHapMixModelIndicator()){
       FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), &(HapMixPriorParams[i]), true ));
@@ -147,7 +149,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     }
     else
       FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), PriorAlleleFreqs[i], false));
-
+#endif
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
@@ -557,9 +559,12 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i){
 }
 
 // ************************** Sampling and Updating *****************************************
-
 /// samples allele frequency and prior allele frequency parameters.
+#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
 void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool /*annealUpdate*/){
+#elif FREQSAMPLER==FREQ_CONJUGATE_SAMPLER
+void AlleleFreqs::Update(bool afterBurnIn, double coolness, bool /*annealUpdate*/){
+#endif
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
 
   if(HapMixPriorParams){
@@ -584,13 +589,16 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
     //if(annealUpdate){//use long method when computing marginal likelihood
     if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
       FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, coolness);
     else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, coolness);
     //}
+#elif FREQSAMPLER==FREQ_CONJUGATE_SAMPLER
     //else //use standard conjugate update
-    //SampleAlleleFreqs(i, coolness);
+    SampleAlleleFreqs(i, coolness);
+#endif
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
 #ifndef PARALLEL
@@ -649,6 +657,7 @@ void AlleleFreqs::ResetAlleleCounts(unsigned K) {
    */
 void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool /*anneal*/ )
 {
+#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
   if(Loci->GetNumberOfStates(locus)==2){
     if( (h[0] != h[1]) && (ancestry[0] !=ancestry[1]))//heterozygous with distinct ancestry states
       ++hetCounts[locus][ancestry[0]*Populations + ancestry[1]];
@@ -658,12 +667,13 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
     }
   }
   else
-{
-    AlleleCounts[locus][ h[0]*Populations + ancestry[0] ]++;
-    if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[1] ]++;
-    //if haploid(ie diploid = false), h[0]==h[1]==genotypes[locus] and ancestry[0]==ancestry[1]
-    //and we only count once
-  }
+#endif
+    {
+      AlleleCounts[locus][ h[0]*Populations + ancestry[0] ]++;
+      if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[1] ]++;
+      //if haploid(ie diploid = false), h[0]==h[1]==genotypes[locus] and ancestry[0]==ancestry[1]
+      //and we only count once
+    }
 }
 // void AlleleFreqs::UpdateAlleleCounts(int locus, std::vector<unsigned short> genotype, const int ancestry[2], bool diploid )
 // {//case of SNP when annealing to compute marginal likelihood by thermo method

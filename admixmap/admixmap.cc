@@ -820,8 +820,12 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 #ifdef PARALLEL
     MPE_Log_event(7, iteration, "SampleFreqs");
 #endif
+#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
     bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
     A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
+#elif FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
+    A->Update((iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
+#endif
 #ifdef PARALLEL
     MPE_Log_event(8, iteration, "SampledFreqs");
 #endif
