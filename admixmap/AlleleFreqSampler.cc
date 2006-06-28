@@ -18,8 +18,8 @@
 
 bool AlleleFreqSampler::ishapmixmodel;
 
+///default do-nothing constructor
 AlleleFreqSampler::AlleleFreqSampler(){
-  //default do-nothing constructor
   params = 0;
 }
 
@@ -35,8 +35,8 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const
 
   if(NumStates ==2){//case of SNP
     step0 = 0.01;//initial step size
-    numleapfrogsteps = 10;
-    Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
+    numleapfrogsteps = 20;
+    Sampler.SetDimensions(NumPops, 0.0005, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
   }
   else{
     Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.7/*target acceptrate*/, getEnergy, gradient);
