@@ -18,7 +18,7 @@
                      //2 = HAMILTONIAN
 #define FREQ_CONJUGATE_SAMPLER 1
 #define FREQ_HAMILTONIAN_SAMPLER 2
-#define FREQSAMPLER 2 // 1 = conjugate sampler, 2 = Hamiltonian sampler
+#define FREQSAMPLER 1 // 1 = conjugate sampler, 2 = Hamiltonian sampler
 
 #include "InputData.h"
 #include "Genome.h"
