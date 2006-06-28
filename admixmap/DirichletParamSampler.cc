@@ -32,11 +32,11 @@ DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops)
 }
 
 void DirichletParamSampler::Initialise() {
-#if SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
   mu = 0;
   munew = 0;
   muDirichletParams = 0;
-#elif SAMPLERTYPE==2
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
   logalpha = 0;
   initialAlphaStepsize = 0.02;//need a way of setting this without recompiling, or a sensible fixed value
   targetAlphaAcceptRate = 0.7;// use high value with many leapfrog steps
@@ -50,7 +50,7 @@ void DirichletParamSampler::Initialise() {
 void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
 {
    K = numpops;
-#if SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
    AlphaParameters[0] = numobs;
    muDirichletParams = new double[K];
    mu = new double[K];
@@ -66,7 +66,7 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    // use many small steps to ensure that leapfrog algorithm does not jump to minus infinity
    EtaSampler.SetDimensions(1, 0.005/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 100/*num leapfrogs*/,
 			    0.8/*target accept rate*/, etaEnergy, etaGradient);
-#elif SAMPLERTYPE==2
+#elif DIRICHLETPARAM_SAMPLERTYPE==2
    logalpha = new double[K];
    AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sampler
    AlphaArgs.dim = K;
@@ -78,16 +78,16 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
 
 DirichletParamSampler::~DirichletParamSampler()
 {
-#if SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
   delete[] mu;
   delete[] munew;
   delete[] muDirichletParams;
-#elif SAMPLERTYPE==2
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
   delete[] logalpha;
 #endif
 }
 
-#if SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
 void DirichletParamSampler::SetPriorEta( double inEtaAlpha, double inEtaBeta ) {
    EtaArgs.priorshape = inEtaAlpha; 
    EtaArgs.priorrate = inEtaBeta;
@@ -102,13 +102,14 @@ void DirichletParamSampler::SetPriorMu( const double* const ingamma ) {
 /**
    Samples new values.
    sumlogtheta = sum log observed proportions. 
-   fixedprops indicates whether proportions are to be fixed or sampled.
+   fixedprops indicates whether proportions are to be fixed or sampled. Meaningful only with Adaptive rejection sampler.
  
    Updates elements of mu with adaptive rejection sampler conditional on sumlogtheta
    Updates eta with Hamiltonian.  
 */
-void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector<double> *alpha, bool fixedprops ) {
-#if SAMPLERTYPE==1
+void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector<double> *alpha, bool
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
+ fixedprops ) {
   //gsl_set_error_handler_off();
   eta = accumulate(alpha->begin(), alpha->end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
   for( unsigned i = 0; i < K; i++ ) {
@@ -145,7 +146,8 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
   for( unsigned j = 0; j < K; j++ ) (*alpha)[j] = mu[j]*eta;
   
   
-#elif SAMPLERTYPE==2
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
+  ){
   // *** Hamiltonian sampler for alpha
   AlphaArgs.sumlogtheta = sumlogtheta;
   transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
@@ -155,7 +157,7 @@ void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector
   
 }
 
-#if SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
 
 double DirichletParamSampler::etaEnergy( const double* const x, const void* const vargs )
 {
@@ -277,7 +279,7 @@ double DirichletParamSampler::ddlogf( double muj, const void* const pars) {
   return(f);
 }
 
-#elif SAMPLERTYPE==2
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
 
 ///calculate objective function (-log posterior) for log alpha, used in Hamiltonian Metropolis algorithm
 double DirichletParamSampler::alphaEnergy(const double* const theta, const void* const vargs){
@@ -290,28 +292,21 @@ double DirichletParamSampler::alphaEnergy(const double* const theta, const void*
   const AlphaSamplerArgs* args = (const AlphaSamplerArgs*)vargs;
 
   double E = 0.0;
-  int status = 0;
-  gsl_sf_result* lngamma_result;
   double sumalpha = 0.0, sumgamma = 0.0, sumtheta = 0.0, sume = 0.0;
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
 
-  for(int j = 0; j < args->dim; ++j){
-    sumalpha += exp(theta[j]);
-    status = gsl_sf_lngamma_e(exp(theta[j]), lngamma_result);
-    if(status)break;
-    sumgamma += lngamma_result->val;
-    sume += exp(theta[j]) * (args->eps1 - args->sumlogtheta[j]);
-    sumtheta += theta[j];
-  }
-  if(!status){
-    status = gsl_sf_lngamma_e(sumalpha), lngamma_result);
-    E = args->n * (lngamma_result->val - sumgamma) - sume + args->eps0 * sumtheta;
+  try{
+    for(int j = 0; j < args->dim; ++j){
+      double alpha = exp(theta[j]);
+      sumalpha += alpha;
+      sumgamma += lngamma(alpha);
+      sume += alpha * (args->eps1 - args->sumlogtheta[j]);
+      sumtheta += theta[j];
+    }
+    E = args->n * (lngamma(sumalpha) - sumgamma) - sume + args->eps0 * sumtheta;
   }
 
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-    std::string errstring = "gsl lngamma error in alphaEnergy, "; errstring.append(gsl_strerror(status));
-    throw(errstring) ;
+  catch(string s){
+    throw string( "Error in DirichletParamSampler::alphaEnergy, " + s) ;
   }
   return -E;
 
@@ -321,35 +316,40 @@ double DirichletParamSampler::alphaEnergy(const double* const theta, const void*
 void DirichletParamSampler::alphaGradient(const double* const theta, const void* const vargs, double *g){
   const AlphaSamplerArgs* args = (const AlphaSamplerArgs*)vargs;
   double sumalpha = 0.0, x, y1, y2;
-  for(int j = 0; j < args->dim; ++j) {
-    g[j] = 0.0;
-    sumalpha += exp(theta[j]);
-  }
-    ddigam(&sumalpha, &y1);
+  try{
+    for(int j = 0; j < args->dim; ++j) {
+      g[j] = 0.0;
+      sumalpha += exp(theta[j]);
+    }
+    y1 = digamma(sumalpha);
     for(int j = 0; j < args->dim; ++j) {
       x = exp(theta[j]);
-      ddigam(&x, &y2);
+      y2 = digamma(x);
       if(x > 0.0 && gsl_finite(y1) && gsl_finite(y2)){//to avoid over/underflow problems
 	g[j] = x *( args->n *(y2 - y1) + (args->eps1 - args->sumlogtheta[j])) - args->eps0;
       }
     }
+  }
+  catch(string s){
+    throw string( "Error in DirichletParamSampler::alphaGradient, " + s) ;
+  }
 }
 #endif
 
 double DirichletParamSampler::getStepSize()const {
-#if SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
   //return TuneEta.getStepSize();
   return EtaSampler.getStepsize();
-#elif SAMPLERTYPE==2
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
     return AlphaSampler.getStepsize();
 #endif
 }
 
 double DirichletParamSampler::getExpectedAcceptanceRate()const {
-#if SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
   //return TuneEta.getExpectedAcceptanceRate();
   return EtaSampler.getAcceptanceRate();
-#elif SAMPLERTYPE==2
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
     return AlphaSampler.getAcceptanceRate();
 #endif
 }

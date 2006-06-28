@@ -2,7 +2,9 @@
 #ifndef DirichletParamSampler_H
 #define DirichletParamSampler_H 1
 
-#define SAMPLERTYPE 1 // 1 = adaptive rejection sampler on pairwise elements of proportion vector mu
+#define DIRICHLETPARAM_ARS_SAMPLER 1
+#define DIRICHLETPARAM_HAMILTONIAN_SAMPLER 2
+#define DIRICHLETPARAM_SAMPLERTYPE 1 // 1 = adaptive rejection sampler on pairwise elements of proportion vector mu
                       //     Hamiltonian on dispersion parameter 
                       // 2 = Hamiltonian on parameter vector alpha
 
@@ -15,6 +17,7 @@
 #include "AdaptiveRejection.h"
 #endif
 
+/// struct to hold arguments for sampler for Dirichlet parameters
 typedef struct{
   int dim;
   int n;
@@ -22,7 +25,7 @@ typedef struct{
   double eps1;
   const double* sumlogtheta;
 } AlphaSamplerArgs;
-
+///struct to hold arguments for samper for population admixture dispersion parameter
 typedef struct{
   unsigned numpops;
   unsigned numobs;
@@ -32,6 +35,7 @@ typedef struct{
   double priorrate;
 } PopAdmixEtaSamplerArgs;
 
+///Class to sample the parameters of a Dirichlet distribution
 class DirichletParamSampler {
 public:
   DirichletParamSampler();
@@ -48,7 +52,7 @@ public:
 private:
   unsigned int K;
 
-#if SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
   //StepSizeTuner TuneEta;
   HamiltonianMonteCarlo EtaSampler;
   PopAdmixEtaSamplerArgs EtaArgs;
@@ -81,7 +85,7 @@ private:
   static double etaEnergy( const double* const eta, const void* const vargs );
   static void etaGradient( const double* const eta, const void* const vargs, double* g );
 
-#elif SAMPLERTYPE==2
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
   AlphaSamplerArgs AlphaArgs;
   double *logalpha;
   HamiltonianMonteCarlo AlphaSampler;
