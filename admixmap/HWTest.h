@@ -27,6 +27,7 @@
 #include "AdmixOptions.h"
 #include "Genome.h"
 #include "IndividualCollection.h"
+#include "ScoreTestBase.h"
 
 class LogWriter;
 
@@ -36,8 +37,7 @@ class LogWriter;
   This version evaluates for each single locus and sums over individuals.
   Code for evaluation for each individual (rather than summing) is commented out.
 */
-class HWTest : ScoreTestBase{
-
+class HWTest : public ScoreTestBase {
 public:
   HWTest();
 
