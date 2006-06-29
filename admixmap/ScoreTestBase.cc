@@ -10,7 +10,7 @@ ScoreTestBase::~ScoreTestBase(){
   if(outputfile.is_open())outputfile.close();
 }
 
-void ScoreTestBase::OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname){
+void ScoreTestBase::OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname, bool Robj){
   outputstream->open(filename, ios::out);
   if(!outputstream->is_open()){
     string error_string = "ERROR: could not open ";
@@ -18,14 +18,14 @@ void ScoreTestBase::OpenFile(LogWriter &Log, std::ofstream* outputstream, const 
     throw(error_string);
   }
   Log << testname << " written to " << filename << "\n";
-  //start writing R object
-  *outputstream << "structure(.Data=c(" << endl;
+  if(Robj)
+    //start writing R object
+    *outputstream << "structure(.Data=c(" << endl;
 
 }
 
 
-//generic scalar score test
-//TODO: move output of NA in chisq column outside as it is only required if along with vector tests
+///generic scalar score test
 void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
 					const double score, const double scoresq, const double info, bool final)
 {
@@ -48,19 +48,18 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
     if(final)
       *outputstream << double2R(PercentInfo, 2) << sep
 		    << double2R(zscore,3)   << sep 
-		    << double2R(pvalue) << sep;// << endl;
+		    << double2R(pvalue) << sep;
     else
-      *outputstream << double2R(-log10(pvalue)) << sep;// << endl;
+      *outputstream << double2R(-log10(pvalue)) << sep;
   }
   else{
     if(final)*outputstream << "NaN" << sep << "NaN" << sep;
-    *outputstream << "NaN" << sep;// << endl;
+    *outputstream << "NaN" << sep;
   }
-  if(final)*outputstream << "NA";//NA in chisquare column in final table 
   *outputstream << endl;
 }
 
-//generic vector score test
+///generic vector score test
 void ScoreTestBase::OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, vector<string> labels,
 				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
 {
@@ -124,7 +123,7 @@ void ScoreTestBase::OutputScoreTest( int iterations, ofstream* outputstream, uns
   delete[] ObservedInfo;
 }
 
-//finishes writing scoretest output as R object
+///finishes writing scoretest output as R object
 void ScoreTestBase::R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels)
 {
   *stream << ")," << endl;
@@ -146,7 +145,7 @@ void ScoreTestBase::R_output3DarrayDimensions(ofstream* stream, const vector<int
   *stream << "), character(0), character(0)))" << endl;
 }
 
-//converts a double to a string for R to read
+///converts a double to a string for R to read
 //useful only for converting infs and nans to "NaN"
 string ScoreTestBase::double2R( double x )
 {

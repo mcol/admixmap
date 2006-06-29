@@ -7,6 +7,7 @@
 #include "LogWriter.h"
 #include "common.h"
 
+/// Abstract Base Class for score tests
 class ScoreTestBase{
 
 public:
@@ -21,15 +22,15 @@ protected:
   bool test;
   std::ofstream outputfile;
   //utility functions
-  void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
-  void OutputScalarScoreTest( int iterations, std::ofstream* outputstream, std::string label,
-			      const double score, const double scoresq, const double info, bool final);
-  void OutputScoreTest( int iterations, std::ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
-			const double* score, const double* scoresq, const double* info, bool final, unsigned dim2);
+  static void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname, bool Robj);
+  static void OutputScalarScoreTest( int iterations, std::ofstream* outputstream, std::string label,
+				     const double score, const double scoresq, const double info, bool final);
+  static void OutputScoreTest( int iterations, std::ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
+			       const double* score, const double* scoresq, const double* info, bool final, unsigned dim2);
 
-  std::string double2R(double);
-  std::string double2R(double, int);
-  void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);
+  static std::string double2R(double);
+  static std::string double2R(double, int);
+  static void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);
 
 };
 
