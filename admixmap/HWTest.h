@@ -30,7 +30,13 @@
 
 class LogWriter;
 
-class HWTest{
+/**
+  Class to implement a score test for deviation from Hardy-Weinberg equilibrium
+  in order to test for genotyping errors.
+  This version evaluates for each single locus and sums over individuals.
+  Code for evaluation for each individual (rather than summing) is commented out.
+*/
+class HWTest : ScoreTestBase{
 
 public:
   HWTest();
@@ -54,9 +60,8 @@ private:
   double *sumscore2;
   double *suminfo;
 
-  std::ofstream outputfile;
+  void Reset();//required function
 
-  string double2R( double x );
   /**
    *  UNIMPLEMENTED: to avoid undesired copying.
    */    

@@ -36,14 +36,9 @@ void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter 
   Log.setDisplayMode(Quiet);
 
   if( options->getHWTestIndicator() ){//not really necessary
+
     if ( strlen( options->getHWTestFilename() ) ){
-      outputfile.open( options->getHWTestFilename(), ios::out );
-      if( !outputfile ){
-	Log.setDisplayMode(Quiet);
-	Log << "ERROR: Couldn't open hwtestfile\n";
-	exit( 1 );}
-      else {
-	Log << "HW test file: " << options->getHWTestFilename() << "\n";
+      OpenFile(Log, &outputfile, options->getHWTestFilename(), "Tests for Hardy-Weinberg equilibrium", false);
 	
 	//sumscore = alloc2D_d(NumInd, NumLoci);
 	//sumscore2 = alloc2D_d(NumInd, NumLoci);
@@ -57,14 +52,19 @@ void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter 
 	  sumscore2[i] = 0.0;
 	  suminfo[i] = 0.0;
 	}
-      }
     }
     else{
       Log << "No hwtestfile given\n";
-      //exit(1);}
     }
   }
 }    
+
+///reset score
+void HWTest::Reset(){
+  for(int j = 0; j < NumLoci; ++j){
+    score[j] = 0.0;
+  }
+}
 
 void HWTest::Update(const IndividualCollection* const IC, const Genome* const Loci){
   double H; // prob heterozygous
@@ -75,10 +75,8 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
   int Ancestry0, Ancestry1;
   Individual *ind = 0;
   double **Prob0 = 0, **Prob1 = 0;
-  //reset score
-  for(int j = 0; j < NumLoci; ++j){
-    score[j] = 0.0;
-  }
+
+  Reset();
 
   for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr){ //loop over chromosomes
     for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j){ //loop over comp loci on chromosome
@@ -146,35 +144,9 @@ void HWTest::Output(const Vector_s LocusLabels){
   //header line
   outputfile <<"Locus\tScore\tCompleteInfo\tMissingInfo\tObservedInfo\tPercentInfo\tz-score\tp-value"<<endl;
 
- double EU, missing, complete, zscore;
   for(int j = 0; j < NumLoci; j++ ){
-  //output locus labels from locus file
-    //need same code as in ScoreTests to do for comp loci
-    outputfile << LocusLabels[j] << "\t";
-
-    EU = sumscore[ j ] / (double) samples;
-    missing = sumscore2[ j ] / (double) samples - EU * EU;
-    complete =  suminfo[ j ] / (double) samples;
-    zscore = EU / sqrt( complete - missing );
-    
-    //outputfile.precision(2);
-      outputfile << double2R(EU)                                << "\t"
-		 << double2R(complete)                          << "\t"
-		 << double2R(missing)                          << "\t"
-		 << double2R(complete - missing)                << "\t"
-		 << double2R(100*(complete - missing)/complete) << "\t"
-		 << double2R(zscore)   << "\t"
-		 << 2.0 * gsl_cdf_ugaussian_P (-fabs(zscore)) << "\t" << endl;//p-value
+    //call function in base class
+    OutputScalarScoreTest(samples, &outputfile, LocusLabels[j], sumscore[j], sumscore2[j], suminfo[j], true);
   }
 }
 
-string HWTest::double2R( double x )
-{
-  if( isnan(x) )
-    return "NaN";
-  else{
-    stringstream ret;
-    ret << floor(x*100+0.5)/100.0;//for two decimal places
-    return( ret.str() );
-  }
-}
