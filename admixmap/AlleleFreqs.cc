@@ -1399,13 +1399,17 @@ double fMu( double alpha, const void* const args )
   const double *counts1 = parameters->counts1;
 
   //counts 0 are counts for admixed pop, counts1 for historic/unadmixed pop
-  double mu = alpha / eta;
-  double logprior = 0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1,1) prior
-  double f = logprior - 2 * gsl_sf_lngamma( alpha ) - 2 * gsl_sf_lngamma( eta - alpha );
-
-  f += gsl_sf_lngamma( alpha+counts0[pop*2] ) + gsl_sf_lngamma( eta-alpha+counts0[1+pop*2] );//state 1 + state 2, admixed pop
-  f += gsl_sf_lngamma( alpha+counts1[pop*2] ) + gsl_sf_lngamma( eta-alpha+counts1[1+pop*2] );//historic pop
-
+  double f = 0.0, mu = alpha / eta;
+  try{
+    double logprior = 0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1,1) prior
+    f = logprior - 2 * lngamma( alpha ) - 2 * lngamma( eta - alpha );
+    
+    f += lngamma( alpha+counts0[pop*2] ) + lngamma( eta-alpha+counts0[1+pop*2] );//state 1 + state 2, admixed pop
+    f += lngamma( alpha+counts1[pop*2] ) + lngamma( eta-alpha+counts1[1+pop*2] );//historic pop
+  }
+  catch (string s){
+    throw string("Error in ALleleFreqs::fMu - " + s);
+  }
   return f;
 }
 
@@ -1417,34 +1421,32 @@ double dfMu( double alpha, const void* const args )
   const int *counts0 = parameters->counts;
   const double *counts1 = parameters->counts1;
 
-  double x, y1, y2;
+  double x;
   double logprior = 0.1 / alpha - 0.1 / ( eta - alpha );//Beta(1,1) prior
   double f = logprior;
   x = eta - alpha;
-  if(alpha < 0)cout<<"\nError in dfMu in allelefreqs.cc - arg mu to ddigam is negative\n"; 
-  ddigam( &alpha, &y1 );
-  if(x < 0)cout<<"\nError in dfMu in allelefreqs.cc - arg x to ddigam is negative\n"; 
-  ddigam( &x, &y2 );
-  f += 2 * ( y2 - y1 );
-
-  //admixed pop
-  //first state/allele
-  x = alpha + counts0[pop*2];
-  ddigam( &x, &y2 );
-  f += y2;
-  //second state/allele
-  x = eta - alpha + counts0[1+pop*2];
-  ddigam( &x, &y2 );
-  f -= y2;
-
-  //unadmixed pop
-  x = alpha + counts1[pop*2];
-  ddigam( &x, &y2 );
-  f += y2;
-  x = eta - alpha + counts1[1+pop*2];
-  ddigam( &x, &y2 );
-  f -= y2;
-
+  try{
+    if(alpha < 0)throw string("arg mu to digamma is negative\n"); 
+    if(x < 0)throw string("arg x to digamma is negative\n"); 
+    f += 2 * ( digamma(x) - digamma(alpha) );
+    
+    //admixed pop
+    //first state/allele
+    x = alpha + counts0[pop*2];
+    f += digamma(x);
+    //second state/allele
+    x = eta - alpha + counts0[1+pop*2];
+    f -= digamma(x);
+    
+    //unadmixed pop
+    x = alpha + counts1[pop*2];
+    f += digamma(x);
+    x = eta - alpha + counts1[1+pop*2];
+    f -= digamma(x);
+  }
+  catch(string s){
+    throw string("Error in dfMu in allelefreqs.cc - " + s);
+  }
   return f;
 }
 
@@ -1456,28 +1458,26 @@ double ddfMu( double alpha, const void* const args ) {
   const int *counts0 = parameters->counts;
   const double *counts1 = parameters->counts1;
 
-  double x, y1, y2;
+  double x;
   double prior = -0.1 / (alpha*alpha) - 0.1 / (( eta - alpha ) * ( eta - alpha ) );
   double f = prior;
-  x = eta - alpha;
-  trigam( &alpha, &y1 );
-  trigam( &x, &y2 );
-  f -= 2 * ( y2 + y1 );
-
-  x = alpha + counts0[pop*2];
-  trigam( &x, &y2 );
-  f += y2;
-  x = eta - alpha + counts0[1+pop*2];
-  trigam( &x, &y2 );
-  f += y2;
-
-  x = alpha + counts1[pop*2];
-  trigam( &x, &y2 );
-  f += y2;
-  x = eta - alpha + counts1[1+pop*2];
-  trigam( &x, &y2 );
-  f += y2;
-
+  try{
+    x = eta - alpha;
+    f -= 2 * ( trigamma(x) + trigamma(alpha) );
+    
+    x = alpha + counts0[pop*2];
+    f += trigamma(x);
+    x = eta - alpha + counts0[1+pop*2];
+    f += trigamma(x);
+    
+    x = alpha + counts1[pop*2];
+    f += trigamma(x);
+    x = eta - alpha + counts1[1+pop*2];
+    f += trigamma(x);
+  }
+  catch(string s){
+    throw string("Error in ddfMu in allelefreqs.cc - " + s);
+  }
   return f;
 }
 

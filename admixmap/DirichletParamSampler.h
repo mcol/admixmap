@@ -13,7 +13,7 @@
 //#include "StepSizeTuner.h"
 #include "HamiltonianMonteCarlo.h"
 
-#if DIRICHLETPARAM_SAMPLERTYPE==1
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
 #include "AdaptiveRejection.h"
 #endif
 

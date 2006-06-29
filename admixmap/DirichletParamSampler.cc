@@ -15,8 +15,6 @@
 #include <numeric>
 #include "functions.h"
 #include <gsl/gsl_math.h>
-#include <gsl/gsl_sf_psi.h>
-#include<gsl/gsl_sf_result.h>
 
 using namespace std;
 
@@ -259,22 +257,19 @@ double DirichletParamSampler::dlogf( double muj, const void* const pars ) {
 
 double DirichletParamSampler::ddlogf( double muj, const void* const pars) {
   const double* parameters = (const double*) pars;
-  double f, x1, x2, y1, y2;
+  double f, x1, x2;
   int n = (int)parameters[0];
   double eta = parameters[1], b = parameters[2];
   x1 = eta*muj;
   x2 = eta*(b - muj);
-  int status = 0;
-  gsl_sf_result psi1_result;
-  status = gsl_sf_psi_n_e(1, x1, &psi1_result);
-  if(status) throw string("gsl trigamma error\n");
-  y1 = psi1_result.val;
-  status = gsl_sf_psi_n_e(1, x2, &psi1_result);
-  if(status) throw string("gsl trigamma error\n");
-  y2 = psi1_result.val;
-  f = -n * eta * eta *( y1 + y2 );
-  if(f >= 0) {
-    throw string("DirichletParamSsampler: 2nd derivative non-negative\n");
+  try{
+    f = -n * eta * eta *( trigamma(x1) + trigamma(x2) );
+    if(f >= 0){
+      throw string("DirichletParamSsampler: 2nd derivative non-negative\n");
+    }
+  }
+  catch(string s){
+     throw string("\nERROR in DirichletParamSampler::ddlogf " +s);
   }
   return(f);
 }

@@ -25,7 +25,6 @@
 #include "functions.h"
 #include <numeric>
 #include <gsl/gsl_linalg.h>
-#include <gsl/gsl_sf_psi.h>
 
 using namespace::std;
 
@@ -250,26 +249,18 @@ double MuSampler::fMu( double mu, const void* const args )
   double eta = parameters->eta;
   const int *counts = parameters->counts;
   double alpha = mu * eta;
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  int status  = 0;
-  gsl_sf_result psi1, psi2;
   double f = 0.0;
 
   try{
     double logprior = 0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1.1, 1.1) prior
-    status = gsl_sf_lngamma_e( alpha, &psi1 );if(status)throw(1);
-    status = gsl_sf_lngamma_e( eta - alpha, &psi2 );if(status)throw(1);
-    f += logprior - K * (psi1.val + psi2.val);
+    f += logprior - K * (lngamma(alpha) + lngamma(eta-alpha));
     
     for(int k = 0; k < K; ++k){
-      status = gsl_sf_lngamma_e( alpha+counts[k], &psi1 );if(status)throw(1);
-      status = gsl_sf_lngamma_e( eta - alpha+counts[K + k], &psi2 );if(status)throw(1);
-      f += psi1.val + psi2.val;//state 1 + state 2
+      f += lngamma(alpha+counts[k]) + lngamma(eta - alpha+counts[K + k]);//state 1 + state 2
     }
-    gsl_set_error_handler (old_handler);//restore gsl error handler 
   }
-  catch(int){
-    throw string("lngamma error in fMu");
+  catch(string s){
+    throw string("Error in fMu " +s);
   }
   return f;
 }
@@ -281,33 +272,25 @@ double MuSampler::dfMu( double mu, const void* const args )
   double eta = parameters->eta;
   const int *counts = parameters->counts;
   double alpha = mu * eta;
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  int status  = 0;
-  gsl_sf_result psi1, psi2;
 
   double logprior = 0.1 / mu - 0.1 / ( 1.0 - mu );//Beta(1.1, 1.1) prior
   double f = 0.0;
 
   try{
-    status = gsl_sf_psi_e( alpha, &psi1 );if(status)throw(1);
-    status = gsl_sf_psi_e( eta - alpha, &psi2 );if(status)throw(1);
-    f += K * ( psi2.val - psi1.val );
+    f += K * ( digamma(alpha) - digamma(eta-alpha) );
     
     for(int k = 0; k < K; ++k){
-      status = gsl_sf_psi_e( alpha+counts[k], &psi1 );if(status)throw(1);
-      status = gsl_sf_psi_e( eta - alpha+counts[K + k], &psi2 );if(status)throw(1);
       //first state/allele
-      f += psi1.val;
+      f += digamma(alpha+counts[k]);
       //second state/allele
-      f -= psi2.val;
+      f -= digamma(eta - alpha+counts[K+k]);
     }
     f *= eta;
     f += logprior;
   }
-  catch(int){
-    throw string("lngamma error in dfMu");
+  catch(string s){
+    throw string("Error in dfMu " +s);
   }
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
   return f;
 }
 
@@ -318,32 +301,24 @@ double MuSampler::ddfMu( double mu, const void* const args )
   double eta = parameters->eta;
   const int *counts = parameters->counts;
   double alpha = mu * eta;
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  int status  = 0;
-  gsl_sf_result psi1, psi2;
 
   if(alpha > eta) return 0.00001;// ??
   double logprior = -0.1 / ( mu * mu) - 0.1 / (( 1.0 - mu ) * ( 1.0 - mu ) );
   double f = 0.0;
 
   try{
-    status = gsl_sf_psi_n_e( 1, alpha, &psi1);
-    status = gsl_sf_psi_n_e( 1, eta - alpha, &psi2);
-    f -= K * ( psi2.val + psi1.val );
+    f -= K * ( trigamma(alpha) + trigamma(eta-alpha) );
     
     for(int k = 0; k < K; ++k){
-      status = gsl_sf_psi_n_e( 1, alpha+counts[k], &psi1 );if(status)throw(1);
-      status = gsl_sf_psi_n_e( 1, eta - alpha+counts[K + k], &psi2 );if(status)throw(1);
-      f += psi1.val;
-      f += psi2.val;
+      f += trigamma(alpha+counts[k]);
+      f += trigamma(eta-alpha+counts[K+k]);
     }
     f*= eta*eta;
     f += logprior;
   }
-  catch(int){
-    throw string("lngamma error in ddfMu");
+  catch(string s){
+    throw string("Error in ddfMu " + s);
   }
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
   return f;
 }
 

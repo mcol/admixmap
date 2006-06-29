@@ -36,10 +36,6 @@ double getDirichletLogDensity(const std::vector<double>& a, const std::vector<do
 double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double* const x);
 /// multinomial density qith probabilities r
 double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta );
-///digamma function
-void ddigam( double *, double * );
-///trigamma function
-void trigam( double *, double * );
 
 // transformations
 double AverageOfLogs(const std::vector<double>& vec, double max);
@@ -106,6 +102,8 @@ double mylog(double x);
 double myexp(double x);
 ///lngamma function with error handling
 double lngamma(double x);
-///lngamma function with error handling
+///digamma function with error handling
 double digamma(double x);
+///trigamma function with error handling
+double trigamma(double x);
 #endif /* !FUNCTIONS_H */

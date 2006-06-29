@@ -112,98 +112,6 @@ double getDirichletLogDensity_Softmax(const std::vector<double>& a, const double
   }
   return f;
 }
-/**
-   digamma function.
-  FOLLOWS CLOSELY ALG AS 103 APPL.STATS.(1976) VOL 25
-  CALCS DIGAMMA(X)=D(LOG(GAMMA(X)))/DX
-*/
-void ddigam(  double *X, double *ddgam  )
-{
-//  SET CONSTANTS.SN=NTH STIRLING COEFFICIENT,D1=DIGAMMA(1.)
-//
-   double S, C, S3, S4, S5, D1, Y, R;
-
-   S = 1.0e-5;
-   C = 8.5e0;
-   S3 = 8.333333333e-2; 
-   S4 = 8.333333333e-3;
-   S5 = 3.968253968e-3;
-   D1 = -0.5772156649;
-
-//      DATA S,C,S3,S4,S5,D1/1.0D-5,8.5D0,8.333333333D-2,
-//    1  8.333333333D-3,3.968253968D-3,-0.5772156649D0/
-
-
-//  CHECK ARGUMENT IS POSITIVE
-
-   *ddgam=0.0;
-   Y=*X;
-   if(Y < 0.0){
-     throw string("Negative value passed as argument to digamma function ddigam");
-   }
-
-//  USE APPROXIMATION IF ARGUMENT .LE.S
-
-   if(Y > S){
-
-//  REDUCE TO DIGAMMA(X+N),(X+N).GE.C
-
-      while( Y < C ){
-         *ddgam=*ddgam-(1.0/Y);
-         Y=Y+1.0;}
-   
-//  USE STIRLING IF ARGUMENT .GE.C
-
-      R=1.0/Y;
-      *ddgam=*ddgam+log(Y)-0.5*R;
-      R=R*R;
-      *ddgam=*ddgam-R*(S3-R*(S4-R*S5));}
-   else
-      *ddgam=D1-1.0/Y;
-}
-
-/**
-   trigamma function.
- * closely follows alg. as 121 appl.stats. (1978) 
- * vol 27, 97-99. (b.e. schneider)
- *
- * calculates trigamma(x)=d**2(log(gamma(x)))/dx**2
- */
-
-void trigam( double *x, double *trgam )
-{
-   double a=1.0e-4,b=5.0,one=1.0,half=0.5,y,z,trigam1=0.0;
-   double b2=0.1666666667,b4=-0.03333333333;
-   double b6=0.02380952381,b8=-0.0333333333;
-/*
- *  b2,b4,b6,b8 are bernoulli numbers
- *
- *  check that argument is positive
- *
- */ 
-   z=*x;
-/*
- *  use small value approximation if x.le.a
- */
-   if(z<=a){ 
-      trigam1=1.0/(z*z);
-      *trgam=trigam1;}
-   else{
-/*
- *  increase argument to (x+i).ge.b
- */
-      while(z<b){
-         trigam1=trigam1+1.0/(z*z);
-         z=z+1.0;
-      }
-/*
- *  apply asymptotic formula if argument.ge.b
- */
-      y=1.0/(z*z);
-      trigam1=trigam1+half*y+(one+y*(b2+y*(b4+y*(b6+y*b8))))/z;
-      *trgam=trigam1;
-   }
-}
 
 double MultinomialPDF( const std::vector<int> r, const std::vector<double> theta )
 {
@@ -876,6 +784,20 @@ double digamma(double x){
   if(status){
     stringstream s;
     s << "Error in digamma(" << x << "): "<< gsl_strerror(status);
+    throw s.str();
+    return 0.0;
+  }
+  return result.val;
+}
+///trigamma function with error handling
+double trigamma(double x){
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+  gsl_sf_result result;
+  int status = gsl_sf_psi_n_e( 1, x, &result);
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  if(status){
+    stringstream s;
+    s << "Error in trigamma(" << x << "): "<< gsl_strerror(status);
     throw s.str();
     return 0.0;
   }
