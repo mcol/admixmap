@@ -11,126 +11,61 @@
  * See the file COPYING for details.
  * 
  */
-#ifndef REGRESSION_H
-#define REGRESSION_H 1
+#ifndef REGRESSIONBASE_H
+#define REGRESSIONBASE_H 1
 
 #include "common.h"
-#include "Gaussian.h"
 #include "AdmixOptions.h"
-#include "IndividualCollection.h"
-#include "GaussianProposalMH.h"
+//#include "IndividualCollection.h"
 #include "LogWriter.h"
 
-typedef struct{
-  int n;//number of individuals
-  int d;//numberof covariates
-  int index;//index of current parameter
-  double beta0;//prior mean
-  double priorprecision;//prior precision 
-  double XtY;
-  const double* Covariates;
-  const double* beta;//regression parameters
-  double coolness;//for annealing
+class IndividualCollection;//to avoid circular includes
 
-}BetaArgs;
-
+///Abstract Base Class for a generic Regression
 class Regression{
-
 public:
   Regression();
-   ~Regression();
-  void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
+  virtual ~Regression();
+  virtual void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &) = 0;
   void Initialise(unsigned Number, const IndividualCollection* const individuals);
   void SetExpectedY(IndividualCollection* IC)const;
-  void Update(bool sumbeta, IndividualCollection* individuals, double coolness
+  virtual void Update(bool sumbeta, IndividualCollection* individuals, double coolness
 #ifdef PARALLEL
 			, MPI::Intracomm &Comm
 #endif
-);
+	      ) = 0;
+  virtual double getLogLikelihood(const IndividualCollection* const IC)const = 0;
+  virtual double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations) = 0;
   static void OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-			     const std::string *PopulationLabels, LogWriter &Log);  
+  			     const std::string *PopulationLabels, LogWriter &Log);  
   static void InitializeOutputFile(const AdmixOptions* const , const IndividualCollection* const individuals, 
-				   const std::string* const PopulationLabels);
+  				   const std::string* const PopulationLabels);
   void Output(int iteration, const AdmixOptions *, LogWriter &Log);
-  void OutputParams(ostream* out);
+  virtual void OutputParams(ostream* out) = 0;
   void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
   const double* getbeta() const;
   double getlambda() const ;
   int getNumCovariates()const;
-  double getDispersion()const;
-  double getLogLikelihood(const IndividualCollection* const IC)const;
-  double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations);
+  virtual double getDispersion()const = 0;
 
-private:
+protected:
   int NumCovariates, NumOutcomeVars, NumIndividuals;
   RegressionType RegType;
   unsigned RegNumber;
 
   double *beta;//regression parameters
   double *betamean; //beta prior mean
+  double *betaprecision; //prior precision for beta
   double *SumBeta;//running sums (for ergodic averages)
   double lambda; //precision parameter
   double SumLambda;
   const double* Y;
-
-  // ** Linear Regression Objects
-  double lambda0; //parameters of
-  double lambda1; //Gamma prior for lambda
-  double *betaprecision; //prior precision for beta
-  double *R, *QY, *QX, *V, *betahat;
-  Gaussian DrawBeta;//sampler
-
-  void QRSolve(int dim1, int dim2, const double* a, const double* b, double* x);
-  void SamplePrecision(double* lambda, const double* Y, const double* X, int NumIndivs, int NumCovars, double coolness);
-  void SampleLinearRegressionParams(double* beta, const double* Y, const double* X, int NumIndivs, int NumCovars);
-  void SampleLinearRegressionParametersWithAnnealing(const double* Y, const double* X, double* beta, double *lambda, 
-							       double coolness);
-
-  // ** Logistic Regression Objects
-  GaussianProposalMH** BetaDrawArray;
-  BetaArgs BetaParameters;
-  int acceptbeta;
   double* XtY;
   const double *X;
-  int *dims;
- 
-  static std::ofstream outputstream;//output to regparamfile
 
+  static std::ofstream outputstream;
   void SumParameters();
-
-  static double lr( const double beta, const void* const vargs );
-  
-  static double dlr( const double beta, const void* const vargs );
-  
-  static double ddlr( const double beta, const void* const vargs );
-  
-
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif
