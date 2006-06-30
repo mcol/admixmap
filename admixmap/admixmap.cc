@@ -30,16 +30,17 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
 void MakeResultsDir(const char* dirname, bool verbose);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter &Log, std::ofstream *avgstream, const string* const PopulationLabels);
-void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
+void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, const AdmixOptions *options, 
 		      const Genome *Loci, ScoreTests *S, LogWriter& Log, const std::string* const PopulationLabels, 
 		      double coolness, bool anneal);
-void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
+void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, const AdmixOptions *options, 
 		      LogWriter& Log);
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
 
 void PrintCopyrightNotice(); 
 
-void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs  & A, Regression *R, 
+void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs  & A, 
+		  vector<Regression *>&R, 
 		  AdmixOptions & options,  const Genome  & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  const double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretests, DispersionTest & DispTest, StratificationTest & StratTest, 
@@ -172,12 +173,15 @@ int main( int argc , char** argv ){
     Latent L( &options, &Loci);    
     if(rank!=1)L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
 
-    Regression* R = 0;
+    vector<Regression*> R;//vector of regression pointers
     if (options.getNumberOfOutcomes()>0 && rank !=1){
-      R = new Regression[options.getNumberOfOutcomes()];
       for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
-	if(rank < 1) R[r].Initialise(r, options.getRegressionPriorPrecision(), IC, Log);
-	else R[r].Initialise(r, IC);
+	//determine regression type and allocate regression objects
+	if( IC->getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
+	else if( IC->getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
+
+	if(rank < 1) R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC, Log);
+	else R[r]->Initialise(r, IC);
       }
       if(rank<1)Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
     }
@@ -196,7 +200,7 @@ int main( int argc , char** argv ){
     //set expected Outcome
     if(rank < 1)
       for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-	R[r].SetExpectedY(IC);
+	R[r]->SetExpectedY(IC);
 
     data.Delete();
 
@@ -435,7 +439,8 @@ int main( int argc , char** argv ){
     }//end else
 
     delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
-    delete[] R;
+    for(int r = 0; r < options.getNumberOfOutcomes(); ++r)delete R[r];
+    R.clear();
 
     if((rank==-1 || rank==1) && !options.getHapMixModelIndicator())
       A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
@@ -534,7 +539,7 @@ int main( int argc , char** argv ){
 } //end of main
 
 void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs & A, 
-		  Regression *R, AdmixOptions & options, 
+		  vector<Regression *>&R, AdmixOptions & options, 
 		  const Genome & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretests, DispersionTest & DispTest, StratificationTest & StratTest, 
@@ -613,7 +618,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model
 	    }
 	    for(int r = 0; r < options.getNumberOfOutcomes(); ++r)//regression params
-	      R[r].OutputErgodicAvg(samples, &avgstream);
+	      R[r]->OutputErgodicAvg(samples, &avgstream);
 
 	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq, &avgstream);
 	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream);
@@ -731,7 +736,8 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
   }
 }
 
-void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
+void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
+		      const AdmixOptions *options, 
 		      const Genome *Loci, ScoreTests *S, LogWriter& Log, const std::string* const PopulationLabels,
 		      double coolness, bool anneal){
 #ifdef PARALLEL
@@ -782,7 +788,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     //score tests
     if( options->getScoreTestIndicator() ){
       double dispersion = 1.0;
-      if(rank != 1 && (options->getNumberOfOutcomes()>0) ) dispersion = R[0].getDispersion();
+      if(rank != 1 && (options->getNumberOfOutcomes()>0) ) dispersion = R[0]->getDispersion();
 #ifdef PARALLEL
       MPE_Log_event(21, iteration, "ScoreTestUpdatestart");
 #endif
@@ -884,7 +890,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(rank != 1){
     bool condition = (!anneal && iteration > options->getBurnIn() && (rank <1));
     for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
-      R[r].Update(condition, IC, coolness 
+      R[r]->Update(condition, IC, coolness 
 #ifdef PARALLEL
 		  , workers_and_master
 #endif
@@ -897,8 +903,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
 }
 
-void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, Regression *R, const AdmixOptions *options, 
-		      LogWriter& Log){
+void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
+		      const AdmixOptions *options, LogWriter& Log){
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
   if(options->getIndAdmixHierIndicator()  ){
@@ -911,7 +917,7 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(options->getHapMixModelIndicator() && (options->getDisplayLevel() > 2))cout << A->getHapMixPriorRate() << " " ;
   // ** regression parameters
   for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
-    R[r].Output(iteration, options, Log);
+    R[r]->Output(iteration, options, Log);
   
   // ** new line in log file but not on screen 
   if( iteration == 0 && (options->getIndAdmixHierIndicator() || options->getNumberOfOutcomes())) {

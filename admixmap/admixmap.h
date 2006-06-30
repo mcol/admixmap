@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/* 
  *   ADMIXMAP
  *   admixmap.h 
  *   
@@ -11,6 +11,23 @@
  * See the file COPYING for details.
  * 
  */
+
+// main page info for Doxygen
+/*! \mainpage ADMIXMAP index
+ *
+ * \section intro_sec Introduction
+      ADMIXMAP - a program to model admixture using marker genotype data
+
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ *
+ */
+
+
 #ifndef ADMIXMAP_H
 #define ADMIXMAP_H 1
 
@@ -20,7 +37,8 @@
 #include <string>
 #include "common.h"
 #include "Latent.h"
-#include "Regression.h"
+#include "LinearRegression.h"
+#include "LogisticRegression.h"
 #include "AlleleFreqs.h"
 #include "AdmixOptions.h"
 #include "InputData.h"
@@ -33,9 +51,9 @@
 #include "HWTest.h"
 
 #ifdef PARALLEL
-#define ADMIXMAP_VERSION "3.3 (Parallel)"
+#define ADMIXMAP_VERSION "3.3.1 (Parallel)"
 #else
-#define ADMIXMAP_VERSION "3.3"
+#define ADMIXMAP_VERSION "3.3.1"
 #endif
 
 #endif /* ADMIXMAP_H */

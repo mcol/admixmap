@@ -34,6 +34,7 @@ class LogWriter;
 class AlleleFreqs;
 class AlleleFreqSampler;
 
+///Class to hold an array of Individuals
 class IndividualCollection
 {
 public:
@@ -52,29 +53,34 @@ public:
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const std::string* const PopulationLabels);
 
   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-			   const Regression* const R, const double* const poptheta,
+			   const vector<Regression*> &R, const double* const poptheta,
 			   const vector<vector<double> > &alpha, 
 			   bool anneal);
   void SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
 		      bool anneal);
   void SampleParameters(int iteration, const AdmixOptions* const options,
-			const Regression* const R, const double* const poptheta,
+			const vector<Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 			bool anneal);
   void UpdateChib(int iteration, const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
 
   void FindPosteriorModes(const AdmixOptions* const options, 
-			  const Regression* const R, 
+			  const vector<Regression*> &R, 
 			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 			  const std::string* const PopulationLabels);
 
-  void setGenotypeProbs(const Genome * const G, const AlleleFreqs* const A);
+  void setGenotypeProbs(const Genome * const G, const AlleleFreqs* const 
+#ifdef PARALLEL
+			A
+#endif
+			);
+
   void annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses);
   
   void OutputIndAdmixture();
 
-  double getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci, LogWriter &Log, 
+  double getDevianceAtPosteriorMean(const AdmixOptions* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log, 
 				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A);
 
   void OutputChibEstimates(bool, LogWriter &, int)const;
@@ -121,7 +127,7 @@ public:
   double getSampleVarianceOfOutcome(int j)const;
   double getSampleVarianceOfCovariate(int j)const;
 
-  double getEnergy(const AdmixOptions* const options, const Regression* R, 
+  double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
 			  const bool & annealed);
   void accumulateEnergyArrays(const AdmixOptions* const options);
   double* getSumEnergy();

@@ -481,7 +481,7 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 
 // ************** UPDATING **************
 void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-					       const Regression* const R, const double* const poptheta,
+					       const vector<Regression*> &R, const double* const poptheta,
 					       const vector<vector<double> > &alpha, 
 					       bool anneal=false){
   /*
@@ -501,8 +501,8 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   vector<const double*> beta;
   if(!options->getHapMixModelIndicator()){//required only for random walk update of individual admixture and ancestry scoretests
     for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-      lambda.push_back( R[i].getlambda());
-      beta.push_back( R[i].getbeta());
+      lambda.push_back( R[i]->getlambda());
+      beta.push_back( R[i]->getbeta());
     }
   }
 
@@ -526,7 +526,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   }
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
   double dispersion = 0.0; 
-  if(!options->getHapMixModelIndicator() && options->getNumberOfOutcomes()>0) dispersion = R[0].getDispersion();
+  if(!options->getHapMixModelIndicator() && options->getNumberOfOutcomes()>0) dispersion = R[0]->getDispersion();
 
   //now loop over individuals
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
@@ -604,7 +604,7 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
 }
 ///samples individual-level sumintensities and admixture
 void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* const options,
-					    const Regression* const R, const double* const poptheta,
+					    const vector<Regression*> &R, const double* const poptheta,
 					    const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 					    bool anneal=false){
    //sufficient statistics have been stored in Individuals
@@ -618,10 +618,10 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
   double dispersion = 0.0; 
   if(worker_rank==(int)size || (worker_rank==0 && NumWorkers==1)){//master only
     for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-      lambda.push_back( R[i].getlambda());
-      beta.push_back( R[i].getbeta());
+      lambda.push_back( R[i]->getlambda());
+      beta.push_back( R[i]->getbeta());
     }
-    if(options->getNumberOfOutcomes()>0) dispersion = R[0].getDispersion();
+    if(options->getNumberOfOutcomes()>0) dispersion = R[0]->getDispersion();
   }
 
   // ** Test Individuals
@@ -682,7 +682,7 @@ void IndividualCollection::UpdateChib(int iteration, const AdmixOptions* const o
 }
 
 void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, 
-					      const Regression* const R, 
+					      const vector<Regression*> &R, 
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
 					      const std::string* const PopulationLabels){
   //TODO: check this for hapmixmodel
@@ -711,8 +711,8 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   vector<double> lambda;
   vector<const double*> beta;
   for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-    lambda.push_back( R[i].getlambda());
-    beta.push_back( R[i].getbeta());
+    lambda.push_back( R[i]->getlambda());
+    beta.push_back( R[i]->getbeta());
   }
   if(options->getTestOneIndivIndicator()) {// find posterior mode for test individual only 
     TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
@@ -929,7 +929,7 @@ double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
 }
 // ************** OUTPUT **************
 
-double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, Regression *R, Genome* Loci,
+double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, vector<Regression *> &R, Genome* Loci,
 							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
 							, AlleleFreqs* A){
 #ifdef PARALLEL
@@ -997,7 +997,7 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   if(rank <1){
     Log << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
     for(int c = 0; c < options->getNumberOfOutcomes(); ++c){
-      double RegressionLogL = R[c].getLogLikelihoodAtPosteriorMeans(this, iterations);
+      double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(this, iterations);
       Lhat += RegressionLogL;
       Log << "DevianceAtPosteriorMean(Regression " << c << ")"
 	  << -2.0*RegressionLogL << "\n";
@@ -1050,7 +1050,7 @@ void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const st
       << _child[0]->getLogLikelihoodOnePop() << "\n";
 }
 
-double IndividualCollection::getEnergy(const AdmixOptions* const options, const Regression* R, 
+double IndividualCollection::getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
 				       const bool & annealed) {
   // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
   // called every iteration after burnin, after update of genotype probs and before annealing
@@ -1077,7 +1077,7 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
 #endif
   // get regression log-likelihood 
   if(global_rank==0)
-    for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c].getLogLikelihood(this);
+    for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c]->getLogLikelihood(this);
   Energy = -(LogLikHMM + LogLikRegression);
   return Energy;
 } 
