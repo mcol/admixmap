@@ -5,6 +5,7 @@
   code for evaluation for each individual (rather than summing) is commented out.
 */
 #include "HWTest.h"
+//#include "IndividualCollection.h"
 #include "functions.h"
 #include "gsl/gsl_cdf.h"
 

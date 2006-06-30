@@ -23,21 +23,22 @@
 #ifndef HWTEST_H
 #define HWTEST_H 1
 
+#include "ScoreTestBase.h"
 #include "common.h"
 #include "AdmixOptions.h"
 #include "Genome.h"
 #include "IndividualCollection.h"
-#include "ScoreTestBase.h"
 
 class LogWriter;
-
+//class IndividualCollection;
 /**
   Class to implement a score test for deviation from Hardy-Weinberg equilibrium
   in order to test for genotyping errors.
   This version evaluates for each single locus and sums over individuals.
   Code for evaluation for each individual (rather than summing) is commented out.
 */
-class HWTest : public ScoreTestBase {
+class HWTest : public ScoreTestBase{
+
 public:
   HWTest();
 
