@@ -209,9 +209,8 @@ Individual::~Individual() {
   delete[] SumSoftmaxTheta;
   delete[] missingGenotypes;
 }
-
+/// draw initial values for admixture proportions theta from Dirichlet prior 
 void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha) {
-  // draw initial values for admixture proportions theta from Dirichlet prior 
   size_t K = Populations;
   for( unsigned g = 0; g < NumIndGametes; ++g ) { 
     double sum = 0.0;
@@ -242,9 +241,8 @@ void Individual::setOutcome(double* Y){
 void Individual::setCovariates(double* X){
   Covariates = X;
 }
-
+///sets possible hap pairs for a single SNP
 void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
-  //sets possible hap pairs for a single SNP
   if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
   hapPair hpair;
   PossibleHapPairs.clear();
@@ -451,8 +449,8 @@ const double* Individual::getAdmixtureProps()const {
 Sex Individual::getSex()const {
    return sex;
 }
-
-double Individual::getSumrho()const { //returns sum of sumintensities over gametes
+///returns sum of sumintensities over gametes
+double Individual::getSumrho()const { 
   double sumrho = 0;
   for( unsigned int g = 0; g < _rho.size(); g++ )
     sumrho += _rho[g];
@@ -474,7 +472,7 @@ void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const {
   else Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
 }
 
-//returns value of LocusAncestry at a locus for a particular gamete
+///returns value of LocusAncestry at a locus for a particular gamete
 int Individual::GetLocusAncestry(int chrm, int gamete, int locus)const{
   int g = (gametes[chrm] == 2) ? gamete : 0; //so that gamete = 1 works when gametes[chrm] = 1;
   return LocusAncestry[chrm][g * Loci->GetSizesOfChromosomes()[chrm]  + locus] ;
@@ -486,8 +484,8 @@ const int *Individual::getSumLocusAncestry()const{
 const int *Individual::getSumLocusAncestryX()const{
   return SumLocusAncestry_X;
 }
+  //returns number of arrivals across genome
 const vector<unsigned>Individual::getSumNumArrivals()const{
-  //returns number of arrivals on each across genome
   vector<unsigned> SumN(2,0);
   unsigned locus = 0;
   for(unsigned i = 0; i < numChromosomes; ++i){
@@ -519,21 +517,21 @@ void Individual::getSumNumArrivals(std::vector<unsigned> *sum)const{
   }
 }
 
-//Indicates whether genotype is missing at all simple loci within a composite locus
+///Indicates whether genotype is missing at all simple loci within a composite locus
 bool Individual::GenotypeIsMissing(unsigned int locus)const {
   unsigned c, l;
   Loci->GetChrmAndLocus(locus, &c, &l);
   return GenotypesMissing[c][l];
 }
-//Indicates whether genotype is missing at a simple locus
+///Indicates whether genotype is missing at a simple locus
 //used by HW score test
 bool Individual::simpleGenotypeIsMissing(unsigned locus)const{
   if(!missingGenotypes)throw string("missingGenotypes not allocated");
   return missingGenotypes[locus];
 }
 //****************** Log-Likelihoods **********************
-// public method: 
-// calls private method to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
+// public function: 
+// calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
 // store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
 double Individual::getLogLikelihood( const AdmixOptions* const options, const bool forceUpdate, const bool store) {
 
@@ -548,7 +546,7 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, const bo
   } else return logLikelihood.value; // nothing was changed
 }
 
-// private method: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
+// private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
 // arguments rho and rho_X are ignored if globalrho
 double Individual::getLogLikelihood(const AdmixOptions* const options, const double* const theta, 
 				    const double* const thetaX, const vector<double > rho, const vector<double> rho_X, 
@@ -723,16 +721,17 @@ void Individual::SampleJumpIndicators(bool sampleArrivals){
 			      sampleArrivals);
   } //end chromosome loop
 }
-
+///uses an EM algorithm to search for posterior modes of individual parameters
 void Individual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 				    double rhoalpha, double rhobeta, //const vector<double> sigma, 
 				    ofstream &modefile,
 				    double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX){
 
-  //uses an EM algorithm to search for posterior modes of individual parameters
   unsigned numEMiters = 10;
   unsigned NumEstepiters = 10; 
-  double LogUnnormalizedPosterior = - numeric_limits<double>::max( );  
+  double LogUnnormalizedPosterior = - numeric_limits<double>::max( );
+  bool isadmixed = options->isAdmixed(0);
+  if(NumIndGametes ==2)isadmixed = isadmixed | options->isAdmixed(1);//indicates if individual is admixed
 
   //use current parameter values as initial values
   double *SumLocusAncestryHat = new double[2*Populations];
@@ -810,12 +809,14 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
 	    ThetaX[g*Populations+k] = (alpha[gg][k]+SumLocusAncestry_XHat[g*Populations+k]) / sum_X;
 	}
       } //end isadmixed
+      else//unadmixed gameta - set ThetaProposal to (fixed) values in thetahat, which will be something like 1,0,0 
+	copy(thetahat+g*Populations, thetahat+(g+1)*Populations, ThetaProposal+g*Populations);
     } // end loop over gametes
     double logpriorhat =  LogPriorTheta_Softmax(ThetaProposal, ThetaX, options, alpha) + 
       LogPriorRho_LogBasis(rhohat, _rho_X, options, rhoalpha, rhobeta);
     double loglikhat = getLogLikelihood(options, ThetaProposal, ThetaX, rhohat, _rho_X, false);
     double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
-    if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
+    if(isadmixed && (LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior)) { //accept update only if density increases 
       setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
       copy(rhohat.begin(), rhohat.end(), _rho.begin());
       LogUnnormalizedPosterior = LogUnnormalizedPosteriorHat;
