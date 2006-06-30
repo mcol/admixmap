@@ -1304,7 +1304,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 
 //Note: requires Populations option to have already been set
 void AdmixOptions::setInitAlpha(LogWriter &Log){
-  _admixed.resize(2,true);
+  _admixed.resize(2,(bool)(Populations>1));
   _symmetric = true;
   vector<double> alphatemp(Populations);
   Log.setDisplayMode(Quiet);
