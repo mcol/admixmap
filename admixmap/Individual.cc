@@ -816,9 +816,11 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
       LogPriorRho_LogBasis(rhohat, _rho_X, options, rhoalpha, rhobeta);
     double loglikhat = getLogLikelihood(options, ThetaProposal, ThetaX, rhohat, _rho_X, false);
     double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
-    if(isadmixed && (LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior)) { //accept update only if density increases 
-      setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
-      copy(rhohat.begin(), rhohat.end(), _rho.begin());
+    if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
+      if(isadmixed){
+	setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
+	copy(rhohat.begin(), rhohat.end(), _rho.begin());
+      }
       LogUnnormalizedPosterior = LogUnnormalizedPosteriorHat;
     }
     cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior  " << 
