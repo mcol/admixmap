@@ -159,8 +159,6 @@ int main( int argc , char** argv ){
     if(rank!=0)A.AllocateAlleleCountArrays(options.getPopulations());
 #ifdef PARALLEL
     //broadcast initial values of freqs
-    //TODO: might save time by having workers set freqs from data. This requires workers reading extra data files and careful rigging of allelefreq initialisation so that workers only allocate Freqs arrays
-
     if(rank!=0)A.BroadcastAlleleFreqs(workers_and_freqs);
 
 #endif
@@ -826,10 +824,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 #ifdef PARALLEL
     MPE_Log_event(7, iteration, "SampleFreqs");
 #endif
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
     bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
+#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
     A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
-#elif FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
+#elif FREQSAMPLER==FREQ_CONJUGATE_SAMPLER
     A->Update((iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
 #endif
 #ifdef PARALLEL
