@@ -27,7 +27,7 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const
   unsigned dim = NumStates*NumPops;
   params = new double[dim];
   //initialise Hamiltonian Sampler
-  double step0 = 0.005;//initial step size
+  double step0 = 0.05;//initial step size
   double min = -100.0, max = 100.0; //min and max stepsize
   int numleapfrogsteps = 5; // 10;
   Args.PriorParams = Prior;
@@ -36,7 +36,7 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const
   if(NumStates ==2){//case of SNP
     step0 = 0.01;//initial step size
     numleapfrogsteps = 20;
-    Sampler.SetDimensions(NumPops, 0.0005, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
+    Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
   }
   else{
     Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.7/*target acceptrate*/, getEnergy, gradient);
@@ -121,19 +121,21 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts, con
 //, number of alleles/haplotypes NumStates, number of populations, NumPops
 double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
 					unsigned NumStates){
-  double sum = 0.0, sum2 = 0.0;//sums of products and products of squares
-  double phiphi;
+  double sum = 0.0;//sums of products and products of squares
   unsigned NumPossHapPairs = H.size();
   for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
     unsigned j0 = H[hpair].haps[0];//j
     unsigned j1 = H[hpair].haps[1];//j'
-    int index0 = Anc[0]*NumStates + j0;//jk
-    int index1 = Anc[1]*NumStates + j1;//j'k'
-    phiphi = phi[index0] * phi[index1];
-    sum += phiphi;
-    sum2 += phiphi*phiphi;
+    if( (Anc[0]==Anc[1]) || (j0==j1) ) {
+      
+      int index0 = Anc[0]*NumStates + j0;//jk
+      int index1 = Anc[1]*NumStates + j1;//j'k'
+      sum += log(phi[index0]*phi[index1]);
+    } else {
+      sum += log(phi[Anc[0]*NumStates + j1] * phi[Anc[1]*NumStates + j0] + phi[Anc[0]*NumStates + j0] * phi[Anc[1]*NumStates + j1] );
+    }
   }
-  return mylog(sum2) - mylog(sum);
+  return sum;
 }
 
 double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates){
@@ -261,45 +263,26 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
 
 ///first derivative of  -log likelihood
 void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
-						unsigned NumStates, unsigned NumPops, double* FirstDeriv){
+						unsigned NumStates, unsigned, double* FirstDeriv){
   unsigned NumPossHapPairs = H.size();
-
-  unsigned dim = NumStates*NumPops; // could allocate these vectors when object is constructed
-  vector<double> A(dim), B(dim), E(dim); 
-
-  for(unsigned d = 0; d < dim; ++d) {
-    A[d] = B[d] /*= D[d] */ = E[d] = 0.0;
-  }
-
-  double sum = 0.0, sum2 = 0.0;//sum of products, sum of squared products
-  double phiphi;
   for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
     unsigned j0 = H[hpair].haps[0];//j
     unsigned j1 = H[hpair].haps[1];//j'
     int index0 = Anc[0]*NumStates + j0;//jk
     int index1 = Anc[1]*NumStates + j1;//j'k'
-    phiphi = phi[index0] * phi[index1]; // phi_jk * phi_j'k'
-    sum += phiphi;
-    sum2 += phiphi*phiphi;
-    
-    //    if(Anc[0] == Anc[1]){ // ? wrong
-    if( index0 == index1 ) {
-      A[index0] = 1.0; // indicator for quadratic term in sum
-    } else {
-      B[index0] += phi[index1]; // accumulate coefficient of linear term in sum
-      B[index1] += phi[index0];
-      E[index0] += phi[index1]*phi[index1]; // accumulate coefficient of quadratic term in sum2
-      E[index1] += phi[index0]*phi[index0];
-    }
-  }
-  
-  for(unsigned d = 0;d < dim; ++d) { // this loop may be very large, skip iterations that don't contribute to result
-    if(A[d] > 0 || B[d] > 0) { // otherwise skip, no contribution to d th element of vector 
-      FirstDeriv[d] -=  -(2*A[d]*phi[d] + B[d]) / sum;
-      if(A[d] > 0) {
-	A[d] = phi[d]*phi[d]*phi[d]; //phi^3
-      }
-      FirstDeriv[d] -= (4*A[d] + 2*E[d]*phi[d]) / sum2;
+    if( (Anc[0] == Anc[1]) || (index0 == index1) ) {
+      FirstDeriv[index0] += 1.0 / phi[index1];
+      FirstDeriv[index1] += 1.0 / phi[index0];
+ 
+    }else {
+      int index2 = Anc[0]*NumStates + j1;//jk'
+      int index3 = Anc[1]*NumStates + j0;//j'k
+
+      double denom = phi[index0] * phi[index1] + phi[index2] * phi[index3];
+      FirstDeriv[index0] += phi[index1] / denom;
+      FirstDeriv[index1] += phi[index0] / denom;
+      FirstDeriv[index2] += phi[index3] / denom;
+      FirstDeriv[index3] += phi[index2] / denom;
     }
   }
 }
@@ -317,12 +300,10 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
   //get loglikelihood
   for(unsigned k = 0; k < Pops; ++k){
     energy -= args->AlleleCounts[k] * mylog(phi[k])/*allele1*/ + args->AlleleCounts[Pops + k] * mylog(1.0-phi[k])/*allele2*/;
-    double phi_k_sq = phi[k] * phi[k];
     for(unsigned k1 = k+1; k1< Pops; ++k1){
-      double phi_k1_sq = phi[k1]*phi[k1];
       double phi_phi = phi[k] * phi[k1];
       energy -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
-	(mylog(phi_k_sq + phi_k1_sq - 2.0*phi_phi*(phi[k] + phi[k1] - phi_phi)) - mylog(phi[k] + phi[k1] - 2.0*phi_phi) );
+	 mylog(phi[k] + phi[k1] - 2.0*phi_phi);
     }
   }
   
@@ -358,14 +339,11 @@ void AlleleFreqSampler::gradientSNP(const double * const params, const void* con
     dE_dphi[k] -= args->AlleleCounts[k] / phi[k];//allele1
     dE_dphi[k] += args->AlleleCounts[Pops + k] / (1.0 - phi[k]);//allele2
 
-    double phi_k_sq = phi[k] * phi[k];
     for(unsigned k1 = 0; k1 < Pops; ++k1)if(k!=k1){
-      double phi_k1_sq = phi[k1]*phi[k1];
       double phi_phi = phi[k] * phi[k1];
-      double denom1 = phi_k_sq + phi_k1_sq - 2.0*phi_phi*(phi[k] + phi[k1] - phi_phi);
-      double denom2 = phi[k] + phi[k1] - 2.0*phi_phi;
-      dE_dphi[k] += (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
-	( (2.0*phi[k] + 4*phi[k1]*(phi_phi-1.0))/ denom1 - (1.0 - 2.0*phi[k1])/denom2 );
+      double denom = phi[k] + phi[k1] - 2.0*phi_phi;
+      dE_dphi[k] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
+	(1.0 - 2.0*phi[k1])/denom ;
     }
   }
 
