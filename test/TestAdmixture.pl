@@ -54,9 +54,7 @@ print REPORTFILE "Individual\tNoAdmixtureModel\tAdmixtureModel\n";
 my $locusnames= <GENOFILE>;
 
 my $index = 1;
-##foreach my $line(<GENOFILE>){
-while($index < 3){
-$line = <GENOFILE>;
+foreach my $line(<GENOFILE>){
 #open indiv genotypes file
   open(INDIVGENOFILE, ">$indivgenofile") or die("could not open indiv genotype file");
 #write header
