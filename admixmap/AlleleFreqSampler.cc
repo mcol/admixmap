@@ -33,7 +33,7 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const
   Args.PriorParams = Prior;
   ishapmixmodel = hapmixmodel;
 
-  if(NumStates ==2){//case of SNP
+  if(NumStates == 2){//case of SNP
     step0 = 0.01;//initial step size
     numleapfrogsteps = 20;
     Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
@@ -299,16 +299,14 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
   
   //get loglikelihood
   for(unsigned k = 0; k < Pops; ++k){
-    energy -= args->AlleleCounts[k] * mylog(phi[k])/*allele1*/ + args->AlleleCounts[Pops + k] * mylog(1.0-phi[k])/*allele2*/;
-    for(unsigned k1 = k+1; k1< Pops; ++k1){
-      double phi_phi = phi[k] * phi[k1];
+    energy -= args->AlleleCounts[k]        * mylog(phi[k]);     /*allele1*/
+    energy -= args->AlleleCounts[Pops + k] * mylog(1.0-phi[k]); /*allele2*/
+    for(unsigned k1 = k+1; k1< Pops; ++k1){ // loop over upper triangle of array hetCounts
       energy -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
-	 mylog(phi[k] + phi[k1] - 2.0*phi_phi);
+	mylog(phi[k] + phi[k1] - 2.0*phi[k]*phi[k1]);
     }
   }
-  
-  energy *= args->coolness;
-  
+  energy *= args->coolness;  
   //log prior
   for(unsigned k = 0; k < Pops; ++k){
     if(ishapmixmodel)
@@ -325,46 +323,43 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
 
 void AlleleFreqSampler::gradientSNP(const double * const params, const void* const vargs, double* g){
   const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
-  //fill(g, g+ args->NumPops, 0.0);
   unsigned Pops = args->NumPops;
   //transform params to freqs
   double* phi = new double[Pops];//phi[k] is freq of allele 1 in population k
   for(unsigned k = 0; k < Pops; ++k)
     phi[k] = 1.0 / (1.0+exp(-params[k]));//inverse-logit transformation
-
+  
   double* dE_dphi = new double[Pops];// derivative of energy wrt phi
-  //derivative of log likelihood
+  //derivative of minus log likelihood
   for(unsigned k  = 0; k < Pops; ++k){
-    dE_dphi[k] = 0.0;
-    dE_dphi[k] -= args->AlleleCounts[k] / phi[k];//allele1
+    //dE_dphi[k] = 0.0;
+    dE_dphi[k] = -args->AlleleCounts[k] / phi[k];//allele1
     dE_dphi[k] += args->AlleleCounts[Pops + k] / (1.0 - phi[k]);//allele2
-
-    for(unsigned k1 = 0; k1 < Pops; ++k1)if(k!=k1){
-      double phi_phi = phi[k] * phi[k1];
-      double denom = phi[k] + phi[k1] - 2.0*phi_phi;
-      dE_dphi[k] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * 
-	(1.0 - 2.0*phi[k1])/denom ;
+    for(unsigned k1 = k+1; k1 < Pops; ++k1) { // loop over upper triangle of array hetCounts
+      double denom = phi[k] + phi[k1] - 2.0*phi[k]*phi[k1];
+      dE_dphi[k]  -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * (1.0 - 2.0*phi[k1])/denom;
+      dE_dphi[k1] -= (args->hetCounts[k*Pops+k1] + args->hetCounts[k1*Pops+k]) * (1.0 - 2.0*phi[k]) /denom;
     }
   }
-
-  //subtract derivative of log prior
-    for(unsigned k = 0; k < Pops; ++k){
-      dE_dphi[k] *= args->coolness;
-      if(ishapmixmodel)
-	dE_dphi[k] -= ( *(args->PriorParams) - 1.0) / phi[k]; 
-      else{
-	if(args->PriorParams[k] > 0.0)
-	  dE_dphi[k] -= (args->PriorParams[k] - 1.0) / phi[k]; 
-      }
-    }
   
-    //now use chain rule to obtain gradient wrt args
-    for(unsigned k = 0; k < Pops; ++k){
-      g[k] = dE_dphi[k] / ( phi[k]*(1.0-phi[k]));
+  //subtract derivative of log prior
+  for(unsigned k = 0; k < Pops; ++k){
+    dE_dphi[k] *= args->coolness;
+    if(ishapmixmodel)
+      dE_dphi[k] -= ( *(args->PriorParams) - 1.0) / phi[k]; 
+    else{
+      if(args->PriorParams[k] > 0.0)
+	dE_dphi[k] -= (args->PriorParams[k] - 1.0) / phi[k]; 
     }
-    
-     delete[] phi;
-     delete[] dE_dphi;
+  }
+  
+  //now use chain rule to obtain gradient wrt args
+  for(unsigned k = 0; k < Pops; ++k){
+    g[k] = dE_dphi[k] / ( phi[k]*(1.0-phi[k]));
+  }
+  
+  delete[] phi;
+  delete[] dE_dphi;
 }
 
 
