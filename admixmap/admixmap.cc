@@ -759,7 +759,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
   //posterior modes of individual admixture
   //search at start of burn-in, once annealing is finished
-  if(!anneal && iteration == 0 && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
+  if(!anneal && iteration == options->getBurnIn() && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
     IC->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), PopulationLabels);
   }
 
