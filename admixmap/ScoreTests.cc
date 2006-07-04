@@ -53,6 +53,8 @@ ScoreTests::ScoreTests(){
   SumAdmixtureScore2 = 0;
   SumAdmixtureInfo = 0;
 
+  ResAllelicAssocScore = 0;
+  ResAllelicAssocInfo = 0;
   SumResAllelicAssocScore= 0;
   SumResAllelicAssocScore2 = 0;
   SumResAllelicAssocInfo = 0;
@@ -1214,25 +1216,23 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
 
 // generic scalar score test
 //TODO: move output of NA in chisq column outside as it is only required if along with vector tests
-void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
-					const double score, const double scoresq, const double info, bool final)
+void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label, const double score, const double scoresq, const double info, bool final)
 {
-  double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
   string sep = final? "\t" : ",";
-  Score = score / ( iterations );
-  CompleteInfo = info / ( iterations );
-  MissingInfo = scoresq / ( iterations ) - Score * Score;
-  ObservedInfo = CompleteInfo - MissingInfo;
+  double Score = score / ( iterations );
+  double CompleteInfo = info / ( iterations );
+  double MissingInfo = scoresq / ( iterations ) - Score * Score;
+  double ObservedInfo = CompleteInfo - MissingInfo;
   //output label
   *outputstream << "\"" << label << "\"" << sep;
   if(final)
     *outputstream << double2R(Score, 3)        << sep
 		  << double2R(CompleteInfo, 3) << sep
 		  << double2R(ObservedInfo, 3) << sep;
-  if(CompleteInfo > 0.0 && (MissingInfo < CompleteInfo)) {
-    PercentInfo = 100*ObservedInfo / CompleteInfo;
-    zscore = Score / sqrt( ObservedInfo );
-    pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+  if( (MissingInfo < CompleteInfo) && (CompleteInfo > 0.0) ) {
+    double PercentInfo = 100*ObservedInfo / CompleteInfo;
+    double zscore = Score / sqrt( ObservedInfo );
+    double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
     if(final)
       *outputstream << double2R(PercentInfo, 2) << sep
 		    << double2R(zscore,3)   << sep 
