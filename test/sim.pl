@@ -6,9 +6,9 @@ my $arg_hash = {
 #data files
     genotypesfile                   => 'simdata/genotypes.txt',
     locusfile                       => 'simdata/loci.txt',
-    priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
+    # priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
     # covariatesfile                  => 'data/covariates3.txt',
-    outcomevarfile                  => 'simdata/outcome.txt',
+    # outcomevarfile                  => 'simdata/outcome.txt',
 
 #main options
     displaylevel   => 3, #verbose output
@@ -17,6 +17,8 @@ my $arg_hash = {
     every    => 5,
     populations => 2,
     numannealedruns => 0,
+    indadmixhiermodel => 0,
+    admixtureprior => "3,1",
 
 #output files
     resultsdir               => "simResults",
@@ -25,15 +27,16 @@ my $arg_hash = {
     #regparamfile             => 'regparam.txt',
     indadmixturefile         => 'indadmixture.txt',
     ergodicaveragefile       => 'ergodicaverage.txt',
-    # allelefreqoutputfile  => 'allelefreqoutputfile.dat',
+    allelefreqoutputfile  => 'allelefreqoutputfile.txt',
 
 #optional tests
     # allelicassociationscorefile       => 'allelicassociationscorefile.dat',
     # ancestryassociationscorefile  => 'ancestryassociationscorefile.dat',
     #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
     # haplotypeassociationscorefile => 'hapassocscore.txt',
-    dispersiontestfile                   => 'dispersiontest.txt',
-    hwscoretestfile                  => 'HardyWeinbergTest.txt'
+    #dispersiontestfile                   => 'dispersiontest.txt',
+    hwscoretestfile                  => 'HardyWeinbergTest.txt',
+    stratificationtestfile           => 'stratificationtest.txt'
 };
 
 doAnalysis($executable,$arg_hash);
