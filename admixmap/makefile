@@ -66,7 +66,7 @@ DESTDIR = ../test# where to put compiled exec
 SERIAL_EXEC = admixmap# name of compiled executable
 
 ## ** flags for release version, debug version or profiling version
-DFLAGS 		= -O3# release, optimized
+DFLAGS 		= -O3 -ftree-vectorize # release, optimized
 #DFLAGS 	= -g# debug
 # DFLAGS 	= -pg -O3# profiling
 
@@ -83,10 +83,10 @@ ifeq ($(ARCH),i686)
 PROC = -march=i686  # Intel 686
 else
 ifeq ($(ARCH),P4)
-PROC = -march=pentium4 -mfpmath=sse # Pentium4
+PROC = -march=pentium4 -msse2 -mfpmath=sse # Pentium4
 else
 ifeq ($(ARCH),AMD64)
-PROC = -march=k8  
+PROC = -march=k8 -msse2 -mfpmath=sse 
 endif
 endif
 endif
@@ -104,7 +104,7 @@ WFLAGS = -fullwarn -LNO:simd_verbose=ON
 #WFLAGS = -Wall 
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
-DFLAGS = -O3 -OPT:Ofast -fno-math-errno -ffast-math#equivalent to -Ofast but without ipa
+DFLAGS = -O3 -OPT:Ofast -fno-math-errno -ffast-math #equivalent to -Ofast but without ipa
 endif
 endif
 
