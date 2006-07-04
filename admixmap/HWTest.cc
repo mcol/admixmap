@@ -30,10 +30,14 @@ HWTest::~HWTest(){
 }
 
 //void HWTest::Initialise(AdmixOptions *options, int nind, int nloci, LogWriter *Log){
-void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log){
-
-  //NumInd = nind;
-  NumLoci = nloci;
+void HWTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log) {
+  NumLoci = 0;
+  for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr) { //loop over chromosomes
+    for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j) { //loop over comp loci on chromosome
+      NumLoci += (*Loci)(j)->GetNumberOfLoci();
+    }
+  }
+  // NumLoci = nloci;
   Log.setDisplayMode(Quiet);
 
   if( options->getHWTestIndicator() ){//not really necessary

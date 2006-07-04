@@ -42,7 +42,7 @@ class HWTest : public ScoreTestBase{
 public:
   HWTest();
 
-  void Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log);
+  void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log);
 
   void Output(const Vector_s locuslabels);
 
