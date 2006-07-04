@@ -52,13 +52,13 @@ VERSION = serial
 #VERSION = parallel
 
 ## processor type
-#ARCH = i686# Intel 686
+ARCH = i686# Intel 686
 #ARCH = P4#Pentium4
-ARCH = AMD64# Walton
+#ARCH = AMD64# Walton
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
-CC = pathCC#$(GNU_COMPILER)#serial
+CC = $(GNU_COMPILER)#serial
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
@@ -100,18 +100,11 @@ endif
 endif
 
 ifeq ($(CC),$(PATHSCALE_COMPILER))
-#WFLAGS = -fullwarn -LNO:simd_verbose=ON
-WFLAGS = -Wall 
-DFLAGS = -O3 -OPT:Ofast -fno-math-errno -ffast-math#equivalent to -Ofast but without ipa
+WFLAGS = -fullwarn -LNO:simd_verbose=ON
+#WFLAGS = -Wall 
 ifeq ($(ARCH),AMD64)
-#default is -march=opteron, which is right for Walton
-#PROC = -march=auto #auto reads from /proc/cpuinfo
-#PROC = -march=opteron
-#PROC = -march=athlon64
-else 
-ifeq ($(ARCH),P4)
-PROC= -march=pentium4
-endif
+PROC = -mcpu=auto
+DFLAGS = -O3 -OPT:Ofast -fno-math-errno -ffast-math#equivalent to -Ofast but without ipa
 endif
 endif
 
