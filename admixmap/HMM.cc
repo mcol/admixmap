@@ -101,7 +101,7 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned in
 			       int *SumLocusAncestry, vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const {
   //this does not require forward or backward probs, just state arrival probs
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM::SampleJumpIndicators when StateArrivalProbs are not set!");
-  bool xi;//jump indicator
+  bool xi = false;//jump indicator
   double ProbJump; // prob jump indicator is 1
   // first locus not included in loop below
   for( unsigned int g = 0; g < gametes; g++ ){
