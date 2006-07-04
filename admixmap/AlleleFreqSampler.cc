@@ -26,7 +26,6 @@ AlleleFreqSampler::AlleleFreqSampler(){
 AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const double* const Prior, 
 				     bool hapmixmodel = false){
   unsigned dim = NumStates*NumPops;
-  params = new double[dim];
   //initialise Hamiltonian Sampler
   double step0 = 0.05;//initial step size
   double min = -100.0, max = 100.0; //min and max stepsize
@@ -35,11 +34,13 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const
   ishapmixmodel = hapmixmodel;
 
   if(NumStates == 2){//case of SNP
+    params = new double[NumPops];
     step0 = 0.05;//initial step size
     numleapfrogsteps = 20;
     Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
   }
   else{
+    params = new double[dim];
     Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.7/*target acceptrate*/, getEnergy, gradient);
   }
 }
@@ -97,9 +98,7 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts, con
   Args.hetCounts = hetCounts;
 
   //transform phi 
-  double* params = new double[NumPops];
-
-  //set params = logit(phi)
+   //set params = logit(phi)
   for(unsigned k = 0; k < NumPops; ++k){
     params[k] = log(phi[k*2] / (1.0 - phi[k*2]));
   }
@@ -115,7 +114,6 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts, con
     phi[k*2] = exp(params[k]) / (1.0 + exp(params[k]));//allele 1
     phi[k*2+1] = 1.0 - phi[k*2];//allele 2
   }
-  delete[] params;
 }
 
 
