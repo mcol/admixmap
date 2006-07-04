@@ -1327,21 +1327,24 @@ void AdmixOptions::setInitAlpha(LogWriter &Log){
   else if( initalpha[0].size() > 0 && initalpha[1].size() == 0 ){
     _admixed[0] = CheckInitAlpha( initalpha[0] );
     initalpha[1] = initalpha[0];//put 2 copies of alpha[0] in alpha
-    Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
+    if(!IndAdmixHierIndicator)
+      Log << "Dirichlet parameters of prior on admixture: ";
+    else 
+      Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
     for(size_t k = 0;k < initalpha[0].size(); ++k){Log << initalpha[0][k] << " ";}
     Log << "\n";
   }
-  //if both are specified and analysis is for a single individual,
+  //if both are specified and there is no hierarchical model on admixture,
   //paternal/gamete1 and maternal/gamete2 alphas are set to initalpha0 and initalpha1
   else if( !IndAdmixHierIndicator ){ 
     _admixed[0] = CheckInitAlpha( initalpha[0] );    //gamete 1
     _admixed[1] = CheckInitAlpha( initalpha[1] );    //gamete 2
 
-    Log << "Dirichlet prior for maternal gamete admixture: ";
+    Log << "Dirichlet parameters of prior on maternal gamete admixture: ";
     for(size_t k = 0;k < initalpha[0].size(); ++k){Log << initalpha[0][k] << " ";}
     Log << "\n";
     
-    Log << "Dirichlet prior for paternal gamete admixture: ";
+    Log << "Dirichlet parameters of prior on paternal gamete admixture: ";
     for(size_t k = 0;k < initalpha[1].size(); ++k){Log << initalpha[1][k] << " " ;}
     Log << "\n";
     
