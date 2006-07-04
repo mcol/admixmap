@@ -118,27 +118,6 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts, con
   delete[] params;
 }
 
-// requires: sampled ancestry pair A, PossibleHapPairs (compatible with genotype) H, 
-// current values of AlleleFreqs at this locus, phi
-//, number of alleles/haplotypes NumStates, number of populations, NumPops
-double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
-					unsigned NumStates){
-  double sum = 0.0;//sums of products and products of squares
-  unsigned NumPossHapPairs = H.size();
-  for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
-    unsigned j0 = H[hpair].haps[0];//j
-    unsigned j1 = H[hpair].haps[1];//j'
-    if( (Anc[0]==Anc[1]) || (j0==j1) ) {
-      int index0 = Anc[0]*NumStates + j0;//jk
-      int index1 = Anc[1]*NumStates + j1;//j'k'
-      sum += log(phi[index0]*phi[index1]);
-    } else {
-      sum += log(phi[Anc[0]*NumStates + j1] * phi[Anc[1]*NumStates + j0] + 
-		 phi[Anc[0]*NumStates + j0] * phi[Anc[1]*NumStates + j1] );
-    }
-  }
-  return sum;
-}
 
 double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates){
   double logprior = 0.0;
@@ -198,14 +177,14 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   }
   energy *= args->coolness;
 
-  //log prior
+  //log prior density in softmax basis
   if(ishapmixmodel)
     energy -= args->NumPops * States * *(args->PriorParams );
   else{
     for(unsigned k = 0; k < args->NumPops; ++k){
       for( unsigned i = 0; i < States; ++i ) {
 	if( args->PriorParams[i] > 0.0 ) {
-	  energy -=( *(args->PriorParams+k*States+i) ) * mylog(*( phi+k*States+i) );
+	  energy -= *(args->PriorParams+k*States+i) * mylog(*( phi+k*States+i) );
 	}
       }
     }
@@ -228,19 +207,19 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
     const Individual* ind = args->IP->getIndividual(i);
     int Anc[2];
     ind->GetLocusAncestry(args->locus, Anc);
-    //first compute gradient wrt phi
+    //first compute gradient of minus log-likelihood wrt phi
     logLikelihoodFirstDeriv(phi, Anc, ind->getPossibleHapPairs(args->locus), States, args->NumPops, dE_dphi);
   }
-
-  //subtract derivative of log prior
+  
+  //subtract derivative wrt phi of log prior density in softmax basis
   for(unsigned s = 0; s < States; ++s)
     for(unsigned k = 0; k < args->NumPops; ++k){
       dE_dphi[k*States+s]*=args->coolness;
       if(ishapmixmodel)
-	dE_dphi[k*States+s] -=  ( *(args->PriorParams) - 1.0)/ phi[k*States+s]; 
+	dE_dphi[k*States+s] -= *(args->PriorParams) / phi[k*States+s]; 
       else{
 	if(args->PriorParams[s*args->NumPops +k] > 0.0)
-	  dE_dphi[k*States+s] -= (args->PriorParams[s*args->NumPops +k] - 1.0) / phi[k*States+s]; 
+	  dE_dphi[k*States+s] -= args->PriorParams[s*args->NumPops +k]  / phi[k*States+s]; 
       }
     }
 
@@ -258,7 +237,29 @@ void AlleleFreqSampler::gradient(const double * const params, const void* const 
   delete[] dE_dphi;
 }
 
-///first derivative of  -log likelihood
+// requires: sampled ancestry pair A, PossibleHapPairs (compatible with genotype) H, 
+// current values of AlleleFreqs at this locus, phi
+//, number of alleles/haplotypes NumStates, number of populations, NumPops
+double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
+					unsigned NumStates){
+  double sum = 0.0;
+  unsigned NumPossHapPairs = H.size();
+  for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
+    unsigned j0 = H[hpair].haps[0];//j
+    unsigned j1 = H[hpair].haps[1];//j'
+    if( (Anc[0]==Anc[1]) || (j0==j1) ) {
+      int index0 = Anc[0]*NumStates + j0;//jk
+      int index1 = Anc[1]*NumStates + j1;//j'k'
+      sum += log(phi[index0]*phi[index1]);
+    } else {
+      sum += log(phi[Anc[0]*NumStates + j1] * phi[Anc[1]*NumStates + j0] + 
+		 phi[Anc[0]*NumStates + j0] * phi[Anc[1]*NumStates + j1] );
+    }
+  }
+  return sum;
+}
+
+///first derivative of minus log likelihood wrt phi
 void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
 						unsigned NumStates, unsigned, double* FirstDeriv){
   unsigned NumPossHapPairs = H.size();
@@ -268,17 +269,16 @@ void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc
     int index0 = Anc[0]*NumStates + j0;//jk
     int index1 = Anc[1]*NumStates + j1;//j'k'
     if( (Anc[0] == Anc[1]) || (index0 == index1) ) {
-      FirstDeriv[index0] += 1.0 / phi[index1];
-      FirstDeriv[index1] += 1.0 / phi[index0];
+      FirstDeriv[index0] -= 1.0 / phi[index1];
+      FirstDeriv[index1] -= 1.0 / phi[index0];
     } else {
       int index2 = Anc[0]*NumStates + j1;//jk'
       int index3 = Anc[1]*NumStates + j0;//j'k
-      
       double denom = phi[index0] * phi[index1] + phi[index2] * phi[index3];
-      FirstDeriv[index0] += phi[index1] / denom;
-      FirstDeriv[index1] += phi[index0] / denom;
-      FirstDeriv[index2] += phi[index3] / denom;
-      FirstDeriv[index3] += phi[index2] / denom;
+      FirstDeriv[index0] -= phi[index1] / denom;
+      FirstDeriv[index1] -= phi[index0] / denom;
+      FirstDeriv[index2] -= phi[index3] / denom;
+      FirstDeriv[index3] -= phi[index2] / denom;
     }
   }
 }
