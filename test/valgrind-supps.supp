@@ -2,7 +2,6 @@
 GSL_HH_svx
    Memcheck:Cond
    fun:gsl_linalg_HH_svx
-   fun:gsl_linalg_HH_solve
 }
 
 
@@ -11,7 +10,6 @@ GSL_Matrix_mult
    Memcheck:Cond
    fun:cblas_dgemm
    fun:gsl_blas_dgemm
-   fun:_Z14matrix_productPdS_S_mmm
 }
 
 {
@@ -39,8 +37,6 @@ Gaussian_Destructor
    Memcheck:Free
    fun:_ZdlPv
    fun:_ZN8GaussianD1Ev
-   fun:_ZN10RegressionD1Ev
-   fun:main
 }
 
 {
@@ -60,15 +56,17 @@ delete_array_of_freqs
 double2R_in_ScoreTests
    Memcheck:Cond
    fun:_ZN10ScoreTests8double2REdi
-   fun:_ZN10ScoreTests26OutputTestsForLocusLinkageEiPSt14basic_ofstreamIcSt11char_traitsIcEEPKdS6_S6_S6_Ss
-   fun:_ZN10ScoreTests6OutputEiPKSsb
-   fun:main
 }
 
 {
-   <insert a suppression name here>
+   double2R with one argument
    Memcheck:Cond
    fun:_ZN10ScoreTests8double2REd
+}
+{
+   check for positive info in OutputScalarScalarScoreTest
+   Memcheck:Cond
+   fun:_ZN10ScoreTests21OutputScalarScoreTestEiPSt14basic_ofstreamIcSt11char_traitsIcEESsdddb
 }
 
 {
@@ -223,6 +221,16 @@ exp
 
 {
    <insert a suppression name here>
+   Memcheck:Cond
+   fun:log
+}
+{
+   <insert a suppression name here>
+   Memcheck:Value8
+   fun:log
+}
+{
+   <insert a suppression name here>
    Memcheck:Param
    write(buf)
    fun:__write_nocancel
@@ -248,6 +256,93 @@ exp
    fun:main
 }
 
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZNSt15basic_streambufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE16_M_convert_floatIdEES3_S3_RSt8ios_baseccT_
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE6do_putES3_RSt8ios_basecd
+   fun:_ZNSolsEd
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE8overflowEi
+   fun:_ZNSt15basic_streambufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE16_M_convert_floatIdEES3_S3_RSt8ios_baseccT_
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE6do_putES3_RSt8ios_basecd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE18_M_really_overflowEi
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE8overflowEi
+   fun:_ZNSt15basic_streambufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE16_M_convert_floatIdEES3_S3_RSt8ios_baseccT_
+   fun:_ZNKSt7num_putIcSt19ostreambuf_iteratorIcSt11char_traitsIcEEE6do_putES3_RSt8ios_basecd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_IO_file_xsputn@@GLIBC_2.2.5
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10Individual32getLogLikelihoodAtPosteriorMeansEPK12AdmixOptions
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZSt3maxIdERKT_S2_S2_
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN11AlleleFreqsD1Ev
+   fun:main
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10Individual19Accept_Reject_ThetaEdibb
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10Individual19Accept_Reject_ThetaEdibb
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN13StepSizeTuner14UpdateStepSizeEd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN4Rand18SampleFromDiscreteEPKdi
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZNK3HMM20SampleJumpIndicatorsEPKijPiRSt6vectorIjSaIjEEbj
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10Individual11SampleThetaEiPdPK10DataMatrixPK8DataTypeSt6vectorIdSaIdEEiPS1_S7_IPKdSaISC_EESC_PK12AdmixOptionsRKS7_IS9_SaIS9_EEddbb
+}
 {
 bogus_leak_in_stl_string_functions
    Memcheck:Leak
