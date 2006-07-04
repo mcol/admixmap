@@ -111,7 +111,7 @@ void AdmixOptions::Initialise(){
   // other specified options will be appended to this array 
   OptionValues["burnin"] = "100";
   OptionValues["samples"] = "1100";
-  OptionValues["every"] = "20";
+  OptionValues["every"] = "5";
   OptionValues["numannealedruns"] = "20";
   OptionValues["targetindicator"] = "0";
   OptionValues["displaylevel"] = "2";
@@ -127,7 +127,7 @@ void AdmixOptions::Initialise(){
   OptionValues["thermo"] = "0";
   OptionValues["globalsumintensitiesprior"] = "3.0,0.5";
   OptionValues["sumintensitiesprior"] = "4.0,3.0,3.0";
-  OptionValues["truncationpoint"] = "99";
+  //OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
   OptionValues["xonlyanalysis"] = "0";
   OptionValues["regressionpriorprecision"] = "0.25";
@@ -704,7 +704,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"etapriormean",                          1, 0,  0 }, //double
     {"etapriorvar",                           1, 0,  0 }, //double
     {"regressionpriorprecision",              1, 0,  0 }, //double
-    {"truncationpoint",                       1, 0,  0 }, // double
+    {"truncationpoint",                       1, 0,  0 }, // double, does nothing
     {"admixtureprior",                        1, 0,  0 }, // binary vector
     {"admixtureprior1",                       1, 0,  0 }, // binary vector
     {"fixedallelefreqs",                      1, 0,  0 }, // int 0, 1
@@ -943,7 +943,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "etapriorvar") {
 	 etavar = strtod(optarg, NULL);OptionValues["etapriorvar"]=optarg;
       } else if (long_option_name == "truncationpoint") {
-	 TruncPt = strtod(optarg, NULL);OptionValues["truncationpoint"]=optarg;
+	TruncPt = strtod(optarg, NULL); //OptionValues["truncationpoint"]=optarg;
       } else if (long_option_name == "etapriorfile") {
 	 EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
       } else if (long_option_name == "admixtureprior" ) {
