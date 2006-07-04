@@ -433,7 +433,6 @@ int main( int argc , char** argv ){
 		
       if(annealstream.is_open()) annealstream.close();
       if(avgstream.is_open()) {
-	avgstream.flush();
 	avgstream.close();
       }
     }//end else
