@@ -43,12 +43,14 @@ void IndividualCollection::SetNullValues(){
   SumLogTheta = 0;
   SumAncestry = 0;
   ReportedAncestry = 0;
+  thetahat = 0;
+  thetahatX = 0;
   //sigma.resize(2);
   //sigma[0] = sigma[1] = 1.0;
 }
 
 IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
-    SetNullValues();
+  SetNullValues();
 
   NumInd = Data->getNumberOfIndividuals();
   size = NumInd;
@@ -121,6 +123,8 @@ IndividualCollection::~IndividualCollection() {
   delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
   //free_matrix(SumResiduals, NumOutcomes);
+  delete[] thetahat;
+  delete[] thetahatX;
   delete[] SumLogTheta;
   delete[] SumAncestry;
   delete[] ReportedAncestry;
