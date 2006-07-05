@@ -229,7 +229,7 @@ int main( int argc , char** argv ){
       if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
 	AlleleFreqTest.Initialise(&options, &Loci, Log );  
       if( options.getHWTestIndicator() )
-	HWtest.Initialise(&options, &Loci, Log);
+	HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
       if(rank<1)
 	InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
       //}
@@ -431,10 +431,9 @@ int main( int argc , char** argv ){
       if(options.getTestForAffectedsOnly())
 	Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
 		
-      if(annealstream.is_open()) annealstream.close();
-      if(avgstream.is_open()) {
-	avgstream.close();
-      }
+      if(annealstream.is_open())annealstream.close();
+      if(avgstream.is_open())avgstream.close();
+
     }//end else
 
     delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt

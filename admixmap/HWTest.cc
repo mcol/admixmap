@@ -30,17 +30,10 @@ HWTest::~HWTest(){
 }
 
 //void HWTest::Initialise(AdmixOptions *options, int nind, int nloci, LogWriter *Log){
-void HWTest::Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log) {
-  NumLoci = 0;
-  int complocus = 0;
-  for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr) { //loop over chromosomes
-    for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j) { //loop over comp loci 
-      NumLoci += (*Loci)(complocus)->GetNumberOfLoci();
-      ++complocus;
-    }
-  }
-  
-  // NumLoci = nloci;
+void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log){
+
+  //NumInd = nind;
+  NumLoci = nloci;
   Log.setDisplayMode(Quiet);
 
   if( options->getHWTestIndicator() ){//not really necessary
@@ -88,12 +81,13 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 
   for(unsigned int chr = 0; chr < Loci->GetNumberOfChromosomes(); ++chr){ //loop over chromosomes
     for(unsigned int j = 0; j < Loci->GetSizeOfChromosome(chr); ++j){ //loop over comp loci on chromosome
-      int* alleles0 = new int[(*Loci)(complocus)->GetNumberOfLoci()];
-      int* alleles1 = new int[(*Loci)(complocus)->GetNumberOfLoci()];
+      unsigned NumSimpleLociWithinCL = Loci->getNumberOfLoci(complocus);
+      int* alleles0 = new int[NumSimpleLociWithinCL];
+      int* alleles1 = new int[NumSimpleLociWithinCL];
       //allocate arrays to hold marginal alleleprobs; could be done in function but easier to control here.      
-      Prob0 = new double*[(*Loci)(complocus)->GetNumberOfLoci()];
-      Prob1 = new double*[(*Loci)(complocus)->GetNumberOfLoci()];
-      for(int jj = 0; jj < (*Loci)(complocus)->GetNumberOfLoci(); ++jj){
+      Prob0 = new double*[NumSimpleLociWithinCL];
+      Prob1 = new double*[NumSimpleLociWithinCL];
+      for(unsigned int jj = 0; jj < NumSimpleLociWithinCL; ++jj){
 	Prob0[jj] = new double[ (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj)];
 	Prob1[jj] = new double[ (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj)];
       }
@@ -110,7 +104,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 	(*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);
 	locus = slocus;
 	
-	for(int jj = 0; jj < Loci->getNumberOfLoci(complocus); ++jj){       //loop over simple loci within comp locus
+	for(unsigned int jj = 0; jj < NumSimpleLociWithinCL; ++jj){       //loop over simple loci within comp locus
 	  if( !ind->simpleGenotypeIsMissing(locus)){ //non-missing genotype, assumes second gamete missing if first is
 	    h = alleles0[jj] != alleles1[jj];
 	    H = 1.0;
@@ -120,24 +114,24 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 	    }
 	    //accumulate score over individuals
 	    if( h ){//heterozygous - prob H under null
-	      score[locus + jj] -= 1.0 - H; 
+	      score[locus ] -= 1.0 - H; 
 	    }
 	    else {//homozygous - prob (1-H) under null
-	      score[locus + jj] += H;   
+	      score[locus ] += H;   
 	    }
-	    suminfo[locus + jj] += H * (1.0 - H); 
+	    suminfo[locus ] += H * (1.0 - H); 
 	  } 
-	  locus += Loci->getNumberOfLoci(complocus);
+	  ++locus;
 	} // ends loop over simple loci within compound locus
 	ind = 0;
       } // ends loop over individuals 
 
       //reset pointers for next compound locus	
-      free_matrix(Prob0, Loci->getNumberOfLoci(complocus));
-      free_matrix(Prob1, Loci->getNumberOfLoci(complocus));
+      free_matrix(Prob0, Loci->getNumberOfLoci(NumSimpleLociWithinCL));
+      free_matrix(Prob1, Loci->getNumberOfLoci(NumSimpleLociWithinCL));
       delete[] alleles0;
       delete[] alleles1;
-      slocus += Loci->getNumberOfLoci(complocus);
+      slocus += NumSimpleLociWithinCL;
       ++complocus;
     }//end loop over compound loci
   } // end loop over chromosomes
