@@ -26,6 +26,7 @@ using namespace::std;
 
 class AlleleFreqs;
 
+///Class to represent an individual and update individual-level parameters
 class Individual
 {
 public:
@@ -250,7 +251,7 @@ private:
 				  const vector<double> rho, const vector<double> rhoX,
 				  double rhoalpha, double rhobeta)const;
   
-  void UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0, bool RandomMatingModel, 
+  void UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, bool RandomMatingModel, 
 					  const vector<vector<double> > AProbs);
   void UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double EY, double DInvLink, const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
