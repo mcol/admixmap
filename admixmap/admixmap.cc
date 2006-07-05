@@ -633,7 +633,15 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 }
 
 int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
+  if (0 == filename || 0 == strlen(filename)) return 1;
   ifstream fin(filename);
+  if (!fin.is_open()) {
+    string msg = "Cannot open file \"";
+    msg += filename;
+    msg += "\"";
+    throw runtime_error(msg.c_str());
+  }
+
   std::string str;
   //read in line from file
   while (getline(fin,str,'\n')){// ## apparent memory leak 
@@ -662,7 +670,7 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
     str.clear();
   }
   fin.close();
-  return 1;
+  return 0;
 }
 
 //this function is here because three different objects have to write to avgstream
