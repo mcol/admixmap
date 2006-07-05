@@ -48,6 +48,7 @@ MPICC = $(MPI_PATH)/bin/mpiCC# MPI 1 wrapper
 MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
+GCC_VERSION = 3
 VERSION = serial
 #VERSION = parallel
 
@@ -66,7 +67,7 @@ DESTDIR = ../test# where to put compiled exec
 SERIAL_EXEC = admixmap# name of compiled executable
 
 ## ** flags for release version, debug version or profiling version
-DFLAGS 		= -O3 -ftree-vectorize # release, optimized
+DFLAGS 		= -O3# release, optimized
 #DFLAGS 	= -g# debug
 # DFLAGS 	= -pg -O3# profiling
 
@@ -76,14 +77,18 @@ WFLAGS =
 # processor architecture flags
 PROC =
 
+#GCC_VERSION = $(shell gcc -dumpversion)
 ## DO NOT EDIT BELOW HERE, except to add processor/compiler types
 ifeq ($(CC),$(GNU_COMPILER))
 WFLAGS = -W -Wall
+ifeq ($(GCC_VERSION),4)
+DFLAGS=-O3 -ftree-vectorize
+endif
 ifeq ($(ARCH),i686)
-PROC = -march=i686  # Intel 686
+PROC = -march=i686# Intel 686
 else
 ifeq ($(ARCH),P4)
-PROC = -march=pentium4 -msse2 -mfpmath=sse # Pentium4
+PROC = -march=pentium4 -msse2 -mfpmath=sse# Pentium4
 else
 ifeq ($(ARCH),AMD64)
 PROC = -march=k8 -msse2 -mfpmath=sse 
