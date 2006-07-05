@@ -1277,8 +1277,11 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
 	UpdateHMMInputs(j, options, Theta, ThetaX, _rho, _rho_X);
       }
       //update of score tests for linkage with ancestry requires update of backward probs
-      double* admixtureCovars = new double[Populations-1];
-      for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
+      double* admixtureCovars = 0;
+      if(options->getTestForLinkageWithAncestry()){
+	new double[Populations-1];
+	for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
+      }
       UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);
       delete[] admixtureCovars;
   } //end chromosome loop
@@ -1325,7 +1328,7 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, const doubl
   }
 }
 
-void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0, bool RandomMatingModel, 
+void Individual::UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, bool RandomMatingModel, 
 						    const vector<vector<double> > AProbs){
   // values of ancestry risk ratio at which likelihood ratio is evaluated
   double r1 = 0.5;
@@ -1335,10 +1338,13 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(int locus, int Pops, int k0,
 
   for( int k = 0; k < Pops; k++ ){
     theta[0] = Theta[ k+k0 ];
-    if( RandomMatingModel )
-      theta[1] = Theta[ Populations + k+k0 ];
-    else
-      theta[1] = theta[0];
+    if(!SexIsFemale  && (locus == X_posn))
+      theta[1] = 0.0;//probability of any ancestry state on second gamete is 0 if there is no second gamete
+    else 
+      if( RandomMatingModel )
+	theta[1] = Theta[ Populations + k+k0 ];
+      else
+	theta[1] = theta[0];
     
     //accumulate score, score variance, and info
     AffectedsScore[locus *Pops + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
