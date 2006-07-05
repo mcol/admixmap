@@ -1,9 +1,5 @@
 // *-*-C++-*-*
 
-/* Class to implement hidden Markov model for haploid or diploid Poisson arrivals
-   Instantiated in class Chromosome
-*/
-
 #ifndef HMM_H
 #define HMM_H 1
 
@@ -16,6 +12,10 @@
 #include <values.h>
 #include <vector>
 
+/** Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
+   Instantiated in class Chromosome
+*/
+
 class HMM
 {
 public:
@@ -27,7 +27,7 @@ public:
   void SetStateArrivalProbs(const double* const fin, const double* const Theta, const int Mcol, const bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
-  std::vector<std::vector<double> > Get3WayStateProbs( const bool isDiploid, int t );
+  const std::vector<double> Get3WayStateProbs( const bool isDiploid, int t );
   double getLogLikelihood(bool isDiploid);
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;

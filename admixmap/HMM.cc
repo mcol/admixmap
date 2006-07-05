@@ -218,8 +218,9 @@ void HMM::Sample(int *SStates, const bool isdiploid)
     delete[] V;
   }
 }
-
-std::vector<std::vector<double> > HMM::Get3WayStateProbs( const bool isDiploid, int t){
+/// Returns a vector of conditional probabilities of each hidden state at 'time' t.
+/// If diploid, the vector is really a matrix of probabilities of pairs of states.
+const std::vector<double> HMM::Get3WayStateProbs( const bool isDiploid, int t){
   if(alphaIsBad){
     if(isDiploid)UpdateForwardProbsDiploid();
     else UpdateForwardProbsHaploid();
@@ -238,26 +239,17 @@ std::vector<std::vector<double> > HMM::Get3WayStateProbs( const bool isDiploid, 
     States=K;
   }
   std::vector<double> probs(States);
-  std::vector<std::vector<double> >AncestryProbs(3);
 
   for( int j = 0; j < States; j++ ){
     probs[j] = alpha[t*States + j] * beta[t*States + j];
     sum += probs[j];
-    //  ++State;
   }
 
   for( int j = 0; j < States; j++ ){ //vectorization successful
      probs[j] /= sum;
    }
-   for( int k1 = 0; k1 < K; k1++ ){
-     AncestryProbs[2].push_back(probs[ ( K + 1 ) * k1 ]);
-     AncestryProbs[1].push_back( 0.0 );
-     for( int k2 = 0 ; k2 < K; k2++ )
-       AncestryProbs[1][k1] += probs[k1*K +k2] + probs[k2*K +k1];
-     AncestryProbs[1][k1] -= 2.0*AncestryProbs[2][k1];
-     AncestryProbs[0].push_back( 1.0 - AncestryProbs[1][k1] - AncestryProbs[2][k1] );
-   }
-   return AncestryProbs;
+
+  return probs;
 }
 
 // ****** End Public Interface *******

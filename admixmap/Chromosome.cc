@@ -187,9 +187,29 @@ void Chromosome::SampleLocusAncestry(int *OrderedStates){
 	(i,0) = 1.0 - (i,1) - (i,2)
 	where p's are probs in StateProbs from HMM
 */
-
 std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDiploid, int j){
-  return SampleStates.Get3WayStateProbs(isDiploid, j);
+  //return SampleStates.Get3WayStateProbs(isDiploid, j);
+  const std::vector<double> probs = SampleStates.Get3WayStateProbs(isDiploid, j);
+  std::vector<std::vector<double> >AncestryProbs(3);
+
+  if(isDiploid){
+    for( int k1 = 0; k1 < populations; k1++ ){
+      AncestryProbs[2].push_back(probs[ ( populations + 1 ) * k1 ]);//prob of 2 copies = diagonal element 
+      AncestryProbs[1].push_back( 0.0 );
+      for( int k2 = 0 ; k2 < populations; k2++ )
+	AncestryProbs[1][k1] += probs[k1*populations +k2] + probs[k2*populations +k1];
+      AncestryProbs[1][k1] -= 2.0*AncestryProbs[2][k1];
+      AncestryProbs[0].push_back( 1.0 - AncestryProbs[1][k1] - AncestryProbs[2][k1] );
+    }
+  }
+  else{//haploid case
+    for( int k = 0; k < populations; k++ ){
+      AncestryProbs[2].push_back( 0.0 );//cannot have two copies if haploid
+      AncestryProbs[1].push_back(probs[k]);//probability of one copy
+      AncestryProbs[0].push_back(1.0-probs[k]);//probability of no copies
+    }
+  }
+  return AncestryProbs;
 }
 
 ///accessor for HMM Likelihood
