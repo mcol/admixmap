@@ -1038,6 +1038,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   Log.setDisplayMode(Quiet);
   if (NumberOfIndividuals==1) {
     IndAdmixHierIndicator = false;
+    OptionValues["indadmixhiermodel"]="0";
     Log << "One individual analysis";
   } else if (RegType == None) { //no regression
     NumberOfOutcomes = 0;
