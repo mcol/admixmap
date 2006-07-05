@@ -14,6 +14,7 @@
 #include <sstream>
 #include "Genome.h"
 #include "DataMatrix.h"
+#include "StringConvertor.h"
 
 using namespace std;
 
@@ -78,7 +79,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     //retrieve first row of this comp locus from locusfile
     const Vector_s& m = data_->getLocusData()[row+1];//+1 because LocusData has a header, LocusMatrix doesn't
     //get chromosome labels from col 4 of locusfile, if there is one   
-    if (m.size() == 4) ChrmLabels.push_back(m[3]);
+    if (m.size() == 4) ChrmLabels.push_back(StringConvertor::dequote(m[3]));
 
     if(rank!=1)SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
 
@@ -157,8 +158,8 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
       label = ChrmLabels[cstart[i]];
     //determine if X Chromosome
     bool isX = false;
-    string s1("\"X\""), s2("X");
-    isX = ( (label == s1) || (label == s2));
+    string s1("X"), s2("x");
+    isX = ( (label == s1) || (label == s2) );
 
     C[i] = new Chromosome(size, cstart[i], populations, isX);
     //C[i] is a pointer to Chromosome
