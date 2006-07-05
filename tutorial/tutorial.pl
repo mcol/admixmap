@@ -68,6 +68,8 @@ $arg_hash->{targetindicator}       = 1; # skin reflectance
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
+$arg_hash->{samples}   = 6000;
+$arg_hash->{burnin}    = 1000;
 $arg_hash->{paramfile}                 = 'popadmixparams.txt',
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
 &doAnalysis($executable,$arg_hash);
@@ -80,6 +82,8 @@ $arg_hash->{resultsdir}            = 'ThreePopsResults';
 # model with prior allele freqs 
 delete $arg_hash->{populations};
 $arg_hash->{resultsdir}                    = 'PriorFreqResultsSkin';  
+$arg_hash->{samples}    = 1200;
+$arg_hash->{burnin}    = 200;
 $arg_hash->{priorallelefreqfile}           = 'data/priorallelefreqs.txt';
 $arg_hash->{dispersiontestfile}            = 'dispersionTest.txt';
 $arg_hash->{indadmixturefile}              = 'indivadmixture.txt';
