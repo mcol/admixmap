@@ -313,20 +313,6 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
 #endif
   AlleleFreqsMAP.array = Freqs.array;
 
-  //allocate prior arrays
-  if(options->getHapMixModelIndicator()){
-    HapMixPriorParams = new double[NumberOfCompositeLoci];//1D array of prior params for hapmixmodel
-    //fill(HapMixPriorParams, HapMixPriorParams + NumberOfCompositeLoci, 0.1);
-    HapMixPriorParamSampler = new StepSizeTuner[NumberOfCompositeLoci];
-  }
-  else
-    PriorAlleleFreqs = new double*[NumberOfCompositeLoci];//2D array    "      "     otherwise
-
-  //initialise to 0 for safety
-//   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-//     Freqs.array[i] = 0;
-//     PriorAlleleFreqs[i] = 0;
-//   }
   int offset = 0;
   bool oldformat = false;//flag for old format allelefreqfile
   bool file = false;//flag to indicate if priors have been supplied in a file
@@ -363,6 +349,17 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
       IsHistoricAlleleFreq = false;
     }
   }
+
+  if(RandomAlleleFreqs){
+    //allocate prior arrays
+    if(options->getHapMixModelIndicator()){
+      HapMixPriorParams = new double[NumberOfCompositeLoci];//1D array of prior params for hapmixmodel
+      //fill(HapMixPriorParams, HapMixPriorParams + NumberOfCompositeLoci, 0.1);
+      HapMixPriorParamSampler = new StepSizeTuner[NumberOfCompositeLoci];
+    }
+    else
+      PriorAlleleFreqs = new double*[NumberOfCompositeLoci];//2D array    "      "     otherwise
+  }
   //set static members of CompositeLocus
   CompositeLocus::SetRandomAlleleFreqs(RandomAlleleFreqs);
   CompositeLocus::SetNumberOfPopulations(Populations);
@@ -371,14 +368,14 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
 #endif
 
-    if(file){
+    if(file){//read allele freqs from file
       newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
       LoadAlleleFreqs( *temporary, i, row+1, oldformat);//row+1 is the first row for this locus (+1 for the header).
       row = newrow;
     }
-    else{  //Default Allele Freqs
+    else{  //set default Allele Freqs
       SetDefaultAlleleFreqs(i);
-      if(!options->getHapMixModelIndicator()){
+      if(!options->getHapMixModelIndicator()){//prior for hapmix model is set later in Initialise
 	// reference prior on allele freqs: all elements of parameter vector set to 0.5
 	// this is unrealistic for large haplotypes - should set all elements to sum to 1
 	double defaultpriorparams = 0.5;
@@ -446,11 +443,11 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
  * If fixed, allele freqs will be fixed at their prior expectations   
  *
  * New - a matrix containing either frequencies or
- *   parameters for the Dirichlet prior distribution of the allele frequencies. The first dimension is the allele number, 
+ *   parameters for the Dirichlet prior distribution of the allele frequencies. The second dimension is the allele number, 
  *   being in the range of zero to one less than the number of states.
  *   The sum of the prior parameters over all alleles in a population 
  *   (sumalpha) can be interpreted as 
- *   the "prior sample size". The second dimension is the population. Thus, for a 
+ *   the "prior sample size". The first dimension is the population. Thus, for a 
  *   composite locus with four states and European and African 
  *   populations, the matrix might be:
  *
@@ -501,7 +498,7 @@ void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, boo
     }
   }
   
-  if(RandomAlleleFreqs){
+  if(RandomAlleleFreqs){//no need to allocate remaining arrays if fixed allele freqs model
     PriorAlleleFreqs[i] = new double[NumberOfStates* Populations];
     if(IsHistoricAlleleFreq){
       HistoricAlleleFreqs[i] = new double[(NumberOfStates - 1)* Populations];
