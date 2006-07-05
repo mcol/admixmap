@@ -140,16 +140,19 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   }
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    if(RandomAlleleFreqs){
 #if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
-  //set up samplers for allelefreqs
-    if(options->getHapMixModelIndicator()){
-      FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), &(HapMixPriorParams[i]), true ));
-      HapMixPriorParams[i] = HapMixPriorShape / HapMixPriorRate;//set to prior mean
-      HapMixPriorParamSampler[i].SetParameters(0.1, 0.0, 100.0, 0.44);
-    }
-    else
-      FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), PriorAlleleFreqs[i], false));
+      //set up samplers for allelefreqs
+      if(options->getHapMixModelIndicator()){
+	FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), 
+						    &(HapMixPriorParams[i]), true));
+	HapMixPriorParams[i] = HapMixPriorShape / HapMixPriorRate;//set to prior mean
+	HapMixPriorParamSampler[i].SetParameters(0.1, 0.0, 100.0, 0.44);
+      }
+      else
+	FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), PriorAlleleFreqs[i], false));
 #endif
+    }
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
