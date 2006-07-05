@@ -404,7 +404,7 @@ int main( int argc , char** argv ){
       //Residuals
       if(rank <1 && options.getNumberOfOutcomes() > 0)
 	IC->//OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
-	  FinishWritingEYAsRObject(options.getTotalSamples()-options.getBurnIn(), data.getOutcomeLabels());
+	  FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), data.getOutcomeLabels());
       //FST
       if( strlen( options.getHistoricalAlleleFreqFilename()) && (rank==-1 || rank==1)  ){
 	A.OutputFST();
