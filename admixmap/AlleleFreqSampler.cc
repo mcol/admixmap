@@ -23,11 +23,11 @@ AlleleFreqSampler::AlleleFreqSampler(){
   params = 0;
 }
 
-AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const double* const Prior, 
-				     bool hapmixmodel = false){
+AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, 
+				     const double* const Prior, bool hapmixmodel = false) {
   unsigned dim = NumStates*NumPops;
   //initialise Hamiltonian Sampler
-  double step0 = 0.05;//initial step size
+  double step0 = 0.02;//initial step size
   double min = -100.0, max = 100.0; //min and max stepsize
   int numleapfrogsteps = 5; // 10;
   Args.PriorParams = Prior;
@@ -37,11 +37,12 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops, const
     params = new double[NumPops];
     step0 = 0.05;//initial step size
     numleapfrogsteps = 20;
-    Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, gradientSNP);
-  }
-  else{
+    Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, 
+			  gradientSNP);
+  } else {
     params = new double[dim];
-    Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.7/*target acceptrate*/, getEnergy, gradient);
+    Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.7/*target acceptrate*/, 
+			  getEnergy, gradient);
   }
 }
 
@@ -61,34 +62,25 @@ void AlleleFreqSampler::SampleAlleleFreqs(double *phi,  IndividualCollection* IC
   Args.coolness = coolness;
 
   //transform phi 
-  //double freqs[NumStates];//frequencies for one population
   for(unsigned k = 0; k < NumPops; ++k){
-    //freqs[NumStates-1] = 1.0;
-    //for(unsigned s = 0; s < NumStates - 1; ++s) {
-    //freqs[s] = phi[s*NumPops + k*NumStates];
-    //freqs[NumStates-1] -= freqs[s];
-    //}
     inv_softmax(NumStates, phi+k*NumStates, params+k*NumStates);
   }
 
-  try{
-    //call Sample on transformed variables 
+  try { // call Sample on transformed variables 
     Sampler.Sample(params, &Args);
-  }
-  catch(string s){
+  } catch(string s) {
     throw string("Error sampling allele freqs:\n" + s);
   }
 
   //reverse transformation
-  for(unsigned k = 0; k < NumPops; ++k){
+  for(unsigned k = 0; k < NumPops; ++k) {
     softmax(NumStates, phi+k*NumStates, params+k*NumStates);
-    //for(unsigned s = 0; s < NumStates; ++s) phi[s*NumPops+k] = freqs[s];
   }
-
 }
 
-void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
-				  unsigned NumPops, double coolness){
+void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts, 
+				       const int* hetCounts, unsigned locus, unsigned NumPops,
+				       double coolness) {
   Args.IP = 0;
   Args.NumStates = 2;
   Args.NumPops = NumPops;
@@ -116,7 +108,7 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts, con
   }
 }
 
-
+// log normalized prior density - required for updating prior params
 double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates){
   double logprior = 0.0;
   std::vector<double> DirichletParams(NumStates);
@@ -134,6 +126,7 @@ double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi,
 }
 
 ///computes logJacobian for softmax transformation
+// generic function - should be in functions file
 double AlleleFreqSampler::logJacobian(const double* a, const double z, unsigned H){
   //construct matrix
   gsl_matrix *J = gsl_matrix_calloc(H-1, H-1);
@@ -175,14 +168,14 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   }
   energy *= args->coolness;
 
-  //log prior density in softmax basis
+  // subtract log prior density in softmax basis
   if(ishapmixmodel)
     energy -= args->NumPops * States * *(args->PriorParams );
   else{
     for(unsigned k = 0; k < args->NumPops; ++k){
       for( unsigned i = 0; i < States; ++i ) {
 	if( args->PriorParams[i] > 0.0 ) {
-	  energy -= *(args->PriorParams+k*States+i) * mylog(*( phi+k*States+i) );
+	  energy -= *(args->PriorParams+k*States+i) * mylog( *(phi+k*States+i) );
 	}
       }
     }
@@ -191,44 +184,55 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   return energy;
 }
 
-void AlleleFreqSampler::gradient(const double * const params, const void* const vargs, double* g){
+void AlleleFreqSampler::gradient(const double* const params, const void* const vargs, double* g){
   const AlleleFreqArgs* args = (const AlleleFreqArgs*)vargs;
   unsigned States = args->NumStates;
   fill(g, g+States* args->NumPops, 0.0);
   //transform params to freqs
   double* phi = new double[States * args->NumPops];
-   for(unsigned k = 0; k < args->NumPops; ++k)
-     softmax(States, phi + k*States, params + k*States); 
-
-  double* dE_dphi = new double[States * args->NumPops];fill(dE_dphi, dE_dphi+States*args->NumPops, 0.0);
-  for(int i = 0; i < args->IP->getSize(); ++i){
+  for(unsigned k = 0; k < args->NumPops; ++k) {
+    softmax(States, phi + k*States, params + k*States); 
+  }
+  double* dE_dphi = new double[States * args->NumPops]; 
+  fill(dE_dphi, dE_dphi+States*args->NumPops, 0.0);
+  for(int i = 0; i < args->IP->getSize(); ++i){ // compute gradient of minus log-likelihood wrt phi
     const Individual* ind = args->IP->getIndividual(i);
     int Anc[2];
     ind->GetLocusAncestry(args->locus, Anc);
-    //first compute gradient of minus log-likelihood wrt phi
     logLikelihoodFirstDeriv(phi, Anc, ind->getPossibleHapPairs(args->locus), States, args->NumPops, dE_dphi);
   }
-  
   //subtract derivative wrt phi of log prior density in softmax basis
-  for(unsigned s = 0; s < States; ++s)
-    for(unsigned k = 0; k < args->NumPops; ++k){
+  for(unsigned s = 0; s < States; ++s) {
+    for(unsigned k = 0; k < args->NumPops; ++k) {
       dE_dphi[k*States+s]*=args->coolness;
-      if(ishapmixmodel)
-	dE_dphi[k*States+s] -= *(args->PriorParams) / phi[k*States+s]; 
-      else{
+    }
+  }
+  for(unsigned k = 0; k < args->NumPops; ++k) {
+    for(unsigned s = 0; s < States; ++s) {
+      if(ishapmixmodel) {
+	dE_dphi[k*States+s] -= *(args->PriorParams) / phi[k*States+s];
+      } else {
 	if(args->PriorParams[s*args->NumPops +k] > 0.0)
 	  dE_dphi[k*States+s] -= args->PriorParams[s*args->NumPops +k]  / phi[k*States+s]; 
       }
     }
-
-  //now use chain rule to obtain gradient wrt args
-  for(unsigned k = 0; k < args->NumPops; ++k){
-    double sum = 0.0;
-    for(unsigned s = 0; s < States; ++s){
-      for(unsigned s1 = 0; s1 < States; ++s1)sum += exp(params[k*States+s1]);
-      for(unsigned s1 = 0; s1 < States; ++s1)
-	g[k*States+s] -= dE_dphi[k*States+s1] * exp(params[k*States+s1])*exp(params[k*States+s]) / (sum*sum); 
-
+  }
+  
+  //now use chain rule to obtain gradient wrt args: dE/dbeta_j = sum_i{dE/dphi_i dphi_i/dbeta_j}
+  for(unsigned k = 0; k < args->NumPops; ++k) {
+    double sum = 0.0; 
+    for(unsigned s = 0; s < States; ++s) { 
+      sum += exp(params[k*States+s]);
+    }
+    double sumsq = sum * sum;
+    for(unsigned s = 0; s < States; ++s) { // loop over j
+      for(unsigned s1 = 0; s1 < States; ++s1) { // loop over i to evaluate dE/dbeta_j as a sum
+	if(s1 != s) {
+	  g[k*States+s] -= dE_dphi[k*States+s1] * exp(params[k*States+s1]) * exp(params[k*States+s]) / sumsq; 
+	} else {
+	  g[k*States+s] += dE_dphi[k*States+s1] * (sum - exp(params[k*States+s])) * exp(params[k*States+s]) / sumsq; 
+	}
+      }
     }
   }
   delete[] phi;
