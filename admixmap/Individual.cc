@@ -1279,7 +1279,7 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
       //update of score tests for linkage with ancestry requires update of backward probs
       double* admixtureCovars = 0;
       if(options->getTestForLinkageWithAncestry()){
-	new double[Populations-1];
+	admixtureCovars = new double[Populations-1];
 	for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
       }
       UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);
