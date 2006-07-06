@@ -97,7 +97,7 @@ for(locus in 1:(L + LX)) {
 genotypes <- character(L+LX)
 outcome <- numeric(N)
 avM <- numeric(N)
-male <- seq(0, N) #rbinom(N, 1, 0.5)
+male <- rep(0, N) #rbinom(N, 1, 0.5)
 popM <- popadmixparams[2] / sum(popadmixparams) # mean admixture proportions
 for(individual in 1:N) {
   M1 <- rbeta(1, popadmixparams[1], popadmixparams[2])
