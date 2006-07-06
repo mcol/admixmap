@@ -8,7 +8,7 @@ my $arg_hash = {
     locusfile                       => 'simdata/loci.txt',
     priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
     # covariatesfile                  => 'data/covariates3.txt',
-    outcomevarfile                  => 'simdata/outcome.txt',
+    #outcomevarfile                  => 'simdata/outcome.txt',
 
 #main options
     displaylevel   => 3, #verbose output
@@ -27,17 +27,17 @@ my $arg_hash = {
     regparamfile             => 'regparam.txt',
     indadmixturefile         => 'indadmixture.txt',
     ergodicaveragefile       => 'ergodicaverage.txt',
-    #allelefreqoutputfile  => 'allelefreqoutputfile.txt',
+    allelefreqoutputfile  => 'allelefreqoutputfile.txt',
 
 #optional tests
     # allelicassociationscorefile       => 'allelicassociationscorefile.txt',
     # ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
     # affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
     # haplotypeassociationscorefile => 'hapassocscore.txt',
-    dispersiontestfile                   => 'dispersiontest.txt',
-    hwscoretestfile                  => 'HardyWeinbergTest.txt',
-    stratificationtestfile           => 'stratificationtest.txt',
-    residualallelicassocscorefile    => 'residualLDscoretest.txt'
+    #dispersiontestfile                   => 'dispersiontest.txt',
+    #hwscoretestfile                  => 'HardyWeinbergTest.txt',
+    #stratificationtestfile           => 'stratificationtest.txt',
+    #residualallelicassocscorefile    => 'residualLDscoretest.txt'
 };
 
 doAnalysis($executable,$arg_hash);

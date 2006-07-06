@@ -80,9 +80,9 @@ for(chromosome in 1:22) {
 x <- 0.01*distanceFromLast(chr, x)
 L <- length(x) # number of autosomal loci
 
-positionsX <- seq(0, 188, spacing)
-chrX <- rep(1, length(positionsX))
-xX <- 0.01*distanceFromLast(chrX, positionsX)
+positionsX <- as.vector(seq(0, 188, 200))#spacing))
+chrX <- as.vector(rep(1, length(positionsX)))
+xX <- as.vector(0.01*distanceFromLast(chrX, positionsX))
 LX <- length(xX) # number of X loci
 
 ## simulate allele freqs
@@ -105,7 +105,7 @@ for(individual in 1:N) {
   avM[individual] <- 1 - 0.5*(M1 + M2)
   obs <- simulateAutosomalGenotypes(M1, M2, rho, x, L)  #make some genotypes missing
   for(locus in 1:L) if(runif(n=1) < 0.1)
-    obs[locus] <- ""
+    obs[locus] <- "0,0"
   obs <- c(obs, simulateXGenotypes(M1, M2, rhoX, xX, LX, as.logical(male[individual])))
   genotypes <- rbind(genotypes, obs)
   ## simulate outcome

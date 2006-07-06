@@ -468,7 +468,7 @@ void Individual::GetLocusAncestry(int locus, int Ancestry[2])const{
 }
 void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const {
   Ancestry[0]  = LocusAncestry[chrm][locus];
-  if((unsigned)chrm == X_posn)Ancestry[1] = Ancestry[0];
+  if((unsigned)chrm == X_posn && !SexIsFemale)Ancestry[1] = Ancestry[0];
   else Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
 }
 
@@ -1164,7 +1164,8 @@ void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const optio
   } else {//X chromosome
     if(!options->getHapMixModelIndicator()){
       if(!options->isGlobalRho()){
-	C->SetLocusCorrelation(rhoX, !options->isRandomMatingModel(), options->isRandomMatingModel());
+	C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
+	//no need to pas rhoX as rho will be multiplied by 0.5 in setting f
       }
       // X chromosome -  haploid in male individual; diploid in female
       C->SetStateArrivalProbs(thetaX, options->isRandomMatingModel(), SexIsFemale);
