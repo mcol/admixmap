@@ -23,6 +23,8 @@
 #include <gsl/gsl_randist.h>
 #include <sstream>
 
+#define MIN(X, Y) X<Y?X:Y
+ 
 using namespace::std;
 
 // ************** Log Densities *******************
@@ -239,17 +241,14 @@ void softmax(size_t K, double *mu, const double* a, const bool* const b){
 ///On output the solution is stored in x and b is not modified. The matrix AA is destroyed by the Householder transformations. 
 int HH_solve (size_t n, double *A, double *b, double *x)
 {
-  gsl_matrix *AA;
-  gsl_vector_view bb,xx;
-
   //create copy of A as gsl matrix; might not be necessary, depending on use
-  AA = gsl_matrix_calloc(n,n);
-  for (size_t i = 0; i < n*n; i++){
-      AA->data[i] = A[i];
-    }
+  gsl_matrix *AA = gsl_matrix_calloc(n,n);
+  for(size_t i = 0;i < n; ++i)
+    for(size_t j = 0; j < n; ++j)
+      gsl_matrix_set(AA, i, j, A[i*n+j]); 
 
-  bb = gsl_vector_view_array(b, n);
-  xx = gsl_vector_view_array(x, n);
+  gsl_vector_view bb = gsl_vector_view_array(b, n);
+  gsl_vector_view xx = gsl_vector_view_array(x, n);
 
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   int status = gsl_linalg_HH_solve(AA, &bb.vector, &xx.vector);
@@ -470,7 +469,7 @@ double GaussianQuadraticForm(double* mean, double* var, unsigned dim){
   int status = -1;
   string err = "Error in GaussianQuadraticForm: ";
   try{
-    status  = HH_solve(dim, mean, var, VinvU);
+    status  = HH_solve(dim, var, mean, VinvU);
     for(unsigned i = 0; i < dim; ++i){
       result += mean[i] * VinvU[i];
     }
@@ -479,7 +478,6 @@ double GaussianQuadraticForm(double* mean, double* var, unsigned dim){
     err += s;
     status = 1;
   }
-
   delete[] VinvU;
   if(status)throw err;
   return result;
