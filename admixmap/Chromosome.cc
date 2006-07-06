@@ -29,7 +29,7 @@ Chromosome::Chromosome(){
     CodedStates = 0;
 }
 
-Chromosome::Chromosome(int size, int start, int inpopulations, bool isx = false) 
+Chromosome::Chromosome(const unsigned int chrNum, int size, const int start, int inpopulations, bool isx = false) 
 		      //size = number of comp loci on chromosome
 {
   _startLocus = start;

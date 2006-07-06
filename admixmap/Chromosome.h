@@ -23,7 +23,7 @@ class Chromosome
 {
 public:
     Chromosome();
-  Chromosome(int size,int start, int, bool isx);
+  Chromosome(const unsigned int chrNum, int size, const int start, int, bool isx);
    ~Chromosome();
 // ******** Chromosome information **********************************
   void SetLabel(std::string );
