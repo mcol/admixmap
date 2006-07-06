@@ -4,19 +4,20 @@ simulateHaploidAlleles <- function(M,rho,x,L) {
   randAnc <- runif(L)
   f <- numeric(L)
   gameteAncestry[1] <- ifelse(randAnc[1] > M, 2, 1) # M is prob pop 1.
-  for(locus in 2:L) {
-    if(!is.na(x[locus])) {
-      f[locus] <- exp(-rho*x[locus])
-    } else {
-      f[locus] <- 0
+  if (L > 1) {
+    for(locus in 2:L) {
+      if(!is.na(x[locus])) {
+        f[locus] <- exp(-rho*x[locus])
+      } else {
+        f[locus] <- 0
+      }
+      T <- t(matrix(data=c(M + (1-M)*f[locus],  1-M - (1-M)*f[locus],
+                      M - M*f[locus], 1-M + M*f[locus] ),
+                    nrow=2, ncol=2))
+      gameteAncestry[locus] <- ifelse(randAnc[locus] > T[gameteAncestry[locus-1], 1], 2, 1)
     }
-    T <- t(matrix(data=c(M + (1-M)*f[locus],  1-M - (1-M)*f[locus],
-                    M - M*f[locus], 1-M + M*f[locus] ),
-                  nrow=2, ncol=2))
-    gameteAncestry[locus] <- ifelse(randAnc[locus] > T[gameteAncestry[locus-1], 1], 2, 1)
   }
-  simulateHaploidAlleles <-
-    ifelse(runif(L) > alleleFreqs[1,gameteAncestry], 2, 1)
+  simulateHaploidAlleles <- ifelse(runif(L) > alleleFreqs[1,gameteAncestry], 2, 1)
 }
 
 simulateAutosomalGenotypes <- function(M1,M2, rho,x,L) {
@@ -96,7 +97,7 @@ for(locus in 1:(L + LX)) {
 genotypes <- character(L+LX)
 outcome <- numeric(N)
 avM <- numeric(N)
-male <- rbinom(N, 1, 0.5)
+male <- seq(0, N) #rbinom(N, 1, 0.5)
 popM <- popadmixparams[2] / sum(popadmixparams) # mean admixture proportions
 for(individual in 1:N) {
   M1 <- rbeta(1, popadmixparams[1], popadmixparams[2])
