@@ -56,6 +56,7 @@ N <- 200
 rho <- 6 ## sum-of-intensities
 rhoX <- 0.5*rho
 spacing <- 40 # 40 cM spacing gives 99 loci
+spacingX <- 180 #30
 L <- 50 #default # number of loci
 beta <- 2 # regression slope
 popadmixparams <- c(3, 1) # population admixture params for pop1, pop2
@@ -81,7 +82,7 @@ for(chromosome in 1:22) {
 x <- 0.01*distanceFromLast(chr, x)
 L <- length(x) # number of autosomal loci
 
-positionsX <- as.vector(seq(0, 188, 200))#spacing))
+positionsX <- as.vector(seq(0, 188, by=spacingX))
 chrX <- as.vector(rep(1, length(positionsX)))
 xX <- as.vector(0.01*distanceFromLast(chrX, positionsX))
 LX <- length(xX) # number of X loci
