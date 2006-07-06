@@ -466,12 +466,22 @@ double GaussianMarginalQuadraticForm( int kk, double *mean, double *var, size_t 
 
 double GaussianQuadraticForm(double* mean, double* var, unsigned dim){
   double* VinvU = new double[dim];
-  HH_solve(dim, mean, var, VinvU);
   double result = 0.0;
-  for(unsigned i = 0; i < dim; ++i){
-    result += mean[i] * VinvU[i];
+  int status = -1;
+  string err = "Error in GaussianQuadraticForm: ";
+  try{
+    status  = HH_solve(dim, mean, var, VinvU);
+    for(unsigned i = 0; i < dim; ++i){
+      result += mean[i] * VinvU[i];
+    }
   }
+  catch(string s){
+    err += s;
+    status = 1;
+  }
+
   delete[] VinvU;
+  if(status)throw err;
   return result;
 }
 ///allocates space for 2-way rectangular array of doubles and initialise to zero
