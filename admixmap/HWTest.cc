@@ -127,8 +127,8 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
       } // ends loop over individuals 
 
       //reset pointers for next compound locus	
-      free_matrix(Prob0, Loci->getNumberOfLoci(NumSimpleLociWithinCL));
-      free_matrix(Prob1, Loci->getNumberOfLoci(NumSimpleLociWithinCL));
+      free_matrix(Prob0, NumSimpleLociWithinCL);
+      free_matrix(Prob1, NumSimpleLociWithinCL);
       delete[] alleles0;
       delete[] alleles1;
       slocus += NumSimpleLociWithinCL;
