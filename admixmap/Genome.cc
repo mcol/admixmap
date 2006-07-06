@@ -160,14 +160,14 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
     bool isX = false;
     string s1("X"), s2("x");
     isX = ( (label == s1) || (label == s2) );
+    if(isX)X_data = true;
 
-    C[i] = new Chromosome(size, cstart[i], populations, isX);
+    C[i] = new Chromosome(i, size, cstart[i], populations, isX);
     //C[i] is a pointer to Chromosome
 
     C[i]->SetLabel(label);
 
     for(int j = 0; j < size; j++){//loop over loci on chromosome
-
       C[i]->SetDistance(j,GetDistance(cstart[i]+j));
 
       if( j != 0 ){
@@ -179,7 +179,6 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
 	//case of X chromosome
 	else{
 	  LengthOfXchrm += GetDistance(cstart[i]+j);
-	  X_data = true;
 	  XChromosomeIndex = cstart[i];
 	}
       }
