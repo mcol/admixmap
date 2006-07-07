@@ -4,7 +4,7 @@
 //definitions of struct members of StringSplitter
 struct StringSplitter::StringSplitterState
 {
-  virtual ~StringSplitterState();
+  virtual ~StringSplitterState(){};
   virtual StringSplitterState *onWhite(StringSplitter *_this, char c) = 0;
   virtual StringSplitterState *onGraph(StringSplitter *_this, char c) = 0;
   virtual StringSplitterState *onQuote(StringSplitter *_this) = 0;
