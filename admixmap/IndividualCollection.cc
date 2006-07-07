@@ -44,7 +44,6 @@ void IndividualCollection::SetNullValues(){
   SumAncestry = 0;
   ReportedAncestry = 0;
   thetahat = 0;
-  thetahatX = 0;
   //sigma.resize(2);
   //sigma[0] = sigma[1] = 1.0;
 }
@@ -124,7 +123,6 @@ IndividualCollection::~IndividualCollection() {
   free_matrix(ExpectedY, NumOutcomes);
   //free_matrix(SumResiduals, NumOutcomes);
   delete[] thetahat;
-  delete[] thetahatX;
   delete[] SumLogTheta;
   delete[] SumAncestry;
   delete[] ReportedAncestry;
@@ -228,7 +226,6 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const
      size_admix = K;
 
    thetahat = new double[size_admix];
-   thetahatX = new double[size_admix];
 
    //initialise thetahat at initial values of individual admixture
    for(unsigned k = 0; k < size_admix; ++k)
@@ -241,7 +238,6 @@ void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const
    //initialise rhohat at initial value of globalsumintensities ie prior mean
      vector<double> r(2, rhoalpha/rhobeta );
      rhohat = r;
-     rhohatX = r;
    }
    //TODO: X objects
 }
@@ -679,10 +675,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
 void IndividualCollection::UpdateChib(int iteration, const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
     _child[0]->Chib(iteration, //&SumLogLikelihood, &(MaxLogLikelihood[i]),
-		    options, alpha, //globalrho, 
-		    rhoalpha, rhobeta,
-		    thetahat, thetahatX, rhohat, /*rhohatX,*/ &MargLikelihood, A);
-
+		    options, alpha, rhoalpha, rhobeta, thetahat, rhohat, &MargLikelihood, A);
 }
 
 void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, 
@@ -720,11 +713,11 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   }
   if(options->getTestOneIndivIndicator()) {// find posterior mode for test individual only 
     TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
-					       modefile, thetahat, thetahatX, rhohat); //, rhohatX);
+					       modefile, thetahat, rhohat);
   }
   for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
     _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,
-				  modefile, thetahat, thetahatX, rhohat); //, rhohatX);
+				  modefile, thetahat, rhohat);
     modefile << endl;
   }
   modefile.close();

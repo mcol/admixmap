@@ -24,14 +24,15 @@ Chromosome::Chromosome(){
     NumberOfCompositeLoci = 0;
     populations = 0;
     isX = false;
-    Diploid = true;
+    //Diploid = true;
     f = 0;
     CodedStates = 0;
 }
 
-Chromosome::Chromosome(const unsigned int chrNum, int size, const int start, int inpopulations, bool isx = false) 
+Chromosome::Chromosome(int n, int size, int start, int inpopulations, bool isx = false) 
 		      //size = number of comp loci on chromosome
 {
+  Number = n;
   _startLocus = start;
   populations = inpopulations;
   isX = isx;
@@ -127,7 +128,7 @@ void Chromosome::SetLocusCorrelation(const double rho_){
   double rho = rho_;
   if(isX)rho *= 0.5;
   for(unsigned j = 1; j < NumberOfCompositeLoci; j++ ){
-    f[2*j] = f[2*j + 1] = exp( -GetDistance( j ) * rho );
+    f[2*j] = f[2*j + 1] = myexp( -GetDistance( j ) * rho );
   }
 }
 /**
@@ -146,9 +147,15 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
     if(RandomMating){//gamete-specific
       if(rho_.size()!=2)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
       for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
-	f[2*jj] = exp( -GetDistance( jj ) * rho_[0] );
-	f[2*jj + 1] = exp( -GetDistance( jj ) * rho_[1] );
-	//TODO: ?? case of X chromosome: use 0.5*rho
+	if(isX){
+	  f[2*jj] = myexp( -GetDistance( jj ) * rho_[0]*0.5 );
+	  f[2*jj + 1] = myexp( -GetDistance( jj ) * rho_[1]*0.5 );
+	}
+	else{
+	  f[2*jj] = myexp( -GetDistance( jj ) * rho_[0]*0.5 );
+	  f[2*jj + 1] = myexp( -GetDistance( jj ) * rho_[1]*0.5 );
+	}
+
       }
     }
     else{//locus-specific
@@ -156,7 +163,7 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
       for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
 	double rho = rho_[j+_startLocus];
 	if(isX)rho *= 0.5;
-	f[2*j] = f[2*j + 1] = exp( -GetDistance( j ) * rho );
+	f[2*j] = f[2*j + 1] =myexp( -GetDistance( j ) * rho );
       }
     }
   }
@@ -168,13 +175,15 @@ void Chromosome::SetGenotypeProbs(double* const GenotypeProbs, bool* const Genot
 }
 void Chromosome::SetStateArrivalProbs(const double* const Admixture, bool RandomMating, bool diploid) {
 
-  Diploid = diploid;//required for sampling of locus ancestry
   //construct StateArrivalProbs
-  SampleStates.SetStateArrivalProbs(f, Admixture, RandomMating, Diploid);
+  if(diploid)
+    SampleStates.SetStateArrivalProbs(f, Admixture, RandomMating, diploid);
+  else //haploid case: pass pointer to maternal admixture props
+    SampleStates.SetStateArrivalProbs(f, Admixture+populations, RandomMating, diploid);
 }
 
-void Chromosome::SampleLocusAncestry(int *OrderedStates){
-  SampleStates.Sample(OrderedStates, Diploid);
+void Chromosome::SampleLocusAncestry(int *OrderedStates, bool diploid){
+  SampleStates.Sample(OrderedStates, diploid);
 }
 
 /**

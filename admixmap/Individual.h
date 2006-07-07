@@ -76,11 +76,6 @@ public:
   const std::vector<unsigned> getSumNumArrivals_X()const;
   void getSumNumArrivals(std::vector<unsigned> *sum)const;
 
-  double getLogLikelihood(const AdmixOptions* const options, 
-			  const double* const theta, const double* const thetaX,
-			  const vector<double > rho, //const vector<double> rho_X, 
-			  bool updateHMM);
-
   double getLogLikelihood(const AdmixOptions* const , const bool forceUpdate, const bool store);
   void storeLogLikelihood(const bool setHMMAsOK); // to call if a Metropolis proposal is accepted
 
@@ -120,17 +115,13 @@ public:
  
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 			  double rhoalpha, double rhobeta, //const vector<double> sigma, 
-			  ofstream &modefile,
-			  double *thetahat, double *thetahatX, vector<double> &rhohat); 
-			  //, vector<double> &rhohatX);
+			  ofstream &modefile, double *thetahat, vector<double> &rhohat); 
 
   void resetStepSizeApproximator(int k);
 
   void Chib(int iteration, // double *SumLogLikelihood, double *MaxLogLikelihood,
-	    const AdmixOptions* const options, const vector<vector<double> > &alpha, // double globalrho,
-	    double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
-	    vector<double> &rhohat, //vector<double> &rhohatX, 
-	    chib *MargLikelihood, AlleleFreqs *A);
+	    const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
+	    double *thetahat, vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(const AdmixOptions* const options);
  
@@ -169,10 +160,10 @@ private:
   static int Populations;
   static Genome *Loci;
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
-  double *Theta, *ThetaX;//admixture proportions
+  double *Theta;//admixture proportions
   double* ThetaMode;
   double *SumSoftmaxTheta;
-  double *ThetaProposal, *ThetaXProposal;// proposal admixture proportions
+  double *ThetaProposal;// proposal admixture proportions
 
   int **LocusAncestry, *SumLocusAncestry, *SumLocusAncestry_X;
   std::vector<unsigned> SumNumArrivals;
@@ -229,17 +220,19 @@ private:
 					       const double Outcome, const double* const poptheta, const double lambda);
   
   void UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
-			     const double* const theta, const double* const thetaX,
-			     const vector<double> rho);
+			     const double* const theta, const vector<double> rho);
   
   void ProposeTheta(const AdmixOptions* const options, /*const vector<double> sigma,*/ const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
 
   double ProposeThetaWithRandomWalk(const AdmixOptions* const options, const vector<vector<double> > &alpha);
   
-  double LogPriorTheta(const double* const theta, const double* const thetaX,  
+  double getLogLikelihood(const AdmixOptions* const options, 
+			  const double* const theta, const vector<double > rho, bool updateHMM);
+
+  double LogPriorTheta(const double* const theta,   
 		       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
-  double LogPriorTheta_Softmax(const double* const theta, const double* const thetaX,  
+  double LogPriorTheta_Softmax(const double* const theta, 
 			       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
   //Computes LogPrior density in softmax basis at supplied parameter values 
 
@@ -248,7 +241,7 @@ private:
   double LogPriorRho_LogBasis(const vector<double> rho, //const vector<double> rhoX, 
 			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const;
 
-  double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
+  double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, 
 				    const vector<vector<double> > &alpha)const;
   double CalculateLogPosteriorRho(const AdmixOptions* const options,  
 				  const vector<double> rho, //const vector<double> rhoX,
