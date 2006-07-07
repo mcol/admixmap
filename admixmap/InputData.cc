@@ -2,21 +2,13 @@
  *   ADMIXMAP
  *   InputData.cc 
  *   Class to read and check all input data files
- *   Copyright (c) 2005, 2006 LSHTM
+ *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "InputData.h"
 #include "AdmixOptions.h"
@@ -30,7 +22,7 @@
 
 using namespace std;
 
-//Extracts population labels from header line of allelefreq input file
+///Extracts population labels from header line of allelefreq input file
 void InputData::getPopLabels(const Vector_s& data, size_t Populations, string **labels)
 {
   if(data.size() != Populations+1){cout << "Error in getPopLabels\n";exit(1);}
@@ -151,10 +143,6 @@ void InputData::convertMatrix(const Matrix_s& data, DataMatrix& m, size_t row0, 
     }
 }
 
-/**
- *  InputData members.
- */
-
 InputData::InputData()
 {
   PopulationLabels = 0;
@@ -215,7 +203,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   Log.setDisplayMode(Quiet);
   if(rank<0 || rank>1)
     {
-      IsPedFile = determineIfPedFile( options );
+      IsPedFile = determineIfPedFile();
       CheckGeneticData(options);
     }
 
@@ -258,36 +246,34 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   }
 }
 
-//determine number of individuals by counting lines in genotypesfile 
+///determine number of individuals by counting lines in genotypesfile 
 int InputData::getNumberOfIndividuals()const {
   return(NumIndividuals);
 }
 
-//determine number of loci by counting rows of locusfile
+///determine number of loci by counting rows of locusfile
 int InputData::getNumberOfSimpleLoci()const {
   return(locusData_.size() - 1);
 }
-//determines number of composite loci from locusfile
+///determines number of composite loci from locusfile
 unsigned InputData::determineNumberOfCompositeLoci()const{
   unsigned NumberOfCompositeLoci = locusMatrix_.nRows();
     for( unsigned i = 0; i < locusMatrix_.nRows(); i++ )
       if( !locusMatrix_.isMissing(i,1) && locusMatrix_.get( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
     return NumberOfCompositeLoci;
 }
-
-bool InputData::determineIfPedFile(AdmixOptions *options)const {
-  // Determine if genotype table is in pedfile format by testing if number of strings in row 1 equals
-  // twice the number of strings in the header row minus one. 
-  // 
+/// Determine if genotype table is in pedfile format by testing if number of strings in row 1 equals
+/// twice the number of strings in the header row minus one. 
+/// 
+bool InputData::determineIfPedFile()const {
   const bool isPedFile = (bool)(2*geneticData_[0].size() - 1 == geneticData_[1].size());
-  options->IsPedFile(isPedFile);
 
   return (isPedFile);
 }
 
-//checks number of loci in genotypes file is the same as in locusfile, 
-//determines if there is a sex column
-// and each line of genotypesfile has the same number of cols
+///checks number of loci in genotypes file is the same as in locusfile, 
+///determines if there is a sex column
+/// and each line of genotypesfile has the same number of cols.
 void InputData::CheckGeneticData(AdmixOptions *options)const{
 
   const size_t numLoci = locusData_.size() - 1; //number of loci in locus file
@@ -334,7 +320,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
       //check distances are not too large 
       if(locusMatrix_.get(i-1,1) >= threshold) {
 	//flag = true;
-	if(locusMatrix_.get(i-1,1) < 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome      
+	if(locusMatrix_.get(i-1,1) != 100 )//for backward-compatibility; no warning if 100 used to denote new chromosome      
 	  cerr << "Warning: distance of " <<locusMatrix_.get(i-1,1)<< "  at locus " <<i<<endl;
 	locusMatrix_.isMissing(i-1,1, true);//missing value for distance denotes new chromosome
       }
@@ -368,8 +354,8 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
   } 
 }
 
-//checks consistency of supplied allelefreqs with locusfile
-//and determines number of populations and population labels
+////checks consistency of supplied allelefreqs with locusfile
+///and determines number of populations and population labels.
 void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
   string freqtype = "";
   bool infile = false;//indicates whether either of the three allelefreq files are specified
@@ -543,7 +529,7 @@ void InputData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
   }
 }
 
-//returns sex value from genotypes file for individual i
+///returns sex value from genotypes file for individual i
 Sex InputData::GetSexValue(int i)const{
   //if (options->getgenotypesSexColumn() == 1) {
     int sex = StringConvertor::toInt(geneticData_[i][1]);

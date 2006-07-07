@@ -172,7 +172,6 @@ private:
   std::vector< double > rhoMode;
 			  //std::vector< double > _rho_X;//sum of intensities for X chromosome
   std::vector<double> sumlogrho;
-  double TruncationPt; // upper truncation point for sum intensities parameter rho
 
   double* Outcome;
   double* Covariates;

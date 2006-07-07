@@ -1,5 +1,5 @@
 // *-*-C++-*-*
-/** 
+/* 
  *   ADMIXMAP
  *   AdmixOptions.h 
  *   header file for AdmixOptions class
@@ -23,8 +23,10 @@
 #include <map>
 using namespace::std;
 
+/// map to hold user options for output to file.
 typedef map<const char*, char*> OptionMap;
 
+/// Class to hold program options
 class AdmixOptions
 {
 public:
@@ -99,13 +101,8 @@ public:
   bool getThermoIndicator() const;
   bool getTestOneIndivIndicator() const;
   long getNumAnnealedRuns() const;
-  double getTruncPt() const;
   int getPopulations() const; 
   void setPopulations(int num);
-  bool IsPedFile() const;
-  void IsPedFile(bool);
-  bool isXOnlyAnalysis() const;
-  void isXOnlyAnalysis(bool);
   bool isAdmixed(unsigned) const;
   bool isSymmetric()const;
   bool CheckData()const;
@@ -160,12 +157,9 @@ private:
   int NumberOfOutcomes;
   RegressionType RegType;
   int TargetIndicator;
-  double TruncPt;
   int Populations;
   int displayLevel;
   bool OutputFST;
-  bool XOnlyAnalysis;
-  bool isPedFile;
   unsigned int genotypesSexColumn;
   bool locusForTestIndicator;
   int LocusForTest;
@@ -203,6 +197,7 @@ private:
   //double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
   std::vector<double> globalrhoPrior;
   std::vector<double> rhoPrior;
+  bool hapmixrhoparamprior;// indicates whether globalrho
   std::vector<double> alpha0;
   std::vector<double> alpha1;
   std::vector< std::vector<double> > initalpha;

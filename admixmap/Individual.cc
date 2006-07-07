@@ -31,6 +31,7 @@ double **Individual::AncestryInfoCorrection = 0;
 double *Individual::B;
 double *Individual::PrevB;
 double *Individual::Xcov;
+#define TruncationPt 99 // upper truncation point for sum intensities parameter rho
 
 unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
@@ -48,7 +49,6 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   if( options->isRandomMatingModel() ) NumIndGametes = 2;
 
   double init=0.0;
-  TruncationPt = options->getTruncPt(); 
   if( !options->isGlobalRho() && options->getIndAdmixHierIndicator()) {//model with individual- or gamete-specific sumintensities
     //set prior mean as initial value for rho 
     if(options->getRhobetaShape() > 1) { 
@@ -1689,7 +1689,7 @@ double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options,
     for( unsigned int g = 0; g < 2; g++ ){
       LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[g], rhobeta + L, rho[g] );
       //if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-      IntConst1 = IntegratingConst(rhoalpha+(double)SumN[g], rhobeta+L, 1.0, options->getTruncPt() );
+      IntConst1 = IntegratingConst(rhoalpha+(double)SumN[g], rhobeta+L, 1.0, TruncationPt );
       //else
       //IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumNumArrivals[g], 1.0);
       LogPosterior -= log(IntConst1);
@@ -1697,7 +1697,7 @@ double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options,
     for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
       LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[g], rhobeta + L_X, 0.5*rho[g] );
       //if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
-      //IntConst1 = IntegratingConst(rhoalpha+(double)SumNumArrivals_X[g], rhobeta+L_X, 1.0, options->getTruncPt() );
+      //IntConst1 = IntegratingConst(rhoalpha+(double)SumNumArrivals_X[g], rhobeta+L_X, 1.0, TruncationPt );
       //else
       IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[g], 1.0);
       LogPosterior -= log(IntConst1);
@@ -1712,8 +1712,8 @@ double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options,
     x[1] += getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[1] );
     double IntConst1, IntConst2;
     //if( options->RhoFlatPrior() || options->logRhoFlatPrior() ){
-    //IntConst1 = IntegratingConst(rhoalpha+(double)SumNumArrivals[0], rhobeta+L, 1.0, options->getTruncPt() );
-    //IntConst2 = IntegratingConst(rhoalpha+(double)SumNumArrivals[1], rhobeta+L, 1.0, options->getTruncPt() );
+    //IntConst1 = IntegratingConst(rhoalpha+(double)SumNumArrivals[0], rhobeta+L, 1.0, TruncationPt );
+    //IntConst2 = IntegratingConst(rhoalpha+(double)SumNumArrivals[1], rhobeta+L, 1.0, TruncationPt );
     //}
     //else{
 	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
@@ -1734,7 +1734,7 @@ double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options,
     if(  options->isAdmixed(0) ){//admixed first gamete
       LogPosterior = getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[0] );
       //if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
-	IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, options->getTruncPt() );
+	IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, TruncationPt );
 	//else
 	//IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumNumArrivals[0], 1.0);
       LogPosterior -= log( IntConst1 );

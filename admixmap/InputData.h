@@ -3,21 +3,13 @@
  *   ADMIXMAP
  *   InputData.h 
  *   header file for InputData class
- *   Copyright (c) 2005, 2006 LSHTM
+ *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #ifndef INPUT_DATA_H
 #define INPUT_DATA_H 1
@@ -32,6 +24,7 @@ class LogWriter;
 class Chromosome;
 class Genome;
 
+///Class to read and check all input data files
 class InputData{
 public:    
 
@@ -52,7 +45,7 @@ public:
   void readData(AdmixOptions *options, LogWriter &log, int rank);    
 
 
-  /**
+  /*
    *  Getters to retrieve data (in string form).
    */
   const Matrix_s& getLocusData() const;
@@ -65,7 +58,7 @@ public:
   const Matrix_s& getEtaPriorData() const;
   const Matrix_s& getReportedAncestryData() const;
 
-  /**
+  /*
    *  Getters to retrieve data (converted to DataMatrix).
    */    
   const DataMatrix& getLocusMatrix() const;
@@ -84,9 +77,8 @@ public:
   Vector_s getOutcomeLabels()const;
   const Vector_s& getLocusLabels()const;
 
-  bool determineIfPedFile(AdmixOptions *options)const;
-  void convertGenotypesToIntArray(AdmixOptions *options);
-  void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
+  //void convertGenotypesToIntArray(AdmixOptions *options);
+  //void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
 
   Sex GetSexValue(int i)const;
   int getNumberOfIndividuals()const;
@@ -135,8 +127,9 @@ private:
   void CheckCovariatesFile(LogWriter &log)const;
   void CheckRepAncestryFile(int populations, LogWriter &Log)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
+  bool determineIfPedFile()const;
 
-  /**
+  /*
    *  UNIMPLEMENTED: to avoid undesired copying.
    */    
   InputData(const InputData&);

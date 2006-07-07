@@ -40,13 +40,10 @@ void AdmixOptions::Initialise(){
   SampleEvery = 10;
   Seed = 1;
   TargetIndicator = 0;
-  TruncPt = 99;
   Populations = 1;
 
   displayLevel = 2; 
   OutputFST = false;
-  XOnlyAnalysis = false;
-  isPedFile = false; 
   genotypesSexColumn = 0;
   locusForTestIndicator = false;
   LocusForTest = 0;
@@ -127,9 +124,7 @@ void AdmixOptions::Initialise(){
   OptionValues["thermo"] = "0";
   OptionValues["globalsumintensitiesprior"] = "3.0,0.5";
   OptionValues["sumintensitiesprior"] = "4.0,3.0,3.0";
-  //OptionValues["truncationpoint"] = "99";
   OptionValues["seed"] = "1";
-  OptionValues["xonlyanalysis"] = "0";
   OptionValues["regressionpriorprecision"] = "0.25";
 }
 
@@ -330,10 +325,6 @@ bool AdmixOptions::getTestOneIndivIndicator()const{
 
 long AdmixOptions::getNumAnnealedRuns()const{
   return NumAnnealedRuns;
-}
-double AdmixOptions::getTruncPt() const
-{
-  return TruncPt;
 }
 
 bool AdmixOptions::isGlobalRho() const
@@ -545,16 +536,6 @@ std::vector<std::vector<double> > AdmixOptions::getInitAlpha()const{
   return initalpha;
 }
 
-bool AdmixOptions::IsPedFile() const
-{
-  return isPedFile;
-}
-
-void AdmixOptions::IsPedFile(bool i)
-{
-  isPedFile = i;
-}
-
 unsigned int AdmixOptions::getgenotypesSexColumn() const
 {
   return genotypesSexColumn;
@@ -565,13 +546,6 @@ void AdmixOptions::setgenotypesSexColumn(unsigned int i)
   genotypesSexColumn = i;
 }
 
-bool AdmixOptions::isXOnlyAnalysis() const
-{
-  return XOnlyAnalysis;
-}
-void AdmixOptions::isXOnlyAnalysis(bool b){
-  XOnlyAnalysis = b;
-}
 bool AdmixOptions::isSymmetric()const{
   return _symmetric;
 }
@@ -642,7 +616,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 
   static struct option long_options[] = {
     // Required options
-    {"analysistypeindicator",                 1, 0,  0 }, // int 0: 4 - kept for backward compatibility (does nothing)
     {"locusfile",                             1, 0, 'l'}, // string
     {"genotypesfile",                         1, 0, 'g'}, // string
     {"burnin",                                1, 0, 'b'}, // long
@@ -674,7 +647,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     //optional results directory name option - default is 'results'
     {"resultsdir",                            1, 0,  0 }, //string
    
-    // Extra output options
+    // test options
     {"allelicassociationscorefile",           1, 0,  0 }, // string
     {"residualallelicassocscorefile",         1, 0,  0 }, // string
     {"ancestryassociationscorefile",          1, 0,  0 }, // string
@@ -704,13 +677,11 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"etapriormean",                          1, 0,  0 }, //double
     {"etapriorvar",                           1, 0,  0 }, //double
     {"regressionpriorprecision",              1, 0,  0 }, //double
-    {"truncationpoint",                       1, 0,  0 }, // double, does nothing
     {"admixtureprior",                        1, 0,  0 }, // binary vector
     {"admixtureprior1",                       1, 0,  0 }, // binary vector
     {"fixedallelefreqs",                      1, 0,  0 }, // int 0, 1
     {"popadmixproportionsequal",              1, 0,  0 }, //int 0, 1
     {"correlatedallelefreqs",                 1, 0,  0 }, // int 0, 1
-    {"xonlyanalysis",                         1, 0,  0 }, // int 0, 1
 
     //sampler settings
     {"rhosamplerparams",                      1, 0,  0 }, // vector of doubles of length 4 or 5 
@@ -718,7 +689,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 
     // Other options
     {"numannealedruns",                       1, 0,  0 }, // long
-    {"coutindicator",                         1, 0, 'c'}, // int 0: 1
     {"displaylevel",                          1, 0,  0 }, // int 0: 2
     {"chib",                                  1, 0,  0 }, // int 0: 1
     {"thermo",                                1, 0,  0 }, // int 0: 1 
@@ -726,6 +696,12 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
     {"checkdata",                         1, 0,  'd' }, // int 0, 1
+
+    //old options - do nothing but kept for backward-compatibility with old scripts
+    {"analysistypeindicator",                 1, 0,  0 }, // int 0: 4
+    {"coutindicator",                         1, 0, 'c'}, // int 0: 1
+    {"truncationpoint",                       1, 0,  0 }, // double, does nothing
+
     {0, 0, 0, 0}    // marks end of array
   };
 
@@ -876,10 +852,6 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	if (strtol(optarg, NULL, 10) == 1) {
 	  correlatedallelefreqs = true;OptionValues["correlatedallelefreqs"]="1";
 	}
-      } else if (long_option_name == "xonlyanalysis") {
-	if (strtol(optarg, NULL, 10) == 1) {
-	  XOnlyAnalysis = true;OptionValues["xonlyanalysis"]="1";
-	}
       } else if (long_option_name == "locusfortest") {
 	 LocusForTest = (int)strtol(optarg, NULL, 10);OptionValues["locusfortest"]=optarg;
 	 locusForTestIndicator = true;
@@ -943,7 +915,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       } else if (long_option_name == "etapriorvar") {
 	 etavar = strtod(optarg, NULL);OptionValues["etapriorvar"]=optarg;
       } else if (long_option_name == "truncationpoint") {
-	TruncPt = strtod(optarg, NULL); //OptionValues["truncationpoint"]=optarg;
+	;
       } else if (long_option_name == "etapriorfile") {
 	 EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
       } else if (long_option_name == "admixtureprior" ) {
