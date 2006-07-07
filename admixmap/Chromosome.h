@@ -19,11 +19,12 @@
 class Individual;
 class AdmixOptions;
 
+/// Represents a chromosome and holds HMM object
 class Chromosome
 {
 public:
     Chromosome();
-  Chromosome(const unsigned int chrNum, int size, const int start, int, bool isx);
+  Chromosome(int, int size,int start, int, bool isx);
    ~Chromosome();
 // ******** Chromosome information **********************************
   void SetLabel(std::string );
@@ -35,8 +36,6 @@ public:
   const double *GetDistances()const;
   double GetDistance(int)const;
 
-  void isDiploid(bool b){Diploid = b;};
-  bool isDiploid()const{return Diploid;};
   bool isXChromosome()const;
 // ****************** Setting of locus correlation, f *************************
   void InitialiseLocusCorrelation(const double rho);
@@ -51,7 +50,7 @@ public:
   void UpdateHMMInputs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
   		     const AdmixOptions* const options, const std::vector< double > _rho, bool diploid);
 
-  void SampleLocusAncestry(int *OrderedStates);
+  void SampleLocusAncestry(int *OrderedStates, bool diploid);
   std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int);
   double getLogLikelihood(const bool isDiploid);
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
@@ -61,12 +60,13 @@ private:
   double *Distances;
   unsigned int NumberOfCompositeLoci;
  
+  int Number;//number of chromosome
   int _startLocus;
   int populations;
   std::string _Label;
   HMM SampleStates;
   bool isX;
-  bool Diploid;
+  //bool Diploid;
   
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
   // With a global rho model, this array is same for all individuals and calculated only once.
