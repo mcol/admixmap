@@ -78,7 +78,8 @@ public:
 
   double getLogLikelihood(const AdmixOptions* const options, 
 			  const double* const theta, const double* const thetaX,
-			  const vector<double > rho, const vector<double> rho_X, bool updateHMM);
+			  const vector<double > rho, //const vector<double> rho_X, 
+			  bool updateHMM);
 
   double getLogLikelihood(const AdmixOptions* const , const bool forceUpdate, const bool store);
   void storeLogLikelihood(const bool setHMMAsOK); // to call if a Metropolis proposal is accepted
@@ -120,14 +121,16 @@ public:
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 			  double rhoalpha, double rhobeta, //const vector<double> sigma, 
 			  ofstream &modefile,
-			  double *thetahat, double *thetahatX, vector<double> &rhohat, vector<double> &rhohatX);
+			  double *thetahat, double *thetahatX, vector<double> &rhohat); 
+			  //, vector<double> &rhohatX);
 
   void resetStepSizeApproximator(int k);
 
   void Chib(int iteration, // double *SumLogLikelihood, double *MaxLogLikelihood,
 	    const AdmixOptions* const options, const vector<vector<double> > &alpha, // double globalrho,
 	    double rhoalpha, double rhobeta, double *thetahat, double *thetahatX,
-	    vector<double> &rhohat, vector<double> &rhohatX, chib *MargLikelihood, AlleleFreqs *A);
+	    vector<double> &rhohat, //vector<double> &rhohatX, 
+	    chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(const AdmixOptions* const options);
  
@@ -176,7 +179,7 @@ private:
 
   std::vector< double > _rho; //sum of intensities
   std::vector< double > rhoMode;
-  std::vector< double > _rho_X;//sum of intensities for X chromosome
+			  //std::vector< double > _rho_X;//sum of intensities for X chromosome
   std::vector<double> sumlogrho;
   double TruncationPt; // upper truncation point for sum intensities parameter rho
 
@@ -227,7 +230,7 @@ private:
   
   void UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
 			     const double* const theta, const double* const thetaX,
-			     const vector<double> rho, const vector<double> rhoX);
+			     const vector<double> rho);
   
   void ProposeTheta(const AdmixOptions* const options, /*const vector<double> sigma,*/ const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
@@ -240,15 +243,15 @@ private:
 			       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
   //Computes LogPrior density in softmax basis at supplied parameter values 
 
-  double LogPriorRho(const vector<double> rho, const vector<double> rhoX, 
+  double LogPriorRho(const vector<double> rho, //const vector<double> rhoX, 
 		     const AdmixOptions* const options, double rhoalpha, double rhobeta)const; 
-  double LogPriorRho_LogBasis(const vector<double> rho, const vector<double> rhoX, 
+  double LogPriorRho_LogBasis(const vector<double> rho, //const vector<double> rhoX, 
 			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const;
 
   double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, const double* const thetaX, 
 				    const vector<vector<double> > &alpha)const;
   double CalculateLogPosteriorRho(const AdmixOptions* const options,  
-				  const vector<double> rho, const vector<double> rhoX,
+				  const vector<double> rho, //const vector<double> rhoX,
 				  double rhoalpha, double rhobeta)const;
   
   void UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, bool RandomMatingModel, 

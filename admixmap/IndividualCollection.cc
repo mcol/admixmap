@@ -681,7 +681,7 @@ void IndividualCollection::UpdateChib(int iteration, const AdmixOptions* const o
     _child[0]->Chib(iteration, //&SumLogLikelihood, &(MaxLogLikelihood[i]),
 		    options, alpha, //globalrho, 
 		    rhoalpha, rhobeta,
-		    thetahat, thetahatX, rhohat, rhohatX, &MargLikelihood, A);
+		    thetahat, thetahatX, rhohat, /*rhohatX,*/ &MargLikelihood, A);
 
 }
 
@@ -720,11 +720,11 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   }
   if(options->getTestOneIndivIndicator()) {// find posterior mode for test individual only 
     TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
-					       modefile, thetahat, thetahatX, rhohat, rhohatX);
+					       modefile, thetahat, thetahatX, rhohat); //, rhohatX);
   }
   for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
     _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,
-				   modefile, thetahat, thetahatX, rhohat, rhohatX);
+				  modefile, thetahat, thetahatX, rhohat); //, rhohatX);
     modefile << endl;
   }
   modefile.close();
