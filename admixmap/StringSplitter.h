@@ -17,16 +17,18 @@
 class StringSplitter
 {
 public:
-    /// = Ctr/dtr.
-
-    StringSplitter();
-    ~StringSplitter();
-
-
-    /// = Splitting (see comments for class above).
-
-    const Vector_s& split(const char *str);
-    const Vector_s& split(const std::string& str);
+  /// = Ctr/dtr.
+  
+  StringSplitter();
+  ~StringSplitter();
+  
+  
+  /// = Splitting (see comments for class above).
+  
+  const Vector_s& split(const char *str);
+  const Vector_s& split(const std::string& str);
+  void Tokenize(const std::string& str, std::vector<std::string>& tokens,
+		const std::string& delimiters);
 
 private:
     struct StringSplitterState;
