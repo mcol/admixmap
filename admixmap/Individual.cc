@@ -77,7 +77,17 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   SexIsFemale = false;
   if(sex == female) SexIsFemale = true;
   Xdata = Loci->isX_data();
-  
+  L = Loci->GetLengthOfGenome(); 
+  LX = 0.0;
+  if(Xdata) LX = Loci->GetLengthOfXchrm();
+  // effective length of genome is L + 0.5*LX if there is an X chrm: i.e. if g=1 or sex is female
+  if(SexIsFemale) {
+    EffectiveL[0] = L + 0.5*LX;
+  } else {
+    EffectiveL[0] = L;
+  }
+  EffectiveL[1] = L + 0.5*LX;
+
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
   Theta = 0;
   ThetaProposal = 0;
@@ -726,133 +736,115 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
   
   //use current parameter values as initial values
   double *SumLocusAncestryHat = new double[2*Populations];
-  int *SumLocusAncestry_XHat = 0;
+  //int *SumLocusAncestry_XHat = 0;
   for(unsigned EMiter = 0; EMiter < numEMiters; ++EMiter){
-    double SumNumArrivalsHat[2] = {0,0}, SumNumArrivals_XHat[2] = {0,0};
+    double SumNumArrivalsHat[2] = {0,0}; //, SumNumArrivals_XHat[2] = {0,0};
     fill(SumLocusAncestryHat, SumLocusAncestryHat + 2*Populations, 0.0);
-    //TODO: SumLocusAncestry_XHat
     
     //E-step: fix theta and rho, sample Locus Ancestry and Number of Arrivals
     NumEstepiters *= 2;
     for(unsigned Estepiters = 0; Estepiters < (unsigned)NumEstepiters ; ++Estepiters) {
-      
       if(Populations >1){
 	ResetSufficientStats();
 	SampleLocusAncestry(options);
 	SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
       }
-      
       vector<unsigned> SumN = getSumNumArrivals();
-      vector<unsigned> SumN_X = getSumNumArrivals_X();
-      
+      vector<unsigned> SumN_X = getSumNumArrivals_X(); // element 0 should be zero in a male
       // accumulate sums
-      SumNumArrivalsHat[0] += SumN[0];	SumNumArrivals_XHat[0] += SumN_X[0];
-      SumNumArrivalsHat[1] += SumN[1];	SumNumArrivals_XHat[1] += SumN_X[1];
+      SumNumArrivalsHat[0] += SumN[0] + SumN_X[0];
+      SumNumArrivalsHat[1] += SumN[1] + SumN_X[1];
       transform(SumLocusAncestry, SumLocusAncestry+2*Populations, 
 		SumLocusAncestryHat, SumLocusAncestryHat, std::plus<double>());
-      //TODO: line for SumLocusAncestry_X;
     }
-    // set SumLocusAncestry and SumNumArrivals to their averages
+    // set SumLocusAncestry and SumNumArrivals to their averages over current E step
     for(int i = 0; i < 2*Populations; ++i) {
       SumLocusAncestryHat[i] /= (double)NumEstepiters; 
-      //TODO: X 
     }
-    
     cout << "E step\t";
-    for(unsigned int g = 0; g < NumIndGametes; ++g) {
-      for(int k = 0; k < Populations; ++k) {
-	// cout << SumLocusAncestryHat[g*Populations + k] << "\t";
-      }
-    }
-    //cout << "\t" << SumNumArrivals[0] << "\t" << SumNumArrivals[1] << "\t";
-    
+    //     for(unsigned int g = 0; g < NumIndGametes; ++g) {
+    //       for(int k = 0; k < Populations; ++k) {
+    // 	cout << SumLocusAncestryHat[g*Populations + k] << "\t";
+    //       }
+    //     }
+    // cout << "\t" << SumNumArrivals[0] << "\t" << SumNumArrivals[1] << "\t";
     SumNumArrivalsHat[0] /= (double)NumEstepiters;   
     SumNumArrivalsHat[1] /= (double)NumEstepiters; 
-    SumNumArrivals_XHat[0] /= NumEstepiters; 
-    SumNumArrivals_XHat[1] /= NumEstepiters;
+    //   SumNumArrivals_XHat[0] /= NumEstepiters; 
+    //SumNumArrivals_XHat[1] /= NumEstepiters;
     
     //M-step: set mode for log rho and for theta in softmax basis - no minus ones in exponents
     // use vector rhohat and array ThetaProposal to store updates before accept/reject 
+    unsigned gg = 0; // indexes which admixture prior (alpha) to use: use alpha[1] if second gamete and no indadmixhiermodel
     for(unsigned g = 0; g < NumIndGametes; ++g) {
       if( options->isAdmixed(g) ) {
-	if(!options->isGlobalRho()){
-	  
-	  rhohat[g] = (rhoalpha + SumNumArrivalsHat[g]) / (rhobeta + Loci->GetLengthOfGenome());
-	  unsigned gg = g; // index of prior (alpha) to use: use alpha[1] if second gamete and no indadmixhiermodel
-	  if(options->getIndAdmixHierIndicator()) gg = 0;
-	  double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
-	    + accumulate(SumLocusAncestryHat+g*Populations, 
-			 SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>());
-	  double sum_X = 0.0;
-	  if( Loci->isX_data() )
-	    sum_X = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
-	      + accumulate(SumLocusAncestry_XHat+g*Populations, 
-			   SumLocusAncestry_XHat+(g+1)*Populations, 0.0, std::plus<double>());
-	  for(int k = 0; k < Populations; ++k) {
-	    
-	    if(alpha[gg][k]>0.0) ThetaProposal[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
-	    
-	  }
-	} //end isadmixed
-	else//unadmixed gameta - set ThetaProposal to (fixed) values in thetahat, which will be something like 1,0,0 
-	  copy(thetahat+g*Populations, thetahat+(g+1)*Populations, ThetaProposal+g*Populations);
-      } // end loop over gametes
-      double logpriorhat =  LogPriorTheta_Softmax(ThetaProposal, options, alpha) + 
-	LogPriorRho_LogBasis(rhohat,/* _rho_X, */ options, rhoalpha, rhobeta);
-      double loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, false);
-      double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
-      if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
-	if(isadmixed){
-	  setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
-	  copy(rhohat.begin(), rhohat.end(), _rho.begin());
+	if(!options->isGlobalRho()) {
+	  rhohat[g] = ( rhoalpha + SumNumArrivalsHat[g] ) / ( rhobeta + EffectiveL[g] );
 	}
-	LogUnnormalizedPosterior = LogUnnormalizedPosteriorHat;
+	if(g==1 && !options->getIndAdmixHierIndicator()) {
+	  gg = 1;
+	}
+	double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
+	  + accumulate(SumLocusAncestryHat+g*Populations, 
+		       SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>());
+	for(int k = 0; k < Populations; ++k) {
+	  if(alpha[gg][k]>0.0) ThetaProposal[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
+	}
+      } else {//unadmixed gamete - set ThetaProposal to (fixed) values in thetahat, which will be something like 1,0,0 
+	copy(thetahat+g*Populations, thetahat+(g+1)*Populations, ThetaProposal+g*Populations);
+      } 
+    } // end loop over gametes
+    double logpriorhat =  LogPriorTheta_Softmax(ThetaProposal, options, alpha) + 
+      LogPriorRho_LogBasis(rhohat,/* _rho_X, */ options, rhoalpha, rhobeta);
+    double loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, false);
+    double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
+    if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
+      if(isadmixed) {
+	setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
+	copy(rhohat.begin(), rhohat.end(), _rho.begin());
       }
-      cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior  " << 
-	LogUnnormalizedPosterior << endl << flush;
-    } //end EM outer loop
+      LogUnnormalizedPosterior = LogUnnormalizedPosteriorHat;
+    } 
+    cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior " << 
+      LogUnnormalizedPosterior << endl << flush;
+  } //end EM outer loop
     
     
-    { //print values to file
-      modefile<<setiosflags(ios::fixed)<<setprecision(3);
-      modefile << myNumber << "\t";
-      if(!options->isGlobalRho()) {
-	for(unsigned i = 0; i < NumIndGametes; ++i) modefile<<_rho[i]<<"\t ";
-      }
-      for(unsigned i = 0; i < NumIndGametes; ++i) { //loop over populations within gametes
-	for(int k = 0; k < Populations; ++k) modefile<<Theta[i*Populations +k]<<"\t ";
-      }
+  //print values to file
+  modefile<<setiosflags(ios::fixed)<<setprecision(3);
+  modefile << myNumber << "\t";
+  if(!options->isGlobalRho()) {
+    for(unsigned i = 0; i < NumIndGametes; ++i) modefile<<_rho[i]<<"\t ";
+  }
+  for(unsigned i = 0; i < NumIndGametes; ++i) { //loop over populations within gametes
+    for(int k = 0; k < Populations; ++k) modefile<<Theta[i*Populations +k]<<"\t ";
+  }
+  
+  delete[] SumLocusAncestryHat;
+  
+  if(myNumber==1 && options->getChibIndicator()){ // copy modes into hat arrays to use in Chib algorithm
+    for(unsigned k = 0; k < Populations*NumIndGametes; ++k){
+      thetahat[k] = Theta[k];
     }
-    delete[] SumLocusAncestryHat;
-    
-    if(myNumber==1 && options->getChibIndicator()){ // copy modes into hat arrays to use in chib algorithm
-      for(unsigned k = 0; k < Populations*NumIndGametes; ++k){
-	thetahat[k] = Theta[k];
-      }
-      //check for zeros where not specified by prior
-      for(unsigned i = 0; i < NumIndGametes; ++i){
-	unsigned gg = i; // index of alpha to use, 1 only for second gamete and no indadmixhiermodel
-	if(options->getIndAdmixHierIndicator()) gg = 0;
-	unsigned NumAdmixed = 0;
-	double sum = 0.0;
-	for(int k = 0; k < Populations; ++k){
-	  if(alpha[gg][k]>0.0)++NumAdmixed;
-	  sum += Theta[i*Populations+k];
-	}
-	int k0;
-	for(int k = 0; k < Populations; ++k){
-	  thetahat[i*Populations+k] /= sum;//correct to sum to 1
-	  if(alpha[gg][k]>0.0 && thetahat[i*Populations+k]<0.001){
-	    k0 = k;
-	    for(int kk = 0; kk < Populations; ++kk)if(alpha[gg][kk]>0.0 && kk!=k0)
-	      thetahat[i*Populations+kk]-= 0.001 / (double)(NumAdmixed);
+    //check for zeros where not specified by prior
+    for(unsigned i = 0; i < NumIndGametes; ++i) {
+      unsigned gg = i; // index of alpha to use: for second gamete and no indadmixhiermodel use 1
+      if(options->getIndAdmixHierIndicator()) gg = 0;
+      //unsigned NumAdmixed = 0;
+      double sum = 0.0;
+      for(int k = 0; k < Populations; ++k) { // if prior not zero, and mode < 0.001, use 0.001
+	if(alpha[gg][k]>0.0 && thetahat[i*Populations+k]<0.001) {
 	    thetahat[i*Populations+k] = 0.001;
-	  }
 	}
-      }//end gamete loop
-      
-      copy(_rho.begin(), _rho.end(), rhohat.begin());
-    }
+      }
+      for(int k = 0; k < Populations; ++k) {
+	sum += thetahat[i*Populations+k];
+      }
+      for(int k = 0; k < Populations; ++k) { // re-normalize
+	thetahat[i*Populations+k] /= sum;
+      } 
+    } //end gamete loop
+    copy(_rho.begin(), _rho.end(), rhohat.begin());
   }
 }
 
@@ -1148,32 +1140,19 @@ void Individual::SampleRho(const AdmixOptions* const options, double rhoalpha, d
   vector<unsigned> sumNumArrivals_X = getSumNumArrivals_X();
   // rho_X is set to 0.5*rho - equivalent to setting effective length of X chromosome as half length in morgans
   // conjugate gamma update for rho includes arrivals on X chromosome, and 0.5 * length of X chromosome
-  double L = Loci->GetLengthOfGenome(); 
-  double LX = 0.0;
-  if( Loci->isX_data() ) LX = Loci->GetLengthOfXchrm();
-  double EffectiveL = 0.0;
+  //double L = Loci->GetLengthOfGenome(); 
+  //double LX = 0.0;
+  //if( Loci->isX_data() ) LX = Loci->GetLengthOfXchrm();
   if(options->isRandomMatingModel() ) {
     // SumNumArrivals_X has length 2, and SumNumArrivals_X[0] remains fixed at 0 if male 
     for( unsigned int g = 0; g < 2; g++ )if(options->isAdmixed(g)) {
-      do {
-	// effective length of genome is L + 0.5*LX if there is an X chrm: i.e. if g=1 or sex is female
-	if(g || SexIsFemale) EffectiveL = L + 0.5*LX;
-	else EffectiveL = L;
-	_rho[g] = Rand::gengam( rhoalpha + (double)(sumNumArrivals[g] + sumNumArrivals_X[g]), rhobeta + EffectiveL );
-      } while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
-//       if( Loci->isX_data()  && (g = 1 || SexIsFemale) ) { // no assignment if g = 0 (paternal gamete) and sex is male
-// 	_rho_X[g] = 0.5 * _rho[g];
-//       }
+      //do {
+      _rho[g] = Rand::gengam( rhoalpha + (double)(sumNumArrivals[g] + sumNumArrivals_X[g]), rhobeta + EffectiveL[g] );
+      //} while( _rho[g] > TruncationPt || _rho[g] < 1.0 );
     } 
   } else {//assortative mating
-    // effective length of genome is  2*(L + 0.5*LX) if sex is female, 2*L + 0.5*LX if sex is male
-    if( SexIsFemale) EffectiveL =  2.0 * L + LX;
-    else EffectiveL = 2.0 * L + 0.5 * LX;
     _rho[0] = Rand::gengam( rhoalpha + (double)(sumNumArrivals[0] + sumNumArrivals[1] + sumNumArrivals_X[0] + sumNumArrivals_X[1]), 
-			rhobeta + EffectiveL );
-//     if(Loci->isX_data()) {
-//       _rho_X[0] = 0.5 * _rho[0];
-//     }
+			rhobeta + EffectiveL[0] + EffectiveL[1] );
   }
   //now that rho has changed, current stored value of loglikelihood is no longer valid and 
   //HMMs will need to be updated before getting loglikelihood
@@ -1641,131 +1620,63 @@ double Individual::CalculateLogPosteriorTheta(const AdmixOptions* const options,
   return LogPosterior;
 }
 
-double Individual::LogPriorRho(const vector<double> rho, //const vector<double> rhoX, 
-			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const {
-//Computes LogPrior at supplied parameter values
-// standardizes densities with an integrating constant - can simplify by just calculating posterior/prior ratio 
+double Individual::LogPriorRho(const vector<double> rho, const AdmixOptions* const options, double rhoalpha, double rhobeta) const {
+  // Computes log prior density for arrival rate rho at supplied parameter values
+  // can simplify by just calculating posterior/prior ratio  - normalizing constant will cancel
   double LogPrior=0.0;
-
- //  if( Loci->isX_data() ){
-//     LogPrior = getGammaLogDensity( rhoalpha, rhobeta, rho[0] )//gamete1
-//       //  + getGammaLogDensity( rhoalpha, rhobeta, rhoX[0] )      //X chromosome
-//       + getGammaLogDensity( rhoalpha, rhobeta, rho[1] ) ;      //gamete2
-//     // + getGammaLogDensity( rhoalpha, rhobeta, rhoX[1] );    //X chr
-//     LogPrior /= gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0);
-//   }
-//   else
-  {
-    if( Populations > 1 ){
-      for(int g = 0; g < 2; ++g){//loop over gametes
+  if( Populations > 1 ) {
+    if( options->isRandomMatingModel() ) {
+      for(int g = 0; g < 2; ++g) { //loop over gametes
 	if( options->isAdmixed(g) ){
-	  
 	  LogPrior = getGammaLogDensity( rhoalpha, rhobeta, rho[g] );
-	  LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) );
+	  //LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) ); // normalize for lower truncation at 1
 	}
       }
+    } else { // assortative mating: rho assumed same on both gametes 
+      LogPrior = getGammaLogDensity( rhoalpha, rhobeta, rho[0] );
+      //LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) );
+      
     }
   }
   return LogPrior;
 }
 
-double Individual::LogPriorRho_LogBasis(const vector<double> rho, //const vector<double> rhoX, 
-			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const {
-// computes LogPrior density in log rho basis at supplied parameter values
-// no standardization by integrating constant
+double Individual::LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions* const options, double rhoalpha, 
+					double rhobeta) const {
+  // computes LogPrior density in log rho basis at supplied parameter values
   double LogPrior=0.0;
-//   if( Loci->isX_data() ){
-//     LogPrior = getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rho[0] )//gamete1
-//       //   + getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rhoX[0] )      //X chromosome
-//       + getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rho[1] );       //gamete2
-//     //  + getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rhoX[1] );    //X chr
-//   }
-//   else
-  {
-    if( Populations > 1 ){
-      for(int g = 0; g < 2; ++g){//loop over gametes
+  if( Populations > 1 ) { 
+    if( options->isRandomMatingModel() ) {
+      for(int g = 0; g < 2; ++g) { //loop over gametes
 	if( options->isAdmixed(g) ){
 	  LogPrior = getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rho[g] );
 	}
       }
-      }
+    } else { // assortative mating: rho assumed same on both gametes
+      LogPrior = getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rho[0] );
+    }
   }
   return LogPrior;
 }
 
-double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options,  
-					    const vector<double> rho, //const vector<double> rhoX,
+double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options, const vector<double> rho, 
 					    double rhoalpha, double rhobeta)const{
   // calculates log full conditional density at sum-intensities rho, conditional on realized number of arrivals
   double LogPosterior = 0.0;
-  double L = Loci->GetLengthOfGenome(), L_X = 0.0;
-  if( Loci->isX_data() ) L_X = Loci->GetLengthOfXchrm();
   vector<unsigned> SumN = getSumNumArrivals();
   vector<unsigned> SumN_X = getSumNumArrivals_X();
-
-  double IntConst1;
-  vector<double> alphaparams1(Populations), alphaparams0(Populations);
-  if( Loci->isX_data() ){
-    for( unsigned int g = 0; g < 2; g++ ){
-      LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[g], rhobeta + L, rho[g] );
-      //if(!options->RhoFlatPrior() && !options->logRhoFlatPrior() )
-      IntConst1 = IntegratingConst(rhoalpha+(double)SumN[g], rhobeta+L, 1.0, TruncationPt );
-      //else
-      //IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumNumArrivals[g], 1.0);
-      LogPosterior -= log(IntConst1);
+  // vector<double> alphaparams1(Populations), alphaparams0(Populations);
+  if(options->isRandomMatingModel() ) { // SumNumArrivals_X has length 2, and SumNumArrivals_X[0] remains fixed at 0 if male 
+    for( unsigned int g = 0; g < 2; g++ ) {
+      if(options->isAdmixed(g)) {
+	LogPosterior += getGammaLogDensity( rhoalpha + (double)(SumN[g] + SumN_X[g]), rhobeta + EffectiveL[g], rho[g] );
+      } 
     }
-    for( unsigned int g = 0; g < gametes[X_posn]; g++ ){
-      LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN_X[g], rhobeta + L_X, 0.5*rho[g] );
-      //if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
-      //IntConst1 = IntegratingConst(rhoalpha+(double)SumNumArrivals_X[g], rhobeta+L_X, 1.0, TruncationPt );
-      //else
-      IntConst1 = gsl_cdf_gamma_Q(rhobeta+L_X, rhoalpha+(double)SumN_X[g], 1.0);
-      LogPosterior -= log(IntConst1);
-    }
-  }
-  else 
-    if( options->isSymmetric() ){//both gametes have same admixture
-    vector<double> x(2,0.0);
-    x[0] += getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[0] );
-    x[1] += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[0] );
-    x[0] += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[1] );
-    x[1] += getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[1] );
-    double IntConst1, IntConst2;
-    //if( options->RhoFlatPrior() || options->logRhoFlatPrior() ){
-    //IntConst1 = IntegratingConst(rhoalpha+(double)SumNumArrivals[0], rhobeta+L, 1.0, TruncationPt );
-    //IntConst2 = IntegratingConst(rhoalpha+(double)SumNumArrivals[1], rhobeta+L, 1.0, TruncationPt );
-    //}
-    //else{
-	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[0], 1.0);
-	IntConst2 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);
-	//}
-    x[0] -= log(IntConst1);
-    x[1] -= log(IntConst2);
-      if( isnan(x[0]) || isinf(x[0]) )
-	LogPosterior = x[1] - log(2.0);
-      else if( isnan(x[1]) || isinf(x[1])  )
-	LogPosterior = x[0] - log(2.0);
-      else if( x[0] < x[1] )
-	LogPosterior = x[1] + log( 1 + exp( x[0] - x[1] ) ) - log(2.0);
-      else
-	LogPosterior = x[0] + log( 1 + exp( x[1] - x[0] ) ) - log(2.0);
-  }
-  else{//different admixtures for each gamete
-    if(  options->isAdmixed(0) ){//admixed first gamete
-      LogPosterior = getGammaLogDensity( rhoalpha + (double)SumN[0], rhobeta + L, rho[0] );
-      //if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
-	IntConst1 = IntegratingConst(rhoalpha+(double)SumN[0], rhobeta+L, 1.0, TruncationPt );
-	//else
-	//IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumNumArrivals[0], 1.0);
-      LogPosterior -= log( IntConst1 );
-    }
-    if(  options->isAdmixed(1) ){//admixed second gamete
-      LogPosterior += getGammaLogDensity( rhoalpha + (double)SumN[1], rhobeta + L, rho[1] );
-      //if( options->RhoFlatPrior() || options->logRhoFlatPrior() )
-      //IntConst1 = IntegratingConst(rhoalpha+(double)SumNumArrivals[1], rhobeta+L, 1.0, options->getTruncPt() );
-      //else
-	IntConst1 = gsl_cdf_gamma_Q(rhobeta+L, rhoalpha+(double)SumN[1], 1.0);
-      LogPosterior -= log( IntConst1 );
+  } else {//assortative mating, rho assumed same on both gametes
+    // effective length of genome is  2*(L + 0.5*LX) if sex is female, 2*L + 0.5*LX if sex is male
+    if(options->isAdmixed(0)) {
+      LogPosterior+= getGammaLogDensity( rhoalpha + (double)(SumN[0] + SumN[1] + SumN_X[0] + SumN_X[1]), 
+					 rhobeta + EffectiveL[0] + EffectiveL[1], rho[0] );
     }
   }
   return LogPosterior;
