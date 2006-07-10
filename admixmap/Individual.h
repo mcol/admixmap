@@ -144,6 +144,10 @@ private:
   bool IAmUnderTest;//true if not in Individual array
   bool SexIsFemale;
   bool Xdata;
+  double L;
+  double LX;
+  double EffectiveL[2];
+
   Sex sex; 
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   unsigned int X_posn;  //number of X chromosome
