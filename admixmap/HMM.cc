@@ -67,7 +67,7 @@ void HMM::SetDimensions( int inTransitions, int pops)
     }
 }
 
-void HMM::SetGenotypeProbs(const double* lambdain, const bool* const missing){
+void HMM::SetGenotypeProbs(const double* const lambdain, const bool* const missing){
   Lambda = lambdain;
   missingGenotypes = missing;
   alphaIsBad = true;//new input so reset
@@ -147,13 +147,13 @@ double HMM::getLogLikelihood(bool isdiploid)
   if(alphaIsBad){
     if(isdiploid)UpdateForwardProbsDiploid();
     else UpdateForwardProbsHaploid();
-  }
+    }
   double sum = 0;
   if(isdiploid) {
     for( int j = 0; j < DStates; j++ ) {
       sum += alpha[(Transitions - 1)*DStates + j];
     } 
-  } else {
+  } else {//haploid
     for( int j = 0; j < K; j++ ) {
       sum += alpha[(Transitions - 1)*K + j];
     }
@@ -358,7 +358,7 @@ void HMM::UpdateForwardProbsHaploid(){
     }
     for(int j = 0; j < K; ++j){
       alpha[t*K + j] = f[2*t] + (1.0 - f[2*t]) * theta[j] * Sum;
-      alpha[t*K + j] *= Lambda[(t+1)*K + j];
+      alpha[t*K + j] *= Lambda[t*K + j];
     }
   }
   alphaIsBad =  false;
