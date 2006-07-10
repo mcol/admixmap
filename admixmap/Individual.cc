@@ -326,8 +326,12 @@ void Individual::AnnealGenotypeProbs(int j, const double coolness) {
   int locus = Loci->getChromosome(j)->GetLocus(0);
   for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
     if( !GenotypesMissing[j][jj] ) { 
+    if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
       for(int k = 0; k < Populations*Populations; ++k) // loop over ancestry states
 	GenotypeProbs[j][jj*Populations*Populations+k] = pow(GenotypeProbs[j][jj*Populations*Populations+k], coolness); 
+    else //haploid genotype
+      for(int k = 0; k < Populations; ++k) // loop over ancestry states
+	GenotypeProbs[j][jj*Populations+k] = pow(GenotypeProbs[j][jj*Populations+k], coolness); 
     }
     locus++;
   }
