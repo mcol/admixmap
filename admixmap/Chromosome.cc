@@ -103,7 +103,7 @@ unsigned int Chromosome::GetNumberOfCompositeLoci()const
 
 // ****************** Setting of locus correlation, f *************************
 
-///Initialises locus ancestry correlations f.  Necessary since individual-level parameters updated before global rho (in Latent)
+///Initialises locus ancestry correlations f.  Necessary since individual-level parameters are updated before global rho (in Latent)
 void Chromosome::InitialiseLocusCorrelation(const double rho_){
   double rho = rho_;
   if(isX)rho *= 0.5;
@@ -111,6 +111,7 @@ void Chromosome::InitialiseLocusCorrelation(const double rho_){
   for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ )
     f[2*j] = f[2*j + 1] = myexp( -GetDistance( j ) * rho );
 }
+///Initialises locus ancestry correlations f for locus-specific rho.
 void Chromosome::InitialiseLocusCorrelation(const vector<double> rho_){
   if(rho_.size() == 1)InitialiseLocusCorrelation(rho_[0]);
   else{
@@ -146,14 +147,14 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
   else{
     if(RandomMating){//gamete-specific
       if(rho_.size()!=2)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
-      for( unsigned int jj = 1; jj < NumberOfCompositeLoci; jj++ ){
+      for( unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
 	if(isX){
-	  f[2*jj] = myexp( -GetDistance( jj ) * rho_[0]*0.5 );
-	  f[2*jj + 1] = myexp( -GetDistance( jj ) * rho_[1]*0.5 );
+	  f[2*j] = myexp( -GetDistance( j ) * rho_[0]*0.5 );//sumintensities on Xchrm is set to half autosomal value
+	  f[2*j + 1] = myexp( -GetDistance( j ) * rho_[1]*0.5 );
 	}
 	else{
-	  f[2*jj] = myexp( -GetDistance( jj ) * rho_[0]*0.5 );
-	  f[2*jj + 1] = myexp( -GetDistance( jj ) * rho_[1]*0.5 );
+	  f[2*j] = myexp( -GetDistance( j ) * rho_[0] );
+	  f[2*j + 1] = myexp( -GetDistance( j ) * rho_[1] );
 	}
 
       }
@@ -170,18 +171,20 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
 }
 
 // ********** Interface to HMM ****************************************
-void Chromosome::SetGenotypeProbs(double* const GenotypeProbs, bool* const GenotypesMissing) {
+///sets genotype probabilities in HMM
+void Chromosome::SetGenotypeProbs(const double* const GenotypeProbs, const bool* const GenotypesMissing) {
   SampleStates.SetGenotypeProbs(GenotypeProbs, GenotypesMissing);
 }
+///sets state arrival probs in HMM
 void Chromosome::SetStateArrivalProbs(const double* const Admixture, bool RandomMating, bool diploid) {
 
   //construct StateArrivalProbs
-  if(diploid)
+  if(diploid || !RandomMating)
     SampleStates.SetStateArrivalProbs(f, Admixture, RandomMating, diploid);
-  else //haploid case: pass pointer to maternal admixture props
+  else if(RandomMating)//haploid case in random mating model: pass pointer to maternal admixture props
     SampleStates.SetStateArrivalProbs(f, Admixture+populations, RandomMating, diploid);
 }
-
+///samples locus ancestry (hidden states in HMM)
 void Chromosome::SampleLocusAncestry(int *OrderedStates, bool diploid){
   SampleStates.Sample(OrderedStates, diploid);
 }
@@ -221,7 +224,7 @@ std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDipl
   return AncestryProbs;
 }
 
-///accessor for HMM Likelihood
+///returns HMM Likelihood
 double Chromosome::getLogLikelihood(const bool isDiploid)
 {
   return SampleStates.getLogLikelihood(isDiploid);
