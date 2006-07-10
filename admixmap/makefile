@@ -9,6 +9,7 @@
 # Serial/Parallel version: VERSION = [serial/parallel]
 # Processor type: ARCH = [i686/P4/AMD64/itanium2]
 # Compiler: CC = [g++/icpc/pgCC/pathCC]
+# (if using GCC 4.x, set GCC_VERSION=4 to enable vectorization)
 # MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
 # paths to gsl, mpi, sprng: GSL_LIBPATH, GSL_INCLUDEPATH, MPI_PATH, MPI_LIBPATH, SPRNG_PATH
@@ -174,7 +175,7 @@ MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o String
 DataMatrix.o AlleleFreqSampler.o
 
 all:	$(objects)
-	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) -lsampler $(LIBS)
+	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
 	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(EXEC) \**
 
 libsampler:
