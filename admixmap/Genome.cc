@@ -315,6 +315,10 @@ int Genome::GetNumberOfStates()const
 #endif
 }
 
+unsigned Genome::GetChrNumOfLocus(unsigned locus){
+  return LocusTable[locus][0];
+}
+
 const vector<int> Genome::GetChrmAndLocus( int j )const{
   return LocusTable[j];
 }

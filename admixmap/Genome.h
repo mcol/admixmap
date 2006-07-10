@@ -72,7 +72,8 @@ public:
 
   void PrintSizes(LogWriter &Log, const string unit)const;
   void PrintLocusTable(const char* filename, const std::vector<double>& Distances)const;
- 
+
+  unsigned GetChrNumOfLocus(unsigned locus); 
   int GetNumberOfStates()const;
   int GetNumberOfStates(int locus)const;
   
