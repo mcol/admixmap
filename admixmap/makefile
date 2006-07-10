@@ -2,8 +2,9 @@
 # makefile for compiling ADMIXMAP
 #
 # The default is to make serial version with gcc compiler and optimised for i686 machines. 
-# For other versions, edit the following variables or specify on the command line. 
-# Use make[...] new to recompile from scratch.
+# For other versions, edit the following variables or specify on the command line.
+# Use make libsampler to compile the sampling library if not already done.
+# Use make[...] new to recompile from scratch or make[...] allnew to recompile the sampling library as well.
 #
 # Serial/Parallel version: VERSION = [serial/parallel]
 # Processor type: ARCH = [i686/P4/AMD64/itanium2]
@@ -23,6 +24,9 @@
 # GSL - only needed if in nonstandard location 
 GSL_LIBPATH =#standard is /usr/local/lib
 GSL_INCLUDEPATH=#standard is /usr/local/include
+
+#path to sampling library
+LIBSAMPLER_PATH =../libsampler
 
 ## for parallel version only
 # path to mpi top level directory
@@ -48,7 +52,7 @@ MPICC = $(MPI_PATH)/bin/mpiCC# MPI 1 wrapper
 MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
-GCC_VERSION = 3
+GCC_VERSION =4
 VERSION = serial
 #VERSION = parallel
 
@@ -119,25 +123,24 @@ PROC = -tp amd64
 endif
 endif
 
-####  DO NOT EDIT BELOW HERE ####
+####  DO NOT EDIT BELOW HERE ##
 
 ## Library flags
 # math, GSL, GSL's CBLAS (linear algebra)
-SERIAL_LIBS = -lm -lgsl -lgslcblas 
+NORMAL_LIBS = -lsampler -lm -lgsl -lgslcblas 
 
-PARALLEL_LIBS = $(SERIAL_LIBS) -lmpich -lsprng -lgmp -lmpe
+PARALLEL_LIBS = $(NORMAL_LIBS) -lmpich -lsprng -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
 
-ifeq ($(GSL_LIBPATH),)
-GSL_LFLAGS =
-else
-GSL_LFLAGS = -L$(GSL_LIBPATH)
+LFLAGS =-L$(LIBSAMPLER_PATH)
+INCLUDES = -I$(LIBSAMPLER_PATH)
+
+ifneq ($(GSL_LIBPATH),)
+LFLAGS += -L$(GSL_LIBPATH)
 endif
 
-ifeq ($(GSL_INCLUDEPATH),)
-GSL_INCLUDES =
-else
-GSL_INCLUDES = -I$(GSL_INCLUDEPATH)
+ifneq ($(GSL_INCLUDEPATH),)
+INCLUDES += -I$(GSL_INCLUDEPATH)
 endif
 
 ##library flags for sprng and mpich in parallel version
@@ -148,42 +151,66 @@ PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 ifeq ($(VERSION),parallel)
 CXX = $(PCC)
 LIBS = $(PARALLEL_LIBS)
-LFLAGS = $(GSL_LFLAGS) $(PARALLEL_LFLAGS)
-INCLUDES = $(GSL_INCLUDES) $(PARALLEL_INCLUDES)
+LFLAGS += $(PARALLEL_LFLAGS)
+INCLUDES += $(PARALLEL_INCLUDES)
 EXEC = adm-para
 ##serial version
 else
 CXX = $(CC)
-LIBS = $(SERIAL_LIBS) $(LIBTYPE)
-LFLAGS = $(GSL_LFLAGS)
-INCLUDES = $(GSL_INCLUDES)
+LIBS = $(NORMAL_LIBS) $(LIBTYPE)
 EXEC = $(SERIAL_EXEC)
 endif
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 
-objects		= rand.o admixmap.o Latent.o Regression.o LinearRegression.o LogisticRegression.o AlleleFreqs.o AdmixOptions.o \
-AdaptiveRejection.o StepSizeTuner.o Gaussian.o Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o \
-Individual.o GaussianProposalMH.o HMM.o IndAdmixOutputter.o functions.o chib.o StratificationTest.o ScoreTests.o \
-ScoreTestBase.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o \
-DirichletParamSampler.o HamiltonianMonteCarlo.o DataMatrix.o MuSampler.o DispersionSampler.o AlleleFreqSampler.o
+## DO NOT EDIT BELOW HERE ##
+export CXX CPPFLAGS GSL_INCLUDEPATH PARALLEL_INCLUDES
 
-all:  	$(objects)
-	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
+objects		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o\
+Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o LinearRegression.o LogisticRegression.o\
+Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o \
+MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o \
+DataMatrix.o AlleleFreqSampler.o
+
+all:	$(objects)
+	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) -lsampler $(LIBS)
+	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(EXEC) \**
+
+libsampler:
+	@echo **compiling sampler library**
+	$(MAKE) -C $(LIBSAMPLER_PATH) -e
 
 %.o: %.cc#rule for compilation
 	$(CXX) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
 
+#recompile from scratch
 new: 		clean all
 
+#recompile everything from scratch
+allnew:	libnew new
+
+#delete all object files
 clean:		          
 	rm -f *.o
 
-realclean: 
-	rm -f *.o 
+#delete sampler library
+libclean: 
+	$(MAKE) -C $(LIBSAMPLER_PATH) clean
+
+#recompile sampler library
+libnew: 
+	@echo **recompiling sampler library**
+	$(MAKE) -C $(LIBSAMPLER_PATH) -e clean all
+
+
+#delete all object files, libraries and exec
+realclean: clean libclean 
 	rm -f $(DESTDIR)/$(EXEC)
 
 check:		all
 		perl $(DESTDIR)/batchtest.pl
+
+
+
 
