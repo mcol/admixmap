@@ -1,0 +1,31 @@
+Preliminary documentation for Bayesian C++ class library
+Paul McKeigue, David O'Donnell
+
+The C++ classes and functions listed below are used in the ADMIXMAP program, but have more general usefulness in Bayesian computation.  Documentation, debugging and optimization are far from complete.  Developers are welcome to collaborate on improvements, bug fixes and producing more documentation.   All code is released under a standard GNU GPL; see COPYING.txt for details.
+
+AdaptiveRejection
+Implements an adaptive rejection sampler for log-concave densities for which first and second derivatives of log density can be calculated.  Pointers to these functions, together with the posterior mode if available, are passed to the sampler.  Can be used with a scalar parameter, bounded or unbounded.  
+
+DirichletParamSampler
+Samples parameters of a Dirichlet density conditional on observations of proportions, with independent Gamma (x, 1) priors on the elements of the Dirichlet parameter vector.  
+
+DispersionSampler
+Class for Markov chain Monte Carlo sampling of the dispersion parameter of a compound multinomial-Dirichlet distribution, conditional on the observed counts, the proportion parameter vector, and a gamma prior.  Uses a Metropolis step. 
+
+functions
+Miscellaneous functions include softmax and inverse softmax transformations, calculation of gamma and Dirichlet log densities, and wrappers for GNU Scientific Library matrix, distribution and some special functions.  
+
+Gaussian
+Class for sampling from a multivariate Gaussian density
+
+GaussianProposalMH
+Class for Markov chain Monte Carlo sampling from a multivariate density with parameters that lie on the real line, and for which functions to calculate first and second derivatives of the log density are available.  Proposes update based on a Gaussian approximation, followed by a Metropolis accept-reject step. Useful for sampling parameters of a logistic regression model 
+
+HamiltonianMonteCarlo
+Class for Markov chain Monte Carlo sampling from a multivariate density with parameters that lie on the real line, for which a function to calculate the derivative of the log density is available.  Uses a leapfrog method to approximate Hamiltonian dynamics, followed by a Metropolis accept/reject step.  Algorithm is from Mackay D. (2003). Information Theory, Inference and Learning algorithms. 
+
+MuSampler
+Class for Markov chain Monte Carlo sampling of the proportion parameter of a compound multinomial-Dirichlet distribution, conditional on the observed counts, the dispersion parameter and a Dirichlet prior.  Uses a Metropolis step if the multinomial distribution has more than two categories. 
+
+rand
+Callers for sampling various densities, including uniform, discrete, gamma, Dirichlet.  
