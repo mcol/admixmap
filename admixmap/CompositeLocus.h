@@ -23,6 +23,8 @@ typedef struct
    int haps[2];
 }hapPair  ; 
 
+void operator<<(std::ostream& os, const hapPair &h);
+
 ///   Class to represent a composite locus
 class CompositeLocus 
 {
@@ -55,8 +57,10 @@ public:
   const std::vector<int> getAlleleCounts(int a, const int* happair)const;
   const std::vector<int> getHaplotypeCounts(const int* happair);
   void setPossibleHaplotypePairs(const std::vector<std::vector<unsigned short> > Genotype, std::vector<hapPair> &PossibleHapPairs);
+  void setPossibleXHaplotypes(const std::vector<std::vector<unsigned short> > Genotype, std::vector<hapPair> &PossibleHapPairs);
   void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
+  void GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const; 
   void SetHapPairProbsToPosteriorMeans(int iterations);
   void SampleHapPair(hapPair*, const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
 
@@ -71,11 +75,11 @@ private:
   int NumberOfStates;
   static int Populations;
   std::vector<int> NumberOfAlleles;
-  const double *AlleleProbs;//pointer to allele frequencies held in AlleleFreqs
-  double **SumAlleleProbs;//sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
+  const double *AlleleProbs;//< pointer to allele frequencies held in AlleleFreqs
+  double **SumAlleleProbs;//< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
 #ifndef PARALLEL
-  double *HapPairProbs; //haplotype pair probabilities
-  double *HapPairProbsMAP; //Posterior estimates of hap pair probs
+  double *HapPairProbs; //< haplotype pair probabilities
+  double *HapPairProbsMAP; //< Posterior estimates of hap pair probs
 #endif
   std::vector<std::string> Label;
   int *base;
@@ -98,6 +102,13 @@ private:
 		      const std::vector<std::vector<unsigned short> > Genotype, std::vector<int> HapAllelesPair[2]);
   void permuteMissingLoci(const std::vector<bool> isMissing, const int numMissingLoci, const int permMissing, 
 			  const std::vector<int> HapAllelesPair[2], const std::vector<int> baseMissing[2], std::vector<int> HapAllelesPairNoMissing[2]) ;
+
+  void setMissingAlleles(int numMissingLoci, int permMissing,  std::vector<int>& MissingAlleles, 
+			 const std::vector<int>& MissingLoci); 
+  void permuteMissingLoci(const std::vector<bool>& isMissing, const int numMissingLoci, const int permMissing, 
+			  const std::vector<int>& HapAlleles,  const std::vector<int>& MissingLoci, 
+			  std::vector<int>& HapAllelesNoMissing) ;
+
   // UNIMPLEMENTED
   // to avoid use
   CompositeLocus(const CompositeLocus&);
@@ -129,7 +140,7 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<ha
 inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
   int Ksq = Populations*Populations;
   double *q = Probs;
-  double *p;
+  const double *p;
   if(!chibindicator || !RandomAlleleFreqs) 
     p = HapPairProbs;
   else 
@@ -147,6 +158,27 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<ha
     q++;
   }
 }
+inline void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
+  double *q = Probs;
+  const double *p;
+  if(!chibindicator || !RandomAlleleFreqs) 
+    p = AlleleProbs;
+  //else 
+  //p = HapPairProbsMAP;
+  //TODO: use posterior modes of allele probs
+
+  happairiter end = HapPairs.end();
+  for(int k0 = 0; k0 < Populations; ++k0) {
+    *q = 0.0;
+    happairiter h = HapPairs.begin();
+    for( ; h != end ; ++h) {
+      *q += *(p + (h->haps[0] ) * Populations);
+    }
+    p++;
+    q++;
+  }
+}
+
 #endif
 
 #endif /* !COMPOSITE_LOCUS_H */

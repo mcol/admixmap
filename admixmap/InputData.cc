@@ -541,8 +541,33 @@ Sex InputData::GetSexValue(int i)const{
     return (Sex) sex;
 }
 
+vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, int SexColumn)const{
+  vector<unsigned short> g;
+  bool isXlocus = false;
+  if(locusData_[0].size()==4){
+    string s1("X"), s2("x");
+    string chrmlabel = StringConvertor::dequote(locusData_[locus+1][3]);
+    isXlocus = ( (chrmlabel == s1) || (chrmlabel == s2) );
+  }
+  int col = 1 + SexColumn + locus;
+  if (IsPedFile)col = 1 + SexColumn + 2*locus;
+
+  if(isXlocus && (GetSexValue(individual)==male)){//if X-chrm locus and male individual, expect haploid genotype
+    const std::string tmp = StringConvertor::dequote(geneticData_[individual][col]);
+    //TODO:check male X genotypes are all haploid 
+    string::size_type i = tmp.find_first_of(",/"); 
+    g.push_back(atoi(tmp.substr(0,i).c_str()));
+
+  }
+  else{
+    g.resize(2);
+    StringConvertor::toIntPair(&g, geneticData_[individual][col]);
+  }
+  return g;  
+}
+
 void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
-  unsigned int lociI = 0;
+  unsigned int lociI = 0;//simple locus counter
   unsigned complocus = 0;
   for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
     for(unsigned int j = 0; j < Loci.GetSizeOfChromosome(c); ++j){
@@ -561,22 +586,23 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
 #else
       const int numalleles = Loci(complocus)->GetNumberOfAllelesOfLocus(locus);
 #endif
-	vector<unsigned short> g(2);
-	int col = 1 + SexColumn + lociI;
-	if (IsPedFile)col = 1 + SexColumn + 2*lociI;
-	  
-	StringConvertor::toIntPair(&g, geneticData_[i][col]);
-
+      vector<unsigned short> g = GetGenotype(lociI, i, SexColumn);
+      if(g.size()==2)
 	if( (g[0] > numalleles) || (g[1] > numalleles))
 	  throwGenotypeError(i, locus, Loci(complocus)->GetLabel(0), 
 			     g[0], g[1], numalleles );
-	lociI++;
-	G.push_back(g);
-	count += g[0];
+	else if (g.size()==1)
+	  if( (g[0] > numalleles))
+	    throwGenotypeError(i, locus, Loci(complocus)->GetLabel(0), 
+			       g[0], 0, numalleles );
+
+      lociI++;
+      G.push_back(g);
+      count += g[0];
       }
-
+      
       Missing[c][j] = (count == 0);
-
+      
       genotypes->push_back(G);
       ++complocus;
     }

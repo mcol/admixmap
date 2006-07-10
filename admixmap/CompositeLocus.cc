@@ -396,6 +396,21 @@ void CompositeLocus::setMissingAlleles(const vector<int> baseMissing[2], int num
   //   cout << "\n";
 }
 
+void CompositeLocus::setMissingAlleles(int numMissingLoci, int permMissing, vector<int>& MissingAlleles, 
+				       const vector<int>& MissingLoci) 
+{
+  int remainder = permMissing; 
+  vector<int> base(numMissingLoci);
+  base[numMissingLoci-1] = 1;
+  for( int i = numMissingLoci-2; i >=0 ; --i ){
+    base[i] = NumberOfAlleles[MissingLoci[i+1]];
+  }
+
+  for( int i = 0; i < numMissingLoci; i++ ) { // loop over loci and gametes to extract alleles by integer division
+    MissingAlleles[i] = 1 + remainder / base[i]; 
+    remainder = remainder % NumberOfAlleles[MissingLoci[i]]; 
+  }
+}
 /// codes haplotypes starting at 0 by incrementing counter from right to left starting at 0. 
 /// arguments: NumberOfAlleles, base, and hapAlleles are 1D arrays of length NumberOfLoci
 /// returns: hap code as integer
@@ -450,7 +465,7 @@ const vector<int> CompositeLocus::getAlleleCounts(int a, const int* happair)cons
     delete[] hap1Alleles;
     delete[] hap2Alleles;
   }
-  return counts;
+  return counts;    
 }
 
 ///given a haplotype pair, returns a vector of haplotype counts
@@ -509,12 +524,36 @@ void CompositeLocus::permuteMissingLoci(const vector<bool> isMissing, const int 
   } 
 }
 
+void CompositeLocus::permuteMissingLoci(const vector<bool>& isMissing, const int numMissingLoci, const int permMissing, 
+					const vector<int>& HapAlleles,  const vector<int>& MissingLoci, 
+					vector<int>& HapAllelesNoMissing) 
+{
+  vector<int> MissingAlleles = vector<int>(numMissingLoci);
+  setMissingAlleles(numMissingLoci, permMissing, MissingAlleles, MissingLoci);
+
+  int missingLocusOffset = 0; // used to loop over missing loci 
+  //loop over loci to assign HapAllelesNoMissing
+  for(int locus = 0; locus < NumberOfLoci; locus++ ) {
+    if( ! isMissing[locus] ) { // assign alleles from HapAlleles
+      HapAllelesNoMissing[locus] = HapAlleles[locus];
+    } else { // assign alleles from MissingAlleles
+      HapAllelesNoMissing[locus] = MissingAlleles[missingLocusOffset];
+    }
+    missingLocusOffset += isMissing[locus]; 
+  } 
+}
+
 /// updates: PossibleHapPairs, an stl vector of arrays of 2 integers.
 /// arguments: genotype is 2D array of alleles with 2 rows and NumberOfLoci cols. 
 /// call once for each individual at start of program 
 void CompositeLocus::setPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs)
 {
   setBaseForHapCode();
+  if(Genotype[0].size()==1){//haploid genotypes
+    setPossibleXHaplotypes(Genotype, PossibleHapPairs);
+    return;
+  }
+
   int numHetLoci = 0;
   int numMissingLoci = 0;
   int numPermsHet = 1;
@@ -525,7 +564,7 @@ void CompositeLocus::setPossibleHaplotypePairs(const vector<vector<unsigned shor
   for( int i = 0; i < NumberOfLoci; i++ ) {
     isHet[i] = false;
     isMissing[i] = false;
-    if( (Genotype[i][0] == 0) | (Genotype[i][1] == 0)  ) { // missing genotype
+    if( (Genotype[i][0] == 0) || (Genotype[i][1] == 0)  ) { // missing genotype
       isMissing[i] = true;
       numMissingLoci ++;
       numPermsMissing *= NumberOfAlleles[i] * NumberOfAlleles[i];
@@ -579,7 +618,50 @@ void CompositeLocus::setPossibleHaplotypePairs(const vector<vector<unsigned shor
     }
   }
 }
+void CompositeLocus::setPossibleXHaplotypes(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
+  //setBaseForHapCode();
+  int numMissingLoci = 0;
+  int numPermsMissing = 1;
+  vector<bool> isMissing(NumberOfLoci);
+  vector<int> HapAlleles = vector<int>(NumberOfLoci);
+  vector<int> HapAllelesNoMissing = vector<int>(NumberOfLoci);
 
+  for( int i = 0; i < NumberOfLoci; i++ ) {
+    isMissing[i] = false;
+    HapAlleles[i] = Genotype[i][0];
+    if( (Genotype[i][0] == 0)   ) { // missing genotype
+      isMissing[i] = true;
+      numMissingLoci ++;
+      numPermsMissing *= NumberOfAlleles[i];
+    }
+  }
+
+  vector<int> missingLoci(numMissingLoci);
+  int offsetMissingLoci = 0;
+  for( int i = 0; i < NumberOfLoci; i++ ) {
+    if( isMissing[i] ) {
+      missingLoci[offsetMissingLoci] = i;
+      offsetMissingLoci++;
+    }
+  }
+
+  hapPair hpair;
+  hpair.haps[1] = 0;
+
+  if( numMissingLoci == 0 ) {
+    hpair.haps[0] = codeHapAllelesAsInt(&(HapAlleles[0]));
+    PossibleHapPairs.push_back(hpair);
+  } else {
+    // loop over permsMissing to permute alleles at missing loci
+    for ( int permMissing = 0; permMissing < numPermsMissing; permMissing++ ) {
+      permuteMissingLoci(isMissing, numMissingLoci, permMissing, HapAlleles, missingLoci,
+			 HapAllelesNoMissing);
+      hpair.haps[0] = codeHapAllelesAsInt(&(HapAllelesNoMissing[0]));
+      PossibleHapPairs.push_back(hpair); 
+    }
+    
+  }
+}
 //--------------------------------------
 //      SCORE TEST FUNCTIONS
 

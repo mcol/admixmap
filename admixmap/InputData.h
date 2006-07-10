@@ -128,6 +128,7 @@ private:
   void CheckRepAncestryFile(int populations, LogWriter &Log)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
   bool determineIfPedFile()const;
+  std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
 
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.

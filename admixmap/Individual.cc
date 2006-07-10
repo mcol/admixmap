@@ -37,6 +37,10 @@ unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
 int Individual::Populations;
 
+void operator<<(std::ostream& os, const hapPair &h){
+  os << h.haps[0] << " " << h.haps[1];
+}
+
 //******** Constructors **********
 Individual::Individual() {//should initialise pointers here
 }
@@ -137,11 +141,16 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   //retrieve genotypes
   Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
-  for(int j = 0; j < numCompositeLoci; ++j) {
+  for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
 #ifdef PARALLEL
     SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
+    //NOTE: X data not yet supported in parallel version
 #else
-    (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+//     if( (Loci->GetChrNumOfLocus(j)==X_posn) && (sex==male)){
+//       (*Loci)(j)->setPossibleXHaplotypes(genotypes[j], PossibleHapPairs[j]);
+//     }
+//     else
+      (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
 #endif
 
     //initialise sampledHapPairs with the first of the possible happairs. Then, if there is only one, sampling of hap pair can be skipped.
@@ -156,7 +165,10 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   GenotypeProbs = new double*[numChromosomes];
   // unsigned locus = 0;
   for(unsigned j = 0; j < numChromosomes; ++j) {
-    GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations*Populations];
+    if( (j==X_posn) && (sex==male))
+      GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations];
+    else
+      GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations*Populations];
 //     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 //       SetGenotypeProbs(j, jj, locus, false);
 //       locus++;
@@ -284,10 +296,18 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindica
   //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
   if( !GenotypesMissing[j][jj] ){
-    (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
-				     chibindicator);
+    if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
+      (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
+				       chibindicator);
+    else //haploid genotype
+      (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j]+jj*Populations, PossibleHapPairs[locus], 
+					      chibindicator);
+    
   } else {
-    for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
+    if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
+      for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
+    else //haploid genotype
+      for( int k = 0; k < Populations; ++k ) GenotypeProbs[j][jj*Populations + k] = 1.0;
   }
 }
 
