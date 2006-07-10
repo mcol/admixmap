@@ -45,10 +45,8 @@ public:
   void SetLocusCorrelation(const std::vector<double> rho_, bool global, bool RandomMating);
 
 // ********** Interface to HMM ****************************************
-  void SetGenotypeProbs(double* const GenotypeProbs, bool* const GenotypesMissing);
+  void SetGenotypeProbs(const double* const GenotypeProbs, const bool* const GenotypesMissing);
   void SetStateArrivalProbs(const double* const Admixture, bool RandomMating, bool diploid);
-  void UpdateHMMInputs(const double* const Admixture, double* const GenotypeProbs, bool* const GenotypesMissing, 
-  		     const AdmixOptions* const options, const std::vector< double > _rho, bool diploid);
 
   void SampleLocusAncestry(int *OrderedStates, bool diploid);
   std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int);
@@ -66,7 +64,6 @@ private:
   std::string _Label;
   HMM SampleStates;
   bool isX;
-  //bool Diploid;
   
   // f0 and f1 are arrays of scalars of the form exp(- rho*x), where x is distance between loci
   // With a global rho model, this array is same for all individuals and calculated only once.

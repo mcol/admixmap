@@ -23,7 +23,7 @@ public:
   HMM( int inTransitions, int pops);
   ~HMM();
   void SetDimensions( int inTransitions, int pops);
-  void SetGenotypeProbs(const double* lambdain, const bool* const missing);
+  void SetGenotypeProbs(const double* const lambdain, const bool* const missing);
   void SetStateArrivalProbs(const double* const fin, const double* const Theta, const int Mcol, const bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
