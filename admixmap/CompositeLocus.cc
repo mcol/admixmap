@@ -127,6 +127,7 @@ void CompositeLocus::AddLocus( int alleles, string label = "")
 
 void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
   AlleleProbs = AFreqs;//set AlleleProbs to point to allele freqs in AlleleFreqs
+  AlleleProbsMAP = AFreqs;
   SumAlleleProbs = alloc2D_d(Populations, NumberOfStates);//allocates and fills with zeros
 #ifndef PARALLEL
   //set size of array of haplotype pair probs
@@ -324,7 +325,13 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Ha
 #endif
 
 /**
-   Sets HaplotypeProbsMAP to current value of HapPairProbs.
+   Sets AlleleProbsMAP to current value of AlleleProbs(Freqs).
+*/
+void CompositeLocus::setAlleleProbsMAP(const double* const Freqs){
+  AlleleProbsMAP = Freqs;
+}
+/**
+   SetsHapPairProbsMAP to current value of HapPairProbs.
    Doesn't really calculate posterior mode,
    just sets to current value of hap freqs.  ok for Chib algorithm if strong prior
    this either misnamed or misdefined

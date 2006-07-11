@@ -1056,7 +1056,7 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
     SumEta[k]+=eta[k];
 }
 
-/** sets posterior mode of allelefreqs as current value
+/** sets posterior mode of allelefreqs as current value.
     probably doesn't matter where there is strong prior on allele freqs, and used in Chib algorithm 
     which just requires a value near the posterior mode
     set AlleleFreqsMAP and getAlleleFreqs are called by Individual object
@@ -1079,6 +1079,7 @@ void AlleleFreqs::setAlleleFreqsMAP()
 #endif
     for(int j = 0; j < Loci->GetNumberOfStates(i) - 1; ++j)for(int k = 0; k < Populations; ++k)
       AlleleFreqsMAP[i][j*Populations+k] = Freqs[i][j + k*Loci->GetNumberOfStates(i)];
+    (*Loci)(i)->setAlleleProbsMAP(AlleleFreqsMAP[i]);
   }
 }
 
