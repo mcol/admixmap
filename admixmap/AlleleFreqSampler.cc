@@ -35,7 +35,7 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
 
   if(NumStates == 2){//case of SNP
     params = new double[NumPops];
-    step0 = 0.05;//initial step size
+    step0 = 0.03;//initial step size
     numleapfrogsteps = 20;
     Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, 
 			  gradientSNP);
@@ -99,7 +99,7 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts,
     Sampler.Sample(params, &Args);
   }
   catch(string s){
-    throw string("Error sampling allele freqs:\n" + s);
+    throw string("Error sampling SNP allele freqs:\n" + s);
   }
   //reverse transformation
   for(unsigned k = 0; k < NumPops; ++k){
