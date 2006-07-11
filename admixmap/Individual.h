@@ -119,9 +119,8 @@ public:
 
   void resetStepSizeApproximator(int k);
 
-  void Chib(int iteration, // double *SumLogLikelihood, double *MaxLogLikelihood,
-	    const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
-	    double *thetahat, vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs *A);
+  void Chib(int iteration, const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
+	    double rhobeta, double *thetahat, vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(const AdmixOptions* const options);
  
@@ -144,9 +143,8 @@ private:
   bool IAmUnderTest;//true if not in Individual array
   bool SexIsFemale;
   bool Xdata;
-  double L;
-  double LX;
   double EffectiveL[2];
+  bool admixturemodel;
 
   Sex sex; 
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
@@ -211,7 +209,7 @@ private:
   static double *LikRatio2;
   
   void SetDefaultAdmixtureProps();
-  double IntegratingConst( double alpha, double beta, double a, double b )const;
+  //double IntegratingConst( double alpha, double beta, double a, double b )const;
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);
   void Accept_Reject_Theta( double p, /*bool xdata,*/ int Populations, bool ModelIndicator, bool RW );
@@ -233,14 +231,15 @@ private:
   double getLogLikelihood(const AdmixOptions* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
 
-  double LogPriorTheta(const double* const theta,   
-		       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
+  //   double LogPriorTheta(const double* const theta,   
+  // 		       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
   double LogPriorTheta_Softmax(const double* const theta, 
 			       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
   //Computes LogPrior density in softmax basis at supplied parameter values 
+  
+  //   double LogPriorRho(const vector<double> rho, //const vector<double> rhoX, 
+  // 		     const AdmixOptions* const options, double rhoalpha, double rhobeta)const; 
 
-  double LogPriorRho(const vector<double> rho, //const vector<double> rhoX, 
-		     const AdmixOptions* const options, double rhoalpha, double rhobeta)const; 
   double LogPriorRho_LogBasis(const vector<double> rho, //const vector<double> rhoX, 
 			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const;
 

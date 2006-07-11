@@ -27,17 +27,19 @@ using namespace std;
 
 chib::chib()
 {
-   LogLikelihood = 0;
+   LogLikelihood = 0.0;
+   LogPrior = 0.0;
    MaxLogPosterior = -9999999;
-   MaxLogPrior = -9999999;
+   //MaxLogPrior = -9999999;
 }
 
 void chib::Reset(){
   VecLogPosterior.clear();
-  LogPrior.clear();
-  LogLikelihood = 0;
+  //LogPrior.clear();
+  LogLikelihood = 0.0;
+  LogPrior = 0.0;
   MaxLogPosterior = -9999999;
-  MaxLogPrior = -9999999;
+  //MaxLogPrior = -9999999;
 }
 
 void chib::setLogLikelihood(double x)
@@ -47,9 +49,10 @@ void chib::setLogLikelihood(double x)
 
 void chib::addLogPrior(double x)
 {
-  LogPrior.push_back(x);
-  if(LogPrior.size()==1)MaxLogPrior = x;
-  if(x > MaxLogPrior) MaxLogPrior = x;
+  LogPrior = x;
+  //  LogPrior .push_back(x);
+  //  if(LogPrior.size()==1)MaxLogPrior = x;
+  //  if(x > MaxLogPrior) MaxLogPrior = x;
 }
 
 void chib::addLogPosteriorObs( double f )
@@ -65,12 +68,12 @@ double chib::getLogPosterior()const
 }
 
 double chib::getLogPrior()const{
-  return AverageOfLogs(LogPrior, MaxLogPrior);
+  return LogPrior; //AverageOfLogs(LogPrior, MaxLogPrior);
 }
 
 double chib::getLogMarginalLikelihood()const{
   double LogPosterior = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
-  double logprior = AverageOfLogs( LogPrior, MaxLogPrior );
-  return LogLikelihood + logprior - LogPosterior;
+  //double logprior = AverageOfLogs( LogPrior, MaxLogPrior );
+  return LogLikelihood + LogPrior - LogPosterior;
 }
 

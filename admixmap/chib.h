@@ -45,7 +45,7 @@ public:
 
 private:
   double LogLikelihood;
-  std::vector<double> LogPrior;
+  double LogPrior;
   std::vector<double> VecLogPosterior;
   double MaxLogPosterior;
   double MaxLogPrior;
