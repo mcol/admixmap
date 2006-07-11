@@ -89,13 +89,14 @@ int main( int argc , char** argv ){
   const int rank = -1;//cannot be 0 as process with rank 0 is excluded from some function calls
 #endif
 
-  int    xargc = argc;
-  char **xargv = argv;    
+  int xargc = argc;
+  char **xargv = 0;
+  //char **xargv = argv;  
 
-   if (argc < 2) {
+  if (argc < 2) { // no command-line arguments
     PrintOptionsMessage();
     exit(1); 
-  } else if (argc == 2) {     // using options text file        
+  } else if (argc == 2) {     // read arguments from file        
     xargc = 1;//NB initialise to 1 to mimic argc (arg 0 is prog name), otherwise first option is ignored later
     xargv = new char*[MAXNUMOPTIONS];  
     ReadArgsFromFile(argv[1], &xargc, xargv);        
@@ -116,13 +117,12 @@ int main( int argc , char** argv ){
       }
   }
  
-  // ******************* PRIMARY INITIALIZATION ********************************************************************************
+  // ******************* PRIMARY INITIALIZATION *****************************************************************
   //read user options
   AdmixOptions options(xargc, xargv);
   if(rank<1){
     //if(options.getDisplayLevel()>0 )
     PrintCopyrightNotice();
-	
     MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>1));
   }
  
@@ -497,8 +497,8 @@ int main( int argc , char** argv ){
 #endif
     //}
 
-    if(xargv != argv){
-      delete[] argv[1];
+    if(xargv != argv) {
+      // elete[] argv[1];
       delete[] xargv;
     }
 	
