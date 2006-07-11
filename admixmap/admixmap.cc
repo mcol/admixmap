@@ -498,7 +498,7 @@ int main( int argc , char** argv ){
     //}
 
     if(xargv != argv){
-      for(int i = 1; i < xargc; ++i)if(xargv[i] != argv[i])delete[] xargv[i];
+      delete[] argv[1];
       delete[] xargv;
     }
 	
@@ -833,12 +833,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 #ifdef PARALLEL
     MPE_Log_event(7, iteration, "SampleFreqs");
 #endif
-    bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
-    A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
-#elif FREQSAMPLER==FREQ_CONJUGATE_SAMPLER
-    A->Update((iteration > options->getBurnIn() && !anneal), coolness, thermoSampler);
-#endif
+    //bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
+    A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
+
 #ifdef PARALLEL
     MPE_Log_event(8, iteration, "SampledFreqs");
 #endif

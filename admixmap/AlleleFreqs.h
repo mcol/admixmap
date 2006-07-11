@@ -14,19 +14,16 @@
 #ifndef ALLELEFREQS_H
 #define ALLELEFREQS_H 1
 
-#define ETASAMPLER 1 //1 = RANDOM WALK METROPOLIS
+#define ETASAMPLER 2 //1 = RANDOM WALK METROPOLIS
                      //2 = HAMILTONIAN
 #define FREQ_CONJUGATE_SAMPLER 1
 #define FREQ_HAMILTONIAN_SAMPLER 2
-#define FREQSAMPLER 1 // 1 = conjugate sampler, 2 = Hamiltonian sampler
 
 #include "InputData.h"
 #include "Genome.h"
 #include "AdmixOptions.h"
 #include "LogWriter.h"
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
 #include "AlleleFreqSampler.h"
-#endif
 #include "MuSampler.h"
 #include "DispersionSampler.h"
 #include "StepSizeTuner.h"
@@ -152,11 +149,10 @@ public:
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
-  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool /*annealUpdate*/);
-#elif FREQSAMPLER==FREQ_CONJUGATE_SAMPLER
-  void Update(bool afterBurnIn, double coolness, bool /*annealUpdate*/);
-#endif
+  ///update using Hamiltonian Sampler
+  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
+  ///Update using conjugate sampler
+  //void Update(bool afterBurnIn, double coolness, bool /*annealUpdate*/);
 
   ///initialize output file for samples of dispersion parameters
   void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log);
@@ -245,9 +241,9 @@ private:
   double HapMixPriorRatePriorRate;
   double SumLambda;// cumulative sum of HapMixPriorRatePriorRate
 
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
+  int FREQSAMPLER;// 1 = conjugate sampler, 2 = Hamiltonian sampler
   std::vector<AlleleFreqSampler*> FreqSampler;
-#endif
+
   StepSizeTuner* HapMixPriorParamSampler;
 
   bool calculateFST;

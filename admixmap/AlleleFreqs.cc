@@ -105,25 +105,28 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] globalHetCounts;
   // AlleleFreqArrayType.Free();
 #endif
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
-  for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
-    delete *i;
-#endif
+  if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER)
+    for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
+      delete *i;
+  FreqSampler.clear();
+
   if( allelefreqoutput.is_open()) allelefreqoutput.close();
 }
 
 // ************** Initialisation and loading of data  *******************
 
 void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data, LogWriter &Log){
+  //initialise Freqs, PriorAlleleFreqs, HistoricAlleleFreqs etc
   LoadAlleleFreqs(options, data);
   Log.setDisplayMode(On);
-
+  //open allelefreqoutputfile
   if(IsRandom() &&  options->getOutputAlleleFreq() ){
     OpenOutputFile(options);
   }
 
   //set parameters of prior on frequency Dirichlet prior params
   if(options->getHapMixModelIndicator()){
+    FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
     const vector<double> &params = options->getAlleleFreqPriorParams();
     if(params.size()==3){
       HapMixPriorShape = params[0];
@@ -138,20 +141,24 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     }
     HapMixPriorRate = HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
   }
+  else {//not hapmix model
+    if(options->getThermoIndicator() && !options->getTestOneIndivIndicator()) FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
+    else FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+  }
 
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     if(RandomAlleleFreqs){
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
-      //set up samplers for allelefreqs
-      if(options->getHapMixModelIndicator()){
-	FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), 
-						    &(HapMixPriorParams[i]), true));
-	HapMixPriorParams[i] = HapMixPriorShape / HapMixPriorRate;//set to prior mean
-	HapMixPriorParamSampler[i].SetParameters(0.1, 0.0, 100.0, 0.44);
+      if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
+	//set up samplers for allelefreqs
+	if(options->getHapMixModelIndicator()){
+	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), 
+						      &(HapMixPriorParams[i]), true));
+	  HapMixPriorParams[i] = HapMixPriorShape / HapMixPriorRate;//set to prior mean
+	  HapMixPriorParamSampler[i].SetParameters(0.1, 0.0, 100.0, 0.44);
+	}
+	else
+	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), PriorAlleleFreqs[i], false));
       }
-      else
-	FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), PriorAlleleFreqs[i], false));
-#endif
     }
   //set up alleleprobs and hap pair probs
   //NB: HaplotypePairProbs in Individual must be set first
@@ -560,11 +567,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i){
 
 // ************************** Sampling and Updating *****************************************
 /// samples allele frequency and prior allele frequency parameters.
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
-void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool /*annealUpdate*/){
-#elif FREQSAMPLER==FREQ_CONJUGATE_SAMPLER
-void AlleleFreqs::Update(bool afterBurnIn, double coolness, bool /*annealUpdate*/){
-#endif
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
 
   if(HapMixPriorParams){
@@ -589,16 +592,14 @@ void AlleleFreqs::Update(bool afterBurnIn, double coolness, bool /*annealUpdate*
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
-    //if(annealUpdate){//use long method when computing marginal likelihood
-    if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
-      FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, coolness);
-    else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, coolness);
-    //}
-#elif FREQSAMPLER==FREQ_CONJUGATE_SAMPLER
-    //else //use standard conjugate update
-    SampleAlleleFreqs(i, coolness);
-#endif
+    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
+      if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
+	FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, coolness);
+      else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, coolness);
+    }
+    else if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
+      SampleAlleleFreqs(i, coolness);
+
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
 #ifndef PARALLEL
@@ -657,8 +658,8 @@ void AlleleFreqs::ResetAlleleCounts(unsigned K) {
    */
 void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool /*anneal*/ )
 {
-#if FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER
-  if(Loci->GetNumberOfStates(locus)==2){
+  if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER &&
+      Loci->GetNumberOfStates(locus)==2){
     if( (h[0] != h[1]) && (ancestry[0] !=ancestry[1]))//heterozygous with distinct ancestry states
       ++hetCounts[locus][ancestry[0]*Populations + ancestry[1]];
     else{
@@ -667,7 +668,6 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
     }
   }
   else
-#endif
     {
       AlleleCounts[locus][ h[0]*Populations + ancestry[0] ]++;
       if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[1] ]++;
