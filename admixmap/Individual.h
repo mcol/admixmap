@@ -119,7 +119,9 @@ public:
 
   void resetStepSizeApproximator(int k);
 
-  void Chib(int iteration, const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
+  void setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
+	    double rhobeta, double *thetahat, vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs *A);
+  void updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
 	    double rhobeta, double *thetahat, vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(const AdmixOptions* const options);

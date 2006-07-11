@@ -62,7 +62,9 @@ public:
 			const vector<Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 			bool anneal);
-  void UpdateChib(int iteration, const AdmixOptions* const options,const vector<vector<double> > &alpha, 
+  void setChibNumerator(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
+		  double rhoalpha, double rhobeta, AlleleFreqs *A);
+  void updateChib(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
 
   void FindPosteriorModes(const AdmixOptions* const options, 

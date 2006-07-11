@@ -672,10 +672,14 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
   }
 }
 
-void IndividualCollection::UpdateChib(int iteration, const AdmixOptions* const options,const vector<vector<double> > &alpha, 
+void IndividualCollection::setChibNumerator(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
-    _child[0]->Chib(iteration, //&SumLogLikelihood, &(MaxLogLikelihood[i]),
-		    options, alpha, rhoalpha, rhobeta, thetahat, rhohat, &MargLikelihood, A);
+    _child[0]->setChibNumerator(options, alpha, rhoalpha, rhobeta, thetahat, rhohat, &MargLikelihood, A);
+}
+
+void IndividualCollection::updateChib(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
+				      double rhoalpha, double rhobeta, AlleleFreqs *A){
+    _child[0]->updateChib(options, alpha, rhoalpha, rhobeta, thetahat, rhohat, &MargLikelihood, A);
 }
 
 void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, 

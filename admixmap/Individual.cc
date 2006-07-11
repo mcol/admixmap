@@ -1413,84 +1413,75 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
   delete[] info;
 }
 
-//******************** Chib Algorithm ***************************************
-// this function does three things:
-// 1. sets allelefreqsMAP at their prior mean at end of burnin
-// 2. calculates log-likelihood and log prior at thetahat, rhohat, allelefreqsMAP at end of burnin
-// 3. accumulates posterior ordinate at thetahat, rhohat, allelefreqsMAP at every iteration after burnin 
-// should split into three. 
-// function should not be called during annealing runs
-void Individual::Chib(int iteration, // double *SumLogLikelihood, double *MaxLogLikelihood,
-		      const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-		      // double globalrho, 
+// this function does two things:
+// 1. sets allelefreqsMAP at their prior mean
+// 2. calculates log-likelihood and log prior at thetahat, rhohat, allelefreqsMAP
+void Individual::setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
 		      double rhoalpha, double rhobeta, double *thetahat,
-		      vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs* A){
+		      vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs* A) {
 
-  // *** At end of BurnIn ***
-  if( iteration == options->getBurnIn() ){
-    //set allelefreqsMAP to current values of allelefreqs
-    A->setAlleleFreqsMAP();
-    //set HapPairProbsMAP to current values of HapPairProbs
-    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-      //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
-      (*Loci)(j)->setHaplotypeProbsMAP();
-    }
-    
-    //loglikelihood at allelefreqsMAP, thetahat, rhohat
-    for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
-      unsigned locus = Loci->getChromosome(j)->GetLocus(0);
-      for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-	SetGenotypeProbs(j, jj, locus, true);//set genotype probs from happairprobsMAP
-	locus++;
-      }
-    }
-    // make sure that genotype probs are reset before next update
-    MargLikelihood->setLogLikelihood(getLogLikelihood( options, thetahat, rhohat, true));
-
-    double LogPrior = LogPriorTheta_Softmax(thetahat, options, alpha)
-      + LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
-    if( A->IsRandom() ) {
-      double LogPriorFreqs = 0.0;
-      for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-	for( int k = 0; k < Populations; k++ ){
-	  vector<double> args = A->GetPriorAlleleFreqs(j,k);
-	  LogPriorFreqs += getDirichletLogDensity( A->GetPriorAlleleFreqs(j, k), A->getAlleleFreqsMAP(j,k) );
-	}
-      }
-      LogPrior += LogPriorFreqs;
-    }
-    MargLikelihood->addLogPrior(LogPrior);
-  } // ends block executed at end of burnin
-  
-  // *** After BurnIn *** - accumulate samples of posterior ordinates for theta, rho, allelefreqs separately
-  if( iteration > options->getBurnIn() ){
-    double LogPosterior = 0.0;
-    double LP = 0.0;
-    if( Populations > 1 ){
-      LP = CalculateLogPosteriorTheta(options, thetahat, alpha);
-      logPosterior[0].push_back(LP);
-      LogPosterior += LP;
-      LP = CalculateLogPosteriorRho(options, rhohat, rhoalpha, rhobeta);
-      logPosterior[1].push_back(LP);
-      LogPosterior += LP;
-    }
-    if( A->IsRandom() ){
-      double LogPosteriorFreqs = 0.0;
-      for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-	for( int k = 0; k < Populations; k++ ){
-	  vector<double> args = A->GetPriorAlleleFreqs(j,k);
-	  vector<int> counts = A->GetAlleleCounts(j,k);
-	  transform(counts.begin(), counts.end(), args.begin(), args.begin(), plus<double>());//PriorAlleleFreqs + AlleleCounts
-	  LogPosteriorFreqs += getDirichletLogDensity( args, A->getAlleleFreqsMAP(j, k));//LogPosterior for Allele Freqs
-	}
-      }
-      LogPosterior += LogPosteriorFreqs;
-      logPosterior[2].push_back( LogPosteriorFreqs  );
-    }
-    //evaluate current estimate of marginal likelihood
-    MargLikelihood->addLogPosteriorObs( LogPosterior );
-    // *SumLogLikelihood += logLikelihood; // no point in accumulating this
+  //set allelefreqsMAP to current values of allelefreqs
+  A->setAlleleFreqsMAP();
+  //set HapPairProbsMAP to current values of HapPairProbs
+  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+    //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
+    (*Loci)(j)->setHaplotypeProbsMAP();
   }
+  
+  //loglikelihood at allelefreqsMAP, thetahat, rhohat
+  for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
+    unsigned locus = Loci->getChromosome(j)->GetLocus(0);
+    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+      SetGenotypeProbs(j, jj, locus, true);//set genotype probs from happairprobsMAP
+      locus++;
+    }
+  }
+  // make sure that genotype probs are reset before next update
+  MargLikelihood->setLogLikelihood(getLogLikelihood( options, thetahat, rhohat, true));
+  
+  double LogPrior = LogPriorTheta_Softmax(thetahat, options, alpha)
+    + LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
+  if( A->IsRandom() ) {
+    double LogPriorFreqs = 0.0;
+    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+      for( int k = 0; k < Populations; k++ ){
+	vector<double> args = A->GetPriorAlleleFreqs(j,k);
+	LogPriorFreqs += getDirichletLogDensity( A->GetPriorAlleleFreqs(j, k), A->getAlleleFreqsMAP(j,k) );
+      }
+    }
+    LogPrior += LogPriorFreqs;
+  }
+  MargLikelihood->addLogPrior(LogPrior);
+} 
+
+void Individual::updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
+			    double rhoalpha, double rhobeta, double *thetahat,
+			    vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs* A){
+  // *** After BurnIn *** - accumulate samples of posterior ordinates for theta, rho, allelefreqs separately
+  double LogPosterior = 0.0;
+  double LP = 0.0;
+  if( Populations > 1 ){
+    LP = CalculateLogPosteriorTheta(options, thetahat, alpha);
+    logPosterior[0].push_back(LP);
+    LogPosterior += LP;
+    LP = CalculateLogPosteriorRho(options, rhohat, rhoalpha, rhobeta);
+    logPosterior[1].push_back(LP);
+    LogPosterior += LP;
+  }
+  if( A->IsRandom() ){
+    double LogPosteriorFreqs = 0.0;
+    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+      for( int k = 0; k < Populations; k++ ){
+	vector<double> args = A->GetPriorAlleleFreqs(j,k);
+	vector<int> counts = A->GetAlleleCounts(j,k);
+	transform(counts.begin(), counts.end(), args.begin(), args.begin(), plus<double>());//PriorAlleleFreqs + AlleleCounts
+	LogPosteriorFreqs += getDirichletLogDensity( args, A->getAlleleFreqsMAP(j, k));//LogPosterior for Allele Freqs
+      }
+    }
+    LogPosterior += LogPosteriorFreqs;
+    logPosterior[2].push_back( LogPosteriorFreqs  );
+  }
+  MargLikelihood->addLogPosteriorObs( LogPosterior );
 }
 
 // double Individual::LogPriorTheta(const double* const theta, //const double* const thetaX,  

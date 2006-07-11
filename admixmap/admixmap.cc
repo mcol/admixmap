@@ -764,10 +764,13 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // this function also sets locus correlations in Chromosomes
   }
 
-  //posterior modes of individual admixture
-  //search at start of burn-in, once annealing is finished
+  //find posterior modes of individual admixture at end of burn-in
+  //set Chib numerator
   if(!anneal && iteration == options->getBurnIn() && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
     IC->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), PopulationLabels);
+    if( options->getChibIndicator() ) {
+      IC->setChibNumerator(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A);
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -822,8 +825,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
-  if( options->getChibIndicator() && !anneal )IC->UpdateChib(iteration, options, L->getalpha(),  
-							     L->getrhoalpha(), L->getrhobeta(), A);      
+  if( options->getChibIndicator() && !anneal && iteration >= options->getBurnIn() )
+    IC->updateChib(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A);      
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
