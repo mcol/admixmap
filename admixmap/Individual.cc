@@ -1260,34 +1260,51 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops
   // values of ancestry risk ratio at which likelihood ratio is evaluated
   double r1 = 0.5;
   double r2 = 2.0;//hard-coding these for now, can make them vary later
-  double theta[2];//paternal and maternal admixture proportions
-  double Pi[3];//probs of 0,1,2 copies of Pop k given admixture
-
-  for( int k = 0; k < Pops; k++ ){
-    theta[0] = Theta[ k+k0 ];
-    if(!SexIsFemale  && (locus == X_posn))
-      theta[1] = 0.0;//probability of any ancestry state on second gamete is 0 if there is no second gamete
-    else 
+  if( SexIsFemale  || (locus != X_posn) ) { // diploid case
+    double theta[2];//paternal and maternal admixture proportions
+    double Pi[3];//probs of 0,1,2 copies of Pop k given admixture
+    for( int k = 0; k < Pops; k++ ){
+      theta[0] = Theta[ k+k0 ];
       if( RandomMatingModel )
 	theta[1] = Theta[ Populations + k+k0 ];
       else
 	theta[1] = theta[0];
-    
-    //accumulate score, score variance, and info
-    AffectedsScore[locus *Pops + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
-    AffectedsVarScore[locus * Pops + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
-    AffectedsInfo[locus * Pops +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
-    
-    //probs of 0,1,2 copies of Pop k given admixture
-    Pi[2] = theta[0] * theta[1];
-    Pi[1] = theta[0] * (1.0 - theta[1]) + theta[1] * (1.0 - theta[0]);
-    Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
-    
-    //compute contribution to likelihood ratio
-    LikRatio1[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r1)*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) / 
-      (Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
-    LikRatio2[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) / 
-      (Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
+      
+      //accumulate score, score variance, and info
+      AffectedsScore[locus *Pops + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
+      AffectedsVarScore[locus * Pops + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
+      AffectedsInfo[locus * Pops +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
+      
+      //probs of 0,1,2 copies of Pop k given admixture
+      Pi[2] = theta[0] * theta[1];
+      Pi[1] = theta[0] * (1.0 - theta[1]) + theta[1] * (1.0 - theta[0]);
+      Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
+      
+      //compute contribution to likelihood ratio
+      LikRatio1[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r1)*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) / 
+	(Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
+      LikRatio2[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) / 
+	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
+    }
+  } else { // haploid - effect of one extra copy from pop k0 is equivalent to two extra copies in diploid case 
+    double theta;//paternal and maternal admixture proportions
+    double Pi[2];//probs of 0,1 copies of Pop k given admixture
+    for( int k = 0; k < Pops; k++ ){
+      theta = Theta[ k+k0 ];
+      
+      //accumulate score, score variance, and info
+      AffectedsScore[locus *Pops + k] += AProbs[1][k+k0] - theta;
+      AffectedsVarScore[locus * Pops + k] += AProbs[0][k+k0] * AProbs[1][k+k0]; 
+      AffectedsInfo[locus * Pops +k]+= theta * (1.0 - theta);
+      
+      //probs of 0,1 copies of Pop k given admixture
+      Pi[1] = theta;
+      Pi[0] = 1.0 - theta;
+      
+      //compute contribution to likelihood ratio - check this formula
+      LikRatio1[locus *Pops + k] += (AProbs[0][k+k0] + r1*AProbs[1][k+k0]) / (Pi[0] + r1*Pi[1]);
+      LikRatio2[locus *Pops + k] += (AProbs[0][k+k0] + r2*AProbs[1][k+k0]) / (Pi[0] + r2*Pi[1]);
+    }
   }
 }
 
