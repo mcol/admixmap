@@ -251,7 +251,8 @@ private:
   
   void UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, bool RandomMatingModel, 
 					  const vector<vector<double> > AProbs);
-  void UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double EY, double DInvLink, const vector<vector<double> > AProbs);
+  void UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double EY, double DInvLink, 
+			      const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
   
   void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
