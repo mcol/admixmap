@@ -91,7 +91,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
     if(rank == 0){
       if( NumberOfTestLoci < 2 ){
 	Log.setDisplayMode(On);
-	Log << "Too few unlinked loci to run stratification test\n";
+	Log << "Too few unlinked diallelic loci to run stratification test\n";
 	options->setStratificationTest(false);
 	if(outputstream.is_open())outputstream.close();
       }
