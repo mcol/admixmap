@@ -67,8 +67,65 @@ getIsAdmixed <- function(AdmixturePrior) {
   
 readLoci <- function(){
   filename <- paste(resultsdir, "LocusTable.txt", sep="/")
-  ##cols are locus name, number of allele/haplotypes, map distance in cM, chromosome number
-  loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "integer"))
+  if(file.exists(filename)){
+    ##cols are locus name, number of allele/haplotypes, map distance in cM, chromosome number
+    loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "integer"))
+  }else{
+
+    ## read table of loci, number chromosomes and calculate map positions
+    row1 <- read.table(user.options$locusfile, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
+                       nrows=1)
+    if(dim(row1)[2] == 3) {
+      loci.simple <- read.table(user.options$locusfile, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
+                                colClasses=c("character", "integer", "numeric"))
+    } else {
+      loci.simple <- read.table(user.options$locusfile, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
+                                colClasses=c("character", "integer", "numeric", "character"))
+    }
+    ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
+    num.sloci <- dim(loci.simple)[1]
+    loci.simple[, 3][loci.simple[, 3] >=100] <- NA
+    new.clocus <- is.na(loci.simple[, 3]) | loci.simple[, 3] > 0
+    num.cloci <- table(new.clocus)[1]
+    LocusName <- character(num.cloci)
+    NumHaps <- integer(num.cloci)
+    MapPosition <- numeric(num.cloci)
+    Chromosome <- integer(num.cloci)
+    loci.compound <- data.frame(LocusName, NumHaps, MapPosition, Chromosome)
+    loci.compound$LocusName <- as.vector(loci.compound$LocusName)
+    clocus <- 1
+    numhaps <- loci.simple[1, 2]
+    map.position <- 0
+    chr <- 1
+    loci.compound$LocusName[1] <- loci.simple[1, 1]
+    loci.compound$MapPosition[1] <- 0
+    loci.compound$Chromosome[1] <- 1
+    ## loop over simple loci
+    for(slocus in 2:num.sloci) {
+      if(new.clocus[slocus]) { # new compound locus
+        ## increment number of compound locus  
+        clocus <- clocus + 1
+        loci.compound[clocus, 1] <- loci.simple[slocus, 1]
+        if(is.na(loci.simple[slocus, 3])) {
+          chr <- chr + 1
+          map.position <- 0
+        } else {
+          map.position <- map.position + 100*loci.simple[slocus, 3]
+        }
+        loci.compound[clocus, 3] <- map.position
+        loci.compound[clocus, 4] <- chr
+        ## assign num haplotypes at previous compound locus
+        loci.compound[clocus-1, 2] <- numhaps
+        ## restart counting num haplotypes
+        numhaps <- loci.simple[slocus, 2]
+      } else {
+        ## continue counting num haplotypes
+        numhaps <- numhaps * loci.simple[slocus, 2]
+      }
+    }
+    ## assign num haplotypes at last compound locus
+    loci.compound[clocus, 2] <- numhaps
+  }
   return(loci.compound)
 }
 
@@ -971,7 +1028,7 @@ if(is.null(user.options$paramfile)) {
                                         # global sum of intensities or gamma shape param if hierarchical
       param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE)
       n <- dim(param.samples)[1]
-      if(user.options$hapmixmodel ==1){
+      if(!is.null(user.options$hapmixmodel) &&  (user.options$hapmixmodel ==1)){
         checkConvergence(param.samples, "Population sumintensities parameters",
                          paste(resultsdir, "SumIntensitiesConvergenceDiags.txt", sep="/"));
         postscript( paste(resultsdir, "PopSumIntensitiesAutocorrelations.ps", sep="/" ))     
@@ -1067,7 +1124,7 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
 if(K == 1) {
   alphas <- c(1)
 } else {
-  if(user.options$hapmixmodel==1){
+  if(!is.null(user.options$hapmixmodel) && user.options$hapmixmodel==1){
     alphas <- rep(1/K, K)
   }else{
     if(!is.null(param.samples)) {
@@ -1103,11 +1160,6 @@ if(!is.null(user.options$thermo) && user.options$thermo == 1){
 ##  lines(fit.spline, lty=2)
   dev.off()
 }
-
-## read output of score test for mis-specified allele freqs and plot cumulative results
-##if(!is.null(user.options$allelefreqscorefile)) {
-  ##plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
-##}
 
 #read output of test for heterozygosity and plot
 if(!is.null(user.options$hwtestfile)){
@@ -1148,63 +1200,70 @@ if(!is.null(user.options$outcomevarfile) && !is.null(user.options$testgenotypesf
 
 if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1) {
   print("allelefreqoutputfile not specified")
-} else {
-  allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
-  ## prevent script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
-  if(dim(allelefreq.samples)[2]==0) {
-    print("allelefreqoutputfile empty")
-  } else {
-    ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
-    print.default("Converting allele frequency samples array to list")
-    allelefreq.samples.list <- listAlleleFreqs(allelefreq.samples)
-    ##allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
-    
-    ## calculate posterior means of sampled fvalues at each locus
-    if(K > 1) { 
-      fValues.means <- calculateLocusfValues(allelefreq.samples.list)
-      fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=4))
-      dimnames(fValues.means)[[2]] <- c("LocusName",
-                                        paste(population.labels[1], population.labels[2], sep="."))
-      write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
-                  row.names=TRUE, col.names=TRUE)
-      write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
-                  file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
-                  row.names=FALSE, col.names=TRUE)
-    }
-
-    ## calculate posterior means of KL info for ancestry at each locus
-    if(K > 1) { 
-      KLInfo.means <- calculateLocusKLInfo(allelefreq.samples.list)
-      KLInfo.means <- data.frame(as.vector(loci.compound[,1]), round(KLInfo.means, digits=4))
-      dimnames(KLInfo.means)[[2]] <- c("LocusName", "KLInfo")
-      write.table(KLInfo.means, file=paste(resultsdir,"LocusKLInfo.txt", sep="/"),
-                  row.names=TRUE, col.names=TRUE)
-      write.table(KLInfo.means[order(KLInfo.means[, 2], decreasing=TRUE), ],
-                  file=paste(resultsdir,"LocusKLInfoSorted.txt", sep="/"),
-                  row.names=FALSE, col.names=TRUE)
-    }
-
-    ## generate lists to hold allele freq means and covariances
-    freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
-    allelefreq.means.list <- freqMeansCovs[[1]]
-    allelefreq.covs.list <- freqMeansCovs[[2]]
-
-    ## write posterior means of allele freqs to file
-    writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
-                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
-    
-    ## fit Dirichlet parameters by equating posterior means and variances
-    allelefreq.params.list <- fitDirichletParams(allelefreq.means.list, allelefreq.covs.list) 
-    
-    ## write Dirichlet parameters of allele freq distributions to file as R object
-    dput(allelefreq.params.list, file=paste(resultsdir,"allelefreqparamsAsRObject.txt", sep="/"))
-    
-    ## write Dirichlet parameters of allele freq distributions to file
-    writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
-                     paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
-    
-
-  }
+} else
+{
+ allelefreq.file <- paste(resultsdir,user.options$allelefreqoutputfile,sep="/")
+ if(file.exists(allelefreq.file)){
+   allelefreq.samples <- dget(allelefreq.file)
+   ## prevent script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
+   if(dim(allelefreq.samples)[2]==0) {
+     print("allelefreqoutputfile empty")
+   } else {
+     ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
+     print.default("Converting allele frequency samples array to list")
+     allelefreq.samples.list <- listAlleleFreqs(allelefreq.samples)
+     ##allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
+     
+     ## calculate posterior means of sampled fvalues at each locus
+     if(K > 1) { 
+       fValues.means <- calculateLocusfValues(allelefreq.samples.list)
+       fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=4))
+       dimnames(fValues.means)[[2]] <- c("LocusName",
+                                         paste(population.labels[1], population.labels[2], sep="."))
+       write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
+                   row.names=TRUE, col.names=TRUE)
+       write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
+                   file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
+                   row.names=FALSE, col.names=TRUE)
+     }
+     
+     ## calculate posterior means of KL info for ancestry at each locus
+     if(K > 1) { 
+       KLInfo.means <- calculateLocusKLInfo(allelefreq.samples.list)
+       KLInfo.means <- data.frame(as.vector(loci.compound[,1]), round(KLInfo.means, digits=4))
+       dimnames(KLInfo.means)[[2]] <- c("LocusName", "KLInfo")
+       write.table(KLInfo.means, file=paste(resultsdir,"LocusKLInfo.txt", sep="/"),
+                   row.names=TRUE, col.names=TRUE)
+       write.table(KLInfo.means[order(KLInfo.means[, 2], decreasing=TRUE), ],
+                   file=paste(resultsdir,"LocusKLInfoSorted.txt", sep="/"),
+                   row.names=FALSE, col.names=TRUE)
+     }
+     
+     ## generate lists to hold allele freq means and covariances
+     freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
+     allelefreq.means.list <- freqMeansCovs[[1]]
+     allelefreq.covs.list <- freqMeansCovs[[2]]
+     
+     ## write posterior means of allele freqs to file
+     writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
+                      paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
+     
+     ## fit Dirichlet parameters by equating posterior means and variances
+     allelefreq.params.list <- fitDirichletParams(allelefreq.means.list, allelefreq.covs.list) 
+     
+     ## write Dirichlet parameters of allele freq distributions to file as R object
+     dput(allelefreq.params.list, file=paste(resultsdir,"allelefreqparamsAsRObject.txt", sep="/"))
+     
+     ## write Dirichlet parameters of allele freq distributions to file
+     writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
+                      paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
+     
+     
+   }
+ }else{
+   print( "No allelefreqoutputfile found")
+ }
+ 
 }
 
   
@@ -1222,7 +1281,7 @@ if(!is.null(user.options$indadmixturefile) && K >1) {
     samples4way <- array(samples.adm, dim=c(K, 2, dim(samples)[2:3]))
     dimnames(samples4way) <- list(population.labels,c("Parent1", "Parent2"),
                                   character(0), character(0))
-    samples.meanparents <- apply(samples4way, 2:4, mean)
+    samples.meanparents <- apply(samples4way, c(1,3,4), mean)
     samples.bothparents <- array(samples4way,
                                  dim=c(K, 2*n.individuals, n.iterations))
     dimnames(samples.bothparents) <- list(population.labels, character(0), character(0))
@@ -1230,15 +1289,21 @@ if(!is.null(user.options$indadmixturefile) && K >1) {
     samples.meanparents <- samples[1:K, 1:n.individuals ,1:n.iterations, drop=F]
     samples.bothparents <- samples[1:K, 1:n.individuals ,1:n.iterations, drop=F]
   }
-  
+
   ## should plot only if subpopulations are identifiable in model
   if(n.individuals > 1) { # dim(samples.meanparents)[2] > 1) {
     plotAdmixtureDistribution(alphas, samples.bothparents, K)
     ##if(K > 1) {
     ##writePosteriorMeansIndivAdmixture(t(samples), K)
     ##}
-    sample.means <- apply(samples, 1:2, mean)
-    write.table(format(round(t(sample.means),3), nsmall=3),
+    sample.means <- apply(samples.meanparents, 1:2, mean)
+    admixture.means <- format(round(t(sample.means),3), nsmall=3)
+    M.squared <- samples.meanparents[1:K,,]^2
+    ancestry.diversity <- 1 - apply(M.squared, 2:3, sum)
+    AncestryDiversity <- signif(apply(ancestry.diversity, 1, mean), digits=3)
+ 
+    admixture.table <- data.frame(admixture.means, AncestryDiversity)
+    write.table(admixture.table,
                 paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), quote=F, row.names=F, sep="\t")
     
   } else { #if(dim(samples.meanparents)[2]==1)
