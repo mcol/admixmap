@@ -127,13 +127,6 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned in
       }//end if xi true
     }//end gamete loop
   } // ends loop over intervals
-  //     cout << "sumlocusancestry\t";
-  //     for( unsigned int g = 0; g < gametes; g++ ){
-  //       for(int k =0; k < K; ++k) {
-  //         cout << SumLocusAncestry[k + g*K] << "\t";
-  //       }
-  //     }
-  //     cout << "\n";
 }
 
 /*
@@ -346,30 +339,40 @@ void HMM::UpdateBackwardProbsDiploid()
 void HMM::UpdateForwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
   sumfactor = 0.0;
-  double Sum;
+  double Sum = 0.0;
+  double scaleFactor = 0.0;
   for(int j = 0; j < K; ++j){
     alpha[j] = theta[j] * Lambda[j];
   }
   
   for( int t = 1; t < Transitions; t++ ) {
-    Sum = 0.0;
-    for(int j = 0; j < K; ++j){
-      Sum += alpha[(t-1)*K + j];
+    if(!missingGenotypes[t-1]) {
+      Sum = 0.0;
+      //scale previous alpha to sum to 1
+      for(int j = 0; j < K; ++j){
+	Sum += alpha[(t-1)*K + j];
+      }
+      scaleFactor = 1.0 / Sum;
+      for( int j = 0; j <  K; ++j ) {
+	alpha[(t-1)*K +j] *= scaleFactor;
+      }
+      sumfactor += log(Sum);
     }
+
     for(int j = 0; j < K; ++j){
-      alpha[t*K + j] = f[2*t] + (1.0 - f[2*t]) * theta[j] * Sum;
+      alpha[t*K + j] = f[2*t]*alpha[(t-1)*K +j] + (1.0 - f[2*t]) * theta[j];
       alpha[t*K + j] *= Lambda[t*K + j];
     }
   }
   alphaIsBad =  false;
-  //TODO: rescale to avoid underflow
 }
 
 void HMM::UpdateBackwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
   //allocate beta if not done already
-  if(!beta) beta =  new double[Transitions*K*K];
-  double Sum;
+  if(!beta) beta =  new double[Transitions*K];
+  if(!LambdaBeta)LambdaBeta = new double[K];
+  double Sum = 0.0;
   for(int j = 0; j < K; ++j){
     beta[(Transitions-1)*K + j] = 1.0;
   }
@@ -377,16 +380,17 @@ void HMM::UpdateBackwardProbsHaploid(){
   for( int t = Transitions-2; t >=0; t-- ){
     Sum = 0.0;
     for(int j = 0; j < K; ++j){
-      Sum += theta[j]*Lambda[(t+1)*K + j]*beta[(t+1)*K + j];
+      LambdaBeta[j] = Lambda[(t+1)*K + j]*beta[(t+1)*K + j];
+      Sum += theta[j]*LambdaBeta[j];
     }
-    for(int j=0;j<K;++j){
-      beta[t*K + j] = f[2*t+2]*Lambda[(t+1)*K + j]*beta[(t+1)*K + j] + (1.0 - f[2*t+3])*Sum;
+    for(int j = 0; j < K; ++j){
+      beta[t*K + j] = f[2*(t+1)]*LambdaBeta[j] + (1.0 - f[2*(t+1)+1])*Sum;
     }
   }
   betaIsBad = false;
 }
 
-// argument oldProbs is square array of size K, K
+// argument oldProbs is square array of size K * K
 // for forward recursions, pass alpha_t and multiply newProbs by emission probs lambda_t 
 // for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
 void HMM::RecursionProbs(const double ff, const double f2[2], const double* const stateArrivalProbs, 
