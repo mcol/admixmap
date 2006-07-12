@@ -300,9 +300,10 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindica
     if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
 				       chibindicator);
-    else //haploid genotype
+    else {//haploid genotype
       (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j]+jj*Populations, PossibleHapPairs[locus], 
 					      chibindicator);
+    }
     
   } else {
     if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
@@ -1260,7 +1261,7 @@ void Individual::UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops
   // values of ancestry risk ratio at which likelihood ratio is evaluated
   double r1 = 0.5;
   double r2 = 2.0;//hard-coding these for now, can make them vary later
-  if( SexIsFemale  || (locus != X_posn) ) { // diploid case
+  if( SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn) ) { // diploid case
     double theta[2];//paternal and maternal admixture proportions
     double Pi[3];//probs of 0,1,2 copies of Pop k given admixture
     for( int k = 0; k < Pops; k++ ){
