@@ -55,9 +55,9 @@ K <- 2
 N <- 200
 rho <- 6 ## sum-of-intensities
 rhoX <- 0.5*rho
-spacing <- 40 # 40 cM spacing gives 99 loci
-spacingX <- 180 #30
-L <- 50 #default # number of loci
+spacing <- 1000 # 40 cM spacing gives 99 loci
+spacingX <- 20 #30
+L <- 50  # default number of loci
 beta <- 2 # regression slope
 popadmixparams <- c(3, 1) # population admixture params for pop1, pop2
 afreqparams <- c(10, 90)
@@ -98,7 +98,7 @@ for(locus in 1:(L + LX)) {
 genotypes <- character(L+LX)
 outcome <- numeric(N)
 avM <- numeric(N)
-male <- rep(0, N) #rbinom(N, 1, 0.5)
+male <- rep(1, N) #rbinom(N, 1, 0.5)
 popM <- popadmixparams[2] / sum(popadmixparams) # mean admixture proportions
 for(individual in 1:N) {
   M1 <- rbeta(1, popadmixparams[1], popadmixparams[2])
