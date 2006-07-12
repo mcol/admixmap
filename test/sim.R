@@ -1,8 +1,31 @@
 ## script to simulate test data for admixmap
-simulateHaploidAlleles <- function(M,rho,x,L) {   
-  gameteAncestry <- numeric(L)  
-  randAnc <- runif(L)
+rdiscrete <- function(probs) {
+  v <- as.vector(rmultinom(1, 1, probs))
+  return(match(1, v))
+}
+
+rdirichlet <- function(params) {
+  S <- length(params)
+  p <- numeric(S)
+  if(S==2) {
+    p[1] <- rbeta(1, params[1], params[2])
+    p[2] <- 1 - p[1]
+  } else {
+    for(i in 1:S) {
+      p[i] <- rgamma(1, params[i], 1)
+    }
+    sum.p <- sum(p)
+    p <- p / sum.p
+  }
+  return(p)
+}
+
+  
+simulateHaploidAlleles <- function(M,rho,x,L, freqs, S) {   
+  gameteAncestry <- integer(L)  
   f <- numeric(L)
+  alleles <- integer(L)
+  randAnc <- runif(L)
   gameteAncestry[1] <- ifelse(randAnc[1] > M, 2, 1) # M is prob pop 1.
   if (L > 1) {
     for(locus in 2:L) {
@@ -17,20 +40,25 @@ simulateHaploidAlleles <- function(M,rho,x,L) {
       gameteAncestry[locus] <- ifelse(randAnc[locus] > T[gameteAncestry[locus-1], 1], 2, 1)
     }
   }
-  simulateHaploidAlleles <- ifelse(runif(L) > alleleFreqs[1,gameteAncestry], 2, 1)
+  for(locus in 1:L) {
+    locus.rows <- seq(from=1+S*(locus-1), to=S*locus)
+    probs <- freqs[locus.rows, gameteAncestry[locus]]
+    alleles[locus] <- rdiscrete(probs)
+  }
+  return(alleles)
 }
 
-simulateAutosomalGenotypes <- function(M1,M2, rho,x,L) {
-  maternalGamete <- simulateHaploidAlleles(M2,rho,x,L)  
-  paternalGamete <- simulateHaploidAlleles(M1,rho,x,L)
+simulateAutosomalGenotypes <- function(M1,M2, rho,x,L, freqs, S) {
+  maternalGamete <- simulateHaploidAlleles(M2,rho,x,L, freqs, S)  
+  paternalGamete <- simulateHaploidAlleles(M1,rho,x,L, freqs, S)
   g <- paste(paternalGamete, ",", maternalGamete, sep="")
   return(g)
 }
 
-simulateXGenotypes <- function(M1,M2, rho,x,L, male) {
-  maternalGamete <- simulateHaploidAlleles(M2,rho,x,L)  
+simulateXGenotypes <- function(M1,M2, rho,x,LX, freqsX, S, male) {
+  maternalGamete <- simulateHaploidAlleles(M2,rho,x,LX, freqsX, S)  
   if(!male) {
-    paternalGamete <- simulateHaploidAlleles(M1,rho,x,L)
+    paternalGamete <- simulateHaploidAlleles(M1,rho,x,LX, freqsX, S)
     g <- paste(paternalGamete, ",", maternalGamete, sep="")
   } else {
     g <- paste(maternalGamete, ",", maternalGamete, sep="") # 2nd element should be 0
@@ -55,12 +83,14 @@ K <- 2
 N <- 200
 rho <- 6 ## sum-of-intensities
 rhoX <- 0.5*rho
-spacing <- 1000 # 40 cM spacing gives 99 loci
-spacingX <- 20 #30
-L <- 50  # default number of loci
+spacing <- 40 # 40 cM spacing gives 99 loci
+spacingX <- 30 #30
+L <- 50  # default number of autosomal loci
 beta <- 2 # regression slope
 popadmixparams <- c(3, 1) # population admixture params for pop1, pop2
-afreqparams <- c(10, 90)
+S <- 3 # number of alleles
+#afreqparams <- matrix(c(10, 90, 90, 10), nrow=2, ncol=2)
+afreqparams <- matrix(c(10, 10, 80, 80, 10, 10), nrow=3, ncol=2)
 
 ##marker spacings#
 # x <- 0.1 #evenly spaced#
@@ -69,7 +99,7 @@ afreqparams <- c(10, 90)
 # x <- rep(0.01,L) #denser markers
 
 x <- numeric(0)
-chr <- numeric(0)
+chr <- integer(0)
 numChr <- 22 # not including X chr
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
@@ -88,27 +118,30 @@ xX <- as.vector(0.01*distanceFromLast(chrX, positionsX))
 LX <- length(xX) # number of X loci
 
 ## simulate allele freqs
-alleleFreqs <- matrix(data=NA, nrow=2*(L+LX), ncol=K)
+alleleFreqs <- matrix(data=NA, nrow=S*(L+LX), ncol=K)
 for(locus in 1:(L + LX)) {
-  alleleFreqs[2*locus - 1, 1] <- rbeta(1, afreqparams[1], afreqparams[2]) # freqs allele 1 in subpop 1
-  alleleFreqs[2*locus - 1, 2] <- rbeta(1, afreqparams[2], afreqparams[1]) # freqs allele 1 in subpop 2
-  alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
-}
+  locus.rows <- seq(from=1+S*(locus-1), to=S*locus)
+  for(pop in 1:K) {
+    alleleFreqs[locus.rows, pop] <- rdirichlet(afreqparams[, pop])
+  }
+}                                             
 
 genotypes <- character(L+LX)
 outcome <- numeric(N)
 avM <- numeric(N)
-male <- rep(1, N) #rbinom(N, 1, 0.5)
+male <- rep(0, N) #rbinom(N, 1, 0.5)
 popM <- popadmixparams[2] / sum(popadmixparams) # mean admixture proportions
 for(individual in 1:N) {
   M1 <- rbeta(1, popadmixparams[1], popadmixparams[2])
   # M2 <- rbeta(1, popadmixparams[1], popadmixparams[2])# random mating
   M2 <- M1 #assortative mating
   avM[individual] <- 1 - 0.5*(M1 + M2)
-  obs <- simulateAutosomalGenotypes(M1, M2, rho, x, L)  #make some genotypes missing
+  obs <- simulateAutosomalGenotypes(M1, M2, rho, x, L, alleleFreqs, S)
+  ##make some genotypes missing
   for(locus in 1:L) if(runif(n=1) < 0.1)
     obs[locus] <- "0,0"
-  obs <- c(obs, simulateXGenotypes(M1, M2, rhoX, xX, LX, as.logical(male[individual])))
+  obs <- c(obs, simulateXGenotypes(M1, M2, rhoX, xX, LX, alleleFreqs[-(1:(S*L)), ], S,
+                                   as.logical(male[individual])))
   genotypes <- rbind(genotypes, obs)
   ## simulate outcome
   alpha <- -beta*popM
@@ -131,15 +164,18 @@ write.table(genotypes, file="simdata/genotypes.txt", row.names=FALSE, sep="\t")
 
 ## write locus file
 chrlabels <- c(as.character(chr), rep("X", LX))
-loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-(1:2)]),  rep(2,L+LX), c(x, xX), chrlabels, 
+loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-(1:2)]),  rep(S,L+LX), c(x, xX), chrlabels, 
                    row.names=NULL)
 dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distance", "Chr")
 write.table(loci, file="simdata/loci.txt", row.names=FALSE, sep="\t")
 
 ## write priorallelefreqs file
-priorallelefreqs <- t(matrix(c(afreqparams[1], afreqparams[2],
-                               afreqparams[2], afreqparams[1]), ncol=2*(L+LX), nrow=2))
-locusnames <- rep(loci[, 1], each=2)
+priorallelefreqs <- matrix(data=NA, nrow=S*(L+LX), ncol=K)
+for( locus in 1:(L+LX) ) {
+  locus.rows <- seq(from=1+S*(locus-1), to=S*locus)
+  priorallelefreqs[locus.rows, ] <- afreqparams
+}
+locusnames <- rep(loci[, 1], each=S)
 priorallelefreqs <- data.frame(locusnames, priorallelefreqs)
 dimnames(priorallelefreqs)[[2]] <- c("Locus", "Pop1", "Pop2")
 write.table(priorallelefreqs, file="simdata/priorallelefreqs.txt", sep="\t", row.names=FALSE)
