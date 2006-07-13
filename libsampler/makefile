@@ -10,8 +10,7 @@
 # Compiler: CC = [g++/icpc/pgCC/pathCC]
 # MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
-# paths to gsl, mpi, sprng: GSL_LIBPATH, GSL_INCLUDEPATH, MPI_PATH, MPI_LIBPATH, SPRNG_PATH
-# name of compiled executable: EXEC
+# paths to gsl, mpi, sprng headers: GSL_INCLUDEPATH, MPI_PATH, SPRNG_PATH
 #
 ###############################################################################################
 
@@ -39,7 +38,7 @@ MPICC = $(MPI_PATH)/bin/mpiCC# MPI 1 wrapper
 MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
-GCC_VERSION = 3
+GCC_VERSION =3
 VERSION = serial
 #VERSION = parallel
 
@@ -129,25 +128,33 @@ endif
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
+PICFLAG =# -fPIC
 
 ## DO NOT EDIT BELOW HERE ##
 
 objects		=  AdaptiveRejection.o StepSizeTuner.o Gaussian.o GaussianProposalMH.o \
 DirichletParamSampler.o HamiltonianMonteCarlo.o MuSampler.o DispersionSampler.o rand.o functions.o
 
-all:	libsampler
+all:	static #shared
+
+static: libsampler
 
 libsampler: $(objects) 
-	ar cr libsampler.a $(objects)
+	ar crs libsampler.a $(objects)
+	#ranlib libsampler.a
+
+shared: $(objects)
+	$(CXX) $(CPPFLAGS) -shared -Wl,-soname,libsampler.so\
+-o libsampler.so $(objects) -lgsl -lgslcblas
 
 %.o: %.cc#rule for compilation
-	$(CXX) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(INCLUDES) $(PICFLAG) -c $< -o $@
 
 clean:		          
 	rm -f *.o
 
 veryclean: clean
-	rm -f *.a
+	rm -f *.a *.so
 
 dist:
 	rm libsampler.tar.gz
