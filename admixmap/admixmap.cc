@@ -89,14 +89,13 @@ int main( int argc , char** argv ){
   const int rank = -1;//cannot be 0 as process with rank 0 is excluded from some function calls
 #endif
 
-  int xargc = argc;
-  char **xargv = 0;
-  //char **xargv = argv;  
+  int    xargc = argc;
+  char **xargv = argv;    
 
-  if (argc < 2) { // no command-line arguments
+   if (argc < 2) {
     PrintOptionsMessage();
     exit(1); 
-  } else if (argc == 2) {     // read arguments from file        
+  } else if (argc == 2) {     // using options text file        
     xargc = 1;//NB initialise to 1 to mimic argc (arg 0 is prog name), otherwise first option is ignored later
     xargv = new char*[MAXNUMOPTIONS];  
     ReadArgsFromFile(argv[1], &xargc, xargv);        
@@ -117,12 +116,13 @@ int main( int argc , char** argv ){
       }
   }
  
-  // ******************* PRIMARY INITIALIZATION *****************************************************************
+  // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
   AdmixOptions options(xargc, xargv);
   if(rank<1){
     //if(options.getDisplayLevel()>0 )
     PrintCopyrightNotice();
+	
     MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>1));
   }
  
@@ -497,10 +497,10 @@ int main( int argc , char** argv ){
 #endif
     //}
 
-    if(xargv != argv) {
-      // elete[] argv[1];
-      delete[] xargv;
-    }
+//     if(xargv != argv){
+//       delete[] argv[1];
+//       delete[] xargv;
+//     }
 	
   } catch (string msg) {//catch any stray error messages thrown upwards
     Log.setDisplayMode(On);
@@ -522,6 +522,12 @@ int main( int argc , char** argv ){
     cout << "Error in process " << rank << ": " << e.Get_error_code() << endl;
     MPI::COMM_WORLD.Abort(1);
   }
+#endif
+  catch(...){
+    cout << "Unknown exception occurred. Contact the program authors for assistance" << endl;
+    exit(1);
+  }
+#ifdef PARALLEL
   //MPI::COMM_WORLD.Barrier();
   MPE_Finish_log("admixmap");
 
@@ -619,7 +625,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	      R[r]->OutputErgodicAvg(samples, &avgstream);
 
 	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq, &avgstream);
-	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream);
+	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream, options.getFixedAlleleFreqs());
 	    avgstream << endl;
 	  }
 	  //Score Test output

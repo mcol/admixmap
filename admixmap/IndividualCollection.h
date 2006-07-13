@@ -137,7 +137,7 @@ public:
 
   double DerivativeInverseLinkFunction(int i)const;
   void ResetChib();
-  void OutputErgodicChib(std::ofstream *avgstream);
+  void OutputErgodicChib(std::ofstream *avgstream, bool fixedfreqs);
   const chib* getChib()const;
 
   void HMMIsBad(bool b);

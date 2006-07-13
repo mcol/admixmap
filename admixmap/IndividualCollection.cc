@@ -1115,9 +1115,10 @@ void IndividualCollection::ResetChib(){
   MargLikelihood.Reset();
 }
 
-void IndividualCollection::OutputErgodicChib(std::ofstream *avgstream) {
+void IndividualCollection::OutputErgodicChib(std::ofstream *avgstream, bool fixedallelefreqs) {
   *avgstream << MargLikelihood.getLogPrior()<< " " << MargLikelihood.getLogPosterior() << " "
-	     << _child[0]->getLogPosteriorTheta() << " " << _child[0]->getLogPosteriorRho()<< " "
-    //	     << _child[0]->getLogPosteriorAlleleFreqs() << " " // not if fixedallelefreqs
-	     << MargLikelihood.getLogMarginalLikelihood();
+	     << _child[0]->getLogPosteriorTheta() << " " << _child[0]->getLogPosteriorRho()<< " ";
+  if(!fixedallelefreqs)
+    *avgstream  << _child[0]->getLogPosteriorAlleleFreqs() << " "; // not if fixedallelefreqs
+  *avgstream << MargLikelihood.getLogMarginalLikelihood();
 }
