@@ -15,9 +15,11 @@ typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors
 
 typedef std::vector<std::vector<unsigned short> > genotype;
 
+///enum for the various regression types.
+/// Mlinear = Multiple linear, Mlogistic = multiple logistic
 enum RegressionType {None, Linear, Logistic, Mlinear, Mlogistic, Multiple};
+///enum for continuous/binary datatypes
 enum DataType {Continuous, Binary};
-enum Sex {unknown, male, female};
 
 //uncomment the next line for parallel version
 //#define PARALLEL

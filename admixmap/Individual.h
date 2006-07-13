@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   Individual.h 
  *   header file for Individual class
- *   Copyright (c) 2002-2006 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -46,8 +46,6 @@ public:
 
   void setOutcome(double*);
   void setCovariates(double*);
-
-  Sex getSex()const ;
 
   const double* getAdmixtureProps()const;
 
@@ -144,14 +142,15 @@ private:
   unsigned myNumber;//number of this individual, counting from 1
   bool IAmUnderTest;//true if not in Individual array
   bool SexIsFemale;
-  bool Xdata;
-  double EffectiveL[2];
-  bool admixturemodel;
 
-  Sex sex; 
+  static unsigned int numChromosomes;
+  static int Populations;
+  static Genome *Loci;
+  static bool Xdata;//indicates if there is an X chromosome
+  static unsigned int X_posn;  //number of X chromosome
+  double EffectiveL[2];
+  static unsigned NumIndGametes; // 1 if assortative mating, 2 if random mating
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
-  unsigned int X_posn;  //number of X chromosome
-  unsigned NumIndGametes; // 1 if assortative mating, 2 if random mating
 
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
@@ -160,9 +159,6 @@ private:
   bool *missingGenotypes;//indicators for missing genotypes at simple loci
   std::vector<hapPair> sampledHapPairs;
 
-  static unsigned int numChromosomes;
-  static int Populations;
-  static Genome *Loci;
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
   double *Theta;//admixture proportions
   double* ThetaMode;
@@ -245,9 +241,9 @@ private:
   double LogPriorRho_LogBasis(const vector<double> rho, //const vector<double> rhoX, 
 			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const;
 
-  double CalculateLogPosteriorTheta_Softmax(const AdmixOptions* const options, const double* const theta, 
+  double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, 
 				    const vector<vector<double> > &alpha)const;
-  double CalculateLogPosteriorRho_LogBasis(const AdmixOptions* const options,  
+  double CalculateLogPosteriorRho(const AdmixOptions* const options,  
 				  const vector<double> rho, //const vector<double> rhoX,
 				  double rhoalpha, double rhobeta)const;
   

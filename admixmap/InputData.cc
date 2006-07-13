@@ -529,8 +529,8 @@ void InputData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
   }
 }
 
-///returns sex value from genotypes file for individual i
-Sex InputData::GetSexValue(int i)const{
+///determines if an individual is female
+bool InputData::isFemale(int i)const{
   //if (options->getgenotypesSexColumn() == 1) {
     int sex = StringConvertor::toInt(geneticData_[i][1]);
     if (sex > 2) {
@@ -538,7 +538,7 @@ Sex InputData::GetSexValue(int i)const{
       exit(0);
     }        
     //}
-    return (Sex) sex;
+    return (bool)(sex==2);
 }
 
 vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, int SexColumn)const{
@@ -552,11 +552,11 @@ vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, in
   int col = 1 + SexColumn + locus;
   if (IsPedFile)col = 1 + SexColumn + 2*locus;
 
-  if(isXlocus && (GetSexValue(individual)==male)){//if X-chrm locus and male individual, expect haploid genotype
+  if(isXlocus && !isFemale(individual)){//if X-chrm locus and male individual, expect haploid genotype
     const std::string tmp = StringConvertor::dequote(geneticData_[individual][col]);
     //TODO:check male X genotypes are all haploid 
-    string::size_type i = tmp.find_first_of(",/"); 
-    g.push_back(atoi(tmp.substr(0,i).c_str()));
+    string::size_type i = tmp.find_first_of(",/");//look for , or / 
+    g.push_back(atoi(tmp.substr(0,i).c_str()));//take genotype as portion of string up to , or /
 
   }
   else{

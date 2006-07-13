@@ -80,7 +80,7 @@ public:
   //void convertGenotypesToIntArray(AdmixOptions *options);
   //void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
 
-  Sex GetSexValue(int i)const;
+  bool isFemale(int i)const;
   int getNumberOfIndividuals()const;
   int getNumberOfSimpleLoci()const;
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};
