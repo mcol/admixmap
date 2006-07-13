@@ -1541,7 +1541,7 @@ double Individual::LogPriorRho_LogBasis(const vector<double> rho, const AdmixOpt
   if( options->isRandomMatingModel() ) {
     for(int g = 0; g < 2; ++g) { //loop over gametes
       if( options->isAdmixed(g) ){
-	LogPrior = getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rho[g] );
+	LogPrior += getGammaLogDensity_LogBasis( rhoalpha, rhobeta, rho[g] );
       }
     }
   } else { // assortative mating: rho assumed same on both gametes
