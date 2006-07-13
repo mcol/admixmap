@@ -207,21 +207,21 @@ private:
   static double *LikRatio2;
   
   void SetDefaultAdmixtureProps();
-  //double IntegratingConst( double alpha, double beta, double a, double b )const;
+
   void UpdateAdmixtureForRegression( int Populations, int NumCovariates, const double* const poptheta, 
 				     bool ModelIndicator, DataMatrix *Covariates);
-  void Accept_Reject_Theta( double p, /*bool xdata,*/ int Populations, bool ModelIndicator, bool RW );
-  //double LogAcceptanceRatioForTheta_XChrm(const std::vector<double> &sigma, int Populations );
+
+  void Accept_Reject_Theta( double p, int Populations, bool ModelIndicator, bool RW );
+
   double LogAcceptanceRatioForRegressionModel( RegressionType RegType, bool RandomMatingModel, 
 					       int Populations, int NumCovariates, 
 					       const DataMatrix* const Covariates, const double* beta, 
-					       //const double ExpectedY, 
 					       const double Outcome, const double* const poptheta, const double lambda);
   
   void UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
 			     const double* const theta, const vector<double> rho);
   
-  void ProposeTheta(const AdmixOptions* const options, /*const vector<double> sigma,*/ const vector<vector<double> > &alpha,
+  void ProposeTheta(const AdmixOptions* const options, const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
 
   double ProposeThetaWithRandomWalk(const AdmixOptions* const options, const vector<vector<double> > &alpha);
@@ -229,22 +229,15 @@ private:
   double getLogLikelihood(const AdmixOptions* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
 
-  //   double LogPriorTheta(const double* const theta,   
-  // 		       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
   double LogPriorTheta_Softmax(const double* const theta, 
 			       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
-  //Computes LogPrior density in softmax basis at supplied parameter values 
-  
-  //   double LogPriorRho(const vector<double> rho, //const vector<double> rhoX, 
-  // 		     const AdmixOptions* const options, double rhoalpha, double rhobeta)const; 
 
-  double LogPriorRho_LogBasis(const vector<double> rho, //const vector<double> rhoX, 
-			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const;
+  double LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions* const options, 
+			      double rhoalpha, double rhobeta) const;
 
-  double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, 
+  double LogPosteriorTheta_Softmax(const AdmixOptions* const options, const double* const theta, 
 				    const vector<vector<double> > &alpha)const;
-  double CalculateLogPosteriorRho(const AdmixOptions* const options,  
-				  const vector<double> rho, //const vector<double> rhoX,
+  double LogPosteriorRho_LogBasis(const AdmixOptions* const options, const vector<double> rho, 
 				  double rhoalpha, double rhobeta)const;
   
   void UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, bool RandomMatingModel, 

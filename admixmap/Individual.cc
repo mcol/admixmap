@@ -1479,10 +1479,10 @@ void Individual::updateChib(const AdmixOptions* const options, const vector<vect
   double LogPosterior = 0.0;
   double LP = 0.0;
   if( Populations > 1 ){
-    LP = CalculateLogPosteriorTheta(options, thetahat, alpha);
+    LP = LogPosteriorTheta_Softmax(options, thetahat, alpha);
     logPosterior[0].push_back(LP);
     LogPosterior += LP;
-    LP = CalculateLogPosteriorRho(options, rhohat, rhoalpha, rhobeta);
+    LP = LogPosteriorRho_LogBasis(options, rhohat, rhoalpha, rhobeta);
     logPosterior[1].push_back(LP);
     LogPosterior += LP;
   }
@@ -1502,23 +1502,8 @@ void Individual::updateChib(const AdmixOptions* const options, const vector<vect
   MargLikelihood->addLogPosteriorObs( LogPosterior );
 }
 
-// double Individual::LogPriorTheta(const double* const theta, //const double* const thetaX,  
-// 			    const AdmixOptions* const options, const vector<vector<double> > &alpha) const {
-//   //Computes log prior density at supplied parameter values
-//   // calls getDirichletLogDensity with parameters as std vector, proportions as array 
-//   double LogPrior=0.0;
-//   //TODO: fix for assortative mating model
-//   if( options->isAdmixed(0) ){//gamete 1
-//     LogPrior += getDirichletLogDensity( alpha[0], theta );
-//   }
-//   if( options->isAdmixed(1) ){//gamete 2
-//     LogPrior += getDirichletLogDensity( alpha[1], theta + Populations );
-//   }
-//   return LogPrior;
-// }
-
-double Individual::LogPriorTheta_Softmax(const double* const theta, //const double* const thetaX,  
-					 const AdmixOptions* const options, const vector<vector<double> > &alpha) const {
+double Individual::LogPriorTheta_Softmax(const double* const theta, const AdmixOptions* const options, 
+					 const vector<vector<double> > &alpha) const {
   // Computes LogPrior density in softmax basis at supplied parameter values
   // calls getDirichletLogDensity_Softmax with parameters as std vector, proportions as array 
   double LogPrior=0.0;
@@ -1531,8 +1516,7 @@ double Individual::LogPriorTheta_Softmax(const double* const theta, //const doub
   return LogPrior;
 }
 
-// called on test individual after burnin
-double Individual::CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, 
+double Individual::LogPosteriorTheta_Softmax(const AdmixOptions* const options, const double* const theta, 
 					      const vector<vector<double> > &alpha) const{
   // calculates log full conditional at theta, conditional on realized locus ancestry states and jump indicators
   double LogPosterior = 0.0;
@@ -1550,24 +1534,6 @@ double Individual::CalculateLogPosteriorTheta(const AdmixOptions* const options,
   return LogPosterior;
 }
 
-// double Individual::LogPriorRho(const vector<double> rho, const AdmixOptions* const options, double rhoalpha, double rhobeta) const {
-//   // Computes log prior density for arrival rate rho at supplied parameter values
-//   double LogPrior=0.0;
-//   if( options->isRandomMatingModel() ) {
-//     for(int g = 0; g < 2; ++g) { //loop over gametes
-//       if( options->isAdmixed(g) ){
-// 	LogPrior = getGammaLogDensity( rhoalpha, rhobeta, rho[g] );
-// 	//LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) ); // normalize for lower truncation at 1
-//       }
-//     }
-//   } else { // assortative mating: rho assumed same on both gametes 
-//     LogPrior = getGammaLogDensity( rhoalpha, rhobeta, rho[0] );
-//     //LogPrior -= log( gsl_cdf_gamma_Q(rhobeta, rhoalpha, 1.0) );
-    
-//   }
-//   return LogPrior;
-// }
-
 double Individual::LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions* const options, double rhoalpha, 
 					double rhobeta) const {
   // computes log prior density in log rho basis at supplied parameter values
@@ -1584,7 +1550,7 @@ double Individual::LogPriorRho_LogBasis(const vector<double> rho, const AdmixOpt
   return LogPrior;
 }
 
-double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options, const vector<double> rho, 
+double Individual::LogPosteriorRho_LogBasis(const AdmixOptions* const options, const vector<double> rho, 
 					    double rhoalpha, double rhobeta)const{
   // calculates log full conditional density at sum-intensities rho, conditional on realized number of arrivals
   // effective length of genome is  2*(L + 0.5*LX) if sex is female, 2*L + 0.5*LX if sex is male
@@ -1595,24 +1561,17 @@ double Individual::CalculateLogPosteriorRho(const AdmixOptions* const options, c
   if(options->isRandomMatingModel() ) { // SumNumArrivals_X has length 2, and SumNumArrivals_X[0] remains fixed at 0 if male 
     for( unsigned int g = 0; g < 2; g++ ) {
       if(options->isAdmixed(g)) {
-	LogPosterior += getGammaLogDensity( rhoalpha + (double)(SumN[g] + SumN_X[g]), rhobeta + EffectiveL[g], rho[g] );
+	LogPosterior += getGammaLogDensity_LogBasis( rhoalpha + (double)(SumN[g] + SumN_X[g]), rhobeta + EffectiveL[g], rho[g] );
       } 
     }
   } else {//assortative mating, rho assumed same on both gametes
     if(options->isAdmixed(0)) {
-      LogPosterior+= getGammaLogDensity( rhoalpha + (double)(SumN[0] + SumN[1] + SumN_X[0] + SumN_X[1]), 
+      LogPosterior+= getGammaLogDensity_LogBasis( rhoalpha + (double)(SumN[0] + SumN[1] + SumN_X[0] + SumN_X[1]), 
 					 rhobeta + EffectiveL[0] + EffectiveL[1], rho[0] );
     }
   }
   return LogPosterior;
 }
-
-// // // redundant unless we revert to using a truncated distribution for rho
-// double Individual::IntegratingConst( double alpha, double beta, double a, double b )const
-// {
-//    double I = gsl_cdf_gamma_P( b*beta, alpha, 1 ) - gsl_cdf_gamma_P( a*beta, alpha, 1);
-//    return I;
-// }
 
 // these three functions can be used to monitor stability of estimates of components of posterior ordinate
 double Individual::getLogPosteriorTheta()const{
