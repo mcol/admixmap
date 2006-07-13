@@ -1502,35 +1502,34 @@ void Individual::updateChib(const AdmixOptions* const options, const vector<vect
   MargLikelihood->addLogPosteriorObs( LogPosterior );
 }
 
+// TODO: fix these two functions to work with assortative mating
 double Individual::LogPriorTheta_Softmax(const double* const theta, const AdmixOptions* const options, 
 					 const vector<vector<double> > &alpha) const {
-  // Computes LogPrior density in softmax basis at supplied parameter values
-  // calls getDirichletLogDensity_Softmax with parameters as std vector, proportions as array 
   double LogPrior=0.0;
-  if( options->isAdmixed(0) ){//gamete 1
-    LogPrior += getDirichletLogDensity_Softmax( alpha[0], theta );
-  }
-  if( options->isAdmixed(1) ){//gamete 2
-    LogPrior += getDirichletLogDensity_Softmax( alpha[1], theta + Populations );
+  for(int g = 0; g < 2; ++g) { //loop over gametes
+    if( options->isAdmixed(g) ){
+      LogPrior += getDirichletLogDensity_Softmax( alpha[g], theta + g*Populations);
+    }
   }
   return LogPrior;
 }
 
 double Individual::LogPosteriorTheta_Softmax(const AdmixOptions* const options, const double* const theta, 
-					      const vector<vector<double> > &alpha) const{
+					     const vector<vector<double> > &alpha) const{
   // calculates log full conditional at theta, conditional on realized locus ancestry states and jump indicators
   double LogPosterior = 0.0;
-  //TODO: fix for assortative mating model
-  vector<double> alphaparams0(Populations), alphaparams1(Populations);
-  if(  options->isAdmixed(0) ){//admixed first gamete
-    //alphaparams0 = alpha + SumLocusAncestry
-    transform(alpha[0].begin(), alpha[0].end(), SumLocusAncestry, alphaparams0.begin(), std::plus<double>());
-    LogPosterior += getDirichletLogDensity_Softmax(alphaparams0, theta);
+  vector<double> alphaparams(Populations); // , alphaparams1(Populations);  // to be set to alpha + SumLocusAncestry
+  for(int g = 0; g < 2; ++g) { //loop over gametes
+    if( options->isAdmixed(g) ) {
+      transform(alpha[g].begin(), alpha[g].end(), SumLocusAncestry + g*Populations, 
+		alphaparams.begin(), std::plus<double>());
+      LogPosterior += getDirichletLogDensity_Softmax(alphaparams, theta + g*Populations);
+    }
   }
-  if(  options->isAdmixed(1) ){//admixed second gamete
-    transform(alpha[1].begin(), alpha[1].end(), SumLocusAncestry+Populations, alphaparams1.begin(), std::plus<double>());
-    LogPosterior += getDirichletLogDensity_Softmax(alphaparams1, theta+Populations);
-  }
+  //   if(  options->isAdmixed(1) ){//admixed second gamete
+  //     transform(alpha[1].begin(), alpha[1].end(), SumLocusAncestry+Populations, alphaparams1.begin(), std::plus<double>());
+  //     LogPosterior += getDirichletLogDensity_Softmax(alphaparams1, theta+Populations);
+  //   }
   return LogPosterior;
 }
 
@@ -1553,11 +1552,9 @@ double Individual::LogPriorRho_LogBasis(const vector<double> rho, const AdmixOpt
 double Individual::LogPosteriorRho_LogBasis(const AdmixOptions* const options, const vector<double> rho, 
 					    double rhoalpha, double rhobeta)const{
   // calculates log full conditional density at sum-intensities rho, conditional on realized number of arrivals
-  // effective length of genome is  2*(L + 0.5*LX) if sex is female, 2*L + 0.5*LX if sex is male
   double LogPosterior = 0.0;
   vector<unsigned> SumN = getSumNumArrivals();
   vector<unsigned> SumN_X = getSumNumArrivals_X();
-  // vector<double> alphaparams1(Populations), alphaparams0(Populations);
   if(options->isRandomMatingModel() ) { // SumNumArrivals_X has length 2, and SumNumArrivals_X[0] remains fixed at 0 if male 
     for( unsigned int g = 0; g < 2; g++ ) {
       if(options->isAdmixed(g)) {
