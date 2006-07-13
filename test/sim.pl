@@ -32,12 +32,12 @@ my $arg_hash = {
 #optional tests
     # allelicassociationscorefile       => 'allelicassociationscorefile.txt',
     # ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
-    # affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
+    affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
     # haplotypeassociationscorefile => 'hapassocscore.txt',
-    #dispersiontestfile                   => 'dispersiontest.txt',
-    #hwscoretestfile                  => 'HardyWeinbergTest.txt',
+    dispersiontestfile                   => 'dispersiontest.txt',
+    hwscoretestfile                  => 'HardyWeinbergTest.txt',
     #stratificationtestfile           => 'stratificationtest.txt',
-    #residualallelicassocscorefile    => 'residualLDscoretest.txt'
+    residualallelicassocscorefile    => 'residualLDscoretest.txt'
 };
 
 doAnalysis($executable,$arg_hash);
