@@ -29,8 +29,8 @@ public:
   void Sample(int *SStates, bool isdiploid);
   const std::vector<double> Get3WayStateProbs( const bool isDiploid, int t );
   double getLogLikelihood(bool isDiploid);
-  void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
-			    int *SumLocusAncestry, std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;
+  void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, int *SumLocusAncestry, 
+			    std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;
 
 private:
   int K;
@@ -44,7 +44,8 @@ private:
   
   //forward and backward probabilities
   //L x K x K arrays
-  double *alpha, *beta,*LambdaBeta;
+  double *alpha, *beta, *LambdaBeta;
+  bool betaAllocated;
   double *p;
   double *StateArrivalProbs;
   double *ThetaThetaPrime;
@@ -60,8 +61,6 @@ private:
   double *colProb;
   double *Expectation0;
   double *Expectation1;
-  //double *rowSum;
-  //double *colSum;
   double *cov;
 
   void UpdateForwardProbsDiploid();

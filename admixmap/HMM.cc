@@ -19,8 +19,9 @@ HMM::HMM()
   cov = 0;
   f = 0;
   Lambda = 0;
+  betaAllocated = false;
   alphaIsBad = true;
-  betaIsBad= true;
+  betaIsBad = true;
 }
 
 //not currently used
@@ -33,9 +34,11 @@ HMM::HMM( int inTransitions, int pops) {
 HMM::~HMM()
 {
   delete[] p;
-  delete[] LambdaBeta;
   delete[] alpha;
-  delete[] beta;
+  if(betaAllocated) {// delete beta array only if allocated with new
+    delete[] beta;
+    delete[] LambdaBeta;
+  }
   delete[] StateArrivalProbs;
   delete[] ThetaThetaPrime;
   delete[] rowProb;
@@ -53,7 +56,6 @@ void HMM::SetDimensions( int inTransitions, int pops)
   DStates = K*K;
   Transitions = inTransitions;
   alpha = new double[Transitions*K*K];
-  //beta =  new double[Transitions*K*K];
   sumfactor=0.0;
   p = new double[Transitions];
   StateArrivalProbs = new double[Transitions * K * 2];
@@ -64,7 +66,7 @@ void HMM::SetDimensions( int inTransitions, int pops)
     Expectation0 = new double[K];
     Expectation1 = new double[K];
     cov = new double[K*K]; 
-    }
+  }
 }
 
 void HMM::SetGenotypeProbs(const double* const lambdain, const bool* const missing){
@@ -297,9 +299,11 @@ void HMM::UpdateForwardProbsDiploid()
 void HMM::UpdateBackwardProbsDiploid()
 {
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
-  //allocate beta if not done already
-  if(!beta) beta =  new double[Transitions*K*K];
-  if(!LambdaBeta)LambdaBeta = new double[K*K];
+  if(!betaAllocated) { // allocate beta array if not already done
+    beta =  new double[Transitions*K*K];
+    LambdaBeta = new double[K*K];
+    betaAllocated = true;
+  }
   vector<double> rec(DStates);
   double scaleFactor, Sum;
   
@@ -309,10 +313,8 @@ void HMM::UpdateBackwardProbsDiploid()
     rec[j] = 1.0 / ThetaThetaPrime[j];
   }
   
-  for( int t = Transitions-2; t >=0; t-- ){
-    
+  for( int t = Transitions-2; t >= 0; --t ) {
     double f2[2] = {f[2*t + 2], f[2*t + 3]};
-    
     Sum = 0.0;
     for(int j = 0; j < DStates; ++j){
       LambdaBeta[j] = Lambda[(t+1)*K*K + j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
@@ -324,7 +326,7 @@ void HMM::UpdateBackwardProbsDiploid()
       LambdaBeta[j] *= scaleFactor;
     }
     
-    RecursionProbs(p[t+1], f2, StateArrivalProbs+ (t+1)*K*2, LambdaBeta, beta+ t*DStates);
+    RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
     for(int j = 0; j < DStates; ++j){ // vectorization successful
       beta[t*DStates + j] *= rec[j];
     }
@@ -369,9 +371,11 @@ void HMM::UpdateForwardProbsHaploid(){
 
 void HMM::UpdateBackwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
-  //allocate beta if not done already
-  if(!beta) beta =  new double[Transitions*K];
-  if(!LambdaBeta)LambdaBeta = new double[K];
+  if(!betaAllocated) { // allocate diploid-sized beta array if not already done
+    beta =  new double[Transitions*K*K];
+    LambdaBeta = new double[K*K];
+    betaAllocated = true;
+  }
   double Sum = 0.0;
   for(int j = 0; j < K; ++j){
     beta[(Transitions-1)*K + j] = 1.0;
