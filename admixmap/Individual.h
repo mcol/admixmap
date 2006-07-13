@@ -245,9 +245,9 @@ private:
   double LogPriorRho_LogBasis(const vector<double> rho, //const vector<double> rhoX, 
 			    const AdmixOptions* const options, double rhoalpha, double rhobeta) const;
 
-  double CalculateLogPosteriorTheta(const AdmixOptions* const options, const double* const theta, 
+  double CalculateLogPosteriorTheta_Softmax(const AdmixOptions* const options, const double* const theta, 
 				    const vector<vector<double> > &alpha)const;
-  double CalculateLogPosteriorRho(const AdmixOptions* const options,  
+  double CalculateLogPosteriorRho_LogBasis(const AdmixOptions* const options,  
 				  const vector<double> rho, //const vector<double> rhoX,
 				  double rhoalpha, double rhobeta)const;
   
