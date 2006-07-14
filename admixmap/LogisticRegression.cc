@@ -22,22 +22,30 @@ void LogisticRegression::Initialise(unsigned Number, double priorPrecision, cons
  
   // ** Initialise Logistic Regression objects
     //Log << "\nGaussian priors on logistic regression parameters with precision " << lambda << "\n";
-    
-    //  ** initialize sampler for logistic regression **
-    acceptbeta = 0;
-    BetaDrawArray = new GaussianProposalMH*[NumCovariates];
-    
-    for( int i = 0; i < NumCovariates; i++ ){
-      BetaDrawArray[i] = 0;
-    }
 
-    dims = new int[2];
-    BetaParameters.n = NumIndividuals;
-    BetaParameters.d = NumCovariates;
-    BetaParameters.beta0 = betamean[0];
-    for( int i = 0; i < NumCovariates; i++ ){
-      BetaDrawArray[i] = new GaussianProposalMH( lr, dlr, ddlr);
-    }
+  std::vector<double> v = individuals->getOutcome(RegNumber);
+  double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
+  //check the outcomes are not all 0s or all 1s
+  if(p==0.0 || p==1.0)throw string("Data Error: All binary outcomes are the same");
+
+  betamean[0] = log( p / ( 1 - p ) );
+  beta[0] = betamean[0];
+  
+  //  ** initialize sampler for logistic regression **
+  acceptbeta = 0;
+  BetaDrawArray = new GaussianProposalMH*[NumCovariates];
+  
+  for( int i = 0; i < NumCovariates; i++ ){
+    BetaDrawArray[i] = 0;
+  }
+  
+  dims = new int[2];
+  BetaParameters.n = NumIndividuals;
+  BetaParameters.d = NumCovariates;
+  BetaParameters.beta0 = betamean[0];
+  for( int i = 0; i < NumCovariates; i++ ){
+    BetaDrawArray[i] = new GaussianProposalMH( lr, dlr, ddlr);
+  }
 }
 
 void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals, double coolness
@@ -49,7 +57,6 @@ void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals,
 #endif
 
   // Sample for regression model parameters beta
-  //and precision in linear regression
   std::vector<double> Outcome = individuals->getOutcome(RegNumber);
 
   Y = &(Outcome[0]);
@@ -69,7 +76,7 @@ void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals,
     BetaParameters.priorprecision = betaprecision[j];
     BetaParameters.index = j;
     BetaParameters.XtY = XtY[ j ];
-    
+    cout << "beta[0] = " << beta[j]<< endl;
     acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ), &BetaParameters );
   }
   
@@ -202,7 +209,7 @@ double LogisticRegression::dlr( const double beta, const void* const vargs )
     ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
     for( int i = 0; i < n; i++ )
       {
-	f -= args->Covariates[ i*d + index ] / ( 1.0 + exp( -Xbeta[ i ] ) );
+	f -= args->Covariates[ i*d + index ] / ( 1.0 + myexp( -Xbeta[ i ] ) );
       }
     delete[] Xbeta;
     f *= args->coolness;
