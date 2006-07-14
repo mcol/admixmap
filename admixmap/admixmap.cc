@@ -193,7 +193,7 @@ int main( int argc , char** argv ){
 	  Loci.getChromosome(j)->SetStateArrivalProbs(L.getGlobalTheta(), options.isRandomMatingModel(), true);
     }
     
-    if(rank !=1)IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), L.getrhoalpha(), L.getrhobeta(), Log);
+    if(rank !=1)IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), /*L.getrhoalpha(), L.getrhobeta(),*/ Log);
   
     //set expected Outcome
     if(rank < 1)
@@ -377,7 +377,7 @@ int main( int argc , char** argv ){
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
       else Log.setDisplayMode(On);
       if( options.getChibIndicator()) {
-	IC->OutputChibEstimates(options.isRandomMatingModel(), Log, options.getPopulations());
+	//IC->OutputChibEstimates(options.isRandomMatingModel(), Log, options.getPopulations());
 	//MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
 	if(IC->getSize()==1) IC->OutputChibResults(Log);
       }
