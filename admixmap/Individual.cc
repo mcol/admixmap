@@ -1467,12 +1467,8 @@ void Individual::setChibNumerator(const AdmixOptions* const options, const vecto
   for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
       unsigned locus = Loci->getChromosome(j)->GetLocus(0);
       for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-	  cout << "\nchr " << j << " locus " << locus << " ";
-	  SetGenotypeProbs(j, jj, locus, true);//set genotype probs from happairprobsMAP
-	  for( int k = 0; k < Populations*Populations; ++k ) 
-	      cout << GenotypeProbs[j][jj*Populations*Populations + k] << " ";
+	    SetGenotypeProbs(j, jj, locus, true);//set genotype probs from happairprobsMAP
       }
-      //cout << endl;
       ++locus;
   }
   // make sure that genotype probs are reset before next update
