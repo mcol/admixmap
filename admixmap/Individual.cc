@@ -66,7 +66,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
       init = options->getRhoalpha() / options->getRhobeta();
   }
   _rho.assign(NumIndGametes, 0.0); // set to 0 for unadmixed gametes 
-  for(int g=0; g < NumIndGametes; ++g) {
+  for(unsigned g = 0; g < NumIndGametes; ++g) {
       if(options->isAdmixed(g)) _rho[g] = init;
   }
   // for global rho, Latent should assign initial value 
