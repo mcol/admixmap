@@ -35,7 +35,7 @@ bool Individual::Xdata;
 unsigned Individual::X_posn;
 unsigned Individual::NumIndGametes;
 
-#define TruncationPt 99 // upper truncation point for sum intensities parameter rho
+//#define TruncationPt 99 // upper truncation point for sum intensities parameter rho
 
 unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
@@ -53,7 +53,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 		       bool undertest=false) {
   myNumber = number;
   IAmUnderTest = undertest;
-
+  
   double init=0.0;
   if( !options->isGlobalRho() && options->getIndAdmixHierIndicator()) {//model with individual- or gamete-specific sumintensities
     //set prior mean as initial value for rho 
@@ -63,11 +63,16 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
       init = options->getRhoalpha() * options->getRhobetaRate() / options->getRhobetaShape() ;//conditional prior mean
     } 
   } else { // no hierarchical model or globalrho prior
-      init = options->getRhoalpha() / options->getRhobeta();
+    init = options->getRhoalpha() / options->getRhobeta();
   }
   _rho.assign(NumIndGametes, 0.0); // set to 0 for unadmixed gametes 
+  rhohat.assign(NumIndGametes, 0.0); // set to 0 for unadmixed gametes 
+  
   for(unsigned g = 0; g < NumIndGametes; ++g) {
-      if(options->isAdmixed(g)) _rho[g] = init;
+    if(options->isAdmixed(g)) {
+      _rho[g] = init;
+      rhohat[g] = init;
+    }
   }
   // for global rho, Latent should assign initial value 
   sumlogrho.assign(_rho.size(), 0.0);
@@ -77,7 +82,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   if (options->getgenotypesSexColumn() == 1) {//if sex column in genotypesfile
     SexIsFemale = Data->isFemale(myNumber);
   }
-
+  
   double L = Loci->GetLengthOfGenome(); 
   double LX = 0.0;
   if(Xdata) LX = Loci->GetLengthOfXchrm();
@@ -92,6 +97,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
 
   Theta = 0;
+  thetahat = 0;
   SumSoftmaxTheta = 0;
   ThetaProposal = 0;
   dirparams = 0;
@@ -100,9 +106,10 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   SumLocusAncestry_X = 0;
   
   Theta = new double[ Populations * NumIndGametes ];
+  thetahat = new double[ Populations * NumIndGametes ];
   SumSoftmaxTheta = new double[ Populations * NumIndGametes ];
   fill(SumSoftmaxTheta, SumSoftmaxTheta + Populations*NumIndGametes, 0.0);
-
+  
   if(!options->getHapMixModelIndicator()) {
     dirparams = new double[Populations]; //to hold dirichlet parameters for conjugate updates of theta
     ThetaProposal = new double[ Populations * NumIndGametes ];
@@ -120,7 +127,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   GenotypesMissing = new bool*[numChromosomes];  
   missingGenotypes = 0;//allocated later, if needed
   LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
-
+  
   size_t AncestrySize = 0;  // set size of locus ancestry array
   //gametes holds the number of gametes for each chromosome, either 1 or 2
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -148,13 +155,13 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
     //NOTE: X data not yet supported in parallel version
 #else
-//     if( (Loci->GetChrNumOfLocus(j)==X_posn) && (sex==male)){
-//       (*Loci)(j)->setPossibleXHaplotypes(genotypes[j], PossibleHapPairs[j]);
-//     }
-//     else
-      (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+    //     if( (Loci->GetChrNumOfLocus(j)==X_posn) && (sex==male)){
+    //       (*Loci)(j)->setPossibleXHaplotypes(genotypes[j], PossibleHapPairs[j]);
+    //     }
+    //     else
+    (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
 #endif
-
+    
     //initialise sampledHapPairs with the first of the possible happairs. Then, if there is only one, sampling of hap pair can be skipped.
     sampledHapPairs.push_back(PossibleHapPairs[j][0]);
   }
@@ -162,7 +169,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   //the genotypes are deleted as they are no longer needed 
   if( options->getHWTestIndicator())SetMissingGenotypes();
   DeleteGenotypes();
-
+  
   //initialise genotype probs array and array of indicators for genotypes missing at locus
   GenotypeProbs = new double*[numChromosomes];
   // unsigned locus = 0;
@@ -171,19 +178,19 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
       GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations];
     else
       GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations*Populations];
-//     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-//       SetGenotypeProbs(j, jj, locus, false);
-//       locus++;
-//     }
+    //     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+    //       SetGenotypeProbs(j, jj, locus, false);
+    //       locus++;
+    //     }
   }
-
+  
   // ** set up StepSizeTuner object for random walk updates of admixture **
   NumberOfUpdates = 0;
   w = 1;
   step0 = 0.3; // initial sd of random walk proposal distribution 
   step = step0;
   ThetaTuner.SetParameters( step0, 0.00, 10.0, 0.44);  
-
+  
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
   logLikelihood.HMMisOK = false;
@@ -736,8 +743,8 @@ void Individual::SampleJumpIndicators(bool sampleArrivals){
 ///uses an EM algorithm to search for posterior modes of individual parameters theta and rho
 // uses current values of allele freqs 
 void Individual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
-				    double rhoalpha, double rhobeta, //const vector<double> sigma, 
-				    ofstream &modefile, double *thetahat, vector<double> &rhohat){
+				    double rhoalpha, double rhobeta, ofstream &modefile) {
+  //const vector<double> sigma,  /*double *thetahat, vector<double> &rhohat*/){
   
   unsigned numEMiters = 10;
   unsigned NumEstepiters = 10; 
@@ -822,7 +829,12 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
   modefile<<setiosflags(ios::fixed)<<setprecision(3);
   modefile << myNumber << "\t";
   if(!options->isGlobalRho()) {
-    for(unsigned i = 0; i < NumIndGametes; ++i) modefile<<_rho[i]<<"\t ";
+    cout << "rho\t"; 
+    for(unsigned i = 0; i < NumIndGametes; ++i) {
+      modefile<<_rho[i]<<"\t ";
+      cout << _rho[i] << "\t";
+    }
+    cout << endl;
   }
   for(unsigned i = 0; i < NumIndGametes; ++i) { //loop over populations within gametes
     for(int k = 0; k < Populations; ++k) modefile<<Theta[i*Populations +k]<<"\t ";
@@ -836,7 +848,6 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
     for(unsigned i = 0; i < NumIndGametes; ++i) {
       unsigned gg = i; // index of alpha to use: for second gamete and no indadmixhiermodel use 1
       if(options->getIndAdmixHierIndicator()) gg = 0;
-      //unsigned NumAdmixed = 0;
       double sum = 0.0;
       for(int k = 0; k < Populations; ++k) { // if prior not zero, and mode < 0.001, use 0.001
 	if(alpha[gg][k]>0.0 && thetahat[i*Populations+k]<0.001) {
@@ -846,13 +857,13 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
       for(int k = 0; k < Populations; ++k) {
 	sum += thetahat[i*Populations+k];
       }
-      //cout << "thetahat "; 
+      cout << "thetahat "; 
       for(int k = 0; k < Populations; ++k) { // re-normalize
 	thetahat[i*Populations+k] /= sum;
-	//cout << thetahat[i*Populations+k] << " ";
+	cout << thetahat[i*Populations+k] << " ";
       }
      } //end gamete loop
-    //cout << endl;
+    cout << endl;
     copy(_rho.begin(), _rho.end(), rhohat.begin());
   }
 }
@@ -1452,8 +1463,8 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 // 1. sets allelefreqsMAP at their prior mean
 // 2. calculates log-likelihood and log prior at thetahat, rhohat, allelefreqsMAP
 void Individual::setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-		      double rhoalpha, double rhobeta, double *thetahat,
-		      vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs* A) {
+		      double rhoalpha, double rhobeta, /*double *thetahat,
+							 vector<double> &rhohat, */chib *MargLikelihood, AlleleFreqs* A) {
 
   //set allelefreqsMAP in AlleleFreqs object
   A->setAlleleFreqsMAP();
@@ -1492,8 +1503,9 @@ void Individual::setChibNumerator(const AdmixOptions* const options, const vecto
 } 
 
 void Individual::updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-			    double rhoalpha, double rhobeta, double *thetahat,
-			    vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs* A){
+			    double rhoalpha, double rhobeta, 
+			    // double *thetahat, vector<double> &rhohat, 
+			    chib *MargLikelihood, AlleleFreqs* A){
   // *** After BurnIn *** - accumulate samples of posterior ordinates for theta, rho, allelefreqs separately
   double LogPosterior = 0.0;
   double LP = 0.0;

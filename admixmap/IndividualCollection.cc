@@ -43,7 +43,7 @@ void IndividualCollection::SetNullValues(){
   SumLogTheta = 0;
   SumAncestry = 0;
   ReportedAncestry = 0;
-  thetahat = 0;
+  //thetahat = 0;
   //sigma.resize(2);
   //sigma[0] = sigma[1] = 1.0;
 }
@@ -122,7 +122,7 @@ IndividualCollection::~IndividualCollection() {
   delete[] OutcomeType;
   free_matrix(ExpectedY, NumOutcomes);
   //free_matrix(SumResiduals, NumOutcomes);
-  delete[] thetahat;
+  //delete[] thetahat;
   delete[] SumLogTheta;
   delete[] SumAncestry;
   delete[] ReportedAncestry;
@@ -155,7 +155,7 @@ void IndividualCollection::DeleteGenotypes(bool setmissing=false){
 // ************** INITIALISATION AND LOADING OF DATA **************
 
 void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
-				      const std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta, 
+				      const std::vector<std::vector<double> > &alpha, //double rhoalpha, double rhobeta, 
 				      LogWriter &Log){
   Log.setDisplayMode(Quiet);
   //Open indadmixture file  
@@ -206,41 +206,41 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
 #endif
   }
 
-//   allocate and set initial values for estimates used in Chib algorithm
-  if( options->getChibIndicator() )
-    InitialiseMLEs(rhoalpha,rhobeta,options);
-  //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
-  //MaxLogLikelihood.assign(NumInd, -9999999 );
+// //   allocate and set initial values for estimates used in Chib algorithm
+//   if( options->getChibIndicator() )
+//     InitialiseMLEs(rhoalpha,rhobeta,options);
+//   //set to very large negative value (effectively -Inf) so the first value is guaranteed to be greater
+//   //MaxLogLikelihood.assign(NumInd, -9999999 );
 }
 
 
-// // ** this function needs debugging
-// required for chib algorithm but all necessary code could be moved to individual 
-void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options){
-  //set thetahat and rhohat, estimates of individual admixture and sumintensities
-   size_t size_admix;
-   int K = options->getPopulations();
-   if( options->isRandomMatingModel() )
-     size_admix = K*2; // double the size for 2 gametes in RMM
-   else//assortative mating
-     size_admix = K;
+// // // ** this function needs debugging
+// // required for chib algorithm but all necessary code could be moved to individual 
+// void IndividualCollection::InitialiseMLEs(double rhoalpha, double rhobeta, const AdmixOptions* const options){
+//   //set thetahat and rhohat, estimates of individual admixture and sumintensities
+//    size_t size_admix;
+//    int K = options->getPopulations();
+//    if( options->isRandomMatingModel() )
+//      size_admix = K*2; // double the size for 2 gametes in RMM
+//    else//assortative mating
+//      size_admix = K;
 
-   thetahat = new double[size_admix];
+//    thetahat = new double[size_admix];
 
-   //initialise thetahat at initial values of individual admixture
-   for(unsigned k = 0; k < size_admix; ++k)
-     thetahat[k] = _child[0]->getAdmixtureProps()[k];
+//    //initialise thetahat at initial values of individual admixture
+//    for(unsigned k = 0; k < size_admix; ++k)
+//      thetahat[k] = _child[0]->getAdmixtureProps()[k];
 
-   if(!options->isGlobalRho())
-     //initialise rhohat at initial value of Individual 1's sumintensities
-      rhohat = _child[0]->getRho();
-   else {
-   //initialise rhohat at initial value of globalsumintensities ie prior mean
-     vector<double> r(2, rhoalpha/rhobeta );
-     rhohat = r;
-   }
-   //TODO: X objects
-}
+//    if(!options->isGlobalRho())
+//      //initialise rhohat at initial value of Individual 1's sumintensities
+//       rhohat = _child[0]->getRho();
+//    else {
+//    //initialise rhohat at initial value of globalsumintensities ie prior mean
+//      vector<double> r(2, rhoalpha/rhobeta );
+//      rhohat = r;
+//    }
+//    //TODO: X objects
+// }
 
 void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){
   if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
@@ -674,12 +674,12 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
 
 void IndividualCollection::setChibNumerator(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
-    _child[0]->setChibNumerator(options, alpha, rhoalpha, rhobeta, thetahat, rhohat, &MargLikelihood, A);
+  _child[0]->setChibNumerator(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat*,*/ &MargLikelihood, A);
 }
 
 void IndividualCollection::updateChib(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
-    _child[0]->updateChib(options, alpha, rhoalpha, rhobeta, thetahat, rhohat, &MargLikelihood, A);
+  _child[0]->updateChib(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat,*/ &MargLikelihood, A);
 }
 
 void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, 
@@ -717,11 +717,11 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
   }
   if(options->getTestOneIndivIndicator()) {// find posterior mode for test individual only 
     TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
-					       modefile, thetahat, rhohat);
+					       modefile/*, thetahat, rhohat*/);
   }
   for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
     _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,
-				  modefile, thetahat, rhohat);
+				  modefile/*, thetahat, rhohat*/);
     modefile << endl;
   }
   modefile.close();
@@ -1017,22 +1017,22 @@ void IndividualCollection::OutputIndAdmixture()
   }
 }
 
-void IndividualCollection::OutputChibEstimates(bool RandomMating, LogWriter &Log, int Populations)const{
-  //Used only if chib = 1
-  Log.setDisplayMode(Off);
-  Log << "Parameter Values used for Chib Algorithm\t";
+//void IndividualCollection::OutputChibEstimates(bool RandomMating, LogWriter &Log, int Populations)const{
+//   //Used only if chib = 1
+//   Log.setDisplayMode(Off);
+//   Log << "Parameter Values used for Chib Algorithm\t";
 
-  for(int k = 0; k < Populations; ++k){
-    Log << thetahat[k] << "\t";
-  }
-  if(RandomMating)
-  for(int k = 0; k < Populations; ++k){
-    Log << thetahat[Populations +k] << "\t";
-  }
-  Log << rhohat[0];
-  if(RandomMating)Log <<"\t" << rhohat[1];
-  Log << "\n";
-}
+//   for(int k = 0; k < Populations; ++k){
+//     Log << thetahat[k] << "\t";
+//   }
+//   if(RandomMating)
+//   for(int k = 0; k < Populations; ++k){
+//     Log << thetahat[Populations +k] << "\t";
+//   }
+//   Log << rhohat[0];
+//   if(RandomMating)Log <<"\t" << rhohat[1];
+//   Log << "\n";
+//}
 
 void IndividualCollection::OutputChibResults(LogWriter& Log)const{
   Log.setDisplayMode(On);

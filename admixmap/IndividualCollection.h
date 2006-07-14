@@ -45,7 +45,7 @@ public:
   void DeleteGenotypes(bool);
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
-		  const std::vector<std::vector<double> > &alpha, double rhoalpha, double rhobeta, 
+		  const std::vector<std::vector<double> > &alpha, //double rhoalpha, double rhobeta, 
 		  LogWriter &Log);
 
   void LoadData(const AdmixOptions* const options, const InputData* const);
@@ -85,7 +85,7 @@ public:
   double getDevianceAtPosteriorMean(const AdmixOptions* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log, 
 				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A);
 
-  void OutputChibEstimates(bool, LogWriter &, int)const;
+  //void OutputChibEstimates(bool, LogWriter &, int)const;
   void OutputChibResults(LogWriter&)const;
 
   //void OutputResiduals(const char* ResidualFilename, const Vector_s Labels, int iterations);
@@ -154,13 +154,13 @@ private:
   void LoadCovariates(const InputData*, const AdmixOptions* const options);
   void LoadOutcomeVar(const InputData* const);
   void LoadRepAncestry(const InputData* const);
-  void InitialiseMLEs(double, double, const AdmixOptions* const);
+  //void InitialiseMLEs(double, double, const AdmixOptions* const);
 
   unsigned int NumInd, size, NumCompLoci;
   //MLEs of Individual admixture and sumintensities
   //used to calculate marginal likelihood
-  vector<double> rhohat;
-  double *thetahat;
+  //vector<double> rhohat;
+  //double *thetahat;
   std::vector< std::vector<double> > admixtureprior;
 
   double *SumLogTheta;//sums of log individual admixture proportions

@@ -50,8 +50,9 @@ public:
   const double* getAdmixtureProps()const;
 
   void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
+
+  // these shouldn't be public methods
   void setAdmixtureProps(const double* const, size_t);
-  
   void setAdmixturePropsX(const double* const, size_t);
   
   void setGenotypesToMissing();
@@ -85,7 +86,6 @@ public:
 
   void GetLocusAncestry(int locus, int Ancestry[2])const;
   void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
-
   int GetLocusAncestry(int, int, int)const;
    
   void ResetSufficientStats();
@@ -113,14 +113,18 @@ public:
  
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 			  double rhoalpha, double rhobeta, //const vector<double> sigma, 
-			  ofstream &modefile, double *thetahat, vector<double> &rhohat); 
+			  ofstream &modefile); //, double *thetahat, vector<double> &rhohat); 
 
   void resetStepSizeApproximator(int k);
 
   void setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
-	    double rhobeta, double *thetahat, vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs *A);
+	    double rhobeta, 
+			//double *thetahat, vector<double> &rhohat, 
+			chib *MargLikelihood, AlleleFreqs *A);
   void updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
-	    double rhobeta, double *thetahat, vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs *A);
+	    double rhobeta, 
+		  //double *thetahat, vector<double> &rhohat, 
+		  chib *MargLikelihood, AlleleFreqs *A);
 
   static void ResetScores(const AdmixOptions* const options);
  
@@ -161,7 +165,7 @@ private:
 
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
   double *Theta;//admixture proportions
-  double* ThetaMode;
+  double *thetahat;
   double *SumSoftmaxTheta;
   double *ThetaProposal;// proposal admixture proportions
 
@@ -169,8 +173,7 @@ private:
   std::vector<unsigned> SumNumArrivals;
 
   std::vector< double > _rho; //sum of intensities
-  std::vector< double > rhoMode;
-			  //std::vector< double > _rho_X;//sum of intensities for X chromosome
+  std::vector< double > rhohat;
   std::vector<double> sumlogrho;
 
   double* Outcome;
