@@ -44,7 +44,7 @@ public:
   void SetHapPairProbs(const double* alleleProbs);
   void InitialiseHapPairProbs(const double* const allelefreqs);
   void InitialiseHapPairProbsMAP();
-  void setHaplotypeProbsMAP();
+  void setHapPairProbsMAP();
   void setAlleleProbsMAP(const double* const Freqs);
   void AccumulateAlleleProbs();
 
