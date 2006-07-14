@@ -227,7 +227,8 @@ std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDipl
 ///returns HMM Likelihood
 double Chromosome::getLogLikelihood(const bool isDiploid)
 {
-  return SampleStates.getLogLikelihood(isDiploid);
+    //cout << "LogLfromChromosome " << SampleStates.getLogLikelihood(isDiploid) << endl;
+    return SampleStates.getLogLikelihood(isDiploid);
 }
 
 ///samples jump indicators xi for this chromosome and updates SumLocusAncestry
