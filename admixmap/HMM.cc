@@ -137,25 +137,26 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned in
   and is the same for all t so it is convenient to compute for
   t = T-1 since beta here is 1 so no backward recursions are required. 
 */
-double HMM::getLogLikelihood(bool isdiploid) 
+double HMM::getLogLikelihood(const bool isdiploid) 
 { 
-  if(alphaIsBad){
-    if(isdiploid)UpdateForwardProbsDiploid();
-    else UpdateForwardProbsHaploid();
+    if(alphaIsBad) {
+	if(isdiploid) UpdateForwardProbsDiploid();
+	else UpdateForwardProbsHaploid();
     }
-  double sum = 0;
-  if(isdiploid) {
-    for( int j = 0; j < DStates; j++ ) {
-      sum += alpha[(Transitions - 1)*DStates + j];
-    } 
-  } else {//haploid
-    for( int j = 0; j < K; j++ ) {
-      sum += alpha[(Transitions - 1)*K + j];
+    double sum = 0;
+    if(isdiploid) {
+	for( int j = 0; j < DStates; j++ ) {
+	    sum += alpha[(Transitions - 1)*DStates + j];
+	} 
+    } else {//haploid
+	for( int j = 0; j < K; j++ ) {
+	    sum += alpha[(Transitions - 1)*K + j];
+	}
     }
-  }
-  return( sumfactor+log( sum ) );
+    //cout << "diploid " << isdiploid << " logLfromHMM " << sumfactor+log(sum) << endl;
+    return( sumfactor+log(sum) );
 }
-      
+
 /*
   Samples Hidden States
   ---------------------

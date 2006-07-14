@@ -65,7 +65,11 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   } else { // no hierarchical model or globalrho prior
       init = options->getRhoalpha() / options->getRhobeta();
   }
-  _rho.assign(NumIndGametes, init); // for global rho, Latent should assign initial value 
+  _rho.assign(NumIndGametes, 0.0); // set to 0 for unadmixed gametes 
+  for(int g=0; g < NumIndGametes; ++g) {
+      if(options->isAdmixed(g)) _rho[g] = init;
+  }
+  // for global rho, Latent should assign initial value 
   sumlogrho.assign(_rho.size(), 0.0);
   
   // Read sex value if present.
@@ -546,27 +550,37 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, const bo
 }
 
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
-// arguments rho and rho_X are ignored if globalrho
 double Individual::getLogLikelihood(const AdmixOptions* const options, const double* const theta, 
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
   if(Populations == 1) LogLikelihood = getLogLikelihoodOnePop();
   else { 
     for( unsigned int j = 0; j < numChromosomes; j++ ){
-      if(updateHMM){// force update of forward probs 
-	UpdateHMMInputs(j, options, theta, rho);
-      }
-      LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !Loci->isXChromosome(j) || SexIsFemale );
+	if(updateHMM){// force update of forward probs 
+	    UpdateHMMInputs(j, options, theta, rho);
+	}
+	LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !Loci->isXChromosome(j) || SexIsFemale );
     }
   }
+  
+//   cout << "From getLogLikelihood: Populations " << Populations << endl;
+//   for(int g = 0; g < NumIndGametes; ++g) {
+//       cout << "rho " << rho[g] << " theta";
+//       for(int k=0; k < Populations; ++k) {
+// 	cout << theta[g*Populations+k] << " ";
+//       }
+//   }
+//   cout << endl;
+//   cout << "LogL " << LogLikelihood << endl;
+  
   return LogLikelihood; // argument updateHMM is unnecessary - why call this function unless you want an HMM update
   // if HMM update not required, can just use stored log-likelihood  
 }
 
 void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Metropolis proposal is accepted
-  logLikelihood.value = logLikelihood.tempvalue; 
-  logLikelihood.ready = true;
-  if(setHMMAsOK) logLikelihood.HMMisOK = true; 
+    logLikelihood.value = logLikelihood.tempvalue; 
+    logLikelihood.ready = true;
+    if(setHMMAsOK) logLikelihood.HMMisOK = true; 
 }                               
 
 double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options) {
@@ -832,10 +846,13 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
       for(int k = 0; k < Populations; ++k) {
 	sum += thetahat[i*Populations+k];
       }
+      //cout << "thetahat "; 
       for(int k = 0; k < Populations; ++k) { // re-normalize
 	thetahat[i*Populations+k] /= sum;
-      } 
-    } //end gamete loop
+	//cout << thetahat[i*Populations+k] << " ";
+      }
+     } //end gamete loop
+    //cout << endl;
     copy(_rho.begin(), _rho.end(), rhohat.begin());
   }
 }
@@ -1438,23 +1455,29 @@ void Individual::setChibNumerator(const AdmixOptions* const options, const vecto
 		      double rhoalpha, double rhobeta, double *thetahat,
 		      vector<double> &rhohat, chib *MargLikelihood, AlleleFreqs* A) {
 
-  //set allelefreqsMAP to current values of allelefreqs
+  //set allelefreqsMAP in AlleleFreqs object
   A->setAlleleFreqsMAP();
   //set HapPairProbsMAP to current values of HapPairProbs
   for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
     //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
-    (*Loci)(j)->setHaplotypeProbsMAP();
+      (*Loci)(j)->setHapPairProbsMAP(); // 
   }
   
   //loglikelihood at allelefreqsMAP, thetahat, rhohat
   for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
-    unsigned locus = Loci->getChromosome(j)->GetLocus(0);
-    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-      SetGenotypeProbs(j, jj, locus, true);//set genotype probs from happairprobsMAP
-      locus++;
-    }
+      unsigned locus = Loci->getChromosome(j)->GetLocus(0);
+      for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+	  cout << "\nchr " << j << " locus " << locus << " ";
+	  SetGenotypeProbs(j, jj, locus, true);//set genotype probs from happairprobsMAP
+	  for( int k = 0; k < Populations*Populations; ++k ) 
+	      cout << GenotypeProbs[j][jj*Populations*Populations + k] << " ";
+      }
+      //cout << endl;
+      ++locus;
   }
   // make sure that genotype probs are reset before next update
+  
+  //cout << "logLfromsetChib " << getLogLikelihood( options, thetahat, rhohat, true) << endl;
   MargLikelihood->setLogLikelihood(getLogLikelihood( options, thetahat, rhohat, true));
   
   double LogPrior = LogPriorTheta_Softmax(thetahat, options, alpha)
