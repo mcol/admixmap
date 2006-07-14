@@ -114,13 +114,11 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   betamean = new double[ NumCovariates ];
   fill(betamean, betamean + NumCovariates, 0.0);
   
-  std::vector<double> v = individuals->getOutcome(RegNumber);
-  double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
-  if(RegType == Logistic )
-    betamean[0] = log( p / ( 1 - p ) );
+  //  std::vector<double> v = individuals->getOutcome(RegNumber);
+  //double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
   //     else if(RegType == Linear)
   //       betamean[0] = p;
-  
+
   //initialise regression params at prior mean
   for(int j = 0; j < NumCovariates; ++j){
     beta[j] = betamean[j];
