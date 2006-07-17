@@ -80,7 +80,7 @@ public:
   void SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
 			     const double* const* ExpectedY, const vector<double> lambda);
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
-			  double rhoalpha, double rhobeta, ofstream &modefile);  
+			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);  
   void resetStepSizeApproximator(int k);
   void setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
 	    double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
@@ -121,6 +121,7 @@ private:
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
   double *Theta;//admixture proportions
   double *thetahat;
+  double loglikhat;///< loglikelihood at posterior mode
   double *SumSoftmaxTheta;
   double *ThetaProposal;// proposal admixture proportions
   int **LocusAncestry, *SumLocusAncestry, *SumLocusAncestry_X;

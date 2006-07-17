@@ -744,7 +744,28 @@ void Individual::SampleJumpIndicators(bool sampleArrivals){
 ///uses an EM algorithm to search for posterior modes of individual parameters theta and rho
 // uses current values of allele freqs 
 void Individual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
-				    double rhoalpha, double rhobeta, ofstream &modefile) {
+				    double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile) {
+  if(A->IsRandom() ) {  // 1. set allelefreqsMAP in AlleleFreqs object
+    A->setAlleleFreqsMAP(); 
+    /** does three things: 
+	1. allocates array for AlleleFreqsMAP
+	2. sets elements of array to current value
+	3. loops over composite loci to set AlleleProbsMAP to point to AlleleFreqsMAP
+    **/
+    //set HapPairProbsMAP using AlleleProbsMAP
+    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+      (*Loci)(j)->setHapPairProbsMAP(); 
+    }
+    // now set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
+    for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
+      unsigned locus = Loci->getChromosome(j)->GetLocus(0);
+      for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
+  	SetGenotypeProbs(j, jj, locus, true); // setting last arg to true forces use of ...ProbsMAP   
+      }
+      ++locus;
+    }
+  }    
+
   unsigned numEMiters = 10;
   unsigned NumEstepiters = 10; 
   double LogUnnormalizedPosterior = - numeric_limits<double>::max( );
@@ -777,7 +798,8 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
     for(int i = 0; i < 2*Populations; ++i) {
       SumLocusAncestryHat[i] /= (double)NumEstepiters; 
     }
-    cout << "E step\t";
+    if(options->getDisplayLevel() >2)
+      cout << "E step\t";
     //     for(unsigned int g = 0; g < NumIndGametes; ++g) {
     //       for(int k = 0; k < Populations; ++k) {
     // 	cout << SumLocusAncestryHat[g*Populations + k] << "\t";
@@ -812,7 +834,7 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
     // evaluate log unnormalized posterior density
     double logpriorhat =  LogPriorTheta_Softmax(ThetaProposal, options, alpha) + 
       LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
-    double loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, true);
+    loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, true);
     double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
 
     if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
@@ -822,8 +844,9 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
       }
       LogUnnormalizedPosterior = LogUnnormalizedPosteriorHat;
     } 
-    cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior " << 
-      LogUnnormalizedPosterior << endl << flush;
+    if(options->getDisplayLevel() >2)
+      cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior "
+	   << LogUnnormalizedPosterior << endl << flush;
   } //end EM outer loop
   delete[] SumLocusAncestryHat;
    
@@ -831,13 +854,10 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
   modefile<<setiosflags(ios::fixed)<<setprecision(3);
   modefile << myNumber << "\t";
   if(!options->isGlobalRho()) {
-    cout << "rhohat\t"; 
-    for(unsigned i = 0; i < NumIndGametes; ++i) {
+     for(unsigned i = 0; i < NumIndGametes; ++i) {
       modefile<<_rho[i]<<"\t ";
-      cout << _rho[i] << "\t";
-    }
-    cout << endl;
-  }
+     }
+   }
   for(unsigned i = 0; i < NumIndGametes; ++i) { //loop over populations within gametes
     for(int k = 0; k < Populations; ++k) modefile<<Theta[i*Populations +k]<<"\t ";
   }
@@ -859,18 +879,15 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
       for(int k = 0; k < Populations; ++k) {
 	sum += thetahat[i*Populations+k];
       }
-      cout << "thetahat" << i << " "; 
       for(int k = 0; k < Populations; ++k) { // re-normalize
 	thetahat[i*Populations+k] /= sum;
-	cout << thetahat[i*Populations+k] << " ";
       }
-     } //end gamete loop
-    cout << endl;
+    } //end gamete loop
     copy(_rho.begin(), _rho.end(), rhohat.begin());
   }
-  // print final value of log likelihood as a check
-  double loglikhat = getLogLikelihood(options, thetahat, rhohat, false);
-  cout << "\nLogLikelihood " << loglikhat << endl << flush;
+  // compute log likelihood at posterior modes
+  loglikhat = getLogLikelihood(options, thetahat, rhohat, true);
+
 }
 
 
@@ -1463,39 +1480,16 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
   delete[] info;
 }
 
-// this function does three things:
-// 1. sets allelefreqsMAP to current values of allelefreqs
-// 2. calculates log-likelihood at thetahat, rhohat, allelefreqsMAP
-// 3. calculates log prior at same values
+// this function does two things:
+// 1. calculates log-likelihood at thetahat, rhohat, allelefreqsMAP
+// 2. calculates log prior at same values
 void Individual::setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
 				  double rhoalpha, double rhobeta, chib *MargLikelihood, AlleleFreqs* A) {
-  if(A->IsRandom() ) {  // 1. set allelefreqsMAP in AlleleFreqs object
-    A->setAlleleFreqsMAP(); 
-    /** does three things: 
-	1. allocates array for AlleleFreqsMAP
-	2. sets elements of array to current value
-	3. loops over composite loci to set AlleleProbsMAP to point to AlleleFreqsMAP
-    **/
-    //set HapPairProbsMAP using AlleleProbsMAP
-    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-      (*Loci)(j)->setHapPairProbsMAP(); 
-    }
-    // now set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
-    for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
-      unsigned locus = Loci->getChromosome(j)->GetLocus(0);
-      for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
-  	SetGenotypeProbs(j, jj, locus, true); // setting last arg to true forces use of ...ProbsMAP   
-      }
-      ++locus;
-    }
-  }    
   
-  // 2. calculate log-likelihood at MAP parameter values
-  double loglikhat = getLogLikelihood(options, thetahat, rhohat, true);
-  cout << "\nLogLikelihood " << loglikhat << endl << flush;
-  MargLikelihood->setLogLikelihood(getLogLikelihood( options, thetahat, rhohat, true));
+  // 1. pass value of log-likelihood at MAP parameter values, calculated after finding posterior modes, to chib
+  MargLikelihood->setLogLikelihood(loglikhat);
   
-  // 3. calculate log prior at MAP parameter values
+  // 2. calculate log prior at MAP parameter values
   double LogPrior = LogPriorTheta_Softmax(thetahat, options, alpha)
     + LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
   if( A->IsRandom() ) {
