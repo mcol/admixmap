@@ -118,9 +118,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     SumLocusAncestry_X = new int[Populations * 2];
     if(!options->isGlobalRho())SumNumArrivals.resize(2*numCompositeLoci);  
   } else { 
-    SetDefaultAdmixtureProps();
+    SetUniformAdmixtureProps();
   }
-  //LogPrior = 0.0;
   
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
@@ -240,7 +239,7 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
   }  
 }
 
-void Individual::SetDefaultAdmixtureProps() {
+void Individual::SetUniformAdmixtureProps() {
   size_t K = Populations;
   for( unsigned g = 0; g < NumIndGametes; ++g ) { 
     for(size_t k = 0; k < K; ++k)
@@ -435,7 +434,6 @@ void Individual::DeleteStaticMembers(){
 }
 
 //********** set admixture proportions *********
-
 void Individual::setAdmixtureProps(const double* const a, size_t size) {
   //TODO: size arg not necessary should equal NumIndGametes*K
   for(unsigned i = 0; i < size; ++i)  {
@@ -870,13 +868,9 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
     cout << endl;
     copy(_rho.begin(), _rho.end(), rhohat.begin());
   }
-  // print final value of log likelihood
-  double logpriorhat =  LogPriorTheta_Softmax(thetahat, options, alpha) + 
-    LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
+  // print final value of log likelihood as a check
   double loglikhat = getLogLikelihood(options, thetahat, rhohat, false);
-  double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
-  cout << "\nLogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior " << 
-    LogUnnormalizedPosteriorHat << endl << flush;
+  cout << "\nLogLikelihood " << loglikhat << endl << flush;
 }
 
 
@@ -1471,30 +1465,34 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 
 // this function does three things:
 // 1. sets allelefreqsMAP to current values of allelefreqs
-// 2. calculates log-likelihood and log prior at thetahat, rhohat, allelefreqsMAP
+// 2. calculates log-likelihood at thetahat, rhohat, allelefreqsMAP
+// 3. calculates log prior at same values
 void Individual::setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
 				  double rhoalpha, double rhobeta, chib *MargLikelihood, AlleleFreqs* A) {
-  
-  // 1. set allelefreqsMAP in AlleleFreqs object (and hence AlleleProbsMAP in CompositeLocus objects) 
-  // and HapPairProbsMAP in CompositeLocus.
-  if(A->IsRandom() ) {
+  if(A->IsRandom() ) {  // 1. set allelefreqsMAP in AlleleFreqs object
     A->setAlleleFreqsMAP(); 
-    /** does two things: 
-	1. makes AlleleFreqsMAP (AlleleProbsMAP) a copy of AlleleFreqs (AlleleProbs)
-	2. sets HapPairProbsMAP to HapPairProbs in serial version
+    /** does three things: 
+	1. allocates array for AlleleFreqsMAP
+	2. sets elements of array to current value
+	3. loops over composite loci to set AlleleProbsMAP to point to AlleleFreqsMAP
     **/
-  
+    //set HapPairProbsMAP using AlleleProbsMAP
+    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+      (*Loci)(j)->setHapPairProbsMAP(); 
+    }
     // now set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
     for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
       unsigned locus = Loci->getChromosome(j)->GetLocus(0);
       for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
-  	SetGenotypeProbs(j, jj, locus, true);  
+  	SetGenotypeProbs(j, jj, locus, true); // setting last arg to true forces use of ...ProbsMAP   
       }
       ++locus;
     }
   }    
   
   // 2. calculate log-likelihood at MAP parameter values
+  double loglikhat = getLogLikelihood(options, thetahat, rhohat, false);
+  cout << "\nLogLikelihood " << loglikhat << endl << flush;
   MargLikelihood->setLogLikelihood(getLogLikelihood( options, thetahat, rhohat, true));
   
   // 3. calculate log prior at MAP parameter values
@@ -1510,7 +1508,7 @@ void Individual::setChibNumerator(const AdmixOptions* const options, const vecto
     }
     LogPrior += LogPriorFreqs;
   }
-  MargLikelihood->addLogPrior(LogPrior);
+  MargLikelihood->setLogPrior(LogPrior);
 } 
 
 void Individual::updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
