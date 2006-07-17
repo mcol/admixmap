@@ -902,9 +902,11 @@ int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
   return count;
 }
 
+// returns a reference to the object MargLikelihood of class chib 
 const chib* IndividualCollection::getChib()const{
   return &MargLikelihood;
 }
+
 ///returns sample variance of jth outcome variable
 double IndividualCollection::getSampleVarianceOfOutcome(int j)const{
   if(OutcomeType[j] == Continuous){
@@ -1021,15 +1023,16 @@ void IndividualCollection::OutputIndAdmixture()
   }
 }
 
-void IndividualCollection::OutputChibResults(LogWriter& Log)const{
-  Log.setDisplayMode(On);
-  Log << "\nCalculation of Chib algorithm using posterior mode of admixture and sum-intensities, prior mean of allele freqs"
-      << "\nDeviance\t" << -2.0*MargLikelihood.getLogLikelihood()
-      << "\nLogLikelihood\t" << MargLikelihood.getLogLikelihood()
-      << "\nLogPrior\t" << MargLikelihood.getLogPrior()
-      << "\nLogPosterior\t" << MargLikelihood.getLogPosterior()
-      << "\n\nLogMarginalLikelihoodFromChibAlgorithm\t" << MargLikelihood.getLogMarginalLikelihood()
-      << "\n";
+void IndividualCollection::OutputChibResults(LogWriter& Log) const {
+  MargLikelihood.outputResults(Log);
+//   Log.setDisplayMode(On);
+//   Log << "\nCalculation of Chib algorithm using posterior mode of admixture and sum-intensities, prior mean of allele freqs"
+//       << "\nDeviance\t" << -2.0*MargLikelihood.getLogLikelihood()
+//       << "\nLogLikelihood\t" << MargLikelihood.getLogLikelihood()
+//       << "\nLogPrior\t" << MargLikelihood.getLogPrior()
+//       << "\nLogPosterior\t" << MargLikelihood.getLogPosterior()
+//       << "\n\nLogMarginalLikelihoodFromChibAlgorithm\t" << MargLikelihood.getLogMarginalLikelihood()
+//       << "\n";
 } 
 
 void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const string* const PopulationLabels) {
