@@ -106,7 +106,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   SumLocusAncestry_X = 0;
   
   Theta = new double[ Populations * NumIndGametes ];
-  thetahat = new double[ Populations * NumIndGametes ];
+  if(options->getChibIndicator() || options->getIndAdmixModeFilename())
+    thetahat = new double[ Populations * NumIndGametes ];
   SumSoftmaxTheta = new double[ Populations * NumIndGametes ];
   fill(SumSoftmaxTheta, SumSoftmaxTheta + Populations*NumIndGametes, 0.0);
   
@@ -214,6 +215,7 @@ Individual::~Individual() {
 
   delete[] Theta;
   delete[] SumSoftmaxTheta;
+  delete[] thetahat;
   delete[] missingGenotypes;
   delete[] dirparams;
   delete[] ThetaProposal;
