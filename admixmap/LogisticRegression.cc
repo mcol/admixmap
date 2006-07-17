@@ -76,7 +76,6 @@ void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals,
     BetaParameters.priorprecision = betaprecision[j];
     BetaParameters.index = j;
     BetaParameters.XtY = XtY[ j ];
-    //cout << "beta[0] = " << beta[j]<< endl;
     acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ), &BetaParameters );
   }
   
