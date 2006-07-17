@@ -226,25 +226,26 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
   size_t K = Populations;
   for( unsigned g = 0; g < NumIndGametes; ++g ) { 
     double sum = 0.0;
-    for(size_t k = 0; k < K; ++k) { //loop over array of Dirichlet params
-      dirparams[k] = alpha[g][k]; // default value if elements of alpha sum to <= 1
+    for(size_t k = 0; k < K; ++k) { 
       sum += alpha[g][k];
     }
-   for(size_t k = 0; k < K; ++k) { //loop over array of Dirichlet params
-      Theta[g*K+k] = alpha[g][k] / sum; // default value if elements of alpha sum to <= 1
-      // if(alpha[g][k]>0.0) ++sum;
-   }
-    //generate proposal theta from Dirichlet with parameters dirparams
-   if(sum>1)Rand::gendirichlet(K, dirparams, Theta+g*K );
-  } // end loop over gametes: 
+    for(size_t k = 0; k < K; ++k) { 
+      thetahat[g*K+k] = alpha[g][k] / sum; // set thetahat to prior mean
+      dirparams[k] = alpha[g][k]; 
+    }
+    // draw theta from Dirichlet with parameters dirparams
+    Rand::gendirichlet(K, dirparams, Theta+g*K ); 
+  }  
 }
-void Individual::SetDefaultAdmixtureProps(){
+
+void Individual::SetDefaultAdmixtureProps() {
   size_t K = Populations;
   for( unsigned g = 0; g < NumIndGametes; ++g ) { 
     for(size_t k = 0; k < K; ++k)
       Theta[g*K+k] = 1.0 / K;
   }
 }
+
 void Individual::setOutcome(double* Y){
   Outcome = Y;
 }
@@ -302,18 +303,18 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* c
   }
 }
 #endif
+
 void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator=false){
   //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
-  if( !GenotypesMissing[j][jj] ){
-    if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
+  if( !GenotypesMissing[j][jj] ) {
+    if( j!=(int)X_posn || SexIsFemale) { //diploid genotype
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
 				       chibindicator);
-    else {//haploid genotype
+    } else {//haploid genotype
       (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j]+jj*Populations, PossibleHapPairs[locus], 
 					      chibindicator);
     }
-    
   } else {
     if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
       for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
@@ -327,12 +328,12 @@ void Individual::AnnealGenotypeProbs(int j, const double coolness) {
   int locus = Loci->getChromosome(j)->GetLocus(0);
   for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
     if( !GenotypesMissing[j][jj] ) { 
-    if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
-      for(int k = 0; k < Populations*Populations; ++k) // loop over ancestry states
-	GenotypeProbs[j][jj*Populations*Populations+k] = pow(GenotypeProbs[j][jj*Populations*Populations+k], coolness); 
-    else //haploid genotype
-      for(int k = 0; k < Populations; ++k) // loop over ancestry states
-	GenotypeProbs[j][jj*Populations+k] = pow(GenotypeProbs[j][jj*Populations+k], coolness); 
+      if( j!=(int)X_posn || SexIsFemale)  //diploid genotype
+	for(int k = 0; k < Populations*Populations; ++k) // loop over ancestry states
+	  GenotypeProbs[j][jj*Populations*Populations+k] = pow(GenotypeProbs[j][jj*Populations*Populations+k], coolness); 
+      else //haploid genotype
+	for(int k = 0; k < Populations; ++k) // loop over ancestry states
+	  GenotypeProbs[j][jj*Populations+k] = pow(GenotypeProbs[j][jj*Populations+k], coolness); 
     }
     locus++;
   }
@@ -744,8 +745,6 @@ void Individual::SampleJumpIndicators(bool sampleArrivals){
 // uses current values of allele freqs 
 void Individual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 				    double rhoalpha, double rhobeta, ofstream &modefile) {
-  //const vector<double> sigma,  /*double *thetahat, vector<double> &rhohat*/){
-  
   unsigned numEMiters = 10;
   unsigned NumEstepiters = 10; 
   double LogUnnormalizedPosterior = - numeric_limits<double>::max( );
@@ -829,7 +828,7 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
   modefile<<setiosflags(ios::fixed)<<setprecision(3);
   modefile << myNumber << "\t";
   if(!options->isGlobalRho()) {
-    cout << "rho\t"; 
+    cout << "rhohat\t"; 
     for(unsigned i = 0; i < NumIndGametes; ++i) {
       modefile<<_rho[i]<<"\t ";
       cout << _rho[i] << "\t";
@@ -857,7 +856,7 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
       for(int k = 0; k < Populations; ++k) {
 	sum += thetahat[i*Populations+k];
       }
-      cout << "thetahat "; 
+      cout << "thetahat" << i << " "; 
       for(int k = 0; k < Populations; ++k) { // re-normalize
 	thetahat[i*Populations+k] /= sum;
 	cout << thetahat[i*Populations+k] << " ";
@@ -868,14 +867,11 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
   }
 }
 
-// ****** End Public Interface *******
 
-void Individual::SampleTheta( int iteration, double *SumLogTheta, 
-			      const DataMatrix* const Outcome, 
-			      const DataType* const OutcomeType, //const double* const* ExpectedY, 
-			      const vector<double> lambda, int NumCovariates,
+void Individual::SampleTheta( int iteration, double *SumLogTheta, const DataMatrix* const Outcome, 
+			      const DataType* const OutcomeType, const vector<double> lambda, int NumCovariates,
 			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
-			      const AdmixOptions* const options, const vector<vector<double> > &alpha, //const vector<double> sigma,
+			      const AdmixOptions* const options, const vector<vector<double> > &alpha, 
 			      double DInvLink, double dispersion, bool RW, bool anneal=false)
 // samples individual admixture proportions
 // called with RW true for a random-walk proposal, false for a conjugate proposal
@@ -943,6 +939,8 @@ void Individual::SampleTheta( int iteration, double *SumLogTheta,
     }
   }
 }
+
+// ****** End Public Interface *******
 
 double Individual::ProposeThetaWithRandomWalk(const AdmixOptions* const options, const vector<vector<double> > &alpha) {
   double LogLikelihoodRatio = 0.0;
@@ -1459,34 +1457,42 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
   delete[] info;
 }
 
-// this function does two things:
-// 1. sets allelefreqsMAP at their prior mean
+// this function does three things:
+// 1. sets allelefreqsMAP to current values of allelefreqs
 // 2. calculates log-likelihood and log prior at thetahat, rhohat, allelefreqsMAP
 void Individual::setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-		      double rhoalpha, double rhobeta, /*double *thetahat,
-							 vector<double> &rhohat, */chib *MargLikelihood, AlleleFreqs* A) {
-
-  //set allelefreqsMAP in AlleleFreqs object
-  A->setAlleleFreqsMAP();
-  //set HapPairProbsMAP to current values of HapPairProbs
-  for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-    //if( (*Loci)(j)->GetNumberOfLoci() > 2 )
-      (*Loci)(j)->setHapPairProbsMAP(); // 
-  }
+				  double rhoalpha, double rhobeta, chib *MargLikelihood, AlleleFreqs* A) {
   
-  //loglikelihood at allelefreqsMAP, thetahat, rhohat
-  for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
+  // 1. set allelefreqsMAP in AlleleFreqs object
+  if(A->IsRandom() ) {
+    A->setAlleleFreqsMAP(); 
+    /** does three things: 
+	1. allocates array for AlleleFreqsMAP
+	2. sets elements of array to current value
+	3. loops over composite loci to set AlleleProbsMAP to values in AlleleFreqsMAP
+    **/
+
+    //   do we need to set HapPairProbs in composite loci 
+
+    //set HapPairProbsMAP to current values of HapPairProbs
+    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+      (*Loci)(j)->setHapPairProbsMAP(); // sets HapPairProbsMAP to HapPairProbs
+    }
+    
+    // now set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
+    for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
       unsigned locus = Loci->getChromosome(j)->GetLocus(0);
-      for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-	    SetGenotypeProbs(j, jj, locus, true);//set genotype probs from happairprobsMAP
+      for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
+  	SetGenotypeProbs(j, jj, locus, true);  
       }
       ++locus;
-  }
-  // make sure that genotype probs are reset before next update
+    }
+  }    
   
-  //cout << "logLfromsetChib " << getLogLikelihood( options, thetahat, rhohat, true) << endl;
+  // 2. calculate log-likelihood at MAP parameter values
   MargLikelihood->setLogLikelihood(getLogLikelihood( options, thetahat, rhohat, true));
   
+  // 3. calculate log prior at MAP parameter values
   double LogPrior = LogPriorTheta_Softmax(thetahat, options, alpha)
     + LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
   if( A->IsRandom() ) {
