@@ -116,7 +116,6 @@ IndividualCollection::~IndividualCollection() {
 
   delete[] _child;
   delete[] TestInd;
-  cout << flush;
   delete indadmixoutput;
 
   delete[] OutcomeType;
@@ -688,7 +687,8 @@ void IndividualCollection::updateChib(const AdmixOptions* const options,const ve
 
 void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, 
 					      const vector<Regression*> &R, 
-					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
+					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
+					      AlleleFreqs* A, 
 					      const std::string* const PopulationLabels){
   //TODO: check this for hapmixmodel
 
@@ -720,11 +720,11 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
     beta.push_back( R[i]->getbeta());
   }
   if(options->getTestOneIndivIndicator()) {// find posterior mode for test individual only 
-    TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, 
+    TestInd[sizeTestInd-1]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta, A,
 					       modefile/*, thetahat, rhohat*/);
   }
   for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
-    _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,
+    _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,A,
 				  modefile/*, thetahat, rhohat*/);
     modefile << endl;
   }

@@ -73,7 +73,7 @@ public:
 
   void FindPosteriorModes(const AdmixOptions* const options, 
 			  const vector<Regression*> &R, 
-			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, 
+			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, AlleleFreqs* A, 
 			  const std::string* const PopulationLabels);
 
   void setGenotypeProbs(const Genome * const G, const AlleleFreqs* const 

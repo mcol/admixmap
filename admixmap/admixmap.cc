@@ -776,7 +776,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   //find posterior modes of individual admixture at end of burn-in
   //set Chib numerator
   if(!anneal && iteration == options->getBurnIn() && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
-    IC->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), PopulationLabels);
+    IC->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A, PopulationLabels);
     if( options->getChibIndicator() ) {
       IC->setChibNumerator(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A);
     }
