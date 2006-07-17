@@ -139,7 +139,10 @@ int main( int argc , char** argv ){
     data.readData(&options, Log, rank);//also sets 'numberofoutcomes' and 'populations' options
 
      //check user options
-    options.checkOptions(Log, data.getNumberOfIndividuals());
+    if(options.checkOptions(Log, data.getNumberOfIndividuals())){
+      cout << endl << endl;
+      exit(1);
+    }
   
     //print user options to args.txt; must be done after all options are set
     if(rank<1)options.PrintOptions();
