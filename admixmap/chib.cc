@@ -1,7 +1,7 @@
 /** 
  *   ADMIXMAP
  *   chib.cc
- *   this is meant to be a generic class for the Chib algorithm 
+ *   generic class for the Chib algorithm 
  *   calculating the marginal likelihood of the model from MCMC output 
  *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
  *  
@@ -20,6 +20,7 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "chib.h"
+//#include <limits>
 
 using namespace std;
 
@@ -29,37 +30,37 @@ chib::chib()
 {
    LogLikelihood = 0.0;
    LogPrior = 0.0;
-   MaxLogPosterior = -9999999;
-   //MaxLogPrior = -9999999;
 }
 
 void chib::Reset(){
   VecLogPosterior.clear();
-  //LogPrior.clear();
   LogLikelihood = 0.0;
   LogPrior = 0.0;
-  MaxLogPosterior = -9999999;
-  //MaxLogPrior = -9999999;
 }
 
-void chib::setLogLikelihood(double x)
+void chib::setLogLikelihood(const double x)
 {
    LogLikelihood = x;
 }
 
-void chib::addLogPrior(double x)
+void chib::setLogPrior(const double x)
 {
   LogPrior = x;
-  //  LogPrior .push_back(x);
-  //  if(LogPrior.size()==1)MaxLogPrior = x;
-  //  if(x > MaxLogPrior) MaxLogPrior = x;
 }
 
-void chib::addLogPosteriorObs( double f )
+void chib::addLogPosteriorObs( const double f )
 {
    VecLogPosterior.push_back(f);
-   if(VecLogPosterior.size() == 1)MaxLogPosterior = f;
-   if( f > MaxLogPosterior )MaxLogPosterior = f;
+   if(VecLogPosterior.size() == 1) MaxLogPosterior = f;
+   if( f > MaxLogPosterior ) MaxLogPosterior = f;
+}
+
+double chib::getLogLikelihood()const{
+  return LogLikelihood; 
+}
+
+double chib::getLogPrior()const{
+  return LogPrior; 
 }
 
 double chib::getLogPosterior()const
@@ -67,13 +68,18 @@ double chib::getLogPosterior()const
   return AverageOfLogs( VecLogPosterior, MaxLogPosterior );
 }
 
-double chib::getLogPrior()const{
-  return LogPrior; //AverageOfLogs(LogPrior, MaxLogPrior);
-}
-
 double chib::getLogMarginalLikelihood()const{
   double LogPosterior = AverageOfLogs( VecLogPosterior, MaxLogPosterior );
-  //double logprior = AverageOfLogs( LogPrior, MaxLogPrior );
   return LogLikelihood + LogPrior - LogPosterior;
 }
 
+void chib::outputResults(LogWriter & Log)const {
+  Log.setDisplayMode(On);
+  Log << "\nCalculation of Chib algorithm at fixed parameter values"
+      << "\nDeviance\t" << -2.0*getLogLikelihood()
+      << "\nLogLikelihood\t" << getLogLikelihood()
+      << "\nLogPrior\t" << getLogPrior()
+      << "\nLogPosterior\t" << getLogPosterior()
+      << "\nLogMarginalLikelihoodFromChibAlgorithm\t" << getLogMarginalLikelihood()
+      << "\n";
+}

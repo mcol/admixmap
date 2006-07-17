@@ -25,30 +25,32 @@
 
 #include <iostream>
 #include "functions.h"
+#include "LogWriter.h"
 
 class chib
-
 {
 public:
   chib();
   void Reset();
-  void setLogLikelihood( double );
-  void addLogPrior( double );
-  void addLogPosteriorObs( double );
-  double getLogPosterior()const;
-  double getMarginalLikelihood()const;
-  double getLogMarginalLikelihood()const;
+  void setLogLikelihood( const double x );
+  void setLogPrior( const double x );
+  void addLogPosteriorObs( const double f );
+
   double getLogPrior()const;
-  double getLogLikelihood()const{
-    return LogLikelihood;
-  };
+  double getLogLikelihood()const;
+  double getLogPosterior()const;
+  double getLogMarginalLikelihood()const;
+  void outputResults(LogWriter &Log) const;
+
+//   double getLogLikelihood()const{
+//     return LogLikelihood;
+//   };
 
 private:
   double LogLikelihood;
   double LogPrior;
   std::vector<double> VecLogPosterior;
   double MaxLogPosterior;
-  double MaxLogPrior;
   
 };
 
