@@ -80,8 +80,7 @@ public:
   void SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
 			     const double* const* ExpectedY, const vector<double> lambda);
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
-			  double rhoalpha, double rhobeta, //const vector<double> sigma, 
-			  ofstream &modefile); //, double *thetahat, vector<double> &rhohat); 
+			  double rhoalpha, double rhobeta, ofstream &modefile);  
   void resetStepSizeApproximator(int k);
   void setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
 	    double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
@@ -162,9 +161,9 @@ private:
   static double *LikRatio1;
   static double *LikRatio2;
   
-  void SetDefaultAdmixtureProps();
+  void SetUniformAdmixtureProps();
   void setAdmixtureProps(const double* const, size_t);
-  void setAdmixturePropsX(const double* const, size_t);
+  //void setAdmixturePropsX(const double* const, size_t);
   const int *getSumLocusAncestry()const;
   const int *getSumLocusAncestryX()const;
   const std::vector<unsigned> getSumNumArrivals()const;
