@@ -808,10 +808,13 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
 	copy(thetahat+g*Populations, thetahat+(g+1)*Populations, ThetaProposal+g*Populations);
       } 
     } // end loop over gametes
+
+    // evaluate log unnormalized posterior density
     double logpriorhat =  LogPriorTheta_Softmax(ThetaProposal, options, alpha) + 
       LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
     double loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, false);
     double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
+
     if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
       if(isadmixed) {
 	setAdmixtureProps(ThetaProposal, NumIndGametes * Populations);
@@ -865,6 +868,13 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
     cout << endl;
     copy(_rho.begin(), _rho.end(), rhohat.begin());
   }
+  // print final value of log likelihood
+  double logpriorhat =  LogPriorTheta_Softmax(thetahat, options, alpha) + 
+    LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
+  double loglikhat = getLogLikelihood(options, thetahat, rhohat, false);
+  double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
+  cout << "\nLogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior " << 
+    LogUnnormalizedPosteriorHat << endl << flush;
 }
 
 
