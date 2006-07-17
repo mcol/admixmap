@@ -906,12 +906,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allele
   int scoreindex = 0, infoindex = 0;
   for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
     for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
-#ifdef PARALLEL
       unsigned dim = 1;
-#else
-      int locus = chrm[j]->GetLocus(k);
-      unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
-#endif
       copy(ResAllelicAssocScore[j][k], ResAllelicAssocScore[j][k]+dim, sendresallelescore+scoreindex);
       copy(ResAllelicAssocInfo[j][k], ResAllelicAssocInfo[j][k]+dim, sendresalleleinfo+infoindex);
       scoreindex += dim;
@@ -928,12 +923,8 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allele
     scoreindex = 0; infoindex = 0;
     for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
       for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(c)-1; ++k){
-#ifdef PARALLEL
       unsigned dim = 1;
-#else
-      int locus = chrm[c]->GetLocus(k);
-      unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
-#endif
+
 	for(unsigned j = 0; j < dim; ++j){
 	  SumResAllelicAssocScore[c][k][j] += recvresallelescore[scoreindex + j];
 	  for(unsigned jj = 0; jj < dim; ++jj){
@@ -951,20 +942,17 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allele
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
     for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(c)-1; ++k){
       int locus = chrm[c]->GetLocus(k);
-#ifdef PARALLEL
-      unsigned dim = 1;
-#else
       unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
-#endif
+
       for(unsigned j = 0; j < dim; ++j){
 	SumResAllelicAssocScore[c][k][j] += ResAllelicAssocScore[c][k][j];
 	for(unsigned jj = 0; jj < dim; ++jj){
 	  SumResAllelicAssocScore2[c][k][j*dim +jj] += ResAllelicAssocScore[c][k][j]*ResAllelicAssocScore[c][k][jj];
-	  SumResAllelicAssocInfo[c][k][j*dim +jj] = ResAllelicAssocInfo[c][k][j*dim + jj];
+	  SumResAllelicAssocInfo[c][k][j*dim +jj] += ResAllelicAssocInfo[c][k][j*dim + jj];
 	}
       }
     }
-#endif
+  #endif
 }
 
 
@@ -982,8 +970,9 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(int c, int locus,
   int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
 #endif
   int dim = M*N;
-  if(dim == 1)UpdateScoresForResidualAllelicAssociation_1D(c, locus, AlleleFreqsA, AlleleFreqsB);
-  else{
+//   if(dim == 1)UpdateScoresForResidualAllelicAssociation_1D(c, locus, AlleleFreqsA, AlleleFreqsB);
+//   else
+{
     
     //int Populations = options->getPopulations();
 
@@ -1033,6 +1022,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,
   int count = 0;
 
   int abslocus = chrm[c]->GetLocus(locus);
+  //double sumh = 0.0, sumProbCoupling = 0.0;
   for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers){
     Individual* ind = individuals->getIndividual(i);
     if(!ind->GenotypeIsMissing(abslocus)){//skip loci with missing genotypes as hap pairs have not been sampled for these
@@ -1044,19 +1034,22 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,
       for(int g = 0; g < 2; ++g){
 	//if(ancA[g] == ancB[g]){ 
 	++count;//count number of gametes with ancestry states the same at both loci
-	int h = (hA[g] == hB[g]);//indicator for homozygosity
+	int h = (hA[g] == hB[g]);//indicator for coupling
 	double phiA = AlleleFreqsA[2*ancA[g]];//frequency of first allele in this gamete's ancestry state at locus A
 	double phiB = AlleleFreqsB[2*ancB[g]];
+	double ProbCoupling = phiA*phiB + (1 - phiA)*(1 - phiB);
 	  
 	//h - (1-h) evaluates to 1 if allele states equal, -1 if not
 	//expected counts factorises to  --\/
-	ResAllelicAssocScore[c][locus][0] += h - (1-h) - (2*phiA - 1.0)*(2*phiB - 1.0);
-	  
+	//sumh += h;
+	//sumProbCoupling += ProbCoupling;
+	ResAllelicAssocScore[c][locus][0] += h - ProbCoupling; //h - (1-h) - (2*phiA - 1.0)*(2*phiB - 1.0);
+	ResAllelicAssocInfo[c][locus][0] += ProbCoupling *(1 - ProbCoupling);
 	//}//end condition on equal ancestry states
       }//end gamete loop
     }
   }//end individual loop
-  ResAllelicAssocInfo[c][locus][0] = (double)count;
+
 }
 // ********** OUTPUT **********************************************************
 
@@ -1348,7 +1341,7 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
     KK = 1;k1 = 1;
   }
   
-  double VU, EU, missing, complete;
+  double VU = 0.0, EU = 0.0, missing = 0.0, complete = 0.0;
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
       *outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << separator;
