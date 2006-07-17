@@ -29,7 +29,7 @@ void ScoreTestBase::OpenFile(LogWriter &Log, std::ofstream* outputstream, const 
 void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
 					const double score, const double scoresq, const double info, bool final)
 {
-  double Score, CompleteInfo, MissingInfo, ObservedInfo, PercentInfo, zscore, pvalue;
+  double Score = 0.0, CompleteInfo = 0.0, MissingInfo = 0.0, ObservedInfo = 0.0, PercentInfo = 0.0, zscore = 0.0, pvalue = 0.0;
   string sep = final? "\t" : ",";
   Score = score / ( iterations );
   CompleteInfo = info / ( iterations );
