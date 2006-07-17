@@ -335,6 +335,42 @@ exp
 
 {
    <insert a suppression name here>
+   Memcheck:Addr8
+   fun:_ZN4Rand18SampleFromDiscreteEPKdi
+}
+
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_sf_psi_e
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_sf_psi_1_e
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_sf_hzeta_e
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:pow
+}
+{
+   <insert a suppression name here>
+   Memcheck:Addr8
+   fun:pow
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_sf_exp_mult_err_e
+}
+{
+   <insert a suppression name here>
    Memcheck:Cond
    fun:_ZNK3HMM20SampleJumpIndicatorsEPKijPiRSt6vectorIjSaIjEEbj
 }
@@ -343,6 +379,271 @@ exp
    Memcheck:Cond
    fun:_ZN10Individual11SampleThetaEiPdPK10DataMatrixPK8DataTypeSt6vectorIdSaIdEEiPS1_S7_IPKdSaISC_EESC_PK12AdmixOptionsRKS7_IS9_SaIS9_EEddbb
 }
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN4Rand12gendirichletEmPKdPd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:floor
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_ran_gamma
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_ran_gamma_int
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gamma_frac
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection6SampleEPKvPFddS1_E
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN21DirichletParamSampler4logfEdPKv
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN21DirichletParamSampler5dlogfEdPKv
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN21DirichletParamSampler6ddlogfEdPKv
+}
+{
+   <insert a suppression name here>
+   Memcheck:Value8
+   fun:pow
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_sf_lngamma_e
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZSt22__final_insertion_sortIPdEvT_S1_
+   obj:*
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection19TangentIntersectionEdddddd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection19TestForLogConcavityEv
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection21AreaUnderTangentCurveEdddddbb
+}
+{
+   <insert a suppression name here>
+   Memcheck:Value8
+   obj:/opt/packages/pathscale2.4/lib/2.4/libmpath.so.1
+}
+{
+   <insert a suppression name here>
+   Memcheck:Value8
+   obj:/opt/packages/pathscale2.4/lib/2.4/libmpath.so.1
+   fun:_ZN17AdaptiveRejection11SamplePointEPKv
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/opt/packages/pathscale2.4/lib/2.4/libmpath.so.1
+   fun:_ZN17AdaptiveRejection11SamplePointEPKv
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection14TransformPointEddddddbb
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection11SamplePointEPKv
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection9LowerHullEdddddbb
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   obj:/opt/packages/pathscale2.4/lib/2.4/libmpath.so.1
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection3ARSEPKvPdj
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN21HamiltonianMonteCarlo6SampleEPdPKv
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10Individual26ProposeThetaWithRandomWalkEPK12AdmixOptionsRKSt6vectorIS3_IdSaIdEESaIS5_EE
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_Z7softmaxmPdPKdPKb
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN6Latent26UpdateGlobalSumIntensitiesEPK20IndividualCollectionb
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_Z5myexpd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_sf_exp_e
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_sf_log_e
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_Z11inv_softmaxmPKdPd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_Z11inv_softmaxmPKdPdPKb
+}
+
+{
+  <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10ScoreTests26OutputTestsForLocusLinkageEiPSt14basic_ofstreamIcSt11char_traitsIcEEPKdS6_S6_S6_Ss
+   fun:_ZN10ScoreTests6OutputEiPKSsb
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_cdf_gamma_Q
+}
+{
+<insert a suppression name here>
+   Memcheck:Cond
+   fun:_Z7softmaxmPdPKd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_sf_gamma_inc_Q_e
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gamma_inc_P_series
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN13ScoreTestBase21OutputScalarScoreTestEiPSt14basic_ofstreamIcSt11char_traitsIcEESsdddb
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN4Rand14genmultinomialEiSt6vectorIdSaIdEE
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_ran_binomial
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:gsl_pow_int
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN14DispersionTest33TestForDivergentAlleleFrequenciesEPK11AlleleFreqsPK20IndividualCollection
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN17AdaptiveRejection16SetInitialPointsEdPdPKvPFddS2_E
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN13ScoreTestBase8double2REdi
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN10ScoreTests40OutputTestsForResidualAllelicAssociationEiPSt14basic_ofstreamIcSt11char_traitsIcEEb
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_Z8double2Rd
+   fun:_ZN10Individual15OutputLikRatiosEPKciPKSs
+}
+{
+   <insert a suppression name here>
+   Memcheck:Cond
+   fun:_ZN13ScoreTestBase8double2REd
+}
+{
+   <insert a suppression name here>
+   Memcheck:Param
+   write(buf)
+   fun:__write_nocancel
+   fun:_IO_file_write@@GLIBC_2.2.5
+   fun:new_do_write
+   fun:_IO_do_write@@GLIBC_2.2.5
+   fun:_IO_file_overflow@@GLIBC_2.2.5
+   fun:_IO_file_xsputn@@GLIBC_2.2.5
+   fun:fwrite
+   fun:_ZNSt12__basic_fileIcE6xsputnEPKcl
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE22_M_convert_to_externalEPclRlS4_
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE18_M_really_overflowEi
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE8overflowEi
+   fun:_ZNSt15basic_streambufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNSt13basic_filebufIcSt11char_traitsIcEE6xsputnEPKcl
+   fun:_ZNSo5writeEPKcl
+   fun:_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc
+   fun:_Z20WriteIterationNumberiii
+   fun:_Z12doIterationsRKiS0_P20IndividualCollectionR6LatentR11AlleleFreqsRSt6vectorIP10RegressionSaIS9_EER12AdmixOptionsRK6GenomeR9LogWriterRdSK_dbRSt14basic_ofstreamIcSt11char_traitsIcEER10ScoreTestsR14DispersionTestR18StratificationTestR21MisSpecAlleleFreqTestR6HWTestSP_R9InputDataPKd
+   fun:main
+}
+
 {
 bogus_leak_in_stl_string_functions
    Memcheck:Leak
