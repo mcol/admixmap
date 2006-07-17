@@ -265,6 +265,7 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
 void CompositeLocus::SetHapPairProbs(){
   SetHapPairProbs(AlleleProbs);//at current values
 }
+
 void CompositeLocus::SetHapPairProbs(const double* alleleProbs){
   for(int h0 = 0; h0 < NumberOfStates; ++h0){
     for(int h1 = 0; h1 < NumberOfStates; ++h1){
