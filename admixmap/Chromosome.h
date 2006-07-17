@@ -38,9 +38,7 @@ public:
 
   bool isXChromosome()const;
 // ****************** Setting of locus correlation, f *************************
-  void InitialiseLocusCorrelation(const double rho);
   void SetLocusCorrelation(const double rho);
-  void InitialiseLocusCorrelation(const std::vector<double> rho);
   void SetLocusCorrelation(const std::vector<double> rho);
   void SetLocusCorrelation(const std::vector<double> rho_, bool global, bool RandomMating);
 

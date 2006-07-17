@@ -185,7 +185,7 @@ int main( int argc , char** argv ){
     }
     
     if( (options.isGlobalRho() || options.getHapMixModelIndicator()) && (rank>1 || rank==-1)) {
-      Loci.InitialiseLocusCorrelation(L.getrho());
+      Loci.SetLocusCorrelation(L.getrho());
       if(options.getHapMixModelIndicator())
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ )
 	  //set global state arrival probs in hapmixmodel
@@ -205,7 +205,7 @@ int main( int argc , char** argv ){
     //  ******** single individual, one population, fixed allele frequencies  ***************************
     if( IC->getSize() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )
       // nothing to do except calculate likelihood
-      IC->getOneIndLogLikelihood(Log, &options, data.GetPopLabels());
+      IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
     else {
       // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
       DispersionTest DispTest;
@@ -784,15 +784,6 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(rank!=1)IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
 
-//   if(rank!=1) {
-//     IC->UpdateIndivAdmixtureRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
-//     // this method 
-//     //     (1) Samples Locus Ancestry (after updating HMM)
-//     //     (2) accumulates sums of ancestry states in hapmixmodel
-//     //     (3) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
-//     //     (4) updates score, info and score squared for ancestry score tests
-//     IC->SampleLocusAncestry(iteration, options, R);
-//   }
   if(rank!=0) {
 #ifdef PARALLEL
     MPE_Log_event(13, iteration, "sampleHapPairs");
@@ -836,7 +827,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // sample individual admixture and sum-intensities 
-  // this method samples individual admixture with conjugate update on odd-numbered iterations
+  // this function samples individual admixture with conjugate update on odd-numbered iterations
   // samples admixture of test individuals at every iteration  
   IC->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),  
 		       L->getrhoalpha(), L->getrhobeta(), anneal);

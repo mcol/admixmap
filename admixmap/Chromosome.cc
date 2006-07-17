@@ -46,6 +46,7 @@ Chromosome::Chromosome(int n, int size, int start, int inpopulations, bool isx =
 
   CodedStates = new int[size];
   f = new double[2*size];
+  f[0] = f[1] = 0.0;
 }
 
 Chromosome::~Chromosome()
@@ -103,24 +104,13 @@ unsigned int Chromosome::GetNumberOfCompositeLoci()const
 
 // ****************** Setting of locus correlation, f *************************
 
-///Initialises locus ancestry correlations f.  Necessary since individual-level parameters are updated before global rho (in Latent)
-void Chromosome::InitialiseLocusCorrelation(const double rho_){
-  double rho = rho_;
-  if(isX)rho *= 0.5;
-  f[0] = f[1] = 0.0;
-  for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ )
-    f[2*j] = f[2*j + 1] = myexp( -GetDistance( j ) * rho );
-}
-///Initialises locus ancestry correlations f for locus-specific rho.
-void Chromosome::InitialiseLocusCorrelation(const vector<double> rho_){
-  if(rho_.size() == 1)InitialiseLocusCorrelation(rho_[0]);
-  else{
-    f[0] = f[1] = 0.0;
-    for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
-      double rho = rho_[j + _startLocus];
-      if(isX)rho *= 0.5;
-      f[2*j] = f[2*j + 1] = myexp( -GetDistance( j ) * rho );
-    }
+///Sets locus ancestry correlations f for locus-specific rho.
+void Chromosome::SetLocusCorrelation(const vector<double> rho_){
+  if(rho_.size()<NumberOfCompositeLoci)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
+  for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
+    double rho = rho_[j+_startLocus];
+    if(isX)rho *= 0.5;
+    f[2*j] = f[2*j + 1] =myexp( -GetDistance( j ) * rho );
   }
 }
 
@@ -160,12 +150,7 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
       }
     }
     else{//locus-specific
-      if(rho_.size()<NumberOfCompositeLoci)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
-      for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
-	double rho = rho_[j+_startLocus];
-	if(isX)rho *= 0.5;
-	f[2*j] = f[2*j + 1] =myexp( -GetDistance( j ) * rho );
-      }
+      SetLocusCorrelation(rho_);
     }
   }
 }
@@ -227,7 +212,6 @@ std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDipl
 ///returns HMM Likelihood
 double Chromosome::getLogLikelihood(const bool isDiploid)
 {
-    //cout << "LogLfromChromosome " << SampleStates.getLogLikelihood(isDiploid) << endl;
     return SampleStates.getLogLikelihood(isDiploid);
 }
 

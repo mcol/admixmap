@@ -1032,11 +1032,10 @@ void IndividualCollection::OutputChibResults(LogWriter& Log)const{
       << "\n";
 } 
 
-void IndividualCollection::getOneIndLogLikelihood(LogWriter &Log, const AdmixOptions* const options, 
-						  const string* const PopulationLabels) {
+void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const string* const PopulationLabels) {
   Log.setDisplayMode(On);
   Log << "Log-likelihood for unadmixed "  << (*PopulationLabels)[0] << ": "
-      << _child[0]->getLogLikelihood(options, true, true) << "\n";
+      << _child[0]->getLogLikelihoodOnePop() << "\n";
 }
 
 double IndividualCollection::getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 

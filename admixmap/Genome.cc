@@ -179,7 +179,7 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
 	//case of X chromosome
 	else{
 	  LengthOfXchrm += GetDistance(cstart[i]+j);
-	  XChromosomeIndex = cstart[i];
+	  XChromosomeIndex = cstart[i];//index of first locus on X chromosome
 	}
       }
     }
@@ -355,17 +355,6 @@ unsigned Genome::getFirstXLocus()const{
   if(X_data)return XChromosomeIndex;
   else return NumberOfCompositeLoci;
 }
-
-void Genome::InitialiseLocusCorrelation(const vector<double> rho){
-  for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-    C[j]->InitialiseLocusCorrelation(rho);
-  }
-}
-// void Genome::InitialiseLocusCorrelation(double rho){
-//   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-//     C[j]->InitialiseLocusCorrelation(rho);
-//   }
-// }
 
 ///set global locus correlation across all chromosomes, case of vector-valued rho
 void Genome::SetLocusCorrelation(const vector<double> rho){

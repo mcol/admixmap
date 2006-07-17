@@ -55,6 +55,7 @@ public:
   double getLogLikelihood(const AdmixOptions* const , const bool forceUpdate, const bool store);
   void storeLogLikelihood(const bool setHMMAsOK); // to call if a Metropolis proposal is accepted
   double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options);
+  double getLogLikelihoodOnePop();
 
   void GetLocusAncestry(int locus, int Ancestry[2])const;
   void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
@@ -183,7 +184,6 @@ private:
   double ProposeThetaWithRandomWalk(const AdmixOptions* const options, const vector<vector<double> > &alpha);
   double getLogLikelihood(const AdmixOptions* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
-  double getLogLikelihoodOnePop();
   double LogPriorTheta_Softmax(const double* const theta, 
 			       const AdmixOptions* const options, const vector<vector<double> > &alpha) const ;
   double LogPriorRho_LogBasis(const vector<double> rho, const AdmixOptions* const options, 

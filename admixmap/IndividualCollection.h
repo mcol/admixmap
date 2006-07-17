@@ -47,8 +47,7 @@ public:
 		  const std::vector<std::vector<double> > &alpha, //double rhoalpha, double rhobeta, 
 		  LogWriter &Log);
   void LoadData(const AdmixOptions* const options, const InputData* const);
-  void getOneIndLogLikelihood(LogWriter &Log, const AdmixOptions* const options, 
-			      const std::string* const PopulationLabels);
+  void getOnePopOneIndLogLikelihood(LogWriter &Log, const std::string* const PopulationLabels);
 
   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 				      const vector<Regression*> &R, const double* const poptheta,

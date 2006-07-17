@@ -79,9 +79,7 @@ public:
   
   double GetLengthOfGenome()const;
   double GetLengthOfXchrm()const;
-  void InitialiseLocusCorrelation(const std::vector<double> rho);
   void SetLocusCorrelation(const std::vector<double> rho);
-  void InitialiseLocusCorrelation(double rho);
   void SetLocusCorrelation(double rho);
 
 private:
