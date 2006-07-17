@@ -41,7 +41,6 @@ public:
   void SetNumberOfAllelesOfLocus( int, int );
   void AddLocus( int, std::string );
   void SetHapPairProbs();
-  void SetHapPairProbs(const double* alleleProbs);
   void InitialiseHapPairProbs(const double* const allelefreqs);
   void InitialiseHapPairProbsMAP();
   void setHapPairProbsMAP();
@@ -64,11 +63,11 @@ public:
   void GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const; 
   void SetHapPairProbsToPosteriorMeans(int iterations);
   void SampleHapPair(hapPair*, const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
+  const int *GetHapLabels( int ) const;
 
   //functions used for haplotype association score test 
   int GetMergedHaplotype( int i )const;
   int GetNumberOfMergedHaplotypes()const;
-  const int *GetHapLabels( int ) const;
   void SetDefaultMergeHaplotypes( const double* const alpha);
 
 private: 
@@ -77,11 +76,11 @@ private:
   static int Populations;
   std::vector<int> NumberOfAlleles;
   const double *AlleleProbs;//< pointer to allele frequencies held in AlleleFreqs
-  const double* AlleleProbsMAP;//< pointer to AlleleFreqsMAP held in AlleleFreqs
+  const double *AlleleProbsMAP;//< pointer to AlleleFreqsMAP held in AlleleFreqs
   double **SumAlleleProbs;//< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
 #ifndef PARALLEL
-  double *HapPairProbs; //< haplotype pair probabilities
-  double *HapPairProbsMAP; //< Posterior estimates of hap pair probs
+  double *HapPairProbs; //< haplotype pair probabilities calculated using AlleleProbs
+  double *HapPairProbsMAP; //< hap pair probs calculated using AlleleProbsMAP
 #endif
   std::vector<std::string> Label;
   int *base;
@@ -93,7 +92,6 @@ private:
   int NumberOfMergedHaplotypes;
 
   void SetNoMergeHaplotypes();
-
   void intToBits(int n, const int length, bool *bits) ;
   void setBaseForHapCode();
   void setBaseMissing(const std::vector<int> missingLoci, const int numMissingLoci, std::vector<int> baseMissing[2]);
@@ -110,6 +108,7 @@ private:
   void permuteMissingLoci(const std::vector<bool>& isMissing, const int numMissingLoci, const int permMissing, 
 			  const std::vector<int>& HapAlleles,  const std::vector<int>& MissingLoci, 
 			  std::vector<int>& HapAllelesNoMissing) ;
+  void SetHapPairProbs(const double* alleleProbs);
 
   // UNIMPLEMENTED
   // to avoid use
