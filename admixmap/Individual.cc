@@ -221,7 +221,7 @@ Individual::~Individual() {
   delete[] SumLocusAncestry_X;
 }
 
-/// draw initial values for admixture proportions theta from Dirichlet prior 
+// draw initial values for admixture proportions theta from Dirichlet prior 
 void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha) {
   size_t K = Populations;
   for( unsigned g = 0; g < NumIndGametes; ++g ) { 
@@ -1472,9 +1472,7 @@ void Individual::setChibNumerator(const AdmixOptions* const options, const vecto
 	3. loops over composite loci to set AlleleProbsMAP to values in AlleleFreqsMAP
     **/
 
-    //   do we need to set HapPairProbs in composite loci 
-
-    //set HapPairProbsMAP to current values of HapPairProbs
+    //set HapPairProbsMAP using AlleleProbsMAP
     for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
       (*Loci)(j)->setHapPairProbsMAP(); // sets HapPairProbsMAP to HapPairProbs
     }
