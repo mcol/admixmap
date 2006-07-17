@@ -205,7 +205,7 @@ int main( int argc , char** argv ){
     //  ******** single individual, one population, fixed allele frequencies  ***************************
     if( IC->getSize() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )
       // nothing to do except calculate likelihood
-      IC->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
+      IC->getOneIndLogLikelihood(Log, &options, data.GetPopLabels());
     else {
       // ******************* INITIALIZE TEST OBJECTS and ergodicaveragefile *******************************
       DispersionTest DispTest;
@@ -750,9 +750,8 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 }
 
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
-		      const AdmixOptions *options, 
-		      const Genome *Loci, ScoreTests *S, LogWriter& Log, const std::string* const PopulationLabels,
-		      double coolness, bool anneal){
+		      const AdmixOptions *options, const Genome *Loci, ScoreTests *S, LogWriter& Log, 
+		      const std::string* const PopulationLabels, double coolness, bool anneal){
 #ifdef PARALLEL
   const int rank = MPI::COMM_WORLD.Get_rank();
 #else 
@@ -766,7 +765,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && !options->getHapMixModelIndicator() && 
        (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
       L->UpdateGlobalSumIntensities(IC, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1)); 
-    // should leave individuals with HMM probs bad, stored likelihood ok
+    // leaves individuals with HMM probs bad, stored likelihood ok
     // this function also sets locus correlations in Chromosomes
   }
 
@@ -781,9 +780,20 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  //   Update individual-level parameters, sampling locus ancestry states, jump indicators, number of arrivals 
+  // Update individual-level parameters, sampling locus ancestry states
+  // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(rank!=1)IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
-  if(rank!=0){
+
+//   if(rank!=1) {
+//     IC->UpdateIndivAdmixtureRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
+//     // this method 
+//     //     (1) Samples Locus Ancestry (after updating HMM)
+//     //     (2) accumulates sums of ancestry states in hapmixmodel
+//     //     (3) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
+//     //     (4) updates score, info and score squared for ancestry score tests
+//     IC->SampleLocusAncestry(iteration, options, R);
+//   }
+  if(rank!=0) {
 #ifdef PARALLEL
     MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
@@ -792,7 +802,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     MPE_Log_event(14, iteration, "sampledHapPairs");
 #endif
   }
-
+  
 #ifdef PARALLEL
   if(rank>0){
     A->SumAlleleCountsOverProcesses(workers_and_freqs, options->getPopulations());
@@ -826,6 +836,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // sample individual admixture and sum-intensities 
+  // this method samples individual admixture with conjugate update on odd-numbered iterations
+  // samples admixture of test individuals at every iteration  
   IC->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),  
 		       L->getrhoalpha(), L->getrhobeta(), anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level
