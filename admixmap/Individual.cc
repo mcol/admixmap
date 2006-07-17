@@ -1473,20 +1473,15 @@ void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *S
 void Individual::setChibNumerator(const AdmixOptions* const options, const vector<vector<double> > &alpha, 
 				  double rhoalpha, double rhobeta, chib *MargLikelihood, AlleleFreqs* A) {
   
-  // 1. set allelefreqsMAP in AlleleFreqs object
+  // 1. set allelefreqsMAP in AlleleFreqs object (and hence AlleleProbsMAP in CompositeLocus objects) 
+  // and HapPairProbsMAP in CompositeLocus.
   if(A->IsRandom() ) {
     A->setAlleleFreqsMAP(); 
-    /** does three things: 
-	1. allocates array for AlleleFreqsMAP
-	2. sets elements of array to current value
-	3. loops over composite loci to set AlleleProbsMAP to values in AlleleFreqsMAP
+    /** does two things: 
+	1. makes AlleleFreqsMAP (AlleleProbsMAP) a copy of AlleleFreqs (AlleleProbs)
+	2. sets HapPairProbsMAP to HapPairProbs in serial version
     **/
-
-    //set HapPairProbsMAP using AlleleProbsMAP
-    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-      (*Loci)(j)->setHapPairProbsMAP(); // sets HapPairProbsMAP to HapPairProbs
-    }
-    
+  
     // now set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
     for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
       unsigned locus = Loci->getChromosome(j)->GetLocus(0);

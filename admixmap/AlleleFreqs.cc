@@ -160,9 +160,11 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), PriorAlleleFreqs[i], false));
       }
     }
-  //set up alleleprobs and hap pair probs
-  //NB: HaplotypePairProbs in Individual must be set first
+    //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
+    //initialise AlleleProbsMAP to point to AlleleProbs
+    //allocate HapPairProbs and set using AlleleProbs
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
+    //If using Chib algorithm, allocate HapPAirProbsMAP and copy values in HapPairProbs
     if(options->getChibIndicator())(*Loci)(i)->InitialiseHapPairProbsMAP();
   }//end comp locus loop
 
@@ -603,7 +605,8 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
 #ifndef PARALLEL
-    //no need to update alleleprobs
+    //no need to update alleleprobs, they are the same as Freqs
+    //set HapPair probs using updated alleleprobs
     (*Loci)(i)->SetHapPairProbs();
 #endif
   }
@@ -1057,12 +1060,11 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
 }
 
 /** does three things: 
- 1. allocates array for AlleleFreqsMAP
- 2. sets elements of array to current value
- 3. loops over composite loci to set AlleleProbsMAP to values in AlleleFreqsMAP
+ 1. allocates array for AlleleFreqsMAP if not already done, 
+ 2. copies current values of allele freqs, 
+ 3. sets AlleleProbsMAP in CompositeLocus objects to point to AlleleFreqsMAP
 
- used in Chib algorithm which just requires a value near the posterior mode
- setAlleleFreqsMAP and getAlleleFreqs are called by Individual object
+ Used in Chib algorithm which just requires a value near the posterior mode. 
 */
 void AlleleFreqs::setAlleleFreqsMAP()
 {

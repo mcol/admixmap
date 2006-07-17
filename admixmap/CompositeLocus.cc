@@ -125,29 +125,6 @@ void CompositeLocus::AddLocus( int alleles, string label = "")
   Label.push_back(label);
 }
 
-void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
-  AlleleProbs = AFreqs;//set AlleleProbs to point to allele freqs in AlleleFreqs
-  AlleleProbsMAP = AFreqs;
-  SumAlleleProbs = alloc2D_d(Populations, NumberOfStates);//allocates and fills with zeros
-#ifndef PARALLEL
-  //set size of array of haplotype pair probs
-  HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  HapPairProbsMAP = HapPairProbs;
-  if(!RandomAlleleFreqs)AccumulateAlleleProbs();//if allelefreqs are fixed, SumAlleleProbs are initialised to AlleleProbs(==Allelefreqs)
-  SetHapPairProbs();
-#endif
-}
-
-void CompositeLocus::InitialiseHapPairProbsMAP(){
-#ifndef PARALLEL
-  HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  //Initialise HapPairProbsMAP to values in HapPairProbs
-  for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
-    HapPairProbsMAP[h0] = HapPairProbs[h0];
-  } 
-#endif
-}
-
 /**
  * Sets the label of a locus
  *
@@ -208,6 +185,101 @@ const string CompositeLocus::GetLabel(int index)const
   else return Label[NumberOfLoci-1];
 }
 
+/**
+  returns array of marginal probs for each allele at each simple locus, for ancestry state k,  within the composite locus.
+  P must be of correct dimensions: ie a ragged array with dimensions numloci and numalleles
+*/
+void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
+
+ for(int j = 0; j < NumberOfLoci; ++j)
+    for(int jj = 0 ; jj < NumberOfAlleles[j]; ++jj)
+      P[j][jj] = 0.0;
+
+  int *hA =  new int[NumberOfLoci];
+
+  for(int h = 0; h < NumberOfStates; ++h){//loop over all haplotypes
+    decodeIntAsHapAlleles(h, hA);
+    //compute marginal probs by summing over relevant hap probs
+    for(int j = 0; j < NumberOfLoci; ++j)
+      P[j][hA[j]-1] += AlleleProbs[k*NumberOfStates + h]; 
+  }
+  delete[] hA;
+}
+
+void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
+  AlleleProbs = AFreqs;//set AlleleProbs to point to allele freqs in AlleleFreqs
+  AlleleProbsMAP = AFreqs;
+  SumAlleleProbs = alloc2D_d(Populations, NumberOfStates);//allocates and fills with zeros
+#ifndef PARALLEL
+  //set size of array of haplotype pair probs
+  HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
+  HapPairProbsMAP = HapPairProbs;
+  if(!RandomAlleleFreqs)AccumulateAlleleProbs();//if allelefreqs are fixed, SumAlleleProbs are initialised to AlleleProbs(==Allelefreqs)
+  SetHapPairProbs();
+#endif
+}
+
+void CompositeLocus::InitialiseHapPairProbsMAP(){
+#ifndef PARALLEL
+  HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
+  //Initialise HapPairProbsMAP to values in HapPairProbs
+  for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
+    HapPairProbsMAP[h0] = HapPairProbs[h0];
+  } 
+#endif
+}
+
+/**
+   Sets haplotype pair probabilities.
+   Called every time the haplotype frequencies change. Sets elements in the  
+   array of probabilities of ordered haplotype pairs for each ordered pair of ancestry states
+*/
+#ifndef PARALLEL
+void CompositeLocus::SetHapPairProbs(){
+  SetHapPairProbs(AlleleProbs);
+}
+
+/**
+   Sets AlleleProbsMAP to point to FreqsMAP in AlleleFreqs then sets HapPairProbsMAP. 
+   At Time of calling, FreqsMAP are the same as Freqs
+   i.e. AlleleProbsMAP are set to current values of AlleleProbs and setting HapPAirProbsMAP to current values of HapPairProbs
+   is equivalent to setting them using AlleleProbsMAP.
+*/
+void CompositeLocus::setAlleleProbsMAP(const double* const FreqsMAP){
+  AlleleProbsMAP = FreqsMAP;
+  setHapPairProbsMAP();
+}
+
+/**
+   SetsHapPairProbsMAP to current value of HapPairProbs. 
+   HapPairProbs are at current values of alleleprobs
+   therefore this is equivalent to but more efficient then setting from alleleprobsMAP, 
+   which are at this point the same as alleleprobs.
+   Not done in parallel version as HapPairProbs and HapPairProbsMAP are not stored.
+*/
+void CompositeLocus::setHapPairProbsMAP()
+{
+#ifndef PARALLEL
+  int size =  NumberOfStates * NumberOfStates * Populations * Populations; 	 
+   for(int h0 = 0; h0 < size; ++h0) 	 
+   HapPairProbsMAP[h0] = HapPairProbs[h0]; 	 
+ #endif
+}
+
+void CompositeLocus::SetHapPairProbs(const double* alleleProbs){
+  for(int h0 = 0; h0 < NumberOfStates; ++h0){
+    for(int h1 = 0; h1 < NumberOfStates; ++h1){
+      for(int k0 = 0; k0 < Populations; ++k0){
+	for(int k1 = 0; k1 < Populations; ++k1)
+	  HapPairProbs[h0 * NumberOfStates * Populations * Populations +
+		       h1 * Populations * Populations +
+		       k0 * Populations + k1] = alleleProbs[k0*NumberOfStates + h0] * alleleProbs[k1*NumberOfStates + h1];
+      }
+    }
+  }
+}
+#endif
+
 void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
   if(RandomAlleleFreqs){//if fixed allele freqs there is nothing to do
 #ifndef PARALLEL
@@ -232,61 +304,6 @@ void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
 #endif
   }
 }
-
-
-/**
-  returns array of marginal probs for each allele at each simple locus, for ancestry state k,  within the composite locus.
-  P must be of correct dimensions: ie a ragged array with dimensions numloci and numalleles
-*/
-void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
-
- for(int j = 0; j < NumberOfLoci; ++j)
-    for(int jj = 0 ; jj < NumberOfAlleles[j]; ++jj)
-      P[j][jj] = 0.0;
-
-  int *hA =  new int[NumberOfLoci];
-
-  for(int h = 0; h < NumberOfStates; ++h){//loop over all haplotypes
-    decodeIntAsHapAlleles(h, hA);
-    //compute marginal probs by summing over relevant hap probs
-    for(int j = 0; j < NumberOfLoci; ++j)
-      P[j][hA[j]-1] += AlleleProbs[k*NumberOfStates + h]; 
-  }
-  delete[] hA;
-}
-
-// ********* Updating ******************
-/**
-   Sets haplotype pair probabilities.
-   Called every time the haplotype frequencies change. Sets elements in the  
-   array of probabilities of ordered haplotype pairs for each ordered pair of ancestry states
-*/
-#ifndef PARALLEL
-void CompositeLocus::SetHapPairProbs(){
-  SetHapPairProbs(AlleleProbs);//at current values
-}
-
-/**
-   SetsHapPairProbsMAP using AlleleProbsMAP
-*/
-void CompositeLocus::setHapPairProbsMAP()
-{
-  SetHapPairProbs(AlleleProbsMAP);//at current values
-}
-
-void CompositeLocus::SetHapPairProbs(const double* alleleProbs){
-  for(int h0 = 0; h0 < NumberOfStates; ++h0){
-    for(int h1 = 0; h1 < NumberOfStates; ++h1){
-      for(int k0 = 0; k0 < Populations; ++k0){
-	for(int k1 = 0; k1 < Populations; ++k1)
-	  HapPairProbs[h0 * NumberOfStates * Populations * Populations +
-		       h1 * Populations * Populations +
-		       k0 * Populations + k1] = alleleProbs[k0*NumberOfStates + h0] * alleleProbs[k1*NumberOfStates + h1];
-      }
-    }
-  }
-}
-#endif
 
 void CompositeLocus::AccumulateAlleleProbs(){
   for (int k = 0; k < Populations; k++ ) {
@@ -333,14 +350,6 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Ha
   hap->haps[1] = HapPairs[h].haps[1];
 }
 #endif
-
-/**
-   Sets AlleleProbsMAP to current value of AlleleProbs(Freqs).
-   this is called from AlleleFreqs - should be other way round
-*/
-void CompositeLocus::setAlleleProbsMAP(const double* const Freqs){
-  AlleleProbsMAP = Freqs;
-}
 
 // arguments: integer, length of bit array
 // returns: 1D array of bits representing integer
