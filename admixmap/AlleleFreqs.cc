@@ -165,21 +165,26 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     //allocate HapPairProbs and set using AlleleProbs
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
     //If using Chib algorithm, allocate HapPAirProbsMAP and copy values in HapPairProbs
-    if(options->getChibIndicator())(*Loci)(i)->InitialiseHapPairProbsMAP();
+    if(options->getChibIndicator()){
+      setAlleleFreqsMAP();
+      (*Loci)(i)->InitialiseHapPairProbsMAP();
+    }
   }//end comp locus loop
-
+  if(options->getChibIndicator())
+      setAlleleFreqsMAP();
+  
   // ** settings for sampling of dispersion parameter **
   if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs){
     unsigned dim = 1;
     if(IsHistoricAlleleFreq){
       dim = Populations;
-
+      
       // ** settings for sampling of PriorAlleleFreqs
       muSampler = new MuSampler[dim*NumberOfCompositeLoci];
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
 	for(int k = 0; k < Populations; ++k)
 	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.0001, 0.0, 10.0, 0.44);
-     }
+    }
     else{//correlated allele freq model
       dim = 1;
       muSampler = new MuSampler[NumberOfCompositeLoci];
@@ -394,10 +399,6 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
 	SetDefaultPriorParams(i, defaultpriorparams);
       }
     }
-  }
-    
-  if(options->getChibIndicator()){
-    setAlleleFreqsMAP();
   }
 }
 
