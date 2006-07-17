@@ -247,12 +247,12 @@ void CompositeLocus::SetHapPairProbs(){
 */
 void CompositeLocus::setAlleleProbsMAP(const double* const FreqsMAP){
   AlleleProbsMAP = FreqsMAP;
-  setHapPairProbsMAP();
+  //setHapPairProbsMAP();
 }
 
 /**
    SetsHapPairProbsMAP to current value of HapPairProbs. 
-   HapPairProbs are at current values of alleleprobs
+   HapPairProbs have already been set at current values of alleleprobs
    therefore this is equivalent to but more efficient then setting from alleleprobsMAP, 
    which are at this point the same as alleleprobs.
    Not done in parallel version as HapPairProbs and HapPairProbsMAP are not stored.
@@ -261,8 +261,9 @@ void CompositeLocus::setHapPairProbsMAP()
 {
 #ifndef PARALLEL
   int size =  NumberOfStates * NumberOfStates * Populations * Populations; 	 
-   for(int h0 = 0; h0 < size; ++h0) 	 
-   HapPairProbsMAP[h0] = HapPairProbs[h0]; 	 
+  for(int h0 = 0; h0 < size; ++h0) {	 
+     HapPairProbsMAP[h0] = HapPairProbs[h0];
+  } 	 
  #endif
 }
 
