@@ -812,7 +812,7 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
     // evaluate log unnormalized posterior density
     double logpriorhat =  LogPriorTheta_Softmax(ThetaProposal, options, alpha) + 
       LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
-    double loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, false);
+    double loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, true);
     double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
 
     if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
@@ -1491,7 +1491,7 @@ void Individual::setChibNumerator(const AdmixOptions* const options, const vecto
   }    
   
   // 2. calculate log-likelihood at MAP parameter values
-  double loglikhat = getLogLikelihood(options, thetahat, rhohat, false);
+  double loglikhat = getLogLikelihood(options, thetahat, rhohat, true);
   cout << "\nLogLikelihood " << loglikhat << endl << flush;
   MargLikelihood->setLogLikelihood(getLogLikelihood( options, thetahat, rhohat, true));
   
