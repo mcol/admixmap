@@ -200,7 +200,12 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
    // updated only from those individuals who belong to the component
    
      //sample alpha conditional on individual admixture proportions
-     PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0], options->PopAdmixturePropsAreEqual() );
+     try{
+       PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0], options->PopAdmixturePropsAreEqual() );
+     }
+     catch(string s){
+       throw string("Error encountered while sampling population admixture parameters:\n" +s);
+     }
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
 
   }
@@ -227,8 +232,9 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
   
 }
 
+///updates global sumintensities in a globalrho model, using random-walk Metropolis-Hastings
 void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogrho) {
-  if( options->isGlobalRho() ) { // update rho with random walk MH
+  if( options->isGlobalRho() ) {
     double rhoprop = rho[0];
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
@@ -247,7 +253,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
       LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
       ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
    }
-     // set ancestry correlations using proposed value of sum-intensities
+      // set ancestry correlations using proposed value of sum-intensities
     // value for X chromosome set to half the autosomal value 
     Loci->SetLocusCorrelation(rhoprop);
 
@@ -415,6 +421,7 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
     transform(rho.begin(), rho.end(), SumLogRho.begin(), SumLogRho.begin(), std::plus<double>());
 }
 
+///samples locus-specific sumintensities in a hapmixmodel, using Hamiltonian Monte Carlo
 void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
 #ifdef PARALLEL
 				  , MPI::Intracomm& Comm
@@ -514,6 +521,7 @@ if(rank!=0)
   }
 }
 
+///energy function for sampling locus-specific sumintensities
 double Latent::RhoEnergy(const double* const x, const void* const vargs){
   //x is the log of rho
   const RhoArguments* args = (const RhoArguments*)vargs;
@@ -540,7 +548,7 @@ double Latent::RhoEnergy(const double* const x, const void* const vargs){
   }
   return E; 
 }
-
+///gradient function for sampling locus-specific sumintensities
 void Latent::RhoGradient( const double* const x, const void* const vargs, double* g ){
   const RhoArguments* args = (const RhoArguments*)vargs;
   unsigned K = args->NumPops;
@@ -566,7 +574,7 @@ void Latent::RhoGradient( const double* const x, const void* const vargs, double
     throw string("Error in RhoGradient: " + s);
   }
 }
-
+///energy function for sampling prior params of locus-specific sumintensities
 double Latent::RhoPriorParamsEnergy(const double* const x, const void* const vargs){
   //here, x has length 3 with elements log rhoalpha, log rhobeta0, log rhobeta1
   const RhoArguments* args = (const RhoArguments*)vargs;
@@ -595,7 +603,7 @@ double Latent::RhoPriorParamsEnergy(const double* const x, const void* const var
   }
   return E;
 }
-
+///gradient function for sampling prior params of locus-specific sumintensities
 void Latent::RhoPriorParamsGradient( const double* const x, const void* const vargs, double* g ){
   const RhoArguments* args = (const RhoArguments*)vargs;
   unsigned K = args->NumPops;
