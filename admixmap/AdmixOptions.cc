@@ -695,7 +695,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"testoneindiv",                          1, 0,  0 }, // int 0: 1 
     {"reportedancestry",                      1, 0, 'r'}, // string 
     {"seed",                                  1, 0,  0 }, // long
-    {"checkdata",                         1, 0,  'd' }, // int 0, 1
+    {"checkdata",                             1, 0,  'd' }, // int 0, 1
 
     //old options - do nothing but kept for backward-compatibility with old scripts
     {"analysistypeindicator",                 1, 0,  0 }, // int 0: 4
@@ -709,7 +709,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
   int c;
   while (1) {
     int option_index = 0;
-    c = getopt_long (nargs, args, "a:b:c:e:g:i:l:o:p:r:s:t:",
+    c = getopt_long (nargs, args, "a:b:d:e:g:i:l:o:p:r:s:t:",
 		     long_options, &option_index);
     string long_option_name = long_options[option_index].name;
     if (c == -1)
@@ -728,10 +728,10 @@ void AdmixOptions::SetOptions(int nargs, char** args)
       { if((int)strtol(optarg, NULL, 10)==0)displayLevel = 0;
 	OptionValues["displaylevel"]=optarg;}
       break;
-	case 'd':
-	{checkData = false;
+    case 'd':
+      {checkData = false;
 	OptionValues["checkdata"]="0";
-	}break;
+      }break;
     case 'e': // ergodicaveragefile
       { ErgodicAverageFilename = optarg;OptionValues["ergodicaveragefile"]=optarg;}
       break;
@@ -1006,6 +1006,8 @@ void AdmixOptions::PrintOptions(){
 }
 
 int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
+  bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
+
   // **** analysis type  ****
   Log.setDisplayMode(Quiet);
   if (NumberOfIndividuals==1) {
@@ -1037,7 +1039,10 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     if(NumberOfOutcomes > 0){
       Log.setDisplayMode(On);
       Log << "ERROR: 'outcomes' > 0 and no outcomevarfile specified\n";
-      exit(1);
+      badOptions = true;
+    }
+    if(CovariatesFilename.length()){
+      Log << "ERROR: covariatesfile specified without outcomevarfile\n";
     }
     //should check for specified targetindicator too, simply ignoring for now
     if(RegressionOutputFilename.length() > 0){
@@ -1088,11 +1093,11 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       if(globalrhoPrior.size() != 2) {
 	Log.setDisplayMode(On);
 	Log << "ERROR: globalsumintensitiesprior must have length 2\n";
-	exit(1);
+	badOptions = true;
 	if(globalrhoPrior[0] <= 0.0 || globalrhoPrior[1] <= 0.0) {
 	  Log.setDisplayMode(On);
 	  Log << "ERROR: all elements of globalsumintensitiesprior must be > 0\n";
-	  exit(1);
+	  badOptions = true;
 	}  
       } 
     } else { // sumintensities at individual or gamete level
@@ -1104,12 +1109,12 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       if( (rhoPrior.size() != 3) && IndAdmixHierIndicator ) {
 	Log.setDisplayMode(On);
 	Log << "ERROR: for hierarchical model, sumintensitiesprior must have length 3\n";
-	exit(1);
+	badOptions = true;
       }
       if(rhoPrior[0] <= 0.0 || rhoPrior[1] <= 0.0 || rhoPrior[2]<=0.0) {
 	Log.setDisplayMode(On);
 	Log << "ERROR: all elements of sumintensitiesprior must be > 0\n";
-	exit(1);
+	badOptions = true;
       }  
     }
   }
@@ -1136,11 +1141,10 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     else Log <<"undefined\n";
   }
 
-  //TODO: output info on allelefreq prior
   if(HapMixModelIndicator){
     if(allelefreqprior.size() !=3) {
       Log << "Error: 'allelefreqprior' must have length 3\n";
-      exit(1);
+      badOptions = true;
     }
     Log << "Dirichlet prior on allele frequencies. ";
     Log << "Gamma prior on Dirichlet parameters with shape " << allelefreqprior[0] << " and Gamma( " << allelefreqprior[1] << ", " 
@@ -1158,14 +1162,14 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   // **** Check whether genotypes file has been specified ****
   if ( GenotypesFilename.length() == 0 )
     {
-      Log << "Must specify genotypesfile.\n";
-      exit( 1 );
+      Log << "ERROR: Must specify genotypesfile.\n";
+      badOptions = true;
     }
   // **** Check whether locus file has been specified ****
   if ( LocusFilename.length() == 0 )
     {
-      Log << "Must specify locusfile.\n";
-      exit( 1 );
+      Log << "ERROR: Must specify locusfile.\n";
+      badOptions = true;
     }
 
   // **** model for allele freqs ****
@@ -1215,7 +1219,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   // **** score tests ****
   if( TestForLinkageWithAncestry && Populations == 1 ){
     Log << "Cannot test for linkage with ancestry with 1 population.\n";
-    exit(0);
+    badOptions = true;
   }
   if(TestForAdmixtureAssociation &&
       ( TestForLinkageWithAncestry || TestForAllelicAssociation ) ) {
@@ -1224,13 +1228,13 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	<< "for linkage.\n"
 	<< "If admixturescorefile is selected, then please unselect both\n"
 	<< "allelicassociationscorefile and ancestryassociationscorefile\n";
-    exit(1);
+    badOptions = true;
   }
 
   if( TestForMisspecifiedAlleleFreqs &&
       ( alleleFreqFilename.length()==0 && !(fixedallelefreqs) ) ){
     Log << "Cannot test for mis-specified allele frequencies unless allele frequencies are fixed.\n";
-    exit(1);
+    badOptions = true;
   }
 
   if( TestForAffectedsOnly )
@@ -1262,6 +1266,20 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   
   ScoreTestIndicator = (TestForAffectedsOnly || TestForLinkageWithAncestry || TestForAllelicAssociation || 
 			TestForAdmixtureAssociation || TestForHaplotypeAssociation || TestForResidualAllelicAssoc);
+  //check for burnin >= samples
+  if(burnin >= TotalSamples){
+    Log << "ERROR: 'samples' must be greater than 'burnin'\n";
+    badOptions = true;
+  }
+  //
+  if(SampleEvery >= TotalSamples){
+    Log << "ERROR: 'samples' must be greater than 'every'\n";
+    badOptions = true;
+  }
+  if(10*SampleEvery > (TotalSamples-burnin)){
+    Log << "WARNING: 'every' should be less than ('samples' - 'burnin') / 10. Some output files may be empty.\n";
+  }
+
 
   if(thermoIndicator) {
     // for thermo integration, NumAnnealedRuns is set to default value of 100 
@@ -1272,7 +1290,8 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     else Log << "for first individual\n"; 
   }
 
-  return 1;
+  if(badOptions) return 1;
+  else return 0;
 }
 
 //Note: requires Populations option to have already been set
