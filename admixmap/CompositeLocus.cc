@@ -217,7 +217,7 @@ void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
       for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] /= (double)iterations;
 #ifdef PARALLEL
       //in parallel version, we don't store the HapPairProbs so instead of setting them to posterior means,
-      //simply set AlleleProbs to their PM and they will bw used to compute genotype probs required for deviance at PMs
+      //simply set AlleleProbs to their PM and they will bw used to compute genotype probs required for deviance at PM
       //this is ok as this is done at end, after main loop
       softmax(NumberOfStates, (double*)AlleleProbs+k*NumberOfStates, SumAlleleProbs[k]);
 #else
@@ -266,6 +266,14 @@ void CompositeLocus::SetHapPairProbs(){
   SetHapPairProbs(AlleleProbs);//at current values
 }
 
+/**
+   SetsHapPairProbsMAP using AlleleProbsMAP
+*/
+void CompositeLocus::setHapPairProbsMAP()
+{
+  SetHapPairProbs(AlleleProbsMAP);//at current values
+}
+
 void CompositeLocus::SetHapPairProbs(const double* alleleProbs){
   for(int h0 = 0; h0 < NumberOfStates; ++h0){
     for(int h1 = 0; h1 < NumberOfStates; ++h1){
@@ -279,6 +287,7 @@ void CompositeLocus::SetHapPairProbs(const double* alleleProbs){
   }
 }
 #endif
+
 void CompositeLocus::AccumulateAlleleProbs(){
   for (int k = 0; k < Populations; k++ ) {
     double* temp = new double[NumberOfStates];
@@ -331,19 +340,6 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Ha
 */
 void CompositeLocus::setAlleleProbsMAP(const double* const Freqs){
   AlleleProbsMAP = Freqs;
-}
-/**
-   SetsHapPairProbsMAP to current value of HapPairProbs.
-   Doesn't really calculate posterior mode,
-   just sets to current value of hap freqs.  ok for Chib algorithm if strong prior
-*/
-void CompositeLocus::setHapPairProbsMAP()
-{
-#ifndef PARALLEL
-  //HaplotypeProbsMAP = HaplotypeProbs;
-  for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0)
-  HapPairProbsMAP[h0] = HapPairProbs[h0]; 
-#endif
 }
 
 // arguments: integer, length of bit array
