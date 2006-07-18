@@ -563,26 +563,24 @@ double Individual::getLogLikelihood(const AdmixOptions* const options, const dou
   double LogLikelihood = 0.0;
   if(Populations == 1) LogLikelihood = getLogLikelihoodOnePop();
   else { 
-    for( unsigned int j = 0; j < numChromosomes; j++ ){
-	if(updateHMM){// force update of forward probs 
-	    UpdateHMMInputs(j, options, theta, rho);
-	}
-	LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !Loci->isXChromosome(j) || SexIsFemale );
+    for( unsigned int j = 0; j < numChromosomes; j++ ) {
+      if(updateHMM){// force update of forward probs 
+	UpdateHMMInputs(j, options, theta, rho);
+      }
+      LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !Loci->isXChromosome(j) || SexIsFemale );
     }
   }
+  //   cout << "From getLogLikelihood: Populations " << Populations << endl;
+  //   for(int g = 0; g < NumIndGametes; ++g) {
+  //       cout << "rho " << rho[g] << " theta";
+  //       for(int k=0; k < Populations; ++k) {
+  // 	cout << theta[g*Populations+k] << " ";
+  //       }
+  //   }
+  //   cout << endl;
+  //   cout << "LogL " << LogLikelihood << endl;
   
-//   cout << "From getLogLikelihood: Populations " << Populations << endl;
-//   for(int g = 0; g < NumIndGametes; ++g) {
-//       cout << "rho " << rho[g] << " theta";
-//       for(int k=0; k < Populations; ++k) {
-// 	cout << theta[g*Populations+k] << " ";
-//       }
-//   }
-//   cout << endl;
-//   cout << "LogL " << LogLikelihood << endl;
-  
-  return LogLikelihood; // argument updateHMM is unnecessary - why call this function unless you want an HMM update
-  // if HMM update not required, can just use stored log-likelihood  
+  return LogLikelihood; // if HMM update not required, can just use stored log-likelihood  
 }
 
 void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Metropolis proposal is accepted
@@ -891,11 +889,11 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
 }
 
 
-void Individual::SampleTheta( int iteration, double *SumLogTheta, const DataMatrix* const Outcome, 
-			      const DataType* const OutcomeType, const vector<double> lambda, int NumCovariates,
+void Individual::SampleTheta( const int iteration, double *SumLogTheta, const DataMatrix* const Outcome, 
+			      const DataType* const OutcomeType, const vector<double> lambda, const int NumCovariates,
 			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
 			      const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-			      double DInvLink, double dispersion, bool RW, bool anneal=false)
+			      double DInvLink, const double dispersion, const bool RW, const bool anneal=false)
 // samples individual admixture proportions
 // called with RW true for a random-walk proposal, false for a conjugate proposal
 {
@@ -918,31 +916,32 @@ void Individual::SampleTheta( int iteration, double *SumLogTheta, const DataMatr
     int NumOutcomes = Outcome->nCols();
     for( int k = 0; k < NumOutcomes; k++ ){
       if(OutcomeType[k] == Binary)RegType = Logistic; else RegType = Linear;
-      logpratio +=  LogAcceptanceRatioForRegressionModel( RegType, options->isRandomMatingModel(), K, NumCovariates, 
-							  Covariates, beta[k], //ExpectedY[ k ][myNumber-1], 
-							  Outcome->get( myNumber-1, k ), poptheta, lambda[k]);
+      logpratio += LogAcceptanceRatioForRegressionModel( RegType, options->isRandomMatingModel(), K, NumCovariates, 
+							 Covariates, beta[k], Outcome->get( myNumber-1, k ), 
+							 poptheta, lambda[k]);
     }
   }
   
   //Accept or reject proposed value - if conjugate update and no regression model, proposal will be accepted because logpratio = 0
-  Accept_Reject_Theta(logpratio, /*Loci->isX_data(), */ K, options->isRandomMatingModel(), RW );
+  Accept_Reject_Theta(logpratio, K, options->isRandomMatingModel(), RW );
   
   // update the value of admixture proportions used in the regression model  
   if( options->getNumberOfOutcomes() > 0 )
     UpdateAdmixtureForRegression(K, NumCovariates, poptheta, options->isRandomMatingModel(), Covariates);
   
   if(!anneal && iteration > options->getBurnIn()){ // accumulate sums in softmax basis for calculation of posterior means 
-    
     for( unsigned int g = 0; g < NumIndGametes; g++ ){
       bool* b = new bool[Populations];
       double* a = new double[Populations];
-      for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
-	b[k] = true; //to skip elements set to zero
-      } else b[k] = false;
+      for(int k = 0; k < Populations; ++k) {
+	if(Theta[g*Populations + k] > 0.0) {
+	  b[k] = true; //to skip elements set to zero
+	} else b[k] = false;
+      }
       inv_softmax(Populations, Theta+g*Populations, a, b);
       transform(a, a+Populations, SumSoftmaxTheta+g*Populations, SumSoftmaxTheta+g*Populations, std::plus<double>());
-	delete[] b;
-	delete[] a;
+      delete[] b;
+      delete[] a;
     }
   }
   if(!IAmUnderTest){

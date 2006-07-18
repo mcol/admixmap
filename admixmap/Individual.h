@@ -72,11 +72,11 @@ public:
   void SampleJumpIndicators(bool sampleArrivals);
   void SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta,  
 		 bool updateSumLogRho);
-  void SampleTheta( int iteration, double *SumLogTheta, const DataMatrix* const Outcome, 
-		    const DataType* const OutcomeType, const std::vector<double> lambda, int NumCovariates,
+  void SampleTheta( const int iteration, double *SumLogTheta, const DataMatrix* const Outcome, 
+		    const DataType* const OutcomeType, const std::vector<double> lambda, const int NumCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-		    double DInvLink, double dispersion, bool RW, bool anneal);
+		    double DInvLink, const double dispersion, const bool RW, const bool anneal);
   void SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
 			     const double* const* ExpectedY, const vector<double> lambda);
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  

@@ -88,9 +88,9 @@ spacingX <- 30 #30
 L <- 50  # default number of autosomal loci
 beta <- 2 # regression slope
 popadmixparams <- c(3, 1) # population admixture params for pop1, pop2
-S <- 2 # number of alleles
-afreqparams <- matrix(c(10, 90, 90, 10), nrow=2, ncol=2)
-#afreqparams <- matrix(c(10, 10, 80, 80, 10, 10), nrow=3, ncol=2)
+S <- 3 # number of alleles
+#afreqparams <- matrix(c(10, 90, 90, 10), nrow=2, ncol=2)
+afreqparams <- matrix(c(10, 10, 80, 80, 10, 10), nrow=3, ncol=2)
 
 ##marker spacings#
 # x <- 0.1 #evenly spaced#

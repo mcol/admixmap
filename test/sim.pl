@@ -6,7 +6,7 @@ my $arg_hash = {
 #data files
     genotypesfile                   => 'simdata/genotypes.txt',
     locusfile                       => 'simdata/loci.txt',
-    priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
+    #priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
     # covariatesfile                  => 'data/covariates3.txt',
     #outcomevarfile                  => 'simdata/outcome.txt',
 
@@ -24,9 +24,9 @@ my $arg_hash = {
     resultsdir               => "simResults",
     logfile                  => 'logfile.txt',
     paramfile                => 'paramfile.txt',
-    regparamfile             => 'regparam.txt',
+    #regparamfile             => 'regparam.txt',
     indadmixturefile         => 'indadmixture.txt',
-    ergodicaveragefile       => 'ergodicaverage.txt',
+    #ergodicaveragefile       => 'ergodicaverage.txt',
     allelefreqoutputfile  => 'allelefreqoutputfile.txt',
 
 #optional tests
