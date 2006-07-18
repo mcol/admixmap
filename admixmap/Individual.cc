@@ -233,9 +233,14 @@ void Individual::drawInitialAdmixtureProps(const std::vector<std::vector<double>
     for(size_t k = 0; k < K; ++k) { 
       thetahat[g*K+k] = alpha[g][k] / sum; // set thetahat to prior mean
       dirparams[k] = alpha[g][k]; 
+      //cout << dirparams[k] << " ";
     }
     // draw theta from Dirichlet with parameters dirparams
     Rand::gendirichlet(K, dirparams, Theta+g*K ); 
+    for(size_t k = 0; k < K; ++k) { 
+      //cout << Theta[g*K+k] << " ";
+    }
+    //cout << endl;
   }  
 }
 
@@ -654,7 +659,7 @@ void Individual::SampleLocusAncestry(const AdmixOptions* const options){
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
       //Update Forward/Backward probs in HMM
       if( !logLikelihood.HMMisOK ) {
-	UpdateHMMInputs(j, options, Theta, _rho /* , _rho_X*/);
+	UpdateHMMInputs(j, options, Theta, _rho);
       }
       // sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
       C->SampleLocusAncestry(LocusAncestry[j], (!Loci->isXChromosome(j) || SexIsFemale));
@@ -741,18 +746,8 @@ void Individual::SampleJumpIndicators(bool sampleArrivals){
 // uses current values of allele freqs 
 void Individual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 				    double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile) {
-  if(A->IsRandom() ) {  // 1. set allelefreqsMAP in AlleleFreqs object
- //    //A->setAlleleFreqsMAP(); 
-//     /** does three things: 
-// 	1. allocates array for AlleleFreqsMAP
-// 	2. sets elements of array to current value
-// 	3. loops over composite loci to set AlleleProbsMAP to point to AlleleFreqsMAP
-//     **/
-//     //set HapPairProbsMAP using AlleleProbsMAP
-//     for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-//       (*Loci)(j)->setHapPairProbsMAP(); 
-//     }
-    // now set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
+  if(A->IsRandom() ) {  
+    // set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
     for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
       unsigned locus = Loci->getChromosome(j)->GetLocus(0);
       for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
@@ -771,7 +766,7 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
   //use current parameter values as initial values
   double *SumLocusAncestryHat = new double[2*Populations];
   for(unsigned EMiter = 0; EMiter < numEMiters; ++EMiter) {
-    double SumNumArrivalsHat[2] = {0,0}; //, SumNumArrivals_XHat[2] = {0,0};
+    double SumNumArrivalsHat[2] = {0,0}; 
     fill(SumLocusAncestryHat, SumLocusAncestryHat + 2*Populations, 0.0);
     
     //E-step: fix theta and rho, sample Locus Ancestry and Number of Arrivals
@@ -788,7 +783,7 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
       SumNumArrivalsHat[0] += SumN[0] + SumN_X[0];
       SumNumArrivalsHat[1] += SumN[1] + SumN_X[1];
       transform(SumLocusAncestry, SumLocusAncestry+2*Populations, 
-		SumLocusAncestryHat, SumLocusAncestryHat, std::plus<double>());
+		SumLocusAncestryHat, SumLocusAncestryHat+2*Populations, std::plus<double>());
     }
     // set SumLocusAncestry and SumNumArrivals to their averages over current E step
     for(int i = 0; i < 2*Populations; ++i) {
@@ -883,7 +878,6 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
   }
   // compute log likelihood at posterior modes
   loglikhat = getLogLikelihood(options, thetahat, rhohat, true);
-
 }
 
 
@@ -1040,7 +1034,7 @@ void Individual::ProposeTheta(const AdmixOptions* const options, const vector<ve
   } else { //assortative mating model
     for(size_t k = 0; k < K; ++k) {
       dirparams[k] = alpha[0][k] + double(sumLocusAncestry[k] + sumLocusAncestry_X[k] + 
-					  sumLocusAncestry[k + K] + sumLocusAncestry_X[K + k]);
+					  sumLocusAncestry[K + k] + sumLocusAncestry_X[K + k]);
     }
     Rand::gendirichlet(K, dirparams, ThetaProposal );
   }
@@ -1497,6 +1491,7 @@ void Individual::setChibNumerator(const AdmixOptions* const options, const vecto
 	LogPriorFreqs += getDirichletLogDensity( A->GetPriorAlleleFreqs(j, k), A->getAlleleFreqsMAP(j,k) );
       }
     }
+    cout << "LogPriorFreqs " << LogPriorFreqs;
     LogPrior += LogPriorFreqs;
   }
   MargLikelihood->setLogPrior(LogPrior);
