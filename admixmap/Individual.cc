@@ -638,12 +638,10 @@ double Individual::getLogLikelihoodOnePop(){ //convenient for a single populatio
 void Individual::ResetSufficientStats(){
   if(Populations>1) {
     // ** reset SumLocusAncestry to zero
-    for(int j = 0; j < Populations *2; ++j)SumLocusAncestry[j] = 0;
-    // if(Loci->isX_data() ){
-    int J = Populations;
-    if(SexIsFemale) J *=2;
-    for(int j = 0; j < J ;++j) SumLocusAncestry_X[j] = 0;
-    //  }
+    for(int j = 0; j < Populations *2; ++j) {
+      SumLocusAncestry[j] = 0;
+      SumLocusAncestry_X[j] = 0;
+    }
 
     //SumNumArrivals is the number of arrivals between each pair of adjacent loci
     fill(SumNumArrivals.begin(), SumNumArrivals.end(), 0);
@@ -744,16 +742,16 @@ void Individual::SampleJumpIndicators(bool sampleArrivals){
 void Individual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 				    double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile) {
   if(A->IsRandom() ) {  // 1. set allelefreqsMAP in AlleleFreqs object
-    A->setAlleleFreqsMAP(); 
-    /** does three things: 
-	1. allocates array for AlleleFreqsMAP
-	2. sets elements of array to current value
-	3. loops over composite loci to set AlleleProbsMAP to point to AlleleFreqsMAP
-    **/
-    //set HapPairProbsMAP using AlleleProbsMAP
-    for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-      (*Loci)(j)->setHapPairProbsMAP(); 
-    }
+ //    //A->setAlleleFreqsMAP(); 
+//     /** does three things: 
+// 	1. allocates array for AlleleFreqsMAP
+// 	2. sets elements of array to current value
+// 	3. loops over composite loci to set AlleleProbsMAP to point to AlleleFreqsMAP
+//     **/
+//     //set HapPairProbsMAP using AlleleProbsMAP
+//     for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+//       (*Loci)(j)->setHapPairProbsMAP(); 
+//     }
     // now set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
     for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
       unsigned locus = Loci->getChromosome(j)->GetLocus(0);
