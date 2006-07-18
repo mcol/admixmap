@@ -139,7 +139,7 @@ private:
     bool HMMisOK;//true iff values in HMM objects correspond to current parameter values for this individual
   } logLikelihood;
   
-  std::vector<double> logPosterior[3];
+  std::vector<double> logPosterior[3]; // elements 0, 1, 2 are for theta, rho, freqs
   
   //RWM sampler for individual admixture
   StepSizeTuner ThetaTuner;
