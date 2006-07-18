@@ -417,11 +417,7 @@ void IndividualCollection::UpdateIndivAdmixtureRandomWalk(int iteration, const A
   }
 }
 
-void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-					       const vector<Regression*> &R, const double* const poptheta,
-					       const vector<vector<double> > &alpha, 
-					       bool anneal=false){
-  /*
+/**
     (1) Samples individual admixture proportions on even-numbered iterations
     (2) Samples Locus Ancestry (after updating HMM)
     (3) accumulates sums of ancestry states in hapmixmodel
@@ -430,6 +426,10 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     coolness is not passed as argument to this function because annealing has already been implemented by 
     calling annealGenotypeProbs 
 */
+void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
+					       const vector<Regression*> &R, const double* const poptheta,
+					       const vector<vector<double> > &alpha, 
+					       bool anneal=false){
 
   //first, some preliminaries
   //
@@ -814,36 +814,6 @@ const int* IndividualCollection::getSumAncestry()const{
   return SumAncestry;
 #endif
 }
-// const vector<int> IndividualCollection::getSumLocusAncestry(int K)const{
-//   vector<int> sumlocusancestry(2*K, 0);
-//   const int* indivsla;
-//   for(unsigned i = 0; i < size; ++i){
-//     indivsla = _child[i]->getSumLocusAncestry();
-//     transform(indivsla, indivsla+2*K, sumlocusancestry.begin(), sumlocusancestry.begin(), std::plus<int>());
-//   }
-
-//   return sumlocusancestry;
-// }
-// const vector<int> IndividualCollection::getSumLocusAncestryX(int K)const{
-//   vector<int> sumlocusancestry(2*K, 0);
-//   const int* indivsla;
-//   int length;
-//   for(unsigned i = 0; i < size; ++i){
-//     indivsla = _child[i]->getSumLocusAncestryX();
-//     if(_child[i]->getSex()==female)length = 2*K; else length = K;//two gametes in females, otherwise one
-//     transform(indivsla, indivsla+length, sumlocusancestry.begin(), sumlocusancestry.begin(), std::plus<int>());
-//   }
-
-//   return sumlocusancestry;
-// }
-
-// const vector<unsigned> IndividualCollection::getSumNumArrivals(){
-//   //returns a vector of sums over gametes of numbers of arrivals between pairs of loci
-//   vector<unsigned>sumNumArrivals(NumCompLoci, 0);
-//   for(unsigned i = 0; i < size; ++i)
-//     _child[i]->getSumNumArrivals(&sumNumArrivals);
-//   return sumNumArrivals;
-// }
 
 /**
  * returns a count of the copies of allele a at a comp locus.
