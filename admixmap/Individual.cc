@@ -782,8 +782,9 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
       // accumulate sums
       SumNumArrivalsHat[0] += SumN[0] + SumN_X[0];
       SumNumArrivalsHat[1] += SumN[1] + SumN_X[1];
-      transform(SumLocusAncestry, SumLocusAncestry+2*Populations, 
-		SumLocusAncestryHat, SumLocusAncestryHat+2*Populations, std::plus<double>());
+      for(int i = 0; i < 2*Populations; ++i) {
+	SumLocusAncestryHat[i] += SumLocusAncestry[i];
+      }
     }
     // set SumLocusAncestry and SumNumArrivals to their averages over current E step
     for(int i = 0; i < 2*Populations; ++i) {
