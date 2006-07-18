@@ -188,18 +188,20 @@ Latent::~Latent()
 //   individuals->setAdmixtureProps(globaltheta, options->getPopulations());//shouldn't be necessary
 // }
 
+
+/** Samples for population admixture distribution Dirichlet parameters, alpha **
+ For a model in which the distribution of individual admixture in the population is a mixture
+ of components, we have one Dirichlet parameter vector for each component, 
+ updated only from those individuals who belong to the component
+*/
 void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* const individuals, LogWriter &Log)
  {
-   
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
-
-   // ** Sample for population admixture distribution Dirichlet parameters, alpha **
-   // For a model in which the distribution of individual admixture in the population is a mixture
-   // of components, we will have one Dirichlet parameter vector for each component, 
-   // updated only from those individuals who belong to the component
    
      //sample alpha conditional on individual admixture proportions
+     //cout << "alpha " << alpha[0][0] << " " << alpha[0][1] <<  " sumlogtheta " 
+     //	    << individuals->getSumLogTheta()[0] << " " <<  individuals->getSumLogTheta()[1] << endl;
      try{
        PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0], options->PopAdmixturePropsAreEqual() );
      }
@@ -210,7 +212,6 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
 
   }
    // ** accumulate sum of Dirichlet parameter vector over iterations  **
-
    transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
    
    if( iteration < options->getBurnIn() && options->getPopulations() > 1) {
@@ -405,17 +406,13 @@ void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsign
 	sum += rho[locus];
 	++locus;
     }
-    
-    
     //set locus correlation
     C->SetLocusCorrelation(rho, false, false);
     C->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
   }
-
   //sample rate parameter of gamma prior on rho
   rhobeta = Rand::gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
-
-
+  
   //accumulate sums of log of rho
   if(sumlogrho)
     transform(rho.begin(), rho.end(), SumLogRho.begin(), SumLogRho.begin(), std::plus<double>());
