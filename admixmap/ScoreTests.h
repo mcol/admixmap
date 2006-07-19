@@ -18,6 +18,18 @@
 #include "IndividualCollection.h"
 #include "LogWriter.h"
 #include "common.h"
+#include "ResidualLDTest.h"
+
+/**
+   Class to implement various score tests. 
+ *   Class implements the following score tests:
+ *   (1) Score test for admixture association (admixturescoretest)
+ *   (2) Score test for allelic association
+ *   (3) Score test for within-halpotype association
+ *   (4) Score test for linkage with locus ancestry
+ *   (5) Affecteds-only score test for linkage with locus ancestry
+ *   (6) Score test for residual allelic association between adjacent pairs of linked loci
+ */
 class ScoreTests{
 
 public:
@@ -73,12 +85,6 @@ private:
   double* SumAdmixtureScore2; 
   double* SumAdmixtureInfo;
 
-  double*** ResAllelicAssocScore;
-  double*** ResAllelicAssocInfo;
-  double*** SumResAllelicAssocScore;
-  double*** SumResAllelicAssocScore2;
-  double*** SumResAllelicAssocInfo;
-
 #ifdef PARALLEL
   double *sendallelescore;
   double *sendalleleinfo;
@@ -88,11 +94,6 @@ private:
   double *sendhapinfo;
   double *recvhapscore;
   double *recvhapinfo;
-  double* sendresallelescore;
-  double* recvresallelescore;
-  double* sendresalleleinfo;
-  double* recvresalleleinfo;
-  int dimresallelescore, dimresalleleinfo;
   int dimallelescore, dimalleleinfo, dimhapscore, dimhapinfo;
 
   const std::vector<std::string> * LocusLabels;
@@ -104,7 +105,6 @@ private:
   std::ofstream HaplotypeAssocScoreStream;
   std::ofstream affectedsOnlyScoreStream;
   std::ofstream allelicAssocScoreStream;
-  std::ofstream ResAlleleScoreFile;
   const std::string *PopLabels;
 
   const AdmixOptions *options;
@@ -126,7 +126,6 @@ private:
 			      const double score, const double scoresq, const double info, bool final);
   void OutputAdmixtureScoreTest( int );
 
-  void OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final);
 
   //void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int locus, double p,double phi, double DInvLink);
   void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const std::vector<int> allele2Counts, 
@@ -145,10 +144,6 @@ private:
 
   static int ResidualAlleleInfoIndex(int M, int N, int m1, int n1, int m2, int n2);
 
-  void UpdateScoresForResidualAllelicAssociation(int c, int locus, 
-						 const double* const AlleleFreqsA, const double* const AlleleFreqsB);
-  void UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,  
-						    const double* const AlleleFreqsA, const double* const AlleleFreqsB);
   static std::string double2R( double );
   static std::string double2R( double x, int precision );
 
@@ -156,7 +151,8 @@ private:
 
   void Reset();
 
-  void DeleteScores();
+  ResidualLDTest ResidualAllelicAssocScoreTest;//here temporarily, until rest of scoretests classes have been created
+
 };
 
 

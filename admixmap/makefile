@@ -9,7 +9,6 @@
 # Serial/Parallel version: VERSION = [serial/parallel]
 # Processor type: ARCH = [i686/P4/AMD64/itanium2]
 # Compiler: CC = [g++/icpc/pgCC/pathCC]
-# (if using GCC 4.x, set GCC_VERSION=4 to enable vectorization)
 # MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
 # paths to gsl, mpi, sprng: GSL_LIBPATH, GSL_INCLUDEPATH, MPI_PATH, MPI_LIBPATH, SPRNG_PATH
@@ -87,7 +86,9 @@ PROC =
 ifeq ($(CC),$(GNU_COMPILER))
 WFLAGS = -W -Wall
 ifeq ($(GCC_VERSION),4)
-DFLAGS=-O3 -ftree-vectorize
+ifeq ($(DFLAGS),-O3)
+override DFLAGS+= -ftree-vectorize
+endif	
 endif
 ifeq ($(ARCH),i686)
 PROC = -march=i686# Intel 686
@@ -158,7 +159,7 @@ EXEC = adm-para
 ##serial version
 else
 CXX = $(CC)
-LIBS = $(NORMAL_LIBS) $(LIBTYPE)
+LIBS = $(LIBTYPE) $(NORMAL_LIBS)
 EXEC = $(SERIAL_EXEC)
 endif
 
@@ -171,13 +172,14 @@ export CXX CPPFLAGS GSL_INCLUDEPATH PARALLEL_INCLUDES
 objects		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o\
 Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o LinearRegression.o LogisticRegression.o\
 Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o \
-MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o \
+ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o \
 DataMatrix.o AlleleFreqSampler.o
 
-all:	$(objects)
+all:	message $(objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
-	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(EXEC) \**
 
+message:	
+	@echo **Compiling ADMIXMAP**
 libsampler:
 	@echo **compiling sampler library**
 	$(MAKE) -C $(LIBSAMPLER_PATH) -e
