@@ -26,6 +26,7 @@ Genome::Genome()
   LocusArray = 0;
   LengthOfGenome = 0;
   LengthOfXchrm = 0;
+  XChromosomeIndex = 0; 
   TotalLoci = 0;
   Distances = 0;
   SizesOfChromosomes = 0;
@@ -72,6 +73,15 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   int lnum = 0;
   LocusTable.resize(NumberOfCompositeLoci);
   X_data = false;
+
+  //determine if distances are given in Morgans or centimorgans
+  string unit = "Morgans";
+  if(rank !=1 ){
+    string distance_header = data_->getLocusData()[0][2];
+    if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
+       || distance_header.find("cM")!=string::npos) 
+      unit = "centimorgans";
+  }
   
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     LocusTable[i].resize(2);
@@ -81,7 +91,11 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     //get chromosome labels from col 4 of locusfile, if there is one   
     if (m.size() == 4) ChrmLabels.push_back(StringConvertor::dequote(m[3]));
 
-    if(rank!=1)SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
+    if(rank!=1){
+      Distances[ i ] = locifileData.get( row, 1 );
+      if(unit == "centimorgans")Distances[i] /= 100.0;//convert to Morgans
+      //      SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
+    }
 
     if(locifileData.isMissing(row, 1) || locifileData.get(row, 1)>=100.0){//new chromosome, triggered by missing value or value of >=100 for distance
       cnum++;
@@ -125,13 +139,8 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     InitialiseChromosomes(cstart, populations);
   }
   
-  if(rank !=1 ){
-    string unit;
-    string distance_header = data_->getLocusData()[0][2];
-    if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
-       || distance_header.find("cM")!=string::npos) unit = "centiMorgans";
-    else unit = "Morgans";
 
+  if(rank !=1 ){
     PrintSizes(Log, unit);//prints length of genome, num loci, num chromosomes
   }
 }
@@ -160,7 +169,10 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
     bool isX = false;
     string s1("X"), s2("x");
     isX = ( (label == s1) || (label == s2) );
-    if(isX)X_data = true;
+    if(isX){
+      X_data = true;
+      XChromosomeIndex = cstart[i];//index of first locus on X chromosome
+    }
 
     C[i] = new Chromosome(i, size, cstart[i], populations, isX);
     //C[i] is a pointer to Chromosome
@@ -179,7 +191,6 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
 	//case of X chromosome
 	else{
 	  LengthOfXchrm += GetDistance(cstart[i]+j);
-	  XChromosomeIndex = cstart[i];//index of first locus on X chromosome
 	}
       }
     }
@@ -208,11 +219,7 @@ CompositeLocus* Genome::operator() ( int ElementNumber ) const
 
   return &(LocusArray[ElementNumber]);
 }
-///sets the distance between a locus and the previous one
-void Genome::SetDistance( int locus, double distance )
-{
-  Distances[ locus ] = distance;
-}
+
 /// Writes numbers of loci and chromosomes and length of genome to Log and screen.
 /// unit is the unit of measurement of the distances in the locusfile (Morgans/centiMorgans) 
 void Genome::PrintSizes(LogWriter &Log, const string unit)const{

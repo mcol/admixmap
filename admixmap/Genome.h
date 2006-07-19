@@ -64,8 +64,6 @@ public:
 
   double GetDistance(int)const;
 
-  void SetDistance(int,double);
-
   void GetChromosomes(int);
   const Chromosome* const* getChromosomes()const;
   Chromosome* getChromosome(unsigned);
