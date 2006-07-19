@@ -502,14 +502,13 @@ int main( int argc , char** argv ){
     if(argc ==2){//options file supplied so need to delete xargv
       for(int i = 1; i < xargc; ++i) {
 	delete[] xargv[i];
-	delete[] xargv;
       }
     } else {
       if(xargv != argv) {
 	delete[] argv[1];
-	delete[] xargv;
       }
     }
+    delete[] xargv;
   } catch (string msg) {//catch any stray error messages thrown upwards
     Log.setDisplayMode(On);
     Log << "\n" << msg << "\n Exiting...\n";
