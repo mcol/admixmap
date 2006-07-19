@@ -172,6 +172,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
       if(rank!=1){
 	readFile(options->getCovariatesFilename(), inputData_, Log);         //covariates file
 	readFile(options->getOutcomeVarFilename(), outcomeVarData_, Log);       //outcomevar file
+	readFile(options->getCoxOutcomeVarFilename(), outcomeVarData_, Log);       //coxoutcomevar file
       }
       if(rank==-1 || rank == 1){//only one process reads freq files
 	readFile(options->getAlleleFreqFilename(), alleleFreqData_, Log);
@@ -186,6 +187,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
       convertMatrix(locusData_, locusMatrix_, 1, 1,2);
       convertMatrix(outcomeVarData_, outcomeVarMatrix_, 0, 0,0);
       convertMatrix(inputData_,  covariatesMatrix_, 0, 0,0);
+      convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 0, 0,0);
       //convertMatrix(alleleFreqData_, alleleFreqMatrix_, 0, 0);
       //convertMatrix(historicalAlleleFreqData_, historicalAlleleFreqMatrix_, 0, 0);
       //convertMatrix(priorAlleleFreqData_, priorAlleleFreqMatrix_, 0, 0);
@@ -200,10 +202,17 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   NumCompositeLoci = determineNumberOfCompositeLoci();
   if(rank !=0 && rank !=1) NumIndividuals = geneticData_.size() - 1;
 
+  CheckData(options, Log, rank);
+}
+
+void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
   Log.setDisplayMode(Quiet);
   if(rank<0 || rank>1)
     {
       IsPedFile = determineIfPedFile();
+      //findGenotypeSexCol();
+      //options->setgenotypesSexColumn(genotypeSexCol);
+      cout << "Sexcol = " << genotypeSexCol << endl;
       CheckGeneticData(options);
     }
 
@@ -234,6 +243,8 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   if(rank!=1 ){
     if ( strlen( options->getOutcomeVarFilename() ) != 0 )
       CheckOutcomeVarFile( options, Log);
+    if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 )
+      CheckCoxOutcomeVarFile( Log);
     if ( strlen( options->getCovariatesFilename() ) != 0 )
       CheckCovariatesFile(Log);//detects regression model
     if ( strlen( options->getReportedAncestryFilename() ) != 0 )
@@ -271,32 +282,46 @@ bool InputData::determineIfPedFile()const {
   return (isPedFile);
 }
 
-///checks number of loci in genotypes file is the same as in locusfile, 
-///determines if there is a sex column
-/// and each line of genotypesfile has the same number of cols.
-void InputData::CheckGeneticData(AdmixOptions *options)const{
-
+void InputData::findGenotypeSexCol(){
   const size_t numLoci = locusData_.size() - 1; //number of loci in locus file
-  int sexcol;
   // Determine if "Sex" column present in genotypes file.
   if (numLoci == geneticData_[0].size() - 1) {
-    sexcol = 0;//no sex col
+    genotypeSexCol = 0;//no sex col
   } else if (numLoci == geneticData_[0].size() - 2) {
-    sexcol  = 1;//sex col
+    genotypeSexCol  = 1;//sex col
   } else {//too many cols
     cerr << "Error: " << numLoci << " loci in locus file but " <<  geneticData_[0].size() - 1 << " loci in genotypes file." << endl;
     exit(2);
   }
-  options->setgenotypesSexColumn(sexcol);
+
+}
+
+///checks number of loci in genotypes file is the same as in locusfile, 
+///determines if there is a sex column
+/// and each line of genotypesfile has the same number of cols.
+void InputData::CheckGeneticData(AdmixOptions *options)const{
+  const size_t numLoci = locusData_.size() - 1; //number of loci in locus file
+  int SexCol = 0;
+  // Determine if "Sex" column present in genotypes file.
+  if (numLoci == geneticData_[0].size() - 1) {
+    SexCol = 0;//no sex col
+  } else if (numLoci == geneticData_[0].size() - 2) {
+    SexCol  = 1;//sex col
+  } else {//too many cols
+    cerr << "Error: " << numLoci << " loci in locus file but " <<  geneticData_[0].size() - 1 << " loci in genotypes file." << endl;
+    exit(2);
+  }
+  options->setgenotypesSexColumn(SexCol);
+  cout << "Sexcol = " << SexCol << endl;
 
   if(options->CheckData()){
     unsigned ExpCols;
     for(int i = 1; i <= NumIndividuals; ++i){
       //should use logmsg
       if (IsPedFile) 
-	ExpCols = 2*NumSimpleLoci + sexcol;
+	ExpCols = 2*NumSimpleLoci + SexCol;
       else
-	ExpCols = NumSimpleLoci + sexcol;
+	ExpCols = NumSimpleLoci + SexCol;
       
       if (geneticData_[i].size()-1 != ExpCols) {//check each row of genotypesfile has the right number of fields
 	cerr << "Wrong number of entries ("<< geneticData_[i].size() <<")  in line "<<i+1<<" of genotypesfile" << endl;
@@ -509,6 +534,19 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
   options->setRegType(RegType);
 }
 
+void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
+  if(coxOutcomeVarMatrix_.nCols() !=3){
+    Log << "ERROR: 'coxoutcomevarfile should have 3 columns\n";
+    exit(1);
+  }
+  for(unsigned i = 0; i < coxOutcomeVarMatrix_.nRows(); ++i)
+    if(coxOutcomeVarMatrix_.get(i, 0) >= coxOutcomeVarMatrix_.get(i, 1)){
+      Log << "Error in coxoutcomevarfile: finish times must be later than start times\n";
+      exit(1);
+    }
+
+}
+
 void InputData::CheckCovariatesFile(LogWriter &Log)const{
   if( NumIndividuals != (int)covariatesMatrix_.nRows() - 1 ){
     Log << "ERROR: Genotypes file has " << NumIndividuals << " observations and Covariates file has "
@@ -545,29 +583,48 @@ vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, in
   vector<unsigned short> g;
   bool isXlocus = false;
   if(locusData_[0].size()==4){
-    string s1("X"), s2("x");
-    string chrmlabel = StringConvertor::dequote(locusData_[locus+1][3]);
+    const string s1("X"), s2("x");
+    const string chrmlabel = StringConvertor::dequote(locusData_[locus+1][3]);
     isXlocus = ( (chrmlabel == s1) || (chrmlabel == s2) );
   }
   int col = 1 + SexColumn + locus;
   if (IsPedFile)col = 1 + SexColumn + 2*locus;
+  //strip quotes from string
+  const std::string str = StringConvertor::dequote(geneticData_[individual][col]);
+  //look for , or / 
+  string::size_type i = str.find_first_of(",/");
+  //extract first allele as portion of string up to first ',' or '/'
+  //NOTE: if string consists only of ',' or '/' or anything non-numeric, genotype is taken as missing
+  g.push_back(atoi(str.substr(0,i).c_str()));
 
-  if(isXlocus && !isFemale(individual)){//if X-chrm locus and male individual, expect haploid genotype
-    const std::string tmp = StringConvertor::dequote(geneticData_[individual][col]);
-    //TODO:check male X genotypes are all haploid 
-    string::size_type i = tmp.find_first_of(",/");//look for , or / 
-    g.push_back(atoi(tmp.substr(0,i).c_str()));//take genotype as portion of string up to , or /
-
+  if(!isXlocus || isFemale(individual)){//expect diploid genotype
+    if( i != string::npos){// , or / found
+      //extract second allele as portion of string after first ',' or '/'
+      // NOTE: if nothing after, allele is taken as 0
+      g.push_back(atoi(str.substr(i+1,str.length()-i).c_str()));
+    }
+    else{
+      //if empty string, interpret as missing genotype for backward compatibility
+      if(str.length()==0)g.push_back(0);
+      else {//string with only one int
+	cerr << "Error in genotypesfile: expected diploid genotype for Individual " << individual << " at locus " << locus 
+	     << " but found haploid genotype"<< endl;
+	exit(1);
+      }
+    }
   }
-  else{
-    g.resize(2);
-    StringConvertor::toIntPair(&g, geneticData_[individual][col]);
-  }
+//   else{
+//   //check male X genotypes are haploid
+//     if(i != string::npos){//found another allele
+// 	cerr << "Error in genotypesfile: expected haploid genotype for Individual " << individual << " at locus " << locus 
+// 	     << " but found diploid genotype"<< endl;
+//     }
+//   }   
   return g;  
 }
 
 void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
-  unsigned int lociI = 0;//simple locus counter
+  unsigned int simplelocus = 0;//simple locus counter
   unsigned complocus = 0;
   for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
     for(unsigned int j = 0; j < Loci.GetSizeOfChromosome(c); ++j){
@@ -586,17 +643,17 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
 #else
       const int numalleles = Loci(complocus)->GetNumberOfAllelesOfLocus(locus);
 #endif
-      vector<unsigned short> g = GetGenotype(lociI, i, SexColumn);
+      vector<unsigned short> g = GetGenotype(simplelocus, i, SexColumn);
       if(g.size()==2)
 	if( (g[0] > numalleles) || (g[1] > numalleles))
-	  throwGenotypeError(i, locus, Loci(complocus)->GetLabel(0), 
+	  throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
 			     g[0], g[1], numalleles );
 	else if (g.size()==1)
 	  if( (g[0] > numalleles))
-	    throwGenotypeError(i, locus, Loci(complocus)->GetLabel(0), 
+	    throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
 			       g[0], 0, numalleles );
 
-      lociI++;
+      simplelocus++;
       G.push_back(g);
       count += g[0];
       }
@@ -611,7 +668,7 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
 
 void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const{
   cerr << "Error in genotypes file:\n"
-       << "Individual " << ind << " at locus " << label << locus
+       << "Individual " << ind << " at locus " << locus <<" (" << label << ")"
        << " has genotype " << g0 << ", " << g1 << " \n"
        << "Number of allelic states at locus = " << numalleles << "\n";
   if(ind == NumIndividuals)
@@ -696,6 +753,10 @@ const DataMatrix& InputData::getOutcomeVarMatrix() const
 {
     return outcomeVarMatrix_;
 }
+const DataMatrix& InputData::getCoxOutcomeVarMatrix() const
+{
+    return coxOutcomeVarMatrix_;
+}
 
 const DataMatrix& InputData::getReportedAncestryMatrix() const
 {
@@ -729,6 +790,9 @@ void InputData::Delete(){
   for(unsigned i = 0; i < outcomeVarData_.size(); ++i)
     outcomeVarData_[i].clear();
   outcomeVarData_.clear();
+ for(unsigned i = 0; i < coxOutcomeVarData_.size(); ++i)
+    coxOutcomeVarData_[i].clear();
+  coxOutcomeVarData_.clear();
   for(unsigned i = 0; i < alleleFreqData_.size(); ++i)
     alleleFreqData_[i].clear();
   alleleFreqData_.clear();
@@ -749,6 +813,7 @@ void InputData::Delete(){
   locusMatrix_.clear();
   covariatesMatrix_.clear();
   outcomeVarMatrix_.clear();
+  coxOutcomeVarMatrix_.clear();
   //alleleFreqMatrix_.clear();
   //historicalAlleleFreqMatrix_.clear();
   //priorAlleleFreqMatrix_.clear();

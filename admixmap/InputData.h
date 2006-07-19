@@ -63,6 +63,7 @@ public:
    */    
   const DataMatrix& getLocusMatrix() const;
   const DataMatrix& getOutcomeVarMatrix() const;
+  const DataMatrix& getCoxOutcomeVarMatrix() const;
   const DataMatrix& getCovariatesMatrix() const;
   //const DataMatrix& getAlleleFreqMatrix() const;
   //const DataMatrix& getHistoricalAlleleFreqMatrix() const;
@@ -92,6 +93,7 @@ private:
   Matrix_s geneticData_;
   Matrix_s inputData_;
   Matrix_s outcomeVarData_;
+  Matrix_s coxOutcomeVarData_;
   Matrix_s alleleFreqData_;
   Matrix_s historicalAlleleFreqData_;
   Matrix_s priorAlleleFreqData_;
@@ -101,6 +103,7 @@ private:
   DataMatrix locusMatrix_;
   DataMatrix covariatesMatrix_;
   DataMatrix outcomeVarMatrix_;
+  DataMatrix coxOutcomeVarMatrix_;
   DataMatrix alleleFreqMatrix_;
   DataMatrix historicalAlleleFreqMatrix_;
   DataMatrix priorAlleleFreqMatrix_;
@@ -115,6 +118,7 @@ private:
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
   bool IsPedFile;
+  int genotypeSexCol;
 
   void getPopLabels(const Vector_s& data, size_t Populations, std::string **labels);
   void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
@@ -124,11 +128,14 @@ private:
   unsigned determineNumberOfCompositeLoci()const;
   void CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log);
   void CheckOutcomeVarFile(AdmixOptions * const options, LogWriter &Log);
+  void CheckCoxOutcomeVarFile(LogWriter &log)const;
   void CheckCovariatesFile(LogWriter &log)const;
   void CheckRepAncestryFile(int populations, LogWriter &Log)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
   bool determineIfPedFile()const;
+  void findGenotypeSexCol();
   std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
+  void CheckData(AdmixOptions *options, LogWriter &Log, int rank);
 
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.
