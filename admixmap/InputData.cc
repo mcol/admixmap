@@ -210,9 +210,6 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
   if(rank<0 || rank>1)
     {
       IsPedFile = determineIfPedFile();
-      //findGenotypeSexCol();
-      //options->setgenotypesSexColumn(genotypeSexCol);
-      cout << "Sexcol = " << genotypeSexCol << endl;
       CheckGeneticData(options);
     }
 
@@ -282,20 +279,6 @@ bool InputData::determineIfPedFile()const {
   return (isPedFile);
 }
 
-void InputData::findGenotypeSexCol(){
-  const size_t numLoci = locusData_.size() - 1; //number of loci in locus file
-  // Determine if "Sex" column present in genotypes file.
-  if (numLoci == geneticData_[0].size() - 1) {
-    genotypeSexCol = 0;//no sex col
-  } else if (numLoci == geneticData_[0].size() - 2) {
-    genotypeSexCol  = 1;//sex col
-  } else {//too many cols
-    cerr << "Error: " << numLoci << " loci in locus file but " <<  geneticData_[0].size() - 1 << " loci in genotypes file." << endl;
-    exit(2);
-  }
-
-}
-
 ///checks number of loci in genotypes file is the same as in locusfile, 
 ///determines if there is a sex column
 /// and each line of genotypesfile has the same number of cols.
@@ -312,7 +295,6 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
     exit(2);
   }
   options->setgenotypesSexColumn(SexCol);
-  cout << "Sexcol = " << SexCol << endl;
 
   if(options->CheckData()){
     unsigned ExpCols;

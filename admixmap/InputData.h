@@ -118,7 +118,6 @@ private:
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
   bool IsPedFile;
-  int genotypeSexCol;
 
   void getPopLabels(const Vector_s& data, size_t Populations, std::string **labels);
   void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
@@ -133,7 +132,6 @@ private:
   void CheckRepAncestryFile(int populations, LogWriter &Log)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
   bool determineIfPedFile()const;
-  void findGenotypeSexCol();
   std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
   void CheckData(AdmixOptions *options, LogWriter &Log, int rank);
 
