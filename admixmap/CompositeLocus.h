@@ -43,7 +43,7 @@ public:
   void SetHapPairProbs();
   void InitialiseHapPairProbs(const double* const allelefreqs);
   void InitialiseHapPairProbsMAP();
-  void setHapPairProbsMAP();
+  void SetHapPairProbsMAP();
   void setAlleleProbsMAP(const double* const Freqs);
   void AccumulateAlleleProbs();
 
@@ -108,7 +108,7 @@ private:
   void permuteMissingLoci(const std::vector<bool>& isMissing, const int numMissingLoci, const int permMissing, 
 			  const std::vector<int>& HapAlleles,  const std::vector<int>& MissingLoci, 
 			  std::vector<int>& HapAllelesNoMissing) ;
-  void SetHapPairProbs(const double* alleleProbs);
+  void SetHapPairProbs(const double* alleleProbs, double* happairprobs);
 
   // UNIMPLEMENTED
   // to avoid use
@@ -142,7 +142,8 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<ha
   }
 }
 #else
-inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const {
+inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, 
+					     bool chibindicator) const {
   int Ksq = Populations*Populations;
   double *q = Probs;
   const double *p;
