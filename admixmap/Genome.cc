@@ -75,14 +75,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   X_data = false;
 
   //determine if distances are given in Morgans or centimorgans
-  bool distancesincM  = false;
-  if(rank !=1 ){
-    string distance_header = data_->getLocusData()[0][2];
-    if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
-       || distance_header.find("cM")!=string::npos) 
-      distancesincM = true;
-  }
-  
+  bool distancesincM = data_->distancesAreInCentiMorgans();  
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     LocusTable[i].resize(2);
     

@@ -313,10 +313,21 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
   }
 }
 
+bool InputData::distancesAreInCentiMorgans()const{
+  bool distancesincM  = false;
+  string distance_header = locusData_[0][2];
+  if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
+       || distance_header.find("cM")!=string::npos) 
+    distancesincM = true;
+  return distancesincM;
+}
+
 void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
   // if check = true, Checks that loci labels in locusfile are unique and that they match the names in the genotypes file.
   //also extracts locus labels
   bool flag = false;
+
+  if(distancesAreInCentiMorgans())threshold *= 100.0;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
     if(check){
       //check distances are not negative

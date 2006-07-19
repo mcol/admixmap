@@ -85,7 +85,7 @@ public:
   int getNumberOfIndividuals()const;
   int getNumberOfSimpleLoci()const;
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};
-
+  bool distancesAreInCentiMorgans()const;
   void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
 
 private:    
