@@ -317,6 +317,9 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindica
     if( j!=(int)X_posn || SexIsFemale) { //diploid genotype
       (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
 				       chibindicator);
+      //       if(chibindicator) {
+      // 	for( int k = 0; k < Populations; ++k ) cout << GenotypeProbs[j][jj*Populations*Populations + k] << " ";
+      //       }
     } else {//haploid genotype
       (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j]+jj*Populations, PossibleHapPairs[locus], 
 					      chibindicator);
@@ -327,6 +330,7 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindica
     else //haploid genotype
       for( int k = 0; k < Populations; ++k ) GenotypeProbs[j][jj*Populations + k] = 1.0;
   }
+
 }
 
 void Individual::AnnealGenotypeProbs(int j, const double coolness) {
@@ -575,16 +579,6 @@ double Individual::getLogLikelihood(const AdmixOptions* const options, const dou
       LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !Loci->isXChromosome(j) || SexIsFemale );
     }
   }
-  //   cout << "From getLogLikelihood: Populations " << Populations << endl;
-  //   for(int g = 0; g < NumIndGametes; ++g) {
-  //       cout << "rho " << rho[g] << " theta";
-  //       for(int k=0; k < Populations; ++k) {
-  // 	cout << theta[g*Populations+k] << " ";
-  //       }
-  //   }
-  //   cout << endl;
-  //   cout << "LogL " << LogLikelihood << endl;
-  
   return LogLikelihood; // if HMM update not required, can just use stored log-likelihood  
 }
 
@@ -639,7 +633,7 @@ double Individual::getLogLikelihoodOnePop(){ //convenient for a single populatio
   return LogLikelihood;
 }
 
-//************** Updating (Public) ***************************************************************************************
+//************** Updating (Public) **********************************************************
 void Individual::ResetSufficientStats(){
   if(Populations>1) {
     // ** reset SumLocusAncestry to zero
@@ -746,87 +740,98 @@ void Individual::SampleJumpIndicators(bool sampleArrivals){
 // uses current values of allele freqs 
 void Individual::FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 				    double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile) {
-  if(A->IsRandom() ) {  
+  if( A->IsRandom() ) {  
     // set genotype probs using HapPairProbsMAP and AlleleProbsMAP 
     for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j){
       unsigned locus = Loci->getChromosome(j)->GetLocus(0);
       for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
   	SetGenotypeProbs(j, jj, locus, true); // setting last arg to true forces use of ...ProbsMAP   
+	++locus;
       }
-      ++locus;
     }
-  }    
-
+    //     cout << "printing genotypeprobs" << endl;
+    //     for(unsigned j = 0; j < 5; ++j) { //Loci->GetNumberOfChromosomes(); ++j){
+    //       for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ) {
+    //   	for(int k = 0; k < Populations*Populations; ++k) {// loop over ancestry states
+    // 	  cout << GenotypeProbs[j][jj*Populations*Populations+k] << " ";
+    // 	}
+    // 	cout << endl;
+    
+    //       }
+    //     } 
+  }   
+  
   unsigned numEMiters = 10;
   unsigned NumEstepiters = 10; 
   double LogUnnormalizedPosterior = - numeric_limits<double>::max( );
   bool isadmixed = options->isAdmixed(0);
-  if(NumIndGametes ==2) isadmixed = isadmixed | options->isAdmixed(1);//indicates if individual is admixed
-  
+  if(NumIndGametes ==2) isadmixed = isadmixed | options->isAdmixed(1);//indicates if either gamete is admixed
   //use current parameter values as initial values
-  double *SumLocusAncestryHat = new double[2*Populations];
-  for(unsigned EMiter = 0; EMiter < numEMiters; ++EMiter) {
-    double SumNumArrivalsHat[2] = {0,0}; 
-    fill(SumLocusAncestryHat, SumLocusAncestryHat + 2*Populations, 0.0);
-    
-    //E-step: fix theta and rho, sample Locus Ancestry and Number of Arrivals
-    NumEstepiters *= 2;
-    for(unsigned Estepiters = 0; Estepiters < (unsigned)NumEstepiters ; ++Estepiters) {
-      if(Populations >1){
-	ResetSufficientStats();
-	SampleLocusAncestry(options);
-	SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
-      }
-      vector<unsigned> SumN = getSumNumArrivals();
-      vector<unsigned> SumN_X = getSumNumArrivals_X(); // element 0 should be zero in a male
-      // accumulate sums
-      SumNumArrivalsHat[0] += SumN[0] + SumN_X[0];
-      SumNumArrivalsHat[1] += SumN[1] + SumN_X[1];
-      for(int i = 0; i < 2*Populations; ++i) {
-	SumLocusAncestryHat[i] += SumLocusAncestry[i];
-      }
-    }
-    // set SumLocusAncestry and SumNumArrivals to their averages over current E step
-    for(int i = 0; i < 2*Populations; ++i) {
-      SumLocusAncestryHat[i] /= (double)NumEstepiters; 
-    }
-    if(options->getDisplayLevel() >2)
-      cout << "E step\t";
-    //     for(unsigned int g = 0; g < NumIndGametes; ++g) {
-    //       for(int k = 0; k < Populations; ++k) {
-    // 	cout << SumLocusAncestryHat[g*Populations + k] << "\t";
-    //       }
-    //     }
-    // cout << "\t" << SumNumArrivals[0] << "\t" << SumNumArrivals[1] << "\t";
-    SumNumArrivalsHat[0] /= (double)NumEstepiters;   
-    SumNumArrivalsHat[1] /= (double)NumEstepiters; 
-    
-    //M-step: set mode for log rho and for theta in softmax basis - no minus ones in exponents
-    // use vector rhohat and array ThetaProposal to store updates before accept/reject 
-    unsigned gg = 0; // indexes which admixture prior (alpha) to use: use alpha[1] if second gamete and no indadmixhiermodel
-    for(unsigned g = 0; g < NumIndGametes; ++g) {
-      if( options->isAdmixed(g) ) {
-	if(!options->isGlobalRho()) {
-	  rhohat[g] = ( rhoalpha + SumNumArrivalsHat[g] ) / ( rhobeta + EffectiveL[g] );
-	}
-	if(g==1 && !options->getIndAdmixHierIndicator()) {
-	  gg = 1;
-	}
-	double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
-	  + accumulate(SumLocusAncestryHat+g*Populations, 
-		       SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>());
-	for(int k = 0; k < Populations; ++k) {
-	  if(alpha[gg][k]>0.0) ThetaProposal[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
-	}
-      } else {//unadmixed gamete - set ThetaProposal to (fixed) values in thetahat, which will be something like 1,0,0 
-	copy(thetahat+g*Populations, thetahat+(g+1)*Populations, ThetaProposal+g*Populations);
-      } 
-    } // end loop over gametes
 
-    // evaluate log unnormalized posterior density
+  if(isadmixed) {
+    double *SumLocusAncestryHat = new double[2*Populations];
+    for(unsigned EMiter = 0; EMiter < numEMiters; ++EMiter) { // begin iteration over E and M steps
+      double SumNumArrivalsHat[2] = {0,0}; 
+      fill(SumLocusAncestryHat, SumLocusAncestryHat + 2*Populations, 0.0);
+      
+      //E-step: fix theta and rho, sample Locus Ancestry and Number of Arrivals
+      NumEstepiters *= 2;
+      for(unsigned Estepiters = 0; Estepiters < (unsigned)NumEstepiters ; ++Estepiters) {
+	if(Populations >1){
+	  ResetSufficientStats();
+	  SampleLocusAncestry(options);
+	  SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+	}
+	vector<unsigned> SumN = getSumNumArrivals();
+	vector<unsigned> SumN_X = getSumNumArrivals_X(); // element 0 should be zero in a male
+	// accumulate sums
+	SumNumArrivalsHat[0] += SumN[0] + SumN_X[0];
+	SumNumArrivalsHat[1] += SumN[1] + SumN_X[1];
+	for(int i = 0; i < 2*Populations; ++i) {
+	  SumLocusAncestryHat[i] += SumLocusAncestry[i];
+	}
+      }
+      // set SumLocusAncestry and SumNumArrivals to their averages over current E step
+      for(int i = 0; i < 2*Populations; ++i) {
+	SumLocusAncestryHat[i] /= (double)NumEstepiters; 
+      }
+      if(options->getDisplayLevel() >2)
+	cout << "E step\t";
+      //     for(unsigned int g = 0; g < NumIndGametes; ++g) {
+      //       for(int k = 0; k < Populations; ++k) {
+      // 	cout << SumLocusAncestryHat[g*Populations + k] << "\t";
+      //       }
+      //     }
+      // cout << "\t" << SumNumArrivals[0] << "\t" << SumNumArrivals[1] << "\t";
+      SumNumArrivalsHat[0] /= (double)NumEstepiters;   
+      SumNumArrivalsHat[1] /= (double)NumEstepiters; 
+      
+      //M-step: set mode for log rho and for theta in softmax basis - no minus ones in exponents
+      // use vector rhohat and array ThetaProposal to store updates before accept/reject 
+      unsigned gg = 0; // indexes which admixture prior (alpha) to use: use alpha[1] if second gamete and no indadmixhiermodel
+      for(unsigned g = 0; g < NumIndGametes; ++g) {
+	if( options->isAdmixed(g) ) {
+	  if(!options->isGlobalRho()) {
+	    rhohat[g] = ( rhoalpha + SumNumArrivalsHat[g] ) / ( rhobeta + EffectiveL[g] );
+	  }
+	  if(g==1 && !options->getIndAdmixHierIndicator()) {
+	    gg = 1;
+	  }
+	  double sum = accumulate(alpha[gg].begin(), alpha[gg].end(),0.0, std::plus<double>())
+	    + accumulate(SumLocusAncestryHat+g*Populations, 
+			 SumLocusAncestryHat+(g+1)*Populations, 0.0, std::plus<double>());
+	  for(int k = 0; k < Populations; ++k) {
+	    if(alpha[gg][k]>0.0) ThetaProposal[g*Populations+k] = (alpha[gg][k]+SumLocusAncestryHat[g*Populations+k]) / sum;
+	  }
+	} else {//unadmixed gamete - set ThetaProposal to (fixed) values in thetahat, which will be something like 1,0,0 
+	  copy(thetahat+g*Populations, thetahat+(g+1)*Populations, ThetaProposal+g*Populations);
+	} 
+      } // end loop over gametes
+      
+      // evaluate log unnormalized posterior density
     double logpriorhat =  LogPriorTheta_Softmax(ThetaProposal, options, alpha) + 
       LogPriorRho_LogBasis(rhohat, options, rhoalpha, rhobeta);
-    loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, true);
+    loglikhat = getLogLikelihood(options, ThetaProposal, rhohat, false);  
     double LogUnnormalizedPosteriorHat  = logpriorhat + loglikhat;
 
     if(LogUnnormalizedPosteriorHat > LogUnnormalizedPosterior) { //accept update only if density increases 
@@ -839,8 +844,9 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
     if(options->getDisplayLevel() >2)
       cout << "LogPrior " << logpriorhat << "\tLogLikelihood " << loglikhat << "\tLogUnNormalizedPosterior "
 	   << LogUnnormalizedPosterior << endl << flush;
-  } //end EM outer loop
-  delete[] SumLocusAncestryHat;
+    } //end EM outer loop
+    delete[] SumLocusAncestryHat;
+  } // end block conditional on isadmixed
    
   //print values to file
   modefile<<setiosflags(ios::fixed)<<setprecision(3);
@@ -878,7 +884,7 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
     copy(_rho.begin(), _rho.end(), rhohat.begin());
   }
   // compute log likelihood at posterior modes
-  loglikhat = getLogLikelihood(options, thetahat, rhohat, true);
+  loglikhat = getLogLikelihood(options, thetahat, rhohat, true); //this value will be used in chib numerator
 }
 
 
@@ -1488,11 +1494,9 @@ void Individual::setChibNumerator(const AdmixOptions* const options, const vecto
     double LogPriorFreqs = 0.0;
     for( unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
       for( int k = 0; k < Populations; k++ ){
-	vector<double> args = A->GetPriorAlleleFreqs(j,k);
 	LogPriorFreqs += getDirichletLogDensity( A->GetPriorAlleleFreqs(j, k), A->getAlleleFreqsMAP(j,k) );
       }
     }
-    cout << "LogPriorFreqs " << LogPriorFreqs;
     LogPrior += LogPriorFreqs;
   }
   MargLikelihood->setLogPrior(LogPrior);
@@ -1519,8 +1523,10 @@ void Individual::updateChib(const AdmixOptions* const options, const vector<vect
       for( int k = 0; k < Populations; k++ ){
 	vector<double> args = A->GetPriorAlleleFreqs(j,k);
 	vector<int> counts = A->GetAlleleCounts(j,k);
+	//print_vector(args);
 	transform(counts.begin(), counts.end(), args.begin(), args.begin(), plus<double>());//PriorAlleleFreqs + AlleleCounts
-	LogPosteriorFreqs += getDirichletLogDensity( args, A->getAlleleFreqsMAP(j, k));//LogPosterior for Allele Freqs
+	//print_vector(args);
+	LogPosteriorFreqs += getDirichletLogDensity( args, A->getAlleleFreqsMAP(j, k) );//LogPosterior for Allele Freqs
       }
     }
     LogPosterior += LogPosteriorFreqs;

@@ -66,7 +66,9 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
 }
 
 AlleleFreqs::~AlleleFreqs(){
-  if(AlleleFreqsMAP.array != Freqs.array)AlleleFreqsMAP.dealloc(NumberOfCompositeLoci);
+  if(AlleleFreqsMAP.array != Freqs.array) {
+    AlleleFreqsMAP.dealloc(NumberOfCompositeLoci);
+  }
   Freqs.dealloc(NumberOfCompositeLoci);
   AlleleCounts.dealloc(NumberOfCompositeLoci);
   hetCounts.dealloc(NumberOfCompositeLoci);
@@ -157,16 +159,19 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	  HapMixPriorParamSampler[i].SetParameters(0.1, 0.0, 100.0, 0.44);
 	}
 	else
-	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), PriorAlleleFreqs[i], false));
+	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), 
+						      PriorAlleleFreqs[i], false));
       }
     }
     //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
-    //initialise AlleleProbsMAP to point to AlleleProbs
-    //allocate HapPairProbs and set using AlleleProbs
+    //initialise AlleleProbsMAP pointer to 0
+    //allocate HapPairProbs and calculate them using AlleleProbs
     (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
-    //If using Chib algorithm, allocate HapPAirProbsMAP and copy values in HapPairProbs
-    if(options->getChibIndicator()){
+    //If using Chib algorithm, allocate HapPairProbsMAP and copy values in HapPairProbs
+    if(options->getChibIndicator()) {
+      // allocate AlleleFreqsMAP and set AlleleProbsMAP in Composite Locus to point to it
       setAlleleFreqsMAP();
+      //allocate HapPairProbsMAP
       (*Loci)(i)->InitialiseHapPairProbsMAP();
     }
   }//end comp locus loop
@@ -307,11 +312,11 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 
 }
 
+
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_)
 {
   int newrow;
   int row = 0;
-
   const Matrix_s* temporary = 0;
   //set model indicators
   RandomAlleleFreqs = !options->getFixedAlleleFreqs();
@@ -377,6 +382,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     else
       PriorAlleleFreqs = new double*[NumberOfCompositeLoci];//2D array    "      "     otherwise
   }
+
   //set static members of CompositeLocus
   CompositeLocus::SetRandomAlleleFreqs(RandomAlleleFreqs);
   CompositeLocus::SetNumberOfPopulations(Populations);
@@ -385,7 +391,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
 #endif
 
-    if(file){//read allele freqs from file
+    if(file){//read allele freqs from file, then call this method again with 
       newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
       LoadAlleleFreqs( *temporary, i, row+1, oldformat);//row+1 is the first row for this locus (+1 for the header).
       row = newrow;
@@ -1061,8 +1067,8 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
 }
 
 /** does three things: 
- 1. allocates array for AlleleFreqsMAP if not already done, 
- 2. copies current values of allele freqs, 
+ 1. allocates AlleleFreqsMAP, 
+ 2. copies current values from Freqs to AlleleFreqsMAP 
  3. sets AlleleProbsMAP in CompositeLocus objects to point to AlleleFreqsMAP
 
  Used in Chib algorithm which just requires a value near the posterior mode. 
@@ -1070,7 +1076,7 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
 void AlleleFreqs::setAlleleFreqsMAP()
 {
   bool allocate = false;
-  if(!AlleleFreqsMAP.array || AlleleFreqsMAP.array == Freqs.array ){
+  if(!AlleleFreqsMAP.array || (AlleleFreqsMAP.array == Freqs.array) ){
     allocate = true;
 #ifdef ARRAY2D
     AlleleFreqsMAP.array = new double*[NumberOfCompositeLoci];
@@ -1078,13 +1084,18 @@ void AlleleFreqs::setAlleleFreqsMAP()
     AlleleFreqsMAP.array = new double[NumberOfCompositeLoci *Populations];
 #endif
   }
-  for(int i = 0; i < NumberOfCompositeLoci;++i){
+  for(int i = 0; i < NumberOfCompositeLoci;++i) {
 #ifdef ARRAY2D
-    if(allocate)
-      AlleleFreqsMAP.array[i] = new double[(Loci->GetNumberOfStates(i)-1)*Populations];
+    if(allocate) {
+      AlleleFreqsMAP.array[i] = new double[Loci->GetNumberOfStates(i) * Populations];
+    }
 #endif
-    for(int j = 0; j < Loci->GetNumberOfStates(i) - 1; ++j)for(int k = 0; k < Populations; ++k)
-      AlleleFreqsMAP[i][j*Populations+k] = Freqs[i][j + k*Loci->GetNumberOfStates(i)];
+    int numstates = Loci->GetNumberOfStates(i);
+    for(int k = 0; k < Populations; ++k) {
+      for(int j = 0; j < numstates; ++j) {
+	AlleleFreqsMAP[i][k*numstates + j] = Freqs[i][k*numstates + j]; //*Loci->GetNumberOfStates(i)];
+      } 
+    }
     (*Loci)(i)->setAlleleProbsMAP(AlleleFreqsMAP[i]);
   }
 }
@@ -1130,14 +1141,16 @@ std::vector<int> AlleleFreqs::GetAlleleCounts( int locus, int population )const
     counts[s] = AlleleCounts[locus][s*Populations + population];
   return counts;
 }
+
 std::vector<double> AlleleFreqs::getAlleleFreqsMAP( int locus, int population )const
 {
-  std::vector<double> A(Loci->GetNumberOfStates(locus)-1);
-  for(int i = 0; i < Loci->GetNumberOfStates(locus)-1; ++i)
-    A[i] = AlleleFreqsMAP[locus][i*Populations+population];
-
+  int numstates = Loci->GetNumberOfStates(locus);
+  std::vector<double> A( numstates );
+  for(int i = 0; i < numstates; ++i)
+    A[i] = AlleleFreqsMAP[locus][population*numstates + i];
   return A;
 }
+
 /**
  * Gets the frequencies of each haplotype in a composite locus.
  *

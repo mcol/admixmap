@@ -208,12 +208,11 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
 
 void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
   AlleleProbs = AFreqs;//set AlleleProbs to point to allele freqs in AlleleFreqs
-  AlleleProbsMAP = AFreqs;
+  AlleleProbsMAP = 0; //AFreqs;
   SumAlleleProbs = alloc2D_d(Populations, NumberOfStates);//allocates and fills with zeros
 #ifndef PARALLEL
   //set size of array of haplotype pair probs
   HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  HapPairProbsMAP = HapPairProbs;
   if(!RandomAlleleFreqs)AccumulateAlleleProbs();//if allelefreqs are fixed, SumAlleleProbs are initialised to AlleleProbs(==Allelefreqs)
   SetHapPairProbs();
 #endif
@@ -222,11 +221,18 @@ void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
 void CompositeLocus::InitialiseHapPairProbsMAP(){
 #ifndef PARALLEL
   HapPairProbsMAP = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  //Initialise HapPairProbsMAP to values in HapPairProbs
-  for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
-    HapPairProbsMAP[h0] = HapPairProbs[h0];
-  } 
+  //   //Initialise HapPairProbsMAP to values in HapPairProbs
+  //   for(int h0 = 0; h0 < NumberOfStates * NumberOfStates * Populations * Populations; ++h0){
+  //     HapPairProbsMAP[h0] = HapPairProbs[h0];
+  SetHapPairProbsMAP();
 #endif
+}
+
+/**
+   Sets AlleleProbsMAP to point to FreqsMAP in AlleleFreqs . 
+*/
+void CompositeLocus::setAlleleProbsMAP(const double* const FreqsMAP) {
+  AlleleProbsMAP = FreqsMAP;
 }
 
 /**
@@ -236,43 +242,27 @@ void CompositeLocus::InitialiseHapPairProbsMAP(){
 */
 #ifndef PARALLEL
 void CompositeLocus::SetHapPairProbs(){
-  SetHapPairProbs(AlleleProbs);
+  SetHapPairProbs(AlleleProbs, HapPairProbs);
 }
 
-/**
-   Sets AlleleProbsMAP to point to FreqsMAP in AlleleFreqs then sets HapPairProbsMAP. 
-   At Time of calling, FreqsMAP are the same as Freqs
-   i.e. AlleleProbsMAP are set to current values of AlleleProbs and setting HapPAirProbsMAP to current values of HapPairProbs
-   is equivalent to setting them using AlleleProbsMAP.
-*/
-void CompositeLocus::setAlleleProbsMAP(const double* const FreqsMAP){
-  AlleleProbsMAP = FreqsMAP;
-  //setHapPairProbsMAP();
-}
 
 /**
-   SetsHapPairProbsMAP to current value of HapPairProbs. 
-   HapPairProbs have already been set at current values of alleleprobs
-   therefore this is equivalent to but more efficient then setting from alleleprobsMAP, 
-   which are at this point the same as alleleprobs.
+   SetsHapPairProbsMAP using AlleleProbsMAP
    Not done in parallel version as HapPairProbs and HapPairProbsMAP are not stored.
 */
-void CompositeLocus::setHapPairProbsMAP()
-{
+void CompositeLocus::SetHapPairProbsMAP() {
 #ifndef PARALLEL
-  int size =  NumberOfStates * NumberOfStates * Populations * Populations; 	 
-  for(int h0 = 0; h0 < size; ++h0) {	 
-     HapPairProbsMAP[h0] = HapPairProbs[h0];
-  } 	 
- #endif
+  SetHapPairProbs( AlleleProbsMAP, HapPairProbsMAP);
+#endif
 }
 
-void CompositeLocus::SetHapPairProbs(const double* alleleProbs){
+/// private method
+void CompositeLocus::SetHapPairProbs(const double* alleleProbs, double* hapPairProbs) {
   for(int h0 = 0; h0 < NumberOfStates; ++h0){
     for(int h1 = 0; h1 < NumberOfStates; ++h1){
       for(int k0 = 0; k0 < Populations; ++k0){
 	for(int k1 = 0; k1 < Populations; ++k1)
-	  HapPairProbs[h0 * NumberOfStates * Populations * Populations +
+	  hapPairProbs[h0 * NumberOfStates * Populations * Populations +
 		       h1 * Populations * Populations +
 		       k0 * Populations + k1] = alleleProbs[k0*NumberOfStates + h0] * alleleProbs[k1*NumberOfStates + h1];
       }
@@ -300,7 +290,7 @@ void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
     }
 
 #ifndef PARALLEL
-    SetHapPairProbs(mu);//sets HapPairProbs using posterior means of Haplotype Probs
+    SetHapPairProbs(mu, HapPairProbs);//sets HapPairProbs using posterior means of Haplotype Probs
     delete[] mu;
 #endif
   }
@@ -323,11 +313,8 @@ void CompositeLocus::AccumulateAlleleProbs(){
 }
 
 /**
- * Given the ancestry of mother and father, and the haplotype pairs compatible with the genotype, returns one of
- * these haplotype pairs.
- * 
+ * samples hap pair given locus ancstry
  * HapPairs - a vector of possible haplotype pairs (coded) compatible with genotype
- *
  * ancestry - a two-element vector of parental ancestry (e.g. 1,0 
  *   might represent european paternal and african maternal).
  *
@@ -783,21 +770,6 @@ int CompositeLocus::GetMergedHaplotype( int i )const
    return( MergeHaplotypes[i] );
 }
 
-// apparently calculates contribution of allele freqs to marginal likelihood of model
-// by subtracting log prior density from log posterior
-// in current version, this function is not called anywhere
-// double GetMarginalLikelihood( const std::vector<double> PriorAlleleFreqs, const std::vector<int> AlleleCounts )
-// {
-//   double sumPrior = accumulate(PriorAlleleFreqs.begin(), PriorAlleleFreqs.end(), 0.0, std::plus<double>());
-//   double sumCounts = accumulate(AlleleCounts.begin(), AlleleCounts.end(), 0.0, std::plus<double>());
-
-//    double f = gsl_sf_lngamma( sumPrior ) -
-//       gsl_sf_lngamma( sumPrior + sumCounts );
-//    for( unsigned i = 0; i < PriorAlleleFreqs.size(); i++ )
-//       f += gsl_sf_lngamma( PriorAlleleFreqs[i] + AlleleCounts[i] )
-//          - gsl_sf_lngamma( PriorAlleleFreqs[i] );
-//    return(f);
-// }
 
 
 
