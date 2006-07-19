@@ -172,7 +172,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
       if(rank!=1){
 	readFile(options->getCovariatesFilename(), inputData_, Log);         //covariates file
 	readFile(options->getOutcomeVarFilename(), outcomeVarData_, Log);       //outcomevar file
-	readFile(options->getCoxOutcomeVarFilename(), outcomeVarData_, Log);       //coxoutcomevar file
+	//readFile(options->getCoxOutcomeVarFilename(), outcomeVarData_, Log);       //coxoutcomevar file
       }
       if(rank==-1 || rank == 1){//only one process reads freq files
 	readFile(options->getAlleleFreqFilename(), alleleFreqData_, Log);
@@ -187,7 +187,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
       convertMatrix(locusData_, locusMatrix_, 1, 1,2);
       convertMatrix(outcomeVarData_, outcomeVarMatrix_, 0, 0,0);
       convertMatrix(inputData_,  covariatesMatrix_, 0, 0,0);
-      convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 0, 0,0);
+      //convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 0, 0,0);
       //convertMatrix(alleleFreqData_, alleleFreqMatrix_, 0, 0);
       //convertMatrix(historicalAlleleFreqData_, historicalAlleleFreqMatrix_, 0, 0);
       //convertMatrix(priorAlleleFreqData_, priorAlleleFreqMatrix_, 0, 0);
@@ -240,8 +240,8 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
   if(rank!=1 ){
     if ( strlen( options->getOutcomeVarFilename() ) != 0 )
       CheckOutcomeVarFile( options, Log);
-    if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 )
-      CheckCoxOutcomeVarFile( Log);
+    //if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 )
+    //CheckCoxOutcomeVarFile( Log);
     if ( strlen( options->getCovariatesFilename() ) != 0 )
       CheckCovariatesFile(Log);//detects regression model
     if ( strlen( options->getReportedAncestryFilename() ) != 0 )
@@ -514,19 +514,6 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
     delete[] OutcomeVarLabels;
   }
   options->setRegType(RegType);
-}
-
-void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
-  if(coxOutcomeVarMatrix_.nCols() !=3){
-    Log << "ERROR: 'coxoutcomevarfile should have 3 columns\n";
-    exit(1);
-  }
-  for(unsigned i = 0; i < coxOutcomeVarMatrix_.nRows(); ++i)
-    if(coxOutcomeVarMatrix_.get(i, 0) >= coxOutcomeVarMatrix_.get(i, 1)){
-      Log << "Error in coxoutcomevarfile: finish times must be later than start times\n";
-      exit(1);
-    }
-
 }
 
 void InputData::CheckCovariatesFile(LogWriter &Log)const{
