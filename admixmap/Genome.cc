@@ -75,12 +75,12 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   X_data = false;
 
   //determine if distances are given in Morgans or centimorgans
-  string unit = "Morgans";
+  bool distancesincM  = false;
   if(rank !=1 ){
     string distance_header = data_->getLocusData()[0][2];
     if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
        || distance_header.find("cM")!=string::npos) 
-      unit = "centimorgans";
+      distancesincM = true;
   }
   
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -93,7 +93,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
 
     if(rank!=1){
       Distances[ i ] = locifileData.get( row, 1 );
-      if(unit == "centimorgans")Distances[i] /= 100.0;//convert to Morgans
+      if(distancesincM)Distances[i] /= 100.0;//convert to Morgans
       //      SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
     }
 
@@ -141,7 +141,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   
 
   if(rank !=1 ){
-    PrintSizes(Log, unit);//prints length of genome, num loci, num chromosomes
+    PrintSizes(Log, distancesincM);//prints length of genome, num loci, num chromosomes
   }
 }
 
@@ -222,33 +222,38 @@ CompositeLocus* Genome::operator() ( int ElementNumber ) const
 
 /// Writes numbers of loci and chromosomes and length of genome to Log and screen.
 /// unit is the unit of measurement of the distances in the locusfile (Morgans/centiMorgans) 
-void Genome::PrintSizes(LogWriter &Log, const string unit)const{
+void Genome::PrintSizes(LogWriter &Log, bool distancesincM)const{
 #ifdef PARALLEL
-///1st worker tells master length of autosomes and xchrm
-///(this is determined during creation of chromosomes, which master doesn't do)
-///only master is allowed to write to logfile
-    const int rank = MPI::COMM_WORLD.Get_rank();
-    if(rank == 2) {
-	MPI::COMM_WORLD.Send(&LengthOfGenome, 1, MPI::DOUBLE, 0, 0);
-	MPI::COMM_WORLD.Send(&LengthOfXchrm, 1, MPI::DOUBLE, 0, 1);
-    }
-    if(rank==0){
-	MPI::Status status;
-	MPI::COMM_WORLD.Recv((double*)&LengthOfGenome, 1, MPI::DOUBLE, 2, 0, status);
-	MPI::COMM_WORLD.Recv((double*)&LengthOfXchrm, 1, MPI::DOUBLE, 2, 1, status);
-    }
+  ///1st worker tells master length of autosomes and xchrm
+  ///(this is determined during creation of chromosomes, which master doesn't do)
+  ///only master is allowed to write to logfile
+  const int rank = MPI::COMM_WORLD.Get_rank();
+  if(rank == 2) {
+    MPI::COMM_WORLD.Send(&LengthOfGenome, 1, MPI::DOUBLE, 0, 0);
+    MPI::COMM_WORLD.Send(&LengthOfXchrm, 1, MPI::DOUBLE, 0, 1);
+  }
+  if(rank==0){
+    MPI::Status status;
+    MPI::COMM_WORLD.Recv((double*)&LengthOfGenome, 1, MPI::DOUBLE, 2, 0, status);
+    MPI::COMM_WORLD.Recv((double*)&LengthOfXchrm, 1, MPI::DOUBLE, 2, 1, status);
+  }
 #endif
-
+  
   Log.setDisplayMode(Quiet);
   Log << "\n" << TotalLoci << " simple loci\n"
       << NumberOfCompositeLoci << " compound loci; "
       << NumberOfChromosomes << " chromosome"; if(NumberOfChromosomes > 1) Log << "s";
   Log << "\n";
 
-  Log << "Effective length of autosomes under study: " << LengthOfGenome << " " << unit << ".\n";
+  Log << "Effective length of autosomes under study: ";
+  if(distancesincM)Log << LengthOfGenome*100.0 << " centimorgans.\n";
+  else Log << LengthOfGenome << " Morgans.\n";
 
   if( isX_data() ){
-    Log << "Effective length of X chromosome under study: " << LengthOfXchrm << " " << unit << ".\n";
+    Log << "Effective length of X chromosome under study: ";
+    if(distancesincM)Log << LengthOfXchrm*100.0 << " centimorgans.\n";
+    else Log << LengthOfXchrm << " Morgans.\n";
+
    }
   Log << "\n";
 }

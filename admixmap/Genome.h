@@ -68,7 +68,7 @@ public:
   const Chromosome* const* getChromosomes()const;
   Chromosome* getChromosome(unsigned);
 
-  void PrintSizes(LogWriter &Log, const string unit)const;
+  void PrintSizes(LogWriter &Log, bool distancesincM)const;
   void PrintLocusTable(const char* filename, const std::vector<double>& Distances)const;
 
   unsigned GetChrNumOfLocus(unsigned locus); 
