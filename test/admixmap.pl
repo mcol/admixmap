@@ -11,49 +11,59 @@ my $executable = './admixmap';
 # values (right-hand side) are parameter values
 my $arg_hash = 
 {
-#data files
-    genotypesfile                   => 'data/genotypes.txt',
-    locusfile                          => 'data/loci.txt',
-    priorallelefreqfile             => 'data/priorallelefreqs.txt',
-    #covariatesfile                  => 'data/covariates2std.txt',
-    #outcomevarfile               => 'data/outcomevars.txt',
+ ##data files
+ genotypesfile        => 'data/genotypes.txt',
+ locusfile            => 'data/loci.txt',
+ priorallelefreqfile  => 'data/priorallelefreqs.txt',
+ #populations => 1
+ covariatesfile       => 'data/covariates3std.txt',
+ outcomevarfile       => 'data/outcomevars.txt',
 
-#main options
-    displaylevel   => 3, #verbose output
-    #targetindicator => 0, # diabetes in column 1
-    outcomes => 1,
-    samples  => 600,
-    burnin   => 100,
-    every    => 5,
-    numannealedruns  => 0,
-    #indadmixhiermodel => 1,
-    #fixedallelefreqs => 1,
+ ##main options
+ resultsdir       => 'results',
+ displaylevel     => 3, #verbose output
+ targetindicator  => 0, # diabetes in column 0
+ #globalrho => 0,
+ #outcomes => 1,
+ samples  => 25,
+ burnin   => 5,
+ every    => 1,
+ #indadmixhiermodel => 0,
+ randommatingmodel  => 0,
+ #fixedallelefreqs  => 1,
+ numannealedruns    => 0,
+ thermo => 0,
 
-#output files
-    resultsdir               => "resultsNoAnneal",
-    logfile                     => 'logfile.txt',
-    paramfile               => 'paramfile.txt',
-    # regparamfile          => 'regparamfile.txt',
-    indadmixturefile     => 'indadmixture.txt',
-    ergodicaveragefile => 'ergodicaverage.txt',
-    allelefreqoutputfile  => 'allelefreqoutputfile.dat',
+ ##output files
+ logfile               => 'logfile.txt',
+ paramfile             => 'paramfile.txt',
+ regparamfile          => 'regparamfile.txt',
+ indadmixturefile      => 'indadmixture.txt',
+ ergodicaveragefile    => 'ergodicaverage.txt',
+ #allelefreqoutputfile => 'allelefreqoutputfile.txt',
 
-#optional tests
-    #allelicassociationscorefile       => 'allelicassociationscorefile.dat',
-    #ancestryassociationscorefile  => 'ancestryassociationscorefile.dat',
-    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    #haplotypeassociationscorefile => 'hapassocscore.txt',
-    stratificationtestfile                   => 'strat_test.txt'
+ ##optional tests
+ #dispersiontestfile            => 'dispersiontest.txt',
+ #admixturescorefile            => 'admixscorefile.txt',
+ #residualallelicassocscorefile => 'resallelicassocscores.txt',
+ allelicassociationscorefile    => 'allelicassociationscorefile.txt',
+ #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
+ #affectedsonlyscorefile        => 'affectedsonlyscorefile.txt',
+ haplotypeassociationscorefile  => 'hapassocscore.txt',
+ stratificationtestfile         => 'strat_test.txt'
 };
 
+print "script began: ";
+my $starttime = scalar(localtime());
+print $starttime;
+print "\n";
 
-#doAnalysis($executable,$arg_hash);
-
-$arg_hash->{resultsdir} = "resultsAnneal";
-$arg_hash->{numannealedruns} = 100;
-#$arg_hash->{samples}  = 6000;
-#$arg_hash->{burnin}   = 1000;
 doAnalysis($executable,$arg_hash);
+
+print "script ended: ";
+my $endtime = scalar(localtime());
+print $endtime;
+print "\n";
 
 sub getArguments
 {
@@ -65,19 +75,27 @@ sub getArguments
     return $arg;
 }
 
-sub doAnalysis
-{
+sub doAnalysis {
     my ($prog,$args) = @_;
     my $command = $prog.getArguments($args);
-    unless (-e "$args->{resultsdir}"){
-	mkdir("$args->{resultsdir}");
-    }
-    system($command);
 
-# Comment out the next three lines to run admixmap without R script
-    print "Starting R script to process output\n";
-    system("R --quiet --no-save --no-restore <AdmixmapOutput.R >results/Rlog.txt RESULTSDIR=$args->{resultsdir}");
-    print "R script completed\n\n";
+    $ENV{'RESULTSDIR'} = $args->{resultsdir};
+    print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
+    my $status = system($command);
+
+    # Comment out the remaining lines to run admixmap without R script
+    if( $status == 0)
+      {
+	my $rcmd = "R CMD";
+	if($^O eq "MSWin32") {
+	  $rcmd = "Rcmd";
+	}
+	print "Starting R script to process output\n";
+	system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
+	print "R script completed\n\n";
+      }else{
+	print "Warning: admixmap has not run successfully, R script will not be run.\n\n"
+      }
 }
 
 

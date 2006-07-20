@@ -3,42 +3,50 @@
 # Consult manual for details of options.
 #
 # All characters after '#' hash on a line are ignored, use this to add comments.
-# DO NOT use  single or double quotes for filenames.
+# DO NOT use single or double quotes for filenames.
 # DO give output filenames without pathname.
 # DO give (relative) pathnames for data files.
 # DO NOT use commas at end of lines.
-# DO feel free to use as much whitespace within lines as you like, but blank lines must only have an end-of-line character
+# DO feel free to use as much whitespace as you like, within and between lines
 #
 
-##Required Options
-   samples  = 15
-   burnin   = 5
-   every = 1
-   numannealedruns = 0
+##data files
+    genotypesfile                   = data/genotypes.txt
+    locusfile                          = data/loci.txt
+    priorallelefreqfile             = data/priorallelefreqs.txt
+    #populations=1
+    covariatesfile                  = 'data/covariates3std.txt
+    outcomevarfile               = data/outcomevars.txt
 
-##Misc. Options
-   displaylevel                = 2
-   targetindicator             = 0
+##main options
+   resultsdir = results
+    displaylevel   = 3 #verbose output
+    targetindicator = 0 # diabetes in column 0
+#globalrho = 0
+#outcomes = 1
+    samples  = 25
+    burnin   = 5
+    every    = 1
+#indadmixhiermodel = 0
+randommatingmodel = 0
+#fixedallelefreqs = 1
+numannealedruns = 0
+thermo = 0
 
-##Input Files
-    genotypesfile                = data/genotypes.txt
-    locusfile                    = data/loci.txt
-    priorallelefreqfile          =  data/priorallelefreqs.txt
-    outcomevarfile               =  data/outcomevars.txt
-    covariatesfile               =  data/covariates3std.txt
+##output files
+    logfile                     = logfile.txt
+    paramfile               = paramfile.txt
+    regparamfile          = regparamfile.txt
+    indadmixturefile     = indadmixture.txt
+    ergodicaveragefile = ergodicaverage.txt
+    #allelefreqoutputfile  = allelefreqoutputfile.txt
 
-## Required Output Files
-  resultsdir = results
-  logfile                      = logfile.txt
-  paramfile                    = paramfile.txt
-  indadmixturefile             = indadmixture.txt
-  ergodicaveragefile           = ergodicaverage.txt 
-  allelefreqoutputfile = allelefreqoutput.txt
-
-## Optional Output Files
-  stratificationtestfile       = strattestfile.txt
-  allelicassociationscorefile  = allelicassocscore.txt
-  ancestryassociationscorefile = ancestryassocscore.txt
-  affectedsonlyscorefile       = affectedsonlyscore.txt
-  haplotypeassociationscorefile = hapassocscore.txt
-  hwscoretestfile = HWtest.txt
+##optional tests
+#dispersiontestfile = dispersiontest.txt
+#admixturescorefile = admixscorefile.txt
+#residualallelicassocscorefile = resallelicassocscores.txt
+    allelicassociationscorefile       = allelicassociationscorefile.txt
+    #ancestryassociationscorefile  = ancestryassociationscorefile.txt
+    #affectedsonlyscorefile             = affectedsonlyscorefile.txt
+    haplotypeassociationscorefile = hapassocscore.txt
+    stratificationtestfile                   = strat_test.txt
