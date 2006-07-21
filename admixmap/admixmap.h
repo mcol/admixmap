@@ -23,6 +23,7 @@
 #include "Latent.h"
 #include "LinearRegression.h"
 #include "LogisticRegression.h"
+#include "CoxRegression.h"
 #include "AlleleFreqs.h"
 #include "AdmixOptions.h"
 #include "InputData.h"
