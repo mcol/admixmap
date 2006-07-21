@@ -23,8 +23,6 @@ typedef struct
    int haps[2];
 }hapPair  ; 
 
-void operator<<(std::ostream& os, const hapPair &h);
-
 ///   Class to represent a composite locus
 class CompositeLocus 
 {
