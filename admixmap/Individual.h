@@ -94,7 +94,7 @@ public:
 					       double *SumAffectedsScore2, double *SumAffectedsInfo);
   static void SumScoresForAncestry(int j, double *SumAncestryScore, double *SumAncestryInfo, 
 				   double *SumAncestryScore2, double *SumAncestryVarScore);
-  static void OutputLikRatios(const char* const filename, int iterations, const std::string* const PopLabels);
+  static void OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels);
   double getLogPosteriorTheta()const;
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;

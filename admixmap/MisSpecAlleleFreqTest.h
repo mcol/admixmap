@@ -28,7 +28,7 @@
 #include "LogWriter.h"
 #include "ScoreTestBase.h"
 
-//a scalar test for SNPs only
+///a scalar test for SNPs only
 class MisSpecifiedAlleleFreqTest : public ScoreTestBase{
 public:
   MisSpecifiedAlleleFreqTest();
@@ -36,7 +36,7 @@ public:
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(int iteration, const Genome* const Loci, const std::string* const PopLabels);
+  void Output(int iteration, const Genome* const Loci, const Vector_s& PopLabels);
   void Reset();
   
 private:
@@ -54,7 +54,7 @@ private:
   
 };
 
-//a vector test, not fully tested
+///a vector test, not fully tested
 class MisSpecifiedAlleleFreqTest2: public ScoreTestBase{
 public:
   MisSpecifiedAlleleFreqTest2();
@@ -62,7 +62,7 @@ public:
   
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(int iteration, const Genome* const Loci, const std::string* const PopLabels);
+  void Output(int iteration, const Genome* const Loci, const Vector_s& PopLabels);
   void Reset(){};
 
 private:
@@ -80,7 +80,7 @@ private:
 
 };
 
-// a container class for the tests
+/// a container class for the tests for misspecified allele frequencies
 class MisSpecAlleleFreqTest{
 
 public:
@@ -89,7 +89,7 @@ public:
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(int iteration, const Genome* const Loci, const std::string* const PopLabels);
+  void Output(int iteration, const Genome* const Loci, const Vector_s& PopLabels);
 
 private:
   bool doTest1, doTest2;//indicators for the two tests

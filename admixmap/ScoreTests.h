@@ -36,14 +36,14 @@ public:
   ScoreTests();
 
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
-		  const std::string *, LogWriter &);
+		  const Vector_s&, LogWriter &);
 #ifdef PARALLEL
   void SetComm(const MPI::Intracomm* c, const std::vector<std::string>* locuslabels);
 #endif
 
-  void InitialiseAssocScoreFile(const std::string *);
+  void InitialiseAssocScoreFile(const Vector_s&);
 
-  void Output(int iterations, const std::string * PLabels, bool final);
+  void Output(int iterations, const Vector_s& PLabels, bool final);
 
   void ROutput();
 
@@ -105,7 +105,7 @@ private:
   std::ofstream HaplotypeAssocScoreStream;
   std::ofstream affectedsOnlyScoreStream;
   std::ofstream allelicAssocScoreStream;
-  const std::string *PopLabels;
+  //const Vector_s& PopLabels;
 
   const AdmixOptions *options;
   const IndividualCollection *individuals;
@@ -115,7 +115,7 @@ private:
 
 //OUTPUT
   void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
-  void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream,
+  void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream, const Vector_s& PopLabels,
 			      const double* Score, const double* VarScore,
 				   const double* Score2, const double* Info, string sep );
 

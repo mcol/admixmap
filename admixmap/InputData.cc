@@ -23,13 +23,12 @@
 using namespace std;
 
 ///Extracts population labels from header line of allelefreq input file
-void InputData::getPopLabels(const Vector_s& data, size_t Populations, string **labels)
+void InputData::getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels)
 {
   if(data.size() != Populations+1){cout << "Error in getPopLabels\n";exit(1);}
-  *labels = new string[ Populations ];
 
     for (size_t i = 0; i < Populations; ++i) {
-      (*labels)[i] = StringConvertor::dequote(data[i+1]);
+      labels.push_back( StringConvertor::dequote(data[i+1]) );
     }
 }
 void getLabels(const Vector_s& data, string *labels)
@@ -145,12 +144,10 @@ void InputData::convertMatrix(const Matrix_s& data, DataMatrix& m, size_t row0, 
 
 InputData::InputData()
 {
-  PopulationLabels = 0;
 }
 
 InputData::~InputData()
 {
-  delete[] PopulationLabels;
 }
 
 void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
@@ -236,6 +233,7 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
 #endif
 
   if(rank!=1 ){
+    //detects regression model
     if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() ))
      if ( strlen( options->getOutcomeVarFilename() ) != 0 )
       CheckOutcomeVarFile( options, Log);
@@ -245,7 +243,7 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
 	CheckCoxOutcomeVarFile( Log);
     }
     if ( strlen( options->getCovariatesFilename() ) != 0 )
-      CheckCovariatesFile(Log);//detects regression model
+      CheckCovariatesFile(Log, (!options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation()));
     if ( strlen( options->getReportedAncestryFilename() ) != 0 )
       CheckRepAncestryFile(options->getPopulations(), Log);
   }
@@ -402,7 +400,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     nrows = alleleFreqData_.size()-1;
     expectednrows = NumberOfStates-NumCompositeLoci;
     Populations = alleleFreqData_[0].size() - 1;// -1 for ids in first col
-    getPopLabels(alleleFreqData_[0], Populations, &PopulationLabels);
+    getPopLabels(alleleFreqData_[0], Populations, PopulationLabels);
   }
   
   //Historic allelefreqs
@@ -412,7 +410,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     nrows = historicalAlleleFreqData_.size();
     expectednrows = NumberOfStates+1;
     Populations = historicalAlleleFreqData_[0].size() - 1;
-    getPopLabels(historicalAlleleFreqData_[0], Populations, &PopulationLabels);
+    getPopLabels(historicalAlleleFreqData_[0], Populations, PopulationLabels);
 
   }
   //prior allelefreqs
@@ -422,7 +420,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
       nrows = priorAlleleFreqData_.size();
       expectednrows = NumberOfStates+1;
       Populations = priorAlleleFreqData_[0].size() - 1;
-      getPopLabels(priorAlleleFreqData_[0], Populations, &PopulationLabels);
+      getPopLabels(priorAlleleFreqData_[0], Populations, PopulationLabels);
   }
   if(infile){
     if(nrows != expectednrows){
@@ -437,12 +435,11 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
       Log << "ERROR: populations = " << options->getPopulations() << "\n";
       exit(1);
     }
-    PopulationLabels = new string[ Populations ];
     for( int j = 0; j < Populations; j++ ){
       stringstream poplabel;
       if(options->getHapMixModelIndicator()) poplabel << "BlockState" << j+1;
       else poplabel << "Pop" << j+1;
-      PopulationLabels[j] = poplabel.str();
+      PopulationLabels.push_back(poplabel.str());
     }
 //     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 //       if(Loci->GetNumberOfStates(i) < 2){
@@ -551,12 +548,19 @@ void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
 
 }
 
-void InputData::CheckCovariatesFile(LogWriter &Log)const{
+void InputData::CheckCovariatesFile(LogWriter &Log, bool usePopLabels){
   if( NumIndividuals != (int)covariatesMatrix_.nRows() - 1 ){
     Log << "ERROR: Genotypes file has " << NumIndividuals << " observations and Covariates file has "
 	<< covariatesMatrix_.nRows() - 1 << " observations.\n";
     exit(1);
   }
+  for (size_t i = 0; i < inputData_[0].size(); ++i) {
+    CovariateLabels.push_back(StringConvertor::dequote(inputData_[0][i]));
+  }
+  if( usePopLabels )
+    for( vector<string>::const_iterator i = PopulationLabels.begin()+1; i !=PopulationLabels.end(); ++i ){
+      CovariateLabels.push_back("slope." + *i); 
+    }
 }
 
 void InputData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
@@ -774,7 +778,7 @@ const DataMatrix& InputData::getCovariatesMatrix() const
 {
     return covariatesMatrix_;
 }
-std::string *InputData::GetPopLabels() const{
+const Vector_s& InputData::GetPopLabels() const{
   return PopulationLabels;
 }
 Vector_s InputData::getOutcomeLabels()const{
@@ -783,6 +787,10 @@ Vector_s InputData::getOutcomeLabels()const{
 const Vector_s& InputData::getLocusLabels()const{
   return LocusLabels;
 }
+const Vector_s InputData::getCovariateLabels()const{
+  return CovariateLabels;
+}
+
 void InputData::Delete(){
   //erase string matrices
   for(unsigned i = 0; i < locusData_.size(); ++i)

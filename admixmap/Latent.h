@@ -37,6 +37,7 @@
 class InputData;
 class IndividualCollection;
 
+///Struct to hold arguments for sampling sumintensities in hapmixmodel
 typedef struct {
   unsigned NumPops;
   unsigned NumIntervals;
@@ -50,6 +51,7 @@ typedef struct {
   double sumlogrho;
 }RhoArguments;
 
+///Class to hold and update population admixture and sumintensities parameters and their priors
 class Latent
 {
 public:
@@ -57,9 +59,9 @@ public:
   
   ~Latent();
   
-  void Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter& Log);  
+  void Initialise(int Numindividuals, const Vector_s&  PopulationLabels, LogWriter& Log);  
   
-  void InitializeOutputFile(const std::string* const);
+  void InitializeOutputFile(const Vector_s&  PopulationLabels);
   
   void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
   void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);

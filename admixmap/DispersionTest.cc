@@ -94,7 +94,7 @@ void DispersionTest::TestForDivergentAlleleFrequencies(const AlleleFreqs* const 
   }
 }
 
-void DispersionTest::Output(int samples, const Genome& Loci, const std::string* const PopLabels){
+void DispersionTest::Output(int samples, const Genome& Loci, const Vector_s& PopLabels){
   //write header
   dispersionoutputstream << "Locus";
   for(int i = 0; i< NumberOfPopulations; ++i)

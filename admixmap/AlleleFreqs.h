@@ -155,7 +155,7 @@ public:
   //void Update(bool afterBurnIn, double coolness, bool /*annealUpdate*/);
 
   ///initialize output file for samples of dispersion parameters
-  void InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log);
+  void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, LogWriter &Log);
 
   ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
@@ -164,7 +164,7 @@ public:
 
   void OutputAlleleFreqs();
   void OutputPriorParams();
-  void CloseOutputFile(int iterations, const string* const PopulationLabels);
+  void CloseOutputFile(int iterations, const Vector_s& PopulationLabels);
 
   void OutputFST();
 

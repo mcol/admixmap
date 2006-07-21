@@ -153,7 +153,7 @@ void IndividualCollection::DeleteGenotypes(bool setmissing=false){
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 
-void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
+void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const Vector_s& PopulationLabels,
 				      const std::vector<std::vector<double> > &alpha, //double rhoalpha, double rhobeta, 
 				      LogWriter &Log){
   Log.setDisplayMode(Quiet);
@@ -229,7 +229,6 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
 	Covariates.isMissing(i,j+1, CovData.isMissing(i+1,j));
       }
     if ( Covariates.hasMissing() ) Covariates.SetMissingValuesToColumnMeans();
-    getLabels(data_->getInputData()[0], CovariateLabels);
     
     //vector<double> mean(NumberOfInputCovariates);
     
@@ -283,12 +282,12 @@ void IndividualCollection::LoadRepAncestry(const InputData* const data_){
  
 }
 
-void IndividualCollection::getLabels(const Vector_s& data, Vector_s& labels)
-{
-  for (size_t i = 0; i < data.size(); ++i) {
-    labels.push_back(StringConvertor::dequote(data[i]));
-  }
-}
+// void IndividualCollection::getLabels(const Vector_s& data, Vector_s& labels)
+// {
+//   for (size_t i = 0; i < data.size(); ++i) {
+//     labels.push_back(StringConvertor::dequote(data[i]));
+//   }
+// }
 
 void IndividualCollection::SetExpectedY(int k, const double* const beta){
   //sets ExpectedY = X * Beta
@@ -696,7 +695,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 					      const vector<Regression*> &R, 
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 					      AlleleFreqs* A, 
-					      const std::string* const PopulationLabels){
+					      const Vector_s& PopulationLabels){
   //TODO: check this for hapmixmodel
 
   if(options->getDisplayLevel()>1)
@@ -787,13 +786,6 @@ int IndividualCollection::GetNumCovariates() const{
 
 const double* IndividualCollection::getCovariates()const{
   return Covariates.getData();
-}
-
-const std::string IndividualCollection::getCovariateLabels(int i)const{
-  return CovariateLabels[i];
-}
-const Vector_s IndividualCollection::getCovariateLabels()const{
-  return CovariateLabels;
 }
 
 double IndividualCollection::getExpectedY(int i)const{
@@ -1012,9 +1004,9 @@ void IndividualCollection::OutputChibResults(LogWriter& Log) const {
 //       << "\n";
 } 
 
-void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const string* const PopulationLabels) {
+void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels) {
   Log.setDisplayMode(On);
-  Log << "Log-likelihood for unadmixed "  << (*PopulationLabels)[0] << ": "
+  Log << "Log-likelihood for unadmixed "  << PopulationLabels[0] << ": "
       << _child[0]->getLogLikelihoodOnePop() << "\n";
 }
 

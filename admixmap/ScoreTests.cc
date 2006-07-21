@@ -150,7 +150,7 @@ void ScoreTests::SetComm(const MPI::Intracomm* c, const std::vector<std::string>
 #endif
 
 void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
-			    const std::string *PLabels, LogWriter &Log){
+			    const Vector_s& PLabels, LogWriter &Log){
   options = op;
   individuals = indiv;
   chrm = Loci->getChromosomes();
@@ -388,12 +388,12 @@ void ScoreTests::OpenFile(LogWriter &Log, std::ofstream* outputstream, const cha
 
 }
 //Initialise ergodic average score file
-void ScoreTests::InitialiseAssocScoreFile(const std::string *PLabels){
+void ScoreTests::InitialiseAssocScoreFile(const Vector_s& PLabels){
   if( options->getTestForAdmixtureAssociation() ){
-    PopLabels = PLabels;
+    //PopLabels = PLabels;
     assocscorestream << "Ergodic averages of score statistic for populations:\n";
     for( int i = 0; i < options->getPopulations(); i++ ){
-      assocscorestream << PopLabels[i] << " ";
+      assocscorestream << PLabels[i] << " ";
       if( !i )
 	assocscorestream << " ";
     }
@@ -794,8 +794,8 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allele
 // }
 // ********** OUTPUT **********************************************************
 
-void ScoreTests::Output(int iterations, const std::string * PLabels, bool final){
-  PopLabels = PLabels;
+void ScoreTests::Output(int iterations, const Vector_s& PLabels, bool final){
+  //PopLabels = PLabels;
   string sep = final ? "\t" : ",";//separator
   ofstream* outfile;
 
@@ -897,7 +897,7 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
       *outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
     }
     else outfile = &ancestryAssociationScoreStream;
-    OutputTestsForLocusLinkage( iterations, outfile,
+    OutputTestsForLocusLinkage( iterations, outfile, PLabels,
 				SumAncestryScore, SumAncestryVarScore,
 				SumAncestryScore2, SumAncestryInfo, sep );
     if(final)delete outfile;
@@ -910,7 +910,7 @@ void ScoreTests::Output(int iterations, const std::string * PLabels, bool final)
       outfile = new ofstream(filename.c_str(), ios::out);
       *outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
     }else outfile = &affectedsOnlyScoreStream;
-    OutputTestsForLocusLinkage( iterations, outfile,
+    OutputTestsForLocusLinkage( iterations, outfile, PLabels, 
 				SumAffectedsScore, SumAffectedsVarScore,
 				SumAffectedsScore2, SumAffectedsInfo, sep );
     if(final)delete outfile;
@@ -1048,7 +1048,7 @@ void ScoreTests::OutputAdmixtureScoreTest(int iterations)
   assocscorestream << endl;
 }
 
-void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstream,
+void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstream, const Vector_s& PopLabels,
 					     const double* Score, const double* VarScore,
 					     const double* Score2, const double* Info, string separator )
 //used for affectedsonly test and ancestry association test

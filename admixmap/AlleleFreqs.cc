@@ -1233,7 +1233,7 @@ void AlleleFreqs::OutputPriorParams(){
   allelefreqoutput << mean << "\t" << var << "\t" << HapMixPriorRate << endl;
 
 }
-void AlleleFreqs::CloseOutputFile(int iterations, const string* const PopulationLabels)
+void AlleleFreqs::CloseOutputFile(int iterations, const Vector_s& PopulationLabels)
 {
   int nrows = 0;
   for(int j = 0; j < NumberOfCompositeLoci; ++j)
@@ -1255,7 +1255,7 @@ void AlleleFreqs::CloseOutputFile(int iterations, const string* const Population
   allelefreqoutput.close();
 } 
 
-void AlleleFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const std::string* const PopulationLabels, LogWriter &Log)
+void AlleleFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, LogWriter &Log)
 {
   Log.setDisplayMode(On);
   outputstream.open( options->getEtaOutputFilename(), ios::out );

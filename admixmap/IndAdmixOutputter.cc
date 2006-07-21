@@ -2,11 +2,11 @@
 
 using namespace std;
 
-IndAdmixOutputter::IndAdmixOutputter(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels)
+IndAdmixOutputter::IndAdmixOutputter(const AdmixOptions* const options, const Genome* const Loci, const Vector_s& PopulationLabels)
 {
   _options           = options;
   _Loci              = Loci;
-  _PopulationLabels  = PopulationLabels;
+  _PopulationLabels  = &PopulationLabels;
 
   _iterations        = 0;
   _totalIndividuals  = 0;
@@ -63,14 +63,14 @@ IndAdmixOutputter::~IndAdmixOutputter()
 
   for( int i = 0; i < _options->getPopulations(); i++ )
     {
-      _out << "\""<<_PopulationLabels[i];
+      _out << "\""<< (*_PopulationLabels)[i];
     if(_options->isRandomMatingModel() )
       _out << "1";
     _out << "\",";
     }
   if(_options->isRandomMatingModel() )
     for( int i = 0; i < _options->getPopulations(); i++ )
-      _out << "\""<<_PopulationLabels[i] << "2\",";
+      _out << "\""<<(*_PopulationLabels)[i] << "2\",";
   
 
   if( !_options->isGlobalRho() ){

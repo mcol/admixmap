@@ -14,10 +14,11 @@
 class IndividualCollection;
 class Individual;
 
+///Class to output individual admixture proportions and sumintensities to file
 class IndAdmixOutputter 
 {
 public:
-  IndAdmixOutputter(const AdmixOptions* const, const Genome* const, const std::string* const);
+  IndAdmixOutputter(const AdmixOptions* const, const Genome* const, const Vector_s& PopLabels);
   virtual ~IndAdmixOutputter();
   void visitIndividual(const Individual&, const std::vector<int>);
   void visitIndividualCollection(const IndividualCollection&);
@@ -28,7 +29,7 @@ private:
 
   const AdmixOptions* _options;
   const Genome* _Loci;
-  const std::string* _PopulationLabels;
+  const Vector_s*  _PopulationLabels;
 
   int _iterations;
   int _totalIndividuals;

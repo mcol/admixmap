@@ -1641,7 +1641,7 @@ static string double2R( double x )
   }
 }
 
-void Individual::OutputLikRatios(const char* const filename, int iterations, const std::string* const PopLabels){
+void Individual::OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels){
   //open outut file
   std::ofstream outputstream(filename);
 

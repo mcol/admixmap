@@ -43,11 +43,11 @@ public:
   IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
   void SetNullValues();
   void DeleteGenotypes(bool);
-  void Initialise(const AdmixOptions* const options, const Genome* const Loci, const string* const PopulationLabels,
+  void Initialise(const AdmixOptions* const options, const Genome* const Loci, const Vector_s& PopulationLabels,
 		  const std::vector<std::vector<double> > &alpha, //double rhoalpha, double rhobeta, 
 		  LogWriter &Log);
   void LoadData(const AdmixOptions* const options, const InputData* const);
-  void getOnePopOneIndLogLikelihood(LogWriter &Log, const std::string* const PopulationLabels);
+  void getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels);
 
   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 				      const vector<Regression*> &R, const double* const poptheta,
@@ -74,7 +74,7 @@ public:
   void FindPosteriorModes(const AdmixOptions* const options, 
 			  const vector<Regression*> &R, 
 			  const vector<vector<double> > &alpha, double rhoalpha, double rhobeta, AlleleFreqs* A, 
-			  const std::string* const PopulationLabels);
+			  const Vector_s& PopulationLabels);
 
   void setGenotypeProbs(const Genome * const G, const AlleleFreqs* const 
 #ifdef PARALLEL
@@ -115,8 +115,6 @@ public:
   void SetExpectedY(int, const double*const );
   double getExpectedY(int)const;
   double getExpectedY(int, int)const;
-  const std::string getCovariateLabels(int)const;
-  const Vector_s getCovariateLabels()const;
   double getSampleVarianceOfOutcome(int j)const;
   double getSampleVarianceOfCovariate(int j)const;
   double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
@@ -169,7 +167,6 @@ private:
   int NumCovariates;//covariates including admixture
   int NumberOfInputCovariates;//covariates in file
   DataMatrix Covariates;//all covariates, including admixture props
-  Vector_s CovariateLabels;
   DataType *OutcomeType;
   std::ofstream EYStream;//output file for expected outcome
   chib MargLikelihood;

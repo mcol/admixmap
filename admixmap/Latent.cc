@@ -37,7 +37,7 @@ Latent::Latent( AdmixOptions* op, Genome* loci)
   RhoSampler = 0;
 }
 
-void Latent::Initialise(int Numindividuals, const std::string* const PopulationLabels, LogWriter &Log){
+void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, LogWriter &Log){
   Log.setDisplayMode(On);
   K = options->getPopulations();
 
@@ -630,7 +630,7 @@ void Latent::RhoPriorParamsGradient( const double* const x, const void* const va
   }
 }
 
-void Latent::InitializeOutputFile(const std::string* const PopulationLabels)
+void Latent::InitializeOutputFile(const Vector_s& PopulationLabels)
 {
 #ifdef PARALLEL
     const int rank = MPI::COMM_WORLD.Get_rank();

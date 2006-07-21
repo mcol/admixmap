@@ -61,7 +61,7 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
     Test2.Update(individuals, A, Loci);
 }
 
-void MisSpecAlleleFreqTest::Output(int samples, const Genome* const Loci, const std::string* const PopLabels){
+void MisSpecAlleleFreqTest::Output(int samples, const Genome* const Loci, const Vector_s& PopLabels){
     if( doTest1){
       Test1.Output(samples, Loci, PopLabels);
     }
@@ -261,7 +261,7 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
 	    Info[j][ k*Populations + kk ] += score[k] * score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[2];}
 }
 
-void MisSpecifiedAlleleFreqTest::Output( int samples, const Genome* const Loci, const std::string* const PopLabels)
+void MisSpecifiedAlleleFreqTest::Output( int samples, const Genome* const Loci, const Vector_s& PopLabels)
 {
   if( test){
     double* ObservedMatrix = new double[Populations*Populations];
@@ -444,7 +444,7 @@ void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int 
    delete[] NewInfo;
 }
 
-void MisSpecifiedAlleleFreqTest2::Output( int samples, const Genome* const Loci, const std::string* const PopLabels)
+void MisSpecifiedAlleleFreqTest2::Output( int samples, const Genome* const Loci, const Vector_s& PopLabels)
 {
   if( test ){
     //allelefreqscorestream2 << setiosflags(ios::fixed) << setprecision(2);//output 2 decimal places

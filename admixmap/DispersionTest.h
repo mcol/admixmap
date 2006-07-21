@@ -27,12 +27,13 @@
 #include "AlleleFreqs.h"
 #include "LogWriter.h"
 
+///Class to implement test for dispersion of allele frequencies between unadmixed populations sampled and the corresponding ancestry-specific allele frequencies in the admixed population under study
 class DispersionTest{
  public:
   DispersionTest();
   ~DispersionTest();
   void Initialise(const AdmixOptions* const, LogWriter &, int);
-  void Output(int, const Genome &, const std::string* const PopLabels);
+  void Output(int, const Genome &, const Vector_s& PopLabels);
   void TestForDivergentAlleleFrequencies(const AlleleFreqs* const, const IndividualCollection* const IC);
 
  private:
