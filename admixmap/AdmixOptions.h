@@ -65,6 +65,7 @@ public:
   const char *getReportedAncestryFilename() const;
   const char *getEtaPriorFilename() const;
   const char *getOutcomeVarFilename() const;  
+  const char *getCoxOutcomeVarFilename() const;  
   int getTargetIndicator() const;
   double getRhoalpha() const;
   double getRhobeta() const;
@@ -238,6 +239,7 @@ private:
   string PriorAlleleFreqFilename;
   string CovariatesFilename;
   string OutcomeVarFilename;
+  string CoxOutcomeVarFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;
 

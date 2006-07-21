@@ -177,7 +177,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   }
   
   // allocate arrays for expected outcome vars and residuals in regression model
-  if(options->getNumberOfOutcomes() > 0){
+  if(NumOutcomes > 0){
     ExpectedY = alloc2D_d(NumOutcomes, NumInd);
     //SumResiduals = alloc2D_d(NumOutcomes, NumInd);
     //for(int j = 0; j < NumOutcomes; ++j)fill(SumResiduals[j], SumResiduals[j] + NumInd, 0.0);
@@ -196,8 +196,13 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
 }  
 
 void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){
-  if ( strlen( options->getOutcomeVarFilename() ) != 0 ){
-    LoadOutcomeVar(data_);
+
+  if ( options->getNumberOfOutcomes()>0){
+    delete[] OutcomeType;
+    OutcomeType = new DataType[ options->getNumberOfOutcomes() ];
+    data_->getOutcomeTypes(OutcomeType);
+
+    if(strlen( options->getOutcomeVarFilename() ) != 0)LoadOutcomeVar(data_);
     LoadCovariates(data_, options);
   }
   if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
@@ -206,11 +211,11 @@ void IndividualCollection::LoadData(const AdmixOptions* const options, const Inp
 }
 
 void IndividualCollection::LoadCovariates(const InputData* const data_, const AdmixOptions* const options){
-  unsigned NumInds = Outcome.nRows();
   if ( strlen( options->getCovariatesFilename() ) > 0 ){
     DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
     NumberOfInputCovariates = CovData.nCols();
-    
+    unsigned NumInds = CovData.nRows();//should already have been checked to be the same as in outcomevarfile
+
     if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator()){
       Covariates.setDimensions(NumInds, CovData.nCols() + options->getPopulations());
       for(unsigned i = 0; i < NumInds; ++i)for(int j = 0; j < options->getPopulations()-1; ++j)
@@ -246,6 +251,8 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
     //Covariates( i, j+1 ) -= mean[j];
   }
   else {//no covariatesfile
+    unsigned NumInds = Outcome.nRows();
+    if(NumInds <= 0 )NumInds = NumInd;
     if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator() ){
       Covariates.setDimensions(NumInds, options->getPopulations());
       for(unsigned i = 0; i < NumInds; ++i)for(int j = 1; j < options->getPopulations(); ++j)
@@ -263,11 +270,9 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
 
 void IndividualCollection::LoadOutcomeVar(const InputData* const data_){
   Outcome = data_->getOutcomeVarMatrix();
+  //if(size != Outcome.nRows() && size!= NumInd)throw string("ERROR in outcomevarfile: wrong number of rows\n");
   NumOutcomes = Outcome.nCols();
  
-  delete[] OutcomeType;
-  OutcomeType = new DataType[ NumOutcomes ];
-  data_->getOutcomeTypes(OutcomeType);
 }
 
 void IndividualCollection::LoadRepAncestry(const InputData* const data_){
@@ -297,17 +302,19 @@ void IndividualCollection::SetExpectedY(int k, const double* const beta){
 }
 
 void IndividualCollection::OpenExpectedYFile(const char* Filename, LogWriter & Log){
-  EYStream.open(Filename, ios::out);
-  if( !EYStream.is_open() )
-    {
-      Log.setDisplayMode(On);
-      Log<< "WARNING: Couldn't open expectedoutcomefile\n";
+  if(ExpectedY){
+    EYStream.open(Filename, ios::out);
+    if( !EYStream.is_open() )
+      {
+	Log.setDisplayMode(On);
+	Log<< "WARNING: Couldn't open expectedoutcomefile\n";
+      }
+    else{
+      Log.setDisplayMode(Quiet);
+      Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
+      EYStream << "structure(.Data=c(" << endl;
     }
-  else{
-    Log.setDisplayMode(Quiet);
-    Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
-    EYStream << "structure(.Data=c(" << endl;
-   }
+  }
 }
 void IndividualCollection::OutputExpectedY(int k){
   //output kth Expected Outcome to file
@@ -463,7 +470,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   }
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
   double dispersion = 0.0; 
-  if(!options->getHapMixModelIndicator() && options->getNumberOfOutcomes()>0) dispersion = R[0]->getDispersion();
+  if(!options->getHapMixModelIndicator() && R.size()>0) dispersion = R[0]->getDispersion();
 
   //now loop over individuals
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
@@ -514,7 +521,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   if(options->getTestOneIndivIndicator()) { // anneal likelihood for test individual only 
     i0 = 1;
   }
-  if(options->getNumberOfOutcomes() > 0) {
+  if(R.size() > 0) {
     dispersion = R[0]->getDispersion();
   }
 
@@ -621,11 +628,11 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
   vector<const double*> beta;
   double dispersion = 0.0; 
   if(worker_rank==(int)size || (worker_rank==0 && NumWorkers==1)){//master only
-    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+    for(unsigned i = 0; i < R.size(); ++i){
       lambda.push_back( R[i]->getlambda());
       beta.push_back( R[i]->getbeta());
     }
-    if(options->getNumberOfOutcomes()>0) dispersion = R[0]->getDispersion();
+    if(R.size()>0) dispersion = R[0]->getDispersion();
   }
 
   // ** Test Individuals: all vars updated here as they contribute nothing to score tests or update of allele freqs
@@ -715,7 +722,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 
   vector<double> lambda;
   vector<const double*> beta;
-  for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+  for(unsigned i = 0; i < R.size(); ++i){
     lambda.push_back( R[i]->getlambda());
     beta.push_back( R[i]->getbeta());
   }
@@ -973,7 +980,7 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
 
   if(rank <1){
     Log << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
-    for(int c = 0; c < options->getNumberOfOutcomes(); ++c){
+    for(unsigned c = 0; c < R.size(); ++c){
       double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(this, iterations);
       Lhat += RegressionLogL;
       Log << "DevianceAtPosteriorMean(Regression " << c << ")"
@@ -1038,7 +1045,7 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
 #endif
   // get regression log-likelihood 
   if(global_rank==0)
-    for(int c = 0; c < options->getNumberOfOutcomes(); ++c) LogLikRegression += R[c]->getLogLikelihood(this);
+    for(unsigned c = 0; c < R.size(); ++c) LogLikRegression += R[c]->getLogLikelihood(this);
   Energy = -(LogLikHMM + LogLikRegression);
   return Energy;
 } 

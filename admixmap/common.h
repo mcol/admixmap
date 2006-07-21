@@ -17,9 +17,9 @@ typedef std::vector<std::vector<unsigned short> > genotype;
 
 ///enum for the various regression types.
 /// Mlinear = Multiple linear, Mlogistic = multiple logistic
-enum RegressionType {None, Linear, Logistic, Mlinear, Mlogistic, Multiple};
+enum RegressionType {None, Linear, Logistic, Cox, Mlinear, Mlogistic, Multiple};
 ///enum for continuous/binary datatypes
-enum DataType {Continuous, Binary};
+enum DataType {Continuous, Binary, CoxData};
 
 //uncomment the next line for parallel version
 //#define PARALLEL

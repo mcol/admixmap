@@ -74,6 +74,7 @@ public:
   static void convertMatrix(const Matrix_s& data, DataMatrix& m, size_t row0, size_t col0, size_t ncols);
 
   void getOutcomeTypes(DataType*)const;
+  DataType getOutcomeType(unsigned)const;
   std::string *GetPopLabels() const;
   Vector_s getOutcomeLabels()const;
   const Vector_s& getLocusLabels()const;
@@ -113,7 +114,7 @@ private:
   std::string* PopulationLabels;
   std::vector<std::string> LocusLabels;
   Vector_s OutcomeLabels;
-  DataType* OutcomeType;
+  std::vector<DataType> OutcomeType;
   int NumIndividuals;
   int NumSimpleLoci;
   unsigned NumCompositeLoci;

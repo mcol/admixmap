@@ -434,6 +434,11 @@ const char *AdmixOptions::getOutcomeVarFilename() const
   return OutcomeVarFilename.c_str();
 }
 
+const char *AdmixOptions::getCoxOutcomeVarFilename() const
+{
+  return CoxOutcomeVarFilename.c_str();
+}
+
 bool AdmixOptions::getTestForAffectedsOnly() const
 {
   return TestForAffectedsOnly;
@@ -629,6 +634,7 @@ void AdmixOptions::SetOptions(int nargs, char** args)
     {"historicallelefreqfile",                1, 0,  0 }, // string
 
     {"outcomevarfile",                        1, 0,  0 }, // string
+    {"coxoutcomevarfile",                        1, 0,  0 }, // string
     {"covariatesfile",                        1, 0,  0 }, // string
 
     // Optional if specify outcomevarfile
@@ -834,6 +840,8 @@ void AdmixOptions::SetOptions(int nargs, char** args)
 	 // ** input files **
       } else if (long_option_name == "outcomevarfile") {
 	OutcomeVarFilename = optarg;OptionValues["outcomevarfile"]=optarg;
+      } else if (long_option_name == "coxoutcomevarfile") {
+	CoxOutcomeVarFilename = optarg;OptionValues["coxoutcomevarfile"]=optarg;
       } else if (long_option_name == "priorallelefreqfile") {
 	 PriorAlleleFreqFilename = optarg;OptionValues["priorallelefreqfile"]=optarg;
       } else if (long_option_name == "historicallelefreqfile") {
@@ -1035,7 +1043,15 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   }
   Log << "\n";
 
-  if(OutcomeVarFilename.length() == 0){
+  if(CoxOutcomeVarFilename.length() ){
+    Log << "Cox Regression\n";
+    if(NumberOfOutcomes>-1)++NumberOfOutcomes;
+    else NumberOfOutcomes = 1;
+    if(RegType == None)RegType = Cox;
+    else RegType = Multiple;
+  }
+
+  if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
     if(NumberOfOutcomes > 0){
       Log.setDisplayMode(On);
       Log << "ERROR: 'outcomes' > 0 and no outcomevarfile specified\n";

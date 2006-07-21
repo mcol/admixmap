@@ -178,14 +178,15 @@ int main( int argc , char** argv ){
     if (options.getNumberOfOutcomes()>0 && rank !=1){
       for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
 	//determine regression type and allocate regression objects
-	if( IC->getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
-	else if( IC->getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
+	if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
+	else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
+	else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression(data.getCoxOutcomeVarMatrix()));
 
 	if(rank < 1) R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC, Log);
 	else R[r]->Initialise(r, IC);
       }
-      if(rank<1)Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
     }
+    if(rank<1 && R.size()>0)Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
     
     if( (options.isGlobalRho() || options.getHapMixModelIndicator()) && (rank>1 || rank==-1)) {
       Loci.SetLocusCorrelation(L.getrho());
@@ -440,7 +441,7 @@ int main( int argc , char** argv ){
     }//end else
 
     delete IC;//must call explicitly so IndAdmixOutputter destructor finishes writing to indadmixture.txt
-    for(int r = 0; r < options.getNumberOfOutcomes(); ++r)delete R[r];
+    for(unsigned r = 0; r < R.size(); ++r)delete R[r];
     R.clear();
 
     if((rank==-1 || rank==1) && !options.getHapMixModelIndicator())
@@ -628,7 +629,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	      L.OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
 	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model
 	    }
-	    for(int r = 0; r < options.getNumberOfOutcomes(); ++r)//regression params
+	    for(unsigned r = 0; r < R.size(); ++r)//regression params
 	      R[r]->OutputErgodicAvg(samples, &avgstream);
 
 	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq, &avgstream);
@@ -740,7 +741,7 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	    *avgstream << PopulationLabels[k] << "\t";//write population labels (admixture covariates) to header
 	  }
 	}
-	if( individuals->getOutcomeType(r)==0 )//linear regression
+	if( individuals->getOutcomeType(r)==Continuous )//linear regression
 	  *avgstream << "precision\t";
       }
     }
@@ -812,7 +813,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     //score tests
     if( options->getScoreTestIndicator() ){
       double dispersion = 1.0;
-      if(rank != 1 && (options->getNumberOfOutcomes()>0) ) dispersion = R[0]->getDispersion();
+      if(rank != 1 && (R.size()>0) ) dispersion = R[0]->getDispersion();
 #ifdef PARALLEL
       MPE_Log_event(21, iteration, "ScoreTestUpdatestart");
 #endif
@@ -912,7 +913,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // ** update regression parameters (if regression model) conditional on individual admixture
   if(rank != 1){
     bool condition = (!anneal && iteration > options->getBurnIn() && (rank <1));
-    for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
+    for(unsigned r = 0; r < R.size(); ++r){
       R[r]->Update(condition, IC, coolness 
 #ifdef PARALLEL
 		  , workers_and_master
@@ -939,7 +940,7 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   }
   if(options->getHapMixModelIndicator() && (options->getDisplayLevel() > 2))cout << A->getHapMixPriorRate() << " " ;
   // ** regression parameters
-  for(int r = 0; r < options->getNumberOfOutcomes(); ++r)
+  for(unsigned r = 0; r < R.size(); ++r)
     R[r]->Output(iteration, options, Log);
   
   // ** new line in log file but not on screen 

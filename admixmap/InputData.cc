@@ -116,10 +116,10 @@ void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
  */
 void InputData::convertMatrix(const Matrix_s& data, DataMatrix& m, size_t row0, size_t col0, size_t ncols = 0)
 {       
-    const size_t numRows = data.size()-row0;
-
     // If there are no rows, return empty matrix.
-    if (0 == numRows) return;
+    if (0 == data.size()) return;
+
+    const size_t numRows = data.size() - row0;
 
     // Verify that all rows have same length.
     const size_t totalnumCols = data[0].size();
@@ -146,13 +146,11 @@ void InputData::convertMatrix(const Matrix_s& data, DataMatrix& m, size_t row0, 
 InputData::InputData()
 {
   PopulationLabels = 0;
-  OutcomeType = 0;
 }
 
 InputData::~InputData()
 {
   delete[] PopulationLabels;
-  delete[] OutcomeType;
 }
 
 void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
@@ -172,7 +170,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
       if(rank!=1){
 	readFile(options->getCovariatesFilename(), inputData_, Log);         //covariates file
 	readFile(options->getOutcomeVarFilename(), outcomeVarData_, Log);       //outcomevar file
-	//readFile(options->getCoxOutcomeVarFilename(), outcomeVarData_, Log);       //coxoutcomevar file
+	readFile(options->getCoxOutcomeVarFilename(), coxOutcomeVarData_, Log);       //coxoutcomevar file
       }
       if(rank==-1 || rank == 1){//only one process reads freq files
 	readFile(options->getAlleleFreqFilename(), alleleFreqData_, Log);
@@ -187,7 +185,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
       convertMatrix(locusData_, locusMatrix_, 1, 1,2);
       convertMatrix(outcomeVarData_, outcomeVarMatrix_, 0, 0,0);
       convertMatrix(inputData_,  covariatesMatrix_, 0, 0,0);
-      //convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 0, 0,0);
+      convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 1, 0,0);
       //convertMatrix(alleleFreqData_, alleleFreqMatrix_, 0, 0);
       //convertMatrix(historicalAlleleFreqData_, historicalAlleleFreqMatrix_, 0, 0);
       //convertMatrix(priorAlleleFreqData_, priorAlleleFreqMatrix_, 0, 0);
@@ -236,12 +234,16 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
     MPI::COMM_WORLD.Recv(&NumIndividuals, 1, MPI::INT, 2, rank, status);
   }
 #endif
-  
+
   if(rank!=1 ){
-    if ( strlen( options->getOutcomeVarFilename() ) != 0 )
+    if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() ))
+     if ( strlen( options->getOutcomeVarFilename() ) != 0 )
       CheckOutcomeVarFile( options, Log);
-    //if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 )
-    //CheckCoxOutcomeVarFile( Log);
+    if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 ){
+      OutcomeType.push_back( CoxData );
+      if(options->CheckData())
+	CheckCoxOutcomeVarFile( Log);
+    }
     if ( strlen( options->getCovariatesFilename() ) != 0 )
       CheckCovariatesFile(Log);//detects regression model
     if ( strlen( options->getReportedAncestryFilename() ) != 0 )
@@ -456,6 +458,7 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
 
   int Firstcol = options->getTargetIndicator();
   int NumOutcomes = options->getNumberOfOutcomes();
+  if(strlen(options->getCoxOutcomeVarFilename())) --NumOutcomes;
   if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
     stringstream s;
     s << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
@@ -483,12 +486,11 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
     outcomeVarMatrix_ = Temp;
     
     //determine type of outcome - binary/continuous
-    OutcomeType = new DataType[numoutcomes];
     for( int j = 0; j < numoutcomes; j++ ){
-      OutcomeType[j] = Binary;
+      OutcomeType.push_back( Binary );
       for(int i = 0; i < NumIndividuals; ++i)
 	if(!outcomeVarMatrix_.isMissing(i, j) && !(outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) ){
-	  OutcomeType[j] = Continuous;
+	  OutcomeType[j] =  Continuous ;
 	  break;
 	}
       //in this way, the outcome type is set as binary only if all individuals have outcome values of 1 or 0
@@ -525,6 +527,28 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
     delete[] OutcomeVarLabels;
   }
   options->setRegType(RegType);
+}
+
+void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
+  if(coxOutcomeVarMatrix_.nCols() !=3){
+    Log << "ERROR: 'coxoutcomevarfile should have 3 columns but has " << coxOutcomeVarMatrix_.nCols() << "\n";
+    exit(1);
+  }
+  if( (int)coxOutcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
+    stringstream s;
+    s << "ERROR: Genotypes file has " << NumIndividuals << " observations and coxoutcomevar file has "
+	<< coxOutcomeVarMatrix_.nRows() - 1 << " observations.\n";
+    throw(s.str());
+  }
+
+  bool flag = false;
+  for(unsigned i = 0; i < coxOutcomeVarMatrix_.nRows(); ++i)
+    if(coxOutcomeVarMatrix_.get(i, 0) >= coxOutcomeVarMatrix_.get(i, 1)){
+      Log << "Error in coxoutcomevarfile on line " <<i << " : finish times must be later than start times\n";
+      flag = true;
+    }
+  if(flag)exit(1);
+
 }
 
 void InputData::CheckCovariatesFile(LogWriter &Log)const{
@@ -656,8 +680,11 @@ void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0
 }
 
 void InputData::getOutcomeTypes(DataType* T)const{
-  for(unsigned i = 0; i < outcomeVarMatrix_.nCols(); ++i)
+  for(unsigned i = 0; i < OutcomeType.size(); ++i)
     T[i] = OutcomeType[i];
+}
+DataType InputData::getOutcomeType(unsigned i)const{
+    return OutcomeType[i];
 }
 const Matrix_s& InputData::getLocusData() const
 {
