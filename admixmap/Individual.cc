@@ -41,8 +41,10 @@ unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
 int Individual::Populations;
 
-void operator<<(std::ostream& os, const hapPair &h){
+///for printing a happair
+std::ostream& operator<<(std::ostream& os, const hapPair &h){
   os << h.haps[0] << " " << h.haps[1];
+  return os;
 }
 
 //******** Constructors **********
@@ -155,10 +157,6 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
     //NOTE: X data not yet supported in parallel version
 #else
-    //     if( (Loci->GetChrNumOfLocus(j)==X_posn) && (sex==male)){
-    //       (*Loci)(j)->setPossibleXHaplotypes(genotypes[j], PossibleHapPairs[j]);
-    //     }
-    //     else
     (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
 #endif
     
@@ -548,6 +546,13 @@ bool Individual::GenotypeIsMissing(unsigned int locus)const {
 bool Individual::simpleGenotypeIsMissing(unsigned locus)const{
   if(!missingGenotypes)throw string("missingGenotypes not allocated");
   return missingGenotypes[locus];
+}
+
+bool Individual::isFemale()const{
+  return SexIsFemale;
+}
+bool Individual::isHaploidatLocus(unsigned j)const{
+  return (bool)(!SexIsFemale && Loci->isXLocus(j));
 }
 //****************** Log-Likelihoods **********************
 // public function: 
