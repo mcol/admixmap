@@ -61,6 +61,7 @@ public:
 
   unsigned getFirstXLocus()const;
   unsigned isXChromosome(unsigned);
+  bool isXLocus(unsigned j)const;
 
   double GetDistance(int)const;
 

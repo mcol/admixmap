@@ -355,6 +355,9 @@ double Genome::GetLengthOfXchrm()const
 unsigned Genome::isXChromosome(unsigned j){
   return C[j]->isXChromosome();
 }
+bool Genome::isXLocus(unsigned j)const{
+  return C[LocusTable[j][0]]->isXChromosome();
+}
 /// returns index of X chromosome
 unsigned Genome::getFirstXLocus()const{
   if(X_data)return XChromosomeIndex;
