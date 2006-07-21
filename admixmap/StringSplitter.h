@@ -6,7 +6,7 @@
 
 /**
  *  @class StringSplitter.
- *  Purpose: used to split string to separate words. Words can be 
+ *  Used to split string to separate words. Words can be 
  *      enclosed or not enclosed in quotes. Words enclosed in quotes can contain
  *      space symbols.
  *  Important:
@@ -17,17 +17,18 @@
 class StringSplitter
 {
 public:
-  /// = Ctr/dtr.
-  
   StringSplitter();
   ~StringSplitter();
   
-  
   /// = Splitting (see comments for class above).
-  
+
+  /// splits a char array into a vector of strings, splitting on whitespace.  
   const Vector_s& split(const char *str);
+  /// splits a string into a vector of strings, splitting on whitespace.  .  
   const Vector_s& split(const std::string& str);
-  void Tokenize(const std::string& str, std::vector<std::string>& tokens,
+  ///   Splits a string into tokens, splitting on any character(s).
+  void Tokenize(const std::string& str,
+		std::vector<std::string>& tokens,
 		const std::string& delimiters);
 
 private:
