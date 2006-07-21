@@ -398,7 +398,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     }
     else{  //set default Allele Freqs
       SetDefaultAlleleFreqs(i);
-      if(!options->getHapMixModelIndicator()){//prior for hapmix model is set later in Initialise
+      if(!options->getHapMixModelIndicator() && RandomAlleleFreqs){//prior for hapmix model is set later in Initialise
 	// reference prior on allele freqs: all elements of parameter vector set to 0.5
 	// this is unrealistic for large haplotypes - should set all elements to sum to 1
 	double defaultpriorparams = 0.5;
