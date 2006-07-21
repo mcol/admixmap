@@ -19,6 +19,7 @@
 //#include "IndividualCollection.h"
 #include "LogWriter.h"
 
+class DataMatrix;
 class IndividualCollection;//to avoid circular includes
 
 ///Abstract Base Class for a generic Regression
@@ -28,7 +29,7 @@ public:
   virtual ~Regression();
   virtual void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &) = 0;
   void Initialise(unsigned Number, const IndividualCollection* const individuals);
-  void SetExpectedY(IndividualCollection* IC)const;
+  virtual void SetExpectedY(IndividualCollection* IC)const;
   virtual void Update(bool sumbeta, IndividualCollection* individuals, double coolness
 #ifdef PARALLEL
 			, MPI::Intracomm &Comm
@@ -65,6 +66,8 @@ protected:
 
   static std::ofstream outputstream;
   void SumParameters();
+  static void getExpectedOutcome(const double* const beta, const double* const X, double* EY, int n, int d);
+  static void getExpectedOutcome(const double* const beta, const double* const X, double* Y, int n, int dim, int index, double betaj);
 };
 
 

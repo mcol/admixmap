@@ -147,6 +147,28 @@ void Regression::SetExpectedY(IndividualCollection *IC)const{
   IC->SetExpectedY(RegNumber, beta);
 }
 
+///given an array of regression parameters beta and covariates X, computes expected outcome EY = X * beta, 
+///with index'th element of beta replaced with betaj.
+void Regression::getExpectedOutcome(const double* const beta, const double* const X, double* EY, int n, int dim, int index, double betaj){
+  double* beta1 = new double[dim];
+
+  for( int j = 0; j < dim; j++ )
+    {
+      if( j != index )
+	beta1[ j ] = beta[j];
+      else
+	beta1[ j ] = betaj;//substitute supplied betaj for current value of beta[j]
+    }
+  //Xbeta = X * beta1;
+  matrix_product(X, beta1, EY, n, dim, 1);
+  delete[] beta1;
+}
+
+///given an array of regression parameters beta and covariates X, computes expected outcome EY = X * beta
+void Regression::getExpectedOutcome(const double* const beta, const double* const X, double* EY, int n, int d){
+  getExpectedOutcome(beta, X, EY, n, d, -1, 0.0);
+}
+
 void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &Log){
   //output to logfile
   if( iteration == -1 )
