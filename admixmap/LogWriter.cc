@@ -1,25 +1,15 @@
-/** 
- *   ADMIXMAP
+/*
  *   LogWriter.cc 
- *   Class responsible for writing to the log file
- *   Copyright (c) 2005 LSHTM
+ *   Class for writing to a log file
+ *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "LogWriter.h"
-#include "admixmap.h"
 
 using namespace::std;
 
@@ -58,7 +48,7 @@ LogWriter& LogWriter::operator<<(const int message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
-  }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const unsigned message){
@@ -67,16 +57,16 @@ LogWriter& LogWriter::operator<<(const unsigned message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
-  }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const long message){
     if(rank==0){
-	LogFileStream << message;
-	if(toscreen==On || (verbose && toscreen==Quiet)){
-	    cout << message;
-	}
+  LogFileStream << message;
+  if(toscreen==On || (verbose && toscreen==Quiet)){
+    cout << message;
   }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const double message){
@@ -85,7 +75,7 @@ LogWriter& LogWriter::operator<<(const double message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message;
   }
-  }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const string message){
@@ -94,7 +84,7 @@ LogWriter& LogWriter::operator<<(const string message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message << flush;
   }
-  }
+    }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const char* message){
@@ -103,20 +93,20 @@ LogWriter& LogWriter::operator<<(const char* message){
   if(toscreen==On || (verbose && toscreen==Quiet)){
     cout << message << flush;
   }
-  }
+    }
   return *this;
 }
 
 void LogWriter::width(const unsigned w){
     if(rank==0){
   LogFileStream.width(w);
-  }
+    }
 }
 void LogWriter::setPrecision(int p){
     if(rank==0){
   LogFileStream<<setprecision(p);
   cout<<setprecision(p);
-  }
+    }
 }
 
 void LogWriter::StartMessage(){
@@ -130,9 +120,7 @@ void LogWriter::StartMessage(){
   tm timer = *localtime( &StartTime );
 
   toscreen = On;
-  LogFileStream << "-----------------------------------------------" << endl;
-  LogFileStream << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
-  LogFileStream << "-----------------------------------------------" << endl;
+
 #ifdef PARALLEL
   *this << "Running on " << MPI::COMM_WORLD.Get_size() << " processors\n";
 #endif
@@ -145,29 +133,29 @@ void LogWriter::StartMessage(){
 void LogWriter::ProcessingTime()
 {
     if(rank==0){
-	long EndTime = time(0);
-	tm timer;
-	timer = *localtime( &EndTime );
-	
-	toscreen = On;
-	*this << "Program finished at " << timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")
-	      << timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "")  << timer.tm_sec << " "
-	      << timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
-	
-	double realtime = difftime(EndTime, StartTime);
-	*this << "Elapsed time = ";
-	if(realtime > 3600.0){
-	    int hours = (int)(realtime/3600);
-	    *this << hours << "h, ";
-	    realtime -= (double)(hours*3600);
-	}
-	//if(realtime > 60.0){
-	int mins = (int)(realtime/60);
-	*this <<  mins << "m, ";
-	realtime -= (double)(mins*60);
-	//}
-	
-	*this << (int)realtime << "s\n";
+  long EndTime = time(0);
+  tm timer;
+  timer = *localtime( &EndTime );
+
+  toscreen = On;
+  *this << "Program finished at " << timer.tm_hour << ":" << (timer.tm_min < 10 ? "0" : "")
+	<< timer.tm_min << "." << (timer.tm_sec < 10 ? "0" : "")  << timer.tm_sec << " "
+	<< timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
+
+  double realtime = difftime(EndTime, StartTime);
+  *this << "Elapsed time = ";
+  if(realtime > 3600.0){
+    int hours = (int)(realtime/3600);
+    *this << hours << "h, ";
+    realtime -= (double)(hours*3600);
+  }
+  //if(realtime > 60.0){
+  int mins = (int)(realtime/60);
+  *this <<  mins << "m, ";
+  realtime -= (double)(mins*60);
+  //}
+  
+  *this << (int)realtime << "s\n";
     }
 }
 

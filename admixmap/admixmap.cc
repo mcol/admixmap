@@ -129,7 +129,12 @@ int main( int argc , char** argv ){
   //open logfile, start timer and print start message
   LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
-  if(rank<1)Log.StartMessage();
+  if(rank<1){
+    Log << "-----------------------------------------------\n";
+    Log << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **\n";
+    Log << "-----------------------------------------------\n";
+    Log.StartMessage();
+  }
 
   try{  
     Rand RNG;//allocate random number generator

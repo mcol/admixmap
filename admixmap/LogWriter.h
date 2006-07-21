@@ -1,24 +1,14 @@
 // *-*-C++-*-*
-/** 
- *   ADMIXMAP
+/* 
  *   LogWriter.h
- *   Header file for LogWriter class
- *   all writing to the logfile is done via this class
- *   Copyright (c) 2005 LSHTM
+ *   Class for writing to a log file
+ *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #ifndef LOGWRITER_H
 #define LOGWRITER_H 1
@@ -27,22 +17,28 @@
 #include <iostream>
 #include <iomanip>
 
+/**
+   enum for three different display modes.
+   set DisplayMode to Off to output only to logfile and not screen
+   Quiet        to logfile and if displaylevel>1 to screen
+   On            to logfile and to screen
+   EXAMPLES:
+   (1) to write to logfile only (logging messages):
+   setDisplayMode(Off); Log<<message;
+   (2) to write to log and screen (important messages):
+   setDisplayMode(On); Log<<message;
+   (3) to write to log and let user determine whether to write to screen (unimportant information)
+   setDisplayMode(Quiet); Log<<message;
+*/
 enum DisplayMode {Off, Quiet, On};
-//set DisplayMode to Off to output only to logfile and not screen
-//                   Quiet        to logfile and if displaylevel>1 to screen
-//                   On            to logfile and to screen
-//EXAMPLES:
-//(1) to write to logfile only (logging messages):
-//setDisplayMode(Off); Log<<message;
-//(2) to write to log and screen (important messages):
-//setDisplayMode(On); Log<<message;
-// (3) to write to log and let user determine whether to write to screen (unimportant information)
-//setDisplayMode(Quiet); Log<<message;
 
+///Class to write to a logfile.
+///Use insertion operator after setting appropriate display mode.
+//Currently does not accept manipulators like flush, endl;
 class LogWriter
 {
 public:
-  LogWriter();
+  ///constructor - supply filename and indicate behaviour for quiet mode
   LogWriter(const char *LogFilename, const bool isverbose);
   ~LogWriter();
 
@@ -54,19 +50,26 @@ public:
   LogWriter& operator<<(const double);
   LogWriter& operator<<(const std::string);
   LogWriter& operator<<(const char*);
-
-  void width(const unsigned w);//calls width function for LogFileStream
+  ///calls width function for LogFileStream
+  void width(const unsigned w);
+  //set number of digits in output
   void setPrecision(int);
-
-  void StartMessage();//prints startup message
-  void ProcessingTime();//prints finish time and time elapsed
+  ///prints startup message
+  void StartMessage();
+  ///prints finish time and time elapsed
+  void ProcessingTime();
 
 private:
   std::ofstream LogFileStream;
-  bool verbose;
+  bool verbose;///< determines if output goes to screen in quiet mode
   long StartTime;
   DisplayMode toscreen;
-    int rank;
+  int rank;
+
+  ///default constructor, makes verbose output, no logfile
+  LogWriter();
+
+
 };
 
 #endif /* !defined LATENT_H */
