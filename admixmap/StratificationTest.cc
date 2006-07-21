@@ -91,7 +91,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
     if(rank == 0){
       if( NumberOfTestLoci < 2 ){
 	Log.setDisplayMode(On);
-	Log << "Too few unlinked diallelic loci to run stratification test\n";
+	Log << "Too few unlinked loci to run stratification test\n";
 	options->setStratificationTest(false);
 	if(outputstream.is_open())outputstream.close();
       }
@@ -124,35 +124,39 @@ void StratificationTest::calculate( const IndividualCollection* const individual
 
   for( int j = 0; j < NumberOfTestLoci; j++ ){
     int jj = TestLoci[j];
+
     //const double* const freqs = AlleleFreqs[jj];  // array of length (NumberOfStates-1)*Populations
 
     for( int i = 0; i < individuals->getSize(); i++ ){
       const Individual* const ind = individuals->getIndividual(i);
-      if(ind->GenotypeIsMissing(jj)){// if genotype is missing, sample it
-	int ancestry[2];
-	ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
-	genotype = SimGenotypeConditionalOnAncestry(AlleleFreqs[jj] , ancestry );
-      }
-      else{//get sample haplotype pair
-	// (the number of copies of allele1 is the same as in the observed genotype)
-	const int* genotypeArray = ind->getSampledHapPair(jj);
-	genotype[0] = genotypeArray[0]+1;
-	genotype[1] = genotypeArray[1]+1;
-      }
-      //if( genotype[0] != genotype[1] ){ // if heterozygous
-      // genotype = SampleHeterozygotePhase( freqs, ancestry ); // sample phase conditional on ordered diploid ancestry 
-      //} else 
-      
-      // ProbAllele1 = Prob( allele 1 ) conditional on individual admixture
-      vector<double> ProbAllele1 = GenerateExpectedGenotype( ind, AlleleFreqs[jj], Populations );
-      vector<unsigned short> repgenotype = SimGenotypeConditionalOnAdmixture( ProbAllele1 );
-      // vector<unsigned short> repgenotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
-      // Calculate score X = Obs0 + Obs1 - Expected0 - Expected1, where Obs0, Obs1 are coded 1 for allele 1, 0 for allele 2
-      // Obs0 + Obs1 = 4 - genotype[0] - genotype[1]
-      gsl_matrix_set(popX, i, j, (double)(4 - genotype[0] - genotype[1]) - ProbAllele1[0] - ProbAllele1[1]);
-      gsl_matrix_set(popRepX, i, j ,(double)(4 - repgenotype[0] - repgenotype[1]) - ProbAllele1[0] - ProbAllele1[1]);
-    }  
-  }
+      bool diploid = !(ind->isHaploidatLocus(jj));
+      if(diploid){//skip Xloci in males
+	if(ind->GenotypeIsMissing(jj)){// if genotype is missing, sample it
+	  int ancestry[2];
+	  ind->GetLocusAncestry( ChrmAndLocus[jj][0], ChrmAndLocus[jj][1], ancestry );
+	  genotype = SimGenotypeConditionalOnAncestry(AlleleFreqs[jj] , ancestry );
+	}
+	else{//get sampled haplotype pair
+	  // (the number of copies of allele1 is the same as in the observed genotype)
+	  const int* genotypeArray = ind->getSampledHapPair(jj);
+	  genotype[0] = genotypeArray[0]+1;
+	  genotype[1] = genotypeArray[1]+1;
+	}
+	//if( genotype[0] != genotype[1] ){ // if heterozygous
+	// genotype = SampleHeterozygotePhase( freqs, ancestry ); // sample phase conditional on ordered diploid ancestry 
+	//} else 
+	
+	// ProbAllele1 = Prob( allele 1 ) conditional on individual admixture
+	vector<double> ProbAllele1 = GenerateExpectedGenotype( ind, AlleleFreqs[jj], Populations );
+	vector<unsigned short> repgenotype = SimGenotypeConditionalOnAdmixture( ProbAllele1 );
+	// vector<unsigned short> repgenotype = SimGenotypeConditionalOnAncestry( freqs, ancestry );
+	// Calculate score X = Obs0 + Obs1 - Expected0 - Expected1, where Obs0, Obs1 are coded 1 for allele 1, 0 for allele 2
+	// Obs0 + Obs1 = 4 - genotype[0] - genotype[1]
+	gsl_matrix_set(popX, i, j, (double)(4 - genotype[0] - genotype[1]) - ProbAllele1[0] - ProbAllele1[1]);
+	gsl_matrix_set(popRepX, i, j ,(double)(4 - repgenotype[0] - repgenotype[1]) - ProbAllele1[0] - ProbAllele1[1]);
+      }//end is diploid
+    }//end indiv loop  
+  }//end locus loop
   
   // covariance matrix for (observed minus expected copies allele 1) scores
   gsl_matrix *Cov = gsl_matrix_calloc(NumberOfTestLoci, NumberOfTestLoci);

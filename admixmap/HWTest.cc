@@ -94,36 +94,40 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
       
       for(int i = 0; i < IC->getSize(); ++i) { // loop over individuals to get locus ancestry
 	ind = IC->getIndividual(i);
-	Ancestry0 = ind->GetLocusAncestry( (int)chr, 0, j);
-	Ancestry1 = ind->GetLocusAncestry( (int)chr, 1, j);
-	const int* happair = ind->getSampledHapPair(complocus);
-	(*Loci)(complocus)->decodeIntAsHapAlleles(happair[0], alleles0);
-	(*Loci)(complocus)->decodeIntAsHapAlleles(happair[1], alleles1);
-	//retrieve marginal alleleprobs for composite locus complocus, given current ancestry states on each gamete of ind
-	(*Loci)(complocus)->getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
-	(*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);
-	locus = slocus;
-	
-	for(unsigned int jj = 0; jj < NumSimpleLociWithinCL; ++jj){       //loop over simple loci within comp locus
-	  if( !ind->simpleGenotypeIsMissing(locus)){ //non-missing genotype, assumes second gamete missing if first is
-	    h = alleles0[jj] != alleles1[jj];
-	    H = 1.0;
-	    //compute prob of heterozygosity by subtracting from 1 the prob of homozygosity, ie sum of diagonal products	    
-	    for(int a = 0; a < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
-	      H -= Prob0[jj][a] * Prob1[jj][a];
-	    }
-	    //accumulate score over individuals
-	    if( h ){//heterozygous - prob H under null
-	      score[locus ] -= 1.0 - H; 
-	    }
-	    else {//homozygous - prob (1-H) under null
-	      score[locus ] += H;   
-	    }
-	    suminfo[locus ] += H * (1.0 - H); 
-	  } 
-	  ++locus;
-	} // ends loop over simple loci within compound locus
-	ind = 0;
+	//bool diploid = !ind->isFemale() && Loci->isXLocus(complocus);
+	bool diploid = !(ind->isHaploidatLocus(complocus));
+	if(diploid){//skip Xloci in males
+	  Ancestry0 = ind->GetLocusAncestry( (int)chr, 0, j);
+	  Ancestry1 = ind->GetLocusAncestry( (int)chr, 1, j);
+	  const int* happair = ind->getSampledHapPair(complocus);
+	  (*Loci)(complocus)->decodeIntAsHapAlleles(happair[0], alleles0);
+	  (*Loci)(complocus)->decodeIntAsHapAlleles(happair[1], alleles1);
+	  //retrieve marginal alleleprobs for composite locus complocus, given current ancestry states on each gamete of ind
+	  (*Loci)(complocus)->getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
+	  (*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);
+	  locus = slocus;
+	  
+	  for(unsigned int jj = 0; jj < NumSimpleLociWithinCL; ++jj){       //loop over simple loci within comp locus
+	    if( !ind->simpleGenotypeIsMissing(locus)){ //non-missing genotype, assumes second gamete missing if first is
+	      h = alleles0[jj] != alleles1[jj];
+	      H = 1.0;
+	      //compute prob of heterozygosity by subtracting from 1 the prob of homozygosity, ie sum of diagonal products	    
+	      for(int a = 0; a < (*Loci)(complocus)->GetNumberOfAllelesOfLocus(jj); ++a){//loop over alleles
+		H -= Prob0[jj][a] * Prob1[jj][a];
+	      }
+	      //accumulate score over individuals
+	      if( h ){//heterozygous - prob H under null
+		score[locus ] -= 1.0 - H; 
+	      }
+	      else {//homozygous - prob (1-H) under null
+		score[locus ] += H;   
+	      }
+	      suminfo[locus ] += H * (1.0 - H); 
+	    } 
+	    ++locus;
+	  } // ends loop over simple loci within compound locus
+	  ind = 0;
+	}
       } // ends loop over individuals 
 
       //reset pointers for next compound locus	

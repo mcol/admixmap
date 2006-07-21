@@ -21,6 +21,7 @@
 #include "AlleleFreqs.h"
 #include "LogWriter.h"
 
+///Class to implement a test for residual population stratification
 class StratificationTest
 {
 public:
