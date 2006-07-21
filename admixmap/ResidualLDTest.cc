@@ -32,35 +32,35 @@ ResidualLDTest::ResidualLDTest(){
 }
 
 ResidualLDTest::~ResidualLDTest(){
-  if(test){
-    for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
-      unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
-      for(unsigned k = 0; k < NumberOfLoci-1; ++k){
-	delete[] Score[j][k];
-	delete[] Info[j][k];
-	if(rank==0){
-	  delete[] SumScore[j][k];
-	  delete[] SumScore2[j][k];
-	  delete[] SumInfo[j][k];
-	}
-      }
-      delete[] Score[j];
-      delete[] Info[j];
-      if(rank==0){
-	delete[] SumScore[j];
-	delete[] SumScore2[j];
-	delete[] SumInfo[j];
-      }
-    }
-    if(rank==0){
-      delete[] SumScore;
-      delete[] SumScore2;
-      delete[] SumInfo;
+  if(test){//TODO: find a way to delete properly. Maybe use STL vectors
+//     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
+//       unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
+//       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
+// 	delete[] Score[j][k];
+// 	delete[] Info[j][k];
+// 	if(rank==0){
+// 	  delete[] SumScore[j][k];
+// 	  delete[] SumScore2[j][k];
+// 	  delete[] SumInfo[j][k];
+// 	}
+//       }
+//       delete[] Score[j];
+//       delete[] Info[j];
+//       if(rank==0){
+// 	delete[] SumScore[j];
+// 	delete[] SumScore2[j];
+// 	delete[] SumInfo[j];
+//       }
+//     }
+//     if(rank==0){
+//       delete[] SumScore;
+//       delete[] SumScore2;
+//       delete[] SumInfo;
 
-    }
-    delete[] Score;
-    delete[] Info;
-  }
+//     }
+//     delete[] Score;
+//     delete[] Info;
+   }
 }
 
 #ifdef PARALLEL
@@ -258,7 +258,9 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
 	ind->GetLocusAncestry(c, locus+1, ancB);
 	const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
 	const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
-	for(int g = 0; g < 2; ++g){
+	int numGametes = 2;
+	if(hA[1] < 0) numGametes = 1;//haplotype not happair
+	for(int g = 0; g < numGametes; ++g){
 	  //if(ancA[g] == ancB[g]){ 
 	  ++count;//count number of gametes with ancestry states the same at both loci
 	  
@@ -301,8 +303,9 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation_1D(int c, int loc
       ind->GetLocusAncestry(c, locus+1, ancB);
       const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
       const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
-      
-      for(int g = 0; g < 2; ++g){
+      int numGametes = 2;
+      if(hA[1] < 0) numGametes = 1;//haplotype not happair
+      for(int g = 0; g < numGametes; ++g){
 	//if(ancA[g] == ancB[g]){ 
 	++count;//count number of gametes with ancestry states the same at both loci
 	int h = (hA[g] == hB[g]);//indicator for coupling
