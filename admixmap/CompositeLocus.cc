@@ -254,9 +254,10 @@ void CompositeLocus::SetHapPairProbsMAP() {
 #ifndef PARALLEL
   SetHapPairProbs( AlleleProbsMAP, HapPairProbsMAP);
 #endif
+
 }
 
-/// private method
+/// private function
 void CompositeLocus::SetHapPairProbs(const double* alleleProbs, double* hapPairProbs) {
   for(int h0 = 0; h0 < NumberOfStates; ++h0){
     for(int h1 = 0; h1 < NumberOfStates; ++h1){
@@ -647,7 +648,7 @@ void CompositeLocus::setPossibleXHaplotypes(const vector<vector<unsigned short> 
   }
 
   hapPair hpair;
-  hpair.haps[1] = 0;
+  hpair.haps[1] = -1;//using -1 to denote *haplotype* rather than happair (must be nagative as alleles are counted from 0)
 
   if( numMissingLoci == 0 ) {
     hpair.haps[0] = codeHapAllelesAsInt(&(HapAlleles[0]));
