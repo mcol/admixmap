@@ -214,7 +214,7 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
   if ( strlen( options->getCovariatesFilename() ) > 0 ){
     DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
     NumberOfInputCovariates = CovData.nCols();
-    unsigned NumInds = CovData.nRows();//should already have been checked to be the same as in outcomevarfile
+    unsigned NumInds = CovData.nRows()-1;//should already have been checked to be the same as in outcomevarfile
 
     if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator()){
       Covariates.setDimensions(NumInds, CovData.nCols() + options->getPopulations());
