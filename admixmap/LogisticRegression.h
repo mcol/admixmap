@@ -45,10 +45,9 @@ public:
   double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations);
 private:
   // ** Logistic Regression Objects
-  GaussianProposalMH** BetaDrawArray;
+  GaussianProposalMH* BetaSampler;
   BetaArgs BetaParameters;
   int acceptbeta;
-  int *dims;
  
   static double lr( const double beta, const void* const vargs );
   

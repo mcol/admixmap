@@ -1,20 +1,13 @@
 #include "LogisticRegression.h"
 
 LogisticRegression::LogisticRegression(){
-  BetaDrawArray = 0;
+  BetaSampler = 0;
   acceptbeta = 0;
   RegType = Logistic;
-  dims = 0;
 }
 ///deallocates arrays specific to this class
 LogisticRegression::~LogisticRegression(){
-  if(BetaDrawArray){
-    for(int i = 0; i < NumCovariates; i++){
-      delete BetaDrawArray[i];
-    }
-    delete[] BetaDrawArray;
-  }
-  delete[] dims;
+  delete BetaSampler;
 }
 
 void LogisticRegression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
@@ -33,19 +26,11 @@ void LogisticRegression::Initialise(unsigned Number, double priorPrecision, cons
   
   //  ** initialize sampler for logistic regression **
   acceptbeta = 0;
-  BetaDrawArray = new GaussianProposalMH*[NumCovariates];
   
-  for( int i = 0; i < NumCovariates; i++ ){
-    BetaDrawArray[i] = 0;
-  }
-  
-  dims = new int[2];
   BetaParameters.n = NumIndividuals;
   BetaParameters.d = NumCovariates;
-  BetaParameters.beta0 = betamean[0];
-  for( int i = 0; i < NumCovariates; i++ ){
-    BetaDrawArray[i] = new GaussianProposalMH( lr, dlr, ddlr);
-  }
+  BetaParameters.beta = beta;
+  BetaSampler = new GaussianProposalMH( lr, dlr, ddlr);
 }
 
 void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals, double coolness
@@ -61,22 +46,17 @@ void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals,
 
   Y = &(Outcome[0]);
   X = individuals->getCovariates();
-//   double sumNAm = 0.0;
-//   for(int i = 0; i < NumIndividuals; ++i)
-//     sumNAm += X[i*NumCovariates + 4];
-//   cout<< "SumNAm ="<<sumNAm<<endl;
-  
+
+  BetaParameters.Covariates = X; 
   BetaParameters.coolness = coolness; 
   matrix_product(Y, X, XtY, 1, NumIndividuals, NumCovariates);//XtY = X' * Y
   
   for( int j = 0; j < NumCovariates; j++ ){
-    BetaParameters.Covariates = X;
-    BetaParameters.beta = beta;
     BetaParameters.beta0 = betamean[j];
     BetaParameters.priorprecision = betaprecision[j];
     BetaParameters.index = j;
     BetaParameters.XtY = XtY[ j ];
-    acceptbeta = BetaDrawArray[j]->Sample( &( beta[j] ), &BetaParameters );
+    acceptbeta = BetaSampler->Sample( beta + j, &BetaParameters );
   }
   
 #ifdef PARALLEL
@@ -95,12 +75,10 @@ void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals,
 }//end Update
 
 void LogisticRegression::OutputParams(ostream* out){
-  //if( RegType != None ){
   for( int j = 0; j < NumCovariates; j++ ){
     out->width(9);
     (*out) << setprecision(6) << beta[j] << "\t";
   }
-  //}
 }
 
 double LogisticRegression::getDispersion()const{
@@ -137,22 +115,6 @@ double LogisticRegression::getLogLikelihoodAtPosteriorMeans(IndividualCollection
   return logL;
 }
 
-void ExpectedOutcome(const double* const beta, const double* const X, double* Y, int n, int dim, int index, double betaj){
-  //given an array of regression parameters beta and covariates X, computes expected outcome Y = X * beta
-  double* beta1 = new double[dim];
-
-  for( int i = 0; i < dim; i++ )
-    {
-      if( i != index )
-	beta1[ i ] = beta[i];
-      else
-	beta1[ i ] = betaj;
-    }
-  //Xbeta = X * beta1;
-  matrix_product(X, beta1, Y, n, dim, 1);
-  delete[] beta1;
-}
-
 //(unnormalised)log posterior for a single regression parameter
 double LogisticRegression::lr( const double beta, const void* const vargs )
 {
@@ -171,7 +133,7 @@ double LogisticRegression::lr( const double beta, const void* const vargs )
     f += args->XtY * beta;
 
     double *Xbeta = new double[ n ];    
-    ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, args->d, index, beta);
+    Regression::getExpectedOutcome(args->beta, args->Covariates, Xbeta, n, args->d, index, beta);
     
     for( int i = 0; i < n; i++ ){
       f -= log( 1.0 + exp( Xbeta[ i ] ) );}
@@ -205,7 +167,7 @@ double LogisticRegression::dlr( const double beta, const void* const vargs )
     
     double *Xbeta = new double[ n ];
     
-    ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
+    Regression::getExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
     for( int i = 0; i < n; i++ )
       {
 	f -= args->Covariates[ i*d + index ] / ( 1.0 + myexp( -Xbeta[ i ] ) );
@@ -231,7 +193,7 @@ double LogisticRegression::ddlr( const double beta, const void* const vargs )
   if(args->coolness > 0.0){
     double *Xbeta = new double[ n ];
     
-    ExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
+    Regression::getExpectedOutcome(args->beta, args->Covariates, Xbeta, n, d, index, beta);
     
     for( int i = 0; i < n; i++ )
       {
