@@ -52,6 +52,14 @@ void LinearRegression::Initialise(unsigned Number, double priorPrecision, const 
   
 }
 
+void LinearRegression::InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes)
+{
+  Regression::InitializeOutputFile(CovariateLabels, 0);//pass with 0 argument to prevent newline
+  //label for precision
+  outputstream<< setprecision(6) << "precision\t";
+  if(NumOutcomes == RegNumber+1)outputstream << endl;
+}
+
 void LinearRegression::Update(bool sumbeta, IndividualCollection* individuals, double coolness
 #ifdef PARALLEL
 			, MPI::Intracomm &Comm){

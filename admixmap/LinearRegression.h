@@ -12,6 +12,7 @@ public:
   LinearRegression();
   ~LinearRegression();
   void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
+  void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
   //void Initialise(unsigned Number, const IndividualCollection* const individuals);
   double getDispersion()const;
   void OutputParams(ostream* out);

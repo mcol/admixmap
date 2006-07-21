@@ -28,7 +28,7 @@ public:
   Regression();
   virtual ~Regression();
   virtual void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &) = 0;
-  void Initialise(unsigned Number, const IndividualCollection* const individuals);
+  void Initialise(unsigned RegNumber, unsigned numCovariates);
   virtual void SetExpectedY(IndividualCollection* IC)const;
   virtual void Update(bool sumbeta, IndividualCollection* individuals, double coolness
 #ifdef PARALLEL
@@ -37,10 +37,8 @@ public:
 	      ) = 0;
   virtual double getLogLikelihood(const IndividualCollection* const IC)const = 0;
   virtual double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations) = 0;
-  static void OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-  			     const std::string *PopulationLabels, LogWriter &Log);  
-  static void InitializeOutputFile(const AdmixOptions* const , const IndividualCollection* const individuals, 
-  				   const std::string* const PopulationLabels);
+  static void OpenOutputFile(const unsigned NumOutcomes, const char* const filename, LogWriter &Log);  
+  virtual void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
   void Output(int iteration, const AdmixOptions *, LogWriter &Log);
   virtual void OutputParams(ostream* out) = 0;
   void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;

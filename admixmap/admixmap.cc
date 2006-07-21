@@ -29,15 +29,16 @@ double coolness = 1.0; // default
 int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
 void MakeResultsDir(const char* dirname, bool verbose);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-			      LogWriter &Log, std::ofstream *avgstream, const string* const PopulationLabels);
-void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, const AdmixOptions *options, 
-		      const Genome *Loci, ScoreTests *S, LogWriter& Log, const std::string* const PopulationLabels, 
-		      double coolness, bool anneal);
-void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, const AdmixOptions *options, 
-		      LogWriter& Log);
+			      LogWriter &Log, std::ofstream *avgstream, 
+			      const Vector_s& PopLabels, const Vector_s& CovariateLabels);
+void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
+		      const AdmixOptions *options, const Genome *Loci, ScoreTests *S, LogWriter& Log, 
+		      const Vector_s& PopulationLabels, double coolness, bool anneal);
+void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
+		      const AdmixOptions *options, LogWriter& Log);
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
 
-void PrintCopyrightNotice(); 
+void PrintCopyrightNotice(LogWriter & Log); 
 
 void doIterations(const int & samples, const int & burnin, IndividualCollection *IC, Latent & L, AlleleFreqs  & A, 
 		  vector<Regression *>&R, 
@@ -120,19 +121,15 @@ int main( int argc , char** argv ){
   //read user options
   AdmixOptions options(xargc, xargv);
   if(rank<1){
-    //if(options.getDisplayLevel()>0 )
-    PrintCopyrightNotice();
-	
-    MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>1));
+    MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>2));
   }
  
   //open logfile, start timer and print start message
   LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   if(rank<1){
-    Log << "-----------------------------------------------\n";
-    Log << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **\n";
-    Log << "-----------------------------------------------\n";
+    //if(options.getDisplayLevel()>0 )
+    PrintCopyrightNotice(Log);
     Log.StartMessage();
   }
 
@@ -181,6 +178,7 @@ int main( int argc , char** argv ){
 
     vector<Regression*> R;//vector of regression pointers
     if (options.getNumberOfOutcomes()>0 && rank !=1){
+      if( rank<1 )Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
       for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
 	//determine regression type and allocate regression objects
 	if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
@@ -188,10 +186,10 @@ int main( int argc , char** argv ){
 	else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression(data.getCoxOutcomeVarMatrix()));
 
 	if(rank < 1) R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC, Log);
-	else R[r]->Initialise(r, IC);
+	else R[r]->Initialise(r, IC->GetNumCovariates());
+	R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
       }
     }
-    if(rank<1 && R.size()>0)Regression::OpenOutputFile(&options, IC, data.GetPopLabels(), Log);  
     
     if( (options.isGlobalRho() || options.getHapMixModelIndicator()) && (rank>1 || rank==-1)) {
       Loci.SetLocusCorrelation(L.getrho());
@@ -240,7 +238,7 @@ int main( int argc , char** argv ){
       if( options.getHWTestIndicator() )
 	HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
       if(rank<1)
-	InitializeErgodicAvgFile(&options, IC, Log, &avgstream,data.GetPopLabels());
+	InitializeErgodicAvgFile(&options, IC, Log, &avgstream, data.GetPopLabels(), data.getCovariateLabels());
       //}
 
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
@@ -694,7 +692,8 @@ int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
 
 //this function is here because three different objects have to write to avgstream
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-			      LogWriter &Log, std::ofstream *avgstream, const std::string* const PopulationLabels){
+			      LogWriter &Log, std::ofstream *avgstream, 
+			      const Vector_s& PopulationLabels, const Vector_s& CovariateLabels){
   Log.setDisplayMode(Quiet);
   //Open ErgodicAverageFile  
   if( strlen( options->getErgodicAverageFilename() ) ) {
@@ -736,16 +735,10 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
     if( options->getNumberOfOutcomes() > 0 ){
       for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
 	*avgstream << "intercept\t";
-	if(strlen(options->getCovariatesFilename()) > 0){//if covariatesfile specified
-	  for( int i = 0; i < individuals->GetNumberOfInputCovariates(); i++ ){
-	    *avgstream << individuals->getCovariateLabels(i) << "\t";//write covariate labels to header
-	  }
-	}
-	if( !options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation() ){
-	  for( int k = 1; k < options->getPopulations(); k++ ){
-	    *avgstream << PopulationLabels[k] << "\t";//write population labels (admixture covariates) to header
-	  }
-	}
+
+	//write covariate labels to header
+	copy(CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(*avgstream, "\t")); 
+
 	if( individuals->getOutcomeType(r)==Continuous )//linear regression
 	  *avgstream << "precision\t";
       }
@@ -764,7 +757,7 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
 		      const AdmixOptions *options, const Genome *Loci, ScoreTests *S, LogWriter& Log, 
-		      const std::string* const PopulationLabels, double coolness, bool anneal){
+		      const Vector_s& PopulationLabels, double coolness, bool anneal){
 #ifdef PARALLEL
   const int rank = MPI::COMM_WORLD.Get_rank();
 #else 
@@ -988,17 +981,20 @@ void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnerg
   EVarDeviance = 4.0 * SumEnergySq / (double)samples - EAvDeviance*EAvDeviance;//ergodic variance of deviance 
   *avgstream << EAvDeviance << " "<< EVarDeviance <<" ";
 }
-void PrintCopyrightNotice(){
-  cout << "\n-------------------------------------------------------" << endl;
-  cout << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **" << endl;
-  cout << "-------------------------------------------------------" << endl;
-  cout << "Copyright(c) 2002-2006 " <<endl;
-  cout << "David O'Donnell, Clive Hoggart and Paul McKeigue"<<endl;
-  cout << "Send any comments or queries to david . odonnell@ucd.ie"<<endl;
-  cout << "-------------------------------------------------------"<<endl;
-  cout << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl;
-  cout << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl;
-  cout << "-------------------------------------------------------" << endl;
+void PrintCopyrightNotice(LogWriter& Log){
+  Log.setDisplayMode(On);
+  cout << endl;
+  Log << "-------------------------------------------------------\n"
+      << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **\n"
+      << "-------------------------------------------------------\n";
+  Log.setDisplayMode(Quiet);
+  cout << "Copyright(c) 2002-2006 " << endl
+       << "David O'Donnell, Clive Hoggart and Paul McKeigue" << endl
+       << "Send any comments or queries to david . odonnell@ucd.ie"<<endl
+       << "-------------------------------------------------------"<<endl
+       << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl
+       << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl
+       << "-------------------------------------------------------" << endl;
 }
 
 void PrintOptionsMessage() {

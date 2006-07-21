@@ -42,12 +42,11 @@ Regression::~Regression(){
   delete[] betaprecision;
 }
 
-void Regression::OpenOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-				const std::string* const PopulationLabels, LogWriter &Log){
+void Regression::OpenOutputFile(const unsigned NumOutcomes, const char* const filename, LogWriter &Log){
   //Open paramfile
-  if ( options->getNumberOfOutcomes()>0){ 
-    if ( strlen( options->getRegressionOutputFilename() ) ){
-      outputstream.open( options->getRegressionOutputFilename(), ios::out );
+  if ( NumOutcomes){ 
+    if ( strlen( filename ) ){
+      outputstream.open( filename, ios::out );
       if( !outputstream )
 	{
 	  Log.setDisplayMode(On);
@@ -56,8 +55,7 @@ void Regression::OpenOutputFile(const AdmixOptions* const options, const Individ
 	}
       else{
 	Log.setDisplayMode(Quiet);
-	Log << "Writing regression parameters to " << options->getRegressionOutputFilename() << "\n";
-	InitializeOutputFile(options, individuals, PopulationLabels);
+	Log << "Writing regression parameters to " << filename << "\n";
       }
     }
     else{
@@ -66,33 +64,22 @@ void Regression::OpenOutputFile(const AdmixOptions* const options, const Individ
   }
 }
 
-void Regression::InitializeOutputFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
-				      const std::string* const PopulationLabels)
+void Regression::InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes)
 {
   // Header line of paramfile
-  for( int kk = 0; kk < options->getNumberOfOutcomes(); kk++ ){
-      outputstream << "intercept\t";
-      const Vector_s& labels = individuals->getCovariateLabels();
-      for( unsigned i = 0; i < labels.size(); i++ ){
-	outputstream << labels[i] << "\t";
-      }
-      if( !options->getTestForAdmixtureAssociation() && !options->getHapMixModelIndicator() )
-	for( int k = 1; k < options->getPopulations(); k++ ){
-	  outputstream << "slope." << PopulationLabels[k] << "\t";
-	}
-      if( individuals->getOutcomeType(kk) == Continuous ){
-	outputstream<< setprecision(6) << "precision\t";
-      }
-    }
-  outputstream << endl;
+  outputstream << "intercept\t";
+  for( unsigned i = 0; i < CovariateLabels.size(); i++ ){
+    outputstream << CovariateLabels[i] << "\t";
+  }
+  if(NumOutcomes == RegNumber+1)outputstream << endl;
 }
 
-void Regression::Initialise(unsigned Number, const IndividualCollection* const individuals){
+void Regression::Initialise(unsigned Number, const unsigned numCovariates){
   //set regression number for this object
   RegNumber = Number;
   
-  // ** Objects common to both regression types
-  NumCovariates = individuals->GetNumCovariates();
+  // ** Objects common to all regression types
+  NumCovariates = numCovariates;
   beta = new double[ NumCovariates ];
   lambda = 1.0; 
 }
@@ -102,7 +89,7 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   //set regression number for this object
   RegNumber = Number;
   
-  // ** Objects common to both regression types
+  // ** Objects common to all regression types
   NumCovariates = individuals->GetNumCovariates();
   NumIndividuals = individuals->getSize();
   
