@@ -75,9 +75,11 @@ public:
 
   void getOutcomeTypes(DataType*)const;
   DataType getOutcomeType(unsigned)const;
-  std::string *GetPopLabels() const;
+  const Vector_s& GetPopLabels() const;
   Vector_s getOutcomeLabels()const;
   const Vector_s& getLocusLabels()const;
+  const Vector_s getCovariateLabels()const;
+  //TODO: make all above const
 
   //void convertGenotypesToIntArray(AdmixOptions *options);
   //void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
@@ -111,16 +113,17 @@ private:
   DataMatrix etaPriorMatrix_;
   DataMatrix reportedAncestryMatrix_;
 
-  std::string* PopulationLabels;
+  Vector_s PopulationLabels;
   std::vector<std::string> LocusLabels;
   Vector_s OutcomeLabels;
   std::vector<DataType> OutcomeType;
+  Vector_s CovariateLabels;
   int NumIndividuals;
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
   bool IsPedFile;
 
-  void getPopLabels(const Vector_s& data, size_t Populations, std::string **labels);
+  void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
   void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
   void readGenotypesFile(const char *fname, Matrix_s& data);
   void CheckGeneticData(AdmixOptions *options)const;
@@ -129,7 +132,7 @@ private:
   void CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log);
   void CheckOutcomeVarFile(AdmixOptions * const options, LogWriter &Log);
   void CheckCoxOutcomeVarFile(LogWriter &log)const;
-  void CheckCovariatesFile(LogWriter &log)const;
+  void CheckCovariatesFile(LogWriter &log, bool usePopLabels);
   void CheckRepAncestryFile(int populations, LogWriter &Log)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
   bool determineIfPedFile()const;
