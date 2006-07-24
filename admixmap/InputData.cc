@@ -531,7 +531,7 @@ void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
     Log << "ERROR: 'coxoutcomevarfile should have 3 columns but has " << coxOutcomeVarMatrix_.nCols() << "\n";
     exit(1);
   }
-  if( (int)coxOutcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
+  if( (int)coxOutcomeVarMatrix_.nRows() != NumIndividuals ){
     stringstream s;
     s << "ERROR: Genotypes file has " << NumIndividuals << " observations and coxoutcomevar file has "
 	<< coxOutcomeVarMatrix_.nRows() - 1 << " observations.\n";
