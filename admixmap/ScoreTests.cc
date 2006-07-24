@@ -357,7 +357,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     | haplotype association |
     ----------------------*/  
   if( strlen( options->getHaplotypeAssociationScoreFilename() ) ){
-    if(Lociptr->GetTotalNumberOfLoci() >= Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
+    if(Lociptr->GetTotalNumberOfLoci() > Lociptr->GetNumberOfCompositeLoci()){//cannot test for SNPs in Haplotype if only simple loci
       if(rank==0)OpenFile(Log, &HaplotypeAssocScoreStream, options->getHaplotypeAssociationScoreFilename(), "Tests for haplotype associations");
     }
     else {
