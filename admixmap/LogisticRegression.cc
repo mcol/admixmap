@@ -33,7 +33,7 @@ void LogisticRegression::Initialise(unsigned Number, double priorPrecision, cons
   BetaSampler = new GaussianProposalMH( lr, dlr, ddlr);
 }
 
-void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals, double coolness
+void LogisticRegression::Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
 			, MPI::Intracomm &Comm){
   if(Comm.Get_rank() == 0){
@@ -42,14 +42,10 @@ void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals,
 #endif
 
   // Sample for regression model parameters beta
-  std::vector<double> Outcome = individuals->getOutcome(RegNumber);
 
-  Y = &(Outcome[0]);
-  X = individuals->getCovariates();
-
-  BetaParameters.Covariates = X; 
+  BetaParameters.Covariates = Covariates; 
   BetaParameters.coolness = coolness; 
-  matrix_product(Y, X, XtY, 1, NumIndividuals, NumCovariates);//XtY = X' * Y
+  matrix_product(&(Outcome[0]), Covariates, XtY, 1, NumIndividuals, NumCovariates);//XtY = X' * Y
   
   for( int j = 0; j < NumCovariates; j++ ){
     BetaParameters.beta0 = betamean[j];
@@ -64,22 +60,12 @@ void LogisticRegression::Update(bool sumbeta, IndividualCollection* individuals,
   //broadcast parameters to workers
   Comm.Barrier();
   Comm.Bcast(beta, NumCovariates, MPI::DOUBLE, 0);
-  if(RegType == Linear)Comm.Bcast(&lambda, 1, MPI::DOUBLE, 0);
 #endif
-  
-  individuals->SetExpectedY(RegNumber,beta);
   
   if(sumbeta){
     SumParameters();
   }
 }//end Update
-
-void LogisticRegression::OutputParams(ostream* out){
-  for( int j = 0; j < NumCovariates; j++ ){
-    out->width(9);
-    (*out) << setprecision(6) << beta[j] << "\t";
-  }
-}
 
 double LogisticRegression::getDispersion()const{
   return 1.0;

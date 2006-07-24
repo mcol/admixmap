@@ -750,7 +750,7 @@ double IndividualCollection::GetSumrho()const
    return Sumrho;
 }
 
-vector<double> IndividualCollection::getOutcome(int j)const{
+const vector<double> IndividualCollection::getOutcome(int j)const{
   return Outcome.getCol(j);
 }
 

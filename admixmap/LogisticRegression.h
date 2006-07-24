@@ -33,10 +33,9 @@ public:
   LogisticRegression();
   ~LogisticRegression();
   void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
-  //void Initialise(unsigned Number, const IndividualCollection* const individuals);
+
   double getDispersion()const;
-  void OutputParams(ostream* out);
-  void Update(bool sumbeta, IndividualCollection* individuals, double coolness
+  void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
 	      , MPI::Intracomm &Comm
 #endif

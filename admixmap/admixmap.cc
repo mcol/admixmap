@@ -205,7 +205,8 @@ int main( int argc , char** argv ){
     //set expected Outcome
     if(rank < 1)
       for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-	R[r]->SetExpectedY(IC);
+	//R[r]->SetExpectedY(IC);
+	IC->SetExpectedY(r, R[r]->getbeta());
 
     data.Delete();
 
@@ -912,11 +913,12 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(rank != 1){
     bool condition = (!anneal && iteration > options->getBurnIn() && (rank <1));
     for(unsigned r = 0; r < R.size(); ++r){
-      R[r]->Update(condition, IC, coolness 
+      R[r]->Update(condition, IC->getOutcome(r), IC->getCovariates(), coolness 
 #ifdef PARALLEL
 		  , workers_and_master
 #endif
 );
+      IC->SetExpectedY(r, R[r]->getbeta());
       //IC->UpdateSumResiduals();
       //output expected values of outcome variables to file every 'every' iterations after burnin
       if(condition && !(iteration % options->getSampleEvery()) ) IC->OutputExpectedY(r);
@@ -939,7 +941,7 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(options->getHapMixModelIndicator() && (options->getDisplayLevel() > 2))cout << A->getHapMixPriorRate() << " " ;
   // ** regression parameters
   for(unsigned r = 0; r < R.size(); ++r)
-    R[r]->Output(iteration, options, Log);
+    R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
   
   // ** new line in log file but not on screen 
   if( iteration == 0 && (options->getIndAdmixHierIndicator() || options->getNumberOfOutcomes())) {

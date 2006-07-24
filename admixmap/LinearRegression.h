@@ -13,10 +13,11 @@ public:
   ~LinearRegression();
   void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
   void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
-  //void Initialise(unsigned Number, const IndividualCollection* const individuals);
+
   double getDispersion()const;
-  void OutputParams(ostream* out);
-  void Update(bool sumbeta, IndividualCollection* individuals, double coolness
+  void OutputParams(ostream* out)const;
+  void OutputErgodicAvg(int samples, std::ofstream *avgstream)const;
+  void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
 	      , MPI::Intracomm &Comm
 #endif

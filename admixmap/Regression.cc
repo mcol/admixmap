@@ -28,8 +28,6 @@ Regression::Regression(){
   NumOutcomeVars = 0;
   NumCovariates = 0;
   //RegType = None;
-  X = 0;
-  Y = 0;
   XtY = 0;
 }
 
@@ -101,11 +99,6 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   betamean = new double[ NumCovariates ];
   fill(betamean, betamean + NumCovariates, 0.0);
   
-  //  std::vector<double> v = individuals->getOutcome(RegNumber);
-  //double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
-  //     else if(RegType == Linear)
-  //       betamean[0] = p;
-
   //initialise regression params at prior mean
   for(int j = 0; j < NumCovariates; ++j){
     beta[j] = betamean[j];
@@ -114,7 +107,8 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   betaprecision = new double[NumCovariates];
   double outcomeSampleVariance = individuals->getSampleVarianceOfOutcome(RegNumber);
   betaprecision[0] = priorPrecision / outcomeSampleVariance;
-  Log << "\nGaussian priors on " << (RegType==Linear? "Linear" : "Logistic") << " regression parameters with zero means and precisions\n ("<< betaprecision[0];
+  Log << "\nGaussian priors on " << RegressionString[(int)RegType] 
+      << " regression parameters with zero means and precisions\n ("<< betaprecision[0];
   
   for(int j = 1; j < NumCovariates; ++j){
     betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j) / outcomeSampleVariance;
@@ -122,16 +116,12 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   }
   Log << ")\n";
   
-  X = individuals->getCovariates();
+  //X = individuals->getCovariates();
   XtY = new double[NumCovariates];
   
   lambda = 1.0; 
   SumLambda = lambda;
   
-}
-
-void Regression::SetExpectedY(IndividualCollection *IC)const{
-  IC->SetExpectedY(RegNumber, beta);
 }
 
 ///given an array of regression parameters beta and covariates X, computes expected outcome EY = X * beta, 
@@ -156,50 +146,35 @@ void Regression::getExpectedOutcome(const double* const beta, const double* cons
   getExpectedOutcome(beta, X, EY, n, d, -1, 0.0);
 }
 
-void Regression::Output(int iteration, const AdmixOptions *options, LogWriter &Log){
-  //output to logfile
-  if( iteration == -1 )
-    {
-      if( RegType != None )
-	{
-	  Log.setDisplayMode(Off);
-	  Log.setPrecision(6);
-	  if(options->getNumberOfOutcomes()==2)Log <<"\nRegression " <<(int)RegNumber << ": ";
-          for( int j = 0; j < NumCovariates; j++ )
-	    {
-	      Log << beta[j] << "\t";
-	    }
-          if( RegType == Linear )
-	    {
-	      Log << lambda;
-	    }
-	}
-    }
+void Regression::OutputParams(ostream* out)const{
+  for( int j = 0; j < NumCovariates; j++ ){
+    out->width(9);
+    (*out) << setprecision(6) << beta[j] << "\t";
+  }
+}
+
+void Regression::Output(const unsigned NumberOfOutcomes, bool toScreen, bool afterBurnIn){
   //output to screen
-  if( options->getDisplayLevel()>2 )
+  if( toScreen )
     {
-      if(options->getNumberOfOutcomes()==2)cout << "\nRegression " << RegNumber << "\t";
+      if(NumberOfOutcomes>1)cout << "\nRegression " << RegNumber << "\t";
       OutputParams(&cout);
       cout << endl;
     }
   //Output to paramfile after BurnIn
-  if( iteration > options->getBurnIn() ){
+  if( afterBurnIn ){
     OutputParams(&outputstream);
-    if(options->getNumberOfOutcomes()< 2 || RegNumber==1) outputstream << endl;
+    if(RegNumber==NumberOfOutcomes-1) outputstream << endl;
     //output new line in paramfile when last regression model
   }
 }
 
 void Regression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
  //output to ergodicaveragefile
-  if( RegType != None ){
-    for( int j = 0; j < NumCovariates; j++ ){
-      avgstream->width(9);
-      *avgstream << setprecision(6) << SumBeta[j] / samples << "\t";
-    }
+  cout << "in base function" << endl;
+  for( int j = 0; j < NumCovariates; j++ ){
     avgstream->width(9);
-    if( RegType == Linear )
-      *avgstream << setprecision(6) << SumLambda / samples << "\t";
+    *avgstream << setprecision(6) << SumBeta[j] / samples << "\t";
   }
 }
 
@@ -211,9 +186,7 @@ void Regression::SumParameters(){
   SumLambda += lambda;
 }
 const double* Regression::getbeta()const{
-  if(beta)//in case beta not allocated (happens if no regression model); may be unnecessary if beta initialised to 0
-    return beta;
-  else return NULL;
+  return beta;
 }
 double Regression::getlambda()const{
   return lambda;

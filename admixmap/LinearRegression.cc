@@ -31,6 +31,10 @@ void LinearRegression::Initialise(unsigned Number, double priorPrecision, const 
     lambda = lambda1 / lambda0;//initialise to prior mean
     
     //fill(betaprecision, betaprecision + NumCovariates, 0.0001);
+    //std::vector<double> v = individuals->getOutcome(RegNumber);
+    //double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
+    //betamean[0] = p;
+    
     
     Log << "Gamma("<< lambda0 << ", " << lambda1 << ") prior on data precision.\n";
     
@@ -60,53 +64,43 @@ void LinearRegression::InitializeOutputFile(const std::vector<std::string>& Cova
   if(NumOutcomes == RegNumber+1)outputstream << endl;
 }
 
-void LinearRegression::Update(bool sumbeta, IndividualCollection* individuals, double coolness
+void LinearRegression::Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
-			, MPI::Intracomm &Comm){
+			      , MPI::Intracomm &Comm){
   if(Comm.Get_rank() == 0){
 #else 
-  ){
+    ){
 #endif
-
-  // Sample for regression model parameters beta
-  //and precision in linear regression
-  std::vector<double> Outcome = individuals->getOutcome(RegNumber);
-
-  Y = &(Outcome[0]);
-  X = individuals->getCovariates();
-//   double sumNAm = 0.0;
-//   for(int i = 0; i < NumIndividuals; ++i)
-//     sumNAm += X[i*NumCovariates + 4];
-//   cout<< "SumNAm ="<<sumNAm<<endl;
-  
-  if( RegType == Linear ){
-    SampleLinearRegressionParametersWithAnnealing(Y, X, beta, &lambda, coolness);
-  }
-  
+    
+    // Sample for regression model parameters beta
+    //and precision in linear regression
+    
+    SampleLinearRegressionParametersWithAnnealing(&(Outcome[0]), Covariates, beta, &lambda, coolness);
+    
 #ifdef PARALLEL
-  }
-  //broadcast parameters to workers
-  Comm.Barrier();
-  Comm.Bcast(beta, NumCovariates, MPI::DOUBLE, 0);
-  if(RegType == Linear)Comm.Bcast(&lambda, 1, MPI::DOUBLE, 0);
+    
+    //broadcast parameters to workers
+    Comm.Barrier();
+    Comm.Bcast(beta, NumCovariates, MPI::DOUBLE, 0);
+    Comm.Bcast(&lambda, 1, MPI::DOUBLE, 0);
 #endif
-
-  individuals->SetExpectedY(RegNumber,beta);
-
+  
   if(sumbeta){
     SumParameters();
   }
 }//end Update
 
-void LinearRegression::OutputParams(ostream* out){
-  //if( RegType != None ){
-    for( int j = 0; j < NumCovariates; j++ ){
-      out->width(9);
-      (*out) << setprecision(6) << beta[j] << "\t";
-    }
-    out->width(9);
-    (*out) << setprecision(6) << lambda << "\t";
-    //}
+void LinearRegression::OutputParams(ostream* out)const{
+  Regression::OutputParams(out);
+  out->width(9);
+  (*out) << setprecision(6) << lambda << "\t";
+}
+
+void LinearRegression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
+ //output to ergodicaveragefile
+  Regression::OutputErgodicAvg(samples, avgstream);
+  avgstream->width(9);
+  *avgstream << setprecision(6) << SumLambda / samples << "\t";
 }
 
 //solves Ax = b by QR decomposition

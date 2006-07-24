@@ -29,8 +29,7 @@ public:
   virtual ~Regression();
   virtual void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &) = 0;
   void Initialise(unsigned RegNumber, unsigned numCovariates);
-  virtual void SetExpectedY(IndividualCollection* IC)const;
-  virtual void Update(bool sumbeta, IndividualCollection* individuals, double coolness
+  virtual void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
 			, MPI::Intracomm &Comm
 #endif
@@ -39,9 +38,9 @@ public:
   virtual double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations) = 0;
   static void OpenOutputFile(const unsigned NumOutcomes, const char* const filename, LogWriter &Log);  
   virtual void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
-  void Output(int iteration, const AdmixOptions *, LogWriter &Log);
-  virtual void OutputParams(ostream* out) = 0;
-  void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
+  virtual void Output(const unsigned NumberOfOutcomes, bool toScreen, bool afterBurnIn);
+  virtual void OutputParams(ostream* out)const;
+  virtual void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
   const double* getbeta() const;
   double getlambda() const ;
   int getNumCovariates()const;
@@ -58,9 +57,7 @@ protected:
   double *SumBeta;//running sums (for ergodic averages)
   double lambda; //precision parameter
   double SumLambda;
-  const double* Y;
   double* XtY;
-  const double *X;
 
   static std::ofstream outputstream;
   void SumParameters();

@@ -37,12 +37,11 @@ public:
   void ReadData(const DataMatrix& CoxData);
   double getDispersion()const;
   void OutputParams(ostream* out);
-  void Update(bool sumbeta, IndividualCollection* individuals, double coolness
+  void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
 	      , MPI::Intracomm &Comm
 #endif
 	      );
-  void SetExpectedY(IndividualCollection* )const;
   double getLogLikelihood(const IndividualCollection* const IC)const;
   double getLogLikelihood(const double* const _beta, const std::vector<double>& _HazardRates, 
 			  const IndividualCollection* const IC)const;
