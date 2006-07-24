@@ -170,7 +170,7 @@ CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 export CXX CPPFLAGS GSL_INCLUDEPATH PARALLEL_INCLUDES
 
 objects		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o\
-Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o LinearRegression.o LogisticRegression.o\
+Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o LinearRegression.o LogisticRegression.o CoxRegression.o \
 Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o \
 ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o \
 DataMatrix.o AlleleFreqSampler.o
