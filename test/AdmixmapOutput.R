@@ -912,58 +912,7 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
   outputfile <- paste(resultsdir, "IndivParameters.ps", sep="/")
   postscript(outputfile)
   popcols <- c("grey", "blue", "red", "yellow", "orange", "green")
-  if(IsAdmixed[1] & IsAdmixed[2]) { # both parents admixed
-    if(ParentsIdentified) { # bivariate plots if both parents have ancestry from pop
-      for(pop in 1:K) {
-        if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
-          parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ], lims=c(0,1,0,1))
-          contour(parents.pop$x, parents.pop$y, parents.pop$z,
-                  main=paste("Contour plot of posterior density of parental", population.labels[pop],
-                    "admixture proportions"),
-                  xlab="Parent 1", ylab="Parent 2")
-          persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
-                main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
-                  "admixture proportions"),
-                xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
-        }
-      }
-      parents.pop <- kde2d(log(samples.sumIntensities[1, ]),
-                           log(samples.sumIntensities[2, ]), lims=c(-1,3,-1,3))
-      contour(parents.pop$x, parents.pop$y, parents.pop$z,
-              main="Contour plot of posterior density of parental sum-intensities",
-              xlab="Parent 1", ylab="Parent 2")
-      persp(parents.pop$x, parents.pop$y, parents.pop$z, col="blue",
-            main="Perspective plot of bivariate density of parental sum-intensities",
-            xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
-    } else { # parents unidentified - concatenate array and do bivariate plots 
-      samples.admixture <- rbind(t(samples.admixture[,1,]), t(samples.admixture[,2,]))
-      samples.sumIntensities <- c(samples.sumIntensities[1, ], samples.sumIntensities[2, ])
-      for(pop in 1:K) {
-        if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
-          parents.pop <- kde2d(samples.admixture[, pop], log(samples.sumIntensities), lims=c(0,1,-1,3))
-          contour(parents.pop$x, parents.pop$y, parents.pop$z,
-                  main=paste("Contour plot of posterior density of parental", population.labels[pop],
-                    "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
-          persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
-                main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
-                  "admixture proportions"), xlab="Admixture propotion", ylab="log sum-intensities", zlab="Posterior density")
-        }
-      }
-      if(K > 2) {
-        for(pop1 in 1:K) {
-          for(pop2 in 2:K) {
-            if((AdmixturePrior[1, pop1] > 0 & AdmixturePrior[2, pop2] > 0) & (pop1 < pop2)) { # bivariate plot
-              parents.pop <- kde2d(samples.admixture[, pop], samples.admixture[, pop], lims=c(0,1,0,1))
-              contour(parents.pop$x, parents.pop$y, parents.pop$z,
-                      main="Contour plot of posterior density of parental admixture proportions",
-                      xlab=paste(population.labels[pop1], "admixture proportion"),
-                      ylab=paste(population.labels[pop2], "admixture proportion"))
-            }
-          }
-        }
-      }
-    }
-  } else { # only one parent admixed - univariate plots
+  if(!IsAdmixed[1] || !IsAdmixed[2]) { # only one parent admixed - univariate plots
     admixedParent <- 0
     if(IsAdmixed[1]) admixedParent <- 1
     if(IsAdmixed[2]) admixedParent <- 2
@@ -982,6 +931,58 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
       prior <- getSumIntensitiesPrior(user.options)
       print(prior)
       points(x, dgamma(x, prior[1], rate=prior[2]), type="l", col="blue")
+    }
+  } else { # both parents admixed, bivariate plots of admixture props
+    parents.pop <- kde2d(log(samples.sumIntensities[1, ]),
+                         log(samples.sumIntensities[2, ]), lims=c(-1,3,-1,3))
+    contour(parents.pop$x, parents.pop$y, parents.pop$z, axes=F,
+            #main="Contour plot of posterior density of parental sum-intensities",
+            xlab="Arrival rate on paternal gamete", ylab="Arrival rate on maternal gamete")
+    ##persp(parents.pop$x, parents.pop$y, parents.pop$z, col="blue",
+    ##      main="Perspective plot of bivariate density of parental sum-intensities",
+    ##      xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
+    
+    for(pop in 1:K) {
+      if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # both parents have admixture from this population 
+        #parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ], lims=c(0,1,0,1), h=c(0.05, 0.05))
+        parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ], lims=c(0,0.6,0,0.6), h=c(0.05, 0.05))
+        contour(parents.pop$x, parents.pop$y, parents.pop$z,
+                xlab=paste(population.labels[pop], " admixture proportion on paternal gamete"),
+                ylab=paste(population.labels[pop], " admixture proportion on maternal gamete"))
+        axis(side=1)
+        axis(side=2)
+        ##persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
+        ##      main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
+        ##         "admixture proportions"),
+        ##       xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
+      }
+    } # end loop over populations
+  }
+  ##samples.sumIntensities <- c(samples.sumIntensities[1, ], samples.sumIntensities[2, ])
+  ##for(pop in 1:K) {
+  ##  if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
+  ##    parents.pop <- kde2d(samples.admixture[, pop], log(samples.sumIntensities), lims=c(0,1,-1,3))
+  ##    contour(parents.pop$x, parents.pop$y, parents.pop$z,
+  ##            main=paste("Contour plot of posterior density of parental", population.labels[pop],
+  ##              "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
+  ##    persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
+  ##          main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
+  ##            "admixture proportions"), xlab="Admixture propotion", ylab="log sum-intensities", zlab="Posterior density")
+  ##   }
+  ## }
+  
+  if(K > 2) {
+    ## concatenate arrays to combine samples from both parental gametes 
+    samples.admixture <- rbind(t(samples.admixture[,1,]), t(samples.admixture[,2,]))
+    for(pop1 in 1:K) {
+      for(pop2 in pop1:K) {
+        if((AdmixturePrior[1, pop1] > 0 & AdmixturePrior[2, pop2] > 0) & (pop1 < pop2)) { # bivariate plot
+          parents.pop <- kde2d(samples.admixture[, pop], samples.admixture[, pop], lims=c(0,1,0,1))
+          contour(parents.pop$x, parents.pop$y, parents.pop$z,
+                  xlab=paste(population.labels[pop1], "admixture proportion (both gametes combined)"),
+                  ylab=paste(population.labels[pop2], "admixture proportion (both gametes combined"))
+        }
+      }
     }
   }
   dev.off()
@@ -1312,7 +1313,8 @@ if(!is.null(user.options$indadmixturefile) && K >1) {
       samplesOneIndiv <- samples4way[, , 1, ]
       samples.sumintensities <- samples.sumintensities[, 1, ]
       plotPosteriorDensityIndivParameters(samplesOneIndiv, samples.sumintensities, user.options,
-                                          population.labels, AdmixturePrior, IsAdmixed, ParentsIdentified)
+                                          population.labels, AdmixturePrior, IsAdmixed,
+                                          ParentsIdentified)
     }
   }
 } # ends block conditional on indadmixturefile
