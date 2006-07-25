@@ -19,50 +19,26 @@ CoxRegression::~CoxRegression(){
 }
 
 void CoxRegression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
-  Log.setDisplayMode(Quiet);
-  //set regression number for this object
-  RegNumber = Number;
-  
-  // ** Objects common to both regression types
-  NumCovariates = individuals->GetNumCovariates();
-  NumIndividuals = individuals->getSize();
-  
-  beta = new double[ NumCovariates ];
-  SumBeta = new double[ NumCovariates ];
-  fill(beta, beta + NumCovariates, 0.0);
-  fill(SumBeta, SumBeta + NumCovariates, 0.0);
-  
-  betamean = new double[ NumCovariates ];
-  fill(betamean, betamean + NumCovariates, 0.0);
-  
-  //initialise regression params at prior mean
-  for(int j = 0; j < NumCovariates; ++j){
-    beta[j] = betamean[j];
-  }
+  Regression::Initialise(Number, individuals->GetNumCovariates(), individuals->getSize(), individuals->getCovariates());
 
-  betaprecision = new double[NumCovariates];
   //TODO: ?? rescale precisions somehow 
-  //double outcomeSampleVariance = individuals->getSampleVarianceOfOutcome(RegNumber);
-  betaprecision[0] = priorPrecision;// / outcomeSampleVariance;
+  betaprecision[0] = priorPrecision;
+  Log.setDisplayMode(Quiet);
   Log << "\nGaussian priors on Cox regression parameters with zero means and precisions\n ("<< betaprecision[0];
   
   for(int j = 1; j < NumCovariates; ++j){
-    betaprecision[j] = priorPrecision ;//* individuals->getSampleVarianceOfCovariate(j) / outcomeSampleVariance;
+    betaprecision[j] = priorPrecision ;//* individuals->getSampleVarianceOfCovariate(j) ;
     Log << ", " << betaprecision[j];
   }
   Log << ")\n";
   
-  //X = individuals->getCovariates();
-  XtY = new double[NumCovariates];
-  
-  
   //initialisation specific to Cox Regression
   BetaParameters.c = 0.01;//TODO: decide sensible defaults for these, add options to allow user to set values
   BetaParameters.mu = 1;
-  //num intervals = numindividuals
+
   //initialise hazard rates to their prior means
   for(int j = 0; j < BetaParameters.NumIntervals; ++j)
-    HazardRates.push_back( 1.0);//BetaParameters.mu*intervalLength(j) );
+    HazardRates.push_back( 0.005);//BetaParameters.mu*intervalLength(j) );
   
   //  ** initialize sampler for regression params **
   acceptbeta = 0;
@@ -125,7 +101,7 @@ void CoxRegression::Update(bool sumbeta, const std::vector<double>& , const doub
   BetaParameters.coolness = coolness; 
   
   try{
-    for( int j = 0; j < NumCovariates; j++ ){
+    for( int j = 1; j < NumCovariates; j++ ){
       BetaParameters.beta0 = betamean[j];
       BetaParameters.priorprecision = betaprecision[j];
       BetaParameters.index = j;
@@ -163,6 +139,11 @@ void CoxRegression::OutputParams(ostream* out){
 double CoxRegression::getDispersion()const{
   return 1.0;//TODO: what is the dispersion in a Cox regression?
 }
+///returns Derivative of Inverse Link Function for individual i
+//TODO
+double CoxRegression::DerivativeInverseLinkFunction(unsigned)const{
+  return 1.0;    
+}
 
 double CoxRegression::lr(const double beta, const void* const vargs){
   const CoxBetaArgs* args = (const CoxBetaArgs*)vargs;
@@ -183,14 +164,16 @@ double CoxRegression::lr(const double beta, const void* const vargs){
     double *Xbeta = new double[ n ];    
     try{
       Regression::getExpectedOutcome(args->beta, args->Covariates, Xbeta, n, args->d, index, beta);
-      for(int i = 0; i < n; ++i)
+      for(int i = 0; i < n; ++i){
+	double exp_Xbetai = exp(Xbeta[i]);
 	for(int t = 0; t < T; ++t){
 	  if( atRisk(firstStart+i, firstEnd+i, firstEndpoint+t) ){
-	    const double lambda = *(hazardRates + t)*myexp(Xbeta[i]);
-	    int r = (*args->events +i);
+	    const double lambda = *(hazardRates + t)*exp_Xbetai;
+	    int r = *(args->events +i);
 	    f += (double)r * mylog(lambda) - lambda; 
 	  }
 	}
+      }
     }
     catch(string s){
       throw string("error in lr: " +s );
@@ -228,15 +211,18 @@ double CoxRegression::dlr(const double beta, const void* const vargs){
       Regression::getExpectedOutcome(args->beta, args->Covariates, Xbeta, n, args->d, index, beta);
       
       for(int i = 0; i < n; ++i){
-	double sum = 0.0;
+	int sum_nr = 0;
+	double sum_nlambda = 0.0;
+	double exp_Xbetai = exp(Xbeta[i]);
 	for(int t = 0; t < T; ++t){
 	  if( atRisk(firstStart+i, firstEnd+i, firstEndpoint+t) ){
-	    const double lambda = *(args->HazardRates + t)*myexp(Xbeta[i]);
-	    int r = (*args->events +i);
-	    sum += (double)r - lambda; 
+	    //cout << "lambda" << i << t << " = " << lambda << " r= " << r << endl;
+	    sum_nr += *(args->events +i);
+	    sum_nlambda += *(args->HazardRates + t); 
 	  }
 	}
-	f += sum * args->Covariates[i*args->d +index];
+	//cout << "sum " << i << " = " << sum << endl;
+	f += ((double)sum_nr - exp_Xbetai * sum_nlambda) * args->Covariates[i*args->d +index];
       }
     }
     catch(string s){
@@ -273,13 +259,14 @@ double CoxRegression::ddlr(const double beta, const void* const vargs){
       
       for(int i = 0; i < n; ++i){
 	double sum = 0.0;
+	double exp_Xbetai = exp(Xbeta[i]);
 	for(int t = 0; t < T; ++t){
 	  if( atRisk(firstStart+i, firstEnd+i, firstEndpoint+t) ){
-	    sum += myexp(Xbeta[i]); 
+	    sum += *(args->HazardRates + t); 
 	  }
 	}
 	double x = args->Covariates[i*args->d +index];
-	f -= sum * x * x;
+	f -= sum * x * x *exp_Xbetai;
       }
     }
     catch(string s){
@@ -296,15 +283,15 @@ double CoxRegression::ddlr(const double beta, const void* const vargs){
 }
 
 ///returns log likelihood at current parameter values
-double CoxRegression::getLogLikelihood(const IndividualCollection* const IC)const{
-  return getLogLikelihood(beta, HazardRates, IC);
+double CoxRegression::getLogLikelihood(const std::vector<double>& Outcome)const{
+  return getLogLikelihood(beta, HazardRates, Outcome);
 }
 ///returns loglikelihood at supplied parameter values
 double CoxRegression::getLogLikelihood(const double* const _beta, const std::vector<double>& _HazardRates, 
-				       const IndividualCollection* const IC)const{
+				       const std::vector<double>& )const{
   double L = 0.0;
   double *Xbeta = new double[ NumIndividuals ];    
-  Regression::getExpectedOutcome(_beta, IC->getCovariates(), Xbeta, NumIndividuals, NumCovariates);
+  Regression::getExpectedOutcome(_beta, Covariates, Xbeta, NumIndividuals, NumCovariates);
   
   for(int i = 0; i < NumIndividuals; ++i)
     for(int t = 0; t < BetaParameters.NumIntervals; ++t){
@@ -318,7 +305,7 @@ double CoxRegression::getLogLikelihood(const double* const _beta, const std::vec
   return L;
 }
 ///returns LogLikelihood at posterior means of parameters
-double CoxRegression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations){
+double CoxRegression::getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome){
   //under construction!
   double logL = 0.0;
 
@@ -327,7 +314,7 @@ double CoxRegression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC,
   //TODO:set Hazard Rates to posterior means
 
   //compute loglikelihood at posterior means
-  logL = getLogLikelihood(SumBeta, HazardRates/*replace this with PMs of HazardRates*/, IC);
+  logL = getLogLikelihood(SumBeta, HazardRates/*replace this with PMs of HazardRates*/, Outcome);
 
   for(int i = 0; i < NumCovariates; ++i)SumBeta[i] *= (double)iterations; //restore sumbeta
 

@@ -106,15 +106,13 @@ public:
   const vector<int> getAlleleCounts(unsigned locus, int pop, unsigned NumStates)const;
   const std::vector<double> getOutcome(int)const;
   double getOutcome(int, int)const;
-    bool isMissingOutcome(int, int)const;
+  bool isMissingOutcome(int, int)const;
   int getNumberOfOutcomeVars()const;
   int GetNumCovariates() const;
   int GetNumberOfInputCovariates()const;
   const double* getCovariates()const;
   DataType getOutcomeType(int)const;
   void SetExpectedY(int, const double*const );
-  double getExpectedY(int)const;
-  double getExpectedY(int, int)const;
   double getSampleVarianceOfOutcome(int j)const;
   double getSampleVarianceOfCovariate(int j)const;
   double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
@@ -122,7 +120,6 @@ public:
   void accumulateEnergyArrays(const AdmixOptions* const options);
   double* getSumEnergy();
   double* getSumEnergySq();
-  double DerivativeInverseLinkFunction(int i)const;
   void ResetChib();
   void OutputErgodicChib(std::ofstream *avgstream, bool fixedfreqs);
   const chib* getChib()const;

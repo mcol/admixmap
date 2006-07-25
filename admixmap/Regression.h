@@ -15,11 +15,9 @@
 #define REGRESSIONBASE_H 1
 
 #include "common.h"
-#include "AdmixOptions.h"
-//#include "IndividualCollection.h"
+#include <fstream>
 #include "LogWriter.h"
 
-class DataMatrix;
 class IndividualCollection;//to avoid circular includes
 
 ///Abstract Base Class for a generic Regression
@@ -34,17 +32,19 @@ public:
 			, MPI::Intracomm &Comm
 #endif
 	      ) = 0;
-  virtual double getLogLikelihood(const IndividualCollection* const IC)const = 0;
-  virtual double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations) = 0;
+  virtual double getLogLikelihood(const std::vector<double>& Outcome)const = 0;
+  virtual double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome) = 0;
   static void OpenOutputFile(const unsigned NumOutcomes, const char* const filename, LogWriter &Log);  
   virtual void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
   virtual void Output(const unsigned NumberOfOutcomes, bool toScreen, bool afterBurnIn);
-  virtual void OutputParams(ostream* out)const;
+  virtual void OutputParams(std::ostream* out)const;
   virtual void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
   const double* getbeta() const;
   double getlambda() const ;
   int getNumCovariates()const;
   virtual double getDispersion()const = 0;
+  virtual double DerivativeInverseLinkFunction(unsigned i)const = 0;
+  const double* getExpectedOutcome()const;
 
 protected:
   int NumCovariates, NumOutcomeVars, NumIndividuals;
@@ -57,9 +57,13 @@ protected:
   double *SumBeta;//running sums (for ergodic averages)
   double lambda; //precision parameter
   double SumLambda;
+  const double* Outcome;
+  const double* Covariates;
+  double* ExpectedY;
   double* XtY;
 
   static std::ofstream outputstream;
+  void Initialise(unsigned Number, unsigned nCovariates, unsigned nIndivs, const double* const Covars);
   void SumParameters();
   static void getExpectedOutcome(const double* const beta, const double* const X, double* EY, int n, int d);
   static void getExpectedOutcome(const double* const beta, const double* const X, double* Y, int n, int dim, int index, double betaj);

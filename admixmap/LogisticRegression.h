@@ -35,19 +35,22 @@ public:
   void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
 
   double getDispersion()const;
+  double DerivativeInverseLinkFunction(unsigned i)const;
   void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
 	      , MPI::Intracomm &Comm
 #endif
 	      );
-  double getLogLikelihood(const IndividualCollection* const IC)const;
-  double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations);
+  double getLogLikelihood(const std::vector<double>& Outcome)const;
+  double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome);
 private:
   // ** Logistic Regression Objects
   GaussianProposalMH* BetaSampler;
   BetaArgs BetaParameters;
   int acceptbeta;
- 
+
+  void SetExpectedY(const double* const beta) ;
+
   static double lr( const double beta, const void* const vargs );
   
   static double dlr( const double beta, const void* const vargs );

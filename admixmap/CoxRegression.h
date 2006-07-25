@@ -35,6 +35,7 @@ public:
   void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
   //void Initialise(unsigned Number, const IndividualCollection* const individuals);
   void ReadData(const DataMatrix& CoxData);
+  double DerivativeInverseLinkFunction(unsigned i)const;
   double getDispersion()const;
   void OutputParams(ostream* out);
   void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
@@ -42,10 +43,10 @@ public:
 	      , MPI::Intracomm &Comm
 #endif
 	      );
-  double getLogLikelihood(const IndividualCollection* const IC)const;
+  double getLogLikelihood(const std::vector<double>& Outcome)const;
   double getLogLikelihood(const double* const _beta, const std::vector<double>& _HazardRates, 
-			  const IndividualCollection* const IC)const;
-  double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations);
+			  const std::vector<double>& Outcome)const;
+  double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome);
 private:
   GaussianProposalMH* BetaSampler;//to sample regression parameters
   CoxBetaArgs BetaParameters;
@@ -53,7 +54,7 @@ private:
   std::vector<int> startTimes;
   std::vector<int> endTimes;
   std::vector<int> endpoints;//endpoints of subintervals
-  std::vector<unsigned> events;//events can only happen for individual i in the ith interval
+  std::vector<unsigned> events;//counts of events
   std::vector<double> HazardRates;
 
   bool atRisk(unsigned ind, unsigned interval)const;

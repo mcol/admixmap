@@ -11,11 +11,8 @@ LogisticRegression::~LogisticRegression(){
 }
 
 void LogisticRegression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
-  Regression::Initialise(Number, priorPrecision, individuals, Log);
- 
-  // ** Initialise Logistic Regression objects
-    //Log << "\nGaussian priors on logistic regression parameters with precision " << lambda << "\n";
-
+  Regression::Initialise(Number, individuals->GetNumCovariates(), individuals->getSize(), individuals->getCovariates());
+  Log.setDisplayMode(Quiet);
   std::vector<double> v = individuals->getOutcome(RegNumber);
   double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
   //check the outcomes are not all 0s or all 1s
@@ -23,6 +20,16 @@ void LogisticRegression::Initialise(unsigned Number, double priorPrecision, cons
 
   betamean[0] = log( p / ( 1 - p ) );
   beta[0] = betamean[0];
+
+  //set prior precision
+  betaprecision[0] = priorPrecision;
+  Log << "\nGaussian priors on logistic regression parameters with zero means and precisions\n ("<< betaprecision[0];
+  
+  for(int j = 1; j < NumCovariates; ++j){
+    betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j);
+    Log << ", " << betaprecision[j];
+  }
+  Log << ")\n";
   
   //  ** initialize sampler for logistic regression **
   acceptbeta = 0;
@@ -65,39 +72,49 @@ void LogisticRegression::Update(bool sumbeta, const std::vector<double>& Outcome
   if(sumbeta){
     SumParameters();
   }
+  SetExpectedY(beta);
 }//end Update
+
+void LogisticRegression::SetExpectedY(const double* const beta){
+  //sets ExpectedY = X * Beta
+  if(ExpectedY){
+    matrix_product(Covariates, beta, ExpectedY, NumIndividuals, NumCovariates, 1);
+    //for binary outcome sets EY as logit^-1(X*beta)
+    for(int i = 0; i < NumIndividuals; i++ )
+      ExpectedY[i] = 1 / ( 1 + exp( -ExpectedY[i] ) );
+  }
+}
 
 double LogisticRegression::getDispersion()const{
   return 1.0;
 }
-
-double LogisticRegression::getLogLikelihood(const IndividualCollection* const IC)const{
-  int NumIndividuals = IC->getSize();
+///returns Derivative of Inverse Link Function for individual i
+double LogisticRegression::DerivativeInverseLinkFunction(unsigned i)const{
+  return ExpectedY[i] * (1.0 - ExpectedY[i]);
+}
+double LogisticRegression::getLogLikelihood(const std::vector<double>& Outcome)const{
   double loglikelihood = 0.0;
 
   //loglikelihood is sum of logs of bernoulli probabilities, given by EY
   for(int i = 0; i < NumIndividuals; ++i){
-    if(IC->getOutcome(RegNumber, i))loglikelihood += log( IC->getExpectedY(i, RegNumber) );
-    else loglikelihood += log(1.0 - IC->getExpectedY(i, RegNumber));
+    if(Outcome[ i ])loglikelihood += log( ExpectedY[ i ] );
+    else loglikelihood += log(1.0 - ExpectedY[ i ]);
   }
   return loglikelihood;
 }
-double LogisticRegression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations){
+double LogisticRegression::getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome){
   double logL = 0.0;
 
   //set expected outcome at posterior means of regression parameters
   for(int i = 0; i < NumCovariates; ++i)SumBeta[i] /= (double)iterations; 
-  IC->SetExpectedY(RegNumber,SumBeta);//computes X * BetaBar
+  //IC->SetExpectedY(RegNumber,SumBeta);//computes X * BetaBar
+  SetExpectedY(SumBeta);
   for(int i = 0; i < NumCovariates; ++i)SumBeta[i] *= (double)iterations; //restore sumbeta
 
-  //set precision to posterior mean
-  double temp = lambda;
-  lambda = SumLambda/(double)iterations;
+  logL = getLogLikelihood(Outcome);
 
-  logL = getLogLikelihood(IC);
-  lambda = temp;//restore precision
-  IC->SetExpectedY(RegNumber,beta);//restore Xbeta
-
+  //IC->SetExpectedY(RegNumber,beta);//restore Xbeta
+  SetExpectedY(beta);
   return logL;
 }
 

@@ -15,6 +15,7 @@ public:
   void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
 
   double getDispersion()const;
+  double DerivativeInverseLinkFunction(unsigned i)const;
   void OutputParams(ostream* out)const;
   void OutputErgodicAvg(int samples, std::ofstream *avgstream)const;
   void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
@@ -22,8 +23,8 @@ public:
 	      , MPI::Intracomm &Comm
 #endif
 	      );
-  double getLogLikelihood(const IndividualCollection* const IC)const;
-  double getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations);
+  double getLogLikelihood(const std::vector<double>& Outcome)const;
+  double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome);
 private:
     // ** Linear Regression Objects
   double lambda0; //parameters of
@@ -31,6 +32,7 @@ private:
   double *R, *QY, *QX, *V, *betahat;
   Gaussian DrawBeta;//sampler
 
+  void SetExpectedY(const double* const _beta);
   void QRSolve(int dim1, int dim2, const double* a, const double* b, double* x);
   void SamplePrecision(double* lambda, const double* Y, const double* X, int NumIndivs, int NumCovars, double coolness);
   void SampleLinearRegressionParams(double* beta, const double* Y, const double* X, int NumIndivs, int NumCovars);

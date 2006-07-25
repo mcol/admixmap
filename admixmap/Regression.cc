@@ -11,10 +11,9 @@
  * 
  */
 #include "Regression.h"
-#include "IndividualCollection.h"
-#include <numeric>
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_blas.h>
+#include "functions.h"
+#include <iomanip>
+#include <algorithm>
 
 std::ofstream Regression::outputstream;
 
@@ -27,12 +26,16 @@ Regression::Regression(){
   SumBeta = 0;
   NumOutcomeVars = 0;
   NumCovariates = 0;
+  Outcome = 0;
+  Covariates = 0;
+  ExpectedY = 0;
   //RegType = None;
   XtY = 0;
 }
 
 Regression::~Regression(){
   delete[] XtY;
+  delete[] ExpectedY;
   delete[] beta;
   delete[] SumBeta;
 
@@ -44,7 +47,7 @@ void Regression::OpenOutputFile(const unsigned NumOutcomes, const char* const fi
   //Open paramfile
   if ( NumOutcomes){ 
     if ( strlen( filename ) ){
-      outputstream.open( filename, ios::out );
+      outputstream.open( filename, std::ios::out );
       if( !outputstream )
 	{
 	  Log.setDisplayMode(On);
@@ -69,7 +72,7 @@ void Regression::InitializeOutputFile(const std::vector<std::string>& CovariateL
   for( unsigned i = 0; i < CovariateLabels.size(); i++ ){
     outputstream << CovariateLabels[i] << "\t";
   }
-  if(NumOutcomes == RegNumber+1)outputstream << endl;
+  if(NumOutcomes == RegNumber+1)outputstream << std::endl;
 }
 
 void Regression::Initialise(unsigned Number, const unsigned numCovariates){
@@ -82,22 +85,21 @@ void Regression::Initialise(unsigned Number, const unsigned numCovariates){
   lambda = 1.0; 
 }
 
-void Regression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
-  Log.setDisplayMode(Quiet);
+void Regression::Initialise(unsigned Number, unsigned nCovariates, unsigned nIndivs, const double* const Covars){
   //set regression number for this object
   RegNumber = Number;
   
   // ** Objects common to all regression types
-  NumCovariates = individuals->GetNumCovariates();
-  NumIndividuals = individuals->getSize();
+  NumCovariates = nCovariates;
+  NumIndividuals = nIndivs;
   
   beta = new double[ NumCovariates ];
   SumBeta = new double[ NumCovariates ];
-  fill(beta, beta + NumCovariates, 0.0);
-  fill(SumBeta, SumBeta + NumCovariates, 0.0);
+  std::fill(beta, beta + NumCovariates, 0.0);
+  std::fill(SumBeta, SumBeta + NumCovariates, 0.0);
   
   betamean = new double[ NumCovariates ];
-  fill(betamean, betamean + NumCovariates, 0.0);
+  std::fill(betamean, betamean + NumCovariates, 0.0);
   
   //initialise regression params at prior mean
   for(int j = 0; j < NumCovariates; ++j){
@@ -105,19 +107,10 @@ void Regression::Initialise(unsigned Number, double priorPrecision, const Indivi
   }
 
   betaprecision = new double[NumCovariates];
-  double outcomeSampleVariance = individuals->getSampleVarianceOfOutcome(RegNumber);
-  betaprecision[0] = priorPrecision / outcomeSampleVariance;
-  Log << "\nGaussian priors on " << RegressionString[(int)RegType] 
-      << " regression parameters with zero means and precisions\n ("<< betaprecision[0];
   
-  for(int j = 1; j < NumCovariates; ++j){
-    betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j) / outcomeSampleVariance;
-    Log << ", " << betaprecision[j];
-  }
-  Log << ")\n";
-  
-  //X = individuals->getCovariates();
+  Covariates = Covars;
   XtY = new double[NumCovariates];
+  ExpectedY = new double[NumIndividuals];
   
   lambda = 1.0; 
   SumLambda = lambda;
@@ -146,10 +139,10 @@ void Regression::getExpectedOutcome(const double* const beta, const double* cons
   getExpectedOutcome(beta, X, EY, n, d, -1, 0.0);
 }
 
-void Regression::OutputParams(ostream* out)const{
+void Regression::OutputParams(std::ostream* out)const{
   for( int j = 0; j < NumCovariates; j++ ){
     out->width(9);
-    (*out) << setprecision(6) << beta[j] << "\t";
+    (*out) << std::setprecision(6) << beta[j] << "\t";
   }
 }
 
@@ -157,24 +150,24 @@ void Regression::Output(const unsigned NumberOfOutcomes, bool toScreen, bool aft
   //output to screen
   if( toScreen )
     {
-      if(NumberOfOutcomes>1)cout << "\nRegression " << RegNumber << "\t";
-      OutputParams(&cout);
-      cout << endl;
+      if(NumberOfOutcomes>1)std::cout << "\nRegression " << RegNumber << "\t";
+      OutputParams(&std::cout);
+      std::cout << std::endl;
     }
   //Output to paramfile after BurnIn
   if( afterBurnIn ){
     OutputParams(&outputstream);
-    if(RegNumber==NumberOfOutcomes-1) outputstream << endl;
+    if(RegNumber==NumberOfOutcomes-1) outputstream << std::endl;
     //output new line in paramfile when last regression model
   }
 }
 
 void Regression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
  //output to ergodicaveragefile
-  cout << "in base function" << endl;
+  std::cout << "in base function" << std::endl;
   for( int j = 0; j < NumCovariates; j++ ){
     avgstream->width(9);
-    *avgstream << setprecision(6) << SumBeta[j] / samples << "\t";
+    *avgstream << std::setprecision(6) << SumBeta[j] / samples << "\t";
   }
 }
 
@@ -194,6 +187,8 @@ double Regression::getlambda()const{
 int Regression::getNumCovariates()const{
   return NumCovariates;
 }
-
+const double* Regression::getExpectedOutcome()const{
+  return ExpectedY;
+}
 
 

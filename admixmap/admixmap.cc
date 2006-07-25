@@ -811,12 +811,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if( rank!=1 && !anneal && iteration > options->getBurnIn() ){
     //score tests
     if( options->getScoreTestIndicator() ){
-      double dispersion = 1.0;
-      if(rank != 1 && (R.size()>0) ) dispersion = R[0]->getDispersion();
 #ifdef PARALLEL
       MPE_Log_event(21, iteration, "ScoreTestUpdatestart");
 #endif
-      S->Update(dispersion);//score tests evaluated for first outcome var only
+      S->Update(R);//score tests evaluated for first outcome var only
 #ifdef PARALLEL
       MPE_Log_event(22, iteration, "ScoreTestUpdateEnd");
 #endif

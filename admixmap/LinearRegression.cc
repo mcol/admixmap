@@ -22,37 +22,46 @@ LinearRegression::~LinearRegression(){
 }
 
 void LinearRegression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
-  Regression::Initialise(Number, priorPrecision, individuals, Log);
+  Regression::Initialise(Number, individuals->GetNumCovariates(), individuals->getSize(), individuals->getCovariates());
+  Log.setDisplayMode(Quiet);
+  //set prior precision
+  double outcomeSampleVariance = individuals->getSampleVarianceOfOutcome(RegNumber);
+  betaprecision[0] = priorPrecision / outcomeSampleVariance;
+  Log << "\nGaussian priors on linear regression parameters with zero means and precisions\n ("<< betaprecision[0];
+  
+  for(int j = 1; j < NumCovariates; ++j){
+    betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j) / outcomeSampleVariance;
+    Log << ", " << betaprecision[j];
+  }
+  Log << ")\n";
   
   // ** Initialise Linear Regression objects    
-  if(RegType == Linear){
-    lambda0 = 0.01;//shape parameter for prior on lambda
-    lambda1 = 0.01;//rate parameter for prior on lambda
-    lambda = lambda1 / lambda0;//initialise to prior mean
-    
-    //fill(betaprecision, betaprecision + NumCovariates, 0.0001);
-    //std::vector<double> v = individuals->getOutcome(RegNumber);
-    //double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
-    //betamean[0] = p;
-    
-    
-    Log << "Gamma("<< lambda0 << ", " << lambda1 << ") prior on data precision.\n";
-    
-    betahat = new double[NumCovariates];
-    V = new double[NumCovariates*NumCovariates];
-    QX = new double[(NumIndividuals+NumCovariates)*NumCovariates];
-    QY = new double[NumIndividuals+NumCovariates];
-    R = new double[NumCovariates*NumCovariates];
-    // Augment data matrices
-    for(int i = 0; i < NumCovariates; ++i){
-      QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
-      QX[(i+NumIndividuals)*NumCovariates + i] = sqrt(betaprecision[i]);//prior precision on beta
-      for(int j = i+1; j < NumCovariates; ++j)
-	QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
-    }
-    
-    DrawBeta.SetDimension( NumCovariates );
+  lambda0 = 0.01;//shape parameter for prior on lambda
+  lambda1 = 0.01;//rate parameter for prior on lambda
+  lambda = lambda1 / lambda0;//initialise to prior mean
+  
+  //fill(betaprecision, betaprecision + NumCovariates, 0.0001);
+  //std::vector<double> v = individuals->getOutcome(RegNumber);
+  //double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
+  //betamean[0] = p;
+  
+  
+  Log << "Gamma("<< lambda0 << ", " << lambda1 << ") prior on data precision.\n";
+  
+  betahat = new double[NumCovariates];
+  V = new double[NumCovariates*NumCovariates];
+  QX = new double[(NumIndividuals+NumCovariates)*NumCovariates];
+  QY = new double[NumIndividuals+NumCovariates];
+  R = new double[NumCovariates*NumCovariates];
+  // Augment data matrices
+  for(int i = 0; i < NumCovariates; ++i){
+    QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
+    QX[(i+NumIndividuals)*NumCovariates + i] = sqrt(betaprecision[i]);//prior precision on beta
+    for(int j = i+1; j < NumCovariates; ++j)
+      QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
   }
+  
+  DrawBeta.SetDimension( NumCovariates );
   
 }
 
@@ -83,12 +92,19 @@ void LinearRegression::Update(bool sumbeta, const std::vector<double>& Outcome, 
     Comm.Barrier();
     Comm.Bcast(beta, NumCovariates, MPI::DOUBLE, 0);
     Comm.Bcast(&lambda, 1, MPI::DOUBLE, 0);
-#endif
-  
-  if(sumbeta){
-    SumParameters();
-  }
+#endif    
+    if(sumbeta){
+      SumParameters();
+    }
+    SetExpectedY(beta);
 }//end Update
+  
+void LinearRegression::SetExpectedY(const double* const _beta){
+  //sets ExpectedY = X * Beta
+  if(ExpectedY){
+    matrix_product(Covariates, _beta, ExpectedY, NumIndividuals, NumCovariates, 1);
+  }
+}
 
 void LinearRegression::OutputParams(ostream* out)const{
   Regression::OutputParams(out);
@@ -97,7 +113,7 @@ void LinearRegression::OutputParams(ostream* out)const{
 }
 
 void LinearRegression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
- //output to ergodicaveragefile
+  //output to ergodicaveragefile
   Regression::OutputErgodicAvg(samples, avgstream);
   avgstream->width(9);
   *avgstream << setprecision(6) << SumLambda / samples << "\t";
@@ -163,7 +179,7 @@ void LinearRegression::QRSolve(int dim1, int dim2, const double* a, const double
     std::string error_string = "Regression::QRSolve failed\n";
     error_string.append(s);
     throw (error_string);
-   }
+  }
 }
 
 void LinearRegression::SamplePrecision(double* lambda, const double* Y, const double* X, int NumIndivs, int NumCovars, double coolness){
@@ -188,15 +204,15 @@ void LinearRegression::SamplePrecision(double* lambda, const double* Y, const do
 }
 
 void LinearRegression::SampleLinearRegressionParams(double* beta, /*double* lambda, */const double* Y, const double* X, 
-					      int NumIndivs, int NumCovars){
+						    int NumIndivs, int NumCovars){
   /*
-  Samples regression parameters in a linear regression model as described in "Bayesian Data Analysis"
-  by Gelman et al (Ch8)
-  supply:
-  beta - regression parameters
-  lambda - precision parameter
-  Y - vector of NumIndividuals outcomes
-  X - matrix of NumIndividuals * NumCovariates covariates
+    Samples regression parameters in a linear regression model as described in "Bayesian Data Analysis"
+    by Gelman et al (Ch8)
+    supply:
+    beta - regression parameters
+    lambda - precision parameter
+    Y - vector of NumIndividuals outcomes
+    X - matrix of NumIndividuals * NumCovariates covariates
   */
 
   // compute betahat using QR decomposition and then V
@@ -219,12 +235,12 @@ void LinearRegression::SampleLinearRegressionParams(double* beta, /*double* lamb
 }
 
 void LinearRegression::SampleLinearRegressionParametersWithAnnealing(const double* Y, const double* X, double* beta, double *lambda, 
-							       double coolness){
+								     double coolness){
   //sample precision
   SamplePrecision(lambda, Y, X, NumIndividuals, NumCovariates, coolness);
 
 
- //for the case of Var(Y_i) = 1/ (lambda* w_i) 
+  //for the case of Var(Y_i) = 1/ (lambda* w_i) 
 
   //augment X and Y with prior as extra 'data points'
   for(int i = 0; i < NumIndividuals; ++i){
@@ -232,12 +248,12 @@ void LinearRegression::SampleLinearRegressionParametersWithAnnealing(const doubl
     for(int j = 0; j < NumCovariates; ++j)
       QX[i*NumCovariates +j] = X[i*NumCovariates+j]*sqrt(*lambda);
   }
-//   for(int i = 0; i < NumCovariates; ++i){
-//     QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
-//     QX[(i+NumIndividuals)*NumCovariates + i] = sqrt(betaprecision[i]);//prior precision on beta
-//     for(int j = i+1; j < NumCovariates; ++j)
-//       QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
-//   }
+  //   for(int i = 0; i < NumCovariates; ++i){
+  //     QY[i+NumIndividuals] = betamean[i] * sqrt(betaprecision[i]);//append prior means to Y
+  //     QX[(i+NumIndividuals)*NumCovariates + i] = sqrt(betaprecision[i]);//prior precision on beta
+  //     for(int j = i+1; j < NumCovariates; ++j)
+  //       QX[(i+NumIndividuals)*NumCovariates + j] = QX[(j+NumIndividuals)*NumCovariates + i] = 0.0;
+  //   }
 
   //compute Q^{-1/2}Y and Q^{-1/2}X
   for(int i = 0; i < NumIndividuals; ++i){
@@ -252,36 +268,41 @@ void LinearRegression::SampleLinearRegressionParametersWithAnnealing(const doubl
 double LinearRegression::getDispersion()const{
   return lambda;
 }
+///returns Derivative of Inverse Link Function for individual i
+double LinearRegression::DerivativeInverseLinkFunction(unsigned)const{
+  return 1.0;    
+}
 
-double LinearRegression::getLogLikelihood(const IndividualCollection* const IC)const{
-  int NumIndividuals = IC->getSize();
+double LinearRegression::getLogLikelihood(const std::vector<double>& Outcome)const{
   double loglikelihood = 0.0;
   //univariate Gaussian likelihood
   double* dev = new double[NumIndividuals];
   double devsq[1];
   for(int i = 0; i < NumIndividuals; ++i)
-    dev[i] = IC->getOutcome(RegNumber, i) - IC->getExpectedY(i, RegNumber);
+    dev[i] = Outcome[ i ] - ExpectedY[ i ];
   matrix_product(dev, dev, devsq, 1, NumIndividuals, 1);
   delete[] dev;
   loglikelihood = -0.5* ( NumIndividuals * (log(2.0*3.14159) - log(lambda)) + lambda * devsq[0] );
   return loglikelihood;
 }
 
-double LinearRegression::getLogLikelihoodAtPosteriorMeans(IndividualCollection *IC, int iterations){
+double LinearRegression::getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome){
   double logL = 0.0;
 
   //set expected outcome at posterior means of regression parameters
   for(int i = 0; i < NumCovariates; ++i)SumBeta[i] /= (double)iterations; 
-  IC->SetExpectedY(RegNumber,SumBeta);//computes X * BetaBar
+  //IC->SetExpectedY(RegNumber,SumBeta);//computes X * BetaBar
+  SetExpectedY(SumBeta);
   for(int i = 0; i < NumCovariates; ++i)SumBeta[i] *= (double)iterations; //restore sumbeta
 
   //set precision to posterior mean
   double temp = lambda;
   lambda = SumLambda/(double)iterations;
 
-  logL = getLogLikelihood(IC);
+  logL = getLogLikelihood(Outcome);
   lambda = temp;//restore precision
-  IC->SetExpectedY(RegNumber,beta);//restore Xbeta
+  //IC->SetExpectedY(RegNumber,beta);//restore Xbeta
+  SetExpectedY(beta);
 
   return logL;
 }
