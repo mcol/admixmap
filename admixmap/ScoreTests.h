@@ -49,7 +49,7 @@ public:
 
   void SetAllelicAssociationTest(const std::vector<double> &alpha0);
 
-  void Update(double);
+  void Update(const vector<Regression* >& R);
   void UpdateScoresForResidualAllelicAssociation(const array_of_allelefreqs& Allelefreqs);
 
   ~ScoreTests();

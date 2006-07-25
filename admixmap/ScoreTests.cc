@@ -501,9 +501,7 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
 
 // ****************************** UPDATES ****************************
 
-void ScoreTests::Update(double dispersion)
-//Note: dispersion = dispersion in regression model
-//                 = precision for linear reg, 1.0 for logistic
+void ScoreTests::Update(const vector<Regression* >& R)
 {
   Reset();//set sums over individuals to zero
   double DInvLink;
@@ -511,13 +509,16 @@ void ScoreTests::Update(double dispersion)
   //------------------------------------------------------
   // Accumulate Scores over individuals for this iteration
   //------------------------------------------------------
-
+  if(options->getNumberOfOutcomes() > 0){//if regressionmodel
+    const double* const EY = R[0]->getExpectedOutcome();
+    const double dispersion = R[0]->getDispersion();
+    
     for( int i = worker_rank; i < NumberOfIndividuals; i+=NumWorkers ){
-    if(options->getNumberOfOutcomes() > 0){//if regressionmodel
+      
       Individual* ind = individuals->getIndividual(i);
-      double YMinusEY = individuals->getOutcome(0, i) - individuals->getExpectedY(i);//individual outcome - its expectation
+      double YMinusEY = individuals->getOutcome(0, i) - EY[i];//individual outcome - its expectation
       //note that it is the first regression that is used
-      DInvLink = individuals->DerivativeInverseLinkFunction(i);
+      DInvLink = R[0]->DerivativeInverseLinkFunction(i);
       bool missingOutcome = individuals->isMissingOutcome(0,i); 
      
       //admixture association
