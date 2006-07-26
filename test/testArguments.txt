@@ -15,7 +15,7 @@
     locusfile                          = data/loci.txt
     priorallelefreqfile             = data/priorallelefreqs.txt
     #populations=1
-    covariatesfile                  = 'data/covariates3std.txt
+    covariatesfile                  = data/covariates3std.txt
     outcomevarfile               = data/outcomevars.txt
 
 ##main options
