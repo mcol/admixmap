@@ -25,6 +25,7 @@
 using namespace::std;
 
 class AlleleFreqs;
+class Regression;
 
 ///Class to represent an individual and update individual-level parameters
 class Individual
@@ -66,8 +67,7 @@ public:
   void ResetSufficientStats();
   void SampleLocusAncestry(const AdmixOptions* const options);
   void AccumulateAncestry(int* SumAncestry);
-  void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
-		    DataMatrix *Covariates, double DInvLink, double dispersion,const double* const * ExpectedY);
+  void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, const Regression* const R);
   void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal);
   void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal, 
 		     const double* const AlleleProbs);
@@ -79,8 +79,7 @@ public:
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, 
 		    double DInvLink, const double dispersion, const bool RW, const bool anneal);
-  void SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
-			     const double* const* ExpectedY, const vector<double> lambda);
+  void SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regression*>& R);
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);  
   void resetStepSizeApproximator(int k);
@@ -201,8 +200,7 @@ private:
 			      const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
   void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-			const DataType* const OutcomeType, 
-			Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY);
+				  Chromosome* chrm, const Regression* const R);
   static void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
 };
 

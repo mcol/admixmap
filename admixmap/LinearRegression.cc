@@ -35,6 +35,8 @@ void LinearRegression::Initialise(unsigned Number, double priorPrecision, const 
   }
   Log << ")\n";
   
+  SetExpectedY(beta);
+
   // ** Initialise Linear Regression objects    
   lambda0 = 0.01;//shape parameter for prior on lambda
   lambda1 = 0.01;//rate parameter for prior on lambda

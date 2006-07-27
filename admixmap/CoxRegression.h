@@ -38,6 +38,7 @@ public:
   double DerivativeInverseLinkFunction(unsigned i)const;
   double getDispersion()const;
   void OutputParams(ostream* out);
+  void OutputExpectedY();
   void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
 	      , MPI::Intracomm &Comm
@@ -56,6 +57,7 @@ private:
   std::vector<int> endpoints;//endpoints of subintervals
   std::vector<unsigned> events;//counts of events
   std::vector<double> HazardRates;
+  static const double* EY;
 
   bool atRisk(unsigned ind, unsigned interval)const;
 
@@ -63,6 +65,10 @@ private:
 		     const std::vector<int>::const_iterator finish, const std::vector<int>::const_iterator endpts);
   unsigned intervalLength(unsigned t)const;
   unsigned numFailures(unsigned ind, unsigned interval)const;
+
+  static void getExpectedOutcome(const double* const beta, const double* const X, double* EY, int n, int d);
+  static void getExpectedOutcome(const double* const beta, const double* const X, double* Y, int n, int dim, int index, double betaj);
+  static void SetExpectedY(const double* const Covariates, const double* const beta, double* Ey);
 
   static double lr( const double beta, const void* const vargs );
   

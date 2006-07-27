@@ -31,6 +31,8 @@ void LogisticRegression::Initialise(unsigned Number, double priorPrecision, cons
   }
   Log << ")\n";
   
+  SetExpectedY(beta);
+
   //  ** initialize sampler for logistic regression **
   acceptbeta = 0;
   

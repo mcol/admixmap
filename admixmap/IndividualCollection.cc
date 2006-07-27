@@ -29,7 +29,6 @@ void IndividualCollection::SetNullValues(){
   NumOutcomes = 0;
   NumCovariates = 0;
   NumberOfInputCovariates = 0;
-  ExpectedY = 0;
   ReportedAncestry = 0;
   SumDeviance = SumDevianceSq = 0.0;
   SumEnergy = 0; SumEnergySq = 0; 
@@ -39,11 +38,9 @@ void IndividualCollection::SetNullValues(){
   sizeTestInd = 0;
   indadmixoutput = 0;
   SumLogLikelihood = 0.0;
-  //SumResiduals = 0;
   SumLogTheta = 0;
   SumAncestry = 0;
   ReportedAncestry = 0;
-  //thetahat = 0;
   //sigma.resize(2);
   //sigma[0] = sigma[1] = 1.0;
 }
@@ -119,30 +116,12 @@ IndividualCollection::~IndividualCollection() {
   delete indadmixoutput;
 
   delete[] OutcomeType;
-  free_matrix(ExpectedY, NumOutcomes);
-  //free_matrix(SumResiduals, NumOutcomes);
-  //delete[] thetahat;
   delete[] SumLogTheta;
   delete[] SumAncestry;
   delete[] ReportedAncestry;
 #ifdef PARALLEL
   delete[] GlobalSumAncestry;
 #endif
-}
-///finish writing expected outcome as R object
-void IndividualCollection::FinishWritingEYAsRObject(unsigned NumIterations, const Vector_s Labels){
-  //dimensions are NumIndividuals, NumOutcomes, NumIterations
-  if(EYStream.is_open()){
-    EYStream << ")," << endl << ".Dim = c(" << size << "," << NumOutcomes << "," << NumIterations << ")," << endl
-	     << ".Dimnames=list(character(0),c(";
-    //write outcome var labels
-    for(unsigned j = 0; j < Labels.size(); ++j){
-      EYStream << "\"" << Labels[j] << "\"";
-      if(j < Labels.size()-1) EYStream << ",";
-    }
-    EYStream << ") , character(0)))" << endl;
-    EYStream.close();  
-  }
 }
 void IndividualCollection::DeleteGenotypes(bool setmissing=false){
   for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
@@ -176,13 +155,6 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
     if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
   }
   
-  // allocate arrays for expected outcome vars and residuals in regression model
-  if(NumOutcomes > 0){
-    ExpectedY = alloc2D_d(NumOutcomes, NumInd);
-    //SumResiduals = alloc2D_d(NumOutcomes, NumInd);
-    //for(int j = 0; j < NumOutcomes; ++j)fill(SumResiduals[j], SumResiduals[j] + NumInd, 0.0);
-  }
-  
   // allocate array of sufficient statistics for update of population admixture parameters
   SumLogTheta = new double[ options->getPopulations()];
   
@@ -211,6 +183,19 @@ void IndividualCollection::LoadData(const AdmixOptions* const options, const Inp
 }
 
 void IndividualCollection::LoadCovariates(const InputData* const data_, const AdmixOptions* const options){
+//   NumCovariates = 0;
+//   DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
+//   if(!(options->getNumberOfOutcomes()==1 && OutcomeType[0]==CoxData))
+//     ++NumCovariates;//for intercept. No intercept for Cox regression
+//   //TODO: what to do if Cox regression and another regression type
+//   if( !options->getTestForAdmixtureAssociation() && !options->getHapMixModelIndicator() ){
+//     NumCovariates += options->getPopulations()-1;//admixture term for each population, except the first
+//   }
+//   NumberOfInputCovariates = CovData.nCols();
+//   NumCovariates += NumberOfInputCovariates;//add number of covariates in file
+//   Covariates.setDimensions(size, NumCovariates);
+
+
   if ( strlen( options->getCovariatesFilename() ) > 0 ){
     DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
     NumberOfInputCovariates = CovData.nCols();
@@ -280,48 +265,6 @@ void IndividualCollection::LoadRepAncestry(const InputData* const data_){
   for( unsigned i = 0; i < temporary.nRows() / 2; i++ )
     ReportedAncestry[i] = temporary.SubMatrix( 2*i, 2*i + 1, 0, temporary.nCols() - 1 );
  
-}
-
-// void IndividualCollection::getLabels(const Vector_s& data, Vector_s& labels)
-// {
-//   for (size_t i = 0; i < data.size(); ++i) {
-//     labels.push_back(StringConvertor::dequote(data[i]));
-//   }
-// }
-
-void IndividualCollection::SetExpectedY(int k, const double* const beta){
-  //sets ExpectedY = X * Beta
-  if(ExpectedY){
-    matrix_product(Covariates.getData(), beta, ExpectedY[k], Covariates.nRows(), Covariates.nCols(), 1);
-    if(OutcomeType[k] == Binary)
-      //for binary outcome sets EY as logit^-1(X*beta)
-      for(unsigned int i = 0; i < NumInd; i++ )
-	ExpectedY[k][i] = 1 / ( 1 + exp( -ExpectedY[k][i] ) );
-    }
-}
-
-void IndividualCollection::OpenExpectedYFile(const char* Filename, LogWriter & Log){
-  if(ExpectedY){
-    EYStream.open(Filename, ios::out);
-    if( !EYStream.is_open() )
-      {
-	Log.setDisplayMode(On);
-	Log<< "WARNING: Couldn't open expectedoutcomefile\n";
-      }
-    else{
-      Log.setDisplayMode(Quiet);
-      Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
-      EYStream << "structure(.Data=c(" << endl;
-    }
-  }
-}
-void IndividualCollection::OutputExpectedY(int k){
-  //output kth Expected Outcome to file
-  if(EYStream.is_open()){
-    for(unsigned i = worker_rank; i < size; i+= NumWorkers)
-      EYStream << ExpectedY[k][i] << ",";
-    EYStream << endl;
-  }  
 }
 
 void IndividualCollection::HMMIsBad(bool b){
@@ -493,8 +436,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     // ** Update score, info and score^2 for ancestry score tests
     if(iteration > options->getBurnIn() && Populations >1 
        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-      _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DinvLink, 
-			      dispersion, ExpectedY);
+      _child[i]->UpdateScores(options, &Outcome, &Covariates, R[0]);
 
   }
 #ifdef PARALLEL
@@ -663,7 +605,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
 	TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
 				beta, poptheta, options, alpha, 0.0, dispersion, false, anneal);
       // ** Sample missing values of outcome variable
-      TestInd[i]->SampleMissingOutcomes(&Outcome, OutcomeType, ExpectedY, lambda);
+      //TestInd[i]->SampleMissingOutcomes(&Outcome, R);
       
     }//end loop over test individuals
   }
@@ -683,7 +625,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
 			     beta, poptheta, options, alpha, DinvLink, dispersion, false, anneal);
     }
     // ** Sample missing values of outcome variable
-    _child[i]->SampleMissingOutcomes(&Outcome, OutcomeType, ExpectedY, lambda);
+    _child[i]->SampleMissingOutcomes(&Outcome, R);
   }
 }
 
@@ -846,13 +788,12 @@ const vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop,
     if( !_child[i]->GenotypeIsMissing(locus)){
       _child[i]->GetLocusAncestry(locus, ancestry);
       const int* happair = _child[i]->getSampledHapPair(locus);
-      // happair[1] ==  -1 if haploid 
-      if( (ancestry[0] == pop) && (happair[0] > 0) ) ++counts[happair[0]];
-      if( (ancestry[1] == pop) && (happair[1] > 0) ) ++counts[happair[1]];
+      // happair[1] ==  -1 if haploid
+      if(ancestry[0] == pop && (happair[0] > 0) )++counts[happair[0]];
+      if(ancestry[1] == pop&& (happair[1] > 0) )++counts[happair[1]];
     }
   return counts;
 }
-
 ///count number of missing genotypes at locus
 int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
   int count = 0;

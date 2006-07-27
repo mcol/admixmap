@@ -170,7 +170,6 @@ int main( int argc , char** argv ){
 
     IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
     if(rank!=1)IC->LoadData(&options, &data);                             //and before L and R Initialise
-    if(options.getNumberOfOutcomes()>0 && rank<1)IC->OpenExpectedYFile(options.getResidualFilename(), Log );
     if(rank!=0 && rank!=1)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
 
     Latent L( &options, &Loci);    
@@ -178,7 +177,10 @@ int main( int argc , char** argv ){
 
     vector<Regression*> R;//vector of regression pointers
     if (options.getNumberOfOutcomes()>0 && rank !=1){
-      if( rank<1 )Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
+      if( rank<1 ){
+	Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
+	Regression::OpenExpectedYFile(options.getEYFilename(), Log);
+      }
       for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
 	//determine regression type and allocate regression objects
 	if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
@@ -202,12 +204,6 @@ int main( int argc , char** argv ){
     
     if(rank !=1)IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), /*L.getrhoalpha(), L.getrhobeta(),*/ Log);
   
-    //set expected Outcome
-    if(rank < 1)
-      for(int r = 0; r < options.getNumberOfOutcomes(); ++r)
-	//R[r]->SetExpectedY(IC);
-	IC->SetExpectedY(r, R[r]->getbeta());
-
     data.Delete();
 
     //  ******** single individual, one population, fixed allele frequencies  ***************************
@@ -409,10 +405,11 @@ int main( int argc , char** argv ){
 	Log << "Information (negative entropy, measured in nats) " << Information << "\n";
       }
 		
-      //Residuals
-      if(rank <1 && options.getNumberOfOutcomes() > 0)
-	IC->//OutputResiduals(options.getResidualFilename(), data.getOutcomeLabels(), options.getTotalSamples()-options.getBurnIn());
-	  FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), data.getOutcomeLabels());
+      //Expected Outcome
+      if(rank <1 && options.getNumberOfOutcomes() > 0){
+	Regression::FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), 
+					     data.getOutcomeLabels());
+      }
       //FST
       if( strlen( options.getHistoricalAlleleFreqFilename()) && (rank==-1 || rank==1)  ){
 	A.OutputFST();
@@ -916,10 +913,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 		  , workers_and_master
 #endif
 );
-      IC->SetExpectedY(r, R[r]->getbeta());
-      //IC->UpdateSumResiduals();
       //output expected values of outcome variables to file every 'every' iterations after burnin
-      if(condition && !(iteration % options->getSampleEvery()) ) IC->OutputExpectedY(r);
+      if(condition && !(iteration % options->getSampleEvery()) ) {
+	R[r]->OutputExpectedY();
+      }
     }
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   

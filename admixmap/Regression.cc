@@ -16,6 +16,9 @@
 #include <algorithm>
 
 std::ofstream Regression::outputstream;
+std::ofstream Regression::EYStream;
+int Regression::NumIndividuals;
+int Regression::NumOutcomeVars;
 
 Regression::Regression(){
   lambda = 0; 
@@ -45,6 +48,7 @@ Regression::~Regression(){
 
 void Regression::OpenOutputFile(const unsigned NumOutcomes, const char* const filename, LogWriter &Log){
   //Open paramfile
+  NumOutcomeVars = NumOutcomes;
   if ( NumOutcomes){ 
     if ( strlen( filename ) ){
       outputstream.open( filename, std::ios::out );
@@ -73,6 +77,20 @@ void Regression::InitializeOutputFile(const std::vector<std::string>& CovariateL
     outputstream << CovariateLabels[i] << "\t";
   }
   if(NumOutcomes == RegNumber+1)outputstream << std::endl;
+}
+
+void Regression::OpenExpectedYFile(const char* Filename, LogWriter & Log){
+  EYStream.open(Filename, std::ios::out);
+  if( !EYStream.is_open() )
+    {
+      Log.setDisplayMode(On);
+      Log<< "WARNING: Couldn't open expectedoutcomefile\n";
+    }
+  else{
+    Log.setDisplayMode(Quiet);
+    Log << "Writing expected values of outcome variable(s) to " << Filename << "\n";
+    EYStream << "structure(.Data=c(" << std::endl;
+  }
 }
 
 void Regression::Initialise(unsigned Number, const unsigned numCovariates){
@@ -162,9 +180,33 @@ void Regression::Output(const unsigned NumberOfOutcomes, bool toScreen, bool aft
   }
 }
 
+void Regression::OutputExpectedY(){
+  //output kth Expected Outcome to file
+  if(EYStream.is_open()){
+    for(int i = 0; i < NumIndividuals; ++i)
+      EYStream << ExpectedY[i] << ",";
+    EYStream << std::endl;
+  }  
+}
+
+///finish writing expected outcome as R object
+void Regression::FinishWritingEYAsRObject(unsigned NumIterations, const Vector_s Labels){
+  //dimensions are NumIndividuals, NumOutcomes, NumIterations
+  if(EYStream.is_open()){
+    EYStream << ")," << std::endl << ".Dim = c(" << NumIndividuals << "," << Labels.size() << "," << NumIterations << ")," << std::endl
+	     << ".Dimnames=list(character(0),c(";
+    //write outcome var labels
+    for(unsigned j = 0; j < Labels.size(); ++j){
+      EYStream << "\"" << Labels[j] << "\"";
+      if(j < Labels.size()-1) EYStream << ",";
+    }
+    EYStream << ") , character(0)))" << std::endl;
+    EYStream.close();  
+  }
+}
+
 void Regression::OutputErgodicAvg(int samples, std::ofstream *avgstream)const{
  //output to ergodicaveragefile
-  std::cout << "in base function" << std::endl;
   for( int j = 0; j < NumCovariates; j++ ){
     avgstream->width(9);
     *avgstream << std::setprecision(6) << SumBeta[j] / samples << "\t";
@@ -190,5 +232,10 @@ int Regression::getNumCovariates()const{
 const double* Regression::getExpectedOutcome()const{
   return ExpectedY;
 }
-
+double Regression::getExpectedOutcome(unsigned i)const{
+  return ExpectedY[i];
+}
+RegressionType Regression::getRegressionType()const{
+  return RegType;
+}
 

@@ -34,20 +34,26 @@ public:
 	      ) = 0;
   virtual double getLogLikelihood(const std::vector<double>& Outcome)const = 0;
   virtual double getLogLikelihoodAtPosteriorMeans(int iterations, const std::vector<double>& Outcome) = 0;
-  static void OpenOutputFile(const unsigned NumOutcomes, const char* const filename, LogWriter &Log);  
+  static void OpenOutputFile(const unsigned NumOutcomes, const char* const filename, LogWriter &Log); 
+  static void OpenExpectedYFile(const char* Filename, LogWriter & Log); 
   virtual void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
   virtual void Output(const unsigned NumberOfOutcomes, bool toScreen, bool afterBurnIn);
   virtual void OutputParams(std::ostream* out)const;
   virtual void OutputErgodicAvg(int iteration, std::ofstream *avgstream)const;
+  virtual void OutputExpectedY();
+  static void FinishWritingEYAsRObject(unsigned NumIterations, const Vector_s Labels);
   const double* getbeta() const;
   double getlambda() const ;
   int getNumCovariates()const;
   virtual double getDispersion()const = 0;
   virtual double DerivativeInverseLinkFunction(unsigned i)const = 0;
   const double* getExpectedOutcome()const;
-
+  double getExpectedOutcome(unsigned i)const;
+  RegressionType getRegressionType()const;
 protected:
-  int NumCovariates, NumOutcomeVars, NumIndividuals;
+  int NumCovariates;
+  static int NumOutcomeVars;
+  static int NumIndividuals;
   RegressionType RegType;
   unsigned RegNumber;
 
@@ -62,7 +68,9 @@ protected:
   double* ExpectedY;
   double* XtY;
 
-  static std::ofstream outputstream;
+  static std::ofstream outputstream;///< stream for regression parameters
+  static std::ofstream EYStream;///< stream for expected outcomes
+
   void Initialise(unsigned Number, unsigned nCovariates, unsigned nIndivs, const double* const Covars);
   void SumParameters();
   static void getExpectedOutcome(const double* const beta, const double* const X, double* EY, int n, int d);

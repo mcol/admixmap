@@ -12,6 +12,7 @@
  */
 #include "Individual.h"
 #include "StringConvertor.h"
+#include "Regression.h"
 #include <algorithm>
 #include <limits>
 #include <sstream>
@@ -1196,16 +1197,15 @@ void Individual::SampleRho(const AdmixOptions* const options, double rhoalpha, d
   }
 }
 
-void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const DataType* const OutcomeType, 
-				       const double* const* ExpectedY, const vector<double> lambda){
+void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regression*>& R){
   int NumOutcomes = Outcome->nCols();
   // sample missing values of outcome variable
   for( int k = 0; k < NumOutcomes; k++ ){
     if( Outcome->isMissing( myNumber-1, k ) ){
-      if( OutcomeType[k] == Continuous )
-	Outcome->set( myNumber-1, k, Rand::gennor( ExpectedY[k][myNumber-1], 1 / sqrt( lambda[k] ) ));
+      if( R[k]->getRegressionType() == Linear)
+	Outcome->set( myNumber-1, k, Rand::gennor( R[k]->getExpectedOutcome(myNumber-1), 1 / sqrt( R[k]->getlambda() ) ));
       else{
-	if( Rand::myrand() * ExpectedY[k][myNumber-1] < 1 )
+	if( Rand::myrand() * R[k]->getExpectedOutcome(myNumber-1) < 1 )
 	  Outcome->set( myNumber-1, k, 1);
 	else
 	  Outcome->set( myNumber-1, k, 0);
@@ -1247,8 +1247,8 @@ void Individual::ResetScores(const AdmixOptions* const options){
   }
 }
 
-void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, const DataType* const OutcomeType, 
-			      DataMatrix *Covariates, double DInvLink, double dispersion,const double* const * ExpectedY){//merge with updatescoretests
+void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, const Regression* const R){
+//merge with updatescoretests
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
@@ -1262,20 +1262,19 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
 	admixtureCovars = new double[Populations-1];
 	for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
       }
-      UpdateScoreTests(options, admixtureCovars, Outcome, OutcomeType, C, DInvLink, dispersion, ExpectedY);
+      UpdateScoreTests(options, admixtureCovars, Outcome, C, R);
       delete[] admixtureCovars;
   } //end chromosome loop
 }
 
 void Individual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-				  const DataType* const OutcomeType,
-				  Chromosome* chrm, double DInvLink, double dispersion, const double* const* ExpectedY){
+				  Chromosome* chrm, const Regression* const R){
   bool IamAffected = false;
   try {
     if( options->getTestForAffectedsOnly()){
       //determine which regression is logistic, in case of 2 outcomes
       unsigned col = 0;
-      if(options->getNumberOfOutcomes() >1 && OutcomeType[0]!=Binary)col = 1;
+      if(options->getNumberOfOutcomes() >1 && R->getRegressionType()!=Logistic )col = 1;
       //check if this individual is affected
       if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
     }
@@ -1298,8 +1297,9 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, const doubl
       
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){
-	UpdateScoreForAncestry(locus, admixtureCovars, dispersion, Outcome->get(myNumber-1, 0) - ExpectedY[0][myNumber-1], 
-			       DInvLink, AProbs);
+	UpdateScoreForAncestry(locus, admixtureCovars, R->getDispersion(), 
+			       Outcome->get(myNumber-1, 0) - R->getExpectedOutcome(myNumber-1), 
+			       R->DerivativeInverseLinkFunction(myNumber-1), AProbs);
       }
       ++locus;
     }//end within-chromosome loop

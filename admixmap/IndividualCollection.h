@@ -41,7 +41,7 @@ public:
   IndividualCollection();
   ~IndividualCollection();
   IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
-  void SetNullValues();
+
   void DeleteGenotypes(bool);
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, const Vector_s& PopulationLabels,
 		  const std::vector<std::vector<double> > &alpha, //double rhoalpha, double rhobeta, 
@@ -87,11 +87,8 @@ public:
   double getDevianceAtPosteriorMean(const AdmixOptions* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log, 
 				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A);
   void OutputChibResults(LogWriter&)const;
-  void OpenExpectedYFile(const char* Filename, LogWriter & Log);
-  void OutputExpectedY(int k);
-  void FinishWritingEYAsRObject(unsigned NumIterations, const Vector_s Labels);
   int getSize()const;
-  void add(Individual*);
+
   Individual* getIndividual(int)const;
   //void setAdmixtureProps(const double* const, size_t);
   double GetSumrho()const;
@@ -112,7 +109,6 @@ public:
   int GetNumberOfInputCovariates()const;
   const double* getCovariates()const;
   DataType getOutcomeType(int)const;
-  void SetExpectedY(int, const double*const );
   double getSampleVarianceOfOutcome(int j)const;
   double getSampleVarianceOfCovariate(int j)const;
   double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
@@ -158,7 +154,6 @@ private:
 #endif
  
   //Regression Objects
-  double **ExpectedY;
   DataMatrix Outcome;
   int NumOutcomes;
   int NumCovariates;//covariates including admixture
@@ -167,6 +162,8 @@ private:
   DataType *OutcomeType;
   std::ofstream EYStream;//output file for expected outcome
   chib MargLikelihood;
+
+  void SetNullValues();
 };
 
 #endif /* !defined INDIVIDUAL_COLLECTION_H */
