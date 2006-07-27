@@ -101,7 +101,7 @@ void AdmixOptions::Initialise(){
 
   ResidualAllelicAssocScoreFilename = "ResidualAllelicAssocScoreTest.txt";
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
-  ResidualFilename = "ExpectedOutcomes.txt";
+  EYFilename = "ExpectedOutcomes.txt";
 
   // option names and default option values are stored as strings in a map container 
   // these are default values
@@ -512,8 +512,8 @@ const char *AdmixOptions::getEtaPriorFilename() const
   return EtaPriorFilename.c_str();
 }
 
-const char* AdmixOptions::getResidualFilename()const{
-  return ResidualFilename.c_str();
+const char* AdmixOptions::getEYFilename()const{
+  return EYFilename.c_str();
 }
 
 int AdmixOptions::sizeInitAlpha() const
@@ -990,7 +990,7 @@ void AdmixOptions::SetOutputNames(){
   if ( FSTOutputFilename != "") FSTOutputFilename = ResultsDir + "/" + FSTOutputFilename;
   if ( HWTestFilename != "") HWTestFilename = ResultsDir + "/" + HWTestFilename;
   if ( LikRatioFilename != "") LikRatioFilename = ResultsDir + "/" + LikRatioFilename;
-  ResidualFilename = ResultsDir + "/" + ResidualFilename;
+  EYFilename = ResultsDir + "/" + EYFilename;
   if(IndAdmixModeFilename != "") IndAdmixModeFilename = ResultsDir + "/" + IndAdmixModeFilename;
 }
 
