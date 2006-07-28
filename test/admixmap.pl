@@ -68,11 +68,18 @@ print "\n";
 sub getArguments
 {
     my $hash = $_[0];
-    my $arg = '';
+#    my $arg = '';
+#    foreach my $key (keys %$hash){
+#	$arg .= ' --'. $key .'='. $hash->{$key};
+#    }
+#    return $arg;
+    my $filename = 'perlargs.txt';
+    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
     foreach my $key (keys %$hash){
-	$arg .= ' --'. $key .'='. $hash->{$key};
+      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
-    return $arg;
+    close OPTIONFILE;
+    return " ".$filename;
 }
 
 sub doAnalysis {
@@ -81,6 +88,7 @@ sub doAnalysis {
 
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
+print $command;
     my $status = system($command);
 
     # Comment out the remaining lines to run admixmap without R script
