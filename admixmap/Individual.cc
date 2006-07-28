@@ -1247,7 +1247,8 @@ void Individual::ResetScores(const AdmixOptions* const options){
   }
 }
 
-void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, const Regression* const R){
+void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
+			      const Regression* const R){
 //merge with updatescoretests
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
@@ -1258,12 +1259,14 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
       }
       //update of score tests for linkage with ancestry requires update of backward probs
       double* admixtureCovars = 0;
-      if(options->getTestForLinkageWithAncestry()){
+      if(options->getTestForLinkageWithAncestry()) {
 	admixtureCovars = new double[Populations-1];
 	for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
       }
       UpdateScoreTests(options, admixtureCovars, Outcome, C, R);
-      delete[] admixtureCovars;
+      if(options->getTestForLinkageWithAncestry()) {
+	delete[] admixtureCovars;
+      }
   } //end chromosome loop
 }
 
