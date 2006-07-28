@@ -16,13 +16,10 @@ typedef struct{
   double priorprecision;  ///< prior precision 
   const double* Covariates;
   const double* beta;  ///< regression parameters
-  std::vector<int>::const_iterator startTimes;
-  std::vector<int>::const_iterator endTimes;
-  std::vector<int>::const_iterator endpoints;
-  std::vector<double>::const_iterator HazardRates;
-  std::vector<unsigned>::const_iterator events;
-  double c;///< precision of mu 
-  double mu;///<initial guess at average hazard rate per unit time
+  std::vector<int> IntervalLengths;
+  std::vector<bool> atRisk;
+  std::vector<double> HazardRates;
+  std::vector<unsigned> events;
   double coolness;  ///<for annealing
 
 }CoxBetaArgs;
@@ -52,19 +49,10 @@ private:
   GaussianProposalMH* BetaSampler;//to sample regression parameters
   CoxBetaArgs BetaParameters;
   int acceptbeta;
-  std::vector<int> startTimes;
-  std::vector<int> endTimes;
-  std::vector<int> endpoints;//endpoints of subintervals
-  std::vector<unsigned> events;//counts of events
-  std::vector<double> HazardRates;
+  double c;///< precision of mu 
+  double mu;///<initial guess at average hazard rate per unit time
+  std::vector<double> sum_nr;///< sumof n_it * r_it over individuals
   static const double* EY;
-
-  bool atRisk(unsigned ind, unsigned interval)const;
-
-  static bool atRisk(const std::vector<int>::const_iterator start, 
-		     const std::vector<int>::const_iterator finish, const std::vector<int>::const_iterator endpts);
-  unsigned intervalLength(unsigned t)const;
-  unsigned numFailures(unsigned ind, unsigned interval)const;
 
   static void getExpectedOutcome(const double* const beta, const double* const X, double* EY, int n, int d);
   static void getExpectedOutcome(const double* const beta, const double* const X, double* Y, int n, int dim, int index, double betaj);
