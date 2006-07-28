@@ -56,18 +56,23 @@ void InputData::readFile(const char *fname, Matrix_s& data, LogWriter &Log)
     data.clear();
     try {
         StringSplitter splitter;
-
         string line;        
 
         while (getline(in, line)) {
 	  if (!StringConvertor::isWhiteLine(line.c_str())) {
-	      data.push_back(splitter.split(line.c_str()));
-            }
+	    data.push_back(splitter.split(line.c_str()));
+	    if(data.size()>1 && data[data.size()-1].size() != data[0].size()){
+	      string errstring = "Inconsistent row lengths in file ";
+	      errstring.append(fname);
+	      throw errstring;
+	    }
+	  }
         }
     } catch (...) {
-        in.close();
-        throw;
+      in.close();
+      throw;
     }
+    
 }
 #ifdef PARALLEL
 void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
@@ -190,7 +195,11 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
       convertMatrix(reportedAncestryData_, reportedAncestryMatrix_, 0, 0,0);
       
     } catch (const exception& e) {
-    cerr << "Exception occured during parsing of input file: \n" << e.what() << endl;
+    cerr << "\nException occured during parsing of input file: \n" << e.what() << endl;
+    exit(1);
+  }
+  catch(string s){
+    cerr << "\nException occured during parsing of input file: \n" << s << endl;;
     exit(1);
   }
   NumSimpleLoci = getNumberOfSimpleLoci();
@@ -452,17 +461,17 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
 
 void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log){
   //check outcomevarfile and genotypes file have the same number of rows
-
-  int Firstcol = options->getTargetIndicator();
-  int NumOutcomes = options->getNumberOfOutcomes();
-  if(strlen(options->getCoxOutcomeVarFilename())) --NumOutcomes;
-  if( (int)outcomeVarMatrix_.nRows() - 1 != NumIndividuals ){
+  if( (int)outcomeVarMatrix_.nRows() - 1 != (NumIndividuals - options->getTestOneIndivIndicator()) ){
     stringstream s;
     s << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
 	<< outcomeVarMatrix_.nRows() - 1 << " observations.\n";
     throw(s.str());
   }
   //check the number of outcomes specified is not more than the number of cols in outcomevarfile
+  int Firstcol = options->getTargetIndicator();
+  int NumOutcomes = options->getNumberOfOutcomes();
+  if(strlen(options->getCoxOutcomeVarFilename())) --NumOutcomes;
+
   int numoutcomes = NumOutcomes;
   if(NumOutcomes > -1){//options 'numberofregressions' used
     if((int)outcomeVarMatrix_.nCols() - Firstcol < NumOutcomes){
