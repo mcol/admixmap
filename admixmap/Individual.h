@@ -67,7 +67,8 @@ public:
   void ResetSufficientStats();
   void SampleLocusAncestry(const AdmixOptions* const options);
   void AccumulateAncestry(int* SumAncestry);
-  void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, const Regression* const R);
+  void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
+		    const vector<Regression*> R);
   void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal);
   void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal, 
 		     const double* const AlleleProbs);
@@ -200,7 +201,7 @@ private:
 			      const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
   void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-				  Chromosome* chrm, const Regression* const R);
+				  Chromosome* chrm, const vector<Regression*> R);
   static void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
 };
 

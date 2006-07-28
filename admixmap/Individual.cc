@@ -1248,7 +1248,7 @@ void Individual::ResetScores(const AdmixOptions* const options){
 }
 
 void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
-			      const Regression* const R){
+			      const vector<Regression*> R){
 //merge with updatescoretests
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
@@ -1271,13 +1271,13 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
 }
 
 void Individual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-				  Chromosome* chrm, const Regression* const R){
+				  Chromosome* chrm, const vector<Regression*> R){
   bool IamAffected = false;
   try {
     if( options->getTestForAffectedsOnly()){
       //determine which regression is logistic, in case of 2 outcomes
       unsigned col = 0;
-      if(options->getNumberOfOutcomes() >1 && R->getRegressionType()!=Logistic )col = 1;
+      if(options->getNumberOfOutcomes() >1 && R[0]->getRegressionType()!=Logistic )col = 1;
       //check if this individual is affected
       if(options->getNumberOfOutcomes() == 0 || Outcome->get(myNumber-1, col) == 1) IamAffected = true;
     }
@@ -1300,9 +1300,9 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, const doubl
       
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){
-	UpdateScoreForAncestry(locus, admixtureCovars, R->getDispersion(), 
-			       Outcome->get(myNumber-1, 0) - R->getExpectedOutcome(myNumber-1), 
-			       R->DerivativeInverseLinkFunction(myNumber-1), AProbs);
+	UpdateScoreForAncestry(locus, admixtureCovars, R[0]->getDispersion(), 
+			       Outcome->get(myNumber-1, 0) - R[0]->getExpectedOutcome(myNumber-1), 
+			       R[0]->DerivativeInverseLinkFunction(myNumber-1), AProbs);
       }
       ++locus;
     }//end within-chromosome loop

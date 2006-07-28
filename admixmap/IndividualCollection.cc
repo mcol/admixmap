@@ -436,7 +436,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     // ** Update score, info and score^2 for ancestry score tests
     if(iteration > options->getBurnIn() && Populations >1 
        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-      _child[i]->UpdateScores(options, &Outcome, &Covariates, R[0]);
+      _child[i]->UpdateScores(options, &Outcome, &Covariates, R);
 
   }
 #ifdef PARALLEL
