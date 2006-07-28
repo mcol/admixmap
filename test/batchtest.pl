@@ -1,17 +1,17 @@
 #!/usr/bin/perl
 # script to test most ADMIXMAP options and compare results with previous results
-use strict;
-use File::Path;
+ 
+print "OS is ";print $^O;
+$resultsdir = "results";
 
-print "OS is ";print "$^O\n";
-my $resultsdir = "results";
-if (-e $resultsdir) { 
-    rmtree($resultsdir);
-}
-mkpath($resultsdir);
-
+# Change this to the location of the admixmap executable
 my $executable = './admixmap';
 
+# $arg_hash is a hash of parameters passed to
+# the executable as arguments.
+#
+# keys (left-hand side) are parameter names
+# values (right-hand side) are parameter values
 my $arg_hash = {
     samples                    => 15, 
     burnin                     => 5,
@@ -21,7 +21,7 @@ my $arg_hash = {
     outcomevarfile             => 'data/outcomevars.txt',
     covariatesfile             => 'data/covariates3std.txt',
     targetindicator            => 0, # diabetes in column 1
-    displaylevel              => 2,
+    displaylevel             => 2,
     
 # output files
     logfile                    => 'logfile.txt',
@@ -46,8 +46,6 @@ doAnalysis($executable,$arg_hash, $resultsdir);
 
 # single population, reference prior on allele freqs, annealing  
 $arg_hash->{thermo} = 0;
-$arg_hash->{numannealedruns} = 4;
-$arg_hash->{populations} = 1;
 $arg_hash->{indadmixhiermodel} = 1;
 $arg_hash->{hapmixmodel}=0;
 $arg_hash->{stratificationtestfile}  = 'strat_test.txt';
@@ -60,12 +58,11 @@ $arg_hash->{populations}     = 2;
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results2");
 
-# fixed allele freqs, individual sumintensities, testoneindiv
+# fixed allele freqs, individual sumintensities, thermo
 # possible problem here - changing numannealedruns should not change output except for annealmon.txt
 delete $arg_hash->{populations};
 delete $arg_hash->{allelefreqoutputfile};
 $arg_hash->{fixedallelefreqs} = 1;
-$arg_hash->{testoneindiv} = 1;
 $arg_hash->{priorallelefreqfile}  = 'data/priorallelefreqs.txt',
 $arg_hash->{allelefreqscorefile}  = 'allelefreqscorefile.txt';
 $arg_hash->{allelefreqscorefile2} = 'allelefreqscorefile2.txt';
@@ -73,9 +70,7 @@ $arg_hash->{ancestryassociationscorefile} = 'ancestryassocscorefile.txt';
 $arg_hash->{affectedsonlyscorefile}       = 'affectedsonlyscorefile.txt';
 $arg_hash->{globalrho} = 0;
 $arg_hash->{numannealedruns} = 10;
-$arg_hash->{testoneindiv} = 1;
-$arg_hash->{numannealedruns} = 100;
-$arg_hash->{thermo} = 1;
+$arg_hash->{thermo} = 0;
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results3");
 
@@ -107,12 +102,35 @@ $arg_hash->{targetindicator} = 0; # diabetes
 doAnalysis($executable,$arg_hash);
 &CompareThenMove("results", "results5");
 
+# prior on allele freqs, testoneindiv, no regression
+# possible problem here - changing numannealedruns should not change output except for annealmon.txt
+delete $arg_hash->{historicallelefreqfile};
+delete $arg_hash->{affectedsonlyscorefile};
+delete $arg_hash->{ancestryassociationscorefile};
+delete $arg_hash->{allelicassociationscorefile};
+delete $arg_hash->{haplotypeassociationscorefile};
+delete $arg_hash->{fstoutputfile};
+delete $arg_hash->{dispparamfile};
+delete $arg_hash->{regparamfile};
+delete $arg_hash->{outcomes};
+delete $arg_hash->{outcomevarfile};
+delete $arg_hash->{covariatesfile};
+$arg_hash->{testoneindiv} = 1;
+$arg_hash->{priorallelefreqfile}  = 'data/priorallelefreqs.txt',
+$arg_hash->{randommatingmodel} = 1;
+$arg_hash->{globalrho} = 0;
+$arg_hash->{numannealedruns} = 10;
+$arg_hash->{testoneindiv} = 1;
+$arg_hash->{numannealedruns} = 100;
+$arg_hash->{thermo} = 1;
+doAnalysis($executable,$arg_hash);
+&CompareThenMove("results", "results6");
+
 # autosomal and X chromosome data
 my $arg_hash = {
     genotypesfile                   => 'Cattledata/ngu_complete2.txt',
     locusfile                          => 'Cattledata/loci.txt',
     populations => 2,
-    analysistypeindicator     => 1, #no outcome var
     globalrho => 1,
     samples  => 25,
     burnin   => 5,
@@ -146,8 +164,8 @@ my $arg_hash = {
     randommatingmodel            => 1,
     globalrho                    => 0,
     fixedallelefreqs             => 1,
-    admixtureprior               => "1,1,0",
-    admixtureprior1              => "1,1,1",
+    admixtureprior                   => "1,1,0",
+    admixtureprior1                   => "1,1,1",
     logfile                      => "logfile.txt",
     chib                         => 1,
     indadmixturefile             => "indadmixture.txt"
@@ -162,13 +180,21 @@ sub doAnalysis {
     system("$command");
 }
 
-sub getArguments {
+sub getArguments
+{
     my $hash = $_[0];
-    my $arg = '';
+#    my $arg = '';
+#    foreach my $key (keys %$hash){
+#	$arg .= ' --'. $key .'='. $hash->{$key};
+#    }
+#    return $arg;
+    my $filename = 'perlargs.txt';
+    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
     foreach my $key (keys %$hash){
-	$arg .= ' --'. $key .'='. $hash->{$key};
+      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
-    return $arg;
+    close OPTIONFILE;
+    return " ".$filename;
 }
 
 #SUBROUTINE TO COMPARE ALL FILES IN sourcedir WITH ORIGINALS AND MOVE
@@ -176,8 +202,8 @@ sub CompareThenMove {
     my ($sourcedir, $targetdir) = @_;
     my $prefix = "old_";
 # define commands for different OS's
-    my $diffcmd = "diff -s"; my $movecmd = "mv -f"; my $slash="/"; 
-    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\";} 
+    if($^O eq "MSWin32") {$diffcmd = "fc"; $movecmd = "move /y"; $slash="\\";$delcmd="rmdir /s /q";}
+    else {$diffcmd = "diff -s"; $movecmd = "mv -f"; $slash="/";$delcmd="rm -r";}
     if (-e $targetdir) { # compare with sourcedir
 	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
 	while ( defined (my $file = readdir SOURCE) ) {
@@ -190,11 +216,11 @@ sub CompareThenMove {
     if (-e $sourcedir) {
 	if (-e $targetdir) {
 	    my $olddir = "$prefix$targetdir";
-	    if (-e $olddir){rmtree("$prefix$targetdir");} #delete old results directory (necessary for next command)
+	    if (-e $olddir){system("$delcmd $prefix$targetdir");} #delete old results directory (necessary for next command)
 	    system("$movecmd $targetdir $prefix$targetdir"); #preserve old results by renaming directory
-	}  
+	    }  
 	system("$movecmd $sourcedir $targetdir"); #rename results dir
-	mkpath("$sourcedir");                      #we need results dir for next analysis
+	mkdir("$sourcedir");                      #we need results dir for next analysis
 	opendir(TARGET, $targetdir) or die "can't open $targetdir folder: $!";
 	while ( defined (my $file = readdir TARGET) ) { #for each results file
 	    next if $file =~ /^\.\.?$/;     # skip . and ..
