@@ -101,21 +101,23 @@ int main( int argc , char** argv ){
     xargv = new char*[MAXNUMOPTIONS];  
     ReadArgsFromFile(argv[1], &xargc, xargv);        
   }
-  else {//fix broken arguments
-    xargv = new char*[argc];
-    xargv[1] = new char[strlen(argv[1])];
-    strcpy(xargv[1], argv[1]);
-    int ii = 2;
-    for(int i = 2; i <argc; ++i)
-      if( argv[i][0] != '-')  {//any 'args' not starting with '-' are appended to the previous line 
-	strcat(xargv[ii-1], argv[i]);
-	-- xargc;
-      }
-      else {
-	  xargv[ii] = argv[i];
-	++ii;
-      }
-  }
+//   else {//fix broken arguments
+//     xargv = new char*[argc];
+//     xargv[1] = new char[strlen(argv[1])];
+//     strcpy(xargv[1], argv[1]);
+//     int ii = 2;
+//     for(int i = 2; i <argc; ++i){
+//       if( argv[i][0] != '-')  {//any 'args' not starting with '-' are appended to the previous line 
+// 	strcat(xargv[ii-1], argv[i]);
+// 	-- xargc;
+//       }
+//       else {
+// 	  xargv[ii] = argv[i];
+// 	++ii;
+// 	cout << xargv[ii] << endl;
+//       }
+//     }
+//   }
  
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
