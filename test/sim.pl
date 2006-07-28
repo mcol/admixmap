@@ -8,8 +8,8 @@ my $arg_hash = {
     locusfile                       => 'simdata/loci.txt',
     #priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
     # covariatesfile                  => 'data/covariates3.txt',
-    #outcomevarfile                  => 'simdata/outcome.txt',
-
+    outcomevarfile                  => 'simdata/outcome.txt',
+fixedallelefreqs =>1,
 #main options
     displaylevel   => 3, #verbose output
     samples  => 250,
@@ -30,37 +30,52 @@ my $arg_hash = {
     allelefreqoutputfile  => 'allelefreqoutputfile.txt',
 
 #optional tests
-    # allelicassociationscorefile       => 'allelicassociationscorefile.txt',
-    # ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
-    affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    # haplotypeassociationscorefile => 'hapassocscore.txt',
+     allelicassociationscorefile       => 'allelicassociationscorefile.txt',
+     #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
+    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
+     #haplotypeassociationscorefile => 'hapassocscore.txt',
     dispersiontestfile                   => 'dispersiontest.txt',
-    hwscoretestfile                  => 'HardyWeinbergTest.txt',
-    #stratificationtestfile           => 'stratificationtest.txt',
-    residualallelicassocscorefile    => 'residualLDscoretest.txt'
+    #hwscoretestfile                  => 'HardyWeinbergTest.txt',
+    stratificationtestfile           => 'stratificationtest.txt',
+    #residualallelicassocscorefile    => 'residualLDscoretest.txt'
 };
 
 doAnalysis($executable,$arg_hash);
 
-sub getArguments {
+sub getArguments
+{
     my $hash = $_[0];
-    my $arg = '';
+#    my $arg = '';
+#    foreach my $key (keys %$hash){
+#	$arg .= ' --'. $key .'='. $hash->{$key};
+#    }
+#    return $arg;
+    my $filename = 'perlargs.txt';
+    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
     foreach my $key (keys %$hash){
-	$arg .= ' --'. $key .'='. $hash->{$key};
+      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
-    return $arg;
+    close OPTIONFILE;
+    return " ".$filename;
 }
 
 sub doAnalysis {
     my ($prog,$args) = @_;
     my $command = $prog.getArguments($args);
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    system($command);
-    my $rcmd = "R CMD";
-    if($^O eq "MSWin32") {
-	$rcmd = "Rcmd";
-    }
-    print "Starting R script to process output\n";
-    system("$rcmd BATCH --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
-    print "R script completed\n\n";
+    my $status = system($command);
+
+    # Comment out the remaining lines to run admixmap without R script
+    if( $status == 0)
+      {
+	my $rcmd = "R CMD";
+	if($^O eq "MSWin32") {
+	  $rcmd = "Rcmd";
+	}
+	print "Starting R script to process output\n";
+	system("$rcmd BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt\n");
+	print "R script completed\n\n";
+      }else{
+	print "Warning: admixmap has not run successfully, R script will not be run.\n\n"
+      }
 }

@@ -106,13 +106,21 @@ sub writeMargLikelihood{
   close(LOGFILE);
 }
 
-sub getArguments {
+sub getArguments
+{
     my $hash = $_[0];
-    my $arg = '';
-    foreach my $key (keys %$hash) {
-	$arg .= ' --'. $key .'='. $hash->{$key};
+#    my $arg = '';
+#    foreach my $key (keys %$hash){
+#	$arg .= ' --'. $key .'='. $hash->{$key};
+#    }
+#    return $arg;
+    my $filename = 'perlargs.txt';
+    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
+    foreach my $key (keys %$hash){
+      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
-    return $arg;
+    close OPTIONFILE;
+    return " ".$filename;
 }
 
 sub doAnalysis {

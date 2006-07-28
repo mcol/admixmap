@@ -88,7 +88,6 @@ sub doAnalysis {
 
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
-print $command;
     my $status = system($command);
 
     # Comment out the remaining lines to run admixmap without R script
