@@ -6,10 +6,10 @@ my $arg_hash = {
 #data files
     genotypesfile                   => 'simdata/genotypes.txt',
     locusfile                       => 'simdata/loci.txt',
-    #priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
+    priorallelefreqfile             => 'simdata/priorallelefreqs.txt',
     # covariatesfile                  => 'data/covariates3.txt',
-    outcomevarfile                  => 'simdata/outcome.txt',
-fixedallelefreqs =>1,
+    #outcomevarfile                  => 'simdata/outcome.txt',
+    fixedallelefreqs                => 1,
 #main options
     displaylevel   => 3, #verbose output
     samples  => 250,
@@ -30,14 +30,14 @@ fixedallelefreqs =>1,
     allelefreqoutputfile  => 'allelefreqoutputfile.txt',
 
 #optional tests
-     allelicassociationscorefile       => 'allelicassociationscorefile.txt',
-     #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
+    #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
+    #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
     #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-     #haplotypeassociationscorefile => 'hapassocscore.txt',
-    dispersiontestfile                   => 'dispersiontest.txt',
+    #haplotypeassociationscorefile => 'hapassocscore.txt',
+    #dispersiontestfile                   => 'dispersiontest.txt',
     #hwscoretestfile                  => 'HardyWeinbergTest.txt',
-    stratificationtestfile           => 'stratificationtest.txt',
-    #residualallelicassocscorefile    => 'residualLDscoretest.txt'
+    #stratificationtestfile           => 'stratificationtest.txt',
+    residualallelicassocscorefile    => 'residualLDscoretest.txt'
 };
 
 doAnalysis($executable,$arg_hash);
