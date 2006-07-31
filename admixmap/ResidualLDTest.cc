@@ -231,29 +231,31 @@ int delta(int i, int j){
   return (i == j);
 }
 
+/**
+ // M alleles at locus A, N alleles at locus B
+ // notation is for arrays subscripted to run from 1 to M, 1 to N
+ // r_mn is indicator variable for haplotype mn
+ // phi_mn is expected frequency of haplotype mn given ancestry states at A, B
+ // log-linear model: log (lambda_mn = hazard rate) = alpha_m + beta_n + gamma_mn
+ // alpha_M = 1 - sum_{alpha_1 to alpha_{M-1}), similarly for beta, gammaM, gammaN
+ //
+ // log-likelihood is sum of terms of form r_mn * log(lambda_mn) - lambda_mn 
+ // test null hypothesis that gamma_{11} to gamma_{M-1, N-1} are all 0
+ // score U_mn = r_mn - r_mN - r_Mn + r_MN - (phi_mn - phi_mN - phi_Mn + phi_MN) 
+ // info V_mnm'n' = delta_mm' * delta_nn' * phi_mn 
+ //               + delta_mm' * phi_mN 
+ //               + delta_nn' * phi_Mn 
+ //               + phi_MN
+ // 
+ // r_mn = delta(hA[g], m) * delta(hB[g], n)
+ // phi_mn = AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + n]
+ 
+ // info depends on locus ancestry but not on indicator variables: could calculate matrix for all possible 
+ // 2-locus ancestry states, then sum over counts of ancestry states
+ */
 void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,  
 							       const double* const AlleleFreqsA, 
 							       const double* const AlleleFreqsB) {
-  // M alleles at locus A, N alleles at locus B
-  // r_mn is indicator variable for haplotype mn
-  // phi_mn is expected frequency of haplotype mn given ancestry states at A, B
-  // log-linear model: log (lambda_mn = hazard rate) = alpha_m + beta_n + gamma_mn
-  // alpha_M = 1 - sum_{alpha_1 to alpha_{M-1}), similarly for beta, gammaM, gammaN
-  //
-  // log-likelihood is sum of terms of form r_mn * log(lambda_mn) - lambda_mn 
-  // test null hypothesis that gamma_{11} to gamma_{M-1, N-1} are all 0
-  // score U_mn = r_mn - r_mN - r_Mn + r_MN - (phi_mn - phi_mN - phi_Mn + phi_MN) 
-  // info V_mnm'n' = delta_mm' * delta_nn' * phi_mn 
-  //               + delta_mm' * phi_mN 
-  //               + delta_nn' * phi_Mn 
-  //               + phi_MN
-  // 
-  // r_mn = delta(hA[g], m) * delta(hB[g], n)
-  // phi_mn = AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + n]
-  
-  // info depends on locus ancestry but not on indicator variables: could calculate matrix for all possible 
-  // 2-locus ancestry states, then sum over counts of ancestry states
-  
   int abslocus = chrm[c]->GetLocus(locus);//number of this locus
 #ifdef PARALLEL
   int M = 2, N = 2;  // parallel version supports diallelic loci only
@@ -261,79 +263,54 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
   int M = (*Lociptr)(abslocus)->GetNumberOfStates();
   int N = (*Lociptr)(abslocus+1)->GetNumberOfStates();
 #endif
-  int dim = (M-1)*(N-1);
-  if(dim == 1) {
-    UpdateScoresForResidualAllelicAssociation_1D(c, locus, AlleleFreqsA, AlleleFreqsB);
-  } else 
-    {
-      //int Populations = options->getPopulations();
-      int ancA[2];//ancestry at A
-      int ancB[2];//ancestry at B
-      
-      for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers) {
-	Individual* ind = individuals->getIndividual(i);
-	if( !ind->GenotypeIsMissing(abslocus) && !ind->GenotypeIsMissing(abslocus+1) ) {
-	  //skip missing genotypes as hap pairs not sampled
-	  ind->GetLocusAncestry(c, locus, ancA);
-	  ind->GetLocusAncestry(c, locus+1, ancB);
-	  const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
-	  const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
-	  int numGametes = 2;
-	  if(hA[1] < 0) numGametes = 1;//haplotype not happair
-	  for(int g = 0; g < numGametes; ++g) {
-	    for(int m = 0; m < M-1; ++m) {   //update score
-	      for(int n = 0; n < N-1; ++n) { //m and n index elements of score vector, rows of info matrix
-		Score[c][locus][m*N +n] +=  delta(hA[g], m) * delta(hB[g], n) 
-		  -                         delta(hA[g], m) * delta(hB[g], N) 
-		  -                         delta(hA[g], M) * delta(hB[g], n) 
-		  +                         delta(hA[g], M) * delta(hB[g], N) // observed
-		  - AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + n]
-		  + AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + N]
-		  + AlleleFreqsA[ancA[g]*M + M] * AlleleFreqsB[ancB[g]*N + n]
-		  - AlleleFreqsA[ancA[g]*M + M] * AlleleFreqsB[ancB[g]*N + N]; // minus expected
-		for(int mp = 0; mp < M-1 ; ++mp) {  //update info
-		  for(int np = 0; np < N-1; ++np) { //mp and np index cols of info matrix
-		    Info[c][locus][(m*N+n) * dim + (mp*N+np)] += 
-		      delta(m,mp) * delta(n, np) * AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + n]
-		      +             delta(m, mp) * AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + N]
-		      +             delta(n, np) * AlleleFreqsA[ancA[g]*M + M] * AlleleFreqsB[ancB[g]*N + n]
-		      +                            AlleleFreqsA[ancA[g]*M + M] * AlleleFreqsB[ancB[g]*N + N];
-		  }
-		}
-	      }
-	    }
-	  } //end loop over gametes
-	} // end loop over loci
-      } //end loop over individuals
-    } //end else
-}
 
-void ResidualLDTest::UpdateScoresForResidualAllelicAssociation_1D(int c, int locus,  
-								  const double* const AlleleFreqsA, 
-								  const double* const AlleleFreqsB) {
-  int ancA[2];
-  int ancB[2];
-  int abslocus = chrm[c]->GetLocus(locus);
-  for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers){
+  int dim = (M-1)*(N-1);
+  int ancA[2];//ancestry at A
+  int ancB[2];//ancestry at B
+  for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers) {
     Individual* ind = individuals->getIndividual(i);
     if( !ind->GenotypeIsMissing(abslocus) && !ind->GenotypeIsMissing(abslocus+1) ) {
       //skip missing genotypes as hap pairs not sampled
       ind->GetLocusAncestry(c, locus, ancA);
       ind->GetLocusAncestry(c, locus+1, ancB);
-      const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A
-      const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B
+      const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A: values from 0 to M-1
+      const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B: values from 0 to N-1
       int numGametes = 2;
-      if(hA[1] < 0) numGametes = 1;//haploid
+      if(hA[1] < 0) numGametes = 1;//haplotype not happair
       for(int g = 0; g < numGametes; ++g) {
-	int h = (hA[g] == hB[g]);//indicator for coupling: 1 if 2-locus haplotype is 1-1 or 2-2
-	double phiA = AlleleFreqsA[2*ancA[g]];//frequency of first allele in this gamete's ancestry state at locus A
-	double phiB = AlleleFreqsB[2*ancB[g]];
-	double ProbCoupling = phiA*phiB + (1 - phiA)*(1 - phiB);
-	Score[c][locus][0] += (double)h - ProbCoupling; 
-	Info[c][locus][0] += ProbCoupling *(1.0 - ProbCoupling);
-      } //end gamete loop
-    }
-  } //end individual loop
+	if(dim == 1) { // diallelic version
+	  int h = (hA[g] == hB[g]);//indicator for coupling: 1 if 2-locus haplotype is 1-1 or 2-2
+	  double phiA = AlleleFreqsA[ancA[g]*2];//frequency of first allele in this gamete's ancestry state at locus A
+	  double phiB = AlleleFreqsB[ancB[g]*2];
+	  double ProbCoupling = phiA*phiB + (1 - phiA)*(1 - phiB);
+	  Score[c][locus][0] += 2.0 * (h - ProbCoupling); 
+	  Info[c][locus][0] += 4.0 * ProbCoupling * (1.0 - ProbCoupling);
+	} else { // multi-allelic version
+	  for(int m = 0; m < M-1; ++m) {   //update score
+	    for(int n = 0; n < N-1; ++n) { //m and n index elements of score vector, rows of info matrix
+	      Score[c][locus][m*N +n] +=  delta(hA[g], m) * delta(hB[g], n) // r
+		-                        delta(hA[g], m) * delta(hB[g], N-1) 
+		-                        delta(hA[g], M-1) * delta(hB[g], n) 
+		+                        delta(hA[g], M-1) * delta(hB[g], N-1) // observed
+		- AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + n]
+		+ AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + N-1]
+		+ AlleleFreqsA[ancA[g]*M + M-1] * AlleleFreqsB[ancB[g]*N + n]
+		- AlleleFreqsA[ancA[g]*M + M-1] * AlleleFreqsB[ancB[g]*N + N-1]; // minus expected
+	      for(int mp = 0; mp < M-1 ; ++mp) {  //update info
+		for(int np = 0; np < N-1; ++np) { //mp and np index cols of info matrix
+		  Info[c][locus][(m*N+n) * dim + (mp*N+np)] += 
+		    delta(m,mp) * delta(n, np) * AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + n]
+		    +             delta(m, mp) * AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + N-1]
+		    +             delta(n, np) * AlleleFreqsA[ancA[g]*M + M-1] * AlleleFreqsB[ancB[g]*N + n]
+		    +                            AlleleFreqsA[ancA[g]*M + M-1] * AlleleFreqsB[ancB[g]*N + N-1];
+		}
+	      }
+	    }
+	  }
+	} // end else block for multi-allelic version
+      } //end loop over gametes
+    } // end block conditional on non-missing genotypes
+  } //end loop over individuals
 }
 
 void ResidualLDTest::Output(int iterations, bool final){
