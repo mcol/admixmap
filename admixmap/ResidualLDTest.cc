@@ -257,12 +257,8 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
 							       const double* const AlleleFreqsA, 
 							       const double* const AlleleFreqsB) {
   int abslocus = chrm[c]->GetLocus(locus);//number of this locus
-#ifdef PARALLEL
-  int M = 2, N = 2;  // parallel version supports diallelic loci only
-#else
-  int M = (*Lociptr)(abslocus)->GetNumberOfStates();
-  int N = (*Lociptr)(abslocus+1)->GetNumberOfStates();
-#endif
+  int M = Lociptr->GetNumberOfStates(abslocus);
+  int N = Lociptr->GetNumberOfStates(abslocus+1);
 
   int dim = (M-1)*(N-1);
   int ancA[2];//ancestry at A
