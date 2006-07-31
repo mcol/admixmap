@@ -339,6 +339,12 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
   if(distancesAreInCentiMorgans())threshold *= 100.0;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
     if(check){
+      //check number of alleles is >1
+      if(locusMatrix_.get(i-1,0) <2){
+	cerr << "ERROR on line " << i+1 << " of locusfile: number of alleles must be >1." << endl;
+	flag = true;
+      }
+
       //check distances are not negative
       if(locusMatrix_.get(i-1,1) < 0.0){
 	flag = true;
