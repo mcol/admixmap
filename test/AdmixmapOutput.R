@@ -410,8 +410,8 @@ plotlogpvalues <- function(psfilename, log10pvalues, table.every, title, hist ) 
   }
   if(hist){
     ## histogram of p-values
-    hist(10^(-log10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
-         main="Histogram of one-sided p-values")
+    hist(10^(-log10pvalues[, evaluations]), xlim=c(1,0), xlab = "p-value", 
+         main="Histogram of p-values")
   }
   dev.off()
 }
@@ -622,17 +622,15 @@ plotInfoMap <- function(loci.compound, info.content, K, testname) {
 plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   scoretest <- dget(paste(resultsdir,scorefile,sep="/"));
   ## dimensions are cols (2), pairs of loci, number of evaluations
-  #print(dim(scoretest))
   evaluations <- dim(scoretest)[3]
   ntests <- dim(scoretest)[2]
   locusnames <- scoretest[1,,evaluations]
 
-  log10pvalues <- as.numeric(scoretest[2, , ])
-  log10pvalues[is.nan(log10pvalues)] <- NA
-  log10pvalues <- data.frame(matrix(data=log10pvalues, nrow=ntests, ncol=evaluations))
-  dimnames(log10pvalues)[[1]] <- locusnames
-  #print(pvalues)
-  plotlogpvalues(outputfile, -log10pvalues, 10*thinning,
+  minuslog10pvalues <- as.numeric(scoretest[2, , ])
+  minuslog10pvalues[is.nan(minuslog10pvalues)] <- NA
+  minuslog10pvalues <- data.frame(matrix(data=minuslog10pvalues, nrow=ntests, ncol=evaluations))
+  dimnames(minuslog10pvalues)[[1]] <- locusnames
+  plotlogpvalues(outputfile, minuslog10pvalues, 10*thinning,
                  "Running computation of p-values for residual allelic association", T)
 }
 
