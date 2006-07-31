@@ -144,21 +144,16 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
 
 void ResidualLDTest::Reset(){
   //resets arrays holding sums of scores and info over individuals to zero; invoked at start of each iteration after burnin.
-
   if(test){
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
-#ifdef PARALLEL
 	unsigned dim = 1;
-#else
 	int locus = chrm[j]->GetLocus(k);
 	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
-#endif
 	fill(Score[j][k], Score[j][k]+dim, 0.0);
 	fill(Info[j][k], Info[j][k]+dim*dim, 0.0);
       }
     }
-
   }
 }
 
@@ -282,9 +277,9 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
 	  Score[c][locus][0] += 2.0 * (h - ProbCoupling); 
 	  Info[c][locus][0] += 4.0 * ProbCoupling * (1.0 - ProbCoupling);
 	} else { // multi-allelic version
-	  for(int m = 0; m < M-1; ++m) {   //update score
+	  for(int m = 0; m < M-1; ++m) {   //update score vector of length dim = (M-1)(N-1)
 	    for(int n = 0; n < N-1; ++n) { //m and n index elements of score vector, rows of info matrix
-	      Score[c][locus][m*N +n] +=  delta(hA[g], m) * delta(hB[g], n) // r
+	      Score[c][locus][m*(N-1)+n] +=  delta(hA[g], m) * delta(hB[g], n) // r
 		-                        delta(hA[g], m) * delta(hB[g], N-1) 
 		-                        delta(hA[g], M-1) * delta(hB[g], n) 
 		+                        delta(hA[g], M-1) * delta(hB[g], N-1) // observed
@@ -294,9 +289,9 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
 		- AlleleFreqsA[ancA[g]*M + M-1] * AlleleFreqsB[ancB[g]*N + N-1]; // minus expected
 	      for(int mp = 0; mp < M-1 ; ++mp) {  //update info
 		for(int np = 0; np < N-1; ++np) { //mp and np index cols of info matrix
-		  Info[c][locus][(m*N+n) * dim + (mp*N+np)] += 
-		    delta(m,mp) * delta(n, np) * AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + n]
-		    +             delta(m, mp) * AlleleFreqsA[ancA[g]*M + m] * AlleleFreqsB[ancB[g]*N + N-1]
+		  Info[c][locus][(m*(N-1)+n) * dim + (mp*(N-1)+np)] += 
+		    delta(m,mp) * delta(n, np) * AlleleFreqsA[ancA[g]*M + m]   * AlleleFreqsB[ancB[g]*N + n]
+		    +             delta(m, mp) * AlleleFreqsA[ancA[g]*M + m]   * AlleleFreqsB[ancB[g]*N + N-1]
 		    +             delta(n, np) * AlleleFreqsA[ancA[g]*M + M-1] * AlleleFreqsB[ancB[g]*N + n]
 		    +                            AlleleFreqsA[ancA[g]*M + M-1] * AlleleFreqsB[ancB[g]*N + N-1];
 		}
