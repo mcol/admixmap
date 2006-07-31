@@ -90,13 +90,14 @@ int main( int argc , char** argv ){
 #endif
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
-   if (argc != 2) {
+   if (argc < 2) {
     PrintOptionsMessage();
     exit(1); 
   } 
 
   //read user options
-  AdmixOptions options(argv[1]);
+  AdmixOptions options(argc, argv);
+
   if(rank<1){
     MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>2));
   }

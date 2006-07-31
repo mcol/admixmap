@@ -26,9 +26,17 @@ AdmixOptions::AdmixOptions()
 {
   Initialise();
 }
-AdmixOptions::AdmixOptions(const char* filename){
+AdmixOptions::AdmixOptions(int argc,  char** argv){
   Initialise();
-  SetOptions(filename);
+  if(argc == 2)
+    ReadArgsFromFile(argv[1], useroptions);
+  else{
+    //NOTE: command line args will not be supported soon
+    cout << "Warning: command-line arguments are deprecated" << endl;
+    ReadCommandLineArgs(argc, argv);
+  }
+  SetOptions();
+
 }
 
 void AdmixOptions::Initialise(){
@@ -638,7 +646,7 @@ int AdmixOptions::assign(OptionPair& opt, const string value){
   }
   else if(opt.second == "string")
     *((string*)opt.first) = value;
-  //skipping output file names as they are set later, prefixing resultsdir
+
   else if(opt.second =="dvector"){
     StringConvertor::StringToVec(value, *((vector<double>*)opt.first));
   }
@@ -648,13 +656,14 @@ int AdmixOptions::assign(OptionPair& opt, const string value){
   else if(opt.second =="old"){//deprecated option - return signal to erase
     return 2;
   }
-  else if(opt.second != "null"){
+  else if(opt.second != "null" && opt.second != "outputfile"){
+    //skipping output file names as they are set later, prefixing resultsdir
     return 1;//unrecognised option
   }
   return 0;//success
 }
 
-void AdmixOptions::SetOptions(const char* filename)
+void AdmixOptions::SetOptions()
 {
   //set up Option map
   OptionMap Options;
@@ -736,7 +745,6 @@ void AdmixOptions::SetOptions(const char* filename)
   Options["coutindicator"] = OptionPair(0, "old");
   Options["truncationpoint"] = OptionPair(0, "old");
 
-  ReadArgsFromFile(filename, useroptions);
   //parse user options
   bool badOptions = false;
   for(UserOptions::iterator i = useroptions.begin(); i != useroptions.end(); ++i){
@@ -1172,4 +1180,32 @@ bool AdmixOptions::CheckInitAlpha( const vector<double> &alphatemp)const
      exit(0);
    }
    return admixed;
+}
+
+void AdmixOptions::ReadCommandLineArgs(const int argc, char** argv){
+  string name, value;
+  vector<char*> args;
+  char delims[] = "-=";
+  for(int i = 1; i < argc; ++i){
+
+    //tokenise argv, splitting on '-' and '='
+    char *result = NULL;
+    result = strtok( argv[i], delims );
+    while( result != NULL ) {
+      args.push_back(result);
+      result = strtok( NULL, delims );
+    }  
+  }
+  if(args.size() % 2){
+    cerr << "ERROR: mismatched arguments" << endl;
+    exit(1);
+  }
+  //TODO: allow spaces in vector args
+  for( vector<char*>::iterator i = args.begin(); i != args.end(); ){
+    name.assign(*i);
+    ++i;
+    value.assign(*i);
+    ++i;
+    useroptions[name] = value;
+  }
 }

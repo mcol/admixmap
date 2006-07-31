@@ -33,11 +33,9 @@ typedef map<string, OptionPair >OptionMap;
 class AdmixOptions
 {
 public:
-  AdmixOptions();
-  AdmixOptions(const char*);
+  AdmixOptions(int, char**);
   ~AdmixOptions();
   
-  void SetOptions(const char*);
   int checkOptions(LogWriter &Log, int NumberOfIndividuals);
   void PrintOptions();
 
@@ -249,6 +247,8 @@ private:
   UserOptions useroptions;
   //OptionMap OptionValues;//to output user options
   
+  void SetOptions();
+  void ReadCommandLineArgs(const int argc, char** argv);
   int ReadArgsFromFile(const char* filename, map<string, string>& UserOptions);
   int assign(OptionPair& opt, const string value);
   void Initialise();  
@@ -256,6 +256,7 @@ private:
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
 
   // UNIMPLEMENTED: to avoid use
+  AdmixOptions();
   AdmixOptions(const AdmixOptions&);
   AdmixOptions& operator=(const AdmixOptions&);
 };
