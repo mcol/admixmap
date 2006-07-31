@@ -26,7 +26,6 @@ MPI::Intracomm workers_and_master, workers_and_freqs;
 using namespace std;
 double coolness = 1.0; // default
 
-int ReadArgsFromFile(char* filename, int* xargc, char **xargv);
 void MakeResultsDir(const char* dirname, bool verbose);
 void InitializeErgodicAvgFile(const AdmixOptions* const options, const IndividualCollection* const individuals, 
 			      LogWriter &Log, std::ofstream *avgstream, 
@@ -90,38 +89,14 @@ int main( int argc , char** argv ){
   const int rank = -1;//cannot be 0 as process with rank 0 is excluded from some function calls
 #endif
 
-  int    xargc = argc;
-  char **xargv = argv;    
-
-   if (argc < 2) {
+  // ******************* PRIMARY INITIALIZATION ********************************************************************************
+   if (argc != 2) {
     PrintOptionsMessage();
     exit(1); 
-  } else if (argc == 2) {     // using options text file        
-    xargc = 1;//NB initialise to 1 to mimic argc (arg 0 is prog name), otherwise first option is ignored later
-    xargv = new char*[MAXNUMOPTIONS];  
-    ReadArgsFromFile(argv[1], &xargc, xargv);        
-  }
-//   else {//fix broken arguments
-//     xargv = new char*[argc];
-//     xargv[1] = new char[strlen(argv[1])];
-//     strcpy(xargv[1], argv[1]);
-//     int ii = 2;
-//     for(int i = 2; i <argc; ++i){
-//       if( argv[i][0] != '-')  {//any 'args' not starting with '-' are appended to the previous line 
-// 	strcat(xargv[ii-1], argv[i]);
-// 	-- xargc;
-//       }
-//       else {
-// 	  xargv[ii] = argv[i];
-// 	++ii;
-// 	cout << xargv[ii] << endl;
-//       }
-//     }
-//   }
- 
-  // ******************* PRIMARY INITIALIZATION ********************************************************************************
+  } 
+
   //read user options
-  AdmixOptions options(xargc, xargv);
+  AdmixOptions options(argv[1]);
   if(rank<1){
     MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>2));
   }
@@ -150,6 +125,7 @@ int main( int argc , char** argv ){
   
     //print user options to args.txt; must be done after all options are set
     if(rank<1)options.PrintOptions();
+
     Genome Loci;
     Loci.Initialise(&data, options.getPopulations(), Log, rank);//reads locusfile and creates CompositeLocus objects
     if(rank==1 || rank==-1){
@@ -503,16 +479,6 @@ int main( int argc , char** argv ){
     cout << "Finished" << endl;
 #endif
 
-    if(argc ==2){//options file supplied so need to delete xargv
-      for(int i = 1; i < xargc; ++i) {
-	delete[] xargv[i];
-      }
-    } else {
-      if(xargv != argv) {
-	delete[] argv[1];
-      }
-    }
-    delete[] xargv;
   } catch (string msg) {//catch any stray error messages thrown upwards
     Log.setDisplayMode(On);
     Log << "\n" << msg << "\n Exiting...\n";
@@ -646,48 +612,6 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
     } // end "if not AnnealedRun" block
 	
   }// end loop over iterations
-}
-
-int ReadArgsFromFile(char* filename, int* xargc, char **xargv){
-  ifstream fin(filename);
-  if (0 == filename || 0 == strlen(filename)) return 1;
-  if (!fin.is_open()) {
-    string msg = "Cannot open file \"";
-    msg += filename;
-    msg += "\". Aborting";
-    cerr << msg << endl;
-    exit(1);
-  } 
-
-  std::string str;
-  //read in line from file
-  while (getline(fin,str,'\n')){// ## apparent memory leak 
-
-    if( str.find_first_of("#") < str.length() ) str.erase( str.find_first_of("#") );//ignore #comments
-    if(str.find_first_not_of(" \t\n\r") < str.length() )//skip blank lines. 
-      {   
-	str.erase(0, str.find_first_not_of(" \t\n\r") );//trim leading whitespace
-	//trim remaining whitespace
-	str.erase( str.find_last_not_of(" \t\n\r") + 1 );//trailing whitespace
-	if( str.find_first_of(" \t\n\r") <= str.length() ){//check for any whitespace left
-	  string::size_type eq = str.find("="), pos = str.find_first_of(" \t\n\r");
-	  if( pos < eq )//check for space before '='
-	    str.erase( pos, eq - pos );//remove space before '='
-	  //str.erase( str.find_first_of(" \t\n\r"),str.find_last_of(" \t\n") - str.find_first_of(" \t\n\r") +1 );//after '='
-	  eq = str.find("=");
-	  pos = str.find_first_of(" \t\n\r", eq);//position of first space after the = 
-	  str.erase( pos, str.find_first_not_of(" \t\n", pos) - pos );//remove space after '='
-	}
-	//add line to xargv
-	xargv[*xargc]=new char[MAXOPTIONLENGTH];
-	strcpy(xargv[*xargc],"--");
-	strcat(xargv[*xargc],str.c_str());
-	++(*xargc);
-      }
-    str.clear();
-  }
-  fin.close();
-  return 0;
 }
 
 //this function is here because three different objects have to write to avgstream
@@ -997,11 +921,7 @@ void PrintCopyrightNotice(LogWriter& Log){
 }
 
 void PrintOptionsMessage() {
-  cout << "You must specify an options file or list of arguments on command line\n"
-       << "Usage:\n"
-       << "1. (not recommended) admixmap --[optionname]=[value] ...\n"
-       << "2. admixmap [optionfile], where optionfile is a text file containg a list of user options\n"
-       << "3. use a Perl script to call the program with command-line arguments. \nSee sample script supplied with this program.\n"
+  cout << "You must specify an options file\n"
        << "Consult the manual for a list of user options."
        << endl;
 }

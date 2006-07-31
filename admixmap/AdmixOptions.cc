@@ -15,7 +15,6 @@
 #include "LogWriter.h"
 //#include "StringSplitter.h"
 #include "StringConvertor.h"
-#include <getopt.h>    /* for getopt and getopt_long */
 #include <string.h>
 #include <sstream>
 #include <numeric> // for checkInitAlpha
@@ -27,9 +26,9 @@ AdmixOptions::AdmixOptions()
 {
   Initialise();
 }
-AdmixOptions::AdmixOptions(int numoptions, char** options){
+AdmixOptions::AdmixOptions(const char* filename){
   Initialise();
-  SetOptions(numoptions, options);
+  SetOptions(filename);
 }
 
 void AdmixOptions::Initialise(){
@@ -46,7 +45,7 @@ void AdmixOptions::Initialise(){
   OutputFST = false;
   genotypesSexColumn = 0;
   locusForTestIndicator = false;
-  LocusForTest = 0;
+  LocusForTest = -1;
   fixedallelefreqs = false;
   correlatedallelefreqs = false;
   RandomMatingModel = false;
@@ -75,15 +74,13 @@ void AdmixOptions::Initialise(){
   OutputAlleleFreq = false;
   checkData = true;
 
-  //global rho: default gamma (3, 0.5) prior has mean 6, variance 12 
-  globalrhoPrior.push_back(3.0);//rhoalpha 
-  globalrhoPrior.push_back(0.5);//rhobeta
 
-  // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
-  // effective prior mean is 6*4/(5-1) = 6 and effective prior variance is 6*7 / (5-2) = 14
-  rhoPrior.push_back(6.0);//rhoalpha 
-  rhoPrior.push_back(5.0);//rhobeta shape
-  rhoPrior.push_back(4.0);//rhobeta rate
+//   globalrhoPrior.push_back(3.0);//rhoalpha 
+//   globalrhoPrior.push_back(0.5);//rhobeta
+
+//   rhoPrior.push_back(6.0);//rhoalpha 
+//   rhoPrior.push_back(5.0);//rhobeta shape
+//   rhoPrior.push_back(4.0);//rhobeta rate
 
   initalpha.resize(2);//TODO: check if this is necessary
   //gamma(3, 0.01) prior on dispersion parameter
@@ -99,33 +96,35 @@ void AdmixOptions::Initialise(){
   allelefreqprior.push_back(0.1);//prior shape of rate
   allelefreqprior.push_back(1.0);//prior rate of rate
 
-  ResidualAllelicAssocScoreFilename = "ResidualAllelicAssocScoreTest.txt";
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
   EYFilename = "ExpectedOutcomes.txt";
 
   // option names and default option values are stored as strings in a map container 
   // these are default values
   // other specified options will be appended to this array 
-  OptionValues["burnin"] = "100";
-  OptionValues["samples"] = "1100";
-  OptionValues["every"] = "5";
-  OptionValues["numannealedruns"] = "20";
-  OptionValues["targetindicator"] = "0";
-  OptionValues["displaylevel"] = "2";
-  OptionValues["fixedallelefreqs"] = "0";
-  OptionValues["correlatedallelefreqs"] = "0";
-  OptionValues["logfile"] = "log.txt";
-  OptionValues["resultsdir"] = "results";
-  OptionValues["randommatingmodel"] = "0";
-  OptionValues["globalrho"] = "1";
-  OptionValues["indadmixhiermodel"] = "1";
-  OptionValues["hapmixmodel"] = "0";
-  OptionValues["chib"] = "0";
-  OptionValues["thermo"] = "0";
-  OptionValues["globalsumintensitiesprior"] = "3.0,0.5";
-  OptionValues["sumintensitiesprior"] = "4.0,3.0,3.0";
-  OptionValues["seed"] = "1";
-  OptionValues["regressionpriorprecision"] = "0.25";
+  useroptions["burnin"] = "100";
+  useroptions["samples"] = "1100";
+  useroptions["every"] = "5";
+  useroptions["numannealedruns"] = "20";
+  useroptions["targetindicator"] = "0";
+  useroptions["displaylevel"] = "2";
+  useroptions["fixedallelefreqs"] = "0";
+  useroptions["correlatedallelefreqs"] = "0";
+  useroptions["logfile"] = "log.txt";
+  useroptions["resultsdir"] = "results";
+  useroptions["randommatingmodel"] = "0";
+  useroptions["globalrho"] = "1";
+  useroptions["indadmixhiermodel"] = "1";
+  useroptions["hapmixmodel"] = "0";
+  useroptions["chib"] = "0";
+  useroptions["thermo"] = "0";
+  //global rho: default gamma (3, 0.5) prior has mean 6, variance 12 
+  useroptions["globalsumintensitiesprior"] = "3.0,0.5";
+  // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
+  // effective prior mean is 6*4/(5-1) = 6 and effective prior variance is 6*7 / (5-2) = 14
+  useroptions["sumintensitiesprior"] = "6.0,5.0,4.0";
+  useroptions["seed"] = "1";
+  useroptions["regressionpriorprecision"] = "0.25";
 }
 
 AdmixOptions::~AdmixOptions()
@@ -259,7 +258,7 @@ int AdmixOptions::getNumberOfOutcomes() const{
 void AdmixOptions::setNumberOfOutcomes(int i){
   NumberOfOutcomes = i;
   if(i==0){
-    OptionValues.erase("outcomevarfile");
+    useroptions.erase("outcomevarfile");
     OutcomeVarFilename = "";
   }
 }
@@ -450,7 +449,7 @@ void AdmixOptions::setTestForAffectedsOnly(bool b){
     //set default filename
   }
   else
-    OptionValues.erase("affectedsonlyscorefile");
+    useroptions.erase("affectedsonlyscorefile");
 }
 
 bool AdmixOptions::getTestForAllelicAssociation() const
@@ -460,7 +459,7 @@ bool AdmixOptions::getTestForAllelicAssociation() const
 
 void AdmixOptions::setTestForAllelicAssociation(bool b){
   TestForAllelicAssociation = b;
-  if(!b)OptionValues.erase("allelicassociationscorefile");
+  if(!b)useroptions.erase("allelicassociationscorefile");
 }
 
 bool AdmixOptions::getTestForDispersion() const
@@ -479,7 +478,7 @@ void AdmixOptions::setTestForLinkageWithAncestry(bool b){
     //set default filename
   }
   else
-    OptionValues.erase("ancestryassociationscorefile");
+    useroptions.erase("ancestryassociationscorefile");
 }
 
 bool AdmixOptions::getTestForMisspecifiedAlleleFreqs() const
@@ -504,7 +503,7 @@ bool AdmixOptions::getTestForHaplotypeAssociation() const
 
 void AdmixOptions::setTestForHaplotypeAssociation(bool b){
   TestForHaplotypeAssociation = b;
-  if(!b)OptionValues.erase("haplotypeassociationscorefile");
+  if(!b)useroptions.erase("haplotypeassociationscorefile");
 }
 
 const char *AdmixOptions::getEtaPriorFilename() const
@@ -580,418 +579,202 @@ const vector<float>& AdmixOptions::getrhoPriorParamSamplerParams() const{
 const std::vector<double> & AdmixOptions::getAlleleFreqPriorParams()const{
   return allelefreqprior;
 }
-void AdmixOptions::SetOptions(int nargs, char** args)
-{
-  /**
-   * long_options is a pointer to the first element of an array of struct option
-   * declared in <getopt.h> as
-   * 
-   *   struct option {
-   *     const char *name;
-   *     int has_arg;
-   *     int *flag;
-   *     int val;
-   *   };
-   * 
-   * The meanings of the different fields are:
-   * 
-   *   name
-   *     the name of the long option.
-   * 
-   *   has_arg
-   *     no_argument (or 0) if the option does not take an argument,
-   *     required_argument (or 1) if the option requires an argument,  or
-   *     optional_argument  (or  2) if the option takes an optional argu-
-   *     ment.
-   * 
-   *   flag
-   *     specifies how results are returned for a long option.   If  flag
-   *     is  NULL,  then  getopt_long()  returns  val.  (For example, the
-   *     calling program may set val to the equivalent short option char-
-   *     acter.)   Otherwise, getopt_long() returns 0, and flag points to
-   *     a variable which is set to val if the option is found, but  left
-   *     unchanged if the option is not found.
-   * 
-   *   val
-   *     the value to return, or to load into the variable pointed to
-   *     by flag.
-   *
-   * The last element of the array has to be filled with zeroes.
-   */
 
-  static struct option long_options[] = {
-    // Required options
-    {"locusfile",                             1, 0, 'l'}, // string
-    {"genotypesfile",                         1, 0, 'g'}, // string
-    {"burnin",                                1, 0, 'b'}, // long
-    {"samples",                               1, 0, 's'}, // long
-    {"every",                                 1, 0,  0 }, // long
+int AdmixOptions::ReadArgsFromFile(const char* filename, UserOptions& opt){
+  ifstream fin(filename);
+  if (0 == filename || 0 == strlen(filename)) return 1;
+  if (!fin.is_open()) {
+    string msg = "Cannot open file \"";
+    msg += filename;
+    msg += "\". Aborting";
+    cerr << msg << endl;
+    exit(1);
+  } 
 
-    // Must specify one of the following
-    {"populations",                           1, 0,  0 }, // int 1:populations
-    {"priorallelefreqfile",                   1, 0,  0 }, // string
-    {"allelefreqfile",                        1, 0, 'a'}, // string
-    {"historicallelefreqfile",                1, 0,  0 }, // string
+  std::string str;
+  //read in line from file
+  while (getline(fin,str,'\n')){// ## apparent memory leak 
 
-    {"outcomevarfile",                        1, 0,  0 }, // string
-    {"coxoutcomevarfile",                        1, 0,  0 }, // string
-    {"covariatesfile",                        1, 0,  0 }, // string
-
-    // Optional if specify outcomevarfile
-    {"outcomes",                              1, 0, 'o'}, // int 1: no. of cols in outcomvarfile
-    {"targetindicator",                       1, 0, 't'}, // 0: no. of cols in outcomvarfile
-
-    //standard output files (optional)
-    {"paramfile",                             1, 0, 'p'}, // string
-    {"regparamfile",                          1, 0,  0 }, // string
-    {"dispparamfile",                         1, 0,  0 }, // string
-    {"logfile",                               1, 0,  0 }, // string
-    {"indadmixturefile",                      1, 0, 'i'}, // string
-    {"allelefreqoutputfile",                  1, 0,  0 }, // string
-    {"ergodicaveragefile",                    1, 0, 'e'}, // string
-
-    //optional results directory name option - default is 'results'
-    {"resultsdir",                            1, 0,  0 }, //string
-   
-    // test options
-    {"allelicassociationscorefile",           1, 0,  0 }, // string
-    {"residualallelicassocscorefile",         1, 0,  0 }, // string
-    {"ancestryassociationscorefile",          1, 0,  0 }, // string
-    {"affectedsonlyscorefile",                1, 0,  0 }, // string
-    {"stratificationtestfile",                1, 0,  0 }, // string
-    {"admixturescorefile",                    1, 0,  0 }, // string
-    {"haplotypeassociationscorefile",         1, 0,  0 }, // string
-    {"locusfortest",                          1, 0,  0 }, // int 0: no. of composite loci - 1
-    {"allelefreqscorefile",                   1, 0,  0 }, // string
-    {"allelefreqscorefile2",                  1, 0,  0 }, // string
-    {"dispersiontestfile",                    1, 0,  0 }, // string
-    {"fstoutputfile",                         1, 0,  0 }, // string
-    {"hwscoretestfile",                       1, 0,  0 }, // string
-    {"likratiofile",                          1, 0,  0 }, // string
-    {"indadmixmodefile",                      1, 0,  0 }, // string
-    {"testgenotypesfile",                     1, 0,  0 }, //string
-
-    //prior and model specification
-    {"randommatingmodel",                     1, 0,  0 }, // int 0: 1
-    {"globalrho",                             1, 0,  0 }, // int 0: 1
-    {"indadmixhiermodel",                     1, 0,  0 }, // int 0: 1
-    {"hapmixmodel",                           1, 0,  0 }, // int 0: 1
-    {"etapriorfile",                          1, 0,  0 }, // string      
-    {"globalsumintensitiesprior",             1, 0,  0 }, // vector of doubles of length 2
-    {"sumintensitiesprior",                   1, 0,  0 }, // vector of doubles of length 3
-    {"allelefreqprior",                       1, 0,  0 },// vector of doubles of length 3
-    {"etapriormean",                          1, 0,  0 }, //double
-    {"etapriorvar",                           1, 0,  0 }, //double
-    {"regressionpriorprecision",              1, 0,  0 }, //double
-    {"admixtureprior",                        1, 0,  0 }, // binary vector
-    {"admixtureprior1",                       1, 0,  0 }, // binary vector
-    {"fixedallelefreqs",                      1, 0,  0 }, // int 0, 1
-    {"popadmixproportionsequal",              1, 0,  0 }, //int 0, 1
-    {"correlatedallelefreqs",                 1, 0,  0 }, // int 0, 1
-
-    //sampler settings
-    {"rhosamplerparams",                      1, 0,  0 }, // vector of doubles of length 4 or 5 
-    {"rhopriorsamplerparams",                 1, 0,  0 }, // vector of doubles of length 5 
-
-    // Other options
-    {"numannealedruns",                       1, 0,  0 }, // long
-    {"displaylevel",                          1, 0,  0 }, // int 0: 2
-    {"chib",                                  1, 0,  0 }, // int 0: 1
-    {"thermo",                                1, 0,  0 }, // int 0: 1 
-    {"testoneindiv",                          1, 0,  0 }, // int 0: 1 
-    {"reportedancestry",                      1, 0, 'r'}, // string 
-    {"seed",                                  1, 0,  0 }, // long
-    {"checkdata",                             1, 0,  'd' }, // int 0, 1
-
-    //old options - do nothing but kept for backward-compatibility with old scripts
-    {"analysistypeindicator",                 1, 0,  0 }, // int 0: 4
-    {"coutindicator",                         1, 0, 'c'}, // int 0: 1
-    {"truncationpoint",                       1, 0,  0 }, // double, does nothing
-
-    {0, 0, 0, 0}    // marks end of array
-  };
-
-  // This is the command-line parsing
-  int c;
-  while (1) {
-    int option_index = 0;
-    c = getopt_long (nargs, args, "a:b:d:e:g:i:l:o:p:r:s:t:",
-		     long_options, &option_index);
-    string long_option_name = long_options[option_index].name;
-    if (c == -1)
-      break;
-
-    switch (c) {
-    case 'a': // allelefreqfile
-      { alleleFreqFilename = optarg;OptionValues["allelefreqfile"]=optarg;}
-      break;
-
-    case 'b': // burnin
-      { burnin = strtol(optarg, NULL, 10);OptionValues["burnin"]=optarg;}
-      break;
-
-    case 'c': // coutindicator
-      { if((int)strtol(optarg, NULL, 10)==0)displayLevel = 0;
-	OptionValues["displaylevel"]=optarg;}
-      break;
-    case 'd':
-      {checkData = false;
-	OptionValues["checkdata"]="0";
-      }break;
-    case 'e': // ergodicaveragefile
-      { ErgodicAverageFilename = optarg;OptionValues["ergodicaveragefile"]=optarg;}
-      break;
-
-    case 'g': // genotypesfile
-      { GenotypesFilename = optarg;OptionValues["genotypesfile"]=optarg;}
-      break;
-
-    case 'i': // indadmixturefile
-      { IndAdmixtureFilename = optarg;OptionValues["indadmixturefile"]=optarg;}
-      break;
-
-    case 'l': // locusfile
-      { LocusFilename = optarg;OptionValues["locusfile"]=optarg;}
-      break;
-    case 'o': //number of outcomes
-      {NumberOfOutcomes = (int)strtol(optarg, NULL, 10); OptionValues["outcomes"]=optarg;}
-      break;
-
-    case 'p': // paramfile
-      { ParameterFilename = optarg;OptionValues["paramfile"]=optarg;}
-      break;
-
-    case 'r': // reportedancestry
-      { ReportedAncestryFilename = optarg;OptionValues["reportedancestry"]=optarg;}
-      break;
-
-    case 's': // samples
-      { TotalSamples = strtol(optarg, NULL, 10);OptionValues["samples"]=optarg;}
-      break;
-
-    case 't': // targetindicator
-      { TargetIndicator = (int)strtol(optarg, NULL, 10);OptionValues["targetindicator"]=optarg;}
-      break;
-
-    case '?':
-      exit(1);
-
-    case 0:
-      if(long_option_name == "displaylevel"){
-	displayLevel = (int)strtol(optarg, NULL, 10);OptionValues["displaylevel"]=optarg;
-	// ** output files **
-      }else if(long_option_name == "resultsdir"){
-	ResultsDir = optarg;OptionValues["resultsdir"]=optarg;
-      }else if (long_option_name == "regparamfile") {
-	RegressionOutputFilename = optarg;OptionValues["regparamfile"]=optarg;
-      }else if (long_option_name == "dispparamfile") {
-	 EtaOutputFilename = optarg; OptionValues["dispparamfile"]=optarg;
-      }else  if (long_option_name == "admixturescorefile") {
-	 AssocScoreFilename = optarg;OptionValues["admixturescorefile"]=optarg;
-	 TestForAdmixtureAssociation = true; ScoreTestIndicator = true;
-      } else if (long_option_name == "affectedsonlyscorefile") {
-	 AffectedsOnlyScoreFilename = optarg;OptionValues["affectedsonlyscorefile"]=optarg;
-	 TestForAffectedsOnly = true; ScoreTestIndicator = true;
-      } else if (long_option_name == "allelicassociationscorefile") {
-	 AllelicAssociationScoreFilename = optarg;OptionValues["allelicassociationscorefile"]=optarg;
-	 TestForAllelicAssociation = true; ScoreTestIndicator = true;
-      } else if (long_option_name == "residualallelicassocscorefile") {
-	 ResidualAllelicAssocScoreFilename = optarg;OptionValues["residualallelicassocscorefile"]=optarg;
-	 TestForResidualAllelicAssoc = true; ScoreTestIndicator = true;
-      } else if (long_option_name == "allelefreqoutputfile") {
-	 AlleleFreqOutputFilename = optarg;OptionValues["allelefreqoutputfile"]=optarg;
-	 OutputAlleleFreq = true;
-      } else if (long_option_name == "allelefreqscorefile") {
-	 AlleleFreqScoreFilename = optarg;OptionValues["allelefreqscorefile"]=optarg;
-	 TestForMisspecifiedAlleleFreqs = true;
-      } else if (long_option_name == "allelefreqscorefile2"){
-	 AlleleFreqScoreFilename2 = optarg;OptionValues["allelefreqscorefile2"]=optarg;
-	 TestForMisspecifiedAlleleFreqs2 = true;
-      } else if (long_option_name == "dispersiontestfile") {
-	DispersionTestFilename = optarg;OptionValues["dispersiontestfile"]=optarg;
-	 TestForDispersion = true;
-      } else if (long_option_name == "stratificationtestfile") {
-	StratTestFilename = optarg;OptionValues["stratificationtestfile"]=optarg;
-	StratificationTestIndicator = true;
-      } else if (long_option_name == "every") {
-	 SampleEvery = strtol(optarg, NULL, 10);OptionValues["every"]=optarg;
-      } else if (long_option_name == "fstoutputfile") {
-	 FSTOutputFilename = optarg;OptionValues["fstoutputfile"]=optarg;
-	 OutputFST = true;
-      } else if (long_option_name == "hwscoretestfile") {
-	 HWTestFilename = optarg;OptionValues["hwscoretestfile"]=optarg;
-	 HWTest = true;
-      } else if (long_option_name == "ancestryassociationscorefile") {
-	 AncestryAssociationScoreFilename = optarg;OptionValues["ancestryassociationscorefile"]=optarg;
-	 TestForLinkageWithAncestry = true; ScoreTestIndicator = true;
-      } else if (long_option_name == "logfile") {
-	 LogFilename = optarg;OptionValues["logfile"]=optarg;
-      } else if (long_option_name == "haplotypeassociationscorefile") {
-	 HaplotypeAssociationScoreFilename = optarg;OptionValues["haplotypeassociationscorefile"]=optarg;
-	 TestForHaplotypeAssociation = true; ScoreTestIndicator = true;
-      } else if (long_option_name == "likratiofile") {
-	LikRatioFilename = optarg;//OptionValues["likratiofile"]=optarg;
-      }else if (long_option_name == "indadmixmodefile"){
-	IndAdmixModeFilename = optarg; 
-	OptionValues["indadmixmodefile"] = optarg;
-      }else if (long_option_name == "testgenotypesfile"){
-	OptionValues["testgenotypesfile"] = optarg;
-
-	 // ** input files **
-      } else if (long_option_name == "outcomevarfile") {
-	OutcomeVarFilename = optarg;OptionValues["outcomevarfile"]=optarg;
-      } else if (long_option_name == "coxoutcomevarfile") {
-	CoxOutcomeVarFilename = optarg;OptionValues["coxoutcomevarfile"]=optarg;
-      } else if (long_option_name == "priorallelefreqfile") {
-	 PriorAlleleFreqFilename = optarg;OptionValues["priorallelefreqfile"]=optarg;
-      } else if (long_option_name == "historicallelefreqfile") {
-	 HistoricalAlleleFreqFilename = optarg;OptionValues["historicallelefreqfile"]=optarg;
-      } else if (long_option_name == "covariatesfile") {
-	 CovariatesFilename = optarg;OptionValues["covariatesfile"]=optarg;
-
-	 // ** model specification **
-      } else if (long_option_name == "analysistypeindicator") {
-	;//do nothing
-      } else if (long_option_name == "fixedallelefreqs") {
-	if (strtol(optarg, NULL, 10) == 1) {
-	  fixedallelefreqs = true;OptionValues["fixedallelefreqs"]="1";
+    if( str.find_first_of("#") < str.length() ) str.erase( str.find_first_of("#") );//ignore #comments
+    if(str.find_first_not_of(" \t\n\r") < str.length() )//skip blank lines. 
+      {   
+	str.erase(0, str.find_first_not_of(" \t\n\r") );//trim leading whitespace
+	//trim remaining whitespace
+	str.erase( str.find_last_not_of(" \t\n\r") + 1 );//trailing whitespace
+	if( str.find_first_of(" \t\n\r") <= str.length() ){//check for any whitespace left
+	  string::size_type eq = str.find("="), pos = str.find_first_of(" \t\n\r");
+	  if( pos < eq )//check for space before '='
+	    str.erase( pos, eq - pos );//remove space before '='
+	  //str.erase( str.find_first_of(" \t\n\r"),str.find_last_of(" \t\n") - str.find_first_of(" \t\n\r") +1 );//after '='
+	  eq = str.find("=");
+	  pos = str.find_first_of(" \t\n\r", eq);//position of first space after the = 
+	  str.erase( pos, str.find_first_not_of(" \t\n", pos) - pos );//remove space after '='
 	}
-      } else if (long_option_name == "correlatedallelefreqs") {
-	if (strtol(optarg, NULL, 10) == 1) {
-	  correlatedallelefreqs = true;OptionValues["correlatedallelefreqs"]="1";
-	}
-      } else if (long_option_name == "locusfortest") {
-	 LocusForTest = (int)strtol(optarg, NULL, 10);OptionValues["locusfortest"]=optarg;
-	 locusForTestIndicator = true;
-      } else if (long_option_name == "randommatingmodel") {
-	if (strtol(optarg, NULL, 10) == 1) {
-	  RandomMatingModel = true;OptionValues["randommatingmodel"]="1";
-	}
-      } else if (long_option_name == "indadmixhiermodel") {
-	if (strtol(optarg, NULL, 10) == 0) {
-	  IndAdmixHierIndicator = false;OptionValues["indadmixhiermodel"]="0";
-	}
-      } else if (long_option_name == "hapmixmodel") {
-	if (strtol(optarg, NULL, 10) == 1) {
-	  HapMixModelIndicator = true;OptionValues["hapmixmodel"]="1";
-	  // 	  TestForResidualAllelicAssoc = true;
-	  // 	  OptionValues["residualallelicassocscorefile"] = (char*)ResidualAllelicAssocScoreFilename.c_str();
-	}
-      }else if (long_option_name == "chib") {
-	if(strtol(optarg, NULL, 10)==1){
-	  chibIndicator = true; OptionValues["chib"]=optarg;
-	}
-      }else if (long_option_name == "thermo") {
-	if(strtol(optarg, NULL, 10)==1){
-	  thermoIndicator = true; 
-	  OptionValues["thermo"]=optarg;
-	}
-      }else if (long_option_name == "numannealedruns") {
-	NumAnnealedRuns = strtol(optarg, NULL, 10); 
-	OptionValues["numannealedruns"]=optarg;
-      }else if (long_option_name == "testoneindiv") {
-	if(strtol(optarg, NULL, 10)==1){
-	  TestOneIndivIndicator = true; 
-	  OptionValues["testoneindiv"]=optarg;
-	}
-      }else if (long_option_name == "globalrho") {
-	if (strtol(optarg, NULL, 10) == 1) {
-	  GlobalRho = true;OptionValues["globalrho"]="1";
-	} else if (strtol(optarg, NULL, 10) == 0) {
-	  GlobalRho = false;OptionValues["globalrho"]="0";
-	} else {
-	  cerr << "ERROR: globalrho must be set to 0 or 1.\n";
-	  exit(1);
-	}
-      } else if (long_option_name == "populations") {
-	setPopulations((int)strtol(optarg, NULL, 10));OptionValues["populations"]=optarg;
-
-	// ** Prior Specification **
-      } else if (long_option_name == "seed") {
-	 Seed = strtol(optarg, NULL, 10);OptionValues["seed"]=optarg;
-      } else if (long_option_name == "sumintensitiesprior" ) {
-	StringConvertor::CstrToVec(optarg, rhoPrior);
-	OptionValues["sumintensitiesprior"] = optarg; 
-      } else if (long_option_name == "globalsumintensitiesprior") {
-	StringConvertor::CstrToVec(optarg, globalrhoPrior);
-	OptionValues["globalsumintensitiesprior"] = optarg;
-      } else if (long_option_name == "allelefreqprior"){
-	StringConvertor::CstrToVec(optarg, allelefreqprior);
-	OptionValues["allelefreqprior"] = optarg;
-      } else if (long_option_name == "etapriormean") {
-	 etamean = strtod(optarg, NULL);OptionValues["etapriormean"]=optarg;
-      } else if (long_option_name == "etapriorvar") {
-	 etavar = strtod(optarg, NULL);OptionValues["etapriorvar"]=optarg;
-      } else if (long_option_name == "truncationpoint") {
-	;
-      } else if (long_option_name == "etapriorfile") {
-	 EtaPriorFilename = optarg;OptionValues["etapriorfile"]=optarg;
-      } else if (long_option_name == "admixtureprior" ) {
-	StringConvertor::CstrToVec(optarg, initalpha[0]);OptionValues["admixtureprior"]=optarg;
-      } else if (long_option_name == "admixtureprior1") {
-	StringConvertor::CstrToVec(optarg, initalpha[1]);OptionValues["admixtureprior1"]=optarg;
-      } else if(long_option_name == "popadmixproportionsequal"){
-	if (strtol(optarg, NULL, 10) == 1){
-	  PopAdmixPropsAreEqual = true; OptionValues["popadmixproportionsequal"]="1";
-	}
-      } else if(long_option_name == "regressionpriorprecision"){
-	regressionPriorPrecision = strtod(optarg, NULL);OptionValues["regressionpriorprecision"]=optarg;
-      }else if(long_option_name == "rhosamplerparams"){
-	StringConvertor::CstrToVec(optarg, rhoSamplerParams);
-      }else if(long_option_name == "rhopriorsamplerparams"){
-	StringConvertor::CstrToVec(optarg, rhoPriorParamSamplerParams);
-      } else {
-	cerr << "Unknown option: " << long_option_name;
-	if (optarg) {
-	  cerr << " with arg: " << optarg;
-	}
-	cerr << endl;
-	exit(1);
+	//add line to xargv
+	string::size_type eq = str.find("=");
+	opt[str.substr(0, eq)] = str.substr(eq+1 );
       }
-      break;
-
-    default:
-      cerr << "?? getopt returned character code 0"<<c<<" ??\n";
-    }
+    str.clear();
   }
-
-  if (optind < nargs) {
-    printf ("non-option ARGV-elements: ");
-        
-    while (optind < nargs) {
-      printf ("%s ", args[optind++]);
-    }
-
-    printf ("\n");
-  }
-  // command-line parsing ends here
-  SetOutputNames();
+  fin.close();
+  return 0;
 }
 
-void AdmixOptions::SetOutputNames(){
-  //prefix output files with ResultsDir
-  if ( LogFilename != "") LogFilename = ResultsDir + "/" + LogFilename;
-  if ( ParameterFilename != "") ParameterFilename = ResultsDir + "/" + ParameterFilename;
-  if ( RegressionOutputFilename != "") RegressionOutputFilename = ResultsDir + "/" + RegressionOutputFilename;
-  if ( EtaOutputFilename != "") EtaOutputFilename = ResultsDir + "/" + EtaOutputFilename;
-  if ( AllelicAssociationScoreFilename != "") AllelicAssociationScoreFilename = ResultsDir + "/" + AllelicAssociationScoreFilename;
-  if ( AncestryAssociationScoreFilename != "") AncestryAssociationScoreFilename = ResultsDir + "/" + AncestryAssociationScoreFilename;
-  if ( AffectedsOnlyScoreFilename != "") AffectedsOnlyScoreFilename = ResultsDir + "/" + AffectedsOnlyScoreFilename;
-  if ( IndAdmixtureFilename != "") IndAdmixtureFilename = ResultsDir + "/" + IndAdmixtureFilename;
-  if ( ErgodicAverageFilename != "") ErgodicAverageFilename = ResultsDir + "/" + ErgodicAverageFilename;
-  if ( StratTestFilename != "") StratTestFilename = ResultsDir + "/" + StratTestFilename;
-  if ( AssocScoreFilename != "") AssocScoreFilename = ResultsDir + "/" + AssocScoreFilename;
-  if ( HaplotypeAssociationScoreFilename != "") HaplotypeAssociationScoreFilename = ResultsDir + "/" + HaplotypeAssociationScoreFilename;
-  if(TestForResidualAllelicAssoc)ResidualAllelicAssocScoreFilename = ResultsDir + "/" + ResidualAllelicAssocScoreFilename;
-  if ( AlleleFreqOutputFilename != "") AlleleFreqOutputFilename = ResultsDir + "/" + AlleleFreqOutputFilename;
-  if ( AlleleFreqScoreFilename2 != "") AlleleFreqScoreFilename2 = ResultsDir + "/" + AlleleFreqScoreFilename2;
-  if ( AlleleFreqScoreFilename != "") AlleleFreqScoreFilename = ResultsDir + "/" + AlleleFreqScoreFilename;
-  if ( DispersionTestFilename != "") DispersionTestFilename = ResultsDir + "/" + DispersionTestFilename;
-  if ( FSTOutputFilename != "") FSTOutputFilename = ResultsDir + "/" + FSTOutputFilename;
-  if ( HWTestFilename != "") HWTestFilename = ResultsDir + "/" + HWTestFilename;
-  if ( LikRatioFilename != "") LikRatioFilename = ResultsDir + "/" + LikRatioFilename;
-  EYFilename = ResultsDir + "/" + EYFilename;
-  if(IndAdmixModeFilename != "") IndAdmixModeFilename = ResultsDir + "/" + IndAdmixModeFilename;
+/// sets the value of a data member corresponding to a user option.
+/// converts the value string to an appropriate type, with method indicated by opt.second
+/// and assigns converted value to the data member with address opt.first
+int AdmixOptions::assign(OptionPair& opt, const string value){
+  if(opt.second == "int")
+    *((int*)opt.first) = atoi(value.c_str());
+  else if(opt.second =="long")
+    *((long*)opt.first) = atoi(value.c_str());
+  else if(opt.second == "double")
+    *((double*)opt.first) = atof(value.c_str());
+  else if(opt.second =="float")
+    *((float*)opt.first) = atof(value.c_str());
+  else if(opt.second == "bool"){
+    if (atoi(value.c_str()) ==1) *((bool*)opt.first) = true;
+    else *((bool*)opt.first) = false;
+  }
+  else if(opt.second == "string")
+    *((string*)opt.first) = value;
+  //skipping output file names as they are set later, prefixing resultsdir
+  else if(opt.second =="dvector"){
+    StringConvertor::StringToVec(value, *((vector<double>*)opt.first));
+  }
+  else if(opt.second =="fvector"){
+    StringConvertor::StringToVec(value, *((vector<float>*)opt.first));
+  }
+  else if(opt.second =="old"){//deprecated option - return signal to erase
+    return 2;
+  }
+  else if(opt.second != "null"){
+    return 1;//unrecognised option
+  }
+  return 0;//success
+}
+
+void AdmixOptions::SetOptions(const char* filename)
+{
+  //set up Option map
+  OptionMap Options;
+  // Required options
+  Options["samples"] = OptionPair(&TotalSamples, "int");
+  Options["burnin"] = OptionPair(&burnin, "int");
+  Options["every"] = OptionPair(&SampleEvery, "int");
+  Options["locusfile"] = OptionPair(&LocusFilename, "string");
+  Options["genotypesfile"] = OptionPair(&GenotypesFilename, "string");
+  // Must specify one of the following
+  Options["populations"] = OptionPair(&Populations, "int");
+  Options["priorallelefreqfile"] = OptionPair(&PriorAlleleFreqFilename, "string");
+  Options["allelefreqfile"] = OptionPair(&alleleFreqFilename, "string");
+  Options["historicallelefreqfile"] = OptionPair(&HistoricalAlleleFreqFilename, "string");
+  //regression data files
+  Options["outcomevarfile"] = OptionPair(&OutcomeVarFilename, "string");
+  Options["coxoutcomevarfile"] = OptionPair(&CoxOutcomeVarFilename, "string");
+  Options["covariatesfile"] = OptionPair(&CovariatesFilename, "string");
+  Options["outcomes"] = OptionPair(&NumberOfOutcomes, "int");
+  Options["targetindicator"] = OptionPair(&TargetIndicator, "int");
+  Options["reportedancestry"] = OptionPair(&ReportedAncestryFilename, "string");
+  //standard output files (optional)
+  Options["paramfile"] = OptionPair(&ParameterFilename, "outputfile");
+  Options["regparamfile"] = OptionPair(&RegressionOutputFilename, "outputfile");
+  Options["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");
+  Options["logfile"] = OptionPair(&LogFilename, "outputfile");
+  Options["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");
+  Options["allelefreqoutputfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");
+  Options["ergodicaveragefile"] = OptionPair(&ErgodicAverageFilename, "outputfile");
+  //optional results directory name option - default is 'results'
+  Options["resultsdir"] = OptionPair(&ResultsDir, "string");
+  //prior and model specification
+  Options["randommatingmodel"] = OptionPair(&RandomMatingModel, "bool");
+  Options["globalrho"] = OptionPair(&GlobalRho, "bool");
+  Options["indadmixhiermodel"] = OptionPair(&IndAdmixHierIndicator, "bool");
+  Options["hapmixmodel"] = OptionPair(&HapMixModelIndicator, "bool");
+  Options["etapriorfile"] = OptionPair(&EtaPriorFilename, "string");
+  Options["globalsumintensitiesprior"] = OptionPair(&globalrhoPrior, "dvector");
+  Options["sumintensitiesprior"] = OptionPair(&rhoPrior, "dvector");
+  Options["allelefreqprior"] = OptionPair(&allelefreqprior, "dvector");
+  Options["etapriormean"] = OptionPair(&etamean, "double");
+  Options["etapriorvar"] = OptionPair(&etavar, "double");
+  Options["regressionpriorprecision"] = OptionPair(&regressionPriorPrecision, "double");
+  Options["admixtureprior"] = OptionPair(&initalpha[0], "dvector");
+  Options["admixtureprior1"] = OptionPair(&initalpha[1], "dvector");
+  Options["fixedallelefreqs"] = OptionPair(&fixedallelefreqs, "bool");
+  Options["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");
+  Options["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");
+  //sampler settings
+  Options["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
+  Options["rhopriorsamplerparams"] = OptionPair(&rhoPriorParamSamplerParams, "fvector");
+  // test options
+  Options["allelicassociationscorefile"] = OptionPair(&AllelicAssociationScoreFilename, "outputfile");
+  Options["residualallelicassocscorefile"] = OptionPair(&ResidualAllelicAssocScoreFilename, "outputfile");
+  Options["ancestryassociationscorefile"] = OptionPair(&AncestryAssociationScoreFilename, "outputfile");
+  Options["affectedsonlyscorefile"] = OptionPair(&AffectedsOnlyScoreFilename, "outputfile");
+  Options["admixturescorefile"] = OptionPair(&AssocScoreFilename, "outputfile");
+  Options["haplotypeassociationscorefile"] = OptionPair(&HaplotypeAssociationScoreFilename, "outputfile");
+  Options["stratificationtestfile"] = OptionPair(&StratTestFilename, "outputfile");
+  Options["allelefreqscorefile"] = OptionPair(&AlleleFreqScoreFilename, "outputfile");
+  Options["allelefreqscorefile2"] = OptionPair(&AlleleFreqScoreFilename2, "outputfile");
+  Options["dispersiontestfile"] = OptionPair(&DispersionTestFilename, "outputfile");
+  Options["fstoutputfile"] = OptionPair(&FSTOutputFilename, "outputfile");
+  Options["hwscoretestfile"] = OptionPair(&HWTestFilename, "outputfile");
+  Options["likratiofile"] = OptionPair(&LikRatioFilename, "outputfile");
+  Options["indadmixmodefile"] = OptionPair(&IndAdmixModeFilename, "outputfile");
+  Options["testgenotypesfile"] = OptionPair(0, "null");
+  Options["locusfortest"] = OptionPair(&LocusForTest, "int");
+  // Other options
+  Options["numannealedruns"] = OptionPair(&NumAnnealedRuns, "int");
+  Options["displaylevel"] = OptionPair(&displayLevel, "int");
+  Options["seed"] = OptionPair(&Seed, "long");
+  Options["chib"] = OptionPair(&chibIndicator, "bool");
+  Options["thermo"] = OptionPair(&thermoIndicator, "bool");
+  Options["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");
+  Options["checkdata"] = OptionPair(&checkData, "bool");
+  //old options - do nothing but kept for backward-compatibility with old scripts
+  Options["analysistypeindicator"] = OptionPair(0, "old");
+  Options["coutindicator"] = OptionPair(0, "old");
+  Options["truncationpoint"] = OptionPair(0, "old");
+
+  ReadArgsFromFile(filename, useroptions);
+  //parse user options
+  bool badOptions = false;
+  for(UserOptions::iterator i = useroptions.begin(); i != useroptions.end(); ++i){
+    int status = assign(Options[i->first], i->second);
+    if(status == 1){
+      cerr << "Unknown option: " << i->first
+	   << " with arg: " << i->second
+	   << endl;
+      badOptions = true;
+    }
+    else if (status==2) useroptions.erase(i->first);
+  }
+  if(badOptions)exit(1);
+
+  //iterate over user options again, appending resultsdir to output filenames
+  //this must be done here as resultsdir must be set first
+  for(UserOptions::iterator i = useroptions.begin(); i != useroptions.end(); ++i){
+    if(Options[i->first].second == "outputfile")
+      *((string*)(Options[i->first].first)) = ResultsDir + "/" + i->second;
+  }
+  EYFilename = ResultsDir + "/" + EYFilename;//TODO: make a user option?
+
+  //set indicators
+  OutputAlleleFreq = (AlleleFreqOutputFilename.size()>0);
+  TestForAllelicAssociation = (AllelicAssociationScoreFilename.size()>0);
+  TestForResidualAllelicAssoc = (ResidualAllelicAssocScoreFilename.size()>0);
+  TestForLinkageWithAncestry = (AncestryAssociationScoreFilename.size()>0);
+  TestForAffectedsOnly = (AffectedsOnlyScoreFilename.size()>0);
+  TestForAdmixtureAssociation = (AssocScoreFilename.size()>0);
+  TestForHaplotypeAssociation = (HaplotypeAssociationScoreFilename.size()>0);
+  StratificationTestIndicator = (StratTestFilename.size()>0);
+  TestForMisspecifiedAlleleFreqs = (AlleleFreqScoreFilename.size()>0);
+  TestForMisspecifiedAlleleFreqs2 = (AlleleFreqScoreFilename2.size()>0);
+  TestForDispersion = (DispersionTestFilename.size()>0);
+  OutputFST = (FSTOutputFilename.size()>0);
+  HWTest = (HWTestFilename.size()>0);
+  locusForTestIndicator = (LocusForTest>-1);
+
 }
 
 void AdmixOptions::PrintOptions(){
@@ -1000,27 +783,35 @@ void AdmixOptions::PrintOptions(){
   std::ostringstream s;
   if (s << Populations) // conversion worked
     {
-    OptionValues["populations"] = (char *)s.str().c_str();
+    useroptions["populations"] = (char *)s.str().c_str();
     }
   //Now output Options table to args.txt
   string ss;
   ss = ResultsDir + "/args.txt";
   ofstream argstream(ss.c_str());
 
-  for( OptionMap::iterator p= OptionValues.begin(); p!=OptionValues.end(); p++) {
-    argstream << (*p).first << "=" << (*p).second <<endl;
+  for( UserOptions::iterator p= useroptions.begin(); p!=useroptions.end(); p++) {
+    argstream << p->first << "=" << p->second <<endl;
   }
   argstream.close();
 }
 
 int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
+  Log.setDisplayMode(Quiet);
 
   // **** analysis type  ****
-  Log.setDisplayMode(Quiet);
+  if(CoxOutcomeVarFilename.length() ){
+    Log << "Cox Regression\n";
+    if(NumberOfOutcomes>-1)++NumberOfOutcomes;
+    else NumberOfOutcomes = 1;
+    if(RegType == None)RegType = Cox;
+    else RegType = Multiple;
+  }
+
   if (NumberOfIndividuals==1) {
     IndAdmixHierIndicator = false;
-    OptionValues["indadmixhiermodel"]="0";
+    useroptions["indadmixhiermodel"]="0";
     Log << "One individual analysis";
   } else if (RegType == None) { //no regression
     NumberOfOutcomes = 0;
@@ -1043,12 +834,9 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   }
   Log << "\n";
 
-  if(CoxOutcomeVarFilename.length() ){
-    Log << "Cox Regression\n";
-    if(NumberOfOutcomes>-1)++NumberOfOutcomes;
-    else NumberOfOutcomes = 1;
-    if(RegType == None)RegType = Cox;
-    else RegType = Multiple;
+  if(TestOneIndivIndicator && RegType != None){
+    badOptions = true;
+    Log << "ERROR: cannot have a test individual with a regression model\n";
   }
 
   if(OutcomeVarFilename.length() == 0 && CoxOutcomeVarFilename.length()==0){
@@ -1065,7 +853,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       Log << "ERROR: regparamfile option is not valid without a regression model\n"
 	  << "\tThis option will be ignored\n";
       RegressionOutputFilename = "";
-      OptionValues.erase("regparamfile");
+      useroptions.erase("regparamfile");
     }
   }
   
@@ -1078,24 +866,24 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	Log << "ERROR: paramfile option is not valid with indadmixhierindicator = 0\n"
 	    << "\tThis option will be ignored\n";
 	ParameterFilename = "";
-	OptionValues.erase("paramfile");
+	useroptions.erase("paramfile");
       }
 
       if(EtaOutputFilename.length() > 0 ){
 	Log << "ERROR: dispparamfile option is not valid with indadmixhierindicator = 0\n"
 	    << "\tThis option will be ignored\n";
 	EtaOutputFilename = "";
-	OptionValues.erase("dispparamfile");
+	useroptions.erase("dispparamfile");
       }
       GlobalRho = false;
-      OptionValues["globalrho"] = "0";
+      useroptions["globalrho"] = "0";
     }
   
   // **** sumintensities ****
   if(HapMixModelIndicator){
     Log << "Haplotype mixture model with " << Populations << " block state";if(Populations>1)Log << "s"; Log << "\n";
-    RandomMatingModel = false;OptionValues["randommatingmodel"] = "0";
-    GlobalRho = false; OptionValues["globalrho"] = "0";
+    RandomMatingModel = false;useroptions["randommatingmodel"] = "0";
+    GlobalRho = false; useroptions["globalrho"] = "0";
   }
   else {
     // **** Random Mating Model **** 
@@ -1115,7 +903,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	  Log << "ERROR: all elements of globalsumintensitiesprior must be > 0\n";
 	  badOptions = true;
 	}  
-      } 
+      }
     } else { // sumintensities at individual or gamete level
       if( RandomMatingModel )
 	Log << "Model with gamete specific sum-intensities.\n";
@@ -1131,7 +919,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	Log.setDisplayMode(On);
 	Log << "ERROR: all elements of sumintensitiesprior must be > 0\n";
 	badOptions = true;
-      }  
+      }
     }
   }
 
@@ -1141,7 +929,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
     Log << "Effective prior variance of sum-intensities is " 
 	<< globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << "\n";
-    
+    useroptions.erase("sumintensitiesprior") ;
   } else {  
     double rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
     Log << "Population prior distribution of sum-intensities specified as Gamma with shape parameter "
@@ -1155,6 +943,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     if(rhoPrior[1]>2)
       Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
     else Log <<"undefined\n";
+    useroptions.erase("globalsumintensitiesprior") ;  
   }
 
   if(HapMixModelIndicator){
@@ -1197,7 +986,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     if(OutputAlleleFreq){
       Log << "ERROR: allelefreqoutputfile option is invalid with fixed allele frequencies\n"
 	  << "       this option will be ignored\n";
-      OptionValues.erase("allelefreqoutputfile");
+      useroptions.erase("allelefreqoutputfile");
       OutputAlleleFreq = false;
     }
   }
@@ -1229,7 +1018,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	<< "       this option will be ignored\n";
     OutputFST = false;
     FSTOutputFilename = "";
-    OptionValues.erase("fstoutputfile");
+    useroptions.erase("fstoutputfile");
   }
 
   // **** score tests ****
@@ -1259,7 +1048,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	  << " This option will be ignored.\n";
       setTestForAffectedsOnly(false);
     }
-    else   OptionValues["likratiofile"] = "LikRatioFile.txt";
+    else   useroptions["likratiofile"] = "LikRatioFile.txt";
   if( TestForLinkageWithAncestry ){
     if(NumberOfOutcomes < 1){
       Log << "ERROR: ancestryassociation score test is not valid without a regression model."

@@ -16,25 +16,28 @@
 #define ADMIX_OPTIONS_H 1
 
 #include "common.h"
-#include <getopt.h>    /* for getopt and getopt_long */
 #include "LogWriter.h"
 #include <string.h>
 #include <string>
 #include <map>
 using namespace::std;
 
-/// map to hold user options for output to file.
-typedef map<const char*, char*> OptionMap;
+/// map to hold user options
+typedef map<string, string> UserOptions;
+/// pair to identify types of data members
+typedef pair<void*,  string> OptionPair;
+/// map to match a user option to a data member
+typedef map<string, OptionPair >OptionMap;
 
 /// Class to hold program options
 class AdmixOptions
 {
 public:
   AdmixOptions();
-  AdmixOptions(int, char**);
+  AdmixOptions(const char*);
   ~AdmixOptions();
   
-  void SetOptions(int, char**);
+  void SetOptions(const char*);
   int checkOptions(LogWriter &Log, int NumberOfIndividuals);
   void PrintOptions();
 
@@ -215,7 +218,6 @@ private:
   string AlleleFreqScoreFilename;
   string AlleleFreqScoreFilename2;
   string AssocScoreFilename;
-  string alleleFreqFilename;
   string StratTestFilename;
   string ErgodicAverageFilename;
   string ParameterFilename;
@@ -237,16 +239,19 @@ private:
   string GenotypesFilename;
   string HistoricalAlleleFreqFilename;
   string PriorAlleleFreqFilename;
+  string alleleFreqFilename;
   string CovariatesFilename;
   string OutcomeVarFilename;
   string CoxOutcomeVarFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;
 
-  OptionMap OptionValues;//to output user options
+  UserOptions useroptions;
+  //OptionMap OptionValues;//to output user options
   
+  int ReadArgsFromFile(const char* filename, map<string, string>& UserOptions);
+  int assign(OptionPair& opt, const string value);
   void Initialise();  
-  void SetOutputNames();
   void setInitAlpha(LogWriter &Log);
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
 
