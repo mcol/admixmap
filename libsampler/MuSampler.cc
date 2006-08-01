@@ -1,7 +1,15 @@
 /** 
  *   MuSampler.cc 
  *   Class to sample the proportion parameters of a multinomial-Dirichlet distribution
- *   parameterised as \mu_1, ..., \mu_k, \eta, where \eta = \sum \mu
+ *   parameterised as \mu_1, ..., \mu_H, \eta, where \eta = \sum \mu
+ *   H is number of multinomial outcomes
+ *   K is number of experiments with observed counts r_1K, ..., r_HK
+ *   sampling is conditioned on \eta and on observed counts
+ * 
+ *   separate method for sampling beta-binomial proportion parameter (H=2)
+ *   hardcoded with prior beta(1, 1) - should have method to set this
+ *
+ *   in Minka's notation, K is number of outcomes and i indexes experiments
  *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -128,11 +136,11 @@ double MuSampler::muEnergyFunction(const double * const params, const void* cons
   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
   int status  = 0;
   gsl_sf_result psi1, psi2;
-
+  
   for(int h = 0; h < H; ++h){
     if(status)break;
     double alpha = eta * mu[h];
-  for(int k = 0; k < K; ++k){
+    for(int k = 0; k < K; ++k){
       int offset = h*K +k;
       status = gsl_sf_lngamma_e(alpha, &psi1);if(status)break;
       status = gsl_sf_lngamma_e(args->counts[offset]+alpha, &psi2);if(status)break;
@@ -243,7 +251,7 @@ double MuSampler::fMu( double mu, const void* const args )
   double f = 0.0;
 
   try{
-    double logprior = 0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1.1, 1.1) prior
+    double logprior = 0.0; //0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1.1, 1.1) prior
     f += logprior - K * (lngamma(alpha) + lngamma(eta-alpha));
     
     for(int k = 0; k < K; ++k){
@@ -264,11 +272,12 @@ double MuSampler::dfMu( double mu, const void* const args )
   const int *counts = parameters->counts;
   double alpha = mu * eta;
 
-  double logprior = 0.1 / mu - 0.1 / ( 1.0 - mu );//Beta(1.1, 1.1) prior
+  double logprior = 0.0; //0.1 / mu - 0.1 / ( 1.0 - mu );//Beta(1.1, 1.1) prior
   double f = 0.0;
 
   try{
-    f += K * ( digamma(alpha) - digamma(eta-alpha) );
+    //   f += K * ( digamma(alpha) - digamma(eta-alpha) );
+    f += K * ( digamma(eta-alpha) - digamma(alpha) );
     
     for(int k = 0; k < K; ++k){
       //first state/allele
@@ -294,7 +303,7 @@ double MuSampler::ddfMu( double mu, const void* const args )
   double alpha = mu * eta;
 
   if(alpha > eta) return 0.00001;// ??
-  double logprior = -0.1 / ( mu * mu) - 0.1 / (( 1.0 - mu ) * ( 1.0 - mu ) );
+  double logprior = 0.0; //-0.1 / ( mu * mu) - 0.1 / (( 1.0 - mu ) * ( 1.0 - mu ) );
   double f = 0.0;
 
   try{
