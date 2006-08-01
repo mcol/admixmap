@@ -549,9 +549,6 @@ bool Individual::simpleGenotypeIsMissing(unsigned locus)const{
   return missingGenotypes[locus];
 }
 
-bool Individual::isFemale()const{
-  return SexIsFemale;
-}
 bool Individual::isHaploidatLocus(unsigned j)const{
   return (bool)(!SexIsFemale && Loci->isXLocus(j));
 }

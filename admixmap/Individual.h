@@ -50,7 +50,6 @@ public:
   const int* getSampledHapPair(int locus)const;
   bool GenotypeIsMissing(unsigned int locus)const;//locus is a comp locus
   bool simpleGenotypeIsMissing(unsigned locus)const;//locus is a simple locus
-  bool isFemale()const;
   bool isHaploidatLocus(unsigned j)const;
 
   double getSumrho()const;
