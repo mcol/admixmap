@@ -9,9 +9,10 @@
  *   separate method for sampling beta-binomial proportion parameter (H=2)
  *   hardcoded with prior beta(1, 1) - should have method to set this
  *
+ *   likelihood and gradients from research.microsoft.com/~minka/papers/dirichlet/minka-dirichlet.ps
  *   in Minka's notation, K is number of outcomes and i indexes experiments
- *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
- *  
+ *
+ * Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
  * version 2 or later, as published by the Free Software Foundation. 
