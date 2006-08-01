@@ -147,7 +147,6 @@ void ResidualLDTest::Reset(){
   if(test){
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
-	unsigned dim = 1;
 	int locus = chrm[j]->GetLocus(k);
 	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
 	fill(Score[j][k], Score[j][k]+dim, 0.0);
