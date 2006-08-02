@@ -132,7 +132,7 @@ private:
   void CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log);
   void CheckOutcomeVarFile(AdmixOptions * const options, LogWriter &Log);
   void CheckCoxOutcomeVarFile(LogWriter &log)const;
-  void CheckCovariatesFile(LogWriter &log, bool usePopLabels);
+  void CheckCovariatesFile(LogWriter &log);
   void CheckRepAncestryFile(int populations, LogWriter &Log)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
   bool determineIfPedFile()const;

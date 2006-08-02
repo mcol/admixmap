@@ -252,7 +252,13 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
 	CheckCoxOutcomeVarFile( Log);
     }
     if ( strlen( options->getCovariatesFilename() ) != 0 )
-      CheckCovariatesFile(Log, (!options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation()));
+      CheckCovariatesFile(Log); 
+    if(!options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation()) {
+      // append population labels to vector of covariate labels 
+      for( vector<string>::const_iterator i = PopulationLabels.begin()+1; i !=PopulationLabels.end(); ++i ) {
+	CovariateLabels.push_back("slope." + *i); 
+      }
+    }
     if ( strlen( options->getReportedAncestryFilename() ) != 0 )
       CheckRepAncestryFile(options->getPopulations(), Log);
   }
@@ -563,7 +569,7 @@ void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
 
 }
 
-void InputData::CheckCovariatesFile(LogWriter &Log, bool usePopLabels){
+void InputData::CheckCovariatesFile(LogWriter &Log) {
   if( NumIndividuals != (int)covariatesMatrix_.nRows() - 1 ){
     Log << "ERROR: Genotypes file has " << NumIndividuals << " observations and Covariates file has "
 	<< covariatesMatrix_.nRows() - 1 << " observations.\n";
@@ -572,10 +578,6 @@ void InputData::CheckCovariatesFile(LogWriter &Log, bool usePopLabels){
   for (size_t i = 0; i < inputData_[0].size(); ++i) {
     CovariateLabels.push_back(StringConvertor::dequote(inputData_[0][i]));
   }
-  if( usePopLabels )
-    for( vector<string>::const_iterator i = PopulationLabels.begin()+1; i !=PopulationLabels.end(); ++i ){
-      CovariateLabels.push_back("slope." + *i); 
-    }
 }
 
 void InputData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
