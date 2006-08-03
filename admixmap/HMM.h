@@ -45,7 +45,6 @@ private:
   //forward and backward probabilities
   //L x K x K arrays
   double *alpha, *beta, *LambdaBeta;
-  bool betaAllocated;
   double *p;
   double *StateArrivalProbs;
   double *ThetaThetaPrime;

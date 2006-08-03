@@ -1,5 +1,6 @@
 #include "CoxRegression.h"
 #include <algorithm>
+#include "misc.h"
 
 using namespace::std;
 const double* CoxRegression::EY;
