@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include "rand.h"
-#include "functions.h"
+#include "linalg.h"
 #include "Gaussian.h"
 
 using namespace::std;

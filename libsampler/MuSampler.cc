@@ -22,7 +22,7 @@
 
 #include "MuSampler.h"
 #include "AdaptiveRejection.h"
-#include "functions.h"
+#include "misc.h"
 #include <numeric>
 #include <gsl/gsl_linalg.h>
 
@@ -55,10 +55,9 @@ void MuSampler::Sample(double* alpha, double eta, const int* const Counts){
   //alpha is the array (length H) of Dirichlet parameters
   //these are first transformed to logits of proportions
 //Counts is an H*K array of counts
-  if(H == 2)Sample1D(alpha, eta, Counts);//can sample directly from beta-binomial in one-dimensional case
-  else
+//   if(H == 2)Sample1D(alpha, eta, Counts);//can sample directly from beta-binomial in one-dimensional case
+//   else
   {
-    
     //transform alphas
     inv_softmax(H, alpha, params);//NOTE: inv_softmax function works with alpha as well as mu
 
@@ -110,8 +109,7 @@ float MuSampler::getStepsize()const{
 //**** End public interface *****************
 //*******************************************
 
-//******* Energy and gradient functions for Hamiltonian MC sampler
-
+///Energy function for Hamiltonian MC sampler
 double MuSampler::muEnergyFunction(const double * const params, const void* const vargs){
   const MuSamplerArgs* args = (const MuSamplerArgs*)vargs;
 
@@ -123,41 +121,37 @@ double MuSampler::muEnergyFunction(const double * const params, const void* cons
 
   double* mu = new double[H];
   double* a = new double[H];
-  softmax(H, mu, params);
-  inv_softmax(H, mu, a); // normalized parameters; sum to zero
-
-  E -= (double)(H); //logprior
-
-  //compute z, needed for Jacobian below
-  double z = 0.0;
-  for(int h = 0; h < H; ++h){
-    z+= exp(a[h]);
-  }
-
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  int status  = 0;
-  gsl_sf_result psi1, psi2;
-  
-  for(int h = 0; h < H; ++h){
-    if(status)break;
-    double alpha = eta * mu[h];
-    for(int k = 0; k < K; ++k){
-      int offset = h*K +k;
-      status = gsl_sf_lngamma_e(alpha, &psi1);if(status)break;
-      status = gsl_sf_lngamma_e(args->counts[offset]+alpha, &psi2);if(status)break;
-      E += psi1.val - psi2.val;//log likelihood
+  try{
+    softmax(H, mu, params);
+    inv_softmax(H, mu, a); // normalized parameters; sum to zero
+    
+    //E -= (double)(H); //logprior ? is zero
+    
+    //compute z, needed for Jacobian below
+    double z = 0.0;
+    for(int h = 0; h < H; ++h){
+      z+= exp(a[h]);
     }
+    
+    for(int h = 0; h < H; ++h){
+      double alpha = eta * mu[h];
+      for(int k = 0; k < K; ++k){
+	int offset = h*K +k;
+	E += lngamma(alpha) - lngamma(args->counts[offset]+alpha);//log likelihood
+      }
+    }
+    
+    E -= logJacobian(a, z, H);
+    delete[] mu;
+    delete[] a;
   }
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  E -= logJacobian(a, z, H);
-  delete[] mu;
-  delete[] a;
-  if(status){
-    throw string("lngamma error in muEnergy");
+  catch(string s){
+    throw string("error in muEnergy " +s);
   }
   return E;
 }
 
+/// gradient function for Hamiltonian MC sampler
 void MuSampler::muGradient(const double * const params, const void* const vargs, double *g){
   const MuSamplerArgs* args = (const MuSamplerArgs*)vargs;
 
@@ -165,8 +159,6 @@ void MuSampler::muGradient(const double * const params, const void* const vargs,
   int K = args->K;// Number of populations
   double eta = args->eta;//dispersion parameter
   //params in softmax format , of length H, but may not sum to zero
-  int status  = 0;
-  gsl_sf_result psi1, psi2;
 
   double* mu = new double[H];
   double* a = new double[H];
@@ -180,37 +172,33 @@ void MuSampler::muGradient(const double * const params, const void* const vargs,
   }
   delete[] a;
 
-  double* dEdMu = new double[H];fill(dEdMu, dEdMu+H, 0.0);
-
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  //first compute gradient wrt mu
-  for(int h = 0; h < H; ++h){
-    if(status)break;
-    double alpha = eta * mu[h];
-
-    for(int k = 0; k < K; ++k){
-      int offset = h*K +k;
-      status = gsl_sf_psi_e(alpha, &psi1);if(status)break;
-      status = gsl_sf_psi_e(args->counts[offset]+alpha, &psi2);if(status)break;
-      dEdMu[h] += psi1.val - psi2.val;//log likelihood term
+  try{
+    double* dEdMu = new double[H];fill(dEdMu, dEdMu+H, 0.0);
+    
+    //first compute gradient wrt mu
+    for(int h = 0; h < H; ++h){
+      double alpha = eta * mu[h];
+      
+      for(int k = 0; k < K; ++k){
+	int offset = h*K +k;
+	dEdMu[h] += digamma(alpha) - digamma(args->counts[offset]+alpha);//log likelihood term
+      }
+      dEdMu[h] *= eta;
     }
-    dEdMu[h] *= eta;
-  }
-   //now use chain rule to obtain gradient wrt args
-  for(int h = 0; h < H; ++h){
-    g[h] = 0.0;
-    for(int i = 0; i < H; ++i){
-      if(i == h)g[h] += dEdMu[h] * mu[h] * (1.0 - mu[h]);
-      else g[h] -= dEdMu[i] * exp(a[i]) * mu[h] * mu[i]; 
+    //now use chain rule to obtain gradient wrt args
+    for(int h = 0; h < H; ++h){
+      g[h] = 0.0;
+      for(int i = 0; i < H; ++i){
+	if(i == h)g[h] += dEdMu[h] * mu[h] * (1.0 - mu[h]);
+	else g[h] -= dEdMu[i] * exp(a[i]) * mu[h] * mu[i]; 
+      }
     }
+    
+    delete[] mu;
+    delete[] dEdMu;
   }
-
-  delete[] mu;
-  delete[] dEdMu;
-
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-    throw string("digamma error in muGradient");
+  catch(string s){
+    throw string("error in muGradient " +s);
   }
 }
 //****** Auxiliary function used in Energy function

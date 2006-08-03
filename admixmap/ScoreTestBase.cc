@@ -2,7 +2,8 @@
 #include <sstream>
 #include <numeric>
 #include "gsl/gsl_cdf.h"
-#include "functions.h"
+#include <math.h>
+#include "linalg.h"
 
 using namespace std;
 

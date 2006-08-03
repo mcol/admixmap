@@ -12,7 +12,7 @@
  */
 
 #include "DispersionSampler.h"
-#include "functions.h"
+#include "misc.h"
 using namespace::std;
 
 DispersionSampler::DispersionSampler(){
@@ -94,10 +94,10 @@ double DispersionSampler::etaEnergyFunction(const double * const logeta, const v
 	double count = args->counts[i][h*K +k];
 
 	nik += count;
-	E += gsl_sf_lngamma(count + alpha) - gsl_sf_lngamma(alpha);
+	E += lngamma(count + alpha) - lngamma(alpha);
       }
  
-       E += gsl_sf_lngamma(eta) - gsl_sf_lngamma(eta+nik);
+       E += lngamma(eta) - lngamma(eta+nik);
     }
   }
   return -E;
@@ -120,9 +120,9 @@ void DispersionSampler::etaGradient(const double * const logeta, const void* con
 	double alpha = args->alpha[i][h];
 	double count = args->counts[i][h*K +k];
 	nik += count;
-	g[0] -= (alpha/eta)*( gsl_sf_psi(count + alpha) - gsl_sf_psi(alpha) );
+	g[0] -= (alpha/eta)*( digamma(count + alpha) - digamma(alpha) );
       }
-      g[0] -= gsl_sf_psi(eta) - gsl_sf_psi(eta+nik);
+      g[0] -= digamma(eta) - digamma(eta+nik);
     }
   }
 }

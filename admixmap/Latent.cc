@@ -11,7 +11,8 @@
  */
 #include "Latent.h"
 #include "Chromosome.h"
-#include "functions.h"
+#include "misc.h"
+#include "dist.h"//for log gamma density
 #include <algorithm>
 #include <numeric>
 #include "gsl/gsl_math.h"

@@ -15,8 +15,8 @@
 #include "rand.h"
 #include <math.h>
 #include <stdlib.h>
-#include "functions.h"
 #include <numeric>
+#include "misc.h"
 
 using namespace std;
 

@@ -16,6 +16,7 @@
 
 #include "DispersionTest.h"
 #include <numeric>
+#include "dist.h"
 
 using namespace ::std;
 

@@ -12,7 +12,7 @@
 #include "DirichletParamSampler.h"
 #include <algorithm>
 #include <numeric>
-#include "functions.h"
+#include "misc.h"
 #include <gsl/gsl_math.h>
 
 using namespace std;

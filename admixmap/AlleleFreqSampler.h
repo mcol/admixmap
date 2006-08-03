@@ -17,7 +17,6 @@
 #include "common.h"
 #include <math.h>
 #include <stdlib.h>
-#include "functions.h"
 #include "HamiltonianMonteCarlo.h"
 #include "CompositeLocus.h"
 #include <algorithm>
@@ -30,6 +29,7 @@ class IndividualCollection;
 // } hapPair; 
 
 
+/// Arguments for sampling allele freqs
 typedef struct{
   unsigned NumPops;// #populations
   unsigned NumStates;// #alleles/haplotypes
@@ -41,6 +41,7 @@ typedef struct{
   double coolness;
 }AlleleFreqArgs;
 
+///Class to sample allele/haplotype frequencies at a given composite locus.
 class AlleleFreqSampler{
 public:
   AlleleFreqSampler();

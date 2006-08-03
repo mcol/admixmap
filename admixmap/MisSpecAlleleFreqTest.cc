@@ -18,8 +18,8 @@
  */
 
 #include "MisSpecAlleleFreqTest.h"
-#include "functions.h"
 #include "gsl/gsl_cdf.h"//for pvalues
+#include "linalg.h"
 
 MisSpecAlleleFreqTest::MisSpecAlleleFreqTest(){
   doTest1 = false;

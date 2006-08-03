@@ -13,7 +13,7 @@
  */
 #include "AlleleFreqs.h"
 #include "AdaptiveRejection.h"
-#include "functions.h"
+#include "misc.h"
 #include "MuSampler.h"
 #include <math.h>
 #include <numeric>
@@ -138,8 +138,8 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     else{//set defaults
       //TODO: decide on sensible defaults
       HapMixPriorShape = 0.01;
-      HapMixPriorRatePriorShape = 0.1;
-      HapMixPriorRatePriorRate = 1.0;
+      HapMixPriorRatePriorShape = 3.0;
+      HapMixPriorRatePriorRate = 2.0;
     }
     HapMixPriorRate = HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
   }

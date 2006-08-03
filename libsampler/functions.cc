@@ -10,12 +10,15 @@
  * 
  */
 
-#include "functions.h"
+#include "misc.h"
+#include "dist.h"
+#include "linalg.h"
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include "gsl/gsl_sf_exp.h"
 #include "gsl/gsl_sf_log.h"
 #include <gsl/gsl_sf_psi.h>
+#include <gsl/gsl_sf_gamma.h>
 #include <numeric>
 #include <iostream>
 #include <gsl/gsl_math.h>

@@ -11,7 +11,7 @@
  * 
  */
 #include "Regression.h"
-#include "functions.h"
+#include "linalg.h"
 #include <iomanip>
 #include <algorithm>
 

@@ -13,6 +13,9 @@
 #include "Individual.h"
 #include "StringConvertor.h"
 #include "Regression.h"
+#include "misc.h"
+#include "dist.h"
+#include "linalg.h"
 #include <algorithm>
 #include <limits>
 #include <sstream>

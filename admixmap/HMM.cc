@@ -1,6 +1,5 @@
 #include "rand.h"
 #include "HMM.h"
-#include "functions.h"
 
 using namespace std;
 
@@ -19,7 +18,6 @@ HMM::HMM()
   cov = 0;
   f = 0;
   Lambda = 0;
-  betaAllocated = false;
   alphaIsBad = true;
   betaIsBad = true;
 }
@@ -35,10 +33,8 @@ HMM::~HMM()
 {
   delete[] p;
   delete[] alpha;
-  if(betaAllocated) {// delete beta array only if allocated with new
-    delete[] beta;
-    delete[] LambdaBeta;
-  }
+  delete[] beta;
+  delete[] LambdaBeta;
   delete[] StateArrivalProbs;
   delete[] ThetaThetaPrime;
   delete[] rowProb;
@@ -153,7 +149,6 @@ double HMM::getLogLikelihood(const bool isdiploid)
 	    sum += alpha[(Transitions - 1)*K + j];
 	}
     }
-    //cout << "diploid " << isdiploid << " logLfromHMM " << sumfactor+log(sum) << endl;
     return( sumfactor+log(sum) );
 }
 
@@ -300,11 +295,12 @@ void HMM::UpdateForwardProbsDiploid()
 void HMM::UpdateBackwardProbsDiploid()
 {
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
-  if(!betaAllocated) { // allocate beta array if not already done
+  if(!beta) { // allocate beta array if not already done
     beta =  new double[Transitions*K*K];
-    LambdaBeta = new double[K*K];
-    betaAllocated = true;
   }
+  if(!LambdaBeta)
+    LambdaBeta = new double[K*K];
+
   vector<double> rec(DStates);
   double scaleFactor, Sum;
   
@@ -372,11 +368,11 @@ void HMM::UpdateForwardProbsHaploid(){
 
 void HMM::UpdateBackwardProbsHaploid(){
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
-  if(!betaAllocated) { // allocate diploid-sized beta array if not already done
+  if(!beta) { // allocate diploid-sized beta array if not already done
     beta =  new double[Transitions*K*K];
-    LambdaBeta = new double[K*K];
-    betaAllocated = true;
   }
+  if(!LambdaBeta)
+    LambdaBeta = new double[K*K];
   double Sum = 0.0;
   for(int j = 0; j < K; ++j){
     beta[(Transitions-1)*K + j] = 1.0;

@@ -1,4 +1,6 @@
 #include "LogisticRegression.h"
+#include "linalg.h"
+#include "misc.h" //for myexp
 
 LogisticRegression::LogisticRegression(){
   BetaSampler = 0;

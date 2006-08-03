@@ -11,8 +11,9 @@
  * 
  */
 #include "ResidualLDTest.h"
-#include "gsl/gsl_cdf.h" 
 #include "IndividualCollection.h"
+#include "gsl/gsl_cdf.h"
+#include "linalg.h"//for HH_solve to compute chi-sq
 
 ResidualLDTest::ResidualLDTest(){
   Score = 0;

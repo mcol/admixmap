@@ -7,7 +7,6 @@
  *   (3) Score test for within-halpotype association
  *   (4) Score test for linkage with locus ancestry
  *   (5) Affecteds-only score test for linkage with locus ancestry
- *   (6) Score test for residual allelic association between adjacent pairs of linked loci
  *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -19,7 +18,7 @@
 
 #include "ScoreTests.h"
 #include <numeric>
-#include "gsl/gsl_cdf.h" //for residual allelic assoc test
+#include "linalg.h"
 
 using namespace std;
 

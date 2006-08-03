@@ -12,7 +12,7 @@
  */
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
-#include "functions.h"
+#include "dist.h"//for Dirichlet log density
 
 //#define DEBUG 1
 
@@ -240,8 +240,8 @@ void AlleleFreqSampler::gradient(const double* const params, const void* const v
 }
 
 // requires: sampled ancestry pair A, PossibleHapPairs (compatible with genotype) H, 
-// current values of AlleleFreqs at this locus, phi
-//, number of alleles/haplotypes NumStates, number of populations, NumPops
+// current values of AlleleFreqs at this locus, phi,
+// number of alleles/haplotypes NumStates, number of populations, NumPops
 double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
 					unsigned NumStates){
   double sum = 0.0;
@@ -306,7 +306,7 @@ double AlleleFreqSampler::getEnergySNP(const double * const params, const void* 
   energy *= args->coolness;
   // subtract log prior density in logit basis
   for(unsigned k = 0; k < Pops; ++k){
-    if(ishapmixmodel) { // prior is the same across populations and alleles
+    if(ishapmixmodel) { // prior is the same across block states and alleles
       energy -= Pops * *(args->PriorParams) * ( mylog(phi[k]) + mylog(1 - phi[k]) );
     } else {
       if(args->PriorParams[k] > 0.0)
