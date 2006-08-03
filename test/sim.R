@@ -1,4 +1,38 @@
 ## script to simulate test data for admixmap
+
+simulateCox <- function(N, TT, beta, x) {
+  r <- matrix(data = 0, nrow = N, ncol = TT)
+  n <- matrix(data = TRUE, nrow = N, ncol = TT) # all individuals enter at time 0
+  tfail <- numeric(N)
+  d <- numeric(TT)
+  exp.xbeta <- numeric(N)
+  for(i in 1:N) {
+    exp.xbeta[i] <- exp(x[i]*beta)
+  }
+  ## sample vector of TT baseline hazard rates from gamma distribution
+  alpha <- rgamma(TT, 1, 1)
+  ## sample failure times in t th interval from exponential distribution
+  sumd <- 0
+  for(t in 1:TT) {
+    tmin <- 10000 
+    for(i in 1:N) {
+      if(n[i, t]) {
+        lambda <- alpha[t] * exp.xbeta[i]
+        f <- rexp(1, lambda)
+        if(f < tmin) {
+          tmin <- f
+          j <- i  # indexes individual with min fail time
+        }
+      }
+    }
+    d[t] <- tmin
+    sumd <- sumd + d[t]
+    n[j, t:TT] <- FALSE
+    tfail[j] <- sumd
+  }
+  return(tfail)
+}  
+  
 rdiscrete <- function(probs) {
   v <- as.vector(rmultinom(1, 1, probs))
   return(match(1, v))
@@ -87,6 +121,7 @@ spacing <- 40 # 40 cM spacing gives 99 loci
 spacingX <- 30 #30
 L <- 50  # default number of autosomal loci
 beta <- 2 # regression slope
+model <- 3 # 1 linear, 2 logistic, 3 cox
 popadmixparams <- c(3, 1) # population admixture params for pop1, pop2
 S <- 2 # number of alleles
 afreqparams <- matrix(c(10, 90, 90, 10), nrow=2, ncol=2)
@@ -128,7 +163,6 @@ for(locus in 1:(L + LX)) {
 }                                             
 
 genotypes <- character(L+LX)
-outcome <- numeric(N)
 avM <- numeric(N)
 male <- rbinom(N, 1, 0.5)
 popM <- popadmixparams[2] / sum(popadmixparams) # mean admixture proportions
@@ -144,14 +178,28 @@ for(individual in 1:N) {
   obs <- c(obs, simulateXGenotypes(M1, M2, rhoX, xX, LX, alleleFreqs[-(1:(S*L)), ], S,
                                    as.logical(male[individual])))
   genotypes <- rbind(genotypes, obs)
-  ## simulate outcome
-  alpha <- -beta*popM
-  #outcome[individual] <- rnorm(1, mean=(alpha + beta*avM[individual]), sd=1) #linear regression
-  #ofam <- gaussian
-  outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-alpha - beta*avM[individual])))  # binary outcome
-  ofam <- binomial
 }
-reg.true <-summary.glm(glm(outcome ~ avM, family = ofam))
+
+## simulate outcome
+alpha <- -beta*popM
+if(model==1) {
+  outcome <- numeric(N)
+  for(individual in 1:N) {
+    outcome[individual] <- rnorm(1, mean=(alpha + beta*avM[individual]), sd=1) #linear regression
+  }
+  ofam <- gaussian
+} else if(model==2) {
+  outcome <- integer(N)
+  for(individual in 1:N) {
+    outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-alpha - beta*avM[individual])))  # binary outcome
+  }
+  ofam <- binomial
+} else {
+  outcome <- simulateCox(N, N, beta, avM)
+  ofam <- poisson
+}
+
+#reg.true <-summary.glm(glm(outcome ~ avM, family = ofam))
 
 outcome.table <- data.frame(outcome, row.names=NULL) # write outcome variable to file
 write.table(outcome.table, file="simdata/outcome.txt", row.names=FALSE, sep="\t")
