@@ -50,8 +50,13 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq, std::ofstream *avgstream);
 
 void PrintOptionsMessage();
+void ThrowException(const string& msg, LogWriter & Log);
 
 int main( int argc , char** argv ){
+  if (argc < 2 || (argc ==2 && ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) ) ) {
+    PrintOptionsMessage();
+    exit(1); 
+  } 
 #ifdef PARALLEL
   MPI::Init(argc, argv);
   const int rank = MPI::COMM_WORLD.Get_rank();
@@ -90,11 +95,6 @@ int main( int argc , char** argv ){
 #endif
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
-   if (argc < 2) {
-    PrintOptionsMessage();
-    exit(1); 
-  } 
-
   //read user options
   AdmixOptions options(argc, argv);
 
@@ -480,19 +480,15 @@ int main( int argc , char** argv ){
     cout << "Finished" << endl;
 #endif
 
-  } catch (string msg) {//catch any stray error messages thrown upwards
-    Log.setDisplayMode(On);
-    Log << "\n" << msg << "\n Exiting...\n";
-    Log.ProcessingTime();
-#ifdef PARALLEL//print error message to screen as only master is allowed write with LogWriter
-    if(rank>0)cerr << "rank " << rank << ": " << msg << endl;
-    MPI::COMM_WORLD.Abort(1);
-#else
-    exit(1);
-#endif
+  } 
+  catch (const string& msg) {//catch any stray error messages thrown upwards
+    ThrowException(msg, Log);
   }
-  catch (char *msg){//in case error messages thrown as char arrays instead of strings
-    throw string(msg);
+  catch (const char* msg) {//in case error messages thrown as char arrays instead of strings
+    ThrowException(string(msg), Log);
+  }
+  catch (exception& e){
+    ThrowException(e.what(), Log);
   }
 
 #ifdef PARALLEL
@@ -975,4 +971,16 @@ void MakeResultsDir(const char* dirname, bool verbose){
     cerr << "Invalid resultsdir. Exiting\n";
     exit(1);
   }
+}
+
+void ThrowException(const string& msg, LogWriter & Log){
+    Log.setDisplayMode(On);
+    Log << "\n" << msg << "\n Exiting...\n";
+    Log.ProcessingTime();
+#ifdef PARALLEL//print error message to screen as only master is allowed write with LogWriter
+    if(rank>0)cerr << "rank " << MPI::COMM_WORLD.Get_rank() << ": " << msg << endl;
+    MPI::COMM_WORLD.Abort(1);
+#else
+    exit(1);
+#endif
 }
