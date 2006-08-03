@@ -150,7 +150,6 @@ private:
   int rank_with_freqs;
   //communicators for workers (Individual updaters),  workers+freqsampler and workers+master
   MPI::Intracomm workers, workers_and_freqs, workers_and_master;
-  unsigned Populations;
 #endif
  
   //Regression Objects
