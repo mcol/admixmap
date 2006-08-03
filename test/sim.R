@@ -3,7 +3,9 @@
 simulateCox <- function(N, TT, beta, x) {
   r <- matrix(data = 0, nrow = N, ncol = TT)
   n <- matrix(data = TRUE, nrow = N, ncol = TT) # all individuals enter at time 0
+  entryt <- rep(0, N)
   tfail <- numeric(N)
+  fail <- rep(1, N)
   d <- numeric(TT)
   exp.xbeta <- numeric(N)
   for(i in 1:N) {
@@ -30,7 +32,8 @@ simulateCox <- function(N, TT, beta, x) {
     n[j, t:TT] <- FALSE
     tfail[j] <- sumd
   }
-  return(tfail)
+  outcome <- data.frame(entryt, tfail, fail)
+  return(outcome)
 }  
   
 rdiscrete <- function(probs) {
@@ -182,19 +185,19 @@ for(individual in 1:N) {
 
 ## simulate outcome
 alpha <- -beta*popM
-if(model==1) {
+if(model==1) {# linear regression
   outcome <- numeric(N)
   for(individual in 1:N) {
-    outcome[individual] <- rnorm(1, mean=(alpha + beta*avM[individual]), sd=1) #linear regression
+    outcome[individual] <- rnorm(1, mean=(alpha + beta*avM[individual]), sd=1) 
   }
   ofam <- gaussian
-} else if(model==2) {
+} else if(model==2) {# binary outcome
   outcome <- integer(N)
   for(individual in 1:N) {
-    outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-alpha - beta*avM[individual])))  # binary outcome
+    outcome[individual] <- rbinom(1, 1, 1 / (1+exp(-alpha - beta*avM[individual])))  
   }
   ofam <- binomial
-} else {
+} else { # Cox regression
   outcome <- simulateCox(N, N, beta, avM)
   ofam <- poisson
 }
