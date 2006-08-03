@@ -115,7 +115,7 @@ WFLAGS = -fullwarn -LNO:simd_verbose=ON
 #WFLAGS = -Wall 
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
-DFLAGS = -O3 -OPT:Ofast -fno-math-errno -ffast-math #equivalent to -Ofast but without ipa
+DFLAGS = -TENV:frame_pointer=ON -O3 -OPT:Ofast -fno-math-errno -ffast-math #equivalent to -Ofast but without ipa
 endif
 endif
 
