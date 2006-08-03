@@ -13,6 +13,7 @@
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
 #include "dist.h"//for Dirichlet log density
+#include "misc.h"
 
 //#define DEBUG 1
 
