@@ -101,8 +101,8 @@ void AdmixOptions::Initialise(){
 
   //prior on frequency Dirichlet prior params in hapmixmodel
   allelefreqprior.push_back(0.01);//shape
-  allelefreqprior.push_back(0.1);//prior shape of rate
-  allelefreqprior.push_back(1.0);//prior rate of rate
+  allelefreqprior.push_back(3.0);//prior shape of rate
+  allelefreqprior.push_back(2.0);//prior rate of rate
 
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
   EYFilename = "ExpectedOutcomes.txt";
