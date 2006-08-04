@@ -160,7 +160,7 @@ double AlleleFreqSampler::getEnergy(const double * const params, const void* con
   for(unsigned k = 0; k < args->NumPops; ++k)
      softmax(States, phi + k*States, params + k*States); 
 
-  //accumulate likelihood over individuals
+  //accumulate minus log likelihood over individuals
   for(int i = 0; i < args->IP->getSize(); ++i){
     const Individual* ind = args->IP->getIndividual(i);
     int Anc[2];
@@ -200,7 +200,8 @@ void AlleleFreqSampler::gradient(const double* const params, const void* const v
     const Individual* ind = args->IP->getIndividual(i);
     int Anc[2];
     ind->GetLocusAncestry(args->locus, Anc);
-    logLikelihoodFirstDeriv(phi, Anc, ind->getPossibleHapPairs(args->locus), States, args->NumPops, dE_dphi);
+    minusLogLikelihoodFirstDeriv(phi, Anc, ind->getPossibleHapPairs(args->locus), States, args->NumPops, 
+			    dE_dphi);
   }
   //subtract derivative wrt phi of log prior density in softmax basis
   for(unsigned s = 0; s < States; ++s) {
@@ -229,9 +230,11 @@ void AlleleFreqSampler::gradient(const double* const params, const void* const v
     for(unsigned s = 0; s < States; ++s) { // loop over j
       for(unsigned s1 = 0; s1 < States; ++s1) { // loop over i to evaluate dE/dbeta_j as a sum
 	if(s1 != s) {
-	  g[k*States+s] -= dE_dphi[k*States+s1] * exp(params[k*States+s1]) * exp(params[k*States+s]) / sumsq; 
+	  g[k*States+s] -= dE_dphi[k*States+s1] * exp(params[k*States+s1]) * exp(params[k*States+s]) /
+	    sumsq; 
 	} else {
-	  g[k*States+s] += dE_dphi[k*States+s1] * (sum - exp(params[k*States+s])) * exp(params[k*States+s]) / sumsq; 
+	  g[k*States+s] += dE_dphi[k*States+s1] * (sum - exp(params[k*States+s])) * exp(params[k*States+s]) / 
+	    sumsq; 
 	}
       }
     }
@@ -245,39 +248,50 @@ void AlleleFreqSampler::gradient(const double* const params, const void* const v
 // number of alleles/haplotypes NumStates, number of populations, NumPops
 double AlleleFreqSampler::logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
 					unsigned NumStates){
-  double sum = 0.0;
   unsigned NumPossHapPairs = H.size();
+  double sum = 0.0;
   for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
     unsigned j0 = H[hpair].haps[0];//j
     unsigned j1 = H[hpair].haps[1];//j'
-    if( (Anc[0]==Anc[1]) || (j0==j1) ) {
-      int index0 = Anc[0]*NumStates + j0;//jk
-      int index1 = Anc[1]*NumStates + j1;//j'k'
-      sum += log(phi[index0]*phi[index1]);
-    } else {
-      sum += log(phi[Anc[0]*NumStates + j1] * phi[Anc[1]*NumStates + j0] + 
-		 phi[Anc[0]*NumStates + j0] * phi[Anc[1]*NumStates + j1] );
+    if( (Anc[0]==Anc[1]) || (j0==j1) ) { // unambiguous assignment of alleles to ancestry states
+      sum += phi[Anc[0]*NumStates + j0]*phi[Anc[1]*NumStates + j1]; // phi_jk * phi_j'k'
+    } else { // sum over two possible phase assignments
+      sum += phi[Anc[0]*NumStates + j1] * phi[Anc[1]*NumStates + j0] + 
+	phi[Anc[0]*NumStates + j0] * phi[Anc[1]*NumStates + j1];
     }
   }
-  return sum;
+  return log(sum); 
 }
 
 ///first derivative of minus log likelihood wrt phi
-void AlleleFreqSampler::logLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
+void AlleleFreqSampler::minusLogLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
 						unsigned NumStates, unsigned, double* FirstDeriv){
   unsigned NumPossHapPairs = H.size();
+  double denom = 0.0;
+  for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
+    unsigned j0 = H[hpair].haps[0];//j
+    unsigned j1 = H[hpair].haps[1];//j'
+    if( (Anc[0]==Anc[1]) || (j0==j1) ) { // unambiguous assignment of alleles to ancestry states
+      denom += phi[Anc[0]*NumStates + j0]*phi[Anc[1]*NumStates + j1]; // phi_jk * phi_j'k'
+    } else { // denom over two possible phase assignments
+      denom += phi[Anc[0]*NumStates + j1] * phi[Anc[1]*NumStates + j0] + 
+	phi[Anc[0]*NumStates + j0] * phi[Anc[1]*NumStates + j1];
+    }
+  }
+  // maybe more efficient to accumulate numerator then divide by denominator
   for(unsigned hpair = 0; hpair < NumPossHapPairs; ++hpair){
     unsigned j0 = H[hpair].haps[0];//j
     unsigned j1 = H[hpair].haps[1];//j'
     int index0 = Anc[0]*NumStates + j0;//jk
     int index1 = Anc[1]*NumStates + j1;//j'k'
-    if( (Anc[0] == Anc[1]) || (index0 == index1) ) {
-      FirstDeriv[index0] -= 1.0 / phi[index1];
-      FirstDeriv[index1] -= 1.0 / phi[index0];
-    } else {
+    if( index0 == index1 ) { // quadratic term in likelihood
+      FirstDeriv[index0] -= 2.0 * phi[index1] / denom;
+    } else if( (Anc[0] == Anc[1]) || (j0 == j1) ) { //unambiguous assignment of alleles to ancestry states
+      FirstDeriv[index0] -= phi[index1] / denom;
+      FirstDeriv[index1] -= phi[index0] / denom;
+    } else { // sum over two possible phase assignments, 4 elements of gradient vector to increment
       int index2 = Anc[0]*NumStates + j1;//jk'
       int index3 = Anc[1]*NumStates + j0;//j'k
-      double denom = phi[index0] * phi[index1] + phi[index2] * phi[index3];
       FirstDeriv[index0] -= phi[index1] / denom;
       FirstDeriv[index1] -= phi[index0] / denom;
       FirstDeriv[index2] -= phi[index3] / denom;
