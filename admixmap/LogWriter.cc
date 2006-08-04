@@ -43,51 +43,56 @@ void LogWriter::setDisplayMode(DisplayMode d){
 
 // ** Overloaded stream insertion operators, write to log and screen, unless DisplayMode switched off
 LogWriter& LogWriter::operator<<(const int message){
-  if(rank==0)
+  if(rank==0){
     LogFileStream << message;
-  if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message;
+    if(toscreen==On || (verbose && toscreen==Quiet)){
+      cout << message;
+    }
   }
-
   return *this;
 }
 LogWriter& LogWriter::operator<<(const unsigned message){
-  if(rank==0)
+  if(rank==0){
     LogFileStream << message;
-  if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message;
+    if(toscreen==On || (verbose && toscreen==Quiet)){
+      cout << message;
+    }
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const long message){
-  if(rank==0)
+  if(rank==0){
     LogFileStream << message;
-  if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message;
+    if(toscreen==On || (verbose && toscreen==Quiet)){
+      cout << message;
+    }
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const double message){
-  if(rank==0)
+  if(rank==0){
     LogFileStream << message;
-  if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message;
+    if(toscreen==On || (verbose && toscreen==Quiet)){
+      cout << message;
+    }
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const string message){
-  if(rank==0)
+  if(rank==0){
     LogFileStream << message << flush;
-  if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message << flush;
+    if(toscreen==On || (verbose && toscreen==Quiet)){
+      cout << message << flush;
+    }
   }
   return *this;
 }
 LogWriter& LogWriter::operator<<(const char* message){
-  if(rank==0)
+  if(rank==0){
     LogFileStream << message << flush;
-  if(toscreen==On || (verbose && toscreen==Quiet)){
-    cout << message << flush;
+    if(toscreen==On || (verbose && toscreen==Quiet)){
+      cout << message << flush;
+    }
   }
   return *this;
 }
@@ -97,9 +102,10 @@ void LogWriter::width(const unsigned w){
     LogFileStream.width(w);
 }
 void LogWriter::setPrecision(int p){
-  if(rank==0)
+  if(rank==0){
     LogFileStream<<setprecision(p);
-  cout<<setprecision(p);
+    cout<<setprecision(p);
+  }
 }
 
 void LogWriter::StartMessage(){
