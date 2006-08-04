@@ -9,6 +9,7 @@
 # Serial/Parallel version: VERSION = [serial/parallel]
 # Processor type: ARCH = [i686/P4/AMD64/itanium2]
 # Compiler: CC = [g++/icpc/pgCC/pathCC]
+# (if using GCC 4.x, set GCC_VERSION=4 to enable vectorization)
 # MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
 # paths to gsl, mpi, sprng: GSL_LIBPATH, GSL_INCLUDEPATH, MPI_PATH, MPI_LIBPATH, SPRNG_PATH
@@ -30,9 +31,9 @@ LIBSAMPLER_PATH =../libsampler
 
 ## for parallel version only
 # path to mpi top level directory
-MPI_PATH = /usr/local/mpich/gcc# mpich with gcc 3
+#MPI_PATH = /usr/local/mpich/gcc# mpich with gcc 3
 #MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
-#MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
+MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
 #MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
 MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
 
@@ -71,9 +72,9 @@ DESTDIR = ../test# where to put compiled exec
 SERIAL_EXEC = admixmap# name of compiled executable
 
 ## ** flags for release version, debug version or profiling version
-DFLAGS 		= -O3# release, optimized
-#DFLAGS 	= -g# debug
-# DFLAGS 	= -pg -O3# profiling
+DFLAGS 		=-O3# release, optimized
+#DFLAGS 	=-g# debug
+# DFLAGS 	=-pg -O3# profiling
 
 #warning flags for compiler
 WFLAGS =
@@ -84,11 +85,11 @@ PROC =
 #GCC_VERSION = $(shell gcc -dumpversion)
 ## DO NOT EDIT BELOW HERE, except to add processor/compiler types
 ifeq ($(CC),$(GNU_COMPILER))
-WFLAGS = -W -Wall
+WFLAGS = -W -Wall 
 ifeq ($(GCC_VERSION),4)
-ifeq ($(DFLAGS),-O3)
-override DFLAGS+= -ftree-vectorize
-endif	
+ifeq ($DFLAGS,-O3)
+override DFLAGS += -ftree-vectorize
+endif
 endif
 ifeq ($(ARCH),i686)
 PROC = -march=i686# Intel 686
@@ -111,8 +112,8 @@ endif
 endif
 
 ifeq ($(CC),$(PATHSCALE_COMPILER))
-WFLAGS = -fullwarn -LNO:simd_verbose=ON
-#WFLAGS = -Wall 
+#WFLAGS = -fullwarn -LNO:simd_verbose=ON
+WFLAGS = -Wall 
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
 DFLAGS = -TENV:frame_pointer=ON -O3 -OPT:Ofast -fno-math-errno -ffast-math #equivalent to -Ofast but without ipa
@@ -131,23 +132,23 @@ endif
 # math, GSL, GSL's CBLAS (linear algebra)
 NORMAL_LIBS = -lsampler -lm -lgsl -lgslcblas 
 
-PARALLEL_LIBS = $(NORMAL_LIBS) -lmpich -lsprng -lgmp -lmpe
+PARALLEL_LIBS = $(NORMAL_LIBS) -lsprng -lmpich -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
 
 LFLAGS =-L$(LIBSAMPLER_PATH)
-INCLUDES = -I$(LIBSAMPLER_PATH)
+INCLUDES =-I$(LIBSAMPLER_PATH)
 
 ifneq ($(GSL_LIBPATH),)
 LFLAGS += -L$(GSL_LIBPATH)
 endif
 
 ifneq ($(GSL_INCLUDEPATH),)
-INCLUDES += -I$(GSL_INCLUDEPATH)
+INCLUDES += -I$(GSL_INCLUDEPATH) 
 endif
 
 ##library flags for sprng and mpich in parallel version
 PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPI_LIBPATH)
-PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+PARALLEL_INCLUDES = -I$(MPI_INCLUDEPATH)/include -I$(SPRNG_PATH)/include  
 
 ## parallel version
 ifeq ($(VERSION),parallel)
@@ -156,6 +157,10 @@ LIBS = $(PARALLEL_LIBS)
 LFLAGS += $(PARALLEL_LFLAGS)
 INCLUDES += $(PARALLEL_INCLUDES)
 EXEC = adm-para
+ifeq ($(CC),$(GNU_COMPILER))
+#to suppress warnings about missing MPICH virtual d'tors
+WFLAGS += -Wno-non-virtual-dtor
+endif
 ##serial version
 else
 CXX = $(CC)
@@ -170,16 +175,15 @@ CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 export CXX CPPFLAGS GSL_INCLUDEPATH PARALLEL_INCLUDES
 
 objects		= admixmap.o Latent.o Regression.o AlleleFreqs.o AdmixOptions.o\
-Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o LinearRegression.o LogisticRegression.o CoxRegression.o \
+Genome.o Chromosome.o CompositeLocus.o IndividualCollection.o LinearRegression.o LogisticRegression.o CoxRegression.o\
 Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o \
 ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o LogWriter.o InputData.o StringSplitter.o StringConvertor.o \
-DataMatrix.o AlleleFreqSampler.o
+DataMatrix.o AlleleFreqSampler.o 
 
-all:	message $(objects)
+all:	$(objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
+	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(EXEC) \**
 
-message:	
-	@echo **Compiling ADMIXMAP**
 libsampler:
 	@echo **compiling sampler library**
 	$(MAKE) -C $(LIBSAMPLER_PATH) -e
