@@ -184,7 +184,6 @@ public:
   const int *GetAlleleCounts(int locus)const;
   
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
-  //void UpdateAlleleCounts(int locus, std::vector<unsigned short>, const int ancestry[2], bool diploid );
 #ifdef PARALLEL
   void SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K);
   void BroadcastAlleleFreqs(MPI::Intracomm& comm);
@@ -203,7 +202,8 @@ public:
   float getHapMixPriorSamplerStepSize()const;
 
   double getHapMixPriorRate()const{return HapMixPriorRate;};
-  //double getSumLambda const{return SumLambda;};
+  void resetStepSizeApproximator(int k);
+
 private:
   int Populations, NumberOfCompositeLoci;
   double *eta; //dispersion parameter

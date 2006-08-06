@@ -38,9 +38,6 @@ double *Individual::Xcov;
 bool Individual::Xdata;
 unsigned Individual::X_posn;
 unsigned Individual::NumIndGametes;
-
-//#define TruncationPt 99 // upper truncation point for sum intensities parameter rho
-
 unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
 int Individual::Populations;
@@ -80,7 +77,6 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
       rhohat[g] = init;
     }
   }
-  // for global rho, Latent should assign initial value 
   sumlogrho.assign(_rho.size(), 0.0);
   
   // Read sex value if present.
@@ -1152,7 +1148,7 @@ void Individual::Accept_Reject_Theta( double logpratio, /*bool xdata, */ int Pop
 }
 
 void Individual::resetStepSizeApproximator(int k) {
-  ThetaTuner.resetApproximator(k);
+  ThetaTuner.resetStepSizeApproximator(k);
 }
 
 void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
@@ -1630,6 +1626,7 @@ double Individual::getLogPosteriorAlleleFreqs()const{
   std::vector<double>::const_iterator max = max_element(logPosterior[2].begin(), logPosterior[2].end());
   return AverageOfLogs(logPosterior[2], *max);
 }
+
 
 //******************* Likelihood Ratios (Affecteds-only score test) ************************
 

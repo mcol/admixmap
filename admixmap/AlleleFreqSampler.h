@@ -51,7 +51,7 @@ public:
 			 unsigned NumStates, unsigned NumPops, double coolness);
   void SampleSNPFreqs(double *phi, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
 			 unsigned NumPops, double coolness);
-
+  void resetStepSizeApproximator(int k);
 
 private:
   HamiltonianMonteCarlo Sampler;

@@ -95,6 +95,7 @@ public:
   
   double getRhoSamplerAccRate()const;
   double getRhoSamplerStepsize()const;
+  void resetStepSizeApproximator(int k); 
   
 private:
   

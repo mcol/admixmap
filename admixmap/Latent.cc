@@ -172,6 +172,11 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
   }//end if Populations > 1
 }
 
+void Latent::resetStepSizeApproximator(int k) {
+  TuneRhoSampler.resetStepSizeApproximator(k);
+}
+
+
 Latent::~Latent()
 {
   delete[] poptheta;

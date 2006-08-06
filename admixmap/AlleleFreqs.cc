@@ -249,16 +249,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     Log << "\n";
   
 
-    //double maxeta[ dim ];
     for( unsigned k = 0; k < dim; k++ ){
-      //       // old method; sets eta to the sum of priorallelefreqs
-      //       for( int j = 0; j < NumberOfCompositeLoci; j++ ){
-      //        	maxeta[k] =  GetPriorAlleleFreqs(j,k).Sum();
-      //        	if( maxeta[k] > eta[k] ){
-      //        	  eta[k] = maxeta[k];
-      //        	}
-      //       }
-      
       //Initialise eta at its prior expectation
       eta[k] = psi[k]/tau[k];
       //Rescale priorallelefreqs so the columns sum to eta 
@@ -280,27 +271,6 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     for( unsigned k = 0; k < dim; k++ )
       TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
 
-//     // ** Settings for Hamiltonian sampler
-    //EtaSampler = new DispersionSampler[dim];
-    //double initialEtaStepsize = 0.0003;//need a sensible value for this
-    //double targetEtaAcceptRate = 0.44;//and this 
-    //double min = 0.00;//min and max values for eta stepsize
-    //double max = 10.0;
-
-//     if( IsHistoricAlleleFreq)
-//       for( unsigned k = 0; k < dim; k++ ){
-// 	EtaSampler[k].setDimensions(NumberOfCompositeLoci, 2, NumberOfStates,//<- 2 for admixed & unadmixed pops 
-// 				    initialEtaStepsize, min, max, targetEtaAcceptRate);
-// 	EtaSampler[k].setEtaPrior(psi[k], tau[k]);
-//       }
-//       else{//correlated allelefreq model
-     //EtaSampler[0].setDimensions(NumberOfCompositeLoci, Populations, NumberOfStates, 
-     //			  initialEtaStepsize, min, max, targetEtaAcceptRate);
-     //  EtaSampler[0].setEtaPrior(psi[0], tau[0]);
-//     }
-    //NOTE: only need to set prior if user has not specified
-
-  
     // ** Open output file for eta **
     if ( options->getIndAdmixHierIndicator()){
       if (strlen( options->getEtaOutputFilename() ) ){
@@ -691,17 +661,15 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
       //and we only count once
     }
 }
-// void AlleleFreqs::UpdateAlleleCounts(int locus, std::vector<unsigned short> genotype, const int ancestry[2], bool diploid )
-// {//case of SNP when annealing to compute marginal likelihood by thermo method
-//   if(Loci->GetNumberOfStates(locus)>2)return; //incase called when not a SNP
-//   if( (genotype[0] != genotype[1]) && (ancestry[0] !=ancestry[1]))//heterozygous with distinct ancestry states
-//     ++hetCounts[locus][ancestry[0]*Populations + ancestry[1]];
-//   else{
-//     ++AlleleCounts[locus][genotype[0]*Populations + ancestry[0]];
-//     if(diploid)++AlleleCounts[locus][genotype[1]*Populations + ancestry[1]];
-//   }
-//   //TODO: check haploid case
-// }
+
+void AlleleFreqs::resetStepSizeApproximator(int k) {
+  if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER) {
+    for( int i = 0; i < NumberOfCompositeLoci; ++i ){
+     FreqSampler[i]->resetStepSizeApproximator(k);
+    }
+  }
+}
+
 
 #ifdef PARALLEL
 void AlleleFreqs::SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K){
@@ -1539,3 +1507,4 @@ float AlleleFreqs::getHapMixPriorSamplerStepSize()const{
   return sum / (float)NumberOfCompositeLoci;
 
 }
+

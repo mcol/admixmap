@@ -302,7 +302,11 @@ int main( int argc , char** argv ){
 	  coolness = Coolnesses[run];
 	  if(NumAnnealedRuns > 0) {
 	    cout <<"\rSampling at coolness of " << coolness << "         " << flush;
-	    IC->resetStepSizeApproximators(NumAnnealedRuns); // reset k <= NumAnnealedRuns in step size tuners
+	    // reset approximation series in step size tuners
+	    IC->resetStepSizeApproximators(NumAnnealedRuns); 
+	    A.resetStepSizeApproximator(NumAnnealedRuns);
+	    L.resetStepSizeApproximator(NumAnnealedRuns);
+ 
 	  }
 	  // accumulate scalars SumEnergy and SumEnergySq at this coolness
 	  // array Coolnesses is not used unless TestOneIndivIndicator is true

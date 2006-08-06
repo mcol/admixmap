@@ -36,8 +36,8 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
 
   if(NumStates == 2){//case of SNP
     params = new double[NumPops];
-    step0 = 0.03;//initial step size
-    numleapfrogsteps = 20;
+    step0 = 0.01;//initial step size
+    numleapfrogsteps = 40;
     Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.7, getEnergySNP, 
 			  gradientSNP);
   } else {
@@ -104,9 +104,14 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts,
   }
   //reverse transformation
   for(unsigned k = 0; k < NumPops; ++k){
-    phi[k*2] = exp(params[k]) / (1.0 + exp(params[k]));//allele 1
+    phi[k*2] = exp(params[k]);
+    phi[k*2] /= 1.0 + phi[k*2];//allele 1
     phi[k*2+1] = 1.0 - phi[k*2];//allele 2
   }
+}
+
+void AlleleFreqSampler::resetStepSizeApproximator(int k) {
+  Sampler.resetStepSizeApproximator(k);
 }
 
 // log normalized prior density - required for updating prior params
