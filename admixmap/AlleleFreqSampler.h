@@ -59,11 +59,11 @@ private:
   double* params;
   static bool ishapmixmodel;
 
-  static double logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, unsigned NumPops);
-  static double logPrior(const double* PriorParams, const double* phi, unsigned NumPops, unsigned NumStates);
-  static double logJacobian(const double* a, const double z, unsigned H);
+  static double logLikelihood(const double *phi, const int Anc[2], const std::vector<hapPair > H, const unsigned NumPops);
+  static double logPrior(const double* PriorParams, const double* phi, const unsigned NumPops, const unsigned NumStates);
+  static double logJacobian(const double* a, const double z, const unsigned H);
   static void minusLogLikelihoodFirstDeriv(const double *phi, const int Anc[2], const std::vector<hapPair > H, 
-					   unsigned NumStates, unsigned NumPops, double* FirstDeriv);
+					   const unsigned NumStates, double* FirstDeriv);
   static double getEnergy(const double * const phi, const void* const vargs);
   static void gradient(const double * const phi, const void* const vargs, double* g);
   static double getEnergySNP(const double * const phi, const void* const vargs);

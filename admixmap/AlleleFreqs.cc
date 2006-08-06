@@ -53,7 +53,6 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   SumFst = 0;
   calculateFST = false;
   Loci = pLoci;
-
   MuProposal = 0;
   TuneEtaSampler = 0;
   w = 1;
@@ -127,7 +126,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   }
 
   //set parameters of prior on frequency Dirichlet prior params
-  if(options->getHapMixModelIndicator()){
+  if(options->getHapMixModelIndicator()) {
     FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
     const vector<double> &params = options->getAlleleFreqPriorParams();
     if(params.size()==3){
@@ -144,10 +143,18 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     HapMixPriorRate = HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
   }
   else {//not hapmix model
-    if(options->getThermoIndicator() && !options->getTestOneIndivIndicator()) FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
-    else FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+    // use hamiltonian sampler if thermo indicator or if reference prior on allele freqs
+    if( (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) 
+	|| ( !strlen(options->getAlleleFreqFilename()) &&
+	     !strlen(options->getHistoricalAlleleFreqFilename()) && 
+	     !strlen(options->getPriorAlleleFreqFilename()) ) 
+	) {
+      FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
+    } else {
+      FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+    }
   }
-
+    
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     if(RandomAlleleFreqs){
       if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
@@ -311,7 +318,6 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   }//end if dispersion parameter
 
 }
-
 
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_)
 {
