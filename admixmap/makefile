@@ -87,9 +87,9 @@ PROC =
 ifeq ($(CC),$(GNU_COMPILER))
 WFLAGS = -W -Wall 
 ifeq ($(GCC_VERSION),4)
-ifeq ($DFLAGS,-O3)
+#ifeq ($DFLAGS,-O3)
 override DFLAGS += -ftree-vectorize
-endif
+#endif
 endif
 ifeq ($(ARCH),i686)
 PROC = -march=i686# Intel 686
