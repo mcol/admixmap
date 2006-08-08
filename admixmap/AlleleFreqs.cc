@@ -148,7 +148,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	|| ( !strlen(options->getAlleleFreqFilename()) &&
 	     !strlen(options->getHistoricalAlleleFreqFilename()) && 
 	     !strlen(options->getPriorAlleleFreqFilename()) && 
-	     !strlen(options->getCorrelatedAlleleFreqs()) ) 
+	     !(options->getCorrelatedAlleleFreqs()) ) 
 	) {
       FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
     } else {
