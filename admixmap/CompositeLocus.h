@@ -121,11 +121,11 @@ typedef std::vector<hapPair>::const_iterator happairiter;
 #ifdef PARALLEL
 inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool /*chibindicator*/) const {
   double *q = Probs;
-  const double* const p;
-  if(!chibindicator || !RandomAlleleFreqs) 
-    p = AlleleProbs;
-  else 
-    p = AlleleProbsMAP;
+  const double* p;
+  //if(!chibindicator || !RandomAlleleFreqs) 
+  p = AlleleProbs;
+  //else 
+      //p = AlleleProbsMAP;
 
   happairiter end = HapPairs.end();
   for(int k0 = 0; k0 < Populations; ++k0)
@@ -134,7 +134,7 @@ inline void CompositeLocus::GetGenotypeProbs(double *Probs, const std::vector<ha
     happairiter h = HapPairs.begin();
     for( ; h != end ; ++h) {
       //in parallel version, the happairprobs are not stored so we calculate them from allele probs
-      *q += (p + k0*NumberOfStates+h->haps[0]) * (p + k1*NumberOfStates+h->haps[1]);
+      *q += *(p + k0*NumberOfStates+h->haps[0]) * *(p + k1*NumberOfStates+h->haps[1]);
     }
     q++;
   }

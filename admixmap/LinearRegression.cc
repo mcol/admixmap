@@ -79,18 +79,17 @@ void LinearRegression::InitializeOutputFile(const std::vector<std::string>& Cova
 void LinearRegression::Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
 #ifdef PARALLEL
 			      , MPI::Intracomm &Comm){
-  if(Comm.Get_rank() == 0){
+  if(Comm.Get_rank() == 0)
 #else 
     ){
 #endif
-    
+    {
     // Sample for regression model parameters beta
     //and precision in linear regression
     
     SampleLinearRegressionParametersWithAnnealing(&(Outcome[0]), Covariates, beta, &lambda, coolness);
-    
+    }
 #ifdef PARALLEL
-    
     //broadcast parameters to workers
     Comm.Barrier();
     Comm.Bcast(beta, NumCovariates, MPI::DOUBLE, 0);
