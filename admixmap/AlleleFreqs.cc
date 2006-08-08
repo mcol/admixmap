@@ -148,14 +148,14 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	|| ( !strlen(options->getAlleleFreqFilename()) &&
 	     !strlen(options->getHistoricalAlleleFreqFilename()) && 
 	     !strlen(options->getPriorAlleleFreqFilename()) && 
-	     !(options->getCorrelatedAlleleFreqs()) ) 
+	     !options->getCorrelatedAlleleFreqs() ) 
 	) {
       FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
     } else {
       FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
     }
   }
-    
+  
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     if(RandomAlleleFreqs){
       if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
