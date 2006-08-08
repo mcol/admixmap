@@ -28,7 +28,7 @@ StepSizeTuner::~StepSizeTuner()
 {
 }
 
-void StepSizeTuner::resetApproximator(int newk) {
+void StepSizeTuner::resetStepSizeApproximator(int newk) {
   if(k > newk) k = newk;   
 }
 

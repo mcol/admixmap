@@ -33,7 +33,7 @@ public:
   StepSizeTuner();
   ~StepSizeTuner();
   
-  void resetApproximator(int newk);
+  void resetStepSizeApproximator(int newk);
   void SetParameters(double sigma0, double min, double max, double target);
   ///returns log step size
   double GetSigma()const;

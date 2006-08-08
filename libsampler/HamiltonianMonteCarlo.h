@@ -40,6 +40,7 @@ public:
   float getAcceptanceRate()const;
   ///returns current stepsize
   float getStepsize()const;
+  void resetStepSizeApproximator(int k);
 
 private:
   double (*findE)(const double* const theta, const void* const args); 

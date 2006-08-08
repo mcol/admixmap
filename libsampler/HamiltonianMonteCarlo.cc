@@ -163,4 +163,7 @@ float HamiltonianMonteCarlo::getStepsize()const{
   //return Tuner.getStepsize();
 }
 
+void HamiltonianMonteCarlo::resetStepSizeApproximator(int k) {
+  Tuner.resetStepSizeApproximator(k);
+}
 
