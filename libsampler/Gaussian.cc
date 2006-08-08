@@ -64,22 +64,23 @@ Gaussian::~Gaussian()
 void Gaussian::SetDimension( int NewDimension )
 {
 
-  if ( Dimension == NewDimension )
-    return;
-
-  delete[] Mean;
-  delete[] Covariance;
-
+//   if ( Dimension == NewDimension )
+//     return;
   if ( NewDimension < 1 )
     NewDimension = 1;
   Dimension = NewDimension;
 
   // Allocate vector containing mean
+  delete[] Mean;
   Mean = new double[ Dimension ];
 
+  delete[] Covariance;
   // Allocate matrix containing covariance matrix
   Covariance = new double[ Dimension * Dimension ];
   CovarianceDeterminantIsDirty = 1;
+
+
+
 }
 
 void Gaussian::SetMean(const double* const NewMean){
