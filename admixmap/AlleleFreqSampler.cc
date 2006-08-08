@@ -52,7 +52,8 @@ AlleleFreqSampler::~AlleleFreqSampler(){
 }
 
 ///Samples allele frequencies.
-///requires: AlleleFreqs phi, parameters of Dirichlet prior Prior, pointer to individuals, current locus number, 
+///requires: AlleleFreqs phi, parameters of Dirichlet prior Prior, pointer to individuals, 
+///current locus number, 
 ///number of alleles/haplotypes NumStates, number of populations, NumPops
 void AlleleFreqSampler::SampleAlleleFreqs(double *phi,  IndividualCollection* IC, unsigned locus, 
 					  unsigned NumStates, unsigned NumPops, double coolness){
@@ -90,23 +91,31 @@ void AlleleFreqSampler::SampleSNPFreqs(double *phi, const int* AlleleCounts,
   Args.AlleleCounts = AlleleCounts;
   Args.hetCounts = hetCounts;
 
-  //transform phi 
-   //set params = logit(phi)
-  for(unsigned k = 0; k < NumPops; ++k){
-    params[k] = log(phi[k*2] / (1.0 - phi[k*2]));
-  }
-  try{
-    //call Sample on transformed variables 
-    Sampler.Sample(params, &Args);
-  }
-  catch(string s){
-    throw string("Error sampling SNP allele freqs:\n" + s);
-  }
-  //reverse transformation
-  for(unsigned k = 0; k < NumPops; ++k){
-    phi[k*2] = exp(params[k]);
-    phi[k*2] /= 1.0 + phi[k*2];//allele 1
-    phi[k*2+1] = 1.0 - phi[k*2];//allele 2
+  if(NumPops > 1) {
+    //logit transform of phi 
+    for(unsigned k = 0; k < NumPops; ++k){
+      params[k] = log(phi[k*2] / (1.0 - phi[k*2]));
+    }
+    try{
+      //call Sample on transformed variables 
+      Sampler.Sample(params, &Args);
+    }
+    catch(string s){
+      throw string("Error sampling SNP allele freqs:\n" + s);
+    }
+    //reverse transformation
+    for(unsigned k = 0; k < NumPops; ++k){
+      phi[k*2] = exp(params[k]);
+      phi[k*2] /= 1.0 + phi[k*2];//allele 1
+      phi[k*2+1] = 1.0 - phi[k*2];//allele 2
+    }
+  } else { // single population: use conjugate update
+    double* temp = new double[2];
+    for(unsigned s = 0; s < 2; ++s) {
+      temp[s] = Args.PriorParams[s] + coolness*AlleleCounts[s];
+    }
+    Rand::gendirichlet(2, temp, phi);
+    delete[] temp;
   }
 }
 
@@ -114,22 +123,23 @@ void AlleleFreqSampler::resetStepSizeApproximator(int k) {
   Sampler.resetStepSizeApproximator(k);
 }
 
-// log normalized prior density - required for updating prior params
-double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi, const unsigned NumPops, const unsigned NumStates){
-  double logprior = 0.0;
-  std::vector<double> DirichletParams(NumStates);
-  if(ishapmixmodel)
-    logprior = NumPops * NumStates * (* PriorParams);
-  else{
-    for(unsigned k = 0; k < NumPops; ++k){
-      for(unsigned s = 0; s < NumStates; ++s){
-	DirichletParams[s] = PriorParams[k*NumStates + s];
-      }
-      logprior += getDirichletLogDensity( DirichletParams, phi+k*NumStates );
-    }
-  }
-  return logprior;
-}
+// // log normalized prior density - required for updating prior params
+// double AlleleFreqSampler::logPrior(const double* PriorParams, const double* phi, const unsigned NumPops, const unsigned NumStates){
+//   double logprior = 0.0;
+//   std::vector<double> DirichletParams(NumStates);
+//   if(ishapmixmodel)
+//     logprior = NumPops * NumStates * (* PriorParams);
+//   else{
+//     for(unsigned k = 0; k < NumPops; ++k){
+//       for(unsigned s = 0; s < NumStates; ++s){
+// 	DirichletParams[s] = PriorParams[k*NumStates + s];
+//       }
+//       logprior += getDirichletLogDensity( DirichletParams, phi+k*NumStates );
+//     }
+//   }
+//   return logprior;
+// }
+
 
 ///computes logJacobian for softmax transformation
 // generic function - should be in functions file
