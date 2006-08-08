@@ -75,7 +75,7 @@ private:
   std::vector<int> NumberOfAlleles;
   const double *AlleleProbs;//< pointer to allele frequencies held in AlleleFreqs
   const double *AlleleProbsMAP;//< pointer to AlleleFreqsMAP held in AlleleFreqs
-  double **SumAlleleProbs;//< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
+  double *SumAlleleProbs;//< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
 #ifndef PARALLEL
   double *HapPairProbs; //< haplotype pair probabilities calculated using AlleleProbs
   double *HapPairProbsMAP; //< hap pair probs calculated using AlleleProbsMAP

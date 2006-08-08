@@ -54,7 +54,8 @@ CompositeLocus::~CompositeLocus()
 #endif
   delete[] MergeHaplotypes;
   delete[] HapLabels;
-  free_matrix( SumAlleleProbs, Populations);
+  if(RandomAlleleFreqs)
+    delete[] SumAlleleProbs;
 }
 
 // ******** Initialisation *************************
@@ -79,7 +80,6 @@ CompositeLocus::~CompositeLocus()
  * sets number of alleles/haplotypes in this composite locus.
  *
  */
-
 void CompositeLocus::SetNumberOfStates( int newNumberOfStates )
 {
    NumberOfStates= newNumberOfStates;
@@ -209,11 +209,14 @@ void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
 void CompositeLocus::InitialiseHapPairProbs(const double* const AFreqs){
   AlleleProbs = AFreqs;//set AlleleProbs to point to allele freqs in AlleleFreqs
   AlleleProbsMAP = 0; //AFreqs;
-  SumAlleleProbs = alloc2D_d(Populations, NumberOfStates);//allocates and fills with zeros
+  SumAlleleProbs = const_cast<double*>(AlleleProbs);
+  if(RandomAlleleFreqs){
+    SumAlleleProbs = new double[Populations*NumberOfStates];
+    fill(SumAlleleProbs, SumAlleleProbs+Populations*NumberOfStates, 0.0);
+  }
 #ifndef PARALLEL
   //set size of array of haplotype pair probs
   HapPairProbs = new double[NumberOfStates * NumberOfStates * Populations * Populations];
-  if(!RandomAlleleFreqs)AccumulateAlleleProbs();//if allelefreqs are fixed, SumAlleleProbs are initialised to AlleleProbs(==Allelefreqs)
   SetHapPairProbs();
 #endif
 }
@@ -278,16 +281,16 @@ void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
     double *mu = new double[Populations * NumberOfStates];
 #endif
     for(int k = 0; k < Populations; ++k){
-      for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] /= (double)iterations;
+      for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k*NumberOfStates +h] /= (double)iterations;
 #ifdef PARALLEL
       //in parallel version, we don't store the HapPairProbs so instead of setting them to posterior means,
       //simply set AlleleProbs to their PM and they will bw used to compute genotype probs required for deviance at PM
       //this is ok as this is done at end, after main loop
-      softmax(NumberOfStates, (double*)AlleleProbs+k*NumberOfStates, SumAlleleProbs[k]);
+      softmax(NumberOfStates, (double*)AlleleProbs+k*NumberOfStates, SumAlleleProbs+k*NumberOfStates);
 #else
-      softmax(NumberOfStates, mu+k*NumberOfStates, SumAlleleProbs[k]);
+      softmax(NumberOfStates, mu+k*NumberOfStates, SumAlleleProbs+k*NumberOfStates);
 #endif
-      //if(RandomAlleleFreqs)for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] *= (double)iterations;
+      //if(RandomAlleleFreqs)for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k*NumberOfStates+h] *= (double)iterations;
     }
 
 #ifndef PARALLEL
@@ -300,16 +303,19 @@ void CompositeLocus::SetHapPairProbsToPosteriorMeans(int iterations){
 void CompositeLocus::AccumulateAlleleProbs(){
   for (int k = 0; k < Populations; k++ ) {
     double* temp = new double[NumberOfStates];
+    bool* b = new bool[NumberOfStates];
+    for(int s = 0; s < NumberOfStates; ++s)b[s] = (bool)(AlleleProbs[k*NumberOfStates+s]>0.0);
     try{
-      inv_softmax(NumberOfStates, AlleleProbs+k*NumberOfStates, temp);
+      inv_softmax(NumberOfStates, AlleleProbs+k*NumberOfStates, temp, b);
     }
     catch(string str){
       string err = "Error accumulating alleleprobs: ";
       err.append(str);
       throw(err);
     }
-    for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k][h] += temp[h];
+    for(int h = 0; h < NumberOfStates; ++h)SumAlleleProbs[k*NumberOfStates+h] += temp[h];
     delete[] temp;
+    delete[] b;
   }
 }
 
