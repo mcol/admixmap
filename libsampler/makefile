@@ -95,7 +95,9 @@ WFLAGS = -fullwarn -LNO:simd_verbose=ON
 #WFLAGS = -Wall 
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
-DFLAGS = -TENV:frame_pointer=ON -O3 -OPT:Ofast -fno-math-errno -ffast-math #equivalent to -Ofast but without ipa
+DFLAGS = -TENV:frame_pointer=ON -fexceptions -funwind-tables -O3 -OPT:Ofast -fno-math-errno -ffast-math 
+#ffast-math equivalent to -Ofast but without ipa
+# could try -TENV:X=0 to turn off exception handling optimization but default value of 1 should be safe
 endif
 endif
 
