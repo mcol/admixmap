@@ -36,7 +36,7 @@ void DirichletParamSampler::Initialise() {
 #elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
   logalpha = 0;
   initialAlphaStepsize = 0.02;//need a way of setting this without recompiling, or a sensible fixed value
-  targetAlphaAcceptRate = 0.7;// use high value with many leapfrog steps
+  targetAlphaAcceptRate = 0.9;// use high value with many leapfrog steps
 #endif
 }
 
@@ -61,8 +61,8 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    EtaArgs.numpops = numpops;
    EtaArgs.numobs = numobs; 
    // use many small steps to ensure that leapfrog algorithm does not jump to minus infinity
-   EtaSampler.SetDimensions(1, 0.005/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 100/*num leapfrogs*/,
-			    0.8/*target accept rate*/, etaEnergy, etaGradient);
+   EtaSampler.SetDimensions(1, 0.05/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 100/*num leapfrogs*/,
+			    0.9/*target accept rate*/, etaEnergy, etaGradient);
 #elif DIRICHLETPARAM_SAMPLERTYPE==2
    logalpha = new double[K];
    AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sampler

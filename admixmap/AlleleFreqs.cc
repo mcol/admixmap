@@ -196,13 +196,13 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       muSampler = new MuSampler[dim*NumberOfCompositeLoci];
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
 	for(int k = 0; k < Populations; ++k)
-	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.0001, 0.0, 10.0, 0.44);
+	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.0001, 0.0, 10.0, 0.9);
     }
     else{//correlated allele freq model
       dim = 1;
       muSampler = new MuSampler[NumberOfCompositeLoci];
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.0, 10.0, 0.44);
+	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.0, 10.0, 0.9);
     }
     
     // ** dispersion parameter(s) and priors **
