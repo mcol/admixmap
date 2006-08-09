@@ -99,6 +99,7 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
     Score = new double**[Lociptr->GetNumberOfChromosomes()];
     Info = new double**[Lociptr->GetNumberOfChromosomes()];
 
+    int locus = 0;
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
       if(rank==0){      
@@ -110,13 +111,11 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
       Info[j] = new double*[NumberOfLoci-1];
 
       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
-	unsigned dim = (Lociptr->GetNumberOfStates(k)-1) * (Lociptr->GetNumberOfStates(k+1)-1);
+	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 
 #ifdef PARALLEL
 	dimresallelescore += dim;
 	dimresalleleinfo += dim*dim;
-#else
-	int locus = chrm[j]->GetLocus(k);
 #endif
 	if(rank==0){
 	  SumScore[j][k] = new double[dim];
@@ -128,8 +127,9 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
 	}
 	Score[j][k] = new double[dim];
 	Info[j][k] = new double[dim*dim];
+	++locus;
       }
-
+      ++locus;//for last locus on chrm
     }
 #ifdef PARALLEL
     sendresallelescore = new double[dimresallelescore];
@@ -146,13 +146,15 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
 void ResidualLDTest::Reset(){
   //resets arrays holding sums of scores and info over individuals to zero; invoked at start of each iteration after burnin.
   if(test){
+      int locus = 0;
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
-	int locus = chrm[j]->GetLocus(k);
 	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 	fill(Score[j][k], Score[j][k]+dim, 0.0);
 	fill(Info[j][k], Info[j][k]+dim*dim, 0.0);
+	++locus;
       }
+      ++locus;//for the last locus on chromosome
     }
   }
 }
