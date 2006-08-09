@@ -229,7 +229,7 @@ double MuSampler::logJacobian(const double* a, const double z, unsigned H){
   return logJ; 
 }
 
-//******* Logdensity and derivatives for Adaptive rejection sampler
+//******* Log density and derivatives for Adaptive rejection sampler
 double MuSampler::fMu( double mu, const void* const args )
 {
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
@@ -239,8 +239,8 @@ double MuSampler::fMu( double mu, const void* const args )
   double alpha = mu * eta;
   double f = 0.0;
 
-  try{
-    double logprior = 0.0; //0.1 * log( mu ) + 0.1 * log( 1 - mu  );//Beta(1.1, 1.1) prior
+  try {
+    double logprior = 0.0; // Beta(1, 1) prior
     f += logprior - K * (lngamma(alpha) + lngamma(eta-alpha));
     
     for(int k = 0; k < K; ++k){
@@ -256,23 +256,18 @@ double MuSampler::fMu( double mu, const void* const args )
 double MuSampler::dfMu( double mu, const void* const args )
 {
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
-  int K = parameters->K;
+  int K = parameters->K; // K experiments each generating counts[k], counts[K + k] for categories 1, 2
   double eta = parameters->eta;
   const int *counts = parameters->counts;
   double alpha = mu * eta;
 
-  double logprior = 0.0; //0.1 / mu - 0.1 / ( 1.0 - mu );//Beta(1.1, 1.1) prior
+  double logprior = 0.0; //Beta(1, 1) prior
   double f = 0.0;
 
   try{
-    //   f += K * ( digamma(alpha) - digamma(eta-alpha) );
     f += K * ( digamma(eta-alpha) - digamma(alpha) );
-    
     for(int k = 0; k < K; ++k){
-      //first state/allele
-      f += digamma(alpha+counts[k]);
-      //second state/allele
-      f -= digamma(eta - alpha+counts[K+k]);
+      f += digamma(alpha + counts[k]) - digamma(eta - alpha + counts[K+k]);
     }
     f *= eta;
     f += logprior;
@@ -291,16 +286,15 @@ double MuSampler::ddfMu( double mu, const void* const args )
   const int *counts = parameters->counts;
   double alpha = mu * eta;
 
-  if(alpha > eta) return 0.00001;// ??
-  double logprior = 0.0; //-0.1 / ( mu * mu) - 0.1 / (( 1.0 - mu ) * ( 1.0 - mu ) );
+  if(alpha > eta) return 0.00001; // possible singularity at zero
+  double logprior = 0.0; 
   double f = 0.0;
 
   try{
-    f -= K * ( trigamma(alpha) + trigamma(eta-alpha) );
+    f -= K * (trigamma(eta-alpha) + trigamma(alpha)); //both terms have minus signs
     
     for(int k = 0; k < K; ++k){
-      f += trigamma(alpha+counts[k]);
-      f += trigamma(eta-alpha+counts[K+k]);
+      f += trigamma(alpha + counts[k]) + trigamma(eta-alpha + counts[K+k]); // both terms have plus signs
     }
     f*= eta*eta;
     f += logprior;
