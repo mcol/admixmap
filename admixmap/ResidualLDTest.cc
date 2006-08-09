@@ -146,8 +146,8 @@ void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs){
   for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
     for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
       unsigned dim = 1;
-      copy(Score[j][k], Score[j][k]+dim, sendresallelescore+scoreindex);
-      copy(Info[j][k], Info[j][k]+dim, sendresalleleinfo+infoindex);
+      copy(Score[j][k].begin(), Score[j][k].end(), sendresallelescore+scoreindex);
+      copy(Info[j][k].begin(), Info[j][k].end(), sendresalleleinfo+infoindex);
       scoreindex += dim;
       infoindex += dim*dim;
     }
