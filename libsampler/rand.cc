@@ -18,17 +18,20 @@
 extern "C" {
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_sf_gamma.h>
+#ifdef PARALLEL
+#include "gsl-sprng.h"
+#endif
 }
 
 using namespace std;
 
 #ifdef PARALLEL
-/// allocate a sprng generator
+// allocate a sprng generator
 const gsl_rng_type *gsl_rng_sprng20 = &sprng_type;
 gsl_rng *Rand::RandomNumberGenerator = gsl_rng_alloc( gsl_rng_sprng20 );
 
 #else
-///allocate a Tausworthe generator
+//allocate a Tausworthe generator
 gsl_rng *Rand::RandomNumberGenerator = gsl_rng_alloc( gsl_rng_taus );
 #endif
 

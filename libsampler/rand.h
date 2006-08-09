@@ -13,14 +13,11 @@
 
 #ifndef RAND_H
 #define RAND_H 
-//#define PARALLEL
 #include <iostream>
 #include <vector>
+#include "parallel.h"
 extern "C" {
 #include <gsl/gsl_rng.h>
-#ifdef PARALLEL
-#include "gsl-sprng.h"
-#endif
 }
 
 /// Random number generators
