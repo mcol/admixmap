@@ -35,11 +35,13 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
   ishapmixmodel = hapmixmodel;
 
   if(NumStates == 2){//case of SNP
-    params = new double[NumPops];
-    step0 = 0.01;//initial step size
-    numleapfrogsteps = 40;
-    Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.9, getEnergySNP, 
-			  gradientSNP);
+    if(NumPops>1){
+      params = new double[NumPops];
+      step0 = 0.01;//initial step size
+      numleapfrogsteps = 40;
+      Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.9, getEnergySNP, 
+			    gradientSNP);
+    }
   } else {
     params = new double[dim];
     Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.9/*target acceptrate*/, 
@@ -398,4 +400,9 @@ void AlleleFreqSampler::gradientSNP(const double* const params, const void* cons
   delete[] dE_dphi;
 }
 
-
+double AlleleFreqSampler::getStepSize()const{
+  return Sampler.getStepsize();
+}
+double AlleleFreqSampler::getAcceptanceRate()const{
+  return Sampler.getAcceptanceRate();
+}

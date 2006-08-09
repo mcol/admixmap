@@ -200,6 +200,7 @@ public:
   float getEtaSamplerStepsize(int)const;
   float getHapMixPriorSamplerAcceptanceRate()const;
   float getHapMixPriorSamplerStepSize()const;
+  void OutputAlleleFreqSamplerAcceptanceRates(const char* filename);
 
   double getHapMixPriorRate()const{return HapMixPriorRate;};
   void resetStepSizeApproximator(int k);

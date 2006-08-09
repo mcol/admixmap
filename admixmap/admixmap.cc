@@ -172,7 +172,7 @@ int main( int argc , char** argv ){
       }
     }
     
-    if( (options.isGlobalRho() || options.getHapMixModelIndicator()) && (rank>1 || rank==-1)) {
+    if( options.getPopulations()>1 && (options.isGlobalRho() || options.getHapMixModelIndicator()) && (rank>1 || rank==-1)) {
       Loci.SetLocusCorrelation(L.getrho());
       if(options.getHapMixModelIndicator())
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ )
@@ -465,6 +465,7 @@ int main( int argc , char** argv ){
       }
 #endif
     }
+    A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates").c_str());
     if(options.getHapMixModelIndicator() && (rank == -1 || rank== 1)){
       Log << "Average expected Acceptance rate in allele frequency prior parameter sampler:\n" << A.getHapMixPriorSamplerAcceptanceRate()
 	  << "\nwith average final step size of " << A.getHapMixPriorSamplerStepSize() << "\n";

@@ -1510,3 +1510,11 @@ float AlleleFreqs::getHapMixPriorSamplerStepSize()const{
 
 }
 
+void AlleleFreqs::OutputAlleleFreqSamplerAcceptanceRates(const char* filename){
+  if(FreqSampler.size()){
+    ofstream file(filename);
+    for(vector<AlleleFreqSampler*>::const_iterator i = FreqSampler.begin(); i !=FreqSampler.end(); ++i)
+      file << (*i)->getAcceptanceRate() << endl;
+    file.close();
+  }
+}

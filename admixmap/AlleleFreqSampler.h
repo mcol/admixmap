@@ -23,11 +23,6 @@
 #include <gsl/gsl_linalg.h>
 
 class IndividualCollection;
-// typedef struct //from CompositeLocus.h 
-// {
-//   int haps[2];
-// } hapPair; 
-
 
 /// Arguments for sampling allele freqs
 typedef struct{
@@ -52,6 +47,8 @@ public:
   void SampleSNPFreqs(double *phi, const int* AlleleCounts, const int* hetCounts, unsigned locus, 
 			 unsigned NumPops, double coolness);
   void resetStepSizeApproximator(int k);
+  double getStepSize()const;
+  double getAcceptanceRate()const;
 
 private:
   HamiltonianMonteCarlo Sampler;
