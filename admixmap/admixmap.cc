@@ -851,6 +851,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
 		      const AdmixOptions *options, LogWriter& Log){
+
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
   if(options->getIndAdmixHierIndicator()  ){
@@ -982,7 +983,8 @@ void ThrowException(const string& msg, LogWriter & Log){
     Log << "\n" << msg << "\n Exiting...\n";
     Log.ProcessingTime();
 #ifdef PARALLEL//print error message to screen as only master is allowed write with LogWriter
-    if(rank>0)cerr << "rank " << MPI::COMM_WORLD.Get_rank() << ": " << msg << endl;
+    int rank = MPI::COMM_WORLD.Get_rank();
+    if(rank>0)cerr << "rank " << rank << ": " << msg << endl;
     MPI::COMM_WORLD.Abort(1);
 #else
     exit(1);
