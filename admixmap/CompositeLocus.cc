@@ -464,18 +464,16 @@ const vector<int> CompositeLocus::getAlleleCounts(int a, const int* happair)cons
   else{
     fill(counts.begin(), counts.end(), 0);
 
-    int* hap1Alleles = new int[NumberOfLoci];
-    decodeIntAsHapAlleles(happair[0], hap1Alleles);
-    for(int l = 0; l < NumberOfLoci; ++l) counts[l] += (hap1Alleles[l]==a);
+    int* hapAlleles = new int[NumberOfLoci];
+    decodeIntAsHapAlleles(happair[0], hapAlleles);
+    for(int l = 0; l < NumberOfLoci; ++l) counts[l] += (hapAlleles[l]==a);
 
     if(happair[1] >-1){
-      int* hap2Alleles = new int[NumberOfLoci];
-      decodeIntAsHapAlleles(happair[1], hap2Alleles);
-      for(int l = 0; l < NumberOfLoci; ++l) counts[l] += (hap2Alleles[l]==a);
+      decodeIntAsHapAlleles(happair[1], hapAlleles);
+      for(int l = 0; l < NumberOfLoci; ++l) counts[l] += (hapAlleles[l]==a);
     }
     
-    delete[] hap1Alleles;
-    delete[] hap2Alleles;
+    delete[] hapAlleles;
   }
   return counts;    
 }
