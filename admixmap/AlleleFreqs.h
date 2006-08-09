@@ -234,7 +234,7 @@ private:
   int NumWorkers;
 
   double **HistoricAlleleCounts;
-  double **PriorAlleleFreqs;
+  double **PriorParams;
   double* HapMixPriorParams;//params of Dirichlet prior on frequencies
   double HapMixPriorShape;//params of Gamma prior on Dirichlet params
   double HapMixPriorRate;//
