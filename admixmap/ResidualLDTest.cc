@@ -110,13 +110,13 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
       Info[j] = new double*[NumberOfLoci-1];
 
       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
+	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
+
 #ifdef PARALLEL
-	unsigned dim = 1;
 	dimresallelescore += dim;
 	dimresalleleinfo += dim*dim;
 #else
 	int locus = chrm[j]->GetLocus(k);
-	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
 #endif
 	if(rank==0){
 	  SumScore[j][k] = new double[dim];
@@ -149,7 +149,7 @@ void ResidualLDTest::Reset(){
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
 	int locus = chrm[j]->GetLocus(k);
-	unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
+	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 	fill(Score[j][k], Score[j][k]+dim, 0.0);
 	fill(Info[j][k], Info[j][k]+dim*dim, 0.0);
       }
@@ -208,7 +208,7 @@ void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs){
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
     for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(c)-1; ++k){
       int locus = chrm[c]->GetLocus(k);
-      unsigned dim = ((*Lociptr)(locus)->GetNumberOfStates()-1) * ((*Lociptr)(locus+1)->GetNumberOfStates()-1);
+      unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 
       for(unsigned j = 0; j < dim; ++j){
 	SumScore[c][k][j] += Score[c][k][j];
@@ -338,13 +338,12 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, of
   int abslocus = 0;
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ ){
     for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
+      int M = Lociptr->GetNumberOfStates(abslocus)-1;
+      int N = Lociptr->GetNumberOfStates(abslocus+1)-1;
 #ifdef PARALLEL
-      int M = 1, N = 1;
       const string label1 = (*LocusLabels)[abslocus];
       const string label2 = (*LocusLabels)[abslocus+1];
 #else
-      int M = (*Lociptr)(abslocus)->GetNumberOfStates()-1;
-      int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
       const string label1 = (*Lociptr)(abslocus)->GetLabel(0);
       const string label2 = (*Lociptr)(abslocus+1)->GetLabel(0);
 #endif
