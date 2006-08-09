@@ -20,9 +20,9 @@ GSL_INCLUDEPATH=#standard is /usr/local/include
 
 ## for parallel version only
 # path to mpi top level directory
-MPI_PATH = /usr/local/mpich/gcc# mpich with gcc 3
+#MPI_PATH = /usr/local/mpich/gcc# mpich with gcc 3
 #MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
-#MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
+MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
 #MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
 MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
 
@@ -91,8 +91,8 @@ endif
 endif
 
 ifeq ($(CC),$(PATHSCALE_COMPILER))
-WFLAGS = -fullwarn -LNO:simd_verbose=ON
-#WFLAGS = -Wall 
+#WFLAGS = -fullwarn -LNO:simd_verbose=ON
+WFLAGS = -Wall 
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
 DFLAGS = -TENV:frame_pointer=ON -fexceptions -funwind-tables -O3 -OPT:Ofast -fno-math-errno -ffast-math 
@@ -122,10 +122,12 @@ PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 ifeq ($(VERSION),parallel)
 CXX = $(PCC)
 INCLUDES = $(GSL_INCLUDES) $(PARALLEL_INCLUDES)
+PARATEXT = cat paratext.txt >parallel.h
 ##serial version
 else
 CXX = $(CC)
 INCLUDES = $(GSL_INCLUDES)
+PARATEXT=rm parallel.h;touch parallel.h
 endif
 
 ## **compiler/linker flags
@@ -134,18 +136,21 @@ PICFLAG =# -fPIC
 
 ## DO NOT EDIT BELOW HERE ##
 
-objects		=  AdaptiveRejection.o StepSizeTuner.o Gaussian.o GaussianProposalMH.o \
-DirichletParamSampler.o HamiltonianMonteCarlo.o MuSampler.o DispersionSampler.o rand.o functions.o
+objects		=  rand.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o 
+ GaussianProposalMH.o DirichletParamSampler.o HamiltonianMonteCarlo.o MuSampler.o DispersionSampler.o functions.o
 
 all:	static #shared
 
-static: libsampler
+paraheader:
+	$(PARATEXT)
+
+static: paraheader libsampler
 
 libsampler: $(objects) 
 	ar crs libsampler.a $(objects)
 	#ranlib libsampler.a
 
-shared: $(objects)
+shared: paraheader $(objects)
 	$(CXX) $(CPPFLAGS) -shared -Wl,-soname,libsampler.so\
 -o libsampler.so $(objects) -lgsl -lgslcblas
 
