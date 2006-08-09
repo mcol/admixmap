@@ -136,8 +136,7 @@ PICFLAG =# -fPIC
 
 ## DO NOT EDIT BELOW HERE ##
 
-objects		=  rand.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o 
- GaussianProposalMH.o DirichletParamSampler.o HamiltonianMonteCarlo.o MuSampler.o DispersionSampler.o functions.o
+objects		=  rand.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o GaussianProposalMH.o DirichletParamSampler.o HamiltonianMonteCarlo.o MuSampler.o DispersionSampler.o functions.o
 
 all:	static #shared
 
