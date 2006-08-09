@@ -192,11 +192,11 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     if(IsHistoricAlleleFreq){
       dim = Populations;
       
-      // ** settings for sampling of PriorAlleleFreqs
-      muSampler = new MuSampler[dim*NumberOfCompositeLoci];
+      // ** settings for sampling of proportion vector mu of prior on allele freqs
+      muSampler = new MuSampler[dim*NumberOfCompositeLoci]; // 
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
 	for(int k = 0; k < Populations; ++k)
-	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.0001, 0.0, 10.0, 0.9);
+	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.0, 10.0, 0.9);
     }
     else{//correlated allele freq model
       dim = 1;
