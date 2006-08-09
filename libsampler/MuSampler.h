@@ -31,8 +31,8 @@ public:
   ~MuSampler();
 
   void setDimensions(unsigned inK, unsigned inH, double mustep0, double mumin, double mumax, double mutarget);
-  void Sample(double* const alpha, double eta, const int* const Counts);
-  void Sample1D(double* alpha, double eta, const int* const Counts);
+  void Sample(double* const alpha, const double eta, const int* const Counts);
+  void Sample1D(double* alpha, const double eta, const int* const Counts);
 
   float getAcceptanceRate()const;
   float getStepsize()const;

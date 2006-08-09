@@ -41,29 +41,26 @@ void MuSampler::setDimensions(unsigned inK, unsigned inH, double mustep0, double
   //target = target acceptance rate - maybe remove this and set to fixed value
   K = inK;
   H = inH;
-
   params = new double[H];
   muArgs.H = H;
   muArgs.K = K;
-
   muSampler.SetDimensions(H, mustep0, mumin, mumax, 30, mutarget, 
 			  muEnergyFunction, muGradient);
-
 }
 
-void MuSampler::Sample(double* alpha, double eta, const int* const Counts){
+void MuSampler::Sample(double* alpha, const double eta, const int* const Counts){
   //alpha is the array (length H) of Dirichlet parameters
   //these are first transformed to logits of proportions
-//Counts is an H*K array of counts
-//   if(H == 2)Sample1D(alpha, eta, Counts);//can sample directly from beta-binomial in one-dimensional case
-//   else
-  {
+  //Counts is an H*K array of counts
+  // TODO: test if all counts are zero, allowing sample from flat Dirichlet prior
+
+  if(H == 2) {
+    Sample1D(alpha, eta, Counts); //beta-binomial likelihood is log-concave
+  } else {
     //transform alphas
     inv_softmax(H, alpha, params);//NOTE: inv_softmax function works with alpha as well as mu
-
     muArgs.eta = eta;
     muArgs.counts = Counts;
- 
     muSampler.Sample(params, &muArgs);
 
     //set alpha by reversing transformation
@@ -76,27 +73,22 @@ void MuSampler::Sample(double* alpha, double eta, const int* const Counts){
   }
 }
 
-void MuSampler::Sample1D(double* alpha, double eta, const int* const Counts )
+void MuSampler::Sample1D(double* alpha, const double eta, const int* const Counts )
 {
   //Counts has dimension 2 * K
   //alpha has dimension 2
   double leftbound = 0.0001;
   MuSamplerArgs MuParameters;
-
   AdaptiveRejection SampleMu;
   SampleMu.Initialise( true, true, 1.0, 0.0, fMu, dfMu);
-
   SampleMu.setLowerBound( leftbound );
-
   MuParameters.eta = eta;
   MuParameters.K = K;
   MuParameters.counts = Counts;
-  
   SampleMu.setUpperBound( 0.9999 );//set upper limit for sampler
 
-  alpha[ 0 ] = eta * SampleMu.Sample(&MuParameters, ddfMu); //first state/allele
-  // Last (second) prior frequency parameter is determined by sum of mu's = eta.
-  alpha[ 1 ] = eta - alpha[ 0 ];
+  alpha[ 0 ] = eta * SampleMu.Sample(&MuParameters, ddfMu); // state 1
+  alpha[ 1 ] = eta - alpha[ 0 ]; // state 2
 }
 
 float MuSampler::getAcceptanceRate()const{
@@ -229,45 +221,46 @@ double MuSampler::logJacobian(const double* a, const double z, unsigned H){
   return logJ; 
 }
 
-//******* Log density and derivatives for Adaptive rejection sampler
-double MuSampler::fMu( double mu, const void* const args )
-{
+//******* Log density and derivatives for adaptive rejection sampler
+double MuSampler::fMu( double mu, const void* const args ) {
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int K = parameters->K;
   double eta = parameters->eta;
   const int *counts = parameters->counts;
   double alpha = mu * eta;
-  double f = 0.0;
-
+  double logprior = 0.0; // Beta(1, 1) prior
+  double f = logprior;
   try {
-    double logprior = 0.0; // Beta(1, 1) prior
-    f += logprior - K * (lngamma(alpha) + lngamma(eta-alpha));
-    
-    for(int k = 0; k < K; ++k){
-      f += lngamma(alpha+counts[k]) + lngamma(eta - alpha+counts[K + k]);//state 1 + state 2
+    for(int k = 0; k < K; ++k) {
+      if(counts[k] > 0) { // state 1
+	f += lngamma(alpha + counts[k]) - lngamma(alpha);
+      } 
+      if(counts[K+k] > 0) { // state 2
+	f += lngamma(eta - alpha + counts[K+k]) - lngamma(eta - alpha);
+      }
     }
-  }
-  catch(string s){
+  } catch(string s) {
     throw string("Error in fMu " +s);
   }
   return f;
 }
 
-double MuSampler::dfMu( double mu, const void* const args )
-{
+double MuSampler::dfMu( double mu, const void* const args ) {
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
-  int K = parameters->K; // K experiments each generating counts[k], counts[K + k] for categories 1, 2
+  int K = parameters->K; // K experiments each generating counts[k], counts[K + k] for states 1, 2
   double eta = parameters->eta;
   const int *counts = parameters->counts;
   double alpha = mu * eta;
-
   double logprior = 0.0; //Beta(1, 1) prior
   double f = 0.0;
-
-  try{
-    f += K * ( digamma(eta-alpha) - digamma(alpha) );
-    for(int k = 0; k < K; ++k){
-      f += digamma(alpha + counts[k]) - digamma(eta - alpha + counts[K+k]);
+  try {
+    for(int k = 0; k < K; ++k) {
+      if(counts[k] > 0) {
+	f += digamma(alpha + counts[k]) - digamma(alpha);
+      } 
+      if(counts[K+k] > 0) {
+	f -= digamma(eta - alpha + counts[K+k]) -  digamma(eta - alpha);
+      }
     }
     f *= eta;
     f += logprior;
@@ -280,30 +273,28 @@ double MuSampler::dfMu( double mu, const void* const args )
 
 double MuSampler::ddfMu( double mu, const void* const args )
 {
+  // if(mu > 1.0) return 0.00001; // should be caught by AdaptiveRejectionSampler
   const MuSamplerArgs* parameters = (const MuSamplerArgs*) args;
   int K = parameters->K;
   double eta = parameters->eta;
   const int *counts = parameters->counts;
   double alpha = mu * eta;
-
-  if(alpha > eta) return 0.00001; // possible singularity at zero
   double logprior = 0.0; 
   double f = 0.0;
-
-  try{
-    f -= K * (trigamma(eta-alpha) + trigamma(alpha)); //both terms have minus signs
-    
+  try {
     for(int k = 0; k < K; ++k){
-      f += trigamma(alpha + counts[k]) + trigamma(eta-alpha + counts[K+k]); // both terms have plus signs
+      if(counts[k] > 0) {
+	f += trigamma(alpha + counts[k]) - trigamma(alpha);
+      } 
+      if(counts[K+k] > 0) {
+	f += trigamma(eta - alpha + counts[K+k]) - trigamma(eta - alpha); 
+      }
     }
     f*= eta*eta;
     f += logprior;
   }
-  catch(string s){
+  catch(string s) {
     throw string("Error in ddfMu " + s);
   }
   return f;
 }
-
-
-
