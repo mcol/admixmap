@@ -110,7 +110,7 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
       Info[j] = new double*[NumberOfLoci-1];
 
       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
-	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
+	unsigned dim = (Lociptr->GetNumberOfStates(k)-1) * (Lociptr->GetNumberOfStates(k+1)-1);
 
 #ifdef PARALLEL
 	dimresallelescore += dim;
