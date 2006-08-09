@@ -16,12 +16,6 @@
 #include "linalg.h"//for HH_solve to compute chi-sq
 
 ResidualLDTest::ResidualLDTest(){
-  Score = 0;
-  Info = 0;
-  SumScore= 0;
-  SumScore2 = 0;
-  SumInfo = 0;
-
   options = 0;
   individuals = 0;
   rank = 0;
@@ -33,35 +27,16 @@ ResidualLDTest::ResidualLDTest(){
 }
 
 ResidualLDTest::~ResidualLDTest(){
-  if(test){//TODO: find a way to delete properly. Maybe use STL vectors
-//     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
-//       unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
-//       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
-// 	delete[] Score[j][k];
-// 	delete[] Info[j][k];
-// 	if(rank==0){
-// 	  delete[] SumScore[j][k];
-// 	  delete[] SumScore2[j][k];
-// 	  delete[] SumInfo[j][k];
-// 	}
-//       }
-//       delete[] Score[j];
-//       delete[] Info[j];
-//       if(rank==0){
-// 	delete[] SumScore[j];
-// 	delete[] SumScore2[j];
-// 	delete[] SumInfo[j];
-//       }
-//     }
-//     if(rank==0){
-//       delete[] SumScore;
-//       delete[] SumScore2;
-//       delete[] SumInfo;
-
-//     }
-//     delete[] Score;
-//     delete[] Info;
-   }
+#ifdef PARALLEL
+  if(test){
+    delete[] sendresallelescore;
+    delete[] sendresalleleinfo;
+    if(rank==0){
+      delete[] recvresallelescore;
+      delete[] recvresalleleinfo;
+    }
+  }
+#endif
 }
 
 #ifdef PARALLEL
@@ -92,23 +67,23 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
     dimresalleleinfo = 0;
 #endif
     if(rank==0){
-      SumScore = new double**[Lociptr->GetNumberOfChromosomes()];
-      SumScore2 = new double**[Lociptr->GetNumberOfChromosomes()];
-      SumInfo = new double**[Lociptr->GetNumberOfChromosomes()];
+      SumScore.resize(Lociptr->GetNumberOfChromosomes());
+      SumScore2.resize(Lociptr->GetNumberOfChromosomes());
+      SumInfo.resize(Lociptr->GetNumberOfChromosomes());
     }
-    Score = new double**[Lociptr->GetNumberOfChromosomes()];
-    Info = new double**[Lociptr->GetNumberOfChromosomes()];
+    Score.resize(Lociptr->GetNumberOfChromosomes());
+    Info.resize(Lociptr->GetNumberOfChromosomes());
 
     int locus = 0;
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       unsigned NumberOfLoci = Lociptr->GetSizeOfChromosome(j);
       if(rank==0){      
-	SumScore[j] = new double*[NumberOfLoci-1];
-	SumScore2[j] = new double*[NumberOfLoci-1];
-	SumInfo[j] = new double*[NumberOfLoci-1];
+	SumScore[j].resize(NumberOfLoci-1);
+	SumScore2[j].resize(NumberOfLoci-1);
+	SumInfo[j].resize(NumberOfLoci-1);
       }
-      Score[j] = new double*[NumberOfLoci-1];
-      Info[j] = new double*[NumberOfLoci-1];
+      Score[j].resize(NumberOfLoci-1);
+      Info[j].resize(NumberOfLoci-1);
 
       for(unsigned k = 0; k < NumberOfLoci-1; ++k){
 	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
@@ -118,15 +93,12 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
 	dimresalleleinfo += dim*dim;
 #endif
 	if(rank==0){
-	  SumScore[j][k] = new double[dim];
-	  fill(SumScore[j][k], SumScore[j][k]+dim, 0.0);
-	  SumScore2[j][k] = new double[dim*dim];
-	  fill(SumScore2[j][k], SumScore2[j][k]+dim*dim, 0.0);
-	  SumInfo[j][k] = new double[dim*dim];
-	  fill(SumInfo[j][k], SumInfo[j][k]+dim*dim, 0.0);
+	  SumScore[j][k].assign(dim, 0.0);
+	  SumScore2[j][k].assign(dim*dim, 0.0);
+	  SumInfo[j][k].assign(dim*dim, 0.0);
 	}
-	Score[j][k] = new double[dim];
-	Info[j][k] = new double[dim*dim];
+	Score[j][k].assign(dim, 0.0);
+	Info[j][k].assign(dim*dim, 0.0);
 	++locus;
       }
       ++locus;//for last locus on chrm
@@ -149,9 +121,8 @@ void ResidualLDTest::Reset(){
       int locus = 0;
     for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
       for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
-	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
-	fill(Score[j][k], Score[j][k]+dim, 0.0);
-	fill(Info[j][k], Info[j][k]+dim*dim, 0.0);
+	fill(Score[j][k].begin(), Score[j][k].end(), 0.0);
+	fill(Info[j][k].begin(), Info[j][k].end(), 0.0);
 	++locus;
       }
       ++locus;//for the last locus on chromosome
@@ -333,7 +304,7 @@ void ResidualLDTest::Output(int iterations, bool final){
 }
 
 void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final){
-  //TODO: replace with use of function in base class
+  //cannot function in base class as it output a line for each dimension of score
   double *score = 0, *ObservedInfo = 0;
   string separator = final? "\t" : ",";
 

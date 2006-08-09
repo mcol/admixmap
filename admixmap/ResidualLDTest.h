@@ -44,11 +44,11 @@ public:
   ~ResidualLDTest();
 
 private:
-  double*** Score;
-  double*** Info;
-  double*** SumScore;
-  double*** SumScore2;
-  double*** SumInfo;
+  std::vector<std::vector<std::vector<double> > > Score;
+  std::vector<std::vector<std::vector<double> > > Info;
+  std::vector<std::vector<std::vector<double> > > SumScore;
+  std::vector<std::vector<std::vector<double> > > SumScore2;
+  std::vector<std::vector<std::vector<double> > > SumInfo;
 
 #ifdef PARALLEL
   double* sendresallelescore;
