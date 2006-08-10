@@ -35,8 +35,8 @@ void DirichletParamSampler::Initialise() {
   muDirichletParams = 0;
 #elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
   logalpha = 0;
-  initialAlphaStepsize = 0.02;//need a way of setting this without recompiling, or a sensible fixed value
-  targetAlphaAcceptRate = 0.9;// use high value with many leapfrog steps
+  initialAlphaStepsize = 0.05;//need a way of setting this without recompiling, or a sensible fixed value
+  targetAlphaAcceptRate = 0.8;// use high value with many leapfrog steps
 #endif
 }
 
@@ -161,22 +161,21 @@ double DirichletParamSampler::etaEnergy( const double* const x, const void* cons
   const PopAdmixEtaSamplerArgs* args = (const PopAdmixEtaSamplerArgs* )vargs;
   double eta = exp(*x);
   double E = 0.0;
-  const double*mu = args->mu;
+  const double* mu = args->mu;
   const double* sumlogtheta = args->sumlogtheta;
-
   try{
-    // log prior (on log eta scale)
-    E += ( args->priorshape ) * ( log(eta) ) - args->priorrate *  eta ;
-    // log likelihood 
-    E += args->numobs * lngamma(eta);
+    // minus log prior (in log eta basis)
+    E +=  args->priorrate *  eta - args->priorshape * log(eta);
+    // minus log likelihood
+    E -= args->numobs * lngamma(eta);
     for( unsigned i = 0; i < args->numpops; ++i ) {
-      E += mu[i] * eta  * sumlogtheta[i] -  args->numobs * lngamma(eta*mu[i]); 
+      E += args->numobs * lngamma(mu[i]*eta) - mu[i]*eta*sumlogtheta[i]; 
     }
   }
   catch(string s){
     throw string("Error in etaEnergy: " + s) ;
   }
-  return -E;
+  return E;
 }
 
 void DirichletParamSampler::etaGradient( const double* const x, const void* const vargs, double* g )
@@ -185,25 +184,18 @@ void DirichletParamSampler::etaGradient( const double* const x, const void* cons
   const double* mu = args->mu;
   const double* sumlogtheta = args->sumlogtheta;
   double eta = exp(*x);
-  //double psi;
-
-
-  g[0] = 0;
-  // log prior  
-  g[0] -= ( args->priorshape ) / eta - args->priorrate;
-  // log likelihood
-
-  try{
-    g[0] -= args->numobs * digamma(eta);
-    for( unsigned i = 0; i < args->numpops; ++i ){
-      //double alpha = eta*mu[i];
-      g[0] -= mu[i] * sumlogtheta[i] -  args->numobs * mu[i] * digamma(eta*mu[i]);
+  g[0] = args->priorrate * eta - args->priorshape;  // derivative of minus log prior wrt log eta
+  try{ // dE = derivative of minus log likelihood wrt eta
+    double dE = -digamma(eta);
+    for( unsigned i = 0; i < args->numpops; ++i ) {
+      // as mu tends to 0, mu * ( digamma(eta*mu)) tends to -1/eta 
+      dE += mu[i] * ( digamma(mu[i]*eta) - sumlogtheta[i] / args->numobs);
     }
+    dE *= (double)args->numobs;
     //use chain rule 
-    g[0] *= eta;
-  }
-  catch(string s){
-       throw string("Error in etaGradient: " + s) ;
+    g[0] += eta * dE;
+  } catch(string s) {
+    throw string("Error in etaGradient: " + s) ;
   }
 }
 

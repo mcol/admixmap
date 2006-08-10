@@ -54,9 +54,10 @@ void MuSampler::Sample(double* alpha, const double eta, const int* const Counts)
   //Counts is an H*K array of counts
   // TODO: test if all counts are zero, allowing sample from flat Dirichlet prior
 
-  if(H == 2) {
-    Sample1D(alpha, eta, Counts); //beta-binomial likelihood is log-concave
-  } else {
+//   if(H == 2) {
+//     Sample1D(alpha, eta, Counts); //beta-binomial likelihood is log-concave
+//   } else 
+    {
     //transform alphas
     inv_softmax(H, alpha, params);//NOTE: inv_softmax function works with alpha as well as mu
     muArgs.eta = eta;
