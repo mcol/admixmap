@@ -3,6 +3,7 @@ library(MASS)
 ## script should be invoked from folder one level above subfolder specified by resultsdir
 ## to run this script from an R console session, set environment variable RESULTSDIR
 ## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
+message <- "\n\nStarting R script\n";
 
 if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
   resultsdir <- Sys.getenv("RESULTSDIR")
@@ -10,8 +11,6 @@ if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
   ## resultsdir set to default directory 
   resultsdir <- "results"
 }
-outfile <- paste(resultsdir, "Rout.txt", sep="/")
-cat("Starting R script\n", file=outfile, append=F)
 
 cbindIfNotNull <- function(table1, table2) {
 ## cbind two tables if both are not null
@@ -30,7 +29,8 @@ cbindIfNotNull <- function(table1, table2) {
 getUserOptions <- function(argsfilename) {
   ## read table of user options
   if(!file.exists(argsfilename)){
-    cat("Error: cannot find argsfile\n", file=outfile, append=T)
+    message <- c(message,"Error: cannot find argsfile\n")
+    ##cat("Error: cannot find argsfile\n", file=outfile, append=T)
     quit(save="no", status=1, runLast=F)
   }else{
     args <- read.table(argsfilename, sep="=", header=FALSE, comment.char="")
@@ -944,10 +944,18 @@ options(echo=TRUE)
 graphics.off()
 ps.options(pointsize=16)
 
+##cat("Starting R script\n", file=outfile, append=F)
+
 ## read table of user options
-cat("reading user options...", file=outfile, append=T)
+message <- c(message, "reading user options...")
+##cat("reading user options...", file=outfile, append=T)
 user.options <- getUserOptions(paste(resultsdir, "args.txt", sep="/"))
-cat(" done\n", file=outfile, append=T)
+##cat(" done\n", file=outfile, append=T)
+message <- c(message, " done\n")
+
+outfile <- paste(resultsdir, user.options$logfile, sep="/")
+cat(message, file=outfile, append=T, sep="")
+rm(message)
 
 ## read table of loci and calculate map positions
 loci.compound <- readLoci()
@@ -965,18 +973,19 @@ pop.admix.prop <- NULL
 
 ## read population parameter samples
 if(is.null(user.options$paramfile)) {
-  cat("paramfile not specified\n", file=outfile, append=T)
+  cat("no paramfile\n", file=outfile, append=T)
 } else {
-  if(!file.exists(paste(resultsdir,user.options$paramfile, sep="/"))) {
+  paramfile <- paste(resultsdir,user.options$paramfile, sep="/")
+  if(!file.exists(paramfile)) {
     cat("paramfile specified but file does not exist\n", file=outfile, append=T)
   } else {
-    if(length(scan(paste(resultsdir,user.options$paramfile, sep="/"),  what='character', quiet=TRUE)) == 0) {
+    if(length(scan(paramfile,  what='character', quiet=TRUE)) == 0) {
       cat("paramfile empty\n", file=outfile, append=T)
     } else {
       cat("reading paramfile...", file=outfile, append=T)
       ## param.samples columns contain:    # K Dirichlet parameters 
                                         # global sum of intensities or gamma shape param if hierarchical
-      param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE)
+      param.samples <- read.table(paramfile, header=TRUE)
       n <- dim(param.samples)[1]
       if(user.options$hapmixmodel ==1){
         checkConvergence(param.samples, "Population sumintensities parameters",
@@ -1093,8 +1102,8 @@ if(K == 1) {
 }
 
 ##plot ergodic averages
-if(is.null(user.options$ergodicaveragefile) && file.exists(user.options$ergodicaveragefile)) {
-  cat("ergodicaveragefile not specified\n", file=outfile, append=T)
+if(is.null(user.options$ergodicaveragefile) && paste(resultsdir,user.options$paramfile, sep="/")) {
+  cat("no ergodicaveragefile\n", file=outfile, append=T)
 } else {
   if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
     cat("ergodicaveragefile is empty\n", file=outfile, append=T)
@@ -1120,19 +1129,14 @@ if(!is.null(user.options$thermo) && user.options$thermo == 1){
   cat(" done\n", file=outfile, append=T)
 }
 
-## read output of score test for mis-specified allele freqs and plot cumulative results
-##if(!is.null(user.options$allelefreqscorefile)) {
-  ##plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
-##}
-
 #read output of test for heterozygosity and plot
-if(!is.null(user.options$hwtestfile) && file.exists(user.options$hwtestfile)){
+if(!is.null(user.options$hwtestfile) && file.exists(paste(resultsdir,user.options$hwtestfile, sep="/"))){
   cat("plotting scores in test for heterozygosity...", file=outfile, append=T)
   plotHWScoreTest(user.options$hwtestfile, K)
   cat(" done\n", file=outfile, append=T)
 }
 ## read output of score test for allelic association, and plot cumulative results
-if(!is.null(user.options$allelicassociationscorefile) && file.exists(user.options$allelicassociationscorefile)) {
+if(!is.null(user.options$allelicassociationscorefile) && file.exists(paste(resultsdir,user.options$allelicassociationscorefile, sep="/"))) {
   cat("plotting scores in test for allelic association...", file=outfile, append=T)
   outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
   plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, user.options$every)
@@ -1140,7 +1144,7 @@ if(!is.null(user.options$allelicassociationscorefile) && file.exists(user.option
 }
 
 ## read output of score test for association with haplotypes, and plot cumulative results
-if(!is.null(user.options$haplotypeassociationscorefile) && file.exists(user.options$haplotypeassociationscorefile)) {
+if(!is.null(user.options$haplotypeassociationscorefile) && file.exists(paste(resultsdir,user.options$haplotypeassociationscorefile, sep="/"))) {
   cat("plotting scores in test for haplotype association...", file=outfile, append=T)
   outputfilePlot <- paste(resultsdir, "TestsHaplotypeAssociation.ps", sep="/" )
   plotScoreTest(user.options$haplotypeassociationscorefile, TRUE, outputfilePlot, user.options$every)
@@ -1148,7 +1152,7 @@ if(!is.null(user.options$haplotypeassociationscorefile) && file.exists(user.opti
 }
 
 ## read output of regression model score test for ancestry, and plot cumulative results
-if(!is.null(user.options$ancestryassociationscorefile) && file.exists(user.options$ancestryassociationscorefile)) {
+if(!is.null(user.options$ancestryassociationscorefile) && file.exists(paste(resultsdir,user.options$ancestryassociationscorefile, sep="/"))) {
   cat("plotting scores in test for ancestry association...", file=outfile, append=T)
   ## produces warning
   plotAncestryScoreTest(user.options$ancestryassociationscorefile, "TestsAncestryAssoc",K, population.labels, user.options$every)
@@ -1156,14 +1160,14 @@ if(!is.null(user.options$ancestryassociationscorefile) && file.exists(user.optio
 }
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
-if(!is.null(user.options$affectedsonlyscorefile) && file.exists(user.options$affectedsonlyscorefile)) {
+if(!is.null(user.options$affectedsonlyscorefile) && file.exists(paste(resultsdir,user.options$affectedsonlyscorefile, sep="/"))) {
   cat("plotting scores in affecteds-only test...", file=outfile, append=T)
   plotAncestryScoreTest(user.options$affectedsonlyscorefile, "TestsAffectedsOnly",K, population.labels, user.options$every)
   cat(" done\n", file=outfile, append=T)
 }
 
 ## read output of score test for residual allelic association, and plot cumulative results
-if(!is.null(user.options$residualallelicassocscorefile) && file.exists(user.options$residualallelicassocscorefile)) {
+if(!is.null(user.options$residualallelicassocscorefile) && file.exists(paste(resultsdir,user.options$residualallelicassocscorefile, sep="/"))) {
   cat("plotting scores in test for residual allelic association", file=outfile, append=T)
   psfile <- paste(resultsdir, "TestsResidualAllelicAssoc.ps", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$residualallelicassocscorefile, psfile, user.options$every)
@@ -1176,8 +1180,8 @@ if(!is.null(user.options$outcomevarfile) && !is.null(user.options$testgenotypesf
   cat(" done\n", file=outfile, append=T)
 }
 
-if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1 && file.exists(user.options$allelefreqoutputfile)) {
-  cat("allelefreqoutputfile not specified\n", file=outfile, append=T)
+if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1 || !file.exists( paste(resultsdir,user.options$allelefreqoutputfile, sep="/"))) {
+  cat("no allelefreqoutputfile\n", file=outfile, append=T)
 } else {
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
   ## prevent script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
@@ -1244,7 +1248,7 @@ if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==
 }
 
   
-if(!is.null(user.options$indadmixturefile) && K >1 && file.exists(user.options$indadmixturefile)) {
+if(!is.null(user.options$indadmixturefile) && K >1 && file.exists(paste(resultsdir, user.options$indadmixturefile, sep="/"))) {
   ## read posterior samples of individual admixture
   cat("reading posterior samples of individual params...", file=outfile, append=T)
   samples <- dget(paste(resultsdir,user.options$indadmixturefile,sep="/"))
