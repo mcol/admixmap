@@ -53,25 +53,25 @@ void MuSampler::Sample(double* alpha, const double eta, const int* const Counts)
   //these are first transformed to logits of proportions
   //Counts is an H*K array of counts
   // TODO: test if all counts are zero, allowing sample from flat Dirichlet prior
-
-//   if(H == 2) {
-//     Sample1D(alpha, eta, Counts); //beta-binomial likelihood is log-concave
-//   } else 
+  
+  if(H == 2) {
+    Sample1D(alpha, eta, Counts); //beta-binomial likelihood is log-concave
+  } else 
     {
-    //transform alphas
-    inv_softmax(H, alpha, params);//NOTE: inv_softmax function works with alpha as well as mu
-    muArgs.eta = eta;
-    muArgs.counts = Counts;
-    muSampler.Sample(params, &muArgs);
-
-    //set alpha by reversing transformation
-    //NOTE: params may not sum to zero but the proportions will still be correct
-    softmax(H, alpha, params);
-    //alpha now holds proportions so multiply by eta
-    for(unsigned t = 0; t < H; ++t){
-      alpha[t] *= eta;
-    } 
-  }
+      //transform alphas
+      inv_softmax(H, alpha, params);//NOTE: inv_softmax function works with alpha as well as mu
+      muArgs.eta = eta;
+      muArgs.counts = Counts;
+      muSampler.Sample(params, &muArgs);
+      
+      //set alpha by reversing transformation
+      //NOTE: params may not sum to zero but the proportions will still be correct
+      softmax(H, alpha, params);
+      //alpha now holds proportions so multiply by eta
+      for(unsigned t = 0; t < H; ++t){
+	alpha[t] *= eta;
+      } 
+    }
 }
 
 void MuSampler::Sample1D(double* alpha, const double eta, const int* const Counts )
@@ -103,99 +103,75 @@ float MuSampler::getStepsize()const{
 //*******************************************
 
 ///Energy function for Hamiltonian MC sampler
-double MuSampler::muEnergyFunction(const double * const params, const void* const vargs){
+double MuSampler::muEnergyFunction(const double* const params, const void* const vargs){
   const MuSamplerArgs* args = (const MuSamplerArgs*)vargs;
 
   int H = args->H;// Number of haplotypes/alleles
   int K = args->K;// Number of populations
   double eta = args->eta;//dispersion parameter
-  double E = 0.0;
-  //params in softmax format , of length H, but may not sum to zero
-
+  double E = 0.0; 
+  //params in softmax format, of length H, but may not sum to zero
   double* mu = new double[H];
-  double* a = new double[H];
   try{
     softmax(H, mu, params);
-    inv_softmax(H, mu, a); // normalized parameters; sum to zero
-    
-    //E -= (double)(H); //logprior ? is zero
-    
-    //compute z, needed for Jacobian below
-    double z = 0.0;
+    // minus log prior on mu in softmax basis (flat Dirichlet prior on mu)
     for(int h = 0; h < H; ++h){
-      z+= exp(a[h]);
+      E -= log(mu[h]);
     }
-    
-    for(int h = 0; h < H; ++h){
+    for(int h = 0; h < H; ++h) { //minus log likelihood 
       double alpha = eta * mu[h];
-      for(int k = 0; k < K; ++k){
+      for(int k = 0; k < K; ++k) {
 	int offset = h*K +k;
-	E += lngamma(alpha) - lngamma(args->counts[offset]+alpha);//log likelihood
+	if(args->counts[offset] > 0) {
+	  E += lngamma(alpha) - lngamma(args->counts[offset]+alpha);
+	}
       }
     }
-    
-    E -= logJacobian(a, z, H);
-    delete[] mu;
-    delete[] a;
-  }
-  catch(string s){
+  } catch(string s){
     throw string("error in muEnergy " +s);
   }
+  delete[] mu;
   return E;
 }
 
 /// gradient function for Hamiltonian MC sampler
-void MuSampler::muGradient(const double * const params, const void* const vargs, double *g){
+void MuSampler::muGradient(const double* const params, const void* const vargs, double* g){
   const MuSamplerArgs* args = (const MuSamplerArgs*)vargs;
-
   int H = args->H;// Number of haplotypes/alleles
   int K = args->K;// Number of populations
   double eta = args->eta;//dispersion parameter
-  //params in softmax format , of length H, but may not sum to zero
-
+  //params in softmax basis, of length H, but may not sum to zero
   double* mu = new double[H];
-  double* a = new double[H];
-  softmax(H, mu, params);
-  inv_softmax(H, mu, a); // normalized parameters; sum to zero
-
-  //prior term is zero
-  double z = 0.0;
-  for(int h = 0; h < H; ++h){
-    z+= exp(a[h]);
-  }
-  delete[] a;
-
-  try{
-    double* dEdMu = new double[H];fill(dEdMu, dEdMu+H, 0.0);
+  try {
+    softmax(H, mu, params);
     
-    //first compute gradient wrt mu
-    for(int h = 0; h < H; ++h){
+    // minus derivative of log prior in softmax basis wrt mu[h]
+    for(int h = 0; h < H; ++h) {
+      g[h] = -1.0 / mu[h];
+    }
+    for(int h = 0; h < H; ++h) { //minus derivative of log likelihood wrt mu[h]
       double alpha = eta * mu[h];
-      
-      for(int k = 0; k < K; ++k){
+      for(int k = 0; k < K; ++k) {
 	int offset = h*K +k;
-	dEdMu[h] += digamma(alpha) - digamma(args->counts[offset]+alpha);//log likelihood term
+	if(args->counts[offset] > 0) {
+	  g[h] += eta * ( digamma(alpha) - digamma(args->counts[offset]+alpha) );
+	}
       }
-      dEdMu[h] *= eta;
     }
-    //now use chain rule to obtain gradient wrt args
+    //use chain rule to obtain gradient wrt args
     for(int h = 0; h < H; ++h){
-      g[h] = 0.0;
       for(int i = 0; i < H; ++i){
-	if(i == h)g[h] += dEdMu[h] * mu[h] * (1.0 - mu[h]);
-	else g[h] -= dEdMu[i] * exp(a[i]) * mu[h] * mu[i]; 
+	if(i == h) g[h] *= mu[h] * (1.0 - mu[h]);
+	else g[h] *= -mu[h] * mu[i]; 
       }
     }
-    
-    delete[] mu;
-    delete[] dEdMu;
-  }
-  catch(string s){
+  } catch(string s){
     throw string("error in muGradient " +s);
   }
+  delete[] mu;
 }
-//****** Auxiliary function used in Energy function
 
+//****** Auxiliary function used in Energy function
 double MuSampler::logJacobian(const double* a, const double z, unsigned H){
   //computes logJacobian for softmax transformation
 
