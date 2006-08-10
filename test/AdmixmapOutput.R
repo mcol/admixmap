@@ -3,12 +3,15 @@ library(MASS)
 ## script should be invoked from folder one level above subfolder specified by resultsdir
 ## to run this script from an R console session, set environment variable RESULTSDIR
 ## by typing 'Sys.putenv("RESULTSDIR" = "<path to directory containing results>")'
+
 if(nchar(Sys.getenv("RESULTSDIR")) > 0) {
   resultsdir <- Sys.getenv("RESULTSDIR")
 } else {
   ## resultsdir set to default directory 
   resultsdir <- "results"
 }
+outfile <- paste(resultsdir, "Rout.txt", sep="/")
+cat("Starting R script\n", file=outfile, append=F)
 
 cbindIfNotNull <- function(table1, table2) {
 ## cbind two tables if both are not null
@@ -26,12 +29,17 @@ cbindIfNotNull <- function(table1, table2) {
 
 getUserOptions <- function(argsfilename) {
   ## read table of user options
-  args <- read.table(argsfilename, sep="=", header=FALSE, comment.char="")
-  user.options <- as.data.frame(matrix(data=NA, nrow=1, ncol=dim(args)[1]))
-  user.options[1,] <- args[,2]
-  dimnames(user.options) <- list("Value", args[,1])
-  user.options$every <- as.numeric(user.options$every)
-  return(user.options)
+  if(!file.exists(argsfilename)){
+    cat("Error: cannot find argsfile\n", file=outfile, append=T)
+    quit(save="no", status=1, runLast=F)
+  }else{
+    args <- read.table(argsfilename, sep="=", header=FALSE, comment.char="")
+    user.options <- as.data.frame(matrix(data=NA, nrow=1, ncol=dim(args)[1]))
+    user.options[1,] <- args[,2]
+    dimnames(user.options) <- list("Value", args[,1])
+    user.options$every <- as.numeric(user.options$every)
+    return(user.options)
+  }
 }
 
 getAdmixturePrior <- function(K, user.options) {
@@ -67,65 +75,8 @@ getIsAdmixed <- function(AdmixturePrior) {
   
 readLoci <- function(){
   filename <- paste(resultsdir, "LocusTable.txt", sep="/")
-  if(file.exists(filename)){
-    ##cols are locus name, number of allele/haplotypes, map distance in cM, chromosome number
-    loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "integer"))
-  }else{
-
-    ## read table of loci, number chromosomes and calculate map positions
-    row1 <- read.table(user.options$locusfile, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
-                       nrows=1)
-    if(dim(row1)[2] == 3) {
-      loci.simple <- read.table(user.options$locusfile, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
-                                colClasses=c("character", "integer", "numeric"))
-    } else {
-      loci.simple <- read.table(user.options$locusfile, header=TRUE, na.strings=c("NA", ".", "#"), comment.char="",
-                                colClasses=c("character", "integer", "numeric", "character"))
-    }
-    ## locus name in col 1, num alleles in col 2, DistFromLast in col 3
-    num.sloci <- dim(loci.simple)[1]
-    loci.simple[, 3][loci.simple[, 3] >=100] <- NA
-    new.clocus <- is.na(loci.simple[, 3]) | loci.simple[, 3] > 0
-    num.cloci <- table(new.clocus)[1]
-    LocusName <- character(num.cloci)
-    NumHaps <- integer(num.cloci)
-    MapPosition <- numeric(num.cloci)
-    Chromosome <- integer(num.cloci)
-    loci.compound <- data.frame(LocusName, NumHaps, MapPosition, Chromosome)
-    loci.compound$LocusName <- as.vector(loci.compound$LocusName)
-    clocus <- 1
-    numhaps <- loci.simple[1, 2]
-    map.position <- 0
-    chr <- 1
-    loci.compound$LocusName[1] <- loci.simple[1, 1]
-    loci.compound$MapPosition[1] <- 0
-    loci.compound$Chromosome[1] <- 1
-    ## loop over simple loci
-    for(slocus in 2:num.sloci) {
-      if(new.clocus[slocus]) { # new compound locus
-        ## increment number of compound locus  
-        clocus <- clocus + 1
-        loci.compound[clocus, 1] <- loci.simple[slocus, 1]
-        if(is.na(loci.simple[slocus, 3])) {
-          chr <- chr + 1
-          map.position <- 0
-        } else {
-          map.position <- map.position + 100*loci.simple[slocus, 3]
-        }
-        loci.compound[clocus, 3] <- map.position
-        loci.compound[clocus, 4] <- chr
-        ## assign num haplotypes at previous compound locus
-        loci.compound[clocus-1, 2] <- numhaps
-        ## restart counting num haplotypes
-        numhaps <- loci.simple[slocus, 2]
-      } else {
-        ## continue counting num haplotypes
-        numhaps <- numhaps * loci.simple[slocus, 2]
-      }
-    }
-    ## assign num haplotypes at last compound locus
-    loci.compound[clocus, 2] <- numhaps
-  }
+  ##cols are locus name, number of allele/haplotypes, map distance in cM, chromosome number
+  loci.compound <- read.table(file=filename, header=T, colClasses=c("character", "integer", "numeric", "integer"))
   return(loci.compound)
 }
 
@@ -133,7 +84,7 @@ getNumSubpopulations <- function(user.options) {
   if(!is.null(user.options$populations)) {
     K <- as.numeric(user.options$populations)
   }
-  else {print("Error: number of subpopulations not written to file\n");}
+  else {cat("Error: number of subpopulations not written to file\n", file=outfile, append=T);}
   return(K)
 }
 
@@ -410,8 +361,8 @@ plotlogpvalues <- function(psfilename, log10pvalues, table.every, title, hist ) 
   }
   if(hist){
     ## histogram of p-values
-    hist(10^(-log10pvalues[, evaluations]), xlim=c(1,0), xlab = "p-value", 
-         main="Histogram of p-values")
+    hist(10^(-log10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
+         main="Histogram of one-sided p-values")
   }
   dev.off()
 }
@@ -626,11 +577,11 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   ntests <- dim(scoretest)[2]
   locusnames <- scoretest[1,,evaluations]
 
-  minuslog10pvalues <- as.numeric(scoretest[2, , ])
-  minuslog10pvalues[is.nan(minuslog10pvalues)] <- NA
-  minuslog10pvalues <- data.frame(matrix(data=minuslog10pvalues, nrow=ntests, ncol=evaluations))
-  dimnames(minuslog10pvalues)[[1]] <- locusnames
-  plotlogpvalues(outputfile, minuslog10pvalues, 10*thinning,
+  log10pvalues <- as.numeric(scoretest[2, , ])
+  log10pvalues[is.nan(log10pvalues)] <- NA
+  log10pvalues <- data.frame(matrix(data=log10pvalues, nrow=ntests, ncol=evaluations))
+  dimnames(log10pvalues)[[1]] <- locusnames
+  plotlogpvalues(outputfile, -log10pvalues, 10*thinning,
                  "Running computation of p-values for residual allelic association", T)
 }
 
@@ -665,7 +616,6 @@ ExtraScoreTests <- function(testgenotypesfile, outcomevarfile, expectedoutcomefi
   
   dimnames(scoretable)[[1]] <- dimnames(testvars)[[2]]
   dimnames(scoretable)[[2]] <- c("score", "complete.info", "observed.info", "z")
-  #print(scoretable)
   write.table(scoretable, file=paste(resultsdir, "ExtraScoreTests.txt", sep="/"), sep="\t")
 }
 
@@ -910,7 +860,58 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
   outputfile <- paste(resultsdir, "IndivParameters.ps", sep="/")
   postscript(outputfile)
   popcols <- c("grey", "blue", "red", "yellow", "orange", "green")
-  if(!IsAdmixed[1] || !IsAdmixed[2]) { # only one parent admixed - univariate plots
+  if(IsAdmixed[1] & IsAdmixed[2]) { # both parents admixed
+    if(ParentsIdentified) { # bivariate plots if both parents have ancestry from pop
+      for(pop in 1:K) {
+        if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
+          parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ], lims=c(0,1,0,1))
+          contour(parents.pop$x, parents.pop$y, parents.pop$z,
+                  main=paste("Contour plot of posterior density of parental", population.labels[pop],
+                    "admixture proportions"),
+                  xlab="Parent 1", ylab="Parent 2")
+          persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
+                main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
+                  "admixture proportions"),
+                xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
+        }
+      }
+      parents.pop <- kde2d(log(samples.sumIntensities[1, ]),
+                           log(samples.sumIntensities[2, ]), lims=c(-1,3,-1,3))
+      contour(parents.pop$x, parents.pop$y, parents.pop$z,
+              main="Contour plot of posterior density of parental sum-intensities",
+              xlab="Parent 1", ylab="Parent 2")
+      persp(parents.pop$x, parents.pop$y, parents.pop$z, col="blue",
+            main="Perspective plot of bivariate density of parental sum-intensities",
+            xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
+    } else { # parents unidentified - concatenate array and do bivariate plots 
+      samples.admixture <- rbind(t(samples.admixture[,1,]), t(samples.admixture[,2,]))
+      samples.sumIntensities <- c(samples.sumIntensities[1, ], samples.sumIntensities[2, ])
+      for(pop in 1:K) {
+        if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
+          parents.pop <- kde2d(samples.admixture[, pop], log(samples.sumIntensities), lims=c(0,1,-1,3))
+          contour(parents.pop$x, parents.pop$y, parents.pop$z,
+                  main=paste("Contour plot of posterior density of parental", population.labels[pop],
+                    "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
+          persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
+                main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
+                  "admixture proportions"), xlab="Admixture propotion", ylab="log sum-intensities", zlab="Posterior density")
+        }
+      }
+      if(K > 2) {
+        for(pop1 in 1:K) {
+          for(pop2 in 2:K) {
+            if((AdmixturePrior[1, pop1] > 0 & AdmixturePrior[2, pop2] > 0) & (pop1 < pop2)) { # bivariate plot
+              parents.pop <- kde2d(samples.admixture[, pop], samples.admixture[, pop], lims=c(0,1,0,1))
+              contour(parents.pop$x, parents.pop$y, parents.pop$z,
+                      main="Contour plot of posterior density of parental admixture proportions",
+                      xlab=paste(population.labels[pop1], "admixture proportion"),
+                      ylab=paste(population.labels[pop2], "admixture proportion"))
+            }
+          }
+        }
+      }
+    }
+  } else { # only one parent admixed - univariate plots
     admixedParent <- 0
     if(IsAdmixed[1]) admixedParent <- 1
     if(IsAdmixed[2]) admixedParent <- 2
@@ -927,60 +928,8 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
            ylab="Posterior density", xlim=c(1,20))
       x <- seq(1,20, by=0.1)
       prior <- getSumIntensitiesPrior(user.options)
-      print(prior)
+      ##print(prior)
       points(x, dgamma(x, prior[1], rate=prior[2]), type="l", col="blue")
-    }
-  } else { # both parents admixed, bivariate plots of admixture props
-    parents.pop <- kde2d(log(samples.sumIntensities[1, ]),
-                         log(samples.sumIntensities[2, ]), lims=c(-1,3,-1,3))
-    contour(parents.pop$x, parents.pop$y, parents.pop$z, axes=F,
-            #main="Contour plot of posterior density of parental sum-intensities",
-            xlab="Arrival rate on paternal gamete", ylab="Arrival rate on maternal gamete")
-    ##persp(parents.pop$x, parents.pop$y, parents.pop$z, col="blue",
-    ##      main="Perspective plot of bivariate density of parental sum-intensities",
-    ##      xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
-    
-    for(pop in 1:K) {
-      if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # both parents have admixture from this population 
-        #parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ], lims=c(0,1,0,1), h=c(0.05, 0.05))
-        parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ], lims=c(0,0.6,0,0.6), h=c(0.05, 0.05))
-        contour(parents.pop$x, parents.pop$y, parents.pop$z,
-                xlab=paste(population.labels[pop], " admixture proportion on paternal gamete"),
-                ylab=paste(population.labels[pop], " admixture proportion on maternal gamete"))
-        axis(side=1)
-        axis(side=2)
-        ##persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
-        ##      main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
-        ##         "admixture proportions"),
-        ##       xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
-      }
-    } # end loop over populations
-  }
-  ##samples.sumIntensities <- c(samples.sumIntensities[1, ], samples.sumIntensities[2, ])
-  ##for(pop in 1:K) {
-  ##  if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
-  ##    parents.pop <- kde2d(samples.admixture[, pop], log(samples.sumIntensities), lims=c(0,1,-1,3))
-  ##    contour(parents.pop$x, parents.pop$y, parents.pop$z,
-  ##            main=paste("Contour plot of posterior density of parental", population.labels[pop],
-  ##              "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
-  ##    persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
-  ##          main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
-  ##            "admixture proportions"), xlab="Admixture propotion", ylab="log sum-intensities", zlab="Posterior density")
-  ##   }
-  ## }
-  
-  if(K > 2) {
-    ## concatenate arrays to combine samples from both parental gametes 
-    samples.admixture <- rbind(t(samples.admixture[,1,]), t(samples.admixture[,2,]))
-    for(pop1 in 1:K) {
-      for(pop2 in pop1:K) {
-        if((AdmixturePrior[1, pop1] > 0 & AdmixturePrior[2, pop2] > 0) & (pop1 < pop2)) { # bivariate plot
-          parents.pop <- kde2d(samples.admixture[, pop], samples.admixture[, pop], lims=c(0,1,0,1))
-          contour(parents.pop$x, parents.pop$y, parents.pop$z,
-                  xlab=paste(population.labels[pop1], "admixture proportion (both gametes combined)"),
-                  ylab=paste(population.labels[pop2], "admixture proportion (both gametes combined"))
-        }
-      }
     }
   }
   dev.off()
@@ -990,14 +939,15 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
 ###################################################################################
 ## start of script
 ###################################################################################
-
 options(echo=TRUE)
 #par(cex=2,las=1)  # ? this line causes X connection to break
 graphics.off()
 ps.options(pointsize=16)
 
 ## read table of user options
+cat("reading user options...", file=outfile, append=T)
 user.options <- getUserOptions(paste(resultsdir, "args.txt", sep="/"))
+cat(" done\n", file=outfile, append=T)
 
 ## read table of loci and calculate map positions
 loci.compound <- readLoci()
@@ -1015,19 +965,20 @@ pop.admix.prop <- NULL
 
 ## read population parameter samples
 if(is.null(user.options$paramfile)) {
-  print("paramfile not specified")
+  cat("paramfile not specified\n", file=outfile, append=T)
 } else {
   if(!file.exists(paste(resultsdir,user.options$paramfile, sep="/"))) {
-    print("paramfile specified but file does not exist")
+    cat("paramfile specified but file does not exist\n", file=outfile, append=T)
   } else {
     if(length(scan(paste(resultsdir,user.options$paramfile, sep="/"),  what='character', quiet=TRUE)) == 0) {
-      print("paramfile empty")
+      cat("paramfile empty\n", file=outfile, append=T)
     } else {
+      cat("reading paramfile...", file=outfile, append=T)
       ## param.samples columns contain:    # K Dirichlet parameters 
                                         # global sum of intensities or gamma shape param if hierarchical
       param.samples <- read.table(paste(resultsdir,user.options$paramfile,sep="/"), header=TRUE)
       n <- dim(param.samples)[1]
-      if(!is.null(user.options$hapmixmodel) &&  (user.options$hapmixmodel ==1)){
+      if(user.options$hapmixmodel ==1){
         checkConvergence(param.samples, "Population sumintensities parameters",
                          paste(resultsdir, "SumIntensitiesConvergenceDiags.txt", sep="/"));
         postscript( paste(resultsdir, "PopSumIntensitiesAutocorrelations.ps", sep="/" ))     
@@ -1054,6 +1005,7 @@ if(is.null(user.options$paramfile)) {
           pop.admix.prop <- NULL
         }
       }##end nonhapmixmodel block
+      cat(" done\n", file=outfile, append=T)
     }
   }
 }
@@ -1062,10 +1014,11 @@ if(is.null(user.options$paramfile)) {
 if(is.null(user.options$regparamfile) ||
            length(scan(paste(resultsdir, user.options$regparamfile, sep="/"),
                        what='character',quiet=TRUE)) == 0)  {
-  print("No regression paramfile");
+  cat("No regression paramfile\n", file=outfile, append=T);
   regparam.samples <- NULL
   beta.admixture<-NULL
 } else {
+  cat("reading regression parameters...", file=outfile, append=T)
   regparam.samples <- read.table(paste(resultsdir, user.options$regparamfile, sep="/"), header=TRUE)
   n.covariates <- getNumCovariates(user.options)
   
@@ -1088,6 +1041,7 @@ if(is.null(user.options$regparamfile) ||
   if(outcome.continuous == 1) {
     residual.SD <- getPrecision(user.options)^-0.5
   }
+  cat(" done\n", file=outfile, append=T)
 }
 
 ## read allele freq dispersion parameter samples
@@ -1096,6 +1050,7 @@ if(is.null(user.options$dispparamfile)||
                        what='character',quiet=TRUE)) == 0)  {
   eta.samples <- NULL
 } else {
+  cat("reading allele frequency dispersion parameter...", file=outfile, append=T)
   eta.samples<-read.table(paste(resultsdir, user.options$dispparamfile,sep="/"), header=TRUE)
   ## label dispersion parameters
   if(!is.null(user.options$historicallelefreqfile)) {
@@ -1106,6 +1061,7 @@ if(is.null(user.options$dispparamfile)||
   postscript(paste(resultsdir, "DispParamAutocorrelations.ps", sep="/" ))     
   plotAutocorrelations(eta.samples, user.options$every)
   dev.off()
+  cat(" done\n", file=outfile, append=T)
 }   
 
 ## combine samples of Dirichlet params, admixture proportions, dispersion params, regression params
@@ -1123,7 +1079,7 @@ if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
 if(K == 1) {
   alphas <- c(1)
 } else {
-  if(!is.null(user.options$hapmixmodel) && user.options$hapmixmodel==1){
+  if(user.options$hapmixmodel==1){
     alphas <- rep(1/K, K)
   }else{
     if(!is.null(param.samples)) {
@@ -1137,19 +1093,22 @@ if(K == 1) {
 }
 
 ##plot ergodic averages
-if(is.null(user.options$ergodicaveragefile)) {
-  print("ergodicaveragefile not specified")
+if(is.null(user.options$ergodicaveragefile) && file.exists(user.options$ergodicaveragefile)) {
+  cat("ergodicaveragefile not specified\n", file=outfile, append=T)
 } else {
   if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
-    print("ergodicaveragefile empty")
+    cat("ergodicaveragefile is empty\n", file=outfile, append=T)
   } else {
+    cat("plotting ergodic averages...", file=outfile, append=T)
     postscript( paste(resultsdir, "ErgodicAverages.ps", sep="/" ))
     plotErgodicAverages(paste(resultsdir, user.options$ergodicaveragefile, sep="/"), user.options$every)
     dev.off()
+    cat(" done\n", file=outfile, append=T)
   }
 }
 
 if(!is.null(user.options$thermo) && user.options$thermo == 1){
+  cat("plotting energy against coolness...", file=outfile, append=T)
   anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
   postscript(paste(resultsdir, "annealplot.ps", sep="/"))
   ##plot raw points
@@ -1158,117 +1117,136 @@ if(!is.null(user.options$thermo) && user.options$thermo == 1){
 ##  fit.spline <- smooth.spline(anneal.table[,1], anneal.table[,2], w=-1/anneal.table[,3],spar=0.6)
 ##  lines(fit.spline, lty=2)
   dev.off()
+  cat(" done\n", file=outfile, append=T)
 }
 
+## read output of score test for mis-specified allele freqs and plot cumulative results
+##if(!is.null(user.options$allelefreqscorefile)) {
+  ##plotScoreTestAlleleFreqs(user.options$allelefreqscorefile)
+##}
+
 #read output of test for heterozygosity and plot
-if(!is.null(user.options$hwtestfile)){
+if(!is.null(user.options$hwtestfile) && file.exists(user.options$hwtestfile)){
+  cat("plotting scores in test for heterozygosity...", file=outfile, append=T)
   plotHWScoreTest(user.options$hwtestfile, K)
+  cat(" done\n", file=outfile, append=T)
 }
 ## read output of score test for allelic association, and plot cumulative results
-if(!is.null(user.options$allelicassociationscorefile)) {
+if(!is.null(user.options$allelicassociationscorefile) && file.exists(user.options$allelicassociationscorefile)) {
+  cat("plotting scores in test for allelic association...", file=outfile, append=T)
   outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
   plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, user.options$every)
+  cat(" done\n", file=outfile, append=T)
 }
 
 ## read output of score test for association with haplotypes, and plot cumulative results
-if(!is.null(user.options$haplotypeassociationscorefile)) {
+if(!is.null(user.options$haplotypeassociationscorefile) && file.exists(user.options$haplotypeassociationscorefile)) {
+  cat("plotting scores in test for haplotype association...", file=outfile, append=T)
   outputfilePlot <- paste(resultsdir, "TestsHaplotypeAssociation.ps", sep="/" )
   plotScoreTest(user.options$haplotypeassociationscorefile, TRUE, outputfilePlot, user.options$every)
+  cat(" done\n", file=outfile, append=T)
 }
 
 ## read output of regression model score test for ancestry, and plot cumulative results
-if(!is.null(user.options$ancestryassociationscorefile)) {
+if(!is.null(user.options$ancestryassociationscorefile) && file.exists(user.options$ancestryassociationscorefile)) {
+  cat("plotting scores in test for ancestry association...", file=outfile, append=T)
   ## produces warning
   plotAncestryScoreTest(user.options$ancestryassociationscorefile, "TestsAncestryAssoc",K, population.labels, user.options$every)
+  cat(" done\n", file=outfile, append=T)
 }
 
 ## read output of affecteds-only score test for ancestry, and plot cumulative results
-if(!is.null(user.options$affectedsonlyscorefile)) {
+if(!is.null(user.options$affectedsonlyscorefile) && file.exists(user.options$affectedsonlyscorefile)) {
+  cat("plotting scores in affecteds-only test...", file=outfile, append=T)
   plotAncestryScoreTest(user.options$affectedsonlyscorefile, "TestsAffectedsOnly",K, population.labels, user.options$every)
+  cat(" done\n", file=outfile, append=T)
 }
 
 ## read output of score test for residual allelic association, and plot cumulative results
-if(!is.null(user.options$residualallelicassocscorefile)) {
+if(!is.null(user.options$residualallelicassocscorefile) && file.exists(user.options$residualallelicassocscorefile)) {
+  cat("plotting scores in test for residual allelic association", file=outfile, append=T)
   psfile <- paste(resultsdir, "TestsResidualAllelicAssoc.ps", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$residualallelicassocscorefile, psfile, user.options$every)
+  cat(" done\n", file=outfile, append=T)
 }
 
-if(!is.null(user.options$outcomevarfile) && !is.null(user.options$testgenotypesfile)){
+if(!is.null(user.options$outcomevarfile) && !is.null(user.options$testgenotypesfile) && file.exists(user.options$testgenotypesfile)){
+  cat("performing extra score tests...", file=outfile, append=T)
   ExtraScoreTests(user.options$testgenotypesfile, user.options$outcomevarfile, paste(resultsdir, "ExpectedOutcomes.txt", sep="/"))
+  cat(" done\n", file=outfile, append=T)
 }
 
-if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1) {
-  print("allelefreqoutputfile not specified")
-} else
-{
- allelefreq.file <- paste(resultsdir,user.options$allelefreqoutputfile,sep="/")
- if(file.exists(allelefreq.file)){
-   allelefreq.samples <- dget(allelefreq.file)
-   ## prevent script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
-   if(dim(allelefreq.samples)[2]==0) {
-     print("allelefreqoutputfile empty")
-   } else {
-     ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
-     print.default("Converting allele frequency samples array to list")
-     allelefreq.samples.list <- listAlleleFreqs(allelefreq.samples)
-     ##allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
-     
-     ## calculate posterior means of sampled fvalues at each locus
-     if(K > 1) { 
-       fValues.means <- calculateLocusfValues(allelefreq.samples.list)
-       fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=4))
-       dimnames(fValues.means)[[2]] <- c("LocusName",
-                                         paste(population.labels[1], population.labels[2], sep="."))
-       write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
-                   row.names=TRUE, col.names=TRUE)
-       write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
-                   file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
-                   row.names=FALSE, col.names=TRUE)
-     }
-     
-     ## calculate posterior means of KL info for ancestry at each locus
-     if(K > 1) { 
-       KLInfo.means <- calculateLocusKLInfo(allelefreq.samples.list)
-       KLInfo.means <- data.frame(as.vector(loci.compound[,1]), round(KLInfo.means, digits=4))
-       dimnames(KLInfo.means)[[2]] <- c("LocusName", "KLInfo")
-       write.table(KLInfo.means, file=paste(resultsdir,"LocusKLInfo.txt", sep="/"),
-                   row.names=TRUE, col.names=TRUE)
-       write.table(KLInfo.means[order(KLInfo.means[, 2], decreasing=TRUE), ],
-                   file=paste(resultsdir,"LocusKLInfoSorted.txt", sep="/"),
-                   row.names=FALSE, col.names=TRUE)
-     }
-     
-     ## generate lists to hold allele freq means and covariances
-     freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
-     allelefreq.means.list <- freqMeansCovs[[1]]
-     allelefreq.covs.list <- freqMeansCovs[[2]]
-     
-     ## write posterior means of allele freqs to file
-     writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
-                      paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
-     
-     ## fit Dirichlet parameters by equating posterior means and variances
-     allelefreq.params.list <- fitDirichletParams(allelefreq.means.list, allelefreq.covs.list) 
-     
-     ## write Dirichlet parameters of allele freq distributions to file as R object
-     dput(allelefreq.params.list, file=paste(resultsdir,"allelefreqparamsAsRObject.txt", sep="/"))
-     
-     ## write Dirichlet parameters of allele freq distributions to file
-     writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
-                      paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
-     
-     
-   }
- }else{
-   print( "No allelefreqoutputfile found")
- }
- 
+if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1 && file.exists(user.options$allelefreqoutputfile)) {
+  cat("allelefreqoutputfile not specified\n", file=outfile, append=T)
+} else {
+  allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
+  ## prevent script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
+  if(dim(allelefreq.samples)[2]==0) {
+    cat("allelefreqoutputfile is empty\n", file=outfile, append=T)
+  } else {
+    ## read posterior samples of allele frequencies as 3-way array (pops, alleles within loci,draws)
+    cat("Converting allele frequency samples array to list...", file=outfile, append=T)
+    allelefreq.samples.list <- listAlleleFreqs(allelefreq.samples)
+    ##allelefreq.samples.list <- convertAlleleFreqs(allelefreq.samples)
+    cat(" done\n", file=outfile, append=T)
+    
+    ## calculate posterior means of sampled fvalues at each locus
+    if(K > 1) {
+      cat("calculating posterior means of sampled f-values...", file=outfile, append=T)
+      fValues.means <- calculateLocusfValues(allelefreq.samples.list)
+      fValues.means <- data.frame(as.vector(loci.compound[,1]), round(fValues.means, digits=4))
+      dimnames(fValues.means)[[2]] <- c("LocusName",
+                                        paste(population.labels[1], population.labels[2], sep="."))
+      write.table(fValues.means, file=paste(resultsdir,"LocusfValues.txt", sep="/"),
+                  row.names=TRUE, col.names=TRUE)
+      write.table(fValues.means[order(fValues.means[, 2], decreasing=TRUE), ],
+                  file=paste(resultsdir,"LocusfValuesSorted.txt", sep="/"),
+                  row.names=FALSE, col.names=TRUE)
+      cat(" done\n", file=outfile, append=T)
+    }
+
+    ## calculate posterior means of KL info for ancestry at each locus
+    if(K > 1) {
+      cat("calculating posterior means ok KL info...", file=outfile, append=T)
+      KLInfo.means <- calculateLocusKLInfo(allelefreq.samples.list)
+      KLInfo.means <- data.frame(as.vector(loci.compound[,1]), round(KLInfo.means, digits=4))
+      dimnames(KLInfo.means)[[2]] <- c("LocusName", "KLInfo")
+      write.table(KLInfo.means, file=paste(resultsdir,"LocusKLInfo.txt", sep="/"),
+                  row.names=TRUE, col.names=TRUE)
+      write.table(KLInfo.means[order(KLInfo.means[, 2], decreasing=TRUE), ],
+                  file=paste(resultsdir,"LocusKLInfoSorted.txt", sep="/"),
+                  row.names=FALSE, col.names=TRUE)
+      cat(" done\n", file=outfile, append=T)
+    }
+
+    cat("writing posterior means of allele frequencies...", file=outfile, append=T)
+    ## generate lists to hold allele freq means and covariances
+    freqMeansCovs <- listFreqMeansCovs(allelefreq.samples.list)
+    allelefreq.means.list <- freqMeansCovs[[1]]
+    allelefreq.covs.list <- freqMeansCovs[[2]]
+
+    ## write posterior means of allele freqs to file
+    writeAlleleFreqs(allelefreq.means.list, K, loci.compound, population.labels,
+                     paste(resultsdir, "AlleleFreqPosteriorMeans.txt", sep="/" ))
+    
+    ## fit Dirichlet parameters by equating posterior means and variances
+    allelefreq.params.list <- fitDirichletParams(allelefreq.means.list, allelefreq.covs.list) 
+    
+    ## write Dirichlet parameters of allele freq distributions to file as R object
+    dput(allelefreq.params.list, file=paste(resultsdir,"allelefreqparamsAsRObject.txt", sep="/"))
+    
+    ## write Dirichlet parameters of allele freq distributions to file
+    writeAlleleFreqs(allelefreq.params.list, K, loci.compound, population.labels,
+                     paste(resultsdir, "AlleleFreqPosteriorParams.txt", sep="/" ))
+    cat(" done\n", file=outfile, append=T)
+
+  }
 }
 
   
-if(!is.null(user.options$indadmixturefile) && K >1) {
+if(!is.null(user.options$indadmixturefile) && K >1 && file.exists(user.options$indadmixturefile)) {
   ## read posterior samples of individual admixture
-  print.default("Reading posterior samples of individual params")
+  cat("reading posterior samples of individual params...", file=outfile, append=T)
   samples <- dget(paste(resultsdir,user.options$indadmixturefile,sep="/"))
   n.iterations <- dim(samples)[3]
   n.individuals <- dim(samples)[2]
@@ -1280,7 +1258,7 @@ if(!is.null(user.options$indadmixturefile) && K >1) {
     samples4way <- array(samples.adm, dim=c(K, 2, dim(samples)[2:3]))
     dimnames(samples4way) <- list(population.labels,c("Parent1", "Parent2"),
                                   character(0), character(0))
-    samples.meanparents <- apply(samples4way, c(1,3,4), mean)
+    samples.meanparents <- apply(samples4way, 2:4, mean)
     samples.bothparents <- array(samples4way,
                                  dim=c(K, 2*n.individuals, n.iterations))
     dimnames(samples.bothparents) <- list(population.labels, character(0), character(0))
@@ -1288,32 +1266,33 @@ if(!is.null(user.options$indadmixturefile) && K >1) {
     samples.meanparents <- samples[1:K, 1:n.individuals ,1:n.iterations, drop=F]
     samples.bothparents <- samples[1:K, 1:n.individuals ,1:n.iterations, drop=F]
   }
-
+  cat(" done\n", file=outfile, append=T)
   ## should plot only if subpopulations are identifiable in model
   if(n.individuals > 1) { # dim(samples.meanparents)[2] > 1) {
+    cat("plotting posterior distribution of admixture...", file=outfile, append=T)
     plotAdmixtureDistribution(alphas, samples.bothparents, K)
+    cat(" done\n", file=outfile, append=T)
     ##if(K > 1) {
     ##writePosteriorMeansIndivAdmixture(t(samples), K)
     ##}
-    sample.means <- apply(samples.meanparents, 1:2, mean)
-    admixture.means <- format(round(t(sample.means),3), nsmall=3)
-    M.squared <- samples.meanparents[1:K,,]^2
-    ancestry.diversity <- 1 - apply(M.squared, 2:3, sum)
-    AncestryDiversity <- signif(apply(ancestry.diversity, 1, mean), digits=3)
- 
-    admixture.table <- data.frame(admixture.means, AncestryDiversity)
-    write.table(admixture.table,
+    cat("writing posterior means of individual admixture...", file=outfile, append=T)
+    sample.means <- apply(samples, 1:2, mean)
+    write.table(format(round(t(sample.means),3), nsmall=3),
                 paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), quote=F, row.names=F, sep="\t")
+    cat(" done\n", file=outfile, append=T)
     
   } else { #if(dim(samples.meanparents)[2]==1)
     if(IsAdmixed[1] | IsAdmixed[2]) {
+      cat("plotting posterior distribution of individualadmixture...", file=outfile, append=T)
       ## convert samples4way to 3way array
       samplesOneIndiv <- samples4way[, , 1, ]
       samples.sumintensities <- samples.sumintensities[, 1, ]
       plotPosteriorDensityIndivParameters(samplesOneIndiv, samples.sumintensities, user.options,
-                                          population.labels, AdmixturePrior, IsAdmixed,
-                                          ParentsIdentified)
+                                          population.labels, AdmixturePrior, IsAdmixed, ParentsIdentified)
+      cat(" done\n", file=outfile, append=T)
     }
   }
-} # ends block conditional on indadmixturefile
-print("Script completed")
+}else{
+cat("No indadmixturefile\n", file=outfile, append=T)
+}
+cat("Script completed", file=outfile, append=T)
