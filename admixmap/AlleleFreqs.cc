@@ -211,7 +211,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     tau = new double[ dim ];//gamma prior rate parameter
     SumEta = new double[ dim ];//running sums
     
-    //NOTE: if the DispersionSampler is used to sample eta in both historic and correlated allele freq models, we don't need to
+    //NOTE: if DispersionSampler is used to sample eta in both historic and correlated allele freq models, we don't need to
     //store psi and tau here, just pass the values to the sampler
 
 
@@ -523,7 +523,7 @@ void AlleleFreqs::LoadAlleleFreqs(const Matrix_s& New, int i, unsigned row0, boo
 
 /**
  * Given the number of ancestral populations, sets default values for
- * allele frequencies (in Freqs) and prior allele frequencies (in PriorAlleleFreqs).
+ * prior allele freq params.
  */
 void AlleleFreqs::SetDefaultPriorParams(int i, double defaultpriorparams){
   int NumberOfStates = Loci->GetNumberOfStates(i);
@@ -547,7 +547,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i){
 }
 
 // ************************** Sampling and Updating *****************************************
-/// samples allele frequency and prior allele frequency parameters.
+/// samples allele frequencies and prior parameters.
 void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
   // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
 
@@ -556,7 +556,7 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
     if(afterBurnIn)SumLambda += HapMixPriorRate;
   }
   else
-    if(IsHistoricAlleleFreq ){
+    if(IsHistoricAlleleFreq ){ // should redo this to use class DirichletParamSampler 
       for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 	if( Loci->GetNumberOfStates(i) == 2 )
 	  SampleDirichletParams1D( i);
