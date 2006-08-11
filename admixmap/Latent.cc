@@ -83,7 +83,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       rhobeta0 = options->getRhobetaShape();
       rhobeta1 = options->getRhobetaRate();
       rhobeta = rhobeta0 / rhobeta1;
-      rho[0] = 50.0;//rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
+      rho[0] = rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
       if(options->getHapMixModelIndicator()){
 	//initialise rho vector
 	for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-1; ++j){
@@ -104,10 +104,10 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	  RhoSampler = new HamiltonianMonteCarlo[numIntervals];
 	  const vector<float>& rhosamplerparams = options->getrhoSamplerParams();
 	  size_t size = rhosamplerparams.size();
-	  float initial_stepsize = size? rhosamplerparams[0] : 0.05;
+	  float initial_stepsize = size? rhosamplerparams[0] : 0.01;
 	  float min_stepsize = size? rhosamplerparams[1] : 0.000;
 	  float max_stepsize = size? rhosamplerparams[2] : 1.0;
-	  float target_acceptrate = size? rhosamplerparams[3] : 0.8;
+	  float target_acceptrate = size? rhosamplerparams[3] : 0.9;
 	  int num_leapfrog_steps = size? (int)rhosamplerparams[4] : 20;
 
 	  for(unsigned j = 0; j < numIntervals; ++j)
@@ -521,7 +521,11 @@ if(rank!=0)
     rhoalpha = exp(logparams[0]);
     rhobeta0 = exp(logparams[1]);
     rhobeta1 = exp(logparams[2]);
+    RhoArgs.rhoalpha = rhoalpha;
+    RhoArgs.rhobeta0 = rhobeta0;
+    RhoArgs.rhobeta1 = rhobeta1;
   }
+
 }
 
 ///energy function for sampling locus-specific sumintensities
@@ -540,7 +544,7 @@ double Latent::RhoEnergy(const double* const x, const void* const vargs){
     
     int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
     
-    E -= sumnotequal * myexp((1.0-f)*theta);
+    E -= sumnotequal * log(1.0-f);//constant term log(1-theta) omitted
     E -= sumequal * log(f + theta*(1.0 - f));
     
     //log prior
@@ -566,8 +570,7 @@ void Latent::RhoGradient( const double* const x, const void* const vargs, double
     //first compute dE / df
     int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
     
-    g[0] += sumnotequal / (1.0 - f);
-    g[0] -= (sumequal*(1.0 - theta)) / (f + theta*(1.0 - f));
+    g[0] +=  sumnotequal / (1.0-f) - (1.0 - theta)*(sumequal / (f + theta*(1.0 - f))  );
     g[0] *= -rho*d*f;//jacobian (df / d x )
     
     //derivative of log prior wrt log rho
