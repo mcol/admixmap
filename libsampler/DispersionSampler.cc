@@ -24,25 +24,29 @@ DispersionSampler::~DispersionSampler(){
   delete[] Args.alpha;
 }
 
+/**
+   step0, min, max = initial, min and max stepsizes for sampler
+   target = target acceptance rate 
+   eta is constant over L experiments (loci)
+   mu is constant over K experiments (populations) at each locus
+   alpha[i] has H[i] elements
+   counts[i] has offset H[i]*k + h for count of h th state in k th experiment 
+*/
 
 void DispersionSampler::setDimensions(unsigned inL, unsigned inK, int* const inH, double step0, 
-				      double min, double max, double target){
-  //step0, min, max = initial, min and max stepsizes for sampler
-  //target = target acceptance rate 
-  // eta is constant over L experiments (loci)
-  // mu is constant over K experiments (populations) at each locus 
+				      double min, double max, double target) {
   L = inL;
   K = inK;
   Args.L = L; 
   Args.K = K; 
-  Args.H = inH; // number of states at each locus
+  Args.H = inH; // pointer to array of numbers of states at each locus
   Args.alpha = new const double*[L];
-  Args.counts = new const int*[L];
+  Args.counts = new const int*[L]; 
   //set up Hamiltonian sampler
   Sampler.SetDimensions(1, step0, min, max, 20, target, etaEnergyFunction, etaGradient);
   //set default gamma prior for eta
-  Args.priorshape = (double)Args.H[0];
-  Args.priorrate = 1.0; 
+  Args.priorshape = 10.0;
+  Args.priorrate = 0.1; 
   logeta[0] = log(Args.priorshape/Args.priorrate); //initialise eta at prior mean
 }
 
@@ -70,7 +74,7 @@ float DispersionSampler::getAcceptanceRate()const{
 float DispersionSampler::getStepsize()const{
   return Sampler.getStepsize();
 }
-double DispersionSampler::etaEnergyFunction(const double* const logeta, const void* const vargs){
+double DispersionSampler::etaEnergyFunction(const double* const logeta, const void* const vargs) {
   const EtaSamplerArgs* args = (const EtaSamplerArgs*)vargs;
   int K = args->K; 
   int L = args->L; 
@@ -82,7 +86,7 @@ double DispersionSampler::etaEnergyFunction(const double* const logeta, const vo
       double nik = 0.0;//sum of counts over locus i, pop k
       for(int h = 0; h < args->H[i]; ++h) { // loop over states
 	double alpha = args->alpha[i][h];
-	double count = args->counts[i][h*K + k];
+	double count = args->counts[i][K*h + k];
 	if(count > 0) {
 	  E += lngamma(alpha) - lngamma(count + alpha);
 	  nik += count;
@@ -96,7 +100,7 @@ double DispersionSampler::etaEnergyFunction(const double* const logeta, const vo
   return E;
 }
 
-void DispersionSampler::etaGradient(const double* const logeta, const void* const vargs, double* g){
+void DispersionSampler::etaGradient(const double* const logeta, const void* const vargs, double* g) {
   const EtaSamplerArgs* args = (const EtaSamplerArgs*)vargs;
   // alpha[h] = mu[h] * eta
   // d_alpha[h]/d_eta = mu[h] = alpha[h] / eta,  d_eta / d_logeta = eta
@@ -105,23 +109,28 @@ void DispersionSampler::etaGradient(const double* const logeta, const void* cons
   int L = args->L;//number of loci
   double eta = exp(logeta[0]);
   g[0] =  args->priorrate * eta - args->priorshape; // gradient wrt logeta of minus log prior 
-  for(int i = 0; i < L; ++i){
-    for(int k = 0; k < K; ++k){
-      double nik = 0.0;//sum of counts for locus i, pop k
-      for(int h = 0; h < args->H[i]; ++h){
-	double alpha = args->alpha[i][h];
-	double count = args->counts[i][h*K +k];
-	nik += count;
-	if(count > 0) {
-	  g[0] += alpha * ( digamma(alpha) - digamma(count + alpha) );
-	} 
-      }
-      if(nik > 0) {
-	g[0] += eta * ( digamma(eta + nik) - digamma(eta) );
+  try {
+    for(int i = 0; i < L; ++i) {
+      for(int k = 0; k < K; ++k) {
+	double nik = 0.0;//sum of counts for locus i, pop k
+	for(int h = 0; h < args->H[i]; ++h) {
+	  double alpha = args->alpha[i][h];
+	  double count = args->counts[i][args->K*h + k];
+	  nik += count;
+	  if(count > 0) {
+	    g[0] += alpha * ( digamma(alpha) - digamma(count + alpha) );
+	  }
+	}
+	if(nik > 0) {
+	  g[0] += eta * ( digamma(eta + nik) - digamma(eta) );
+	}
       }
     }
+  } catch(string s) {
+    throw string("Error in etaGradient " + s) ;
   }
 }
+ 
 
 double DispersionSampler::getEnergy(double x){
   logeta[0] = x;
