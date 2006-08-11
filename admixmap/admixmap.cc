@@ -20,6 +20,7 @@
 MPI::Intracomm workers_and_master, workers_and_freqs;
 #endif
 
+#define ADMIXMAP_VERSION 3.5
 #define MAXNUMOPTIONS 50//maximum number of options specifiable.
 #define MAXOPTIONLENGTH 1024//maximum number of characters in an option line (excluding spaces)
 
@@ -466,7 +467,7 @@ int main( int argc , char** argv ){
 #endif
     }
     A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates").c_str());
-    if(options.getHapMixModelIndicator() && (rank == -1 || rank== 1)){
+    if(options.getHapMixModelIndicator() && !options.getFixedAlleleFreqs() && (rank == -1 || rank== 1)){
       Log << "Average expected Acceptance rate in allele frequency prior parameter sampler:\n" << A.getHapMixPriorSamplerAcceptanceRate()
 	  << "\nwith average final step size of " << A.getHapMixPriorSamplerStepSize() << "\n";
     }
@@ -852,7 +853,6 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
 void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
 		      const AdmixOptions *options, LogWriter& Log){
-
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
   if(options->getIndAdmixHierIndicator()  ){
@@ -911,7 +911,11 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
-      << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << ") **\n"
+      << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION
+#ifdef PARALLEL
+      << " (Parallel) "
+#endif
+      << ") **\n"
       << "-------------------------------------------------------\n";
   Log.setDisplayMode(Quiet);
   cout << "Copyright(c) 2002-2006 " << endl
@@ -984,8 +988,7 @@ void ThrowException(const string& msg, LogWriter & Log){
     Log << "\n" << msg << "\n Exiting...\n";
     Log.ProcessingTime();
 #ifdef PARALLEL//print error message to screen as only master is allowed write with LogWriter
-    int rank = MPI::COMM_WORLD.Get_rank();
-    if(rank>0)cerr << "rank " << rank << ": " << msg << endl;
+    if(rank>0)cerr << "rank " << MPI::COMM_WORLD.Get_rank() << ": " << msg << endl;
     MPI::COMM_WORLD.Abort(1);
 #else
     exit(1);
