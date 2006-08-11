@@ -64,18 +64,18 @@ distanceFromLast <- function(v.Chr, v.Position) {
 ## Start of script
 ## chromosome lengths in cM
 #chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-chr.L <- c(2, 2) ## trial runs with 2 chr
+chr.L <- c(20, 20) ## trial runs with 2 chr
 numChr <- length(chr.L)
 
 N <- 100
 K <- 4
 rhoalpha <-  40 # arrival rate per cM
-rhobeta0 <- 41
-rhobeta1 <- 40
+rhobeta0 <- 5
+rhobeta1 <- 4
 # mean r = rhoalpha*rhobeta1 / (rhobeta0 - 1)
 # var =  r (r + 1) / (rhobeta0 - 2) 
 
-spacing <- 0.01 # spacing in cM
+spacing <- 0.1#0.01 # spacing in cM
 
 ## assign map distances
 x <- numeric(0)
@@ -123,7 +123,7 @@ write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
 ## write locus file
 distances[is.na(distances)] <- 100
 loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  distances, row.names=NULL)
-dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distance")
+dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "DistanceincM")
 write.table(loci, file="data/loci.txt", row.names=FALSE)
 ## write allelefreqsfile
 freqstable <- numeric(K)
