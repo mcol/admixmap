@@ -245,8 +245,10 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.0, 10.0, 0.9);
     } else {//correlated allele freq model
       muSampler = new MuSampler[NumberOfCompositeLoci];
+
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
 	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.0, 10.0, 0.9);
+
       if(ETASAMPLER==2) {
 	EtaSampler = new DispersionSampler[dim];
 	int* NumStates;
@@ -254,10 +256,13 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	for(int i = 0; i < NumberOfCompositeLoci; ++i) {
 	  NumStates[i] = Loci->GetNumberOfStates(i);
 	}
-	EtaSampler[0].setDimensions(NumberOfCompositeLoci, Populations, NumStates, 
-				 0.001, 0.01, 1000.0, 0.9);
+	DispersionSampler::setDimensions(NumberOfCompositeLoci, Populations, NumStates);
 	delete[] NumStates;
+
+	EtaSampler[0].Initialise( 0.001, 0.01, 1000.0, 0.9);
+
 	EtaSampler[0].setEtaPrior(psi[0], tau[0]); 
+
       }
     }
     
