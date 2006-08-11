@@ -15,6 +15,11 @@
 #include "misc.h"
 using namespace::std;
 
+unsigned DispersionSampler::K;
+unsigned DispersionSampler::L;
+unsigned *DispersionSampler::NumStates;
+
+
 DispersionSampler::DispersionSampler(){
   Args.alpha = 0;
   Args.counts = 0;
@@ -22,6 +27,7 @@ DispersionSampler::DispersionSampler(){
 DispersionSampler::~DispersionSampler(){
   delete[] Args.counts;
   delete[] Args.alpha;
+  if(NumStates) delete[] NumStates;
 }
 
 /**
@@ -33,13 +39,15 @@ DispersionSampler::~DispersionSampler(){
    counts[i] has offset H[i]*k + h for count of h th state in k th experiment 
 */
 
-void DispersionSampler::setDimensions(unsigned inL, unsigned inK, int* const inH, double step0, 
-				      double min, double max, double target) {
+void DispersionSampler::setDimensions(unsigned inL, unsigned inK, int* const inH){
   L = inL;
   K = inK;
-  Args.L = L; 
-  Args.K = K; 
-  Args.H = inH; // pointer to array of numbers of states at each locus
+  NumStates = new unsigned[L];
+  for(unsigned i = 0; i < L; ++i)
+    NumStates[i] = inH[i];
+}
+
+void DispersionSampler::Initialise(double step0, double min, double max, double target) {
   Args.alpha = new const double*[L];
   Args.counts = new const int*[L]; 
   //set up Hamiltonian sampler
@@ -76,15 +84,14 @@ float DispersionSampler::getStepsize()const{
 }
 double DispersionSampler::etaEnergyFunction(const double* const logeta, const void* const vargs) {
   const EtaSamplerArgs* args = (const EtaSamplerArgs*)vargs;
-  int K = args->K; 
-  int L = args->L; 
+
   double E = 0.0;
   double eta = exp(logeta[0]);
   E += args->priorrate * eta - args->priorshape * logeta[0];  // minus log prior in log eta basis
-  for(int i = 0; i < L; ++i) {
-    for(int k = 0; k < K; ++k) {
+  for(unsigned i = 0; i < L; ++i) {
+    for(unsigned k = 0; k < K; ++k) {
       double nik = 0.0;//sum of counts over locus i, pop k
-      for(int h = 0; h < args->H[i]; ++h) { // loop over states
+      for(unsigned h = 0; h < NumStates[i]; ++h) { // loop over states
 	double alpha = args->alpha[i][h];
 	double count = args->counts[i][K*h + k];
 	if(count > 0) {
@@ -105,17 +112,16 @@ void DispersionSampler::etaGradient(const double* const logeta, const void* cons
   // alpha[h] = mu[h] * eta
   // d_alpha[h]/d_eta = mu[h] = alpha[h] / eta,  d_eta / d_logeta = eta
   // so we have d_E(alpha[h]])/ d_logeta = d_E / d_alpha[h] * alpha[h] 
-  int K = args->K;// Number of populations
-  int L = args->L;//number of loci
+
   double eta = exp(logeta[0]);
   g[0] =  args->priorrate * eta - args->priorshape; // gradient wrt logeta of minus log prior 
   try {
-    for(int i = 0; i < L; ++i) {
-      for(int k = 0; k < K; ++k) {
+    for(unsigned i = 0; i < L; ++i) {
+      for(unsigned k = 0; k < K; ++k) {
 	double nik = 0.0;//sum of counts for locus i, pop k
-	for(int h = 0; h < args->H[i]; ++h) {
+	for(unsigned h = 0; h < NumStates[i]; ++h) {
 	  double alpha = args->alpha[i][h];
-	  double count = args->counts[i][args->K*h + k];
+	  double count = args->counts[i][K*h + k];
 	  nik += count;
 	  if(count > 0) {
 	    g[0] += alpha * ( digamma(alpha) - digamma(count + alpha) );

@@ -18,9 +18,6 @@
 ///struct to hold the arguments for sampler for dispersion parameters
 typedef struct{
   const int** counts;
-  const int *H;
-  unsigned K;
-  unsigned L;
   const double** alpha;
   double priorshape;
   double priorrate;
@@ -33,7 +30,8 @@ public:
   DispersionSampler();
   ~DispersionSampler();
 
-  void setDimensions(unsigned inL, unsigned inK, int* const inH, double step0, double min, double max, double target);
+  void Initialise(double step0, double min, double max, double target);
+  static void setDimensions(unsigned inL, unsigned inK, int* const inH);
   void setEtaPrior(double, double);
   void addAlphas(unsigned, const double* const);
   void addCounts(unsigned, const int* const);
@@ -46,8 +44,9 @@ public:
 
 private:
   //dimensions
-  unsigned L;
-  unsigned K;//number of counts
+  static unsigned L;
+  static unsigned K;//number of counts
+  static unsigned *NumStates;
 
   double logeta[1];
   HamiltonianMonteCarlo Sampler;
