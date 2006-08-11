@@ -191,8 +191,8 @@ public:
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();
 
-  float getEtaRWSamplerAcceptanceRate(int k)const;
-  float getEtaRWSamplerStepsize(int k)const; 
+//   float getEtaRWSamplerAcceptanceRate(int k)const;
+//   float getEtaRWSamplerStepsize(int k)const; 
 
   float getAlphaSamplerAcceptanceRate(int)const;
   float getAlphaSamplerStepsize(int)const;

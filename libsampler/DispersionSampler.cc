@@ -88,11 +88,18 @@ double DispersionSampler::etaEnergyFunction(const double* const logeta, const vo
   double E = 0.0;
   double eta = exp(logeta[0]);
   E += args->priorrate * eta - args->priorshape * logeta[0];  // minus log prior in log eta basis
-  for(unsigned i = 0; i < L; ++i) {
-    for(unsigned k = 0; k < K; ++k) {
+  for(unsigned i = 0; i < L; ++i) { // loop over elements with same eta
+    for(unsigned k = 0; k < K; ++k) { // loop over elements with same alpha parameters
+
+      double scalefactor = 0.0;
+      for(unsigned h = 0; h < NumStates[i]; ++h) { // loop over states
+	scalefactor += args->alpha[i][h];
+      }
+      scalefactor = eta / scalefactor;
+
       double nik = 0.0;//sum of counts over locus i, pop k
       for(unsigned h = 0; h < NumStates[i]; ++h) { // loop over states
-	double alpha = args->alpha[i][h];
+	double alpha = args->alpha[i][h] * scalefactor; // rescale alpha to sum to eta
 	double count = args->counts[i][K*h + k];
 	if(count > 0) {
 	  E += lngamma(alpha) - lngamma(count + alpha);

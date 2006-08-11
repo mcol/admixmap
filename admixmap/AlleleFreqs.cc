@@ -55,7 +55,7 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci){
   Loci = pLoci;
   MuProposal = 0;
   TuneEtaSampler = 0;
-  w = 1;
+  w = 1; // frequency of tuning sampler
   NumberOfEtaUpdates  = 0;
   etastep = 0;
 #ifdef PARALLEL
@@ -231,11 +231,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       fill(tau, tau + dim, rate);
     }
 
-    w = 1;
-    etastep0 = 0.1; // sd of proposal distribution for log eta
-    etastep = new double[ dim ];
-    for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
-    NumberOfEtaUpdates = 0;
+    //w = 1;
     
     if(IsHistoricAlleleFreq) {
       // ** settings for sampling of proportion vector mu of prior on allele freqs
@@ -251,6 +247,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 
       if(ETASAMPLER==2) {
 	EtaSampler = new DispersionSampler[dim];
+
 	int* NumStates;
 	NumStates = new int[NumberOfCompositeLoci];
 	for(int i = 0; i < NumberOfCompositeLoci; ++i) {
@@ -259,8 +256,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	DispersionSampler::setDimensions(NumberOfCompositeLoci, Populations, NumStates);
 	delete[] NumStates;
 
-	EtaSampler[0].Initialise( 0.001, 0.01, 1000.0, 0.9);
-
+	EtaSampler[0].Initialise( 0.02, 0.01, 1000.0, 0.9);
 	EtaSampler[0].setEtaPrior(psi[0], tau[0]); 
 
       }
@@ -294,6 +290,10 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     }
     
     if(ETASAMPLER==1) {
+      etastep0 = 0.1; // sd of proposal distribution for log eta
+      etastep = new double[ dim ];
+      for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
+      NumberOfEtaUpdates = 0;
       TuneEtaSampler = new StepSizeTuner[ dim ];
       for( unsigned k = 0; k < dim; k++ )
 	TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
@@ -1007,7 +1007,7 @@ void AlleleFreqs::SampleDirichletParams() {
   }
 }
 
-void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
+void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta) {
   double etanew, LogPostRatio = 0.0, LogLikelihoodRatio = 0.0, LogPriorRatio = 0.0, AccProb = 0.0;
   double Denom = 0.0;
   double mineta = 0;
@@ -1023,16 +1023,16 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
   for(int j = 0; j < NumberOfCompositeLoci; j++ ){
     std::vector<double> mu = GetPriorAlleleFreqs(j,k);
     vector<double>::const_iterator it = min_element(mu.begin(), mu.end());
-
+    
     //mineta is a lower bound for proposal etanew
     if( mineta < 0.1 * eta[k] / *it )
       mineta = 0.1 * eta[k] / *it;
-
+    
     munew.push_back( mu );
     //rescale munew so munew sums to etanew
     for( unsigned l = 0; l < mu.size(); l++ )
       munew[j][l] *= etanew / eta[k];
-
+    
     const double *SumLogFreqs = GetStatsForEta(j,k);
     for( unsigned l = 0; (int)l < (*Loci)(j)->GetNumberOfStates(); l++ ){
       // Denominator of integrating constant
@@ -1048,7 +1048,7 @@ void AlleleFreqs::SampleEtaWithRandomWalk(int k, bool updateSumEta){
   if(LogPostRatio > 0.0)LogPostRatio = 0.0;
   AccProb = 0.0; 
   if(mineta < etanew )AccProb = xexp(LogPostRatio);
-
+  
 #ifdef DEBUGETA
   cout<< "eta["<<k<<"] = "<< eta[k]<<" eta* = "<<etanew<< " stepsize = "<<etastep[k]<<endl;
   cout << "LogPriorRatio= "<< LogPriorRatio <<" LogLikelihoodRatio= " << LogLikelihoodRatio <<endl
@@ -1505,25 +1505,30 @@ double ddfMu( double alpha, const void* const args ) {
   return f;
 }
 
-float AlleleFreqs::getEtaRWSamplerAcceptanceRate(int k)const{
-  return TuneEtaSampler[k].getExpectedAcceptanceRate();
+float AlleleFreqs::getEtaSamplerAcceptanceRate(int k)const{
+  if(ETASAMPLER == 1) {
+    return TuneEtaSampler[k].getExpectedAcceptanceRate();
+  } else {
+    return EtaSampler[k].getAcceptanceRate();
+  }
 }
-float AlleleFreqs::getEtaRWSamplerStepsize(int k)const{
-  return etastep[k];
+
+float AlleleFreqs::getEtaSamplerStepsize(int k)const{
+  if(ETASAMPLER==1) {
+    return etastep[k];
+  } else {
+    return EtaSampler[k].getStepsize();
+  }
 }
 
 float AlleleFreqs::getAlphaSamplerAcceptanceRate(int i)const{
   return muSampler[i].getAcceptanceRate();
 }
+
 float AlleleFreqs::getAlphaSamplerStepsize(int i)const{
   return muSampler[i].getStepsize();
 }
-float AlleleFreqs::getEtaSamplerAcceptanceRate(int i)const{
-  return EtaSampler[i].getAcceptanceRate();
-}
-float AlleleFreqs::getEtaSamplerStepsize(int i)const{
-  return EtaSampler[i].getStepsize();
-}
+
 float AlleleFreqs::getHapMixPriorSamplerAcceptanceRate()const{
   float sum = 0.0;
   for(int j = 0; j < NumberOfCompositeLoci; ++j)

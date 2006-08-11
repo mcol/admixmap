@@ -447,24 +447,22 @@ int main( int argc , char** argv ){
 	    Log << A.getAlphaSamplerAcceptanceRate(i) << " ";
 	}
 	Log<< "Expected acceptance rate in sampler for allele frequency dispersion parameter: \n";
-	Log << A.getEtaRWSamplerAcceptanceRate(0)
+	Log << A.getEtaSamplerAcceptanceRate(0)
 	    << "\nwith final step sizes of \n";
 	for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
 	  if(Loci(i)->GetNumberOfStates()>2)
 	    Log << A.getAlphaSamplerStepsize(i) << " " ;
 	}
-	Log <<  A.getEtaRWSamplerStepsize(0) << "\n" ;
+	Log <<  A.getEtaSamplerStepsize(0) << "\n" ;
       }
     
-#if ETASAMPLER ==1
       if( strlen( options.getHistoricalAlleleFreqFilename() )){
 	Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
-	for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaRWSamplerAcceptanceRate(k)<< " " ;}
+	for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaSamplerAcceptanceRate(k)<< " " ;}
 	Log << "\nwith final step sizes of ";
-	for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaRWSamplerStepsize(k) << " ";}
+	for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaSamplerStepsize(k) << " ";}
 	Log << "\n";
       }
-#endif
     }
     A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates").c_str());
     if(options.getHapMixModelIndicator() && !options.getFixedAlleleFreqs() && (rank == -1 || rank== 1)){
