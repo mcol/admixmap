@@ -185,16 +185,6 @@ Latent::~Latent()
   delete[] RhoSampler;
 }
 
-// void Latent::UpdateGlobalTheta(int iteration, IndividualCollection* individuals){
-//   if(options->getHapMixModelIndicator()){
-//     if(!(iteration%2))ConjugateUpdateGlobalTheta(individuals->getSumLocusAncestry(options->getPopulations()));
-//     else
-//       UpdateGlobalThetaWithRandomWalk(individuals); 
-//   }
-//   individuals->setAdmixtureProps(globaltheta, options->getPopulations());//shouldn't be necessary
-// }
-
-
 /** Samples for population admixture distribution Dirichlet parameters, alpha **
  For a model in which the distribution of individual admixture in the population is a mixture
  of components, we have one Dirichlet parameter vector for each component, 
@@ -311,93 +301,6 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
     if(sumlogrho )SumLogRho[0] += log(rhoalpha) - log(rhobeta);// accumulate sum of log of mean of sumintensities after burnin.
   }
 }
-
-// void Latent::ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry){
-//   //sumlocusancestry is summed over all individuals
-//   size_t K = options->getPopulations();
-//   double dirparams[K];
-//   for(size_t k = 0; k < K; ++k) {
-//     dirparams[k] = alpha[0][k] + sumLocusAncestry[k] + sumLocusAncestry[k + K];
-//   }
-//   Rand::gendirichlet(K, dirparams, globaltheta );
-// }
-
-// void Latent::UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC) {
-//   double LogLikelihoodRatio = 0.0;
-//   double LogPriorRatio = 0.0;
-//   double logpratio = 0.0;
-  
-//   //generate proposals
-//   // inverse softmax transformation from proportions to numbers on real line that sum to 0
-//   bool* b = new bool[K];
-//   double* a = new double[K]; // should be at class scope
-//   for(int k = 0; k < K; ++k) {
-//     if(globaltheta[k] > 0.0) {
-//       b[k] = true; //to skip elements set to zero
-//     } else b[k] = false;
-//   }
-//   inv_softmax(K, globaltheta, a, b);
-//   //random walk step - on all elements of array a
-//   for(int k = 0; k < K; ++k) {
-//     if( b[k] ) a[k] = Rand::gennor(a[k], thetastep);  
-//   }
-//   //reverse transformation from numbers on real line to proportions 
-//   softmax(K, globalthetaproposal, a, b);
-//   //compute contribution of this gamete to log prior ratio
-//   for(int k = 0; k < K; ++k) {
-//     if( b[k] ) { 
-//       // prior densities must be evaluated in softmax basis
-//       LogPriorRatio += alpha[0][k]*( log(globalthetaproposal[k]) - log(globaltheta[k]) ); 
-//     }
-//   }
-//   delete[] a;
-//   delete[] b; 
-
-//   vector<double> dummyrho(1);dummyrho[0] = rho[0];
-//   for(int i = 0; i < IC->getSize(); ++i){
-//     //get log likelihood at current parameter values - do not force update, store result of update
-//     LogLikelihoodRatio -= IC->getIndividual(i)->getLogLikelihood(options, false, true); 
-    
-//     //get log likelihood at proposal theta and current rho - force update 
-//     LogLikelihoodRatio += IC->getIndividual(i)->getLogLikelihood(options, globaltheta, globaltheta, dummyrho, dummyrho, true);
-//   }
-//   IC->HMMIsBad(true);
-
-//   logpratio = LogLikelihoodRatio + LogPriorRatio;// log ratio of full conditionals
-//   Accept_Reject_Theta(logpratio, K);
-// }
-
-// void Latent::Accept_Reject_Theta( double logpratio, int Populations) {
-//   // Metropolis update for admixture proportions theta, taking log of acceptance probability ratio as argument
-//   bool test = true;
-//   bool accept = false;
-//   double AccProb = 1.0; 
-//   // loop over populations: if any element of proposed parameter vector is too small, reject update without test step
-//   for( int k = 0; k < Populations; k++ ) {
-//     if( globaltheta[ k ] > 0.0 && globalthetaproposal[ k ] < 0.0001 ) {
-//       test = false;
-//     }
-//   }
-
-//   if(test) { // generic Metropolis step
-//     if( logpratio < 0 ) {
-//       AccProb = exp(logpratio); 
-//       if( Rand::myrand() < AccProb ) accept=true;
-//     } else {
-//       accept = true;
-//     }
-//   }
-  
-//   if(accept) { // set proposed values as new values    
-//     copy(globalthetaproposal, globalthetaproposal+K, globaltheta);
-//     //possibly need to reset loglikelihood in Individuals
-//   } 
-  
-//   //update step size in tuner object every w updates
-//   if( !( NumberOfUpdates % w ) ) {
-//     thetastep = ThetaTuner.UpdateStepSize( AccProb );
-//   }
-// }
 
 ///conjugate update of locus-specific sumintensities, conditional on observed numbers of arrivals
 void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, bool sumlogrho) {
@@ -530,24 +433,19 @@ if(rank!=0)
 
 ///energy function for sampling locus-specific sumintensities
 double Latent::RhoEnergy(const double* const x, const void* const vargs){
-  //x is the log of rho
+  //x is log rho
   const RhoArguments* args = (const RhoArguments*)vargs;
   unsigned K = args->NumPops;
   const double d = args->Distance;
-  //  const double* theta = args->theta;
   double theta = 1.0 / (double)K;
   double E = 0.0;
-
-  try{
+  try {
     double rho = myexp(*x);
     double f = myexp(-d*rho);
-    
     int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
-    
-    E -= sumnotequal * log(1.0-f);//constant term log(1-theta) omitted
+    E -= sumnotequal * log(1.0-f);//constant term in log(1-theta) omitted
     E -= sumequal * log(f + theta*(1.0 - f));
-    
-    //log prior
+    //log gamma-gamma prior
     E -= (args->rhoalpha) * (*x )- (args->rhoalpha*args->NumIntervals + args->rhobeta0) * mylog(args->rhobeta1 + (args->sumrho + rho));
   }
   catch(string s){
@@ -555,31 +453,30 @@ double Latent::RhoEnergy(const double* const x, const void* const vargs){
   }
   return E; 
 }
+
 ///gradient function for sampling locus-specific sumintensities
 void Latent::RhoGradient( const double* const x, const void* const vargs, double* g ){
   const RhoArguments* args = (const RhoArguments*)vargs;
   unsigned K = args->NumPops;
   const double d = args->Distance;
-  //  const double* theta = args->theta;
   double theta = 1.0 / (double)K;
-
   g[0] = 0.0;
-  try{
+  try {
     double rho = myexp(*x);
     double f = myexp(-d*rho);
     //first compute dE / df
     int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
-    
-    g[0] +=  sumnotequal / (1.0-f) - (1.0 - theta)*(sumequal / (f + theta*(1.0 - f))  );
-    g[0] *= -rho*d*f;//jacobian (df / d x )
+    g[0] +=  sumnotequal / (1.0 - f) - sumequal * (1.0 - theta) / (f + theta*(1.0 - f));
+    g[0] *= -rho*d*f; // df / dx 
     
     //derivative of log prior wrt log rho
-    g[0] -= args->rhoalpha - rho*(args->rhoalpha*args->NumIntervals + args->rhobeta0) / (args->rhobeta1 + args->sumrho + rho);
-  }
-  catch(string s){
+    g[0] -= args->rhoalpha 
+      - rho*(args->rhoalpha*args->NumIntervals + args->rhobeta0) / (args->rhobeta1 + args->sumrho + rho);
+  } catch(string s) {
     throw string("Error in RhoGradient: " + s);
   }
 }
+
 ///energy function for sampling prior params of locus-specific sumintensities
 double Latent::RhoPriorParamsEnergy(const double* const x, const void* const vargs){
   //here, x has length 3 with elements log rhoalpha, log rhobeta0, log rhobeta1

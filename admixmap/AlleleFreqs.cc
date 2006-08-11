@@ -256,7 +256,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	DispersionSampler::setDimensions(NumberOfCompositeLoci, Populations, NumStates);
 	delete[] NumStates;
 
-	EtaSampler[0].Initialise( 0.02, 0.01, 1000.0, 0.9);
+	EtaSampler[0].Initialise( 0.05, 0.01, 1000.0, 0.9);
 	EtaSampler[0].setEtaPrior(psi[0], tau[0]); 
 
       }
