@@ -97,10 +97,18 @@ AlleleFreqs::~AlleleFreqs(){
   delete[] SumEta;
   delete[] MuProposal;
 
-#if ETASAMPLER ==1
+#if ETASAMPLER == 1 
+if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs ) {
   delete[] etastep;
   delete[] TuneEtaSampler;
+}
+#elif ETASAMPLER == 2
+if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs ) {
+  delete[] etastep;
+  delete[] EtaSampler;
+}
 #endif
+
 #ifdef PARALLEL
   delete[] globalAlleleCounts;
   delete[] globalHetCounts;
@@ -186,25 +194,13 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   if(options->getChibIndicator())
       setAlleleFreqsMAP();
   
+
   // ** settings for sampling of dispersion parameter **
-  if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs){
+  if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs) {
     unsigned dim = 1;
-    if(IsHistoricAlleleFreq){
+    if(IsHistoricAlleleFreq) {
       dim = Populations;
-      
-      // ** settings for sampling of proportion vector mu of prior on allele freqs
-      muSampler = new MuSampler[dim*NumberOfCompositeLoci]; // 
-      for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	for(int k = 0; k < Populations; ++k)
-	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.0, 10.0, 0.9);
-    }
-    else{//correlated allele freq model
-      dim = 1;
-      muSampler = new MuSampler[NumberOfCompositeLoci];
-      for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.0, 10.0, 0.9);
-    }
-    
+    } 
     // ** dispersion parameter(s) and priors **
     eta = new double[ dim ];//dispersion parameters
     psi = new double[ dim ];//gamma prior shape parameter
@@ -213,15 +209,15 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     
     //NOTE: if DispersionSampler is used to sample eta in both historic and correlated allele freq models, we don't need to
     //store psi and tau here, just pass the values to the sampler
-
-
+    
+    
     // ** set eta priors **
     if( strlen(options->getEtaPriorFilename()) ){
       //specified by user in file
       Log << "Loading gamma prior parameters for allele frequency dispersion from "
 	  << options->getEtaPriorFilename() << ".\n";
       const DataMatrix& etaprior = data->getEtaPriorMatrix();
-
+      
       for( unsigned k = 0; k < dim; k++ ){
 	psi[k] = etaprior.get( k, 0 );
 	tau[k] = etaprior.get( k, 1 );
@@ -230,11 +226,42 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     else{//specified by user, otherwise default of psi = 3.0, tau = 0.01
       double rate = options->getEtaMean() / options->getEtaVar();
       double shape = rate *options->getEtaMean();
-  
+      
       fill(psi, psi + dim, shape);
       fill(tau, tau + dim, rate);
     }
 
+    w = 1;
+    etastep0 = 0.1; // sd of proposal distribution for log eta
+    etastep = new double[ dim ];
+    for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
+    NumberOfEtaUpdates = 0;
+    
+    if(IsHistoricAlleleFreq) {
+      // ** settings for sampling of proportion vector mu of prior on allele freqs
+      muSampler = new MuSampler[dim*NumberOfCompositeLoci]; // 
+      for(int i = 0; i < NumberOfCompositeLoci; ++i)
+	for(int k = 0; k < Populations; ++k)
+	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.0, 10.0, 0.9);
+    } else {//correlated allele freq model
+      muSampler = new MuSampler[NumberOfCompositeLoci];
+      for(int i = 0; i < NumberOfCompositeLoci; ++i)
+	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.0, 10.0, 0.9);
+      if(ETASAMPLER==2) {
+	EtaSampler = new DispersionSampler[dim];
+	int* NumStates;
+	NumStates = new int[NumberOfCompositeLoci];
+	for(int i = 0; i < NumberOfCompositeLoci; ++i) {
+	  NumStates[i] = Loci->GetNumberOfStates(i);
+	}
+	EtaSampler[0].setDimensions(NumberOfCompositeLoci, Populations, NumStates, 
+				 0.001, 0.01, 1000.0, 0.9);
+	delete[] NumStates;
+	EtaSampler[0].setEtaPrior(psi[0], tau[0]); 
+      }
+    }
+    
+    
     if(IsHistoricAlleleFreq){
       Log << "Gamma prior on dispersion parameters with means and variances:\n";
       for( int k = 0; k < Populations; k++ ){
@@ -248,8 +275,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	  << psi[0]/tau[0] << "  " << psi[0]/(tau[0]*tau[0]) << "\n";
     }
     Log << "\n";
-  
-
+     
     for( unsigned k = 0; k < dim; k++ ){
       //Initialise eta at its prior expectation
       eta[k] = psi[k]/tau[k];
@@ -261,17 +287,13 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	for(int s = 0; s < NumberOfStates; ++s)PriorParams[j][k*NumberOfStates+s]*= eta[k] / sum;
       }
     }
-
-    // ** Settings for random walk sampler
-    w = 1;
-    etastep0 = 0.1; // sd of proposal distribution for log eta
-    etastep = new double[ dim ];
-    for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
-    NumberOfEtaUpdates = 0;
-    TuneEtaSampler = new StepSizeTuner[ dim ];
-    for( unsigned k = 0; k < dim; k++ )
-      TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
-
+    
+    if(ETASAMPLER==1) {
+      TuneEtaSampler = new StepSizeTuner[ dim ];
+      for( unsigned k = 0; k < dim; k++ )
+	TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
+    }
+    
     // ** Open output file for eta **
     if ( options->getIndAdmixHierIndicator()){
       if (strlen( options->getEtaOutputFilename() ) ){
@@ -286,8 +308,8 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     if( options->getOutputFST() ){
       OpenFSTFile(options,Log);
     }
-  }//end if dispersion parameter
-
+  } //end if dispersion parameter
+  
 }
 
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_)
@@ -549,14 +571,13 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i){
 // ************************** Sampling and Updating *****************************************
 /// samples allele frequencies and prior parameters.
 void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
-  // Sample for prior frequency parameters mu, using eta, the sum of the frequency parameters for each locus.
-
+  // Sample prior parameters
   if(HapMixPriorParams){
     SampleHapMixPriorParams();
     if(afterBurnIn)SumLambda += HapMixPriorRate;
   }
   else
-    if(IsHistoricAlleleFreq ){ // should redo this to use class DirichletParamSampler 
+    if(IsHistoricAlleleFreq ){ // TODO: use class DirichletParamSampler 
       for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 	if( Loci->GetNumberOfStates(i) == 2 )
 	  SampleDirichletParams1D( i);
@@ -573,10 +594,12 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
+    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER) {
       if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
-	FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, coolness);
-      else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, coolness);
+	FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, 
+				       coolness);
+      else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, 
+					     coolness);
     }
     else if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
       SampleAlleleFreqs(i, coolness);
@@ -600,8 +623,10 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   }
   else if(CorrelatedAlleleFreqs){
     NumberOfEtaUpdates++;
+    if(ETASAMPLER == 1) { // random walk metropolis
     SampleEtaWithRandomWalk(0, afterBurnIn);
-    //if(!(NumberOfEtaUpdates % 100))TuneEtaSampler[0].Reset();
+    } // otherwise eta will be sampled in sampleDirichletParams
+      
   }
 
   if( calculateFST && afterBurnIn && IsHistoricAlleleFreq ){
@@ -648,14 +673,12 @@ void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancest
       ++AlleleCounts[locus][h[0]*Populations + ancestry[0]];
       if(diploid)++AlleleCounts[locus][h[1]*Populations + ancestry[1]];
     }
+  } else {
+    AlleleCounts[locus][ h[0]*Populations + ancestry[0] ]++;
+    if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[1] ]++;
+    //if haploid(ie diploid = false), h[0]==h[1]==genotypes[locus] and ancestry[0]==ancestry[1]
+    //and we only count once
   }
-  else
-    {
-      AlleleCounts[locus][ h[0]*Populations + ancestry[0] ]++;
-      if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[1] ]++;
-      //if haploid(ie diploid = false), h[0]==h[1]==genotypes[locus] and ancestry[0]==ancestry[1]
-      //and we only count once
-    }
 }
 
 void AlleleFreqs::resetStepSizeApproximator(int k) {
@@ -727,7 +750,7 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
       temp[s] = PriorParams[i][c*j*NumStates + s] + coolness*AlleleCounts[i][s*Populations +j];
     Rand::gendirichlet(NumStates, temp, Freqs[i]+j*NumStates);
 
-    // sample HistoricAlleleFreqs as a conjugate Dirichlet update with prior specified by PriorAlleleFreqs
+    // sample HistoricAlleleFreqs as conjugate Dirichlet update with prior specified by PriorParams
     if( IsHistoricAlleleFreq ){
       for(unsigned s = 0; s < NumStates; ++s)
 	temp[s] = PriorParams[i][c*j*NumStates + s] + HistoricAlleleCounts[i][s*Populations+j];
@@ -917,7 +940,7 @@ void AlleleFreqs::SampleDirichletParams1D( int locus)
 }
 
 ///sampling of Dirichlet parameters for allelefreqs in historic or correlated allele freq model
-void AlleleFreqs::SampleDirichletParams(){
+void AlleleFreqs::SampleDirichletParams() {
   if(IsHistoricAlleleFreq){
     for(int k = 0; k < Populations; ++k){
       for(int i = 0; i < NumberOfCompositeLoci; ++i){
@@ -952,25 +975,30 @@ void AlleleFreqs::SampleDirichletParams(){
     }
   }
   
-  else if(CorrelatedAlleleFreqs){
+  else if(CorrelatedAlleleFreqs) {
     for(int i = 0; i < NumberOfCompositeLoci; ++i){
       muSampler[i].Sample(PriorParams[i], eta[0], AlleleCounts[i]);
-      //EtaSampler[0].addAlphas(i, PriorParams[i]);
-      //EtaSampler[0].addCounts(i, AlleleCounts[i]);
+    }
+
+    if(ETASAMPLER == 2) { // hamiltonian sampler
+      for(int i = 0; i < NumberOfCompositeLoci; ++i) {
+	EtaSampler[0].addAlphas(i, PriorParams[i]);
+	EtaSampler[0].addCounts(i, AlleleCounts[i]);
+      }
+      eta[0] = EtaSampler[0].Sample();
+      SumEta[0] += eta[0];
+      //rescale PriorParams so they sum to eta
+      for( int i = 0; i < NumberOfCompositeLoci; ++i ) {
+	int NumberOfStates = Loci->GetNumberOfStates(i);
+	double sum = accumulate(PriorParams[i], PriorParams[i]+NumberOfStates, 0.0, 
+				std::plus<double>());
+	sum = eta[0] / sum;
+	for(int t = 0; t < NumberOfStates; ++t) {
+	  PriorParams[i][t] *= sum;
 	}
+      }
+    }
 
-    //sample eta
-    //eta[0] = EtaSampler[0].Sample();
-    //SumEta[0] += eta[0];
-
-    //rescale PriorParams so they sum to eta
-    //for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    //double sum = accumulate(PriorParams[i], PriorParams[i]+NumberOfStates, 0.0, std::plus<double>());
-    //sum = eta[0] / sum;
-    //for(int t = 0; t < NumberOfStates; ++t){
-    //PriorParams[i][t] *= sum;
-    //}
-    //}
   }
 }
 
