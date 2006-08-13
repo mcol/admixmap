@@ -40,16 +40,24 @@ class IndividualCollection;
 ///Struct to hold arguments for sampling sumintensities in hapmixmodel
 typedef struct {
   unsigned NumPops;
-  unsigned NumIntervals;
+  unsigned NumIntervals; // ? necessary
   const int* SumAncestry;
   double Distance;
   const double* theta;
   double rhoalpha;
   double rhobeta0;
   double rhobeta1; 
-  double sumrho;
-  double sumlogrho;
+
+  double sumrho; // ? necessary
+  double sumlogrho; // ? necessary
 }RhoArguments;
+
+///Struct to hold arguments for sampling hyperparameters of sumintensities in hapmixmodel
+typedef struct {
+  unsigned NumIntervals;
+  std::vector<double> rho;
+  double sumlogrho;
+}RhoPriorArguments;
 
 ///Class to hold and update population admixture and sumintensities parameters and their priors
 class Latent
@@ -86,8 +94,8 @@ public:
   const vector<double>& getrho()const;
   const vector<double>& getSumLogRho()const;
   const double *getpoptheta()const;
-    const double* getGlobalTheta()const;
-
+  const double* getGlobalTheta()const;
+  
   void printAcceptanceRates(LogWriter &Log);
   
   float getAlphaSamplerAcceptanceRate()const;
@@ -100,7 +108,6 @@ public:
 private:
   
   double sampleForRho();
-  
   void OpenOutputFiles();
   
   /*
@@ -116,6 +123,7 @@ private:
   std::vector<double> SumLogRho; //ergodic sum of log(rho)
 
   RhoArguments RhoArgs;
+  RhoPriorArguments RhoPriorArgs;
   HamiltonianMonteCarlo* RhoSampler;
   HamiltonianMonteCarlo RhoPriorParamSampler;
   
@@ -127,9 +135,7 @@ private:
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
   std::vector<double> SumAlpha; //ergodic sums of alphas
   //sampler for alpha
-  
   DirichletParamSampler PopAdmixSampler;
-
   double *poptheta;    //ergodic average of population admixture, used to centre the values of individual admixture 
                        //in the regression model
 
