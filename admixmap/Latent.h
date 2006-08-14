@@ -43,19 +43,19 @@ typedef struct {
   unsigned NumIntervals; // ? necessary
   const int* SumAncestry;
   double Distance;
-  const double* theta;
+  //const double* theta;
   double rhoalpha;
   double rhobeta0;
   double rhobeta1; 
 
-  double sumrho; // ? necessary
-  double sumlogrho; // ? necessary
+//   double sumrho; // ? necessary
+//   double sumlogrho; // ? necessary
 }RhoArguments;
 
 ///Struct to hold arguments for sampling hyperparameters of sumintensities in hapmixmodel
 typedef struct {
   unsigned NumIntervals;
-  std::vector<double> rho;
+  const std::vector<double>* rho;
   double sumlogrho;
 }RhoPriorArguments;
 
