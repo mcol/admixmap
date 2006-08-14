@@ -659,17 +659,17 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
     // Regression parameters
     if( options->getNumberOfOutcomes() > 0 ){
       for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
-	*avgstream << "\tintercept";
+	*avgstream << "\tintercept\t";
 
 	//write covariate labels to header
-	copy( CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>("\t", *avgstream) ); 
+	copy( CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(*avgstream, "\t") ); 
 
 	if( individuals->getOutcomeType(r)==Continuous )//linear regression
-	  *avgstream << "\tprecision";
+	  *avgstream << "precision\t";
       }
-    }
+    } else  *avgstream << "\t";
 
-    *avgstream << "\tMeanDeviance\tVarDeviance";
+    *avgstream << "MeanDeviance\tVarDeviance";
     if(options->getChibIndicator()){// chib calculation
       *avgstream << "\tLogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
 		 << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
