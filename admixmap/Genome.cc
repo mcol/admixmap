@@ -366,12 +366,21 @@ unsigned Genome::getFirstXLocus()const{
 
 ///set global locus correlation across all chromosomes, case of vector-valued rho
 void Genome::SetLocusCorrelation(const vector<double> rho){
-  for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-    //in case of global rho model (rho has length 1), sets f globally across loci
-    //in hapmixmodel, sets locus-specific f
-    C[j]->SetLocusCorrelation(rho, (rho.size()==1), false);
+  if(rho.size()==1) 
+    for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
+      //in case of global rho model (rho has length 1), sets f globally across loci
+      C[j]->SetLocusCorrelation(rho, true, false);
+  }
+  else{      //in hapmixmodel, sets locus-specific f
+    if(rho.size()<NumberOfCompositeLoci-NumberOfChromosomes)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
+    vector<double>::const_iterator rho_iter = rho.begin();
+    for( unsigned int j = 0 ; j < NumberOfChromosomes; j++ ) {
+      C[j]->SetLocusCorrelation(rho_iter);
+      rho_iter += C[j]->GetSize()-1;
+    }
   }
 }
+
 ///set global locus correlation across all chromosomes, case of global rho
 void Genome::SetLocusCorrelation(double rho){
   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {

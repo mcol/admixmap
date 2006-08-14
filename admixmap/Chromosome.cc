@@ -105,12 +105,11 @@ unsigned int Chromosome::GetNumberOfCompositeLoci()const
 // ****************** Setting of locus correlation, f *************************
 
 ///Sets locus ancestry correlations f for locus-specific rho.
-void Chromosome::SetLocusCorrelation(const vector<double> rho_){
-  if(rho_.size()<NumberOfCompositeLoci)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
+void Chromosome::SetLocusCorrelation(const vector<double>::const_iterator rho_iter){
   for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
-    double rho = rho_[j+_startLocus];
+    double rho = *(rho_iter + j -1);//rho_[j +_startLocus];
     if(isX)rho *= 0.5;
-    f[2*j] = f[2*j + 1] =myexp( -GetDistance( j ) * rho );
+    f[2*j] = f[2*j + 1] = myexp( -GetDistance( j ) * rho );
   }
 }
 
@@ -149,9 +148,9 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
 
       }
     }
-    else{//locus-specific
-      SetLocusCorrelation(rho_);
-    }
+    //else{//locus-specific
+    //SetLocusCorrelation(rho_);
+    //}
   }
 }
 
