@@ -662,7 +662,7 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	*avgstream << "\tintercept";
 
 	//write covariate labels to header
-	copy( CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>("\t", *avgstream, ) ); 
+	copy( CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>("\t", *avgstream) ); 
 
 	if( individuals->getOutcomeType(r)==Continuous )//linear regression
 	  *avgstream << "\tprecision";
