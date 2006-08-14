@@ -639,27 +639,27 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	  for( int i = 0; i < options->getPopulations(); i++ ){
 	    *avgstream << PopulationLabels[i] << "\t";
 	  }
-	if( options->isGlobalRho() ) *avgstream << "sumIntensities";
+	if( options->isGlobalRho() ) *avgstream << "sumIntensities\t";
 	else *avgstream << "sumIntensities.mean";
       }
       
       // dispersion parameters
-      if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+      if( strlen(options->getHistoricalAlleleFreqFilename()) || options->getCorrelatedAlleleFreqs() ) {
 	for( int k = 0; k < options->getPopulations(); k++ ){
-	  *avgstream << "\teta" << k;
+	  *avgstream << "eta\t" << k;
 	}
       }
     }//end if hierarchical model
 
     //rate parameter of prior on frequency Dirichlet prior params
     if(options->getHapMixModelIndicator()){
-      *avgstream << "\tFreqPriorRate"; 
+      *avgstream << "FreqPriorRate\t"; 
     }
 
     // Regression parameters
     if( options->getNumberOfOutcomes() > 0 ){
       for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
-	*avgstream << "\tintercept\t";
+	*avgstream << "intercept\t";
 
 	//write covariate labels to header
 	copy( CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(*avgstream, "\t") ); 
@@ -667,7 +667,7 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	if( individuals->getOutcomeType(r)==Continuous )//linear regression
 	  *avgstream << "precision\t";
       }
-    } else  *avgstream << "\t";
+    } 
 
     *avgstream << "MeanDeviance\tVarDeviance";
     if(options->getChibIndicator()){// chib calculation

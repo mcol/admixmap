@@ -1288,16 +1288,16 @@ void AlleleFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)
   if( IsHistoricAlleleFreq ){
     for( int j = 0; j < Populations; j++ ){
       avgstream->width(9);
-      *avgstream << setprecision(6) << SumEta[j] / samples << " ";
+      *avgstream << setprecision(6) << SumEta[j] / samples << "\t";
     }
   }
   else if(CorrelatedAlleleFreqs){
     avgstream->width(9);
-    *avgstream << setprecision(6) << SumEta[0] / samples << " ";
+    *avgstream << setprecision(6) << SumEta[0] / samples << "\t";
   }
   else if (SumLambda >0){
     avgstream->width(9);
-    *avgstream << setprecision(6) << SumLambda / samples << " ";
+    *avgstream << setprecision(6) << SumLambda / samples << "\t";
   }
 }
 
