@@ -639,39 +639,39 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	  for( int i = 0; i < options->getPopulations(); i++ ){
 	    *avgstream << PopulationLabels[i] << "\t";
 	  }
-	if( options->isGlobalRho() ) *avgstream << "sumIntensities\t";
-	else *avgstream << "sumIntensities.mean\t";
+	if( options->isGlobalRho() ) *avgstream << "sumIntensities";
+	else *avgstream << "sumIntensities.mean";
       }
       
       // dispersion parameters
       if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
 	for( int k = 0; k < options->getPopulations(); k++ ){
-	  *avgstream << "eta" << k << "\t";
+	  *avgstream << "\teta" << k;
 	}
       }
     }//end if hierarchical model
 
     //rate parameter of prior on frequency Dirichlet prior params
     if(options->getHapMixModelIndicator()){
-      *avgstream << "FreqPriorRate\t"; 
+      *avgstream << "\tFreqPriorRate"; 
     }
 
     // Regression parameters
     if( options->getNumberOfOutcomes() > 0 ){
       for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
-	*avgstream << "intercept\t";
+	*avgstream << "\tintercept";
 
 	//write covariate labels to header
-	copy(CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(*avgstream, "\t")); 
+	copy( CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>("\t", *avgstream, ) ); 
 
 	if( individuals->getOutcomeType(r)==Continuous )//linear regression
-	  *avgstream << "precision\t";
+	  *avgstream << "\tprecision";
       }
     }
 
-    *avgstream << "MeanDeviance\tVarDeviance\t";
+    *avgstream << "\tMeanDeviance\tVarDeviance";
     if(options->getChibIndicator()){// chib calculation
-      *avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
+      *avgstream << "\tLogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
 		 << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
     }
     *avgstream << "\n";
@@ -903,7 +903,7 @@ void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnerg
   double EAvDeviance, EVarDeviance;
   EAvDeviance = 2.0*SumEnergy / (double) samples;//ergodic average of deviance
   EVarDeviance = 4.0 * SumEnergySq / (double)samples - EAvDeviance*EAvDeviance;//ergodic variance of deviance 
-  *avgstream << EAvDeviance << " "<< EVarDeviance <<" ";
+  *avgstream << EAvDeviance << "\t"<< EVarDeviance << "\t";
 }
 void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
