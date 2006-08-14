@@ -642,15 +642,19 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	if( options->isGlobalRho() ) *avgstream << "sumIntensities\t";
 	else *avgstream << "sumIntensities.mean";
       }
-      
-      // dispersion parameters
-      if( strlen(options->getHistoricalAlleleFreqFilename()) || options->getCorrelatedAlleleFreqs() ) {
-	for( int k = 0; k < options->getPopulations(); k++ ){
-	  *avgstream << "eta\t" << k;
-	}
+    } //end if hierarchical model
+    
+    // dispersion parameter 
+    if( strlen(options->getHistoricalAlleleFreqFilename()) ) {
+      for( int k = 0; k < options->getPopulations(); k++ ){
+	*avgstream << "eta" << k << "\t";
       }
-    }//end if hierarchical model
-
+    }
+    
+    if( options->getCorrelatedAlleleFreqs() ) {
+      *avgstream << "eta\t";
+    }
+    
     //rate parameter of prior on frequency Dirichlet prior params
     if(options->getHapMixModelIndicator()){
       *avgstream << "FreqPriorRate\t"; 
