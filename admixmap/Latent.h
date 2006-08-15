@@ -56,6 +56,8 @@ typedef struct {
 typedef struct {
   unsigned NumIntervals;
   const std::vector<double>* rho;
+  const double* priormeans;
+  const double* priorvars;
   double sumlogrho;
 }RhoPriorArguments;
 
@@ -110,11 +112,7 @@ private:
   double sampleForRho();
   void OpenOutputFiles();
   
-  /*
-   * rho is the sumofintensities parameter. It has a beta prior with shape and scale parameters rhoalpha and rhobeta.
-   * rhobeta has a beta hyperprior with parameters rhobeta0 and rhobeta1
-   */
-  int K;
+  int K;///< number of subpopulations
   std::vector<double> rho;
   double rhoalpha;
   double rhobeta; 
