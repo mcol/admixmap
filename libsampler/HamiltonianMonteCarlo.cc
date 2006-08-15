@@ -27,6 +27,7 @@ HamiltonianMonteCarlo::HamiltonianMonteCarlo(){
   g = 0;
   gnew = 0;
   p = 0;
+  monitor=false;
 }
 
 HamiltonianMonteCarlo::~HamiltonianMonteCarlo(){
@@ -34,6 +35,7 @@ HamiltonianMonteCarlo::~HamiltonianMonteCarlo(){
   delete[] xnew;
   delete[] gnew;
   delete[] g;
+  if(outfile.is_open())outfile.close();
 }
 
 ///set dimensions
@@ -51,6 +53,11 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double
   gnew = new double[dim];
 
   Tuner.SetParameters( epsilon, min, max, target);
+}
+
+void HamiltonianMonteCarlo::ActivateMonitoring(const char* filename){
+  monitor=true;
+  outfile.open(filename);
 }
 
 void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
@@ -102,6 +109,12 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
       for(unsigned i = 0; i < dim; ++i) {p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
 	//cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
       }
+      if(monitor){
+	outfile << findE(xnew, args);
+	for(unsigned i = 0; i < dim; ++i)
+	  outfile << "\t" << xnew[i] << "\t" << gnew[i];
+	outfile << std::endl;
+      }
     }
 
     sumpsq = 0.0;
@@ -129,7 +142,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   if(Enew !=-1.0){// -1 means an error in calculation of energy function
       Hnew = sumpsq *0.5 + Enew ;
       dH = Hnew - H ; // Decide whether to accept
-      //cout << dH << " " << E << " " << Enew << " ";
+      //cout << "dH = " << dH << " E= " << E << " Enew= " << Enew << " ";
       if ( dH < 0.0 ) {accept = true ;AccProb = 1.0;}
       else {
 	AccProb = exp(-dH);

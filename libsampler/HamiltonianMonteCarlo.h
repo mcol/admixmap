@@ -11,6 +11,7 @@
  */
 #ifndef HMC_H
 #define HMC_H 1
+#include <fstream>
 #include <iostream>
 #include <stdlib.h>
 #include <vector>
@@ -41,6 +42,7 @@ public:
   ///returns current stepsize
   float getStepsize()const;
   void resetStepSizeApproximator(int k);
+  void ActivateMonitoring(const char* filename);
 
 private:
   double (*findE)(const double* const theta, const void* const args); 
@@ -54,6 +56,8 @@ private:
   long totalsamples;//  "        "      "     "   "    "  in total
   StepSizeTuner Tuner;
 
+  bool monitor;
+  std::ofstream outfile;
   HamiltonianMonteCarlo(const HamiltonianMonteCarlo&);
   HamiltonianMonteCarlo& operator=(const HamiltonianMonteCarlo);
 
