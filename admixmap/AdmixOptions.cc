@@ -101,8 +101,8 @@ void AdmixOptions::Initialise(){
 
   //prior on frequency Dirichlet prior params in hapmixmodel
   allelefreqprior.push_back(0.01);//shape
-  allelefreqprior.push_back(3.0);//prior shape of rate
-  allelefreqprior.push_back(2.0);//prior rate of rate
+  allelefreqprior.push_back(0.1);//prior shape of rate
+  allelefreqprior.push_back(1.0);//prior rate of rate
 
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
   EYFilename = "ExpectedOutcomes.txt";
@@ -131,6 +131,8 @@ void AdmixOptions::Initialise(){
   // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
   // effective prior mean is 6*4/(5-1) = 6 and effective prior variance is 6*7 / (5-2) = 14
   useroptions["sumintensitiesprior"] = "6.0,5.0,4.0";
+  useroptions["hapmixrhopriormeans"] = "8, 8, 1.4";
+  useroptions["hapmixrhopriorvars"] = "1000, 1000, 1000";
   useroptions["seed"] = "1";
   useroptions["regressionpriorprecision"] = "0.25";
 }
@@ -418,6 +420,12 @@ double AdmixOptions::getRhobetaShape()const{
 double AdmixOptions::getRhobetaRate()const{
   return rhoPrior[2];
 }
+const std::vector<double> &AdmixOptions::getHapMixRhoPriorMeans()const{
+  return hapmixrhopriormeans;
+}
+const std::vector<double> &AdmixOptions::getHapMixRhoPriorVars()const{
+  return hapmixrhopriorvars;
+}
 double AdmixOptions::getEtaMean() const{
   return etamean;
 }
@@ -703,6 +711,8 @@ void AdmixOptions::SetOptions()
   Options["etapriorfile"] = OptionPair(&EtaPriorFilename, "string");
   Options["globalsumintensitiesprior"] = OptionPair(&globalrhoPrior, "dvector");
   Options["sumintensitiesprior"] = OptionPair(&rhoPrior, "dvector");
+  Options["hapmixrhopriormeans"] = OptionPair(&hapmixrhopriormeans, "dvector");
+  Options["hapmixrhopriorvars"] = OptionPair(&hapmixrhopriorvars, "dvector");
   Options["allelefreqprior"] = OptionPair(&allelefreqprior, "dvector");
   Options["etapriormean"] = OptionPair(&etamean, "double");
   Options["etapriorvar"] = OptionPair(&etavar, "double");
@@ -733,13 +743,13 @@ void AdmixOptions::SetOptions()
   Options["testgenotypesfile"] = OptionPair(0, "null");
   Options["locusfortest"] = OptionPair(&LocusForTest, "int");
   // Other options
-  Options["numannealedruns"] = OptionPair(&NumAnnealedRuns, "int");
-  Options["displaylevel"] = OptionPair(&displayLevel, "int");
-  Options["seed"] = OptionPair(&Seed, "long");
-  Options["chib"] = OptionPair(&chibIndicator, "bool");
-  Options["thermo"] = OptionPair(&thermoIndicator, "bool");
-  Options["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");
-  Options["checkdata"] = OptionPair(&checkData, "bool");
+  Options["numannealedruns"] = OptionPair(&NumAnnealedRuns, "int");// number of coolnesses 
+  Options["displaylevel"] = OptionPair(&displayLevel, "int");// output detail, 0 to 3
+  Options["seed"] = OptionPair(&Seed, "long");// random number seed
+  Options["chib"] = OptionPair(&chibIndicator, "bool");// Marginal likelihood by Chib algo
+  Options["thermo"] = OptionPair(&thermoIndicator, "bool");// Marginal likelihood by thermodynamic integration
+  Options["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");// ML for one individual in a collection 
+  Options["checkdata"] = OptionPair(&checkData, "bool");// set to 0 to skip some data checks
   //old options - do nothing but kept for backward-compatibility with old scripts
   Options["analysistypeindicator"] = OptionPair(0, "old");
   Options["coutindicator"] = OptionPair(0, "old");
@@ -894,7 +904,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     GlobalRho = false; useroptions["globalrho"] = "0";
   }
   else {
-    // **** Random Mating Model **** 
+    // **** Mating Model **** 
     if(RandomMatingModel )
       Log << "Model assuming random mating.\n";
     else 
@@ -930,31 +940,9 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       }
     }
   }
-
-  if( !HapMixModelIndicator && (GlobalRho || !IndAdmixHierIndicator ) ) {
-    Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
-	<< "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
-    Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
-    Log << "Effective prior variance of sum-intensities is " 
-	<< globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << "\n";
-    useroptions.erase("sumintensitiesprior") ;
-  } else {  
-    double rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
-    Log << "Population prior distribution of sum-intensities specified as Gamma with shape parameter "
-	<< rhoPrior[0] << "\n"
-	<< "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
-	<< rhoPrior[1] << " & "
-	<< rhoPrior[2] << "\n"
-	<< "Effective prior mean of sum-intensities is ";
-    if(rhoPrior[1]>1)Log << rhopriormean << "\n";else Log << "undefined\n";
-    Log << "Effective prior variance of sum-intensities is ";
-    if(rhoPrior[1]>2)
-      Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
-    else Log <<"undefined\n";
-    useroptions.erase("globalsumintensitiesprior") ;  
-  }
-
   if(HapMixModelIndicator){
+    //TODO:check length of rhoprior vectors
+
     if(allelefreqprior.size() !=3) {
       Log << "Error: 'allelefreqprior' must have length 3\n";
       badOptions = true;
@@ -962,10 +950,39 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     Log << "Dirichlet prior on allele frequencies. ";
     Log << "Gamma prior on Dirichlet parameters with shape " << allelefreqprior[0] << " and Gamma( " << allelefreqprior[1] << ", " 
 	<< allelefreqprior[2] << " ) prior on rate.\n"; 
+    useroptions.erase("sumintensitiesprior") ;
+    useroptions.erase("globalsumintensitiesprior") ;  
   }
-  //else if(allelefreqprior.size())
+  else{
+    useroptions.erase("hapmixrhopriormeans") ;
+    useroptions.erase("hapmixrhopriorvars") ;
+    if((GlobalRho || !IndAdmixHierIndicator ) ) {
+      Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
+	  << "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
+      Log << "Effective prior mean of sum-intensities is " << globalrhoPrior[0] / globalrhoPrior[1] << "\n";
+      Log << "Effective prior variance of sum-intensities is " 
+	  << globalrhoPrior[0] / (globalrhoPrior[1]*globalrhoPrior[1]) << "\n";
+      useroptions.erase("sumintensitiesprior") ;
+    } else {  
+      double rhopriormean = rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
+      Log << "Population prior distribution of sum-intensities specified as Gamma with shape parameter "
+	  << rhoPrior[0] << "\n"
+	  << "and Gamma prior on rate (1 / location) parameter with shape and rate parameters: "
+	  << rhoPrior[1] << " & "
+	  << rhoPrior[2] << "\n"
+	  << "Effective prior mean of sum-intensities is ";
+      if(rhoPrior[1]>1)Log << rhopriormean << "\n";else Log << "undefined\n";
+      Log << "Effective prior variance of sum-intensities is ";
+      if(rhoPrior[1]>2)
+	Log << rhopriormean * (rhopriormean + 1.0) / (rhoPrior[1] - 2) << "\n";
+      else Log <<"undefined\n";
+      useroptions.erase("globalsumintensitiesprior") ;  
+    }
+  //if(allelefreqprior.size())
   //Log << "Warning: option 'allelefreqprior' is valid only with a hapmixmodel. This option will be ignored\n";
-  
+
+  }
+
   //Prior on admixture
   setInitAlpha(Log);
   if(Populations > 1 && IndAdmixHierIndicator && !HapMixModelIndicator){
@@ -1015,7 +1032,8 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       Log << "No allelefreqfile, priorallelefreqfile or historicallelefreqfile supplied;\n"
 	  << "Default priors will be set for the allele frequencies";
       if(!HapMixModelIndicator)
-	Log << " with " << Populations << " population(s)\n";
+	Log << " with " << Populations << " population(s)";
+      Log << "\n";
       if(correlatedallelefreqs) {
 	Log << "Analysis with correlated allele frequencies\n";
       }

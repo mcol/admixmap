@@ -73,6 +73,8 @@ public:
   double getRhobetaShape()const;
   double getRhobetaRate()const;
   double getRhoPriorMean()const;
+  const std::vector<double> &getHapMixRhoPriorMeans()const;
+  const std::vector<double> &getHapMixRhoPriorVars()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
 
   vector<double> getInitAlpha(int) const;
@@ -199,7 +201,8 @@ private:
   //double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
   std::vector<double> globalrhoPrior;
   std::vector<double> rhoPrior;
-  bool hapmixrhoparamprior;// indicates whether globalrho
+  std::vector<double> hapmixrhopriormeans;///< prior means of rho prior params in hapmixmodel
+  std::vector<double> hapmixrhopriorvars;///< prior variances of rho prior params in hapmixmodel
   std::vector<double> alpha0;
   std::vector<double> alpha1;
   std::vector< std::vector<double> > initalpha;
