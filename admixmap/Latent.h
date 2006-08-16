@@ -118,6 +118,7 @@ private:
   double rhobeta; 
   double rhobeta0;
   double rhobeta1;
+  double rhopriorparams[3];
   std::vector<double> SumLogRho; //ergodic sum of log(rho)
 
   RhoArguments RhoArgs;
