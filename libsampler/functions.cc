@@ -47,8 +47,9 @@ where ~Ga(shape, rate)
 log density in log basis is also likelihood function
 */
 double getGammaGammaLogDensity_LogBasis(const double a, const double a0, const double nu, 
-					const int N, const std::vector<double>& x, const double sumlogx) {
+					const int , const std::vector<double>& x, const double sumlogx) {
   double f = 0.0;
+  const int N = x.size();
   for(int i = 0; i < N; ++i) {
     f += log( x[i] + nu );
   }
@@ -57,18 +58,19 @@ double getGammaGammaLogDensity_LogBasis(const double a, const double a0, const d
   return f;
 }
 
-void gradientGammaGammaLogLikelihood_LogBasis(const double a, const double a0, const double nu, 
-					      const int N, const std::vector<double>& x, 
-					      const double sumlogx, double* g) {
+void gradientGammaGammaLogLikelihood(const double a, const double a0, const double nu, 
+				     const int , const std::vector<double>& x, 
+				     const double sumlogx, double* g) {
   double f1 = 0.0;
   double f2 = 0.0;
+  const int N = x.size();
   for(int i = 0; i < N; ++i) {
     f1 += log( x[i] + nu );
     f2 += 1.0 / ( x[i] + nu );
   }
-  g[0] = ( N * (digamma(a + a0) - digamma(a))  + sumlogx     - f1) * a;
-  g[1] = ( N * (digamma(a + a0) - digamma(a0)) + N * log(nu) - f1) * a0;
-  g[2] =                                         N * a0      - (a  + a0) * f2 * nu;
+  g[0] = ( N * (digamma(a + a0) - digamma(a))  + sumlogx     - f1) ;
+  g[1] = ( N * (digamma(a + a0) - digamma(a0)) + N * log(nu) - f1) ;
+  g[2] =                                         N * a0/nu      - (a  + a0) * f2;
 }
 
 
