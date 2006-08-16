@@ -27,35 +27,38 @@ if (!is.loaded("mpi_initialize")) {
 
 ## script to simulate data from stratified population for admixmap
 #######################################################################
-simulateHaploidAlleles <- function(M, rho, x, L, alleleFreqs) {
-  ## M is proportionate admixture from pop 1 
+simulateHaploidAlleles <- function(M,rho,x,L, freqs, S) {   
   gameteAncestry <- integer(L)  
-  simAlleles <- integer(L)
-  randAnc <- runif(L)  
-  gameteAncestry[1] <- ifelse(randAnc[1] < M, 1, 2) 
-  ## Tmatrix[i,j] is prob ancestry at t+1 = j given ancestry at t = i
-  for(locus in 2:L) {
-    if(is.na(x[locus])) {
-      Tmatrix <- t(matrix(data=c(M, 1-M, M, 1-M), nrow=2, ncol=2))
-    } else {
-      Tmatrix <- t(matrix(data=c(M + (1-M)*exp(-rho*x[locus]),  1-M - (1-M)*exp(-rho*x[locus]),
-                            M - M*exp(-rho*x[locus]), 1-M + M*exp(-rho*x[locus]) ),
-                          nrow=2, ncol=2))
+  f <- numeric(L)
+  alleles <- integer(L)
+  randAnc <- runif(L)
+  gameteAncestry[1] <- ifelse(randAnc[1] > M, 2, 1) # M is prob pop 1.
+  if (L > 1) {
+    for(locus in 2:L) {
+      if(!is.na(x[locus])) {
+        f[locus] <- exp(-rho*x[locus])
+      } else {
+        f[locus] <- 0
+      }
+      T <- t(matrix(data=c(M + (1-M)*f[locus],  1-M - (1-M)*f[locus],
+                      M - M*f[locus], 1-M + M*f[locus] ),
+                    nrow=2, ncol=2))
+      gameteAncestry[locus] <- ifelse(randAnc[locus] > T[gameteAncestry[locus-1], 1], 2, 1)
     }
-    ## simulate ancestry at locus
-    gameteAncestry[locus] <- ifelse(randAnc[locus] < Tmatrix[gameteAncestry[locus-1], 1], 1, 2)
   }
   for(locus in 1:L) {
-    ## simulate allele conditional on ancestry at locus
-    simAlleles[locus] <- ifelse(runif(1) < alleleFreqs[2*locus - 1, gameteAncestry[locus]], 1, 2)
+    locus.rows <- seq(from=1+S*(locus-1), to=S*locus)
+    probs <- freqs[locus.rows, gameteAncestry[locus]]
+    alleles[locus] <- rdiscrete(probs)
   }
-  return(simAlleles)
+  return(alleles)
 }
 
-simulateGenotypes <- function(M1,M2, rho,x,L, alleleFreqs) {  
-  paternalGamete <- simulateHaploidAlleles(M1,rho,x,L, alleleFreqs)  
-  maternalGamete <- simulateHaploidAlleles(M2,rho,x,L, alleleFreqs)  
-  simulateGenotypes <- paste(paternalGamete, ",", maternalGamete, sep="")
+simulateAutosomalGenotypes <- function(M1,M2, rho,x,L, freqs, S) {
+  maternalGamete <- simulateHaploidAlleles(M2,rho,x,L, freqs, S)  
+  paternalGamete <- simulateHaploidAlleles(M1,rho,x,L, freqs, S)
+  g <- paste(paternalGamete, ",", maternalGamete, sep="")
+  return(g)
 }
 
 distanceFromLast <- function(v.Chr, v.Position) {
@@ -111,7 +114,7 @@ simulateSamples <- function(N, numsims, NumSubPops, popadmixparams, rho, eta, be
       ## M2 <- rbeta(1, 4, 1)# random mating
       M2 <- M1 #assortative mating
       avM[individual] <- 1 - 0.5*(M1 + M2)
-      obs <- simulateGenotypes(M1, M2, rho, x, L, alleleFreqs)
+      obs <- simulateAutosomalGenotypes(M1, M2, rho, x, L, alleleFreqs, S)
       ##make some genotypes missing
       ##for(locus in 1:L) if(runif(n=1) < 0.1)
       ##    obs[locus]<-""
