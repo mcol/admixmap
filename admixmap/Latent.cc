@@ -27,8 +27,8 @@ using namespace std;
 Latent::Latent( AdmixOptions* op, Genome* loci)
 {
   options = 0;
-  rhoalpha = 0.0;
-  rhobeta = 0.0;
+//   rhoalpha = 0.0;
+//   rhobeta = 0.0;
   options = op;
   Loci = loci;
   poptheta = 0;
@@ -82,19 +82,24 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       //set prior means of transformed parsma of Gamma-Gamma prior on rho
       RhoPriorArgs.priormeans = &( options->getHapMixRhoPriorMeans()[0]);
       RhoPriorArgs.priorvars = &( options->getHapMixRhoPriorMeans()[0]);
-      //for convenience, rhoalpha, rhobeta0 and rhobeta1 are now the tranformed parameters
-      //initialise to prior means
-      rhoalpha = RhoPriorArgs.priormeans[0];
-      rhobeta0 = RhoPriorArgs.priormeans[1];
-      rhobeta1 = RhoPriorArgs.priormeans[2];
+//       //for convenience, rhoalpha, rhobeta0 and rhobeta1 are now the tranformed parameters
+//       //initialise to prior means
+//       rhoalpha = RhoPriorArgs.priormeans[0];
+//       rhobeta0 = RhoPriorArgs.priormeans[1];
+//       rhobeta1 = RhoPriorArgs.priormeans[2];
+      rhopriorparams[0] = RhoPriorArgs.priormeans[0];
+      rhopriorparams[1] = RhoPriorArgs.priormeans[1];
+      rhopriorparams[2] = RhoPriorArgs.priormeans[2];
       unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
 
       if(rank==0){
 	RhoArgs.NumPops = K;
-	RhoArgs.rhobeta1 = exp(rhobeta1);
-	RhoArgs.rhobeta0 = exp(rhoalpha - rhobeta0 + rhobeta1);
-	RhoArgs.rhoalpha = exp(2.0*rhoalpha - rhobeta0);
+	RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
+	RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
+	RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
 
+	//cout << rhopriorparams[0] << " " << rhopriorparams[1] << " " << rhopriorparams[2]<<endl;
+	//cout << RhoArgs.rhoalpha << " " << RhoArgs.rhobeta0 << " " << RhoArgs.rhobeta1<< endl;
 	RhoArgs.NumIntervals = numIntervals;
 	//RhoArgs.sumrho  = numIntervals * rho[0];
 	//RhoArgs.sumlogrho = numIntervals * log(rho[0]); // initial value
@@ -119,14 +124,15 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	
 	const vector<float>& rhopriorsamplerparams = options->getrhoPriorParamSamplerParams();
 	size = rhopriorsamplerparams.size();
-	initial_stepsize = size? rhopriorsamplerparams[0] : 0.00001;
+	initial_stepsize = size? rhopriorsamplerparams[0] : 0.005;
 	min_stepsize = size? rhopriorsamplerparams[1] : 0.000;
 	max_stepsize = size? rhopriorsamplerparams[2] : 1.0;
 	target_acceptrate = size? rhopriorsamplerparams[3] : 0.95;
-	num_leapfrog_steps = size? (int)rhopriorsamplerparams[4] : 40;
+	num_leapfrog_steps = size? (int)rhopriorsamplerparams[4] : 20;
 	
 	RhoPriorParamSampler.SetDimensions(3, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
 					   target_acceptrate, RhoPriorParamsEnergy, RhoPriorParamsGradient);
+	RhoPriorParamSampler.ActivateMonitoring((options->getResultsDir()+"/rhopriormonitor.txt").c_str());
       }//end sampler initialisation
       //initialise rho vector
       double initial_rho = RhoArgs.rhoalpha * RhoArgs.rhobeta1 / (RhoArgs.rhobeta0 - 1.0);
@@ -326,30 +332,30 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
 }
 
 ///conjugate update of locus-specific sumintensities, conditional on observed numbers of arrivals
-void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, 
-				  bool sumlogrho) {
-  double sum = 0.0;
-  int locus = 0;
-  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-    ++locus;//skip first locus on each chromosome
-    Chromosome* C = Loci->getChromosome(c); 
-    for(unsigned i = 1; i < C->GetSize(); ++i){
-	double EffectiveL = Loci->GetDistance(locus) * 2 * NumIndividuals;//length of interval * # gametes
-	rho[locus] = Rand::gengam( rhoalpha + (double)(SumNumArrivals[locus]), rhobeta + EffectiveL );
-	sum += rho[locus];
-	++locus;
-    }
-    //set locus correlation
-    C->SetLocusCorrelation(rho, false, false);
-    C->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
-  }
-  //sample rate parameter of gamma prior on rho
-  rhobeta = Rand::gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
+// void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, 
+// 				  bool sumlogrho) {
+//   double sum = 0.0;
+//   int locus = 0;
+//   for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+//     ++locus;//skip first locus on each chromosome
+//     Chromosome* C = Loci->getChromosome(c); 
+//     for(unsigned i = 1; i < C->GetSize(); ++i){
+// 	double EffectiveL = Loci->GetDistance(locus) * 2 * NumIndividuals;//length of interval * # gametes
+// 	rho[locus] = Rand::gengam( rhoalpha + (double)(SumNumArrivals[locus]), rhobeta + EffectiveL );
+// 	sum += rho[locus];
+// 	++locus;
+//     }
+//     //set locus correlation
+//     C->SetLocusCorrelation(rho, false, false);
+//     C->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
+//   }
+//   //sample rate parameter of gamma prior on rho
+//   rhobeta = Rand::gengam( rhoalpha * (double)(rho.size()-1) + rhobeta0, sum + rhobeta1 );
   
-  //accumulate sums of log of rho
-  if(sumlogrho)
-    transform(rho.begin(), rho.end(), SumLogRho.begin(), SumLogRho.begin(), std::plus<double>());
-}
+//   //accumulate sums of log of rho
+//   if(sumlogrho)
+//     transform(rho.begin(), rho.end(), SumLogRho.begin(), SumLogRho.begin(), std::plus<double>());
+// }
 
 ///samples locus-specific sumintensities in a hapmixmodel, using Hamiltonian Monte Carlo
 void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
@@ -438,9 +444,8 @@ if(rank!=0)
     
     //sample prior params, rhoalpha, rhobeta0 and rhobeta1
     //double logparams[3] = {log(rhoalpha), log(rhobeta0), log(rhobeta1)};
-    double logparams[3] = {rhoalpha, rhobeta0, rhobeta1};
     try{
-      RhoPriorParamSampler.Sample(logparams, &RhoPriorArgs);
+      RhoPriorParamSampler.Sample(rhopriorparams, &RhoPriorArgs);
     }
     catch(string s){
       string err = "Error encountered while sampling sumintensities prior params:\n" + s;
@@ -450,15 +455,10 @@ if(rank!=0)
 //     rhoalpha = exp(logparams[0]);
 //     rhobeta0 = exp(logparams[1]);
 //     rhobeta1 = exp(logparams[2]);
-    rhoalpha = logparams[0];
-    rhobeta0 = logparams[1];
-    rhobeta1 = logparams[2];
-    RhoArgs.rhobeta1 = exp(rhobeta1);
-    RhoArgs.rhobeta0 = exp(rhoalpha - rhobeta0 + rhobeta1);
-    RhoArgs.rhoalpha = exp(2.0*rhoalpha - rhobeta0);
-
+    RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
+    RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
+    RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
   }
-
 }
 
 ///energy function for sampling locus-specific sumintensities 
@@ -546,8 +546,6 @@ double Latent::RhoPriorParamsEnergy(const double* const x, const void* const var
     double a0 = exp(x[0] - x[1] + x[2]);
     double nu = exp(x[2]);
     E = - getGammaGammaLogDensity_LogBasis(a, a0, nu, T, *(args->rho), args->sumlogrho);
-    //subtract log Jacobian
-    E -= log(a*a0*nu);    
 
     //minus log Normal priors (on transformed scale)
     E += 0.5*(x[0] - args->priormeans[0])*(x[0] - args->priormeans[0])/args->priorvars[0];
@@ -587,28 +585,32 @@ void Latent::RhoPriorParamsGradient( const double* const x, const void* const va
   unsigned T = args->NumIntervals;
   
   try {
-    double a = exp(2.0*x[0] - x[1]);
+    double h[3];//derivative of log likelihood wrt a, a0, nu
+    double a =  exp(2.0*x[0] - x[1]);
     double a0 = exp(x[0] - x[1] + x[2]);
     double nu = exp(x[2]);
     //first get derivative of LogLikelihood wrt a, a0, nu
-    gradientGammaGammaLogLikelihood_LogBasis(a, a0, nu, T, *(args->rho), args->sumlogrho, g);
-    //add derivatives of minus log Jacobian
-    g[0] -= 1.0/a;
-    g[1] -= 1.0/a0;
-    g[2] -= 1.0/nu;
-    //now get derivative of LogLikelihood wrt x by multiplying by derivatives of a, a0, nu wrt x
-    g[0] *= 2.0*x[0];
-    g[1] *= -x[1];
-    g[2] *= x[2];   
+    gradientGammaGammaLogLikelihood(a, a0, nu, T, *(args->rho), args->sumlogrho, h);
+    //now use chain rule to get derivative wrt x
+    g[0] = -2.0*h[0]*a - h[1]*a0;
+    g[1] =      h[0]*a + h[1]*a0;
+    g[2] =             - h[1]*a0 - h[2]*nu;
+
+    //g[0] = -h[0]*a + h[1]*a0 -h[2]*nu;
+    //g[1] = -h[0]*a +0.5*h[1]*a -0.5*h[2]*nu;
+    //g[2] = -h[2]*nu;
 
     //derivative of minus log Normal priors (on transformed scale)
     g[0] -= (x[0] - args->priormeans[0])/args->priorvars[0];
     g[1] -= (x[1] - args->priormeans[1])/args->priorvars[1];
     g[2] -= (x[2] - args->priormeans[2])/args->priorvars[2];
+    //cout << "x= " << x[0] << " " << x[1] << " " << x[2] << endl;
+    //cout << "a = " << a << " a0 = " << a0 << " nu = " << nu << endl;
+    //cout << "h = " << h[0] << " " << h[1] << " " << h[2] << endl;
+    //cout << "Grad = " << g[0] << " " << g[1] << " " << g[2] << endl;
   } catch(string s){
     throw string("Error in RhoPriorParamsGradient: " +s);
   }
-  //cout << "Grad = " << g[0] << " " << g[1] << " " << g[2] << endl;
 }
 
 void Latent::InitializeOutputFile(const Vector_s& PopulationLabels) {
@@ -681,7 +683,8 @@ void Latent::OutputParams(ostream* out){
     double size = (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
     var = var - (sum*sum) / size;
     (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
-	   << rhoalpha << "\t" << rhobeta0 << "\t" << rhobeta1 << "\t";
+      << RhoArgs.rhoalpha << "\t" << RhoArgs.rhobeta0 << "\t" << RhoArgs.rhobeta1 << "\t";
+
   }
   else{
     if( options->isGlobalRho() )
