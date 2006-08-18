@@ -167,7 +167,7 @@ int main( int argc , char** argv ){
 	else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
 	else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression(data.getCoxOutcomeVarMatrix()));
 
-	if(rank < 1) R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC, Log);
+	if(rank < 1) R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
 	else R[r]->Initialise(r, IC->GetNumCovariates());
 	R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
       }
@@ -640,21 +640,17 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	    *avgstream << PopulationLabels[i] << "\t";
 	  }
 	if( options->isGlobalRho() ) *avgstream << "sumIntensities\t";
-	else *avgstream << "sumIntensities.mean";
+	else *avgstream << "sumIntensities.mean\t";
       }
-    } //end if hierarchical model
-    
-    // dispersion parameter 
-    if( strlen(options->getHistoricalAlleleFreqFilename()) ) {
-      for( int k = 0; k < options->getPopulations(); k++ ){
-	*avgstream << "eta" << k << "\t";
+      
+      // dispersion parameters
+      if( strlen( options->getHistoricalAlleleFreqFilename() ) ){
+	for( int k = 0; k < options->getPopulations(); k++ ){
+	  *avgstream << "eta" << k << "\t";
+	}
       }
-    }
-    
-    if( options->getCorrelatedAlleleFreqs() ) {
-      *avgstream << "eta\t";
-    }
-    
+    }//end if hierarchical model
+
     //rate parameter of prior on frequency Dirichlet prior params
     if(options->getHapMixModelIndicator()){
       *avgstream << "FreqPriorRate\t"; 
@@ -666,16 +662,16 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 	*avgstream << "intercept\t";
 
 	//write covariate labels to header
-	copy( CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(*avgstream, "\t") ); 
+	copy(CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(*avgstream, "\t")); 
 
 	if( individuals->getOutcomeType(r)==Continuous )//linear regression
 	  *avgstream << "precision\t";
       }
-    } 
+    }
 
-    *avgstream << "MeanDeviance\tVarDeviance";
+    *avgstream << "MeanDeviance\tVarDeviance\t";
     if(options->getChibIndicator()){// chib calculation
-      *avgstream << "\tLogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
+      *avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
 		 << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
     }
     *avgstream << "\n";
@@ -839,7 +835,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(rank != 1){
     bool condition = (!anneal && iteration > options->getBurnIn() && (rank <1));
     for(unsigned r = 0; r < R.size(); ++r){
-      R[r]->Update(condition, IC->getOutcome(r), IC->getCovariates(), coolness 
+      R[r]->Update(condition, IC->getOutcome(r), coolness 
 #ifdef PARALLEL
 		  , workers_and_master
 #endif
@@ -907,7 +903,7 @@ void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnerg
   double EAvDeviance, EVarDeviance;
   EAvDeviance = 2.0*SumEnergy / (double) samples;//ergodic average of deviance
   EVarDeviance = 4.0 * SumEnergySq / (double)samples - EAvDeviance*EAvDeviance;//ergodic variance of deviance 
-  *avgstream << EAvDeviance << "\t"<< EVarDeviance << "\t";
+  *avgstream << EAvDeviance << " "<< EVarDeviance <<" ";
 }
 void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);

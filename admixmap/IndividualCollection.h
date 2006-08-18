@@ -107,10 +107,10 @@ public:
   int getNumberOfOutcomeVars()const;
   int GetNumCovariates() const;
   int GetNumberOfInputCovariates()const;
-  const double* getCovariates()const;
   DataType getOutcomeType(int)const;
-  double getSampleVarianceOfOutcome(int j)const;
-  double getSampleVarianceOfCovariate(int j)const;
+  const DataMatrix& getCovariatesMatrix()const;
+  const DataMatrix& getOutcomeMatrix()const;
+
   double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
 			  const bool & annealed);
   void accumulateEnergyArrays(const AdmixOptions* const options);
@@ -150,6 +150,7 @@ private:
   int rank_with_freqs;
   //communicators for workers (Individual updaters),  workers+freqsampler and workers+master
   MPI::Intracomm workers, workers_and_freqs, workers_and_master;
+  unsigned Populations;
 #endif
  
   //Regression Objects

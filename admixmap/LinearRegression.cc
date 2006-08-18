@@ -3,7 +3,10 @@
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include "linalg.h"
+#include "rand.h"//for sampling data precision
+#include <math.h>//for sqrt and exp
 
+using namespace::std;
 LinearRegression::LinearRegression(){
   lambda0 = 0.0;
   lambda1 = 0.0;
@@ -22,16 +25,21 @@ LinearRegression::~LinearRegression(){
   delete[] betahat;
 }
 
-void LinearRegression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
-  Regression::Initialise(Number, individuals->GetNumCovariates(), individuals->getSize(), individuals->getCovariates());
+void LinearRegression::Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+				  LogWriter &Log){
+  Regression::Initialise(Number, Covars.nCols(), Covars.nRows(), Covars.getData());
   Log.setDisplayMode(Quiet);
   //set prior precision
-  double outcomeSampleVariance = individuals->getSampleVarianceOfOutcome(RegNumber);
+  double outcomeSampleVariance = Outcome.getSampleVariance(RegNumber);
   betaprecision[0] = priorPrecision / outcomeSampleVariance;
   Log << "\nGaussian priors on linear regression parameters with zero means and precisions\n ("<< betaprecision[0];
   
   for(int j = 1; j < NumCovariates; ++j){
-    betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j) / outcomeSampleVariance;
+    //get sample variance of covariate
+    double svc = Covars.getSampleVariance(j);
+    if (svc < 0.0001) svc = 1.0;// incase covar is sampled and begins constant or near constant over individuals
+    
+    betaprecision[j] = priorPrecision * svc / outcomeSampleVariance;
     Log << ", " << betaprecision[j];
   }
   Log << ")\n";
@@ -76,7 +84,7 @@ void LinearRegression::InitializeOutputFile(const std::vector<std::string>& Cova
   if(NumOutcomes == RegNumber+1)outputstream << endl;
 }
 
-void LinearRegression::Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
+void LinearRegression::Update(bool sumbeta, const std::vector<double>& Outcome, double coolness
 #ifdef PARALLEL
 			      , MPI::Intracomm &Comm){
   if(Comm.Get_rank() == 0)

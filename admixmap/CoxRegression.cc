@@ -1,6 +1,7 @@
 #include "CoxRegression.h"
 #include <algorithm>
 #include "misc.h"
+#include "rand.h"
 
 using namespace::std;
 const double* CoxRegression::EY;
@@ -20,8 +21,9 @@ CoxRegression::~CoxRegression(){
   delete BetaSampler;
 }
 
-void CoxRegression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
-  Regression::Initialise(Number, individuals->GetNumCovariates()-1, individuals->getSize(), individuals->getCovariates());
+void CoxRegression::Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix&, 
+			       LogWriter &Log){
+  Regression::Initialise(Number, Covars.nCols()-1, Covars.nRows(), Covars.getData());
   //passing numcovariates-1 to exclude intercept
   // NumCovariates in this class is now one less
 
@@ -30,7 +32,7 @@ void CoxRegression::Initialise(unsigned Number, double priorPrecision, const Ind
   Log << "\nGaussian priors on Cox regression parameters with zero means and precisions\n (";
   
   for(int j = 0; j < NumCovariates; ++j){
-    betaprecision[j] = priorPrecision ;//* individuals->getSampleVarianceOfCovariate(j) ;
+    betaprecision[j] = priorPrecision ;
     Log << ", " << betaprecision[j];
   }
   Log << ")\n";
@@ -59,6 +61,15 @@ void CoxRegression::Initialise(unsigned Number, double priorPrecision, const Ind
   BetaParameters.d = NumCovariates;
   BetaParameters.beta = beta;
   BetaSampler = new GaussianProposalMH( lr, dlr, ddlr);
+}
+
+void CoxRegression::InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes)
+{
+  // Header line of paramfile
+  for( unsigned i = 0; i < CovariateLabels.size(); i++ ){
+    outputstream << CovariateLabels[i] << "\t";
+  }
+  if(NumOutcomes == RegNumber+1)outputstream << std::endl;
 }
 
 ///reads start times, end times and event counts from file.
@@ -91,7 +102,7 @@ void CoxRegression::ReadData(const DataMatrix& CoxData){
   }
 }
 
-void CoxRegression::Update(bool sumbeta, const std::vector<double>& , const double* const Covariates, double coolness
+void CoxRegression::Update(bool sumbeta, const std::vector<double>& , double coolness
 #ifdef PARALLEL
 			   , MPI::Intracomm &Comm
 #endif
@@ -241,7 +252,7 @@ double CoxRegression::dlr(const double beta, const void* const vargs){
 	double exp_Xbetai = EY[i] * myexp(args->Covariates[i*(args->d+1)+index+1] * (beta - args->beta[index])) ;  
 	std::vector<double>::const_iterator alpha = args->HazardRates.begin();
 	for(int t = 0; t < T; ++t, ++alpha){
-	  if( *(atrisk++) ){
+	  if( *(atrisk++) ){//individual i was at risk during this interval
 	    sum_nr += args->events[i];
 	    sum_nalpha += *alpha; 
 	  }

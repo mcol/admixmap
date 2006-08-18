@@ -3,7 +3,6 @@
 #define LOGISTICREGRESSION_H 1
 
 #include "Regression.h"
-#include "IndividualCollection.h"
 #include "GaussianProposalMH.h"
 
 ///Struct to hold arguments for sampling logistic regression parameters
@@ -32,11 +31,12 @@ class LogisticRegression : public Regression{
 public:
   LogisticRegression();
   ~LogisticRegression();
-  void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
+  void Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+		  LogWriter &Log);
 
   double getDispersion()const;
   double DerivativeInverseLinkFunction(unsigned i)const;
-  void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
+  void Update(bool sumbeta, const std::vector<double>& Outcome, double coolness
 #ifdef PARALLEL
 	      , MPI::Intracomm &Comm
 #endif

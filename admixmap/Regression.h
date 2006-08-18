@@ -15,19 +15,19 @@
 #define REGRESSIONBASE_H 1
 
 #include "common.h"
+#include <iostream>
 #include <fstream>
 #include "LogWriter.h"
-
-class IndividualCollection;//to avoid circular includes
+#include "DataMatrix.h"
 
 ///Abstract Base Class for a generic Regression
 class Regression{
 public:
   Regression();
   virtual ~Regression();
-  virtual void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &) = 0;
+  virtual void Initialise(unsigned RegNumber, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, LogWriter &) = 0;
   void Initialise(unsigned RegNumber, unsigned numCovariates);
-  virtual void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
+  virtual void Update(bool sumbeta, const std::vector<double>& Outcome, double coolness
 #ifdef PARALLEL
 			, MPI::Intracomm &Comm
 #endif

@@ -735,8 +735,11 @@ int IndividualCollection::GetNumCovariates() const{
   return NumCovariates;
 }
 
-const double* IndividualCollection::getCovariates()const{
-  return Covariates.getData();
+const DataMatrix& IndividualCollection::getCovariatesMatrix()const{
+  return Covariates;
+}
+const DataMatrix& IndividualCollection::getOutcomeMatrix()const{
+  return Outcome;
 }
 
 double IndividualCollection::getSumLogTheta(int i)const{
@@ -816,33 +819,6 @@ const chib* IndividualCollection::getChib()const{
   return &MargLikelihood;
 }
 
-///returns sample variance of jth outcome variable
-double IndividualCollection::getSampleVarianceOfOutcome(int j)const{
-  if(OutcomeType[j] == Continuous){
-    double sum = 0.0, sumsq = 0.0, x = 0.0;
-    for(unsigned i = 0; i < Outcome.nRows(); ++i){
-      x = Outcome.get(i,j);
-      sum += x;
-      sumsq += x*x;
-    }
-    return (sumsq - sum*sum / (double)Outcome.nRows()) / (double)Outcome.nRows();
-  }
-  else return 1.0;
-}
-///returns sample variance of jth covariate
-double IndividualCollection::getSampleVarianceOfCovariate(int j)const{
-  if(j < NumberOfInputCovariates+1){
-    double sum = 0.0, sumsq = 0.0, x = 0.0;
-    for(unsigned i = 0; i < Covariates.nRows(); ++i){
-      x = Covariates.get(i,j);
-      sum += x;
-      sumsq += x*x;
-    }
-    return (sumsq - sum*sum / (double)Covariates.nRows()) / (double)Covariates.nRows();
-  }
-  else return 1.0;
-
-}
 // ************** OUTPUT **************
 
 double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, vector<Regression *> &R, Genome* Loci,

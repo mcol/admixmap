@@ -1,7 +1,9 @@
 #include "LogisticRegression.h"
 #include "linalg.h"
 #include "misc.h" //for myexp
+#include <math.h>//for sqrt and exp
 
+using namespace::std;
 LogisticRegression::LogisticRegression(){
   BetaSampler = 0;
   acceptbeta = 0;
@@ -12,10 +14,11 @@ LogisticRegression::~LogisticRegression(){
   delete BetaSampler;
 }
 
-void LogisticRegression::Initialise(unsigned Number, double priorPrecision, const IndividualCollection* const individuals, LogWriter &Log){
-  Regression::Initialise(Number, individuals->GetNumCovariates(), individuals->getSize(), individuals->getCovariates());
+void LogisticRegression::Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+				    LogWriter &Log){
+  Regression::Initialise(Number, Covars.nCols(), Covars.nRows(), Covars.getData());
   Log.setDisplayMode(Quiet);
-  std::vector<double> v = individuals->getOutcome(RegNumber);
+  std::vector<double> v = Outcome.getCol(RegNumber);
   double p = accumulate(v.begin(), v.end(), 0.0, std::plus<double>()) / (double)v.size();
   //check the outcomes are not all 0s or all 1s
   if(p==0.0 || p==1.0)throw string("Data Error: All binary outcomes are the same");
@@ -28,7 +31,18 @@ void LogisticRegression::Initialise(unsigned Number, double priorPrecision, cons
   Log << "\nGaussian priors on logistic regression parameters with zero means and precisions\n ("<< betaprecision[0];
   
   for(int j = 1; j < NumCovariates; ++j){
-    betaprecision[j] = priorPrecision * individuals->getSampleVarianceOfCovariate(j);
+    //get sample variance of covariate
+
+      double sum = 0.0, sumsq = 0.0, x = 0.0;
+      for(int i = 0; i < NumIndividuals; ++i){
+	x = Covariates[i*NumCovariates + j];
+	sum += x;
+	sumsq += x*x;
+      }
+      double svc = (sumsq - sum*sum / (double)NumIndividuals) / (double)NumIndividuals;
+      if (svc < 0.0001) svc = 1.0;// incase covar is sampled and begins constant or near constant over individuals
+
+    betaprecision[j] = priorPrecision * svc;
     Log << ", " << betaprecision[j];
   }
   Log << ")\n";
@@ -44,7 +58,7 @@ void LogisticRegression::Initialise(unsigned Number, double priorPrecision, cons
   BetaSampler = new GaussianProposalMH( lr, dlr, ddlr);
 }
 
-void LogisticRegression::Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
+void LogisticRegression::Update(bool sumbeta, const std::vector<double>& Outcome, double coolness
 #ifdef PARALLEL
 			, MPI::Intracomm &Comm){
   if(Comm.Get_rank() == 0){

@@ -3,7 +3,6 @@
 #define COXREGRESSION_H 1
 
 #include "Regression.h"
-#include "IndividualCollection.h"
 #include "GaussianProposalMH.h"
 
 ///Struct to hold arguments for sampling logistic regression parameters
@@ -29,14 +28,16 @@ class CoxRegression : public Regression{
 public:
   CoxRegression(const DataMatrix& CoxData);
   ~CoxRegression();
-  void Initialise(unsigned RegNumber, double priorPrecision, const IndividualCollection* const, LogWriter &);
+  void Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
+		  LogWriter &Log);
+  void InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes);
   //void Initialise(unsigned Number, const IndividualCollection* const individuals);
   void ReadData(const DataMatrix& CoxData);
   double DerivativeInverseLinkFunction(unsigned i)const;
   double getDispersion()const;
-  void OutputParams(ostream* out);
+  void OutputParams(std::ostream* out);
   void OutputExpectedY();
-  void Update(bool sumbeta, const std::vector<double>& Outcome, const double* const Covariates, double coolness
+  void Update(bool sumbeta, const std::vector<double>& Outcome, double coolness
 #ifdef PARALLEL
 	      , MPI::Intracomm &Comm
 #endif
