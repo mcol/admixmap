@@ -47,7 +47,7 @@ void InputData::readFile(const char *fname, Matrix_s& data, LogWriter &Log)
         string msg = "Cannot open file for reading: \"";
         msg += fname;
         msg += "\"";
-        throw runtime_error(msg.c_str());
+        throw runtime_error(msg);
     }
     else {
       Log << "Loading " << fname << ".\n";
@@ -87,7 +87,7 @@ void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
         string msg = "Cannot open file for reading: \"";
         msg += fname;
         msg += "\"";
-        throw runtime_error(msg.c_str());
+        throw runtime_error(msg);
     }
 
     data.clear();
@@ -252,13 +252,14 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
 	CheckCoxOutcomeVarFile( Log);
     }
     if ( strlen( options->getCovariatesFilename() ) != 0 )
-      CheckCovariatesFile(Log); 
-    if(!options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation()) {
-      // append population labels to vector of covariate labels 
-      for( vector<string>::const_iterator i = PopulationLabels.begin()+1; i !=PopulationLabels.end(); ++i ) {
+      CheckCovariatesFile(Log);
+    //append population labels to covariate labels
+    if(!options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation()){
+      for( vector<string>::const_iterator i = PopulationLabels.begin()+1; i !=PopulationLabels.end(); ++i ){
 	CovariateLabels.push_back("slope." + *i); 
       }
     }
+    
     if ( strlen( options->getReportedAncestryFilename() ) != 0 )
       CheckRepAncestryFile(options->getPopulations(), Log);
   }
@@ -569,7 +570,7 @@ void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
 
 }
 
-void InputData::CheckCovariatesFile(LogWriter &Log) {
+void InputData::CheckCovariatesFile(LogWriter &Log){
   if( NumIndividuals != (int)covariatesMatrix_.nRows() - 1 ){
     Log << "ERROR: Genotypes file has " << NumIndividuals << " observations and Covariates file has "
 	<< covariatesMatrix_.nRows() - 1 << " observations.\n";
