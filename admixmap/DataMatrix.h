@@ -3,26 +3,19 @@
  *   ADMIXMAP
  *   DataMatrix.h 
  *   class to represent a matrix of data, possibly read in from file
- *   Copyright (c) 2005 LSHTM
+ *   Copyright (c) 2005, 2006 David O'Donnell
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #ifndef DATAMATRIX_H
 #define DATAMATRIX_H 1
 #include <vector>
 
+///Class to represent a matrix of data, possibly read in from file
 class DataMatrix{
 public:
   DataMatrix();
@@ -41,16 +34,19 @@ public:
   unsigned nCols()const;
   DataMatrix SubMatrix(unsigned, unsigned, unsigned, unsigned);
   void SetMissingValuesToColumnMeans();
+  double getSampleVariance(int j, bool na_rm=false)const;
   void Print()const;
   //std::vector<double>::const_iterator getData() const;
-  const double* getData() const;// allows access to data without danger of changing it
+  /// allows access to data without danger of changing it
+  const double* getData() const;
+
 private:
   std::vector<double > data;
   std::vector<bool > missing;
   unsigned nrows;
   unsigned ncols;
   bool anyMissing;
-  class BoundsViolation { };
-
+  void throwBoundsViolation(unsigned, unsigned)const;
+  //void operator=(const DataMatrix&);
 };
 #endif

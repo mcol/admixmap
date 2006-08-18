@@ -2,26 +2,19 @@
  *   ADMIXMAP
  *   DataMatrix.cc 
  *   class to represent a matrix of data, possibly read in from file
- *   Copyright (c) 2005 LSHTM
+ *   Copyright (c) 2005, 2006 David O'Donnell
  *  
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or (at
- * your option) any later version.
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
  * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 #include "DataMatrix.h"
 #include <algorithm>
 #include <iostream>
 #include <numeric>
+#include <sstream>
 
 DataMatrix::DataMatrix(){
   nrows = 0;
@@ -52,21 +45,22 @@ unsigned DataMatrix::nRows()const{
 unsigned DataMatrix::nCols()const{
   return ncols;
 }
+
 bool DataMatrix::isMissing(unsigned row, unsigned col)const{
-  if (row >= nrows || col >= ncols) throw BoundsViolation();
+  if (row >= nrows || col >= ncols) throwBoundsViolation(row, col);
   return missing[row*ncols +col];
 }
 void DataMatrix::isMissing(unsigned row, unsigned col, bool b){
-  if (row >= nrows || col >= ncols) throw BoundsViolation();
+  if (row >= nrows || col >= ncols) throwBoundsViolation(row, col);
   missing[row*ncols + col] = b;
   if(b)anyMissing = true;
 }
 void DataMatrix::set(unsigned row, unsigned col, double x){
-  if (row >= nrows || col >= ncols) throw BoundsViolation();
+  if (row >= nrows || col >= ncols) throwBoundsViolation(row,col);
   data[row*ncols +col] = x;
 }
 double DataMatrix::DataMatrix::get(unsigned row, unsigned col)const{
-  if (row >= nrows || col >= ncols) throw BoundsViolation();
+  if (row >= nrows || col >= ncols) throwBoundsViolation(row,col);
   return data[row*ncols +col];
 }
 std::vector<double> DataMatrix::getRow(unsigned r)const{
@@ -94,6 +88,22 @@ std::vector<double> DataMatrix::columnMeans()const{
     }
   return mean;
 }
+
+///returns sample variance of jth col
+double DataMatrix::getSampleVariance(int j, bool na_rm)const{
+  double sum = 0.0, sumsq = 0.0, x = 0.0;
+  int n = 0;
+  for(unsigned i = 0; i < nrows; ++i){
+    if(!na_rm || !missing[i*ncols+j]){
+      ++n;
+      x = data[i*ncols +j];
+      sum += x;
+      sumsq += x*x;
+      }
+  }
+  return (sumsq - sum*sum / (double)n) / (double)n;
+}
+
 DataMatrix DataMatrix::SubMatrix(unsigned r1, unsigned r2, unsigned c1, unsigned c2){
   if( r1>r2 || c1>c2 || r2 > nrows-1 || c2 > ncols-1)
     std::cerr<<"Error in DataMatrix::SubMatrix"<<std::endl;
@@ -111,13 +121,19 @@ void DataMatrix::SetMissingValuesToColumnMeans(){
 
   for(unsigned row = 0; row < nrows; ++row)
     for(unsigned col = 0; col < ncols; ++col)
-      if(isMissing(row, col))set(row, col, mean[col]);
+      if(isMissing(row, col)){
+	set(row, col, mean[col]);
+	//isMissing(row, col, false);
+      }
 }
 
 void DataMatrix::Print()const{
   for(unsigned i = 0; i < nrows; ++i){
-    std::vector<double> a = getRow(i);
-    copy(a.begin(), a.end(), std::ostream_iterator<double>(std::cout, " "));
+    //std::vector<double> a = getRow(i);
+    //copy(a.begin(), a.end(), std::ostream_iterator<double>(std::cout, " "));
+    for(unsigned j = 0; j < ncols; ++j)
+      if(isMissing(i,j))std::cout << "# ";
+      else std::cout << get(i,j) << " ";
     std::cout<<std::endl;
   }
   std::cout<<std::endl;
@@ -132,4 +148,9 @@ const double* DataMatrix::getData()const{
 void DataMatrix::clear(){
   data.clear();
   missing.clear();
+}
+void DataMatrix::throwBoundsViolation(unsigned row, unsigned col)const{
+  std::stringstream ss;
+  ss << "Bounds Violation in DataMatrix: requested element (" << row+1 << ", " << col+1 << ") in a matrix with " << nrows << " rows and " << ncols << " cols"; 
+  throw ss.str();
 }
