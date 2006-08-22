@@ -1102,7 +1102,7 @@ if(K == 1) {
 }
 
 ##plot ergodic averages
-if(is.null(user.options$ergodicaveragefile) && paste(resultsdir,user.options$paramfile, sep="/")) {
+if(is.null(user.options$ergodicaveragefile)) {
   cat("no ergodicaveragefile\n", file=outfile, append=T)
 } else {
   if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {

@@ -39,8 +39,8 @@ my $executable = '../test/admixmap';
 # command-line options are stored in an associative array (known as a hash in perl)  
 my $arg_hash = {
 #data files
-    genotypesfile                   => 'data/genotypes.txt',
-    locusfile                       => 'data/loci.txt',
+    genotypesfile                   => 'data/genotypesAIMsOnly.txt',
+    locusfile                       => 'data/lociAIMsOnly.txt',
     #covariatesfile                  => 'data/covariates2std.txt', # age, sex 
     #outcomevarfile                  => 'data/outcomevars.txt',
 #main options
@@ -63,8 +63,8 @@ $arg_hash->{targetindicator}       = 1; # skin reflectance
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
-$arg_hash->{samples}   = 6000;
-$arg_hash->{burnin}    = 1000;
+#$arg_hash->{samples}   = 6000;
+#$arg_hash->{burnin}    = 1000;
 $arg_hash->{paramfile}                 = 'popadmixparams.txt',
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
 &doAnalysis($executable,$arg_hash);
@@ -72,7 +72,7 @@ $arg_hash->{resultsdir}            = 'TwoPopsResults';
 # model with reference prior on allele freqs in 3 populations
 $arg_hash->{populations}           = 3;
 $arg_hash->{resultsdir}            = 'ThreePopsResults';  
-#&doAnalysis($executable,$arg_hash);
+&doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs 
 delete $arg_hash->{populations};
