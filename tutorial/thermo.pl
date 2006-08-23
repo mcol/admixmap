@@ -44,11 +44,11 @@ my $arg_hash = {
     #covariatesfile                  => 'data/covariates2std.txt', # age, sex 
     #outcomevarfile                  => 'data/outcomevars.txt',
 #main options
-    samples  => 550,
-    burnin   => 50,
-    every    => 5,
+    samples  => 1100,
+    burnin   => 100,
+    every    => 10,
     thermo   => 1,
-    numannealedruns => 100,  
+    numannealedruns => 200,  
     displaylevel => 2,
 #output file options
     logfile                     => 'log.txt',
