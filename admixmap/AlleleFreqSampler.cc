@@ -38,8 +38,8 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
     if(NumPops>1){
       params = new double[NumPops];
       step0 = 0.01;//initial step size
-      numleapfrogsteps = 40;
-      Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.9, getEnergySNP, 
+      numleapfrogsteps = 50;
+      Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.95, getEnergySNP, 
 			    gradientSNP);
     }
   } else {
