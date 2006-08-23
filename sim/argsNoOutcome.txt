@@ -1,6 +1,6 @@
 burnin=200
 samples=1200
-displaylevel=3
+displaylevel=0
 every=10
 correlatedallelefreqs=1
 resultsdir=NoOutcomeResults
@@ -14,6 +14,6 @@ logfile=log.txt
 paramfile=paramfile.txt
 dispparamfile=dispparam.txt
 indadmixturefile=indadmixture.txt
-etapriormean=41
+etapriormean=31
 etapriorvar=25
-numannealedruns=50
+numannealedruns=0

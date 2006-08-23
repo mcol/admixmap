@@ -27,6 +27,11 @@ if (!is.loaded("mpi_initialize")) {
 
 ## script to simulate data from stratified population for admixmap
 #######################################################################
+rdiscrete <- function(probs) {
+  v <- as.vector(rmultinom(1, 1, probs))
+  return(match(1, v))
+}
+
 simulateHaploidAlleles <- function(M,rho,x,L, freqs, S) {   
   gameteAncestry <- integer(L)  
   f <- numeric(L)
@@ -40,10 +45,10 @@ simulateHaploidAlleles <- function(M,rho,x,L, freqs, S) {
       } else {
         f[locus] <- 0
       }
-      T <- t(matrix(data=c(M + (1-M)*f[locus],  1-M - (1-M)*f[locus],
+      Tmat <- t(matrix(data=c(M + (1-M)*f[locus],  1-M - (1-M)*f[locus],
                       M - M*f[locus], 1-M + M*f[locus] ),
                     nrow=2, ncol=2))
-      gameteAncestry[locus] <- ifelse(randAnc[locus] > T[gameteAncestry[locus-1], 1], 2, 1)
+      gameteAncestry[locus] <- ifelse(randAnc[locus] > Tmat[gameteAncestry[locus-1], 1], 2, 1)
     }
   }
   for(locus in 1:L) {
@@ -114,10 +119,7 @@ simulateSamples <- function(N, numsims, NumSubPops, popadmixparams, rho, eta, be
       ## M2 <- rbeta(1, 4, 1)# random mating
       M2 <- M1 #assortative mating
       avM[individual] <- 1 - 0.5*(M1 + M2)
-      obs <- simulateAutosomalGenotypes(M1, M2, rho, x, L, alleleFreqs, S)
-      ##make some genotypes missing
-      ##for(locus in 1:L) if(runif(n=1) < 0.1)
-      ##    obs[locus]<-""
+      obs <- simulateAutosomalGenotypes(M1, M2, rho, x, L, alleleFreqs, 2)
       genotypes <- rbind(genotypes, obs)
     }
     genotypes <- genotypes[-1, ]
@@ -182,18 +184,18 @@ simulateSamples <- function(N, numsims, NumSubPops, popadmixparams, rho, eta, be
     write.table(trueallelefreqs, file="data/trueallelefreqs.txt",
                 row.names=FALSE)                               
     
-    ## run admixmap with outcome var and single population
+    ## admixmap with outcome var and single population
     system("../test/admixmap argsSinglePop.txt")
     Sys.putenv("RESULTSDIR" = "SinglePopResults")
     source("../test/AdmixmapOutput.R")
     ## run genomic control analysis - must set L and pthreshold in gcdriver.txt
     if(logistic) system("gcLogist.pl") else system("gcLinear.pl")
     source("gcf.R")
-    ## run admixmap with no outcomevar and two populations
+    ## admixmap with no outcomevar and two populations
     system("../test/admixmap argsNoOutcome.txt")
     Sys.putenv("RESULTSDIR" = "NoOutcomeResults")
     source("../test/AdmixmapOutput.R")
-    ## run admixmap with outcome var and two populations
+    ## admixmap with outcome var and two populations
     system("../test/admixmap argsTwoPops.txt")
     Sys.putenv("RESULTSDIR" = "TwoPopsResults")
     source("../test/AdmixmapOutput.R")
@@ -213,10 +215,10 @@ simulateSamples <- function(N, numsims, NumSubPops, popadmixparams, rho, eta, be
     }
     
     ## read adjusted and unadjusted p-values from file
-    crude.pvalues <- read.table(file="SinglePopResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
+    crude.pvalues <- read.table(file="SinglePopResults/AllelicAssocTestsFinal.txt", header=T)[, 7]
     gc.pvalues <- read.table(file="GCTests.txt", header=T)[, 2]
     adj.pvalues <- numeric(L)
-    adj.pvalues <- read.table(file="TwoPopsResults/TestsAllelicAssociationFinal.txt", header=T)[, 7]
+    adj.pvalues <- read.table(file="TwoPopsResults/AllelicAssocTestsFinal.txt", header=T)[, 7]
     ## print posterior quantiles for params 
     reg.quantiles <- read.table(file="TwoPopsResults/PosteriorQuantiles.txt", header=T)
     print(reg.quantiles)
@@ -262,14 +264,16 @@ numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 N <- 500
-numsims <- 50
+
+numsims <- 100
+
 NumSubPops <- 2 # num subpopulations
 logistic <- T # logistic or linear
 popadmixparams <- c(1, 2) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
 spacing <- 25 # 40 cM spacing gives 99 loci, 30 cM spacing 128 loci, 25 cM 151 loci
 if(logistic) {
-  eta <- 41 # allele freq dispersion parameter
+  eta <- 31 # 41 # allele freq dispersion parameter
   beta <- 3 # log odds ratio for effect of admixture
   gamma <- 0.4 # effect of allele 2 at candidate locus
 } else {

@@ -1,9 +1,8 @@
 burnin=50
 samples=250
-targetindicator=0
-displaylevel=3
+numannealedruns=0
+displaylevel=0
 every=5
-locusfortest=0
 logfile=log.txt
 resultsdir=SinglePopResults
 randommatingmodel=0

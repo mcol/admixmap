@@ -1,6 +1,6 @@
 burnin=200
 samples=1200
-displaylevel=3
+displaylevel=0
 every=10
 correlatedallelefreqs=1
 randommatingmodel=0
@@ -16,6 +16,7 @@ paramfile=paramfile.txt
 regparamfile=regparamfile.txt
 dispparamfile=dispparam.txt
 indadmixturefile=indadmixture.txt
-etapriormean=5
+allelicassociationscorefile=allelicassociationscores.txt
+etapriormean=31
 etapriorvar=25
 numannealedruns=0
