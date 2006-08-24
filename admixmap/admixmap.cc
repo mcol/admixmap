@@ -271,9 +271,16 @@ int main( int argc , char** argv ){
 	  Log << NumAnnealedRuns << " annealing runs of " << samples 
 	      << " iteration(s) followed by final run of "; 
 	}
-	Log << options.getTotalSamples() << " iterations at ";
-	if( options.getTestOneIndivIndicator() )Log << options.getNumAnnealedRuns()+1 
-						    <<" coolnesses for test individual. Other individuals at ";
+	if(!options.getThermoIndicator()) {
+	  Log << options.getTotalSamples();
+	} else {
+	  Log << 2 * options.getTotalSamples();
+	} 
+	Log << " iterations at ";
+	if( options.getTestOneIndivIndicator() ) {
+	  Log << options.getNumAnnealedRuns()+1 
+	      <<" coolnesses for test individual. Other individuals at ";
+	}
 	Log << "coolness of 1\n";
       }
     
@@ -297,7 +304,9 @@ int main( int argc , char** argv ){
 
 	  if(run == NumAnnealedRuns) {
 	    AnnealedRun = false;
-	    samples = options.getTotalSamples();//redundant?
+	    if(options.getThermoIndicator()) {
+	      samples = 2 * options.getTotalSamples(); // last run is longer
+	    }   
 	    burnin = options.getBurnIn();
 	  } else AnnealedRun = true; 
 	  coolness = Coolnesses[run];
@@ -307,12 +316,13 @@ int main( int argc , char** argv ){
 	    IC->resetStepSizeApproximators(NumAnnealedRuns); 
 	    A.resetStepSizeApproximator(NumAnnealedRuns);
 	    L.resetStepSizeApproximator(NumAnnealedRuns);
- 
+	    
 	  }
 	  // accumulate scalars SumEnergy and SumEnergySq at this coolness
 	  // array Coolnesses is not used unless TestOneIndivIndicator is true
-	  doIterations(samples, burnin, IC, L, A, R, options, Loci, Log, SumEnergy, SumEnergySq, coolness, AnnealedRun, 
-		       loglikelihoodfile, Scoretests, DispTest, StratTest, AlleleFreqTest, HWtest, avgstream, data, Coolnesses);
+	  doIterations(samples, burnin, IC, L, A, R, options, Loci, Log, SumEnergy, SumEnergySq, coolness, 
+		       AnnealedRun, loglikelihoodfile, Scoretests, DispTest, StratTest, AlleleFreqTest, 
+		       HWtest, avgstream, data, Coolnesses);
 #ifdef PARALLEL
 	  t2 = MPI::Wtime()-t1;
 #endif

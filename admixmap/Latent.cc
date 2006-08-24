@@ -268,9 +268,11 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
     double LogPriorRatio = 0.0;
     double LogAccProbRatio = 0.0;
     bool accept = false;
-
+    
     NumberOfUpdates++;
-    rhoprop = exp(Rand::gennor(log(rho[0]), step)); // propose log rho from normal distribution with SD step
+    double logrho0 = log(rho[0]);
+    double logrhoprop = Rand::gennor(logrho0, step);
+    rhoprop = exp(logrhoprop); // propose log rho from normal distribution with SD step
     
     //get log likelihood at current parameter values, annealed if this is an annealing run
     for(int i = 0; i < IC->getSize(); ++i) {
@@ -278,11 +280,11 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
       ind->HMMIsBad(true);//to force HMM update
       LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
       ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
-   }
-      // set ancestry correlations using proposed value of sum-intensities
+    }
+    // set ancestry correlations using proposed value of sum-intensities
     // value for X chromosome set to half the autosomal value 
     Loci->SetLocusCorrelation(rhoprop);
-
+    
     //get log HMM likelihood at proposal rho and current admixture proportions
     for(int i = 0; i < IC->getSize(); ++i) {
       Individual* ind = IC->getIndividual(i);
@@ -291,11 +293,12 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
       // line above should not be needed for a forced update with result not stored
     }
     LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
-
-    //compute prior ratio
-    LogPriorRatio = getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
+    
+    //compute log ratio of prior densities in log rho basis
+    LogPriorRatio = rhoalpha * (logrhoprop - logrho0) - rhobeta * (rhoprop - rho[0]); 
+    // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
     LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
-
+    
     // generic Metropolis step
     if( LogAccProbRatio < 0 ) {
       if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
@@ -303,6 +306,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
     
     if(accept) {
       rho[0] = rhoprop;
+      logrho0 = logrhoprop;
       for(int i = 0; i < IC->getSize(); ++i){
 	Individual* ind = IC->getIndividual(i);
 	ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
@@ -316,7 +320,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
     if( !( NumberOfUpdates % w ) ){
       step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
     }
-    if(sumlogrho )SumLogRho[0] += log(rho[0]);// accumulate sum of log of sumintensities after burnin.
+    if(sumlogrho )SumLogRho[0] += logrho0;// accumulate sum of log of sumintensities after burnin.
   }//end if global rho model
 
   else if(!options->getHapMixModelIndicator()){ //individual- or gamete-specific rho model
