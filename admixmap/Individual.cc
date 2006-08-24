@@ -160,7 +160,8 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
     (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
 #endif
     
-    //initialise sampledHapPairs with the first of the possible happairs. Then, if there is only one, sampling of hap pair can be skipped.
+    // initialise sampledHapPairs with the first of the possible happairs. 
+    // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
     sampledHapPairs.push_back(PossibleHapPairs[j][0]);
   }
   //Now the PossibleHapPairs have ben determined and missing genotype indicators have been set, 
@@ -683,7 +684,7 @@ void Individual::AccumulateAncestry(int* SumAncestry){
   } //end chromosome loop
 }
 #ifdef PARALLEL
-void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal, 
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool annealthermo, 
 			       const double* const AlleleProbs){
   if( hapmixmodel || !GenotypesMissing[j][jj]){
     int ancestry[2];//to store ancestry states
@@ -707,19 +708,21 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
       sampledHapPairs[locus].haps[1] = PossibleHapPairs[locus][h].haps[1];
 
     }//now update allelecounts in AlleleFreqs using sampled hap pair
-    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, ancestry, (gametes[j]==2), anneal);
+    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, ancestry, (gametes[j]==2), annealthermo);
   }
 }
 #else
-void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal){
-  if( hapmixmodel || !GenotypesMissing[j][jj]){
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool annealthermo){
+  if( hapmixmodel || !GenotypesMissing[j][jj]) {
     int anc[2];//to store ancestry states
     GetLocusAncestry(j,jj,anc);
-    //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
-    if(PossibleHapPairs[locus].size() > 1){// no need to sample if only one possible hap pair
+    if(PossibleHapPairs[locus].size() > 1 && !annealthermo) { 
+      // no need to sample if only one possible hap pair or if annealing for thermo integration
       (*Loci)(locus)->SampleHapPair(&(sampledHapPairs[locus]), PossibleHapPairs[locus], anc);
-    }//now update allelecounts in AlleleFreqs using sampled hap pair
-    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), anneal);
+    }
+    // now update allelecounts in AlleleFreqs using sampled hap pair
+    // UpdateAlleleCounts does nothing if annealthermo and > 2 alleles 
+    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), annealthermo);
   }
 }
 #endif

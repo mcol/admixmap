@@ -155,7 +155,8 @@ public:
   //void Update(bool afterBurnIn, double coolness, bool /*annealUpdate*/);
 
   ///initialize output file for samples of dispersion parameters
-  void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, LogWriter &Log);
+  void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, 
+			       LogWriter &Log);
 
   ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
@@ -183,7 +184,8 @@ public:
   const array_of_allelefreqs& GetAlleleFreqs()const;
   const int *GetAlleleCounts(int locus)const;
   
-  void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
+  void UpdateAlleleCounts(const int locus, const int h[2], const int ancestry[2], const bool diploid, 
+			  const bool anneal );
 #ifdef PARALLEL
   void SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K);
   void BroadcastAlleleFreqs(MPI::Intracomm& comm);

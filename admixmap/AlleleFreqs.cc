@@ -133,11 +133,23 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     OpenOutputFile(options);
   }
 
-  //set parameters of prior on frequency Dirichlet prior params
-  if(options->getHapMixModelIndicator()) {
+  // set which sampler will be used for allele freqs
+  // current version uses conjugate sampler if annealing without thermo integration
+  if( options->getHapMixModelIndicator() ||
+      (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
+      ( !strlen(options->getAlleleFreqFilename()) &&
+	!strlen(options->getHistoricalAlleleFreqFilename()) && 
+	!strlen(options->getPriorAlleleFreqFilename()) && 
+	!options->getCorrelatedAlleleFreqs() ) ) {
     FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
+  } else {
+    FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+  }
+
+  if(options->getHapMixModelIndicator()) {
+    //set parameters of prior on frequency Dirichlet prior params
     const vector<double> &params = options->getAlleleFreqPriorParams();
-    if(params.size()==3){
+    if(params.size()==3) {
       HapMixPriorShape = params[0];
       HapMixPriorRatePriorShape = params[1];
       HapMixPriorRatePriorRate = params[2];
@@ -149,19 +161,6 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       HapMixPriorRatePriorRate = 2.0;
     }
     HapMixPriorRate = HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
-  }
-  else {//not hapmix model
-    // use hamiltonian sampler if thermo indicator or if reference prior on allele freqs
-    if( (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) 
-	|| ( !strlen(options->getAlleleFreqFilename()) &&
-	     !strlen(options->getHistoricalAlleleFreqFilename()) && 
-	     !strlen(options->getPriorAlleleFreqFilename()) && 
-	     !options->getCorrelatedAlleleFreqs() ) 
-	) {
-      FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
-    } else {
-      FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
-    }
   }
   
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -668,21 +667,31 @@ void AlleleFreqs::ResetAlleleCounts(unsigned K) {
    Given a haplotype pair, h, and the ordered ancestry states at a locus.
    * should use hap pairs stored in Individual object
    */
-void AlleleFreqs::UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool /*anneal*/ )
-{
-  if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER &&
-      Loci->GetNumberOfStates(locus)==2){
-    if( (h[0] != h[1]) && (ancestry[0] !=ancestry[1]))//heterozygous with distinct ancestry states
-      ++hetCounts[locus][ancestry[0]*Populations + ancestry[1]];
-    else{
-      ++AlleleCounts[locus][h[0]*Populations + ancestry[0]];
-      if(diploid)++AlleleCounts[locus][h[1]*Populations + ancestry[1]];
+void AlleleFreqs::UpdateAlleleCounts(const int locus, const int h[2], const int ancestry[2], const bool diploid, 
+				     const bool anneal) {
+  if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER ) { 
+    if(diploid) {
+      if(Loci->GetNumberOfStates(locus)==2) { //diallelic
+	if( (h[0] != h[1]) && (ancestry[0] !=ancestry[1])) { //heterozygous with distinct ancestry states
+	  ++hetCounts[locus][ancestry[0]*Populations + ancestry[1]];
+	} else {
+	  ++AlleleCounts[locus][h[0]*Populations + ancestry[0]];
+	  ++AlleleCounts[locus][h[1]*Populations + ancestry[1]];
+	}
+      } else { // > 2 alleles: update allele counts only if not annealed run 
+	if(!anneal) { 
+	  ++AlleleCounts[locus][ h[0]*Populations + ancestry[0] ];
+	  ++AlleleCounts[locus][ h[1]*Populations + ancestry[1] ];
+	}
+      }
+    } else { // haploid: ignore h[1] and ancestry[1]
+      if( Loci->GetNumberOfStates(locus)==2 || !anneal) {
+	++AlleleCounts[locus][ h[0]*Populations + ancestry[0] ];
+      } 
     }
-  } else {
-    AlleleCounts[locus][ h[0]*Populations + ancestry[0] ]++;
-    if(diploid)AlleleCounts[locus][ h[1]*Populations + ancestry[1] ]++;
-    //if haploid(ie diploid = false), h[0]==h[1]==genotypes[locus] and ancestry[0]==ancestry[1]
-    //and we only count once
+  } else { // conjugate sampler
+    ++AlleleCounts[locus][ h[0]*Populations + ancestry[0] ];
+    if(diploid) ++AlleleCounts[locus][ h[1]*Populations + ancestry[1] ];
   }
 }
 

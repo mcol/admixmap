@@ -68,8 +68,8 @@ public:
   void AccumulateAncestry(int* SumAncestry);
   void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
 		    const vector<Regression*> R);
-  void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal);
-  void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool anneal, 
+  void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool annealthermo);
+  void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool annealthermo, 
 		     const double* const AlleleProbs);
   void SampleJumpIndicators(bool sampleArrivals);
   void SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta,  

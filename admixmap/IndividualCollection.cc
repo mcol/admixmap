@@ -542,20 +542,21 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
 #endif
       
       // loop over individuals
-      //condition for determining which allele freq sampler is in use
-      bool condition = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator() );
+      // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
+      bool annealthermo = anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator();
       for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
 	// ** Sample Haplotype Pair
 #ifdef PARALLEL
-	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), condition, AlleleProbs);
+	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), annealthermo, AlleleProbs);
 #else
-	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), condition);//also updates allele counts
+	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), annealthermo);
+	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles 
 #endif
       }
       locus++;
-// #ifdef PARALLEL
-//       if(rank_with_freqs >0)delete[] AlleleProbs;
-// #endif
+      // #ifdef PARALLEL
+      //       if(rank_with_freqs >0)delete[] AlleleProbs;
+      // #endif
     }
   }
 }
