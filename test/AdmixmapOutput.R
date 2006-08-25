@@ -577,11 +577,11 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   ntests <- dim(scoretest)[2]
   locusnames <- scoretest[1,,evaluations]
 
-  log10pvalues <- as.numeric(scoretest[2, , ])
-  log10pvalues[is.nan(log10pvalues)] <- NA
-  log10pvalues <- data.frame(matrix(data=log10pvalues, nrow=ntests, ncol=evaluations))
+  minuslog10pvalues <- as.numeric(scoretest[2, , ])
+  minuslog10pvalues[is.nan(log10pvalues)] <- NA
+  minuslog10pvalues <- data.frame(matrix(data=log10pvalues, nrow=ntests, ncol=evaluations))
   dimnames(log10pvalues)[[1]] <- locusnames
-  plotlogpvalues(outputfile, -log10pvalues, 10*thinning,
+  plotlogpvalues(outputfile, minuslog10pvalues, 10*thinning,
                  "Running computation of p-values for residual allelic association", T)
 }
 
@@ -1102,7 +1102,7 @@ if(K == 1) {
 }
 
 ##plot ergodic averages
-if(is.null(user.options$ergodicaveragefile)) {
+if(is.null(user.options$ergodicaveragefile) ) {
   cat("no ergodicaveragefile\n", file=outfile, append=T)
 } else {
   if(length(scan(paste(resultsdir,user.options$ergodicaveragefile, sep="/"),  what='character', quiet=TRUE)) == 0) {
