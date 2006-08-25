@@ -736,7 +736,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     IC->SampleHapPairs(options, A, Loci, anneal); // loops over individuals to sample hap pairs then increment allele counts
 #ifdef PARALLEL
     MPE_Log_event(14, iteration, "sampledHapPairs");
-#endif`
+#endif
   }
   
 #ifdef PARALLEL
