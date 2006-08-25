@@ -273,7 +273,7 @@ int main( int argc , char** argv ){
 	}
 	if(!options.getThermoIndicator()) {
 	  Log << options.getTotalSamples();
-	} else {
+	} else { 
 	  Log << 2 * options.getTotalSamples();
 	} 
 	Log << " iterations at ";
@@ -313,9 +313,13 @@ int main( int argc , char** argv ){
 	  if(NumAnnealedRuns > 0) {
 	    cout <<"\rSampling at coolness of " << coolness << "         " << flush;
 	    // reset approximation series in step size tuners
-	    IC->resetStepSizeApproximators(NumAnnealedRuns); 
-	    A.resetStepSizeApproximator(NumAnnealedRuns);
-	    L.resetStepSizeApproximator(NumAnnealedRuns);
+	    int resetk = NumAnnealedRuns; //   
+	    if(samples < NumAnnealedRuns) {// samples=1 if annealing without thermo integration
+	      resetk = 1 + run;
+	    }
+	    IC->resetStepSizeApproximators(resetk); 
+	    A.resetStepSizeApproximator(resetk);
+	    L.resetStepSizeApproximator(resetk);
 	    
 	  }
 	  // accumulate scalars SumEnergy and SumEnergySq at this coolness
@@ -328,8 +332,8 @@ int main( int argc , char** argv ){
 #endif
 	  if(rank<1){	  
 	    //calculate mean and variance of energy at this coolness
-	    MeanEnergy = SumEnergy / ((double)options.getTotalSamples() - options.getBurnIn());
-	    VarEnergy  = SumEnergySq / ((double)options.getTotalSamples() - options.getBurnIn()) - MeanEnergy * MeanEnergy;
+	    MeanEnergy = SumEnergy / ((double)samples - options.getBurnIn());
+	    VarEnergy  = SumEnergySq / ((double)samples - options.getBurnIn()) - MeanEnergy * MeanEnergy;
 	    if(options.getThermoIndicator()){// calculate thermodynamic integral
 	      annealstream << coolness << "\t" << MeanEnergy << "\t" << VarEnergy;
 	      if(run > 0) { // use trapezium rule to approximate integral
@@ -698,7 +702,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 #else 
   const int rank = -1;
 #endif
-  A->ResetAlleleCounts(options->getPopulations());
+  A->ResetAlleleCounts(options->getPopulations()); //resets all counts to 0
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if(rank<1){
@@ -729,10 +733,10 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 #ifdef PARALLEL
     MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
-    IC->SampleHapPairs(options, A, Loci, anneal);
+    IC->SampleHapPairs(options, A, Loci, anneal); // loops over individuals to sample hap pairs then increment allele counts
 #ifdef PARALLEL
     MPE_Log_event(14, iteration, "sampledHapPairs");
-#endif
+#endif`
   }
   
 #ifdef PARALLEL
@@ -740,8 +744,17 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     A->SumAlleleCountsOverProcesses(workers_and_freqs, options->getPopulations());
   }
 #endif
+  
+#ifdef PARALLEL
+  MPE_Log_event(7, iteration, "SampleFreqs");
+#endif
+  //bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
+  // hamiltonian update of allele freqs is conditioned on locus ancestry, unphased genotypes and current allele freqs
+  // conjugate update of allele freqs is conditioned on locus ancestry and sampled hap pairs  
+  A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
+  
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+  
   if( rank!=1 && !anneal && iteration > options->getBurnIn() ){
     //score tests
     if( options->getScoreTestIndicator() ){
@@ -764,7 +777,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     }
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
+  
   // sample individual admixture and sum-intensities 
   // this function samples individual admixture with conjugate update on odd-numbered iterations
   // samples admixture of test individuals at every iteration  
@@ -785,6 +798,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     MPE_Log_event(7, iteration, "SampleFreqs");
 #endif
     //bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
+    // hamiltonian update of allele freqs is conditioned on locus ancestry, unphased genotypes and current allele freqs
+    // conjugate update of allele freqs is conditioned on locus ancestry and sampled hap pairs  
     A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
 
 #ifdef PARALLEL
@@ -815,8 +830,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // or from update of individual-level parameters otherwise
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(options->getHapMixModelIndicator()){
-    if(rank!=1){
+  if(options->getHapMixModelIndicator()) {
+    if(rank!=1) {
 #ifdef PARALLEL
       MPE_Log_event(1, iteration, "BarrierStart");
       workers_and_master.Barrier();//force master to wait until workers have finished

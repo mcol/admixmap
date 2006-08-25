@@ -578,7 +578,7 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // Sample prior parameters
   if(HapMixPriorParams){
     SampleHapMixPriorParams();
-    if(afterBurnIn)SumLambda += HapMixPriorRate;
+    if(afterBurnIn) SumLambda += HapMixPriorRate;
   }
   else
     if(IsHistoricAlleleFreq ){ // TODO: use class DirichletParamSampler 
@@ -632,11 +632,9 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
     } // otherwise eta will be sampled in sampleDirichletParams
       
   }
-
   if( calculateFST && afterBurnIn && IsHistoricAlleleFreq ){
     UpdateFst();
   }
-
 }
 
 /// resets all counts to 0

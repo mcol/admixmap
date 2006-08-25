@@ -318,7 +318,6 @@ void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const Alle
 
 void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses){
   for(unsigned j = 0; j < nchr; ++j){
-    
     if(TestInd) { // anneal test individual only
       for(int i = 0; i < sizeTestInd; ++i)
 	TestInd[i]->AnnealGenotypeProbs(j, Coolnesses[i]);
@@ -379,9 +378,6 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
 					       const vector<Regression*> &R, const double* const poptheta,
 					       const vector<vector<double> > &alpha, 
 					       bool anneal=false){
-
-  //first, some preliminaries
-  //
   int Populations = options->getPopulations();
   vector<double> lambda;
   vector<const double*> beta;
@@ -393,7 +389,6 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   }
 
   //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
-
   int i0 = 0;
   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
     i0 = 1;
@@ -524,26 +519,26 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
    Samples Haplotype pairs and upates allele/haplotype counts
 */
 void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
-					  bool anneal=false){
+					  bool anneal){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
+  // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
+  bool annealthermo = anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator();
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 #ifdef PARALLEL
-//       //broadcast current values of allele probs to workers 
-//       const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
-//       double* AlleleProbs;
-//       if(rank_with_freqs == 0) AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
-//       else AlleleProbs  = new double[NumberOfStates*Populations];
-//       workers_and_freqs.Barrier();
-//       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
-//get pointer to allele probs for this locus
+      //       //broadcast current values of allele probs to workers 
+      //       const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
+      //       double* AlleleProbs;
+      //       if(rank_with_freqs == 0) AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
+      //       else AlleleProbs  = new double[NumberOfStates*Populations];
+      //       workers_and_freqs.Barrier();
+      //       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
+      //get pointer to allele probs for this locus
       const double* AlleleProbs = A->GetAlleleFreqs(locus);
 #endif
       
       // loop over individuals
-      // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
-      bool annealthermo = anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator();
       for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
 	// ** Sample Haplotype Pair
 #ifdef PARALLEL
