@@ -22,11 +22,11 @@
 #include "InputData.h"
 #include "Genome.h"
 #include "AdmixOptions.h"
-#include "LogWriter.h"
+#include "utils/LogWriter.h"
 #include "AlleleFreqSampler.h"
-#include "MuSampler.h"
-#include "DispersionSampler.h"
-#include "StepSizeTuner.h"
+#include "samplers/MuSampler.h"
+#include "samplers/DispersionSampler.h"
+#include "samplers/StepSizeTuner.h"
 #include "common.h"
 class StepSizeTuner;
 
@@ -155,8 +155,7 @@ public:
   //void Update(bool afterBurnIn, double coolness, bool /*annealUpdate*/);
 
   ///initialize output file for samples of dispersion parameters
-  void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, 
-			       LogWriter &Log);
+  void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, LogWriter &Log);
 
   ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
   void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
@@ -184,11 +183,10 @@ public:
   const array_of_allelefreqs& GetAlleleFreqs()const;
   const int *GetAlleleCounts(int locus)const;
   
-  void UpdateAlleleCounts(const int locus, const int h[2], const int ancestry[2], const bool diploid, 
-			  const bool anneal );
+  void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
 #ifdef PARALLEL
-  void SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K);
-  void BroadcastAlleleFreqs(MPI::Intracomm& comm);
+  void SumAlleleCountsOverProcesses(unsigned K);
+  void BroadcastAlleleFreqs();
 #endif
   void ResetSumAlleleFreqs();
   void setAlleleFreqsMAP();

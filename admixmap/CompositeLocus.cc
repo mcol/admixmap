@@ -12,11 +12,11 @@
  */
 
 #include "CompositeLocus.h"
-#include "rand.h"
+#include "samplers/rand.h"
 #include <math.h>
 #include <stdlib.h>
 #include <numeric>
-#include "misc.h"
+#include "utils/misc.h"
 
 using namespace std;
 

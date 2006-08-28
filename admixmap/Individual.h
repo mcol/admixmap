@@ -17,8 +17,8 @@
 #include "Genome.h"
 #include "Chromosome.h"
 #include "AlleleFreqs.h"
-#include "LogWriter.h"
-#include "StepSizeTuner.h"
+#include "utils/LogWriter.h"
+#include "samplers/StepSizeTuner.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 

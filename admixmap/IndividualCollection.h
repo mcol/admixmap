@@ -20,8 +20,7 @@
 #include "chib.h"
 #include "Individual.h"
 #include "IndAdmixOutputter.h"
-#include "DataMatrix.h"
-#include "admixmap.h"//for PARALLEL
+#include "utils/DataMatrix.h"
 
 #include <vector>
 #include <string.h>
@@ -144,13 +143,11 @@ private:
   double SumDeviance, SumDevianceSq;
   std::vector< int > _locusfortest;
   int* SumAncestry;//for update of locus-specific sumintensities
-
-#ifdef PARALLEL
   int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
-  int rank_with_freqs;
-  //communicators for workers (Individual updaters),  workers+freqsampler and workers+master
-  MPI::Intracomm workers, workers_and_freqs, workers_and_master;
-  unsigned Populations;
+#ifdef PARALLEL
+  // int rank_with_freqs;
+  //communicators for workers (Individual updaters)
+  MPI::Intracomm workers;
 #endif
  
   //Regression Objects

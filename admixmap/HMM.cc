@@ -1,4 +1,4 @@
-#include "rand.h"
+#include "samplers/rand.h"
 #include "HMM.h"
 
 using namespace std;

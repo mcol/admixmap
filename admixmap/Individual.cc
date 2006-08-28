@@ -11,11 +11,10 @@
  * 
  */
 #include "Individual.h"
-#include "StringConvertor.h"
-#include "Regression.h"
-#include "misc.h"
-#include "dist.h"
-#include "linalg.h"
+#include "regression/Regression.h"
+#include "utils/misc.h"
+#include "utils/dist.h"
+#include "utils/linalg.h"
 #include <algorithm>
 #include <limits>
 #include <sstream>

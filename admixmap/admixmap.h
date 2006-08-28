@@ -21,9 +21,9 @@
 #include <string>
 #include "common.h"
 #include "Latent.h"
-#include "LinearRegression.h"
-#include "LogisticRegression.h"
-#include "CoxRegression.h"
+#include "regression/LinearRegression.h"
+#include "regression/LogisticRegression.h"
+#include "regression/CoxRegression.h"
 #include "AlleleFreqs.h"
 #include "AdmixOptions.h"
 #include "InputData.h"

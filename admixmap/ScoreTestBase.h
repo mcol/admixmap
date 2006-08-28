@@ -4,7 +4,7 @@
 
 //#include <sstream>
 //#include "IndividualCollection.h"
-#include "LogWriter.h"
+#include "utils/LogWriter.h"
 #include "common.h"
 
 /// Abstract Base Class for score tests

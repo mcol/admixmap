@@ -19,8 +19,8 @@
 
 #include "MisSpecAlleleFreqTest.h"
 #include "gsl/gsl_cdf.h"//for pvalues
-#include "linalg.h"
-#include "misc.h"
+#include "utils/linalg.h"
+#include "utils/misc.h"
 
 MisSpecAlleleFreqTest::MisSpecAlleleFreqTest(){
   doTest1 = false;

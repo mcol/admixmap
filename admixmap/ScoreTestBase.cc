@@ -3,7 +3,7 @@
 #include <numeric>
 #include "gsl/gsl_cdf.h"
 #include <math.h>
-#include "linalg.h"
+#include "utils/linalg.h"
 
 using namespace std;
 

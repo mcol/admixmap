@@ -25,7 +25,7 @@
 #include "AlleleFreqs.h"
 #include "Genome.h"
 #include "AdmixOptions.h"
-#include "LogWriter.h"
+#include "utils/LogWriter.h"
 #include "ScoreTestBase.h"
 
 ///a scalar test for SNPs only

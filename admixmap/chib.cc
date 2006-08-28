@@ -12,7 +12,7 @@
  * 
  */
 #include "chib.h"
-#include "misc.h"
+#include "utils/misc.h"
 //#include <limits>
 
 using namespace std;

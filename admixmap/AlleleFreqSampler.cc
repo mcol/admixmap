@@ -12,8 +12,8 @@
  */
 #include "AlleleFreqSampler.h"
 #include "IndividualCollection.h"
-#include "dist.h"//for Dirichlet log density
-#include "misc.h"
+#include "utils/dist.h"//for Dirichlet log density
+#include "utils/misc.h"
 
 //#define DEBUG 1
 
@@ -38,8 +38,8 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
     if(NumPops>1){
       params = new double[NumPops];
       step0 = 0.01;//initial step size
-      numleapfrogsteps = 50;
-      Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.95, getEnergySNP, 
+      numleapfrogsteps = 40;
+      Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.9, getEnergySNP, 
 			    gradientSNP);
     }
   } else {

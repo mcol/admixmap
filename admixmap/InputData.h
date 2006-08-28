@@ -14,7 +14,9 @@
 #ifndef INPUT_DATA_H
 #define INPUT_DATA_H 1
 #include "common.h"
-#include "DataMatrix.h"
+#include "utils/DataMatrix.h"
+
+typedef std::vector<std::vector<unsigned short> > genotype;
 
 /**
  *  Forward declarations.
@@ -42,7 +44,7 @@ public:
   /**
    *  Read all input data and store in internal structures.
    */    
-  void readData(AdmixOptions *options, LogWriter &log, int rank);    
+  void readData(AdmixOptions *options, LogWriter &log);    
 
 
   /*
@@ -124,7 +126,6 @@ private:
   bool IsPedFile;
 
   void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
-  void readFile(const char *fname, Matrix_s& data, LogWriter &Log);
   void readGenotypesFile(const char *fname, Matrix_s& data);
   void CheckGeneticData(AdmixOptions *options)const;
   void checkLocusFile(int sexColumn, double threshold, bool);
@@ -137,7 +138,7 @@ private:
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
   bool determineIfPedFile()const;
   std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
-  void CheckData(AdmixOptions *options, LogWriter &Log, int rank);
+  void CheckData(AdmixOptions *options, LogWriter &Log);
 
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.

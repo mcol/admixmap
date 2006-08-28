@@ -7,7 +7,7 @@
 #include "HWTest.h"
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
-#include "misc.h"
+#include "utils/misc.h"
 
 HWTest::HWTest(){
   score = 0;

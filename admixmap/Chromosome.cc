@@ -13,7 +13,7 @@
 #include "Chromosome.h"
 #include "Individual.h"
 #include <iostream>
-#include "misc.h"
+#include "utils/misc.h"
 
 #define PR(x) cerr << #x << " = " << x << endl;
 

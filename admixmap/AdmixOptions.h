@@ -16,7 +16,7 @@
 #define ADMIX_OPTIONS_H 1
 
 #include "common.h"
-#include "LogWriter.h"
+#include "utils/LogWriter.h"
 #include <string.h>
 #include <string>
 #include <map>

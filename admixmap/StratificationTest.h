@@ -19,7 +19,7 @@
 #include "IndividualCollection.h"
 #include "Genome.h"
 #include "AlleleFreqs.h"
-#include "LogWriter.h"
+#include "utils/LogWriter.h"
 
 ///Class to implement a test for residual population stratification
 class StratificationTest
@@ -29,7 +29,7 @@ public:
   StratificationTest(const char* filename, LogWriter &Log);
   
   void Initialize( AdmixOptions* const options, const Genome &Loci,  
-		   const IndividualCollection* const IC, LogWriter &Log, int rank );
+		   const IndividualCollection* const IC, LogWriter &Log);
 
   void calculate( const IndividualCollection* const individuals, const array_of_allelefreqs& AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );

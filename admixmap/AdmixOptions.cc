@@ -12,9 +12,7 @@
  */
 
 #include "AdmixOptions.h"
-#include "LogWriter.h"
-//#include "StringSplitter.h"
-#include "StringConvertor.h"
+#include "utils/StringConvertor.h"
 #include <string.h>
 #include <sstream>
 #include <numeric> // for checkInitAlpha

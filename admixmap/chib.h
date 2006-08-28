@@ -15,7 +15,7 @@
 #ifndef CHIB_H
 #define CHIB_H 1
 
-#include "LogWriter.h"
+#include "utils/LogWriter.h"
 #include <vector>
 
 class chib

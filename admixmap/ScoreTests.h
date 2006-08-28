@@ -16,7 +16,7 @@
 
 #include <sstream>
 #include "IndividualCollection.h"
-#include "LogWriter.h"
+#include "utils/LogWriter.h"
 #include "common.h"
 #include "ResidualLDTest.h"
 
@@ -37,13 +37,10 @@ public:
 
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
 		  const Vector_s&, LogWriter &);
-#ifdef PARALLEL
-  void SetComm(const MPI::Intracomm* c, const std::vector<std::string>* locuslabels);
-#endif
 
   void InitialiseAssocScoreFile(const Vector_s&);
 
-  void Output(int iterations, const Vector_s& PLabels, bool final);
+  void Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
 
   void ROutput();
 
@@ -96,7 +93,6 @@ private:
   double *recvhapinfo;
   int dimallelescore, dimalleleinfo, dimhapscore, dimhapinfo;
 
-  const std::vector<std::string> * LocusLabels;
   const MPI::Intracomm * Comm;//pointer to the workers_and_master communicator in admixmap.cc
 #endif
 
