@@ -13,12 +13,7 @@
 #include "admixmap.h"
 #include <fstream>
 #include <dirent.h>//for OpenResultsDir
-#ifdef PARALLEL
-#include <mpi++.h>
-#include <mpe.h>
-
-MPI::Intracomm workers_and_master, workers_and_freqs;
-#endif
+#include "Comms.h"
 
 #define ADMIXMAP_VERSION 3.5
 #define MAXNUMOPTIONS 50//maximum number of options specifiable.
@@ -60,25 +55,12 @@ int main( int argc , char** argv ){
   } 
 #ifdef PARALLEL
   MPI::Init(argc, argv);
-  const int rank = MPI::COMM_WORLD.Get_rank();
-
-  //set up communicators
-  int ranks[1];
-  MPI::Group world_group = MPI::COMM_WORLD.Get_group();
-  ranks[0] = 1;
-  MPI::Group master_group = world_group.Excl(1, ranks);//exclude process (1) that will update freqs
-  ranks[0] = 0;
-  MPI::Group freqs_group = world_group.Excl(1, ranks);//exclude process 0 (master)
-  workers_and_master = MPI::COMM_WORLD.Create(master_group);
-  workers_and_freqs = MPI::COMM_WORLD.Create(freqs_group);
-  world_group.Free();
-  master_group.Free();
-  freqs_group.Free();
+  Comms::Initialise();
 
   double t1 = 0, t2 = 0, t3 = 0, t0 = MPI::Wtime();
   //define states for logging
   MPE_Init_log();
-  if(rank==0){
+  if(Comms::isMaster()){
     MPE_Describe_state(1, 2, "Barrier", "red:vlines1");
     MPE_Describe_state(3, 4, "ReduceAncestry", "cyan:vlines3");
     MPE_Describe_state(5, 6, "ReduceAlleleCounts", "orange:gray2");
@@ -91,22 +73,24 @@ int main( int argc , char** argv ){
     MPE_Describe_state(19, 20, "BcastFreqs", "plum:hlines3");
     MPE_Describe_state(21, 22, "ScoreTests", "gray:hlines3");
   }
-#else
-  const int rank = -1;//cannot be 0 as process with rank 0 is excluded from some function calls
 #endif
 
   // ******************* PRIMARY INITIALIZATION ********************************************************************************
   //read user options
   AdmixOptions options(argc, argv);
 
-  if(rank<1){
+  const bool isMaster = Comms::isMaster();
+  const bool isFreqSampler = Comms::isFreqSampler();
+  const bool isWorker = Comms::isWorker();
+
+  if(isMaster){
     MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>2));
   }
  
   //open logfile, start timer and print start message
-  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1));
+  LogWriter Log(options.getLogFilename(), (bool)(options.getDisplayLevel()>1 && isMaster));
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
-  if(rank<1){
+  if(isMaster){
     //if(options.getDisplayLevel()>0 )
     PrintCopyrightNotice(Log);
     Log.StartMessage();
@@ -117,7 +101,7 @@ int main( int argc , char** argv ){
     RNG.setSeed( options.getSeed() );  // set random number seed
   
     InputData data; //read data files and check (except allelefreq files)
-    data.readData(&options, Log, rank);//also sets 'numberofoutcomes' and 'populations' options
+    data.readData(&options, Log);//also sets 'numberofoutcomes' and 'populations' options
 
      //check user options
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
@@ -126,11 +110,11 @@ int main( int argc , char** argv ){
     }
   
     //print user options to args.txt; must be done after all options are set
-    if(rank<1)options.PrintOptions();
+    if(isMaster)options.PrintOptions();
 
     Genome Loci;
-    Loci.Initialise(&data, options.getPopulations(), Log, rank);//reads locusfile and creates CompositeLocus objects
-    if(rank==1 || rank==-1){
+    Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
+    if(isFreqSampler){
       //print table of loci for R script to read
       string locustable = options.getResultsDir();
       locustable.append("/LocusTable.txt");
@@ -139,25 +123,24 @@ int main( int argc , char** argv ){
     }
 
     AlleleFreqs A(&Loci);
-    if(rank ==-1 || rank ==1)//allele freq updater only
+    if(isFreqSampler)//allele freq updater only
       A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
-    if(rank!=0)A.AllocateAlleleCountArrays(options.getPopulations());
+    if(isFreqSampler || isWorker)A.AllocateAlleleCountArrays(options.getPopulations());
 #ifdef PARALLEL
     //broadcast initial values of freqs
-    if(rank!=0)A.BroadcastAlleleFreqs(workers_and_freqs);
-
+    if(!isMaster)A.BroadcastAlleleFreqs();
 #endif
 
     IndividualCollection *IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise
-    if(rank!=1)IC->LoadData(&options, &data);                             //and before L and R Initialise
-    if(rank!=0 && rank!=1)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+    if(isMaster || isWorker)IC->LoadData(&options, &data);                             //and before L and R Initialise
+    if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
 
     Latent L( &options, &Loci);    
-    if(rank!=1)L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
+    if(isMaster || isWorker)L.Initialise(IC->getSize(), data.GetPopLabels(), Log);
 
     vector<Regression*> R;//vector of regression pointers
-    if (options.getNumberOfOutcomes()>0 && rank !=1){
-      if( rank<1 ){
+    if (options.getNumberOfOutcomes()>0 && (isMaster || isWorker)){
+      if( isMaster ){
 	Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
 	Regression::OpenExpectedYFile(options.getEYFilename(), Log);
       }
@@ -167,13 +150,13 @@ int main( int argc , char** argv ){
 	else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
 	else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression(data.getCoxOutcomeVarMatrix()));
 
-	if(rank < 1) R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
+	if(isMaster) R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
 	else R[r]->Initialise(r, IC->GetNumCovariates());
 	R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
       }
     }
     
-    if( options.getPopulations()>1 && (options.isGlobalRho() || options.getHapMixModelIndicator()) && (rank>1 || rank==-1)) {
+    if( options.getPopulations()>1 && (options.isGlobalRho() || options.getHapMixModelIndicator()) && isWorker) {
       Loci.SetLocusCorrelation(L.getrho());
       if(options.getHapMixModelIndicator())
 	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ )
@@ -182,7 +165,8 @@ int main( int argc , char** argv ){
 	  Loci.getChromosome(j)->SetStateArrivalProbs(L.getGlobalTheta(), options.isRandomMatingModel(), true);
     }
     
-    if(rank !=1)IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), /*L.getrhoalpha(), L.getrhobeta(),*/ Log);
+    if(isMaster || isWorker)
+      IC->Initialise(&options, &Loci, data.GetPopLabels(), L.getalpha(), /*L.getrhoalpha(), L.getrhobeta(),*/ Log);
   
     data.Delete();
 
@@ -198,13 +182,10 @@ int main( int argc , char** argv ){
       MisSpecAlleleFreqTest AlleleFreqTest;
       HWTest HWtest;
       std::ofstream avgstream; //output to ErgodicAverageFile
-      if( options.getScoreTestIndicator() && rank!=1){
-#ifdef PARALLEL
-	Scoretests.SetComm(&workers_and_master, &(data.getLocusLabels()));
-#endif
+      if( options.getScoreTestIndicator() && (isMaster || isWorker)){
 	Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
       }
-      //if(rank==0){
+      //if(isMaster){
       if( options.getTestForDispersion() ){
 	DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
       }
@@ -214,7 +195,7 @@ int main( int argc , char** argv ){
 	AlleleFreqTest.Initialise(&options, &Loci, Log );  
       if( options.getHWTestIndicator() )
 	HWtest.Initialise(&options, Loci.GetTotalNumberOfLoci(), Log);
-      if(rank<1)
+      if(isMaster)
 	InitializeErgodicAvgFile(&options, IC, Log, &avgstream, data.GetPopLabels(), data.getCovariateLabels());
       //}
 
@@ -224,7 +205,8 @@ int main( int argc , char** argv ){
       // ******************* initialise stuff for annealing ************************************************
       double IntervalRatio = 1.03; // size of increments of coolness increases geometrically
       int NumAnnealedRuns = options.getNumAnnealedRuns(); // number of annealed runs excluding last run at coolness of 1
-      int samples = 1; // default for annealing runs - overridden for final unannealed run or if AnnealIndicator = true 
+      // set number of samples - 1 for annealing runs, use "samples" options otherwise. Overriden for final, unannealed run with "thermo" option
+      int samples = options.getThermoIndicator()? 1 : options.getTotalSamples(); 
       int burnin = 1; // for annealing runs we only want burnin
     
       double SumEnergy = 0.0, SumEnergySq = 0.0, LogEvidence = 0.0;
@@ -256,7 +238,7 @@ int main( int argc , char** argv ){
       Coolnesses[NumAnnealedRuns] = 1.0;
     
       if(options.getThermoIndicator()) { // set up output for thermodynamic integration
-	if(rank<1){		
+	if(isMaster){		
 	  string s = options.getResultsDir()+"/annealmon.txt";
 	  annealstream.open(s.c_str());
 	  annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << endl;
@@ -266,7 +248,7 @@ int main( int argc , char** argv ){
       }
       Log.setDisplayMode(On);
       if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
-      if(rank<1){
+      if(isMaster){
 	if(NumAnnealedRuns > 0) {
 	  Log << NumAnnealedRuns << " annealing runs of " << samples 
 	      << " iteration(s) followed by final run of "; 
@@ -305,8 +287,8 @@ int main( int argc , char** argv ){
 	  if(run == NumAnnealedRuns) {
 	    AnnealedRun = false;
 	    if(options.getThermoIndicator()) {
-	      samples = 2 * options.getTotalSamples(); // last run is longer
-	    }   
+	      samples *= 2 ; // last run is longer
+	    }
 	    burnin = options.getBurnIn();
 	  } else AnnealedRun = true; 
 	  coolness = Coolnesses[run];
@@ -330,7 +312,7 @@ int main( int argc , char** argv ){
 #ifdef PARALLEL
 	  t2 = MPI::Wtime()-t1;
 #endif
-	  if(rank<1){	  
+	  if(isMaster){	  
 	    //calculate mean and variance of energy at this coolness
 	    MeanEnergy = SumEnergy / ((double)samples - options.getBurnIn());
 	    VarEnergy  = SumEnergySq / ((double)samples - options.getBurnIn()) - MeanEnergy * MeanEnergy;
@@ -371,13 +353,13 @@ int main( int argc , char** argv ){
   
       delete[] IntervalWidths;
       delete[] Coolnesses;
-      if(rank<1)
+      if(isMaster)
 	cout<< "\nIterations completed                       \n" << flush;
     
       // *************************** OUTPUT AT END ***********************************************************
 
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
-      else Log.setDisplayMode(On);
+      else Log.setDisplayMode(Quiet);
       if( options.getChibIndicator()) {
 	//IC->OutputChibEstimates(options.isRandomMatingModel(), Log, options.getPopulations());
 	//MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
@@ -387,13 +369,13 @@ int main( int argc , char** argv ){
       double Information = -LogEvidence - MeanEnergy;
       double MeanDeviance = 2.0 * MeanEnergy; 
       double VarDeviance = 4.0 * VarEnergy;
-      Log << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
+      Log << Quiet << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
 	  << "VarDeviance(V)\t" << VarDeviance << "\n"
 	  << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
       double D_hat = IC->getDevianceAtPosteriorMean(&options, R, &Loci, Log, L.getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
       double pD = MeanDeviance - D_hat;
       double DIC = MeanDeviance + pD;
-      Log << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
+      Log << Quiet << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
 	  << "EffectiveNumParameters(pD)\t" << pD << "\n"
 	  << "DevianceInformationCriterion\t" << DIC << "\n\n"; 
 		
@@ -404,12 +386,12 @@ int main( int argc , char** argv ){
       }
 		
       //Expected Outcome
-      if(rank <1 && options.getNumberOfOutcomes() > 0){
+      if(isMaster && options.getNumberOfOutcomes() > 0){
 	Regression::FinishWritingEYAsRObject((options.getTotalSamples()-options.getBurnIn())/ options.getSampleEvery(), 
 					     data.getOutcomeLabels());
       }
       //FST
-      if( strlen( options.getHistoricalAlleleFreqFilename()) && (rank==-1 || rank==1)  ){
+      if( strlen( options.getHistoricalAlleleFreqFilename()) && isFreqSampler  ){
 	A.OutputFST();
       }
       //stratification test
@@ -423,11 +405,11 @@ int main( int argc , char** argv ){
       if( options.getHWTestIndicator() )
 	HWtest.Output(data.getLocusLabels()); 
 
-      if( options.getScoreTestIndicator() && (rank <1) ) {
+      if( options.getScoreTestIndicator() && isMaster ) {
 	//finish writing score test output as R objects
 	Scoretests.ROutput();
 	//write final tables
-	Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), true);
+	Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
       }
     
       //output to likelihood ratio file
@@ -443,15 +425,15 @@ int main( int argc , char** argv ){
     for(unsigned r = 0; r < R.size(); ++r)delete R[r];
     R.clear();
 
-    if((rank==-1 || rank==1) && !options.getHapMixModelIndicator())
+    if(isFreqSampler && !options.getHapMixModelIndicator())
       A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
-    if(rank<1)cout << "Output to files completed\n" << flush;
+    if(isMaster)cout << "Output to files completed\n" << flush;
     
     // ******************* acceptance rates - output to screen and log ***************************
     if( options.getIndAdmixHierIndicator() ){
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
       else Log.setDisplayMode(On);
-      if(options.getPopulations() > 1 && (rank<1)){
+      if(options.getPopulations() > 1 && isMaster){
 	L.printAcceptanceRates(Log);
       }
       if(options.getCorrelatedAlleleFreqs()){
@@ -479,11 +461,11 @@ int main( int argc , char** argv ){
       }
     }
     A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates").c_str());
-    if(options.getHapMixModelIndicator() && !options.getFixedAlleleFreqs() && (rank == -1 || rank== 1)){
+    if(options.getHapMixModelIndicator() && !options.getFixedAlleleFreqs() && isFreqSampler){
       Log << "Average expected Acceptance rate in allele frequency prior parameter sampler:\n" << A.getHapMixPriorSamplerAcceptanceRate()
 	  << "\nwith average final step size of " << A.getHapMixPriorSamplerStepSize() << "\n";
     }
-    if(rank<1){
+    if(isMaster){
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
       Log.ProcessingTime();
     }
@@ -493,7 +475,7 @@ int main( int argc , char** argv ){
 #endif
     //if(options.getDisplayLevel()>0){
 #ifdef PARALLEL
-    cout << "Rank " << rank << " finished.\n Initialization: " << t1 <<"s Main loop: "<< t2 << "s Finalization:" << t3 << "s.\n";
+    cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n Initialization: " << t1 <<"s Main loop: "<< t2 << "s Finalization:" << t3 << "s.\n";
 #else
     cout << "Finished" << endl;
 #endif
@@ -511,7 +493,7 @@ int main( int argc , char** argv ){
 
 #ifdef PARALLEL
   catch(MPI::Exception e){
-    cout << "Error in process " << rank << ": " << e.Get_error_code() << endl;
+    cout << "Error in process " << MPI::COMM_WORLD.Get_rank() << ": " << e.Get_error_code() << endl;
     MPI::COMM_WORLD.Abort(1);
   }
 #endif
@@ -521,13 +503,11 @@ int main( int argc , char** argv ){
   }
 #ifdef PARALLEL
   //MPI::COMM_WORLD.Barrier();
+  Comms::Finalise();
   MPE_Finish_log("admixmap");
-
-  if(rank!=1)workers_and_master.Free();
-  if(rank!=0)workers_and_freqs.Free();
   MPI_Finalize();
 #endif
-  if(rank<1){//print line of *s
+  if(isMaster){//print line of *s
     cout <<setfill('*') << setw(80) << "*" <<endl;
   }
   putenv("ADMIXMAPCLEANEXIT=1");
@@ -540,20 +520,18 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 		  double coolness, bool AnnealedRun, ofstream & loglikelihoodfile, 
 		  ScoreTests & Scoretests, DispersionTest & DispTest, StratificationTest & StratTest, 
 		  MisSpecAlleleFreqTest & AlleleFreqTest, HWTest & HWtest, ofstream & avgstream, InputData & data, const double* Coolnesses) {
-#ifdef PARALLEL
-  const int rank = MPI::COMM_WORLD.Get_rank();
-#else
-  const int rank = 0;
-#endif
+  const bool isMaster = Comms::isMaster();
+  //const bool isFreqSampler = Comms::isFreqSampler();
+  const bool isWorker = Comms::isWorker();
 
   double Energy = 0.0;
-  if(rank==0 && !AnnealedRun) cout << endl;
+  if(isMaster && !AnnealedRun) cout << endl;
   for( int iteration = 0; iteration <= samples; iteration++ ) {
-    if(rank!=1 && iteration > burnin) {
+    if( (isMaster || isWorker) && iteration > burnin) {
       //accumulate energy as minus loglikelihood, calculated using unnanealed genotype probs
       if( !options.getTestOneIndivIndicator() ) {
 	Energy = IC->getEnergy(&options, R, AnnealedRun); // should store loglikelihood if not AnnealedRun
-	if(rank==0){
+	if(isMaster){
 	  SumEnergy += Energy;
 	  SumEnergySq += Energy*Energy;
 	  // write to file if not AnnealedRun
@@ -563,12 +541,13 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	IC->accumulateEnergyArrays(&options);
       }
     }
-    if( rank==0 && !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
+    if( isMaster && !AnnealedRun &&  !(iteration % options.getSampleEvery()) ) {
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
     
     // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
-    if((rank!=1) && (AnnealedRun || options.getTestOneIndivIndicator())) IC->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses); 
+    if((isMaster || isWorker) && (AnnealedRun || options.getTestOneIndivIndicator())) 
+      IC->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses); 
     
     UpdateParameters(iteration, IC, &L, &A, R, &options, &Loci, &Scoretests, Log, data.GetPopLabels(), coolness, AnnealedRun);
 
@@ -576,21 +555,21 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
  
     if(!AnnealedRun){    
       // output every 'getSampleEvery()' iterations
-      if(!(iteration % options.getSampleEvery()) && rank==0)
+      if(!(iteration % options.getSampleEvery()) && isMaster)
 	OutputParameters(iteration, IC, &L, &A, R, &options, Log);
       
       // ** set merged haplotypes for allelic association score test 
-      if( rank!=1 && iteration == options.getBurnIn() ){
+      if( (isMaster || isWorker) && iteration == options.getBurnIn() ){
 #ifndef PARALLEL
 	if(options.getTestForAllelicAssociation())
 	  Scoretests.SetAllelicAssociationTest(L.getalpha0());
 #endif
-	if( options.getStratificationTest() )
-	  StratTest.Initialize( &options, Loci, IC, Log, rank);
+	if( isMaster && options.getStratificationTest() )
+	  StratTest.Initialize( &options, Loci, IC, Log);
       }
 	    
       //Updates and Output after BurnIn     
-      if( !AnnealedRun && iteration > burnin && rank<1){
+      if( !AnnealedRun && iteration > burnin && isMaster){
 	//dispersion test
 	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A, IC);
 	//stratification test
@@ -621,7 +600,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	    avgstream << endl;
 	  }
 	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), false);
+	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
     } // end "if not AnnealedRun" block
@@ -697,15 +676,14 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, AlleleFreqs *A, vector<Regression *>&R, 
 		      const AdmixOptions *options, const Genome *Loci, ScoreTests *S, LogWriter& Log, 
 		      const Vector_s& PopulationLabels, double coolness, bool anneal){
-#ifdef PARALLEL
-  const int rank = MPI::COMM_WORLD.Get_rank();
-#else 
-  const int rank = -1;
-#endif
-  A->ResetAlleleCounts(options->getPopulations()); //resets all counts to 0
+  const bool isMaster = Comms::isMaster();
+  const bool isFreqSampler = Comms::isFreqSampler();
+  const bool isWorker = Comms::isWorker();
+
+  A->ResetAlleleCounts(options->getPopulations());
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(rank<1){
+  if(isMaster){
     // ** update global sumintensities conditional on genotype probs and individual admixture proportions
     if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && !options->getHapMixModelIndicator() && 
        (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
@@ -727,9 +705,11 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 
   // Update individual-level parameters, sampling locus ancestry states
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
-  if(rank!=1)IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
+  if(isMaster || isWorker){
+    IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
+  }
 
-  if(rank!=0) {
+  if(isWorker || isFreqSampler) {
 #ifdef PARALLEL
     MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
@@ -740,27 +720,19 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   }
   
 #ifdef PARALLEL
-  if(rank>0){
-    A->SumAlleleCountsOverProcesses(workers_and_freqs, options->getPopulations());
+  if(isWorker || isFreqSampler){
+    A->SumAlleleCountsOverProcesses(options->getPopulations());
   }
 #endif
   
-#ifdef PARALLEL
-  MPE_Log_event(7, iteration, "SampleFreqs");
-#endif
-  //bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
-  // hamiltonian update of allele freqs is conditioned on locus ancestry, unphased genotypes and current allele freqs
-  // conjugate update of allele freqs is conditioned on locus ancestry and sampled hap pairs  
-  A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
-  
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-  if( rank!=1 && !anneal && iteration > options->getBurnIn() ){
+  if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){
     //score tests
     if( options->getScoreTestIndicator() ){
 #ifdef PARALLEL
       MPE_Log_event(21, iteration, "ScoreTestUpdatestart");
 #endif
+      //TODO: broadcast dispersion in linear regression
       S->Update(R);//score tests evaluated for first outcome var only
 #ifdef PARALLEL
       MPE_Log_event(22, iteration, "ScoreTestUpdateEnd");
@@ -776,11 +748,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
 #endif
     }
   }
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   // sample individual admixture and sum-intensities 
-  // this function samples individual admixture with conjugate update on odd-numbered iterations
-  // samples admixture of test individuals at every iteration  
   IC->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),  
 		       L->getrhoalpha(), L->getrhobeta(), anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level
@@ -788,66 +758,53 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   
   if( options->getChibIndicator() && !anneal && iteration >= options->getBurnIn() )
     IC->updateChib(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), A);      
-
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
-  if( (rank==-1 || rank==1) && A->IsRandom()){//may be a tautology, non freq updaters have RandomAlleleFreqs=false
+  if( !options->getFixedAlleleFreqs()){
+    if(isFreqSampler){
 #ifdef PARALLEL
-    MPE_Log_event(7, iteration, "SampleFreqs");
+      MPE_Log_event(7, iteration, "SampleFreqs");
 #endif
-    //bool thermoSampler = (anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator());
-    // hamiltonian update of allele freqs is conditioned on locus ancestry, unphased genotypes and current allele freqs
-    // conjugate update of allele freqs is conditioned on locus ancestry and sampled hap pairs  
-    A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
-
+      A->Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
 #ifdef PARALLEL
     MPE_Log_event(8, iteration, "SampledFreqs");
 #endif
-  }
-  
-  // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
-  if(rank!=0 ) { 
-#ifdef PARALLEL
-    if(!options->getFixedAlleleFreqs()) { 
-      A->BroadcastAlleleFreqs(workers_and_freqs);
     }
-      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#ifdef PARALLEL
+    if(isWorker || isFreqSampler ) { 
+      A->BroadcastAlleleFreqs();
+    }
 #endif
-    if(rank!=1 && (!options->getFixedAlleleFreqs() || anneal)) {   
+  }//end if random allele freqs
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
+
+  if(isWorker && (!options->getFixedAlleleFreqs() || anneal)) {   
 #ifdef PARALLEL
     MPE_Log_event(11, iteration, "setGenotypeProbs"); 
 #endif
-      IC->setGenotypeProbs(Loci, A); // sets unannealed probs ready for getEnergy
-      IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
+    IC->setGenotypeProbs(Loci, A); // sets unannealed probs ready for getEnergy
+    IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
 #ifdef PARALLEL
-      MPE_Log_event(12, iteration, "GenotypeProbsSet"); 
+    MPE_Log_event(12, iteration, "GenotypeProbsSet"); 
 #endif
-    } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
-  }   
+  } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
+  
   // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
   // or from update of individual-level parameters otherwise
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(options->getHapMixModelIndicator()) {
-    if(rank!=1) {
-#ifdef PARALLEL
-      MPE_Log_event(1, iteration, "BarrierStart");
-      workers_and_master.Barrier();//force master to wait until workers have finished
-      MPE_Log_event(2, iteration, "BarrierEnd");
+  if(options->getHapMixModelIndicator()){
+    if(isMaster || isWorker){
       
-#endif
       //L->UpdateGlobalTheta(iteration, IC);
       //conjugate sampler, using numbers of arrivals. NB: requires sampling of jump indicators in Individuals
       //L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
       //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
       L->SampleSumIntensities(IC->getSumAncestry(),  
-			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1)
-#ifdef PARALLEL
-			      , workers_and_master
-#endif
-			      );
+			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
     }
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -857,20 +814,24 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   // ** update regression parameters (if regression model) conditional on individual admixture
-  if(rank != 1){
-    bool condition = (!anneal && iteration > options->getBurnIn() && (rank <1));
+  if(isMaster){
+    bool condition = (!anneal && iteration > options->getBurnIn() && isMaster);
     for(unsigned r = 0; r < R.size(); ++r){
-      R[r]->Update(condition, IC->getOutcome(r), coolness 
-#ifdef PARALLEL
-		  , workers_and_master
-#endif
-);
+      R[r]->Update(condition, IC->getOutcome(r), coolness );
       //output expected values of outcome variables to file every 'every' iterations after burnin
       if(condition && !(iteration % options->getSampleEvery()) ) {
 	R[r]->OutputExpectedY();
       }
     }
   }
+#ifdef PARALLEL
+  if(isMaster || isWorker){    //broadcast regression parameters to workers
+    for(unsigned r = 0; r < R.size(); ++r){
+      Comms::BroadcastRegressionParameters(R[r]->getbeta(), R[r]->getNumCovariates());
+      //if(R[r]->getRegressionType()==Linear) Comms::BroadcastRegressionPrecision(R[r]->getlambda());
+    }
+  }
+#endif
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
 }
 
@@ -1007,13 +968,13 @@ void MakeResultsDir(const char* dirname, bool verbose){
 }
 
 void ThrowException(const string& msg, LogWriter & Log){
-    Log.setDisplayMode(On);
-    Log << "\n" << msg << "\n Exiting...\n";
-    Log.ProcessingTime();
 #ifdef PARALLEL//print error message to screen as only master is allowed write with LogWriter
-    if(rank>0)cerr << "rank " << MPI::COMM_WORLD.Get_rank() << ": " << msg << endl;
-    MPI::COMM_WORLD.Abort(1);
+  Log << On << "rank " << MPI::COMM_WORLD.Get_rank() << ": " << msg << "\n Exiting...\n";
+  Log.ProcessingTime();
+  MPI::COMM_WORLD.Abort(1);
 #else
-    exit(1);
+  Log << On << "\n" << msg << "\n Exiting...\n";
+  Log.ProcessingTime();
+  exit(1);
 #endif
 }
