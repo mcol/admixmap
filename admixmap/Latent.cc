@@ -11,12 +11,13 @@
  */
 #include "Latent.h"
 #include "Chromosome.h"
-#include "misc.h"
-#include "dist.h"//for log gamma density
+#include "utils/misc.h"
+#include "utils/dist.h"//for log gamma density
 #include <algorithm>
 #include <numeric>
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
+#include "Comms.h"
 #ifdef PARALLEL
 #include <mpe.h>//for MPI event logging
 #endif
@@ -69,13 +70,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       //ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
     }
 
-#ifdef PARALLEL
-    const int rank = MPI::COMM_WORLD.Get_rank();
-#else 
-    const int rank = 0;
-#endif
-    
-    if(rank==0)SumLogRho.push_back(0.0);
+    if(Comms::isMaster())SumLogRho.push_back(0.0);
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
 
     if(options->getHapMixModelIndicator()){
@@ -91,12 +86,15 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       rhopriorparams[1] = RhoPriorArgs.priormeans[1];
       rhopriorparams[2] = RhoPriorArgs.priormeans[2];
       unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
+      rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
+      rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
+      rhobeta1 = exp(                                            rhopriorparams[2]);
 
-      if(rank==0){
+      if(Comms::isMaster()){
 	RhoArgs.NumPops = K;
-	RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
-	RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
-	RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
+	RhoArgs.rhoalpha = rhoalpha;
+	RhoArgs.rhobeta0 = rhobeta0;
+	RhoArgs.rhobeta1 = rhobeta1;
 
 	//cout << rhopriorparams[0] << " " << rhopriorparams[1] << " " << rhopriorparams[2]<<endl;
 	//cout << RhoArgs.rhoalpha << " " << RhoArgs.rhobeta0 << " " << RhoArgs.rhobeta1<< endl;
@@ -135,11 +133,11 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	RhoPriorParamSampler.ActivateMonitoring((options->getResultsDir()+"/rhopriormonitor.txt").c_str());
       }//end sampler initialisation
       //initialise rho vector
-      double initial_rho = RhoArgs.rhoalpha * RhoArgs.rhobeta1 / (RhoArgs.rhobeta0 - 1.0);
+      double initial_rho = rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
        rho[0] = initial_rho;
       for(unsigned j = 0; j < numIntervals-1; ++j){
 	rho.push_back(initial_rho);
-	if(rank==0)SumLogRho.push_back(0.0);
+	if(Comms::isMaster())SumLogRho.push_back(0.0);
       }
     }//end if hapmixmodel
     else{
@@ -177,7 +175,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
     }
 
     // ** Open paramfile **
-    if ( rank==0 && options->getIndAdmixHierIndicator()){
+    if ( Comms::isMaster() && options->getIndAdmixHierIndicator()){
       Log.setDisplayMode(Quiet);
       if( strlen( options->getParameterFilename() ) ){
 	outputstream.open( options->getParameterFilename(), ios::out );
@@ -362,11 +360,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
 // }
 
 ///samples locus-specific sumintensities in a hapmixmodel, using Hamiltonian Monte Carlo
-void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
-#ifdef PARALLEL
-				  , MPI::Intracomm& Comm
-#endif
-){
+void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
   //SumAncestry is a (NumberOfCompositeLoci) * (Populations+1) array of counts of ancestry states that are
   // unequal (element 0) and equal to each possible ancestry states
   //sumlogrho indicates whether to accumulate sums of log rho
@@ -375,13 +369,8 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
   //double sum = 0.0;
   int locus = 0;
   int index = 0;
-#ifdef PARALLEL
-  const int rank = Comm.Get_rank();
-#else 
-  const int rank = -1;
-#endif
   
-  if(rank<1){
+  if(Comms::isMaster()){
 #ifdef PARALLEL
     MPE_Log_event(9, 0, "sampleRho");
 #endif
@@ -426,22 +415,19 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho
 //broadcast rho to all processes, in Comm (excludes freqsampler)
 //no need to broadcast globaltheta if it is kept fixed
 #ifdef PARALLEL
-  MPE_Log_event(17, 0, "Bcastrho");
-  Comm.Barrier();
-  Comm.Bcast(&(*(rho.begin())), rho.size(), MPI::DOUBLE, 0);
-  MPE_Log_event(18, 0, "Bcasted");
+  Comms::BroadcastRho(rho);
 #endif    
   //set locus correlation (workers only)
-if(rank!=0)  
- {
-    Loci->SetLocusCorrelation(rho);
-    for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+  if(Comms::isWorker())  
+    {
+      Loci->SetLocusCorrelation(rho);
+      for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
 	//set global state arrival probs in hapmixmodel
 	//TODO: can skip this if xonly analysis with no females
 	Loci->getChromosome(c)->SetStateArrivalProbs(globaltheta, options->isRandomMatingModel(), true);
-  }
-}
-  if(rank<1){
+      }
+    }
+  if(Comms::isMaster()){
     //sample rate parameter of gamma prior on rho
     //rhobeta = Rand::gengam( rhoalpha * (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes())/* <-NumIntervals*/ 
     //+ rhobeta0, sum + rhobeta1 );
@@ -456,9 +442,9 @@ if(rank!=0)
       throw(err);
     }
     
-//     rhoalpha = exp(logparams[0]);
-//     rhobeta0 = exp(logparams[1]);
-//     rhobeta1 = exp(logparams[2]);
+    //     rhoalpha = exp(logparams[0]);
+    //     rhobeta0 = exp(logparams[1]);
+    //     rhobeta1 = exp(logparams[2]);
     RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
     RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
     RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
@@ -618,12 +604,7 @@ void Latent::RhoPriorParamsGradient( const double* const x, const void* const va
 }
 
 void Latent::InitializeOutputFile(const Vector_s& PopulationLabels) {
-#ifdef PARALLEL
-  const int rank = MPI::COMM_WORLD.Get_rank();
-#else
-  const int rank = 0;
-#endif
-  if(rank==0){
+  if(Comms::isMaster()){
     // Header line of paramfile
     //Pop. Admixture
     if(!options->getHapMixModelIndicator())
@@ -687,8 +668,8 @@ void Latent::OutputParams(ostream* out){
     double size = (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
     var = var - (sum*sum) / size;
     (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
-      << RhoArgs.rhoalpha << "\t" << RhoArgs.rhobeta0 << "\t" << RhoArgs.rhobeta1 << "\t";
-
+      //<< RhoArgs.rhoalpha << "\t" << RhoArgs.rhobeta0 << "\t" << RhoArgs.rhobeta1 << "\t";
+	   << rhopriorparams[0] << "\t" << rhopriorparams[1] << "\t" << rhopriorparams[2] << "\t";
   }
   else{
     if( options->isGlobalRho() )

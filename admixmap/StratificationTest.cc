@@ -34,7 +34,7 @@ StratificationTest::StratificationTest(const char* filename, LogWriter &Log)
 }
 
 void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci,  
-				     const IndividualCollection* const IC, LogWriter &Log, int rank/*rank of processor (for parallel version)*/ )
+				     const IndividualCollection* const IC, LogWriter &Log )
 {
   Log.setDisplayMode(Quiet);
   if(options->getStratificationTest() ){
@@ -82,33 +82,33 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
 	++abslocus;
       }
       //j is the most informative locus
-      if(j > -1 && rank == 0){
+      if(j > -1 ){
 	TestLoci.push_back(j);
 	NumberOfTestLoci++;
 	//DistanceFromLast = 0;
       }
     }
-    if(rank == 0){
-      if( NumberOfTestLoci < 2 ){
-	Log.setDisplayMode(On);
-	Log << "Too few unlinked loci to run stratification test\n";
-	options->setStratificationTest(false);
-	if(outputstream.is_open())outputstream.close();
-      }
-      else{
-	Log.setDisplayMode(Off);
-	Log << NumberOfTestLoci << " loci used in stratification test.\n";
-	for(int i = 0; i < NumberOfTestLoci; i++){
-	  Log << Loci(TestLoci[i])->GetLabel(0) << "\n";
-	}
-	ModelIndicator = options->isRandomMatingModel();
-	
-	outputstream << "T_obs" << "\t" << "T_rep\n";
-      }
+    
+    if( NumberOfTestLoci < 2 ){
+      Log.setDisplayMode(On);
+      Log << "Too few unlinked loci to run stratification test\n";
+      options->setStratificationTest(false);
+      if(outputstream.is_open())outputstream.close();
     }
+    else{
+      Log.setDisplayMode(Off);
+      Log << NumberOfTestLoci << " loci used in stratification test.\n";
+      for(int i = 0; i < NumberOfTestLoci; i++){
+	Log << Loci(TestLoci[i])->GetLabel(0) << "\n";
+      }
+      ModelIndicator = options->isRandomMatingModel();
+      
+      outputstream << "T_obs" << "\t" << "T_rep\n";
+    }
+    
   }
   else{
-    if( rank == 0)Log << "No test for residual population stratification.\n";
+    Log << "No test for residual population stratification.\n";
   }
 }
 

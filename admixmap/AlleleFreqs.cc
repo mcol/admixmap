@@ -12,12 +12,13 @@
  * 
  */
 #include "AlleleFreqs.h"
-#include "AdaptiveRejection.h"
-#include "misc.h"
-#include "MuSampler.h"
+#include "samplers/AdaptiveRejection.h"
+#include "utils/misc.h"
+#include "samplers/MuSampler.h"
 #include <math.h>
 #include <numeric>
 #ifdef PARALLEL
+#include "Comms.h"
 #include <mpe.h>
 #endif
 
@@ -703,45 +704,14 @@ void AlleleFreqs::resetStepSizeApproximator(int k) {
 
 
 #ifdef PARALLEL
-void AlleleFreqs::SumAlleleCountsOverProcesses(MPI::Intracomm& comm, unsigned K){
-  //comm is an intracommunicator consisting of the allele freq updater (rank 0) and the workers
-    int rank = comm.Get_rank();
-    const int L = Loci->GetNumberOfCompositeLoci();
-//synchronise processes
-    MPE_Log_event(1, 0, "CountsBarrier");
-    comm.Barrier();
-    MPE_Log_event(2, 0, "CountsBarrierEnd");
-    MPE_Log_event(5, 0, "RedCountstart");
-    comm.Reduce(AlleleCounts.array, globalAlleleCounts, L*K*2, MPI::INT, MPI::SUM, 0);
-    MPE_Log_event(6, 0, "RedCountend");
-    MPE_Log_event(1, 0, "CountsBarrier");
-    comm.Barrier();
-    MPE_Log_event(2, 0, "hetCountsBarrierEnd");
-    MPE_Log_event(5, 0, "RedhetCountstart");
-    comm.Reduce(hetCounts.array, globalHetCounts, L*K*K, MPI::INT, MPI::SUM, 0);
-    MPE_Log_event(6, 0, "RedhetCountend");
-
-//put totals back into AlleleCounts on top process, by swapping addresses
-    if(rank==0){
-      int* temp = AlleleCounts.array;
-      AlleleCounts.array = globalAlleleCounts;
-      globalAlleleCounts = temp;
-      temp = hetCounts.array;
-      hetCounts.array = globalHetCounts;
-      globalHetCounts = temp;
-    }
+void AlleleFreqs::SumAlleleCountsOverProcesses(unsigned K){
+  const int L = Loci->GetNumberOfCompositeLoci();
+  Comms::reduceAlleleCounts(AlleleCounts.array, globalAlleleCounts, L*K*2);
+  Comms::reduceAlleleCounts(hetCounts.array, globalHetCounts, L*K*K);
 }
-
-void AlleleFreqs::BroadcastAlleleFreqs(MPI::Intracomm& comm){
-  MPE_Log_event(1, 0, "FreqsBarrier");
-  comm.Barrier();
-  MPE_Log_event(2, 0, "FreqsBarrierEnd");
-  MPE_Log_event(19, 0, "BcastFreqs"); 
-  //comm.Bcast(*Freqs, 1, AlleleFreqArrayType, 0);//NB *Freqs = address of first element
-  comm.Bcast(Freqs.array, (Loci->GetNumberOfCompositeLoci()) * (Freqs.stride), MPI::DOUBLE, 0 );
-  MPE_Log_event(20, 0, "FreqsBcasted"); 
+void AlleleFreqs::BroadcastAlleleFreqs(){
+  Comms::BroadcastAlleleFreqs(Freqs.array, (Loci->GetNumberOfCompositeLoci()) * (Freqs.stride));
 }
-
 #endif
 
 /** samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update

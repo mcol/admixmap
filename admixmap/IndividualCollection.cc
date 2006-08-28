@@ -11,10 +11,8 @@
  * 
  */
 #include "IndividualCollection.h"
-#include "StringSplitter.h"
-#include "StringConvertor.h"
-#include "Regression.h"
-#include "admixmap.h"//for MPI stuff
+#include "regression/Regression.h"
+#include "Comms.h"
 #ifdef PARALLEL
 #include <mpe.h>//for MPI event logging
 #endif
@@ -40,6 +38,7 @@ void IndividualCollection::SetNullValues(){
   SumLogLikelihood = 0.0;
   SumLogTheta = 0;
   SumAncestry = 0;
+  GlobalSumAncestry = 0;
   ReportedAncestry = 0;
   //sigma.resize(2);
   //sigma[0] = sigma[1] = 1.0;
@@ -55,20 +54,12 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
   NumWorkers = 1;
 #ifdef PARALLEL
     int global_rank = MPI::COMM_WORLD.Get_rank();
-    GlobalSumAncestry = 0;
     //create communicator for workers and find size of and rank within this group
-    workers = MPI::COMM_WORLD.Split( (global_rank>1), global_rank);
+    workers = MPI::COMM_WORLD.Split( Comms::isWorker(), global_rank);
     NumWorkers = workers.Get_size();
     if(global_rank >1)
       worker_rank = workers.Get_rank();
     else worker_rank = size;//so that non-workers will not loop over Individuals
-
-    //create communicator for messages between freqsampler and workers
-    workers_and_freqs = MPI::COMM_WORLD.Split( (global_rank > 0), global_rank);
-    rank_with_freqs = workers_and_freqs.Get_rank();
-
-    workers_and_master = MPI::COMM_WORLD.Split((global_rank!=1), global_rank);
-    Populations = options->getPopulations();
 #endif
 
   Individual::SetStaticMembers(Loci, options);
@@ -162,7 +153,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   if(options->getHapMixModelIndicator()) {
     SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
 #ifdef PARALLEL
-    if(workers_and_master.Get_rank()==0)GlobalSumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
+    if(Comms::isMaster())GlobalSumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
 #endif
   }
 }  
@@ -288,14 +279,7 @@ void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const Alle
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 #ifdef PARALLEL
-//       //broadcast current values of allele probs to workers 
-//       const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
-//       double* AlleleProbs;
-//       if(rank_with_freqs == 0)AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
-//       else AlleleProbs  = new double[NumberOfStates*Populations];
-//       workers_and_freqs.Barrier();// wait till everyone is ready for next locus
-//       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
-//get pointer to allele probs for this locus
+      //get pointer to allele probs for this locus
       const double* AlleleProbs = A->GetAlleleFreqs(locus);//need to get alleleprobs from A as workers have no CompositeLocus objects
       for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
 	_child[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
@@ -401,7 +385,6 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   if(options->getHapMixModelIndicator()){
     fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
 #ifdef PARALLEL
-    if(workers_and_master.Get_rank()==0)fill(GlobalSumAncestry, GlobalSumAncestry + 2*NumCompLoci, 0);
     if(worker_rank<(int)size)MPE_Log_event(15, iteration, "Sampleancestry");
 #endif
   }
@@ -436,14 +419,8 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, iteration, "Sampledancestry");
-  if(options->getHapMixModelIndicator()){
-    MPE_Log_event(1, iteration, "BarrierStart");
-    workers_and_master.Barrier();
-    MPE_Log_event(2, iteration, "Barrierend");
-    MPE_Log_event(3, iteration, "RedAncStart");    
-    workers_and_master.Reduce(SumAncestry, GlobalSumAncestry, 2*NumCompLoci, MPI::INT, MPI::SUM, 0); 
-    MPE_Log_event(4, iteration, "RedAncEnd");
-  }
+  if(options->getHapMixModelIndicator())
+    Comms::ReduceAncestryCounts(SumAncestry, GlobalSumAncestry, 2*NumCompLoci);
 #endif
 }
 
@@ -527,31 +504,19 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
   for(unsigned j = 0; j < nchr; ++j){
     for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
 #ifdef PARALLEL
-      //       //broadcast current values of allele probs to workers 
-      //       const unsigned NumberOfStates = 2;//(*Loci)(locus)->GetNumberOfStates();
-      //       double* AlleleProbs;
-      //       if(rank_with_freqs == 0) AlleleProbs = (double*)(*Loci)(locus)->getAlleleProbs();
-      //       else AlleleProbs  = new double[NumberOfStates*Populations];
-      //       workers_and_freqs.Barrier();
-      //       workers_and_freqs.Bcast(AlleleProbs, NumberOfStates*Populations, MPI::DOUBLE, 0);
-      //get pointer to allele probs for this locus
       const double* AlleleProbs = A->GetAlleleFreqs(locus);
 #endif
       
-      // loop over individuals
       for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
-	// ** Sample Haplotype Pair
+	//Sample Haplotype Pair
+	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles 
 #ifdef PARALLEL
 	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), annealthermo, AlleleProbs);
 #else
-	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), annealthermo);
-	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles 
+	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), annealthermo);//also updates allele counts
 #endif
       }
       locus++;
-      // #ifdef PARALLEL
-      //       if(rank_with_freqs >0)delete[] AlleleProbs;
-      // #endif
     }
   }
 }
@@ -820,29 +785,21 @@ const chib* IndividualCollection::getChib()const{
 double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, vector<Regression *> &R, Genome* Loci,
 							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
 							, AlleleFreqs* A){
-#ifdef PARALLEL
-  const int rank = MPI::COMM_WORLD.Get_rank();
   //TODO: broadcast SumLogRho to workers
-#else
-  const int rank = -1;
-#endif
   //SumRho = ergodic sum of global sumintensities
   int iterations = options->getTotalSamples()-options->getBurnIn();
-  
-  if(options->getDisplayLevel()>0)Log.setDisplayMode(On);
-  else Log.setDisplayMode(Off);
   
   //update chromosomes using globalrho, for globalrho model
   if(options->getPopulations() >1 && (options->isGlobalRho() || options->getHapMixModelIndicator()) ){
     vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
-    if(rank<1)//master only
-    for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
+    if(Comms::isMaster())//master only
+      for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
 #ifdef PARALLEL
-    workers_and_master.Barrier();
-    workers_and_master.Bcast(&(*(RhoBar.begin())), RhoBar.size(), MPI::DOUBLE, 0);
+    if(!Comms::isFreqSampler()) 
+      Comms::BroadcastRho(RhoBar);
 #endif
     //set locus correlation
-    if(rank<0 || rank >1){//workers only
+    if(Comms::isWorker()){//workers only
 	Loci->SetLocusCorrelation(RhoBar);
 	    if(options->getHapMixModelIndicator())
 	      for( unsigned int j = 0; j < numChromosomes; j++ )
@@ -854,17 +811,17 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   }
   
   //set haplotype pair probs to posterior means (in parallel version, sets AlleleProbs(Freqs) to posterior means
-  if(rank==1 || rank==-1)
+  if(Comms::isFreqSampler())
   for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
     (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
 
 #ifdef PARALLEL
   //broadcast allele freqs
-  if(rank!=0)A->BroadcastAlleleFreqs(workers_and_freqs);
+  if(!Comms::isMaster())A->BroadcastAlleleFreqs();
 #endif
   
   //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  if(rank==-1 || rank>1)setGenotypeProbs(Loci, A);
+  if(Comms::isWorker())setGenotypeProbs(Loci, A);
   
   //accumulate deviance at posterior means for each individual
   // fix this to be test individual only if single individual
@@ -874,16 +831,13 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
     else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
 #ifdef PARALLEL
-  if(rank!=1){
-    double globalLhat = 0.0;
-    workers_and_master.Barrier();
-    workers_and_master.Reduce(&Lhat, &globalLhat, 1, MPI::DOUBLE, MPI::SUM, 0);
-    Lhat = globalLhat;
+  if(!Comms::isFreqSampler()){
+    Comms::BroadcastLhat(&Lhat);
   }
 #endif
 
-  if(rank <1){
-    Log << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
+  if(Comms::isMaster()){
+    Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
     for(unsigned c = 0; c < R.size(); ++c){
       double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
       Lhat += RegressionLogL;
@@ -930,7 +884,6 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
   double LogLikHMM = 0.0;
   double LogLikRegression = 0.0;
   double Energy = 0.0;
-  int global_rank = 0;
   // assume that HMM probs and stored loglikelihoods are bad, as this function is called after update of allele freqs  
   for(unsigned i = worker_rank; i < size; i+= NumWorkers) {
     LogLikHMM += _child[i]->getLogLikelihood(options, false, !annealed); // store result if not an annealed run
@@ -941,14 +894,10 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
   }
 #ifdef PARALLEL
   //send total to master
-  double globalLogLikHMM = 0.0;
-  workers_and_master.Barrier();
-  workers_and_master.Reduce(&LogLikHMM, &globalLogLikHMM, 1, MPI::DOUBLE, MPI::SUM, 0);
-  LogLikHMM = globalLogLikHMM;
-  global_rank = MPI::COMM_WORLD.Get_rank();
+  Comms::ReduceLogLikelihood(&LogLikHMM);
 #endif
   // get regression log-likelihood 
-  if(global_rank==0)
+  if(Comms::isMaster())
     for(unsigned c = 0; c < R.size(); ++c) LogLikRegression += R[c]->getLogLikelihood(getOutcome(c));
   Energy = -(LogLikHMM + LogLikRegression);
   return Energy;

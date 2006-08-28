@@ -30,11 +30,8 @@ public:
 
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
 		  LogWriter &);
-#ifdef PARALLEL
-  void SetComm(const MPI::Intracomm* c, const std::vector<std::string>* locuslabels);
-#endif
 
-  void Output(int iterations, bool final);
+  void Output(int iterations, bool final, const std::vector<std::string>& LocusLabels);
   void ROutput();
 
   void Update(double);
@@ -50,17 +47,6 @@ private:
   std::vector<std::vector<std::vector<double> > > SumScore2;
   std::vector<std::vector<std::vector<double> > > SumInfo;
 
-#ifdef PARALLEL
-  double* sendresallelescore;
-  double* recvresallelescore;
-  double* sendresalleleinfo;
-  double* recvresalleleinfo;
-  int dimresallelescore, dimresalleleinfo;
-  
-  const std::vector<std::string> * LocusLabels;
-  const MPI::Intracomm * Comm;//pointer to the workers_and_master communicator in admixmap.cc
-#endif
-  
   const AdmixOptions *options;
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
@@ -68,7 +54,8 @@ private:
   int rank, worker_rank, NumWorkers;
   
   //OUTPUT
-  void OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final);
+  void OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final, 
+						const std::vector<std::string>& LocusLabels);
   
   void UpdateScoresForResidualAllelicAssociation(int c, int locus, 
 						 const double* const AlleleFreqsA, 

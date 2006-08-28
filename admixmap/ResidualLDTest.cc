@@ -13,41 +13,19 @@
 #include "ResidualLDTest.h"
 #include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
-#include "linalg.h"//for HH_solve to compute chi-sq
+#include "utils/linalg.h"//for HH_solve to compute chi-sq
+#include "Comms.h"
 
 ResidualLDTest::ResidualLDTest(){
   options = 0;
   individuals = 0;
-  rank = 0;
-  worker_rank = 0;
-  NumWorkers = 1;
-#ifdef PARALLEL
-  Comm = 0;
-#endif
+  rank = Comms::getRank();
+  worker_rank = Comms::getWorkerRank();
+  NumWorkers = Comms::getNumWorkers();
 }
 
 ResidualLDTest::~ResidualLDTest(){
-#ifdef PARALLEL
-  if(test){
-    delete[] sendresallelescore;
-    delete[] sendresalleleinfo;
-    if(rank==0){
-      delete[] recvresallelescore;
-      delete[] recvresalleleinfo;
-    }
-  }
-#endif
 }
-
-#ifdef PARALLEL
-void ResidualLDTest::SetComm(const MPI::Intracomm* c, const std::vector<std::string>* locuslabels){
-  Comm = c;
-  rank = Comm->Get_rank();
-  worker_rank = rank - 1;
-  NumWorkers = Comm->Get_size()-1;
-  LocusLabels = locuslabels;
-}
-#endif
 
 void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 				LogWriter &Log){
@@ -63,8 +41,7 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
     //open output file
     if(rank==0)OpenFile(Log, &outputfile, options->getResidualAllelicAssocScoreFilename(), "Tests for residual allelic association", true);
 #ifdef PARALLEL
-    dimresallelescore = 0;
-    dimresalleleinfo = 0;
+    unsigned dimresalleleinfo = 0;
 #endif
     if(rank==0){
       SumScore.resize(Lociptr->GetNumberOfChromosomes());
@@ -89,7 +66,6 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
 	unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 
 #ifdef PARALLEL
-	dimresallelescore += dim;
 	dimresalleleinfo += dim*dim;
 #endif
 	if(rank==0){
@@ -104,12 +80,7 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
       ++locus;//for last locus on chrm
     }
 #ifdef PARALLEL
-    sendresallelescore = new double[dimresallelescore];
-    sendresalleleinfo = new double[dimresalleleinfo];
-    if(rank==0){
-      recvresallelescore = new double[dimresallelescore];
-      recvresalleleinfo = new double[dimresalleleinfo];
-    }
+    Comms::SetDoubleWorkspace(dimresalleleinfo, (rank==0));
 #endif
   }
   
@@ -132,7 +103,7 @@ void ResidualLDTest::Reset(){
 
 void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs){
   int abslocus = 0;
-  if(worker_rank < individuals->getSize())
+  if(Comms::isWorker())
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){
     for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
       UpdateScoresForResidualAllelicAssociation(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
@@ -141,40 +112,8 @@ void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs){
     ++abslocus;//for last locus on chrm
   }
 #ifdef PARALLEL
-  //pack score and info into arrays ready to send
-  int scoreindex = 0, infoindex = 0;
-  for(unsigned j = 0; j < Lociptr->GetNumberOfChromosomes(); ++j){
-    for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(j)-1; ++k){
-      unsigned dim = 1;
-      copy(Score[j][k].begin(), Score[j][k].end(), sendresallelescore+scoreindex);
-      copy(Info[j][k].begin(), Info[j][k].end(), sendresalleleinfo+infoindex);
-      scoreindex += dim;
-      infoindex += dim*dim;
-    }
-  }
-  //reduce into receive arrays on master process
-  Comm->Barrier();
-  Comm->Reduce(sendresallelescore, recvresallelescore, dimresallelescore, MPI::DOUBLE, MPI::SUM, 0);
-  Comm->Reduce(sendresalleleinfo, recvresalleleinfo, dimresalleleinfo, MPI::DOUBLE, MPI::SUM, 0);
-
-  if(rank==0){
-    //accumulate score, square of score and info on master process
-    scoreindex = 0; infoindex = 0;
-    for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
-      for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(c)-1; ++k){
-      unsigned dim = 1;
-
-	for(unsigned j = 0; j < dim; ++j){
-	  SumScore[c][k][j] += recvresallelescore[scoreindex + j];
-	  for(unsigned jj = 0; jj < dim; ++jj){
-	    SumScore2[c][k][j*dim +jj] += recvresallelescore[scoreindex + j]*recvresallelescore[scoreindex + jj];
-	    SumInfo[c][k][j*dim +jj] = recvresalleleinfo[infoindex + j*dim + jj];
-	  }
-	}
-	scoreindex += dim;
-	infoindex+= dim*dim;
-      }
-  }
+  //sum score and info across processes and accumulate score, square of score and info
+  Comms::ReduceResidualLDScores(Score, Info, SumScore, SumScore2, SumInfo);
 #else
 
   //accumulate score, square of score and info
@@ -191,7 +130,7 @@ void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs){
 	}
       }
     }
-  #endif
+#endif
 }
 
 
@@ -277,7 +216,7 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
   } //end loop over individuals
 }
 
-void ResidualLDTest::Output(int iterations, bool final){
+void ResidualLDTest::Output(int iterations, bool final, const std::vector<std::string>& LocusLabels){
   string sep = final ? "\t" : ",";//separator
   ofstream* outfile;
   
@@ -289,7 +228,7 @@ void ResidualLDTest::Output(int iterations, bool final){
       outfile = new ofstream(filename.c_str(), ios::out);
       *outfile << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue\n";
     }else outfile = &outputfile;
-    OutputTestsForResidualAllelicAssociation(iterations, outfile, final);
+    OutputTestsForResidualAllelicAssociation(iterations, outfile, final, LocusLabels);
     //     for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
     //       for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
     // 	int abslocus = chrm[c]->GetLocus(j);
@@ -303,7 +242,8 @@ void ResidualLDTest::Output(int iterations, bool final){
   }
 }
 
-void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final){
+void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final, 
+							      const std::vector<std::string>& LocusLabels){
   //cannot function in base class as it output a line for each dimension of score
   double *score = 0, *ObservedInfo = 0;
   string separator = final? "\t" : ",";
@@ -313,13 +253,10 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, of
     for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
       int M = Lociptr->GetNumberOfStates(abslocus)-1;
       int N = Lociptr->GetNumberOfStates(abslocus+1)-1;
-#ifdef PARALLEL
-      const string label1 = (*LocusLabels)[abslocus];
-      const string label2 = (*LocusLabels)[abslocus+1];
-#else
-      const string label1 = (*Lociptr)(abslocus)->GetLabel(0);
-      const string label2 = (*Lociptr)(abslocus+1)->GetLabel(0);
-#endif
+
+      const string label1 = LocusLabels[abslocus];
+      const string label2 = LocusLabels[abslocus+1];
+
       int dim = M*N;
       score = new double[dim];
       ObservedInfo = new double[dim*dim];

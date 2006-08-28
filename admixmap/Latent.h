@@ -23,16 +23,16 @@
 #include <string.h>
 #include <gsl/gsl_cdf.h>
 
-#include "rand.h"
+#include "samplers/rand.h"
 
 #include "AdmixOptions.h"
 #include "Individual.h"
 #include "IndividualCollection.h"
 #include "Genome.h"
-#include "LogWriter.h"
+#include "utils/LogWriter.h"
 
-#include "StepSizeTuner.h"//for sampling globalrho and globaltheta
-#include "DirichletParamSampler.h"//for sampling pop admix
+#include "samplers/StepSizeTuner.h"//for sampling globalrho and globaltheta
+#include "samplers/DirichletParamSampler.h"//for sampling pop admix
 
 class InputData;
 class IndividualCollection;
@@ -75,11 +75,7 @@ public:
   
   void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
   void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);
-  void SampleSumIntensities(const int* SumAncestry, bool sumlogrho
-#ifdef PARALLEL
-			    , MPI::Intracomm& Comm
-#endif
-			    ) ;
+  void SampleSumIntensities(const int* SumAncestry, bool sumlogrho) ;
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
   void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   

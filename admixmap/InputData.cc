@@ -12,10 +12,11 @@
  */
 #include "InputData.h"
 #include "AdmixOptions.h"
-#include "StringSplitter.h"
-#include "StringConvertor.h"
+#include "utils/StringConvertor.h"
+#include "utils/DataReader.h"
 #include "Genome.h"
-#include "Chromosome.h"
+//#include "Chromosome.h"
+#include "Comms.h"
 
 #include <string>
 #include <sstream>
@@ -38,43 +39,8 @@ void getLabels(const Vector_s& data, string *labels)
   }
 }
 
-void InputData::readFile(const char *fname, Matrix_s& data, LogWriter &Log)
-{
-    if (0 == fname || 0 == strlen(fname)) return;
-
-    ifstream in(fname);
-    if (!in.is_open()) {
-        string msg = "Cannot open file for reading: \"";
-        msg += fname;
-        msg += "\"";
-        throw runtime_error(msg);
-    }
-    else {
-      Log << "Loading " << fname << ".\n";
-    }
-
-    data.clear();
-    try {
-        StringSplitter splitter;
-        string line;        
-
-        while (getline(in, line)) {
-	  if (!StringConvertor::isWhiteLine(line.c_str())) {
-	    data.push_back(splitter.split(line.c_str()));
-	    if(data.size()>1 && data[data.size()-1].size() != data[0].size()){
-	      string errstring = "Inconsistent row lengths in file ";
-	      errstring.append(fname);
-	      throw errstring;
-	    }
-	  }
-        }
-    } catch (...) {
-      in.close();
-      throw;
-    }
-    
-}
 #ifdef PARALLEL
+#include "utils/StringSplitter.h"
 void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
 {
   int worker_rank = MPI::COMM_WORLD.Get_rank() - 2;
@@ -115,38 +81,6 @@ void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
 }
 #endif
 
-/**
- *  Auxilary function that converts a submatrix (starting at (row0, col0))of Matrix_s to DataMatrix
- */
-void InputData::convertMatrix(const Matrix_s& data, DataMatrix& m, size_t row0, size_t col0, size_t ncols = 0)
-{       
-    // If there are no rows, return empty matrix.
-    if (0 == data.size()) return;
-
-    const size_t numRows = data.size() - row0;
-
-    // Verify that all rows have same length.
-    const size_t totalnumCols = data[0].size();
-    const size_t numCols = (ncols>0) ? ncols : totalnumCols - col0;
-    for (size_t i = 1; i < numRows; ++i) {
-        if (totalnumCols != data[i].size()) {
-            throw runtime_error("Invalid row length");
-        }
-    }
-    
-    // Form matrix.
-    m.setDimensions(numRows, numCols);
-    for (size_t i = 0; i < numRows; ++i) {
-        for (size_t j = 0; j < numCols; ++j) {
-            if (StringConvertor::isMissingValue(data[i+row0][j+col0])) {
-	      m.isMissing(i, j, true);
-            } else {
-	      m.set(i, j, StringConvertor::toFloat(data[i+row0][j+col0]));
-            }
-        }
-    }
-}
-
 InputData::InputData()
 {
 }
@@ -155,44 +89,38 @@ InputData::~InputData()
 {
 }
 
-void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
+void InputData::readData(AdmixOptions *options, LogWriter &Log)
 {
   Log.setDisplayMode(Quiet);
   try
     {
       // Read all input files.
-      readFile(options->getLocusFilename(), locusData_, Log);   //locusfile
+      DataReader::ReadData(options->getLocusFilename(), locusData_, Log);   //locusfile
+      DataReader::convertMatrix(locusData_, locusMatrix_, 1, 1,2);//drop first row, first col and last col
+
 #ifdef PARALLEL
-      if(rank==0) Log << "Loading " << options->getGenotypesFilename() << ".\n";
-      if(rank>1)//only workers read genotypes
+      if(Comms::isMaster()) Log << "Loading " << options->getGenotypesFilename() << ".\n";
+      if(Comms::isWorker())//only workers read genotypes
 	readGenotypesFile(options->getGenotypesFilename(), geneticData_); //genotypes file
 #else
-      readFile(options->getGenotypesFilename(), geneticData_, Log); //genotypes file
+      DataReader::ReadData(options->getGenotypesFilename(), geneticData_, Log); 
 #endif
-      if(rank!=1){
-	readFile(options->getCovariatesFilename(), inputData_, Log);         //covariates file
-	readFile(options->getOutcomeVarFilename(), outcomeVarData_, Log);       //outcomevar file
-	readFile(options->getCoxOutcomeVarFilename(), coxOutcomeVarData_, Log);       //coxoutcomevar file
+      if(Comms::isMaster() || Comms::isWorker()){
+	DataReader::ReadData(options->getCovariatesFilename(), inputData_, covariatesMatrix_,Log);     //covariates file
+	DataReader::ReadData(options->getOutcomeVarFilename(), outcomeVarData_,outcomeVarMatrix_, Log);//outcomevar file
+	DataReader::ReadData(options->getCoxOutcomeVarFilename(), coxOutcomeVarData_, Log);            //coxoutcomevar file
+	DataReader::convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 1, 0,0);//drop first row in conversion
+
       }
-      if(rank==-1 || rank == 1){//only one process reads freq files
-	readFile(options->getAlleleFreqFilename(), alleleFreqData_, Log);
-	readFile(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, Log);            
-	readFile(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_, Log);
-	readFile(options->getEtaPriorFilename(), etaPriorData_, Log);
+      if(Comms::isFreqSampler()){//only one process reads freq files
+	DataReader::ReadData(options->getAlleleFreqFilename(), alleleFreqData_, Log);
+	DataReader::ReadData(options->getHistoricalAlleleFreqFilename(), historicalAlleleFreqData_, Log);            
+	DataReader::ReadData(options->getPriorAlleleFreqFilename(), priorAlleleFreqData_, Log);
+	DataReader::ReadData(options->getEtaPriorFilename(), etaPriorData_,etaPriorMatrix_,  Log);
       }
-      readFile(options->getReportedAncestryFilename(), reportedAncestryData_, Log);
+      DataReader::ReadData(options->getReportedAncestryFilename(), reportedAncestryData_, reportedAncestryMatrix_, Log);
 
       Log << "\n";
-      // Form matrices.
-      convertMatrix(locusData_, locusMatrix_, 1, 1,2);
-      convertMatrix(outcomeVarData_, outcomeVarMatrix_, 0, 0,0);
-      convertMatrix(inputData_,  covariatesMatrix_, 0, 0,0);
-      convertMatrix(coxOutcomeVarData_, coxOutcomeVarMatrix_, 1, 0,0);
-      //convertMatrix(alleleFreqData_, alleleFreqMatrix_, 0, 0);
-      //convertMatrix(historicalAlleleFreqData_, historicalAlleleFreqMatrix_, 0, 0);
-      //convertMatrix(priorAlleleFreqData_, priorAlleleFreqMatrix_, 0, 0);
-      convertMatrix(etaPriorData_, etaPriorMatrix_, 0, 0,0);
-      convertMatrix(reportedAncestryData_, reportedAncestryMatrix_, 0, 0,0);
       
     } catch (const exception& e) {
     cerr << "\nException occured during parsing of input file: \n" << e.what() << endl;
@@ -204,24 +132,24 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log, int rank)
   }
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumCompositeLoci = determineNumberOfCompositeLoci();
-  if(rank !=0 && rank !=1) NumIndividuals = geneticData_.size() - 1;
+  if(Comms::isWorker()) NumIndividuals = geneticData_.size() - 1;
 
-  CheckData(options, Log, rank);
+  CheckData(options, Log);
 }
 
-void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
+void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
   Log.setDisplayMode(Quiet);
-  if(rank<0 || rank>1)
+  if(Comms::isWorker())
     {
       IsPedFile = determineIfPedFile();
       CheckGeneticData(options);
     }
 
   double threshold = 100.0;if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
-  if(rank<2)checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
+  checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
   //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
 
-  if(rank==-1 || rank ==1)CheckAlleleFreqs(options, Log);
+  if(Comms::isFreqSampler())CheckAlleleFreqs(options, Log);
 #ifdef PARALLEL
   if(strlen(options->getAlleleFreqFilename()) || strlen(options->getPriorAlleleFreqFilename()) || strlen(options->getHistoricalAlleleFreqFilename())){
     //broadcast number of populations/block states, if inferred from file, from rank1
@@ -230,10 +158,11 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
     options->setPopulations(K);
   }
 
-  //tell nonworkers how many individuals there are
+  int rank = MPI::COMM_WORLD.Get_rank();
+  //first worker tells  nonworkers how many individuals there are
   if(rank==2){
-    MPI::COMM_WORLD.Send(&NumIndividuals, 1, MPI::INT, 0, 0);
-    MPI::COMM_WORLD.Send(&NumIndividuals, 1, MPI::INT, 1, 1);
+    MPI::COMM_WORLD.Send(&NumIndividuals, 1, MPI::INT, 0, 0);//tell master
+    MPI::COMM_WORLD.Send(&NumIndividuals, 1, MPI::INT, 1, 1);//tell freqsampler
   }
   else if(rank<2){
     MPI::Status status;
@@ -241,7 +170,7 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log, int rank){
   }
 #endif
 
-  if(rank!=1 ){
+  if(Comms::isMaster() || Comms::isWorker() ){
     //detects regression model
     if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() ))
      if ( strlen( options->getOutcomeVarFilename() ) != 0 )
@@ -314,7 +243,14 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
 
   if(options->CheckData()){
     unsigned ExpCols;
-    for(int i = 1; i <= NumIndividuals; ++i){
+#ifdef PARALLEL
+    const int rank = MPI::COMM_WORLD.Get_rank()-2;
+    const int numworkers = MPI::COMM_WORLD.Get_size()-2;
+#else
+    const int rank = 0;
+    const int numworkers = 1;
+#endif
+    for(int i = rank + 1; i <= NumIndividuals; i+=numworkers){
       //should use logmsg
       if (IsPedFile) 
 	ExpCols = 2*NumSimpleLoci + SexCol;
@@ -345,7 +281,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
 
   if(distancesAreInCentiMorgans())threshold *= 100.0;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
-    if(check){
+    if(check && Comms::isFreqSampler()){
       //check number of alleles is >1
       if(locusMatrix_.get(i-1,0) <2){
 	cerr << "ERROR on line " << i+1 << " of locusfile: number of alleles must be >1." << endl;
@@ -378,7 +314,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
     LocusLabels.push_back(StringConvertor::dequote(locusData_[i][0]));
   }//end loop over loci
   if(flag)exit(1);
-  if(check){
+  if(check && Comms::isWorker()){
     const size_t numLoci = locusData_.size() - 1;//number of simple loci
 
     // Compare loci names in locus file and genotypes file.

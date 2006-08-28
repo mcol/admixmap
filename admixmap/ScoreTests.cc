@@ -18,7 +18,9 @@
 
 #include "ScoreTests.h"
 #include <numeric>
-#include "linalg.h"
+#include "utils/linalg.h"
+#include "regression/Regression.h"
+#include "Comms.h"
 
 using namespace std;
 
@@ -54,13 +56,10 @@ ScoreTests::ScoreTests(){
 
   options = 0;
   individuals = 0;
-  rank = 0;
-  worker_rank = 0;
-  NumWorkers = 1;
+  rank = Comms::getRank();
+  worker_rank = Comms::getWorkerRank();
+  NumWorkers = Comms::getNumWorkers();
   dim_ = 0;
-#ifdef PARALLEL
-  Comm = 0;
-#endif
 }
 
 ScoreTests::~ScoreTests(){
@@ -136,17 +135,6 @@ ScoreTests::~ScoreTests(){
     }
   }
 }
-
-#ifdef PARALLEL
-void ScoreTests::SetComm(const MPI::Intracomm* c, const std::vector<std::string>* locuslabels){
-  Comm = c;
-  rank = Comm->Get_rank();
-  worker_rank = rank - 1;
-  NumWorkers = Comm->Get_size()-1;
-  LocusLabels = locuslabels;
-  ResidualAllelicAssocScoreTest.SetComm(c, locuslabels);
-}
-#endif
 
 void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 			    const Vector_s& PLabels, LogWriter &Log){
@@ -794,7 +782,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allele
 // }
 // ********** OUTPUT **********************************************************
 
-void ScoreTests::Output(int iterations, const Vector_s& PLabels, bool final){
+void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final){
   //PopLabels = PLabels;
   string sep = final ? "\t" : ",";//separator
   ofstream* outfile;
@@ -810,15 +798,10 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, bool final){
     else outfile = &allelicAssocScoreStream;
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
       if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
-#ifdef PARALLEL
-	const int NumberOfLoci = 1;
-	const int NumberOfStates = 2;
-	const string locuslabel = (*LocusLabels)[j];
-#else
-	const int NumberOfLoci = (* Lociptr)(j)->GetNumberOfLoci();
-	const int NumberOfStates = (* Lociptr)(j)->GetNumberOfStates();
-	const string locuslabel = (*Lociptr)(j)->GetLabel(0);
-#endif
+	const int NumberOfLoci = Lociptr->getNumberOfLoci(j);
+	const int NumberOfStates = Lociptr->GetNumberOfStates(j);
+	const string locuslabel = LocusLabels[j];
+
 	//case of simple locus
 	if( NumberOfLoci == 1 ){
 	  if(NumberOfStates==2)
@@ -917,7 +900,7 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, bool final){
   }
 
   //residual allelic association
-  ResidualAllelicAssocScoreTest.Output(iterations, final);
+  ResidualAllelicAssocScoreTest.Output(iterations, final, LocusLabels);
   
   //admixture association
   if( !final && options->getTestForAdmixtureAssociation() ){
