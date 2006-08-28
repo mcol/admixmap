@@ -175,7 +175,7 @@ void Comms::ReduceResidualLDScores(const std::vector<std::vector<std::vector<dou
   //pack score into array ready to send
   int count = 0;
   for(unsigned c = 0; c < Score.size(); ++c){//number of chromosomes
-    for(unsigned k = 0; k < Score[j].size(); ++k){//number of comp loci on this chromosome
+    for(unsigned k = 0; k < Score[c].size(); ++k){//number of comp loci on this chromosome
       copy(Score[c][k].begin(), Score[c][k].end(), double_send+count);
       count += Score[c][k].size();
     }
