@@ -171,7 +171,7 @@ export CXX CPPFLAGS GSL_INCLUDEPATH PARALLEL_INCLUDES
 
 objects		= admixmap.o Latent.o AlleleFreqs.o AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
 IndividualCollection.o Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o \
-ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o InputData.o AlleleFreqSampler.o Comms.o
+AdmixtureAssocTest.o ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o InputData.o AlleleFreqSampler.o Comms.o
 
 all:	message $(objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)

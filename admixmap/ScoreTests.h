@@ -18,6 +18,7 @@
 #include "IndividualCollection.h"
 #include "utils/LogWriter.h"
 #include "common.h"
+#include "AdmixtureAssocTest.h"
 #include "ResidualLDTest.h"
 
 /**
@@ -37,8 +38,6 @@ public:
 
   void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
 		  const Vector_s&, LogWriter &);
-
-  void InitialiseAssocScoreFile(const Vector_s&);
 
   void Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
 
@@ -76,32 +75,10 @@ private:
   double **SumScore2WithinHaplotype;
   double **SumInfoWithinHaplotype;
 
-  double* AdmixtureScore; 
-  double* AdmixtureInfo; 
-  double* SumAdmixtureScore; 
-  double* SumAdmixtureScore2; 
-  double* SumAdmixtureInfo;
-
-#ifdef PARALLEL
-  double *sendallelescore;
-  double *sendalleleinfo;
-  double *recvallelescore;
-  double *recvalleleinfo;
-  double *sendhapscore;
-  double *sendhapinfo;
-  double *recvhapscore;
-  double *recvhapinfo;
-  int dimallelescore, dimalleleinfo, dimhapscore, dimhapinfo;
-
-  const MPI::Intracomm * Comm;//pointer to the workers_and_master communicator in admixmap.cc
-#endif
-
-  std::ofstream assocscorestream;
   std::ofstream ancestryAssociationScoreStream;
   std::ofstream HaplotypeAssocScoreStream;
   std::ofstream affectedsOnlyScoreStream;
   std::ofstream allelicAssocScoreStream;
-  //const Vector_s& PopLabels;
 
   const AdmixOptions *options;
   const IndividualCollection *individuals;
@@ -120,8 +97,6 @@ private:
 
   void OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
 			      const double score, const double scoresq, const double info, bool final);
-  void OutputAdmixtureScoreTest( int );
-
 
   //void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int locus, double p,double phi, double DInvLink);
   void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const std::vector<int> allele2Counts, 
@@ -135,9 +110,6 @@ private:
 
   void UpdateScoreForAllelicAssociation( const Individual* const , double, double, double, bool);
 
-  void UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY,double phi, double DInvLink);
-
-
   static int ResidualAlleleInfoIndex(int M, int N, int m1, int n1, int m2, int n2);
 
   static std::string double2R( double );
@@ -148,6 +120,7 @@ private:
   void Reset();
 
   ResidualLDTest ResidualAllelicAssocScoreTest;//here temporarily, until rest of scoretests classes have been created
+  AdmixtureAssocTest AdmixtureAssocScoreTest;
 
 };
 

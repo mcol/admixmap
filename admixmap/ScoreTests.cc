@@ -48,12 +48,6 @@ ScoreTests::ScoreTests(){
   SumScore2WithinHaplotype = 0;
   SumInfoWithinHaplotype = 0;
 
-  AdmixtureScore = 0; 
-  AdmixtureInfo = 0; 
-  SumAdmixtureScore = 0; 
-  SumAdmixtureScore2 = 0;
-  SumAdmixtureInfo = 0;
-
   options = 0;
   individuals = 0;
   rank = Comms::getRank();
@@ -74,13 +68,6 @@ ScoreTests::~ScoreTests(){
   delete[] SumAffectedsScore2;
   delete[] SumAffectedsInfo;
   delete[] SumAffectedsVarScore;
-
-  //delete arrays for admixture assoc score test
-  delete[] AdmixtureScore;
-  delete[] AdmixtureInfo;
-  delete[] SumAdmixtureScore;
-  delete[] SumAdmixtureInfo;
-  delete[] SumAdmixtureScore2;
 
   //delete arrays for allelic assoc score test
   delete[] dim_;
@@ -147,40 +134,13 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
 
   int K = options->getPopulations();
   int L = Lociptr->GetNumberOfCompositeLoci();
+
   /*----------------------
     | admixture association |
     -----------------------*/
   //TODO check conditions on this test
   if( options->getTestForAdmixtureAssociation() ){
-    if ( strlen( options->getAssocScoreFilename() ) ){
-      //can't use this yet as this test doesn't write an R object
-      //OpenFile(Log, &assocscorestream, options->getAssocScoreFilename(), "Tests for admixture association");
-      assocscorestream.open( options->getAssocScoreFilename(), ios::out );
-      if( !assocscorestream ){
-	Log.setDisplayMode(On);
-	Log << "ERROR: Couldn't open admixturescorefile\n";
-	exit( 1 );}
-      else {
-	Log << "Writing tests for admixture association to: " << options->getAssocScoreFilename() << "\n";
-	assocscorestream << setiosflags( ios::fixed );
-
-	int NumOutcomeVars = indiv->getNumberOfOutcomeVars();
-	AdmixtureScore = new double[K * NumOutcomeVars];
-	SumAdmixtureScore = new double[K * NumOutcomeVars];
-	SumAdmixtureScore2 = new double[K * NumOutcomeVars];
-	AdmixtureInfo = new double[K * NumOutcomeVars];
-	SumAdmixtureInfo = new double[K * NumOutcomeVars];
-	fill(AdmixtureScore, AdmixtureScore + K * NumOutcomeVars, 0.0);
-	fill(AdmixtureInfo, AdmixtureInfo + K * NumOutcomeVars, 0.0);
-	fill(SumAdmixtureScore, SumAdmixtureScore + K * NumOutcomeVars, 0.0);
-	fill(SumAdmixtureScore2, SumAdmixtureScore2 + K * NumOutcomeVars, 0.0);
-	fill(SumAdmixtureInfo, SumAdmixtureInfo + K * NumOutcomeVars, 0.0);
-      }
-    }
-    else{
-      Log.setDisplayMode(On);
-      Log << "No admixturescorefile given\n";
-      exit(1);}
+    AdmixtureAssocScoreTest.Initialise(K, indiv->getNumberOfOutcomeVars(), options->getAssocScoreFilename(), PLabels, Log);
   }
 
   /*------------------------------------
@@ -243,10 +203,9 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
       SumInfoWithinHaplotype = new double*[L];
     }
 
-    if(!options->getHapMixModelIndicator()){
+    //if(!options->getHapMixModelIndicator()){
 #ifdef PARALLEL
-      int* temp = new int[L];
-      dimallelescore = 0, dimalleleinfo = 0, dimhapscore = 0, dimhapinfo = 0;
+      int dimalleleinfo = 0, dimhapinfo = 0;
 #endif
       locusObsIndicator = new int[L];
       
@@ -259,24 +218,12 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
 	  }
 	}
       }
-    
-#ifdef PARALLEL
-      //accumulate over individuals (processes)
-      Comm->Barrier();
-      Comm->Allreduce(locusObsIndicator, temp, L, MPI::INT, MPI::SUM);
-      delete[] locusObsIndicator;
-      locusObsIndicator = temp;
-#endif
-    }    
+      //}    
     unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
     for( int j = 0; j < L; j++ ){
-#ifdef PARALLEL
-      int NumberOfStates = 2;
-      int NumberOfLoci = 1;
-#else
-      int NumberOfStates = (*Lociptr)(j)->GetNumberOfStates();
-      int NumberOfLoci = (*Lociptr)(j)->GetNumberOfLoci();
-#endif
+      int NumberOfStates = Lociptr->GetNumberOfStates(j);
+      int NumberOfLoci = Lociptr->getNumberOfLoci(j);
+
       
       if(NumberOfLoci > 1 )//haplotype
 	dim_[j] = 1;
@@ -285,7 +232,6 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
       else
 	dim_[j] = NumberOfStates;//simple multiallelic locus
 #ifdef PARALLEL
-      dimallelescore += dim_[j] + NumCovars;
       dimalleleinfo += (dim_[j] + NumCovars) * (dim_[j] + NumCovars);
 #endif
 
@@ -304,7 +250,6 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
       
       if( NumberOfLoci > 1 ){
 #ifdef PARALLEL
-	dimhapscore += NumberOfLoci * (1 + NumCovars);
 	dimhapinfo += NumberOfLoci * (1 + NumCovars) * (1 + NumCovars);
 #endif
 	ScoreWithinHaplotype[ j ] = new double*[NumberOfLoci];
@@ -326,17 +271,10 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
       }
     }//end loop over loci
 #ifdef PARALLEL
-    sendallelescore = new double[dimallelescore];
-    sendalleleinfo = new double[dimalleleinfo];
-    sendhapscore = new double[dimhapscore];
-    sendhapinfo = new double[dimhapinfo];
-
-    if(rank==0){
-      recvallelescore = new double[dimallelescore];
-      recvalleleinfo = new double[dimalleleinfo];
-      recvhapscore = new double[dimhapscore];
-      recvhapinfo = new double[dimhapinfo];
-    }
+    Comms::SetDoubleWorkspace(max(dimalleleinfo, dimhapinfo), rank==0);
+    Comms::SetIntegerWorkspace(L, (rank==0));
+    //accumulate locusObsIndicator over individuals (processes) 
+    Comms::AllReduce_int(locusObsIndicator, L);
 #endif
   }  
 
@@ -358,8 +296,6 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     -------------------------------*/
   ResidualAllelicAssocScoreTest.Initialise(op, indiv, Loci, Log);
 
-  
-  InitialiseAssocScoreFile(PLabels);
 }
 
 void ScoreTests::OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname){
@@ -374,32 +310,10 @@ void ScoreTests::OpenFile(LogWriter &Log, std::ofstream* outputstream, const cha
   *outputstream << "structure(.Data=c(" << endl;
 
 }
-//Initialise ergodic average score file
-void ScoreTests::InitialiseAssocScoreFile(const Vector_s& PLabels){
-  if( options->getTestForAdmixtureAssociation() ){
-    //PopLabels = PLabels;
-    assocscorestream << "Ergodic averages of score statistic for populations:\n";
-    for( int i = 0; i < options->getPopulations(); i++ ){
-      assocscorestream << PLabels[i] << " ";
-      if( !i )
-	assocscorestream << " ";
-    }
-    assocscorestream << "\ncomplete  missing   statistic  ";
-    for( int i = 1; i < options->getPopulations(); i++ )
-      assocscorestream << "complete  missing   statistic ";
-    assocscorestream << endl;
-  }
-  
-}
 
 void ScoreTests::Reset(){
   //resets arrays holding sums of scores and info over individuals to zero; invoked at start of each iteration after burnin.
 
-  if( options->getTestForAdmixtureAssociation() ){
-    fill(AdmixtureScore, AdmixtureScore + options->getPopulations() * individuals->getNumberOfOutcomeVars(), 0.0);
-    fill(AdmixtureInfo, AdmixtureInfo + options->getPopulations() * individuals->getNumberOfOutcomeVars(), 0.0);
-  }
-    
   if( options->getTestForAllelicAssociation() ){
     int K = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
@@ -416,7 +330,8 @@ void ScoreTests::Reset(){
 #endif
     }
   }
-  
+
+  AdmixtureAssocScoreTest.Reset();  
   ResidualAllelicAssocScoreTest.Reset();
   
 }
@@ -436,7 +351,7 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
 
   unsigned NumCovars = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
 #ifdef PARALLEL
-  dimallelescore = 0, dimalleleinfo = 0;
+  int dimalleleinfo = 0;
 #endif
   //merge rare haplotypes
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
@@ -467,22 +382,13 @@ void ScoreTests::SetAllelicAssociationTest(const std::vector<double> &alpha0){
 
     }
 #ifdef PARALLEL
-    dimallelescore += dim_[j] + NumCovars;
     dimalleleinfo += ( dim_[j] + NumCovars) * (dim_[j] + NumCovars );
 #endif
   }
 #ifdef PARALLEL
-  delete[] sendallelescore;
-  delete[] sendalleleinfo;
-  sendallelescore = new double[dimallelescore];
-  sendalleleinfo = new double[dimalleleinfo];
-  if(rank==0){
-    delete[] recvallelescore;
-    recvallelescore = new double[dimallelescore];
-    delete[] recvalleleinfo;
-    recvalleleinfo = new double[dimalleleinfo];
-  }
+  Comms::SetDoubleWorkspace(dimalleleinfo, (rank==0));
 #endif
+
   delete[] alphaScaled;
 }
 
@@ -510,7 +416,8 @@ void ScoreTests::Update(const vector<Regression* >& R)
      
       //admixture association
       if( options->getTestForAdmixtureAssociation() && (options->getNumberOfOutcomes() == 1) ){
-	UpdateScoreForAdmixtureAssociation(ind->getAdmixtureProps(), YMinusEY,dispersion, DInvLink);
+	AdmixtureAssocScoreTest.UpdateIndividualScore(ind->getAdmixtureProps(), YMinusEY, dispersion, 
+						      DInvLink, options->isRandomMatingModel());
       }
       //allelic association
       if( options->getTestForAllelicAssociation() )
@@ -520,30 +427,8 @@ void ScoreTests::Update(const vector<Regression* >& R)
 
 #ifdef PARALLEL
   if( options->getTestForAllelicAssociation() ){
-    //pack score and info into arrays, ready to send
-    int index1 = 0, index2 = 0;
-    unsigned NumCovars = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
-    for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-      copy(LocusLinkageAlleleScore[j], LocusLinkageAlleleScore[j] + dim_[j] + NumCovars, sendallelescore+index1);
-      index1 += dim_[j] + NumCovars;
-      copy(LocusLinkageAlleleInfo[j], LocusLinkageAlleleInfo[j] + (dim_[j] + NumCovars)*(dim_[j] + NumCovars), sendalleleinfo+index2);
-      index2 += (dim_[j] + NumCovars)*(dim_[j] + NumCovars);
-    }
-    //sum over individuals on master process
-    Comm->Barrier();
-    Comm->Reduce(sendallelescore, recvallelescore, dimallelescore, MPI::DOUBLE, MPI::SUM, 0);
-    Comm->Reduce(sendalleleinfo, recvalleleinfo, dimalleleinfo, MPI::DOUBLE, MPI::SUM, 0);
-      
-    //unpack
-    if(rank==0){
-      index1 = 0, index2 = 0;
-      for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-	copy(recvallelescore+index1, recvallelescore+index1+ dim_[j] + NumCovars, LocusLinkageAlleleScore[j]);
-	index1 += dim_[j] + NumCovars;
-	copy(recvalleleinfo+index2, recvalleleinfo+index2+ (dim_[j] + NumCovars)*(dim_[j] + NumCovars), LocusLinkageAlleleInfo[j] );
-	index2 += (dim_[j] + NumCovars)*(dim_[j] + NumCovars);
-      }
-    }
+    Comms::ReduceAllelicAssocScores(LocusLinkageAlleleScore, LocusLinkageAlleleInfo, Lociptr->GetNumberOfCompositeLoci(), 
+				    dim_,individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates());
   }
 
 #endif
@@ -557,24 +442,11 @@ void ScoreTests::Update(const vector<Regression* >& R)
       | admixture association |
       -----------------------*/
     if( options->getTestForAdmixtureAssociation() ){
-      int K = options->getPopulations();
-      int NumOutcomeVars = individuals->getNumberOfOutcomeVars();
-      //SumAdmixtureScore += AdmixtureScore;
-      transform(AdmixtureScore, AdmixtureScore + K*NumOutcomeVars, SumAdmixtureScore, SumAdmixtureScore, std::plus<double>());
-      //SumAdmixtureInfo += AdmixtureInfo;
-      transform(AdmixtureInfo, AdmixtureInfo + K*NumOutcomeVars, SumAdmixtureInfo, SumAdmixtureScore, std::plus<double>());
-    
-      for( int k = 0; k < K; k++ )
-	for( int kk = 0; kk < NumOutcomeVars; kk++ )
-	  SumAdmixtureScore2[ k*NumOutcomeVars + kk ] += AdmixtureScore[ k*NumOutcomeVars + kk ] * AdmixtureScore[ k*NumOutcomeVars + kk ];
+      AdmixtureAssocScoreTest.Update();
     }
   
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-#ifdef PARALLEL
-      const int NumberOfLoci = 1;    
-#else 
-      const int NumberOfLoci = (*Lociptr)(j)->GetNumberOfLoci();
-#endif
+      const int NumberOfLoci = Lociptr->getNumberOfLoci(j);
 
       /*-------------------------------------
 	| Allelic and haplotype association  |
@@ -617,21 +489,6 @@ void ScoreTests::Update(const vector<Regression* >& R)
       }
     }//end comp locus loop
   }//end if rank==0
-}
-
-void ScoreTests::UpdateScoreForAdmixtureAssociation( const double* const Theta, double YMinusEY, double phi, double DInvLink)
-{
-  //Updates score and info for score test for admixture association
-  double x;
-  int NumOutcomeVars = individuals->getNumberOfOutcomeVars();
-  for( int k = 0; k < options->getPopulations(); k++ ){
-    if( options->isRandomMatingModel() )
-      x = 0.5 * ( Theta[k] + Theta[ options->getPopulations() + k ] );
-    else
-      x = Theta[k];
-    AdmixtureScore[ k*NumOutcomeVars] += phi * x * YMinusEY;// only for 1st outcomevar 
-    AdmixtureInfo[ k*NumOutcomeVars] += phi * x * x *DInvLink;
-  }
 }
 
 void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, double YMinusEY, double phi, double DInvLink, bool missingOutcome)
@@ -904,7 +761,7 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
   
   //admixture association
   if( !final && options->getTestForAdmixtureAssociation() ){
-    OutputAdmixtureScoreTest( iterations );
+    AdmixtureAssocScoreTest.Output(iterations);
   }
 }
 
@@ -1010,27 +867,7 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
   delete[] ObservedInfo;
 }
 
-// the next functions are for specific tests
-
-void ScoreTests::OutputAdmixtureScoreTest(int iterations)
-{
-  int NumOutcomeVars = individuals->getNumberOfOutcomeVars();
-  for( int j = 0; j < options->getPopulations(); j++ ){
-    for( int jj = 0; jj < NumOutcomeVars; jj++ ){
-      double EU = SumAdmixtureScore[ j*NumOutcomeVars + jj ] / ( iterations );
-      double complete = SumAdmixtureInfo[ j*NumOutcomeVars + jj ] / ( iterations );
-      double missing = SumAdmixtureScore2[ j*NumOutcomeVars + jj ] / ( iterations ) - EU * EU;
-      assocscorestream.width(9);
-      assocscorestream << setprecision(6) << double2R(complete) << " ";
-      assocscorestream.width(9);
-      assocscorestream << setprecision(6) << double2R(missing) << " ";
-      assocscorestream.width(9);
-      assocscorestream << setprecision(6) << double2R(EU / sqrt( complete - missing )) << " ";
-    }
-  }
-  assocscorestream << endl;
-}
-
+// the next function is for ancestry assoc tests
 void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstream, const Vector_s& PopLabels,
 					     const double* Score, const double* VarScore,
 					     const double* Score2, const double* Info, string separator )
