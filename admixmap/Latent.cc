@@ -134,7 +134,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       }//end sampler initialisation
       //initialise rho vector
       double initial_rho = rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
-       rho[0] = initial_rho;
+      rho[0] = initial_rho;
       for(unsigned j = 0; j < numIntervals-1; ++j){
 	rho.push_back(initial_rho);
 	if(Comms::isMaster())SumLogRho.push_back(0.0);
@@ -319,6 +319,11 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
       step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
     }
     if(sumlogrho )SumLogRho[0] += logrho0;// accumulate sum of log of sumintensities after burnin.
+#ifdef PARALLEL
+    //broadcast rho to workers
+    Comms::Broadcastrho(rho);
+#endif
+
   }//end if global rho model
 
   else if(!options->getHapMixModelIndicator()){ //individual- or gamete-specific rho model
@@ -445,9 +450,9 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
     //     rhoalpha = exp(logparams[0]);
     //     rhobeta0 = exp(logparams[1]);
     //     rhobeta1 = exp(logparams[2]);
-    RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
-    RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
-    RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
+    rhoalpha = RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
+    rhobeta0 = RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
+    rhobeta1 = RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
   }
 }
 
@@ -668,8 +673,7 @@ void Latent::OutputParams(ostream* out){
     double size = (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
     var = var - (sum*sum) / size;
     (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
-      //<< RhoArgs.rhoalpha << "\t" << RhoArgs.rhobeta0 << "\t" << RhoArgs.rhobeta1 << "\t";
-	   << rhopriorparams[0] << "\t" << rhopriorparams[1] << "\t" << rhopriorparams[2] << "\t";
+	   << rhoalpha << "\t" << rhobeta0 << "\t" << rhobeta1 << "\t";
   }
   else{
     if( options->isGlobalRho() )
