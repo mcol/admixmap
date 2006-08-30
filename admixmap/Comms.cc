@@ -1,12 +1,8 @@
 // This file contains the communication code for the parallel version of ADMIXMAP
 // 
 #include "Comms.h"
+#include <algorithm>
 
-
-//#include "AlleleFreqs.h"
-//#include "Latent.h"
-//#include "IndividualCollection.h"
-//#include "ScoreTests.h"
 int Comms::global_rank = 0;
 int Comms::NumProcesses = 1;
 
@@ -151,12 +147,6 @@ void Comms::BroadcastRegressionParameters(const double* beta, const int NumCovar
   workers_and_master.Barrier();
   workers_and_master.Bcast(const_cast<double*>(beta), NumCovariates, MPI::DOUBLE, 0);
 }
-void Comms::BroadcastLhat(double* Lhat){
-  double globalLhat = 0.0;
-  workers_and_master.Barrier();
-  workers_and_master.Reduce(Lhat, &globalLhat, 1, MPI::DOUBLE, MPI::SUM, 0);
-  *Lhat = globalLhat;
-}
 void Comms::ReduceLogLikelihood(double* LogLik){
   double globalLogLik = 0.0;
   workers_and_master.Barrier();
@@ -230,6 +220,61 @@ void Comms::ReduceResidualLDScores(const std::vector<std::vector<std::vector<dou
       }
   }
 }
+
+void Comms::ReduceAdmixtureAssocScores(double* Score, double* Info, int size){
+  workers_and_master.Reduce(Score, double_send, size, MPI::DOUBLE, MPI::SUM, 0);
+  if(workers_and_master.Get_size()==0)std::copy(double_send, double_send+size, Score);
+  workers_and_master.Reduce(Info, double_send, size, MPI::DOUBLE, MPI::SUM, 0);
+  if(workers_and_master.Get_size()==0)std::copy(double_send, double_send+size, Info);
+}
+
+void Comms::ReduceAllelicAssocScores(double** Score, double** Info, unsigned NumLoci, unsigned* sizes, int NumCovars){
+  //pack score into send array
+  int count = 0;
+  for(unsigned int j = 0; j < NumLoci; j++ ){
+    std::copy(Score[j], Score[j] + sizes[j]+NumCovars, double_send+count);
+    count += sizes[j]+NumCovars;
+  }
+
+  //sum over individuals on master process
+  workers_and_master.Barrier();
+  workers_and_master.Reduce(double_send, double_recv, count, MPI::DOUBLE, MPI::SUM, 0);
+  
+  //unpack
+  if(workers_and_master.Get_rank()==0){
+    count = 0;
+    for(unsigned int j = 0; j < NumLoci; j++ ){
+      std::copy(double_recv+count, double_recv+count+ sizes[j]+NumCovars, Score[j]);
+      count += sizes[j]+NumCovars;
+    }
+  }
+
+
+  //pack info into send array
+  count = 0;
+  for(unsigned int j = 0; j < NumLoci; j++ ){
+    std::copy(Info[j], Info[j] + (sizes[j]+NumCovars)*(sizes[j]+NumCovars), double_send+count);
+    count += (sizes[j]+NumCovars)*(sizes[j]+NumCovars);
+  }
+  //sum over individuals on master process
+  workers_and_master.Barrier();
+  workers_and_master.Reduce(double_send, double_recv, count, MPI::DOUBLE, MPI::SUM, 0);
+  //unpack
+  if(workers_and_master.Get_rank()==0){
+    count = 0;
+    for(unsigned int j = 0; j < NumLoci; j++ ){
+      std::copy(double_recv+count, double_recv+count+ (sizes[j]+NumCovars)*(sizes[j]+NumCovars), Info[j] );
+      count += (sizes[j]+NumCovars)*(sizes[j]+NumCovars);
+    }
+  }
+}
+
+void Comms::AllReduce_int(int* x, int size){
+  workers_and_master.Barrier();
+  workers_and_master.Allreduce(x, int_send, size, MPI::INT, MPI::SUM);
+  std::copy(int_send, int_send+size, x);
+}
+
 #else //serial version
 bool Comms::isFreqSampler(){
   return true;

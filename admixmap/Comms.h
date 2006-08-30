@@ -1,6 +1,5 @@
 // *-*-C++-*-*
 // header file for Comms class, whcih handles communication between processes in parallel version.
-// This class should not exist in serial version
 #ifndef COMMS_H
 #define COMMS_H 1
 
@@ -26,19 +25,22 @@ public:
   static void SetDoubleWorkspace(unsigned size, bool isMaster);
   static void SetIntegerWorkspace(unsigned size, bool isMaster);
 
+  static void AllReduce_int(int* x, int size);
   static void ReduceAncestryCounts(const int* const SumAncestry, int* GlobalSumAncestry, const unsigned size);
   static void reduceAlleleCounts(int* counts, int* globalcounts, const unsigned size);
   static void BroadcastRho(std::vector<double>& rho);
   static void BroadcastAlleleFreqs(double* const Freqsptr, const int size);
   static void BroadcastRegressionParameters(const double* beta, const int NumCovariates);
-  static void BroadcastLhat(double* Lhat);
   static void ReduceLogLikelihood(double* LogLik);
 
-static void ReduceResidualLDScores(const std::vector<std::vector<std::vector<double> > >& Score, 
-				   const std::vector<std::vector<std::vector<double> > >& Info, 
-				   std::vector<std::vector<std::vector<double> > >& SumScore, 
-				   std::vector<std::vector<std::vector<double> > >& SumScore2, 
-				   std::vector<std::vector<std::vector<double> > >& SumInfo);
+  static void ReduceResidualLDScores(const std::vector<std::vector<std::vector<double> > >& Score, 
+				     const std::vector<std::vector<std::vector<double> > >& Info, 
+				     std::vector<std::vector<std::vector<double> > >& SumScore, 
+				     std::vector<std::vector<std::vector<double> > >& SumScore2, 
+				     std::vector<std::vector<std::vector<double> > >& SumInfo);
+  
+  static void ReduceAllelicAssocScores(double** Score, double** Info, unsigned NumLoci, unsigned* sizes, int NumCovars);
+  static void ReduceAdmixtureAssocScores(double* Score, double* Info, int size);
 #endif
 
 private:
