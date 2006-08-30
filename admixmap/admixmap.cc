@@ -645,7 +645,7 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
     }//end if hierarchical model
 
     //rate parameter of prior on frequency Dirichlet prior params
-    if(options->getHapMixModelIndicator()){
+    if(options->getHapMixModelIndicator() && !options->getFixedAlleleFreqs()){
       *avgstream << "FreqPriorRate\t"; 
     }
 
