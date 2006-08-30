@@ -133,7 +133,7 @@ CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 PICFLAG =# -fPIC
 
 ## DO NOT EDIT BELOW HERE ##
-SUBLIBS = libutils libsampler libbayesreg
+SUBLIBS = libsampler libutils libbayesreg
 
 export CXX CPPFLAGS GSL_INCLUDEPATH PARALLEL_INCLUDES
 
@@ -159,9 +159,9 @@ clean:
 	rm *.a #*.so
 
 allnew:
-	$(MAKE) -C samplers -e clean all
-	$(MAKE) -C utils -e clean all
-	$(MAKE) -C regression -e clean all
+	$(MAKE) -C samplers clean all
+	$(MAKE) -C utils clean all
+	$(MAKE) -C regression clean all
 	rm *.a #*.so
 
 dist:
