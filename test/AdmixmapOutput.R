@@ -236,12 +236,12 @@ checkConvergence <- function(table.samples, listname, outputfile) {
 
 plotErgodicAverages <- function(ergodicaveragefile, thinning) {
   table.averages <- read.table(file=ergodicaveragefile, header=TRUE)
-  if(dim(table.averages)[1] > 5) {
+  if(dim(table.averages)[1] > 5) {##more than 5 iterations
     iterations <- 10*thinning*seq(1:dim(table.averages)[1])	
     omit <- seq( 1:(floor(length(iterations)/5)) ) #exclude first 20% from plot
     ## plot ergodic averages
     start <- 1
-    if( K > 1 && user.options$indadmixhiermodel==1) {
+    if( K > 1 && user.options$indadmixhiermodel==1 && user.options$hapmixmodel==0) {
       start <- K+1
       dispersion <- apply(table.averages[-omit,1:K], 1, sum)
       plot(iterations[-omit],dispersion, type='l', main="Running posterior mean", 
