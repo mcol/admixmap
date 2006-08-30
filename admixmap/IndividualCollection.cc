@@ -832,7 +832,7 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   }
 #ifdef PARALLEL
   if(!Comms::isFreqSampler()){
-    Comms::BroadcastLhat(&Lhat);
+    Comms::ReduceLogLikelihood(&Lhat);
   }
 #endif
 
