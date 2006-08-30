@@ -579,7 +579,7 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
 
   minuslog10pvalues <- as.numeric(scoretest[2, , ])
   minuslog10pvalues[is.nan(log10pvalues)] <- NA
-  minuslog10pvalues <- data.frame(matrix(data=log10pvalues, nrow=ntests, ncol=evaluations))
+  minuslog10pvalues <- data.frame(matrix(data=minuslog10pvalues, nrow=ntests, ncol=evaluations))
   dimnames(log10pvalues)[[1]] <- locusnames
   plotlogpvalues(outputfile, minuslog10pvalues, 10*thinning,
                  "Running computation of p-values for residual allelic association", T)
