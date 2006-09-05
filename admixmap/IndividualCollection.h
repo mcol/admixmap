@@ -50,14 +50,14 @@ public:
 
   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 				      const vector<Regression*> &R, const double* const poptheta,
-				      const vector<vector<double> > &alpha, 
+				      const vector<vector<double> > &alpha, AffectedsOnlyTest& affectedsOnlyTest, 
 				      bool anneal);
   void UpdateIndivAdmixtureRandomWalk(int iteration, const AdmixOptions* const options,
 				      const vector<Regression*> &R, const double* const poptheta,
 				      const vector<vector<double> > &alpha, 
 				      bool anneal);
-  void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-			   const vector<Regression*> &R);
+//   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
+// 			   const vector<Regression*> &R);
   
   void SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
 		      bool anneal);

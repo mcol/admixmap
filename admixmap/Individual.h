@@ -21,6 +21,7 @@
 #include "samplers/StepSizeTuner.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
+#include "AffectedsOnlyTest.h"
 
 using namespace::std;
 
@@ -67,7 +68,7 @@ public:
   void SampleLocusAncestry(const AdmixOptions* const options);
   void AccumulateAncestry(int* SumAncestry);
   void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
-		    const vector<Regression*> R);
+		    const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest);
   void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool annealthermo);
   void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool annealthermo, 
 		     const double* const AlleleProbs);
@@ -148,9 +149,9 @@ private:
   double step, step0;
   
   //score test objects, static so they can accumulate sums over individuals
-  static double *AffectedsScore;
-  static double *AffectedsVarScore;
-  static double *AffectedsInfo;
+  //  static double *AffectedsScore;
+  //  static double *AffectedsVarScore;
+  //  static double *AffectedsInfo;
   static double **AncestryScore;
   static double **AncestryInfo;
   static double **AncestryVarScore;
@@ -160,8 +161,8 @@ private:
   static double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
   
-  static double *LikRatio1;
-  static double *LikRatio2;
+  //  static double *LikRatio1;
+  //  static double *LikRatio2;
   
   void SetUniformAdmixtureProps();
   void setAdmixtureProps(const double* const, size_t);
@@ -194,13 +195,13 @@ private:
   double LogPosteriorRho_LogBasis(const AdmixOptions* const options, const vector<double> rho, 
 				  double rhoalpha, double rhobeta)const;
   
-  void UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, bool RandomMatingModel, 
-					  const vector<vector<double> > AProbs);
+  //  static void UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, const double* const _Theta_, 
+  //					 bool RandomMatingModel, bool diploid, const vector<vector<double> > AProbs);
   void UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double EY, double DInvLink, 
 			      const vector<vector<double> > AProbs);
   void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
   void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-				  Chromosome* chrm, const vector<Regression*> R);
+				  Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest);
   static void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
 };
 
