@@ -25,8 +25,8 @@ HMM::HMM()
 //not currently used
 //HMM objects are instantiated in Chromosome using default constructor above
 //and dimensions set by SetDimensions below
-HMM::HMM( int inTransitions, int pops) {
-  SetDimensions(inTransitions, pops);
+HMM::HMM( int inTransitions, int pops, const double* const fin) {
+  SetDimensions(inTransitions, pops, fin);
 }
 
 HMM::~HMM()
@@ -44,7 +44,7 @@ HMM::~HMM()
   delete[] cov; //free_matrix(cov, K);
 }
 
-void HMM::SetDimensions( int inTransitions, int pops)
+void HMM::SetDimensions( int inTransitions, int pops, const double* const fin)
 {
   //inTransitions = #transitions +1 = #Loci 
   //pops = #populations
@@ -54,6 +54,7 @@ void HMM::SetDimensions( int inTransitions, int pops)
   alpha = new double[Transitions*K*K];
   sumfactor=0.0;
   p = new double[Transitions];
+  f = fin;
   StateArrivalProbs = new double[Transitions * K * 2];
   ThetaThetaPrime = new double[K*K];
   if(K>2){
@@ -72,26 +73,31 @@ void HMM::SetGenotypeProbs(const double* const lambdain, const bool* const missi
   betaIsBad = true;
 }
 
-
-void HMM::SetStateArrivalProbs(const double* const fin, const double* const Theta, const int Mcol, 
-			       const bool isdiploid){
-  f = fin;
+void HMM::SetTheta(const double* const Theta, const int Mcol, const bool isdiploid){
   theta = Theta;
   alphaIsBad = true;//new input so reset
   betaIsBad = true;
+
   if(isdiploid){
-    for(int t = 1; t < Transitions; t++ ){        
-      for(int j = 0; j < K; ++j){
-	StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * Theta[j];
-	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * Theta[K*Mcol +j ];
-      }
-      p[t] = f[2*t] * f[2*t + 1];
-    }
     for(int j0 = 0; j0 < K; ++j0) {
       for(int j1 = 0; j1 < K; ++j1) {
 	ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
       }
     }
+  }
+}
+
+void HMM::SetStateArrivalProbs(const int Mcol){
+  //required only for diploid updates
+  alphaIsBad = true;//new input so reset
+  betaIsBad = true;
+
+  for(int t = 1; t < Transitions; t++ ){        
+    for(int j = 0; j < K; ++j){
+      StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * theta[j];
+      StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta[K*Mcol +j ];
+    }
+    p[t] = f[2*t] * f[2*t + 1];
   }
 }
 

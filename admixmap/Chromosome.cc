@@ -42,11 +42,11 @@ Chromosome::Chromosome(int n, int size, int start, int inpopulations, bool isx =
   NumberOfCompositeLoci = size;
   Distances = new double[ NumberOfCompositeLoci ];
 
-  SampleStates.SetDimensions( size, populations );
-
   CodedStates = new int[size];
   f = new double[2*size];
   f[0] = f[1] = 0.0;
+
+  SampleStates.SetDimensions( size, populations, f);
 }
 
 Chromosome::~Chromosome()
@@ -159,14 +159,16 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
 void Chromosome::SetGenotypeProbs(const double* const GenotypeProbs, const bool* const GenotypesMissing) {
   SampleStates.SetGenotypeProbs(GenotypeProbs, GenotypesMissing);
 }
-///sets state arrival probs in HMM
-void Chromosome::SetStateArrivalProbs(const double* const Admixture, bool RandomMating, bool diploid) {
-
-  //construct StateArrivalProbs
+void Chromosome::SetHMMTheta(const double* const Admixture, bool RandomMating, bool diploid){
   if(diploid || !RandomMating)
-    SampleStates.SetStateArrivalProbs(f, Admixture, RandomMating, diploid);
+    SampleStates.SetTheta(Admixture, RandomMating, diploid);
   else if(RandomMating)//haploid case in random mating model: pass pointer to maternal admixture props
-    SampleStates.SetStateArrivalProbs(f, Admixture+populations, RandomMating, diploid);
+    SampleStates.SetTheta(Admixture+populations, RandomMating, diploid);
+}
+
+///sets state arrival probs in HMM, only required for diploid case
+void Chromosome::SetStateArrivalProbs(bool RandomMating) {
+  SampleStates.SetStateArrivalProbs(RandomMating);
 }
 ///samples locus ancestry (hidden states in HMM)
 void Chromosome::SampleLocusAncestry(int *OrderedStates, bool diploid){

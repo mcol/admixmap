@@ -20,11 +20,12 @@ class HMM
 {
 public:
   HMM();
-  HMM( int inTransitions, int pops);
+  HMM( int inTransitions, int pops, const double* const f);
   ~HMM();
-  void SetDimensions( int inTransitions, int pops);
+  void SetDimensions( int inTransitions, int pops, const double* const fin);
   void SetGenotypeProbs(const double* const lambdain, const bool* const missing);
-  void SetStateArrivalProbs(const double* const fin, const double* const Theta, const int Mcol, const bool isdiploid);
+  void SetTheta(const double* const Theta, const int Mcol, const bool isdiploid);
+  void SetStateArrivalProbs(const int Mcol);
 
   void Sample(int *SStates, bool isdiploid);
   const std::vector<double> Get3WayStateProbs( const bool isDiploid, int t );

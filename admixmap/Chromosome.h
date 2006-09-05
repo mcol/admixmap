@@ -44,7 +44,8 @@ public:
 
 // ********** Interface to HMM ****************************************
   void SetGenotypeProbs(const double* const GenotypeProbs, const bool* const GenotypesMissing);
-  void SetStateArrivalProbs(const double* const Admixture, bool RandomMating, bool diploid);
+  void SetHMMTheta(const double* const Admixture, bool RandomMating, bool diploid);
+  void SetStateArrivalProbs(bool RandomMating);
 
   void SampleLocusAncestry(int *OrderedStates, bool diploid);
   std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int);
