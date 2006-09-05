@@ -159,10 +159,13 @@ int main( int argc , char** argv ){
     if( options.getPopulations()>1 && (options.isGlobalRho() || options.getHapMixModelIndicator()) && isWorker) {
       Loci.SetLocusCorrelation(L.getrho());
       if(options.getHapMixModelIndicator())
-	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ )
+	for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
 	  //set global state arrival probs in hapmixmodel
 	  //TODO: can skip this if xonly analysis with no females
-	  Loci.getChromosome(j)->SetStateArrivalProbs(L.getGlobalTheta(), options.isRandomMatingModel(), true);
+	  //NB: assumes always diploid in hapmixmodel
+	  Loci.getChromosome(j)->SetHMMTheta(L.getGlobalTheta(), options.isRandomMatingModel(), true);
+	  Loci.getChromosome(j)->SetStateArrivalProbs(options.isRandomMatingModel());
+	}
     }
     
     if(isMaster || isWorker)
@@ -414,8 +417,9 @@ int main( int argc , char** argv ){
     
       //output to likelihood ratio file
       if(options.getTestForAffectedsOnly())
-	Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
-		
+	//Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
+	Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), 
+					  data.GetPopLabels());		
       if(annealstream.is_open())annealstream.close();
       if(avgstream.is_open())avgstream.close();
 
@@ -460,7 +464,7 @@ int main( int argc , char** argv ){
 	Log << "\n";
       }
     }
-    A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates").c_str());
+    A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates.txt").c_str());
     if(options.getHapMixModelIndicator() && !options.getFixedAlleleFreqs() && isFreqSampler){
       Log << "Average expected Acceptance rate in allele frequency prior parameter sampler:\n" << A.getHapMixPriorSamplerAcceptanceRate()
 	  << "\nwith average final step size of " << A.getHapMixPriorSamplerStepSize() << "\n";
@@ -590,7 +594,7 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	    int samples = iteration - burnin;
 	    if( options.getIndAdmixHierIndicator() ){
 	      L.OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
-	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model
+	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
 	    }
 	    for(unsigned r = 0; r < R.size(); ++r)//regression params
 	      R[r]->OutputErgodicAvg(samples, &avgstream);
@@ -691,7 +695,12 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // leaves individuals with HMM probs bad, stored likelihood ok
     // this function also sets locus correlations in Chromosomes
   }
-
+//   if(options->getHapMixModelIndicator()){
+//     if(isMaster || isWorker){
+//       L->UpdateSumIntensitiesByRandomWalk(IC,  
+// 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
+//     }
+//   }
   //find posterior modes of individual admixture at end of burn-in
   //set Chib numerator
   if(!anneal && iteration == options->getBurnIn() && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
@@ -706,7 +715,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // Update individual-level parameters, sampling locus ancestry states
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(isMaster || isWorker){
-    IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
+    IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), S->getAffectedsOnlyTest(), anneal);
   }
 
   if(isWorker || isFreqSampler) {
@@ -806,7 +815,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
       L->SampleSumIntensities(IC->getSumAncestry(),  
 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
     }
-  }
+      }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   else
     //update population admixture Dirichlet parameters conditional on individual admixture

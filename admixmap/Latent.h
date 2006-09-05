@@ -74,8 +74,9 @@ public:
   void InitializeOutputFile(const Vector_s&  PopulationLabels);
   
   void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
-  void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);
+  //void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);
   void SampleSumIntensities(const int* SumAncestry, bool sumlogrho) ;
+  void UpdateSumIntensitiesByRandomWalk(const IndividualCollection* const IC,bool sumlogrho);
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
   void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   
@@ -110,6 +111,7 @@ private:
   
   int K;///< number of subpopulations
   std::vector<double> rho;
+  std::vector<double> rhoproposal;
   double rhoalpha;
   double rhobeta; 
   double rhobeta0;
@@ -123,9 +125,10 @@ private:
   HamiltonianMonteCarlo RhoPriorParamSampler;
   
   //RWM sampler for global rho
-  StepSizeTuner TuneRhoSampler;
+  std::vector<StepSizeTuner> TuneRhoSampler;
   int w, NumberOfUpdates;
-  double step, step0;
+  std::vector<double> step;
+  double step0;
 
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
   std::vector<double> SumAlpha; //ergodic sums of alphas
@@ -147,6 +150,7 @@ private:
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);
+  void SampleHapmixRhoPriorParameters();
 
   static double RhoEnergy(const double* const x, const void* const vargs);
   static void RhoGradient( const double* const x, const void* const vargs, double* g );
