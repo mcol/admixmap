@@ -19,6 +19,7 @@
 #include "utils/LogWriter.h"
 #include "common.h"
 #include "AdmixtureAssocTest.h"
+#include "AffectedsOnlyTest.h" 
 #include "ResidualLDTest.h"
 
 /**
@@ -50,16 +51,19 @@ public:
 
   ~ScoreTests();
 
+  AffectedsOnlyTest& getAffectedsOnlyTest();
+  void OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels);
+
 private:
   double* SumAncestryScore;
   double* SumAncestryInfo;
   double* SumAncestryVarScore;
   double* SumAncestryScore2;
 
-  double* SumAffectedsScore2;
-  double* SumAffectedsVarScore;
-  double* SumAffectedsScore;
-  double* SumAffectedsInfo;
+//   double* SumAffectedsScore2;
+//   double* SumAffectedsVarScore;
+//   double* SumAffectedsScore;
+//   double* SumAffectedsInfo;
 
   double **LocusLinkageAlleleScore;
   double **LocusLinkageAlleleInfo;
@@ -77,7 +81,7 @@ private:
 
   std::ofstream ancestryAssociationScoreStream;
   std::ofstream HaplotypeAssocScoreStream;
-  std::ofstream affectedsOnlyScoreStream;
+  //std::ofstream affectedsOnlyScoreStream;
   std::ofstream allelicAssocScoreStream;
 
   const AdmixOptions *options;
@@ -121,6 +125,7 @@ private:
 
   ResidualLDTest ResidualAllelicAssocScoreTest;//here temporarily, until rest of scoretests classes have been created
   AdmixtureAssocTest AdmixtureAssocScoreTest;
+  AffectedsOnlyTest AffectedsOnlyScoreTest;
 
 };
 

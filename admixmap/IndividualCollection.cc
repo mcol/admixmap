@@ -360,7 +360,7 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 */
 void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 					       const vector<Regression*> &R, const double* const poptheta,
-					       const vector<vector<double> > &alpha, 
+					       const vector<vector<double> > &alpha, AffectedsOnlyTest& affectedsOnlyTest, 
 					       bool anneal=false){
   int Populations = options->getPopulations();
   vector<double> lambda;
@@ -380,7 +380,10 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
 
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
-  if(iteration > options->getBurnIn())Individual::ResetScores(options);
+  if(iteration > options->getBurnIn()){
+    Individual::ResetScores(options);
+    affectedsOnlyTest.Reset();
+  }
 
   if(options->getHapMixModelIndicator()){
     fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
@@ -414,7 +417,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     // ** Update score, info and score^2 for ancestry score tests
     if(iteration > options->getBurnIn() && Populations >1 
        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-      _child[i]->UpdateScores(options, &Outcome, &Covariates, R);
+      _child[i]->UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest);
 
   }
 #ifdef PARALLEL
@@ -800,21 +803,22 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
 #endif
     //set locus correlation
     if(Comms::isWorker()){//workers only
-	Loci->SetLocusCorrelation(RhoBar);
-	    if(options->getHapMixModelIndicator())
-	      for( unsigned int j = 0; j < numChromosomes; j++ )
-	//set global state arrival probs in hapmixmodel
-	//TODO: can skip this if xonly analysis with no females
-	//KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-	      Loci->getChromosome(j)->SetStateArrivalProbs(_child[worker_rank]->getAdmixtureProps(), options->isRandomMatingModel(), true);
-						      }
+      Loci->SetLocusCorrelation(RhoBar);
+      if(options->getHapMixModelIndicator())
+	for( unsigned int j = 0; j < numChromosomes; j++ )
+	  //set global state arrival probs in hapmixmodel
+	  //TODO: can skip this if xonly analysis with no females
+	  //NB: assumes always diploid in hapmixmodel
+	  //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
+	  Loci->getChromosome(j)->SetStateArrivalProbs(options->isRandomMatingModel());
+    }
   }
   
   //set haplotype pair probs to posterior means (in parallel version, sets AlleleProbs(Freqs) to posterior means
   if(Comms::isFreqSampler())
-  for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
-    (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
-
+    for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
+      (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
+  
 #ifdef PARALLEL
   //broadcast allele freqs
   if(!Comms::isMaster())A->BroadcastAlleleFreqs();

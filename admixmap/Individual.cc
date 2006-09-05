@@ -22,11 +22,11 @@
 #define PR(x) cout << #x << " = " << x << endl;
 
 // ******* Static Member Declarations
-double *Individual::LikRatio1;
-double *Individual::LikRatio2;
-double *Individual::AffectedsScore = 0;
-double *Individual::AffectedsVarScore = 0;
-double *Individual::AffectedsInfo = 0;
+//double *Individual::LikRatio1;
+//double *Individual::LikRatio2;
+//double *Individual::AffectedsScore = 0;
+//double *Individual::AffectedsVarScore = 0;
+//double *Individual::AffectedsInfo = 0;
 double **Individual::AncestryScore = 0;
 double **Individual::AncestryInfo = 0;
 double **Individual::AncestryVarScore = 0;
@@ -388,32 +388,32 @@ void Individual::SetStaticMembers(Genome* const pLoci, const AdmixOptions* const
   if(Xdata) X_posn = Loci->GetChrNumOfLocus(Loci->getFirstXLocus());//too clunky, should simplify
   NumIndGametes = 1;
   if( options->isRandomMatingModel() ) NumIndGametes = 2;
-  int K = Populations;
+  //int K = Populations;
   int L = Loci->GetNumberOfCompositeLoci();
 
-  LikRatio1 = 0;
-  LikRatio2 = 0;
+  //  LikRatio1 = 0;
+  // LikRatio2 = 0;
   AncestryScore = 0;
   AncestryInfo = 0;
   AncestryVarScore = 0;
   AncestryInfoCorrection = 0;
-  AffectedsScore = 0;
-  AffectedsVarScore = 0;
-  AffectedsInfo = 0;
+  //  AffectedsScore = 0;
+  //  AffectedsVarScore = 0;
+  //  AffectedsInfo = 0;
   B = 0;
   PrevB = 0;
   Xcov = 0;
 
-  if( options->getTestForAffectedsOnly() ){
-    if(Populations == 2) K = 1;
-    AffectedsScore = new double[L * K];
-    AffectedsVarScore = new double[L * K];
-    AffectedsInfo = new double[L * K];
-    LikRatio1 = new double[L*K];
-    LikRatio2 = new double[L*K];
-    fill(LikRatio1, LikRatio1+L*K, 0.0);
-    fill(LikRatio2, LikRatio2+L*K, 0.0);
-  }
+//   if( options->getTestForAffectedsOnly() ){
+//     if(Populations == 2) K = 1;
+//     AffectedsScore = new double[L * K];
+//     AffectedsVarScore = new double[L * K];
+//     AffectedsInfo = new double[L * K];
+//     LikRatio1 = new double[L*K];
+//     LikRatio2 = new double[L*K];
+//     fill(LikRatio1, LikRatio1+L*K, 0.0);
+//     fill(LikRatio2, LikRatio2+L*K, 0.0);
+//   }
   if( options->getTestForLinkageWithAncestry() ){
     AncestryScore = alloc2D_d(L, 2*Populations);
     AncestryInfo = alloc2D_d(L, 4*Populations*Populations);
@@ -426,11 +426,11 @@ void Individual::SetStaticMembers(Genome* const pLoci, const AdmixOptions* const
 }
 
 void Individual::DeleteStaticMembers(){
-  delete[] AffectedsScore;
-  delete[] AffectedsInfo;
-  delete[] AffectedsVarScore;
-  delete[] LikRatio1;
-  delete[] LikRatio2;
+//   delete[] AffectedsScore;
+//   delete[] AffectedsInfo;
+//   delete[] AffectedsVarScore;
+//   delete[] LikRatio1;
+//   delete[] LikRatio2;
   delete[] B;
   delete[] PrevB;
   delete[] Xcov;
@@ -1160,11 +1160,16 @@ void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const optio
   Chromosome* C = Loci->getChromosome(j);
   C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
-  if(!options->getHapMixModelIndicator() && !options->isGlobalRho()){
-    //set locus correlation, f, if individual- or gamete-specific rho
-    C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
+  bool diploid = (j!=X_posn || SexIsFemale);
+  if(!options->getHapMixModelIndicator()){
+    if(!options->isGlobalRho()){
+      //set locus correlation, f, if individual- or gamete-specific rho
+      C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
+    }
+    C->SetHMMTheta(theta, options->isRandomMatingModel(), diploid);
   }
-  C->SetStateArrivalProbs(theta, options->isRandomMatingModel(), (j!=X_posn || SexIsFemale));
+  if(diploid)
+    C->SetStateArrivalProbs(options->isRandomMatingModel());
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
 
@@ -1217,13 +1222,13 @@ void Individual::ResetScores(const AdmixOptions* const options){
   int KK = Populations;
   if(Populations == 2)KK = 1;
 
-  if( options->getTestForAffectedsOnly() ){
-    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()*KK; ++j){
-      AffectedsScore[j] = 0.0;
-      AffectedsVarScore[j] = 0.0;
-      AffectedsInfo[j] = 0.0;
-    }
-  }
+//   if( options->getTestForAffectedsOnly() ){
+//     for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()*KK; ++j){
+//       AffectedsScore[j] = 0.0;
+//       AffectedsVarScore[j] = 0.0;
+//       AffectedsInfo[j] = 0.0;
+//     }
+//   }
   if( options->getTestForLinkageWithAncestry() ){
     for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
       for(int k = 0; k < 2*Populations; ++k)
@@ -1246,7 +1251,7 @@ void Individual::ResetScores(const AdmixOptions* const options){
 }
 
 void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
-			      const vector<Regression*> R){
+			      const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest){
 //merge with updatescoretests
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
@@ -1261,7 +1266,7 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
 	admixtureCovars = new double[Populations-1];
 	for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
       }
-      UpdateScoreTests(options, admixtureCovars, Outcome, C, R);
+      UpdateScoreTests(options, admixtureCovars, Outcome, C, R, affectedsOnlyTest);
       if(options->getTestForLinkageWithAncestry()) {
 	delete[] admixtureCovars;
       }
@@ -1269,7 +1274,7 @@ void Individual::UpdateScores(const AdmixOptions* const options, DataMatrix *Out
 }
 
 void Individual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-				  Chromosome* chrm, const vector<Regression*> R){
+				  Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest){
   bool IamAffected = false;
   try {
     if( options->getTestForAffectedsOnly()){
@@ -1293,7 +1298,11 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, const doubl
       
       //Update affecteds only scores      
       if(IamAffected){
-	UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, options->isRandomMatingModel(), AProbs );
+	//	UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, Theta, options->isRandomMatingModel(), 
+	//			   (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
+	affectedsOnlyTest.Update(locus, k0, Theta, options->isRandomMatingModel(), 
+				 (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
+
       }
       
       //update ancestry score tests
@@ -1309,58 +1318,59 @@ void Individual::UpdateScoreTests(const AdmixOptions* const options, const doubl
   }
 }
 
-void Individual::UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, bool RandomMatingModel, 
-						    const vector<vector<double> > AProbs){
-  // values of ancestry risk ratio at which likelihood ratio is evaluated
-  double r1 = 0.5;
-  double r2 = 2.0;//hard-coding these for now, can make them vary later
-  if( SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn) ) { // diploid case
-    double theta[2];//paternal and maternal admixture proportions
-    double Pi[3];//probs of 0,1,2 copies of Pop k given admixture
-    for( int k = 0; k < Pops; k++ ){
-      theta[0] = Theta[ k+k0 ];
-      if( RandomMatingModel )
-	theta[1] = Theta[ Populations + k+k0 ];
-      else
-	theta[1] = theta[0];
+// void Individual::UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, const double* const _Theta_, 
+// 						    bool RandomMatingModel, bool diploid, 
+// 						    const vector<vector<double> > AProbs){
+//   // values of ancestry risk ratio at which likelihood ratio is evaluated
+//   double r1 = 0.5;
+//   double r2 = 2.0;//hard-coding these for now, can make them vary later
+//   if( diploid ) { // diploid case
+//     double theta[2];//paternal and maternal admixture proportions
+//     double Pi[3];//probs of 0,1,2 copies of Pop k given admixture
+//     for( int k = 0; k < Pops; k++ ){
+//       theta[0] = _Theta_[ k+k0 ];
+//       if( RandomMatingModel )
+// 	theta[1] = _Theta_[ Populations + k+k0 ];
+//       else
+// 	theta[1] = theta[0];
       
-      //accumulate score, score variance, and info
-      AffectedsScore[locus *Pops + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
-      AffectedsVarScore[locus * Pops + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
-      AffectedsInfo[locus * Pops +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
+//       //accumulate score, score variance, and info
+//       AffectedsScore[locus *Pops + k]+= 0.5*( AProbs[1][k+k0] + 2.0*AProbs[2][k+k0] - theta[0] - theta[1] );
+//       AffectedsVarScore[locus * Pops + k]+= 0.25 *( AProbs[1][k+k0]*(1.0 - AProbs[1][k+k0]) + 4.0*AProbs[2][k+k0]*AProbs[0][k+k0]); 
+//       AffectedsInfo[locus * Pops +k]+= 0.25* ( theta[0]*( 1.0 - theta[0] ) + theta[1]*( 1.0 - theta[1] ) );
       
-      //probs of 0,1,2 copies of Pop k given admixture
-      Pi[2] = theta[0] * theta[1];
-      Pi[1] = theta[0] * (1.0 - theta[1]) + theta[1] * (1.0 - theta[0]);
-      Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
+//       //probs of 0,1,2 copies of Pop k given admixture
+//       Pi[2] = theta[0] * theta[1];
+//       Pi[1] = theta[0] * (1.0 - theta[1]) + theta[1] * (1.0 - theta[0]);
+//       Pi[0] = (1.0 - theta[0]) * (1.0 - theta[1]);
       
-      //compute contribution to likelihood ratio
-      LikRatio1[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r1)*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) / 
-	(Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
-      LikRatio2[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) / 
-	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
-    }
-  } else { // haploid - effect of one extra copy from pop k0 is equivalent to two extra copies in diploid case 
-    double theta;//paternal and maternal admixture proportions
-    double Pi[2];//probs of 0,1 copies of Pop k given admixture
-    for( int k = 0; k < Pops; k++ ){
-      theta = Theta[ k+k0 ];
+//       //compute contribution to likelihood ratio
+//       LikRatio1[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r1)*AProbs[1][k+k0] + r1 * AProbs[2][k+k0]) / 
+// 	(Pi[0] + sqrt(r1)*Pi[1] + r1*Pi[2]);
+//       LikRatio2[locus *Pops + k] += (AProbs[0][k+k0] + sqrt(r2)*AProbs[1][k+k0] + r2 * AProbs[2][k+k0]) / 
+// 	(Pi[0] + sqrt(r2)*Pi[1] + r2*Pi[2]);
+//     }
+//   } else { // haploid - effect of one extra copy from pop k0 is equivalent to two extra copies in diploid case 
+//     double theta;//paternal and maternal admixture proportions
+//     double Pi[2];//probs of 0,1 copies of Pop k given admixture
+//     for( int k = 0; k < Pops; k++ ){
+//       theta = _Theta_[ k+k0 ];
       
-      //accumulate score, score variance, and info
-      AffectedsScore[locus *Pops + k] += AProbs[1][k+k0] - theta;
-      AffectedsVarScore[locus * Pops + k] += AProbs[0][k+k0] * AProbs[1][k+k0]; 
-      AffectedsInfo[locus * Pops +k]+= theta * (1.0 - theta);
+//       //accumulate score, score variance, and info
+//       AffectedsScore[locus *Pops + k] += AProbs[1][k+k0] - theta;
+//       AffectedsVarScore[locus * Pops + k] += AProbs[0][k+k0] * AProbs[1][k+k0]; 
+//       AffectedsInfo[locus * Pops +k]+= theta * (1.0 - theta);
       
-      //probs of 0,1 copies of Pop k given admixture
-      Pi[1] = theta;
-      Pi[0] = 1.0 - theta;
+//       //probs of 0,1 copies of Pop k given admixture
+//       Pi[1] = theta;
+//       Pi[0] = 1.0 - theta;
       
-      //compute contribution to likelihood ratio - check this formula
-      LikRatio1[locus *Pops + k] += (AProbs[0][k+k0] + r1*AProbs[1][k+k0]) / (Pi[0] + r1*Pi[1]);
-      LikRatio2[locus *Pops + k] += (AProbs[0][k+k0] + r2*AProbs[1][k+k0]) / (Pi[0] + r2*Pi[1]);
-    }
-  }
-}
+//       //compute contribution to likelihood ratio - check this formula
+//       LikRatio1[locus *Pops + k] += (AProbs[0][k+k0] + r1*AProbs[1][k+k0]) / (Pi[0] + r1*Pi[1]);
+//       LikRatio2[locus *Pops + k] += (AProbs[0][k+k0] + r2*AProbs[1][k+k0]) / (Pi[0] + r2*Pi[1]);
+//     }
+//   }
+// }
 
 void Individual::UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double YMinusEY, double DInvLink, 
 					const vector<vector<double> > AProbs) {
@@ -1443,18 +1453,18 @@ void Individual::UpdateB(double DInvLink, double dispersion, const double* admix
     delete[] temp;
 }
 
-void Individual::SumScoresForLinkageAffectedsOnly(int j, double *SumAffectedsScore, 
-				      double *SumAffectedsVarScore, double *SumAffectedsScore2, double *SumAffectedsInfo){
-  int KK = Populations;
-  if(KK == 2) KK = 1;
+// void Individual::SumScoresForLinkageAffectedsOnly(int j, double *SumAffectedsScore, 
+// 				      double *SumAffectedsVarScore, double *SumAffectedsScore2, double *SumAffectedsInfo){
+//   int KK = Populations;
+//   if(KK == 2) KK = 1;
 
-  for( int k = 0; k < KK; k++ ){
-    SumAffectedsScore[j*KK +k] += AffectedsScore[j*KK + k];
-    SumAffectedsVarScore[j*KK +k] += AffectedsVarScore[j * KK +k];
-    SumAffectedsInfo[j*KK +k] += AffectedsInfo[j * KK +k];
-    SumAffectedsScore2[j*KK +k] +=  AffectedsScore[j*KK +k] * AffectedsScore[j*KK +k];
-  }
-}
+//   for( int k = 0; k < KK; k++ ){
+//     SumAffectedsScore[j*KK +k] += AffectedsScore[j*KK + k];
+//     SumAffectedsVarScore[j*KK +k] += AffectedsVarScore[j * KK +k];
+//     SumAffectedsInfo[j*KK +k] += AffectedsInfo[j * KK +k];
+//     SumAffectedsScore2[j*KK +k] +=  AffectedsScore[j*KK +k] * AffectedsScore[j*KK +k];
+//   }
+// }
 
 void Individual::SumScoresForAncestry(int j, double *SumAncestryScore, double *SumAncestryInfo, double *SumAncestryScore2,
 				      double *SumAncestryVarScore){
@@ -1632,70 +1642,70 @@ double Individual::getLogPosteriorAlleleFreqs()const{
 
 //******************* Likelihood Ratios (Affecteds-only score test) ************************
 
-static string double2R( double x )
-{
-  if( isnan(x) )
-    return "NaN";
-  else{
-    stringstream ret;
-    ret << x;
-    return( ret.str() );
-  }
-}
+// static string double2R( double x )
+// {
+//   if( isnan(x) )
+//     return "NaN";
+//   else{
+//     stringstream ret;
+//     ret << x;
+//     return( ret.str() );
+//   }
+// }
 
-void Individual::OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels){
-  //open outut file
-  std::ofstream outputstream(filename);
+// void Individual::OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels){
+//   //open outut file
+//   std::ofstream outputstream(filename);
 
-  //start writing R object
-  outputstream<< "structure(.Data=c(" << endl;
+//   //start writing R object
+//   outputstream<< "structure(.Data=c(" << endl;
 
-  //output ergodic averages of LikRatios
-  int KK = Populations, k1 = 0;
-  if(KK == 2 ){
-    KK = 1;k1 = 1;
-  }
-  double L1, L2;
+//   //output ergodic averages of LikRatios
+//   int KK = Populations, k1 = 0;
+//   if(KK == 2 ){
+//     KK = 1;k1 = 1;
+//   }
+//   double L1, L2;
 
-  for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
-    for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
-      outputstream << "\"" << (*Loci)(j)->GetLabel(0) << "\",";
-      outputstream << "\""<<PopLabels[k+k1] << "\","; //need offset to get second poplabel for 2pops
+//   for(unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ ){
+//     for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
+//       outputstream << "\"" << (*Loci)(j)->GetLabel(0) << "\",";
+//       outputstream << "\""<<PopLabels[k+k1] << "\","; //need offset to get second poplabel for 2pops
       
-      L1 = LikRatio1[ j*KK + k] / ( iterations );
-      L2 = LikRatio2[ j*KK + k] / ( iterations );
+//       L1 = LikRatio1[ j*KK + k] / ( iterations );
+//       L2 = LikRatio2[ j*KK + k] / ( iterations );
       
-      outputstream << double2R(L1)<< ","
-		   << double2R(L2)<< ","<<endl;
-    }
-  }
+//       outputstream << double2R(L1)<< ","
+// 		   << double2R(L2)<< ","<<endl;
+//     }
+//   }
   
-  vector<int> dim(2,0);
-  dim[0] = 4;
-  dim[1] = Loci->GetNumberOfCompositeLoci() * KK;
+//   vector<int> dim(2,0);
+//   dim[0] = 4;
+//   dim[1] = Loci->GetNumberOfCompositeLoci() * KK;
   
-  vector<string> labels(4,"");
-  labels[0] = "Locus";
-  labels[1] = "Population";
-  labels[2] = "L1";
-  labels[3] = "L2";
+//   vector<string> labels(4,"");
+//   labels[0] = "Locus";
+//   labels[1] = "Population";
+//   labels[2] = "L1";
+//   labels[3] = "L2";
   
-  outputstream << ")," << endl;
-  outputstream << ".Dim = c(";
-  for(unsigned int i=0;i<dim.size();i++){
-    outputstream << dim[i];
-    if(i != dim.size() - 1){
-      outputstream << ",";
-    }
-  }
-  outputstream << ")," << endl;
-  outputstream << ".Dimnames=list(c(";
-  for(unsigned int i=0;i<labels.size();i++){
-    outputstream << "\"" << labels[i] << "\"";
-    if(i != labels.size() - 1){
-      outputstream << ",";
-    }
-  }
-  outputstream << "), character(0)))" << endl;
-  outputstream.close();
-}
+//   outputstream << ")," << endl;
+//   outputstream << ".Dim = c(";
+//   for(unsigned int i=0;i<dim.size();i++){
+//     outputstream << dim[i];
+//     if(i != dim.size() - 1){
+//       outputstream << ",";
+//     }
+//   }
+//   outputstream << ")," << endl;
+//   outputstream << ".Dimnames=list(c(";
+//   for(unsigned int i=0;i<labels.size();i++){
+//     outputstream << "\"" << labels[i] << "\"";
+//     if(i != labels.size() - 1){
+//       outputstream << ",";
+//     }
+//   }
+//   outputstream << "), character(0)))" << endl;
+//   outputstream.close();
+// }

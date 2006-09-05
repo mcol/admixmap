@@ -30,10 +30,10 @@ ScoreTests::ScoreTests(){
   SumAncestryVarScore = 0;
   SumAncestryScore2 = 0;
 
-  SumAffectedsScore = 0;
-  SumAffectedsScore2 = 0;
-  SumAffectedsInfo = 0;
-  SumAffectedsVarScore = 0;
+//   SumAffectedsScore = 0;
+//   SumAffectedsScore2 = 0;
+//   SumAffectedsInfo = 0;
+//   SumAffectedsVarScore = 0;
 
   LocusLinkageAlleleScore = 0;
   LocusLinkageAlleleInfo = 0;
@@ -63,11 +63,12 @@ ScoreTests::~ScoreTests(){
   delete[] SumAncestryVarScore;
   delete[] SumAncestryScore2;
 
-  //delete arrays for affecteds-only score test
-  delete[] SumAffectedsScore;
-  delete[] SumAffectedsScore2;
-  delete[] SumAffectedsInfo;
-  delete[] SumAffectedsVarScore;
+
+//   //delete arrays for affecteds-only score test
+//   delete[] SumAffectedsScore;
+//   delete[] SumAffectedsScore2;
+//   delete[] SumAffectedsInfo;
+//   delete[] SumAffectedsVarScore;
 
   //delete arrays for allelic assoc score test
   delete[] dim_;
@@ -147,19 +148,20 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     |affecteds only linkage with ancestry |
     ------------------------------------*/ 
   if( options->getTestForAffectedsOnly() ){
-    OpenFile(Log, &affectedsOnlyScoreStream, options->getAffectedsOnlyScoreFilename(), "Affected-only tests for association");
-    //KK is the number of populations for which to perform test. For 2way admixture, we only want 2nd population.
-    int KK = K;
-    if(K == 2)KK = 1;
+ //    OpenFile(Log, &affectedsOnlyScoreStream, options->getAffectedsOnlyScoreFilename(), "Affected-only tests for association");
+//     //KK is the number of populations for which to perform test. For 2way admixture, we only want 2nd population.
+//     int KK = K;
+//     if(K == 2)KK = 1;
     
-    SumAffectedsScore2 = new double[L * KK];
-    SumAffectedsScore = new double[L * KK];
-    SumAffectedsVarScore = new double[L * KK];
-    SumAffectedsInfo = new double[L * KK];
-    fill(SumAffectedsScore, SumAffectedsScore +L*KK, 0.0);
-    fill(SumAffectedsScore2, SumAffectedsScore2 +L*KK, 0.0);
-    fill(SumAffectedsInfo, SumAffectedsInfo + L*KK, 0.0);
-    fill(SumAffectedsVarScore, SumAffectedsVarScore + L*KK, 0.0);
+//     SumAffectedsScore2 = new double[L * KK];
+//     SumAffectedsScore = new double[L * KK];
+//     SumAffectedsVarScore = new double[L * KK];
+//     SumAffectedsInfo = new double[L * KK];
+//     fill(SumAffectedsScore, SumAffectedsScore +L*KK, 0.0);
+//     fill(SumAffectedsScore2, SumAffectedsScore2 +L*KK, 0.0);
+//     fill(SumAffectedsInfo, SumAffectedsInfo + L*KK, 0.0);
+//     fill(SumAffectedsVarScore, SumAffectedsVarScore + L*KK, 0.0);
+    AffectedsOnlyScoreTest.Initialise(options->getAffectedsOnlyScoreFilename(), K, L, Log);
   }
 
   /*-----------------------
@@ -485,7 +487,8 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	|affecteds-only linkage with ancestry |
 	------------------------------------*/ 
       if( options->getTestForAffectedsOnly() ){
-	Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
+	//Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
+	AffectedsOnlyScoreTest.Accumulate(j);
       }
     }//end comp locus loop
   }//end if rank==0
@@ -744,16 +747,19 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
   }
   //affectedonly
   if( options->getTestForAffectedsOnly() ){
-    if(final){
-      string filename(options->getResultsDir());
-      filename.append("/TestsAffectedsOnlyFinal.txt");
-      outfile = new ofstream(filename.c_str(), ios::out);
-      *outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
-    }else outfile = &affectedsOnlyScoreStream;
-    OutputTestsForLocusLinkage( iterations, outfile, PLabels, 
-				SumAffectedsScore, SumAffectedsVarScore,
-				SumAffectedsScore2, SumAffectedsInfo, sep );
-    if(final)delete outfile;
+    const char* finalfilename = 0;
+     if(final){
+       string filename(options->getResultsDir());
+       filename.append("/TestsAffectedsOnlyFinal.txt");
+       finalfilename = filename.c_str();
+       //       outfile = new ofstream(filename.c_str(), ios::out);
+       //*outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
+     }//else outfile = &affectedsOnlyScoreStream;
+//     OutputTestsForLocusLinkage( iterations, outfile, PLabels, 
+// 				SumAffectedsScore, SumAffectedsVarScore,
+// 				SumAffectedsScore2, SumAffectedsInfo, sep );
+    //if(final)delete outfile;
+    AffectedsOnlyScoreTest.Output(iterations, PLabels, *Lociptr, final, finalfilename);
   }
 
   //residual allelic association
@@ -997,25 +1003,26 @@ void ScoreTests::ROutput(){
    * R-matrix previously written to affectedsOnlyScoreStream
    */
   if (options->getTestForAffectedsOnly()){
-    int KK = options->getPopulations();
-    if(KK ==2 )KK = 1;
-    vector<int> dimensions(3,0);
-    dimensions[0] = 10;
-    dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * KK;
-    dimensions[2] = (int)(numPrintedIterations);
+//     int KK = options->getPopulations();
+//     if(KK ==2 )KK = 1;
+//     vector<int> dimensions(3,0);
+//     dimensions[0] = 10;
+//     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * KK;
+//     dimensions[2] = (int)(numPrintedIterations);
     
-    vector<string> labels(dimensions[0],"");
-    labels[0] = "Locus";
-    labels[1] = "Population";
-    labels[2] = "Score";
-    labels[3] = "CompleteInfo";
-    labels[4] = "ObservedInfo";
-    labels[5] = "PercentInfo";
-    labels[6] = "Missing1";
-    labels[7] = "Missing2"; 
-    labels[8] = "StdNormal";
-    labels[9] = "PValue";
-    R_output3DarrayDimensions(&affectedsOnlyScoreStream,dimensions,labels);
+//     vector<string> labels(dimensions[0],"");
+//     labels[0] = "Locus";
+//     labels[1] = "Population";
+//     labels[2] = "Score";
+//     labels[3] = "CompleteInfo";
+//     labels[4] = "ObservedInfo";
+//     labels[5] = "PercentInfo";
+//     labels[6] = "Missing1";
+//     labels[7] = "Missing2"; 
+//     labels[8] = "StdNormal";
+//     labels[9] = "PValue";
+//    R_output3DarrayDimensions(&affectedsOnlyScoreStream,dimensions,labels);
+    AffectedsOnlyScoreTest.ROutput(numPrintedIterations);
   }
 
   /**
@@ -1072,4 +1079,11 @@ string ScoreTests::double2R( double x, int precision )
     ret << x;
     return( ret.str() );
   }
+}
+AffectedsOnlyTest& ScoreTests::getAffectedsOnlyTest(){
+  return AffectedsOnlyScoreTest;}
+
+
+void ScoreTests::OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels){
+  AffectedsOnlyScoreTest.OutputLikRatios(filename, iterations, PopLabels, *Lociptr);
 }
