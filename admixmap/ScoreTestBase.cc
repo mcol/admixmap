@@ -60,6 +60,39 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
   *outputstream << endl;
 }
 
+void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* outputstream, string label,
+						     const double score, const double scoresq, const double varscore, 
+						     const double info, bool final )
+{
+  string separator = final? "\t" : ",";
+
+  double VU = 0.0, EU = 0.0, missing = 0.0, complete = 0.0;
+  *outputstream << "\"" << label << "\"" << separator;
+      
+  EU = score / ( iterations );
+  VU = varscore / ( iterations );
+  missing = scoresq / ( iterations ) - EU * EU + VU;
+  complete =  info / ( iterations );
+  
+  *outputstream << double2R(EU, 3)                                << separator//score
+		<< double2R(complete, 3)                          << separator//complete info
+		<< double2R(complete - missing, 3)                << separator//observed info
+		<< double2R(100*(complete - missing)/complete, 2) << separator;//%observed info
+  if(complete > 0.0){
+    *outputstream << double2R(100*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
+		  << double2R(100*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
+    if(complete - missing > 0.0){
+	  double zscore = EU / sqrt( complete - missing );
+	  double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+	  *outputstream << double2R(zscore,3)  << separator << double2R(pvalue) << separator << endl;
+    }
+    else *outputstream << "NaN" << separator << "NaN" << separator << endl;
+  }
+  else{
+    *outputstream << "NaN" << separator << "NaN" << separator << "NaN" << separator << "NaN" << separator << endl; 
+  }
+}
+
 ///generic vector score test
 void ScoreTestBase::OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, vector<string> labels,
 				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)

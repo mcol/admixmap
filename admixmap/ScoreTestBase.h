@@ -27,6 +27,9 @@ protected:
 				     const double score, const double scoresq, const double info, bool final);
   static void OutputScoreTest( int iterations, std::ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
 			       const double* score, const double* scoresq, const double* info, bool final, unsigned dim2);
+  static void OutputRaoBlackwellizedScoreTest( int iterations, std::ofstream* outputstream, std::string label,
+					       const double score, const double scoresq, const double varscore, 
+					       const double info, bool final );
 
   static std::string double2R(double);
   static std::string double2R(double, int);
