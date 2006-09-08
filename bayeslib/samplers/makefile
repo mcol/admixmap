@@ -127,7 +127,7 @@ PARATEXT = cat ../paratext.txt >../parallel.h
 else
 CXX = $(CC)
 INCLUDES = $(GSL_INCLUDES)
-PARATEXT=rm ../parallel.h;touch ../parallel.h
+PARATEXT=rm -f ../parallel.h;touch ../parallel.h
 endif
 
 ## **compiler/linker flags

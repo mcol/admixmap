@@ -156,7 +156,8 @@ clean:
 	$(MAKE) -C samplers clean
 	$(MAKE) -C utils clean
 	$(MAKE) -C regression clean
-	rm *.a #*.so
+	rm -f *.a *.so
+	rm -f parallel.h
 
 allnew:
 	$(MAKE) -C samplers clean all
