@@ -23,18 +23,15 @@ If you are installing gsl on MinGW, you may need to run configure with the optio
 (3) Create a directory called genepi and change to it. Log in to the CVS repository and checkout the genepi/admixmap and genepi/test directories by typing 
 
     CVS checkout genepi/admixmap
-    CVS checkout genepi/libsampler
+    CVS checkout genepi/bayeslib
     CVS checkout genepi/test
 or CVS checkout genepi to checkout the whole repository.
 
-The admixmap directory contains the source code, libsampler contains the source for the sampling library and the test directory contains files for running the program
+The admixmap directory contains the source code, bayeslib contains the source for the Bayesian C++ library and the test directory contains files for running the program
 
-Change to the libsampler subdirectory and create the sampling library by typing
-   make
-The sampling library can also be compiled from the admixmap subdirectory by typing
-  make libsampler
-Change to the admixmap subdirectory and create the admixmap executable by typing    
-   make
+(4) To create the admixmap executable, change to the admixmap subdirectory and type 'make bayeslib all'. This will first compile bayeslib in its own directory then compile admixmap. If bayeslib has already been compiled, simply type 'make'
+
+    To compile bayeslib only, change to the bayeslib subdirectory and type 'make'. Alternatively, type 'make bayeslib' in the admixmap subdirectory.
 
 The executable will be placed in the test subdirectory. 
 
@@ -50,7 +47,7 @@ If running under Linux or Unix and you cannot use static libraries, you will nee
 
 This will run the program with the user options that are specified in the file testArguments.txt. These user options specify that data files are in subdirectory test/data, and that results should be written to subdirectory test/results. 
 
-Alternatively, you  can run the program by running a Perl script in which the user options are specified in a hash (a table of keys paired with values) and passed to ADMIXMAP on the command line. An  example script "admixmap.pl" is supplied with the program to run the test data files. See the README file for more details. Further examples are available in the tutorial in the genepi/tutorial CVS directory.
+Alternatively, you  can run the program by running a Perl script in which the user options are specified in a hash (a table of keys paired with values) and passed to ADMIXMAP via a text file. An  example script "admixmap.pl" is supplied with the program to run the test data files. See the README file for more details. Further examples are available in the tutorial in the genepi/tutorial CVS directory.
 
 ----------------------------------------------------------
 Access to the CVS repository (bioinf.ucd.ie:/dsk3/cvs)
