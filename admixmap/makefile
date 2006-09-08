@@ -173,12 +173,15 @@ objects		= admixmap.o Latent.o AlleleFreqs.o AdmixOptions.o Genome.o Chromosome.
 IndividualCollection.o Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o \
 AdmixtureAssocTest.o AffectedsOnlyTest.o ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o InputData.o AlleleFreqSampler.o Comms.o
 
-all:	message $(objects)
+all:	checkbayeslib message $(objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
 	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(EXEC) \**
 
 message:	
 	@echo **Compiling ADMIXMAP**
+
+checkbayeslib:
+	test -e $(BAYESLIB_PATH)/bayeslib.a || $(MAKE) -C $(BAYESLIB_PATH) -e
 bayeslib:
 	$(MAKE) -C $(BAYESLIB_PATH) -e
 samplers:
