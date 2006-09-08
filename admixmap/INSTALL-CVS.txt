@@ -29,7 +29,7 @@ or CVS checkout genepi to checkout the whole repository.
 
 The admixmap directory contains the source code, bayeslib contains the source for the Bayesian C++ library and the test directory contains files for running the program
 
-(4) To create the admixmap executable, change to the admixmap subdirectory and type 'make bayeslib all'. This will first compile bayeslib in its own directory then compile admixmap. If bayeslib has already been compiled, simply type 'make'
+(4) To create the admixmap executable, change to the admixmap subdirectory and type 'make'. This will first compile bayeslib in its own directory, if it hasn't already been compiled, then compile admixmap. 
 
     To compile bayeslib only, change to the bayeslib subdirectory and type 'make'. Alternatively, type 'make bayeslib' in the admixmap subdirectory.
 
