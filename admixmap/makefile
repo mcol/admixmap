@@ -22,8 +22,8 @@
 ###############################################################################################
 
 # GSL - only needed if in nonstandard location 
-GSL_LIBPATH =/usr/local/lib
-GSL_INCLUDEPATH=/usr/local/include
+GSL_LIBPATH =#/usr/local/lib
+GSL_INCLUDEPATH=#/usr/local/include
 
 #path to sampling library
 BAYESLIB_PATH =../bayeslib
@@ -57,13 +57,13 @@ VERSION = serial
 #VERSION = parallel
 
 ## processor type
-#ARCH = i686# Intel 686
+ARCH = i686# Intel 686
 #ARCH = P4#Pentium4
 #ARCH = AMD64# Walton
-ARCH= itanium2# Hamilton (default)
+#ARCH= itanium2# Hamilton (default)
 
 # compiler
-CC = $(INTEL_COMPILER)#serial
+CC = $(GNU_COMPILER)#serial
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
