@@ -15,7 +15,7 @@ typedef struct{
   double priorprecision;  ///< prior precision 
   const double* Covariates;
   const double* beta;  ///< regression parameters
-  std::vector<int> IntervalLengths;
+  std::vector<double> IntervalLengths;
   std::vector<bool> atRisk;
   std::vector<double> HazardRates;
   std::vector<unsigned> events;
@@ -61,5 +61,6 @@ private:
   static double ddlr( const double beta, const void* const vargs );
 
   CoxRegression();
+  void plotloglikelihood(int j, const double* Covariates);
 };
 #endif
