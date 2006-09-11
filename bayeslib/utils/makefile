@@ -15,7 +15,6 @@
 ###############################################################################################
 
 # GSL - only needed if in nonstandard location 
-GSL_LIBPATH =#standard is /usr/local/lib
 GSL_INCLUDEPATH=#standard is /usr/local/include
 
 ## for parallel version only
@@ -24,7 +23,6 @@ GSL_INCLUDEPATH=#standard is /usr/local/include
 #MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
 MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
 #MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
-MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
 
 # path to sprng top level directory
 SPRNG_PATH = /opt/packages/sprng-2.0
@@ -116,17 +114,10 @@ GSL_INCLUDES = -I$(GSL_INCLUDEPATH)
 endif
 
 ##include flags for sprng and mpich in parallel version
-PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
-
-## parallel version
-ifeq ($(VERSION),parallel)
-CXX = $(PCC)
-INCLUDES = -I.. $(GSL_INCLUDES) $(PARALLEL_INCLUDES)
-##serial version
-else
-CXX = $(CC)
-INCLUDES = -I.. $(GSL_INCLUDES)
-endif
+PARALLEL_INCLUDES = $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+SERIAL_INCLUDES = $(GSL_INCLUDES)
+INCLUDES= $(SERIAL_INCLUDES)
+CXX=$(CC)
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
@@ -136,7 +127,12 @@ PICFLAG =# -fPIC
 
 objects		=  functions.o DataReader.o DataMatrix.o StringSplitter.o StringConvertor.o LogWriter.o
 
-all:	static #shared
+all:	serial
+
+serial: static
+
+parallel:
+	@$(MAKE) static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
 static: libutils
 
@@ -149,7 +145,7 @@ shared: $(objects)
 -o libutils.so $(objects) -lgsl -lgslcblas
 
 %.o: %.cc#rule for compilation
-	$(CXX) $(CPPFLAGS) $(INCLUDES) $(PICFLAG) -c $< -o $@
+	$(CXX) $(CPPFLAGS) -I.. $(INCLUDES) $(PICFLAG) -c $< -o $@
 
 clean:		          
 	rm -f *.o

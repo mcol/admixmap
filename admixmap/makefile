@@ -31,10 +31,10 @@ BAYESLIB_PATH =../bayeslib
 ## for parallel version only
 # path to mpi top level directory
 #MPI_PATH = /usr/local/mpich/gcc# mpich with gcc 3
-MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
-#MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
+#MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
+MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
 #MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
-MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
+MPI_LIBPATH = $(MPI_PATH)/lib64# this sometimes has different names
 
 # path to sprng top level directory
 SPRNG_PATH = /opt/packages/sprng-2.0
@@ -68,12 +68,13 @@ PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
 DESTDIR = ../test# where to put compiled exec
-SERIAL_EXEC = admixmap# name of compiled executable
+EXEC = admixmap# name of compiled executable
 
 ## ** flags for release version, debug version or profiling version
 DFLAGS 		= -O3# release, optimized
 #DFLAGS 	= -g# debug
 # DFLAGS 	= -pg -O3# profiling
+
 
 #warning flags for compiler
 WFLAGS =
@@ -135,7 +136,7 @@ PARALLEL_LIBS = $(NORMAL_LIBS) -lmpich -lsprng -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
 
 LFLAGS =
-INCLUDES = -I$(BAYESLIB_PATH)
+INCLUDES =
 
 ifneq ($(GSL_LIBPATH),)
 LFLAGS += -L$(GSL_LIBPATH)
@@ -147,29 +148,18 @@ endif
 
 ##library flags for sprng and mpich in parallel version
 PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPI_LIBPATH)
-PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+PARALLEL_INCLUDES = $(INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+PARALLEL_EXEC = adm-para
 
-## parallel version
-ifeq ($(VERSION),parallel)
-CXX = $(PCC)
-LIBS = $(PARALLEL_LIBS)
-LFLAGS += $(PARALLEL_LFLAGS)
-INCLUDES += $(PARALLEL_INCLUDES)
-EXEC = adm-para
-##serial version
-else
-CXX = $(CC)
 LIBS = $(LIBTYPE) $(NORMAL_LIBS)
-EXEC = $(SERIAL_EXEC)
-endif
+CXX=$(CC)
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 
-## DO NOT EDIT BELOW HERE ##
-export CXX CPPFLAGS GSL_INCLUDEPATH PARALLEL_INCLUDES
+export CC PCC CPPFLAGS INCLUDES PARALLEL_INCLUDES
 
-objects		= admixmap.o Latent.o AlleleFreqs.o AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
+objects	= admixmap.o Latent.o AlleleFreqs.o AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
 IndividualCollection.o Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o \
 AdmixtureAssocTest.o AffectedsOnlyTest.o ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o InputData.o AlleleFreqSampler.o Comms.o
 
@@ -177,12 +167,19 @@ all:	checkbayeslib message $(objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
 	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(EXEC) \**
 
+serial: all
+
+parallel:
+	@$(MAKE) INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) EXEC=$(PARALLEL_EXEC) BAYESLIB_RULES=parallel
+
 message:	
 	@echo **Compiling ADMIXMAP**
 
 checkbayeslib:
-	test -e $(BAYESLIB_PATH)/bayeslib.a || $(MAKE) -C $(BAYESLIB_PATH) -e
+	test -e $(BAYESLIB_PATH)/bayeslib.a || $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e
+
 bayeslib:
+	@echo $(CPPFLAGS)
 	$(MAKE) -C $(BAYESLIB_PATH) -e
 samplers:
 	@echo **compiling sampler library**
@@ -194,7 +191,7 @@ utils:
 
 
 %.o: %.cc#rule for compilation
-	$(CXX) $(CPPFLAGS) $(INCLUDES) -c $< -o $@
+	$(CXX) $(CPPFLAGS) -I$(BAYESLIB_PATH) $(INCLUDES) -c $< -o $@
 
 #recompile from scratch
 new: 		clean all
@@ -212,9 +209,10 @@ libclean:
 
 #recompile sampler library
 libnew: 
-	@echo **recompiling sampler library**
+	@echo **recompiling bayeslib**
 	$(MAKE) -C $(BAYESLIB_PATH) -e allnew bayeslib
 
+allclean: libclean clean
 
 #delete all object files, libraries and exec
 realclean: clean libclean 

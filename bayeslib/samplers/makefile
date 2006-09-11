@@ -5,17 +5,16 @@
 # For other versions, edit the following variables or specify on the command line. 
 # Use make[...] new to recompile from scratch.
 #
-# Serial/Parallel version: VERSION = [serial/parallel]
 # Processor type: ARCH = [i686/P4/AMD64/itanium2]
 # Compiler: CC = [g++/icpc/pgCC/pathCC]
 # MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
 # paths to gsl, mpi, sprng headers: GSL_INCLUDEPATH, MPI_PATH, SPRNG_PATH
 #
+# for parallel version, use make parallel
 ###############################################################################################
 
 # GSL - only needed if in nonstandard location 
-GSL_LIBPATH =#standard is /usr/local/lib
 GSL_INCLUDEPATH=#standard is /usr/local/include
 
 ## for parallel version only
@@ -24,7 +23,6 @@ GSL_INCLUDEPATH=#standard is /usr/local/include
 #MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
 MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
 #MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
-MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
 
 # path to sprng top level directory
 SPRNG_PATH = /opt/packages/sprng-2.0
@@ -39,7 +37,7 @@ MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
 GCC_VERSION =3
-VERSION = serial
+#VERSION = serial
 #VERSION = parallel
 
 ## processor type
@@ -108,7 +106,6 @@ endif
 endif
 
 ####  DO NOT EDIT BELOW HERE ####
-
 ifeq ($(GSL_INCLUDEPATH),)
 GSL_INCLUDES =
 else
@@ -116,35 +113,26 @@ GSL_INCLUDES = -I$(GSL_INCLUDEPATH)
 endif
 
 ##include flags for sprng and mpich in parallel version
-PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
-
-## parallel version
-ifeq ($(VERSION),parallel)
-CXX = $(PCC)
-INCLUDES = $(GSL_INCLUDES) $(PARALLEL_INCLUDES)
-PARATEXT = cat ../paratext.txt >../parallel.h
-##serial version
-else
-CXX = $(CC)
-INCLUDES = $(GSL_INCLUDES)
-PARATEXT=rm -f ../parallel.h;touch ../parallel.h
-endif
+PARALLEL_INCLUDES = $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+SERIAL_INCLUDES = $(GSL_INCLUDES)
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 PICFLAG =# -fPIC
 
-## DO NOT EDIT BELOW HERE ##
-INCLUDES += -I..
-
 objects		=  rand.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o GaussianProposalMH.o DirichletParamSampler.o HamiltonianMonteCarlo.o MuSampler.o DispersionSampler.o ModeFinder.o
 
-all:	static #shared
+all:	serial
 
-paraheader:
-	$(PARATEXT)
+serial:
+	rm -f ../parallel.h; touch ../parallel.h
+	@$(MAKE) static INCLUDES=$(SERIAL_INCLUDES) CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
 
-static: paraheader libsampler
+parallel:
+	cat ../paratext.txt >../parallel.h
+	@$(MAKE) static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
+
+static: libsampler
 
 libsampler: $(objects) 
 	ar crs libsampler.a $(objects)
@@ -155,7 +143,7 @@ shared: paraheader $(objects)
 -o libsampler.so $(objects) -lgsl -lgslcblas
 
 %.o: %.cc#rule for compilation
-	$(CXX) $(CPPFLAGS) $(INCLUDES) $(PICFLAG) -c $< -o $@
+	$(CXX) $(CPPFLAGS) -I.. $(INCLUDES) $(PICFLAG) -c $< -o $@
 
 clean:		          
 	rm -f *.o

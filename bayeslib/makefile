@@ -116,17 +116,9 @@ GSL_INCLUDES = -I$(GSL_INCLUDEPATH)
 endif
 
 ##include flags for sprng and mpich in parallel version
-PARALLEL_INCLUDES = -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
-
-## parallel version
-ifeq ($(VERSION),parallel)
-CXX = $(PCC)
-INCLUDES = $(GSL_INCLUDES) $(PARALLEL_INCLUDES)
-##serial version
-else
-CXX = $(CC)
-INCLUDES = $(GSL_INCLUDES)
-endif
+PARALLEL_INCLUDES = $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+SERIAL_INCLUDES = $(GSL_INCLUDES)
+SUBLIB_RULES =
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
@@ -135,35 +127,41 @@ PICFLAG =# -fPIC
 ## DO NOT EDIT BELOW HERE ##
 SUBLIBS = libsampler libutils libbayesreg
 
-export CXX CPPFLAGS GSL_INCLUDEPATH PARALLEL_INCLUDES
+export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
+
 
 all:	$(SUBLIBS) bayeslib
+
+serial: all
+
+parallel:
+	@$(MAKE) SUBLIB_RULES=parallel CPPFLAGS="$(CPPFLAGS)"
 
 bayeslib:
 	ar crs bayeslib.a samplers/*.o utils/*.o regression/*.o
 	#ranlib bayeslib.a
 
 libsampler: 
-	$(MAKE) -C samplers -e
+	$(MAKE) -C samplers $(SUBLIB_RULES) -e
 
 libutils: 
-	$(MAKE) -C utils -e
+	@echo $(SERIAL_INCLUDES)
+	$(MAKE) -C utils $(SUBLIB_RULES) -e
 
 libbayesreg:
-	$(MAKE) -C regression -e
+	$(MAKE) -C regression $(SUBLIB_RULES) -e
 
 clean: 
 	$(MAKE) -C samplers clean
 	$(MAKE) -C utils clean
 	$(MAKE) -C regression clean
-	rm -f *.a *.so
-	rm -f parallel.h
+	rm -f  *.a *.so
 
 allnew:
-	$(MAKE) -C samplers clean all
-	$(MAKE) -C utils clean all
-	$(MAKE) -C regression clean all
-	rm *.a #*.so
+	$(MAKE) -C samplers clean all -e
+	$(MAKE) -C utils clean all -e
+	$(MAKE) -C regression clean all -e
+
 
 dist:
 	rm bayeslib.tar.gz

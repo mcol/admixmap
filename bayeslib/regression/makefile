@@ -17,14 +17,28 @@
 # GSL - only needed if in nonstandard location 
 GSL_INCLUDEPATH=#standard is /usr/local/include
 
+## for parallel version only
+# path to mpi top level directory
+#MPI_PATH = /usr/local/mpich/gcc# mpich with gcc 3
+#MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
+MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
+#MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
+
+# path to sprng top level directory
+SPRNG_PATH = /opt/packages/sprng-2.0
+
 ## compiler definitions
 GNU_COMPILER  = g++ # GNU compiler, all machines
 INTEL_COMPILER = icpc# Intel compiler for Hamilton
 PATHSCALE_COMPILER = pathCC# Pathscale compiler,( Walton )
 PORTLAND_COMPILER = pgCC# Portland Group compiler ( Walton )
+MPICC = $(MPI_PATH)/bin/mpiCC# MPI 1 wrapper
+MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
 GCC_VERSION =3
+VERSION = serial
+#VERSION = parallel
 
 ## processor type
 ARCH = i686# Intel 686
@@ -34,9 +48,12 @@ ARCH = i686# Intel 686
 
 # compiler
 CC = $(GNU_COMPILER)#serial
+PCC = $(MPICC)#parallel wrapper for serial
 
 ## ** flags for release version, debug version or profiling version
 DFLAGS 		= -O3# release, optimized
+#DFLAGS 	= -g# debug
+# DFLAGS 	= -pg -O3# profiling
 
 #warning flags for compiler
 WFLAGS =
@@ -91,10 +108,16 @@ endif
 ####  DO NOT EDIT BELOW HERE ####
 
 ifeq ($(GSL_INCLUDEPATH),)
-INCLUDES = -I..
+GSL_INCLUDES =
 else
-INCLUDES = -I.. -I$(GSL_INCLUDEPATH)
+GSL_INCLUDES = -I$(GSL_INCLUDEPATH)
 endif
+
+##include flags for sprng and mpich in parallel version
+PARALLEL_INCLUDES = $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+SERIAL_INCLUDES = $(GSL_INCLUDES)
+INCLUDES=$(SERIAL_INCLUDES)
+CXX=$(CC)
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
@@ -104,18 +127,23 @@ PICFLAG =# -fPIC
 
 objects		=  Regression.o LinearRegression.o LogisticRegression.o CoxRegression.o
 
-all:	static #shared
+all:	serial
+
+serial: static
+
+parallel:
+	@$(MAKE) static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
 static: $(objects) 
 	ar crs libbayesreg.a $(objects)
 	#ranlib libbayesreg.a
 
 shared: $(objects)
-	$(CC) $(CPPFLAGS) -shared -Wl,-soname,libutils.so\
+	$(CXX) $(CPPFLAGS) -shared -Wl,-soname,libutils.so\
 -o libutils.so $(objects) -lgsl -lgslcblas
 
 %.o: %.cc#rule for compilation
-	$(CC) $(CPPFLAGS) $(INCLUDES) $(PICFLAG) -c $< -o $@
+	$(CXX) $(CPPFLAGS) -I.. $(INCLUDES) $(PICFLAG) -c $< -o $@
 
 clean:		          
 	rm -f *.o
