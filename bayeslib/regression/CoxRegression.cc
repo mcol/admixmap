@@ -2,6 +2,7 @@
 #include <algorithm>
 #include "utils/misc.h"
 #include "samplers/rand.h"
+#include <math.h>
 
 using namespace::std;
 const double* CoxRegression::EY;
@@ -51,9 +52,9 @@ void CoxRegression::Initialise(unsigned Number, double priorPrecision, const Dat
   mu = 1;
 
   //initialise hazard rates to their prior means
-  for(int j = 0; j < BetaParameters.NumIntervals; ++j)
-    BetaParameters.HazardRates.push_back( 0.005);//BetaParameters.mu*intervalLength(j) );
-  
+  for(int j = 0; j < BetaParameters.NumIntervals; ++j){
+    BetaParameters.HazardRates.push_back( Rand::gengam(mu*c, c) );
+  }
   //  ** initialize sampler for regression params **
   acceptbeta = 0;
   
@@ -61,6 +62,8 @@ void CoxRegression::Initialise(unsigned Number, double priorPrecision, const Dat
   BetaParameters.d = NumCovariates;
   BetaParameters.beta = beta;
   BetaSampler = new GaussianProposalMH( lr, dlr, ddlr);
+
+  //plotloglikelihood(0, Covariates);
 }
 
 void CoxRegression::InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes)
@@ -76,22 +79,23 @@ void CoxRegression::InitializeOutputFile(const std::vector<std::string>& Covaria
 ///Call this function before initialise.
 void CoxRegression::ReadData(const DataMatrix& CoxData){
   //data should contain three columns: startTime, endTime and event(s)
-   std::vector<int> endpoints;
+   std::vector<double> endpoints;
 
-  for(unsigned i = 1; i < CoxData.nRows(); ++i){
-    endpoints.push_back((int)CoxData.get(i,0));
-    endpoints.push_back((int)CoxData.get(i,1));
+  for(unsigned i = 0; i < CoxData.nRows(); ++i){
+    endpoints.push_back(CoxData.get(i,0));
+    endpoints.push_back(CoxData.get(i,1));
     BetaParameters.events.push_back((unsigned)CoxData.get(i,2));
   }
+
   //determine endpoints of intervals
   sort(endpoints.begin(), endpoints.end());
-  vector<int>::iterator new_end = unique(endpoints.begin(), endpoints.end());//reorder, putting duplicates at end
+  vector<double>::iterator new_end = unique(endpoints.begin(), endpoints.end());//reorder, putting duplicates at end
   endpoints.erase(new_end, endpoints.end());//remove duplicates
   BetaParameters.NumIntervals = endpoints.size()-1;
   for(int t = 0; t < BetaParameters.NumIntervals; ++t){
     BetaParameters.IntervalLengths.push_back(endpoints[t+1]-endpoints[t]);
   }
-  
+
   for(unsigned i = 0; i < CoxData.nRows(); ++i){
     for(int t = 0; t < BetaParameters.NumIntervals; ++t){
       bool atrisk = (bool) ((int)CoxData.get(i,0) <= endpoints[t] && (int)CoxData.get(i,1) >= endpoints[ t+1]);
@@ -126,14 +130,14 @@ void CoxRegression::Update(bool sumbeta, const std::vector<double>& , double coo
   }
   
   
-  //sample hazard rates
-  for(unsigned t = 0; t < BetaParameters.HazardRates.size(); ++t){
-    double shape = mu * c * BetaParameters.IntervalLengths[t] + sum_nr[t];
-    double rate = c;
-    for(int i = 0; i < NumIndividuals; ++i)if(BetaParameters.atRisk[i*BetaParameters.NumIntervals +t])rate += ExpectedY[i];
+//   //sample hazard rates
+//   for(unsigned t = 0; t < BetaParameters.HazardRates.size(); ++t){
+//     double shape = mu * c * BetaParameters.IntervalLengths[t] + sum_nr[t];
+//     double rate = c;
+//     for(int i = 0; i < NumIndividuals; ++i)if(BetaParameters.atRisk[i*BetaParameters.NumIntervals +t])rate += ExpectedY[i];
     
-    BetaParameters.HazardRates[t] = Rand::gengam(shape, rate);
-  }
+//     BetaParameters.HazardRates[t] = Rand::gengam(shape, rate);
+//   }
   //TODO: broadcast hazard rates
 
   if(sumbeta){
@@ -193,26 +197,27 @@ double CoxRegression::lr(const double beta, const void* const vargs){
   const double beta0 = args->beta0;
   double f = 0.0; 
 
-  std::vector<bool>::const_iterator atrisk = args->atRisk.begin();
-
+  //std::vector<bool>::const_iterator atrisk = args->atRisk.begin();
   //log likelihood
   if(args->coolness > 0.0){
     try{
       for(int i = 0; i < n; ++i){
-	double exp_Xbetai = EY[i] * myexp(args->Covariates[i*(args->d+1)+index+1] * (beta - args->beta[index])) ;  
+	double x = args->Covariates[i*(args->d+1) +index+1];
+	double xbetai =  x * beta;
+	double exp_xbetai = myexp(x*(beta - args->beta[index]) ) ;  
 	int sum_nr = 0;
-	double sum_nrlogalpha = 0.0, sumalpha = 0.0;
+	double sum_nalpha = 0.0;
 
-	std::vector<double>::const_iterator alpha = args->HazardRates.begin();
-	for(int t = 0; t < T; ++t, ++alpha){
-	  if( *(atrisk++) ){
+	//std::vector<double>::const_iterator alpha = args->HazardRates.begin();
+	for(int t = 0; t < T; ++t){
+	  if( args->atRisk[i*T +t] ){
 	    int r = args->events[i];
-	    sum_nr += r;
-	    sum_nrlogalpha += r*mylog(*alpha);
-	    sumalpha += *alpha;
+	    if(!args->atRisk[i*T +t+1] || t==T-1)sum_nr += r;
+	    sum_nalpha += args->HazardRates[t] * args->IntervalLengths[t];
 	  }
 	}
-	f += sum_nrlogalpha + mylog(exp_Xbetai)*(double)sum_nr  - exp_Xbetai * sumalpha; 
+	//cout << "i = " << i << "exp Xbeta = " << exp_Xbetai << endl;
+	f += xbetai*(double)sum_nr  - EY[i] * exp_xbetai * sum_nalpha; 
       }
     }
     catch(string s){
@@ -232,7 +237,7 @@ double CoxRegression::dlr(const double beta, const void* const vargs){
   const double beta0 = args->beta0;
   double f = 0.0;
 
-  std::vector<bool>::const_iterator atrisk = args->atRisk.begin();
+  //std::vector<bool>::const_iterator atrisk = args->atRisk.begin();
   //log likelihood
   if(args->coolness > 0.0){
     try{
@@ -241,11 +246,11 @@ double CoxRegression::dlr(const double beta, const void* const vargs){
 	int sum_nr = 0;
 	double sum_nalpha = 0.0;
 	double exp_Xbetai = EY[i] * myexp(args->Covariates[i*(args->d+1)+index+1] * (beta - args->beta[index])) ;  
-	std::vector<double>::const_iterator alpha = args->HazardRates.begin();
-	for(int t = 0; t < T; ++t, ++alpha){
-	  if( *(atrisk++) ){//individual i was at risk during this interval
-	    sum_nr += args->events[i];
-	    sum_nalpha += *alpha; 
+	//std::vector<double>::const_iterator alpha = args->HazardRates.begin();
+	for(int t = 0; t < T; ++t){
+	  if( args->atRisk[i*T +t] ){//individual i was at risk during this interval
+	    if(!args->atRisk[i*T +t+1] || t==T-1)sum_nr += args->events[i];
+	    sum_nalpha += args->HazardRates[t]* args->IntervalLengths[t]; 
 	  }
 	}
 	f += ((double)sum_nr - exp_Xbetai * sum_nalpha) * args->Covariates[i*(args->d+1) +index+1];
@@ -267,17 +272,17 @@ double CoxRegression::ddlr(const double beta, const void* const vargs){
   const int index = args->index ;
   double f = 0.0; 
 
-  std::vector<bool>::const_iterator atrisk = args->atRisk.begin();
+  //std::vector<bool>::const_iterator atrisk = args->atRisk.begin();
   //log likelihood
   if(args->coolness > 0.0){
     try{
       for(int i = 0; i < n; ++i){
 	double sum = 0.0;
 	double exp_Xbetai = EY[i] * myexp(args->Covariates[i*(args->d+1)+index+1] * (beta - args->beta[index])) ;  
-	std::vector<double>::const_iterator alpha = args->HazardRates.begin();
-	for(int t = 0; t < T; ++t, ++alpha){
-	  if( *(atrisk++) ){
-	    sum += *alpha; 
+	//std::vector<double>::const_iterator alpha = args->HazardRates.begin();
+	for(int t = 0; t < T; ++t){
+	  if( args->atRisk[i*T +t] ){
+	    sum += args->HazardRates[t]* args->IntervalLengths[t]; 
 	  }
 	}
 	double x = args->Covariates[i*(args->d+1) +index+1];
@@ -291,6 +296,22 @@ double CoxRegression::ddlr(const double beta, const void* const vargs){
   }
   f -= args->priorprecision;//log prior contribution
   return f;
+}
+
+void CoxRegression::plotloglikelihood(int j, const double* Covariates){
+  ofstream outfile("loglfile.txt");
+
+  BetaParameters.beta0 = betamean[j];
+  BetaParameters.priorprecision = betaprecision[j];
+  BetaParameters.index = j;
+  BetaParameters.Covariates = Covariates;//X;
+  BetaParameters.coolness = 1.0; 
+  for(double betaj = -10.0; betaj < 10.0; ++betaj){
+
+    outfile<< betaj << "\t" << lr(betaj, &BetaParameters) << "\t" << dlr(betaj, &BetaParameters) << "\t" << ddlr(betaj, &BetaParameters) << endl;
+
+  }
+  outfile.close();
 }
 
 ///returns log likelihood at current parameter values
