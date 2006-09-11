@@ -141,11 +141,10 @@ bayeslib:
 	ar crs bayeslib.a samplers/*.o utils/*.o regression/*.o
 	#ranlib bayeslib.a
 
-libsampler: 
+libsampler:
 	$(MAKE) -C samplers $(SUBLIB_RULES) -e
 
 libutils: 
-	@echo $(SERIAL_INCLUDES)
 	$(MAKE) -C utils $(SUBLIB_RULES) -e
 
 libbayesreg:

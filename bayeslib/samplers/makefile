@@ -126,7 +126,7 @@ all:	serial
 
 serial:
 	rm -f ../parallel.h; touch ../parallel.h
-	@$(MAKE) static INCLUDES=$(SERIAL_INCLUDES) CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
+	@$(MAKE) static INCLUDES="$(SERIAL_INCLUDES)" CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
 
 parallel:
 	cat ../paratext.txt >../parallel.h
