@@ -22,8 +22,8 @@
 ###############################################################################################
 
 # GSL - only needed if in nonstandard location 
-GSL_LIBPATH =#standard is /usr/local/lib
-GSL_INCLUDEPATH=#standard is /usr/local/include
+GSL_LIBPATH =/usr/local/lib
+GSL_INCLUDEPATH=/usr/local/include
 
 #path to sampling library
 BAYESLIB_PATH =../bayeslib
@@ -57,13 +57,13 @@ VERSION = serial
 #VERSION = parallel
 
 ## processor type
-ARCH = i686# Intel 686
+#ARCH = i686# Intel 686
 #ARCH = P4#Pentium4
 #ARCH = AMD64# Walton
-#ARCH= itanium2# Hamilton (default)
+ARCH= itanium2# Hamilton (default)
 
 # compiler
-CC = $(GNU_COMPILER)#serial
+CC = $(INTEL_COMPILER)#serial
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
@@ -150,6 +150,7 @@ endif
 PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPI_LIBPATH)
 PARALLEL_INCLUDES = $(INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 PARALLEL_EXEC = adm-para
+SERIAL_INCLUDES=$(INCLUDES)
 
 LIBS = $(LIBTYPE) $(NORMAL_LIBS)
 CXX=$(CC)
@@ -157,7 +158,7 @@ CXX=$(CC)
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 
-export CC PCC CPPFLAGS INCLUDES PARALLEL_INCLUDES
+export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 
 objects	= admixmap.o Latent.o AlleleFreqs.o AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
 IndividualCollection.o Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o \
@@ -179,7 +180,6 @@ checkbayeslib:
 	test -e $(BAYESLIB_PATH)/bayeslib.a || $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e
 
 bayeslib:
-	@echo $(CPPFLAGS)
 	$(MAKE) -C $(BAYESLIB_PATH) -e
 samplers:
 	@echo **compiling sampler library**
