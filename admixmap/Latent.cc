@@ -229,198 +229,240 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
  {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
-   
-     //sample alpha conditional on individual admixture proportions
-     //cout << "alpha " << alpha[0][0] << " " << alpha[0][1] <<  " sumlogtheta " 
-     //	    << individuals->getSumLogTheta()[0] << " " <<  individuals->getSumLogTheta()[1] << endl;
-     try{
-       PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0], options->PopAdmixturePropsAreEqual() );
+
+     if(Comms::isMaster()){
+       //sample alpha conditional on individual admixture proportions
+       //cout << "alpha " << alpha[0][0] << " " << alpha[0][1] <<  " sumlogtheta " 
+       //	    << individuals->getSumLogTheta()[0] << " " <<  individuals->getSumLogTheta()[1] << endl;
+       try{
+	 PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0], options->PopAdmixturePropsAreEqual() );
+       }
+       catch(string s){
+	 throw string("Error encountered while sampling population admixture parameters:\n" +s);
+       }
      }
-     catch(string s){
-       throw string("Error encountered while sampling population admixture parameters:\n" +s);
-     }
+#ifdef PARALLEL
+     Comms::BroadcastVector(alpha[0]);
+#endif
      copy(alpha[0].begin(), alpha[0].end(), alpha[1].begin()); // alpha[1] = alpha[0]
 
   }
-   // ** accumulate sum of Dirichlet parameter vector over iterations  **
-   transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
+   if(Comms::isMaster()){
+     // ** accumulate sum of Dirichlet parameter vector over iterations  **
+     transform(alpha[0].begin(), alpha[0].end(), SumAlpha.begin(), SumAlpha.begin(), std::plus<double>());//SumAlpha += alpha[0];
+     
+     if( iteration == options->getBurnIn() && options->getPopulations() > 1) {
+       if(options->getNumberOfOutcomes() > 0){
+	 Log << Off << "Individual admixture centred in regression model around: ";
+	 for(int i = 0; i < options->getPopulations(); ++i)Log << poptheta[i] << "\t";
+	 Log << "\n";
+       }
+       fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
+     }
+   }
    
    if( iteration < options->getBurnIn() && options->getPopulations() > 1) {
-     // accumulate ergodic average of population admixture, which is used to centre 
-     // the values of individual admixture in the regression model
-     double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
-     if(options->getNumberOfOutcomes() > 0)for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
+     if(Comms::isMaster()){
+       // accumulate ergodic average of population admixture, which is used to centre 
+       // the values of individual admixture in the regression model
+       double sum = accumulate(SumAlpha.begin(), SumAlpha.end(), 0.0);
+       if(options->getNumberOfOutcomes() > 0)for( int j = 0; j < options->getPopulations(); j++ )poptheta[j] = SumAlpha[j] / sum;
+     }
+#ifdef PARALLEL
+     Comms::Broadcast(poptheta, options->getPopulations());
+#endif
    }
    
-   if( iteration == options->getBurnIn() && options->getPopulations() > 1) {
-     if(options->getNumberOfOutcomes() > 0){
-       Log.setDisplayMode(Off);
-       Log << "Individual admixture centred in regression model around: ";
-       for(int i = 0; i < options->getPopulations(); ++i)Log << poptheta[i] << "\t";
-       Log << "\n";
-     }
-     fill(SumAlpha.begin(), SumAlpha.end(), 0.0);
-   }
-  
+ 
 }
 
 ///updates global sumintensities in a globalrho model, using random-walk Metropolis-Hastings
 void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogrho) {
   if( options->isGlobalRho() ) {
-    double rhoprop = rho[0];
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
     double LogLikelihoodRatio = 0.0;
-    double LogPriorRatio = 0.0;
-    double LogAccProbRatio = 0.0;
-    bool accept = false;
-    
-    NumberOfUpdates++;
+    int accept = 0;
+    double rhoprop = rho[0];
+    double logrhoprop = 0.0;
     double logrho0 = log(rho[0]);
-    double logrhoprop = Rand::gennor(logrho0, step[0]);
-    rhoprop = exp(logrhoprop); // propose log rho from normal distribution with SD step
-    
-    //get log likelihood at current parameter values, annealed if this is an annealing run
-    for(int i = 0; i < IC->getSize(); ++i) {
-      Individual* ind = IC->getIndividual(i);
-      ind->HMMIsBad(true);//to force HMM update
-      LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
-      ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
-    }
-    // set ancestry correlations using proposed value of sum-intensities
-    // value for X chromosome set to half the autosomal value 
-    Loci->SetLocusCorrelation(rhoprop);
-    
-    //get log HMM likelihood at proposal rho and current admixture proportions
-    for(int i = 0; i < IC->getSize(); ++i) {
-      Individual* ind = IC->getIndividual(i);
-      LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
-      ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
-      // line above should not be needed for a forced update with result not stored
-    }
-    LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
-    
-    //compute log ratio of prior densities in log rho basis
-    LogPriorRatio = rhoalpha * (logrhoprop - logrho0) - rhobeta * (rhoprop - rho[0]); 
-    // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
-    LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
-    
-    // generic Metropolis step
-    if( LogAccProbRatio < 0 ) {
-      if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
-    } else accept = true;  
-    
-    if(accept) {
-      rho[0] = rhoprop;
-      logrho0 = logrhoprop;
-      for(int i = 0; i < IC->getSize(); ++i){
-	Individual* ind = IC->getIndividual(i);
-	ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
-      }
-    } else { 
-      // restore ancestry correlations in Chromosomes using original value of sum-intensities
-      Loci->SetLocusCorrelation(rho);
-    } // stored loglikelihoods are still ok
+    const int NumWorkers = Comms::getNumWorkers();
 
-    //update sampler object every w updates
-    if( !( NumberOfUpdates % w ) ){
-      step[0] = TuneRhoSampler[0].UpdateStepSize( exp(LogAccProbRatio) );  
+    if(Comms::isMaster()){
+     
+      NumberOfUpdates++;
+      logrhoprop = Rand::gennor(logrho0, step[0]);
+      rhoprop = exp(logrhoprop); // propose log rho from normal distribution with SD step
     }
-    if(sumlogrho )SumLogRho[0] += logrho0;// accumulate sum of log of sumintensities after burnin.
 #ifdef PARALLEL
-    //broadcast rho to workers
-    Comms::Broadcastrho(rho);
+    //broadcast proposal
+    Comms::Broadcast(&rhoprop);
+#endif
+    
+    if(Comms::isWorker()){
+       //get log likelihood at current parameter values, annealed if this is an annealing run
+      for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers) {
+	Individual* ind = IC->getIndividual(i);
+	ind->HMMIsBad(true);//to force HMM update
+	LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
+	ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
+      }
+      // set ancestry correlations using proposed value of sum-intensities
+      // value for X chromosome set to half the autosomal value 
+      Loci->SetLocusCorrelation(rhoprop);
+      
+      //get log HMM likelihood at proposal rho and current admixture proportions
+      for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers) {
+	Individual* ind = IC->getIndividual(i);
+	LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
+	ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
+	// line above should not be needed for a forced update with result not stored
+      }
+      LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
+    }//end worker block
+  
+#ifdef PARALLEL
+    //reduce logL ratio
+    Comms::Reduce(&LogLikelihoodRatio);
+#endif
+    
+    if(Comms::isMaster()){
+      //compute log ratio of prior densities in log rho basis
+      double LogPriorRatio = rhoalpha * (logrhoprop - logrho0) - rhobeta * (rhoprop - rho[0]); 
+      // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
+      double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
+      
+      // generic Metropolis step
+      if( LogAccProbRatio < 0 ) {
+	if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
+      } else accept = 1;  
+
+      if(accept){
+	rho[0] = rhoprop;
+	logrho0 = logrhoprop;
+      }
+      //update sampler object every w updates
+      if( !( NumberOfUpdates % w ) ){
+	step[0] = TuneRhoSampler[0].UpdateStepSize( exp(LogAccProbRatio) );  
+      }
+      if(sumlogrho )SumLogRho[0] += logrho0;// accumulate sum of log of sumintensities after burnin.
+    }
+#ifdef PARALLEL
+    //tell workers whether proposal has been accepted
+    MPE_Log_event(17, 0, "Bcastrho");
+    Comms::Broadcast(&accept);
+    MPE_Log_event(18, 0, "Bcasted");
 #endif
 
+    if(Comms::isWorker()){      
+      if(accept) {
+	for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers){
+	  Individual* ind = IC->getIndividual(i);
+	  ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
+	}
+      } else { 
+	// restore ancestry correlations in Chromosomes using original value of sum-intensities
+	Loci->SetLocusCorrelation(rho);
+      } // stored loglikelihoods are still ok
+    }
   }//end if global rho model
-
+  
   else if(!options->getHapMixModelIndicator()){ //individual- or gamete-specific rho model
     if(IC->getSize()>1 && options->getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
-      // update scale parameter of gamma distribution of sumintensities in population 
-      if( options->isRandomMatingModel() )
-	rhobeta = Rand::gengam( 2*rhoalpha * IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
-      else
-	rhobeta = Rand::gengam( rhoalpha* IC->getSize() + rhobeta0, IC->GetSumrho() + rhobeta1 );
+      double sumrho = IC->GetSumrho();    
+      if(Comms::isMaster()){
+	
+	// update scale parameter of gamma distribution of sumintensities in population 
+	if( options->isRandomMatingModel() )
+	  rhobeta = Rand::gengam( 2*rhoalpha * IC->getSize() + rhobeta0, sumrho + rhobeta1 );
+	else
+	  rhobeta = Rand::gengam( rhoalpha* IC->getSize() + rhobeta0, sumrho + rhobeta1 );
+      }
+#ifdef PARALLEL
+    Comms::Broadcast(&rhobeta);
+#endif
     } // otherwise do not update rhobeta
-    if(sumlogrho )SumLogRho[0] += log(rhoalpha) - log(rhobeta);// accumulate sum of log of mean of sumintensities after burnin.
+
+    // accumulate sum of log of mean of sumintensities after burnin.
+    if(sumlogrho && Comms::isMaster())SumLogRho[0] += log(rhoalpha) - log(rhobeta);
   }
 }
 
-void Latent::UpdateSumIntensitiesByRandomWalk(const IndividualCollection* const IC,bool sumlogrho){
-  NumberOfUpdates++;
-  double LogLikelihood = 0.0;
-  double LogLikelihoodAtProposal = 0.0;
-  double LogLikelihoodRatio = 0.0;
-  double LogPriorRatio = 0.0;
-  double LogAccProbRatio = 0.0;
-  bool accept = false;
-  for(unsigned i = 0; i < rho.size(); ++i){
-    rhoproposal[i] = exp ( Rand::gennor(log(rho[i]), step[i]) );
-    //compute log ratio of prior densities on log scale
-    //LogPriorRatio += rhoalpha* (log(rhoproposal[i])-log(rho[i])) - 
-    //(rhobeta0+rhoalpha)*(log(rhobeta1 + rhoproposal[i]) - log(rhobeta1 + rho[i])) ; 
-  }
+// void Latent::UpdateSumIntensitiesByRandomWalk(const IndividualCollection* const IC,bool sumlogrho){
+//   NumberOfUpdates++;
+//   double LogLikelihood = 0.0;
+//   double LogLikelihoodAtProposal = 0.0;
+//   double LogLikelihoodRatio = 0.0;
+//   double LogPriorRatio = 0.0;
+//   double LogAccProbRatio = 0.0;
+//   bool accept = false;
+//   for(unsigned i = 0; i < rho.size(); ++i){
+//     rhoproposal[i] = exp ( Rand::gennor(log(rho[i]), step[i]) );
+//     //compute log ratio of prior densities on log scale
+//     //LogPriorRatio += rhoalpha* (log(rhoproposal[i])-log(rho[i])) - 
+//     //(rhobeta0+rhoalpha)*(log(rhobeta1 + rhoproposal[i]) - log(rhobeta1 + rho[i])) ; 
+//   }
 
-  //get log likelihood at current parameter values, annealed if this is an annealing run
-  for(int i = 0; i < IC->getSize(); ++i) {
-    Individual* ind = IC->getIndividual(i);
-    ind->HMMIsBad(true);//to force HMM update
-    LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
-    ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
-  }
-  // set ancestry correlations using proposed value of sum-intensities
-  // value for X chromosome set to half the autosomal value 
-  Loci->SetLocusCorrelation(rhoproposal);
+//   //get log likelihood at current parameter values, annealed if this is an annealing run
+//   for(int i = 0; i < IC->getSize(); ++i) {
+//     Individual* ind = IC->getIndividual(i);
+//     ind->HMMIsBad(true);//to force HMM update
+//     LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
+//     ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
+//   }
+//   // set ancestry correlations using proposed value of sum-intensities
+//   // value for X chromosome set to half the autosomal value 
+//   Loci->SetLocusCorrelation(rhoproposal);
   
-  //get log HMM likelihood at proposal rho and current admixture proportions
-  for(int i = 0; i < IC->getSize(); ++i) {
-    Individual* ind = IC->getIndividual(i);
-    LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
-    ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
-    // line above should not be needed for a forced update with result not stored
-  }
-  LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
+//   //get log HMM likelihood at proposal rho and current admixture proportions
+//   for(int i = 0; i < IC->getSize(); ++i) {
+//     Individual* ind = IC->getIndividual(i);
+//     LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
+//     ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
+//     // line above should not be needed for a forced update with result not stored
+//   }
+//   LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
 
-  // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
-  LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
-  //cout << "logLratio = " << LogLikelihoodRatio << " logPriorRatio = " << LogPriorRatio;
+//   // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
+//   LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
+//   //cout << "logLratio = " << LogLikelihoodRatio << " logPriorRatio = " << LogPriorRatio;
   
-  // generic Metropolis step
-  if( LogAccProbRatio < 0 ) {
-    if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
-  } else accept = true;  
+//   // generic Metropolis step
+//   if( LogAccProbRatio < 0 ) {
+//     if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
+//   } else accept = true;  
   
-  if(accept) {
-    //cout << " accept";
-    copy(rhoproposal.begin(), rhoproposal.end(), rho.begin());
-    for(int i = 0; i < IC->getSize(); ++i){
-      Individual* ind = IC->getIndividual(i);
-      ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
-    }
-  } else { 
-    // restore ancestry correlations in Chromosomes using original value of sum-intensities
-    Loci->SetLocusCorrelation(rho);
-  } // stored loglikelihoods are still ok
-  //cout << endl;
-    //update sampler object every w updates
-  if( !( NumberOfUpdates % w ) ){
-    //update sampler object every w updates
-    if( !( NumberOfUpdates % w ) ){
-      vector<double>::iterator j = step.begin(); 
-      for(vector<StepSizeTuner>::iterator i = TuneRhoSampler.begin(); 
-	  i!=TuneRhoSampler.end(); ++i, ++j)
-	*j = i->UpdateStepSize( exp(LogAccProbRatio) );  
-    }
-  }
-  //accumulate sums of log of rho
-  if(sumlogrho)
-    for(unsigned i = 0; i < rho.size(); ++i)
-      SumLogRho[i] += log(rho[i]);
+//   if(accept) {
+//     //cout << " accept";
+//     copy(rhoproposal.begin(), rhoproposal.end(), rho.begin());
+//     for(int i = 0; i < IC->getSize(); ++i){
+//       Individual* ind = IC->getIndividual(i);
+//       ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
+//     }
+//   } else { 
+//     // restore ancestry correlations in Chromosomes using original value of sum-intensities
+//     Loci->SetLocusCorrelation(rho);
+//   } // stored loglikelihoods are still ok
+//   //cout << endl;
+//     //update sampler object every w updates
+//   if( !( NumberOfUpdates % w ) ){
+//     //update sampler object every w updates
+//     if( !( NumberOfUpdates % w ) ){
+//       vector<double>::iterator j = step.begin(); 
+//       for(vector<StepSizeTuner>::iterator i = TuneRhoSampler.begin(); 
+// 	  i!=TuneRhoSampler.end(); ++i, ++j)
+// 	*j = i->UpdateStepSize( exp(LogAccProbRatio) );  
+//     }
+//   }
+//   //accumulate sums of log of rho
+//   if(sumlogrho)
+//     for(unsigned i = 0; i < rho.size(); ++i)
+//       SumLogRho[i] += log(rho[i]);
 
-  //   if(Comms::isMaster()){
-//      SampleHapmixRhoPriorParameters();
-//    }
-}
+//   //   if(Comms::isMaster()){
+// //      SampleHapmixRhoPriorParameters();
+// //    }
+// }
 
 ///conjugate update of locus-specific sumintensities, conditional on observed numbers of arrivals
 // void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, 
@@ -505,7 +547,9 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
 //broadcast rho to all processes, in Comm (excludes freqsampler)
 //no need to broadcast globaltheta if it is kept fixed
 #ifdef PARALLEL
-  Comms::BroadcastRho(rho);
+  MPE_Log_event(17, 0, "Bcastrho");
+  Comms::BroadcastVector(rho);
+  MPE_Log_event(18, 0, "Bcasted");
 #endif    
   //set locus correlation (workers only)
   if(Comms::isWorker())  
