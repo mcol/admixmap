@@ -125,11 +125,11 @@ objects		=  rand.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o GaussianPropos
 all:	serial
 
 serial:
-	rm -f ../parallel.h; touch ../parallel.h
+	@echo >../parallel.h
 	@$(MAKE) static INCLUDES="$(SERIAL_INCLUDES)" CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
 
 parallel:
-	cat ../paratext.txt >../parallel.h
+	@echo #define parallel >../parallel.h
 	@$(MAKE) static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
 static: libsampler
