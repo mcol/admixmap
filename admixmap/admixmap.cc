@@ -655,11 +655,12 @@ void InitializeErgodicAvgFile(const AdmixOptions* const options, const Individua
 
     // Regression parameters
     if( options->getNumberOfOutcomes() > 0 ){
-      for(int r = 0; r < individuals->getNumberOfOutcomeVars(); ++r){
+      for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
+	if(individuals->getOutcomeType(r)!=CoxData)
 	*avgstream << "intercept\t";
 
 	//write covariate labels to header
-	copy(CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(*avgstream, "\t")); 
+	  copy(CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(*avgstream, "\t")); 
 
 	if( individuals->getOutcomeType(r)==Continuous )//linear regression
 	  *avgstream << "precision\t";
@@ -687,7 +688,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   A->ResetAlleleCounts(options->getPopulations());
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(isMaster){
+  if(isMaster || isWorker){
     // ** update global sumintensities conditional on genotype probs and individual admixture proportions
     if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && !options->getHapMixModelIndicator() && 
        (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
@@ -805,9 +806,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // or from update of individual-level parameters otherwise
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(options->getHapMixModelIndicator()){
-    if(isMaster || isWorker){
-      
+  if(isMaster || isWorker){
+    if(options->getHapMixModelIndicator()){
       //L->UpdateGlobalTheta(iteration, IC);
       //conjugate sampler, using numbers of arrivals. NB: requires sampling of jump indicators in Individuals
       //L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
@@ -815,11 +815,12 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
       L->SampleSumIntensities(IC->getSumAncestry(),  
 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
     }
-      }
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  else
-    //update population admixture Dirichlet parameters conditional on individual admixture
-    L->UpdatePopAdmixParams(iteration, IC, Log);
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    else
+      //update population admixture Dirichlet parameters conditional on individual admixture
+      L->UpdatePopAdmixParams(iteration, IC, Log);
+  }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   // ** update regression parameters (if regression model) conditional on individual admixture
