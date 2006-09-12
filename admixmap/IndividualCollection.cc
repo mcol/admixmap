@@ -659,6 +659,9 @@ double IndividualCollection::GetSumrho()const
    double Sumrho = 0;
    for( unsigned int i = worker_rank; i < size; i+=NumWorkers )
       Sumrho += (*_child[i]).getSumrho();
+#ifdef PARALLEL
+   Comms::Reduce(&Sumrho);
+#endif
    return Sumrho;
 }
 
@@ -710,6 +713,9 @@ double IndividualCollection::getSumLogTheta(int i)const{
   return SumLogTheta[i];
 }
 const double* IndividualCollection::getSumLogTheta()const{
+#ifdef PARALLEL
+  Comms::Reduce(SumLogTheta, Populations);
+#endif
   return SumLogTheta;
 }
 const int* IndividualCollection::getSumAncestry()const{
@@ -799,7 +805,7 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
       for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
 #ifdef PARALLEL
     if(!Comms::isFreqSampler()) 
-      Comms::BroadcastRho(RhoBar);
+      Comms::BroadcastVector(RhoBar);
 #endif
     //set locus correlation
     if(Comms::isWorker()){//workers only
@@ -836,7 +842,7 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   }
 #ifdef PARALLEL
   if(!Comms::isFreqSampler()){
-    Comms::ReduceLogLikelihood(&Lhat);
+    Comms::Reduce(&Lhat);
   }
 #endif
 
@@ -880,6 +886,19 @@ void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const Ve
       << _child[0]->getLogLikelihoodOnePop() << "\n";
 }
 
+double IndividualCollection::getLogLikelihood(const AdmixOptions* const options, bool forceupdate){
+  double LogLikelihood = 0.0;
+  for(unsigned i = worker_rank; i < size; i+= NumWorkers) {
+    LogLikelihood += _child[i]->getLogLikelihood(options, forceupdate, true); // store result if updated
+    _child[i]->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
+  }
+#ifdef PARALLEL
+  //send total to master
+  Comms::Reduce(&LogLikelihood);
+#endif
+  return LogLikelihood;
+}
+
 double IndividualCollection::getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
 				       const bool & annealed) {
   // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
@@ -898,7 +917,7 @@ double IndividualCollection::getEnergy(const AdmixOptions* const options, const 
   }
 #ifdef PARALLEL
   //send total to master
-  Comms::ReduceLogLikelihood(&LogLikHMM);
+  Comms::Reduce(&LogLikHMM);
 #endif
   // get regression log-likelihood 
   if(Comms::isMaster())

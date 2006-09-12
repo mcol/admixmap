@@ -110,6 +110,7 @@ public:
   const DataMatrix& getCovariatesMatrix()const;
   const DataMatrix& getOutcomeMatrix()const;
 
+  double getLogLikelihood(const AdmixOptions* const options, bool forceupdate);
   double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
 			  const bool & annealed);
   void accumulateEnergyArrays(const AdmixOptions* const options);
