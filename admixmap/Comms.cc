@@ -42,7 +42,7 @@ void Comms::Initialise(){
   global_rank = MPI::COMM_WORLD.Get_rank();
   NumProcesses = MPI::COMM_WORLD.Get_size();
   if(NumProcesses <= 2)
-    throw("ERROR: too few processes\n");
+    throw("ERROR: too few processors\n");
 
   //set up communicators
   int ranks[1];
@@ -134,24 +134,52 @@ void Comms::BroadcastAlleleFreqs(double* const Freqsptr, const int size){
   MPE_Log_event(20, 0, "FreqsBcasted"); 
 }
 
-// ** Latent: broadcast sumintensities
-void Comms::BroadcastRho(std::vector<double>& rho){
-  MPE_Log_event(17, 0, "Bcastrho");
-  workers_and_master.Barrier();
-  workers_and_master.Bcast(&(*(rho.begin())), rho.size(), MPI::DOUBLE, 0);
-  MPE_Log_event(18, 0, "Bcasted");
-}
-
 //Regression:: broadcsat regression parameters
 void Comms::BroadcastRegressionParameters(const double* beta, const int NumCovariates){
   workers_and_master.Barrier();
   workers_and_master.Bcast(const_cast<double*>(beta), NumCovariates, MPI::DOUBLE, 0);
 }
-void Comms::ReduceLogLikelihood(double* LogLik){
-  double globalLogLik = 0.0;
+
+void Comms::Reduce(double* x){
+  double globalsum = 0.0;
   workers_and_master.Barrier();
-  workers_and_master.Reduce(LogLik, &globalLogLik, 1, MPI::DOUBLE, MPI::SUM, 0);
-  *LogLik = globalLogLik;
+  workers_and_master.Reduce(x, &globalsum, 1, MPI::DOUBLE, MPI::SUM, 0);
+  *x = globalsum;
+}
+
+void Comms::Reduce(double* x, int size){
+  if(size==1) Reduce(x);
+  else{
+    double* globalsum = 0;
+    if(getWorkerRank()==0){
+      if((int)max_doubles >= size)globalsum = double_send;
+      else globalsum = new double[size];
+    }
+    workers_and_master.Barrier();
+    workers_and_master.Reduce(x, &globalsum, size, MPI::DOUBLE, MPI::SUM, 0);
+    if(getWorkerRank()==0){
+      std::copy(globalsum, globalsum+size, x);
+      if((int)max_doubles < size)delete[] globalsum;
+    }
+  }
+}
+
+void Comms::BroadcastVector(std::vector<double>& x){
+  workers_and_master.Barrier();
+  workers_and_master.Bcast(&(*(x.begin())), x.size(), MPI::DOUBLE, 0);
+}
+
+void Comms::Broadcast(double* x){
+  workers_and_master.Barrier();
+  workers_and_master.Bcast(x, 1, MPI::DOUBLE, 0);
+}
+void Comms::Broadcast(double* x, int size){
+  workers_and_master.Barrier();
+  workers_and_master.Bcast(x, size, MPI::DOUBLE, 0);
+}
+void Comms::Broadcast(int* x){
+  workers_and_master.Barrier();
+  workers_and_master.Bcast(x, 1, MPI::INT, 0);
 }
 
 void Comms::ReduceResidualLDScores(const std::vector<std::vector<std::vector<double> > >& Score, 

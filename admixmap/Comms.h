@@ -25,13 +25,18 @@ public:
   static void SetDoubleWorkspace(unsigned size, bool isMaster);
   static void SetIntegerWorkspace(unsigned size, bool isMaster);
 
+  static void Reduce(double* x, int size);
+  static void Reduce(double* x);
   static void AllReduce_int(int* x, int size);
+  static void BroadcastVector(std::vector<double>& x);
+  static void Broadcast(double* x);
+  static void Broadcast(double* x, int size);
+  static void Broadcast(int* x);
+
   static void ReduceAncestryCounts(const int* const SumAncestry, int* GlobalSumAncestry, const unsigned size);
   static void reduceAlleleCounts(int* counts, int* globalcounts, const unsigned size);
-  static void BroadcastRho(std::vector<double>& rho);
   static void BroadcastAlleleFreqs(double* const Freqsptr, const int size);
   static void BroadcastRegressionParameters(const double* beta, const int NumCovariates);
-  static void ReduceLogLikelihood(double* LogLik);
 
   static void ReduceResidualLDScores(const std::vector<std::vector<std::vector<double> > >& Score, 
 				     const std::vector<std::vector<std::vector<double> > >& Info, 
