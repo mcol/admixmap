@@ -894,18 +894,22 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
                     "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
           persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
                 main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
-                  "admixture proportions"), xlab="Admixture propotion", ylab="log sum-intensities", zlab="Posterior density")
+                  "admixture proportions"), xlab="Admixture propottion", ylab="log sum-intensities",
+                zlab="Posterior density")
         }
       }
       if(K > 2) {
         for(pop1 in 1:K) {
           for(pop2 in 2:K) {
             if((AdmixturePrior[1, pop1] > 0 & AdmixturePrior[2, pop2] > 0) & (pop1 < pop2)) { # bivariate plot
-              parents.pop <- kde2d(samples.admixture[, pop], samples.admixture[, pop], lims=c(0,1,0,1))
-              contour(parents.pop$x, parents.pop$y, parents.pop$z,
-                      main="Contour plot of posterior density of parental admixture proportions",
-                      xlab=paste(population.labels[pop1], "admixture proportion"),
-                      ylab=paste(population.labels[pop2], "admixture proportion"))
+              parents.pop <- kde2d(samples.admixture[, pop1], samples.admixture[, pop2], lims=c(0,1,0,1))
+              par(cex=1.5, mar=c(4, 4, 1, 1), oma=c(2, 2, 0.5, 0.5), mgp=c(2.5, 1, 0))
+              contour(parents.pop$x, parents.pop$y, parents.pop$z, axes=F, bty="l")
+              axis(side=1, las=1) 
+              title(xlab=paste(population.labels[pop1], "admixture proportion"))
+              par(mgp=c(3, 1, 0))
+              axis(side=2, las=1)
+              title(ylab=paste(population.labels[pop2], "admixture proportion"))
             }
           }
         }
@@ -1285,7 +1289,7 @@ if(!is.null(user.options$indadmixturefile) && K >1 && file.exists(paste(resultsd
                 paste(resultsdir, "IndAdmixPosteriorMeans.txt", sep="/"), quote=F, row.names=F, sep="\t")
     cat(" done\n", file=outfile, append=T)
     
-  } else { #if(dim(samples.meanparents)[2]==1)
+  } else { # n.individuals = 1
     if(IsAdmixed[1] | IsAdmixed[2]) {
       cat("plotting posterior distribution of individualadmixture...", file=outfile, append=T)
       ## convert samples4way to 3way array
