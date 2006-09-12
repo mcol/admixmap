@@ -864,7 +864,9 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
     if(ParentsIdentified) { # bivariate plots if both parents have ancestry from pop
       for(pop in 1:K) {
         if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
-          parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ], lims=c(0,1,0,1))
+          parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ],
+                               n=25, # trunc(0.1*sqrt(dim(samples.admixture)[2])),
+                               lims=c(0,1,0,1))
           contour(parents.pop$x, parents.pop$y, parents.pop$z,
                   main=paste("Contour plot of posterior density of parental", population.labels[pop],
                     "admixture proportions"),
@@ -889,7 +891,7 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
       for(pop in 1:K) {
         if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
           parents.pop <- kde2d(samples.admixture[, pop], log(samples.sumIntensities), lims=c(0,1,-1,3))
-          contour(parents.pop$x, parents.pop$y, parents.pop$z,
+          contour(parents.pop$x, parents.pop$y, parents.pop$z,  
                   main=paste("Contour plot of posterior density of parental", population.labels[pop],
                     "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
           persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
@@ -902,9 +904,11 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
         for(pop1 in 1:K) {
           for(pop2 in 2:K) {
             if((AdmixturePrior[1, pop1] > 0 & AdmixturePrior[2, pop2] > 0) & (pop1 < pop2)) { # bivariate plot
-              parents.pop <- kde2d(samples.admixture[, pop1], samples.admixture[, pop2], lims=c(0,1,0,1))
+              parents.pop <- kde2d(samples.admixture[, pop1], samples.admixture[, pop2],
+                                   n=trunc(0.25*sqrt(dim(samples.admixture)[1])),
+                                   lims=c(0,1,0,1))
               par(cex=1.5, mar=c(4, 4, 1, 1), oma=c(2, 2, 0.5, 0.5), mgp=c(2.5, 1, 0))
-              contour(parents.pop$x, parents.pop$y, parents.pop$z, axes=F, bty="l")
+              contour(parents.pop$x, parents.pop$y, parents.pop$z, nlevels=15, axes=F, bty="l")
               axis(side=1, las=1) 
               title(xlab=paste(population.labels[pop1], "admixture proportion"))
               par(mgp=c(3, 1, 0))
