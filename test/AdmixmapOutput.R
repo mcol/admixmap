@@ -861,18 +861,22 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
   postscript(outputfile)
   popcols <- c("grey", "blue", "red", "yellow", "orange", "green")
   if(IsAdmixed[1] & IsAdmixed[2]) { # both parents admixed
-    if(ParentsIdentified) { # bivariate plots if both parents have ancestry from pop
+    #if(ParentsIdentified) { # bivariate plots if both parents have ancestry from pop
       for(pop in 1:K) {
         if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
           parents.pop <- kde2d(samples.admixture[pop, 1, ],samples.admixture[pop, 2, ],
-                               n=25, # trunc(0.1*sqrt(dim(samples.admixture)[2])),
+                               n=trunc(0.25*sqrt(dim(samples.admixture)[3])),
                                lims=c(0,1,0,1))
-          contour(parents.pop$x, parents.pop$y, parents.pop$z,
-                  main=paste("Contour plot of posterior density of parental", population.labels[pop],
-                    "admixture proportions"),
-                  xlab="Parent 1", ylab="Parent 2")
+          par(cex=1.5, mar=c(4, 4, 1, 1), oma=c(2, 2, 0.5, 0.5), mgp=c(2.5, 1, 0))
+          contour(parents.pop$x, parents.pop$y, parents.pop$z, nlevels=15, axes=F, bty="l") 
+          axis(side=1, las=1) 
+          title(xlab=paste("Paternal", population.labels[pop], "admixture proportion"))
+          par(mgp=c(3, 1, 0))
+          axis(side=2, las=1)
+          title(ylab=paste("Maternal", population.labels[pop], "admixture proportion"))
+         
           persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
-                main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
+                main=paste("Bivariate density of parental", population.labels[pop],
                   "admixture proportions"),
                 xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
         }
@@ -883,20 +887,26 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
               main="Contour plot of posterior density of parental sum-intensities",
               xlab="Parent 1", ylab="Parent 2")
       persp(parents.pop$x, parents.pop$y, parents.pop$z, col="blue",
-            main="Perspective plot of bivariate density of parental sum-intensities",
+            main="Bivariate density of ancestry arrival rate parameters",
             xlab="Parent 1", ylab="Parent 2", zlab="Posterior density")
-    } else { # parents unidentified - concatenate array and do bivariate plots 
+    #} else { # parents unidentified - concatenate array and do bivariate plots 
       samples.admixture <- rbind(t(samples.admixture[,1,]), t(samples.admixture[,2,]))
       samples.sumIntensities <- c(samples.sumIntensities[1, ], samples.sumIntensities[2, ])
       for(pop in 1:K) {
         if(AdmixturePrior[1, pop] > 0 & AdmixturePrior[2, pop] > 0) { # bivariate plot
           parents.pop <- kde2d(samples.admixture[, pop], log(samples.sumIntensities), lims=c(0,1,-1,3))
-          contour(parents.pop$x, parents.pop$y, parents.pop$z,  
-                  main=paste("Contour plot of posterior density of parental", population.labels[pop],
-                    "admixture proportions"), xlab="Admixture proportion", ylab="Sum-intensities")
+
+          par(cex=1.5, mar=c(4, 4, 1, 1), oma=c(2, 2, 0.5, 0.5), mgp=c(2.5, 1, 0))
+          contour(parents.pop$x, parents.pop$y, parents.pop$z, nlevels=15, axes=F, bty="l") 
+          axis(side=1, las=1) 
+          title(xlab=paste(population.labels[pop], "admixture proportion"))
+          par(mgp=c(3, 1, 0))
+          axis(side=2, las=1)
+          title(ylab=paste("Ancestry arrival rate"))
+
           persp(parents.pop$x, parents.pop$y, parents.pop$z, col=popcols[pop],
                 main=paste("Perspective plot of bivariate density of parental", population.labels[pop],
-                  "admixture proportions"), xlab="Admixture propottion", ylab="log sum-intensities",
+                  "admixture proportions"), xlab="Admixture propottion", ylab="log arrival rate",
                 zlab="Posterior density")
         }
       }
@@ -918,7 +928,7 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
           }
         }
       }
-    }
+    #}
   } else { # only one parent admixed - univariate plots
     admixedParent <- 0
     if(IsAdmixed[1]) admixedParent <- 1
