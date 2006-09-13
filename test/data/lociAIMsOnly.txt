@@ -11,8 +11,6 @@ wi4019	2	NA
 wi11909	2	NA
 d11s429	2	NA
 tyr192	2	0.0639
-drd2bcl	2	0.3494
-drd2taqd	2	0
 gnb3	2	NA
 wi14319	2	NA
 cyp19e2	2	0.1787
