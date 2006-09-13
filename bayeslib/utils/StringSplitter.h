@@ -31,9 +31,9 @@ public:
   /// splits a string into a vector of strings, splitting on whitespace.  .  
   const Vector_s& split(const std::string& str);
   ///   Splits a string into tokens, splitting on any character(s).
-  void Tokenize(const std::string& str,
-		std::vector<std::string>& tokens,
-		const std::string& delimiters);
+  static void Tokenize(const std::string& str,
+		       std::vector<std::string>& tokens,
+		       const std::string& delimiters);
 
 private:
     struct StringSplitterState;
