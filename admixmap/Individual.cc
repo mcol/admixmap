@@ -305,7 +305,7 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* c
     }
     else{//haploid
       double *q =GenotypeProbs[j]+jj*Populations;
-      happairiter end = HapPairs.end();
+      happairiter end = PossibleHapPairs[locus].end();
       const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
       for(int k0 = 0; k0 < Populations; ++k0) {
 	*q = 0.0;
