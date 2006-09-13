@@ -229,13 +229,14 @@ void Latent::UpdatePopAdmixParams(int iteration, const IndividualCollection* con
  {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
+     const double* sumlogtheta = individuals->getSumLogTheta();
 
      if(Comms::isMaster()){
        //sample alpha conditional on individual admixture proportions
        //cout << "alpha " << alpha[0][0] << " " << alpha[0][1] <<  " sumlogtheta " 
        //	    << individuals->getSumLogTheta()[0] << " " <<  individuals->getSumLogTheta()[1] << endl;
        try{
-	 PopAdmixSampler.Sample( individuals->getSumLogTheta(), &alpha[0], options->PopAdmixturePropsAreEqual() );
+	 PopAdmixSampler.Sample( sumlogtheta, &alpha[0], options->PopAdmixturePropsAreEqual() );
        }
        catch(string s){
 	 throw string("Error encountered while sampling population admixture parameters:\n" +s);
