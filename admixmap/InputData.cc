@@ -28,9 +28,9 @@ void InputData::getPopLabels(const Vector_s& data, size_t Populations, Vector_s&
 {
   if(data.size() != Populations+1){cout << "Error in getPopLabels\n";exit(1);}
 
-    for (size_t i = 0; i < Populations; ++i) {
-      labels.push_back( StringConvertor::dequote(data[i+1]) );
-    }
+  for (size_t i = 0; i < Populations; ++i) {
+    labels.push_back( StringConvertor::dequote(data[i+1]) );
+  }
 }
 void getLabels(const Vector_s& data, string *labels)
 {
@@ -46,38 +46,38 @@ void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
   int worker_rank = MPI::COMM_WORLD.Get_rank() - 2;
   int NumWorkers = MPI::COMM_WORLD.Get_size() - 2;
 
-    if (0 == fname || 0 == strlen(fname)) return;
+  if (0 == fname || 0 == strlen(fname)) return;
 
-    ifstream in(fname);
-    if (!in.is_open()) {
-        string msg = "Cannot open file for reading: \"";
-        msg += fname;
-        msg += "\"";
-        throw runtime_error(msg);
+  ifstream in(fname);
+  if (!in.is_open()) {
+    string msg = "Cannot open file for reading: \"";
+    msg += fname;
+    msg += "\"";
+    throw runtime_error(msg);
+  }
+
+  data.clear();
+  try {
+    StringSplitter splitter;
+    string line;        
+    int linenumber = 0;
+    Vector_s empty;
+
+    while (getline(in, line)) {
+
+      if( ( ( (linenumber-1)%NumWorkers) == worker_rank) || linenumber==0){
+	if (!StringConvertor::isWhiteLine(line.c_str())) {//skip blank lines
+	  data.push_back(splitter.split(line.c_str()));//split lines into strings
+	}
+      }
+      else data.push_back(empty);//insert empty string vector
+
+      ++linenumber;
     }
-
-    data.clear();
-    try {
-        StringSplitter splitter;
-        string line;        
-	int linenumber = 0;
-	Vector_s empty;
-
-        while (getline(in, line)) {
-
-	  if( ( ( (linenumber-1)%NumWorkers) == worker_rank) || linenumber==0){
-	    if (!StringConvertor::isWhiteLine(line.c_str())) {//skip blank lines
-	      data.push_back(splitter.split(line.c_str()));//split lines into strings
-            }
-	  }
-	  else data.push_back(empty);//insert empty string vector
-
-	  ++linenumber;
-        }
-    } catch (...) {
-        in.close();
-        throw;
-    }
+  } catch (...) {
+    in.close();
+    throw;
+  }
 }
 #endif
 
@@ -169,23 +169,25 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
     MPI::COMM_WORLD.Recv(&NumIndividuals, 1, MPI::INT, 2, rank, status);
   }
 #endif
+  ReadPopulationLabels(options);
 
   if(Comms::isMaster() || Comms::isWorker() ){
     //detects regression model
-    if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() ))
-     if ( strlen( options->getOutcomeVarFilename() ) != 0 )
-      CheckOutcomeVarFile( options, Log);
-    if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 ){
-      OutcomeType.push_back( CoxData );
-      if(options->CheckData())
-	CheckCoxOutcomeVarFile( Log);
-    }
-    if ( strlen( options->getCovariatesFilename() ) != 0 )
-      CheckCovariatesFile(Log);
-    //append population labels to covariate labels
-    if(!options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation()){
-      for( vector<string>::const_iterator i = PopulationLabels.begin()+1; i !=PopulationLabels.end(); ++i ){
-	CovariateLabels.push_back("slope." + *i); 
+    if(strlen( options->getOutcomeVarFilename() ) || strlen( options->getCoxOutcomeVarFilename() )){//if outcome specified
+      if ( strlen( options->getOutcomeVarFilename() ) != 0 )
+	CheckOutcomeVarFile( options, Log);
+      if ( strlen( options->getCoxOutcomeVarFilename() ) != 0 ){
+	OutcomeType.push_back( CoxData );
+	if(options->CheckData())
+	  CheckCoxOutcomeVarFile( Log);
+      }
+      if ( strlen( options->getCovariatesFilename() ) != 0 )
+	CheckCovariatesFile(Log);
+      //append population labels to covariate labels
+      if(!options->getHapMixModelIndicator() && !options->getTestForAdmixtureAssociation()){
+	for( vector<string>::const_iterator i = PopulationLabels.begin()+1; i !=PopulationLabels.end(); ++i ){
+	  CovariateLabels.push_back("slope." + *i); 
+	}
       }
     }
     
@@ -198,7 +200,6 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
     Log << NumIndividuals << " individuals\n";
   }
 }
-
 ///determine number of individuals by counting lines in genotypesfile 
 int InputData::getNumberOfIndividuals()const {
   return(NumIndividuals);
@@ -211,9 +212,9 @@ int InputData::getNumberOfSimpleLoci()const {
 ///determines number of composite loci from locusfile
 unsigned InputData::determineNumberOfCompositeLoci()const{
   unsigned NumberOfCompositeLoci = locusMatrix_.nRows();
-    for( unsigned i = 0; i < locusMatrix_.nRows(); i++ )
-      if( !locusMatrix_.isMissing(i,1) && locusMatrix_.get( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
-    return NumberOfCompositeLoci;
+  for( unsigned i = 0; i < locusMatrix_.nRows(); i++ )
+    if( !locusMatrix_.isMissing(i,1) && locusMatrix_.get( i, 1 ) == 0.0 ) NumberOfCompositeLoci--;
+  return NumberOfCompositeLoci;
 }
 /// Determine if genotype table is in pedfile format by testing if number of strings in row 1 equals
 /// twice the number of strings in the header row minus one. 
@@ -269,7 +270,7 @@ bool InputData::distancesAreInCentiMorgans()const{
   bool distancesincM  = false;
   string distance_header = locusData_[0][2];
   if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
-       || distance_header.find("cM")!=string::npos) 
+     || distance_header.find("cM")!=string::npos) 
     distancesincM = true;
   return distancesincM;
 }
@@ -329,7 +330,33 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
     }
   } 
 }
+ 
+void InputData::ReadPopulationLabels(AdmixOptions *options){
+  if(strlen(options->getAlleleFreqFilename()) || strlen(options->getPriorAlleleFreqFilename()) || strlen(options->getHistoricalAlleleFreqFilename())){
+    ifstream freqfile;
+    if(strlen(options->getAlleleFreqFilename()))
+      freqfile.open(options->getAlleleFreqFilename());
+    else if(strlen(options->getPriorAlleleFreqFilename()))
+      freqfile.open(options->getPriorAlleleFreqFilename());
+    else if(strlen(options->getHistoricalAlleleFreqFilename()))
+      freqfile.open(options->getHistoricalAlleleFreqFilename());
+    string header;
+    freqfile >> header;//skip first column
+    getline(freqfile, header);
+    StringSplitter::Tokenize(header, PopulationLabels, " \t");
 
+  }
+  else{
+    //set default pop labels
+    for( int j = 0; j < options->getPopulations(); j++ ){
+      stringstream poplabel;
+      if(options->getHapMixModelIndicator()) poplabel << "BlockState" << j+1;
+      else poplabel << "Pop" << j+1;
+      PopulationLabels.push_back(poplabel.str());
+    }
+  }
+}
+ 
 ////checks consistency of supplied allelefreqs with locusfile
 ///and determines number of populations and population labels.
 void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
@@ -358,7 +385,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     nrows = alleleFreqData_.size()-1;
     expectednrows = NumberOfStates-NumCompositeLoci;
     Populations = alleleFreqData_[0].size() - 1;// -1 for ids in first col
-    getPopLabels(alleleFreqData_[0], Populations, PopulationLabels);
+    //getPopLabels(alleleFreqData_[0], Populations, PopulationLabels);
   }
   
   //Historic allelefreqs
@@ -368,17 +395,17 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
     nrows = historicalAlleleFreqData_.size();
     expectednrows = NumberOfStates+1;
     Populations = historicalAlleleFreqData_[0].size() - 1;
-    getPopLabels(historicalAlleleFreqData_[0], Populations, PopulationLabels);
+    //getPopLabels(historicalAlleleFreqData_[0], Populations, PopulationLabels);
 
   }
   //prior allelefreqs
   if( strlen( options->getPriorAlleleFreqFilename() )) {
-      freqtype = "prior";
-      infile = true;
-      nrows = priorAlleleFreqData_.size();
-      expectednrows = NumberOfStates+1;
-      Populations = priorAlleleFreqData_[0].size() - 1;
-      getPopLabels(priorAlleleFreqData_[0], Populations, PopulationLabels);
+    freqtype = "prior";
+    infile = true;
+    nrows = priorAlleleFreqData_.size();
+    expectednrows = NumberOfStates+1;
+    Populations = priorAlleleFreqData_[0].size() - 1;
+    //getPopLabels(priorAlleleFreqData_[0], Populations, PopulationLabels);
   }
   if(infile){
     if(nrows != expectednrows){
@@ -393,18 +420,13 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
       Log << "ERROR: populations = " << options->getPopulations() << "\n";
       exit(1);
     }
-    for( int j = 0; j < Populations; j++ ){
-      stringstream poplabel;
-      if(options->getHapMixModelIndicator()) poplabel << "BlockState" << j+1;
-      else poplabel << "Pop" << j+1;
-      PopulationLabels.push_back(poplabel.str());
-    }
-//     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-//       if(Loci->GetNumberOfStates(i) < 2){
-// 	Log << "ERROR: The number of alleles at a locus is " << Loci->GetNumberOfStates(i) << "\n";
-// 	exit(1);
-//       }
-//     }
+
+    //     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+    //       if(Loci->GetNumberOfStates(i) < 2){
+    // 	Log << "ERROR: The number of alleles at a locus is " << Loci->GetNumberOfStates(i) << "\n";
+    // 	exit(1);
+    //       }
+    //     }
   }
 }
 
@@ -413,7 +435,7 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
   if( (int)outcomeVarMatrix_.nRows() - 1 != (NumIndividuals - options->getTestOneIndivIndicator()) ){
     stringstream s;
     s << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
-	<< outcomeVarMatrix_.nRows() - 1 << " observations.\n";
+      << outcomeVarMatrix_.nRows() - 1 << " observations.\n";
     throw(s.str());
   }
   //check the number of outcomes specified is not more than the number of cols in outcomevarfile
@@ -492,7 +514,7 @@ void InputData::CheckCoxOutcomeVarFile(LogWriter &Log)const{
   if( (int)coxOutcomeVarMatrix_.nRows() != NumIndividuals ){
     stringstream s;
     s << "ERROR: Genotypes file has " << NumIndividuals << " observations and coxoutcomevar file has "
-	<< coxOutcomeVarMatrix_.nRows() - 1 << " observations.\n";
+      << coxOutcomeVarMatrix_.nRows() - 1 << " observations.\n";
     throw(s.str());
   }
 
@@ -532,13 +554,13 @@ void InputData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
 ///determines if an individual is female
 bool InputData::isFemale(int i)const{
   //if (options->getgenotypesSexColumn() == 1) {
-    int sex = StringConvertor::toInt(geneticData_[i][1]);
-    if (sex > 2) {
-      cout << "Error: sex must be coded as 0 - missing, 1 - male or 2 - female.\n";
-      exit(0);
-    }        
-    //}
-    return (bool)(sex==2);
+  int sex = StringConvertor::toInt(geneticData_[i][1]);
+  if (sex > 2) {
+    cout << "Error: sex must be coded as 0 - missing, 1 - male or 2 - female.\n";
+    exit(0);
+  }        
+  //}
+  return (bool)(sex==2);
 }
 
 vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, int SexColumn)const{
@@ -575,13 +597,13 @@ vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, in
       }
     }
   }
-//   else{
-//   //check male X genotypes are haploid
-//     if(i != string::npos){//found another allele
-// 	cerr << "Error in genotypesfile: expected haploid genotype for Individual " << individual << " at locus " << locus 
-// 	     << " but found diploid genotype"<< endl;
-//     }
-//   }   
+  //   else{
+  //   //check male X genotypes are haploid
+  //     if(i != string::npos){//found another allele
+  // 	cerr << "Error in genotypesfile: expected haploid genotype for Individual " << individual << " at locus " << locus 
+  // 	     << " but found diploid genotype"<< endl;
+  //     }
+  //   }   
   return g;  
 }
 
@@ -601,23 +623,23 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
       unsigned int count = 0;
       for (int locus = 0; locus < numLoci; locus++) {
 #ifdef PARALLEL
-      const int numalleles = 2;
+	const int numalleles = 2;
 #else
-      const int numalleles = Loci(complocus)->GetNumberOfAllelesOfLocus(locus);
+	const int numalleles = Loci(complocus)->GetNumberOfAllelesOfLocus(locus);
 #endif
-      vector<unsigned short> g = GetGenotype(simplelocus, i, SexColumn);
-      if(g.size()==2)
-	if( (g[0] > numalleles) || (g[1] > numalleles))
-	  throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
-			     g[0], g[1], numalleles );
-	else if (g.size()==1)
-	  if( (g[0] > numalleles))
+	vector<unsigned short> g = GetGenotype(simplelocus, i, SexColumn);
+	if(g.size()==2)
+	  if( (g[0] > numalleles) || (g[1] > numalleles))
 	    throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
-			       g[0], 0, numalleles );
+			       g[0], g[1], numalleles );
+	  else if (g.size()==1)
+	    if( (g[0] > numalleles))
+	      throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
+				 g[0], 0, numalleles );
 
-      simplelocus++;
-      G.push_back(g);
-      count += g[0];
+	simplelocus++;
+	G.push_back(g);
+	count += g[0];
       }
       
       Missing[c][j] = (count == 0);
@@ -642,61 +664,61 @@ void InputData::getOutcomeTypes(DataType* T)const{
     T[i] = OutcomeType[i];
 }
 DataType InputData::getOutcomeType(unsigned i)const{
-    return OutcomeType[i];
+  return OutcomeType[i];
 }
 const Matrix_s& InputData::getLocusData() const
 {
-    return locusData_;
+  return locusData_;
 }
 
 const Matrix_s& InputData::getGeneticData() const
 {
-    return geneticData_;
+  return geneticData_;
 }
 
 const Matrix_s& InputData::getInputData() const
 {
-    return inputData_;
+  return inputData_;
 }
 
 const Matrix_s& InputData::getOutcomeVarData() const
 {
-    return outcomeVarData_;
+  return outcomeVarData_;
 }
 
 const Matrix_s& InputData::getAlleleFreqData() const
 {
-    return alleleFreqData_;
+  return alleleFreqData_;
 }
 
 const Matrix_s& InputData::getHistoricalAlleleFreqData() const
 {
-    return historicalAlleleFreqData_;
+  return historicalAlleleFreqData_;
 }
 
 const Matrix_s& InputData::getPriorAlleleFreqData() const
 {
-    return priorAlleleFreqData_;
+  return priorAlleleFreqData_;
 }
 
 const Matrix_s& InputData::getEtaPriorData() const
 {
-    return etaPriorData_;
+  return etaPriorData_;
 }
 
 const Matrix_s& InputData::getReportedAncestryData() const
 {
-    return reportedAncestryData_;
+  return reportedAncestryData_;
 }
 
 const DataMatrix& InputData::getEtaPriorMatrix() const
 {
-    return etaPriorMatrix_;
+  return etaPriorMatrix_;
 }
 
 const DataMatrix& InputData::getLocusMatrix() const
 {
-    return locusMatrix_;
+  return locusMatrix_;
 }
 
 // const DataMatrix& InputData::getAlleleFreqMatrix() const
@@ -716,21 +738,21 @@ const DataMatrix& InputData::getLocusMatrix() const
 
 const DataMatrix& InputData::getOutcomeVarMatrix() const
 {
-    return outcomeVarMatrix_;
+  return outcomeVarMatrix_;
 }
 const DataMatrix& InputData::getCoxOutcomeVarMatrix() const
 {
-    return coxOutcomeVarMatrix_;
+  return coxOutcomeVarMatrix_;
 }
 
 const DataMatrix& InputData::getReportedAncestryMatrix() const
 {
-    return reportedAncestryMatrix_;
+  return reportedAncestryMatrix_;
 }
 
 const DataMatrix& InputData::getCovariatesMatrix() const
 {
-    return covariatesMatrix_;
+  return covariatesMatrix_;
 }
 const Vector_s& InputData::GetPopLabels() const{
   return PopulationLabels;
@@ -759,7 +781,7 @@ void InputData::Delete(){
   for(unsigned i = 0; i < outcomeVarData_.size(); ++i)
     outcomeVarData_[i].clear();
   outcomeVarData_.clear();
- for(unsigned i = 0; i < coxOutcomeVarData_.size(); ++i)
+  for(unsigned i = 0; i < coxOutcomeVarData_.size(); ++i)
     coxOutcomeVarData_[i].clear();
   coxOutcomeVarData_.clear();
   for(unsigned i = 0; i < alleleFreqData_.size(); ++i)

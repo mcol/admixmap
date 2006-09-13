@@ -126,6 +126,7 @@ private:
   bool IsPedFile;
 
   void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
+  void ReadPopulationLabels(AdmixOptions *options);
   void readGenotypesFile(const char *fname, Matrix_s& data);
   void CheckGeneticData(AdmixOptions *options)const;
   void checkLocusFile(int sexColumn, double threshold, bool);
