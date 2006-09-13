@@ -311,7 +311,7 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* c
 	*q = 0.0;
 	happairiter h = PossibleHapPairs[locus].begin();
 	for( ; h != end ; ++h) {
-	  *q += AlleleProbs[k0*NumberOfStates + h->haps[0];
+	  *q += AlleleProbs[k0*NumberOfStates + h->haps[0]];
 	}
 	p++;
 	q++;
