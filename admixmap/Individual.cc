@@ -288,22 +288,43 @@ void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> >
 //this version can also be used in non-parallel version
 void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
   if( !GenotypesMissing[j][jj] ){
-    double *q = GenotypeProbs[j]+jj*Populations*Populations;
-    
-    happairiter end = PossibleHapPairs[locus].end();
-    const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
-    for(int k0 = 0; k0 < Populations; ++k0)
-      for(int k1 = 0; k1 < Populations; ++k1) {
+    if( j!=(int)X_posn || SexIsFemale) { //diploid genotype
+      double *q = GenotypeProbs[j]+jj*Populations*Populations;
+      
+      happairiter end = PossibleHapPairs[locus].end();
+      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
+      for(int k0 = 0; k0 < Populations; ++k0)
+	for(int k1 = 0; k1 < Populations; ++k1) {
+	  *q = 0.0;
+	  happairiter h = PossibleHapPairs[locus].begin();
+	  for( ; h != end ; ++h) {
+	    *q += AlleleProbs[k0*NumberOfStates+h->haps[0]] * AlleleProbs[k1*NumberOfStates+h->haps[1]];
+	  }
+	  q++;
+	}
+    }
+    else{//haploid
+      double *q =GenotypeProbs[j]+jj*Populations;
+      happairiter end = HapPairs.end();
+      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
+      for(int k0 = 0; k0 < Populations; ++k0) {
 	*q = 0.0;
 	happairiter h = PossibleHapPairs[locus].begin();
 	for( ; h != end ; ++h) {
-	  *q += AlleleProbs[k0*NumberOfStates+h->haps[0]] * AlleleProbs[k1*NumberOfStates+h->haps[1]];
+	  *q += AlleleProbs[k0*NumberOfStates + h->haps[0];
 	}
+	p++;
 	q++;
       }
+    }
     
   } else {
+   if( j!=(int)X_posn || SexIsFemale) { //diploid genotype
     for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
+   }
+   else{
+    for( int k = 0; k < Populations; ++k ) GenotypeProbs[j][jj*Populations + k] = 1.0;
+   }
   }
 }
 #endif
