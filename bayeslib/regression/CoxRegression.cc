@@ -63,7 +63,7 @@ void CoxRegression::Initialise(unsigned Number, double priorPrecision, const Dat
   BetaParameters.beta = beta;
   BetaSampler = new GaussianProposalMH( lr, dlr, ddlr);
 
-  //plotloglikelihood(0, Covariates);
+  plotloglikelihood(1, Covariates);
 }
 
 void CoxRegression::InitializeOutputFile(const std::vector<std::string>& CovariateLabels, unsigned NumOutcomes)
@@ -98,7 +98,7 @@ void CoxRegression::ReadData(const DataMatrix& CoxData){
 
   for(unsigned i = 0; i < CoxData.nRows(); ++i){
     for(int t = 0; t < BetaParameters.NumIntervals; ++t){
-      bool atrisk = (bool) ((int)CoxData.get(i,0) <= endpoints[t] && (int)CoxData.get(i,1) >= endpoints[ t+1]);
+      bool atrisk = (CoxData.get(i,0) <= endpoints[t]) && (CoxData.get(i,1) >= endpoints[ t+1]);
       BetaParameters.atRisk.push_back(atrisk);
       sum_nr.push_back(0.0);
       if(atrisk) sum_nr[t]+= BetaParameters.events[i];
@@ -131,13 +131,13 @@ void CoxRegression::Update(bool sumbeta, const std::vector<double>& , double coo
   
   
 //   //sample hazard rates
-//   for(unsigned t = 0; t < BetaParameters.HazardRates.size(); ++t){
-//     double shape = mu * c * BetaParameters.IntervalLengths[t] + sum_nr[t];
-//     double rate = c;
-//     for(int i = 0; i < NumIndividuals; ++i)if(BetaParameters.atRisk[i*BetaParameters.NumIntervals +t])rate += ExpectedY[i];
+  for(unsigned t = 0; t < BetaParameters.HazardRates.size(); ++t){
+    double shape = mu * c * BetaParameters.IntervalLengths[t] + sum_nr[t];
+    double rate = c;
+    for(int i = 0; i < NumIndividuals; ++i)if(BetaParameters.atRisk[i*BetaParameters.NumIntervals +t])rate += ExpectedY[i];
     
-//     BetaParameters.HazardRates[t] = Rand::gengam(shape, rate);
-//   }
+    BetaParameters.HazardRates[t] = Rand::gengam(shape, rate);
+  }
   //TODO: broadcast hazard rates
 
   if(sumbeta){
@@ -197,7 +197,7 @@ double CoxRegression::lr(const double beta, const void* const vargs){
   const double beta0 = args->beta0;
   double f = 0.0; 
 
-  //std::vector<bool>::const_iterator atrisk = args->atRisk.begin();
+
   //log likelihood
   if(args->coolness > 0.0){
     try{
@@ -208,10 +208,11 @@ double CoxRegression::lr(const double beta, const void* const vargs){
 	int sum_nr = 0;
 	double sum_nalpha = 0.0;
 
-	//std::vector<double>::const_iterator alpha = args->HazardRates.begin();
+
 	for(int t = 0; t < T; ++t){
 	  if( args->atRisk[i*T +t] ){
 	    int r = args->events[i];
+	    //if event occurred in this interval
 	    if(!args->atRisk[i*T +t+1] || t==T-1)sum_nr += r;
 	    sum_nalpha += args->HazardRates[t] * args->IntervalLengths[t];
 	  }
