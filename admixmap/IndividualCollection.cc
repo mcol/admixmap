@@ -142,7 +142,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   
   if(!options->getHapMixModelIndicator()){
     //draw initial values for individual admixture proportions
-    for(unsigned i = 0; i < size; i++) _child[i]->drawInitialAdmixtureProps(alpha);
+    for(unsigned int i = worker_rank; i < size; i += NumWorkers) _child[i]->drawInitialAdmixtureProps(alpha);
     if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
   }
   
