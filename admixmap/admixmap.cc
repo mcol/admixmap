@@ -225,12 +225,12 @@ int main( int argc , char** argv ){
       double *Coolnesses = 0; // 
       IntervalWidths = new double[NumAnnealedRuns + 1];
       Coolnesses = new double[NumAnnealedRuns + 1];
-      Coolnesses[0] = 0.0;
+      Coolnesses[0] = 0.0; // change this if you want annealing to start somewhere other than 0;
       if(NumAnnealedRuns > 0) {
-	// initial increment of coolness from 0 is set so that geometric series of increments will sum to 1 
-	// after NumAnnealedRuns additional terms
-	IntervalWidths[1] = (IntervalRatio - 1.0) /(pow(IntervalRatio, NumAnnealedRuns) - 1.0 ); 
-	Coolnesses[1] = IntervalWidths[1];
+	// set initial increment of coolness so that geometric series of NumAnnealedRuns increments 
+	// will sum to 1 - Coolnesses[0] after NumAnnealedRuns + 1 terms
+	IntervalWidths[1] = (1.0 - Coolnesses[0]) * (1.0 - IntervalRatio) /(1.0 - pow(IntervalRatio, NumAnnealedRuns + 1)); 
+	Coolnesses[1] = Coolnesses[0] + IntervalWidths[1];
 	if(NumAnnealedRuns > 1) {
 	  for(int run=2; run < NumAnnealedRuns+1; ++run) {
 	    IntervalWidths[run] = IntervalWidths[run - 1] * IntervalRatio; // geometric increments in interval width
