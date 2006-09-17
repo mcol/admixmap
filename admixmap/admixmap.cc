@@ -223,13 +223,13 @@ int main( int argc , char** argv ){
       // set annealing schedule
       double *IntervalWidths = 0;
       double *Coolnesses = 0; // 
-      if(NumAnnealedRuns > 0) {
 	IntervalWidths = new double[NumAnnealedRuns];
 	Coolnesses = new double[NumAnnealedRuns + 1];
 	Coolnesses[0] = 0.0; // change this if you want annealing to start somewhere other than 0;
 	// set initial increment of coolness so that geometric series of NumAnnealedRuns increments 
 	// will sum to 1 - Coolnesses[0] after NumAnnealedRuns + 1 terms
 	IntervalWidths[0] = (1.0 - Coolnesses[0]) * (1.0 - IntervalRatio) /(1.0 - pow(IntervalRatio, NumAnnealedRuns)); 
+      if(NumAnnealedRuns > 0) {
 	Coolnesses[1] = Coolnesses[0] + IntervalWidths[0];
 	if(NumAnnealedRuns > 1) {
 	  for(int run=2; run < NumAnnealedRuns; ++run) {
@@ -237,8 +237,8 @@ int main( int argc , char** argv ){
 	    Coolnesses[run] = Coolnesses[run - 1] + IntervalWidths[run - 1];  
 	  }
 	}
+	Coolnesses[NumAnnealedRuns] = 1.0;
       }
-      Coolnesses[NumAnnealedRuns] = 1.0;
     
       if(options.getThermoIndicator()) { // set up output for thermodynamic integration
 	if(isMaster){		
