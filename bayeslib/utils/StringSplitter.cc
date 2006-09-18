@@ -182,27 +182,27 @@ void StringSplitter::wordComplete()
   current_.clear();
 }
 // can use this version if empty strings are not allowed, and use " as delimiter
-// void StringSplitter::Tokenize(const std::string& str,
-// 			      std::vector<std::string>& tokens,
-// 			      const std::string& delimiters = " ")
-// {
-//   // Skip delimiters at beginning.
-//   std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
-//     // Find first "non-delimiter".
-//   std::string::size_type pos     = str.find_first_of(delimiters, lastPos);
+void StringSplitter::Tokenize(const std::string& str,
+			      std::vector<std::string>& tokens,
+			      const std::string& delimiters = " ")
+{
+  // Skip delimiters at beginning.
+  std::string::size_type lastPos = str.find_first_not_of(delimiters, 0);
+    // Find first "non-delimiter".
+  std::string::size_type pos     = str.find_first_of(delimiters, lastPos);
 
-//   while (std::string::npos != pos || std::string::npos != lastPos)
-//     {
-//       if(pos==lastPos)tokens.push_back("");
-//       else
-//         // Found a token, add it to the vector.
-//         tokens.push_back(str.substr(lastPos, pos - lastPos));
-//       // Skip delimiters.  Note the "not_of"
-//       lastPos = str.find_first_not_of(delimiters, pos);
-//       // Find next "non-delimiter"
-//       pos = str.find_first_of(delimiters, lastPos);
-//     }
-// }
+  while (std::string::npos != pos || std::string::npos != lastPos)
+    {
+      if(pos==lastPos)tokens.push_back("");
+      else
+        // Found a token, add it to the vector.
+        tokens.push_back(str.substr(lastPos, pos - lastPos));
+      // Skip delimiters.  Note the "not_of"
+      lastPos = str.find_first_not_of(delimiters, pos);
+      // Find next "non-delimiter"
+      pos = str.find_first_of(delimiters, lastPos);
+    }
+}
 
 /**
    Splits a string into tokens.
@@ -210,34 +210,35 @@ void StringSplitter::wordComplete()
 
    Example: "1, 2, 3, 4" becomes ["1" "2" "3" "4"] if delimiters is ", "
 */
-void StringSplitter::Tokenize(const std::string& str,
-			      std::vector<std::string>& tokens,
-			      const std::string& delimiters = " ")
-{
-  std::string::size_type lastPos = 0;
-  std::string::size_type pos     = 0;
-  std::string::size_type paren = 0;
-  std::string::size_type closeparen = 0;
-  do    {
-    // Skip delimiters.  Note the "not_of"
-    lastPos = str.find_first_not_of(delimiters, pos);
+// void StringSplitter::Tokenize(const std::string& str,
+// 			      std::vector<std::string>& tokens,
+// 			      const std::string& delimiters = " ")
+// {
+//   std::string::size_type lastPos = 0;
+//   std::string::size_type pos     = 0;
+//   std::string::size_type paren = 0;
+//   std::string::size_type closeparen = 0;
+//   do    {
+//     // Skip delimiters.  Note the "not_of"
+//     lastPos = str.find_first_not_of(delimiters, pos);
     
-    // Find next "non-delimiter"
-    pos = str.find_first_of(delimiters, lastPos);
+//     // Find next "non-delimiter"
+//     pos = str.find_first_of(delimiters, lastPos);
     
-    paren = str.find_first_of("\"", lastPos);
-    if(std::string::npos != paren ){
-      closeparen = str.find_first_of("\"", paren+1);
-      if(std::string::npos == closeparen) throw std::string("missing closing quotes");
-      if(paren < pos && pos < closeparen){//skip delimiters within quotes
-	//++lastPos;
-	pos =closeparen+1;
-      }
-    }
-    if(std::string::npos != pos || std::string::npos != lastPos)
-      // Found a token, add it to the vector.
-      tokens.push_back(str.substr(lastPos, pos - lastPos));
-  }
+//     paren = str.find_first_of("\"", lastPos);
+//     if(std::string::npos != paren ){
+//       closeparen = str.find_first_of("\"", paren+1);
+//       if(std::string::npos == closeparen) 
+// 	throw std::string("missing closing quotes");
+//       if(paren < pos && pos < closeparen){//skip delimiters within quotes
+// 	//++lastPos;
+// 	pos =closeparen+1;
+//       }
+//     }
+//     if(std::string::npos != pos || std::string::npos != lastPos)
+//       // Found a token, add it to the vector.
+//       tokens.push_back(str.substr(lastPos, pos - lastPos));
+//   }
   
-  while (std::string::npos != pos || std::string::npos != lastPos);
-}
+//   while (std::string::npos != pos || std::string::npos != lastPos);
+// }

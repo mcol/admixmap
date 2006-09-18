@@ -14,10 +14,10 @@ DataReader::~DataReader(){
 void DataReader::ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, LogWriter& Log ){
   readFile(filename, SMatrix, Log);
 }
-void DataReader::ReadData(const char* filename, DataMatrix& DMatrix, LogWriter& Log ){
+void DataReader::ReadData(const char* filename, DataMatrix& DMatrix, LogWriter& Log,size_t row0, size_t col0, size_t ncols ){
   std::vector< std::vector<std::string> > SMatrix;
   readFile(filename, SMatrix, Log);
-  convertMatrix(SMatrix, DMatrix, 0, 0, 0);
+  convertMatrix(SMatrix, DMatrix, row0, col0, ncols);
 }
 void DataReader::ReadData(const char* filename, std::vector< std::vector<std::string> >& SMatrix, DataMatrix& DMatrix, LogWriter& Log ){
   readFile(filename, SMatrix, Log);
@@ -92,4 +92,13 @@ void DataReader::convertMatrix(const std::vector<std::vector<std::string> >& dat
             }
         }
     }
+}
+
+void DataReader::ReadHeader(const char* filename, std::vector<std::string>& labels, bool skipfirstcol){
+  std::ifstream file(filename);
+  std::string header;
+  if(skipfirstcol)file >> header;//skip first column
+  getline(file, header);
+  file.close();
+  StringSplitter::Tokenize(header, labels, " \t\"");
 }
