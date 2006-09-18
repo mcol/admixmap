@@ -1022,7 +1022,7 @@ if(is.null(user.options$paramfile)) {
         postscript( paste(resultsdir, "PopAdmixParamAutocorrelations.ps", sep="/" ))     
         plotAutocorrelations(param.samples, user.options$every)
         dev.off()
-        
+
         if(K > 1) {
           ## extract Dirichlet admixture parameters
           admixparams <- param.samples[, 1:K,drop=FALSE]
@@ -1100,6 +1100,20 @@ param.samples.all <- cbindIfNotNull(param.samples.all, effect.pop)
 if(!is.null(param.samples.all) && (dim(param.samples.all)[2] > 0)) {
   nvars <- dim(param.samples.all)[2]
   post.quantiles <- calculateAndPlotQuantiles(param.samples.all, nvars)
+##plot traces
+  postscript(paste(resultsdir, "TracePlots.ps", sep="/"))
+  nsamples <- dim(param.samples.all)[1]
+  iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
+  for(var in 1:nvars)
+    plot(iters, param.samples.all[,var], xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
+  dev.off()
+  ##plot cumulative averages from paramfiles
+  postscript(paste(resultsdir, "CumulativeAverages.ps", sep="/"))
+  iters <- c(1:nsamples)*as.numeric(user.options$every) + as.numeric(user.options$burnin)
+  for(var in 1:nvars)
+    plot(iters, cumsum(param.samples.all[,var])/c(1:nsamples), xlab="Iteration", ylab=dimnames(param.samples.all)[[2]][var], type='l')
+  dev.off()
+  
 }
 
 ## get population admixture Dirichlet parameters: either posterior means, or values specified in model
