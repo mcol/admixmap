@@ -333,17 +333,17 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
  
 void InputData::ReadPopulationLabels(AdmixOptions *options){
   if(strlen(options->getAlleleFreqFilename()) || strlen(options->getPriorAlleleFreqFilename()) || strlen(options->getHistoricalAlleleFreqFilename())){
-    ifstream freqfile;
     if(strlen(options->getAlleleFreqFilename()))
-      freqfile.open(options->getAlleleFreqFilename());
+      DataReader::ReadHeader(options->getAlleleFreqFilename(), PopulationLabels);
     else if(strlen(options->getPriorAlleleFreqFilename()))
-      freqfile.open(options->getPriorAlleleFreqFilename());
+      DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), PopulationLabels);
     else if(strlen(options->getHistoricalAlleleFreqFilename()))
-      freqfile.open(options->getHistoricalAlleleFreqFilename());
-    string header;
-    freqfile >> header;//skip first column
-    getline(freqfile, header);
-    StringSplitter::Tokenize(header, PopulationLabels, " \t");
+      DataReader::ReadHeader(options->getHistoricalAlleleFreqFilename(), PopulationLabels);
+
+//     string header;
+//     freqfile >> header;//skip first column
+//     getline(freqfile, header);
+//     StringSplitter::Tokenize(header, PopulationLabels, " \t\"");
 
   }
   else{
