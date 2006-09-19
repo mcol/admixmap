@@ -313,7 +313,6 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* c
 	for( ; h != end ; ++h) {
 	  *q += AlleleProbs[k0*NumberOfStates + h->haps[0]];
 	}
-	p++;
 	q++;
       }
     }
