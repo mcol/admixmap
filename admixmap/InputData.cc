@@ -190,9 +190,9 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
 	}
       }
     }
-    
+  
     if ( strlen( options->getReportedAncestryFilename() ) != 0 )
-      CheckRepAncestryFile(options->getPopulations(), Log);
+	CheckRepAncestryFile(options->getPopulations(), Log);
   }
 
   if(NumIndividuals > 1){
@@ -339,11 +339,6 @@ void InputData::ReadPopulationLabels(AdmixOptions *options){
       DataReader::ReadHeader(options->getPriorAlleleFreqFilename(), PopulationLabels);
     else if(strlen(options->getHistoricalAlleleFreqFilename()))
       DataReader::ReadHeader(options->getHistoricalAlleleFreqFilename(), PopulationLabels);
-
-//     string header;
-//     freqfile >> header;//skip first column
-//     getline(freqfile, header);
-//     StringSplitter::Tokenize(header, PopulationLabels, " \t\"");
 
   }
   else{
