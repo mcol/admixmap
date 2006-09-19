@@ -37,14 +37,14 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
   if(NumStates == 2){//case of SNP
     if(NumPops>1){
       params = new double[NumPops];
-      step0 = 0.01;//initial step size
-      numleapfrogsteps = 40;
-      Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.9, getEnergySNP, 
+      step0 = 0.001;//initial step size
+      numleapfrogsteps = 60;
+      Sampler.SetDimensions(NumPops, step0, min, max, numleapfrogsteps, 0.95, getEnergySNP, 
 			    gradientSNP);
     }
   } else {
     params = new double[dim];
-    Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.9/*target acceptrate*/, 
+    Sampler.SetDimensions(dim, step0, min, max, numleapfrogsteps, 0.95/*target acceptrate*/, 
 			  getEnergy, gradient);
   }
 }
