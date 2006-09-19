@@ -93,9 +93,9 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 
       if(Comms::isMaster()){
 	RhoArgs.NumPops = K;
-	RhoArgs.rhoalpha = rhoalpha;
-	RhoArgs.rhobeta0 = rhobeta0;
-	RhoArgs.rhobeta1 = rhobeta1;
+	RhoArgs.rhoalpha = 40.0;//rhoalpha;
+	RhoArgs.rhobeta0 = 101.0;//rhobeta0;
+	RhoArgs.rhobeta1 = 10000.0;//rhobeta1;
 
 	RhoArgs.NumIntervals = numIntervals;
 	//RhoArgs.sumrho  = numIntervals * rho[0];
@@ -113,18 +113,19 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	NumberOfUpdates = 0;
 	w = 1;
 	
- 	for(unsigned j = 0; j < numIntervals; ++j){
- 	  RhoSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
- 				      target_acceptrate, RhoEnergy, RhoGradient);
-	
-	  //TuneRhoSampler.push_back(StepSizeTuner());
-	  //TuneRhoSampler[j].SetParameters( initial_stepsize, min_stepsize, max_stepsize, target_acceptrate);
-	  //step.push_back(initial_stepsize);
-	}
+//random-walk sampler
+	TuneRhoSampler.SetParameters( initial_stepsize, min_stepsize, max_stepsize, 0.3);
+	step = initial_stepsize;
+
+//Hamiltonian sampler
+  	for(unsigned j = 0; j < numIntervals; ++j){
+  	  RhoSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
+  				      0.9, RhoEnergy, RhoGradient);
+ 	}
 
  	RhoPriorArgs.NumIntervals = numIntervals;
  	RhoPriorArgs.rho = &rho; // pointer to vector<double> 
- 	RhoPriorArgs.sumlogrho = numIntervals * log(rho[0]); // initial value 
+ 	//RhoPriorArgs.sumlogrho = numIntervals * log(rho[0]); // initial value 
 	
 	const vector<float>& rhopriorsamplerparams = options->getrhoPriorParamSamplerParams();
 	size = rhopriorsamplerparams.size();
@@ -139,11 +140,15 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	RhoPriorParamSampler.ActivateMonitoring((options->getResultsDir()+"/rhopriormonitor.txt").c_str());
       }//end sampler initialisation
       //initialise rho vector
-      double initial_rho = rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
-      rho[0] = initial_rho;
+      //double initial_rho = rhoalpha * rhobeta1 / (rhobeta0 - 1.0);
+      rho[0] = 30000.0;//Rand::gengam(rhoalpha, rhobeta0/rhobeta1);
+      RhoPriorArgs.sumlogrho = log(rho[0]);
       for(unsigned j = 0; j < numIntervals-1; ++j){
-	rho.push_back(initial_rho);
-	if(Comms::isMaster())SumLogRho.push_back(0.0);
+	  rho.push_back(30000.0);//Rand::gengam(rhoalpha, rhobeta0/rhobeta1));
+	if(Comms::isMaster()){
+	    SumLogRho.push_back(0.0);
+	    RhoPriorArgs.sumlogrho += log(rho[j+1]);
+	}
       }
       rhoproposal.resize(numIntervals);
     }//end if hapmixmodel
@@ -168,15 +173,14 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	w = 1;
 	step0 = 1.0; // sd of proposal distribution for log rho
 	//need to choose sensible value for this initial RW sd
-	step.push_back(step0);
+	step = step0;
 	const vector<float>& rhosamplerparams = options->getrhoSamplerParams();
 	size_t size = rhosamplerparams.size();
 	float initial_stepsize = size? rhosamplerparams[0] : step0;
 	float min_stepsize = size? rhosamplerparams[1] : 0.01;
 	float max_stepsize = size? rhosamplerparams[2] : 10;
 	float target_acceptrate = size? rhosamplerparams[3] : 0.44;
-	TuneRhoSampler.push_back(StepSizeTuner());
-	TuneRhoSampler[0].SetParameters( initial_stepsize, min_stepsize, max_stepsize, target_acceptrate);
+	TuneRhoSampler.SetParameters( initial_stepsize, min_stepsize, max_stepsize, target_acceptrate);
 	}
       }
     }
@@ -205,8 +209,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 }
 
 void Latent::resetStepSizeApproximator(int k) {
-  for(vector<StepSizeTuner>::iterator i = TuneRhoSampler.begin(); i!=TuneRhoSampler.end(); ++i)
-    i->resetStepSizeApproximator(k);
+    TuneRhoSampler.resetStepSizeApproximator(k);
 }
 
 
@@ -292,7 +295,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
     if(Comms::isMaster()){
      
       NumberOfUpdates++;
-      logrhoprop = Rand::gennor(logrho0, step[0]);
+      logrhoprop = Rand::gennor(logrho0, step);
       rhoprop = exp(logrhoprop); // propose log rho from normal distribution with SD step
     }
 #ifdef PARALLEL
@@ -344,7 +347,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
       }
       //update sampler object every w updates
       if( !( NumberOfUpdates % w ) ){
-	step[0] = TuneRhoSampler[0].UpdateStepSize( exp(LogAccProbRatio) );  
+	step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
       }
       if(sumlogrho )SumLogRho[0] += logrho0;// accumulate sum of log of sumintensities after burnin.
     }
@@ -388,82 +391,89 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
     if(sumlogrho && Comms::isMaster())SumLogRho[0] += log(rhoalpha) - log(rhobeta);
   }
 }
+/**
+   Updates locus-specific sumintensities in a hapmixmodel by moving all values by the same random step and using
+   a Metropolis-Hastings accept/reject step.
+*/
+void Latent::UpdateSumIntensitiesByRandomWalk(const IndividualCollection* const IC,bool sumlogrho){
+  NumberOfUpdates++;
+  double LogLikelihood = 0.0;
+  double LogLikelihoodAtProposal = 0.0;
+  double LogLikelihoodRatio = 0.0;
+  double LogPriorRatio = 0.0;
+  double LogAccProbRatio = 0.0;
+  bool accept = false;
+  double newsumlogrho = 0.0;
 
-// void Latent::UpdateSumIntensitiesByRandomWalk(const IndividualCollection* const IC,bool sumlogrho){
-//   NumberOfUpdates++;
-//   double LogLikelihood = 0.0;
-//   double LogLikelihoodAtProposal = 0.0;
-//   double LogLikelihoodRatio = 0.0;
-//   double LogPriorRatio = 0.0;
-//   double LogAccProbRatio = 0.0;
-//   bool accept = false;
-//   for(unsigned i = 0; i < rho.size(); ++i){
-//     rhoproposal[i] = exp ( Rand::gennor(log(rho[i]), step[i]) );
-//     //compute log ratio of prior densities on log scale
-//     //LogPriorRatio += rhoalpha* (log(rhoproposal[i])-log(rho[i])) - 
-//     //(rhobeta0+rhoalpha)*(log(rhobeta1 + rhoproposal[i]) - log(rhobeta1 + rho[i])) ; 
-//   }
+  double randomStep = Rand::gennor(0.0, step);
+  for(unsigned i = 0; i < rho.size(); ++i){
+      double logrho = log(rho[i]);
+      double logrhoproposal = logrho + randomStep;
+      rhoproposal[i] = exp ( logrhoproposal );
+      newsumlogrho += logrhoproposal;
+      //compute log ratio of prior densities on log scale
+      LogPriorRatio += rhoalpha* (logrhoproposal-logrho) - 
+	  (rhobeta0+rhoalpha)*(log(rhobeta1 + rhoproposal[i]) - log(rhobeta1 + rho[i])) ; 
+  }
 
-//   //get log likelihood at current parameter values, annealed if this is an annealing run
-//   for(int i = 0; i < IC->getSize(); ++i) {
-//     Individual* ind = IC->getIndividual(i);
-//     ind->HMMIsBad(true);//to force HMM update
-//     LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
-//     ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
-//   }
-//   // set ancestry correlations using proposed value of sum-intensities
-//   // value for X chromosome set to half the autosomal value 
-//   Loci->SetLocusCorrelation(rhoproposal);
+  //get log likelihood at current parameter values, annealed if this is an annealing run
+  for(int i = 0; i < IC->getSize(); ++i) {
+    Individual* ind = IC->getIndividual(i);
+    ind->HMMIsBad(true);//to force HMM update
+    LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
+    ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
+  }
+  // set ancestry correlations using proposed value of sum-intensities
+  // value for X chromosome set to half the autosomal value 
+  Loci->SetLocusCorrelation(rhoproposal);
   
-//   //get log HMM likelihood at proposal rho and current admixture proportions
-//   for(int i = 0; i < IC->getSize(); ++i) {
-//     Individual* ind = IC->getIndividual(i);
-//     LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
-//     ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
-//     // line above should not be needed for a forced update with result not stored
-//   }
-//   LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
+  //get log HMM likelihood at proposal rho and current admixture proportions
+  for(int i = 0; i < IC->getSize(); ++i) {
+    Individual* ind = IC->getIndividual(i);
+    LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
+    ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
+    // line above should not be needed for a forced update with result not stored
+  }
+  LogLikelihoodRatio = LogLikelihoodAtProposal - LogLikelihood;
 
-//   // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
-//   LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
-//   //cout << "logLratio = " << LogLikelihoodRatio << " logPriorRatio = " << LogPriorRatio;
+  // getGammaLogDensity(rhoalpha, rhobeta, rhoprop) - getGammaLogDensity(rhoalpha, rhobeta, rho[0]);
+  LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
+  //cout << "logLratio = " << LogLikelihoodRatio << " logPriorRatio = " << LogPriorRatio;
   
-//   // generic Metropolis step
-//   if( LogAccProbRatio < 0 ) {
-//     if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
-//   } else accept = true;  
+  // generic Metropolis step
+  if( LogAccProbRatio < 0 ) {
+    if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
+  } else accept = true;  
   
-//   if(accept) {
-//     //cout << " accept";
-//     copy(rhoproposal.begin(), rhoproposal.end(), rho.begin());
-//     for(int i = 0; i < IC->getSize(); ++i){
-//       Individual* ind = IC->getIndividual(i);
-//       ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
-//     }
-//   } else { 
-//     // restore ancestry correlations in Chromosomes using original value of sum-intensities
-//     Loci->SetLocusCorrelation(rho);
-//   } // stored loglikelihoods are still ok
-//   //cout << endl;
-//     //update sampler object every w updates
-//   if( !( NumberOfUpdates % w ) ){
-//     //update sampler object every w updates
-//     if( !( NumberOfUpdates % w ) ){
-//       vector<double>::iterator j = step.begin(); 
-//       for(vector<StepSizeTuner>::iterator i = TuneRhoSampler.begin(); 
-// 	  i!=TuneRhoSampler.end(); ++i, ++j)
-// 	*j = i->UpdateStepSize( exp(LogAccProbRatio) );  
-//     }
-//   }
-//   //accumulate sums of log of rho
-//   if(sumlogrho)
-//     for(unsigned i = 0; i < rho.size(); ++i)
-//       SumLogRho[i] += log(rho[i]);
+  if(accept) {
+    //cout << " accept";
+    copy(rhoproposal.begin(), rhoproposal.end(), rho.begin());
+    for(int i = 0; i < IC->getSize(); ++i){
+      Individual* ind = IC->getIndividual(i);
+      ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
+    }
+    RhoPriorArgs.sumlogrho = newsumlogrho;
+  } else { 
+    // restore ancestry correlations in Chromosomes using original value of sum-intensities
+    Loci->SetLocusCorrelation(rho);
+  } // stored loglikelihoods are still ok
+  //cout << endl;
+    //update sampler object every w updates
+  if( !( NumberOfUpdates % w ) ){
+    //update sampler object every w updates
+    if( !( NumberOfUpdates % w ) ){
+	step = TuneRhoSampler.UpdateStepSize( exp(LogAccProbRatio) );  
+    }
+  }
+  //accumulate sums of log of rho
+  if(sumlogrho)
+    for(unsigned i = 0; i < rho.size(); ++i)
+      SumLogRho[i] += log(rho[i]);
 
-//   //   if(Comms::isMaster()){
-// //      SampleHapmixRhoPriorParameters();
-// //    }
-// }
+//   if(Comms::isMaster()){
+//       SampleHapmixRhoPriorParameters();
+//   }
+}
 
 ///conjugate update of locus-specific sumintensities, conditional on observed numbers of arrivals
 // void Latent::SampleSumIntensities(const vector<unsigned> &SumNumArrivals, unsigned NumIndividuals, 
@@ -563,9 +573,9 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
 	Loci->getChromosome(c)->SetStateArrivalProbs(options->isRandomMatingModel());
       }
     }
-  if(Comms::isMaster()){
-    SampleHapmixRhoPriorParameters();
-  }
+//   if(Comms::isMaster()){
+//     SampleHapmixRhoPriorParameters();
+//   }
 }
 
 void Latent::SampleHapmixRhoPriorParameters(){
@@ -576,6 +586,9 @@ void Latent::SampleHapmixRhoPriorParameters(){
   //sample prior params, rhoalpha, rhobeta0 and rhobeta1
   //double logparams[3] = {log(rhoalpha), log(rhobeta0), log(rhobeta1)};
   try{
+//       RhoPriorArgs.sumlogrho = 0.0;
+//       for(vector<double>::const_iterator r = rho.begin(); r!= rho.end(); ++r)
+// 	  RhoPriorArgs.sumlogrho += log(*r);
     RhoPriorParamSampler.Sample(rhopriorparams, &RhoPriorArgs);
   }
   catch(string s){
@@ -884,22 +897,29 @@ void Latent::printAcceptanceRates(LogWriter &Log) {
 	<< PopAdmixSampler.getStepSize() << "\n";
   }
   if(options->getHapMixModelIndicator()){
-    double av = 0;//average acceptance rate
-    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); ++j){
-      av += RhoSampler[j].getAcceptanceRate();
-	//TuneRhoSampler[j].getExpectedAcceptanceRate();
-      //cout << j << " " << RhoSampler[j].getAcceptanceRate() << endl;
-    }
-    Log << "Average Expected acceptance rate in sumintensities samplers: "
-	<< av / (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
-
-    av = 0;//average stepsize
-    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); ++j)
-      av += RhoSampler[j].getStepsize();
-	//TuneRhoSampler[j].getStepSize();
-    Log << "\nwith average final step size of "
-	<< av / (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes())
+//random-walk sampler
+    Log << "Expected acceptance rate in sumintensities sampler: "
+	<< 	TuneRhoSampler.getExpectedAcceptanceRate();
+    Log << "\nwith final step size of "
+	<< 	TuneRhoSampler.getStepSize()
 	<< "\n";
+
+
+//Hamiltonian sampler
+//     double av = 0;//average acceptance rate
+//     for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); ++j){
+// 	av += RhoSampler[j].getAcceptanceRate();
+//       //cout << j << " " << RhoSampler[j].getAcceptanceRate() << endl;
+//     }
+//     Log << "Average Expected acceptance rate in sumintensities samplers: "
+// 	<< av / (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
+
+//     av = 0;//average stepsize
+//     for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); ++j)
+//       av += RhoSampler[j].getStepsize();
+//     Log << "\nwith average final step size of "
+// 	<< av / (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes())
+// 	<< "\n";
 
     Log << "Expected acceptance rate in sampler for global sumintensities prior parameters: "
 	<< RhoPriorParamSampler.getAcceptanceRate()
@@ -908,9 +928,9 @@ void Latent::printAcceptanceRates(LogWriter &Log) {
   }
   else if( options->isGlobalRho() ){
     Log << "Expected acceptance rate in global sumintensities sampler: "
-	<< TuneRhoSampler[0].getExpectedAcceptanceRate()
+	<< TuneRhoSampler.getExpectedAcceptanceRate()
 	<< "\nwith final step size of "
-	<< step[0]	<< "\n";
+	<< step	<< "\n";
   }
 
 }

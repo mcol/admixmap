@@ -696,7 +696,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // leaves individuals with HMM probs bad, stored likelihood ok
     // this function also sets locus correlations in Chromosomes
   }
-//   if(options->getHapMixModelIndicator()){
+//   if(options->getHapMixModelIndicator() && (iteration%2)){
 //     if(isMaster || isWorker){
 //       L->UpdateSumIntensitiesByRandomWalk(IC,  
 // 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
@@ -818,6 +818,7 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     else
+    if(!options->getHapMixModelIndicator())
       //update population admixture Dirichlet parameters conditional on individual admixture
       L->UpdatePopAdmixParams(iteration, IC, Log);
   }
@@ -988,3 +989,4 @@ void ThrowException(const string& msg, LogWriter & Log){
   exit(1);
 #endif
 }
+

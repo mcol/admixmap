@@ -125,9 +125,9 @@ private:
   HamiltonianMonteCarlo RhoPriorParamSampler;
   
   //RWM sampler for global rho
-  std::vector<StepSizeTuner> TuneRhoSampler;
+  StepSizeTuner TuneRhoSampler;
   int w, NumberOfUpdates;
-  std::vector<double> step;
+  double step;
   double step0;
 
   std::vector<std::vector<double> > alpha; //population admixture Dirichlet parameters
