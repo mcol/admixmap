@@ -157,9 +157,9 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     }
     else{//set defaults
       //TODO: decide on sensible defaults
-      HapMixPriorShape = 0.01;
-      HapMixPriorRatePriorShape = 3.0;
-      HapMixPriorRatePriorRate = 2.0;
+      HapMixPriorShape = 0.1;
+      HapMixPriorRatePriorShape = 31.0;
+      HapMixPriorRatePriorRate = 30.0;
     }
     HapMixPriorRate = HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
   }
