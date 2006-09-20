@@ -148,9 +148,14 @@ int main( int argc , char** argv ){
 	//determine regression type and allocate regression objects
 	if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
 	else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
-	else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression(data.getCoxOutcomeVarMatrix()));
+	else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression());
 
-	if(isMaster) R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
+	if(isMaster) {
+	  if(R[r]->getRegressionType()==Cox)
+	    R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log);
+	  else
+	    R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
+	}
 	else R[r]->Initialise(r, IC->GetNumCovariates());
 	R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
       }

@@ -13,18 +13,15 @@ CoxRegression::CoxRegression(){
   RegType = Cox;
 }
 
-CoxRegression::CoxRegression(const DataMatrix& CoxData){
-  CoxRegression();
-  ReadData(CoxData);
-}
-
 CoxRegression::~CoxRegression(){
   delete BetaSampler;
 }
 
-void CoxRegression::Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix&, 
+void CoxRegression::Initialise(unsigned Number, double priorPrecision, const DataMatrix& Covars, const DataMatrix& Outcome, 
 			       LogWriter &Log){
+  ReadData(Outcome);
   Regression::Initialise(Number, Covars.nCols()-1, Covars.nRows(), Covars.getData());
+
   //passing numcovariates-1 to exclude intercept
   // NumCovariates in this class is now one less
 
@@ -53,7 +50,7 @@ void CoxRegression::Initialise(unsigned Number, double priorPrecision, const Dat
 
   //initialise hazard rates to their prior means
   for(int j = 0; j < BetaParameters.NumIntervals; ++j){
-    BetaParameters.HazardRates.push_back( Rand::gengam(mu*c, c) );
+    BetaParameters.HazardRates.push_back( 1.0/*Rand::gengam(mu*c, c)*/ );
   }
   //  ** initialize sampler for regression params **
   acceptbeta = 0;
@@ -131,13 +128,15 @@ void CoxRegression::Update(bool sumbeta, const std::vector<double>& , double coo
   
   
 //   //sample hazard rates
-  for(unsigned t = 0; t < BetaParameters.HazardRates.size(); ++t){
-    double shape = mu * c * BetaParameters.IntervalLengths[t] + sum_nr[t];
-    double rate = c;
-    for(int i = 0; i < NumIndividuals; ++i)if(BetaParameters.atRisk[i*BetaParameters.NumIntervals +t])rate += ExpectedY[i];
+//   for(unsigned t = 0; t < BetaParameters.HazardRates.size(); ++t){
+//     double shape = mu * c + sum_nr[t];
+//     double rate = 0.0;
+//     for(int i = 0; i < NumIndividuals; ++i)if(BetaParameters.atRisk[i*BetaParameters.NumIntervals +t])rate += ExpectedY[i];
+//     rate *= BetaParameters.IntervalLengths[t];
+//     rate += c;
     
-    BetaParameters.HazardRates[t] = Rand::gengam(shape, rate);
-  }
+//     BetaParameters.HazardRates[t] = Rand::gengam(shape, rate);
+//   }
   //TODO: broadcast hazard rates
 
   if(sumbeta){
@@ -326,16 +325,23 @@ double CoxRegression::getLogLikelihood(const double* const _beta, const std::vec
   double *Xbeta = new double[ NumIndividuals ];    
   Regression::getExpectedOutcome(_beta, Covariates, Xbeta, NumIndividuals, NumCovariates);
   
-  std::vector<bool>::const_iterator atrisk = BetaParameters.atRisk.begin();
   for(int i = 0; i < NumIndividuals; ++i){
-    std::vector<double>::const_iterator alpha = _HazardRates.begin();
-    for(int t = 0; t < BetaParameters.NumIntervals; ++t, ++alpha){
-      if( *(atrisk++) ){
-	const double lambda = *alpha * myexp(Xbeta[i]);
+    double xbetai =  Xbeta[i];
+    double exp_xbetai = myexp(xbetai ) ;  
+    int sum_nr = 0;
+    double sum_nalpha = 0.0;
+    
+    const int T = BetaParameters.NumIntervals;
+    for(int t = 0; t < T; ++t){
+      if( BetaParameters.atRisk[i*T +t] ){
 	int r = BetaParameters.events[i];
-	L += r*mylog(lambda) - lambda; 
+	//if event occurred in this interval
+	if(!BetaParameters.atRisk[i*T +t+1] || t==T-1)sum_nr += r;
+	sum_nalpha += BetaParameters.HazardRates[t] * BetaParameters.IntervalLengths[t];
       }
     }
+    //cout << "i = " << i << "exp Xbeta = " << exp_Xbetai << endl;
+    L += xbetai*(double)sum_nr  - exp_xbetai * sum_nalpha; 
   }
   delete[] Xbeta;
   return L;
