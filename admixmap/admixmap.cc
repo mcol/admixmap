@@ -230,11 +230,13 @@ int main( int argc , char** argv ){
       double *Coolnesses = 0; // 
 	IntervalWidths = new double[NumAnnealedRuns];
 	Coolnesses = new double[NumAnnealedRuns + 1];
+	Coolnesses[0] = 1.0;//default for unnannealed run
+
+      if(NumAnnealedRuns > 0) {
 	Coolnesses[0] = 0.0; // change this if you want annealing to start somewhere other than 0;
 	// set initial increment of coolness so that geometric series of NumAnnealedRuns increments 
 	// will sum to 1 - Coolnesses[0] after NumAnnealedRuns + 1 terms
 	IntervalWidths[0] = (1.0 - Coolnesses[0]) * (1.0 - IntervalRatio) /(1.0 - pow(IntervalRatio, NumAnnealedRuns)); 
-      if(NumAnnealedRuns > 0) {
 	Coolnesses[1] = Coolnesses[0] + IntervalWidths[0];
 	if(NumAnnealedRuns > 1) {
 	  for(int run=2; run < NumAnnealedRuns; ++run) {
@@ -254,11 +256,11 @@ int main( int argc , char** argv ){
 	samples = options.getTotalSamples();
 	burnin = options.getBurnIn();
       }
-      Log.setDisplayMode(On);
+
       if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
       if(isMaster){
 	if(NumAnnealedRuns > 0) {
-	  Log << NumAnnealedRuns << " annealing runs of " << samples 
+	  Log << On << NumAnnealedRuns << " annealing runs of " << samples 
 	      << " iteration(s) followed by final run of "; 
 	}
 	if(!options.getThermoIndicator()) {
@@ -286,7 +288,7 @@ int main( int argc , char** argv ){
       t1 = MPI::Wtime()-t0;
 #endif
       if(!options.getTestOneIndivIndicator()) {  
-	for(int run=0; run < NumAnnealedRuns + 1; ++run) { //loop over coolnesses from 0 to 1
+	for(int run=0; run <= NumAnnealedRuns; ++run) { //loop over coolnesses from 0 to 1
 	  // should call a posterior mode-finding algorithm before last run at coolness of 1
 	  //resets for start of each run
 	  SumEnergy = 0.0;//cumulative sum of modified loglikelihood
@@ -294,12 +296,16 @@ int main( int argc , char** argv ){
 
 	  if(run == NumAnnealedRuns) {
 	    AnnealedRun = false;
+	    coolness = 1.0;
 	    if(options.getThermoIndicator()) {
 	      samples *= 2 ; // last run is longer
 	    }
 	    burnin = options.getBurnIn();
-	  } else AnnealedRun = true; 
-	  coolness = Coolnesses[run];
+	  } 
+	  else {
+	    AnnealedRun = true; 
+	    coolness = Coolnesses[run];
+	  }
 	  if(NumAnnealedRuns > 0) {
 	    cout <<"\rSampling at coolness of " << coolness << "         " << flush;
 	    // reset approximation series in step size tuners
