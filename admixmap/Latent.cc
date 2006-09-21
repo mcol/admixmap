@@ -28,8 +28,8 @@ using namespace std;
 Latent::Latent( AdmixOptions* op, Genome* loci)
 {
   options = 0;
-  rhopriormean = 0.0;
-  rhopriorvar = 0.0;
+  //rhopriormean = 0.0;
+  //rhopriorvar = 0.0;
   options = op;
   Loci = loci;
   poptheta = 0;
@@ -78,16 +78,16 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       //set prior means of transformed parsma of Gamma-Gamma prior on rho
       RhoPriorArgs.priormeans = &( options->getHapMixRhoPriorMeans()[0]);
       RhoPriorArgs.priorvars = &( options->getHapMixRhoPriorVars()[0]);
-      rhopriormean = RhoPriorArgs.priormeans[0];
-      rhopriorvar = RhoPriorArgs.priormeans[1];
+      rhoalpha = RhoPriorArgs.priormeans[0];
+      rhobeta = RhoPriorArgs.priormeans[1];
 //       rhopriormean = 10000.0;
 //       rhopriorvar = 100000.0;
 
       unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
       if(Comms::isMaster()){
 	RhoArgs.NumPops = K;
-	rhoalpha = RhoArgs.rhoalpha = rhopriormean*rhopriormean / rhopriorvar;
-	rhobeta = RhoArgs.rhobeta = rhopriormean / rhopriorvar;
+	RhoArgs.rhoalpha = rhoalpha;
+	RhoArgs.rhobeta = rhobeta;
 
 	RhoArgs.NumIntervals = numIntervals;
 	//RhoArgs.sumrho  = numIntervals * rho[0];
@@ -97,7 +97,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
  	RhoSampler = new HamiltonianMonteCarlo[numIntervals];
 	const vector<float>& rhosamplerparams = options->getrhoSamplerParams();
 	size_t size = rhosamplerparams.size();
-	float initial_stepsize = size? rhosamplerparams[0] : 0.05;
+	float initial_stepsize = size? rhosamplerparams[0] : 0.01;
 	float min_stepsize = size? rhosamplerparams[1] : 0.000;
 	float max_stepsize = size? rhosamplerparams[2] : 1.0;
 	float target_acceptrate = size? rhosamplerparams[3] : 0.3;
@@ -118,14 +118,14 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
  	RhoPriorArgs.NumIntervals = numIntervals;
 	
 	//set up random-walk sampler for rho prior mean and variance
-	RhoMeanTuner.SetParameters(1.0, 0.01, 1000.0, 0.45);
-	RhoVarTuner.SetParameters(1.0, 0.01, 1000.0, 0.45);
+	RhoAlphaTuner.SetParameters(0.001, 0.001, 1000.0, 0.45);
+	RhoBetaTuner.SetParameters(0.001, 0.001, 1000.0, 0.45);
 	NumberOfRhoParamsUpdates = 0;
 	
       }//end sampler initialisation
       //initialise rho vector
-      //      double initial_rho = rhoalpha / rhobeta;
-      double initial_rho = 10000.0;
+      double initial_rho = rhoalpha / rhobeta;
+      //double initial_rho = 10000.0;
       rho[0] = initial_rho;//Rand::gengam(rhoalpha, rhobeta);
       RhoPriorArgs.sumlogrho = log(rho[0]);
       RhoPriorArgs.sumrho = rho[0];
@@ -197,8 +197,8 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 
 void Latent::resetStepSizeApproximator(int k) {
     TuneRhoSampler.resetStepSizeApproximator(k);
-    RhoMeanTuner.resetStepSizeApproximator(k);
-    RhoVarTuner.resetStepSizeApproximator(k);
+    RhoAlphaTuner.resetStepSizeApproximator(k);
+    RhoBetaTuner.resetStepSizeApproximator(k);
 }
 
 
@@ -567,67 +567,76 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
 	Loci->getChromosome(c)->SetStateArrivalProbs(options->isRandomMatingModel());
       }
     }
-//   if(Comms::isMaster()){
-//     SampleHapmixRhoPriorParameters();
-//   }
+  if(Comms::isMaster()){
+    SampleHapmixRhoPriorParameters();
+  }
 }
 
 void Latent::SampleHapmixRhoPriorParameters(){
   //sample prior mean and variance of sumintensities
-  try{
+    try{
     NumberOfRhoParamsUpdates++;
-    //sample prior mean
-    double log_mean = log(rhopriormean);
-    double log_mean_proposal = Rand::gennor(log_mean, RhoMeanTuner.getStepSize());
-    double mean_proposal = exp(log_mean_proposal);
-    double LogLikelihoodRatio = ((mean_proposal - rhopriormean) / rhopriorvar) 
-                                * ((mean_proposal + rhopriormean)*RhoPriorArgs.sumlogrho - RhoPriorArgs.sumrho);
+    //sample prior shape
+    double log_rhoalpha = log(rhoalpha);
+    double log_rhoalpha_proposal = Rand::gennor(log_rhoalpha, RhoAlphaTuner.getStepSize());
+    double rhoalpha_proposal = exp(log_rhoalpha_proposal);
+    double LogLikelihoodRatio = lngamma(rhoalpha_proposal) - lngamma(rhoalpha) 
+      + ( RhoPriorArgs.sumlogrho + rho.size()*rhobeta) * (rhoalpha_proposal - rhoalpha);
+
     double alpha = RhoPriorArgs.priormeans[0] * RhoPriorArgs.priormeans[0] / RhoPriorArgs.priorvars[0];
     double beta = RhoPriorArgs.priormeans[0] / RhoPriorArgs.priorvars[0];
-    double LogPriorRatio = alpha *(log_mean_proposal - log_mean) - beta*(mean_proposal - rhopriormean);
+    double LogPriorRatio = alpha *(log_rhoalpha_proposal - log_rhoalpha) - beta*(rhoalpha_proposal - rhoalpha);
     double LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
     bool accept = false;
+     if( LogAccProbRatio < 0 ) {
+       if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
+     } else accept = true;  
+    
+     if(accept) {
+       rhoalpha = rhoalpha_proposal;
+     }
+     if( !( NumberOfRhoParamsUpdates % w ) ){
+       RhoAlphaTuner.UpdateStepSize( exp(LogAccProbRatio) );  
+     }  
+
+//     //sample prior variance
+//     double log_rhobeta = log(rhobeta);
+//     double log_rhobeta_proposal = Rand::gennor(log_rhobeta, RhoBetaTuner.getStepSize());
+//     double rhobeta_proposal = exp(log_rhobeta_proposal);
+//     LogLikelihoodRatio = (rhobeta - rhobeta_proposal) * RhoPriorArgs.sumrho;
+//     cout << ((rhobeta_proposal > rhobeta)? "+" : "-");
+//     cout << "  rhobeta logl ratio: " << LogLikelihoodRatio << endl;
+
+//     alpha = RhoPriorArgs.priormeans[1] * RhoPriorArgs.priormeans[1] / RhoPriorArgs.priorvars[1];
+//     beta = RhoPriorArgs.priormeans[1] / RhoPriorArgs.priorvars[1];
+//     LogPriorRatio = alpha *(log_rhobeta_proposal - log_rhobeta) - beta*(rhobeta_proposal - rhobeta);
+
+//     LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
+//     accept = false;
 //     if( LogAccProbRatio < 0 ) {
 //       if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
 //     } else accept = true;  
     
 //     if(accept) {
-//       rhopriormean = mean_proposal;
+//        cout << "\taccept rhobeta" << endl;
+//       rhobeta = rhobeta_proposal;
 //     }
 //     if( !( NumberOfRhoParamsUpdates % w ) ){
-//       RhoMeanTuner.UpdateStepSize( exp(LogAccProbRatio) );  
+//       RhoBetaTuner.UpdateStepSize( exp(LogAccProbRatio) );  
 //     }  
-
-    //sample prior variance
-    double log_var = log(rhopriorvar);
-    double log_var_proposal = Rand::gennor(log_var, RhoVarTuner.getStepSize());
-    double var_proposal = exp(log_var_proposal);
-    LogLikelihoodRatio = logLikelihoodRhoPriorParams(rhopriormean, var_proposal, RhoPriorArgs.sumrho, RhoPriorArgs.sumlogrho) - 
-      logLikelihoodRhoPriorParams(rhopriormean, rhopriorvar, RhoPriorArgs.sumrho, RhoPriorArgs.sumlogrho);
-    alpha = RhoPriorArgs.priormeans[1] * RhoPriorArgs.priormeans[1] / RhoPriorArgs.priorvars[1];
-    beta = RhoPriorArgs.priormeans[1] / RhoPriorArgs.priorvars[1];
-    LogPriorRatio = alpha *(log_var_proposal - log_var) - beta*(var_proposal - rhopriorvar);
-
-    LogAccProbRatio = LogLikelihoodRatio + LogPriorRatio; 
-    accept = false;
-    if( LogAccProbRatio < 0 ) {
-      if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
-    } else accept = true;  
-    
-    if(accept) {
-      rhopriorvar = var_proposal;
     }
-    if( !( NumberOfRhoParamsUpdates % w ) ){
-      RhoVarTuner.UpdateStepSize( exp(LogAccProbRatio) );  
-    }  
-  }
-  catch(string s){
-    string err = "Error encountered while sampling sumintensities prior params:\n" + s;
-    throw(err);
-  }
+   catch(string s){
+     string err = "Error encountered while sampling sumintensities prior params:\n" + s;
+     throw(err);
+   }
 
-  rhoalpha = RhoArgs.rhoalpha = rhopriormean*rhopriormean / rhopriorvar;
-  rhobeta = RhoArgs.rhobeta = rhopriormean / rhopriorvar;
+    //conjugate update of rhobeta
+  double alpha = RhoPriorArgs.priormeans[1] * RhoPriorArgs.priormeans[1] / RhoPriorArgs.priorvars[1];
+  double beta = RhoPriorArgs.priormeans[1] / RhoPriorArgs.priorvars[1];
+  rhobeta = Rand::gengam(alpha + rhoalpha*rho.size(), beta + RhoPriorArgs.sumrho);
+  
+  RhoArgs.rhoalpha = rhoalpha;
+  RhoArgs.rhobeta = rhobeta;
 }
 
 double Latent::logLikelihoodRhoPriorParams(double mean, double var, double sumrho, double sumlogrho){
@@ -741,7 +750,7 @@ void Latent::OutputParams(ostream* out){
     double size = (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
     var = var - (sum*sum) / size;
     (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
-	   << rhopriormean << "\t" << rhopriorvar << "\t";
+	   << rhoalpha << "\t" << rhobeta << "\t";
   }
   else{
     if( options->isGlobalRho() )
@@ -847,9 +856,9 @@ void Latent::printAcceptanceRates(LogWriter &Log) {
 	<< "\n";
 
     Log << "Expected acceptance rates in sampler for global sumintensities prior parameters: "
-	<< RhoMeanTuner.getExpectedAcceptanceRate() << " " << RhoVarTuner.getExpectedAcceptanceRate()
+	<< RhoAlphaTuner.getExpectedAcceptanceRate() << " " << RhoBetaTuner.getExpectedAcceptanceRate()
 	<< "\nwith final step sizes of "
-	<< RhoMeanTuner.getStepSize() << " " << RhoMeanTuner.getStepSize() << "\n";
+	<< RhoAlphaTuner.getStepSize() << " " << RhoAlphaTuner.getStepSize() << "\n";
   }
   else if( options->isGlobalRho() ){
     Log << "Expected acceptance rate in global sumintensities sampler: "
