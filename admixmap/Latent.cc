@@ -580,7 +580,7 @@ void Latent::SampleHapmixRhoPriorParameters(){
     double log_rhoalpha = log(rhoalpha);
     double log_rhoalpha_proposal = Rand::gennor(log_rhoalpha, RhoAlphaTuner.getStepSize());
     double rhoalpha_proposal = exp(log_rhoalpha_proposal);
-    double LogLikelihoodRatio = lngamma(rhoalpha_proposal) - lngamma(rhoalpha) 
+    double LogLikelihoodRatio = rho.size()*(lngamma(rhoalpha_proposal) - lngamma(rhoalpha)) 
       + ( RhoPriorArgs.sumlogrho + rho.size()*rhobeta) * (rhoalpha_proposal - rhoalpha);
 
     double alpha = RhoPriorArgs.priormeans[0] * RhoPriorArgs.priormeans[0] / RhoPriorArgs.priorvars[0];
