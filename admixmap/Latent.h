@@ -45,7 +45,8 @@ typedef struct {
   double Distance;
   //const double* theta;
   double rhoalpha;
-  double rhobeta;
+  double rhobeta0;
+  double rhobeta1; 
 
 //   double sumrho; // ? necessary
 //   double sumlogrho; // ? necessary
@@ -54,10 +55,10 @@ typedef struct {
 ///Struct to hold arguments for sampling hyperparameters of sumintensities in hapmixmodel
 typedef struct {
   unsigned NumIntervals;
+  const std::vector<double>* rho;
   const double* priormeans;
   const double* priorvars;
   double sumlogrho;
-  double sumrho;
 }RhoPriorArguments;
 
 ///Class to hold and update population admixture and sumintensities parameters and their priors
@@ -115,15 +116,13 @@ private:
   double rhobeta;
   double rhobeta0;
   double rhobeta1;
-  double rhopriormean;
-  double rhopriorvar; 
+  double rhopriorparams[3];
   std::vector<double> SumLogRho; //ergodic sum of log(rho)
 
   RhoArguments RhoArgs;
   RhoPriorArguments RhoPriorArgs;
   HamiltonianMonteCarlo* RhoSampler;
-  StepSizeTuner RhoAlphaTuner;
-  StepSizeTuner RhoBetaTuner;
+  HamiltonianMonteCarlo RhoPriorParamSampler;
   int NumberOfRhoParamsUpdates;
   
   //RWM sampler for global rho
@@ -153,10 +152,13 @@ private:
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);
   void SampleHapmixRhoPriorParameters();
-  double logLikelihoodRhoPriorParams(double mean, double var, double sumrho, double sumlogrho);
+  double logLikelihoodRhoPriorParams(double mean, double var, double sumrho, double sumlogrho, double L);
 
   static double RhoEnergy(const double* const x, const void* const vargs);
   static void RhoGradient( const double* const x, const void* const vargs, double* g );
+  static double RhoPriorParamsEnergy(const double* const x, const void* const vargs);
+  static void RhoPriorParamsGradient( const double* const x, const void* const vargs, double* g );
+
 
   // UNIMPLEMENTED
   // to avoid use
