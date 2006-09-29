@@ -102,7 +102,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	const vector<float>& rhosamplerparams = options->getrhoSamplerParams();
 	size_t size = rhosamplerparams.size();
 	float initial_stepsize = size? rhosamplerparams[0] : 0.005;
-	float min_stepsize = size? rhosamplerparams[1] : 0.000;
+	float min_stepsize = size? rhosamplerparams[1] : 0.0001;
 	float max_stepsize = size? rhosamplerparams[2] : 1.0;
 	float target_acceptrate = size? rhosamplerparams[3] : 0.3;
 	int num_leapfrog_steps = size? (int)rhosamplerparams[4] : 20;
@@ -126,7 +126,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	const vector<float>& rhopriorsamplerparams = options->getrhoPriorParamSamplerParams();
 	size = rhopriorsamplerparams.size();
 	initial_stepsize = size? rhopriorsamplerparams[0] : 0.005;
-	min_stepsize = size? rhopriorsamplerparams[1] : 0.000;
+	min_stepsize = size? rhopriorsamplerparams[1] : 0.0001;
 	max_stepsize = size? rhopriorsamplerparams[2] : 1.0;
 	target_acceptrate = size? rhopriorsamplerparams[3] : 0.95;
 	num_leapfrog_steps = size? (int)rhopriorsamplerparams[4] : 20;
