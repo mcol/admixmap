@@ -78,10 +78,13 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   double H, Hnew, dH, sumpsq = 0.0;
   double Enew;
 
+//   if(isnan(epsilon)){
+//     system("pause");
+//   }
+
   try{
     gradE (x, args, g ) ; // set gradient using initial x
     E = findE (x, args ) ;// set objective function too
-    epsilon = Tuner.getStepSize();
   }
   catch(string s){
     std::ostringstream error_string;
@@ -101,13 +104,18 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
       for(unsigned i = 0; i < dim; ++i) p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
       for(unsigned i = 0; i < dim; ++i) {
 	xnew[i] = xnew[i] + epsilon * p[i] ; // make step in x
-	if( !gsl_finite(xnew[i]) ) {
-	  throw string("\nleapfrog to infinity in Hamiltonian sampler - try using more small steps");
+	if( !gsl_finite(xnew[i]) ) {//reject now if jumped to infinity
+	  epsilon = Tuner.UpdateStepSize(0.0);
+	  return;
 	}
       }
       gradE ( xnew, args, gnew ) ; // find new gradient
-      for(unsigned i = 0; i < dim; ++i) {p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
-	//cout<<x[i]<<" "<<xnew[i]<<" "<<p[i]<<" "<<g[i]<<" "<<gnew[i]<<" "<<endl;
+      for(unsigned i = 0; i < dim; ++i) {
+	if( !gsl_finite(gnew[i]) ) {//reject now if gradient is infinite, otherwise momentum will become infinite
+	  epsilon = Tuner.UpdateStepSize(0.0);
+	  return;
+	}
+	p[i] = p[i] - epsilon * gnew[i] * 0.5 ; // make half-step in p
       }
       if(monitor){
 	outfile << findE(xnew, args);
@@ -160,8 +168,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
       }
   }
   //cout << endl;
-
-  Tuner.UpdateStepSize(AccProb);
+  epsilon = Tuner.UpdateStepSize(AccProb);
   //++totalsamples;
   
 }
