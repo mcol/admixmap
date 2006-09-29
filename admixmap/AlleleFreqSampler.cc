@@ -29,7 +29,7 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
   unsigned dim = NumStates*NumPops;
   //initialise Hamiltonian Sampler
   double step0 = 0.02;//initial step size
-  double min = -100.0, max = 100.0; //min and max stepsize
+  double min = 0.0001, max = 100.0; //min and max stepsize
   int numleapfrogsteps = 5; // 10;
   Args.PriorParams = Prior;
   ishapmixmodel = hapmixmodel;

@@ -150,18 +150,19 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   if(options->getHapMixModelIndicator()) {
     //set parameters of prior on frequency Dirichlet prior params
     const vector<double> &params = options->getAlleleFreqPriorParams();
-    if(params.size()==3) {
-      HapMixPriorShape = params[0];
-      HapMixPriorRatePriorShape = params[1];
-      HapMixPriorRatePriorRate = params[2];
-    }
-    else{//set defaults
+//     if(params.size()==3) {
+//       HapMixPriorShape = params[0];
+//       HapMixPriorRatePriorShape = params[1];
+//       HapMixPriorRatePriorRate = params[2];
+//     }
+//     else
+{//set defaults
       //TODO: decide on sensible defaults
-      HapMixPriorShape = 0.01;
-      HapMixPriorRatePriorShape = 3.0;
-      HapMixPriorRatePriorRate = 2.0;
+      HapMixPriorShape = 1.0;
+      HapMixPriorRatePriorShape = 10.0;
+      HapMixPriorRatePriorRate = 1.0;
     }
-    HapMixPriorRate = HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
+ HapMixPriorRate = 10.0;//HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
   }
   
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
@@ -172,7 +173,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), 
 						      &(HapMixPriorParams[i]), true));
 	  HapMixPriorParams[i] = HapMixPriorShape / HapMixPriorRate;//set to prior mean
-	  HapMixPriorParamSampler[i].SetParameters(0.1, 0.0, 100.0, 0.44);
+	  HapMixPriorParamSampler[i].SetParameters(0.01, 0.00001, 100.0, 0.26);
 	}
 	else
 	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), options->getPopulations(), 
@@ -776,8 +777,9 @@ void AlleleFreqs::SampleHapMixPriorParams(){
     sum += HapMixPriorParams[locus];
   }
   //sample rate parameter of prior on prior params
-  HapMixPriorRate = Rand::gengam( HapMixPriorRatePriorShape + (double)NumberOfCompositeLoci * HapMixPriorShape, 
-				  HapMixPriorRatePriorRate + sum);
+  //cout << "Gamma (" << HapMixPriorRatePriorShape + (double)NumberOfCompositeLoci * HapMixPriorShape << ", " << HapMixPriorRatePriorRate + sum << ")" << endl;
+  //HapMixPriorRate = Rand::gengam( HapMixPriorRatePriorShape + (double)NumberOfCompositeLoci * HapMixPriorShape, 
+  //			  HapMixPriorRatePriorRate + sum);
 }
 
 /**
