@@ -187,7 +187,7 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   w = 1;
   step0 = 0.3; // initial sd of random walk proposal distribution 
   step = step0;
-  ThetaTuner.SetParameters( step0, 0.00, 10.0, 0.44);  
+  ThetaTuner.SetParameters( step0, 0.0001, 10.0, 0.44);  
   
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
