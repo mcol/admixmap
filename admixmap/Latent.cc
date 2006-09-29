@@ -120,7 +120,6 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 
  	RhoPriorArgs.NumIntervals = numIntervals;
  	RhoPriorArgs.rho = &rho; // pointer to vector<double>
-	RhoAlphaSampler.SetParameters(0.1, 0.01, 100.0, 0.26, 1); 
 	
       }//end sampler initialisation
       //initialise rho vector

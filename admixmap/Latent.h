@@ -32,7 +32,6 @@
 #include "utils/LogWriter.h"
 
 #include "samplers/StepSizeTuner.h"//for sampling globalrho and globaltheta
-#include "samplers/RandomWalk.h"
 #include "samplers/DirichletParamSampler.h"//for sampling pop admix
 
 class InputData;
@@ -124,7 +123,6 @@ private:
   RhoArguments RhoArgs;
   RhoPriorArguments RhoPriorArgs;
   HamiltonianMonteCarlo* RhoSampler;
-  RandomWalkSampler RhoAlphaSampler;
   
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
