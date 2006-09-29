@@ -44,8 +44,8 @@ public:
 
 private:
   double sigma0; // Initial value of stepsize.
-  double sigma; // log step size 
   double step; // step size: must be positive
+  double sigma; // log step size 
   double min; // Minimum value of stepsize
   double max; // Maximum value of stepsize
   double target; // Target acceptance probability
