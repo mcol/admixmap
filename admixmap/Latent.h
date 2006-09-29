@@ -32,6 +32,7 @@
 #include "utils/LogWriter.h"
 
 #include "samplers/StepSizeTuner.h"//for sampling globalrho and globaltheta
+#include "samplers/RandomWalk.h"
 #include "samplers/DirichletParamSampler.h"//for sampling pop admix
 
 class InputData;
@@ -45,8 +46,9 @@ typedef struct {
   double Distance;
   //const double* theta;
   double rhoalpha;
+  double rhobeta;
   double rhobeta0;
-  double rhobeta1; 
+  double rhobeta1;
 
 //   double sumrho; // ? necessary
 //   double sumlogrho; // ? necessary
@@ -58,6 +60,7 @@ typedef struct {
   const std::vector<double>* rho;
   const double* priormeans;
   const double* priorvars;
+  double sumrho;
   double sumlogrho;
 }RhoPriorArguments;
 
@@ -116,14 +119,12 @@ private:
   double rhobeta;
   double rhobeta0;
   double rhobeta1;
-  double rhopriorparams[3];
   std::vector<double> SumLogRho; //ergodic sum of log(rho)
 
   RhoArguments RhoArgs;
   RhoPriorArguments RhoPriorArgs;
   HamiltonianMonteCarlo* RhoSampler;
-  HamiltonianMonteCarlo RhoPriorParamSampler;
-  int NumberOfRhoParamsUpdates;
+  RandomWalkSampler RhoAlphaSampler;
   
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
