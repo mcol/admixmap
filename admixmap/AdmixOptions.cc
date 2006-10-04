@@ -98,9 +98,9 @@ void AdmixOptions::Initialise(){
   LogFilename = "log.txt";
 
   //prior on frequency Dirichlet prior params in hapmixmodel
-  allelefreqprior.push_back(0.01);//shape
-  allelefreqprior.push_back(0.1);//prior shape of rate
-  allelefreqprior.push_back(1.0);//prior rate of rate
+  //allelefreqprior.push_back(0.01);//shape
+  //allelefreqprior.push_back(0.1);//prior shape of rate
+  //allelefreqprior.push_back(1.0);//prior rate of rate
 
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
   EYFilename = "ExpectedOutcomes.txt";
@@ -941,13 +941,11 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   if(HapMixModelIndicator){
     //TODO:check length of rhoprior vectors
 
-    if(allelefreqprior.size() !=3) {
+    if(useroptions["allelefreqprior"].size() && (allelefreqprior.size() !=3)) {
       Log << "Error: 'allelefreqprior' must have length 3\n";
       badOptions = true;
     }
-    Log << "Dirichlet prior on allele frequencies. ";
-    Log << "Gamma prior on Dirichlet parameters with shape " << allelefreqprior[0] << " and Gamma( " << allelefreqprior[1] << ", " 
-	<< allelefreqprior[2] << " ) prior on rate.\n"; 
+
     useroptions.erase("sumintensitiesprior") ;
     useroptions.erase("globalsumintensitiesprior") ;  
   }

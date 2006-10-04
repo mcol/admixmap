@@ -122,7 +122,7 @@ int main( int argc , char** argv ){
       locustable.clear();
     }
 
-    AlleleFreqs A(&Loci);
+    AlleleFreqs A(&Loci, options.getPopulations());
     if(isFreqSampler)//allele freq updater only
       A.Initialise(&options, &data, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
     if(isFreqSampler || isWorker)A.AllocateAlleleCountArrays(options.getPopulations());
@@ -868,7 +868,7 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // ** dispersion parameter (if dispersion model)
     A->OutputEta(iteration, options, Log);
   }
-  if(options->getHapMixModelIndicator() && (options->getDisplayLevel() > 2))cout << A->getHapMixPriorRate() << " " ;
+  if(options->getHapMixModelIndicator() && (options->getDisplayLevel() > 2))A->OutputPriorParams(cout, false);
   // ** regression parameters
   for(unsigned r = 0; r < R.size(); ++r)
     R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
@@ -885,8 +885,9 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
     if( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
     if(options->getOutputAlleleFreq()){
-      if(options->getHapMixModelIndicator())
-	A->OutputPriorParams();
+      if(options->getHapMixModelIndicator()){
+	  A->OutputPriorParams();
+      }
       else
 	A->OutputAlleleFreqs();
     }

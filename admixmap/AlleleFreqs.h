@@ -145,7 +145,7 @@ typedef struct{
 class AlleleFreqs{
 
 public:
-  AlleleFreqs(Genome *pLoci);
+  AlleleFreqs(Genome *pLoci, unsigned K);
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
@@ -164,6 +164,7 @@ public:
 
   void OutputAlleleFreqs();
   void OutputPriorParams();
+  void OutputPriorParams(ostream& os, bool tofile);
   void CloseOutputFile(int iterations, const Vector_s& PopulationLabels);
 
   void OutputFST();

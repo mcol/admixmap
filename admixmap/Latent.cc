@@ -100,7 +100,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
  	RhoSampler = new HamiltonianMonteCarlo[numIntervals];
 	const vector<float>& rhosamplerparams = options->getrhoSamplerParams();
 	size_t size = rhosamplerparams.size();
-	float initial_stepsize = size? rhosamplerparams[0] : 0.05;
+	float initial_stepsize = size? rhosamplerparams[0] : 0.06;
 	float min_stepsize = size? rhosamplerparams[1] : 0.0001;
 	float max_stepsize = size? rhosamplerparams[2] : 1.0;
 	float target_acceptrate = size? rhosamplerparams[3] : 0.3;
@@ -124,7 +124,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       }//end sampler initialisation
       //initialise rho vector
       //double initial_rho = rhoalpha / rhobeta;
-      double initial_rho = 10000.0;
+      double initial_rho = 7000.0;
       rho[0] = initial_rho;//Rand::gengam(rhoalpha, rhobeta);
       RhoPriorArgs.sumlogrho = log(rho[0]);
       for(unsigned j = 0; j < numIntervals-1; ++j){

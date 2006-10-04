@@ -43,10 +43,12 @@ simulateHaploidAlleles <- function(mu, f, L, Freqs) {
   return(Alleles)
 }
 
-simulateGenotypes <- function(mu1,mu2, f, L, alleleFreqs) {  
+simulateGenotypes <- function(mu1,mu2, f, L, alleleFreqs, allele1.counts) {  
   paternalGamete <- simulateHaploidAlleles(mu1, f, L, alleleFreqs)  
-  maternalGamete <- simulateHaploidAlleles(mu2, f, L, alleleFreqs)  
+  maternalGamete <- simulateHaploidAlleles(mu2, f, L, alleleFreqs)
+  allele1.counts <- (paternalGamete==1) + (maternalGamete==1)
   simulateGenotypes <- paste(paternalGamete, ",", maternalGamete, sep="")
+  return(list(genotypes=simulateGenotypes, counts=allele1.counts))
 }
 
 distanceFromLast <- function(v.Chr, v.Position) {
@@ -65,17 +67,19 @@ distanceFromLast <- function(v.Chr, v.Position) {
 ## chromosome lengths in cM
 #chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
 chr.L <- c(20, 20) ## trial runs with 2 chr
+#chr.L <- 40##one longer chromosome
 numChr <- length(chr.L)
 
-N <- 100
-K <- 4
-rhoalpha <-  40 # arrival rate per cM
-rhobeta0 <- 5
-rhobeta1 <- 4
-# mean r = rhoalpha*rhobeta1 / (rhobeta0 - 1)
+N <- 100##number of individuals
+K <- 4##number of block states
+rhoalpha <-  40 #    |
+rhobeta0 <- 5 ## prior on rho
+rhobeta1 <- 5##      |
+rhobeta <- rgamma(1, rhobeta0, rhobeta1)
+## mean r = rhoalpha*rhobeta1 / (rhobeta0 - 1)
 # var =  r (r + 1) / (rhobeta0 - 2) 
 
-spacing <- 0.1#0.01 # spacing in cM
+spacing <- 0.01 # spacing in cM
 
 ## assign map distances
 x <- numeric(0)
@@ -93,38 +97,56 @@ for(locus in 1:L) {
   if(is.na(distances[locus])) {
     f[locus] <- 0.0
   } else {
-    rhobeta <- rgamma(1, shape=rhobeta0, rate=rhobeta1)
+    ##rhobeta <- rgamma(1, shape=rhobeta0, rate=rhobeta1)
     rho <- rgamma(1, shape=rhoalpha, rate=rhobeta)
     f[locus] <- exp(-rho*distances[locus])
   }
 }
 
 ## elements of Dirichlet param vector for prior on allele freqs
-alpha <- 0.1
 mu <- rep(1/K, K)
 alleleFreqs <- array(data=NA, dim=c(2, K, L))
 
+freqs.shape <- 3
+freqs.rate <- 10
 for(locus in 1:L) {
-  for(state in 1:K) {
-    alleleFreqs[1, , locus] <- rbeta(K, alpha, alpha) # freqs allele 1
-    alleleFreqs[2, , locus] <- 1 - alleleFreqs[1, , locus] # freqs allele 2
-  }
+freqs.alpha  <- rgamma(1, shape=freqs.shape, rate=freqs.rate) / K
+##  for(state in 1:K) {
+##p <- rep(0, K)
+##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
+   p  <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
+##  }
+alleleFreqs[1, , locus] <- p
+alleleFreqs[2, , locus] <- 1 - p # freqs allele 2
+##  }
 }
-
+allele1.counts <- rep(0, L)
 genotypes <- matrix(data="0,0", nrow=N, ncol=L)
 for(individual in 1:N) {
-  genotypes[individual, ] <- simulateGenotypes(mu, mu, f, L, alleleFreqs)
+  g.list <- simulateGenotypes(mu, mu, f, L, alleleFreqs, allele1.counts)
+  genotypes[individual, ] <- g.list$genotypes
+  allele1.counts <- allele1.counts + g.list$counts
+##  genotypes[individual, ] <-simulateHaploidAlleles(mu, f, L, alleleFreqs)  
 }
 
 ## write genotypes file
 id = as.character(seq(1:N))
-genotypes <- data.frame(id, genotypes, row.names=NULL)
+sex <- rep(1, N)##for all males, irrelevant if no X-chromosome
+genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
 write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
 ## write locus file
 distances[is.na(distances)] <- 100
-loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  distances, row.names=NULL)
-dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "DistanceincM")
+
+##next 2 lines for X-only data
+##loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-c(1:2)]),  rep(2,L),  distances, rep("X", L), row.names=NULL)
+##dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distanceincm", "Chrm")
+
+##next 2 lines for autosomal-only data
+loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-c(1:2)]),  rep(2,L),  distances, row.names=NULL)
+dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distanceincm")
+
 write.table(loci, file="data/loci.txt", row.names=FALSE)
+
 ## write allelefreqsfile
 freqstable <- numeric(K)
 locusnames <- character(0)
