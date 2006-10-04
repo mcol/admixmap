@@ -164,7 +164,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       }
     HapMixPriorRate = 100;//HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
     Log << "Dirichlet prior on allele frequencies. ";
-    Log << "Gamma prior on Dirichlet parameters with shape " << HapMixPriorShape << "and rate " << HapMixPriorRate << ".\n";
+    Log << "Gamma prior on Dirichlet parameters with shape " << HapMixPriorShape << " and rate " << HapMixPriorRate << ".\n";
       //" and Gamma( " << HapMixPriorRatePriorShape << ", " << HapMixPriorRatePriorRate << " ) prior on rate.\n"; 
   }
   

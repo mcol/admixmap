@@ -583,9 +583,9 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
 	Loci->getChromosome(c)->SetStateArrivalProbs(options->isRandomMatingModel());
       }
     }
- //   if(Comms::isMaster()){
-//      SampleHapmixRhoPriorParameters();
-//    }
+    if(Comms::isMaster()){
+      SampleHapmixRhoPriorParameters();
+    }
 }
 
 void Latent::SampleHapmixRhoPriorParameters(){
