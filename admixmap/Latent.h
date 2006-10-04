@@ -57,8 +57,8 @@ typedef struct {
 typedef struct {
   unsigned NumIntervals;
   const std::vector<double>* rho;
-  const double* priormeans;
-  const double* priorvars;
+  double priormeans[3];
+  double priorvars[3];
   double sumrho;
   double sumlogrho;
 }RhoPriorArguments;

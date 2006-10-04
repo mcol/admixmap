@@ -76,17 +76,24 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 
     if(options->getHapMixModelIndicator()){
       //set prior of rho prior mean and variance
-      RhoPriorArgs.priormeans = &( options->getHapMixRhoPriorMeans()[0]);
-      //RhoPriorArgs.priorvars = &( options->getHapMixRhoPriorVars()[0]);
+      const vector<double>& priormeans = options->getHapMixRhoPriorMeans();
+      copy(options->getHapMixRhoPriorVars().begin(), options->getHapMixRhoPriorVars().end(), RhoPriorArgs.priorvars );
 
-      rhopriorparams[0] = RhoPriorArgs.priormeans[0];
-      rhopriorparams[1] = RhoPriorArgs.priormeans[1];
-      rhopriorparams[2] = RhoPriorArgs.priormeans[2];
-      rhoalpha = RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
-      rhobeta0 = RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
-      rhobeta1 = RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
+//       rhopriorparams[0] = RhoPriorArgs.priormeans[0];
+//       rhopriorparams[1] = RhoPriorArgs.priormeans[1];
+//       rhopriorparams[2] = RhoPriorArgs.priormeans[2];
+//       rhoalpha = RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
+//       rhobeta0 = RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
+//       rhobeta1 = RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
 
+      rhoalpha = RhoArgs.rhoalpha = priormeans[0];
+      rhobeta0 = RhoArgs.rhobeta0 = priormeans[1];
+      rhobeta1 = RhoArgs.rhobeta1 = priormeans[2];
       rhobeta = rhobeta0 / rhobeta1;
+
+      RhoPriorArgs.priormeans[0] = rhopriorparams[0] = log(rhoalpha) + log(rhobeta1) - log(rhobeta0);
+      RhoPriorArgs.priormeans[1] = rhopriorparams[1] = log(rhoalpha) + 2.0*(log(rhobeta1) - log(rhobeta0));
+      RhoPriorArgs.priormeans[2] = rhopriorparams[2] = log(rhobeta0);
 
       unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
       if(Comms::isMaster()){
@@ -126,7 +133,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
  	RhoPriorArgs.rho = &rho; // pointer to vector<double>
 	const vector<float>& rhopriorsamplerparams = options->getrhoPriorParamSamplerParams();
 	size = rhopriorsamplerparams.size();
-	initial_stepsize = size? rhopriorsamplerparams[0] : 0.05;
+	initial_stepsize = size? rhopriorsamplerparams[0] : 0.01;
 	min_stepsize = size? rhopriorsamplerparams[1] : 0.0001;
 	max_stepsize = size? rhopriorsamplerparams[2] : 1.0;
 	target_acceptrate = size? rhopriorsamplerparams[3] : 0.95;
@@ -576,9 +583,9 @@ void Latent::SampleSumIntensities(const int* SumAncestry, bool sumlogrho){
 	Loci->getChromosome(c)->SetStateArrivalProbs(options->isRandomMatingModel());
       }
     }
-   if(Comms::isMaster()){
-     SampleHapmixRhoPriorParameters();
-   }
+ //   if(Comms::isMaster()){
+//      SampleHapmixRhoPriorParameters();
+//    }
 }
 
 void Latent::SampleHapmixRhoPriorParameters(){
