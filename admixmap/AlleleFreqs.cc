@@ -1221,7 +1221,7 @@ void AlleleFreqs::OutputPriorParams(){
 
 void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
   //to be used only in hapmixmodel
-
+    if(HapMixPriorParams){
   unsigned L = Loci->GetNumberOfCompositeLoci();
   double sum = 0.0, sumsq = 0.0;
   for(unsigned j = 0; j < L; ++j){
@@ -1236,6 +1236,7 @@ void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
   double var = sumsq / (double)L - mean*mean;
   os << mean << "\t" << var << /*"\t" << HapMixPriorRate <<*/ endl;
   if(tofile && allelefreqoutput.is_open())allelefreqoutput << mean << "\t" << var << /*"\t" << HapMixPriorRate <<*/ endl;
+    }
 }
 void AlleleFreqs::CloseOutputFile(int iterations, const Vector_s& PopulationLabels)
 {
