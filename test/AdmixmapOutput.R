@@ -347,7 +347,7 @@ plotlogpvalues <- function(psfilename, log10pvalues, table.every, title, hist ) 
        type="l", ylim=c(0, 4), ## c( 0, max(log10pvalues*is.finite(log10pvalues), na.rm=T) ),
        main=title, xlab="Iterations", ylab="-log10(p-value)")
   ## add lines to plot for all other tests 
-  for(test in 2:ntests) {
+  for(test in seq(2,ntests, by=(1+floor(ntests/1000)))) {
     lines(table.every*seq(1:evaluations), log10pvalues[test,], type="l")
   }
   ## label lines for which final p<0.01
