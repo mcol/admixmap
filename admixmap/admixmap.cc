@@ -214,7 +214,7 @@ int main( int argc , char** argv ){
       double IntervalRatio = 1.03; // size of increments of coolness increases geometrically
       int NumAnnealedRuns = options.getNumAnnealedRuns(); // number of annealed runs excluding last run at coolness of 1
       // set number of samples - 1 for annealing runs, use "samples" options otherwise. Overriden for final, unannealed run with "thermo" option
-      int samples = options.getThermoIndicator()? 1 : options.getTotalSamples(); 
+      int samples = options.getThermoIndicator() ? options.getTotalSamples() : 1; 
       int burnin = 1; // for annealing runs we only want burnin
     
       double SumEnergy = 0.0, SumEnergySq = 0.0, LogEvidence = 0.0;
@@ -260,7 +260,9 @@ int main( int argc , char** argv ){
       if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
       if(isMaster){
 	if(NumAnnealedRuns > 0) {
-	  Log << On << NumAnnealedRuns << " annealing runs of " << samples 
+	    unsigned runsamples = samples;
+	    if(options.getThermoIndicator())runsamples = 1;
+	  Log << On << NumAnnealedRuns << " annealing runs of " << runsamples 
 	      << " iteration(s) followed by final run of "; 
 	}
 	if(!options.getThermoIndicator()) {
@@ -295,10 +297,13 @@ int main( int argc , char** argv ){
 	  SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
 
 	  if(run == NumAnnealedRuns) {
-	    AnnealedRun = false;
+	      AnnealedRun = false;
 	    coolness = 1.0;
 	    if(options.getThermoIndicator()) {
 	      samples *= 2 ; // last run is longer
+	    }
+	    else{
+		samples = options.getTotalSamples();
 	    }
 	    burnin = options.getBurnIn();
 	  } 
