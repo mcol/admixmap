@@ -254,6 +254,10 @@ const char *AdmixOptions::getAlleleFreqOutputFilename() const
 {
   return AlleleFreqOutputFilename.c_str();
 }
+const char *AdmixOptions::getAlleleFreqPriorOutputFilename() const
+{
+  return AlleleFreqPriorOutputFilename.c_str();
+}
 
 bool AdmixOptions::getOutputAlleleFreq() const
 {
@@ -698,6 +702,7 @@ void AdmixOptions::SetOptions()
   Options["logfile"] = OptionPair(&LogFilename, "outputfile");
   Options["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");
   Options["allelefreqoutputfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");
+  Options["allelefreqprioroutputfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");
   Options["ergodicaveragefile"] = OptionPair(&ErgodicAverageFilename, "outputfile");
   //optional results directory name option - default is 'results'
   Options["resultsdir"] = OptionPair(&ResultsDir, "string");

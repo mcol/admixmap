@@ -54,6 +54,7 @@ public:
   const char *getEtaOutputFilename() const;
   const char *getIndAdmixtureFilename() const;
   const char *getAlleleFreqOutputFilename() const;
+  const char *getAlleleFreqPriorOutputFilename() const;
   bool getOutputAlleleFreq() const;
 
   //input file names
@@ -216,6 +217,7 @@ private:
   string LogFilename;
   string AffectedsOnlyScoreFilename;
   string AlleleFreqOutputFilename;
+  string AlleleFreqPriorOutputFilename;
   string AlleleFreqScoreFilename;
   string AlleleFreqScoreFilename2;
   string AssocScoreFilename;

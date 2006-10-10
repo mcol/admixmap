@@ -273,6 +273,7 @@ private:
   std::vector<StepSizeTuner> *MuProposal;
   
   std::ofstream allelefreqoutput;// object to output allele frequencies
+  std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior dispersion in hapmixmodel
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 

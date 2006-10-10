@@ -121,6 +121,7 @@ if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs ) {
   FreqSampler.clear();
 
   if( allelefreqoutput.is_open()) allelefreqoutput.close();
+  if( allelefreqprioroutput.is_open()) allelefreqprioroutput.close();
 }
 
 // ************** Initialisation and loading of data  *******************
@@ -130,7 +131,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   LoadAlleleFreqs(options, data);
   Log.setDisplayMode(On);
   //open allelefreqoutputfile
-  if(IsRandom() &&  options->getOutputAlleleFreq() ){
+  if(IsRandom() ){
     OpenOutputFile(options);
   }
 
@@ -1183,16 +1184,22 @@ const array_of_allelefreqs& AlleleFreqs::GetAlleleFreqs()const{
 // ******************** Output **************************
 void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
 {
-  allelefreqoutput.open(options->getAlleleFreqOutputFilename(), ios::out );
-  if( !allelefreqoutput && options->getIndAdmixHierIndicator()){
-    cerr << "Warning: Couldn't open allelefreqoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
-    exit( 1 );
+  const char* s = options->getAlleleFreqOutputFilename();
+  if(strlen(s) && options->getIndAdmixHierIndicator()){
+    allelefreqoutput.open(s, ios::out );
+    if( !allelefreqoutput){
+      cerr << "Warning: Couldn't open allelefreqoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
+      exit( 1 );
+    }
+    allelefreqoutput << "structure(.Data=c(" << endl;
   }
   if(options->getHapMixModelIndicator()){
-    allelefreqoutput << "eta.Mean\teta.Var\tlambda" << endl;
-  }
-  else{
-    allelefreqoutput << "structure(.Data=c(" << endl;
+    const char* s = options->getAlleleFreqPriorOutputFilename();
+    if(strlen(s)){
+      allelefreqprioroutput.open(s, ios::out);
+      // allelefreqprioroutput << "eta.Mean\teta.Var\tlambda" << endl;
+      allelefreqprioroutput << "eta.Mean\teta.Var" << endl;
+    }
   }
 }
 void AlleleFreqs::OutputAlleleFreqs()
@@ -1214,29 +1221,29 @@ void AlleleFreqs::OutputAlleleFreqs()
 }
 void AlleleFreqs::OutputPriorParams(){
   //to be used only in hapmixmodel
-  if(allelefreqoutput.is_open()){
-    OutputPriorParams(allelefreqoutput, false);
+  if(allelefreqprioroutput.is_open()){
+    OutputPriorParams(allelefreqprioroutput, false);
   }
 }
 
 void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
   //to be used only in hapmixmodel
-    if(HapMixPriorParams){
-  unsigned L = Loci->GetNumberOfCompositeLoci();
-  double sum = 0.0, sumsq = 0.0;
-  for(unsigned j = 0; j < L; ++j){
-    sum += HapMixPriorParams[j];
-    sumsq += HapMixPriorParams[j] *HapMixPriorParams[j];
-  }
-  const double K = (double)Populations;
-  sum *= K;
-  sumsq *= K*K;
-
-  double mean = sum / (double) L;
-  double var = sumsq / (double)L - mean*mean;
-  os << mean << "\t" << var << /*"\t" << HapMixPriorRate <<*/ endl;
-  if(tofile && allelefreqoutput.is_open())allelefreqoutput << mean << "\t" << var << /*"\t" << HapMixPriorRate <<*/ endl;
+  if(HapMixPriorParams){
+    unsigned L = Loci->GetNumberOfCompositeLoci();
+    double sum = 0.0, sumsq = 0.0;
+    for(unsigned j = 0; j < L; ++j){
+      sum += HapMixPriorParams[j];
+      sumsq += HapMixPriorParams[j] *HapMixPriorParams[j];
     }
+    const double K = (double)Populations;
+    sum *= K;
+    sumsq *= K*K;
+    
+    double mean = sum / (double) L;
+    double var = sumsq / (double)L - mean*mean;
+    os << mean << "\t" << var << /*"\t" << HapMixPriorRate <<*/ endl;
+    if(tofile && allelefreqprioroutput.is_open())allelefreqprioroutput << mean << "\t" << var << /*"\t" << HapMixPriorRate <<*/ endl;
+  }
 }
 void AlleleFreqs::CloseOutputFile(int iterations, const Vector_s& PopulationLabels)
 {

@@ -84,7 +84,7 @@ int main( int argc , char** argv ){
   const bool isWorker = Comms::isWorker();
 
   if(isMaster){
-    MakeResultsDir(options.getResultsDir().c_str(), (options.getDisplayLevel()>2));
+    MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/);
   }
  
   //open logfile, start timer and print start message
@@ -889,11 +889,10 @@ void OutputParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if( iteration > options->getBurnIn() ){
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
     if( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
+    if(options->getHapMixModelIndicator()){
+      A->OutputPriorParams();
+    }
     if(options->getOutputAlleleFreq()){
-      if(options->getHapMixModelIndicator()){
-	  A->OutputPriorParams();
-      }
-      else
 	A->OutputAlleleFreqs();
     }
   }
