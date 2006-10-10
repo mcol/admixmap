@@ -20,18 +20,18 @@ double ModeFinder::FindModeByNewtonRaphson(double init, double* ddf, const void*
 
     f = (*function)(step+newnum, args);//loglikelihood at new value
     //std::cout << "df = " << df << " ddf= " << *ddf <<  " f = " << f << " " << f-flast << " step = " << step <<  " newnum = " << newnum << std::endl;
-    //    if(f >= flast)//if NR step increases loglikelihood
-      newnum += step;//use it
-//     else{//step is too large and we've overshot the mode so try a smaller step
-//       do{
-// 	step *= 0.5;
+     if(f >= flast)//if NR step increases loglikelihood
+     newnum += step;//use it
+     else{//step is too large and we've overshot the mode so try a smaller step
+       do{
+ 	step *= 0.5;
 // 	if(fabs(step) < 0.000001);
 // 	step *= 100.0;
-// 	f = (*function)(newnum+step, args);
-// 	}
-// 	while(f < flast);//repeat until loglikelihood increases
-//       newnum += step;
-//     }
+ 	f = (*function)(newnum+step, args);
+ 	}
+ 	while(f < flast);//repeat until loglikelihood increases
+       newnum += step;
+     }
 
     df = (*dfunction)( newnum, args );//update 1st derivative
     *ddf = (*ddfunction)( newnum, args );//update 2nd derivative
