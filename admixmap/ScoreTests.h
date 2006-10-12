@@ -89,6 +89,7 @@ private:
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
   int rank, worker_rank, NumWorkers;
+  unsigned NumOutputs;//counts calls to output function for dimensions of R objects
 
 //OUTPUT
   void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);

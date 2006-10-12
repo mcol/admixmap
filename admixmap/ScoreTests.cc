@@ -644,6 +644,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allele
 
 void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final){
   //PopLabels = PLabels;
+  if(!final)++NumOutputs;
   string sep = final ? "\t" : ",";//separator
   ofstream* outfile;
 
@@ -922,7 +923,7 @@ void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstr
 }
 
 void ScoreTests::ROutput(){
-  int numPrintedIterations = (options->getTotalSamples() - options->getBurnIn()) / (options->getSampleEvery() * 10);
+  const int numPrintedIterations = NumOutputs;//(options->getTotalSamples() - options->getBurnIn()) / (options->getSampleEvery() * 10);
   /**
    * writes out the dimensions and labels of the 
    * R object previously written to allelicAssocScoreStream
