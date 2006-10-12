@@ -210,13 +210,9 @@ int main( int argc , char** argv ){
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
     
-      // ******************* initialise stuff for annealing ************************************************
+      // ******************* Set annealing schedule ************************************************
       double IntervalRatio = 1.03; // size of increments of coolness increases geometrically
       int NumAnnealedRuns = options.getNumAnnealedRuns(); // number of annealed runs excluding last run at coolness of 1
-      // set number of samples - 1 for annealing runs, use "samples" options otherwise. Overriden for final, unannealed run with "thermo" option
-      int samples = options.getThermoIndicator() ? options.getTotalSamples() : 1; 
-      int burnin = 1; // for annealing runs we only want burnin
-    
       double SumEnergy = 0.0, SumEnergySq = 0.0, LogEvidence = 0.0;
       double MeanEnergy = 0.0, VarEnergy = 0.0;
       double LastMeanEnergy = 0.0;
@@ -224,6 +220,45 @@ int main( int argc , char** argv ){
       coolness = 1.0; // default
       bool AnnealedRun = false;
       std::ofstream annealstream;//for monitoring energy when annealing
+
+      // set number of samples : 1 for annealing runs, "samples" option otherwise. Overriden for final, unannealed run with "thermo" option
+      int samples, burnin;
+      if(options.getThermoIndicator()) { // set up output for thermodynamic integration
+	if(isMaster){		
+	  string s = options.getResultsDir()+"/annealmon.txt";
+	  annealstream.open(s.c_str());
+	  annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << endl;
+	}
+	samples = options.getTotalSamples();
+	burnin = options.getBurnIn();
+      }
+      else if(NumAnnealedRuns > 0){
+	samples = 1;
+	burnin = 1;
+      }
+      else{//default case: no thermo, no annealing
+	samples = options.getTotalSamples();
+	burnin = options.getBurnIn();
+      }
+
+      if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
+      if(isMaster){
+	if(NumAnnealedRuns > 0) {
+	  Log << On << NumAnnealedRuns << " annealing runs of " << samples 
+	      << " iteration(s) followed by final run of "; 
+	}
+	if(options.getThermoIndicator()) {
+	  Log << 2*samples;  //last run is twice as long with thermo option
+	} else { 
+	  Log << options.getTotalSamples();
+	} 
+	Log << " iterations at ";
+	if( options.getTestOneIndivIndicator() ) {
+	  Log << options.getNumAnnealedRuns()+1 
+	      <<" coolnesses for test individual. Other individuals at ";
+	}
+	Log << "coolness of 1\n";
+      }
     
       // set annealing schedule
       double *IntervalWidths = 0;
@@ -247,37 +282,6 @@ int main( int argc , char** argv ){
 	Coolnesses[NumAnnealedRuns] = 1.0;
       }
     
-      if(options.getThermoIndicator()) { // set up output for thermodynamic integration
-	if(isMaster){		
-	  string s = options.getResultsDir()+"/annealmon.txt";
-	  annealstream.open(s.c_str());
-	  annealstream << "Coolness\tMeanEnergy\tVarEnergy\tlogEvidence" << endl;
-	}
-	samples = options.getTotalSamples();
-	burnin = options.getBurnIn();
-      }
-
-      if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
-      if(isMaster){
-	if(NumAnnealedRuns > 0) {
-	    unsigned runsamples = samples;
-	    if(options.getThermoIndicator())runsamples = 1;
-	  Log << On << NumAnnealedRuns << " annealing runs of " << runsamples 
-	      << " iteration(s) followed by final run of "; 
-	}
-	if(!options.getThermoIndicator()) {
-	  Log << options.getTotalSamples();
-	} else { 
-	  Log << 2 * options.getTotalSamples();
-	} 
-	Log << " iterations at ";
-	if( options.getTestOneIndivIndicator() ) {
-	  Log << options.getNumAnnealedRuns()+1 
-	      <<" coolnesses for test individual. Other individuals at ";
-	}
-	Log << "coolness of 1\n";
-      }
-    
       //Write initial values
       //     if(options.getIndAdmixHierIndicator()  ){
       //       if(options.getDisplayLevel()>2)Log.setDisplayMode(On);
@@ -297,13 +301,13 @@ int main( int argc , char** argv ){
 	  SumEnergySq = 0.0;//cumulative sum of square of modified loglikelihood
 
 	  if(run == NumAnnealedRuns) {
-	      AnnealedRun = false;
+	    AnnealedRun = false;
 	    coolness = 1.0;
 	    if(options.getThermoIndicator()) {
 	      samples *= 2 ; // last run is longer
 	    }
 	    else{
-		samples = options.getTotalSamples();
+	      samples = options.getTotalSamples();
 	    }
 	    burnin = options.getBurnIn();
 	  } 
