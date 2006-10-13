@@ -91,9 +91,13 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       rhobeta1 = RhoArgs.rhobeta1 = priormeans[2];
       rhobeta = rhobeta0 / rhobeta1;
 
-      RhoPriorArgs.priormeans[0] = rhopriorparams[0] = log(rhoalpha) + log(rhobeta1) - log(rhobeta0);
-      RhoPriorArgs.priormeans[1] = rhopriorparams[1] = log(rhoalpha) + 2.0*(log(rhobeta1) - log(rhobeta0));
-      RhoPriorArgs.priormeans[2] = rhopriorparams[2] = log(rhobeta0);
+//       RhoPriorArgs.priormeans[0] = rhopriorparams[0] = log(rhoalpha) + log(rhobeta1) - log(rhobeta0);
+//       RhoPriorArgs.priormeans[1] = rhopriorparams[1] = log(rhoalpha) + 2.0*(log(rhobeta1) - log(rhobeta0));
+//       RhoPriorArgs.priormeans[2] = rhopriorparams[2] = log(rhobeta0);
+
+      rhopriorparams[0] = log(rhoalpha);
+      rhopriorparams[1] = log(rhobeta0);
+      rhopriorparams[2] = log(rhobeta1);
 
       unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
       if(Comms::isMaster()){
@@ -600,9 +604,9 @@ void Latent::SampleHapmixRhoPriorParameters(){
   //     rhoalpha = exp(logparams[0]);
   //     rhobeta0 = exp(logparams[1]);
   //     rhobeta1 = exp(logparams[2]);
-  rhoalpha = RhoArgs.rhoalpha = exp(2.0*rhopriorparams[0] - rhopriorparams[1]                    );
-  rhobeta0 = RhoArgs.rhobeta0 = exp(    rhopriorparams[0] - rhopriorparams[1] + rhopriorparams[2]);
-  rhobeta1 = RhoArgs.rhobeta1 = exp(                                            rhopriorparams[2]);
+  rhoalpha = RhoArgs.rhoalpha = log(rhopriorparams[0]);
+  rhobeta0 = RhoArgs.rhobeta0 = log(rhopriorparams[1]);
+  rhobeta1 = RhoArgs.rhobeta1 = log(rhopriorparams[2]);
 }
 
 ///energy function for sampling locus-specific sumintensities 
@@ -667,16 +671,16 @@ double Latent::RhoPriorParamsEnergy(const double* const x, const void* const var
   double E = 0.0;
 
   try {
-    double a = exp(2.0*x[0] - x[1]);
-    double a0 = exp(x[0] - x[1] + x[2]);
-    double nu = exp(x[2]);
-    E = - getGammaGammaLogDensity_LogBasis(a, a0, nu, T, *(args->rho), args->sumlogrho);
+    double rhoalpha = exp(x[0]);
+    double rhobeta0 = exp(x[1]);
+    double rhobeta1 = exp(x[2]);
+    E = - getGammaGammaLogDensity_LogBasis(rhoalpha, rhobeta0, rhobeta1, T, *(args->rho), args->sumlogrho);
 
-    //minus log Normal priors (on transformed scale)
-    E += 0.5*(x[0] - args->priormeans[0])*(x[0] - args->priormeans[0])/args->priorvars[0];
-    E += 0.5*(x[1] - args->priormeans[1])*(x[1] - args->priormeans[1])/args->priorvars[1];
-    E += 0.5*(x[2] - args->priormeans[2])*(x[2] - args->priormeans[2])/args->priorvars[2];
-    
+    //minus Gamma priors (on log scale)
+    E -= args->priormeans[0]*x[0] - args->priorvars[0]*rhoalpha;
+    E -= args->priormeans[1]*x[1] - args->priorvars[1]*rhobeta0;
+    E -= args->priormeans[2]*x[2] - args->priorvars[2]*rhobeta1;
+
   } catch(string s){
     throw string("Error in RhoPriorParamsEnergy: " +s);
   }
@@ -690,24 +694,24 @@ void Latent::RhoPriorParamsGradient( const double* const x, const void* const va
   
   try {
     double h[3];//derivative of log likelihood wrt a, a0, nu
-    double a =  exp(2.0*x[0] - x[1]);
-    double a0 = exp(x[0] - x[1] + x[2]);
-    double nu = exp(x[2]);
+    double rhoalpha = exp(x[0]);
+    double rhobeta0 = exp(x[1]);
+    double rhobeta1 = exp(x[2]);
     //first get derivative of LogLikelihood wrt a, a0, nu
-    gradientGammaGammaLogLikelihood(a, a0, nu, T, *(args->rho), args->sumlogrho, h);
+    gradientGammaGammaLogLikelihood(rhoalpha, rhobeta0, rhobeta1, T, *(args->rho), args->sumlogrho, h);
     //now use chain rule to get derivative wrt x
-    g[0] = -2.0*h[0]*a - h[1]*a0;
-    g[1] =      h[0]*a + h[1]*a0;
-    g[2] =             - h[1]*a0 - h[2]*nu;
+    g[0] = h[0]*rhoalpha;
+    g[1] = h[1]*rhobeta0;
+    g[2] = h[2]*rhobeta1;
 
     //g[0] = -h[0]*a + h[1]*a0 -h[2]*nu;
     //g[1] = -h[0]*a +0.5*h[1]*a -0.5*h[2]*nu;
     //g[2] = -h[2]*nu;
 
-    //derivative of minus log Normal priors (on transformed scale)
-    g[0] -= (x[0] - args->priormeans[0])/args->priorvars[0];
-    g[1] -= (x[1] - args->priormeans[1])/args->priorvars[1];
-    g[2] -= (x[2] - args->priormeans[2])/args->priorvars[2];
+    //derivative of minus Gamma priors (on log scale)
+    g[0] -= args->priormeans[0] - args->priorvars[0]*rhoalpha;
+    g[1] -= args->priormeans[1] - args->priorvars[1]*rhobeta0;
+    g[2] -= args->priormeans[2] - args->priorvars[0]*rhobeta1;
     //cout << "x= " << x[0] << " " << x[1] << " " << x[2] << endl;
     //cout << "a = " << a << " a0 = " << a0 << " nu = " << nu << endl;
     //cout << "h = " << h[0] << " " << h[1] << " " << h[2] << endl;
