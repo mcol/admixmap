@@ -27,10 +27,10 @@ Last updated: 28/8/2002
 #define USE_MPI
 #include "sprng.h"
 
-static void sprng_set(void * ,unsigned long int )
+static void sprng_set(void * ,unsigned long int s)
 {
 //disabled and moved to rand.cc as this line should be called exactly once per process and leaving it in the header makes it likely to be called several times
-    //init_sprng(DEFAULT_RNG_TYPE, s, SPRNG_DEFAULT);
+//    init_sprng(DEFAULT_RNG_TYPE, s, SPRNG_DEFAULT);
 }
 
 static unsigned long sprng_get(void * )
