@@ -151,13 +151,14 @@ void Comms::Reduce(double* x, int size){
   if(size==1) Reduce(x);
   else{
     double* globalsum = 0;
-    if(getWorkerRank()==0){
-      if((int)max_doubles >= size)globalsum = double_send;
+    if(global_rank==0){//allocate receiving array if workspace not large enough
+      if((int)max_doubles >= size)
+	  globalsum = double_send;
       else globalsum = new double[size];
     }
     workers_and_master.Barrier();
-    workers_and_master.Reduce(x, &globalsum, size, MPI::DOUBLE, MPI::SUM, 0);
-    if(getWorkerRank()==0){
+    workers_and_master.Reduce(x, globalsum, size, MPI::DOUBLE, MPI::SUM, 0);
+    if(global_rank==0){//copy sums into master
       std::copy(globalsum, globalsum+size, x);
       if((int)max_doubles < size)delete[] globalsum;
     }
