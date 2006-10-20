@@ -109,7 +109,7 @@ void Chromosome::SetLocusCorrelation(const vector<double>::const_iterator rho_it
   for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
     double rho = *(rho_iter + j -1);//rho_[j +_startLocus];
     if(isX)rho *= 0.5;
-    f[2*j] = f[2*j + 1] = myexp( -GetDistance( j ) * rho );
+    f[2*j] = f[2*j + 1] = myexp( - rho );
   }
 }
 

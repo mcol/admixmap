@@ -74,9 +74,9 @@ public:
   double getRhobetaShape()const;
   double getRhobetaRate()const;
   double getRhoPriorMean()const;
-  const std::vector<double> &getHapMixRhoPriorMeans()const;
-  const std::vector<double> &getHapMixRhoPriorVars()const;
+  const std::vector<double> &getHapMixLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
+  double getInitialHapMixLambda()const;
 
   vector<double> getInitAlpha(int) const;
   std::vector<std::vector<double> > getInitAlpha()const;
@@ -85,7 +85,6 @@ public:
   double getEtaVar() const;
   double getRegressionPriorPrecision()const;
   const vector<float>& getrhoSamplerParams()const;
-  const vector<float>& getrhoPriorParamSamplerParams() const;
 
   unsigned int getgenotypesSexColumn() const;
   void setgenotypesSexColumn(unsigned int i);
@@ -202,17 +201,16 @@ private:
   //double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
   std::vector<double> globalrhoPrior;
   std::vector<double> rhoPrior;
-  std::vector<double> hapmixrhopriormeans;///< prior means of rho prior params in hapmixmodel
-  std::vector<double> hapmixrhopriorvars;///< prior variances of rho prior params in hapmixmodel
+  std::vector<double> hapmixlambdaprior;///< prior means of rho prior params in hapmixmodel
   std::vector<double> alpha0;
   std::vector<double> alpha1;
   std::vector< std::vector<double> > initalpha;
   std::vector<double> allelefreqprior;
   double etamean, etavar;//gamma parameters for dispersion parameter
   double regressionPriorPrecision;
+  double initialHapMixLambda;//initial value of expected # arrivals in hapmixmodel
 
   std::vector<float> rhoSamplerParams;
-  std::vector<float> rhoPriorParamSamplerParams;
   string ResultsDir;
   string LogFilename;
   string AffectedsOnlyScoreFilename;

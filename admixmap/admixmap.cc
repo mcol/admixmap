@@ -559,7 +559,10 @@ void doIterations(const int & samples, const int & burnin, IndividualCollection 
 	  SumEnergy += Energy;
 	  SumEnergySq += Energy*Energy;
 	  // write to file if not AnnealedRun
-	  if(!AnnealedRun)loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+	  if(!AnnealedRun){
+	      loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+	      if(!(iteration%options.getSampleEvery()))cout << Energy << "\t";
+	  }
 	}
       } else {  
 	IC->accumulateEnergyArrays(&options);
@@ -710,9 +713,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if(isMaster || isWorker){
     // ** update global sumintensities conditional on genotype probs and individual admixture proportions
-    if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && !options->getHapMixModelIndicator() && 
-       (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
-      L->UpdateGlobalSumIntensities(IC, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1)); 
+     if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && !options->getHapMixModelIndicator() && 
+        (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
+       L->UpdateGlobalSumIntensities(IC, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1)); 
     // leaves individuals with HMM probs bad, stored likelihood ok
     // this function also sets locus correlations in Chromosomes
   }
@@ -736,8 +739,8 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   // Update individual-level parameters, sampling locus ancestry states
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(isMaster || isWorker){
-    IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), S->getAffectedsOnlyTest(), anneal);
-  }
+  IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), S->getAffectedsOnlyTest(), anneal);
+   }
 
   if(isWorker || isFreqSampler) {
 #ifdef PARALLEL
@@ -829,11 +832,9 @@ void UpdateParameters(int iteration, IndividualCollection *IC, Latent *L, Allele
   if(isMaster || isWorker){
     if(options->getHapMixModelIndicator()){
       //L->UpdateGlobalTheta(iteration, IC);
-      //conjugate sampler, using numbers of arrivals. NB: requires sampling of jump indicators in Individuals
-      //L->SampleSumIntensities(IC->getSumNumArrivals(), IC->getSize(), 
       //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
-      L->SampleSumIntensities(IC->getSumAncestry(),  
-			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
+      L->SampleHapMixLambda(IC->getSumAncestry(),  
+			    (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
     }
     
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////

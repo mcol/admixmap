@@ -80,7 +80,7 @@ void AdmixOptions::Initialise(){
   OutputAlleleFreq = false;
   checkData = true;
 
-
+  initialHapMixLambda = 0.0;//default value of 0 means sample from prior
 //   globalrhoPrior.push_back(3.0);//rhoalpha 
 //   globalrhoPrior.push_back(0.5);//rhobeta
 
@@ -129,8 +129,7 @@ void AdmixOptions::Initialise(){
   // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
   // effective prior mean is 6*4/(5-1) = 6 and effective prior variance is 6*7 / (5-2) = 14
   useroptions["sumintensitiesprior"] = "6.0,5.0,4.0";
-  useroptions["hapmixrhopriormeans"] = "8, 8, 1.4";
-  useroptions["hapmixrhopriorvars"] = "1000, 1000, 1000";
+  useroptions["hapmixlambdaprior"] = "8, 8, 1.4";
   useroptions["seed"] = "1";
   useroptions["regressionpriorprecision"] = "0.25";
 }
@@ -422,11 +421,8 @@ double AdmixOptions::getRhobetaShape()const{
 double AdmixOptions::getRhobetaRate()const{
   return rhoPrior[2];
 }
-const std::vector<double> &AdmixOptions::getHapMixRhoPriorMeans()const{
-  return hapmixrhopriormeans;
-}
-const std::vector<double> &AdmixOptions::getHapMixRhoPriorVars()const{
-  return hapmixrhopriorvars;
+const std::vector<double> &AdmixOptions::getHapMixLambdaPrior()const{
+  return hapmixlambdaprior;
 }
 double AdmixOptions::getEtaMean() const{
   return etamean;
@@ -558,6 +554,9 @@ std::vector<std::vector<double> > AdmixOptions::getInitAlpha()const{
   return initalpha;
 }
 
+double AdmixOptions::getInitialHapMixLambda()const{
+    return initialHapMixLambda;
+}
 unsigned int AdmixOptions::getgenotypesSexColumn() const
 {
   return genotypesSexColumn;
@@ -589,9 +588,6 @@ bool AdmixOptions::PopAdmixturePropsAreEqual()const{
 }
 const vector<float>& AdmixOptions::getrhoSamplerParams()const{
   return rhoSamplerParams;
-}
-const vector<float>& AdmixOptions::getrhoPriorParamSamplerParams() const{
-  return rhoPriorParamSamplerParams;
 }
 
 const std::vector<double> & AdmixOptions::getAlleleFreqPriorParams()const{
@@ -714,8 +710,7 @@ void AdmixOptions::SetOptions()
   Options["etapriorfile"] = OptionPair(&EtaPriorFilename, "string");
   Options["globalsumintensitiesprior"] = OptionPair(&globalrhoPrior, "dvector");
   Options["sumintensitiesprior"] = OptionPair(&rhoPrior, "dvector");
-  Options["hapmixrhopriormeans"] = OptionPair(&hapmixrhopriormeans, "dvector");
-  Options["hapmixrhopriorvars"] = OptionPair(&hapmixrhopriorvars, "dvector");
+  Options["hapmixlambdaprior"] = OptionPair(&hapmixlambdaprior, "dvector");
   Options["allelefreqprior"] = OptionPair(&allelefreqprior, "dvector");
   Options["etapriormean"] = OptionPair(&etamean, "double");
   Options["etapriorvar"] = OptionPair(&etavar, "double");
@@ -725,9 +720,9 @@ void AdmixOptions::SetOptions()
   Options["fixedallelefreqs"] = OptionPair(&fixedallelefreqs, "bool");
   Options["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");
   Options["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");
+  Options["initialhapmixlambda"] = OptionPair(&initialHapMixLambda, "double");
   //sampler settings
   Options["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
-  Options["rhopriorsamplerparams"] = OptionPair(&rhoPriorParamSamplerParams, "fvector");
   // test options
   Options["allelicassociationscorefile"] = OptionPair(&AllelicAssociationScoreFilename, "outputfile");
   Options["residualallelicassocscorefile"] = OptionPair(&ResidualAllelicAssocScoreFilename, "outputfile");
@@ -955,8 +950,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
     useroptions.erase("globalsumintensitiesprior") ;  
   }
   else{
-    useroptions.erase("hapmixrhopriormeans") ;
-    useroptions.erase("hapmixrhopriorvars") ;
+    useroptions.erase("hapmixlambdaprior") ;
     if((GlobalRho || !IndAdmixHierIndicator ) ) {
       Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
 	  << "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";

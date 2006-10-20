@@ -44,24 +44,24 @@ typedef struct {
   const int* SumAncestry;
   double Distance;
   //const double* theta;
-  double rhoalpha;
-  double rhobeta;
-  double rhobeta0;
-  double rhobeta1;
+  double h;
+  double beta;
+  double beta_shape;
+  double beta_rate;
 
 //   double sumrho; // ? necessary
 //   double sumlogrho; // ? necessary
-}RhoArguments;
+}LambdaArguments;
 
 ///Struct to hold arguments for sampling hyperparameters of sumintensities in hapmixmodel
 typedef struct {
-  unsigned NumIntervals;
-  const std::vector<double>* rho;
-  double priormeans[3];
-  double priorvars[3];
-  double sumrho;
-  double sumlogrho;
-}RhoPriorArguments;
+    unsigned NumIntervals;
+    // const std::vector<double>* rho;
+    //double priormeans[3];
+    //double priorvars[3];
+  double sumlambda;
+//  double sumlogrho;
+}LambdaPriorArguments;
 
 ///Class to hold and update population admixture and sumintensities parameters and their priors
 class Latent
@@ -76,9 +76,9 @@ public:
   void InitializeOutputFile(const Vector_s&  PopulationLabels);
   
   void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
-  //void SampleSumIntensities(const std::vector<unsigned> &SumNumArrivals, unsigned n, bool sumlogrho);
-  void SampleSumIntensities(const int* SumAncestry, bool sumlogrho) ;
-  void UpdateSumIntensitiesByRandomWalk(const IndividualCollection* const IC,bool sumlogrho);
+
+  void SampleHapMixLambda(const int* SumAncestry, bool sumlogrho) ;
+
   void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
   void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   
@@ -111,20 +111,18 @@ private:
   double sampleForRho();
   void OpenOutputFiles();
   
-  int K;///< number of subpopulations
+  int K;///< number of subpopulations / block states
   std::vector<double> rho;
   std::vector<double> rhoproposal;
   double rhoalpha;
   double rhobeta;
   double rhobeta0;
   double rhobeta1;
-  double rhopriorparams[3];
   std::vector<double> SumLogRho; //ergodic sum of log(rho)
 
-  RhoArguments RhoArgs;
-  RhoPriorArguments RhoPriorArgs;
-  HamiltonianMonteCarlo* RhoSampler;
-  HamiltonianMonteCarlo RhoPriorParamSampler;
+  LambdaArguments HapMixLambdaArgs;
+  LambdaPriorArguments LambdaPriorArgs;
+  HamiltonianMonteCarlo* HapMixLambdaSampler;
   
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
@@ -152,14 +150,10 @@ private:
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);
-  void SampleHapmixRhoPriorParameters();
-  double logLikelihoodRhoPriorParams(double mean, double var, double sumrho, double sumlogrho, double L);
+  void SampleHapmixLambdaPriorParameters();
 
-  static double RhoEnergy(const double* const x, const void* const vargs);
-  static void RhoGradient( const double* const x, const void* const vargs, double* g );
-  static double RhoPriorParamsEnergy(const double* const x, const void* const vargs);
-  static void RhoPriorParamsGradient( const double* const x, const void* const vargs, double* g );
-
+  static double LambdaEnergy(const double* const x, const void* const vargs);
+  static void LambdaGradient( const double* const x, const void* const vargs, double* g );
 
   // UNIMPLEMENTED
   // to avoid use
