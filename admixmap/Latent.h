@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   Latent.h 
  *   header file for Latent class
- *   Copyright (c) 2002-2006 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -48,9 +48,6 @@ typedef struct {
   double beta;
   double beta_shape;
   double beta_rate;
-
-//   double sumrho; // ? necessary
-//   double sumlogrho; // ? necessary
 }LambdaArguments;
 
 ///Struct to hold arguments for sampling hyperparameters of sumintensities in hapmixmodel
@@ -60,7 +57,6 @@ typedef struct {
     //double priormeans[3];
     //double priorvars[3];
   double sumlambda;
-//  double sumlogrho;
 }LambdaPriorArguments;
 
 ///Class to hold and update population admixture and sumintensities parameters and their priors
@@ -108,19 +104,19 @@ public:
   
 private:
   
-  double sampleForRho();
   void OpenOutputFiles();
   
-  int K;///< number of subpopulations / block states
+  int K;///< number of subpopulations
   std::vector<double> rho;
   std::vector<double> rhoproposal;
   double rhoalpha;
   double rhobeta;
   double rhobeta0;
   double rhobeta1;
+//  double rhopriorparams[3];
   std::vector<double> SumLogRho; //ergodic sum of log(rho)
 
-  LambdaArguments HapMixLambdaArgs;
+  LambdaArguments LambdaArgs;
   LambdaPriorArguments LambdaPriorArgs;
   HamiltonianMonteCarlo* HapMixLambdaSampler;
   
@@ -154,6 +150,7 @@ private:
 
   static double LambdaEnergy(const double* const x, const void* const vargs);
   static void LambdaGradient( const double* const x, const void* const vargs, double* g );
+
 
   // UNIMPLEMENTED
   // to avoid use
