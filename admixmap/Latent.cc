@@ -456,8 +456,8 @@ void Latent::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
 void Latent::SampleHapmixLambdaPriorParameters(){
    try{
 //rhoalpha*lengthofGenome = sum of shape parameters in lambda priors
-       const double pshape = rhobeta0 + rhoalpha*Loci->GetLengthOfGenome();
-       const double prate = rhobeta1 + LambdaPriorArgs.sumlambda;
+       const double pshape = HapMixLambdaArgs.beta_shape + HapMixLambdaArgs.h*Loci->GetLengthOfGenome();
+       const double prate = HapMixLambdaArgs.beta_rate + LambdaPriorArgs.sumlambda;
        rhobeta = Rand::gengam(pshape, prate);
        HapMixLambdaArgs.beta = rhobeta;
 
