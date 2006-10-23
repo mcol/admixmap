@@ -1,6 +1,6 @@
 ## script to simulate test data for admixmap
 #######################################################################
-library("combinat")
+#library("combinat")
 
 rDiscrete <- function(p) {
   s <- 0
@@ -35,6 +35,7 @@ simulateAncestry <- function(mu, f, L) {
 
 simulateHaploidAlleles <- function(mu, f, L, Freqs) {
   Anc <- simulateAncestry(mu, f, L)
+##cat(Anc, " ")
   ## Freqs is array S x K x L     
   Alleles <- integer(L)
   for(locus in 1:L) {
@@ -66,10 +67,18 @@ distanceFromLast <- function(v.Chr, v.Position) {
 ## Start of script
 ## chromosome lengths in cM
 #chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-chr.L <- c(20, 20) ## trial runs with 2 chr
-#chr.L <- 40##one longer chromosome
+chr.L <- c(40, 40) ## trial runs with 2 chr
+#chr.L <- 20
 numChr <- length(chr.L)
 
+N <- 100
+K <- 4
+##rhoalpha <-  4 # arrival rate per cM
+rhobeta0 <- 0.1
+rhobeta1 <- 0.1
+##rhobeta <- 0.1
+
+# mean r = rhoalpha*rhobeta1 / (rhobeta0 - 1)
 N <- 100##number of individuals
 K <- 4##number of block states
 rhoalpha <-  40 #    |
@@ -77,7 +86,6 @@ rhobeta0 <- 5 ## prior on rho
 rhobeta1 <- 5##      |
 rhobeta <- rgamma(1, rhobeta0, rhobeta1)
 ## mean r = rhoalpha*rhobeta1 / (rhobeta0 - 1)
-# var =  r (r + 1) / (rhobeta0 - 2) 
 
 spacing <- 0.01 # spacing in cM
 
@@ -97,9 +105,13 @@ for(locus in 1:L) {
   if(is.na(distances[locus])) {
     f[locus] <- 0.0
   } else {
-    ##rhobeta <- rgamma(1, shape=rhobeta0, rate=rhobeta1)
-    rho <- rgamma(1, shape=rhoalpha, rate=rhobeta)
-    f[locus] <- exp(-rho*distances[locus])
+
+    rhoalpha <- 10*distances[locus]	
+    rhobeta <- 0.25##rgamma(1, shape=rhobeta0, rate=rhobeta1)
+    ##rho <- rgamma(1, shape=rhoalpha, rate=rhobeta)
+    ##f[locus] <- exp(-rho*distances[locus])
+    lambda <- rgamma(1, rhoalpha, rhobeta)
+    f[locus] <- exp( -lambda )
   }
 }
 
@@ -107,11 +119,10 @@ for(locus in 1:L) {
 mu <- rep(1/K, K)
 alleleFreqs <- array(data=NA, dim=c(2, K, L))
 
-freqs.shape <- 3
-freqs.rate <- 10
+alpha.shape <- 1
+alpha.rate <- 10
 for(locus in 1:L) {
-freqs.alpha  <- rgamma(1, shape=freqs.shape, rate=freqs.rate) / K
-##  for(state in 1:K) {
+freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 0.1
 ##p <- rep(0, K)
 ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
    p  <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
@@ -124,6 +135,8 @@ allele1.counts <- rep(0, L)
 genotypes <- matrix(data="0,0", nrow=N, ncol=L)
 for(individual in 1:N) {
   g.list <- simulateGenotypes(mu, mu, f, L, alleleFreqs, allele1.counts)
+##  g.list <- simulateHaploidAlleles(mu, f, L, alleleFreqs)		
+
   genotypes[individual, ] <- g.list$genotypes
   allele1.counts <- allele1.counts + g.list$counts
 ##  genotypes[individual, ] <-simulateHaploidAlleles(mu, f, L, alleleFreqs)  
@@ -132,10 +145,13 @@ for(individual in 1:N) {
 ## write genotypes file
 id = as.character(seq(1:N))
 sex <- rep(1, N)##for all males, irrelevant if no X-chromosome
-genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
+##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
+genotypes <- data.frame(id, genotypes, row.names=NULL)
 write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
+
 ## write locus file
 distances[is.na(distances)] <- 100
+##chr.names<-rep("X", L)##all X-chromosome
 
 ##next 2 lines for X-only data
 ##loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-c(1:2)]),  rep(2,L),  distances, rep("X", L), row.names=NULL)
@@ -158,5 +174,8 @@ statelabels <- paste("state", seq(1:K), sep="")
 freqstable <- data.frame(locusnames, freqstable[-1, ])
 dimnames(freqstable)[[2]] <- c("locus", statelabels)
 write.table(freqstable, file="data/allelefreqs.txt", sep="\t", row.names=F)
+
+##priorallelefreqs <- freqstable[seq(1, (dim(freqstable)[[1]]), by=2)]
+##write.table(freqstable+0.5, file="data/priorallelefreqs.txt", sep="\t", row.names=F)
 
   
