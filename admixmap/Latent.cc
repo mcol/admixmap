@@ -99,12 +99,20 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
 	int num_leapfrog_steps = size? (int)lambdasamplerparams[4] : 20;
 	NumberOfUpdates = 0;
 	w = 1;
+
+//set constant args for random walk sampler for h
+	h_args.h_shape = 1000.0;
+	h_args.h_rate = 1.0;
+	h_args.Dlogbeta = Loci->GetLengthOfGenome()*rhobeta;
+	h_args.sum_lngamma_hd = 0.0;
 	
 //Hamiltonian sampler
   	for(unsigned j = 0; j < numIntervals; ++j){
   	  HapMixLambdaSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
   				      target_acceptrate, LambdaEnergy, LambdaGradient);
  	}
+//Random Walk sampler for log h
+	hTuner.SetParameters( 0.01, 0.0001, 1000.0, 0.44);
 	
       }//end sampler initialisation
       //initialise rho vector
@@ -114,6 +122,7 @@ void Latent::Initialise(int Numindividuals, const Vector_s& PopulationLabels, Lo
       for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
 	  ++locus;//skip first locus on each chromosome
 	  for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+	      h_args.sum_lngamma_hd += lngamma(rhoalpha*Loci->GetDistance(locus));
 	      if(initial_lambda >0.0)
 		  rho.push_back(initial_lambda);
 	      else
@@ -370,7 +379,7 @@ void Latent::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bo
 ///samples locus-specific number of arrivals in a hapmixmodel, using Hamiltonian Monte Carlo
 void Latent::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
   //SumAncestry is a (NumberOfCompositeLoci) * 2 array of counts of gametes with ancestry states that are
-  // unequal (element 0) and equal 
+  // unequal (element 0) and equal (element 1)
   //sumlogrho indicates whether to accumulate sums of log rho
 
   //LambdaArgs.theta = globaltheta;
@@ -383,6 +392,7 @@ void Latent::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
     MPE_Log_event(9, 0, "sampleLambda");
 #endif
     LambdaPriorArgs.sumlambda = 0.0;
+    h_args.sum_dloglambda = 0.0;
     try{
       vector<double>::iterator lambda_iter = rho.begin();
       vector<double>::iterator sumloglambda_iter = SumLogRho.begin();
@@ -403,6 +413,7 @@ void Latent::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
 	    *(sumloglambda_iter++) += loglambda;
 	  //accumulate sums, used to sample beta
 	  LambdaPriorArgs.sumlambda += *lambda_iter;
+	  h_args.sum_dloglambda += Loci->GetDistance(locus)*loglambda;
 
 	  ++locus;
 	  ++lambda_iter;
@@ -442,38 +453,75 @@ void Latent::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
 
 void Latent::SampleHapmixLambdaPriorParameters(){
    try{
+//sample h component of lambda shape parameter, using random walk
+       const double h = rhoalpha;
+       const double logh = log(h);
+       const double logproposal = Rand::gennor(logh, hTuner.getStepSize());
+       const double proposal = exp(logproposal);
+
+       double logLikelihoodRatio = (proposal - h)*(h_args.Dlogbeta + h_args.sum_dloglambda - h_args.h_rate) + (h_args.h_shape - 1.0)*(logproposal - logh) + h_args.sum_lngamma_hd;
+       double sum = 0.0;
+       int locus = 0;
+       for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+	   ++locus;//skip first locus on each chromosome
+	   for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+	       sum += lngamma(proposal*Loci->GetDistance(locus));
+	   }
+	   ++locus;
+       }
+       logLikelihoodRatio -= sum;
+       double logPriorRatio = (h_args.h_shape)*(logproposal - logh) - h_args.h_rate*(proposal - h);
+//accept/reject step
+       const double LogAccProbRatio = logLikelihoodRatio + logPriorRatio;
+       bool accept = false;
+       if( (LogAccProbRatio) < 0 ) {
+	   if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
+       } else accept = true;  
+       
+       if(accept){
+	   rhoalpha = LambdaArgs.h = proposal;
+	   h_args.sum_lngamma_hd = sum;//to save recalculating every time
+       }
+      //update sampler object every w updates
+      //if( !( NumberOfUpdates % w ) ){
+       hTuner.UpdateStepSize( exp(LogAccProbRatio) );  
+	//}
+
+
+//sample rate parameter with conjugate update
        const double pshape = LambdaArgs.beta_shape + LambdaArgs.h*Loci->GetLengthOfGenome();
        const double prate = LambdaArgs.beta_rate + LambdaPriorArgs.sumlambda;
        rhobeta = Rand::gengam(pshape, prate);
        LambdaArgs.beta = rhobeta;
-
+       h_args.Dlogbeta = Loci->GetLengthOfGenome()*rhobeta;
    }
    catch(string s){
      string err = "Error encountered while sampling lambda prior params:\n" + s;
      throw(err);
    }
-  
+
 }
+
 
 ///energy function for sampling locus-specific lambda, expected #arrivals
 ///conditional on locus ancestry and gamma prior params 
 double Latent::LambdaEnergy(const double* const x, const void* const vargs){
-  //x is log rho
+  //x is log lambda
   const LambdaArguments* args = (const LambdaArguments*)vargs;
   unsigned K = args->NumPops;
   const double d = args->Distance;
   double theta = 1.0 / (double)K;
   double E = 0.0;
   try {
-    double rho = myexp(*x);
-    double f = myexp(-rho);
+    double lambda = myexp(*x);
+    double f = myexp(-lambda);
     int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
     double probequal = theta + f*(1.0 - theta);
     E -= sumnotequal * log(1.0-probequal);//constant term in log(1-theta) omitted
     E -= sumequal * log(probequal);
 
-    // log unnormalized gamma prior on log rho
-    E -= args->h*d * (*x) - args->beta * rho;
+    // log unnormalized gamma prior on log lambda
+    E -= args->h*d * (*x) - args->beta * lambda;
   } catch(string s){
     throw string("Error in LambdaEnergy: " + s);
   }
@@ -489,17 +537,17 @@ void Latent::LambdaGradient( const double* const x, const void* const vargs, dou
   double theta = 1.0 / (double)K;
   g[0] = 0.0;
   try {
-    double rho = myexp(*x);
-    double f = myexp(-rho);
-    //first compute dE / df
+    double lambda = myexp(*x);
+    double f = myexp(-lambda);
+    //first compute dE / dprobequal
     int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
     double probequal = theta + f*(1.0 - theta);
 
-    g[0] +=  sumnotequal / (1.0 - probequal) - sumequal / probequal;//dprobequal / df
-    g[0] *= -rho*d*f*(1.0-theta); // dprobequal / df * df / dx 
+    g[0] +=  sumnotequal / (1.0 - probequal) - sumequal / probequal;//dE / dprobequal
+    g[0] *= -lambda*f*(1.0-theta); // dprobequal / df * df / dlambda * dlambda / dx 
     
-    //derivative of minus log prior wrt log rho
-    g[0] -= args->h*d  - args->beta * rho;
+    //derivative of minus log prior wrt log lambda
+    g[0] -= args->h*d  - args->beta * lambda;
 
   } catch(string s) {
     throw string("Error in LambdaGradient: " + s);
@@ -654,16 +702,18 @@ void Latent::printAcceptanceRates(LogWriter &Log) {
 	av += HapMixLambdaSampler[j].getAcceptanceRate();
     }
     Log << "Average Expected acceptance rate in sumintensities samplers: "
-	<< av / (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes());
+	<< av / (double)(rho.size());
 
     av = 0;//average stepsize
     for(unsigned j = 0; j < rho.size(); ++j){
       av += HapMixLambdaSampler[j].getStepsize();
-      if(isnan(HapMixLambdaSampler[j].getStepsize()))cout << j << " " << HapMixLambdaSampler[j].getStepsize() << " " << HapMixLambdaSampler[j].getAcceptanceRate() << endl;  
+      //if(isnan(HapMixLambdaSampler[j].getStepsize()))cout << j << " " << HapMixLambdaSampler[j].getStepsize() << " " << HapMixLambdaSampler[j].getAcceptanceRate() << endl;  
     }
     Log << "\nwith average final step size of "
-	<< av / (double)(Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes())
+	<< av / (double)(rho.size())
 	<< "\n";
+    Log << "Expected acceptance rate in h sampler: " << hTuner.getExpectedAcceptanceRate()
+	<< "\nwith final step size of " << hTuner.getStepSize() << "\n";
 
   }
   else if( options->isGlobalRho() ){

@@ -119,7 +119,15 @@ private:
   LambdaArguments LambdaArgs;
   LambdaPriorArguments LambdaPriorArgs;
   HamiltonianMonteCarlo* HapMixLambdaSampler;
-  
+    struct{
+	double sum_lngamma_hd;
+	double sum_dloglambda;
+	double Dlogbeta;
+	double h_shape;///h has gamma prior with this shape
+	double h_rate;///and this rate
+    }h_args;
+    StepSizeTuner hTuner;  
+
   //RWM sampler for global rho
   StepSizeTuner TuneRhoSampler;
   int w, NumberOfUpdates;
