@@ -102,14 +102,9 @@ private:
   LambdaArguments LambdaArgs;
   LambdaPriorArguments LambdaPriorArgs;
   HamiltonianMonteCarlo* HapMixLambdaSampler;
-    struct{
-	double sum_lngamma_hd;
-	double sum_dloglambda;
-	double Dlogbeta;
-	double h_shape;///h has gamma prior with this shape
-	double h_rate;///and this rate
-    }h_args;
-    StepSizeTuner hTuner;  
+  h_args hargs;
+  StepSizeTuner hTuner;  
+  AdaptiveRejection hARS;
 
   double* globaltheta;//global admixture proportions in a hapmixmodel
   //double* globalthetaproposal;//for random walk update
@@ -119,7 +114,9 @@ private:
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);
-  void SampleHapmixLambdaPriorParameters();
+  void SampleRateParameter();
+  void Sampleh_RandomWalk();
+  void Sampleh_ARS();
 
   static double LambdaEnergy(const double* const x, const void* const vargs);
   static void LambdaGradient( const double* const x, const void* const vargs, double* g );

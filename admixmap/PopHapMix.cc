@@ -48,10 +48,9 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
     //set priors
     const vector<double>& priorparams = options->getHapMixLambdaPrior();
     
-    LambdaArgs.h = priorparams[0]; // h
-    LambdaArgs.beta_shape = priorparams[1];
-    LambdaArgs.beta_rate = priorparams[2];
-    LambdaArgs.beta = priorparams[1]/priorparams[2];//initialise beta at prior mean
+    LambdaArgs.beta_shape = priorparams[2];
+    LambdaArgs.beta_rate = priorparams[3];
+    LambdaArgs.beta = priorparams[2]/priorparams[3];//initialise beta at prior mean
     
     unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
     if(Comms::isMaster()){
@@ -69,10 +68,11 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
       int num_leapfrog_steps = size? (int)lambdasamplerparams[4] : 20;
       
       //set constant args for random walk sampler for h
-      h_args.h_shape = 1000.0;
-      h_args.h_rate = 1.0;
-      h_args.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
-      h_args.sum_lngamma_hd = 0.0;
+      hargs.shape = priorparams[0];
+      hargs.rate = priorparams[1];
+      hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
+      hargs.sum_lngamma_hd = 0.0;
+      LambdaArgs.h = hargs.shape / hargs.rate; // initialise h at prior mean 
       
       //Hamiltonian sampler
       for(unsigned j = 0; j < numIntervals; ++j){
@@ -80,7 +80,11 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
 					     target_acceptrate, LambdaEnergy, LambdaGradient);
       }
       //Random Walk sampler for log h
-      hTuner.SetParameters( 0.01, 0.0001, 1000.0, 0.44);
+      //hTuner.SetParameters( 0.01, 0.0001, 1000.0, 0.44);
+
+      //Adaptive rejection sampler for h
+      //Note: ARS tends to crash if only bounded below so bounding above at very large value. The bounds could be tightened if an approximate range is known
+      hARS.Initialise(true, true, 1000000.0/*<- upper bound*/, 10.0/*<-lower bound*/, hlogf, hdlogf);
       
     }//end sampler initialisation
     //initialise lambda vector
@@ -89,7 +93,7 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
       ++locus;//skip first locus on each chromosome
       for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
-	h_args.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci->GetDistance(locus));
+	hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci->GetDistance(locus));
 	if(initial_lambda >0.0)
 	  lambda.push_back(initial_lambda);
 	else
@@ -148,7 +152,7 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
     MPE_Log_event(9, 0, "sampleLambda");
 #endif
     LambdaPriorArgs.sumlambda = 0.0;
-    h_args.sum_dloglambda = 0.0;
+    hargs.sum_dloglambda = 0.0;
     try{
       vector<double>::iterator lambda_iter = lambda.begin();
       vector<double>::iterator sumloglambda_iter = SumLogLambda.begin();
@@ -169,7 +173,7 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
 	    *(sumloglambda_iter++) += loglambda;
 	  //accumulate sums, used to sample beta
 	  LambdaPriorArgs.sumlambda += *lambda_iter;
-	  h_args.sum_dloglambda += Loci->GetDistance(locus)*loglambda;
+	  hargs.sum_dloglambda += Loci->GetDistance(locus)*loglambda;
 
 	  ++locus;
 	  ++lambda_iter;
@@ -203,60 +207,78 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
       }
     }
   if(Comms::isMaster()){
-      SampleHapmixLambdaPriorParameters();
+    //SamplehRandomWalk();
+    Sampleh_ARS();
+    SampleRateParameter();
   }
 }
 
-void PopHapMix::SampleHapmixLambdaPriorParameters(){
+void PopHapMix::Sampleh_RandomWalk(){
    try{
 //sample h component of lambda shape parameter, using random walk
-       const double h = LambdaArgs.h;
-       const double logh = log(h);
-       const double logproposal = Rand::gennor(logh, hTuner.getStepSize());
-       const double proposal = exp(logproposal);
-
-       double logLikelihoodRatio = (proposal - h)*(h_args.Dlogbeta + h_args.sum_dloglambda) + h_args.sum_lngamma_hd;
-       double sum = 0.0;
-       int locus = 0;
-       for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-	   ++locus;//skip first locus on each chromosome
-	   for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+     const double h = LambdaArgs.h;
+     const double logh = log(h);
+     const double logproposal = Rand::gennor(logh, hTuner.getStepSize());
+     const double proposal = exp(logproposal);
+     
+     double logLikelihoodRatio = (proposal - h)*(hargs.Dlogbeta + hargs.sum_dloglambda) + hargs.sum_lngamma_hd;
+     double sum = 0.0;
+     int locus = 0;
+     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+       ++locus;//skip first locus on each chromosome
+       for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
 	       sum += lngamma(proposal*Loci->GetDistance(locus));
-	   }
-	   ++locus;
        }
-       logLikelihoodRatio -= sum;
-       double logPriorRatio = (h_args.h_shape)*(logproposal - logh) - h_args.h_rate*(proposal - h);
-//accept/reject step
-       const double LogAccProbRatio = logLikelihoodRatio + logPriorRatio;
-       bool accept = false;
-       if( (LogAccProbRatio) < 0 ) {
-	   if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
-       } else accept = true;  
-       
-       if(accept){
-	   LambdaArgs.h = proposal;
-	   h_args.sum_lngamma_hd = sum;//to save recalculating every time
-       }
-      //update sampler object every w updates
-      //if( !( NumberOfUpdates % w ) ){
-       hTuner.UpdateStepSize( exp(LogAccProbRatio) );  
-	//}
+       ++locus;
+     }
+     logLikelihoodRatio -= sum;
+     double logPriorRatio = (hargs.shape)*(logproposal - logh) - hargs.rate*(proposal - h);
+     //accept/reject step
+     const double LogAccProbRatio = logLikelihoodRatio + logPriorRatio;
+     bool accept = false;
+     if( (LogAccProbRatio) < 0 ) {
+       if( log(Rand::myrand()) < LogAccProbRatio ) accept = true;
+     } else accept = true;  
+     
+     if(accept){
+       LambdaArgs.h = proposal;
+       hargs.sum_lngamma_hd = sum;//to save recalculating every time
+     }
+     //update sampler object every w updates
+     //if( !( NumberOfUpdates % w ) ){
+     hTuner.UpdateStepSize( exp(LogAccProbRatio) );  
+     //}
+   }
+   catch(string s){
+     string err = "Error encountered while sampling h in lambda prior:\n" + s;
+     throw(err);
+   }
+}
 
+void PopHapMix::Sampleh_ARS(){
+  try{
+    LambdaArgs.h = hARS.Sample(&hargs, hd2logf);
+  }
+   catch(string s){
+     string err = "Error encountered while sampling h in lambda prior:\n" + s;
+     throw(err);
+   }
+}
 
+void PopHapMix::SampleRateParameter(){
+  try{
 //sample rate parameter with conjugate update
        const double pshape = LambdaArgs.beta_shape + LambdaArgs.h*Loci->GetLengthOfGenome();
        const double prate = LambdaArgs.beta_rate + LambdaPriorArgs.sumlambda;
        LambdaArgs.beta = Rand::gengam(pshape, prate);
-       h_args.Dlogbeta = Loci->GetLengthOfGenome()*LambdaArgs.beta;
+       hargs.Dlogbeta = Loci->GetLengthOfGenome()*LambdaArgs.beta;
    }
    catch(string s){
-     string err = "Error encountered while sampling lambda prior params:\n" + s;
+     string err = "Error encountered while sampling lambda rate parameter:\n" + s;
      throw(err);
    }
 
 }
-
 
 ///energy function for sampling locus-specific lambda, expected #arrivals
 ///conditional on locus ancestry and gamma prior params 
@@ -307,6 +329,55 @@ void PopHapMix::LambdaGradient( const double* const x, const void* const vargs, 
   } catch(string s) {
     throw string("Error in LambdaGradient: " + s);
   }
+}
+
+//log posterior for h
+double PopHapMix::hlogf(double h, const void* const vargs){
+  const h_args* const args = (const h_args* const)vargs;
+  double sum = 0.0;
+  double loglikelihood = 0.0;
+  double logprior = 0.0;
+  try{
+    for(unsigned j = 0; j < args->NumIntervals; ++j){
+      sum += lngamma(h*args->distances[j]);
+    }
+    loglikelihood = h*(args->Dlogbeta + args->sum_dloglambda) - sum;
+    logprior = (args->shape-1.0)*log(h) - args->rate*h;
+  }
+  catch(std::string s){
+    throw(s);
+  }
+  return loglikelihood + logprior;
+}
+
+//derivative of log posterior
+double PopHapMix::hdlogf(double h, const void* const vargs){
+  const h_args* const args = (const h_args* const)vargs;
+  double sum = 0.0;
+  try{
+    for(unsigned j = 0; j < args->NumIntervals; ++j){
+      sum += args->distances[j]*digamma(h*args->distances[j]);
+    }
+  }
+  catch(std::string s){
+    throw(s);
+  }
+  return (args->Dlogbeta + args->sum_dloglambda) - sum + (args->shape-1.0)/h - args->rate;
+}
+
+//second derivative of log posterior
+double PopHapMix::hd2logf(double h, const void* const vargs){
+  const h_args* const args = (const h_args* const)vargs;
+  double sum = 0.0;
+  try{
+    for(unsigned j = 0; j < args->NumIntervals; ++j){
+      sum += args->distances[j]*args->distances[j]*trigamma(h*args->distances[j]);
+    }
+  }
+  catch(std::string s){
+    throw(s);
+  }
+  return  -sum - (args->shape-1.0)/(h*h);
 }
 
 void PopHapMix::InitializeOutputFile(const Vector_s& ) {
