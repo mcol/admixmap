@@ -30,13 +30,12 @@ static double convertValueFromFile(const string s){
   return d;
 }
 
-AlleleFreqs::AlleleFreqs(Genome *pLoci, unsigned K){
+AlleleFreqs::AlleleFreqs(){
   eta = 0;
   psi = 0;
   tau = 0; 
   SumEta = 0;
   psi0 = 0.0;
-  Populations = K;
   RandomAlleleFreqs = false;
   IsHistoricAlleleFreq = false;
   CorrelatedAlleleFreqs = false;
@@ -53,7 +52,6 @@ AlleleFreqs::AlleleFreqs(Genome *pLoci, unsigned K){
   Fst = 0;
   SumFst = 0;
   calculateFST = false;
-  Loci = pLoci;
   MuProposal = 0;
   TuneEtaSampler = 0;
   w = 1; // frequency of tuning sampler
@@ -126,8 +124,10 @@ if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs ) {
 
 // ************** Initialisation and loading of data  *******************
 
-void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data, LogWriter &Log){
+void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log ){
   //initialise Freqs, PriorAlleleFreqs, HistoricAlleleFreqs etc
+  Loci = pLoci;
+  Populations = options->getPopulations();
   LoadAlleleFreqs(options, data);
   Log.setDisplayMode(On);
   //open allelefreqoutputfile
@@ -139,6 +139,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   // current version uses conjugate sampler if annealing without thermo integration
   if( options->getHapMixModelIndicator() ||
       (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
+      //using default allele freqs or CAF model
       ( !strlen(options->getAlleleFreqFilename()) &&
 	!strlen(options->getHistoricalAlleleFreqFilename()) && 
 	!strlen(options->getPriorAlleleFreqFilename()) && 
@@ -246,12 +247,12 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       muSampler = new MuSampler[dim*NumberOfCompositeLoci]; // 
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
 	for(int k = 0; k < Populations; ++k)
-	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.0, 10.0, 0.9);
+	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.000001, 10.0, 0.9);
     } else {//correlated allele freq model
       muSampler = new MuSampler[NumberOfCompositeLoci];
 
       for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.0, 10.0, 0.9);
+	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.00001, 10.0, 0.9);
 
       if(ETASAMPLER==2) {
 	EtaSampler = new DispersionSampler[dim];

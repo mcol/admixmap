@@ -24,20 +24,12 @@ StratificationTest::StratificationTest()
    count = 0;
    T = 0;
 }
-StratificationTest::StratificationTest(const char* filename, LogWriter &Log)
-{
-   NumberOfTestLoci = 0;
-   count = 0;
-   T = 0;
-   if(strlen(filename))
-     OpenOutputFile(filename, Log);
-}
-
 void StratificationTest::Initialize( AdmixOptions* const options, const Genome &Loci,  
 				     const IndividualCollection* const IC, LogWriter &Log )
 {
   Log.setDisplayMode(Quiet);
   if(options->getStratificationTest() ){
+
     //float DistanceFromLast = 0;
     //OLD CODE
 //     for(unsigned int j = 0; j < Loci.GetNumberOfCompositeLoci(); j++ ){

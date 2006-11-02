@@ -26,10 +26,10 @@ class StratificationTest
 {
 public:
   StratificationTest();
-  StratificationTest(const char* filename, LogWriter &Log);
   
   void Initialize( AdmixOptions* const options, const Genome &Loci,  
 		   const IndividualCollection* const IC, LogWriter &Log);
+  void OpenOutputFile( const char * , LogWriter &);
 
   void calculate( const IndividualCollection* const individuals, const array_of_allelefreqs& AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );
@@ -44,9 +44,7 @@ private:
   bool ModelIndicator;
   std::ofstream outputstream;
 
-  void OpenOutputFile( const char * , LogWriter &);
-
-  std::vector<double>
+   std::vector<double>
   GenerateExpectedGenotype( const Individual* const, const double*, const int  );
 
   std::vector<unsigned short>

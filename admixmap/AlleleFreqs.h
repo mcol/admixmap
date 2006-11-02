@@ -145,9 +145,9 @@ typedef struct{
 class AlleleFreqs{
 
 public:
-  AlleleFreqs(Genome *pLoci, unsigned K);
+  AlleleFreqs();
   ~AlleleFreqs();
-  void Initialise(AdmixOptions* const options, InputData* const Data, LogWriter &Log);
+  void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
   ///update using Hamiltonian Sampler
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
