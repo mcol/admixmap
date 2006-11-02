@@ -164,7 +164,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       //      HapMixPriorRatePriorShape = 100.0;
       //HapMixPriorRatePriorRate = 1.0;
       }
-    HapMixPriorRate = 100;//HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
+    HapMixPriorRate = 10;//HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
     Log << "Dirichlet prior on allele frequencies. ";
     Log << "Gamma prior on Dirichlet parameters with shape " << HapMixPriorShape << " and rate " << HapMixPriorRate << ".\n";
       //" and Gamma( " << HapMixPriorRatePriorShape << ", " << HapMixPriorRatePriorRate << " ) prior on rate.\n"; 
@@ -183,7 +183,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 						      PriorParams[i], false));
       }
       if(options->getHapMixModelIndicator()){
-	HapMixPriorParams[i] = (HapMixPriorShape / HapMixPriorRate) / (double)Populations;//set dispersion to prior mean
+	HapMixPriorParams[i] = (HapMixPriorShape / HapMixPriorRate) / 2.0;//set dispersion to prior mean
 	HapMixPriorParamSampler[i].SetParameters(0.1, 0.00001, 100.0, 0.26);
       }
 
@@ -760,7 +760,7 @@ void AlleleFreqs::SampleHapMixPriorParams(){
   for( int locus = 0; locus < NumberOfCompositeLoci; ++locus ){
     double LogLikelihoodRatio = 0.0, LogPriorRatio = 0.0;
     const double step = HapMixPriorParamSampler[locus].getStepSize();
-    const double current = HapMixPriorParams[locus]*Populations;
+    const double current = HapMixPriorParams[locus]*2.0;
     const double logcurrent = log(current);
     const double proposal = exp(Rand::gennor(logcurrent, step));
     const int NumberOfStates = Loci->GetNumberOfStates(locus);
@@ -781,7 +781,7 @@ void AlleleFreqs::SampleHapMixPriorParams(){
       LogLikelihoodRatio += (sumlogfreqs / S) * (proposal - current );
       const double LogAcceptratio = LogLikelihoodRatio + LogPriorRatio;
       if( log(Rand::myrand()) < LogAcceptratio ){
-	HapMixPriorParams[locus] = proposal / K;
+	HapMixPriorParams[locus] = proposal / 2.0;
 	HapMixPriorParamSampler[locus].UpdateStepSize( exp(LogAcceptratio)  );//update stepsize
       }
       //}
@@ -1236,14 +1236,14 @@ void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
       sum += HapMixPriorParams[j];
       sumsq += HapMixPriorParams[j] *HapMixPriorParams[j];
     }
-    const double K = (double)Populations;
-    sum *= K;
-    sumsq *= K*K;
+   
+    sum *= 2.0;
+    sumsq *= 4.0;
     
     double mean = sum / (double) L;
     double var = sumsq / (double)L - mean*mean;
     os << mean << "\t" << var << /*"\t" << HapMixPriorRate <<*/ endl;
-    if(tofile && allelefreqprioroutput.is_open())allelefreqprioroutput << mean << "\t" << var << /*"\t" << HapMixPriorRate <<*/ endl;
+    if(tofile && allelefreqprioroutput.is_open())allelefreqprioroutput << mean << "\t" << var << "\t" /*<< HapMixPriorRate << "\t"*/;
   }
 }
 void AlleleFreqs::CloseOutputFile(int iterations, const Vector_s& PopulationLabels)
