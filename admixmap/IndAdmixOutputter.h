@@ -6,7 +6,7 @@
 #include "IndividualCollection.h"
 #include "AdmixOptions.h"
 #include "Genome.h"
-#include "Latent.h"
+#include "Population.h"
 
 #include <vector>
 #include <iostream>
