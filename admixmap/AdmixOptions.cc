@@ -16,7 +16,7 @@
 #include <string.h>
 #include <sstream>
 #include <numeric> // for checkInitAlpha
-#include "Latent.h"// for POPADMIXSAMPLER
+
 
 using namespace std;
 
