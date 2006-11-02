@@ -54,6 +54,7 @@ ScoreTests::ScoreTests(){
   worker_rank = Comms::getWorkerRank();
   NumWorkers = Comms::getNumWorkers();
   dim_ = 0;
+  NumOutputs = 0;
 }
 
 ScoreTests::~ScoreTests(){
@@ -97,7 +98,7 @@ ScoreTests::~ScoreTests(){
   if(ScoreWithinHaplotype){
     for(unsigned j = 0; j < Lociptr->GetNumberOfCompositeLoci(); ++j){
       int NumberOfLoci = Lociptr->getNumberOfLoci(j);
-      if( NumberOfLoci >1){
+      if( ScoreWithinHaplotype[j]){
 	//free_matrix(ScoreWithinHaplotype[j], NumberOfLoci);
 	//free_matrix(InfoWithinHaplotype[j], NumberOfLoci);
 
@@ -271,6 +272,10 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
 	}
 	  
       }
+      else{
+	ScoreWithinHaplotype[ j ] = 0;
+	InfoWithinHaplotype[ j ] = 0;
+      }
     }//end loop over loci
 #ifdef PARALLEL
     Comms::SetDoubleWorkspace(max(dimalleleinfo, dimhapinfo), rank==0);
@@ -323,7 +328,7 @@ void ScoreTests::Reset(){
       fill(LocusLinkageAlleleInfo[j], LocusLinkageAlleleInfo[j]+(dim_[j]+K)*(dim_[j]+K), 0.0);
 	    
 #ifndef PARALLEL
-      if((* Lociptr)(j)->GetNumberOfLoci() > 1 ){
+      if( Lociptr->getNumberOfLoci(j) > 1 ){
 	for(int jj = 0; jj < (* Lociptr)(j)->GetNumberOfLoci(); ++jj){
 	  fill(ScoreWithinHaplotype[j][jj], ScoreWithinHaplotype[j][jj]+K+1, 0.0);
 	  fill(InfoWithinHaplotype[j][jj], InfoWithinHaplotype[j][jj]+(K+1)*(K+1), 0.0);

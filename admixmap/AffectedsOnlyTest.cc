@@ -23,6 +23,7 @@ AffectedsOnlyTest::AffectedsOnlyTest(){
   SumAffectedsScore2 = 0;
   SumAffectedsInfo = 0;
   SumAffectedsVarScore = 0;
+  test=false;
 }
 
 AffectedsOnlyTest::~AffectedsOnlyTest(){

@@ -17,6 +17,7 @@ HWTest::HWTest(){
   NumInd = 0;
   NumLoci = 0;
   samples  = 0;
+  test=false;
 }
 
 HWTest::~HWTest(){

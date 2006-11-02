@@ -24,6 +24,7 @@ AdmixtureAssocTest::AdmixtureAssocTest(){
   SumInfo = 0;
   NumPopulations = 0;
   NumOutcomeVars = 0;
+  test=false;
 }
 AdmixtureAssocTest::~AdmixtureAssocTest(){
   //delete arrays for admixture assoc score test

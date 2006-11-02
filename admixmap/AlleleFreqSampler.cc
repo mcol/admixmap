@@ -33,6 +33,7 @@ AlleleFreqSampler::AlleleFreqSampler(unsigned NumStates, unsigned NumPops,
   int numleapfrogsteps = 5; // 10;
   Args.PriorParams = Prior;
   ishapmixmodel = hapmixmodel;
+  params = 0;
 
   if(NumStates == 2){//case of SNP
     if(NumPops>1){
