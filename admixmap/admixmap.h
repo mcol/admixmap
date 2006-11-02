@@ -20,7 +20,8 @@
 #include <string.h>    /* for strcmp, strcpy */
 #include <string>
 #include "common.h"
-#include "Latent.h"
+#include "PopAdmix.h"
+#include "PopHapMix.h"
 #include "regression/LinearRegression.h"
 #include "regression/LogisticRegression.h"
 #include "regression/CoxRegression.h"
@@ -34,5 +35,98 @@
 #include "ScoreTests.h"
 #include "MisSpecAlleleFreqTest.h"
 #include "HWTest.h"
+#include "Comms.h"
+
+void MakeResultsDir(const char* dirname, bool verbose);
+
+void WriteIterationNumber(const int iteration, const int width, int displayLevel);
+
+void PrintCopyrightNotice(LogWriter & Log); 
+
+void PrintOptionsMessage();
+void ThrowException(const string& msg, LogWriter & Log);
+
+///Abstract base class for model used in ADMIXMAP. 
+///Currently, there are two derived classes: AdmixMapModel (admixture mapping) and HapMixModel (haplotype mixture model)
+class Model{
+ public:
+
+  Model();
+  virtual ~Model();
+  virtual void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+	       AdmixOptions & options, InputData & data, const Genome & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+	       double& logz, bool AnnealedRun, ofstream & loglikelihoodfile);
+
+  virtual void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log) = 0;
+  virtual void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
+		       LogWriter& Log) = 0;
+  virtual void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
+				const Vector_s& PopLabels, const Vector_s& CovariateLabels) = 0;
+  void ResetStepSizeApproximators(int resetk);
+  virtual void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log) = 0;
+
+  const Population* getPopulation(){return L;};
+  std::vector<Regression*>& getRegression(){return R;};
+  unsigned getNumIndividuals()const{return IC->getSize();}; 
+  double* getSumEnergy()const{return IC->getSumEnergy();};
+  double* getSumEnergySq()const{return IC->getSumEnergySq();}; 
+  double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log);
+  void getOnePopOneIndLogLikelihood(LogWriter& Log, const std::vector<std::string>& PopLabels){IC->getOnePopOneIndLogLikelihood(Log, PopLabels);};
+  virtual void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci)=0 ;
+
+ protected:
+
+  virtual void UpdateParameters(int iteration, const AdmixOptions *options, 
+			const Genome *Loci, LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal) = 0;
+  virtual void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log) = 0;
+
+  void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq);
+
+  IndividualCollection *IC;
+  Population* L;
+  AlleleFreqs A;
+  vector<Regression*> R;//vector of regression pointers
+
+  std::ofstream avgstream; //output to ErgodicAverageFile
+  StratificationTest StratTest;
+  DispersionTest DispTest;
+  MisSpecAlleleFreqTest AlleleFreqTest;
+  HWTest HWtest;
+  ScoreTests Scoretests;
+ private:
+
+};
+
+class AdmixMapModel : public Model{
+public:
+  void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log);
+  void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
+		       LogWriter& Log);
+  void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log);
+  void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci) ;
+
+private:
+  void UpdateParameters(int iteration, const AdmixOptions *options, 
+			const Genome *Loci, LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
+  void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
+  void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
+				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
+
+};
+class HapMixModel : public Model{
+public:
+  void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log);
+  void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
+		       LogWriter& Log);
+  void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log);
+  void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci) ;
+private:
+  void UpdateParameters(int iteration, const AdmixOptions *options, 
+			const Genome *Loci, LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
+  void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
+  void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
+				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
+};
+
 
 #endif /* ADMIXMAP_H */
