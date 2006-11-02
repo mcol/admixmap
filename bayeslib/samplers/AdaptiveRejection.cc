@@ -290,10 +290,7 @@ void AdaptiveRejection::InitialisePoints(double x[3], const void* const args){
 void AdaptiveRejection::SamplePoint(const void* const args){
   //sample from standard uniform
   double u = Rand::myrand();
-#if DEBUG ==1
-  cout<<"Sampled u = "<<u<<endl;;
-#endif
-  
+
   //compute areas under tangents and hence interval probabilities
   //possibly wasteful to redo all each time
   double sum = 0.0;
@@ -316,15 +313,15 @@ void AdaptiveRejection::SamplePoint(const void* const args){
     if(u > Points[i].cumarea)++pos;
   }
   //new point lies between z[pos-1] and z[pos] ie same interval as x[pos]
-
 #if DEBUG ==1
-  cout<<"pos = "<<pos<<endl;
   cout<<"x         boundary  Area    Cum.Area  height  gradient"<<endl;
   for(unsigned i = 0; i < K; ++i){
     cout<<Points[i].abscissa<<"  "<<Points[i].z<<"  "<<Points[i].area<<"  "<<Points[i].cumarea<<"  "<<Points[i].height<<"  "<<Points[i].gradient<<endl;
   }
+  cout<<"Sampled u = "<<u<<endl;;
+  cout<<"pos = "<<pos<<endl;
 #endif
-  
+
   //transform from u to xnew
   bool lower = pos > 0 || hasLowerBound;
   upper = pos < K-1 || hasUpperBound;
@@ -426,7 +423,7 @@ double AdaptiveRejection::TangentIntersection(double x0, double x1, double h0, d
     throw err.str();
   }
   double ret = (h1 - h0 - x1*g1 + x0*g0) / (g0 - g1);
-  if(ret < LowerBound || ret > UpperBound)throw string("point out of bounds in AdaptiveRejection::TangentIntersection");
+  if(ret < x0 || ret > x1)throw string("point out of bounds in AdaptiveRejection::TangentIntersection");
   return ret;
 }
 
