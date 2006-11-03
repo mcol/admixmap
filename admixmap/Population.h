@@ -67,12 +67,14 @@ public:
   //functions specif to PopulationHapMix
   virtual const double* getGlobalTheta()const = 0;
   virtual void SampleHapMixLambda(const int* , bool )  = 0;
+    virtual void OutputLambda(const char*) const = 0;
 
   //functions specific to PopulationAdmixmap
   virtual void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta) = 0;
   virtual void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log) = 0;
   virtual void resetStepSizeApproximator(int k) = 0; 
   virtual const double *getpoptheta()const = 0;
+
 
 protected:
   void OpenOutputFiles();

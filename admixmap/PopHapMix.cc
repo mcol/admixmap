@@ -67,11 +67,13 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
       float target_acceptrate = size? lambdasamplerparams[3] : 0.9;
       int num_leapfrog_steps = size? (int)lambdasamplerparams[4] : 20;
       
-      //set constant args for random walk sampler for h
+      //set constant args for sampler for h
       hargs.shape = priorparams[0];
       hargs.rate = priorparams[1];
       hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
       hargs.sum_lngamma_hd = 0.0;
+      hargs.NumIntervals = numIntervals;
+      hargs.distances = new double[numIntervals];
       LambdaArgs.h = hargs.shape / hargs.rate; // initialise h at prior mean 
       
       //Hamiltonian sampler
@@ -84,16 +86,18 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
 
       //Adaptive rejection sampler for h
       //Note: ARS tends to crash if only bounded below so bounding above at very large value. The bounds could be tightened if an approximate range is known
-      hARS.Initialise(true, true, 1000000.0/*<- upper bound*/, 10.0/*<-lower bound*/, hlogf, hdlogf);
+      hARS.Initialise(false, true, 1000000.0/*<- upper bound*/, 10.0/*<-lower bound*/, hlogf, hdlogf);
       
     }//end sampler initialisation
     //initialise lambda vector
     int locus = 0;
+    int d = 0;
     const double initial_lambda = options->getInitialHapMixLambda();
     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
       ++locus;//skip first locus on each chromosome
       for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
 	hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci->GetDistance(locus));
+	hargs.distances[d++] = Loci->GetDistance(locus);
 	if(initial_lambda >0.0)
 	  lambda.push_back(initial_lambda);
 	else
@@ -383,7 +387,7 @@ double PopHapMix::hd2logf(double h, const void* const vargs){
 void PopHapMix::InitializeOutputFile(const Vector_s& ) {
   if(Comms::isMaster()){
     // Header line of paramfile
-    outputstream << "LambdaIntensities.Mean\tLambda.Variance\th\tbeta";
+    outputstream << "Lambda.Mean\tLambda.Variance\th\tbeta";
     outputstream << endl;
   }
 }
@@ -449,7 +453,24 @@ void PopHapMix::printAcceptanceRates(LogWriter &Log) {
   Log << "\nwith average final step size of "
       << av / (double)(lambda.size())
       << "\n";
-  Log << "Expected acceptance rate in h sampler: " << hTuner.getExpectedAcceptanceRate()
-      << "\nwith final step size of " << hTuner.getStepSize() << "\n";
+//   Log << "Expected acceptance rate in h sampler: " << hTuner.getExpectedAcceptanceRate()
+//       << "\nwith final step size of " << hTuner.getStepSize() << "\n";
   
+}
+void PopHapMix::OutputLambda(const char* filename)const{
+    ofstream outfile(filename);
+//     int locus = 0;
+//     vector<double>::const_iterator r = rho.begin();
+//     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+// 	++locus;//skip first locus on each chromosome
+// 	for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+// 	    outfile << *r << " " << Loci->GetDistance(locus)<< endl;
+// 	    ++r;
+// 	    ++locus;
+// 	}
+//     }
+     for(vector<double>::const_iterator i = lambda.begin(); i != lambda.end(); ++i){
+ 	outfile << *i << endl;
+     }
+    outfile.close();
 }

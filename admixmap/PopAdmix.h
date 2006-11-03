@@ -60,6 +60,7 @@ public:
   //functions required by base class, not used
   const double* getGlobalTheta()const{return 0;};
   void SampleHapMixLambda(const int* , bool ) {};
+    void OutputLambda(const char*) const{return;};
 
 private:
   

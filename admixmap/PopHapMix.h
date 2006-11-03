@@ -52,7 +52,7 @@ typedef struct{
   double shape;///h has gamma prior with this shape
   double rate;///and this rate
   unsigned NumIntervals;
-  const double* distances;
+  double* distances;
 }h_args;
 
 ///Class to hold and update population admixture and sumintensities parameters and their priors
@@ -94,6 +94,7 @@ public:
   double getglobalrho()const{return 0.0;};
   const vector<double>& getrho()const{return lambda;};
   const vector<double>& getSumLogRho()const{return SumLogLambda;};
+  void OutputLambda(const char* filename)const;
   
 private:
   std::vector<double> lambda;

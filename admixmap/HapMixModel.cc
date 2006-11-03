@@ -262,6 +262,9 @@ void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const Input
     //Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
     Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), 
 				      data.GetPopLabels());	
+  std::string s = options.getResultsDir();
+  s.append("/lambdas.txt");
+  L->OutputLambda(s.c_str());
 }
 void HapMixModel::InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, LogWriter& Log){
   const bool isMaster = Comms::isMaster();
