@@ -88,14 +88,14 @@ double AdaptiveRejection::Sample(const void* const args, double (*secondDeriv)(d
   else if( dfb > 0 ){ // mode at upper bound; 
     //only true if there is a UB since dfb initialised to -1
     x[2] = UpperBound;
-    if( hasLowerBound ){ // if bounded below
-      x[0] = LowerBound;
-      x[1] = (x[0] + x[2]) / 2; // assign x[1] as mean of x[0] and x[2]
-    }
-    else{ // use gradient at max to assign x[0] and x[2]
+//    if( hasLowerBound ){ // if bounded below
+    //    x[0] = LowerBound;
+    //x[1] = (x[0] + x[2]) / 2; // assign x[1] as mean of x[0] and x[2]
+    //}
+    //else{ // use gradient at max to assign x[0] and x[2]
       x[1] = x[2] - 2/dfb;
       x[0] = x[1] - 2/dfb;
-    }
+      //}
   }
   else{ // mode at lower bound
     //only true if there is a LB since dfa initialised to 1 
@@ -520,7 +520,8 @@ double AdaptiveRejection::NewtonRaphson(const void* const args, double (*gradien
 			    double (*secondDeriv)(double, const void* const) )
 {
   double newnum = 0.0, oldnum, step, dfnew, dfold, ddf, a, b;
-  
+  if(hasLowerBound && LowerBound >= 0.0)newnum = LowerBound + EPS;
+  if(hasUpperBound && UpperBound < 0.0)newnum = UpperBound - EPS;
   do{
     oldnum = newnum;
     ddf = (*secondDeriv)(oldnum, args );
@@ -570,7 +571,8 @@ void AdaptiveRejection::SetInitialPoints(double mode, double x[3], const void* c
     cout << x[0] << " " << ddf<<endl;
   }
   if( hasLowerBound && x[0] < LowerBound )
-    x[0] = LowerBound;
+      //x[0] = LowerBound;
+      x[0] = LowerBound + 0.5*(mode-LowerBound);
 
   ddf = (*secondDeriv)( mode, args );
   x[2] = x[1] + 2.5 / sqrt(-ddf);
@@ -578,5 +580,6 @@ void AdaptiveRejection::SetInitialPoints(double mode, double x[3], const void* c
     cout << x[2] << " " << ddf<<endl;
   }
   if( hasUpperBound && x[2] > UpperBound )
-    x[2] = UpperBound;
+      //x[2] = UpperBound;
+      x[2] = mode + 0.5*(UpperBound-mode);
 }
