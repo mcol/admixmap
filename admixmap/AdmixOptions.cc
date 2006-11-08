@@ -80,7 +80,6 @@ void AdmixOptions::Initialise(){
   OutputAlleleFreq = false;
   checkData = true;
 
-  initialHapMixLambda = 0.0;//default value of 0 means sample from prior
 //   globalrhoPrior.push_back(3.0);//rhoalpha 
 //   globalrhoPrior.push_back(0.5);//rhobeta
 
@@ -554,8 +553,8 @@ std::vector<std::vector<double> > AdmixOptions::getInitAlpha()const{
   return initalpha;
 }
 
-double AdmixOptions::getInitialHapMixLambda()const{
-    return initialHapMixLambda;
+const char* AdmixOptions::getInitialHapMixLambdaFilename()const{
+    return InitialHapMixLambdaFilename.c_str();
 }
 unsigned int AdmixOptions::getgenotypesSexColumn() const
 {
@@ -592,6 +591,10 @@ const vector<float>& AdmixOptions::getrhoSamplerParams()const{
 
 const std::vector<double> & AdmixOptions::getAlleleFreqPriorParams()const{
   return allelefreqprior;
+}
+
+const char* AdmixOptions::getHapMixLambdaOutputFilename()const{
+    return HapMixLambdaOutputFilename.c_str();
 }
 
 int AdmixOptions::ReadArgsFromFile(const char* filename, UserOptions& opt){
@@ -700,6 +703,7 @@ void AdmixOptions::SetOptions()
   Options["allelefreqoutputfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");
   Options["allelefreqprioroutputfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");
   Options["ergodicaveragefile"] = OptionPair(&ErgodicAverageFilename, "outputfile");
+  Options["hapmixlambdaoutputfile"] = OptionPair(&HapMixLambdaOutputFilename, "outputfile");
   //optional results directory name option - default is 'results'
   Options["resultsdir"] = OptionPair(&ResultsDir, "string");
   //prior and model specification
@@ -720,7 +724,7 @@ void AdmixOptions::SetOptions()
   Options["fixedallelefreqs"] = OptionPair(&fixedallelefreqs, "bool");
   Options["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");
   Options["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");
-  Options["initialhapmixlambda"] = OptionPair(&initialHapMixLambda, "double");
+  Options["initialhapmixlambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");
   //sampler settings
   Options["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
   // test options

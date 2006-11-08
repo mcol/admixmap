@@ -55,6 +55,7 @@ public:
   const char *getIndAdmixtureFilename() const;
   const char *getAlleleFreqOutputFilename() const;
   const char *getAlleleFreqPriorOutputFilename() const;
+    const char* getHapMixLambdaOutputFilename()const;
   bool getOutputAlleleFreq() const;
 
   //input file names
@@ -76,7 +77,7 @@ public:
   double getRhoPriorMean()const;
   const std::vector<double> &getHapMixLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
-  double getInitialHapMixLambda()const;
+  const char* getInitialHapMixLambdaFilename()const;
 
   vector<double> getInitAlpha(int) const;
   std::vector<std::vector<double> > getInitAlpha()const;
@@ -208,7 +209,6 @@ private:
   std::vector<double> allelefreqprior;
   double etamean, etavar;//gamma parameters for dispersion parameter
   double regressionPriorPrecision;
-  double initialHapMixLambda;//initial value of expected # arrivals in hapmixmodel
 
   std::vector<float> rhoSamplerParams;
   string ResultsDir;
@@ -235,6 +235,7 @@ private:
   string HWTestFilename;
   string LikRatioFilename;
   string IndAdmixModeFilename;
+  string HapMixLambdaOutputFilename;
 
   string LocusFilename;
   string GenotypesFilename;
@@ -246,6 +247,7 @@ private:
   string CoxOutcomeVarFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;
+  string InitialHapMixLambdaFilename;
 
   UserOptions useroptions;
   //OptionMap OptionValues;//to output user options
