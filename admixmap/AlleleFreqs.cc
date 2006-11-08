@@ -17,8 +17,8 @@
 #include "samplers/MuSampler.h"
 #include <math.h>
 #include <numeric>
-#ifdef PARALLEL
 #include "Comms.h"
+#ifdef PARALLEL
 #include <mpe.h>
 #endif
 
@@ -123,11 +123,12 @@ if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs ) {
 }
 
 // ************** Initialisation and loading of data  *******************
-
 void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log ){
   //initialise Freqs, PriorAlleleFreqs, HistoricAlleleFreqs etc
   Loci = pLoci;
   Populations = options->getPopulations();
+
+  if(Comms::isFreqSampler()){
   LoadAlleleFreqs(options, data);
   Log.setDisplayMode(On);
   //open allelefreqoutputfile
@@ -160,11 +161,11 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     else
       {//set defaults
 	//TODO: decide on sensible defaults
-	HapMixPriorShape = 10.0;
+	HapMixPriorShape = 1.0;
       //      HapMixPriorRatePriorShape = 100.0;
       //HapMixPriorRatePriorRate = 1.0;
       }
-    HapMixPriorRate = 10;//HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
+    HapMixPriorRate = 1.0;//HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
     Log << "Dirichlet prior on allele frequencies. ";
     Log << "Gamma prior on Dirichlet parameters with shape " << HapMixPriorShape << " and rate " << HapMixPriorRate << ".\n";
       //" and Gamma( " << HapMixPriorRatePriorShape << ", " << HapMixPriorRatePriorRate << " ) prior on rate.\n"; 
@@ -323,7 +324,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       OpenFSTFile(options,Log);
     }
   } //end if dispersion parameter
-  
+  }
 }
 
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_)
