@@ -4,16 +4,16 @@
 
 // }
 
-// HapMixModel::~HapMixModel(){
-// }
+HapMixModel::~HapMixModel(){
+    delete L;
+}
 
 void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& data,  LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
-  if(isFreqSampler)//allele freq updater only
-    A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
+  A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   if(isFreqSampler || isWorker)A.AllocateAlleleCountArrays(options.getPopulations());
 #ifdef PARALLEL
   //broadcast initial values of freqs
@@ -28,7 +28,7 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
   if(isMaster || isWorker)L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
   
   if( options.getPopulations()>1 && isWorker) {
-    Loci.SetLocusCorrelation(L->getrho());
+    Loci.SetLocusCorrelation(L->getlambda());
     for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
       //set global state arrival probs in hapmixmodel
       //TODO: can skip this if xonly analysis with no females
@@ -39,7 +39,7 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
   }
   
   if(isMaster || isWorker)
-    IC->Initialise(&options, &Loci, data.GetPopLabels(), L->getalpha(), /*L->getrhoalpha(), L->getrhobeta(),*/ Log);
+    IC->Initialise(&options, &Loci, data.GetPopLabels(), Log);
   
   //initialise regression objects
   if (options.getNumberOfOutcomes()>0 && (isMaster || isWorker)){
@@ -87,7 +87,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
   // Update individual-level parameters, sampling locus ancestry states
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(isMaster || isWorker){
-  IC->SampleLocusAncestry(iteration, options, R, L->getpoptheta(), L->getalpha(), Scoretests.getAffectedsOnlyTest(), anneal);
+  IC->SampleLocusAncestry(iteration, options, R, Scoretests.getAffectedsOnlyTest(), anneal);
    }
 
   if(isWorker || isFreqSampler) {
@@ -203,6 +203,49 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
 }
 
+void HapMixModel::SubIterate(int iteration, const int & samples, const int & burnin, const double* Coolnesses, 
+			     unsigned coolness, AdmixOptions & options, InputData & data, 
+			     const Genome & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+			     double& logz, bool AnnealedRun, ofstream & loglikelihoodfile){
+  const bool isMaster = Comms::isMaster();
+  //const bool isFreqSampler = Comms::isFreqSampler();
+//  const bool isWorker = Comms::isWorker();
+
+
+    //Output parameters to file and to screen
+    Log.setDisplayMode(Quiet);
+     if(!AnnealedRun){    
+      // output every 'getSampleEvery()' iterations
+      if(!(iteration % options.getSampleEvery()) && isMaster)
+	OutputParameters(iteration, &options, Log);
+      
+      //Updates and Output after BurnIn     
+      if( !AnnealedRun && iteration > burnin && isMaster){
+		
+	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
+	if (!( (iteration - burnin) % (options.getSampleEvery() * 10))){    
+	  //Ergodic averages
+	  Log.setDisplayMode(On);
+	  if ( strlen( options.getErgodicAverageFilename() ) ){
+	    int samples = iteration - burnin;
+	    if( options.getIndAdmixHierIndicator() ){
+	      L->OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
+	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
+	    }
+	    for(unsigned r = 0; r < R.size(); ++r)//regression params
+	      R[r]->OutputErgodicAvg(samples,&avgstream);
+
+	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
+	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream, options.getFixedAlleleFreqs());
+	    avgstream << endl;
+	  }
+	  //Score Test output
+	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
+	}//end "if every'*10" block
+      }//end "if after BurnIn" block
+    } // end "if not AnnealedRun" block
+}
+
 void HapMixModel::OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log){
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
@@ -263,8 +306,11 @@ void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const Input
     Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), 
 				      data.GetPopLabels());	
   std::string s = options.getResultsDir();
-  s.append("/lambdas.txt");
-  L->OutputLambda(s.c_str());
+  s.append("/lambdaPosteriorMeans.txt");
+  L->OutputLambdaPosteriorMeans(s.c_str(), options.getTotalSamples()-options.getBurnIn());
+  const char* ss = options.getHapMixLambdaOutputFilename();
+  if(strlen(ss))
+      L->OutputLambda(ss);
 }
 void HapMixModel::InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, LogWriter& Log){
   const bool isMaster = Comms::isMaster();
@@ -332,4 +378,6 @@ void HapMixModel::InitializeErgodicAvgFile(const AdmixOptions* const options, Lo
   }
 }
 
-
+double HapMixModel::getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log){
+  return IC->getDevianceAtPosteriorMean(options, R, Loci, Log, L->getSumLogRho(), Loci->GetNumberOfChromosomes(), &A);
+}

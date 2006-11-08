@@ -56,7 +56,7 @@ typedef struct{
 }h_args;
 
 ///Class to hold and update population admixture and sumintensities parameters and their priors
-class PopHapMix : public Population
+class PopHapMix
 {
 public:
   PopHapMix(AdmixOptions* op, Genome* loci);
@@ -81,22 +81,28 @@ public:
   void printAcceptanceRates(LogWriter &Log);
   
   //functions required by base class, not implemented
-  void UpdateGlobalSumIntensities(const IndividualCollection* const , bool ){};
-  void UpdatePopAdmixParams(int , const IndividualCollection* const, LogWriter& ){};
-  const double *getpoptheta()const{return 0;};//TODO: check compatibility with regression models
-  void resetStepSizeApproximator(int ){};
+//   void UpdateGlobalSumIntensities(const IndividualCollection* const , bool ){};
+//   void UpdatePopAdmixParams(int , const IndividualCollection* const, LogWriter& ){};
+//   const double *getpoptheta()const{return 0;};//TODO: check compatibility with regression models
 
-  const std::vector<std::vector<double> > dummy_alpha;
-  const std::vector<double> &getalpha0()const{return dummy_alpha[0];};
-  const std::vector<std::vector<double> > &getalpha()const{return dummy_alpha;};
-  double getrhoalpha()const{return 0.0;};
-  double getrhobeta()const{return 0.0;};
-  double getglobalrho()const{return 0.0;};
-  const vector<double>& getrho()const{return lambda;};
-  const vector<double>& getSumLogRho()const{return SumLogLambda;};
+//   const std::vector<std::vector<double> > dummy_alpha;
+//   const std::vector<double> &getalpha0()const{return dummy_alpha[0];};
+//   const std::vector<std::vector<double> > &getalpha()const{return dummy_alpha;};
+//   double getrhoalpha()const{return 0.0;};
+//   double getrhobeta()const{return 0.0;};
+//   double getglobalrho()const{return 0.0;};
+   const vector<double>& getlambda()const{return lambda;};
+   const vector<double>& getSumLogRho()const{return SumLogLambda;};
   void OutputLambda(const char* filename)const;
+  void OutputLambdaPosteriorMeans(const char* filename, int samples)const;
   
 private:
+  int K;///< number of subpopulations / block states
+  std::ofstream outputstream;//output to paramfile
+
+  AdmixOptions *options;
+  Genome* Loci; 
+
   std::vector<double> lambda;
   std::vector<double> SumLogLambda; //ergodic sum of log(rho)
 

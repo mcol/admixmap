@@ -23,7 +23,7 @@ class InputData;
 class IndividualCollection;
 
 ///Class to hold and update population admixture and sumintensities parameters and their priors
-class PopAdmix : public Population
+class PopAdmix
 {
 public:
   PopAdmix(AdmixOptions* op, Genome* loci);
@@ -58,12 +58,17 @@ public:
   void resetStepSizeApproximator(int k); 
   
   //functions required by base class, not used
-  const double* getGlobalTheta()const{return 0;};
-  void SampleHapMixLambda(const int* , bool ) {};
-    void OutputLambda(const char*) const{return;};
+//   const double* getGlobalTheta()const{return 0;};
+//   void SampleHapMixLambda(const int* , bool ) {};
+//     void OutputLambda(const char*) const{return;};
 
 private:
-  
+  int K;///< number of subpopulations / block states
+  std::ofstream outputstream;//output to paramfile
+
+  AdmixOptions *options;
+  Genome* Loci; 
+
   std::vector<double> rho;
   std::vector<double> rhoproposal;
   double rhoalpha;

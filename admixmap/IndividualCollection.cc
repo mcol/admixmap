@@ -123,9 +123,8 @@ void IndividualCollection::DeleteGenotypes(bool setmissing=false){
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 
-void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, const Vector_s& PopulationLabels,
-				      const std::vector<std::vector<double> > &alpha, //double rhoalpha, double rhobeta, 
-				      LogWriter &Log){
+void IndividualCollection::Initialise(const AdmixOptions* const options, const Genome* const Loci, 
+				      const Vector_s& PopulationLabels, LogWriter &Log){
   Log.setDisplayMode(Quiet);
   //Open indadmixture file  
   if ( strlen( options->getIndAdmixtureFilename() ) ){
@@ -140,12 +139,6 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   if( options->getLocusForTestIndicator() )
     _locusfortest = Loci->GetChrmAndLocus( options->getLocusForTest() );
   
-  if(!options->getHapMixModelIndicator()){
-    //draw initial values for individual admixture proportions
-    for(unsigned int i = worker_rank; i < size; i += NumWorkers) _child[i]->drawInitialAdmixtureProps(alpha);
-    if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
-  }
-  
   // allocate array of sufficient statistics for update of population admixture parameters
   SumLogTheta = new double[ options->getPopulations()];
   
@@ -158,6 +151,12 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   }
 }  
 
+void IndividualCollection::DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha){
+    //draw initial values for individual admixture proportions
+    for(unsigned int i = worker_rank; i < size; i += NumWorkers) _child[i]->drawInitialAdmixtureProps(alpha);
+    if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
+
+}
 void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){
 
   if ( options->getNumberOfOutcomes()>0){
@@ -359,26 +358,10 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
     calling annealGenotypeProbs 
 */
 void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-					       const vector<Regression*> &R, const double* const poptheta,
-					       const vector<vector<double> > &alpha, AffectedsOnlyTest& affectedsOnlyTest, 
-					       bool anneal=false){
-  int Populations = options->getPopulations();
-  vector<double> lambda;
-  vector<const double*> beta;
-  if(!options->getHapMixModelIndicator()){//required only for random walk update of individual admixture and ancestry scoretests
-    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-      lambda.push_back( R[i]->getlambda());
-      beta.push_back( R[i]->getbeta());
-    }
-  }
-
-  //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
-  int i0 = 0;
-  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
-    i0 = 1;
-  }
-
-  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+					       const vector<Regression*> &R, 
+					       AffectedsOnlyTest& affectedsOnlyTest, bool anneal=false){
+ if((iteration %2))
+     fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
   if(iteration > options->getBurnIn()){
     Individual::ResetScores(options);
@@ -391,23 +374,12 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     if(worker_rank<(int)size)MPE_Log_event(15, iteration, "Sampleancestry");
 #endif
   }
-  bool _anneal = (anneal && !options->getTestOneIndivIndicator());
-  double dispersion = 0.0; 
-  if(!options->getHapMixModelIndicator() && R.size()>0) dispersion = R[0]->getDispersion();
 
   //now loop over individuals
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
-    double DinvLink = 1.0;
-    if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-
     // ** set SumLocusAncestry and SumNumArrivals to 0
     if(!options->getHapMixModelIndicator())_child[i]->ResetSufficientStats();
-    // ** update theta with random-walk proposal on even-numbered iterations
-    if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator()){
-      _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-			     beta, poptheta, options, alpha, DinvLink, 
-			     dispersion, true, _anneal);
-    }
+
     // ** Run HMM forward recursions and sample locus ancestry
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
     if(options->getHapMixModelIndicator())_child[i]->AccumulateAncestry(SumAncestry);
@@ -425,6 +397,37 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   if(options->getHapMixModelIndicator())
     Comms::ReduceAncestryCounts(SumAncestry, GlobalSumAncestry, 2*NumCompLoci);
 #endif
+}
+
+void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
+				      const vector<Regression*> &R, const double* const poptheta,
+				      const vector<vector<double> > &alpha, bool anneal){
+  vector<double> lambda;
+  vector<const double*> beta;
+  if(!options->getHapMixModelIndicator()){//required only for random walk update of individual admixture and ancestry scoretests
+    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+      lambda.push_back( R[i]->getlambda());
+      beta.push_back( R[i]->getbeta());
+    }
+  }
+  double dispersion = 0.0; 
+  if(!options->getHapMixModelIndicator() && R.size()>0) dispersion = R[0]->getDispersion();
+
+  //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
+  int i0 = 0;
+  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
+    i0 = 1;
+  }
+  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+  bool _anneal = (anneal && !options->getTestOneIndivIndicator());
+    for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
+	double DinvLink = 1.0;
+	if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
+// ** update theta with random-walk proposal on even-numbered iterations
+	_child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, 
+			       &Covariates, beta, poptheta, options, alpha, DinvLink, 
+			       dispersion, true, _anneal);
+    }
 }
 
 // void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,

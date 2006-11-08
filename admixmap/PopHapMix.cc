@@ -25,8 +25,10 @@ using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-PopHapMix::PopHapMix( AdmixOptions* op, Genome* loci): Population(op, loci)
+PopHapMix::PopHapMix( AdmixOptions* op, Genome* loci)
 {
+  options = op;
+  Loci = loci;
   globaltheta = 0;
   //globalthetaproposal = 0;
   HapMixLambdaSampler = 0;
@@ -44,7 +46,7 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
     fill(globaltheta, globaltheta+K, 1.0/(double)K);
     //ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
     
-    if(Comms::isMaster())SumLogLambda.push_back(0.0);
+    //if(Comms::isMaster())SumLogLambda.push_back(0.0);
     //set priors
     const vector<double>& priorparams = options->getHapMixLambdaPrior();
     
@@ -92,22 +94,30 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
     //initialise lambda vector
     int locus = 0;
     int d = 0;
-    const double initial_lambda = options->getInitialHapMixLambda();
+    const char* initfilename = options->getInitialHapMixLambdaFilename();
+    const bool useinitfile = (strlen(initfilename) > 0);
+    double initvalue;
+    ifstream initfile;
+    if(useinitfile)initfile.open(initfilename);
+
     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
       ++locus;//skip first locus on each chromosome
       for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
 	hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci->GetDistance(locus));
 	hargs.distances[d++] = Loci->GetDistance(locus);
-	if(initial_lambda >0.0)
-	  lambda.push_back(initial_lambda);
+	if(useinitfile){
+	    initfile >> initvalue;
+	    lambda.push_back(initvalue);
+	}
 	else
-	  lambda.push_back(Rand::gengam(LambdaArgs.h*Loci->GetDistance(locus), LambdaArgs.beta));
+	    lambda.push_back(Rand::gengam(LambdaArgs.h*Loci->GetDistance(locus), LambdaArgs.beta));
 	if(Comms::isMaster()){
 	  SumLogLambda.push_back(0.0);
 	}
 	++locus;
       }
     }
+    if(useinitfile)initfile.close();
     
     // ** Open paramfile **
     if ( Comms::isMaster() && options->getIndAdmixHierIndicator()){
@@ -275,7 +285,7 @@ void PopHapMix::SampleRateParameter(){
        const double pshape = LambdaArgs.beta_shape + LambdaArgs.h*Loci->GetLengthOfGenome();
        const double prate = LambdaArgs.beta_rate + LambdaPriorArgs.sumlambda;
        LambdaArgs.beta = Rand::gengam(pshape, prate);
-       hargs.Dlogbeta = Loci->GetLengthOfGenome()*LambdaArgs.beta;
+       hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
    }
    catch(string s){
      string err = "Error encountered while sampling lambda rate parameter:\n" + s;
@@ -403,7 +413,7 @@ void PopHapMix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 
 //output to given output stream
 void PopHapMix::OutputParams(ostream* out){
-  //sumintensities
+  //lambda
   out->width(9);
   double sum = 0.0;
   double var = 0.0;
@@ -442,7 +452,7 @@ void PopHapMix::printAcceptanceRates(LogWriter &Log) {
   for(unsigned j = 0; j < lambda.size(); ++j){
     av += HapMixLambdaSampler[j].getAcceptanceRate();
   }
-  Log << "Average Expected acceptance rate in sumintensities samplers: "
+  Log << "Average Expected acceptance rate in samplers for numbers of arrivals: "
       << av / (double)(lambda.size());
   
   av = 0;//average stepsize
@@ -470,7 +480,16 @@ void PopHapMix::OutputLambda(const char* filename)const{
 // 	}
 //     }
      for(vector<double>::const_iterator i = lambda.begin(); i != lambda.end(); ++i){
- 	outfile << *i << endl;
+ 	outfile << *i << "\t";
      }
+
     outfile.close();
+}
+void PopHapMix::OutputLambdaPosteriorMeans(const char* filename, int samples)const{
+    ofstream outfile(filename);
+  for(vector<double>::const_iterator i = SumLogLambda.begin(); i < SumLogLambda.end(); ++i)
+      outfile << exp(*i / samples) << endl;
+
+    outfile.close();
+
 }

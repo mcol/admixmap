@@ -42,20 +42,19 @@ public:
   IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
 
   void DeleteGenotypes(bool);
-  void Initialise(const AdmixOptions* const options, const Genome* const Loci, const Vector_s& PopulationLabels,
-		  const std::vector<std::vector<double> > &alpha, //double rhoalpha, double rhobeta, 
-		  LogWriter &Log);
+  void Initialise(const AdmixOptions* const options, const Genome* const Loci, 
+		  const Vector_s& PopulationLabels, LogWriter &Log);
+  void DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha);
   void LoadData(const AdmixOptions* const options, const InputData* const);
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels);
 
   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-				      const vector<Regression*> &R, const double* const poptheta,
-				      const vector<vector<double> > &alpha, AffectedsOnlyTest& affectedsOnlyTest, 
-				      bool anneal);
-  void UpdateIndivAdmixtureRandomWalk(int iteration, const AdmixOptions* const options,
-				      const vector<Regression*> &R, const double* const poptheta,
-				      const vector<vector<double> > &alpha, 
-				      bool anneal);
+			   const vector<Regression*> &R,  
+			   AffectedsOnlyTest& affectedsOnlyTest, bool anneal);
+    void SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
+				       const vector<Regression*> &R, const double* const poptheta,
+				       const vector<vector<double> > &alpha, bool anneal);
+
 //   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 // 			   const vector<Regression*> &R);
   

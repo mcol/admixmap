@@ -25,8 +25,10 @@ using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-PopAdmix::PopAdmix( AdmixOptions* op, Genome* loci): Population(op, loci)
+PopAdmix::PopAdmix( AdmixOptions* op, Genome* loci)
 {
+  options = op;
+  Loci = loci;
   poptheta = 0;
   rho.push_back(0.0);
 }
