@@ -360,7 +360,6 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     offset = 1;
     oldformat = true;
     file = true;
-    RandomAlleleFreqs = false;//may be unnecessary; check AdmixOptions
   }
   else if( strlen( options->getHistoricalAlleleFreqFilename() ) || strlen( options->getPriorAlleleFreqFilename() ) ){
     offset = 0;
@@ -403,19 +402,21 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   //set static members of CompositeLocus
   CompositeLocus::SetRandomAlleleFreqs(RandomAlleleFreqs);
   CompositeLocus::SetNumberOfPopulations(Populations);
+
+  if(!options->getHapMixModelIndicator())
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 #ifdef ARRAY2D
     Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
 #endif
 
     if(file){//read allele freqs from file, then call this method again with 
-      newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
-      LoadAlleleFreqs( *temporary, i, row+1, oldformat);//row+1 is the first row for this locus (+1 for the header).
-      row = newrow;
+	  newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
+	  LoadAlleleFreqs( *temporary, i, row+1, oldformat);//row+1 is the first row for this locus (+1 for the header).
+	  row = newrow;
     }
     else{  //set default Allele Freqs
       SetDefaultAlleleFreqs(i);
-      if(!options->getHapMixModelIndicator() && RandomAlleleFreqs){//prior for hapmix model is set later in Initialise
+      if(RandomAlleleFreqs){//prior for hapmix model is set later in Initialise
 	// reference prior on allele freqs: all elements of parameter vector set to 0.5
 	// this is unrealistic for large haplotypes - should set all elements to sum to 1
 	double defaultpriorparams = 0.5;
@@ -469,11 +470,16 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
 
 ///reads initial values of allele freqs from file
 ///note: no checking of this file is done; ok if produced by function OutputFinalAlleleFreqs
-void AlleleFreqs::LoadInitialAlleleFreqs(const char* filename){
+void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename){
     ifstream infile(filename);
+    if(infile.is_open()){
+	cout << "Reading initial values of allele freqs from " << filename << endl;
     double phi = 0.0;
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
 	const int NumStates = Loci->GetNumberOfStates(locus);
+#ifdef ARRAY2D
+    Freqs.array[locus] = new double[NumStates* Populations];
+#endif
 	for( int pop = 0; pop < Populations; pop++ ){
 	    Freqs[locus][NumStates-1 + pop*NumStates] = 1.0;
 	    for( int state = 0; state < NumStates-1; state++ ){
@@ -484,6 +490,11 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char* filename){
       }
     }
     infile.close();
+    }
+    else{
+	cout << "Error: cannot open " << filename << endl;
+	exit(1);
+    }
 }
 /**
  * Initialises the frequencies of each haplotype in the ith
@@ -1250,6 +1261,8 @@ void AlleleFreqs::OutputAlleleFreqs()
 void AlleleFreqs::OutputAlleleFreqs(const char* filename)
 {
     ofstream outfile(filename);
+    if(outfile.is_open()){
+	cout << "Writing final values of allele freqs to " << filename << endl;
   if( IsRandom() ){
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
 	for( int pop = 0; pop < Populations; pop++ ){
@@ -1260,6 +1273,10 @@ void AlleleFreqs::OutputAlleleFreqs(const char* filename)
     }
   }
   outfile.close();
+    }
+    else{
+	cout << "Error: cannot open " << filename << ", not writing allele freqs." << endl;
+    }
 }
 
 void AlleleFreqs::OutputPriorParams(){

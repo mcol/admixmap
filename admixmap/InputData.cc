@@ -374,7 +374,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
 
 
   //fixed allele freqs
-  if( strlen( options->getAlleleFreqFilename() ) ){
+  if( strlen( options->getAlleleFreqFilename() )  && !options->getHapMixModelIndicator()){
     freqtype = "";
     infile = true;
     nrows = alleleFreqData_.size()-1;

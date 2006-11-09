@@ -173,7 +173,7 @@ bool AdmixOptions::getOutputFST() const
 
 bool AdmixOptions::getFixedAlleleFreqs() const
 {
-  return (fixedallelefreqs || alleleFreqFilename.length());
+  return (fixedallelefreqs || (alleleFreqFilename.length() && !HapMixModelIndicator));
 }
 bool AdmixOptions::getCorrelatedAlleleFreqs() const
 {
@@ -1004,10 +1004,10 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   // **** model for allele freqs ****
 
   //fixed allele freqs
-  if( alleleFreqFilename.length() ||
+  if( (alleleFreqFilename.length() && !HapMixModelIndicator) ||
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
     Log << "Analysis with fixed allele frequencies.\n";
-    if(OutputAlleleFreq){
+    if(OutputAlleleFreq && !HapMixModelIndicator){
       Log << "ERROR: allelefreqoutputfile option is invalid with fixed allele frequencies\n"
 	  << "       this option will be ignored\n";
       useroptions.erase("allelefreqoutputfile");
