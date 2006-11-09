@@ -5,7 +5,6 @@ Model::Model(){
 }
 
 Model::~Model(){
-  delete L;
   for(unsigned r = 0; r < R.size(); ++r)delete R[r];
   R.clear();
   delete IC;
@@ -73,12 +72,12 @@ Model::~Model(){
 // }
 
 void Model::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
-		    AdmixOptions & options, InputData & data, const Genome & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+		    AdmixOptions & options, InputData & data, const Genome & Loci, LogWriter& Log, 
+		    double & SumEnergy, double & SumEnergySq, 
 		    double& AISsumlogz, bool AnnealedRun, ofstream & loglikelihoodfile) {
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
-
 
   //Accumulate Energy
   double Energy = 0.0;
@@ -115,60 +114,8 @@ void Model::Iterate(const int & samples, const int & burnin, const double* Cooln
 
     //Sample Parameters    
     UpdateParameters(iteration, &options, &Loci, Log, data.GetPopLabels(), Coolnesses[coolness], AnnealedRun);
-
-    //Output parameters to file and to screen
-    Log.setDisplayMode(Quiet);
-     if(!AnnealedRun){    
-      // output every 'getSampleEvery()' iterations
-      if(!(iteration % options.getSampleEvery()) && isMaster)
-	OutputParameters(iteration, &options, Log);
-      
-      // ** set merged haplotypes for allelic association score test 
-      if( (isMaster || isWorker) && iteration == options.getBurnIn() ){
-#ifndef PARALLEL
-	if(options.getTestForAllelicAssociation())
-	  Scoretests.SetAllelicAssociationTest(L->getalpha0());
-#endif
-	if( isMaster && options.getStratificationTest() )
-	  StratTest.Initialize( &options, Loci, IC, Log);
-      }
-	    
-      //Updates and Output after BurnIn     
-      if( !AnnealedRun && iteration > burnin && isMaster){
-	//dispersion test
-	if( options.getTestForDispersion() )DispTest.TestForDivergentAlleleFrequencies(&A, IC);
-	//stratification test
-	if( options.getStratificationTest() )StratTest.calculate(IC, A.GetAlleleFreqs(), Loci.GetChrmAndLocus(), 
-								 options.getPopulations());
-	//tests for mis-specified allelefreqs
-	if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-	  AlleleFreqTest.Update(IC, &A, &Loci);
-	//test for Hardy-Weinberg eq
-	if( options.getHWTestIndicator() )
-	  HWtest.Update(IC, &Loci);
-		
-	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
-	if (!( (iteration - burnin) % (options.getSampleEvery() * 10))){    
-	  //Ergodic averages
-	  Log.setDisplayMode(On);
-	  if ( strlen( options.getErgodicAverageFilename() ) ){
-	    int samples = iteration - burnin;
-	    if( options.getIndAdmixHierIndicator() ){
-	      L->OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
-	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
-	    }
-	    for(unsigned r = 0; r < R.size(); ++r)//regression params
-	      R[r]->OutputErgodicAvg(samples,&avgstream);
-
-	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
-	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream, options.getFixedAlleleFreqs());
-	    avgstream << endl;
-	  }
-	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
-	}//end "if every'*10" block
-      }//end "if after BurnIn" block
-    } // end "if not AnnealedRun" block
+    SubIterate(iteration, samples, burnin, Coolnesses, coolness, options, data, Loci, Log, SumEnergy, SumEnergySq, 
+	       AISsumlogz, AnnealedRun, loglikelihoodfile);
 	
   }// end loop over iterations
   //use Annealed Importance Sampling to calculate marginal likelihood
@@ -380,7 +327,6 @@ void Model::Iterate(const int & samples, const int & burnin, const double* Cooln
 void Model::ResetStepSizeApproximators(int resetk){
   IC->resetStepSizeApproximators(resetk); 
   A.resetStepSizeApproximator(resetk);
-  L->resetStepSizeApproximator(resetk);
 }
 
 // void Model::PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci, LogWriter& Log){
@@ -420,9 +366,9 @@ void Model::ResetStepSizeApproximators(int resetk){
 //   }
 // }
 
-double Model::getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log){
-  return IC->getDevianceAtPosteriorMean(options, R, Loci, Log, L->getSumLogRho(), Loci->GetNumberOfChromosomes(), &A);
-}
+// double Model::getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log){
+//   return IC->getDevianceAtPosteriorMean(options, R, Loci, Log, L->getSumLogRho(), Loci->GetNumberOfChromosomes(), &A);
+// }
 
 // void Model::Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci){
 //   if( options.getChibIndicator()) {
