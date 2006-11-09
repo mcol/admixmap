@@ -14,8 +14,9 @@
 #ifndef POPHAPMIX_H
 #define POPHAPMIX_H 1
 
-#include "Population.h"
-
+#include "AdmixOptions.h"
+#include "Genome.h"
+#include "samplers/HamiltonianMonteCarlo.h"
 #include "samplers/StepSizeTuner.h"//for sampling globalrho and globaltheta
 #include "samplers/AdaptiveRejection.h"
 

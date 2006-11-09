@@ -14,8 +14,8 @@
 #ifndef POPADMIX_H
 #define POPADMIX_H 1
 
-#include "Population.h"
-
+#include "AdmixOptions.h"
+#include "Genome.h"
 #include "samplers/StepSizeTuner.h"//for sampling globalrho
 #include "samplers/DirichletParamSampler.h"//for sampling pop admix
 

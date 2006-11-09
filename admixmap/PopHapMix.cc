@@ -15,6 +15,7 @@
 #include "utils/dist.h"//for log gamma density
 #include <algorithm>
 #include <numeric>
+#include <sstream>
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
 #include "Comms.h"
@@ -486,10 +487,8 @@ void PopHapMix::OutputLambda(const char* filename)const{
     outfile.close();
 }
 void PopHapMix::OutputLambdaPosteriorMeans(const char* filename, int samples)const{
-    ofstream outfile(filename);
+  ofstream outfile(filename);
   for(vector<double>::const_iterator i = SumLogLambda.begin(); i < SumLogLambda.end(); ++i)
       outfile << exp(*i / samples) << endl;
-
     outfile.close();
-
 }
