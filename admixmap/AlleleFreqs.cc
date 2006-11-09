@@ -392,6 +392,9 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
       HapMixPriorParams = new double[NumberOfCompositeLoci];//1D array of prior params for hapmixmodel
       //fill(HapMixPriorParams, HapMixPriorParams + NumberOfCompositeLoci, 0.1);
       HapMixPriorParamSampler = new StepSizeTuner[NumberOfCompositeLoci];
+      file = false;
+      if(strlen( options->getAlleleFreqFilename() ))
+	 LoadInitialAlleleFreqs(options->getAlleleFreqFilename());
     }
     else
       PriorParams = new double*[NumberOfCompositeLoci];//2D array    "      "     otherwise
@@ -464,6 +467,24 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
 #endif
 }
 
+///reads initial values of allele freqs from file
+///note: no checking of this file is done; ok if produced by function OutputFinalAlleleFreqs
+void AlleleFreqs::LoadInitialAlleleFreqs(const char* filename){
+    ifstream infile(filename);
+    double phi = 0.0;
+    for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
+	const int NumStates = Loci->GetNumberOfStates(locus);
+	for( int pop = 0; pop < Populations; pop++ ){
+	    Freqs[locus][NumStates-1 + pop*NumStates] = 1.0;
+	    for( int state = 0; state < NumStates-1; state++ ){
+	    infile >> phi;
+	    Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] = phi;
+	    Freqs[locus][NumStates-1 + pop*NumStates] -= phi;
+	}
+      }
+    }
+    infile.close();
+}
 /**
  * Initialises the frequencies of each haplotype in the ith
  * composite locus, given Dirichlet priors (oldformat=false) or frequencies (oldformat=true)in matrix New.  
@@ -1186,15 +1207,6 @@ const array_of_allelefreqs& AlleleFreqs::GetAlleleFreqs()const{
 // ******************** Output **************************
 void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
 {
-  const char* s = options->getAlleleFreqOutputFilename();
-  if(strlen(s) && options->getIndAdmixHierIndicator()){
-    allelefreqoutput.open(s, ios::out );
-    if( !allelefreqoutput){
-      cerr << "Warning: Couldn't open allelefreqoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
-      exit( 1 );
-    }
-    allelefreqoutput << "structure(.Data=c(" << endl;
-  }
   if(options->getHapMixModelIndicator()){
     const char* s = options->getAlleleFreqPriorOutputFilename();
     if(strlen(s)){
@@ -1202,6 +1214,19 @@ void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
       // allelefreqprioroutput << "eta.Mean\teta.Var\tlambda" << endl;
       allelefreqprioroutput << "eta.Mean\teta.Var" << endl;
     }
+  }
+
+  else{
+//open file to output freqs as R object
+      const char* s = options->getAlleleFreqOutputFilename();
+      if(strlen(s) && options->getIndAdmixHierIndicator()){
+	  allelefreqoutput.open(s, ios::out );
+	  if( !allelefreqoutput){
+	      cerr << "Warning: Couldn't open allelefreqoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
+	      exit( 1 );
+	  }
+	  allelefreqoutput << "structure(.Data=c(" << endl;
+      }
   }
 }
 void AlleleFreqs::OutputAlleleFreqs()
@@ -1221,6 +1246,22 @@ void AlleleFreqs::OutputAlleleFreqs()
     allelefreqoutput << endl;
   }
 }
+
+void AlleleFreqs::OutputAlleleFreqs(const char* filename)
+{
+    ofstream outfile(filename);
+  if( IsRandom() ){
+    for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
+	for( int pop = 0; pop < Populations; pop++ ){
+	    for( int state = 0; state < Loci->GetNumberOfStates(locus)-1; state++ ){
+	  outfile <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] << " ";
+	}
+      }
+    }
+  }
+  outfile.close();
+}
+
 void AlleleFreqs::OutputPriorParams(){
   //to be used only in hapmixmodel
   if(allelefreqprioroutput.is_open()){

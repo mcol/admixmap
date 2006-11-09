@@ -163,6 +163,7 @@ public:
   void OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log);
 
   void OutputAlleleFreqs();
+  void OutputAlleleFreqs(const char* filename);
   void OutputPriorParams();
   void OutputPriorParams(ostream& os, bool tofile);
   void CloseOutputFile(int iterations, const Vector_s& PopulationLabels);
@@ -279,6 +280,7 @@ private:
 
   void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
+    void LoadInitialAlleleFreqs(const char* filename);
   void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
   void SetDefaultAlleleFreqs(int i);
   void SetDefaultPriorParams(int i, double defaultpriorparams);

@@ -272,7 +272,7 @@ void HapMixModel::OutputParameters(int iteration, const AdmixOptions *options, L
     if( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
       A.OutputPriorParams();
 
-    if(options->getOutputAlleleFreq()){
+    if(options->getOutputAlleleFreq() && !options->getHapMixModelIndicator()){
 	A.OutputAlleleFreqs();
     }
   }
@@ -305,12 +305,20 @@ void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const Input
     //Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
     Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), 
 				      data.GetPopLabels());	
+//output posterior means of lambda (expected number of arrivals)
   std::string s = options.getResultsDir();
   s.append("/lambdaPosteriorMeans.txt");
   L->OutputLambdaPosteriorMeans(s.c_str(), options.getTotalSamples()-options.getBurnIn());
+//output final values of lambda
   const char* ss = options.getHapMixLambdaOutputFilename();
   if(strlen(ss))
       L->OutputLambda(ss);
+
+//output final values of allelefreqs
+  ss = options.getAlleleFreqOutputFilename();
+  if(strlen(ss))
+      A.OutputAlleleFreqs(ss);
+
 }
 void HapMixModel::InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, LogWriter& Log){
   const bool isMaster = Comms::isMaster();
