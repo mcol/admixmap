@@ -76,7 +76,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   X_data = false;
 
   //determine if distances are given in Morgans or centimorgans
-  bool distancesincM = data_->distancesAreInCentiMorgans();  
+  GeneticDistanceUnit unit = data_->getUnitOfDistance();
   for(unsigned int i = 0; i < NumberOfCompositeLoci; i++ ){
     LocusTable[i].resize(2);
     
@@ -87,7 +87,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
 
     if(isMaster || isWorker){
       Distances[ i ] = locifileData.get( row, 1 );
-      if(distancesincM)Distances[i] /= 100.0;//convert to Morgans
+      if(unit == centimorgans)Distances[i] /= 100.0;//convert to Morgans
       //      SetDistance( i, locifileData.get( row, 1 ) );//sets distance between locus i and i-1
     }
 
@@ -135,7 +135,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
   
 
   if(isMaster || isWorker ){
-    PrintSizes(Log, distancesincM);//prints length of genome, num loci, num chromosomes
+    PrintSizes(Log, unit);//prints length of genome, num loci, num chromosomes
   }
 }
 
@@ -216,7 +216,7 @@ CompositeLocus* Genome::operator() ( int ElementNumber ) const
 
 /// Writes numbers of loci and chromosomes and length of genome to Log and screen.
 /// unit is the unit of measurement of the distances in the locusfile (Morgans/centiMorgans) 
-void Genome::PrintSizes(LogWriter &Log, bool distancesincM)const{
+void Genome::PrintSizes(LogWriter &Log, GeneticDistanceUnit u)const{
 #ifdef PARALLEL
   ///1st worker tells master length of autosomes and xchrm
   ///(this is determined during creation of chromosomes, which master doesn't do)
@@ -239,14 +239,37 @@ void Genome::PrintSizes(LogWriter &Log, bool distancesincM)const{
       << NumberOfChromosomes << " chromosome"; if(NumberOfChromosomes > 1) Log << "s";
   Log << "\n";
 
+  string unitstring;
+  switch(u){
+      case centimorgans:{
+	  unitstring = " centimorgans";
+	  break;
+      }
+      case Morgans:{
+	  unitstring = " Morgans";
+	  break;
+      }
+      case megabases:{
+	  unitstring = " megabases";
+	  break;
+      }
+      default:{
+	  Log << "[unsupported unit]\n";
+	  exit(1);
+      }
+  }
+
   Log << "Effective length of autosomes under study: ";
-  if(distancesincM)Log << LengthOfGenome*100.0 << " centimorgans.\n";
-  else Log << LengthOfGenome << " Morgans.\n";
+  if(u == centimorgans)Log << LengthOfGenome*100.0 ;
+  else Log << LengthOfGenome;
+  Log << unitstring << ".\n";
 
   if( isX_data() ){
     Log << "Effective length of X chromosome under study: ";
-    if(distancesincM)Log << LengthOfXchrm*100.0 << " centimorgans.\n";
-    else Log << LengthOfXchrm << " Morgans.\n";
+    if(u == centimorgans)Log << LengthOfXchrm*100.0;
+    else Log << LengthOfXchrm;
+    Log << unitstring << ".\n";
+
 
    }
   Log << "\n";

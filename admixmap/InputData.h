@@ -23,8 +23,11 @@ typedef std::vector<std::vector<unsigned short> > genotype;
  */    
 class AdmixOptions;
 class LogWriter;
-class Chromosome;
 class Genome;
+class Chromosome;
+
+///enum for distance units
+enum GeneticDistanceUnit {basepairs, kilobases, megabases, centimorgans, Morgans};
 
 ///Class to read and check all input data files
 class InputData{
@@ -90,7 +93,7 @@ public:
   int getNumberOfIndividuals()const;
   int getNumberOfSimpleLoci()const;
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};
-  bool distancesAreInCentiMorgans()const;
+  GeneticDistanceUnit getUnitOfDistance()const;
   void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
 
 private:    

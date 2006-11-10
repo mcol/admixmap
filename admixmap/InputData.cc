@@ -266,13 +266,17 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
   }
 }
 
-bool InputData::distancesAreInCentiMorgans()const{
-  bool distancesincM  = false;
+GeneticDistanceUnit InputData::getUnitOfDistance()const{
+    GeneticDistanceUnit u = Morgans;//default, usual for admixture mapping
   string distance_header = locusData_[0][2];
   if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
      || distance_header.find("cM")!=string::npos) 
-    distancesincM = true;
-  return distancesincM;
+      u = centimorgans;
+  if(distance_header.find("mb")!=string::npos || distance_header.find("Mb")!=string::npos 
+     || distance_header.find("MB")!=string::npos) 
+      u = megabases;
+
+  return u;
 }
 
 void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
@@ -280,7 +284,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
   //also extracts locus labels
   bool flag = false;
 
-  if(distancesAreInCentiMorgans())threshold *= 100.0;
+  if(getUnitOfDistance()==centimorgans)threshold *= 100.0;
   for (size_t i = 1; i < locusData_.size(); ++i) {//rows of locusfile
     if(check && Comms::isFreqSampler()){
       //check number of alleles is >1
