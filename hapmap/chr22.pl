@@ -28,7 +28,9 @@ my $STATES = $ARGV[1];
 
 # Change this to the location of the admixmap executable
 #my $executable = '../test/adm-para';
-my $executable = '../test/admixmap';
+#my $executable = '../test/admixmap';
+my $executable = '/ichec/home/users/doducd/test/admixmap';
+
 
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
@@ -42,7 +44,7 @@ my $arg_hash =
     genotypesfile                   => "$datadir/genotypes.txt",
     locusfile                          => "$datadir/loci.txt",
     #priorallelefreqfile             => 'data/priorallelefreqs.txt',
-#fixedallelefreqs => 1,
+    #fixedallelefreqs => 1,
     populations=>$STATES,
     #outcomevarfile => 'chr22/dummyoutcome.txt',
 
@@ -54,7 +56,7 @@ checkdata=> 0,
 
     samples  => 250,
     burnin   => 50,
-    every    => 10,
+    every    => 1,
 
 numannealedruns => 0,
 thermo => 0,
@@ -62,9 +64,11 @@ hapmixmodel => 1,
 #indadmixhiermodel => 0,
 randommatingmodel => 0,
 
-#sumintensitiesprior => '40,11,10',
-hapmixlambdaprior=>"100000, 100, 100,100",
-initialhapmixlambda => 0.05,
+hapmixlambdaprior=>"4, 0.1, 1, 1",
+
+allelefreqprior => "1, 1, 1",
+#initialhapmixlambdafile => "$datadir/initialambdas.txt",
+#allelefreqfile => "$datadir/initialallelefreqs.txt",
 
 rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 
@@ -73,22 +77,27 @@ rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
     paramfile               => 'paramfile.txt',
     #regparamfile          => 'regparamfile.txt',
     #indadmixturefile     => 'indadmixture.txt',
-    ergodicaveragefile => 'ergodicaverage.txt',
-    #allelefreqoutputfile  => 'allelefreqoutputfile.txt',
+    #ergodicaveragefile => 'ergodicaverage.txt',
+    allelefreqoutputfile  => "initialallelefreqs.txt",
+    hapmixlambdaoutputfile => "$datadir/initiallambdas.txt",
 
 #optional tests
-residualallelicassocscorefile => 'residualLDscores.txt',
+#residualallelicassocscorefile => 'residualLDscores.txt',
     #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
-    #ancestryassociationscorefile  => 'ancestryassociationscorefile.txt',
-    #affectedsonlyscorefile             => 'affectedsonlyscorefile.txt',
-    #haplotypeassociationscorefile => 'hapassocscore.txt',
-    #stratificationtestfile                   => 'strat_test.txt'
 };
 
 #model with $STATES block states
-$arg_hash->{resultsdir}="Results$STATES";
+
+##initial run
+$arg_hash->{resultsdir}="$POP/Results$STATES"."States";
 doAnalysis($executable,$arg_hash);
 
+##rerun with final values of lambda, freqs in previous run as starting values
+$arg_hash->{resultsdir}="$POP/Results$STATES"."States2";
+$arg_hash->{initialhapmixlambdafile} = "$datadir/initiallambdas.txt";
+$arg_hash->{allelefreqfile} = "$datadir/initialallelefreqs.txt";
+$arg_hash->{residualallelicassocscorefile} = 'residualLDscores.txt';
+doAnalysis($executable,$arg_hash);
 
 #to gauge efficiency of Affymetrix chip
 $arg_hash->{genotypesfile} = "$datadir/Affygenotypes.txt";
@@ -152,7 +161,10 @@ sub doAnalysis
 
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     if(system($command)==0){
-
+	if($arg_hash->{allelefreqoutputfile}){
+#copy file with final lambdas to data dir ready for next time
+	system("cp $arg_hash->{resultsdir}/$arg_hash->{allelefreqoutputfile} $datadir/$arg_hash->{allelefreqoutputfile}");
+    }
 # Comment out the next three lines to run admixmap without R script
     print "Starting R script to process output\n";
     system("R --quiet --no-save --no-restore <../test/AdmixmapOutput.R >$args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
