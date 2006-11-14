@@ -23,6 +23,7 @@ unsigned long NUMLOCI = 0;
 unsigned long NUMBADLOCI = 0;
 unsigned long NUMBADLOCIONCHR = 0;
 unsigned NUMALLELES = 2;
+bool be_quiet = false;
 
 using namespace::std;
 string getGenotype(string g, string a){
@@ -34,11 +35,16 @@ string getGenotype(string g, string a){
 }
 
 void PrintHelpText(){
-    cout << "Usage: convertdata -c<chrm> -i<infofile> [-p<pop>] [-g<genotypesfile>] [-l<locusfile>]" << endl
+    cout << "----------------------------------------------------------------------------\n" 
+	 << "This program converts HapMap data to ADMIXMAP format"
+	 << "Usage: convertdata -c<chrm> -i<infofile> [-p<pop>] [-g<genotypesfile>]"
+	 << " [-l<locusfile>] [-n<numloci>" << endl
 	 << "where pop is the directory containing data files ('Eur', 'Afr' or 'Asian')," 
 	 << " defaults to current directory; " << endl
 	 << "chrm is a chromosome number. -c0 converts all chromosomes." << endl
-	 << "genotypesfile and locusfile default to 'genotypes.txt' and 'loci.txt'" << endl;
+	 << "numloci is the number of loci per chromosome to use, default is all\n"
+	 << "genotypesfile and locusfile default to 'genotypes.txt' and 'loci.txt'" << endl
+	 << "Note that HapMap input files must be named 'chrN.txt', where N is an integer from 1 to 22\n\n";
 }
 
 int main(int argc, char **argv){
@@ -53,8 +59,9 @@ int main(int argc, char **argv){
     ifstream genotypesin;
     ofstream genotypesfile;
     ofstream locusfile;
+    unsigned long userloci = 1000000000;//some number > number of HapMap loci
 
-    while((ich=getopt(argc, argv, "hi:c:g:l:p:"))!=EOF){
+    while((ich=getopt(argc, argv, "hi:c:g:l:p:n:q"))!=EOF){
 	switch(ich){
 	case 'h' :{
 	    PrintHelpText();
@@ -65,6 +72,7 @@ int main(int argc, char **argv){
 	    }
 	    case 'p':{
 		popprefix = optarg;
+		break;
 	    }
 	    case 'i':{
 		infofile.open(optarg);
@@ -80,6 +88,7 @@ int main(int argc, char **argv){
 		    cout << "Error: cannot open genotypesfile\n";
 		    exit(1);
 		}
+		cout << "Writing genotypes to " << optarg << endl;
 		break;
 	    }
 	    case 'l':{
@@ -88,6 +97,16 @@ int main(int argc, char **argv){
 		    cout << "Error: cannot open locusfile\n";
 		    exit(1);
 		}
+		cout << "Writing locusfile to " << optarg << endl;
+		break;
+	    }
+	    case 'n':{//number of loci
+		const unsigned temp = atoi(optarg);
+		if(temp>0)userloci = temp;
+		break;
+	    }
+	    case 'q':{//quiet mode
+		be_quiet = true;
 		break;
 	    }
 	    default:{
@@ -121,7 +140,7 @@ int main(int argc, char **argv){
   string genotype;
   string obs;//observed genotype
   string SNPID;
-  vector<string> BadLoci;
+  vector<bool> BadLoci;
   double position = 0.0, prev = 0.0;
   string scrap;
   int locus = 0;
@@ -179,6 +198,7 @@ int main(int argc, char **argv){
       //cout << ncols << "individuals are " << (related? "related" : "unrelated")<< endl;
       infofile.seekg(0);//reset to start of file
   }
+
   while(!infofile.eof()){
     int _sex, valid;
     string _id;
@@ -211,14 +231,15 @@ int main(int argc, char **argv){
 
 // ************************** PHASE 2: write locus file and header of genotypesfile, count number of loci  *********************
   genotypesfile << "\"Individ\"\t";
-  locusfile << "\"SNPid\"\t\"NumAlleles\"\t\"Distance\"\n";//locusfile header
+  locusfile << "\"SNPid\"\t\"NumAlleles\"\t\"DistanceinMb\"\n";//locusfile header
   locusfile << setiosflags(ios::fixed) << setprecision(8);
 
+  long unsigned abslocus = 0;//absolute locus number
   for(unsigned chr = CHRNUM; chr <= lastchr; ++chr){
       cout << "\nChromosome " << chr << "  " <<endl;
       NUMBADLOCIONCHR = 0;
       locus = 0;
-    stringstream ss;
+      stringstream ss;
 
 /// unzip data
     //ss << "gzip -d chr" << chr << ".gz";
@@ -237,7 +258,7 @@ int main(int argc, char **argv){
 
     //cout << "\nReading raw genotypes...\n"<<flush;
     getline(genotypesin, scrap);//skip header
-    while (! genotypesin.eof() ){
+    while ( (!genotypesin.eof())  && (locus < userloci) ){
 	////use this to split up large locusfiles
 	//if(!(locus%10000)){
       //locusfile.close();
@@ -249,32 +270,64 @@ int main(int argc, char **argv){
       //we want cols: 0(snpid), 1(alleles), 3(position in basepairs), 11 onwards(indiv genotypes)
       genotypesin >> SNPID >> alleles
 		  >> scrap >> position;
+      unsigned indiv_index = 0;
       if(SNPID.find_first_not_of(" \t\n\r")!=string::npos){//check for empty lines
+//check for and skip monomorphic loci (where all genotypes are the same and homozygous)
+	  for(unsigned ii = 0; ii < 7; ++ii)//skip 7 columns
+	      genotypesin >> scrap;
+	  bool ismono = true;
+	  string firstgeno;
+	  do{//find first non-missing genotype
+	      genotypesin >> firstgeno;
+	      ++indiv_index;
+	  }
+//keep going until we find a founder with nonmissing genotype or run out of individuals
+//(NN denotes missing genotype)
+	  while( (!IndivInfo[INDIVID[indiv_index]].second || firstgeno[0]=='N') && (indiv_index < NUMIND));
+	  if(indiv_index< NUMIND && (firstgeno[0] == firstgeno[1])){
+	      string nextgeno;
+	      do{
+		  genotypesin >> nextgeno;
+		  if(IndivInfo[INDIVID[indiv_index]].second)//only consider founders
+		      ismono = ismono & ((nextgeno[0]=='N') || (nextgeno == firstgeno));
+		  ++indiv_index;
+	      }
+//keep going until we find an individual with nonmissing genotype different from the first or run out of individuals
+	      while((indiv_index < NUMIND) && ismono);
+	  }
+
+
 	//write locusfile
-	  if((position-prev)>0){//strictly greater than to avoid having comp loci
+
+	  if(!ismono && (position-prev)>0){//strictly greater than to avoid having comp loci
 	      locusfile << SNPID << "\t" <<  2 << "\t";
-	      if(locus==0) locusfile << "#" ;
+	      if(locus==0) locusfile << "#" ;//missing value for first distance on chr
 	      else 
-		  locusfile << 0.0000013 * (position-prev);//converts position in basepairs to distance in centiMorgans 
+//converts position in basepairs to distance in centiMorgans 
+		  //locusfile << 0.0000013 * (position-prev);
+//convert position to distance in megabases
+		  locusfile << 0.000001 * (position-prev);
 	      locusfile << /*chrnumber <<*/ endl;
 	      //write header of genotypesfile
 	      genotypesfile << SNPID << "\t";
 	      ++locus;
+	      BadLoci.push_back(false);
 	  }
-	else{
+	  else{//locus out of sequence
 	    ++NUMBADLOCIONCHR;
-	    ++NUMBADLOCI;//BadLoci.push_back(SNPID);//excludes loci out of sequence
+	    ++NUMBADLOCI;
+	    BadLoci.push_back(true);//excludes loci out of sequence
 	    badlocusfile << SNPID << "\t" << chr << endl;
 	}
-	
+	  ++abslocus;
       }
       SNPID.clear();       
       //skip rest of line
-      getline(genotypesin, scrap);
+      if(indiv_index< NUMIND)getline(genotypesin, scrap);
     }
     genotypesin.close();
     cout << endl << locus << " Loci, " << NUMBADLOCIONCHR  << " loci excluded";
-    NUMLOCI += locus;
+    NUMLOCI += locus;//count number of loci
   }
    locusfile.close();
    cout << "\nFinished writing locusfile. " << NUMLOCI <<  " loci" << endl;
@@ -290,14 +343,17 @@ int main(int argc, char **argv){
 // ************************** PHASE 3: Write genotypesfile  *********************
    
    for(indiv = 0; indiv < NUMIND; ++indiv) if(IndivInfo[INDIVID[indiv]].second){//if individual is a founder
-      cout << "\n" << indiv+1 << " " << INDIVID[indiv] << " "  << flush;
+       if(!be_quiet)
+	   cout << "\n" << indiv+1 << " " << INDIVID[indiv] << " "  << flush;
       //write indiv id and sex
       genotypesfile << INDIVID[indiv] << "\t";// << sex[indiv] <<"\t";
       position = 0.0;     
 //       if(indiv%2) outcomefile << "#\n";
 //       else outcomefile << 9 << endl;
+      abslocus = 0;
       for(unsigned chr = CHRNUM; chr <= lastchr; ++chr){
-	  cout << "\nChromosome " << chr << "  "<< flush ;
+	  if(!be_quiet)
+	      cout << "\nChromosome " << chr << "  "<< flush ;
 	  stringstream ss;
 	  ss << popprefix << "/chr" << chr << ".txt";//"_sorted";
 	  genotypesin.open(ss.str().c_str());
@@ -311,8 +367,11 @@ int main(int argc, char **argv){
 	  //for(locus = 0; locus < NUMLOCI+ NUMBADLOCI/*BadLoci.size()*/; ++locus){
 	  prev = position;
 	  genotypesin >> SNPID >> alleles >> scrap >> position;
-	  while (! genotypesin.eof() ){
-	      if(position-prev >=0.0){//skip loci out of sequence
+	  locus = 0;
+	  while ( (!genotypesin.eof())  && locus < userloci){
+//	      for(unsigned _locus = 0; _locus < NUMLOCI; ++_locus){
+//	      if(position-prev >=0.0){//skip loci out of sequence
+	      if(!BadLoci[abslocus]){
 		  //cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
 		  for(int col = 0; col < 7+indiv; ++col)genotypesin >> scrap;//skip to col for this individual, genotypes start at col 11
 		  genotypesin >> obs;
@@ -325,10 +384,12 @@ int main(int argc, char **argv){
 // 		  else{
  		      genotypesfile << getGenotype(obs, alleles) << "\t";
 // 		  }
+		      ++locus;
 	      }
 	      getline(genotypesin, scrap);//skip remaining individuals in line
 	      prev = position;//start reading next line
 	      genotypesin >> SNPID >> alleles >> scrap >> position;
+	      ++abslocus;
 	  }
 	  genotypesin.close();
       }
