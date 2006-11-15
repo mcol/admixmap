@@ -265,7 +265,6 @@ int main(int argc, char **argv){
       //stringstream s; s << "SNP" << locus +10000  << ".txt";
       //locusfile.open(s.str().c_str());
       //}
-      prev = position;
       cout << "\rLocus    " << locus+1 << flush;
       //we want cols: 0(snpid), 1(alleles), 3(position in basepairs), 11 onwards(indiv genotypes)
       genotypesin >> SNPID >> alleles
@@ -296,9 +295,7 @@ int main(int argc, char **argv){
 	      while((indiv_index < NUMIND) && ismono);
 	  }
 
-
 	//write locusfile
-
 	  if(!ismono && (position-prev)>0){//strictly greater than to avoid having comp loci
 	      locusfile << SNPID << "\t" <<  2 << "\t";
 	      if(locus==0) locusfile << "#" ;//missing value for first distance on chr
@@ -312,6 +309,7 @@ int main(int argc, char **argv){
 	      genotypesfile << SNPID << "\t";
 	      ++locus;
 	      BadLoci.push_back(false);
+	      prev = position;
 	  }
 	  else{//locus out of sequence
 	    ++NUMBADLOCIONCHR;
