@@ -144,7 +144,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
 #ifdef PARALLEL
       MPE_Log_event(7, iteration, "SampleFreqs");
 #endif
-      A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
+      A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness, true);
 #ifdef PARALLEL
     MPE_Log_event(8, iteration, "SampledFreqs");
 #endif

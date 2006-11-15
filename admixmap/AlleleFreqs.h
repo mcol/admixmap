@@ -149,10 +149,7 @@ public:
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
-  ///update using Hamiltonian Sampler
-  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
-  ///Update using conjugate sampler
-  //void Update(bool afterBurnIn, double coolness, bool /*annealUpdate*/);
+  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool hapmixmodel);
 
   ///initialize output file for samples of dispersion parameters
   void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, LogWriter &Log);
@@ -289,7 +286,7 @@ private:
   void SampleDirichletParams1D( int );
   void SampleDirichletParamsMultiDim( int);
   void SampleDirichletParams();
-  void SampleAlleleFreqs(int, const double coolness);
+  void SampleAlleleFreqs(int, const double coolness, bool hapmixmodel);
   void UpdatePriorAlleleFreqs( int, const std::vector<std::vector<double> >& );
   void SampleEtaWithRandomWalk(int k, bool updateSumEta);
 

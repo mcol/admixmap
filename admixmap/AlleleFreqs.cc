@@ -165,7 +165,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       //      HapMixPriorRatePriorShape = 100.0;
       //HapMixPriorRatePriorRate = 1.0;
       }
-    HapMixPriorRate = 1.0;//HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
+    HapMixPriorRate = HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
     Log << "Dirichlet prior on allele frequencies. ";
     Log << "Gamma prior on Dirichlet parameters with shape " << HapMixPriorShape << " and rate " << HapMixPriorRate << ".\n";
       //" and Gamma( " << HapMixPriorRatePriorShape << ", " << HapMixPriorRatePriorRate << " ) prior on rate.\n"; 
@@ -385,6 +385,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
     }
   }
 
+  bool useinitfile = false;
   if(RandomAlleleFreqs){
     //allocate prior arrays
     if(options->getHapMixModelIndicator()){
@@ -392,8 +393,10 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
       //fill(HapMixPriorParams, HapMixPriorParams + NumberOfCompositeLoci, 0.1);
       HapMixPriorParamSampler = new StepSizeTuner[NumberOfCompositeLoci];
       file = false;
-      if(strlen( options->getAlleleFreqFilename() ))
-	 LoadInitialAlleleFreqs(options->getAlleleFreqFilename());
+      if(strlen( options->getAlleleFreqFilename() )){
+	  useinitfile=true;
+	  LoadInitialAlleleFreqs(options->getAlleleFreqFilename());
+      }
     }
     else
       PriorParams = new double*[NumberOfCompositeLoci];//2D array    "      "     otherwise
@@ -403,20 +406,21 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   CompositeLocus::SetRandomAlleleFreqs(RandomAlleleFreqs);
   CompositeLocus::SetNumberOfPopulations(Populations);
 
-  if(!options->getHapMixModelIndicator())
+if(!useinitfile)
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
 #ifdef ARRAY2D
     Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
 #endif
 
-    if(file){//read allele freqs from file, then call this method again with 
+    if(file){//read allele freqs from file
 	  newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
-	  LoadAlleleFreqs( *temporary, i, row+1, oldformat);//row+1 is the first row for this locus (+1 for the header).
+	  LoadAlleleFreqs( *temporary, i, row+1, oldformat);//row+1 is the first row for this locus (+1 for the header)
 	  row = newrow;
     }
-    else{  //set default Allele Freqs
+    else {  //set default Allele Freqs
       SetDefaultAlleleFreqs(i);
-      if(RandomAlleleFreqs){//prior for hapmix model is set later in Initialise
+      if(!options->getHapMixModelIndicator() && RandomAlleleFreqs){
+//prior for hapmix model is set later in Initialise
 	// reference prior on allele freqs: all elements of parameter vector set to 0.5
 	// this is unrealistic for large haplotypes - should set all elements to sum to 1
 	double defaultpriorparams = 0.5;
@@ -484,6 +488,8 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename){
 	    Freqs[locus][NumStates-1 + pop*NumStates] = 1.0;
 	    for( int state = 0; state < NumStates-1; state++ ){
 	    infile >> phi;
+	    if(phi == 1.0)phi = 0.999;
+	    if(phi == 0.0)phi = 0.001;
 	    Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] = phi;
 	    Freqs[locus][NumStates-1 + pop*NumStates] -= phi;
 	}
@@ -617,7 +623,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i){
 
 // ************************** Sampling and Updating *****************************************
 /// samples allele frequencies and prior parameters.
-void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool hapmixmodel){
   // Sample prior parameters
   if(HapMixPriorParams){
     SampleHapMixPriorParams();
@@ -641,15 +647,17 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER) {
+      int sumhetcounts =accumulate(hetCounts[i], hetCounts[i]+Populations*Populations, 0, std::plus<int>());
+
+    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER && sumhetcounts > 0) {
       if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
 	FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, 
 				       coolness);
       else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, 
 					     coolness);
     }
-    else if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
-      SampleAlleleFreqs(i, coolness);
+    else //if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
+      SampleAlleleFreqs(i, coolness, hapmixmodel);
 
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
@@ -759,7 +767,7 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
 /** samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
  and stores result in array Freqs 
 */
-void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
+void AlleleFreqs::SampleAlleleFreqs(int i, double coolness, bool hapmixmodel)
 {
   unsigned NumStates = Loci->GetNumberOfStates(i);
   double* temp = new double[NumStates];
@@ -770,8 +778,13 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
   for( int j = 0; j < Populations; j++ ){
 
     // to flatten likelihood when annealing, multiply realized allele counts by coolness
+      if(hapmixmodel)
+    for(unsigned s = 0; s < NumStates; ++s)
+	temp[s] = HapMixPriorParams[s] + coolness*AlleleCounts[i][s*Populations +j];
+      else
     for(unsigned s = 0; s < NumStates; ++s)
       temp[s] = PriorParams[i][c*j*NumStates + s] + coolness*AlleleCounts[i][s*Populations +j];
+
     Rand::gendirichlet(NumStates, temp, Freqs[i]+j*NumStates);
 
     // sample HistoricAlleleFreqs as conjugate Dirichlet update with prior specified by PriorParams
@@ -1263,15 +1276,17 @@ void AlleleFreqs::OutputAlleleFreqs(const char* filename)
     ofstream outfile(filename);
     if(outfile.is_open()){
 	cout << "Writing final values of allele freqs to " << filename << endl;
-  if( IsRandom() ){
+	//if( IsRandom() ){
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
 	for( int pop = 0; pop < Populations; pop++ ){
 	    for( int state = 0; state < Loci->GetNumberOfStates(locus)-1; state++ ){
-	  outfile <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] << " ";
+		outfile <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] << "\t";
+//			<< AlleleCounts[locus][state*Populations + pop] << "\t"
+		    //		<< AlleleCounts[locus][(state+1)*Populations + pop] << endl;
 	}
       }
     }
-  }
+    //}
   outfile.close();
     }
     else{
