@@ -224,7 +224,7 @@ int main( int argc , char** argv ){
 	    coolness = Coolnesses[run];
 	  }
 	  if(NumAnnealedRuns > 0) {
-	    cout <<"\rSampling at coolness of " << coolness << "         " << flush;
+	    cout <<"\rSampling at coolness of " << coolness << "       "<< flush;
 	    // reset approximation series in step size tuners
 	    int resetk = NumAnnealedRuns; //   
 	    if(samples < NumAnnealedRuns) {// samples=1 if annealing without thermo integration
@@ -253,6 +253,7 @@ int main( int argc , char** argv ){
 	      annealstream <<"\t"<< LogEvidence << endl; 
 	      LastMeanEnergy = MeanEnergy;
 	    }
+	    cout << "MeanEnergy = " << MeanEnergy << "        " << flush;
 	  } 
 	} // end loop over coolnesses
       } 
