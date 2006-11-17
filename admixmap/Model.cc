@@ -114,8 +114,8 @@ void Model::Iterate(const int & samples, const int & burnin, const double* Cooln
 
     //Sample Parameters    
     UpdateParameters(iteration, &options, &Loci, Log, data.GetPopLabels(), Coolnesses[coolness], AnnealedRun);
-    SubIterate(iteration, samples, burnin, Coolnesses, coolness, options, data, Loci, Log, SumEnergy, SumEnergySq, 
-	       AISsumlogz, AnnealedRun, loglikelihoodfile);
+    SubIterate(iteration, burnin, options, data, Loci, Log, SumEnergy, SumEnergySq, 
+	       AnnealedRun);
 	
   }// end loop over iterations
   //use Annealed Importance Sampling to calculate marginal likelihood

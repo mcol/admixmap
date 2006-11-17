@@ -203,10 +203,9 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
 }
 
-void HapMixModel::SubIterate(int iteration, const int & samples, const int & burnin, const double* Coolnesses, 
-			     unsigned coolness, AdmixOptions & options, InputData & data, 
-			     const Genome & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
-			     double& logz, bool AnnealedRun, ofstream & loglikelihoodfile){
+void HapMixModel::SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, 
+			     const Genome & , LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+			     bool AnnealedRun){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
 //  const bool isWorker = Comms::isWorker();

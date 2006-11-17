@@ -58,10 +58,9 @@ class Model{
 		       double & SumEnergy, double & SumEnergySq, 
 		       double& logz, bool AnnealedRun, ofstream & loglikelihoodfile);
 
-  virtual void SubIterate(int iteration, const int& samples, const int& burnin, const double* Coolnesses, 
-			  unsigned coolness, AdmixOptions & options, InputData & data, const Genome & Loci, 
+  virtual void SubIterate(int iteration, const int& burnin, AdmixOptions & options, InputData & data, const Genome & Loci, 
 			  LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
-			  double& logz, bool AnnealedRun, ofstream & loglikelihoodfile) = 0;
+			   bool AnnealedRun) = 0;
 
   virtual void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log) = 0;
   virtual void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
@@ -107,10 +106,10 @@ public:
   void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log);
   void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
 		       LogWriter& Log);
-    void SubIterate(int iteration, const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
+    void SubIterate(int iteration, const int & burnin,
 		    AdmixOptions & options, InputData & data, const Genome & Loci, LogWriter& Log, 
 		    double & SumEnergy, double & SumEnergySq, 
-		    double& logz, bool AnnealedRun, ofstream & loglikelihoodfile);
+		    bool AnnealedRun);
 
   void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log);
   void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci) ;
@@ -131,10 +130,9 @@ public:
   void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log);
   void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
 		       LogWriter& Log);
-  void SubIterate(int iteration, const int & samples, const int & burnin, const double* Coolnesses, 
-		  unsigned coolness, AdmixOptions & options, InputData & data, const Genome & Loci, 
+  void SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, const Genome & Loci, 
 		  LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
-		  double& logz, bool AnnealedRun, ofstream & loglikelihoodfile);
+		  bool AnnealedRun);
 
   void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log);
   void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci) ;

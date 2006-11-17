@@ -216,11 +216,9 @@ void AdmixMapModel::ResetStepSizeApproximators(int resetk){
  L->resetStepSizeApproximator(resetk);
 }
 
-void AdmixMapModel::SubIterate(int iteration, const int & samples, const int & burnin, const double* Coolnesses, 
-			       unsigned coolness, AdmixOptions & options, InputData & data, 
-			       const Genome & Loci, LogWriter& Log, 
-			       double & SumEnergy, double & SumEnergySq, 
-			       double& logz, bool AnnealedRun, ofstream & loglikelihoodfile){
+void AdmixMapModel::SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, 
+			       const Genome & Loci, LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+			       bool AnnealedRun){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
