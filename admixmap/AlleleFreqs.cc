@@ -647,13 +647,14 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      int sumhetcounts =accumulate(hetCounts[i], hetCounts[i]+Populations*Populations, 0, std::plus<int>());
+    const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
 
-    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER && sumhetcounts > 0) {
-      if(Loci->GetNumberOfStates(i)==2) //shortcut for SNPs
+    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER && (NumberOfStates > 2 ||
+	accumulate(hetCounts[i], hetCounts[i]+Populations*Populations, 0, std::plus<int>()) > 0 )) {
+      if(NumberOfStates==2) //shortcut for SNPs
 	FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, 
 				       coolness);
-      else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, Loci->GetNumberOfStates(i), Populations, 
+      else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, NumberOfStates, Populations, 
 					     coolness);
     }
     else //if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
