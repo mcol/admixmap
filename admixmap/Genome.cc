@@ -376,7 +376,7 @@ double Genome::GetLengthOfXchrm()const
    return LengthOfXchrm;
 }
 ///indicates if a chromosome is an X chromosome
-unsigned Genome::isXChromosome(unsigned j){
+unsigned Genome::isXChromosome(unsigned j)const{
   return C[j]->isXChromosome();
 }
 bool Genome::isXLocus(unsigned j)const{

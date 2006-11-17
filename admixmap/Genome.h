@@ -60,7 +60,7 @@ public:
   unsigned GetSizeOfChromosome(unsigned)const;
 
   unsigned getFirstXLocus()const;
-  unsigned isXChromosome(unsigned);
+  unsigned isXChromosome(unsigned)const;
   bool isXLocus(unsigned j)const;
 
   double GetDistance(int)const;
