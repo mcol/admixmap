@@ -106,13 +106,14 @@ private:
   unsigned myNumber;//number of this individual, counting from 1
   bool IAmUnderTest;//true if not in Individual array
   bool SexIsFemale;
+  bool isHaploid;//indicates if individual is haploid at all loci or only at X loci
   static unsigned int numChromosomes;
   static int Populations;
   static Genome *Loci;
   static bool Xdata;//indicates if there is an X chromosome
   static unsigned int X_posn;  //number of X chromosome
   double EffectiveL[2];
-  static unsigned NumIndGametes; // 1 if assortative mating, 2 if random mating
+  unsigned NumGametes; // 1 if assortative mating or haploid data, 2 if random mating and diploid data
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype

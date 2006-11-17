@@ -562,64 +562,51 @@ bool InputData::isFemale(int i)const{
   return (bool)(sex==2);
 }
 
+///extracts genotype for given individual at given locus as string and converts to vector of unsigned ints
 vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, int SexColumn)const{
   vector<unsigned short> g;
-  bool isXlocus = false;
-  if(locusData_[0].size()==4){
-    const string s1("X"), s2("x");
-    const string chrmlabel = StringConvertor::dequote(locusData_[locus+1][3]);
-    isXlocus = ( (chrmlabel == s1) || (chrmlabel == s2) );
-  }
+ 
   int col = 1 + SexColumn + locus;
   if (IsPedFile)col = 1 + SexColumn + 2*locus;
   //strip quotes from string
   const std::string str = StringConvertor::dequote(geneticData_[individual][col]);
+  if(str.length()==0){
+    //if empty string, interpret as missing genotype for backward compatibility
+    g.push_back(0);
+    g.push_back(0);
+    return g;
+  }
   //look for , or / 
   string::size_type i = str.find_first_of(",/");
   //extract first allele as portion of string up to first ',' or '/'
   //NOTE: if string consists only of ',' or '/' or anything non-numeric, genotype is taken as missing
   g.push_back(atoi(str.substr(0,i).c_str()));
 
-  if(!isXlocus || isFemale(individual)){//expect diploid genotype
-    if( i != string::npos){// , or / found
+  if( i != string::npos){// , or / found
       //extract second allele as portion of string after first ',' or '/'
       // NOTE: if nothing after, allele is taken as 0
       g.push_back(atoi(str.substr(i+1,str.length()-i).c_str()));
-    }
-    else{
-      //if empty string, interpret as missing genotype for backward compatibility
-      if(str.length()==0)g.push_back(0);
-      else {//string with only one int
-	cerr << "Error in genotypesfile: expected diploid genotype for Individual " << individual << " at locus " << locus 
-	     << " but found haploid genotype"<< endl;
-	exit(1);
-      }
-    }
   }
-  //   else{
-  //   //check male X genotypes are haploid
-  //     if(i != string::npos){//found another allele
-  // 	cerr << "Error in genotypesfile: expected haploid genotype for Individual " << individual << " at locus " << locus 
-  // 	     << " but found diploid genotype"<< endl;
-  //     }
-  //   }   
+
   return g;  
 }
 
 void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
   unsigned int simplelocus = 0;//simple locus counter
   unsigned complocus = 0;
+  unsigned long numhaploid = 0;
+  unsigned long numdiploid = 0;
+  unsigned long numhaploidX = 0;
+  unsigned long numdiploidX = 0;
+  //  unsigned numXloci = 0;
   for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
+    bool isXchrm = Loci.isXChromosome(c);
     for(unsigned int j = 0; j < Loci.GetSizeOfChromosome(c); ++j){
       genotype G;
       // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype
-#ifdef PARALLEL
-      const int numLoci = 1; 
-#else
-      const int numLoci = Loci(complocus)->GetNumberOfLoci();
-#endif
-      
+      const int numLoci = Loci.getNumberOfLoci(complocus);
       unsigned int count = 0;
+      //  if(isXchrm)numXloci += numloci;
       for (int locus = 0; locus < numLoci; locus++) {
 #ifdef PARALLEL
 	const int numalleles = 2;
@@ -636,6 +623,23 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
 	      throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
 				 g[0], 0, numalleles );
 
+	if(isXchrm){
+	  if(g.size()==1)++numhaploidX;
+	  else {//diploid X genotype
+	    if(!isFemale(i)){//males cannot have diploid X genotypes
+	      //cerr << "Genotype error in Individual " << i << ". Only females can have diploid X-chromosome genotypes.";
+	      //exit(1);
+	      //NOTE: allowing this for backward compatibility, for now
+	      //instead remove second element
+	      g.pop_back();
+	    }
+	    ++numdiploidX;
+	  }
+	}
+	else{
+	  if(g.size()==1)++numhaploid;
+	  else ++numdiploid;
+	}
 	simplelocus++;
 	G.push_back(g);
 	count += g[0];
@@ -647,6 +651,31 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
       ++complocus;
     }
   }
+  //check genotypes are valid
+  if(numhaploidX + numdiploidX > 0){//some X genotypes present
+//     if(numdiploidX>0 && !isFemale(i)){//male with diploid X data
+//       cerr << "Genotype error in Individual " << i << ". Only females can have diploid X-chromosome genotypes.";
+//       exit(1);
+//     }
+    if(numhaploidX>0 && isFemale(i)){
+      if(numdiploidX >0){//female with haploid and diploid X data
+	cerr << "Genotype error in Individual " << i << ". Females should have diploid X-chromosome genotypes.";
+	exit(1);
+      }
+      if(numdiploid>0){//phased X data but unphased autosomal genotypes
+	cerr << "Genotype error in Individual " << i << ". Female with diploid autosomes ands haploid X-Chromosome."; 
+	exit(1);
+      }
+    }
+  }
+  else{//only autosomes
+    if( numhaploid>0 && numdiploid > 0 ){//mixed haploid/diploid data
+      cerr << "Genotype error in Individual " << i << ". Both haploid and diploid genotypes and no X chromosome.";
+      exit(1);
+    }
+  }
+
+
 }
 
 void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const{
