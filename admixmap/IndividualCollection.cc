@@ -314,40 +314,6 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 }
 
 // ************** UPDATING **************
-// void IndividualCollection::UpdateIndivAdmixtureRandomWalk(int iteration, const AdmixOptions* const options,
-// 					       const vector<Regression*> &R, const double* const poptheta,
-// 					       const vector<vector<double> > &alpha, 
-// 					       bool anneal=false){
-//   // Samples individual admixture proportions with random walk 
-//   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
-//   vector<double> lambda; // regression precision
-//   vector<const double*> beta;
-//   int i0 = 0;
-//   double dispersion = 0.0; 
-//   if(options->getTestOneIndivIndicator()) { // anneal likelihood for test individual only 
-//     i0 = 1;
-//   }
-//   if(options->getNumberOfOutcomes() > 0) {
-//     dispersion = R[0]->getDispersion();
-//     for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-//       lambda.push_back( R[i]->getlambda());
-//       beta.push_back( R[i]->getbeta());
-//     }
-//   }
-  
-//   // loop over individuals
-//   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
-//     // ** update theta with random-walk update, requiring HMM likelihood
-//     if(Populations > 1 && !(iteration %2) && !options->getHapMixModelIndicator()) {
-//       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-// 			     beta, poptheta, options, alpha,DerivativeInverseLinkFunction(i+i0), 
-// 			     dispersion, true, _anneal);
-//       _child[i]->HMMIsBad(false);
-
-//     }
-//   }
-// }
-
 /**
     (1) Samples individual admixture proportions on even-numbered iterations
     (2) Samples Locus Ancestry (after updating HMM)
@@ -359,12 +325,13 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 */
 void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 					       const vector<Regression*> &R, 
-					       AffectedsOnlyTest& affectedsOnlyTest, bool anneal=false){
+					       AffectedsOnlyTest& affectedsOnlyTest, bool ){
  if((iteration %2))
      fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
   if(iteration > options->getBurnIn()){
-    Individual::ResetScores(options);
+    if(iteration %2)//only on odd iterations becsue it is already done on even numbered ones (in SampleAdmixtureWithRandomWalk)
+      Individual::ResetScores(options);
     affectedsOnlyTest.Reset();
   }
 
@@ -419,6 +386,9 @@ void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const Ad
     i0 = 1;
   }
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+  if(iteration > options->getBurnIn())
+    Individual::ResetScores(options);//because the B array is updated immediately after theta
+
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
     for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
 	double DinvLink = 1.0;
@@ -429,74 +399,6 @@ void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const Ad
 			       dispersion, true, _anneal);
     }
 }
-
-// void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-// 					       const vector<Regression*> &R) {
-//   /*
-//     (1) Samples Locus Ancestry (after updating HMM)
-//     (2) accumulates sums of ancestry states in hapmixmodel
-//     (3) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
-//     (4) updates score, info and score squared for ancestry score tests
-//   */
-//   int i0 = 0;
-//   double dispersion = 0.0; 
-//   if(options->getTestOneIndivIndicator()) { // anneal likelihood for test individual only 
-//     i0 = 1;
-//   }
-//   if(R.size() > 0) {
-//     dispersion = R[0]->getDispersion();
-//   }
-
-//   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-//   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
-//   if(iteration > options->getBurnIn())Individual::ResetScores(options);
-
-//   if(options->getHapMixModelIndicator()){
-//     fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
-// #ifdef PARALLEL
-//     if(workers_and_master.Get_rank()==0)fill(GlobalSumAncestry, GlobalSumAncestry + 2*NumCompLoci, 0);
-//     if(worker_rank<(int)size)MPE_Log_event(15, iteration, "Sampleancestry");
-// #endif
-//   }
-
-//   //now loop over individuals
-//   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
-//     // ** set SumLocusAncestry and SumNumArrivals to 0
-//     if(!options->getHapMixModelIndicator()) {
-//       _child[i]->ResetSufficientStats();
-//     }
-//     if(Populations > 1) {    // sample locus ancestry: requires forward recursion in HMM
-//       _child[i]->SampleLocusAncestry(options);
-//       if(options->getHapMixModelIndicator()) {
-// 	_child[i]->AccumulateAncestry(SumAncestry);
-//       }
-
-//       if(!options->getHapMixModelIndicator() && (!(iteration %2) || !options->isGlobalRho())) { 
-// 	// ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-// 	// jump indicators required only for conjugate update of theta (even-numbered iterations) or rho
-// 	_child[i]->SampleJumpIndicators( !options->isGlobalRho() );
-//       }
-//     }
-
-//     // ** Update score, info and score^2 for ancestry score tests
-//     if(iteration > options->getBurnIn() && Populations >1 
-//        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-//       _child[i]->UpdateScores(options, &Outcome, OutcomeType, &Covariates, DerivativeInverseLinkFunction(i+i0), 
-// 			      dispersion, ExpectedY);
-//   }
-
-// #ifdef PARALLEL
-//   if(worker_rank<(int)size)MPE_Log_event(16, iteration, "Sampledancestry");
-//   if(options->getHapMixModelIndicator()){
-//     MPE_Log_event(1, iteration, "BarrierStart");
-//     workers_and_master.Barrier();
-//     MPE_Log_event(2, iteration, "Barrierend");
-//     MPE_Log_event(3, iteration, "RedAncStart");    
-//     workers_and_master.Reduce(SumAncestry, GlobalSumAncestry, 2*NumCompLoci, MPI::INT, MPI::SUM, 0); 
-//     MPE_Log_event(4, iteration, "RedAncEnd");
-//   }
-// #endif
-// }
 
 /**
    Samples Haplotype pairs and upates allele/haplotype counts
