@@ -167,8 +167,8 @@ void Chromosome::SetHMMTheta(const double* const Admixture, bool RandomMating, b
 }
 
 ///sets state arrival probs in HMM, only required for diploid case
-void Chromosome::SetStateArrivalProbs(bool RandomMating) {
-  SampleStates.SetStateArrivalProbs(RandomMating);
+void Chromosome::SetStateArrivalProbs(bool RandomMating, bool isdiploid) {
+  SampleStates.SetStateArrivalProbs(RandomMating, isdiploid);
 }
 ///samples locus ancestry (hidden states in HMM)
 void Chromosome::SampleLocusAncestry(int *OrderedStates, bool diploid){

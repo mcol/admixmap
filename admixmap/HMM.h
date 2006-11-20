@@ -25,7 +25,7 @@ public:
   void SetDimensions( int inTransitions, int pops, const double* const fin);
   void SetGenotypeProbs(const double* const lambdain, const bool* const missing);
   void SetTheta(const double* const Theta, const int Mcol, const bool isdiploid);
-  void SetStateArrivalProbs(const int Mcol);
+  void SetStateArrivalProbs(const int Mcol, bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
   const std::vector<double> Get3WayStateProbs( const bool isDiploid, int t );

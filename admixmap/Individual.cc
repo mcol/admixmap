@@ -657,7 +657,7 @@ void Individual::AccumulateAncestry(int* SumAncestry){
 	  ++SumAncestry[locus*2];
 	else
 	  ++SumAncestry[locus*2 + 1];
-	if(!isHaploid && (j!=X_posn) || SexIsFemale){//second gamete
+	if(!isHaploid && ((j!=X_posn) || SexIsFemale)){//second gamete
 	if( LocusAncestry[j][C->GetSize() + l-1] != LocusAncestry[j][C->GetSize() + l])
 	  ++SumAncestry[locus*2];
 	else
@@ -1146,7 +1146,7 @@ void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const optio
   Chromosome* C = Loci->getChromosome(j);
   C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
-  bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
+   bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
   if(!options->getHapMixModelIndicator()){
     if(!options->isGlobalRho()){
       //set locus correlation, f, if individual- or gamete-specific rho
@@ -1154,8 +1154,8 @@ void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const optio
     }
     C->SetHMMTheta(theta, options->isRandomMatingModel(), diploid);
   }
-  if(diploid)
-    C->SetStateArrivalProbs(options->isRandomMatingModel());
+  //if(diploid)
+  C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
 

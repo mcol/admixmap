@@ -315,19 +315,18 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 
 // ************** UPDATING **************
 /**
-    (1) Samples individual admixture proportions on even-numbered iterations
-    (2) Samples Locus Ancestry (after updating HMM)
-    (3) accumulates sums of ancestry states in hapmixmodel
-    (4) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
-    (5) updates score, info and score squared for ancestry score tests
+    (1) Samples Locus Ancestry (after updating HMM)
+    (2) accumulates sums of ancestry states in hapmixmodel
+    (3) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
+    (4) updates score, info and score squared for ancestry score tests
     coolness is not passed as argument to this function because annealing has already been implemented by 
     calling annealGenotypeProbs 
 */
 void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 					       const vector<Regression*> &R, 
 					       AffectedsOnlyTest& affectedsOnlyTest, bool ){
- if((iteration %2))
-     fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+  if((iteration %2))
+    fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
   if(iteration > options->getBurnIn()){
     if(iteration %2)//only on odd iterations becsue it is already done on even numbered ones (in SampleAdmixtureWithRandomWalk)
@@ -487,12 +486,12 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
       _child[i]->SampleRho( options, rhoalpha, rhobeta,   
 			    (!anneal && iteration > options->getBurnIn()));
     // ** update admixture props with conjugate proposal on odd-numbered iterations
-    if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ){
-     double DinvLink = 1.0;
-     if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-      _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-			     beta, poptheta, options, alpha, DinvLink, dispersion, false, anneal);
-    }
+     if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ){
+           double DinvLink = 1.0;
+       if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
+       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
+     		     beta, poptheta, options, alpha, DinvLink, dispersion, false, anneal);
+            }
     // ** Sample missing values of outcome variable
     _child[i]->SampleMissingOutcomes(&Outcome, R);
   }
@@ -721,7 +720,7 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
 	  //TODO: can skip this if xonly analysis with no females
 	  //NB: assumes always diploid in hapmixmodel
 	  //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-	  Loci->getChromosome(j)->SetStateArrivalProbs(options->isRandomMatingModel());
+	  Loci->getChromosome(j)->SetStateArrivalProbs(options->isRandomMatingModel(), true);
     }
   }
   

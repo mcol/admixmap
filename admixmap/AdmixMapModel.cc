@@ -69,7 +69,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
   A.ResetAlleleCounts(options->getPopulations());
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if(isMaster || isWorker){
+    if(isMaster || isWorker){
     // ** update global sumintensities conditional on genotype probs and individual admixture proportions
      if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && 
         (Loci->GetLengthOfGenome() + Loci->GetLengthOfXchrm() > 0.0))
@@ -92,8 +92,8 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
   // Update individual-level parameters, sampling locus ancestry states
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(isMaster || isWorker){
-      if(options->getPopulations() >1 && !(iteration %2))
-	  IC->SampleAdmixtureWithRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
+    if(options->getPopulations() >1 && !(iteration %2))
+      IC->SampleAdmixtureWithRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
       IC->SampleLocusAncestry(iteration, options, R, Scoretests.getAffectedsOnlyTest(), anneal);
    }
 

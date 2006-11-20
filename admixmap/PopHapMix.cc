@@ -217,8 +217,7 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
       for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
 	//set global state arrival probs in hapmixmodel
 	//TODO: can skip this if xonly analysis with no females
-	//NB: assumes always diploid in hapmixmodel
-	Loci->getChromosome(c)->SetStateArrivalProbs(options->isRandomMatingModel());
+	Loci->getChromosome(c)->SetStateArrivalProbs(options->isRandomMatingModel(), true);
       }
     }
   if(Comms::isMaster()){

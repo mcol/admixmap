@@ -34,7 +34,7 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
       //TODO: can skip this if xonly analysis with no females
       //NB: assumes always diploid in hapmixmodel
       Loci.getChromosome(j)->SetHMMTheta(L->getGlobalTheta(), options.isRandomMatingModel(), true);
-      Loci.getChromosome(j)->SetStateArrivalProbs(options.isRandomMatingModel());
+      Loci.getChromosome(j)->SetStateArrivalProbs(options.isRandomMatingModel(), true);
     }
   }
   

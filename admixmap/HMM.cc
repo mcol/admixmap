@@ -87,7 +87,7 @@ void HMM::SetTheta(const double* const Theta, const int Mcol, const bool isdiplo
   }
 }
 
-void HMM::SetStateArrivalProbs(const int Mcol){
+void HMM::SetStateArrivalProbs(const int Mcol, bool isdiploid){
   //required only for diploid updates
   alphaIsBad = true;//new input so reset
   betaIsBad = true;
@@ -95,7 +95,8 @@ void HMM::SetStateArrivalProbs(const int Mcol){
   for(int t = 1; t < Transitions; t++ ){        
     for(int j = 0; j < K; ++j){
       StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * theta[j];
-      StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta[K*Mcol +j ];
+      if(isdiploid)
+	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta[K*Mcol +j ];
     }
     p[t] = f[2*t] * f[2*t + 1];
   }
@@ -106,7 +107,7 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned in
   //this does not require forward or backward probs, just state arrival probs
   if(!Lambda || !theta || !f)throw string("Error: Call to HMM::SampleJumpIndicators when StateArrivalProbs are not set!");
   bool xi = false;//jump indicator
-  double ProbJump; // prob jump indicator is 1
+  double ProbJump = 0.0; // prob jump indicator is 1
   // first locus not included in loop below
   for( unsigned int g = 0; g < gametes; g++ ){
     SumLocusAncestry[ g*K + LocusAncestry[g*Transitions] ]++;
@@ -115,7 +116,7 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned in
     for( unsigned int g = 0; g < gametes; g++ ){
       xi = true;
       if( LocusAncestry[g*Transitions + t-1] == LocusAncestry[g*Transitions + t] ){
-	ProbJump = StateArrivalProbs[t*K*2 +LocusAncestry[t + g*Transitions]*2 + g];  
+	ProbJump = StateArrivalProbs[t*K*2 + LocusAncestry[t + g*Transitions]*2 + g];  
 	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > Rand::myrand());
       } 
       if( xi ){ // increment sumlocusancestry if jump indicator is 1
@@ -133,7 +134,7 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned in
   } // ends loop over intervals
 }
 
-/*
+/**
   returns log-likelihood
   This is the sum over states of products of alpha and beta
   and is the same for all t so it is convenient to compute for
