@@ -66,26 +66,16 @@ distanceFromLast <- function(v.Chr, v.Position) {
 ##########################################################################
 ## Start of script
 ## chromosome lengths in cM
-#chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-chr.L <- c(40, 40) ## trial runs with 2 chr
+#chr.L <-
+##c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
+chr.L <- c(10, 10) ## trial runs with 2 chr
 #chr.L <- 20
 numChr <- length(chr.L)
 
-N <- 100
-K <- 4
-##rhoalpha <-  4 # arrival rate per cM
-rhobeta0 <- 0.1
-rhobeta1 <- 0.1
-##rhobeta <- 0.1
-
-# mean r = rhoalpha*rhobeta1 / (rhobeta0 - 1)
 N <- 100##number of individuals
-K <- 4##number of block states
-rhoalpha <-  40 #    |
-rhobeta0 <- 5 ## prior on rho
-rhobeta1 <- 5##      |
-rhobeta <- rgamma(1, rhobeta0, rhobeta1)
-## mean r = rhoalpha*rhobeta1 / (rhobeta0 - 1)
+K <- 2##number of block states
+DiploidData = F
+
 
 spacing <- 0.01 # spacing in cM
 
@@ -100,17 +90,21 @@ for(chromosome in 1:numChr) {
 distances <- distanceFromLast(chr, x)
 L <- length(x) # number of loci
 
+#L<-5000
+#K<-
+#N<-60
+#distances<-read.table("/ichec/work/ndlif006b/genepi/hapmap/Eur/chr22data/loci5000.txt", header=T, comment.char="", na.strings="#")[,3]
+
+
 f <- numeric(L)
 for(locus in 1:L) {
   if(is.na(distances[locus])) {
     f[locus] <- 0.0
   } else {
 
-    rhoalpha <- 10*distances[locus]	
-    rhobeta <- 0.25##rgamma(1, shape=rhobeta0, rate=rhobeta1)
-    ##rho <- rgamma(1, shape=rhoalpha, rate=rhobeta)
-    ##f[locus] <- exp(-rho*distances[locus])
-    lambda <- rgamma(1, rhoalpha, rhobeta)
+    lambda.shape <- 400*distances[locus]	
+    lambda.rate <- 10##rgamma(1, shape=rhobeta0, rate=rhobeta1)
+    lambda <- rgamma(1, lambda.shape, lambda.rate)
     f[locus] <- exp( -lambda )
   }
 }
@@ -119,35 +113,52 @@ for(locus in 1:L) {
 mu <- rep(1/K, K)
 alleleFreqs <- array(data=NA, dim=c(2, K, L))
 
+##use this to read frqs from file
+#freqs.alpha<-read.table("/ichec/work/ndlif006b/genepi/hapmap/Eur/Results1States/AlleleFreqPosteriorMeans.txt",
+#header=T)[,2]
+#freqs.alpha[freqs.alpha==0]<-0.001
+#freqs.alpha[freqs.alpha==1]<-0.999
+
 alpha.shape <- 1
 alpha.rate <- 10
 for(locus in 1:L) {
-freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 0.1
+freqs.alpha <- 0.5#rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 0.1
 ##p <- rep(0, K)
 ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
-   p  <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
+   #p  <- rbeta(K, freqs.alpha[locus*2-1], freqs.alpha[locus*2]) # freqs  allele 1
+  #p <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
+p  <- c(0,1)
 ##  }
 alleleFreqs[1, , locus] <- p
 alleleFreqs[2, , locus] <- 1 - p # freqs allele 2
 ##  }
 }
 allele1.counts <- rep(0, L)
-genotypes <- matrix(data="0,0", nrow=N, ncol=L)
+genotypes.diploid <- matrix(data="0,0", nrow=N, ncol=L)
+genotypes.haploid <- matrix(data="0", nrow=N, ncol=L)
 for(individual in 1:N) {
-  g.list <- simulateGenotypes(mu, mu, f, L, alleleFreqs, allele1.counts)
-##  g.list <- simulateHaploidAlleles(mu, f, L, alleleFreqs)		
 
-  genotypes[individual, ] <- g.list$genotypes
-  allele1.counts <- allele1.counts + g.list$counts
-##  genotypes[individual, ] <-simulateHaploidAlleles(mu, f, L, alleleFreqs)  
+  g.list <- simulateGenotypes(mu, mu, f, L, alleleFreqs, allele1.counts)
+  genotypes.diploid[individual, ] <- g.list$genotypes
+
+  #allele1.counts <- allele1.counts + g.list$counts
+
+  genotypes.haploid[individual, ] <-simulateHaploidAlleles(mu, f, L, alleleFreqs)  
+
 }
 
 ## write genotypes file
 id = as.character(seq(1:N))
 sex <- rep(1, N)##for all males, irrelevant if no X-chromosome
 ##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
-genotypes <- data.frame(id, genotypes, row.names=NULL)
-write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
+
+##write diploid genotypes
+genotypes <- data.frame(id, genotypes.diploid, row.names=NULL)
+write.table(genotypes, file=data/genotypes.txt", sep="\t", row.names=FALSE)
+##write haploid genotypes
+genotypes <- data.frame(id, genotypes.haploid, row.names=NULL)
+write.table(genotypes, file=data/genotypes_haploid.txt", sep="\t", row.names=FALSE)
+
 
 ## write locus file
 distances[is.na(distances)] <- 100
@@ -155,11 +166,11 @@ distances[is.na(distances)] <- 100
 
 ##next 2 lines for X-only data
 ##loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-c(1:2)]),  rep(2,L),  distances, rep("X", L), row.names=NULL)
-##dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distanceincm", "Chrm")
+##dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "DistanceinMb", "Chrm")
 
 ##next 2 lines for autosomal-only data
-loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-c(1:2)]),  rep(2,L),  distances, row.names=NULL)
-dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "Distanceincm")
+loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  distances, row.names=NULL)
+dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "DistanceinMb")
 
 write.table(loci, file="data/loci.txt", row.names=FALSE)
 

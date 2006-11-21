@@ -28,7 +28,7 @@ sub doAnalysis
     print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
     system($command);
     #print "Starting R script to process output\n";
-    #system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
+    system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
     #print "R script completed\n\n";
 }
 
@@ -64,42 +64,67 @@ sub CompareThenMove {
 }
 
 ################### DO NOT EDIT ABOVE THIS LINE ########################
-my $executable = '~/test/admixmap';
+my $executable = '../test/admixmap';
 
 my $arg_hash = {
 #data files
-    genotypesfile                   => 'data/genotypes.txt',
+
+#   genotypesfile                   => 'data/genotypes.txt', #diploid data
+    genotypesfile                   => 'data/genotypes_haploid.txt',#haploid data
+
     locusfile                       => 'data/loci.txt',
-    #priorallelefreqfile             => 'data/allelefreqs.txt',
-    #fixedallelefreqs                => 1,
+    priorallelefreqfile             => 'data/allelefreqs.txt',
+    fixedallelefreqs                => 1,
+
+    populations=>2,
+
+    checkdata=> 0,
+
 #main options
-    samples  => 250,
-    burnin   => 50,
+    resultsdir => 'results',
+    displaylevel   => 3, 
+
+    samples  => 50,
+    burnin   => 10,
     every    => 1,
-    numannealedruns => 0,
-    displaylevel => 3, 
-    hapmixmodel => 1,
-    hapmixlambdaprior=>"1000,10,40",
 
-    #initialhapmixlambda => 0.4,
-#sampler settings for lambda
-    rhosamplerparams=> "0.01,  0.0001,  1.0,  0.9,  20",
+numannealedruns => 0,
+thermo => 0,
+hapmixmodel => 1,
+#indadmixhiermodel => 0,
+randommatingmodel => 0,
 
-#output file options
-    resultsdir=> 'results',
-    paramfile => 'paramfile.txt',
-    allelefreqprioroutputfile => 'freqparams.txt',
-# ergodicaveragefile => 'ergodicaverages.txt',
-    logfile                     => 'log.txt',
-# optional tests
-    residualallelicassocscorefile => 'residualLDscoretests.txt',
-    #hwscoretestfile                   => 'HardyWeinbergtest.txt'
+hapmixlambdaprior=>"4000, 10, 100, 10",
+
+allelefreqprior => "1, 1, 1",
+#initialhapmixlambdafile => "data/initialambdas.txt",
+#allelefreqfile => "data/initialallelefreqs.txt",
+
+rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
+
+#output files
+    logfile                     => 'logfile.txt',
+    paramfile               => 'paramfile.txt',
+    #regparamfile          => 'regparamfile.txt',
+    #indadmixturefile     => 'indadmixture.txt',
+    #ergodicaveragefile => 'ergodicaverage.txt',
+    allelefreqoutputfile  => "initialallelefreqs.txt",
+    hapmixlambdaoutputfile => "data/initiallambdas.txt",
+
+#optional tests
+#residualallelicassocscorefile => 'residualLDscores.txt',
+    #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
 };
 
-# model with 4 block states
-$arg_hash->{populations}           = 4;
+# Initial run 
 $arg_hash->{resultsdir}            = 'Results';  
 doAnalysis($executable,$arg_hash);
+system("cp Results/initialallelefreqs.txt data");
 #CompareThenMove("Results", "Results4");
 
-############### DO NOT EDIT BELOW THIS LINE ############################
+# rerun with final values of previous run as intial values of this
+$arg_hash->{allelefreqfile}="data/initialallelefreqs.txt";
+$arg_hash->{initialhapmixlambdafile}="data/initiallambdas.txt";
+$arg_hash->{fixedallelefreqs} = 0;
+delete $arg_hash->{priorallelefreqfile};
+#doAnalysis($executable,$arg_hash);
