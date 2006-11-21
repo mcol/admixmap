@@ -201,18 +201,17 @@ void HMM::Sample(int *SStates, const bool isdiploid)
     }
     delete[] V;
   } else {//haploid
-    double* V = new double[K]; //probability vector for possible states (haploid or diploid)
-    int* C = new int[Transitions]; // sampled state (haploid or diploid) coded as integer
-    for( int j = 0; j < K; j++ )V[j] = alpha[(Transitions - 1)*K + j ];
-    C[ Transitions - 1 ] = Rand::SampleFromDiscrete( V, K );
-    SStates[Transitions-1] = C[Transitions-1];
+    double* V = new double[K]; //probability vector for possible states 
+    for( int state = 0; state < K; state++ )V[state] = alpha[(Transitions - 1)*K + state ];
+    SStates[Transitions-1] = Rand::SampleFromDiscrete( V, K );
     for( int t =  Transitions - 2; t >= 0; t-- ){
-      for(int j = 0; j < K; j++)V[j] = (j == C[t+1])*f[2*t+1]+theta[C[t+1]]*(1.0 - f[2*t]);
-      for( int j = 0; j < K; j++ )	V[j] *= alpha[t*K + j];
-      C[ t ] = Rand::SampleFromDiscrete( V, K );
-      SStates[t] = C[t];
+	//for(int j = 0; j < K; j++)V[j] = (j == C[t+1])*f[2*t+1]+theta[C[t+1]]*(1.0 - f[2*t]);
+	for(int state = 0; state < K; state++)
+	    V[state] = (state == SStates[t+1]) * f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + SStates[t+1]*2  ];
+	for( int state = 0; state < K; state++ ) 
+	    V[state] *= alpha[t*K + state];
+	SStates[t] = Rand::SampleFromDiscrete( V, K );
     }
-    delete[] C;
     delete[] V;
   }
 }
