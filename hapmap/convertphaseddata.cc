@@ -140,7 +140,7 @@ int main(int argc, char **argv){
     }
 
     getline(legendfile, scrap);//skip header
-    while ( (!legendfile.eof())  && (locus < userloci) ){
+    while ( (!legendfile.eof())){
       prev = position;
       cout << "\rLocus    " << locus+1 << flush;
       //we want cols: 0(snpid), 1(position in basepairs)
@@ -150,16 +150,18 @@ int main(int argc, char **argv){
 
 	//write locusfile
 	  if((position-prev)>0){//strictly greater than to avoid having comp loci
-	      locusfile << SNPID << "\t" <<  2 << "\t";
-	      if(locus==0) locusfile << "#" ;//missing value for first distance on chr
-	      else 
+	      if(locus < userloci){
+		  locusfile << SNPID << "\t" <<  2 << "\t";
+		  if(locus==0) locusfile << "#" ;//missing value for first distance on chr
+		  else 
 //converts position in basepairs to distance in centiMorgans 
-		  //locusfile << 0.0000013 * (position-prev);
+		      //locusfile << 0.0000013 * (position-prev);
 //convert position to distance in megabases
-		  locusfile << 0.000001 * (position-prev);
-	      locusfile << /*chrnumber <<*/ endl;
-	      //write header of genotypesfile
-	      genotypesfile << SNPID << "\t";
+		      locusfile << 0.000001 * (position-prev);
+		  locusfile << /*chrnumber <<*/ endl;
+		  //write header of genotypesfile
+		  genotypesfile << SNPID << "\t";
+	      }
 	      ++locus;
 	  }
 // 	  else{//locus out of sequence
@@ -230,7 +232,7 @@ int main(int argc, char **argv){
        genotypesfile << ID << "\t";// << sex[indiv] <<"\t";
 //write genotypes for first chromosome
        for(unsigned j = 0; j < NUMLOCI[0]; ++j){
-	   genotypesfile << allele+1 << " ";
+	   if(j < userloci)genotypesfile << allele+1 << " ";
 	   phasedfile >> allele;
        }
 //now loop through other chromosomes 
@@ -258,7 +260,7 @@ int main(int argc, char **argv){
 //write genotypes for this chromosome
 	   for(unsigned j = 0; j < NUMLOCI[chr-CHRNUM]; ++j){
 	       phasedfile2 >> allele;
-	       genotypesfile << allele+1;
+	       if(j < userloci)genotypesfile << allele+1;
 	   }
 	   phasedfile2.close();
        }
