@@ -178,11 +178,9 @@ inline void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::ve
     *q = 0.0;
     happairiter h = HapPairs.begin();
     for( ; h != end ; ++h) {
-//Probs[k] += AlleleProbs[h->haps[0]*Population ]
-//      *q += *(p + (h->haps[0] ) * Populations);
-	*q += *(p + k*NumberOfStates + (h->haps[0] ));
+//Probs[k] += p[k*NumberOfStates + (h->haps[0] )];
+	*q += p[k*NumberOfStates + (h->haps[0] )];
     }
-    p++;
     q++;
   }
 }
