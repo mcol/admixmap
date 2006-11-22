@@ -160,8 +160,7 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
   //LambdaArgs.theta = globaltheta;
   //double sum = 0.0;
   int locus = 0;
-  int index = 0;
-  
+  int interval = 0;
   if(Comms::isMaster()){
 #ifdef PARALLEL
     MPE_Log_event(9, 0, "sampleLambda");
@@ -176,11 +175,12 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
 	for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
 	  double loglambda = log(*lambda_iter);//sampler is on log scale
 	  
-	  LambdaArgs.Distance = Loci->GetDistance(locus);//distance between this locus and last
-	  LambdaArgs.SumAncestry = SumAncestry + locus*2;//sums of ancestry for this locus
-	  
+	  LambdaArgs.Distance = hargs.distances[interval];//distance between this locus and last
+	  LambdaArgs.NumConcordant = SumAncestry[locus*2+1];
+	  LambdaArgs.NumDiscordant = SumAncestry[locus*2];
+
 	  //sample new value
-	  HapMixLambdaSampler[index++].Sample(&loglambda, &LambdaArgs);
+	  HapMixLambdaSampler[interval].Sample(&loglambda, &LambdaArgs);
 	  *lambda_iter = exp(loglambda);
 
 	  //accumulate sums of log of lambda
@@ -188,15 +188,16 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
 	    *(sumloglambda_iter++) += loglambda;
 	  //accumulate sums, used to sample beta
 	  LambdaPriorArgs.sumlambda += *lambda_iter;
-	  hargs.sum_dloglambda += Loci->GetDistance(locus)*loglambda;
+	  hargs.sum_dloglambda += hargs.distances[interval]*loglambda;
 
+	  ++interval;
 	  ++locus;
 	  ++lambda_iter;
 	}
       }
     }
     catch(string s){
-      stringstream err;err << "Error encountered while sampling lambda " << locus << ":\n" + s;
+      stringstream err;err << "Error encountered while sampling lambda " << interval << ":\n" + s;
       throw(err.str());
     }
 #ifdef PARALLEL
@@ -221,9 +222,9 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
       }
     }
   if(Comms::isMaster()){
-    //SamplehRandomWalk();
-    Sampleh_ARS();
-    SampleRateParameter();
+      //SamplehRandomWalk();
+      Sampleh_ARS();
+      SampleRateParameter();
   }
 }
 
@@ -306,10 +307,9 @@ double PopHapMix::LambdaEnergy(const double* const x, const void* const vargs){
   try {
     double lambda = myexp(*x);
     double f = myexp(-lambda);
-    int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
     double probequal = theta + f*(1.0 - theta);
-    E -= sumnotequal * log(1.0-probequal);//constant term in log(1-theta) omitted
-    E -= sumequal * log(probequal);
+    E -= args->NumDiscordant * log(1.0-probequal)//constant term in log(1-theta) omitted
+	+ args->NumConcordant * log(probequal);
 
     // log unnormalized gamma prior on log lambda
     E -= args->h*d * (*x) - args->beta * lambda;
@@ -331,10 +331,9 @@ void PopHapMix::LambdaGradient( const double* const x, const void* const vargs, 
     double lambda = myexp(*x);
     double f = myexp(-lambda);
     //first compute dE / dprobequal
-    int sumequal = args->SumAncestry[1], sumnotequal = args->SumAncestry[0];
     double probequal = theta + f*(1.0 - theta);
 
-    g[0] +=  sumnotequal / (1.0 - probequal) - sumequal / probequal;//dE / dprobequal
+    g[0] +=  args->NumDiscordant / (1.0 - probequal) - args->NumConcordant / probequal;//dE / dprobequal
     g[0] *= -lambda*f*(1.0-theta); // dprobequal / df * df / dlambda * dlambda / dx 
     
     //derivative of minus log prior wrt log lambda

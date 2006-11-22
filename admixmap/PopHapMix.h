@@ -27,7 +27,8 @@ class IndividualCollection;
 typedef struct {
   unsigned NumPops;
   unsigned NumIntervals; // ? necessary
-  const int* SumAncestry;
+  int NumConcordant;
+  int NumDiscordant;
   double Distance;
   //const double* theta;
   double h;
