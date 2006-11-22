@@ -76,7 +76,6 @@ N <- 100##number of individuals
 K <- 2##number of block states
 DiploidData = F
 
-
 spacing <- 0.01 # spacing in cM
 
 ## assign map distances
@@ -90,30 +89,32 @@ for(chromosome in 1:numChr) {
 distances <- distanceFromLast(chr, x)
 L <- length(x) # number of loci
 
+##use this to read distances from file
 #L<-5000
-#K<-
+#K<-4
 #N<-60
 #distances<-read.table("/ichec/work/ndlif006b/genepi/hapmap/Eur/chr22data/loci5000.txt", header=T, comment.char="", na.strings="#")[,3]
 
 
+##generate numbers of arrivals and locus correlations
+h <- 400 ##average number arrivals per Mb
+lambda.rate <- 10##rgamma(1, shape=rhobeta0, rate=rhobeta1)
 f <- numeric(L)
 for(locus in 1:L) {
   if(is.na(distances[locus])) {
     f[locus] <- 0.0
   } else {
-
-    lambda.shape <- 400*distances[locus]	
-    lambda.rate <- 10##rgamma(1, shape=rhobeta0, rate=rhobeta1)
-    lambda <- rgamma(1, lambda.shape, lambda.rate)
+    lambda <- rgamma(1, h * distances[locus], lambda.rate)
     f[locus] <- exp( -lambda )
   }
 }
 
-## elements of Dirichlet param vector for prior on allele freqs
+##set block mixture proportions
 mu <- rep(1/K, K)
-alleleFreqs <- array(data=NA, dim=c(2, K, L))
 
-##use this to read frqs from file
+## generate allele freqs
+alleleFreqs <- array(data=NA, dim=c(2, K, L))
+##use this to read freqs from file
 #freqs.alpha<-read.table("/ichec/work/ndlif006b/genepi/hapmap/Eur/Results1States/AlleleFreqPosteriorMeans.txt",
 #header=T)[,2]
 #freqs.alpha[freqs.alpha==0]<-0.001
@@ -125,11 +126,11 @@ for(locus in 1:L) {
 freqs.alpha <- 0.5#rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 0.1
 ##p <- rep(0, K)
 ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
-   #p  <- rbeta(K, freqs.alpha[locus*2-1], freqs.alpha[locus*2]) # freqs  allele 1
-  #p <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
-p  <- c(0,1)
+   #p <- rbeta(K, freqs.alpha[locus*2-1], freqs.alpha[locus*2]) # freqs  allele 1
+   #p <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
+    p <- c(0,1)
 ##  }
-alleleFreqs[1, , locus] <- p
+alleleFreqs[1, , locus] <- p     # freqs allele 1
 alleleFreqs[2, , locus] <- 1 - p # freqs allele 2
 ##  }
 }
@@ -154,11 +155,10 @@ sex <- rep(1, N)##for all males, irrelevant if no X-chromosome
 
 ##write diploid genotypes
 genotypes <- data.frame(id, genotypes.diploid, row.names=NULL)
-write.table(genotypes, file=data/genotypes.txt", sep="\t", row.names=FALSE)
+write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
 ##write haploid genotypes
 genotypes <- data.frame(id, genotypes.haploid, row.names=NULL)
-write.table(genotypes, file=data/genotypes_haploid.txt", sep="\t", row.names=FALSE)
-
+write.table(genotypes, file="data/genotypes_haploid.txt", sep="\t", row.names=FALSE)
 
 ## write locus file
 distances[is.na(distances)] <- 100
