@@ -136,27 +136,32 @@ alleleFreqs[2, , locus] <- 1 - p # freqs allele 2
 }
 allele1.counts <- rep(0, L)
 genotypes.diploid <- matrix(data="0,0", nrow=N, ncol=L)
-genotypes.haploid <- matrix(data="0", nrow=N, ncol=L)
+genotypes.haploid <- matrix(data="0", nrow=2*N, ncol=L)
 for(individual in 1:N) {
 
-  g.list <- simulateGenotypes(mu, mu, f, L, alleleFreqs, allele1.counts)
-  genotypes.diploid[individual, ] <- g.list$genotypes
+##  g.list <- simulateGenotypes(mu, mu, f, L, alleleFreqs, allele1.counts)
+## genotypes.diploid[individual, ] <- g.list$genotypes
+## allele1.counts <- allele1.counts + g.list$counts
 
-  #allele1.counts <- allele1.counts + g.list$counts
-
-  genotypes.haploid[individual, ] <-simulateHaploidAlleles(mu, f, L, alleleFreqs)  
+  paternalGamete <- simulateHaploidAlleles(mu, f, L, alleleFreqs)
+  maternalGamete <- simulateHaploidAlleles(mu, f, L, alleleFreqs)
+  genotypes.haploid[2*individual-1, ] <- paternalGamete
+  genotypes.haploid[2*individual, ] <- maternalGamete
+  genotypes.diploid[individual,] <- paste(paternalGamete, ",", maternalGamete, sep="")
 
 }
 
-## write genotypes file
+##write diploid genotypes
 id = as.character(seq(1:N))
 sex <- rep(1, N)##for all males, irrelevant if no X-chromosome
 ##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
-
-##write diploid genotypes
 genotypes <- data.frame(id, genotypes.diploid, row.names=NULL)
 write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
+
 ##write haploid genotypes
+id = as.character(seq(1:2*N))
+sex <- rep(1, 2*N)##for all males, irrelevant if no X-chromosome
+##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
 genotypes <- data.frame(id, genotypes.haploid, row.names=NULL)
 write.table(genotypes, file="data/genotypes_haploid.txt", sep="\t", row.names=FALSE)
 
