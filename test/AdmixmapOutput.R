@@ -1201,10 +1201,6 @@ if(!is.null(user.options$affectedsonlyscorefile) && file.exists(paste(resultsdir
 ## read output of score test for residual allelic association, and plot cumulative results
 if(!is.null(user.options$residualallelicassocscorefile) && file.exists(paste(resultsdir,user.options$residualallelicassocscorefile, sep="/"))) {
   cat("plotting scores in test for residual allelic association", file=outfile, append=T)
-  final.table<-read.table(paste(resultsdir, "ResidualLDTestFinal.txt", sep="/"), header=T)
-  postscript(paste(resultsdir, "ResidualLDScoreHistogram.ps", sep="/"))
-  hist(final.table[,8], xlab="P-value", main="Histogram of Residual LD Test p-values")
-  dev.off()
   psfile <- paste(resultsdir, "TestsResidualAllelicAssoc.ps", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$residualallelicassocscorefile, psfile, user.options$every)
   cat(" done\n", file=outfile, append=T)
