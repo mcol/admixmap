@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
+use Getopt::Long;
 use File::Path;
 use Time::Local;
 
@@ -9,40 +10,37 @@ my $starttime = scalar(localtime());
 print $starttime;
 print "\n";
 
-if($#ARGV < 1){
-    print("Invalid args\n");
-    exit;
-}
-my $POP;
-if($ARGV[0]==1){$POP="Eur";}
-else {
-    if($ARGV[0]==2){$POP="Afr";}
-    else {if($ARGV[0]==3){$POP="Asian";}
-	  else{
-	      print ("Invalid population code - must be 1, 2 or 3\n");
-	      exit;
-	  }
-      }
-}
-my $STATES = $ARGV[1];
+##default values for script: Europeans, 4 states, 50 its with 10 burnin
+my $samples=50;
+my $burnin=10;
+my $every=1;
+my $POP = "Eur";
+my $STATES = 4;
 
 # Change this to the location of the admixmap executable
 #my $executable = '../test/adm-para';
 #my $executable = '../test/admixmap';
 my $executable = '/ichec/home/users/doducd/test/admixmap';
 
+##parse any command line options
+GetOptions("samples=i"=>\$samples, "burnin=i"=>\$burnin, "every=i"=>\$every, "pop=s"=>\$POP, "states=i"=>\$STATES, "exec=s"=>\$executable);
 
+my $datadir = "$POP/chr22data";
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
 #
 # keys (left-hand side) are parameter names
 # values (right-hand side) are parameter values
-my $datadir = "/ichec/work/ndlif006b/genepi/hapmap/$POP/chr22data";
 my $arg_hash = 
 {
 #data files
-    genotypesfile                   => "$datadir/genotypes.txt",
-    locusfile                          => "$datadir/loci.txt",
+#    genotypesfile                   => "$datadir/genotypes.txt",
+#    locusfile                          => "$datadir/loci.txt",
+
+#phased data
+    genotypesfile                   => "$datadir/genotypes_phased.txt",
+    locusfile                          => "$datadir/loci_phased.txt",
+
     #priorallelefreqfile             => 'data/priorallelefreqs.txt',
     #fixedallelefreqs => 1,
     populations=>$STATES,
@@ -54,9 +52,9 @@ checkdata=> 0,
     resultsdir => 'results',
     displaylevel   => 3, 
 
-    samples  => 250,
-    burnin   => 50,
-    every    => 1,
+    samples  => $samples,
+    burnin   => $burnin,
+    every    => $every,
 
 numannealedruns => 0,
 thermo => 0,
@@ -64,7 +62,7 @@ hapmixmodel => 1,
 #indadmixhiermodel => 0,
 randommatingmodel => 0,
 
-hapmixlambdaprior=>"4, 0.1, 1, 1",
+hapmixlambdaprior=>"30, 0.1, 10, 1",
 
 allelefreqprior => "1, 1, 1",
 #initialhapmixlambdafile => "$datadir/initialambdas.txt",
@@ -78,11 +76,12 @@ rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
     #regparamfile          => 'regparamfile.txt',
     #indadmixturefile     => 'indadmixture.txt',
     #ergodicaveragefile => 'ergodicaverage.txt',
+    allelefreqprioroutputfile =>"allelefreqpriors.txt",
     allelefreqoutputfile  => "initialallelefreqs.txt",
     hapmixlambdaoutputfile => "$datadir/initiallambdas.txt",
 
 #optional tests
-#residualallelicassocscorefile => 'residualLDscores.txt',
+residualallelicassocscorefile => 'residualLDscores.txt',
     #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
 };
 
@@ -93,7 +92,7 @@ $arg_hash->{resultsdir}="$POP/Results$STATES"."States";
 doAnalysis($executable,$arg_hash);
 
 ##rerun with final values of lambda, freqs in previous run as starting values
-$arg_hash->{resultsdir}="$POP/Results$STATES"."States2";
+$arg_hash->{resultsdir}="$POP/Results$STATES"."States";
 $arg_hash->{initialhapmixlambdafile} = "$datadir/initiallambdas.txt";
 $arg_hash->{allelefreqfile} = "$datadir/initialallelefreqs.txt";
 $arg_hash->{residualallelicassocscorefile} = 'residualLDscores.txt';
