@@ -11,65 +11,58 @@ Model::~Model(){
   if(avgstream.is_open())avgstream.close();
 }
 
-// void Model::Initialise(Genome& Loci, AdmixOptions& options, InputData& data,  LogWriter& Log){
-//   const bool isMaster = Comms::isMaster();
-//   const bool isFreqSampler = Comms::isFreqSampler();
-//   const bool isWorker = Comms::isWorker();
+void Model::Initialise(Genome& Loci, AdmixOptions& options, InputData& data,  LogWriter& Log){
+  const bool isMaster = Comms::isMaster();
+  const bool isFreqSampler = Comms::isFreqSampler();
+  const bool isWorker = Comms::isWorker();
+  
+  A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
+  if(isFreqSampler || isWorker)A.AllocateAlleleCountArrays(options.getPopulations());
+#ifdef PARALLEL
+  //broadcast initial values of freqs
+  if(!isMaster)A.BroadcastAlleleFreqs();
+#endif
+  
+  IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
+  if(isMaster || isWorker)IC->LoadData(&options, &data);    //and before L and R Initialise
+  if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+  const int numdiploid = IC->getNumDiploidIndividuals();
+  if(isMaster){
+    const int numindivs = data.getNumberOfIndividuals();
+    if(numindivs > 1){
+      Log.setDisplayMode(Quiet);
+      //Log << numindivs << " individuals\n";
+      if(numdiploid > 0){
+	Log << numdiploid << " diploid "; 
+	if(numdiploid < numindivs)Log<< "and ";
+      }
+      if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
+      Log << "individuals\n\n";
+    }
+  }
+}
 
-//   if(isFreqSampler)//allele freq updater only
-//     A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
-//   if(isFreqSampler || isWorker)A.AllocateAlleleCountArrays(options.getPopulations());
-// #ifdef PARALLEL
-//   //broadcast initial values of freqs
-//   if(!isMaster)A.BroadcastAlleleFreqs();
-// #endif
-
-//   IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
-//   if(isMaster || isWorker)IC->LoadData(&options, &data);    //and before L and R Initialise
-//   if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
-  
-//   if(options.getHapMixModelIndicator())L = new PopHapMix(&options, &Loci);
-//   else L = new PopAdmix(&options, &Loci);    
-//   if(isMaster || isWorker)L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
-  
-//   if( options.getPopulations()>1 && (options.isGlobalRho() || options.getHapMixModelIndicator()) && isWorker) {
-//     Loci.SetLocusCorrelation(L->getrho());
-//     if(options.getHapMixModelIndicator())
-//       for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
-// 	//set global state arrival probs in hapmixmodel
-// 	//TODO: can skip this if xonly analysis with no females
-// 	//NB: assumes always diploid in hapmixmodel
-// 	Loci.getChromosome(j)->SetHMMTheta(L->getGlobalTheta(), options.isRandomMatingModel(), true);
-// 	Loci.getChromosome(j)->SetStateArrivalProbs(options.isRandomMatingModel());
-//       }
-//   }
-  
-//   if(isMaster || isWorker)
-//     IC->Initialise(&options, &Loci, data.GetPopLabels(), L->getalpha(), /*L->getrhoalpha(), L->getrhobeta(),*/ Log);
-  
-//   //initialise regression objects
-//   if (options.getNumberOfOutcomes()>0 && (isMaster || isWorker)){
-//     if( isMaster ){
-//       Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
-//       Regression::OpenExpectedYFile(options.getEYFilename(), Log);
-//     }
-//     for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
-//       //determine regression type and allocate regression objects
-//       if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
-//       else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
-//       else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression());
-      
-//       if(isMaster) {
-// 	if(R[r]->getRegressionType()==Cox)
-// 	  R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log);
-// 	else
-// 	  R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
-//       }
-//       else R[r]->Initialise(r, IC->GetNumCovariates());
-//       R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
-//     }
-//   }
-// }
+void Model::InitialiseRegressionObjects(AdmixOptions& options, InputData& data,  LogWriter& Log){
+  if( Comms::isMaster() ){
+    Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
+    Regression::OpenExpectedYFile(options.getEYFilename(), Log);
+  }
+  for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
+    //determine regression type and allocate regression objects
+    if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
+    else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
+    else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression());
+    
+    if(Comms::isMaster()) {
+      if(R[r]->getRegressionType()==Cox)
+	R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log);
+      else
+	R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
+    }
+    else R[r]->Initialise(r, IC->GetNumCovariates());
+    R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
+  }
+}
 
 void Model::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
 		    AdmixOptions & options, InputData & data, const Genome & Loci, LogWriter& Log, 
@@ -288,124 +281,16 @@ void Model::Iterate(const int & samples, const int & burnin, const double* Cooln
 //   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
 // }
 
-// void Model::OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log){
-//   // fix so that params can be output to console  
-//   Log.setDisplayMode(Quiet);
-//   if(options->getIndAdmixHierIndicator()  ){
-//     //output population-level parameters only when there is a hierarchical model on indadmixture
-//     // ** pop admixture, sumintensities
-//     if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
-//     // ** dispersion parameter (if dispersion model)
-//     A.OutputEta(iteration, options, Log);
-//   }
-//   if(options->getHapMixModelIndicator() && (options->getDisplayLevel() > 2) && !options->getFixedAlleleFreqs())A.OutputPriorParams(cout, false);
-//   // ** regression parameters
-//   for(unsigned r = 0; r < R.size(); ++r)
-//     R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
-  
-//   // ** new line in log file but not on screen 
-//   if( iteration == 0 && (options->getIndAdmixHierIndicator() || options->getNumberOfOutcomes())) {
-//     Log.setDisplayMode(Off);
-//     Log << "\n";
-//     Log.setDisplayMode(Quiet);
-//   }
-  
-//   //if( options->getDisplayLevel()>2 ) cout << endl;
-//   if( iteration > options->getBurnIn() ){
-//     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
-//     if( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
-//     if(options->getHapMixModelIndicator()){
-//       A.OutputPriorParams();
-//     }
-//     if(options->getOutputAlleleFreq()){
-// 	A.OutputAlleleFreqs();
-//     }
-//   }
-//   // cout << endl;
-// }
-
 void Model::ResetStepSizeApproximators(int resetk){
   IC->resetStepSizeApproximators(resetk); 
   A.resetStepSizeApproximator(resetk);
 }
 
-// void Model::PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci, LogWriter& Log){
-//   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
-//   else Log.setDisplayMode(On);
-
-//   if(options.getPopulations() > 1 && Comms::isMaster()){
-//     L->printAcceptanceRates(Log);
-//   }
-//   if(options.getCorrelatedAlleleFreqs()){
-//     Log<< "Expected acceptance rates in sampler for allele frequency proportion parameters: \n";
-//     for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
-//       if(Loci(i)->GetNumberOfStates()>2)
-// 	Log << A.getAlphaSamplerAcceptanceRate(i) << " ";
-//     }
-//     Log<< "Expected acceptance rate in sampler for allele frequency dispersion parameter: \n";
-//     Log << A.getEtaSamplerAcceptanceRate(0)
-// 	<< "\nwith final step sizes of \n";
-//     for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
-//       if(Loci(i)->GetNumberOfStates()>2)
-// 	Log << A.getAlphaSamplerStepsize(i) << " " ;
-//     }
-//     Log <<  A.getEtaSamplerStepsize(0) << "\n" ;
-//   }
-  
-//   if( strlen( options.getHistoricalAlleleFreqFilename() )){
-//     Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
-//     for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaSamplerAcceptanceRate(k)<< " " ;}
-//     Log << "\nwith final step sizes of ";
-//     for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaSamplerStepsize(k) << " ";}
-//     Log << "\n";
-//   }
-//   A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates.txt").c_str());
-//   if(options.getHapMixModelIndicator() && !options.getFixedAlleleFreqs() && Comms::isFreqSampler()){
-//     Log << "Average expected Acceptance rate in allele frequency prior parameter sampler:\n" << A.getHapMixPriorSamplerAcceptanceRate()
-// 	<< "\nwith average final step size of " << A.getHapMixPriorSamplerStepSize() << "\n";
-//   }
-// }
-
 // double Model::getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log){
 //   return IC->getDevianceAtPosteriorMean(options, R, Loci, Log, L->getSumLogRho(), Loci->GetNumberOfChromosomes(), &A);
 // }
 
-// void Model::Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci){
-//   if( options.getChibIndicator()) {
-//     //IC->OutputChibEstimates(options.isRandomMatingModel(), Log, options.getPopulations());
-//     //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
-//     if(IC->getSize()==1) IC->OutputChibResults(Log);
-//   }
-//   //FST
-//   if( strlen( options.getHistoricalAlleleFreqFilename()) && Comms::isFreqSampler()  ){
-//     A.OutputFST();
-//   }
-//   if(Comms::isFreqSampler() && !options.getHapMixModelIndicator())
-//     A.CloseOutputFile((options.getTotalSamples() - options.getBurnIn())/options.getSampleEvery(), data.GetPopLabels());
 
-//   //stratification test
-//   if( options.getStratificationTest() ) StratTest.Output(Log);
-//   //dispersion test
-//   if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetPopLabels());
-//   //tests for mis-specified allele frequencies
-//   if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-//     AlleleFreqTest.Output(options.getTotalSamples() - options.getBurnIn(), &Loci, data.GetPopLabels()); 
-//   //test for H-W eq
-//   if( options.getHWTestIndicator() )
-//     HWtest.Output(data.getLocusLabels()); 
-
-//   if( options.getScoreTestIndicator() && Comms::isMaster() ) {
-//     //finish writing score test output as R objects
-//     Scoretests.ROutput();
-//     //write final tables
-//     Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
-//   }
-//   //output to likelihood ratio file
-//   if(options.getTestForAffectedsOnly())
-//     //Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
-//     Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), 
-// 				      data.GetPopLabels());	
-// }
 // void Model::InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, LogWriter& Log){
 //   const bool isMaster = Comms::isMaster();
 //   //const bool isFreqSampler = Comms::isFreqSampler();

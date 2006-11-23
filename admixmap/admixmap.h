@@ -62,7 +62,8 @@ class Model{
 			  LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 			   bool AnnealedRun) = 0;
 
-  virtual void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log) = 0;
+  virtual void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log) ;
+  void InitialiseRegressionObjects(AdmixOptions & options, InputData& data,  LogWriter& Log) ;
   virtual void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
 		       LogWriter& Log) = 0;
   virtual void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  

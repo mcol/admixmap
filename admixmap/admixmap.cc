@@ -253,7 +253,7 @@ int main( int argc , char** argv ){
 	      annealstream <<"\t"<< LogEvidence << endl; 
 	      LastMeanEnergy = MeanEnergy;
 	    }
-	    cout << "MeanEnergy = " << MeanEnergy << "        " << flush;
+	    cout << "\t\tMeanEnergy = " << MeanEnergy << "        " << flush;
 	  } 
 	} // end loop over coolnesses
       } 

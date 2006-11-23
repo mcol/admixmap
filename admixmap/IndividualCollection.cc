@@ -104,8 +104,8 @@ int IndividualCollection::getNumDiploidIndividuals(){
 
 // ************** DESTRUCTOR **************
 IndividualCollection::~IndividualCollection() {
-  if(worker_rank==0)
-	cout << "\n Deleting individual objects\n" << flush;
+  //if(worker_rank==0)
+  //cout << "\n Deleting individual objects\n" << flush;
   Individual::DeleteStaticMembers();
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers){
     delete _child[i];

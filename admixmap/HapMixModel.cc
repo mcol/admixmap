@@ -13,30 +13,8 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
-  A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
-  if(isFreqSampler || isWorker)A.AllocateAlleleCountArrays(options.getPopulations());
-#ifdef PARALLEL
-  //broadcast initial values of freqs
-  if(!isMaster)A.BroadcastAlleleFreqs();
-#endif
+  Model::Initialise(Loci, options, data, Log);
 
-  IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
-  if(isMaster || isWorker)IC->LoadData(&options, &data);    //and before L and R Initialise
-  if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
-  const int numdiploid = IC->getNumDiploidIndividuals();
-  if(isMaster){
-    const int numindivs = data.getNumberOfIndividuals();
-    if(numindivs > 1){
-      Log.setDisplayMode(Quiet);
-      //Log << numindivs << " individuals\n";
-      if(numdiploid > 0){
-	Log << numdiploid << "diploid "; 
-	if(numdiploid < numindivs)Log<< "and ";
-      }
-      if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
-      Log << "individuals\n\n";
-    }
-  }
   L = new PopHapMix(&options, &Loci);
   if(isMaster || isWorker)L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
   if(isFreqSampler)A.PrintPrior(data.GetPopLabels(), Log);
@@ -57,25 +35,7 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
   
   //initialise regression objects
   if (options.getNumberOfOutcomes()>0 && (isMaster || isWorker)){
-    if( isMaster ){
-      Regression::OpenOutputFile(options.getNumberOfOutcomes(), options.getRegressionOutputFilename(), Log);  
-      Regression::OpenExpectedYFile(options.getEYFilename(), Log);
-    }
-    for(int r = 0; r < options.getNumberOfOutcomes(); ++r){
-      //determine regression type and allocate regression objects
-      if( data.getOutcomeType(r)== Binary ) R.push_back( new LogisticRegression() );
-      else if( data.getOutcomeType(r)== Continuous ) R.push_back( new LinearRegression());
-      else if( data.getOutcomeType(r)== CoxData ) R.push_back(new CoxRegression());
-      
-      if(isMaster) {
-	if(R[r]->getRegressionType()==Cox)
-	  R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(),data.getCoxOutcomeVarMatrix(), Log);
-	else
-	  R[r]->Initialise(r, options.getRegressionPriorPrecision(), IC->getCovariatesMatrix(), IC->getOutcomeMatrix(), Log);
-      }
-      else R[r]->Initialise(r, IC->GetNumCovariates());
-      R[r]->InitializeOutputFile(data.getCovariateLabels(), options.getNumberOfOutcomes());
-    }
+    InitialiseRegressionObjects(options, data, Log);
   }
 }
 
