@@ -351,14 +351,14 @@ plotlogpvalues <- function(psfilename, log10pvalues, table.every, title, hist ) 
     lines(table.every*seq(1:evaluations), log10pvalues[test,], type="l")
   }
   ## label lines for which final p<0.01
-  log10pvalues.final <- log10pvalues[, dim(log10pvalues)[2]]
-  siglabels <- dimnames(log10pvalues)[[1]][log10pvalues.final > 2 | is.na(log10pvalues.final)]
-  siglabels.x <- 0.9*table.every*dim(log10pvalues)[2]
-  siglabels.y <- as.vector(log10pvalues.final[log10pvalues.final > 2])
-  siglabels.y[is.na(siglabels.y)] <- -1
-  if(length(siglabels) > 0) {
-    text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
-  }
+#  log10pvalues.final <- log10pvalues[, dim(log10pvalues)[2]]
+#  siglabels <- dimnames(log10pvalues)[[1]][log10pvalues.final > 2 | is.na(log10pvalues.final)]
+#  siglabels.x <- 0.9*table.every*dim(log10pvalues)[2]
+#  siglabels.y <- as.vector(log10pvalues.final[log10pvalues.final > 2])
+#  siglabels.y[is.na(siglabels.y)] <- -1
+#  if(length(siglabels) > 0) {
+#    text(siglabels.x, siglabels.y, labels=siglabels, pos=3, offset=0.5) 
+#  }
   if(hist){
     ## histogram of p-values
     hist(10^(-log10pvalues[, evaluations]), xlim=c(0,1), xlab = "p-value", 
