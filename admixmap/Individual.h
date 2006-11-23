@@ -52,6 +52,7 @@ public:
   bool GenotypeIsMissing(unsigned int locus)const;//locus is a comp locus
   bool simpleGenotypeIsMissing(unsigned locus)const;//locus is a simple locus
   bool isHaploidatLocus(unsigned j)const;
+  bool isHaploidIndividual()const;
 
   double getSumrho()const;
   const std::vector<double> getRho()const;

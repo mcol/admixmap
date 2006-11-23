@@ -127,6 +127,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   //initialise Freqs, PriorAlleleFreqs, HistoricAlleleFreqs etc
   Loci = pLoci;
   Populations = options->getPopulations();
+  hapmixmodel = options->getHapMixModelIndicator();
 
   if(Comms::isFreqSampler()){
   LoadAlleleFreqs(options, data);
@@ -138,7 +139,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 
   // set which sampler will be used for allele freqs
   // current version uses conjugate sampler if annealing without thermo integration
-  if( options->getHapMixModelIndicator() ||
+  if( hapmixmodel ||
       (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
       //using default allele freqs or CAF model
       ( !strlen(options->getAlleleFreqFilename()) &&
@@ -150,7 +151,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
   }
 
-  if(options->getHapMixModelIndicator()) {
+  if(hapmixmodel) {
     //set parameters of prior on frequency Dirichlet prior params
     const vector<double> &params = options->getAlleleFreqPriorParams();
     if(params.size()==3) {
@@ -166,16 +167,14 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       //HapMixPriorRatePriorRate = 1.0;
       }
     HapMixPriorRate = HapMixPriorRatePriorShape / HapMixPriorRatePriorRate;
-    Log << "Dirichlet prior on allele frequencies. ";
-    Log << "Gamma prior on Dirichlet parameters with shape " << HapMixPriorShape << " and rate " << HapMixPriorRate << ".\n";
-      //" and Gamma( " << HapMixPriorRatePriorShape << ", " << HapMixPriorRatePriorRate << " ) prior on rate.\n"; 
+
   }
   
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     if(RandomAlleleFreqs){
       if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
 	//set up samplers for allelefreqs
-	if(options->getHapMixModelIndicator()){
+	if(hapmixmodel){
 	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
 						      &(HapMixPriorParams[i]), true));
 	}
@@ -183,7 +182,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
 	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
 						      PriorParams[i], false));
       }
-      if(options->getHapMixModelIndicator()){
+      if(hapmixmodel){
 	HapMixPriorParams[i] = (HapMixPriorShape / HapMixPriorRate) / 2.0;//set dispersion to prior mean
 	HapMixPriorParamSampler[i].SetParameters(0.1, 0.00001, 100.0, 0.26);
       }
@@ -272,21 +271,6 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       }
     }
     
-    
-    if(IsHistoricAlleleFreq){
-      Log << "Gamma prior on dispersion parameters with means and variances:\n";
-      for( int k = 0; k < Populations; k++ ){
-	Log << data->GetPopLabels()[k] << ": "
-	    << psi[k]/tau[k] << "  " << psi[k]/(tau[k]*tau[k]) << "\n";
-      }
-      Log << "\n";
-    }
-    else{//correlated allele freq model
-      Log << "Gamma prior on dispersion parameter with mean and variance:\n"
-	  << psi[0]/tau[0] << "  " << psi[0]/(tau[0]*tau[0]) << "\n";
-    }
-    Log << "\n";
-     
     for( unsigned k = 0; k < dim; k++ ){
       //Initialise eta at its prior expectation
       eta[k] = psi[k]/tau[k];
@@ -324,6 +308,26 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       OpenFSTFile(options,Log);
     }
   } //end if dispersion parameter
+  }
+}
+
+void AlleleFreqs::PrintPrior(const Vector_s& PopLabels, LogWriter& Log)const{
+  if(IsHistoricAlleleFreq){//historic allele freq (dispersion) model
+    Log << "Gamma prior on dispersion parameters with means and variances:\n";
+    for( int k = 0; k < Populations; k++ ){
+      Log << PopLabels[k] << ": "
+	  << psi[k]/tau[k] << "  " << psi[k]/(tau[k]*tau[k]) << "\n";
+    }
+    Log << "\n";
+  }
+  else if( CorrelatedAlleleFreqs){//correlated allele freq model
+    Log << "Gamma prior on allele frequency dispersion parameter with mean and variance:\n"
+	<< psi[0]/tau[0] << "  " << psi[0]/(tau[0]*tau[0]) << "\n";
+  }
+  else if(hapmixmodel){
+    Log << "Dirichlet prior on allele frequencies. ";
+    Log << "Gamma prior on Dirichlet parameters with shape " << HapMixPriorShape << " and rate " << HapMixPriorRate << ".\n";
+    //" and Gamma( " << HapMixPriorRatePriorShape << ", " << HapMixPriorRatePriorRate << " ) prior on rate.\n"; 
   }
 }
 
@@ -388,7 +392,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   bool useinitfile = false;
   if(RandomAlleleFreqs){
     //allocate prior arrays
-    if(options->getHapMixModelIndicator()){
+    if(hapmixmodel){
       HapMixPriorParams = new double[NumberOfCompositeLoci];//1D array of prior params for hapmixmodel
       //fill(HapMixPriorParams, HapMixPriorParams + NumberOfCompositeLoci, 0.1);
       HapMixPriorParamSampler = new StepSizeTuner[NumberOfCompositeLoci];
@@ -419,7 +423,7 @@ if(!useinitfile)
     }
     else {  //set default Allele Freqs
       SetDefaultAlleleFreqs(i);
-      if(!options->getHapMixModelIndicator() && RandomAlleleFreqs){
+      if(!hapmixmodel && RandomAlleleFreqs){
 //prior for hapmix model is set later in Initialise
 	// reference prior on allele freqs: all elements of parameter vector set to 0.5
 	// this is unrealistic for large haplotypes - should set all elements to sum to 1
@@ -1232,7 +1236,7 @@ const array_of_allelefreqs& AlleleFreqs::GetAlleleFreqs()const{
 // ******************** Output **************************
 void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
 {
-  if(options->getHapMixModelIndicator()){
+  if(hapmixmodel){
     const char* s = options->getAlleleFreqPriorOutputFilename();
     if(strlen(s)){
       allelefreqprioroutput.open(s, ios::out);

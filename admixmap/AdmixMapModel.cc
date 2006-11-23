@@ -23,9 +23,24 @@ void AdmixMapModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& d
   IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
   if(isMaster || isWorker)IC->LoadData(&options, &data);    //and before L and R Initialise
   if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+  const int numdiploid = IC->getNumDiploidIndividuals();
+  if(isMaster){
+    const int numindivs = data.getNumberOfIndividuals();
+    if(numindivs > 1){
+      Log.setDisplayMode(Quiet);
+      //Log << numindivs << " individuals\n";
+      if(numdiploid > 0){
+	Log << numdiploid << "diploid "; 
+	if(numdiploid < numindivs)Log<< "and ";
+      }
+      if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
+      Log << "individuals\n\n";
+    }
+  }
   
   L = new PopAdmix(&options, &Loci);    
   if(isMaster || isWorker)L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
+  if(isFreqSampler)A.PrintPrior(data.GetPopLabels(), Log);
   
   if( options.getPopulations()>1 && (options.isGlobalRho()) && isWorker) {
     Loci.SetLocusCorrelation(L->getrho());

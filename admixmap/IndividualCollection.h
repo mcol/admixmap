@@ -86,6 +86,7 @@ public:
 				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A);
   void OutputChibResults(LogWriter&)const;
   int getSize()const;
+  int getNumDiploidIndividuals();
 
   Individual* getIndividual(int)const;
   //void setAdmixtureProps(const double* const, size_t);

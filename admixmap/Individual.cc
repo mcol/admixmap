@@ -536,6 +536,9 @@ bool Individual::simpleGenotypeIsMissing(unsigned locus)const{
 bool Individual::isHaploidatLocus(unsigned j)const{
   return (bool)(isHaploid || (!SexIsFemale && Loci->isXLocus(j)));
 }
+bool Individual::isHaploidIndividual()const{
+  return isHaploid;
+}
 //****************** Log-Likelihoods **********************
 // public function: 
 // calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue

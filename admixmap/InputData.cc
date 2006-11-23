@@ -132,7 +132,11 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   }
   NumSimpleLoci = getNumberOfSimpleLoci();
   NumCompositeLoci = determineNumberOfCompositeLoci();
-  if(Comms::isWorker()) NumIndividuals = geneticData_.size() - 1;
+  if(Comms::isWorker()) {
+    NumIndividuals = geneticData_.size() - 1;
+  } 
+  numDiploid = 0;
+ 
 
   CheckData(options, Log);
 }
@@ -195,10 +199,6 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
 	CheckRepAncestryFile(options->getPopulations(), Log);
   }
 
-  if(NumIndividuals > 1){
-    Log.setDisplayMode(Quiet);
-    Log << NumIndividuals << " individuals\n";
-  }
 }
 ///determine number of individuals by counting lines in genotypesfile 
 int InputData::getNumberOfIndividuals()const {
@@ -674,7 +674,6 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
       exit(1);
     }
   }
-
 
 }
 

@@ -149,6 +149,7 @@ public:
   ~AlleleFreqs();
   void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
+  void PrintPrior(const Vector_s&, LogWriter& Log)const;
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool hapmixmodel);
 
   ///initialize output file for samples of dispersion parameters
@@ -252,6 +253,7 @@ private:
   bool IsHistoricAlleleFreq;//indicator for dispersion model
   bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
   bool CorrelatedAlleleFreqs;
+  bool hapmixmodel;
 
   Genome *Loci;//pointer to Loci object
 

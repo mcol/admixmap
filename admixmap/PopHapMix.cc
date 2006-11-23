@@ -79,6 +79,9 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
       hargs.distances = new double[numIntervals];
       LambdaArgs.h = hargs.shape / hargs.rate; // initialise h at prior mean 
       
+      Log << Quiet << "Gamma(h, beta) distribution on number of arrivals per Mb. \nGamma( " << hargs.shape << ", " << hargs.rate << " ) prior on h and "
+	  << "Gamma( " << LambdaArgs.beta_shape << ", " << LambdaArgs.beta_rate << " ) prior on beta\n";
+
       //Hamiltonian sampler
       for(unsigned j = 0; j < numIntervals; ++j){
 	HapMixLambdaSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
@@ -88,8 +91,7 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
       //hTuner.SetParameters( 0.01, 0.0001, 1000.0, 0.44);
 
       //Adaptive rejection sampler for h
-      //Note: ARS tends to crash if only bounded below so bounding above at very large value. The bounds could be tightened if an approximate range is known
-      hARS.Initialise(false, true, 1000000.0/*<- upper bound*/, 10.0/*<-lower bound*/, hlogf, hdlogf);
+       hARS.Initialise(false, true, 1000000.0/*<- upper bound*/, 10.0/*<-lower bound*/, hlogf, hdlogf);
       
     }//end sampler initialisation
     //initialise lambda vector

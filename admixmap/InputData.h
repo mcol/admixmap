@@ -123,7 +123,7 @@ private:
   Vector_s OutcomeLabels;
   std::vector<DataType> OutcomeType;
   Vector_s CovariateLabels;
-  int NumIndividuals;
+  int NumIndividuals, numDiploid;
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
   bool IsPedFile;

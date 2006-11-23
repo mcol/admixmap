@@ -88,6 +88,18 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
       _child[i] = new Individual(i+i0+1, options, Data, false);//NB: first arg sets Individual's number
     }
   }
+
+}
+
+int IndividualCollection::getNumDiploidIndividuals(){
+  int numdiploid = 0;
+    for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
+      if(!_child[i]->isHaploidIndividual())++numdiploid;
+    }
+#ifdef PARALLEL
+    Comms::Reduce(&numdiploid);
+#endif
+    return numdiploid;
 }
 
 // ************** DESTRUCTOR **************
