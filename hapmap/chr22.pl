@@ -34,12 +34,12 @@ my $datadir = "$POP/chr22data";
 my $arg_hash = 
 {
 #data files
-#    genotypesfile                   => "$datadir/genotypes.txt",
-#    locusfile                          => "$datadir/loci.txt",
+    genotypesfile                   => "$datadir/genotypes5000.txt",
+    locusfile                          => "$datadir/loci5000.txt",
 
 #phased data
-    genotypesfile                   => "$datadir/genotypes_phased.txt",
-    locusfile                          => "$datadir/loci_phased.txt",
+#    genotypesfile                   => "$datadir/genotypes_phased.txt",
+#    locusfile                          => "$datadir/loci_phased.txt",
 
     #priorallelefreqfile             => 'data/priorallelefreqs.txt',
     #fixedallelefreqs => 1,
@@ -78,7 +78,7 @@ rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
     #ergodicaveragefile => 'ergodicaverage.txt',
     allelefreqprioroutputfile =>"allelefreqpriors.txt",
     allelefreqoutputfile  => "initialallelefreqs.txt",
-    hapmixlambdaoutputfile => "$datadir/initiallambdas.txt",
+    hapmixlambdaoutputfile => "initiallambdas.txt",
 
 #optional tests
 residualallelicassocscorefile => 'residualLDscores.txt',
@@ -96,7 +96,7 @@ $arg_hash->{resultsdir}="$POP/Results$STATES"."States";
 $arg_hash->{initialhapmixlambdafile} = "$datadir/initiallambdas.txt";
 $arg_hash->{allelefreqfile} = "$datadir/initialallelefreqs.txt";
 $arg_hash->{residualallelicassocscorefile} = 'residualLDscores.txt';
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 
 #to gauge efficiency of Affymetrix chip
 $arg_hash->{genotypesfile} = "$datadir/Affygenotypes.txt";
@@ -161,9 +161,14 @@ sub doAnalysis
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     if(system($command)==0){
 	if($arg_hash->{allelefreqoutputfile}){
+#copy file with final allele freqs to data dir ready for next time
+	    system("cp $arg_hash->{resultsdir}/$arg_hash->{allelefreqoutputfile} $datadir/$arg_hash->{allelefreqoutputfile}");
+	}
+	if($arg_hash->{hapmixlambdaoutputfile}){
 #copy file with final lambdas to data dir ready for next time
-	system("cp $arg_hash->{resultsdir}/$arg_hash->{allelefreqoutputfile} $datadir/$arg_hash->{allelefreqoutputfile}");
-    }
+	    system("cp $arg_hash->{resultsdir}/$arg_hash->{hapmixlambdaoutputfile} $datadir/$arg_hash->{hapmixlambdaoutputfile}");
+	}
+	
 # Comment out the next three lines to run admixmap without R script
     print "Starting R script to process output\n";
     system("R --quiet --no-save --no-restore <../test/AdmixmapOutput.R >$args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
