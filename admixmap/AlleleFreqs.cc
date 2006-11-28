@@ -1324,7 +1324,7 @@ void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
     if(strlen(s)){
       allelefreqprioroutput.open(s, ios::out);
       // allelefreqprioroutput << "eta.Mean\teta.Var\tlambda" << endl;
-      allelefreqprioroutput << "eta.Mean\teta.Var" << endl;
+      allelefreqprioroutput << "eta.Mean\teta.Var\tmu.Mean\tmu.Var" << endl;
     }
   }
 
