@@ -578,9 +578,16 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
   locusnames <- scoretest[1,,evaluations]
 
   minuslog10pvalues <- as.numeric(scoretest[2, , ])
+
+  FinalTable <- read.table(paste(resultsdir, "ResidualLDTestFinal.txt", sep="/"), header=T)
+  completeinfo <- as.vector(as.numeric(FinalTable[,3]))
+  rm(FinalTable)
+  
+  minuslog10pvalues<-minuslog10pvalues[rep((completeinfo>5), times=evaluations)]##remove values where complete info <5
   minuslog10pvalues[is.nan(minuslog10pvalues)] <- NA
   minuslog10pvalues <- data.frame(matrix(data=minuslog10pvalues, nrow=ntests, ncol=evaluations))
   dimnames(minuslog10pvalues)[[1]] <- locusnames
+
   plotlogpvalues(outputfile, minuslog10pvalues, 10*thinning,
                  "Running computation of p-values for residual allelic association", T)
 }
@@ -1091,13 +1098,13 @@ if(is.null(user.options$dispparamfile)||
   cat(" done\n", file=outfile, append=T)
 }   
 ## read allele freq prior parameter samples
-if(is.null(user.options$allelefreqprioroutputfile) |
+if(is.null(user.options$allelefreqprioroutputfile) ||
            length(scan(paste(resultsdir, user.options$allelefreqprioroutputfile, sep="/"),
                        what='character',quiet=TRUE)) == 0)  {
   eta.samples <- NULL
 } else {
   cat("reading allele frequency prior parameters...", file=outfile, append=T)
-  eta.samples<-read.table(paste(resultsdir, user.options$dispparamfile,sep="/"), header=TRUE)
+  eta.samples<-read.table(paste(resultsdir, user.options$allelefreqprioroutputfile,sep="/"), header=TRUE)
   checkConvergence(eta.samples, "Allele freq parameters",
                    paste(resultsdir, "AllelefreqParamConvergenceDiags.txt", sep="/"))
   postscript(paste(resultsdir, "AlleleFreqParamAutocorrelations.ps", sep="/" ))     
@@ -1227,7 +1234,7 @@ if(!is.null(user.options$outcomevarfile) && !is.null(user.options$testgenotypesf
   cat(" done\n", file=outfile, append=T)
 }
 
-if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1 || !file.exists( paste(resultsdir,user.options$allelefreqoutputfile, sep="/"))) {
+if(user.options$hapmixmodel==0 || is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1 || !file.exists( paste(resultsdir,user.options$allelefreqoutputfile, sep="/"))) {
   cat("no allelefreqoutputfile\n", file=outfile, append=T)
 } else {
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
