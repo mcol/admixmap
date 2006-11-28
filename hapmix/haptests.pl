@@ -70,37 +70,36 @@ my $arg_hash = {
 #data files
 
 #   genotypesfile                   => 'data/genotypes.txt', #diploid data
-    genotypesfile                   => 'data/genotypes_haploid.txt',#haploid data
+   genotypesfile                   => 'data/genotypes_haploid.txt',#haploid data
 
     locusfile                       => 'data/loci.txt',
-    priorallelefreqfile             => 'data/allelefreqs.txt',
-    fixedallelefreqs                => 1,
+    #priorallelefreqfile             => 'data/allelefreqs.txt',
+    #fixedallelefreqs                => 1,
 
-    populations=>2,
-
-    checkdata=> 0,
+    populations=>6,
 
 #main options
     resultsdir => 'results',
     displaylevel   => 3, 
 
-    samples  => 50,
-    burnin   => 10,
-    every    => 1,
+    samples  => 150,
+    burnin   => 50,
+    every    => 5,
 
-numannealedruns => 0,
-thermo => 0,
-hapmixmodel => 1,
-#indadmixhiermodel => 0,
-randommatingmodel => 0,
+    numannealedruns => 0,
+    thermo => 0,
+    hapmixmodel => 1,
+#   indadmixhiermodel => 0,
+    randommatingmodel => 0,
+    checkdata=> 0,
 
-hapmixlambdaprior=>"4000, 10, 100, 10",
+hapmixlambdaprior=>"400, 1, 10, 1",
 
-allelefreqprior => "1, 1, 1",
+allelefreqprior => "2, 10, 1",
 #initialhapmixlambdafile => "data/initialambdas.txt",
 #allelefreqfile => "data/initialallelefreqs.txt",
 
-rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
+rhosamplerparams => "0.5, 0.00001, 10, 0.9, 20",
 
 #output files
     logfile                     => 'logfile.txt',
@@ -109,17 +108,26 @@ rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
     #indadmixturefile     => 'indadmixture.txt',
     #ergodicaveragefile => 'ergodicaverage.txt',
     allelefreqoutputfile  => "initialallelefreqs.txt",
+allelefreqoutputfile =>"allelefreqpriors.txt",
     hapmixlambdaoutputfile => "data/initiallambdas.txt",
 
 #optional tests
-#residualallelicassocscorefile => 'residualLDscores.txt',
+residualallelicassocscorefile => 'residualLDscores.txt',
     #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
 };
 
 # Initial run 
-$arg_hash->{resultsdir}            = 'Results';  
+#haploid data
+$arg_hash->{resultsdir}            = 'ResultsHaploid';  
 doAnalysis($executable,$arg_hash);
 system("cp Results/initialallelefreqs.txt data");
+#CompareThenMove("Results", "Results4");
+
+#diploid data
+$arg_hash->{resultsdir}            = 'ResultsDiploid';  
+$arg_hash->{genotypesfile} = "data/genotypes.txt";
+doAnalysis($executable,$arg_hash);
+#system("cp Results/initialallelefreqs.txt data");
 #CompareThenMove("Results", "Results4");
 
 # rerun with final values of previous run as intial values of this
