@@ -28,6 +28,7 @@
 #include "samplers/DispersionSampler.h"
 #include "samplers/StepSizeTuner.h"
 #include "common.h"
+#include "samplers/AdaptiveRejection.h"
 class StepSizeTuner;
 
 #ifndef PARALLEL
@@ -141,6 +142,14 @@ typedef struct{
 }array_of_allelefreqs;
 #endif
 
+typedef struct{
+    unsigned K;
+    double sumlogfreqs1;
+    double sumlogfreqs2;
+    double eta;
+
+}hapmixmuargs;
+
 /// Class to hold allele/haplotype frequencies and their priors.
 class AlleleFreqs{
 
@@ -235,6 +244,7 @@ private:
 
   double **HistoricAlleleCounts;
   double **PriorParams;
+  double* HapMixPriorEta;
   double* HapMixPriorParams;//params of Dirichlet prior on frequencies
   double HapMixPriorShape;//params of Gamma prior on Dirichlet params
   double HapMixPriorRate;//
@@ -245,7 +255,9 @@ private:
   int FREQSAMPLER;// 1 = conjugate sampler, 2 = Hamiltonian sampler
   std::vector<AlleleFreqSampler*> FreqSampler;
 
-  StepSizeTuner* HapMixPriorParamSampler;
+  StepSizeTuner* HapMixPriorEtaSampler;
+  AdaptiveRejection HapMixPriorMuSampler;
+  hapmixmuargs HapMixMuArgs;
 
   bool calculateFST;
   double** Fst;
@@ -296,6 +308,11 @@ private:
 
   static double muEnergyFunction(unsigned K, const double * const alpha, const double* const *args);
   static void muGradient(unsigned K, const double * const alpha, const double* const *args, double *g);
+  static double fmu_hapmix(double, const void* const);
+  static double dfmu_hapmix(double, const void* const);
+  static double d2fmu_hapmix(double, const void* const);
+    void SampleHapMixPriorProportions();
+
 };
 // functions required to update proportion vector Mu with adaptive rejection sampler
 // likelihood, 1st and 2nd derivatives of log-likelihood
