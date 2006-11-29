@@ -872,6 +872,7 @@ void AlleleFreqs::SampleHapMixPriorParams(){
 }
 
 void AlleleFreqs::SampleHapMixPriorProportions(){
+    //double sum1 = 0.0, sum2 = 0.0;
   for( int locus = 0; locus < NumberOfCompositeLoci; ++locus ){
     const int NumberOfStates = Loci->GetNumberOfStates(locus);
       HapMixMuArgs.eta = HapMixPriorEta[locus];
@@ -880,9 +881,12 @@ void AlleleFreqs::SampleHapMixPriorProportions(){
 	    HapMixMuArgs.sumlogfreqs1 += mylog(Freqs[locus][k*NumberOfStates]);//allele 1
 	    HapMixMuArgs.sumlogfreqs2 += mylog(Freqs[locus][k*NumberOfStates + 1]);//allele 2
       }
+      //    sum1 += HapMixMuArgs.sumlogfreqs1;
+      //sum2 += HapMixMuArgs.sumlogfreqs2;
       double mu = HapMixPriorMuSampler.Sample(&HapMixMuArgs, d2fmu_hapmix);
       HapMixPriorParams[locus] = mu*HapMixPriorEta[locus];
   }
+//   cout << sum1 / (double)NumberOfCompositeLoci <<" " << sum2/ (double)NumberOfCompositeLoci << endl; 
 }
 
 double AlleleFreqs::fmu_hapmix(double mu, const void* const vargs){
@@ -890,12 +894,11 @@ double AlleleFreqs::fmu_hapmix(double mu, const void* const vargs){
     double f = 0.0;
     const double eta = args->eta;
 //loglikelihood
-    f += eta*mu*(args->sumlogfreqs1 + args->sumlogfreqs2);
+    f += eta*(mu*args->sumlogfreqs1 + (1.0-mu)*args->sumlogfreqs2);
     f -= args->K * (lngamma(eta*mu) + lngamma(eta*(1.0-mu)));
 
-//flat prior
 //log beta(2,2) prior
-    f += lngamma(4) -2*lngamma(2) + log(mu) + log(1.0-mu);
+    //f += lngamma(4) -2*lngamma(2) + log(mu) + log(1.0-mu);
 
     return f;
 }
@@ -904,12 +907,11 @@ double AlleleFreqs::dfmu_hapmix(double mu, const void* const vargs){
     double f = 0.0;
     const double eta = args->eta;
 //derivative of loglikelihood
-    f += eta * (args->sumlogfreqs1 + args->sumlogfreqs2);
+    f += eta * (args->sumlogfreqs1 - args->sumlogfreqs2);
     f -= args->K * eta * (digamma(eta*mu) - digamma(eta*(1.0-mu)));
 
-//flat prior
 //log beta(2,2) prior
-    f += 1/(mu) - 1/(1.0-mu);
+    //f += 1/(mu) - 1/(1.0-mu);
 
     return f;
 }
@@ -920,9 +922,8 @@ double AlleleFreqs::d2fmu_hapmix(double mu, const void* const vargs){
 //2nd derivative of loglikelihood
     f -= args->K * eta * eta * (trigamma(eta*mu) + trigamma(eta*(1.0-mu)));
 
-//flat prior
 //log beta(2,2) prior
-    f -= 1/(mu*mu) - 1/((1.0-mu)*(1.0-mu));
+    //f -= 1/(mu*mu) - 1/((1.0-mu)*(1.0-mu));
 
     return f;
 }
@@ -1420,11 +1421,11 @@ void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
     double vareta = sumetasq / (double)L - meaneta*meaneta;
     double meanmu = summu / (double) L;
     double varmu = summusq/ (double) L - meanmu*meanmu;
-    os << meaneta << "\t" << vareta << "\t" << meanmu << "\t" << varmu 
+    os << meaneta << "\t" << vareta //<< "\t" << meanmu << "\t" << varmu 
        << /*"\t" << HapMixPriorRate <<*/ endl;
     if(tofile && allelefreqprioroutput.is_open())
-	allelefreqprioroutput << meaneta << "\t" << vareta << "\t" << meanmu << "\t" << varmu 
-			      << "\t" /*<< HapMixPriorRate << "\t"*/;
+	allelefreqprioroutput << meaneta << "\t" << vareta// << "\t" << meanmu << "\t" << varmu 
+			      << "\t" /*<< HapMixPriorRate << "\t"*/ << endl;
     //os << sumobs / (double)L << "\t" << sumexp / (double)L << endl;
     //if(tofile && allelefreqprioroutput.is_open())
     //	allelefreqprioroutput <<sumobs / (double)L << "\t" << sumexp / (double)L << endl;
