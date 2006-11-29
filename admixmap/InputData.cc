@@ -431,12 +431,13 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
 
 void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log){
   //check outcomevarfile and genotypes file have the same number of rows
-  if( (int)outcomeVarMatrix_.nRows() - 1 != (NumIndividuals - options->getTestOneIndivIndicator()) ){
-    stringstream s;
-    s << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
-      << outcomeVarMatrix_.nRows() - 1 << " observations.\n";
-    throw(s.str());
-  }
+   if(!options->getHapMixModelIndicator())
+   if( (int)outcomeVarMatrix_.nRows() - 1 != (NumIndividuals - options->getTestOneIndivIndicator()) ){
+     stringstream s;
+     s << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
+       << outcomeVarMatrix_.nRows() - 1 << " observations.\n";
+     throw(s.str());
+   }
   //check the number of outcomes specified is not more than the number of cols in outcomevarfile
   int Firstcol = options->getTargetIndicator();
   int NumOutcomes = options->getNumberOfOutcomes();

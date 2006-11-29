@@ -903,7 +903,7 @@ void Individual::SampleTheta( const int iteration, double *SumLogTheta, const Da
   int K = Populations;
 
   //calculate Metropolis acceptance probability ratio for proposal theta    
-  if(!options->getTestForAdmixtureAssociation()){
+  if(!options->getTestForAdmixtureAssociation() && myNumber < Outcome->nCols()){
     RegressionType RegType;
     int NumOutcomes = Outcome->nCols();
     for( int k = 0; k < NumOutcomes; k++ ){
