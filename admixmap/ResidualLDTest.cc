@@ -101,12 +101,15 @@ void ResidualLDTest::Reset(){
   }
 }
 
-void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs){
+void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs, bool ishapmixmodel){
   int abslocus = 0;
   if(Comms::isWorker())
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){
     for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
-      UpdateScoresForResidualAllelicAssociation(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
+      if(ishapmixmodel)
+	UpdateScoresForResidualAllelicAssociation2(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
+      else
+	UpdateScoresForResidualAllelicAssociation(c, j, AlleleFreqs[abslocus], AlleleFreqs[abslocus+1]);
       ++abslocus;
     }
     ++abslocus;//for last locus on chrm
@@ -179,12 +182,12 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
       const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A: values from 0 to M-1
       const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B: values from 0 to N-1
       int numGametes = 2;
-      if(hA[1] < 0) numGametes = 1;//haplotype not happair
+      if(hA[1] < 0) numGametes = 1;//haplotypes are coded as happair with second hap as -1
       for(int g = 0; g < numGametes; ++g) {
 	if(dim == 1) { // diallelic version
 	  int h = (hA[g] == hB[g]);//indicator for coupling: 1 if 2-locus haplotype is 1-1 or 2-2
 	  double phiA = AlleleFreqsA[ancA[g]*2];//frequency of first allele in this gamete's ancestry state at locus A
-	  double phiB = AlleleFreqsB[ancB[g]*2];
+	  double phiB = AlleleFreqsB[ancB[g]*2];//   "           "    "         "     "         "       "       "    B
 	  double ProbCoupling = phiA*phiB + (1 - phiA)*(1 - phiB);
 	  Score[c][locus][0] += 2.0 * (h - ProbCoupling); 
 	  Info[c][locus][0] += 4.0 * ProbCoupling * (1.0 - ProbCoupling);
@@ -214,6 +217,42 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
       } //end loop over gametes
     } // end block conditional on non-missing genotypes
   } //end loop over individuals
+}
+
+void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus,  
+							       const double* const AlleleFreqsA, 
+							       const double* const AlleleFreqsB) {
+  int abslocus = chrm[c]->GetLocus(locus);//number of this locus
+  int M = Lociptr->GetNumberOfStates(abslocus);
+  int N = Lociptr->GetNumberOfStates(abslocus+1);
+
+  int dim = (M-1)*(N-1);
+  int ancA[2];//ancestry at A
+  int ancB[2];//ancestry at B
+  for(int i = worker_rank; i < individuals->getSize(); i += NumWorkers) {
+    Individual* ind = individuals->getIndividual(i);
+    if( !ind->GenotypeIsMissing(abslocus) && !ind->GenotypeIsMissing(abslocus+1) ) {
+      //skip missing genotypes as hap pairs not sampled
+      ind->GetLocusAncestry(c, locus, ancA);
+      ind->GetLocusAncestry(c, locus+1, ancB);
+      const int* hA = ind->getSampledHapPair(abslocus);//realized hap pair at locus A: values from 0 to M-1
+      const int* hB = ind->getSampledHapPair(abslocus+1);//realized hap pair at locus B: values from 0 to N-1
+      int numGametes = 2;
+      if(hA[1] < 0) numGametes = 1;//haplotypes are coded as happair with second hap as -1
+      for(int g = 0; g < numGametes; ++g) {
+	if(dim == 1) { // diallelic version
+	  double phiA = AlleleFreqsA[ancA[g]*2];//frequency of first allele in this gamete's ancestry state at locus A
+	  double phiB = AlleleFreqsB[ancB[g]*2];//   "           "    "         "     "         "       "       "    B
+
+	  Score[c][locus][0] += (delta(hA[g], 1)*(delta(hB[g], 1) - delta(hB[g], 2)))/(phiA*phiB) 
+	    - (delta(hA[g], 2)* ( delta(hB[g], 1) - delta(hB[g], 2) )) / ( (1.0 - phiA) * (1.0 - phiB));
+
+	  Info[c][locus][0] += phiA*phiB*(1.0-phiA)*(1.0-phiB);
+	  
+	}
+      }
+    }
+  }
 }
 
 void ResidualLDTest::Output(int iterations, bool final, const std::vector<std::string>& LocusLabels){

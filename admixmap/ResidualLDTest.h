@@ -35,7 +35,7 @@ public:
   void ROutput();
 
   void Update(double);
-  void Update(const array_of_allelefreqs& Allelefreqs);
+  void Update(const array_of_allelefreqs& Allelefreqs, bool ishapmixmodel);
   void Reset();
 
   ~ResidualLDTest();
@@ -57,9 +57,9 @@ private:
   void OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final, 
 						const std::vector<std::string>& LocusLabels);
   
-  void UpdateScoresForResidualAllelicAssociation(int c, int locus, 
-						 const double* const AlleleFreqsA, 
-						 const double* const AlleleFreqsB);
+  void UpdateScoresForResidualAllelicAssociation(int c, int locus, const double* const AlleleFreqsA, const double* const AlleleFreqsB);
+  void UpdateScoresForResidualAllelicAssociation2(int c, int locus, const double* const AlleleFreqsA, const double* const AlleleFreqsB);
+
 };
 
 #endif /* !defined SCORETESTS_H */

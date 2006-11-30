@@ -97,7 +97,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
 #ifdef PARALLEL
       MPE_Log_event(21, iteration, "ResLDTestStart");
 #endif
-      Scoretests.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs(), true);
+      Scoretests.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs());
 #ifdef PARALLEL
       MPE_Log_event(22, iteration, "ResLDTestEnd");
 #endif
