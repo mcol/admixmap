@@ -1325,7 +1325,7 @@ void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
     if(strlen(s)){
       allelefreqprioroutput.open(s, ios::out);
       // allelefreqprioroutput << "eta.Mean\teta.Var\tlambda" << endl;
-      allelefreqprioroutput << "eta.Mean\teta.Var\tmu.Mean\tmu.Var" << endl;
+      allelefreqprioroutput << "eta.Mean\teta.Var" << endl;
     }
   }
 
@@ -1394,7 +1394,7 @@ void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
   //to be used only in hapmixmodel
   if(HapMixPriorParams){
     unsigned L = Loci->GetNumberOfCompositeLoci();
-    double sumeta = 0.0, sumetasq = 0.0, summu = 0.0, summusq = 0.0;
+    double sumeta = 0.0, sumetasq = 0.0;//, summu = 0.0, summusq = 0.0;
 //    double sumobs = 0.0, sumexp = 0.0;
     for(unsigned j = 0; j < L; ++j){
 	//const unsigned NumStates = Loci->GetNumberOfStates(j);
@@ -1411,16 +1411,16 @@ void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
 
 	sumeta += HapMixPriorEta[j];
 	sumetasq += HapMixPriorEta[j] *HapMixPriorEta[j];
-        summu += HapMixPriorParams[j]/HapMixPriorEta[j];
-        summusq += (HapMixPriorParams[j]*HapMixPriorParams[j])/(HapMixPriorEta[j]*HapMixPriorEta[j]);
+        //summu += HapMixPriorParams[j]/HapMixPriorEta[j];
+        //summusq += (HapMixPriorParams[j]*HapMixPriorParams[j])/(HapMixPriorEta[j]*HapMixPriorEta[j]);
 	//sumobs += obsvar;
 	//sumexp += expvar;
     }
    
     double meaneta = sumeta / (double) L;
     double vareta = sumetasq / (double)L - meaneta*meaneta;
-    double meanmu = summu / (double) L;
-    double varmu = summusq/ (double) L - meanmu*meanmu;
+    //double meanmu = summu / (double) L;
+    //double varmu = summusq/ (double) L - meanmu*meanmu;
     os << meaneta << "\t" << vareta //<< "\t" << meanmu << "\t" << varmu 
        << /*"\t" << HapMixPriorRate <<*/ endl;
     if(tofile && allelefreqprioroutput.is_open())
