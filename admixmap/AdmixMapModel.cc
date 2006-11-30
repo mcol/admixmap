@@ -104,7 +104,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
 #ifdef PARALLEL
       MPE_Log_event(21, iteration, "ResLDTestStart");
 #endif
-      Scoretests.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs());
+      Scoretests.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs(), false);
 #ifdef PARALLEL
       MPE_Log_event(22, iteration, "ResLDTestEnd");
 #endif
