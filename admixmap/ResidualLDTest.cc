@@ -245,12 +245,12 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus
 	  double phiB = AlleleFreqsB[ancB[g]*2];//   "           "    "         "     "         "       "       "    B
 
 	  if(hA[g] == 0){
-	      if(hB[g]==0)Score[c][locus][0] += 1.0 / (phiA*phiB);
-	      else Score[c][locus][0] -= 1.0 / (phiA*phiB);
+	    if(hB[g]==0)Score[c][locus][0] += (1.0 - phiA) * (1.0 - phiB) ;//1.0 / (phiA*phiB);
+	    else Score[c][locus][0] -= (1.0 - phiA) * phiB;//1.0 / (phiA*phiB);
 	  }
 	  else if(hA[g]== 1){
-	      if(hB[g]==0)Score[c][locus][0] -= 1.0 / ((1.0-phiA)*(1.0-phiB));
-	      else Score[c][locus][0] += 1.0 / ((1.0-phiA)*(1.0-phiB));
+	    if(hB[g]==0)Score[c][locus][0] -= phiA * (1.0 - phiB);//1.0 / ((1.0-phiA)*(1.0-phiB));
+	    else Score[c][locus][0] += phiA * phiB;//1.0 / ((1.0-phiA)*(1.0-phiB));
 	  }
 	
 	  Info[c][locus][0] += phiA*phiB*(1.0-phiA)*(1.0-phiB);
@@ -344,18 +344,17 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, of
 	}
 	else {
 	  //compute p-value
-	    gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
-	    try{
-	     double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-	     if(final)*outputstream << double2R(chisq) << separator << double2R(pvalue) << separator << endl;
-	     else *outputstream << double2R(-log10(pvalue)) << separator << endl;
-	    }
-	    catch(...){
-	     if(final)*outputstream << double2R(chisq) << separator << "NA" << separator << endl;
-	     else *outputstream << "NA" << separator << endl;
-
-	    }
-	    gsl_set_error_handler(old_handler);
+	  gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
+	  try{
+	    double pvalue = gsl_cdf_chisq_Q (chisq, dim);
+	    if(final)*outputstream << double2R(chisq) << separator << double2R(pvalue) << separator << endl;
+	    else *outputstream << double2R(-log10(pvalue)) << separator << endl;
+	  }
+	  catch(...){
+	    if(final)*outputstream << double2R(chisq) << separator << "NA" << separator << endl;
+	    else *outputstream << "NA" << separator << endl;
+	  }
+	  gsl_set_error_handler(old_handler);
 	}
       }
       catch(...){//in case ObservedInfo is rank deficient
