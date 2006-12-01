@@ -244,9 +244,15 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus
 	  double phiA = AlleleFreqsA[ancA[g]*2];//frequency of first allele in this gamete's ancestry state at locus A
 	  double phiB = AlleleFreqsB[ancB[g]*2];//   "           "    "         "     "         "       "       "    B
 
-	  Score[c][locus][0] += (delta(hA[g], 1)*(delta(hB[g], 1) - delta(hB[g], 2)))/(phiA*phiB) 
-	    - (delta(hA[g], 2)* ( delta(hB[g], 1) - delta(hB[g], 2) )) / ( (1.0 - phiA) * (1.0 - phiB));
-
+	  if(hA[g] == 0){
+	      if(hB[g]==0)Score[c][locus][0] += 1.0 / (phiA*phiB);
+	      else Score[c][locus][0] -= 1.0 / (phiA*phiB);
+	  }
+	  else if(hA[g]== 1){
+	      if(hB[g]==0)Score[c][locus][0] -= 1.0 / ((1.0-phiA)*(1.0-phiB));
+	      else Score[c][locus][0] += 1.0 / ((1.0-phiA)*(1.0-phiB));
+	  }
+	
 	  Info[c][locus][0] += phiA*phiB*(1.0-phiA)*(1.0-phiB);
 	  
 	}
@@ -338,9 +344,18 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, of
 	}
 	else {
 	  //compute p-value
-	  double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-	  if(final)*outputstream << double2R(chisq) << separator << double2R(pvalue) << separator << endl;
-	  else *outputstream << double2R(-log10(pvalue)) << separator << endl;
+	    gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
+	    try{
+	     double pvalue = gsl_cdf_chisq_Q (chisq, dim);
+	     if(final)*outputstream << double2R(chisq) << separator << double2R(pvalue) << separator << endl;
+	     else *outputstream << double2R(-log10(pvalue)) << separator << endl;
+	    }
+	    catch(...){
+	     if(final)*outputstream << double2R(chisq) << separator << "NA" << separator << endl;
+	     else *outputstream << "NA" << separator << endl;
+
+	    }
+	    gsl_set_error_handler(old_handler);
 	}
       }
       catch(...){//in case ObservedInfo is rank deficient
