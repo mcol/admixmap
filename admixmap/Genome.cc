@@ -242,7 +242,7 @@ void Genome::PrintSizes(LogWriter &Log, GeneticDistanceUnit u)const{
   string unitstring;
   switch(u){
       case centimorgans:{
-	  unitstring = " centimorgans";
+	  unitstring = " cM";
 	  break;
       }
       case Morgans:{
@@ -250,7 +250,7 @@ void Genome::PrintSizes(LogWriter &Log, GeneticDistanceUnit u)const{
 	  break;
       }
       case megabases:{
-	  unitstring = " megabases";
+	  unitstring = " Mb";
 	  break;
       }
       default:{
