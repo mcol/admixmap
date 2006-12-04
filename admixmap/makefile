@@ -116,7 +116,7 @@ ifeq ($(CC),$(PATHSCALE_COMPILER))
 WFLAGS = -Wall 
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
-DFLAGS = -O3 -OPT:Ofast -fno-math-errno -ffast-math #equivalent to -Ofast but without ipa
+DFLAGS = -O3 -OPT:Ofast -fno-math-errno -ffast-math -fexceptions#equivalent to -Ofast but without ipa
 endif
 endif
 
@@ -135,7 +135,7 @@ NORMAL_LIBS = $(BAYESLIB_PATH)/bayeslib.a -lm -lgsl -lgslcblas
 PARALLEL_LIBS = $(NORMAL_LIBS) -lmpich -lsprng -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
 
-LFLAGS =
+LFLAGS =-L$(SPRNG_PATH)/lib
 INCLUDES =
 
 ifneq ($(GSL_LIBPATH),)
@@ -150,7 +150,7 @@ endif
 PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPI_LIBPATH)
 PARALLEL_INCLUDES = $(INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 PARALLEL_EXEC = adm-para
-SERIAL_INCLUDES=$(INCLUDES)
+SERIAL_INCLUDES=$(INCLUDES) 
 
 LIBS = $(LIBTYPE) $(NORMAL_LIBS)
 CXX=$(CC)
@@ -160,9 +160,12 @@ CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 
 export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 
-objects	= admixmap.o Latent.o AlleleFreqs.o AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
-IndividualCollection.o Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o ScoreTestBase.o ScoreTests.o MantelHaenszelTest.o\
-AdmixtureAssocTest.o AffectedsOnlyTest.o ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o InputData.o AlleleFreqSampler.o Comms.o
+
+objects	= admixmap.o Model.o AdmixMapModel.o HapMixModel.o PopAdmix.o PopHapMix.o  AlleleFreqs.o\
+ AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
+ IndividualCollection.o Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o\
+ ScoreTestBase.o ScoreTests.o MantelHaenszelTest.o AdmixtureAssocTest.o AffectedsOnlyTest.o\
+ ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o InputData.o AlleleFreqSampler.o Comms.o
 
 all:	checkbayeslib message $(objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
