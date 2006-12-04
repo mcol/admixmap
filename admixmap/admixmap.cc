@@ -15,6 +15,7 @@
 #include <dirent.h>//for OpenResultsDir
 
 #define ADMIXMAP_VERSION 3.5
+#define HAPMIXMAP_VERSION 0.2
 #define MAXNUMOPTIONS 50//maximum number of options specifiable.
 #define MAXOPTIONLENGTH 1024//maximum number of characters in an option line (excluding spaces)
 
@@ -67,7 +68,10 @@ int main( int argc , char** argv ){
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   if(isMaster){
     //if(options.getDisplayLevel()>0 )
-    PrintCopyrightNotice(Log);
+    if(options.getHapMixModelIndicator())
+      PrintHAPMIXMAPCopyrightNotice(Log);
+    else
+      PrintADMIXMAPCopyrightNotice(Log);
     Log.StartMessage();
   }
 
@@ -378,7 +382,7 @@ int main( int argc , char** argv ){
   return 0;
 } //end of main
 
-void PrintCopyrightNotice(LogWriter& Log){
+void PrintADMIXMAPCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
@@ -391,8 +395,26 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(Quiet);
   cout << "Copyright(c) 2002-2006 " << endl
        << "David O'Donnell, Clive Hoggart and Paul McKeigue" << endl
-       << "Send any comments or queries to david . odonnell@ucd.ie"<<endl
        << "-------------------------------------------------------"<<endl
+       << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl
+       << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl
+       << "-------------------------------------------------------" << endl;
+}
+
+void PrintHAPMIXMAPCopyrightNotice(LogWriter& Log){
+  Log.setDisplayMode(On);
+  cout << endl;
+  Log << "-------------------------------------------------------\n"
+      << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION
+#ifdef PARALLEL
+      << " (Parallel) "
+#endif
+      << ") **\n"
+      << "-------------------------------------------------------\n";
+  Log.setDisplayMode(Quiet);
+  cout << "Copyright(c) 2006 " << endl
+       << "David O'Donnell and Paul McKeigue" << endl
+        << "-------------------------------------------------------"<<endl
        << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl
        << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl
        << "-------------------------------------------------------" << endl;
