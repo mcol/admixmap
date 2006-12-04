@@ -391,6 +391,12 @@ bool AdmixOptions::getTestForResidualAllelicAssoc()const{
 const char* AdmixOptions::getResidualAllelicAssocScoreFilename()const{
   return ResidualAllelicAssocScoreFilename.c_str();
 }
+bool AdmixOptions::getMHTest()const{
+  return (bool)(MHTestFilename.size());
+}
+const char* AdmixOptions::getMHTestFilename()const{
+  return MHTestFilename.c_str();
+}
 double AdmixOptions::getRhoPriorMean()const{
   if( !HapMixModelIndicator && (GlobalRho || !IndAdmixHierIndicator ) )
     return globalrhoPrior[0] / globalrhoPrior[1];
@@ -744,6 +750,7 @@ void AdmixOptions::SetOptions()
   Options["indadmixmodefile"] = OptionPair(&IndAdmixModeFilename, "outputfile");
   Options["testgenotypesfile"] = OptionPair(0, "null");
   Options["locusfortest"] = OptionPair(&LocusForTest, "int");
+  Options["mhtestfile"] = OptionPair(&MHTestFilename, "outputfile");
   // Other options
   Options["numannealedruns"] = OptionPair(&NumAnnealedRuns, "int");// number of coolnesses 
   Options["displaylevel"] = OptionPair(&displayLevel, "int");// output detail, 0 to 3

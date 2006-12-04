@@ -1,5 +1,6 @@
 #include "admixmap.h"
 
+
 // HapMixModel::HapMixModel(){
 
 // }
@@ -37,6 +38,9 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
   if (options.getNumberOfOutcomes()>0 && (isMaster || isWorker)){
     InitialiseRegressionObjects(options, data, Log);
   }
+
+  if(options.getMHTest())
+    MHTest.Initialise(options.getPopulations(), Loci.GetNumberOfCompositeLoci()-Loci.GetNumberOfChromosomes());
 }
 
 void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, const Genome *Loci, LogWriter&, 
@@ -103,6 +107,8 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
 #endif
     }
   }
+  if(options->getMHTest() && !anneal && (iteration > options->getBurnIn()))
+    MHTest.Update(IC, *Loci);//update Mantel-Haenszel test
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   // sample individual admixture and sum-intensities 
@@ -266,7 +272,11 @@ void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, const Genome
   }
 }
 
-void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const InputData& data, const Genome& ){
+void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const InputData& data, const Genome& Loci){
+  if(options.getMHTest() && Comms::isMaster()){
+    MHTest.Output(options.getMHTestFilename(), Loci, options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels());
+  }
+
   if( options.getScoreTestIndicator() && Comms::isMaster() ) {
     //finish writing score test output as R objects
     Scoretests.ROutput();
@@ -298,8 +308,8 @@ void HapMixModel::InitialiseTests(AdmixOptions& options, const InputData& data, 
   //const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
-  if( options.getScoreTestIndicator() && (isMaster || isWorker)){
-    Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
+    if( options.getScoreTestIndicator() && (isMaster || isWorker)){
+  Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
   }
   if(isMaster)
     InitializeErgodicAvgFile(&options, Log, data.GetPopLabels(), data.getCovariateLabels());

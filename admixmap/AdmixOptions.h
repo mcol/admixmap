@@ -124,6 +124,7 @@ public:
   const char *getHWTestFilename() const;
   const char* getLikRatioFilename() const;
   const char* getIndAdmixModeFilename()const;
+  const char* getMHTestFilename()const;
 
   //score test indicators 
   bool getScoreTestIndicator() const; //indicator for any score test (except misspec allelefreqs) 
@@ -140,6 +141,7 @@ public:
   bool getTestForMisspecifiedAlleleFreqs() const;
   bool getTestForMisspecifiedAlleleFreqs2() const;
   bool getHWTestIndicator() const;
+  bool getMHTest()const;
   
   //other test file names
   const char *getStratTestFilename() const;
@@ -232,6 +234,7 @@ private:
   string AllelicAssociationScoreFilename;
   string AncestryAssociationScoreFilename;
   string ResidualAllelicAssocScoreFilename;
+  string MHTestFilename;
   string HWTestFilename;
   string LikRatioFilename;
   string IndAdmixModeFilename;

@@ -41,7 +41,8 @@ void MakeResultsDir(const char* dirname, bool verbose);
 
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
 
-void PrintCopyrightNotice(LogWriter & Log); 
+void PrintADMIXMAPCopyrightNotice(LogWriter & Log); 
+void PrintHAPMIXMAPCopyrightNotice(LogWriter & Log); 
 
 void PrintOptionsMessage();
 void ThrowException(const string& msg, LogWriter & Log);
@@ -125,6 +126,7 @@ private:
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
 
 };
+#include "MantelHaenszelTest.h"
 class HapMixModel : public Model{
 public:
     ~HapMixModel();
@@ -140,6 +142,7 @@ public:
   double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log);
 private:
   PopHapMix* L;
+  MantelHaenszelTest MHTest;
   void UpdateParameters(int iteration, const AdmixOptions *options, 
 			const Genome *Loci, LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
   void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
