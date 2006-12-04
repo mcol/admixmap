@@ -9,19 +9,35 @@ MantelHaenszelTest::MantelHaenszelTest(){
 
 }
 MantelHaenszelTest::~MantelHaenszelTest(){
+  if(test){
+    vector<int> dimensions(3,0);
+    dimensions[0] = 2;
+    dimensions[1] = Score.size();
+    dimensions[2] = (int)(numPrintedIterations);
+    
+    vector<string> labels(dimensions[0],"");
+    labels[0] = "Loci";
+    labels[1] = "log10Pvalue";
 
+    R_output3DarrayDimensions(&outputfile, dimensions, labels);
+  }
 }
 
-void MantelHaenszelTest::Initialise(unsigned NumStates, unsigned NumLoci){
+void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci, const char* filename, LogWriter& Log){
   K = NumStates;
   Ksq = K*K;
+  numPrintedIterations = 0;
+  Loci = loci;
+  test = true;
 
+  OpenFile(Log, &outputfile, filename, "M-H Test", true);
   //assign K^2 2x2 tables
   //NOTE: asssuming all SNPs
   for(unsigned k = 0; k < Ksq; ++k){
     std::vector<unsigned> v(4);
     CountTable.push_back(v);
   }
+  unsigned NumLoci = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();
   for(unsigned i = 0; i < NumLoci; ++i){
     Score.push_back(0);
     ScoreSq.push_back(0);
@@ -83,18 +99,26 @@ void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Lo
 }
 
 void MantelHaenszelTest::Output(const char* filename, unsigned NumIters, const std::vector<std::string>& LocusLabels, bool final){
-  outfile.open(filename);
-  //write header
-  outfile << "Loci\tScore\tCompInfo\tObsInfo\tPercentInfo\tzscore\tPValue\n";
+  std::ofstream finaltable;
+  std::ofstream* outfile; 
+  if(!final){
+    ++numPrintedIterations;
+    outfile = &outputfile;
+  }
+  else {
+    finaltable.open(filename);
+    outfile = &finaltable;
+    //write header
+    *outfile << "Loci\tScore\tCompInfo\tObsInfo\tPercentInfo\tzscore\tPValue\n";
+  }
 
-  //unsigned locus = 0;
+  unsigned locus = 0;
   //loop over pairs of loci
   //NOTE: Exp = sum_over_tables ((obs first cell) - (Exp first cell))
-  //for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
-  //for(unsigned j = 0; j < Loci.GetSizeOfChromosome(c)-1; ++j){
-  for(unsigned locus = 0; locus < Score.size(); ++locus){
+  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+    for(unsigned j = 0; j < Loci->GetSizeOfChromosome(c)-1; ++j){
       std::string label = LocusLabels[locus] + "/" + LocusLabels[locus+1];
-      OutputScalarScoreTest(NumIters, &outfile, label, Score[locus], ScoreSq[locus], Info[locus], final);
+      OutputScalarScoreTest(NumIters, outfile, label, Score[locus], ScoreSq[locus], Info[locus], final);
 
 
 //       const double ebar = Score[locus] / (double)NumIters;
@@ -108,10 +132,10 @@ void MantelHaenszelTest::Output(const char* filename, unsigned NumIters, const s
 //       }
 //       else
 // 	outfile << "NA" << endl;
-      //      ++locus;
-      //}
+      ++locus;
+    }
     ++locus;//skip last locus on chromosome
   }
-
-  outfile.close();
+  
+  if(final)outfile->close();
 }

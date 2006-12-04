@@ -40,7 +40,7 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
   }
 
   if(options.getMHTest())
-    MHTest.Initialise(options.getPopulations(), Loci.GetNumberOfCompositeLoci()-Loci.GetNumberOfChromosomes());
+    MHTest.Initialise(options.getPopulations(), &Loci, options.getMHTestFilename(), Log);
 }
 
 void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, const Genome *Loci, LogWriter&, 
@@ -275,9 +275,11 @@ void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, const Genome
   }
 }
 
-void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const InputData& data, const Genome& Loci){
+void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const InputData& data, const Genome& ){
   if(options.getMHTest() && Comms::isMaster()){
-    MHTest.Output(options.getMHTestFilename(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), true);
+    std::string s = options.getResultsDir();
+    s.append("/MHTestFinal.txt");
+    MHTest.Output(s.c_str(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), true);
   }
 
   if( options.getScoreTestIndicator() && Comms::isMaster() ) {
