@@ -21,6 +21,7 @@ public:
 protected:
   bool test;
   std::ofstream outputfile;
+  unsigned numPrintedIterations;
   //utility functions
   static void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname, bool Robj);
   static void OutputScalarScoreTest( int iterations, std::ofstream* outputstream, std::string label,
