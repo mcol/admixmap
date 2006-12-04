@@ -816,77 +816,82 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness, bool hapmixmodel)
 ///sample prior params using random walk
 //NOTE: assuming 2 (allelic) states
 void AlleleFreqs::SampleHapMixPriorParams(){
-    //double sum = 0.0;
-    try{
-  const double K = (double)Populations;
-  for( int locus = 0; locus < NumberOfCompositeLoci; ++locus ){
-    double LogLikelihoodRatio = 0.0, LogPriorRatio = 0.0;
-    const double step = HapMixPriorEtaSampler[locus].getStepSize();
-    const double current = HapMixPriorEta[locus];
-    const double logcurrent = mylog(current);
+  //double sum = 0.0;
+  try{
+    const double K = (double)Populations;
+    for( int locus = 0; locus < NumberOfCompositeLoci; ++locus ){
+      double LogLikelihoodRatio = 0.0, LogPriorRatio = 0.0;
+      const double step = HapMixPriorEtaSampler[locus].getStepSize();
+      const double current = HapMixPriorEta[locus];
+      const double logcurrent = mylog(current);
     const double proposal = exp(Rand::gennor(logcurrent, step));
     const int NumberOfStates = Loci->GetNumberOfStates(locus);
-//    const double S = (double)NumberOfStates;
-
+    //    const double S = (double)NumberOfStates;
+    
     //if(proposal > 0.0){
-      LogPriorRatio = (HapMixPriorShape - 1.0) *( log(proposal) - log(current) )
-	- HapMixPriorRate *(proposal - current);
-//        LogLikelihoodRatio += K *  ( gsl_sf_lngamma(proposal) - gsl_sf_lngamma(current) );
-
-//        LogLikelihoodRatio -= K * S * ( gsl_sf_lngamma(proposal / S ) 
-//  							     - gsl_sf_lngamma(current / S ) ) ;
-//        double sumlogfreqs = 0.0;
-//        for(int k = 0; k < Populations; ++k)
-//  	for(int s = 0; s < NumberOfStates; ++s)
-//  	  sumlogfreqs += mylog(Freqs[locus][k*NumberOfStates + s]);
-      
-//        LogLikelihoodRatio += (sumlogfreqs / S) * (proposal - current );
-      double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0;
-      for(int k = 0; k < Populations; ++k){
-	    sumlogfreqs1 += mylog(Freqs[locus][k*NumberOfStates]);//allele 1
-	    sumlogfreqs2 += mylog(Freqs[locus][k*NumberOfStates + 1]);//allele 2
+    LogPriorRatio = (HapMixPriorShape - 1.0) *( log(proposal) - log(current) )
+      - HapMixPriorRate *(proposal - current);
+    //        LogLikelihoodRatio += K *  ( gsl_sf_lngamma(proposal) - gsl_sf_lngamma(current) );
+    
+    //        LogLikelihoodRatio -= K * S * ( gsl_sf_lngamma(proposal / S ) 
+    //  							     - gsl_sf_lngamma(current / S ) ) ;
+    //        double sumlogfreqs = 0.0;
+    //        for(int k = 0; k < Populations; ++k)
+    //  	for(int s = 0; s < NumberOfStates; ++s)
+    //  	  sumlogfreqs += mylog(Freqs[locus][k*NumberOfStates + s]);
+    
+    //        LogLikelihoodRatio += (sumlogfreqs / S) * (proposal - current );
+    double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0;
+    for(int k = 0; k < Populations; ++k){
+      sumlogfreqs1 += mylog(Freqs[locus][k*NumberOfStates]);//allele 1
+      sumlogfreqs2 += mylog(Freqs[locus][k*NumberOfStates + 1]);//allele 2
       }
-      const double mu = HapMixPriorParams[locus]/current;
-      LogLikelihoodRatio = (proposal - current)*( mu*sumlogfreqs1 + (1.0-mu)*sumlogfreqs2 )
-	  + K*(lngamma(proposal) - lngamma(current) -lngamma(mu*proposal) 
-	       - lngamma(proposal*(1.0-mu)) + lngamma(mu*current) + lngamma(current*(1.0-mu)));
-
-      const double LogAcceptratio = LogLikelihoodRatio + LogPriorRatio;
-      if( log(Rand::myrand()) < LogAcceptratio ){
-	HapMixPriorEta[locus] = proposal;
-	HapMixPriorParams[locus] *= proposal / current;
-	HapMixPriorEtaSampler[locus].UpdateStepSize( exp(LogAcceptratio)  );//update stepsize
-      }
-      //}
-      else HapMixPriorEtaSampler[locus].UpdateStepSize( 0.0  );//update stepsize
-      // sum += HapMixPriorParams[locus];
+    const double mu = HapMixPriorParams[locus]/current;
+    LogLikelihoodRatio = (proposal - current)*( mu*sumlogfreqs1 + (1.0-mu)*sumlogfreqs2 )
+      + K*(lngamma(proposal) - lngamma(current) -lngamma(mu*proposal) 
+	   - lngamma(proposal*(1.0-mu)) + lngamma(mu*current) + lngamma(current*(1.0-mu)));
+    
+    const double LogAcceptratio = LogLikelihoodRatio + LogPriorRatio;
+    if( log(Rand::myrand()) < LogAcceptratio ){
+      HapMixPriorEta[locus] = proposal;
+      HapMixPriorParams[locus] *= proposal / current;
+      HapMixPriorEtaSampler[locus].UpdateStepSize( exp(LogAcceptratio)  );//update stepsize
+    }
+    //}
+    else HapMixPriorEtaSampler[locus].UpdateStepSize( 0.0  );//update stepsize
+    // sum += HapMixPriorParams[locus];
+    }
+    //sample rate parameter of prior on prior params
+    //cout << "Gamma (" << HapMixPriorRatePriorShape + (double)NumberOfCompositeLoci * HapMixPriorShape << ", " << HapMixPriorRatePriorRate + sum << ")" << endl;
+    //HapMixPriorRate = Rand::gengam( HapMixPriorRatePriorShape + (double)NumberOfCompositeLoci * HapMixPriorShape, 
+    //			  HapMixPriorRatePriorRate + sum);
   }
-  //sample rate parameter of prior on prior params
-  //cout << "Gamma (" << HapMixPriorRatePriorShape + (double)NumberOfCompositeLoci * HapMixPriorShape << ", " << HapMixPriorRatePriorRate + sum << ")" << endl;
-  //HapMixPriorRate = Rand::gengam( HapMixPriorRatePriorShape + (double)NumberOfCompositeLoci * HapMixPriorShape, 
-  //			  HapMixPriorRatePriorRate + sum);
-    }
-    catch(string s){
-	throw string ("Error encountered while sampling frequency prior parameters: " + s);
-    }
+  catch(string s){
+    throw string ("Error encountered while sampling frequency prior dispersion: " + s);
+  }
 }
 
 void AlleleFreqs::SampleHapMixPriorProportions(){
     //double sum1 = 0.0, sum2 = 0.0;
-  for( int locus = 0; locus < NumberOfCompositeLoci; ++locus ){
-    const int NumberOfStates = Loci->GetNumberOfStates(locus);
+  try{
+    for( int locus = 0; locus < NumberOfCompositeLoci; ++locus ){
+      const int NumberOfStates = Loci->GetNumberOfStates(locus);
       HapMixMuArgs.eta = HapMixPriorEta[locus];
       HapMixMuArgs.sumlogfreqs1 = 0.0, HapMixMuArgs.sumlogfreqs2 = 0.0;
       for(int k = 0; k < Populations; ++k){
-	    HapMixMuArgs.sumlogfreqs1 += mylog(Freqs[locus][k*NumberOfStates]);//allele 1
-	    HapMixMuArgs.sumlogfreqs2 += mylog(Freqs[locus][k*NumberOfStates + 1]);//allele 2
+	HapMixMuArgs.sumlogfreqs1 += mylog(Freqs[locus][k*NumberOfStates]);//allele 1
+	HapMixMuArgs.sumlogfreqs2 += mylog(Freqs[locus][k*NumberOfStates + 1]);//allele 2
       }
       //    sum1 += HapMixMuArgs.sumlogfreqs1;
       //sum2 += HapMixMuArgs.sumlogfreqs2;
       double mu = HapMixPriorMuSampler.Sample(&HapMixMuArgs, d2fmu_hapmix);
       HapMixPriorParams[locus] = mu*HapMixPriorEta[locus];
+    }
+    //   cout << sum1 / (double)NumberOfCompositeLoci <<" " << sum2/ (double)NumberOfCompositeLoci << endl; 
   }
-//   cout << sum1 / (double)NumberOfCompositeLoci <<" " << sum2/ (double)NumberOfCompositeLoci << endl; 
+  catch(string s){
+    throw string ("Error encountered while sampling frequency prior proportions:\n " + s);
+  }
 }
 
 double AlleleFreqs::fmu_hapmix(double mu, const void* const vargs){
