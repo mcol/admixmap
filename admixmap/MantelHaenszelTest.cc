@@ -23,8 +23,9 @@ void MantelHaenszelTest::Initialise(unsigned NumStates, unsigned NumLoci){
     CountTable.push_back(v);
   }
   for(unsigned i = 0; i < NumLoci; ++i){
-    Exp.push_back(0);
-    Var.push_back(0);
+    Score.push_back(0);
+    ScoreSq.push_back(0);
+    Info.push_back(0);
   }
 }
 
@@ -68,8 +69,10 @@ void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Lo
 	  const unsigned colsum1 = CountTable[k][1]+CountTable[k][3];//       2nd
 	  if(colsum1 ==0) continue;
 
-	  Exp[locus] += (double)CountTable[k][0] - (double)( rowsum0*colsum0 ) / (double) N[k];
-	  Var[locus] += (double)(rowsum0*rowsum1*colsum0*colsum1) / (double) (N[k]*N[k] *(N[k]-1));
+	  const double score = (double)CountTable[k][0] - (double)( rowsum0*colsum0 ) / (double) N[k];
+	  Score[locus] += score;
+	  ScoreSq[locus] += score*score;
+	  Info[locus] += (double)(rowsum0*rowsum1*colsum0*colsum1) / (double) (N[k]*N[k] *(N[k]-1));
 	}
       }
       ++locus;
@@ -82,27 +85,29 @@ void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Lo
 void MantelHaenszelTest::Output(const char* filename, const Genome& Loci, unsigned NumIters, const std::vector<std::string>& LocusLabels){
   outfile.open(filename);
   //write header
-  outfile << "Loci\tExp\tVar\tChiSq\tPValue\n";
-  std::vector<double>::const_iterator E = Exp.begin(), V = Var.begin();
+  outfile << "Loci\tScore\tCompInfo\tObsInfo\tPercentInfo\tzscore\tPValue\n";
+
   unsigned locus = 0;
   //loop over pairs of loci
   //NOTE: Exp = sum_over_tables ((obs first cell) - (Exp first cell))
   for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
     for(unsigned j = 0; j < Loci.GetSizeOfChromosome(c)-1; ++j){
-      const double ebar = *E / (double)NumIters;
-      const double vbar = *V / (double)NumIters;
-      double chisq = ( ebar)*(ebar) / vbar;
-      outfile << "\"" << LocusLabels[locus] << "/" << LocusLabels[locus+1] << "\"\t" 
-	      << ebar << "\t" << vbar << "\t" << chisq << "\t";
-      if(gsl_finite(chisq)){
-	double pvalue = gsl_cdf_chisq_Q (chisq, 1);
-	outfile << pvalue << endl;
-      }
-      else
-	outfile << "NA" << endl;
-      ++locus;
-      ++E;
-      ++V;
+      std::string label = LocusLabels[locus] + "/" + LocusLabels[locus+1];
+      OutputScalarScoreTest(NumIters, &outfile, label, Score[locus], ScoreSq[locus], Info[locus], true);
+
+
+//       const double ebar = Score[locus] / (double)NumIters;
+//       const double vbar = Info[locus] / (double)NumIters;
+//       double chisq = ( ebar)*(ebar) / vbar;
+//       outfile << "\"" << LocusLabels[locus] << "/" << LocusLabels[locus+1] << "\"\t" 
+// 	      << ebar << "\t" << vbar << "\t" << chisq << "\t";
+//       if(gsl_finite(chisq)){
+// 	double pvalue = gsl_cdf_chisq_Q (chisq, 1);
+// 	outfile << pvalue << endl;
+//       }
+//       else
+// 	outfile << "NA" << endl;
+       ++locus;
     }
     ++locus;//skip last locus on chromosome
   }
