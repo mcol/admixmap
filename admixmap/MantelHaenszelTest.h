@@ -13,7 +13,7 @@ public:
   void Reset(){};
   void Initialise(unsigned NumStates, unsigned NumLoci);
   void Update(const IndividualCollection* , const Genome&);
-  void Output(const char* filename, const Genome& , unsigned NumIters, const std::vector<std::string>& LocusLabels);
+  void Output(const char* filename,  unsigned NumIters, const std::vector<std::string>& LocusLabels, bool final);
 
 private:
   unsigned K, Ksq;//number of states (populations or block states)

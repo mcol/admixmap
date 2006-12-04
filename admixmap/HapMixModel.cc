@@ -220,6 +220,9 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, AdmixOptions & o
 	  }
 	  //Score Test output
 	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
+	  if(options.getMHTest() && Comms::isMaster()){
+	    MHTest.Output(options.getMHTestFilename(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), false);
+	  }
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
     } // end "if not AnnealedRun" block
@@ -274,7 +277,7 @@ void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, const Genome
 
 void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const InputData& data, const Genome& Loci){
   if(options.getMHTest() && Comms::isMaster()){
-    MHTest.Output(options.getMHTestFilename(), Loci, options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels());
+    MHTest.Output(options.getMHTestFilename(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), true);
   }
 
   if( options.getScoreTestIndicator() && Comms::isMaster() ) {

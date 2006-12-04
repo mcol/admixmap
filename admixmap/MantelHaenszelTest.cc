@@ -82,18 +82,19 @@ void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Lo
   
 }
 
-void MantelHaenszelTest::Output(const char* filename, const Genome& Loci, unsigned NumIters, const std::vector<std::string>& LocusLabels){
+void MantelHaenszelTest::Output(const char* filename, unsigned NumIters, const std::vector<std::string>& LocusLabels, bool final){
   outfile.open(filename);
   //write header
   outfile << "Loci\tScore\tCompInfo\tObsInfo\tPercentInfo\tzscore\tPValue\n";
 
-  unsigned locus = 0;
+  //unsigned locus = 0;
   //loop over pairs of loci
   //NOTE: Exp = sum_over_tables ((obs first cell) - (Exp first cell))
-  for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
-    for(unsigned j = 0; j < Loci.GetSizeOfChromosome(c)-1; ++j){
+  //for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
+  //for(unsigned j = 0; j < Loci.GetSizeOfChromosome(c)-1; ++j){
+  for(unsigned locus = 0; locus < Score.size(); ++locus){
       std::string label = LocusLabels[locus] + "/" + LocusLabels[locus+1];
-      OutputScalarScoreTest(NumIters, &outfile, label, Score[locus], ScoreSq[locus], Info[locus], true);
+      OutputScalarScoreTest(NumIters, &outfile, label, Score[locus], ScoreSq[locus], Info[locus], final);
 
 
 //       const double ebar = Score[locus] / (double)NumIters;
@@ -107,8 +108,8 @@ void MantelHaenszelTest::Output(const char* filename, const Genome& Loci, unsign
 //       }
 //       else
 // 	outfile << "NA" << endl;
-       ++locus;
-    }
+      //      ++locus;
+      //}
     ++locus;//skip last locus on chromosome
   }
 
