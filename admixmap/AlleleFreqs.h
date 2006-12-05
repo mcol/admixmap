@@ -29,7 +29,7 @@
 #include "samplers/StepSizeTuner.h"
 #include "common.h"
 #include "samplers/AdaptiveRejection.h"
-class StepSizeTuner;
+#include "HapMixFreqs.h"
 
 #ifndef PARALLEL
 #define ARRAY2D
@@ -142,14 +142,6 @@ typedef struct{
 }array_of_allelefreqs;
 #endif
 
-typedef struct{
-    unsigned K;
-    double sumlogfreqs1;
-    double sumlogfreqs2;
-    double eta;
-
-}hapmixmuargs;
-
 /// Class to hold allele/haplotype frequencies and their priors.
 class AlleleFreqs{
 
@@ -211,7 +203,6 @@ public:
   float getHapMixPriorSamplerStepSize()const;
   void OutputAlleleFreqSamplerAcceptanceRates(const char* filename);
 
-  double getHapMixPriorRate()const{return HapMixPriorRate;};
   void resetStepSizeApproximator(int k);
 
 private:
@@ -242,22 +233,12 @@ private:
   int worker_rank;
   int NumWorkers;
 
+  HapMixFreqs hapMixPrior;
+
   double **HistoricAlleleCounts;
   double **PriorParams;
-  double* HapMixPriorEta;
-  double* HapMixPriorParams;//params of Dirichlet prior on frequencies
-  double HapMixPriorShape;//params of Gamma prior on Dirichlet params
-  double HapMixPriorRate;//
-  double HapMixPriorRatePriorShape;// params of Gamma Prior on params of Gamma prior on params of Dirichlet prior on freqs
-  double HapMixPriorRatePriorRate;
-  double SumLambda;// cumulative sum of HapMixPriorRatePriorRate
-
   int FREQSAMPLER;// 1 = conjugate sampler, 2 = Hamiltonian sampler
   std::vector<AlleleFreqSampler*> FreqSampler;
-
-  StepSizeTuner* HapMixPriorEtaSampler;
-  AdaptiveRejection HapMixPriorMuSampler;
-  hapmixmuargs HapMixMuArgs;
 
   bool calculateFST;
   double** Fst;
@@ -285,18 +266,16 @@ private:
   std::vector<StepSizeTuner> *MuProposal;
   
   std::ofstream allelefreqoutput;// object to output allele frequencies
-  std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior dispersion in hapmixmodel
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
   void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
-    void LoadInitialAlleleFreqs(const char* filename);
+  void LoadInitialAlleleFreqs(const char* filename);
   void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
   void SetDefaultAlleleFreqs(int i);
   void SetDefaultPriorParams(int i, double defaultpriorparams);
 
-  void SampleHapMixPriorParams();
   void SampleDirichletParams1D( int );
   void SampleDirichletParamsMultiDim( int);
   void SampleDirichletParams();
@@ -308,10 +287,6 @@ private:
 
   static double muEnergyFunction(unsigned K, const double * const alpha, const double* const *args);
   static void muGradient(unsigned K, const double * const alpha, const double* const *args, double *g);
-  static double fmu_hapmix(double, const void* const);
-  static double dfmu_hapmix(double, const void* const);
-  static double d2fmu_hapmix(double, const void* const);
-    void SampleHapMixPriorProportions();
 
 };
 // functions required to update proportion vector Mu with adaptive rejection sampler

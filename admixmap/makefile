@@ -161,7 +161,7 @@ CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 
 
-objects	= admixmap.o Model.o AdmixMapModel.o HapMixModel.o PopAdmix.o PopHapMix.o  AlleleFreqs.o\
+objects	= admixmap.o Model.o AdmixMapModel.o HapMixModel.o PopAdmix.o PopHapMix.o AlleleFreqs.o HapMixFreqs.o\
  AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
  IndividualCollection.o Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o\
  ScoreTestBase.o ScoreTests.o MantelHaenszelTest.o AdmixtureAssocTest.o AffectedsOnlyTest.o\
