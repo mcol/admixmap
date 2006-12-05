@@ -35,7 +35,7 @@ sub doAnalysis {
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 
 # Change this to the location of the admixmap executable
-my $executable = '../test/admixmap';
+my $executable = 'c:/cvs1/genepi/test/admixmap';
 # command-line options are stored in an associative array (known as a hash in perl)  
 my $arg_hash = {
 #data files
@@ -48,17 +48,17 @@ my $arg_hash = {
     burnin   => 200,
     every    => 5,
     numannealedruns => 0, #200, # 100, 
-    displaylevel => 2,
+    displaylevel => 3,
 #output file options
     logfile                     => 'log.txt',
     regparamfile                => 'regparam.txt',
     ergodicaveragefile          => 'cumulativeAverages.txt',
 # optional tests
-    residualallelicassocscorefile       => 'residualLDscoretests.txt',
-    allelicassociationscorefile       => 'allelicassociationscoretests.txt',
-    haplotypeassociationscorefile     => 'hapassocscoretests.txt',
-    stratificationtestfile            => 'stratificationtest.txt',
-    hwscoretestfile                   => 'HardyWeinbergTests.txt'
+    #residualallelicassocscorefile       => 'residualLDscoretests.txt',
+    #allelicassociationscorefile       => 'allelicassociationscoretests.txt',
+    #haplotypeassociationscorefile     => 'hapassocscoretests.txt',
+    stratificationtestfile            => 'stratificationtest.txt'
+    #hwscoretestfile                   => 'HardyWeinbergTests.txt'
 };
 
 # model with reference prior on allele freqs in 1 population, skin reflectance as continuous outcome var
@@ -70,8 +70,9 @@ $arg_hash->{targetindicator}       = 1; # skin reflectance
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
-$arg_hash->{samples}   = 6000;
-$arg_hash->{burnin}    = 1000;
+$arg_hash->{samples}   = 600;
+$arg_hash->{burnin}    = 100;
+$arg_hash->{every}    = 5;
 $arg_hash->{paramfile}                 = 'popadmixparams.txt',
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
 &doAnalysis($executable,$arg_hash);
@@ -79,7 +80,7 @@ $arg_hash->{resultsdir}            = 'TwoPopsResults';
 # model with reference prior on allele freqs in 3 populations
 $arg_hash->{populations}           = 3;
 $arg_hash->{resultsdir}            = 'ThreePopsResults';  
-#&doAnalysis($executable,$arg_hash);
+&doAnalysis($executable,$arg_hash);
 
 # model with prior allele freqs 
 delete $arg_hash->{populations};
