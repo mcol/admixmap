@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   Individual.cc 
  *   Class to represent an individual and update individual-level parameters
- *   Copyright (c) 2002-2006 LSHTM
+ *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -60,28 +60,6 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
   if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
   
-  double init=0.0;
-  if( !options->isGlobalRho() && options->getIndAdmixHierIndicator()) {//model with individual- or gamete-specific sumintensities
-    //set prior mean as initial value for rho 
-    if(options->getRhobetaShape() > 1) { 
-      init = options->getRhoalpha() * options->getRhobetaRate() / (options->getRhobetaShape() - 1 );
-    } else {
-      init = options->getRhoalpha() * options->getRhobetaRate() / options->getRhobetaShape() ;//conditional prior mean
-    } 
-  } else { // no hierarchical model or globalrho prior
-    init = options->getRhoalpha() / options->getRhobeta();
-  }
-  _rho.assign(NumGametes, 0.0); // set to 0 for unadmixed gametes 
-  rhohat.assign(NumGametes, 0.0); // set to 0 for unadmixed gametes 
-  
-  for(unsigned g = 0; g < NumGametes; ++g) {
-    if(options->isAdmixed(g)) {
-      _rho[g] = init;
-      rhohat[g] = init;
-    }
-  }
-  sumlogrho.assign(_rho.size(), 0.0);
-  
   // Read sex value if present.
   SexIsFemale = false;
   if (options->getgenotypesSexColumn() == 1) {//if sex column in genotypesfile
@@ -103,9 +81,9 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
 
   Theta = 0;
   thetahat = 0;
-  SumSoftmaxTheta = 0;
   ThetaProposal = 0;
   dirparams = 0;
+  SumSoftmaxTheta = 0;
   // SumLocusAncestry is sum of locus ancestry states over loci at which jump indicator xi is 1 
   SumLocusAncestry = 0; 
   SumLocusAncestry_X = 0;
@@ -113,22 +91,30 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   Theta = new double[ Populations * NumGametes ];
   if(options->getChibIndicator() || options->getIndAdmixModeFilename())
     thetahat = new double[ Populations * NumGametes ];
-  SumSoftmaxTheta = new double[ Populations * NumGametes ];
-  fill(SumSoftmaxTheta, SumSoftmaxTheta + Populations*NumGametes, 0.0);
   
   if(!options->getHapMixModelIndicator()) {
+    InitialiseSumIntensities(options);
+    SumSoftmaxTheta = new double[ Populations * NumGametes ];
+    fill(SumSoftmaxTheta, SumSoftmaxTheta + Populations*NumGametes, 0.0);
     dirparams = new double[Populations]; //to hold dirichlet parameters for conjugate updates of theta
     ThetaProposal = new double[ Populations * NumGametes ];
     SumLocusAncestry = new int[Populations * 2];
     SumLocusAncestry_X = new int[Populations * 2];
     if(!options->isGlobalRho())SumNumArrivals.resize(2*numCompositeLoci);  
+
+    // ** set up StepSizeTuner object for random walk updates of admixture **
+    NumberOfUpdates = 0;
+    w = 1;
+    step0 = 0.3; // initial sd of random walk proposal distribution 
+    step = step0;
+    ThetaTuner.SetParameters( step0, 0.0001, 10.0, 0.44);  
+
   } else { 
     SetUniformAdmixtureProps();
   }
   
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
-  
 
   LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
   //initialise genotype probs array and array of indicators for genotypes missing at locus
@@ -168,16 +154,33 @@ Individual::Individual(int number, const AdmixOptions* const options, const Inpu
   if( options->getHWTestIndicator())SetMissingGenotypes();
   DeleteGenotypes();
   
-  // ** set up StepSizeTuner object for random walk updates of admixture **
-  NumberOfUpdates = 0;
-  w = 1;
-  step0 = 0.3; // initial sd of random walk proposal distribution 
-  step = step0;
-  ThetaTuner.SetParameters( step0, 0.0001, 10.0, 0.44);  
-  
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
   logLikelihood.HMMisOK = false;
+}
+
+void Individual::InitialiseSumIntensities(const AdmixOptions* const options){
+  double init=0.0;
+  if( !options->isGlobalRho() && options->getIndAdmixHierIndicator()) {//model with individual- or gamete-specific sumintensities
+    //set prior mean as initial value for rho 
+    if(options->getRhobetaShape() > 1) { 
+      init = options->getRhoalpha() * options->getRhobetaRate() / (options->getRhobetaShape() - 1 );
+    } else {
+      init = options->getRhoalpha() * options->getRhobetaRate() / options->getRhobetaShape() ;//conditional prior mean
+    } 
+  } else { // no hierarchical model or globalrho prior
+    init = options->getRhoalpha() / options->getRhobeta();
+  }
+  _rho.assign(NumGametes, 0.0); // set to 0 for unadmixed gametes 
+  rhohat.assign(NumGametes, 0.0); // set to 0 for unadmixed gametes 
+  
+  for(unsigned g = 0; g < NumGametes; ++g) {
+    if(options->isAdmixed(g)) {
+      _rho[g] = init;
+      rhohat[g] = init;
+    }
+  }
+  sumlogrho.assign(_rho.size(), 0.0);
 }
 
 //********** Destructor **********
@@ -580,33 +583,39 @@ void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Met
 
 double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
-  //obtain ergodic averages of (inv_softmax)admixture props and (log)sumintensities and transform back
-  //to original scales
-  unsigned size = Populations * NumGametes;
-  for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (options->getTotalSamples() - options->getBurnIn());
-  for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] = exp(sumlogrho[i]/(options->getTotalSamples() - options->getBurnIn()));
+  double* ThetaBar;
 
-  //apply softmax transformation to obtain thetabar
-  double* ThetaBar = new double[NumGametes*Populations];
-  bool* b = new bool[Populations];
-  for( unsigned int g = 0; g < NumGametes; g++ ){
-    for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
-      b[k] = true; //to skip elements set to zero
-    } else b[k] = false;
-    softmax(Populations, ThetaBar+g*Populations, SumSoftmaxTheta+g*Populations, b);
+  if(!options->getHapMixModelIndicator()){
+    //obtain ergodic averages of (inv_softmax)admixture props and (log)sumintensities and transform back
+    //to original scales
+    unsigned size = Populations * NumGametes;
+    for(unsigned i = 0; i < size; ++i)SumSoftmaxTheta[i] /= (options->getTotalSamples() - options->getBurnIn());
+    for(unsigned i = 0; i < _rho.size(); ++i)sumlogrho[i] = exp(sumlogrho[i]/(options->getTotalSamples() - options->getBurnIn()));
+    
+    //apply softmax transformation to obtain thetabar
+    ThetaBar = new double[NumGametes*Populations];
+    bool* b = new bool[Populations];
+    for( unsigned int g = 0; g < NumGametes; g++ ){
+      for(int k = 0; k < Populations; ++k)if(Theta[g*Populations + k] > 0.0){
+	b[k] = true; //to skip elements set to zero
+      } else b[k] = false;
+      softmax(Populations, ThetaBar+g*Populations, SumSoftmaxTheta+g*Populations, b);
+    }
+    delete[] b;
   }
+  else ThetaBar = Theta;
 
   double LogLikelihood = 0.0;
   if(Populations == 1) LogLikelihood = getLogLikelihoodOnePop();
   else {
     for( unsigned int j = 0; j < numChromosomes; j++ ) {
       UpdateHMMInputs(j, options, ThetaBar, sumlogrho); // sumlogrho is posterior mean of rho
-      // should replace 2nd sumlogrho by half its value
       LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
     }
   }
-  delete[] b;
-  delete[] ThetaBar;
+  if(!options->getHapMixModelIndicator()){
+    delete[] ThetaBar;
+  }
   return LogLikelihood;
 }
 double Individual::getLogLikelihoodOnePop(){ //convenient for a single population as no arguments required
@@ -671,9 +680,9 @@ void Individual::AccumulateAncestry(int* SumAncestry){
   } //end chromosome loop
 }
 #ifdef PARALLEL
-void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool annealthermo, 
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, 
 			       const double* const AlleleProbs){
-  if( hapmixmodel || !GenotypesMissing[j][jj]){
+  if( !skipMissingGenotypes || !GenotypesMissing[j][jj]){
     int ancestry[2];//to store ancestry states
     GetLocusAncestry(j,jj,ancestry);
     //might be a shortcut for haploid data since there is only one compatible hap pair, no need to sample
@@ -699,8 +708,8 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
   }
 }
 #else
-void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool hapmixmodel, bool annealthermo){
-  if( hapmixmodel || !GenotypesMissing[j][jj]) {
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo){
+  if( !skipMissingGenotypes || !GenotypesMissing[j][jj]) {
     int anc[2];//to store ancestry states
     GetLocusAncestry(j,jj,anc);
     if(PossibleHapPairs[locus].size() > 1 && !annealthermo) { 
@@ -773,7 +782,7 @@ void Individual::FindPosteriorModes(const AdmixOptions* const options, const vec
 	if(Populations >1){
 	  ResetSufficientStats();
 	  SampleLocusAncestry(options);
-	  SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+	  SampleJumpIndicators((!options->isGlobalRho()));
 	}
 	vector<unsigned> SumN = getSumNumArrivals();
 	vector<unsigned> SumN_X = getSumNumArrivals_X(); // element 0 should be zero in a male
@@ -1149,7 +1158,7 @@ void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const optio
   Chromosome* C = Loci->getChromosome(j);
   C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
-   bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
+  bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
   if(!options->getHapMixModelIndicator()){
     if(!options->isGlobalRho()){
       //set locus correlation, f, if individual- or gamete-specific rho
