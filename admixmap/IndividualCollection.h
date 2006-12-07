@@ -38,14 +38,14 @@ class IndividualCollection
 {
 public:
   IndividualCollection();
-  ~IndividualCollection();
+  virtual ~IndividualCollection();
   IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
 
   void DeleteGenotypes(bool);
-  void Initialise(const AdmixOptions* const options, const Genome* const Loci, 
+  virtual void Initialise(const AdmixOptions* const options, const Genome* const Loci, 
 		  const Vector_s& PopulationLabels, LogWriter &Log);
   void DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha);
-  void LoadData(const AdmixOptions* const options, const InputData* const);
+  void LoadData(const AdmixOptions* const options, const InputData* const, bool admixtureAsCovariate);
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels);
 
   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
@@ -59,7 +59,7 @@ public:
 // 			   const vector<Regression*> &R);
   
   void SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
-		      bool anneal);
+		      bool skipMissingGenotypes, bool anneal);
   void SampleParameters(int iteration, const AdmixOptions* const options,
 			const vector<Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
@@ -93,7 +93,7 @@ public:
   double GetSumrho()const;
   double getSumLogTheta(int)const;
   const double *getSumLogTheta()const;
-  const int* getSumAncestry()const;
+
   const vector<int> getSumLocusAncestry(int k)const;
   const vector<int> getSumLocusAncestryX(int k)const;
   const vector<unsigned> getSumNumArrivals();
@@ -122,20 +122,27 @@ public:
   void HMMIsBad(bool b);
   void resetStepSizeApproximators(int k); 
 
-private:
-  int Populations;
+  //functions specific to hapmixmodel
+  virtual void SampleLocusAncestry(const AdmixOptions* const ){};
+  virtual const int* getSumAncestry()const{return 0;};
+
+protected:
+  unsigned int NumInd, size;
+  int Populations, NumCompLoci;
   Individual **_child; //array of pointers to Individual objects
+  int worker_rank, NumWorkers;
+
+private:
   Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
   int sizeTestInd;
-  int worker_rank, NumWorkers;
+
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
   void getLabels(const Vector_s& data, Vector_s& labels);
   
-  void LoadCovariates(const InputData*, const AdmixOptions* const options);
+  void LoadCovariates(const InputData*, const AdmixOptions* const options, bool admixtureAsCovariate);
   void LoadOutcomeVar(const InputData* const);
   void LoadRepAncestry(const InputData* const);
 
-  unsigned int NumInd, size, NumCompLoci;
   std::vector< std::vector<double> > admixtureprior;
   double *SumLogTheta;//sums of log individual admixture proportions
   DataMatrix *ReportedAncestry;
@@ -143,8 +150,7 @@ private:
   double SumLogLikelihood;
   double SumDeviance, SumDevianceSq;
   std::vector< int > _locusfortest;
-  int* SumAncestry;//for update of locus-specific sumintensities
-  int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
+
 #ifdef PARALLEL
   // int rank_with_freqs;
   //communicators for workers (Individual updaters)

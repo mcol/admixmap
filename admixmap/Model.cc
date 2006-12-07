@@ -13,18 +13,13 @@ Model::~Model(){
 
 void Model::Initialise(Genome& Loci, AdmixOptions& options, InputData& data,  LogWriter& Log){
   const bool isMaster = Comms::isMaster();
-  const bool isFreqSampler = Comms::isFreqSampler();
+  //  const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
   
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
-  if(isFreqSampler || isWorker)A.AllocateAlleleCountArrays(options.getPopulations());
-#ifdef PARALLEL
-  //broadcast initial values of freqs
-  if(!isMaster)A.BroadcastAlleleFreqs();
-#endif
   
-  IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
-  if(isMaster || isWorker)IC->LoadData(&options, &data);    //and before L and R Initialise
+  IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
+  if(isMaster || isWorker)IC->LoadData(&options, &data, (!options.getTestForAdmixtureAssociation() && options.getPopulations() > 1));    
   if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
   const int numdiploid = IC->getNumDiploidIndividuals();
   if(isMaster){

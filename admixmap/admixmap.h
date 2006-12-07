@@ -28,7 +28,8 @@
 #include "AlleleFreqs.h"
 #include "AdmixOptions.h"
 #include "InputData.h"
-#include "IndividualCollection.h"
+//#include "IndividualCollection.h"
+#include "HapMixIndividualCollection.h"
 #include "Chromosome.h"
 #include "StratificationTest.h"
 #include "DispersionTest.h"
@@ -73,12 +74,14 @@ class Model{
   virtual void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log) = 0;
 
   std::vector<Regression*>& getRegression(){return R;};
-  unsigned getNumIndividuals()const{return IC->getSize();}; 
-  double* getSumEnergy()const{return IC->getSumEnergy();};
-  double* getSumEnergySq()const{return IC->getSumEnergySq();}; 
+  virtual unsigned getNumIndividuals()const = 0; 
+  virtual double* getSumEnergy()const = 0;
+  virtual double* getSumEnergySq()const = 0; 
   virtual double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log) = 0;
-  void getOnePopOneIndLogLikelihood(LogWriter& Log, const std::vector<std::string>& PopLabels){IC->getOnePopOneIndLogLikelihood(Log, PopLabels);};
   virtual void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci)=0 ;
+
+  //this function is used only in admixmap model
+  virtual void getOnePopOneIndLogLikelihood(LogWriter& , const std::vector<std::string>& ){};
 
  protected:
 
@@ -87,7 +90,6 @@ class Model{
   virtual void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log) = 0;
 
   void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq);
-
   IndividualCollection *IC;
   AlleleFreqs A;
   vector<Regression*> R;//vector of regression pointers
@@ -116,7 +118,11 @@ public:
   void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log);
   void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci) ;
   void ResetStepSizeApproximators(int resetk);
-    double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log);
+  double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log);
+  void getOnePopOneIndLogLikelihood(LogWriter& Log, const std::vector<std::string>& PopLabels){IC->getOnePopOneIndLogLikelihood(Log, PopLabels);};
+  unsigned getNumIndividuals()const{return IC->getSize();}; 
+  double* getSumEnergy()const{return IC->getSumEnergy();};
+  double* getSumEnergySq()const{return IC->getSumEnergySq();}; 
 private:
   PopAdmix* L;
   void UpdateParameters(int iteration, const AdmixOptions *options, 
@@ -140,6 +146,9 @@ public:
   void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log);
   void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci) ;
   double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log);
+  unsigned getNumIndividuals()const{return IC->getSize();}; 
+  double* getSumEnergy()const{return IC->getSumEnergy();};
+  double* getSumEnergySq()const{return IC->getSumEnergySq();}; 
 private:
   PopHapMix* L;
   MantelHaenszelTest MHTest;

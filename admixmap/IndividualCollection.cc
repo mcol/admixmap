@@ -30,15 +30,12 @@ void IndividualCollection::SetNullValues(){
   ReportedAncestry = 0;
   SumDeviance = SumDevianceSq = 0.0;
   SumEnergy = 0; SumEnergySq = 0; 
-  SumAncestry = 0;
   _child = 0;
   TestInd = 0;
   sizeTestInd = 0;
   indadmixoutput = 0;
   SumLogLikelihood = 0.0;
   SumLogTheta = 0;
-  SumAncestry = 0;
-  GlobalSumAncestry = 0;
   ReportedAncestry = 0;
   //sigma.resize(2);
   //sigma[0] = sigma[1] = 1.0;
@@ -120,11 +117,7 @@ IndividualCollection::~IndividualCollection() {
 
   delete[] OutcomeType;
   delete[] SumLogTheta;
-  delete[] SumAncestry;
   delete[] ReportedAncestry;
-#ifdef PARALLEL
-  delete[] GlobalSumAncestry;
-#endif
 }
 void IndividualCollection::DeleteGenotypes(bool setmissing=false){
   for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
@@ -155,12 +148,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
   SumLogTheta = new double[ options->getPopulations()];
   
   //allocate array of sufficient statistics for update of locus-specific sumintensities
-  if(options->getHapMixModelIndicator()) {
-    SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
-#ifdef PARALLEL
-    if(Comms::isMaster())GlobalSumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
-#endif
-  }
+
 }  
 
 void IndividualCollection::DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha){
@@ -169,7 +157,7 @@ void IndividualCollection::DrawInitialAdmixture(const std::vector<std::vector<do
     if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
 
 }
-void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_){
+void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_, bool admixtureAsCovariate){
 
   if ( options->getNumberOfOutcomes()>0){
     delete[] OutcomeType;
@@ -177,14 +165,14 @@ void IndividualCollection::LoadData(const AdmixOptions* const options, const Inp
     data_->getOutcomeTypes(OutcomeType);
 
     if(strlen( options->getOutcomeVarFilename() ) != 0)LoadOutcomeVar(data_);
-    LoadCovariates(data_, options);
+    LoadCovariates(data_, options, admixtureAsCovariate);
   }
   if ( strlen( options->getReportedAncestryFilename() ) != 0 ){
     LoadRepAncestry(data_);
   }
 }
 
-void IndividualCollection::LoadCovariates(const InputData* const data_, const AdmixOptions* const options){
+void IndividualCollection::LoadCovariates(const InputData* const data_, const AdmixOptions* const options, bool admixtureAsCovariate){
 //   NumCovariates = 0;
 //   DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
 //   if(!(options->getNumberOfOutcomes()==1 && OutcomeType[0]==CoxData))
@@ -203,7 +191,7 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
     NumberOfInputCovariates = CovData.nCols();
     unsigned NumInds = CovData.nRows()-1;//should already have been checked to be the same as in outcomevarfile
 
-    if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator()){
+    if( admixtureAsCovariate){
       Covariates.setDimensions(NumInds, CovData.nCols() + options->getPopulations());
       for(unsigned i = 0; i < NumInds; ++i)for(int j = 0; j < options->getPopulations()-1; ++j)
 	Covariates.set(i, j + CovData.nCols() + 1,  1.0 / (double)options->getPopulations() );
@@ -239,7 +227,7 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
   else {//no covariatesfile
     unsigned NumInds = Outcome.nRows();
     if(NumInds <= 0 )NumInds = NumInd;
-    if( !options->getTestForAdmixtureAssociation() && options->getPopulations() > 1 && !options->getHapMixModelIndicator() ){
+    if( admixtureAsCovariate ){
       Covariates.setDimensions(NumInds, options->getPopulations());
       for(unsigned i = 0; i < NumInds; ++i)for(int j = 1; j < options->getPopulations(); ++j)
 	Covariates.set(i, j, 1.0 / (double)options->getPopulations() );
@@ -248,7 +236,7 @@ void IndividualCollection::LoadCovariates(const InputData* const data_, const Ad
     for(unsigned i = 0; i < NumInds; ++i)
       Covariates.set(i,0, 1.0 );
   }
-  if( options->getTestForAdmixtureAssociation()  || options->getHapMixModelIndicator())
+  if( !admixtureAsCovariate )
     NumCovariates = NumberOfInputCovariates + 1;
   else
     NumCovariates = NumberOfInputCovariates + options->getPopulations();
@@ -328,9 +316,8 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 // ************** UPDATING **************
 /**
     (1) Samples Locus Ancestry (after updating HMM)
-    (2) accumulates sums of ancestry states in hapmixmodel
-    (3) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
-    (4) updates score, info and score squared for ancestry score tests
+    (2) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
+    (3) updates score, info and score squared for ancestry score tests
     coolness is not passed as argument to this function because annealing has already been implemented by 
     calling annealGenotypeProbs 
 */
@@ -346,24 +333,16 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     affectedsOnlyTest.Reset();
   }
 
-  if(options->getHapMixModelIndicator()){
-    fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
-#ifdef PARALLEL
-    if(worker_rank<(int)size)MPE_Log_event(15, iteration, "Sampleancestry");
-#endif
-  }
-
   //now loop over individuals
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** set SumLocusAncestry and SumNumArrivals to 0
-    if(!options->getHapMixModelIndicator())_child[i]->ResetSufficientStats();
+    _child[i]->ResetSufficientStats();
 
     // ** Run HMM forward recursions and sample locus ancestry
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
-    if(options->getHapMixModelIndicator())_child[i]->AccumulateAncestry(SumAncestry);
     // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-    if(Populations >1 && !options->getHapMixModelIndicator())//no need in hapmixmodel
-      _child[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+    if(Populations >1)
+      _child[i]->SampleJumpIndicators(!options->isGlobalRho());
     // ** Update score, info and score^2 for ancestry score tests
     if(iteration > options->getBurnIn() && Populations >1 
        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
@@ -372,8 +351,6 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, iteration, "Sampledancestry");
-  if(options->getHapMixModelIndicator())
-    Comms::ReduceAncestryCounts(SumAncestry, GlobalSumAncestry, 2*NumCompLoci);
 #endif
 }
 
@@ -382,14 +359,14 @@ void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const Ad
 				      const vector<vector<double> > &alpha, bool anneal){
   vector<double> lambda;
   vector<const double*> beta;
-  if(!options->getHapMixModelIndicator()){//required only for random walk update of individual admixture and ancestry scoretests
-    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-      lambda.push_back( R[i]->getlambda());
-      beta.push_back( R[i]->getbeta());
-    }
+  
+  for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+    lambda.push_back( R[i]->getlambda());
+    beta.push_back( R[i]->getbeta());
   }
+  
   double dispersion = 0.0; 
-  if(!options->getHapMixModelIndicator() && R.size()>0) dispersion = R[0]->getDispersion();
+  if(R.size()>0) dispersion = R[0]->getDispersion();
 
   //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
   int i0 = 0;
@@ -415,7 +392,7 @@ void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const Ad
    Samples Haplotype pairs and upates allele/haplotype counts
 */
 void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
-					  bool anneal){
+					  bool skipMissingGenotypes, bool anneal){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
@@ -430,9 +407,9 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
 	//Sample Haplotype Pair
 	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles 
 #ifdef PARALLEL
-	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), annealthermo, AlleleProbs);
+	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo, AlleleProbs);
 #else
-	_child[i]->SampleHapPair(j, jj, locus, A, options->getHapMixModelIndicator(), annealthermo);//also updates allele counts
+	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo);//also updates allele counts
 #endif
       }
       locus++;
@@ -468,14 +445,14 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
       // ** set SumLocusAncestry and SumNumArrivals to 0
       TestInd[i]->ResetSufficientStats();
       // ** update theta with random-walk proposal on even-numbered iterations
-      if(Populations >1 && !(iteration %2) && !options->getHapMixModelIndicator())
+      if(Populations >1 && !(iteration %2))
 	TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
 				beta, poptheta, options, alpha, 0.0, 
 				dispersion, true, anneal);
       // ** Run HMM forward recursions and Sample Locus Ancestry
       if(Populations >1)TestInd[i]->SampleLocusAncestry(options);
       // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-      if(Populations >1)TestInd[i]->SampleJumpIndicators((!options->isGlobalRho() || options->getHapMixModelIndicator()));
+      if(Populations >1)TestInd[i]->SampleJumpIndicators(!options->isGlobalRho());
       // ** Sample individual- or gamete-specific sumintensities
       if(Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) 
 	TestInd[i]->SampleRho( options, rhoalpha, rhobeta,   
@@ -633,13 +610,6 @@ const double* IndividualCollection::getSumLogTheta()const{
   Comms::Reduce(SumLogTheta, Populations);
 #endif
   return SumLogTheta;
-}
-const int* IndividualCollection::getSumAncestry()const{
-#ifdef PARALLEL
-  return GlobalSumAncestry;
-#else
-  return SumAncestry;
-#endif
 }
 
 /**

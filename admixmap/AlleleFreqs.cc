@@ -123,168 +123,172 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   Loci = pLoci;
   Populations = options->getPopulations();
   hapmixmodel = options->getHapMixModelIndicator();
-
+  
   if(Comms::isFreqSampler()){
-  LoadAlleleFreqs(options, data);
-  Log.setDisplayMode(On);
-  //open allelefreqoutputfile
-  if(IsRandom() ){
-    OpenOutputFile(options);
-  }
-
-  // set which sampler will be used for allele freqs
-  // current version uses conjugate sampler if annealing without thermo integration
-  if( hapmixmodel ||
-      (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
-      //using default allele freqs or CAF model
-      ( !strlen(options->getAlleleFreqFilename()) &&
-	!strlen(options->getHistoricalAlleleFreqFilename()) && 
-	!strlen(options->getPriorAlleleFreqFilename()) && 
-	!options->getCorrelatedAlleleFreqs() ) ) {
-    FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
-  } else {
-    FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
-  }
-
-  if(hapmixmodel) {
-    hapMixPrior.Initialise(Populations, NumberOfCompositeLoci, options->getAlleleFreqPriorParams());
-  }
-  
-  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    if(RandomAlleleFreqs){
-      if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
-	//set up samplers for allelefreqs
-	if(hapmixmodel){
-	  const double priorparam = hapMixPrior.getParams(i);
-	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
-						      &(priorparam), true));
+    LoadAlleleFreqs(options, data);
+    Log.setDisplayMode(On);
+    //open allelefreqoutputfile
+    if(IsRandom() ){
+      OpenOutputFile(options);
+    }
+    
+    // set which sampler will be used for allele freqs
+    // current version uses conjugate sampler if annealing without thermo integration
+    if( hapmixmodel ||
+	(options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
+	//using default allele freqs or CAF model
+	( !strlen(options->getAlleleFreqFilename()) &&
+	  !strlen(options->getHistoricalAlleleFreqFilename()) && 
+	  !strlen(options->getPriorAlleleFreqFilename()) && 
+	  !options->getCorrelatedAlleleFreqs() ) ) {
+      FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
+    } else {
+      FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+    }
+    
+    if(hapmixmodel) {
+      hapMixPrior.Initialise(Populations, NumberOfCompositeLoci, options->getAlleleFreqPriorParams());
+    }
+    
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+      if(RandomAlleleFreqs){
+	if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
+	  //set up samplers for allelefreqs
+	  if(hapmixmodel){
+	    const double priorparam = hapMixPrior.getParams(i);
+	    FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
+							&(priorparam), true));
+	  }
+	  else
+	    FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
+							PriorParams[i], false));
 	}
-	else
-	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
-						      PriorParams[i], false));
       }
-    }
-    //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
-    //initialise AlleleProbsMAP pointer to 0
-    //allocate HapPairProbs and calculate them using AlleleProbs
-    (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
-    //If using Chib algorithm, allocate HapPairProbsMAP and copy values in HapPairProbs
-    if(options->getChibIndicator()) {
-      // allocate AlleleFreqsMAP and set AlleleProbsMAP in Composite Locus to point to it
+      //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
+      //initialise AlleleProbsMAP pointer to 0
+      //allocate HapPairProbs and calculate them using AlleleProbs
+      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
+      //If using Chib algorithm, allocate HapPairProbsMAP and copy values in HapPairProbs
+      if(options->getChibIndicator()) {
+	// allocate AlleleFreqsMAP and set AlleleProbsMAP in Composite Locus to point to it
+	setAlleleFreqsMAP();
+	//allocate HapPairProbsMAP
+	(*Loci)(i)->InitialiseHapPairProbsMAP();
+      }
+    }//end comp locus loop
+    if(options->getChibIndicator())
       setAlleleFreqsMAP();
-      //allocate HapPairProbsMAP
-      (*Loci)(i)->InitialiseHapPairProbsMAP();
-    }
-  }//end comp locus loop
-  if(options->getChibIndicator())
-      setAlleleFreqsMAP();
-  
-
-  // ** settings for sampling of dispersion parameter **
-  if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs) {
-    unsigned dim = 1;
-    if(IsHistoricAlleleFreq) {
-      dim = Populations;
-    } 
-    // ** dispersion parameter(s) and priors **
-    eta = new double[ dim ];//dispersion parameters
-    psi = new double[ dim ];//gamma prior shape parameter
-    tau = new double[ dim ];//gamma prior rate parameter
-    SumEta = new double[ dim ];//running sums
-    
-    //NOTE: if DispersionSampler is used to sample eta in both historic and correlated allele freq models, we don't need to
-    //store psi and tau here, just pass the values to the sampler
     
     
-    // ** set eta priors **
-    if( strlen(options->getEtaPriorFilename()) ){
-      //specified by user in file
-      Log << "Loading gamma prior parameters for allele frequency dispersion from "
-	  << options->getEtaPriorFilename() << ".\n";
-      const DataMatrix& etaprior = data->getEtaPriorMatrix();
+    // ** settings for sampling of dispersion parameter **
+    if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs) {
+      unsigned dim = 1;
+      if(IsHistoricAlleleFreq) {
+	dim = Populations;
+      } 
+      // ** dispersion parameter(s) and priors **
+      eta = new double[ dim ];//dispersion parameters
+      psi = new double[ dim ];//gamma prior shape parameter
+      tau = new double[ dim ];//gamma prior rate parameter
+      SumEta = new double[ dim ];//running sums
+      
+      //NOTE: if DispersionSampler is used to sample eta in both historic and correlated allele freq models, we don't need to
+      //store psi and tau here, just pass the values to the sampler
+      
+      // ** set eta priors **
+      if( strlen(options->getEtaPriorFilename()) ){
+	//specified by user in file
+	Log << "Loading gamma prior parameters for allele frequency dispersion from "
+	    << options->getEtaPriorFilename() << ".\n";
+	const DataMatrix& etaprior = data->getEtaPriorMatrix();
+	
+	for( unsigned k = 0; k < dim; k++ ){
+	  psi[k] = etaprior.get( k, 0 );
+	  tau[k] = etaprior.get( k, 1 );
+	}
+      }
+      else{//specified by user, otherwise default of psi = 3.0, tau = 0.01
+	double rate = options->getEtaMean() / options->getEtaVar();
+	double shape = rate *options->getEtaMean();
+	
+	fill(psi, psi + dim, shape);
+	fill(tau, tau + dim, rate);
+      }
+      
+      //w = 1;
+      
+      if(IsHistoricAlleleFreq) {
+	// ** settings for sampling of proportion vector mu of prior on allele freqs
+	muSampler = new MuSampler[dim*NumberOfCompositeLoci]; // 
+	for(int i = 0; i < NumberOfCompositeLoci; ++i)
+	  for(int k = 0; k < Populations; ++k)
+	    muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.000001, 10.0, 0.9);
+      } else {//correlated allele freq model
+	muSampler = new MuSampler[NumberOfCompositeLoci];
+	
+	for(int i = 0; i < NumberOfCompositeLoci; ++i)
+	  muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.00001, 10.0, 0.9);
+	
+	if(ETASAMPLER==2) {
+	  EtaSampler = new DispersionSampler[dim];
+	  
+	  int* NumStates;
+	  NumStates = new int[NumberOfCompositeLoci];
+	  for(int i = 0; i < NumberOfCompositeLoci; ++i) {
+	    NumStates[i] = Loci->GetNumberOfStates(i);
+	  }
+	  DispersionSampler::setDimensions(NumberOfCompositeLoci, Populations, NumStates);
+	  delete[] NumStates;
+	  
+	  EtaSampler[0].Initialise( 0.05, 0.01, 1000.0, 0.9);
+	  EtaSampler[0].setEtaPrior(psi[0], tau[0]); 
+	  
+	}
+      }
       
       for( unsigned k = 0; k < dim; k++ ){
-	psi[k] = etaprior.get( k, 0 );
-	tau[k] = etaprior.get( k, 1 );
-      }
-    }
-    else{//specified by user, otherwise default of psi = 3.0, tau = 0.01
-      double rate = options->getEtaMean() / options->getEtaVar();
-      double shape = rate *options->getEtaMean();
-      
-      fill(psi, psi + dim, shape);
-      fill(tau, tau + dim, rate);
-    }
-
-    //w = 1;
-    
-    if(IsHistoricAlleleFreq) {
-      // ** settings for sampling of proportion vector mu of prior on allele freqs
-      muSampler = new MuSampler[dim*NumberOfCompositeLoci]; // 
-      for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	for(int k = 0; k < Populations; ++k)
-	  muSampler[i*Populations+k].setDimensions(2, Loci->GetNumberOfStates(i), 0.001, 0.000001, 10.0, 0.9);
-    } else {//correlated allele freq model
-      muSampler = new MuSampler[NumberOfCompositeLoci];
-
-      for(int i = 0; i < NumberOfCompositeLoci; ++i)
-	muSampler[i].setDimensions(Populations, Loci->GetNumberOfStates(i), 0.002, 0.00001, 10.0, 0.9);
-
-      if(ETASAMPLER==2) {
-	EtaSampler = new DispersionSampler[dim];
-
-	int* NumStates;
-	NumStates = new int[NumberOfCompositeLoci];
-	for(int i = 0; i < NumberOfCompositeLoci; ++i) {
-	  NumStates[i] = Loci->GetNumberOfStates(i);
+	//Initialise eta at its prior expectation
+	eta[k] = psi[k]/tau[k];
+	//Rescale priorallelefreqs so the columns sum to eta 
+	for(int j = 0; j < NumberOfCompositeLoci; j++ ){
+	  int NumberOfStates = Loci->GetNumberOfStates(j);
+	  double sum = 0.0;
+	  for(int s = 0; s < NumberOfStates; ++s)sum+= PriorParams[j][k*NumberOfStates+s];
+	  for(int s = 0; s < NumberOfStates; ++s)PriorParams[j][k*NumberOfStates+s]*= eta[k] / sum;
 	}
-	DispersionSampler::setDimensions(NumberOfCompositeLoci, Populations, NumStates);
-	delete[] NumStates;
-
-	EtaSampler[0].Initialise( 0.05, 0.01, 1000.0, 0.9);
-	EtaSampler[0].setEtaPrior(psi[0], tau[0]); 
-
       }
-    }
+      
+      if(ETASAMPLER==1) {
+	etastep0 = 0.1; // sd of proposal distribution for log eta
+	etastep = new double[ dim ];
+	for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
+	NumberOfEtaUpdates = 0;
+	TuneEtaSampler = new StepSizeTuner[ dim ];
+	for( unsigned k = 0; k < dim; k++ )
+	  TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
+      }
     
-    for( unsigned k = 0; k < dim; k++ ){
-      //Initialise eta at its prior expectation
-      eta[k] = psi[k]/tau[k];
-      //Rescale priorallelefreqs so the columns sum to eta 
-      for(int j = 0; j < NumberOfCompositeLoci; j++ ){
-	int NumberOfStates = Loci->GetNumberOfStates(j);
-	double sum = 0.0;
-	for(int s = 0; s < NumberOfStates; ++s)sum+= PriorParams[j][k*NumberOfStates+s];
-	for(int s = 0; s < NumberOfStates; ++s)PriorParams[j][k*NumberOfStates+s]*= eta[k] / sum;
+      // ** Open output file for eta **
+      if ( options->getIndAdmixHierIndicator()){
+	if (strlen( options->getEtaOutputFilename() ) ){
+	  InitializeEtaOutputFile(options, data->GetPopLabels(), Log); 
+	}
+	else{
+	  Log << "No dispparamfile given\n";
+	  //exit(1);
+	}
       }
-    }
-    
-    if(ETASAMPLER==1) {
-      etastep0 = 0.1; // sd of proposal distribution for log eta
-      etastep = new double[ dim ];
-      for(unsigned k = 0; k < dim; ++k) etastep[k] = etastep0;
-      NumberOfEtaUpdates = 0;
-      TuneEtaSampler = new StepSizeTuner[ dim ];
-      for( unsigned k = 0; k < dim; k++ )
-	TuneEtaSampler[k].SetParameters( etastep0, 0.01, 10, 0.44 );
-    }
-    
-    // ** Open output file for eta **
-    if ( options->getIndAdmixHierIndicator()){
-      if (strlen( options->getEtaOutputFilename() ) ){
-	InitializeEtaOutputFile(options, data->GetPopLabels(), Log); 
+      // ** open fst output file if specified **
+      if( options->getOutputFST() ){
+	OpenFSTFile(options,Log);
       }
-      else{
-	Log << "No dispparamfile given\n";
-	//exit(1);
-      }
-    }
-    // ** open fst output file if specified **
-    if( options->getOutputFST() ){
-      OpenFSTFile(options,Log);
-    }
-  } //end if dispersion parameter
-  }
+    } //end if dispersion parameter
+  }//end if is freqsampler
+  if(Comms::isFreqSampler() || Comms::isWorker())AllocateAlleleCountArrays(options->getPopulations());
+#ifdef PARALLEL
+  //broadcast initial values of freqs
+  if(!isMaster)BroadcastAlleleFreqs();
+#endif
 }
 
 void AlleleFreqs::PrintPrior(const Vector_s& PopLabels, LogWriter& Log)const{

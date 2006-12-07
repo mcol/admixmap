@@ -1,6 +1,5 @@
 #include "admixmap.h"
 
-
 // HapMixModel::HapMixModel(){
 
 // }
@@ -14,7 +13,25 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
-  Model::Initialise(Loci, options, data, Log);
+  A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
+  
+  IC = new HapMixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
+  if(isMaster || isWorker)IC->LoadData(&options, &data, false);    //and before L and R Initialise
+  if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+  const int numdiploid = IC->getNumDiploidIndividuals();
+  if(isMaster){
+    const int numindivs = data.getNumberOfIndividuals();
+    if(numindivs > 1){
+      Log.setDisplayMode(Quiet);
+      //Log << numindivs << " individuals\n";
+      if(numdiploid > 0){
+	Log << numdiploid << " diploid "; 
+	if(numdiploid < numindivs)Log<< "and ";
+      }
+      if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
+      Log << "individuals\n\n";
+    }
+  }
 
   L = new PopHapMix(&options, &Loci);
   if(isMaster || isWorker)L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
@@ -30,9 +47,6 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
       Loci.getChromosome(j)->SetStateArrivalProbs(options.isRandomMatingModel(), true);
     }
   }
-  
-  if(isMaster || isWorker)
-    IC->Initialise(&options, &Loci, data.GetPopLabels(), Log);
   
   //initialise regression objects
   if (options.getNumberOfOutcomes()>0 && (isMaster || isWorker)){
@@ -65,14 +79,15 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
   // Update individual-level parameters, sampling locus ancestry states
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(isMaster || isWorker){
-  IC->SampleLocusAncestry(iteration, options, R, Scoretests.getAffectedsOnlyTest(), anneal);
+    IC->SampleLocusAncestry(options);
    }
 
   if(isWorker || isFreqSampler) {
 #ifdef PARALLEL
     MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
-    IC->SampleHapPairs(options, &A, Loci, anneal); // loops over individuals to sample hap pairs then increment allele counts
+// loops over individuals to sample hap pairs then increment allele counts, not skipping missing genotypes
+    IC->SampleHapPairs(options, &A, Loci, false, anneal); 
 #ifdef PARALLEL
     MPE_Log_event(14, iteration, "sampledHapPairs");
 #endif
@@ -110,13 +125,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
   if(options->getMHTest() && !anneal && (iteration > options->getBurnIn()))
     MHTest.Update(IC, *Loci);//update Mantel-Haenszel test
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-  // sample individual admixture and sum-intensities 
-  //  IC->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),  
-  //	       L->getrhoalpha(), L->getrhobeta(), anneal);
-  // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
+ 
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
   if( !options->getFixedAlleleFreqs()){
