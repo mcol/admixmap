@@ -75,7 +75,8 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
 #ifdef PARALLEL
     MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
-    IC->SampleHapPairs(options, &A, Loci, anneal); // loops over individuals to sample hap pairs then increment allele counts
+// loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
+    IC->SampleHapPairs(options, &A, Loci, true, anneal); 
 #ifdef PARALLEL
     MPE_Log_event(14, iteration, "sampledHapPairs");
 #endif
