@@ -284,11 +284,13 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       }
     } //end if dispersion parameter
   }//end if is freqsampler
-  if(Comms::isFreqSampler() || Comms::isWorker())AllocateAlleleCountArrays(options->getPopulations());
+  if(Comms::isFreqSampler() || Comms::isWorker()){
+    AllocateAlleleCountArrays(options->getPopulations());
 #ifdef PARALLEL
-  //broadcast initial values of freqs
-  if(!isMaster)BroadcastAlleleFreqs();
+    //broadcast initial values of freqs
+    BroadcastAlleleFreqs();
 #endif
+  }
 }
 
 void AlleleFreqs::PrintPrior(const Vector_s& PopLabels, LogWriter& Log)const{

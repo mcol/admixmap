@@ -1,5 +1,5 @@
 #include "HapMixIndividualCollection.h"
-
+#include "Comms.h"
 
 HapMixIndividualCollection::HapMixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) :
   IndividualCollection(options, Data, Loci){
