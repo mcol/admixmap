@@ -18,8 +18,8 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
   IC = new HapMixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
   if(isMaster || isWorker)IC->LoadData(&options, &data, false);    //and before L and R Initialise
   if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
-  const int numdiploid = IC->getNumDiploidIndividuals();
   if(isMaster){
+    const int numdiploid = IC->getNumDiploidIndividuals();
     const int numindivs = data.getNumberOfIndividuals();
     if(numindivs > 1){
       Log.setDisplayMode(Quiet);
