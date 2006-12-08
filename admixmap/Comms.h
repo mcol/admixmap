@@ -27,6 +27,7 @@ public:
 
   static void Reduce(double* x, int size);
   static void Reduce(double* x);
+  static void Reduce(int* x);
   static void AllReduce_int(int* x, int size);
   static void BroadcastVector(std::vector<double>& x);
   static void Broadcast(double* x);

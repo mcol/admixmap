@@ -146,6 +146,12 @@ void Comms::Reduce(double* x){
   workers_and_master.Reduce(x, &globalsum, 1, MPI::DOUBLE, MPI::SUM, 0);
   *x = globalsum;
 }
+void Comms::Reduce(int* x){
+  int globalsum = 0;
+  workers_and_master.Barrier();
+  workers_and_master.Reduce(x, &globalsum, 1, MPI::INT, MPI::SUM, 0);
+  *x = globalsum;
+}
 
 void Comms::Reduce(double* x, int size){
   if(size==1) Reduce(x);
