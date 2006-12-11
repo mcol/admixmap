@@ -25,7 +25,7 @@ ResidualLDTest::ResidualLDTest(){
 }
 
 ResidualLDTest::~ResidualLDTest(){
-  Tcount.clear();
+  //Tcount.clear();
 }
 
 void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
@@ -73,7 +73,7 @@ void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* co
 	  SumScore[j][k].assign(dim, 0.0);
 	  SumScore2[j][k].assign(dim*dim, 0.0);
 	  SumInfo[j][k].assign(dim*dim, 0.0);
-	  Tcount.push_back(0);
+	  //Tcount.push_back(0);
 	}
 	Score[j][k].assign(dim, 0.0);
 	Info[j][k].assign(dim*dim, 0.0);
@@ -103,7 +103,7 @@ void ResidualLDTest::Reset(){
   }
 }
 
-void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs, bool ishapmixmodel){
+void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs, bool ){
   int abslocus = 0;
   if(Comms::isWorker()){
     for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){
@@ -121,19 +121,19 @@ void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs, bool ishapm
   //sum score and info across processes and accumulate score, square of score and info
   Comms::ReduceResidualLDScores(Score, Info, SumScore, SumScore2, SumInfo);
 #else
-  vector<unsigned>::iterator T_iter = Tcount.begin();
+  //vector<unsigned>::iterator T_iter = Tcount.begin();
   //accumulate score, square of score and info
   for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c)
     for(unsigned k = 0; k < Lociptr->GetSizeOfChromosome(c)-1; ++k){
       int locus = chrm[c]->GetLocus(k);
       unsigned dim = (Lociptr->GetNumberOfStates(locus)-1) * (Lociptr->GetNumberOfStates(locus+1)-1);
 
-	if(ishapmixmodel){//assuming all SNPs in hapmixmodel
-	  const double Tobs = Score[c][k][0];
-	  const double Trep = Rand::gennor(0.0, Info[c][k][0]);
-	  if(fabs(Trep)> fabs(Tobs))++(*T_iter);
-	  ++T_iter;
-	}
+// 	if(ishapmixmodel){//assuming all SNPs in hapmixmodel
+// 	  const double Tobs = Score[c][k][0];
+// 	  const double Trep = Rand::gennor(0.0, Info[c][k][0]);
+// 	  if(fabs(Trep)> fabs(Tobs))++(*T_iter);
+// 	  ++T_iter;
+// 	}
 
       for(unsigned j = 0; j < dim; ++j){
 	SumScore[c][k][j] += Score[c][k][j];
@@ -229,6 +229,7 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation(int c, int locus,
   } //end loop over individuals
 }
 
+///this version for Bayesian p-values (SNPs only)
 void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus,  
 							       const double* const AlleleFreqsA, 
 							       const double* const AlleleFreqsB) {
@@ -304,7 +305,7 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, of
   string separator = final? "\t" : ",";
 
   int abslocus = 0;
-  vector<unsigned>::iterator T_iter = Tcount.begin();
+  //vector<unsigned>::iterator T_iter = Tcount.begin();
   for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ ){
     for(unsigned j = 0; j < Lociptr->GetSizeOfChromosome(c)-1; ++j){
       int M = Lociptr->GetNumberOfStates(abslocus)-1;
@@ -337,44 +338,44 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, of
 			     << score[0] << separator << compinfo << separator <<obsinfo << separator
 			     << double2R((obsinfo*100)/compinfo) << separator<< dim << separator; 
 
-      *outputstream << (float)*T_iter /(float)iterations << endl;
-      ++T_iter; 
+      //*outputstream << (float)*T_iter /(float)iterations << endl;
+      //++T_iter; 
 
       //compute chi-squared statistic
-//       try{
-// 	double* VinvU = new double[dim];
-// 	HH_solve(dim, ObservedInfo, score, VinvU);
-// 	double chisq = 0.0;
-// 	for(int i = 0; i < dim; ++i){
-// 	  chisq += score[i] * VinvU[i];
-// 	}
-// 	delete[] VinvU;
+      try{
+	double* VinvU = new double[dim];
+	HH_solve(dim, ObservedInfo, score, VinvU);
+	double chisq = 0.0;
+	for(int i = 0; i < dim; ++i){
+	  chisq += score[i] * VinvU[i];
+	}
+	delete[] VinvU;
 	
-// 	if(chisq < 0.0){
-// 	  *outputstream << "NA" << separator;
-// 	  if(final) *outputstream << "NA" << separator;
-// 	  *outputstream << endl;
-// 	}
-// 	else {
-// 	  //compute p-value
-// 	  gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
-// 	  try{
-// 	    double pvalue = gsl_cdf_chisq_Q (chisq, dim);
-// 	    if(final)*outputstream << double2R(chisq) << separator << double2R(pvalue) << separator << endl;
-// 	    else *outputstream << double2R(-log10(pvalue)) << separator << endl;
-// 	  }
-// 	  catch(...){
-// 	    if(final)*outputstream << double2R(chisq) << separator << "NA" << separator << endl;
-// 	    else *outputstream << "NA" << separator << endl;
-// 	  }
-// 	  gsl_set_error_handler(old_handler);
-// 	}
-//       }
-//       catch(...){//in case ObservedInfo is rank deficient
-// 	*outputstream  << "NA" << separator ;
-// 	if(final)*outputstream << dim << separator << "NA" << separator << "NA" << separator;
-// 	*outputstream << endl;
-//       }
+	if(chisq < 0.0){
+	  *outputstream << "NA" << separator;
+	  if(final) *outputstream << "NA" << separator;
+	  *outputstream << endl;
+	}
+	else {
+	  //compute p-value
+	  gsl_error_handler_t* old_handler = gsl_set_error_handler_off();
+	  try{
+	    double pvalue = gsl_cdf_chisq_Q (chisq, dim);
+	    if(final)*outputstream << double2R(chisq) << separator << double2R(pvalue) << separator << endl;
+	    else *outputstream << double2R(-log10(pvalue)) << separator << endl;
+	  }
+	  catch(...){
+	    if(final)*outputstream << double2R(chisq) << separator << "NA" << separator << endl;
+	    else *outputstream << "NA" << separator << endl;
+	  }
+	  gsl_set_error_handler(old_handler);
+	}
+      }
+      catch(...){//in case ObservedInfo is rank deficient
+	*outputstream  << "NA" << separator ;
+	if(final)*outputstream << dim << separator << "NA" << separator << "NA" << separator;
+	*outputstream << endl;
+      }
 
 
       delete[] score;
