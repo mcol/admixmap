@@ -454,11 +454,11 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
       // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
       if(Populations >1)TestInd[i]->SampleJumpIndicators(!options->isGlobalRho());
       // ** Sample individual- or gamete-specific sumintensities
-      if(Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) 
+      if(Populations>1 && !options->isGlobalRho() ) 
 	TestInd[i]->SampleRho( options, rhoalpha, rhobeta,   
 			       (!anneal && iteration > options->getBurnIn()));
       // ** update admixture props with conjugate proposal on odd-numbered iterations
-      if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ) 
+      if((iteration %2) && Populations >1 ) 
 	TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
 				beta, poptheta, options, alpha, 0.0, dispersion, false, anneal);
       // ** Sample missing values of outcome variable
@@ -471,11 +471,11 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
   // ** Non-test individuals - conjugate updates only 
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** Sample individual- or gamete-specific sumintensities
-    if(Populations>1 && !options->getHapMixModelIndicator() && !options->isGlobalRho() ) 
+    if(Populations>1 && !options->isGlobalRho() ) 
       _child[i]->SampleRho( options, rhoalpha, rhobeta,   
 			    (!anneal && iteration > options->getBurnIn()));
     // ** update admixture props with conjugate proposal on odd-numbered iterations
-     if((iteration %2) && Populations >1 && !options->getHapMixModelIndicator() ){
+     if((iteration %2) && Populations >1 ){
            double DinvLink = 1.0;
        if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
        _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
