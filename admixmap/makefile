@@ -63,7 +63,7 @@ ARCH = i686# Intel 686
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
-#CC = $(GNU_COMPILER)#serial
+CC = $(GNU_COMPILER)#serial
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
