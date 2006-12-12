@@ -94,8 +94,7 @@ WFLAGS = -Wall
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
 DFLAGS = -TENV:X=0 -TENV:frame_pointer=ON -fexceptions -funwind-tables -O3 -OPT:Ofast -fno-math-errno -ffast-math 
-#ffast-math equivalent to -Ofast but without ipa
-# could try -TENV:X=0 to turn off exception handling optimization but default value of 1 should be safe
+#ffast-math equivalent to -Ofast # could try -TENV:X=0 to turn off exception handling optimization but default value of 1 should be safe
 endif
 endif
 
@@ -129,7 +128,7 @@ serial:
 	@$(MAKE) static INCLUDES="$(SERIAL_INCLUDES)" CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
 
 parallel:
-	@echo #define parallel >../parallel.h
+	@echo "#define PARALLEL" >../parallel.h
 	@$(MAKE) static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
 static: libsampler
