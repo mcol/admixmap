@@ -293,17 +293,13 @@ void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const Input
     MHTest.Output(s.c_str(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), true);
   }
 
-  if( options.getScoreTestIndicator() && Comms::isMaster() ) {
+  if(Comms::isMaster()){
+    if( options.getScoreTestIndicator() ) {
     //finish writing score test output as R objects
     Scoretests.ROutput();
     //write final tables
     Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
   }
-  //output to likelihood ratio file
-  if(options.getTestForAffectedsOnly())
-    //Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
-    Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), 
-				      data.GetPopLabels());	
 //output posterior means of lambda (expected number of arrivals)
   std::string s = options.getResultsDir();
   s.append("/lambdaPosteriorMeans.txt");
@@ -312,12 +308,13 @@ void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const Input
   const char* ss = options.getHapMixLambdaOutputFilename();
   if(strlen(ss))
       L->OutputLambda(ss);
-
+  }
+  if(Comms::isFreqSampler()){
 //output final values of allelefreqs
-  ss = options.getAlleleFreqOutputFilename();
+  const char* ss = options.getAlleleFreqOutputFilename();
   if(strlen(ss))
       A.OutputAlleleFreqs(ss);
-
+  }
 }
 void HapMixModel::InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, LogWriter& Log){
   const bool isMaster = Comms::isMaster();
