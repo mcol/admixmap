@@ -1,6 +1,12 @@
 #!/usr/bin/perl
 use strict; 
 use File::Path;
+use Getopt::Long;
+
+my $parallel = '';
+my $simulate = '';
+
+GetOptions("parallel" =>\$parallel, "simulate" => \$simulate);
 
 sub getArguments
 {
@@ -21,15 +27,27 @@ sub getArguments
 
 sub doAnalysis
 {
+    if($simulate){ 
+	print "Running R script to simulate data\n";
+	system("R CMD BATCH --vanilla simHapMix.R");
+	print "simulation complete\n";
+    }
     my ($prog,$args) = @_;
-    my $command = $prog.getArguments($args);
+    if($parallel){
+	$args->{resultsdir} = "$args->resultsdir". "Parallel";
+    }
+    my $command = "";
+    $parallel ? $command = "mpiexec " : $command =  "";
+    $command = $command . $prog.getArguments($args);
     
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
-    system($command);
-    #print "Starting R script to process output\n";
-    system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
-    #print "R script completed\n\n";
+    print $command;
+    if(system($command) ==0){
+	print "Starting R script to process output\n";
+	system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
+	print "R script completed\n\n";
+    }
 }
 
 sub CompareThenMove {
@@ -64,7 +82,12 @@ sub CompareThenMove {
 }
 
 ################### DO NOT EDIT ABOVE THIS LINE ########################
-my $executable = '../test/admixmap';
+my $serial_executable = '../test/hapmixmap';
+my $parallel_executable = '../test/hapmixmap-para';
+my $executable = $serial_executable;
+if($parallel){
+    $executable = $parallel_executable;
+}
 
 my $arg_hash = {
 #data files
@@ -82,9 +105,9 @@ my $arg_hash = {
     resultsdir => 'results',
     displaylevel   => 3, 
 
-    samples  => 150,
-    burnin   => 50,
-    every    => 5,
+    samples  => 25,
+    burnin   => 5,
+    every    => 1,
 
     numannealedruns => 0,
     thermo => 0,
@@ -112,7 +135,7 @@ allelefreqoutputfile =>"allelefreqpriors.txt",
     hapmixlambdaoutputfile => "data/initiallambdas.txt",
 
 #optional tests
-residualallelicassocscorefile => 'residualLDscores.txt',
+#residualallelicassocscorefile => 'residualLDscores.txt',
     #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
 };
 
@@ -120,17 +143,17 @@ residualallelicassocscorefile => 'residualLDscores.txt',
 #haploid data
 $arg_hash->{resultsdir}            = 'ResultsHaploid';  
 doAnalysis($executable,$arg_hash);
-system("cp Results/initialallelefreqs.txt data");
 #CompareThenMove("Results", "Results4");
 
 #diploid data
 $arg_hash->{resultsdir}            = 'ResultsDiploid';  
 $arg_hash->{genotypesfile} = "data/genotypes.txt";
-doAnalysis($executable,$arg_hash);
+#doAnalysis($executable,$arg_hash);
 #system("cp Results/initialallelefreqs.txt data");
 #CompareThenMove("Results", "Results4");
 
 # rerun with final values of previous run as intial values of this
+#system("cp $arg_hash->{resultsdir}/initialallelefreqs.txt data");
 $arg_hash->{allelefreqfile}="data/initialallelefreqs.txt";
 $arg_hash->{initialhapmixlambdafile}="data/initiallambdas.txt";
 $arg_hash->{fixedallelefreqs} = 0;

@@ -73,7 +73,7 @@ chr.L <- c(10, 10) ## trial runs with 2 chr
 numChr <- length(chr.L)
 
 N <- 100##number of individuals
-K <- 2##number of block states
+K <- 6##number of block states
 DiploidData = F
 
 spacing <- 0.01 # spacing in cM
@@ -120,15 +120,15 @@ alleleFreqs <- array(data=NA, dim=c(2, K, L))
 #freqs.alpha[freqs.alpha==0]<-0.001
 #freqs.alpha[freqs.alpha==1]<-0.999
 
-alpha.shape <- 1
+alpha.shape <- 2
 alpha.rate <- 10
 for(locus in 1:L) {
-freqs.alpha <- 0.5#rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 0.1
+freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 0.1
 ##p <- rep(0, K)
 ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
    #p <- rbeta(K, freqs.alpha[locus*2-1], freqs.alpha[locus*2]) # freqs  allele 1
-   #p <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
-    p <- c(0,1)
+   p <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
+    #p <- c(0,1)
 ##  }
 alleleFreqs[1, , locus] <- p     # freqs allele 1
 alleleFreqs[2, , locus] <- 1 - p # freqs allele 2
