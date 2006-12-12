@@ -63,12 +63,13 @@ ARCH = i686# Intel 686
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
-CC = $(GNU_COMPILER)#serial
+#CC = $(GNU_COMPILER)#serial
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
 DESTDIR = ../test# where to put compiled exec
 EXEC = admixmap# name of compiled executable
+HAPEXEC = hapmixmap
 
 ## ** flags for release version, debug version or profiling version
 DFLAGS 		= -O3# release, optimized
@@ -135,7 +136,7 @@ NORMAL_LIBS = $(BAYESLIB_PATH)/bayeslib.a -lm -lgsl -lgslcblas
 PARALLEL_LIBS = $(NORMAL_LIBS) -lmpich -lsprng -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
 
-LFLAGS =-L$(SPRNG_PATH)/lib
+LFLAGS =#-L$(SPRNG_PATH)/lib
 INCLUDES =
 
 ifneq ($(GSL_LIBPATH),)
@@ -149,7 +150,8 @@ endif
 ##library flags for sprng and mpich in parallel version
 PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPI_LIBPATH)
 PARALLEL_INCLUDES = $(INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
-PARALLEL_EXEC = adm-para
+PARALLEL_ADMEXEC = admixmap-para
+PARALLEL_HAPEXEC = hapmixmap-para
 SERIAL_INCLUDES=$(INCLUDES) 
 
 LIBS = $(LIBTYPE) $(NORMAL_LIBS)
@@ -160,26 +162,43 @@ CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 
 export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 
-
 objects	= admixmap.o Model.o AdmixMapModel.o HapMixModel.o PopAdmix.o PopHapMix.o AlleleFreqs.o HapMixFreqs.o\
  AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
  IndividualCollection.o HapMixIndividualCollection.o Individual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o\
  ScoreTestBase.o ScoreTests.o MantelHaenszelTest.o AdmixtureAssocTest.o AffectedsOnlyTest.o\
  ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o InputData.o AlleleFreqSampler.o Comms.o
 
-all:	checkbayeslib message $(objects)
+all:	admixmap hapmixmap
+
+admixmap:checkbayeslib admixmap_message $(objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(EXEC) $(objects) $(LFLAGS) $(LIBS)
-	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(EXEC) \**
+	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(EXEC) \ \**
+
+hapmixmap:checkbayeslib hapmixmap_message $(objects)
+	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(HAPEXEC) $(objects) $(LFLAGS) $(LIBS)
+	@echo **HAPMIXMAP has been compiled as $(DESTDIR)/$(HAPEXEC) \ \**
 
 serial: all
 
-parallel:
-	@$(MAKE) INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) EXEC=$(PARALLEL_EXEC) BAYESLIB_RULES=parallel
+#NOTE defaults to parallel version of admixmap
+parallel: hapmixmap-para
 
-message:	
+hapmixmap-para:
+	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) HAPEXEC=$(PARALLEL_HAPEXEC) BAYESLIB_RULES=parallel
+
+admixmap-para:
+	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) EXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel
+
+
+
+admixmap_message:	
 	@echo **Compiling ADMIXMAP**
 
+hapmixmap_message:	
+	@echo **Compiling HAPMIXMAP**
+
 checkbayeslib:
+	@echo **Checking for bayeslib**
 	test -e $(BAYESLIB_PATH)/bayeslib.a || $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e
 
 bayeslib:
