@@ -597,11 +597,11 @@ writeScoreTestInfo <- function(FinalTableFilename, info.threshold, pvalue.thresh
   completeinfo <- as.vector(as.numeric(FinalTable[,3]))
   pvalues <- as.vector(as.numeric(FinalTable[,ncol(FinalTable)]))
 
-  info.count <- sum(completeinfo > info.threshold)
+  info.count <- sum(completeinfo > info.threshold, na.rm=T)
   pvalues <- pvalues[completeinfo > info.threshold]
-  pvalue.count <- sum(pvalues < pvalue.threshold)
+  pvalue.count <- sum(pvalues < pvalue.threshold, na.rm=T)
 
-  full.filename <- paste(resultsdir, outputfile)
+  full.filename <- paste(resultsdir, outputfile, sep="/")
   cat("Summary info for residual LD score test\n", file=full.filename)
   cat("Number of loci with complete info >", info.threshold , ": ", info.count, file=full.filename, append=T)
   cat("\nNumber of loci with complete info >", info.threshold, " and pvalues < ", pvalue.threshold, ": ", pvalue.count, file=full.filename, append=T)
