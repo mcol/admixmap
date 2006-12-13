@@ -579,11 +579,11 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
 
   minuslog10pvalues <- as.numeric(scoretest[2, , ])
 
-  FinalTable <- read.table(paste(resultsdir, "ResidualLDTestFinal.txt", sep="/"), header=T)
-  completeinfo <- as.vector(as.numeric(FinalTable[,3]))
-  rm(FinalTable)
+  ##FinalTable <- read.table(paste(resultsdir, "ResidualLDTestFinal.txt", sep="/"), header=T)
+  ##completeinfo <- as.vector(as.numeric(FinalTable[,3]))
+  ###rm(FinalTable)
   
-  minuslog10pvalues<-minuslog10pvalues[rep((completeinfo>5), times=evaluations)]##remove values where complete info <5
+  ##minuslog10pvalues<-minuslog10pvalues[rep((completeinfo>0.1), times=evaluations)]##remove values where complete info <5
   minuslog10pvalues[is.nan(minuslog10pvalues)] <- NA
   minuslog10pvalues <- data.frame(matrix(data=minuslog10pvalues, nrow=ntests, ncol=evaluations))
   dimnames(minuslog10pvalues)[[1]] <- locusnames
@@ -1228,15 +1228,23 @@ if(!is.null(user.options$residualallelicassocscorefile) && file.exists(paste(res
   cat(" done\n", file=outfile, append=T)
 }
 
+## read output of M-H score test
+if(!is.null(user.options$mhtestfile) && file.exists(paste(resultsdir,user.options$mhtestfile, sep="/"))) {
+  cat("plotting scores in M-H test", file=outfile, append=T)
+  psfile <- paste(resultsdir, "TestsMH.ps", sep="/")
+  plotResidualAllelicAssocScoreTest(user.options$mhtestfile, psfile, user.options$every)
+  cat(" done\n", file=outfile, append=T)
+}
+
 if(!is.null(user.options$outcomevarfile) && !is.null(user.options$testgenotypesfile) && file.exists(user.options$testgenotypesfile)){
   cat("performing extra score tests...", file=outfile, append=T)
   ExtraScoreTests(user.options$testgenotypesfile, user.options$outcomevarfile, paste(resultsdir, "ExpectedOutcomes.txt", sep="/"))
   cat(" done\n", file=outfile, append=T)
 }
 
-if(user.options$hapmixmodel==0 || is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1 || !file.exists( paste(resultsdir,user.options$allelefreqoutputfile, sep="/"))) {
+if(is.null(user.options$allelefreqoutputfile) || user.options$fixedallelefreqs==1 || !file.exists( paste(resultsdir,user.options$allelefreqoutputfile, sep="/"))) {
   cat("no allelefreqoutputfile\n", file=outfile, append=T)
-} else {
+} else if(user.options$hapmixmodel==0){
   allelefreq.samples <- dget(paste(resultsdir,user.options$allelefreqoutputfile,sep="/"))
   ## prevent script crashing when an allelefreqoutputfile has been specified with fixed allele frequencies
   if(dim(allelefreq.samples)[2]==0) {
