@@ -592,6 +592,22 @@ plotResidualAllelicAssocScoreTest <- function(scorefile, outputfile, thinning){
                  "Running computation of p-values for residual allelic association", T)
 }
 
+writeScoreTestInfo <- function(FinalTableFilename, info.threshold, pvalue.threshold, outputfile){
+  FinalTable <- read.table(paste(resultsdir, FinalTableFilename, sep="/"), header=T)
+  completeinfo <- as.vector(as.numeric(FinalTable[,3]))
+  pvalues <- as.vector(as.numeric(FinalTable[,ncol(FinalTable)]))
+
+  info.count <- sum(completeinfo > info.threshold)
+  pvalues <- pvalues[completeinfo > info.threshold]
+  pvalue.count <- sum(pvalues < pvalue.threshold)
+
+  full.filename <- paste(resultsdir, outputfile)
+  cat("Summary info for residual LD score test\n", file=full.filename)
+  cat("Number of loci with complete info >", info.threshold , ": ", info.count, file=full.filename, append=T)
+  cat("\nNumber of loci with complete info >", info.threshold, " and pvalues < ", pvalue.threshold, ": ", pvalue.count, file=full.filename, append=T)
+}
+
+
 ## offline score tests for genotypes at loci that have not been included in the model (because we can't model large haplotypes)
 ExtraScoreTests <- function(testgenotypesfile, outcomevarfile, expectedoutcomefile){
   p <- dget(file=expectedoutcomefile)
@@ -1233,6 +1249,8 @@ if(!is.null(user.options$mhtestfile) && file.exists(paste(resultsdir,user.option
   cat("plotting scores in M-H test", file=outfile, append=T)
   psfile <- paste(resultsdir, "TestsMH.ps", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$mhtestfile, psfile, user.options$every)
+  ##write to file the number of loci with complete info>1 and pvalues<0.05
+  writeScoreTestInfo("MHTestFinal.txt", 1, 0.05, MHTestInfo.txt)
   cat(" done\n", file=outfile, append=T)
 }
 
