@@ -15,61 +15,29 @@
 #ifndef ADMIX_OPTIONS_H
 #define ADMIX_OPTIONS_H 1
 
-#include "common.h"
-#include "utils/LogWriter.h"
-#include <string.h>
-#include <string>
-#include <map>
+#include "Options.h"
 using namespace::std;
 
-/// map to hold user options
-typedef map<string, string> UserOptions;
-/// pair to identify types of data members
-typedef pair<void*,  string> OptionPair;
-/// map to match a user option to a data member
-typedef map<string, OptionPair >OptionMap;
-
 /// Class to hold program options
-class AdmixOptions
+class AdmixOptions : public Options
 {
 public:
   AdmixOptions(int, char**);
   ~AdmixOptions();
   
   int checkOptions(LogWriter &Log, int NumberOfIndividuals);
-  void PrintOptions();
-
-  long getBurnIn() const;
-  long getTotalSamples() const;
-  long getSampleEvery() const; 
-  long getSeed() const;     
 
   //main output files
-  const string getResultsDir() const;
-  const char *getLogFilename() const;
-  const char *getErgodicAverageFilename() const;
-  const char *getParameterFilename() const;
-  const char *getRegressionOutputFilename() const;
-  const char* getEYFilename()const;
   const char *getEtaOutputFilename() const;
   const char *getIndAdmixtureFilename() const;
-  const char *getAlleleFreqOutputFilename() const;
   const char *getAlleleFreqPriorOutputFilename() const;
-    const char* getHapMixLambdaOutputFilename()const;
-  bool getOutputAlleleFreq() const;
+  const char* getHapMixLambdaOutputFilename()const;
 
   //input file names
-  const char *getLocusFilename() const;
-  const char *getGenotypesFilename() const;
-  const char *getCovariatesFilename() const;  
   const char *getHistoricalAlleleFreqFilename() const;
-  const char *getPriorAlleleFreqFilename() const;
-  const char *getAlleleFreqFilename() const;
   const char *getReportedAncestryFilename() const;
   const char *getEtaPriorFilename() const;
-  const char *getOutcomeVarFilename() const;  
-  const char *getCoxOutcomeVarFilename() const;  
-  int getTargetIndicator() const;
+
   double getRhoalpha() const;
   double getRhobeta() const;
   double getRhobetaShape()const;
@@ -78,70 +46,52 @@ public:
   const std::vector<double> &getHapMixLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
   const char* getInitialHapMixLambdaFilename()const;
+  const char* getCCGenotypesFilename()const;
 
   vector<double> getInitAlpha(int) const;
   std::vector<std::vector<double> > getInitAlpha()const;
   int sizeInitAlpha() const;
   double getEtaMean() const;
   double getEtaVar() const;
-  double getRegressionPriorPrecision()const;
   const vector<float>& getrhoSamplerParams()const;
 
-  unsigned int getgenotypesSexColumn() const;
-  void setgenotypesSexColumn(unsigned int i);
-  
   //indicators and model options
-  int getDisplayLevel() const;
-  bool getFixedAlleleFreqs() const;
   bool getCorrelatedAlleleFreqs() const;
   bool isRandomMatingModel() const;
-  int getNumberOfOutcomes() const;
-  void setNumberOfOutcomes(int);
-  void setRegType(RegressionType R);
   bool isGlobalRho() const;
   bool PopAdmixturePropsAreEqual()const;
   bool getIndAdmixHierIndicator() const;
   bool getHapMixModelIndicator() const;
   bool getChibIndicator() const;
-  bool getThermoIndicator() const;
   bool getTestOneIndivIndicator() const;
-  long getNumAnnealedRuns() const;
-  int getPopulations() const; 
-  void setPopulations(int num);
   bool isAdmixed(unsigned) const;
   bool isSymmetric()const;
-  bool CheckData()const;
+  int getPopulations() const;
+  void setPopulations(int num);
+  bool getFixedAlleleFreqs() const;
 
   //Score test file names
   const char *getAffectedsOnlyScoreFilename() const;
   const char *getHaplotypeAssociationScoreFilename() const;
-  const char *getAllelicAssociationScoreFilename() const; 
   const char *getAncestryAssociationScoreFilename() const;
   const char *getAlleleFreqScoreFilename() const;
   const char *getAlleleFreqScoreFilename2() const;
   const char *getAssocScoreFilename() const;
-  const char* getResidualAllelicAssocScoreFilename()const;
   const char *getHWTestFilename() const;
   const char* getLikRatioFilename() const;
   const char* getIndAdmixModeFilename()const;
-  const char* getMHTestFilename()const;
 
   //score test indicators 
-  bool getScoreTestIndicator() const; //indicator for any score test (except misspec allelefreqs) 
   bool getTestForAdmixtureAssociation() const;
   bool getTestForAffectedsOnly() const;
   void setTestForAffectedsOnly(bool);  
-  bool getTestForAllelicAssociation() const;
-  void setTestForAllelicAssociation(bool); 
   bool getTestForHaplotypeAssociation() const;
   void setTestForHaplotypeAssociation(bool);
   bool getTestForLinkageWithAncestry() const;
   void setTestForLinkageWithAncestry(bool);
-  bool getTestForResidualAllelicAssoc()const;   
   bool getTestForMisspecifiedAlleleFreqs() const;
   bool getTestForMisspecifiedAlleleFreqs2() const;
   bool getHWTestIndicator() const;
-  bool getMHTest()const;
   
   //other test file names
   const char *getStratTestFilename() const;
@@ -156,45 +106,36 @@ public:
   bool getLocusForTestIndicator() const;
   int getLocusForTest() const;
   
+  //
+  const std::vector<unsigned>& getMaskedIndividuals()const;
+  const std::vector<unsigned>& getMaskedLoci()const;
+  bool OutputCGProbs()const;
+  unsigned GetNumMaskedIndividuals()const;
+  unsigned GetNumMaskedLoci()const;
+
 private:
-  long burnin;
-  long TotalSamples;
-  long SampleEvery;
-  long Seed;
-  int NumberOfOutcomes;
-  RegressionType RegType;
-  int TargetIndicator;
   int Populations;
-  int displayLevel;
   bool OutputFST;
-  unsigned int genotypesSexColumn;
   bool locusForTestIndicator;
   int LocusForTest;
-  bool fixedallelefreqs;
   bool correlatedallelefreqs;
   bool RandomMatingModel;//random mating model
   bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
   bool HapMixModelIndicator; //model haplotypes with mixture model
   bool chibIndicator;//calculate marginal likelihood using Chib method
-  bool thermoIndicator;//calculate marginal likelihood using simulated annealing
   bool TestOneIndivIndicator;//calculate marginal likelihood for one individual only
   bool PopAdmixPropsAreEqual;
-  long NumAnnealedRuns;
-  bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
+
   bool TestForAdmixtureAssociation;
   bool StratificationTestIndicator;
   bool TestForAffectedsOnly;
-  bool TestForAllelicAssociation;
   bool TestForHaplotypeAssociation;
-  bool TestForResidualAllelicAssoc;
   bool TestForDispersion;
   bool TestForLinkageWithAncestry;
   bool TestForMisspecifiedAlleleFreqs;
   bool TestForMisspecifiedAlleleFreqs2;
   bool HWTest;
-  bool OutputAlleleFreq;
-  bool checkData;
 
   std::vector<bool> _admixed;
   bool _symmetric;         
@@ -210,56 +151,39 @@ private:
   std::vector< std::vector<double> > initalpha;
   std::vector<double> allelefreqprior;
   double etamean, etavar;//gamma parameters for dispersion parameter
-  double regressionPriorPrecision;
 
   std::vector<float> rhoSamplerParams;
-  string ResultsDir;
-  string LogFilename;
   string AffectedsOnlyScoreFilename;
-  string AlleleFreqOutputFilename;
   string AlleleFreqPriorOutputFilename;
   string AlleleFreqScoreFilename;
   string AlleleFreqScoreFilename2;
   string AssocScoreFilename;
   string StratTestFilename;
-  string ErgodicAverageFilename;
-  string ParameterFilename;
-  string RegressionOutputFilename;
+
   string EtaOutputFilename;
   string DispersionTestFilename;
-  string EYFilename;
   string IndAdmixtureFilename;
   string FSTOutputFilename;
   string HaplotypeAssociationScoreFilename;
-  string AllelicAssociationScoreFilename;
   string AncestryAssociationScoreFilename;
-  string ResidualAllelicAssocScoreFilename;
-  string MHTestFilename;
   string HWTestFilename;
   string LikRatioFilename;
   string IndAdmixModeFilename;
   string HapMixLambdaOutputFilename;
 
-  string LocusFilename;
-  string GenotypesFilename;
   string HistoricalAlleleFreqFilename;
-  string PriorAlleleFreqFilename;
-  string alleleFreqFilename;
-  string CovariatesFilename;
-  string OutcomeVarFilename;
-  string CoxOutcomeVarFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;
   string InitialHapMixLambdaFilename;
+  string CCGenotypesFilename;//case-control genotypes file (hapmixmodel only)
 
-  UserOptions useroptions;
-  //OptionMap OptionValues;//to output user options
+  //indices for assessing prediction of missing genotypes in hapmixmodel
+  std::vector<unsigned> MaskedIndividuals;
+  std::vector<unsigned> MaskedLoci;
   
-  void SetOptions();
-  void ReadCommandLineArgs(const int argc, char** argv);
-  int ReadArgsFromFile(const char* filename, map<string, string>& UserOptions);
-  int assign(OptionPair& opt, const string value);
-  void Initialise();  
+  void SetOptions(OptionMap& ProgOptions);
+
+  void SetDefaultValues();  
   void setInitAlpha(LogWriter &Log);
   bool CheckInitAlpha( const std::vector<double> &alphatemp)const;
 
