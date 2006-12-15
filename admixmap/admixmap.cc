@@ -22,8 +22,6 @@
 using namespace std;
 double coolness = 1.0; // default
 
-
-
 int main( int argc , char** argv ){
   if (argc < 2 || (argc ==2 && ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) ) ) {
     PrintOptionsMessage();
@@ -56,7 +54,7 @@ int main( int argc , char** argv ){
   AdmixOptions options(argc, argv);
 
   const bool isMaster = Comms::isMaster();
-  const bool isFreqSampler = Comms::isFreqSampler();
+  //const bool isFreqSampler = Comms::isFreqSampler();
   //  const bool isWorker = Comms::isWorker();
 
   if(isMaster){
@@ -95,17 +93,7 @@ int main( int argc , char** argv ){
     if(options.getHapMixModelIndicator())M = new HapMixModel;
     else M = new AdmixMapModel;
 
-    Genome Loci;
-    Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
-    if(isFreqSampler){
-      //print table of loci for R script to read
-      string locustable = options.getResultsDir();
-      locustable.append("/LocusTable.txt");
-      Loci.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1));
-      locustable.clear();
-    }
-
-    M->Initialise(Loci, options, data, Log);
+    M->Initialise(options, data, Log);
 
     data.Delete();
  
@@ -115,7 +103,7 @@ int main( int argc , char** argv ){
       M->getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
     else {
       // ******************* Initialize test objects and ergodicaveragefile *******************************
-      M->InitialiseTests(options, data, Loci, Log);
+      M->InitialiseTests(options, data, Log);
 
       //open file to output loglikelihood
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
@@ -239,17 +227,18 @@ int main( int argc , char** argv ){
 	  }
 	  // accumulate scalars SumEnergy and SumEnergySq at this coolness
 	  // array Coolnesses is not used unless TestOneIndivIndicator is true
-	  M->Iterate(samples, burnin, Coolnesses, run, options, data, Loci, Log, SumEnergy, SumEnergySq, AISsumlogz,
+	  M->Iterate(samples, burnin, Coolnesses, run, options, data, Log, SumEnergy, SumEnergySq, AISsumlogz,
 			 AnnealedRun, loglikelihoodfile);
 
 #ifdef PARALLEL
 	  t2 = MPI::Wtime()-t1;
 #endif
-	  if(isMaster){	  
+	  if(isMaster){	
 	    //calculate mean and variance of energy at this coolness
 	    MeanEnergy = SumEnergy / ((double)samples - options.getBurnIn());
 	    VarEnergy  = SumEnergySq / ((double)samples - options.getBurnIn()) - MeanEnergy * MeanEnergy;
-	    if(options.getThermoIndicator()){// calculate thermodynamic integral
+	    if(options.getThermoIndicator()){// calculate thermodynamic integral  
+	      //TDI.CalculateLogEvidence(MeanEnergy, VarEnergy );
 	      annealstream << coolness << "\t" << MeanEnergy << "\t" << VarEnergy;
 	      if(run > 0) { // use trapezium rule to approximate integral
 		LogEvidence -= 0.5*(LastMeanEnergy + MeanEnergy) * IntervalWidths[run];
@@ -263,7 +252,7 @@ int main( int argc , char** argv ){
       } 
       else { // evaluate energy for test individual only at all coolnesses simultaneously
 	// call with argument AnnealedRun false - copies of test individual will be annealed anyway  
-	M->Iterate(samples, burnin, Coolnesses, NumAnnealedRuns, options, data, Loci, Log, SumEnergy, SumEnergySq, AISsumlogz, false, 
+	M->Iterate(samples, burnin, Coolnesses, NumAnnealedRuns, options, data, Log, SumEnergy, SumEnergySq, AISsumlogz, false, 
 		       loglikelihoodfile);
 	// arrays of accumulated sums for energy and energy-squared have to be retrieved by function calls
 	double *MeanEner = M->getSumEnergy(); 
@@ -295,7 +284,7 @@ int main( int argc , char** argv ){
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);	
       else Log.setDisplayMode(Quiet);
 
-      M->Finalize(options, Log, data, Loci);
+      M->Finalize(options, Log, data);
       
       double Information = -LogEvidence - MeanEnergy;
       double MeanDeviance = 2.0 * MeanEnergy; 
@@ -303,7 +292,7 @@ int main( int argc , char** argv ){
       Log << Quiet << "\nMeanDeviance(D_bar)\t" << MeanDeviance << "\n"
 	  << "VarDeviance(V)\t" << VarDeviance << "\n"
 	  << "PritchardStat(D_bar+0.25V)\t" << MeanDeviance + 0.25*VarDeviance << "\n";
-      double D_hat = M->getDevianceAtPosteriorMean(&options, &Loci, Log);
+      double D_hat = M->getDevianceAtPosteriorMean(&options, Log);
       double pD = MeanDeviance - D_hat;
       double DIC = MeanDeviance + pD;
       Log << Quiet << "DevianceAtPosteriorMean(D_hat)\t" << D_hat << "\n"
@@ -332,7 +321,7 @@ int main( int argc , char** argv ){
     
     // ******************* acceptance rates - output to screen and log ***************************
     if( options.getIndAdmixHierIndicator() ){
-      M->PrintAcceptanceRates(options, Loci, Log);
+      M->PrintAcceptanceRates(options, Log);
     }
     delete M;
     if(isMaster){

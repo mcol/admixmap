@@ -8,11 +8,12 @@ HapMixModel::~HapMixModel(){
     delete L;
 }
 
-void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& data,  LogWriter& Log){
+void HapMixModel::Initialise(AdmixOptions& options, InputData& data,  LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
+  InitialiseLoci(options, data, Log);
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   
   IC = new HapMixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
@@ -59,7 +60,7 @@ void HapMixModel::Initialise(Genome& Loci, AdmixOptions& options, InputData& dat
     MHTest.Initialise(options.getPopulations(), &Loci, options.getMHTestFilename(), Log);
 }
 
-void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, const Genome *Loci, LogWriter&, 
+void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, LogWriter&, 
 		      const Vector_s&, double coolness, bool anneal){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
@@ -89,12 +90,16 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
     MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
 // loops over individuals to sample hap pairs then increment allele counts, not skipping missing genotypes
-    IC->SampleHapPairs(options, &A, Loci, false, anneal); 
+    IC->SampleHapPairs(options, &A, &Loci, false, anneal); 
 #ifdef PARALLEL
     MPE_Log_event(14, iteration, "sampledHapPairs");
 #endif
   }
   
+  //accumulate conditional genotype probs for masked individuals at masked loci
+  if(options->OutputCGProbs() && iteration > options->getBurnIn())
+    IC->AccumulateConditionalGenotypeProbs(options);
+
 #ifdef PARALLEL
   if(isWorker || isFreqSampler){
     A.SumAlleleCountsOverProcesses(options->getPopulations());
@@ -125,7 +130,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
     }
   }
   if(options->getMHTest() && !anneal && (iteration > options->getBurnIn()))
-    MHTest.Update(IC, *Loci);//update Mantel-Haenszel test
+    MHTest.Update(IC, Loci);//update Mantel-Haenszel test
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
   // update allele frequencies conditional on locus ancestry states
@@ -153,7 +158,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
 #ifdef PARALLEL
     MPE_Log_event(11, iteration, "setGenotypeProbs"); 
 #endif
-    IC->setGenotypeProbs(Loci, &A); // sets unannealed probs ready for getEnergy
+    IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs ready for getEnergy
     IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
 #ifdef PARALLEL
     MPE_Log_event(12, iteration, "GenotypeProbsSet"); 
@@ -195,7 +200,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, c
 }
 
 void HapMixModel::SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, 
-			     const Genome & , LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+			     LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 			     bool AnnealedRun){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
@@ -272,7 +277,7 @@ void HapMixModel::OutputParameters(int iteration, const AdmixOptions *options, L
   // cout << endl;
 }
 
-void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, const Genome& , LogWriter& Log){
+void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, LogWriter& Log){
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   else Log.setDisplayMode(On);
 
@@ -286,37 +291,45 @@ void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, const Genome
   }
 }
 
-void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const InputData& data, const Genome& ){
+void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const InputData& data ){
   if(options.getMHTest() && Comms::isMaster()){
     std::string s = options.getResultsDir();
     s.append("/MHTestFinal.txt");
     MHTest.Output(s.c_str(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), true);
   }
-
+  
   if(Comms::isMaster()){
     if( options.getScoreTestIndicator() ) {
-    //finish writing score test output as R objects
-    Scoretests.ROutput();
-    //write final tables
-    Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
-  }
-//output posterior means of lambda (expected number of arrivals)
-  std::string s = options.getResultsDir();
-  s.append("/lambdaPosteriorMeans.txt");
-  L->OutputLambdaPosteriorMeans(s.c_str(), options.getTotalSamples()-options.getBurnIn());
-//output final values of lambda
-  const char* ss = options.getHapMixLambdaOutputFilename();
-  if(strlen(ss))
+      //finish writing score test output as R objects
+      Scoretests.ROutput();
+      //write final tables
+      Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
+    }
+    //output posterior means of lambda (expected number of arrivals)
+    std::string s = options.getResultsDir();
+    s.append("/lambdaPosteriorMeans.txt");
+    L->OutputLambdaPosteriorMeans(s.c_str(), options.getTotalSamples()-options.getBurnIn());
+    //output final values of lambda
+    const char* ss = options.getHapMixLambdaOutputFilename();
+    if(strlen(ss))
       L->OutputLambda(ss);
   }
   if(Comms::isFreqSampler()){
-//output final values of allelefreqs
-  const char* ss = options.getAlleleFreqOutputFilename();
-  if(strlen(ss))
+    //output final values of allelefreqs
+    const char* ss = options.getAlleleFreqOutputFilename();
+    if(strlen(ss))
       A.OutputAlleleFreqs(ss);
   }
+  
+  //output posterior means of predictive genotype probs at masked loci for masked individuals
+  //TODO: parallelize - requires reducing sums in GenotypeProbOutputter class
+  if(options.OutputCGProbs()){
+    std::string s = options.getResultsDir();
+    s.append("/PPGenotypeProbs.txt");
+    IC->OutputCGProbs(s.c_str());
+  }
 }
-void HapMixModel::InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, LogWriter& Log){
+void HapMixModel::InitialiseTests(AdmixOptions& options, const InputData& data, LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
@@ -382,6 +395,6 @@ void HapMixModel::InitializeErgodicAvgFile(const AdmixOptions* const options, Lo
   }
 }
 
-double HapMixModel::getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log){
-  return IC->getDevianceAtPosteriorMean(options, R, Loci, Log, L->getSumLogRho(), Loci->GetNumberOfChromosomes(), &A);
+double HapMixModel::getDevianceAtPosteriorMean(const AdmixOptions* const options, LogWriter& Log){
+  return IC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
 }

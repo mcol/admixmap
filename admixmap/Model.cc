@@ -11,10 +11,12 @@ Model::~Model(){
   if(avgstream.is_open())avgstream.close();
 }
 
-void Model::Initialise(Genome& Loci, AdmixOptions& options, InputData& data,  LogWriter& Log){
+void Model::Initialise(AdmixOptions& options, InputData& data,  LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   //  const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
+
+  InitialiseLoci(options, data, Log);
   
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   
@@ -34,6 +36,17 @@ void Model::Initialise(Genome& Loci, AdmixOptions& options, InputData& data,  Lo
       if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
       Log << "individuals\n\n";
     }
+  }
+}
+
+void Model::InitialiseLoci(const Options& options, InputData& data, LogWriter& Log){
+  Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
+  if(Comms::isFreqSampler()){
+    //print table of loci for R script to read
+    string locustable = options.getResultsDir();
+    locustable.append("/LocusTable.txt");
+    Loci.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1));
+    locustable.clear();
   }
 }
 
@@ -60,7 +73,7 @@ void Model::InitialiseRegressionObjects(AdmixOptions& options, InputData& data, 
 }
 
 void Model::Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
-		    AdmixOptions & options, InputData & data, const Genome & Loci, LogWriter& Log, 
+		    AdmixOptions & options, InputData & data, LogWriter& Log, 
 		    double & SumEnergy, double & SumEnergySq, 
 		    double& AISsumlogz, bool AnnealedRun, ofstream & loglikelihoodfile) {
   const bool isMaster = Comms::isMaster();
@@ -101,8 +114,8 @@ void Model::Iterate(const int & samples, const int & burnin, const double* Cooln
       IC->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), Coolnesses[coolness], Coolnesses); 
 
     //Sample Parameters    
-    UpdateParameters(iteration, &options, &Loci, Log, data.GetPopLabels(), Coolnesses[coolness], AnnealedRun);
-    SubIterate(iteration, burnin, options, data, Loci, Log, SumEnergy, SumEnergySq, 
+    UpdateParameters(iteration, &options, Log, data.GetPopLabels(), Coolnesses[coolness], AnnealedRun);
+    SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq, 
 	       AnnealedRun);
 	
   }// end loop over iterations

@@ -56,48 +56,47 @@ class Model{
   Model();
   virtual ~Model();
   void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
-		       AdmixOptions & options, InputData & data, const Genome & Loci, LogWriter& Log, 
-		       double & SumEnergy, double & SumEnergySq, 
-		       double& logz, bool AnnealedRun, ofstream & loglikelihoodfile);
+	       AdmixOptions & options, InputData & data, LogWriter& Log, 
+	       double & SumEnergy, double & SumEnergySq, 
+	       double& logz, bool AnnealedRun, ofstream & loglikelihoodfile);
 
-  virtual void SubIterate(int iteration, const int& burnin, AdmixOptions & options, InputData & data, const Genome & Loci, 
+  virtual void SubIterate(int iteration, const int& burnin, AdmixOptions & options, InputData & data, 
 			  LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 			   bool AnnealedRun) = 0;
 
-  virtual void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log) ;
+  virtual void Initialise(AdmixOptions & options, InputData& data,  LogWriter& Log) ;
   void InitialiseRegressionObjects(AdmixOptions & options, InputData& data,  LogWriter& Log) ;
-  virtual void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
-		       LogWriter& Log) = 0;
+  virtual void InitialiseTests(AdmixOptions& options, const InputData& data, LogWriter& Log) = 0;
   virtual void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels) = 0;
   virtual void ResetStepSizeApproximators(int resetk);
-  virtual void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log) = 0;
+  virtual void PrintAcceptanceRates(const AdmixOptions& options, LogWriter& Log) = 0;
 
   std::vector<Regression*>& getRegression(){return R;};
   virtual unsigned getNumIndividuals()const = 0; 
   virtual double* getSumEnergy()const = 0;
   virtual double* getSumEnergySq()const = 0; 
-  virtual double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log) = 0;
-  virtual void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci)=0 ;
+  virtual double getDevianceAtPosteriorMean(const AdmixOptions* const options, LogWriter& Log) = 0;
+  virtual void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data)=0 ;
 
   //this function is used only in admixmap model
   virtual void getOnePopOneIndLogLikelihood(LogWriter& , const std::vector<std::string>& ){};
 
  protected:
-
+  void InitialiseLoci(const Options& options, InputData& data, LogWriter& Log);
   virtual void UpdateParameters(int iteration, const AdmixOptions *options, 
-			const Genome *Loci, LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal) = 0;
+				LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal) = 0;
   virtual void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log) = 0;
 
   void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq);
+
+  Genome Loci;
   IndividualCollection *IC;
   AlleleFreqs A;
   vector<Regression*> R;//vector of regression pointers
 
   std::ofstream avgstream; //output to ErgodicAverageFile
-  StratificationTest StratTest;
-  DispersionTest DispTest;
-  MisSpecAlleleFreqTest AlleleFreqTest;
+
   HWTest HWtest;
   ScoreTests Scoretests;
  private:
@@ -107,26 +106,29 @@ class Model{
 class AdmixMapModel : public Model{
 public:
     ~AdmixMapModel();
-  void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log);
-  void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
-		       LogWriter& Log);
+  void Initialise(AdmixOptions & options, InputData& data,  LogWriter& Log);
+  void InitialiseTests(AdmixOptions& options, const InputData& data, LogWriter& Log);
     void SubIterate(int iteration, const int & burnin,
-		    AdmixOptions & options, InputData & data, const Genome & Loci, LogWriter& Log, 
+		    AdmixOptions & options, InputData & data, LogWriter& Log, 
 		    double & SumEnergy, double & SumEnergySq, 
 		    bool AnnealedRun);
 
-  void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log);
-  void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci) ;
+  void PrintAcceptanceRates(const AdmixOptions& options,LogWriter& Log);
+  void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data) ;
   void ResetStepSizeApproximators(int resetk);
-  double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log);
+  double getDevianceAtPosteriorMean(const AdmixOptions* const options, LogWriter& Log);
   void getOnePopOneIndLogLikelihood(LogWriter& Log, const std::vector<std::string>& PopLabels){IC->getOnePopOneIndLogLikelihood(Log, PopLabels);};
   unsigned getNumIndividuals()const{return IC->getSize();}; 
   double* getSumEnergy()const{return IC->getSumEnergy();};
   double* getSumEnergySq()const{return IC->getSumEnergySq();}; 
 private:
   PopAdmix* L;
+  StratificationTest StratTest;
+  DispersionTest DispTest;
+  MisSpecAlleleFreqTest AlleleFreqTest;
+
   void UpdateParameters(int iteration, const AdmixOptions *options, 
-			const Genome *Loci, LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
+			LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
   void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
   void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
@@ -136,16 +138,15 @@ private:
 class HapMixModel : public Model{
 public:
     ~HapMixModel();
-  void Initialise(Genome& Loci, AdmixOptions & options, InputData& data,  LogWriter& Log);
-  void InitialiseTests(AdmixOptions& options, const InputData& data, const Genome& Loci, 
-		       LogWriter& Log);
-  void SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, const Genome & Loci, 
+  void Initialise(AdmixOptions & options, InputData& data,  LogWriter& Log);
+  void InitialiseTests(AdmixOptions& options, const InputData& data, LogWriter& Log);
+  void SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, 
 		  LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 		  bool AnnealedRun);
 
-  void PrintAcceptanceRates(const AdmixOptions& options, const Genome& Loci,LogWriter& Log);
-  void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data, const Genome& Loci) ;
-  double getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log);
+  void PrintAcceptanceRates(const AdmixOptions& options,LogWriter& Log);
+  void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data) ;
+  double getDevianceAtPosteriorMean(const AdmixOptions* const options, LogWriter& Log);
   unsigned getNumIndividuals()const{return IC->getSize();}; 
   double* getSumEnergy()const{return IC->getSumEnergy();};
   double* getSumEnergySq()const{return IC->getSumEnergySq();}; 
@@ -153,7 +154,7 @@ private:
   PopHapMix* L;
   MantelHaenszelTest MHTest;
   void UpdateParameters(int iteration, const AdmixOptions *options, 
-			const Genome *Loci, LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
+			LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
   void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
   void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
