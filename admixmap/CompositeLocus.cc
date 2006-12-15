@@ -327,8 +327,8 @@ void CompositeLocus::AccumulateAlleleProbs(){
  *
  */
 #ifndef PARALLEL 
-void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &HapPairs, const int ancestry[2])const{
-  double* Probs = new double[HapPairs.size()];//1way array of hap.pair probs
+///returns probabilities of ordered hap pairs conditional on hidden states
+void CompositeLocus::getConditionalHapPairProbs(double* Probs, const std::vector<hapPair > &HapPairs, const int ancestry[2])const{
   double* p = Probs;
   happairiter end = HapPairs.end();
   happairiter hiter = HapPairs.begin();
@@ -337,6 +337,10 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Ha
 		       hiter->haps[1] * Populations * Populations +
 		       ancestry[0] * Populations  + ancestry[1]];
   }
+}
+void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &HapPairs, const int ancestry[2])const{
+  double* Probs = new double[HapPairs.size()];//1way array of hap.pair probs
+  getConditionalHapPairProbs(Probs, HapPairs, ancestry);
 
   int h = Rand::SampleFromDiscrete(Probs, HapPairs.size());
   delete[] Probs;

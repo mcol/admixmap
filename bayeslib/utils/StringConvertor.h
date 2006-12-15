@@ -27,6 +27,10 @@ public:
   static void StringToVec(const std::string str, std::vector<double>&);
   /// Converts a string to a vector of floats. 
   static void StringToVec(const std::string str, std::vector<float>&);
+  /// Converts a string to a vector of unsigned ints. 
+  static void StringToVec(const std::string str, std::vector<unsigned>&);
+  ///determines if a given string is in a list of strings
+  static bool isListedString(const std::string s, const std::vector<std::string>list);
 
   /// a dummy function
   static bool dummy();

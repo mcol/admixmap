@@ -1,5 +1,4 @@
 #include "StringConvertor.h"
-#include <ctype.h>
 
 using namespace std;
 
@@ -63,6 +62,7 @@ bool StringConvertor::isMissingValue(const std::string& str)
     return MISSING + 3 != find(MISSING, MISSING + 3, str);
 }
 
+//TODO: use function templates to avoid duplication of these 
 /**
    Converts a string to a vector of floats. 
    Opening and closing quotes are removed and vector elements are separated by 
@@ -86,7 +86,7 @@ void StringConvertor::StringToVec(const string s, std::vector<float>& vec)
 }
 
 /**
-   Converts a atring to a vector of floats. 
+   Converts a string to a vector of floats. 
    As previous function but converts to doubles rather than floats.
 */
 void StringConvertor::StringToVec(const string s, std::vector<double>& vec)
@@ -104,4 +104,26 @@ void StringConvertor::StringToVec(const string s, std::vector<double>& vec)
     start = str.find_first_not_of(" ,", size);
     size = str.find_first_of(" ,", start);
   }
+}
+void StringConvertor::StringToVec(const string s, std::vector<unsigned>& vec)
+{
+  string str = s;
+  string::size_type start = str.find_first_not_of("\" "), size = 0;
+  str = str.substr(start, str.find_first_of("\"", start)-1);
+  start = 0;
+  size += str.find_first_of(" ,", start);
+
+  vec.clear();
+  while(start != string::npos){
+    // Convert elements to doubles and fill resulting vector.
+    vec.push_back( (unsigned)toInt(str.substr(start, size)) );
+    start = str.find_first_not_of(" ,", size);
+    size = str.find_first_of(" ,", start);
+  }
+}
+//small function to determine if a given string is in a list of strings
+bool StringConvertor::isListedString(const std::string s, const std::vector<std::string>list){
+  bool b = false;
+  if(find(list.begin(), list.end(), s) < list.end())b = true;
+  return b;
 }

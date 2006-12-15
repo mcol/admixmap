@@ -44,6 +44,7 @@ public:
   void SetHapPairProbsMAP();
   void setAlleleProbsMAP(const double* const Freqs);
   void AccumulateAlleleProbs();
+  void getConditionalHapPairProbs(double* Probs, const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
 
   int GetNumberOfLoci()const;
   int GetNumberOfStates()const;
