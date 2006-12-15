@@ -215,7 +215,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
       //search for loci with no observed genotypes
       for(int j = 0; j < L; ++j){
 	locusObsIndicator[j] = false;
-	for(int i = worker_rank; i < indiv->getSize(); i+= NumWorkers){
+	for(int i = worker_rank + indiv->getFirstScoreTestIndividualNumber(); i < indiv->getNumberOfIndividualsForScoreTests(); i+= NumWorkers){
 	  if(!indiv->getIndividual(i)->GenotypeIsMissing(j)){
 	    locusObsIndicator[j] = true;
 	  }
@@ -405,7 +405,7 @@ void ScoreTests::Update(const vector<Regression* >& R)
 {
   Reset();//set sums over individuals to zero
   double DInvLink;
-  int NumberOfIndividuals = individuals->getSize();
+  int NumberOfIndividuals = individuals->getNumberOfIndividualsForScoreTests();
   //------------------------------------------------------
   // Accumulate Scores over individuals for this iteration
   //------------------------------------------------------
@@ -413,7 +413,9 @@ void ScoreTests::Update(const vector<Regression* >& R)
     const double* const EY = R[0]->getExpectedOutcome();
     const double dispersion = R[0]->getDispersion();
     
-    for( int i = worker_rank; i < NumberOfIndividuals; i+=NumWorkers ){
+    //NOTE: in future this loop will be outside score tests classes so the indiv indices can be controlled outside
+    //eg if(hapmixmodel && casecontrolanalysis && i>NumIndividuals)update allelic assoc test
+    for( int i = worker_rank + individuals->getFirstScoreTestIndividualNumber(); i < NumberOfIndividuals; i+=NumWorkers ){
       
       Individual* ind = individuals->getIndividual(i);
       double YMinusEY = individuals->getOutcome(0, i) - EY[i];//individual outcome - its expectation
@@ -486,7 +488,7 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	| Linkage with ancestry  |
 	-----------------------*/
       if( options->getTestForLinkageWithAncestry() ){
-	Individual::SumScoresForAncestry(j, SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
+	AdmixedIndividual::SumScoresForAncestry(j, SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
       } 
       /*------------------------------------
 	|affecteds-only linkage with ancestry |

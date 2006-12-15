@@ -91,14 +91,17 @@ public:
 
   bool isFemale(int i)const;
   int getNumberOfIndividuals()const;
+  int getNumberOfCaseControlIndividuals()const;
   int getNumberOfSimpleLoci()const;
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};
   GeneticDistanceUnit getUnitOfDistance()const;
   void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
+  void GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
 
 private:    
   Matrix_s locusData_;
   Matrix_s geneticData_;
+  Matrix_s CCgeneticData_;//case-control genotypes for hapmixmodel
   Matrix_s inputData_;
   Matrix_s outcomeVarData_;
   Matrix_s coxOutcomeVarData_;
@@ -123,10 +126,11 @@ private:
   Vector_s OutcomeLabels;
   std::vector<DataType> OutcomeType;
   Vector_s CovariateLabels;
-  int NumIndividuals, numDiploid;
+  int NumIndividuals, numDiploid, NumCCIndividuals;
   int NumSimpleLoci;
   unsigned NumCompositeLoci;
   bool IsPedFile;
+  std::vector<bool> isCaseControlSNP;
 
   void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
   void ReadPopulationLabels(AdmixOptions *options);
@@ -142,6 +146,8 @@ private:
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
   bool determineIfPedFile()const;
   std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
+  std::vector<unsigned short> GetGenotype(const std::string genostring)const;
+  void FindCaseControlLoci();
   void CheckData(AdmixOptions *options, LogWriter &Log);
 
   /*
