@@ -59,33 +59,33 @@ IndividualCollection::IndividualCollection(const AdmixOptions* const options, co
     else worker_rank = size;//so that non-workers will not loop over Individuals
 #endif
 
-  Individual::SetStaticMembers(Loci, options);
+  AdmixedIndividual::SetStaticMembers(Loci, options);
   
   unsigned i0 = 0; // used to offset numbering of other individuals (not the one under test)
   // Fill separate individuals.
   if(options->getTestOneIndivIndicator()) {
     sizeTestInd = options->getNumAnnealedRuns()+1;
     //create array of copies of TestInd
-    TestInd = new Individual*[sizeTestInd];
+    TestInd = new AdmixedIndividual*[sizeTestInd];
     SumEnergy = new double[sizeTestInd];
     fill(SumEnergy, SumEnergy+sizeTestInd, 0.0);
     SumEnergySq = new double[sizeTestInd];
     fill(SumEnergySq, SumEnergySq+sizeTestInd, 0.0);
 
     for(int i = 0; i < sizeTestInd; ++i){
-      TestInd[i] = new Individual(1, options, Data, true); 
+      TestInd[i] = new AdmixedIndividual(1, options, Data, true); 
     }     
     ++i0;
     --size;
   }
 
   if(worker_rank < (int)size){
-    _child = new Individual*[size];
+    pchild = new AdmixedIndividual*[size];
     for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
-      _child[i] = new Individual(i+i0+1, options, Data, false);//NB: first arg sets Individual's number
+      pchild[i] = new AdmixedIndividual(i+i0+1, options, Data, false);
     }
   }
-
+  _child = (Individual**)pchild;
 }
 
 int IndividualCollection::getNumDiploidIndividuals(){
@@ -103,7 +103,7 @@ int IndividualCollection::getNumDiploidIndividuals(){
 IndividualCollection::~IndividualCollection() {
   //if(worker_rank==0)
   //cout << "\n Deleting individual objects\n" << flush;
-  Individual::DeleteStaticMembers();
+  AdmixedIndividual::DeleteStaticMembers();
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers){
     delete _child[i];
   }
@@ -153,7 +153,7 @@ void IndividualCollection::Initialise(const AdmixOptions* const options, const G
 
 void IndividualCollection::DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha){
     //draw initial values for individual admixture proportions
-    for(unsigned int i = worker_rank; i < size; i += NumWorkers) _child[i]->drawInitialAdmixtureProps(alpha);
+  for(unsigned int i = worker_rank; i < size; i += NumWorkers) pchild[i]->drawInitialAdmixtureProps(alpha);
     if(TestInd)for(int i = 0; i < sizeTestInd; i++) TestInd[i]->drawInitialAdmixtureProps(alpha);
 
 }
@@ -265,7 +265,7 @@ void IndividualCollection::HMMIsBad(bool b){
 
 void IndividualCollection::resetStepSizeApproximators(int k) {
   for(unsigned i = worker_rank; i < size; i+= NumWorkers)
-    _child[i]->resetStepSizeApproximator(k);
+    pchild[i]->resetStepSizeApproximator(k);
 }
 
 void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const AlleleFreqs* const 
@@ -329,24 +329,24 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
   if(iteration > options->getBurnIn()){
     if(iteration %2)//only on odd iterations becsue it is already done on even numbered ones (in SampleAdmixtureWithRandomWalk)
-      Individual::ResetScores(options);
+      AdmixedIndividual::ResetScores(options);
     affectedsOnlyTest.Reset();
   }
 
   //now loop over individuals
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** set SumLocusAncestry and SumNumArrivals to 0
-    _child[i]->ResetSufficientStats();
+    pchild[i]->ResetSufficientStats();
 
     // ** Run HMM forward recursions and sample locus ancestry
     if(Populations >1)_child[i]->SampleLocusAncestry(options);
     // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
     if(Populations >1)
-      _child[i]->SampleJumpIndicators(!options->isGlobalRho());
+       pchild[i]->SampleJumpIndicators(!options->isGlobalRho());
     // ** Update score, info and score^2 for ancestry score tests
     if(iteration > options->getBurnIn() && Populations >1 
        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-      _child[i]->UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest);
+       pchild[i]->UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest);
 
   }
 #ifdef PARALLEL
@@ -375,14 +375,14 @@ void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const Ad
   }
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())
-    Individual::ResetScores(options);//because the B array is updated immediately after theta
+    AdmixedIndividual::ResetScores(options);//because the B array is updated immediately after theta
 
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
     for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
 	double DinvLink = 1.0;
 	if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
 // ** update theta with random-walk proposal on even-numbered iterations
-	_child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, 
+	pchild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, 
 			       &Covariates, beta, poptheta, options, alpha, DinvLink, 
 			       dispersion, true, _anneal);
     }
@@ -472,13 +472,13 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** Sample individual- or gamete-specific sumintensities
     if(Populations>1 && !options->isGlobalRho() ) 
-      _child[i]->SampleRho( options, rhoalpha, rhobeta,   
+       pchild[i]->SampleRho( options, rhoalpha, rhobeta,   
 			    (!anneal && iteration > options->getBurnIn()));
     // ** update admixture props with conjugate proposal on odd-numbered iterations
      if((iteration %2) && Populations >1 ){
            double DinvLink = 1.0;
        if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-       _child[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
+        pchild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
      		     beta, poptheta, options, alpha, DinvLink, dispersion, false, anneal);
             }
     // ** Sample missing values of outcome variable
@@ -488,12 +488,12 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
 
 void IndividualCollection::setChibNumerator(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
-  _child[0]->setChibNumerator(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat*,*/ &MargLikelihood, A);
+   pchild[0]->setChibNumerator(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat*,*/ &MargLikelihood, A);
 }
 
 void IndividualCollection::updateChib(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 				      double rhoalpha, double rhobeta, AlleleFreqs *A){
-  _child[0]->updateChib(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat,*/ &MargLikelihood, A);
+   pchild[0]->updateChib(options, alpha, rhoalpha, rhobeta, /*thetahat, rhohat,*/ &MargLikelihood, A);
 }
 
 void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options, 
@@ -535,7 +535,7 @@ void IndividualCollection::FindPosteriorModes(const AdmixOptions* const options,
 					       modefile/*, thetahat, rhohat*/);
   }
   for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
-    _child[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,A,
+     pchild[i]->FindPosteriorModes(options, alpha, rhoalpha, rhobeta,A,
 				  modefile/*, thetahat, rhohat*/);
     modefile << endl;
   }
@@ -551,7 +551,7 @@ double IndividualCollection::GetSumrho()const
 {
    double Sumrho = 0;
    for( unsigned int i = worker_rank; i < size; i+=NumWorkers )
-      Sumrho += (*_child[i]).getSumrho();
+      Sumrho += (* pchild[i]).getSumrho();
 #ifdef PARALLEL
    Comms::Reduce(&Sumrho);
 #endif
@@ -750,7 +750,7 @@ void IndividualCollection::OutputIndAdmixture()
   if(TestInd)
     indadmixoutput->visitIndividual(*(TestInd[sizeTestInd-1]), _locusfortest);
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers){
-    indadmixoutput->visitIndividual(*_child[i], _locusfortest);
+    indadmixoutput->visitIndividual(* pchild[i], _locusfortest);
   }
 }
 
@@ -769,7 +769,7 @@ void IndividualCollection::OutputChibResults(LogWriter& Log) const {
 void IndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels) {
   Log.setDisplayMode(On);
   Log << "Log-likelihood for unadmixed "  << PopulationLabels[0] << ": "
-      << _child[0]->getLogLikelihoodOnePop() << "\n";
+      <<  pchild[0]->getLogLikelihoodOnePop() << "\n";
 }
 
 double IndividualCollection::getLogLikelihood(const AdmixOptions* const options, bool forceupdate){
@@ -836,8 +836,8 @@ void IndividualCollection::ResetChib(){
 
 void IndividualCollection::OutputErgodicChib(std::ofstream *avgstream, bool fixedallelefreqs) {
   *avgstream << MargLikelihood.getLogPrior()<< " " << MargLikelihood.getLogPosterior() << " "
-	     << _child[0]->getLogPosteriorTheta() << " " << _child[0]->getLogPosteriorRho()<< " ";
+	     <<  pchild[0]->getLogPosteriorTheta() << " " <<   pchild[0]->getLogPosteriorRho()<< " ";
   if(!fixedallelefreqs)
-    *avgstream  << _child[0]->getLogPosteriorAlleleFreqs() << " "; // not if fixedallelefreqs
+    *avgstream  <<  pchild[0]->getLogPosteriorAlleleFreqs() << " "; // not if fixedallelefreqs
   *avgstream << MargLikelihood.getLogMarginalLikelihood();
 }

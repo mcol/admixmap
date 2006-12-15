@@ -2,7 +2,6 @@
 #ifndef IND_ADMIX_OUTPUTTER
 #define IND_ADMIX_OUTPUTTER 1
 
-#include "Individual.h"
 #include "IndividualCollection.h"
 #include "AdmixOptions.h"
 #include "Genome.h"
@@ -19,7 +18,7 @@ class IndAdmixOutputter
 public:
   IndAdmixOutputter(const AdmixOptions* const, const Genome* const, const Vector_s& PopLabels);
   virtual ~IndAdmixOutputter();
-  void visitIndividual(const Individual&, const std::vector<int>);
+  void visitIndividual(const AdmixedIndividual&, const std::vector<int>);
   void visitIndividualCollection(const IndividualCollection&);
 
 

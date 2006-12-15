@@ -95,7 +95,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
   _out.close();
 }
 
-void IndAdmixOutputter::visitIndividual(const Individual& ind, const vector<int> _locusfortest)
+void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vector<int> _locusfortest)
 {
   for( int k = 0; k < _options->getPopulations(); k++ )
     _out << ind.getAdmixtureProps()[k] << ",";

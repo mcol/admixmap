@@ -24,9 +24,16 @@ public:
   HapMixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
   void SampleLocusAncestry(const AdmixOptions* const options);
   const int* getSumAncestry()const;
+  //Individual* getIndividual(int)const;
+  int getNumberOfIndividualsForScoreTests()const;
+  int getFirstScoreTestIndividualNumber()const;
+  void AccumulateConditionalGenotypeProbs(const AdmixOptions* const options);
+  void OutputCGProbs(const char* filename);
 private:
+  unsigned NumCaseControls;
   int* SumAncestry;//for update of locus-specific sumintensities
   int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
+  GenotypeProbOutputter GPO;
 };
 
 #endif /* !defined HAPMIX_INDIVIDUAL_COLLECTION_H */

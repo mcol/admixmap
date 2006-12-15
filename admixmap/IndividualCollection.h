@@ -18,7 +18,7 @@
 //#include "Chromosome.h"
 //#include "AlleleFreqs.h"
 #include "chib.h"
-#include "Individual.h"
+#include "AdmixedIndividual.h"
 #include "IndAdmixOutputter.h"
 #include "utils/DataMatrix.h"
 
@@ -87,6 +87,8 @@ public:
   void OutputChibResults(LogWriter&)const;
   int getSize()const;
   int getNumDiploidIndividuals();
+  virtual int getNumberOfIndividualsForScoreTests()const{return getSize();}
+  virtual int getFirstScoreTestIndividualNumber()const{return 0;};
 
   Individual* getIndividual(int)const;
   //void setAdmixtureProps(const double* const, size_t);
@@ -125,15 +127,19 @@ public:
   //functions specific to hapmixmodel
   virtual void SampleLocusAncestry(const AdmixOptions* const ){};
   virtual const int* getSumAncestry()const{return 0;};
+  virtual void AccumulateConditionalGenotypeProbs(const AdmixOptions* const ){};
+  virtual void OutputCGProbs(const char* ){};
 
 protected:
   unsigned int NumInd, size;
   int Populations, NumCompLoci;
-  Individual **_child; //array of pointers to Individual objects
   int worker_rank, NumWorkers;
+  void SetNullValues();
+  Individual** _child;//pointer to _child array
 
 private:
-  Individual** TestInd;// pointer to individual for whom to estimate marginal likelihood
+  AdmixedIndividual** pchild;
+  AdmixedIndividual** TestInd;// pointer to individual for whom to estimate marginal likelihood
   int sizeTestInd;
 
   double* SumEnergy, *SumEnergySq;//to store sum over iters of energy of test ind at each coolness
@@ -166,8 +172,6 @@ private:
   DataType *OutcomeType;
   std::ofstream EYStream;//output file for expected outcome
   chib MargLikelihood;
-
-  void SetNullValues();
 };
 
 #endif /* !defined INDIVIDUAL_COLLECTION_H */
