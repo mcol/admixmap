@@ -1250,7 +1250,7 @@ if(!is.null(user.options$mhtestfile) && file.exists(paste(resultsdir,user.option
   psfile <- paste(resultsdir, "TestsMH.ps", sep="/")
   plotResidualAllelicAssocScoreTest(user.options$mhtestfile, psfile, user.options$every)
   ##write to file the number of loci with complete info>1 and pvalues<0.05
-  writeScoreTestInfo("MHTestFinal.txt", 1, 0.05, MHTestInfo.txt)
+  writeScoreTestInfo("MHTestFinal.txt", 1, 0.05, "MHTestInfo.txt")
   cat(" done\n", file=outfile, append=T)
 }
 
