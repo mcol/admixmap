@@ -65,7 +65,7 @@ void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
 
     while (getline(in, line)) {
 
-      if( ( ( (linenumber-1)%NumWorkers) == worker_rank) || linenumber==0){
+      if( ( ( (linenumber-1)%NumWorkers) == worker_rank) || linenumber==0){//always read header
 	if (!StringConvertor::isWhiteLine(line.c_str())) {//skip blank lines
 	  data.push_back(splitter.split(line.c_str()));//split lines into strings
 	}
@@ -83,6 +83,11 @@ void InputData::readGenotypesFile(const char *fname, Matrix_s& data)
 
 InputData::InputData()
 {
+  NumIndividuals = 0;
+  NumCCIndividuals = 0;
+  numDiploid = 0;
+  NumSimpleLoci = 0;
+  NumCompositeLoci = 0;
 }
 
 InputData::~InputData()
@@ -102,8 +107,10 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
       if(Comms::isMaster()) Log << "Loading " << options->getGenotypesFilename() << ".\n";
       if(Comms::isWorker())//only workers read genotypes
 	readGenotypesFile(options->getGenotypesFilename(), geneticData_); //genotypes file
+      //TODO: read CC genotypes file in parallel version
 #else
-      DataReader::ReadData(options->getGenotypesFilename(), geneticData_, Log); 
+      DataReader::ReadData(options->getGenotypesFilename(), geneticData_, Log);
+      if(options->getHapMixModelIndicator())DataReader::ReadData(options->getCCGenotypesFilename(), CCgeneticData_, Log); 
 #endif
       if(Comms::isMaster() || Comms::isWorker()){
 	DataReader::ReadData(options->getCovariatesFilename(), inputData_, covariatesMatrix_,Log);     //covariates file
@@ -134,6 +141,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   NumCompositeLoci = determineNumberOfCompositeLoci();
   if(Comms::isWorker()) {
     NumIndividuals = geneticData_.size() - 1;
+    NumCCIndividuals = CCgeneticData_.size() - 1;
   } 
   numDiploid = 0;
  
@@ -147,6 +155,10 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
     {
       IsPedFile = determineIfPedFile();
       CheckGeneticData(options);
+      if(options->getHapMixModelIndicator() && CCgeneticData_.size()){
+	if(outcomeVarData_.size() == 0)Log << Quiet << "Warning: Case-Control genotypes supplied but no outcome variable!\n";
+	FindCaseControlLoci();
+      }
     }
 
   double threshold = 100.0;if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
@@ -202,7 +214,10 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
 }
 ///determine number of individuals by counting lines in genotypesfile 
 int InputData::getNumberOfIndividuals()const {
-  return(NumIndividuals);
+  return(NumIndividuals + NumCCIndividuals);
+}
+int InputData::getNumberOfCaseControlIndividuals()const {
+  return(NumCCIndividuals);
 }
 
 ///determine number of loci by counting rows of locusfile
@@ -430,14 +445,26 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
 }
 
 void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log){
+  unsigned N = NumIndividuals;
   //check outcomevarfile and genotypes file have the same number of rows
-   if(!options->getHapMixModelIndicator())
-   if( (int)outcomeVarMatrix_.nRows() - 1 != (NumIndividuals - options->getTestOneIndivIndicator()) ){
-     stringstream s;
-     s << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
-       << outcomeVarMatrix_.nRows() - 1 << " observations.\n";
-     throw(s.str());
-   }
+  if(options->getHapMixModelIndicator()){
+    if(NumCCIndividuals>0 )N = NumCCIndividuals;
+    if( (int)outcomeVarMatrix_.nRows() - 1 != NumCCIndividuals ){
+      stringstream s;
+      s << "ERROR: Case-Control Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
+	<< outcomeVarMatrix_.nRows() - 1 << " observations.\n";
+      throw(s.str());
+    }
+  }
+  else{
+    if( (int)outcomeVarMatrix_.nRows() - 1 != (NumIndividuals - options->getTestOneIndivIndicator()) ){
+      stringstream s;
+      s << "ERROR: Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
+	<< outcomeVarMatrix_.nRows() - 1 << " observations.\n";
+      throw(s.str());
+    }
+  }
+
   //check the number of outcomes specified is not more than the number of cols in outcomevarfile
   int Firstcol = options->getTargetIndicator();
   int NumOutcomes = options->getNumberOfOutcomes();
@@ -459,13 +486,13 @@ void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log)
     //extract portion of outcomevarfile needed
     std::string* OutcomeVarLabels = new string[ outcomeVarMatrix_.nCols() ];
     getLabels(outcomeVarData_[0], OutcomeVarLabels);
-    DataMatrix Temp = outcomeVarMatrix_.SubMatrix(1, NumIndividuals, Firstcol, Firstcol+numoutcomes-1);
+    DataMatrix Temp = outcomeVarMatrix_.SubMatrix(1, N, Firstcol, Firstcol+numoutcomes-1);
     outcomeVarMatrix_ = Temp;
     
     //determine type of outcome - binary/continuous
     for( int j = 0; j < numoutcomes; j++ ){
       OutcomeType.push_back( Binary );
-      for(int i = 0; i < NumIndividuals; ++i)
+      for(unsigned i = 0; i < N; ++i)
 	if(!outcomeVarMatrix_.isMissing(i, j) && !(outcomeVarMatrix_.get( i, j ) == 0 || outcomeVarMatrix_.get( i, j ) == 1) ){
 	  OutcomeType[j] =  Continuous ;
 	  break;
@@ -569,8 +596,14 @@ vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, in
  
   int col = 1 + SexColumn + locus;
   if (IsPedFile)col = 1 + SexColumn + 2*locus;
+
+  return GetGenotype(geneticData_[individual][col]);
+}
+vector<unsigned short> InputData::GetGenotype(const string genostring)const{
+  vector<unsigned short> g;
+ 
   //strip quotes from string
-  const std::string str = StringConvertor::dequote(geneticData_[individual][col]);
+  const std::string str = StringConvertor::dequote(genostring);
   if(str.length()==0){
     //if empty string, interpret as missing genotype for backward compatibility
     g.push_back(0);
@@ -593,6 +626,11 @@ vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, in
 }
 
 void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
+  if(i > NumIndividuals && NumCCIndividuals) {
+    GetCaseControlGenotype(i, SexColumn, Loci, genotypes, Missing);
+    return;
+  }
+
   unsigned int simplelocus = 0;//simple locus counter
   unsigned complocus = 0;
   unsigned long numhaploid = 0;
@@ -676,6 +714,105 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
     }
   }
 
+}
+
+void InputData::GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
+  unsigned int simplelocus = 0;//simple locus counter
+  unsigned complocus = 0;
+  unsigned long numhaploid = 0;
+  unsigned long numdiploid = 0;
+  unsigned long numhaploidX = 0;
+  unsigned long numdiploidX = 0;
+  unsigned long cclocus = 0;//case-control locus counter
+  //  unsigned numXloci = 0;
+
+  //  const std::vector<std::string>& CCLoci = CCgeneticData_[0];//labels of loci in case-control genotypesfile
+  for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
+    bool isXchrm = Loci.isXChromosome(c);
+    for(unsigned int j = 0; j < Loci.GetSizeOfChromosome(c); ++j){
+      genotype G;
+      // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype
+      const int numLoci = Loci.getNumberOfLoci(complocus);
+      unsigned int count = 0;
+      //  if(isXchrm)numXloci += numloci;
+      for (int locus = 0; locus < numLoci; locus++) {
+	const int numalleles = 2;
+	vector<unsigned short> g;
+	if(isCaseControlSNP[simplelocus]){
+	  int col = 1 + SexColumn + cclocus;
+	  if (IsPedFile)col = 1 + SexColumn + 2*cclocus;
+	  
+	  g = GetGenotype(CCgeneticData_[i-NumIndividuals][col]);
+	  ++cclocus;
+	  }
+	else g.assign(2,0);//set genotypes at untyped loci 0
+	if(g.size()==2)
+	  if( (g[0] > numalleles) || (g[1] > numalleles))
+	    throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
+			       g[0], g[1], numalleles );
+	  else if (g.size()==1)
+	    if( (g[0] > numalleles))
+	      throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
+				 g[0], 0, numalleles );
+
+	if(isXchrm){
+	  if(g.size()==1)++numhaploidX;
+	  else {//diploid X genotype
+	    if(!isFemale(i)){//males cannot have diploid X genotypes
+	      //cerr << "Genotype error in Individual " << i << ". Only females can have diploid X-chromosome genotypes.";
+	      //exit(1);
+	      //NOTE: allowing this for backward compatibility, for now
+	      //instead remove second element
+	      g.pop_back();
+	    }
+	    ++numdiploidX;
+	  }
+	}
+	else{
+	  if(g.size()==1)++numhaploid;
+	  else ++numdiploid;
+	}
+	simplelocus++;
+	G.push_back(g);
+	count += g[0];
+      }
+      
+      Missing[c][j] = (count == 0);
+      
+      genotypes->push_back(G);
+      ++complocus;
+    }
+  }
+  //check genotypes are valid
+  if(numhaploidX + numdiploidX > 0){//some X genotypes present
+//     if(numdiploidX>0 && !isFemale(i)){//male with diploid X data
+//       cerr << "Genotype error in Individual " << i << ". Only females can have diploid X-chromosome genotypes.";
+//       exit(1);
+//     }
+    if(numhaploidX>0 && isFemale(i)){
+      if(numdiploidX >0){//female with haploid and diploid X data
+	cerr << "Genotype error in Individual " << i << ". Females should have diploid X-chromosome genotypes.";
+	exit(1);
+      }
+      if(numdiploid>0){//phased X data but unphased autosomal genotypes
+	cerr << "Genotype error in Individual " << i << ". Female with diploid autosomes ands haploid X-Chromosome."; 
+	exit(1);
+      }
+    }
+  }
+  else{//only autosomes
+    if( numhaploid>0 && numdiploid > 0 ){//mixed haploid/diploid data
+      cerr << "Genotype error in Individual " << i << ". Both haploid and diploid genotypes and no X chromosome.";
+      exit(1);
+    }
+  }
+
+}
+
+void InputData::FindCaseControlLoci(){
+  for(Vector_s::const_iterator j = geneticData_[0].begin()+1; j != geneticData_[0].end(); ++j){
+    isCaseControlSNP.push_back(StringConvertor::isListedString(*j, CCgeneticData_[0]));
+  }
 }
 
 void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const{
