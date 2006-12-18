@@ -81,7 +81,7 @@ int HapMixIndividualCollection::getNumberOfIndividualsForScoreTests()const{
 }
 
 int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()const{
-  if(NumCaseControls > 0)return size;
+  if(NumCaseControls > 0)return size - NumCaseControls;
   else return 0;
 }
 

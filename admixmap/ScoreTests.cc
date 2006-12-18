@@ -415,9 +415,10 @@ void ScoreTests::Update(const vector<Regression* >& R)
     
     //NOTE: in future this loop will be outside score tests classes so the indiv indices can be controlled outside
     //eg if(hapmixmodel && casecontrolanalysis && i>NumIndividuals)update allelic assoc test
-    for( int i = worker_rank + individuals->getFirstScoreTestIndividualNumber(); i < NumberOfIndividuals; i+=NumWorkers ){
+    const int offset = individuals->getFirstScoreTestIndividualNumber();
+    for( int i = worker_rank ; i < NumberOfIndividuals; i+=NumWorkers ){
       
-      Individual* ind = individuals->getIndividual(i);
+      Individual* ind = individuals->getIndividual(i + offset);
       double YMinusEY = individuals->getOutcome(0, i) - EY[i];//individual outcome - its expectation
       //note that it is the first regression that is used
       DInvLink = R[0]->DerivativeInverseLinkFunction(i);
