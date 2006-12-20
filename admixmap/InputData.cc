@@ -110,7 +110,10 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
       //TODO: read CC genotypes file in parallel version
 #else
       DataReader::ReadData(options->getGenotypesFilename(), geneticData_, Log);
-      if(options->getHapMixModelIndicator())DataReader::ReadData(options->getCCGenotypesFilename(), CCgeneticData_, Log); 
+      if(options->getHapMixModelIndicator()){
+	DataReader::ReadData(options->getCCGenotypesFilename(), CCgeneticData_, Log); 
+	NumCCIndividuals = CCgeneticData_.size() - 1;
+      }
 #endif
       if(Comms::isMaster() || Comms::isWorker()){
 	DataReader::ReadData(options->getCovariatesFilename(), inputData_, covariatesMatrix_,Log);     //covariates file
@@ -141,11 +144,9 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   NumCompositeLoci = determineNumberOfCompositeLoci();
   if(Comms::isWorker()) {
     NumIndividuals = geneticData_.size() - 1;
-    NumCCIndividuals = CCgeneticData_.size() - 1;
   } 
   numDiploid = 0;
  
-
   CheckData(options, Log);
 }
 
