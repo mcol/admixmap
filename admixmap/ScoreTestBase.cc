@@ -32,9 +32,9 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
 {
   double Score = 0.0, CompleteInfo = 0.0, MissingInfo = 0.0, ObservedInfo = 0.0, PercentInfo = 0.0, zscore = 0.0, pvalue = 0.0;
   string sep = final? "\t" : ",";
-  Score = score / ( iterations );
-  CompleteInfo = info / ( iterations );
-  MissingInfo = scoresq / ( iterations ) - Score * Score;
+  Score = score / ( double )iterations;
+  CompleteInfo = info / (double) iterations;
+  MissingInfo = scoresq / (double) iterations - Score * Score;
   ObservedInfo = CompleteInfo - MissingInfo;
   //output label
   *outputstream << "\"" << label << "\"" << sep;
@@ -43,7 +43,7 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
 		  << double2R(CompleteInfo, 3) << sep
 		  << double2R(ObservedInfo, 3) << sep;
   if(CompleteInfo > 0.0 && (MissingInfo < CompleteInfo)) {
-    PercentInfo = 100*ObservedInfo / CompleteInfo;
+    PercentInfo = 100.0 * ObservedInfo / CompleteInfo;
     zscore = Score / sqrt( ObservedInfo );
     pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
     if(final)
@@ -69,18 +69,18 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* o
   double VU = 0.0, EU = 0.0, missing = 0.0, complete = 0.0;
   *outputstream << "\"" << label << "\"" << separator;
       
-  EU = score / ( iterations );
-  VU = varscore / ( iterations );
-  missing = scoresq / ( iterations ) - EU * EU + VU;
-  complete =  info / ( iterations );
+  EU = score / (double)iterations;
+  VU = varscore / (double) iterations;
+  missing = scoresq / (double) iterations - EU * EU + VU;
+  complete =  info / (double) iterations;
   
   *outputstream << double2R(EU, 3)                                << separator//score
 		<< double2R(complete, 3)                          << separator//complete info
 		<< double2R(complete - missing, 3)                << separator//observed info
-		<< double2R(100*(complete - missing)/complete, 2) << separator;//%observed info
+    		<< double2R(100.0*(complete - missing)/complete, 2) << separator;//%observed info
   if(complete > 0.0){
-    *outputstream << double2R(100*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
-		  << double2R(100*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
+    *outputstream << double2R(100.0*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
+		  << double2R(100.0*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
     if(complete - missing > 0.0){
 	  double zscore = EU / sqrt( complete - missing );
 	  double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));

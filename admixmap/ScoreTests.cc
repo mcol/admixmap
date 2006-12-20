@@ -733,9 +733,9 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
 void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label, const double score, const double scoresq, const double info, bool final)
 {
   string sep = final? "\t" : ",";
-  double Score = score / ( iterations );
-  double CompleteInfo = info / ( iterations );
-  double MissingInfo = scoresq / ( iterations ) - Score * Score;
+  double Score = score / (double) iterations;
+double CompleteInfo = info / (double) iterations;
+double MissingInfo = scoresq / ( double)iterations - Score * Score;
   double ObservedInfo = CompleteInfo - MissingInfo;
   //output label
   *outputstream << "\"" << label << "\"" << sep;
@@ -744,7 +744,7 @@ void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, 
 		  << double2R(CompleteInfo, 3) << sep
 		  << double2R(ObservedInfo, 3) << sep;
   if( (MissingInfo < CompleteInfo) && (CompleteInfo > 0.0) ) {
-    double PercentInfo = 100*ObservedInfo / CompleteInfo;
+    double PercentInfo = 100.0*ObservedInfo / CompleteInfo;
     double zscore = Score / sqrt( ObservedInfo );
     double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
     if(final)
@@ -778,12 +778,12 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
   
   CompleteInfo = new double[dim*dim];
   copy(info, info + dim*dim, CompleteInfo);
-  scale_matrix(CompleteInfo, 1.0/( iterations), dim, dim);
+  scale_matrix(CompleteInfo, 1.0/(double) iterations, dim, dim);
   
   ObservedInfo = new double[dim*dim];
   for(unsigned d1 = 0; d1 < dim; ++d1)for(unsigned d2 = 0; d2 < dim; ++d2)
     ObservedInfo[d1*dim + d2] = CompleteInfo[d1*dim+d2] + ScoreVector[d1]*ScoreVector[d2] -
-      scoresq[d1*dim+d2]/( iterations );
+      scoresq[d1*dim+d2]/(double) iterations;
   for( unsigned k = 0; k < dim; k++ ){
     // ** output labels
     *outputstream << labels[k] << sep;
@@ -792,7 +792,7 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
 		     << double2R(CompleteInfo[k*dim+k], 3) << sep//prints diagonal of CI matrix
 		     << double2R(ObservedInfo[k*dim+k], 3) << sep;//   "      "     "  MI   "
       if(CompleteInfo[k*dim+k]>0.0)
-	*outputstream<< double2R(100*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
+	*outputstream<< double2R(100.0*ObservedInfo[k*dim+k] / CompleteInfo[k*dim+k], 2) << sep;//%Observed Info
       else 
 	*outputstream << "NA" << sep;
     }
