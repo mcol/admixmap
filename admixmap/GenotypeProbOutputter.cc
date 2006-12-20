@@ -39,7 +39,7 @@ void GenotypeProbOutputter::Output(const char* filename){
   std::vector<std::string> labels(dim[0],"");
   labels[0] = "Genotype1";
   labels[1] = "Genotype2";
-  labels[3] = "Genotype3";
+  labels[2] = "Genotype3";
   outfile << ")," << endl;
   outfile << ".Dim = c(";
   for(unsigned int i=0;i<dim.size();i++){
