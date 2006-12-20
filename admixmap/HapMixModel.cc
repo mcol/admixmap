@@ -70,7 +70,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//   if(options->getHapMixModelIndicator() && (iteration%2)){
+//   if(iteration%2){
 //     if(isMaster || isWorker){
 //       L->UpdateSumIntensitiesByRandomWalk(IC,  
 // 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
@@ -79,8 +79,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Update individual-level parameters, sampling locus ancestry states
-  // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
+  // Update individual-level parameters, sampling hidden states
   if(isMaster || isWorker){
     IC->SampleLocusAncestry(options);
    }
@@ -99,7 +98,6 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
   //accumulate conditional genotype probs for masked individuals at masked loci
   if(options->OutputCGProbs() && iteration > options->getBurnIn())
     IC->AccumulateConditionalGenotypeProbs(options);
-
 #ifdef PARALLEL
   if(isWorker || isFreqSampler){
     A.SumAlleleCountsOverProcesses(options->getPopulations());
@@ -196,7 +194,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
     }
   }
 #endif
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
 }
 
 void HapMixModel::SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, 
