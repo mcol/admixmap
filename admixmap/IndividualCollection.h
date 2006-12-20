@@ -50,10 +50,10 @@ public:
 
   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 			   const vector<Regression*> &R,  
-			   AffectedsOnlyTest& affectedsOnlyTest, bool anneal);
-    void SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
-				       const vector<Regression*> &R, const double* const poptheta,
-				       const vector<vector<double> > &alpha, bool anneal);
+			   AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest, bool anneal);
+  void SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
+				     const vector<Regression*> &R, const double* const poptheta,
+				     const vector<vector<double> > &alpha, AncestryAssocTest& ancestryAssocTest, bool anneal);
 
 //   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 // 			   const vector<Regression*> &R);
@@ -63,7 +63,7 @@ public:
   void SampleParameters(int iteration, const AdmixOptions* const options,
 			const vector<Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
-			bool anneal);
+			AncestryAssocTest& ancestryAssocTest, bool anneal);
   void setChibNumerator(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
   void updateChib(const AdmixOptions* const options,const vector<vector<double> > &alpha, 

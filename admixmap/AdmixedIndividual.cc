@@ -14,21 +14,12 @@
 #include "regression/Regression.h"
 #include "utils/misc.h"
 #include "utils/dist.h"
-#include "utils/linalg.h"
+//#include "utils/linalg.h"
 #include <algorithm>
 #include <limits>
 #include <sstream>
 
 #define PR(x) cout << #x << " = " << x << endl;
-
-// ******* Static Member Declarations
-double **AdmixedIndividual::AncestryScore = 0;
-double **AdmixedIndividual::AncestryInfo = 0;
-double **AdmixedIndividual::AncestryVarScore = 0;
-double **AdmixedIndividual::AncestryInfoCorrection = 0;
-double *AdmixedIndividual::B;
-double *AdmixedIndividual::PrevB;
-double *AdmixedIndividual::Xcov;
 
 //******** Constructors **********
 AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
@@ -100,6 +91,9 @@ AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumLocusAncestry_X;
 }
 
+void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options){
+  Individual::SetStaticMembers(pLoci, options);
+}
 // draw initial values for admixture proportions theta from Dirichlet prior 
 void AdmixedIndividual::drawInitialAdmixtureProps(const std::vector<std::vector<double> > &alpha) {
   size_t K = Populations;
@@ -122,42 +116,6 @@ void AdmixedIndividual::drawInitialAdmixtureProps(const std::vector<std::vector<
   }  
 }
 
-
-
-
-//********** sets static members, including allocation and deletion of static objects for score tests
-void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options){
-  Individual::SetStaticMembers(pLoci, options);
-
-  int L = Loci->GetNumberOfCompositeLoci();
-  AncestryScore = 0;
-  AncestryInfo = 0;
-  AncestryVarScore = 0;
-  AncestryInfoCorrection = 0;
-  B = 0;
-  PrevB = 0;
-  Xcov = 0;
-
-  if( options->getTestForLinkageWithAncestry() ){
-    AncestryScore = alloc2D_d(L, 2*Populations);
-    AncestryInfo = alloc2D_d(L, 4*Populations*Populations);
-    AncestryVarScore = alloc2D_d(L, Populations);
-    AncestryInfoCorrection = alloc2D_d(L, Populations);
-    B = new double[Populations * Populations];
-    PrevB = new double[Populations * Populations];
-    Xcov = new double[Populations];
-  }
-}
-
-void AdmixedIndividual::DeleteStaticMembers(){
-  delete[] B;
-  delete[] PrevB;
-  delete[] Xcov;
-  free_matrix(AncestryScore, Loci->GetNumberOfCompositeLoci());
-  free_matrix(AncestryInfo, Loci->GetNumberOfCompositeLoci());  
-  free_matrix(AncestryVarScore, Loci->GetNumberOfCompositeLoci());
-  free_matrix(AncestryInfoCorrection, Loci->GetNumberOfCompositeLoci());
-}
 
 //********** set admixture proportions *********
 void AdmixedIndividual::setAdmixtureProps(const double* const a, size_t size) {
@@ -478,7 +436,7 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
 			      const DataType* const OutcomeType, const vector<double> lambda, const int NumCovariates,
 			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
 			      const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-			      double DInvLink, const double dispersion, const bool RW, const bool anneal=false)
+				     double DInvLink, const double dispersion, AncestryAssocTest& ancestryAssocTest, const bool RW, const bool anneal=false)
 // samples individual admixture proportions
 // called with RW true for a random-walk proposal, false for a conjugate proposal
 {
@@ -541,7 +499,7 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
     if(iteration >= options->getBurnIn() && options->getTestForLinkageWithAncestry()){
       double* admixtureCovars = new double[Populations-1];
       for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
-      UpdateB(DInvLink, dispersion, admixtureCovars);
+       ancestryAssocTest.UpdateB(DInvLink, dispersion, admixtureCovars);
       delete[] admixtureCovars;
     }
   }
@@ -783,40 +741,8 @@ void AdmixedIndividual::SampleRho(const AdmixOptions* const options, double rhoa
 }
 
 //********************** Score Tests ***************************
-void AdmixedIndividual::ResetScores(const AdmixOptions* const options){
-  int KK = Populations;
-  if(Populations == 2)KK = 1;
-
-//   if( options->getTestForAffectedsOnly() ){
-//     for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci()*KK; ++j){
-//       AffectedsScore[j] = 0.0;
-//       AffectedsVarScore[j] = 0.0;
-//       AffectedsInfo[j] = 0.0;
-//     }
-//   }
-  if( options->getTestForLinkageWithAncestry() ){
-    for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
-      for(int k = 0; k < 2*Populations; ++k)
-	AncestryScore[j][k] = 0.0;
-      for(int k = 0; k < 4*Populations*Populations; ++k)
-	AncestryInfo[j][k] = 0.0;
-      for(int k = 0; k < Populations; ++k){
-	AncestryInfoCorrection[j][k] = 0.0;
-	AncestryVarScore[j][k] = 0.0;
-      }
-    }
-    for(int k = 0; k < Populations*Populations; ++k){
-      PrevB[k] = B[k];           //PrevB stores the sum for the previous iteration
-      B[k] = 0.0;                //while B accumulates the sum for the current iteration 
-    }
-    for(int k = 0; k < Populations; ++k){
-      Xcov[k] = 0.0;
-    }
-  }
-}
-
 void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
-			      const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest){
+				     const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest){
 //merge with updatescoretests
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
@@ -831,7 +757,7 @@ void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatr
 	admixtureCovars = new double[Populations-1];
 	for(int t = 0; t < Populations-1; ++t)admixtureCovars[t] = Covariates->get(myNumber-1, Covariates->nCols()-Populations+1+t);
       }
-      UpdateScoreTests(options, admixtureCovars, Outcome, C, R, affectedsOnlyTest);
+      UpdateScoreTests(options, admixtureCovars, Outcome, C, R, affectedsOnlyTest, ancestryAssocTest);
       if(options->getTestForLinkageWithAncestry()) {
 	delete[] admixtureCovars;
       }
@@ -839,7 +765,7 @@ void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatr
 }
 
 void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-				  Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest){
+					 Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest){
   bool IamAffected = false;
   try {
     if( options->getTestForAffectedsOnly()){
@@ -863,8 +789,6 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, cons
       
       //Update affecteds only scores      
       if(IamAffected){
-	//	UpdateScoreForLinkageAffectedsOnly(locus, KK, k0, Theta, options->isRandomMatingModel(), 
-	//			   (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
 	affectedsOnlyTest.Update(locus, k0, Theta, options->isRandomMatingModel(), 
 				 !isHaploid && (SexIsFemale  || (Loci->GetChrNumOfLocus(locus) != X_posn)), AProbs );
 
@@ -872,137 +796,15 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, cons
       
       //update ancestry score tests
       if( options->getTestForLinkageWithAncestry() ){
-	UpdateScoreForAncestry(locus, admixtureCovars, R[0]->getDispersion(), 
-			       Outcome->get(myNumber-1, 0) - R[0]->getExpectedOutcome(myNumber-1), 
-			       R[0]->DerivativeInverseLinkFunction(myNumber-1), AProbs);
+	ancestryAssocTest.Update(locus, admixtureCovars, R[0]->getDispersion(), 
+				 Outcome->get(myNumber-1, 0) - R[0]->getExpectedOutcome(myNumber-1), 
+				 R[0]->DerivativeInverseLinkFunction(myNumber-1), AProbs);
       }
       ++locus;
     }//end within-chromosome loop
   } catch (string msg) {
     cout << msg;
   }
-}
-
-void AdmixedIndividual::UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double YMinusEY, double DInvLink, 
-					const vector<vector<double> > AProbs) {
-  //Updates score stats for test for association with locus ancestry
-  //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
-  //Notes: 1/phi is dispersion parameter
-  //       = lambda[0] for linear regression, = 1 for logistic
-  //       YMinusEY = Y - E(Y) = Y - g^{-1}(\eta_i)
-  //       VarX = Var(X)
-  //       DInvLink = {d  g^{-1}(\eta)} / d\eta = derivative of inverse-link function
-  // admixtureCovars are the centred admixture proportions (except first one) used in regression model
-  //Xcov is a vector of covariates
-  //Note that only the intercept and admixture proportions are used.
-  // X is (A, cov)'  
-  
-  double *X = new double [2 * Populations], *Xcopy = new double[2*Populations], *XX = new double[4*Populations*Populations];
-  //Xcopy is an exact copy of X; We need two copies as one will be destroyed
-  double xBx[1];
-  double* BX = new double[Populations];
-  double* VarA = new double[Populations];
- 
-  X[ 2*Populations - 1] = 1;//intercept
-  Xcov[Populations-1] = 1;
-  //set covariates, admixture props for pops 2 to K 
-  for( int k = 0; k < Populations - 1; k++ ){
-    X[ Populations + k] = admixtureCovars[k];//Theta[ k+1 ];
-    BX[k] = Xcov[k] = admixtureCovars[k];//Theta[ k+1 ];
-  }
-
-  for( int k = 0; k < Populations ; k++ ){
-    Xcopy[k] = X[k] = AProbs[1][k] + 2.0 * AProbs[2][k];//Conditional expectation of ancestry
-    VarA[k] = AProbs[1][k]*(1.0 - AProbs[1][k]) + 4.0*AProbs[2][k]*AProbs[0][k];//conditional variances
-  }
-  //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
-  Xcopy[2*Populations-1] = 1;
-  for( int k = 0; k < Populations-1; k++ )Xcopy[k + Populations] = admixtureCovars[k];//Theta[ k+1 ];
-
-  try{
-    // ** compute expectation of score **
-    scale_matrix(Xcopy, YMinusEY*phi, 2*Populations, 1);      //Xcopy *= YMinusEY *phi
-    add_matrix(AncestryScore[locus], Xcopy, 2*Populations, 1);//AncestryScore[locus] += Xcopy
-    // ** compute uncorrected info **
-    matrix_product(X, X, XX, 2*Populations, 1, 2*Populations);        //XX = X'X
-    scale_matrix(XX, DInvLink*phi, 2*Populations, 2*Populations);     //XX = DInvLink * phi * X'X
-    add_matrix(AncestryInfo[locus], XX, 2*Populations, 2*Populations);//AncestryInfo[locus] += XX
-    // ** compute variance of score and correction term for info **    
-    HH_solve(Populations, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
-    matrix_product(Xcov, BX, xBx, 1, Populations, 1);//xBx = Xcov' * BX
-  }
-  catch(string s){
-    delete[] X; delete[] Xcopy;
-    delete[] XX;
-    delete[] BX;
-    delete[] VarA;
-    std::string error_string = "Error in AdmixedIndividual::UpdateScoreForAncestry:\n";
-    error_string.append(s);
-    throw(error_string);//throw error message to top level
-  }
-  for( int k = 0; k < Populations ; k++ ){
-    AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
-    AncestryVarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
-  }
-  delete[] X; delete[] Xcopy;
-  delete[] XX;
-  delete[] BX;
-  delete[] VarA;
-}
-
-void AdmixedIndividual::UpdateB(double DInvLink, double dispersion, const double* admixtureCovars){
-  //increment B using new Admixture Props
-  //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
-    Xcov[Populations-1] = 1;//last entry is intercept
-    for( int k = 0; k < Populations - 1; k++ ){
-      Xcov[k] = admixtureCovars[k]; //centred admixture covariates
-    }
-    double *temp = new double[Populations*Populations];
-    matrix_product(Xcov, Xcov, temp, Populations, 1, Populations);
-    scale_matrix(temp, DInvLink*dispersion, Populations, Populations);
-    add_matrix(B, temp, Populations, Populations);
-    delete[] temp;
-}
-
-// void AdmixedIndividual::SumScoresForLinkageAffectedsOnly(int j, double *SumAffectedsScore, 
-// 				      double *SumAffectedsVarScore, double *SumAffectedsScore2, double *SumAffectedsInfo){
-//   int KK = Populations;
-//   if(KK == 2) KK = 1;
-
-//   for( int k = 0; k < KK; k++ ){
-//     SumAffectedsScore[j*KK +k] += AffectedsScore[j*KK + k];
-//     SumAffectedsVarScore[j*KK +k] += AffectedsVarScore[j * KK +k];
-//     SumAffectedsInfo[j*KK +k] += AffectedsInfo[j * KK +k];
-//     SumAffectedsScore2[j*KK +k] +=  AffectedsScore[j*KK +k] * AffectedsScore[j*KK +k];
-//   }
-// }
-
-void AdmixedIndividual::SumScoresForAncestry(int j, double *SumAncestryScore, double *SumAncestryInfo, double *SumAncestryScore2,
-				      double *SumAncestryVarScore){
-
-  double *score = new double[Populations], *info = new double[Populations*Populations];
-  try{
-    CentredGaussianConditional(Populations, AncestryScore[j], AncestryInfo[j], score, info, 2*Populations );
-  }
-  catch(string s){
-    string error = "Error centring ancestry association scores in Individual:\n";
-    error.append(s);
-    throw(error);
-  }
-  
-  //accumulate over iterations
-  //for two populations, accumulate the scores for second population only
-  int KK = Populations, k1 = 0;
-  if(Populations == 2){KK = 1; k1 = 1;}
-     
-  for( int k = 0; k < KK ; k++ ){
-    SumAncestryScore[j*KK +k] += score[k+k1];
-    SumAncestryInfo[j*KK +k] += info[(k+k1)*Populations +k+k1] + AncestryInfoCorrection[j][k+k1];
-    SumAncestryScore2[j*KK +k] += score[k+k1] * score[k+k1];
-    SumAncestryVarScore[j*KK +k] += AncestryVarScore[j][k+k1];
-  }
-  delete[] score;
-  delete[] info;
 }
 
 // this function does two things:

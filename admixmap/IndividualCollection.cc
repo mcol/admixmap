@@ -103,7 +103,7 @@ int IndividualCollection::getNumDiploidIndividuals(){
 IndividualCollection::~IndividualCollection() {
   //if(worker_rank==0)
   //cout << "\n Deleting individual objects\n" << flush;
-  AdmixedIndividual::DeleteStaticMembers();
+  //  AdmixedIndividual::DeleteStaticMembers();
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers){
     delete _child[i];
   }
@@ -323,13 +323,13 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 */
 void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
 					       const vector<Regression*> &R, 
-					       AffectedsOnlyTest& affectedsOnlyTest, bool ){
+					       AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest, bool ){
   if((iteration %2))
     fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
   if(iteration > options->getBurnIn()){
-    if(iteration %2)//only on odd iterations becsue it is already done on even numbered ones (in SampleAdmixtureWithRandomWalk)
-      AdmixedIndividual::ResetScores(options);
+    if(iteration %2)//only on odd iterations because it is already done on even numbered ones (in SampleAdmixtureWithRandomWalk)
+      ancestryAssocTest.Reset();
     affectedsOnlyTest.Reset();
   }
 
@@ -346,7 +346,7 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
     // ** Update score, info and score^2 for ancestry score tests
     if(iteration > options->getBurnIn() && Populations >1 
        && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-       pchild[i]->UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest);
+      pchild[i]->UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest, ancestryAssocTest);
 
   }
 #ifdef PARALLEL
@@ -355,8 +355,8 @@ void IndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions
 }
 
 void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
-				      const vector<Regression*> &R, const double* const poptheta,
-				      const vector<vector<double> > &alpha, bool anneal){
+							 const vector<Regression*> &R, const double* const poptheta,
+							 const vector<vector<double> > &alpha, AncestryAssocTest& ancestryAssocTest, bool anneal){
   vector<double> lambda;
   vector<const double*> beta;
   
@@ -375,7 +375,7 @@ void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const Ad
   }
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   if(iteration > options->getBurnIn())
-    AdmixedIndividual::ResetScores(options);//because the B array is updated immediately after theta
+    ancestryAssocTest.Reset();
 
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
     for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
@@ -384,7 +384,7 @@ void IndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const Ad
 // ** update theta with random-walk proposal on even-numbered iterations
 	pchild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, 
 			       &Covariates, beta, poptheta, options, alpha, DinvLink, 
-			       dispersion, true, _anneal);
+			       dispersion, ancestryAssocTest, true, _anneal);
     }
 }
 
@@ -421,7 +421,7 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
 void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* const options,
 					    const vector<Regression*> &R, const double* const poptheta,
 					    const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
-					    bool anneal=false){
+					    AncestryAssocTest& ancestryAssocTest, bool anneal=false){
   //sufficient statistics have been stored in Individuals
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 
@@ -448,7 +448,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
       if(Populations >1 && !(iteration %2))
 	TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
 				beta, poptheta, options, alpha, 0.0, 
-				dispersion, true, anneal);
+				dispersion, ancestryAssocTest, true, anneal);
       // ** Run HMM forward recursions and Sample Locus Ancestry
       if(Populations >1)TestInd[i]->SampleLocusAncestry(options);
       // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
@@ -460,7 +460,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
       // ** update admixture props with conjugate proposal on odd-numbered iterations
       if((iteration %2) && Populations >1 ) 
 	TestInd[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-				beta, poptheta, options, alpha, 0.0, dispersion, false, anneal);
+				beta, poptheta, options, alpha, 0.0, dispersion, ancestryAssocTest, false, anneal);
       // ** Sample missing values of outcome variable
       //TestInd[i]->SampleMissingOutcomes(&Outcome, R);
       
@@ -479,7 +479,7 @@ void IndividualCollection::SampleParameters(int iteration, const AdmixOptions* c
            double DinvLink = 1.0;
        if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
         pchild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates, &Covariates, 
-     		     beta, poptheta, options, alpha, DinvLink, dispersion, false, anneal);
+			       beta, poptheta, options, alpha, DinvLink, dispersion, ancestryAssocTest, false, anneal);
             }
     // ** Sample missing values of outcome variable
     _child[i]->SampleMissingOutcomes(&Outcome, R);

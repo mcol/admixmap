@@ -25,16 +25,6 @@
 using namespace std;
 
 ScoreTests::ScoreTests(){
-  SumAncestryScore = 0;
-  SumAncestryInfo = 0;
-  SumAncestryVarScore = 0;
-  SumAncestryScore2 = 0;
-
-//   SumAffectedsScore = 0;
-//   SumAffectedsScore2 = 0;
-//   SumAffectedsInfo = 0;
-//   SumAffectedsVarScore = 0;
-
   LocusLinkageAlleleScore = 0;
   LocusLinkageAlleleInfo = 0;
   SumLocusLinkageAlleleScore2 = 0;
@@ -58,19 +48,6 @@ ScoreTests::ScoreTests(){
 }
 
 ScoreTests::~ScoreTests(){
-  //delete arrays for ancestry assoc score test
-  delete[] SumAncestryScore;
-  delete[] SumAncestryInfo;
-  delete[] SumAncestryVarScore;
-  delete[] SumAncestryScore2;
-
-
-//   //delete arrays for affecteds-only score test
-//   delete[] SumAffectedsScore;
-//   delete[] SumAffectedsScore2;
-//   delete[] SumAffectedsInfo;
-//   delete[] SumAffectedsVarScore;
-
   //delete arrays for allelic assoc score test
   delete[] dim_;
   delete[] locusObsIndicator;
@@ -149,19 +126,6 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     |affecteds only linkage with ancestry |
     ------------------------------------*/ 
   if( options->getTestForAffectedsOnly() ){
- //    OpenFile(Log, &affectedsOnlyScoreStream, options->getAffectedsOnlyScoreFilename(), "Affected-only tests for association");
-//     //KK is the number of populations for which to perform test. For 2way admixture, we only want 2nd population.
-//     int KK = K;
-//     if(K == 2)KK = 1;
-    
-//     SumAffectedsScore2 = new double[L * KK];
-//     SumAffectedsScore = new double[L * KK];
-//     SumAffectedsVarScore = new double[L * KK];
-//     SumAffectedsInfo = new double[L * KK];
-//     fill(SumAffectedsScore, SumAffectedsScore +L*KK, 0.0);
-//     fill(SumAffectedsScore2, SumAffectedsScore2 +L*KK, 0.0);
-//     fill(SumAffectedsInfo, SumAffectedsInfo + L*KK, 0.0);
-//     fill(SumAffectedsVarScore, SumAffectedsVarScore + L*KK, 0.0);
     AffectedsOnlyScoreTest.Initialise(options->getAffectedsOnlyScoreFilename(), K, L, Log);
   }
 
@@ -169,18 +133,7 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     | Linkage with ancestry  |
     -----------------------*/
   if( options->getTestForLinkageWithAncestry() ){
-    OpenFile(Log, &ancestryAssociationScoreStream, options->getAncestryAssociationScoreFilename(), "Tests for locus linkage");
-	
-    int KK = K;
-    if(K == 2)KK = 1;//only keeping scores for second population when 2 populations
-    SumAncestryScore = new double[L * KK];
-    SumAncestryInfo = new double[L * KK];
-    SumAncestryScore2 = new double[L * KK];
-    SumAncestryVarScore = new double[L * KK];
-    fill(SumAncestryScore, SumAncestryScore +L*KK, 0.0);
-    fill(SumAncestryScore2, SumAncestryScore2 +L*KK, 0.0);
-    fill(SumAncestryInfo, SumAncestryInfo + L*KK, 0.0);
-    fill(SumAncestryVarScore, SumAncestryVarScore + L*KK, 0.0);
+    AncestryAssocScoreTest.Initialise(options->getAncestryAssociationScoreFilename(), K, L, Log);
   }
   
   /*----------------------
@@ -489,7 +442,8 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	| Linkage with ancestry  |
 	-----------------------*/
       if( options->getTestForLinkageWithAncestry() ){
-	AdmixedIndividual::SumScoresForAncestry(j, SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
+	//AdmixedIndividual::SumScoresForAncestry(j, SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
+	AncestryAssocScoreTest.Accumulate(j);
       } 
       /*------------------------------------
 	|affecteds-only linkage with ancestry |
@@ -742,35 +696,25 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
   
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
+    const char* finalfilename = 0;
     if(final){
       string filename(options->getResultsDir());
       filename.append("/TestsAncestryAssocFinal.txt");
-      outfile = new ofstream(filename.c_str(), ios::out);
-      *outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
-    }
-    else outfile = &ancestryAssociationScoreStream;
-    OutputTestsForLocusLinkage( iterations, outfile, PLabels,
-				SumAncestryScore, SumAncestryVarScore,
-				SumAncestryScore2, SumAncestryInfo, sep );
-    if(final)delete outfile;
+      finalfilename = filename.c_str();
+     }
+    AncestryAssocScoreTest.Output(iterations, PLabels, *Lociptr, final, finalfilename);
   }
   //affectedonly
   if( options->getTestForAffectedsOnly() ){
     const char* finalfilename = 0;
-     if(final){
-       string filename(options->getResultsDir());
-       filename.append("/TestsAffectedsOnlyFinal.txt");
-       finalfilename = filename.c_str();
-       //       outfile = new ofstream(filename.c_str(), ios::out);
-       //*outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
-     }//else outfile = &affectedsOnlyScoreStream;
-//     OutputTestsForLocusLinkage( iterations, outfile, PLabels, 
-// 				SumAffectedsScore, SumAffectedsVarScore,
-// 				SumAffectedsScore2, SumAffectedsInfo, sep );
-    //if(final)delete outfile;
+    if(final){
+      string filename(options->getResultsDir());
+      filename.append("/TestsAffectedsOnlyFinal.txt");
+      finalfilename = filename.c_str();
+    }
     AffectedsOnlyScoreTest.Output(iterations, PLabels, *Lociptr, final, finalfilename);
   }
-
+  
   //residual allelic association
   ResidualAllelicAssocScoreTest.Output(iterations, final, LocusLabels);
   
@@ -882,54 +826,6 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
   delete[] ObservedInfo;
 }
 
-// the next function is for ancestry assoc tests
-void ScoreTests::OutputTestsForLocusLinkage( int iterations, ofstream* outputstream, const Vector_s& PopLabels,
-					     const double* Score, const double* VarScore,
-					     const double* Score2, const double* Info, string separator )
-//used for affectedsonly test and ancestry association test
-//Score2 = Score^2
-{
-  //when there are two populations: 
-  //we only compute scores for the 2nd population.
-  
-  int KK = options->getPopulations(), k1 = 0;
-  
-  if(KK == 2 ){
-    KK = 1;k1 = 1;
-  }
-  
-  double VU = 0.0, EU = 0.0, missing = 0.0, complete = 0.0;
-  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-    for( int k = 0; k < KK; k++ ){//end at 1 for 2pops
-      *outputstream << "\"" << (*Lociptr)(j)->GetLabel(0) << "\"" << separator;
-      *outputstream << "\"" << PopLabels[k+k1] << "\"" << separator; //need offset to get second poplabel for 2pops
-      
-      EU = Score[ j*KK + k] / ( iterations );
-      VU = VarScore[ j*KK + k ] / ( iterations );
-      missing = Score2[ j*KK + k ] / ( iterations ) - EU * EU + VU;
-      complete =  Info[ j*KK + k ] / ( iterations );
-
-      *outputstream << double2R(EU, 3)                                << separator//score
-		    << double2R(complete, 3)                          << separator//complete info
-		    << double2R(complete - missing, 3)                << separator//observed info
-		    << double2R(100*(complete - missing)/complete, 2) << separator;//%observed info
-      if(complete > 0.0){
-	*outputstream << double2R(100*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
-		      << double2R(100*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
-	if(complete - missing > 0.0){
-	  double zscore = EU / sqrt( complete - missing );
-	  double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	  *outputstream << double2R(zscore,3)  << separator << double2R(pvalue) << separator << endl;
-	}
-	else *outputstream << "NaN" << separator << "NaN" << separator << endl;
-      }
-      else{
-	*outputstream << "NaN" << separator << "NaN" << separator << "NaN" << separator << "NaN" << separator << endl; 
-      }
-    }
-  }
-}
-
 void ScoreTests::ROutput(){
   const int numPrintedIterations = NumOutputs;//(options->getTotalSamples() - options->getBurnIn()) / (options->getSampleEvery() * 10);
   /**
@@ -985,26 +881,7 @@ void ScoreTests::ROutput(){
    * R-matrix previously written to ancestryAssociationScoreStream
    */
   if (options->getTestForLinkageWithAncestry()){
-    int KK = options->getPopulations();
-    if(KK ==2 )KK = 1;
-    vector<int> dimensions(3,0);
-    dimensions[0] = 10;
-    dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * KK;
-    dimensions[2] = (int)(numPrintedIterations);
-    
-    vector<string> labels(dimensions[0],"");
-    labels[0] = "Locus";
-    labels[1] = "Population";
-    labels[2] = "Score";
-    labels[3] = "CompleteInfo";
-    labels[4] = "ObservedInfo";
-    labels[5] = "PercentInfo";
-    labels[6] = "Missing1";
-    labels[7] = "Missing2";
-    labels[8] = "StdNormal";
-    labels[9] = "PValue";
-    
-    R_output3DarrayDimensions(&ancestryAssociationScoreStream,dimensions,labels);
+    AncestryAssocScoreTest.ROutput(numPrintedIterations);
   }
   
   /**
@@ -1012,25 +889,6 @@ void ScoreTests::ROutput(){
    * R-matrix previously written to affectedsOnlyScoreStream
    */
   if (options->getTestForAffectedsOnly()){
-//     int KK = options->getPopulations();
-//     if(KK ==2 )KK = 1;
-//     vector<int> dimensions(3,0);
-//     dimensions[0] = 10;
-//     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() * KK;
-//     dimensions[2] = (int)(numPrintedIterations);
-    
-//     vector<string> labels(dimensions[0],"");
-//     labels[0] = "Locus";
-//     labels[1] = "Population";
-//     labels[2] = "Score";
-//     labels[3] = "CompleteInfo";
-//     labels[4] = "ObservedInfo";
-//     labels[5] = "PercentInfo";
-//     labels[6] = "Missing1";
-//     labels[7] = "Missing2"; 
-//     labels[8] = "StdNormal";
-//     labels[9] = "PValue";
-//    R_output3DarrayDimensions(&affectedsOnlyScoreStream,dimensions,labels);
     AffectedsOnlyScoreTest.ROutput(numPrintedIterations);
   }
 
@@ -1090,8 +948,11 @@ string ScoreTests::double2R( double x, int precision )
   }
 }
 AffectedsOnlyTest& ScoreTests::getAffectedsOnlyTest(){
-  return AffectedsOnlyScoreTest;}
-
+  return AffectedsOnlyScoreTest;
+}
+AncestryAssocTest& ScoreTests::getAncestryAssocTest(){
+  return AncestryAssocScoreTest;
+}
 
 void ScoreTests::OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels){
   AffectedsOnlyScoreTest.OutputLikRatios(filename, iterations, PopLabels, *Lociptr);

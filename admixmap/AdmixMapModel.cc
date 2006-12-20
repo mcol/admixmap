@@ -67,8 +67,8 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(isMaster || isWorker){
     if(options->getPopulations() >1 && !(iteration %2))
-      IC->SampleAdmixtureWithRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), anneal);
-      IC->SampleLocusAncestry(iteration, options, R, Scoretests.getAffectedsOnlyTest(), anneal);
+      IC->SampleAdmixtureWithRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), Scoretests.getAncestryAssocTest(),anneal);
+    IC->SampleLocusAncestry(iteration, options, R, Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
    }
 
   if(isWorker || isFreqSampler) {
@@ -115,7 +115,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
   
   // sample individual admixture and sum-intensities 
   IC->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),  
-		       L->getrhoalpha(), L->getrhobeta(), anneal);
+		       L->getrhoalpha(), L->getrhobeta(), Scoretests.getAncestryAssocTest(),anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   

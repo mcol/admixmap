@@ -18,6 +18,7 @@
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 #include "AffectedsOnlyTest.h"
+#include "AncestryAssocTest.h"
 
 ///Class to represent an individual in an admixture model
 class AdmixedIndividual : public Individual 
@@ -39,7 +40,7 @@ public:
 
   void ResetSufficientStats();
   void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
-		    const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest);
+		    const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
   void SampleJumpIndicators(bool sampleArrivals);
   void SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta,  
 		 bool updateSumLogRho);
@@ -47,7 +48,7 @@ public:
 		    const DataType* const OutcomeType, const std::vector<double> lambda, const int NumCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-		    double DInvLink, const double dispersion, const bool RW, const bool anneal);
+		    double DInvLink, const double dispersion, AncestryAssocTest& ancestryAssocTest,const bool RW, const bool anneal);
 
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);  
@@ -57,7 +58,6 @@ public:
   void updateChib(const AdmixOptions* const options, const vector<vector<double> > &alpha, double rhoalpha, 
 	    double rhobeta, chib *MargLikelihood, AlleleFreqs *A);
 
-  static void ResetScores(const AdmixOptions* const options);
   static void SumScoresForLinkageAffectedsOnly(int j, double *SumAffectedsScore, double *SumAffectedsVarScore, 
 					       double *SumAffectedsScore2, double *SumAffectedsInfo);
   static void SumScoresForAncestry(int j, double *SumAncestryScore, double *SumAncestryInfo, 
@@ -86,22 +86,6 @@ private:
   int w, NumberOfUpdates;
   double step, step0;
   
-  //score test objects, static so they can accumulate sums over individuals
-  //  static double *AffectedsScore;
-  //  static double *AffectedsVarScore;
-  //  static double *AffectedsInfo;
-  static double **AncestryScore;
-  static double **AncestryInfo;
-  static double **AncestryVarScore;
-  static double **AncestryInfoCorrection;
-  static double *B;//used for ancestry score test
-  static double *PrevB;//holds B for previous iteration while B accumulates for this iteration
-  static double *Xcov; //column matrix of covariates used to calculate B and for score test, 
-                       //static only for convenience since it is reused each time
-  
-  //  static double *LikRatio1;
-  //  static double *LikRatio2;
- 
   void InitialiseSumIntensities(const AdmixOptions* const options); 
   void setAdmixtureProps(const double* const, size_t);
   //void setAdmixturePropsX(const double* const, size_t);
@@ -131,13 +115,8 @@ private:
   double LogPosteriorRho_LogBasis(const AdmixOptions* const options, const vector<double> rho, 
 				  double rhoalpha, double rhobeta)const;
   
-  //  static void UpdateScoreForLinkageAffectedsOnly(unsigned int locus, int Pops, int k0, const double* const _Theta_, 
-  //					 bool RandomMatingModel, bool diploid, const vector<vector<double> > AProbs);
-  void UpdateScoreForAncestry(int locus, const double* admixtureCovars, double phi, double EY, double DInvLink, 
-			      const vector<vector<double> > AProbs);
-  void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
   void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-				  Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest);
+			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
   double getLogLikelihood(const AdmixOptions* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
 };

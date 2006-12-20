@@ -20,6 +20,7 @@
 #include "common.h"
 #include "AdmixtureAssocTest.h"
 #include "AffectedsOnlyTest.h" 
+#include "AncestryAssocTest.h"
 #include "ResidualLDTest.h"
 
 /**
@@ -52,19 +53,10 @@ public:
   ~ScoreTests();
 
   AffectedsOnlyTest& getAffectedsOnlyTest();
+  AncestryAssocTest& getAncestryAssocTest();
   void OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels);
 
 private:
-  double* SumAncestryScore;
-  double* SumAncestryInfo;
-  double* SumAncestryVarScore;
-  double* SumAncestryScore2;
-
-//   double* SumAffectedsScore2;
-//   double* SumAffectedsVarScore;
-//   double* SumAffectedsScore;
-//   double* SumAffectedsInfo;
-
   double **LocusLinkageAlleleScore;
   double **LocusLinkageAlleleInfo;
   double **SumLocusLinkageAlleleScore2;
@@ -79,9 +71,7 @@ private:
   double **SumScore2WithinHaplotype;
   double **SumInfoWithinHaplotype;
 
-  std::ofstream ancestryAssociationScoreStream;
   std::ofstream HaplotypeAssocScoreStream;
-  //std::ofstream affectedsOnlyScoreStream;
   std::ofstream allelicAssocScoreStream;
 
   const AdmixOptions *options;
@@ -93,9 +83,6 @@ private:
 
 //OUTPUT
   void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
-  void OutputTestsForLocusLinkage( int iteration, ofstream* outputstream, const Vector_s& PopLabels,
-			      const double* Score, const double* VarScore,
-				   const double* Score2, const double* Info, string sep );
 
   void OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
 			const double* score, const double* scoresq, const double* info, bool final, unsigned );
@@ -115,8 +102,6 @@ private:
 
   void UpdateScoreForAllelicAssociation( const Individual* const , double, double, double, bool);
 
-  static int ResidualAlleleInfoIndex(int M, int N, int m1, int n1, int m2, int n2);
-
   static std::string double2R( double );
   static std::string double2R( double x, int precision );
 
@@ -127,6 +112,7 @@ private:
   ResidualLDTest ResidualAllelicAssocScoreTest;//here temporarily, until rest of scoretests classes have been created
   AdmixtureAssocTest AdmixtureAssocScoreTest;
   AffectedsOnlyTest AffectedsOnlyScoreTest;
+  AncestryAssocTest AncestryAssocScoreTest;
 
 };
 

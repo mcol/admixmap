@@ -165,7 +165,7 @@ export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 objects	= admixmap.o Model.o AdmixMapModel.o HapMixModel.o PopAdmix.o PopHapMix.o AlleleFreqs.o HapMixFreqs.o\
  Options.o AdmixOptions.o Genome.o Chromosome.o CompositeLocus.o\
  IndividualCollection.o HapMixIndividualCollection.o Individual.o AdmixedIndividual.o HMM.o IndAdmixOutputter.o chib.o StratificationTest.o\
- ScoreTestBase.o ScoreTests.o MantelHaenszelTest.o AdmixtureAssocTest.o AffectedsOnlyTest.o\
+ ScoreTestBase.o ScoreTests.o MantelHaenszelTest.o AdmixtureAssocTest.o AffectedsOnlyTest.o AncestryAssocTest.o\
  ResidualLDTest.o MisSpecAlleleFreqTest.o DispersionTest.o HWTest.o InputData.o AlleleFreqSampler.o Comms.o GenotypeProbOutputter.o
 
 all:	admixmap hapmixmap
