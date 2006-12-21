@@ -309,6 +309,15 @@ int Options::assign(OptionPair& opt, const string value){
   else if(opt.second =="uivector"){
     StringConvertor::StringToVec(value, *((vector<unsigned>*)opt.first));
   }
+  else if(opt.second == "range"){//may be range or list of numbers
+    vector<unsigned>* range = (vector<unsigned>*)opt.first;
+    string::size_type colon = value.find(":" , 0);
+    if(colon != string::npos){
+       for(unsigned i = (unsigned)atoi((value.substr(0, colon)).c_str()); i <= (unsigned)atoi((value.substr(colon+1)).c_str()); ++i)
+	    range->push_back(i);
+	  }
+      else StringConvertor::StringToVec(value, *range);
+  }
   else if(opt.second =="old"){//deprecated option - return signal to erase
     return 2;
   }

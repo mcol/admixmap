@@ -467,8 +467,8 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["indadmixmodefile"] = OptionPair(&IndAdmixModeFilename, "outputfile");
   ProgOptions["testgenotypesfile"] = OptionPair(0, "null");
   ProgOptions["locusfortest"] = OptionPair(&LocusForTest, "int");
-  ProgOptions["maskedindivs"] = OptionPair(&MaskedIndividuals, "uivector");
-  ProgOptions["maskedloci"] = OptionPair(&MaskedLoci, "uivector");
+  ProgOptions["maskedindivs"] = OptionPair(&MaskedIndividuals, "range");
+  ProgOptions["maskedloci"] = OptionPair(&MaskedLoci, "range");
   // Other options
   ProgOptions["chib"] = OptionPair(&chibIndicator, "bool");// Marginal likelihood by Chib algo
   ProgOptions["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");// ML for one individual in a collection 
