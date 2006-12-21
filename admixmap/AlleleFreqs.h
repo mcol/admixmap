@@ -169,7 +169,7 @@ public:
 
   void OutputFST();
 
-  void LoadAlleleFreqs(AdmixOptions* const options, InputData* const data);
+  void LoadAlleleFreqs(AdmixOptions* const options, InputData* const data, LogWriter &Log);
   ///resets Allelecounts to zero at start of iteration
   void ResetAlleleCounts(unsigned K);
   bool IsRandom()const;
@@ -271,7 +271,7 @@ private:
 
   void OpenFSTFile(const AdmixOptions* const options, LogWriter &Log); 
 
-  void LoadInitialAlleleFreqs(const char* filename);
+  void LoadInitialAlleleFreqs(const char* filename, LogWriter &Log);
   void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);
   void SetDefaultAlleleFreqs(int i);
   void SetDefaultPriorParams(int i, double defaultpriorparams);

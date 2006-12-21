@@ -125,7 +125,7 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   hapmixmodel = options->getHapMixModelIndicator();
   
   if(Comms::isFreqSampler()){
-    LoadAlleleFreqs(options, data);
+    LoadAlleleFreqs(options, data, Log);
     Log.setDisplayMode(On);
     //open allelefreqoutputfile
     if(IsRandom() ){
@@ -311,7 +311,7 @@ void AlleleFreqs::PrintPrior(const Vector_s& PopLabels, LogWriter& Log)const{
   }
 }
 
-void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_)
+void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_, LogWriter &Log)
 {
   int newrow;
   int row = 0;
@@ -377,7 +377,7 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
       file = false;
       if(strlen( options->getAlleleFreqFilename() )){
 	  useinitfile=true;
-	  LoadInitialAlleleFreqs(options->getAlleleFreqFilename());
+	  LoadInitialAlleleFreqs(options->getAlleleFreqFilename(), Log);
       }
     }
     else
@@ -456,10 +456,10 @@ void AlleleFreqs::AllocateAlleleCountArrays(unsigned K){
 
 ///reads initial values of allele freqs from file
 ///note: no checking of this file is done; ok if produced by function OutputFinalAlleleFreqs
-void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename){
+void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, LogWriter &Log){
     ifstream infile(filename);
     if(infile.is_open()){
-	cout << "Reading initial values of allele freqs from " << filename << endl;
+      Log << Quiet  << "Reading initial values of allele freqs from " << filename << "\n";
     double phi = 0.0;
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
 	const int NumStates = Loci->GetNumberOfStates(locus);
@@ -480,7 +480,7 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename){
     infile.close();
     }
     else{
-	cout << "Error: cannot open " << filename << endl;
+      Log << On << "Error: cannot open " << filename << "\n";
 	exit(1);
     }
 }
