@@ -27,7 +27,7 @@ public:
   //Individual* getIndividual(int)const;
   int getNumberOfIndividualsForScoreTests()const;
   int getFirstScoreTestIndividualNumber()const;
-  void AccumulateConditionalGenotypeProbs(const AdmixOptions* const options);
+  void AccumulateConditionalGenotypeProbs(const AdmixOptions* const options, const Genome& Loci);
   void OutputCGProbs(const char* filename);
 private:
   unsigned NumCaseControls;

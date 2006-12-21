@@ -13,6 +13,9 @@ void GenotypeProbOutputter::Update(unsigned i, unsigned j, const CompositeLocus*
   //TODO: shortcut - HapPairs will always be the same
   Locus->getConditionalHapPairProbs(Probs, HapPairs, ancestry);
 
+  //  cout << Probs[0] << " " << Probs[1] << " " << Probs[2] << " " << Probs[3] << endl;
+  //cout << "j= " << j << " i= " << i << " " << (j*NumMaskedIndivs +i )*3 << " ";
+  //cout << "J = " << NumMaskedLoci << " I = " << NumMaskedIndivs << " " << SumProbs.size() << " "<< SumProbs[(j*NumMaskedIndivs +i )*3 ] << endl;
   SumProbs[(j*NumMaskedIndivs +i )*3 ] += Probs[0];//genotype "1,1"
   SumProbs[(j*NumMaskedIndivs +i )*3 +1] += Probs[1] + Probs[2];//genotype "1,2"
   SumProbs[(j*NumMaskedIndivs +i )*3 +2] += Probs[3];//genotype "2,2"
@@ -56,6 +59,6 @@ void GenotypeProbOutputter::Output(const char* filename){
       outfile << ",";
     }
   }
-  outfile << "), \"Individual\", \"Locus\"))" << endl;
+  outfile << "), numeric(" << dim[1] << "), numeric(" << dim[2] << ")))" << endl;
   outfile.close();
 }

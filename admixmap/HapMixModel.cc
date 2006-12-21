@@ -97,7 +97,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
   
   //accumulate conditional genotype probs for masked individuals at masked loci
   if(options->OutputCGProbs() && iteration > options->getBurnIn())
-    IC->AccumulateConditionalGenotypeProbs(options);
+    IC->AccumulateConditionalGenotypeProbs(options, Loci);
 #ifdef PARALLEL
   if(isWorker || isFreqSampler){
     A.SumAlleleCountsOverProcesses(options->getPopulations());

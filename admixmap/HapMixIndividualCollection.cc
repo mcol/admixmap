@@ -85,12 +85,19 @@ int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()const{
   else return 0;
 }
 
-void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const AdmixOptions* const options){
+void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const AdmixOptions* const options, const Genome& Loci){
   const std::vector<unsigned>& MaskedLoci = options->getMaskedLoci();
   const std::vector<unsigned>& MaskedIndividuals = options->getMaskedIndividuals();
-  for(std::vector<unsigned>::const_iterator j = MaskedLoci.begin(); j!= MaskedLoci.end(); ++j){
-    for(std::vector<unsigned>::const_iterator i = MaskedIndividuals.begin(); i!= MaskedIndividuals.end(); ++i)
-      _child[*i]->AccumulateConditionalGenotypeProbs(GPO, *j);
+  int anc[2];
+  unsigned j = 0;
+  for(std::vector<unsigned>::const_iterator locus = MaskedLoci.begin(); locus!= MaskedLoci.end(); ++j, ++locus)
+    if (*locus < Loci.GetNumberOfCompositeLoci()){
+      unsigned i = 0;
+      for(std::vector<unsigned>::const_iterator indiv = MaskedIndividuals.begin(); indiv!= MaskedIndividuals.end(); ++i, ++indiv)
+	if(*indiv < size){
+	  _child[*indiv-1]->GetLocusAncestry(*locus, anc);
+	  GPO.Update(i, j, Loci(*locus), _child[*indiv-1]->getPossibleHapPairs(*locus), anc);
+    }
   }
 }
 void HapMixIndividualCollection::OutputCGProbs(const char* filename){

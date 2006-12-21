@@ -127,7 +127,7 @@ public:
   //functions specific to hapmixmodel
   virtual void SampleLocusAncestry(const AdmixOptions* const ){};
   virtual const int* getSumAncestry()const{return 0;};
-  virtual void AccumulateConditionalGenotypeProbs(const AdmixOptions* const ){};
+  virtual void AccumulateConditionalGenotypeProbs(const AdmixOptions* const, const Genome& ){};
   virtual void OutputCGProbs(const char* ){};
 
 protected:

@@ -484,16 +484,6 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
 }
 #endif
 
-//TODO: alternative for parallel version
-//this should only be called for individuals with masked (set to missing) genotypes
-void Individual::AccumulateConditionalGenotypeProbs(GenotypeProbOutputter& GPO, unsigned locus)const{
-  //if(GenotypesMissing[j][jj]){
-    int anc[2];//to store ancestry states
-    GetLocusAncestry(locus,anc);
-    GPO.Update(myNumber-1, locus, (*Loci)(locus), PossibleHapPairs[locus], anc);
-    //}
-}
-
 void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
 				 const double* const theta, const vector<double> rho) {
   //Updates inputs to HMM for chromosome j
