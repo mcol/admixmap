@@ -84,19 +84,20 @@ int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()const{
   if(NumCaseControls > 0)return size - NumCaseControls;
   else return 0;
 }
-
+//TODO: alternative for parallel version
 void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const AdmixOptions* const options, const Genome& Loci){
   const std::vector<unsigned>& MaskedLoci = options->getMaskedLoci();
   const std::vector<unsigned>& MaskedIndividuals = options->getMaskedIndividuals();
   int anc[2];
   unsigned j = 0;
+  //NB: indices count from 1 so must be offset by -1
   for(std::vector<unsigned>::const_iterator locus = MaskedLoci.begin(); locus!= MaskedLoci.end(); ++j, ++locus)
-    if (*locus < Loci.GetNumberOfCompositeLoci()){
+    if (*locus <= Loci.GetNumberOfCompositeLoci()){
       unsigned i = 0;
       for(std::vector<unsigned>::const_iterator indiv = MaskedIndividuals.begin(); indiv!= MaskedIndividuals.end(); ++i, ++indiv)
-	if(*indiv < size){
-	  _child[*indiv-1]->GetLocusAncestry(*locus, anc);
-	  GPO.Update(i, j, Loci(*locus), _child[*indiv-1]->getPossibleHapPairs(*locus), anc);
+	if(*indiv <= size){
+	  _child[*indiv-1]->GetLocusAncestry(*locus-1, anc);
+	  GPO.Update(i, j, Loci(*locus-1), _child[*indiv-1]->getPossibleHapPairs(*locus-1), anc);
     }
   }
 }
