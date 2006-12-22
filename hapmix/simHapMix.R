@@ -68,7 +68,7 @@ distanceFromLast <- function(v.Chr, v.Position) {
 ## chromosome lengths in cM
 #chr.L <-
 ##c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-chr.L <- c(10, 10) ## trial runs with 2 chr
+chr.L <- c(1, 1) ## trial runs with 2 chr
 #chr.L <- 20
 numChr <- length(chr.L)
 
@@ -159,7 +159,7 @@ genotypes <- data.frame(id, genotypes.diploid, row.names=NULL)
 write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
 
 ##write haploid genotypes
-id = as.character(seq(1:2*N))
+id = as.character(seq(1:(2*N)))
 sex <- rep(1, 2*N)##for all males, irrelevant if no X-chromosome
 ##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
 genotypes <- data.frame(id, genotypes.haploid, row.names=NULL)
