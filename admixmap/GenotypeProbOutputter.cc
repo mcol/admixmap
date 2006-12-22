@@ -27,6 +27,7 @@ void GenotypeProbOutputter::Output(const char* filename){
   outfile.open(filename);
   outfile << "structure(.Data=c(" << endl;
   //average over iterations
+  NumIterations /= NumMaskedIndividuals * NumMaskedLoci;
   for(vector<double>::iterator i = SumProbs.begin(); i != SumProbs.end(); ++i)*i /= (double)NumIterations;
   //output to file, followed by comma
   copy(SumProbs.begin(), SumProbs.end()-1, ostream_iterator<double>(outfile, ", "));
