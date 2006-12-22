@@ -10,6 +10,7 @@ void GenotypeProbOutputter::Initialise(unsigned Nindivs, unsigned Nloci){
 }
 
 void GenotypeProbOutputter::Update(unsigned i, unsigned j, const CompositeLocus* Locus, const std::vector<hapPair > &HapPairs, const int ancestry[2]){
+#ifdef PARALLEL
   //TODO: shortcut - HapPairs will always be the same
   Locus->getConditionalHapPairProbs(Probs, HapPairs, ancestry);
 
@@ -20,6 +21,7 @@ void GenotypeProbOutputter::Update(unsigned i, unsigned j, const CompositeLocus*
   SumProbs[(j*NumMaskedIndivs +i )*3 +1] += Probs[1] + Probs[2];//genotype "1,2"
   SumProbs[(j*NumMaskedIndivs +i )*3 +2] += Probs[3];//genotype "2,2"
   ++NumIterations;
+#endif
 }
 
 ///Output Probs as R object
@@ -27,7 +29,7 @@ void GenotypeProbOutputter::Output(const char* filename){
   outfile.open(filename);
   outfile << "structure(.Data=c(" << endl;
   //average over iterations
-  NumIterations /= NumMaskedIndividuals * NumMaskedLoci;
+  NumIterations /= NumMaskedIndivs * NumMaskedLoci;
   for(vector<double>::iterator i = SumProbs.begin(); i != SumProbs.end(); ++i)*i /= (double)NumIterations;
   //output to file, followed by comma
   copy(SumProbs.begin(), SumProbs.end()-1, ostream_iterator<double>(outfile, ", "));
