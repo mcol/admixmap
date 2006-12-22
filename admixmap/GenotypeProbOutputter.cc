@@ -10,7 +10,7 @@ void GenotypeProbOutputter::Initialise(unsigned Nindivs, unsigned Nloci){
 }
 
 void GenotypeProbOutputter::Update(unsigned i, unsigned j, const CompositeLocus* Locus, const std::vector<hapPair > &HapPairs, const int ancestry[2]){
-#ifdef PARALLEL
+#ifndef PARALLEL
   //TODO: shortcut - HapPairs will always be the same
   Locus->getConditionalHapPairProbs(Probs, HapPairs, ancestry);
 
