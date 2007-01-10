@@ -55,16 +55,13 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
     if( options->isRandomMatingModel() ){
       obs *= 2;//for 2 gametes per individual
     } 
-    if(!options->getHapMixModelIndicator())PopAdmixSampler.SetSize( obs, K );
+    //set values for sampler
+    const vector<float>& samplerparams = options->getPopAdmixSamplerParams();
+    const size_t size = samplerparams.size();
+    float initial_stepsize = size? samplerparams[0] : 0.05;
+    unsigned num_leapfrogs = size? (unsigned)samplerparams[1] : 20;
+    PopAdmixSampler.SetSize( obs, K, initial_stepsize, num_leapfrogs );
     
-    //initialise global admixture proportions
-    if(options->getHapMixModelIndicator()){
-      globaltheta = new double[K];
-      //globalthetaproposal = new double[K];
-      fill(globaltheta, globaltheta+K, 1.0/(double)K);
-      //ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
-    }
-
     if(Comms::isMaster())SumLogRho.push_back(0.0);
     // ** get prior on sum-of-intensities parameter rho or on rate parameter of its population distribution
 
@@ -90,7 +87,7 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
 	//need to choose sensible value for this initial RW sd
 	step = step0;
 	const vector<float>& rhosamplerparams = options->getrhoSamplerParams();
-	size_t size = rhosamplerparams.size();
+	const size_t size = rhosamplerparams.size();
 	float initial_stepsize = size? rhosamplerparams[0] : step0;
 	float min_stepsize = size? rhosamplerparams[1] : 0.01;
 	float max_stepsize = size? rhosamplerparams[2] : 10;

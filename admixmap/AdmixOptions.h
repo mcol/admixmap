@@ -54,6 +54,7 @@ public:
   double getEtaMean() const;
   double getEtaVar() const;
   const vector<float>& getrhoSamplerParams()const;
+  const vector<float>& getPopAdmixSamplerParams()const;
 
   //indicators and model options
   bool getCorrelatedAlleleFreqs() const;
@@ -152,7 +153,8 @@ private:
   std::vector<double> allelefreqprior;
   double etamean, etavar;//gamma parameters for dispersion parameter
 
-  std::vector<float> rhoSamplerParams;
+  std::vector<float> rhoSamplerParams;//parameters for sampler of population sumintensities
+  std::vector<float> popAdmixSamplerParams;//parameters for sampler of population admixture
   string AffectedsOnlyScoreFilename;
   string AlleleFreqPriorOutputFilename;
   string AlleleFreqScoreFilename;

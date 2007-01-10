@@ -391,6 +391,9 @@ bool AdmixOptions::PopAdmixturePropsAreEqual()const{
 const vector<float>& AdmixOptions::getrhoSamplerParams()const{
   return rhoSamplerParams;
 }
+const vector<float>& AdmixOptions::getPopAdmixSamplerParams()const{
+  return popAdmixSamplerParams;
+}
 
 const std::vector<double> & AdmixOptions::getAlleleFreqPriorParams()const{
   return allelefreqprior;
@@ -452,6 +455,7 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["initialhapmixlambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");
   //sampler settings
   ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
+  ProgOptions["popadmixsamplerparams"] = OptionPair(&popAdmixSamplerParams, "fvector");
   // test options
   ProgOptions["ancestryassociationscorefile"] = OptionPair(&AncestryAssociationScoreFilename, "outputfile");
   ProgOptions["affectedsonlyscorefile"] = OptionPair(&AffectedsOnlyScoreFilename, "outputfile");
