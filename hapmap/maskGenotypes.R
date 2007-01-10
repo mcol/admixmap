@@ -19,12 +19,15 @@ get.io.filename <- function(extension) {
 }
 
 # Saves the table with our custom settings
+# It assumes that rows have labels stored not as a simple column, but as
+# a row names in the manner that read.table handles row.names
+# parameter. Hence row.names = TRUE.
 genepi.write.table <- function(obj, out.file.name) {
 	write.table(
 		obj,
 		file = out.file.name,
-		row.names = FALSE,
-		col.names = TRUE,
+		row.names = TRUE,
+		col.names = NA,
 		sep = "\t",
 		quote = TRUE,
 		na = missing.genotype)
@@ -42,9 +45,11 @@ genotypes.table <- read.table(
 	in.genotypes.file,
 	header = TRUE,
 	na.strings = c("\"0,0\"", "0,0", "\"0\"", "0"),
-	colClasses = "character")
-genotypes <- data.frame(genotypes.table[,-1])
-dimnames(genotypes)[[1]] <- genotypes.table[,1]
+	colClasses = "character",
+	row.names = "Individ")
+# genotypes <- data.frame(genotypes.table[,-1])
+genotypes <- data.frame(genotypes.table)
+# dimnames(genotypes)[[1]] <- genotypes.table[,1]
 rm(genotypes.table)
 
 number.loci <- ncol(genotypes)
@@ -54,15 +59,13 @@ missing.loci <- sort(
                    sample(
                    c(1:number.loci),
 	           size = round((number.loci * percent.missing.loci / 100.0)),
-	           replace = FALSE)
-                   )
+	           replace = FALSE))
 
 missing.indivs <- sort(
                        sample(
 	               c(1:number.indivs),
 	               size = round((number.indivs * percent.missing.indivs / 100.0)),
-	               replace = FALSE)
-                       )
+	               replace = FALSE))
 
 # Save original genotypes
 #genepi.write.table(genotypes, out.original.genotypes.file)
