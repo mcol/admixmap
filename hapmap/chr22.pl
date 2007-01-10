@@ -19,8 +19,8 @@ my $STATES = 4;
 
 # Change this to the location of the admixmap executable
 #my $executable = '../test/adm-para';
-#my $executable = '../test/admixmap';
-my $executable = '/ichec/home/users/doducd/test/admixmap';
+my $executable = '../test/admixmap';
+# my $executable = '/ichec/home/users/doducd/test/admixmap';
 
 ##parse any command line options
 GetOptions("samples=i"=>\$samples, "burnin=i"=>\$burnin, "every=i"=>\$every, "pop=s"=>\$POP, "states=i"=>\$STATES, "exec=s"=>\$executable);
@@ -34,7 +34,7 @@ my $datadir = "$POP/chr22data";
 my $arg_hash = 
 {
 #data files
-    genotypesfile                   => "$datadir/genotypes5000.txt",
+    genotypesfile                   => "$datadir/genotypes5000_masked.txt",
     locusfile                          => "$datadir/loci5000.txt",
 
 #phased data
@@ -148,6 +148,17 @@ sub getArguments
     foreach my $key (keys %$hash){
       print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
+
+    # If possible, append the contents of the index file with masked
+    # loci to the option file, so users don't have to do it by hand.
+    my $line;
+    open(EXTERNAL_ARGS, "$datadir/genotypes5000_index.txt")
+      or warn("Can't open the external arguments file.");
+    foreach $line (<EXTERNAL_ARGS>) {
+      print OPTIONFILE $line;
+    }
+    close(EXTERNAL_ARGS);
+
     close OPTIONFILE;
     return " ".$filename;
 }
@@ -175,6 +186,3 @@ sub doAnalysis
     print "R script completed\n\n";
 }
 }
-
-
-
