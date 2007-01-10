@@ -18,14 +18,14 @@
 
 using namespace::std;
 AncestryAssocTest::AncestryAssocTest(){
-  SumAncestryScore = 0;
-  SumAncestryInfo = 0;
-  SumAncestryVarScore = 0;
-  SumAncestryScore2 = 0;
-  AncestryScore = 0;
-  AncestryInfo = 0;
-  AncestryVarScore = 0;
-  AncestryInfoCorrection = 0;
+  SumScore = 0;
+  SumInfo = 0;
+  SumVarScore = 0;
+  SumScore2 = 0;
+  Score = 0;
+  Info = 0;
+  VarScore = 0;
+  InfoCorrection = 0;
   B = 0;
   PrevB = 0;
   Xcov = 0;
@@ -35,44 +35,44 @@ AncestryAssocTest::AncestryAssocTest(){
 }
 AncestryAssocTest::~AncestryAssocTest(){
   if(test){
-    delete[] SumAncestryScore;
-    delete[] SumAncestryInfo;
-    delete[] SumAncestryVarScore;
-    delete[] SumAncestryScore2;
+    delete[] SumScore;
+    delete[] SumInfo;
+    delete[] SumVarScore;
+    delete[] SumScore2;
     delete[] B;
     delete[] PrevB;
     delete[] Xcov;
-    free_matrix(AncestryScore, L);
-    free_matrix(AncestryInfo, L);  
-    free_matrix(AncestryVarScore, L);
-    free_matrix(AncestryInfoCorrection, L);
+    free_matrix(Score, L);
+    free_matrix(Info, L);  
+    free_matrix(VarScore, L);
+    free_matrix(InfoCorrection, L);
   }
 }
-void AncestryAssocTest::Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log){
+void AncestryAssocTest::Initialise(const char* filename, const int NumStrata, const int NumLoci, LogWriter &Log){
   test = true;
   OpenFile(Log, &outputfile, filename, "Tests for locus linkage", true);
   
-  K = NumPopulations;
+  K = NumStrata;
   L = NumLoci;
-  int KK = NumPopulations;
+  int KK = K;
   firstpoplabel = 0;
   if(K == 2){
     KK = 1;//only keeping scores for second population when 2 populations
     firstpoplabel = 1;//skip first pop label if 2 pops
   }
-  SumAncestryScore = new double[L * KK];
-  SumAncestryInfo = new double[L * KK];
-  SumAncestryScore2 = new double[L * KK];
-  SumAncestryVarScore = new double[L * KK];
-  fill(SumAncestryScore, SumAncestryScore +L*KK, 0.0);
-  fill(SumAncestryScore2, SumAncestryScore2 +L*KK, 0.0);
-  fill(SumAncestryInfo, SumAncestryInfo + L*KK, 0.0);
-  fill(SumAncestryVarScore, SumAncestryVarScore + L*KK, 0.0);
+  SumScore = new double[L * KK];
+  SumInfo = new double[L * KK];
+  SumScore2 = new double[L * KK];
+  SumVarScore = new double[L * KK];
+  fill(SumScore, SumScore +L*KK, 0.0);
+  fill(SumScore2, SumScore2 +L*KK, 0.0);
+  fill(SumInfo, SumInfo + L*KK, 0.0);
+  fill(SumVarScore, SumVarScore + L*KK, 0.0);
 
-  AncestryScore = alloc2D_d(L, 2*K);
-  AncestryInfo = alloc2D_d(L, 4*K*K);
-  AncestryVarScore = alloc2D_d(L, K);
-  AncestryInfoCorrection = alloc2D_d(L, K);
+  Score = alloc2D_d(L, 2*K);
+  Info = alloc2D_d(L, 4*K*K);
+  VarScore = alloc2D_d(L, K);
+  InfoCorrection = alloc2D_d(L, K);
   B = new double[K * K];
   PrevB = new double[K * K];
   Xcov = new double[K];
@@ -82,12 +82,12 @@ void AncestryAssocTest::Reset(){
   if(test){
     for(unsigned j = 0; j < L; ++j){
       for(unsigned k = 0; k < 2*K; ++k)
-	AncestryScore[j][k] = 0.0;
+	Score[j][k] = 0.0;
       for(unsigned k = 0; k < 4*K*K; ++k)
-	AncestryInfo[j][k] = 0.0;
+	Info[j][k] = 0.0;
       for(unsigned k = 0; k < K; ++k){
-	AncestryInfoCorrection[j][k] = 0.0;
-	AncestryVarScore[j][k] = 0.0;
+	InfoCorrection[j][k] = 0.0;
+	VarScore[j][k] = 0.0;
       }
     }
     for(unsigned k = 0; k < K*K; ++k){
@@ -117,8 +117,8 @@ void AncestryAssocTest::Output(int iterations, const Vector_s& PopLabels, const 
     const string locuslabel = Loci(j)->GetLabel(0);
     for( unsigned k = 0; k < KK; k++ ){//end at 1 for 2pops
       const std::string label = locuslabel + "\"" + sep + "\"" + PopLabels[k+firstpoplabel];//label is output in quotes
-      OutputRaoBlackwellizedScoreTest(iterations, outfile, label, SumAncestryScore[ j*KK + k], SumAncestryScore2[ j*KK + k], 
- 				      SumAncestryVarScore[ j*KK + k ],SumAncestryInfo[ j*KK + k ], final); 
+      OutputRaoBlackwellizedScoreTest(iterations, outfile, label, SumScore[ j*KK + k], SumScore2[ j*KK + k], 
+ 				      SumVarScore[ j*KK + k ],SumInfo[ j*KK + k ], final); 
     }
   }
   if(final)outfile->close();
@@ -149,8 +149,8 @@ void AncestryAssocTest::ROutput(const int ){
   }
 }
 
-void AncestryAssocTest::Update(int locus, const double* admixtureCovars, double phi, double YMinusEY, double DInvLink, 
-			       const vector<vector<double> > AProbs) {
+void AncestryAssocTest::Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
+			       const vector<vector<double> > Probs) {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
   //Notes: 1/phi is dispersion parameter
@@ -171,28 +171,28 @@ void AncestryAssocTest::Update(int locus, const double* admixtureCovars, double 
  
   X[ 2*K - 1] = 1;//intercept
   Xcov[K-1] = 1;
-  //set covariates, admixture props for pops 2 to K 
+  //copy covariates into X
   for( unsigned k = 0; k < K - 1; k++ ){
-    X[ K + k] = admixtureCovars[k];//Theta[ k+1 ];
-    BX[k] = Xcov[k] = admixtureCovars[k];//Theta[ k+1 ];
+    X[ K + k] = Covariates[k];
+    BX[k] = Xcov[k] = Covariates[k];
   }
 
   for( unsigned k = 0; k < K ; k++ ){
-    Xcopy[k] = X[k] = AProbs[1][k] + 2.0 * AProbs[2][k];//Conditional expectation of ancestry
-    VarA[k] = AProbs[1][k]*(1.0 - AProbs[1][k]) + 4.0*AProbs[2][k]*AProbs[0][k];//conditional variances
+    Xcopy[k] = X[k] = Probs[1][k] + 2.0 * Probs[2][k];//Conditional expectation
+    VarA[k] = Probs[1][k]*(1.0 - Probs[1][k]) + 4.0*Probs[2][k]*Probs[0][k];//conditional variances
   }
   //KLUDGE: need to reset Xcopy each time since destroyed in computation of score
   Xcopy[2*K-1] = 1;
-  for( unsigned k = 0; k < K-1; k++ )Xcopy[k + K] = admixtureCovars[k];//Theta[ k+1 ];
+  for( unsigned k = 0; k < K-1; k++ )Xcopy[k + K] = Covariates[k];
 
   try{
     // ** compute expectation of score **
     scale_matrix(Xcopy, YMinusEY*phi, 2*K, 1);      //Xcopy *= YMinusEY *phi
-    add_matrix(AncestryScore[locus], Xcopy, 2*K, 1);//AncestryScore[locus] += Xcopy
+    add_matrix(Score[locus], Xcopy, 2*K, 1);//Score[locus] += Xcopy
     // ** compute uncorrected info **
     matrix_product(X, X, XX, 2*K, 1, 2*K);        //XX = X'X
     scale_matrix(XX, DInvLink*phi, 2*K, 2*K);     //XX = DInvLink * phi * X'X
-    add_matrix(AncestryInfo[locus], XX, 2*K, 2*K);//AncestryInfo[locus] += XX
+    add_matrix(Info[locus], XX, 2*K, 2*K);//Info[locus] += XX
     // ** compute variance of score and correction term for info **    
     HH_solve(K, PrevB, Xcov, BX);          //BX = inv(PrevB) * Xcov
     matrix_product(Xcov, BX, xBx, 1, K, 1);//xBx = Xcov' * BX
@@ -207,8 +207,8 @@ void AncestryAssocTest::Update(int locus, const double* admixtureCovars, double 
     throw(error_string);//throw error message to top level
   }
   for(unsigned k = 0; k < K ; k++ ){
-    AncestryInfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
-    AncestryVarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
+    InfoCorrection[locus][k] += VarA[k] * (DInvLink *phi - phi * phi * DInvLink * DInvLink * xBx[0]); 
+    VarScore[locus][k] += VarA[k] * phi * phi * YMinusEY * YMinusEY;
   }
   delete[] X; delete[] Xcopy;
   delete[] XX;
@@ -219,7 +219,7 @@ void AncestryAssocTest::Update(int locus, const double* admixtureCovars, double 
 void AncestryAssocTest::Accumulate(unsigned j){
   double *score = new double[K], *info = new double[K*K];
   try{
-    CentredGaussianConditional(K, AncestryScore[j], AncestryInfo[j], score, info, 2*K );
+    CentredGaussianConditional(K, Score[j], Info[j], score, info, 2*K );
   }
   catch(string s){
     string error = "Error centring ancestry association scores:\n";
@@ -233,10 +233,10 @@ void AncestryAssocTest::Accumulate(unsigned j){
   if(K == 2){KK = 1; k1 = 1;}
      
   for( unsigned k = 0; k < KK ; k++ ){
-    SumAncestryScore[j*KK +k] += score[k+k1];
-    SumAncestryInfo[j*KK +k] += info[(k+k1)*K +k+k1] + AncestryInfoCorrection[j][k+k1];
-    SumAncestryScore2[j*KK +k] += score[k+k1] * score[k+k1];
-    SumAncestryVarScore[j*KK +k] += AncestryVarScore[j][k+k1];
+    SumScore[j*KK +k] += score[k+k1];
+    SumInfo[j*KK +k] += info[(k+k1)*K +k+k1] + InfoCorrection[j][k+k1];
+    SumScore2[j*KK +k] += score[k+k1] * score[k+k1];
+    SumVarScore[j*KK +k] += VarScore[j][k+k1];
   }
   delete[] score;
   delete[] info;
@@ -244,12 +244,12 @@ void AncestryAssocTest::Accumulate(unsigned j){
 }
 
 //TODO: fix to be called within update
-void AncestryAssocTest::UpdateB(double DInvLink, double dispersion, const double* admixtureCovars){
-  //increment B using new Admixture Props
-  //Xcov is a vector of admixture props as covariates as in UpdateScoreForAncestry
+void AncestryAssocTest::UpdateB(double DInvLink, double dispersion, const double* Covariates){
+  //increment B using covariates
+  //Xcov is a vector of covariates as in UpdateScoreForAncestry
     Xcov[K-1] = 1;//last entry is intercept
     for( unsigned k = 0; k < K - 1; k++ ){
-      Xcov[k] = admixtureCovars[k]; //centred admixture covariates
+      Xcov[k] = Covariates[k]; //centred covariates
     }
     double *temp = new double[K*K];
     matrix_product(Xcov, Xcov, temp, K, 1, K);

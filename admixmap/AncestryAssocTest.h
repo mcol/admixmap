@@ -28,9 +28,9 @@ public:
   void Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log);
 
   void Reset();
-  void Update(int locus, const double* admixtureCovars, double phi, double YMinusEY, double DInvLink, 
-	      const std::vector<std::vector<double> > AProbs) ;
-  void UpdateB(double DInvLink, double dispersion, const double* admixtureCovars);
+  void Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
+	      const std::vector<std::vector<double> > Probs) ;
+  void UpdateB(double DInvLink, double dispersion, const double* Covariates);
 
   void Accumulate(unsigned j);
 
@@ -41,18 +41,18 @@ private:
   unsigned K, L;
   unsigned firstpoplabel;
 
-  double **AncestryScore;
-  double **AncestryInfo;
-  double **AncestryVarScore;
-  double **AncestryInfoCorrection;
-  double *B;//used for ancestry score test
+  double **Score;
+  double **Info;
+  double **VarScore;
+  double **InfoCorrection;
+  double *B;//used to correct info
   double *PrevB;//holds B for previous iteration while B accumulates for this iteration
   double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
-  double* SumAncestryScore;
-  double* SumAncestryInfo;
-  double* SumAncestryVarScore;
-  double* SumAncestryScore2;
+  double* SumScore;
+  double* SumInfo;
+  double* SumVarScore;
+  double* SumScore2;
 };
 
 
