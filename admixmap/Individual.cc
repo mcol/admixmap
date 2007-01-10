@@ -1,6 +1,9 @@
 /** 
- *   Individual.cc 
- *   Class to represent an individual and update individual-level parameters
+ *   Individual.cc
+ *  
+ * Class to represent an individual and update individual-level
+ * parameters
+ * 
  *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -283,10 +286,15 @@ void Individual::DeleteGenotypes(){
   genotypes.clear();
 }
 
+  /**
+   * allocates and sets an array of bools indicating whether genotypes
+   * at each locus are missing used in HW score test;
+   * NB call before genotypes are deleted
+   */
 void Individual::SetMissingGenotypes(){
-  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
-  //used in HW score test; NB call before genotypes are deleted
-  if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
+  if(genotypes.size()==0)
+    throw string("determining missing genotypes after genotypes have been deleted");
+ 
   missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
   unsigned index = 0;
   for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
