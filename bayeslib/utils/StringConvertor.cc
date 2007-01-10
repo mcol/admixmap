@@ -1,4 +1,5 @@
 #include "StringConvertor.h"
+#include <cctype>
 
 using namespace std;
 
