@@ -58,8 +58,8 @@ void PopAdmix::Initialise(int Numindividuals, const Vector_s& PopulationLabels, 
     //set values for sampler
     const vector<float>& samplerparams = options->getPopAdmixSamplerParams();
     const size_t size = samplerparams.size();
-    float initial_stepsize = size? samplerparams[0] : 0.05;
-    unsigned num_leapfrogs = size? (unsigned)samplerparams[1] : 20;
+    float initial_stepsize = size? samplerparams[0] : 0.03;
+    unsigned num_leapfrogs = size? (unsigned)samplerparams[1] : 40;
     PopAdmixSampler.SetSize( obs, K, initial_stepsize, num_leapfrogs );
     
     if(Comms::isMaster())SumLogRho.push_back(0.0);
@@ -278,7 +278,7 @@ void PopAdmix::UpdateGlobalSumIntensities(const IndividualCollection* const IC, 
     }
   }//end if global rho model
   
-  else if(!options->getHapMixModelIndicator()){ //individual- or gamete-specific rho model
+  else { //individual- or gamete-specific rho model
     if(IC->getSize()>1 && options->getIndAdmixHierIndicator() ) { // >1 individual and hierarchical model
       double sumrho = IC->GetSumrho();    
       if(Comms::isMaster()){
@@ -316,32 +316,23 @@ void PopAdmix::InitializeOutputFile(const Vector_s& PopulationLabels) {
 
 void PopAdmix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 {
-  if(!options->getHapMixModelIndicator()){
-    if(options->getPopulations()>1){
-      for( int j = 0; j < options->getPopulations(); j++ ){
-	avgstream->width(9);
-	*avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
-      }
+  if(options->getPopulations()>1){
+    for( int j = 0; j < options->getPopulations(); j++ ){
       avgstream->width(9);
-      *avgstream << setprecision(6) << exp(SumLogRho[0] / samples) << "\t";
+      *avgstream << setprecision(6) << SumAlpha[j] / samples << "\t";
     }
-  }
-  else{
-    double sum = 0.0;
-    for(vector<double>::const_iterator i = SumLogRho.begin(); i < SumLogRho.end(); ++i)sum += exp(*i / samples);
     avgstream->width(9);
-    *avgstream << setprecision(6) << sum / (Loci->GetNumberOfCompositeLoci() - Loci->GetNumberOfChromosomes()) << "\t";
+    *avgstream << setprecision(6) << exp(SumLogRho[0] / samples) << "\t";
   }
 }
 
 //output to given output stream
 void PopAdmix::OutputParams(ostream* out){
   //pop admixture params
-  if(!options->getHapMixModelIndicator())
-    for( int j = 0; j < options->getPopulations(); j++ ){
-      out->width(9);
-      (*out) << setprecision(6) << alpha[0][ j ] << "\t";
-    }
+  for( int j = 0; j < options->getPopulations(); j++ ){
+    out->width(9);
+    (*out) << setprecision(6) << alpha[0][ j ] << "\t";
+  }
   //sumintensities
   out->width(9);
   if( options->isGlobalRho() )
