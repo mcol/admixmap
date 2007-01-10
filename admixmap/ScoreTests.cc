@@ -486,7 +486,6 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
 	
 	// special case for SNP (counts has size 1)
 	if( numStates == 2 ){
-	  //sets counts to -1, 0 or 1 according to whether happair is 00, 01 or 11 (ie alleles 11, 12 or 22)
 	  unsigned allele2counts = (happair[0]==1) + (happair[1]==1);
 	  // (*Lociptr)(locus)->getAlleleCounts(2, happair)[0];
 	  counts.push_back( allele2counts );
@@ -570,7 +569,6 @@ void ScoreTests::UpdateAlleleScores( double* score, double* info, const double* 
     for( unsigned kk = 0; kk < K + dim; kk++ )
       info[ k*(K+dim) + kk ] += x[ k ] * x[ kk ] * phi*DInvLink;
   }
-  
   delete[] x;
 }
 
@@ -734,8 +732,8 @@ void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, 
 {
   string sep = final? "\t" : ",";
   double Score = score / (double) iterations;
-double CompleteInfo = info / (double) iterations;
-double MissingInfo = scoresq / ( double)iterations - Score * Score;
+  double CompleteInfo = info / (double) iterations;
+  double MissingInfo = scoresq / ( double)iterations - Score * Score;
   double ObservedInfo = CompleteInfo - MissingInfo;
   //output label
   *outputstream << "\"" << label << "\"" << sep;
@@ -755,8 +753,8 @@ double MissingInfo = scoresq / ( double)iterations - Score * Score;
       *outputstream << double2R(-log10(pvalue)) << sep;// << endl;
   }
   else{
-    if(final)*outputstream << "NaN" << sep << "NaN" << sep;
-    *outputstream << "NaN" << sep;// << endl;
+    if(final)*outputstream << "NA" << sep << "NA" << sep;
+    *outputstream << "NA" << sep;// << endl;
   }
   if(final)*outputstream << "NA";//NA in chisquare column in final table 
   *outputstream << endl;
