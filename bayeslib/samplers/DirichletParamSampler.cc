@@ -23,10 +23,10 @@ DirichletParamSampler::DirichletParamSampler() {
   Initialise();
 }
 
-DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops) {
-  Initialise();
-  SetSize(numind, numpops);
-}
+// DirichletParamSampler::DirichletParamSampler( unsigned numind, unsigned numpops) {
+//   Initialise();
+//   SetSize(numind, numpops);
+// }
 
 void DirichletParamSampler::Initialise() {
 #if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
@@ -43,7 +43,7 @@ void DirichletParamSampler::Initialise() {
 /// Instantiates an adaptive rejection sampler object for each element and 
 /// sets up sampler objects. 
 ///  numobs = number of observations 
-void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
+void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops, float InitialStepSize, unsigned NumLeapFrogSteps)
 {
    K = numpops;
 #if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
@@ -60,9 +60,9 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops)
    EtaArgs.numpops = numpops;
    EtaArgs.numobs = numobs; 
    // use many small steps to ensure that leapfrog algorithm does not jump to minus infinity
-   EtaSampler.SetDimensions(1, 0.05/*initial stepsize*/, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 
-			    40/*num leapfrogs*/, 0.9/*target accept rate*/, etaEnergy, etaGradient);
-#elif DIRICHLETPARAM_SAMPLERTYPE==2
+   EtaSampler.SetDimensions(1, InitialStepSize, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 
+			    NumLeapFrogSteps, 0.9/*target accept rate*/, etaEnergy, etaGradient);
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
    logalpha = new double[K];
    AlphaArgs.n = numobs; //num individuals/gametes will be passed as arg to sampler
    AlphaArgs.dim = K;

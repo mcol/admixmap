@@ -53,7 +53,7 @@ public:
   DirichletParamSampler(unsigned, unsigned);
   ~DirichletParamSampler();
   
-  void SetSize( unsigned, unsigned);
+  void SetSize( unsigned numobs, unsigned numpops, float InitialStepSize, unsigned NumLeapFrogSteps);
   void SetPriorEta( double, double );
   void SetPriorMu( const double* const);
   void Sample( const double* const, std::vector<double> *alpha, bool fixedprops);
