@@ -5,6 +5,9 @@
 io.file.path <- "Eur/chr22data"
 io.file.basename <- "genotypes5000"
 
+##note:assuming genotypes to be masked are all diploid 
+missing.genotype <- "\"0,0\""
+
 # Returns a file name derived from the path and the base name
 get.io.filename <- function(extension) {
 	return(paste(
@@ -30,48 +33,52 @@ genepi.write.table <- function(obj, out.file.name) {
 in.genotypes.file <- get.io.filename(".txt")
 out.genotypes.file <- get.io.filename("_masked.txt")
 out.index.file <- get.io.filename("_index.txt")
-out.original.genotypes.file <- get.io.filename("_original.txt")
-out.changed.genotypes.file <- get.io.filename("_changed.txt")
+out.observed.genotypes.file <- get.io.filename("_observed.txt")
 
 percent.missing.indivs <- 10
 percent.missing.loci <- 10
 
-##note:assuming genotypes to be masked are all diploid 
-missing.genotype <- "\"0,0\""
-genotypes <- read.table(
+genotypes.table <- read.table(
 	in.genotypes.file,
 	header = TRUE,
 	na.strings = c("\"0,0\"", "0,0", "\"0\"", "0"),
 	colClasses = "character")
-genotypes <- data.frame(genotypes)
+genotypes <- data.frame(genotypes.table[,-1])
+dimnames(genotypes)[[1]] <- genotypes.table[,1]
+rm(genotypes.table)
 
-nLoci <- ncol(genotypes)
-nIndivs <- nrow(genotypes)
+number.loci <- ncol(genotypes)
+number.indivs <- nrow(genotypes)
 
-missing.loci <- sample(
-	c(1:nLoci),
-	size = round((nLoci * percent.missing.loci / 100.0)),
-	replace = FALSE)
+missing.loci <- sort(
+                   sample(
+                   c(1:number.loci),
+	           size = round((number.loci * percent.missing.loci / 100.0)),
+	           replace = FALSE)
+                   )
 
-missing.indivs <- sample(
-	c(1:nIndivs),
-	size = round((nIndivs * percent.missing.indivs / 100.0)),
-	replace = FALSE)
+missing.indivs <- sort(
+                       sample(
+	               c(1:number.indivs),
+	               size = round((number.indivs * percent.missing.indivs / 100.0)),
+	               replace = FALSE)
+                       )
 
 # Save original genotypes
-genepi.write.table(genotypes, out.original.genotypes.file)
+#genepi.write.table(genotypes, out.original.genotypes.file)
 
-# Save changed genotypes, in their original version.
+# Save genotypes to be masked as R object
 # This file should be small.
-genepi.write.table(genotypes[missing.indivs, ], out.changed.genotypes.file)
+##genepi.write.table(genotypes[missing.indivs, missing.loci], out.observed.genotypes.file)
+dput(genotypes[missing.indivs, missing.loci], out.observed.genotypes.file)
 
-# Erase the appropriate data by inserting NA values
+# Erase the appropriate data by inserting missing values
 genotypes[missing.indivs, missing.loci] <- NA
 
 # Save the (big) changed file.
 genepi.write.table(genotypes, out.genotypes.file)
 
 cat(
-	"maskedindivs = ", sort(missing.indivs), "\n",
-	"maskedloci = ", sort(missing.loci), "\n",
+	"maskedindivs = ", missing.indivs, "\n",
+	"maskedloci = ", missing.loci, "\n",
 	file = out.index.file)
