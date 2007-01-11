@@ -648,8 +648,8 @@ const vector<int> IndividualCollection::getAlleleCounts(unsigned locus, int pop,
       _child[i]->GetLocusAncestry(locus, ancestry);
       const int* happair = _child[i]->getSampledHapPair(locus);
       // happair[1] ==  -1 if haploid
-      if(ancestry[0] == pop && (happair[0] > 0) )++counts[happair[0]];
-      if(ancestry[1] == pop&& (happair[1] > 0) )++counts[happair[1]];
+      if(ancestry[0] == pop && (happair[0] >= 0) )++counts[happair[0]];
+      if(ancestry[1] == pop&& (happair[1] >= 0) )++counts[happair[1]];
     }
   return counts;
 }
