@@ -1,6 +1,7 @@
 #include "HapMixFreqs.h"
 #include "Genome.h"
 #include "utils/misc.h"
+#include "Comms.h"
 
 HapMixFreqs::HapMixFreqs(){
   HapMixPriorParams = 0;
@@ -13,6 +14,64 @@ HapMixFreqs::~HapMixFreqs(){
   delete[] HapMixPriorEta;
   delete[] HapMixPriorEtaSampler;
   if( allelefreqprioroutput.is_open()) allelefreqprioroutput.close();
+}
+
+void HapMixFreqs::Initialise(AdmixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log ){
+  Loci = pLoci;
+  Populations = options->getPopulations();
+  NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  //set model indicators
+  hapmixmodel = options->getHapMixModelIndicator();
+  RandomAlleleFreqs = !options->getFixedAlleleFreqs();
+
+  
+  if(Comms::isFreqSampler()){
+    LoadAlleleFreqs(options, data, Log);
+    Log.setDisplayMode(On);
+    //open allelefreqoutputfile
+    if(IsRandom() ){
+      OpenOutputFile(options->getAlleleFreqPriorOutputFilename());
+    }
+    
+    // set which sampler will be used for allele freqs
+    // current version uses conjugate sampler if annealing without thermo integration
+    if( (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
+	//using default allele freqs or CAF model
+	( !strlen(options->getAlleleFreqFilename()) &&
+	  !strlen(options->getHistoricalAlleleFreqFilename()) && 
+	  !strlen(options->getPriorAlleleFreqFilename()) && 
+	  !options->getCorrelatedAlleleFreqs() ) ) {
+      FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
+    } else {
+      FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+    }
+    
+    Initialise(Populations, NumberOfCompositeLoci, options->getAlleleFreqPriorParams());
+
+    for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
+      if(RandomAlleleFreqs){
+	if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
+	  //set up samplers for allelefreqs
+	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
+						      &(HapMixPriorParams[i]), true));
+	}
+      }
+      //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
+      //initialise AlleleProbsMAP pointer to 0
+      //allocate HapPairProbs and calculate them using AlleleProbs
+      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
+
+    }//end comp locus loop
+    
+
+  }//end if is freqsampler
+  if(Comms::isFreqSampler() || Comms::isWorker()){
+    AllocateAlleleCountArrays(options->getPopulations());
+#ifdef PARALLEL
+    //broadcast initial values of freqs
+    BroadcastAlleleFreqs();
+#endif
+  }
 }
 
 void HapMixFreqs::Initialise(unsigned Populations, unsigned L, const std::vector<double> &params){
@@ -59,6 +118,73 @@ void HapMixFreqs::OpenOutputFile(const char* filename){
     // allelefreqprioroutput << "eta.Mean\teta.Var\tlambda" << std::endl;
     allelefreqprioroutput << "eta.Mean\teta.Var" << std::endl;
   }
+}
+
+/// samples allele frequencies and prior parameters.
+void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
+  
+  // Sample allele frequencies conditional on Dirichlet priors 
+  // then use AlleleProbs to set HapPairProbs in CompositeLocus
+  // this is the only point at which SetHapPairProbs is called, apart from when 
+  // the composite loci are initialized
+  for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
+    const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
+    //accumulate summary stats for update of priors
+    double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0; 
+    for(int k = 0; k < Populations; ++k){
+      sumlogfreqs1 += mylog(Freqs[i][k*NumberOfStates]);//allele 1
+      sumlogfreqs2 += mylog(Freqs[i][k*NumberOfStates + 1]);//allele 2
+    }
+    SamplePriorDispersion(i, Populations, sumlogfreqs1, sumlogfreqs2);
+    SamplePriorProportions(i, sumlogfreqs1, sumlogfreqs2 );
+    
+    //Sample prior parameters
+    if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER && (NumberOfStates > 2 ||
+						  accumulate(hetCounts[i], hetCounts[i]+Populations*Populations, 0, std::plus<int>()) > 0 )) {
+      if(NumberOfStates==2) //shortcut for SNPs
+	FreqSampler[i]->SampleSNPFreqs(Freqs[i], AlleleCounts[i], hetCounts[i], i, Populations, 
+				       coolness);
+      else FreqSampler[i]->SampleAlleleFreqs(Freqs[i], IC, i, NumberOfStates, Populations, 
+					     coolness);
+    }
+    else //if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
+      SampleAlleleFreqs(i, coolness);
+    
+    if(afterBurnIn)
+      (*Loci)(i)->AccumulateAlleleProbs();
+#ifndef PARALLEL
+    //no need to update alleleprobs, they are the same as Freqs
+    //set HapPair probs using updated alleleprobs
+    (*Loci)(i)->SetHapPairProbs();
+#endif
+  }
+  
+}
+
+/** samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
+ and stores result in array Freqs 
+*/
+void HapMixFreqs::SampleAlleleFreqs(int i, double coolness)
+{
+  unsigned NumStates = Loci->GetNumberOfStates(i);
+  double* temp = new double[NumStates];
+  double *freqs = new double[NumStates];
+  
+  //if there is, the Dirichlet params are common across populations
+  for( int j = 0; j < Populations; j++ ){
+
+    // to flatten likelihood when annealing, multiply realized allele counts by coolness
+    for(unsigned s = 0; s < NumStates; ++s)
+      temp[s] = HapMixPriorParams[i] + coolness*AlleleCounts[i][s*Populations +j];
+
+    Rand::gendirichlet(NumStates, temp, Freqs[i]+j*NumStates);
+    for(unsigned s = 0; s < NumStates; ++s){
+	if(Freqs[i][j*NumStates+s]==0.0) Freqs[i][j*NumStates+s] = 0.000001;
+	if(Freqs[i][j*NumStates+s]==1.0) Freqs[i][j*NumStates+s] = 0.999999;
+    }
+  }
+  delete[] freqs;  
+  delete[] temp;
 }
 
 ///sample prior params using random walk

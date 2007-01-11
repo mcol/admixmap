@@ -122,14 +122,21 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   //initialise Freqs, PriorAlleleFreqs, HistoricAlleleFreqs etc
   Loci = pLoci;
   Populations = options->getPopulations();
+  NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  //set model indicators
   hapmixmodel = options->getHapMixModelIndicator();
+  RandomAlleleFreqs = !options->getFixedAlleleFreqs();
+  CorrelatedAlleleFreqs = options->getCorrelatedAlleleFreqs();
+
   
   if(Comms::isFreqSampler()){
     LoadAlleleFreqs(options, data, Log);
     Log.setDisplayMode(On);
     //open allelefreqoutputfile
     if(IsRandom() ){
-      OpenOutputFile(options);
+      const char* s = options->getAlleleFreqOutputFilename();
+      if(strlen(s) && options->getIndAdmixHierIndicator())
+	OpenOutputFile(s);
     }
     
     // set which sampler will be used for allele freqs
@@ -146,20 +153,10 @@ void AlleleFreqs::Initialise(AdmixOptions* const options, InputData* const data,
       FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
     }
     
-    if(hapmixmodel) {
-      hapMixPrior.Initialise(Populations, NumberOfCompositeLoci, options->getAlleleFreqPriorParams());
-    }
-    
     for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       if(RandomAlleleFreqs){
 	if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
 	  //set up samplers for allelefreqs
-	  if(hapmixmodel){
-	    const double priorparam = hapMixPrior.getParams(i);
-	    FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
-							&(priorparam), true));
-	  }
-	  else
 	    FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
 							PriorParams[i], false));
 	}
@@ -306,9 +303,6 @@ void AlleleFreqs::PrintPrior(const Vector_s& PopLabels, LogWriter& Log)const{
     Log << "Gamma prior on allele frequency dispersion parameter with mean and variance:\n"
 	<< psi[0]/tau[0] << "  " << psi[0]/(tau[0]*tau[0]) << "\n";
   }
-  else if(hapmixmodel){
-    hapMixPrior.PrintPrior(Log);
-  }
 }
 
 void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const data_, LogWriter &Log)
@@ -316,12 +310,6 @@ void AlleleFreqs::LoadAlleleFreqs(AdmixOptions* const options, InputData* const 
   int newrow;
   int row = 0;
   const Matrix_s* temporary = 0;
-  //set model indicators
-  RandomAlleleFreqs = !options->getFixedAlleleFreqs();
-  CorrelatedAlleleFreqs = options->getCorrelatedAlleleFreqs();
-  //set dimensions
-
-  NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
 
   //allocate frequency arrays
 #ifdef ARRAY2D
@@ -605,7 +593,7 @@ void AlleleFreqs::SetDefaultAlleleFreqs(int i){
 
 // ************************** Sampling and Updating *****************************************
 /// samples allele frequencies and prior parameters.
-void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool hapmixmodel){
+void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double coolness){
   // Sample prior parameters
   
     if(IsHistoricAlleleFreq ){ // TODO: use class DirichletParamSampler 
@@ -627,16 +615,11 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
    const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
    //accumulate summary stats for update of priors
-   double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0; 
-    for(int k = 0; k < Populations; ++k){
-	sumlogfreqs1 += mylog(Freqs[i][k*NumberOfStates]);//allele 1
-	sumlogfreqs2 += mylog(Freqs[i][k*NumberOfStates + 1]);//allele 2
-      }
-    if(hapmixmodel){
-      hapMixPrior.SamplePriorDispersion(i, Populations, sumlogfreqs1, sumlogfreqs2);
-      hapMixPrior.SamplePriorProportions(i, sumlogfreqs1, sumlogfreqs2 );
-    }
-  //  else
+//    double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0; 
+//     for(int k = 0; k < Populations; ++k){
+// 	sumlogfreqs1 += mylog(Freqs[i][k*NumberOfStates]);//allele 1
+// 	sumlogfreqs2 += mylog(Freqs[i][k*NumberOfStates + 1]);//allele 2
+//       }
 
    //Sample prior parameters
     if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER && (NumberOfStates > 2 ||
@@ -648,7 +631,7 @@ void AlleleFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
 					     coolness);
     }
     else //if (FREQSAMPLER==FREQ_CONJUGATE_SAMPLER)
-      SampleAlleleFreqs(i, coolness, hapmixmodel);
+      SampleAlleleFreqs(i, coolness);
 
     if(afterBurnIn)
       (*Loci)(i)->AccumulateAlleleProbs();
@@ -758,7 +741,7 @@ void AlleleFreqs::BroadcastAlleleFreqs(){
 /** samples allele/hap freqs at i th composite locus as a conjugate Dirichlet update
  and stores result in array Freqs 
 */
-void AlleleFreqs::SampleAlleleFreqs(int i, double coolness, bool hapmixmodel)
+void AlleleFreqs::SampleAlleleFreqs(int i, double coolness)
 {
   unsigned NumStates = Loci->GetNumberOfStates(i);
   double* temp = new double[NumStates];
@@ -769,12 +752,8 @@ void AlleleFreqs::SampleAlleleFreqs(int i, double coolness, bool hapmixmodel)
   for( int j = 0; j < Populations; j++ ){
 
     // to flatten likelihood when annealing, multiply realized allele counts by coolness
-    if(hapmixmodel)
-	for(unsigned s = 0; s < NumStates; ++s)
-	  temp[s] = hapMixPrior.getParams(i) + coolness*AlleleCounts[i][s*Populations +j];
-    else
-	for(unsigned s = 0; s < NumStates; ++s)
-	    temp[s] = PriorParams[i][c*j*NumStates + s] + coolness*AlleleCounts[i][s*Populations +j];
+    for(unsigned s = 0; s < NumStates; ++s)
+      temp[s] = PriorParams[i][c*j*NumStates + s] + coolness*AlleleCounts[i][s*Populations +j];
 
     Rand::gendirichlet(NumStates, temp, Freqs[i]+j*NumStates);
     for(unsigned s = 0; s < NumStates; ++s){
@@ -1183,25 +1162,17 @@ const array_of_allelefreqs& AlleleFreqs::GetAlleleFreqs()const{
 // }
 
 // ******************** Output **************************
-void AlleleFreqs::OpenOutputFile(const AdmixOptions* const options)
+void AlleleFreqs::OpenOutputFile(const char* filename)
 {
-  if(hapmixmodel){
-    hapMixPrior.OpenOutputFile(options->getAlleleFreqPriorOutputFilename());
+  //open file to output freqs as R object
+  allelefreqoutput.open(filename, ios::out );
+  if( !allelefreqoutput){
+    cerr << "Warning: Couldn't open allelefreqoutputfile: " << filename << endl;
+    exit( 1 );
   }
-
-  else{
-//open file to output freqs as R object
-      const char* s = options->getAlleleFreqOutputFilename();
-      if(strlen(s) && options->getIndAdmixHierIndicator()){
-	  allelefreqoutput.open(s, ios::out );
-	  if( !allelefreqoutput){
-	      cerr << "Warning: Couldn't open allelefreqoutputfile: " << options->getAlleleFreqOutputFilename() << endl;
-	      exit( 1 );
-	  }
-	  allelefreqoutput << "structure(.Data=c(" << endl;
-      }
-  }
+  allelefreqoutput << "structure(.Data=c(" << endl;
 }
+
 void AlleleFreqs::OutputAlleleFreqs()
 {
   if( IsRandom() ){
@@ -1243,15 +1214,15 @@ void AlleleFreqs::OutputAlleleFreqs(const char* filename)
     }
 }
 
-void AlleleFreqs::OutputPriorParams(){
-  if(hapmixmodel)  //to be used only in hapmixmodel
-    hapMixPrior.OutputPriorParams();
-}
+// void AlleleFreqs::OutputPriorParams(){
+//   if(hapmixmodel)  //to be used only in hapmixmodel
+//     hapMixPrior.OutputPriorParams();
+// }
 
-void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
-  if(hapmixmodel)  //to be used only in hapmixmodel
-    hapMixPrior.OutputPriorParams(os, tofile);
-}
+// void AlleleFreqs::OutputPriorParams(ostream& os, bool tofile){
+//   if(hapmixmodel)  //to be used only in hapmixmodel
+//     hapMixPrior.OutputPriorParams(os, tofile);
+// }
 void AlleleFreqs::CloseOutputFile(int iterations, const Vector_s& PopulationLabels)
 {
   int nrows = 0;
@@ -1298,7 +1269,7 @@ void AlleleFreqs::InitializeEtaOutputFile(const AdmixOptions* const options, con
   }
 }
 
-void AlleleFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)
+void AlleleFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)const
 {
   if( IsHistoricAlleleFreq ){
     for( int j = 0; j < Populations; j++ ){
@@ -1310,8 +1281,6 @@ void AlleleFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)
     avgstream->width(9);
     *avgstream << setprecision(6) << SumEta[0] / samples << "\t";
   }
-  else if(hapmixmodel)
-    hapMixPrior.OutputErgodicAvg(samples, avgstream);
 }
 
 void AlleleFreqs::OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log){
@@ -1540,13 +1509,6 @@ float AlleleFreqs::getAlphaSamplerAcceptanceRate(int i)const{
 
 float AlleleFreqs::getAlphaSamplerStepsize(int i)const{
   return muSampler[i].getStepsize();
-}
-
-float AlleleFreqs::getHapMixPriorSamplerAcceptanceRate()const{
-  return hapMixPrior.getAcceptanceRate();
-}
-float AlleleFreqs::getHapMixPriorSamplerStepSize()const{
-  return hapMixPrior.getStepSize();
 }
 
 void AlleleFreqs::OutputAlleleFreqSamplerAcceptanceRates(const char* filename){

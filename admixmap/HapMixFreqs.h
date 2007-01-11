@@ -1,7 +1,7 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
- *   HapMIxFreqs.h 
+ *   HAPMIXMAP
+ *   HapMixFreqs.h 
  *   header file for HapMixFreqs class, used to sample prior parameters of frequencies in a hapmixmodel
  *   Copyright (c) 2006 David O'Donnell and Paul McKeigue
  *  
@@ -14,9 +14,7 @@
 #ifndef HAPMIXFREQS_H
 #define HAPMIXFREQS_H 1
 
-#include "utils/LogWriter.h"
-#include "samplers/StepSizeTuner.h"
-#include "samplers/AdaptiveRejection.h"
+#include "AlleleFreqs.h"
 #include <vector>
 #include <fstream>
 class Genome;
@@ -30,14 +28,15 @@ typedef struct{
 }hapmixmuargs;
 
 /// Class to hold and sample prior parameters of frequencies in a hapmixmodel
-class HapMixFreqs{
+class HapMixFreqs : public AlleleFreqs{
 
 public:
   HapMixFreqs();
   ~HapMixFreqs();
+  void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
   void Initialise(unsigned Populations, unsigned L, const std::vector<double> &params);
+  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
   void PrintPrior(LogWriter& Log)const;
-  void OpenOutputFile(const char* filename);
   void SamplePriorDispersion(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2);
   void SamplePriorProportions(unsigned locus, double sumlogfreqs1, double sumlogfreqs2);
   void OutputErgodicAvg( int samples, std::ofstream *avgstream)const;
@@ -49,7 +48,6 @@ public:
   float getStepSize()const;
 
 private:
-  unsigned NumberOfCompositeLoci;
   double* HapMixPriorEta;
   double* HapMixPriorParams;//params of Dirichlet prior on frequencies
   double HapMixPriorShape;//params of Gamma prior on Dirichlet params
@@ -64,6 +62,8 @@ private:
 
   std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior dispersion in hapmixmodel
 
+  void OpenOutputFile(const char* filename);
+  void SampleAlleleFreqs(int, const double coolness);
   static double fmu_hapmix(double, const void* const);
   static double dfmu_hapmix(double, const void* const);
   static double d2fmu_hapmix(double, const void* const);

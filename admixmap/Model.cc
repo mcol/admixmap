@@ -11,34 +11,6 @@ Model::~Model(){
   if(avgstream.is_open())avgstream.close();
 }
 
-void Model::Initialise(AdmixOptions& options, InputData& data,  LogWriter& Log){
-  const bool isMaster = Comms::isMaster();
-  //  const bool isFreqSampler = Comms::isFreqSampler();
-  const bool isWorker = Comms::isWorker();
-
-  InitialiseLoci(options, data, Log);
-  
-  A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
-  
-  IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
-  if(isMaster || isWorker)IC->LoadData(&options, &data, (!options.getTestForAdmixtureAssociation() && options.getPopulations() > 1));    
-  if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
-  if(isMaster){
-    const int numdiploid = IC->getNumDiploidIndividuals();
-    const int numindivs = data.getNumberOfIndividuals();
-    if(numindivs > 1){
-      Log.setDisplayMode(Quiet);
-      //Log << numindivs << " individuals\n";
-      if(numdiploid > 0){
-	Log << numdiploid << " diploid "; 
-	if(numdiploid < numindivs)Log<< "and ";
-      }
-      if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
-      Log << "individuals\n\n";
-    }
-  }
-}
-
 void Model::InitialiseLoci(const Options& options, InputData& data, LogWriter& Log){
   Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
   if(Comms::isFreqSampler()){
@@ -291,7 +263,7 @@ void Model::Iterate(const int & samples, const int & burnin, const double* Cooln
 
 void Model::ResetStepSizeApproximators(int resetk){
   IC->resetStepSizeApproximators(resetk); 
-  A.resetStepSizeApproximator(resetk);
+  pA->resetStepSizeApproximator(resetk);
 }
 
 // double Model::getDevianceAtPosteriorMean(const AdmixOptions* const options, Genome* Loci, LogWriter& Log){

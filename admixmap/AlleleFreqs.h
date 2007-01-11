@@ -1,6 +1,5 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   AlleleFreqs.h 
  *   header file for AlleleFreqs class
  *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -29,7 +28,6 @@
 #include "samplers/StepSizeTuner.h"
 #include "common.h"
 #include "samplers/AdaptiveRejection.h"
-#include "HapMixFreqs.h"
 
 #ifndef PARALLEL
 #define ARRAY2D
@@ -147,29 +145,26 @@ class AlleleFreqs{
 
 public:
   AlleleFreqs();
-  ~AlleleFreqs();
-  void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
+  virtual ~AlleleFreqs();
+  virtual void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
   void AllocateAlleleCountArrays(unsigned K);
   void PrintPrior(const Vector_s&, LogWriter& Log)const;
-  void Update(IndividualCollection*IC , bool afterBurnIn, double coolness, bool hapmixmodel);
+  virtual void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
 
   ///initialize output file for samples of dispersion parameters
   void InitializeEtaOutputFile(const AdmixOptions* const options, const Vector_s& PopulationLabels, LogWriter &Log);
 
   ///outputs ergodic averages of dispersion parameters (SumEta)  to ErgodicAverageFile
-  void OutputErgodicAvg( int iteration, std::ofstream *avgstream);
+  virtual void OutputErgodicAvg( int iteration, std::ofstream *avgstream)const;
   ///output samples of dispersion parameters (eta) to dispparamfile
   void OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log);
 
   void OutputAlleleFreqs();
   void OutputAlleleFreqs(const char* filename);
-  void OutputPriorParams();
-  void OutputPriorParams(ostream& os, bool tofile);
   void CloseOutputFile(int iterations, const Vector_s& PopulationLabels);
 
   void OutputFST();
 
-  void LoadAlleleFreqs(AdmixOptions* const options, InputData* const data, LogWriter &Log);
   ///resets Allelecounts to zero at start of iteration
   void ResetAlleleCounts(unsigned K);
   bool IsRandom()const;
@@ -199,25 +194,14 @@ public:
   float getAlphaSamplerStepsize(int)const;
   float getEtaSamplerAcceptanceRate(int)const;
   float getEtaSamplerStepsize(int)const;
-  float getHapMixPriorSamplerAcceptanceRate()const;
-  float getHapMixPriorSamplerStepSize()const;
   void OutputAlleleFreqSamplerAcceptanceRates(const char* filename);
 
   void resetStepSizeApproximator(int k);
 
-private:
+protected:
   int Populations, NumberOfCompositeLoci;
-  double *eta; //dispersion parameter
-  double *SumEta;
-  double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
-  double psi0;
-  MuSampler *muSampler;
-  //new sampler for eta
-  DispersionSampler *EtaSampler;
- 
   array_of_allelefreqs Freqs;// allele frequencies
   array_of_allelefreqs AlleleFreqsMAP; // posterior mode of allele freqs
-  double **HistoricAlleleFreqs;
   array_of_allelecounts AlleleCounts;
   array_of_allelecounts hetCounts;//counts of het individuals with distinct ancestry states at SNPs
 #ifdef PARALLEL
@@ -232,23 +216,38 @@ private:
 #endif
   int worker_rank;
   int NumWorkers;
-
-  HapMixFreqs hapMixPrior;
-
-  double **HistoricAlleleCounts;
   double **PriorParams;
   int FREQSAMPLER;// 1 = conjugate sampler, 2 = Hamiltonian sampler
   std::vector<AlleleFreqSampler*> FreqSampler;
+  bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
+  bool hapmixmodel;
 
+  Genome *Loci;//pointer to Loci object
+  std::ofstream allelefreqoutput;// object to output allele frequencies
+
+  void LoadAlleleFreqs(AdmixOptions* const options, InputData* const data, LogWriter &Log);
+  virtual void OpenOutputFile(const char* filename);
+  virtual void SampleAlleleFreqs(int, const double coolness);
+
+private:
+
+  double *eta; //dispersion parameter
+  double *SumEta;
+  double *psi,*tau;// eta has Gamma prior with shape and scale parameters psi and tau
+  double psi0;
+  MuSampler *muSampler;
+  //new sampler for eta
+  DispersionSampler *EtaSampler;
+ 
+  double **HistoricAlleleFreqs;
+
+  double **HistoricAlleleCounts;
   bool calculateFST;
   double** Fst;
   double** SumFst;
   bool IsHistoricAlleleFreq;//indicator for dispersion model
-  bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
-  bool CorrelatedAlleleFreqs;
-  bool hapmixmodel;
 
-  Genome *Loci;//pointer to Loci object
+  bool CorrelatedAlleleFreqs;
 
   ///adaptive RW sampler for eta
   StepSizeTuner *TuneEtaSampler;
@@ -265,7 +264,6 @@ private:
   // sampler for Dirichlet proportion parameters 
   std::vector<StepSizeTuner> *MuProposal;
   
-  std::ofstream allelefreqoutput;// object to output allele frequencies
   std::ofstream outputstream;//outputs eta to paramfile
   std::ofstream fstoutputstream;
 
@@ -279,11 +277,8 @@ private:
   void SampleDirichletParams1D( int );
   void SampleDirichletParamsMultiDim( int);
   void SampleDirichletParams();
-  void SampleAlleleFreqs(int, const double coolness, bool hapmixmodel);
   void UpdatePriorAlleleFreqs( int, const std::vector<std::vector<double> >& );
   void SampleEtaWithRandomWalk(int k, bool updateSumEta);
-
-  void OpenOutputFile(const AdmixOptions* const options);
 
   static double muEnergyFunction(unsigned K, const double * const alpha, const double* const *args);
   static void muGradient(unsigned K, const double * const alpha, const double* const *args, double *g);
