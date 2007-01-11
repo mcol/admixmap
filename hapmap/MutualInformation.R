@@ -7,6 +7,9 @@
 #  [6] -4.539540e-07  0.000000e+00 -2.605956e-07  0.000000e+00  0.000000e+00
 # [11]  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00 -1.021872e-07
 #
+# Moreover, calculated mutual information values are often negative,
+# while they should be always positive.
+#
 # I noticed that for many loci all the individuals have the same
 # genotype. In my sample data:
 #
@@ -67,15 +70,15 @@ get.clean.cm <- function() {
 # Uses the entropy() function.
 mutual.information <- function(locus.no, genotypes) {
 	for (genotype in genotypes) {
-		message(c("Genotype start:", genotype))
+		# message(c("Genotype start:", genotype))
 		joint.pd <- get.clean.cm()
 		indiv.idx <- which(orig[, locus.no] == genotype)
 		# print(rowMeans(matrix(GP[, indiv.idx, locus.no], nrow = 3)))
 		colname = add.prefix("t")(genotype)
-		message(c("colname:", colname))
+		# message(c("colname:", colname))
 		joint.pd[, colname] <- rowMeans(matrix(GP[, indiv.idx, locus.no], nrow = 3))
 		# print(joint.pd)
-		message(c("Genotype end:", genotype))
+		# message(c("Genotype end:", genotype))
 	}
 	# print(joint.pd)
 	# marginal distributions
@@ -93,16 +96,21 @@ mutual.information <- function(locus.no, genotypes) {
 }
 
 # Array for mutual information.
-mi <- array()
+mi <- matrix(nrow = length(GP[1,1,]), ncol = 2)
+colnames(mi) <- c("Mutual information", "Unique genotypes")
 
 # Unique loci in original data. Numer 1 indicates that all individuals
 # had the same genotype in specific locus.
-uniloc <- array()
 
 for (locus.id in dimnames(GP)[[3]]) {
 	locus.no = as.numeric(locus.id)
 	# print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
-	uniloc[locus.no] <- length(unique(na.omit(orig[, locus.no])))
-	mi[locus.no] <- mutual.information(locus.no, genotypes)
+	mi[locus.no, 1] <- mutual.information(locus.no, genotypes)
+	mi[locus.no, 2] <- length(unique(na.omit(orig[, locus.no])))
 }
+
+write.table(
+	mi,
+	file = paste(results.dir, "/mutual-information.txt", sep = ""),
+	row.names = TRUE, col.names = NA)
 
