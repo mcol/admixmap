@@ -16,14 +16,17 @@ my $burnin=10;
 my $every=1;
 my $POP = "Eur";
 my $STATES = 4;
+my $parallel = '';
+my $maskfile = '';
 
 # Change this to the location of the admixmap executable
 #my $executable = '../test/adm-para';
-my $executable = '../test/admixmap';
-# my $executable = '/ichec/home/users/doducd/test/admixmap';
+
+#my $executable = '../test/hapmixmap';
+my $executable = '/ichec/home/users/doducd/test/hapmixmap';
 
 ##parse any command line options
-GetOptions("samples=i"=>\$samples, "burnin=i"=>\$burnin, "every=i"=>\$every, "pop=s"=>\$POP, "states=i"=>\$STATES, "exec=s"=>\$executable);
+GetOptions("parallel" =>\$parallel, "samples=i"=>\$samples, "burnin=i"=>\$burnin, "every=i"=>\$every, "pop=s"=>\$POP, "states=i"=>\$STATES, "exec=s"=>\$executable, "maskfile=s" =>\$maskfile);
 
 my $datadir = "$POP/chr22data";
 # $arg_hash is a hash of parameters passed to
@@ -34,12 +37,12 @@ my $datadir = "$POP/chr22data";
 my $arg_hash = 
 {
 #data files
-    genotypesfile                   => "$datadir/genotypes5000_masked.txt",
-    locusfile                          => "$datadir/loci5000.txt",
+#    genotypesfile                   => "$datadir/genotypes5000.txt",
+#    locusfile                          => "$datadir/loci5000.txt",
 
 #phased data
-#    genotypesfile                   => "$datadir/genotypes_phased.txt",
-#    locusfile                          => "$datadir/loci_phased.txt",
+    genotypesfile                   => "$datadir/genotypes_phased.txt",
+    locusfile                          => "$datadir/loci_phased.txt",
 
     #priorallelefreqfile             => 'data/priorallelefreqs.txt',
     #fixedallelefreqs => 1,
@@ -64,7 +67,7 @@ randommatingmodel => 0,
 
 hapmixlambdaprior=>"30, 0.1, 10, 1",
 
-allelefreqprior => "1, 1, 1",
+allelefreqprior => "0.2, 1, 1",
 #initialhapmixlambdafile => "$datadir/initialambdas.txt",
 #allelefreqfile => "$datadir/initialallelefreqs.txt",
 
@@ -81,14 +84,16 @@ rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
     hapmixlambdaoutputfile => "initiallambdas.txt",
 
 #optional tests
-residualallelicassocscorefile => 'residualLDscores.txt',
+#residualallelicassocscorefile => 'residualLDscores.txt',
+mhtestfile => "mhtest.txt",
+
     #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
 };
 
 #model with $STATES block states
 
 ##initial run
-$arg_hash->{resultsdir}="$POP/Results$STATES"."States";
+$arg_hash->{resultsdir}="$POP/Results2$STATES";
 doAnalysis($executable,$arg_hash);
 
 ##rerun with final values of lambda, freqs in previous run as starting values
@@ -113,21 +118,6 @@ $arg_hash->{genotypesfile} = "$datadir/Ill540genotypes.txt";
 $arg_hash->{resultsdir} = "Ill540results";
 #doAnalysis($executable,$arg_hash);
 
-
-## half genotypes missing at half the loci
-$arg_hash->{resultsdir}='MissingResults';
-$arg_hash->{genotypesfile} = 'MissingData/genotypes.txt';
-$arg_hash->{locusfile}  = 'MissingData/loci.txt';
-$arg_hash->{outcomevarfile} = 'smallMissingData/outcome.txt';# dummy outcome for allelic assoc test
-#$arg_hash->{allelicassociationscorefile} = 'allelicassociationscorefile.txt';
-#doAnalysis($executable,$arg_hash);
-
-## first 1000 loci, half genotypes missing at half the loci
-$arg_hash->{resultsdir}='smallMissingResults';
-$arg_hash->{genotypesfile} = 'smallMissingData/genotypes.txt';
-$arg_hash->{locusfile}  = 'smallMissingData/loci.txt';
-#doAnalysis($executable,$arg_hash);
-
 print "script ended: ";
 my $endtime = scalar(localtime());
 print $endtime;
@@ -138,27 +128,23 @@ print "\n";
 sub getArguments
 {
     my $hash = $_[0];
-#    my $arg = '';
-#    foreach my $key (keys %$hash){
-#	$arg .= ' --'. $key .'='. $hash->{$key};
-#    }
-#    return $arg;
-    my $filename = 'perlargs.txt';
+    my $filename = "args$POP$STATES.txt";
     open(OPTIONFILE, ">$filename") or die ("Could not open args file");
     foreach my $key (keys %$hash){
       print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
 
-    # If possible, append the contents of the index file with masked
-    # loci to the option file, so users don't have to do it by hand.
-    my $line;
-    open(EXTERNAL_ARGS, "$datadir/genotypes5000_index.txt")
-      or warn("Can't open the external arguments file.");
-    foreach $line (<EXTERNAL_ARGS>) {
-      print OPTIONFILE $line;
+    if($maskfile){##if we are using masked data
+	# If possible, append the contents of the index file with masked
+	# loci to the option file, so users don't have to do it by hand.
+	my $line;
+	open(EXTERNAL_ARGS, "$datadir/$maskfile")
+	    or warn("Can't open the external arguments file.");
+	foreach $line (<EXTERNAL_ARGS>) {
+	    print OPTIONFILE $line;
+	}
+	close(EXTERNAL_ARGS);
     }
-    close(EXTERNAL_ARGS);
-
     close OPTIONFILE;
     return " ".$filename;
 }
@@ -166,9 +152,12 @@ sub getArguments
 sub doAnalysis
 {
     my ($prog,$args) = @_;
-   #my $command = "mpiexec " . $prog.getArguments($args);
-    my $command = $prog.getArguments($args);
-
+    my $command = "";
+    if($parallel){
+	$command = "mpiexec ";
+	$args->{resultsdir} = $args->{resultsdir}. "Parallel";
+    }
+    $command = $command . $prog.getArguments($args);
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     if(system($command)==0){
 	if($arg_hash->{allelefreqoutputfile}){
@@ -182,7 +171,7 @@ sub doAnalysis
 	
 # Comment out the next three lines to run admixmap without R script
     print "Starting R script to process output\n";
-    system("R --quiet --no-save --no-restore <../test/AdmixmapOutput.R >$args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
+    system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
     print "R script completed\n\n";
 }
 }
