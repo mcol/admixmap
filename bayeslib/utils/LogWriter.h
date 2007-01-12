@@ -42,6 +42,8 @@ class LogWriter
 public:
   ///constructor - supply filename and indicate behaviour for quiet mode
   LogWriter(const char *LogFilename, const bool isverbose);
+  ///default constructor, makes verbose output, no logfile
+  LogWriter();
   ~LogWriter();
 
   void setDisplayMode(DisplayMode);
@@ -68,10 +70,6 @@ private:
   long StartTime;
   DisplayMode toscreen;
   int rank;
-
-  ///default constructor, makes verbose output, no logfile
-  LogWriter();
-
 
 };
 

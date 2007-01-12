@@ -24,6 +24,7 @@ struct nullstream:
 
 LogWriter::LogWriter(){
   toscreen = Off;
+  verbose = false;
 }
 
 LogWriter::LogWriter(const char *LogFilename, const bool isverbose){
