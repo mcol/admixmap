@@ -48,7 +48,7 @@ void HapMixFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     
     Initialise(Populations, NumberOfCompositeLoci, options->getAlleleFreqPriorParams());
 
-    for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
       if(RandomAlleleFreqs){
 	if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
 	  //set up samplers for allelefreqs
@@ -99,7 +99,7 @@ void HapMixFreqs::Initialise(unsigned Populations, unsigned L, const std::vector
   HapMixMuArgs.K = Populations;
   HapMixPriorMuSampler.Initialise(true, true, 1.0, 0.0, fmu_hapmix, dfmu_hapmix );
 
-  for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     HapMixPriorEta[i] = (HapMixPriorShape / HapMixPriorRate);//set dispersion to prior mean
     HapMixPriorParams[i] =  HapMixPriorEta[i] * 0.5;//fixed proportions of 0.5
     HapMixPriorEtaSampler[i].SetParameters(0.1, 0.00001, 100.0, 0.26);
@@ -127,7 +127,7 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // then use AlleleProbs to set HapPairProbs in CompositeLocus
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
-  for( unsigned i = 0; i < NumberOfCompositeLoci; i++ ){
+  for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
     //accumulate summary stats for update of priors
     double sumlogfreqs1 = 0.0,sumlogfreqs2 = 0.0; 
@@ -350,13 +350,13 @@ void HapMixFreqs::OutputPriorParams(std::ostream& os, bool tofile){
 }
 float HapMixFreqs::getAcceptanceRate()const{
   float sum = 0.0;
-  for(unsigned j = 0; j < NumberOfCompositeLoci; ++j)
+  for(int j = 0; j < NumberOfCompositeLoci; ++j)
     sum += HapMixPriorEtaSampler[j].getExpectedAcceptanceRate();
   return sum / (float)NumberOfCompositeLoci;
 }
 float HapMixFreqs::getStepSize()const{
   float sum = 0.0;
-  for(unsigned j = 0; j < NumberOfCompositeLoci; ++j)
+  for(int j = 0; j < NumberOfCompositeLoci; ++j)
     sum += HapMixPriorEtaSampler[j].getStepSize();
   return sum / (float)NumberOfCompositeLoci;
 
