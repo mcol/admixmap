@@ -1,5 +1,7 @@
 # vim:set ft=r:
 #
+# FIXME: Rows are not yet normalized.
+#
 # FIXME: This file needs to be checked. Calculated mutual information is
 # very close to zero in the results. For instance:
 #
