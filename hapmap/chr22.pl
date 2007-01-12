@@ -19,11 +19,11 @@ my $STATES = 4;
 my $parallel = '';
 my $maskfile = '';
 
-# Change this to the location of the admixmap executable
+# Change this to the location of the hapmixmap executable
 #my $executable = '../test/adm-para';
 
-#my $executable = '../test/hapmixmap';
-my $executable = '/ichec/home/users/doducd/test/hapmixmap';
+my $executable = '../test/hapmixmap';
+#my $executable = '/ichec/home/users/doducd/test/hapmixmap';
 
 ##parse any command line options
 GetOptions("parallel" =>\$parallel, "samples=i"=>\$samples, "burnin=i"=>\$burnin, "every=i"=>\$every, "pop=s"=>\$POP, "states=i"=>\$STATES, "exec=s"=>\$executable, "maskfile=s" =>\$maskfile);
