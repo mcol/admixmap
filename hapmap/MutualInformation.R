@@ -45,7 +45,17 @@ gp.dbg <- function(indiv, loc) {
 	print(c("sum:", sum(GP[,indiv,loc])))
 }
 
-# Returns a function that prepends a string
+# Returns a function that adds a prefix to a string
+# NB: It doesn't return a string, but a function, which can be later
+# called with an argument.
+#
+# Usage:
+# > add.something <- add.prefix("something ")
+# > add.something("strange")
+# [1] "something strange"
+# > add.something("nice")
+# [1] "something nice"
+#
 add.prefix <- function(s) {
 	return(function(x) (paste(s, x, sep = "")))
 }
@@ -67,6 +77,22 @@ get.clean.cm <- function() {
 	return(m)
 }
 
+# Calculates a product of marginal distributions
+marginal.dist.prod <- function(my.matrix) {
+	if (!is.matrix(my.matrix)) {
+		stop("Argument should be a matrix.")
+	}
+	mcols = colSums(my.matrix, na.rm = TRUE)
+	# mcols = mcols / sum(mcols)
+	mrows = rowSums(my.matrix, na.rm = TRUE)
+	# mrows = mrows / sum(mrows)
+	# marginal distributions product
+	md.prod = matrix(mrows, ncol = 1) %*% matrix(mcols, nrow = 1)
+	md.prod[which(md.prod == 0)] <- NA
+	dimnames(md.prod) <- dimnames(my.matrix)
+	return(md.prod)
+}
+
 # Calculate the mutual information as given in the paper, page 18.
 # \sum_{x,y} (p_{x,y} log p_{x,y} - p_x p_y log(p_{x.} p_{.y}))
 # Uses the entropy() function.
@@ -82,18 +108,9 @@ mutual.information <- function(locus.no, genotypes) {
 		# print(joint.pd)
 		# message(c("Genotype end:", genotype))
 	}
-	# print(joint.pd)
 	# marginal distributions
-	mcols = colSums(joint.pd, na.rm = TRUE)
-	mcols = mcols / sum(mcols)
-	mrows = rowSums(joint.pd, na.rm = TRUE)
-	mrows = mrows / sum(mrows)
-	# marginal distributions product
-	md.prod = matrix(mrows, nrow = 3) %*% matrix(mcols, ncol = 3)
-	dimnames(md.prod) <- dimnames(joint.pd)
-	md.prod[which(md.prod == 0)] <- NA
+	md.prod <- marginal.dist.prod(joint.pd)
 	# mutual information
-	# print(md.prod)
 	return(sum(joint.pd * log(joint.pd) - md.prod * log(md.prod), na.rm = TRUE))
 }
 
