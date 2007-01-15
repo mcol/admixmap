@@ -69,8 +69,8 @@ genotypes[missing.indivs, missing.loci] <- NA
 genepi.write.table(genotypes, out.genotypes.file)
 
 cat(
-	paste("maskedindivs = ", missing.indivs),
-	paste("maskedloci = ", missing.loci),
+	paste("maskedindivs = ", paste(missing.indivs, collapse = " ")),
+	paste("maskedloci = ", paste(missing.loci, collapse = " ")),
 	sep = "\n",
 	file = out.index.file)
 
