@@ -43,8 +43,7 @@ void MakeResultsDir(const char* dirname, bool verbose);
 
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
 
-void PrintADMIXMAPCopyrightNotice(LogWriter & Log); 
-void PrintHAPMIXMAPCopyrightNotice(LogWriter & Log); 
+void PrintCopyrightNotice(LogWriter & Log);
 
 void PrintOptionsMessage();
 void ThrowException(const string& msg, LogWriter & Log);

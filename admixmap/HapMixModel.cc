@@ -1,4 +1,4 @@
-#include "admixmap.h"
+#include "HapMixModel.h"
 
 // HapMixModel::HapMixModel(){
 
@@ -230,8 +230,7 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, AdmixOptions & o
 	      R[r]->OutputErgodicAvg(samples,&avgstream);
 
 	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
-	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream, options.getFixedAlleleFreqs());
-	    avgstream << endl;
+ 	    avgstream << endl;
 	  }
 	  //Score Test output
 	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
@@ -265,8 +264,6 @@ void HapMixModel::OutputParameters(int iteration, const AdmixOptions *options, L
   
   //if( options->getDisplayLevel()>2 ) cout << endl;
   if( iteration > options->getBurnIn() ){
-    // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
-    if( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
       A.OutputPriorParams();
 
     if(options->getOutputAlleleFreq() && !options->getHapMixModelIndicator()){

@@ -1,4 +1,4 @@
-#include "admixmap.h"
+#include "AdmixMapModel.h"
 
 // AdmixMapModel::AdmixMapModel(){
 
@@ -18,9 +18,10 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWrite
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object
   
-  IC = new IndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
+  AdmixedIndividuals = new AdmixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
+  IC = (IndividualCollection*) AdmixedIndividuals;
   if(isMaster || isWorker)IC->LoadData(&options, &data, (!options.getTestForAdmixtureAssociation() && options.getPopulations() > 1));    
-  if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+  if(isWorker)AdmixedIndividuals->setGenotypeProbs(&Loci, &A); // sets unannealed probs
   if(isMaster){
     const int numdiploid = IC->getNumDiploidIndividuals();
     const int numindivs = data.getNumberOfIndividuals();
@@ -45,8 +46,8 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWrite
   }
   
   if(isMaster || isWorker){
-      IC->Initialise(&options, &Loci, data.GetPopLabels(), Log);
-      IC->DrawInitialAdmixture(L->getalpha());
+      AdmixedIndividuals->Initialise(&options, &Loci, data.GetPopLabels(), Log);
+      AdmixedIndividuals->DrawInitialAdmixture(L->getalpha());
   }
   
   //initialise regression objects
@@ -68,7 +69,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
     // ** update global sumintensities conditional on genotype probs and individual admixture proportions
      if((options->getPopulations() > 1) && options->getIndAdmixHierIndicator() && 
         (Loci.GetLengthOfGenome() + Loci.GetLengthOfXchrm() > 0.0))
-       L->UpdateGlobalSumIntensities(IC, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1)); 
+       L->UpdateGlobalSumIntensities(AdmixedIndividuals, (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1));
     // leaves individuals with HMM probs bad, stored likelihood ok
     // this function also sets locus correlations in Chromosomes
   }
@@ -76,9 +77,9 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
   //find posterior modes of individual admixture at end of burn-in
   //set Chib numerator
   if(!anneal && iteration == options->getBurnIn() && (options->getChibIndicator() || strlen(options->getIndAdmixModeFilename()))) {
-    IC->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A, PopulationLabels);
+    AdmixedIndividuals->FindPosteriorModes(options, R, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A, PopulationLabels);
     if( options->getChibIndicator() ) {
-      IC->setChibNumerator(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A);
+      AdmixedIndividuals->setChibNumerator(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A);
     }
   }
 
@@ -88,8 +89,8 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
   // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
   if(isMaster || isWorker){
     if(options->getPopulations() >1 && !(iteration %2))
-      IC->SampleAdmixtureWithRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), Scoretests.getAncestryAssocTest(),anneal);
-    IC->SampleLocusAncestry(iteration, options, R, Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
+      AdmixedIndividuals->SampleAdmixtureWithRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), Scoretests.getAncestryAssocTest(),anneal);
+    AdmixedIndividuals->SampleLocusAncestry(iteration, options, R, Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
    }
 
   if(isWorker || isFreqSampler) {
@@ -97,7 +98,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
     MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
 // loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
-    IC->SampleHapPairs(options, &A, &Loci, true, anneal); 
+    AdmixedIndividuals->SampleHapPairs(options, &A, &Loci, true, anneal);
 #ifdef PARALLEL
     MPE_Log_event(14, iteration, "sampledHapPairs");
 #endif
@@ -135,13 +136,13 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
       ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   // sample individual admixture and sum-intensities 
-  IC->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),  
+  AdmixedIndividuals->SampleParameters(iteration, options, R, L->getpoptheta(), L->getalpha(),
 		       L->getrhoalpha(), L->getrhobeta(), Scoretests.getAncestryAssocTest(),anneal);
   // stored HMM likelihoods will now be bad if the sum-intensities are set at individual level
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   if( options->getChibIndicator() && !anneal && iteration >= options->getBurnIn() )
-    IC->updateChib(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A);      
+    AdmixedIndividuals->updateChib(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A);
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // update allele frequencies conditional on locus ancestry states
@@ -169,8 +170,8 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
 #ifdef PARALLEL
     MPE_Log_event(11, iteration, "setGenotypeProbs"); 
 #endif
-    IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs ready for getEnergy
-    IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
+    AdmixedIndividuals->setGenotypeProbs(&Loci, &A); // sets unannealed probs ready for getEnergy
+    AdmixedIndividuals->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
 #ifdef PARALLEL
     MPE_Log_event(12, iteration, "GenotypeProbsSet"); 
 #endif
@@ -182,7 +183,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if(isMaster || isWorker){
     //update population admixture Dirichlet parameters conditional on individual admixture
-    L->UpdatePopAdmixParams(iteration, IC, Log);
+    L->UpdatePopAdmixParams(iteration, AdmixedIndividuals, Log);
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
@@ -264,7 +265,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, AdmixOptions &
 	      R[r]->OutputErgodicAvg(samples,&avgstream);
 
 	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
-	    if(options.getChibIndicator()) IC->OutputErgodicChib(&avgstream, options.getFixedAlleleFreqs());
+	    if(options.getChibIndicator()) AdmixedIndividuals->OutputErgodicChib(&avgstream, options.getFixedAlleleFreqs());
 	    avgstream << endl;
 	  }
 	  //Score Test output
@@ -300,7 +301,7 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
   //if( options->getDisplayLevel()>2 ) cout << endl;
   if( iteration > options->getBurnIn() ){
     // output individual and locus parameters every 'getSampleEvery()' iterations after burnin
-    if( strlen( options->getIndAdmixtureFilename() ) ) IC->OutputIndAdmixture();
+    if( strlen( options->getIndAdmixtureFilename() ) ) AdmixedIndividuals->OutputIndAdmixture();
     if(options->getOutputAlleleFreq()){
 	A.OutputAlleleFreqs();
     }
@@ -344,9 +345,9 @@ void AdmixMapModel::PrintAcceptanceRates(const AdmixOptions& options, LogWriter&
 
 void AdmixMapModel::Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data){
   if( options.getChibIndicator()) {
-    //IC->OutputChibEstimates(options.isRandomMatingAdmixMapModel(), Log, options.getPopulations());
+    //AdmixedIndividuals->OutputChibEstimates(options.isRandomMatingAdmixMapModel(), Log, options.getPopulations());
     //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
-    if(IC->getSize()==1) IC->OutputChibResults(Log);
+    if(AdmixedIndividuals->getSize()==1) AdmixedIndividuals->OutputChibResults(Log);
   }
   //FST
   if( strlen( options.getHistoricalAlleleFreqFilename()) && Comms::isFreqSampler()  ){
@@ -461,5 +462,11 @@ void AdmixMapModel::InitializeErgodicAvgFile(const AdmixOptions* const options, 
 
 
 double AdmixMapModel::getDevianceAtPosteriorMean(const AdmixOptions* const options, LogWriter& Log){
-  return IC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
+  return AdmixedIndividuals->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
+}
+double* AdmixMapModel::getSumEnergy()const{
+    return AdmixedIndividuals->getSumEnergy();
+}
+double* AdmixMapModel::getSumEnergySq()const{
+    return AdmixedIndividuals->getSumEnergySq();
 }
