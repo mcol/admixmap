@@ -137,7 +137,7 @@ void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vect
   _currentIndividual++;
 }
 
-void IndAdmixOutputter::visitIndividualCollection(const IndividualCollection& i)
+void IndAdmixOutputter::visitIndividualCollection(const AdmixIndividualCollection& i)
 {
   _iterations++;
   _totalIndividuals = i.getSize();

@@ -11,7 +11,7 @@
  */
 #include "PopAdmix.h"
 #include "Chromosome.h"
-#include "IndividualCollection.h"
+#include "AdmixIndividualCollection.h"
 #include "utils/misc.h"
 #include "utils/dist.h"//for log gamma density
 #include <algorithm>
@@ -135,7 +135,7 @@ PopAdmix::~PopAdmix()
  of components, we have one Dirichlet parameter vector for each component, 
  updated only from those individuals who belong to the component
 */
-void PopAdmix::UpdatePopAdmixParams(int iteration, const IndividualCollection* const individuals, LogWriter &Log)
+void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const individuals, LogWriter &Log)
  {
    if( options->getPopulations() > 1 && individuals->getSize() > 1 &&
        options->getIndAdmixHierIndicator() ){
@@ -188,7 +188,7 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const IndividualCollection* c
 }
 
 ///updates global sumintensities in a globalrho model, using random-walk Metropolis-Hastings
-void PopAdmix::UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogrho) {
+void PopAdmix::UpdateGlobalSumIntensities(const AdmixIndividualCollection* const IC, bool sumlogrho) {
   if( options->isGlobalRho() ) {
     double LogLikelihood = 0.0;
     double LogLikelihoodAtProposal = 0.0;
@@ -213,7 +213,7 @@ void PopAdmix::UpdateGlobalSumIntensities(const IndividualCollection* const IC, 
     if(Comms::isWorker()){
        //get log likelihood at current parameter values, annealed if this is an annealing run
       for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers) {
-	Individual* ind = IC->getIndividual(i);
+	Individual* ind = ((IndividualCollection*)IC)->getIndividual(i);
 	ind->HMMIsBad(true);//to force HMM update
 	LogLikelihood += ind->getLogLikelihood(options, false, true); // don't force update, store result if updated
 	ind->HMMIsBad(true); // HMM probs overwritten by next indiv, but stored loglikelihood still ok
@@ -224,7 +224,7 @@ void PopAdmix::UpdateGlobalSumIntensities(const IndividualCollection* const IC, 
       
       //get log HMM likelihood at proposal rho and current admixture proportions
       for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers) {
-	Individual* ind = IC->getIndividual(i);
+	Individual* ind =((IndividualCollection*)IC)->getIndividual(i);
 	LogLikelihoodAtProposal += ind->getLogLikelihood(options, true, false); // force update, do not store result 
 	ind->HMMIsBad(true); // set HMM probs as bad but stored log-likelihood is still ok
 	// line above should not be needed for a forced update with result not stored
@@ -268,7 +268,7 @@ void PopAdmix::UpdateGlobalSumIntensities(const IndividualCollection* const IC, 
     if(Comms::isWorker()){      
       if(accept) {
 	for(int i = Comms::getWorkerRank(); i < IC->getSize(); i += NumWorkers){
-	  Individual* ind = IC->getIndividual(i);
+	  Individual* ind =((IndividualCollection*)IC)->getIndividual(i);
 	  ind->storeLogLikelihood(false); // store log-likelihoods calculated at rhoprop, but do not set HMM probs as OK 
 	}
       } else { 

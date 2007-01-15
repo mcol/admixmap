@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   PopAdmix.h 
  *   header file for PopAdmix class
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -20,7 +20,7 @@
 #include "samplers/DirichletParamSampler.h"//for sampling pop admix
 
 class InputData;
-class IndividualCollection;
+class AdmixIndividualCollection;
 
 ///Class to hold and update population admixture and sumintensities parameters and their priors
 class PopAdmix
@@ -34,9 +34,9 @@ public:
   
   void InitializeOutputFile(const Vector_s&  PopulationLabels);
   
-  void UpdateGlobalSumIntensities(const IndividualCollection* const IC, bool sumlogtheta);
+  void UpdateGlobalSumIntensities(const AdmixIndividualCollection* const IC, bool sumlogtheta);
 
-  void UpdatePopAdmixParams(int iteration, const IndividualCollection* const, LogWriter &Log);
+  void UpdatePopAdmixParams(int iteration, const AdmixIndividualCollection* const, LogWriter &Log);
   
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream* out); 
