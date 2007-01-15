@@ -19,6 +19,7 @@
 #include "ScoreTests.h"
 #include <numeric>
 #include "utils/linalg.h"
+#include "gsl/gsl_cdf.h"
 #include "regression/Regression.h"
 #include "Comms.h"
 
