@@ -1,38 +1,34 @@
 # vim:set ft=r:
 #
-# FIXME: Rows are not yet normalized.
-#
-# FIXME: This file needs to be checked. Calculated mutual information is
-# very close to zero in the results. For instance:
-#
-#  [1]  9.656637e-09  1.982607e-07 -1.319238e-06 -6.433266e-07 -6.290709e-09
-#  [6] -4.539540e-07  0.000000e+00 -2.605956e-07  0.000000e+00  0.000000e+00
-# [11]  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00 -1.021872e-07
-#
-# Moreover, calculated mutual information values are often negative,
-# while they should be always positive.
-#
-# I noticed that for many loci all the individuals have the same
-# genotype. In my sample data:
-#
-# 1 genotype:  266 loci
-# 2 genotypes: 174 loci
-# 3 genotypes:  60 loci
+# author: Maciej Blizinski
+# 
+# Reads PPGenotypeProbs.txt file and calculates the mutual information.
 
-region = "Eur"
-states = 4
+region <- "Eur"
+states <- 24
 
 genotypes = c("1,1", "1,2", "2,2")
 
-results.dir = paste(region, "/", "Results", states, "States", sep = "")
+results.dir = paste(region, "/", "Results", states, "", sep = "")
 
 # Evauluate entropy of a vector
-entropy <- function(vec) {
+entropy <- function(vec, na.rm = FALSE) {
+	if (!na.rm) {
+		na.fail(vec)
+	}
 	if (max(vec, na.rm = TRUE) > 1)
-		stop("vector elements must be at most 1.")
-	if (min(vec, na.rm = TRUE) <= 0)
-		stop("vector elements must be greater than 0.")
-	return(sum(-vec * log(vec), na.rm = TRUE))
+		stop("argument elements must be at most 1.")
+	if (min(vec, na.rm = TRUE) < 0)
+		stop("argument elements must be greater than 0.")
+	vecsum <- sum(vec, na.rm = na.rm)
+	# Since it will never sum to exactly 1, there is certain precision
+	if (abs(vecsum - 1.0) > 1e-5) {
+		stop("argument needs to sum to 1. Current sum is ", vecsum)
+	}
+	# Zeros do not contribute to entropy
+	# H(a_1, a_2, ..., 0) = H(a_1, a_2, ...)
+	vec <- vec[which(vec != 0)]
+	return(sum(-vec * log(vec), na.rm = na.rm))
 }
 
 GP = dget(paste(results.dir, "PPGenotypeProbs.txt", sep = "/"))
@@ -61,7 +57,7 @@ add.prefix <- function(s) {
 }
 
 get.clean.cm <- function() {
-	m = matrix(nrow = 3, ncol = 3)
+	m = matrix(numeric(9), nrow = 3, ncol = 3)
 	# t: true
 	# c("t1,1", "t1,2", "t2,2")
 	colnames(m) <- lapply(genotypes, add.prefix("t"))
@@ -71,9 +67,9 @@ get.clean.cm <- function() {
 	# It should look like this:
 	# > m
 	#           t1,1 t1,2 t2,2
-	#      p1,1   NA   NA   NA
-	#      p1,2   NA   NA   NA
-	#      p2,2   NA   NA   NA
+	#      p1,1    0    0    0
+	#      p1,2    0    0    0
+	#      p2,2    0    0    0
 	return(m)
 }
 
@@ -88,30 +84,73 @@ marginal.dist.prod <- function(my.matrix) {
 	# mrows = mrows / sum(mrows)
 	# marginal distributions product
 	md.prod = matrix(mrows, ncol = 1) %*% matrix(mcols, nrow = 1)
-	md.prod[which(md.prod == 0)] <- NA
+	# md.prod[which(md.prod == 0)] <- NA
 	dimnames(md.prod) <- dimnames(my.matrix)
+	# print(md.prod)
 	return(md.prod)
 }
 
 # Calculate the mutual information as given in the paper, page 18.
 # \sum_{x,y} (p_{x,y} log p_{x,y} - p_x p_y log(p_{x.} p_{.y}))
 # Uses the entropy() function.
-mutual.information <- function(locus.no, genotypes) {
+
+joint.prob <- function(GP, locus.no, genotypes) {
+	joint.pd <- get.clean.cm()
+	indiv.total <- 0
 	for (genotype in genotypes) {
 		# message(c("Genotype start:", genotype))
-		joint.pd <- get.clean.cm()
 		indiv.idx <- which(orig[, locus.no] == genotype)
+		indiv.no <- length(indiv.idx)
+		# Adding to total only individuals that have data
+		indiv.total <- indiv.total + indiv.no
 		# print(rowMeans(matrix(GP[, indiv.idx, locus.no], nrow = 3)))
-		colname = add.prefix("t")(genotype)
+		colname <- add.prefix("t")(genotype)
 		# message(c("colname:", colname))
-		joint.pd[, colname] <- rowMeans(matrix(GP[, indiv.idx, locus.no], nrow = 3))
+		indiv.probs <- matrix(GP[, indiv.idx, locus.no], nrow = 3)
+		# print(indiv.probs)
+		if (length(indiv.probs) != 0) {
+			# Sum over the individuals
+			joint.pd[, colname] <- (rowSums(indiv.probs))
+		}
 		# print(joint.pd)
 		# message(c("Genotype end:", genotype))
 	}
+	joint.pd <- (joint.pd / indiv.total)
+	return(joint.pd)
+}
+
+# Normalize columns, so the frequencies in the m  matrix are the same as
+# in the s matrix
+
+matrix.debug <- function(m, msg = "Matrix debug") {
+	print(msg)
+	print(dim(m))
+	print(m)
+	print(colSums(m))
+	print(sum(m))
+	print(entropy(m))
+}
+
+cols.normalize <- function(s, m) {
+	# stop("halt here.")
+	return(m)
+}
+
+mutual.information <- function(joint.pd) {
 	# marginal distributions
+	if (!is.matrix(joint.pd)) {
+		stop("Argument should be a matrix.")
+	}
+	# TODO: Check if the matrix is square
+	if (dim(joint.pd)[1] != dim(joint.pd)[2]) {
+		stop("Matrix should be square.")
+	}
 	md.prod <- marginal.dist.prod(joint.pd)
 	# mutual information
-	return(sum(joint.pd * log(joint.pd) - md.prod * log(md.prod), na.rm = TRUE))
+	# return(entropy(joint.pd) - entropy(md.prod))
+	# return(entropy(md.prod) - entropy(joint.pd))
+	# TODO: decide which way to do it: substract or divide
+	return(entropy(joint.pd) / entropy(md.prod))
 }
 
 # Array for mutual information.
@@ -124,7 +163,8 @@ colnames(mi) <- c("Mutual information", "Unique genotypes")
 for (locus.id in dimnames(GP)[[3]]) {
 	locus.no = as.numeric(locus.id)
 	# print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
-	mi[locus.no, 1] <- mutual.information(locus.no, genotypes)
+	joint.pd <- joint.prob(GP, locus.no, genotypes)
+	mi[locus.no, 1] <- mutual.information(joint.pd)
 	mi[locus.no, 2] <- length(unique(na.omit(orig[, locus.no])))
 }
 
