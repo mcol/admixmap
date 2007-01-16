@@ -1,0 +1,42 @@
+Contents of this directory:
+
+ * chr22.pl:
+A convenient script which runs the analysis of chromosome 22
+
+ * convertdata.cc
+ * convertphaseddata.cc
+ * data
+ * Eur
+
+ * FastPhaseConverter.R:
+An R script which writes R objects in fastPHASE format.
+
+ * fastphase_kselect
+ * hotspotmap.R
+ * makefile
+ * makegenotypes.cc
+
+
+ * maskGenotypes.R
+ * maskGenotypesFunctions.R
+R script which masks diploid genotype data. It writes both 
+
+
+ * MutualInformation.R:
+Script which calculates mutual information from PPGenotypes.txt written
+by the hapmapmix program.
+
+ * prepareTestingData.pl:
+A script which reads haploid data, takes out a specified percent of
+individuals to move to the testing set and writes both files. Training
+test is written as a haploid data, testing as diploid data.
+
+ranker.h
+
+ * repairSecondColumn.pl:
+Raw data from hapmap have problem with this:
+A/G/T AA AG AA GG AG ... (no T anywhere)
+This script processes the raw data and repairs it. In this case:
+A/G AA AG AA GG AG ...
+
+sortSNPs.cc
