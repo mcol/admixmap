@@ -48,15 +48,14 @@ int main( int argc , char** argv ){
     MPE_Describe_state(21, 22, "ScoreTests", "gray:hlines3");
   }
 #endif
-
-  // ******************* PRIMARY INITIALIZATION ********************************************************************************
-  //read user options
-  AdmixOptions options(argc, argv);
-
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   //  const bool isWorker = Comms::isWorker();
 
+  //read user options
+  AdmixOptions options(argc, argv);
+
+  //create results directory, or if it exists, deletes the contents
   if(isMaster){
     MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/);
   }
@@ -123,11 +122,14 @@ int main( int argc , char** argv ){
 #else
   cout << "Finished" << endl;
 #endif
-
-  if(isMaster){//print line of *s
+  //print run times to screen and log
+  if(isMaster){
+    if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+    Log.ProcessingTime();
+    //print line of *s
     cout <<setfill('*') << setw(80) << "*" <<endl;
   }
-  putenv("ADMIXMAPCLEANEXIT=1");
+  putenv("HAPMIXMAPCLEANEXIT=1");
   return 0;
 } //end of main
 
