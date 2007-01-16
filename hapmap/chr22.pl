@@ -54,8 +54,8 @@ GetOptions(
 # print "Samples: $samples\n";
 # exit(1);
 
-calculate_mutual_information();
-exit(0);
+# calculate_mutual_information();
+# exit(0);
 
 if ($usage) {
            ########################################################################
@@ -227,6 +227,15 @@ sub calculate_mutual_information {
     }
 }
 
+sub runRscript
+{
+    my ($args) = @_;
+    # Comment out the next three lines to run admixmap without R script
+    print "Starting R script to process output\n";
+    system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
+    print "R script completed\n\n";
+}
+
 sub doAnalysis
 {
     my ($prog,$args) = @_;
@@ -246,11 +255,10 @@ sub doAnalysis
 #copy file with final lambdas to data dir ready for next time
             system("cp $arg_hash->{resultsdir}/$arg_hash->{hapmixlambdaoutputfile} $datadir/$arg_hash->{hapmixlambdaoutputfile}");
         }
-        
-        # Comment out the next three lines to run admixmap without R script
-        print "Starting R script to process output\n";
-        system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
-        print "R script completed\n\n";
+        # Run the R script, change (1) to (0) to disable.
+        if (1) {
+            runRscript($args);
+        }
         if ($calculate_mi) {
             calculate_mutual_information();
         }
