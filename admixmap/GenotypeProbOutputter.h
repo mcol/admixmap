@@ -18,7 +18,7 @@ private:
   unsigned NumMaskedIndivs;
   unsigned NumMaskedLoci;
   unsigned NumIterations;
-  double Probs[4];
+  std::vector<double> Probs;
   std::ofstream outfile;
 
   std::vector< double > SumProbs;

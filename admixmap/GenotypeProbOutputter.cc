@@ -6,6 +6,9 @@ void GenotypeProbOutputter::Initialise(unsigned Nindivs, unsigned Nloci){
   NumMaskedIndivs = Nindivs;
   NumMaskedLoci = Nloci;
   NumIterations = 0;
+  Probs.assign(4, 0);
+  //NB: assuming only SNPs.
+  //TODO:?? extend to arbitrarily-sized loci (requires number of haplotype states for each locus) 
   SumProbs.assign(Nindivs*Nloci*3, 0.0);
 }
 

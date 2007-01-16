@@ -1,9 +1,8 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   CompositeLocus.h 
  *   header file for CompositeLocus class
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -44,7 +43,7 @@ public:
   void SetHapPairProbsMAP();
   void setAlleleProbsMAP(const double* const Freqs);
   void AccumulateAlleleProbs();
-  void getConditionalHapPairProbs(double* Probs, const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
+  void getConditionalHapPairProbs(std::vector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
 
   int GetNumberOfLoci()const;
   int GetNumberOfStates()const;
@@ -61,7 +60,7 @@ public:
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
   void GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const; 
   void SetHapPairProbsToPosteriorMeans(int iterations);
-  void SampleHapPair(hapPair*, const std::vector<hapPair > &HapPairs, const int ancestry[2])const;
+  void SampleHapPair(hapPair*, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
   const int *GetHapLabels( int ) const;
 
   //functions used for haplotype association score test 

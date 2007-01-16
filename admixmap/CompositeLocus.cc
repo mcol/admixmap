@@ -1,8 +1,7 @@
 /** 
- *   ADMIXMAP
  *   CompositeLocus.cc 
  *   Class to represent a composite locus
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -319,34 +318,56 @@ void CompositeLocus::AccumulateAlleleProbs(){
   }
 }
 
+
+#ifndef PARALLEL 
+///returns probabilities of ordered hap pairs conditional on hidden states
+//TODO: write alternative for parallel version using AlleleProbs
+void CompositeLocus::getConditionalHapPairProbs(std::vector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
+  //Note: probs should have length equal to the total number of possible diploid states ie  NumberOfStates^2 .
+  // (in haploid case, we get the probs directly from alleleprobs/allelefreqs
+  if((int)Probs.size() != NumberOfStates*NumberOfStates)throw string("Wrongly sized vector passed to CompositeLocus::getConditionalHapPairProbs");
+  fill(Probs.begin(), Probs.end(), 0.0);//fill with zeros
+
+  happairiter end = PossibleHapPairs.end();
+  happairiter hiter = PossibleHapPairs.begin();//hiter points to elements of PossibleHapPairs
+  double sum = 0.0;
+  for( ; hiter != end ; ++hiter) {
+    //retrieve required element from HapPairProbs
+    const double prob = HapPairProbs[ hiter->haps[0] * NumberOfStates * Populations * Populations + 
+				      hiter->haps[1] * Populations * Populations +
+				      ancestry[0] * Populations  + ancestry[1]];
+
+    Probs[hiter->haps[0]*NumberOfStates + hiter->haps[1]] = prob;
+    sum += prob;//accumulate probs in order to renormalize
+  }
+  //renormalize
+  for(vector<double>::iterator p = Probs.begin(); p !=Probs.end(); ++p)
+    *p /= sum;
+
+}
 /**
- * samples hap pair given locus ancstry
+ * samples hap pair given hidden states
  * HapPairs - a vector of possible haplotype pairs (coded) compatible with genotype
  * ancestry - a two-element vector of parental ancestry (e.g. 1,0 
  *   might represent european paternal and african maternal).
  *
  */
-#ifndef PARALLEL 
-///returns probabilities of ordered hap pairs conditional on hidden states
-void CompositeLocus::getConditionalHapPairProbs(double* Probs, const std::vector<hapPair > &HapPairs, const int ancestry[2])const{
-  double* p = Probs;
-  happairiter end = HapPairs.end();
-  happairiter hiter = HapPairs.begin();
-  for( ; hiter != end ; ++hiter, ++p) {
-    *p = HapPairProbs[ hiter->haps[0] * NumberOfStates * Populations * Populations + 
-		       hiter->haps[1] * Populations * Populations +
-		       ancestry[0] * Populations  + ancestry[1]];
+void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
+  double* Probs = new double[PossibleHapPairs.size()];//1way array of hap.pair probs
+  // getConditionalHapPairProbs(Probs, PossibleHapPairs, ancestry);
+  happairiter end = PossibleHapPairs.end();
+  happairiter hiter = PossibleHapPairs.begin();
+  for( unsigned j = 0; j < PossibleHapPairs.size() ; ++j) {
+    Probs[j] = HapPairProbs[ PossibleHapPairs[j].haps[0] * NumberOfStates * Populations * Populations + 
+			     PossibleHapPairs[j].haps[1] * Populations * Populations +
+			     ancestry[0] * Populations  + ancestry[1]];
   }
-}
-void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &HapPairs, const int ancestry[2])const{
-  double* Probs = new double[HapPairs.size()];//1way array of hap.pair probs
-  getConditionalHapPairProbs(Probs, HapPairs, ancestry);
-
-  int h = Rand::SampleFromDiscrete(Probs, HapPairs.size());
+  //no need to renormalize for SampleFromDiscrete
+  int h = Rand::SampleFromDiscrete(Probs, PossibleHapPairs.size());
   delete[] Probs;
 
-  hap->haps[0] = HapPairs[h].haps[0];
-  hap->haps[1] = HapPairs[h].haps[1];
+  hap->haps[0] = PossibleHapPairs[h].haps[0];
+  hap->haps[1] = PossibleHapPairs[h].haps[1];
 }
 #endif
 
