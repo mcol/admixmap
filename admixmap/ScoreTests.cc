@@ -141,26 +141,29 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
     | Allelic association  |
     -----------------------*/
   if( options->getTestForAllelicAssociation() ){
-    if(rank==0)OpenFile(Log, &allelicAssocScoreStream, options->getAllelicAssociationScoreFilename(), "Tests for allelic association");
-    
-    dim_ = new unsigned[L];//dimensions of arrays
-
-    LocusLinkageAlleleScore = new double*[L];
-    LocusLinkageAlleleInfo = new double*[L];
-    ScoreWithinHaplotype = new double**[ L ];
-    InfoWithinHaplotype = new double**[ L ];
-
-    if(rank==0){
-      SumLocusLinkageAlleleScore2 = new double*[L];
-      SumLocusLinkageAlleleScore = new double*[L];
-      SumLocusLinkageAlleleInfo = new double*[L];
-      
-      SumScoreWithinHaplotype = new double*[L];
-      SumScore2WithinHaplotype = new double*[L];
-      SumInfoWithinHaplotype = new double*[L];
+    if(options->getHapMixModelIndicator()){//use new test, with conditional distribution
+      NewAllelicAssocTest.Initialise(options->getAllelicAssociationScoreFilename(), 1, L, Log, false);
     }
-
-    //if(!options->getHapMixModelIndicator()){
+    else{//use original allelic assoc test
+      if(rank==0)OpenFile(Log, &allelicAssocScoreStream, options->getAllelicAssociationScoreFilename(), "Tests for allelic association");
+      dim_ = new unsigned[L];//dimensions of arrays
+      
+      LocusLinkageAlleleScore = new double*[L];
+      LocusLinkageAlleleInfo = new double*[L];
+      ScoreWithinHaplotype = new double**[ L ];
+      InfoWithinHaplotype = new double**[ L ];
+      
+      if(rank==0){
+	SumLocusLinkageAlleleScore2 = new double*[L];
+	SumLocusLinkageAlleleScore = new double*[L];
+	SumLocusLinkageAlleleInfo = new double*[L];
+	
+	SumScoreWithinHaplotype = new double*[L];
+	SumScore2WithinHaplotype = new double*[L];
+	SumInfoWithinHaplotype = new double*[L];
+      }
+      
+      //if(!options->getHapMixModelIndicator()){
 #ifdef PARALLEL
       int dimalleleinfo = 0, dimhapinfo = 0;
 #endif
@@ -176,67 +179,68 @@ void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const 
 	}
       }
       //}    
-    unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
-    for( int j = 0; j < L; j++ ){
-      int NumberOfStates = Lociptr->GetNumberOfStates(j);
-      int NumberOfLoci = Lociptr->getNumberOfLoci(j);
-
-      
-      if(NumberOfLoci > 1 )//haplotype
-	dim_[j] = 1;
-      else if(NumberOfStates == 2 )//simple diallelic locus
-	dim_[j] = 1;
-      else
-	dim_[j] = NumberOfStates;//simple multiallelic locus
+      unsigned NumCovars = indiv->GetNumCovariates() - indiv->GetNumberOfInputCovariates();
+      for( int j = 0; j < L; j++ ){
+	int NumberOfStates = Lociptr->GetNumberOfStates(j);
+	int NumberOfLoci = Lociptr->getNumberOfLoci(j);
+	
+	
+	if(NumberOfLoci > 1 )//haplotype
+	  dim_[j] = 1;
+	else if(NumberOfStates == 2 )//simple diallelic locus
+	  dim_[j] = 1;
+	else
+	  dim_[j] = NumberOfStates;//simple multiallelic locus
 #ifdef PARALLEL
-      dimalleleinfo += (dim_[j] + NumCovars) * (dim_[j] + NumCovars);
+	dimalleleinfo += (dim_[j] + NumCovars) * (dim_[j] + NumCovars);
 #endif
-
-      //next two lines may not be necessary as these arrays are sized later
-      LocusLinkageAlleleScore[j] = new double[ dim_[j] + NumCovars ];
-      LocusLinkageAlleleInfo[j] = new double[( dim_[j] + NumCovars) * (dim_[j] + NumCovars )];
-      if(rank==0){
-	SumLocusLinkageAlleleScore[j] = new double[ dim_[j] ];
-	SumLocusLinkageAlleleInfo[j] = new double[( dim_[j]) * (dim_[j] )];
-	SumLocusLinkageAlleleScore2[j] = new double[( dim_[j]) * (dim_[j] )];
-	fill(SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore[j]+dim_[j], 0.0);
-	fill(SumLocusLinkageAlleleInfo[j], SumLocusLinkageAlleleInfo[j] + dim_[j]*dim_[j], 0.0);
-	fill(SumLocusLinkageAlleleScore2[j], SumLocusLinkageAlleleScore2[j] + dim_[j]*dim_[j], 0.0);
-      }
-
-      
-      if( NumberOfLoci > 1 ){
-#ifdef PARALLEL
-	dimhapinfo += NumberOfLoci * (1 + NumCovars) * (1 + NumCovars);
-#endif
-	ScoreWithinHaplotype[ j ] = new double*[NumberOfLoci];
-	InfoWithinHaplotype[ j ] = new double*[NumberOfLoci];
-
-	for(int jj = 0; jj < NumberOfLoci; ++jj){
-	  ScoreWithinHaplotype[j][jj] = new double[1 + NumCovars];
-	  InfoWithinHaplotype[j][jj] = new double[(1 + NumCovars)*(1 + NumCovars)];
-	}
+	
+	//next two lines may not be necessary as these arrays are sized later
+	LocusLinkageAlleleScore[j] = new double[ dim_[j] + NumCovars ];
+	LocusLinkageAlleleInfo[j] = new double[( dim_[j] + NumCovars) * (dim_[j] + NumCovars )];
 	if(rank==0){
-	  SumScoreWithinHaplotype[j] = new double[ NumberOfLoci ];
-	  SumScore2WithinHaplotype[j] = new double[ NumberOfLoci ];
-	  SumInfoWithinHaplotype[j] = new double[ NumberOfLoci ];
-	  fill(SumScoreWithinHaplotype[j], SumScoreWithinHaplotype[j]+NumberOfLoci, 0.0);
-	  fill(SumScore2WithinHaplotype[j], SumScore2WithinHaplotype[j]+NumberOfLoci, 0.0);
-	  fill(SumInfoWithinHaplotype[j], SumInfoWithinHaplotype[j]+NumberOfLoci, 0.0);
+	  SumLocusLinkageAlleleScore[j] = new double[ dim_[j] ];
+	  SumLocusLinkageAlleleInfo[j] = new double[( dim_[j]) * (dim_[j] )];
+	  SumLocusLinkageAlleleScore2[j] = new double[( dim_[j]) * (dim_[j] )];
+	  fill(SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore[j]+dim_[j], 0.0);
+	  fill(SumLocusLinkageAlleleInfo[j], SumLocusLinkageAlleleInfo[j] + dim_[j]*dim_[j], 0.0);
+	  fill(SumLocusLinkageAlleleScore2[j], SumLocusLinkageAlleleScore2[j] + dim_[j]*dim_[j], 0.0);
 	}
-	  
-      }
-      else{
-	ScoreWithinHaplotype[ j ] = 0;
-	InfoWithinHaplotype[ j ] = 0;
-      }
-    }//end loop over loci
+	
+	
+	if( NumberOfLoci > 1 ){
 #ifdef PARALLEL
-    Comms::SetDoubleWorkspace(max(dimalleleinfo, dimhapinfo), rank==0);
-    Comms::SetIntegerWorkspace(L, (rank==0));
-    //accumulate locusObsIndicator over individuals (processes) 
-    Comms::AllReduce_int(locusObsIndicator, L);
+	  dimhapinfo += NumberOfLoci * (1 + NumCovars) * (1 + NumCovars);
 #endif
+	  ScoreWithinHaplotype[ j ] = new double*[NumberOfLoci];
+	  InfoWithinHaplotype[ j ] = new double*[NumberOfLoci];
+	  
+	  for(int jj = 0; jj < NumberOfLoci; ++jj){
+	    ScoreWithinHaplotype[j][jj] = new double[1 + NumCovars];
+	    InfoWithinHaplotype[j][jj] = new double[(1 + NumCovars)*(1 + NumCovars)];
+	  }
+	  if(rank==0){
+	    SumScoreWithinHaplotype[j] = new double[ NumberOfLoci ];
+	    SumScore2WithinHaplotype[j] = new double[ NumberOfLoci ];
+	    SumInfoWithinHaplotype[j] = new double[ NumberOfLoci ];
+	    fill(SumScoreWithinHaplotype[j], SumScoreWithinHaplotype[j]+NumberOfLoci, 0.0);
+	    fill(SumScore2WithinHaplotype[j], SumScore2WithinHaplotype[j]+NumberOfLoci, 0.0);
+	    fill(SumInfoWithinHaplotype[j], SumInfoWithinHaplotype[j]+NumberOfLoci, 0.0);
+	  }
+	  
+	}
+	else{
+	  ScoreWithinHaplotype[ j ] = 0;
+	  InfoWithinHaplotype[ j ] = 0;
+	}
+      }//end loop over loci
+#ifdef PARALLEL
+      Comms::SetDoubleWorkspace(max(dimalleleinfo, dimhapinfo), rank==0);
+      Comms::SetIntegerWorkspace(L, (rank==0));
+      //accumulate locusObsIndicator over individuals (processes) 
+      Comms::AllReduce_int(locusObsIndicator, L);
+#endif
+    }
   }  
 
   /*----------------------
@@ -275,7 +279,7 @@ void ScoreTests::OpenFile(LogWriter &Log, std::ofstream* outputstream, const cha
 void ScoreTests::Reset(){
   //resets arrays holding sums of scores and info over individuals to zero; invoked at start of each iteration after burnin.
 
-  if( options->getTestForAllelicAssociation() ){
+  if( options->getTestForAllelicAssociation() && !options->getHapMixModelIndicator()){
     int K = individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates();
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
       fill(LocusLinkageAlleleScore[j], LocusLinkageAlleleScore[j]+dim_[j]+K, 0.0);
@@ -294,6 +298,7 @@ void ScoreTests::Reset(){
 
   AdmixtureAssocScoreTest.Reset();  
   ResidualAllelicAssocScoreTest.Reset();
+  NewAllelicAssocTest.Reset();
   
 }
 
@@ -370,6 +375,12 @@ void ScoreTests::Update(const vector<Regression* >& R)
     //NOTE: in future this loop will be outside score tests classes so the indiv indices can be controlled outside
     //eg if(hapmixmodel && casecontrolanalysis && i>NumIndividuals)update allelic assoc test
     const int offset = individuals->getFirstScoreTestIndividualNumber();
+
+    if(options->getHapMixModelIndicator() && options->getTestForAllelicAssociation())
+      for( int i = worker_rank ; i < NumberOfIndividuals; i+=NumWorkers ){
+	NewAllelicAssocTest.UpdateB(R[0]->DerivativeInverseLinkFunction(i), dispersion, 0);
+      }
+
     for( int i = worker_rank ; i < NumberOfIndividuals; i+=NumWorkers ){
       
       Individual* ind = individuals->getIndividual(i + offset);
@@ -385,7 +396,22 @@ void ScoreTests::Update(const vector<Regression* >& R)
       }
       //allelic association
       if( options->getTestForAllelicAssociation() )
-	UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
+	if(options->getHapMixModelIndicator()){
+	  vector<double>OrderedProbs(4);
+	  vector<vector<double> > UnorderedProbs(3);
+	  int anc[2];
+
+	  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )if(Lociptr->GetNumberOfStates(j)==2){//SNPs only
+	  ind->GetLocusAncestry(j, anc);
+	    (*Lociptr)(j)->getConditionalHapPairProbs(OrderedProbs, ind->getPossibleHapPairs(j), anc);
+	    UnorderedProbs[0] = vector<double>(1, OrderedProbs[0]);//P(no copies of allele2)
+	    UnorderedProbs[1] = vector<double>(1, OrderedProbs[1] + OrderedProbs[2]);//P(1 copy of allele2)
+	    UnorderedProbs[2] = vector<double>(1, OrderedProbs[3]);//P(2 copies of allele2)
+	    NewAllelicAssocTest.Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
+	  }
+	}
+	else
+	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
     }
   }
 
@@ -416,20 +442,27 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	| Allelic and haplotype association  |
 	-------------------------------------*/
       try{
-	if( options->getTestForAllelicAssociation() ){
-	  //loop over simple loci within haplotypes
-	  if( NumberOfLoci > 1 ){
-	    for( int l = 0; l < NumberOfLoci; l++ ){
-	      CentreAndSum(1, ScoreWithinHaplotype[j][l], InfoWithinHaplotype[j][l], &(SumScoreWithinHaplotype[ j ][ l ]),
-			   &(SumScore2WithinHaplotype[j][l]), &(SumInfoWithinHaplotype[ j ][ l ]));
+	if(options->getHapMixModelIndicator() && options->getTestForAllelicAssociation()){
+	  if(Lociptr->GetNumberOfStates(j)==2)NewAllelicAssocTest.Accumulate(j);
+	  
+	}
+	else{
+	  if( options->getTestForAllelicAssociation() ){
+	    
+	    //loop over simple loci within haplotypes
+	    if( NumberOfLoci > 1 ){
+	      for( int l = 0; l < NumberOfLoci; l++ ){
+		CentreAndSum(1, ScoreWithinHaplotype[j][l], InfoWithinHaplotype[j][l], &(SumScoreWithinHaplotype[ j ][ l ]),
+			     &(SumScore2WithinHaplotype[j][l]), &(SumInfoWithinHaplotype[ j ][ l ]));
+	      }
 	    }
 	  }
-	}
-      
-	if((options->getTestForAllelicAssociation() && NumberOfLoci == 1) || options->getTestForHaplotypeAssociation()){
-	  if(options->getHapMixModelIndicator() || locusObsIndicator[j]){//skip loci with no observed genotypes
-	    CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
-			 SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
+	  
+	  if((options->getTestForAllelicAssociation() && NumberOfLoci == 1) || options->getTestForHaplotypeAssociation()){
+	    if(options->getHapMixModelIndicator() || locusObsIndicator[j]){//skip loci with no observed genotypes
+	      CentreAndSum(dim_[j], LocusLinkageAlleleScore[j], LocusLinkageAlleleInfo[j],SumLocusLinkageAlleleScore[j],
+			   SumLocusLinkageAlleleScore2[j],SumLocusLinkageAlleleInfo[j]); 
+	    }
 	  }
 	}
       }
@@ -611,6 +644,16 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
 
   //Allelic association
   if( options->getTestForAllelicAssociation() )    {
+    if(options->getHapMixModelIndicator()){
+      string filename; //ignored if !final
+      if(final){
+	filename = (options->getResultsDir());
+	filename.append("/AllelicAssocTestsFinal.txt");
+      }
+      else outfile = &allelicAssocScoreStream;
+      NewAllelicAssocTest.Output(iterations, PLabels, *Lociptr, final, filename.c_str());
+    }
+    else{
     if(final){
       string filename(options->getResultsDir());
       filename.append("/AllelicAssocTestsFinal.txt");
@@ -656,7 +699,7 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
       }//end j loop over comp loci
     if(final)delete outfile;
   }
-  
+  }  
   //haplotype association
   if( options->getTestForHaplotypeAssociation() ){
     if(final){
@@ -833,6 +876,11 @@ void ScoreTests::ROutput(){
    */
   int count;
   if(options->getTestForAllelicAssociation()){
+    if(options->getHapMixModelIndicator()){
+      NewAllelicAssocTest.ROutput(numPrintedIterations);
+    }
+    else{
+
     count = 0;
     for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )if(options->getHapMixModelIndicator() || locusObsIndicator[j]){
 #ifdef PARALLEL
@@ -852,7 +900,7 @@ void ScoreTests::ROutput(){
     labels[1] = "log10Pvalue";
     R_output3DarrayDimensions(&allelicAssocScoreStream,dimensions,labels);
   }
-  
+  }  
   /** 
    * writes out the dimensions and labels of the        
    * R-matrix for score tests of SNPs in haplotypes.        

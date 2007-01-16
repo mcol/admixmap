@@ -1,6 +1,5 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   ScoreTests.h 
  *   header file for Scoretests class
  *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -114,6 +113,7 @@ private:
   AffectedsOnlyTest AffectedsOnlyScoreTest;
   AncestryAssocTest AncestryAssocScoreTest;
 
+  AncestryAssocTest NewAllelicAssocTest;//test using conditional distribution of copies of allele2, rather than sampled values
 };
 
 
