@@ -28,10 +28,15 @@ AncestryAssocTest::AncestryAssocTest(){
   InfoCorrection = 0;
   B = 0;
   PrevB = 0;
+  useprevb = true;
   Xcov = 0;
   K = 0;
   L = 0;
   numPrintedIterations = 0;
+}
+AncestryAssocTest::AncestryAssocTest(bool use_prevb){
+  AncestryAssocTest();
+  useprevb = use_prevb;
 }
 AncestryAssocTest::~AncestryAssocTest(){
   if(test){
@@ -40,7 +45,7 @@ AncestryAssocTest::~AncestryAssocTest(){
     delete[] SumVarScore;
     delete[] SumScore2;
     delete[] B;
-    delete[] PrevB;
+    if(useprevb)delete[] PrevB;
     delete[] Xcov;
     free_matrix(Score, L);
     free_matrix(Info, L);  
@@ -48,7 +53,7 @@ AncestryAssocTest::~AncestryAssocTest(){
     free_matrix(InfoCorrection, L);
   }
 }
-void AncestryAssocTest::Initialise(const char* filename, const int NumStrata, const int NumLoci, LogWriter &Log){
+void AncestryAssocTest::Initialise(const char* filename, const int NumStrata, const int NumLoci, LogWriter &Log, bool use_prevb){
   test = true;
   OpenFile(Log, &outputfile, filename, "Tests for locus linkage", true);
   
@@ -74,7 +79,9 @@ void AncestryAssocTest::Initialise(const char* filename, const int NumStrata, co
   VarScore = alloc2D_d(L, K);
   InfoCorrection = alloc2D_d(L, K);
   B = new double[K * K];
-  PrevB = new double[K * K];
+  useprevb = use_prevb;
+  if(useprevb)PrevB = new double[K * K];
+  else PrevB = B;
   Xcov = new double[K];
 }
 
@@ -91,7 +98,7 @@ void AncestryAssocTest::Reset(){
       }
     }
     for(unsigned k = 0; k < K*K; ++k){
-      PrevB[k] = B[k];           //PrevB stores the sum for the previous iteration
+      if(useprevb)PrevB[k] = B[k];           //PrevB stores the sum for the previous iteration
       B[k] = 0.0;                //while B accumulates the sum for the current iteration 
     }
     for(unsigned k = 0; k < K; ++k){
@@ -103,7 +110,9 @@ void AncestryAssocTest::Output(int iterations, const Vector_s& PopLabels, const 
   std::ofstream* outfile;
   if(final){
     outfile = new ofstream(filename);
-    *outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
+    *outfile <<"Locus\t";
+    if(K>1)*outfile << "Population\t";
+    *outfile << "Score\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
   }
   else {
     outfile = &outputfile;
@@ -116,7 +125,8 @@ void AncestryAssocTest::Output(int iterations, const Vector_s& PopLabels, const 
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = Loci(j)->GetLabel(0);
     for( unsigned k = 0; k < KK; k++ ){//end at 1 for 2pops
-      const std::string label = locuslabel + "\"" + sep + "\"" + PopLabels[k+firstpoplabel];//label is output in quotes
+      std::string label = locuslabel;
+      if(K>1)label += "\"" + sep + "\"" + PopLabels[k+firstpoplabel];//label is output in quotes
       OutputRaoBlackwellizedScoreTest(iterations, outfile, label, SumScore[ j*KK + k], SumScore2[ j*KK + k], 
  				      SumVarScore[ j*KK + k ],SumInfo[ j*KK + k ], final); 
     }
@@ -128,22 +138,23 @@ void AncestryAssocTest::ROutput(const int ){
   if(test){
     int KK = K;
     if(KK ==2 )KK = 1;
+    
+    vector<string> labels;
+    labels.push_back("Locus");
+    if(K>1)labels.push_back("Population");
+    labels.push_back( "Score");
+    labels.push_back("CompleteInfo");
+    labels.push_back("ObservedInfo");
+    labels.push_back("PercentInfo");
+    labels.push_back("Missing1");
+    labels.push_back("Missing2");
+    labels.push_back("StdNormal");
+    labels.push_back("PValue");
+
     vector<int> dimensions(3,0);
-    dimensions[0] = 10;
+    dimensions[0] = labels.size();
     dimensions[1] = L * KK;
     dimensions[2] = (int)(numPrintedIterations);
-    
-    vector<string> labels(dimensions[0],"");
-    labels[0] = "Locus";
-    labels[1] = "Population";
-    labels[2] = "Score";
-    labels[3] = "CompleteInfo";
-    labels[4] = "ObservedInfo";
-    labels[5] = "PercentInfo";
-    labels[6] = "Missing1";
-    labels[7] = "Missing2";
-    labels[8] = "StdNormal";
-    labels[9] = "PValue";
     
     R_output3DarrayDimensions(&outputfile, dimensions, labels);
   }
@@ -248,12 +259,17 @@ void AncestryAssocTest::UpdateB(double DInvLink, double dispersion, const double
   //increment B using covariates
   //Xcov is a vector of covariates as in UpdateScoreForAncestry
     Xcov[K-1] = 1;//last entry is intercept
-    for( unsigned k = 0; k < K - 1; k++ ){
-      Xcov[k] = Covariates[k]; //centred covariates
+    if(K==1){//case of no covariates, Xcov = 1
+      B[0] += DInvLink*dispersion;
     }
-    double *temp = new double[K*K];
-    matrix_product(Xcov, Xcov, temp, K, 1, K);
-    scale_matrix(temp, DInvLink*dispersion, K, K);
-    add_matrix(B, temp, K, K);
+    else{
+      for( unsigned k = 0; k < K - 1; k++ ){
+	Xcov[k] = Covariates[k]; //centred covariates
+      }
+      double *temp = new double[K*K];
+      matrix_product(Xcov, Xcov, temp, K, 1, K);
+      scale_matrix(temp, DInvLink*dispersion, K, K);
+      add_matrix(B, temp, K, K);
     delete[] temp;
+    }
 }

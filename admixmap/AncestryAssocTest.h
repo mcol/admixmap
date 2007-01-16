@@ -24,8 +24,9 @@ class AncestryAssocTest : public ScoreTestBase{
 
 public:
   AncestryAssocTest();
+  AncestryAssocTest(bool use_prevb);
   ~AncestryAssocTest();
-  void Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log);
+  void Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log, bool use_prevb = true);
 
   void Reset();
   void Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
@@ -47,6 +48,7 @@ private:
   double **InfoCorrection;
   double *B;//used to correct info
   double *PrevB;//holds B for previous iteration while B accumulates for this iteration
+  bool useprevb;
   double *Xcov; //column matrix of covariates used to calculate B and for score test, 
                        //static only for convenience since it is reused each time
   double* SumScore;
