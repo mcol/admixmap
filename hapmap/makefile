@@ -1,4 +1,4 @@
-CC=pathCC
+# CC=pathCC
 DFLAGS=
 
 all: convertdata

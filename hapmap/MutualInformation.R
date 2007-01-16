@@ -3,13 +3,31 @@
 # author: Maciej Blizinski
 # 
 # Reads PPGenotypeProbs.txt file and calculates the mutual information.
+#
+# Should be called in batch mode, exactly like this:
+#
+# R CMD BATCH --no-save --no-restore --population=Eur --states=4 MutualInformation.R
 
-region <- "Eur"
-states <- 24
+get_option <- function(optname, s, int = FALSE) {
+        opt <- unlist(strsplit(s, "="))
+        print(opt);
+        if (opt[1] != paste("--", optname, sep = "")) {
+                stop("Expected --", optname, " option name, got ", opt[1])
+        }
+        if (int) {
+                return(as.integer(opt[2]))
+        } else {
+                return(opt[2])
+        }
+}
+
+args <- commandArgs()
+population <- get_option("population", args[7])
+states <- get_option("states", args[8], int = TRUE)
 
 genotypes = c("1,1", "1,2", "2,2")
 
-results.dir = paste(region, "/", "Results", states, "", sep = "")
+results.dir = paste(population, "/", "Results", states, "States", sep = "")
 
 # Evauluate entropy of a vector
 entropy <- function(vec, na.rm = FALSE) {
@@ -32,7 +50,7 @@ entropy <- function(vec, na.rm = FALSE) {
 }
 
 GP = dget(paste(results.dir, "PPGenotypeProbs.txt", sep = "/"))
-orig = dget(paste(region, "chr22data", "genotypes5000_observed_dput.txt", sep = "/"))
+orig = dget(paste(population, "chr22data", "genotypes5000_observed_dput.txt", sep = "/"))
 
 # Debug, to look at the data by hand
 gp.dbg <- function(indiv, loc) {
@@ -170,6 +188,10 @@ for (locus.id in dimnames(GP)[[3]]) {
 
 write.table(
 	mi,
-	file = paste(results.dir, "/mutual-information.txt", sep = ""),
+	file = paste(results.dir, "/mutual-information-by-locus.txt", sep = ""),
 	row.names = TRUE, col.names = NA)
+write.table(
+	mean(mi[1]),
+	file = paste(results.dir, "/mean-mutual-information.txt", sep = ""),
+	col.names = FALSE, row.names = FALSE)
 

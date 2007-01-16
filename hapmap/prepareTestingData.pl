@@ -12,7 +12,7 @@ my $infile = 0;
 my $usage = 0;
 my $haploidFile = "out-haplo.txt";
 my $ccFile = "out-cc.txt";
-my $pcmasked = 50;
+my $pcmasked = 12;
 
 GetOptions(
 	"phased-file=s" => \$infile,
@@ -48,7 +48,7 @@ my @indiv_idx = shuffle(0 .. ($indivs - 1));
 
 # Number of masked individuals
 my $no_masked = int($indivs * $pcmasked / 100.0);
-# print "No. masked: $no_masked\n";
+print "No. CC individuals: $no_masked\n";
 if ($no_masked < 1) {
 	die("No individuals masked. Please check your options.");
 }

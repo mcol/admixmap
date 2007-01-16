@@ -7,13 +7,15 @@ source("maskGenotypesFunctions.R")
 ## Configuration
 ########################################################################
 
+##note:assuming genotypes to be masked are all diploid 
+missing.genotype <- "\"0,0\""
+
 # Base name for all the input and output files.
+
+print(commandArgs())
 
 io.file.path <- "Eur/chr22data"
 io.file.basename <- "genotypes5000"
-
-##note:assuming genotypes to be masked are all diploid 
-missing.genotype <- "\"0,0\""
 
 in.genotypes.file <- get.io.filename(".txt")
 in.loci.file <- paste(io.file.path, "loci5000.txt", sep = "/")
@@ -40,16 +42,24 @@ message("Data reading finished.")
 number.loci <- ncol(genotypes)
 number.indivs <- nrow(genotypes)
 
-missing.loci <- sort(
-                   sample(
+size.by.percent <- function(n, pc) {
+	if (pc < 0) {
+		stop("Percent must be positive")
+	}
+	if (pc > 100) {
+		stop("Percent must be at most 100.")
+	}
+	return(round(n * pc / 100.0))
+}
+
+missing.loci <- sort(sample(
                    c(1:number.loci),
-	           size = round((number.loci * percent.missing.loci / 100.0)),
+	           size = size.by.percent(number.loci, percent.missing.loci),
 	           replace = FALSE))
 
-missing.indivs <- sort(
-                       sample(
+missing.indivs <- sort(sample(
 	               c(1:number.indivs),
-	               size = round((number.indivs * percent.missing.indivs / 100.0)),
+	               size = size.by.percent(number.indivs, percent.missing.indivs),
 	               replace = FALSE))
 
 # Save original genotypes
