@@ -8,18 +8,8 @@
 #
 # R CMD BATCH --no-save --no-restore --population=Eur --states=4 MutualInformation.R
 
-get_option <- function(optname, s, int = FALSE) {
-        opt <- unlist(strsplit(s, "="))
-        print(opt);
-        if (opt[1] != paste("--", optname, sep = "")) {
-                stop("Expected --", optname, " option name, got ", opt[1])
-        }
-        if (int) {
-                return(as.integer(opt[2]))
-        } else {
-                return(opt[2])
-        }
-}
+# Reading some functions.
+source("maskGenotypesFunctions.R")
 
 args <- commandArgs()
 population <- get_option("population", args[7])

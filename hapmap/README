@@ -4,11 +4,13 @@ Contents of this directory:
 A convenient script which runs the analysis of chromosome 22
 
  * convertdata.cc
-C++ program to convert raw unphased HapMap data files to HAPMIXMAP format genotypesfile and locusfile
-First run sortSNPS and repairSecondColmun to fix anomalies in the data files.
+C++ program to convert raw unphased HapMap data files to HAPMIXMAP
+format genotypesfile and locusfile First run sortSNPS and
+repairSecondColumn to fix anomalies in the data files.
 
  * convertphaseddata.cc
-C++ program to convert raw phased HapMap data files to HAPMIXMAP format genotypesfile and locusfile
+C++ program to convert raw phased HapMap data files to HAPMIXMAP format
+genotypesfile and locusfile
 
  * Eur
  * Afr
@@ -24,13 +26,14 @@ An R script which writes R objects in fastPHASE format.
 makefile for the various programs in this directory
 
  * makegenotypes.cc
-C++ program for setting to missing genotypes in HapMap data at loci not included in Affymetrix/Illumina chips
+C++ program for setting to missing genotypes in HapMap data at loci not
+included in Affymetrix/Illumina chips
 [obsolete]
 
  * maskGenotypes.R
  * maskGenotypesFunctions.R
-R script which masks diploid genotype data. It writes both 
-
+R script which masks diploid genotype data. It writes both HAPMIXMAP and
+fastPHASE data formats.
 
  * MutualInformation.R:
 Script which calculates mutual information from PPGenotypes.txt written
@@ -47,8 +50,11 @@ A/G/T AA AG AA GG AG ... (no T anywhere)
 This script processes the raw data and repairs it. In this case:
 A/G AA AG AA GG AG ...
 
-ranker.h
+ * sortSNPs.cc
+
+A short C++ program to sort the HapMap loci by position (some of the
+loci in the raw data files are out-of-sequence) [this shouls be
+incorporated into convertdata]
+
+ * ranker.h
 *header file required for sortSNPS.cc
-sortSNPs.cc
-* short C++ program to sort the HapMap loci by position (some of the loci in the raw data files are out-of-sequence)
-[this shouls be incorporated into convertdata]

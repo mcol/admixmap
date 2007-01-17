@@ -3,8 +3,9 @@
 # 
 # An example call (for a very fast run):
 # ./chr22.pl --genotypes-file Eur/chr22data/genotypes5000_masked.txt \
-# --locus-file Eur/chr22data/loci5000.txt --maskfile \
-# Eur/chr22data/genotypes5000_index.txt --samples 12 --burnin 2 \
+# --locus-file Eur/chr22data/loci5000.txt \
+# --maskfile Eur/chr22data/genotypes5000_index.txt \
+# --samples 12 --burnin 2 \
 # --mutual-information
 
 use strict;
@@ -29,6 +30,12 @@ my $rerun = 0;
 # Whether to calculate the mutual information
 my $calculate_mi = 0;
 my $usage = 0;
+# Whether to perform data masking first, for the phased data
+my $mask_data = 0;
+my $mask_percent_indivs = 0;
+my $mask_percent_loci = 0;
+my $ccgenotypesfile = '';
+my $limit_loci = 0;
 
 # Change this to the location of the hapmixmap executable
 #my $executable = '../test/adm-para';
@@ -49,34 +56,51 @@ GetOptions(
     "genotypes-file=s"=> \$genotypes_file,
     "locus-file=s"  => \$locus_file,
     "re-run!"       => \$rerun,
-    "maskfile=s"    => \$maskfile);
+    "maskfile=s"    => \$maskfile,
+    "mask-data!"     => \$mask_data,
+    "percent-indivs=i" => \$mask_percent_indivs,
+    "percent-loci=i"  => \$mask_percent_loci,
+    "case-control-file=s" => \$ccgenotypesfile,
+    "limit-loci=i" => \$limit_loci);
 
-# print "Samples: $samples\n";
-# exit(1);
-
-# calculate_mutual_information();
-# exit(0);
+if ($mask_data) {
+    if ($mask_percent_indivs <= 0 || $mask_percent_indivs > 100) {
+        print "Percent of masked individuals must be between 1 and 100.\n";
+        exit(1);
+    }
+    if ($mask_percent_loci <= 0 || $mask_percent_loci > 100) {
+        print "Percent of masked loci must be between 1 and 100.\n";
+        exit(1);
+    }
+}
 
 if ($usage) {
            ########################################################################
     print "\n";
     print "Usage: $0 [arguments]\n";
-    print "  --parallel                Perform calculations in a parallel mode,\n";
-    print "                            when on a cluster or multi-processor.\n";
-    print "  --samples <integer>       Number of iterations\n";
-    print "  --burnin <integer>        Lower than number of samples (above)\n";
-    print "  --every <integer>         Integer, (samples - burnin) > (10 * every)\n";
-    print "  --exec <file>             Name of the hapmixmap executable,\n";
-    print "                            e.g. ../test/hapmixmap\n";
-    print "  --pop [ Eur | Afr | Asi ] Population\n";
-    print "  --states [integer]        Number of hidden states\n";
-    print "  --mutual-information      Whether to calculate the mutual information\n";
-    print "  --maskfile                File with indices of masked individuals\n";
-    print "                            and loci\n";
-    print "  --genotypes-file <name>   Genotypes data file\n";
-    print "  --locus-file <name>       Locus data file\n";
-    print "  --re-run                  Rerun with final values of lambda, freqs\n";
-    print "                            in previous run as starting values\n";
+    print "  --parallel                 Perform calculations in a parallel mode,\n";
+    print "                             when on a cluster or multi-processor.\n";
+    print "  --samples <integer>        Number of iterations\n";
+    print "  --burnin <integer>         Lower than number of samples (above)\n";
+    print "  --every <integer>          Integer, (samples - burnin) > (10 * every)\n";
+    print "  --exec <file>              Name of the hapmixmap executable,\n";
+    print "                             e.g. ../test/hapmixmap\n";
+    print "  --pop [ Eur | Afr | Asian ]  Population\n";
+    print "  --states [integer]         Number of hidden states\n";
+    print "  --mutual-information       Whether to calculate the mutual information\n";
+    print "  --maskfile                 File with indices of masked individuals\n";
+    print "                             and loci\n";
+    print "  --genotypes-file <name>    Genotypes data file\n";
+    print "  --locus-file <name>        Locus data file\n";
+    print "  --re-run                   Rerun with final values of lambda, freqs\n";
+    print "                             in previous run as starting values\n";
+    print "  --mask-data                Whether to perform data masking first.\n";
+    print "                             In such a case, genotypes_phased.txt\n";
+    print "                             and loci_phased.txt will be processed.\n";
+    print "  --percent-indivs <integer> Percent of masked individuals\n";
+    print "  --percent-loci <integer>   Percent of masked loci\n";
+    print "  --case-control-file <file> Genotypes file for case-control set\n";
+    print "  --limit-loci <integer>     Limit number of loci used when masking.\n";
     print "\n";
     exit(1);
 }
@@ -87,73 +111,109 @@ my $datadir = "$POP/chr22data";
 #
 # keys (left-hand side) are parameter names
 # values (right-hand side) are parameter values
-my $arg_hash = 
-{
+my $arg_hash = {
 # data files
     # genotypesfile => "$datadir/genotypes5000_masked.txt",
     # locusfile     => "$datadir/loci5000.txt",
 
 # phased data
-    genotypesfile => "$datadir/genotypes_phased.txt",
-    locusfile     => "$datadir/loci_phased.txt",
+    genotypesfile   => "$datadir/genotypes_phased.txt",
+    locusfile       => "$datadir/loci_phased.txt",
+    ccgenotypesfile => "$datadir/$ccgenotypesfile",
 
-    #priorallelefreqfile             => 'data/priorallelefreqs.txt',
+    #priorallelefreqfile => 'data/priorallelefreqs.txt',
     #fixedallelefreqs => 1,
-    populations=>$STATES,
+    populations     => $STATES,
     #outcomevarfile => 'chr22/dummyoutcome.txt',
-
-checkdata=> 0,
-
+    checkdata       => 0,
 #main options
-    resultsdir => 'results',
-    displaylevel   => 3, 
-
-    samples  => $samples,
-    burnin   => $burnin,
-    every    => $every,
-
-numannealedruns => 0,
-thermo => 0,
-hapmixmodel => 1,
-#indadmixhiermodel => 0,
-randommatingmodel => 0,
-
-hapmixlambdaprior=>"30, 0.1, 10, 1",
-
-allelefreqprior => "0.2, 1, 1",
-#initialhapmixlambdafile => "$datadir/initialambdas.txt",
-#allelefreqfile => "$datadir/initialallelefreqs.txt",
-
-rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
-
+    resultsdir      => 'results',
+    displaylevel    => 3,
+    samples         => $samples,
+    burnin          => $burnin,
+    every           => $every,
+    numannealedruns => 0,
+    thermo          => 0,
+    hapmixmodel     => 1,
+    #indadmixhiermodel => 0,
+    randommatingmodel => 0,
+    hapmixlambdaprior => "30, 0.1, 10, 1",
+    allelefreqprior => "0.2, 1, 1",
+    #initialhapmixlambdafile => "$datadir/initialambdas.txt",
+    #allelefreqfile => "$datadir/initialallelefreqs.txt",
+    rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 #output files
-    logfile                     => 'logfile.txt',
-    paramfile               => 'paramfile.txt',
+    logfile =>'logfile.txt',
+    paramfile =>'paramfile.txt',
     #regparamfile          => 'regparamfile.txt',
     #indadmixturefile     => 'indadmixture.txt',
     #ergodicaveragefile => 'ergodicaverage.txt',
-    allelefreqprioroutputfile =>"allelefreqpriors.txt",
-    allelefreqoutputfile  => "initialallelefreqs.txt",
-    hapmixlambdaoutputfile => "initiallambdas.txt",
-
+    allelefreqprioroutputfile   => "allelefreqpriors.txt",
+    allelefreqoutputfile        => "initialallelefreqs.txt",
+    hapmixlambdaoutputfile      => "initiallambdas.txt",
 #optional tests
-#residualallelicassocscorefile => 'residualLDscores.txt',
-mhtestfile => "mhtest.txt",
-
+    #residualallelicassocscorefile => 'residualLDscores.txt',
+    mhtestfile => "mhtest.txt",
     #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
 };
 
-########################################################################
 # If genotypes file and/or locus file was specified in the command-line,
 # overwrite the arg_hash settings.
 if ($genotypes_file) {
-    $arg_hash->{'genotypesfile'} = $genotypes_file;
+    $arg_hash->{'genotypesfile'} = "$datadir/$genotypes_file";
 }
 if ($locus_file) {
-    $arg_hash->{'locusfile'} = $locus_file;
+    $arg_hash->{'locusfile'} = "$datadir/$locus_file";
 }
 
 #model with $STATES block states
+
+########################################################################
+# Data masking if requested
+########################################################################
+
+if ($mask_data) {
+    my $train_basename = "d1_train";
+    print "Preparing train and test data.\n";
+    my $lf = $arg_hash->{'locusfile'};
+    my $new_locus_file = "loci_limited.txt";
+    my $dp_return = system "./prepareTestingData.pl --phased-file $datadir/genotypes_phased.txt --haploid-file $datadir/$train_basename.txt --case-control-file $datadir/d1_test.txt --percent-indivs $mask_percent_indivs --limit-loci $limit_loci --in-locus-file $lf --out-locus-file $datadir/$new_locus_file";
+    # $locus_file = $new_locus_file;
+    $arg_hash->{'locusfile'} = "$datadir/$new_locus_file";
+    if ($dp_return != 0) {
+        die("prepareTestingData.pl returned an error code.\n");
+    }
+    # Count the lines in the train data to determine the number of
+    # individuals
+    open(TRAIN_DATA, "<$datadir/$train_basename.txt")
+        or die("Couldn't open the train data file.");
+    # One line for headers and two lines per individual
+    my @train_array = <TRAIN_DATA>;
+    my $train_indivs = (scalar(@train_array) - 1) / 2;
+    close TRAIN_DATA;
+    print "Masking data: $mask_percent_indivs% of individuals";
+    print " and $mask_percent_loci% of loci. Running R for this.\n";
+    my @r_call = qw(R CMD BATCH --no-save --no-restore);
+    push(@r_call, "--population=$POP");
+    push(@r_call, "--basename=d1_test");
+    push(@r_call, "--loci-file=$datadir/$locus_file");
+    # All the individuals in the case-control file should be masked,
+    # hence 100% masked individuals.
+    push(@r_call, "--percent-indivs=100");
+    push(@r_call, "--percent-loci=$mask_percent_loci");
+    push(@r_call, "--indiv-offset=$train_indivs");
+    push(@r_call, "maskGenotypes.R");
+    # "../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
+    my $r_return = system(join(" ", @r_call));
+    if ($r_return != 0) {
+        die "R script returned an error code: $r_return\n";
+    }
+    print "Masking finished.\n";
+}
+
+########################################################################
+# Analysis launch
+########################################################################
 
 if (!$rerun) {
     # initial run

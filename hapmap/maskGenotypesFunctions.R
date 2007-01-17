@@ -25,4 +25,18 @@ genepi.write.table <- function(obj, out.file.name) {
 		na = missing.genotype)
 }
 
+# For getting options from the command-line. Not exactly like getopt,
+# though...
+get_option <- function(optname, s, int = FALSE) {
+        opt <- unlist(strsplit(s, "="))
+        print(opt);
+        if (opt[1] != paste("--", optname, sep = "")) {
+                stop("Expected --", optname, " option name, got ", opt[1])
+        }
+        if (int) {
+                return(as.integer(opt[2]))
+        } else {
+                return(opt[2])
+        }
+}
 
