@@ -24,7 +24,7 @@ using namespace::std;
 class AlleleFreqs;
 class Regression;
 
-///Class to represent an individual and update individual-level parameters
+//! Class to represent an individual and update individual-level parameters
 class Individual
 {
 public:
@@ -69,22 +69,22 @@ public:
   void AnnealGenotypeProbs(int j, const double coolness);
 
 protected:
-  unsigned myNumber;//number of this individual, counting from 1
+  unsigned myNumber;//!< number of this individual, counting from 1
   bool SexIsFemale;
-  bool isHaploid;//indicates if individual is haploid at all loci or only at X loci
+  bool isHaploid;//!< indicates if individual is haploid at all loci or only at X loci
   static unsigned int numChromosomes;
   static int Populations;
   static Genome *Loci;
-  static bool Xdata;//indicates if there is an X chromosome
-  static unsigned int X_posn;  //number of X chromosome
+  static bool Xdata;//!< indicates if there is an X chromosome
+  static unsigned int X_posn;  //!< number of X chromosome
   double EffectiveL[2];
-  unsigned NumGametes; // 1 if assortative mating or haploid data, 2 if random mating and diploid data
-  std::vector< unsigned int > gametes;// number of gametes on each chromosome
+  unsigned NumGametes; //!< 1 if assortative mating or haploid data, 2 if random mating and diploid data
+  std::vector< unsigned int > gametes;//!< number of gametes on each chromosome
   std::vector<genotype> genotypes;
-  std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
+  std::vector<hapPair > *PossibleHapPairs;//!< possible haplotype pairs compatible with genotype
   double **GenotypeProbs;
-  bool **GenotypesMissing;//indicators for missing genotypes at comp loci
-  bool *missingGenotypes;//indicators for missing genotypes at simple loci
+  bool **GenotypesMissing;//!< indicators for missing genotypes at comp loci
+  bool *missingGenotypes;//!< indicators for missing genotypes at simple loci
   std::vector<hapPair> sampledHapPairs;
 
   double *Theta;//admixture proportions
@@ -95,10 +95,10 @@ protected:
   double* Covariates;
 
   struct {
-    double value; //loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true
-    double tempvalue; // to store values temporarily: holds unnanealed value (-energy), or value at proposed update   
-    bool ready;//true iff value is the loglikelihood at the current parameter values
-    bool HMMisOK;//true iff values in HMM objects correspond to current parameter values for this individual
+    double value; //!< loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true
+    double tempvalue; //!< to store values temporarily: holds unnanealed value (-energy), or value at proposed update   
+    bool ready;//!< true iff value is the loglikelihood at the current parameter values
+    bool HMMisOK;//!< true iff values in HMM objects correspond to current parameter values for this individual
   } logLikelihood;
   
   void SetUniformAdmixtureProps();

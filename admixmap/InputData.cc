@@ -23,7 +23,7 @@
 
 using namespace std;
 
-///Extracts population labels from header line of allelefreq input file
+//! Extracts population labels from header line of allelefreq input file
 void InputData::getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels)
 {
   if(data.size() != Populations+1){cout << "Error in getPopLabels\n";exit(1);}

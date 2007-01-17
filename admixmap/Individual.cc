@@ -156,7 +156,7 @@ void Individual::setOutcome(double* Y){
 void Individual::setCovariates(double* X){
   Covariates = X;
 }
-///sets possible hap pairs for a single SNP
+//! sets possible hap pairs for a single SNP
 void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
   if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
   hapPair hpair;
@@ -185,7 +185,7 @@ void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> >
 }
 
 #ifdef PARALLEL
-//this version can also be used in serial version
+//! this version can also be used in serial version
 void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
   if( !GenotypesMissing[j][jj] ){
     if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
@@ -251,8 +251,8 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindica
 
 }
 
+//! called after energy has been evaluated, before updating model parameters
 void Individual::AnnealGenotypeProbs(int j, const double coolness) {
-  // called after energy has been evaluated, before updating model parameters
   int locus = Loci->getChromosome(j)->GetLocus(0);
   for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
     if( !GenotypesMissing[j][jj] ) { 
@@ -342,20 +342,20 @@ void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const {
   else Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
 }
 
-///returns value of LocusAncestry at a locus for a particular gamete
+//! returns value of LocusAncestry at a locus for a particular gamete
 int Individual::GetLocusAncestry(int chrm, int gamete, int locus)const{
   int g = (gametes[chrm] == 2) ? gamete : 0; //so that gamete = 1 works when gametes[chrm] = 1;
   return LocusAncestry[chrm][g * Loci->GetSizesOfChromosomes()[chrm]  + locus] ;
 }
 
-///Indicates whether genotype is missing at all simple loci within a composite locus
+//! Indicates whether genotype is missing at all simple loci within a composite locus
 bool Individual::GenotypeIsMissing(unsigned int locus)const {
   unsigned c, l;
   Loci->GetChrmAndLocus(locus, &c, &l);
   return GenotypesMissing[c][l];
 }
-///Indicates whether genotype is missing at a simple locus
-//used by HW score test
+//! Indicates whether genotype is missing at a simple locus
+//! used by HW score test
 bool Individual::simpleGenotypeIsMissing(unsigned locus)const{
   if(!missingGenotypes)throw string("missingGenotypes not allocated");
   return missingGenotypes[locus];
@@ -367,10 +367,15 @@ bool Individual::isHaploidatLocus(unsigned j)const{
 bool Individual::isHaploidIndividual()const{
   return isHaploid;
 }
-//****************** Log-Likelihoods **********************
-// public function: 
-// calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
-// store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
+//!****************** Log-Likelihoods **********************
+
+
+//! public function: ! calls private function to get log-likelihood at
+//! current parameter values, and stores it either as
+//! loglikelihood.value or as loglikelihood.tempvalue ! store should be
+//! false when calculating energy for an annealed run, or when
+//! evaluating proposal for global sum-intensities
+
 double Individual::getLogLikelihood( const AdmixOptions* const options, const bool forceUpdate, const bool store) {
 
   if (!logLikelihood.ready || forceUpdate) {
@@ -384,7 +389,7 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, const bo
   } else return logLikelihood.value; // nothing was changed
 }
 
-// private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
+//! private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
 double Individual::getLogLikelihood(const AdmixOptions* const options, const double* const theta, 
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
@@ -492,10 +497,10 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
 }
 #endif
 
+//! Updates inputs to HMM for chromosome j
+//! also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
 void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
 				 const double* const theta, const vector<double> rho) {
-  //Updates inputs to HMM for chromosome j
-  //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
   Chromosome* C = Loci->getChromosome(j);
   C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 

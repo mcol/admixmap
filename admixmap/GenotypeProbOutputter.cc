@@ -27,7 +27,7 @@ void GenotypeProbOutputter::Update(unsigned i, unsigned j, const CompositeLocus*
 #endif
 }
 
-///Output Probs as R object
+//! Output Probs as R object to be read with dget() function
 void GenotypeProbOutputter::Output(const char* filename){
   outfile.open(filename);
   outfile << "structure(.Data=c(" << endl;
@@ -62,9 +62,18 @@ void GenotypeProbOutputter::Output(const char* filename){
   for(unsigned int i=0;i<labels.size();i++){
     outfile << "\"" << labels[i] << "\"";
     if(i != labels.size() - 1){
-      outfile << ",";
+      outfile << ", ";
     }
   }
-  outfile << "), numeric(" << dim[1] << "), numeric(" << dim[2] << ")))" << endl;
+  outfile << "), ";
+  // Individuals' labels
+  outfile << "1:" << dim[1];
+  // outfile << "INDIVIDUAL_LABELS";
+  outfile << ", ";
+  // Loci's labels
+  outfile << "1:" << dim[2] << "";
+  // outfile << "LOCI_LABELS";
+  // Closing brackets.
+  outfile << "))" << endl;
   outfile.close();
 }
