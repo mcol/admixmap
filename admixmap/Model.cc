@@ -64,6 +64,9 @@ void Model::Run(AdmixOptions& options, InputData& data, LogWriter& Log){
       //open file to output loglikelihood
       string s = options.getResultsDir()+"/loglikelihoodfile.txt";
       ofstream loglikelihoodfile(s.c_str());
+      //set 3 decimal places of precision
+      loglikelihoodfile.setf(ios::fixed); 
+      loglikelihoodfile.precision(3);
     
       // ******************* Set annealing schedule ************************************************
       double SumEnergy = 0.0, SumEnergySq = 0.0;
@@ -200,7 +203,7 @@ void Model::Iterate(const int & samples, const int & burnin, const double* Cooln
 	  if(coolness>0)AISz += exp((Coolnesses[coolness]-Coolnesses[coolness-1])*(-Energy));
 	  // write to file if not AnnealedRun
 	  if(!AnnealedRun){
-	      loglikelihoodfile << iteration<< "\t" << Energy <<endl;
+	    loglikelihoodfile << iteration<< "\t" << Energy <<endl;
 	      if(options.getDisplayLevel()>2 && !(iteration%options.getSampleEvery()))cout << Energy << "\t";
 	  }
 	}
