@@ -1186,6 +1186,15 @@ if(is.null(user.options$ergodicaveragefile) ) {
   }
 }
 
+#plot energy / loglikelihood
+#if(!is.null(options$loglikelihoodfile)){
+energy.table <- read.table(paste(resultsdir, "loglikelihoodfile.txt", sep="/"), header=F, colClasses=c("integer", "numeric"))
+postscript(paste(resultsdir, "EnergyTracePlot.ps", sep="/"))
+plot(energy.table[,1], energy.table[,2], type='l', main="Trace plot of energy (-loglikelihood)", ylab="Energy", xlab="iteration")
+dev.off()
+#}
+
+#plot thermo output
 if(!is.null(user.options$thermo) && user.options$thermo == 1){
   cat("plotting energy against coolness...", file=outfile, append=T)
   anneal.table <- read.table(paste(resultsdir, "annealmon.txt", sep="/"), header=TRUE, row.names = NULL)
