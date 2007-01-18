@@ -1,5 +1,4 @@
 /** 
- *   ADMIXMAP
  *   Scoretests.cc 
  *   Class implements the following score tests:
  *   (1) Score test for admixture association (admixturescoretest)
@@ -7,7 +6,7 @@
  *   (3) Score test for within-halpotype association
  *   (4) Score test for linkage with locus ancestry
  *   (5) Affecteds-only score test for linkage with locus ancestry
- *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005 - 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
