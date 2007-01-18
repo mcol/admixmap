@@ -141,15 +141,16 @@ void AncestryAssocTest::ROutput(const int ){
     
     vector<string> labels;
     labels.push_back("Locus");
-    if(K>1)labels.push_back("Population");
-    labels.push_back( "Score");
-    labels.push_back("CompleteInfo");
-    labels.push_back("ObservedInfo");
-    labels.push_back("PercentInfo");
-    labels.push_back("Missing1");
-    labels.push_back("Missing2");
-    labels.push_back("StdNormal");
-    labels.push_back("PValue");
+    labels.push_back("minusLog10PValue");
+//     if(K>1)labels.push_back("Population");
+//     labels.push_back( "Score");
+//     labels.push_back("CompleteInfo");
+//     labels.push_back("ObservedInfo");
+//     labels.push_back("PercentInfo");
+//     labels.push_back("Missing1");
+//     labels.push_back("Missing2");
+//     labels.push_back("StdNormal");
+//     labels.push_back("PValue");
 
     vector<int> dimensions(3,0);
     dimensions[0] = labels.size();
