@@ -74,22 +74,34 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* o
   missing = scoresq / (double) iterations - EU * EU + VU;
   complete =  info / (double) iterations;
   
-  *outputstream << double2R(EU, 3)                                << separator//score
-		<< double2R(complete, 3)                          << separator//complete info
-		<< double2R(complete - missing, 3)                << separator//observed info
-    		<< double2R(100.0*(complete - missing)/complete, 2) << separator;//%observed info
+  if(final){
+    *outputstream << double2R(EU, 3)                                << separator//score
+		  << double2R(complete, 3)                          << separator//complete info
+		  << double2R(complete - missing, 3)                << separator//observed info
+		  << double2R(100.0*(complete - missing)/complete, 2) << separator;//%observed info
+  }
   if(complete > 0.0){
-    *outputstream << double2R(100.0*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
-		  << double2R(100.0*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
-    if(complete - missing > 0.0){
-	  double zscore = EU / sqrt( complete - missing );
-	  double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-	  *outputstream << double2R(zscore,3)  << separator << double2R(pvalue) << separator << endl;
+    if(final){
+      *outputstream << double2R(100.0*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
+		    << double2R(100.0*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
     }
-    else *outputstream << "NaN" << separator << "NaN" << separator << endl;
+    if(complete - missing > 0.0){
+      double zscore = EU / sqrt( complete - missing );
+      double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+      if(final)     
+	*outputstream << double2R(zscore,3)  << separator << double2R(pvalue) << separator << endl;
+      else
+	*outputstream << double2R(-log(pvalue)) << separator << endl;
+    }
+    else{
+      if(final)*outputstream << "NA" << separator;
+      *outputstream << "NA" << separator << endl;
+    }
   }
   else{
-    *outputstream << "NaN" << separator << "NaN" << separator << "NaN" << separator << "NaN" << separator << endl; 
+    if(final)
+      *outputstream << "NA" << separator << "NA" << separator << "NA" << separator;
+    *outputstream << "NA" << separator << endl; 
   }
 }
 
