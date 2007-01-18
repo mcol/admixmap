@@ -283,16 +283,19 @@ void InputData::CheckGeneticData(AdmixOptions *options)const{
 }
 
 GeneticDistanceUnit InputData::getUnitOfDistance()const{
-    GeneticDistanceUnit u = Morgans;//default, usual for admixture mapping
+  GeneticDistanceUnit u = Morgans;//default, usual for admixture mapping
   string distance_header = locusData_[0][2];
   if(distance_header.find("cm")!=string::npos || distance_header.find("CM")!=string::npos 
      || distance_header.find("cM")!=string::npos) 
-      u = centimorgans;
+    u = centimorgans;
   if(distance_header.find("mb")!=string::npos || distance_header.find("Mb")!=string::npos 
      || distance_header.find("MB")!=string::npos) 
-      u = megabases;
-
+    u = megabases;
+  
   return u;
+}
+const string& InputData::getUnitOfDistanceAsString()const{
+  return GeneticDistanceUnitString[getUnitOfDistance()];
 }
 
 void InputData::checkLocusFile(int sexColumn, double threshold, bool check){

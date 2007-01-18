@@ -36,7 +36,7 @@ PopHapMix::PopHapMix( AdmixOptions* op, Genome* loci)
 
 }
 
-void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Log){
+void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
     Log.setDisplayMode(On);
     K = options->getPopulations();
 
@@ -134,7 +134,7 @@ void PopHapMix::Initialise(int , const Vector_s& PopulationLabels, LogWriter &Lo
 		    }
 		    else{
 			Log << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
-			InitializeOutputFile(PopulationLabels);
+			InitializeOutputFile(distanceUnit);
 		    }
 		}
 		else{
@@ -407,11 +407,12 @@ double PopHapMix::hd2logf(double h, const void* const vargs){
   return  -sum - (args->shape-1.0)/(h*h);
 }
 
-void PopHapMix::InitializeOutputFile(const Vector_s& ) {
+void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
   if(Comms::isMaster()){
     // Header line of paramfile
-    outputstream << "Lambda.Mean\tLambda.Variance\th\tbeta";
-    outputstream << endl;
+    outputstream << "Lambda.Mean\tLambda.Variance\t"
+      //h\tbeta";
+		 << "Exp.Arrivals.per"<< distanceUnit << endl;
   }
 }
 

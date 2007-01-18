@@ -65,9 +65,7 @@ public:
   
   ~PopHapMix();
   
-  void Initialise(int Numindividuals, const Vector_s&  PopulationLabels, LogWriter& Log);  
-  
-  void InitializeOutputFile(const Vector_s&  PopulationLabels);
+  void Initialise(const string& distanceUnit, LogWriter& Log);  
   
   void SampleHapMixLambda(const int* SumAncestry, bool sumlogrho) ;
 
@@ -120,6 +118,7 @@ private:
   //StepSizeTuner ThetaTuner;
   //double thetastep;
 
+  void InitializeOutputFile(const string& distanceUnit);
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);

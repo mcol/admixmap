@@ -38,7 +38,7 @@ void HapMixModel::Initialise(AdmixOptions& options, InputData& data,  LogWriter&
   }
 
   L = new PopHapMix(&options, &Loci);
-  if(isMaster || isWorker)L->Initialise(IC->getSize(), data.GetPopLabels(), Log);
+  if(isMaster || isWorker)L->Initialise(data.getUnitOfDistanceAsString(), Log);
   if(isFreqSampler)A.PrintPrior(Log);
   
   if( options.getPopulations()>1 && isWorker) {

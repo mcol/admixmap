@@ -28,6 +28,7 @@ class Chromosome;
 
 ///enum for distance units
 enum GeneticDistanceUnit {basepairs, kilobases, megabases, centimorgans, Morgans};
+const std::string GeneticDistanceUnitString[] = {"bp", "kb", "Mb", "cM", "M"};
 
 ///Class to read and check all input data files
 class InputData{
@@ -95,6 +96,7 @@ public:
   int getNumberOfSimpleLoci()const;
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};
   GeneticDistanceUnit getUnitOfDistance()const;
+  const std::string& getUnitOfDistanceAsString()const;
   void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
   void GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
 
