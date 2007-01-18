@@ -183,15 +183,14 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
     try{
       vector<double>::iterator lambda_iter = lambda.begin();
       vector<double>::iterator sumloglambda_iter = SumLogLambda.begin();
+ 
       for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
 	++locus;//skip first locus on each chromosome
 	for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
 	  double loglambda = log(*lambda_iter);//sampler is on log scale
-	  
 	  LambdaArgs.Distance = hargs.distances[interval];//distance between this locus and last
 	  LambdaArgs.NumConcordant = SumAncestry[locus*2+1];
 	  LambdaArgs.NumDiscordant = SumAncestry[locus*2];
-
 	  //sample new value
 	  HapMixLambdaSampler[interval].Sample(&loglambda, &LambdaArgs);
 	  *lambda_iter = exp(loglambda);
@@ -217,6 +216,7 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
     MPE_Log_event(10, 0, "sampledLambda");
 #endif
   }
+
 //broadcast lambda to all processes, in Comm (excludes freqsampler)
 //no need to broadcast globaltheta if it is kept fixed
 #ifdef PARALLEL
@@ -234,6 +234,7 @@ void PopHapMix::SampleHapMixLambda(const int* SumAncestry, bool accumulateLogs){
 	Loci->getChromosome(c)->SetStateArrivalProbs(options->isRandomMatingModel(), true);
       }
     }
+
   if(Comms::isMaster()){
       //SamplehRandomWalk();
       Sampleh_ARS();
@@ -423,7 +424,7 @@ void PopHapMix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 
 }
 
-//output to given output stream
+///output to given output stream
 void PopHapMix::OutputParams(ostream* out){
   //lambda
   out->width(9);
@@ -438,8 +439,11 @@ void PopHapMix::OutputParams(ostream* out){
   }
   double size = (double)lambda.size();
   var = var - (sum*sum) / size;
+  //output sample mean and variance of lambdas
   (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
-	 << LambdaArgs.h << "\t" << LambdaArgs.beta << "\t" ;
+    //output expected values per unit distance
+	 << LambdaArgs.h / LambdaArgs.beta << "\t";
+    //<< LambdaArgs.h << "\t" << LambdaArgs.beta << "\t" ;
 }
 
 void PopHapMix::OutputParams(int iteration, LogWriter &){
