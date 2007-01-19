@@ -114,8 +114,9 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* o
   else{//complete info <= 0
     if(final)
       *outputstream << "NA" << separator << "NA" << separator << "NA" << separator << "NA" << separator;
-    *outputstream << "NA" << separator << endl; 
+    *outputstream << "NA" << separator; 
   }
+  *outputstream << endl;
 }
 
 ///generic vector score test
