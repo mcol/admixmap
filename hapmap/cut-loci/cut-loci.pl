@@ -2,8 +2,9 @@
 #
 # Chops a big HAPMIXMAP file according to a small sample file.
 #
-# FIXME: Implement offsetting.
-# FIXME: Implement ranging.
+# Range and offsetting implemented. Offsetting is quite inefficient, but
+# is acceptable for now. Cutting test data: chromosome 7 with
+# helen_genotypes.txt takes 4 minutes on Celeron 1.5GHz.
 
 use strict;
 
