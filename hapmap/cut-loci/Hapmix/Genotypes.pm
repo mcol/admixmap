@@ -74,12 +74,7 @@ sub get_column_idx_by_name($) {
 sub get_column_indices_by_names(\@) {
     my $self = shift;
     my @names = @_;
-    my @indices;
-    foreach my $name (@names) {
-        my $col_idx = $self->get_column_idx_by_name($name);
-        push(@indices, $col_idx);
-    }
-    return @indices;
+    return map { $self->get_column_idx_by_name($_) } @names;
 }
 
 # Return a list of strings, to be written as a table.
@@ -109,6 +104,8 @@ sub write_cols_to_file($\@) {
     open(OUTFILE, ">$file_name")
         or die("Can't open $file_name for writing.");
     my @head_arr = split(/\s+/, $self->{HEADER_LINE});
+    # Remove the first label, as it's "Individ", not a locus name.
+    shift(@head_arr);
     print OUTFILE "Individ " . join(" ", @head_arr[@indices]) . "\n";
     foreach my $line ($self->get_columns_by_indices(@indices)) {
         print OUTFILE $line . "\n";

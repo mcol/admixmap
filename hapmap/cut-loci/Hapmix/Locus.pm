@@ -10,9 +10,16 @@ sub new(@) {
     $self->{SNP_ID} = shift;
     $self->{NUM_ALLELES} = shift;
     $self->{DISTANCE_IN_MB} = shift;
+    my $distance = $self->{DISTANCE_IN_MB};
     my $position = shift;
-    # Using a nasty thing: ("#" + 0) == 0 in Perl
-    $self->{POSITION} = ($position + 0) + ($self->{DISTANCE_IN_MB} + 0) * 10e+6;
+    # This produces a warning when -w flag is used.
+    # However, no other efficient methos is available.
+    if ($distance == 0 && $distance ne "0")  {
+        # Not a number
+        $self->{POSITION} = 0;
+    } else {
+        $self->{POSITION} = $position + $self->{DISTANCE_IN_MB} * 10e+6;
+    }
     $self->{NUMBER} = shift;
     if (0) {
         print "Created a Locus with:";
@@ -47,6 +54,11 @@ sub position {
     return $self->{POSITION};
 }
 
+sub number {
+    my $self = shift;
+    return $self->{NUMBER};
+}
+
 sub get_line {
     my $self = shift;
     my $previous = shift;
@@ -63,6 +75,17 @@ sub get_line {
             $self->snp_id(),
             $self->num_alleles(),
             $distance));
+}
+
+sub within_range($$) {
+    my $self = shift;
+    my $offset = shift;
+    my $other_locus = shift;
+    my $diff = $self->position() - $other_locus->position();
+    # if (abs($diff) <= $offset) {
+    #     print "me: " . $self->position() . ", diff $diff, offset: $offset\n";
+    # }
+    return (abs($diff) <= $offset);
 }
 
 1;

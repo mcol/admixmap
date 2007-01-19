@@ -3,6 +3,7 @@
 # Chops a big HAPMIXMAP file according to a small sample file.
 #
 # FIXME: Implement offsetting.
+# FIXME: Implement ranging.
 
 use strict;
 
@@ -16,6 +17,7 @@ my $small_file = '';
 my $help = 0;
 my $offset = 0;
 my $save_as = '';
+my $range = 0;
 
 GetOptions(
     "help!"  => \$usage,
@@ -23,6 +25,7 @@ GetOptions(
     "small-file=s" => \$small_file,
     "offset=s" => \$offset,
     "save-as=s" => \$save_as,
+    "range!" => \$range,
 );
 
 $data_base_name or warn("Please specify data.\n");
@@ -39,8 +42,9 @@ if ($usage) {
     print "   --help\n";
     print "   --data <basename>\n";
     print "   --small-file <filename>\n";
-    print "   --offset <integer>\n";
+    print "   --offset <integer>      Offset by bp.\n";
     print "   --save-as <basename>\n";
+    print "   --range                 \n";
     print "\n";
     exit(1);
 }
@@ -55,6 +59,16 @@ my $small = Hapmix::Genotypes->new($small_file);
 
 # Columns to appear in the output file. Represented as column IDs.
 my @loci_small = $small->get_loci();
+
+# If requested, consider given locus list as a range.
+if ($range) {
+    @loci_small = $hm->range_by_ids(@loci_small);
+}
+
+# If requested, apply offsetting
+if ($offset) {
+    @loci_small = $hm->offset($offset, @loci_small);
+}
 
 # Write chosen columns (by IDs) to a file.
 $hm->write_by_loci_ids($save_as, @loci_small);
