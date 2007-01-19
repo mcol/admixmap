@@ -30,12 +30,11 @@ void ScoreTestBase::OpenFile(LogWriter &Log, std::ofstream* outputstream, const 
 void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
 					const double score, const double scoresq, const double info, bool final)
 {
-  double Score = 0.0, CompleteInfo = 0.0, MissingInfo = 0.0, ObservedInfo = 0.0, PercentInfo = 0.0, zscore = 0.0, pvalue = 0.0;
   string sep = final? "\t" : ",";
-  Score = score / ( double )iterations;
-  CompleteInfo = info / (double) iterations;
-  MissingInfo = scoresq / (double) iterations - Score * Score;
-  ObservedInfo = CompleteInfo - MissingInfo;
+  const double Score = score / ( double )iterations;
+  const double CompleteInfo = info / (double) iterations;
+  const double MissingInfo = scoresq / (double) iterations - Score * Score;
+  const double ObservedInfo = CompleteInfo - MissingInfo;
   //output label
   *outputstream << "\"" << label << "\"" << sep;
   if(final)
@@ -43,19 +42,25 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
 		  << double2R(CompleteInfo, 3) << sep
 		  << double2R(ObservedInfo, 3) << sep;
   if(CompleteInfo > 0.0 && (MissingInfo < CompleteInfo)) {
-    PercentInfo = 100.0 * ObservedInfo / CompleteInfo;
-    zscore = Score / sqrt( ObservedInfo );
-    pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-    if(final)
-      *outputstream << double2R(PercentInfo, 2) << sep
-		    << double2R(zscore,3)   << sep 
-		    << double2R(pvalue) << sep;
-    else
-      *outputstream << double2R(-log10(pvalue)) << sep;
+    const double PercentInfo = 100.0 * ObservedInfo / CompleteInfo;
+    if(final) *outputstream << double2R(PercentInfo, 2) << sep;
+    if(!final || PercentInfo > 10.0){ //only output p-values in final table if >10% info extracted
+      const double zscore = Score / sqrt( ObservedInfo );
+      const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+      if(final){
+	*outputstream << double2R(zscore,3) << sep 
+		      << double2R(pvalue) << sep;
+      }
+      else //not final table - output log p-value
+	*outputstream << double2R(-log10(pvalue)) << sep;
+    }
+    else //final table and %info is <10
+      *outputstream << "NA" << sep << "NA" << sep;
+
   }
   else{
-    if(final)*outputstream << "NaN" << sep << "NaN" << sep;
-    *outputstream << "NaN" << sep;
+    if(final)*outputstream << "NA" << sep << "NA" << sep;
+    *outputstream << "NA" << sep;
   }
   *outputstream << endl;
 }
@@ -66,41 +71,49 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* o
 {
   string separator = final? "\t" : ",";
 
-  double VU = 0.0, EU = 0.0, missing = 0.0, complete = 0.0;
   *outputstream << "\"" << label << "\"" << separator;
       
-  EU = score / (double)iterations;
-  VU = varscore / (double) iterations;
-  missing = scoresq / (double) iterations - EU * EU + VU;
-  complete =  info / (double) iterations;
+  const double EU = score / (double)iterations;
+  const double VU = varscore / (double) iterations;
+  const double missing = scoresq / (double) iterations - EU * EU + VU;
+  const double complete =  info / (double) iterations;
   
   if(final){
     *outputstream << double2R(EU, 3)                                << separator//score
 		  << double2R(complete, 3)                          << separator//complete info
-		  << double2R(complete - missing, 3)                << separator//observed info
-		  << double2R(100.0*(complete - missing)/complete, 2) << separator;//%observed info
+		  << double2R(complete - missing, 3)                << separator;//observed info
+
   }
   if(complete > 0.0){
+    const double PercentInfo = 100.0*(complete - missing)/complete;
     if(final){
-      *outputstream << double2R(100.0*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
+      *outputstream << double2R(PercentInfo, 2) << separator//%observed info
+		    << double2R(100.0*(VU/complete), 2)                 << separator//%missing info attributable to locus ancestry
 		    << double2R(100.0*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
     }
-    if(complete - missing > 0.0){
-      double zscore = EU / sqrt( complete - missing );
-      double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-      if(final)     
-	*outputstream << double2R(zscore,3)  << separator << double2R(pvalue) << separator << endl;
-      else
-	*outputstream << double2R(-log(pvalue)) << separator << endl;
+    if(missing < complete) {
+      if(final) *outputstream << double2R(PercentInfo, 2) << separator;
+      if(!final || PercentInfo > 10.0){ //only output p-values in final table if >10% info extracted
+      const double zscore = EU / sqrt( complete - missing );
+      const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+      if(final){
+	  *outputstream << double2R(zscore,3) << separator 
+			<< double2R(pvalue) << separator;
+	}
+      else //not final table - output log p-value
+	*outputstream << double2R(-log10(pvalue)) << separator;
+      }
+      else //final table and %info is <10
+	*outputstream << "NA" << separator << "NA" << separator;
     }
     else{
       if(final)*outputstream << "NA" << separator;
-      *outputstream << "NA" << separator << endl;
+      *outputstream << "NA" << separator;
     }
   }
-  else{
+  else{//complete info <= 0
     if(final)
-      *outputstream << "NA" << separator << "NA" << separator << "NA" << separator;
+      *outputstream << "NA" << separator << "NA" << separator << "NA" << separator << "NA" << separator;
     *outputstream << "NA" << separator << endl; 
   }
 }
