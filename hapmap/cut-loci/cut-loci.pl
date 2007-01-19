@@ -48,8 +48,13 @@ if ($usage) {
 my $hm = Hapmix::HapmixData->new($data_base_name);
 my $small = Hapmix::Genotypes->new($small_file);
 
-# Columns to appear in the out file. Represented as column IDs.
-my @loci = $small->get_loci();
+# Test loci writing
+# my $loci = Hapmix::Loci->new("chr7_phased_loci.txt");
+# my @loci_names = $small->get_loci();
+# $loci->write_file_from_loci_ids("all_loci.txt", $loci->get_loci_names());
+
+# Columns to appear in the output file. Represented as column IDs.
+my @loci_small = $small->get_loci();
 
 # Write chosen columns (by IDs) to a file.
-$hm->write_genotypes_by_loci_ids($save_as, @loci);
+$hm->write_by_loci_ids($save_as, @loci_small);
