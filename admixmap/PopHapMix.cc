@@ -411,7 +411,7 @@ void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
   if(Comms::isMaster()){
     // Header line of paramfile
     outputstream << "Lambda.Mean\tLambda.Variance\t"
-      //h\tbeta";
+		 << "h\tbeta\t"
 		 << "Exp.Arrivals.per"<< distanceUnit << endl;
   }
 }
@@ -443,8 +443,8 @@ void PopHapMix::OutputParams(ostream* out){
   //output sample mean and variance of lambdas
   (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
     //output expected values per unit distance
-	 << LambdaArgs.h / LambdaArgs.beta << "\t";
-    //<< LambdaArgs.h << "\t" << LambdaArgs.beta << "\t" ;
+	 << LambdaArgs.h << "\t" << LambdaArgs.beta << "\t"
+	 << LambdaArgs.h / LambdaArgs.beta << "\t" ;
 }
 
 void PopHapMix::OutputParams(int iteration, LogWriter &){
