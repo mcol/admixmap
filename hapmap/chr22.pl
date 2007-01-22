@@ -135,11 +135,11 @@ my $arg_hash =
 
 #unphaseddata files
 #    genotypesfile                   => "$datadir/genotypes5000.txt",
-#    locusfile                          => "$datadir/loci5000.txt",
+#    locusfile                       => "$datadir/loci5000.txt",
 
 #phased data
     genotypesfile                   => "$datadir/phased_genotypes.txt",
-    locusfile                          => "$datadir/phased_loci.txt",
+    locusfile                       => "$datadir/phased_loci.txt",
 
     #priorallelefreqfile => 'data/priorallelefreqs.txt',
     #fixedallelefreqs => 1,
@@ -192,6 +192,9 @@ if ($genotypes_file) {
 if ($locus_file) {
     $arg_hash->{'locusfile'} = "$datadir/$locus_file";
 }
+if ($ccgenotypesfile) {
+    $arg_hash->{'ccgenotypesfile'} = "$datadir/$ccgenotypesfile";
+}
 
 #model with $STATES block states
 
@@ -232,6 +235,7 @@ if ($mask_data) {
     close TRAIN_DATA;
     print "Masking data: $mask_percent_indivs% of individuals";
     print " and $mask_percent_loci% of loci. Running R for this.\n";
+    print "Train individuals: $train_indivs.\n";
     my @r_call = qw(R CMD BATCH --no-save --no-restore);
     push(@r_call, "--population=$POP");
     push(@r_call, "--basename=${train_basename}_cc");
@@ -244,7 +248,7 @@ if ($mask_data) {
     push(@r_call, "maskGenotypes.R");
     my $r_return = system(join(" ", @r_call));
     if ($r_return != 0) {
-        die "R script returned an error code: $r_return\n";
+        die "maskGenotypes.R script returned an error code: $r_return\n";
     }
     print "Masking finished.\n";
     print "Exiting after masking the data.\n";
@@ -319,13 +323,14 @@ sub getArguments
 
 sub calculate_mutual_information {
     my @r_call = qw(R CMD BATCH --no-save --no-restore);
+    push(@r_call, "--chromosome=Chr22");
     push(@r_call, "--population=$POP");
     push(@r_call, "--states=$STATES");
     push(@r_call, "MutualInformation.R");
     # "../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
     my $r_return = system(join(" ", @r_call));
     if ($r_return != 0) {
-        die("R script returned an error code! $r_return\n");
+        die("MutualInformation.R script returned an error code! $r_return\n");
     }
 }
 

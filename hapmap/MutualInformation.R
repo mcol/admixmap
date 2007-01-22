@@ -12,12 +12,13 @@
 source("maskGenotypesFunctions.R")
 
 args <- commandArgs()
-population <- get_option("population", args[7])
-states <- get_option("states", args[8], int = TRUE)
+chromosome <- get_option("chromosome", args[7])
+population <- get_option("population", args[8])
+states <- get_option("states", args[9], int = TRUE)
 
 genotypes = c("1,1", "1,2", "2,2")
 
-results.dir = paste(population, "/", "Results", states, "States", sep = "")
+results.dir = paste(population, "/", chromosome, "Results", states, "States2", sep = "")
 
 # Evauluate entropy of a vector
 entropy <- function(vec, na.rm = FALSE) {

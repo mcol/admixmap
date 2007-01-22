@@ -70,7 +70,7 @@ my @indiv_idx = shuffle(0 .. ($indivs - 1));
 my $no_masked = int($indivs * $pcmasked / 100.0);
 print "No. CC individuals: $no_masked\n";
 if ($no_masked < 1) {
-	die("No individuals masked. Please check your options.");
+	die("No individuals masked. Please check your options.\n");
 }
 
 # Get two lines of an individual by individual no
