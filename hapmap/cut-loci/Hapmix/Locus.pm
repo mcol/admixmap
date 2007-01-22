@@ -13,12 +13,12 @@ sub new(@) {
     my $distance = $self->{DISTANCE_IN_MB};
     my $position = shift;
     # This produces a warning when -w flag is used.
-    # However, no other efficient methos is available.
+    # However, no other efficient method is available.
     if ($distance == 0 && $distance ne "0")  {
         # Not a number
         $self->{POSITION} = 0;
     } else {
-        $self->{POSITION} = $position + $self->{DISTANCE_IN_MB} * 10e+6;
+        $self->{POSITION} = $position + $self->{DISTANCE_IN_MB} * 1e+6;
     }
     $self->{NUMBER} = shift;
     if (0) {
@@ -67,7 +67,7 @@ sub get_line {
         $distance = "#";
     } else {
         $distance = $self->position() - $previous->position();
-        $distance /= 10e+6;
+        $distance /= 1e+6;
         # Keep consistent format with the original locus files.
         $distance = sprintf("%1.8f", $distance);
     }
