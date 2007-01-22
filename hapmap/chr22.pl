@@ -353,18 +353,18 @@ sub doAnalysis
 ##program ran successfully
 #copy initial value files from resultsdir to datadir
 #using wildcard to copy all in one go
-	my $copycmd = "cp";
-	my $slash = "/";
-	if($^O eq "MSWin32"){
-	    $copycmd = "copy";
-	    $slash = "\\";
-	}
-	system("$copycmd $args->{resultsdir}$slash"."initial*.txt $datadir");
+        my $copycmd = "cp";
+        my $slash = "/";
+        if($^O eq "MSWin32"){
+            $copycmd = "copy";
+            $slash = "\\";
+        }
+        system("$copycmd $args->{resultsdir}$slash"."initial*.txt $datadir");
 ## run the r script
         runRscript($args);
-	if ($calculate_mi) {
-	    calculate_mutual_information();
-	}
+        if ($calculate_mi) {
+            calculate_mutual_information();
+        }
     }
     else{
         warn("hapmixmap has returned an error code $returncode.");
