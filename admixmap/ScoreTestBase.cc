@@ -92,7 +92,6 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* o
 		    << double2R(100.0*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
     }
     if(missing < complete) {
-      if(final) *outputstream << double2R(PercentInfo, 2) << separator;
       if(!final || PercentInfo > 10.0){ //only output p-values in final table if >10% info extracted
       const double zscore = EU / sqrt( complete - missing );
       const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
