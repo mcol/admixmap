@@ -47,7 +47,9 @@ if ($usage) {
     print "                           This should contain _genotypes.txt.\n";
     print "   --offset <integer>      Offset in bp\n";
     print "   --save-as <basename>    Basename for saved files\n";
-    print "   --range                 \n";
+    print "   --range                 Instead of taking specified loci, take a whole\n";
+    print "                           range between the first and the last locus\n";
+    print "                           in the sample.\n";
     print "\n";
     exit(1);
 }
