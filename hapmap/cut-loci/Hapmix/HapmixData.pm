@@ -1,3 +1,27 @@
+=head1 NAME
+
+Hapmix::HapmixData -- class representing HAPMIXMAP data.
+
+=head1 SYNOPSIS
+
+    $hm = Hapmix::HapmixData->new($data_base_name);
+    
+    If the data files are: 
+        - foo_genotypes.txt
+        - foo_loci.txt
+
+    Then you should use "foo" as constructor argument.
+
+=head1 DESCRIPTION
+
+This class is intended for manipulation of HAPMIXMAP data. It reads
+a set of two files and can operate on named individuals and loci. It's
+capable of saving new data file from a list of loci to include. It will
+recalculate loci distances, so the newly written file will have correct
+loci distance values.
+
+=cut
+
 package Hapmix::HapmixData;
 use strict;
 use Hapmix::Loci;

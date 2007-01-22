@@ -1,3 +1,21 @@
+=head1 NAME
+
+Hapmix::Loci -- class representing a set of loci.
+
+=head1 SYNOPSIS
+
+    use Hapmap::Loci;
+
+    $loci = Hapmap::Loci->new($locus_file);
+    $loci->write_file_from_loci_ids($file_name, @loci_ids);
+
+=head1 DESCRIPTION
+
+This class is intended to be used from withing Hapmix::HapmixData
+module.
+
+=cut
+
 package Hapmix::Loci;
 use strict;
 use Hapmix::Locus;
@@ -184,7 +202,7 @@ sub offset($\@) {
 }
 
 # Returns a list of references to hashes with updated values.
-# FIXME: This function is quite inefficient. It always goes through the
+# FIXME: This function is inefficient. It always goes through the
 # full list of potential neighbours.
 sub find_neighbours {
     my $self = shift;
@@ -206,13 +224,9 @@ sub find_neighbours {
 sub get_min_max_loci(@) {
     my $self = shift;
     my @ids = @_;
-    # print "ids: @ids\n";
     my @positions = map { $self->get_locus_by_id($_)->position() } @ids;
-    # my @positions = keys %{$self->{LOCI}->{POSITIONS}};
-    # print "positions: @positions\n";
     my $pos_min = min(@positions);
     my $pos_max = max(@positions);
-    # print "min: '$pos_min', max: '$pos_max'\n";
     my $locus_min = $self->get_locus_by_position($pos_min);
     my $locus_max = $self->get_locus_by_position($pos_max);
     return ($locus_min, $locus_max);

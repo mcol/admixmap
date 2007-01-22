@@ -41,10 +41,12 @@ if ($usage) {
     print "\n";
     print "Usage: $0 [ options ]\n";
     print "   --help\n";
-    print "   --data <basename>\n";
-    print "   --small-file <filename>\n";
-    print "   --offset <integer>      Offset by bp.\n";
-    print "   --save-as <basename>\n";
+    print "   --data <basename>       Basename for data files.\n";
+    print "                           _genotypes.txt will be appended automagically.\n";
+    print "   --small-file <filename> Sample genotypes file.\n";
+    print "                           This should contain _genotypes.txt.\n";
+    print "   --offset <integer>      Offset in bp\n";
+    print "   --save-as <basename>    Basename for saved files\n";
     print "   --range                 \n";
     print "\n";
     exit(1);
