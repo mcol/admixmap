@@ -112,7 +112,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
       DataReader::ReadData(options->getGenotypesFilename(), geneticData_, Log);
       if(options->getHapMixModelIndicator()){
 	DataReader::ReadData(options->getCCGenotypesFilename(), CCgeneticData_, Log); 
-	NumCCIndividuals = CCgeneticData_.size() - 1;
+	if(CCgeneticData_.size())NumCCIndividuals = CCgeneticData_.size() - 1;
       }
 #endif
       if(Comms::isMaster() || Comms::isWorker()){
