@@ -1,9 +1,8 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   HWTest.h 
  *   header file for HWTest class
- *   Copyright (c) 2002, 2003, 2004, 2005 LSHTM
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +41,7 @@ class HWTest : public ScoreTestBase{
 public:
   HWTest();
 
-  void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log);
+  void Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log);
 
   void Output(const Vector_s locuslabels);
 

@@ -1,9 +1,18 @@
-/*
-  Class implements a score test for deviation from Hardy-Weinberg equilibrium
-  in order to test for genotyping errors.
-  This version evaluates for each single locus and sums over individuals.
-  code for evaluation for each individual (rather than summing) is commented out.
-*/
+/** 
+ *   HWTest.cc 
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *  
+ * Class implements a score test for deviation from Hardy-Weinberg equilibrium
+ * in order to test for genotyping errors.
+ * This version evaluates for each single locus and sums over individuals.
+ * code for evaluation for each individual (rather than summing) is commented out.
+ *
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "HWTest.h"
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
