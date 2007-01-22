@@ -102,7 +102,29 @@ marginal.dist.prod <- function(my.matrix) {
 # \sum_{x,y} (p_{x,y} log p_{x,y} - p_x p_y log(p_{x.} p_{.y}))
 # Uses the entropy() function.
 
-joint.prob <- function(GP, locus.no, genotypes) {
+# Finds the most probable genotypes and assigns p = 1 to them, setting
+# all the other genotypes to zero. Needed for fair comparison with
+# fastPHASE which doesn't output any uncertainity.
+sharpen.probs<- function(a) {
+	for (indiv in dimnames(a)[[2]]) {
+		vec = a[,indiv]
+		m = max(vec)
+		maxs_idx = which(vec == m)
+		if (length(maxs_idx) != 1) {
+			# There is more than one genotype with
+			# probability equal to the max probability.
+			warning("Can't find max element.", ", ", indiv, ", ", paste(vec, collapse = " "))
+			# In such a case, we will throw away all but the
+			# first probability.
+			maxs_idx <- maxs_idx[1]
+		}
+		a[, indiv] <- c(0, 0, 0)
+		a[maxs_idx, indiv] <- 1
+	}       
+	return(a)
+}
+
+joint.prob <- function(GP, locus.no, genotypes, throw_away_uncertainity = FALSE) {
 	joint.pd <- get.clean.cm()
 	indiv.total <- 0
 	for (genotype in genotypes) {
@@ -115,7 +137,14 @@ joint.prob <- function(GP, locus.no, genotypes) {
 		colname <- add.prefix("t")(genotype)
 		# message(c("colname:", colname))
 		indiv.probs <- matrix(GP[, indiv.idx, locus.no], nrow = 3)
+		#     in1 in2 in3 in4 ...
+		# 1,1 0.1 0.2
+		# 1,2 0.2 0.3
+		# 2,2 0.7 0.5
 		# print(indiv.probs)
+		if (throw_away_uncertainity) {
+			indiv.probs = sharpen.probs(indiv.probs)
+		}
 		if (length(indiv.probs) != 0) {
 			# Sum over the individuals
 			joint.pd[, colname] <- (rowSums(indiv.probs))
@@ -162,8 +191,8 @@ mutual.information <- function(joint.pd) {
 }
 
 # Array for mutual information.
-mi <- matrix(nrow = length(GP[1,1,]), ncol = 2)
-colnames(mi) <- c("Mutual information", "Unique genotypes")
+mi <- matrix(nrow = length(GP[1,1,]), ncol = 3)
+colnames(mi) <- c("Mutual information", "Mutual information, no uncertainity", "Unique genotypes")
 
 # Unique loci in original data. Numer 1 indicates that all individuals
 # had the same genotype in specific locus.
@@ -172,16 +201,19 @@ for (locus.id in dimnames(GP)[[3]]) {
 	locus.no = as.numeric(locus.id)
 	# print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
 	joint.pd <- joint.prob(GP, locus.no, genotypes)
+	joint.pd.no.uncert <- joint.prob(GP, locus.no, genotypes, throw_away_uncertainity = TRUE)
 	mi[locus.no, 1] <- mutual.information(joint.pd)
-	mi[locus.no, 2] <- length(unique(na.omit(orig[, locus.no])))
+	mi[locus.no, 2] <- mutual.information(joint.pd.no.uncert)
+	mi[locus.no, 3] <- length(unique(na.omit(orig[, locus.no])))
 }
 
-write.table(
-	mi,
+write.table(mi,
 	file = paste(results.dir, "/mutual-information-by-locus.txt", sep = ""),
 	row.names = TRUE, col.names = NA)
-write.table(
-	mean(mi[1]),
+write.table(mean(mi[1]),
 	file = paste(results.dir, "/mean-mutual-information.txt", sep = ""),
+	col.names = FALSE, row.names = FALSE)
+write.table(mean(mi[2]),
+	file = paste(results.dir, "/mean-mutual-information-no-uncert.txt", sep = ""),
 	col.names = FALSE, row.names = FALSE)
 

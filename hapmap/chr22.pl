@@ -10,6 +10,22 @@
 #
 # TODO: Filenames should be standarized. There are still some hard-coded
 # file names which may be confusing to users.
+#
+# Mutual information calculations. I don't know if using a Perl script
+# as a notebook is great, but I'll do it anyway.
+#
+# Source files:
+# phased_genotypes.txt (haploid)
+# phased_loci.txt
+#
+# Those files are going to be split into three files. Number of loci
+# will be trimmed to 5000. File names:
+# mi_genotypes.txt    (haploid) (50 individuals)
+# mi_cc_genotypes.txt (diploid) (10 individuals)
+# mi_loci.txt
+#
+# The file mi_cc_genotypes.txt is going to be masked, all
+# individuals, in R.
 
 use strict;
 use Getopt::Long;
@@ -171,34 +187,37 @@ if ($locus_file) {
 
 #model with $STATES block states
 
-########################################################################
-# Data masking if requested
-########################################################################
 
+# Data masking if requested
+# Data set will be base-named "train", that is:
+# masked_genotypes.txt
+# masked_loci.txt
+#
+#
 if ($mask_data) {
-    my $train_basename = "d1_train";
+    my $train_basename = "mi";
     print "Preparing train and test data.\n";
     my $lf = $arg_hash->{'locusfile'};
-    my $new_locus_file = "loci_limited.txt";
+    my $new_locus_file = "mi_loci.txt";
     my @data_prepare_args = (
         "./prepareTestingData.pl ",
-        "--phased-file $datadir/genotypes_phased.txt ",
-        "--haploid-file $datadir/$train_basename.txt ",
-        "--case-control-file $datadir/d1_test.txt ",
+        "--phased-file $datadir/phased_genotypes.txt ",
+        "--haploid-file $datadir/${train_basename}_genotypes.txt ",
+        "--case-control-file $datadir/${train_basename}_cc.txt ",
         "--percent-indivs $mask_percent_indivs ",
         "--limit-loci $limit_loci ",
         "--in-locus-file $lf ",
         "--out-locus-file $datadir/$new_locus_file");
     my $dp_return = system(join(" ", @data_prepare_args));
-    # $locus_file = $new_locus_file;
     $arg_hash->{'locusfile'} = "$datadir/$new_locus_file";
     if ($dp_return != 0) {
         die("prepareTestingData.pl returned an error code.\n");
     }
     # Count the lines in the train data to determine the number of
     # individuals
-    open(TRAIN_DATA, "<$datadir/$train_basename.txt")
-        or die("Couldn't open the train data file.");
+    my $train_file_name = "$datadir/${train_basename}_genotypes.txt";
+    open(TRAIN_DATA, "<$train_file_name")
+        or die("Couldn't open the train data file: '$train_file_name'.");
     # One line for headers and two lines per individual
     my @train_array = <TRAIN_DATA>;
     my $train_indivs = (scalar(@train_array) - 1) / 2;
@@ -207,7 +226,7 @@ if ($mask_data) {
     print " and $mask_percent_loci% of loci. Running R for this.\n";
     my @r_call = qw(R CMD BATCH --no-save --no-restore);
     push(@r_call, "--population=$POP");
-    push(@r_call, "--basename=d1_test");
+    push(@r_call, "--basename=${train_basename}_cc");
     push(@r_call, "--loci-file=$datadir/$locus_file");
     # All the individuals in the case-control file should be masked,
     # hence 100% masked individuals.
@@ -215,12 +234,15 @@ if ($mask_data) {
     push(@r_call, "--percent-loci=$mask_percent_loci");
     push(@r_call, "--indiv-offset=$train_indivs");
     push(@r_call, "maskGenotypes.R");
-    # "../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
     my $r_return = system(join(" ", @r_call));
     if ($r_return != 0) {
         die "R script returned an error code: $r_return\n";
     }
     print "Masking finished.\n";
+    print "Exiting after masking the data.\n";
+    print "Please run the script without --mask-data option\n";
+    print "to perform the analysis.\n";
+    exit(0);
 }
 
 ########################################################################
@@ -294,8 +316,7 @@ sub calculate_mutual_information {
     # "../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
     my $r_return = system(join(" ", @r_call));
     if ($r_return != 0) {
-        print "R script returned an error code! $r_return\n";
-        exit($r_return);
+        die("R script returned an error code! $r_return\n");
     }
 }
 

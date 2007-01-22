@@ -1,3 +1,25 @@
+Example launch of the chr22.pl script.
+
+perl chr22.pl \
+        --mask-data \
+        --percent-indivs 17 \
+        --percent-loci 50 \
+        --limit-loci 5000 \
+        --pop Eur \
+        --states 4 \
+        --genotypes-file d1_train.txt \
+        --locus-file loci_phased.txt \
+        --maskfile d1_test_index.txt \
+        --case-control-file d1_test.txt
+
+Let's presume that the source data filenames are:
+
+genotypes_phased.txt
+loci_phased.txt
+
+
+
+========================================================================
 Contents of this directory:
 
  * chr22.pl:
@@ -53,8 +75,8 @@ A/G AA AG AA GG AG ...
  * sortSNPs.cc
 
 A short C++ program to sort the HapMap loci by position (some of the
-loci in the raw data files are out-of-sequence) [this shouls be
-incorporated into convertdata]
+loci in the raw data files are out-of-sequence)
+[this shouls be incorporated into convertdata]
 
  * ranker.h
-*header file required for sortSNPS.cc
+header file required for sortSNPS.cc

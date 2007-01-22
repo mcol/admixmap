@@ -150,9 +150,9 @@ sub write_idx_to_file(\$\$$\@\@$) {
 sub rewrite_loci($$$) {
 	my ($in, $out, $limit) = @_;
 	open(IN_LOCUSFILE, "<$in")
-		or die ("Can't open the input locus file for reading.");
+		or die ("Can't open the input locus file '$in' for reading.");
 	open(OUT_LOCUSFILE, ">$out")
-		or die ("Can't open the output locus file for writing.");
+		or die ("Can't open the output locus file '$out' for writing.");
 	my $counter = 0;
 	while (<IN_LOCUSFILE>) {
 		if ($limit && $counter <= $limit) {
