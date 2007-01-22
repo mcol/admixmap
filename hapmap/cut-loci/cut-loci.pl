@@ -14,7 +14,7 @@ use Hapmix::Loci;
 
 my $usage = 0;
 my $data_base_name = '';
-my $small_file = '';
+my $sample_file = '';
 my $help = 0;
 my $offset = 0;
 my $save_as = '';
@@ -23,17 +23,17 @@ my $range = 0;
 GetOptions(
     "help!"  => \$usage,
     "data=s" => \$data_base_name,
-    "small-file=s" => \$small_file,
+    "sample-file=s" => \$sample_file,
     "offset=s" => \$offset,
     "save-as=s" => \$save_as,
     "range!" => \$range,
 );
 
 $data_base_name or warn("Please specify data.\n");
-$small_file or warn("Please specify small data file.\n");
+$sample_file or warn("Please specify sample data file.\n");
 $save_as or warn("Please specify --save-as basename.\n");
 
-if (!$data_base_name or !$small_file or $help or !$save_as) {
+if (!$data_base_name or !$sample_file or $help or !$save_as) {
     $usage = 1;
 }
 
@@ -43,7 +43,7 @@ if ($usage) {
     print "   --help\n";
     print "   --data <basename>       Basename for data files.\n";
     print "                           _genotypes.txt will be appended automagically.\n";
-    print "   --small-file <filename> Sample genotypes file.\n";
+    print "   --sample-file <filename> Sample genotypes file.\n";
     print "                           This should contain _genotypes.txt.\n";
     print "   --offset <integer>      Offset in bp\n";
     print "   --save-as <basename>    Basename for saved files\n";
@@ -55,25 +55,25 @@ if ($usage) {
 }
 
 my $hm = Hapmix::HapmixData->new($data_base_name);
-my $small = Hapmix::Genotypes->new($small_file);
+my $sample = Hapmix::Genotypes->new($sample_file);
 
 # Test loci writing
 # my $loci = Hapmix::Loci->new("chr7_phased_loci.txt");
-# my @loci_names = $small->get_loci();
+# my @loci_names = $sample->get_loci();
 # $loci->write_file_from_loci_ids("all_loci.txt", $loci->get_loci_names());
 
 # Columns to appear in the output file. Represented as column IDs.
-my @loci_small = $small->get_loci();
+my @loci_sample = $sample->get_loci();
 
 # If requested, consider given locus list as a range.
 if ($range) {
-    @loci_small = $hm->range_by_ids(@loci_small);
+    @loci_sample = $hm->range_by_ids(@loci_sample);
 }
 
 # If requested, apply offsetting
 if ($offset) {
-    @loci_small = $hm->offset($offset, @loci_small);
+    @loci_sample = $hm->offset($offset, @loci_sample);
 }
 
 # Write chosen columns (by IDs) to a file.
-$hm->write_by_loci_ids($save_as, @loci_small);
+$hm->write_by_loci_ids($save_as, @loci_sample);
