@@ -130,21 +130,23 @@ my $datadir = "$POP/chr22data";
 #
 # keys (left-hand side) are parameter names
 # values (right-hand side) are parameter values
-my $arg_hash = {
-# data files
-    # genotypesfile => "$datadir/genotypes5000_masked.txt",
-    # locusfile     => "$datadir/loci5000.txt",
+my $arg_hash = 
+{
 
-# phased data
-    genotypesfile   => "$datadir/genotypes_phased.txt",
-    locusfile       => "$datadir/loci_phased.txt",
-    ccgenotypesfile => "$datadir/$ccgenotypesfile",
+#unphaseddata files
+#    genotypesfile                   => "$datadir/genotypes5000.txt",
+#    locusfile                          => "$datadir/loci5000.txt",
+
+#phased data
+    genotypesfile                   => "$datadir/phased_genotypes.txt",
+    locusfile                          => "$datadir/phased_loci.txt",
 
     #priorallelefreqfile => 'data/priorallelefreqs.txt',
     #fixedallelefreqs => 1,
-    populations     => $STATES,
+    states     => $STATES,
     #outcomevarfile => 'chr22/dummyoutcome.txt',
     checkdata       => 0,
+
 #main options
     resultsdir      => 'results',
     displaylevel    => 3,
@@ -154,22 +156,28 @@ my $arg_hash = {
     numannealedruns => 0,
     thermo          => 0,
     hapmixmodel     => 1,
-    #indadmixhiermodel => 0,
     randommatingmodel => 0,
+
+#prior spec
     hapmixlambdaprior => "30, 0.1, 10, 1",
     allelefreqprior => "0.2, 1, 1",
+
+#initial values
     #initialhapmixlambdafile => "$datadir/initialambdas.txt",
     #allelefreqfile => "$datadir/initialallelefreqs.txt",
     rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 #output files
     logfile =>'logfile.txt',
-    paramfile =>'paramfile.txt',
+    paramfile =>'paramfile.txt',#mean and var of sampled arrival rates
+    dispparamfile => "allelefreqpriors.txt",#mean and var of sampled freq dispersion
+
     #regparamfile          => 'regparamfile.txt',
-    #indadmixturefile     => 'indadmixture.txt',
     #ergodicaveragefile => 'ergodicaverage.txt',
-    allelefreqprioroutputfile   => "allelefreqpriors.txt",
+
+    allelefreqprioroutputfile   => "initialfreqdispersion.txt",
     allelefreqoutputfile        => "initialallelefreqs.txt",
     hapmixlambdaoutputfile      => "initiallambdas.txt",
+
 #optional tests
     #residualallelicassocscorefile => 'residualLDscores.txt',
     mhtestfile => "mhtest.txt",
@@ -251,14 +259,15 @@ if ($mask_data) {
 
 if (!$rerun) {
     # initial run
-    $arg_hash->{resultsdir}="$POP/Results${STATES}States";
+    $arg_hash->{resultsdir}="$POP/Chr22Results$STATES"."States2";
     doAnalysis($executable,$arg_hash);
 } else {
-    # rerun with final values of lambda, freqs in previous run as starting values
-    $arg_hash->{resultsdir}="$POP/Results$STATES"."States";
+    # rerun with final values of lambda, freqs, freq dispersion in previous run as starting values
+    $arg_hash->{resultsdir}="$POP/Chr22Results$STATES"."States2";
     $arg_hash->{initialhapmixlambdafile} = "$datadir/initiallambdas.txt";
     $arg_hash->{allelefreqfile} = "$datadir/initialallelefreqs.txt";
-    $arg_hash->{residualallelicassocscorefile} = 'residualLDscores.txt';
+    $arg_hash->{initialfreqdispersionfile} = "$datadir/initialfreqdispersion.txt";
+    #$arg_hash->{allelicassociationscorefile} = 'AllelicAssocScores.txt';
     doAnalysis($executable,$arg_hash);
 }
 
@@ -320,10 +329,10 @@ sub calculate_mutual_information {
     }
 }
 
+# Run R script which processes output files.
 sub runRscript
 {
     my ($args) = @_;
-    # Comment out the next three lines to run admixmap without R script
     print "Starting R script to process output\n";
     system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
     print "R script completed\n\n";
@@ -335,26 +344,29 @@ sub doAnalysis
     my $command = "";
     if($parallel){
         $command = "mpiexec ";
-        $args->{resultsdir} = $args->{resultsdir}. "Parallel";
+        $args->{resultsdir} = $args->{resultsdir}. "parallel";
     }
     $command = $command . $prog.getArguments($args);
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    if(system($command)!=0){
-        warn("Hapmixmap has returned an error code.");
-    }
-    if($arg_hash->{allelefreqoutputfile}){
-#copy file with final allele freqs to data dir ready for next time
-        system("cp $arg_hash->{resultsdir}/$arg_hash->{allelefreqoutputfile} $datadir/$arg_hash->{allelefreqoutputfile}");
-    }
-    if($arg_hash->{hapmixlambdaoutputfile}){
-#copy file with final lambdas to data dir ready for next time
-        system("cp $arg_hash->{resultsdir}/$arg_hash->{hapmixlambdaoutputfile} $datadir/$arg_hash->{hapmixlambdaoutputfile}");
-    }
-    # Run the R script, change (1) to (0) to disable.
-    if (1) {
+    my $returncode = system($command);
+    if($returncode == 0){
+##program ran successfully
+#copy initial value files from resultsdir to datadir
+#using wildcard to copy all in one go
+	my $copycmd = "cp";
+	my $slash = "/";
+	if($^O eq "MSWin32"){
+	    $copycmd = "copy";
+	    $slash = "\\";
+	}
+	system("$copycmd $args->{resultsdir}$slash"."initial*.txt $datadir");
+## run the r script
         runRscript($args);
+	if ($calculate_mi) {
+	    calculate_mutual_information();
+	}
     }
-    if ($calculate_mi) {
-        calculate_mutual_information();
+    else{
+        warn("hapmixmap has returned an error code $returncode.");
     }
 }
