@@ -12,13 +12,15 @@ use Getopt::Long;
 use Hapmix::HapmixData;
 use Hapmix::Loci;
 
+my $default_offset = 100000; # == 100kb, kilo-base
+
 my $usage = 0;
 my $data_base_name = '';
 my $sample_file = '';
 my $help = 0;
-my $offset = 0;
 my $save_as = '';
 my $range = 0;
+my $offset = $default_offset;
 
 GetOptions(
     "help!"  => \$usage,
@@ -45,7 +47,7 @@ if ($usage) {
     print "                           _genotypes.txt will be appended automagically.\n";
     print "   --sample-file <filename> Sample genotypes file.\n";
     print "                           This should contain _genotypes.txt.\n";
-    print "   --offset <integer>      Offset in bp\n";
+    print "   --offset <integer>      Offset in bp, $default_offset by default.\n";
     print "   --save-as <basename>    Basename for saved files\n";
     print "   --range                 Instead of taking specified loci, take a whole\n";
     print "                           range between the first and the last locus\n";
