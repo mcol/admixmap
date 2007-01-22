@@ -31,6 +31,7 @@ public:
   const char *getEtaOutputFilename() const;
   const char *getIndAdmixtureFilename() const;
   const char *getAlleleFreqPriorOutputFilename() const;
+  bool OutputAlleleFreqPrior()const;
   const char* getHapMixLambdaOutputFilename()const;
 
   //input file names
@@ -46,6 +47,7 @@ public:
   const std::vector<double> &getHapMixLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
   const char* getInitialHapMixLambdaFilename()const;
+  const char* getInitialFreqDispersionFile()const;
   const char* getCCGenotypesFilename()const;
 
   vector<double> getInitAlpha(int) const;
@@ -177,6 +179,7 @@ private:
   string EtaPriorFilename;
   string ReportedAncestryFilename;
   string InitialHapMixLambdaFilename;
+  string InitialFreqDispersionFile;
   string CCGenotypesFilename;//case-control genotypes file (hapmixmodel only)
 
   //indices for assessing prediction of missing genotypes in hapmixmodel

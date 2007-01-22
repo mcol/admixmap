@@ -1173,6 +1173,7 @@ void AlleleFreqs::OpenOutputFile(const char* filename)
   allelefreqoutput << "structure(.Data=c(" << endl;
 }
 
+//output of freqs as R object (start and finish of file are written elsewhere)
 void AlleleFreqs::OutputAlleleFreqs()
 {
   if( IsRandom() ){
@@ -1191,27 +1192,28 @@ void AlleleFreqs::OutputAlleleFreqs()
   }
 }
 
-void AlleleFreqs::OutputAlleleFreqs(const char* filename)
+//output of freqs to arbitrary file, tab delimited
+void AlleleFreqs::OutputAlleleFreqs(const char* filename, LogWriter& Log)
 {
-    ofstream outfile(filename);
-    if(outfile.is_open()){
-	cout << "Writing final values of allele freqs to " << filename << endl;
-	//if( IsRandom() ){
+  ofstream outfile(filename);
+  if(outfile.is_open()){
+    Log << Quiet << "Writing final values of allele freqs to " << filename << "\n";
+    //if( IsRandom() ){
     for( int locus = 0; locus < NumberOfCompositeLoci; locus++ ){
-	for( int pop = 0; pop < Populations; pop++ ){
-	    for( int state = 0; state < Loci->GetNumberOfStates(locus)-1; state++ ){
-		outfile <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] << "\t";
-//			<< AlleleCounts[locus][state*Populations + pop] << "\t"
-		    //		<< AlleleCounts[locus][(state+1)*Populations + pop] << endl;
+      for( int pop = 0; pop < Populations; pop++ ){
+	for( int state = 0; state < Loci->GetNumberOfStates(locus)-1; state++ ){
+	  outfile <<  Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] << "\t";
+	  //			<< AlleleCounts[locus][state*Populations + pop] << "\t"
+	  //		<< AlleleCounts[locus][(state+1)*Populations + pop] << endl;
 	}
       }
     }
     //}
-  outfile.close();
-    }
-    else{
-	cout << "Error: cannot open " << filename << ", not writing allele freqs." << endl;
-    }
+    outfile.close();
+  }
+  else{
+    Log << On << "Error: cannot open " << filename << ", not writing allele freqs.\n";
+  }
 }
 
 // void AlleleFreqs::OutputPriorParams(){

@@ -287,13 +287,15 @@ void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, LogWriter& L
   }
 }
 
-void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const InputData& data ){
+/// Final tasks to perform just before exit
+void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data ){
+  //Output results of Mantel-Haentszel Test
   if(options.getMHTest() && Comms::isMaster()){
     std::string s = options.getResultsDir();
     s.append("/MHTestFinal.txt");
     MHTest.Output(s.c_str(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), true);
   }
-  
+  //Write final score test tables  
   if(Comms::isMaster()){
     if( options.getScoreTestIndicator() ) {
       //finish writing score test output as R objects
@@ -314,7 +316,11 @@ void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& , const Input
     //output final values of allelefreqs
     const char* ss = options.getAlleleFreqOutputFilename();
     if(strlen(ss))
-      A.OutputAlleleFreqs(ss);
+      A.OutputAlleleFreqs(ss, Log);
+
+    //output posterior means of allele freq dispersion
+    if(options.OutputAlleleFreqPrior())
+      A.OutputPosteriorMeans(options.getAlleleFreqPriorOutputFilename(), Log);
   }
   
   //output posterior means of predictive genotype probs at masked loci for masked individuals
@@ -387,7 +393,7 @@ void HapMixModel::InitializeErgodicAvgFile(const AdmixOptions* const options, Lo
     }
     avgstream << "\n";
   } else {
-    Log << "No ergodicaveragefile given\n";
+    Log << "Not writing ergodic averages to file\n";
   }
 }
 

@@ -2,7 +2,7 @@
 /** 
  *   AlleleFreqs.h 
  *   header file for AlleleFreqs class
- *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005 - 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -160,7 +160,7 @@ public:
   void OutputEta(int iteration, const AdmixOptions *options, LogWriter &Log);
 
   void OutputAlleleFreqs();
-  void OutputAlleleFreqs(const char* filename);
+  void OutputAlleleFreqs(const char* filename, LogWriter& Log);
   void CloseOutputFile(int iterations, const Vector_s& PopulationLabels);
 
   void OutputFST();
