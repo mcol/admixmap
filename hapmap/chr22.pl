@@ -7,6 +7,9 @@
 # --maskfile Eur/chr22data/genotypes5000_index.txt \
 # --samples 12 --burnin 2 \
 # --mutual-information
+#
+# TODO: Filenames should be standarized. There are still some hard-coded
+# file names which may be confusing to users.
 
 use strict;
 use Getopt::Long;
@@ -177,7 +180,16 @@ if ($mask_data) {
     print "Preparing train and test data.\n";
     my $lf = $arg_hash->{'locusfile'};
     my $new_locus_file = "loci_limited.txt";
-    my $dp_return = system "./prepareTestingData.pl --phased-file $datadir/genotypes_phased.txt --haploid-file $datadir/$train_basename.txt --case-control-file $datadir/d1_test.txt --percent-indivs $mask_percent_indivs --limit-loci $limit_loci --in-locus-file $lf --out-locus-file $datadir/$new_locus_file";
+    my @data_prepare_args = (
+        "./prepareTestingData.pl ",
+        "--phased-file $datadir/genotypes_phased.txt ",
+        "--haploid-file $datadir/$train_basename.txt ",
+        "--case-control-file $datadir/d1_test.txt ",
+        "--percent-indivs $mask_percent_indivs ",
+        "--limit-loci $limit_loci ",
+        "--in-locus-file $lf ",
+        "--out-locus-file $datadir/$new_locus_file");
+    my $dp_return = system(join(" ", @data_prepare_args));
     # $locus_file = $new_locus_file;
     $arg_hash->{'locusfile'} = "$datadir/$new_locus_file";
     if ($dp_return != 0) {
@@ -306,21 +318,22 @@ sub doAnalysis
     }
     $command = $command . $prog.getArguments($args);
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    if(system($command)==0){
-        if($arg_hash->{allelefreqoutputfile}){
+    if(system($command)!=0){
+        warn("Hapmixmap has returned an error code.");
+    }
+    if($arg_hash->{allelefreqoutputfile}){
 #copy file with final allele freqs to data dir ready for next time
-            system("cp $arg_hash->{resultsdir}/$arg_hash->{allelefreqoutputfile} $datadir/$arg_hash->{allelefreqoutputfile}");
-        }
-        if($arg_hash->{hapmixlambdaoutputfile}){
+        system("cp $arg_hash->{resultsdir}/$arg_hash->{allelefreqoutputfile} $datadir/$arg_hash->{allelefreqoutputfile}");
+    }
+    if($arg_hash->{hapmixlambdaoutputfile}){
 #copy file with final lambdas to data dir ready for next time
-            system("cp $arg_hash->{resultsdir}/$arg_hash->{hapmixlambdaoutputfile} $datadir/$arg_hash->{hapmixlambdaoutputfile}");
-        }
-        # Run the R script, change (1) to (0) to disable.
-        if (1) {
-            runRscript($args);
-        }
-        if ($calculate_mi) {
-            calculate_mutual_information();
-        }
+        system("cp $arg_hash->{resultsdir}/$arg_hash->{hapmixlambdaoutputfile} $datadir/$arg_hash->{hapmixlambdaoutputfile}");
+    }
+    # Run the R script, change (1) to (0) to disable.
+    if (1) {
+        runRscript($args);
+    }
+    if ($calculate_mi) {
+        calculate_mutual_information();
     }
 }
