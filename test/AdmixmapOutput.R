@@ -1220,6 +1220,15 @@ if(!is.null(user.options$allelicassociationscorefile) && file.exists(paste(resul
   outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
   plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, user.options$every)
   cat(" done\n", file=outfile, append=T)
+
+##append columnns with posterior means of arrival rate and allele freq dispersion to final table if hapmixmodel
+  if(user.options$hapmixmodel == 1 &&
+     !is.null(user.options$hapmixlambdaoutputfile) && !is.null(user.options$allelefreqprioroutputfile)){
+    lambda <- c(NA, scan(paste(resultsdir, user.options$hapmixlambdaoutputfile, sep="/")))
+    eta <- c(scan(paste(resultsdir, user.options$allelefreqprioroutputfile, sep="/")))
+    scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T), lambda, eta)
+    write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=T, col.names=T)
+  }
 }
 
 ## read output of score test for association with haplotypes, and plot cumulative results
