@@ -1113,21 +1113,6 @@ if(is.null(user.options$dispparamfile)||
   dev.off()
   cat(" done\n", file=outfile, append=T)
 }   
-## read allele freq prior parameter samples
-if(is.null(user.options$allelefreqprioroutputfile) ||
-           length(scan(paste(resultsdir, user.options$allelefreqprioroutputfile, sep="/"),
-                       what='character',quiet=TRUE)) == 0)  {
-  eta.samples <- NULL
-} else {
-  cat("reading allele frequency prior parameters...", file=outfile, append=T)
-  eta.samples<-read.table(paste(resultsdir, user.options$allelefreqprioroutputfile,sep="/"), header=TRUE)
-  checkConvergence(eta.samples, "Allele freq parameters",
-                   paste(resultsdir, "AllelefreqParamConvergenceDiags.txt", sep="/"))
-  postscript(paste(resultsdir, "AlleleFreqParamAutocorrelations.ps", sep="/" ))     
-  plotAutocorrelations(eta.samples, user.options$every)
-  dev.off()
-  cat(" done\n", file=outfile, append=T)
-}   
 
 ## combine samples of Dirichlet params, admixture proportions, dispersion params, regression params
 param.samples.all <- cbindIfNotNull(param.samples, pop.admix.prop)
