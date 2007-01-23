@@ -332,13 +332,21 @@ void CompositeLocus::getConditionalHapPairProbs(std::vector<double>& Probs, cons
   happairiter hiter = PossibleHapPairs.begin();//hiter points to elements of PossibleHapPairs
   double sum = 0.0;
   for( ; hiter != end ; ++hiter) {
-    //retrieve required element from HapPairProbs
-    const double prob = HapPairProbs[ hiter->haps[0] * NumberOfStates * Populations * Populations + 
-				      hiter->haps[1] * Populations * Populations +
-				      ancestry[0] * Populations  + ancestry[1]];
-
-    Probs[hiter->haps[0]*NumberOfStates + hiter->haps[1]] = prob;
-    sum += prob;//accumulate probs in order to renormalize
+    if(hiter->haps[1] >= 0){//diploid (haps (as opposed to happairs) have 2nd element -1
+      //retrieve required element from HapPairProbs
+      const double prob = HapPairProbs[ hiter->haps[0] * NumberOfStates * Populations * Populations + 
+                                        hiter->haps[1] * Populations * Populations +
+                                        ancestry[0] * Populations  + ancestry[1]];
+      
+      Probs[hiter->haps[0]*NumberOfStates + hiter->haps[1]] = prob;
+      sum += prob;//accumulate probs in order to renormalize
+    }
+    else{//haploid
+      throw string("ERROR: attempting to compute posterior genotypes probs for haploid individual!");
+//       const double prob = AlleleProbs[ancestry[0]*NumberOfStates + hiter->haps[0]];
+//       Probs[hiter->haps[0]] = prob;
+//       sum += prob;  
+     }
   }
   //renormalize
   for(vector<double>::iterator p = Probs.begin(); p !=Probs.end(); ++p)
