@@ -1212,7 +1212,7 @@ if(!is.null(user.options$allelicassociationscorefile) && file.exists(paste(resul
     lambda <- c(NA, scan(paste(resultsdir, user.options$hapmixlambdaoutputfile, sep="/")))
     eta <- c(scan(paste(resultsdir, user.options$allelefreqprioroutputfile, sep="/")))
     scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T), lambda, eta)
-    write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=T, col.names=T)
+    write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=F, col.names=T)
   }
 }
 
