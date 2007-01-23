@@ -68,15 +68,15 @@ distanceFromLast <- function(v.Chr, v.Position) {
 ## chromosome lengths in cM
 #chr.L <-
 ##c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-chr.L <- c(1, 1) ## trial runs with 2 chr
-#chr.L <- 20
+#chr.L <- c(10, 10) ## trial runs with 2 chr
+chr.L <- 0.5
 numChr <- length(chr.L)
 
 N <- 100##number of individuals
-K <- 6##number of block states
+K <- 4##number of block states
 DiploidData = F
 
-spacing <- 0.01 # spacing in cM
+spacing <- 0.002 # spacing in cM
 
 ## assign map distances
 x <- numeric(0)
@@ -120,7 +120,7 @@ alleleFreqs <- array(data=NA, dim=c(2, K, L))
 #freqs.alpha[freqs.alpha==0]<-0.001
 #freqs.alpha[freqs.alpha==1]<-0.999
 
-alpha.shape <- 2
+alpha.shape <- 1
 alpha.rate <- 10
 for(locus in 1:L) {
 freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 0.1
@@ -128,7 +128,7 @@ freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 
 ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
    #p <- rbeta(K, freqs.alpha[locus*2-1], freqs.alpha[locus*2]) # freqs  allele 1
    p <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
-    #p <- c(0,1)
+   # p <- c(0,1)
 ##  }
 alleleFreqs[1, , locus] <- p     # freqs allele 1
 alleleFreqs[2, , locus] <- 1 - p # freqs allele 2
@@ -155,15 +155,22 @@ for(individual in 1:N) {
 id = as.character(seq(1:N))
 sex <- rep(1, N)##for all males, irrelevant if no X-chromosome
 ##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
-genotypes <- data.frame(id, genotypes.diploid, row.names=NULL)
-write.table(genotypes, file="data/genotypes.txt", sep="\t", row.names=FALSE)
+
+genotypes <- data.frame(id, genotypes.diploid)
+dimnames(genotypes)[[2]] <- c("ID", paste("X", 1:L, sep=""))
+write.table(genotypes, file="data/genotypes_casectrl.txt", sep="\t", row.names=F, col.names=T)
+
+#for case/controls
+genotypes <- data.frame(id, genotypes.diploid[,seq(from=2, to=L, by=2)])
+dimnames(genotypes)[[2]] <- c("ID", paste("X", seq(from=2, to=L, by=2), sep=""))
+write.table(genotypes, file="data/genotypes_casectrl.txt", sep="\t", row.names=F, col.names=T)
 
 ##write haploid genotypes
 id = as.character(seq(1:(2*N)))
 sex <- rep(1, 2*N)##for all males, irrelevant if no X-chromosome
 ##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
-genotypes <- data.frame(id, genotypes.haploid, row.names=NULL)
-write.table(genotypes, file="data/genotypes_haploid.txt", sep="\t", row.names=FALSE)
+genotypes <- data.frame(id, genotypes.haploid)
+write.table(genotypes, file="data/genotypes_haploid.txt", sep="\t", row.names=F, col.names=T)
 
 ## write locus file
 distances[is.na(distances)] <- 100
