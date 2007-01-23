@@ -55,6 +55,7 @@ sub new {
         $self->{NUMBERS}{$counter} = $locus;
         $counter++;
     }
+    $self->{HIGHEST_NUMBER} = $counter - 1;
     undef @lines;
     bless($self, $class);
     # print "Loci constructed from $locus_file.\n";
@@ -195,15 +196,15 @@ sub offset($\@) {
     my %offset_ids;
     # For each initial, find its neighbours.
     my @hashes;
+    # This loop takes a relatively long time. Perhaps it should display
+    # its progress.
     for my $idx (@initial) {
         $self->find_neighbours($offset, $idx, \%potential, \%offset_ids);
     }
     return keys %offset_ids;
 }
 
-# Returns a list of references to hashes with updated values.
-# FIXME: This function is inefficient. It always goes through the
-# full list of potential neighbours.
+# Finds neighbours from the potential offset loci.
 sub find_neighbours {
     my $self = shift;
     my $offset = shift;
@@ -211,14 +212,66 @@ sub find_neighbours {
     my $p_ref = shift;
     my $o_ref = shift;
     # print "find_neighbours($offset, $idx)\n";
-    my $occupant = $self->get_locus_by_id($idx);
-    foreach my $key (keys %{$p_ref}) {
-        my $locus = $self->get_locus_by_id($key);
-        if ($occupant->within_range($offset, $locus)) {
-            $o_ref->{$key} = 1;
-            delete $p_ref->{$key};
-        }
+    $self->find_neighbours_directioned($offset, $idx, $p_ref, $o_ref, "forward");
+    $self->find_neighbours_directioned($offset, $idx, $p_ref, $o_ref, "backward");
+}
+
+# Find neighbours by looks at only one direction. It takes advantage
+# from the loci positions and numbers to be sorted accordingly.
+sub find_neighbours_directioned {
+    my $self = shift;
+    my $offset = shift;
+    my $idx = shift;
+    my $p_ref = shift;
+    my $o_ref = shift;
+    my $direction = shift;
+    my $step = 0;
+
+    if ($direction eq "forward") {
+        $step = 1;
+    } elsif ($direction eq "backward") {
+        $step = -1;
+    } else {
+        die("Direction must be either backward or forward.\n");
     }
+
+    # print "find_neighbours_directioned($offset, $idx, \"$direction\")\n";
+
+    my %potential = %{$p_ref}; # gotcha: this _copies_ the data!
+                               # Thou shalt not write to this hash.
+                               # It won't be visible outside the
+                               # function.
+    my $occupant = $self->get_locus_by_id($idx);
+    # Get occupant's number.
+    my $occupant_no = $occupant->number();
+    # Go from this number back, to the lower numbers. Check them all for
+    # being in the range. Once a out-of-range locus is spotted, stop.
+    my $spotted_outsider = 0;
+    my $investigated_locus_no = $occupant_no + $step;
+    my $highest_number = $self->{HIGHEST_NUMBER};
+    while (
+            $investigated_locus_no >= 0
+            and $investigated_locus_no <= $highest_number
+            and not $spotted_outsider) {
+        # Get the locus for investigation.
+        my $inv_locus = $self->get_locus_by_number($investigated_locus_no);
+        # Check if this locus is in the potential loci set.
+        if (exists $potential{$inv_locus->snp_id()}) {
+            if ($occupant->within_range($offset, $inv_locus)) {
+                # Add to offset loci, delete from potentials, go on.
+                $o_ref->{$inv_locus->snp_id()} = 1;
+                delete $p_ref->{$inv_locus->snp_id()};
+            } else {
+                # Outside the range, stop processing.
+                $spotted_outsider = 1;
+            }
+        }
+        # If not a potential locus, just go on.
+        $investigated_locus_no += $step;
+    }
+    # print "find_neighbours_directioned(): Finished with ";
+    # print $occupant_no - $investigated_locus_no;
+    # print " bp offset.\n";
 }
 
 sub get_min_max_loci(@) {

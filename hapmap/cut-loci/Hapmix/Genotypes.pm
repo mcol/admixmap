@@ -85,9 +85,10 @@ sub get_columns_by_indices(\@) {
     my @cols;
     # For each individual
     foreach my $key (sort keys(%{$self->{INDIVS}})) {
-        if (not exists $self->{INDIVS}{$key}) {
-            die("Individual $key not known!\n");
-        }
+        # We don't have check for that, do we?
+        # if (not exists $self->{INDIVS}{$key}) {
+        #     die("Individual $key not known!\n");
+        # }
         my @indiv_line = split(/\s+/, $self->{INDIVS}{$key});
         my $data = join(" ", @indiv_line[@indices]);
         $data = $key . " " . $data;
