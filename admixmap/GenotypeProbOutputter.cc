@@ -31,6 +31,8 @@ void GenotypeProbOutputter::Update(unsigned i, unsigned j, const CompositeLocus*
 void GenotypeProbOutputter::Output(const char* filename){
   outfile.open(filename);
   outfile << "structure(.Data=c(" << endl;
+  //  outfile.setf(ios::fixed); 
+  outfile.precision(6);
   //average over iterations
   NumIterations /= NumMaskedIndivs * NumMaskedLoci;
   for(vector<double>::iterator i = SumProbs.begin(); i != SumProbs.end(); ++i)*i /= (double)NumIterations;
