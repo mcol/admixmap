@@ -209,11 +209,14 @@ bool Options::getTestForResidualAllelicAssoc()const{
 const char* Options::getResidualAllelicAssocScoreFilename()const{
   return ResidualAllelicAssocScoreFilename.c_str();
 }
-bool Options::getMHTest()const{
-  return (bool)(MHTestFilename.size());
+bool Options::getHWTestIndicator() const
+{
+  return HWTest;
 }
-const char* Options::getMHTestFilename()const{
-  return MHTestFilename.c_str();
+
+const char *Options::getHWTestFilename() const
+{
+  return HWTestFilename.c_str();
 }
 double Options::getRegressionPriorPrecision()const{
   return regressionPriorPrecision;
@@ -312,11 +315,11 @@ int Options::assign(OptionPair& opt, const string value){
   else if(opt.second == "range"){//may be range or list of numbers
     vector<unsigned>* range = (vector<unsigned>*)opt.first;
     string::size_type colon = value.find(":" , 0);
-    if(colon != string::npos){
+    if(colon != string::npos){//read as range of numbers
        for(unsigned i = (unsigned)atoi((value.substr(0, colon)).c_str()); i <= (unsigned)atoi((value.substr(colon+1)).c_str()); ++i)
 	    range->push_back(i);
 	  }
-      else StringConvertor::StringToVec(value, *range);
+    else StringConvertor::StringToVec(value, *range);//read as list
   }
   else if(opt.second =="old"){//deprecated option - return signal to erase
     return 2;
@@ -360,7 +363,7 @@ void Options::SetOptions(OptionMap& ProgOptions)
   // test options
   ProgOptions["allelicassociationscorefile"] = OptionPair(&AllelicAssociationScoreFilename, "outputfile");
   ProgOptions["residualallelicassocscorefile"] = OptionPair(&ResidualAllelicAssocScoreFilename, "outputfile");
-  ProgOptions["mhtestfile"] = OptionPair(&MHTestFilename, "outputfile");
+  ProgOptions["hwscoretestfile"] = OptionPair(&HWTestFilename, "outputfile");
 
   // Other options
   ProgOptions["numannealedruns"] = OptionPair(&NumAnnealedRuns, "int");// number of coolnesses 

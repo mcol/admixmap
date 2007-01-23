@@ -170,15 +170,13 @@ const char *AdmixOptions::getDispersionTestFilename() const
   return DispersionTestFilename.c_str();
 }
 
-bool AdmixOptions::getHWTestIndicator() const
-{
-  return HWTest;
+bool AdmixOptions::getMHTest()const{
+  return (bool)(MHTestFilename.size());
+}
+const char* AdmixOptions::getMHTestFilename()const{
+  return MHTestFilename.c_str();
 }
 
-const char *AdmixOptions::getHWTestFilename() const
-{
-  return HWTestFilename.c_str();
-}
 const char *AdmixOptions::getHistoricalAlleleFreqFilename() const
 {
   return HistoricalAlleleFreqFilename.c_str();
@@ -477,7 +475,7 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["allelefreqscorefile2"] = OptionPair(&AlleleFreqScoreFilename2, "outputfile");//A
   ProgOptions["dispersiontestfile"] = OptionPair(&DispersionTestFilename, "outputfile");//A
   ProgOptions["fstoutputfile"] = OptionPair(&FSTOutputFilename, "outputfile");//A
-  ProgOptions["hwscoretestfile"] = OptionPair(&HWTestFilename, "outputfile");//C
+  ProgOptions["mhscoretestfile"] = OptionPair(&MHTestFilename, "outputfile");//H
   ProgOptions["likratiofile"] = OptionPair(&LikRatioFilename, "outputfile");//A, requires affectedsonlytestfile
   ProgOptions["indadmixmodefile"] = OptionPair(&IndAdmixModeFilename, "outputfile");//A
   ProgOptions["testgenotypesfile"] = OptionPair(0, "null");//A

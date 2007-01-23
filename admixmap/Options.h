@@ -81,14 +81,15 @@ public:
   //Score test file names
   const char *getAllelicAssociationScoreFilename() const; 
   const char* getResidualAllelicAssocScoreFilename()const;
-  const char* getMHTestFilename()const;
+  const char *getHWTestFilename() const;
 
   //score test indicators 
   bool getScoreTestIndicator() const;
   bool getTestForAllelicAssociation() const;
   void setTestForAllelicAssociation(bool); 
   bool getTestForResidualAllelicAssoc()const; 
-  bool getMHTest()const;  
+  bool getHWTestIndicator() const;
+
 protected:
   long burnin;
   long TotalSamples;
@@ -106,6 +107,7 @@ protected:
   bool ScoreTestIndicator; //indicator for any of the score tests in ScoreTests class
   bool TestForAllelicAssociation;
   bool TestForResidualAllelicAssoc;
+  bool HWTest;
   double regressionPriorPrecision;
 
   string ResultsDir;
@@ -119,7 +121,7 @@ protected:
   string RegressionOutputFilename;
   string AllelicAssociationScoreFilename;
   string ResidualAllelicAssocScoreFilename;
-  string MHTestFilename;
+  string HWTestFilename;
   string PriorAlleleFreqFilename;
   string alleleFreqFilename;
   string CovariatesFilename;

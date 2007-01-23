@@ -80,7 +80,7 @@ public:
   const char *getAlleleFreqScoreFilename() const;
   const char *getAlleleFreqScoreFilename2() const;
   const char *getAssocScoreFilename() const;
-  const char *getHWTestFilename() const;
+  const char* getMHTestFilename()const;
   const char* getLikRatioFilename() const;
   const char* getIndAdmixModeFilename()const;
 
@@ -94,7 +94,7 @@ public:
   void setTestForLinkageWithAncestry(bool);
   bool getTestForMisspecifiedAlleleFreqs() const;
   bool getTestForMisspecifiedAlleleFreqs2() const;
-  bool getHWTestIndicator() const;
+  bool getMHTest()const;  
   
   //other test file names
   const char *getStratTestFilename() const;
@@ -129,7 +129,6 @@ private:
   bool chibIndicator;//calculate marginal likelihood using Chib method
   bool TestOneIndivIndicator;//calculate marginal likelihood for one individual only
   bool PopAdmixPropsAreEqual;
-
   bool TestForAdmixtureAssociation;
   bool StratificationTestIndicator;
   bool TestForAffectedsOnly;
@@ -138,7 +137,7 @@ private:
   bool TestForLinkageWithAncestry;
   bool TestForMisspecifiedAlleleFreqs;
   bool TestForMisspecifiedAlleleFreqs2;
-  bool HWTest;
+
 
   std::vector<bool> _admixed;
   bool _symmetric;         
@@ -163,18 +162,16 @@ private:
   string AlleleFreqScoreFilename2;
   string AssocScoreFilename;
   string StratTestFilename;
-
   string EtaOutputFilename;
   string DispersionTestFilename;
   string IndAdmixtureFilename;
   string FSTOutputFilename;
   string HaplotypeAssociationScoreFilename;
   string AncestryAssociationScoreFilename;
-  string HWTestFilename;
+  string MHTestFilename;
   string LikRatioFilename;
   string IndAdmixModeFilename;
   string HapMixLambdaOutputFilename;
-
   string HistoricalAlleleFreqFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;
