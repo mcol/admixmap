@@ -226,10 +226,10 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 }
 
 /**
-   Samples Haplotype pairs and upates allele/haplotype counts
+   Samples Haplotype pairs and upates allele/haplotype counts if requested
 */
 void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
-					  bool skipMissingGenotypes, bool anneal){
+					  bool skipMissingGenotypes, bool anneal, bool UpdateAlleleCounts){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
   // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
@@ -244,14 +244,41 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
 	//Sample Haplotype Pair
 	//also updates allele counts unless using hamiltonian sampler at locus with > 2 alleles 
 #ifdef PARALLEL
-	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo, AlleleProbs);
+	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo, UpdateAlleleCounts, AlleleProbs);
 #else
-	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo);//also updates allele counts
+	_child[i]->SampleHapPair(j, jj, locus, A, skipMissingGenotypes, annealthermo, UpdateAlleleCounts);
 #endif
       }
       locus++;
     }
   }
+}
+
+void IndividualCollection::AccumulateAlleleCounts(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
+                                                  bool anneal){
+#ifdef PARALLEL
+      MPE_Log_event(23, iteration, "startAlleleCountUpdate");
+#endif
+  unsigned nchr = Loci->GetNumberOfChromosomes();
+  unsigned locus = 0;
+  // if annealthermo, no need to sample hap pair: just update allele counts if diallelic
+  bool annealthermo = anneal && options->getThermoIndicator() && !options->getTestOneIndivIndicator();
+  for(unsigned j = 0; j < nchr; ++j){
+    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
+
+      for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
+        _child[i]->UpdateAlleleCounts(j, jj, locus, A, annealthermo);
+      }
+      locus++;
+    }
+  }
+#ifdef PARALLEL
+      MPE_Log_event(24, iteration, "endAlleleCountUpdate");
+#endif
+
+#ifdef PARALLEL
+  A.SumAlleleCountsOverProcesses(options->getPopulations());
+#endif
 }
 
 // ************** ACCESSORS **************

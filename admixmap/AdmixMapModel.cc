@@ -98,7 +98,7 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
     MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
 // loops over individuals to sample hap pairs then increment allele counts, skipping missing genotypes
-    AdmixedIndividuals->SampleHapPairs(options, &A, &Loci, true, anneal);
+    AdmixedIndividuals->SampleHapPairs(options, &A, &Loci, true, anneal, true);
 #ifdef PARALLEL
     MPE_Log_event(14, iteration, "sampledHapPairs");
 #endif
@@ -456,7 +456,7 @@ void AdmixMapModel::InitializeErgodicAvgFile(const AdmixOptions* const options, 
     }
     avgstream << "\n";
   } else {
-    Log << "No ergodicaveragefile given\n";
+    Log << "Not writing ergodic averages to file\n";
   }
 }
 

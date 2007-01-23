@@ -46,6 +46,8 @@ int main( int argc , char** argv ){
     MPE_Describe_state(17, 18, "Bcastrho", "maroon:gray");
     MPE_Describe_state(19, 20, "BcastFreqs", "plum:hlines3");
     MPE_Describe_state(21, 22, "ScoreTests", "gray:hlines3");
+    MPE_Describe_state(23, 24, "UpdateAlleleCounts", "DarkGreen:hlines4");
+
   }
 #endif
   const bool isMaster = Comms::isMaster();

@@ -3,7 +3,7 @@
  *   AlleleFreqs.cc 
  *   Class to hold and update allele frequencies, their prior parameters, allele counts and sums. Also holds and updates dispersion
  *   parameter eta and its prior parameters, for a dispersion model. Also computes Fst if required.
- *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005 - 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 

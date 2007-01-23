@@ -1,9 +1,6 @@
 /** 
- *   Individual.cc
- *  
- * Class to represent an individual and update individual-level
- * parameters
- * 
+ *   Individual.cc 
+ *   Class to represent an individual and update individual-level parameters
  *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -156,7 +153,7 @@ void Individual::setOutcome(double* Y){
 void Individual::setCovariates(double* X){
   Covariates = X;
 }
-//! sets possible hap pairs for a single SNP
+///sets possible hap pairs for a single SNP
 void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
   if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
   hapPair hpair;
@@ -185,7 +182,7 @@ void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> >
 }
 
 #ifdef PARALLEL
-//! this version can also be used in serial version
+//this version can also be used in serial version
 void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
   if( !GenotypesMissing[j][jj] ){
     if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
@@ -251,8 +248,8 @@ void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindica
 
 }
 
-//! called after energy has been evaluated, before updating model parameters
 void Individual::AnnealGenotypeProbs(int j, const double coolness) {
+  // called after energy has been evaluated, before updating model parameters
   int locus = Loci->getChromosome(j)->GetLocus(0);
   for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
     if( !GenotypesMissing[j][jj] ) { 
@@ -286,15 +283,10 @@ void Individual::DeleteGenotypes(){
   genotypes.clear();
 }
 
-  /**
-   * allocates and sets an array of bools indicating whether genotypes
-   * at each locus are missing used in HW score test;
-   * NB call before genotypes are deleted
-   */
 void Individual::SetMissingGenotypes(){
-  if(genotypes.size()==0)
-    throw string("determining missing genotypes after genotypes have been deleted");
- 
+  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
+  //used in HW score test; NB call before genotypes are deleted
+  if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
   missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
   unsigned index = 0;
   for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
@@ -342,20 +334,20 @@ void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const {
   else Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
 }
 
-//! returns value of LocusAncestry at a locus for a particular gamete
+///returns value of LocusAncestry at a locus for a particular gamete
 int Individual::GetLocusAncestry(int chrm, int gamete, int locus)const{
   int g = (gametes[chrm] == 2) ? gamete : 0; //so that gamete = 1 works when gametes[chrm] = 1;
   return LocusAncestry[chrm][g * Loci->GetSizesOfChromosomes()[chrm]  + locus] ;
 }
 
-//! Indicates whether genotype is missing at all simple loci within a composite locus
+///Indicates whether genotype is missing at all simple loci within a composite locus
 bool Individual::GenotypeIsMissing(unsigned int locus)const {
   unsigned c, l;
   Loci->GetChrmAndLocus(locus, &c, &l);
   return GenotypesMissing[c][l];
 }
-//! Indicates whether genotype is missing at a simple locus
-//! used by HW score test
+///Indicates whether genotype is missing at a simple locus
+//used by HW score test
 bool Individual::simpleGenotypeIsMissing(unsigned locus)const{
   if(!missingGenotypes)throw string("missingGenotypes not allocated");
   return missingGenotypes[locus];
@@ -367,15 +359,10 @@ bool Individual::isHaploidatLocus(unsigned j)const{
 bool Individual::isHaploidIndividual()const{
   return isHaploid;
 }
-//!****************** Log-Likelihoods **********************
-
-
-//! public function: ! calls private function to get log-likelihood at
-//! current parameter values, and stores it either as
-//! loglikelihood.value or as loglikelihood.tempvalue ! store should be
-//! false when calculating energy for an annealed run, or when
-//! evaluating proposal for global sum-intensities
-
+//****************** Log-Likelihoods **********************
+// public function: 
+// calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
+// store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
 double Individual::getLogLikelihood( const AdmixOptions* const options, const bool forceUpdate, const bool store) {
 
   if (!logLikelihood.ready || forceUpdate) {
@@ -389,7 +376,7 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, const bo
   } else return logLikelihood.value; // nothing was changed
 }
 
-//! private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
+// private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
 double Individual::getLogLikelihood(const AdmixOptions* const options, const double* const theta, 
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
@@ -453,7 +440,7 @@ void Individual::AccumulateAncestry(int* SumAncestry){
   } //end chromosome loop
 }
 #ifdef PARALLEL
-void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, 
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
 			       const double* const AlleleProbs){
   if( !skipMissingGenotypes || !GenotypesMissing[j][jj]){
     int ancestry[2];//to store ancestry states
@@ -476,12 +463,14 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
       sampledHapPairs[locus].haps[0] = PossibleHapPairs[locus][h].haps[0];
       sampledHapPairs[locus].haps[1] = PossibleHapPairs[locus][h].haps[1];
 
-    }//now update allelecounts in AlleleFreqs using sampled hap pair
-    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, ancestry, (gametes[j]==2), annealthermo);
+    }
+    if(UpdateCounts && !GenotypesMissing[j][jj])
+      //now update allelecounts in AlleleFreqs using sampled hap pair
+      A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, ancestry, (gametes[j]==2), annealthermo);
   }
 }
 #else
-void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo){
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts){
   if( !skipMissingGenotypes || !GenotypesMissing[j][jj]) {
     int anc[2];//to store ancestry states
     GetLocusAncestry(j,jj,anc);
@@ -491,16 +480,24 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
     }
     // now update allelecounts in AlleleFreqs using sampled hap pair
     // UpdateAlleleCounts does nothing if annealthermo and > 2 alleles 
-    if(!GenotypesMissing[j][jj])
+    if(UpdateCounts && !GenotypesMissing[j][jj])
       A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), annealthermo);
   }
 }
 #endif
 
-//! Updates inputs to HMM for chromosome j
-//! also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
+void Individual::UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const{
+  if(!GenotypesMissing[j][jj]){
+    int anc[2];//to store ancestry states
+    GetLocusAncestry(j,jj,anc);
+    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), annealthermo);
+  }
+}
+
 void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
 				 const double* const theta, const vector<double> rho) {
+  //Updates inputs to HMM for chromosome j
+  //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
   Chromosome* C = Loci->getChromosome(j);
   C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 

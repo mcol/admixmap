@@ -59,9 +59,13 @@ public:
    
   void SampleLocusAncestry(const AdmixOptions* const options);
   void AccumulateAncestry(int* SumAncestry);
-  void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo);
-  void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, 
+#ifdef PARALLEL
+  void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
 		     const double* const AlleleProbs);
+#else
+  void SampleHapPair(unsigned chr, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts);
+#endif
+  void UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const;
 
   void SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regression*>& R);
   void SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs);

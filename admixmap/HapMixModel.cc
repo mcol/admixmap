@@ -85,25 +85,27 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
     IC->SampleLocusAncestry(options);
    }
 
-  if(isWorker || isFreqSampler) {
-#ifdef PARALLEL
-    MPE_Log_event(13, iteration, "sampleHapPairs");
-#endif
-// loops over individuals to sample hap pairs then increment allele counts, not skipping missing genotypes
-    IC->SampleHapPairs(options, &A, &Loci, false, anneal); 
-#ifdef PARALLEL
-    MPE_Log_event(14, iteration, "sampledHapPairs");
-#endif
-  }
-  
-  //accumulate conditional genotype probs for masked individuals at masked loci
-  if(options->OutputCGProbs() && iteration > options->getBurnIn())
-    IC->AccumulateConditionalGenotypeProbs(options, Loci);
-#ifdef PARALLEL
   if(isWorker || isFreqSampler){
-    A.SumAlleleCountsOverProcesses(options->getPopulations());
-  }
+    IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
+
+    if( options->getHWTestIndicator() || options->getMHTest() || options->getTestForResidualAllelicAssoc() ) {
+#ifdef PARALLEL
+      MPE_Log_event(13, iteration, "sampleHapPairs");
 #endif
+      // loops over individuals to sample hap pairs, not skipping missing genotypes. Does not update counts since done already
+      IC->SampleHapPairs(options, &A, &Loci, false, anneal, false); 
+#ifdef PARALLEL
+      MPE_Log_event(14, iteration, "sampledHapPairs");
+#endif
+    }
+  }
+
+  if(isWorker){
+    //accumulate conditional genotype probs for masked individuals at masked loci
+    if(options->OutputCGProbs() && iteration > options->getBurnIn())
+      IC->AccumulateConditionalGenotypeProbs(options, Loci);
+  }
+
   
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){

@@ -43,7 +43,10 @@ public:
   virtual void getOnePopOneIndLogLikelihood(LogWriter &, const Vector_s& ){};
 
   void SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
-		      bool skipMissingGenotypes, bool anneal);
+		      bool skipMissingGenotypes, bool anneal, bool UpdateCounts);
+
+  void AccumulateAlleleCounts(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
+                              bool anneal);
 
   virtual void setGenotypeProbs(const Genome * const G, const AlleleFreqs* const);
 
