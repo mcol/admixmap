@@ -116,6 +116,8 @@ if ($usage) {
     print "  --mask-data                Whether to perform data masking first.\n";
     print "                             In such a case, genotypes_phased.txt\n";
     print "                             and loci_phased.txt will be processed.\n";
+    print "                             Script will stop after masking.\n";
+    print "                             Run it again with this option to do analysis.\n";
     print "  --percent-indivs <integer> Percent of masked individuals\n";
     print "  --percent-loci <integer>   Percent of masked loci\n";
     print "  --case-control-file <file> Genotypes file for case-control set\n";
@@ -232,6 +234,10 @@ if ($mask_data) {
     # One line for headers and two lines per individual
     my @train_array = <TRAIN_DATA>;
     my $train_indivs = (scalar(@train_array) - 1) / 2;
+    # Gotcha: hapmixmap wants the number of _lines_, not the number of
+    # individuals. In this case number of lines is double the number of
+    # individuals.
+    my $train_indivs_lines = $train_indivs * 2;
     close TRAIN_DATA;
     print "Masking data: $mask_percent_indivs% of individuals";
     print " and $mask_percent_loci% of loci. Running R for this.\n";
@@ -244,7 +250,7 @@ if ($mask_data) {
     # hence 100% masked individuals.
     push(@r_call, "--percent-indivs=100");
     push(@r_call, "--percent-loci=$mask_percent_loci");
-    push(@r_call, "--indiv-offset=$train_indivs");
+    push(@r_call, "--indiv-offset=$train_indivs_lines");
     push(@r_call, "maskGenotypes.R");
     my $r_return = system(join(" ", @r_call));
     if ($r_return != 0) {
@@ -372,6 +378,6 @@ sub doAnalysis
         }
     }
     else{
-        warn("hapmixmap has returned an error code $returncode.");
+        warn("hapmixmap has returned an error code $returncode.\n");
     }
 }
