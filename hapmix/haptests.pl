@@ -50,37 +50,6 @@ sub doAnalysis
     }
 }
 
-sub CompareThenMove {
-    my ($sourcedir, $targetdir) = @_;
-    my $prefix = "old_";
-# define commands for different OS's
-    my $diffcmd = "diff -s"; my $movecmd = "mv -f"; my $slash="/";my $delcmd="rm -R";
-    if (-e $targetdir) { # compare with sourcedir
-	opendir(SOURCE, $sourcedir) or die "can't open $sourcedir folder: $!";
-	while ( defined (my $file = readdir SOURCE) ) {
-	    next if (($file =~ /^\.\.?$/) || ($file eq "logfile.txt"));     # skip . and .. and logfile
-	    system("$diffcmd $sourcedir$slash$file $targetdir$slash$prefix$file");
-	    if($^O eq "MSWin32"){system("pause")}  # for checking comparisons 
-	} #compare
-	closedir(SOURCE);
-    }
-    if (-e $sourcedir) {
-	if (-e $targetdir) {
-	    my $olddir = "$prefix$targetdir";
-	    if (-e $olddir){system("$delcmd $prefix$targetdir");} #delete old results directory (necessary for next command)
-	    system("$movecmd $targetdir $prefix$targetdir"); #preserve old results by renaming directory
-	    }  
-	system("$movecmd $sourcedir $targetdir"); #rename results dir
-	mkdir("$sourcedir");                      #we need results dir for next analysis
-	opendir(TARGET, $targetdir) or die "can't open $targetdir folder: $!";
-	while ( defined (my $file = readdir TARGET) ) { #for each results file
-	    next if $file =~ /^\.\.?$/;     # skip . and ..
-	    system("$movecmd $targetdir$slash$file $targetdir$slash$prefix$file ");} #prefix with "old_"
-	closedir(TARGET);
-    }
-    else {print "$sourcedir does not exist\n"}
-}
-
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 my $serial_executable = '../test/hapmixmap';
 my $parallel_executable = '../test/hapmixmap-para';
@@ -91,15 +60,15 @@ if($parallel){
 
 my $arg_hash = {
 #data files
-
-#   genotypesfile                   => 'data/genotypes.txt', #diploid data
-   genotypesfile                   => 'data/genotypes_haploid.txt',#haploid data
-
     locusfile                       => 'data/loci.txt',
+
+    #genotypesfile                   => 'data/genotypes.txt', #diploid data
+     genotypesfile                   => 'data/genotypes_haploid.txt',#haploid data
+
     #priorallelefreqfile             => 'data/allelefreqs.txt',
     #fixedallelefreqs                => 1,
 
-    populations=>6,
+    states=>4,
 
 #main options
     resultsdir => 'results',
@@ -119,6 +88,8 @@ my $arg_hash = {
 hapmixlambdaprior=>"400, 1, 10, 1",
 
 allelefreqprior => "2, 10, 1",
+#freqdispersionhiermodel => 0,
+
 #initialhapmixlambdafile => "data/initialambdas.txt",
 #allelefreqfile => "data/initialallelefreqs.txt",
 
@@ -143,14 +114,12 @@ allelefreqoutputfile =>"allelefreqpriors.txt",
 #haploid data
 $arg_hash->{resultsdir}            = 'ResultsHaploid';  
 doAnalysis($executable,$arg_hash);
-#CompareThenMove("Results", "Results4");
 
 #diploid data
 $arg_hash->{resultsdir}            = 'ResultsDiploid';  
 $arg_hash->{genotypesfile} = "data/genotypes.txt";
 #doAnalysis($executable,$arg_hash);
 #system("cp Results/initialallelefreqs.txt data");
-#CompareThenMove("Results", "Results4");
 
 # rerun with final values of previous run as intial values of this
 #system("cp $arg_hash->{resultsdir}/initialallelefreqs.txt data");
