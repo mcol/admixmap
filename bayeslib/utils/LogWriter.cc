@@ -47,11 +47,19 @@ LogWriter::~LogWriter(){
   if(LogFileStream.is_open())LogFileStream.close();
 }
 
+/**
+ * Set whether the messages should be displayed.
+ * Accepted values: On, Quiet, Off.
+ */
 void LogWriter::setDisplayMode(DisplayMode d){
   toscreen = d;
 }
 
-// ** Overloaded stream insertion operators, write to log and screen, unless DisplayMode switched off
+/**
+ * Overloaded stream insertion operators,
+ * write to log and screen, unless DisplayMode
+ * switched off
+ */
 LogWriter& LogWriter::operator<<(const int message){
   LogFileStream << message;
   if(toscreen==On || (verbose && toscreen==Quiet)){
