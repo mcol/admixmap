@@ -76,7 +76,7 @@ N <- 100##number of individuals
 K <- 4##number of block states
 DiploidData = F
 
-spacing <- 0.002 # spacing in cM
+spacing <- 0.002 # spacing in Mb
 
 ## assign map distances
 x <- numeric(0)
@@ -154,16 +154,10 @@ for(individual in 1:N) {
 ##write diploid genotypes
 id = as.character(seq(1:N))
 sex <- rep(1, N)##for all males, irrelevant if no X-chromosome
-##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
-
+#genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
 genotypes <- data.frame(id, genotypes.diploid)
 dimnames(genotypes)[[2]] <- c("ID", paste("X", 1:L, sep=""))
-write.table(genotypes, file="data/genotypes_casectrl.txt", sep="\t", row.names=F, col.names=T)
-
-#for case/controls
-genotypes <- data.frame(id, genotypes.diploid[,seq(from=2, to=L, by=2)])
-dimnames(genotypes)[[2]] <- c("ID", paste("X", seq(from=2, to=L, by=2), sep=""))
-write.table(genotypes, file="data/genotypes_casectrl.txt", sep="\t", row.names=F, col.names=T)
+write.table(genotypes, file="data/genotypes_diploid.txt", sep="\t", row.names=F, col.names=T)
 
 ##write haploid genotypes
 id = as.character(seq(1:(2*N)))
@@ -201,4 +195,24 @@ write.table(freqstable, file="data/allelefreqs.txt", sep="\t", row.names=F)
 ##priorallelefreqs <- freqstable[seq(1, (dim(freqstable)[[1]]), by=2)]
 ##write.table(freqstable+0.5, file="data/priorallelefreqs.txt", sep="\t", row.names=F)
 
-  
+##generate a case-control genotypes file  
+##done exactly as for diploid data but with fewer individuals and outputting only some of the loci
+NN <- 20
+CCLoci <- seq(from=2, to=L, by=2)#even-numbered loci
+genotypes.cc <- matrix(data="0,0", nrow=NN, ncol=L)
+for(individual in 1:NN) {
+
+##  g.list <- simulateGenotypes(mu, mu, f, L, alleleFreqs, allele1.counts)
+## genotypes.diploid[individual, ] <- g.list$genotypes
+## allele1.counts <- allele1.counts + g.list$counts
+
+  paternalGamete <- simulateHaploidAlleles(mu, f, L, alleleFreqs)
+  maternalGamete <- simulateHaploidAlleles(mu, f, L, alleleFreqs)
+  genotypes.cc[individual,] <- paste(paternalGamete, ",", maternalGamete, sep="")
+
+}
+id = as.character(seq(1:NN))
+genotypes <- data.frame(id, genotypes.cc[,seq(from=2, to=L, by=2)])
+##write even-numbered genotypes to file
+dimnames(genotypes)[[2]] <- c("ID", paste("X", CCLoci, sep=""))
+write.table(genotypes, file="data/genotypes_casectrl.txt", sep="\t", row.names=F, col.names=T)
