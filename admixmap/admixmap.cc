@@ -13,7 +13,7 @@
 #include "AdmixMapModel.h"
 #include <fstream>
 
-#define ADMIXMAP_VERSION 3.5
+#define ADMIXMAP_VERSION 3.6
 
 using namespace std;
 
@@ -56,6 +56,7 @@ int main( int argc , char** argv ){
   //const bool isFreqSampler = Comms::isFreqSampler();
   //  const bool isWorker = Comms::isWorker();
 
+  //create results directory, or if it exists, deletes the contents
   if(isMaster){
     MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/);
   }
@@ -78,7 +79,7 @@ int main( int argc , char** argv ){
 
      //check user options
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
-      cout << endl << endl;
+      Log << On << "\nProgram aborted due to bad options.\n";
       exit(1);
     }
   

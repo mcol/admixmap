@@ -13,12 +13,12 @@
 #include "HapMixModel.h"
 #include <fstream>
 
-#define HAPMIXMAP_VERSION 0.2
+#define HAPMIXMAP_VERSION 0.3
 
 using namespace std;
 
 int main( int argc , char** argv ){
-  if(argc==2 && !strcmp(argv[1], "-v")){
+  if(argc==2 & !strcmp(argv[1], "-v")){
     LogWriter LW;
     PrintCopyrightNotice(LW);
     exit(0);
@@ -39,11 +39,11 @@ int main( int argc , char** argv ){
     MPE_Describe_state(3, 4, "ReduceAncestry", "cyan:vlines3");
     MPE_Describe_state(5, 6, "ReduceAlleleCounts", "orange:gray2");
     MPE_Describe_state(7, 8, "SampleAlleleFreqs", "yellow:gray3");
-    MPE_Describe_state(9, 10, "SampleRho", "LightBlue:gray3");
+    MPE_Describe_state(9, 10, "SampleLambda", "LightBlue:gray3");
     MPE_Describe_state(11, 12, "SetGenotypeProbs", "LightGreen:hlines2");
     MPE_Describe_state(13, 14, "SampleHapPairs", "magenta:vlines2");
     MPE_Describe_state(15, 16, "SampleAncestry", "blue:vlines3");
-    MPE_Describe_state(17, 18, "Bcastrho", "maroon:gray");
+    MPE_Describe_state(17, 18, "BcastLambda", "maroon:gray");
     MPE_Describe_state(19, 20, "BcastFreqs", "plum:hlines3");
     MPE_Describe_state(21, 22, "ScoreTests", "gray:hlines3");
     MPE_Describe_state(23, 24, "UpdateAlleleCounts", "DarkGreen:hlines4");
@@ -81,7 +81,7 @@ int main( int argc , char** argv ){
 
      //check user options
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
-      cout << endl << endl;
+      Log << On << "\nProgram aborted due to bad options.\n";
       exit(1);
     }
   
