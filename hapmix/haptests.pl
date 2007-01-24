@@ -81,14 +81,14 @@ my $arg_hash = {
     numannealedruns => 0,
     thermo => 0,
     hapmixmodel => 1,
-#   indadmixhiermodel => 0,
+
     randommatingmodel => 0,
     checkdata=> 0,
 
 hapmixlambdaprior=>"400, 1, 10, 1",
 
 allelefreqprior => "2, 10, 1",
-#freqdispersionhiermodel => 0,
+#freqdispersionhiermodel => 1,
 
 #initialhapmixlambdafile => "data/initialambdas.txt",
 #allelefreqfile => "data/initialallelefreqs.txt",
