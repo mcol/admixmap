@@ -98,11 +98,12 @@ rhosamplerparams => "0.5, 0.00001, 10, 0.9, 20",
 #output files
     logfile                     => 'logfile.txt',
     paramfile               => 'paramfile.txt',
+    dispparamfile => "alelefreqpriorsamples.txt",
     #regparamfile          => 'regparamfile.txt',
-    #indadmixturefile     => 'indadmixture.txt',
-    #ergodicaveragefile => 'ergodicaverage.txt',
+    ergodicaveragefile => 'ergodicaverage.txt',
+
     allelefreqoutputfile  => "initialallelefreqs.txt",
-allelefreqoutputfile =>"allelefreqpriors.txt",
+    allelefreqprioroutputfile =>"allelefreqpriors.txt",
     hapmixlambdaoutputfile => "data/initiallambdas.txt",
 
 #optional tests
