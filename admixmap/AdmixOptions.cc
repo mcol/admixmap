@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   AdmixOptions.cc 
  *   Class to hold program options
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -16,7 +16,7 @@
 #include <string.h>
 #include <sstream>
 #include <numeric> // for checkInitAlpha
-
+#include "defs.h"
 
 using namespace std;
 
@@ -38,6 +38,7 @@ void AdmixOptions::SetDefaultValues(){
   OutputFST = false;
   locusForTestIndicator = false;
   LocusForTest = -1;
+  FreqDispersionHierModel = false;
   correlatedallelefreqs = false;
   RandomMatingModel = false;
   GlobalRho = true;//corresponds to globalrho = 1;
@@ -79,18 +80,23 @@ void AdmixOptions::SetDefaultValues(){
   // option names and default option values are stored as strings in a map container 
   // these are default values
   // other specified options will be appended to this array 
+#ifdef __HAPMIXMAP__
+  useroptions["hapmixmodel"] = "1";
+  useroptions["hapmixlambdaprior"] = "30, 0.1, 10, 1";
+#else
+  useroptions["hapmixmodel"] = "0";
   useroptions["correlatedallelefreqs"] = "0";
   useroptions["randommatingmodel"] = "0";
   useroptions["globalrho"] = "1";
   useroptions["indadmixhiermodel"] = "1";
-  useroptions["hapmixmodel"] = "0";
   useroptions["chib"] = "0";
   //global rho: default gamma (3, 0.5) prior has mean 6, variance 12 
   useroptions["globalsumintensitiesprior"] = "3.0,0.5";
   // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
   // effective prior mean is 6*4/(5-1) = 6 and effective prior variance is 6*7 / (5-2) = 14
   useroptions["sumintensitiesprior"] = "6.0,5.0,4.0";
-  useroptions["hapmixlambdaprior"] = "8, 8, 1.4";
+#endif
+
 }
 
 AdmixOptions::~AdmixOptions()
@@ -206,6 +212,9 @@ bool AdmixOptions::isGlobalRho() const
   return GlobalRho;
 }
 
+bool AdmixOptions::isFreqDispersionHierModel()const{
+  return FreqDispersionHierModel;
+}
 bool AdmixOptions::getLocusForTestIndicator() const
 {
   return locusForTestIndicator;
@@ -462,6 +471,7 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");//A
   ProgOptions["initialhapmixlambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");//H, remove hapmix from name
   ProgOptions["initialfreqdispersionfile"] = OptionPair(&InitialFreqDispersionFile, "string");//H
+  ProgOptions["freqdispersionhiermodel"] = OptionPair(&FreqDispersionHierModel, "bool");//H
   //sampler settings
   ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");//A
   ProgOptions["popadmixsamplerparams"] = OptionPair(&popAdmixSamplerParams, "fvector");//A
@@ -639,9 +649,16 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   if(HapMixModelIndicator){
     //TODO:check length of rhoprior vectors
 
-    if(useroptions["allelefreqprior"].size() && (allelefreqprior.size() !=3)) {
-      Log << "Error: 'allelefreqprior' must have length 3\n";
-      badOptions = true;
+    if(useroptions["allelefreqprior"].size()){
+
+      if(FreqDispersionHierModel && (allelefreqprior.size() !=3)) {
+        Log << "Error: 'allelefreqprior' must have length 3\n";
+        badOptions = true;
+      }
+      else if(allelefreqprior.size()< 2){
+        Log << "Error: 'allelefreqprior' must have length 2\n";
+        badOptions = true;
+      }
     }
 
     useroptions.erase("sumintensitiesprior") ;

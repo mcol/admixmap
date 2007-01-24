@@ -92,18 +92,36 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const AdmixO
 
   //set parameters of prior on frequency Dirichlet prior params
   const std::vector<double> &params = options->getAlleleFreqPriorParams();
-  if(params.size()==3) {
-    EtaShape = params[0];
-    EtaRatePriorShape = params[1];
-    EtaRatePriorRate = params[2];
-  }
-  else
-    {//set defaults
-      //TODO: decide on sensible defaults
-      EtaShape = 1.0;
-      //      EtaRatePriorShape = 100.0;
-      //EtaRatePriorRate = 1.0;
+  etaHierModel = options->isFreqDispersionHierModel();
+  if(etaHierModel && params.size()!=3)
+    Log << On << "ERROR: allelefreqprior should have 3 elements.\n Using default instead.\n";
+
+  if(etaHierModel){
+    if(params.size()==3) {
+      EtaShape = params[0];
+      EtaRatePriorShape = params[1];
+      EtaRatePriorRate = params[2];
     }
+    else
+      {//set defaults
+        EtaShape = 1.0;
+        EtaRatePriorShape = 0.2;
+        EtaRatePriorRate = 1.0;
+      }
+  }
+  else{
+      EtaRatePriorRate = 1.0;    
+      if(params.size()>=2) {
+        EtaShape = params[0];
+        EtaRatePriorShape = params[1];
+      }
+      else
+        {//set defaults
+          EtaShape = 0.2;
+          EtaRatePriorShape = 1.0;
+        }
+  }
+
   EtaRate = EtaRatePriorShape / EtaRatePriorRate;
   HapMixMuArgs.K = Populations;
   MuSampler.Initialise(true, true, 1.0, 0.0, fmu_hapmix, dfmu_hapmix );
@@ -150,6 +168,14 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
   // then use AlleleProbs to set HapPairProbs in CompositeLocus
   // this is the only point at which SetHapPairProbs is called, apart from when 
   // the composite loci are initialized
+
+  if(etaHierModel){//sample rate parameter of gamma prior on eta
+    double scalarSumEta = 0.0;
+    for( int i = 0; i < NumberOfCompositeLoci; i++ )scalarSumEta += Eta[i];
+    SampleEtaRate(afterBurnIn, scalarSumEta);
+  }
+
+
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     const unsigned NumberOfStates = Loci->GetNumberOfStates(i);
     //accumulate summary stats for update of priors
@@ -217,7 +243,6 @@ void HapMixFreqs::SampleAlleleFreqs(int i, double coolness)
 ///sample prior params using random walk
 //NOTE: assuming 2 (allelic) states
 void HapMixFreqs::SamplePriorDispersion(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2){
-  //double sum = 0.0;
   try{
     //for( unsigned locus = 0; locus < NumberOfCompositeLoci; ++locus ){
       double LogLikelihoodRatio = 0.0, LogPriorRatio = 0.0;
@@ -255,17 +280,21 @@ void HapMixFreqs::SamplePriorDispersion(unsigned locus, unsigned Populations, do
       }
       //}
       else EtaSampler[locus].UpdateStepSize( 0.0  );//update stepsize
-    // sum += DirichletParams[locus];
       //    }//end locus loop
-    //sample rate parameter of prior on prior params
-    //cout << "Gamma (" << EtaRatePriorShape + (double)NumberOfCompositeLoci * EtaShape << ", " << EtaRatePriorRate + sum << ")" << std::endl;
-    //EtaRate = Rand::gengam( EtaRatePriorShape + (double)NumberOfCompositeLoci * EtaShape, 
-    //			  EtaRatePriorRate + sum);
-    //if(afterBurnIn) SumLambda += EtaRate;
+
   }
   catch(string s){
     throw string ("Error encountered while sampling frequency prior dispersion: " + s);
   }
+}
+
+void HapMixFreqs::SampleEtaRate(bool afterBurnIn, double sum){
+    //sample rate parameter of prior on dispersion params
+    //cout << "Gamma (" << EtaRatePriorShape + (double)NumberOfCompositeLoci * EtaShape << ", " << EtaRatePriorRate + sum << ")" << std::endl;
+  EtaRate = Rand::gengam( EtaRatePriorShape + (double)NumberOfCompositeLoci * EtaShape, 
+    			  EtaRatePriorRate + sum);
+  if(afterBurnIn) SumLambda += EtaRate;
+
 }
 
 void HapMixFreqs::SamplePriorProportions(unsigned locus, double sumlogfreqs1, double sumlogfreqs2){
@@ -368,7 +397,7 @@ void HapMixFreqs::OutputPriorParams(std::ostream& os, bool tofile){
     os << meaneta << "\t" << vareta //<< "\t" << meanmu << "\t" << varmu 
        << /*"\t" << EtaRate <<*/ std::endl;
     if(tofile && allelefreqprioroutput.is_open())
-	allelefreqprioroutput << meaneta << "\t" << vareta// << "\t" << meanmu << "\t" << varmu 
+      allelefreqprioroutput << meaneta << "\t" << vareta// << "\t" << meanmu << "\t" << varmu 
 			      << "\t" /*<< EtaRate << "\t"*/ << std::endl;
     //os << sumobs / (double)L << "\t" << sumexp / (double)L << std::endl;
     //if(tofile && allelefreqprioroutput.is_open())

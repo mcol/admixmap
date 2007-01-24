@@ -370,7 +370,7 @@ void HapMixModel::InitializeErgodicAvgFile(const AdmixOptions* const options, Lo
     }//end if hierarchical model
 
     //rate parameter of prior on frequency Dirichlet prior params
-    if(!options->getFixedAlleleFreqs()){
+    if(!options->getFixedAlleleFreqs() && options->isFreqDispersionHierModel()){
       avgstream << "FreqPriorRate\t"; 
     }
 

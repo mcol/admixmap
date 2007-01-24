@@ -65,10 +65,11 @@ private:
   double EtaRatePriorShape;// params of Gamma Prior on params of Gamma prior on params of Dirichlet prior on freqs
   double EtaRatePriorRate;
 
+  bool etaHierModel;//indicates whether to fir a hierarchical model for eta
   bool accumulateEta;//indicates whether to accumulate Eta for output
   unsigned long NumEtaUpdates;
   double* SumEta;//cumulative sum of eta
-  double SumLambda;// cumulative sum of EtaRatePriorRate
+  double SumLambda;// cumulative sum of EtaRate
 
   StepSizeTuner* EtaSampler;
   AdaptiveRejection MuSampler;
@@ -79,6 +80,7 @@ private:
   void InitialisePrior(unsigned Populations, unsigned L, const AdmixOptions* const options, LogWriter& Log);
   void OpenOutputFile(const char* filename);
   void SampleAlleleFreqs(int, const double coolness);
+  void SampleEtaRate(bool afterburnin, double sum);
   static double fmu_hapmix(double, const void* const);
   static double dfmu_hapmix(double, const void* const);
   static double d2fmu_hapmix(double, const void* const);

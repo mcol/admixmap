@@ -72,6 +72,7 @@ public:
   int getPopulations() const;
   void setPopulations(int num);
   bool getFixedAlleleFreqs() const;
+  bool isFreqDispersionHierModel()const;
 
   //Score test file names
   const char *getAffectedsOnlyScoreFilename() const;
@@ -137,7 +138,7 @@ private:
   bool TestForLinkageWithAncestry;
   bool TestForMisspecifiedAlleleFreqs;
   bool TestForMisspecifiedAlleleFreqs2;
-
+  bool FreqDispersionHierModel;
 
   std::vector<bool> _admixed;
   bool _symmetric;         
