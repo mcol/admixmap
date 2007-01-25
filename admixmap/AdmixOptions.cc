@@ -81,8 +81,15 @@ void AdmixOptions::SetDefaultValues(){
   // these are default values
   // other specified options will be appended to this array 
 #ifdef __HAPMIXMAP__
+  //final values are always output to file, with these default filenames
+  FinalFreqPriorFilename = "finalfreqpriors.txt";
+  FinalLambdaFilename = "finallambdas.txt";
+  AlleleFreqOutputFilename = "finalallelefreqs.txt";
+
   useroptions["hapmixmodel"] = "1";
   useroptions["hapmixlambdaprior"] = "30, 0.1, 10, 1";
+  useroptions["finalfreqpriorfile"] = "finalfreqpriors.txt";
+  useroptions["finallambdafile"] = "finallambdas.txt";
 #else
   useroptions["hapmixmodel"] = "0";
   useroptions["correlatedallelefreqs"] = "0";
@@ -90,13 +97,12 @@ void AdmixOptions::SetDefaultValues(){
   useroptions["globalrho"] = "1";
   useroptions["indadmixhiermodel"] = "1";
   useroptions["chib"] = "0";
+#endif
   //global rho: default gamma (3, 0.5) prior has mean 6, variance 12 
   useroptions["globalsumintensitiesprior"] = "3.0,0.5";
   // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
   // effective prior mean is 6*4/(5-1) = 6 and effective prior variance is 6*7 / (5-2) = 14
   useroptions["sumintensitiesprior"] = "6.0,5.0,4.0";
-#endif
-
 }
 
 AdmixOptions::~AdmixOptions()
@@ -380,8 +386,8 @@ std::vector<std::vector<double> > AdmixOptions::getInitAlpha()const{
 const char* AdmixOptions::getInitialHapMixLambdaFilename()const{
     return InitialHapMixLambdaFilename.c_str();
 }
-const char* AdmixOptions::getInitialFreqDispersionFile()const{
-  return InitialFreqDispersionFile.c_str();
+const char* AdmixOptions::getInitialFreqPriorFilename()const{
+  return InitialFreqPriorFile.c_str();
 }
 
 bool AdmixOptions::isSymmetric()const{
@@ -427,6 +433,14 @@ const vector<unsigned>& AdmixOptions::getMaskedLoci()const{
 bool AdmixOptions::OutputCGProbs()const{
   return (MaskedLoci.size() && MaskedIndividuals.size()); 
 }
+
+const char* AdmixOptions::getFinalFreqPriorFilename()const{
+  return FinalFreqPriorFilename.c_str();
+}
+const char* AdmixOptions::getFinalLambdaFilename()const{
+  return FinalLambdaFilename.c_str();
+}
+
 unsigned AdmixOptions::GetNumMaskedIndividuals()const{
   return MaskedIndividuals.size();
 }
@@ -447,10 +461,12 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["ccgenotypesfile"] = OptionPair(&CCGenotypesFilename, "string");//H
   //standard output files (optional)
 
-  ///file to write sampled values of dispersion parameter (ADMIXMAP) or mean and variance of dispersion params (HAPMIXMAP)
+  //file to write sampled values of dispersion parameter (ADMIXMAP) or mean and variance of dispersion params (HAPMIXMAP)
   ProgOptions["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");// C
   ProgOptions["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");//A
-  ///file to write 
+
+  ProgOptions["finalfreqpriorfile"] = OptionPair(&FinalFreqPriorFilename, "outputfile");//H
+  ProgOptions["finallambdafile"] = OptionPair(&FinalLambdaFilename, "outputfile");//H
   ProgOptions["allelefreqprioroutputfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");//H
   ProgOptions["hapmixlambdaoutputfile"] = OptionPair(&HapMixLambdaOutputFilename, "outputfile");//H, remove hapmix from name
   //prior and model specification
@@ -470,7 +486,7 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");//A
   ProgOptions["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");//A
   ProgOptions["initialhapmixlambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");//H, remove hapmix from name
-  ProgOptions["initialfreqdispersionfile"] = OptionPair(&InitialFreqDispersionFile, "string");//H
+  ProgOptions["initialfreqpriorfile"] = OptionPair(&InitialFreqPriorFile, "string");//H
   ProgOptions["freqdispersionhiermodel"] = OptionPair(&FreqDispersionHierModel, "bool");//H
   //sampler settings
   ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");//A

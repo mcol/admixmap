@@ -127,20 +127,26 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const AdmixO
   MuSampler.Initialise(true, true, 1.0, 0.0, fmu_hapmix, dfmu_hapmix );
 
   std::ifstream initialvaluefile;
-  const char* initialvaluefilename = options->getInitialFreqDispersionFile();
+  const char* initialvaluefilename = options->getInitialFreqPriorFilename();
   if(strlen(initialvaluefilename)){
-    Log << Quiet << "Reading initial values of allele freq dispersion from " << initialvaluefilename << "\n";
+    Log << Quiet << "Reading initial values of allele freq prior from " << initialvaluefilename << "\n";
     initialvaluefile.open(initialvaluefilename);
   }
 
   //TODO: check initial value file has right format, number of entries;
   //TODO??: check prior is consistent with initial values
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-    if(initialvaluefile.is_open())//read values from file
+    if(initialvaluefile.is_open()){//read values from file
       initialvaluefile >> Eta[i];
-    else//set dispersion to prior mean
+      initialvaluefile >> DirichletParams[i];//read mu
+      DirichletParams[i] *= Eta[i];         //multiply by eta to get Dir params
+    }
+    else{
+      //set dispersion to prior mean
       Eta[i] = (EtaShape / EtaRate);
-    DirichletParams[i] =  Eta[i] * 0.5;//fixed proportions of 0.5
+      //set proportions to 0.5
+      DirichletParams[i] =  Eta[i] * 0.5;
+    }
     EtaSampler[i].SetParameters(0.1, 0.00001, 100.0, 0.26);
     if(accumulateEta)SumEta[i] = 0.0;
   }
@@ -156,8 +162,9 @@ void HapMixFreqs::PrintPrior(LogWriter& Log)const{
 void HapMixFreqs::OpenOutputFile(const char* filename){
   if(strlen(filename)){
     allelefreqprioroutput.open(filename);
-    // allelefreqprioroutput << "eta.Mean\teta.Var\tlambda" << std::endl;
-    allelefreqprioroutput << "eta.Mean\teta.Var" << std::endl;
+    allelefreqprioroutput << "eta.Mean\teta.Var";
+    if(etaHierModel)allelefreqprioroutput << "\teta.Rate";
+    allelefreqprioroutput << std::endl;
   }
 }
 
@@ -394,11 +401,20 @@ void HapMixFreqs::OutputPriorParams(std::ostream& os, bool tofile){
     double vareta = sumetasq / (double)L - meaneta*meaneta;
     //double meanmu = summu / (double) L;
     //double varmu = summusq/ (double) L - meanmu*meanmu;
-    os << meaneta << "\t" << vareta //<< "\t" << meanmu << "\t" << varmu 
-       << /*"\t" << EtaRate <<*/ std::endl;
-    if(tofile && allelefreqprioroutput.is_open())
-      allelefreqprioroutput << meaneta << "\t" << vareta// << "\t" << meanmu << "\t" << varmu 
-			      << "\t" /*<< EtaRate << "\t"*/ << std::endl;
+
+    os << meaneta << "\t" << vareta; //<< "\t" << meanmu << "\t" << varmu 
+    if(etaHierModel)
+      os << "\t" << EtaRate;
+    os << std::endl;
+
+    if(tofile && allelefreqprioroutput.is_open()){
+      allelefreqprioroutput << meaneta << "\t" << vareta;
+      // << "\t" << meanmu << "\t" << varmu 
+      if(etaHierModel)
+        allelefreqprioroutput << "\t" << EtaRate;
+      allelefreqprioroutput << std::endl;
+
+    }
     //os << sumobs / (double)L << "\t" << sumexp / (double)L << std::endl;
     //if(tofile && allelefreqprioroutput.is_open())
     //	allelefreqprioroutput <<sumobs / (double)L << "\t" << sumexp / (double)L << std::endl;
@@ -424,7 +440,7 @@ double HapMixFreqs::getParams(unsigned locus)const{
 
 ///outputs posterior means of Eta to file
 void HapMixFreqs::OutputPosteriorMeans(const char* filename, LogWriter& Log)const{
-  if(IsRandom() ){
+  if(IsRandom() && strlen(filename)){
     std::ofstream outfile(filename);
     if(outfile.is_open()){
       Log << Quiet << "Writing posterior means of allele freq dispersion to " << filename << "\n"; 
@@ -441,4 +457,23 @@ void HapMixFreqs::OutputPosteriorMeans(const char* filename, LogWriter& Log)cons
     }
   }
 }
+///Outputs final values of prior params to file
+void HapMixFreqs::OutputFinalValues(const char* filename, LogWriter& Log)const{
+  if(IsRandom() && strlen(filename)){
+    std::ofstream outfile(filename);
+    if(outfile.is_open()){
+      Log << Quiet << "Writing final values of allele freq prior to " << filename << "\n"; 
 
+      for(int j = 0; j < NumberOfCompositeLoci; ++j){
+        outfile << Eta[j] << " " << DirichletParams[j] / Eta[j] << " ";
+      }
+      outfile.close();
+    }
+    else{
+      //throw string("Error: cannot open " + filename);
+      Log << On << "Error: cannot open " <<  filename
+	  << ". Not writing freq prior final values.\n";
+
+    }
+  }
+}

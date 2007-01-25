@@ -42,6 +42,7 @@ public:
   void OutputPriorParams();
   void OutputPriorParams(std::ostream& os, bool tofile);
   void OutputPosteriorMeans(const char* filename, LogWriter& Log)const;
+  void OutputFinalValues(const char* filename, LogWriter& Log)const;
   //double getHapMixPriorRate()const{return HapMixPriorRate;};
   double getParams(unsigned locus)const;
   float getAcceptanceRate()const;

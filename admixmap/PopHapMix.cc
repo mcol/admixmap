@@ -54,7 +54,10 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
 	LambdaArgs.beta_shape = priorparams[2];
 	LambdaArgs.beta_rate = priorparams[3];
 	LambdaArgs.beta = priorparams[2]/priorparams[3];//initialise beta at prior mean
-	unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes();    
+	unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); 
+        lambda.assign(numIntervals, 0);
+        //TODO: if distance is too large, leave lambda at zero and do not sample (as if a new chromosome)
+   
 	if(Comms::isMaster()){
 	    LambdaArgs.NumPops = K;
 	    LambdaArgs.NumIntervals = numIntervals;
@@ -94,32 +97,37 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
       
 	    //end sampler initialisation
 	    //initialise lambda vector
-	    int locus = 0;
-	    int d = 0;
+	    int locus = 0;//indexes loci
+	    int d = 0; //indexes intervals
 	    const char* initfilename = options->getInitialHapMixLambdaFilename();
 	    const bool useinitfile = (strlen(initfilename) > 0);
-	    double initvalue;
 	    ifstream initfile;
-	    if(useinitfile)initfile.open(initfilename);
+	    if(useinitfile){
+              Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
+              initfile.open(initfilename);
+              //read initial values of h, beta
+              initfile >> LambdaArgs.h >> LambdaArgs.beta;
+              //copy initial values of lambda straight from file into vector
+              istream_iterator<double>firstlambda(initfile);
+              //copy(firstlambda, firstlambda + numIntervals, lambda.begin());
+              copy(firstlambda, istream_iterator<double>(), lambda.begin());//does not check number of elements
+              initfile.close();
+            }
 
 	    for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
 		++locus;//skip first locus on each chromosome
 		for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
 		    hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci->GetDistance(locus));
-		    hargs.distances[d++] = Loci->GetDistance(locus);
-		    if(useinitfile){
-			initfile >> initvalue;
-			lambda.push_back(initvalue);
-		    }
-		    else
-			lambda.push_back(Rand::gengam(LambdaArgs.h*Loci->GetDistance(locus), LambdaArgs.beta));
+		    hargs.distances[d] = Loci->GetDistance(locus);
+		    if(!useinitfile)//initialise at prior mean
+			lambda[d]= Rand::gengam(LambdaArgs.h*Loci->GetDistance(locus), LambdaArgs.beta);
 		    if(Comms::isMaster()){
 			SumLogLambda.push_back(0.0);
 		    }
+                    ++d;
 		    ++locus;
 		}
 	    }
-	    if(useinitfile)initfile.close();
     
 	    // ** Open paramfile **
 	    if ( Comms::isMaster() && options->getIndAdmixHierIndicator()){
@@ -142,9 +150,7 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
 		}
 	    }
 	}//end master block
-	else{
-	    lambda.resize(numIntervals);
-	}
+
 //broadcast lambda to all processes, in Comm (excludes freqsampler)
 //no need to broadcast globaltheta if it is kept fixed
 #ifdef PARALLEL
@@ -484,23 +490,26 @@ void PopHapMix::printAcceptanceRates(LogWriter &Log) {
 //       << "\nwith final step size of " << hTuner.getStepSize() << "\n";
   
 }
+///Outputs h, beta and current values of lambda to file
 void PopHapMix::OutputLambda(const char* filename)const{
+  if(strlen(filename)){
     ofstream outfile(filename);
-//     int locus = 0;
-//     vector<double>::const_iterator r = rho.begin();
-//     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-// 	++locus;//skip first locus on each chromosome
-// 	for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
-// 	    outfile << *r << " " << Loci->GetDistance(locus)<< endl;
-// 	    ++r;
-// 	    ++locus;
-// 	}
-//     }
-     for(vector<double>::const_iterator i = lambda.begin(); i != lambda.end(); ++i){
- 	outfile << *i << "\t";
-     }
+    //     int locus = 0;
+    //     vector<double>::const_iterator r = rho.begin();
+    //     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+    // 	++locus;//skip first locus on each chromosome
+    // 	for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+    // 	    outfile << *r << " " << Loci->GetDistance(locus)<< endl;
+    // 	    ++r;
+    // 	    ++locus;
+    // 	}
+    //     }
+    outfile << LambdaArgs.h << " " << LambdaArgs.beta << " ";
+    copy(lambda.begin(), lambda.end(), ostream_iterator<double>(outfile, " "));
 
+    
     outfile.close();
+  }
 }
 void PopHapMix::OutputLambdaPosteriorMeans(const char* filename, int samples)const{
   ofstream outfile(filename);

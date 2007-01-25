@@ -306,19 +306,16 @@ void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& Log, const In
       Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
     }
     //output posterior means of lambda (expected number of arrivals)
-    std::string s = options.getResultsDir();
-    s.append("/lambdaPosteriorMeans.txt");
-    L->OutputLambdaPosteriorMeans(s.c_str(), options.getTotalSamples()-options.getBurnIn());
-    //output final values of lambda
-    const char* ss = options.getHapMixLambdaOutputFilename();
-    if(strlen(ss))
-      L->OutputLambda(ss);
+    L->OutputLambdaPosteriorMeans(options.getHapMixLambdaOutputFilename(), options.getTotalSamples()-options.getBurnIn());
+    //output final values of lambda and its prior params
+    L->OutputLambda(options.getFinalLambdaFilename());
   }
   if(Comms::isFreqSampler()){
+    //output final values of allele freq prior
+    A.OutputFinalValues(options.getFinalFreqPriorFilename(), Log);
+
     //output final values of allelefreqs
-    const char* ss = options.getAlleleFreqOutputFilename();
-    if(strlen(ss))
-      A.OutputAlleleFreqs(ss, Log);
+    A.OutputAlleleFreqs(options.getAlleleFreqOutputFilename(), Log);
 
     //output posterior means of allele freq dispersion
     if(options.OutputAlleleFreqPrior())
