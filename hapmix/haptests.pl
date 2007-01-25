@@ -44,6 +44,7 @@ sub doAnalysis
     print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
     print $command;
     if(system($command) ==0){
+
 	print "Starting R script to process output\n";
 	system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
 	print "R script completed\n\n";
@@ -88,7 +89,7 @@ my $arg_hash = {
 hapmixlambdaprior=>"400, 1, 10, 1",
 
 allelefreqprior => "2, 10, 1",
-#freqdispersionhiermodel => 1,
+freqdispersionhiermodel => 1,
 
 #initialhapmixlambdafile => "data/initialambdas.txt",
 #allelefreqfile => "data/initialallelefreqs.txt",
@@ -98,13 +99,18 @@ rhosamplerparams => "0.5, 0.00001, 10, 0.9, 20",
 #output files
     logfile                     => 'logfile.txt',
     paramfile               => 'paramfile.txt',
-    dispparamfile => "alelefreqpriorsamples.txt",
+    dispparamfile => "allelefreqpriorsamples.txt",
     #regparamfile          => 'regparamfile.txt',
     ergodicaveragefile => 'ergodicaverage.txt',
 
-    allelefreqoutputfile  => "initialallelefreqs.txt",
-    allelefreqprioroutputfile =>"allelefreqpriors.txt",
-    hapmixlambdaoutputfile => "data/initiallambdas.txt",
+#final values
+    finalallelefreqfile  => "initialallelefreqs.txt",
+    finalfreqpriorfile =>"initialallelefreqpriors.txt",
+    finallambdafile =>"initiallambdas.txt",
+
+#posterior means
+    hapmixlambdaoutputfile => "lambdaPosteriorMeans.txt",
+    allelefreqprioroutputfile => "freqDispersionPosteriorMeans.txt"
 
 #optional tests
 #residualallelicassocscorefile => 'residualLDscores.txt',
@@ -113,19 +119,21 @@ rhosamplerparams => "0.5, 0.00001, 10, 0.9, 20",
 
 # Initial run 
 #haploid data
-$arg_hash->{resultsdir}            = 'ResultsHaploid';  
+$arg_hash->{resultsdir}            = 'Results_Haploid';
 doAnalysis($executable,$arg_hash);
 
 #diploid data
-$arg_hash->{resultsdir}            = 'ResultsDiploid';  
-$arg_hash->{genotypesfile} = "data/genotypes.txt";
+#$arg_hash->{resultsdir}            = 'ResultsDiploid';
+#$arg_hash->{genotypesfile} = "data/genotypes.txt";
 #doAnalysis($executable,$arg_hash);
 #system("cp Results/initialallelefreqs.txt data");
 
 # rerun with final values of previous run as intial values of this
 #system("cp $arg_hash->{resultsdir}/initialallelefreqs.txt data");
-$arg_hash->{allelefreqfile}="data/initialallelefreqs.txt";
+$arg_hash->{resultsdir}            = 'ResultsRerun';
+$arg_hash->{initialallelefreqfile}="data/initialallelefreqs.txt";
 $arg_hash->{initialhapmixlambdafile}="data/initiallambdas.txt";
-$arg_hash->{fixedallelefreqs} = 0;
-delete $arg_hash->{priorallelefreqfile};
+$arg_hash->{initialfreqpriorfile} = "data/initialfreqpriors.txt";
+#$arg_hash->{fixedallelefreqs} = 0;
+#delete $arg_hash->{priorallelefreqfile};
 #doAnalysis($executable,$arg_hash);
