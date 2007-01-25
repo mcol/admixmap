@@ -401,8 +401,6 @@ sub rotate_files {
         my $latest = $base_name . "-latest.txt";
         copy($src_file, $timestamped)
             or die("Cannot copy the '$src_file' to '$timestamped'.\n");
-        move($src_file, $latest)
-            or die("Cannot move the '$src_file' to '$latest'.\n");
         # When training, archive the state.
         if (not $maskfile) {
             my @archive_files = (
@@ -413,6 +411,8 @@ sub rotate_files {
                     or die ("Cannot copy the '$src_file' to '$arc_file'.\n");
             }
         }
+        move($src_file, $latest)
+            or die("Cannot move the '$src_file' to '$latest'.\n");
     }
 }
 
