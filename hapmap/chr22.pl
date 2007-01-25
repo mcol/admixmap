@@ -55,6 +55,7 @@ my $mask_percent_indivs = 0;
 my $mask_percent_loci = 0;
 my $ccgenotypesfile = '';
 my $limit_loci = 0;
+my $read_initial_params = 0;
 
 # Change this to the location of the hapmixmap executable
 #my $executable = '../test/adm-para';
@@ -126,14 +127,19 @@ if ($usage) {
     exit(1);
 }
 
+my %state_files = (
+    lambdafile => "lambdas",
+    allelefreqfile => "allelefreqs",
+    freqpriorfile => "freqprior",
+);
+
 my $datadir = "$POP/chr22data";
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
 #
 # keys (left-hand side) are parameter names
 # values (right-hand side) are parameter values
-my $arg_hash = 
-{
+my $arg_hash = {
 
 #unphaseddata files
 #    genotypesfile                   => "$datadir/genotypes5000.txt",
@@ -167,6 +173,9 @@ my $arg_hash =
 #initial values
     #initialhapmixlambdafile => "$datadir/initialambdas.txt",
     #allelefreqfile => "$datadir/initialallelefreqs.txt",
+
+    # FIXME: what about initialfreqdispersion.txt?
+
     rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 #output files
     logfile =>'logfile.txt',
@@ -176,13 +185,15 @@ my $arg_hash =
     #regparamfile          => 'regparamfile.txt',
     #ergodicaveragefile => 'ergodicaverage.txt',
 
-    allelefreqprioroutputfile   => "initialfreqdispersion.txt",
-    allelefreqoutputfile        => "initialallelefreqs.txt",
-    hapmixlambdaoutputfile      => "initiallambdas.txt",
+    # The state files will be canonical.
+    # allelefreqprioroutputfile   => "initialfreqdispersion.txt",
+    # allelefreqoutputfile        => "initialallelefreqs.txt",
+    # hapmixlambdaoutputfile      => "initiallambdas.txt",
 
 #optional tests
     #residualallelicassocscorefile => 'residualLDscores.txt',
-    mhtestfile => "mhtest.txt",
+    # The following line breaks execution.
+    # mhtestfile => "mhtest.txt",
     #allelicassociationscorefile       => 'allelicassociationscorefile.txt',
 };
 
@@ -198,15 +209,10 @@ if ($ccgenotypesfile) {
     $arg_hash->{'ccgenotypesfile'} = "$datadir/$ccgenotypesfile";
 }
 
-#model with $STATES block states
-
-
 # Data masking if requested
 # Data set will be base-named "train", that is:
 # masked_genotypes.txt
 # masked_loci.txt
-#
-#
 if ($mask_data) {
     my $train_basename = "mi";
     print "Preparing train and test data.\n";
@@ -256,6 +262,19 @@ if ($mask_data) {
     if ($r_return != 0) {
         die "maskGenotypes.R script returned an error code: $r_return\n";
     }
+    # Need to put two files together for hapmixmap to process them
+    # correctly. Appending ccgenotypesfile to the haploid data. The
+    # resulting file will be mixed haploid and diploid.
+    print "Appending $datadir/${train_basename}_cc_masked.txt to $train_file_name\n";
+    open(CC_FILE,  "<$datadir/${train_basename}_cc_masked.txt");
+    my @masked = <CC_FILE>;
+    shift(@masked);
+    close(CC_FILE);
+    open(TRAIN_DATA, ">>$train_file_name");
+    for my $line (@masked) {
+        print TRAIN_DATA $line;
+    }
+    close(TRAIN_DATA);
     print "Masking finished.\n";
     print "Exiting after masking the data.\n";
     print "Please run the script without --mask-data option\n";
@@ -267,19 +286,20 @@ if ($mask_data) {
 # Analysis launch
 ########################################################################
 
-if (!$rerun) {
-    # initial run
-    $arg_hash->{resultsdir}="$POP/Chr22Results$STATES"."States2";
-    doAnalysis($executable,$arg_hash);
-} else {
-    # rerun with final values of lambda, freqs, freq dispersion in previous run as starting values
-    $arg_hash->{resultsdir}="$POP/Chr22Results$STATES"."States2";
-    $arg_hash->{initialhapmixlambdafile} = "$datadir/initiallambdas.txt";
-    $arg_hash->{allelefreqfile} = "$datadir/initialallelefreqs.txt";
-    $arg_hash->{initialfreqdispersionfile} = "$datadir/initialfreqdispersion.txt";
-    #$arg_hash->{allelicassociationscorefile} = 'AllelicAssocScores.txt';
-    doAnalysis($executable,$arg_hash);
+$arg_hash->{resultsdir}="$POP/Chr22Results$STATES"."States2";
+
+# Set the output state file names
+foreach my $option_name (keys %state_files) {
+    # Relative to the results directory.
+    $arg_hash->{"final" . $option_name} = "state-" . $state_files{$option_name} . ".txt";
+    if ($rerun) {
+        # Relative to the working directory.
+        $arg_hash->{"initial" . $option_name} = $arg_hash->{resultsdir} . "/state-$state_files{$option_name}-latest.txt";
+    }
 }
+
+
+doAnalysis($executable,$arg_hash);
 
 #to gauge efficiency of Affymetrix chip
 $arg_hash->{genotypesfile} = "$datadir/Affygenotypes.txt";
@@ -303,7 +323,7 @@ sub getArguments
     my $hash = $_[0];
     my $filename = "args$POP$STATES.txt";
     open(OPTIONFILE, ">$filename") or die ("Could not open args file");
-    foreach my $key (keys %$hash){
+    foreach my $key (sort keys %{$hash}){
       print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
     }
 
@@ -324,7 +344,7 @@ sub getArguments
         close(EXTERNAL_ARGS);
     }
     close OPTIONFILE;
-    return " ".$filename;
+    return $filename;
 }
 
 sub calculate_mutual_information {
@@ -334,6 +354,7 @@ sub calculate_mutual_information {
     push(@r_call, "--states=$STATES");
     push(@r_call, "MutualInformation.R");
     # "../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
+    print "Calling the MutualInformation.R script.\n";
     my $r_return = system(join(" ", @r_call));
     if ($r_return != 0) {
         die("MutualInformation.R script returned an error code! $r_return\n");
@@ -357,10 +378,10 @@ sub doAnalysis
         $command = "mpiexec ";
         $args->{resultsdir} = $args->{resultsdir}. "parallel";
     }
-    $command = $command . $prog.getArguments($args);
+    $command = $command . " " . $prog.getArguments($args);
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    my $returncode = system($command);
-    if($returncode == 0){
+    my $hapmixmap_return_code = system($command);
+    if($hapmixmap_return_code == 0){
 ##program ran successfully
 #copy initial value files from resultsdir to datadir
 #using wildcard to copy all in one go
@@ -370,14 +391,24 @@ sub doAnalysis
             $copycmd = "copy";
             $slash = "\\";
         }
-        system("$copycmd $args->{resultsdir}$slash"."initial*.txt $datadir");
+        # system("$copycmd $args->{resultsdir}$slash"."initial*.txt $datadir");
+
+        # After the program has finished, append a timestamp to all the
+        # output files and make a copy with "-latest" postfix for the
+        # next run.
+        my @rt = localtime();
+        my $timestamp = ($rt[5] + 1900) . ($rt[4] + 1) . $rt[3] . "-" . $rt[2] . $rt[1] . $rt[0];
+        for my $option_name (keys %state_files) {
+            my $base_name = $args->{resultsdir} . $slash . "state-" . $state_files{$option_name};
+            system($copycmd . " " . $base_name . ".txt " . $base_name . "-" . $timestamp . ".txt");
+            system($copycmd . " " . $base_name . ".txt " . $base_name . "-latest.txt");
+        }
 ## run the r script
         runRscript($args);
         if ($calculate_mi) {
             calculate_mutual_information();
         }
-    }
-    else{
-        warn("hapmixmap has returned an error code $returncode.\n");
+    } else {
+        die("'$command' has returned an error code $hapmixmap_return_code.\n");
     }
 }
