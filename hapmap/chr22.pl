@@ -30,6 +30,7 @@
 use strict;
 use Getopt::Long;
 use File::Path;
+use File::Copy;
 use Time::Local;
 
 my $DEBUG = 0; # zero gives less output
@@ -170,12 +171,6 @@ my $arg_hash = {
     hapmixlambdaprior => "30, 0.1, 10, 1",
     allelefreqprior => "0.2, 1, 1",
 
-#initial values
-    #initialhapmixlambdafile => "$datadir/initialambdas.txt",
-    #allelefreqfile => "$datadir/initialallelefreqs.txt",
-
-    # FIXME: what about initialfreqdispersion.txt?
-
     rhosamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 #output files
     logfile =>'logfile.txt',
@@ -184,11 +179,6 @@ my $arg_hash = {
 
     #regparamfile          => 'regparamfile.txt',
     #ergodicaveragefile => 'ergodicaverage.txt',
-
-    # The state files will be canonical.
-    # allelefreqprioroutputfile   => "initialfreqdispersion.txt",
-    # allelefreqoutputfile        => "initialallelefreqs.txt",
-    # hapmixlambdaoutputfile      => "initiallambdas.txt",
 
 #optional tests
     #residualallelicassocscorefile => 'residualLDscores.txt',
@@ -293,7 +283,7 @@ if ($mask_data) {
 
     print "Masking finished.\n";
     print "Exiting after masking the data.\n";
-    print "Please run the script without --mask-data option\n";
+    print "Please run the script without the --mask-data option\n";
     print "to perform the analysis.\n";
     exit(0);
 }
@@ -311,7 +301,7 @@ foreach my $option_name (keys %state_files) {
     $arg_hash->{"final" . $option_name} = "state-" . $state_files{$option_name} . ".txt";
     if ($rerun) {
         # Relative to the working directory.
-        $opt_val = $arg_hash->{resultsdir} . "/state-$state_files{$option_name}-latest.txt";
+        $opt_val = $arg_hash->{resultsdir} . "/state-" . $state_files{$option_name} . "-latest.txt";
         # Give the initial file only if it exists.
         if (-r $opt_val) {
             $arg_hash->{"initial" . $option_name} = $opt_val;
@@ -321,23 +311,22 @@ foreach my $option_name (keys %state_files) {
     }
 }
 
-
 doAnalysis($executable,$arg_hash);
 
-#to gauge efficiency of Affymetrix chip
-$arg_hash->{genotypesfile} = "$datadir/Affygenotypes.txt";
-$arg_hash->{resultsdir} = "Affyresults";
-#doAnalysis($executable,$arg_hash);
-
-#to gauge efficiency of Illumina 300k chip
-$arg_hash->{genotypesfile} = "$datadir/Ill300genotypes.txt";
-$arg_hash->{resultsdir} = "Ill300results";
-#doAnalysis($executable,$arg_hash);
-
-#to gauge efficiency of Illumina 540k chip
-$arg_hash->{genotypesfile} = "$datadir/Ill540genotypes.txt";
-$arg_hash->{resultsdir} = "Ill540results";
-#doAnalysis($executable,$arg_hash);
+# #to gauge efficiency of Affymetrix chip
+# $arg_hash->{genotypesfile} = "$datadir/Affygenotypes.txt";
+# $arg_hash->{resultsdir} = "Affyresults";
+# #doAnalysis($executable,$arg_hash);
+# 
+# #to gauge efficiency of Illumina 300k chip
+# $arg_hash->{genotypesfile} = "$datadir/Ill300genotypes.txt";
+# $arg_hash->{resultsdir} = "Ill300results";
+# #doAnalysis($executable,$arg_hash);
+# 
+# #to gauge efficiency of Illumina 540k chip
+# $arg_hash->{genotypesfile} = "$datadir/Ill540genotypes.txt";
+# $arg_hash->{resultsdir} = "Ill540results";
+# #doAnalysis($executable,$arg_hash);
 
 print "script ended: " . scalar(localtime()) . "\n";
 
@@ -393,6 +382,40 @@ sub runRscript
     print "R script completed\n\n";
 }
 
+# After the program has finished, append a timestamp to all the
+# output files and make a copy with "-latest" postfix for the
+# next run.
+sub rotate_files {
+    my $args = shift;
+    my $slash = "/";
+    if($^O eq "MSWin32"){
+        $slash = "\\";
+    }
+    # Get the current timestamp in format YYYYMMDD-HHII
+    my @rt = localtime();
+    my $timestamp = sprintf("%04d%02d%02d-%02d%02d%02d", ($rt[5] + 1900), ($rt[4] + 1), $rt[3], $rt[2], $rt[1], $rt[0]);
+    foreach my $option_name (keys %state_files) {
+        my $base_name = $args->{resultsdir} . $slash . "state-" . $state_files{$option_name};
+        my $src_file = $base_name . ".txt";
+        my $timestamped = $base_name . "-" . $timestamp . ".txt";
+        my $latest = $base_name . "-latest.txt";
+        copy($src_file, $timestamped)
+            or die("Cannot copy the '$src_file' to '$timestamped'.\n");
+        move($src_file, $latest)
+            or die("Cannot move the '$src_file' to '$latest'.\n");
+        # When training, archive the state.
+        if (not $maskfile) {
+            my @archive_files = (
+                $base_name . "-trained-" . $timestamp . ".txt",
+                $base_name . "-trained-latest.txt");
+            foreach my $arc_file (@archive_files) {
+                copy($src_file, $arc_file)
+                    or die ("Cannot copy the '$src_file' to '$arc_file'.\n");
+            }
+        }
+    }
+}
+
 sub doAnalysis
 {
     my ($prog,$args) = @_;
@@ -403,35 +426,12 @@ sub doAnalysis
     }
     $command = $command . $prog . " " . getArguments($args);
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    my $hapmixmap_return_code = system($command);
-    if($hapmixmap_return_code == 0){
-##program ran successfully
-#copy initial value files from resultsdir to datadir
-#using wildcard to copy all in one go
-        my $copycmd = "cp";
-        my $slash = "/";
-        if($^O eq "MSWin32"){
-            $copycmd = "copy";
-            $slash = "\\";
-        }
-        # system("$copycmd $args->{resultsdir}$slash"."initial*.txt $datadir");
-
-        # After the program has finished, append a timestamp to all the
-        # output files and make a copy with "-latest" postfix for the
-        # next run.
-        my @rt = localtime();
-        my $timestamp = ($rt[5] + 1900) . ($rt[4] + 1) . $rt[3] . "-" . $rt[2] . $rt[1] . $rt[0];
-        for my $option_name (keys %state_files) {
-            my $base_name = $args->{resultsdir} . $slash . "state-" . $state_files{$option_name};
-            system($copycmd . " " . $base_name . ".txt " . $base_name . "-" . $timestamp . ".txt");
-            system($copycmd . " " . $base_name . ".txt " . $base_name . "-latest.txt");
-        }
-## run the r script
-        runRscript($args);
-        if ($calculate_mi) {
-            calculate_mutual_information();
-        }
-    } else {
-        die("'$command' has returned an error code $hapmixmap_return_code.\n");
+    # Everybody likes Perl shortcuts.
+    system($command) and die("'$command' has returned an error.\n");
+    rotate_files($args);
+    # run the r script
+    runRscript($args);
+    if ($calculate_mi) {
+        calculate_mutual_information();
     }
 }
