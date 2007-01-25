@@ -152,6 +152,7 @@ void LogWriter::ProcessingTime()
 	  << timer.tm_mday << "/" << timer.tm_mon+1 << "/" << 1900+timer.tm_year << "\n";
     
     double realtime = difftime(EndTime, StartTime);
+    *this << "Elapsed seconds = " << (int)realtime << "\n";
     *this << "Elapsed time = ";
     if(realtime > 3600.0){
       int hours = (int)(realtime/3600);
