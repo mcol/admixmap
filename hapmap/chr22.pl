@@ -378,7 +378,7 @@ sub doAnalysis
         $command = "mpiexec ";
         $args->{resultsdir} = $args->{resultsdir}. "parallel";
     }
-    $command = $command . " " . $prog.getArguments($args);
+    $command = $command . $prog . " " . getArguments($args);
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
     my $hapmixmap_return_code = system($command);
     if($hapmixmap_return_code == 0){
