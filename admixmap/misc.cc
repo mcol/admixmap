@@ -53,7 +53,8 @@ void MakeResultsDir(const char* dirname, bool verbose){
       //list and delete contents of directory
       errno=0;
       while ((pent=readdir(pdir))){//read filenames
-	if(strcmp(pent->d_name, ".") && strcmp(pent->d_name, "..")){//skip . and ..
+	if(strcmp(pent->d_name, ".") && strcmp(pent->d_name, "..")//skip . and ..
+           && strncmp(pent->d_name, "state", 5)){//skip any files starting 
 	  string filepath = dirpath + "/"; 
 	  filepath.append(pent->d_name);
 	  if(verbose)
