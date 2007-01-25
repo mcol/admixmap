@@ -382,15 +382,35 @@ sub runRscript
     print "R script completed\n\n";
 }
 
+# Restore the saved train files. This should be done when interlacing
+# training and testing runs.
+sub restore_training_state {
+    my $args = shift;
+    my $slash = get_slash();
+    for my $option_name (keys %state_files) {
+        my $base_name = $args->{resultsdir} . $slash . "state-" . $state_files{$option_name};
+        my $src_file = $base_name . "-trained-latest.txt";
+        my $dst_file = $base_name . "-latest.txt";
+        print "Copying $src_file to $dst_file.\n";
+        copy($src_file, $dst_file)
+            or die("Cannot copy '$src_file' to '$dst_file'.\n");
+    }
+}
+
+sub get_slash {
+    if($^O eq "MSWin32"){
+        return "\\";
+    } else {
+        return "/";
+    }
+}
+
 # After the program has finished, append a timestamp to all the
 # output files and make a copy with "-latest" postfix for the
 # next run.
 sub rotate_files {
     my $args = shift;
-    my $slash = "/";
-    if($^O eq "MSWin32"){
-        $slash = "\\";
-    }
+    my $slash = get_slash();
     # Get the current timestamp in format YYYYMMDD-HHII
     my @rt = localtime();
     my $timestamp = sprintf("%04d%02d%02d-%02d%02d%02d", ($rt[5] + 1900), ($rt[4] + 1), $rt[3], $rt[2], $rt[1], $rt[0]);
@@ -426,6 +446,9 @@ sub doAnalysis
     }
     $command = $command . $prog . " " . getArguments($args);
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
+    if ($maskfile) {
+        restore_training_state($args);
+    }
     # Everybody likes Perl shortcuts.
     system($command) and die("'$command' has returned an error.\n");
     rotate_files($args);
