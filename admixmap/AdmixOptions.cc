@@ -82,14 +82,15 @@ void AdmixOptions::SetDefaultValues(){
   // other specified options will be appended to this array 
 #ifdef __HAPMIXMAP__
   //final values are always output to file, with these default filenames
-  FinalFreqPriorFilename = "finalfreqpriors.txt";
-  FinalLambdaFilename = "finallambdas.txt";
-  AlleleFreqOutputFilename = "finalallelefreqs.txt";
+  FinalFreqPriorFilename = "state-freqpriors.txt";
+  FinalLambdaFilename = "state-lambdas.txt";
+  AlleleFreqOutputFilename = "state-allelefreqs.txt";
 
   useroptions["hapmixmodel"] = "1";
   useroptions["hapmixlambdaprior"] = "30, 0.1, 10, 1";
-  useroptions["finalfreqpriorfile"] = "finalfreqpriors.txt";
-  useroptions["finallambdafile"] = "finallambdas.txt";
+  useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
+  useroptions["finallambdafile"] = FinalLambdaFilename;
+  useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
 #else
   useroptions["hapmixmodel"] = "0";
   useroptions["correlatedallelefreqs"] = "0";
@@ -465,10 +466,15 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");// C
   ProgOptions["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");//A
 
+  //final values in HAPMIXMAP
   ProgOptions["finalfreqpriorfile"] = OptionPair(&FinalFreqPriorFilename, "outputfile");//H
   ProgOptions["finallambdafile"] = OptionPair(&FinalLambdaFilename, "outputfile");//H
+  ProgOptions["finalallelefreqfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");//H, synonym for allelefreqoutputfile
+
+  //posterior means in HAPMIXMAP
   ProgOptions["allelefreqprioroutputfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");//H
   ProgOptions["hapmixlambdaoutputfile"] = OptionPair(&HapMixLambdaOutputFilename, "outputfile");//H, remove hapmix from name
+
   //prior and model specification
   ProgOptions["randommatingmodel"] = OptionPair(&RandomMatingModel, "bool");//A
   ProgOptions["globalrho"] = OptionPair(&GlobalRho, "bool");//A
@@ -485,9 +491,13 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["admixtureprior1"] = OptionPair(&initalpha[1], "dvector");//A
   ProgOptions["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");//A
   ProgOptions["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");//A
-  ProgOptions["initialhapmixlambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");//H, remove hapmix from name
-  ProgOptions["initialfreqpriorfile"] = OptionPair(&InitialFreqPriorFile, "string");//H
+
   ProgOptions["freqdispersionhiermodel"] = OptionPair(&FreqDispersionHierModel, "bool");//H
+  //initial values in HAPMIXMAP
+  ProgOptions["initiallambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");//H
+  ProgOptions["initialfreqpriorfile"] = OptionPair(&InitialFreqPriorFile, "string");//H
+  ProgOptions["initialallelefreqfile"] = OptionPair(&alleleFreqFilename, "string");//H, synonym for allelefreqfile
+
   //sampler settings
   ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");//A
   ProgOptions["popadmixsamplerparams"] = OptionPair(&popAdmixSamplerParams, "fvector");//A
