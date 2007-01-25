@@ -262,19 +262,35 @@ if ($mask_data) {
     if ($r_return != 0) {
         die "maskGenotypes.R script returned an error code: $r_return\n";
     }
+
     # Need to put two files together for hapmixmap to process them
     # correctly. Appending ccgenotypesfile to the haploid data. The
     # resulting file will be mixed haploid and diploid.
-    print "Appending $datadir/${train_basename}_cc_masked.txt to $train_file_name\n";
+    my $merged_train_cc_file = "$datadir/${train_basename}_merged_cc_train.txt";
+    print "Merging $datadir/${train_basename}_cc_masked.txt and $train_file_name\n";
+    print "To the $merged_train_cc_file.\n";
+
     open(CC_FILE,  "<$datadir/${train_basename}_cc_masked.txt");
     my @masked = <CC_FILE>;
+    # Remove the header line
     shift(@masked);
     close(CC_FILE);
-    open(TRAIN_DATA, ">>$train_file_name");
-    for my $line (@masked) {
-        print TRAIN_DATA $line;
-    }
+
+    open(TRAIN_DATA, "<$train_file_name");
+    my @train_lines = <TRAIN_DATA>;
     close(TRAIN_DATA);
+
+    open(MERGED_DATA, ">$merged_train_cc_file");
+    for my $line (@train_lines) {
+        print MERGED_DATA $line;
+    }
+    for my $line (@masked) {
+        print MERGED_DATA $line;
+    }
+    close(MERGED_DATA);
+    undef @masked;
+    undef @train_lines;
+
     print "Masking finished.\n";
     print "Exiting after masking the data.\n";
     print "Please run the script without --mask-data option\n";
@@ -288,13 +304,20 @@ if ($mask_data) {
 
 $arg_hash->{resultsdir}="$POP/Chr22Results$STATES"."States2";
 
+my $opt_val;
 # Set the output state file names
 foreach my $option_name (keys %state_files) {
     # Relative to the results directory.
     $arg_hash->{"final" . $option_name} = "state-" . $state_files{$option_name} . ".txt";
     if ($rerun) {
         # Relative to the working directory.
-        $arg_hash->{"initial" . $option_name} = $arg_hash->{resultsdir} . "/state-$state_files{$option_name}-latest.txt";
+        $opt_val = $arg_hash->{resultsdir} . "/state-$state_files{$option_name}-latest.txt";
+        # Give the initial file only if it exists.
+        if (-r $opt_val) {
+            $arg_hash->{"initial" . $option_name} = $opt_val;
+        } else {
+            warn("File $opt_val doesn't exist.\n");
+        }
     }
 }
 
