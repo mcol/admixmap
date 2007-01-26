@@ -134,6 +134,10 @@ my %state_files = (
     freqpriorfile => "freqprior",
 );
 
+my @archive_files = (
+    'PPGenotypeProbs.txt',
+);
+
 my $datadir = "$POP/chr22data";
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
@@ -141,6 +145,7 @@ my $datadir = "$POP/chr22data";
 # keys (left-hand side) are parameter names
 # values (right-hand side) are parameter values
 my $arg_hash = {
+    deleteoldresults => 0,
 
 #unphaseddata files
 #    genotypesfile                   => "$datadir/genotypes5000.txt",
@@ -294,15 +299,15 @@ if ($mask_data) {
 
 $arg_hash->{resultsdir}="$POP/Chr22Results$STATES"."States2";
 
-my $opt_val;
 # Set the output state file names
+my $opt_val;
 foreach my $option_name (keys %state_files) {
     # Relative to the results directory.
     $arg_hash->{"final" . $option_name} = "state-" . $state_files{$option_name} . ".txt";
     if ($rerun) {
         # Relative to the working directory.
         $opt_val = $arg_hash->{resultsdir} . "/state-" . $state_files{$option_name} . "-latest.txt";
-        # Give the initial file only if it exists.
+        # Give the initial file to the program only if the file exists.
         if (-r $opt_val) {
             $arg_hash->{"initial" . $option_name} = $opt_val;
         } else {
@@ -434,6 +439,13 @@ sub rotate_files {
         move($src_file, $latest)
             or die("Cannot move the '$src_file' to '$latest'.\n");
     }
+    foreach my $arc_file (@archive_files) {
+        my $src_file = $args->{resultsdir} . "/" . $arc_file;
+        # Chop off the last .txt
+        my $base_name = substr($src_file, 0, index($src_file, ".txt"));
+        my $dst_file = $base_name . "-" . $timestamp . ".txt";
+        copy($src_file, $dst_file) or die("Cannot copy '$src_file' to '$dst_file'.");
+    }
 }
 
 sub doAnalysis
@@ -452,6 +464,9 @@ sub doAnalysis
     # Everybody likes Perl shortcuts.
     system($command) and die("'$command' has returned an error.\n");
     rotate_files($args);
+    # Collect the time stats.
+    system("bash log-time.sh " . $arg_hash->{resultsdir} . "/logfile.txt")
+        and warn("Couldn't collect the time stats.");
     # run the r script
     runRscript($args);
     if ($calculate_mi) {
