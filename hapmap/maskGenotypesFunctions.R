@@ -1,5 +1,4 @@
-## Functions file for maskGenotypes.R
-
+## Functions file for maskGenotypes.R and other R scripts.
 # Returns a file name derived from the path and the base name
 get.io.filename <- function(extension) {
 	return(paste(
@@ -207,6 +206,9 @@ matrix.debug <- function(m, msg = "Matrix debug") {
 	print(entropy(m))
 }
 
+# Mutual information, as defined in the Wikipedia article.
+# Source:
+# http://en.wikipedia.org/wiki/Mutual_information#Relation_to_other_quantities
 mutual.information <- function(joint.pd) {
 	# marginal distributions
 	if (!is.matrix(joint.pd)) {
@@ -216,20 +218,20 @@ mutual.information <- function(joint.pd) {
 	if (dim(joint.pd)[1] != dim(joint.pd)[2]) {
 		stop("Matrix should be square.")
 	}
-	md.prod <- marginal.dist.prod(joint.pd)
-	# mutual information
-	# return(entropy(joint.pd) - entropy(md.prod))
-	# return(entropy(md.prod) - entropy(joint.pd))
-	# TODO: decide which way to do it: substract or divide
-	md.prod.entropy = entropy(md.prod)
+	x.entropy = entropy(rowSums(joint.pd))
+	y.entropy = entropy(colSums(joint.pd))
 	joint.pd.entropy = entropy(joint.pd)
-	# FIXME: It may happen that both entropies are zeros. I'm not sure if
-	# returning a zero is a right thing in such a case, but I want
-	# this working.
-	# if (md.prod.entropy == 0 && joint.pd.entropy == 0) {
-	# 	return(0)
-	# } else {
-	# 	return(joint.pd.entropy / md.prod.entropy)
-	# }
-	return((md.prod.entropy - joint.pd.entropy) / md.prod.entropy)
+	return(x.entropy + y.entropy - joint.pd.entropy)
+}
+
+# After Wikipedia:
+# http://en.wikipedia.org/wiki/Mutual_information#Normalized_variants
+coefficient.of.constraint <- function(joint.pd) {
+	mi <- mutual.information(joint.pd)
+	Hy = entropy(colSums(joint.pd))
+	if (Hy == 0) {
+		return(NA)
+	} else {
+		return(mi / Hy)
+	}
 }
