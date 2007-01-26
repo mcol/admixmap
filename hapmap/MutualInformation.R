@@ -6,7 +6,8 @@
 #
 # Should be called in batch mode, exactly like this:
 #
-# R CMD BATCH --no-save --no-restore --population=Eur --states=4 MutualInformation.R
+# R CMD BATCH --no-save --no-restore \
+# --chromosome=Chr22 --population=Eur --states=4 MutualInformation.R
 
 # Reading some functions.
 source("maskGenotypesFunctions.R")
@@ -49,18 +50,19 @@ for (locus.id in dimnames(GP)[[3]]) {
 	# print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
 	joint.pd <- joint.prob(GP, locus.no, genotypes)
 	joint.pd.no.uncert <- joint.prob(GP, locus.no, genotypes, throw_away_uncertainity = TRUE)
-	mi[locus.no, 1] <- mutual.information(joint.pd)
-	mi[locus.no, 2] <- mutual.information(joint.pd.no.uncert)
+	mi[locus.no, 1] <- coefficient.of.constraint(joint.pd)
+	mi[locus.no, 2] <- coefficient.of.constraint(joint.pd.no.uncert)
 	mi[locus.no, 3] <- length(unique(na.omit(orig[, locus.no])))
 }
 
 write.table(mi,
-	file = paste(results.dir, "/mutual-information-by-locus.txt", sep = ""),
+	file = paste(results.dir, "/coefficient-of-constraint-by-locus.txt", sep = ""),
 	row.names = TRUE, col.names = NA)
-write.table(mean(mi[1]),
-	file = paste(results.dir, "/mean-mutual-information.txt", sep = ""),
+dput(mi, file = paste(results.dir, "coefficient-of-constraint-by-locus-dput.txt", sep = "/"))
+write.table(mean(mi[,1], na.rm = TRUE),
+	file = paste(results.dir, "/mean-coefficient-of-constraint.txt", sep = ""),
 	col.names = FALSE, row.names = FALSE)
-write.table(mean(mi[2]),
-	file = paste(results.dir, "/mean-mutual-information-no-uncert.txt", sep = ""),
+write.table(mean(mi[,2], na.rm = TRUE),
+	file = paste(results.dir, "/mean-coefficient-of-constraint-no-uncert.txt", sep = ""),
 	col.names = FALSE, row.names = FALSE)
 
