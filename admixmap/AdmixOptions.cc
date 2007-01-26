@@ -56,7 +56,7 @@ void AdmixOptions::SetDefaultValues(){
   TestForMisspecifiedAlleleFreqs = false;
   TestForMisspecifiedAlleleFreqs2 = false;
   HWTest = false;
-
+  DeleteOldResultsIndicator = true;
 //   globalrhoPrior.push_back(3.0);//rhoalpha 
 //   globalrhoPrior.push_back(0.5);//rhobeta
 
@@ -449,6 +449,9 @@ unsigned AdmixOptions::GetNumMaskedLoci()const{
   return MaskedLoci.size();
 }
 
+bool AdmixOptions::getDeleteOldResultsIndicator()const{
+    return DeleteOldResultsIndicator;
+}
 void AdmixOptions::SetOptions(OptionMap& ProgOptions)
 {
   //set up Option map
@@ -521,6 +524,7 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   // Other options
   ProgOptions["chib"] = OptionPair(&chibIndicator, "bool");//A,  Marginal likelihood by Chib algo
   ProgOptions["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");//A,  ML for one individual in a collection 
+  ProgOptions["deleteoldresults"] = OptionPair(&DeleteOldResultsIndicator, "bool");
   //old options - do nothing but kept for backward-compatibility with old scripts
   ProgOptions["analysistypeindicator"] = OptionPair(0, "old");//A
   ProgOptions["coutindicator"] = OptionPair(0, "old");//A

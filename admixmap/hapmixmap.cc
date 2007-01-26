@@ -59,7 +59,7 @@ int main( int argc , char** argv ){
 
   //create results directory, or if it exists, deletes the contents
   if(isMaster){
-    MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/);
+    MakeResultsDir(options.getResultsDir().c_str(), false/*(options.getDisplayLevel()>2)*/, options.getDeleteOldResultsIndicator());
   }
  
   //open logfile, start timer and print start message

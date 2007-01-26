@@ -31,7 +31,7 @@
 #include "HWTest.h"
 #include "Comms.h"
 
-void MakeResultsDir(const char* dirname, bool verbose);
+void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles=true);
 
 void WriteIterationNumber(const int iteration, const int width, int displayLevel);
 

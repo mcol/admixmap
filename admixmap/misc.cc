@@ -26,7 +26,7 @@ void PrintOptionsMessage() {
 /**
    Opens a directory for program output
 */
-void MakeResultsDir(const char* dirname, bool verbose){
+void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles){
   if(strlen(dirname) && strcmp(dirname, ".") && strcmp(dirname, "..")){
     DIR *pdir;
     struct dirent *pent;
@@ -47,7 +47,7 @@ void MakeResultsDir(const char* dirname, bool verbose){
       string cmd = "mkdir ";cmd.append(dirname);
       system(cmd.c_str());
     }
-    else {
+    else if(DeleteExistingFiles){
       cout << "Directory \"" << dirname << "\" exists. Contents will be deleted."<<endl;
       
       //list and delete contents of directory

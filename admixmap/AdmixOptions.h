@@ -75,6 +75,7 @@ public:
   void setPopulations(int num);
   bool getFixedAlleleFreqs() const;
   bool isFreqDispersionHierModel()const;
+    bool getDeleteOldResultsIndicator()const;
 
   //Score test file names
   const char *getAffectedsOnlyScoreFilename() const;
@@ -141,6 +142,7 @@ private:
   bool TestForMisspecifiedAlleleFreqs;
   bool TestForMisspecifiedAlleleFreqs2;
   bool FreqDispersionHierModel;
+    bool DeleteOldResultsIndicator;
 
   std::vector<bool> _admixed;
   bool _symmetric;         
