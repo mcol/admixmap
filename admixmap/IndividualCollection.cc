@@ -277,7 +277,7 @@ void IndividualCollection::AccumulateAlleleCounts(const Options* const options, 
 #endif
 
 #ifdef PARALLEL
-  A.SumAlleleCountsOverProcesses(options->getPopulations());
+  A->SumAlleleCountsOverProcesses(options->getPopulations());
 #endif
 }
 
