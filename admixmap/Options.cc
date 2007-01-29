@@ -59,6 +59,7 @@ void Options::SetDefaultValues(){
   OutputAlleleFreq = false;
   regressionPriorPrecision = 0.25;
   EYFilename = "ExpectedOutcomes.txt";
+  DeleteOldResultsIndicator = true;
 
   useroptions["burnin"] = "100";
   useroptions["samples"] = "1100";
@@ -243,6 +244,10 @@ const char* Options::getEYFilename()const{
   return EYFilename.c_str();
 }
 
+bool Options::getDeleteOldResultsIndicator()const{
+  return DeleteOldResultsIndicator;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 int Options::ReadArgsFromFile(const char* filename, UserOptions& opt){
   ifstream fin(filename);
@@ -371,6 +376,7 @@ void Options::SetOptions(OptionMap& ProgOptions)
   ProgOptions["seed"] = OptionPair(&Seed, "long");// random number seed
   ProgOptions["thermo"] = OptionPair(&thermoIndicator, "bool");// Marginal likelihood by thermodynamic integration
   ProgOptions["checkdata"] = OptionPair(&checkData, "bool");// set to 0 to skip some data checks
+  ProgOptions["deleteoldresults"] = OptionPair(&DeleteOldResultsIndicator, "bool");
 
   //parse user options
   bool badOptions = false;
@@ -398,16 +404,8 @@ void Options::SetOptions(OptionMap& ProgOptions)
   TestForAllelicAssociation = (AllelicAssociationScoreFilename.size()>0);
   TestForResidualAllelicAssoc = (ResidualAllelicAssocScoreFilename.size()>0);
 }
-
+  ///output Options table to args.txt
 void Options::PrintOptions(){
-  //set populations value in case it has changed
-  //NB do similar for any option that can be changed outside Options
-  std::ostringstream s;
-  if (s << getPopulations()) // conversion worked
-    {
-    useroptions["populations"] = (char *)s.str().c_str();
-    }
-  //Now output Options table to args.txt
   string ss;
   ss = ResultsDir + "/args.txt";
   ofstream argstream(ss.c_str());
@@ -422,7 +420,6 @@ int Options::checkOptions(LogWriter &Log, int){
   bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
   Log.setDisplayMode(Quiet);
 
-
   //check for burnin >= samples
   if(burnin >= TotalSamples){
     Log << "ERROR: 'samples' must be greater than 'burnin'\n";
@@ -435,6 +432,27 @@ int Options::checkOptions(LogWriter &Log, int){
   }
   if(10*SampleEvery > (TotalSamples-burnin)){
     Log << "WARNING: 'every' should be less than ('samples' - 'burnin') / 10. Some output files may be empty.\n";
+  }
+
+  // **** Check whether genotypes file has been specified ****
+  if ( GenotypesFilename.length() == 0 )
+    {
+      Log << "ERROR: Must specify genotypesfile.\n";
+      badOptions = true;
+    }
+  // **** Check whether locus file has been specified ****
+  if ( LocusFilename.length() == 0 )
+    {
+      Log << "ERROR: Must specify locusfile.\n";
+      badOptions = true;
+    }
+
+  if( TestForAllelicAssociation ){
+    if( NumberOfOutcomes < 1 ){
+      Log << "ERROR: allelic association score test is not valid without a regression model."
+	  << " This option will be ignored.\n";
+      setTestForAllelicAssociation(false);
+    }
   }
 
   if(badOptions) return 1;

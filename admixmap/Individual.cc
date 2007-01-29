@@ -37,7 +37,7 @@ std::ostream& operator<<(std::ostream& os, const hapPair &h){
 Individual::Individual() {//should initialise pointers here
 }
 
-Individual::Individual(int number, const AdmixOptions* const options, const InputData* const Data) {
+Individual::Individual(int number, const Options* const options, const InputData* const Data) {
   myNumber = number;
   NumGametes = 1;
   GenotypesMissing = new bool*[numChromosomes];
@@ -296,7 +296,7 @@ void Individual::SetMissingGenotypes(){
 }
 
 //********** sets static members, including allocation and deletion of static objects for score tests
-void Individual::SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options){
+void Individual::SetStaticMembers(Genome* const pLoci, const Options* const options){
   Loci = pLoci;
   numChromosomes = Loci->GetNumberOfChromosomes();
   Populations = options->getPopulations();
@@ -363,7 +363,7 @@ bool Individual::isHaploidIndividual()const{
 // public function: 
 // calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
 // store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
-double Individual::getLogLikelihood( const AdmixOptions* const options, const bool forceUpdate, const bool store) {
+double Individual::getLogLikelihood( const Options* const options, const bool forceUpdate, const bool store) {
 
   if (!logLikelihood.ready || forceUpdate) {
     logLikelihood.tempvalue = getLogLikelihood(options, Theta, _rho, true);
@@ -377,7 +377,7 @@ double Individual::getLogLikelihood( const AdmixOptions* const options, const bo
 }
 
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
-double Individual::getLogLikelihood(const AdmixOptions* const options, const double* const theta, 
+double Individual::getLogLikelihood(const Options* const options, const double* const theta, 
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
@@ -395,7 +395,7 @@ void Individual::storeLogLikelihood(const bool setHMMAsOK) { // to call if a Met
     if(setHMMAsOK) logLikelihood.HMMisOK = true; 
 }                               
 
-double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options) {
+double Individual::getLogLikelihoodAtPosteriorMeans(const Options* const options) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
@@ -406,7 +406,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const op
 }
 
 //************** Updating (Public) **********************************************************
-void Individual::SampleLocusAncestry(const AdmixOptions* const options){
+void Individual::SampleLocusAncestry(const Options* const options){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
@@ -494,7 +494,7 @@ void Individual::UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, All
   }
 }
 
-void Individual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
+void Individual::UpdateHMMInputs(unsigned int j, const Options* const options, 
 				 const double* const theta, const vector<double> rho) {
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)

@@ -38,13 +38,11 @@ void AdmixOptions::SetDefaultValues(){
   OutputFST = false;
   locusForTestIndicator = false;
   LocusForTest = -1;
-  FreqDispersionHierModel = false;
   correlatedallelefreqs = false;
   RandomMatingModel = false;
   GlobalRho = true;//corresponds to globalrho = 1;
   PopAdmixPropsAreEqual = false;
   IndAdmixHierIndicator = true; //hierarchical model on ind admixture
-  HapMixModelIndicator = false; //model haplotypes with mixture model
   chibIndicator = false;//calculate marginal likelihood by Chib method
   TestOneIndivIndicator = false; // evaluate marginal likelihood for single individual
   TestForAdmixtureAssociation = false;
@@ -56,7 +54,7 @@ void AdmixOptions::SetDefaultValues(){
   TestForMisspecifiedAlleleFreqs = false;
   TestForMisspecifiedAlleleFreqs2 = false;
   HWTest = false;
-  DeleteOldResultsIndicator = true;
+
 //   globalrhoPrior.push_back(3.0);//rhoalpha 
 //   globalrhoPrior.push_back(0.5);//rhobeta
 
@@ -80,25 +78,13 @@ void AdmixOptions::SetDefaultValues(){
   // option names and default option values are stored as strings in a map container 
   // these are default values
   // other specified options will be appended to this array 
-#ifdef __HAPMIXMAP__
-  //final values are always output to file, with these default filenames
-  FinalFreqPriorFilename = "state-freqpriors.txt";
-  FinalLambdaFilename = "state-lambdas.txt";
-  AlleleFreqOutputFilename = "state-allelefreqs.txt";
 
-  useroptions["hapmixmodel"] = "1";
-  useroptions["hapmixlambdaprior"] = "30, 0.1, 10, 1";
-  useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
-  useroptions["finallambdafile"] = FinalLambdaFilename;
-  useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
-#else
-  useroptions["hapmixmodel"] = "0";
   useroptions["correlatedallelefreqs"] = "0";
   useroptions["randommatingmodel"] = "0";
   useroptions["globalrho"] = "1";
   useroptions["indadmixhiermodel"] = "1";
   useroptions["chib"] = "0";
-#endif
+
   //global rho: default gamma (3, 0.5) prior has mean 6, variance 12 
   useroptions["globalsumintensitiesprior"] = "3.0,0.5";
   // non-global rho: default gamma-gamma prior with parameters n=6, alpha=5, beta=4
@@ -165,14 +151,6 @@ const char *AdmixOptions::getAlleleFreqScoreFilename2() const
   return AlleleFreqScoreFilename2.c_str();
 }
 
-const char *AdmixOptions::getAlleleFreqPriorOutputFilename() const
-{
-  return AlleleFreqPriorOutputFilename.c_str();
-}
-bool AdmixOptions::OutputAlleleFreqPrior()const{
-  return (bool)(AlleleFreqPriorOutputFilename.size()>0);
-}
-
 const char *AdmixOptions::getAssocScoreFilename() const
 {
   return AssocScoreFilename.c_str();
@@ -183,12 +161,6 @@ const char *AdmixOptions::getDispersionTestFilename() const
   return DispersionTestFilename.c_str();
 }
 
-bool AdmixOptions::getMHTest()const{
-  return (bool)(MHTestFilename.size());
-}
-const char* AdmixOptions::getMHTestFilename()const{
-  return MHTestFilename.c_str();
-}
 
 const char *AdmixOptions::getHistoricalAlleleFreqFilename() const
 {
@@ -219,9 +191,6 @@ bool AdmixOptions::isGlobalRho() const
   return GlobalRho;
 }
 
-bool AdmixOptions::isFreqDispersionHierModel()const{
-  return FreqDispersionHierModel;
-}
 bool AdmixOptions::getLocusForTestIndicator() const
 {
   return locusForTestIndicator;
@@ -277,9 +246,7 @@ double AdmixOptions::getRhobetaShape()const{
 double AdmixOptions::getRhobetaRate()const{
   return rhoPrior[2];
 }
-const std::vector<double> &AdmixOptions::getHapMixLambdaPrior()const{
-  return hapmixlambdaprior;
-}
+
 double AdmixOptions::getEtaMean() const{
   return etamean;
 }
@@ -384,13 +351,6 @@ std::vector<std::vector<double> > AdmixOptions::getInitAlpha()const{
   return initalpha;
 }
 
-const char* AdmixOptions::getInitialHapMixLambdaFilename()const{
-    return InitialHapMixLambdaFilename.c_str();
-}
-const char* AdmixOptions::getInitialFreqPriorFilename()const{
-  return InitialFreqPriorFile.c_str();
-}
-
 bool AdmixOptions::isSymmetric()const{
   return _symmetric;
 }
@@ -414,44 +374,6 @@ const vector<float>& AdmixOptions::getPopAdmixSamplerParams()const{
   return popAdmixSamplerParams;
 }
 
-const std::vector<double> & AdmixOptions::getAlleleFreqPriorParams()const{
-  return allelefreqprior;
-}
-
-const char* AdmixOptions::getHapMixLambdaOutputFilename()const{
-    return HapMixLambdaOutputFilename.c_str();
-}
-const char* AdmixOptions::getCCGenotypesFilename()const{
-  return CCGenotypesFilename.c_str();
-}
-
-const vector<unsigned>& AdmixOptions::getMaskedIndividuals()const{
-  return MaskedIndividuals;
-}
-const vector<unsigned>& AdmixOptions::getMaskedLoci()const{
-  return MaskedLoci;
-}
-bool AdmixOptions::OutputCGProbs()const{
-  return (MaskedLoci.size() && MaskedIndividuals.size()); 
-}
-
-const char* AdmixOptions::getFinalFreqPriorFilename()const{
-  return FinalFreqPriorFilename.c_str();
-}
-const char* AdmixOptions::getFinalLambdaFilename()const{
-  return FinalLambdaFilename.c_str();
-}
-
-unsigned AdmixOptions::GetNumMaskedIndividuals()const{
-  return MaskedIndividuals.size();
-}
-unsigned AdmixOptions::GetNumMaskedLoci()const{
-  return MaskedLoci.size();
-}
-
-bool AdmixOptions::getDeleteOldResultsIndicator()const{
-    return DeleteOldResultsIndicator;
-}
 void AdmixOptions::SetOptions(OptionMap& ProgOptions)
 {
   //set up Option map
@@ -459,47 +381,27 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   //A = AdmixOption, H = HapMixOption, C = Common (Base class)
 
   ProgOptions["populations"] = OptionPair(&Populations, "int");//A
-  ProgOptions["states"] = OptionPair(&Populations, "int");//H
   ProgOptions["historicallelefreqfile"] = OptionPair(&HistoricalAlleleFreqFilename, "string");//A
   ProgOptions["reportedancestry"] = OptionPair(&ReportedAncestryFilename, "string");//A
-  ProgOptions["ccgenotypesfile"] = OptionPair(&CCGenotypesFilename, "string");//H
   //standard output files (optional)
 
-  //file to write sampled values of dispersion parameter (ADMIXMAP) or mean and variance of dispersion params (HAPMIXMAP)
+  //file to write sampled values of dispersion parameter
   ProgOptions["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");// C
   ProgOptions["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");//A
-
-  //final values in HAPMIXMAP
-  ProgOptions["finalfreqpriorfile"] = OptionPair(&FinalFreqPriorFilename, "outputfile");//H
-  ProgOptions["finallambdafile"] = OptionPair(&FinalLambdaFilename, "outputfile");//H
-  ProgOptions["finalallelefreqfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");//H, synonym for allelefreqoutputfile
-
-  //posterior means in HAPMIXMAP
-  ProgOptions["allelefreqprioroutputfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");//H
-  ProgOptions["hapmixlambdaoutputfile"] = OptionPair(&HapMixLambdaOutputFilename, "outputfile");//H, remove hapmix from name
 
   //prior and model specification
   ProgOptions["randommatingmodel"] = OptionPair(&RandomMatingModel, "bool");//A
   ProgOptions["globalrho"] = OptionPair(&GlobalRho, "bool");//A
   ProgOptions["indadmixhiermodel"] = OptionPair(&IndAdmixHierIndicator, "bool");//A
-  ProgOptions["hapmixmodel"] = OptionPair(&HapMixModelIndicator, "bool");
   ProgOptions["etapriorfile"] = OptionPair(&EtaPriorFilename, "string");//C
   ProgOptions["globalsumintensitiesprior"] = OptionPair(&globalrhoPrior, "dvector");//A
   ProgOptions["sumintensitiesprior"] = OptionPair(&rhoPrior, "dvector");//A
-  ProgOptions["hapmixlambdaprior"] = OptionPair(&hapmixlambdaprior, "dvector");//H
-  ProgOptions["allelefreqprior"] = OptionPair(&allelefreqprior, "dvector");//H
   ProgOptions["etapriormean"] = OptionPair(&etamean, "double");//A
   ProgOptions["etapriorvar"] = OptionPair(&etavar, "double");//A
   ProgOptions["admixtureprior"] = OptionPair(&initalpha[0], "dvector");//A
   ProgOptions["admixtureprior1"] = OptionPair(&initalpha[1], "dvector");//A
   ProgOptions["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");//A
   ProgOptions["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");//A
-
-  ProgOptions["freqdispersionhiermodel"] = OptionPair(&FreqDispersionHierModel, "bool");//H
-  //initial values in HAPMIXMAP
-  ProgOptions["initiallambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");//H
-  ProgOptions["initialfreqpriorfile"] = OptionPair(&InitialFreqPriorFile, "string");//H
-  ProgOptions["initialallelefreqfile"] = OptionPair(&alleleFreqFilename, "string");//H, synonym for allelefreqfile
 
   //sampler settings
   ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");//A
@@ -514,17 +416,13 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["allelefreqscorefile2"] = OptionPair(&AlleleFreqScoreFilename2, "outputfile");//A
   ProgOptions["dispersiontestfile"] = OptionPair(&DispersionTestFilename, "outputfile");//A
   ProgOptions["fstoutputfile"] = OptionPair(&FSTOutputFilename, "outputfile");//A
-  ProgOptions["mhscoretestfile"] = OptionPair(&MHTestFilename, "outputfile");//H
   ProgOptions["likratiofile"] = OptionPair(&LikRatioFilename, "outputfile");//A, requires affectedsonlytestfile
   ProgOptions["indadmixmodefile"] = OptionPair(&IndAdmixModeFilename, "outputfile");//A
   ProgOptions["testgenotypesfile"] = OptionPair(0, "null");//A
   ProgOptions["locusfortest"] = OptionPair(&LocusForTest, "int");//A
-  ProgOptions["maskedindivs"] = OptionPair(&MaskedIndividuals, "range");//H
-  ProgOptions["maskedloci"] = OptionPair(&MaskedLoci, "range");//H
   // Other options
   ProgOptions["chib"] = OptionPair(&chibIndicator, "bool");//A,  Marginal likelihood by Chib algo
   ProgOptions["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");//A,  ML for one individual in a collection 
-  ProgOptions["deleteoldresults"] = OptionPair(&DeleteOldResultsIndicator, "bool");
   //old options - do nothing but kept for backward-compatibility with old scripts
   ProgOptions["analysistypeindicator"] = OptionPair(0, "old");//A
   ProgOptions["coutindicator"] = OptionPair(0, "old");//A
@@ -629,17 +527,19 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	EtaOutputFilename = "";
 	useroptions.erase("dispparamfile");
       }
+
+      if(OutputAlleleFreq){
+      Log << "ERROR: allelefreqoutputfile options is not valid with indadmixhierindicator = 0\n"
+	      << "\tThis option will be ignored\n";
+         AlleleFreqOutputFilename = "";
+         OutputAlleleFreq = false;
+      }
       GlobalRho = false;
       useroptions["globalrho"] = "0";
     }
   
   // **** sumintensities ****
-  if(HapMixModelIndicator){
-    Log << "Haplotype mixture model with " << Populations << " block state";if(Populations>1)Log << "s"; Log << "\n";
-    RandomMatingModel = false;useroptions["randommatingmodel"] = "0";
-    GlobalRho = false; useroptions["globalrho"] = "0";
-  }
-  else {
+
     // **** Mating Model **** 
     if(RandomMatingModel )
       Log << "Model assuming random mating.\n";
@@ -675,27 +575,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 	badOptions = true;
       }
     }
-  }
-  if(HapMixModelIndicator){
-    //TODO:check length of rhoprior vectors
 
-    if(useroptions["allelefreqprior"].size()){
-
-      if(FreqDispersionHierModel && (allelefreqprior.size() !=3)) {
-        Log << "Error: 'allelefreqprior' must have length 3\n";
-        badOptions = true;
-      }
-      else if(allelefreqprior.size()< 2){
-        Log << "Error: 'allelefreqprior' must have length 2\n";
-        badOptions = true;
-      }
-    }
-
-    useroptions.erase("sumintensitiesprior") ;
-    useroptions.erase("globalsumintensitiesprior") ;  
-  }
-  else{
-    useroptions.erase("hapmixlambdaprior") ;
     if((GlobalRho || !IndAdmixHierIndicator ) ) {
       Log << "Gamma prior on sum-intensities with shape parameter: " << globalrhoPrior[0] << "\n"
 	  << "and rate (1 / location) parameter " << globalrhoPrior[1] << "\n";
@@ -721,31 +601,18 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   //if(allelefreqprior.size())
   //Log << "Warning: option 'allelefreqprior' is valid only with a hapmixmodel. This option will be ignored\n";
 
-  }
+
 
   //Prior on admixture
   setInitAlpha(Log);
-  if(Populations > 1 && IndAdmixHierIndicator && !HapMixModelIndicator){
+  if(Populations > 1 && IndAdmixHierIndicator){
     Log << "Gamma(1, 1) prior on population admixture Dirichlet parameters.\n";
   }
-
-  // **** Check whether genotypes file has been specified ****
-  if ( GenotypesFilename.length() == 0 )
-    {
-      Log << "ERROR: Must specify genotypesfile.\n";
-      badOptions = true;
-    }
-  // **** Check whether locus file has been specified ****
-  if ( LocusFilename.length() == 0 )
-    {
-      Log << "ERROR: Must specify locusfile.\n";
-      badOptions = true;
-    }
 
   // **** model for allele freqs ****
 
   //fixed allele freqs
-  if( (alleleFreqFilename.length() && !HapMixModelIndicator) ||
+  if( (alleleFreqFilename.length()) ||
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
     Log << "Analysis with fixed allele frequencies.\n";
     if(OutputAlleleFreq && !HapMixModelIndicator){
@@ -770,10 +637,9 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   else if(Populations > 0 )
     {
       Log << "No allelefreqfile, priorallelefreqfile or historicallelefreqfile supplied;\n"
-	  << "Default priors will be set for the allele frequencies";
-      if(!HapMixModelIndicator)
-	Log << " with " << Populations << " population(s)";
-      Log << "\n";
+	  << "Default priors will be set for the allele frequencies"
+          << " with " << Populations << " population(s)"
+          << "\n";
       if(correlatedallelefreqs) {
 	Log << "Analysis with correlated allele frequencies\n";
       }
@@ -926,3 +792,14 @@ bool AdmixOptions::CheckInitAlpha( const vector<double> &alphatemp)const
    return admixed;
 }
 
+void AdmixOptions::PrintOptions(){
+  //set populations value in case it has changed or not specified
+  //NB do similar for any option that can be changed outside Options
+  std::ostringstream s;
+  if (s << getPopulations()) // conversion worked
+    {
+    useroptions["populations"] = (char *)s.str().c_str();
+    }
+  //Now output Options table to args.txt
+  Options::PrintOptions();
+}

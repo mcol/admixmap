@@ -14,7 +14,7 @@
 #ifndef POPHAPMIX_H
 #define POPHAPMIX_H 1
 
-#include "AdmixOptions.h"
+#include "HapMixOptions.h"
 #include "Genome.h"
 #include "samplers/HamiltonianMonteCarlo.h"
 #include "samplers/StepSizeTuner.h"//for sampling globalrho and globaltheta
@@ -61,7 +61,7 @@ typedef struct{
 class PopHapMix
 {
 public:
-  PopHapMix(AdmixOptions* op, Genome* loci);
+  PopHapMix(HapMixOptions* op, Genome* loci);
   
   ~PopHapMix();
   
@@ -100,7 +100,7 @@ private:
   int K;///< number of subpopulations / block states
   std::ofstream outputstream;//output to paramfile
 
-  AdmixOptions *options;
+  HapMixOptions *options;
   Genome* Loci; 
 
   std::vector<double> lambda;

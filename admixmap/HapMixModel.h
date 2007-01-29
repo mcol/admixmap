@@ -16,6 +16,7 @@
 #define HAPMIXMODEL_H 1
 
 #include "Model.h"
+#include "HapMixOptions.h"
 #include "PopHapMix.h"
 #include "HapMixFreqs.h"
 #include "HapMixIndividualCollection.h"
@@ -24,15 +25,15 @@
 class HapMixModel : public Model{
 public:
     ~HapMixModel();
-  void Initialise(AdmixOptions & options, InputData& data,  LogWriter& Log);
-  void InitialiseTests(AdmixOptions& options, const InputData& data, LogWriter& Log);
-  void SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, 
-		  LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+  void Initialise(HapMixOptions & options, InputData& data,  LogWriter& Log);
+  void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
+  void SubIterate(int iteration, const int& burnin, Options& options, InputData & data, 
+		  LogWriter& Log, double& SumEnergy, double& SumEnergySq, 
 		  bool AnnealedRun);
 
-  void PrintAcceptanceRates(const AdmixOptions& options,LogWriter& Log);
-  void Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data) ;
-  double getDevianceAtPosteriorMean(const AdmixOptions* const options, LogWriter& Log);
+  void PrintAcceptanceRates(const Options& options,LogWriter& Log);
+  void Finalize(const Options& options, LogWriter& Log, const InputData& data) ;
+  double getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log);
   unsigned getNumIndividuals()const{return IC->getSize();}; 
   double* getSumEnergy()const{return 0;};
   double* getSumEnergySq()const{return 0;};
@@ -40,10 +41,10 @@ private:
   PopHapMix* L;
   HapMixFreqs A;
   MantelHaenszelTest MHTest;
-  void UpdateParameters(int iteration, const AdmixOptions *options, 
+  void UpdateParameters(int iteration, const Options *options, 
 			LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
-  void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
-  void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
+  void OutputParameters(int iteration, const Options *options, LogWriter& Log);
+  void InitializeErgodicAvgFile(const Options* const options, LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);
 };
 

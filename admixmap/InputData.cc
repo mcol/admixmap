@@ -1,8 +1,7 @@
 /**
- *   ADMIXMAP
  *   InputData.cc 
  *   Class to read and check all input data files
- *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
+ *   Copyright (c) 2005 - 2007 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -11,7 +10,7 @@
  * 
  */
 #include "InputData.h"
-#include "AdmixOptions.h"
+#include "Options.h"
 #include "utils/StringConvertor.h"
 #include "utils/DataReader.h"
 #include "Genome.h"
@@ -94,7 +93,7 @@ InputData::~InputData()
 {
 }
 
-void InputData::readData(AdmixOptions *options, LogWriter &Log)
+void InputData::readData(Options *options, LogWriter &Log)
 {
   Log.setDisplayMode(Quiet);
   try
@@ -150,7 +149,7 @@ void InputData::readData(AdmixOptions *options, LogWriter &Log)
   CheckData(options, Log);
 }
 
-void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
+void InputData::CheckData(Options *options, LogWriter &Log){
   Log.setDisplayMode(Quiet);
   if(Comms::isWorker())
     {
@@ -162,7 +161,7 @@ void InputData::CheckData(AdmixOptions *options, LogWriter &Log){
       }
     }
 
-  double threshold = 100.0;if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
+  double threshold = 100.0;//if(options->getHapMixModelIndicator())threshold /= options->getRhoPriorMean();
   checkLocusFile(options->getgenotypesSexColumn(), threshold, options->CheckData());
   //locusMatrix_ = locusMatrix_.SubMatrix(1, locusMatrix_.nRows() - 1, 1, 2);//remove header and first column of locus file
 
@@ -244,7 +243,7 @@ bool InputData::determineIfPedFile()const {
 ///checks number of loci in genotypes file is the same as in locusfile, 
 ///determines if there is a sex column
 /// and each line of genotypesfile has the same number of cols.
-void InputData::CheckGeneticData(AdmixOptions *options)const{
+void InputData::CheckGeneticData(Options *options)const{
   const size_t numLoci = locusData_.size() - 1; //number of loci in locus file
   int SexCol = 0;
   // Determine if "Sex" column present in genotypes file.
@@ -354,7 +353,7 @@ void InputData::checkLocusFile(int sexColumn, double threshold, bool check){
   } 
 }
  
-void InputData::ReadPopulationLabels(AdmixOptions *options){
+void InputData::ReadPopulationLabels(Options *options){
   if(strlen(options->getAlleleFreqFilename()) || strlen(options->getPriorAlleleFreqFilename()) || strlen(options->getHistoricalAlleleFreqFilename())){
     if(strlen(options->getAlleleFreqFilename()))
       DataReader::ReadHeader(options->getAlleleFreqFilename(), PopulationLabels);
@@ -377,7 +376,7 @@ void InputData::ReadPopulationLabels(AdmixOptions *options){
  
 ////checks consistency of supplied allelefreqs with locusfile
 ///and determines number of populations and population labels.
-void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
+void InputData::CheckAlleleFreqs(Options *options, LogWriter &Log){
   string freqtype = "";
   bool infile = false;//indicates whether either of the three allelefreq files are specified
   int nrows=0, expectednrows=0;
@@ -448,7 +447,7 @@ void InputData::CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log){
   }
 }
 
-void InputData::CheckOutcomeVarFile(AdmixOptions* const options, LogWriter& Log){
+void InputData::CheckOutcomeVarFile(Options* const options, LogWriter& Log){
   unsigned N = NumIndividuals;
   //check outcomevarfile and genotypes file have the same number of rows
   if(options->getHapMixModelIndicator()){
@@ -935,6 +934,10 @@ const Vector_s& InputData::getLocusLabels()const{
 const Vector_s InputData::getCovariateLabels()const{
   return CovariateLabels;
 }
+
+// const string& InputData::getIndivId(unsigned i)const{
+//   return geneticData_[i+1][0];//+1 to skip header
+// }
 
 void InputData::Delete(){
   //erase string matrices

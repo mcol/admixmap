@@ -37,7 +37,7 @@ class ScoreTests{
 public:
   ScoreTests();
 
-  void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
+  void Initialise(Options* , const IndividualCollection* const, const Genome* const ,
 		  const Vector_s&, LogWriter &);
 
   void Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
@@ -73,7 +73,7 @@ private:
   std::ofstream HaplotypeAssocScoreStream;
   std::ofstream allelicAssocScoreStream;
 
-  const AdmixOptions *options;
+  const Options *options;
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes

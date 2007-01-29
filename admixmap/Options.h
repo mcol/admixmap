@@ -2,7 +2,7 @@
 /* 
  *   Options.h 
  *   header file for Options base class
- *   Copyright (c) 2006 David O'Donnell
+ *   Copyright (c) 2006, 2007 David O'Donnell
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -35,7 +35,7 @@ public:
   virtual ~Options();
   
   virtual int checkOptions(LogWriter &Log, int);
-  void PrintOptions();
+  virtual void PrintOptions();
 
   long getBurnIn() const;
   long getTotalSamples() const;
@@ -73,10 +73,15 @@ public:
   void setgenotypesSexColumn(unsigned int i);
 
   //indicators and model options
+  virtual bool getHapMixModelIndicator() const = 0;
+  virtual bool isRandomMatingModel() const = 0;
+  virtual bool isGlobalRho() const = 0;
   virtual bool getFixedAlleleFreqs() const;
   int getNumberOfOutcomes() const;
   void setNumberOfOutcomes(int);
   void setRegType(RegressionType R);
+  virtual bool getTestOneIndivIndicator() const = 0;
+  bool getDeleteOldResultsIndicator()const;
 
   //Score test file names
   const char *getAllelicAssociationScoreFilename() const; 
@@ -89,6 +94,31 @@ public:
   void setTestForAllelicAssociation(bool); 
   bool getTestForResidualAllelicAssoc()const; 
   bool getHWTestIndicator() const;
+
+  //filenames in derived classes
+  //these are required by InputData. Can be removed if InpuData and ScoreTets are forked successfully
+  virtual const char* getCCGenotypesFilename()const{return "";};
+  virtual const char *getHistoricalAlleleFreqFilename() const{return "";};
+  virtual const char *getReportedAncestryFilename() const{return "";};
+  virtual const char *getEtaPriorFilename() const{return "";};
+  virtual const char *getAffectedsOnlyScoreFilename() const{return "";};
+  virtual const char *getHaplotypeAssociationScoreFilename() const{return "";};
+  virtual const char *getAncestryAssociationScoreFilename() const{return "";};
+  virtual const char *getAlleleFreqScoreFilename() const{return "";};
+  virtual const char *getAlleleFreqScoreFilename2() const{return "";};
+  virtual const char *getAssocScoreFilename() const{return "";};
+  virtual const char* getLikRatioFilename() const{return "";};
+  virtual const char* getIndAdmixModeFilename()const{return "";};
+  virtual bool getTestForAdmixtureAssociation() const{return false;};
+  virtual bool getTestForAffectedsOnly() const{return false;};
+  virtual void setTestForAffectedsOnly(bool){};  
+  virtual bool getTestForHaplotypeAssociation() const{return false;};
+  virtual void setTestForHaplotypeAssociation(bool){};
+  virtual bool getTestForLinkageWithAncestry() const{return false;};
+  virtual void setTestForLinkageWithAncestry(bool){};
+  virtual bool getTestForMisspecifiedAlleleFreqs() const{return false;};
+  virtual bool getTestForMisspecifiedAlleleFreqs2() const{return false;};
+
 
 protected:
   long burnin;
@@ -109,6 +139,7 @@ protected:
   bool TestForResidualAllelicAssoc;
   bool HWTest;
   double regressionPriorPrecision;
+  bool DeleteOldResultsIndicator;//indicates whether to delete contents of resultsdir
 
   string ResultsDir;
   string LogFilename;

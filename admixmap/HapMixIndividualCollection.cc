@@ -1,7 +1,8 @@
 #include "HapMixIndividualCollection.h"
+#include "HapMixOptions.h"
 #include "Comms.h"
 
-HapMixIndividualCollection::HapMixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci){
+HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci){
   SetNullValues();
   GlobalSumAncestry = 0;
   SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
@@ -49,7 +50,7 @@ HapMixIndividualCollection::~HapMixIndividualCollection(){
 //     return 0;
 //   }
 // }
-void HapMixIndividualCollection::SampleLocusAncestry(const AdmixOptions* const options){
+void HapMixIndividualCollection::SampleLocusAncestry(const Options* const options){
 
   fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
 #ifdef PARALLEL
@@ -85,7 +86,7 @@ int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()const{
   else return 0;
 }
 //TODO: alternative for parallel version
-void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const AdmixOptions* const options, const Genome& Loci){
+void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci){
   const std::vector<unsigned>& MaskedLoci = options->getMaskedLoci();
   const std::vector<unsigned>& MaskedIndividuals = options->getMaskedIndividuals();
   int anc[2];

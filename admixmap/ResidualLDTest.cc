@@ -28,7 +28,7 @@ ResidualLDTest::~ResidualLDTest(){
   //Tcount.clear();
 }
 
-void ResidualLDTest::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
+void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 				LogWriter &Log){
   options = op;
   individuals = indiv;

@@ -24,17 +24,17 @@ using namespace::std;
 class AlleleFreqs;
 class Regression;
 
-//! Class to represent an individual and update individual-level parameters
+///Class to represent an individual and update individual-level parameters
 class Individual
 {
 public:
   Individual();
-  Individual(int number, const AdmixOptions* const options, const InputData* const Data);
+  Individual(int number, const Options* const options, const InputData* const Data);
   virtual ~Individual();
 
   void DeleteGenotypes();
   void HMMIsBad(bool loglikisbad);
-  static void SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options);
+  static void SetStaticMembers(Genome* const pLoci, const Options* const options);
 
   void setOutcome(double*);
   void setCovariates(double*);
@@ -49,15 +49,15 @@ public:
   bool isHaploidatLocus(unsigned j)const;
   bool isHaploidIndividual()const;
 
-  virtual double getLogLikelihood(const AdmixOptions* const , const bool forceUpdate, const bool store);
+  virtual double getLogLikelihood(const Options* const , const bool forceUpdate, const bool store);
   void storeLogLikelihood(const bool setHMMAsOK); // to call if a Metropolis proposal is accepted
-  virtual double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options);
+  virtual double getLogLikelihoodAtPosteriorMeans(const Options* const options);
 
   void GetLocusAncestry(int locus, int Ancestry[2])const;
   void GetLocusAncestry(int chrm, int locus, int Ancestry[2])const;
   int GetLocusAncestry(int, int, int)const;
    
-  void SampleLocusAncestry(const AdmixOptions* const options);
+  void SampleLocusAncestry(const Options* const options);
   void AccumulateAncestry(int* SumAncestry);
 #ifdef PARALLEL
   void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
@@ -73,22 +73,22 @@ public:
   void AnnealGenotypeProbs(int j, const double coolness);
 
 protected:
-  unsigned myNumber;//!< number of this individual, counting from 1
+  unsigned myNumber;//number of this individual, counting from 1
   bool SexIsFemale;
-  bool isHaploid;//!< indicates if individual is haploid at all loci or only at X loci
+  bool isHaploid;//indicates if individual is haploid at all loci or only at X loci
   static unsigned int numChromosomes;
   static int Populations;
   static Genome *Loci;
-  static bool Xdata;//!< indicates if there is an X chromosome
-  static unsigned int X_posn;  //!< number of X chromosome
+  static bool Xdata;//indicates if there is an X chromosome
+  static unsigned int X_posn;  //number of X chromosome
   double EffectiveL[2];
-  unsigned NumGametes; //!< 1 if assortative mating or haploid data, 2 if random mating and diploid data
-  std::vector< unsigned int > gametes;//!< number of gametes on each chromosome
+  unsigned NumGametes; // 1 if assortative mating or haploid data, 2 if random mating and diploid data
+  std::vector< unsigned int > gametes;// number of gametes on each chromosome
   std::vector<genotype> genotypes;
-  std::vector<hapPair > *PossibleHapPairs;//!< possible haplotype pairs compatible with genotype
+  std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
   double **GenotypeProbs;
-  bool **GenotypesMissing;//!< indicators for missing genotypes at comp loci
-  bool *missingGenotypes;//!< indicators for missing genotypes at simple loci
+  bool **GenotypesMissing;//indicators for missing genotypes at comp loci
+  bool *missingGenotypes;//indicators for missing genotypes at simple loci
   std::vector<hapPair> sampledHapPairs;
 
   double *Theta;//admixture proportions
@@ -99,17 +99,17 @@ protected:
   double* Covariates;
 
   struct {
-    double value; //!< loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true
-    double tempvalue; //!< to store values temporarily: holds unnanealed value (-energy), or value at proposed update   
-    bool ready;//!< true iff value is the loglikelihood at the current parameter values
-    bool HMMisOK;//!< true iff values in HMM objects correspond to current parameter values for this individual
+    double value; //loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true
+    double tempvalue; // to store values temporarily: holds unnanealed value (-energy), or value at proposed update   
+    bool ready;//true iff value is the loglikelihood at the current parameter values
+    bool HMMisOK;//true iff values in HMM objects correspond to current parameter values for this individual
   } logLikelihood;
   
   void SetUniformAdmixtureProps();
 
-  virtual void UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
+  virtual void UpdateHMMInputs(unsigned int j, const Options* const options, 
 			     const double* const theta, const vector<double> rho);
-  virtual double getLogLikelihood(const AdmixOptions* const options, 
+  virtual double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
   static void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
 };

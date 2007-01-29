@@ -5,10 +5,10 @@
 // }
 
 HapMixModel::~HapMixModel(){
-    delete L;
+  delete L;
 }
 
-void HapMixModel::Initialise(AdmixOptions& options, InputData& data,  LogWriter& Log){
+void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
@@ -23,17 +23,17 @@ void HapMixModel::Initialise(AdmixOptions& options, InputData& data,  LogWriter&
   if(isMaster || isWorker){
     const int numdiploid = IC->getNumDiploidIndividuals();
     if(isMaster){
-	const int numindivs = data.getNumberOfIndividuals();
-	if(numindivs > 1){
-	    Log.setDisplayMode(Quiet);
-	    //Log << numindivs << " individuals\n";
-	    if(numdiploid > 0){
-		Log << numdiploid << " diploid "; 
-		if(numdiploid < numindivs)Log<< "and ";
-	    }
-	    if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
-	    Log << "individuals\n\n";
-	}
+      const int numindivs = data.getNumberOfIndividuals();
+      if(numindivs > 1){
+        Log.setDisplayMode(Quiet);
+        //Log << numindivs << " individuals\n";
+        if(numdiploid > 0){
+          Log << numdiploid << " diploid "; 
+          if(numdiploid < numindivs)Log<< "and ";
+        }
+        if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
+        Log << "individuals\n\n";
+      }
     }
   }
 
@@ -61,29 +61,32 @@ void HapMixModel::Initialise(AdmixOptions& options, InputData& data,  LogWriter&
     MHTest.Initialise(options.getPopulations(), &Loci, options.getMHTestFilename(), Log);
 }
 
-void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, LogWriter&, 
-		      const Vector_s&, double coolness, bool anneal){
+void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogWriter&, 
+                                   const Vector_s&, double coolness, bool anneal){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
+  //cast Options pointer to HapMixOptions for access to HAPMIXMAP options
+  const HapMixOptions* options = (const HapMixOptions*) _options;
+
 
   A.ResetAlleleCounts(options->getPopulations());
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//   if(iteration%2){
-//     if(isMaster || isWorker){
-//       L->UpdateSumIntensitiesByRandomWalk(IC,  
-// 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
-//     }
-//   }
+  //   if(iteration%2){
+  //     if(isMaster || isWorker){
+  //       L->UpdateSumIntensitiesByRandomWalk(IC,  
+  // 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
+  //     }
+  //   }
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // Update individual-level parameters, sampling hidden states
   if(isMaster || isWorker){
     IC->SampleLocusAncestry(options);
-   }
+  }
 
   if(isWorker || isFreqSampler){
     IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
@@ -132,7 +135,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
   }
   if(options->getMHTest() && !anneal && (iteration > options->getBurnIn()))
     MHTest.Update(IC, Loci);//update Mantel-Haenszel test
-      ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
   // update allele frequencies conditional on locus ancestry states
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
@@ -143,7 +146,7 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
 #endif
       A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
 #ifdef PARALLEL
-    MPE_Log_event(8, iteration, "SampledFreqs");
+      MPE_Log_event(8, iteration, "SampledFreqs");
 #endif
     }
 #ifdef PARALLEL
@@ -171,10 +174,10 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if(isMaster || isWorker){
-      //L->UpdateGlobalTheta(iteration, IC);
-      //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
-      L->SampleHapMixLambda(IC->getSumAncestry(),  
-			    (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
+    //L->UpdateGlobalTheta(iteration, IC);
+    //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
+    L->SampleHapMixLambda(IC->getSumAncestry(),  
+                          (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
@@ -200,65 +203,65 @@ void HapMixModel::UpdateParameters(int iteration, const AdmixOptions *options, L
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
 }
 
-void HapMixModel::SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, 
+void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _options, InputData & data, 
 			     LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 			     bool AnnealedRun){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
-//  const bool isWorker = Comms::isWorker();
+  //  const bool isWorker = Comms::isWorker();
+  //cast Options object to HapMixOptions for access to HAPMIXMAP options
+  HapMixOptions& options = (HapMixOptions&) _options;
 
-
-    //Output parameters to file and to screen
-    Log.setDisplayMode(Quiet);
-     if(!AnnealedRun){    
-      // output every 'getSampleEvery()' iterations
-      if(!(iteration % options.getSampleEvery()) && isMaster)
-	OutputParameters(iteration, &options, Log);
-      
-      //Updates and Output after BurnIn     
-      if( !AnnealedRun && iteration > burnin && isMaster){
+  //Output parameters to file and to screen
+  Log.setDisplayMode(Quiet);
+  if(!AnnealedRun){    
+    // output every 'getSampleEvery()' iterations
+    if(!(iteration % options.getSampleEvery()) && isMaster)
+      OutputParameters(iteration, &options, Log);
+    
+    //Updates and Output after BurnIn     
+    if( !AnnealedRun && iteration > burnin && isMaster){
 		
-	// output every 'getSampleEvery() * 10' iterations (still after BurnIn)
-	if (!( (iteration - burnin) % (options.getSampleEvery() * 10))){    
-	  //Ergodic averages
-	  Log.setDisplayMode(On);
-	  if ( strlen( options.getErgodicAverageFilename() ) ){
-	    int samples = iteration - burnin;
-	    if( options.getIndAdmixHierIndicator() ){
-	      L->OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
-	      A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
-	    }
-	    for(unsigned r = 0; r < R.size(); ++r)//regression params
-	      R[r]->OutputErgodicAvg(samples,&avgstream);
+      // output every 'getSampleEvery() * 10' iterations (still after BurnIn)
+      if (!( (iteration - burnin) % (options.getSampleEvery() * 10))){    
+        //Ergodic averages
+        Log.setDisplayMode(On);
+        if ( strlen( options.getErgodicAverageFilename() ) ){
+          int samples = iteration - burnin;
 
-	    OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
- 	    avgstream << endl;
-	  }
-	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
-	  if(options.getMHTest() && Comms::isMaster()){
-	    MHTest.Output(options.getMHTestFilename(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), false);
-	  }
-	}//end "if every'*10" block
-      }//end "if after BurnIn" block
-    } // end "if not AnnealedRun" block
+          L->OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
+          A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
+
+          for(unsigned r = 0; r < R.size(); ++r)//regression params
+            R[r]->OutputErgodicAvg(samples,&avgstream);
+
+          OutputErgodicAvgDeviance(samples, SumEnergy, SumEnergySq);
+          avgstream << endl;
+        }
+        //Score Test output
+        if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
+        if(options.getMHTest() && Comms::isMaster()){
+          MHTest.Output(options.getMHTestFilename(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), false);
+        }
+      }//end "if every'*10" block
+    }//end "if after BurnIn" block
+  } // end "if not AnnealedRun" block
 }
 
-void HapMixModel::OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log){
+void HapMixModel::OutputParameters(int iteration, const Options *options, LogWriter& Log){
+
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
-  if(options->getIndAdmixHierIndicator()  ){
-    //output population-level parameters only when there is a hierarchical model on indadmixture
-    // ** pop admixture, sumintensities
-    if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
-  }
+
+  if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
+
   if((options->getDisplayLevel() > 2) && !options->getFixedAlleleFreqs())A.OutputPriorParams(cout, false);
   // ** regression parameters
   for(unsigned r = 0; r < R.size(); ++r)
     R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
   
   // ** new line in log file but not on screen 
-  if( iteration == 0 && (options->getIndAdmixHierIndicator() || options->getNumberOfOutcomes())) {
+  if( iteration == 0 ) {
     Log.setDisplayMode(Off);
     Log << "\n";
     Log.setDisplayMode(Quiet);
@@ -266,20 +269,18 @@ void HapMixModel::OutputParameters(int iteration, const AdmixOptions *options, L
   
   //if( options->getDisplayLevel()>2 ) cout << endl;
   if( iteration > options->getBurnIn() ){
-      A.OutputPriorParams();
+    A.OutputPriorParams();
 
-    if(options->getOutputAlleleFreq() && !options->getHapMixModelIndicator()){
-	A.OutputAlleleFreqs();
-    }
   }
   // cout << endl;
 }
 
-void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, LogWriter& Log){
+void HapMixModel::PrintAcceptanceRates(const Options& options, LogWriter& Log){
+
   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
   else Log.setDisplayMode(On);
 
-  if(options.getPopulations() > 1 && Comms::isMaster()){
+  if(Comms::isMaster()){
     L->printAcceptanceRates(Log);
   }
   A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates.txt").c_str());
@@ -290,7 +291,10 @@ void HapMixModel::PrintAcceptanceRates(const AdmixOptions& options, LogWriter& L
 }
 
 /// Final tasks to perform just before exit
-void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data ){
+void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputData& data ){
+  //cast Options object to HapMixOptions for access to HAPMIXMAP options
+  const HapMixOptions& options = (const HapMixOptions&) _options;
+
   //Output results of Mantel-Haentszel Test
   if(options.getMHTest() && Comms::isMaster()){
     std::string s = options.getResultsDir();
@@ -330,22 +334,23 @@ void HapMixModel::Finalize(const AdmixOptions& options, LogWriter& Log, const In
     IC->OutputCGProbs(s.c_str());
   }
 }
-void HapMixModel::InitialiseTests(AdmixOptions& options, const InputData& data, LogWriter& Log){
+void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
-    if( options.getScoreTestIndicator() && (isMaster || isWorker)){
-  Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
+  if( options.getScoreTestIndicator() && (isMaster || isWorker)){
+    Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
   }
   if(isMaster)
     InitializeErgodicAvgFile(&options, Log, data.GetPopLabels(), data.getCovariateLabels());
-  //}
 }
 //this function is here because three different objects have to write to avgstream
-void HapMixModel::InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
-				     const Vector_s& , const Vector_s& CovariateLabels){
+void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWriter &Log,  
+                                           const Vector_s& , const Vector_s& CovariateLabels){
   Log.setDisplayMode(Quiet);
+  const HapMixOptions* options = (const HapMixOptions* )_options;
+
   //Open ErgodicAverageFile  
   if( strlen( options->getErgodicAverageFilename() ) ) {
     avgstream.open( options->getErgodicAverageFilename(), ios::out );
@@ -359,10 +364,8 @@ void HapMixModel::InitializeErgodicAvgFile(const AdmixOptions* const options, Lo
     }
     
     // Header line of ergodicaveragefile
-    if( options->getIndAdmixHierIndicator() ){
-      if(options->getPopulations()>1){
-	avgstream << "sumIntensities.mean\t";
-      }
+    if(options->getPopulations()>1){
+      avgstream << "ArrivalRate.mean\t";
       
     }//end if hierarchical model
 
@@ -375,10 +378,10 @@ void HapMixModel::InitializeErgodicAvgFile(const AdmixOptions* const options, Lo
     if( options->getNumberOfOutcomes() > 0 ){
       for(int r = 0; r < options->getNumberOfOutcomes(); ++r){
 	if(IC->getOutcomeType(r)!=CoxData)
-	avgstream << "intercept\t";
+          avgstream << "intercept\t";
 
 	//write covariate labels to header
-	  copy(CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(avgstream, "\t")); 
+        copy(CovariateLabels.begin(), CovariateLabels.end(), ostream_iterator<string>(avgstream, "\t")); 
 
 	if( IC->getOutcomeType(r)==Continuous )//linear regression
 	  avgstream << "precision\t";
@@ -386,16 +389,12 @@ void HapMixModel::InitializeErgodicAvgFile(const AdmixOptions* const options, Lo
     }
 
     avgstream << "MeanDeviance\tVarDeviance\t";
-    if(options->getChibIndicator()){// chib calculation
-      avgstream << "LogPrior\tLogPosterior\tLogPosteriorAdmixture\tLogPosteriorSumIntensities\t"
-		 << "LogPosteriorAlleleFreqs\tLogMarginalLikelihood";
-    }
     avgstream << "\n";
   } else {
     Log << "Not writing ergodic averages to file\n";
   }
 }
 
-double HapMixModel::getDevianceAtPosteriorMean(const AdmixOptions* const options, LogWriter& Log){
+double HapMixModel::getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log){
   return IC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
 }

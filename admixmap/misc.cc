@@ -93,15 +93,15 @@ void ThrowException(const string& msg, LogWriter & Log){
    Writes an iteration number to screen, with newline for verbose output or as a counter for reduced output.
 */
 void WriteIterationNumber(const int iteration, const int width, int displayLevel) {
-  if( displayLevel > 2 ) { 
-    cout << setiosflags( ios::fixed );
+  if( displayLevel > 2 ) {
+    cout << setiosflags( ios::fixed );//causes memory leak/overwrite error
     cout.width(width );
-    cout << "\n"<< iteration << " ";  
+    cout << "\n"<< iteration << " ";
   }
   else if( displayLevel > 1 && iteration >0) { // display iteration counter only
     cout << "\rIterations so far: " << iteration;
   }
-  cout.flush(); 
+  cout.flush();
 }
 
 

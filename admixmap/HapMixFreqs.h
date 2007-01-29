@@ -15,9 +15,11 @@
 #define HAPMIXFREQS_H 1
 
 #include "AlleleFreqs.h"
+#include "samplers/AdaptiveRejection.h"
 #include <vector>
 #include <fstream>
 class Genome;
+class HapMixOptions;
 
 typedef struct{
     unsigned K;
@@ -33,7 +35,7 @@ class HapMixFreqs : public AlleleFreqs{
 public:
   HapMixFreqs();
   ~HapMixFreqs();
-  void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
+  void Initialise(HapMixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
   void PrintPrior(LogWriter& Log)const;
   void SamplePriorDispersion(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2);
@@ -78,7 +80,8 @@ private:
 
   std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior dispersion in hapmixmodel
 
-  void InitialisePrior(unsigned Populations, unsigned L, const AdmixOptions* const options, LogWriter& Log);
+  void LoadAlleleFreqs(Options* const options, InputData* const data_, LogWriter &Log);
+  void InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const options, LogWriter& Log);
   void OpenOutputFile(const char* filename);
   void SampleAlleleFreqs(int, const double coolness);
   void SampleEtaRate(bool afterburnin, double sum);

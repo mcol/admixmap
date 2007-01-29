@@ -55,7 +55,7 @@ int main( int argc , char** argv ){
   //  const bool isWorker = Comms::isWorker();
 
   //read user options
-  AdmixOptions options(argc, argv);
+  HapMixOptions options(argc, argv);
 
   //create results directory, or if it exists, deletes the contents
   if(isMaster){

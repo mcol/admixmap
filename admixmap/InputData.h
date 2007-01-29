@@ -21,7 +21,7 @@ typedef std::vector<std::vector<unsigned short> > genotype;
 /**
  *  Forward declarations.
  */    
-class AdmixOptions;
+class Options;
 class LogWriter;
 class Genome;
 class Chromosome;
@@ -48,7 +48,7 @@ public:
   /**
    *  Read all input data and store in internal structures.
    */    
-  void readData(AdmixOptions *options, LogWriter &log);    
+  void readData(Options *options, LogWriter &log);    
 
 
   /*
@@ -87,7 +87,7 @@ public:
   const Vector_s getCovariateLabels()const;
   //TODO: make all above const
 
-  //void convertGenotypesToIntArray(AdmixOptions *options);
+  //void convertGenotypesToIntArray(Options *options);
   //void convertToVectorsOverCLoci(Genome & Loci, Chromosome **chrm);
 
   bool isFemale(int i)const;
@@ -124,7 +124,7 @@ private:
   DataMatrix reportedAncestryMatrix_;
 
   Vector_s PopulationLabels;
-  std::vector<std::string> LocusLabels;
+  Vector_s LocusLabels;
   Vector_s OutcomeLabels;
   std::vector<DataType> OutcomeType;
   Vector_s CovariateLabels;
@@ -135,13 +135,13 @@ private:
   std::vector<bool> isCaseControlSNP;
 
   void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
-  void ReadPopulationLabels(AdmixOptions *options);
+  void ReadPopulationLabels(Options *options);
   void readGenotypesFile(const char *fname, Matrix_s& data);
-  void CheckGeneticData(AdmixOptions *options)const;
+  void CheckGeneticData(Options *options)const;
   void checkLocusFile(int sexColumn, double threshold, bool);
   unsigned determineNumberOfCompositeLoci()const;
-  void CheckAlleleFreqs(AdmixOptions *options, LogWriter &Log);
-  void CheckOutcomeVarFile(AdmixOptions * const options, LogWriter &Log);
+  void CheckAlleleFreqs(Options *options, LogWriter &Log);
+  void CheckOutcomeVarFile(Options * const options, LogWriter &Log);
   void CheckCoxOutcomeVarFile(LogWriter &log)const;
   void CheckCovariatesFile(LogWriter &log);
   void CheckRepAncestryFile(int populations, LogWriter &Log)const;
@@ -150,7 +150,7 @@ private:
   std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
   std::vector<unsigned short> GetGenotype(const std::string genostring)const;
   void FindCaseControlLoci();
-  void CheckData(AdmixOptions *options, LogWriter &Log);
+  void CheckData(Options *options, LogWriter &Log);
 
   /*
    *  UNIMPLEMENTED: to avoid undesired copying.

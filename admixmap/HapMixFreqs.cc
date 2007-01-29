@@ -1,5 +1,6 @@
 #include "HapMixFreqs.h"
 #include "Genome.h"
+#include "HapMixOptions.h"
 #include "utils/misc.h"
 #include "Comms.h"
 
@@ -20,14 +21,13 @@ HapMixFreqs::~HapMixFreqs(){
   if( allelefreqprioroutput.is_open()) allelefreqprioroutput.close();
 }
 
-void HapMixFreqs::Initialise(AdmixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log ){
+void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log ){
   Loci = pLoci;
   Populations = options->getPopulations();
   NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
   //set model indicators
   hapmixmodel = options->getHapMixModelIndicator();
   RandomAlleleFreqs = !options->getFixedAlleleFreqs();
-
   
   if(Comms::isFreqSampler()){
     LoadAlleleFreqs(options, data, Log);
@@ -39,12 +39,10 @@ void HapMixFreqs::Initialise(AdmixOptions* const options, InputData* const data,
     
     // set which sampler will be used for allele freqs
     // current version uses conjugate sampler if annealing without thermo integration
-    if( (options->getThermoIndicator() && !options->getTestOneIndivIndicator()) ||
+    if( (options->getThermoIndicator() ) ||
 	//using default allele freqs or CAF model
-	( !strlen(options->getAlleleFreqFilename()) &&
-	  !strlen(options->getHistoricalAlleleFreqFilename()) && 
-	  !strlen(options->getPriorAlleleFreqFilename()) && 
-	  !options->getCorrelatedAlleleFreqs() ) ) {
+	( !strlen(options->getAlleleFreqFilename()) && //TODO:check this condition
+	  !strlen(options->getPriorAlleleFreqFilename())  ) ) {
       FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
     } else {
       FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
@@ -78,7 +76,7 @@ void HapMixFreqs::Initialise(AdmixOptions* const options, InputData* const data,
   }
 }
 
-void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const AdmixOptions* const  options, LogWriter& Log ){
+void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const  options, LogWriter& Log ){
   NumberOfCompositeLoci = L;
   //allocate prior arrays
   DirichletParams = new double[NumberOfCompositeLoci];//1D array of prior params for hapmixmodel
@@ -159,6 +157,59 @@ void HapMixFreqs::PrintPrior(LogWriter& Log)const{
     //" and Gamma( " << EtaRatePriorShape << ", " << EtaRatePriorRate << " ) prior on rate.\n"; 
 }
 
+void HapMixFreqs::LoadAlleleFreqs(Options* const options, InputData* const data_, LogWriter &Log)
+{
+  int newrow;
+  int row = 0;
+  const Matrix_s* temporary = 0;
+
+  //allocate frequency arrays
+#ifdef ARRAY2D
+  Freqs.array = new double*[NumberOfCompositeLoci];
+#else
+  Freqs.array = new double[NumberOfCompositeLoci*Populations*2];
+  Freqs.stride = Populations*2;
+  AlleleFreqsMAP.stride = Populations*2;
+#endif
+  AlleleFreqsMAP.array = Freqs.array;
+
+  //set static members of CompositeLocus
+  CompositeLocus::SetRandomAlleleFreqs(RandomAlleleFreqs);
+  CompositeLocus::SetNumberOfPopulations(Populations);
+
+  //read initial values from file
+  bool useinitfile = false;
+  if(strlen( options->getAlleleFreqFilename() )){
+    useinitfile=true;
+    LoadInitialAlleleFreqs(options->getAlleleFreqFilename(), Log);
+  }
+  else{
+    int offset = 0;
+    bool file = false;//flag to indicate if priors have been supplied in a file
+    
+    //priorallelefreqfile option
+    if( strlen( options->getPriorAlleleFreqFilename() ) ){
+      offset = 0;
+      file = true;
+      temporary = &(data_->getPriorAlleleFreqData());
+    }
+    
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+#ifdef ARRAY2D
+      Freqs.array[i] = new double[Loci->GetNumberOfStates(i)* Populations];
+#endif
+      
+      if(file){//read allele freqs from file
+        newrow = row + (*Loci)(i)->GetNumberOfStates() - offset;
+        AlleleFreqs::LoadAlleleFreqs( *temporary, i, row+1, false);//row+1 is the first row for this locus (+1 for the header)
+        row = newrow;
+      }
+      else {  //set default Allele Freqs
+        SetDefaultAlleleFreqs(i);
+      }
+    }
+  }//end else
+}
 void HapMixFreqs::OpenOutputFile(const char* filename){
   if(strlen(filename)){
     allelefreqprioroutput.open(filename);

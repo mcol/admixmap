@@ -1,6 +1,5 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
  *   ResidualLDTest.h 
  *   header file for ResidualLDTest class
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -16,7 +15,7 @@
 
 #include <sstream>
 #include "ScoreTestBase.h"
-#include "AdmixOptions.h"
+#include "Options.h"
 #include "Genome.h"
 #include "AlleleFreqs.h"
 
@@ -28,7 +27,7 @@ class ResidualLDTest : public ScoreTestBase{
 public:
   ResidualLDTest();
 
-  void Initialise(AdmixOptions* , const IndividualCollection* const, const Genome* const ,
+  void Initialise(Options* , const IndividualCollection* const, const Genome* const ,
 		  LogWriter &);
 
   void Output(int iterations, bool final, const std::vector<std::string>& LocusLabels);
@@ -47,7 +46,7 @@ private:
   std::vector<std::vector<std::vector<double> > > SumScore2;
   std::vector<std::vector<std::vector<double> > > SumInfo;
 
-  const AdmixOptions *options;
+  const Options *options;
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
