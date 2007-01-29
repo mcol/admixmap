@@ -5,14 +5,15 @@
 # For other versions, edit the following variables or specify on the command line. 
 # Use make[...] new to recompile from scratch.
 #
-# Serial/Parallel version: VERSION = [serial/parallel]
 # Processor type: ARCH = [i686/P4/AMD64/itanium2]
 # Compiler: CC = [g++/icpc/pgCC/pathCC]
 # MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
 # paths to gsl, mpi, sprng headers: GSL_INCLUDEPATH, MPI_PATH, SPRNG_PATH
-#
+# name of compiled library: LIBNAME
 ###############################################################################################
+
+LIBNAME = bayeslib.a
 
 # GSL - only needed if in nonstandard location 
 GSL_LIBPATH =#standard is /usr/local/lib
@@ -39,8 +40,6 @@ MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
 GCC_VERSION =3
-VERSION = serial
-#VERSION = parallel
 
 ## processor type
 ARCH = i686# Intel 686
@@ -135,10 +134,10 @@ all:	$(SUBLIBS) bayeslib
 serial: all
 
 parallel:
-	@$(MAKE) SUBLIB_RULES=parallel CPPFLAGS="$(CPPFLAGS)"
+	@$(MAKE) SUBLIB_RULES=parallel CPPFLAGS="$(CPPFLAGS)" LIBNAME=parabayeslib.a
 
 bayeslib:
-	ar crs bayeslib.a samplers/*.o utils/*.o regression/*.o
+	ar crs $(LIBNAME) samplers/*.o utils/*.o regression/*.o
 	#ranlib bayeslib.a
 
 libsampler:
