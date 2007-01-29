@@ -102,7 +102,7 @@ ScoreTests::~ScoreTests(){
   }
 }
 
-void ScoreTests::Initialise(AdmixOptions* op, const IndividualCollection* const indiv, const Genome* const Loci, 
+void ScoreTests::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 			    const Vector_s& PLabels, LogWriter &Log){
   options = op;
   individuals = indiv;
@@ -402,7 +402,11 @@ void ScoreTests::Update(const vector<Regression* >& R)
 
 	  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )if(Lociptr->GetNumberOfStates(j)==2){//SNPs only
 	  ind->GetLocusAncestry(j, anc);
+#ifndef PARALLEL
 	    (*Lociptr)(j)->getConditionalHapPairProbs(OrderedProbs, ind->getPossibleHapPairs(j), anc);
+#else
+            //TODO: write alternative for parallel version
+#endif
 	    UnorderedProbs[0] = vector<double>(1, OrderedProbs[0]);//P(no copies of allele2)
 	    UnorderedProbs[1] = vector<double>(1, OrderedProbs[1] + OrderedProbs[2]);//P(1 copy of allele2)
 	    UnorderedProbs[2] = vector<double>(1, OrderedProbs[3]);//P(2 copies of allele2)

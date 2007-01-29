@@ -34,7 +34,7 @@ void IndividualCollection::SetNullValues(){
   ReportedAncestry = 0;
 }
 
-IndividualCollection::IndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
+IndividualCollection::IndividualCollection(const Options* const options, const InputData* const Data, Genome* Loci) {
   SetNullValues();
   Populations = options->getPopulations();
   NumInd = Data->getNumberOfIndividuals();
@@ -87,7 +87,7 @@ void IndividualCollection::DeleteGenotypes(bool setmissing=false){
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 
-void IndividualCollection::LoadData(const AdmixOptions* const options, const InputData* const data_, bool admixtureAsCovariate){
+void IndividualCollection::LoadData(const Options* const options, const InputData* const data_, bool admixtureAsCovariate){
 
   if ( options->getNumberOfOutcomes()>0){
     delete[] OutcomeType;
@@ -102,7 +102,7 @@ void IndividualCollection::LoadData(const AdmixOptions* const options, const Inp
   }
 }
 
-void IndividualCollection::LoadCovariates(const InputData* const data_, const AdmixOptions* const options, bool admixtureAsCovariate){
+void IndividualCollection::LoadCovariates(const InputData* const data_, const Options* const options, bool admixtureAsCovariate){
 //   NumCovariates = 0;
 //   DataMatrix& CovData = (DataMatrix&)data_->getCovariatesMatrix();
 //   if(!(options->getNumberOfOutcomes()==1 && OutcomeType[0]==CoxData))
@@ -228,7 +228,7 @@ void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double cooln
 /**
    Samples Haplotype pairs and upates allele/haplotype counts if requested
 */
-void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
+void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
 					  bool skipMissingGenotypes, bool anneal, bool UpdateAlleleCounts){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
@@ -254,10 +254,10 @@ void IndividualCollection::SampleHapPairs(const AdmixOptions* const options, All
   }
 }
 
-void IndividualCollection::AccumulateAlleleCounts(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
+void IndividualCollection::AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
                                                   bool anneal){
 #ifdef PARALLEL
-      MPE_Log_event(23, iteration, "startAlleleCountUpdate");
+      MPE_Log_event(23, 0, "startAlleleCountUpdate");
 #endif
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
@@ -273,7 +273,7 @@ void IndividualCollection::AccumulateAlleleCounts(const AdmixOptions* const opti
     }
   }
 #ifdef PARALLEL
-      MPE_Log_event(24, iteration, "endAlleleCountUpdate");
+      MPE_Log_event(24, 0, "endAlleleCountUpdate");
 #endif
 
 #ifdef PARALLEL
@@ -390,7 +390,7 @@ int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
 
 // ************** OUTPUT **************
 
-double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* const options, vector<Regression *> &R, Genome* Loci,
+double IndividualCollection::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
 							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
 							, AlleleFreqs* A){
   //TODO: broadcast SumLogRho to workers
@@ -457,7 +457,7 @@ double IndividualCollection::getDevianceAtPosteriorMean(const AdmixOptions* cons
   return(-2.0*Lhat);
 }
 
-double IndividualCollection::getLogLikelihood(const AdmixOptions* const options, bool forceupdate){
+double IndividualCollection::getLogLikelihood(const Options* const options, bool forceupdate){
   double LogLikelihood = 0.0;
   for(unsigned i = worker_rank; i < size; i+= NumWorkers) {
     LogLikelihood += _child[i]->getLogLikelihood(options, forceupdate, true); // store result if updated
@@ -470,7 +470,7 @@ double IndividualCollection::getLogLikelihood(const AdmixOptions* const options,
   return LogLikelihood;
 }
 
-double IndividualCollection::getEnergy(const AdmixOptions* const options, const vector<Regression*> &R, 
+double IndividualCollection::getEnergy(const Options* const options, const vector<Regression*> &R, 
 				       const bool & annealed) {
   // energy is minus the unnannealed log-likelihood summed over all individuals under study from both HMM and regression 
   // called every iteration after burnin, after update of genotype probs and before annealing
