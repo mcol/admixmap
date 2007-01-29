@@ -170,7 +170,6 @@ my $arg_hash = {
     numannealedruns => 0,
     thermo          => 0,
     hapmixmodel     => 1,
-    randommatingmodel => 0,
 
 #prior spec
     hapmixlambdaprior => "30, 0.1, 10, 1",
