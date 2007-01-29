@@ -169,7 +169,7 @@ common_objects	= misc.o Model.o AlleleFreqs.o Options.o AdmixOptions.o InputData
  AffectedsOnlyTest.o AncestryAssocTest.o ScoreTestBase.o ScoreTests.o \
  ResidualLDTest.o HWTest.o AlleleFreqSampler.o Comms.o GenotypeProbOutputter.o Annealer.o
 
-admixmap_objects = admixmap.o AdmixMapModel.o PopAdmix.o AdmixedIndividual.o AdmixIndividualCollection.o\
+admixmap_objects = admixmap.o AdmixMapModel.o PopAdmix.o DispersionFreqs.o AdmixedIndividual.o AdmixIndividualCollection.o\
  chib.o IndAdmixOutputter.o StratificationTest.o MisSpecAlleleFreqTest.o DispersionTest.o
 
 hapmixmap_objects = hapmixmap.o HapMixModel.o HapMixOptions.o PopHapMix.o HapMixFreqs.o HapMixIndividualCollection.o MantelHaenszelTest.o 

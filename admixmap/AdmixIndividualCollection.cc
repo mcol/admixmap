@@ -190,7 +190,7 @@ void AdmixIndividualCollection::SampleLocusAncestry(int iteration, const AdmixOp
   if((iteration %2))
     fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
-  if(iteration > options->getBurnIn()){
+  if(iteration >= options->getBurnIn()){
     if(iteration %2)//only on odd iterations because it is already done on even numbered ones (in SampleAdmixtureWithRandomWalk)
       ancestryAssocTest.Reset();
     affectedsOnlyTest.Reset();
@@ -237,7 +237,7 @@ void AdmixIndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, con
     i0 = 1;
   }
   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-  if(iteration > options->getBurnIn())
+  if(iteration >= options->getBurnIn())
     ancestryAssocTest.Reset();
 
   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
@@ -438,7 +438,7 @@ void AdmixIndividualCollection::getOnePopOneIndLogLikelihood(LogWriter &Log, con
       <<  AdmixedChild[0]->getLogLikelihoodOnePop() << "\n";
 }
 
-void AdmixIndividualCollection::accumulateEnergyArrays(const AdmixOptions* const options) {
+void AdmixIndividualCollection::accumulateEnergyArrays(const Options* const options) {
   double Energy = 0.0;
   for(int i = 0; i < sizeTestInd; ++i){ // loop over coolnesses - one copy of test individual at each coolness 
     Energy = -TestInd[i]->getLogLikelihood(options, true, false); // force HMM update, do not store result  

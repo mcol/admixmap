@@ -91,7 +91,7 @@ AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumLocusAncestry_X;
 }
 
-void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options){
+void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const Options* const options){
   Individual::SetStaticMembers(pLoci, options);
 }
 // draw initial values for admixture proportions theta from Dirichlet prior 
@@ -182,7 +182,7 @@ void AdmixedIndividual::getSumNumArrivals(std::vector<unsigned> *sum)const{
 // public function: 
 // calls private function to get log-likelihood at current parameter values, and stores it either as loglikelihood.value or as loglikelihood.tempvalue
 // store should be false when calculating energy for an annealed run, or when evaluating proposal for global sum-intensities
-double AdmixedIndividual::getLogLikelihood( const AdmixOptions* const options, const bool forceUpdate, const bool store) {
+double AdmixedIndividual::getLogLikelihood( const Options* const options, const bool forceUpdate, const bool store) {
 
   if (!logLikelihood.ready || forceUpdate) {
     logLikelihood.tempvalue = getLogLikelihood(options, Theta, _rho, true);
@@ -195,7 +195,7 @@ double AdmixedIndividual::getLogLikelihood( const AdmixOptions* const options, c
   } else return logLikelihood.value; // nothing was changed
 }
 // private function: gets log-likelihood at parameter values specified as arguments, but does not update loglikelihoodstruct
-double AdmixedIndividual::getLogLikelihood(const AdmixOptions* const options, const double* const theta, 
+double AdmixedIndividual::getLogLikelihood(const Options* const options, const double* const theta, 
 				    const vector<double > rho,  bool updateHMM) {
   double LogLikelihood = 0.0;
   if(Populations == 1) LogLikelihood = getLogLikelihoodOnePop();
@@ -205,7 +205,7 @@ double AdmixedIndividual::getLogLikelihood(const AdmixOptions* const options, co
   return LogLikelihood; // if HMM update not required, can just use stored log-likelihood  
 }
 
-double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options) {
+double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options* const options) {
   // should set allele freqs also to posterior means, and recalculate prob genotypes at these freqs before calling getloglikelihood 
   double* ThetaBar;
 
@@ -693,7 +693,7 @@ void AdmixedIndividual::resetStepSizeApproximator(int k) {
   ThetaTuner.resetStepSizeApproximator(k);
 }
 
-void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
+void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const options, 
 				 const double* const theta, const vector<double> rho) {
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
@@ -701,13 +701,11 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const AdmixOptions* cons
   C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
   bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
-  if(!options->getHapMixModelIndicator()){
-    if(!options->isGlobalRho()){
-      //set locus correlation, f, if individual- or gamete-specific rho
-      C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
-    }
-    C->SetHMMTheta(theta, options->isRandomMatingModel(), diploid);
+  if(!options->isGlobalRho()){
+    //set locus correlation, f, if individual- or gamete-specific rho
+    C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
   }
+  C->SetHMMTheta(theta, options->isRandomMatingModel(), diploid);
   //if(diploid)
   C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed

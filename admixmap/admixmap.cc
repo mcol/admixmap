@@ -18,11 +18,13 @@
 using namespace std;
 
 int main( int argc , char** argv ){
+  //-v flag prints version number and exits
   if(argc==2 & !strcmp(argv[1], "-v")){
     LogWriter LW;
     PrintCopyrightNotice(LW);
     exit(0);
   }
+  //-h flag or --help print a usage messsage
   else if (argc < 2 || (argc ==2 && ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) ) ) {
     PrintOptionsMessage();
     exit(1); 
@@ -91,8 +93,14 @@ int main( int argc , char** argv ){
     M.Initialise(options, data, Log);
 
     data.Delete();
- 
-    M.Run(options, data, Log);
+
+   //  ******** single individual, one population, fixed allele frequencies  ***************************
+    if( M.getNumIndividuals() == 1 && options.getPopulations() == 1 && strlen(options.getAlleleFreqFilename()) )
+      // nothing to do except calculate likelihood
+      M.getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
+    else {
+      M.Run(options, data, Log);
+    }
 
     if(isMaster){
       if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);

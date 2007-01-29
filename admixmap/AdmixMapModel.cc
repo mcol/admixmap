@@ -15,7 +15,7 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWrite
 
   InitialiseLoci(options, data, Log);
 
-  A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
+  A.Initialise(&options, &data, &Loci, Log, options.getChibIndicator()); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object
   
   AdmixedIndividuals = new AdmixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;//and before L and R Initialise
@@ -56,11 +56,15 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWrite
   }
 }
 
-void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options, LogWriter& Log, 
+void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, LogWriter& Log, 
 		      const Vector_s& PopulationLabels, double coolness, bool anneal){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
+
+  //cast Options pointer to AdmixOptions pointer for access to ADMIXMAP options
+  //TODO: change pointer to reference
+  const AdmixOptions* options = (const AdmixOptions*) _options;
 
   A.ResetAlleleCounts(options->getPopulations());
 
@@ -82,7 +86,6 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
       AdmixedIndividuals->setChibNumerator(options, L->getalpha(), L->getrhoalpha(), L->getrhobeta(), &A);
     }
   }
-
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // Update individual-level parameters, sampling locus ancestry states
@@ -206,19 +209,21 @@ void AdmixMapModel::UpdateParameters(int iteration, const AdmixOptions *options,
     }
   }
 #endif
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////   
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
 void AdmixMapModel::ResetStepSizeApproximators(int resetk){
   Model::ResetStepSizeApproximators(resetk);
  L->resetStepSizeApproximator(resetk);
 }
 
-void AdmixMapModel::SubIterate(int iteration, const int & burnin, AdmixOptions & options, InputData & data, 
-			       LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
+void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _options, InputData & data, 
+			       LogWriter& Log, double& SumEnergy, double& SumEnergySq, 
 			       bool AnnealedRun){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
+  //cast Options object to AdmixOptions for access to ADMIXMAP options
+  AdmixOptions& options = (AdmixOptions&) _options;
 
     //Output parameters to file and to screen
     Log.setDisplayMode(Quiet);
@@ -309,41 +314,45 @@ void AdmixMapModel::OutputParameters(int iteration, const AdmixOptions *options,
   // cout << endl;
 }
 
-void AdmixMapModel::PrintAcceptanceRates(const AdmixOptions& options, LogWriter& Log){
-  if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
-  else Log.setDisplayMode(On);
-
-  if(options.getPopulations() > 1 && Comms::isMaster()){
-    L->printAcceptanceRates(Log);
-  }
-  if(options.getCorrelatedAlleleFreqs()){
-    Log<< "Expected acceptance rates in sampler for allele frequency proportion parameters: \n";
-    for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
-      if(Loci(i)->GetNumberOfStates()>2)
-	Log << A.getAlphaSamplerAcceptanceRate(i) << " ";
-    }
-    Log<< "Expected acceptance rate in sampler for allele frequency dispersion parameter: \n";
-    Log << A.getEtaSamplerAcceptanceRate(0)
-	<< "\nwith final step sizes of \n";
-    for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
-      if(Loci(i)->GetNumberOfStates()>2)
-	Log << A.getAlphaSamplerStepsize(i) << " " ;
-    }
-    Log <<  A.getEtaSamplerStepsize(0) << "\n" ;
-  }
-  
-  if( strlen( options.getHistoricalAlleleFreqFilename() )){
-    Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
-    for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaSamplerAcceptanceRate(k)<< " " ;}
-    Log << "\nwith final step sizes of ";
-    for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaSamplerStepsize(k) << " ";}
-    Log << "\n";
-  }
-  A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates.txt").c_str());
-
+void AdmixMapModel::PrintAcceptanceRates(const Options& _options, LogWriter& Log){
+  const AdmixOptions& options = (const AdmixOptions&)_options;
+ if( options.getIndAdmixHierIndicator() ){
+   
+   if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
+   else Log.setDisplayMode(On);
+   
+   if(options.getPopulations() > 1 && Comms::isMaster()){
+     L->printAcceptanceRates(Log);
+   }
+   if(options.getCorrelatedAlleleFreqs()){
+     Log<< "Expected acceptance rates in sampler for allele frequency proportion parameters: \n";
+     for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
+       if(Loci(i)->GetNumberOfStates()>2)
+         Log << A.getAlphaSamplerAcceptanceRate(i) << " ";
+     }
+     Log<< "Expected acceptance rate in sampler for allele frequency dispersion parameter: \n";
+     Log << A.getEtaSamplerAcceptanceRate(0)
+         << "\nwith final step sizes of \n";
+     for(unsigned int i = 0; i < Loci.GetNumberOfCompositeLoci(); i++){
+       if(Loci(i)->GetNumberOfStates()>2)
+         Log << A.getAlphaSamplerStepsize(i) << " " ;
+     }
+     Log <<  A.getEtaSamplerStepsize(0) << "\n" ;
+   }
+   
+   if( strlen( options.getHistoricalAlleleFreqFilename() )){
+     Log << "Expected acceptance rates in allele frequency dispersion parameter samplers:\n ";
+     for(int k = 0; k < options.getPopulations(); ++k){Log << A.getEtaSamplerAcceptanceRate(k)<< " " ;}
+     Log << "\nwith final step sizes of ";
+     for(int k = 0; k < options.getPopulations(); ++k){Log <<  A.getEtaSamplerStepsize(k) << " ";}
+     Log << "\n";
+   }
+   A.OutputAlleleFreqSamplerAcceptanceRates((options.getResultsDir() + "/AlleleFreqSamplerAcceptanceRates.txt").c_str());
+ }
 }
 
-void AdmixMapModel::Finalize(const AdmixOptions& options, LogWriter& Log, const InputData& data){
+void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const InputData& data){
+  const AdmixOptions& options = (const AdmixOptions&)_options;
   if( options.getChibIndicator()) {
     //AdmixedIndividuals->OutputChibEstimates(options.isRandomMatingAdmixMapModel(), Log, options.getPopulations());
     //MLEs of admixture & sumintensities used in Chib algorithm to estimate marginal likelihood
@@ -379,14 +388,17 @@ void AdmixMapModel::Finalize(const AdmixOptions& options, LogWriter& Log, const 
     Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), 
 				      data.GetPopLabels());	
 }
-void AdmixMapModel::InitialiseTests(AdmixOptions& options, const InputData& data, LogWriter& Log){
+void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, LogWriter& Log){
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
+  //cast Options object to AdmixOptions for access to ADMIXMAP options
+  AdmixOptions& options = (AdmixOptions&) _options;
   if( options.getScoreTestIndicator() && (isMaster || isWorker)){
     Scoretests.Initialise(&options, IC, &Loci, data.GetPopLabels(), Log);
   }
+
   //if(isMaster){
   if( options.getTestForDispersion() ){
     DispTest.Initialise(&options, Log, Loci.GetNumberOfCompositeLoci());    
@@ -400,6 +412,7 @@ void AdmixMapModel::InitialiseTests(AdmixOptions& options, const InputData& data
   if(isMaster)
     InitializeErgodicAvgFile(&options, Log, data.GetPopLabels(), data.getCovariateLabels());
   //}
+
 }
 //this function is here because three different objects have to write to avgstream
 void AdmixMapModel::InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
@@ -461,7 +474,7 @@ void AdmixMapModel::InitializeErgodicAvgFile(const AdmixOptions* const options, 
 }
 
 
-double AdmixMapModel::getDevianceAtPosteriorMean(const AdmixOptions* const options, LogWriter& Log){
+double AdmixMapModel::getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log){
   return AdmixedIndividuals->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
 }
 double* AdmixMapModel::getSumEnergy()const{

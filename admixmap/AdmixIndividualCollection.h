@@ -82,7 +82,7 @@ public:
 
   void HMMIsBad(bool b);
   void resetStepSizeApproximators(int k);
-  void accumulateEnergyArrays(const AdmixOptions* const options);
+  void accumulateEnergyArrays(const Options* const options);
   double* getSumEnergy()const;
   double* getSumEnergySq()const;
   void ResetChib();

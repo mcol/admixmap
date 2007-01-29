@@ -28,14 +28,14 @@ public:
   AdmixedIndividual(int number, const AdmixOptions* const options, const InputData* const Data, bool undertest);
   ~AdmixedIndividual();
 
-  static void SetStaticMembers(Genome* const pLoci, const AdmixOptions* const options);
+  static void SetStaticMembers(Genome* const pLoci, const Options* const options);
   static void DeleteStaticMembers();
   void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
 
   double getSumrho()const;
   const std::vector<double> getRho()const;
-  double getLogLikelihood(const AdmixOptions* const , const bool forceUpdate, const bool store);
-  double getLogLikelihoodAtPosteriorMeans(const AdmixOptions* const options);
+  double getLogLikelihood(const Options* const , const bool forceUpdate, const bool store);
+  double getLogLikelihoodAtPosteriorMeans(const Options* const options);
   double getLogLikelihoodOnePop();
 
   void ResetSufficientStats();
@@ -101,7 +101,7 @@ private:
 					       int Populations, int NumCovariates, 
 					       const DataMatrix* const Covariates, const double* beta, 
 					       const double Outcome, const double* const poptheta, const double lambda);
-  void UpdateHMMInputs(unsigned int j, const AdmixOptions* const options, 
+  void UpdateHMMInputs(unsigned int j, const Options* const options, 
 			     const double* const theta, const vector<double> rho);
   void ProposeTheta(const AdmixOptions* const options, const vector<vector<double> > &alpha,
 		    int *SumLocusAncestry, int* SumLocusAncestry_X);
@@ -117,7 +117,7 @@ private:
   
   void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
 			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
-  double getLogLikelihood(const AdmixOptions* const options, 
+  double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
 };
 
