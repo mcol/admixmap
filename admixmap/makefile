@@ -65,7 +65,8 @@ ARCH = i686# Intel 686
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
-CC = $(GNU_COMPILER)#serial
+#CC = $(PATHSCALE_COMPILER)#serial
+CC = $(GNU_COMPILER)
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
@@ -133,9 +134,9 @@ endif
 
 ## Library flags
 # math, GSL, GSL's CBLAS (linear algebra)
-NORMAL_LIBS = $(BAYESLIB_PATH)/bayeslib.a -lm -lgsl -lgslcblas 
+NORMAL_LIBS = -lm -lgsl -lgslcblas 
 
-PARALLEL_LIBS = $(NORMAL_LIBS) -lmpich -lsprng -lgmp -lmpe
+PARALLEL_LIBS =  $(BAYESLIB_PATH)/parabayeslib.a $(NORMAL_LIBS) -lmpich -lsprng -lgmp -lmpe
 #mpich, sprng(parallel RNG), GNU message passing
 
 LFLAGS =#-L$(SPRNG_PATH)/lib
@@ -156,7 +157,7 @@ PARALLEL_ADMEXEC = admixmap-para
 PARALLEL_HAPEXEC = hapmixmap-para
 SERIAL_INCLUDES=$(INCLUDES) 
 
-LIBS = $(LIBTYPE) $(NORMAL_LIBS)
+LIBS = $(LIBTYPE) $(BAYESLIB_PATH)/bayeslib.a $(NORMAL_LIBS)
 CXX=$(CC)
 
 ## **compiler/linker flags
@@ -211,7 +212,7 @@ hapmixmap_message:
 
 checkbayeslib:
 	@echo **Checking for bayeslib**
-	test -e $(BAYESLIB_PATH)/bayeslib.a || $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e
+	test -e $(BAYESLIB_PATH)/$(BAYESLIB_NAME) || $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e
 
 bayeslib:
 	$(MAKE) -C $(BAYESLIB_PATH) -e
