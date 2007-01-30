@@ -3,16 +3,13 @@
 . ${MODULESHOME}/init/sh
 module load taskfarm
 
+source config.sh
+
 CHR22=chr22.pl
 
 BASE_NAME="mutual-information"
 TASK_FILE=${BASE_NAME}-tf.sh
 PREPARATION_FILE=${BASE_NAME}-prep.sh
-# Eur Afr Asian"
-POPULATIONS="Eur Afr Asian"
-# States
-STATES_LIST=$(seq 14 -2 2)
-SAMPLES=2000
 TIME_TOTAL="0"
 
 rm -f "$TASK_FILE" "$PREPARATION_FILE"
