@@ -78,7 +78,10 @@ save.fastphase <- function(genotype, loci, out.fastphase.file) {
 		number.loci,
 		# diffinv does the integration, so distances between loci are
 		# converted to offset positions
-		paste("P", paste(diffinv(loci[,2]), collapse = " ")),
+		# UPDATE: Locus position line removed becuase it's not
+		# used anyway and fastPHASE won't read the data
+		# properly.
+		# paste("P", paste(diffinv(loci[,2]), collapse = " ")),
 		indivs.fastphase(fp),
 		sep = "\n",
 		file = out.fastphase.file)
