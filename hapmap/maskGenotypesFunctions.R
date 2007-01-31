@@ -63,6 +63,7 @@ entropy <- function(vec, na.rm = FALSE) {
 	vecsum <- sum(vec, na.rm = na.rm)
 	# Since it will never sum to exactly 1, there is certain precision
 	if (abs(vecsum - 1.0) > 1e-5) {
+		print(vec)
 		stop("argument needs to sum to 1. Current sum is ", vecsum)
 	}
 	# Zeros do not contribute to entropy
