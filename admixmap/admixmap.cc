@@ -13,7 +13,8 @@
 #include "AdmixMapModel.h"
 #include <fstream>
 
-#define ADMIXMAP_VERSION 3.6
+#define ADMIXMAP_VERSION 3
+#define SUBVERSION 5.3
 
 using namespace std;
 
@@ -149,7 +150,7 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
-      << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION
+      << "            ** ADMIXMAP (v" << ADMIXMAP_VERSION << "." << SUBVERSION
 #ifdef PARALLEL
       << " (Parallel) "
 #endif
