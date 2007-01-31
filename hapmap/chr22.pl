@@ -8,12 +8,6 @@
 # --samples 12 --burnin 2 \
 # --mutual-information
 #
-# TODO: Filenames should be standarized. There are still some hard-coded
-# file names which may be confusing to users.
-#
-# Mutual information calculations. I don't know if using a Perl script
-# as a notebook is great, but I'll do it anyway.
-#
 # Source files:
 # phased_genotypes.txt (haploid)
 # phased_loci.txt
