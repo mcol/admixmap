@@ -88,13 +88,20 @@ void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, Log
   }
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // Update individual-level parameters, sampling locus ancestry states
-  // then update jump indicators (+/- num arrivals if required for conjugate update of admixture or rho
+  /**
+     HMMUpdates does 4 things:
+     (1)Sample individual admixture on even-numbered iterations
+     (2)sample locus ancestry states
+     (3)sample jump indicators, accumulating sufficient stats for updates of individual admixture and sumintensities (where required).
+     (4)updates score, varscore and info in ancestry assoc tests, if required
+     HMM forward updates are invoked as necessary. 
+     This is when computing loglikelihood for random walk update of admixture (once each for current and proposal) then again if the proposal is rejected.
+     When not using random-walk sampler (odd iterations), it is when sampling ancestry.
+     Backward updates are invoked just before the score test update but only if required.
+  */
   if(isMaster || isWorker){
-    if(options->getPopulations() >1 && !(iteration %2))
-      AdmixedIndividuals->SampleAdmixtureWithRandomWalk(iteration, options, R, L->getpoptheta(), L->getalpha(), Scoretests.getAncestryAssocTest(),anneal);
-    AdmixedIndividuals->SampleLocusAncestry(iteration, options, R, Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
-   }
+    AdmixedIndividuals->HMMUpdates(iteration, options, R, L->getpoptheta(), L->getalpha(), Scoretests.getAffectedsOnlyTest(), Scoretests.getAncestryAssocTest(), anneal);
+  }
 
   if(isWorker || isFreqSampler) {
 #ifdef PARALLEL

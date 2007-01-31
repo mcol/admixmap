@@ -36,9 +36,10 @@ public:
   //void LoadData(const AdmixOptions* const options, const InputData* const, bool admixtureAsCovariate);
   void getOnePopOneIndLogLikelihood(LogWriter &Log, const Vector_s& PopulationLabels);
 
-  void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-			   const vector<Regression*> &R,  
-			   AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest, bool anneal);
+  void HMMUpdates(int iteration, const AdmixOptions* const options,
+                  const vector<Regression*> &R, const double* const poptheta,
+                  const vector<vector<double> > &alpha, 
+                  AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest, bool anneal);
   void SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
 				     const vector<Regression*> &R, const double* const poptheta,
 				     const vector<vector<double> > &alpha, AncestryAssocTest& ancestryAssocTest, bool anneal);

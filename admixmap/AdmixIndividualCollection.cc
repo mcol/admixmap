@@ -178,21 +178,79 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 }
 
 /**
-    (1) Samples Locus Ancestry (after updating HMM)
-    (2) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
-    (3) updates score, info and score squared for ancestry score tests
-    coolness is not passed as argument to this function because annealing has already been implemented by 
-    calling annealGenotypeProbs 
+   (1)Samples admixture with random walk, on even-numbered iterations
+   (2) Samples Locus Ancestry (after updating HMM)
+   (3) Samples Jump Indicators and accumulates sums of (numbers of arrivals) and (ancestry states where there is an arrival)
+   (4) updates score, info and score squared for ancestry score tests
+   coolness is not passed as argument to this function because annealing has already been implemented by 
+   calling annealGenotypeProbs 
 */
-void AdmixIndividualCollection::SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-					       const vector<Regression*> &R, 
-					       AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest, bool ){
-  if((iteration %2))
-    fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+// void AdmixIndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
+// 							 const vector<Regression*> &R, const double* const poptheta,
+// 							 const vector<vector<double> > &alpha, AncestryAssocTest& ancestryAssocTest, bool anneal){
+//   vector<double> lambda;
+//   vector<const double*> beta;
+  
+//   for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+//     lambda.push_back( R[i]->getlambda());
+//     beta.push_back( R[i]->getbeta());
+//   }
+  
+//   double dispersion = 0.0; 
+//   if(R.size()>0) dispersion = R[0]->getDispersion();
+
+//   //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
+//   int i0 = 0;
+//   if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
+//     i0 = 1;
+//   }
+//   fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
+//   if(iteration >= options->getBurnIn())
+//     ancestryAssocTest.Reset();
+
+//   bool _anneal = (anneal && !options->getTestOneIndivIndicator());
+//     for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
+// 	double DinvLink = 1.0;
+// 	if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
+// // ** update theta with random-walk proposal on even-numbered iterations
+// 	AdmixedChild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
+// 			       &Covariates, beta, poptheta, options, alpha, DinvLink, 
+// 			       dispersion, ancestryAssocTest, true, _anneal);
+//     }
+// }
+
+void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const options,
+                                                    const vector<Regression*> &R, const double* const poptheta,
+                                                    const vector<vector<double> > &alpha, 
+                                                    AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest, bool anneal){
+  vector<double> lambda;
+  vector<const double*> beta;
+  double dispersion = 0.0; 
+  const bool even_numbered_iteration = !(iteration %2);
+  const bool _anneal = (anneal && !options->getTestOneIndivIndicator());
+  const bool updateScoreTests = iteration > options->getBurnIn()  
+    && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry());
+
+  if(even_numbered_iteration){//lambda, beta and dispersion are only required for random-walk update of admixture
+    for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
+      lambda.push_back( R[i]->getlambda());
+      beta.push_back( R[i]->getbeta());
+    }
+    if(R.size()>0) dispersion = R[0]->getDispersion();
+  }
+
+  //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
+  int i0 = 0;
+  if(options->getTestOneIndivIndicator()) {//skip test individuals when obtaining derivative inverse-link (test indivs are not included in regression)
+    i0 = 1;
+  }
+  //reset sufficient stats for update of pop admixture params to 0
+  //  if((iteration %2))
+  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);
+
   //reset arrays used in score test to 0. This must be done here as the B matrix is updated after sampling admixture
   if(iteration >= options->getBurnIn()){
-    if(iteration %2)//only on odd iterations because it is already done on even numbered ones (in SampleAdmixtureWithRandomWalk)
-      ancestryAssocTest.Reset();
+    ancestryAssocTest.Reset();
     affectedsOnlyTest.Reset();
   }
 
@@ -201,56 +259,31 @@ void AdmixIndividualCollection::SampleLocusAncestry(int iteration, const AdmixOp
     // ** set SumLocusAncestry and SumNumArrivals to 0
     AdmixedChild[i]->ResetSufficientStats();
 
-    // ** Run HMM forward recursions and sample locus ancestry
-    if(Populations >1)_child[i]->SampleLocusAncestry(options);
-    // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
-    if(Populations >1)
-       AdmixedChild[i]->SampleJumpIndicators(!options->isGlobalRho());
-    // ** Update score, info and score^2 for ancestry score tests
-    if(iteration > options->getBurnIn() && Populations >1 
-       && (options->getTestForAffectedsOnly() || options->getTestForLinkageWithAncestry()))
-      AdmixedChild[i]->UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest, ancestryAssocTest);
+    if(Populations >1){//no updates required for single-population model
+      // ** update theta with random-walk proposal on even-numbered iterations
+      if(even_numbered_iteration){
+        double DinvLink = 1.0;
+        if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
+        AdmixedChild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
+                                     &Covariates, beta, poptheta, options, alpha, DinvLink, 
+                                     dispersion, ancestryAssocTest, true, _anneal);
+      }
+      
+      // ** Run HMM forward recursions, if required, and sample locus ancestry
+      _child[i]->SampleLocusAncestry(options);
+      // ** Sample JumpIndicators and update SumLocusAncestry and SumNumArrivals
+      AdmixedChild[i]->SampleJumpIndicators(!options->isGlobalRho());
+    
+      // ** Update score, info and varscore for ancestry score tests
+      if(updateScoreTests)
+        AdmixedChild[i]->UpdateScores(options, &Outcome, &Covariates, R, affectedsOnlyTest, ancestryAssocTest);
+    }
 
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, iteration, "Sampledancestry");
 #endif
 }
-
-void AdmixIndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
-							 const vector<Regression*> &R, const double* const poptheta,
-							 const vector<vector<double> > &alpha, AncestryAssocTest& ancestryAssocTest, bool anneal){
-  vector<double> lambda;
-  vector<const double*> beta;
-  
-  for(int i = 0; i < options->getNumberOfOutcomes(); ++i){
-    lambda.push_back( R[i]->getlambda());
-    beta.push_back( R[i]->getbeta());
-  }
-  
-  double dispersion = 0.0; 
-  if(R.size()>0) dispersion = R[0]->getDispersion();
-
-  //if( !options->getIndAdmixHierIndicator() ) alpha = admixtureprior;
-  int i0 = 0;
-  if(options->getTestOneIndivIndicator()) {// anneal likelihood for test individual only 
-    i0 = 1;
-  }
-  fill(SumLogTheta, SumLogTheta+options->getPopulations(), 0.0);//reset to 0
-  if(iteration >= options->getBurnIn())
-    ancestryAssocTest.Reset();
-
-  bool _anneal = (anneal && !options->getTestOneIndivIndicator());
-    for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
-	double DinvLink = 1.0;
-	if(R.size())DinvLink = R[0]->DerivativeInverseLinkFunction(i+i0);
-// ** update theta with random-walk proposal on even-numbered iterations
-	AdmixedChild[i]->SampleTheta(iteration, SumLogTheta, &Outcome, OutcomeType, lambda, NumCovariates,
-			       &Covariates, beta, poptheta, options, alpha, DinvLink, 
-			       dispersion, ancestryAssocTest, true, _anneal);
-    }
-}
-
 
 ///samples individual-level sumintensities and admixture
 void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptions* const options,
