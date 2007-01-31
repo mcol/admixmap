@@ -97,6 +97,12 @@ sub get_columns_by_indices(\@) {
     return @cols;
 }
 
+sub get_no_individuals {
+    my $self = shift;
+    # Dividing by two because assuming the data is haploid.
+    return scalar(keys %{$self->{INDIVS}});
+}
+
 # Writes file with given columns
 sub write_cols_to_file($\@) {
     my $self = shift;
@@ -120,6 +126,33 @@ sub write_file_from_loci_ids($\@) {
     my @ids = @_;
     my @indices = $self->get_column_indices_by_names(@ids);
     $self->write_cols_to_file($file_name, \@indices);
+}
+
+sub get_fastphase_lines {
+    my $self = shift;
+    my @fpg;
+    my @indiv_ids = sort keys %{$self->{INDIVS}};
+    my $counter = 0;
+    my $indiv_id;
+    # Assume the data is haplotype. Taking ever second row.
+    my $go_on = 1;
+    my @cols;
+    while ($indiv_ids[$counter]) {
+        $indiv_id = $indiv_ids[$counter];
+        if (not exists $self->{INDIVS}{$indiv_id}) {
+            print "Indivdual '$indiv_id' doesn't exist.\n";
+            last;
+        }
+        push(@fpg, "# id $indiv_id");
+        @cols = split(/\s+/, $self->{INDIVS}{$indiv_id});
+        push(@fpg, join("", @cols[1 .. $#cols]));
+        $counter++;
+        # $indiv_id = $indiv_ids[$counter];
+        # @cols = split(/\s+/, $self->{INDIVS}{$indiv_id});
+        # push(@fpg, join("", @cols[1 .. $#cols]));
+        # $counter++;
+    }
+    return @fpg;
 }
 
 # The following line is necessary.

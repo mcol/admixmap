@@ -14,7 +14,7 @@ sub new(@) {
     my $position = shift;
     # This produces a warning when -w flag is used.
     # However, no other efficient method is available.
-    if ($distance == 0 && $distance ne "0")  {
+    if ($distance eq "#" or ($distance == 0 and $distance ne "0"))  {
         # Not a number
         $self->{POSITION} = 0;
     } else {

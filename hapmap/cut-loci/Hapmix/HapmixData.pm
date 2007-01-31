@@ -86,5 +86,22 @@ sub range_by_ids(@) {
     return $self->{LOCI}->get_range(@minmax);
 }
 
+# Save file in fastPHASE format
+sub write_fastphase($) {
+    my $self = shift;
+    my $file_name = shift;
+    my $no_loci_count = shift;
+    open(FAST_PHASE, ">$file_name");
+    print FAST_PHASE $self->{GENOTYPES}->get_no_individuals() . "\n";
+    if (not $no_loci_count) {
+        print FAST_PHASE $self->{LOCI}->get_no_loci() . "\n";
+    }
+    my @fastphase_genotypes = $self->{GENOTYPES}->get_fastphase_lines();
+    foreach my $line (@fastphase_genotypes) {
+        print FAST_PHASE $line . "\n";
+    }
+    close(FAST_PHASE);
+}
+
 # The following line is necessary.
 1;

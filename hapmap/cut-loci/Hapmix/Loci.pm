@@ -299,5 +299,10 @@ sub get_range {
     return map { $self->get_locus_by_number($_)->snp_id() } @numbers;
 }
 
+sub get_no_loci {
+    my $self = shift;
+    return $self->{HIGHEST_NUMBER} + 1;
+}
+
 # The following line is necessary.
 1;
