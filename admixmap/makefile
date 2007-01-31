@@ -29,6 +29,7 @@ GSL_INCLUDEPATH=#/usr/local/include
 
 #path to sampling library
 BAYESLIB_PATH =../bayeslib
+BAYESLIB_NAME =bayeslib.a
 
 ## for parallel version only
 # path to mpi top level directory
@@ -156,6 +157,7 @@ PARALLEL_INCLUDES = $(INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 PARALLEL_ADMEXEC = admixmap-para
 PARALLEL_HAPEXEC = hapmixmap-para
 SERIAL_INCLUDES=$(INCLUDES) 
+PARALLEL_DEFINES=
 
 LIBS = $(LIBTYPE) $(BAYESLIB_PATH)/bayeslib.a $(NORMAL_LIBS)
 CXX=$(CC)
@@ -194,10 +196,10 @@ parallel: hapmixmap-para
 
 #HAPMIXMAP parallel
 hapmixmap-para:
-	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) HAPEXEC=$(PARALLEL_HAPEXEC) BAYESLIB_RULES=parallel
+	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) HAPEXEC=$(PARALLEL_HAPEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
 #ADMIXMAP parallel
 admixmap-para:
-	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel
+	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
 
 define_admixmap:
 	@echo "#define __ADMIXMAP__" > defs.h
@@ -210,9 +212,11 @@ admixmap_message:
 hapmixmap_message:	
 	@echo **Compiling HAPMIXMAP**
 
+##checks for existence of bayeslib. It it does not, compile it; if it does, write parallel.h
+##this is necessary in case the version of parallel.h that exists is the wrong one
 checkbayeslib:
 	@echo **Checking for bayeslib**
-	test -e $(BAYESLIB_PATH)/$(BAYESLIB_NAME) || $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e
+	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo $(PARALLEL_DEFINES) >$(BAYESLIB_PATH)/parallel.h;else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e;fi;
 
 bayeslib:
 	$(MAKE) -C $(BAYESLIB_PATH) -e
@@ -238,9 +242,13 @@ allnew:	libnew new
 clean:		          
 	rm -f *.o
 
-#delete sampler library
+#delete bayeslib object files
 libclean: 
 	$(MAKE) -C $(BAYESLIB_PATH) clean
+
+#delete sampler library
+librealclean:
+	$(MAKE) -C $(BAYESLIB_PATH) realclean
 
 #recompile sampler library
 libnew: 
