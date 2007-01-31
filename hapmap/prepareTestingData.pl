@@ -121,6 +121,11 @@ sub write_idx_to_file(\$\$$\@\@$) {
 		$firstline[0] = "Individ";
 	}
 	$limit = $limit_loci ? $limit_loci : ($#firstline - 1);
+    if ($limit_loci and $limit_loci < $#firstline) {
+        $limit =  $limit_loci;
+    } else {
+        $limit =  ($#firstline - 1);
+    }
 	print OUT_FILE join("\t", @firstline[0 .. $limit]) . "\n";
 	foreach my $idx (@indices) {
 		my @ind_lines = get_indiv_lines($idx, @wlines);
