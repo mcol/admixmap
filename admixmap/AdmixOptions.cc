@@ -800,6 +800,7 @@ void AdmixOptions::PrintOptions(){
     {
     useroptions["populations"] = (char *)s.str().c_str();
     }
+  useroptions["hapmixmodel"] = "0";
   //Now output Options table to args.txt
   Options::PrintOptions();
 }
