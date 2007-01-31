@@ -153,13 +153,13 @@ clean:
 	$(MAKE) -C samplers clean
 	$(MAKE) -C utils clean
 	$(MAKE) -C regression clean
-	rm -f  *.a *.so
 
+realclean:clean
+	rm -f *.a *.so
 allnew:
 	$(MAKE) -C samplers clean all -e
 	$(MAKE) -C utils clean all -e
 	$(MAKE) -C regression clean all -e
-
 
 dist:
 	rm bayeslib.tar.gz
