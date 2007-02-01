@@ -222,7 +222,14 @@ mutual.information <- function(joint.pd) {
 	x.entropy = entropy(rowSums(joint.pd))
 	y.entropy = entropy(colSums(joint.pd))
 	joint.pd.entropy = entropy(joint.pd)
-	return(x.entropy + y.entropy - joint.pd.entropy)
+	mi = x.entropy + y.entropy - joint.pd.entropy
+	# Probably because of http://actin.ucd.ie/trac/genepi/ticket/2
+	# If the result is very close to zero, round it to zero.
+	if (abs(mi) < 1e-7) {
+		return(0)
+	} else {
+		return(mi)
+	}
 }
 
 # After Wikipedia:
@@ -231,6 +238,11 @@ coefficient.of.constraint <- function(joint.pd) {
 	mi <- mutual.information(joint.pd)
 	Hy = entropy(colSums(joint.pd))
 	if (Hy == 0) {
+		# print(joint.pd)
+		# stop("Zero entropy!")
+		#
+		# This usually happens when all individuals from the
+		# case-control set are monomorphic.
 		return(NA)
 	} else {
 		return(mi / Hy)
