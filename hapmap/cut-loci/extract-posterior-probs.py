@@ -88,9 +88,16 @@ class Individual:
         no_loci = len(lines[0])
         for i in range(no_loci):
             if not self.loci.has_key(i):
-                self.loci[i] = []
+                self.loci[i] = {}
+                for g in self.data_set.GENOTYPES:
+                    self.loci[i][g] = 0
             locus = self.loci[i]
-            locus.append((lines[0][i], lines[1][i]))
+            g = self.get_genotype((lines[0][i], lines[1][i]))
+            if g is None:
+                continue
+            assert g in self.data_set.GENOTYPES
+            locus[g] += 1
+            # locus.append((lines[0][i], lines[1][i]))
     def __str__(self):
         return "I: %s ..." % self.loci[0]
     def test(self):
@@ -113,18 +120,7 @@ class Individual:
         # print "get_genotype(): incoming %s, outgoing %s" % (a, g)
         return g
     def get_genotype_counts(self, locus_no):
-        locus = self.loci[locus_no]
-        counts = {}
-        for genotype in self.data_set.GENOTYPES:
-            counts[genotype] = 0
-        for sample in locus:
-            g = self.get_genotype(sample)
-            # Ignore the missing value.
-            if g is None:
-                continue
-            assert g in self.data_set.GENOTYPES
-            counts[g] += 1
-        return counts
+        return self.loci[locus_no]
     def get_genotype_distrib(self, locus_no):
         counts = self.get_genotype_counts(locus_no)
         total = sum([counts[i] for i in counts.keys()])
