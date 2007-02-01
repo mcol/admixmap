@@ -16,9 +16,9 @@ args <- commandArgs()
 chromosome <- get_option("chromosome", args[7])
 # chromosome <- "Chr22"
 population <- get_option("population", args[8])
-# population <- "Asian"
+# population <- "Eur"
 states <- get_option("states", args[9], int = TRUE)
-# states <- "4"
+# states <- "8"
 
 genotypes = c("1,1", "1,2", "2,2")
 
@@ -56,13 +56,13 @@ for (locus.id in dimnames(GP)[[3]]) {
 }
 
 write.table(mi,
-	file = paste(results.dir, "/coefficient-of-constraint-by-locus.txt", sep = ""),
+	file = paste(results.dir, "coefficient-of-constraint-by-locus.txt", sep = "/"),
 	row.names = TRUE, col.names = NA)
 dput(mi, file = paste(results.dir, "coefficient-of-constraint-by-locus-dput.txt", sep = "/"))
 write.table(mean(mi[,1], na.rm = TRUE),
-	file = paste(results.dir, "/mean-coefficient-of-constraint.txt", sep = ""),
+	file = paste(results.dir, "mean-coefficient-of-constraint.txt", sep = "/"),
 	col.names = FALSE, row.names = FALSE)
 write.table(mean(mi[,2], na.rm = TRUE),
-	file = paste(results.dir, "/mean-coefficient-of-constraint-no-uncert.txt", sep = ""),
+	file = paste(results.dir, "mean-coefficient-of-constraint-no-uncert.txt", sep = "/"),
 	col.names = FALSE, row.names = FALSE)
 
