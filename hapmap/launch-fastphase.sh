@@ -10,7 +10,7 @@ STATES=8
 
 # for POPULATION in $POPULATIONS
 function populations {
-for POPULATION in Eur
+for POPULATION in Afr Asian
 do
 	# Convert the data.
 	# Main data should be hiven as haploid with option -B, sourcing
@@ -37,10 +37,15 @@ do
 		--no-loci-count
 	popd
 	pushd "$WORKING_DATA_DIR"
-	$FAST_PHASE -T2 -C2 -K$STATES \
-		-s50 \
+	$FAST_PHASE -T20 -C50 -K$STATES \
+		-s1000 \
 		-bfastphase_haplotypes.inp \
 		mi_cc_fastphase.inp
+	if [ ! "$?" = "0" ]
+	then
+		echo "fastPHASE returned an error (dir $(pwd))."
+		exit 1
+	fi
 	popd
 	# Extract the posterior distribution and save it as separate
 	# file with values, in R `dget' format.
@@ -49,7 +54,12 @@ do
 		--output "$WORKING_DIR/PPGenotypeProbs.txt" \
 		--args-file "$WORKING_DATA_DIR/mi_cc_index.txt" \
 		-i 10
-    echo "Running R for coefficient of constraint calculation."
+	if [ "$?" != "0" ]
+	then
+		echo "Python script returned an error."
+		exit 1
+	fi
+	echo "Running R for coefficient of constraint calculation."
 	R CMD BATCH --no-save --no-restore \
 		--chromosome=Chr22 \
 		--population=${POPULATION}-fastPHASE \
