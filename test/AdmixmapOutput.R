@@ -448,8 +448,10 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   }
   scoretests <- dget(paste(resultsdir,scorefile,sep="/"))
   ## extract first row containing locus names
+  L <- dim(scoretests)[2] / KK
   locusnames <- scoretests[1, seq(1, dim(scoretests)[2], by=KK), 1]
   testnames <- paste(scoretests[1,,1], scoretests[2,,1])
+
   ## drop first two rows and reformat as 4-way array
   scoretests.n <- array(data=scoretests[-c(1:2),,],dim=c(dim(scoretests)[1]-2,dim(scoretests)[2],dim(scoretests)[3]))
   dim3way <- dim(scoretests.n)
@@ -459,31 +461,33 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   scoretests4way[is.nan(scoretests4way)] <- NA
   
   ## plot cumulative p-values in K colours
-  pvalues <- array(data=scoretests4way[8,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
+  pvalues <- array(data=scoretests4way[1,,,],dim=c(dim(scoretests4way)[2:4]),dimnames=c(dimnames(scoretests4way)[2:4]))
   if(length(!is.na(pvalues)) > 0) {
     plotPValuesKPopulations(testname, pvalues, thinning)
   }
-  ## extract final table as 3-way array: statistic, locus, population
+  rm(scoretests4way)
+  rm(scoretests.n)
+  rm(scoretests)
   
-  scoretest.final <- array(data=scoretests4way[,,,dim(scoretests4way)[4]],dim=c(dim(scoretests4way)[1:3]),
-                           dimnames=c(dimnames(scoretests4way)[1:3]))
+##read final table
+  final.filename <- paste(testname, "Final.txt", sep="")
+  scoretest.final.table <- as.matrix(read.table(paste(resultsdir,final.filename ,sep="/"), header=T, colClasses=c("character", "character", rep("numeric", 8)))[,-c(1:2)])
+  ##reformat as 3-way array: population, locus, statistic
+  scoretest.final <- array(scoretest.final.table, dim=c(KK, L, 8), dimnames=list(poplabels, locusnames, dimnames(scoretest.final.table)[[2]]))
+  rm(scoretest.final.table)
   
-  ## set test statistic to missing if obs info < 1
-  if(getOutcomeType(dimnames(param.samples)[[2]]) == 1){#continuous outcome
-    scoretest.final[7,,][scoretest.final[3,,] < 1] <- NA
-  }
   ##plot z-scores across genome
-  zscores <- array(data=scoretest.final[7,,], dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
+  zscores <- t(scoretest.final[,,7])
   plotScoreMap(loci.compound,zscores, KK, testname) 
   ## plot information content
-  info.content <- array(data=scoretest.final[4, , ],dim=c(dim(scoretest.final)[2:3]),dimnames=c(dimnames(scoretest.final)[2:3]))
+  info.content <- t(scoretest.final[,,2])
   plotInfoMap(loci.compound, info.content, KK, testname)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
   ## a likelihood ratio of 0.01
   ## based on quadratic approximation to the log-likelihood as a function of log r
-  u <- as.vector(scoretest.final[1,1,])
-  v <- as.vector(scoretest.final[3,1,])
+  u <- as.vector(scoretest.final[,1,1])
+  v <- as.vector(scoretest.final[,1,3])
   ## set to missing if obs info < 1
   v[v < 1] <- NA
   r.exclude.hi <- exp(u/v + sqrt(u^2 + 2*v*log(100))/v)
