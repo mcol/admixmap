@@ -130,6 +130,14 @@ my %state_files = (
 
 my @archive_files = (
     'PPGenotypeProbs.txt',
+    'EnergyTracePlot.ps',
+    'logfile.txt',
+    'loglikelihoodfile.txt',
+    'PosteriorQuantiles.txt',
+    'coefficient-of-constraint-by-locus-dput.txt',
+    'coefficient-of-constraint-by-locus.txt',
+    'mean-coefficient-of-constraint-no-uncert.txt',
+    'mean-coefficient-of-constraint.txt',
 );
 
 my $datadir = "$POP/chr22data";
@@ -421,10 +429,10 @@ sub rotate_files {
             or die("Cannot copy the '$src_file' to '$timestamped'.\n");
         # When training, archive the state.
         if (not $maskfile) {
-            my @archive_files = (
+            my @trained_files = (
                 $base_name . "-trained-" . $timestamp . ".txt",
                 $base_name . "-trained-latest.txt");
-            foreach my $arc_file (@archive_files) {
+            foreach my $arc_file (@trained_files) {
                 copy($src_file, $arc_file)
                     or die ("Cannot copy the '$src_file' to '$arc_file'.\n");
             }
@@ -434,10 +442,15 @@ sub rotate_files {
     }
     foreach my $arc_file (@archive_files) {
         my $src_file = $args->{resultsdir} . "/" . $arc_file;
-        # Chop off the last .txt
-        my $base_name = substr($src_file, 0, index($src_file, ".txt"));
-        my $dst_file = $base_name . "-" . $timestamp . ".txt";
-        copy($src_file, $dst_file) or die("Cannot copy '$src_file' to '$dst_file'.");
+        # Chop off the extension
+        my @parts = split(/\./, $src_file);
+        my $ext = pop(@parts);
+        my $dst_file = join(".", @parts) . "-$timestamp" . "." . $ext;
+        if (-r $src_file) {
+            copy($src_file, $dst_file) or die("Cannot copy '$src_file' to '$dst_file'.");
+        } else {
+            warn("Can't find '$src_file'.\n");
+        }
     }
 }
 
@@ -456,7 +469,6 @@ sub doAnalysis
     }
     # Everybody likes Perl shortcuts.
     system($command) and die("'$command' has returned an error.\n");
-    rotate_files($args);
     # Collect the time stats.
     system("bash log-time.sh " . $arg_hash->{resultsdir} . "/logfile.txt")
         and warn("Couldn't collect the time stats.");
@@ -465,4 +477,5 @@ sub doAnalysis
     if ($calculate_mi) {
         calculate_mutual_information();
     }
+    rotate_files($args);
 }
