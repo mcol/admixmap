@@ -25,6 +25,10 @@ then
 	HAPLOID=$(cat $LOG_FILE | grep "haploid individuals" | cut -d" " -f1)
 fi
 DIPLOID=$(cat $LOG_FILE | grep "diploid"| cut -d" " -f1)
+if [ -z "$DIPLOID" ]
+then
+	DIPLOID=0
+fi
 ELAPSED=$(cat $LOG_FILE | grep "Elapsed seconds" | cut -d"=" -f2)
 
 echo -e >> "$TIME_FILE" "$POPULATION\t$STATES\t$SAMPLES\t$HAPLOID\t$DIPLOID\t$ELAPSED"
