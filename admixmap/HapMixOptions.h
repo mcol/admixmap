@@ -18,7 +18,7 @@
 #include "Options.h"
 using namespace::std;
 
-//TODO:check dispparamfile, rhosamplerparams, allelefreqfile, allelefreqoutputfile, allelefreqprior, globalrhoprior
+//TODO:check dispparamfile, allelefreqoutputfile, allelefreqprior, globalrhoprior
 
 
 
@@ -43,6 +43,7 @@ public:
   const std::vector<double> &getHapMixLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
   const char* getInitialHapMixLambdaFilename()const;
+  const char* getInitialAlleleFreqFilename()const;
   const char* getInitialFreqPriorFilename()const;
   const char* getCCGenotypesFilename()const;
 
@@ -53,7 +54,7 @@ public:
   void setPopulations(int num);
   bool getFixedAlleleFreqs() const;
   bool isFreqDispersionHierModel()const;
-  const vector<float>& getrhoSamplerParams()const;
+  const vector<float>& getLambdaSamplerParams()const;
   bool getTestOneIndivIndicator() const{return false;};//not supported in hapmixmodel
   bool isRandomMatingModel() const{return false;};//required to pass as Options object to some functions
   bool isGlobalRho() const{return false;};//                 "
@@ -79,13 +80,12 @@ private:
   std::vector<double> allelefreqprior;
   std::vector<double> hapmixlambdaprior;///< prior means of rho prior params in hapmixmodel
 
-  std::vector<float> rhoSamplerParams;//parameters for sampler of population sumintensities
-
   string EtaOutputFilename;
   string AlleleFreqPriorOutputFilename;
   string MHTestFilename;
   string HapMixLambdaOutputFilename;
   string InitialHapMixLambdaFilename;
+  string InitialAlleleFreqFilename;
   string InitialFreqPriorFile;
   string CCGenotypesFilename;//case-control genotypes file (hapmixmodel only)
 

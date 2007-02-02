@@ -41,8 +41,7 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
     // current version uses conjugate sampler if annealing without thermo integration
     if( (options->getThermoIndicator() ) ||
 	//using default allele freqs or CAF model
-	( !strlen(options->getAlleleFreqFilename()) && //TODO:check this condition
-	  !strlen(options->getPriorAlleleFreqFilename())  ) ) {
+	(  !strlen(options->getPriorAlleleFreqFilename()) && !strlen(options->getInitialAlleleFreqFilename()) ) ) {
       FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
     } else {
       FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
@@ -157,7 +156,7 @@ void HapMixFreqs::PrintPrior(LogWriter& Log)const{
     //" and Gamma( " << EtaRatePriorShape << ", " << EtaRatePriorRate << " ) prior on rate.\n"; 
 }
 
-void HapMixFreqs::LoadAlleleFreqs(Options* const options, InputData* const data_, LogWriter &Log)
+void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const data_, LogWriter &Log)
 {
   int newrow;
   int row = 0;
@@ -179,9 +178,9 @@ void HapMixFreqs::LoadAlleleFreqs(Options* const options, InputData* const data_
 
   //read initial values from file
   bool useinitfile = false;
-  if(strlen( options->getAlleleFreqFilename() )){
+  if(strlen( options->getInitialAlleleFreqFilename() )){
     useinitfile=true;
-    LoadInitialAlleleFreqs(options->getAlleleFreqFilename(), Log);
+    LoadInitialAlleleFreqs(options->getInitialAlleleFreqFilename(), Log);
   }
   else{
     int offset = 0;

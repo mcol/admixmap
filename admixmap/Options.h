@@ -66,7 +66,6 @@ public:
   int getTargetIndicator() const;
   const char *getCovariatesFilename() const;  
   const char *getPriorAlleleFreqFilename() const;
-  const char *getAlleleFreqFilename() const;
 
   double getRegressionPriorPrecision()const;
   unsigned int getgenotypesSexColumn() const;
@@ -98,6 +97,7 @@ public:
   //filenames in derived classes
   //these are required by InputData. Can be removed if InpuData and ScoreTets are forked successfully
   virtual const char* getCCGenotypesFilename()const{return "";};
+  virtual const char* getAlleleFreqFilename ()const{return "";};
   virtual const char *getHistoricalAlleleFreqFilename() const{return "";};
   virtual const char *getReportedAncestryFilename() const{return "";};
   virtual const char *getEtaPriorFilename() const{return "";};
@@ -154,11 +154,12 @@ protected:
   string ResidualAllelicAssocScoreFilename;
   string HWTestFilename;
   string PriorAlleleFreqFilename;
-  string alleleFreqFilename;
   string CovariatesFilename;
   string OutcomeVarFilename;
   string CoxOutcomeVarFilename;
   string EYFilename;
+
+  std::vector<float> rhoSamplerParams;//parameters for sampler of population sumintensities or arrival rate
 
   UserOptions useroptions;
   //OptionMap OptionValues;//to output user options

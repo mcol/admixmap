@@ -33,6 +33,7 @@ public:
   const char *getIndAdmixtureFilename() const;
 
   //input file names
+  const char *getAlleleFreqFilename() const;
   const char *getHistoricalAlleleFreqFilename() const;
   const char *getReportedAncestryFilename() const;
   const char *getEtaPriorFilename() const;
@@ -109,7 +110,7 @@ private:
   bool RandomMatingModel;//random mating model
   bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
-  const static bool HapMixModelIndicator = false; //model haplotypes with mixture model
+  static const bool HapMixModelIndicator = false; //model haplotypes with mixture model
   bool chibIndicator;//calculate marginal likelihood using Chib method
   bool TestOneIndivIndicator;//calculate marginal likelihood for one individual only
   bool PopAdmixPropsAreEqual;
@@ -136,7 +137,6 @@ private:
   std::vector< std::vector<double> > initalpha;
   double etamean, etavar;//gamma parameters for dispersion parameter
 
-  std::vector<float> rhoSamplerParams;//parameters for sampler of population sumintensities
   std::vector<float> popAdmixSamplerParams;//parameters for sampler of population admixture
   string AffectedsOnlyScoreFilename;
   //string AlleleFreqPriorOutputFilename;
@@ -152,6 +152,7 @@ private:
   string AncestryAssociationScoreFilename;
   string LikRatioFilename;
   string IndAdmixModeFilename;
+  string alleleFreqFilename;  
   string HistoricalAlleleFreqFilename;
   string EtaPriorFilename;
   string ReportedAncestryFilename;

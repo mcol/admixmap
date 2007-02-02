@@ -138,10 +138,6 @@ void Options::setgenotypesSexColumn(unsigned int i)
 bool Options::CheckData()const{
     return checkData;
 }
-const char *Options::getAlleleFreqFilename() const
-{
-  return alleleFreqFilename.c_str();
-}
 const char *Options::getAlleleFreqOutputFilename() const
 {
   return AlleleFreqOutputFilename.c_str();
@@ -152,7 +148,7 @@ const char *Options::getErgodicAverageFilename() const
 }
 bool Options::getFixedAlleleFreqs() const
 {
-  return (fixedallelefreqs || alleleFreqFilename.length());
+  return (fixedallelefreqs);
 }
 const char *Options::getParameterFilename() const
 {
@@ -347,7 +343,6 @@ void Options::SetOptions(OptionMap& ProgOptions)
   ProgOptions["locusfile"] = OptionPair(&LocusFilename, "string");
   ProgOptions["genotypesfile"] = OptionPair(&GenotypesFilename, "string");
   ProgOptions["priorallelefreqfile"] = OptionPair(&PriorAlleleFreqFilename, "string");
-  ProgOptions["allelefreqfile"] = OptionPair(&alleleFreqFilename, "string");
   //regression data files
   ProgOptions["outcomevarfile"] = OptionPair(&OutcomeVarFilename, "string");
   ProgOptions["coxoutcomevarfile"] = OptionPair(&CoxOutcomeVarFilename, "string");

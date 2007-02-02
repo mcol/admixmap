@@ -80,7 +80,7 @@ private:
 
   std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior dispersion in hapmixmodel
 
-  void LoadAlleleFreqs(Options* const options, InputData* const data_, LogWriter &Log);
+  void LoadAlleleFreqs(HapMixOptions* const options, InputData* const data_, LogWriter &Log);
   void InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const options, LogWriter& Log);
   void OpenOutputFile(const char* filename);
   void SampleAlleleFreqs(int, const double coolness);

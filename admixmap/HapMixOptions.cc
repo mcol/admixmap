@@ -101,7 +101,7 @@ void HapMixOptions::setPopulations(int num)
 {
   NumBlockStates = num;
 }
-const vector<float>& HapMixOptions::getrhoSamplerParams()const{
+const vector<float>& HapMixOptions::getLambdaSamplerParams()const{
   return rhoSamplerParams;
 }
 
@@ -109,6 +109,9 @@ const std::vector<double> &HapMixOptions::getHapMixLambdaPrior()const{
   return hapmixlambdaprior;
 }
 
+const char* HapMixOptions::getInitialAlleleFreqFilename()const{
+  return InitialAlleleFreqFilename.c_str();
+}
 const char* HapMixOptions::getInitialHapMixLambdaFilename()const{
     return InitialHapMixLambdaFilename.c_str();
 }
@@ -177,13 +180,14 @@ void HapMixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["hapmixlambdaprior"] = OptionPair(&hapmixlambdaprior, "dvector");
   ProgOptions["allelefreqprior"] = OptionPair(&allelefreqprior, "dvector");
   ProgOptions["freqdispersionhiermodel"] = OptionPair(&FreqDispersionHierModel, "bool");
+
   //initial values
   ProgOptions["initiallambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");
   ProgOptions["initialfreqpriorfile"] = OptionPair(&InitialFreqPriorFile, "string");
-  ProgOptions["initialallelefreqfile"] = OptionPair(&alleleFreqFilename, "string");// synonym for allelefreqfile
+  ProgOptions["initialallelefreqfile"] = OptionPair(&InitialAlleleFreqFilename, "string");// synonym for allelefreqfile
 
   //sampler settings
-  ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");//A
+  ProgOptions["lambdasamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");//A
 
   // test options
   ProgOptions["mhscoretestfile"] = OptionPair(&MHTestFilename, "outputfile");

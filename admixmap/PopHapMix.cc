@@ -64,7 +64,7 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
       
 	    //set up Hamiltonian sampler for lambda
 	    HapMixLambdaSampler = new HamiltonianMonteCarlo[numIntervals];
-	    const vector<float>& lambdasamplerparams = options->getrhoSamplerParams();
+	    const vector<float>& lambdasamplerparams = options->getLambdaSamplerParams();
 	    size_t size = lambdasamplerparams.size();
 	    float initial_stepsize = size? lambdasamplerparams[0] : 0.06;
 	    float min_stepsize = size? lambdasamplerparams[1] : 0.0001;

@@ -161,6 +161,10 @@ const char *AdmixOptions::getDispersionTestFilename() const
   return DispersionTestFilename.c_str();
 }
 
+const char *AdmixOptions::getAlleleFreqFilename() const
+{
+  return alleleFreqFilename.c_str();
+}
 
 const char *AdmixOptions::getHistoricalAlleleFreqFilename() const
 {
@@ -380,53 +384,54 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   //first set options for this class
   //A = AdmixOption, H = HapMixOption, C = Common (Base class)
 
-  ProgOptions["populations"] = OptionPair(&Populations, "int");//A
-  ProgOptions["historicallelefreqfile"] = OptionPair(&HistoricalAlleleFreqFilename, "string");//A
-  ProgOptions["reportedancestry"] = OptionPair(&ReportedAncestryFilename, "string");//A
+  ProgOptions["populations"] = OptionPair(&Populations, "int");
+  ProgOptions["allelefreqfile"] = OptionPair(&alleleFreqFilename, "string");
+  ProgOptions["historicallelefreqfile"] = OptionPair(&HistoricalAlleleFreqFilename, "string");
+  ProgOptions["reportedancestry"] = OptionPair(&ReportedAncestryFilename, "string");
   //standard output files (optional)
 
   //file to write sampled values of dispersion parameter
   ProgOptions["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");// C
-  ProgOptions["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");//A
+  ProgOptions["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");
 
   //prior and model specification
-  ProgOptions["randommatingmodel"] = OptionPair(&RandomMatingModel, "bool");//A
-  ProgOptions["globalrho"] = OptionPair(&GlobalRho, "bool");//A
-  ProgOptions["indadmixhiermodel"] = OptionPair(&IndAdmixHierIndicator, "bool");//A
+  ProgOptions["randommatingmodel"] = OptionPair(&RandomMatingModel, "bool");
+  ProgOptions["globalrho"] = OptionPair(&GlobalRho, "bool");
+  ProgOptions["indadmixhiermodel"] = OptionPair(&IndAdmixHierIndicator, "bool");
   ProgOptions["etapriorfile"] = OptionPair(&EtaPriorFilename, "string");//C
-  ProgOptions["globalsumintensitiesprior"] = OptionPair(&globalrhoPrior, "dvector");//A
-  ProgOptions["sumintensitiesprior"] = OptionPair(&rhoPrior, "dvector");//A
-  ProgOptions["etapriormean"] = OptionPair(&etamean, "double");//A
-  ProgOptions["etapriorvar"] = OptionPair(&etavar, "double");//A
-  ProgOptions["admixtureprior"] = OptionPair(&initalpha[0], "dvector");//A
-  ProgOptions["admixtureprior1"] = OptionPair(&initalpha[1], "dvector");//A
-  ProgOptions["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");//A
-  ProgOptions["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");//A
+  ProgOptions["globalsumintensitiesprior"] = OptionPair(&globalrhoPrior, "dvector");
+  ProgOptions["sumintensitiesprior"] = OptionPair(&rhoPrior, "dvector");
+  ProgOptions["etapriormean"] = OptionPair(&etamean, "double");
+  ProgOptions["etapriorvar"] = OptionPair(&etavar, "double");
+  ProgOptions["admixtureprior"] = OptionPair(&initalpha[0], "dvector");
+  ProgOptions["admixtureprior1"] = OptionPair(&initalpha[1], "dvector");
+  ProgOptions["correlatedallelefreqs"] = OptionPair(&correlatedallelefreqs, "bool");
+  ProgOptions["popadmixproportionsequal"] = OptionPair(&PopAdmixPropsAreEqual, "bool");
 
   //sampler settings
-  ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");//A
-  ProgOptions["popadmixsamplerparams"] = OptionPair(&popAdmixSamplerParams, "fvector");//A
+  ProgOptions["rhosamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
+  ProgOptions["popadmixsamplerparams"] = OptionPair(&popAdmixSamplerParams, "fvector");
   // test options
   ProgOptions["ancestryassociationscorefile"] = OptionPair(&AncestryAssociationScoreFilename, "outputfile");//C
-  ProgOptions["affectedsonlyscorefile"] = OptionPair(&AffectedsOnlyScoreFilename, "outputfile");//A
-  ProgOptions["admixturescorefile"] = OptionPair(&AssocScoreFilename, "outputfile");//A
-  ProgOptions["haplotypeassociationscorefile"] = OptionPair(&HaplotypeAssociationScoreFilename, "outputfile");//A
-  ProgOptions["stratificationtestfile"] = OptionPair(&StratTestFilename, "outputfile");//A
-  ProgOptions["allelefreqscorefile"] = OptionPair(&AlleleFreqScoreFilename, "outputfile");//A
-  ProgOptions["allelefreqscorefile2"] = OptionPair(&AlleleFreqScoreFilename2, "outputfile");//A
-  ProgOptions["dispersiontestfile"] = OptionPair(&DispersionTestFilename, "outputfile");//A
-  ProgOptions["fstoutputfile"] = OptionPair(&FSTOutputFilename, "outputfile");//A
-  ProgOptions["likratiofile"] = OptionPair(&LikRatioFilename, "outputfile");//A, requires affectedsonlytestfile
-  ProgOptions["indadmixmodefile"] = OptionPair(&IndAdmixModeFilename, "outputfile");//A
-  ProgOptions["testgenotypesfile"] = OptionPair(0, "null");//A
-  ProgOptions["locusfortest"] = OptionPair(&LocusForTest, "int");//A
+  ProgOptions["affectedsonlyscorefile"] = OptionPair(&AffectedsOnlyScoreFilename, "outputfile");
+  ProgOptions["admixturescorefile"] = OptionPair(&AssocScoreFilename, "outputfile");
+  ProgOptions["haplotypeassociationscorefile"] = OptionPair(&HaplotypeAssociationScoreFilename, "outputfile");
+  ProgOptions["stratificationtestfile"] = OptionPair(&StratTestFilename, "outputfile");
+  ProgOptions["allelefreqscorefile"] = OptionPair(&AlleleFreqScoreFilename, "outputfile");
+  ProgOptions["allelefreqscorefile2"] = OptionPair(&AlleleFreqScoreFilename2, "outputfile");
+  ProgOptions["dispersiontestfile"] = OptionPair(&DispersionTestFilename, "outputfile");
+  ProgOptions["fstoutputfile"] = OptionPair(&FSTOutputFilename, "outputfile");
+  ProgOptions["likratiofile"] = OptionPair(&LikRatioFilename, "outputfile");
+  ProgOptions["indadmixmodefile"] = OptionPair(&IndAdmixModeFilename, "outputfile");
+  ProgOptions["testgenotypesfile"] = OptionPair(0, "null");
+  ProgOptions["locusfortest"] = OptionPair(&LocusForTest, "int");
   // Other options
-  ProgOptions["chib"] = OptionPair(&chibIndicator, "bool");//A,  Marginal likelihood by Chib algo
-  ProgOptions["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");//A,  ML for one individual in a collection 
+  ProgOptions["chib"] = OptionPair(&chibIndicator, "bool");//  Marginal likelihood by Chib algo
+  ProgOptions["testoneindiv"] = OptionPair(&TestOneIndivIndicator, "bool");//  ML for one individual in a collection 
   //old options - do nothing but kept for backward-compatibility with old scripts
-  ProgOptions["analysistypeindicator"] = OptionPair(0, "old");//A
-  ProgOptions["coutindicator"] = OptionPair(0, "old");//A
-  ProgOptions["truncationpoint"] = OptionPair(0, "old");//A
+  ProgOptions["analysistypeindicator"] = OptionPair(0, "old");
+  ProgOptions["coutindicator"] = OptionPair(0, "old");
+  ProgOptions["truncationpoint"] = OptionPair(0, "old");
 
   //now set base options and finish parsing
   Options::SetOptions(ProgOptions);
