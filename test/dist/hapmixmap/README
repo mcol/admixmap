@@ -1,0 +1,9 @@
+Please visit http://www.ucd.ie/genepi/ for information.
+
+http://www.hapmap.org/downloads/phasing/2006-07_phaseII/phased/
+
+Step I. Start a project
+
+perl start-project.pl --name <project name> --population <population>
+
+Where population is one of 'Afr', 'Asian', 'Eur'.
