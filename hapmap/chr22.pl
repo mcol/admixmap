@@ -8,12 +8,6 @@
 # --samples 12 --burnin 2 \
 # --mutual-information
 #
-# TODO: Filenames should be standarized. There are still some hard-coded
-# file names which may be confusing to users.
-#
-# Mutual information calculations. I don't know if using a Perl script
-# as a notebook is great, but I'll do it anyway.
-#
 # Source files:
 # phased_genotypes.txt (haploid)
 # phased_loci.txt
@@ -136,6 +130,14 @@ my %state_files = (
 
 my @archive_files = (
     'PPGenotypeProbs.txt',
+    'EnergyTracePlot.ps',
+    'logfile.txt',
+    'loglikelihoodfile.txt',
+    'PosteriorQuantiles.txt',
+    'coefficient-of-constraint-by-locus-dput.txt',
+    'coefficient-of-constraint-by-locus.txt',
+    'mean-coefficient-of-constraint-no-uncert.txt',
+    'mean-coefficient-of-constraint.txt',
 );
 
 my $datadir = "$POP/chr22data";
@@ -427,10 +429,10 @@ sub rotate_files {
             or die("Cannot copy the '$src_file' to '$timestamped'.\n");
         # When training, archive the state.
         if (not $maskfile) {
-            my @archive_files = (
+            my @trained_files = (
                 $base_name . "-trained-" . $timestamp . ".txt",
                 $base_name . "-trained-latest.txt");
-            foreach my $arc_file (@archive_files) {
+            foreach my $arc_file (@trained_files) {
                 copy($src_file, $arc_file)
                     or die ("Cannot copy the '$src_file' to '$arc_file'.\n");
             }
@@ -440,10 +442,15 @@ sub rotate_files {
     }
     foreach my $arc_file (@archive_files) {
         my $src_file = $args->{resultsdir} . "/" . $arc_file;
-        # Chop off the last .txt
-        my $base_name = substr($src_file, 0, index($src_file, ".txt"));
-        my $dst_file = $base_name . "-" . $timestamp . ".txt";
-        copy($src_file, $dst_file) or die("Cannot copy '$src_file' to '$dst_file'.");
+        # Chop off the extension
+        my @parts = split(/\./, $src_file);
+        my $ext = pop(@parts);
+        my $dst_file = join(".", @parts) . "-$timestamp" . "." . $ext;
+        if (-r $src_file) {
+            copy($src_file, $dst_file) or die("Cannot copy '$src_file' to '$dst_file'.");
+        } else {
+            warn("Can't find '$src_file'.\n");
+        }
     }
 }
 
