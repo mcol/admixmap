@@ -462,7 +462,6 @@ sub doAnalysis
     }
     # Everybody likes Perl shortcuts.
     system($command) and die("'$command' has returned an error.\n");
-    rotate_files($args);
     # Collect the time stats.
     system("bash log-time.sh " . $arg_hash->{resultsdir} . "/logfile.txt")
         and warn("Couldn't collect the time stats.");
@@ -471,4 +470,6 @@ sub doAnalysis
     if ($calculate_mi) {
         calculate_mutual_information();
     }
+    # Files should be rotated after mutual information calculation.
+    rotate_files($args);
 }
