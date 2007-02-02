@@ -64,7 +64,7 @@ my $arg_hash =
 #prior
     hapmixlambdaprior => "150, 1, 40, 10",    
     allelefreqprior   => "0.2, 1, 1",
-    rhosamplerparams  => "0.1, 0.00001, 10, 0.9, 20",
+    lambdasamplerparams  => "0.1, 0.00001, 10, 0.9, 20",
 
 #output files
     logfile            => 'logfile.txt',
