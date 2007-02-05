@@ -1006,11 +1006,19 @@ rm(message)
 loci.compound <- readLoci()
 n.chr <- nlevels(factor(loci.compound$Chromosome))
 
-K <- getNumSubpopulations(user.options)
-population.labels <- getPopulationLabels(K, user.options)
-AdmixturePrior <- getAdmixturePrior(K, user.options)
-ParentsIdentified <- getParentsIdentified(AdmixturePrior)
-IsAdmixed <- getIsAdmixed(AdmixturePrior)
+if(is.null(user.options$hapmixmodel) || user.options$hapmixmodel==0){
+  K <- getNumSubpopulations(user.options)
+  population.labels <- getPopulationLabels(K, user.options)
+  AdmixturePrior <- getAdmixturePrior(K, user.options)
+  ParentsIdentified <- getParentsIdentified(AdmixturePrior)
+  IsAdmixed <- getIsAdmixed(AdmixturePrior)
+}else{
+  K <- 1
+  population.labels <- NULL
+  AdmixturePrior <- NULL
+  ParentsIdentified <- NULL
+  IsAdmixed <- F
+}
                                             
 param.samples <- NULL
 effect.pop <- NULL
