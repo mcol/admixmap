@@ -35,7 +35,7 @@ sub doAnalysis {
 my $executable = '../test/admixmap';
 
 my $arg_hash = {
-    genotypesfile                   => 'data/genotypes.txt',
+    genotypesfile                   => 'data/genotypes_haploid.txt',
     locusfile                       => 'data/loci.txt',
     #priorallelefreqfile             => 'data/allelefreqs.txt',
     #fixedallelefreqs                => 1,

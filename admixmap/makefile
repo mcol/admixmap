@@ -61,6 +61,7 @@ VERSION = serial
 
 ## processor type
 ARCH = i686# Intel 686
+#ARCH=P3M # Centrino Celeron M
 #ARCH = P4#Pentium4
 #ARCH = AMD64# Walton
 #ARCH= itanium2# Hamilton (default)
@@ -76,8 +77,10 @@ ADMEXEC = admixmap# name of compiled executable
 HAPEXEC = hapmixmap
 
 ## ** flags for release version, debug version or profiling version
-DFLAGS 		= -O3# release, optimized
-#DFLAGS 	= -g# debug
+# DFLAGS 		= -O3# release, optimized
+DFLAGS 		= -O3 -fomit-frame-pointer # release optimized
+# debug
+# DFLAGS 	= -g
 # DFLAGS 	= -pg -O3# profiling
 
 
@@ -97,13 +100,18 @@ override DFLAGS+= -ftree-vectorize
 endif	
 endif
 ifeq ($(ARCH),i686)
-PROC = -march=i686# Intel 686
+PROC = -march=i686 # Intel 686
+# PROC = -march=i686 # Intel 686
 else
 ifeq ($(ARCH),P4)
 PROC = -march=pentium4 -msse2 -mfpmath=sse# Pentium4
 else
 ifeq ($(ARCH),AMD64)
 PROC = -march=k8 -msse2 -mfpmath=sse 
+else
+ifeq ($(ARCH),P3M)
+PROC = -march=pentium-m -fomit-frame-pointer 
+endif
 endif
 endif
 endif

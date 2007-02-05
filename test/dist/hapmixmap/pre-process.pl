@@ -37,5 +37,14 @@ if (not $ok or $usage) {
 
 my $project = HapMix::Project->new($project_name);
 
+# 1. Validate the data syntax.
+# 2. Find out which chromosome it is by reading the loci identifiers.
+# 3. Order the loci.
+# 4. Download data from hapmap.org.
+# 5. Cut out the corresponding loci with given offset (may accept
+#    a parameter)
+# 6. Write the genotypes and locus file for hapmixmap.
+# 7. Write the ouctome file.
+
 $project->validate();
 
