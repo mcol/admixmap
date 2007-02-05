@@ -12,8 +12,6 @@
  */
 #include "HapMixModel.h"
 #include <fstream>
-#include <config.h>
-#include <Comms.h>
 
 #define HAPMIXMAP_VERSION 0.3
 
