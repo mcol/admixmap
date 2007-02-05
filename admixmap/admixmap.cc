@@ -130,11 +130,13 @@ int main( int argc , char** argv ){
     exit(1);
   }
 #ifdef PARALLEL
+  cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n";
+
   //MPI::COMM_WORLD.Barrier();
   Comms::Finalise();
   MPE_Finish_log("admixmap");
   MPI_Finalize();
-  cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n Initialization: " << t1 <<"s Main loop: "<< t2 << "s Finalization:" << t3 << "s.\n";
+
 #else
   cout << "Finished" << endl;
 #endif

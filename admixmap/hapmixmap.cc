@@ -31,7 +31,6 @@ int main( int argc , char** argv ){
   MPI::Init(argc, argv);
   Comms::Initialise();
 
-  double t1 = 0, t2 = 0, t3 = 0, t0 = MPI::Wtime();
   //define states for logging
   MPE_Init_log();
   if(Comms::isMaster()){
@@ -116,13 +115,16 @@ int main( int argc , char** argv ){
     exit(1);
   }
 #ifdef PARALLEL
+  cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n";
+
   //MPI::COMM_WORLD.Barrier();
   Comms::Finalise();
   MPE_Finish_log("admixmap");
   MPI_Finalize();
-  cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n Initialization: " << t1 <<"s Main loop: "<< t2 << "s Finalization:" << t3 << "s.\n";
+
 #else
   cout << "Finished" << endl;
+
 #endif
   //print run times to screen and log
   if(isMaster){
@@ -131,6 +133,7 @@ int main( int argc , char** argv ){
     //print line of *s
     cout <<setfill('*') << setw(80) << "*" <<endl;
   }
+
   putenv("HAPMIXMAPCLEANEXIT=1");
   return 0;
 } //end of main
