@@ -11,6 +11,7 @@ hapmixmap_LDFLAGS	= $(STATIC_LDFLAGS)
 hapmixmap_SOURCES	= hapmixmap.cc \
 			HapMixFreqs.cc \
 		   	Model.cc \
+			HapMixIndividual.cc \
 			HapMixIndividualCollection.cc \
 			HapMixModel.cc \
 			HapMixOptions.cc \
@@ -43,6 +44,7 @@ admixmap_CPPFLAGS	= -D__ADMIXMAP__
 
 noinst_HEADERS	= admixmap.h \
 		  HapMixFreqs.h \
+			  HapMixIndividual.h \
 			  HapMixIndividualCollection.h \
 			  HapMixModel.h \
 			  HapMixOptions.h \
