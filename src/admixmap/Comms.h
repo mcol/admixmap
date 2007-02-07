@@ -2,7 +2,7 @@
 // header file for Comms class, whcih handles communication between processes in parallel version.
 #ifndef COMMS_H
 #define COMMS_H 1
-#include <config.h>
+#include "config.h"
 
 #ifdef PARALLEL
 #include <mpi2c++/mpi++.h>
