@@ -10,6 +10,7 @@ hapmixmap_LDFLAGS	= $(STATIC_LDFLAGS)
 
 hapmixmap_SOURCES	= hapmixmap.cc \
 			HapMixFreqs.cc \
+		   	Model.cc \
 			HapMixIndividualCollection.cc \
 			HapMixModel.cc \
 			HapMixOptions.cc \
@@ -21,6 +22,7 @@ hapmixmap_LDADD		= ../bayeslib/libbayes.la \
 
 
 admixmap_SOURCES = admixmap.cc \
+		   Model.cc \
 		   AdmixedIndividual.cc \
 		   AdmixIndividualCollection.cc \
 		   AdmixMapModel.cc \
@@ -77,7 +79,6 @@ noinst_HEADERS	= admixmap.h \
 
 
 libgenepi_la_SOURCES = misc.cc \
-		       Model.cc \
 		       AlleleFreqs.cc \
 		       Options.cc \
 		       AdmixOptions.cc \
