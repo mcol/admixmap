@@ -17,6 +17,8 @@ hapmixmap_SOURCES	= hapmixmap.cc \
 			MantelHaenszelTest.cc \
 			PopHapMix.cc
 
+hapmixmap_CPPFLAGS	= -D__HAPMIXMAP__
+
 hapmixmap_LDADD		= ../bayeslib/libbayes.la \
 			  libgenepi.la
 
@@ -36,6 +38,8 @@ admixmap_SOURCES = admixmap.cc \
 
 admixmap_LDADD		= ../bayeslib/libbayes.la \
 			  libgenepi.la
+
+admixmap_CPPFLAGS	= -D__ADMIXMAP__
 
 noinst_HEADERS	= admixmap.h \
 		  HapMixFreqs.h \

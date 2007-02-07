@@ -320,8 +320,10 @@ void CompositeLocus::AccumulateAlleleProbs(){
 
 
 #ifndef PARALLEL 
-///returns probabilities of ordered hap pairs conditional on hidden states
-//TODO: write alternative for parallel version using AlleleProbs
+/**
+ * returns probabilities of ordered hap pairs conditional on hidden states
+ * TODO: write alternative for parallel version using AlleleProbs
+ */
 void CompositeLocus::getConditionalHapPairProbs(std::vector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
   //Note: probs should have length equal to the total number of possible diploid states ie  NumberOfStates^2 .
   // (in haploid case, we get the probs directly from alleleprobs/allelefreqs
