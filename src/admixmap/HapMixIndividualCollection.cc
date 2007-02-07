@@ -1,8 +1,10 @@
 #include "HapMixIndividualCollection.h"
 #include "HapMixOptions.h"
+#include "HapMixIndividual.h"
+#include "HapMixFreqs.h"
 #include "Comms.h"
 
-HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci){
+HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* const A){
   SetNullValues();
   GlobalSumAncestry = 0;
   SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
@@ -17,20 +19,20 @@ HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* cons
   worker_rank = 0;
   NumWorkers = 1;
 #ifdef PARALLEL
-    int global_rank = MPI::COMM_WORLD.Get_rank();
-    //create communicator for workers and find size of and rank within this group
-    workers = MPI::COMM_WORLD.Split( Comms::isWorker(), global_rank);
-    NumWorkers = workers.Get_size();
-    if(global_rank >1)
-      worker_rank = workers.Get_rank();
-    else worker_rank = size;//so that non-workers will not loop over Individuals
+  int global_rank = MPI::COMM_WORLD.Get_rank();
+  //create communicator for workers and find size of and rank within this group
+  workers = MPI::COMM_WORLD.Split( Comms::isWorker(), global_rank);
+  NumWorkers = workers.Get_size();
+  if(global_rank >1)
+    worker_rank = workers.Get_rank();
+  else worker_rank = size;//so that non-workers will not loop over Individuals
 #endif
-
-  Individual::SetStaticMembers(Loci, options);
+  
+  HapMixIndividual::SetStaticMembers(Loci, options, A->getHaploidGenotypeProbs(), A->getDiploidGenotypeProbs());
   if(worker_rank < (int)size){
     _child = new Individual*[size];
     for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
-      _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
+      _child[i] = new HapMixIndividual(i+1, options, Data);//NB: first arg sets Individual's number
     }
   }
   if(options->OutputCGProbs())GPO.Initialise(options->GetNumMaskedIndividuals(), options->GetNumMaskedLoci());

@@ -17,7 +17,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object
 
-  IC = new HapMixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
+  IC = new HapMixIndividualCollection(&options, &data, &Loci, &A);//NB call after A Initialise;
   if(isMaster || isWorker) IC->LoadData(&options, &data, false);    //and before L and R Initialise
   if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
   if(isMaster || isWorker){

@@ -16,13 +16,14 @@
 
 #include "IndividualCollection.h"
 class HapMixOptions;
+class HapMixFreqs;
 
 ///Class to hold an array of Individuals for hapmixmodel
 class HapMixIndividualCollection : public IndividualCollection
 {
 public:
   ~HapMixIndividualCollection();
-  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci);
+  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* const A);
   void SampleLocusAncestry(const Options* const options);
   const int* getSumAncestry()const;
   //Individual* getIndividual(int)const;

@@ -50,6 +50,9 @@ public:
   float getAcceptanceRate()const;
   float getStepSize()const;
 
+  const array_of_allelefreqs* getHaploidGenotypeProbs()const;
+  const double* getDiploidGenotypeProbs()const;
+
 private:
   /**
      In hapmixmodel, prior on allele freqs is Dirichlet with locus-specific mean mu and dispersion eta.
@@ -77,6 +80,8 @@ private:
   StepSizeTuner* EtaSampler;
   AdaptiveRejection MuSampler;
   hapmixmuargs HapMixMuArgs;
+
+  double* DiploidGenotypeProbs;
 
   std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior dispersion in hapmixmodel
 
