@@ -784,7 +784,7 @@ void InputData::GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci,
 	count += g[0];
       }
       
-      Observed[c][j] = (count == 0);
+      Missing[c][j] = (count == 0);
       
       genotypes->push_back(G);
       ++complocus;
