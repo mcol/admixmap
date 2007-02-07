@@ -3,12 +3,9 @@ LIBS			= -lgsl -lgslcblas $(PARALLEL_LIBS)
 INCLUDES		= -I ../bayeslib
 LDADD			= libgenepi.la
 
-# -lmpich -lgmp -lsprng -lmpe
-
 bin_PROGRAMS		= hapmixmap admixmap
 noinst_LTLIBRARIES	= libgenepi.la
 
-# hapmixmap_LDFLAGS	= -all-static
 hapmixmap_LDFLAGS	= $(STATIC_LDFLAGS)
 
 hapmixmap_SOURCES	= hapmixmap.cc \
