@@ -11,7 +11,7 @@
  */
 
 #include "admixmap.h"
-#include "parallel.h"//for PARALLEL
+#include <config.h>
 #include <dirent.h>//for OpenResultsDir
 
 /**

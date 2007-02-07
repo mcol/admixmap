@@ -15,9 +15,9 @@
 #ifndef ADMIXMAP_H
 #define ADMIXMAP_H 1
 
-#include <stdlib.h>    /* for exit, strtol */
+#include <cstdlib>    /* for exit, strtol */
 
-#include <string.h>    /* for strcmp, strcpy */
+#include <cstring>    /* for strcmp, strcpy */
 #include <string>
 #include "common.h"
 #include "PopAdmix.h"

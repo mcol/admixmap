@@ -10,9 +10,9 @@
  * 
  */
 #include "LogWriter.h"
-#include "parallel.h"
+#include "config.h"
 #ifdef PARALLEL
-#include <mpi++.h>
+#include <mpi2c++/mpi++.h>
 #endif
 
 using namespace::std;

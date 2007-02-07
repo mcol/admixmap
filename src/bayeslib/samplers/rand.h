@@ -15,7 +15,6 @@
 #define RAND_H 
 #include <iostream>
 #include <vector>
-#include "../parallel.h"
 extern "C" {
 #include <gsl/gsl_rng.h>
 }
