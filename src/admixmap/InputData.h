@@ -64,6 +64,8 @@ public:
   const Matrix_s& getEtaPriorData() const;
   const Matrix_s& getReportedAncestryData() const;
 
+  std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
+  void CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i)const;
   /*
    *  Getters to retrieve data (converted to DataMatrix).
    */    
@@ -147,7 +149,7 @@ private:
   void CheckRepAncestryFile(int populations, LogWriter &Log)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
   bool determineIfPedFile()const;
-  std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
+
   std::vector<unsigned short> GetGenotype(const std::string genostring)const;
   void FindCaseControlLoci();
   void CheckData(Options *options, LogWriter &Log);
