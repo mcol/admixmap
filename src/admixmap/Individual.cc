@@ -37,17 +37,8 @@ std::ostream& operator<<(std::ostream& os, const hapPair &h){
 Individual::Individual() {//should initialise pointers here
 }
 
-Individual::Individual(int number, const Options* const options, const InputData* const Data) {
-  myNumber = number;
-  NumGametes = 1;
-  GenotypesMissing = new bool*[numChromosomes];
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
-  }  
-  missingGenotypes = 0;//allocated later, if needed
-  //retrieve genotypes
-  Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
-  isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
+void Individual::Initialise(const Options* const options, const InputData* const Data) {
+
   if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
   
   // Read sex value if present.
@@ -96,23 +87,19 @@ Individual::Individual(int number, const Options* const options, const InputData
       for(unsigned i = 0; i < AncestrySize; ++i) LocusAncestry[j][i] = 0;
     }
   
-  // loop over composite loci to set possible haplotype pairs compatible with genotype 
-  for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
-#ifdef PARALLEL
-    SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
-    //NOTE: X data not yet supported in parallel version
-#else
-    (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
-#endif
+//   // loop over composite loci to set possible haplotype pairs compatible with genotype 
+//   for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
+// #ifdef PARALLEL
+//     SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
+//     //NOTE: X data not yet supported in parallel version
+// #else
+//     (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+// #endif
     
-    // initialise sampledHapPairs with the first of the possible happairs. 
-    // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
-    sampledHapPairs.push_back(PossibleHapPairs[j][0]);
-  }
-  //Now the PossibleHapPairs have ben determined and missing genotype indicators have been set, 
-  //the genotypes are deleted as they are no longer needed 
-  if( options->getHWTestIndicator())SetMissingGenotypes();
-  DeleteGenotypes();
+//     // initialise sampledHapPairs with the first of the possible happairs. 
+//     // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
+//     sampledHapPairs.push_back(PossibleHapPairs[j][0]);
+//   }
   
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
@@ -268,31 +255,6 @@ void Individual::setGenotypesToMissing(){
   for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c)
     for(unsigned j = 0; j < Loci->GetSizeOfChromosome(c); ++j)
       GenotypesMissing[c][j] = true;
-}
-
-void Individual::DeleteGenotypes(){
-  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
-#ifdef PARALLEL
-      genotypes[j][0].clear();
-#else
-    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k)
-      genotypes[j][k].clear();
-#endif
-    genotypes[j].clear();
-  }
-  genotypes.clear();
-}
-
-void Individual::SetMissingGenotypes(){
-  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
-  //used in HW score test; NB call before genotypes are deleted
-  if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
-  missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
-  unsigned index = 0;
-  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
-    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
-      missingGenotypes[index++] = (genotypes[j][k][0] == 0);
-    }
 }
 
 //********** sets static members, including allocation and deletion of static objects for score tests

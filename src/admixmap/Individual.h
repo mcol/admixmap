@@ -29,17 +29,15 @@ class Individual
 {
 public:
   Individual();
-  Individual(int number, const Options* const options, const InputData* const Data);
+  void Initialise(const Options* const options, const InputData* const Data);
   virtual ~Individual();
 
-  void DeleteGenotypes();
   void HMMIsBad(bool loglikisbad);
   static void SetStaticMembers(Genome* const pLoci, const Options* const options);
 
   void setOutcome(double*);
   void setCovariates(double*);
   void setGenotypesToMissing();
-  void SetMissingGenotypes();
 
   const double* getAdmixtureProps()const;
   const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
@@ -84,7 +82,7 @@ protected:
   double EffectiveL[2];
   unsigned NumGametes; // 1 if assortative mating or haploid data, 2 if random mating and diploid data
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
-  std::vector<genotype> genotypes;
+
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
   double **GenotypeProbs;
   bool **GenotypesMissing;//indicators for missing genotypes at comp loci

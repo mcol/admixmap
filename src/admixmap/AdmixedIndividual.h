@@ -30,7 +30,9 @@ public:
 
   static void SetStaticMembers(Genome* const pLoci, const Options* const options);
   static void DeleteStaticMembers();
-  void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
+  void drawInitialAdmixtureProps(const vector<vector<double> > &alpha);
+  void SetMissingGenotypes(); 
+  void DeleteGenotypes();
 
   double getSumrho()const;
   const std::vector<double> getRho()const;
@@ -78,7 +80,8 @@ private:
   std::vector<unsigned> SumNumArrivals;
   std::vector< double > rhohat;
   std::vector<double> sumlogrho;
-  
+  std::vector<genotype> genotypes;  
+
   std::vector<double> logPosterior[3]; // elements 0, 1, 2 are for theta, rho, freqs
   
   //RWM sampler for individual admixture

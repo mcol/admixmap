@@ -78,12 +78,6 @@ IndividualCollection::~IndividualCollection() {
   delete[] OutcomeType;
   delete[] ReportedAncestry;
 }
-void IndividualCollection::DeleteGenotypes(bool setmissing=false){
-  for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
-    if(setmissing)_child[i]->SetMissingGenotypes();
-    _child[i]->DeleteGenotypes();
-  }
-}
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 
