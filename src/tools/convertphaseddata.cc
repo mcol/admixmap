@@ -23,17 +23,18 @@
 #include <getopt.h>
 
 unsigned NUMALLELES = 2;
-bool be_quiet = false;
+bool beVerbose = false;
 
 using namespace::std;
 
-void PrintHelpText()
+void PrintHelpText(char **argv)
 {
   cout <<
       "----------------------------------------------------------------------------"
-      << endl <<
-      "This program converts phased HapMap data to ADMIXMAP format" << endl
-      << "Usage: convertdata -c <chrm> [-p <pop>] [-g <genotypesfile>]" << endl
+      << endl
+      << "This program converts phased HapMap data to ADMIXMAP format" << endl
+      << "Usage: " << argv[0] << " "
+      << "-c <chrm> [-p <pop>] [-g <genotypesfile>]" << endl
       << " [-l <locusfile>] [-n <numloci>]" << endl
       << "where <pop> is the directory containing data files ('Eur', 'Afr' or 'Asian')," << endl
       << " defaults to current directory; " << endl
@@ -48,7 +49,7 @@ void PrintHelpText()
 int main(int argc, char **argv)
 {
   if (argc < 3) {
-    PrintHelpText();
+    PrintHelpText(argv);
     exit(0);
   }
   int ich;
@@ -58,10 +59,10 @@ int main(int argc, char **argv)
   ofstream locusfile;
   unsigned long userloci = 1000000000;  //some number > number of HapMap loci
 
-  while ((ich = getopt(argc, argv, "hc:g:l:p:n:q")) != EOF) {
+  while ((ich = getopt(argc, argv, "hc:g:l:p:n:qv")) != EOF) {
     switch (ich) {
     case 'h':{
-        PrintHelpText();
+        PrintHelpText(argv);
       }
     case 'c':{
         CHRNUM = atoi(optarg);
@@ -95,8 +96,8 @@ int main(int argc, char **argv)
           userloci = temp;
         break;
       }
-    case 'q':{                 //quiet mode
-        be_quiet = true;
+    case 'v':{                 //verbose mode
+        beVerbose = true;
         break;
       }
     default:{
@@ -155,7 +156,8 @@ int main(int argc, char **argv)
     getline(legendfile, scrap); //skip header
     while ((!legendfile.eof())) {
       prev = position;
-      cout << "\rLocus    " << locus + 1 << flush;
+      if (beVerbose)
+        cout << "\rLocus    " << locus + 1 << flush;
       //we want cols: 0(snpid), 1(position in basepairs)
       legendfile >> SNPID >> position;
       unsigned indiv_index = 0;
@@ -236,13 +238,13 @@ int main(int argc, char **argv)
   ifstream phasedfile2;
   phasedfile >> allele;
   while (!phasedfile.eof()) {
-    if (!be_quiet)
+    if (beVerbose)
       cout << "\nChromosome " << CHRNUM << "  " << flush;
     if (!(gamete % 2))
       samplefile >> ID >> scrap;
     else
       ID.append("_2");
-    if (!be_quiet)
+    if (beVerbose)
       cout << "\n" << gamete + 1 << " " << ID << " " << flush;
     //write indiv id and sex
     genotypesfile << ID << "\t";        // << sex[indiv] <<"\t";
@@ -254,7 +256,7 @@ int main(int argc, char **argv)
     }
 //now loop through other chromosomes 
     for (unsigned chr = CHRNUM + 1; chr <= lastchr; ++chr) {
-      if (!be_quiet)
+      if (beVerbose)
         cout << "\nChromosome " << chr << "  " << flush;
 
 //        ss.clear();
