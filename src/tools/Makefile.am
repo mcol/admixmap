@@ -6,4 +6,7 @@ phased2g_old_SOURCES	= convertphaseddata.cc
 
 phased2g_SOURCES	= phased2g.cc
 
-rs_lookup_SOURCES	= rs-lookup.cpp
+rs_lookup_SOURCES	= rs-lookup.cpp \
+			  Legend.cpp
+
+noinst_HEADERS		= Legend.h
