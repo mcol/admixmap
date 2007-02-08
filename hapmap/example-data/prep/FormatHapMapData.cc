@@ -8,7 +8,7 @@
   "chr#_sample.txt" and
   "chr#_legend.txt",where # is a number from 1 to 22, and all be located in the data directory
 
-Copyright (c) David O'Donnell 2006
+  Copyright (c) David O'Donnell 2006
 */
 
 #include <iostream>
@@ -21,7 +21,7 @@ Copyright (c) David O'Donnell 2006
 #include <getopt.h>
 
 unsigned NUMALLELES = 2;
-bool be_quiet = false;
+bool beVerbose = false;
 
 using namespace::std;
 
@@ -35,7 +35,9 @@ void PrintHelpText(){
 	 << "chrm is a chromosome number. -c0 converts all chromosomes." << endl
 	 << "numloci is the number of loci per chromosome to use, default is all\n"
 	 << "genotypesfile and locusfile default to 'genotypes.txt' and 'loci.txt'" << endl
-	 << "Note that HapMap input files must be named 'chrN_phased.txt', 'chrN_sample.txt' and 'chrN_legend.txt', where N is an integer from 1 to 22\n\n";
+	 << "Note that HapMap input files must be named 'chrN_phased.txt', 'chrN_sample.txt' and 'chrN_legend.txt'," 
+         << "where N is an integer from 1 to 22\n"
+         << "Use -v for verbode mode\n\n";
 }
 
 int main(int argc, char **argv){
@@ -50,7 +52,7 @@ int main(int argc, char **argv){
     ofstream locusfile;
     unsigned long userloci = 1000000000;//some number > number of HapMap loci
 
-    while((ich=getopt(argc, argv, "hc:g:l:p:n:q"))!=EOF){
+    while((ich=getopt(argc, argv, "hc:g:l:p:n:qv"))!=EOF){
 	switch(ich){
 	case 'h' :{
 	    PrintHelpText();
@@ -86,8 +88,8 @@ int main(int argc, char **argv){
 		if(temp>0)userloci = temp;
 		break;
 	    }
-	    case 'q':{//quiet mode
-		be_quiet = true;
+	    case 'v':{//verbose mode
+		beVerbose = true;
 		break;
 	    }
 	    default:{
@@ -142,7 +144,7 @@ int main(int argc, char **argv){
     getline(legendfile, scrap);//skip header
     while ( (!legendfile.eof())){
       prev = position;
-      cout << "\rLocus    " << locus+1 << flush;
+      if(beVerbose)cout << "\rLocus    " << locus+1 << flush;
       //we want cols: 0(snpid), 1(position in basepairs)
       legendfile >> SNPID >> position;
       unsigned indiv_index = 0;
@@ -222,11 +224,11 @@ int main(int argc, char **argv){
    ifstream phasedfile2;
    phasedfile >> allele;
    while(!phasedfile.eof()){
-       if(!be_quiet)
+       if(beVerbose)
 	   cout << "\nChromosome " << CHRNUM << "  "<< flush ;
        if(!(gamete%2))samplefile >> ID >> scrap;
        else ID.append("_2");
-       if(!be_quiet)
+       if(beVerbose)
 	   cout << "\n" << gamete+1 << " " << ID << " "  << flush;
        //write indiv id and sex
        genotypesfile << ID << "\t";// << sex[indiv] <<"\t";
@@ -237,7 +239,7 @@ int main(int argc, char **argv){
        }
 //now loop through other chromosomes 
        for(unsigned chr = CHRNUM+1; chr <= lastchr; ++chr){
-	   if(!be_quiet)
+	   if(beVerbose)
 	       cout << "\nChromosome " << chr << "  "<< flush ;
 	   
 //        ss.clear();
