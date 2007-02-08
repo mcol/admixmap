@@ -14,8 +14,6 @@
 #include <vector>
 #include <sstream>
 
-#include "Locus.h"
-
 using namespace std;
 
 /**
