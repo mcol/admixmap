@@ -30,6 +30,7 @@ def download_legends(base_url, working_dir):
     legend_lines = filter(lambda(x): not(re.search(r'>', x)), legend_lines)
     legend_lines = list(set(legend_lines))
     legend_lines.sort()
+
     # Download all the legend files
     counter = 0L
     for legend_file_name in legend_lines:
@@ -42,15 +43,3 @@ def download_legends(base_url, working_dir):
     print "All files downloaded."
 
 download_legends(BASE_URL, WORKING_DIR)
-
-# List the files in the directory.
-for root, dirs, files in os.walk(WORKING_DIR):
-    # print root, dirs, files
-    files.sort()
-    for file_name in files:
-        pass
-        # lf = HapmapChromosomeLegend(os.path.join(WORKING_DIR, file_name))
-        # lf.test()
-
-
-
