@@ -49,7 +49,7 @@ if test "$enable_parallel" = "yes" -a "$enable_static_binary" = "yes"; then
 	AC_MSG_ERROR(Can't build a static parallel version.)
 fi
 
-dnl AC_CONFIG_SUBDIRS(src/bayeslib)
+dnl Which Makefiles should be generated.
 AC_OUTPUT([Makefile
 	   src/Makefile
 	   src/admixmap/Makefile
@@ -58,7 +58,8 @@ AC_OUTPUT([Makefile
 	   src/bayeslib/Makefile
 	   src/bayeslib/regression/Makefile
 	   src/bayeslib/samplers/Makefile
-	   src/bayeslib/utils/Makefile])
+	   src/bayeslib/utils/Makefile
+	   src/tools/Makefile])
 
 echo \
 "------------------------------------------------------------------------

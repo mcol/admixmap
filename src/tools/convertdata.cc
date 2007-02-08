@@ -1,12 +1,17 @@
-/*
-  prog to convert hapmap data to ADMIXMAP format
-  supply chromosome number as arg. 0 (default) means all.
-  also requires infofile and data directory (Eur, Afr or Asian).
-  Optionally supply genotypes file and locus file names (default to genotypes.txt) loci.txt
-NB: input data file must be named "chr#.txt", where # is a number from 1 to 22, and all be located in the data directory
-
-Copyright (c) David O'Donnell 2006
-*/
+/**
+ * prog to convert hapmap data to ADMIXMAP format
+ * supply chromosome number as arg. 0 (default) means all.
+ * also requires infofile and data directory (Eur, Afr or Asian).
+ * Optionally supply genotypes file and locus file names
+ * (default to genotypes.txt) loci.txt
+ *
+ * NB: input data file must be named "chr#.txt",
+ * where # is a number from 1 to 22, and all be located
+ * in the data directory
+ *
+ * Copyright (c) David O'Donnell 2006
+ *
+ */
 
 #include <iostream>
 #include <iomanip>
@@ -396,5 +401,5 @@ int main(int argc, char **argv){
     }
   genotypesfile.close();
 //  outcomefile.close();
-  cout << "\nFinished writing genotypesfile" << endl;
+  cout << endl << "Finished writing genotypesfile" << endl;
 }
