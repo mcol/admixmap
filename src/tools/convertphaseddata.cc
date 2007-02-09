@@ -116,8 +116,8 @@ int main(int argc, char **argv)
   string SNPID;
   double position = 0.0, prev = 0.0;
   string scrap;
-  int locus = 0;
-  unsigned chromosome = 0;
+  unsigned int locus = 0;
+  // unsigned chromosome = 0;
   unsigned lastchr = 22;
   if (CHRNUM == 0)
     CHRNUM = 1;
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
         cout << "\rLocus    " << locus + 1 << flush;
       //we want cols: 0(snpid), 1(position in basepairs)
       legendfile >> SNPID >> position;
-      unsigned indiv_index = 0;
+      // unsigned indiv_index = 0;
       if (SNPID.find_first_not_of(" \t\n\r") != string::npos) { //check for empty lines
 
         //write locusfile

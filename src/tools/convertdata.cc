@@ -148,9 +148,9 @@ int main(int argc, char **argv){
   vector<bool> BadLoci;
   double position = 0.0, prev = 0.0;
   string scrap;
-  int locus = 0;
-  int indiv = 0;
-  unsigned chromosome = 0;
+  unsigned int locus = 0;
+  unsigned int indiv = 0;
+  // unsigned chromosome = 0;
   unsigned lastchr = 22;
   if(CHRNUM==0)CHRNUM = 1;
   else lastchr = CHRNUM;
@@ -345,7 +345,9 @@ int main(int argc, char **argv){
 
 // ************************** PHASE 3: Write genotypesfile  *********************
    
-   for(indiv = 0; indiv < NUMIND; ++indiv) if(IndivInfo[INDIVID[indiv]].second){//if individual is a founder
+   for(indiv = 0; indiv < NUMIND; ++indiv)
+     //if individual is a founder
+     if(IndivInfo[INDIVID[indiv]].second) {
        if(!be_quiet)
 	   cout << "\n" << indiv+1 << " " << INDIVID[indiv] << " "  << flush;
       //write indiv id and sex
@@ -376,7 +378,9 @@ int main(int argc, char **argv){
 //	      if(position-prev >=0.0){//skip loci out of sequence
 	      if(!BadLoci[abslocus]){
 		  //cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
-		  for(int col = 0; col < 7+indiv; ++col)genotypesin >> scrap;//skip to col for this individual, genotypes start at col 11
+		  for(unsigned int col = 0; col < 7+indiv; ++col) {
+                    genotypesin >> scrap;//skip to col for this individual, genotypes start at col 11
+                  }
 		  genotypesin >> obs;
 		  
 		  //write to genotypesfile in admixmap format
