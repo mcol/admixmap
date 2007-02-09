@@ -25,9 +25,9 @@ my $CPPFLAGS="-O3";
 ################## Script Starts Here ##################################
 
 #compile formatting code
-print "Compiling formatting tools...\n";
-system("$CC $CPPFLAGS -o$PrepDir/FormatHapMapData $PrepDir/FormatHapMapData.cc");
-print "Compilation complete\n\n";
+# print "Compiling formatting tools...\n";
+# system("$CC $CPPFLAGS -o$PrepDir/FormatHapMapData $PrepDir/FormatHapMapData.cc");
+# print "Compilation complete\n\n";
 
 #convert HapMap data to HAPMIXMAP format
 print "Converting HapMap Data to HAPMIXMAP format...\n";
