@@ -1,16 +1,24 @@
 #include "Legend.h"
 
+#define RS_LIMIT_READ 0
+
+using namespace std;
+
 Legend::Legend()
 {
 }
 
+/**
+ * Constructor, reads a file with data, tab-separated columns
+ * rsXXXX <position>  <allele1> <allele2> <chromosome>
+ */
 Legend::Legend(string _file_name)
 {
   file_name = _file_name;
   string line, buf;
   stringstream ss;
   string rs, chromosome;
-  long position;
+  unsigned long position, rs_no;
   char a1, a2;
   int counter = 0;
   locus_t *l;
@@ -33,42 +41,38 @@ Legend::Legend(string _file_name)
       ss >> chromosome;
       l = (locus_t*)malloc(sizeof(locus_t));
       if (l == NULL) {
-      	// not allocated the memory
-      	exit(1);
+      	// memory not allocated
+      	exit(EXIT_FAILURE);
       }
-      l->rs = (char *)malloc(sizeof(char) * rs.size() + 1);
-      if (l->rs == NULL) {
-        exit(1);
-      }
-      strcpy(l->rs, rs.c_str());
+      rs_no =atoi(rs.substr(2, rs.size() - 1).c_str());
+      l->rs = rs_no;
       l->position = position;
       l->a1 = a1;
       l->a2 = a2;
-      l->chromosome = (char *)malloc(sizeof(char) * chromosome.size() + 1);
-      if (l->chromosome == NULL) {
-        exit(1);
-      }
-      strcpy(l->chromosome, chromosome.c_str());
-      // dbg_locus_t(*l);
+      l->chromosome = (char)atoi(chromosome.substr(3, chromosome.size() - 2).c_str());
       lp.p = l;
-      rs_map[rs] = lp;
+      rs_map[rs_no] = lp;
       rs_by_position[position] = lp;
-      // dbg_locus_t(rs_map[rs]);
+      // dbg_locus_t(*(rs_map[rs_no].p));
       
-      if (counter % (int)1e5 == 0) {
+      if (RS_LIMIT_READ && (counter % (int)1e5 == 0)) {
       	cerr << "Rs no. " << counter << endl;
       }
       
-      if (1 && (counter > (int)1e5)) {
+      if (RS_LIMIT_READ && (counter > (int)1e5)) {
       	break;
       }
+
     }
+  } else {
+    cerr << "Can't open the data file." << endl;
+    exit(EXIT_FAILURE);
   }
 }
 
 Legend::~Legend()
 {
-  map<const string, locus_p_t>::iterator i;
+  map<const unsigned long, locus_p_t>::iterator i;
   for(i = rs_map.begin(); i != rs_map.end(); i++) {
     free(i->second.p);
   }
@@ -76,24 +80,34 @@ Legend::~Legend()
   rs_by_position.clear();
 }
 
-char *Legend::get_chromosome_by_snp(string _snp)
+string Legend::get_chromosome_by_snp(string _snp)
 {
-  if (rs_map.find(_snp) == rs_map.end()) {
+  unsigned long snp_no;
+  stringstream ss;
+  string ret;
+  snp_no = atoi(_snp.substr(2, _snp.size() - 1).c_str());
+  // cerr << "'" << _snp.substr(2, _snp.size() - 1).c_str() << "'" << endl;
+  // cerr << "Looking up snp number " << snp_no << endl;
+  map<const unsigned long, locus_p_t>::iterator i;
+  i = rs_map.find(snp_no);
+  if (i == rs_map.end()) {
     cerr << "SNP '" << _snp << "' doesn't exist!" << endl;
     return("");
   } else {
-    return rs_map.find(_snp)->second.p->chromosome;
+    ss << "chr" << (unsigned int)i->second.p->chromosome;
+    ss >> ret;
+    return ret;
   }
 }
 
 /**
  * Print locus contents
  */
-void dbg_locus_t(locus_t l) {
+void Legend::dbg_locus_t(locus_t l) {
   cout << l.rs << "\t"
     << l.position << "\t"
     << l.a1 << "\t"
     << l.a2 << "\t"
-    << l.chromosome << endl;
+    << "chr" << (int)l.chromosome << endl;
 }
 
