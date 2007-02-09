@@ -51,7 +51,7 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
 
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
-    SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
+    SetPossibleHaplotypePairs(j, genotypes[j], PossibleHapPairs[j]); 
     
     // initialise sampledHapPairs with the first of the possible happairs. 
     // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
@@ -143,7 +143,7 @@ void AdmixedIndividual::SetPossibleHaplotypePairs(unsigned locus, const vector<v
     PossibleHapPairs.push_back(hpair);//(2,1)
   }
 #else
-  (*Loci)(locus)->setPossibleHaplotypePairs(Genotype[locus], PossibleHapPairs[locus]);
+  (*Loci)(locus)->setPossibleHaplotypePairs(Genotype, PossibleHapPairs);
 #endif
 }
 //********** Destructor **********
@@ -787,7 +787,8 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const opt
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
   Chromosome* C = Loci->getChromosome(j);
-  C->SetGenotypeProbs(ColumnIterator(GenotypeProbs[j], 1), GenotypesMissing[j]);
+  ColumnIterator CI(GenotypeProbs[j], 1);
+  C->SetGenotypeProbs(CI , GenotypesMissing[j]);
 
   bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
   if(!options->isGlobalRho()){
