@@ -13,7 +13,8 @@
 #include "HapMixModel.h"
 #include <fstream>
 
-#define HAPMIXMAP_VERSION 0.3
+#define HAPMIXMAP_VERSION 0
+#define SUBVERSION 4
 
 using namespace std;
 
@@ -142,7 +143,7 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
-      << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION
+      << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION << "." << SUBVERSION
 #ifdef PARALLEL
       << " (Parallel) "
 #endif
