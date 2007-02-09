@@ -12,7 +12,7 @@
 #include <values.h>
 #include <vector>
 
-#include "ColumnIter.h"
+#include "utils/ColumnIter.h"
 
 /** Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
    Instantiated in class Chromosome

@@ -11,7 +11,7 @@
  * 
  */
 #include "HapMixIndividual.h"
-#include "ColumnIter.h"
+#include "utils/ColumnIter.h"
 
 const array_of_allelefreqs* HapMixIndividual::HaploidGenotypeProbs;
 const double* HapMixIndividual::DiploidGenotypeProbs;

@@ -18,7 +18,7 @@
 #include <algorithm>
 #include <limits>
 #include <sstream>
-#include "ColumnIter.h"
+#include "utils/ColumnIter.h"
 
 #define PR(x) cout << #x << " = " << x << endl;
 
@@ -112,10 +112,10 @@ void AdmixedIndividual::InitialiseSumIntensities(const AdmixOptions* const optio
 }
 
 ///sets possible hap pairs for a single SNP
-void AdmixedIndividual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
+void AdmixedIndividual::SetPossibleHaplotypePairs(unsigned locus, const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
 #ifdef PARALLEL
   //cannot use function in CompositeLocus because workers do not have CompositeLocus objects
-  //NOTE:: parallel version only supports SNPs
+  //NOTE:: parallel version only supports SNPs and diploid data
   //NOTE: X data not yet supported in parallel version
 
   if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
@@ -143,7 +143,7 @@ void AdmixedIndividual::SetPossibleHaplotypePairs(const vector<vector<unsigned s
     PossibleHapPairs.push_back(hpair);//(2,1)
   }
 #else
-  (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+  (*Loci)(locus)->setPossibleHaplotypePairs(Genotype[locus], PossibleHapPairs[locus]);
 #endif
 }
 //********** Destructor **********
