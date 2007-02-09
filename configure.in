@@ -1,8 +1,10 @@
-AC_INIT(src/admixmap/hapmixmap.cc)
+dnl AC_INIT(src/admixmap/hapmixmap.cc)
+AC_INIT(hapmixmap, 0.4, paul.mckeigue@ucd.ie)
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(hapmixmap,0.3)
+AM_INIT_AUTOMAKE(hapmixmap, 0.4)
 AM_CONFIG_HEADER(config.h)
 
+AC_LANG(C++)
 AC_DISABLE_SHARED
 AC_PROG_CXX
 AC_PROG_LIBTOOL
