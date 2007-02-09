@@ -156,7 +156,7 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
 
 // ********** Interface to HMM ****************************************
 ///sets genotype probabilities in HMM
-void Chromosome::SetGenotypeProbs(const double* const GenotypeProbs, const bool* const GenotypesMissing) {
+void Chromosome::SetGenotypeProbs(const ColumnIterator& GenotypeProbs, const bool* const GenotypesMissing) {
   SampleStates.SetGenotypeProbs(GenotypeProbs, GenotypesMissing);
 }
 void Chromosome::SetHMMTheta(const double* const Admixture, bool RandomMating, bool diploid){

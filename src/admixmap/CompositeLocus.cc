@@ -681,6 +681,29 @@ void CompositeLocus::setPossibleXHaplotypes(const vector<vector<unsigned short> 
     }
   }
 
+  setPossibleHaplotypes(numMissingLoci, numPermsMissing, isMissing, HapAlleles, HapAllelesNoMissing, PossibleHapPairs);
+}
+void CompositeLocus::setPossibleHaplotypes(const vector<unsigned short>::const_iterator& g, vector<hapPair>& PossibleHapPairs){
+  //setBaseForHapCode();
+  int numMissingLoci = 0;
+  int numPermsMissing = 1;
+  vector<bool> isMissing(NumberOfLoci);
+  vector<int> HapAlleles = vector<int>(NumberOfLoci);
+  vector<int> HapAllelesNoMissing = vector<int>(NumberOfLoci);
+
+  for( int i = 0; i < NumberOfLoci; i++ ) {
+    isMissing[i] = false;
+    HapAlleles[i] = *(g+i);//Genotype[i][0];
+    if( (*(g+i) == 0)   ) { // missing genotype
+      isMissing[i] = true;
+      numMissingLoci ++;
+      numPermsMissing *= NumberOfAlleles[i];
+    }
+  }
+  setPossibleHaplotypes(numMissingLoci, numPermsMissing, isMissing, HapAlleles, HapAllelesNoMissing, PossibleHapPairs);
+}
+void CompositeLocus::setPossibleHaplotypes(int numMissingLoci, int numPermsMissing, const vector<bool>& isMissing, 
+                                           const vector<int>& HapAlleles, vector<int>& HapAllelesNoMissing, vector<hapPair> &PossibleHapPairs){
   vector<int> missingLoci(numMissingLoci);
   int offsetMissingLoci = 0;
   for( int i = 0; i < NumberOfLoci; i++ ) {
@@ -706,6 +729,8 @@ void CompositeLocus::setPossibleXHaplotypes(const vector<vector<unsigned short> 
     }
     
   }
+
+
 }
 //--------------------------------------
 //      SCORE TEST FUNCTIONS

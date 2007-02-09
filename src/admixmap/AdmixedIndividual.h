@@ -122,6 +122,8 @@ private:
 			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
+
+  static void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
 };
 
 #endif /* ADMIXED_INDIVIDUAL_H */

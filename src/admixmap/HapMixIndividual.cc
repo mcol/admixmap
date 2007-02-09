@@ -11,6 +11,7 @@
  * 
  */
 #include "HapMixIndividual.h"
+#include "ColumnIter.h"
 
 const array_of_allelefreqs* HapMixIndividual::HaploidGenotypeProbs;
 const double* HapMixIndividual::DiploidGenotypeProbs;
@@ -22,65 +23,25 @@ HapMixIndividual::HapMixIndividual(){
 
 HapMixIndividual::HapMixIndividual(int number, const Options* const options, const InputData* const Data){
 
+  myNumber = number;
   GenotypesMissing = new bool*[numChromosomes];
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-
+    GenotypesMissing[j] = new bool[Loci->GetSizeOfChromosome(j)];
   }  
+  isHaploid = Data->GetHapMixGenotype( myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
 
   Individual::Initialise(options, Data);
-  myNumber = number;
 
-  unsigned long numhaploid = 0, numdiploid = 0, numhaploidX = 0, numdiploidX = 0;
-  //unsigned numCompositeLoci = Loci->GetNumberOfCompositeLoci();
-  //  for(unsigned j  = 0; j < numCompositeLoci; ++j){
-  unsigned locus = 0;
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
-    for(unsigned jj = 0; jj < Loci->GetSizeOfChromosome(j); ++jj){
-
-      std::vector<unsigned short> g = Data->GetGenotype(locus, myNumber, options->getgenotypesSexColumn());
-      
-      if(g.size()==1){//haploid
-        genotypes.push_back(g[0]);
-        if(g[0]==0)GenotypesMissing[j][jj] = true;
-        if(j== X_posn)++numhaploidX;
-        else ++numhaploid;
-        
-      }
-      else if(g.size()==2){//diploid
-        switch(g[0]+g[1]){
-        case 0:{//0,0
-          genotypes.push_back(0);
-          GenotypesMissing[j][jj] = true;
-          break;
-        }
-        case 2:{//1,1
-          genotypes.push_back(1);
-          break;
-        }
-        case 3:{//1,2
-          genotypes.push_back(3);
-          break;
-        }
-        case 4:{//2,2
-          genotypes.push_back(2);
-          break;
-        }
-        default:{
-          throw string("Invalid allele coding");
-          break;
-        }
-          
-          
-        }
-        if(j== X_posn)++numdiploidX;
-        else ++numdiploid;
-      }
-      
-    }
+  // loop over composite loci to set possible haplotype pairs compatible with genotype 
+  int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
+    SetPossibleHaplotypePairs(j, genotypes.begin()+j, PossibleHapPairs[j]); 
+    
+    // initialise sampledHapPairs with the first of the possible happairs. 
+    // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
+    sampledHapPairs.push_back(PossibleHapPairs[j][0]);
   }
-  Data->CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, myNumber);
-  isHaploid = (bool)(numdiploid+numdiploidX == 0); 
+
 }
 
 HapMixIndividual::~HapMixIndividual(){
@@ -93,6 +54,24 @@ void HapMixIndividual::SetStaticMembers(Genome* const pLoci, const Options* cons
 
   Individual::SetStaticMembers(pLoci, options);
 
+}
+
+void HapMixIndividual::SetPossibleHaplotypePairs(unsigned locus, vector<unsigned short>::const_iterator g, vector<hapPair> &PossibleHapPairs ){
+#ifdef PARALLEL
+    //NOTE: X data not yet supported in parallel version
+
+
+  //TODO
+
+#else
+    //  Note: assuming  only SNPs. Otherwise would require incrementing iterator by NumLoci in comp locus
+  if(isHaploid || (locus==X_posn && !SexIsFemale) )//haploid genotype
+      (*Loci)(locus)->setPossibleHaplotypes(g, PossibleHapPairs);
+
+  else{//diploid genotype
+    ;//TODO
+    }
+#endif
 }
 
 ///Indicates whether genotype is missing at all simple loci within a composite locus
@@ -126,7 +105,8 @@ void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const opti
   }
   else{//haploid
     //pass allele freqs for this locus and this individual's observed allele at this locus
-    C->SetGenotypeProbs((*HaploidGenotypeProbs)[locus0] + genotypes[locus0]-1 , GenotypesMissing[j]);
+    ColumnIterator Lambda((*HaploidGenotypeProbs)[locus0] + genotypes[locus0]-1, 2);
+    C->SetGenotypeProbs( Lambda, GenotypesMissing[j]);
   }
 
   C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);

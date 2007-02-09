@@ -140,34 +140,6 @@ void Individual::setOutcome(double* Y){
 void Individual::setCovariates(double* X){
   Covariates = X;
 }
-///sets possible hap pairs for a single SNP
-void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
-  if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
-  hapPair hpair;
-  PossibleHapPairs.clear();
-  if(Genotype[0][0] == 0 || Genotype[0][1]==0){//missing genotype
-    hpair.haps[0] = 0; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(1,1)
-    hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(1,2)
-    hpair.haps[0] = 1; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(2,1)
-    hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(2,2)
-  }
-  //case of homozygote - only one possible happair
-  else if(Genotype[0][0] == Genotype[0][1]){
-    hpair.haps[0] = hpair.haps[1] = Genotype[0][0]-1;
-    PossibleHapPairs.push_back(hpair);
-  }
-  else{//heterozygote - two possibilities
-    hpair.haps[0] = 0; hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(1,2)
-    hpair.haps[0] = 1; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(2,1)
-  }
-}
-
 #ifdef PARALLEL
 //this version can also be used in serial version
 void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
@@ -449,32 +421,32 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
 #endif
 
 void Individual::UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const{
-  if(!GenotypesMissing[j][jj]){
-    int anc[2];//to store ancestry states
-    GetLocusAncestry(j,jj,anc);
-    A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), annealthermo);
-  }
+   if(!GenotypesMissing[j][jj]){
+      int anc[2];//to store ancestry states
+      GetLocusAncestry(j,jj,anc);
+      A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), annealthermo);
+   }
 }
 
-void Individual::UpdateHMMInputs(unsigned int j, const Options* const options, 
-				 const double* const theta, const vector<double> rho) {
-  //Updates inputs to HMM for chromosome j
-  //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
-  Chromosome* C = Loci->getChromosome(j);
-  C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
+// void Individual::UpdateHMMInputs(unsigned int j, const Options* const options, 
+// 				 const double* const theta, const vector<double> rho) {
+//   //Updates inputs to HMM for chromosome j
+//   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
+//   Chromosome* C = Loci->getChromosome(j);
+//   C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
-  bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
-  if(!options->getHapMixModelIndicator()){
-    if(!options->isGlobalRho()){
-      //set locus correlation, f, if individual- or gamete-specific rho
-      C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
-    }
-    C->SetHMMTheta(theta, options->isRandomMatingModel(), diploid);
-  }
-  //if(diploid)
-  C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
-  logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
-}
+//   bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
+//   if(!options->getHapMixModelIndicator()){
+//     if(!options->isGlobalRho()){
+//       //set locus correlation, f, if individual- or gamete-specific rho
+//       C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
+//     }
+//     C->SetHMMTheta(theta, options->isRandomMatingModel(), diploid);
+//   }
+//   //if(diploid)
+//   C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
+//   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
+// }
 
 void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regression*>& R){
   int NumOutcomes = Outcome->nCols();
