@@ -1,4 +1,9 @@
-This is the source for the Hapmixmap software.
+Dependencies,
 
-Dependencies:
-	GNU GSL library
+Serial version:
+
+	GNU GSL, http://www.gnu.org/software/gsl/
+
+Parallel version:
+
+	MPI
