@@ -26,57 +26,64 @@ void PrintOptionsMessage() {
 /**
    Opens a directory for program output
 */
-void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles){
-  if(strlen(dirname) && strcmp(dirname, ".") && strcmp(dirname, "..")){
+void MakeResultsDir(const char *dirname, bool verbose,
+                    bool DeleteExistingFiles)
+{
+  if (strlen(dirname) && strcmp(dirname, ".") && strcmp(dirname, "..")) {
     DIR *pdir;
     struct dirent *pent;
-    
+#ifdef WIN32
+    string dirpath = ".\\";
+#else
     string dirpath = "./";
+#endif
     dirpath.append(dirname);
-    pdir=opendir(dirpath.c_str()); //"." refers to the current dir
-    if (!pdir){//dir does not exist
-      cout << "Creating directory "<< dirpath <<endl;
+    pdir = opendir(dirpath.c_str());    //"." refers to the current dir
+    if (!pdir) {                //dir does not exist
+      cout << "Creating directory " << dirpath << endl;
       //this block is safer but only works in Windows
-      //int status = mkdir(dirpath.c_str()/*, POSIX permissions go here*/);
-      //if(status){
-      //cout<< "Unable to create directory. Exiting." << endl;
-      //exit(1);
-      //}
+#ifdef WIN32
+      int status = mkdir(dirpath.c_str()/*, POSIX permissions go here*/);
+      if(status){
+      cout<< "Unable to create directory. Exiting." << endl;
+      exit(1);
+      }
+#else
       //KLUDGE: 'mkdir' not guaranteed to work on all systems; no error-checking
       //should be ok for normal use
-      string cmd = "mkdir ";cmd.append(dirname);
+      string cmd = "mkdir ";
+      cmd.append(dirname);
       system(cmd.c_str());
-    }
-    else if(DeleteExistingFiles){
-      cout << "Directory \"" << dirname << "\" exists. Contents will be deleted."<<endl;
-      
+#endif
+    } else if (DeleteExistingFiles) {
+      cout << "Directory \"" << dirname <<
+          "\" exists. Contents will be deleted." << endl;
+
       //list and delete contents of directory
-      errno=0;
-      while ((pent=readdir(pdir))){//read filenames
-	if(strcmp(pent->d_name, ".") && strcmp(pent->d_name, "..")//skip . and ..
-           && strncmp(pent->d_name, "state", 5)){//skip any files starting 
-	  string filepath = dirpath + "/"; 
-	  filepath.append(pent->d_name);
-	  if(verbose)
-	    cout << "Deleting  " <<  filepath <<endl;
-	  remove(filepath.c_str());//delete
-	}
+      errno = 0;
+      while ((pent = readdir(pdir))) {  //read filenames
+        if (strcmp(pent->d_name, ".") && strcmp(pent->d_name, "..")     //skip . and ..
+            && strncmp(pent->d_name, "state", 5)) {     //skip any files starting 
+          string filepath = dirpath + "/";
+          filepath.append(pent->d_name);
+          if (verbose)
+            cout << "Deleting  " << filepath << endl;
+          remove(filepath.c_str());     //delete
+        }
       }
       // cout << "errno = " << errno << endl << flush;
-      if (errno && !errno==2){ // empty directory sets errno=2
-	cerr << "readdir() failure; terminating";
-	exit(1);
+      if (errno && !errno == 2) {       // empty directory sets errno=2
+        cerr << "readdir() failure; terminating";
+        exit(1);
       }
       closedir(pdir);
       //rmdir(dirpath.c_str());
     }
-  }
-  else {
+  } else {
     cerr << "Invalid resultsdir. Exiting\n";
     exit(1);
   }
 }
-
 void ThrowException(const string& msg, LogWriter & Log){
 #ifdef PARALLEL//print error message to screen as only master is allowed write with LogWriter
   Log << On << "rank " << MPI::COMM_WORLD.Get_rank() << ": " << msg << "\n Exiting...\n";
