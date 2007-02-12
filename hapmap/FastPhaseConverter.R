@@ -71,7 +71,7 @@ save.fastphase <- function(genotype, loci, out.fastphase.file) {
 	# Replace NA's with "?" character
 	fp[which(is.na(fp))] <- "?"
 
-	loci[1, 2] <- 0 # fix problem with the NA value, it doesn't hurt.
+	loci[1, 2] <- 0 # fix problem with the initial NA value, it doesn't hurt.
 
 	cat(
 		number.indivs,

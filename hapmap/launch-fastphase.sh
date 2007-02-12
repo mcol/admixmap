@@ -8,9 +8,9 @@ source config.sh
 
 STATES=8
 
-# for POPULATION in $POPULATIONS
 function populations {
-for POPULATION in Afr Asian
+# for POPULATION in $POPULATIONS
+for POPULATION in Asian
 do
 	# Convert the data.
 	# Main data should be hiven as haploid with option -B, sourcing
@@ -38,6 +38,7 @@ do
 	popd
 	pushd "$WORKING_DATA_DIR"
 	$FAST_PHASE -T20 -C50 -K$STATES \
+		-M2 \
 		-s1000 \
 		-bfastphase_haplotypes.inp \
 		mi_cc_fastphase.inp
@@ -54,6 +55,10 @@ do
 		--output "$WORKING_DIR/PPGenotypeProbs.txt" \
 		--args-file "$WORKING_DATA_DIR/mi_cc_index.txt" \
 		-i 10
+	# This file occupies a LOT of space. We better compress it
+	# nicely, in the background.
+	rm -v "$WORKING_DATA_DIR/fastphase_sampledHgivG.txt.bz2"
+	nice bzip2 "$WORKING_DATA_DIR/fastphase_sampledHgivG.txt" &
 	if [ "$?" != "0" ]
 	then
 		echo "Python script returned an error."

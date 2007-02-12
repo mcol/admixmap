@@ -68,7 +68,7 @@ do
 		echo -n >> "$TASK_FILE" " ; "
 		# FIXME: Number of individuals
 		# predict_time $SAMPLES 100 $STATES
-		TIME_TOTAL="$TIME_TOTAL + `predict_time $SAMPLES 100 $STATES`"
+		# TIME_TOTAL="$TIME_TOTAL + `predict_time $SAMPLES 100 $STATES`"
 		echo -n >> "$TASK_FILE" \
 		perl $CHR22 \
 			--pop $POPULATION \
@@ -76,17 +76,18 @@ do
 			--maskfile mi_cc_index.txt \
 			--genotypes-file mi_merged_cc_train.txt \
 			--locus-file mi_loci.txt \
-			--samples 50 \
-			--burnin 10 \
+			--samples 200 \
+			--burnin 50 \
 			--mutual-information \
 			--re-run
+		TIME_TOTAL="$TIME_TOTAL + `predict_time 200 100 $STATES`"
 		echo >> "$TASK_FILE"
 	done
 done
 echo -n "Total time: seconds: "
-echo $TIME_TOTAL | bc
+echo "($TIME_TOTAL)" | bc
 echo -n "minutes: "
-echo "($TIME_TOTAL) / 60" | bc
+echo "($TIME_TOTAL) / 60.0" | bc
 echo -n "hours: "
-echo "($TIME_TOTAL) / 60 / 60" | bc
+echo "($TIME_TOTAL) * 1.0 / 60.0 / 60.0" | bc
 echo 
