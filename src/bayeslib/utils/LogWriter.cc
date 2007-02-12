@@ -142,7 +142,7 @@ void LogWriter::StartMessage(){
 void LogWriter::ProcessingTime()
 {
   if(rank==0){
-    long EndTime = time(0);
+    time_t EndTime = time(0);
     tm timer;
     timer = *localtime( &EndTime );
     

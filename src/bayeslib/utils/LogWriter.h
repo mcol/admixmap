@@ -67,7 +67,7 @@ public:
 private:
   std::ofstream LogFileStream;
   bool verbose;///< determines if output goes to screen in quiet mode
-  long StartTime;
+  time_t StartTime;
   DisplayMode toscreen;
   int rank;
 
