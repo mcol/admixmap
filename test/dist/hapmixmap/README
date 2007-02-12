@@ -1,0 +1,69 @@
+Source training data:
+http://www.hapmap.org/downloads/phasing/2006-07_phaseII/phased/
+
+Prerequisites:
+
+ * Perl
+ * R-project
+
+Step I. Start a project
+
+$ perl start-project.pl \
+	--name <project name> \
+	--population <population> \
+	--genotypes <genotypes>
+
+Project name should be a single word in lower case characters.
+Population can be one of: 'Afr', 'Asian', 'Eur'.  Genotypes file is
+optional. If not given at the time of project creation, it should be
+placed later on, manually.
+
+Genotypes file format:
+
+idno	dncase	rsXXXX	rsXXXXX	rsXXXXX
+<id1>	0	G:A	G:A	C:C
+<id2>	1	A:A	G:A	C:T
+
+Columns should be tab-separated. Loci coding should be coded in the same
+way as in the Hapmap project.
+
+dncase is 0 for case, 1 for control.
+
+Step II. Pre-process the data.
+
+$ perl pre-process.pl
+
+This step will convert user data into a format suitable for hapmixmap.
+It will also download the corresponding file from Hapmap project and
+prepare the train data. Any spotted problems with the data will be
+reported to the user.
+
+Step III. Train.
+
+$ perl train.pl [ --iterations N ]
+
+This step trains the program, using data downloaded from the Hapmap
+project. The algorithm may require few thousands iterations to converge.
+The program state is saved after the program stops, so the training
+process can be resumed.
+
+Once the algorithm has converged, there is no need to repeat the
+training step anymore. New data can be submitted for testing, using the
+existing (saved) program state.
+
+Step IV. Test.
+
+$ perl test.pl
+
+This step will process the case-control data. It doesn't require many
+iterations.
+
+Step V. Post-process.
+
+$ perl post-process.pl
+
+This step will post-process the outcome data.
+
+----
+
+Please visit http://www.ucd.ie/genepi/ for more information.

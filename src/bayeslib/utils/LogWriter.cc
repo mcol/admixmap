@@ -1,7 +1,7 @@
 /*
  *   LogWriter.cc 
  *   Class for writing to a log file
- *   Copyright (c) 2005 - 2007 David O'Donnell and Paul McKeigue
+ *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -12,7 +12,7 @@
 #include "LogWriter.h"
 #include "config.h"
 #ifdef PARALLEL
-#include <mpi++.h>
+#include <mpi2c++/mpi++.h>
 #endif
 
 using namespace::std;
@@ -142,7 +142,7 @@ void LogWriter::StartMessage(){
 void LogWriter::ProcessingTime()
 {
   if(rank==0){
-    time_t EndTime = time(0);
+    long EndTime = time(0);
     tm timer;
     timer = *localtime( &EndTime );
     

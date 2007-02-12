@@ -17,7 +17,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object
 
-  IC = new HapMixIndividualCollection(&options, &data, &Loci, &A);//NB call after A Initialise;
+  IC = new HapMixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
   if(isMaster || isWorker) IC->LoadData(&options, &data, false);    //and before L and R Initialise
   if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
   if(isMaster || isWorker){
@@ -74,13 +74,22 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  //   if(iteration%2){
+  //     if(isMaster || isWorker){
+  //       L->UpdateSumIntensitiesByRandomWalk(IC,  
+  // 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
+  //     }
+  //   }
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   // Update individual-level parameters, sampling hidden states
   if(isMaster || isWorker){
     IC->SampleLocusAncestry(options);
   }
 
-   if(isWorker || isFreqSampler){
-     IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
+  if(isWorker || isFreqSampler){
+    IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
 
     if( options->getHWTestIndicator() || options->getMHTest() || options->getTestForResidualAllelicAssoc() ) {
 #ifdef PARALLEL
@@ -128,7 +137,8 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
     MHTest.Update(IC, Loci);//update Mantel-Haenszel test
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
  
-  // update allele frequencies conditional on hidden states
+  // update allele frequencies conditional on locus ancestry states
+  // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
   if( !options->getFixedAlleleFreqs()){
     if(isFreqSampler){
 #ifdef PARALLEL
@@ -163,12 +173,12 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   // or from update of individual-level parameters otherwise
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-   if(isMaster || isWorker){
-     //L->UpdateGlobalTheta(iteration, IC);
-     //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
-     L->SampleHapMixLambda(IC->getSumAncestry(),  
-                           (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
-   }
+  if(isMaster || isWorker){
+    //L->UpdateGlobalTheta(iteration, IC);
+    //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
+    L->SampleHapMixLambda(IC->getSumAncestry(),  
+                          (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
+  }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   
   // ** update regression parameters (if regression model) conditional on individual admixture

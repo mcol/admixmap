@@ -7,12 +7,10 @@
 #include <fstream>
 #include <iomanip>
 #include <math.h>
-#include <string>
-#include <cstdlib>
+#include <string.h>
+#include <stdlib.h>
 #include <values.h>
 #include <vector>
-
-#include "utils/ColumnIter.h"
 
 /** Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
    Instantiated in class Chromosome
@@ -25,7 +23,7 @@ public:
   HMM( int inTransitions, int pops, const double* const f);
   ~HMM();
   void SetDimensions( int inTransitions, int pops, const double* const fin);
-  void SetGenotypeProbs(const ColumnIterator& lambdain, const bool* const missing);
+  void SetGenotypeProbs(const double* const lambdain, const bool* const missing);
   void SetTheta(const double* const Theta, const int Mcol, const bool isdiploid);
   void SetStateArrivalProbs(const int Mcol, bool isdiploid);
 
@@ -54,7 +52,7 @@ private:
 
   const double* f;
   const double* theta;
-  ColumnIterator Lambda;
+  const double* Lambda;
   const bool* missingGenotypes;
   bool alphaIsBad, betaIsBad;
 

@@ -24,11 +24,11 @@
    On            to logfile and to screen
    EXAMPLES:
    (1) to write to logfile only (logging messages):
-     Log << Off << message;
+   setDisplayMode(Off); Log<<message;
    (2) to write to log and screen (important messages):
-     Log << On << message;
+   setDisplayMode(On); Log<<message;
    (3) to write to log and let user determine whether to write to screen (unimportant information)
-     Log << Quiet << message;
+   setDisplayMode(Quiet); Log<<message;
 */
 enum DisplayMode {Off, Quiet, On};
 
@@ -67,7 +67,7 @@ public:
 private:
   std::ofstream LogFileStream;
   bool verbose;///< determines if output goes to screen in quiet mode
-  time_t StartTime;
+  long StartTime;
   DisplayMode toscreen;
   int rank;
 

@@ -1,5 +1,1 @@
-SUBDIRS		 = bayeslib \
-		   common \
-		   admixmap \
-		   hapmixmap \
-		   tools
+SUBDIRS		 = bayeslib admixmap hapmixmap common

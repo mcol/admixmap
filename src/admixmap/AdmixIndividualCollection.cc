@@ -92,12 +92,6 @@ AdmixIndividualCollection::~AdmixIndividualCollection() {
   delete indadmixoutput;
 }
 
-void AdmixIndividualCollection::DeleteGenotypes(bool setmissing=false){
-  for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
-    if(setmissing)AdmixedChild[i]->SetMissingGenotypes();
-    AdmixedChild[i]->DeleteGenotypes();
-  }
-}
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 

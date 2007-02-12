@@ -1,17 +1,12 @@
-/**
- * prog to convert hapmap data to ADMIXMAP format
- * supply chromosome number as arg. 0 (default) means all.
- * also requires infofile and data directory (Eur, Afr or Asian).
- * Optionally supply genotypes file and locus file names
- * (default to genotypes.txt) loci.txt
- *
- * NB: input data file must be named "chr#.txt",
- * where # is a number from 1 to 22, and all be located
- * in the data directory
- *
- * Copyright (c) David O'Donnell 2006
- *
- */
+/*
+  prog to convert hapmap data to ADMIXMAP format
+  supply chromosome number as arg. 0 (default) means all.
+  also requires infofile and data directory (Eur, Afr or Asian).
+  Optionally supply genotypes file and locus file names (default to genotypes.txt) loci.txt
+NB: input data file must be named "chr#.txt", where # is a number from 1 to 22, and all be located in the data directory
+
+Copyright (c) David O'Donnell 2006
+*/
 
 #include <iostream>
 #include <iomanip>
@@ -148,9 +143,9 @@ int main(int argc, char **argv){
   vector<bool> BadLoci;
   double position = 0.0, prev = 0.0;
   string scrap;
-  unsigned int locus = 0;
-  unsigned int indiv = 0;
-  // unsigned chromosome = 0;
+  int locus = 0;
+  int indiv = 0;
+  unsigned chromosome = 0;
   unsigned lastchr = 22;
   if(CHRNUM==0)CHRNUM = 1;
   else lastchr = CHRNUM;
@@ -345,9 +340,7 @@ int main(int argc, char **argv){
 
 // ************************** PHASE 3: Write genotypesfile  *********************
    
-   for(indiv = 0; indiv < NUMIND; ++indiv)
-     //if individual is a founder
-     if(IndivInfo[INDIVID[indiv]].second) {
+   for(indiv = 0; indiv < NUMIND; ++indiv) if(IndivInfo[INDIVID[indiv]].second){//if individual is a founder
        if(!be_quiet)
 	   cout << "\n" << indiv+1 << " " << INDIVID[indiv] << " "  << flush;
       //write indiv id and sex
@@ -378,9 +371,7 @@ int main(int argc, char **argv){
 //	      if(position-prev >=0.0){//skip loci out of sequence
 	      if(!BadLoci[abslocus]){
 		  //cout << "  locus" << locus+1 << " " << SNPID << " " <<position << " " << prev << endl;
-		  for(unsigned int col = 0; col < 7+indiv; ++col) {
-                    genotypesin >> scrap;//skip to col for this individual, genotypes start at col 11
-                  }
+		  for(int col = 0; col < 7+indiv; ++col)genotypesin >> scrap;//skip to col for this individual, genotypes start at col 11
 		  genotypesin >> obs;
 		  
 		  //write to genotypesfile in admixmap format
@@ -405,5 +396,5 @@ int main(int argc, char **argv){
     }
   genotypesfile.close();
 //  outcomefile.close();
-  cout << endl << "Finished writing genotypesfile" << endl;
+  cout << "\nFinished writing genotypesfile" << endl;
 }

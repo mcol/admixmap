@@ -13,8 +13,7 @@
 #include "HapMixModel.h"
 #include <fstream>
 
-// Define the package version in the configure.in file in the top
-// directory.
+#define HAPMIXMAP_VERSION 0.3
 
 using namespace std;
 
@@ -143,7 +142,7 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
-      << "            ** HAPMIXMAP (v" << PACKAGE_VERSION
+      << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION
 #ifdef PARALLEL
       << " (Parallel) "
 #endif

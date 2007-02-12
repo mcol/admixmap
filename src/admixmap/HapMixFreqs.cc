@@ -527,10 +527,3 @@ void HapMixFreqs::OutputFinalValues(const char* filename, LogWriter& Log)const{
     }
   }
 }
-const array_of_allelefreqs* HapMixFreqs::getHaploidGenotypeProbs()const{
-  return &Freqs;
-}
-
-const double* HapMixFreqs::getDiploidGenotypeProbs()const{
-  return DiploidGenotypeProbs;
-}

@@ -469,7 +469,7 @@ void AlleleFreqs::UpdateAlleleCounts(const int locus, const int h[2], const int 
       }
     } else { // haploid: ignore h[1] and ancestry[1]
       if( Loci->GetNumberOfStates(locus)==2 || !anneal) {
-        //++AlleleCounts[locus][ h[0]*Populations + ancestry[0] ];
+	++AlleleCounts[locus][ h[0]*Populations + ancestry[0] ];
       } 
     }
   } else { // conjugate sampler

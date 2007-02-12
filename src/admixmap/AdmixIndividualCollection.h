@@ -29,7 +29,7 @@ public:
   ~AdmixIndividualCollection();
   AdmixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
 
-  void DeleteGenotypes(bool);
+  //void DeleteGenotypes(bool);
   void Initialise(const AdmixOptions* const options, const Genome* const Loci,
 		  const Vector_s& PopulationLabels, LogWriter &Log);
   void DrawInitialAdmixture(const std::vector<std::vector<double> > &alpha);

@@ -202,9 +202,9 @@ admixmap-para:
 	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
 
 define_admixmap:
-	@echo "#define __ADMIXMAP__" > config.h
+	@echo "#define __ADMIXMAP__" > defs.h
 define_hapmixmap:
-	@echo "#define __HAPMIXMAP__" > config.h
+	@echo "#define __HAPMIXMAP__" > defs.h
 
 admixmap_message:	
 	@echo **Compiling ADMIXMAP**
@@ -216,7 +216,7 @@ hapmixmap_message:
 ##this is necessary in case the version of parallel.h that exists is the wrong one
 checkbayeslib:
 	@echo **Checking for bayeslib**
-	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo $(PARALLEL_DEFINES) >config.h;else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f Makefile.manual;fi;
+	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo $(PARALLEL_DEFINES) >$(BAYESLIB_PATH)/parallel.h;else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f Makefile.manual;fi;
 
 bayeslib:
 	$(MAKE) -C $(BAYESLIB_PATH) -e

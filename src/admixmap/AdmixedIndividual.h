@@ -30,9 +30,7 @@ public:
 
   static void SetStaticMembers(Genome* const pLoci, const Options* const options);
   static void DeleteStaticMembers();
-  void drawInitialAdmixtureProps(const vector<vector<double> > &alpha);
-  void SetMissingGenotypes(); 
-  void DeleteGenotypes();
+  void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
 
   double getSumrho()const;
   const std::vector<double> getRho()const;
@@ -80,8 +78,7 @@ private:
   std::vector<unsigned> SumNumArrivals;
   std::vector< double > rhohat;
   std::vector<double> sumlogrho;
-  std::vector<genotype> genotypes;  
-
+  
   std::vector<double> logPosterior[3]; // elements 0, 1, 2 are for theta, rho, freqs
   
   //RWM sampler for individual admixture
@@ -122,8 +119,6 @@ private:
 			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
-
-  static void SetPossibleHaplotypePairs(unsigned locus, const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
 };
 
 #endif /* ADMIXED_INDIVIDUAL_H */

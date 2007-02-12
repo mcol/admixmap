@@ -18,7 +18,6 @@
 #include <algorithm>
 #include <limits>
 #include <sstream>
-#include "utils/ColumnIter.h"
 
 #define PR(x) cout << #x << " = " << x << endl;
 
@@ -32,38 +31,9 @@ AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
 }
 
 AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const options, const InputData* const Data,  
-				     bool undertest=false) {
+				     bool undertest=false): Individual(number, options, Data) {
   IAmUnderTest = undertest;
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
-
-  myNumber = number;
-  NumGametes = 1;
-  GenotypesMissing = new bool*[numChromosomes];
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
-  }  
-  missingGenotypes = 0;//allocated later, if needed
-  //retrieve genotypes
-  Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
-  isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
-
-  Individual::Initialise(options, Data);
-
-  // loop over composite loci to set possible haplotype pairs compatible with genotype 
-  for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
-    SetPossibleHaplotypePairs(j, genotypes[j], PossibleHapPairs[j]); 
-    
-    // initialise sampledHapPairs with the first of the possible happairs. 
-    // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
-    sampledHapPairs.push_back(PossibleHapPairs[j][0]);
-  }
-
-  //Now the PossibleHapPairs have ben determined and missing genotype indicators have been set, 
-  //the genotypes are deleted as they are no longer needed 
-  if( options->getHWTestIndicator())SetMissingGenotypes();
-  DeleteGenotypes();
-
-
 
   thetahat = 0;
   if(options->getChibIndicator() || options->getIndAdmixModeFilename())
@@ -111,41 +81,6 @@ void AdmixedIndividual::InitialiseSumIntensities(const AdmixOptions* const optio
   sumlogrho.assign(_rho.size(), 0.0);
 }
 
-///sets possible hap pairs for a single SNP
-void AdmixedIndividual::SetPossibleHaplotypePairs(unsigned locus, const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
-#ifdef PARALLEL
-  //cannot use function in CompositeLocus because workers do not have CompositeLocus objects
-  //NOTE:: parallel version only supports SNPs and diploid data
-  //NOTE: X data not yet supported in parallel version
-
-  if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
-  hapPair hpair;
-  PossibleHapPairs.clear();
-  if(Genotype[0][0] == 0 || Genotype[0][1]==0){//missing genotype
-    hpair.haps[0] = 0; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(1,1)
-    hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(1,2)
-    hpair.haps[0] = 1; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(2,1)
-    hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(2,2)
-  }
-  //case of homozygote - only one possible happair
-  else if(Genotype[0][0] == Genotype[0][1]){
-    hpair.haps[0] = hpair.haps[1] = Genotype[0][0]-1;
-    PossibleHapPairs.push_back(hpair);
-  }
-  else{//heterozygote - two possibilities
-    hpair.haps[0] = 0; hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(1,2)
-    hpair.haps[0] = 1; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(2,1)
-  }
-#else
-  (*Loci)(locus)->setPossibleHaplotypePairs(Genotype, PossibleHapPairs);
-#endif
-}
 //********** Destructor **********
 AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumSoftmaxTheta;
@@ -181,30 +116,6 @@ void AdmixedIndividual::drawInitialAdmixtureProps(const std::vector<std::vector<
   }  
 }
 
-void AdmixedIndividual::SetMissingGenotypes(){
-  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
-  //used in HW score test; NB call before genotypes are deleted
-  if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
-  missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
-  unsigned index = 0;
-  for(unsigned j = 0; j < Loci->GetNumberOfChromosomes(); ++j)
-    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
-      missingGenotypes[index++] = (genotypes[j][k][0] == 0);
-    }
-}
-
-void AdmixedIndividual::DeleteGenotypes(){
-  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
-#ifdef PARALLEL
-      genotypes[j][0].clear();
-#else
-    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k)
-      genotypes[j][k].clear();
-#endif
-    genotypes[j].clear();
-  }
-  genotypes.clear();
-}
 
 //********** set admixture proportions *********
 void AdmixedIndividual::setAdmixtureProps(const double* const a, size_t size) {
@@ -787,8 +698,7 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const opt
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
   Chromosome* C = Loci->getChromosome(j);
-  ColumnIterator CI(GenotypeProbs[j], 1);
-  C->SetGenotypeProbs(CI , GenotypesMissing[j]);
+  C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
   bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
   if(!options->isGlobalRho()){

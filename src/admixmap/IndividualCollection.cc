@@ -78,6 +78,12 @@ IndividualCollection::~IndividualCollection() {
   delete[] OutcomeType;
   delete[] ReportedAncestry;
 }
+void IndividualCollection::DeleteGenotypes(bool setmissing=false){
+  for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
+    if(setmissing)_child[i]->SetMissingGenotypes();
+    _child[i]->DeleteGenotypes();
+  }
+}
 
 // ************** INITIALISATION AND LOADING OF DATA **************
 
@@ -251,7 +257,7 @@ void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFr
 void IndividualCollection::AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
                                                   bool anneal){
 #ifdef PARALLEL
-  MPE_Log_event(23, 0, "startAlleleCountUpdate");
+      MPE_Log_event(23, 0, "startAlleleCountUpdate");
 #endif
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
@@ -267,7 +273,10 @@ void IndividualCollection::AccumulateAlleleCounts(const Options* const options, 
     }
   }
 #ifdef PARALLEL
-  MPE_Log_event(24, 0, "endAlleleCountUpdate");
+      MPE_Log_event(24, 0, "endAlleleCountUpdate");
+#endif
+
+#ifdef PARALLEL
   A->SumAlleleCountsOverProcesses(options->getPopulations());
 #endif
 }

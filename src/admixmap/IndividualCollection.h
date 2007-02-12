@@ -36,6 +36,7 @@ public:
   virtual ~IndividualCollection();
   IndividualCollection(const Options* const options, const InputData* const Data, Genome* Loci);
 
+  void DeleteGenotypes(bool);
   //virtual void Initialise(const AdmixOptions* const options, const Genome* const Loci,
 		  //const Vector_s& PopulationLabels, LogWriter &Log) = 0;
   void LoadData(const Options* const options, const InputData* const, bool admixtureAsCovariate);

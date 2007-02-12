@@ -18,7 +18,6 @@
 
 class Individual;
 class AdmixOptions;
-class ColumnIterator;
 
 /// Represents a chromosome and holds HMM object
 class Chromosome
@@ -44,7 +43,7 @@ public:
   void SetLocusCorrelation(const std::vector<double> rho_, bool global, bool RandomMating);
 
 // ********** Interface to HMM ****************************************
-  void SetGenotypeProbs(const ColumnIterator& GenotypeProbs, const bool* const GenotypesMissing);
+  void SetGenotypeProbs(const double* const GenotypeProbs, const bool* const GenotypesMissing);
   void SetHMMTheta(const double* const Admixture, bool RandomMating, bool diploid);
   void SetStateArrivalProbs(bool RandomMating, bool isdiploid);
 

@@ -5,7 +5,7 @@
 #include "config.h"
 
 #ifdef PARALLEL
-#include <mpi++.h>
+#include <mpi2c++/mpi++.h>
 #include <mpe.h>
 #include <vector>
 #endif
