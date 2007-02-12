@@ -1,9 +1,12 @@
-Dependencies,
+Dependencies:
 
-Serial version:
+ * GNU GSL, http://www.gnu.org/software/gsl/
 
-	GNU GSL, http://www.gnu.org/software/gsl/
+Additional dependencies for the parallel version:
 
-Parallel version:
+ * MPI
 
-	MPI
+This is a source code distribution. If you want to use it, you need to
+compile it.  For more information, please go to this address:
+
+http://www.ucd.ie/genepi/software.html
