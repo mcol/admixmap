@@ -3,10 +3,13 @@ LIBS			= -lgsl -lgslcblas $(PARALLEL_LIBS)
 INCLUDES		= -I ../bayeslib
 LDADD			= libgenepi.la
 
+
 bin_PROGRAMS		= hapmixmap admixmap
 noinst_LTLIBRARIES	= libgenepi.la
 
 hapmixmap_LDFLAGS	= $(STATIC_LDFLAGS)
+hapmixmap_CPPFLAGS	= -D__HAPMIXMAP__
+admixmap_CPPFLAGS	= -D__ADMIXMAP__
 
 hapmixmap_SOURCES	= hapmixmap.cc \
 			HapMixFreqs.cc \
@@ -18,11 +21,9 @@ hapmixmap_SOURCES	= hapmixmap.cc \
 			MantelHaenszelTest.cc \
 			PopHapMix.cc
 
-hapmixmap_CPPFLAGS	= -D__HAPMIXMAP__
 
 hapmixmap_LDADD		= ../bayeslib/libbayes.la \
 			  libgenepi.la
-
 
 admixmap_SOURCES = admixmap.cc \
 		   Model.cc \
@@ -40,7 +41,6 @@ admixmap_SOURCES = admixmap.cc \
 admixmap_LDADD		= ../bayeslib/libbayes.la \
 			  libgenepi.la
 
-admixmap_CPPFLAGS	= -D__ADMIXMAP__
 
 noinst_HEADERS	= admixmap.h \
 		  HapMixFreqs.h \
