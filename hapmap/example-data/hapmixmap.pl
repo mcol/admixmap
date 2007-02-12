@@ -33,15 +33,25 @@ GetOptions(
 	   "cc"=>\$cc
 );
 
-#TODO: usage message and -h option
+#TODO: usage message, resultsdir option and -h option
 
-my $datadir = "data";
-my $hapmapdir = "hapmap/$POP/data";
+my $HapMapDataDir = "data";
+my $UserDataDir = "data";
+
+#Case-Control genotypes file
+my $GenotypesFile = "CaseControlGenotypes.txt";
+
+#files with the formatted HapMap data
+my $HapMapGenotypesFilename = "HapMapGenotypes.txt";
+my $HapMapLocusFilename = "loci.txt";
+
+#output directory
+my $ResultsDir = "results";
 
 my $arg_hash = 
 {
 #main options
-    resultsdir => 'results',
+    resultsdir => "$ResultsDir",
     displaylevel   => 3, 
     checkdata => 0,
 
@@ -53,11 +63,10 @@ my $arg_hash =
 
 
 #HapMap data files
-    genotypesfile => "$hapmapdir/genotypes.txt",
-    locusfile     => "$hapmapdir/loci.txt",
+    genotypesfile => "$HapMapDataDir/$HapMapGenotypesFilename",
+    locusfile     => "$HapMapDataDir/$HapMapLocusFilename",
 
-#model    
-    #fixedallelefreqs => 1,
+#model
     states      => $STATES,
     hapmixmodel => 1,
 
@@ -70,7 +79,6 @@ my $arg_hash =
     logfile            => 'logfile.txt',
     paramfile          => 'paramfile.txt',
     dispparamfile      => "allelefreqpriors.txt",
-    #regparamfile      => 'regparamfile.txt',
     ergodicaveragefile => 'ergodicaverage.txt',
 
 #saved state files
@@ -81,9 +89,6 @@ my $arg_hash =
 #optional tests
 };
 
-##initial run
-$arg_hash->{resultsdir}="Results$STATES"."States2";
-
 #initial run
 if($initial){
     doAnalysis($executable,$arg_hash);
@@ -91,13 +96,14 @@ if($initial){
 else{
 ##rerun with final values of lambda, freqs in previous run as starting values
     if($cc){#running case-control data
-	$arg_hash->{ccgenotypesfile} = "$datadir/genotypes.txt";
-	$arg_hash->{outcomevarfile} = "$datadir/outcome.txt";
+	$arg_hash->{ccgenotypesfile} = "$UserDataDir/genotypes.txt";
+	$arg_hash->{outcomevarfile}  = "$UserDataDir/outcome.txt";
+	#arg_hash->{regparamfile}      = 'regparamfile.txt';
         $arg_hash->{allelicassociationscorefile} = 'allelicassocscores.txt';
     }
-   $arg_hash->{initialfreqpriorfile} = "$datadir/initialetas.txt";
-   $arg_hash->{initiallambdafile}  = "$datadir/initiallambdas.txt";
-   $arg_hash->{initialallelefreqfile}           = "$datadir/initialallelefreqs.txt";
+   $arg_hash->{initialfreqpriorfile}  = "$UserDataDir/initialetas.txt";
+   $arg_hash->{initiallambdafile}     = "$UserDataDir/initiallambdas.txt";
+   $arg_hash->{initialallelefreqfile} = "$UserDataDir/initialallelefreqs.txt";
    doAnalysis($executable,$arg_hash);
 }
 
@@ -129,10 +135,21 @@ sub doAnalysis
     my $command = $prog.getArguments($args);
 
     $ENV{'RESULTSDIR'} = $args->{resultsdir};
+
     if(system($command)==0){
-      system("cp $args->{resultsdir}/$args->{allelefreqoutputfile} $datadir");
-      system("cp $args->{resultsdir}/$args->{hapmixlambdaoutputfile} $datadir");	
-      system("cp $args->{resultsdir}/$args->{allelefreqprioroutputfile} $datadir");	
+
+      ##copy final values into data dir for next time
+      my $Copy = "cp";
+      my $Slash = "/";
+      if($^O eq "MSWin32"){
+	$Copy = "copy";
+	$Slash = "\\";
+      }
+
+      system("$Copy $args->{resultsdir}$Slash$args->{allelefreqoutputfile} $UserDataDir");
+      system("$Copy $args->{resultsdir}$Slash$args->{hapmixlambdaoutputfile} $UserDataDir");	
+      system("$Copy $args->{resultsdir}$Slash$args->{allelefreqprioroutputfile} $UserDataDir");	
+
 # Comment out the next three lines to run admixmap without R script
     print "Starting R script to process output\n";
       system("R CMD BATCH --quiet --no-save --no-restore ./AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");

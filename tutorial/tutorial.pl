@@ -35,7 +35,7 @@ sub doAnalysis {
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 
 # Change this to the location of the admixmap executable
-my $executable = 'c:/cvs1/genepi/test/admixmap';
+my $executable = '../src/admixmap/admixmap';
 # command-line options are stored in an associative array (known as a hash in perl)  
 my $arg_hash = {
 #data files
