@@ -1,0 +1,4 @@
+This is the source for the Hapmixmap software.
+
+Dependencies:
+	GNU GSL library

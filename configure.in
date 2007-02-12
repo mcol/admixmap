@@ -14,7 +14,7 @@ AC_HEADER_STDC
 AC_LANG_CPLUSPLUS
 
 AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(hapmixmap requires libstdc++))
-dnl AM_PATH_GSL
+AM_PATH_GSL
 AC_CHECK_HEADERS(stack,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(string,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(list,,AC_MSG_WARN(STL classes missing ?))

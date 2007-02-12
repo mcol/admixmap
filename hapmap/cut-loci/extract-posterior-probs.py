@@ -29,7 +29,7 @@ class FastPhasePosteriorProbabilityDistribution:
             if line_within_sample >= (no_indivs * 2):
                 line_within_sample += 1
                 continue
-            # It must be an individual. Let's fetch his next line
+            # This must be an individual. Let's fetch his next line
             line2 = lines.pop().strip()
             line_within_sample += 1;
             indiv_no = line_within_sample / 2 - 1
