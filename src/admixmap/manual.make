@@ -216,10 +216,10 @@ hapmixmap_message:
 ##this is necessary in case the version of config.h that exists is the wrong one
 checkbayeslib:
 	@echo **Checking for bayeslib**
-	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo $(PARALLEL_DEFINES) >config.h;else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f makefile.manual;fi;
+	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo $(PARALLEL_DEFINES) >config.h;else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f manual.make;fi;
 
 bayeslib:
-	$(MAKE) -C $(BAYESLIB_PATH) -e -fmakefile.manual
+	$(MAKE) -C $(BAYESLIB_PATH) -e -fmanual.make
 
 %.o: %.cc#rule for compilation
 	$(CXX) $(CPPFLAGS) -I$(BAYESLIB_PATH) $(INCLUDES) -c $< -o $@
@@ -236,16 +236,16 @@ clean:
 
 #delete bayeslib object files
 libclean: 
-	$(MAKE) -C $(BAYESLIB_PATH) -fmakefile.manual clean
+	$(MAKE) -C $(BAYESLIB_PATH) -fmanual.make clean
 
 #delete sampler library
 librealclean:
-	$(MAKE) -C $(BAYESLIB_PATH) -fmakefile.manual realclean
+	$(MAKE) -C $(BAYESLIB_PATH) -fmanual.make realclean
 
 #recompile sampler library
 libnew: 
 	@echo **recompiling bayeslib**
-	$(MAKE) -C $(BAYESLIB_PATH) -e -fmakefile.manual allnew bayeslib
+	$(MAKE) -C $(BAYESLIB_PATH) -e -fmanual.make allnew bayeslib
 
 allclean: libclean clean
 

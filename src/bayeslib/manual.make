@@ -141,25 +141,25 @@ bayeslib:
 	#ranlib bayeslib.a
 
 libsampler:
-	$(MAKE) -C samplers $(SUBLIB_RULES) -e -fmakefile.manual
+	$(MAKE) -C samplers $(SUBLIB_RULES) -e -fmanual.make
 
 libutils: 
-	$(MAKE) -C utils $(SUBLIB_RULES) -e -fmakefile.manual
+	$(MAKE) -C utils $(SUBLIB_RULES) -e -fmanual.make
 
 libbayesreg:
-	$(MAKE) -C regression $(SUBLIB_RULES) -e -fmakefile.manual
+	$(MAKE) -C regression $(SUBLIB_RULES) -e -fmanual.make
 
 clean: 
-	$(MAKE) -C samplers clean -fmakefile.manual
-	$(MAKE) -C utils clean -fmakefile.manual
-	$(MAKE) -C regression clean -fmakefile.manual
+	$(MAKE) -C samplers clean -fmanual.make
+	$(MAKE) -C utils clean -fmanual.make
+	$(MAKE) -C regression clean -fmanual.make
 
 realclean:clean
 	rm -f *.a *.so
 allnew:
-	$(MAKE) -C samplers clean all -e -fmakefile.manual
-	$(MAKE) -C utils clean all -e -fmakefile.manual
-	$(MAKE) -C regression clean all -e -fmakefile.manual
+	$(MAKE) -C samplers clean all -e -fmanual.make
+	$(MAKE) -C utils clean all -e -fmanual.make
+	$(MAKE) -C regression clean all -e -fmanual.make
 
 dist:
 	rm bayeslib.tar.gz

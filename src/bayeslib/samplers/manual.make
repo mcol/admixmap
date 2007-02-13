@@ -125,11 +125,11 @@ all:	serial
 
 serial:
 	@echo >../config.h
-	@$(MAKE) -f makefile.manual static INCLUDES="$(SERIAL_INCLUDES)" CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
+	@$(MAKE) -f manual.make static INCLUDES="$(SERIAL_INCLUDES)" CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
 
 parallel:
 	@echo "#define PARALLEL" >../config.h
-	@$(MAKE) -fmakefile.manual static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
+	@$(MAKE) -fmanual.make static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
 static: libsampler
 

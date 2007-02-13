@@ -132,7 +132,7 @@ all:	serial
 serial: static
 
 parallel:
-	@$(MAKE) -fmakefile.manual static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
+	@$(MAKE) -fmanual.make static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
 static: libutils
 
