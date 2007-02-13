@@ -132,7 +132,7 @@ all:	serial
 serial: static
 
 parallel:
-	@$(MAKE) static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
+	@$(MAKE) -fmakefile.manual static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
 static: $(objects) 
 	ar crs libbayesreg.a $(objects)

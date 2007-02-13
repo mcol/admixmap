@@ -60,20 +60,20 @@ VERSION = serial
 #VERSION = parallel
 
 ## processor type
-ARCH = i686# Intel 686
+#ARCH = i686# Intel 686
 #ARCH = P4#Pentium4
-#ARCH = AMD64# Walton
+ARCH = AMD64# Walton
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
-#CC = $(PATHSCALE_COMPILER)#serial
-CC = $(GNU_COMPILER)
+CC = $(PATHSCALE_COMPILER)#serial
+#CC = $(GNU_COMPILER)
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
-DESTDIR = ../test# where to put compiled exec
-ADMEXEC = admixmap# name of compiled executable
-HAPEXEC = hapmixmap
+DESTDIR = $(HOME)/bin# where to put compiled exec
+ADMEXEC = admixmapb# name of compiled executable
+HAPEXEC = hapmixmapb
 
 ## ** flags for release version, debug version or profiling version
 DFLAGS 		= -O3# release, optimized
@@ -202,9 +202,9 @@ admixmap-para:
 	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
 
 define_admixmap:
-	@echo "#define __ADMIXMAP__" > defs.h
+	@echo "#define __ADMIXMAP__" > config.h
 define_hapmixmap:
-	@echo "#define __HAPMIXMAP__" > defs.h
+	@echo "#define __HAPMIXMAP__" > config.h
 
 admixmap_message:	
 	@echo **Compiling ADMIXMAP**
@@ -212,22 +212,14 @@ admixmap_message:
 hapmixmap_message:	
 	@echo **Compiling HAPMIXMAP**
 
-##checks for existence of bayeslib. It it does not, compile it; if it does, write parallel.h
-##this is necessary in case the version of parallel.h that exists is the wrong one
+##checks for existence of bayeslib. It it does not, compile it; if it does, write config.h
+##this is necessary in case the version of config.h that exists is the wrong one
 checkbayeslib:
 	@echo **Checking for bayeslib**
-	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo $(PARALLEL_DEFINES) >$(BAYESLIB_PATH)/parallel.h;else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f Makefile.manual;fi;
+	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo $(PARALLEL_DEFINES) >config.h;else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f makefile.manual;fi;
 
 bayeslib:
-	$(MAKE) -C $(BAYESLIB_PATH) -e
-samplers:
-	@echo **compiling sampler library**
-	$(MAKE) -C $(BAYESLIB_PATH)/samplers -e
-
-utils: 
-	@echo **compiling utility library**
-	$(MAKE) -C $(BAYESLIB_PATH)/utils -e
-
+	$(MAKE) -C $(BAYESLIB_PATH) -e -fmakefile.manual
 
 %.o: %.cc#rule for compilation
 	$(CXX) $(CPPFLAGS) -I$(BAYESLIB_PATH) $(INCLUDES) -c $< -o $@
@@ -244,16 +236,16 @@ clean:
 
 #delete bayeslib object files
 libclean: 
-	$(MAKE) -C $(BAYESLIB_PATH) clean
+	$(MAKE) -C $(BAYESLIB_PATH) -fmakefile.manual clean
 
 #delete sampler library
 librealclean:
-	$(MAKE) -C $(BAYESLIB_PATH) realclean
+	$(MAKE) -C $(BAYESLIB_PATH) -fmakefile.manual realclean
 
 #recompile sampler library
 libnew: 
 	@echo **recompiling bayeslib**
-	$(MAKE) -C $(BAYESLIB_PATH) -e allnew bayeslib
+	$(MAKE) -C $(BAYESLIB_PATH) -e -fmakefile.manual allnew bayeslib
 
 allclean: libclean clean
 

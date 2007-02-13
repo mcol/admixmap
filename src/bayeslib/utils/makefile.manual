@@ -1,22 +1,20 @@
 ###############################################################################################
-# makefile for compiling bayeslib
+# makefile for compiling libutils, a library of utility classes
 #
 # The default is to make serial version with gcc compiler and optimised for i686 machines. 
 # For other versions, edit the following variables or specify on the command line. 
 # Use make[...] new to recompile from scratch.
 #
+# Serial/Parallel version: VERSION = [serial/parallel]
 # Processor type: ARCH = [i686/P4/AMD64/itanium2]
 # Compiler: CC = [g++/icpc/pgCC/pathCC]
 # MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
 # paths to gsl, mpi, sprng headers: GSL_INCLUDEPATH, MPI_PATH, SPRNG_PATH
-# name of compiled library: LIBNAME
+#
 ###############################################################################################
 
-LIBNAME = bayeslib.a
-
 # GSL - only needed if in nonstandard location 
-GSL_LIBPATH =#standard is /usr/local/lib
 GSL_INCLUDEPATH=#standard is /usr/local/include
 
 ## for parallel version only
@@ -25,7 +23,6 @@ GSL_INCLUDEPATH=#standard is /usr/local/include
 #MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
 MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
 #MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
-MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
 
 # path to sprng top level directory
 SPRNG_PATH = /opt/packages/sprng-2.0
@@ -40,6 +37,8 @@ MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
 GCC_VERSION =3
+VERSION = serial
+#VERSION = parallel
 
 ## processor type
 ARCH = i686# Intel 686
@@ -117,57 +116,50 @@ endif
 ##include flags for sprng and mpich in parallel version
 PARALLEL_INCLUDES = $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 SERIAL_INCLUDES = $(GSL_INCLUDES)
-SUBLIB_RULES =
+INCLUDES= $(SERIAL_INCLUDES)
+CXX=$(CC)
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 PICFLAG =# -fPIC
 
 ## DO NOT EDIT BELOW HERE ##
-SUBLIBS = libsampler libutils libbayesreg
 
-export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
+objects		=  functions.o DataReader.o DataMatrix.o StringSplitter.o StringConvertor.o LogWriter.o
 
+all:	serial
 
-all:	$(SUBLIBS) bayeslib
-
-serial: all
+serial: static
 
 parallel:
-	@$(MAKE) SUBLIB_RULES=parallel CPPFLAGS="$(CPPFLAGS)" LIBNAME=parabayeslib.a
+	@$(MAKE) -fmakefile.manual static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
-bayeslib:
-	ar crs $(LIBNAME) samplers/*.o utils/*.o regression/*.o
-	#ranlib bayeslib.a
+static: libutils
 
-libsampler:
-	$(MAKE) -C samplers $(SUBLIB_RULES) -e
+libutils: $(objects) 
+	ar crs libutils.a $(objects)
+	ranlib libutils.a
 
-libutils: 
-	$(MAKE) -C utils $(SUBLIB_RULES) -e
+shared: $(objects)
+	$(CXX) $(CPPFLAGS) -shared -Wl,-soname,libutils.so\
+-o libutils.so $(objects) -lgsl -lgslcblas
 
-libbayesreg:
-	$(MAKE) -C regression $(SUBLIB_RULES) -e
+%.o: %.cc#rule for compilation
+	$(CXX) $(CPPFLAGS) -I.. $(INCLUDES) $(PICFLAG) -c $< -o $@
 
-clean: 
-	$(MAKE) -C samplers clean
-	$(MAKE) -C utils clean
-	$(MAKE) -C regression clean
+clean:		          
+	rm -f *.o
 
-realclean:clean
+veryclean: clean
 	rm -f *.a *.so
-allnew:
-	$(MAKE) -C samplers clean all -e
-	$(MAKE) -C utils clean all -e
-	$(MAKE) -C regression clean all -e
 
 dist:
-	rm bayeslib.tar.gz
-	mkdir bayeslib
-	cp *.cc *.h *.txt README bayeslib
-	cp makefile bayeslib
-	tar -czf bayeslib.tar.gz bayeslib
-	rm -R bayeslib
+	rm libutils.tar.gz
+	mkdir libutils
+	cp *.cc *.h *.txt README libutils
+	cp makefile libutils
+	tar -czf libutils.tar.gz libutils
+	rm -R libutils
 
 
 

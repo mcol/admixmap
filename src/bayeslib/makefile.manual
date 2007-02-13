@@ -1,5 +1,5 @@
 ###############################################################################################
-# makefile for compiling libsampler, the sampling library
+# makefile for compiling bayeslib
 #
 # The default is to make serial version with gcc compiler and optimised for i686 machines. 
 # For other versions, edit the following variables or specify on the command line. 
@@ -10,11 +10,13 @@
 # MPI wrapper for compiler PCC = [mpiCC/mpicxx]
 # debug/profiling/optimisation : DFLAGS = [-g/-pg/-O3] (NB: do not optimise with -g)
 # paths to gsl, mpi, sprng headers: GSL_INCLUDEPATH, MPI_PATH, SPRNG_PATH
-#
-# for parallel version, use make parallel
+# name of compiled library: LIBNAME
 ###############################################################################################
 
+LIBNAME = bayeslib.a
+
 # GSL - only needed if in nonstandard location 
+GSL_LIBPATH =#standard is /usr/local/lib
 GSL_INCLUDEPATH=#standard is /usr/local/include
 
 ## for parallel version only
@@ -23,6 +25,7 @@ GSL_INCLUDEPATH=#standard is /usr/local/include
 #MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
 MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
 #MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
+MPI_LIBPATH = $(MPIPATH)/lib64# this sometimes has different names
 
 # path to sprng top level directory
 SPRNG_PATH = /opt/packages/sprng-2.0
@@ -37,8 +40,6 @@ MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
 GCC_VERSION =3
-#VERSION = serial
-#VERSION = parallel
 
 ## processor type
 ARCH = i686# Intel 686
@@ -94,7 +95,8 @@ WFLAGS = -Wall
 ifeq ($(ARCH),AMD64)
 PROC = -mcpu=auto
 DFLAGS = -TENV:X=0 -TENV:frame_pointer=ON -fexceptions -funwind-tables -O3 -OPT:Ofast -fno-math-errno -ffast-math 
-#ffast-math equivalent to -Ofast # could try -TENV:X=0 to turn off exception handling optimization but default value of 1 should be safe
+#ffast-math equivalent to -Ofast but without ipa
+# could try -TENV:X=0 to turn off exception handling optimization but default value of 1 should be safe
 endif
 endif
 
@@ -105,6 +107,7 @@ endif
 endif
 
 ####  DO NOT EDIT BELOW HERE ####
+
 ifeq ($(GSL_INCLUDEPATH),)
 GSL_INCLUDES =
 else
@@ -114,49 +117,57 @@ endif
 ##include flags for sprng and mpich in parallel version
 PARALLEL_INCLUDES = $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 SERIAL_INCLUDES = $(GSL_INCLUDES)
+SUBLIB_RULES =
 
 ## **compiler/linker flags
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 PICFLAG =# -fPIC
 
-objects		=  rand.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o GaussianProposalMH.o DirichletParamSampler.o HamiltonianMonteCarlo.o MuSampler.o DispersionSampler.o ModeFinder.o
+## DO NOT EDIT BELOW HERE ##
+SUBLIBS = libsampler libutils libbayesreg
 
-all:	serial
+export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 
-serial:
-	@echo >../parallel.h
-	@$(MAKE) static INCLUDES="$(SERIAL_INCLUDES)" CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
+
+all:	$(SUBLIBS) bayeslib
+
+serial: all
 
 parallel:
-	@echo "#define PARALLEL" >../parallel.h
-	@$(MAKE) static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
+	@$(MAKE) SUBLIB_RULES=parallel CPPFLAGS="$(CPPFLAGS)" LIBNAME=parabayeslib.a
 
-static: libsampler
+bayeslib:
+	ar crs $(LIBNAME) samplers/*.o utils/*.o regression/*.o
+	#ranlib bayeslib.a
 
-libsampler: $(objects) 
-	ar crs libsampler.a $(objects)
-	ranlib libsampler.a
+libsampler:
+	$(MAKE) -C samplers $(SUBLIB_RULES) -e -fmakefile.manual
 
-shared: paraheader $(objects)
-	$(CXX) $(CPPFLAGS) -shared -Wl,-soname,libsampler.so\
--o libsampler.so $(objects) -lgsl -lgslcblas
+libutils: 
+	$(MAKE) -C utils $(SUBLIB_RULES) -e -fmakefile.manual
 
-%.o: %.cc#rule for compilation
-	$(CXX) $(CPPFLAGS) -I.. $(INCLUDES) $(PICFLAG) -c $< -o $@
+libbayesreg:
+	$(MAKE) -C regression $(SUBLIB_RULES) -e -fmakefile.manual
 
-clean:		          
-	rm -f *.o
+clean: 
+	$(MAKE) -C samplers clean -fmakefile.manual
+	$(MAKE) -C utils clean -fmakefile.manual
+	$(MAKE) -C regression clean -fmakefile.manual
 
-veryclean: clean
+realclean:clean
 	rm -f *.a *.so
+allnew:
+	$(MAKE) -C samplers clean all -e -fmakefile.manual
+	$(MAKE) -C utils clean all -e -fmakefile.manual
+	$(MAKE) -C regression clean all -e -fmakefile.manual
 
 dist:
-	rm libsampler.tar.gz
-	mkdir libsampler
-	cp *.cc *.h *.txt README libsampler
-	cp makefile libsampler
-	tar -czf libsampler.tar.gz libsampler
-	rm -R libsampler
+	rm bayeslib.tar.gz
+	mkdir bayeslib
+	cp *.cc *.h *.txt README bayeslib
+	cp makefile bayeslib
+	tar -czf bayeslib.tar.gz bayeslib
+	rm -R bayeslib
 
 
 
