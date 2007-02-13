@@ -26,7 +26,7 @@
 #outcomes = 1
     samples  = 25
     burnin   = 5
-    every    = 5
+    every    = 1
 #indadmixhiermodel = 0
 randommatingmodel = 0
 #fixedallelefreqs = 1
@@ -42,8 +42,9 @@ thermo = 0
     #allelefreqoutputfile  = allelefreqoutputfile.txt
 
 ##optional tests
-dispersiontestfile = dispersiontest.txt
-residualallelicassocscorefile = resallelicassocscores.txt
+#dispersiontestfile = dispersiontest.txt
+#admixturescorefile = admixscorefile.txt
+#residualallelicassocscorefile = resallelicassocscores.txt
     allelicassociationscorefile       = allelicassociationscorefile.txt
     #ancestryassociationscorefile  = ancestryassociationscorefile.txt
     #affectedsonlyscorefile             = affectedsonlyscorefile.txt

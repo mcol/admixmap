@@ -1,0 +1,17 @@
+burnin=50
+samples=250
+numannealedruns=0
+displaylevel=0
+every=5
+logfile=log.txt
+resultsdir=SinglePopResults
+randommatingmodel=0
+globalrho=1
+indadmixhiermodel=1
+populations=1
+locusfile=data/loci.txt
+genotypesfile=data/genotypes.txt
+outcomevarfile=data/outcome.txt
+regparamfile=regparamfile.txt
+allelicassociationscorefile=allelicassociationscores.txt
+stratificationtestfile=stratificationTest.txt
