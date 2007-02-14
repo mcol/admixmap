@@ -1,8 +1,9 @@
-AC_INIT(src/admixmap/hapmixmap.cc)
+AC_INIT(hapmixmap, 0.3)
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE(hapmixmap,0.3)
 AM_CONFIG_HEADER(config.h)
 
+AC_LANG(C++)
 AC_DISABLE_SHARED
 AC_PROG_CXX
 AC_PROG_LIBTOOL
@@ -14,7 +15,9 @@ AC_HEADER_STDC
 AC_LANG_CPLUSPLUS
 
 AC_CHECK_LIB(stdc++, main,,AC_MSG_ERROR(hapmixmap requires libstdc++))
-AM_PATH_GSL
+dnl This doesn' work with some versions of autotools.
+dnl AM_PATH_GSL
+dnl FIXME: Add a different GSL check
 AC_CHECK_HEADERS(stack,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(string,,AC_MSG_WARN(STL classes missing ?))
 AC_CHECK_HEADERS(list,,AC_MSG_WARN(STL classes missing ?))
@@ -52,9 +55,10 @@ fi
 dnl AC_CONFIG_SUBDIRS(src/bayeslib)
 AC_OUTPUT([Makefile
 	   src/Makefile
+	   src/common/Makefile
 	   src/admixmap/Makefile
 	   src/hapmixmap/Makefile
-	   src/common/Makefile
+	   src/tools/Makefile
 	   src/bayeslib/Makefile
 	   src/bayeslib/regression/Makefile
 	   src/bayeslib/samplers/Makefile
