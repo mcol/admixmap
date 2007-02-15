@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head><meta content="text/html; charset=ISO-8859-1" http-equiv="content-type"><title>HAPMIXMAP tutorial</title>
+</head><body>
+<h1 align="center">
+<strong>Using HAPMIXMAP to test all loci in a candidate gene in which tag SNPs have
+been typed in cases and controls</strong>
+</h1>
+  <p><br>
+<h1  "><a name="SECTION00010000000000000000">Data
+files</a>
+</h1>
+<p>The dataset consists of a case-control study in which 1000
+individuals
+of European ancestry were typed at 9 SNPs in a candidate gene on
+chromosome 7. The SNPs were chosen as tag
+SNPs, using the program TAGGER, based on an early version of the
+HapMap. The raw data files are genotypes.txt, and outcome.txt <p>
+To prepare the files for analysis by HAPMIXMAP, the following steps
+are required
+</p><ul><li>
+    <p>Download
+the HapMap haploid data file for the chromosome containing the SNPs and
+the continental group that was sampled in the case-control study
+</li><li>
+    <p>Extract
+all hapmap data for the region containing the typed SNPs, including 100
+kb on either side of the sequence of typed loci, and write out this
+file in HAPMIXMAP format. For this example, we obtain a file of 298
+loci spanning 160 kb. </li>
+<li>
+  <p>Write a table of
+these loci in HAPMIXMAP format. </li>
+<li>
+  <p>Drop any loci from
+the raw genotypes file that are not matched in the HapMap. Recode the
+alleles in the raw genotypes file so that the
+numeric coding corresponds to that in the HapMap database, sort by map
+position, and write file genotypes.txt in HAPMIXMAP format
+</li></ul><p></p><h1  "><a name="SECTION00020000000000000000">Running
+the analysis</a>
+</h1>
+<p>To reduce the time taken for the program to converge, we
+undertake an
+initial run using only the phased HAPMAP haplotypes and save a single
+draw from the posterior distribution of model parameters. The saved
+values are used as initial values for the subsequent run in which the
+posterior distribution is generated given both HAPMAP haplotypes and
+diploid case-control genotypes at tag SNPs.
+<p>For the first run, type
+</p><p>&lt;path to hapmixmap
+executable&gt;/hapmixmap
+training-initial.conf
+</p><p>For subsequent runs, type
+</p><p>&lt;path to hapmixmap
+executable&gt;/hapmixmap
+training-resume.conf
+</p><p>Repeat until the posterior mean of the "energy"
+(minus the
+log-likelihood of the model parameters given the data) is no longer
+falling
+with each new run. </p><p>
+For the case-control analysis, type </p><p>
+&lt;path to hapmixmap executable&gt;/hapmixmap testing.conf
+</p><p>Finally, type </p><p>
+perl post-process.pl
+</p><p>to run an R script that processes the files written
+by HAPMIXMAP
+</p><p></p><h1  "><a name="SECTION00030000000000000000">Interpretation
+of results</a>
+</h1>
+<p>The results are written to the folder /results below the
+current
+working directory. To determine whether the program has been run with
+a long enough burn-in, examine a plot of the realized values of
+"energy" (minus the log-likelihood of the model parameters given the
+data) that are in the file loglikelihoodfile.txt; if there is a
+downward trend, the burn-in was too short. Another check is to look
+at the Geweke diagnostics for the global model parameters in the file
+ConvergenceDiagnostics.txt: for each parameter, the test compares the
+mean over the first 10% of iterations
+(after the burn-in) with the
+mean over the last 50% of iterations.
+<p>To determine whether the program has been run long enough for
+the
+score tests to be computed accurately, open the file
+TestAllelicAssociations.ps with a postscript viewer and examine the
+plot of log p-values
+based on all iterations so far. Towards the
+end of the run, the plots should be nearly horizontal lines.
+</p><p>The file
+PosteriorQuantiles.txt contains the posterior means, medians
+and 95% credible intervals for the global
+model parameters. The
+average number of arrivals per megabase (a) is inferred as 56.2. With
+eight hidden states, 7/8 of these arrivals will change the block
+state. We can therefore calculate the estimated mean haplotype block
+length in this region as 20 kb (
+in this
+region, rather shorter than the genomewide average of 27 kb in
+European-ancestry populations. This may be one reason why the tag
+SNPs perform poorly in predicting genotypes at untyped loci. </p><p>
+The results of the tests for associations are contained in the file
+AllelicAssociationTestsFinal.txt. This has one row per locus. The
+column labels are explained below
+</p><ul><li>
+    <p>Score
+(U): This is the gradient of the log-likelihood as a
+function of the regression parameter <font face="Symbol"> b</font> for the effect
+of allele 2 (coded
+as 0, 1, 2 copies) at the null value,&nbsp; <font face="Symbol">b = 0.</font> For a case-control study, the
+regression model is a logistic
+regression, with disease status as outcome variable and any specified
+variables as covariates.
+</li><li>
+    <p>Complete
+information: This can be interpreted as a measure
+of how much information about <font face="Symbol"> b</font> you would have if the locus had been
+typed directly - where the
+complete information is small, this is because the locus is not very
+polymorphic
+</li><li>
+    <p>Observed
+information (V): This is minus the second derivative
+of the log-likelihood function at <font face="Symbol"> b=0. </font>In large samples, the log-likelihood
+function is approximately
+quadratic and the maximum likelihood estimate of is therefore
+approximately U / V. This approximation only holds where the observed
+information is
+reasonably large.
+</li><li>
+    <p>Percent
+information: This can be interpreted as a measure
+of the efficiency of the tag SNP panel in extracting information about
+the effect of the locus under study
+</li><li>
+    <p>Missing 1:
+This can be interpreted as the percent of information that is missing
+because the sample size of the HapMap panel is small SNP panel
+</li><li>
+    <p>Missing 2; This can be interpreted as the
+percent of
+information that is missing because the tag SNP panel is inadequate
+</li><li>
+    <p>Standard normal deviate: This is
+    U / <font SIZE="4">&#8730;</font>V. This value will
+not be computed where the the observed information is
+small. Where there is not enough information, the asymptotic properties
+of the score test do not hold.
+</li><li>
+    <p>Two-sided p-value
+for the standard normal deviate</li></ul><p>A
+plot of the percent information against map position, or
+inspection
+of the table, shows that the observed information is about 90%
+at the
+9 typed loci, but much lower at the other untyped loci. In other
+words, our tag SNP selection did not do a very good job of predicting
+the genotypes at untyped loci. Towards the ends of the region
+included in the model, the observed information is close to zero
+(equivalent to a flat likelihood function). This is to be expected,
+as we have no tag SNPs typed in this region.
+</p>
+</body></html>
