@@ -7,8 +7,8 @@
 #include <fstream>
 #include <iomanip>
 #include <math.h>
-#include <string>
-#include <cstdlib>
+#include <string.h>
+#include <stdlib.h>
 #include <values.h>
 #include <vector>
 

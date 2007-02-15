@@ -1,5 +1,6 @@
 #include "Model.h"
 #include "Annealer.h"
+#include "config.h"
 
 Model::Model(){
 

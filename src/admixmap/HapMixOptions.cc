@@ -33,7 +33,7 @@ HapMixOptions::HapMixOptions(int argc,  char** argv){
 
 void HapMixOptions::SetDefaultValues(){
   NumBlockStates = 4;
-  FreqDispersionHierModel = true; //false;
+  FreqDispersionHierModel = false;
 
   // option names and default option values are stored as strings in a map container 
   // these are default values

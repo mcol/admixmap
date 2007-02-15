@@ -631,7 +631,7 @@ void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info,
   delete[] cinfo;
 }
 
-void ScoreTests::UpdateScoresForResidualAllelicAssociation(const array_of_allelefreqs& AlleleFreqs){
+void ScoreTests::UpdateScoresForResidualAllelicAssociation(const FreqArray& AlleleFreqs){
   ResidualAllelicAssocScoreTest.Update(AlleleFreqs, options->getHapMixModelIndicator());
 }
 

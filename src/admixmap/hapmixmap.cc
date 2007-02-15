@@ -13,12 +13,13 @@
 #include "HapMixModel.h"
 #include <fstream>
 
-#define HAPMIXMAP_VERSION 0.3
+#define HAPMIXMAP_VERSION 0
+#define SUBVERSION 3
 
 using namespace std;
 
 int main( int argc , char** argv ){
-  if(argc==2 && !strcmp(argv[1], "-v")){
+  if(argc==2 & !strcmp(argv[1], "-v")){
     LogWriter LW;
     PrintCopyrightNotice(LW);
     exit(0);
@@ -116,15 +117,12 @@ int main( int argc , char** argv ){
   }
 #ifdef PARALLEL
   cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n";
-
   //MPI::COMM_WORLD.Barrier();
   Comms::Finalise();
   MPE_Finish_log("admixmap");
   MPI_Finalize();
-
 #else
   cout << "Finished" << endl;
-
 #endif
   //print run times to screen and log
   if(isMaster){
@@ -133,7 +131,6 @@ int main( int argc , char** argv ){
     //print line of *s
     cout <<setfill('*') << setw(80) << "*" <<endl;
   }
-
   putenv("HAPMIXMAPCLEANEXIT=1");
   return 0;
 } //end of main
@@ -142,7 +139,7 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(On);
   cout << endl;
   Log << "-------------------------------------------------------\n"
-      << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION
+      << "            ** HAPMIXMAP (v" << HAPMIXMAP_VERSION << "." << SUBVERSION
 #ifdef PARALLEL
       << " (Parallel) "
 #endif

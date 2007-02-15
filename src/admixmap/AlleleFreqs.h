@@ -22,117 +22,7 @@
 #include "utils/LogWriter.h"
 #include "AlleleFreqSampler.h"
 #include "common.h"
-
-#ifndef PARALLEL
-#define ARRAY2D
-#endif
- 
-/**
-   struct to hold allelecounts in either a 1d (where Number of alleles is fixed) or 2d array. 
-   usage, 1d array:
-   array_of_allelecounts AlleleCounts;
-   AlleleCounts.stride = K*2;
-   AlleleCounts.array = new int[ NumberOfLoci*K*2];
-   
-   usage, 2darray:
-   AlleleCounts.array = new int*[NumberOfLoci ];
-   for(unsigned i = 0; i < NumberOfLoci; ++i) AlleleCounts.array[i] = new int[K*NumberOfStates[i]];
-   
-   AlleleCounts[i]; //accesses counts for ith locus
-   
-   AlleleCounts[i][k*2 +a]; //accesses count of ath allele in kth pop at ith locus
-   */
-#ifdef ARRAY2D
-typedef struct{
-
-  int **array;
-
-  int* operator[](unsigned i){//for reading or writing element
-    return array[i];
-  };
-  const int* operator[](unsigned i)const{//for read-only
-    return array[i];
-  };
-  void dealloc(int L){
-    if(array){
-      for(int i = L-1; i >=0 ; --i)
-	if(array[i]){
-	  delete[] array[i];
-	  array[i] = 0;
-	}
-      delete[]array;
-      array = 0;
-    }
-  };
-}array_of_allelecounts;
-
-/**
-   struct to hold allelefreqs in either a 1d (where Number of alleles is fixed) or 2d array. 
-   See array_of_allelecounts for details.
-*/
-typedef struct{
-
-  double **array;
-
-  double* operator[](unsigned i){//for reading or writing element
-    return array[i];
-  };
-  const double* operator[](unsigned i)const{//for read-only
-    return array[i];
-  };
-  void dealloc(int L){
-    if(array){
-      for(int i = L-1; i >=0 ; --i)
-	if(array[i]){
-	  delete[] array[i];
-	  array[i] = 0;
-	}
-      delete[] array;
-      array = 0;
-    }
-  };
-}array_of_allelefreqs;
-#else
-typedef struct{
-  int* array;
-  unsigned stride;
-
-  int* operator[](unsigned i){
-    return array + i*stride;
-  };
-  const int* operator[](unsigned i)const{
-    return array + i*stride;
-  };
-  void dealloc(int ){
-    if(array){
-      delete[] array;
-      array = 0;
-    }
-  };
-}array_of_allelecounts;
-/**
-   struct to hold allelefreqs in either a 1d (where Number of alleles is fixed) or 2d array. 
-   See array_of_allelecounts for details.
-*/
-
-typedef struct{
-  double* array;
-  unsigned stride;
-
-  double* operator[](unsigned i){
-    return array + i*stride;
-  };
-  const double* operator[](unsigned i)const{
-    return array + i*stride;
-  };
-  void dealloc(int ){
-    if(array){
-      delete[] array;
-      array = 0;
-    }
-  };
-}array_of_allelefreqs;
-#endif
+#include "FreqArrays.h"
 
 /// Class to hold allele/haplotype frequencies and their priors.
 class AlleleFreqs{
@@ -163,7 +53,7 @@ public:
   std::vector<double> getAlleleFreqsMAP( int locus, int population )const;
   std::vector<double> GetAlleleFreqs( int locus, int population )const;
   const double *GetAlleleFreqs(int locus)const;
-  const array_of_allelefreqs& GetAlleleFreqs()const;
+  const FreqArray& GetAlleleFreqs()const;
   const int *GetAlleleCounts(int locus)const;
   
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
@@ -183,8 +73,8 @@ public:
 
 protected:
   int Populations, NumberOfCompositeLoci;
-  array_of_allelefreqs Freqs;// allele frequencies
-  array_of_allelefreqs AlleleFreqsMAP; // posterior mode of allele freqs
+  FreqArray Freqs;// allele frequencies
+  FreqArray AlleleFreqsMAP; // posterior mode of allele freqs
   array_of_allelecounts AlleleCounts;
   array_of_allelecounts hetCounts;//counts of het individuals with distinct ancestry states at SNPs
 #ifdef PARALLEL

@@ -2,7 +2,7 @@
 /** 
  *   ResidualLDTest.h 
  *   header file for ResidualLDTest class
- *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -17,7 +17,8 @@
 #include "ScoreTestBase.h"
 #include "Options.h"
 #include "Genome.h"
-#include "AlleleFreqs.h"
+class IndividualCollection;
+class FreqArray;
 
 /**
    Class to implement score tests for residual allelic association between adjacent pairs of linked loci
@@ -34,7 +35,7 @@ public:
   void ROutput();
 
   void Update(double);
-  void Update(const array_of_allelefreqs& Allelefreqs, bool ishapmixmodel);
+  void Update(const FreqArray& Allelefreqs, bool ishapmixmodel);
   void Reset();
 
   ~ResidualLDTest();

@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   StratificationTest.h 
  *   Class to implement a test for residual population stratification
- *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -18,8 +18,9 @@
 #include <iostream>
 #include "IndividualCollection.h"
 #include "Genome.h"
-#include "AlleleFreqs.h"
 #include "utils/LogWriter.h"
+
+class FreqArray;
 
 ///Class to implement a test for residual population stratification
 class StratificationTest
@@ -31,7 +32,7 @@ public:
 		   const IndividualCollection* const IC, LogWriter &Log);
   void OpenOutputFile( const char * , LogWriter &);
 
-  void calculate( const IndividualCollection* const individuals, const array_of_allelefreqs& AlleleFreqs,
+  void calculate( const IndividualCollection* const individuals, const FreqArray& AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );
 
   void Output(LogWriter &);

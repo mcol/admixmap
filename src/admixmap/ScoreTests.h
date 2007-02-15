@@ -22,6 +22,8 @@
 #include "AncestryAssocTest.h"
 #include "ResidualLDTest.h"
 
+class FreqArray;
+
 /**
    Class to implement various score tests. 
  *   Class implements the following score tests:
@@ -47,7 +49,7 @@ public:
   void SetAllelicAssociationTest(const std::vector<double> &alpha0);
 
   void Update(const vector<Regression* >& R);
-  void UpdateScoresForResidualAllelicAssociation(const array_of_allelefreqs& Allelefreqs);
+  void UpdateScoresForResidualAllelicAssociation(const FreqArray& Allelefreqs);
 
   ~ScoreTests();
 

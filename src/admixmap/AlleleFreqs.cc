@@ -626,7 +626,7 @@ vector<double> AlleleFreqs::GetAlleleFreqs( int locus, int population )const
     A[i] = Freqs[locus][i + population*Loci->GetNumberOfStates(locus)];
   return A;
 }
-const array_of_allelefreqs& AlleleFreqs::GetAlleleFreqs()const{
+const FreqArray& AlleleFreqs::GetAlleleFreqs()const{
   return Freqs;
 }
 // get posterior mode of frequency of allele x, given locus and subpopulation

@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   StratificationTest.cc 
  *   Class to implement a test for residual population stratification
- *   Copyright (c) 2005, 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2005, 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -13,8 +13,9 @@
 #include "StratificationTest.h"
 #include <numeric>
 #include "gsl/gsl_eigen.h"
-#include <gsl/gsl_linalg.h>
-#include <gsl/gsl_blas.h>
+#include "gsl/gsl_linalg.h"
+#include "gsl/gsl_blas.h"
+#include "FreqArrays.h"
 
 using namespace std;
 
@@ -104,7 +105,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
   }
 }
 
-void StratificationTest::calculate( const IndividualCollection* const individuals, const array_of_allelefreqs& AlleleFreqs, 
+void StratificationTest::calculate( const IndividualCollection* const individuals, const FreqArray& AlleleFreqs,
 				    const vector<vector<int> > ChrmAndLocus, int Populations )
 {
   // matrix of (observed minus expected copies allele 1) scores for each individual at each locus

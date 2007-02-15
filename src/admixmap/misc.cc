@@ -10,9 +10,8 @@
  * 
  */
 
-#include <cstdlib>
 #include "admixmap.h"
-#include "config.h"
+#include "config.h"//for PARALLEL
 #include <dirent.h>//for OpenResultsDir
 
 /**
@@ -31,30 +30,22 @@ void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles)
   if(strlen(dirname) && strcmp(dirname, ".") && strcmp(dirname, "..")){
     DIR *pdir;
     struct dirent *pent;
-#ifdef WIN32
-    string dirpath = ".\\";
-#else
+    
     string dirpath = "./";
-#endif
     dirpath.append(dirname);
     pdir=opendir(dirpath.c_str()); //"." refers to the current dir
-    if (!pdir) {
-      //dir does not exist
+    if (!pdir){//dir does not exist
       cout << "Creating directory "<< dirpath <<endl;
-#ifdef WIN32
       //this block is safer but only works in Windows
-      int status = mkdir(dirpath.c_str()/*, POSIX permissions go here*/);
-      if(status) {
-        cerr << "Unable to create directory. Exiting." << endl;
-        exit(EXIT_FAILURE);
-      }
-#else
+      //int status = mkdir(dirpath.c_str()/*, POSIX permissions go here*/);
+      //if(status){
+      //cout<< "Unable to create directory. Exiting." << endl;
+      //exit(1);
+      //}
       //KLUDGE: 'mkdir' not guaranteed to work on all systems; no error-checking
       //should be ok for normal use
-      string cmd = "mkdir ";
-      cmd.append(dirname);
+      string cmd = "mkdir ";cmd.append(dirname);
       system(cmd.c_str());
-#endif
     }
     else if(DeleteExistingFiles){
       cout << "Directory \"" << dirname << "\" exists. Contents will be deleted."<<endl;

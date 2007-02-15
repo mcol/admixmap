@@ -20,7 +20,7 @@ using namespace std;
 
 int main( int argc , char** argv ){
   //-v flag prints version number and exits
-  if(argc==2 && !strcmp(argv[1], "-v")){
+  if(argc==2 & !strcmp(argv[1], "-v")){
     LogWriter LW;
     PrintCopyrightNotice(LW);
     exit(0);
@@ -131,12 +131,10 @@ int main( int argc , char** argv ){
   }
 #ifdef PARALLEL
   cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n";
-
   //MPI::COMM_WORLD.Barrier();
   Comms::Finalise();
   MPE_Finish_log("admixmap");
   MPI_Finalize();
-
 #else
   cout << "Finished" << endl;
 #endif

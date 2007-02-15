@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   ResidualLDTest.cc 
  *   Class to implement score tests for residual allelic association between adjacent pairs of linked loci
- *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -15,6 +15,7 @@
 #include "gsl/gsl_cdf.h"
 #include "utils/linalg.h"//for HH_solve to compute chi-sq
 #include "Comms.h"
+#include "FreqArrays.h"
 
 ResidualLDTest::ResidualLDTest(){
   options = 0;
@@ -103,7 +104,7 @@ void ResidualLDTest::Reset(){
   }
 }
 
-void ResidualLDTest::Update(const array_of_allelefreqs& AlleleFreqs, bool ){
+void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
   int abslocus = 0;
   if(Comms::isWorker()){
     for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){

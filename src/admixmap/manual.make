@@ -71,9 +71,9 @@ CC = $(GNU_COMPILER)
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
-DESTDIR = $(HOME)/bin# where to put compiled exec
-ADMEXEC = admixmapb# name of compiled executable
-HAPEXEC = hapmixmapb
+DESTDIR = ../test# where to put compiled exec
+ADMEXEC = admixmap# name of compiled executable
+HAPEXEC = hapmixmap
 
 ## ** flags for release version, debug version or profiling version
 DFLAGS 		= -O3# release, optimized
