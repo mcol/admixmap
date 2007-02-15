@@ -33,7 +33,11 @@ sub doAnalysis {
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 
 # Change this to the location of the admixmap executable
-my $executable = './admixmap';
+my $executable = '../../src/admixmap/admixmap';
+if($^O eq "MSWin32") {
+    $executable = '..\\..\\src\\admixmap\\admixmap';
+}
+
 # command-line options are stored in an associative array (known as a hash in perl)  
 my $arg_hash = {
 #data files
