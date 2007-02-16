@@ -75,7 +75,7 @@ PolyaLogLOverLoci <- function(eta, mu, counts) {
 numChr <- 22
 ## chromosome lengths in cM
 chr.L <- c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-N <- 200
+N <- 100
 NumSubPops <- 2 # num subpopulations
 popadmixparams <- c(2, 6) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
@@ -114,8 +114,10 @@ for(locus in 1:L) {
                                         # freqs allele 1 in each of NumSubPops subpops
   #alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
 }
-alleleFreqs[,1] <- 0.6
-alleleFreqs[,2] <- 0.3
+alleleFreqs[seq(1, 2*L - 1, by=2) , 1] <- 0.9
+alleleFreqs[seq(1, 2*L - 1, by=2) , 2] <- 0.1
+alleleFreqs[seq(2, 2*L, by=2) , 1] <- 0.1
+alleleFreqs[seq(2, 2*L, by=2) , 2] <- 0.9
 
 p1 <- alleleFreqs[seq(2, 2*L, by=2), 1]
 p2 <- alleleFreqs[seq(2, 2*L, by=2), 2]
