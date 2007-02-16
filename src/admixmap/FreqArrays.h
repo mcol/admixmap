@@ -117,7 +117,7 @@ public:
    stride = 0;
   }
 
-  FreqArray(const double** a, unsigned s){
+  FreqArray(const double* a, unsigned s){
    array = a;
    stride = s;
   }
