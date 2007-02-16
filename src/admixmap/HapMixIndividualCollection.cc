@@ -112,9 +112,16 @@ void HapMixIndividualCollection::OutputCGProbs(const char* filename){
   GPO.Output(filename);
 }
 
-double HapMixIndividualCollection::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
-							, AlleleFreqs* ){
+double HapMixIndividualCollection::getDevianceAtPosteriorMean(
+    const Options* const options, vector<Regression *> &R, Genome* Loci,
+    LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
+    , AlleleFreqs* 
+#ifdef PARALLEL
+//A is not required in serial version
+    A
+#endif
+    ){
+
   //TODO: broadcast SumLogRho to workers
   //SumRho = ergodic sum of global sumintensities
   int iterations = options->getTotalSamples()-options->getBurnIn();

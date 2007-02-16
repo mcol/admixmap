@@ -60,14 +60,14 @@ VERSION = serial
 #VERSION = parallel
 
 ## processor type
-ARCH = i686# Intel 686
+#ARCH = i686# Intel 686
 #ARCH = P4#Pentium4
-#ARCH = AMD64# Walton
+ARCH = AMD64# Walton
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
-#CC = $(PATHSCALE_COMPILER)#serial
-CC = $(GNU_COMPILER)
+CC = $(PATHSCALE_COMPILER)#serial
+#CC = $(GNU_COMPILER)
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
@@ -175,7 +175,7 @@ common_objects	= misc.o Model.o AlleleFreqs.o Options.o AdmixOptions.o InputData
 admixmap_objects = admixmap.o AdmixMapModel.o PopAdmix.o DispersionFreqs.o AdmixedIndividual.o AdmixIndividualCollection.o\
  chib.o IndAdmixOutputter.o StratificationTest.o MisSpecAlleleFreqTest.o DispersionTest.o
 
-hapmixmap_objects = hapmixmap.o HapMixModel.o HapMixOptions.o PopHapMix.o
+hapmixmap_objects = hapmixmap.o HapMixModel.o HapMixOptions.o PopHapMix.o\
 HapMixFreqs.o HapMixIndividual.o HapMixIndividualCollection.o MantelHaenszelTest.o 
 
 #both serial
@@ -197,10 +197,10 @@ parallel: hapmixmap-para
 
 #HAPMIXMAP parallel
 hapmixmap-para:
-	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) HAPEXEC=$(PARALLEL_HAPEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
+	@$(MAKE) -fmanual.make hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) HAPEXEC=$(PARALLEL_HAPEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
 #ADMIXMAP parallel
 admixmap-para:
-	@$(MAKE) hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
+	@$(MAKE) -fmanual.make admmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
 
 define_admixmap:
 	@echo "#define __ADMIXMAP__" > config.h

@@ -52,7 +52,7 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   }
 #else
    //KLUDGE: in parallel version, the array must be regular so K^2 for each locus, even if haploid. Surplus elements will be unused without affecting the HMM updates
-  GPArray.array = new double*[numCompositeLoci*Populations*Populations];
+  GPArray.array = new double[numCompositeLoci*Populations*Populations];
 #endif
   GPI.setPointer(&GPArray);
 
@@ -110,12 +110,9 @@ AdmixedIndividual::~AdmixedIndividual() {
   delete[] ThetaProposal;
   delete[] SumLocusAncestry;
   delete[] SumLocusAncestry_X;
-#ifdef ARRAY2D
   //this might not work, relies on Loci still being in scope in top level
-  //  GPArray.dealloc(Loci->GetNumberOfCompositeLoci());
-#else
-  GPArray.dealloc();
-#endif
+  //but it's safe for parallel version because the function ignores the argument
+  //GPArray.dealloc(Loci->GetNumberOfCompositeLoci());
 }
 
 void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const Options* const options){
