@@ -69,7 +69,8 @@ echo \
 Configuration:
 
   Source code location:       ${srcdir}
-  Compiler:                   ${CC}
+  C Compiler:                 ${CC}
+  C++ Compiler:               ${CXX}
   Compiler flags:             ${CFLAGS}
   Host System Type:           ${host}
   Install path:               ${prefix}
