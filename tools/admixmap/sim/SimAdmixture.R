@@ -81,7 +81,7 @@ popadmixparams <- c(2, 6) # population admixture params for pop1, pop2
 rho <- 6 # sum-of-intensities
 spacing <- 80 # 40 cM spacing gives 99 loci
 eta <- 5 # allele freq dispersion parameter #10 is upper limit with 200 obs and admixmparams Di(1,2)
-beta <- 2 # regression slope for effect of admixture
+beta <- 1.5 # regression slope for effect of admixture
 gamma <- 0.4 # effect of allele 2 at candidate locus: standardized effect size if linear reg
                                         # log odds ratio if logistic reg
 logistic <- F # logistic or linear
@@ -114,8 +114,8 @@ for(locus in 1:L) {
                                         # freqs allele 1 in each of NumSubPops subpops
   #alleleFreqs[2*locus, ] <- 1 - alleleFreqs[2*locus - 1, ] # freqs allele 2
 }
-alleleFreqs[,1] <- 0.75
-alleleFreqs[,2] <- 0.25
+alleleFreqs[,1] <- 0.6
+alleleFreqs[,2] <- 0.3
 
 p1 <- alleleFreqs[seq(2, 2*L, by=2), 1]
 p2 <- alleleFreqs[seq(2, 2*L, by=2), 2]
