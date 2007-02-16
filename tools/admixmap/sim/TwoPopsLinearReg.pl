@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict; 
 use File::Path;
+use File::Copy;
 
 sub getArguments
 {
@@ -39,7 +40,7 @@ if($^O eq "MSWin32") {
     $executable = '..\\..\\..\\src\\admixmap\\admixmap';
 }
 #$executable = "s:\\sharedfolders\\genepi\\admix\\admixmapbackups\\archive\\admixmap3.2b";
-$executable = "c:\\oldgenepi\\trunk\\test\\admixmap";
+#$executable = "c:\\oldgenepi\\trunk\\test\\admixmap";
 
 # command-line options are stored in an associative array (known as a hash in perl)  
 my $arg_hash = {
@@ -48,8 +49,8 @@ my $arg_hash = {
     locusfile                       => 'data/loci.txt',
     outcomevarfile                  => 'data/outcome.txt',
 #main options
-    samples  => 6000,
-    burnin   => 1000,
+    samples  => 1100,
+    burnin   => 100,
     every    => 10,
     numannealedruns => 0, #200, # 100, 
     displaylevel => 2,
@@ -61,8 +62,19 @@ my $arg_hash = {
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
 $arg_hash->{paramfile}                 = 'popadmixparams.txt',
-$arg_hash->{resultsdir}            = 'TwoPopsResults';  
+$arg_hash->{resultsdir}            = 'TwoPopsResults';
+$arg_hash->{regressionpriorprecision}            = 0.01;
+$arg_hash->{priorallelefreqfile}            = "data/trueallelefreqs.txt";
+$arg_hash->{fixedallelefreqs}            = 1;
 &doAnalysis($executable,$arg_hash);
+copy("$arg_hash->{resultsdir}/PosteriorQuantiles.txt", "PosteriorQuantiles1998.txt") 
+    or die "File cannot be copied";
+
+$executable = "s:\\sharedfolders\\genepi\\admix\\admixmapbackups\\archive\\admixmap3.2b";
+delete $arg_hash->{regressionpriorprecision};
+&doAnalysis($executable,$arg_hash);
+copy("$arg_hash->{resultsdir}/PosteriorQuantiles.txt", "PosteriorQuantiles3.2b.txt")
+    or die "File cannot be copied";
 
 
 
