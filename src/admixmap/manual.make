@@ -175,7 +175,8 @@ common_objects	= misc.o Model.o AlleleFreqs.o Options.o AdmixOptions.o InputData
 admixmap_objects = admixmap.o AdmixMapModel.o PopAdmix.o DispersionFreqs.o AdmixedIndividual.o AdmixIndividualCollection.o\
  chib.o IndAdmixOutputter.o StratificationTest.o MisSpecAlleleFreqTest.o DispersionTest.o
 
-hapmixmap_objects = hapmixmap.o HapMixModel.o HapMixOptions.o PopHapMix.o HapMixFreqs.o HapMixIndividualCollection.o MantelHaenszelTest.o 
+hapmixmap_objects = hapmixmap.o HapMixModel.o HapMixOptions.o PopHapMix.o
+HapMixFreqs.o HapMixIndividual.o HapMixIndividualCollection.o MantelHaenszelTest.o 
 
 #both serial
 all:	admixmap hapmixmap

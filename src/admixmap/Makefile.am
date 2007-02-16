@@ -18,6 +18,7 @@ admixmap_CPPFLAGS	= -D__ADMIXMAP__
 hapmixmap_SOURCES	= hapmixmap.cc \
 			HapMixFreqs.cc \
 		   	Model.cc \
+			HapMixIndividual.cc \
 			HapMixIndividualCollection.cc \
 			HapMixModel.cc \
 			HapMixOptions.cc \
@@ -47,6 +48,7 @@ admixmap_LDADD		= ../bayeslib/libbayes.la \
 
 noinst_HEADERS	= admixmap.h \
 		  HapMixFreqs.h \
+			  HapMixIndividual.h \
 			  HapMixIndividualCollection.h \
 			  HapMixModel.h \
 			  HapMixOptions.h \
