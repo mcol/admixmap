@@ -217,7 +217,7 @@ void HMM::Sample(int *SStates, const bool isdiploid)
 }
 /// Returns a vector of conditional probabilities of each hidden state at 'time' t.
 /// If diploid, the vector is really a matrix of probabilities of pairs of states.
-const std::vector<double> HMM::Get3WayStateProbs( const bool isDiploid, int t){
+const std::vector<double> HMM::GetHiddenStateProbs( const bool isDiploid, int t){
   if(alphaIsBad){
     if(isDiploid)UpdateForwardProbsDiploid();
     else UpdateForwardProbsHaploid();

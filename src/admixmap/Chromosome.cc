@@ -186,7 +186,7 @@ void Chromosome::SampleLocusAncestry(int *OrderedStates, bool diploid){
 */
 std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDiploid, int j){
   //return SampleStates.Get3WayStateProbs(isDiploid, j);
-  const std::vector<double> probs = SampleStates.Get3WayStateProbs(isDiploid, j);
+  const std::vector<double> probs = SampleStates.GetHiddenStateProbs(isDiploid, j);
   std::vector<std::vector<double> >AncestryProbs(3);
 
   if(isDiploid){

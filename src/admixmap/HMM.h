@@ -29,7 +29,7 @@ public:
   void SetStateArrivalProbs(const int Mcol, bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
-  const std::vector<double> Get3WayStateProbs( const bool isDiploid, int t );
+  const std::vector<double> GetHiddenStateProbs( const bool isDiploid, int t );
   double getLogLikelihood(bool isDiploid);
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, int *SumLocusAncestry, 
 			    std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;
