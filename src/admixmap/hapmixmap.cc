@@ -19,7 +19,7 @@
 using namespace std;
 
 int main( int argc , char** argv ){
-  if(argc==2 & !strcmp(argv[1], "-v")){
+  if(argc==2 && !strcmp(argv[1], "-v")){
     LogWriter LW;
     PrintCopyrightNotice(LW);
     exit(0);
