@@ -57,14 +57,19 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWrite
 }
 
 void AdmixMapModel::UpdateParameters(int iteration, const Options *_options, LogWriter& Log, 
-		      const Vector_s& PopulationLabels, double coolness, bool anneal){
+		      const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
-  //cast Options pointer to AdmixOptions pointer for access to ADMIXMAP options
+    //cast Options pointer to AdmixOptions pointer for access to ADMIXMAP options
   //TODO: change pointer to reference
   const AdmixOptions* options = (const AdmixOptions*) _options;
+
+  // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
+  if((isMaster || isWorker) && (anneal || options->getTestOneIndivIndicator()))
+    AdmixedIndividuals->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), coolness, Coolnesses);
+
 
   A.ResetAlleleCounts(options->getPopulations());
 

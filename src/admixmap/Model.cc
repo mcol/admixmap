@@ -209,12 +209,8 @@ void Model::Iterate(const int & samples, const int & burnin, const double* Cooln
       WriteIterationNumber(iteration, (int)log10((double) samples+1 ), options.getDisplayLevel());
     }
 
-    // if annealed run, anneal genotype probs - for testindiv only if testsingleindiv indicator set in IC
-    if((isMaster || isWorker) && (AnnealedRun || options.getTestOneIndivIndicator())) 
-      IC->annealGenotypeProbs(Loci.GetNumberOfChromosomes(), Coolnesses[coolness], Coolnesses); 
-
     //Sample Parameters
-    UpdateParameters(iteration, &options, Log, data.GetPopLabels(), Coolnesses[coolness], AnnealedRun);
+    UpdateParameters(iteration, &options, Log, data.GetPopLabels(), Coolnesses, Coolnesses[coolness], AnnealedRun);
     SubIterate(iteration, burnin, options, data, Log, SumEnergy, SumEnergySq,
 	       AnnealedRun);
 	

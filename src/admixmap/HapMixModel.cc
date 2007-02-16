@@ -17,11 +17,22 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object
 
-  IC = new HapMixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
+  //IC = new HapMixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
+  IC = new HapMixIndividualCollection(&options, &data, &Loci, &A);//NB call after A Initialise;
   if(isMaster || isWorker) IC->LoadData(&options, &data, false);    //and before L and R Initialise
-  if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+  //if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+  const int numdiploid = IC->getNumDiploidIndividuals();
+
+  //TODO: MPI code to broadcast numdiploid to A goes here
+
+  //if there any diploid individuals, allocate space for diploid genotype probs
+  if(numdiploid && isFreqSampler || isWorker){
+    A.AllocateDiploidGenotypeProbs();
+    A.SetDiploidGenotypeProbs();
+  }
+
   if(isMaster || isWorker){
-    const int numdiploid = IC->getNumDiploidIndividuals();
+
     if(isMaster){
       const int numindivs = data.getNumberOfIndividuals();
       if(numindivs > 1){
@@ -62,7 +73,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
 }
 
 void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogWriter&, 
-                                   const Vector_s&, double coolness, bool anneal){
+                                   const Vector_s&, const double* , double coolness, bool anneal){
   const bool isMaster = Comms::isMaster();
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
@@ -154,6 +165,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
       A.BroadcastAlleleFreqs();
     }
 #endif
+    A.SetDiploidGenotypeProbs();
   }//end if random allele freqs
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
@@ -162,7 +174,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 #ifdef PARALLEL
     MPE_Log_event(11, iteration, "setGenotypeProbs"); 
 #endif
-    IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs ready for getEnergy
+    //IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs ready for getEnergy
     IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
 #ifdef PARALLEL
     MPE_Log_event(12, iteration, "GenotypeProbsSet"); 

@@ -12,6 +12,7 @@ HapMixFreqs::HapMixFreqs(){
   SumEta = 0;
   NumEtaUpdates = 0;
   accumulateEta = false;
+  DiploidGenotypeProbs.array = 0;
 }
 HapMixFreqs::~HapMixFreqs(){
   delete[] DirichletParams;
@@ -19,6 +20,7 @@ HapMixFreqs::~HapMixFreqs(){
   delete[] EtaSampler;
   delete[] SumEta;
   if( allelefreqprioroutput.is_open()) allelefreqprioroutput.close();
+  //TODO: delete DiploidGenotypeProbs
 }
 
 void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log ){
@@ -72,6 +74,32 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
     //broadcast initial values of freqs
     BroadcastAlleleFreqs();
 #endif
+  }
+}
+
+void HapMixFreqs::AllocateDiploidGenotypeProbs(){
+#ifdef ARRAY2D
+  DiploidGenotypeProbs.array = new double*[NumberOfCompositeLoci];
+  for(int i = 0; i < NumberOfCompositeLoci; ++i)
+     DiploidGenotypeProbs.array[i] = new double[3*Populations*Populations];
+#else
+  DiploidGenotypeProbs.array = new double*[NumberOfCompositeLoci*3*Populations*Populations];
+#endif
+}
+
+void HapMixFreqs::SetDiploidGenotypeProbs(){
+if(DiploidGenotypeProbs.array)
+  for(int i = 0; i < NumberOfCompositeLoci; ++i){
+    for(int k0 = 0; k0 < Populations; ++k0)
+      for(int k1 = 0; k1 < Populations; ++k1){
+
+      //1,1   =  phi_k0,1 * phi_k1,1
+       DiploidGenotypeProbs[i][k0*Populations*3 + k1*3   ] = Freqs[i][k0*2] * Freqs[i][k1*2];
+       //2,2  =  phi_k0,2 * phi_k1,2
+       DiploidGenotypeProbs[i][k0*Populations*3 + k1*3 +1] = Freqs[i][k0*2 + 1] * Freqs[i][k1*2+1];
+       //1,2  =  phi_k0,1 * phi_k1,2 + phi_k0,2 *  phi_k1,1
+       DiploidGenotypeProbs[i][k0*Populations*3 + k1*3 +2] = Freqs[i][k0*2] * Freqs[i][k1*2 + 1] + Freqs[i][k0*2 + 1] * Freqs[i][k1*2];
+     }
   }
 }
 
@@ -526,4 +554,11 @@ void HapMixFreqs::OutputFinalValues(const char* filename, LogWriter& Log)const{
 
     }
   }
+}
+const FreqArray& HapMixFreqs::getHaploidGenotypeProbs()const{
+  return Freqs;
+}
+
+const FreqArray& HapMixFreqs::getDiploidGenotypeProbs()const{
+  return DiploidGenotypeProbs;
 }

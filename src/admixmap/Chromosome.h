@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   Chromosome.h 
  *   header file for Chromosome class
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -18,6 +18,7 @@
 
 class Individual;
 class AdmixOptions;
+class GenotypeProbIterator;
 
 /// Represents a chromosome and holds HMM object
 class Chromosome
@@ -43,7 +44,7 @@ public:
   void SetLocusCorrelation(const std::vector<double> rho_, bool global, bool RandomMating);
 
 // ********** Interface to HMM ****************************************
-  void SetGenotypeProbs(const double* const GenotypeProbs, const bool* const GenotypesMissing);
+  void SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool* const GenotypesMissing);
   void SetHMMTheta(const double* const Admixture, bool RandomMating, bool diploid);
   void SetStateArrivalProbs(bool RandomMating, bool isdiploid);
 

@@ -17,7 +17,6 @@ HMM::HMM()
   rowProb = 0;
   cov = 0;
   f = 0;
-  Lambda = 0;
   alphaIsBad = true;
   betaIsBad = true;
 }
@@ -66,8 +65,8 @@ void HMM::SetDimensions( int inTransitions, int pops, const double* const fin)
   }
 }
 
-void HMM::SetGenotypeProbs(const double* const lambdain, const bool* const missing){
-  Lambda = lambdain;
+void HMM::SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool* const missing){
+  LambdaGPI = GenotypeProbs;
   missingGenotypes = missing;
   alphaIsBad = true;//new input so reset
   betaIsBad = true;
@@ -105,7 +104,8 @@ void HMM::SetStateArrivalProbs(const int Mcol, bool isdiploid){
 void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			       int *SumLocusAncestry, vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const {
   //this does not require forward or backward probs, just state arrival probs
-  if(!Lambda || !theta || !f)throw string("Error: Call to HMM::SampleJumpIndicators when StateArrivalProbs are not set!");
+  if(LambdaGPI.isNull() || !theta || !f)
+    throw string("Error: Call to HMM::SampleJumpIndicators when StateArrivalProbs are not set!");
   bool xi = false;//jump indicator
   double ProbJump = 0.0; // prob jump indicator is 1
   // first locus not included in loop below
@@ -162,7 +162,7 @@ double HMM::getLogLikelihood(const bool isdiploid)
 /*
   Samples Hidden States
   ---------------------
-  SStates          - an int array to store the sampled states
+  SStates    - an int array to store the sampled states
   isdiploid  - indicator for diploidy
 */
 void HMM::Sample(int *SStates, const bool isdiploid)
@@ -256,7 +256,8 @@ const std::vector<double> HMM::Get3WayStateProbs( const bool isDiploid, int t){
 */
 void HMM::UpdateForwardProbsDiploid()
 {
-  if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
+  if(LambdaGPI.isNull() || !theta || !f)
+    throw string("Error: Call to HMM when inputs are not set!");
   // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
   sumfactor = 0.0; // accumulates log-likelihood
   double Sum = 0.0;
@@ -264,8 +265,8 @@ void HMM::UpdateForwardProbsDiploid()
   
   if(!missingGenotypes[0]) {
     for(int j = 0; j < DStates; ++j) {
-      alpha[j] =  ThetaThetaPrime[j] * Lambda[j];
-    } 
+     alpha[j] =  ThetaThetaPrime[j] * LambdaGPI[0][j];
+    }
   } else {
     for(int j = 0; j < DStates; ++j) {
       alpha[j] = ThetaThetaPrime[j];
@@ -290,9 +291,8 @@ void HMM::UpdateForwardProbsDiploid()
     
     for(int j = 0; j < DStates; ++j){
       if(!missingGenotypes[t]) {
-	alpha[t*DStates +j] *=  Lambda[t*DStates + j]; //*lam++; 
-	//++lam;
-      } //else ++lam;
+    	alpha[t*DStates +j] *=  LambdaGPI[t][j];
+      }
     }
   }
   alphaIsBad = false;
@@ -300,7 +300,8 @@ void HMM::UpdateForwardProbsDiploid()
 
 void HMM::UpdateBackwardProbsDiploid()
 {
-  if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
+  if(LambdaGPI.isNull() || !theta || !f)
+    throw string("Error: Call to HMM when inputs are not set!");
   if(!beta) { // allocate beta array if not already done
     beta =  new double[Transitions*K*K];
   }
@@ -320,7 +321,7 @@ void HMM::UpdateBackwardProbsDiploid()
     double f2[2] = {f[2*t + 2], f[2*t + 3]};
     Sum = 0.0;
     for(int j = 0; j < DStates; ++j){
-      LambdaBeta[j] = Lambda[(t+1)*K*K + j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
+      LambdaBeta[j] = LambdaGPI[t+1][j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
       Sum += LambdaBeta[j];
     }
     //scale LambdaBeta to sum to 1
@@ -342,12 +343,13 @@ void HMM::UpdateBackwardProbsDiploid()
   Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
 */
 void HMM::UpdateForwardProbsHaploid(){
-  if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
+  if(LambdaGPI.isNull() || !theta || !f)
+    throw string("Error: Call to HMM when inputs are not set!");
   sumfactor = 0.0;
   double Sum = 0.0;
   double scaleFactor = 0.0;
   for(int j = 0; j < K; ++j){
-    alpha[j] = theta[j] * Lambda[j];
+    alpha[j] = theta[j] * LambdaGPI[0][j];
   }
   
   for( int t = 1; t < Transitions; t++ ) {
@@ -366,14 +368,15 @@ void HMM::UpdateForwardProbsHaploid(){
 
     for(int j = 0; j < K; ++j){
       alpha[t*K + j] = f[2*t]*alpha[(t-1)*K +j] + (1.0 - f[2*t]) * theta[j];
-      alpha[t*K + j] *= Lambda[t*K + j];
+      alpha[t*K + j] *= LambdaGPI[t][j];
     }
   }
   alphaIsBad =  false;
 }
 
 void HMM::UpdateBackwardProbsHaploid(){
-  if(!Lambda || !theta || !f)throw string("Error: Call to HMM when inputs are not set!");
+  if(LambdaGPI.isNull() || !theta || !f)
+    throw string("Error: Call to HMM when inputs are not set!");
   if(!beta) { // allocate diploid-sized beta array if not already done
     beta =  new double[Transitions*K*K];
   }
@@ -387,7 +390,7 @@ void HMM::UpdateBackwardProbsHaploid(){
   for( int t = Transitions-2; t >=0; t-- ){
     Sum = 0.0;
     for(int j = 0; j < K; ++j){
-      LambdaBeta[j] = Lambda[(t+1)*K + j]*beta[(t+1)*K + j];
+      LambdaBeta[j] = LambdaGPI[t+1][j]*beta[(t+1)*K + j];
       Sum += theta[j]*LambdaBeta[j];
     }
     for(int j = 0; j < K; ++j){

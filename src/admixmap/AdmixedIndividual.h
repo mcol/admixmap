@@ -19,6 +19,8 @@
 #include <gsl/gsl_cdf.h>
 #include "AffectedsOnlyTest.h"
 #include "AncestryAssocTest.h"
+#include "GPI.h"
+
 
 ///Class to represent an individual in an admixture model
 class AdmixedIndividual : public Individual 
@@ -67,6 +69,10 @@ public:
   double getLogPosteriorRho()const;
   double getLogPosteriorAlleleFreqs()const;
 
+  void SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs);
+  void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
+  void AnnealGenotypeProbs(int j, const double coolness);
+
 private:
   bool IAmUnderTest;//true if not in Individual array
   double *dirparams; // dirichlet parameters of full conditional for conjugate updates
@@ -78,6 +84,8 @@ private:
   std::vector<unsigned> SumNumArrivals;
   std::vector< double > rhohat;
   std::vector<double> sumlogrho;
+  GenotypeProbIterator GPI;
+  FreqArray GPArray;
   
   std::vector<double> logPosterior[3]; // elements 0, 1, 2 are for theta, rho, freqs
   

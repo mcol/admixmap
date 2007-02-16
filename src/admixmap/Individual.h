@@ -30,6 +30,7 @@ class Individual
 public:
   Individual();
   Individual(int number, const Options* const options, const InputData* const Data);
+  void Initialise(int number, const Options* const options, const InputData* const Data);
   virtual ~Individual();
 
   void DeleteGenotypes();
@@ -68,9 +69,6 @@ public:
   void UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const;
 
   void SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regression*>& R);
-  void SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs);
-  void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
-  void AnnealGenotypeProbs(int j, const double coolness);
 
 protected:
   unsigned myNumber;//number of this individual, counting from 1
@@ -86,7 +84,6 @@ protected:
   std::vector< unsigned int > gametes;// number of gametes on each chromosome
   std::vector<genotype> genotypes;
   std::vector<hapPair > *PossibleHapPairs;//possible haplotype pairs compatible with genotype
-  double **GenotypeProbs;
   bool **GenotypesMissing;//indicators for missing genotypes at comp loci
   bool *missingGenotypes;//indicators for missing genotypes at simple loci
   std::vector<hapPair> sampledHapPairs;
@@ -108,7 +105,7 @@ protected:
   void SetUniformAdmixtureProps();
 
   virtual void UpdateHMMInputs(unsigned int j, const Options* const options, 
-			     const double* const theta, const vector<double> rho);
+			     const double* const theta, const vector<double> rho) = 0;
   virtual double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
   static void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);

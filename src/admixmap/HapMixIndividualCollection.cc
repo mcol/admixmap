@@ -1,8 +1,11 @@
 #include "HapMixIndividualCollection.h"
 #include "HapMixOptions.h"
+#include "HapMixIndividual.h"
+#include "HapMixFreqs.h"
+#include "regression/Regression.h"
 #include "Comms.h"
 
-HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci){
+HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A){
   SetNullValues();
   GlobalSumAncestry = 0;
   SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
@@ -17,20 +20,23 @@ HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* cons
   worker_rank = 0;
   NumWorkers = 1;
 #ifdef PARALLEL
-    int global_rank = MPI::COMM_WORLD.Get_rank();
-    //create communicator for workers and find size of and rank within this group
-    workers = MPI::COMM_WORLD.Split( Comms::isWorker(), global_rank);
-    NumWorkers = workers.Get_size();
-    if(global_rank >1)
-      worker_rank = workers.Get_rank();
-    else worker_rank = size;//so that non-workers will not loop over Individuals
+  int global_rank = MPI::COMM_WORLD.Get_rank();
+  //create communicator for workers and find size of and rank within this group
+  workers = MPI::COMM_WORLD.Split( Comms::isWorker(), global_rank);
+  NumWorkers = workers.Get_size();
+  if(global_rank >1)
+    worker_rank = workers.Get_rank();
+  else worker_rank = size;//so that non-workers will not loop over Individuals
 #endif
+  
+  //  Individual::SetStaticMembers(Loci, options);
+  HapMixIndividual::SetStaticMembers(Loci, options, A->getHaploidGenotypeProbs(), A->getDiploidGenotypeProbs());
 
-  Individual::SetStaticMembers(Loci, options);
   if(worker_rank < (int)size){
     _child = new Individual*[size];
     for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
-      _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
+      // _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
+      _child[i] = new HapMixIndividual(i+1, options, Data);//NB: first arg sets Individual's number
     }
   }
   if(options->OutputCGProbs())GPO.Initialise(options->GetNumMaskedIndividuals(), options->GetNumMaskedLoci());
@@ -104,4 +110,71 @@ void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMix
 }
 void HapMixIndividualCollection::OutputCGProbs(const char* filename){
   GPO.Output(filename);
+}
+
+double HapMixIndividualCollection::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
+							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
+							, AlleleFreqs* ){
+  //TODO: broadcast SumLogRho to workers
+  //SumRho = ergodic sum of global sumintensities
+  int iterations = options->getTotalSamples()-options->getBurnIn();
+  
+  //update chromosomes using globalrho, for globalrho model
+  if(options->getPopulations() >1 && (options->isGlobalRho() || options->getHapMixModelIndicator()) ){
+    vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
+    if(Comms::isMaster())//master only
+      for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
+#ifdef PARALLEL
+    if(!Comms::isFreqSampler()) 
+      Comms::BroadcastVector(RhoBar);
+#endif
+    //set locus correlation
+    if(Comms::isWorker()){//workers only
+      Loci->SetLocusCorrelation(RhoBar);
+      if(options->getHapMixModelIndicator())
+	for( unsigned int j = 0; j < numChromosomes; j++ )
+	  //set global state arrival probs in hapmixmodel
+	  //TODO: can skip this if xonly analysis with no females
+	  //NB: assumes always diploid in hapmixmodel
+	  //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
+	  Loci->getChromosome(j)->SetStateArrivalProbs(options->isRandomMatingModel(), true);
+    }
+  }
+  
+  //set haplotype pair probs to posterior means (in parallel version, sets AlleleProbs(Freqs) to posterior means
+  if(Comms::isFreqSampler())
+    for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
+      (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
+  
+#ifdef PARALLEL
+  //broadcast allele freqs
+  if(!Comms::isMaster())A->BroadcastAlleleFreqs();
+#endif
+
+  //set genotype probs using happair probs calculated at posterior means of allele freqs 
+  //if(Comms::isWorker())setGenotypeProbs(Loci, A);
+
+  //accumulate deviance at posterior means for each individual
+  // fix this to be test individual only if single individual
+  double Lhat = 0.0; // Lhat = loglikelihood at estimates
+  for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
+    if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
+    else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
+  }
+#ifdef PARALLEL
+  if(!Comms::isFreqSampler()){
+    Comms::Reduce(&Lhat);
+  }
+#endif
+
+  if(Comms::isMaster()){
+    Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
+    for(unsigned c = 0; c < R.size(); ++c){
+      double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
+      Lhat += RegressionLogL;
+      Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
+	  << -2.0*RegressionLogL << "\n";
+    }
+  }
+  return(-2.0*Lhat);
 }

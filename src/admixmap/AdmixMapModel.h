@@ -51,7 +51,7 @@ private:
   MisSpecAlleleFreqTest AlleleFreqTest;
 
   void UpdateParameters(int iteration, const Options *options, 
-			LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal);
+			LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal);
   void OutputParameters(int iteration, const AdmixOptions *options, LogWriter& Log);
   void InitializeErgodicAvgFile(const AdmixOptions* const options, LogWriter &Log,  
 				const Vector_s& PopLabels, const Vector_s& CovariateLabels);

@@ -36,8 +36,11 @@ std::ostream& operator<<(std::ostream& os, const hapPair &h){
 //******** Constructors **********
 Individual::Individual() {//should initialise pointers here
 }
-
 Individual::Individual(int number, const Options* const options, const InputData* const Data) {
+  Initialise(number, options, Data);
+}
+
+void Individual::Initialise(int number, const Options* const options, const InputData* const Data) {
   myNumber = number;
   NumGametes = 1;
   GenotypesMissing = new bool*[numChromosomes];
@@ -78,19 +81,17 @@ Individual::Individual(int number, const Options* const options, const InputData
 
   LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
   //initialise genotype probs array and array of indicators for genotypes missing at locus
-  GenotypeProbs = new double*[numChromosomes];
+
   size_t AncestrySize = 0;  // set size of locus ancestry array
   //gametes holds the number of gametes for each chromosome, either 1 or 2
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     if(isHaploid || (!SexIsFemale && Loci->isXChromosome(j))){//haploid on this chromosome
 	AncestrySize = Loci->GetSizeOfChromosome(j) ;
 	gametes.push_back(1);
-	GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations];
     }
     else{
 	AncestrySize = 2 * Loci->GetSizeOfChromosome(j) ;
 	gametes.push_back(2);
-	GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*Populations*Populations];
     }
       LocusAncestry[j] = new int[ AncestrySize];
       for(unsigned i = 0; i < AncestrySize; ++i) LocusAncestry[j][i] = 0;
@@ -122,10 +123,7 @@ Individual::Individual(int number, const Options* const options, const InputData
 //********** Destructor **********
 Individual::~Individual() {
   delete[] PossibleHapPairs;
-  if(GenotypeProbs){
-    for(unsigned j = 0; j < numChromosomes; ++j) delete[] GenotypeProbs[j];
-    delete[] GenotypeProbs; 
-  }
+
   if(GenotypesMissing){
     for(unsigned j = 0; j < numChromosomes; ++j)delete[] GenotypesMissing[j];
     delete[] GenotypesMissing;
@@ -178,89 +176,6 @@ void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> >
     PossibleHapPairs.push_back(hpair);//(1,2)
     hpair.haps[0] = 1; hpair.haps[1] = 0;
     PossibleHapPairs.push_back(hpair);//(2,1)
-  }
-}
-
-#ifdef PARALLEL
-//this version can also be used in serial version
-void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
-  if( !GenotypesMissing[j][jj] ){
-    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-      double *q = GenotypeProbs[j]+jj*Populations*Populations;
-      
-      happairiter end = PossibleHapPairs[locus].end();
-      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
-      for(int k0 = 0; k0 < Populations; ++k0)
-	for(int k1 = 0; k1 < Populations; ++k1) {
-	  *q = 0.0;
-	  happairiter h = PossibleHapPairs[locus].begin();
-	  for( ; h != end ; ++h) {
-	    *q += AlleleProbs[k0*NumberOfStates+h->haps[0]] * AlleleProbs[k1*NumberOfStates+h->haps[1]];
-	  }
-	  q++;
-	}
-    }
-    else{//haploid
-      double *q =GenotypeProbs[j]+jj*Populations;
-      happairiter end = PossibleHapPairs[locus].end();
-      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
-      for(int k0 = 0; k0 < Populations; ++k0) {
-	*q = 0.0;
-	happairiter h = PossibleHapPairs[locus].begin();
-	for( ; h != end ; ++h) {
-	  *q += AlleleProbs[k0*NumberOfStates + h->haps[0]];
-	}
-	q++;
-      }
-    }
-    
-  } else {//missing genotype
-    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-    for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
-   }
-   else{
-    for( int k = 0; k < Populations; ++k ) GenotypeProbs[j][jj*Populations + k] = 1.0;
-   }
-  }
-}
-#endif
-
-void Individual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator=false){
-  //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
-  //instead of HapPairProbs when allelefreqs are not fixed.
-  if( !GenotypesMissing[j][jj] ) {
-    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-      (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*Populations*Populations, PossibleHapPairs[locus], 
-				       chibindicator);
-      //       if(chibindicator) {
-      // 	for( int k = 0; k < Populations; ++k ) cout << GenotypeProbs[j][jj*Populations*Populations + k] << " ";
-      //       }
-    } else {//haploid genotype
-      (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j]+jj*Populations, PossibleHapPairs[locus], 
-					      chibindicator);
-    }
-  } else {
-    if( !isHaploid && (j!=(int)X_posn || SexIsFemale))  //diploid genotype
-      for( int k = 0; k < Populations*Populations; ++k ) GenotypeProbs[j][jj*Populations*Populations + k] = 1.0;
-    else //haploid genotype
-      for( int k = 0; k < Populations; ++k ) GenotypeProbs[j][jj*Populations + k] = 1.0;
-  }
-
-}
-
-void Individual::AnnealGenotypeProbs(int j, const double coolness) {
-  // called after energy has been evaluated, before updating model parameters
-  int locus = Loci->getChromosome(j)->GetLocus(0);
-  for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
-    if( !GenotypesMissing[j][jj] ) { 
-      if(!isHaploid && ( j!=(int)X_posn || SexIsFemale))  //diploid genotype
-	for(int k = 0; k < Populations*Populations; ++k) // loop over ancestry states
-	  GenotypeProbs[j][jj*Populations*Populations+k] = pow(GenotypeProbs[j][jj*Populations*Populations+k], coolness); 
-      else //haploid genotype
-	for(int k = 0; k < Populations; ++k) // loop over ancestry states
-	  GenotypeProbs[j][jj*Populations+k] = pow(GenotypeProbs[j][jj*Populations+k], coolness); 
-    }
-    locus++;
   }
 }
 
@@ -492,26 +407,6 @@ void Individual::UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, All
     GetLocusAncestry(j,jj,anc);
     A->UpdateAlleleCounts(locus, sampledHapPairs[locus].haps, anc, (gametes[j]==2), annealthermo);
   }
-}
-
-void Individual::UpdateHMMInputs(unsigned int j, const Options* const options, 
-				 const double* const theta, const vector<double> rho) {
-  //Updates inputs to HMM for chromosome j
-  //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
-  Chromosome* C = Loci->getChromosome(j);
-  C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
-
-  bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
-  if(!options->getHapMixModelIndicator()){
-    if(!options->isGlobalRho()){
-      //set locus correlation, f, if individual- or gamete-specific rho
-      C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
-    }
-    C->SetHMMTheta(theta, options->isRandomMatingModel(), diploid);
-  }
-  //if(diploid)
-  C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
-  logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
 
 void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regression*>& R){

@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <values.h>
 #include <vector>
+#include "GPI.h"
 
 /** Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
    Instantiated in class Chromosome
@@ -23,7 +24,7 @@ public:
   HMM( int inTransitions, int pops, const double* const f);
   ~HMM();
   void SetDimensions( int inTransitions, int pops, const double* const fin);
-  void SetGenotypeProbs(const double* const lambdain, const bool* const missing);
+  void SetGenotypeProbs(const GenotypeProbIterator& lambdain, const bool* const missing);
   void SetTheta(const double* const Theta, const int Mcol, const bool isdiploid);
   void SetStateArrivalProbs(const int Mcol, bool isdiploid);
 
@@ -52,7 +53,7 @@ private:
 
   const double* f;
   const double* theta;
-  const double* Lambda;
+  GenotypeProbIterator LambdaGPI;
   const bool* missingGenotypes;
   bool alphaIsBad, betaIsBad;
 

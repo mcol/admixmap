@@ -192,39 +192,6 @@ void IndividualCollection::HMMIsBad(bool b){
     _child[i]->HMMIsBad(b);
 }
 
-void IndividualCollection::setGenotypeProbs(const Genome* const Loci, const AlleleFreqs* const
-#ifdef PARALLEL
-					    A
-#endif
-					    ){
-  unsigned nchr = Loci->GetNumberOfChromosomes();
-  unsigned locus = 0;
-  for(unsigned j = 0; j < nchr; ++j){
-    for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){
-#ifdef PARALLEL
-      //get pointer to allele probs for this locus
-      const double* AlleleProbs = A->GetAlleleFreqs(locus);//need to get alleleprobs from A as workers have no CompositeLocus objects
-      for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
-	_child[i]->SetGenotypeProbs(j, jj, locus, AlleleProbs);
-      }
-#else
-      for(unsigned int i = worker_rank; i < size; i+= NumWorkers ) {
-	_child[i]->SetGenotypeProbs(j, jj, locus, false);
-      }
-#endif
-      locus++;
-    }
-  }
-}  
-
-void IndividualCollection::annealGenotypeProbs(unsigned nchr, const double coolness, const double* ){
-  for(unsigned j = 0; j < nchr; ++j){
-      for(unsigned int i = worker_rank; i < size; i+= NumWorkers) {
-	_child[i]->AnnealGenotypeProbs(j, coolness);
-      }
-  }
-}
-
 /**
    Samples Haplotype pairs and upates allele/haplotype counts if requested
 */
@@ -390,72 +357,7 @@ int IndividualCollection::getNumberOfMissingGenotypes(unsigned locus)const{
 
 // ************** OUTPUT **************
 
-double IndividualCollection::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
-							, AlleleFreqs* A){
-  //TODO: broadcast SumLogRho to workers
-  //SumRho = ergodic sum of global sumintensities
-  int iterations = options->getTotalSamples()-options->getBurnIn();
-  
-  //update chromosomes using globalrho, for globalrho model
-  if(options->getPopulations() >1 && (options->isGlobalRho() || options->getHapMixModelIndicator()) ){
-    vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
-    if(Comms::isMaster())//master only
-      for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
-#ifdef PARALLEL
-    if(!Comms::isFreqSampler()) 
-      Comms::BroadcastVector(RhoBar);
-#endif
-    //set locus correlation
-    if(Comms::isWorker()){//workers only
-      Loci->SetLocusCorrelation(RhoBar);
-      if(options->getHapMixModelIndicator())
-	for( unsigned int j = 0; j < numChromosomes; j++ )
-	  //set global state arrival probs in hapmixmodel
-	  //TODO: can skip this if xonly analysis with no females
-	  //NB: assumes always diploid in hapmixmodel
-	  //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-	  Loci->getChromosome(j)->SetStateArrivalProbs(options->isRandomMatingModel(), true);
-    }
-  }
-  
-  //set haplotype pair probs to posterior means (in parallel version, sets AlleleProbs(Freqs) to posterior means
-  if(Comms::isFreqSampler())
-    for( unsigned int j = 0; j < Loci->GetNumberOfCompositeLoci(); j++ )
-      (*Loci)(j)->SetHapPairProbsToPosteriorMeans(iterations);
-  
-#ifdef PARALLEL
-  //broadcast allele freqs
-  if(!Comms::isMaster())A->BroadcastAlleleFreqs();
-#endif
-  
-  //set genotype probs using happair probs calculated at posterior means of allele freqs 
-  if(Comms::isWorker())setGenotypeProbs(Loci, A);
-  
-  //accumulate deviance at posterior means for each individual
-  // fix this to be test individual only if single individual
-  double Lhat = 0.0; // Lhat = loglikelihood at estimates
-  for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
-    if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
-    else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
-  }
-#ifdef PARALLEL
-  if(!Comms::isFreqSampler()){
-    Comms::Reduce(&Lhat);
-  }
-#endif
 
-  if(Comms::isMaster()){
-    Log << Quiet << "DevianceAtPosteriorMean(IndAdmixture)" << -2.0*Lhat << "\n";
-    for(unsigned c = 0; c < R.size(); ++c){
-      double RegressionLogL = R[c]->getLogLikelihoodAtPosteriorMeans(iterations, getOutcome(c));
-      Lhat += RegressionLogL;
-      Log << "DevianceAtPosteriorMean(Regression " << c+1 << ")"
-	  << -2.0*RegressionLogL << "\n";
-    }
-  }
-  return(-2.0*Lhat);
-}
 
 double IndividualCollection::getLogLikelihood(const Options* const options, bool forceupdate){
   double LogLikelihood = 0.0;

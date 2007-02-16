@@ -64,8 +64,9 @@ public:
 			  const Vector_s& PopulationLabels);
 
   void OutputIndAdmixture();
-  //double getDevianceAtPosteriorMean(const AdmixOptions* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
-				//    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A);
+  double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
+							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
+							, AlleleFreqs* A);
   void OutputChibResults(LogWriter&)const;
 
   AdmixedIndividual* getIndividual(int)const;

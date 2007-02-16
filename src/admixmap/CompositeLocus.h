@@ -56,6 +56,9 @@ public:
   const std::vector<int> getHaplotypeCounts(const int* happair);
   void setPossibleHaplotypePairs(const std::vector<std::vector<unsigned short> > Genotype, std::vector<hapPair> &PossibleHapPairs);
   void setPossibleXHaplotypes(const std::vector<std::vector<unsigned short> > Genotype, std::vector<hapPair> &PossibleHapPairs);
+  void setPossibleHaplotypes(const std::vector<unsigned short>::const_iterator& g, std::vector<hapPair>& PossibleHapPairs);
+
+
   void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
   void GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const; 
@@ -107,6 +110,9 @@ private:
 			  const std::vector<int>& HapAlleles,  const std::vector<int>& MissingLoci, 
 			  std::vector<int>& HapAllelesNoMissing) ;
   void SetHapPairProbs(const double* alleleProbs, double* happairprobs);
+
+  void setPossibleHaplotypes(int numMissingLoci, int numPermsMissing, const std::vector<bool>& isMissing, 
+                             const std::vector<int>& HapAlleles, std::vector<int>& HapAllelesNoMissing, std::vector<hapPair> &PossibleHapPairs);
 
   // UNIMPLEMENTED
   // to avoid use

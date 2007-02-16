@@ -122,6 +122,10 @@ public:
    stride = s;
   }
 
+   ~FreqArray(){
+   dealloc(0);
+  }
+
   FreqArray operator+(unsigned i){
    FreqArray A(array+i, stride);
    return A;

@@ -31,9 +31,25 @@ AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
 }
 
 AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const options, const InputData* const Data,  
-				     bool undertest=false): Individual(number, options, Data) {
+				     bool undertest=false){
+
+  Individual::Initialise(number, options, Data); 
   IAmUnderTest = undertest;
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
+
+ //allocate genotype probs
+  GPArray.array = new double*[numCompositeLoci];
+  unsigned locus = 0;
+   for( unsigned int j = 0; j < numChromosomes; j++ ){
+    unsigned DStates = Populations;
+    if(!isHaploid && (j!=X_posn || SexIsFemale))
+      DStates*=Populations;
+     for(unsigned jj = 0; jj < Loci->GetSizeOfChromosome(j);++jj){
+       GPArray.array[locus] = new double[DStates];
+       ++locus;
+     }
+  }
+  GPI.setPointer(&GPArray);
 
   thetahat = 0;
   if(options->getChibIndicator() || options->getIndAdmixModeFilename())
@@ -122,6 +138,88 @@ void AdmixedIndividual::setAdmixtureProps(const double* const a, size_t size) {
   //TODO: size arg not necessary should equal NumGametes*K
   for(unsigned i = 0; i < size; ++i)  {
     Theta[i] = a[i];
+  }
+}
+#ifdef PARALLEL
+//this version can also be used in serial version
+void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
+  if( !GenotypesMissing[j][jj] ){
+    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
+      double *q = GPArray[locus];
+      
+      happairiter end = PossibleHapPairs[locus].end();
+      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
+      for(int k0 = 0; k0 < Populations; ++k0)
+	for(int k1 = 0; k1 < Populations; ++k1) {
+	  *q = 0.0;
+	  happairiter h = PossibleHapPairs[locus].begin();
+	  for( ; h != end ; ++h) {
+	    *q += AlleleProbs[k0*NumberOfStates+h->haps[0]] * AlleleProbs[k1*NumberOfStates+h->haps[1]];
+	  }
+	  q++;
+	}
+    }
+    else{//haploid
+      double *q =GPArray[locus];
+      happairiter end = PossibleHapPairs[locus].end();
+      const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
+      for(int k0 = 0; k0 < Populations; ++k0) {
+	*q = 0.0;
+	happairiter h = PossibleHapPairs[locus].begin();
+	for( ; h != end ; ++h) {
+	  *q += AlleleProbs[k0*NumberOfStates + h->haps[0]];
+	}
+	q++;
+      }
+    }
+    
+  } else {//missing genotype
+    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
+    for( int k = 0; k < Populations*Populations; ++k ) GPArray[locus][ k] = 1.0;
+   }
+   else{
+    for( int k = 0; k < Populations; ++k ) GPArray[locus][ k] = 1.0;
+   }
+  }
+}
+#endif
+
+void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator=false){
+  //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
+  //instead of HapPairProbs when allelefreqs are not fixed.
+  if( !GenotypesMissing[j][jj] ) {
+    if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
+      (*Loci)(locus)->GetGenotypeProbs(GPArray[locus], PossibleHapPairs[locus],
+				       chibindicator);
+      //       if(chibindicator) {
+      // 	for( int k = 0; k < Populations; ++k ) cout << GPArray[locus][k] << " ";
+      //       }
+    } else {//haploid genotype
+      (*Loci)(locus)->GetHaploidGenotypeProbs(GPArray[locus], PossibleHapPairs[locus],
+					                          chibindicator);
+    }
+  } else {
+    if( !isHaploid && (j!=(int)X_posn || SexIsFemale))  //diploid genotype
+      for( int k = 0; k < Populations*Populations; ++k ) GPArray[locus][k] = 1.0;
+    else //haploid genotype
+      for( int k = 0; k < Populations; ++k ) GPArray[locus][k] = 1.0;
+  }
+
+}
+
+void AdmixedIndividual::AnnealGenotypeProbs(int j, const double coolness) {
+  // called after energy has been evaluated, before updating model parameters
+  int locus = Loci->getChromosome(j)->GetLocus(0);
+  for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
+    if( !GenotypesMissing[j][jj] ) { 
+      if(!isHaploid && ( j!=(int)X_posn || SexIsFemale))  //diploid genotype
+	for(int k = 0; k < Populations*Populations; ++k) // loop over ancestry states
+	  GPArray[locus][k] = pow(GPArray[locus][k], coolness);
+      else //haploid genotype
+	for(int k = 0; k < Populations; ++k) // loop over ancestry states
+	  GPArray[locus][k] = pow(GPArray[locus][k], coolness);
+    }
+    locus++;
   }
 }
 
@@ -697,10 +795,14 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const opt
 				 const double* const theta, const vector<double> rho) {
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
+  const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
   Chromosome* C = Loci->getChromosome(j);
-  C->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
-  bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
+  //offset GPI to point to genotype probs for the first locus on chromosome, no column offset
+  GPI.Offset(C->GetLocus(0));
+
+  C->SetGenotypeProbs(GPI , GenotypesMissing[j]);
+
   if(!options->isGlobalRho()){
     //set locus correlation, f, if individual- or gamete-specific rho
     C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
@@ -715,7 +817,7 @@ void AdmixedIndividual::SampleRho(const AdmixOptions* const options, double rhoa
 			   bool updateSumLogRho) {
   vector<unsigned> sumNumArrivals = getSumNumArrivals();
   vector<unsigned> sumNumArrivals_X = getSumNumArrivals_X();
-  // rho_X is set to 0.5*rho - equivalent to setting effective length of X chromosome as half length in morgans
+  // rho_X is set to 0.5*rho - equivalent to setting effective length of X chromosome as half length in Morgans
   // conjugate gamma update for rho includes arrivals on X chromosome, and 0.5 * length of X chromosome
   if(isHaploid || options->isRandomMatingModel() ) {
     // SumNumArrivals_X has length 2, and SumNumArrivals_X[0] remains fixed at 0 if male 

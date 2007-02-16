@@ -6,152 +6,87 @@
 #include "FreqArrays.h"
 #include <vector>
 
-class GPIBase{
- public:
-
- virtual ~GPIBase(){};
- virtual const ColumnIterator& operator[](unsigned i) = 0;
- unsigned getStride()const{
-  return stride;
- }
- virtual bool isNull()const = 0;
-
- protected:
-  ColumnIterator C;
-  //unsigned K;
-  unsigned stride;
-} ;
-
-
-class HapMixGenotypeProbIterator : public GPIBase{
+class GenotypeProbIterator{
 
 public:
 
-  HapMixGenotypeProbIterator(){
+  GenotypeProbIterator(){
     p = 0;
-    stride = 0;
     offset = 0;
-    //K = 0;
+    g = 0;
   }
-  void assign(const FreqArray* const x, const std::vector<unsigned short>::const_iterator geno,
-                             const unsigned n = 1, const unsigned t = 0){
-    p = x;
-    g = geno;
-    //K = k;
-    stride = n;
-    offset = t;
-  }
-
-  HapMixGenotypeProbIterator(const FreqArray* const x, const std::vector<unsigned short>::const_iterator geno,
-                             const unsigned n = 1, const unsigned t = 0){
-    assign (x, geno, n, t);
+  GenotypeProbIterator(const FreqArray* const x, const unsigned cstride =1){
+    setPointer (x, cstride);
   };
 
+  void setPointer(const FreqArray* const x, const unsigned cstride = 1){
+    p = x;
+    C.setStride(cstride);
+  }
+
+  void assign(const FreqArray* const x, std::vector<unsigned short>* GI,
+               const unsigned cstride, const unsigned t){
+    //C.assign( (*p)[offset]);
+    setPointer(x, cstride);
+    Offset(t);
+    g = GI;
+  }
+  
+  void Offset(const unsigned t){
+    offset = t;
+    //C.setOffset(Coffset);
+  }
+
   // A = B is the same as A.operator=(B)
-  void operator=(const HapMixGenotypeProbIterator& rhs){
-    stride = rhs.getStride();
+  void operator=(const GenotypeProbIterator& rhs){
     p = rhs.getPointer();
-    //K = rhs.getNumStrata();
+    g = rhs.getGenotypePointer();
+    C = rhs.getCI();
+    offset = rhs.getOffset();
   }
 
   const ColumnIterator& operator[](unsigned i){
-    if(!p)throw ("pointer error in GenotypeProbIterator");
-    C.assign( (*p)[i+offset] + *(g+i+offset)-1, stride);
-    //C.setOffset(g[i]);
+    if(!p)
+      throw ("pointer error in GenotypeProbIterator");
+
+    if(g)//g is pointing to something
+      C.setOffset( (*g)[i+offset] - 1);//-1 because genotypes count from 1
+    C.assign( (*p)[i+offset]);
+ 
+   //C.setOffset(g[i]);
+    //C.setOffset(i+offset);
     return C;
   };
 
-//  unsigned getNumStrata()const{
-//   return K;
-//  }
+  bool isNull()const{
+    return (bool)(p==0/* || C.isNull()*/);
+  }
+
+  //the remaining functions are to facilitate the assignment operator
   const FreqArray* getPointer()const{
     return p;
   }
-  bool isNull()const{
-   return (bool)(p==0);
+
+  unsigned getOffset()const{
+    return offset;
   }
-
-private:
-  const DoubleArray* p;
-  std::vector<unsigned short>::const_iterator g;
-  unsigned offset;
-
-
-  HapMixGenotypeProbIterator(const HapMixGenotypeProbIterator& );
-
-};
-
-class AdmixGenotypeProbIterator : public GPIBase{
-
-public:
-
-  AdmixGenotypeProbIterator(){
-   p = 0;
-   stride = 1;
-  }
-
-  AdmixGenotypeProbIterator(const double* x, unsigned n){
-   assign(x, n);
-  };
-
-  void assign(const double* x, unsigned n = 1){
-    p = x;
-    stride = n;
-  }
-  // A = B is the same as A.operator=(B)
-  void operator=(const AdmixGenotypeProbIterator& rhs){
-    p = rhs.getPointer();
-    stride = rhs.getStride();
-  }
-
-  const ColumnIterator& operator[](unsigned i){
-    if(!p)throw ("pointer error in GenotypeProbIterator");
-    C.assign( p+i*stride , 1);
+  const ColumnIterator& getCI()const{
     return C;
   };
-
-  const double* getPointer()const{
-    return p;
-  }
-  bool isNull()const{
-   return (bool) (p==0);
+  const std::vector<unsigned short>* getGenotypePointer()const{
+    return g;
   }
 
 private:
-  const double* p;
+  ColumnIterator C;
+  const FreqArray* p;
+  const std::vector<unsigned short>* g;//genotype pointer to indicate columns of the Probs array to use
+                                //using pointer becasue iterators have no null state
+  unsigned offset;
 
-  AdmixGenotypeProbIterator(const AdmixGenotypeProbIterator& );
+  GenotypeProbIterator(const GenotypeProbIterator& );
 
 };
-
-class GenotypeProbIterator {
-
-GPIBase* GPI;
- public:
-
-  GenotypeProbIterator(){
-    GPI = 0;
-  }
-
-  GenotypeProbIterator(GPIBase* p){
-    assign(p);
-  }
-
-  const ColumnIterator& operator[](unsigned i){
-   return GPI->operator[](i);
-  }
-
-  void assign(GPIBase* p){
-   GPI = p;
-   }
-
-  void operator=(const GenotypeProbIterator& rhs){
-    this->GPI = rhs.GPI;
-  }
-  bool isNull()const{
-   return (!GPI || GPI->isNull());
-  }
-} ;
 
 #endif
 

@@ -78,7 +78,7 @@ public:
 protected:
   void InitialiseLoci(const Options& options, InputData& data, LogWriter& Log);
   virtual void UpdateParameters(int iteration, const Options *options, 
-                                LogWriter& Log, const Vector_s& PopulationLabels, double coolness, bool anneal) = 0;
+                                LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal) = 0;
   //virtual void OutputParameters(int iteration, const Options *options, LogWriter& Log) = 0;
 
   void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq);

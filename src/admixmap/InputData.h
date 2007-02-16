@@ -148,6 +148,8 @@ private:
 
   bool determineIfPedFile()const;
 
+  void GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool** Missing)const;
+
   std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
   std::vector<unsigned short> GetCaseControlGenotype(unsigned locus, unsigned* cclocus, int individual, int SexColumn)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;

@@ -454,7 +454,7 @@ void InputData::CheckOutcomeVarFile(Options* const options, LogWriter& Log){
     if(NumCCIndividuals>0 )N = NumCCIndividuals;
     if( (int)outcomeVarMatrix_.nRows() - 1 != NumCCIndividuals ){
       stringstream s;
-      s << "ERROR: Case-Control Genotypes file has " << NumIndividuals << " observations and Outcomevar file has "
+      s << "ERROR: Case-Control Genotypes file has " << NumCCIndividuals << " observations and Outcomevar file has "
 	<< outcomeVarMatrix_.nRows() - 1 << " observations.\n";
       throw(s.str());
     }
@@ -646,6 +646,11 @@ vector<unsigned short> InputData::GetGenotype(const string genostring)const{
 
 //gets genotypes in admixmapmodel (hapmix genotypes are coded differently)
 void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
+ if(i > NumIndividuals && NumCCIndividuals) {
+    GetCaseControlGenotype(i, SexColumn, Loci, genotypes, Missing);
+    return;
+  } 
+
   unsigned int simplelocus = 0;//simple locus counter
   unsigned complocus = 0;
   unsigned long numhaploid = 0;
@@ -813,7 +818,98 @@ void InputData::CheckGenotypes(unsigned long numhaploid, unsigned long numdiploi
   }
 
 }
+void InputData::GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
+  unsigned int simplelocus = 0;//simple locus counter
+  unsigned complocus = 0;
+  unsigned long numhaploid = 0;
+  unsigned long numdiploid = 0;
+  unsigned long numhaploidX = 0;
+  unsigned long numdiploidX = 0;
+  unsigned long cclocus = 0;//case-control locus counter
+  //  unsigned numXloci = 0;
 
+  //  const std::vector<std::string>& CCLoci = CCgeneticData_[0];//labels of loci in case-control genotypesfile
+  for(unsigned c = 0; c < Loci.GetNumberOfChromosomes(); ++c){
+    bool isXchrm = Loci.isXChromosome(c);
+    for(unsigned int j = 0; j < Loci.GetSizeOfChromosome(c); ++j){
+      genotype G;
+      // loop over composite loci to store genotype strings as pairs of integers in stl vector genotype
+      const int numLoci = Loci.getNumberOfLoci(complocus);
+      unsigned int count = 0;
+      //  if(isXchrm)numXloci += numloci;
+      for (int locus = 0; locus < numLoci; locus++) {
+	const int numalleles = 2;
+	vector<unsigned short> g;
+	if(isCaseControlSNP[simplelocus]){
+	  int col = 1 + SexColumn + cclocus;
+	  if (IsPedFile)col = 1 + SexColumn + 2*cclocus;
+	  
+	  g = GetGenotype(CCgeneticData_[i-NumIndividuals][col]);
+	  ++cclocus;
+	  }
+	else g.assign(2,0);//set genotypes at untyped loci 0
+	if(g.size()==2)
+	  if( (g[0] > numalleles) || (g[1] > numalleles))
+	    throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
+			       g[0], g[1], numalleles );
+	  else if (g.size()==1)
+	    if( (g[0] > numalleles))
+	      throwGenotypeError(i, simplelocus, Loci(complocus)->GetLabel(0), 
+				 g[0], 0, numalleles );
+
+	if(isXchrm){
+	  if(g.size()==1)++numhaploidX;
+	  else {//diploid X genotype
+	    if(!isFemale(i)){//males cannot have diploid X genotypes
+	      //cerr << "Genotype error in Individual " << i << ". Only females can have diploid X-chromosome genotypes.";
+	      //exit(1);
+	      //NOTE: allowing this for backward compatibility, for now
+	      //instead remove second element
+	      g.pop_back();
+	    }
+	    ++numdiploidX;
+	  }
+	}
+	else{
+	  if(g.size()==1)++numhaploid;
+	  else ++numdiploid;
+	}
+	simplelocus++;
+	G.push_back(g);
+	count += g[0];
+      }
+      
+      Missing[c][j] = (count == 0);
+      
+      genotypes->push_back(G);
+      ++complocus;
+    }
+  }
+  //check genotypes are valid
+  if(numhaploidX + numdiploidX > 0){//some X genotypes present
+//     if(numdiploidX>0 && !isFemale(i)){//male with diploid X data
+//       cerr << "Genotype error in Individual " << i << ". Only females can have diploid X-chromosome genotypes.";
+//       exit(1);
+//     }
+    if(numhaploidX>0 && isFemale(i)){
+      if(numdiploidX >0){//female with haploid and diploid X data
+	cerr << "Genotype error in Individual " << i << ". Females should have diploid X-chromosome genotypes.";
+	exit(1);
+      }
+      if(numdiploid>0){//phased X data but unphased autosomal genotypes
+	cerr << "Genotype error in Individual " << i << ". Female with diploid autosomes ands haploid X-Chromosome."; 
+	exit(1);
+      }
+    }
+  }
+  else{//only autosomes
+    if( numhaploid>0 && numdiploid > 0 ){//mixed haploid/diploid data
+      cerr << "Genotype error in Individual " << i << ". Both haploid and diploid genotypes and no X chromosome.";
+      exit(1);
+    }
+  }
+
+}
 void InputData::FindCaseControlLoci(){
   for(Vector_s::const_iterator j = geneticData_[0].begin()+1; j != geneticData_[0].end(); ++j){
     isCaseControlSNP.push_back(StringConvertor::isListedString(*j, CCgeneticData_[0]));
