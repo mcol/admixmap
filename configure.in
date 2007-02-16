@@ -28,12 +28,15 @@ AC_ARG_ENABLE(static-binary,[  --enable-static-binary  Build a static binary],
 AC_ARG_ENABLE(parallel,[  --enable-parallel       Build the parallel version, using MPI],
 	      AC_DEFINE([PARALLEL], [], [Parallel version]),AC_MSG_WARN(Serial version will be built.))
 
+enable_static_binary="no"
+
 if test "$enable_parallel" = "yes"; then
 	AC_CHECK_HEADERS(mpi++.h,,AC_MSG_ERROR(MPI headers are missing))
 	PARALLEL_LIBS="-lmpich -lgmp -lsprng -lmpe"
 	dnl AC_CHECK_LIB(mpic, main,,AC_MSG_ERROR(hapmixmap requires libstdc++)) 
 else
-	enable_parallel="no"
+        enable_static_binary="yes"
+        enable_parallel="no"
 	PARALLEL_LIBS=""
 fi
 
@@ -58,7 +61,6 @@ AC_OUTPUT([Makefile
 	   src/common/Makefile
 	   src/admixmap/Makefile
 	   src/hapmixmap/Makefile
-	   src/tools/Makefile
 	   src/bayeslib/Makefile
 	   src/bayeslib/regression/Makefile
 	   src/bayeslib/samplers/Makefile
@@ -71,7 +73,7 @@ Configuration:
   Source code location:       ${srcdir}
   C Compiler:                 ${CC}
   C++ Compiler:               ${CXX}
-  Compiler flags:             ${CFLAGS}
+  Compiler flags:             ${CXXFLAGS}
   Host System Type:           ${host}
   Install path:               ${prefix}
   Parallel version:           ${enable_parallel}
