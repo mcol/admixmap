@@ -32,8 +32,3 @@ sub doAnalysis {
     system("$rcmd $rcmdArgs $rscript $args->{resultsdir}/Rlog.txt\n");
     print "R script completed\n\n";
 }
-
-
-
-
-
