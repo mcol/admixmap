@@ -401,7 +401,10 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	  int anc[2];
 
 	  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )if(Lociptr->GetNumberOfStates(j)==2){//SNPs only
-	  ind->GetLocusAncestry(j, anc);
+
+	    ind->GetLocusAncestry(j, anc); // replace this with call to a new function in individual.cc that gets the genotype probs (probs 0, 1, 2 copies allele 2
+
+	    // next few lines should be moved to new functio in individual.cc
 #ifndef PARALLEL
 	    (*Lociptr)(j)->getConditionalHapPairProbs(OrderedProbs, ind->getPossibleHapPairs(j), anc);
 #else
@@ -410,6 +413,8 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	    UnorderedProbs[0] = vector<double>(1, OrderedProbs[0]);//P(no copies of allele2)
 	    UnorderedProbs[1] = vector<double>(1, OrderedProbs[1] + OrderedProbs[2]);//P(1 copy of allele2)
 	    UnorderedProbs[2] = vector<double>(1, OrderedProbs[3]);//P(2 copies of allele2)
+
+	    // from this line onward, code does not change - rest of score test update remains same
 	    NewAllelicAssocTest.Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
 	  }
 	}
