@@ -85,7 +85,9 @@ noinst_HEADERS	= admixmap.h \
 			  PopHapMix.h \
 			  ResidualLDTest.h \
 			  ScoreTestBase.h \
-			  ScoreTests.h
+			  ScoreTests.h \
+			  GPI.h \
+			  FreqArrays.h
 
 
 libgenepi_la_SOURCES = misc.cc \

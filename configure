@@ -20991,6 +20991,24 @@ fi
 done
 
 
+# Check whether --enable-static-binary was given.
+if test "${enable_static_binary+set}" = set; then
+  enableval=$enable_static_binary; { echo "$as_me:$LINENO: WARNING: Static binary will be built." >&5
+echo "$as_me: WARNING: Static binary will be built." >&2;}
+fi
+
+# Check whether --enable-parallel was given.
+if test "${enable_parallel+set}" = set; then
+  enableval=$enable_parallel;
+cat >>confdefs.h <<\_ACEOF
+#define PARALLEL
+_ACEOF
+
+else
+  { echo "$as_me:$LINENO: WARNING: Serial version will be built." >&5
+echo "$as_me: WARNING: Serial version will be built." >&2;}
+fi
+
 
 enable_static_binary="no"
 
@@ -21186,26 +21204,6 @@ if test "$enable_parallel" = "yes" -a "$enable_static_binary" = "yes"; then
 echo "$as_me: error: Can't build a static parallel version." >&2;}
    { (exit 1); exit 1; }; }
 fi
-
-# Check whether --enable-static-binary was given.
-if test "${enable_static_binary+set}" = set; then
-  enableval=$enable_static_binary; { echo "$as_me:$LINENO: WARNING: Static binary will be built." >&5
-echo "$as_me: WARNING: Static binary will be built." >&2;}
-fi
-
-# Check whether --enable-parallel was given.
-if test "${enable_parallel+set}" = set; then
-  enableval=$enable_parallel;
-cat >>confdefs.h <<\_ACEOF
-#define PARALLEL
-_ACEOF
-
-else
-  { echo "$as_me:$LINENO: WARNING: Serial version will be built." >&5
-echo "$as_me: WARNING: Serial version will be built." >&2;}
-fi
-
-
 
 ac_config_files="$ac_config_files Makefile src/Makefile src/common/Makefile src/admixmap/Makefile src/hapmixmap/Makefile src/bayeslib/Makefile src/bayeslib/regression/Makefile src/bayeslib/samplers/Makefile src/bayeslib/utils/Makefile src/tools/Makefile"
 
