@@ -112,7 +112,7 @@ GSL_INCLUDES = -I$(GSL_INCLUDEPATH)
 endif
 
 ##include flags for sprng and mpich in parallel version
-PARALLEL_INCLUDES = $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+PARALLEL_INCLUDES = -DPARALLEL $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 SERIAL_INCLUDES = $(GSL_INCLUDES)
 
 ## **compiler/linker flags
@@ -124,11 +124,13 @@ objects		=  rand.o AdaptiveRejection.o StepSizeTuner.o Gaussian.o GaussianPropos
 all:	serial
 
 serial:
-	@echo >../config.h
+#	@echo >../config.h
+	touch ../config.h
 	@$(MAKE) -f manual.make static INCLUDES="$(SERIAL_INCLUDES)" CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
 
 parallel:
-	@echo "#define PARALLEL" >../config.h
+#	@echo "#define PARALLEL" >../config.h
+	touch ../config.h
 	@$(MAKE) -fmanual.make static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
 
 static: libsampler
@@ -145,10 +147,10 @@ shared: paraheader $(objects)
 	$(CXX) $(CPPFLAGS) -I.. $(INCLUDES) $(PICFLAG) -c $< -o $@
 
 clean:		          
-	rm -f *.o
+	rm -f *.o config.h
 
 veryclean: clean
-	rm -f *.a *.so
+	rm -f *.a *.so config.h
 
 dist:
 	rm libsampler.tar.gz

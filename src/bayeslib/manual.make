@@ -115,7 +115,7 @@ GSL_INCLUDES = -I$(GSL_INCLUDEPATH)
 endif
 
 ##include flags for sprng and mpich in parallel version
-PARALLEL_INCLUDES = $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+PARALLEL_INCLUDES = -DPARALLEL $(GSL_INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 SERIAL_INCLUDES = $(GSL_INCLUDES)
 SUBLIB_RULES =
 
@@ -134,7 +134,7 @@ all:	$(SUBLIBS) bayeslib
 serial: all
 
 parallel:
-	@$(MAKE) SUBLIB_RULES=parallel CPPFLAGS="$(CPPFLAGS)" LIBNAME=parabayeslib.a
+	@$(MAKE) -fmanual.make SUBLIB_RULES=parallel CPPFLAGS="$(CPPFLAGS)" LIBNAME=parabayeslib.a
 
 bayeslib:
 	ar crs $(LIBNAME) samplers/*.o utils/*.o regression/*.o
@@ -150,6 +150,7 @@ libbayesreg:
 	$(MAKE) -C regression $(SUBLIB_RULES) -e -fmanual.make
 
 clean: 
+	rm -f config.h
 	$(MAKE) -C samplers clean -fmanual.make
 	$(MAKE) -C utils clean -fmanual.make
 	$(MAKE) -C regression clean -fmanual.make
