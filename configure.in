@@ -64,7 +64,8 @@ AC_OUTPUT([Makefile
 	   src/bayeslib/Makefile
 	   src/bayeslib/regression/Makefile
 	   src/bayeslib/samplers/Makefile
-	   src/bayeslib/utils/Makefile])
+	   src/bayeslib/utils/Makefile
+	   src/tools/Makefile])
 
 echo \
 "------------------------------------------------------------------------
