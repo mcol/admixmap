@@ -1,3 +1,15 @@
+/** 
+ *   HAPMIXMAP
+ *   HapMixFreqs.cc 
+ *   Class to sample prior parameters of frequencies in a hapmixmodel
+ *   Copyright (c) 2006, 2007 David O'Donnell and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
 #include "HapMixFreqs.h"
 #include "Genome.h"
 #include "HapMixOptions.h"
@@ -13,7 +25,9 @@ HapMixFreqs::HapMixFreqs(){
   NumEtaUpdates = 0;
   accumulateEta = false;
   DiploidGenotypeProbs.array = 0;
+  FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
 }
+
 HapMixFreqs::~HapMixFreqs(){
   delete[] DirichletParams;
   delete[] Eta;
@@ -39,33 +53,7 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
       OpenOutputFile(options->getEtaOutputFilename());
     }
     
-    // set which sampler will be used for allele freqs
-    // current version uses conjugate sampler if annealing without thermo integration
-    if( (options->getThermoIndicator() ) ||
-	//using default allele freqs or CAF model
-	(  !strlen(options->getPriorAlleleFreqFilename()) && !strlen(options->getInitialAlleleFreqFilename()) ) ) {
-      FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
-    } else {
-      FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
-    }
-    
-    InitialisePrior(Populations, NumberOfCompositeLoci, options, Log );
-
-    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
-      if(RandomAlleleFreqs){
-	if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
-	  //set up samplers for allelefreqs
-	  FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
-						      &(DirichletParams[i]), true));
-	}
-      }
-      //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
-      //initialise AlleleProbsMAP pointer to 0
-      //allocate HapPairProbs and calculate them using AlleleProbs
-      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
-
-    }//end comp locus loop
-    
+    InitialisePrior(Populations, NumberOfCompositeLoci, options, Log );  
 
   }//end if is freqsampler
   if(Comms::isFreqSampler() || Comms::isWorker()){
@@ -74,6 +62,39 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
     //broadcast initial values of freqs
     BroadcastAlleleFreqs();
 #endif
+  }
+}
+
+void HapMixFreqs::setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*/){
+//   // set which sampler will be used for allele freqs
+//   // current version uses conjugate sampler if annealing without thermo integration
+//   if( (options->getThermoIndicator() ) ||
+//       //using default allele freqs or CAF model
+//       (  !strlen(options->getPriorAlleleFreqFilename()) && !strlen(options->getInitialAlleleFreqFilename()) ) ) {
+//     FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
+//   } else {
+//     FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+//   }
+
+  if(Comms::isFreqSampler()){
+    if(!thermo && (AllHaploid /*|| !DefaultPriors*/))
+      FREQSAMPLER = FREQ_CONJUGATE_SAMPLER;
+    else//thermo, some diploid data, default priors
+      FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
+    
+    for( int i = 0; i < NumberOfCompositeLoci; i++ ){
+      if(RandomAlleleFreqs){
+        if (FREQSAMPLER==FREQ_HAMILTONIAN_SAMPLER){
+          //set up samplers for allelefreqs
+          FreqSampler.push_back(new AlleleFreqSampler(Loci->GetNumberOfStates(i), Populations, 
+                                                      &(DirichletParams[i]), true));
+        }
+      }
+      //set AlleleProbs pointers in CompositeLocus objects to point to Freqs
+      //allocate HapPairProbs and calculate them using AlleleProbs
+      (*Loci)(i)->InitialiseHapPairProbs(Freqs[i]);
+      
+    }//end comp locus loop
   }
 }
 

@@ -17,37 +17,45 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object
 
-  //IC = new HapMixIndividualCollection(&options, &data, &Loci);//NB call after A Initialise;
   IC = new HapMixIndividualCollection(&options, &data, &Loci, &A);//NB call after A Initialise;
   if(isMaster || isWorker) IC->LoadData(&options, &data, false);    //and before L and R Initialise
   //if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
-  const int numdiploid = IC->getNumDiploidIndividuals();
 
-  //TODO: MPI code to broadcast numdiploid to A goes here
+  int numdiploid = 0;
+  if(isMaster || isWorker){
+    //get number of diploid individuals by summing over individuals
+    numdiploid = IC->getNumDiploidIndividuals();
+  }
 
-  //if there any diploid individuals, allocate space for diploid genotype probs
+#ifdef PARALLEL
+  //broadcast number of diploid individuals
+  MPI::COMM_WORLD.Bcast(&numdiploid, 1, MPI::INT, 0);
+#endif
+
+  if(isFreqSampler)
+    A.setSampler(options.getThermoIndicator(), (!numdiploid), 
+                 ( !strlen(options.getPriorAlleleFreqFilename()) && !strlen(options.getInitialAlleleFreqFilename()) ));
+
+  //if there are any diploid individuals, allocate space for diploid genotype probs
   if(numdiploid && isFreqSampler || isWorker){
     A.AllocateDiploidGenotypeProbs();
     A.SetDiploidGenotypeProbs();
   }
 
-  if(isMaster || isWorker){
-
-    if(isMaster){
-      const int numindivs = data.getNumberOfIndividuals();
-      if(numindivs > 1){
-        Log.setDisplayMode(Quiet);
-        //Log << numindivs << " individuals\n";
-        if(numdiploid > 0){
-          Log << numdiploid << " diploid "; 
-          if(numdiploid < numindivs)Log<< "and ";
-        }
-        if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
-        Log << "individuals\n\n";
+  if(isMaster){
+    const int numindivs = data.getNumberOfIndividuals();
+    if(numindivs > 1){
+      Log.setDisplayMode(Quiet);
+      //Log << numindivs << " individuals\n";
+      if(numdiploid > 0){
+        Log << numdiploid << " diploid "; 
+        if(numdiploid < numindivs)Log<< "and ";
       }
+      if(numdiploid < numindivs)Log << numindivs- numdiploid<< " haploid ";
+      Log << "individuals\n\n";
     }
   }
-
+  
   L = new PopHapMix(&options, &Loci);
   if(isMaster || isWorker)L->Initialise(data.getUnitOfDistanceAsString(), Log);
   if(isFreqSampler)A.PrintPrior(Log);
