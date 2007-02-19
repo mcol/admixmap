@@ -1,8 +1,7 @@
 #!/bin/sh
 
 # set -x
-# aclocal -I config
-aclocal
+aclocal -I src/scripts
 libtoolize --force --copy
 autoheader
 automake --add-missing --copy
