@@ -153,7 +153,7 @@ endif
 
 ##library flags for sprng and mpich in parallel version
 PARALLEL_LFLAGS = -L$(SPRNG_PATH)/lib -L$(MPI_LIBPATH)
-PARALLEL_INCLUDES = $(INCLUDES) -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
+PARALLEL_INCLUDES = $(INCLUDES) -DPARALLEL -I$(SPRNG_PATH)/include  -I$(MPI_PATH)/include
 PARALLEL_ADMEXEC = admixmap-para
 PARALLEL_HAPEXEC = hapmixmap-para
 SERIAL_INCLUDES=$(INCLUDES) 
@@ -197,14 +197,16 @@ parallel: hapmixmap-para
 
 #HAPMIXMAP parallel
 hapmixmap-para:
-	@$(MAKE) -fmanual.make hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) HAPEXEC=$(PARALLEL_HAPEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
+	@$(MAKE) -fmanual.make hapmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) HAPEXEC=$(PARALLEL_HAPEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a
 #ADMIXMAP parallel
 admixmap-para:
-	@$(MAKE) -fmanual.make admmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a PARALLEL_DEFINES="\"#define PARALLEL\""
+	@$(MAKE) -fmanual.make admmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a 
 
 define_admixmap:
+#	touch config.h
 	@echo "#define __ADMIXMAP__" > config.h
 define_hapmixmap:
+#	touch config.h
 	@echo "#define __HAPMIXMAP__" > config.h
 
 admixmap_message:	
@@ -233,7 +235,7 @@ allnew:	libnew new
 
 #delete all object files
 clean:		          
-	rm -f *.o
+	rm -f *.o config.h
 
 #delete bayeslib object files
 libclean: 
@@ -251,7 +253,7 @@ libnew:
 allclean: libclean clean
 
 #delete all object files, libraries and exec
-realclean: clean libclean 
+realclean: clean librealclean 
 	rm -f $(DESTDIR)/$(EXEC)
 
 #compile then run batch test script
