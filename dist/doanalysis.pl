@@ -21,8 +21,11 @@ sub doAnalysis {
     my $rcmd = "R CMD";
     if($^O eq "MSWin32") {
 	$rcmd = "Rcmd";
-	$prog =~ s/\//\\/;
-	$rscript =~ s/\//\\/;
+	$prog =~ s/\//\\/g;
+	if( !($prog =~ m/\.exe/) ) {
+	    $prog = "$prog.exe";
+	}
+	$rscript =~ s/\//\\/g;
     }
     if( !(-e $prog) ) {die "$prog not found\n"}; 
     if( !(-e $rscript) ) {die "$rscript not found\n"}; 
