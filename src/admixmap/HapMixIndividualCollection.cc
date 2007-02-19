@@ -67,6 +67,9 @@ void HapMixIndividualCollection::SampleLocusAncestry(const Options* const option
     // ** Run HMM forward recursions and sample locus ancestry
     _child[i]->SampleLocusAncestry(options);
     _child[i]->AccumulateAncestry(SumAncestry);
+    // ADDHERE: call function in Individual.cc to calculate genotype probs at each locus
+    // individual constructor will need to allocate array of size 3 doubles at each locus for each individual 
+    // individual.cc will need a public method to get these genotype probs  
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, 0, "Sampledancestry");
