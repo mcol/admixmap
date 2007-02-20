@@ -859,6 +859,7 @@ GSL_CONFIG
 GSL_CFLAGS
 GSL_LIBS
 PARALLEL_LIBS
+PARALLEL_ENABLE
 STATIC_LDFLAGS
 LIBOBJS
 LTLIBOBJS'
@@ -2364,8 +2365,8 @@ fi
 
 
 # Define the identity of the package.
- PACKAGE=hapmixmap
- VERSION=0.4
+ PACKAGE='hapmixmap'
+ VERSION='0.4'
 
 
 cat >>confdefs.h <<_ACEOF
@@ -4949,7 +4950,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 4952 "configure"' > conftest.$ac_ext
+  echo '#line 4953 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -7367,11 +7368,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7370: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7371: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7374: \$? = $ac_status" >&5
+   echo "$as_me:7375: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7635,11 +7636,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7638: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7639: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7642: \$? = $ac_status" >&5
+   echo "$as_me:7643: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -7739,11 +7740,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7742: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7743: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7746: \$? = $ac_status" >&5
+   echo "$as_me:7747: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -10180,7 +10181,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10183 "configure"
+#line 10184 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10280,7 +10281,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10283 "configure"
+#line 10284 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12648,11 +12649,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:12651: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:12652: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:12655: \$? = $ac_status" >&5
+   echo "$as_me:12656: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -12752,11 +12753,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:12755: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:12756: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:12759: \$? = $ac_status" >&5
+   echo "$as_me:12760: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -14313,11 +14314,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14316: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14317: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14320: \$? = $ac_status" >&5
+   echo "$as_me:14321: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -14417,11 +14418,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14420: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14421: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14424: \$? = $ac_status" >&5
+   echo "$as_me:14425: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -16636,11 +16637,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16639: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16640: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16643: \$? = $ac_status" >&5
+   echo "$as_me:16644: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -16904,11 +16905,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16907: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16908: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16911: \$? = $ac_status" >&5
+   echo "$as_me:16912: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings other than the usual output.
@@ -17008,11 +17009,11 @@ else
    -e 's:.*FLAGS}\{0,1\} :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17011: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17012: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17015: \$? = $ac_status" >&5
+   echo "$as_me:17016: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -21182,11 +21183,14 @@ fi
 done
 
 	PARALLEL_LIBS="-lmpich -lgmp -lsprng -lmpe"
+	PARALLEL_ENABLE="yes"
 	else
         enable_static_binary="yes"
         enable_parallel="no"
 	PARALLEL_LIBS=""
+	PARALLEL_ENABLE="no"
 fi
+
 
 
 
@@ -21205,7 +21209,10 @@ echo "$as_me: error: Can't build a static parallel version." >&2;}
    { (exit 1); exit 1; }; }
 fi
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/common/Makefile src/admixmap/Makefile src/hapmixmap/Makefile src/bayeslib/Makefile src/bayeslib/regression/Makefile src/bayeslib/samplers/Makefile src/bayeslib/utils/Makefile src/tools/Makefile"
+ac_config_files="$ac_config_files src/scripts/genepi-config"
+
+
+ac_config_files="$ac_config_files Makefile src/Makefile src/common/Makefile src/admixmap/Makefile src/hapmixmap/Makefile src/bayeslib/Makefile src/bayeslib/regression/Makefile src/bayeslib/samplers/Makefile src/bayeslib/utils/Makefile src/scripts/Makefile src/tools/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -21779,6 +21786,7 @@ do
   case $ac_config_target in
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
+    "src/scripts/genepi-config") CONFIG_FILES="$CONFIG_FILES src/scripts/genepi-config" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "src/common/Makefile") CONFIG_FILES="$CONFIG_FILES src/common/Makefile" ;;
@@ -21788,6 +21796,7 @@ do
     "src/bayeslib/regression/Makefile") CONFIG_FILES="$CONFIG_FILES src/bayeslib/regression/Makefile" ;;
     "src/bayeslib/samplers/Makefile") CONFIG_FILES="$CONFIG_FILES src/bayeslib/samplers/Makefile" ;;
     "src/bayeslib/utils/Makefile") CONFIG_FILES="$CONFIG_FILES src/bayeslib/utils/Makefile" ;;
+    "src/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES src/scripts/Makefile" ;;
     "src/tools/Makefile") CONFIG_FILES="$CONFIG_FILES src/tools/Makefile" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
@@ -22000,12 +22009,13 @@ GSL_CONFIG!$GSL_CONFIG$ac_delim
 GSL_CFLAGS!$GSL_CFLAGS$ac_delim
 GSL_LIBS!$GSL_LIBS$ac_delim
 PARALLEL_LIBS!$PARALLEL_LIBS$ac_delim
+PARALLEL_ENABLE!$PARALLEL_ENABLE$ac_delim
 STATIC_LDFLAGS!$STATIC_LDFLAGS$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 14; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 15; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

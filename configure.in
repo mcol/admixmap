@@ -1,6 +1,6 @@
-AC_INIT(hapmixmap, 0.4)
+AC_INIT([hapmixmap], [0.4])
 AC_CANONICAL_SYSTEM
-AM_INIT_AUTOMAKE(hapmixmap,0.4)
+AM_INIT_AUTOMAKE([gnu])
 AM_CONFIG_HEADER(config.h)
 
 AC_LANG(C++)
@@ -31,14 +31,17 @@ enable_static_binary="no"
 if test "$enable_parallel" = "yes"; then
 	AC_CHECK_HEADERS(mpi++.h,,AC_MSG_ERROR(MPI headers are missing))
 	PARALLEL_LIBS="-lmpich -lgmp -lsprng -lmpe"
+	PARALLEL_ENABLE="yes"
 	dnl AC_CHECK_LIB(mpic, main,,AC_MSG_ERROR(hapmixmap requires libstdc++)) 
 else
         enable_static_binary="yes"
         enable_parallel="no"
 	PARALLEL_LIBS=""
+	PARALLEL_ENABLE="no"
 fi
 
 AC_SUBST([PARALLEL_LIBS])
+AC_SUBST([PARALLEL_ENABLE])
 
 if test "$enable_static_binary" = "yes"; then
 	STATIC_LDFLAGS="-all-static"
@@ -53,6 +56,8 @@ if test "$enable_parallel" = "yes" -a "$enable_static_binary" = "yes"; then
 	AC_MSG_ERROR(Can't build a static parallel version.)
 fi
 
+AC_CONFIG_FILES([src/scripts/genepi-config])
+
 dnl AC_CONFIG_SUBDIRS(src/bayeslib)
 AC_OUTPUT([Makefile
 	   src/Makefile
@@ -63,6 +68,7 @@ AC_OUTPUT([Makefile
 	   src/bayeslib/regression/Makefile
 	   src/bayeslib/samplers/Makefile
 	   src/bayeslib/utils/Makefile
+	   src/scripts/Makefile
 	   src/tools/Makefile])
 
 echo \
