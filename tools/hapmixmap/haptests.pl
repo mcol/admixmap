@@ -5,55 +5,32 @@ use Getopt::Long;
 
 my $parallel = '';
 my $simulate = '';
+my $samples  = 25;
+my $burnin = 5;
+my $every = 1;
 
-GetOptions("parallel" =>\$parallel, "simulate" => \$simulate);
+GetOptions("parallel" =>\$parallel, 
+	   "simulate" => \$simulate, 
+	   "samples=i" => \$samples,
+	   "burnin=i" => \$burnin,
+	   "every=i" => \$every);
 
-sub getArguments
-{
-    my $hash = $_[0];
-#    my $arg = '';
-#   foreach my $key (keys %$hash){
-#	$arg .= ' --'. $key .'='. $hash->{$key};
-#    }
-#    return $arg;
-    my $filename = 'perlargs.txt';
-    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
-    foreach my $key (keys %$hash){
-      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
-    }
-    close OPTIONFILE;
-    return " ".$filename;
+if($simulate){ 
+    print "Running R script to simulate data\n";
+    system("R CMD BATCH --vanilla simHapMix.R");
+    print "simulation complete\n";
 }
 
-sub doAnalysis
-{
-    if($simulate){ 
-	print "Running R script to simulate data\n";
-	system("R CMD BATCH --vanilla simHapMix.R");
-	print "simulation complete\n";
-    }
-    my ($prog,$args) = @_;
-    if($parallel){
-	$args->{resultsdir} = "$args->resultsdir". "Parallel";
-    }
-    my $command = "";
-    $parallel ? $command = "mpiexec " : $command =  "";
-    $command = $command . $prog.getArguments($args);
-    
-    $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    print "\nResults will be written to subdirectory $ENV{'RESULTSDIR'}\n";
-    print $command;
-    if(system($command) ==0){
+my $function_file = "../doanalysis.pl";
 
-	print "Starting R script to process output\n";
-	system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
-	print "R script completed\n\n";
-    }
-}
+require $function_file or die("cannot find doanalysis.pl");
 
+my $serial_executable = "$ENV{'HOME'}/bin/hapmixmap";
+my $parallel_executable = "mpiexec $ENV{'HOME'}/bin/hapmixmap-para";
+my $rscript = "../admixmap/AdmixmapOutput.R";
 ################### DO NOT EDIT ABOVE THIS LINE ########################
-my $serial_executable = '../test/hapmixmap';
-my $parallel_executable = '../test/hapmixmap-para';
+
+
 my $executable = $serial_executable;
 if($parallel){
     $executable = $parallel_executable;
@@ -75,15 +52,14 @@ my $arg_hash = {
     resultsdir => 'results',
     displaylevel   => 3, 
 
-    samples  => 25,
-    burnin   => 5,
-    every    => 1,
+    samples  => $samples,
+    burnin   => $burnin,
+    every    => $every,
 
     numannealedruns => 0,
     thermo => 0,
     hapmixmodel => 1,
 
-    randommatingmodel => 0,
     checkdata=> 0,
 
 hapmixlambdaprior=>"400, 1, 10, 1",
@@ -94,7 +70,7 @@ freqdispersionhiermodel => 1,
 #initialhapmixlambdafile => "data/initialambdas.txt",
 #allelefreqfile => "data/initialallelefreqs.txt",
 
-rhosamplerparams => "0.5, 0.00001, 10, 0.9, 20",
+lambdasamplerparams => "0.5, 0.00001, 10, 0.9, 20",
 
 #output files
     logfile                     => 'logfile.txt',
@@ -120,7 +96,7 @@ rhosamplerparams => "0.5, 0.00001, 10, 0.9, 20",
 # Initial run 
 #haploid data
 $arg_hash->{resultsdir}            = 'Results_Haploid';
-doAnalysis($executable,$arg_hash);
+doAnalysis($executable, $rscript, $arg_hash);
 
 #diploid data
 #$arg_hash->{resultsdir}            = 'ResultsDiploid';
