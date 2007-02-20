@@ -122,10 +122,6 @@ public:
    stride = s;
   }
 
-   ~FreqArray(){
-   dealloc(0);
-  }
-
   FreqArray operator+(unsigned i){
    FreqArray A(array+i, stride);
    return A;
@@ -136,6 +132,7 @@ public:
   const double* operator[](unsigned i)const{
     return array + i*stride;
   };
+//NOTE be very careful using this function
   void dealloc(int ){
     if(array){
       delete[] array;
