@@ -21,20 +21,15 @@ if($simulate){
     print "simulation complete\n";
 }
 
-my $function_file = "../doanalysis.pl";
+my $function_file = "$ENV{'HOME'}/genepi/trunk/dist/doanalysis.pl";
 
 require $function_file or die("cannot find doanalysis.pl");
 
-my $serial_executable = "$ENV{'HOME'}/bin/hapmixmap";
-my $parallel_executable = "mpiexec $ENV{'HOME'}/bin/hapmixmap-para";
-my $rscript = "../admixmap/AdmixmapOutput.R";
+my $serial_executable = "$ENV{'HOME'}/bin/hapmixmap1";
+my $parallel_executable = "$ENV{'HOME'}/bin/hapmixmap-para";
+my $rscript = "$ENV{'HOME'}/genepi/trunk/tools/admixmap/AdmixmapOutput.R";
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 
-
-my $executable = $serial_executable;
-if($parallel){
-    $executable = $parallel_executable;
-}
 
 my $arg_hash = {
 #data files
@@ -96,7 +91,7 @@ lambdasamplerparams => "0.5, 0.00001, 10, 0.9, 20",
 # Initial run 
 #haploid data
 $arg_hash->{resultsdir}            = 'Results_Haploid';
-doAnalysis($executable, $rscript, $arg_hash);
+callDoAnalysis();
 
 #diploid data
 #$arg_hash->{resultsdir}            = 'ResultsDiploid';
@@ -113,3 +108,11 @@ $arg_hash->{initialfreqpriorfile} = "data/initialfreqpriors.txt";
 #$arg_hash->{fixedallelefreqs} = 0;
 #delete $arg_hash->{priorallelefreqfile};
 #doAnalysis($executable,$arg_hash);
+
+sub callDoAnalysis {
+    if($parallel){
+	doParallelAnalysis($parallel_executable, $rscript, $arg_hash);
+    }else{
+	doAnalysis($serial_executable, $rscript, $arg_hash);
+    }
+}
