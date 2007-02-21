@@ -4,6 +4,7 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 includedir=@includedir@
 parallel=@PARALLEL_ENABLE@ 
+pkgdatadir=@datarootdir@
 
 usage()
 {
@@ -13,6 +14,7 @@ Usage: genepi-config [OPTION]
 Known values for OPTION are:
 
   --prefix		show Genepi installation prefix 
+  --pkgdata		show Genepi data directory
   --parallel		was the package compiled with parallel support
   --help		display this help and exit
   --version		output version information
@@ -55,6 +57,9 @@ while test $# -gt 0; do
 
     --parallel)
        	echo @PARALLEL_ENABLE@ 
+       	;;
+    --pkgdata)
+       	echo @datarootdir@/@PACKAGE_NAME@
        	;;
 # 
 #     --libs)

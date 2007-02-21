@@ -73,6 +73,7 @@ AC_OUTPUT([Makefile
 	   dist/Makefile
 	   dist/admixmap/Makefile
 	   dist/hapmixmap/Makefile
+	   dist/hapmixmap/data/Makefile
 	   ])
 
 echo \
