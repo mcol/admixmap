@@ -1,3 +1,3 @@
-SUBDIRS		= src
+SUBDIRS		= src dist
 
-EXTRA_DIST = boostrap
+EXTRA_DIST = bootstrap

@@ -21212,7 +21212,7 @@ fi
 ac_config_files="$ac_config_files src/scripts/genepi-config"
 
 
-ac_config_files="$ac_config_files Makefile src/Makefile src/common/Makefile src/admixmap/Makefile src/hapmixmap/Makefile src/bayeslib/Makefile src/bayeslib/regression/Makefile src/bayeslib/samplers/Makefile src/bayeslib/utils/Makefile src/scripts/Makefile src/tools/Makefile"
+ac_config_files="$ac_config_files Makefile src/Makefile src/common/Makefile src/admixmap/Makefile src/hapmixmap/Makefile src/bayeslib/Makefile src/bayeslib/regression/Makefile src/bayeslib/samplers/Makefile src/bayeslib/utils/Makefile src/scripts/Makefile src/tools/Makefile dist/Makefile dist/admixmap/Makefile dist/hapmixmap/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -21798,6 +21798,9 @@ do
     "src/bayeslib/utils/Makefile") CONFIG_FILES="$CONFIG_FILES src/bayeslib/utils/Makefile" ;;
     "src/scripts/Makefile") CONFIG_FILES="$CONFIG_FILES src/scripts/Makefile" ;;
     "src/tools/Makefile") CONFIG_FILES="$CONFIG_FILES src/tools/Makefile" ;;
+    "dist/Makefile") CONFIG_FILES="$CONFIG_FILES dist/Makefile" ;;
+    "dist/admixmap/Makefile") CONFIG_FILES="$CONFIG_FILES dist/admixmap/Makefile" ;;
+    "dist/hapmixmap/Makefile") CONFIG_FILES="$CONFIG_FILES dist/hapmixmap/Makefile" ;;
 
   *) { { echo "$as_me:$LINENO: error: invalid argument: $ac_config_target" >&5
 echo "$as_me: error: invalid argument: $ac_config_target" >&2;}
