@@ -63,7 +63,7 @@ void Options::SetDefaultValues(){
 
   useroptions["burnin"] = "100";
   useroptions["samples"] = "1100";
-  useroptions["every"] = "5";
+  useroptions["every"] = "10";
   useroptions["numannealedruns"] = "20";
   useroptions["displaylevel"] = "2";
   useroptions["logfile"] = "log.txt";

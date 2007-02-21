@@ -44,6 +44,7 @@ void HapMixOptions::SetDefaultValues(){
   FinalLambdaFilename = "state-lambdas.txt";
   AlleleFreqOutputFilename = "state-allelefreqs.txt";
 
+  useroptions["states"] = "4";
   useroptions["hapmixlambdaprior"] = "30, 0.1, 10, 1";
   useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
   useroptions["finallambdafile"] = FinalLambdaFilename;
