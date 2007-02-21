@@ -1,0 +1,125 @@
+#
+# This is a complete list of available options for HAPMIXMAP. 
+# Use this as a template or a reference.
+# See the manual for complete descriptions.
+# Note that some are invalid with others eg allelicassociationscorefile requires outcomevarfile.
+# All options take the form "name  = value".
+# The two required options without default values are locusfile and genotypesfile.
+# Values given are all defaults. Where there is no default, examples are given in [brackets].
+# Whitespace and anything after # on the same line is ignored. This can be used to comment out options
+#
+
+########################################
+#      General options                 #
+########################################
+samples          = 1100  # number of iterations of the sampler, including burn-in
+burnin           = 100   # number of burn-in iterations. Determines when outputand tests start
+every            = 10    # frequency of output. every=10 => parameter output every 10 iterations, scoretest output every 100
+numannealedruns  = 20    # number of annealed runs
+thermo           = 0     # [0 |1 ] whether to use thermodynamic integration to estimate marginal likelihood
+seed             = 1     # random-number seed (integer)
+displaylevel     = 2     # [0|1|2|3] controls verbosity of output
+checkdata        = 1     # [0|1] extra checks of data files
+deleteoldresults = 1     # [0|1] delete contents of resultsdir, if it exists 
+
+########################################
+#      Model Specification             #
+########################################
+states           = 4     # number of block states (integer)
+hapmixmodel      = 1     # ignored, must be 1
+
+########################################
+#      Data Files                      #
+######################################## 
+locusfile        #[data/loci.txt] file with locus information 
+genotypesfile    #[data/genotypes.txt] file with genotype data
+#ccgenotypesfile #[data/ccgenotypes.txt] file with case-control genotypes
+
+########################################
+#     output files                     #
+########################################
+resultsdir     = results #path of directory to write output, relative to working dir
+logfile        = log.txt #name of logfile
+#ergodicaveragefile       #file with ergodic averages of parameter values
+
+########################################
+#   initial values                     #
+########################################
+#initiallambdafile       # arrival rates
+#initialallelefreqfile   # allele frequencies
+#initialfreqpriorfile    # allele frequency prior parameters
+
+########################################
+#   final values                       #
+########################################
+finallambdafile     = state-lambdas.txt     # arrival rates and their prior parameters
+finalallelefreqfile = state-allelefreqs.txt # allele frequencies
+finalfreqpriorfile  = state-freqpriors.txt  # allele frequency prior parameters
+
+########################################
+#   arrival rates                      #
+########################################
+#------------------------------------------------------------------
+# 4 comma-separated numbers specifying the parameters of the 
+# Gamma priors on the parameters of the arrivale rate distribution:
+# h_shape, h_rate, b_shape, b_rate
+#------------------------------------------------------------------
+hapmixlambdaprior   = 30, 0.1, 10, 1 
+
+#------------------------------------------------------------------
+# **  for expert users only   **
+# 5 comma separated numbers specifying the parameters of the Hamiltonian sampler for the arrival rates:
+# initial_stepsize, min_stepsize, max_stepsize, target_accept_rate, num_leapfrog_steps
+#------------------------------------------------------------------
+#lambdasamplerparams = 0.06, 0.0001, 1.0, 0.9, 20
+
+#------------------------------------------------------------------
+# file with sample mean and variance of sampled arrival rates and the sampled values of their parameters
+# output at frequency spscified by 'every' after burn-in
+#------------------------------------------------------------------
+#paramfile #[ArrivalRateSamples.txt]
+
+#------------------------------------------------------------------
+# file with mean and variance of the posterior means of the arrivale rates and the posterior means of their prior parameters
+#------------------------------------------------------------------
+#hapmixlambdaoutputfile
+
+########################################
+#  allele frequencies                  #
+########################################
+#priorallelefreqfile       # file with parameters of the Dirichlet prior on the allele frequencies
+fixedallelefreqs           = 0 #[0|1] 1=fixed-frequency model, 1=random-frequency model
+freqdispersionhiermodel = 1 # [0|1] whether to sample the rate parameter of the allele frequency dispersion
+#allelefreqqprior           # = [1, 0.2] | [1, 0.2, 1] 
+                            # if freqdispersionhiermodel = 0, 2 comma-separated numbers giving the shape and rate parameters of the Gamma prior on
+                            # the allele frequency Dirichlet distribution.
+                            # if freqdispersionhiermodel = 1, 3, comma-separated numbers giving the shape parameter and 
+                            # the shape and rate parameters of the Gamma prior on the rate.
+dispparamfile               # sampled values of dispersion parameters
+allelefreqoutputfile        # posterior means of allele frequencies
+allelefreqprioroutputfile   # posterior means of the allele frequency prior
+
+########################################
+#    regression model                  #
+########################################
+#outcomevarfile             # file with values of an outcome variable. 
+                           # If ccgenotypesfile is specified, this must contain the case/control status of the cases and controls 
+#coxoutcomevarfile          # file with Cox regression data
+#covariatesfile              # file with covariate data
+targetindicator = 0         # number of column in outcomevarfile with first outcome var to be used, offset from zero.
+outcomes        = 0         # number of outcomes to read from outcomevarfile. Default is all after targetindicator.
+#regparamfile                # file with sampled values of regression parameters
+regressionpriorprecision = 0.25 #prior precision of the regression parameters
+
+########################################
+#     test options                     # 
+########################################
+#allelicassociationscorefile # Score test for allelic association. Requires regression model. -log10(p-values) are written to this file and
+                             #  a final table is written to AllelicAssocTestsFinal.txt
+#hwscoretestfile             # Score test for Hardy-Weinberg equilibrium. Useful for detecting genotyping errors.
+#mhscoretestfile             # Mantel-Haenszel test for detecting residual allelic association
+
+#maskedindivs                # **expert users only ** list of indices of individuals whose genotypes have been masked
+#maskedloci                  # **expert users only ** list of indices of loci at which the above individuals' genotypes have been masked
+                             # with these 2 options specified, a list of posterior predictive genotype probs is written to PPGenotypeProbs.txt
+
