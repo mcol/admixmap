@@ -36,7 +36,7 @@ the raw genotypes file that are not matched in the HapMap. Recode the
 alleles in the raw genotypes file so that the
 numeric coding corresponds to that in the HapMap database, sort by map
 position, and write file genotypes.txt in HAPMIXMAP format
-</li></ul><p></p><h1  "><a name="SECTION00020000000000000000">Running
+</li></ul><p>The data files provided are already formatted and ready for use.</p><h1  "><a name="SECTION00020000000000000000">Running
 the analysis</a>
 </h1>
 <p>To reduce the time taken for the program to converge, we
@@ -47,25 +47,21 @@ values are used as initial values for the subsequent run in which the
 posterior distribution is generated given both HAPMAP haplotypes and
 diploid case-control genotypes at tag SNPs.
 <p>For the first run, type
-</p><p>&lt;path to hapmixmap
-executable&gt;/hapmixmap
-training-initial.conf
+</p><p><font face="Courier New">perl tutorial.pl --train.</font>
 </p><p>For subsequent runs, type
-</p><p>&lt;path to hapmixmap
-executable&gt;/hapmixmap
-training-resume.conf
+</p><p><font face="Courier New">perl tutorial.pl --train --resume</font>
 </p><p>Repeat until the posterior mean of the "energy"
 (minus the
 log-likelihood of the model parameters given the data) is no longer
 falling
 with each new run. </p><p>
 For the case-control analysis, type </p><p>
-&lt;path to hapmixmap executable&gt;/hapmixmap testing.conf
-</p><p>Finally, type </p><p>
-perl post-process.pl
-</p><p>to run an R script that processes the files written
-by HAPMIXMAP
-</p><p></p><h1  "><a name="SECTION00030000000000000000">Interpretation
+<font face="Courier New">perl tutorial.pl --test</font>
+</p><p>
+To do further runs, type
+</p><p>
+<font face="Courier New">perl tutorial.pl --test --resume</font>
+</p><h1  "><a name="SECTION00030000000000000000">Interpretation
 of results</a>
 </h1>
 <p>The results are written to the folder /results below the
