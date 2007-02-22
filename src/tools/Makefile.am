@@ -1,12 +1,12 @@
-noinst_PROGRAMS		= unphased2g phased2g phased2g-old rs-lookup
+noinst_PROGRAMS			= ge-convertphaseddata \
+				  ge-fphmd \
+				  rs-lookup
 
-unphased2g_SOURCES	= convertdata.cc
+ge_fphmd_SOURCES		= FPHMD.cpp
 
-phased2g_old_SOURCES	= convertphaseddata.cc
+ge_convertphaseddata_SOURCES	= convertphaseddata.cc
 
-phased2g_SOURCES	= phased2g.cc
+rs_lookup_SOURCES		= rs-lookup.cpp \
+				  Legend.cpp
 
-rs_lookup_SOURCES	= rs-lookup.cpp \
-			  Legend.cpp
-
-noinst_HEADERS		= Legend.h
+noinst_HEADERS			= Legend.h
