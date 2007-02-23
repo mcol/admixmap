@@ -1,0 +1,2 @@
+The build-* scripts are convenience special-case build scripts. 
+They are not expected to work for everybody.

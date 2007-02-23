@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Prepare the environment for running hapmixmap
+# run with:
+#
+# source src/scripts/env-prepare
+
+export PATH="$HOME/usr/bin:$PATH"

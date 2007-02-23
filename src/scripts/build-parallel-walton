@@ -1,0 +1,21 @@
+#!/bin/bash
+# 
+# Source:
+# http://actin.ucd.ie/trac/genepi/wiki/Building%20hapmixmap%20on%20ICHEC
+#
+
+./bootstrap
+. ${MODULESHOME}/init/sh
+module unload gcc4
+module unload mpich/gcc4
+module unload mpich/gcc
+module load pathscale
+module load mpich/path
+export CC="mpicc"
+export CXX="mpiCC"
+export LDFLAGS="-L/opt/packages/sprng-2.0/lib"
+export CPPFLAGS="-I/opt/packages/sprng-2.0/include"
+export CXXFLAGS="-mcpu=auto -O3 -OPT:Ofast -fno-math-errno -ffast-math -fexceptions"
+USER_CONFIG_OPTS="--enable-parallel"
+
+source "$(pwd)/src/scripts/build-common"

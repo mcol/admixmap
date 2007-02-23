@@ -1,0 +1,8 @@
+#!/bin/bash
+export LDFLAGS=""
+export CPPFLAGS=""
+export CXXFLAGS="-march=prescott -O3 -pipe -fomit-frame-pointer \
+-ffast-math \
+-ftree-vectorize -ftree-vectorizer-verbose=3"
+
+source "$(pwd)/src/scripts/build-common"

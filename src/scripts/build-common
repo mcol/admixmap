@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ -w /usr/bin ]
+then
+	USER_PREFIX="/usr"
+else
+	USER_PREFIX="$HOME/usr"
+fi
+
+# Check the PATH
+
+if [ "$USER_PREFIX" = "$HOME/usr" -a -z "$(echo $PATH | grep "$HOME/usr")" ]
+then
+	echo
+	echo "Your \$PATH not set to $HOME/usr/bin."
+	echo "Please execute this line first:"
+	echo "source src/scripts/env-prepare"
+	echo
+	exit 1
+fi
+
+echo "CXXFLAGS='$CXXFLAGS'"
+echo "CPPFLAGS='$CPPFLAGS'"
+echo "LDFLAGS='$LDFLAGS'"
+echo
+echo ./configure --prefix "${USER_PREFIX}" ${USER_CONFIG_OPTS}
+./configure --prefix "${USER_PREFIX}" ${USER_CONFIG_OPTS}
+make clean
+make -j3 && make install
+if [ "$?" = "0" ]
+then
+	echo
+	echo "Build successful."
+	echo
+else
+	echo
+	echo "Build failed."
+	echo
+fi
