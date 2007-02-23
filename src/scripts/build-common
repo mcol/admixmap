@@ -19,6 +19,11 @@ then
 	exit 1
 fi
 
+if [ ! -x "./configure" ]
+then
+	./bootstrap
+fi
+
 echo "CXXFLAGS='$CXXFLAGS'"
 echo "CPPFLAGS='$CPPFLAGS'"
 echo "LDFLAGS='$LDFLAGS'"
