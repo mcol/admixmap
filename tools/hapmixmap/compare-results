@@ -1,0 +1,68 @@
+#!/bin/bash
+
+if [ ! -z "$1" -a ! -z "$2" ]
+then
+	STABLE_DIR="$1"
+	DEVEL_DIR="$2"
+else
+	echo
+	echo "Usage: $0 <stable-dir> <devel-dir>"
+	echo "Where directories are directories with hapmixmap sources."
+	echo
+	exit 1
+fi
+
+
+# DEVEL_DIR="$HOME/genepi/trunk"
+
+function make_install {
+echo "Going into $1"
+pushd "$1"
+# make -j3 install
+make --quiet -j3 > /dev/null
+popd
+}
+
+function run_hapmixmap { 
+echo "run_hapmixmap() $1 $2"
+rm -rf "$2-old"
+mv "$2" "$2-old"
+mkdir -p "$2"
+pushd "$2"
+make_install "$1"
+ln -s ../data data
+HAPMIXMAP_EXEC="$1/src/admixmap/hapmixmap"
+HAPARG1="../training-initial.conf"
+HAPARG2="../testing.conf"
+
+if [ "$2" = "hapmixmap-stable" ]
+then
+	GEOMETRY="125x40+0+0"
+else
+	GEOMETRY="125x40+200+200"
+fi
+
+if [ ! -z "$DISPLAY" ]
+then
+	xterm -title "$HAPMIXMAP_EXEC" -geometry $GEOMETRY -e $HAPMIXMAP_EXEC $HAPARG1
+	xterm -title "$HAPMIXMAP_EXEC" -geometry $GEOMETRY -e $HAPMIXMAP_EXEC $HAPARG2
+else
+	# $HAPMIXMAP_EXEC $HAPARG1
+	# $HAPMIXMAP_EXEC $HAPARG2
+	exit 1
+fi
+popd
+}
+
+# Since I have Core Duo, I can run both versions in parallel!
+run_hapmixmap $STABLE_DIR hapmixmap-stable &
+FIRST="$!"
+run_hapmixmap $DEVEL_DIR hapmixmap-devel &
+SECOND="$!"
+
+# Wait for both to finish...
+wait $FIRST
+wait $SECOND
+
+# And what's the difference?
+diff -q -r hapmixmap-stable hapmixmap-devel
