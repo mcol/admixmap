@@ -1,8 +1,7 @@
-noinst_PROGRAMS			= ge-FormatPhasedHapMapData \
-				  rs-lookup
+noinst_PROGRAMS			= rs-lookup
 
-ge_FormatPhasedHapMapData_SOURCES	= FormatPhasedHapMapData.cpp
-
+#SUBDIRS = DataFormatter
+ 
 rs_lookup_SOURCES		= rs-lookup.cpp \
 				  Legend.cpp
 
