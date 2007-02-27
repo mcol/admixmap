@@ -22,9 +22,7 @@ hapmixmap_SOURCES	= hapmixmap.cc \
 			MantelHaenszelTest.cc \
 			PopHapMix.cc
 
-
-hapmixmap_LDADD		= ../bayeslib/libbayes.la \
-			  libgenepi.la
+hapmixmap_LDADD		= libgenepi.la
 
 admixmap_SOURCES = admixmap.cc \
 		   Model.cc \
@@ -39,8 +37,7 @@ admixmap_SOURCES = admixmap.cc \
 		   PopAdmix.cc \
 		   StratificationTest.cc
 
-admixmap_LDADD		= ../bayeslib/libbayes.la \
-			  libgenepi.la
+admixmap_LDADD		= libgenepi.la
 
 
 noinst_HEADERS	= admixmap.h \
@@ -112,4 +109,20 @@ libgenepi_la_SOURCES = misc.cc \
 
 libgenepi_la_LIBADD = ../bayeslib/libbayes.la
 
+if PARALLEL
 
+# Parallel libgenepi
+noinst_LTLIBRARIES		+= libgenepi-para.la
+libgenepi_para_la_SOURCES	= $(libgenepi_la_SOURCES)
+libgenepi_para_la_CPPFLAGS	= -DPARALLEL
+libgenepi_para_la_LIBADD	= ../bayeslib/libbayes-para.la
+
+# Parallel hapmixmap
+bin_PROGRAMS			+= hapmixmap-para
+hapmixmap_para_CPPFLAGS		= $(hapmixmap_CPPFLAGS) -DPARALLEL
+hapmixmap_para_SOURCES		= $(hapmixmap_SOURCES)
+# hapmixmap_para_LIBS		= $(PARALLEL_LIBS)
+LIBS				+= $(PARALLEL_LIBS)
+hapmixmap_para_LDADD		= ../bayeslib/libbayes-para.la \
+				  libgenepi-para.la
+endif

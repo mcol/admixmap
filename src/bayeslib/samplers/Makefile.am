@@ -23,4 +23,11 @@ noinst_HEADERS		= AdaptiveRejection.h \
 				  rand.h \
 				  StepSizeTuner.h
 INCLUDES			= -I$(top_srcdir)/src/bayeslib
+
+if PARALLEL
+noinst_LTLIBRARIES		+= libsampler-para.la
+libsampler_para_la_SOURCES	= $(libsampler_la_SOURCES)
+libsampler_para_la_CPPFLAGS	= -DPARALLEL
+endif
+
 # libsampler_a_LDFLAGS		= -version-info 0:0:0
