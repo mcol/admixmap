@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # set -x
-aclocal -I src/scripts -Wno-syntax
+aclocal -I src/scripts
 libtoolize --force --copy
 autoheader
 automake --add-missing --copy
