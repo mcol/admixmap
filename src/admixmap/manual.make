@@ -168,7 +168,7 @@ CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 
 common_objects	= misc.o Model.o AlleleFreqs.o Options.o AdmixOptions.o InputData.o Genome.o\
- Chromosome.o CompositeLocus.o IndividualCollection.o Individual.o HMM.o AdmixtureAssocTest.o\
+ Chromosome.o CompositeLocus.o Haplotype.o IndividualCollection.o Individual.o HMM.o AdmixtureAssocTest.o\
  AffectedsOnlyTest.o AncestryAssocTest.o ScoreTestBase.o ScoreTests.o \
  ResidualLDTest.o HWTest.o AlleleFreqSampler.o Comms.o GenotypeProbOutputter.o Annealer.o
 

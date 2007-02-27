@@ -65,6 +65,8 @@ noinst_HEADERS	= admixmap.h \
 			  Annealer.h \
 			  Chromosome.h \
 			  Comms.h \
+			  HapPair.h \
+			  Haplotype.h \
 			  CompositeLocus.h \
 			  Genome.h \
 			  GenotypeProbOutputter.h \
@@ -81,6 +83,7 @@ noinst_HEADERS	= admixmap.h \
 			  ScoreTestBase.h \
 			  ScoreTests.h \
 			  GPI.h \
+			  GenotypeIterator.h \
 			  FreqArrays.h
 
 
@@ -91,6 +94,7 @@ libgenepi_la_SOURCES = misc.cc \
 		       InputData.cc \
 		       Genome.cc \
 		       Chromosome.cc \
+		       Haplotype.cc
 		       CompositeLocus.cc \
 		       IndividualCollection.cc \
 		       Individual.cc \

@@ -97,24 +97,6 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
       for(unsigned i = 0; i < AncestrySize; ++i) LocusAncestry[j][i] = 0;
     }
   
-  // loop over composite loci to set possible haplotype pairs compatible with genotype 
-  for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
-#ifdef PARALLEL
-    SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
-    //NOTE: X data not yet supported in parallel version
-#else
-    (*Loci)(j)->setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
-#endif
-    
-    // initialise sampledHapPairs with the first of the possible happairs. 
-    // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
-    sampledHapPairs.push_back(PossibleHapPairs[j][0]);
-  }
-  //Now the PossibleHapPairs have ben determined and missing genotype indicators have been set, 
-  //the genotypes are deleted as they are no longer needed 
-  if( options->getHWTestIndicator())SetMissingGenotypes();
-  DeleteGenotypes();
-  
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
   logLikelihood.HMMisOK = false;

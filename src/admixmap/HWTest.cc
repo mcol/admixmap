@@ -110,8 +110,8 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
 	  Ancestry0 = ind->GetLocusAncestry( (int)chr, 0, j);
 	  Ancestry1 = ind->GetLocusAncestry( (int)chr, 1, j);
 	  const int* happair = ind->getSampledHapPair(complocus);
-	  (*Loci)(complocus)->decodeIntAsHapAlleles(happair[0], alleles0);
-	  (*Loci)(complocus)->decodeIntAsHapAlleles(happair[1], alleles1);
+	  (*Loci)(complocus)->HaplotypeSetter.decodeIntAsHapAlleles(happair[0], alleles0);
+	  (*Loci)(complocus)->HaplotypeSetter.decodeIntAsHapAlleles(happair[1], alleles1);
 	  //retrieve marginal alleleprobs for composite locus complocus, given current ancestry states on each gamete of ind
 	  (*Loci)(complocus)->getLocusAlleleProbs(Prob0, Ancestry0);// #loci x #alleles array  
 	  (*Loci)(complocus)->getLocusAlleleProbs(Prob1, Ancestry1);

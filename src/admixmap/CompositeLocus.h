@@ -15,12 +15,8 @@
 #define COMPOSITE_LOCUS_H 1
 
 #include "common.h"
-
-///struct to hold a pair of haplotypes, coded as integers
-typedef struct
- {
-   int haps[2];
-}hapPair  ; 
+#include "HapPair.h"
+#include "Haplotype.h"
 
 ///   Class to represent a composite locus
 class CompositeLocus 
@@ -54,12 +50,7 @@ public:
 
   const std::vector<int> getAlleleCounts(int a, const int* happair)const;
   const std::vector<int> getHaplotypeCounts(const int* happair);
-  void setPossibleHaplotypePairs(const std::vector<std::vector<unsigned short> > Genotype, std::vector<hapPair> &PossibleHapPairs);
-  void setPossibleXHaplotypes(const std::vector<std::vector<unsigned short> > Genotype, std::vector<hapPair> &PossibleHapPairs);
-  void setPossibleHaplotypes(const std::vector<unsigned short>::const_iterator& g, std::vector<hapPair>& PossibleHapPairs);
 
-
-  void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;
   void GetGenotypeProbs(double *Probs, const std::vector<hapPair > &HaplotypePairs, bool chibindicator)const;
   void GetHaploidGenotypeProbs(double *Probs, const std::vector<hapPair > &HapPairs, bool chibindicator) const; 
   void SetHapPairProbsToPosteriorMeans(int iterations);
@@ -70,6 +61,8 @@ public:
   int GetMergedHaplotype( int i )const;
   int GetNumberOfMergedHaplotypes()const;
   void SetDefaultMergeHaplotypes( const double* const alpha);
+
+  Haplotype HaplotypeSetter;
 
 private: 
   int NumberOfLoci;
@@ -93,26 +86,9 @@ private:
   int NumberOfMergedHaplotypes;
 
   void SetNoMergeHaplotypes();
-  void intToBits(int n, const int length, bool *bits) ;
-  void setBaseForHapCode();
-  void setBaseMissing(const std::vector<int> missingLoci, const int numMissingLoci, std::vector<int> baseMissing[2]);
-  void setMissingAlleles(const std::vector<int> baseMissing[2], int numMissingLoci, int permMissing, std::vector<int> MissingAlleles[2]) ;
-  int codeHapAllelesAsInt(const int *hapAlleles);
-  void codeHapAllelesPairAsIntPair(const std::vector<int> HapAllelesPair[2], int *hpair);
-  void permuteHetLoci(const std::vector<bool> isHet, const int numHetLoci, const int permHet, 
-		      const std::vector<std::vector<unsigned short> > Genotype, std::vector<int> HapAllelesPair[2]);
-  void permuteMissingLoci(const std::vector<bool> isMissing, const int numMissingLoci, const int permMissing, 
-			  const std::vector<int> HapAllelesPair[2], const std::vector<int> baseMissing[2], std::vector<int> HapAllelesPairNoMissing[2]) ;
 
-  void setMissingAlleles(int numMissingLoci, int permMissing,  std::vector<int>& MissingAlleles, 
-			 const std::vector<int>& MissingLoci); 
-  void permuteMissingLoci(const std::vector<bool>& isMissing, const int numMissingLoci, const int permMissing, 
-			  const std::vector<int>& HapAlleles,  const std::vector<int>& MissingLoci, 
-			  std::vector<int>& HapAllelesNoMissing) ;
+
   void SetHapPairProbs(const double* alleleProbs, double* happairprobs);
-
-  void setPossibleHaplotypes(int numMissingLoci, int numPermsMissing, const std::vector<bool>& isMissing, 
-                             const std::vector<int>& HapAlleles, std::vector<int>& HapAllelesNoMissing, std::vector<hapPair> &PossibleHapPairs);
 
   // UNIMPLEMENTED
   // to avoid use

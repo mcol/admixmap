@@ -26,6 +26,26 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, con
 
   Individual::Initialise(number, options, Data);
 
+  int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  // loop over composite loci to set possible haplotype pairs compatible with genotype 
+  for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
+#ifdef PARALLEL
+    SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
+    //NOTE: X data not yet supported in parallel version
+#else
+    (*Loci)(j)->HaplotypeSetter.setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
+#endif
+    
+    // initialise sampledHapPairs with the first of the possible happairs. 
+    // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
+    sampledHapPairs.push_back(PossibleHapPairs[j][0]);
+  }
+  //Now the PossibleHapPairs have ben determined and missing genotype indicators have been set, 
+  //the genotypes are deleted as they are no longer needed 
+  if( options->getHWTestIndicator())SetMissingGenotypes();
+  DeleteGenotypes();
+
+
 //    GenotypesMissing = new bool*[numChromosomes];
 //    for( unsigned int j = 0; j < numChromosomes; j++ ){
 //      GenotypesMissing[j] = new bool[Loci->GetSizeOfChromosome(j)];
@@ -69,7 +89,7 @@ void HapMixIndividual::SetPossibleHaplotypePairs(unsigned locus, vector<unsigned
 #else
     //  Note: assuming  only SNPs. Otherwise would require incrementing iterator by NumLoci in comp locus
   if(isHaploid || (locus==X_posn && !SexIsFemale) )//haploid genotype
-      (*Loci)(locus)->setPossibleHaplotypes(g, PossibleHapPairs);
+      (*Loci)(locus)->HaplotypeSetter.setPossibleHaplotypes(g, PossibleHapPairs);
 
   else{//diploid genotype
     ;//TODO
