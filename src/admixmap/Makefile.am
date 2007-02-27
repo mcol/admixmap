@@ -2,10 +2,7 @@ AUTOMAKE_OPTIONS	= gnu
 LIBS			= -lgsl -lgslcblas $(PARALLEL_LIBS)
 LDADD			= libgenepi.la
 
-# The following line should be removed for the package to conform with
-# the packaging standard, and to allow builds outside the source
-# directory.
-INCLUDES		= -I ../bayeslib
+INCLUDES		= -I$(top_srcdir)/src/bayeslib
 
 
 bin_PROGRAMS		= hapmixmap admixmap

@@ -16,5 +16,5 @@ noinst_HEADERS			= DataMatrix.h \
 				  StringSplitter.h \
 				  ColumnIter.h
 
-libutils_la_LDFLAGS		= -version-info 0:0:0
-INCLUDES			= -I ..
+# libutils_la_LDFLAGS		= -version-info 0:0:0
+INCLUDES			= -I$(top_srcdir)/src/bayeslib

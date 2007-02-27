@@ -10,5 +10,5 @@ noinst_HEADERS			= Regression.h \
 				  LogisticRegression.h \
 				  CoxRegression.h
 
-INCLUDES			= -I ..
-libbayesreg_la_LDFLAGS		= -version-info 0:0:0
+INCLUDES			= -I$(top_srcdir)/src/bayeslib
+# libbayesreg_la_LDFLAGS		= -version-info 0:0:0

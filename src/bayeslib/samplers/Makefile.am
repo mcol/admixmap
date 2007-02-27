@@ -22,5 +22,5 @@ noinst_HEADERS		= AdaptiveRejection.h \
 				  MuSampler.h \
 				  rand.h \
 				  StepSizeTuner.h
-INCLUDES			= -I ..
+INCLUDES			= -I$(top_srcdir)/src/bayeslib
 # libsampler_a_LDFLAGS		= -version-info 0:0:0
