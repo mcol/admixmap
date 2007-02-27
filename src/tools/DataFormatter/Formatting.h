@@ -22,46 +22,46 @@ typedef struct{
 }LocusInfo;
 
 class HapMapLegend{
-
-public:
+  
+ public:
   HapMapLegend(std::ifstream& legendfile);
   ~HapMapLegend(){
     clear();
   }
   void clear(){
-   RSmap.clear();
-   LocusVector.clear();
+    RSmap.clear();
+    LocusVector.clear();
   };
   const LocusInfo& operator[](unsigned long i){
     return LocusVector[i];
   }
   const LocusInfo& operator[](const std::string& s){
-   return LocusVector[RSmap[s]];
+    return LocusVector[RSmap[s]];
   }
   const std::string& getRSNumber(unsigned long i){
-   return  LocusVector[i].rsnumber;
+    return  LocusVector[i].rsnumber;
   }
   void print(std::ostream& os);
   unsigned size()const{return LocusVector.size();};
-
- void setLimits(unsigned long l0, unsigned long l1);
- void setLimits(const std::string& l0, const std::string& l1);
-
- unsigned long getFirstIndex()const{return first;}
- unsigned long getLastIndex()const{return last;}
- const std::string& getFirst()const{return LocusVector[first].rsnumber;}
- const std::string& getLast()const{return LocusVector[last].rsnumber;}
-
-///expand limits by 100kb either side
- void OffsetLimits();
-private:
-  std::map<std::string, unsigned long > RSmap;
-  std::vector<LocusInfo> LocusVector;
-  unsigned long first, last;
-
-  HapMapLegend();
-  HapMapLegend(const HapMapLegend&);
-  const HapMapLegend& operator=(const HapMapLegend&);
+  
+  void setLimits(unsigned long l0, unsigned long l1);
+  void setLimits(const std::string& l0, const std::string& l1);
+  
+  unsigned long getFirstIndex()const{return first;}
+  unsigned long getLastIndex()const{return last;}
+  const std::string& getFirst()const{return LocusVector[first].rsnumber;}
+  const std::string& getLast()const{return LocusVector[last].rsnumber;}
+  
+  ///expand limits by 100kb either side
+    void OffsetLimits();
+ private:
+    std::map<std::string, unsigned long > RSmap;
+    std::vector<LocusInfo> LocusVector;
+    unsigned long first, last;
+    
+    HapMapLegend();
+    HapMapLegend(const HapMapLegend&);
+    const HapMapLegend& operator=(const HapMapLegend&);
 };
 
 
@@ -87,6 +87,6 @@ std::string getGenotype(const std::pair<char, char>& g, std::pair<char, char> a)
 
 //Encodes genotypes given in infilename, sorts and writes to outfilename
 unsigned EncodeGenotypes(HapMapLegend& Legend,
-         const char* infilename, const char* outfilename);
+                         const char* infilename, const char* outfilename);
 
 #endif

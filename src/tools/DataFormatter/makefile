@@ -3,12 +3,14 @@ CC =g++
 CXXFLAGS =-O3
 BAYESLIB_PATH =../../bayeslib
 INCLUDES =-I$(BAYESLIB_PATH)/utils#for StringSplitter
+
+#TODO: only requires gsl_permutation.la sublibrary of gsl so wasteful to lik against entire gsl and cblas
 #GSL_PATH
 #LIBS =-L$(GSL_PATH)
 
 SUFFIXES =.cc.cpp
 
-objects =FormatPhasedData.o GenotypeEncoder.o Legend.o $(BAYESLIB_PATH)/utils/StringSplitter.o
+objects =FormatPhasedData.o GenotypeEncoder.o $(BAYESLIB_PATH)/utils/StringSplitter.o
 
 all: $(objects)
 	$(CXX) $(CXXFLAGS) -o$(EXEC_NAME) $(objects) $(LIBS) -lgsl -lgslcblas
