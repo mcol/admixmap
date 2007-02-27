@@ -35,6 +35,11 @@ echo "LDFLAGS='$LDFLAGS'"
 echo
 echo ./configure --prefix "${USER_PREFIX}" ${USER_CONFIG_OPTS}
 ./configure --prefix "${USER_PREFIX}" ${USER_CONFIG_OPTS}
+if [ "$?" != "0" ]
+then
+	echo "Configure failed."
+	exit 1
+fi
 make clean
 make -j3 && make install
 if [ "$?" = "0" ]

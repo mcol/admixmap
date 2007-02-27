@@ -1,6 +1,6 @@
 #!/bin/bash
 export LDFLAGS=""
 export CPPFLAGS=""
-export CXXFLAGS="-g -pg -O2 -march=i686"
+export CXXFLAGS="-g -O2 -march=i686 -Wall -Werror"
 
 source "$(pwd)/src/scripts/build-common"
