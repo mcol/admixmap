@@ -1,6 +1,6 @@
 AUTOMAKE_OPTIONS	= gnu
 LIBS			= -lgsl -lgslcblas $(PARALLEL_LIBS)
-LDADD			= libgenepi.la
+# LDADD			= libgenepi.la
 
 INCLUDES		= -I$(top_srcdir)/src/bayeslib
 
@@ -94,7 +94,7 @@ libgenepi_la_SOURCES = misc.cc \
 		       InputData.cc \
 		       Genome.cc \
 		       Chromosome.cc \
-		       Haplotype.cc
+		       Haplotype.cc \
 		       CompositeLocus.cc \
 		       IndividualCollection.cc \
 		       Individual.cc \
@@ -111,7 +111,7 @@ libgenepi_la_SOURCES = misc.cc \
 		       GenotypeProbOutputter.cc \
 		       Annealer.cc
 
-libgenepi_la_LIBADD = ../bayeslib/libbayes.la
+libgenepi_la_LIBADD = $(top_builddir)/src/bayeslib/libbayes.la
 
 if PARALLEL
 
@@ -119,7 +119,7 @@ if PARALLEL
 noinst_LTLIBRARIES		+= libgenepi-para.la
 libgenepi_para_la_SOURCES	= $(libgenepi_la_SOURCES)
 libgenepi_para_la_CPPFLAGS	= -DPARALLEL
-libgenepi_para_la_LIBADD	= ../bayeslib/libbayes-para.la
+libgenepi_para_la_LIBADD	= $(top_builddir)/src/bayeslib/libbayes-para.la
 
 # Parallel hapmixmap
 bin_PROGRAMS			+= hapmixmap-para
@@ -127,6 +127,6 @@ hapmixmap_para_CPPFLAGS		= $(hapmixmap_CPPFLAGS) -DPARALLEL
 hapmixmap_para_SOURCES		= $(hapmixmap_SOURCES)
 # hapmixmap_para_LIBS		= $(PARALLEL_LIBS)
 LIBS				+= $(PARALLEL_LIBS)
-hapmixmap_para_LDADD		= ../bayeslib/libbayes-para.la \
+hapmixmap_para_LDADD		= $(top_builddir)/src/bayeslib/libbayes-para.la \
 				  libgenepi-para.la
 endif
