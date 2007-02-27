@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# CONF_FILES="../training-initial.conf ../training-resume.conf ../testing.conf"
+CONF_FILES="../training-initial.conf ../testing.conf"
+# CONF_FILES="../training-initial.conf"
+
 if [ ! -z "$1" -a ! -z "$2" ]
 then
 	STABLE_DIR="$1"
@@ -12,6 +16,20 @@ else
 	exit 1
 fi
 
+for WDIR in $STABLE_DIR $DEVEL_DIR
+do
+	if [ ! -r "$WDIR" ]
+	then
+		echo "'$WDIR' is not readable."
+		exit 1
+	fi
+	if [ ! -d "$WDIR" ]
+	then
+		echo "'$WDIR' is not a directory."
+		exit 1
+	fi
+done
+
 
 # DEVEL_DIR="$HOME/genepi/trunk"
 
@@ -20,20 +38,24 @@ echo "Going into $1"
 pushd "$1"
 # make -j3 install
 make --quiet -j3 > /dev/null
+MAKE_RES="$?"
+if [ "$MAKE_RES" != "0" ]
+then
+	echo "Make failed with error $MAKE_RES."
+	exit 1
+fi
 popd
 }
 
 function run_hapmixmap { 
 echo "run_hapmixmap() $1 $2"
+TITLE="$3"
 rm -rf "$2-old"
 mv "$2" "$2-old"
 mkdir -p "$2"
 pushd "$2"
-make_install "$1"
 ln -s ../data data
 HAPMIXMAP_EXEC="$1/src/admixmap/hapmixmap"
-HAPARG1="../training-initial.conf"
-HAPARG2="../testing.conf"
 
 if [ "$2" = "hapmixmap-stable" ]
 then
@@ -42,22 +64,35 @@ else
 	GEOMETRY="125x40+200+200"
 fi
 
-if [ ! -z "$DISPLAY" ]
-then
-	xterm -title "$HAPMIXMAP_EXEC" -geometry $GEOMETRY -e $HAPMIXMAP_EXEC $HAPARG1
-	xterm -title "$HAPMIXMAP_EXEC" -geometry $GEOMETRY -e $HAPMIXMAP_EXEC $HAPARG2
-else
-	# $HAPMIXMAP_EXEC $HAPARG1
-	# $HAPMIXMAP_EXEC $HAPARG2
-	exit 1
-fi
+for HAPARG in $CONF_FILES
+do
+	if [ ! -z "$DISPLAY" ]
+	then
+		# xterm -title "$TITLE $HAPARG" -geometry $GEOMETRY -e $HAPMIXMAP_EXEC $HAPARG
+		xterm -title "$HAPMIXMAP_EXEC $HAPARG" -geometry $GEOMETRY -e $HAPMIXMAP_EXEC $HAPARG
+	else
+		# $HAPMIXMAP_EXEC $HAPARG
+		echo "Can't open \$DISPLAY"
+		exit 1
+	fi
+done
 popd
 }
 
 # Since I have Core Duo, I can run both versions in parallel!
-run_hapmixmap $STABLE_DIR hapmixmap-stable &
+make_install "$STABLE_DIR"
 FIRST="$!"
-run_hapmixmap $DEVEL_DIR hapmixmap-devel &
+make_install "$DEVEL_DIR"
+SECOND="$!"
+# Wait for both to finish...
+wait $FIRST
+wait $SECOND
+
+# Both versions compiled, let's launch them
+
+run_hapmixmap $STABLE_DIR hapmixmap-stable stable &
+FIRST="$!"
+run_hapmixmap $DEVEL_DIR hapmixmap-devel devel &
 SECOND="$!"
 
 # Wait for both to finish...
