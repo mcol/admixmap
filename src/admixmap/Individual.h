@@ -108,7 +108,6 @@ protected:
 			     const double* const theta, const vector<double> rho) = 0;
   virtual double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
-  static void SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
 };
 
 #endif /* INDIVIDUAL_H */

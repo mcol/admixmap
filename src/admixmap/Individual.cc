@@ -27,12 +27,6 @@ unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
 int Individual::Populations;
 
-///for printing a happair
-std::ostream& operator<<(std::ostream& os, const hapPair &h){
-  os << h.haps[0] << " " << h.haps[1];
-  return os;
-}
-
 //******** Constructors **********
 Individual::Individual() {//should initialise pointers here
 }
@@ -132,33 +126,6 @@ void Individual::setOutcome(double* Y){
 }
 void Individual::setCovariates(double* X){
   Covariates = X;
-}
-///sets possible hap pairs for a single SNP
-void Individual::SetPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
-  if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
-  hapPair hpair;
-  PossibleHapPairs.clear();
-  if(Genotype[0][0] == 0 || Genotype[0][1]==0){//missing genotype
-    hpair.haps[0] = 0; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(1,1)
-    hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(1,2)
-    hpair.haps[0] = 1; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(2,1)
-    hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(2,2)
-  }
-  //case of homozygote - only one possible happair
-  else if(Genotype[0][0] == Genotype[0][1]){
-    hpair.haps[0] = hpair.haps[1] = Genotype[0][0]-1;
-    PossibleHapPairs.push_back(hpair);
-  }
-  else{//heterozygote - two possibilities
-    hpair.haps[0] = 0; hpair.haps[1] = 1;
-    PossibleHapPairs.push_back(hpair);//(1,2)
-    hpair.haps[0] = 1; hpair.haps[1] = 0;
-    PossibleHapPairs.push_back(hpair);//(2,1)
-  }
 }
 
 void Individual::setGenotypesToMissing(){

@@ -41,7 +41,8 @@ private:
   void UpdateHMMInputs(unsigned int j, const Options* const options, 
                      const double* const , const vector<double> );
 
-  void SetPossibleHaplotypePairs(unsigned locus, vector<unsigned short>::const_iterator g, vector<hapPair> &PossibleHapPairs );
+  //  void SetPossibleHaplotypePairs(unsigned locus, vector<unsigned short>::const_iterator g, vector<hapPair> &PossibleHapPairs );
+  void SetPossibleHaplotypePairs(const vector<unsigned short>::const_iterator GI, vector<hapPair> &PossibleHapPairs, ploidy p);
 };
 
 #endif /* HAMPIXINDIVIDUAL_H */

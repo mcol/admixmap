@@ -16,7 +16,6 @@ const FreqArray* HapMixIndividual::HaploidGenotypeProbs;
 const FreqArray* HapMixIndividual::DiploidGenotypeProbs;
 GenotypeProbIterator HapMixIndividual::GPI;
 
-
 HapMixIndividual::HapMixIndividual(){
 
 }
@@ -26,15 +25,23 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, con
 
   Individual::Initialise(number, options, Data);
 
+//    GenotypesMissing = new bool*[numChromosomes];
+//    for( unsigned int j = 0; j < numChromosomes; j++ ){
+//      GenotypesMissing[j] = new bool[Loci->GetSizeOfChromosome(j)];
+//    }  
+   isHaploid = Data->GetHapMixGenotype( myNumber, options->getgenotypesSexColumn(), *Loci, &hgenotypes, GenotypesMissing);
+
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
-#ifdef PARALLEL
-    SetPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]); 
-    //NOTE: X data not yet supported in parallel version
-#else
-    (*Loci)(j)->HaplotypeSetter.setPossibleHaplotypePairs(genotypes[j], PossibleHapPairs[j]);
-#endif
+    ploidy p = ( !isHaploid && (!Loci->isXLocus(j) || SexIsFemale)) ? diploid : haploid;
+    //#ifdef PARALLEL
+    //cannot use function in CompositeLocus because workers have no CompositeLocus objects
+    SetPossibleHaplotypePairs(hgenotypes.begin()+j, PossibleHapPairs[j], p); 
+    //#else
+    //HapMixGenotypeIterator G(hgenotypes.begin() + j, p);
+    //(*Loci)(j)->HaplotypeSetter.setPossibleHaplotypePairs(&G, PossibleHapPairs[j]);
+    //#endif
     
     // initialise sampledHapPairs with the first of the possible happairs. 
     // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
@@ -45,27 +52,47 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, con
   if( options->getHWTestIndicator())SetMissingGenotypes();
   DeleteGenotypes();
 
-
-//    GenotypesMissing = new bool*[numChromosomes];
-//    for( unsigned int j = 0; j < numChromosomes; j++ ){
-//      GenotypesMissing[j] = new bool[Loci->GetSizeOfChromosome(j)];
-//    }  
-   isHaploid = Data->GetHapMixGenotype( myNumber, options->getgenotypesSexColumn(), *Loci, &hgenotypes, GenotypesMissing);
-
-//   Individual::Initialise(options, Data);
-
-//   // loop over composite loci to set possible haplotype pairs compatible with genotype 
-//   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
-//   for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
-//     SetPossibleHaplotypePairs(j, genotypes.begin()+j, PossibleHapPairs[j]); 
-    
-//     // initialise sampledHapPairs with the first of the possible happairs. 
-//     // if only one possible happair or if annealing (which uses hamiltonian sampler), sampling of hap pair will be skipped.
-//     sampledHapPairs.push_back(PossibleHapPairs[j][0]);
-//   }
-
 }
 
+///sets possible hap pairs for a single SNP
+//TODO?? extend to compound loci
+void HapMixIndividual::SetPossibleHaplotypePairs(const vector<unsigned short>::const_iterator GI, vector<hapPair> &PossibleHapPairs, ploidy p){
+  //if(Genotype.size()!=1)throw string("Invalid call to Individual::SetPossibleHapPairs()");
+  //  hapPair hpair;
+  PossibleHapPairs.clear();
+  if(p == haploid){
+    //only one possibility - the observed haplotype (-1 denotes haplotype not happair)
+    PossibleHapPairs.push_back(hapPair(*GI - 1 ,-1));
+  }
+  else{//diploid
+    switch(*GI)
+      {
+      case(0):{//missing genotype -> 4 possibilities
+        PossibleHapPairs.push_back(hapPair(0,0));
+        PossibleHapPairs.push_back(hapPair(0,1));
+        PossibleHapPairs.push_back(hapPair(1,0));
+        PossibleHapPairs.push_back(hapPair(1,1));
+        break;
+      }
+      case(1):{//1,1 -> only 1 possibility
+        PossibleHapPairs.push_back(hapPair(0,0));
+        break;
+      }
+      case(2):{//2,2 -> only 1 possibility
+        PossibleHapPairs.push_back(hapPair(1,1));
+        break;
+      }
+      case(3):{//1,2 -> 2 possibilities
+        PossibleHapPairs.push_back(hapPair(0,1));
+        PossibleHapPairs.push_back(hapPair(1,0));
+        break;
+      }
+      default:{
+        throw string("ERROR: Invalid genotype passed to HapMixIndividual::SetPossibleHapPairs");
+      }
+      }
+  }
+}
 HapMixIndividual::~HapMixIndividual(){
 
 }
@@ -79,23 +106,23 @@ void HapMixIndividual::SetStaticMembers(Genome* const pLoci, const Options* cons
 
 }
 
-void HapMixIndividual::SetPossibleHaplotypePairs(unsigned locus, vector<unsigned short>::const_iterator g, vector<hapPair> &PossibleHapPairs ){
-#ifdef PARALLEL
-    //NOTE: X data not yet supported in parallel version
+// void HapMixIndividual::SetPossibleHaplotypePairs(unsigned locus, vector<unsigned short>::const_iterator g, vector<hapPair> &PossibleHapPairs ){
+// #ifdef PARALLEL
+//     //NOTE: X data not yet supported in parallel version
 
 
-  //TODO
+//   //TODO
 
-#else
-    //  Note: assuming  only SNPs. Otherwise would require incrementing iterator by NumLoci in comp locus
-  if(isHaploid || (locus==X_posn && !SexIsFemale) )//haploid genotype
-      (*Loci)(locus)->HaplotypeSetter.setPossibleHaplotypes(g, PossibleHapPairs);
+// #else
+//     //  Note: assuming  only SNPs. Otherwise would require incrementing iterator by NumLoci in comp locus
+//   if(isHaploid || (locus==X_posn && !SexIsFemale) )//haploid genotype
+//       (*Loci)(locus)->HaplotypeSetter.setPossibleHaplotypes(g, PossibleHapPairs);
 
-  else{//diploid genotype
-    ;//TODO
-    }
-#endif
-}
+//   else{//diploid genotype
+//     ;//TODO
+//     }
+// #endif
+// }
 
 ///Indicates whether genotype is missing at all simple loci within a composite locus
 bool HapMixIndividual::GenotypeIsMissing(unsigned int locus)const {

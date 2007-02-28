@@ -16,6 +16,7 @@
 
 #include <vector>
 #include "HapPair.h"
+#include "GenotypeIterator.h"
 
 using namespace::std;
 class Haplotype{
@@ -24,11 +25,12 @@ public:
   ~Haplotype();
   void AddLocus(int nalleles);
 
-  void setPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
-  void setPossibleXHaplotypes(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs);
-  void setPossibleHaplotypes(const vector<unsigned short>::const_iterator& g, vector<hapPair>& PossibleHapPairs);
+  void setPossibleHaplotypePairs(const GenotypeIterator* G, vector<hapPair> &PossibleHapPairs);
 
-  void decodeIntAsHapAlleles(const int h, int *hapAlleles)const;  
+  void setPossibleHaplotypes(const GenotypeIterator* G, vector<hapPair> &PossibleHapPairs);
+
+  void decodeIntAsHapAlleles(const int h, int *hapAlleles)const; 
+
 private:
   int NumberOfLoci;
   vector<int> NumberOfAlleles;
@@ -44,10 +46,9 @@ private:
   int codeHapAllelesAsInt(const int *hapAlleles);
 
   void codeHapAllelesPairAsIntPair(const vector<int> HapAllelesPair[2], int *hpair);
+
   void permuteHetLoci(const vector<bool> isHet, const int numHetLoci, const int permHet, 
-		      const vector<vector<unsigned short> > Genotype, vector<int> HapAllelesPair[2]);
-  void permuteHetLoci(const vector<bool> isHet, const int numHetLoci, const int permHet, 
-		      const vector<unsigned short>::const_iterator& Genotype, vector<int> HapAllelesPair[2]);
+                      const GenotypeIterator* G, vector<int> HapAllelesPair[2]);
   void permuteMissingLoci(const vector<bool> isMissing, const int numMissingLoci, const int permMissing, 
 			  const vector<int> HapAllelesPair[2], const vector<int> baseMissing[2], 
 			  vector<int> HapAllelesPairNoMissing[2]);

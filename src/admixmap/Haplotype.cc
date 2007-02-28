@@ -29,6 +29,157 @@ void Haplotype::AddLocus(int nalleles){
   NumberOfAlleles.push_back(nalleles);
 }
 
+/*
+********************************************************
+Diploid functions for setting PossibleHaplotypePairs
+********************************************************
+*/
+
+
+/// updates: PossibleHapPairs, an stl vector of arrays of 2 integers.
+/// arguments: genotype is 2D array of alleles with 2 rows and NumberOfLoci cols. 
+/// call once for each individual at start of program 
+void Haplotype::setPossibleHaplotypePairs(const GenotypeIterator* G, vector<hapPair> &PossibleHapPairs){
+  setBaseForHapCode();
+  PossibleHapPairs.clear();
+  if(!G->isDiploid()){//haploid genotypes
+    setPossibleHaplotypes(G, PossibleHapPairs);
+    return;
+  }
+
+  int numHetLoci = 0;
+  int numMissingLoci = 0;
+  int numPermsHet = 1;
+  int numPermsMissing = 1;
+  vector<bool> isHet(NumberOfLoci);
+  vector<bool> isMissing(NumberOfLoci);
+  //loop over loci to determine which are heterozygous or missing
+  for( int i = 0; i < NumberOfLoci; i++ ) {
+    isHet[i] = false;
+    isMissing[i] = false;
+    if( (G->get(i, 0) == 0) || (G->get(i,1) == 0)  ) { // missing genotype
+      isMissing[i] = true;
+      numMissingLoci ++;
+      numPermsMissing *= NumberOfAlleles[i] * NumberOfAlleles[i];
+    } else {
+      if( G->get(i, 0) !=  G->get(i, 1) ) { // heterozygous
+	isHet[i] = true; 
+	numHetLoci++;
+	numPermsHet *= 2;
+      }
+    }
+  }
+  //   cout << numMissingLoci << " missing genotypes with " << numPermsMissing << " permutations\n";
+  //   cout << numHetLoci << " heterozygous genotypes with " << numPermsHet << " permutations\n";
+  //  setPossibleHaplotypePairs(numHetLoci, numMissingLoci, numPermsHet, numPermsMissing, isHet, isMissing);
+  //}
+
+  //void Haplotype::setPossibleHaplotypePairs(int numHetLoci, int numMissingLoci, int numPermsHet, int numPermsMissing, 
+  //				       const vector<bool>& isHet, const vector<bool>& isMissing){
+  // loop over loci to calculate vectors hetLoci and missingLoci
+  vector<int> hetLoci(numHetLoci);
+  vector<int> missingLoci(numMissingLoci);
+  int offsetHetLoci = 0;
+  int offsetMissingLoci = 0;
+  for( int i = 0; i < NumberOfLoci; i++ ) {
+    if( isHet[i] ) {
+      hetLoci[offsetHetLoci] = i;
+      offsetHetLoci++;
+    }
+    if( isMissing[i] ) {
+      missingLoci[offsetMissingLoci] = i;
+      offsetMissingLoci++;
+    }
+  }
+  
+  vector<int> HapAllelesPair[2] = {vector<int>(NumberOfLoci), vector<int>(NumberOfLoci)};
+  vector<int> HapAllelesPairNoMissing[2]= {vector<int>(NumberOfLoci), vector<int>(NumberOfLoci)};;
+  hapPair hpair;
+  // loop over all possible ordered haplotype pairs compatible with unphased genotype
+  // loop over permsHet to permute alleles at heterozygous loci
+  for (int permHet = 0; permHet < numPermsHet; permHet++ ) {
+    permuteHetLoci(isHet, numHetLoci, permHet, G, HapAllelesPair);
+    if( numMissingLoci == 0 ) {
+      codeHapAllelesPairAsIntPair(HapAllelesPair, hpair.haps);
+      PossibleHapPairs.push_back(hpair);
+    } else {
+      vector<int> baseMissing[2] = {vector<int>(numMissingLoci), vector<int>(numMissingLoci)};
+      setBaseMissing(missingLoci, numMissingLoci, baseMissing);
+      // loop over permsMissing to permute alleles at missing loci
+      for ( int permMissing = 0; permMissing < numPermsMissing; permMissing++ ) {
+	permuteMissingLoci(isMissing, numMissingLoci, permMissing, HapAllelesPair, baseMissing, 
+			   HapAllelesPairNoMissing);
+	codeHapAllelesPairAsIntPair(HapAllelesPairNoMissing, hpair.haps);
+	PossibleHapPairs.push_back(hpair);
+      }
+    }
+  }
+}
+
+/*
+********************************************************
+Haploid functions for setting PossibleHaplotypePairs
+********************************************************
+*/
+
+void Haplotype::setPossibleHaplotypes(const GenotypeIterator* G, vector<hapPair> &PossibleHapPairs){
+  //setBaseForHapCode();
+  int numMissingLoci = 0;
+  int numPermsMissing = 1;
+  vector<bool> isMissing(NumberOfLoci);
+  vector<int> HapAlleles = vector<int>(NumberOfLoci);
+  vector<int> HapAllelesNoMissing = vector<int>(NumberOfLoci);
+
+  for( int i = 0; i < NumberOfLoci; i++ ) {
+    isMissing[i] = false;
+    HapAlleles[i] = G->get(i, 0);
+    if( (G->get(i,0) == 0)   ) { // missing genotype
+      isMissing[i] = true;
+      numMissingLoci ++;
+      numPermsMissing *= NumberOfAlleles[i];
+    }
+  }
+
+  setPossibleHaplotypes(numMissingLoci, numPermsMissing, isMissing, HapAlleles, HapAllelesNoMissing, PossibleHapPairs);
+}
+
+void Haplotype::setPossibleHaplotypes(int numMissingLoci, int numPermsMissing, const vector<bool>& isMissing, 
+				      const vector<int>& HapAlleles, vector<int>& HapAllelesNoMissing, 
+				      vector<hapPair> &PossibleHapPairs){
+  vector<int> missingLoci(numMissingLoci);
+  int offsetMissingLoci = 0;
+  for( int i = 0; i < NumberOfLoci; i++ ) {
+    if( isMissing[i] ) {
+      missingLoci[offsetMissingLoci] = i;
+      offsetMissingLoci++;
+    }
+  }
+
+  hapPair hpair;
+  hpair.haps[1] = -1;//using -1 to denote *haplotype* rather than happair (must be nagative as alleles are counted from 0)
+
+  if( numMissingLoci == 0 ) {
+    hpair.haps[0] = codeHapAllelesAsInt(&(HapAlleles[0]));
+    PossibleHapPairs.push_back(hpair);
+  } else {
+    // loop over permsMissing to permute alleles at missing loci
+    for ( int permMissing = 0; permMissing < numPermsMissing; permMissing++ ) {
+      permuteMissingLoci(isMissing, numMissingLoci, permMissing, HapAlleles, missingLoci,
+			 HapAllelesNoMissing);
+      hpair.haps[0] = codeHapAllelesAsInt(&(HapAllelesNoMissing[0]));
+      PossibleHapPairs.push_back(hpair); 
+    }
+    
+  }
+
+}
+
+/*
+*****************************************************************
+Auxiliary functions follow
+****************************************************************
+*/
+
 // arguments: integer, length of bit array
 // returns: 1D array of bits representing integer
 void Haplotype::intToBits(int n, const int length, bool *bits){
@@ -129,10 +280,9 @@ void Haplotype::codeHapAllelesPairAsIntPair(const vector<int> HapAllelesPair[2],
     hpair[1] += (HapAllelesPair[1][i] - 1) * base[i];
   }
 }
-/// updates: haplotype pair array with permHet th permutation of alleles at heterozygous loci.  
-/// arguments: genotype as 2D array, hetLoci as array of col nums of het loci, isHet as array of length equal to NumberOfLoci
+
 void Haplotype::permuteHetLoci(const vector<bool> isHet, const int numHetLoci, const int permHet, 
-			       const vector<vector<unsigned short> > Genotype, vector<int> HapAllelesPair[2]){
+			       const GenotypeIterator* G, vector<int> HapAllelesPair[2]){
   //recode permHet as array of bits, with length equal to NumHetLoci
   bool* permbits = new bool[numHetLoci];
   intToBits(permHet, numHetLoci, permbits);
@@ -141,12 +291,12 @@ void Haplotype::permuteHetLoci(const vector<bool> isHet, const int numHetLoci, c
   //loop over loci to assign HapAllelesPair and swap alleles where element of permbits is 1;
   for(int locus = 0; locus < NumberOfLoci; locus++ ) {
     if( !isHet[locus] || !permbits[hetLocusOffset] ) { // assign alleles without swapping
-      HapAllelesPair[0][locus] = Genotype[locus][0];
-      HapAllelesPair[1][locus] = Genotype[locus][1];
+      HapAllelesPair[0][locus] = G->get(locus, 0);
+      HapAllelesPair[1][locus] = G->get(locus, 1);
     } else {
       if( permbits[hetLocusOffset] ) { // swap alleles
-	HapAllelesPair[0][locus] = Genotype[locus][1];
-	HapAllelesPair[1][locus] = Genotype[locus][0];
+	HapAllelesPair[0][locus] = G->get(locus, 1);
+	HapAllelesPair[1][locus] = G->get(locus, 0);
       }
     }
     hetLocusOffset += isHet[locus]; 
@@ -154,30 +304,6 @@ void Haplotype::permuteHetLoci(const vector<bool> isHet, const int numHetLoci, c
   delete[] permbits;
 }
 
-///version for genotypes stored in a single vector
-void Haplotype::permuteHetLoci(const vector<bool> isHet, const int numHetLoci, const int permHet, 
-			       const vector<unsigned short>::const_iterator& Genotype, vector<int> HapAllelesPair[2]){
-  //recode permHet as array of bits, with length equal to NumHetLoci
-  bool* permbits = new bool[numHetLoci];
-  intToBits(permHet, numHetLoci, permbits);
-  
-  int hetLocusOffset = 0; // used to loop over heterozygous loci 
-  //loop over loci to assign HapAllelesPair and swap alleles where element of permbits is 1;
-  for(int locus = 0; locus < NumberOfLoci; locus++ ) {
-    if( !isHet[locus] || !permbits[hetLocusOffset] ) { // assign alleles without swapping
-      HapAllelesPair[0][locus] = *(Genotype + locus*2  );
-      HapAllelesPair[1][locus] = *(Genotype +locus*2 +1);
-    } else {
-      if( permbits[hetLocusOffset] ) { // swap alleles
-	HapAllelesPair[0][locus] = *(Genotype +locus*2 +1);
-	HapAllelesPair[1][locus] = *(Genotype + locus*2  );
-      }
-    }
-    hetLocusOffset += isHet[locus]; 
-  } 
-  delete[] permbits;
-}
-  
 void Haplotype::permuteMissingLoci(const vector<bool> isMissing, const int numMissingLoci, const int permMissing, 
 			const vector<int> HapAllelesPair[2], const vector<int> baseMissing[2], vector<int> HapAllelesPairNoMissing[2]) {
   vector<int> MissingAlleles[2] = {vector<int>(numMissingLoci), vector<int>(numMissingLoci)};
@@ -214,152 +340,3 @@ void Haplotype::permuteMissingLoci(const vector<bool>& isMissing, const int numM
   } 
 }
 
-/// updates: PossibleHapPairs, an stl vector of arrays of 2 integers.
-/// arguments: genotype is 2D array of alleles with 2 rows and NumberOfLoci cols. 
-/// call once for each individual at start of program 
-void Haplotype::setPossibleHaplotypePairs(const vector<vector<unsigned short> > Genotype, 
-					  vector<hapPair> &PossibleHapPairs){
-  setBaseForHapCode();
-  if(Genotype[0].size()==1){//haploid genotypes
-    setPossibleXHaplotypes(Genotype, PossibleHapPairs);
-    return;
-  }
-
-  int numHetLoci = 0;
-  int numMissingLoci = 0;
-  int numPermsHet = 1;
-  int numPermsMissing = 1;
-  vector<bool> isHet(NumberOfLoci);
-  vector<bool> isMissing(NumberOfLoci);
-  //loop over loci to determine which are heterozygous or missing
-  for( int i = 0; i < NumberOfLoci; i++ ) {
-    isHet[i] = false;
-    isMissing[i] = false;
-    if( (Genotype[i][0] == 0) || (Genotype[i][1] == 0)  ) { // missing genotype
-      isMissing[i] = true;
-      numMissingLoci ++;
-      numPermsMissing *= NumberOfAlleles[i] * NumberOfAlleles[i];
-    } else {
-      if( Genotype[i][0] !=  Genotype[i][1] ) { // heterozygous
-	isHet[i] = true; 
-	numHetLoci++;
-	numPermsHet *= 2;
-      }
-    }
-  }
-  //   cout << numMissingLoci << " missing genotypes with " << numPermsMissing << " permutations\n";
-  //   cout << numHetLoci << " heterozygous genotypes with " << numPermsHet << " permutations\n";
-  //  setPossibleHaplotypePairs(numHetLoci, numMissingLoci, numPermsHet, numPermsMissing, isHet, isMissing);
-  //}
-
-  //void Haplotype::setPossibleHaplotypePairs(int numHetLoci, int numMissingLoci, int numPermsHet, int numPermsMissing, 
-  //				       const vector<bool>& isHet, const vector<bool>& isMissing){
-  // loop over loci to calculate vectors hetLoci and missingLoci
-  vector<int> hetLoci(numHetLoci);
-  vector<int> missingLoci(numMissingLoci);
-  int offsetHetLoci = 0;
-  int offsetMissingLoci = 0;
-  for( int i = 0; i < NumberOfLoci; i++ ) {
-    if( isHet[i] ) {
-      hetLoci[offsetHetLoci] = i;
-      offsetHetLoci++;
-    }
-    if( isMissing[i] ) {
-      missingLoci[offsetMissingLoci] = i;
-      offsetMissingLoci++;
-    }
-  }
-  
-  vector<int> HapAllelesPair[2] = {vector<int>(NumberOfLoci), vector<int>(NumberOfLoci)};
-  vector<int> HapAllelesPairNoMissing[2]= {vector<int>(NumberOfLoci), vector<int>(NumberOfLoci)};;
-  hapPair hpair;
-  // loop over all possible ordered haplotype pairs compatible with unphased genotype
-  // loop over permsHet to permute alleles at heterozygous loci
-  for (int permHet = 0; permHet < numPermsHet; permHet++ ) {
-    permuteHetLoci(isHet, numHetLoci, permHet, Genotype, HapAllelesPair);
-    if( numMissingLoci == 0 ) {
-      codeHapAllelesPairAsIntPair(HapAllelesPair, hpair.haps);
-      PossibleHapPairs.push_back(hpair);
-    } else {
-      vector<int> baseMissing[2] = {vector<int>(numMissingLoci), vector<int>(numMissingLoci)};
-      setBaseMissing(missingLoci, numMissingLoci, baseMissing);
-      // loop over permsMissing to permute alleles at missing loci
-      for ( int permMissing = 0; permMissing < numPermsMissing; permMissing++ ) {
-	permuteMissingLoci(isMissing, numMissingLoci, permMissing, HapAllelesPair, baseMissing, 
-			   HapAllelesPairNoMissing);
-	codeHapAllelesPairAsIntPair(HapAllelesPairNoMissing, hpair.haps);
-	PossibleHapPairs.push_back(hpair);
-      }
-    }
-  }
-}
-
-void Haplotype::setPossibleXHaplotypes(const vector<vector<unsigned short> > Genotype, vector<hapPair> &PossibleHapPairs){
-  //setBaseForHapCode();
-  int numMissingLoci = 0;
-  int numPermsMissing = 1;
-  vector<bool> isMissing(NumberOfLoci);
-  vector<int> HapAlleles = vector<int>(NumberOfLoci);
-  vector<int> HapAllelesNoMissing = vector<int>(NumberOfLoci);
-
-  for( int i = 0; i < NumberOfLoci; i++ ) {
-    isMissing[i] = false;
-    HapAlleles[i] = Genotype[i][0];
-    if( (Genotype[i][0] == 0)   ) { // missing genotype
-      isMissing[i] = true;
-      numMissingLoci ++;
-      numPermsMissing *= NumberOfAlleles[i];
-    }
-  }
-
-  setPossibleHaplotypes(numMissingLoci, numPermsMissing, isMissing, HapAlleles, HapAllelesNoMissing, PossibleHapPairs);
-}
-void Haplotype::setPossibleHaplotypes(const vector<unsigned short>::const_iterator& g, vector<hapPair>& PossibleHapPairs){
-  //setBaseForHapCode();
-  int numMissingLoci = 0;
-  int numPermsMissing = 1;
-  vector<bool> isMissing(NumberOfLoci);
-  vector<int> HapAlleles = vector<int>(NumberOfLoci);
-  vector<int> HapAllelesNoMissing = vector<int>(NumberOfLoci);
-
-  for( int i = 0; i < NumberOfLoci; i++ ) {
-    isMissing[i] = false;
-    HapAlleles[i] = *(g+i);//Genotype[i][0];
-    if( (*(g+i) == 0)   ) { // missing genotype
-      isMissing[i] = true;
-      numMissingLoci ++;
-      numPermsMissing *= NumberOfAlleles[i];
-    }
-  }
-  setPossibleHaplotypes(numMissingLoci, numPermsMissing, isMissing, HapAlleles, HapAllelesNoMissing, PossibleHapPairs);
-}
-void Haplotype::setPossibleHaplotypes(int numMissingLoci, int numPermsMissing, const vector<bool>& isMissing, 
-				      const vector<int>& HapAlleles, vector<int>& HapAllelesNoMissing, 
-				      vector<hapPair> &PossibleHapPairs){
-  vector<int> missingLoci(numMissingLoci);
-  int offsetMissingLoci = 0;
-  for( int i = 0; i < NumberOfLoci; i++ ) {
-    if( isMissing[i] ) {
-      missingLoci[offsetMissingLoci] = i;
-      offsetMissingLoci++;
-    }
-  }
-
-  hapPair hpair;
-  hpair.haps[1] = -1;//using -1 to denote *haplotype* rather than happair (must be nagative as alleles are counted from 0)
-
-  if( numMissingLoci == 0 ) {
-    hpair.haps[0] = codeHapAllelesAsInt(&(HapAlleles[0]));
-    PossibleHapPairs.push_back(hpair);
-  } else {
-    // loop over permsMissing to permute alleles at missing loci
-    for ( int permMissing = 0; permMissing < numPermsMissing; permMissing++ ) {
-      permuteMissingLoci(isMissing, numMissingLoci, permMissing, HapAlleles, missingLoci,
-			 HapAllelesNoMissing);
-      hpair.haps[0] = codeHapAllelesAsInt(&(HapAllelesNoMissing[0]));
-      PossibleHapPairs.push_back(hpair); 
-    }
-    
-  }
-
-}
