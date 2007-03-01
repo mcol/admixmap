@@ -227,7 +227,7 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _optio
 			     LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 			     bool AnnealedRun){
   const bool isMaster = Comms::isMaster();
-  //const bool isFreqSampler = Comms::isFreqSampler();
+  const bool isFreqSampler = Comms::isFreqSampler();
   //  const bool isWorker = Comms::isWorker();
   //cast Options object to HapMixOptions for access to HAPMIXMAP options
   HapMixOptions& options = (HapMixOptions&) _options;
@@ -236,7 +236,7 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _optio
   Log.setDisplayMode(Quiet);
   if(!AnnealedRun){    
     // output every 'getSampleEvery()' iterations
-    if(!(iteration % options.getSampleEvery()) && isMaster)
+    if(!(iteration % options.getSampleEvery()) && (isMaster || isFreqSampler))
       OutputParameters(iteration, &options, Log);
     
     //Updates and Output after BurnIn     
@@ -273,24 +273,21 @@ void HapMixModel::OutputParameters(int iteration, const Options *options, LogWri
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
 
-  if(options->getPopulations() > 1) L->OutputParams(iteration, Log);
+    //output sample mean and variance of arrival rates and the prior parameters
+  if(Comms::isMaster() && options->getPopulations() > 1) L->OutputParams(iteration, Log);
 
-  if((options->getDisplayLevel() > 2) && !options->getFixedAlleleFreqs())A.OutputPriorParams(cout, false);
+  if( Comms::isFreqSampler() &&  !options->getFixedAlleleFreqs() )
+    A.OutputPriorParams(cout, iteration > options->getBurnIn());
+
   // ** regression parameters
-  for(unsigned r = 0; r < R.size(); ++r)
-    R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
-  
-  // ** new line in log file but not on screen 
-  if( iteration == 0 ) {
-    Log.setDisplayMode(Off);
-    Log << "\n";
-    Log.setDisplayMode(Quiet);
-  }
+  if(Comms::isMaster())
+    for(unsigned r = 0; r < R.size(); ++r)
+      R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
   
   //if( options->getDisplayLevel()>2 ) cout << endl;
-  if( iteration > options->getBurnIn() ){
-    A.OutputPriorParams();
-
+  // ** new line in log file but not on screen 
+  if( iteration == 0 ) {
+    Log << Off << "\n"  << Quiet;
   }
   // cout << endl;
 }
