@@ -236,7 +236,7 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _optio
   Log.setDisplayMode(Quiet);
   if(!AnnealedRun){    
     // output every 'getSampleEvery()' iterations
-    if(!(iteration % options.getSampleEvery()) && (isMaster || isFreqSampler))
+    if(!(iteration % options.getSampleEvery()) && (isMaster/* || isFreqSampler*/))
       OutputParameters(iteration, &options, Log);
     
     //Updates and Output after BurnIn     
