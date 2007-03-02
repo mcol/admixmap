@@ -104,7 +104,8 @@ void HapMixFreqs::AllocateDiploidGenotypeProbs(){
   for(int i = 0; i < NumberOfCompositeLoci; ++i)
      DiploidGenotypeProbs.array[i] = new double[3*Populations*Populations];
 #else
-  DiploidGenotypeProbs.array = new double[NumberOfCompositeLoci*3*Populations*Populations];
+  DiploidGenotypeProbs.alloc(NumberOfCompositeLoci*3*Populations*Populations);
+  DiploidGenotypeProbs.stride = 3*Populations*Populations;
 #endif
 }
 

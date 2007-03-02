@@ -108,6 +108,9 @@ typedef struct{
 }array_of_allelecounts;
 
 class FreqArray {
+private:
+  bool dynall;
+
 public:
   double* array;
   unsigned stride;
@@ -115,11 +118,28 @@ public:
   FreqArray(){
    array = 0;
    stride = 0;
+   dynall = false;
   }
 
   FreqArray(double* a, unsigned s){
    array = a;
    stride = s;
+   dynall =false;
+  }
+
+  ~FreqArray(){
+    if(dynall) delete[] array;
+  }
+  void alloc(unsigned size){
+    array = new double[size];
+    if(!array){
+      throw ("ERROR in FreqArray: unable to allocate memory");
+    }
+    else{
+      dynall = true;
+//      fill(array, array+size, 0.0);
+      for(unsigned i = 0; i < size; ++i)array[i] = 0.0;
+    }
   }
 
   FreqArray operator+(unsigned i){
@@ -133,13 +153,14 @@ public:
     return array + i*stride;
   };
 //NOTE be very careful using this function
-  void dealloc(int ){
-    if(array){
-      delete[] array;
-      array = 0;
-    }
-  };
+//  void dealloc(int ){
+  //   if(array){
+  //   delete[] array;
+  //  array = 0;
+  // }
+  //};
 };
+
 #endif
 
 

@@ -37,7 +37,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
                  ( !strlen(options.getPriorAlleleFreqFilename()) && !strlen(options.getInitialAlleleFreqFilename()) ));
 
   //if there are any diploid individuals, allocate space for diploid genotype probs
-  if(numdiploid && isFreqSampler || isWorker){
+  if(numdiploid && (isFreqSampler || isWorker)){
     A.AllocateDiploidGenotypeProbs();
     A.SetDiploidGenotypeProbs();
   }
@@ -227,7 +227,7 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _optio
 			     LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
 			     bool AnnealedRun){
   const bool isMaster = Comms::isMaster();
-  const bool isFreqSampler = Comms::isFreqSampler();
+  //const bool isFreqSampler = Comms::isFreqSampler();
   //  const bool isWorker = Comms::isWorker();
   //cast Options object to HapMixOptions for access to HAPMIXMAP options
   HapMixOptions& options = (HapMixOptions&) _options;
