@@ -1,5 +1,5 @@
 /** 
- *   Scoretests.cc 
+ *   ScoreTests.cc 
  *   Class implements the following score tests:
  *   (1) Score test for admixture association (admixturescoretest)
  *   (2) Score test for allelic association
@@ -15,10 +15,10 @@
  * 
  */
 
-#include "ScoreTests.h"
 #include <numeric>
+#include <gsl/gsl_cdf.h>
+#include "ScoreTests.h"
 #include "utils/linalg.h"
-#include "gsl/gsl_cdf.h"
 #include "regression/Regression.h"
 #include "Comms.h"
 

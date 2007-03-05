@@ -7,8 +7,8 @@
 #include <fstream>
 #include <iomanip>
 #include <math.h>
-#include <string.h>
-#include <stdlib.h>
+#include <string>
+#include <cstdlib>
 #include <values.h>
 #include <vector>
 #include "GPI.h"

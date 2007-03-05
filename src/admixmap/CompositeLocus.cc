@@ -54,10 +54,8 @@ CompositeLocus::~CompositeLocus()
 }
 
 // ******** Initialisation *************************
-/**
- * sets number of alleles/haplotypes in this composite locus.
- *
- */
+
+/// sets number of alleles/haplotypes in this composite locus.
 void CompositeLocus::SetNumberOfStates( int newNumberOfStates )
 {
    NumberOfStates= newNumberOfStates;
@@ -69,13 +67,11 @@ void CompositeLocus::SetNumberOfPopulations(int pops){
 void CompositeLocus::SetRandomAlleleFreqs(bool b){
   RandomAlleleFreqs = b;
 }
-/**
- * Extends the composite locus by adding one simple locus with given
+/** Extends the composite locus by adding one simple locus with given
  * number of alleles to the end of the composite locus.
  *
  * alleles - the number of alleles in the simple locus to be added
  */
-
 void CompositeLocus::AddLocus( int alleles, string label = "")
 { 
   NumberOfAlleles.push_back(alleles);
@@ -97,8 +93,7 @@ void CompositeLocus::AddLocus( int alleles, string label = "")
 // }
 
 // ****** Accessors ***************************************
-/**
- * Gets the number of simple loci in this composite locus.
+/** Gets the number of simple loci in this composite locus.
  * 
  * Returns:
  * the number of simple loci
@@ -108,9 +103,10 @@ int CompositeLocus::GetNumberOfLoci()const
    return( NumberOfLoci );
 }
 
-/**
- * Returns the number of states at this composite 
- * locus. If this composite locus comprises a single locus, the 
+/** Returns the number of states at this composite 
+ * locus.
+ * 
+ * If this composite locus comprises a single locus, the 
  * number of states will be equal to the number of alleles. If there 
  * are more than one locus in this composite, the number of states 
  * will be equal to the number of possible haplotypes.
@@ -121,10 +117,9 @@ int CompositeLocus::GetNumberOfStates()const
 }
 
 
-/**
- * Gets the number of alleles at a given simple locus.
+/** Gets the number of alleles at a given simple locus.
+ * 
  * Exits with an error if the simple locus does not exist.
- *
  */
 int CompositeLocus::GetNumberOfAllelesOfLocus( int locus )const
 {
@@ -135,9 +130,7 @@ int CompositeLocus::GetNumberOfAllelesOfLocus( int locus )const
    return( NumberOfAlleles[ locus ] );
 }
 
-/**
- * Gets the name of this composite locus
- */
+///Gets the name of this composite locus
 const string CompositeLocus::GetLabel(int index)const
 {
   if(index < NumberOfLoci)
@@ -145,10 +138,12 @@ const string CompositeLocus::GetLabel(int index)const
   else return Label[NumberOfLoci-1];
 }
 
-/**
-  returns array of marginal probs for each allele at each simple locus, for ancestry state k,  within the composite locus.
-  P must be of correct dimensions: ie a ragged array with dimensions numloci and numalleles
-*/
+/** returns array of marginal probs for each allele at each simple locus
+ * 
+ * for ancestry state k,  within the composite locus.
+ * P must be of correct dimensions: ie a ragged array with dimensions
+ * numloci and numalleles
+ */
 void CompositeLocus::getLocusAlleleProbs(double **P, int k)const{
 
  for(int j = 0; j < NumberOfLoci; ++j)
@@ -191,18 +186,17 @@ void CompositeLocus::InitialiseHapPairProbsMAP(){
 #endif
 }
 
-/**
-   Sets AlleleProbsMAP to point to FreqsMAP in AlleleFreqs . 
-*/
+///Sets AlleleProbsMAP to point to FreqsMAP in AlleleFreqs.
 void CompositeLocus::setAlleleProbsMAP(const double* const FreqsMAP) {
   AlleleProbsMAP = FreqsMAP;
 }
 
-/**
-   Sets haplotype pair probabilities.
-   Called every time the haplotype frequencies change. Sets elements in the  
-   array of probabilities of ordered haplotype pairs for each ordered pair of ancestry states
-*/
+/** Sets haplotype pair probabilities.
+ * 
+ * Called every time the haplotype frequencies change. Sets elements
+ * in the array of probabilities of ordered haplotype pairs for each
+ * ordered pair of ancestry states
+ */
 #ifndef PARALLEL
 void CompositeLocus::SetHapPairProbs(){
   SetHapPairProbs(AlleleProbs, HapPairProbs);
@@ -282,7 +276,7 @@ void CompositeLocus::AccumulateAlleleProbs(){
 
 #ifndef PARALLEL 
 /**
- * returns probabilities of ordered hap pairs conditional on hidden states
+ * Returns probabilities of ordered hap pairs conditional on hidden states
  * TODO: write alternative for parallel version using AlleleProbs
  */
 void CompositeLocus::getConditionalHapPairProbs(std::vector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
@@ -305,7 +299,7 @@ void CompositeLocus::getConditionalHapPairProbs(std::vector<double>& Probs, cons
       sum += prob;//accumulate probs in order to renormalize
     }
     else{//haploid
-      throw string("ERROR: attempting to compute posterior genotypes probs for haploid individual!");
+      throw string("CompositeLocus::getConditionalHapPairProbs: ERROR: attempting to compute posterior genotypes probs for haploid individual!");
 //       const double prob = AlleleProbs[ancestry[0]*NumberOfStates + hiter->haps[0]];
 //       Probs[hiter->haps[0]] = prob;
 //       sum += prob;  
@@ -466,8 +460,7 @@ const int *CompositeLocus::GetHapLabels( int i )const
    return( HapLabels+i*NumberOfLoci );
 }
 
-/**
- * Returns number of haplotypes that have been merged.
+/** Returns number of haplotypes that have been merged.
  * This function is only used for monitoring.
  */
 int CompositeLocus::GetNumberOfMergedHaplotypes()const
@@ -475,8 +468,7 @@ int CompositeLocus::GetNumberOfMergedHaplotypes()const
    return( NumberOfMergedHaplotypes );
 }
 
-/**
- * Given haplotype, returns merged haplotype.
+/** Given haplotype, returns merged haplotype.
  * This function is only used for monitoring.
  */
 int CompositeLocus::GetMergedHaplotype( int i )const

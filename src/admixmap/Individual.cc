@@ -41,7 +41,7 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
   }  
-  missingGenotypes = 0;//allocated later, if needed
+  missingGenotypes = NULL;//allocated later, if needed
   //retrieve genotypes
   Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
   isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
@@ -73,7 +73,12 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
 
-  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
+  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers
+  // Initialize the array
+  for (int chrNo = 0; chrNo < numChromosomes; ++chrNo) {
+    LocusAncestry[chrNo] = NULL;
+  }
+
   //initialise genotype probs array and array of indicators for genotypes missing at locus
 
   size_t AncestrySize = 0;  // set size of locus ancestry array
@@ -98,14 +103,18 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
 
 //********** Destructor **********
 Individual::~Individual() {
-  delete[] PossibleHapPairs;
+  if (PossibleHapPairs) delete[] PossibleHapPairs;
 
   if(GenotypesMissing){
-    for(unsigned j = 0; j < numChromosomes; ++j)delete[] GenotypesMissing[j];
+    for(unsigned j = 0; j < numChromosomes; ++j) {
+      delete[] GenotypesMissing[j];
+    }
     delete[] GenotypesMissing;
   }
   if(LocusAncestry){
-    for(unsigned j = 0; j < numChromosomes; ++j)delete[] LocusAncestry[j];
+    for(unsigned j = 0; j < numChromosomes; ++j) {
+      delete[] LocusAncestry[j];
+    }
     delete[] LocusAncestry;
   }
 
@@ -135,11 +144,13 @@ void Individual::setGenotypesToMissing(){
 }
 
 void Individual::DeleteGenotypes(){
-  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j){
+  int noCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  for(unsigned j = 0; j < noCompositeLoci; ++j){
 #ifdef PARALLEL
       genotypes[j][0].clear();
 #else
-    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k)
+    int noLoci = Loci->getNumberOfLoci(j);
+    for(int k = 0; k < noLoci; ++k)
       genotypes[j][k].clear();
 #endif
     genotypes[j].clear();
@@ -153,7 +164,8 @@ void Individual::SetMissingGenotypes(){
   if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
   missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
   unsigned index = 0;
-  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+  unsigned noCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  for(unsigned j = 0; j < noCompositeLoci; ++j)
     for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
       missingGenotypes[index++] = (genotypes[j][k][0] == 0);
     }
@@ -187,15 +199,25 @@ const int* Individual::getSampledHapPair(int locus)const{
   return sampledHapPairs[locus].haps;
 }
 
-void Individual::GetLocusAncestry(int locus, int Ancestry[2])const{
+/** Get the locus ancestry by the absolute locus index,
+ * ingoring the chromosome.
+ */
+void Individual::GetLocusAncestry(int locus, int Ancestry[2])
+const
+{
   unsigned c, l;
   Loci->GetChrmAndLocus(locus, &c, &l);
   GetLocusAncestry(c, l, Ancestry);
 }
-void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const {
+
+void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])
+const
+{
   Ancestry[0]  = LocusAncestry[chrm][locus];
-  if(isHaploid || ((unsigned)chrm == X_posn && !SexIsFemale))Ancestry[1] = Ancestry[0];
-  else Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
+  if(isHaploid || ((unsigned)chrm == X_posn && !SexIsFemale))
+    Ancestry[1] = Ancestry[0];
+  else
+    Ancestry[1] = LocusAncestry[chrm][Loci->GetSizesOfChromosomes()[chrm]  + locus];
 }
 
 ///returns value of LocusAncestry at a locus for a particular gamete
@@ -394,4 +416,3 @@ void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regress
     }
   }
 }
-

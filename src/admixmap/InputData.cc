@@ -649,7 +649,7 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
  if(i > NumIndividuals && NumCCIndividuals) {
     GetCaseControlGenotype(i, SexColumn, Loci, genotypes, Missing);
     return;
-  } 
+  }
 
   unsigned int simplelocus = 0;//simple locus counter
   unsigned complocus = 0;
