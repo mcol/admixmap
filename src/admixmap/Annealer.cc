@@ -15,15 +15,25 @@
 #include <fstream>
 #include <math.h>
 
-Annealer::Annealer(bool thermo, unsigned numAnnealedRuns, unsigned samples, unsigned burnin, const char* filename){
+Annealer::Annealer(){
   IntervalRatio = 1.03; // size of increments of coolness increases geometrically
-  NumAnnealedRuns = numAnnealedRuns; // number of annealed runs excluding last run at coolness of 1
+  IntervalWidths = 0;
+  Coolnesses = 0;
+  NumAnnealedRuns = 0;
+  Thermo = false;
+  _samples = 0;
+  _burnin = 0;
   SumEnergy = 0.0;
   SumEnergySq = 0.0;
   LogEvidence = 0.0;
   MeanEnergy = 0.0;
   VarEnergy = 0.0;
   LastMeanEnergy = 0.0;
+}
+
+void Annealer::Initialise(bool thermo, unsigned numAnnealedRuns, unsigned samples, unsigned burnin, const char* filename){
+
+  NumAnnealedRuns = numAnnealedRuns; // number of annealed runs excluding last run at coolness of 1
   Thermo = thermo;
   IntervalWidths = 0;
   Coolnesses = 0;
@@ -39,6 +49,8 @@ Annealer::Annealer(bool thermo, unsigned numAnnealedRuns, unsigned samples, unsi
 
 Annealer::~Annealer(){
   if(annealstream.is_open())annealstream.close();
+  delete[] IntervalWidths;
+  delete[] Coolnesses;
 }
 
 void Annealer::PrintRunLengths(LogWriter& Log, bool testoneindiv){
@@ -123,7 +135,7 @@ void Annealer::CalculateLogEvidence(int run, double coolness, double SumEnergy, 
     annealstream <<"\t"<< LogEvidence << std::endl; 
     LastMeanEnergy = MeanEnergy;
   }
-  std::cout << "\t\tMeanEnergy = " << MeanEnergy << "        " << std::flush;
+  std::cout << "\tMeanEnergy = " << MeanEnergy << "        " << std::flush;
 }
 
 void Annealer::CalculateLogEvidence(double *SumEnergy, double*SumEnergySq, unsigned size){

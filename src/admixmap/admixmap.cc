@@ -100,7 +100,14 @@ int main( int argc , char** argv ){
       // nothing to do except calculate likelihood
       M.getOnePopOneIndLogLikelihood(Log, data.GetPopLabels());
     else {
-      M.Run(options, data, Log);
+      int NumAnnealedRuns = options.getNumAnnealedRuns();
+      if( options.getTestOneIndivIndicator() )NumAnnealedRuns = 0;
+
+      if(options.getTestOneIndivIndicator()) { 
+	M.TestIndivRun(options, data, Log, NumAnnealedRuns);
+      } 
+      else
+	M.Run(options, data, Log, NumAnnealedRuns);
     }
 
     if(isMaster){

@@ -93,7 +93,8 @@ int main( int argc , char** argv ){
 
     data.Delete();
  
-    M.Run(options, data, Log);
+    M.Run(options, data, Log, options.getNumAnnealedRuns());
+
   } 
   catch (const string& msg) {//catch any stray error messages thrown upwards
     ThrowException(msg, Log);

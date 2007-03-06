@@ -30,6 +30,7 @@
 #include "ScoreTests.h"
 #include "HWTest.h"
 #include "Comms.h"
+#include "Annealer.h"
 
 void MakeResultsDir(const char* dirname, bool verbose, bool DeleteExistingFiles=true);
 
@@ -47,11 +48,16 @@ public:
   
   Model();
   virtual ~Model();
-  void Run(Options& options, InputData& data, LogWriter& Log);
+
+  void Run(Options& options, InputData& data, LogWriter& Log, 
+		 int NumAnnealedRuns);
+  void TestIndivRun(Options& options, InputData& data, LogWriter& Log,  
+		    int NumAnnealedRuns);
+
   void Iterate(const int & samples, const int & burnin, const double* Coolnesses, unsigned coolness,
 	       Options & options, InputData & data, LogWriter& Log, 
 	       double & SumEnergy, double & SumEnergySq, 
-	       double& logz, bool AnnealedRun, ofstream & loglikelihoodfile);
+	       bool AnnealedRun);
   
   virtual void SubIterate(int iteration, const int& burnin, Options & options, InputData & data, 
                           LogWriter& Log, double & SumEnergy, double & SumEnergySq, 
@@ -93,7 +99,12 @@ protected:
   HWTest HWtest;
   ScoreTests Scoretests;
 private:
+  std::ofstream loglikelihoodfile;
+  Annealer A;
+  double AISsumlogz; //for computing marginal likelihood by Annealed Importance Sampling
 
+  void Start(Options& options, InputData& data, LogWriter& Log, int NumAnnealedRuns);
+  void Finish(Options& options, InputData& data, LogWriter& Log);
 };
 
 #endif /* MODEL_TOP_H */

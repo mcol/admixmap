@@ -18,7 +18,8 @@
 class Annealer{
 
 public:
-  Annealer(bool thermo, unsigned numAnnealedRuns, unsigned samples, unsigned burnin, const char* filename);
+  Annealer();
+  void Initialise(bool thermo, unsigned numAnnealedRuns, unsigned samples, unsigned burnin, const char* filename);
   ~Annealer();
 
   void PrintRunLengths(LogWriter& Log, bool testoneindiv);
