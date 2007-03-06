@@ -182,11 +182,11 @@ HapMixFreqs.o HapMixIndividual.o HapMixIndividualCollection.o MantelHaenszelTest
 all:	admixmap hapmixmap
 
 #ADMIXMAP serial
-admixmap:	checkbayeslib admixmap_message define_admixmap $(admixmap_objects) $(common_objects)
+admixmap:	checkbayeslib admixmap_message $(admixmap_objects) $(common_objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(ADMEXEC) $(admixmap_objects) $(common_objects) $(LFLAGS) $(LIBS)
 	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(ADMEXEC) \**
 #HAPMIXMAP serial
-hapmixmap:	checkbayeslib hapmixmap_message define_hapmixmap $(hapmixmap_objects) $(common_objects)
+hapmixmap:	checkbayeslib hapmixmap_message $(hapmixmap_objects) $(common_objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(HAPEXEC) $(hapmixmap_objects) $(common_objects) $(LFLAGS) $(LIBS)
 	@echo **HAPMIXMAP has been compiled as $(DESTDIR)/$(HAPEXEC) \**
 
@@ -201,13 +201,6 @@ hapmixmap-para:
 #ADMIXMAP parallel
 admixmap-para:
 	@$(MAKE) -fmanual.make admmixmap INCLUDES="$(PARALLEL_INCLUDES)" LFLAGS="$(PARALLEL_LFLAGS)" LIBS="$(PARALLEL_LIBS)" CXX=$(PCC) ADMEXEC=$(PARALLEL_ADMEXEC) BAYESLIB_RULES=parallel BAYESLIB_NAME=parabayeslib.a 
-
-define_admixmap:
-#	touch config.h
-	@echo "#define __ADMIXMAP__" > config.h
-define_hapmixmap:
-#	touch config.h
-	@echo "#define __HAPMIXMAP__" > config.h
 
 admixmap_message:	
 	@echo **Compiling ADMIXMAP**

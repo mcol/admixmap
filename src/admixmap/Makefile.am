@@ -9,8 +9,8 @@ bin_PROGRAMS		= hapmixmap admixmap
 noinst_LTLIBRARIES	= libgenepi.la
 
 hapmixmap_LDFLAGS	= $(STATIC_LDFLAGS)
-hapmixmap_CPPFLAGS	= -D__HAPMIXMAP__
-admixmap_CPPFLAGS	= -D__ADMIXMAP__
+hapmixmap_CPPFLAGS	=
+admixmap_CPPFLAGS	=
 
 hapmixmap_SOURCES	= hapmixmap.cc \
 			HapMixFreqs.cc \
