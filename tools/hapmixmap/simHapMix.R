@@ -216,3 +216,7 @@ genotypes <- data.frame(id, genotypes.cc[,seq(from=2, to=L, by=2)])
 ##write even-numbered genotypes to file
 dimnames(genotypes)[[2]] <- c("ID", paste("X", CCLoci, sep=""))
 write.table(genotypes, file="data/genotypes_casectrl.txt", sep="\t", row.names=F, col.names=T)
+
+##write an outcome variable file
+outcome <- data.frame(Outcome = sample(size=NN, x=c(0,1), replace=T))
+write.table(outcome, file="data/outcome.txt", row.names=F, col.names=T)
