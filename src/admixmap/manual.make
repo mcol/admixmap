@@ -60,18 +60,18 @@ VERSION = serial
 #VERSION = parallel
 
 ## processor type
-#ARCH = i686# Intel 686
+ARCH = i686# Intel 686
 #ARCH = P4#Pentium4
-ARCH = AMD64# Walton
+#ARCH = AMD64# Walton
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
-CC = $(PATHSCALE_COMPILER)#serial
-#CC = $(GNU_COMPILER)
+#CC = $(PATHSCALE_COMPILER)#serial
+CC = $(GNU_COMPILER)
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
-DESTDIR = ../test# where to put compiled exec
+DESTDIR = $(HOME)/bin# where to put compiled exec
 ADMEXEC = admixmap# name of compiled executable
 HAPEXEC = hapmixmap
 
