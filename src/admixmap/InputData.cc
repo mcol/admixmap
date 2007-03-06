@@ -235,6 +235,9 @@ unsigned InputData::determineNumberOfCompositeLoci()const{
 /// twice the number of strings in the header row minus one. 
 /// 
 bool InputData::determineIfPedFile()const {
+  if (geneticData_.size() <= 0) {
+    throw string("InputData::determineIfPedFile(): geneticData_ has size zero.");
+  }
   const bool isPedFile = (bool)(2*geneticData_[0].size() - 1 == geneticData_[1].size());
 
   return (isPedFile);
