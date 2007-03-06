@@ -68,6 +68,9 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
 
   LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
+  for (unsigned chrNo = 0; chrNo < numChromosomes; ++chrNo) {
+    LocusAncestry[chrNo] = NULL;
+  }
   //initialise genotype probs array and array of indicators for genotypes missing at locus
 
   size_t AncestrySize = 0;  // set size of locus ancestry array
