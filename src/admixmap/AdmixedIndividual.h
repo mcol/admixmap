@@ -33,6 +33,7 @@ public:
   static void SetStaticMembers(Genome* const pLoci, const Options* const options);
   static void DeleteStaticMembers();
   void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
+  void SetMissingGenotypes();
 
   double getSumrho()const;
   const std::vector<double> getRho()const;

@@ -33,6 +33,14 @@ AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
 
 AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const options, const InputData* const Data,  
 				     bool undertest=false){
+  GenotypesMissing = new bool*[numChromosomes];
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
+  }  
+
+  //retrieve genotypes
+  Data->GetGenotype(number, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
+  isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
 
   Individual::Initialise(number, options, Data); 
   IAmUnderTest = undertest;
@@ -151,6 +159,17 @@ void AdmixedIndividual::SetPossibleHaplotypePairs(const vector<vector<unsigned s
   }
 }
 
+void AdmixedIndividual::SetMissingGenotypes(){
+  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
+  //used in HW score test; NB call before genotypes are deleted
+  if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
+  missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
+  unsigned index = 0;
+  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
+      missingGenotypes[index++] = (genotypes[j][k][0] == 0);
+    }
+}
 //********** Destructor **********
 AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumSoftmaxTheta;

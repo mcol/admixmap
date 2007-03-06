@@ -29,23 +29,17 @@ int Individual::Populations;
 
 //******** Constructors **********
 Individual::Individual() {//should initialise pointers here
+  missingGenotypes = 0;//allocated later, if needed
 }
 Individual::Individual(int number, const Options* const options, const InputData* const Data) {
+  missingGenotypes = 0;//allocated later, if needed
   Initialise(number, options, Data);
 }
 
 void Individual::Initialise(int number, const Options* const options, const InputData* const Data) {
   myNumber = number;
-  NumGametes = 1;
-  GenotypesMissing = new bool*[numChromosomes];
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
-  }  
-  missingGenotypes = NULL;//allocated later, if needed
-  //retrieve genotypes
-  Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
-  isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
   if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
+  else NumGametes = 1;
   
   // Read sex value if present.
   SexIsFemale = false;
@@ -73,12 +67,7 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
 
-  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers
-  // Initialize the array
-  for (int chrNo = 0; chrNo < numChromosomes; ++chrNo) {
-    LocusAncestry[chrNo] = NULL;
-  }
-
+  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
   //initialise genotype probs array and array of indicators for genotypes missing at locus
 
   size_t AncestrySize = 0;  // set size of locus ancestry array
@@ -144,7 +133,7 @@ void Individual::setGenotypesToMissing(){
 }
 
 void Individual::DeleteGenotypes(){
-  int noCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  unsigned noCompositeLoci = Loci->GetNumberOfCompositeLoci();
   for(unsigned j = 0; j < noCompositeLoci; ++j){
 #ifdef PARALLEL
       genotypes[j][0].clear();
@@ -156,19 +145,6 @@ void Individual::DeleteGenotypes(){
     genotypes[j].clear();
   }
   genotypes.clear();
-}
-
-void Individual::SetMissingGenotypes(){
-  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
-  //used in HW score test; NB call before genotypes are deleted
-  if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
-  missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
-  unsigned index = 0;
-  unsigned noCompositeLoci = Loci->GetNumberOfCompositeLoci();
-  for(unsigned j = 0; j < noCompositeLoci; ++j)
-    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
-      missingGenotypes[index++] = (genotypes[j][k][0] == 0);
-    }
 }
 
 //********** sets static members, including allocation and deletion of static objects for score tests
@@ -305,10 +281,10 @@ void Individual::SampleLocusAncestry(const Options* const options){
   } //end chromosome loop
 }
 
-//ADDHERE - new method to calculate genotype probs as an average over conditional probs of hidden states
-// call this method from IndividualCollection.cc just after SampleLocusAncestry
+//ADDHERE - new function to calculate genotype probs as an average over conditional probs of hidden states
+// call this function from IndividualCollection.cc just after SampleLocusAncestry
 //
-// call new method in Chromosome to get state probs
+// call new function in Chromosome to get state probs
 // unchanged state probs from HMM
 
 
@@ -323,7 +299,7 @@ void Individual::SampleLocusAncestry(const Options* const options){
 // 	    UnorderedProbs[1] = vector<double>(1, OrderedProbs[1] + OrderedProbs[2]);//P(1 copy of allele2)
 // 	    UnorderedProbs[2] = vector<double>(1, OrderedProbs[3]);//P(2 copies of allele2)
 // now multiply result by conditional probs of anc and accumulate result in array genotype probs (size 3 x number of loci)
-// also add a public method to get the genotype probs for this individual
+// also add a public function to get the genotype probs for this individual
 
 void Individual::AccumulateAncestry(int* SumAncestry){
   unsigned locus = 0;

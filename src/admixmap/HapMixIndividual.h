@@ -27,6 +27,7 @@ public:
   ~HapMixIndividual();
   static void SetStaticMembers(Genome* const pLoci, const Options* const options,
                             const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs);
+  void SetMissingGenotypes();
   bool GenotypeIsMissing(unsigned int locus)const;
   bool simpleGenotypeIsMissing(unsigned locus)const;
 

@@ -688,7 +688,7 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
 	  if(g.size()==1)++numhaploidX;
 	  else {//diploid X genotype
 	    if(!isFemale(i)){//males cannot have diploid X genotypes
-	      //cerr << "Genotype error in Individual " << i << ". Only females can have diploid X-chromosome genotypes.";
+	      //cerr << "Genotype error in Individual " << i << ". Males cannot have diploid X-chromosome genotypes.";
 	      //exit(1);
 	      //NOTE: allowing this for backward compatibility, for now
 	      //instead remove second element

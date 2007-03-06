@@ -40,7 +40,7 @@ public:
   void setOutcome(double*);
   void setCovariates(double*);
   void setGenotypesToMissing();
-  void SetMissingGenotypes();
+  virtual void SetMissingGenotypes() = 0;
 
   const double* getAdmixtureProps()const;
   const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;

@@ -23,13 +23,28 @@ HapMixIndividual::HapMixIndividual(){
 //Note: assuming SetStaticMembers is called first
 HapMixIndividual::HapMixIndividual(int number, const Options* const options, const InputData* const Data){
 
+  GenotypesMissing = new bool*[numChromosomes];
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
+  }  
+//  missingGenotypes = 0;//allocated later, if needed
+  //retrieve genotypes
+  Data->GetGenotype(number, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
+  DeleteGenotypes();
+//   for( unsigned int j = 0; j < numChromosomes; j++ ){
+//     delete[] GenotypesMissing[j];
+//   }  
+//   delete[] GenotypesMissing;
+//   GenotypesMissing = new bool*[numChromosomes];
+//   for( unsigned int j = 0; j < numChromosomes; j++ ){
+//     GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
+//   }  
+
+  //isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
+
+  isHaploid = Data->GetHapMixGenotype( number, options->getgenotypesSexColumn(), *Loci, &hgenotypes, GenotypesMissing);
   Individual::Initialise(number, options, Data);
 
-//    GenotypesMissing = new bool*[numChromosomes];
-//    for( unsigned int j = 0; j < numChromosomes; j++ ){
-//      GenotypesMissing[j] = new bool[Loci->GetSizeOfChromosome(j)];
-//    }  
-   isHaploid = Data->GetHapMixGenotype( myNumber, options->getgenotypesSexColumn(), *Loci, &hgenotypes, GenotypesMissing);
 
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
@@ -50,7 +65,7 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, con
   //Now the PossibleHapPairs have ben determined and missing genotype indicators have been set, 
   //the genotypes are deleted as they are no longer needed 
   if( options->getHWTestIndicator())SetMissingGenotypes();
-  DeleteGenotypes();
+  //DeleteGenotypes();
 
 }
 
@@ -93,6 +108,18 @@ void HapMixIndividual::SetPossibleHaplotypePairs(const vector<unsigned short>::c
       }
   }
 }
+void HapMixIndividual::SetMissingGenotypes(){
+  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
+  //used in HW score test; NB call before genotypes are deleted
+  if(hgenotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
+  missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
+  unsigned index = 0;
+  for(unsigned j = 0; j < Loci->GetNumberOfCompositeLoci(); ++j)
+    //for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
+      missingGenotypes[index++] = (hgenotypes[j] == 0);
+  //}
+}
+
 HapMixIndividual::~HapMixIndividual(){
 
 }
@@ -105,24 +132,6 @@ void HapMixIndividual::SetStaticMembers(Genome* const pLoci, const Options* cons
   Individual::SetStaticMembers(pLoci, options);
 
 }
-
-// void HapMixIndividual::SetPossibleHaplotypePairs(unsigned locus, vector<unsigned short>::const_iterator g, vector<hapPair> &PossibleHapPairs ){
-// #ifdef PARALLEL
-//     //NOTE: X data not yet supported in parallel version
-
-
-//   //TODO
-
-// #else
-//     //  Note: assuming  only SNPs. Otherwise would require incrementing iterator by NumLoci in comp locus
-//   if(isHaploid || (locus==X_posn && !SexIsFemale) )//haploid genotype
-//       (*Loci)(locus)->HaplotypeSetter.setPossibleHaplotypes(g, PossibleHapPairs);
-
-//   else{//diploid genotype
-//     ;//TODO
-//     }
-// #endif
-// }
 
 ///Indicates whether genotype is missing at all simple loci within a composite locus
 bool HapMixIndividual::GenotypeIsMissing(unsigned int locus)const {
