@@ -712,7 +712,7 @@ void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci, vector<gen
       ++complocus;
     }
   }
-  CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i);
+  CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i, geneticData_[i][0]);
 }
 
 bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vector<unsigned short>* genotypes, bool** Missing)const{
@@ -786,33 +786,47 @@ bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vect
      ++locus;
     }
   }
-  CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i);
+
+  const string ID = isCaseControl ? CCgeneticData_[i - NumIndividuals][0] : geneticData_[i][0];
+  CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i, ID);
   bool isHaploid = (bool)(numdiploid+numdiploidX == 0); 
 
 return isHaploid;
 }
 
 ///check an Individual's genotypes are valid
-void InputData::CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i)const{
+void InputData::CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const string& ID)const{
+
+///check for no observed genotypes
+    if(numhaploid + numdiploid + numhaploidX + numdiploidX ==0){
+        cerr << endl << "Genotype error in Individual " << ID << ": No observed genotypes." << endl;
+        exit(1);
+    }
+
+/// check for male with diploid X data
   if(numhaploidX + numdiploidX > 0){//some X genotypes present
-//     if(numdiploidX>0 && !isFemale(i)){//male with diploid X data
-//       cerr << "Genotype error in Individual " << i << ". Only females can have diploid X-chromosome genotypes.";
+//     if(numdiploidX>0 && !isFemale(i)){
+//       cerr << endl << "Genotype error in Individual " << ID << ": Males cannot have diploid X-chromosome genotypes." << endl;
 //       exit(1);
 //     }
+
     if(numhaploidX>0 && isFemale(i)){
-      if(numdiploidX >0){//female with haploid and diploid X data
-	cerr << "Genotype error in Individual " << i << ". Females should have diploid X-chromosome genotypes.";
+///check for female with haploid and diploid X data
+      if(numdiploidX >0){
+          cerr << endl << "Genotype error in Individual " << ID << ": Females should have diploid X-chromosome genotypes." << endl;
 	exit(1);
       }
-      if(numdiploid>0){//phased X data but unphased autosomal genotypes
-	cerr << "Genotype error in Individual " << i << ". Female with diploid autosomes and haploid X-Chromosome."; 
+///check for phased X data but unphased autosomal genotypes
+      if(numdiploid>0){
+          cerr << endl << "Genotype error in Individual " << ID << ": Female with diploid autosomes and haploid X-Chromosome." << endl; 
 	exit(1);
       }
     }
   }
   else{//only autosomes
-    if( numhaploid>0 && numdiploid > 0 ){//mixed haploid/diploid data
-      cerr << "Genotype error in Individual " << i << ". Both haploid and diploid genotypes and no X chromosome.";
+//check for mixed haploid/diploid data
+    if( numhaploid>0 && numdiploid > 0 ){
+        cerr << endl << "Genotype error in Individual " << ID << ": Both haploid and diploid genotypes and no X chromosome." << endl;
       exit(1);
     }
   }

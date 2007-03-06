@@ -153,7 +153,7 @@ private:
   std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
   std::vector<unsigned short> GetCaseControlGenotype(unsigned locus, unsigned* cclocus, int individual, int SexColumn)const;
   void throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const;
-  void CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i)const;
+  void CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const std::string& ID)const;
 
   std::vector<unsigned short> GetGenotype(const std::string genostring)const;
   void FindCaseControlLoci();
