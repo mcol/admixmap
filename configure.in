@@ -55,6 +55,15 @@ AC_ARG_ENABLE(parallel, [  --enable-parallel       Build the parallel version],
 
 AM_CONDITIONAL(PARALLEL, test x$parallel = xtrue)
 
+AC_ARG_ENABLE(converter, [  --enable-converter     Build the data converter],
+	      [case "${enableval}" in
+	       yes) converter=true ;;
+	       no) converter=false ;;
+	       *) AC_MSG_ERROR(bad value ${enableval} for --enable-converter) ;;
+	       esac], [converter=false])
+
+AM_CONDITIONAL(CONVERTER, test x$converter = xtrue)
+
 enable_static_binary="no"
 
 if test x$parallel = xtrue; then
@@ -141,6 +150,7 @@ Configuration:
   Parallel version:      ${enable_parallel}
   Static binary:         ${enable_static_binary}
   Unit-test:             ${unit_test}
+  User data converter:   ${converter}
 
   See config.h for further configuration information.
 ------------------------------------------------------------------------"
