@@ -22,10 +22,15 @@
 #include <string>
 #include <vector>
 #include "AdmixOptions.h"
+#include "GeneticDistanceUnit.h"
 #include "InputData.h"
+#include "interfaces/IGenome.h"
+
+using std::vector;
+using std::string;
 
 ///Container class for Chromosome and CompositeLocus objects.
-class Genome 
+class Genome : public IGenome
 {
 public:
 
@@ -35,14 +40,16 @@ public:
 
   void Initialise(const InputData* const data_, int populations, LogWriter &Log);
 
-  const std::vector< int > GetChrmAndLocus( int )const;
+  const vector<int> GetChrmAndLocus(int) const;
+  const int getChromosomeNumber(int) const;
+  const int getRelativeLocusNumber(int) const;
 
   const std::vector<  std::vector< int > >GetChrmAndLocus( )const;
   void GetChrmAndLocus(unsigned locus, unsigned* c, unsigned* l);
 
   bool isX_data()const;
 
-  CompositeLocus* operator()(int) const;
+  ICompositeLocus* operator()(int) const;
 
   void SetLabels(const std::vector<std::string> &labels, const std::vector<double> &distances);
 
@@ -66,8 +73,8 @@ public:
   double GetDistance(int)const;
 
   void GetChromosomes(int);
-  const Chromosome* const* getChromosomes()const;
-  Chromosome* getChromosome(unsigned);
+  const IChromosome* const* getChromosomes()const;
+  IChromosome *getChromosome(unsigned);
 
   void PrintLocusTable(const char* filename, const std::vector<double>& Distances)const;
 
@@ -81,7 +88,7 @@ public:
   void SetLocusCorrelation(double rho);
 
 private:
-  Chromosome **C;
+  IChromosome **C;
   double *Distances;
   unsigned int NumberOfCompositeLoci;
   CompositeLocus *LocusArray; 
@@ -93,8 +100,13 @@ private:
   unsigned int *SizesOfChromosomes;
   bool X_data;
   unsigned XChromosomeIndex;
-  std::vector< std::vector< int > > LocusTable;
-  std::vector<std::string> ChrmLabels;
+  /** Index of chromosomes and loci.
+   *
+   * LocusTable[i][0] is the chromosome
+   * LucusTable[i][1] is the locus index
+   */
+  vector<vector<int> > LocusTable;
+  vector<string> ChrmLabels;
 
   void InitialiseChromosomes(const vector<unsigned> cstart, int populations);
   void PrintSizes(LogWriter &Log, GeneticDistanceUnit u)const;

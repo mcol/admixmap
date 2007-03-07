@@ -102,7 +102,7 @@ ScoreTests::~ScoreTests(){
   }
 }
 
-void ScoreTests::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci, 
+void ScoreTests::Initialise(Options* op, const IndividualCollection* const indiv, const IGenome* const Loci, 
 			    const Vector_s& PLabels, LogWriter &Log){
   options = op;
   individuals = indiv;
@@ -396,27 +396,19 @@ void ScoreTests::Update(const vector<Regression* >& R)
       //allelic association
       if( options->getTestForAllelicAssociation() )
 	if(options->getHapMixModelIndicator()){
-	  vector<double>OrderedProbs(4);
-	  vector<vector<double> > UnorderedProbs(3);
-	  int anc[2];
+	  // vector<double>OrderedProbs(4);
+	  vector<vector<double> > UnorderedProbs(3, vector<double>(1));
 
-	  for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )if(Lociptr->GetNumberOfStates(j)==2){//SNPs only
-
-	    ind->GetLocusAncestry(j, anc); // replace this with call to a new function in individual.cc that gets the genotype probs (probs 0, 1, 2 copies allele 2
-
-	    // next few lines should be moved to new functio in individual.cc
-#ifndef PARALLEL
-	    (*Lociptr)(j)->getConditionalHapPairProbs(OrderedProbs, ind->getPossibleHapPairs(j), anc);
-#else
-            //TODO: write alternative for parallel version
-#endif
-	    UnorderedProbs[0] = vector<double>(1, OrderedProbs[0]);//P(no copies of allele2)
-	    UnorderedProbs[1] = vector<double>(1, OrderedProbs[1] + OrderedProbs[2]);//P(1 copy of allele2)
-	    UnorderedProbs[2] = vector<double>(1, OrderedProbs[3]);//P(2 copies of allele2)
-
-	    // from this line onward, code does not change - rest of score test update remains same
-	    NewAllelicAssocTest.Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
-	  }
+    unsigned int numberCompositeLoci = Lociptr->GetNumberOfCompositeLoci();
+    for(unsigned int j = 0; j < numberCompositeLoci; j++ ) {
+      // SNPs only
+      if (Lociptr->GetNumberOfStates(j) == 2) {
+//        ind->calculateUnorderedProbs(j);
+        UnorderedProbs = ind->getUnorderedProbs(j); 
+  	    // from this line onward, code does not change - rest of score test update remains same
+	      NewAllelicAssocTest.Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
+	    }
+    }
 	}
 	else
 	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
@@ -636,7 +628,7 @@ void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info,
   delete[] cinfo;
 }
 
-void ScoreTests::UpdateScoresForResidualAllelicAssociation(const FreqArray& AlleleFreqs){
+void ScoreTests::UpdateScoresForResidualAllelicAssociation(const IFreqArray& AlleleFreqs){
   ResidualAllelicAssocScoreTest.Update(AlleleFreqs, options->getHapMixModelIndicator());
 }
 

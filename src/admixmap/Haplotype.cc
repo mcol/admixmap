@@ -13,7 +13,7 @@
 #include "Haplotype.h"
 
 Haplotype::Haplotype(){
-  base = 0;
+  base = NULL;
   NumberOfLoci = 0;
 }
 Haplotype::~Haplotype(){

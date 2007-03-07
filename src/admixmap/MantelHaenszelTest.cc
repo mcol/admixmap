@@ -23,7 +23,7 @@ MantelHaenszelTest::~MantelHaenszelTest(){
   }
 }
 
-void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci, const char* filename, LogWriter& Log){
+void MantelHaenszelTest::Initialise(unsigned NumStates, const IGenome* const loci, const char* filename, LogWriter& Log){
   K = NumStates;
   Ksq = K*K;
   numPrintedIterations = 0;
@@ -45,7 +45,7 @@ void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci
   }
 }
 
-void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Loci){
+void MantelHaenszelTest::Update(const IndividualCollection* IC, const IGenome& Loci){
   const std::vector<unsigned> nulltable(4, 0);
   const int NumWorkers = Comms::getNumWorkers();
   int ancA[2];//ancestry at A

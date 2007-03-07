@@ -26,7 +26,7 @@ using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
-PopHapMix::PopHapMix( HapMixOptions* op, Genome* loci)
+PopHapMix::PopHapMix( HapMixOptions* op, IGenome* loci)
 {
   options = op;
   Loci = loci;

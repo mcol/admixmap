@@ -183,7 +183,7 @@ AdmixedIndividual::~AdmixedIndividual() {
   //GPArray.dealloc(Loci->GetNumberOfCompositeLoci());
 }
 
-void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const Options* const options){
+void AdmixedIndividual::SetStaticMembers(IGenome* const pLoci, const Options* const options){
   Individual::SetStaticMembers(pLoci, options);
 }
 // draw initial values for admixture proportions theta from Dirichlet prior 
@@ -442,7 +442,7 @@ void AdmixedIndividual::ResetSufficientStats(){
 
 void AdmixedIndividual::SampleJumpIndicators(bool sampleArrivals){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    Chromosome* C = Loci->getChromosome(j);
+    IChromosome* C = Loci->getChromosome(j);
     // don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
     //sample number of arrivals, update SumNumArrivals and SumLocusAncestry
     if( !Loci->isXChromosome(j) )
@@ -872,7 +872,7 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const opt
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
   const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
-  Chromosome* C = Loci->getChromosome(j);
+  IChromosome* C = Loci->getChromosome(j);
 
   //offset GPI to point to genotype probs for the first locus on chromosome, no column offset
   GPI.Offset(C->GetLocus(0));
@@ -921,7 +921,7 @@ void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatr
 				     const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest){
 //merge with updatescoretests
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    Chromosome* C = Loci->getChromosome(j);
+    IChromosome* C = Loci->getChromosome(j);
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
       //Update Forward/Backward probs in HMM
       if( !logLikelihood.HMMisOK ) {
@@ -941,7 +941,7 @@ void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatr
 }
 
 void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-					 Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest){
+					 IChromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest){
   bool IamAffected = false;
   try {
     if( options->getTestForAffectedsOnly()){

@@ -85,7 +85,7 @@ if( IsHistoricAlleleFreq || CorrelatedAlleleFreqs ) {
 }
 
 // ************** Initialisation and loading of data  *******************
-void DispersionFreqs::Initialise(AdmixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log, bool MAP){
+void DispersionFreqs::Initialise(AdmixOptions* const options, InputData* const data, IGenome *pLoci, LogWriter &Log, bool MAP){
   //initialise Freqs, PriorAlleleFreqs, HistoricAlleleFreqs etc
   Loci = pLoci;
   Populations = options->getPopulations();

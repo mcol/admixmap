@@ -77,7 +77,7 @@ void HWTest::Reset(){
   }
 }
 
-void HWTest::Update(const IndividualCollection* const IC, const Genome* const Loci){
+void HWTest::Update(const IndividualCollection* const IC, const IGenome* const Loci){
   double H; // prob heterozygous
   bool h;
   int locus = 0; // absolute simple locus number within loop over individuals

@@ -14,11 +14,12 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H 1
 
-#include "common.h"
-#include "utils/LogWriter.h"
-#include <string.h>
 #include <string>
 #include <map>
+#include "common.h"
+#include "utils/LogWriter.h"
+#include "interfaces/IOptions.h"
+
 using namespace::std;
 
 /// map to hold user options
@@ -29,7 +30,7 @@ typedef pair<void*,  string> OptionPair;
 typedef map<string, OptionPair >OptionMap;
 
 /// Class to hold program options
-class Options
+class Options : public IOptions
 {
 public:
   virtual ~Options();

@@ -12,16 +12,22 @@
  */
 #include "HapMixIndividual.h"
 
-const FreqArray* HapMixIndividual::HaploidGenotypeProbs;
-const FreqArray* HapMixIndividual::DiploidGenotypeProbs;
+const IFreqArray* HapMixIndividual::HaploidGenotypeProbs;
+const IFreqArray* HapMixIndividual::DiploidGenotypeProbs;
 GenotypeProbIterator HapMixIndividual::GPI;
 
-HapMixIndividual::HapMixIndividual(){
-
-}
+// No default constructor
+//HapMixIndividual::HapMixIndividual(){
+//
+//}
 
 //Note: assuming SetStaticMembers is called first
-HapMixIndividual::HapMixIndividual(int number, const Options* const options, const InputData* const Data){
+HapMixIndividual::HapMixIndividual(
+    int number,
+    const IOptions* const options,
+    const IInputData* const Data)
+//try
+{
 
   GenotypesMissing = new bool*[numChromosomes];
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -46,9 +52,9 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, con
   Individual::Initialise(number, options, Data);
 
 
-  int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
+  unsigned numCompositeLoci = Loci->GetNumberOfCompositeLoci();
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
-  for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
+  for(unsigned j = 0; j < numCompositeLoci; ++j) {
     ploidy p = ( !isHaploid && (!Loci->isXLocus(j) || SexIsFemale)) ? diploid : haploid;
     //#ifdef PARALLEL
     //cannot use function in CompositeLocus because workers have no CompositeLocus objects
@@ -124,8 +130,12 @@ HapMixIndividual::~HapMixIndividual(){
 
 }
 
-void HapMixIndividual::SetStaticMembers(Genome* const pLoci, const Options* const options,
-                            const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs){
+void HapMixIndividual::SetStaticMembers(
+    IGenome* const pLoci,
+    const IOptions* const options,
+    const IFreqArray& haploidGenotypeProbs,
+    const IFreqArray& diploidGenotypeProbs)
+{
   HaploidGenotypeProbs = &haploidGenotypeProbs;
   DiploidGenotypeProbs = &diploidGenotypeProbs;
 
@@ -150,7 +160,7 @@ bool HapMixIndividual::simpleGenotypeIsMissing(unsigned locus)const{
 void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const options, 
 				 const double* const , const vector<double> ) {
 
-  Chromosome* C = Loci->getChromosome(j);
+  IChromosome* C = Loci->getChromosome(j);
   const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
   const unsigned locus0 = C->GetLocus(0);//index of first locus on chromosome
 

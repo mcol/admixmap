@@ -5,7 +5,7 @@
 #include "regression/Regression.h"
 #include "Comms.h"
 
-HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A){
+HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, IGenome* Loci, const HapMixFreqs* A){
   SetNullValues();
   GlobalSumAncestry = 0;
   SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
@@ -66,10 +66,19 @@ void HapMixIndividualCollection::SampleLocusAncestry(const Options* const option
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** Run HMM forward recursions and sample locus ancestry
     _child[i]->SampleLocusAncestry(options);
+
+    if (
+      // If it's a control individual
+      i >= getFirstScoreTestIndividualNumber()
+      // And if the score tests are switched on
+      && strlen(options->getAllelicAssociationScoreFilename()) > 0
+      // FIXME: The next condition shouldn't be necessary.
+      && (not _child[i]->isHaploidIndividual()))
+    {
+      _child[i]->calculateUnorderedGenotypeProbs();
+    }
+
     _child[i]->AccumulateAncestry(SumAncestry);
-    // ADDHERE: call function in Individual.cc to calculate genotype probs at each locus
-    // individual constructor will need to allocate array of size 3 doubles at each locus for each individual 
-    // individual.cc will need a public method to get these genotype probs  
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, 0, "Sampledancestry");
@@ -90,12 +99,12 @@ int HapMixIndividualCollection::getNumberOfIndividualsForScoreTests()const{
   else return size;
 }
 
-int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()const{
+unsigned int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()const{
   if(NumCaseControls > 0)return size - NumCaseControls;
   else return 0;
 }
 //TODO: alternative for parallel version
-void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci){
+void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const IGenome& Loci){
   const std::vector<unsigned>& MaskedLoci = options->getMaskedLoci();
   const std::vector<unsigned>& MaskedIndividuals = options->getMaskedIndividuals();
   int anc[2];
@@ -116,7 +125,7 @@ void HapMixIndividualCollection::OutputCGProbs(const char* filename){
 }
 
 double HapMixIndividualCollection::getDevianceAtPosteriorMean(
-    const Options* const options, vector<Regression *> &R, Genome* Loci,
+    const Options* const options, vector<Regression *> &R, IGenome* Loci,
     LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
     , AlleleFreqs* 
 #ifdef PARALLEL

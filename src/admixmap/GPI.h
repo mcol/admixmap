@@ -15,16 +15,16 @@ public:
     offset = 0;
     g = 0;
   }
-  GenotypeProbIterator(const FreqArray* const x, const unsigned cstride =1){
+  GenotypeProbIterator(const IFreqArray* const x, const unsigned cstride =1){
     setPointer (x, cstride);
   };
 
-  void setPointer(const FreqArray* const x, const unsigned cstride = 1){
+  void setPointer(const IFreqArray* const x, const unsigned cstride = 1){
     p = x;
     C.setStride(cstride);
   }
 
-  void assign(const FreqArray* const x, std::vector<unsigned short>* GI,
+  void assign(const IFreqArray* const x, std::vector<unsigned short>* GI,
                const unsigned cstride, const unsigned t){
     //C.assign( (*p)[offset]);
     setPointer(x, cstride);
@@ -63,7 +63,7 @@ public:
   }
 
   //the remaining functions are to facilitate the assignment operator
-  const FreqArray* getPointer()const{
+  const IFreqArray* getPointer()const{
     return p;
   }
 
@@ -79,7 +79,7 @@ public:
 
 private:
   ColumnIterator C;
-  const FreqArray* p;
+  const IFreqArray* p;
   const std::vector<unsigned short>* g;//genotype pointer to indicate columns of the Probs array to use
                                 //using pointer becasue iterators have no null state
   unsigned offset;

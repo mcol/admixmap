@@ -72,8 +72,8 @@ distanceFromLast <- function(v.Chr, v.Position) {
 chr.L <- 0.5
 numChr <- length(chr.L)
 
-N <- 100##number of individuals
-K <- 4##number of block states
+N <- 60 ##number of haploid individuals
+K <- 8 ##number of block states
 DiploidData = F
 
 spacing <- 0.002 # spacing in Mb
@@ -123,7 +123,7 @@ alleleFreqs <- array(data=NA, dim=c(2, K, L))
 alpha.shape <- 1
 alpha.rate <- 10
 for(locus in 1:L) {
-freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K##Gamma with mean 0.1
+freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K ##Gamma with mean 0.1
 ##p <- rep(0, K)
 ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
    #p <- rbeta(K, freqs.alpha[locus*2-1], freqs.alpha[locus*2]) # freqs  allele 1
@@ -197,7 +197,7 @@ write.table(freqstable, file="data/allelefreqs.txt", sep="\t", row.names=F)
 
 ##generate a case-control genotypes file  
 ##done exactly as for diploid data but with fewer individuals and outputting only some of the loci
-NN <- 20
+NN <- 200
 CCLoci <- seq(from=2, to=L, by=2)#even-numbered loci
 genotypes.cc <- matrix(data="0,0", nrow=NN, ncol=L)
 for(individual in 1:NN) {

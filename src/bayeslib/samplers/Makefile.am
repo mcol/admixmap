@@ -22,6 +22,7 @@ noinst_HEADERS		= AdaptiveRejection.h \
 				  MuSampler.h \
 				  rand.h \
 				  StepSizeTuner.h
+
 INCLUDES			= -I$(top_srcdir)/src/bayeslib
 
 if PARALLEL

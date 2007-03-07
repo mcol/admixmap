@@ -30,7 +30,7 @@ class AlleleFreqs{
 public:
   AlleleFreqs();
   virtual ~AlleleFreqs();
-  virtual void Initialise(Options* const options, InputData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
+  virtual void Initialise(Options* const options, InputData* const Data, IGenome *pLoci, LogWriter &Log, bool MAP=false);
   void AllocateAlleleCountArrays(unsigned K);
   virtual void PrintPrior(const Vector_s&, LogWriter& Log)const;
   virtual void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
@@ -53,7 +53,7 @@ public:
   std::vector<double> getAlleleFreqsMAP( int locus, int population )const;
   std::vector<double> GetAlleleFreqs( int locus, int population )const;
   const double *GetAlleleFreqs(int locus)const;
-  const FreqArray& GetAlleleFreqs()const;
+  const IFreqArray& GetAlleleFreqs()const;
   const int *GetAlleleCounts(int locus)const;
   
   void UpdateAlleleCounts(int locus, const int h[2], const int ancestry[2], bool diploid, bool anneal );
@@ -93,7 +93,7 @@ protected:
   bool RandomAlleleFreqs;//indicator for whether allele freqs are fixed or random
   bool hapmixmodel;
 
-  Genome *Loci;//pointer to Loci object
+  IGenome *Loci;//pointer to Loci object
   std::ofstream allelefreqoutput;// object to output allele frequencies
 
   virtual void LoadAlleleFreqs(const Matrix_s& NewFreqs, int i, unsigned row0, bool);

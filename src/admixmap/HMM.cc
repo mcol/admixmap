@@ -21,9 +21,10 @@ HMM::HMM()
   betaIsBad = true;
 }
 
-//not currently used
-//HMM objects are instantiated in Chromosome using default constructor above
-//and dimensions set by SetDimensions below
+/** not currently used
+ * HMM objects are instantiated in Chromosome using default
+ * constructor above and dimensions set by SetDimensions below
+ */
 HMM::HMM( int inTransitions, int pops, const double* const fin) {
   SetDimensions(inTransitions, pops, fin);
 }
@@ -159,12 +160,11 @@ double HMM::getLogLikelihood(const bool isdiploid)
     return( sumfactor+log(sum) );
 }
 
-/*
-  Samples Hidden States
-  ---------------------
-  SStates    - an int array to store the sampled states
-  isdiploid  - indicator for diploidy
-*/
+/** Samples Hidden States
+ * ---------------------
+ * SStates    - an int array to store the sampled states
+ * isdiploid  - indicator for diploidy
+ */
 void HMM::Sample(int *SStates, const bool isdiploid)
 {
   if(alphaIsBad){
@@ -215,9 +215,14 @@ void HMM::Sample(int *SStates, const bool isdiploid)
     delete[] V;
   }
 }
-/// Returns a vector of conditional probabilities of each hidden state at 'time' t.
-/// If diploid, the vector is really a matrix of probabilities of pairs of states.
-const std::vector<double> HMM::GetHiddenStateProbs( const bool isDiploid, int t){
+
+/** * Returns a vector of conditional probabilities of each hidden state
+ * at 'time' t.
+ *
+ * If diploid, the vector is really a matrix of probabilities of pairs
+ * of states.
+ */
+const std::vector<double> HMM::GetHiddenStateProbs(const bool isDiploid, int t){
   if(alphaIsBad){
     if(isDiploid)UpdateForwardProbsDiploid();
     else UpdateForwardProbsHaploid();
@@ -235,7 +240,7 @@ const std::vector<double> HMM::GetHiddenStateProbs( const bool isDiploid, int t)
   } else {
     States=K;
   }
-  std::vector<double> probs(States);
+  vector<double> probs(States);
 
   for( int j = 0; j < States; j++ ){
     probs[j] = alpha[t*States + j] * beta[t*States + j];
@@ -251,9 +256,7 @@ const std::vector<double> HMM::GetHiddenStateProbs( const bool isDiploid, int t)
 
 // ****** End Public Interface *******
 
-/*
-  Updates Forward probabilities alpha, diploid case only
-*/
+/** Updates Forward probabilities alpha, diploid case only */
 void HMM::UpdateForwardProbsDiploid()
 {
   if(LambdaGPI.isNull() || !theta || !f)
@@ -338,10 +341,11 @@ void HMM::UpdateBackwardProbsDiploid()
   betaIsBad = false;
 }
 
-/*
-  Updates forward probs, haploid case only
-  Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
-*/
+/** * Updates forward probs, haploid case only.
+ *
+ * Here Admixture is a column matrix and the last dimensions of f
+ * and lambda are 1.
+ */
 void HMM::UpdateForwardProbsHaploid(){
   if(LambdaGPI.isNull() || !theta || !f)
     throw string("Error: Call to HMM when inputs are not set!");
@@ -400,9 +404,12 @@ void HMM::UpdateBackwardProbsHaploid(){
   betaIsBad = false;
 }
 
-// argument oldProbs is square array of size K * K
-// for forward recursions, pass alpha_t and multiply newProbs by emission probs lambda_t 
-// for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
+/** argument oldProbs is square array of size K * K
+ * for forward recursions, pass alpha_t and multiply newProbs
+ * by emission probs lambda_t 
+ * for backward recursions, pass array of products
+ * lambda_t+1[jj] * beta_t+1[jj] 
+ */
 void HMM::RecursionProbs(const double ff, const double f2[2], const double* const stateArrivalProbs, 
 			 const double* const oldProbs, double *newProbs) {
   if(K==2) RecursionProbs2(ff, f2, stateArrivalProbs, oldProbs, newProbs);

@@ -31,7 +31,7 @@ void AdmixIndividualCollection::SetNullValues(){
   SumLogTheta = 0;
 }
 
-AdmixIndividualCollection::AdmixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci) {
+AdmixIndividualCollection::AdmixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, IGenome* Loci) {
   SetNullValues();
   Populations = options->getPopulations();
   NumInd = Data->getNumberOfIndividuals();
@@ -132,7 +132,7 @@ void AdmixIndividualCollection::resetStepSizeApproximators(int k) {
 
 // ************** UPDATING **************
 //TODO: ?? have next two functions use those in base class and have ones here only operate on test individuals
-void AdmixIndividualCollection::setGenotypeProbs(const Genome* const Loci, const AlleleFreqs* const
+void AdmixIndividualCollection::setGenotypeProbs(const IGenome* const Loci, const AlleleFreqs* const
 #ifdef PARALLEL
 					    A
 #endif
@@ -504,7 +504,7 @@ double* AdmixIndividualCollection::getSumEnergy()const{
 double* AdmixIndividualCollection::getSumEnergySq()const{
     return SumEnergySq;
 }
-double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
+double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, IGenome* Loci,
 							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
 							, AlleleFreqs* A){
   //TODO: broadcast SumLogRho to workers

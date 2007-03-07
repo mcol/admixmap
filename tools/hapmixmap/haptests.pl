@@ -25,7 +25,7 @@ my $function_file = "$ENV{'HOME'}/genepi/trunk/dist/doanalysis.pl";
 
 require $function_file or die("cannot find doanalysis.pl");
 
-my $serial_executable = "$ENV{'HOME'}/bin/hapmixmap1";
+my $serial_executable = "$ENV{'HOME'}/usr/bin/hapmixmap";
 my $parallel_executable = "$ENV{'HOME'}/bin/hapmixmap-para";
 my $rscript = "$ENV{'HOME'}/genepi/trunk/tools/admixmap/AdmixmapOutput.R";
 ################### DO NOT EDIT ABOVE THIS LINE ########################
@@ -41,7 +41,7 @@ my $arg_hash = {
     #priorallelefreqfile             => 'data/allelefreqs.txt',
     #fixedallelefreqs                => 1,
 
-    states=>4,
+    states=>8,
 
 #main options
     resultsdir => 'results',

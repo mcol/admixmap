@@ -3,7 +3,7 @@
 #include <vector>
 #include <fstream>
 class IndividualCollection;
-class Genome;
+class IGenome;
 
 class MantelHaenszelTest : public ScoreTestBase{
 public:
@@ -11,13 +11,13 @@ public:
   ~MantelHaenszelTest();
 
   void Reset(){};
-  void Initialise(unsigned NumStates, const Genome* const Loci, const char* filename, LogWriter& Log);
-  void Update(const IndividualCollection* , const Genome&);
+  void Initialise(unsigned NumStates, const IGenome* const Loci, const char* filename, LogWriter& Log);
+  void Update(const IndividualCollection* , const IGenome&);
   void Output(const char* filename,  unsigned NumIters, const std::vector<std::string>& LocusLabels, bool final);
 
 private:
   unsigned K, Ksq;//number of states (populations or block states)
-  const Genome* Loci;
+  const IGenome* Loci;
   std::vector<std::vector<unsigned> > CountTable;
   std::vector<double> Score;
   std::vector<double> ScoreSq;

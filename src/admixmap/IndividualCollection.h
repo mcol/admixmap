@@ -34,7 +34,7 @@ class IndividualCollection
 public:
   IndividualCollection();
   virtual ~IndividualCollection();
-  IndividualCollection(const Options* const options, const InputData* const Data, Genome* Loci);
+  IndividualCollection(const Options* const options, const InputData* const Data, IGenome* Loci);
 
   void DeleteGenotypes(bool);
   //virtual void Initialise(const AdmixOptions* const options, const Genome* const Loci,
@@ -42,19 +42,19 @@ public:
   void LoadData(const Options* const options, const InputData* const, bool admixtureAsCovariate);
   virtual void getOnePopOneIndLogLikelihood(LogWriter &, const Vector_s& ){};
 
-  void SampleHapPairs(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
+  void SampleHapPairs(const Options* const options, AlleleFreqs *A, const IGenome* const Loci,
 		      bool skipMissingGenotypes, bool anneal, bool UpdateCounts);
 
-  void AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
+  void AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const IGenome* const Loci,
                               bool anneal);
 
-  virtual double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
+  virtual double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *>&R, IGenome* Loci, LogWriter &Log,
 				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A ) = 0;
 
   int getSize()const;
   int getNumDiploidIndividuals();
   virtual int getNumberOfIndividualsForScoreTests()const{return getSize();}
-  virtual int getFirstScoreTestIndividualNumber()const{return 0;};
+  virtual unsigned int getFirstScoreTestIndividualNumber()const{return 0;};
 
   Individual* getIndividual(int)const;
 
@@ -84,7 +84,7 @@ public:
   //functions specific to hapmixmodel
   virtual void SampleLocusAncestry(const Options* const ){};
   virtual const int* getSumAncestry()const{return 0;};
-  virtual void AccumulateConditionalGenotypeProbs(const Options* const, const Genome& ){};
+  virtual void AccumulateConditionalGenotypeProbs(const Options* const, const IGenome& ){};
   virtual void OutputCGProbs(const char* ){};
 
   //functions specific to admixmodel

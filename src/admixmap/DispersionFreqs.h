@@ -29,7 +29,7 @@ class DispersionFreqs : public AlleleFreqs{
 public:
   DispersionFreqs();
   ~DispersionFreqs();
-  void Initialise(AdmixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log, bool MAP=false);
+  void Initialise(AdmixOptions* const options, InputData* const Data, IGenome *pLoci, LogWriter &Log, bool MAP=false);
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
   void PrintPrior(const Vector_s&, LogWriter& Log)const;
   ///initialize output file for samples of dispersion parameters

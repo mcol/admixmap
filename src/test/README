@@ -1,0 +1,20 @@
+This directory contains a set of tests which can be carried out when
+calling:
+
+$ make check
+
+The test go through prepared test suite and perform various checks
+against classes.
+
+To enable, use --enable-testing on configure:
+./configure --enable-testing
+
+Requirements:
+
+ 1. CppUnit
+    Homepage: http://cppunit.sourceforge.net/
+    Cookbook: http://cppunit.sourceforge.net/doc/lastest/cppunit_cookbook.html
+
+ 2. Mockpp
+    Homepage: http://mockpp.sourceforge.net/
+    

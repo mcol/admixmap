@@ -12,7 +12,6 @@
  */
 #include "Chromosome.h"
 #include "Individual.h"
-#include <iostream>
 #include "utils/misc.h"
 
 #define PR(x) cerr << #x << " = " << x << endl;
@@ -221,4 +220,7 @@ void Chromosome::SampleJumpIndicators(const int* const LocusAncestry, const unsi
   SampleStates.SampleJumpIndicators(LocusAncestry, gametes, SumLocusAncestry, SumN, SampleArrivals, _startLocus);
 }
 
-
+const vector<double> Chromosome::getHiddenStateProbs(const bool isDiploid, int t)
+{
+  return SampleStates.GetHiddenStateProbs(isDiploid, t);
+}

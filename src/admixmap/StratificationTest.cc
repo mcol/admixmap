@@ -105,7 +105,7 @@ void StratificationTest::Initialize( AdmixOptions* const options, const Genome &
   }
 }
 
-void StratificationTest::calculate( const IndividualCollection* const individuals, const FreqArray& AlleleFreqs,
+void StratificationTest::calculate( const IndividualCollection* const individuals, const IFreqArray& AlleleFreqs,
 				    const vector<vector<int> > ChrmAndLocus, int Populations )
 {
   // matrix of (observed minus expected copies allele 1) scores for each individual at each locus

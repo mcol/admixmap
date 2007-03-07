@@ -30,7 +30,7 @@ public:
   AdmixedIndividual(int number, const AdmixOptions* const options, const InputData* const Data, bool undertest);
   ~AdmixedIndividual();
 
-  static void SetStaticMembers(Genome* const pLoci, const Options* const options);
+  static void SetStaticMembers(IGenome* const pLoci, const Options* const options);
   static void DeleteStaticMembers();
   void drawInitialAdmixtureProps(const vector<vector<double> > &alpha); 
   void SetMissingGenotypes();
@@ -127,7 +127,7 @@ private:
 				  double rhoalpha, double rhobeta)const;
   
   void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
+			IChromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
 };

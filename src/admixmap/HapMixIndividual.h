@@ -23,20 +23,20 @@ class HapMixIndividual : public Individual
 {
 public:
   HapMixIndividual();
-  HapMixIndividual(int number, const Options* const options, const InputData* const Data);
+  HapMixIndividual(int number, const IOptions* const options, const IInputData* const Data);
   ~HapMixIndividual();
-  static void SetStaticMembers(Genome* const pLoci, const Options* const options,
-                            const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs);
+  static void SetStaticMembers(IGenome* const pLoci, const IOptions* const options,
+                            const IFreqArray& haploidGenotypeProbs, const IFreqArray& diploidGenotypeProbs);
   void SetMissingGenotypes();
   bool GenotypeIsMissing(unsigned int locus)const;
   bool simpleGenotypeIsMissing(unsigned locus)const;
 
 private:
 
-  vector<unsigned short> hgenotypes;//genotypes coded as single integers, assuming all typed loci are SNPs
+  vector<unsigned short> hgenotypes;//< genotypes coded as single integers, assuming all typed loci are SNPs
 
-  static const FreqArray* HaploidGenotypeProbs;
-  static const FreqArray* DiploidGenotypeProbs;
+  static const IFreqArray* HaploidGenotypeProbs;
+  static const IFreqArray* DiploidGenotypeProbs;
   static GenotypeProbIterator GPI;
 
   void UpdateHMMInputs(unsigned int j, const Options* const options, 

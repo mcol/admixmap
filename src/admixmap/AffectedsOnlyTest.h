@@ -15,8 +15,8 @@
 #define AFFECTEDSONLYTEST_H 1
 
 #include "ScoreTestBase.h"
+#include "interfaces/IGenome.h"
 
-class Genome;
 /**
    Class to implement affecteds-only score test for linkage with locus ancestry
  */
@@ -34,9 +34,9 @@ public:
 
   void Accumulate(unsigned j);
 
-  void Output(int iterations, const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
+  void Output(int iterations, const Vector_s& PopLabels, const IGenome& Loci, bool final = false, const char* filename = 0);
   void ROutput(const int numIterations);
-  void OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels, const Genome& Loci);
+  void OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels, const IGenome& Loci);
 
 private:
   unsigned K, L;

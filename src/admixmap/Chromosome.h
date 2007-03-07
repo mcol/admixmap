@@ -14,17 +14,24 @@
 #ifndef CHROMOSOME_H
 #define CHROMOSOME_H 1
 
+#include <vector>
+#include <iostream>
+#include <string>
 #include "HMM.h"
+#include "interfaces/IChromosome.h"
+
+using std::vector;
+using std::string;
 
 class Individual;
 class AdmixOptions;
 class GenotypeProbIterator;
 
 /// Represents a chromosome and holds HMM object
-class Chromosome
+class Chromosome : public IChromosome
 {
 public:
-    Chromosome();
+  Chromosome();
   Chromosome(int, int size,int start, int, bool isx);
    ~Chromosome();
 // ******** Chromosome information **********************************
@@ -54,6 +61,7 @@ public:
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, std::vector<unsigned> &SumN, 
 			    bool SampleArrivals)const;
+  const vector<double> getHiddenStateProbs(const bool, int);
 private:
   double *Distances;
   unsigned int NumberOfCompositeLoci;
@@ -75,7 +83,7 @@ private:
   // to avoid use
  // Private default constructor
   Chromosome(const Chromosome&);
-  Chromosome& operator=(const Chromosome&);
+  Chromosome& operator=(const IChromosome&);
 };
 
 #endif /* !defined CHROMOSOME_H */

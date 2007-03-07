@@ -61,7 +61,7 @@ typedef struct{
 class PopHapMix
 {
 public:
-  PopHapMix(HapMixOptions* op, Genome* loci);
+  PopHapMix(HapMixOptions* op, IGenome* loci);
   
   ~PopHapMix();
   
@@ -101,7 +101,7 @@ private:
   std::ofstream outputstream;//output to paramfile
 
   HapMixOptions *options;
-  Genome* Loci; 
+  IGenome* Loci; 
 
   std::vector<double> lambda;
   std::vector<double> SumLogLambda; //ergodic sum of log(rho)

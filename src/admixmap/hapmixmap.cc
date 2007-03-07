@@ -14,7 +14,8 @@
 #include <fstream>
 
 #define HAPMIXMAP_VERSION 0
-#define SUBVERSION 4
+// #define SUBVERSION 4
+#define SUBVERSION "4-nst"
 
 using namespace std;
 

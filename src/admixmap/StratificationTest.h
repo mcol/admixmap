@@ -20,7 +20,7 @@
 #include "Genome.h"
 #include "utils/LogWriter.h"
 
-class FreqArray;
+class IFreqArray;
 
 ///Class to implement a test for residual population stratification
 class StratificationTest
@@ -32,7 +32,7 @@ public:
 		   const IndividualCollection* const IC, LogWriter &Log);
   void OpenOutputFile( const char * , LogWriter &);
 
-  void calculate( const IndividualCollection* const individuals, const FreqArray& AlleleFreqs,
+  void calculate( const IndividualCollection* const individuals, const IFreqArray& AlleleFreqs,
 		  const std::vector<std::vector<int> > ChrmAndLocus, int Populations );
 
   void Output(LogWriter &);

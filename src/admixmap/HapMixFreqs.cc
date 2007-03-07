@@ -37,7 +37,7 @@ HapMixFreqs::~HapMixFreqs(){
   //TODO: delete DiploidGenotypeProbs
 }
 
-void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data, Genome *pLoci, LogWriter &Log ){
+void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data, IGenome *pLoci, LogWriter &Log ){
   Loci = pLoci;
   Populations = options->getPopulations();
   NumberOfCompositeLoci = Loci->GetNumberOfCompositeLoci();
@@ -577,10 +577,10 @@ void HapMixFreqs::OutputFinalValues(const char* filename, LogWriter& Log)const{
     }
   }
 }
-const FreqArray& HapMixFreqs::getHaploidGenotypeProbs()const{
+const IFreqArray& HapMixFreqs::getHaploidGenotypeProbs()const{
   return Freqs;
 }
 
-const FreqArray& HapMixFreqs::getDiploidGenotypeProbs()const{
+const IFreqArray& HapMixFreqs::getDiploidGenotypeProbs()const{
   return DiploidGenotypeProbs;
 }

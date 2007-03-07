@@ -15,23 +15,19 @@
 #define INPUT_DATA_H 1
 #include "common.h"
 #include "utils/DataMatrix.h"
-
-typedef std::vector<std::vector<unsigned short> > genotype;
+#include "interfaces/IInputData.h"
 
 /**
  *  Forward declarations.
  */    
 class Options;
 class LogWriter;
-class Genome;
-class Chromosome;
-
-///enum for distance units
-enum GeneticDistanceUnit {basepairs, kilobases, megabases, centimorgans, Morgans};
-const std::string GeneticDistanceUnitString[] = {"bp", "kb", "Mb", "cM", "M"};
+class IGenome;
+class IChromosome;
 
 ///Class to read and check all input data files
-class InputData{
+class InputData : public IInputData
+{
 public:    
 
   /**
@@ -97,8 +93,8 @@ public:
   unsigned getNumberOfCompositeLoci()const{return NumCompositeLoci;};
   GeneticDistanceUnit getUnitOfDistance()const;
   const std::string& getUnitOfDistanceAsString()const;
-  void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
-  bool GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, std::vector<unsigned short>* genotypes, bool** Missing)const;
+  void GetGenotype(int i, int SexColumn, const IGenome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
+  bool GetHapMixGenotype(int i, int SexColumn, const IGenome &Loci, std::vector<unsigned short>* genotypes, bool** Missing)const;
 
 private:    
   Matrix_s locusData_;
@@ -148,7 +144,7 @@ private:
 
   bool determineIfPedFile()const;
 
-  void GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool** Missing)const;
+  void GetCaseControlGenotype(int i, int SexColumn, const IGenome &Loci, std::vector<genotype>* genotypes, bool** Missing)const;
 
   std::vector<unsigned short> GetGenotype(unsigned locus, int individual, int SexColumn)const;
   std::vector<unsigned short> GetCaseControlGenotype(unsigned locus, unsigned* cclocus, int individual, int SexColumn)const;

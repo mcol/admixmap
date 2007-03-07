@@ -1,8 +1,44 @@
-noinst_PROGRAMS			= rs-lookup
+# noinst_PROGRAMS			= rs-lookup
+AM_YFLAGS = -d
+noinst_PROGRAMS		= 
 
 #SUBDIRS = DataFormatter
  
-rs_lookup_SOURCES		= rs-lookup.cpp \
-				  Legend.cpp
+# Programs and scripts to be installed in the $prefix/bin directory
+bin_PROGRAMS		= ge-snp-lookup ge-user2hmx
 
-noinst_HEADERS			= Legend.h
+bin_SCRIPTS		= ge-build-snp-list ge-fetch-legend
+
+noinst_HEADERS		= Legend.h \
+			  UserData.h \
+			  UserDataIndividual.h \
+			  UserDataLocus.h \
+			  DataFormatter.h \
+			  HapmixmapDataFormatter.h \
+			  ge-snp-lookup.h \
+			  itoa.h
+
+#
+# Information about how to build the programs
+#
+
+# convertphaseddata_SOURCES	= convertphaseddata.cc
+# phased2g_SOURCES	= phased2g.cc
+
+ge_snp_lookup_SOURCES	= ge-snp-lookup.cc \
+			  Legend.cc
+
+man_MANS		= ge-user2hmx.1
+ge_user2hmx_SOURCES	= \
+				  UserData.cc \
+				  UserDataIndividual.cc \
+				  DataFormatter.cc \
+				  HapmixmapDataFormatter.cc \
+				  UserDataLocus.cc \
+				  Legend.cc \
+				  userdata-lexer.ll \
+				  userdata-parser.yy
+
+BUILT_SOURCES = userdata-parser.h
+
+EXTRA_DIST		= $(man_MANS) $(bin_SCRIPTS)

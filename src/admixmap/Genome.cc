@@ -102,7 +102,8 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
     LocusTable[i][1] = lnum;//number on chromosome cnum of locus i
     
     //set number of alleles of first locus in comp locus
-    if(isFreqUpdater)LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
+    if(isFreqUpdater) LocusArray[i].AddLocus( (int)locifileData.get( row, 0), locusLabels[row] );
+    
     //loop through lines in locusfile for current complocus
     while( row < locifileData.nRows() - 1 && !locifileData.isMissing( row + 1, 1 ) && locifileData.get( row + 1, 1 ) == 0 ){
       if(isFreqUpdater)LocusArray[i].AddLocus( (int)locifileData.get( row+1, 0 ), locusLabels[row+1] );
@@ -143,7 +144,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
 ///Also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
 ///LengthOfXChrm 
 void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int populations){
-  C = new Chromosome*[NumberOfChromosomes]; 
+  C = new IChromosome*[NumberOfChromosomes]; 
   //C is an array of chromosome pointers
 
   for(unsigned i = 0; i < NumberOfChromosomes; i++){//loop over chromsomes
@@ -191,16 +192,16 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
   }
 }
 ///accesses the entire chromosome array
-const Chromosome* const* Genome::getChromosomes()const{
+const IChromosome* const* Genome::getChromosomes()const{
   return C;
 }
 ///accesses a chromosome
-Chromosome* Genome::getChromosome(unsigned j){
+IChromosome *Genome::getChromosome(unsigned j){
   return C[j];
 }
 
 ///accesses a composite locus
-CompositeLocus* Genome::operator() ( int ElementNumber ) const
+ICompositeLocus* Genome::operator() ( int ElementNumber ) const
 {
   if ( ElementNumber >= (int)NumberOfCompositeLoci ){
     cout << "WARNING: Genome::operator() Element Number";
@@ -348,6 +349,25 @@ unsigned Genome::GetChrNumOfLocus(unsigned locus){
   return LocusTable[locus][0];
 }
 
+/** Get the chromosome number by absolute locus number
+ */
+const int Genome::getChromosomeNumber(int j)
+const
+{
+  return LocusTable[j][0];
+}
+
+/** Get the chromosome-relative locus number by absolute locus number
+ */
+const int Genome::getRelativeLocusNumber(int j)
+const
+{
+  return LocusTable[j][1];
+}
+
+/** Returns a vector of length 2
+ * With chromosome number on 1st position and locus index on 2nd.
+ */
 const vector<int> Genome::GetChrmAndLocus(int j)
 const
 {

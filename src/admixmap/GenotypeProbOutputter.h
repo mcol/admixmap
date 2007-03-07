@@ -11,7 +11,7 @@ public:
   void Initialise(unsigned Nindivs, unsigned Nloci);
   //TODO: alternative for parallel version since HapPairProbs are not stored and Workers have no CompositeLocus objects
   //update for a single individual at a single locus
-  void Update(unsigned i, unsigned j, const CompositeLocus* Locus, const std::vector<hapPair > &HapPairs, const int ancestry[2]);
+  void Update(unsigned i, unsigned j, const ICompositeLocus* Locus, const std::vector<hapPair > &HapPairs, const int ancestry[2]);
   void Output(const char* filename);
 
 private:
