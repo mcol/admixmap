@@ -1,10 +1,10 @@
 #!/bin/bash
 
-if [ "$0" != "-bash" ]
-then
-	echo "Please use the 'source' command to execute this script."
-	exit 1
-fi
+# if [ "$0" != "-bash" ]
+# then
+# 	echo "Please use the 'source' command to execute this script."
+# 	exit 1
+# fi
 
 if [ -w /usr/bin ]
 then
@@ -24,10 +24,13 @@ then
 	echo
 fi
 
+rm ./configure
 if [ ! -x "./configure" ]
 then
 	./bootstrap
 fi
+
+make distclean
 
 echo "CXXFLAGS='$CXXFLAGS'"
 echo "CPPFLAGS='$CPPFLAGS'"
