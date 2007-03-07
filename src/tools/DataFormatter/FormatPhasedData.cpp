@@ -284,14 +284,17 @@ int main(int argc, char **argv)
   while (!phasedfile.eof()) {
     if (beVerbose)
       cout << "\nChromosome " << FirstChr << "  " << flush;
-    if (!(gamete % 2))
+    string suffix;
+    if (!(gamete % 2)){
       samplefile >> ID >> scrap;
+      suffix = "_1";
+    }
     else
-      ID.append("_2");
+      suffix = "_2";
     if (beVerbose)
-      cout << "\n" << gamete + 1 << " " << ID << " " << flush;
+      cout << "\n" << gamete + 1 << " " << ID + suffix << " " << flush;
     //write indiv id and sex
-    genotypesfile << ID << "\t";        // << sex[indiv] <<"\t";
+    genotypesfile << ID  + suffix << "\t";        // << sex[indiv] <<"\t";
     //write genotypes for first chromosome
     for (unsigned j = 0; j < NUMLOCI[0]; ++j) {
 
