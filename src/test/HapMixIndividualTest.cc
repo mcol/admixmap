@@ -1,7 +1,5 @@
 #include "HapMixIndividualTest.h"
 
-#define REPEAT(TIMES, WHAT) for (int i = 0; i < TIMES; ++i) { WHAT }
-
 HapMixIndividualTest::HapMixIndividualTest()
 {
 }
@@ -26,12 +24,16 @@ void HapMixIndividualTest::setUp()
   getPopulationsCtrl.addReturnValue(2);
   //  getgenotypesSexColumn()
   MOCKPP_CONTROLLER_FOR(MockOptions, getgenotypesSexColumn) getgenotypesSexColumnCtrl (options);
-  getgenotypesSexColumnCtrl.addReturnValue(1);
-  getgenotypesSexColumnCtrl.addReturnValue(1);
-  getgenotypesSexColumnCtrl.addReturnValue(1);
+  REPEAT(3, getgenotypesSexColumnCtrl.addReturnValue(1);)
   //  isRandomMatingModel()
   MOCKPP_CONTROLLER_FOR(MockOptions, isRandomMatingModel) isRandomMatingModelCtrl (options);
   isRandomMatingModelCtrl.addReturnValue(true);
+  // getHapMixModelIndicator()
+  MOCKPP_CONTROLLER_FOR(MockOptions, getHapMixModelIndicator) getHapMixModelIndicatorCtrl (options);
+  getHapMixModelIndicatorCtrl.addReturnValue(true);
+  // getTestForAllelicAssociation()
+  MOCKPP_CONTROLLER_FOR(MockOptions, getTestForAllelicAssociation) getTestForAllelicAssociationCtrl (options);
+  getTestForAllelicAssociationCtrl.addReturnValue(true);
   
   
   inputData = new MockInputData();
@@ -61,7 +63,7 @@ void HapMixIndividualTest::setUp()
   MOCKPP_CONTROLLER_FOR(MockGenome, GetNumberOfChromosomes) GetNumberOfChromosomesCtrl (genome);
   GetNumberOfChromosomesCtrl.addReturnValue(1);
   MOCKPP_CONTROLLER_FOR_EXT(MockGenome, getNumberOfLoci, ext) getNumberOfLociCtrl (genome);
-  REPEAT(3, getNumberOfLociCtrl.addReturnValue(1);)
+  REPEAT(1, getNumberOfLociCtrl.addReturnValue(1);)
   MOCKPP_CONTROLLER_FOR(MockGenome, isX_data) isX_dataCtrl (genome);
   isX_dataCtrl.addReturnValue(false);
   MOCKPP_CONTROLLER_FOR_EXT(MockGenome, GetSizeOfChromosome, ext) GetSizeOfChromosomeCtrl (genome);
@@ -70,7 +72,7 @@ void HapMixIndividualTest::setUp()
   MOCKPP_CONTROLLER_FOR(MockGenome, GetLengthOfGenome) GetLengthOfGenomeCtrl (genome);
   GetLengthOfGenomeCtrl.addReturnValue(1);
   MOCKPP_CONTROLLER_FOR(MockGenome, GetNumberOfCompositeLoci) GetNumberOfCompositeLociCtrl (genome);
-  REPEAT(4, GetNumberOfCompositeLociCtrl.addReturnValue(1);)
+  REPEAT(5, GetNumberOfCompositeLociCtrl.addReturnValue(1);)
   // GetTotalNumberOfLoci()
   MOCKPP_CONTROLLER_FOR(MockGenome, GetTotalNumberOfLoci) GetTotalNumberOfLociCtrl (genome);
   GetTotalNumberOfLociCtrl.addReturnValue(1);

@@ -12,6 +12,7 @@
 #include "mock/MockHapMixFreqs.h"
 #include "mock/MockGenome.h"
 #include "mock/MockFreqArray.h"
+#include "mock/convenience-macros.h"
 
 #include <vector>
 using std::vector;

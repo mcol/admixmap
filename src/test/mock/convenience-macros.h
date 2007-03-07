@@ -1,6 +1,9 @@
 #ifndef CONVENIENCEMACROS_H_
 #define CONVENIENCEMACROS_H_
 
+/** Repeat something */
+#define REPEAT(TIMES, WHAT) for (int i = 0; i < TIMES; ++i) { WHAT }
+
 /** Check if pointer points to something, throw if it doesn't */
 #define THROW_IF_EMPTY(VAR) if (not VAR) \
  { \

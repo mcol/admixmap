@@ -17,6 +17,8 @@ public:
   virtual bool getHWTestIndicator() const = 0;
   virtual bool isRandomMatingModel() const = 0;
   virtual int getPopulations() const = 0;
+  virtual bool getHapMixModelIndicator() const = 0;
+  virtual bool getTestForAllelicAssociation() const = 0;
 };
 
 #endif /*IOPTIONS_H_*/

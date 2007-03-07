@@ -10,6 +10,7 @@
  * 
  */
 #include "Individual.h"
+#include "regression/Regression.h" 
 //#include "utils/misc.h"
 //#include "utils/dist.h"
 //#include "utils/linalg.h"
@@ -37,12 +38,12 @@ Individual::Individual() {
   Theta = NULL;
 }
 
-Individual::Individual(int number, const Options* const options, const InputData* const Data)
-: myNumber(number)
-{
-  missingGenotypes = NULL;//allocated later, if needed
-  Initialise(number, options, Data);
-}
+// Individual::Individual(int number, const Options* const options, const InputData* const Data)
+// : myNumber(number)
+// {
+//   missingGenotypes = NULL;//allocated later, if needed
+//   Initialise(number, options, Data);
+// }
 
 void Individual::Initialise(
     int number,
@@ -50,26 +51,6 @@ void Individual::Initialise(
     const IInputData* const Data)
 {
   myNumber = number;
-  NumGametes = 1;
-  GenotypesMissing = new bool*[numChromosomes];
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
-  }  
-  missingGenotypes = NULL;//allocated later, if needed
-  //retrieve genotypes
-  Data->GetGenotype(myNumber, options->getgenotypesSexColumn(), *Loci, &genotypes, GenotypesMissing);
-  
-#ifdef HAVE_CPPUNIT
-  // When testing, check if the individual has any data
-  // to prevent segfaulting.
-  if (genotypes.size() < 1) {
-    throw CppUnit::Exception(
-        CppUnit::Message("`genotypes' size less than 1"),
-        CPPUNIT_SOURCELINE());
-  }
-#endif
-
-  isHaploid = (bool)(genotypes[0][0].size()==1);//note: assumes at least one autosome before X-chr
   if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
   else NumGametes = 1;
   
@@ -79,7 +60,7 @@ void Individual::Initialise(
     SexIsFemale = Data->isFemale(myNumber);
   }
   
-  double L = Loci->GetLengthOfGenome(); 
+  double L = Loci->GetLengthOfGenome();
   double LX = 0.0;
   if(Xdata) LX = Loci->GetLengthOfXchrm();
   // effective length of genome is L + 0.5*LX if there is an X chrm: i.e. if g=1 or sex is female
@@ -89,41 +70,36 @@ void Individual::Initialise(
     EffectiveL[0] = L;
   }
   EffectiveL[1] = L + 0.5*LX;
-
+  
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
-
+  
   Theta = new double[ Populations * NumGametes ];
   
   SetUniformAdmixtureProps();
   
-  // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid 
+  // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
-
-  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers
-  // Initialize the array
-  for (unsigned int chrNo = 0; chrNo < numChromosomes; ++chrNo) {
-    LocusAncestry[chrNo] = NULL;
-  }
-
+  
+  LocusAncestry = new int*[ numChromosomes ]; // array of matrices in which each col stores 2 integers   
   for (unsigned chrNo = 0; chrNo < numChromosomes; ++chrNo) {
     LocusAncestry[chrNo] = NULL;
   }
   //initialise genotype probs array and array of indicators for genotypes missing at locus
-
+  
   size_t AncestrySize = 0;  // set size of locus ancestry array
   //gametes holds the number of gametes for each chromosome, either 1 or 2
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     if(isHaploid || (!SexIsFemale && Loci->isXChromosome(j))){//haploid on this chromosome
-	AncestrySize = Loci->GetSizeOfChromosome(j) ;
-	gametes.push_back(1);
+      AncestrySize = Loci->GetSizeOfChromosome(j) ;
+      gametes.push_back(1);
     }
     else{
-	AncestrySize = 2 * Loci->GetSizeOfChromosome(j) ;
-	gametes.push_back(2);
+      AncestrySize = 2 * Loci->GetSizeOfChromosome(j) ;
+      gametes.push_back(2);
     }
-      LocusAncestry[j] = new int[ AncestrySize];
-      for(unsigned i = 0; i < AncestrySize; ++i) LocusAncestry[j][i] = 0;
-    }
+    LocusAncestry[j] = new int[ AncestrySize];
+    for(unsigned i = 0; i < AncestrySize; ++i) LocusAncestry[j][i] = 0;
+  }
   
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
@@ -131,9 +107,11 @@ void Individual::Initialise(
   
   // Allocate space for unordered genotype probs
   // They have form of vector of vectors of vectors of doubles.
-  vector<double> v1 = vector<double>(1);
-  vector<vector<double> > v3 = vector<vector<double> >(3, v1);
-  UnorderedProbs = vector<vector<vector<double> > >(numCompositeLoci, v3);
+  if(options->getHapMixModelIndicator() && options->getTestForAllelicAssociation()){
+    vector<double> v1 = vector<double>(1);
+    vector<vector<double> > v3 = vector<vector<double> >(3, v1);
+    UnorderedProbs = vector<vector<vector<double> > >(numCompositeLoci, v3);
+  }
 }
 
 //********** Destructor **********
@@ -191,19 +169,6 @@ void Individual::DeleteGenotypes(){
     genotypes[j].clear();
   }
   genotypes.clear();
-}
-
-void Individual::SetMissingGenotypes(){
-  //allocates and sets an array of bools indicating whether genotypes at each locus are missing
-  //used in HW score test; NB call before genotypes are deleted
-  if(genotypes.size()==0)throw string("determining missing genotypes after genotypes have been deleted");
-  missingGenotypes = new bool[Loci->GetTotalNumberOfLoci()];
-  unsigned index = 0;
-  unsigned noCompositeLoci = Loci->GetNumberOfCompositeLoci();
-  for(unsigned j = 0; j < noCompositeLoci; ++j)
-    for(int k = 0; k < Loci->getNumberOfLoci(j); ++k){
-      missingGenotypes[index++] = (genotypes[j][k][0] == 0);
-    }
 }
 
 /// sets static members, including allocation and deletion of static objects for score tests
@@ -406,7 +371,7 @@ void Individual::calculateUnorderedGenotypeProbs(unsigned j)
     return;
   }
   
-  int numberOfHiddenStates = getNumberOfHiddenStates();
+  const int numberOfHiddenStates = getNumberOfHiddenStates();
   
   // code below should be executed as a loop over all K^2 states
   // of anc
@@ -417,7 +382,8 @@ void Individual::calculateUnorderedGenotypeProbs(unsigned j)
         Loci->getChromosomeNumber(j),
         Loci->getRelativeLocusNumber(j));
 
-  hp = getPossibleHapPairs(j);
+  // hp = getPossibleHapPairs(j);
+  hp = PossibleHapPairs[j];
   // set UnorderedProbs[j][*][0] to 0;
     vector<vector<double> >::iterator gi;
     for (gi = UnorderedProbs[j].begin(); gi != UnorderedProbs[j].end(); ++gi) {

@@ -23,6 +23,8 @@ public:
   , MOCKPP_CONSTRUCT_MEMBERS_FOR_VISITABLE0(isRandomMatingModel)
 //  virtual int getPopulations() const = 0;
   , MOCKPP_CONSTRUCT_MEMBERS_FOR_VISITABLE0(getPopulations)
+  , MOCKPP_CONSTRUCT_MEMBERS_FOR_VISITABLE0(getHapMixModelIndicator)
+  , MOCKPP_CONSTRUCT_MEMBERS_FOR_VISITABLE0(getTestForAllelicAssociation)
   {}
   virtual ~MockOptions();
 
@@ -34,6 +36,8 @@ public:
   // bool isRandomMatingModel() const;
   // virtual int getPopulations() const = 0;
   MOCKPP_CONST_VISITABLE0(MockOptions, int, getPopulations);
+  MOCKPP_CONST_VISITABLE0(MockOptions, bool, getHapMixModelIndicator);
+  MOCKPP_CONST_VISITABLE0(MockOptions, bool, getTestForAllelicAssociation);
 };
 
 #endif /*MOCKOPTIONS_H_*/
