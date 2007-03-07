@@ -199,31 +199,20 @@ int main(int argc, char **argv)
         cout << "Could not open legend file " << ss.str() << endl;
         exit(1);
       }
-      //map<string, LocusInfo> Legend;
-      //map<unsigned, string> LegendIndex;
-      //vector<LocusInfo> Legend;
-      //ReadLegend(Legend, legendfile);
       HapMapLegend Legend(legendfile);
 
-      //TODO: call EncodeGenotypes here
       if(incasecontrolfilename){
         EncodeGenotypes(Legend, incasecontrolfilename, outcasecontrolfilename);
-        cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
-             << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
+        if(beVerbose)
+          cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
+               << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
 
         Legend.OffsetLimits();
-        cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
-             << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
+        if(beVerbose)
+          cout << "first = " << Legend.getFirst() << "(" << Legend.getFirstIndex() << "), last = "
+               << Legend.getLast() << "(" << Legend.getLastIndex() << ")" << endl;
       }
       //TODO:message saying outputting to this file
-
-      //Write genotypesfile header
-      //for(map<unsigned, string>::const_iterator p = LegendIndex.begin(); p != LegendIndex.end(); ++p){
-      //for(vector<LocusInfo>::const_iterator p = Legend.begin(); p !=Legend.end(); ++p){
-      // genotypesfile << "\t" << p->rsnumber;
-      //}
-      for(unsigned i = 0; i < Legend.size();++i)
-        genotypesfile << "\t" << Legend.getRSNumber(i);
 
       if(!incasecontrolfilename && LimitLoci){
         first.push_back(0);
@@ -234,8 +223,12 @@ int main(int argc, char **argv)
         last.push_back(Legend.getLastIndex());
       }
       WriteLocusFile(Legend, locusfile, first[chr - FirstChr], last[chr - FirstChr]);
-
       legendfile.close();
+
+      //Write genotypesfile header
+      for(unsigned i = first[chr - FirstChr]; i <= last[chr - FirstChr];++i)
+        genotypesfile << "\t" << Legend.getRSNumber(i);
+
       cout << endl << last[chr - FirstChr] - first[chr - FirstChr] +1 << " Loci ";
       NUMLOCI.push_back(Legend.size());   //count number of loci
       TOTALLOCI += last[chr - FirstChr] - first[chr - FirstChr] +1;//Legend.size();
