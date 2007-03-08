@@ -109,7 +109,7 @@ typedef struct{
   };
 }array_of_allelecounts;
 
-class FreqArray {
+class FreqArray : public IFreqArray {
 private:
   bool dynall;
 

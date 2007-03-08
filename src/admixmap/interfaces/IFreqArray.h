@@ -6,7 +6,7 @@ class IFreqArray
 public:
 	// IFreqArray();
 	virtual ~IFreqArray();
-  virtual void dealloc(int) = 0;
+  // virtual void dealloc(int) = 0;
   virtual double* operator[](unsigned) = 0;
   virtual const double* operator[](unsigned i)const = 0;
 };

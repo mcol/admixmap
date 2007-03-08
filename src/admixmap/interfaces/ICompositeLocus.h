@@ -31,10 +31,15 @@ public:
   virtual void InitialiseHapPairProbs(const double* const allelefreqs) = 0;
   virtual void setAlleleProbsMAP(const double* const Freqs) = 0;
   virtual void InitialiseHapPairProbsMAP() = 0;
+#ifndef PARALLEL
+  // Those methods are not implemented in the parallel code.
+  // We can't leave the prototypes here for the parallel version,
+  // because linking fails if we do.
   virtual void SetHapPairProbs() = 0;
-  virtual const std::vector<int> getAlleleCounts(int a, const int* happair)const = 0;
-  virtual void getConditionalHapPairProbs(std::vector<double>& Probs, const std::vector<hapPair> &PossibleHapPairs, const int ancestry[2])const = 0;
   virtual void SampleHapPair(hapPair*, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const = 0;
+#endif
+  virtual void getConditionalHapPairProbs(std::vector<double>& Probs, const std::vector<hapPair> &PossibleHapPairs, const int ancestry[2])const = 0;
+  virtual const std::vector<int> getAlleleCounts(int a, const int* happair)const = 0;
   virtual const int *GetHapLabels( int ) const = 0;
   virtual const vector<int> getHaplotypeCounts(const int* happair) = 0;
   virtual void getLocusAlleleProbs(double **P, int k)const = 0;

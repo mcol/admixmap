@@ -334,6 +334,18 @@ void CompositeLocus::SampleHapPair(hapPair* hap, const std::vector<hapPair > &Po
   hap->haps[0] = PossibleHapPairs[h].haps[0];
   hap->haps[1] = PossibleHapPairs[h].haps[1];
 }
+#else
+// Not parallel
+/// Since this method (SampleHapPair) is specified in the interface
+/// (ICompositeLocus), an implementation must exist here, otherwise linking
+/// fails.
+void CompositeLocus::getConditionalHapPairProbs(
+    std::vector<double>& Probs,
+    const std::vector<hapPair > &PossibleHapPairs,
+    const int ancestry[2]) const
+{
+  throw string("void CompositeLocus::getConditionalHapPairProbs is unimplemented");
+}
 #endif
 
 

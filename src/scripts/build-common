@@ -24,10 +24,13 @@ then
 	echo
 fi
 
-rm ./configure
 if [ ! -x "./configure" ]
 then
+	echo "./configure not present, bootstrapping"
 	./bootstrap
+else
+	echo "./configure present, invoking autoreconf"
+	autoreconf
 fi
 
 make distclean

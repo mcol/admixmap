@@ -19,7 +19,9 @@ hapmixmap_SOURCES	= hapmixmap.cc
 
 admixmap_CPPFLAGS	= 
 
-
+# This library holds all the classes that are used by hapmixmap. The
+# hapmixmap's binary sources are only `hapmixmap.cc', everything else
+# comes in this and other libraries.
 libhapmixmap_la_SOURCES = \
 			HapMixFreqs.cc \
 		   	Model.cc \
@@ -31,8 +33,6 @@ libhapmixmap_la_SOURCES = \
 			PopHapMix.cc
 
 libhapmixmap_la_LIBADD	= libgenepi.la
-
-# hapmixmap_LDADD		= libgenepi.la
 
 hapmixmap_LDADD		= libhapmixmap.la
 
@@ -99,7 +99,8 @@ noinst_HEADERS	= admixmap.h \
 			  GeneticDistanceUnit.h \
 			  GenotypeIterator.h
 
-
+# A library which holds all the code that is common for Admixmap and
+# Hapmixmap. It also includes bayeslib; it's defined via LIBADD variable.
 libgenepi_la_SOURCES = misc.cc \
 		       AlleleFreqs.cc \
 		       Options.cc \
@@ -124,8 +125,10 @@ libgenepi_la_SOURCES = misc.cc \
 		       GenotypeProbOutputter.cc \
 		       Annealer.cc
 
+libgenepi_la_LDFLAGS	= 
+
 if UNIT_TEST
-libgenepi_la_LDFLAGS	= $(CPPUNIT_LIBS)
+libgenepi_la_LDFLAGS	+= $(CPPUNIT_LIBS)
 libgenepi_la_CXXFLAGS	= $(CPPUNIT_CFLAGS)
 endif
 
@@ -133,17 +136,27 @@ libgenepi_la_LIBADD = $(top_builddir)/src/bayeslib/libbayes.la \
 		      interfaces/libinterface.la
 if PARALLEL
 # Parallel libgenepi
-noinst_LTLIBRARIES		+= libgenepi-para.la
+noinst_LTLIBRARIES		+= libgenepi-para.la libhapmixmap-para.la
 libgenepi_para_la_SOURCES	= $(libgenepi_la_SOURCES)
 libgenepi_para_la_CPPFLAGS	= -DPARALLEL
-libgenepi_para_la_LIBADD	= $(top_builddir)/src/bayeslib/libbayes-para.la
+libgenepi_para_la_LDFLAGS	= $(PARALLEL_LIBS)
+libgenepi_para_la_LIBADD	= $(top_builddir)/src/bayeslib/libbayes-para.la \
+		      		  interfaces/libinterface.la
+
+# HAPMIXMAP library
+libhapmixmap_para_la_SOURCES	= $(libhapmixmap_la_SOURCES)
+libhapmixmap_para_la_CPPFLAGS	= -DPARALLEL
+libhapmixmap_para_la_LIBADD	= $(top_builddir)/src/bayeslib/libbayes-para.la \
+				  libgenepi-para.la
+libhapmixmap_para_la_LDFLAGS	= $(PARALLEL_LIBS)
 
 # Parallel hapmixmap
 bin_PROGRAMS			+= hapmixmap-para
 hapmixmap_para_CPPFLAGS		= $(hapmixmap_CPPFLAGS) -DPARALLEL
 hapmixmap_para_SOURCES		= $(hapmixmap_SOURCES)
-# hapmixmap_para_LIBS		= $(PARALLEL_LIBS)
-LIBS				+= $(PARALLEL_LIBS)
+hapmixmap_para_LDFLAGS		= $(PARALLEL_LIBS)
 hapmixmap_para_LDADD		= $(top_builddir)/src/bayeslib/libbayes-para.la \
-				  libgenepi-para.la
+				  libgenepi-para.la \
+				  libhapmixmap-para.la \
+				  interfaces/libinterface-para.la
 endif
