@@ -18,14 +18,14 @@ rDiscrete <- function(p) {
 }
 
 simulateAncestry <- function(mu, f, L) {
-  ## mu vector of mixture proportions of length K,
+  ## mu matrix of mixture proportions of dimension L*K,
   ## rho scalar arrival rate, d vector of distances, L num loci
   Anc <- integer(L)
   for(locus in 1:L) {
     ## xi is indicator variable for > 0 arrivals
     xi <- runif(1) >  f[locus]
     if(xi) {
-      Anc[locus] <- rDiscrete(mu)
+      Anc[locus] <- rDiscrete(mu[locus,])
     } else {
       Anc[locus] <- Anc[locus - 1]
     }
@@ -63,8 +63,27 @@ distanceFromLast <- function(v.Chr, v.Position) {
   return(v.DistanceFromLast)
 }
 
+rdirichlet <- function(params) {
+  S <- length(params)
+  p <- numeric(S)
+  if(S==2) {
+    p[1] <- rbeta(1, params[1], params[2])
+    p[2] <- 1 - p[1]
+  } else {
+    for(i in 1:S) {
+      p[i] <- rgamma(1, params[i], 1)
+    }
+    sum.p <- sum(p)
+    p <- p / sum.p
+  }
+  return(p)
+}
 ##########################################################################
 ## Start of script
+
+##where to write data files
+datadir <- "hapmixsimdata"
+
 ## chromosome lengths in cM
 #chr.L <-
 ##c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
@@ -110,7 +129,9 @@ for(locus in 1:L) {
 }
 
 ##set block mixture proportions
-mu <- rep(1/K, K)
+#mu <- rep(1/K, K)
+mu <- matrix(1/K, nrow=L, ncol=K)
+mu.Prior <- rep(1, K)
 
 ## generate allele freqs
 alleleFreqs <- array(data=NA, dim=c(2, K, L))
@@ -122,8 +143,13 @@ alleleFreqs <- array(data=NA, dim=c(2, K, L))
 
 alpha.shape <- 1
 alpha.rate <- 10
+
 for(locus in 1:L) {
-freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K ##Gamma with mean 0.1
+
+  ##simulate mixture proportions
+  mu[locus,] <- rdirichlet(mu.Prior)
+
+  freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K ##Gamma with mean 0.1
 ##p <- rep(0, K)
 ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
    #p <- rbeta(K, freqs.alpha[locus*2-1], freqs.alpha[locus*2]) # freqs  allele 1
@@ -157,14 +183,14 @@ sex <- rep(1, N)##for all males, irrelevant if no X-chromosome
 #genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
 genotypes <- data.frame(id, genotypes.diploid)
 dimnames(genotypes)[[2]] <- c("ID", paste("X", 1:L, sep=""))
-write.table(genotypes, file="data/genotypes_diploid.txt", sep="\t", row.names=F, col.names=T)
+write.table(genotypes, file=paste(datadir,"genotypes_diploid.txt", sep="/"), sep="\t", row.names=F, col.names=T)
 
 ##write haploid genotypes
 id = as.character(seq(1:(2*N)))
 sex <- rep(1, 2*N)##for all males, irrelevant if no X-chromosome
 ##genotypes <- data.frame(id, sex, genotypes, row.names=NULL)
 genotypes <- data.frame(id, genotypes.haploid)
-write.table(genotypes, file="data/genotypes_haploid.txt", sep="\t", row.names=F, col.names=T)
+write.table(genotypes, file=paste(datadir,"genotypes_haploid.txt", sep="/"), sep="\t", row.names=F, col.names=T)
 
 ## write locus file
 distances[is.na(distances)] <- 100
@@ -178,7 +204,7 @@ distances[is.na(distances)] <- 100
 loci <- data.frame(as.vector(dimnames(genotypes)[[2]][-1]),  rep(2,L),  distances, row.names=NULL)
 dimnames(loci)[[2]] <- c("Locus", "NumAlleles", "DistanceinMb")
 
-write.table(loci, file="data/loci.txt", row.names=FALSE)
+write.table(loci, file=paste(datadir,"loci.txt", sep="/"), row.names=FALSE)
 
 ## write allelefreqsfile
 freqstable <- numeric(K)
@@ -190,10 +216,18 @@ for(locus in 1:L) {
 statelabels <- paste("state", seq(1:K), sep="")
 freqstable <- data.frame(locusnames, freqstable[-1, ])
 dimnames(freqstable)[[2]] <- c("locus", statelabels)
-write.table(freqstable, file="data/allelefreqs.txt", sep="\t", row.names=F)
+write.table(freqstable, file=paste(datadir,"allelefreqs.txt", sep="/"), sep="\t", row.names=F)
 
 ##priorallelefreqs <- freqstable[seq(1, (dim(freqstable)[[1]]), by=2)]
 ##write.table(freqstable+0.5, file="data/priorallelefreqs.txt", sep="\t", row.names=F)
+
+##write mixture proportions to file
+mixture.props <- data.frame(mu)
+mixture.props <- rbind(mixture.props, colMeans(mixture.props))
+dimnames(mixture.props)[[1]][L+1] <- "average"
+write.table(round(mixture.props, 4), file=paste(datadir, "TrueMixtureProps.txt", sep="/"), row.names=T, col.names=T)
+
+
 
 ##generate a case-control genotypes file  
 ##done exactly as for diploid data but with fewer individuals and outputting only some of the loci
@@ -215,8 +249,8 @@ id = as.character(seq(1:NN))
 genotypes <- data.frame(id, genotypes.cc[,seq(from=2, to=L, by=2)])
 ##write even-numbered genotypes to file
 dimnames(genotypes)[[2]] <- c("ID", paste("X", CCLoci, sep=""))
-write.table(genotypes, file="data/genotypes_casectrl.txt", sep="\t", row.names=F, col.names=T)
+write.table(genotypes, file=paste(datadir,"genotypes_casectrl.txt", sep="/"), sep="\t", row.names=F, col.names=T)
 
 ##write an outcome variable file
 outcome <- data.frame(Outcome = sample(size=NN, x=c(0,1), replace=T))
-write.table(outcome, file="data/outcome.txt", row.names=F, col.names=T)
+write.table(outcome, file=paste(datadir,"outcome.txt", sep="/"), row.names=F, col.names=T)
