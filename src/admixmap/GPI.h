@@ -5,6 +5,7 @@
 
 #include "FreqArrays.h"
 #include <vector>
+#include <string>
 
 class GenotypeProbIterator{
 
@@ -47,10 +48,14 @@ public:
 
   const ColumnIterator& operator[](unsigned i){
     if(!p)
-      throw ("pointer error in GenotypeProbIterator");
+      throw std::string("Error in GenotypeProbIterator: unassigned pointer");
 
-    if(g)//g is pointing to something
+    if(g){//g is pointing to something
+      if((*g)[i+offset] ==0 ){//missing genotype
+        throw std::string("Error in GenotypeProbIterator: missing genotype");
+      }
       C.setOffset( (*g)[i+offset] - 1);//-1 because genotypes count from 1
+    }
     C.assign( (*p)[i+offset]);
  
    //C.setOffset(g[i]);

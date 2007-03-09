@@ -56,7 +56,7 @@ HapMixIndividualCollection::~HapMixIndividualCollection(){
 //     return 0;
 //   }
 // }
-void HapMixIndividualCollection::SampleLocusAncestry(const Options* const options){
+void HapMixIndividualCollection::SampleLocusAncestry(const Options* const options, unsigned iteration){
 
   fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
 #ifdef PARALLEL
@@ -67,9 +67,9 @@ void HapMixIndividualCollection::SampleLocusAncestry(const Options* const option
     // ** Run HMM forward recursions and sample locus ancestry
     _child[i]->SampleLocusAncestry(options);
 
-    if (
+    if (iteration > options->getBurnIn()
       // If it's a control individual
-      i >= getFirstScoreTestIndividualNumber()
+      && i >= getFirstScoreTestIndividualNumber()
       // And if the score tests are switched on
       && strlen(options->getAllelicAssociationScoreFilename()) > 0
       // FIXME: The next condition shouldn't be necessary.

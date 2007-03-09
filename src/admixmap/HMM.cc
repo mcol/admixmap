@@ -160,10 +160,10 @@ double HMM::getLogLikelihood(const bool isdiploid)
     return( sumfactor+log(sum) );
 }
 
-/** Samples Hidden States
- * ---------------------
- * SStates    - an int array to store the sampled states
- * isdiploid  - indicator for diploidy
+/** 
+    Samples Hidden States
+    SStates    - an int array to store the sampled states
+    isdiploid  - indicator for diploidy
  */
 void HMM::Sample(int *SStates, const bool isdiploid)
 {
@@ -216,11 +216,11 @@ void HMM::Sample(int *SStates, const bool isdiploid)
   }
 }
 
-/** * Returns a vector of conditional probabilities of each hidden state
- * at 'time' t.
- *
- * If diploid, the vector is really a matrix of probabilities of pairs
- * of states.
+/** 
+    Returns a vector of conditional probabilities of each hidden state
+    at 'time' t.
+    If diploid, the vector is really a matrix of probabilities of pairs
+    of states.
  */
 const std::vector<double> HMM::GetHiddenStateProbs(const bool isDiploid, int t){
   if(alphaIsBad){
@@ -256,7 +256,7 @@ const std::vector<double> HMM::GetHiddenStateProbs(const bool isDiploid, int t){
 
 // ****** End Public Interface *******
 
-/** Updates Forward probabilities alpha, diploid case only */
+/// Updates Forward probabilities alpha, diploid case only
 void HMM::UpdateForwardProbsDiploid()
 {
   if(LambdaGPI.isNull() || !theta || !f)
@@ -321,22 +321,24 @@ void HMM::UpdateBackwardProbsDiploid()
   }
   
   for( int t = Transitions-2; t >= 0; --t ) {
-    double f2[2] = {f[2*t + 2], f[2*t + 3]};
-    Sum = 0.0;
-    for(int j = 0; j < DStates; ++j){
-      LambdaBeta[j] = LambdaGPI[t+1][j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
-      Sum += LambdaBeta[j];
-    }
-    //scale LambdaBeta to sum to 1
-    scaleFactor = 1.0 / Sum;
-    for( int j = 0; j <  DStates; ++j ) {
-      LambdaBeta[j] *= scaleFactor;
-    }
-    
-    RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
-    for(int j = 0; j < DStates; ++j){ // vectorization successful
-      beta[t*DStates + j] *= rec[j];
-    }
+      if(!missingGenotypes[t+1]){
+          double f2[2] = {f[2*t + 2], f[2*t + 3]};
+          Sum = 0.0;
+          for(int j = 0; j < DStates; ++j){
+              LambdaBeta[j] = LambdaGPI[t+1][j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
+              Sum += LambdaBeta[j];
+          }
+          //scale LambdaBeta to sum to 1
+          scaleFactor = 1.0 / Sum;
+          for( int j = 0; j <  DStates; ++j ) {
+              LambdaBeta[j] *= scaleFactor;
+          }
+          
+          RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
+          for(int j = 0; j < DStates; ++j){ // vectorization successful
+              beta[t*DStates + j] *= rec[j];
+          }
+      }
   }
   betaIsBad = false;
 }
@@ -352,9 +354,10 @@ void HMM::UpdateForwardProbsHaploid(){
   sumfactor = 0.0;
   double Sum = 0.0;
   double scaleFactor = 0.0;
-  for(int j = 0; j < K; ++j){
-    alpha[j] = theta[j] * LambdaGPI[0][j];
-  }
+  if(!missingGenotypes[0])
+      for(int j = 0; j < K; ++j){
+          alpha[j] = theta[j] * LambdaGPI[0][j];
+      }
   
   for( int t = 1; t < Transitions; t++ ) {
     if(!missingGenotypes[t-1]) {
@@ -392,14 +395,16 @@ void HMM::UpdateBackwardProbsHaploid(){
   }
   
   for( int t = Transitions-2; t >=0; t-- ){
-    Sum = 0.0;
-    for(int j = 0; j < K; ++j){
-      LambdaBeta[j] = LambdaGPI[t+1][j]*beta[(t+1)*K + j];
-      Sum += theta[j]*LambdaBeta[j];
-    }
-    for(int j = 0; j < K; ++j){
-      beta[t*K + j] = f[2*(t+1)]*LambdaBeta[j] + (1.0 - f[2*(t+1)+1])*Sum;
-    }
+      if(!missingGenotypes[t+1]){
+          Sum = 0.0;
+          for(int j = 0; j < K; ++j){
+              LambdaBeta[j] = LambdaGPI[t+1][j]*beta[(t+1)*K + j];
+              Sum += theta[j]*LambdaBeta[j];
+          }
+          for(int j = 0; j < K; ++j){
+              beta[t*K + j] = f[2*(t+1)]*LambdaBeta[j] + (1.0 - f[2*(t+1)+1])*Sum;
+          }
+      }
   }
   betaIsBad = false;
 }

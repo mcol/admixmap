@@ -82,7 +82,7 @@ public:
   virtual void resetStepSizeApproximators(int ){};
 
   //functions specific to hapmixmodel
-  virtual void SampleLocusAncestry(const Options* const ){};
+  virtual void SampleLocusAncestry(const Options* const, unsigned ){};
   virtual const int* getSumAncestry()const{return 0;};
   virtual void AccumulateConditionalGenotypeProbs(const Options* const, const IGenome& ){};
   virtual void OutputCGProbs(const char* ){};

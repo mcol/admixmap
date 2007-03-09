@@ -24,7 +24,7 @@ class HapMixIndividualCollection : public IndividualCollection
 public:
   ~HapMixIndividualCollection();
   HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, IGenome* Loci, const HapMixFreqs* A);
-  void SampleLocusAncestry(const Options* const options);
+  void SampleLocusAncestry(const Options* const options, unsigned iteration);
   const int* getSumAncestry()const;
   //Individual* getIndividual(int)const;
   int getNumberOfIndividualsForScoreTests()const;
