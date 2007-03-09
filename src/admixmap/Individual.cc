@@ -45,11 +45,7 @@ Individual::Individual() {
 //   Initialise(number, options, Data);
 // }
 
-void Individual::Initialise(
-    int number,
-    const Options* const options,
-    const InputData* const Data)
-{
+void Individual::Initialise(int number, const Options* const options, const InputData* const Data){
   myNumber = number;
   if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
   else NumGametes = 1;
@@ -173,9 +169,9 @@ void Individual::DeleteGenotypes(){
 
 /// sets static members, including allocation and deletion of static objects for score tests
 void Individual::SetStaticMembers(Genome* const pLoci, const Options* const options){
-  Individual::setGenome(pLoci);
+  Loci = pLoci;
   numChromosomes = Loci->GetNumberOfChromosomes();
-  Individual::setPopulations(options->getPopulations());
+  Populations = options->getPopulations();
   Xdata = Loci->isX_data();
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   if(Xdata) X_posn = Loci->GetChrNumOfLocus(Loci->getFirstXLocus());//too clunky, should simplify
@@ -184,15 +180,15 @@ void Individual::SetStaticMembers(Genome* const pLoci, const Options* const opti
 /// Sets genome (Loci)
 /// Needed for tests which need to substitute only this one static
 /// variable.
-void Individual::setGenome(Genome *pLoci)
-{
-  Loci = pLoci;
-}
+// void Individual::setGenome(Genome *pLoci)
+// {
+//   Loci = pLoci;
+// }
 
-void Individual::setPopulations(int p)
-{
-  Populations = p;
-}
+// void Individual::setPopulations(int p)
+// {
+//   Populations = p;
+// }
 
 void Individual::HMMIsBad(bool loglikisbad) {
   logLikelihood.HMMisOK = false;
@@ -212,20 +208,16 @@ const int* Individual::getSampledHapPair(int locus)const{
   return sampledHapPairs[locus].haps;
 }
 
-/** Get the locus ancestry by the absolute locus index,
- * ingoring the chromosome.
+/** 
+    Get the locus ancestry by the absolute locus index,ingoring the chromosome.
  */
-void Individual::GetLocusAncestry(int locus, int Ancestry[2])
-const
-{
+void Individual::GetLocusAncestry(int locus, int Ancestry[2])const{
   unsigned c, l;
   Loci->GetChrmAndLocus(locus, &c, &l);
   GetLocusAncestry(c, l, Ancestry);
 }
 
-void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])
-const
-{
+void Individual::GetLocusAncestry(int chrm, int locus, int Ancestry[2])const{
   Ancestry[0]  = LocusAncestry[chrm][locus];
   if(isHaploid || ((unsigned)chrm == X_posn && !SexIsFemale))
     Ancestry[1] = Ancestry[0];
@@ -328,16 +320,16 @@ vector<vector<double> >& Individual::getUnorderedProbs(
   return UnorderedProbs[j];
 }
 
-/** method to calculate genotype probs as an average
- * over conditional probs of hidden states.
- * 
- * call this method from IndividualCollection.cc just after SampleLocusAncestry
- * call new method in Chromosome to get state probs
- * unchanged state probs from HMM
+/** 
+    function to calculate genotype probs as an average
+    over conditional probs of hidden states.
+    
+    call this function from IndividualCollection.cc just after SampleLocusAncestry
+    call new function in Chromosome to get state probs
+    unchanged state probs from HMM
  */
 
-void Individual::calculateUnorderedGenotypeProbs(void)
-{
+void Individual::calculateUnorderedGenotypeProbs(void){
   unsigned int numberCompositeLoci = Loci->GetNumberOfCompositeLoci();
   for(unsigned int j = 0; j < numberCompositeLoci; ++j) {
     calculateUnorderedGenotypeProbs(j);
@@ -346,20 +338,13 @@ void Individual::calculateUnorderedGenotypeProbs(void)
 }
 
 /**
- * Same as Individual::calculateUnorderedProbs(void),
- * but for j^th locus only
+   Same as Individual::calculateUnorderedProbs(void),
+   but for j^th locus only
  */
-
-void Individual::calculateUnorderedGenotypeProbs(unsigned j)
-{
+void Individual::calculateUnorderedGenotypeProbs(unsigned j){
   if (isHaploidIndividual()) {
     string s = "Individual::calculateUnorderedGenotypeProbs(int j) not implemented for haploid individuals";
-#ifdef HAVE_CPPUNIT
-#include <cppunit/Exception.h>
-    throw CppUnit::Exception(CppUnit::Message(s), CPPUNIT_SOURCELINE());
-#else
     throw(s);
-#endif
   }
   vector<double> orderedGenotypeProbs(4);
   vector<double> orderedStateProbs = vector<double>(Populations * Populations);
@@ -371,18 +356,14 @@ void Individual::calculateUnorderedGenotypeProbs(unsigned j)
     return;
   }
   
-  const int numberOfHiddenStates = getNumberOfHiddenStates();
+  const int numberOfHiddenStates = Populations;
   
   // code below should be executed as a loop over all K^2 states
   // of anc
   // GetLocusAncestry(j, anc);
   // chromosome, locus = Loci->GetChrmAndLocus(j);
-  orderedStateProbs = getStateProbs(
-        not this->isHaploidIndividual(),
-        Loci->getChromosomeNumber(j),
-        Loci->getRelativeLocusNumber(j));
+  orderedStateProbs = getStateProbs(not this->isHaploidIndividual(), Loci->getChromosomeNumber(j), Loci->getRelativeLocusNumber(j));
 
-  // hp = getPossibleHapPairs(j);
   hp = PossibleHapPairs[j];
   // set UnorderedProbs[j][*][0] to 0;
     vector<vector<double> >::iterator gi;
@@ -424,12 +405,7 @@ void Individual::calculateUnorderedGenotypeProbs(unsigned j)
   }
 }
 
-vector<double> Individual::getStateProbs(
-    const bool isDiploid,
-    const int chromosome,
-    const int locus)
-const
-{
+vector<double> Individual::getStateProbs(const bool isDiploid,const int chromosome,const int locus)const{
   return Loci->getChromosome(chromosome)->getHiddenStateProbs(isDiploid, locus);
 }
 
@@ -525,7 +501,7 @@ void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regress
   }
 }
 
-const int Individual::getNumberOfHiddenStates()
-{
-  return Populations;
-}
+// const int Individual::getNumberOfHiddenStates()
+// {
+//   return Populations;
+// }

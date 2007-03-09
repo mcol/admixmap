@@ -25,12 +25,8 @@
 #include "GeneticDistanceUnit.h"
 #include "InputData.h"
 
-using std::vector;
-using std::string;
-
 ///Container class for Chromosome and CompositeLocus objects.
-class Genome
-{
+class Genome{
 public:
 
   Genome();
@@ -104,10 +100,10 @@ private:
    * LocusTable[i][0] is the chromosome
    * LucusTable[i][1] is the locus index
    */
-  vector<vector<int> > LocusTable;
-  vector<string> ChrmLabels;
+  std::vector<std::vector<int> > LocusTable;
+  std::vector<std::string> ChrmLabels;
 
-  void InitialiseChromosomes(const vector<unsigned> cstart, int populations);
+  void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations);
   void PrintSizes(LogWriter &Log, GeneticDistanceUnit u)const;
 
   // UNIMPLEMENTED

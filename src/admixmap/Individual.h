@@ -20,18 +20,15 @@
 #include "GenotypeProbOutputter.h"
 #include "regression/Regression.h"
 
-#ifdef HAVE_CPPUNIT
-#include <cppunit/Exception.h>
-#endif
-
-using namespace std;
+// #ifdef HAVE_CPPUNIT
+// #include <cppunit/Exception.h>
+// #endif
 
 class AlleleFreqs;
 class Regression;
 
 ///Class to represent an individual and update individual-level parameters
-class Individual
-{
+class Individual{
 public:
   Individual();
   Individual(int number, const Options* const options, const InputData* const Data);
@@ -41,10 +38,9 @@ public:
   void DeleteGenotypes();
   void HMMIsBad(bool loglikisbad);
   static void SetStaticMembers(Genome* const pLoci, const Options* const options);
-  static void setGenome(Genome * const);
-  static void setPopulations(const int);
-  
-  static const int getNumberOfHiddenStates();
+  //static void setGenome(Genome * const);
+  //static void setPopulations(const int);
+  //static const int getNumberOfHiddenStates();
   
   void setOutcome(double*);
   void setCovariates(double*);
@@ -52,7 +48,7 @@ public:
   virtual void SetMissingGenotypes() = 0;
 
   const double* getAdmixtureProps()const;
-  const vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
+  const std::vector<hapPair > &getPossibleHapPairs(unsigned int locus)const;
   const int* getSampledHapPair(int locus)const;
   bool GenotypeIsMissing(unsigned int locus)const;//< locus is a comp locus
   bool simpleGenotypeIsMissing(unsigned locus)const;//< locus is a simple locus
@@ -77,10 +73,10 @@ public:
 #endif
   void UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const;
 
-  void SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regression*>& R);
-  vector<vector<double> >& getUnorderedProbs(const unsigned int);
+  void SampleMissingOutcomes(DataMatrix *Outcome, const std::vector<Regression*>& R);
+  std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int);
   void calculateUnorderedGenotypeProbs(void);
-  vector<double> getStateProbs(const bool, int, int) const;
+  std::vector<double> getStateProbs(const bool, int, int) const;
   void calculateUnorderedGenotypeProbs(unsigned);
 protected:
   unsigned myNumber;//< number of this individual, counting from 1
@@ -98,7 +94,7 @@ protected:
   std::vector<hapPair> *PossibleHapPairs;//possible haplotype pairs compatible with genotype
   bool **GenotypesMissing;//< indicators for missing genotypes at comp loci
   bool *missingGenotypes;//< indicators for missing genotypes at simple loci
-  vector<hapPair> sampledHapPairs;
+  std::vector<hapPair> sampledHapPairs;
 
   double *Theta;//< admixture proportions
 
@@ -106,7 +102,7 @@ protected:
   std::vector<double> _rho;//< sum of intensities
   double* Outcome;
   double* Covariates;
-  vector<vector<vector<double> > > UnorderedProbs;
+  std::vector<std::vector<std::vector<double> > > UnorderedProbs;
 
   struct {
     double value; //< loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true
@@ -118,9 +114,9 @@ protected:
   void SetUniformAdmixtureProps();
 
   virtual void UpdateHMMInputs(unsigned int j, const Options* const options, 
-			     const double* const theta, const vector<double> rho) = 0;
+                               const double* const theta, const std::vector<double> rho) = 0;
   virtual double getLogLikelihood(const Options* const options, 
-			  const double* const theta, const vector<double > rho, bool updateHMM);
+                                  const double* const theta, const std::vector<double > rho, bool updateHMM);
 };
 
 #endif /* INDIVIDUAL_H */
