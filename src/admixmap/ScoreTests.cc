@@ -102,7 +102,7 @@ ScoreTests::~ScoreTests(){
   }
 }
 
-void ScoreTests::Initialise(Options* op, const IndividualCollection* const indiv, const IGenome* const Loci, 
+void ScoreTests::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 			    const Vector_s& PLabels, LogWriter &Log){
   options = op;
   individuals = indiv;
@@ -628,7 +628,7 @@ void ScoreTests::CentreAndSum(unsigned dim, double *score, double* info,
   delete[] cinfo;
 }
 
-void ScoreTests::UpdateScoresForResidualAllelicAssociation(const IFreqArray& AlleleFreqs){
+void ScoreTests::UpdateScoresForResidualAllelicAssociation(const FreqArray& AlleleFreqs){
   ResidualAllelicAssocScoreTest.Update(AlleleFreqs, options->getHapMixModelIndicator());
 }
 

@@ -23,15 +23,15 @@ class HapMixIndividualCollection : public IndividualCollection
 {
 public:
   ~HapMixIndividualCollection();
-  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, IGenome* Loci, const HapMixFreqs* A);
+  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A);
   void SampleLocusAncestry(const Options* const options, unsigned iteration);
   const int* getSumAncestry()const;
   //Individual* getIndividual(int)const;
   int getNumberOfIndividualsForScoreTests()const;
   unsigned int getFirstScoreTestIndividualNumber()const;
-  void AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const IGenome& Loci);
+  void AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci);
   void OutputCGProbs(const char* filename);
-  double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *>&R, IGenome* Loci, LogWriter &Log,
+  double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
 				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A );
 private:
   unsigned NumCaseControls;

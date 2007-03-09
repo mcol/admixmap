@@ -3,7 +3,7 @@ LIBS			= -lgsl -lgslcblas $(PARALLEL_LIBS)
 # LDADD			= libgenepi.la
 TESTS			= check-admixmap-help check-hapmixmap-help
 
-SUBDIRS			= interfaces
+SUBDIRS			= 
 
 EXTRA_DIST		= $(TESTS)
 INCLUDES		= -I$(top_srcdir)/src/bayeslib
@@ -127,21 +127,15 @@ libgenepi_la_SOURCES = misc.cc \
 
 libgenepi_la_LDFLAGS	= 
 
-if UNIT_TEST
-libgenepi_la_LDFLAGS	+= $(CPPUNIT_LIBS)
-libgenepi_la_CXXFLAGS	= $(CPPUNIT_CFLAGS)
-endif
+libgenepi_la_LIBADD = $(top_builddir)/src/bayeslib/libbayes.la 
 
-libgenepi_la_LIBADD = $(top_builddir)/src/bayeslib/libbayes.la \
-		      interfaces/libinterface.la
 if PARALLEL
 # Parallel libgenepi
 noinst_LTLIBRARIES		+= libgenepi-para.la libhapmixmap-para.la
 libgenepi_para_la_SOURCES	= $(libgenepi_la_SOURCES)
 libgenepi_para_la_CPPFLAGS	= -DPARALLEL
 libgenepi_para_la_LDFLAGS	= $(PARALLEL_LIBS)
-libgenepi_para_la_LIBADD	= $(top_builddir)/src/bayeslib/libbayes-para.la \
-		      		  interfaces/libinterface.la
+libgenepi_para_la_LIBADD	= $(top_builddir)/src/bayeslib/libbayes-para.la
 
 # HAPMIXMAP library
 libhapmixmap_para_la_SOURCES	= $(libhapmixmap_la_SOURCES)
@@ -157,6 +151,5 @@ hapmixmap_para_SOURCES		= $(hapmixmap_SOURCES)
 hapmixmap_para_LDFLAGS		= $(PARALLEL_LIBS)
 hapmixmap_para_LDADD		= $(top_builddir)/src/bayeslib/libbayes-para.la \
 				  libgenepi-para.la \
-				  libhapmixmap-para.la \
-				  interfaces/libinterface-para.la
+				  libhapmixmap-para.la
 endif

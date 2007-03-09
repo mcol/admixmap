@@ -5,7 +5,7 @@
 #include "regression/Regression.h"
 #include "Comms.h"
 
-HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, IGenome* Loci, const HapMixFreqs* A){
+HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A){
   SetNullValues();
   GlobalSumAncestry = 0;
   SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
@@ -104,7 +104,7 @@ unsigned int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()cons
   else return 0;
 }
 //TODO: alternative for parallel version
-void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const IGenome& Loci){
+void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci){
   const std::vector<unsigned>& MaskedLoci = options->getMaskedLoci();
   const std::vector<unsigned>& MaskedIndividuals = options->getMaskedIndividuals();
   int anc[2];
@@ -125,7 +125,7 @@ void HapMixIndividualCollection::OutputCGProbs(const char* filename){
 }
 
 double HapMixIndividualCollection::getDevianceAtPosteriorMean(
-    const Options* const options, vector<Regression *> &R, IGenome* Loci,
+    const Options* const options, vector<Regression *> &R, Genome* Loci,
     LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
     , AlleleFreqs* 
 #ifdef PARALLEL

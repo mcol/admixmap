@@ -18,7 +18,6 @@
 #include <map>
 #include "common.h"
 #include "utils/LogWriter.h"
-#include "interfaces/IOptions.h"
 
 using namespace::std;
 
@@ -30,7 +29,7 @@ typedef pair<void*,  string> OptionPair;
 typedef map<string, OptionPair >OptionMap;
 
 /// Class to hold program options
-class Options : public IOptions
+class Options
 {
 public:
   virtual ~Options();

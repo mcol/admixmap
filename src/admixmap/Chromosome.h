@@ -18,7 +18,6 @@
 #include <iostream>
 #include <string>
 #include "HMM.h"
-#include "interfaces/IChromosome.h"
 
 using std::vector;
 using std::string;
@@ -28,7 +27,7 @@ class AdmixOptions;
 class GenotypeProbIterator;
 
 /// Represents a chromosome and holds HMM object
-class Chromosome : public IChromosome
+class Chromosome
 {
 public:
   Chromosome();
@@ -83,7 +82,7 @@ private:
   // to avoid use
  // Private default constructor
   Chromosome(const Chromosome&);
-  Chromosome& operator=(const IChromosome&);
+  Chromosome& operator=(const Chromosome&);
 };
 
 #endif /* !defined CHROMOSOME_H */

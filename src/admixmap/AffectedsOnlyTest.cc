@@ -80,7 +80,7 @@ void AffectedsOnlyTest::Reset(){
   }
 }
 
-void AffectedsOnlyTest::Output(int iterations, const Vector_s& PopLabels, const IGenome& Loci, bool final, const char* filename){
+void AffectedsOnlyTest::Output(int iterations, const Vector_s& PopLabels, const Genome& Loci, bool final, const char* filename){
   std::ofstream* outfile;
   if(final){
     outfile = new ofstream(filename);
@@ -194,7 +194,7 @@ void AffectedsOnlyTest::Accumulate(unsigned j){
 }
 
 ///outputs ergodic averages of Likelihood Ratios as R object
-void AffectedsOnlyTest::OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels, const IGenome& Loci){
+void AffectedsOnlyTest::OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels, const Genome& Loci){
   //open outut file
   std::ofstream likratiostream(filename);
 

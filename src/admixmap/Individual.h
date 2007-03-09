@@ -13,7 +13,6 @@
 #ifndef INDIVIDUAL_H
 #define INDIVIDUAL_H 1
 #include "common.h"
-#include "interfaces/IGenome.h"
 #include "Genome.h"
 #include "Chromosome.h"
 #include "AlleleFreqs.h"
@@ -36,13 +35,13 @@ class Individual
 public:
   Individual();
   Individual(int number, const Options* const options, const InputData* const Data);
-  void Initialise(int number, const IOptions* const options, const IInputData* const Data);
+  void Initialise(int number, const Options* const options, const InputData* const Data);
   virtual ~Individual();
 
   void DeleteGenotypes();
   void HMMIsBad(bool loglikisbad);
-  static void SetStaticMembers(IGenome* const pLoci, const IOptions* const options);
-  static void setGenome(IGenome * const);
+  static void SetStaticMembers(Genome* const pLoci, const Options* const options);
+  static void setGenome(Genome * const);
   static void setPopulations(const int);
   
   static const int getNumberOfHiddenStates();
@@ -89,7 +88,7 @@ protected:
   bool isHaploid;//< indicates if individual is haploid at all loci or only at X loci
   static unsigned int numChromosomes;
   static int Populations; //< Number of hidden states in the hidden Markov model
-  static IGenome *Loci;
+  static Genome *Loci;
   static bool Xdata;//< indicates if there is an X chromosome
   static unsigned int X_posn;  //number of X chromosome
   double EffectiveL[2];

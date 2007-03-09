@@ -22,7 +22,7 @@
 #include "AncestryAssocTest.h"
 #include "ResidualLDTest.h"
 
-class IFreqArray;
+class FreqArray;
 
 /**
    Class to implement various score tests. 
@@ -39,7 +39,7 @@ class ScoreTests{
 public:
   ScoreTests();
 
-  void Initialise(Options* , const IndividualCollection* const, const IGenome* const ,
+  void Initialise(Options* , const IndividualCollection* const, const Genome* const ,
 		  const Vector_s&, LogWriter &);
 
   void Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
@@ -49,7 +49,7 @@ public:
   void SetAllelicAssociationTest(const std::vector<double> &alpha0);
 
   void Update(const vector<Regression* >& R);
-  void UpdateScoresForResidualAllelicAssociation(const IFreqArray& Allelefreqs);
+  void UpdateScoresForResidualAllelicAssociation(const FreqArray& Allelefreqs);
 
   ~ScoreTests();
 
@@ -77,8 +77,8 @@ private:
 
   const Options *options;
   const IndividualCollection *individuals;
-  const IGenome* Lociptr;//Pointer to Loci
-  const IChromosome* const* chrm;//Copy of pointer to array of chromosomes
+  const Genome* Lociptr;//Pointer to Loci
+  const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
   int rank, worker_rank, NumWorkers;
   unsigned NumOutputs;//counts calls to output function for dimensions of R objects
 

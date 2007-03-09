@@ -25,7 +25,7 @@
 bool Individual::Xdata;
 unsigned Individual::X_posn;
 unsigned int Individual::numChromosomes;
-IGenome *Individual::Loci;
+Genome *Individual::Loci;
 int Individual::Populations;
 
 //******** Constructors **********
@@ -47,8 +47,8 @@ Individual::Individual() {
 
 void Individual::Initialise(
     int number,
-    const IOptions* const options,
-    const IInputData* const Data)
+    const Options* const options,
+    const InputData* const Data)
 {
   myNumber = number;
   if( options->isRandomMatingModel() && !isHaploid) NumGametes = 2;
@@ -172,7 +172,7 @@ void Individual::DeleteGenotypes(){
 }
 
 /// sets static members, including allocation and deletion of static objects for score tests
-void Individual::SetStaticMembers(IGenome* const pLoci, const IOptions* const options){
+void Individual::SetStaticMembers(Genome* const pLoci, const Options* const options){
   Individual::setGenome(pLoci);
   numChromosomes = Loci->GetNumberOfChromosomes();
   Individual::setPopulations(options->getPopulations());
@@ -184,7 +184,7 @@ void Individual::SetStaticMembers(IGenome* const pLoci, const IOptions* const op
 /// Sets genome (Loci)
 /// Needed for tests which need to substitute only this one static
 /// variable.
-void Individual::setGenome(IGenome *pLoci)
+void Individual::setGenome(Genome *pLoci)
 {
   Loci = pLoci;
 }
@@ -307,7 +307,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const Options* const options
 //************** Updating (Public) **********************************************************
 void Individual::SampleLocusAncestry(const Options* const options){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    IChromosome *C = Loci->getChromosome(j);
+    Chromosome *C = Loci->getChromosome(j);
     // update of forward probs here is unnecessary if SampleTheta was called and proposal was accepted  
     //Update Forward/Backward probs in HMM
     if( !logLikelihood.HMMisOK ) {
@@ -436,7 +436,7 @@ const
 void Individual::AccumulateAncestry(int* SumAncestry){
   unsigned locus = 0;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    IChromosome* C = Loci->getChromosome(j);
+    Chromosome* C = Loci->getChromosome(j);
     ++locus;//skip first locus on each chromosome
       for(unsigned l = 1; l < C->GetSize(); ++l){
 	if( LocusAncestry[j][l-1] != LocusAncestry[j][l])//first gamete

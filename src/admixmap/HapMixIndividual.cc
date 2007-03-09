@@ -12,8 +12,8 @@
  */
 #include "HapMixIndividual.h"
 
-const IFreqArray* HapMixIndividual::HaploidGenotypeProbs;
-const IFreqArray* HapMixIndividual::DiploidGenotypeProbs;
+const FreqArray* HapMixIndividual::HaploidGenotypeProbs;
+const FreqArray* HapMixIndividual::DiploidGenotypeProbs;
 GenotypeProbIterator HapMixIndividual::GPI;
 
 // No default constructor
@@ -24,8 +24,8 @@ GenotypeProbIterator HapMixIndividual::GPI;
 //Note: assuming SetStaticMembers is called first
 HapMixIndividual::HapMixIndividual(
     int number,
-    const IOptions* const options,
-    const IInputData* const Data)
+    const Options* const options,
+    const InputData* const Data)
 //try
 {
 
@@ -131,10 +131,10 @@ HapMixIndividual::~HapMixIndividual(){
 }
 
 void HapMixIndividual::SetStaticMembers(
-    IGenome* const pLoci,
-    const IOptions* const options,
-    const IFreqArray& haploidGenotypeProbs,
-    const IFreqArray& diploidGenotypeProbs)
+    Genome* const pLoci,
+    const Options* const options,
+    const FreqArray& haploidGenotypeProbs,
+    const FreqArray& diploidGenotypeProbs)
 {
   HaploidGenotypeProbs = &haploidGenotypeProbs;
   DiploidGenotypeProbs = &diploidGenotypeProbs;
@@ -160,7 +160,7 @@ bool HapMixIndividual::simpleGenotypeIsMissing(unsigned locus)const{
 void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const options, 
 				 const double* const , const vector<double> ) {
 
-  IChromosome* C = Loci->getChromosome(j);
+  Chromosome* C = Loci->getChromosome(j);
   const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
   const unsigned locus0 = C->GetLocus(0);//index of first locus on chromosome
 

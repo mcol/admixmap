@@ -13,7 +13,6 @@
 #include "Options.h"
 #include "utils/StringConvertor.h"
 #include "utils/DataReader.h"
-#include "interfaces/IGenome.h"
 #include "Genome.h"
 //#include "Chromosome.h"
 #include "Comms.h"
@@ -650,11 +649,11 @@ vector<unsigned short> InputData::GetGenotype(const string genostring)const{
 
 /** gets genotypes in admixmapmodel (hapmix genotypes are coded differently)
  * 
- * Reads from IGenome and writes to genotypes.
+ * Reads from Genome and writes to genotypes.
  * 
- * @see IGenome
+ * @see Genome
  */
-void InputData::GetGenotype(int i, int SexColumn, const IGenome &Loci,
+void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci,
       vector<genotype>* genotypes, bool** Missing)
 const
 {
@@ -727,7 +726,7 @@ const
   CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i, geneticData_[i][0]);
 }
 
-bool InputData::GetHapMixGenotype(int i, int SexColumn, const IGenome &Loci, vector<unsigned short>* genotypes, bool** Missing)const{
+bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vector<unsigned short>* genotypes, bool** Missing)const{
   const bool isCaseControl = (bool)(i > getNumberOfIndividuals() - getNumberOfCaseControlIndividuals() );
 
   unsigned long numhaploid = 0, numdiploid = 0, numhaploidX = 0, numdiploidX = 0;
@@ -844,7 +843,7 @@ void InputData::CheckGenotypes(unsigned long numhaploid, unsigned long numdiploi
   }
 
 }
-void InputData::GetCaseControlGenotype(int i, int SexColumn, const IGenome &Loci, vector<genotype>* genotypes, bool** Missing)const{
+void InputData::GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
   unsigned int simplelocus = 0;//simple locus counter
   unsigned complocus = 0;
   unsigned long numhaploid = 0;

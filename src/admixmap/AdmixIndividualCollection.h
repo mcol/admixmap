@@ -27,7 +27,7 @@ class AdmixIndividualCollection : public IndividualCollection
 public:
   AdmixIndividualCollection();
   ~AdmixIndividualCollection();
-  AdmixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, IGenome* Loci);
+  AdmixIndividualCollection(const AdmixOptions* const options, const InputData* const Data, Genome* Loci);
 
   //void DeleteGenotypes(bool);
   void Initialise(const AdmixOptions* const options, const Genome* const Loci,
@@ -64,7 +64,7 @@ public:
 			  const Vector_s& PopulationLabels);
 
   void OutputIndAdmixture();
-  double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, IGenome* Loci,
+  double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
 							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
 							, AlleleFreqs* A);
   void OutputChibResults(LogWriter&)const;
@@ -78,7 +78,7 @@ public:
 //  double getLogLikelihood(const AdmixOptions* const options, bool forceupdate);
   //double getEnergy(const AdmixOptions* const options, const vector<Regression*> &R,
 			 // const bool & annealed);
-  void setGenotypeProbs(const IGenome * const G, const AlleleFreqs* const);
+  void setGenotypeProbs(const Genome * const G, const AlleleFreqs* const);
 
   void annealGenotypeProbs(unsigned nchr, const double coolness, const double* Coolnesses);
 

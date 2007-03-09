@@ -144,7 +144,7 @@ void Genome::Initialise(const InputData* const data_, int populations, LogWriter
 ///Also determines length of genome, NumberOfCompositeLoci, TotalLoci, NumberOfChromosomes, SizesOfChromosomes, 
 ///LengthOfXChrm 
 void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int populations){
-  C = new IChromosome*[NumberOfChromosomes]; 
+  C = new Chromosome*[NumberOfChromosomes]; 
   //C is an array of chromosome pointers
 
   for(unsigned i = 0; i < NumberOfChromosomes; i++){//loop over chromsomes
@@ -192,16 +192,16 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
   }
 }
 ///accesses the entire chromosome array
-const IChromosome* const* Genome::getChromosomes()const{
+const Chromosome* const* Genome::getChromosomes()const{
   return C;
 }
 ///accesses a chromosome
-IChromosome *Genome::getChromosome(unsigned j){
+Chromosome *Genome::getChromosome(unsigned j){
   return C[j];
 }
 
 ///accesses a composite locus
-ICompositeLocus* Genome::operator() ( int ElementNumber ) const
+CompositeLocus* Genome::operator() ( int ElementNumber ) const
 {
   if ( ElementNumber >= (int)NumberOfCompositeLoci ){
     cout << "WARNING: Genome::operator() Element Number";

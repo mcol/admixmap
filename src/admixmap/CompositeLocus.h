@@ -17,7 +17,6 @@
 #include <string>
 #include <vector>
 
-#include "interfaces/ICompositeLocus.h"
 #include "common.h"
 #include "HapPair.h"
 #include "Haplotype.h"
@@ -26,7 +25,7 @@ using std::string;
 using std::vector;
 
 ///   Class to represent a composite locus
-class CompositeLocus : public ICompositeLocus
+class CompositeLocus
 {
 
 public:
@@ -69,7 +68,7 @@ public:
   int GetNumberOfMergedHaplotypes()const;
   void SetDefaultMergeHaplotypes( const double* const alpha);
 
-  // Haplotype HaplotypeSetter; // Inherited from the interface
+  Haplotype HaplotypeSetter;
 
 private: 
   int NumberOfLoci;

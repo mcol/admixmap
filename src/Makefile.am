@@ -4,7 +4,3 @@ SUBDIRS		 = bayeslib \
 		   hapmixmap \
 		   tools \
 		   scripts
-
-if UNIT_TEST
-SUBDIRS		+= test
-endif

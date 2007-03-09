@@ -24,13 +24,12 @@
 #include "AdmixOptions.h"
 #include "GeneticDistanceUnit.h"
 #include "InputData.h"
-#include "interfaces/IGenome.h"
 
 using std::vector;
 using std::string;
 
 ///Container class for Chromosome and CompositeLocus objects.
-class Genome : public IGenome
+class Genome
 {
 public:
 
@@ -49,7 +48,7 @@ public:
 
   bool isX_data()const;
 
-  ICompositeLocus* operator()(int) const;
+  CompositeLocus* operator()(int) const;
 
   void SetLabels(const std::vector<std::string> &labels, const std::vector<double> &distances);
 
@@ -73,8 +72,8 @@ public:
   double GetDistance(int)const;
 
   void GetChromosomes(int);
-  const IChromosome* const* getChromosomes()const;
-  IChromosome *getChromosome(unsigned);
+  const Chromosome* const* getChromosomes()const;
+  Chromosome *getChromosome(unsigned);
 
   void PrintLocusTable(const char* filename, const std::vector<double>& Distances)const;
 
@@ -88,7 +87,7 @@ public:
   void SetLocusCorrelation(double rho);
 
 private:
-  IChromosome **C;
+  Chromosome **C;
   double *Distances;
   unsigned int NumberOfCompositeLoci;
   CompositeLocus *LocusArray; 

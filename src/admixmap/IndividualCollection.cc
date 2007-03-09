@@ -34,7 +34,7 @@ void IndividualCollection::SetNullValues(){
   ReportedAncestry = 0;
 }
 
-IndividualCollection::IndividualCollection(const Options* const options, const InputData* const Data, IGenome* Loci) {
+IndividualCollection::IndividualCollection(const Options* const options, const InputData* const Data, Genome* Loci) {
   SetNullValues();
   Populations = options->getPopulations();
   NumInd = Data->getNumberOfIndividuals();
@@ -195,7 +195,7 @@ void IndividualCollection::HMMIsBad(bool b){
 /**
    Samples Haplotype pairs and upates allele/haplotype counts if requested
 */
-void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFreqs *A, const IGenome* const Loci,
+void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
 					  bool skipMissingGenotypes, bool anneal, bool UpdateAlleleCounts){
   unsigned nchr = Loci->GetNumberOfChromosomes();
   unsigned locus = 0;
@@ -221,7 +221,7 @@ void IndividualCollection::SampleHapPairs(const Options* const options, AlleleFr
   }
 }
 
-void IndividualCollection::AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const IGenome* const Loci,
+void IndividualCollection::AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
                                                   bool anneal){
 #ifdef PARALLEL
       MPE_Log_event(23, 0, "startAlleleCountUpdate");

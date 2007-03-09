@@ -1,4 +1,4 @@
-AC_INIT([genepi], [0.4-nst2])
+AC_INIT([genepi], [0.4])
 AC_CANONICAL_SYSTEM
 AM_INIT_AUTOMAKE([gnu])
 AM_CONFIG_HEADER(config.h)
@@ -86,22 +86,6 @@ fi
 AC_SUBST([PARALLEL_LIBS])
 AC_SUBST([PARALLEL_ENABLE])
 
-AC_ARG_ENABLE(testing, [  --enable-testing        Build unit-tests with CppUnit], 
- 		              [case "${enableval}" in 
- 		               yes) unit_test=true ;; 
- 		               no) unit_test=false ;; 
- 		               *) AC_MSG_ERROR(bad value ${enableval} for --enable-testing) ;; 
- 		               esac], [unit_test=false]) 
-
-AM_CONDITIONAL(UNIT_TEST, test x$unit_test = xtrue)
-
-if test x${unit_test} = xtrue; then
-	dnl AC_CHECK_HEADERS([cppunit/TestFixture.h],,AC_MSG_ERROR(CppUnit headers are missing))
-	dnl AC_CHECK_LIB(cppunit, Test::Test,,AC_MSG_ERROR(Testing requires CppUnit))
-	AM_PATH_CPPUNIT(1.10.2)
-	AC_DEFINE([HAVE_CPPUNIT], [], [CppUnit testing framework, see http://cppunit.sf.net/])
-fi
-
 if test "$enable_static_binary" = "yes"; then
 	STATIC_LDFLAGS="-all-static"
 else
@@ -121,10 +105,7 @@ AC_OUTPUT([Makefile
 	   src/Makefile
 	   src/common/Makefile
 	   src/admixmap/Makefile
-	   src/admixmap/interfaces/Makefile
 	   src/hapmixmap/Makefile
-	   src/test/Makefile
-	   src/test/mock/Makefile
 	   src/bayeslib/Makefile
 	   src/bayeslib/regression/Makefile
 	   src/bayeslib/samplers/Makefile
@@ -151,7 +132,6 @@ Configuration:
   Install path:          ${prefix}
   Parallel version:      ${enable_parallel}
   Static binary:         ${enable_static_binary}
-  Unit-test:             ${unit_test}
   User data converter:   ${converter}
 
   See config.h for further configuration information.

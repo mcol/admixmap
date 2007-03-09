@@ -14,13 +14,11 @@
 #ifndef HAPMIXFREQS_H
 #define HAPMIXFREQS_H 1
 
-#include "interfaces/IHapMixFreqs.h"
-
 #include "AlleleFreqs.h"
 #include "samplers/AdaptiveRejection.h"
 #include <vector>
 #include <fstream>
-class IGenome;
+class Genome;
 class HapMixOptions;
 
 typedef struct{
@@ -37,7 +35,7 @@ class HapMixFreqs : public AlleleFreqs{
 public:
   HapMixFreqs();
   ~HapMixFreqs();
-  void Initialise(HapMixOptions* const options, InputData* const Data, IGenome *pLoci, LogWriter &Log);
+  void Initialise(HapMixOptions* const options, InputData* const Data, Genome *pLoci, LogWriter &Log);
   void setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*/);
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
   void PrintPrior(LogWriter& Log)const;
@@ -55,8 +53,8 @@ public:
 
   void AllocateDiploidGenotypeProbs();
   void SetDiploidGenotypeProbs();
-  const IFreqArray& getHaploidGenotypeProbs()const;
-  const IFreqArray& getDiploidGenotypeProbs()const;
+  const FreqArray& getHaploidGenotypeProbs()const;
+  const FreqArray& getDiploidGenotypeProbs()const;
 
 private:
   /**

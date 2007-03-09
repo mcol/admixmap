@@ -106,7 +106,7 @@ void AncestryAssocTest::Reset(){
     }
   }
 }
-void AncestryAssocTest::Output(int iterations, const Vector_s& PopLabels, const IGenome& Loci, bool final, const char* filename){
+void AncestryAssocTest::Output(int iterations, const Vector_s& PopLabels, const Genome& Loci, bool final, const char* filename){
   std::ofstream* outfile;
   if(final){
     outfile = new ofstream(filename);

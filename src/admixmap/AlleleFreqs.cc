@@ -16,7 +16,6 @@
 //#include <math.h>
 #include <numeric>
 #include "Comms.h"
-#include "interfaces/IGenome.h"
 
 #ifdef PARALLEL
 #include <mpe.h>
@@ -73,7 +72,7 @@ AlleleFreqs::~AlleleFreqs(){
 }
 
 // ************** Initialisation and loading of data  *******************
-void AlleleFreqs::Initialise(Options* const options, InputData* const data, IGenome *pLoci, LogWriter &Log, bool MAP ){
+void AlleleFreqs::Initialise(Options* const options, InputData* const data, Genome *pLoci, LogWriter &Log, bool MAP ){
   //initialise Freqs, PriorAlleleFreqs
   Loci = pLoci;
   Populations = options->getPopulations();
@@ -628,7 +627,7 @@ vector<double> AlleleFreqs::GetAlleleFreqs( int locus, int population )const
     A[i] = Freqs[locus][i + population*Loci->GetNumberOfStates(locus)];
   return A;
 }
-const IFreqArray& AlleleFreqs::GetAlleleFreqs()const{
+const FreqArray& AlleleFreqs::GetAlleleFreqs()const{
   return Freqs;
 }
 // get posterior mode of frequency of allele x, given locus and subpopulation

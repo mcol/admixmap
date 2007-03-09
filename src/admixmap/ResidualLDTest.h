@@ -17,10 +17,10 @@
 #include "ScoreTestBase.h"
 #include "Options.h"
 
-class IChromosome;
-class IGenome;
+class Chromosome;
+class Genome;
 class IndividualCollection;
-class IFreqArray;
+class FreqArray;
 
 /**
    Class to implement score tests for residual allelic association between adjacent pairs of linked loci
@@ -30,14 +30,14 @@ class ResidualLDTest : public ScoreTestBase{
 public:
   ResidualLDTest();
 
-  void Initialise(Options* , const IndividualCollection* const, const IGenome* const ,
+  void Initialise(Options* , const IndividualCollection* const, const Genome* const ,
 		  LogWriter &);
 
   void Output(int iterations, bool final, const std::vector<std::string>& LocusLabels);
   void ROutput();
 
   void Update(double);
-  void Update(const IFreqArray& Allelefreqs, bool ishapmixmodel);
+  void Update(const FreqArray& Allelefreqs, bool ishapmixmodel);
   void Reset();
 
   ~ResidualLDTest();
@@ -51,8 +51,8 @@ private:
 
   const Options *options;
   const IndividualCollection *individuals;
-  const IGenome* Lociptr;//Pointer to Loci
-  const IChromosome* const* chrm;//Copy of pointer to array of chromosomes
+  const Genome* Lociptr;//Pointer to Loci
+  const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
   int rank, worker_rank, NumWorkers;
   //std::vector<unsigned> Tcount;
   

@@ -5,7 +5,6 @@
 
 #include "config.h"
 #include "utils/ColumnIter.h"
-#include "interfaces/IFreqArray.h"
 
 #ifndef PARALLEL
 #define ARRAY2D
@@ -54,7 +53,7 @@ typedef struct{
    struct to hold allelefreqs in either a 1d (where Number of alleles is fixed) or 2d array. 
    See array_of_allelecounts for details.
 */
-class FreqArray : public IFreqArray
+class FreqArray
 {
 
 public:
@@ -109,7 +108,7 @@ typedef struct{
   };
 }array_of_allelecounts;
 
-class FreqArray : public IFreqArray {
+class FreqArray : public FreqArray {
 private:
   bool dynall;
 

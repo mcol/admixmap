@@ -29,7 +29,7 @@ ResidualLDTest::~ResidualLDTest(){
   //Tcount.clear();
 }
 
-void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const indiv, const IGenome* const Loci, 
+void ResidualLDTest::Initialise(Options* op, const IndividualCollection* const indiv, const Genome* const Loci, 
 				LogWriter &Log){
   options = op;
   individuals = indiv;
@@ -104,7 +104,7 @@ void ResidualLDTest::Reset(){
   }
 }
 
-void ResidualLDTest::Update(const IFreqArray& AlleleFreqs, bool ){
+void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
   int abslocus = 0;
   if(Comms::isWorker()){
     for(unsigned c = 0; c < Lociptr->GetNumberOfChromosomes(); ++c){
