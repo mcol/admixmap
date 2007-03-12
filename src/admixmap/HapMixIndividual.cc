@@ -22,7 +22,7 @@ GenotypeProbIterator HapMixIndividual::GPI;
 //}
 
 //Note: assuming SetStaticMembers is called first
-HapMixIndividual::HapMixIndividual(int number, const Options* const options, const InputData* const Data){
+HapMixIndividual::HapMixIndividual(int number, const Options* const options, const InputData* const Data, const double* GlobalTheta){
 
   GenotypesMissing = new bool*[numChromosomes];
   for( unsigned int j = 0; j < numChromosomes; j++ ){
@@ -37,6 +37,7 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, con
   isHaploid = Data->GetHapMixGenotype( number, options->getgenotypesSexColumn(), *Loci, &hgenotypes, GenotypesMissing);
   Individual::Initialise(number, options, Data);
 
+  Theta = const_cast<double*>(GlobalTheta);
 
   unsigned numCompositeLoci = Loci->GetNumberOfCompositeLoci();
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
@@ -160,4 +161,15 @@ void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const opti
   C->SetGenotypeProbs( GPI, GenotypesMissing[j]);
   C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
+}
+void HapMixIndividual::SampleJumpIndicators(int* SumArrivalCounts){
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    Chromosome* C = Loci->getChromosome(j);
+    // don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
+    //sample number of arrivals, update SumNumArrivals and SumLocusAncestry
+    //if( !Loci->isXChromosome(j) )
+      C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumArrivalCounts);
+    //    else 
+    /// C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumArrivalCounts_X);
+  } //end chromosome loop
 }

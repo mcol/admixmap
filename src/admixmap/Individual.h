@@ -64,7 +64,7 @@ public:
   int GetLocusAncestry(int, int, int)const;
    
   void SampleLocusAncestry(const Options* const options);
-  void AccumulateAncestry(int* SumAncestry);
+  void AccumulateConcordanceCounts(int* ConcordanceCounts)const;
 #ifdef PARALLEL
   void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
 		     const double* const AlleleProbs);
@@ -78,6 +78,7 @@ public:
   void calculateUnorderedGenotypeProbs(void);
   std::vector<double> getStateProbs(const bool, int, int) const;
   void calculateUnorderedGenotypeProbs(unsigned);
+  virtual void SampleJumpIndicators(int* ){};
 protected:
   unsigned myNumber;//< number of this individual, counting from 1
   bool SexIsFemale;

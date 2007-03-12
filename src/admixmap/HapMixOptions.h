@@ -40,6 +40,7 @@ public:
   const char* getFinalLambdaFilename()const;
   const char* getFinalFreqPriorFilename()const;
 
+  const std::vector<double>& getMixturePropsPrior()const;
   const std::vector<double> &getHapMixLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
   const char* getInitialHapMixLambdaFilename()const;
@@ -79,6 +80,7 @@ private:
 
   std::vector<double> allelefreqprior;
   std::vector<double> hapmixlambdaprior;///< prior means of rho prior params in hapmixmodel
+  std::vector<double> MixturePropsPrior;// parameters of Dirichlet prior on mixture props
 
   string EtaOutputFilename;
   string AlleleFreqPriorOutputFilename;

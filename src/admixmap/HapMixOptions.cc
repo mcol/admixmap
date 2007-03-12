@@ -32,7 +32,7 @@ HapMixOptions::HapMixOptions(int argc,  char** argv){
 }
 
 void HapMixOptions::SetDefaultValues(){
-  NumBlockStates = 4;
+  NumBlockStates = 8;
   FreqDispersionHierModel = true;
 
   // option names and default option values are stored as strings in a map container 
@@ -46,6 +46,7 @@ void HapMixOptions::SetDefaultValues(){
 
   useroptions["states"] = "4";
   useroptions["hapmixlambdaprior"] = "30, 0.1, 10, 1";
+  //useroptions["mixturepropsprior"] = "1,1,1,1,1,1,1,1";
   useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
   useroptions["finallambdafile"] = FinalLambdaFilename;
   useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
@@ -111,6 +112,9 @@ const std::vector<double> &HapMixOptions::getHapMixLambdaPrior()const{
   return hapmixlambdaprior;
 }
 
+const std::vector<double>& HapMixOptions::getMixturePropsPrior()const{
+  return MixturePropsPrior;
+}
 const char* HapMixOptions::getInitialAlleleFreqFilename()const{
   return InitialAlleleFreqFilename.c_str();
 }
@@ -180,6 +184,7 @@ void HapMixOptions::SetOptions(OptionMap& ProgOptions)
   //prior and model specification
   ProgOptions["hapmixmodel"] = OptionPair(0, "null");//does nothing
   ProgOptions["hapmixlambdaprior"] = OptionPair(&hapmixlambdaprior, "dvector");
+  ProgOptions["mixturepropsprior"] = OptionPair(&MixturePropsPrior, "dvector");
   ProgOptions["allelefreqprior"] = OptionPair(&allelefreqprior, "dvector");
   ProgOptions["freqdispersionhiermodel"] = OptionPair(&FreqDispersionHierModel, "bool");
 
@@ -252,20 +257,31 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
   // **** sumintensities ****
   Log << "Haplotype mixture model with " << NumBlockStates << " block states\n";
   
-
-    if(useroptions["allelefreqprior"].size()){
-
-      if(FreqDispersionHierModel && (allelefreqprior.size() !=3)) {
-        Log << "Error: 'allelefreqprior' must have length 3\n";
-        badOptions = true;
-      }
-      else if(allelefreqprior.size()< 2){
-        Log << "Error: 'allelefreqprior' must have length 2\n";
-        badOptions = true;
-      }
-    }
+  //check mixture props prior has length K
+  if(MixturePropsPrior.size()>0 & MixturePropsPrior.size()!= (unsigned)NumBlockStates){
+    Log << "Error: 'mixturepropsprior' has incorrect length\n";
+    badOptions = true;
+  }
+  if(!MixturePropsPrior.size()){//user has not specified a prior
+    //MixtureProps.assign(1, NumBlockStates);//redundant since set in PopHapMix
+    useroptions["mixturepropsprior"] = "1";
+    for(int k = 1; k < NumBlockStates; ++k)
+      useroptions["mixturepropsprior"].append(",1");
+  }
 
   // **** model for allele freqs ****
+
+  if(useroptions["allelefreqprior"].size()){
+    
+    if(FreqDispersionHierModel && (allelefreqprior.size() !=3)) {
+      Log << "Error: 'allelefreqprior' must have length 3\n";
+      badOptions = true;
+    }
+    else if(allelefreqprior.size()< 2){
+      Log << "Error: 'allelefreqprior' must have length 2\n";
+      badOptions = true;
+    }
+  }
 
   //fixed allele freqs
   if( PriorAlleleFreqFilename.length() && fixedallelefreqs  ){

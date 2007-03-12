@@ -1,4 +1,5 @@
 #include "HapMixModel.h"
+#include "MixturePropsWrapper.hh"
 
 // HapMixModel::HapMixModel(){
 
@@ -17,8 +18,11 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object
 
-  IC = new HapMixIndividualCollection(&options, &data, &Loci, &A);//NB call after A Initialise;
-  if(isMaster || isWorker) IC->LoadData(&options, &data, false);    //and before L and R Initialise
+  L = new PopHapMix(&options, &Loci);
+  if(isMaster || isWorker)L->Initialise(data.getUnitOfDistanceAsString(), Log, data.GetPopLabels());
+
+  IC = new HapMixIndividualCollection(&options, &data, &Loci, &A, L->getGlobalTheta());//NB call after A Initialise;
+  if(isMaster || isWorker) IC->LoadData(&options, &data, false);    //and before R Initialise
   //if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
 
   int numdiploid = 0;
@@ -56,19 +60,10 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
     }
   }
   
-  L = new PopHapMix(&options, &Loci);
-  if(isMaster || isWorker)L->Initialise(data.getUnitOfDistanceAsString(), Log);
   if(isFreqSampler)A.PrintPrior(Log);
   
-  if( options.getPopulations()>1 && isWorker) {
-    Loci.SetLocusCorrelation(L->getlambda());
-    for( unsigned int j = 0; j < Loci.GetNumberOfChromosomes(); j++ ){
-      //set global state arrival probs in hapmixmodel
-      //TODO: can skip this if xonly analysis with no females
-      //NB: assumes always diploid in hapmixmodel
-      Loci.getChromosome(j)->SetHMMTheta(L->getGlobalTheta(), options.isRandomMatingModel(), true);
-      Loci.getChromosome(j)->SetStateArrivalProbs(options.isRandomMatingModel(), true);
-    }
+  if( options.getNumberOfBlockStates()>1 && isWorker) {
+    L->SetHMMStateArrivalProbs();
   }
   
   //initialise regression objects
@@ -195,9 +190,21 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if(isMaster || isWorker){
     //L->UpdateGlobalTheta(iteration, IC);
-    //Hamiltonian Sampler, using sampled ancestry states. NB: requires accumulating of SumAncestry in IC
-    L->SampleHapMixLambda(IC->getSumAncestry(),  
-                          (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
+
+    //Sample arrival rates with Hamiltonian Sampler, using sampled hidden states. 
+    //NB: requires accumulating of StateArrivalCounts in IC
+    L->SampleHapMixLambda(IC->getConcordanceCounts(), (!anneal && iteration > options->getBurnIn() 
+						       && options->getPopulations() > 1) );
+
+    //sample mixture proportions with conjugate update
+    L->SampleMixtureProportions(IC->getSumArrivalCounts());
+
+    //TODO: number of block states condition may be redundant - check if HapMixOptions causes exit with error with K=1
+    //Set global StateArrivalProbs in HMM objects
+    if( options->getNumberOfBlockStates()>1 && isWorker) {
+      L->SetHMMStateArrivalProbs();
+    }
+
   }
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   

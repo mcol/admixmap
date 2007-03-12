@@ -95,7 +95,7 @@ public:
   bool getHWTestIndicator() const;
 
   //filenames in derived classes
-  //these are required by InputData. Can be removed if InpuData and ScoreTets are forked successfully
+  //these are required by InputData. Can be removed if InpuData and ScoreTests are forked successfully
   virtual const char* getCCGenotypesFilename()const{return "";};
   virtual const char* getAlleleFreqFilename ()const{return "";};
   virtual const char *getHistoricalAlleleFreqFilename() const{return "";};

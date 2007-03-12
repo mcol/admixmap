@@ -12,6 +12,7 @@
 #include <values.h>
 #include <vector>
 #include "GPI.h"
+#include "MixturePropsWrapper.hh"
 
 /** Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
    Instantiated in class Chromosome
@@ -25,7 +26,7 @@ public:
   ~HMM();
   void SetDimensions( int inTransitions, int pops, const double* const fin);
   void SetGenotypeProbs(const GenotypeProbIterator& lambdain, const bool* const missing);
-  void SetTheta(const double* const Theta, const int Mcol, const bool isdiploid);
+  void SetTheta(const MixturePropsWrapper& Theta, const int Mcol, const bool isdiploid);
   void SetStateArrivalProbs(const int Mcol, bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
@@ -33,7 +34,8 @@ public:
   double getLogLikelihood(bool isDiploid);
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, int *SumLocusAncestry, 
 			    std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;
-
+  void SampleJumpIndicators(const int* const HiddenStates,  const unsigned int gametes, 
+			    int *SumHiddenStates)const ;
 private:
   int K;
   int DStates; //number of diploid states 
@@ -52,7 +54,7 @@ private:
   double *ThetaThetaPrime;
 
   const double* f;
-  const double* theta;
+  MixturePropsWrapper theta;
   GenotypeProbIterator LambdaGPI;
   const bool* missingGenotypes;
   bool alphaIsBad, betaIsBad;

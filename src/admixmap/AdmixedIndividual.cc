@@ -19,6 +19,7 @@
 #include <limits>
 #include <sstream>
 #include "GenotypeIterator.h"
+#include "MixturePropsWrapper.hh"
 
 #define PR(x) cout << #x << " = " << x << endl;
 
@@ -45,6 +46,9 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   Individual::Initialise(number, options, Data); 
   IAmUnderTest = undertest;
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
+
+  Theta = new double[ Populations * NumGametes ];
+  SetUniformAdmixtureProps();
 
   // loop over composite loci to set possible haplotype pairs compatible with genotype 
   for(unsigned j = 0; j < (unsigned)numCompositeLoci; ++j) {
@@ -107,6 +111,14 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   step = step0;
   ThetaTuner.SetParameters( step0, 0.0001, 10.0, 0.44);  
 }
+
+// void AdmixedIndividual::SetUniformAdmixtureProps() {
+//   size_t K = Populations;
+//   for( unsigned g = 0; g < NumGametes; ++g ) { 
+//     for(size_t k = 0; k < K; ++k)
+//       Theta[g*K+k] = 1.0 / K;
+//   }
+// }
 
 void AdmixedIndividual::InitialiseSumIntensities(const AdmixOptions* const options){
   double init=0.0;
@@ -883,7 +895,8 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const opt
     //set locus correlation, f, if individual- or gamete-specific rho
     C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
   }
-  C->SetHMMTheta(theta, options->isRandomMatingModel(), diploid);
+  MixturePropsWrapper MPW(theta);
+  C->SetHMMTheta(MPW, options->isRandomMatingModel(), diploid);
   //if(diploid)
   C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed

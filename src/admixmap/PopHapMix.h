@@ -25,12 +25,13 @@ class IndividualCollection;
 
 ///Struct to hold arguments for sampling sumintensities in hapmixmodel
 typedef struct {
-  unsigned NumPops;
+  unsigned NumBlockStates;
   unsigned NumIntervals; // ? necessary
-  int NumConcordant;
-  int NumDiscordant;
+  //int NumConcordant;
+  //int NumDiscordant;
+  const int* ConcordanceCounts;
   double Distance;
-  //const double* theta;
+  const double* theta;
   double h;
   double beta;//rate parameter of prior on rho
   double beta_shape;
@@ -65,14 +66,19 @@ public:
   
   ~PopHapMix();
   
-  void Initialise(const string& distanceUnit, LogWriter& Log);  
+  void Initialise(const string& distanceUnit, LogWriter& Log, const vector<string>& BlockStateLabels);  
   
   void SampleHapMixLambda(const int* SumAncestry, bool sumlogrho) ;
 
-  void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
+  //void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
+  void SampleMixtureProportions(const int* SumArrivalCounts);
   
+  void SetHMMStateArrivalProbs();
+
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream* out); 
+  ///output average mixture props to an ostream
+  void OutputMixtureProps(ostream& out)const;
   
   void OutputErgodicAvg( int, std::ofstream *avgstream);
   
@@ -80,24 +86,13 @@ public:
   
   void printAcceptanceRates(LogWriter &Log);
   
-  //functions required by base class, not implemented
-//   void UpdateGlobalSumIntensities(const IndividualCollection* const , bool ){};
-//   void UpdatePopAdmixParams(int , const IndividualCollection* const, LogWriter& ){};
-//   const double *getpoptheta()const{return 0;};//TODO: check compatibility with regression models
-
-//   const std::vector<std::vector<double> > dummy_alpha;
-//   const std::vector<double> &getalpha0()const{return dummy_alpha[0];};
-//   const std::vector<std::vector<double> > &getalpha()const{return dummy_alpha;};
-//   double getrhoalpha()const{return 0.0;};
-//   double getrhobeta()const{return 0.0;};
-//   double getglobalrho()const{return 0.0;};
-   const vector<double>& getlambda()const{return lambda;};
-   const vector<double>& getSumLogRho()const{return SumLogLambda;};
+  const vector<double>& getlambda()const{return lambda;};
+  const vector<double>& getSumLogRho()const{return SumLogLambda;};
   void OutputLambda(const char* filename)const;
   void OutputLambdaPosteriorMeans(const char* filename, int samples)const;
   
 private:
-  int K;///< number of subpopulations / block states
+  unsigned K;///< number of subpopulations / block states
   std::ofstream outputstream;//output to paramfile
 
   HapMixOptions *options;
@@ -113,12 +108,15 @@ private:
   StepSizeTuner hTuner;  
   AdaptiveRejection hARS;
 
-  double* globaltheta;//global admixture proportions in a hapmixmodel
+  double* MixtureProps;//global admixture proportions
+  double* MixturePropsPrior;//parameters of Dirichlet prior on MixureProps
+  double* dirparams;//parameters of Dirichlet distribution from which MixtureProps are sampled
+
   //double* globalthetaproposal;//for random walk update
   //StepSizeTuner ThetaTuner;
   //double thetastep;
 
-  void InitializeOutputFile(const string& distanceUnit);
+  void InitializeOutputFile(const vector<string>& BlockStateLabels, const string& distanceUnit);
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);

@@ -69,10 +69,6 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
   
   int numCompositeLoci = Loci->GetNumberOfCompositeLoci();
   
-  Theta = new double[ Populations * NumGametes ];
-  
-  SetUniformAdmixtureProps();
-  
   // vector of possible haplotype pairs - 2 integers per locus if diploid, 1 if haploid
   PossibleHapPairs = new vector<hapPair>[numCompositeLoci];
   
@@ -409,28 +405,41 @@ vector<double> Individual::getStateProbs(const bool isDiploid,const int chromoso
   return Loci->getChromosome(chromosome)->getHiddenStateProbs(isDiploid, locus);
 }
 
-void Individual::AccumulateAncestry(int* SumAncestry){
+/**
+   Accumulate counts of arrivals of each state. ConcordanceCounts is a L * 2K  array, where the first K elements
+   in each row are counts of discordant loci and the remaining K are counts of concordant loci
+*/
+void Individual::AccumulateConcordanceCounts(int* ConcordanceCounts)const{
   unsigned locus = 0;
+  const unsigned  K = Populations;
+  // const unsigned KSq = Populations * Populations;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    Chromosome* C = Loci->getChromosome(j);
+    const Chromosome* C = Loci->getChromosome(j);
     ++locus;//skip first locus on each chromosome
-      for(unsigned l = 1; l < C->GetSize(); ++l){
-	if( LocusAncestry[j][l-1] != LocusAncestry[j][l])//first gamete
-	  ++SumAncestry[locus*2];
-	else
-	  ++SumAncestry[locus*2 + 1];
-	if(!isHaploid && ((j!=X_posn) || SexIsFemale)){//second gamete
-	if( LocusAncestry[j][C->GetSize() + l-1] != LocusAncestry[j][C->GetSize() + l])
-	  ++SumAncestry[locus*2];
-	else
-	  ++SumAncestry[locus*2 + 1];
-	}
-	++locus;
+    for(unsigned locus = 1; locus < C->GetSize(); ++locus){
+      
+      //first gamete
+      if( LocusAncestry[j][locus-1] != LocusAncestry[j][locus]) //discordant loci
+        ++ConcordanceCounts[ locus*2*K + LocusAncestry[j][locus] ];
+      else//concordant loci
+        ++ConcordanceCounts[ locus*2*K + K + LocusAncestry[j][locus] ];
+      
+      //second gamete
+      if(!j==X_posn || SexIsFemale){
+        if( LocusAncestry[j][C->GetSize() + locus-1] != LocusAncestry[j][C->GetSize() + locus])
+          ++ConcordanceCounts[locus*2*K + LocusAncestry[j][C->GetSize()+locus]];
+        else
+          ++ConcordanceCounts[locus*2*K + K + LocusAncestry[j][C->GetSize()+locus]];
+ 	
       }
+      ++locus;
+    }
   } //end chromosome loop
 }
+
 #ifdef PARALLEL
-void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
+void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, 
+			       bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
 			       const double* const AlleleProbs){
   if( !skipMissingGenotypes || !GenotypesMissing[j][jj]){
     int ancestry[2];//to store ancestry states
@@ -444,7 +453,8 @@ void Individual::SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFr
       double* p = Probs;
       happairiter end = PossibleHapPairs[locus].end();
       for(happairiter hiter = PossibleHapPairs[locus].begin() ; hiter != end ; ++hiter, ++p) {
-	*p = AlleleProbs[ancestry[0] * NumberOfStates + hiter->haps[0] ] * AlleleProbs[ancestry[1] * NumberOfStates + hiter->haps[1] ];
+	*p = AlleleProbs[ancestry[0] * NumberOfStates + hiter->haps[0] ] 
+	  * AlleleProbs[ancestry[1] * NumberOfStates + hiter->haps[1] ];
       }
       
       int h = Rand::SampleFromDiscrete(Probs, PossibleHapPairs[locus].size());

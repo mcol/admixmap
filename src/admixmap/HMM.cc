@@ -44,11 +44,11 @@ HMM::~HMM()
   delete[] cov; //free_matrix(cov, K);
 }
 
-void HMM::SetDimensions( int inTransitions, int pops, const double* const fin)
+void HMM::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin)
 {
   //inTransitions = #transitions +1 = #Loci 
   //pops = #populations
-  K = pops;
+  K = NumHiddenStates;
   DStates = K*K;
   Transitions = inTransitions;
   alpha = new double[Transitions*K*K];
@@ -73,7 +73,7 @@ void HMM::SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool
   betaIsBad = true;
 }
 
-void HMM::SetTheta(const double* const Theta, const int Mcol, const bool isdiploid){
+void HMM::SetTheta(const MixturePropsWrapper& Theta, const int Mcol, const bool isdiploid){
   theta = Theta;
   alphaIsBad = true;//new input so reset
   betaIsBad = true;
@@ -81,7 +81,7 @@ void HMM::SetTheta(const double* const Theta, const int Mcol, const bool isdiplo
   if(isdiploid){
     for(int j0 = 0; j0 < K; ++j0) {
       for(int j1 = 0; j1 < K; ++j1) {
-	ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
+	ThetaThetaPrime[j0*K + j1] = Theta(0, j0)*Theta(0, j1 + K*Mcol);
       }
     }
   }
@@ -94,9 +94,9 @@ void HMM::SetStateArrivalProbs(const int Mcol, bool isdiploid){
 
   for(int t = 1; t < Transitions; t++ ){        
     for(int j = 0; j < K; ++j){
-      StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * theta[j];
+      StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * theta(t, j);
       if(isdiploid)
-	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta[K*Mcol +j ];
+	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta(t, K*Mcol +j );
     }
     p[t] = f[2*t] * f[2*t + 1];
   }
@@ -105,7 +105,7 @@ void HMM::SetStateArrivalProbs(const int Mcol, bool isdiploid){
 void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			       int *SumLocusAncestry, vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const {
   //this does not require forward or backward probs, just state arrival probs
-  if(LambdaGPI.isNull() || !theta || !f)
+  if(LambdaGPI.isNull() || theta.isNull() || !f)
     throw string("Error: Call to HMM::SampleJumpIndicators when StateArrivalProbs are not set!");
   bool xi = false;//jump indicator
   double ProbJump = 0.0; // prob jump indicator is 1
@@ -130,6 +130,30 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, const unsigned in
 	  unsigned int sample = Rand::genpoi( log( (1 - u*( 1 - f[2*t+g])) / f[2*t+g] ) );
 	  SumNumArrivals[2*(startlocus + t) + g] += sample + 1;
 	}
+      }//end if xi true
+    }//end gamete loop
+  } // ends loop over intervals
+}
+void HMM::SampleJumpIndicators(const int* const HiddenStates,  const unsigned int gametes, 
+			       int *SumHiddenStates)const {
+  //this does not require forward or backward probs, just state arrival probs
+  if(LambdaGPI.isNull() || theta.isNull() || !f)
+    throw string("Error: Call to HMM::SampleJumpIndicators when StateArrivalProbs are not set!");
+  bool xi = false;//jump indicator
+  double ProbJump = 0.0; // prob jump indicator is 1
+  // first locus not included in loop below
+  for( unsigned int g = 0; g < gametes; g++ ){
+    SumHiddenStates[ HiddenStates[g*Transitions] ]++;
+  }
+  for( int t = 1; t < Transitions; t++ ) {
+    for( unsigned int g = 0; g < gametes; g++ ){
+      xi = true;
+      if( HiddenStates[g*Transitions + t-1] == HiddenStates[g*Transitions + t] ){
+	ProbJump = StateArrivalProbs[t*K*2 + HiddenStates[t + g*Transitions]*2 + g];  
+	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > Rand::myrand());
+      } 
+      if( xi ){ // increment sum if jump indicator is 1
+	SumHiddenStates[ t*K + HiddenStates[t+g*Transitions] ]++;
       }//end if xi true
     }//end gamete loop
   } // ends loop over intervals
@@ -259,7 +283,7 @@ const std::vector<double> HMM::GetHiddenStateProbs(const bool isDiploid, int t){
 /// Updates Forward probabilities alpha, diploid case only
 void HMM::UpdateForwardProbsDiploid()
 {
-  if(LambdaGPI.isNull() || !theta || !f)
+  if(LambdaGPI.isNull() || theta.isNull() || !f)
     throw string("Error: Call to HMM when inputs are not set!");
   // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
   sumfactor = 0.0; // accumulates log-likelihood
@@ -303,14 +327,14 @@ void HMM::UpdateForwardProbsDiploid()
 
 void HMM::UpdateBackwardProbsDiploid()
 {
-  if(LambdaGPI.isNull() || !theta || !f)
+  if(LambdaGPI.isNull() || theta.isNull() || !f)
     throw string("Error: Call to HMM when inputs are not set!");
   if(!beta) { // allocate beta array if not already done
     beta =  new double[Transitions*K*K];
   }
   if(!LambdaBeta)
     LambdaBeta = new double[K*K];
-
+  
   vector<double> rec(DStates);
   double scaleFactor, Sum;
   
@@ -321,24 +345,24 @@ void HMM::UpdateBackwardProbsDiploid()
   }
   
   for( int t = Transitions-2; t >= 0; --t ) {
-      if(!missingGenotypes[t+1]){
-          double f2[2] = {f[2*t + 2], f[2*t + 3]};
-          Sum = 0.0;
-          for(int j = 0; j < DStates; ++j){
-              LambdaBeta[j] = LambdaGPI[t+1][j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
-              Sum += LambdaBeta[j];
-          }
-          //scale LambdaBeta to sum to 1
-          scaleFactor = 1.0 / Sum;
-          for( int j = 0; j <  DStates; ++j ) {
-              LambdaBeta[j] *= scaleFactor;
-          }
-          
-          RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
-          for(int j = 0; j < DStates; ++j){ // vectorization successful
-              beta[t*DStates + j] *= rec[j];
-          }
+    if(!missingGenotypes[t+1]){
+      double f2[2] = {f[2*t + 2], f[2*t + 3]};
+      Sum = 0.0;
+      for(int j = 0; j < DStates; ++j){
+        LambdaBeta[j] = LambdaGPI[t+1][j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
+        Sum += LambdaBeta[j];
       }
+      //scale LambdaBeta to sum to 1
+      scaleFactor = 1.0 / Sum;
+      for( int j = 0; j <  DStates; ++j ) {
+        LambdaBeta[j] *= scaleFactor;
+      }
+      
+      RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
+      for(int j = 0; j < DStates; ++j){ // vectorization successful
+        beta[t*DStates + j] *= rec[j];
+      }
+    }
   }
   betaIsBad = false;
 }
@@ -349,15 +373,15 @@ void HMM::UpdateBackwardProbsDiploid()
  * and lambda are 1.
  */
 void HMM::UpdateForwardProbsHaploid(){
-  if(LambdaGPI.isNull() || !theta || !f)
+  if(LambdaGPI.isNull() || theta.isNull() || !f)
     throw string("Error: Call to HMM when inputs are not set!");
   sumfactor = 0.0;
   double Sum = 0.0;
   double scaleFactor = 0.0;
   if(!missingGenotypes[0])
-      for(int j = 0; j < K; ++j){
-          alpha[j] = theta[j] * LambdaGPI[0][j];
-      }
+    for(int j = 0; j < K; ++j){
+      alpha[j] = theta(0, j) * LambdaGPI[0][j];
+    }
   
   for( int t = 1; t < Transitions; t++ ) {
     if(!missingGenotypes[t-1]) {
@@ -374,7 +398,7 @@ void HMM::UpdateForwardProbsHaploid(){
     }
 
     for(int j = 0; j < K; ++j){
-      alpha[t*K + j] = f[2*t]*alpha[(t-1)*K +j] + (1.0 - f[2*t]) * theta[j];
+      alpha[t*K + j] = f[2*t]*alpha[(t-1)*K +j] + (1.0 - f[2*t]) * theta(t, j);
       alpha[t*K + j] *= LambdaGPI[t][j];
     }
   }
@@ -382,7 +406,7 @@ void HMM::UpdateForwardProbsHaploid(){
 }
 
 void HMM::UpdateBackwardProbsHaploid(){
-  if(LambdaGPI.isNull() || !theta || !f)
+  if(LambdaGPI.isNull() || theta.isNull() || !f)
     throw string("Error: Call to HMM when inputs are not set!");
   if(!beta) { // allocate diploid-sized beta array if not already done
     beta =  new double[Transitions*K*K];
@@ -395,16 +419,16 @@ void HMM::UpdateBackwardProbsHaploid(){
   }
   
   for( int t = Transitions-2; t >=0; t-- ){
-      if(!missingGenotypes[t+1]){
-          Sum = 0.0;
-          for(int j = 0; j < K; ++j){
-              LambdaBeta[j] = LambdaGPI[t+1][j]*beta[(t+1)*K + j];
-              Sum += theta[j]*LambdaBeta[j];
-          }
-          for(int j = 0; j < K; ++j){
-              beta[t*K + j] = f[2*(t+1)]*LambdaBeta[j] + (1.0 - f[2*(t+1)+1])*Sum;
-          }
+    if(!missingGenotypes[t+1]){
+      Sum = 0.0;
+      for(int j = 0; j < K; ++j){
+        LambdaBeta[j] = LambdaGPI[t+1][j]*beta[(t+1)*K + j];
+        Sum += theta(t, j)*LambdaBeta[j];
       }
+      for(int j = 0; j < K; ++j){
+        beta[t*K + j] = f[2*(t+1)]*LambdaBeta[j] + (1.0 - f[2*(t+1)+1])*Sum;
+      }
+    }
   }
   betaIsBad = false;
 }

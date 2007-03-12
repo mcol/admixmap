@@ -23,9 +23,10 @@ class HapMixIndividualCollection : public IndividualCollection
 {
 public:
   ~HapMixIndividualCollection();
-  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A);
+  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A, const double* theta);
   void SampleLocusAncestry(const Options* const options, unsigned iteration);
-  const int* getSumAncestry()const;
+  const int* getConcordanceCounts()const;
+  const int* getSumArrivalCounts()const;
   //Individual* getIndividual(int)const;
   int getNumberOfIndividualsForScoreTests()const;
   unsigned int getFirstScoreTestIndividualNumber()const;
@@ -35,8 +36,10 @@ public:
 				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A );
 private:
   unsigned NumCaseControls;
-  int* SumAncestry;//for update of locus-specific sumintensities
-  int* GlobalSumAncestry;//SumAncestry summed over processes, kept on master processes
+  int* ConcordanceCounts;//for update of locus-specific sumintensities
+  int* GlobalConcordanceCounts;//ConcordanceCounts summed over processes, kept on master processes
+  int* SumArrivalCounts;
+  int* GlobalSumArrivalCounts;
   GenotypeProbOutputter GPO;
 };
 

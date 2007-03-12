@@ -54,50 +54,51 @@ admixmap_LDADD		= libgenepi.la
 
 noinst_HEADERS	= admixmap.h \
 		  HapMixFreqs.h \
-			  HapMixIndividual.h \
-			  HapMixIndividualCollection.h \
-			  HapMixModel.h \
-			  HapMixOptions.h \
-			  AdmixedIndividual.h \
-			  AdmixIndividualCollection.h \
-			  AdmixMapModel.h \
-			  AdmixOptions.h \
-			  AdmixtureAssocTest.h \
-			  chib.h \
-			  DispersionFreqs.h \
-			  DispersionTest.h \
-			  IndAdmixOutputter.h \
-			  MisSpecAlleleFreqTest.h \
-			  PopAdmix.h \
-			  StratificationTest.h \
-			  AffectedsOnlyTest.h \
-			  AlleleFreqSampler.h \
-			  AlleleFreqs.h \
-			  AncestryAssocTest.h \
-			  Annealer.h \
-			  Chromosome.h \
-			  Comms.h \
-			  HapPair.h \
-			  Haplotype.h \
-			  CompositeLocus.h \
-			  Genome.h \
-			  GenotypeProbOutputter.h \
-			  HMM.h \
-			  HWTest.h \
-			  IndividualCollection.h \
-			  Individual.h \
-			  InputData.h \
-			  MantelHaenszelTest.h \
-			  Model.h \
-			  Options.h \
-			  PopHapMix.h \
-			  ResidualLDTest.h \
-			  ScoreTestBase.h \
-			  ScoreTests.h \
-			  GPI.h \
-			  FreqArrays.h \
-			  GeneticDistanceUnit.h \
-			  GenotypeIterator.h
+		  HapMixIndividual.h \
+		  HapMixIndividualCollection.h \
+		  HapMixModel.h \
+		  HapMixOptions.h \
+		  AdmixedIndividual.h \
+		  AdmixIndividualCollection.h \
+		  AdmixMapModel.h \
+		  AdmixOptions.h \
+		  AdmixtureAssocTest.h \
+		  chib.h \
+		  DispersionFreqs.h \
+		  DispersionTest.h \
+		  IndAdmixOutputter.h \
+		  MisSpecAlleleFreqTest.h \
+		  PopAdmix.h \
+		  StratificationTest.h \
+		  AffectedsOnlyTest.h \
+		  AlleleFreqSampler.h \
+		  AlleleFreqs.h \
+		  AncestryAssocTest.h \
+		  Annealer.h \
+		  Chromosome.h \
+		  Comms.h \
+		  HapPair.h \
+		  Haplotype.h \
+		  CompositeLocus.h \
+		  Genome.h \
+		  GenotypeProbOutputter.h \
+		  HMM.h \
+		  HWTest.h \
+		  IndividualCollection.h \
+		  Individual.h \
+		  InputData.h \
+		  MantelHaenszelTest.h \
+		  Model.h \
+		  Options.h \
+		  PopHapMix.h \
+		  ResidualLDTest.h \
+		  ScoreTestBase.h \
+		  ScoreTests.h \
+		  GPI.h \
+		  FreqArrays.h \
+		  GeneticDistanceUnit.h \
+		  GenotypeIterator.h \
+		  MixturePropsWrapper.hh
 
 # A library which holds all the code that is common for Admixmap and
 # Hapmixmap. It also includes bayeslib; it's defined via LIBADD variable.

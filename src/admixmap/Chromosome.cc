@@ -157,7 +157,7 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
 void Chromosome::SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool* const GenotypesMissing) {
   SampleStates.SetGenotypeProbs(GenotypeProbs, GenotypesMissing);
 }
-void Chromosome::SetHMMTheta(const double* const Admixture, bool RandomMating, bool diploid){
+void Chromosome::SetHMMTheta(const MixturePropsWrapper& Admixture, bool RandomMating, bool diploid){
   if(diploid || !RandomMating)
     SampleStates.SetTheta(Admixture, RandomMating, diploid);
   else if(RandomMating)//haploid case in random mating model: pass pointer to maternal admixture props
@@ -218,6 +218,10 @@ double Chromosome::getLogLikelihood(const bool isDiploid)
 void Chromosome::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 				      int *SumLocusAncestry, std::vector<unsigned> &SumN, bool SampleArrivals)const {
   SampleStates.SampleJumpIndicators(LocusAncestry, gametes, SumLocusAncestry, SumN, SampleArrivals, _startLocus);
+}
+void Chromosome::SampleJumpIndicators(const int* const HiddenStates, const unsigned int gametes, 
+				      int *SumHiddenStates)const {
+  SampleStates.SampleJumpIndicators(HiddenStates, gametes, SumHiddenStates);
 }
 
 const vector<double> Chromosome::getHiddenStateProbs(const bool isDiploid, int t)

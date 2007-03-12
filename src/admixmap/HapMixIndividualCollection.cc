@@ -5,18 +5,25 @@
 #include "regression/Regression.h"
 #include "Comms.h"
 
-HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A){
+HapMixIndividualCollection
+::HapMixIndividualCollection(const HapMixOptions* const options, 
+			     const InputData* const Data, Genome* Loci, const HapMixFreqs* A, const double* theta){
   SetNullValues();
-  GlobalSumAncestry = 0;
-  SumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
+  NumCompLoci = Loci->GetNumberOfCompositeLoci();
+  GlobalConcordanceCounts = 0;
+  GlobalSumArrivalCounts = 0;
+  ConcordanceCounts = new int[NumCompLoci*2*(options->getNumberOfBlockStates())];
+  SumArrivalCounts = new int[NumCompLoci*options->getNumberOfBlockStates()];
 #ifdef PARALLEL
-  if(Comms::isMaster())GlobalSumAncestry = new int[Loci->GetNumberOfCompositeLoci()*2];
+  if(Comms::isMaster()){
+    GlobalConcordanceCounts = new int[NumCompLoci*2*(options->getNumberOfBlockStates())];
+    GlobalSumArrivalCounts = new int[NumCompLoci*options->getNumberOfBlockStates()];
+  }
 #endif
   Populations = options->getPopulations();
   NumInd = Data->getNumberOfIndividuals();//number of individuals, including case-controls
   size = NumInd;
   NumCaseControls = Data->getNumberOfCaseControlIndividuals();
-  NumCompLoci = Loci->GetNumberOfCompositeLoci();
   worker_rank = 0;
   NumWorkers = 1;
 #ifdef PARALLEL
@@ -36,16 +43,16 @@ HapMixIndividualCollection::HapMixIndividualCollection(const HapMixOptions* cons
     _child = new Individual*[size];
     for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
       // _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
-      _child[i] = new HapMixIndividual(i+1, options, Data);//NB: first arg sets Individual's number
+      _child[i] = new HapMixIndividual(i+1, options, Data, theta);//NB: first arg sets Individual's number
     }
   }
   if(options->OutputCGProbs())GPO.Initialise(options->GetNumMaskedIndividuals(), options->GetNumMaskedLoci());
 }
 
 HapMixIndividualCollection::~HapMixIndividualCollection(){
-  delete[] SumAncestry;
+  delete[] ConcordanceCounts;
 #ifdef PARALLEL
-  delete[] GlobalSumAncestry;
+  delete[] GlobalConcordanceCounts;
 #endif
 }
 // Individual* HapMixIndividualCollection::getIndividual(int num)const
@@ -58,7 +65,8 @@ HapMixIndividualCollection::~HapMixIndividualCollection(){
 // }
 void HapMixIndividualCollection::SampleLocusAncestry(const Options* const options, unsigned iteration){
 
-  fill(SumAncestry, SumAncestry + 2*NumCompLoci, 0);
+  fill(ConcordanceCounts, ConcordanceCounts + NumCompLoci*(options->getPopulations()+1), 0);
+  fill(SumArrivalCounts, SumArrivalCounts + NumCompLoci*options->getPopulations(), 0);
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(15, 0, "Sampleancestry");
 #endif
@@ -78,19 +86,30 @@ void HapMixIndividualCollection::SampleLocusAncestry(const Options* const option
       _child[i]->calculateUnorderedGenotypeProbs();
     }
 
-    _child[i]->AccumulateAncestry(SumAncestry);
+    //accumulate sufficient statistics for update of arrival rates and mixture proportions
+    _child[i]->AccumulateConcordanceCounts(ConcordanceCounts);
+    _child[i]->SampleJumpIndicators(SumArrivalCounts);
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, 0, "Sampledancestry");
-  Comms::ReduceAncestryCounts(SumAncestry, GlobalSumAncestry, 2*NumCompLoci);
+  Comms::ReduceAncestryCounts(ConcordanceCounts, GlobalConcordanceCounts, NumCompLoci*2*(options->getPopulations()));
+  //TODO: reduce SumArrivalCounts
 #endif
 }
 
-const int* HapMixIndividualCollection::getSumAncestry()const{
+const int* HapMixIndividualCollection::getConcordanceCounts()const{
 #ifdef PARALLEL
-  return GlobalSumAncestry;
+  return GlobalConcordanceCounts;
 #else
-  return SumAncestry;
+  return ConcordanceCounts;
+#endif
+}
+
+const int* HapMixIndividualCollection::getSumArrivalCounts()const{
+#ifdef PARALLEL
+  return GlobalSumArrivalCounts;
+#else
+  return SumArrivalCounts;
 #endif
 }
 

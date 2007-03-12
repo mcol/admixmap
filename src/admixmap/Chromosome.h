@@ -25,6 +25,7 @@ using std::string;
 class Individual;
 class AdmixOptions;
 class GenotypeProbIterator;
+class MixturePropsWrapper;
 
 /// Represents a chromosome and holds HMM object
 class Chromosome
@@ -51,16 +52,24 @@ public:
 
 // ********** Interface to HMM ****************************************
   void SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool* const GenotypesMissing);
-  void SetHMMTheta(const double* const Admixture, bool RandomMating, bool diploid);
+  void SetHMMTheta(const MixturePropsWrapper& Admixture, bool RandomMating, bool diploid);
   void SetStateArrivalProbs(bool RandomMating, bool isdiploid);
 
+  ///sample hidden states
   void SampleLocusAncestry(int *OrderedStates, bool diploid);
+  ///
   std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int);
+  ///get conditional probs of hidden states
+  const vector<double> getHiddenStateProbs(const bool, int);
+  ///compute log-likelihood
   double getLogLikelihood(const bool isDiploid);
+  ///
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			    int *SumLocusAncestry, std::vector<unsigned> &SumN, 
 			    bool SampleArrivals)const;
-  const vector<double> getHiddenStateProbs(const bool, int);
+  ///
+  void SampleJumpIndicators(const int* const HiddenStates, const unsigned int gametes, 
+			    int *SumHiddenStates)const;
 private:
   double *Distances;
   unsigned int NumberOfCompositeLoci;
