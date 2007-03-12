@@ -33,7 +33,7 @@ sub doAnalysis {
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 
 # Change this to the location of the admixmap executable
-my $executable = './admixmap';
+my $executable = 'admixmap';
 # command-line options are stored in an associative array (known as a hash in perl)  
 my $arg_hash = {
 #data files
@@ -99,11 +99,21 @@ $arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
 #$arg_hash->{numannealedruns}    = 100;
 &doAnalysis($executable,$arg_hash);
 
+# model with fixed allele freqs and diabetes as binary outcome var 
+delete $arg_hash->{populations};
+$arg_hash->{resultsdir}                = 'FixedAlleleFreqResultsDiabetes';  
+$arg_hash->{targetindicator}           = 0; # diabetes as outcome
+$arg_hash->{affectedsonlyscorefile}    = 'affectedsonlyscorefile.txt';
+$arg_hash->{fixedallelefreqs}    = 1;
+#$arg_hash->{numannealedruns}    = 100;
+doAnalysis($executable,$arg_hash);
+
 # model with historic allele freqs and both outcome vars
 delete $arg_hash->{targetindicator};  
 delete $arg_hash->{priorallelefreqfile};
 delete $arg_hash->{dispersiontestfile};
 delete $arg_hash->{affectedsonlyscorefile};
+$arg_hash->{fixedallelefreqs}    = 0;
 $arg_hash->{numannealedruns}    = 0;
 $arg_hash->{resultsdir}                = 'HistoricFreqResults';  
 $arg_hash->{randommatingmodel}         = 1;
