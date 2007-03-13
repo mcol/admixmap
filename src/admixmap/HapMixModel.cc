@@ -1,6 +1,6 @@
 #include "HapMixModel.h"
-#include "MixturePropsWrapper.hh"
-
+//#include "MixturePropsWrapper.hh"
+#include "EventLogger.hh"
 // HapMixModel::HapMixModel(){
 
 // }
@@ -88,15 +88,6 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  //   if(iteration%2){
-  //     if(isMaster || isWorker){
-  //       L->UpdateSumIntensitiesByRandomWalk(IC,  
-  // 			      (!anneal && iteration > options->getBurnIn() && options->getPopulations() > 1) );
-  //     }
-  //   }
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
   // Update individual-level parameters, sampling hidden states
   if(isMaster || isWorker){
     IC->SampleLocusAncestry(options, iteration);
@@ -106,14 +97,11 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
     IC->AccumulateAlleleCounts(options, &A, &Loci, anneal); 
 
     if( options->getHWTestIndicator() || options->getMHTest() || options->getTestForResidualAllelicAssoc() ) {
-#ifdef PARALLEL
-      MPE_Log_event(13, iteration, "sampleHapPairs");
-#endif
-      // loops over individuals to sample hap pairs, not skipping missing genotypes. Does not update counts since done already
+      EventLogger::LogEvent(13, iteration, "sampleHapPairs");
+      // loops over individuals to sample hap pairs, not skipping missing genotypes. 
+      // Does not update counts since done already
       IC->SampleHapPairs(options, &A, &Loci, false, anneal, false); 
-#ifdef PARALLEL
-      MPE_Log_event(14, iteration, "sampledHapPairs");
-#endif
+      EventLogger::LogEvent(14, iteration, "sampledHapPairs");
     }
   }
 
@@ -128,23 +116,15 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){
     //score tests
     if( options->getScoreTestIndicator() ){
-#ifdef PARALLEL
-      MPE_Log_event(21, iteration, "ScoreTestUpdatestart");
-#endif
+      EventLogger::LogEvent(21, iteration, "ScoreTestUpdatestart");
       //TODO: broadcast dispersion in linear regression
       Scoretests.Update(R);//score tests evaluated for first outcome var only
-#ifdef PARALLEL
-      MPE_Log_event(22, iteration, "ScoreTestUpdateEnd");
-#endif
+      EventLogger::LogEvent(22, iteration, "ScoreTestUpdateEnd");
     }
     if(options->getTestForResidualAllelicAssoc()){
-#ifdef PARALLEL
-      MPE_Log_event(21, iteration, "ResLDTestStart");
-#endif
+      EventLogger::LogEvent(21, iteration, "ResLDTestStart");
       Scoretests.UpdateScoresForResidualAllelicAssociation(A.GetAlleleFreqs());
-#ifdef PARALLEL
-      MPE_Log_event(22, iteration, "ResLDTestEnd");
-#endif
+      EventLogger::LogEvent(22, iteration, "ResLDTestEnd");
     }
   }
   if(options->getMHTest() && !anneal && (iteration > options->getBurnIn()))
@@ -155,13 +135,9 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   // TODO: this requires fixing to anneal allele freqs for historicallelefreq model
   if( !options->getFixedAlleleFreqs()){
     if(isFreqSampler){
-#ifdef PARALLEL
-      MPE_Log_event(7, iteration, "SampleFreqs");
-#endif
+      EventLogger::LogEvent(7, iteration, "SampleFreqs");
       A.Update(IC, (iteration > options->getBurnIn() && !anneal), coolness);
-#ifdef PARALLEL
-      MPE_Log_event(8, iteration, "SampledFreqs");
-#endif
+      EventLogger::LogEvent(8, iteration, "SampledFreqs");
     }
 #ifdef PARALLEL
     if(isWorker || isFreqSampler ) { 
@@ -174,14 +150,10 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
 
   if(isWorker && (!options->getFixedAlleleFreqs() || anneal)) {   
-#ifdef PARALLEL
-    MPE_Log_event(11, iteration, "setGenotypeProbs"); 
-#endif
+    EventLogger::LogEvent(11, iteration, "setGenotypeProbs"); 
     //IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs ready for getEnergy
     IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
-#ifdef PARALLEL
-    MPE_Log_event(12, iteration, "GenotypeProbsSet"); 
-#endif
+    EventLogger::LogEvent(12, iteration, "GenotypeProbsSet"); 
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
   
   // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
@@ -284,11 +256,13 @@ void HapMixModel::OutputParameters(int iteration, const Options *options, LogWri
   if(Comms::isMaster() && options->getPopulations() > 1) L->OutputParams(iteration, Log);
 
   if( Comms::isFreqSampler() &&  !options->getFixedAlleleFreqs() )
-    A.OutputPriorParams(cout, iteration > options->getBurnIn());
+    //output Allele freq prior params to file if after burnin and to screen if displaylevel >2
+    A.OutputPriorParams((iteration > options->getBurnIn()), (bool)(options->getDisplayLevel()>2));
 
   // ** regression parameters
   if(Comms::isMaster())
     for(unsigned r = 0; r < R.size(); ++r)
+      //output regression parameters to file if after burnin and to screen if displaylevel >2
       R[r]->Output(options->getNumberOfOutcomes(), (bool)(options->getDisplayLevel()>2), (bool)(iteration > options->getBurnIn()) );
   
   //if( options->getDisplayLevel()>2 ) cout << endl;

@@ -11,6 +11,7 @@
  * 
  */
 #include "HapMixModel.h"
+#include "EventLogger.hh"
 #include <fstream>
 
 #define HAPMIXMAP_VERSION 0
@@ -32,24 +33,24 @@ int main( int argc , char** argv ){
   MPI::Init(argc, argv);
   Comms::Initialise();
 
-  //define states for logging
-  MPE_Init_log();
-  if(Comms::isMaster()){
-    MPE_Describe_state(1, 2, "Barrier", "red:vlines1");
-    MPE_Describe_state(3, 4, "ReduceAncestry", "cyan:vlines3");
-    MPE_Describe_state(5, 6, "ReduceAlleleCounts", "orange:gray2");
-    MPE_Describe_state(7, 8, "SampleAlleleFreqs", "yellow:gray3");
-    MPE_Describe_state(9, 10, "SampleLambda", "LightBlue:gray3");
-    MPE_Describe_state(11, 12, "SetGenotypeProbs", "LightGreen:hlines2");
-    MPE_Describe_state(13, 14, "SampleHapPairs", "magenta:vlines2");
-    MPE_Describe_state(15, 16, "SampleAncestry", "blue:vlines3");
-    MPE_Describe_state(17, 18, "BcastLambda", "maroon:gray");
-    MPE_Describe_state(19, 20, "BcastFreqs", "plum:hlines3");
-    MPE_Describe_state(21, 22, "ScoreTests", "gray:hlines3");
-    MPE_Describe_state(23, 24, "UpdateAlleleCounts", "DarkGreen:hlines4");
-
-  }
 #endif
+  //define states for logging
+  EventLogger::Initialise();
+  if(Comms::isMaster()){
+    EventLogger::DefineEvent(1, 2, "Barrier", "red:vlines1");
+    EventLogger::DefineEvent(3, 4, "ReduceAncestry", "cyan:vlines3");
+    EventLogger::DefineEvent(5, 6, "ReduceAlleleCounts", "orange:gray2");
+    EventLogger::DefineEvent(7, 8, "SampleAlleleFreqs", "yellow:gray3");
+    EventLogger::DefineEvent(9, 10, "SampleLambda", "LightBlue:gray3");
+    EventLogger::DefineEvent(11, 12, "SetGenotypeProbs", "LightGreen:hlines2");
+    EventLogger::DefineEvent(13, 14, "SampleHapPairs", "magenta:vlines2");
+    EventLogger::DefineEvent(15, 16, "SampleAncestry", "blue:vlines3");
+    EventLogger::DefineEvent(17, 18, "BcastLambda", "maroon:gray");
+    EventLogger::DefineEvent(19, 20, "BcastFreqs", "plum:hlines3");
+    EventLogger::DefineEvent(21, 22, "ScoreTests", "gray:hlines3");
+    EventLogger::DefineEvent(23, 24, "UpdateAlleleCounts", "DarkGreen:hlines4");
+  }
+
   const bool isMaster = Comms::isMaster();
   //const bool isFreqSampler = Comms::isFreqSampler();
   //  const bool isWorker = Comms::isWorker();
@@ -68,8 +69,8 @@ int main( int argc , char** argv ){
   if(isMaster){
     //if(options.getDisplayLevel()>0 )
    PrintCopyrightNotice(Log);
-
-    Log.StartMessage();
+   if(options.doPrintBuildInfo())PrintBuildInfo(Log);
+   Log.StartMessage();
   }
 
   try{  
@@ -120,11 +121,11 @@ int main( int argc , char** argv ){
   cout << "Rank " << MPI::COMM_WORLD.Get_rank() << " finished.\n";
   //MPI::COMM_WORLD.Barrier();
   Comms::Finalise();
-  MPE_Finish_log("admixmap");
   MPI_Finalize();
 #else
   cout << "Finished" << endl;
 #endif
+  EventLogger::Finalise("admixmap");
   //print run times to screen and log
   if(isMaster){
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);
@@ -149,9 +150,10 @@ void PrintCopyrightNotice(LogWriter& Log){
   Log.setDisplayMode(Quiet);
   cout << "Copyright(c) 2006, 2007 " << endl
        << "David O'Donnell and Paul McKeigue" << endl
-        << "-------------------------------------------------------"<<endl
-       << "This program is free software distributed WITHOUT ANY WARRANTY " <<endl
-       << "under the terms of the GNU General Public License. \nSee the file COPYING for details." <<endl
+       << "-------------------------------------------------------"<< endl
+       << "This program is free software distributed WITHOUT ANY WARRANTY" << endl
+       << "under the terms of the GNU General Public License."<< endl
+       << "See the file COPYING for details." << endl
        << "-------------------------------------------------------" << endl;
 }
 

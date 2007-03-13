@@ -56,9 +56,14 @@ public:
   void SetSize( unsigned numobs, unsigned numpops, float InitialStepSize, unsigned NumLeapFrogSteps);
   void SetPriorEta( double, double );
   void SetPriorMu( const double* const);
-  void Sample( const double* const, std::vector<double> *alpha, bool fixedprops);
+  void Sample( const double* const, std::vector<double>& alpha);
   double getStepSize()const;
   double getExpectedAcceptanceRate()const;
+
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
+  void SampleEta(const double* const sumlogtheta, std::vector<double>& alpha);
+  void SampleEta(const double* const sumlogtheta, double* alpha);
+#endif
     
 private:
   unsigned int K;
@@ -88,7 +93,8 @@ private:
 
   //MuSampler muSampler;
 
-  void SampleEta(unsigned n, const double* const sumlogtheta, double *eta, const double* const mu);
+  void SampleMu(double* mu, const double* const sumlogtheta);
+  double SampleEta(double eta, const double* mu,  const double* const sumlogtheta);
   static double logf( double, const void* const );
   static double dlogf( double, const void* const );
   static double ddlogf( double, const void* const );

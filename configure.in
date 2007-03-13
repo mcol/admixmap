@@ -100,6 +100,13 @@ fi
 
 AC_CONFIG_FILES([src/scripts/genepi-config])
 
+## write definitions of compiler, flags etc in config.h
+AC_DEFINE_UNQUOTED([COMPILER],["${CXX}"],[C++ compiler]) 
+AC_DEFINE_UNQUOTED([COMPILER_FLAGS],["${CXXFLAGS}"],[C++ compiler flags]) 
+AC_DEFINE_UNQUOTED([HOST],["${host}"],[For platform]) 
+AC_DEFINE_UNQUOTED([TARGET],["${target}"],[Built on]) 
+
+
 dnl AC_CONFIG_SUBDIRS(src/bayeslib)
 AC_OUTPUT([Makefile
 	   src/Makefile
@@ -136,3 +143,4 @@ Configuration:
 
   See config.h for further configuration information.
 ------------------------------------------------------------------------"
+

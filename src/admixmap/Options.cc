@@ -60,6 +60,7 @@ void Options::SetDefaultValues(){
   regressionPriorPrecision = 0.25;
   EYFilename = "ExpectedOutcomes.txt";
   DeleteOldResultsIndicator = true;
+  PrintBuildInfo = false;
 
   useroptions["burnin"] = "100";
   useroptions["samples"] = "1100";
@@ -244,6 +245,9 @@ bool Options::getDeleteOldResultsIndicator()const{
   return DeleteOldResultsIndicator;
 }
 
+bool Options::doPrintBuildInfo()const{
+  return PrintBuildInfo;
+}
 ///////////////////////////////////////////////////////////////////////////////
 int Options::ReadArgsFromFile(const char* filename, UserOptions& opt){
   ifstream fin(filename);
@@ -372,6 +376,7 @@ void Options::SetOptions(OptionMap& ProgOptions)
   ProgOptions["thermo"] = OptionPair(&thermoIndicator, "bool");// Marginal likelihood by thermodynamic integration
   ProgOptions["checkdata"] = OptionPair(&checkData, "bool");// set to 0 to skip some data checks
   ProgOptions["deleteoldresults"] = OptionPair(&DeleteOldResultsIndicator, "bool");
+  ProgOptions["printbuildinfo"] = OptionPair(&PrintBuildInfo, "bool");
 
   //parse user options
   bool badOptions = false;

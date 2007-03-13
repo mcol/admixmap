@@ -43,9 +43,9 @@ void DirichletParamSampler::Initialise() {
 /// Instantiates an adaptive rejection sampler object for each element and 
 /// sets up sampler objects. 
 ///  numobs = number of observations 
-void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops, float InitialStepSize, unsigned NumLeapFrogSteps)
+void DirichletParamSampler::SetSize( unsigned numobs, unsigned numStates, float InitialStepSize, unsigned NumLeapFrogSteps)
 {
-   K = numpops;
+   K = numStates;
 #if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
    AlphaParameters[0] = numobs;
    muDirichletParams = new double[K];
@@ -57,10 +57,10 @@ void DirichletParamSampler::SetSize( unsigned numobs, unsigned numpops, float In
 
    EtaArgs.priorshape = K; // for compatibility with gamma(1, 1) prior on alpha
    EtaArgs.priorrate = 1;
-   EtaArgs.numpops = numpops;
+   EtaArgs.numpops = K;
    EtaArgs.numobs = numobs; 
    // use many small steps to ensure that leapfrog algorithm does not jump to minus infinity
-   EtaSampler.SetDimensions(1, InitialStepSize, 0.001/*min stepsize*/, 1.0/*max stepsize*/, 
+   EtaSampler.SetDimensions(1, InitialStepSize, 0.0001/*min stepsize*/, 1.0/*max stepsize*/, 
 			    NumLeapFrogSteps, 0.9/*target accept rate*/, etaEnergy, etaGradient);
 #elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
    logalpha = new double[K];
@@ -100,62 +100,91 @@ void DirichletParamSampler::SetPriorMu( const double* const ingamma ) {
 /**
    Samples new values.
    sumlogtheta = sum log observed proportions. 
-   fixedprops indicates whether proportions are to be fixed or sampled. Meaningful only with Adaptive rejection sampler.
  
    Updates elements of mu with adaptive rejection sampler conditional on sumlogtheta
    Updates eta with Hamiltonian.  
 */
-void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector<double> *alpha, bool
+void DirichletParamSampler::Sample( const double* const sumlogtheta, std::vector<double>& alpha) {
 #if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
- fixedprops ) {
-  //gsl_set_error_handler_off();
-  eta = accumulate(alpha->begin(), alpha->end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
+  //separate alpha into mu and eta
+  eta = accumulate(alpha.begin(), alpha.end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
+	
   for( unsigned i = 0; i < K; i++ ) {
-    mu[i] = (*alpha)[i]/eta;
-    //cout << (*alpha)[i] << " ";
+    mu[i] = alpha[i]/eta;
   }
 
-  if(!fixedprops){
-    double b = 0.0; 
-    for(int updates=0; updates < 2; ++ updates) { // loop twice 
-      // loop over elements j,k of mu to update mu[j] conditional on (mu[j] + mu[k]), mu[i] where i neq j,k 
-      for( unsigned int j = 1; j < K; ++j ) {
-	for( unsigned int k = 0; k < j; ++k ) {
-	  b = mu[j] + mu[k]; 
-	  AlphaParameters[1] = eta; // dispersion parameter
-	  AlphaParameters[2] = b; 
-	  AlphaParameters[3] = sumlogtheta[j]; 
-	  AlphaParameters[4] = sumlogtheta[k];
-	  DirParamArray.setUpperBound(b); // avoid singularity at b
-	  mu[j] = DirParamArray.Sample(AlphaParameters, ddlogf);
-	  mu[k] = b - mu[j];
-	}
+  //sample proportions
+  AlphaParameters[1] = eta; // dispersion parameter
+  SampleMu(mu, sumlogtheta);
+
+  //sample dispersion
+  eta = SampleEta(eta, mu, sumlogtheta);
+  for( unsigned j = 0; j < K; j++ ) alpha[j] = mu[j]*eta;
+  
+#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
+  // *** Hamiltonian sampler for alpha
+  AlphaArgs.sumlogtheta = sumlogtheta;
+  transform(alpha.begin(), alpha.end(), logalpha, xlog);//logalpha = log(alpha)
+  AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
+  transform(logalpha, logalpha+K, alpha.begin(), xexp);//alpha = exp(logalpha)
+#endif
+  
+}
+
+#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
+void DirichletParamSampler::SampleMu(double* mu, const double* const sumlogtheta){
+  double b = 0.0; 
+  for(int updates=0; updates < 2; ++ updates) { // loop twice 
+    // loop over elements j,k of mu to update mu[j] conditional on (mu[j] + mu[k]), mu[i] where i neq j,k 
+    for( unsigned int j = 1; j < K; ++j ) {
+      for( unsigned int k = 0; k < j; ++k ) {
+	b = mu[j] + mu[k]; 
+	AlphaParameters[2] = b; 
+	AlphaParameters[3] = sumlogtheta[j]; 
+	AlphaParameters[4] = sumlogtheta[k];
+	DirParamArray.setUpperBound(b); // avoid singularity at b
+	mu[j] = DirParamArray.Sample(AlphaParameters, ddlogf);
+	mu[k] = b - mu[j];
       }
     }
   }
+}
+//public function
+void DirichletParamSampler::SampleEta(const double* const sumlogtheta, std::vector<double>& alpha){
+  //separate alpha into mu and eta
+  eta = accumulate(alpha.begin(), alpha.end(), 0.0, std::plus<double>());//eta = sum of alpha[0]
+	
+  for( unsigned i = 0; i < K; i++ ) {
+    mu[i] = alpha[i]/eta;
+  }
 
+  eta = SampleEta(eta, mu, sumlogtheta);
+  for( unsigned j = 0; j < K; j++ ) alpha[j] = mu[j]*eta;
+
+}
+void DirichletParamSampler::SampleEta(const double* const sumlogtheta, double* alpha){
+  //separate alpha into mu and eta
+  eta = accumulate(alpha, alpha+K, 0.0, std::plus<double>());//eta = sum of alpha[0]
+	
+  for( unsigned i = 0; i < K; i++ ) {
+    mu[i] = alpha[i]/eta;
+  }
+
+  eta = SampleEta(eta, mu, sumlogtheta);
+  for( unsigned j = 0; j < K; j++ ) alpha[j] = mu[j]*eta;
+
+}
+
+//private function
+double DirichletParamSampler::SampleEta(double eta, const double* mu,  const double* const sumlogtheta){
   //SampleEta((unsigned)AlphaParameters[0], sumlogtheta, &eta, mu);//first arg is num obs
   EtaArgs.sumlogtheta = sumlogtheta;
   EtaArgs.mu = mu;
   // cout << "eta " << eta << endl << flush;
   etanew = log(eta);//sample for log of dispersion parameter
   EtaSampler.Sample(&etanew, &EtaArgs);
-  eta = exp(etanew);
-  for( unsigned j = 0; j < K; j++ ) (*alpha)[j] = mu[j]*eta;
-  
-  
-#elif DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_HAMILTONIAN_SAMPLER
-  ){
-  // *** Hamiltonian sampler for alpha
-  AlphaArgs.sumlogtheta = sumlogtheta;
-  transform(alpha[0].begin(), alpha[0].end(), logalpha, xlog);//logalpha = log(alpha)
-  AlphaSampler.Sample(logalpha, &AlphaArgs);//sample new values for logalpha
-  transform(logalpha, logalpha+K, alpha[0].begin(), xexp);//alpha = exp(logalpha)
-#endif
-  
+  return exp(etanew);
 }
-
-#if DIRICHLETPARAM_SAMPLERTYPE==DIRICHLETPARAM_ARS_SAMPLER
 
 double DirichletParamSampler::etaEnergy( const double* const x, const void* const vargs )
 {

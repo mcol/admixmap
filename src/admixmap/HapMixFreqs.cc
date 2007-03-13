@@ -465,13 +465,13 @@ void HapMixFreqs::OutputErgodicAvg( int samples, std::ofstream *avgstream)const{
   }
 }
 
-void HapMixFreqs::OutputPriorParams(){
-  if(allelefreqprioroutput.is_open()){
-    OutputPriorParams(allelefreqprioroutput, false);
-  }
-}
+// void HapMixFreqs::OutputPriorParams(){
+//   if(allelefreqprioroutput.is_open()){
+//     OutputPriorParams(allelefreqprioroutput, false);
+//   }
+// }
 
-void HapMixFreqs::OutputPriorParams(std::ostream& os, bool tofile){
+void HapMixFreqs::OutputPriorParams(bool tofile, bool toscreen){
   if(DirichletParams){
     const unsigned L = NumberOfCompositeLoci;
     double sumeta = 0.0, sumetasq = 0.0;//, summu = 0.0, summusq = 0.0;
@@ -502,10 +502,12 @@ void HapMixFreqs::OutputPriorParams(std::ostream& os, bool tofile){
     //double meanmu = summu / (double) L;
     //double varmu = summusq/ (double) L - meanmu*meanmu;
 
-    os << meaneta << "\t" << vareta; //<< "\t" << meanmu << "\t" << varmu 
-    if(etaHierModel)
-      os << "\t" << EtaRate;
-    os << std::endl;
+    if(toscreen){
+      std::cout << meaneta << "\t" << vareta; //<< "\t" << meanmu << "\t" << varmu 
+      if(etaHierModel)
+        std::cout << "\t" << EtaRate;
+      std::cout << std::endl;
+    }
 
     if(tofile && allelefreqprioroutput.is_open()){
       allelefreqprioroutput << meaneta << "\t" << vareta;
@@ -515,7 +517,7 @@ void HapMixFreqs::OutputPriorParams(std::ostream& os, bool tofile){
       allelefreqprioroutput << std::endl;
 
     }
-    //os << sumobs / (double)L << "\t" << sumexp / (double)L << std::endl;
+    //std::cout << sumobs / (double)L << "\t" << sumexp / (double)L << std::endl;
     //if(tofile && allelefreqprioroutput.is_open())
     //	allelefreqprioroutput <<sumobs / (double)L << "\t" << sumexp / (double)L << std::endl;
   }

@@ -81,6 +81,7 @@ public:
   void setRegType(RegressionType R);
   virtual bool getTestOneIndivIndicator() const = 0;
   bool getDeleteOldResultsIndicator()const;
+  bool doPrintBuildInfo()const;
 
   //Score test file names
   const char *getAllelicAssociationScoreFilename() const; 
@@ -95,7 +96,7 @@ public:
   bool getHWTestIndicator() const;
 
   //filenames in derived classes
-  //these are required by InputData. Can be removed if InpuData and ScoreTests are forked successfully
+  //these are required by InputData. Can be removed if InpuData and ScoreTets are forked successfully
   virtual const char* getCCGenotypesFilename()const{return "";};
   virtual const char* getAlleleFreqFilename ()const{return "";};
   virtual const char *getHistoricalAlleleFreqFilename() const{return "";};
@@ -140,6 +141,7 @@ protected:
   bool HWTest;
   double regressionPriorPrecision;
   bool DeleteOldResultsIndicator;//indicates whether to delete contents of resultsdir
+  bool PrintBuildInfo;
 
   string ResultsDir;
   string LogFilename;

@@ -17,8 +17,9 @@
 #include "HapMixOptions.h"
 #include "Genome.h"
 #include "samplers/HamiltonianMonteCarlo.h"
-#include "samplers/StepSizeTuner.h"//for sampling globalrho and globaltheta
+//#include "samplers/StepSizeTuner.h"//for sampling globalrho and globaltheta
 #include "samplers/AdaptiveRejection.h"
+#include "samplers/DirichletParamSampler.h"
 
 class InputData;
 class IndividualCollection;
@@ -116,6 +117,10 @@ private:
   //StepSizeTuner ThetaTuner;
   //double thetastep;
 
+  DirichletParamSampler MixturePropsDispersionSampler;
+
+  void InitialiseMixtureProportions(LogWriter& Log);
+  void InitialiseArrivalRates(LogWriter& Log);
   void InitializeOutputFile(const vector<string>& BlockStateLabels, const string& distanceUnit);
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);

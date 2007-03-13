@@ -14,9 +14,8 @@
 #ifndef MODEL_TOP_H
 #define MODEL_TOP_H 1
 
-#include <stdlib.h>    /* for exit, strtol */
-
-#include <string.h>    /* for strcmp, strcpy */
+#include <cstdlib>    /* for exit, strtol */
+#include <cstring>    /* for strcmp, strcpy */
 #include <string>
 #include "common.h"
 #include "regression/LinearRegression.h"
@@ -39,9 +38,12 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
 void PrintCopyrightNotice(LogWriter & Log);
 
 void PrintOptionsMessage();
+
 void ThrowException(const string& msg, LogWriter & Log);
 
-///Abstract base class for model used in ADMIXMAP. 
+void PrintBuildInfo(LogWriter& Log);
+
+///Abstract base class for top-level Model classes
 ///Currently, there are two derived classes: AdmixMapModel (admixture mapping) and HapMixModel (haplotype mixture model)
 class Model{
 public:

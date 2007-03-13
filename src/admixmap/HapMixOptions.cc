@@ -46,7 +46,7 @@ void HapMixOptions::SetDefaultValues(){
 
   useroptions["states"] = "4";
   useroptions["hapmixlambdaprior"] = "30, 0.1, 10, 1";
-  //useroptions["mixturepropsprior"] = "1,1,1,1,1,1,1,1";
+  //useroptions["mixturepropsprior"] = "1,1";
   useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
   useroptions["finallambdafile"] = FinalLambdaFilename;
   useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
@@ -183,8 +183,8 @@ void HapMixOptions::SetOptions(OptionMap& ProgOptions)
 
   //prior and model specification
   ProgOptions["hapmixmodel"] = OptionPair(0, "null");//does nothing
-  ProgOptions["hapmixlambdaprior"] = OptionPair(&hapmixlambdaprior, "dvector");
-  ProgOptions["mixturepropsprior"] = OptionPair(&MixturePropsPrior, "dvector");
+  ProgOptions["hapmixlambdaprior"] = OptionPair(&hapmixlambdaprior, "dvector");//vector of length 4, 2 Gamma priors on Gamma parameters
+  ProgOptions["mixturepropsprior"] = OptionPair(&MixturePropsPrior, "dvector");//vector of length 2, Gamma prior on Dirichlet dispersion
   ProgOptions["allelefreqprior"] = OptionPair(&allelefreqprior, "dvector");
   ProgOptions["freqdispersionhiermodel"] = OptionPair(&FreqDispersionHierModel, "bool");
 
@@ -257,16 +257,21 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
   // **** sumintensities ****
   Log << "Haplotype mixture model with " << NumBlockStates << " block states\n";
   
-  //check mixture props prior has length K
-  if(MixturePropsPrior.size()>0 & MixturePropsPrior.size()!= (unsigned)NumBlockStates){
-    Log << "Error: 'mixturepropsprior' has incorrect length\n";
+  //check mixture props prior has length 2 and both elements are positive
+  if( useroptions["mixturepropsprior"].size() && //if user has specified a prior
+      (MixturePropsPrior.size()!=2 || MixturePropsPrior[0] <= 0.0 || MixturePropsPrior[1] <= 0.0) ){
+    Log << "Error: 'mixturepropsprior' should be 2 positive numbers\n";
     badOptions = true;
   }
+
   if(!MixturePropsPrior.size()){//user has not specified a prior
-    //MixtureProps.assign(1, NumBlockStates);//redundant since set in PopHapMix
-    useroptions["mixturepropsprior"] = "1";
-    for(int k = 1; k < NumBlockStates; ++k)
-      useroptions["mixturepropsprior"].append(",1");
+    /*//redundant since set in PopHapMix
+      MixtureProps.push_back(NumBlockStates);
+      MixtureProps.push_back(1);
+    */
+    std::stringstream ss;
+    ss << NumBlockStates << ", 1";
+    useroptions["mixturepropsprior"] = ss.str();
   }
 
   // **** model for allele freqs ****

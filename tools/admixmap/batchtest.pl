@@ -5,7 +5,7 @@ print "OS is ";print $^O;
 $resultsdir = "results";
 
 # Change this to the location of the admixmap executable
-my $executable = './admixmap1880';
+my $executable = './admixmap';
 
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.

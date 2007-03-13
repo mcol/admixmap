@@ -146,7 +146,11 @@ void PopAdmix::UpdatePopAdmixParams(int iteration, const AdmixIndividualCollecti
        //cout << "alpha " << alpha[0][0] << " " << alpha[0][1] <<  " sumlogtheta " 
        //	    << individuals->getSumLogTheta()[0] << " " <<  individuals->getSumLogTheta()[1] << endl;
        try{
-	 PopAdmixSampler.Sample( sumlogtheta, &alpha[0], options->PopAdmixturePropsAreEqual() );
+	 if(options->PopAdmixturePropsAreEqual())
+	   //sample only dispersion
+	   PopAdmixSampler.SampleEta(sumlogtheta, alpha[0]);
+	 else//sample proportions and dispersion
+	   PopAdmixSampler.Sample( sumlogtheta, alpha[0]);
        }
        catch(string s){
 	 throw string("Error encountered while sampling population admixture parameters:\n" +s);

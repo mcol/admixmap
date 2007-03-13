@@ -330,7 +330,7 @@ void HMM::UpdateBackwardProbsDiploid()
   if(LambdaGPI.isNull() || theta.isNull() || !f)
     throw string("Error: Call to HMM when inputs are not set!");
   if(!beta) { // allocate beta array if not already done
-    beta =  new double[Transitions*K*K];
+    beta = new double[Transitions*K*K];
   }
   if(!LambdaBeta)
     LambdaBeta = new double[K*K];

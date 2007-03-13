@@ -1,7 +1,7 @@
 /** 
  *   misc.cc 
  *   miscellaneous functions
- *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -11,9 +11,11 @@
  */
 
 #include <cstdlib>
-#include "admixmap.h"
-#include "config.h"//for PARALLEL
+#include "Model.h"
 #include <dirent.h>//for OpenResultsDir
+#ifdef HAVE_CONFIG_H 
+#include "config.h"
+#endif
 
 /**
    Prints a message to screen in case of user not specifying any arguments
@@ -113,5 +115,27 @@ void WriteIterationNumber(const int iteration, const int width, int displayLevel
   cout.flush();
 }
 
+
+///print build info (compiler, flags, host type etc) to Log & screen
+void PrintBuildInfo(LogWriter& Log){
+    Log << On
+#ifdef HAVE_CONFIG_H 
+        << "Build Info\n"
+#ifdef COMPILER
+	<< "Compiler       = " << COMPILER << "\n"
+#endif
+#ifdef COMPILER_FLAGS
+	<< "Compiler Flags = " << COMPILER_FLAGS << "\n"
+#endif
+#ifdef HOST
+	<< "host           = " << HOST << "\n"
+#endif
+#ifdef TARGET
+	<< "target         = " << TARGET << "\n"
+#endif
+        << "-------------------------------------------------------\n"
+#endif
+        << Quiet;
+}
 
 

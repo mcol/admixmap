@@ -20,9 +20,7 @@
 #include "gsl/gsl_specfunc.h"
 #include "Comms.h"
 #include "MixturePropsWrapper.hh"
-#ifdef PARALLEL
-#include <mpe.h>//for MPI event logging
-#endif
+#include "EventLogger.hh"//for MPE event logging
 using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
@@ -42,144 +40,178 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log, const vec
   Log.setDisplayMode(On);
   K = options->getNumberOfBlockStates();
 
-  if(K > 1){
-    //initialise global admixture proportions
-    MixtureProps = new double[K*Loci->GetNumberOfCompositeLoci()];
-    MixturePropsPrior = new double[K];
-    dirparams = new double[K];
-
-    //set prior on mixture props
-    const vector<double>& userprior = options->getMixturePropsPrior();
-    if(userprior.size())//user has specified a prior
-      copy(userprior.begin(), userprior.end(), MixturePropsPrior);
-    else//use default
-      fill(MixturePropsPrior, MixturePropsPrior + K, 1.0);
-
-    //write prior parameters to screen and log
-    Log << Quiet << "Dirichlet prior on mixture proportions with parameters: " << MixturePropsPrior[0];
-    for(unsigned k = 1; k < K; ++k) Log << ", " << MixturePropsPrior[k];
-    Log << "\n"; 
-
-    //set initial values of Mixture Props as uniform
-    fill(MixtureProps, MixtureProps + K*Loci->GetNumberOfCompositeLoci(), 1.0/(double)K);
-
-    //MixturePropsproposal = new double[K];
-    //ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
-    
-    //if(Comms::isMaster())SumLogLambda.push_back(0.0);
-    //set priors
-    const vector<double>& priorparams = options->getHapMixLambdaPrior();
-    
-    LambdaArgs.beta_shape = priorparams[2];
-    LambdaArgs.beta_rate = priorparams[3];
-    LambdaArgs.beta = priorparams[2]/priorparams[3];//initialise beta at prior mean
-    unsigned numIntervals = Loci->GetNumberOfCompositeLoci()-Loci->GetNumberOfChromosomes(); 
-    lambda.assign(numIntervals, 0);
-    //TODO: if distance is too large, leave lambda at zero and do not sample (as if a new chromosome)
-   
-    if(Comms::isMaster()){
-      LambdaArgs.NumBlockStates = K;
-      LambdaArgs.NumIntervals = numIntervals;
+  if(K > 1){ 
+    if ( Comms::isMaster()){
       
-      //set up Hamiltonian sampler for lambda
-      HapMixLambdaSampler = new HamiltonianMonteCarlo[numIntervals];
-      const vector<float>& lambdasamplerparams = options->getLambdaSamplerParams();
-      size_t size = lambdasamplerparams.size();
-      float initial_stepsize = size? lambdasamplerparams[0] : 0.06;
-      float min_stepsize = size? lambdasamplerparams[1] : 0.0001;
-      float max_stepsize = size? lambdasamplerparams[2] : 1.0;
-      float target_acceptrate = size? lambdasamplerparams[3] : 0.9;
-      int num_leapfrog_steps = size? (int)lambdasamplerparams[4] : 20;
+      InitialiseMixtureProportions(Log);
       
-      //set constant args for sampler for h
-      hargs.shape = priorparams[0];
-      hargs.rate = priorparams[1];
-      hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
-      hargs.sum_lngamma_hd = 0.0;
-      hargs.NumIntervals = numIntervals;
-      hargs.distances = new double[numIntervals];
-      LambdaArgs.h = hargs.shape / hargs.rate; // initialise h at prior mean 
+      InitialiseArrivalRates(Log);
       
-      //write prior to screen and log
-      Log << Quiet << "Gamma(h, beta) distribution on number of arrivals per Mb. \nGamma( " << hargs.shape << ", " << hargs.rate << " ) prior on h and "
-          << "Gamma( " << LambdaArgs.beta_shape << ", " << LambdaArgs.beta_rate << " ) prior on beta\n";
-
-      //Hamiltonian sampler
-      for(unsigned j = 0; j < numIntervals; ++j){
-        HapMixLambdaSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
-                                             target_acceptrate, LambdaEnergy, LambdaGradient);
-      }
-      //Random Walk sampler for log h
-      //hTuner.SetParameters( 0.01, 0.0001, 1000.0, 0.44);
-
-      //Adaptive rejection sampler for h
-      hARS.Initialise(false, true, 1000000.0/*<- upper bound*/, 10.0/*<-lower bound*/, hlogf, hdlogf);
-      
-      //end sampler initialisation
-      //initialise lambda vector
-      int locus = 0;//indexes loci
-      int d = 0; //indexes intervals
-      const char* initfilename = options->getInitialHapMixLambdaFilename();
-      const bool useinitfile = (strlen(initfilename) > 0);
-      ifstream initfile;
-      if(useinitfile){
-        Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
-        initfile.open(initfilename);
-        //read initial values of h, beta
-        initfile >> LambdaArgs.h >> LambdaArgs.beta;
-        //copy initial values of lambda straight from file into vector
-        istream_iterator<double>firstlambda(initfile);
-        //copy(firstlambda, firstlambda + numIntervals, lambda.begin());
-        copy(firstlambda, istream_iterator<double>(), lambda.begin());//does not check number of elements
-        initfile.close();
-      }
-
-      for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-        ++locus;//skip first locus on each chromosome
-        for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
-          hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci->GetDistance(locus));
-          hargs.distances[d] = Loci->GetDistance(locus);
-          if(!useinitfile)//initialise at prior mean
-            lambda[d]= Rand::gengam(LambdaArgs.h*Loci->GetDistance(locus), LambdaArgs.beta);
-          if(Comms::isMaster()){
-            SumLogLambda.push_back(0.0);
-          }
-          ++d;
-          ++locus;
-        }
-      }
-    
       // ** Open paramfile **
-      if ( Comms::isMaster()){
-        Log.setDisplayMode(Quiet);
-        if( strlen( options->getParameterFilename() ) ){
-          outputstream.open( options->getParameterFilename(), ios::out );
-          if( !outputstream )
-            {
-              Log.setDisplayMode(On);
-              Log << "ERROR: Couldn't open paramfile\n";
-              exit( 1 );
-            }
-          else{
-            Log << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
-            InitializeOutputFile(BlockStateLabels, distanceUnit);
+      Log.setDisplayMode(Quiet);
+      if( strlen( options->getParameterFilename() ) ){
+        outputstream.open( options->getParameterFilename(), ios::out );
+        if( !outputstream )
+          {
+            Log.setDisplayMode(On);
+            Log << "ERROR: Couldn't open paramfile\n";
+            exit( 1 );
           }
-        }
         else{
-          Log << "No paramfile given\n";
+          Log << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
+          InitializeOutputFile(BlockStateLabels, distanceUnit);
         }
       }
-    }//end master block
-
+      else{
+        Log << "No paramfile given\n";
+      }
+    }
+    
     //broadcast lambda to all processes, in Comm (excludes freqsampler)
     //no need to broadcast MixtureProps if it is kept fixed
 #ifdef PARALLEL
-    MPE_Log_event(17, 0, "Bcastlambda");
+    EventLogger::LogEvent(17, 0, "Bcastlambda");
     Comms::BroadcastVector(lambda);
-    MPE_Log_event(18, 0, "Bcasted");
+    EventLogger::LogEvent(18, 0, "Bcasted");
+    //TODO: broadcast Mixture Params
 #endif    
 
   }//end if K > 1
+}
+
+///initialise global admixture proportions
+void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
+  const unsigned L = Loci->GetNumberOfCompositeLoci();
+
+  MixtureProps = new double[K*L];
+  MixturePropsPrior = new double[K];
+  dirparams = new double[K];
+  
+  /*
+    set prior on mixture props.
+    Mixture proportions have a Dirichlet prior with parameters MixturePropsDispersion / K 
+    ( so that the proportions are equal). The prior dispersion (MixturePropsPriorDispersion) has a 
+    Gamma prior, which defaults to Gamma(1,1).
+  */
+  
+  //defaults 
+  double MPDShape = (double)K;// dispersion prior shape
+  double MPDRate = 1.0;//dispersion prior rate
+  double DirParamInit = 1.0;//initial value of Dirichlet Params
+  //check for user-specified prior
+  const vector<double>& userprior = options->getMixturePropsPrior();
+  if(userprior.size()){//user has specified a prior
+    MPDShape = userprior[0];
+    MPDRate = userprior[1];
+    DirParamInit = (MPDShape / MPDRate) / (double)K;
+  }
+  
+  //set initial values of Dirichlet prior params
+  fill(MixturePropsPrior, MixturePropsPrior + K, DirParamInit);
+  
+  //write prior parameters to screen and log
+  Log << Quiet << "Dirichlet prior on mixture proportions with parameters: " << MixturePropsPrior[0];
+  for(unsigned k = 1; k < K; ++k) Log << ", " << MixturePropsPrior[k];
+  Log << "\n";
+  Log << "Gamma(" << MPDShape << ", " << MPDRate << ") prior on mixture proportion prior dispersion\n" ;
+  
+  //set initial values of Mixture Props as uniform
+  //TODO: initialise to prior means
+  fill(MixtureProps, MixtureProps + K*L, 1.0/(double)K);
+  
+  //setup sampler for mixure props dispersion
+  MixturePropsDispersionSampler.SetSize(L, K, 0.01/*<-initial stepsize*/, 20/*<-num leapfrog steps*/);
+  MixturePropsDispersionSampler.SetPriorEta(MPDShape, MPDRate);
+  
+  //MixturePropsproposal = new double[K];
+  //ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
+  
+}
+
+void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
+ const unsigned L = Loci->GetNumberOfCompositeLoci();
+  //if(Comms::isMaster())SumLogLambda.push_back(0.0);
+  //set priors
+  const vector<double>& priorparams = options->getHapMixLambdaPrior();
+    
+  LambdaArgs.beta_shape = priorparams[2];
+  LambdaArgs.beta_rate = priorparams[3];
+  LambdaArgs.beta = priorparams[2]/priorparams[3];//initialise beta at prior mean
+  unsigned numIntervals = L-Loci->GetNumberOfChromosomes(); 
+  lambda.assign(numIntervals, 0);
+  //TODO: if distance is too large, leave lambda at zero and do not sample (as if a new chromosome)
+   
+  LambdaArgs.NumBlockStates = K;
+  LambdaArgs.NumIntervals = numIntervals;
+  
+  //set up Hamiltonian sampler for lambda
+  HapMixLambdaSampler = new HamiltonianMonteCarlo[numIntervals];
+  const vector<float>& lambdasamplerparams = options->getLambdaSamplerParams();
+  size_t size = lambdasamplerparams.size();
+  float initial_stepsize = size? lambdasamplerparams[0] : 0.06;
+  float min_stepsize = size? lambdasamplerparams[1] : 0.0001;
+  float max_stepsize = size? lambdasamplerparams[2] : 1.0;
+  float target_acceptrate = size? lambdasamplerparams[3] : 0.9;
+  int num_leapfrog_steps = size? (int)lambdasamplerparams[4] : 20;
+  
+  //set constant args for sampler for h
+  hargs.shape = priorparams[0];
+  hargs.rate = priorparams[1];
+  hargs.Dlogbeta = Loci->GetLengthOfGenome()*log(LambdaArgs.beta);
+  hargs.sum_lngamma_hd = 0.0;
+  hargs.NumIntervals = numIntervals;
+  hargs.distances = new double[numIntervals];
+  LambdaArgs.h = hargs.shape / hargs.rate; // initialise h at prior mean 
+  
+  //write prior to screen and log
+  Log << Quiet << "Gamma(h, beta) distribution on number of arrivals per Mb. \nGamma( " << hargs.shape << ", " << hargs.rate << " ) prior on h and "
+      << "Gamma( " << LambdaArgs.beta_shape << ", " << LambdaArgs.beta_rate << " ) prior on beta\n";
+  
+  //Hamiltonian sampler
+  for(unsigned j = 0; j < numIntervals; ++j){
+    HapMixLambdaSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
+                                         target_acceptrate, LambdaEnergy, LambdaGradient);
+  }
+  //Random Walk sampler for log h
+  //hTuner.SetParameters( 0.01, 0.0001, 1000.0, 0.44);
+  
+  //Adaptive rejection sampler for h
+  hARS.Initialise(false, true, 1000000.0/*<- upper bound*/, 10.0/*<-lower bound*/, hlogf, hdlogf);
+  
+  //end sampler initialisation
+  //initialise lambda vector
+  int locus = 0;//indexes loci
+  int d = 0; //indexes intervals
+  const char* initfilename = options->getInitialHapMixLambdaFilename();
+  const bool useinitfile = (strlen(initfilename) > 0);
+  ifstream initfile;
+  if(useinitfile){
+    Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
+    initfile.open(initfilename);
+    //read initial values of h, beta
+    initfile >> LambdaArgs.h >> LambdaArgs.beta;
+    //copy initial values of lambda straight from file into vector
+    istream_iterator<double>firstlambda(initfile);
+    //copy(firstlambda, firstlambda + numIntervals, lambda.begin());
+    copy(firstlambda, istream_iterator<double>(), lambda.begin());//does not check number of elements
+    initfile.close();
+  }
+  
+  for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
+    ++locus;//skip first locus on each chromosome
+    for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
+      hargs.sum_lngamma_hd += lngamma(LambdaArgs.h*Loci->GetDistance(locus));
+      hargs.distances[d] = Loci->GetDistance(locus);
+      if(!useinitfile)//initialise at prior mean
+        lambda[d]= Rand::gengam(LambdaArgs.h*Loci->GetDistance(locus), LambdaArgs.beta);
+      if(Comms::isMaster()){
+        SumLogLambda.push_back(0.0);
+      }
+      ++d;
+      ++locus;
+    }//end locus loop
+  }//end chromosome loop
+  
 }
 
 PopHapMix::~PopHapMix()
@@ -202,9 +234,7 @@ void PopHapMix::SampleHapMixLambda(const int* ConcordanceCounts, bool accumulate
   int locus = 0;
   int interval = 0;
   if(Comms::isMaster()){
-#ifdef PARALLEL
-    MPE_Log_event(9, 0, "sampleLambda");
-#endif
+    EventLogger::LogEvent(9, 0, "sampleLambda");
     LambdaPriorArgs.sumlambda = 0.0;
     hargs.sum_dloglambda = 0.0;
     try{
@@ -241,17 +271,15 @@ void PopHapMix::SampleHapMixLambda(const int* ConcordanceCounts, bool accumulate
       stringstream err;err << "Error encountered while sampling lambda " << interval << ":\n" + s;
       throw(err.str());
     }
-#ifdef PARALLEL
-    MPE_Log_event(10, 0, "sampledLambda");
-#endif
+    EventLogger::LogEvent(10, 0, "sampledLambda");
   }
 
 //broadcast lambda to all processes, in Comm (excludes freqsampler)
 //no need to broadcast MixtureProps if it is kept fixed
 #ifdef PARALLEL
-  MPE_Log_event(17, 0, "Bcastlambda");
+  EventLogger::LogEvent(17, 0, "Bcastlambda");
   Comms::BroadcastVector(lambda);
-  MPE_Log_event(18, 0, "Bcasted");
+  EventLogger::LogEvent(18, 0, "Bcasted");
 #endif    
 
   if(Comms::isMaster()){
@@ -456,6 +484,7 @@ void PopHapMix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
 }
 
 ///output to given output stream
+//TODO: make out an ostream&
 void PopHapMix::OutputParams(ostream* out){
   //lambda
   out->width(9);
@@ -475,6 +504,13 @@ void PopHapMix::OutputParams(ostream* out){
     //output expected values per unit distance
 	 << LambdaArgs.h << "\t" << LambdaArgs.beta << "\t"
 	 << LambdaArgs.h / LambdaArgs.beta << "\t" ;
+
+  //mixture props dispersion
+  sum = 0.0;
+  for(unsigned k = 0; k < K; ++k)
+    sum += MixturePropsPrior[k];
+
+  (*out) << sum << "\t";
 }
 
 void PopHapMix::OutputMixtureProps(ostream& out)const{
@@ -524,6 +560,10 @@ void PopHapMix::printAcceptanceRates(LogWriter &Log) {
       << "\n";
 //   Log << "Expected acceptance rate in h sampler: " << hTuner.getExpectedAcceptanceRate()
 //       << "\nwith final step size of " << hTuner.getStepSize() << "\n";
+
+  Log << "Acceptance rate in sampler for mixture proportion dispersion: "
+      << MixturePropsDispersionSampler.getExpectedAcceptanceRate()
+      << "\nwith final step size of " << MixturePropsDispersionSampler.getStepSize() << "\n";
   
 }
 ///Outputs h, beta and current values of lambda to file
@@ -558,15 +598,38 @@ void PopHapMix::OutputLambdaPosteriorMeans(const char* filename, int samples)con
 void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
   if(Comms::isMaster()){
     const unsigned L = Loci->GetNumberOfCompositeLoci();
-    //  const unsigned K = options->getNumberOfBlockStates();
+    //TODO: ?? make SumLogTheta a class variable
+    double SumLogTheta[K];
+
+    for(size_t k = 0; k < K; ++k)
+      SumLogTheta[k] = 0.0;
     
     for(unsigned j  = 0; j < L; ++j){
       for(size_t k = 0; k < K; ++k){
 	dirparams[k] = MixturePropsPrior[k] + SumArrivalCounts[j*K + k];
       }
       Rand::gendirichlet(K, dirparams, MixtureProps+j*K );
+      for(size_t k = 0; k < K; ++k){
+	SumLogTheta[k] += log(MixtureProps[j*K +k]);
+      }
     }
+
+    //sample prior dispersion
+//     for(size_t k = 0; k < K; ++k)
+//       cout << MixtureProps[k] << " ";
+//     cout << endl;
+//     for(size_t k = 0; k < K; ++k)
+//       cout << log(MixtureProps[k]) << " ";
+//     cout << endl;
+//     for(size_t k = 0; k < K; ++k)
+//       cout << SumLogTheta[k] << "  ";
+//     cout << endl;
+
+//     cout << endl << endl;
+    MixturePropsDispersionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
   }
+
+  cout << endl;
 #ifdef PARALLEL
   //TODO: broadcast mixture props
 #endif
@@ -588,3 +651,4 @@ void PopHapMix::SetHMMStateArrivalProbs(){
     }
   }
 }
+
