@@ -123,7 +123,6 @@ Individual::~Individual() {
     delete[] LocusAncestry;
   }
 
-  delete[] Theta;
   delete[] missingGenotypes;
 }
 

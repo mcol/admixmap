@@ -25,6 +25,7 @@
 
 //******** Constructors **********
 AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
+  Theta = 0;
   ThetaProposal = 0;
   dirparams = 0;
   SumSoftmaxTheta = 0;
@@ -187,6 +188,7 @@ AdmixedIndividual::~AdmixedIndividual() {
   delete[] SumSoftmaxTheta;
   delete[] thetahat;
   delete[] dirparams;
+  if(Theta)delete[] Theta;	
   delete[] ThetaProposal;
   delete[] SumLocusAncestry;
   delete[] SumLocusAncestry_X;
