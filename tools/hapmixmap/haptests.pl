@@ -8,12 +8,19 @@ my $simulate = '';
 my $samples  = 25;
 my $burnin = 5;
 my $every = 1;
+my $executable = '';
+my $rscript = "$ENV{'HOME'}/genepi/trunk/tools/admixmap/AdmixmapOutput.R";
 
-GetOptions("parallel" =>\$parallel, 
-	   "simulate" => \$simulate, 
+my $serial_executable = "$ENV{'HOME'}/usr/bin/hapmixmap";
+my $parallel_executable = "$ENV{'HOME'}/usr/bin/hapmixmap-para";
+
+GetOptions("exec=s"    => \$executable,
+           "rscript=s" => \$rscript,
+           "parallel"  => \$parallel, 
+	   "simulate"  => \$simulate, 
 	   "samples=i" => \$samples,
-	   "burnin=i" => \$burnin,
-	   "every=i" => \$every);
+	   "burnin=i"  => \$burnin,
+	   "every=i"   => \$every);
 
 if($simulate){ 
     print "Running R script to simulate data\n";
@@ -21,13 +28,17 @@ if($simulate){
     print "simulation complete\n";
 }
 
+if(!$executable){
+  if($parallel){
+    $executable = $parallel_executable;
+  }else{
+    $executable = $serial_executable;
+  }
+}
 my $function_file = "$ENV{'HOME'}/genepi/trunk/dist/doanalysis.pl";
 
 require $function_file or die("cannot find doanalysis.pl");
 
-my $serial_executable = "$ENV{'HOME'}/usr/bin/hapmixmap";
-my $parallel_executable = "$ENV{'HOME'}/bin/hapmixmap-para";
-my $rscript = "$ENV{'HOME'}/genepi/trunk/tools/admixmap/AdmixmapOutput.R";
 ################### DO NOT EDIT ABOVE THIS LINE ########################
 
 
@@ -111,8 +122,8 @@ $arg_hash->{initialfreqpriorfile} = "data/initialfreqpriors.txt";
 
 sub callDoAnalysis {
     if($parallel){
-	doParallelAnalysis($parallel_executable, $rscript, $arg_hash);
+	doParallelAnalysis($executable, $rscript, $arg_hash);
     }else{
-	doAnalysis($serial_executable, $rscript, $arg_hash);
+	doAnalysis($executable, $rscript, $arg_hash);
     }
 }

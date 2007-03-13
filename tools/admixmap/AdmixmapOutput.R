@@ -477,10 +477,10 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   rm(scoretest.final.table)
   
   ##plot z-scores across genome
-  zscores <- t(scoretest.final[,,7])
+  zscores <- scoretest.final[,,7]
   plotScoreMap(loci.compound,zscores, KK, testname) 
   ## plot information content
-  info.content <- t(scoretest.final[,,2])
+  info.content <- scoretest.final[,,2]
   plotInfoMap(loci.compound, info.content, KK, testname)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at

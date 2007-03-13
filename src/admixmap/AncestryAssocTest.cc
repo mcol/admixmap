@@ -141,6 +141,7 @@ void AncestryAssocTest::ROutput(const int ){
     
     vector<string> labels;
     labels.push_back("Locus");
+    if(KK > 1)labels.push_back("Population");  
     labels.push_back("minusLog10PValue");
 //     if(K>1)labels.push_back("Population");
 //     labels.push_back( "Score");
