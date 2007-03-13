@@ -29,21 +29,13 @@ Genome *Individual::Loci;
 int Individual::Populations;
 
 //******** Constructors **********
-Individual::Individual() {
-  // initialise pointers here
-  PossibleHapPairs = NULL;
-  GenotypesMissing = NULL;
-  missingGenotypes = NULL;
-  LocusAncestry = NULL;
-  Theta = NULL;
+Individual::Individual() {//should initialise pointers here
+  missingGenotypes = 0;//allocated later, if needed
 }
-
-// Individual::Individual(int number, const Options* const options, const InputData* const Data)
-// : myNumber(number)
-// {
-//   missingGenotypes = NULL;//allocated later, if needed
-//   Initialise(number, options, Data);
-// }
+Individual::Individual(int number, const Options* const options, const InputData* const Data) {
+  missingGenotypes = 0;//allocated later, if needed
+  Initialise(number, options, Data);
+}
 
 void Individual::Initialise(int number, const Options* const options, const InputData* const Data){
   myNumber = number;
@@ -96,14 +88,6 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
   logLikelihood.HMMisOK = false;
-  
-  // Allocate space for unordered genotype probs
-  // They have form of vector of vectors of vectors of doubles.
-  if(options->getHapMixModelIndicator() && options->getTestForAllelicAssociation()){
-    vector<double> v1 = vector<double>(1);
-    vector<vector<double> > v3 = vector<vector<double> >(3, v1);
-    UnorderedProbs = vector<vector<vector<double> > >(numCompositeLoci, v3);
-  }
 }
 
 //********** Destructor **********
@@ -305,104 +289,25 @@ void Individual::SampleLocusAncestry(const Options* const options){
   } //end chromosome loop
 }
 
-/**
- * Return unordered probs as a vector of vectors of doubles.
- * Function AncestryAssocTest::Update() wants them this way.
- */
-vector<vector<double> >& Individual::getUnorderedProbs(
-  const unsigned int j)
-{
-  return UnorderedProbs[j];
-}
+//ADDHERE - new function to calculate genotype probs as an average over conditional probs of hidden states
+// call this function from IndividualCollection.cc just after SampleLocusAncestry
+//
+// call new function in Chromosome to get state probs
+// unchanged state probs from HMM
 
-/** 
-    function to calculate genotype probs as an average
-    over conditional probs of hidden states.
-    
-    call this function from IndividualCollection.cc just after SampleLocusAncestry
-    call new function in Chromosome to get state probs
-    unchanged state probs from HMM
- */
 
-void Individual::calculateUnorderedGenotypeProbs(void){
-  unsigned int numberCompositeLoci = Loci->GetNumberOfCompositeLoci();
-  for(unsigned int j = 0; j < numberCompositeLoci; ++j) {
-    calculateUnorderedGenotypeProbs(j);
-  }
-  return;
-}
+// code below should be executed as a loop over all K^2 states of anc
 
-/**
-   Same as Individual::calculateUnorderedProbs(void),
-   but for j^th locus only
- */
-void Individual::calculateUnorderedGenotypeProbs(unsigned j){
-  if (isHaploidIndividual()) {
-    string s = "Individual::calculateUnorderedGenotypeProbs(int j) not implemented for haploid individuals";
-    throw(s);
-  }
-  vector<double> orderedGenotypeProbs(4);
-  vector<double> orderedStateProbs = vector<double>(Populations * Populations);
-  vector<hapPair> hp;
-  int anc[2];
-  
-  if (not (Loci->GetNumberOfStates(j) == 2)) {
-    throw string("Trying to calculate UnorderedProbs but Loci->GetNumberOfStates(j) != 2");
-    return;
-  }
-  
-  const int numberOfHiddenStates = Populations;
-  
-  // code below should be executed as a loop over all K^2 states
-  // of anc
-  // GetLocusAncestry(j, anc);
-  // chromosome, locus = Loci->GetChrmAndLocus(j);
-  orderedStateProbs = getStateProbs(not this->isHaploidIndividual(), Loci->getChromosomeNumber(j), Loci->getRelativeLocusNumber(j));
 
-  hp = PossibleHapPairs[j];
-  // set UnorderedProbs[j][*][0] to 0;
-    vector<vector<double> >::iterator gi;
-    for (gi = UnorderedProbs[j].begin(); gi != UnorderedProbs[j].end(); ++gi) {
-      (*gi)[0] = 0;
-    }
- 
-    int ospIdx;
-    orderedGenotypeProbs.assign(4, 0);
-
-    for (anc[0] = 0; anc[0] < numberOfHiddenStates; ++anc[0]) {
-      for (anc[1] = 0; anc[1] < numberOfHiddenStates; ++anc[1]) {
-        ospIdx = anc[0] * numberOfHiddenStates + anc[1];
-        
-        /* Possible optimization: if the probability of the state
-       * (orderedStateProbs[ospIdx]) is close to zero, it might have
-       * a very little effect on the results, so this state could
-       * be skipped. Unfortunately, the threshold of 1e-7 is
-       * still too high.
-       * // if (orderedStateProbs[ospIdx] > 1e-7) {...}
-       */
-       
-      (*Loci)(j)->getConditionalHapPairProbs(orderedGenotypeProbs, hp, anc);
-
-      /* multiply result by conditional probs of anc and accumulate
-       * result in array genotype probs (size 3 x number of loci) */
-      for (int ogpi = 0; ogpi < 4; ++ogpi) {
-        orderedGenotypeProbs[ogpi] *= orderedStateProbs[ospIdx];
-      }
-      
-      // TODO: Rename UnorderedProbs
-   	  //P(no copies of allele2)
-      UnorderedProbs[j][0][0] += orderedGenotypeProbs[0];
-      //P(1 copy of allele2)
-   	  UnorderedProbs[j][1][0] += (orderedGenotypeProbs[1] + orderedGenotypeProbs[2]);
-      //P(2 copies of allele2)
-   	  UnorderedProbs[j][2][0] += orderedGenotypeProbs[3];
-    }
-  }
-}
-
-vector<double> Individual::getStateProbs(const bool isDiploid,const int chromosome,const int locus)const{
-  return Loci->getChromosome(chromosome)->getHiddenStateProbs(isDiploid, locus);
-}
+// 	    (*Lociptr)(j)->getConditionalHapPairProbs(OrderedProbs, ind->getPossibleHapPairs(j), anc);
+// #else
+//             //TODO: write alternative for parallel version
+// #endif
+// 	    UnorderedProbs[0] = vector<double>(1, OrderedProbs[0]);//P(no copies of allele2)
+// 	    UnorderedProbs[1] = vector<double>(1, OrderedProbs[1] + OrderedProbs[2]);//P(1 copy of allele2)
+// 	    UnorderedProbs[2] = vector<double>(1, OrderedProbs[3]);//P(2 copies of allele2)
+// now multiply result by conditional probs of anc and accumulate result in array genotype probs (size 3 x number of loci)
+// also add a public function to get the genotype probs for this individual
 
 /**
    Accumulate counts of arrivals of each state. ConcordanceCounts is a L * 2K  array, where the first K elements
@@ -509,8 +414,3 @@ void Individual::SampleMissingOutcomes(DataMatrix *Outcome, const vector<Regress
     }
   }
 }
-
-// const int Individual::getNumberOfHiddenStates()
-// {
-//   return Populations;
-// }

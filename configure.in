@@ -55,15 +55,6 @@ AC_ARG_ENABLE(parallel, [  --enable-parallel       Build the parallel version],
 
 AM_CONDITIONAL(PARALLEL, test x$parallel = xtrue)
 
-AC_ARG_ENABLE(converter, [  --enable-converter     Build the data converter],
-	      [case "${enableval}" in
-	       yes) converter=true ;;
-	       no) converter=false ;;
-	       *) AC_MSG_ERROR(bad value ${enableval} for --enable-converter) ;;
-	       esac], [converter=false])
-
-AM_CONDITIONAL(CONVERTER, test x$converter = xtrue)
-
 enable_static_binary="no"
 
 if test x$parallel = xtrue; then
@@ -110,9 +101,9 @@ AC_DEFINE_UNQUOTED([TARGET],["${target}"],[Built on])
 dnl AC_CONFIG_SUBDIRS(src/bayeslib)
 AC_OUTPUT([Makefile
 	   src/Makefile
-	   src/common/Makefile
 	   src/admixmap/Makefile
 	   src/hapmixmap/Makefile
+	   src/common/Makefile
 	   src/bayeslib/Makefile
 	   src/bayeslib/regression/Makefile
 	   src/bayeslib/samplers/Makefile
@@ -139,7 +130,6 @@ Configuration:
   Install path:          ${prefix}
   Parallel version:      ${enable_parallel}
   Static binary:         ${enable_static_binary}
-  User data converter:   ${converter}
 
   See config.h for further configuration information.
 ------------------------------------------------------------------------"

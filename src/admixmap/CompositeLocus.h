@@ -14,15 +14,9 @@
 #ifndef COMPOSITE_LOCUS_H
 #define COMPOSITE_LOCUS_H 1
 
-#include <string>
-#include <vector>
-
 #include "common.h"
 #include "HapPair.h"
 #include "Haplotype.h"
-
-using std::string;
-using std::vector;
 
 ///   Class to represent a composite locus
 class CompositeLocus

@@ -20,9 +20,7 @@
 #include "GenotypeProbOutputter.h"
 #include "regression/Regression.h"
 
-// #ifdef HAVE_CPPUNIT
-// #include <cppunit/Exception.h>
-// #endif
+using namespace::std;
 
 class AlleleFreqs;
 class Regression;
@@ -38,10 +36,7 @@ public:
   void DeleteGenotypes();
   void HMMIsBad(bool loglikisbad);
   static void SetStaticMembers(Genome* const pLoci, const Options* const options);
-  //static void setGenome(Genome * const);
-  //static void setPopulations(const int);
-  //static const int getNumberOfHiddenStates();
-  
+
   void setOutcome(double*);
   void setCovariates(double*);
   void setGenotypesToMissing();
@@ -74,10 +69,7 @@ public:
   void UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const;
 
   void SampleMissingOutcomes(DataMatrix *Outcome, const std::vector<Regression*>& R);
-  std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int);
-  void calculateUnorderedGenotypeProbs(void);
-  std::vector<double> getStateProbs(const bool, int, int) const;
-  void calculateUnorderedGenotypeProbs(unsigned);
+
   virtual void SampleJumpIndicators(int* ){};
 protected:
   unsigned myNumber;//< number of this individual, counting from 1
@@ -92,7 +84,7 @@ protected:
   unsigned NumGametes; //< 1 if assortative mating or haploid data, 2 if random mating and diploid data
   std::vector< unsigned int > gametes;//< number of gametes on each chromosome
   std::vector<genotype> genotypes;
-  std::vector<hapPair> *PossibleHapPairs;//possible haplotype pairs compatible with genotype
+  std::vector<hapPair> *PossibleHapPairs;//<possible haplotype pairs compatible with genotype
   bool **GenotypesMissing;//< indicators for missing genotypes at comp loci
   bool *missingGenotypes;//< indicators for missing genotypes at simple loci
   std::vector<hapPair> sampledHapPairs;
@@ -103,7 +95,6 @@ protected:
   std::vector<double> _rho;//< sum of intensities
   double* Outcome;
   double* Covariates;
-  std::vector<std::vector<std::vector<double> > > UnorderedProbs;
 
   struct {
     double value; //< loglikelihood at current parameter values, annealed if coolness < 1.  Valid iff 'ready' is true

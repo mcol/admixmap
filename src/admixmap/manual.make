@@ -1,6 +1,4 @@
 ###############################################################################################
-# vim:set ft=make:
-#
 # makefile for compiling ADMIXMAP and HAPMIXMAP
 #
 # The default is to make serial version with gcc compiler and optimised for i686 machines. 

@@ -14,9 +14,10 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H 1
 
+#include "common.h"
+#include "utils/LogWriter.h"
 #include <string>
 #include <map>
-#include "common.h"
 #include "utils/LogWriter.h"
 
 using namespace::std;
