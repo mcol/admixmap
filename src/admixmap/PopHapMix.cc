@@ -468,9 +468,10 @@ void PopHapMix::InitializeOutputFile(const vector<string>& BlockStateLabels, con
     // Header line of paramfile
     for(unsigned k = 0; k < K; ++k)
       outputstream << BlockStateLabels[k] << "\t";
-    outputstream << "Lambda.Mean\tLambda.Variance\t"
-		 << "h\tbeta\t"
-		 << "Exp.Arrivals.per"<< distanceUnit << endl;
+    outputstream << "ExpectedArrivals.meanOverIntervals\tExpectedArrivals.varianceOverIntervals\t"
+		 << "ArrivalsPerMegabase.shapeParam\tArrivalsPerMegabase.rateParam\t"
+		 << "ArrivalsPer" << distanceUnit << ".expectation\t" 
+		 << "MixtureProps.precision" << endl;
   }
 }
 
@@ -629,7 +630,7 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
     MixturePropsDispersionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
   }
 
-  cout << endl;
+  // cout << endl;
 #ifdef PARALLEL
   //TODO: broadcast mixture props
 #endif
