@@ -228,8 +228,8 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _optio
         if ( strlen( options.getErgodicAverageFilename() ) ){
           int samples = iteration - burnin;
 
-          L->OutputErgodicAvg(samples,&avgstream);//pop admixture params, pop (mean) sumintensities
-          A.OutputErgodicAvg(samples, &avgstream);//dispersion parameter in dispersion model, freq Dirichlet param prior rate in hapmixmodel
+          L->OutputErgodicAvg(samples, avgstream);//average arrival rates
+          A.OutputErgodicAvg(samples, &avgstream);//freq Dirichlet param prior rate
 
           for(unsigned r = 0; r < R.size(); ++r)//regression params
             R[r]->OutputErgodicAvg(samples,&avgstream);
@@ -252,7 +252,7 @@ void HapMixModel::OutputParameters(int iteration, const Options *options, LogWri
   // fix so that params can be output to console  
   Log.setDisplayMode(Quiet);
 
-    //output sample mean and variance of arrival rates and the prior parameters
+  //output sample mean and variance of arrival rates and the prior parameters
   if(Comms::isMaster() && options->getPopulations() > 1) L->OutputParams(iteration, Log);
 
   if( Comms::isFreqSampler() &&  !options->getFixedAlleleFreqs() )

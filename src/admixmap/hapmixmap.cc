@@ -125,7 +125,7 @@ int main( int argc , char** argv ){
 #else
   cout << "Finished" << endl;
 #endif
-  EventLogger::Finalise("admixmap");
+  EventLogger::Finalise("hapmixmap");
   //print run times to screen and log
   if(isMaster){
     if(options.getDisplayLevel()==0)Log.setDisplayMode(Off);

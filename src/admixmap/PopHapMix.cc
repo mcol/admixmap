@@ -468,28 +468,37 @@ void PopHapMix::InitializeOutputFile(const vector<string>& BlockStateLabels, con
     // Header line of paramfile
     for(unsigned k = 0; k < K; ++k)
       outputstream << BlockStateLabels[k] << "\t";
-    outputstream << "ExpectedArrivals.meanOverIntervals\tExpectedArrivals.varianceOverIntervals\t"
-		 << "ArrivalsPerMegabase.shapeParam\tArrivalsPerMegabase.rateParam\t"
-		 << "ArrivalsPer" << distanceUnit << ".expectation\t" 
-		 << "MixtureProps.precision" << endl;
+
+    outputstream << "Dispersion\t"
+		 << "ExpectedArrivals.Mean\tExpectedArrivals.Variance\t"
+		 << "shapeParam\trateParam\t"
+		 << "Exp.Arrivals.per"<< distanceUnit << endl;
   }
 }
 
-void PopHapMix::OutputErgodicAvg( int samples, std::ofstream *avgstream)
+//output sample mean of ergodic average of lambda
+void PopHapMix::OutputErgodicAvg( int samples, std::ofstream& avgstream)
 {
   double sum = 0.0;
   for(vector<double>::const_iterator i = SumLogLambda.begin(); i < SumLogLambda.end(); ++i)sum += exp(*i / samples);
-  avgstream->width(9);
-  *avgstream << setprecision(6) << sum / (double)lambda.size() << "\t";
+  avgstream.width(9);
+  avgstream << setprecision(6) << sum / (double)lambda.size() << "\t";
 
 }
 
 ///output to given output stream
-//TODO: make out an ostream&
-void PopHapMix::OutputParams(ostream* out){
-  //lambda
-  out->width(9);
+void PopHapMix::OutputParams(ostream& out){
+  out.width(9);
+
+  //mixture props dispersion
   double sum = 0.0;
+  for(unsigned k = 0; k < K; ++k)
+    sum += MixturePropsPrior[k];
+
+  out << sum << "\t";
+
+  //sample mean and variance of lambdas
+  sum = 0.0;
   double var = 0.0;
   
   //unsigned j = 1;
@@ -500,18 +509,13 @@ void PopHapMix::OutputParams(ostream* out){
   }
   double size = (double)lambda.size();
   var = var - (sum*sum) / size;
-  //output sample mean and variance of lambdas
-  (*out) << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
-    //output expected values per unit distance
+
+  out << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
+    //lambda prior parameters
 	 << LambdaArgs.h << "\t" << LambdaArgs.beta << "\t"
+    //expected number of arrivals per unit distance
 	 << LambdaArgs.h / LambdaArgs.beta << "\t" ;
 
-  //mixture props dispersion
-  sum = 0.0;
-  for(unsigned k = 0; k < K; ++k)
-    sum += MixturePropsPrior[k];
-
-  (*out) << sum << "\t";
 }
 
 void PopHapMix::OutputMixtureProps(ostream& out)const{
@@ -529,12 +533,12 @@ void PopHapMix::OutputParams(int iteration, LogWriter &){
   //output to screen
   if( options->getDisplayLevel() > 2 )
     {
-      OutputParams(&cout);
+      OutputParams(cout);
     }
   //Output to paramfile after BurnIn
   if( iteration > options->getBurnIn() ){
     OutputMixtureProps(outputstream);
-    OutputParams(&outputstream);
+    OutputParams(outputstream);
     outputstream << endl;
   }
 }
@@ -616,21 +620,9 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
     }
 
     //sample prior dispersion
-//     for(size_t k = 0; k < K; ++k)
-//       cout << MixtureProps[k] << " ";
-//     cout << endl;
-//     for(size_t k = 0; k < K; ++k)
-//       cout << log(MixtureProps[k]) << " ";
-//     cout << endl;
-//     for(size_t k = 0; k < K; ++k)
-//       cout << SumLogTheta[k] << "  ";
-//     cout << endl;
-
-//     cout << endl << endl;
     MixturePropsDispersionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
   }
 
-  // cout << endl;
 #ifdef PARALLEL
   //TODO: broadcast mixture props
 #endif

@@ -77,11 +77,11 @@ public:
   void SetHMMStateArrivalProbs();
 
   void OutputParams(int iteration, LogWriter &Log);
-  void OutputParams(ostream* out); 
+  void OutputParams(ostream& out); 
   ///output average mixture props to an ostream
   void OutputMixtureProps(ostream& out)const;
   
-  void OutputErgodicAvg( int, std::ofstream *avgstream);
+  void OutputErgodicAvg( int, std::ofstream& avgstream);
   
   const double* getGlobalTheta()const;
   
