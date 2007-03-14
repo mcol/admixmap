@@ -36,47 +36,44 @@ PopHapMix::PopHapMix( HapMixOptions* op, Genome* loci)
   dirparams = 0;
 }
 
-void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log, const vector<string>& BlockStateLabels){
+void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
   Log.setDisplayMode(On);
   K = options->getNumberOfBlockStates();
 
-  if(K > 1){ 
-    if ( Comms::isMaster()){
-      
-      InitialiseMixtureProportions(Log);
-      
-      InitialiseArrivalRates(Log);
-      
-      // ** Open paramfile **
-      Log.setDisplayMode(Quiet);
-      if( strlen( options->getParameterFilename() ) ){
-        outputstream.open( options->getParameterFilename(), ios::out );
-        if( !outputstream )
-          {
-            Log.setDisplayMode(On);
+  if ( Comms::isMaster()){
+    
+    InitialiseMixtureProportions(Log);
+    
+    InitialiseArrivalRates(Log);
+    
+    // ** Open paramfile **
+    Log.setDisplayMode(Quiet);
+    if( strlen( options->getParameterFilename() ) ){
+      outputstream.open( options->getParameterFilename(), ios::out );
+      if( !outputstream )
+	{
+	  Log.setDisplayMode(On);
             Log << "ERROR: Couldn't open paramfile\n";
             exit( 1 );
-          }
-        else{
-          Log << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
-          InitializeOutputFile(BlockStateLabels, distanceUnit);
-        }
-      }
+	}
       else{
-        Log << "No paramfile given\n";
+	Log << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
+	InitializeOutputFile(distanceUnit);
       }
     }
-    
-    //broadcast lambda to all processes, in Comm (excludes freqsampler)
-    //no need to broadcast MixtureProps if it is kept fixed
+    else{
+      Log << "No paramfile given\n";
+    }
+  }
+  
+  //broadcast lambda to all processes, in Comm (excludes freqsampler)
+  //no need to broadcast MixtureProps if it is kept fixed
 #ifdef PARALLEL
-    EventLogger::LogEvent(17, 0, "Bcastlambda");
-    Comms::BroadcastVector(lambda);
-    EventLogger::LogEvent(18, 0, "Bcasted");
-    //TODO: broadcast Mixture Params
+  EventLogger::LogEvent(17, 0, "Bcastlambda");
+  Comms::BroadcastVector(lambda);
+  EventLogger::LogEvent(18, 0, "Bcasted");
+  //TODO: broadcast Mixture Params
 #endif    
-
-  }//end if K > 1
 }
 
 ///initialise global admixture proportions
@@ -84,47 +81,61 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
   const unsigned L = Loci->GetNumberOfCompositeLoci();
 
   MixtureProps = new double[K*L];
-  MixturePropsPrior = new double[K];
-  dirparams = new double[K];
-  
-  /*
-    set prior on mixture props.
-    Mixture proportions have a Dirichlet prior with parameters MixturePropsDispersion / K 
-    ( so that the proportions are equal). The prior dispersion (MixturePropsPriorDispersion) has a 
-    Gamma prior, which defaults to Gamma(1,1).
-  */
-  
-  //defaults 
-  double MPDShape = (double)K;// dispersion prior shape
-  double MPDRate = 1.0;//dispersion prior rate
-  double DirParamInit = 1.0;//initial value of Dirichlet Params
-  //check for user-specified prior
-  const vector<double>& userprior = options->getMixturePropsPrior();
-  if(userprior.size()){//user has specified a prior
-    MPDShape = userprior[0];
-    MPDRate = userprior[1];
-    DirParamInit = (MPDShape / MPDRate) / (double)K;
-  }
-  
-  //set initial values of Dirichlet prior params
-  fill(MixturePropsPrior, MixturePropsPrior + K, DirParamInit);
-  
-  //write prior parameters to screen and log
-  Log << Quiet << "Dirichlet prior on mixture proportions with parameters: " << MixturePropsPrior[0];
-  for(unsigned k = 1; k < K; ++k) Log << ", " << MixturePropsPrior[k];
-  Log << "\n";
-  Log << "Gamma(" << MPDShape << ", " << MPDRate << ") prior on mixture proportion prior dispersion\n" ;
-  
   //set initial values of Mixture Props as uniform
   //TODO: initialise to prior means
   fill(MixtureProps, MixtureProps + K*L, 1.0/(double)K);
-  
-  //setup sampler for mixure props dispersion
-  MixturePropsDispersionSampler.SetSize(L, K, 0.01/*<-initial stepsize*/, 20/*<-num leapfrog steps*/);
-  MixturePropsDispersionSampler.SetPriorEta(MPDShape, MPDRate);
-  
-  //MixturePropsproposal = new double[K];
-  //ThetaTuner.SetParameters(1.0 /*<-initial stepsize on softmax scale*/, 0.00, 10.0, 0.44);
+
+  if(!options->getFixedMixtureProps()){//we are sampling mixture props
+    /*
+    Mixture proportions have a Dirichlet prior with parameters MixturePropsDispersion / K 
+    ( so that the proportions are equal).
+    */
+
+    //allocate arrays required for sampling of mixture props
+    MixturePropsPrior = new double[K];
+    dirparams = new double[K];
+
+    //set initial value of dispersion
+    double InitialDispersion = options->getMixturePropsDispersion();
+    if(InitialDispersion <= 0.0)InitialDispersion = (double)K;
+
+    double MPDShape = (double)K;// dispersion prior shape
+    double MPDRate = 1.0;//dispersion prior rate
+    if(!options->getFixedMixturePropsDispersion()){//we are sampling dispersion
+      /*
+	The prior dispersion (MixturePropsPriorDispersion) has a 
+	Gamma prior, which defaults to Gamma(1,1).
+      */
+
+      //check for user-specified prior
+      const vector<double>& userprior = options->getMixturePropsDispersionPrior();
+      if(userprior.size()){//user has specified a prior
+	MPDShape = userprior[0];
+	MPDRate = userprior[1];
+	InitialDispersion = MPDShape / MPDRate;
+      }
+
+      //setup sampler for mixure props dispersion
+      MixturePropsDispersionSampler.SetSize(L, K, 0.01/*<-initial stepsize*/, 20/*<-num leapfrog steps*/);
+      MixturePropsDispersionSampler.SetPriorEta(MPDShape, MPDRate);
+    }
+
+    //set initial values of Dirichlet prior params
+    double DirParamInit = InitialDispersion / (double)K;
+    fill(MixturePropsPrior, MixturePropsPrior + K, DirParamInit);
+
+    //write prior parameters to screen and log
+    Log << Quiet << "Dirichlet prior on mixture proportions" ;
+    if(!options->getFixedMixturePropsDispersion()){
+      Log << "\nGamma(" << MPDShape << ", " << MPDRate << ") prior on mixture proportion prior dispersion\n" ;
+    }
+    else
+      Log << " with dispersion: " << InitialDispersion << "\n";
+    
+
+  }//end if not fixed proportions
+  else
+    Log << "Model with fixed mixture proportions\n";
   
 }
 
@@ -132,7 +143,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
  const unsigned L = Loci->GetNumberOfCompositeLoci();
   //if(Comms::isMaster())SumLogLambda.push_back(0.0);
   //set priors
-  const vector<double>& priorparams = options->getHapMixLambdaPrior();
+  const vector<double>& priorparams = options->getLambdaPrior();
     
   LambdaArgs.beta_shape = priorparams[2];
   LambdaArgs.beta_rate = priorparams[3];
@@ -463,15 +474,12 @@ double PopHapMix::hd2logf(double h, const void* const vargs){
   return  -sum - (args->shape-1.0)/(h*h);
 }
 
-void PopHapMix::InitializeOutputFile(const vector<string>& BlockStateLabels, const string& distanceUnit ) {
+void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
   if(Comms::isMaster()){
     // Header line of paramfile
-    for(unsigned k = 0; k < K; ++k)
-      outputstream << BlockStateLabels[k] << "\t";
-
-    outputstream << "Dispersion\t"
-		 << "ExpectedArrivals.Mean\tExpectedArrivals.Variance\t"
-		 << "shapeParam\trateParam\t"
+    if(!options->getFixedMixturePropsDispersion())
+      outputstream << "Dispersion\t";
+    outputstream << "shapeParam\trateParam\t"
 		 << "Exp.Arrivals.per"<< distanceUnit << endl;
   }
 }
@@ -489,35 +497,24 @@ void PopHapMix::OutputErgodicAvg( int samples, std::ofstream& avgstream)
 ///output to given output stream
 void PopHapMix::OutputParams(ostream& out){
   out.width(9);
+  out << setiosflags(ios::fixed) << setprecision(6);
 
   //mixture props dispersion
-  double sum = 0.0;
-  for(unsigned k = 0; k < K; ++k)
-    sum += MixturePropsPrior[k];
-
-  out << sum << "\t";
-
-  //sample mean and variance of lambdas
-  sum = 0.0;
-  double var = 0.0;
-  
-  //unsigned j = 1;
-  for(vector<double>::const_iterator lambda_iter = lambda.begin(); lambda_iter != lambda.end(); ++lambda_iter){
-    double r = *lambda_iter;// / Loci->GetDistance(j++);
-    sum += r;
-    var += r * r;
+  if(!options->getFixedMixturePropsDispersion()){
+    double sum = 0.0;
+    for(unsigned k = 0; k < K; ++k)
+      sum += MixturePropsPrior[k];
+    out << sum << "\t" ;
   }
-  double size = (double)lambda.size();
-  var = var - (sum*sum) / size;
-
-  out << setiosflags(ios::fixed) << setprecision(6) << sum / size << "\t" << var /size << "\t"
+  
+  out
     //lambda prior parameters
-	 << LambdaArgs.h << "\t" << LambdaArgs.beta << "\t"
+    << LambdaArgs.h << "\t" << LambdaArgs.beta << "\t"
     //expected number of arrivals per unit distance
-	 << LambdaArgs.h / LambdaArgs.beta << "\t" ;
-
+    << LambdaArgs.h / LambdaArgs.beta << "\t" ;
 }
 
+//output mixture proportions averaged over loci
 void PopHapMix::OutputMixtureProps(ostream& out)const{
   vector<double> sum(K, 0.0);
   const unsigned L = Loci->GetNumberOfCompositeLoci();
@@ -537,7 +534,7 @@ void PopHapMix::OutputParams(int iteration, LogWriter &){
     }
   //Output to paramfile after BurnIn
   if( iteration > options->getBurnIn() ){
-    OutputMixtureProps(outputstream);
+    // OutputMixtureProps(outputstream);
     OutputParams(outputstream);
     outputstream << endl;
   }
@@ -566,9 +563,11 @@ void PopHapMix::printAcceptanceRates(LogWriter &Log) {
 //   Log << "Expected acceptance rate in h sampler: " << hTuner.getExpectedAcceptanceRate()
 //       << "\nwith final step size of " << hTuner.getStepSize() << "\n";
 
-  Log << "Acceptance rate in sampler for mixture proportion dispersion: "
-      << MixturePropsDispersionSampler.getExpectedAcceptanceRate()
-      << "\nwith final step size of " << MixturePropsDispersionSampler.getStepSize() << "\n";
+  if(!options->getFixedMixturePropsDispersion()){
+    Log << "Acceptance rate in sampler for mixture proportion dispersion: "
+	<< MixturePropsDispersionSampler.getExpectedAcceptanceRate()
+	<< "\nwith final step size of " << MixturePropsDispersionSampler.getStepSize() << "\n";
+  }
   
 }
 ///Outputs h, beta and current values of lambda to file
@@ -601,7 +600,7 @@ void PopHapMix::OutputLambdaPosteriorMeans(const char* filename, int samples)con
 
 ///sample mixture proportions with conjugate update
 void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
-  if(Comms::isMaster()){
+  if(Comms::isMaster() && !options->getFixedMixtureProps()){
     const unsigned L = Loci->GetNumberOfCompositeLoci();
     //TODO: ?? make SumLogTheta a class variable
     double SumLogTheta[K];
@@ -619,8 +618,10 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
       }
     }
 
-    //sample prior dispersion
-    MixturePropsDispersionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
+    if(!options->getFixedMixturePropsDispersion()){
+      //sample prior dispersion
+      MixturePropsDispersionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
+    }
   }
 
 #ifdef PARALLEL
@@ -628,18 +629,24 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
 #endif
 }
 
-///set global state arrival probs in hapmixmodel
+/**
+   set global state arrival probs in hapmixmodel.
+   call once with isInitial=true to set everything then with isInitial=false every time afterwards.
+   NB: assumes always diploid
+*/
 //TODO: can skip this if xonly analysis with no females
-//NB: assumes always diploid in hapmixmodel
-void PopHapMix::SetHMMStateArrivalProbs(){
+void PopHapMix::SetHMMStateArrivalProbs(bool isInitial){
   //set locus correlation (workers only)
   if(Comms::isWorker()){
     Loci->SetLocusCorrelation(lambda);
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ){
       //TODO: can probably replace isRandomMating with false
       Chromosome* C = Loci->getChromosome(j);
-      MixturePropsWrapper MPW(MixtureProps + (C->GetLocus(0) * K), K); 
-      C->SetHMMTheta(MPW, options->isRandomMatingModel(), true);
+
+      if(isInitial || !options->getFixedMixtureProps()){
+	MixturePropsWrapper MPW(MixtureProps + (C->GetLocus(0) * K), K); 
+	C->SetHMMTheta(MPW, options->isRandomMatingModel(), true);
+      }
       C->SetStateArrivalProbs(options->isRandomMatingModel(), true);
     }
   }

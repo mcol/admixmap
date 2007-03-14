@@ -19,7 +19,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   pA = &A;//set pointer to AlleleFreqs object
 
   L = new PopHapMix(&options, &Loci);
-  if(isMaster || isWorker)L->Initialise(data.getUnitOfDistanceAsString(), Log, data.GetPopLabels());
+  if(isMaster || isWorker)L->Initialise(data.getUnitOfDistanceAsString(), Log);
 
   IC = new HapMixIndividualCollection(&options, &data, &Loci, &A, L->getGlobalTheta());//NB call after A Initialise;
   if(isMaster || isWorker) IC->LoadData(&options, &data, false);    //and before R Initialise
@@ -63,7 +63,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   if(isFreqSampler)A.PrintPrior(Log);
   
   if( options.getNumberOfBlockStates()>1 && isWorker) {
-    L->SetHMMStateArrivalProbs();
+    L->SetHMMStateArrivalProbs(true);
   }
   
   //initialise regression objects
@@ -169,12 +169,12 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 						       && options->getPopulations() > 1) );
 
     //sample mixture proportions with conjugate update
-    L->SampleMixtureProportions(IC->getSumArrivalCounts());
+    if(!options->getFixedMixtureProps())
+      L->SampleMixtureProportions(IC->getSumArrivalCounts());
 
-    //TODO: number of block states condition may be redundant - check if HapMixOptions causes exit with error with K=1
-    //Set global StateArrivalProbs in HMM objects
-    if( options->getNumberOfBlockStates()>1 && isWorker) {
-      L->SetHMMStateArrivalProbs();
+    //Set global StateArrivalProbs in HMM objects. Do not force setting of mixture props (if fixed)
+    if( isWorker) {
+      L->SetHMMStateArrivalProbs(false);
     }
 
   }

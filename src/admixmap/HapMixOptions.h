@@ -40,8 +40,8 @@ public:
   const char* getFinalLambdaFilename()const;
   const char* getFinalFreqPriorFilename()const;
 
-  const std::vector<double>& getMixturePropsPrior()const;
-  const std::vector<double> &getHapMixLambdaPrior()const;
+  const std::vector<double>& getMixturePropsDispersionPrior()const;
+  const std::vector<double> &getLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
   const char* getInitialHapMixLambdaFilename()const;
   const char* getInitialAlleleFreqFilename()const;
@@ -55,6 +55,9 @@ public:
   void setPopulations(int num);
   bool getFixedAlleleFreqs() const;
   bool isFreqDispersionHierModel()const;
+  bool getFixedMixtureProps()const;
+  bool getFixedMixturePropsDispersion()const;
+  float getMixturePropsDispersion()const;
   const vector<float>& getLambdaSamplerParams()const;
   bool getTestOneIndivIndicator() const{return false;};//not supported in hapmixmodel
   bool isRandomMatingModel() const{return false;};//required to pass as Options object to some functions
@@ -77,10 +80,13 @@ private:
   int NumBlockStates;
   static const bool HapMixModelIndicator = true; //model haplotypes with mixture model
   bool FreqDispersionHierModel;
+  bool FixedMixtureProps;
+  bool FixedMixturePropsDispersion;
+  float MixturePropsDispersion;
 
   std::vector<double> allelefreqprior;
-  std::vector<double> hapmixlambdaprior;///< prior means of rho prior params in hapmixmodel
-  std::vector<double> MixturePropsPrior;// parameters of Dirichlet prior on mixture props
+  std::vector<double> lambdaprior;///< parameters of gamma priors on arrival rate distribution
+  std::vector<double> MixturePropsDispersionPrior;// parameters of Gamma prior on mixture props dispersion
 
   string EtaOutputFilename;
   string AlleleFreqPriorOutputFilename;

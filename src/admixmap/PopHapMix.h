@@ -67,14 +67,14 @@ public:
   
   ~PopHapMix();
   
-  void Initialise(const string& distanceUnit, LogWriter& Log, const vector<string>& BlockStateLabels);  
+  void Initialise(const string& distanceUnit, LogWriter& Log);  
   
   void SampleHapMixLambda(const int* SumAncestry, bool sumlogrho) ;
 
   //void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   void SampleMixtureProportions(const int* SumArrivalCounts);
   
-  void SetHMMStateArrivalProbs();
+  void SetHMMStateArrivalProbs(bool );
 
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream& out); 
@@ -121,7 +121,7 @@ private:
 
   void InitialiseMixtureProportions(LogWriter& Log);
   void InitialiseArrivalRates(LogWriter& Log);
-  void InitializeOutputFile(const vector<string>& BlockStateLabels, const string& distanceUnit);
+  void InitializeOutputFile(const string& distanceUnit);
   void ConjugateUpdateGlobalTheta(const vector<int> sumLocusAncestry);
   void UpdateGlobalThetaWithRandomWalk(IndividualCollection* IC);
   void Accept_Reject_Theta( double logpratio, int Populations);
