@@ -2,6 +2,43 @@
 #######################################################################
 #library("combinat")
 
+############################################
+## Describe Model here                     #
+############################################
+
+##where to write data files
+datadir <- "hapmixsimdata"
+
+N <- 60 ##number of haploid individuals
+K <- 8 ##number of block states
+NumCases <- 100
+NumControls<-200
+
+## chromosome lengths in Mb
+
+chr.L <- 0.5        ##single chromosome
+#chr.L <- c(10, 10) ## trial runs with 2 chr
+
+numChr <- length(chr.L)##number of chromosomes
+
+spacing <- 0.002 # spacing in Mb
+
+h <- 400         ##average number arrivals per unit distance
+lambda.rate <- 10##rgamma(1, shape=rhobeta0, rate=rhobeta1)
+
+extreme.allele.freqs <- F##set to True for allelefreqs of 0 and 1
+
+freq.dispersion.prior.shape <- 1
+freq.dispersion.prior.rate <- 10
+
+mixture.proportions.Dirichlet.Prior.params <- rep(1, K)
+fixed.mixture.proportions <- F##set to True for mixture proportions fixed at 1/K
+                              ##set to F to sample mixture proportions for each locus  
+########################################################################
+####################################
+## functions required for script   #
+####################################
+
 rDiscrete <- function(p) {
   s <- 0
   z <- 0.0
@@ -78,24 +115,9 @@ rdirichlet <- function(params) {
   }
   return(p)
 }
-##########################################################################
-## Start of script
-
-##where to write data files
-datadir <- "hapmixsimdata"
-
-## chromosome lengths in cM
-#chr.L <-
-##c(292,272,233,212,197,201,184,166,166,181,156,169,117,128,110,130,128,123,109,96,59,58)
-#chr.L <- c(10, 10) ## trial runs with 2 chr
-chr.L <- 0.5
-numChr <- length(chr.L)
-
-N <- 60 ##number of haploid individuals
-K <- 8 ##number of block states
-DiploidData = F
-
-spacing <- 0.002 # spacing in Mb
+##############################
+## Start of script          ##
+##############################
 
 ## assign map distances
 x <- numeric(0)
@@ -108,16 +130,7 @@ for(chromosome in 1:numChr) {
 distances <- distanceFromLast(chr, x)
 L <- length(x) # number of loci
 
-##use this to read distances from file
-#L<-5000
-#K<-4
-#N<-60
-#distances<-read.table("/ichec/work/ndlif006b/genepi/hapmap/Eur/chr22data/loci5000.txt", header=T, comment.char="", na.strings="#")[,3]
-
-
 ##generate numbers of arrivals and locus correlations
-h <- 400 ##average number arrivals per Mb
-lambda.rate <- 10##rgamma(1, shape=rhobeta0, rate=rhobeta1)
 f <- numeric(L)
 for(locus in 1:L) {
   if(is.na(distances[locus])) {
@@ -128,38 +141,38 @@ for(locus in 1:L) {
   }
 }
 
-##set block mixture proportions
-#mu <- rep(1/K, K)
-mu <- matrix(1/K, nrow=L, ncol=K)
-mu.Prior <- rep(1, K)
+##set default block mixture proportions
+mixture.proportions <- matrix(1/K, nrow=L, ncol=K)
 
-## generate allele freqs
+##create matrix of allele freqs
 alleleFreqs <- array(data=NA, dim=c(2, K, L))
-##use this to read freqs from file
-#freqs.alpha<-read.table("/ichec/work/ndlif006b/genepi/hapmap/Eur/Results1States/AlleleFreqPosteriorMeans.txt",
-#header=T)[,2]
-#freqs.alpha[freqs.alpha==0]<-0.001
-#freqs.alpha[freqs.alpha==1]<-0.999
-
-alpha.shape <- 1
-alpha.rate <- 10
 
 for(locus in 1:L) {
+## generate allele freqs
+  if(extreme.allele.freqs){
+     freq.allele1 <- c(0,1)
+  }else{
+   freqs.dispersion <- rgamma(1, shape=freq.dispersion.prior.shape, rate=freq.dispersion.prior.rate)
+   freq.proportion.allele1 <- runif(1)
+   freq.proportion.allele2 <- 1-freq.proportion.allele1
+   freqs.beta.parameter1 <- freqs.dispersion * freq.proportion.allele1
+   freqs.beta.parameter2 <- freqs.dispersion * freq.proportion.allele2
+
+    ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
+
+     freq.allele1 <- rbeta(K, freqs.beta.parameter.1, freqs.beta.parameter2) # freqs allele 1
+     freq.allele1 <- c(0,1)
+    ##  }
+  }
+  alleleFreqs[1, , locus] <- freq.allele1     # freqs allele 1
+  alleleFreqs[2, , locus] <- 1 - freq.allele1 # freqs allele 2
 
   ##simulate mixture proportions
-  mu[locus,] <- rdirichlet(mu.Prior)
+  if(!fixed.mixture.proportions)
+    mixture.proportions[locus,] <- rdirichlet(mixture.proportions.Dirichlet.Prior.params)
 
-  freqs.alpha <- rgamma(1, shape=alpha.shape, rate=alpha.rate)/K ##Gamma with mean 0.1
-##p <- rep(0, K)
-##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
-   #p <- rbeta(K, freqs.alpha[locus*2-1], freqs.alpha[locus*2]) # freqs  allele 1
-   p <- rbeta(K, freqs.alpha, freqs.alpha) # freqs allele 1
-   # p <- c(0,1)
-##  }
-alleleFreqs[1, , locus] <- p     # freqs allele 1
-alleleFreqs[2, , locus] <- 1 - p # freqs allele 2
-##  }
-}
+}##end of locus loop
+
 allele1.counts <- rep(0, L)
 genotypes.diploid <- matrix(data="0,0", nrow=N, ncol=L)
 genotypes.haploid <- matrix(data="0", nrow=2*N, ncol=L)
@@ -169,8 +182,8 @@ for(individual in 1:N) {
 ## genotypes.diploid[individual, ] <- g.list$genotypes
 ## allele1.counts <- allele1.counts + g.list$counts
 
-  paternalGamete <- simulateHaploidAlleles(mu, f, L, alleleFreqs)
-  maternalGamete <- simulateHaploidAlleles(mu, f, L, alleleFreqs)
+  paternalGamete <- simulateHaploidAlleles(mixture.proportions, f, L, alleleFreqs)
+  maternalGamete <- simulateHaploidAlleles(mixture.proportions, f, L, alleleFreqs)
   genotypes.haploid[2*individual-1, ] <- paternalGamete
   genotypes.haploid[2*individual, ] <- maternalGamete
   genotypes.diploid[individual,] <- paste(paternalGamete, ",", maternalGamete, sep="")
@@ -228,10 +241,10 @@ dimnames(mixture.props)[[1]][L+1] <- "average"
 write.table(round(mixture.props, 4), file=paste(datadir, "TrueMixtureProps.txt", sep="/"), row.names=T, col.names=T)
 
 
-
 ##generate a case-control genotypes file  
 ##done exactly as for diploid data but with fewer individuals and outputting only some of the loci
-NN <- 200
+NN <- NumCases + NumControls
+
 CCLoci <- seq(from=2, to=L, by=2)#even-numbered loci
 genotypes.cc <- matrix(data="0,0", nrow=NN, ncol=L)
 for(individual in 1:NN) {
@@ -246,11 +259,14 @@ for(individual in 1:NN) {
 
 }
 id = as.character(seq(1:NN))
+
+##write even-numbered genotypes
 genotypes <- data.frame(id, genotypes.cc[,seq(from=2, to=L, by=2)])
 ##write even-numbered genotypes to file
 dimnames(genotypes)[[2]] <- c("ID", paste("X", CCLoci, sep=""))
 write.table(genotypes, file=paste(datadir,"genotypes_casectrl.txt", sep="/"), sep="\t", row.names=F, col.names=T)
 
 ##write an outcome variable file
-outcome <- data.frame(Outcome = sample(size=NN, x=c(0,1), replace=T))
+##outcome <- data.frame(Outcome = sample(size=NN, x=c(0,1), replace=T))
+outcome <- data.frame(Outcome = c(rep(0, NumControls), rep(1, NumCases)))
 write.table(outcome, file=paste(datadir,"outcome.txt", sep="/"), row.names=F, col.names=T)
