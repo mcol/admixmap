@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS	= gnu
 LIBS			= -lgsl -lgslcblas $(PARALLEL_LIBS)
 # LDADD			= libgenepi.la
-TESTS			= check-admixmap-help check-hapmixmap-help
+# TESTS			= check-admixmap-help check-hapmixmap-help
 
 SUBDIRS			= 
 
