@@ -80,7 +80,7 @@ private:
 		       const double* const oldProbs, double *newProbs);
   
   // Storing results so vectors are not being created every time
-  // the GetHiddenStateProbs() method is called
+  // the GetHiddenStateProbs() function is called
   pvector<double> hiddenStateProbs;
 };
 

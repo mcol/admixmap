@@ -11,6 +11,7 @@
  * 
  */
 #include "HapMixIndividual.h"
+#include <algorithm>
 
 const FreqArray* HapMixIndividual::HaploidGenotypeProbs;
 const FreqArray* HapMixIndividual::DiploidGenotypeProbs;

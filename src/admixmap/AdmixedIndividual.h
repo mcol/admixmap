@@ -74,7 +74,7 @@ public:
   void SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator);
   void AnnealGenotypeProbs(int j, const double coolness);
   
-  // Override methods from Individual, so AdmixedIndividual can
+  // Override functions from Individual, so AdmixedIndividual can
   // be instantiated.
   virtual std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) {
     throw string("AdmixedIndividual::getUnorderedProbs(const unsigned) is not implemented."); }
