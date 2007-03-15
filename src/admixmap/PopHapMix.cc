@@ -383,7 +383,7 @@ double PopHapMix::LambdaEnergy(const double* const x, const void* const vargs){
     double f = myexp(-lambda);
 
     for(unsigned k = 0; k < K; ++k){
-      E -= n[k]  * log(     theta[k]*(1.0 - f) )//discordant
+      E -= n[k]  * log(              (1.0 - f) )//discordant, omitting constant term
 	 + n[k+K]* log( f + theta[k]*(1.0 - f) );//concordant
     }
 
