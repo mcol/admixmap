@@ -349,6 +349,25 @@ unsigned Genome::GetChrNumOfLocus(unsigned locus){
   return LocusTable[locus][0];
 }
 
+/** Get the chromosome number by absolute locus number
+ */
+const int Genome::getChromosomeNumber(int j)
+const
+{
+  return LocusTable[j][0];
+}
+
+/** Get the chromosome-relative locus number by absolute locus number
+ */
+const int Genome::getRelativeLocusNumber(int j)
+const
+{
+  return LocusTable[j][1];
+}
+
+/** Returns a vector of length 2
+ * With chromosome number on 1st position and locus index on 2nd.
+ */
 const vector<int> Genome::GetChrmAndLocus(int j)
 const
 {

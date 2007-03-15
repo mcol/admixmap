@@ -74,6 +74,18 @@ void HapMixIndividualCollection::SampleLocusAncestry(const Options* const option
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** Run HMM forward recursions and sample locus ancestry
     _child[i]->SampleLocusAncestry(options);
+
+    if (iteration > options->getBurnIn()
+      // If it's a control individual
+      && i >= getFirstScoreTestIndividualNumber()
+      // And if the score tests are switched on
+      && strlen(options->getAllelicAssociationScoreFilename()) > 0
+      // FIXME: The next condition shouldn't be necessary.
+      && (not _child[i]->isHaploidIndividual()))
+    {
+      _child[i]->calculateUnorderedGenotypeProbs();
+    }
+
     //accumulate sufficient statistics for update of arrival rates and mixture proportions
     _child[i]->AccumulateConcordanceCounts(ConcordanceCounts);
     _child[i]->SampleJumpIndicators(SumArrivalCounts);

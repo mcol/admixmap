@@ -21,6 +21,7 @@ using namespace std;
 
 bool CompositeLocus::RandomAlleleFreqs;
 int CompositeLocus::Populations;
+int CompositeLocus::PopulationsSquared;
 
 CompositeLocus::CompositeLocus()
 {
@@ -28,6 +29,7 @@ CompositeLocus::CompositeLocus()
   NumberOfStates = 1;
   
   Populations = 0;
+  PopulationsSquared = 0;
   RandomAlleleFreqs = false;
   NumberOfMergedHaplotypes = 0;
   AlleleProbs = 0;
@@ -63,6 +65,7 @@ void CompositeLocus::SetNumberOfStates( int newNumberOfStates )
 
 void CompositeLocus::SetNumberOfPopulations(int pops){
   Populations = pops;
+  PopulationsSquared = pops * pops;
 }
 void CompositeLocus::SetRandomAlleleFreqs(bool b){
   RandomAlleleFreqs = b;
@@ -219,10 +222,11 @@ void CompositeLocus::SetHapPairProbs(const double* alleleProbs, double* hapPairP
   for(int h0 = 0; h0 < NumberOfStates; ++h0){
     for(int h1 = 0; h1 < NumberOfStates; ++h1){
       for(int k0 = 0; k0 < Populations; ++k0){
-	for(int k1 = 0; k1 < Populations; ++k1)
-	  hapPairProbs[h0 * NumberOfStates * Populations * Populations +
+        for(int k1 = 0; k1 < Populations; ++k1) {
+          hapPairProbs[h0 * NumberOfStates * Populations * Populations +
 		       h1 * Populations * Populations +
 		       k0 * Populations + k1] = alleleProbs[k0*NumberOfStates + h0] * alleleProbs[k1*NumberOfStates + h1];
+        }
       }
     }
   }
@@ -279,24 +283,30 @@ void CompositeLocus::AccumulateAlleleProbs(){
  * Returns probabilities of ordered hap pairs conditional on hidden states
  * TODO: write alternative for parallel version using AlleleProbs
  */
-void CompositeLocus::getConditionalHapPairProbs(std::vector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
+void CompositeLocus::getConditionalHapPairProbs(pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const{
   //Note: probs should have length equal to the total number of possible diploid states ie  NumberOfStates^2 .
   // (in haploid case, we get the probs directly from alleleprobs/allelefreqs
-  if((int)Probs.size() != NumberOfStates*NumberOfStates)throw string("Wrongly sized vector passed to CompositeLocus::getConditionalHapPairProbs");
+  
+  // Following check turned off because of speed:
+  // In a 5-testing iterations this function is being called
+  // over 86 million times.
+//  if((int)Probs.size() != NumberOfStates*NumberOfStates)throw string("Wrongly sized vector passed to CompositeLocus::getConditionalHapPairProbs");
   fill(Probs.begin(), Probs.end(), 0.0);//fill with zeros
 
-  happairiter end = PossibleHapPairs.end();
+  const happairiter end = PossibleHapPairs.end();
   happairiter hiter = PossibleHapPairs.begin();//hiter points to elements of PossibleHapPairs
-  double sum = 0.0;
+//  double sum = 0.0;
+  int h0_x_NumberOfStates = hiter->haps[0] * NumberOfStates;
   for( ; hiter != end ; ++hiter) {
     if(hiter->haps[1] >= 0){//diploid (haps (as opposed to happairs) have 2nd element -1
       //retrieve required element from HapPairProbs
-      const double prob = HapPairProbs[ hiter->haps[0] * NumberOfStates * Populations * Populations + 
-                                        hiter->haps[1] * Populations * Populations +
-                                        ancestry[0] * Populations  + ancestry[1]];
+      Probs[h0_x_NumberOfStates + hiter->haps[1]] =
+          HapPairProbs[ h0_x_NumberOfStates * PopulationsSquared + 
+          hiter->haps[1] * PopulationsSquared +
+          ancestry[0] * Populations  + ancestry[1]];
       
-      Probs[hiter->haps[0]*NumberOfStates + hiter->haps[1]] = prob;
-      sum += prob;//accumulate probs in order to renormalize
+      
+//      sum += prob;//accumulate probs in order to renormalize
     }
     else{//haploid
       throw string("CompositeLocus::getConditionalHapPairProbs: ERROR: attempting to compute posterior genotypes probs for haploid individual!");
@@ -305,11 +315,9 @@ void CompositeLocus::getConditionalHapPairProbs(std::vector<double>& Probs, cons
 //       sum += prob;  
      }
   }
-  //renormalize
-  for(vector<double>::iterator p = Probs.begin(); p !=Probs.end(); ++p)
-    *p /= sum;
-
+  Probs.normalize();
 }
+
 /**
  * samples hap pair given hidden states
  * HapPairs - a vector of possible haplotype pairs (coded) compatible with genotype

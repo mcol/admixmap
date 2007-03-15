@@ -40,24 +40,24 @@ my $arg_hash = {
 $arg_hash->{thermo} = 1;
 $arg_hash->{numannealedruns} = 4;
 $arg_hash->{populations} = 1;
-if(doAnalysis($executable,$arg_hash, $resultsdir)){
-    &CompareThenMove("results", "results0");
-}
+#if(doAnalysis($executable,$arg_hash, $resultsdir)){
+#    &CompareThenMove("results", "results0");
+#}
 
 # single population, reference prior on allele freqs, annealing  
 $arg_hash->{thermo} = 0;
 $arg_hash->{indadmixhiermodel} = 1;
 $arg_hash->{stratificationtestfile}  = 'strat_test.txt';
-if(doAnalysis($executable,$arg_hash, $resultsdir)){
-  &CompareThenMove("results", "results1");
-}
+#if(doAnalysis($executable,$arg_hash, $resultsdir)){
+#  &CompareThenMove("results", "results1");
+#}
 
 # two populations, reference prior on allele freqs  
 $arg_hash->{numannealedruns} = 0;
 $arg_hash->{populations}     = 2;
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "results2");
-}
+#if(doAnalysis($executable,$arg_hash)){
+#    &CompareThenMove("results", "results2");
+#}
 
 # fixed allele freqs, individual sumintensities
 # possible problem here - changing numannealedruns should not change output except for annealmon.txt
@@ -89,9 +89,9 @@ delete $arg_hash->{allelefreqscorefile2};
 delete $arg_hash->{affectedsonlyscorefile};
 $arg_hash->{dispersiontestfile}  = 'dispersiontest.txt';
 $arg_hash->{targetindicator} = 1; # skin reflectance
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "results4");
-}
+#if(doAnalysis($executable,$arg_hash)){
+#    &CompareThenMove("results", "results4");
+#}
 
 # dispersion model for allele freqs 
 delete $arg_hash->{priorallelefreqfile};
@@ -102,9 +102,9 @@ $arg_hash->{fstoutputfile} = 'FSToutputfile.txt';
 $arg_hash->{dispparamfile} = 'disppar.txt';
 $arg_hash->{randommatingmodel} = 0;
 $arg_hash->{targetindicator} = 0; # diabetes
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "results5");
-}
+#if(doAnalysis($executable,$arg_hash)){
+#    &CompareThenMove("results", "results5");
+#}
 
 # prior on allele freqs, testoneindiv, no regression, thermo
 # possible problem here - changing numannealedruns should not change output except for annealmon.txt
@@ -126,9 +126,9 @@ $arg_hash->{globalrho} = 0;
 $arg_hash->{testoneindiv} = 1;
 $arg_hash->{numannealedruns} = 100;
 $arg_hash->{thermo} = 1;
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "results6");
-}
+#if(doAnalysis($executable,$arg_hash)){
+#    &CompareThenMove("results", "results6");
+#}
 
 # autosomal and X chromosome data
 my $arg_hash = {
@@ -151,9 +151,9 @@ my $arg_hash = {
     #haplotypeassociationscorefile => 'hapassocscore.txt',
     #stratificationtestfile                   => 'strat_test.txt'
 };
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "cattleresults");
-}
+#if(doAnalysis($executable,$arg_hash)){
+#    &CompareThenMove("results", "cattleresults");
+#}
 
 # Single individual
 my $arg_hash = {
@@ -175,12 +175,12 @@ my $arg_hash = {
     chib                         => 1,
     indadmixturefile             => "indadmixture.txt"
 };
-if(doAnalysis($executable,$arg_hash)){
-    &CompareThenMove("results", "Indresults");
-}
+#if(doAnalysis($executable,$arg_hash)){
+#    &CompareThenMove("results", "Indresults");
+#}
 
 #hapmixmodel
-my $executable = './hapmixmap';
+my $executable = './hapmixmap2';
 my $arg_hash = {
 #data files
 
@@ -207,6 +207,7 @@ thermo => 0,
 hapmixmodel => 1,
 
 hapmixlambdaprior=>"4000, 10, 100, 10",
+#fixedmixtureprops=>1,
 
 allelefreqprior => "1, 1, 1",
 #initiallambdafile => "data/initialambdas.txt",

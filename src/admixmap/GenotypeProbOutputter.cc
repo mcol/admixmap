@@ -1,6 +1,6 @@
 #include "GenotypeProbOutputter.h"
 #include <string>
-#include <math.h>
+#include <cmath>
 
 using namespace::std;
 void GenotypeProbOutputter::Initialise(unsigned Nindivs, unsigned Nloci){

@@ -88,6 +88,7 @@ void Individual::Initialise(int number, const Options* const options, const Inpu
   logLikelihood.value = 0.0;
   logLikelihood.ready = false;
   logLikelihood.HMMisOK = false;
+  
 }
 
 //********** Destructor **********
@@ -288,26 +289,6 @@ void Individual::SampleLocusAncestry(const Options* const options){
     C->SampleLocusAncestry(LocusAncestry[j], (!isHaploid && (!Loci->isXChromosome(j) || SexIsFemale)));
   } //end chromosome loop
 }
-
-//ADDHERE - new function to calculate genotype probs as an average over conditional probs of hidden states
-// call this function from IndividualCollection.cc just after SampleLocusAncestry
-//
-// call new function in Chromosome to get state probs
-// unchanged state probs from HMM
-
-
-// code below should be executed as a loop over all K^2 states of anc
-
-
-// 	    (*Lociptr)(j)->getConditionalHapPairProbs(OrderedProbs, ind->getPossibleHapPairs(j), anc);
-// #else
-//             //TODO: write alternative for parallel version
-// #endif
-// 	    UnorderedProbs[0] = vector<double>(1, OrderedProbs[0]);//P(no copies of allele2)
-// 	    UnorderedProbs[1] = vector<double>(1, OrderedProbs[1] + OrderedProbs[2]);//P(1 copy of allele2)
-// 	    UnorderedProbs[2] = vector<double>(1, OrderedProbs[3]);//P(2 copies of allele2)
-// now multiply result by conditional probs of anc and accumulate result in array genotype probs (size 3 x number of loci)
-// also add a public function to get the genotype probs for this individual
 
 /**
    Accumulate counts of arrivals of each state. ConcordanceCounts is a L * 2K  array, where the first K elements

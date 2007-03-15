@@ -15,8 +15,11 @@
 #define HAPMIXINDIVIDUAL_H 1
 #include "Individual.h"
 #include "GPI.h"
+#include <map>
+#include <algorithm>
+#include "../common/pvector.h"
 
-using namespace::std;
+using namespace std;
 
 ///Class to represent an individual in a hapmixmodel
 class HapMixIndividual : public Individual
@@ -32,6 +35,12 @@ public:
   bool simpleGenotypeIsMissing(unsigned locus)const;
   void SampleJumpIndicators(int* SumArrivalCounts);
 
+  void calculateUnorderedGenotypeProbs(void);
+  const pvector<double>& getStateProbs(const bool, int, int) const;
+  void calculateUnorderedGenotypeProbs(unsigned);
+  std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int);
+  pvector<double> orderedGenotypeProbs; //< Temporary vector
+
 private:
 
   vector<unsigned short> hgenotypes;//< genotypes coded as single integers, assuming all typed loci are SNPs
@@ -39,6 +48,9 @@ private:
   static const FreqArray* HaploidGenotypeProbs;
   static const FreqArray* DiploidGenotypeProbs;
   static GenotypeProbIterator GPI;
+  
+  std::vector<std::vector<std::vector<double> > > UnorderedProbs;
+  static map<int, int> ord2unord; //< Map ordered to unordered probabilities
 
   void UpdateHMMInputs(unsigned int j, const Options* const options, 
                      const double* const , const vector<double> );

@@ -20,7 +20,7 @@
 #include "GenotypeProbOutputter.h"
 #include "regression/Regression.h"
 
-using namespace::std;
+using namespace std;
 
 class AlleleFreqs;
 class Regression;
@@ -69,6 +69,11 @@ public:
   void UpdateAlleleCounts(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool annealthermo)const;
 
   void SampleMissingOutcomes(DataMatrix *Outcome, const std::vector<Regression*>& R);
+  
+//  // The following functions are not implemented in Individual.
+  virtual std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) = 0;
+  virtual void calculateUnorderedGenotypeProbs() = 0;
+  virtual void calculateUnorderedGenotypeProbs(unsigned) = 0;
 
   virtual void SampleJumpIndicators(int* ){};
 protected:
@@ -79,7 +84,7 @@ protected:
   static int Populations; //< Number of hidden states in the hidden Markov model
   static Genome *Loci;
   static bool Xdata;//< indicates if there is an X chromosome
-  static unsigned int X_posn;  //number of X chromosome
+  static unsigned int X_posn;  //< number of X chromosome
   double EffectiveL[2];
   unsigned NumGametes; //< 1 if assortative mating or haploid data, 2 if random mating and diploid data
   std::vector< unsigned int > gametes;//< number of gametes on each chromosome

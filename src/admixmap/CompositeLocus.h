@@ -17,6 +17,7 @@
 #include "common.h"
 #include "HapPair.h"
 #include "Haplotype.h"
+#include "../common/pvector.h"
 
 ///   Class to represent a composite locus
 class CompositeLocus
@@ -39,7 +40,7 @@ public:
   void SetHapPairProbsMAP();
   void setAlleleProbsMAP(const double* const Freqs);
   void AccumulateAlleleProbs();
-  void getConditionalHapPairProbs(std::vector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
+  void getConditionalHapPairProbs(pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
 
   int GetNumberOfLoci()const;
   int GetNumberOfStates()const;
@@ -68,6 +69,8 @@ private:
   int NumberOfLoci;
   int NumberOfStates;
   static int Populations;
+  /// Squared number of populations, stored for efficiency reasons.
+  static int PopulationsSquared;
   std::vector<int> NumberOfAlleles;
   const double *AlleleProbs;//< pointer to allele frequencies held in AlleleFreqs
   const double *AlleleProbsMAP;//< pointer to AlleleFreqsMAP held in AlleleFreqs

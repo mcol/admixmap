@@ -159,7 +159,7 @@ PARALLEL_HAPEXEC = hapmixmap-para
 SERIAL_INCLUDES=$(INCLUDES) 
 PARALLEL_DEFINES=
 
-LIBS = $(LIBTYPE) $(BAYESLIB_PATH)/bayeslib.a $(NORMAL_LIBS)
+LIBS = $(LIBTYPE) $(BAYESLIB_PATH)/bayeslib.a $(NORMAL_LIBS) ../common/libcommon.a
 CXX=$(CC)
 
 ## **compiler/linker flags
@@ -182,11 +182,11 @@ HapMixFreqs.o HapMixIndividual.o HapMixIndividualCollection.o MantelHaenszelTest
 all:	admixmap hapmixmap
 
 #ADMIXMAP serial
-admixmap:	checkbayeslib admixmap_message $(admixmap_objects) $(common_objects)
+admixmap:	checkbayeslib libcommon admixmap_message $(admixmap_objects) $(common_objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(ADMEXEC) $(admixmap_objects) $(common_objects) $(LFLAGS) $(LIBS)
 	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(ADMEXEC) \**
 #HAPMIXMAP serial
-hapmixmap:	checkbayeslib hapmixmap_message $(hapmixmap_objects) $(common_objects)
+hapmixmap:	checkbayeslib libcommon hapmixmap_message $(hapmixmap_objects) $(common_objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(HAPEXEC) $(hapmixmap_objects) $(common_objects) $(LFLAGS) $(LIBS)
 	@echo **HAPMIXMAP has been compiled as $(DESTDIR)/$(HAPEXEC) \**
 
@@ -216,6 +216,9 @@ checkbayeslib:
 
 bayeslib:
 	$(MAKE) -C $(BAYESLIB_PATH) -e -fmanual.make
+
+libcommon:
+	$(MAKE) -C ../common -e -fmanual.make
 
 %.o: %.cc#rule for compilation
 	$(CXX) $(CPPFLAGS) -I$(BAYESLIB_PATH) $(INCLUDES) -c $< -o $@

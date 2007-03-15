@@ -15,7 +15,9 @@ export CC="pathcc"
 export CXX="pathCC"
 export LDFLAGS="-L/opt/packages/sprng-2.0/lib"
 export CPPFLAGS="-I/opt/packages/sprng-2.0/include"
-export CXXFLAGS="-mcpu=auto -O3 -OPT:Ofast -fno-math-errno -ffast-math -fexceptions"
+# -ffast-math was removed because of problem with the score test
+# http://actin.ucd.ie/trac/genepi/ticket/52
+export CXXFLAGS="-mcpu=auto -O3 -OPT:Ofast -fno-math-errno -fexceptions"
 USER_CONFIG_OPTS="--disable-static-binary"
 
 source "$(pwd)/src/scripts/build-common"

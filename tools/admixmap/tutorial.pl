@@ -64,7 +64,7 @@ $arg_hash->{populations}           = 1;
 $arg_hash->{resultsdir}            = 'SinglePopResults';
 $arg_hash->{outcomes}              = 1,
 $arg_hash->{targetindicator}       = 1; # skin reflectance
-&doAnalysis($executable,$arg_hash);
+#&doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 2 populations
 $arg_hash->{populations}           = 2;
@@ -72,7 +72,7 @@ $arg_hash->{samples}   = 6000;
 $arg_hash->{burnin}    = 1000;
 $arg_hash->{paramfile}                 = 'popadmixparams.txt',
 $arg_hash->{resultsdir}            = 'TwoPopsResults';  
-&doAnalysis($executable,$arg_hash);
+#&doAnalysis($executable,$arg_hash);
 
 # model with reference prior on allele freqs in 3 populations
 $arg_hash->{populations}           = 3;

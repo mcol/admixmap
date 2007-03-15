@@ -246,7 +246,7 @@ void HMM::Sample(int *SStates, const bool isdiploid)
     If diploid, the vector is really a matrix of probabilities of pairs
     of states.
  */
-const std::vector<double> HMM::GetHiddenStateProbs(const bool isDiploid, int t){
+const pvector<double>& HMM::GetHiddenStateProbs(const bool isDiploid, int t){
   if(alphaIsBad){
     if(isDiploid)UpdateForwardProbsDiploid();
     else UpdateForwardProbsHaploid();
@@ -256,26 +256,27 @@ const std::vector<double> HMM::GetHiddenStateProbs(const bool isDiploid, int t){
     else UpdateBackwardProbsHaploid();
   }
 
-  double sum = 0.0;
-  // int State = 0;
   int States = 0;
   if(isDiploid) {
     States=DStates;
   } else {
     States=K;
   }
-  vector<double> probs(States);
-
-  for( int j = 0; j < States; j++ ){
-    probs[j] = alpha[t*States + j] * beta[t*States + j];
-    sum += probs[j];
+  
+  if (hiddenStateProbs.size() != States) {
+    hiddenStateProbs.resize(States);
+  }
+  
+  int idx;
+  int tstates = t * States;
+  for (int j = tstates; j < (tstates + States); ++j) {
+    // Vectorizer says:
+    // HMM.cc:272: note: not vectorized: unhandled data-ref
+    hiddenStateProbs[j - tstates] = alpha[j] * beta[j];
   }
 
-  for( int j = 0; j < States; j++ ){ //vectorization successful
-     probs[j] /= sum;
-   }
-
-  return probs;
+  hiddenStateProbs.normalize();
+  return hiddenStateProbs;
 }
 
 // ****** End Public Interface *******

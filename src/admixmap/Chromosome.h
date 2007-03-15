@@ -60,7 +60,7 @@ public:
   ///
   std::vector<std::vector<double> > getAncestryProbs(const bool isDiploid, int);
   ///get conditional probs of hidden states
-  const vector<double> getHiddenStateProbs(const bool, int);
+  const pvector<double>& getHiddenStateProbs(const bool, int);
   ///compute log-likelihood
   double getLogLikelihood(const bool isDiploid);
   ///

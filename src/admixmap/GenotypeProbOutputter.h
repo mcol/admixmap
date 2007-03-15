@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include "CompositeLocus.h"
+#include "../common/pvector.h"
 
 class GenotypeProbOutputter{
 public:
@@ -18,7 +19,7 @@ private:
   unsigned NumMaskedIndivs;
   unsigned NumMaskedLoci;
   unsigned NumIterations;
-  std::vector<double> Probs;
+  pvector<double> Probs;
   std::ofstream outfile;
 
   std::vector< double > SumProbs;

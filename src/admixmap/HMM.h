@@ -11,8 +11,12 @@
 #include <cstdlib>
 #include <values.h>
 #include <vector>
+#include <map>
 #include "GPI.h"
+#include "../common/pvector.h"
 #include "MixturePropsWrapper.hh"
+
+using std::map;
 
 /** Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
    Instantiated in class Chromosome
@@ -30,7 +34,7 @@ public:
   void SetStateArrivalProbs(const int Mcol, bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
-  const std::vector<double> GetHiddenStateProbs( const bool isDiploid, int t );
+  const pvector<double>& GetHiddenStateProbs( const bool isDiploid, int t );
   double getLogLikelihood(bool isDiploid);
   void SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, int *SumLocusAncestry, 
 			    std::vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const;
@@ -74,6 +78,10 @@ private:
 		      const double* const oldProbs, double *newProbs); 
   void RecursionProbs2(const double ff, const double f[2], const double* const stateArrivalProbs, 
 		       const double* const oldProbs, double *newProbs);
+  
+  // Storing results so vectors are not being created every time
+  // the GetHiddenStateProbs() method is called
+  pvector<double> hiddenStateProbs;
 };
 
 #endif /* ! HMM_H */

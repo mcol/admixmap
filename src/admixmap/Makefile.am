@@ -128,7 +128,8 @@ libgenepi_la_SOURCES = misc.cc \
 
 libgenepi_la_LDFLAGS	= 
 
-libgenepi_la_LIBADD = $(top_builddir)/src/bayeslib/libbayes.la 
+libgenepi_la_LIBADD = $(top_builddir)/src/bayeslib/libbayes.la \
+		      $(top_builddir)/src/common/libcommon.la
 
 if PARALLEL
 # Parallel libgenepi

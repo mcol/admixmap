@@ -225,3 +225,7 @@ void Chromosome::SampleJumpIndicators(const int* const HiddenStates, const unsig
   SampleStates.SampleJumpIndicators(HiddenStates, gametes, SumHiddenStates);
 }
 
+const pvector<double>& Chromosome::getHiddenStateProbs(const bool isDiploid, int t)
+{
+  return SampleStates.GetHiddenStateProbs(isDiploid, t);
+}
