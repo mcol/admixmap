@@ -27,6 +27,10 @@ deleteoldresults = 1     # [0|1] delete contents of resultsdir, if it exists
 ########################################
 states           = 4     # number of block states (integer)
 hapmixmodel      = 1     # ignored, must be 1
+fixedmixtureprops = 0
+fixedmixturepropsprecision = 1
+#mixturepropsprecision = 1
+#mixturepropsprecisionprior = 4, 1
 
 ########################################
 #      Data Files                      #
@@ -45,16 +49,16 @@ logfile        = log.txt #name of logfile
 ########################################
 #   initial values                     #
 ########################################
-#initiallambdafile       # arrival rates
+#initialarrivalratefile  # arrival rates
 #initialallelefreqfile   # allele frequencies
 #initialfreqpriorfile    # allele frequency prior parameters
 
 ########################################
 #   final values                       #
 ########################################
-finallambdafile     = state-lambdas.txt     # arrival rates and their prior parameters
-finalallelefreqfile = state-allelefreqs.txt # allele frequencies
-finalfreqpriorfile  = state-freqpriors.txt  # allele frequency prior parameters
+finalarrivalratefile = state-arrivalrates.txt# arrival rates and their prior parameters
+finalallelefreqfile  = state-allelefreqs.txt # allele frequencies
+finalfreqpriorfile   = state-freqpriors.txt  # allele frequency prior parameters
 
 ########################################
 #   arrival rates                      #
@@ -64,14 +68,14 @@ finalfreqpriorfile  = state-freqpriors.txt  # allele frequency prior parameters
 # Gamma priors on the parameters of the arrivale rate distribution:
 # h_shape, h_rate, b_shape, b_rate
 #------------------------------------------------------------------
-hapmixlambdaprior   = 30, 0.1, 10, 1 
+arrivalrateprior   = 30, 0.1, 10, 1 
 
 #------------------------------------------------------------------
 # **  for expert users only   **
 # 5 comma separated numbers specifying the parameters of the Hamiltonian sampler for the arrival rates:
 # initial_stepsize, min_stepsize, max_stepsize, target_accept_rate, num_leapfrog_steps
 #------------------------------------------------------------------
-#lambdasamplerparams = 0.06, 0.0001, 1.0, 0.9, 20
+#arrivalratesamplerparams = 0.06, 0.0001, 1.0, 0.9, 20
 
 #------------------------------------------------------------------
 # file with sample mean and variance of sampled arrival rates and the sampled values of their parameters
@@ -80,22 +84,22 @@ hapmixlambdaprior   = 30, 0.1, 10, 1
 #paramfile #[ArrivalRateSamples.txt]
 
 #------------------------------------------------------------------
-# file with mean and variance of the posterior means of the arrivale rates and the posterior means of their prior parameters
+# file with mean and variance of the posterior means of the arrival rates and the posterior means of their prior parameters
 #------------------------------------------------------------------
-#hapmixlambdaoutputfile
+#arrivalrateposteriormeanfile
 
 ########################################
 #  allele frequencies                  #
 ########################################
 #priorallelefreqfile       # file with parameters of the Dirichlet prior on the allele frequencies
 fixedallelefreqs           = 0 #[0|1] 1=fixed-frequency model, 1=random-frequency model
-freqdispersionhiermodel = 1 # [0|1] whether to sample the rate parameter of the allele frequency dispersion
+freqprecisionhiermodel = 1 # [0|1] whether to sample the rate parameter of the allele frequency precision
 #allelefreqqprior           # = [1, 0.2] | [1, 0.2, 1] 
-                            # if freqdispersionhiermodel = 0, 2 comma-separated numbers giving the shape and rate parameters of the Gamma prior on
+                            # if freqprecisionhiermodel = 0, 2 comma-separated numbers giving the shape and rate parameters of the Gamma prior on
                             # the allele frequency Dirichlet distribution.
-                            # if freqdispersionhiermodel = 1, 3, comma-separated numbers giving the shape parameter and 
+                            # if freqprecisionhiermodel = 1, 3, comma-separated numbers giving the shape parameter and 
                             # the shape and rate parameters of the Gamma prior on the rate.
-dispparamfile               # sampled values of dispersion parameters
+freqprecisionfile           # sampled values of precision parameters
 allelefreqoutputfile        # posterior means of allele frequencies
 allelefreqprioroutputfile   # posterior means of the allele frequency prior
 

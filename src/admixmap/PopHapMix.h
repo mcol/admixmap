@@ -69,7 +69,7 @@ public:
   
   void Initialise(const string& distanceUnit, LogWriter& Log);  
   
-  void SampleHapMixLambda(const int* SumAncestry, bool sumlogrho) ;
+  void SampleArrivalRate(const int* SumAncestry, bool sumlogrho) ;
 
   //void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   void SampleMixtureProportions(const int* SumArrivalCounts);
@@ -99,12 +99,12 @@ private:
   HapMixOptions *options;
   Genome* Loci; 
 
-  std::vector<double> lambda;
+  std::vector<double> lambda;///< arrival rates
   std::vector<double> SumLogLambda; //ergodic sum of log(rho)
 
   LambdaArguments LambdaArgs;
   LambdaPriorArguments LambdaPriorArgs;
-  HamiltonianMonteCarlo* HapMixLambdaSampler;
+  HamiltonianMonteCarlo* ArrivalRateSampler;
   h_args hargs;
   StepSizeTuner hTuner;  
   AdaptiveRejection hARS;
@@ -117,7 +117,7 @@ private:
   //StepSizeTuner ThetaTuner;
   //double thetastep;
 
-  DirichletParamSampler MixturePropsDispersionSampler;
+  DirichletParamSampler MixturePropsPrecisionSampler;
 
   void InitialiseMixtureProportions(LogWriter& Log);
   void InitialiseArrivalRates(LogWriter& Log);

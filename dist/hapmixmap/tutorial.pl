@@ -3,7 +3,7 @@ use strict;
 use File::Path;
 use Getopt::Long;
 
-my $function_file = "doanalysis.pl";
+my $function_file = "../doanalysis.pl";
 
 require $function_file or die("cannot find doanalysis.pl");
 
@@ -36,15 +36,15 @@ states => 8,
 hapmixmodel =>  1,
 displaylevel => 3,
 
-freqdispersionhiermodel => 1,
-allelefreqprior => "0.2, 1, 1",
-hapmixlambdaprior => "150, 1, 40, 10",
-lambdasamplerparams => "0.1, 0.00001, 10, 0.9, 20",
+freqprecisionhiermodel => 1,
+allelefreqprecisionprior => "0.2, 1, 1",
+arrivalrateprior => "150, 1, 40, 10",
+arrivalratesamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 
 resultsdir => "results",
 logfile => "logfile.txt",
 paramfile => "paramfile.txt",
-dispparamfile => "allelefreqpriors.txt",
+freqprecisionfile => "allelefreqdispersion.txt",
 
 #allelefreqprioroutputfile => "initialetas.txt",
 #allelefreqoutputfile => "initialallelefreqs.txt",
@@ -59,7 +59,7 @@ if($train){
   if($resume){#use initial values from previous run
     $arg_hash->{initialallelefreqfile} = "ResultsTraining/state-allelefreqs.txt";
     $arg_hash->{initialfreqpriorfile} = "ResultsTraining/state-freqpriors.txt";
-    $arg_hash->{initiallambdafile} => "ResultsTraining/state-lambdas.txt";
+    $arg_hash->{initialarrivalratefile} => "ResultsTraining/state-arrivalrates.txt";
   }
   doAnalysis($executable, $rscript, $arg_hash);
 }
@@ -68,11 +68,11 @@ if($test){
   if($resume){#use initial values from previous run
     $arg_hash->{initialallelefreqfile} = "Results/state-allelefreqs.txt";
     $arg_hash->{initialfreqpriorfile} = "Results/state-freqpriors.txt";
-    $arg_hash->{initiallambdafile} => "Results/state-lambdas.txt";
+    $arg_hash->{initialarrivalratefile} => "Results/state-arrivalrates.txt";
   }else{#use initial values from traiing run
     $arg_hash->{initialallelefreqfile} = "ResultsTraining/state-allelefreqs.txt";
     $arg_hash->{initialfreqpriorfile} = "ResultsTraining/state-freqpriors.txt";
-    $arg_hash->{initiallambdafile} => "ResultsTraining/state-lambdas.txt";
+    $arg_hash->{initialarrivalratefile} => "ResultsTraining/state-arrivalrates.txt";
   }
   # Run with HapMap + Case/Control data
   $arg_hash->{resultsdir} = "Results";

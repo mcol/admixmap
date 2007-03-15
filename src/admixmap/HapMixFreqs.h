@@ -39,7 +39,7 @@ public:
   void setSampler(bool thermo, bool AllHaploid, bool /*DefaultPriors*/);
   void Update(IndividualCollection*IC , bool afterBurnIn, double coolness);
   void PrintPrior(LogWriter& Log)const;
-  void SamplePriorDispersion(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2);
+  void SamplePriorPrecision(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2);
   void SamplePriorProportions(unsigned locus, double sumlogfreqs1, double sumlogfreqs2);
   void OutputErgodicAvg( int samples, std::ofstream *avgstream)const;
   //void OutputPriorParams();
@@ -58,7 +58,7 @@ public:
 
 private:
   /**
-     In hapmixmodel, prior on allele freqs is Dirichlet with locus-specific mean mu and dispersion eta.
+     In hapmixmodel, prior on allele freqs is Dirichlet with locus-specific mean mu and precision eta.
      Mu and the PriorParams are stored, but not eta.
 
      the etas each have the same Gamma prior with shape EtaPriorShape and rate EtaPriorRate, specifiable by the user.
@@ -87,7 +87,7 @@ private:
   //TODO: this should be static. No problem in practice as we only have one object of this class
   FreqArray DiploidGenotypeProbs;
 
-  std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior dispersion in hapmixmodel
+  std::ofstream allelefreqprioroutput;//to output mean and variance of frequency prior precision
 
   void LoadAlleleFreqs(HapMixOptions* const options, InputData* const data_, LogWriter &Log);
   void InitialisePrior(unsigned Populations, unsigned L, const HapMixOptions* const options, LogWriter& Log);

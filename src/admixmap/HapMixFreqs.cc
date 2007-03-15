@@ -50,7 +50,7 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
     Log.setDisplayMode(On);
     //open allelefreqoutputfile
     if(IsRandom() ){
-      OpenOutputFile(options->getEtaOutputFilename());
+      OpenOutputFile(options->getFreqPrecisionOutputFilename());
     }
     
     InitialisePrior(Populations, NumberOfCompositeLoci, options, Log );  
@@ -139,7 +139,7 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
 
   //set parameters of prior on frequency Dirichlet prior params
   const std::vector<double> &params = options->getAlleleFreqPriorParams();
-  etaHierModel = options->isFreqDispersionHierModel();
+  etaHierModel = options->isFreqPrecisionHierModel();
   if(etaHierModel && params.size()!=3)
     Log << On << "ERROR: allelefreqprior should have 3 elements.\n Using default instead.\n";
 
@@ -189,7 +189,7 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
       DirichletParams[i] *= Eta[i];         //multiply by eta to get Dir params
     }
     else{
-      //set dispersion to prior mean
+      //set precision to prior mean
       Eta[i] = (EtaShape / EtaRate);
       //set proportions to 0.5
       DirichletParams[i] =  Eta[i] * 0.5;
@@ -291,7 +291,7 @@ void HapMixFreqs::Update(IndividualCollection*IC , bool afterBurnIn, double cool
       sumlogfreqs1 += mylog(Freqs[i][k*NumberOfStates]);//allele 1
       sumlogfreqs2 += mylog(Freqs[i][k*NumberOfStates + 1]);//allele 2
     }
-    SamplePriorDispersion(i, Populations, sumlogfreqs1, sumlogfreqs2);
+    SamplePriorPrecision(i, Populations, sumlogfreqs1, sumlogfreqs2);
     if(accumulateEta){
       SumEta[i] += Eta[i];
       ++NumEtaUpdates;
@@ -349,7 +349,7 @@ void HapMixFreqs::SampleAlleleFreqs(int i, double coolness)
 
 ///sample prior params using random walk
 //NOTE: assuming 2 (allelic) states
-void HapMixFreqs::SamplePriorDispersion(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2){
+void HapMixFreqs::SamplePriorPrecision(unsigned locus, unsigned Populations, double sumlogfreqs1, double sumlogfreqs2){
   try{
     //for( unsigned locus = 0; locus < NumberOfCompositeLoci; ++locus ){
       double LogLikelihoodRatio = 0.0, LogPriorRatio = 0.0;
@@ -391,12 +391,12 @@ void HapMixFreqs::SamplePriorDispersion(unsigned locus, unsigned Populations, do
 
   }
   catch(string s){
-    throw string ("Error encountered while sampling frequency prior dispersion: " + s);
+    throw string ("Error encountered while sampling frequency prior precision: " + s);
   }
 }
 
 void HapMixFreqs::SampleEtaRate(bool afterBurnIn, double sum){
-    //sample rate parameter of prior on dispersion params
+    //sample rate parameter of prior on precision params
     //cout << "Gamma (" << EtaRatePriorShape + (double)NumberOfCompositeLoci * EtaShape << ", " << EtaRatePriorRate + sum << ")" << std::endl;
   EtaRate = Rand::gengam( EtaRatePriorShape + (double)NumberOfCompositeLoci * EtaShape, 
     			  EtaRatePriorRate + sum);
@@ -545,7 +545,7 @@ void HapMixFreqs::OutputPosteriorMeans(const char* filename, LogWriter& Log)cons
   if(IsRandom() && strlen(filename)){
     std::ofstream outfile(filename);
     if(outfile.is_open()){
-      Log << Quiet << "Writing posterior means of allele freq dispersion to " << filename << "\n"; 
+      Log << Quiet << "Writing posterior means of allele freq precision to " << filename << "\n"; 
       
       for(int j = 0; j < NumberOfCompositeLoci; ++j){
 	outfile << SumEta[j] / (double)(NumEtaUpdates) << " ";
@@ -555,7 +555,7 @@ void HapMixFreqs::OutputPosteriorMeans(const char* filename, LogWriter& Log)cons
     else{
       //throw string("Error: cannot open " + filename);
       Log << On << "Error: cannot open " <<  filename
-	  << ". Not writing freq dispersion posterior means.\n";
+	  << ". Not writing freq precision posterior means.\n";
     }
   }
 }

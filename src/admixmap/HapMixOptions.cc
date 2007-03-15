@@ -33,10 +33,10 @@ HapMixOptions::HapMixOptions(int argc,  char** argv){
 
 void HapMixOptions::SetDefaultValues(){
   NumBlockStates = 8;
-  FreqDispersionHierModel = true;
+  FreqPrecisionHierModel = true;
   FixedMixtureProps = false;
-  FixedMixturePropsDispersion = true;
-  MixturePropsDispersion = 0.0;
+  FixedMixturePropsPrecision = true;
+  MixturePropsPrecision = 0.0;
 
   // option names and default option values are stored as strings in a map container 
   // these are default values
@@ -48,14 +48,14 @@ void HapMixOptions::SetDefaultValues(){
   AlleleFreqOutputFilename = "state-allelefreqs.txt";
 
   useroptions["states"] = "4";
-  useroptions["lambdaprior"] = "30, 0.1, 10, 1";
-  //useroptions["mixturepropsdispersionprior"] = "1,1";
+  useroptions["arrivalrateprior"] = "30, 0.1, 10, 1";
+  //useroptions["mixturepropsprecisionprior"] = "1,1";
   useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
-  useroptions["finallambdafile"] = FinalLambdaFilename;
+  useroptions["finalarrivalratefile"] = FinalLambdaFilename;
   useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
-  useroptions["freqdispersionhiermodel"] = "1";
+  useroptions["freqprecisionhiermodel"] = "1";
   useroptions["fixedmixtureprops"] = "1";
-  useroptions["fixedmixturepropsdispersion"] = "1";
+  useroptions["fixedmixturepropsprecision"] = "1";
 }
 
 HapMixOptions::~HapMixOptions()
@@ -71,13 +71,13 @@ bool HapMixOptions::getFixedMixtureProps()const{
   return FixedMixtureProps;
 }
 
-bool HapMixOptions::getFixedMixturePropsDispersion()const{
-  return FixedMixturePropsDispersion;
+bool HapMixOptions::getFixedMixturePropsPrecision()const{
+  return FixedMixturePropsPrecision;
 }
 
-const char *HapMixOptions::getEtaOutputFilename() const
+const char *HapMixOptions::getFreqPrecisionOutputFilename() const
 {
-  return EtaOutputFilename.c_str();
+  return FreqPrecisionOutputFilename.c_str();
 }
 
 
@@ -99,8 +99,8 @@ const char* HapMixOptions::getMHTestFilename()const{
 bool HapMixOptions::getHapMixModelIndicator() const{
   return true;
 }
-bool HapMixOptions::isFreqDispersionHierModel()const{
-  return FreqDispersionHierModel;
+bool HapMixOptions::isFreqPrecisionHierModel()const{
+  return FreqPrecisionHierModel;
 }
 int HapMixOptions::getNumberOfBlockStates() const
 {
@@ -123,28 +123,28 @@ const std::vector<double> &HapMixOptions::getLambdaPrior()const{
   return lambdaprior;
 }
 
-const std::vector<double>& HapMixOptions::getMixturePropsDispersionPrior()const{
-  return MixturePropsDispersionPrior;
+const std::vector<double>& HapMixOptions::getMixturePropsPrecisionPrior()const{
+  return MixturePropsPrecisionPrior;
 }
-float HapMixOptions::getMixturePropsDispersion()const{
-  return MixturePropsDispersion;
+float HapMixOptions::getMixturePropsPrecision()const{
+  return MixturePropsPrecision;
 }
 const char* HapMixOptions::getInitialAlleleFreqFilename()const{
   return InitialAlleleFreqFilename.c_str();
 }
-const char* HapMixOptions::getInitialHapMixLambdaFilename()const{
-    return InitialHapMixLambdaFilename.c_str();
+const char* HapMixOptions::getInitialArrivalRateFilename()const{
+    return InitialArrivalRateFilename.c_str();
 }
 const char* HapMixOptions::getInitialFreqPriorFilename()const{
   return InitialFreqPriorFile.c_str();
 }
 
 const std::vector<double> & HapMixOptions::getAlleleFreqPriorParams()const{
-  return allelefreqprior;
+  return allelefreqprecisionprior;
 }
 
-const char* HapMixOptions::getHapMixLambdaOutputFilename()const{
-    return HapMixLambdaOutputFilename.c_str();
+const char* HapMixOptions::getArrivalRateOutputFilename()const{
+    return ArrivalRateOutputFilename.c_str();
 }
 const char* HapMixOptions::getCCGenotypesFilename()const{
   return CCGenotypesFilename.c_str();
@@ -183,7 +183,7 @@ void HapMixOptions::SetOptions(OptionMap& ProgOptions)
     data and initial values
   */
   ProgOptions["ccgenotypesfile"] = OptionPair(&CCGenotypesFilename, "string");
-  ProgOptions["initiallambdafile"] = OptionPair(&InitialHapMixLambdaFilename, "string");
+  ProgOptions["initialarrivalratefile"] = OptionPair(&InitialArrivalRateFilename, "string");
   ProgOptions["initialfreqpriorfile"] = OptionPair(&InitialFreqPriorFile, "string");
   ProgOptions["initialallelefreqfile"] = OptionPair(&InitialAlleleFreqFilename, "string");// synonym for allelefreqfile
 
@@ -193,43 +193,43 @@ void HapMixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["hapmixmodel"] = OptionPair(0, "null");//does nothing
   //number of block states
   ProgOptions["states"] = OptionPair(&NumBlockStates, "int");
-  //toggle hierarchical model on allele freq dispersion
-  ProgOptions["freqdispersionhiermodel"] = OptionPair(&FreqDispersionHierModel, "bool");
+  //toggle hierarchical model on allele freq precision
+  ProgOptions["freqprecisionhiermodel"] = OptionPair(&FreqPrecisionHierModel, "bool");
   //toggle sampling of mixture props
   ProgOptions["fixedmixtureprops"] = OptionPair(&FixedMixtureProps, "bool");
-  //toggle sampling of mixture props dispersion, valid only if fixedmixtureprops=0
-  ProgOptions["fixedmixturepropsdispersion"] = OptionPair(&FixedMixturePropsDispersion, "bool");
-  //set mixture props dispersion, initial value only if fixedmixturedispersionprops=0
-  ProgOptions["mixturepropsdispersion"] = OptionPair(&MixturePropsDispersion, "float");
+  //toggle sampling of mixture props precision, valid only if fixedmixtureprops=0
+  ProgOptions["fixedmixturepropsprecision"] = OptionPair(&FixedMixturePropsPrecision, "bool");
+  //set mixture props precision, initial value only if fixedmixturepropsprecision=0
+  ProgOptions["mixturepropsprecision"] = OptionPair(&MixturePropsPrecision, "float");
 
   /*
      prior specification
   */
   //vector of length 4, 2 Gamma priors on Gamma parameters
-  ProgOptions["lambdaprior"] = OptionPair(&lambdaprior, "dvector");
-  //vector of length 2, Gamma prior on Dirichlet dispersion
-  ProgOptions["mixturepropsdispersionprior"] = OptionPair(&MixturePropsDispersionPrior, "dvector");
-  //vector of length 2 or 3, Gamma/Gamma-Gamma prior on allele freq prior dispersion
-  ProgOptions["allelefreqprior"] = OptionPair(&allelefreqprior, "dvector");
+  ProgOptions["arrivalrateprior"] = OptionPair(&lambdaprior, "dvector");
+  //vector of length 2, Gamma prior on Dirichlet precision
+  ProgOptions["mixturepropsprecisionprior"] = OptionPair(&MixturePropsPrecisionPrior, "dvector");
+  //vector of length 2 or 3, Gamma/Gamma-Gamma prior on allele freq prior precision
+  ProgOptions["allelefreqprecisionprior"] = OptionPair(&allelefreqprecisionprior, "dvector");
 
   //sampler settings
-  ProgOptions["lambdasamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
+  ProgOptions["arrivalratesamplerparams"] = OptionPair(&rhoSamplerParams, "fvector");
 
 
   /*
     Output files
   */
-  //file to write mean and variance of dispersion params
-  ProgOptions["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");
+  //file to write mean and variance of frequency precision params
+  ProgOptions["freqprecisionfile"] = OptionPair(&FreqPrecisionOutputFilename, "outputfile");
 
   //final values
   ProgOptions["finalfreqpriorfile"] = OptionPair(&FinalFreqPriorFilename, "outputfile");
-  ProgOptions["finallambdafile"] = OptionPair(&FinalLambdaFilename, "outputfile");
+  ProgOptions["finalarrivalratefile"] = OptionPair(&FinalLambdaFilename, "outputfile");
   ProgOptions["finalallelefreqfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");// synonym for allelefreqoutputfile
 
   //posterior means
-  ProgOptions["allelefreqprioroutputfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");
-  ProgOptions["hapmixlambdaoutputfile"] = OptionPair(&HapMixLambdaOutputFilename, "outputfile");// remove hapmix from name
+  ProgOptions["allelefreqprecisionposteriormeanfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");
+  ProgOptions["arrivalrateposteriormeanfile"] = OptionPair(&ArrivalRateOutputFilename, "outputfile");
 
 
   /*
@@ -301,48 +301,48 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
   }
 
   if(FixedMixtureProps){
-    if(!FixedMixturePropsDispersion){
-      useroptions.erase("mixturepropsdispersionprior");
-      useroptions["fixedmixturepropsdispersion"] = "1"; 
-      FixedMixturePropsDispersion = true;
-      Log << "WARNING: option 'fixedmixtureprops=1' requires 'fixedmixturepropsdispersion=1'\n";
+    if(!FixedMixturePropsPrecision){
+      useroptions.erase("mixturepropsprecisionprior");
+      useroptions["fixedmixturepropsprecision"] = "1"; 
+      FixedMixturePropsPrecision = true;
+      Log << "WARNING: option 'fixedmixtureprops=1' requires 'fixedmixturepropsprecision=1'\n";
     }
   }else{//we are sampling mixture props
-    if(!FixedMixturePropsDispersion){//we are also sampling mixture props dispersion
+    if(!FixedMixturePropsPrecision){//we are also sampling mixture props precision
       //check mixture props prior has length 2 and both elements are positive
-      if( useroptions["mixturepropsdispersionprior"].size() && //if user has specified a prior
-	  (MixturePropsDispersionPrior.size()!=2 || MixturePropsDispersionPrior[0] <= 0.0 || MixturePropsDispersionPrior[1] <= 0.0) ){
-	Log << "ERROR: 'mixturepropsdispersionprior' should be 2 positive numbers\n";
+      if( useroptions["mixturepropsprecisionprior"].size() && //if user has specified a prior
+	  (MixturePropsPrecisionPrior.size()!=2 || MixturePropsPrecisionPrior[0] <= 0.0 || MixturePropsPrecisionPrior[1] <= 0.0) ){
+	Log << "ERROR: 'mixturepropsprecisionprior' should be 2 positive numbers\n";
 	badOptions = true;
       }
 
-      if(!MixturePropsDispersionPrior.size()){//user has not specified a prior
+      if(!MixturePropsPrecisionPrior.size()){//user has not specified a prior
 	/*//redundant since set in PopHapMix
 	  MixtureProps.push_back(NumBlockStates);
 	  MixtureProps.push_back(1);
 	*/
 	std::stringstream ss;
 	ss << NumBlockStates << ", 1";
-	useroptions["mixturepropsdispersionprior"] = ss.str();
+	useroptions["mixturepropsprecisionprior"] = ss.str();
       }
     }
   }// end random mixture props block
-  if(FixedMixturePropsDispersion  && useroptions["mixturepropsdispersionprior"].size()){
-      Log << "WARNING: option 'mixturepropsdispersionprior' is not valid with 'fixedmixturepropsdispersion'\n";
-      useroptions.erase("mixturepropsdispersionprior");
+  if(FixedMixturePropsPrecision  && useroptions["mixturepropsprecisionprior"].size()){
+      Log << "WARNING: option 'mixturepropsprecisionprior' is not valid with 'fixedmixturepropsprecision'\n";
+      useroptions.erase("mixturepropsprecisionprior");
   }
 
 
   // **** model for allele freqs ****
 
-  if(useroptions["allelefreqprior"].size()){
+  if(useroptions["allelefreqprecisionprior"].size()){
     
-    if(FreqDispersionHierModel && (allelefreqprior.size() !=3)) {
-      Log << "ERROR: 'allelefreqprior' must have length 3\n";
+    if(FreqPrecisionHierModel && (allelefreqprecisionprior.size() !=3)) {
+      Log << "ERROR: 'allelefreqprecisionprior' must have length 3\n";
       badOptions = true;
     }
-    else if(allelefreqprior.size()< 2){
-      Log << "ERROR: 'allelefreqprior' must have length 2\n";
+    else if(allelefreqprecisionprior.size()< 2){
+      Log << "ERROR: 'allelefreqprecisionprior' must have length 2\n";
       badOptions = true;
     }
   }

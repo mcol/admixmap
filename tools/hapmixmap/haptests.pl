@@ -35,7 +35,7 @@ if(!$executable){
     $executable = $serial_executable;
   }
 }
-my $function_file = "$ENV{'HOME'}/genepi/trunk/dist/doanalysis.pl";
+my $function_file = "doanalysis.pl";#"$ENV{'HOME'}/genepi/trunk/dist/doanalysis.pl";
 
 require $function_file or die("cannot find doanalysis.pl");
 
@@ -68,31 +68,31 @@ my $arg_hash = {
 
     checkdata=> 0,
 
-hapmixlambdaprior=>"400, 1, 10, 1",
+arrivalrateprior=>"400, 1, 10, 1",
 
-allelefreqprior => "2, 10, 1",
-freqdispersionhiermodel => 1,
+allelefreqprecisionprior => "2, 10, 1",
+freqprecisionhiermodel => 1,
 
-#initialhapmixlambdafile => "data/initialambdas.txt",
+#initialarrivalratefile => "data/initialarrivalrate.txt",
 #allelefreqfile => "data/initialallelefreqs.txt",
 
-lambdasamplerparams => "0.5, 0.00001, 10, 0.9, 20",
+arrivalratesamplerparams => "0.5, 0.00001, 10, 0.9, 20",
 
 #output files
     logfile                     => 'logfile.txt',
     paramfile               => 'paramfile.txt',
-    dispparamfile => "allelefreqpriorsamples.txt",
+    freqprecisionfile => "allelefreqpriorsamples.txt",
     #regparamfile          => 'regparamfile.txt',
     ergodicaveragefile => 'ergodicaverage.txt',
 
 #final values
     finalallelefreqfile  => "initialallelefreqs.txt",
-    finalfreqpriorfile =>"initialallelefreqpriors.txt",
-    finallambdafile =>"initiallambdas.txt",
+    finalfreqpriorfile   =>"initialallelefreqpriors.txt",
+    finalarrivalratefile =>"initiallambdas.txt",
 
 #posterior means
-    hapmixlambdaoutputfile => "lambdaPosteriorMeans.txt",
-    allelefreqprioroutputfile => "freqDispersionPosteriorMeans.txt"
+    arrivalrateposteriormeanfile => "lambdaPosteriorMeans.txt",
+    allelefreqprecisionposteriormeanfile => "freqDispersionPosteriorMeans.txt"
 
 #optional tests
 #residualallelicassocscorefile => 'residualLDscores.txt',
@@ -114,7 +114,7 @@ callDoAnalysis();
 #system("cp $arg_hash->{resultsdir}/initialallelefreqs.txt data");
 $arg_hash->{resultsdir}            = 'ResultsRerun';
 $arg_hash->{initialallelefreqfile}="data/initialallelefreqs.txt";
-$arg_hash->{initialhapmixlambdafile}="data/initiallambdas.txt";
+$arg_hash->{initialarrivalratefile}="data/initiallambdas.txt";
 $arg_hash->{initialfreqpriorfile} = "data/initialfreqpriors.txt";
 #$arg_hash->{fixedallelefreqs} = 0;
 #delete $arg_hash->{priorallelefreqfile};

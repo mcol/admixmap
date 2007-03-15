@@ -31,7 +31,7 @@ PopHapMix::PopHapMix( HapMixOptions* op, Genome* loci)
   Loci = loci;
   MixtureProps = 0;
   //MixturePropsproposal = 0;
-  HapMixLambdaSampler = 0;
+  ArrivalRateSampler = 0;
   MixturePropsPrior = 0;
   dirparams = 0;
 }
@@ -87,7 +87,7 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
 
   if(!options->getFixedMixtureProps()){//we are sampling mixture props
     /*
-    Mixture proportions have a Dirichlet prior with parameters MixturePropsDispersion / K 
+    Mixture proportions have a Dirichlet prior with parameters MixturePropsPrecision / K 
     ( so that the proportions are equal).
     */
 
@@ -95,42 +95,42 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
     MixturePropsPrior = new double[K];
     dirparams = new double[K];
 
-    //set initial value of dispersion
-    double InitialDispersion = options->getMixturePropsDispersion();
-    if(InitialDispersion <= 0.0)InitialDispersion = (double)K;
+    //set initial value of precision
+    double InitialPrecision = options->getMixturePropsPrecision();
+    if(InitialPrecision <= 0.0)InitialPrecision = (double)K;
 
-    double MPDShape = (double)K;// dispersion prior shape
-    double MPDRate = 1.0;//dispersion prior rate
-    if(!options->getFixedMixturePropsDispersion()){//we are sampling dispersion
+    double MPDShape = (double)K;// precision prior shape
+    double MPDRate = 1.0;//precision prior rate
+    if(!options->getFixedMixturePropsPrecision()){//we are sampling precision
       /*
-	The prior dispersion (MixturePropsPriorDispersion) has a 
+	The prior precision (MixturePropsPriorPrecision) has a 
 	Gamma prior, which defaults to Gamma(1,1).
       */
 
       //check for user-specified prior
-      const vector<double>& userprior = options->getMixturePropsDispersionPrior();
+      const vector<double>& userprior = options->getMixturePropsPrecisionPrior();
       if(userprior.size()){//user has specified a prior
 	MPDShape = userprior[0];
 	MPDRate = userprior[1];
-	InitialDispersion = MPDShape / MPDRate;
+	InitialPrecision = MPDShape / MPDRate;
       }
 
-      //setup sampler for mixure props dispersion
-      MixturePropsDispersionSampler.SetSize(L, K, 0.01/*<-initial stepsize*/, 20/*<-num leapfrog steps*/);
-      MixturePropsDispersionSampler.SetPriorEta(MPDShape, MPDRate);
+      //setup sampler for mixure props precision
+      MixturePropsPrecisionSampler.SetSize(L, K, 0.01/*<-initial stepsize*/, 20/*<-num leapfrog steps*/);
+      MixturePropsPrecisionSampler.SetPriorEta(MPDShape, MPDRate);
     }
 
     //set initial values of Dirichlet prior params
-    double DirParamInit = InitialDispersion / (double)K;
+    double DirParamInit = InitialPrecision / (double)K;
     fill(MixturePropsPrior, MixturePropsPrior + K, DirParamInit);
 
     //write prior parameters to screen and log
     Log << Quiet << "Dirichlet prior on mixture proportions" ;
-    if(!options->getFixedMixturePropsDispersion()){
-      Log << "\nGamma(" << MPDShape << ", " << MPDRate << ") prior on mixture proportion prior dispersion\n" ;
+    if(!options->getFixedMixturePropsPrecision()){
+      Log << "\nGamma(" << MPDShape << ", " << MPDRate << ") prior on mixture proportion prior precision\n" ;
     }
     else
-      Log << " with dispersion: " << InitialDispersion << "\n";
+      Log << " with precision: " << InitialPrecision << "\n";
     
 
   }//end if not fixed proportions
@@ -156,7 +156,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   LambdaArgs.NumIntervals = numIntervals;
   
   //set up Hamiltonian sampler for lambda
-  HapMixLambdaSampler = new HamiltonianMonteCarlo[numIntervals];
+  ArrivalRateSampler = new HamiltonianMonteCarlo[numIntervals];
   const vector<float>& lambdasamplerparams = options->getLambdaSamplerParams();
   size_t size = lambdasamplerparams.size();
   float initial_stepsize = size? lambdasamplerparams[0] : 0.06;
@@ -180,7 +180,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   
   //Hamiltonian sampler
   for(unsigned j = 0; j < numIntervals; ++j){
-    HapMixLambdaSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
+    ArrivalRateSampler[j].SetDimensions(1, initial_stepsize, min_stepsize, max_stepsize, num_leapfrog_steps, 
                                          target_acceptrate, LambdaEnergy, LambdaGradient);
   }
   //Random Walk sampler for log h
@@ -193,7 +193,7 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   //initialise lambda vector
   int locus = 0;//indexes loci
   int d = 0; //indexes intervals
-  const char* initfilename = options->getInitialHapMixLambdaFilename();
+  const char* initfilename = options->getInitialArrivalRateFilename();
   const bool useinitfile = (strlen(initfilename) > 0);
   ifstream initfile;
   if(useinitfile){
@@ -229,7 +229,7 @@ PopHapMix::~PopHapMix()
 {
   delete[] MixtureProps;
   //delete[] MixturePropsproposal;
-  delete[] HapMixLambdaSampler;
+  delete[] ArrivalRateSampler;
   delete[] MixturePropsPrior;
   delete[] dirparams;
 }
@@ -240,7 +240,7 @@ PopHapMix::~PopHapMix()
    StateArrivalCounts is a (NumberOfCompositeLoci) * (NumBlockStates +1) array of counts of gametes with ancestry states that are
    accumulatelogs indicates whether to accumulate sums of log lambda.
 */
-void PopHapMix::SampleHapMixLambda(const int* ConcordanceCounts, bool accumulateLogs){
+void PopHapMix::SampleArrivalRate(const int* ConcordanceCounts, bool accumulateLogs){
   //double sum = 0.0;
   int locus = 0;
   int interval = 0;
@@ -262,7 +262,7 @@ void PopHapMix::SampleHapMixLambda(const int* ConcordanceCounts, bool accumulate
 	  //LambdaArgs.NumDiscordant = StateArrivalCounts[locus*2];
 	  LambdaArgs.ConcordanceCounts = ConcordanceCounts + locus*2*K;
 	  //sample new value
-	  HapMixLambdaSampler[interval].Sample(&loglambda, &LambdaArgs);
+	  ArrivalRateSampler[interval].Sample(&loglambda, &LambdaArgs);
 	  *lambda_iter = exp(loglambda);
 
 	  //accumulate sums of log of lambda
@@ -477,10 +477,12 @@ double PopHapMix::hd2logf(double h, const void* const vargs){
 void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
   if(Comms::isMaster()){
     // Header line of paramfile
-    if(!options->getFixedMixturePropsDispersion())
-      outputstream << "Dispersion\t";
-    outputstream << "shapeParam\trateParam\t"
-		 << "Exp.Arrivals.per"<< distanceUnit << endl;
+    if(!options->getFixedMixturePropsPrecision())
+      outputstream << "MixtureProps.Precision\t";
+    outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t"
+		 << "Arrivals.per"<< distanceUnit << ".rateParam\t"
+		 << "Arrivals.per"<< distanceUnit << ".Mean"
+		 << endl;
   }
 }
 
@@ -499,8 +501,8 @@ void PopHapMix::OutputParams(ostream& out){
   out.width(9);
   out << setiosflags(ios::fixed) << setprecision(6);
 
-  //mixture props dispersion
-  if(!options->getFixedMixturePropsDispersion()){
+  //mixture props precision
+  if(!options->getFixedMixturePropsPrecision()){
     double sum = 0.0;
     for(unsigned k = 0; k < K; ++k)
       sum += MixturePropsPrior[k];
@@ -547,15 +549,15 @@ const double *PopHapMix::getGlobalTheta()const{
 void PopHapMix::printAcceptanceRates(LogWriter &Log) {
   double av = 0;//average acceptance rate
   for(unsigned j = 0; j < lambda.size(); ++j){
-    av += HapMixLambdaSampler[j].getAcceptanceRate();
+    av += ArrivalRateSampler[j].getAcceptanceRate();
   }
   Log << "Average Expected acceptance rate in samplers for numbers of arrivals: "
       << av / (double)(lambda.size());
   
   av = 0;//average stepsize
   for(unsigned j = 0; j < lambda.size(); ++j){
-    av += HapMixLambdaSampler[j].getStepsize();
-    //if(isnan(HapMixLambdaSampler[j].getStepsize()))cout << j << " " << HapMixLambdaSampler[j].getStepsize() << " " << HapMixLambdaSampler[j].getAcceptanceRate() << endl;  
+    av += ArrivalRateSampler[j].getStepsize();
+    //if(isnan(ArrivalRateSampler[j].getStepsize()))cout << j << " " << ArrivalRateSampler[j].getStepsize() << " " << ArrivalRateSampler[j].getAcceptanceRate() << endl;  
   }
   Log << "\nwith average final step size of "
       << av / (double)(lambda.size())
@@ -563,10 +565,10 @@ void PopHapMix::printAcceptanceRates(LogWriter &Log) {
 //   Log << "Expected acceptance rate in h sampler: " << hTuner.getExpectedAcceptanceRate()
 //       << "\nwith final step size of " << hTuner.getStepSize() << "\n";
 
-  if(!options->getFixedMixturePropsDispersion()){
-    Log << "Acceptance rate in sampler for mixture proportion dispersion: "
-	<< MixturePropsDispersionSampler.getExpectedAcceptanceRate()
-	<< "\nwith final step size of " << MixturePropsDispersionSampler.getStepSize() << "\n";
+  if(!options->getFixedMixturePropsPrecision()){
+    Log << "Acceptance rate in sampler for mixture proportion precision: "
+	<< MixturePropsPrecisionSampler.getExpectedAcceptanceRate()
+	<< "\nwith final step size of " << MixturePropsPrecisionSampler.getStepSize() << "\n";
   }
   
 }
@@ -618,9 +620,9 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
       }
     }
 
-    if(!options->getFixedMixturePropsDispersion()){
-      //sample prior dispersion
-      MixturePropsDispersionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
+    if(!options->getFixedMixturePropsPrecision()){
+      //sample prior precision
+      MixturePropsPrecisionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
     }
   }
 

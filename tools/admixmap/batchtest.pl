@@ -180,7 +180,7 @@ my $arg_hash = {
 #}
 
 #hapmixmodel
-my $executable = './hapmixmap2';
+my $executable = './hapmixmap';
 my $arg_hash = {
 #data files
 

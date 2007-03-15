@@ -165,7 +165,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
     //Sample arrival rates with Hamiltonian Sampler, using sampled hidden states. 
     //NB: requires accumulating of StateArrivalCounts in IC
-    L->SampleHapMixLambda(IC->getConcordanceCounts(), (!anneal && iteration > options->getBurnIn() 
+    L->SampleArrivalRate(IC->getConcordanceCounts(), (!anneal && iteration > options->getBurnIn() 
 						       && options->getPopulations() > 1) );
 
     //sample mixture proportions with conjugate update
@@ -308,7 +308,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
       Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
     }
     //output posterior means of lambda (expected number of arrivals)
-    L->OutputLambdaPosteriorMeans(options.getHapMixLambdaOutputFilename(), options.getTotalSamples()-options.getBurnIn());
+    L->OutputLambdaPosteriorMeans(options.getArrivalRateOutputFilename(), options.getTotalSamples()-options.getBurnIn());
     //output final values of lambda and its prior params
     L->OutputLambda(options.getFinalLambdaFilename());
   }
@@ -319,7 +319,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
     //output final values of allelefreqs
     A.OutputAlleleFreqs(options.getAlleleFreqOutputFilename(), Log);
 
-    //output posterior means of allele freq dispersion
+    //output posterior means of allele freq precision
     if(options.OutputAlleleFreqPrior())
       A.OutputPosteriorMeans(options.getAlleleFreqPriorOutputFilename(), Log);
   }
@@ -368,8 +368,8 @@ void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWri
     }//end if hierarchical model
 
     //rate parameter of prior on frequency Dirichlet prior params
-    if(!options->getFixedAlleleFreqs() && options->isFreqDispersionHierModel()){
-      avgstream << "FreqPriorRate\t"; 
+    if(!options->getFixedAlleleFreqs() && options->isFreqPrecisionHierModel()){
+      avgstream << "FreqPrecisionPriorRate\t"; 
     }
 
     // Regression parameters
