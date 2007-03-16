@@ -147,17 +147,11 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
     A.SetDiploidGenotypeProbs();
   }//end if random allele freqs
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // even for fixed allele freqs, must reset annealed genotype probs as unnannealed
 
-  if(isWorker && (!options->getFixedAlleleFreqs() || anneal)) {   
-    EventLogger::LogEvent(11, iteration, "setGenotypeProbs"); 
-    //IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs ready for getEnergy
-    IC->HMMIsBad(true); // update of allele freqs sets HMM probs and stored loglikelihoods as bad
-    EventLogger::LogEvent(12, iteration, "GenotypeProbsSet"); 
+  if(isWorker ) {   
+    IC->HMMIsBad(true); 
   } // update of allele freqs sets HMM probs and stored loglikelihoods as bad
-  
-  // next update of stored loglikelihoods will be from getEnergy if not annealing run, from updateRhowithRW if globalrho, 
-  // or from update of individual-level parameters otherwise
+  // next update of stored loglikelihoods will be from getEnergy 
   
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if(isMaster || isWorker){
