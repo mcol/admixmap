@@ -110,8 +110,8 @@ AC_OUTPUT([Makefile
 	   src/bayeslib/utils/Makefile
 	   src/scripts/Makefile
 	   src/tools/Makefile
-	   tools/Makefile
-	   tools/admixmap/Makefile
+	   test/Makefile
+	   test/admixmap/Makefile
 	   dist/Makefile
 	   dist/admixmap/Makefile
 	   dist/hapmixmap/Makefile
