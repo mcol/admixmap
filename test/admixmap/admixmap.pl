@@ -12,12 +12,12 @@ my $executable = './admixmap';
 my $arg_hash = 
 {
  ##data files
- genotypesfile        => 'data/genotypes.txt',
- locusfile            => 'data/loci.txt',
- priorallelefreqfile  => 'data/priorallelefreqs.txt',
+ genotypesfile        => 'tutorial/data/genotypes.txt',
+ locusfile            => 'tutorial/data/loci.txt',
+ priorallelefreqfile  => 'tutorial/data/priorallelefreqs.txt',
  #populations => 1
- covariatesfile       => 'data/covariates3std.txt',
- outcomevarfile       => 'data/outcomevars.txt',
+ covariatesfile       => 'tutorial/data/covariates3std.txt',
+ outcomevarfile       => 'tutorial/data/outcomevars.txt',
 
  ##main options
  resultsdir       => 'results',

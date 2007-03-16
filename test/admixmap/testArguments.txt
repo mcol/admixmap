@@ -11,17 +11,17 @@
 #
 
 ##data files
-    genotypesfile                   = data/genotypes.txt
-    locusfile                          = data/loci.txt
-    priorallelefreqfile             = data/priorallelefreqs.txt
+    genotypesfile           = tutorial/data/genotypes.txt
+    locusfile               = tutorial/data/loci.txt
+    priorallelefreqfile     = tutorial/data/priorallelefreqs.txt
     #populations=1
-    covariatesfile                  = data/covariates3std.txt
-    outcomevarfile               = data/outcomevars.txt
+    covariatesfile          = tutorial/data/covariates3std.txt
+    outcomevarfile          = tutorial/data/outcomevars.txt
 
 ##main options
    resultsdir = results
-    displaylevel   = 3 #verbose output
-    targetindicator = 0 # diabetes in column 0
+   displaylevel   = 3 #verbose output
+   targetindicator = 0 # diabetes in column 0
 #globalrho = 0
 #outcomes = 1
     samples  = 25
@@ -34,10 +34,10 @@ numannealedruns = 0
 thermo = 0
 
 ##output files
-    logfile                     = logfile.txt
-    paramfile               = paramfile.txt
-    regparamfile          = regparamfile.txt
-    indadmixturefile     = indadmixture.txt
+    logfile            = logfile.txt
+    paramfile          = paramfile.txt
+    regparamfile       = regparamfile.txt
+    indadmixturefile   = indadmixture.txt
     ergodicaveragefile = ergodicaverage.txt
     #allelefreqoutputfile  = allelefreqoutputfile.txt
 
