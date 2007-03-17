@@ -56,6 +56,7 @@ private:
   double *p;
   double *StateArrivalProbs;
   double *ThetaThetaPrime;
+  double *ThetaThetaInv;
 
   const double* f;
   MixturePropsWrapper theta;

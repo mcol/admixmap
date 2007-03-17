@@ -11,6 +11,7 @@ HMM::HMM()
   p = 0;
   StateArrivalProbs = 0;
   ThetaThetaPrime = 0;
+  ThetaThetaInv = 0;
   colProb = 0;
   Expectation0 = 0;
   Expectation1 = 0;
@@ -37,6 +38,7 @@ HMM::~HMM()
   delete[] LambdaBeta;
   delete[] StateArrivalProbs;
   delete[] ThetaThetaPrime;
+  delete[] ThetaThetaInv;
   delete[] rowProb;
   delete[] colProb;
   delete[] Expectation0;
@@ -47,7 +49,7 @@ HMM::~HMM()
 void HMM::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin)
 {
   //inTransitions = #transitions +1 = #Loci 
-  //pops = #populations
+  //K = #populations
   K = NumHiddenStates;
   DStates = K*K;
   Transitions = inTransitions;
@@ -57,6 +59,7 @@ void HMM::SetDimensions( int inTransitions, int NumHiddenStates, const double* c
   f = fin;
   StateArrivalProbs = new double[Transitions * K * 2];
   ThetaThetaPrime = new double[K*K];
+  ThetaThetaInv     = new double[K*K];
   if(K>2){
     rowProb = new double[K];
     colProb = new double[K];
@@ -82,6 +85,7 @@ void HMM::SetTheta(const MixturePropsWrapper& Theta, const int Mcol, const bool 
     for(int j0 = 0; j0 < K; ++j0) {
       for(int j1 = 0; j1 < K; ++j1) {
 	ThetaThetaPrime[j0*K + j1] = Theta(0, j0)*Theta(0, j1 + K*Mcol);
+	ThetaThetaInv[j0*K + j1] = 1.0 / ThetaThetaPrime[j0*K + j1];
       }
     }
   }
@@ -229,7 +233,6 @@ void HMM::Sample(int *SStates, const bool isdiploid)
     for( int state = 0; state < K; state++ )V[state] = alpha[(Transitions - 1)*K + state ];
     SStates[Transitions-1] = Rand::SampleFromDiscrete( V, K );
     for( int t =  Transitions - 2; t >= 0; t-- ){
-	//for(int j = 0; j < K; j++)V[j] = (j == C[t+1])*f[2*t+1]+theta[C[t+1]]*(1.0 - f[2*t]);
 	for(int state = 0; state < K; state++)
 	    V[state] = (state == SStates[t+1]) * f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + SStates[t+1]*2  ];
 	for( int state = 0; state < K; state++ ) 
@@ -291,20 +294,20 @@ void HMM::UpdateForwardProbsDiploid()
   double Sum = 0.0;
   double scaleFactor = 0.0;
   
+  for(int j = 0; j < DStates; ++j) {
+    alpha[j] = ThetaThetaPrime[j];
+  }
   if(!missingGenotypes[0]) {
     for(int j = 0; j < DStates; ++j) {
-     alpha[j] =  ThetaThetaPrime[j] * LambdaGPI[0][j];
-    }
-  } else {
-    for(int j = 0; j < DStates; ++j) {
-      alpha[j] = ThetaThetaPrime[j];
+      alpha[j] *=  LambdaGPI[0][j];
     }
   }
   
+  // normalize, call recursionprobs, multiply by emission probs
   for( int t = 1; t < Transitions; ++t ){
     if(!missingGenotypes[t-1]) {
+      // normalize previous alpha and accumulate log scale factor
       Sum = 0.0;
-      //scale previous alpha to sum to 1
       for( int j = 0; j <  DStates; ++j ) {
 	Sum += alpha[(t-1)*DStates +j];
       }
@@ -315,7 +318,8 @@ void HMM::UpdateForwardProbsDiploid()
       sumfactor += log(Sum);
     }
     
-    RecursionProbs(p[t], f + 2*t, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, alpha + t*DStates);
+    RecursionProbs(p[t], f + 2*t, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, 
+		   alpha + t*DStates);
     
     for(int j = 0; j < DStates; ++j){
       if(!missingGenotypes[t]) {
@@ -335,34 +339,42 @@ void HMM::UpdateBackwardProbsDiploid()
   }
   if(!LambdaBeta)
     LambdaBeta = new double[K*K];
-  
-  vector<double> rec(DStates);
+  //vector<double> rec(DStates);
   double scaleFactor, Sum;
   
+  // should calculate rec[j] once when ThetaThetaPrime is calculated
   for(int j = 0; j < DStates; ++j){
     //set beta(T) = 1
     beta[(Transitions - 1)*DStates + j] = 1.0;
-    rec[j] = 1.0 / ThetaThetaPrime[j];
+    //rec[j] = 1.0 / ThetaThetaPrime[j];
   }
   
+  // weight by thetathetaprime, multiply by emission probs, normalize, recursion probs, reverse weighting 
   for( int t = Transitions-2; t >= 0; --t ) {
-    if(!missingGenotypes[t+1]){
-      double f2[2] = {f[2*t + 2], f[2*t + 3]};
-      Sum = 0.0;
+    double f2[2] = {f[2*t + 2], f[2*t + 3]};
+    for(int j = 0; j < DStates; ++j){
+      LambdaBeta[j] = beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
+    }
+
+    if(!missingGenotypes[t+1]){ // if genotype missing, no need to multiply by 1
       for(int j = 0; j < DStates; ++j){
-        LambdaBeta[j] = LambdaGPI[t+1][j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
-        Sum += LambdaBeta[j];
+        LambdaBeta[j] *= LambdaGPI[t+1][j];
       }
-      //scale LambdaBeta to sum to 1
-      scaleFactor = 1.0 / Sum;
-      for( int j = 0; j <  DStates; ++j ) {
-        LambdaBeta[j] *= scaleFactor;
-      }
+    }
+
+    //normalize
+    Sum = 0.0;
+    for(int j = 0; j < DStates; ++j){
+      Sum += LambdaBeta[j];
+    }
+    scaleFactor = 1.0 / Sum;
+    for( int j = 0; j <  DStates; ++j ) {
+      LambdaBeta[j] *= scaleFactor;
+    }
       
-      RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
-      for(int j = 0; j < DStates; ++j){ // vectorization successful
-        beta[t*DStates + j] *= rec[j];
-      }
+    RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
+    for(int j = 0; j < DStates; ++j){ // vectorization successful
+      beta[t*DStates + j] *= ThetaThetaInv[j]; // rec[j];
     }
   }
   betaIsBad = false;
@@ -370,7 +382,7 @@ void HMM::UpdateBackwardProbsDiploid()
 
 /** * Updates forward probs, haploid case only.
  *
- * Here Admixture is a column matrix and the last dimensions of f
+ * Here the last dimensions of f
  * and lambda are 1.
  */
 void HMM::UpdateForwardProbsHaploid(){
