@@ -107,21 +107,21 @@ void AffectedsOnlyTest::Output(int iterations, const Vector_s& PopLabels, const 
 void AffectedsOnlyTest::ROutput(const int numIterations){
   if (test){
     std::vector<int> dimensions(3,0);
-    dimensions[0] = 10;
+    dimensions[0] = 3; //10;
     dimensions[1] = L * K;
     dimensions[2] = (int)(numIterations);
     
     std::vector<std::string> labels(dimensions[0],"");
     labels[0] = "Locus";
     labels[1] = "Population";
-    labels[2] = "Score";
-    labels[3] = "CompleteInfo";
-    labels[4] = "ObservedInfo";
-    labels[5] = "PercentInfo";
-    labels[6] = "Missing1";
-    labels[7] = "Missing2"; 
-    labels[8] = "StdNormal";
-    labels[9] = "PValue";
+    labels[2] = "minusLogPValue; //Score";
+//     labels[3] = "CompleteInfo";
+//     labels[4] = "ObservedInfo";
+//     labels[5] = "PercentInfo";
+//     labels[6] = "Missing1";
+//     labels[7] = "Missing2"; 
+//     labels[8] = "StdNormal";
+//     labels[9] = "PValue";
     R_output3DarrayDimensions(&outputfile,dimensions,labels);
   }
 }
