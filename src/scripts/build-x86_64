@@ -3,7 +3,12 @@ export LDFLAGS=""
 export CPPFLAGS=""
 # -ffast-math was removed because of problem with the score test
 # http://actin.ucd.ie/trac/genepi/ticket/52
-export CXXFLAGS="-march=k8 -O3 -pipe -fomit-frame-pointer \
--ftree-vectorize -ftree-vectorizer-verbose=3"
+export CXXFLAGS="\
+-march=k8 \
+-O3 \
+-pipe \
+-fomit-frame-pointer \
+-ftree-vectorize \
+-ftree-vectorizer-verbose=3"
 
 source "$(pwd)/src/scripts/build-common"

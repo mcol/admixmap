@@ -15,10 +15,13 @@ export CXX="mpiCC"
 export LDFLAGS="-L/opt/packages/sprng-2.0/lib"
 export CPPFLAGS="-I/opt/packages/sprng-2.0/include"
 # gcc-4 has architecture `opteron' (gcc-3 hasn't)
-# -ffast-math was removed because of problem with the score test
-# http://actin.ucd.ie/trac/genepi/ticket/52
-export CXXFLAGS="-march=opteron -O3 -fomit-frame-pointer -pipe \
--ftree-vectorize -ftree-vectorizer-verbose=3"
+export CXXFLAGS="\
+-march=opteron \
+-O3 \
+-fomit-frame-pointer -pipe \
+-ffast-math \
+-ftree-vectorize \
+-ftree-vectorizer-verbose=3"
 
 USER_CONFIG_OPTS="--enable-parallel"
 

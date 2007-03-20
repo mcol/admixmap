@@ -1,8 +1,13 @@
 #!/bin/bash
 export LDFLAGS=""
 export CPPFLAGS=""
-export CXXFLAGS="-march=pentium4 -O3 -pipe -fomit-frame-pointer \
+export CXXFLAGS="\
+-march=pentium4 \
+-O3 \
+-pipe \
+-fomit-frame-pointer \
 -ffast-math \
--ftree-vectorize -ftree-vectorizer-verbose=3"
+-ftree-vectorize \
+-ftree-vectorizer-verbose=3"
 
 source "$(pwd)/src/scripts/build-common"
