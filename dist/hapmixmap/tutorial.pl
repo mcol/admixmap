@@ -23,8 +23,8 @@ my $rscript = "./AdmixmapOutput.R";
 
 
 my $arg_hash = {
-genotypesfile => "data/training_genotypes.txt",
-locusfile => "data/training_loci.txt",
+genotypesfile => "data/dn_genotypes.txt",
+locusfile => "data/dn_loci.txt",
 checkdata => 0,
 
 samples => 50,
