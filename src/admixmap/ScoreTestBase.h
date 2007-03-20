@@ -22,13 +22,15 @@ protected:
   bool test;
   std::ofstream outputfile;
   unsigned numPrintedIterations;
+  bool onFirstLine;///< to indicate whether to use a separator before newline
+
   //utility functions
-  static void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname, bool Robj);
-  static void OutputScalarScoreTest( int iterations, std::ofstream* outputstream, std::string label,
+  void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname, bool Robj);
+  void OutputScalarScoreTest( int iterations, std::ofstream* outputstream, std::string label,
 				     const double score, const double scoresq, const double info, bool final);
-  static void OutputScoreTest( int iterations, std::ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
+  void OutputScoreTest( int iterations, std::ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
 			       const double* score, const double* scoresq, const double* info, bool final, unsigned dim2);
-  static void OutputRaoBlackwellizedScoreTest( int iterations, std::ofstream* outputstream, std::string label,
+  void OutputRaoBlackwellizedScoreTest( int iterations, std::ofstream* outputstream, std::string label,
 					       const double score, const double scoresq, const double varscore, 
 					       const double info, bool final );
 

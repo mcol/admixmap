@@ -23,7 +23,7 @@
    Holds a pointer to Genotype probs, stored as a FreqArray object, and a pointer to a vector of genotypes (optional).
    The () operator is used to access the required probs via a ColumnIterator object. 
    The row number is offset by the number of columns and the column number is offset by the genotype (if provided).
-   For example, GPI[locus][state]. 
+   For example, GPI(locus, state). 
    Returns 1.0 if the genotype is being used and is missing.
 
    There are 4 main usages:

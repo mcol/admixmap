@@ -1,11 +1,17 @@
 /** 
  *   ScoreTests.cc 
  *   Class implements the following score tests:
- *   (1) Score test for admixture association (admixturescoretest)
- *   (2) Score test for allelic association
- *   (3) Score test for within-halpotype association
+
+ *   (1) Score test for allelic association
+ *   (2) Score test for within-halpotype association
+ *
+ *  Also acts as a wrapper for the following tests:
+ *   (3) Score test for admixture association (admixturescoretest)
  *   (4) Score test for linkage with locus ancestry
  *   (5) Affecteds-only score test for linkage with locus ancestry
+ *   (6) Score test for residual allelic association between adjacent pairs of linked loci
+ *   (7) hapmix allelic assoc test (using CopyNumberAssocTest)
+ *
  *   Copyright (c) 2005 - 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
@@ -45,6 +51,8 @@ ScoreTests::ScoreTests(){
   NumWorkers = Comms::getNumWorkers();
   dim_ = 0;
   NumOutputs = 0;
+  onFirstLineAllelicAssoc = true;
+  onFirstLineHapAssoc = true;
 }
 
 ScoreTests::~ScoreTests(){
@@ -271,7 +279,7 @@ void ScoreTests::OpenFile(LogWriter &Log, std::ofstream* outputstream, const cha
   }
   Log << testname << " written to " << filename << "\n";
   //start writing R object
-  *outputstream << "structure(.Data=c(" << endl;
+  *outputstream << "structure(.Data=c(";
 
 }
 
@@ -398,23 +406,23 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	if(options->getHapMixModelIndicator()){
 	  // vector<double>OrderedProbs(4);
 	  vector<vector<double> > UnorderedProbs(3, vector<double>(1));
-
-    unsigned int numberCompositeLoci = Lociptr->GetNumberOfCompositeLoci();
-    for(unsigned int j = 0; j < numberCompositeLoci; j++ ) {
-      // SNPs only
-      if (Lociptr->GetNumberOfStates(j) == 2) {
-//        ind->calculateUnorderedProbs(j);
-        UnorderedProbs = ind->getUnorderedProbs(j); 
-  	    // from this line onward, code does not change - rest of score test update remains same
+	  
+	  unsigned int numberCompositeLoci = Lociptr->GetNumberOfCompositeLoci();
+	  for(unsigned int j = 0; j < numberCompositeLoci; j++ ) {
+	    // SNPs only
+	    if (Lociptr->GetNumberOfStates(j) == 2) {
+	      //        ind->calculateUnorderedProbs(j);
+	      UnorderedProbs = ind->getUnorderedProbs(j); 
+	      // from this line onward, code does not change - rest of score test update remains same
 	      NewAllelicAssocTest.Update(j, 0/*no covariates*/, dispersion, YMinusEY, DInvLink, UnorderedProbs);
 	    }
-    }
+	  }
 	}
 	else
 	  UpdateScoreForAllelicAssociation( ind, YMinusEY,dispersion, DInvLink, (bool)missingOutcome);
     }
   }
-
+  
 #ifdef PARALLEL
   if( options->getTestForAllelicAssociation() ){
     Comms::ReduceAllelicAssocScores(LocusLinkageAlleleScore, LocusLinkageAlleleInfo, Lociptr->GetNumberOfCompositeLoci(), 
@@ -505,13 +513,8 @@ void ScoreTests::UpdateScoreForAllelicAssociation( const Individual* const ind, 
       if(condition){
 	//retrieve sampled hap pair from Individual
 	const int* happair = ind->getSampledHapPair(locus);
-#ifdef PARALLEL
-	const unsigned numStates = 2;
-	const unsigned numLoci = 1;
-#else
-	const unsigned numStates = (*Lociptr)(locus)->GetNumberOfStates();
-	const unsigned numLoci = (*Lociptr)(locus)->GetNumberOfLoci();
-#endif
+	const unsigned numStates = Lociptr->GetNumberOfStates(locus);
+	const unsigned numLoci = Lociptr->getNumberOfLoci(locus);
 	
 	// count alleles / haplotypes      
 	vector<int> counts;
@@ -673,7 +676,7 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
 	    {//SNP
 	    OutputScalarScoreTest(iterations, outfile, locuslabel,
 				  SumLocusLinkageAlleleScore[j][0], SumLocusLinkageAlleleScore2[j][0], 
-				  SumLocusLinkageAlleleInfo[j][0], final);
+				  SumLocusLinkageAlleleInfo[j][0], final, onFirstLineAllelicAssoc);
 	  }
 	  else {//multiallelic simple locus
 	    vector<string> labels;
@@ -684,7 +687,7 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
 	    }
 	    OutputScoreTest(iterations, outfile, dim_[j], labels, 
 			    SumLocusLinkageAlleleScore[j], SumLocusLinkageAlleleScore2[j], 
-			    SumLocusLinkageAlleleInfo[j], final, dim_[j]);
+			    SumLocusLinkageAlleleInfo[j], final, onFirstLineAllelicAssoc, dim_[j]);
 	  }
 	}//end if simple locus
 	//case of haplotype
@@ -693,13 +696,15 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
 	  for(int simplelocus = 0; simplelocus < NumberOfLoci; ++simplelocus){
 	    string simplelocuslabel = (*Lociptr)(j)->GetLabel(simplelocus);
 	    OutputScalarScoreTest(iterations, outfile, simplelocuslabel, SumScoreWithinHaplotype[ j ][simplelocus], 
-				  SumScore2WithinHaplotype[ j ][simplelocus], SumInfoWithinHaplotype[ j ][simplelocus], final);
+				  SumScore2WithinHaplotype[ j ][simplelocus], SumInfoWithinHaplotype[ j ][simplelocus], final, onFirstLineAllelicAssoc);
 	  }
 	}
+	onFirstLineAllelicAssoc = false;
       }//end j loop over comp loci
     if(final)delete outfile;
-  }
-  }  
+    }//end if not hapmixmodel
+
+  }//end if allelic assoc test  
   //haplotype association
   if( options->getTestForHaplotypeAssociation() ){
     if(final){
@@ -731,10 +736,11 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
 	labels.push_back(ss.str());
       }
       OutputScoreTest(iterations, outfile, dim_[j], labels, SumLocusLinkageAlleleScore[j], 
-		      SumLocusLinkageAlleleScore2[j], SumLocusLinkageAlleleInfo[j], final, dim_[j]-1);
+		      SumLocusLinkageAlleleScore2[j], SumLocusLinkageAlleleInfo[j], final, onFirstLineHapAssoc, dim_[j]-1);
+      onFirstLineHapAssoc = false;
     }
     if(final)delete outfile;
-  }
+  }//end if hap assoc test
   
   //ancestry association
   if( options->getTestForLinkageWithAncestry() ){
@@ -772,19 +778,29 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
 
 // generic scalar score test
 //TODO: move output of NA in chisq column outside as it is only required if along with vector tests
-void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label, const double score, const double scoresq, const double info, bool final)
+void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, string label, const double score, const double scoresq, const double info, bool final, bool firstline)
 {
   string sep = final? "\t" : ",";
   double Score = score / (double) iterations;
   double CompleteInfo = info / (double) iterations;
   double MissingInfo = scoresq / ( double)iterations - Score * Score;
   double ObservedInfo = CompleteInfo - MissingInfo;
+
+  if(!firstline){
+    //if not the first line, output a separator after previous output
+    *outputstream << sep;
+  }
+  //now start a new line (for ease of human reading)
+  *outputstream << endl;
+
+
   //output label
   *outputstream << "\"" << label << "\"" << sep;
   if(final)
     *outputstream << double2R(Score, 3)        << sep
 		  << double2R(CompleteInfo, 3) << sep
 		  << double2R(ObservedInfo, 3) << sep;
+
   if( (MissingInfo < CompleteInfo) && (CompleteInfo > 0.0) ) {
     double PercentInfo = 100.0*ObservedInfo / CompleteInfo;
     double zscore = Score / sqrt( ObservedInfo );
@@ -792,27 +808,35 @@ void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, 
     if(final)
       *outputstream << double2R(PercentInfo, 2) << sep
 		    << double2R(zscore,3)   << sep 
-		    << double2R(pvalue) << sep;// << endl;
+		    << double2R(pvalue);
     else
-      *outputstream << double2R(-log10(pvalue)) << sep;// << endl;
+      *outputstream << double2R(-log10(pvalue));
   }
   else{
     if(final)*outputstream << "NA" << sep << "NA" << sep;
-    *outputstream << "NA" << sep;// << endl;
+    *outputstream << "NA" ;
   }
   if(final)*outputstream << "NA";//NA in chisquare column in final table 
-  *outputstream << endl;
+  //*outputstream << endl;
 }
 
 //generic vector score test
 void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, vector<string> labels,
-				  const double* score, const double* scoresq, const double* info, bool final, unsigned dim2)
+				  const double* score, const double* scoresq, const double* info, bool final, bool firstline, unsigned dim2)
 {
   //given cumulative scores, square of scores and info, of dimension dim, over iterations, computes expectation of score, complete info and observed info and outputs to output stream along with a summary chi-square statistic and p-value. Also performs scalar test for each element.
   //if final=false, only the log(-pvalue)'s are printed
 
   double *ScoreVector = 0, *CompleteInfo = 0, *ObservedInfo = 0;
   string sep = final? "\t" : ",";
+
+  if(!firstline){
+    //if not the first line, output a separator after previous output
+    *outputstream << sep;
+  }
+  //now start a new line (for ease of human reading)
+  *outputstream << endl;
+
   
   ScoreVector = new double[dim];
   copy(score, score+dim, ScoreVector);
@@ -827,6 +851,8 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
     ObservedInfo[d1*dim + d2] = CompleteInfo[d1*dim+d2] + ScoreVector[d1]*ScoreVector[d2] -
       scoresq[d1*dim+d2]/(double) iterations;
   for( unsigned k = 0; k < dim; k++ ){
+    if(k > 0)
+      *outputstream << sep << endl;
     // ** output labels
     *outputstream << labels[k] << sep;
     if(final){
@@ -842,10 +868,10 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
     if(final)*outputstream  << double2R(zscore, 3) << sep;//z-score
     double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
     if(final)*outputstream << double2R(pvalue) << sep;
-    else *outputstream << double2R(-log10(pvalue)) << sep << endl;
+    else *outputstream << double2R(-log10(pvalue));
     // if not last allele at locus, output unquoted "NA" in chi-square column
     if( final && k != dim - 1 ){
-      *outputstream  << "NA" << sep << endl;
+      *outputstream  << "NA" ;
     }
   }//end loop over alleles
   if(final){
@@ -854,11 +880,11 @@ void ScoreTests::OutputScoreTest( int iterations, ofstream* outputstream, unsign
       if(dim2==dim) chisq = GaussianQuadraticForm(ScoreVector, ObservedInfo, dim);
       else chisq = GaussianMarginalQuadraticForm( dim2, ScoreVector, ObservedInfo, dim );//marginalise over first dim2 elements
       if(chisq < 0.0)
-	*outputstream << "NA" << sep << endl;
-      else *outputstream << double2R(chisq) << sep << endl;
+	*outputstream << "NA" ;
+      else *outputstream << double2R(chisq) ;
     }
     catch(...){//in case ObservedInfo is rank deficient
-      *outputstream  << "NA" << sep << endl;
+      *outputstream  << "NA";
     }
   }
   //TODO:?? output p-value for chisq
@@ -950,7 +976,7 @@ void ScoreTests::ROutput(){
 //finishes writing scoretest output as R object
 void ScoreTests::R_output3DarrayDimensions(ofstream* stream, const vector<int> dim, const vector<string> labels)
 {
-  *stream << ")," << endl;
+  *stream << endl << ")," << endl;
   *stream << ".Dim = c(";
   for(unsigned int i=0;i<dim.size();i++){
     *stream << dim[i];

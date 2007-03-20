@@ -138,7 +138,7 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, con
 
     map<phps_t, ungp_t, phps_t_cmp>::const_iterator phpp_i;
 
-    for (int j = 0; j < numCompositeLoci; ++j) {
+    for (unsigned j = 0; j < numCompositeLoci; ++j) {
       if (!GenotypeIsMissing(j)) {
         // Genotype is present, set the unordered probability
         phps.hpp_size = PossibleHapPairs[j].size();

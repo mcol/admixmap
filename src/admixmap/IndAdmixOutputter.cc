@@ -21,7 +21,7 @@ IndAdmixOutputter::IndAdmixOutputter(const AdmixOptions* const options, const Ge
   }
   
   _out.open(options->getIndAdmixtureFilename(), ios::out );
-  _out << "structure(.Data=c(" << endl;
+  _out << "structure(.Data=c(";
 }
 
 IndAdmixOutputter::~IndAdmixOutputter()
@@ -56,7 +56,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
 //   if(_totalIndividuals == 1)
 //     dimOne++;
   
-  _out << ")," << endl;
+  _out << endl << ")," << endl;
   _out << ".Dim = c(" << dimOne << "," << _totalIndividuals << "," << _iterations << ")," << endl;
 
   _out << ".Dimnames=list(c(";
@@ -97,17 +97,32 @@ IndAdmixOutputter::~IndAdmixOutputter()
 
 void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vector<int> _locusfortest)
 {
-  for( int k = 0; k < _options->getPopulations(); k++ )
-    _out << ind.getAdmixtureProps()[k] << ",";
+  //output comma after previous individual
+  if( _currentIndividual > 0)
+    _out << ",";
+  //start on new line (for ease of human reading)
+  _out << endl;
+
+  //output individual admixture proportions
+  for( int k = 0; k < _options->getPopulations(); k++ ){
+    if( k > 0)
+      _out << ", ";
+    _out << ind.getAdmixtureProps()[k] ;
+  }
+
+  //if random mating, output admixture proportions for second gamete
   if(_options->isRandomMatingModel())
     for( int k = 0; k < _options->getPopulations(); k++ )
-      _out << ind.getAdmixtureProps()[ k + _options->getPopulations()] << ",";
+      _out << ", " << ind.getAdmixtureProps()[ k + _options->getPopulations()] ;
   
+  //output individual sumintensities
   if( !_options->isGlobalRho() ){
      vector<double> rho = ind.getRho();
-     _out << rho[0] << ","; 
+     //first gamete
+     _out << ", " << rho[0]; 
+     //second gamete if there is one
      if(_options->isRandomMatingModel())
-        _out << rho[1] << ",";
+       _out << ", " << rho[1] ;
   }
   
         
@@ -120,7 +135,7 @@ void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vect
     ind.GetLocusAncestry( _locusfortest[0], _locusfortest[1], ancestry );
     //vector<vector<unsigned short> > genotype_ = ind.getGenotype(_options->getLocusForTest());
      if(_options->getPopulations() > 1 ){
-        _out << ancestry[0] << "," << ancestry[1] << ",";
+        _out << "," << ancestry[0] << "," << ancestry[1];
      }
      //if((*_Loci)(_options->getLocusForTest() )->GetNumberOfLoci() > 1 ){
        const int* happair = ind.getSampledHapPair(_options->getLocusForTest());
@@ -128,12 +143,12 @@ void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vect
        //if(_options->getPopulations() > 1 ){
        //  genotype_ = ind.getGenotype(_options->getLocusForTest() );
        //}
-        _out << happair[0] << "," << happair[1] << ",";
+        _out << "," << happair[0] << "," << happair[1];
 	//} else {
         //_out << genotype_[0][0] << "," << genotype_[0][1] << ",";
 	//}
   }
-  _out << endl;
+  //_out << endl;
   _currentIndividual++;
 }
 

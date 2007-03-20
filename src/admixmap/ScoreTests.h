@@ -27,12 +27,16 @@ class FreqArray;
 /**
    Class to implement various score tests. 
  *   Class implements the following score tests:
- *   (1) Score test for admixture association (admixturescoretest)
- *   (2) Score test for allelic association
- *   (3) Score test for within-halpotype association
+
+ *   (1) Score test for allelic association
+ *   (2) Score test for within-halpotype association
+ *
+ * Also acts as a wrapper for the following tests:
+ *   (3) Score test for admixture association (admixturescoretest)
  *   (4) Score test for linkage with locus ancestry
  *   (5) Affecteds-only score test for linkage with locus ancestry
  *   (6) Score test for residual allelic association between adjacent pairs of linked loci
+ *   (7) hapmix allelic assoc test (using CopyNumberAssocTest)
  */
 class ScoreTests{
 
@@ -58,6 +62,7 @@ public:
   void OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels);
 
 private:
+  bool onFirstLineAllelicAssoc;
   double **LocusLinkageAlleleScore;
   double **LocusLinkageAlleleInfo;
   double **SumLocusLinkageAlleleScore2;
@@ -66,6 +71,7 @@ private:
   int *locusObsIndicator;
   unsigned *dim_;
 
+  bool onFirstLineHapAssoc;
   double ***ScoreWithinHaplotype;
   double ***InfoWithinHaplotype;
   double **SumScoreWithinHaplotype;
@@ -86,10 +92,10 @@ private:
   void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
 
   void OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
-			const double* score, const double* scoresq, const double* info, bool final, unsigned );
+			const double* score, const double* scoresq, const double* info, bool final, bool firstline, unsigned );
 
   void OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
-			      const double score, const double scoresq, const double info, bool final);
+			      const double score, const double scoresq, const double info, bool final, bool firstline);
 
   //void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int locus, double p,double phi, double DInvLink);
   void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const std::vector<int> allele2Counts, 

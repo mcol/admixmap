@@ -182,11 +182,11 @@ HapMixFreqs.o HapMixIndividual.o HapMixIndividualCollection.o MantelHaenszelTest
 all:	admixmap hapmixmap
 
 #ADMIXMAP serial
-admixmap:	checkbayeslib libcommon admixmap_message $(admixmap_objects) $(common_objects)
+admixmap:	checkbayeslib checklibcommon admixmap_message $(admixmap_objects) $(common_objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(ADMEXEC) $(admixmap_objects) $(common_objects) $(LFLAGS) $(LIBS)
 	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(ADMEXEC) \**
 #HAPMIXMAP serial
-hapmixmap:	checkbayeslib libcommon hapmixmap_message $(hapmixmap_objects) $(common_objects)
+hapmixmap:	checkbayeslib checklibcommon hapmixmap_message $(hapmixmap_objects) $(common_objects)
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(HAPEXEC) $(hapmixmap_objects) $(common_objects) $(LFLAGS) $(LIBS)
 	@echo **HAPMIXMAP has been compiled as $(DESTDIR)/$(HAPEXEC) \**
 
@@ -212,12 +212,12 @@ hapmixmap_message:
 ##this is necessary in case the version of config.h that exists is the wrong one
 checkbayeslib:
 	@echo **Checking for bayeslib**
-	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo **bayeslib found**;\
+	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo **found bayeslib**;\
 else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f manual.make;fi;
 
 checklibcommon:
 	@echo **checking for base library**
-	if test -r ../libcommon.a;then echo **found it**;\
+	if test -r ../common/libcommon.a;then echo **found it**;\
 else $(MAKE) -C ../common -e -f manual.make;fi;
 
 
