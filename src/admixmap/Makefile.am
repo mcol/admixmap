@@ -122,6 +122,7 @@ libgenepi_la_SOURCES = misc.cc \
 		       HWTest.cc \
 		       AlleleFreqSampler.cc \
 		       Comms.cc \
+		       GPI.cc \
 		       GenotypeProbOutputter.cc \
 		       Annealer.cc \
 		       EventLogger.cc

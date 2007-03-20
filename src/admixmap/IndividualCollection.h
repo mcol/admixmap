@@ -81,17 +81,10 @@ public:
   virtual void HMMIsBad(bool b);
   virtual void resetStepSizeApproximators(int ){};
 
-  //functions specific to hapmixmodel
-  virtual void SampleLocusAncestry(const Options* const, unsigned ){};
-  virtual const int* getConcordanceCounts() const{return 0;};
-  virtual const int* getSumArrivalCounts() const{return 0;};
-  virtual void AccumulateConditionalGenotypeProbs(const Options* const, const Genome& ){};
-  virtual void OutputCGProbs(const char* ){};
-
-  //functions specific to admixmodel
-  virtual void accumulateEnergyArrays(const Options* const ) {};
-  virtual double* getSumEnergy()const{return 0;};
-  virtual double* getSumEnergySq()const{return 0;};
+  //functions specific to admixmodel, required by Model
+   virtual void accumulateEnergyArrays(const Options* const ) {};
+   virtual double* getSumEnergy()const{return 0;};
+   virtual double* getSumEnergySq()const{return 0;};
 protected:
   unsigned int NumInd, size;
   int Populations, NumCompLoci;

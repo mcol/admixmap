@@ -21,9 +21,17 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   L = new PopHapMix(&options, &Loci);
   if(isMaster || isWorker)L->Initialise(data.getUnitOfDistanceAsString(), Log);
 
-  IC = new HapMixIndividualCollection(&options, &data, &Loci, &A, L->getGlobalTheta());//NB call after A Initialise;
-  if(isMaster || isWorker) IC->LoadData(&options, &data, false);    //and before R Initialise
-  //if(isWorker)IC->setGenotypeProbs(&Loci, &A); // sets unannealed probs
+  //create HapMixIndividualCollection object
+  //NB call after A Initialise, and before R Initialise
+  HMIC = new HapMixIndividualCollection(&options, &data, &Loci, &A, L->getGlobalTheta());
+  //set IC pointer in base class to the same address as HMIC
+  IC = HMIC;
+
+  //load Outcome and Covariate data into IC
+  if(isMaster || isWorker) IC->LoadData(&options, &data, false);
+
+  // set unannealed probs
+  //if(isWorker)IC->setGenotypeProbs(&Loci, &A);
 
   int numdiploid = 0;
   if(isMaster || isWorker){
@@ -90,7 +98,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
   // Update individual-level parameters, sampling hidden states
   if(isMaster || isWorker){
-    IC->SampleLocusAncestry(options, iteration);
+    HMIC->SampleLocusAncestry(options, iteration);
   }
 
   if(isWorker || isFreqSampler){
@@ -108,7 +116,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
   if(isWorker){
     //accumulate conditional genotype probs for masked individuals at masked loci
     if(options->OutputCGProbs() && iteration > options->getBurnIn())
-      IC->AccumulateConditionalGenotypeProbs(options, Loci);
+      HMIC->AccumulateConditionalGenotypeProbs(options, Loci);
   }
 
   
@@ -159,12 +167,12 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
     //Sample arrival rates with Hamiltonian Sampler, using sampled hidden states. 
     //NB: requires accumulating of StateArrivalCounts in IC
-    L->SampleArrivalRate(IC->getConcordanceCounts(), (!anneal && iteration > options->getBurnIn() 
+    L->SampleArrivalRate(HMIC->getConcordanceCounts(), (!anneal && iteration > options->getBurnIn() 
 						       && options->getPopulations() > 1) );
 
     //sample mixture proportions with conjugate update
     if(!options->getFixedMixtureProps())
-      L->SampleMixtureProportions(IC->getSumArrivalCounts());
+      L->SampleMixtureProportions(HMIC->getSumArrivalCounts());
 
     //Set global StateArrivalProbs in HMM objects. Do not force setting of mixture props (if fixed)
     if( isWorker) {
@@ -323,7 +331,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
   if(options.OutputCGProbs()){
     std::string s = options.getResultsDir();
     s.append("/PPGenotypeProbs.txt");
-    IC->OutputCGProbs(s.c_str());
+    HMIC->OutputCGProbs(s.c_str());
   }
 }
 void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWriter& Log){

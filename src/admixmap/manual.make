@@ -60,14 +60,14 @@ VERSION = serial
 #VERSION = parallel
 
 ## processor type
-#ARCH = i686# Intel 686
+ARCH = i686# Intel 686
 #ARCH = P4#Pentium4
-ARCH = AMD64# Walton
+#ARCH = AMD64# Walton
 #ARCH= itanium2# Hamilton (default)
 
 # compiler
-CC = $(PATHSCALE_COMPILER)#serial
-#CC = $(GNU_COMPILER)
+#CC = $(PATHSCALE_COMPILER)#serial
+CC = $(GNU_COMPILER)
 PCC = $(MPICC)#parallel wrapper for serial
 
 ## **Destination details
@@ -170,7 +170,7 @@ export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 common_objects	= misc.o Model.o AlleleFreqs.o Options.o AdmixOptions.o InputData.o Genome.o\
  Chromosome.o CompositeLocus.o Haplotype.o IndividualCollection.o Individual.o HMM.o AdmixtureAssocTest.o\
  AffectedsOnlyTest.o AncestryAssocTest.o ScoreTestBase.o ScoreTests.o \
- ResidualLDTest.o HWTest.o AlleleFreqSampler.o Comms.o GenotypeProbOutputter.o Annealer.o EventLogger.o
+ ResidualLDTest.o HWTest.o AlleleFreqSampler.o Comms.o GenotypeProbOutputter.o GPI.o Annealer.o EventLogger.o
 
 admixmap_objects = admixmap.o AdmixMapModel.o PopAdmix.o DispersionFreqs.o AdmixedIndividual.o AdmixIndividualCollection.o\
  chib.o IndAdmixOutputter.o StratificationTest.o MisSpecAlleleFreqTest.o DispersionTest.o
@@ -212,7 +212,14 @@ hapmixmap_message:
 ##this is necessary in case the version of config.h that exists is the wrong one
 checkbayeslib:
 	@echo **Checking for bayeslib**
-	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo $(PARALLEL_DEFINES) >config.h;else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f manual.make;fi;
+	if test -r $(BAYESLIB_PATH)/$(BAYESLIB_NAME);then echo **bayeslib found**;\
+else $(MAKE) -C $(BAYESLIB_PATH) $(BAYESLIB_RULES) -e -f manual.make;fi;
+
+checklibcommon:
+	@echo **checking for base library**
+	if test -r ../libcommon.a;then echo **found it**;\
+else $(MAKE) -C ../common -e -f manual.make;fi;
+
 
 bayeslib:
 	$(MAKE) -C $(BAYESLIB_PATH) -e -fmanual.make

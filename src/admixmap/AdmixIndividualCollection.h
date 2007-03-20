@@ -44,11 +44,6 @@ public:
 				     const vector<Regression*> &R, const double* const poptheta,
 				     const vector<vector<double> > &alpha, AncestryAssocTest& ancestryAssocTest, bool anneal);
 
-//   void SampleLocusAncestry(int iteration, const AdmixOptions* const options,
-// 			   const vector<Regression*> &R);
-  
-//  void SampleHapPairs(const AdmixOptions* const options, AlleleFreqs *A, const Genome* const Loci,
-	//	      bool skipMissingGenotypes, bool anneal);
   void SampleParameters(int iteration, const AdmixOptions* const options,
 			const vector<Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,

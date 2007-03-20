@@ -41,6 +41,8 @@ private:
   PopHapMix* L;
   HapMixFreqs A;
   MantelHaenszelTest MHTest;
+  HapMixIndividualCollection* HMIC;
+
   void UpdateParameters(int iteration, const Options *options, 
 			LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal);
   void OutputParameters(int iteration, const Options *options, LogWriter& Log);
