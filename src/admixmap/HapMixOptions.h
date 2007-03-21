@@ -68,7 +68,8 @@ public:
   //score test indicators 
   bool getMHTest()const;  
   
-  //
+  /// vector does not provide find() function.
+  /// This function is needed in HapMixIndividual::SampleLocusAncestry()
   const std::vector<unsigned>& getMaskedIndividuals()const;
   const std::vector<unsigned>& getMaskedLoci()const;
   bool OutputCGProbs()const;

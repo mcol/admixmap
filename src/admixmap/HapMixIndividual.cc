@@ -12,6 +12,7 @@
  */
 #include "HapMixIndividual.h"
 #include <algorithm>
+#include "../common/DebugMacros.h"
 
 const FreqArray* HapMixIndividual::HaploidGenotypeProbs;
 const FreqArray* HapMixIndividual::DiploidGenotypeProbs;
@@ -93,7 +94,10 @@ HapMixIndividual::HapMixIndividual(int number, const Options* const options, con
   
   // Allocate space for unordered genotype probs
   // They have form of vector of vectors of vectors of doubles.
-  if(options->getHapMixModelIndicator() && options->getTestForAllelicAssociation()){
+  // FIXME: allocation condition
+  // UnorderedProbs should be allocated also for individuals who are
+  // case/control. How to check if an individual is case/control?
+  if(true or (options->getHapMixModelIndicator() && options->getTestForAllelicAssociation())){
     vector<double> v1 = vector<double>(1);
     vector<vector<double> > v3 = vector<vector<double> >(3, v1);
     UnorderedProbs = vector<vector<vector<double> > >(numCompositeLoci, v3);
@@ -329,7 +333,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
   /* Possible optimization: if the probability of the state
    * (orderedStateProbs[ospIdx]) is close to zero, it might have
    * a very little effect on the results, so this state could
-   * be skipped. Unfortunately, the threshold of 1e-7 is
+   * be skipped. Unfortunately, threshold of 1e-7 is
    * still too high.
    */
   
@@ -351,11 +355,47 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
        * result in array genotype probs (size 3 x number of loci)
        * `ogpi' stands for ordered genotype probabilities index
        */
+//      cout << "orderedGenotypeProbs: ";
       for (int ogpi = 0; ogpi < 4; ++ogpi) {
-        UnorderedProbs[j][ord2unord[ogpi]][0] += orderedGenotypeProbs[ogpi] * orderedStateProbs[ospIdx];
+//        cout << "[" << ogpi << ": "
+//            << orderedGenotypeProbs[ogpi] << "] ";
+//        if (isnan(orderedGenotypeProbs[ogpi])) {
+//          throw string("orderedGenotypeProbs[ogpi] is nan");
+//        }
+//        if (isnan(orderedStateProbs[ospIdx])) {
+//          throw string("orderedStateProbs[ospIdx] is nan");
+//        }
+        UnorderedProbs[j][ord2unord[ogpi]][0] +=
+            orderedGenotypeProbs[ogpi] * orderedStateProbs[ospIdx];
+//        if (isnan(UnorderedProbs[j][ord2unord[ogpi]][0])) {
+//          SPIT(orderedGenotypeProbs[ogpi]);
+//          SPIT(orderedStateProbs[ospIdx]);
+//          SPIT(UnorderedProbs[j][ord2unord[ogpi]][0]);
+//          throw string("orderedStateProbs[ospIdx]");
+//        }
       }
+//      cout << endl;
     }
   }
+//  cout << "UnorderedProbs: ("
+//    << UnorderedProbs[j][0][0] << ", "
+//    << UnorderedProbs[j][1][0] << ", "
+//    << UnorderedProbs[j][2][0] << ")"
+//    << endl;
+//   Check if UnorederedProbs[j][*][0] sum up to 1
+//  double sum = 0.0;UnorderedProbs[j][*][0]
+//  for (int g = 0; g < 3; ++g) {
+//    sum += UnorderedProbs[j][g][0];
+//  }
+//  if (fabs(sum - 1.0) > 1e-6) {
+//    cerr << "UnorderedProbs[" << j << "] don't sum up to 1." << endl;
+//    throw string("UnorderedProbs[j][*][0] don't sum up to 1.");
+//  }
+//  if (isnan(UnorderedProbs[j][0][0])
+//   || isnan(UnorderedProbs[j][1][0])
+//   || isnan(UnorderedProbs[j][2][0])) {
+//    throw string("one of UnorderedProbs[j][*][0] is nan");
+//  }
 }
 
 /** Get probabilities of hidden states from HMM */

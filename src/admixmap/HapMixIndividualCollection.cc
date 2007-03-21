@@ -63,13 +63,18 @@ HapMixIndividualCollection::~HapMixIndividualCollection(){
 //     return 0;
 //   }
 // }
-void HapMixIndividualCollection::SampleLocusAncestry(const Options* const options, unsigned iteration){
+void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const options, unsigned iteration){
 
-  fill(ConcordanceCounts, ConcordanceCounts + NumCompLoci*(options->getPopulations()+1), 0);
-  fill(SumArrivalCounts, SumArrivalCounts + NumCompLoci*options->getPopulations(), 0);
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(15, 0, "Sampleancestry");
 #endif
+
+  fill(ConcordanceCounts, ConcordanceCounts + NumCompLoci*(options->getPopulations()+1), 0);
+  fill(SumArrivalCounts, SumArrivalCounts + NumCompLoci*options->getPopulations(), 0);
+
+  const vector<unsigned>& maskedIndividuals = options->getMaskedIndividuals();
+  const vector<unsigned>::const_iterator mi_begin = maskedIndividuals.begin();
+  const vector<unsigned>::const_iterator mi_end = maskedIndividuals.end();
 
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
     // ** Run HMM forward recursions and sample locus ancestry
@@ -80,11 +85,19 @@ void HapMixIndividualCollection::SampleLocusAncestry(const Options* const option
 	&& i >= getFirstScoreTestIndividualNumber()
       // And if the score tests are switched on
       && options->getTestForAllelicAssociation()
-      // FIXME: The next condition shouldn't be necessary.
+      // FIXME: The next condition shouldn't be necessary, but it is.
       && (not _child[i]->isHaploidIndividual()))
     {
       _child[i]->calculateUnorderedGenotypeProbs();
-    }
+    } else {
+      //see if this individual is in the list of masked individuals
+      // maskedIndividuals indices are 1-based, offset of 1 is needed
+      vector<unsigned>::const_iterator mi = find(mi_begin, mi_end, i+1);
+      if(mi != mi_end){// this individual is in the list
+          _child[i]->calculateUnorderedGenotypeProbs();
+      }
+
+    }//end else
 
     //accumulate sufficient statistics for update of arrival rates and mixture proportions
     _child[i]->AccumulateConcordanceCounts(ConcordanceCounts);
@@ -127,18 +140,21 @@ unsigned int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()cons
 }
 //TODO: alternative for parallel version
 void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci){
+  
   const std::vector<unsigned>& MaskedLoci = options->getMaskedLoci();
   const std::vector<unsigned>& MaskedIndividuals = options->getMaskedIndividuals();
-  int anc[2];
+  // vu_ci stands for vector<unsigned>::const_iterator
+  typedef std::vector<unsigned>::const_iterator vu_ci;
   unsigned j = 0;
   //NB: indices count from 1 so must be offset by -1
-  for(std::vector<unsigned>::const_iterator locus = MaskedLoci.begin(); locus!= MaskedLoci.end(); ++j, ++locus)
-    if (*locus <= Loci.GetNumberOfCompositeLoci()){
+  for(vu_ci locus_i = MaskedLoci.begin(); locus_i!= MaskedLoci.end(); ++j, ++locus_i) {
+    if (*locus_i <= Loci.GetNumberOfCompositeLoci()){
       unsigned i = 0;
-      for(std::vector<unsigned>::const_iterator indiv = MaskedIndividuals.begin(); indiv!= MaskedIndividuals.end(); ++i, ++indiv)
-	if(*indiv <= size){
-	  _child[*indiv-1]->GetLocusAncestry(*locus-1, anc);
-	  GPO.Update(i, j, Loci(*locus-1), _child[*indiv-1]->getPossibleHapPairs(*locus-1), anc);
+      for(vu_ci indiv_i = MaskedIndividuals.begin(); indiv_i!= MaskedIndividuals.end(); ++i, ++indiv_i) {
+        if(*indiv_i <= size) {
+          GPO.Update(i, j, _child[(*indiv_i) - 1]->getUnorderedProbs((*locus_i) - 1));
+        }
+      }
     }
   }
 }

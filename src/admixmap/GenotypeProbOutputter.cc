@@ -10,24 +10,56 @@ void GenotypeProbOutputter::Initialise(unsigned Nindivs, unsigned Nloci){
   Probs.assign(4, 0);
   //NB: assuming only SNPs.
   //TODO:?? extend to arbitrarily-sized loci (requires number of haplotype states for each locus) 
-  SumProbs.assign(Nloci*Nindivs*3, 0.0);
+  sumProbs.assign(Nindivs, vector<vector<double> >(Nloci, vector<double>(3, 0)));
 }
 
-void GenotypeProbOutputter::Update(unsigned i, unsigned j, const CompositeLocus* Locus, const std::vector<hapPair > &HapPairs, const int ancestry[2]){
+/// Accumulates genotype probabilities for individual i, locus j
+void GenotypeProbOutputter::Update(
+    const unsigned i, //< Individual number
+    const unsigned j, //< Locus number
+    const vector<vector<double> >& unorderedGenotypeProbs)
+{
 #ifndef PARALLEL
+#define GPO_SPIT cout << "GenotypeProbOutputter::Update(): (" \
+    << i << ", " << j \
+    << ") (" \
+    << unorderedGenotypeProbs[0][0] << ", " \
+    << unorderedGenotypeProbs[1][0] << ", " \
+    << unorderedGenotypeProbs[2][0] << "), (" \
+    << sumProbs[i][j][0] << ", " \
+    << sumProbs[i][j][1] << ", " \
+    << sumProbs[i][j][2] << ")" << endl
+
+//  if (isnan(unorderedGenotypeProbs[0][0])
+//   || isnan(unorderedGenotypeProbs[1][0])
+//   || isnan(unorderedGenotypeProbs[2][0])) {
+//    GPO_SPIT;
+//    throw("unorderedGenotypeProbs are nan");
+//  }
+
   //TODO: shortcut - HapPairs will always be the same
-  Locus->getConditionalHapPairProbs(Probs, HapPairs, ancestry);
 
 //   if(fabs(Probs[0]+Probs[1]+Probs[2]+Probs[3] - 1.0) >1e-6 ){
 //     cout << Probs[0] << " " << Probs[1] << " " << Probs[2] << " " << Probs[3] << endl;
 //     cout << "j= " << j << " i= " << i << " " << (j*NumMaskedIndivs +i )*3 << " ";
 //   }
 
+//  //cout << "J = " << NumMaskedLoci << " I = " << NumMaskedIndivs << " " << SumProbs.size() << " "<< SumProbs[(j*NumMaskedIndivs +i )*3 ] << endl;
 
-  //cout << "J = " << NumMaskedLoci << " I = " << NumMaskedIndivs << " " << SumProbs.size() << " "<< SumProbs[(j*NumMaskedIndivs +i )*3 ] << endl;
-  SumProbs[(j*NumMaskedIndivs +i )*3 ] += Probs[0];//genotype "1,1"
-  SumProbs[(j*NumMaskedIndivs +i )*3 +1] += Probs[1] + Probs[2];//genotype "1,2"
-  SumProbs[(j*NumMaskedIndivs +i )*3 +2] += Probs[3];//genotype "2,2"
+  for (int g = 0; g < 3; ++g) {
+    sumProbs[i][j][g] += unorderedGenotypeProbs[g][0];
+  }
+  
+//  if (i == 1) {
+//    GPO_SPIT;
+//  }
+//  if (isnan(sumProbs[i][j][0])
+//   || isnan(sumProbs[i][j][1])
+//   || isnan(sumProbs[i][j][2])) {
+//    GPO_SPIT;
+//    throw("sumProbs are nan");
+//  }
+
   ++NumIterations;
 
 #endif
@@ -36,16 +68,58 @@ void GenotypeProbOutputter::Update(unsigned i, unsigned j, const CompositeLocus*
 //! Output Probs as R object to be read with dget() function
 void GenotypeProbOutputter::Output(const char* filename){
   outfile.open(filename);
+  outfile << "# $Id$" << endl;
   outfile << "structure(.Data=c(" << endl;
+  outfile << setfill(' ');
   //  outfile.setf(ios::fixed); 
   outfile.precision(6);
   //average over iterations
-  NumIterations /= NumMaskedIndivs * NumMaskedLoci;
-  for(vector<double>::iterator i = SumProbs.begin(); i != SumProbs.end(); ++i)*i /= (double)NumIterations;
-  //output to file, followed by comma
-  copy(SumProbs.begin(), SumProbs.end()-1, ostream_iterator<double>(outfile, ", "));
-  //output last element
-  outfile << *(SumProbs.end()-1) << endl;
+  NumIterations /= NumMaskedIndivs;
+  NumIterations /= NumMaskedLoci;
+  double numIterationsReciprocal = 1.0 / NumIterations;
+  
+  vector<vector<vector<double> > >::iterator indiv_i;
+  vector<vector<double> >::iterator locus_i;
+  vector<double>::iterator gt_i;
+  
+  unsigned counter = 0;
+  unsigned icounter1 = 1; //< Individual counter (1-based)
+  unsigned lcounter1 = 1; //< Locus counter (1-based)
+  unsigned last = NumMaskedLoci * NumMaskedIndivs * 3 - 1;
+  for(indiv_i = sumProbs.begin(); indiv_i != sumProbs.end(); ++indiv_i) {
+    outfile << "# Individual " << icounter1 << endl;
+    lcounter1 = 1;
+    for (locus_i = indiv_i->begin(); locus_i != indiv_i->end(); ++locus_i) {
+      for (gt_i = locus_i->begin(); gt_i != locus_i->end(); ++gt_i) {
+        double tmp_gt = *gt_i;
+        *gt_i *= numIterationsReciprocal;
+        // Round the probabilites to 6 decimal places
+        // Makes them sum up to exactly 1.0 after outputting
+        // (assuming they do sum up to 1.0 before rounding)
+        double tmp_gt2 = *gt_i;
+        *gt_i = floor((*gt_i) * 1e6 + 0.5) * 1e-6;
+        // Output the number
+        outfile << setw(10);
+        outfile << *gt_i;
+        // Write a comma if it wasn't the last element
+        if (!(counter == last)) { outfile << ", "; }
+        ++counter;
+        if (isnan(*gt_i)) {
+          cerr << "*gt_i is nan. "
+              << tmp_gt << " * "
+              << numIterationsReciprocal << " -> " 
+              << tmp_gt2 << " -> "
+              << "nan" << endl;
+          throw("*gt_i is nan");
+        }
+      }
+      outfile << "# masked locus no. " << lcounter1;
+      // Keep one line per genotype triplet
+      outfile << endl;
+      ++lcounter1;
+    }
+    ++icounter1;
+  }
 
   //output dimensions
   std::vector<int> dim(3,0);

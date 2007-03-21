@@ -275,12 +275,12 @@ const pvector<double>& HMM::GetHiddenStateProbs(bool isDiploid, int t){
     States=DStates;
   }
   
-  if (hiddenStateProbs.size() != States) {
+  if (hiddenStateProbs.size() != (unsigned)States) {
     hiddenStateProbs.resize(States);
   }
 
-   const double *a = alpha + t*States;
-   const double *b = beta + t*States;  
+  const double *a = alpha + t*States;
+  const double *b = beta + t*States;  
   for( unsigned j = 0; j < States; j++ ){
     //    hiddenStateProbs[j] = alpha[t*States + j] * beta[t*States + j];
     hiddenStateProbs[j] = (*(a++)) * ( *(b++) );

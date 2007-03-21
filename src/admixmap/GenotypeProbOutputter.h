@@ -3,6 +3,7 @@
 #define GPOUTPUTTER_H
 
 #include <fstream>
+#include <iomanip>
 #include "CompositeLocus.h"
 #include "../common/pvector.h"
 
@@ -12,7 +13,7 @@ public:
   void Initialise(unsigned Nindivs, unsigned Nloci);
   //TODO: alternative for parallel version since HapPairProbs are not stored and Workers have no CompositeLocus objects
   //update for a single individual at a single locus
-  void Update(unsigned i, unsigned j, const CompositeLocus* Locus, const std::vector<hapPair > &HapPairs, const int ancestry[2]);
+  void Update(unsigned i, unsigned j, const vector<vector<double> >&);
   void Output(const char* filename);
 
 private:
@@ -22,7 +23,13 @@ private:
   pvector<double> Probs;
   std::ofstream outfile;
 
-  std::vector< double > SumProbs;
+  /** Three-dimensional vector for probabilities.
+   * Dimensions are:
+   * 1. Individual
+   * 2. Locus
+   * 3. Genotype
+   */
+  vector<vector<vector<double> > > sumProbs;
 };
 
 

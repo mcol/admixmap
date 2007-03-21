@@ -17,13 +17,6 @@
 # GSL - only needed if in nonstandard location 
 GSL_INCLUDEPATH=#standard is /usr/local/include
 
-## for parallel version only
-# path to mpi top level directory
-#MPI_PATH = /usr/local/mpich/gcc# mpich with gcc 3
-#MPI_PATH = /usr/local/mpich/gcc4# mpich with gcc 4
-MPI_PATH = /usr/local/mpich/path## MPI wrapper for Pathscale compiler
-#MPI_PATH = /usr/local/mpich2/gcc## mpich2 on Walton
-
 # path to sprng top level directory
 SPRNG_PATH = /opt/packages/sprng-2.0
 
@@ -32,8 +25,6 @@ GNU_COMPILER  = g++ # GNU compiler, all machines
 INTEL_COMPILER = icpc# Intel compiler for Hamilton
 PATHSCALE_COMPILER = pathCC# Pathscale compiler,( Walton )
 PORTLAND_COMPILER = pgCC# Portland Group compiler ( Walton )
-MPICC = $(MPI_PATH)/bin/mpiCC# MPI 1 wrapper
-MPICXX = $(MPI_PATH)/bin/mpicxx# MPI 2 wrapper
 
 ## DEFAULTS
 GCC_VERSION =3
@@ -121,36 +112,21 @@ PICFLAG =# -fPIC
 
 objects		=  DivideBy.o pvector.o SnapToZero.o ZeroOrMore.o
 
-all:	serial
+all:	static #shared
 
-serial:
-#	@echo >../config.h
-	touch ../config.h
-	@$(MAKE) -f manual.make static INCLUDES="$(SERIAL_INCLUDES)" CXX=$(CC) CPPFLAGS="$(CPPFLAGS)"
-
-parallel:
-#	@echo "#define PARALLEL" >../config.h
-	touch ../config.h
-	@$(MAKE) -fmanual.make static INCLUDES="$(PARALLEL_INCLUDES)" CXX=$(PCC) CPPFLAGS="$(CPPFLAGS)"
-
-static: libcommon
-
-libcommon: $(objects) 
+static: $(objects) 
 	ar crs libcommon.a $(objects)
 	ranlib libcommon.a
 
-shared: paraheader $(objects)
+shared: $(objects)
 	$(CXX) $(CPPFLAGS) -shared -Wl,-soname,libcommon.so\
 -o libcommon.so $(objects) -lgsl -lgslcblas
 
 %.o: %.cc#rule for compilation
 	$(CXX) $(CPPFLAGS) -I.. $(INCLUDES) $(PICFLAG) -c $< -o $@
 
-clean:		          
-	rm -f *.o config.h
-
-veryclean: clean
-	rm -f *.a *.so config.h
+clean: clean
+	rm -f *.a *.so
 
 dist:
 	rm libcommon.tar.gz

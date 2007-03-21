@@ -12,7 +12,7 @@
 
 #include "Options.h"
 #include "utils/StringConvertor.h"
-#include <string.h>
+#include <string>
 #include <sstream>
 
 using namespace std;

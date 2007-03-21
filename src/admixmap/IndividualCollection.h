@@ -81,10 +81,15 @@ public:
   virtual void HMMIsBad(bool b);
   virtual void resetStepSizeApproximators(int ){};
 
-  //functions specific to admixmodel, required by Model
-   virtual void accumulateEnergyArrays(const Options* const ) {};
-   virtual double* getSumEnergy()const{return 0;};
-   virtual double* getSumEnergySq()const{return 0;};
+  //functions specific to admixmodel
+  virtual void accumulateEnergyArrays(const Options* const ) {
+    throw string("IndividualCollection::accumulateEnergyArrays is unimplemented."); };
+  virtual double* getSumEnergy()const{
+    throw string("IndividualCollection::getSumEnergy is unimplemented."); };
+  virtual double* getSumEnergySq()const{
+    throw string("IndividualCollection::getSumEnergySq is unimplemented."); };
+    
+
 protected:
   unsigned int NumInd, size;
   int Populations, NumCompLoci;

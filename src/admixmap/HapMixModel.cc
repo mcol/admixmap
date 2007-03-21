@@ -98,7 +98,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
   // Update individual-level parameters, sampling hidden states
   if(isMaster || isWorker){
-    HMIC->SampleLocusAncestry(options, iteration);
+    HMIC->SampleHiddenStates(options, iteration);
   }
 
   if(isWorker || isFreqSampler){

@@ -1,14 +1,5 @@
 #include "pvector.h"
 
-//pvector::pvector()
-//{
-//}
-//
-//pvector::~pvector()
-//{
-//}
-
-
 template <class T>
 bool pvector<T>::is_normalized()
 {
@@ -17,6 +8,7 @@ bool pvector<T>::is_normalized()
   sum = accumulate(this->begin(), this->end(), 0.0);
   return (fabs(sum - PVECTOR_SUM) < PVECTOR_PRECISION);
 }
+
 
 template <class T>
 void pvector<T>::normalize()
