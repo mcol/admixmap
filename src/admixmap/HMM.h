@@ -27,7 +27,8 @@ public:
   ~HMM();
   void SetDimensions( int inTransitions, int pops, const double* const fin);
   void SetGenotypeProbs(const GenotypeProbIterator& lambdain, const bool* const missing);
-  void SetTheta(const MixturePropsWrapper& Theta, int Mcol, bool isdiploid, bool needBackwardProbs=true);
+  void SetTheta(const MixturePropsWrapper& Theta, const MixturePropsWrapper& ThetaSq, 
+		const MixturePropsWrapper& ThetaSqInv);
   void SetStateArrivalProbs(int Mcol, bool isdiploid);
 
   void Sample(int *SStates, bool isdiploid);
@@ -52,11 +53,11 @@ private:
   double *alpha, *beta, *LambdaBeta;
   double *p;
   double *StateArrivalProbs;
-  double *ThetaThetaPrime;
-  double *ThetaThetaInv;
 
   const double* f;
   MixturePropsWrapper theta;
+  MixturePropsWrapper ThetaThetaPrime;
+  MixturePropsWrapper ThetaThetaInv;
   GenotypeProbIterator LambdaGPI;
   const bool* missingGenotypes;
   bool alphaIsBad, betaIsBad;

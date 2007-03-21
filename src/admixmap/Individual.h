@@ -81,7 +81,7 @@ protected:
   bool SexIsFemale;
   bool isHaploid;//< indicates if individual is haploid at all loci or only at X loci
   static unsigned int numChromosomes;
-  static int Populations; //< Number of hidden states in the hidden Markov model
+  static int NumHiddenStates; //< Number of hidden states in the hidden Markov model
   static Genome *Loci;
   static bool Xdata;//< indicates if there is an X chromosome
   static unsigned int X_posn;  //< number of X chromosome

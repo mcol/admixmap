@@ -30,10 +30,11 @@ PopHapMix::PopHapMix( HapMixOptions* op, Genome* loci)
   options = op;
   Loci = loci;
   MixtureProps = 0;
-  //MixturePropsproposal = 0;
   ArrivalRateSampler = 0;
   MixturePropsPrior = 0;
   dirparams = 0;
+  ThetaSquared = 0;
+  ThetaThetaInv = 0;
 }
 
 void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
@@ -74,6 +75,14 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
   EventLogger::LogEvent(18, 0, "Bcasted");
   //TODO: broadcast Mixture Params
 #endif    
+
+  if(Comms::isWorker()){
+    ThetaSquared = new double[Loci->GetNumberOfCompositeLoci() * K *K];
+    if(options->getTestForAllelicAssociation())
+      ThetaThetaInv = new double[Loci->GetNumberOfCompositeLoci() * K *K];
+  }
+
+  SetThetaSquared();
 }
 
 ///initialise global admixture proportions
@@ -228,7 +237,8 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
 PopHapMix::~PopHapMix()
 {
   delete[] MixtureProps;
-  //delete[] MixturePropsproposal;
+  delete[] ThetaSquared;
+  delete[] ThetaThetaInv;
   delete[] ArrivalRateSampler;
   delete[] MixturePropsPrior;
   delete[] dirparams;
@@ -383,7 +393,7 @@ double PopHapMix::LambdaEnergy(const double* const x, const void* const vargs){
     double f = myexp(-lambda);
 
     for(unsigned k = 0; k < K; ++k){
-      E -= n[k]  * log(              (1.0 - f) )//discordant, omitting constant term
+      E -= n[k]  * log(              theta[k]*(1.0 - f) )//discordant, omitting constant term
 	 + n[k+K]* log( f + theta[k]*(1.0 - f) );//concordant
     }
 
@@ -629,6 +639,9 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
 #ifdef PARALLEL
   //TODO: broadcast mixture props
 #endif
+
+  if(Comms::isWorker())
+    SetThetaSquared();
 }
 
 /**
@@ -639,18 +652,34 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
 //TODO: can skip this if xonly analysis with no females
 void PopHapMix::SetHMMStateArrivalProbs(bool isInitial){
   //set locus correlation (workers only)
+  const unsigned KSq = K*K;
   if(Comms::isWorker()){
     Loci->SetLocusCorrelation(lambda);
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ){
-      //TODO: can probably replace isRandomMating with false
       Chromosome* C = Loci->getChromosome(j);
 
       if(isInitial || !options->getFixedMixtureProps()){
-	MixturePropsWrapper MPW(MixtureProps + (C->GetLocus(0) * K), K); 
-	C->SetHMMTheta(MPW, options->isRandomMatingModel(), true);
+	MixturePropsWrapper ThetaWrap(MixtureProps + (C->GetLocus(0) * K), K);
+	MixturePropsWrapper ThetaSqWrap(ThetaSquared + (C->GetLocus(0) * KSq), KSq);
+	MixturePropsWrapper ThetaThetaInvWrap(ThetaThetaInv + (C->GetLocus(0) * KSq), KSq);
+ 
+	C->SetHMMTheta(ThetaWrap, ThetaSqWrap, ThetaThetaInvWrap);
       }
       C->SetStateArrivalProbs(options->isRandomMatingModel(), true);
     }
   }
 }
 
+void PopHapMix::SetThetaSquared(){
+  for(unsigned locus = 0; locus < Loci->GetNumberOfCompositeLoci(); ++locus){
+    const unsigned locusKSq = locus*K*K;
+    const unsigned rownum = locus*K;
+    for(unsigned j0 = 0; j0 < K; ++j0) {
+      for(unsigned j1 = 0; j1 < K; ++j1) {
+	ThetaSquared[locusKSq + j0*K + j1] = MixtureProps[rownum + j0] * MixtureProps[rownum + j1];
+	if(options->getTestForAllelicAssociation())
+	  ThetaThetaInv[locusKSq + j0*K + j1] = 1.0 / ThetaSquared[locusKSq + j0*K + j1];
+      }
+    }
+  }
+}

@@ -309,7 +309,7 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 //    throw string("Trying to calculate UnorderedProbs but Loci->GetNumberOfStates(j) != 2");
 //    return;
 //  }
-  const int numberOfHiddenStates = Populations;
+  const int numberOfHiddenStates = NumHiddenStates;
   int anc[2];
   
   pvector<double> orderedStateProbs = getStateProbs(

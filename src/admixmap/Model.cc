@@ -1,5 +1,7 @@
 #include "Model.h"
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 Model::Model(){
  AISsumlogz = 0.0;

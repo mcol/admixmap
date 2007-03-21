@@ -2,8 +2,9 @@
 
 #ifndef FREQ_ARRAYS_H
 #define FREQ_ARRAYS_H
-
+#ifdef HAVE_CONFIG_H
 #include "config.h"
+#endif
 #include "utils/ColumnIter.h"
 
 #ifndef PARALLEL

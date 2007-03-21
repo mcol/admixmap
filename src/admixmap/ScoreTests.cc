@@ -816,7 +816,7 @@ void ScoreTests::OutputScalarScoreTest( int iterations, ofstream* outputstream, 
     if(final)*outputstream << "NA" << sep << "NA" << sep;
     *outputstream << "NA" ;
   }
-  if(final)*outputstream << "NA";//NA in chisquare column in final table 
+  if(final)*outputstream << sep << "NA";//NA in chisquare column in final table 
   //*outputstream << endl;
 }
 

@@ -22,19 +22,19 @@ using namespace std;
 Chromosome::Chromosome(){
     Distances = 0;
     NumberOfCompositeLoci = 0;
-    populations = 0;
+    NumHiddenStates = 0;
     isX = false;
     //Diploid = true;
     f = 0;
     CodedStates = 0;
 }
 
-Chromosome::Chromosome(int n, int size, int start, int inpopulations, bool isx = false) 
+Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool isx = false) 
 		      //size = number of comp loci on chromosome
 {
   Number = n;
   _startLocus = start;
-  populations = inpopulations;
+  NumHiddenStates = inNumHiddenStates;
   isX = isx;
   if ( size < 1 ){
     size = 1;
@@ -46,7 +46,7 @@ Chromosome::Chromosome(int n, int size, int start, int inpopulations, bool isx =
   f = new double[2*size];
   f[0] = f[1] = 0.0;
 
-  SampleStates.SetDimensions( size, populations, f);
+  SampleStates.SetDimensions( size, NumHiddenStates, f);
 }
 
 Chromosome::~Chromosome()
@@ -158,11 +158,9 @@ void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global
 void Chromosome::SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool* const GenotypesMissing) {
   SampleStates.SetGenotypeProbs(GenotypeProbs, GenotypesMissing);
 }
-void Chromosome::SetHMMTheta(const MixturePropsWrapper& Admixture, bool RandomMating, bool diploid){
-  if(diploid || !RandomMating)
-    SampleStates.SetTheta(Admixture, RandomMating, diploid);
-  else if(RandomMating)//haploid case in random mating model: pass pointer to maternal admixture props
-    SampleStates.SetTheta(Admixture+populations, RandomMating, diploid);
+void Chromosome::SetHMMTheta(const MixturePropsWrapper& Admixture, const MixturePropsWrapper& ThetaSq,
+			     const MixturePropsWrapper& ThetaSqInv){
+    SampleStates.SetTheta(Admixture, ThetaSq, ThetaSqInv);
 }
 
 ///sets state arrival probs in HMM, only required for diploid case
@@ -190,17 +188,17 @@ std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDipl
   std::vector<std::vector<double> >AncestryProbs(3);
 
   if(isDiploid){
-    for( int k1 = 0; k1 < populations; k1++ ){
-      AncestryProbs[2].push_back(probs[ ( populations + 1 ) * k1 ]);//prob of 2 copies = diagonal element 
+    for( int k1 = 0; k1 < NumHiddenStates; k1++ ){
+      AncestryProbs[2].push_back(probs[ ( NumHiddenStates + 1 ) * k1 ]);//prob of 2 copies = diagonal element 
       AncestryProbs[1].push_back( 0.0 );
-      for( int k2 = 0 ; k2 < populations; k2++ )
-	AncestryProbs[1][k1] += probs[k1*populations +k2] + probs[k2*populations +k1];
+      for( int k2 = 0 ; k2 < NumHiddenStates; k2++ )
+	AncestryProbs[1][k1] += probs[k1*NumHiddenStates +k2] + probs[k2*NumHiddenStates +k1];
       AncestryProbs[1][k1] -= 2.0*AncestryProbs[2][k1];
       AncestryProbs[0].push_back( 1.0 - AncestryProbs[1][k1] - AncestryProbs[2][k1] );
     }
   }
   else{//haploid case
-    for( int k = 0; k < populations; k++ ){
+    for( int k = 0; k < NumHiddenStates; k++ ){
       AncestryProbs[2].push_back( 0.0 );//cannot have two copies if haploid
       AncestryProbs[1].push_back(probs[k]);//probability of one copy
       AncestryProbs[0].push_back(1.0-probs[k]);//probability of no copies

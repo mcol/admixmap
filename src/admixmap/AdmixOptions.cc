@@ -16,7 +16,6 @@
 #include <string.h>
 #include <sstream>
 #include <numeric> // for checkInitAlpha
-#include "config.h"
 
 using namespace std;
 

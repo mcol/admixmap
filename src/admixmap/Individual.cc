@@ -26,7 +26,7 @@ bool Individual::Xdata;
 unsigned Individual::X_posn;
 unsigned int Individual::numChromosomes;
 Genome *Individual::Loci;
-int Individual::Populations;
+int Individual::NumHiddenStates;
 
 //******** Constructors **********
 Individual::Individual() {//should initialise pointers here
@@ -112,7 +112,7 @@ Individual::~Individual() {
 }
 
 void Individual::SetUniformAdmixtureProps() {
-  size_t K = Populations;
+  size_t K = NumHiddenStates;
   for( unsigned g = 0; g < NumGametes; ++g ) { 
     for(size_t k = 0; k < K; ++k)
       Theta[g*K+k] = 1.0 / K;
@@ -151,7 +151,7 @@ void Individual::DeleteGenotypes(){
 void Individual::SetStaticMembers(Genome* const pLoci, const Options* const options){
   Loci = pLoci;
   numChromosomes = Loci->GetNumberOfChromosomes();
-  Populations = options->getPopulations();
+  NumHiddenStates = options->getPopulations();
   Xdata = Loci->isX_data();
   X_posn = 9999; //position of the X chromosome in the sequence of chromosomes in the input data
   if(Xdata) X_posn = Loci->GetChrNumOfLocus(Loci->getFirstXLocus());//too clunky, should simplify
@@ -296,8 +296,8 @@ void Individual::SampleLocusAncestry(const Options* const options){
 */
 void Individual::AccumulateConcordanceCounts(int* ConcordanceCounts)const{
   unsigned locus = 0;
-  const unsigned  K = Populations;
-  // const unsigned KSq = Populations * Populations;
+  const unsigned  K = NumHiddenStates;
+  // const unsigned KSq = NumHiddenStates * NumHiddenStates;
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     const Chromosome* C = Loci->getChromosome(j);
     ++locus;//skip first locus on each chromosome

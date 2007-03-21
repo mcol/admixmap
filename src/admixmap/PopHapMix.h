@@ -113,9 +113,8 @@ private:
   double* MixturePropsPrior;//parameters of Dirichlet prior on MixureProps
   double* dirparams;//parameters of Dirichlet distribution from which MixtureProps are sampled
 
-  //double* globalthetaproposal;//for random walk update
-  //StepSizeTuner ThetaTuner;
-  //double thetastep;
+  double* ThetaSquared;//< Array required for HMM updates
+  double* ThetaThetaInv;//< Array required for HMM backward updates
 
   DirichletParamSampler MixturePropsPrecisionSampler;
 
@@ -128,6 +127,7 @@ private:
   void SampleRateParameter();
   void Sampleh_RandomWalk();
   void Sampleh_ARS();
+  void SetThetaSquared();
 
   static double LambdaEnergy(const double* const x, const void* const vargs);
   static void LambdaGradient( const double* const x, const void* const vargs, double* g );

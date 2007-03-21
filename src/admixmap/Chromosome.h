@@ -52,7 +52,8 @@ public:
 
 // ********** Interface to HMM ****************************************
   void SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool* const GenotypesMissing);
-  void SetHMMTheta(const MixturePropsWrapper& Admixture, bool RandomMating, bool diploid);
+  void SetHMMTheta(const MixturePropsWrapper& Admixture, const MixturePropsWrapper& ThetaSq, 
+		   const MixturePropsWrapper& ThetaSqInv);
   void SetStateArrivalProbs(bool RandomMating, bool isdiploid);
 
   ///sample hidden states
@@ -76,7 +77,7 @@ private:
  
   int Number;//number of chromosome
   int _startLocus;
-  int populations;
+  int NumHiddenStates;
   std::string _Label;
   HMM SampleStates;
   bool isX;

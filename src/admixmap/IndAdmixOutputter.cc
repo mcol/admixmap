@@ -98,7 +98,7 @@ IndAdmixOutputter::~IndAdmixOutputter()
 void IndAdmixOutputter::visitIndividual(const AdmixedIndividual& ind, const vector<int> _locusfortest)
 {
   //output comma after previous individual
-  if( _currentIndividual > 0)
+  if( _currentIndividual > 0 || _iterations > 1)
     _out << ",";
   //start on new line (for ease of human reading)
   _out << endl;

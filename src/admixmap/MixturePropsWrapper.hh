@@ -6,21 +6,25 @@ class MixturePropsWrapper{
 public:
   MixturePropsWrapper(){
     theta = 0;
-    K = 0;
+    stride = 0;
   }
 
-  MixturePropsWrapper(const double* const p, unsigned NumStates = 0){
+  MixturePropsWrapper(const double* const p, unsigned K = 0){
+    assign(p, K);
+  }
+
+  void assign(const double* const p, unsigned K = 0){
     theta = p;
-    K = NumStates;
+    stride = K;
   }
 
   ~MixturePropsWrapper(){
     theta = 0;
-    K = 0;
+    stride = 0;
   }
 
   double get(unsigned locus, unsigned state)const{
-    return theta[locus*K + state];
+    return theta[locus*stride + state];
   }
 
   double operator()(unsigned locus, unsigned state)const{
@@ -32,13 +36,13 @@ public:
   }
 
   MixturePropsWrapper operator+(unsigned t)const{
-    MixturePropsWrapper MPW(theta+t , K);
+    MixturePropsWrapper MPW(theta+t , stride);
     return MPW;
   }
 
 private:
   const double* theta;
-  unsigned K;
+  unsigned stride;
 
 };
 
