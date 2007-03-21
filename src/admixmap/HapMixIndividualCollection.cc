@@ -80,31 +80,27 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
     // ** Run HMM forward recursions and sample locus ancestry
     _child[i]->SampleLocusAncestry(options);
 
-    if ((int)iteration > options->getBurnIn()
-      // If it's a control individual
-	&& i >= getFirstScoreTestIndividualNumber()
-      // And if the score tests are switched on
-      && options->getTestForAllelicAssociation()
-      // FIXME: The next condition shouldn't be necessary, but it is.
-      && (not _child[i]->isHaploidIndividual()))
+    if (
+	(//If it's after the burnin 
+	 (int)iteration > options->getBurnIn()
+	 // and it's a control individual
+	 && i >= getFirstScoreTestIndividualNumber()
+	 // and if the score tests are switched on
+	 && options->getTestForAllelicAssociation()
+	 // FIXME: The next condition shouldn't be necessary, but it is.
+	 && (not _child[i]->isHaploidIndividual())
+	 )
+	//or it's a masked individual
+	// maskedIndividuals indices are 1-based, offset of 1 is needed
+	|| (find(mi_begin, mi_end, i+1) != mi_end)
+	)
     {
       _child[i]->calculateUnorderedGenotypeProbs();
-    } else {
-      //see if this individual is in the list of masked individuals
-      // maskedIndividuals indices are 1-based, offset of 1 is needed
-      vector<unsigned>::const_iterator mi = find(mi_begin, mi_end, i+1);
-      if(mi != mi_end){// this individual is in the list
-          _child[i]->calculateUnorderedGenotypeProbs();
-      }
-
-    }//end else
+    } 
 
     //accumulate sufficient statistics for update of arrival rates and mixture proportions
     _child[i]->AccumulateConcordanceCounts(ConcordanceCounts);
     _child[i]->SampleJumpIndicators(SumArrivalCounts);
-    // ADDHERE: call function in Individual.cc to calculate genotype probs at each locus
-    // individual constructor will need to allocate array of size 3 doubles at each locus for each individual 
-    // individual.cc will need a public method to get these genotype probs  
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, 0, "Sampledancestry");
