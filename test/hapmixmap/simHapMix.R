@@ -31,7 +31,7 @@ extreme.allele.freqs <- F##set to True for allelefreqs of 0 and 1
 freq.dispersion.prior.shape <- 1
 freq.dispersion.prior.rate <- 10
 
-mixture.proportions.Dirichlet.Prior.params <- rep(1, K)
+mixture.proportions.Dirichlet.Prior.params <- rep(2, K)
 fixed.mixture.proportions <- F##set to True for mixture proportions fixed at 1/K
                               ##set to F to sample mixture proportions for each locus  
 ########################################################################
@@ -160,7 +160,7 @@ for(locus in 1:L) {
 
     ##while( (min(p)<(1e-9)) || (max(p)>=(1-(1e-9)))){
 
-     freq.allele1 <- rbeta(K, freqs.beta.parameter.1, freqs.beta.parameter2) # freqs allele 1
+     freq.allele1 <- rbeta(K, freqs.beta.parameter1, freqs.beta.parameter2) # freqs allele 1
      freq.allele1 <- c(0,1)
     ##  }
   }
@@ -235,7 +235,7 @@ write.table(freqstable, file=paste(datadir,"allelefreqs.txt", sep="/"), sep="\t"
 ##write.table(freqstable+0.5, file="data/priorallelefreqs.txt", sep="\t", row.names=F)
 
 ##write mixture proportions to file
-mixture.props <- data.frame(mu)
+mixture.props <- data.frame(mixture.proportions)
 mixture.props <- rbind(mixture.props, colMeans(mixture.props))
 dimnames(mixture.props)[[1]][L+1] <- "average"
 write.table(round(mixture.props, 4), file=paste(datadir, "TrueMixtureProps.txt", sep="/"), row.names=T, col.names=T)
@@ -253,8 +253,8 @@ for(individual in 1:NN) {
 ## genotypes.diploid[individual, ] <- g.list$genotypes
 ## allele1.counts <- allele1.counts + g.list$counts
 
-  paternalGamete <- simulateHaploidAlleles(mu, f, L, alleleFreqs)
-  maternalGamete <- simulateHaploidAlleles(mu, f, L, alleleFreqs)
+  paternalGamete <- simulateHaploidAlleles(mixture.proportions, f, L, alleleFreqs)
+  maternalGamete <- simulateHaploidAlleles(mixture.proportions, f, L, alleleFreqs)
   genotypes.cc[individual,] <- paste(paternalGamete, ",", maternalGamete, sep="")
 
 }

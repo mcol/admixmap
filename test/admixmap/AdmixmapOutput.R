@@ -402,8 +402,10 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
 
 ##used for allelic and haplotype association score tests
 plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
-  scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
-  
+  full.filename <- paste(resultsdir,scorefile,sep="/")
+  if(file.exists(full.filename)){
+  scoretest <- dget(full.filename)
+
   ## rows are: locus,(haplotype), -log10pvalue
   ## extract testnames and drop 1st row
   if (!haplotypes) {
@@ -420,6 +422,7 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
 
   plotlogpvalues(outputfilePlot, log10pvalues,
               10*thinning, "Running computation of p-values for allelic association", F)
+}
 }
 
 #used to plot output of score test for heterozygosity

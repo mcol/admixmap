@@ -154,6 +154,7 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   catch(InfiniteGradient ){//just reject now and return
     //epsilon = Tuner.UpdateStepSize(0.0);
     //TOFIX: adjusting stepsize here can make the sampler go crazy
+    //so just try again next time
     return;
   }
 

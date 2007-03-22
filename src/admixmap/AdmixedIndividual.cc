@@ -206,7 +206,7 @@ void AdmixedIndividual::SetStaticMembers(Genome* const pLoci, const Options* con
 
   ThetaThetaPrime = new double[NumHiddenStates * NumHiddenStates];
   //if()
-  // TODO: alllocate only if required ie if either of the 2 ancestry tests 
+  // TODO: allocate only if required ie if either of the 2 ancestry tests 
     ThetaThetaInv = new double[NumHiddenStates * NumHiddenStates];
 }
 // draw initial values for admixture proportions theta from Dirichlet prior 

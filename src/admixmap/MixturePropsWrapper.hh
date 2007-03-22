@@ -1,5 +1,6 @@
 #ifndef MIXTUREPROPSWRAPPER_H
 #define MIXTUREPROPSWRAPPER_H
+#include "utils/GSLErrorHandler.h"
 
 /// wrapper class to provide an interface for the HMM to the mixture proportions
 class MixturePropsWrapper{
@@ -24,6 +25,10 @@ public:
   }
 
   double get(unsigned locus, unsigned state)const{
+    if(!theta) 
+      //      throw ("Error in MixturePropsWrapper: null pointer");
+      GSLErrorHandler("Null pointer", __FILE__, __LINE__, -1);
+
     return theta[locus*stride + state];
   }
 

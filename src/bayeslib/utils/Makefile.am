@@ -17,7 +17,7 @@ noinst_HEADERS			= DataMatrix.h \
 				  StringSplitter.h \
 				  ColumnIter.h \
 				  GSLErrorHandler.h \
-				  Exceptions.h
+				  Exceptions.h \
 				  GSLExceptions.h
 
 INCLUDES			= -I$(top_srcdir)/src/bayeslib

@@ -186,6 +186,7 @@ double HMM::getLogLikelihood(bool isdiploid)
 	if(isdiploid) UpdateForwardProbsDiploid();
 	else UpdateForwardProbsHaploid();
     }
+
     double sum = 0;
     if(isdiploid) {
 	for( int j = 0; j < DStates; j++ ) {
@@ -195,7 +196,10 @@ double HMM::getLogLikelihood(bool isdiploid)
 	for( int j = 0; j < K; j++ ) {
 	    sum += alpha[(Transitions - 1)*K + j];
 	}
+
+
     }
+
     return( sumfactor+log(sum) );
 }
 
@@ -375,7 +379,7 @@ void HMM::UpdateBackwardProbsDiploid()
       
     RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
     for(int j = 0; j < DStates; ++j){ // vectorization successful
-      beta[t*DStates + j] *= ThetaThetaInv(t, j); 
+      beta[t*DStates + j] *= ThetaThetaInv(t+1, j); 
     }
   }
   betaIsBad = false;
@@ -437,7 +441,7 @@ void HMM::UpdateBackwardProbsHaploid(){
     Sum = 0.0;
     for(int j = 0; j < K; ++j){
       LambdaBeta[j] = LambdaGPI(t+1, j)*beta[(t+1)*K + j];
-      Sum += theta(t, j)*LambdaBeta[j];
+      Sum += theta(t+1, j)*LambdaBeta[j];
     }
     for(int j = 0; j < K; ++j){
       beta[t*K + j] = f[2*(t+1)]*LambdaBeta[j] + (1.0 - f[2*(t+1)+1])*Sum;
