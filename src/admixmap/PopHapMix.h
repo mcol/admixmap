@@ -109,9 +109,12 @@ private:
   StepSizeTuner hTuner;  
   AdaptiveRejection hARS;
 
-  double* MixtureProps;//global admixture proportions
-  double* MixturePropsPrior;//parameters of Dirichlet prior on MixureProps
-  double* dirparams;//parameters of Dirichlet distribution from which MixtureProps are sampled
+  double* MixtureProps;///<global admixture proportions
+  double* MixturePropsPrior;///<parameters of Dirichlet prior on MixureProps
+  double* dirparams;//</parameters of Dirichlet distribution from which MixtureProps are sampled
+  double* SumTheta;///< sum of mixture props over loci, for calculation of variance
+  double* SumThetaSq;///< sum of square of mixture props over loci, for calculation of variance
+  double eta;///< observed mixture props precision
 
   double* ThetaSquared;//< Array required for HMM updates
   double* ThetaThetaInv;//< Array required for HMM backward updates

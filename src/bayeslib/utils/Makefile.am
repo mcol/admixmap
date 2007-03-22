@@ -4,7 +4,8 @@ libutils_la_SOURCES		= functions.cc \
 				  DataMatrix.cc \
 				  StringSplitter.cc \
 				  StringConvertor.cc \
-				  LogWriter.cc
+				  LogWriter.cc \
+				  GSLErrorHandler.cc
 
 noinst_HEADERS			= DataMatrix.h \
 				  DataReader.h \
@@ -14,7 +15,10 @@ noinst_HEADERS			= DataMatrix.h \
 				  misc.h \
 				  StringConvertor.h \
 				  StringSplitter.h \
-				  ColumnIter.h
+				  ColumnIter.h \
+				  GSLErrorHandler.h \
+				  Exceptions.h
+				  GSLExceptions.h
 
 INCLUDES			= -I$(top_srcdir)/src/bayeslib
 

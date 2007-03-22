@@ -337,7 +337,8 @@ double CoxRegression::getLogLikelihood(const double* const _beta, const std::vec
 	int r = BetaParameters.events[i];
 	//if event occurred in this interval
 	if(!BetaParameters.atRisk[i*T +t+1] || t==T-1)sum_nr += r;
-	sum_nalpha += BetaParameters.HazardRates[t] * BetaParameters.IntervalLengths[t];
+	//sum_nalpha += BetaParameters.HazardRates[t] * BetaParameters.IntervalLengths[t];
+	sum_nalpha += _HazardRates[t] * BetaParameters.IntervalLengths[t];
       }
     }
     //cout << "i = " << i << "exp Xbeta = " << exp_Xbetai << endl;

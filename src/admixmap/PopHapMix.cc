@@ -19,11 +19,15 @@
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
 #include "Comms.h"
-#include "MixturePropsWrapper.hh"
+#include "MixturePropsWrapper.hh" //for passing mixture props to HMM
 #include "EventLogger.hh"//for MPE event logging
+#include "utils/GSLExceptions.h" //for catching gsl exceptions
+#include "utils/Exceptions.h"//for throwing InfiniteGradient to Hamiltonian
 using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
+#define SQ( x ) x*x
+#define REC(x) 1.0 / x
 
 PopHapMix::PopHapMix( HapMixOptions* op, Genome* loci)
 {
@@ -35,6 +39,9 @@ PopHapMix::PopHapMix( HapMixOptions* op, Genome* loci)
   dirparams = 0;
   ThetaSquared = 0;
   ThetaThetaInv = 0;
+  SumTheta = 0;
+  SumThetaSq = 0;
+  eta = 0.0;
 }
 
 void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
@@ -103,6 +110,8 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
     //allocate arrays required for sampling of mixture props
     MixturePropsPrior = new double[K];
     dirparams = new double[K];
+    SumTheta = new double[K];
+    SumThetaSq = new double[K];
 
     //set initial value of precision
     double InitialPrecision = options->getMixturePropsPrecision();
@@ -242,6 +251,8 @@ PopHapMix::~PopHapMix()
   delete[] ArrivalRateSampler;
   delete[] MixturePropsPrior;
   delete[] dirparams;
+  delete[] SumTheta;
+  delete[] SumThetaSq;
 }
 
 
@@ -275,6 +286,10 @@ void PopHapMix::SampleArrivalRate(const int* ConcordanceCounts, bool accumulateL
 	  ArrivalRateSampler[interval].Sample(&loglambda, &LambdaArgs);
 	  *lambda_iter = exp(loglambda);
 
+// 	  if(*lambda_iter > 50.0)
+// 	    {cout << interval << " " << *lambda_iter << endl;
+// 	      system("pause");
+// 	    }
 	  //accumulate sums of log of lambda
 	  if(accumulateLogs)
 	    *(sumloglambda_iter++) += loglambda;
@@ -415,24 +430,31 @@ void PopHapMix::LambdaGradient( const double* const x, const void* const vargs, 
   const int* n = args->ConcordanceCounts;
 
   g[0] = 0.0;
+  double f = 0.0;
+  double lambda = 0.0;
   try {
-    double lambda = myexp(*x);
-    double f = myexp(-lambda);
-
-    //first compute dE / df
-    for(unsigned k = 0; k < K; ++k){
-      g[0] += n[k]  / (1.0 - f);//discordant
-      g[0] -= n[k+K]*(1.0 - theta[k]) / (f + theta[k]*(1.0 - f));//concordant
-    }
-
-    g[0] *= -lambda*f; // df / dlambda * dlambda / dx 
-    
-    //derivative of minus log prior wrt log lambda
-    g[0] -= args->h*d  - args->beta * lambda;
-
+    lambda = myexp(*x);
+    f = myexp(-lambda);
   } catch(string s) {
     throw string("Error in LambdaGradient: " + s);
   }
+  catch(overflow e){
+    throw InfiniteGradient("LambdaGradient", "PopHapMix.cc");
+  }
+
+  //first compute dE / df
+  for(unsigned k = 0; k < K; ++k){
+    g[0] += n[k]  / (1.0 - f);//discordant
+    g[0] -= n[k+K]*(1.0 - theta[k]) / (f + theta[k]*(1.0 - f));//concordant
+  }
+  
+  g[0] *= -lambda*f; // df / dlambda * dlambda / dx 
+  
+  //derivative of minus log prior wrt log lambda
+  g[0] -= args->h*d  - args->beta * lambda;
+  
+  //     if(!gsl_finite(g[0]))
+  //       throw InfiniteGradient("LambdaGradient", "PopHapMix.cc");
 }
 
 //log posterior for h
@@ -489,6 +511,8 @@ void PopHapMix::InitializeOutputFile(const string& distanceUnit ) {
     // Header line of paramfile
     if(!options->getFixedMixturePropsPrecision())
       outputstream << "MixtureProps.Precision\t";
+    if(!options->getFixedMixtureProps())
+      outputstream << "MixtureProps.Sample.Precision\t";
     outputstream << "Arrivals.per"<< distanceUnit << ".shapeParam\t"
 		 << "Arrivals.per"<< distanceUnit << ".rateParam\t"
 		 << "Arrivals.per"<< distanceUnit << ".Mean"
@@ -516,9 +540,13 @@ void PopHapMix::OutputParams(ostream& out){
     double sum = 0.0;
     for(unsigned k = 0; k < K; ++k)
       sum += MixturePropsPrior[k];
-    out << sum << "\t" ;
+    out << sum << "\t";
   }
   
+  if(!options->getFixedMixtureProps())
+    //observed precision
+    out << eta  << "\t";
+ 
   out
     //lambda prior parameters
     << LambdaArgs.h << "\t" << LambdaArgs.beta << "\t"
@@ -617,15 +645,24 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
     //TODO: ?? make SumLogTheta a class variable
     double SumLogTheta[K];
 
-    for(size_t k = 0; k < K; ++k)
+    for(size_t k = 0; k < K; ++k){
       SumLogTheta[k] = 0.0;
+      SumTheta[k] = 0.0;
+      SumThetaSq[k] = 0.0;
+    }
     
     for(unsigned j  = 0; j < L; ++j){
+      //set Dirichlet paramaters
       for(size_t k = 0; k < K; ++k){
 	dirparams[k] = MixturePropsPrior[k] + SumArrivalCounts[j*K + k];
       }
+      //sample from Dirichlet with those parameters
       Rand::gendirichlet(K, dirparams, MixtureProps+j*K );
+
+      //accumulate sums, sums-of-squares and sums-of-logs
       for(size_t k = 0; k < K; ++k){
+	SumTheta[k] += MixtureProps[j*K +k];
+	SumThetaSq[k] += SQ( MixtureProps[j*K +k] );
 	SumLogTheta[k] += log(MixtureProps[j*K +k]);
       }
     }
@@ -634,6 +671,15 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
       //sample prior precision
       MixturePropsPrecisionSampler.SampleEta(SumLogTheta, MixturePropsPrior);
     }
+
+    //calculate observed variance of mixture props
+    double SumThetaVar = 0.0;
+    for(size_t k = 0; k < K; ++k){
+      SumThetaVar += SumThetaSq[k] / (double) L  - SQ( (SumTheta[k] / (double) L) );
+    }
+
+    eta = (1.0 / ((double)K * SumThetaVar )) - 1.0 ;
+
   }
 
 #ifdef PARALLEL

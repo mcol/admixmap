@@ -24,6 +24,8 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_randist.h>
 #include <sstream>
+#include "GSLErrorHandler.h"
+#include "GSLExceptions.h"
 
 #define MIN(X, Y) X<Y?X:Y
  
@@ -334,7 +336,7 @@ int HH_svx (size_t n, double *A, double *x)
 void CentredGaussianConditional( size_t kk, double *mean, double *var,
 				 double *newmean, double *newvar, size_t dim )
 {
-  if(dim == (kk+1)){
+  if(dim == (kk+1)){//if conditioning on a scalar, call simpler version of function
     CentredGaussianConditional(mean, var, newmean, newvar, dim);
     return;
   }
@@ -793,18 +795,31 @@ double mylog(double x){
 }
 ///exp function with error handling
 double myexp(double x){
-  if(x < GSL_LOG_DBL_MIN)return 0.0;//avoids underflow
-  gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
-  gsl_sf_result result;
-  int status = gsl_sf_exp_e(x, &result);
-  gsl_set_error_handler (old_handler);//restore gsl error handler 
-  if(status){
-     stringstream s;
-     s << "Error in exp(" << x << "): "<< gsl_strerror(status);
-     throw s.str();
-    return 0.0;
+  gsl_error_handler_t* old_handler =  gsl_set_error_handler(&GSLErrorHandler);
+  double result = 0.0;
+  try{
+    result = gsl_sf_exp(x);
   }
-  return result.val;
+  catch(underflow){
+    result = 0.0;
+  }
+  gsl_set_error_handler (old_handler);//restore gsl error handler 
+  return result;
+
+//   if(x < GSL_LOG_DBL_MIN)return 0.0;//avoids underflow
+//   gsl_error_handler_t* old_handler =  gsl_set_error_handler_off();//disable default gsl error handler
+//   gsl_sf_result result;
+//   int status = gsl_sf_exp_e(x, &result);
+//   gsl_set_error_handler (old_handler);//restore gsl error handler 
+  
+//   if(status == 16) throw overflow("overflow", );
+//   if(status){
+//     stringstream s;
+//     s << "Error in exp(" << x << "): "<< status << " " << gsl_strerror(status);
+//     throw s.str();
+//     return 0.0;
+//   }
+//   return result.val;
 }
 ///lngamma function with error handling
 double lngamma(double x){

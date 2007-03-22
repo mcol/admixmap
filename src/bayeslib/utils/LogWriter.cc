@@ -10,7 +10,6 @@
  * 
  */
 #include "LogWriter.h"
-#include "config.h"
 #ifdef PARALLEL
 #include <mpi++.h>
 #endif

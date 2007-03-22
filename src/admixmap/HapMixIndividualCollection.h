@@ -22,12 +22,19 @@ class HapMixFreqs;
 class HapMixIndividualCollection : public IndividualCollection
 {
 public:
-  ~HapMixIndividualCollection();
+  ///constructor
   HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A, const double* theta);
+  //destructor
+  ~HapMixIndividualCollection();
+  ///samples hidden states for each individual and calculates sufficient statistics for population-level parameters
   void SampleHiddenStates(const HapMixOptions* const options, unsigned iteration);
+  ///returns sufficient statistics for update of arrival rates
   const int* getConcordanceCounts()const;
+  ///returns sufficient statistics for update of mixture proportions
   const int* getSumArrivalCounts()const;
   //Individual* getIndividual(int)const;
+  ///determines if individual i is a case/control ie its genotype came from ccgenotypesfile
+  bool isCaseControl(unsigned i)const;
   int getNumberOfIndividualsForScoreTests()const;
   unsigned int getFirstScoreTestIndividualNumber()const;
   void AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci);
@@ -41,6 +48,10 @@ private:
   int* SumArrivalCounts;
   int* GlobalSumArrivalCounts;
   GenotypeProbOutputter GPO;
+
+  //default c'tor not implemented
+  HapMixIndividualCollection();
+
 };
 
 #endif /* !defined HAPMIX_INDIVIDUAL_COLLECTION_H */

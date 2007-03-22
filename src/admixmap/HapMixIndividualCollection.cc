@@ -77,14 +77,14 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
   const vector<unsigned>::const_iterator mi_end = maskedIndividuals.end();
 
   for(unsigned int i = worker_rank; i < size; i+=NumWorkers ){
-    // ** Run HMM forward recursions and sample locus ancestry
+    // ** Run HMM forward recursions and sample hidden states
     _child[i]->SampleLocusAncestry(options);
 
     if (
 	(//If it's after the burnin 
 	 (int)iteration > options->getBurnIn()
-	 // and it's a control individual
-	 && i >= getFirstScoreTestIndividualNumber()
+	 // and it's a case or control individual
+	 && isCaseControl(i)
 	 // and if the score tests are switched on
 	 && options->getTestForAllelicAssociation()
 	 // FIXME: The next condition shouldn't be necessary, but it is.
@@ -134,6 +134,12 @@ unsigned int HapMixIndividualCollection::getFirstScoreTestIndividualNumber()cons
   if(NumCaseControls > 0)return size - NumCaseControls;
   else return 0;
 }
+
+///determines if individual i is a case/control ie its genotype came from ccgenotypesfile
+bool HapMixIndividualCollection::isCaseControl(unsigned i)const{
+  return ( i > (size - NumCaseControls) );
+}
+
 //TODO: alternative for parallel version
 void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci){
   

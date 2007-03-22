@@ -12,6 +12,7 @@
 #include "HamiltonianMonteCarlo.h"
 #include "gsl/gsl_math.h"
 #include <sstream>//for error handling
+#include "utils/Exceptions.h"
 
 using namespace::std;
 
@@ -58,6 +59,13 @@ void HamiltonianMonteCarlo::SetDimensions(unsigned pdim, double pepsilon, double
 void HamiltonianMonteCarlo::ActivateMonitoring(const char* filename){
   monitor=true;
   outfile.open(filename);
+  //write header for monitor file
+//   outfile << "Energy";
+//   for(unsigned i = 0; i < dim; ++i){
+//     outfile << "\tParam"<<i+i <<"\tGrad"<<i+1;
+//   }
+//   outfile << endl;
+
 }
 
 void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
@@ -77,10 +85,6 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
   double AccProb;
   double H, Hnew, dH, sumpsq = 0.0;
   double Enew;
-
-//   if(isnan(epsilon)){
-//     system("pause");
-//   }
 
   try{
     gradE (x, args, g ) ; // set gradient using initial x
@@ -110,6 +114,8 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
 	}
       }
       gradE ( xnew, args, gnew ) ; // find new gradient
+
+      //check for infinite gradient in case gradE does not use InfiniteGradient exception
       for(unsigned i = 0; i < dim; ++i) {
 	if( !gsl_finite(gnew[i]) ) {//reject now if gradient is infinite, otherwise momentum will become infinite
 	  epsilon = Tuner.UpdateStepSize(0.0);
@@ -144,6 +150,11 @@ void HamiltonianMonteCarlo::Sample(double* const x, const void* const args){
     for(unsigned i = 0; i < dim; ++i)error_string << gnew[i] <<" ";
 
     throw(error_string.str());
+  }
+  catch(InfiniteGradient ){//just reject now and return
+    //epsilon = Tuner.UpdateStepSize(0.0);
+    //TOFIX: adjusting stepsize here can make the sampler go crazy
+    return;
   }
 
   AccProb = 0.0;

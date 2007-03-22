@@ -12,7 +12,7 @@
  */
 #include "HapMixIndividual.h"
 #include <algorithm>
-#include "../common/DebugMacros.h"
+//#include "../common/DebugMacros.h"
 
 const FreqArray* HapMixIndividual::HaploidGenotypeProbs;
 const FreqArray* HapMixIndividual::DiploidGenotypeProbs;
