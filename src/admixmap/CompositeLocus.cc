@@ -23,6 +23,7 @@ using namespace std;
 bool CompositeLocus::RandomAlleleFreqs;
 int CompositeLocus::Populations;
 int CompositeLocus::PopulationsSquared;
+int CompositeLocus::PopulationsSquared_x_3;
 
 CompositeLocus::CompositeLocus()
 {
@@ -66,7 +67,12 @@ void CompositeLocus::SetNumberOfStates( int newNumberOfStates )
 
 void CompositeLocus::SetNumberOfPopulations(int pops){
   Populations = pops;
+  /*
+   * Caching values for efficiency in function
+   * getFirstAndLastConditionalGenotypeProbs
+   */
   PopulationsSquared = pops * pops;
+  PopulationsSquared_x_3 = pops * pops * 3;
 }
 void CompositeLocus::SetRandomAlleleFreqs(bool b){
   RandomAlleleFreqs = b;
@@ -320,7 +326,7 @@ void CompositeLocus::getConditionalHapPairProbs(pvector<double>& Probs, const st
 	 * is already normalized, with precision to about 1e-5 (from what
 	 * could be seen at runtime).
 	 */
-  if (PossibleHapPairs.size() < NumberOfStates * NumberOfStates) {
+  if ((int)PossibleHapPairs.size() < NumberOfStates * NumberOfStates) {
     Probs.normalize();
   }
 }

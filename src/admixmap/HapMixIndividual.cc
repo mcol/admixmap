@@ -351,7 +351,8 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
        */
       (*Loci)(j)->getFirstAndLastConditionalHapPairProbs(
           orderedGenotypeProbs,
-          PossibleHapPairs[j],
+          // Assumed to be all four: 0,0; 1,0; 0,1; 1,1.
+          // PossibleHapPairs[j],
           anc);
 
       /*

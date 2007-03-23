@@ -49,7 +49,6 @@ public:
    * is missing. */
   void getFirstAndLastConditionalHapPairProbs(
       pvector<double>& Probs,
-      const std::vector<hapPair >& PossibleHapPairs,
       const int ancestry[2]) const;
 
   int GetNumberOfLoci()const;
@@ -79,6 +78,7 @@ protected:
   int NumberOfStates;
   static int Populations;
   static int PopulationsSquared;
+  static int PopulationsSquared_x_3; //< Caching a value for efficiency
 #ifndef PARALLEL
   double *HapPairProbs; //< haplotype pair probabilities calculated using AlleleProbs
 #endif
@@ -193,15 +193,12 @@ inline void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::ve
  */
 inline void CompositeLocus::getFirstAndLastConditionalHapPairProbs(
       pvector<double>& Probs,
-      const std::vector<hapPair >& PossibleHapPairs,
       const int ancestry[2]) const
 {
-  int PopSq_x_NumberOfStates = PopulationsSquared * NumberOfStates;
   Probs[0] = HapPairProbs[ /* 0 * PopSq_x_NumberOfStates + */ 
                            /* 0 * PopulationsSquared + */
                            ancestry[0] * Populations  + ancestry[1]];
-  Probs[3] = HapPairProbs[ PopSq_x_NumberOfStates + 
-                           PopulationsSquared +
+  Probs[3] = HapPairProbs[ PopulationsSquared_x_3 + 
                            ancestry[0] * Populations  + ancestry[1]];
 }
 
