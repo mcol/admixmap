@@ -1,6 +1,14 @@
 #!/bin/bash
+
+# This is for profiling on Core 2 Duo (architecture nocona)
 export LDFLAGS=""
 export CPPFLAGS=""
-export CXXFLAGS="-pg -O2 -march=i686"
+export CXXFLAGS="\
+-march=nocona \
+-O3 \
+-ffast-math \
+-ftree-vectorize -ftree-vectorizer-verbose=3 \
+-pg \
+"
 
 source "$(pwd)/src/scripts/build-common"

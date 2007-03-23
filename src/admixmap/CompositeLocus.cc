@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <numeric>
 #include "utils/misc.h"
+#include "../common/DebugMacros.h"
 
 using namespace std;
 
@@ -312,7 +313,16 @@ void CompositeLocus::getConditionalHapPairProbs(pvector<double>& Probs, const st
 //       sum += prob;  
      }
   }
-  Probs.normalize();
+
+	/*
+	 * There's a need to normalize this vector only when some happairs
+	 * are `not possible'. When all happairs are possible, this vector
+	 * is already normalized, with precision to about 1e-5 (from what
+	 * could be seen at runtime).
+	 */
+  if (PossibleHapPairs.size() < NumberOfStates * NumberOfStates) {
+    Probs.normalize();
+  }
 }
 
 /**

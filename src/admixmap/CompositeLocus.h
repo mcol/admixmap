@@ -18,6 +18,7 @@
 #include "HapPair.h"
 #include "Haplotype.h"
 #include "../common/pvector.h"
+#include "../common/DebugMacros.h"
 
 ///   Class to represent a composite locus
 class CompositeLocus
@@ -25,7 +26,7 @@ class CompositeLocus
 
 public:
   CompositeLocus();
-  ~CompositeLocus();
+  virtual ~CompositeLocus();
 
   static void SetNumberOfPopulations( int );
   static void SetRandomAlleleFreqs(bool);
@@ -41,6 +42,15 @@ public:
   void setAlleleProbsMAP(const double* const Freqs);
   void AccumulateAlleleProbs();
   void getConditionalHapPairProbs(pvector<double>& Probs, const std::vector<hapPair > &PossibleHapPairs, const int ancestry[2])const;
+  /** Similar to getConditionalHapPairProbs, but only the first and last
+   * elements of Probs are being set.
+   * 
+   * It's a shortcut to speed it up in a special case when a genotype
+   * is missing. */
+  void getFirstAndLastConditionalHapPairProbs(
+      pvector<double>& Probs,
+      const std::vector<hapPair >& PossibleHapPairs,
+      const int ancestry[2]) const;
 
   int GetNumberOfLoci()const;
   int GetNumberOfStates()const;
@@ -65,18 +75,22 @@ public:
 
   Haplotype HaplotypeSetter;
 
-private: 
-  int NumberOfLoci;
+protected:
   int NumberOfStates;
   static int Populations;
-  /// Squared number of populations, stored for efficiency reasons.
   static int PopulationsSquared;
+#ifndef PARALLEL
+  double *HapPairProbs; //< haplotype pair probabilities calculated using AlleleProbs
+#endif
+
+private:
+  int NumberOfLoci;
+  /// Squared number of populations, stored for efficiency reasons.
   std::vector<int> NumberOfAlleles;
   const double *AlleleProbs;//< pointer to allele frequencies held in AlleleFreqs
   const double *AlleleProbsMAP;//< pointer to AlleleFreqsMAP held in AlleleFreqs
   double *SumAlleleProbs;//< sums of alleleprobs for a single population, used to compute loglikelihood at posterior means
 #ifndef PARALLEL
-  double *HapPairProbs; //< haplotype pair probabilities calculated using AlleleProbs
   double *HapPairProbsMAP; //< hap pair probs calculated using AlleleProbsMAP
 #endif
   std::vector<std::string> Label;
@@ -169,5 +183,27 @@ inline void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::ve
     q++;
   }
 }
+
+/** Simplified version of getConditionalHapPairProbs.
+ * 
+ * Sets only two values of the Probs vector. It was made inline because
+ * this function is one of the main performance bottlenecks
+ * of the allelic association score test. It's being called
+ * K^2 (e.g. 64) times for each individual at each locus.
+ */
+inline void CompositeLocus::getFirstAndLastConditionalHapPairProbs(
+      pvector<double>& Probs,
+      const std::vector<hapPair >& PossibleHapPairs,
+      const int ancestry[2]) const
+{
+  int PopSq_x_NumberOfStates = PopulationsSquared * NumberOfStates;
+  Probs[0] = HapPairProbs[ /* 0 * PopSq_x_NumberOfStates + */ 
+                           /* 0 * PopulationsSquared + */
+                           ancestry[0] * Populations  + ancestry[1]];
+  Probs[3] = HapPairProbs[ PopSq_x_NumberOfStates + 
+                           PopulationsSquared +
+                           ancestry[0] * Populations  + ancestry[1]];
+}
+
 
 #endif /* !COMPOSITE_LOCUS_H */

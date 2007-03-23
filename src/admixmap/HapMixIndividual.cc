@@ -313,7 +313,6 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 //    throw string("Trying to calculate UnorderedProbs but Loci->GetNumberOfStates(j) != 2");
 //    return;
 //  }
-  const int numberOfHiddenStates = NumHiddenStates;
   int anc[2];
   
   pvector<double> orderedStateProbs = getStateProbs(
@@ -339,13 +338,18 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
   
 //  orderedStateProbs.snapToZero();
 
-  for (anc[0] = 0; anc[0] < numberOfHiddenStates; ++anc[0]) {
-    for (anc[1] = 0; anc[1] < numberOfHiddenStates; ++anc[1]) {
-      ospIdx = anc[0] * numberOfHiddenStates + anc[1];
+  for (anc[0] = 0; anc[0] < NumHiddenStates; ++anc[0]) {
+    for (anc[1] = 0; anc[1] < NumHiddenStates; ++anc[1]) {
+      ospIdx = anc[0] * NumHiddenStates + anc[1];
       
       if (orderedStateProbs[ospIdx] == 0) continue;
       
-      (*Loci)(j)->getConditionalHapPairProbs(
+      /*
+       * Calling a simplified version of getConditionalHapPairProbs
+       * which sets only 0th and 3rd element of orderedGenotypeProbs
+       * vector.
+       */
+      (*Loci)(j)->getFirstAndLastConditionalHapPairProbs(
           orderedGenotypeProbs,
           PossibleHapPairs[j],
           anc);
@@ -354,48 +358,26 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
        * multiply result by conditional probs of anc and accumulate
        * result in array genotype probs (size 3 x number of loci)
        * `ogpi' stands for ordered genotype probabilities index
+       * 
+       * Increment ogpi by 3 to skip the middle two elements:
+       * (p0,  p1,   p2,   p3)
+       *  get  skip  skip  get
        */
-//      cout << "orderedGenotypeProbs: ";
-      for (int ogpi = 0; ogpi < 4; ++ogpi) {
-//        cout << "[" << ogpi << ": "
-//            << orderedGenotypeProbs[ogpi] << "] ";
-//        if (isnan(orderedGenotypeProbs[ogpi])) {
-//          throw string("orderedGenotypeProbs[ogpi] is nan");
-//        }
-//        if (isnan(orderedStateProbs[ospIdx])) {
-//          throw string("orderedStateProbs[ospIdx] is nan");
-//        }
+      for (int ogpi = 0; ogpi < 4; ogpi += 3) {
         UnorderedProbs[j][ord2unord[ogpi]][0] +=
             orderedGenotypeProbs[ogpi] * orderedStateProbs[ospIdx];
-//        if (isnan(UnorderedProbs[j][ord2unord[ogpi]][0])) {
-//          SPIT(orderedGenotypeProbs[ogpi]);
-//          SPIT(orderedStateProbs[ospIdx]);
-//          SPIT(UnorderedProbs[j][ord2unord[ogpi]][0]);
-//          throw string("orderedStateProbs[ospIdx]");
-//        }
       }
-//      cout << endl;
+      /*
+       * Calculate the probability of heterozygous state as complement
+       * to one.
+       * (up0,   up1,         up2)
+       *  calc.  complement   calc.
+       */
+			UnorderedProbs[j][1][0] = 1.0
+					- UnorderedProbs[j][0][0]
+					- UnorderedProbs[j][2][0];
     }
   }
-//  cout << "UnorderedProbs: ("
-//    << UnorderedProbs[j][0][0] << ", "
-//    << UnorderedProbs[j][1][0] << ", "
-//    << UnorderedProbs[j][2][0] << ")"
-//    << endl;
-//   Check if UnorederedProbs[j][*][0] sum up to 1
-//  double sum = 0.0;UnorderedProbs[j][*][0]
-//  for (int g = 0; g < 3; ++g) {
-//    sum += UnorderedProbs[j][g][0];
-//  }
-//  if (fabs(sum - 1.0) > 1e-6) {
-//    cerr << "UnorderedProbs[" << j << "] don't sum up to 1." << endl;
-//    throw string("UnorderedProbs[j][*][0] don't sum up to 1.");
-//  }
-//  if (isnan(UnorderedProbs[j][0][0])
-//   || isnan(UnorderedProbs[j][1][0])
-//   || isnan(UnorderedProbs[j][2][0])) {
-//    throw string("one of UnorderedProbs[j][*][0] is nan");
-//  }
 }
 
 /** Get probabilities of hidden states from HMM */

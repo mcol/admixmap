@@ -18,7 +18,6 @@
 #include "Comms.h"
 using namespace std;
 
-
 Genome::Genome()
 {
   NumberOfCompositeLoci = 0;
