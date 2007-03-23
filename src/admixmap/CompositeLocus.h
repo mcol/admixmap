@@ -17,7 +17,7 @@
 #include "common.h"
 #include "HapPair.h"
 #include "Haplotype.h"
-#include "../common/pvector.h"
+#include "utils/pvector.h"
 #include "../common/DebugMacros.h"
 
 ///   Class to represent a composite locus

@@ -10,8 +10,6 @@
 #include <algorithm>
 #include <numeric>
 
-#include "config.h"
-
 typedef std::vector<std::string> Vector_s; //std vector of strings 
 typedef std::vector<Vector_s>    Matrix_s; // std vector of std vectors
 

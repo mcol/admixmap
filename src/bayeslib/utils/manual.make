@@ -125,7 +125,7 @@ PICFLAG =# -fPIC
 
 ## DO NOT EDIT BELOW HERE ##
 
-objects		=  functions.o DataReader.o DataMatrix.o StringSplitter.o StringConvertor.o LogWriter.o GSLErrorHandler.o
+objects		=  functions.o DataReader.o DataMatrix.o StringSplitter.o StringConvertor.o LogWriter.o GSLErrorHandler.o DivideBy.o pvector.o SnapToZero.o ZeroOrMore.o
 
 all:	serial
 

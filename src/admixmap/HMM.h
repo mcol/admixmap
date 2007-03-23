@@ -15,7 +15,7 @@
 #define HMM_H 1
 
 #include "GPI.h"
-#include "../common/pvector.h"
+#include "utils/pvector.h"
 #include "MixturePropsWrapper.hh"
 
 ///

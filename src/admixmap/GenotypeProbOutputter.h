@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iomanip>
 #include "CompositeLocus.h"
-#include "../common/pvector.h"
+#include "utils/pvector.h"
 
 class GenotypeProbOutputter{
 public:

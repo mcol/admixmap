@@ -16,7 +16,7 @@
 #include "Individual.h"
 #include "GPI.h"
 #include <map>
-#include "../common/pvector.h"
+#include "utils/pvector.h"
 
 using namespace std;
 

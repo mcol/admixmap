@@ -110,7 +110,7 @@ SERIAL_INCLUDES = $(GSL_INCLUDES)
 CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 PICFLAG =# -fPIC
 
-objects		=  DivideBy.o pvector.o SnapToZero.o ZeroOrMore.o
+objects		=  DebugMacros.h
 
 all:	static #shared
 
