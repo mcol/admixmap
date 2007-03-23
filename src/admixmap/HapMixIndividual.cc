@@ -367,17 +367,17 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
         UnorderedProbs[j][ord2unord[ogpi]][0] +=
             orderedGenotypeProbs[ogpi] * orderedStateProbs[ospIdx];
       }
-      /*
-       * Calculate the probability of heterozygous state as complement
-       * to one.
-       * (up0,   up1,         up2)
-       *  calc.  complement   calc.
-       */
-			UnorderedProbs[j][1][0] = 1.0
-					- UnorderedProbs[j][0][0]
-					- UnorderedProbs[j][2][0];
     }
   }
+  /*
+   * Calculate the probability of heterozygous state as complement
+   * to one.
+   * (up0,   up1,         up2)
+   *  calc.  complement   calc.
+   */
+	UnorderedProbs[j][1][0] = 1.0
+			- UnorderedProbs[j][0][0]
+			- UnorderedProbs[j][2][0];
 }
 
 /** Get probabilities of hidden states from HMM */
