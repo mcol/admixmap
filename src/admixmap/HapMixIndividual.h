@@ -27,8 +27,7 @@ public:
   HapMixIndividual();
   HapMixIndividual(int number, const Options* const options, const InputData* const Data, const double* GlobalTheta);
   ~HapMixIndividual();
-  static void SetStaticMembers(Genome* const pLoci, const Options* const options,
-                            const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs);
+  static void SetGenotypeProbs(const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs);
   void SetMissingGenotypes();
   bool GenotypeIsMissing(unsigned int locus)const;
   bool simpleGenotypeIsMissing(unsigned locus)const;

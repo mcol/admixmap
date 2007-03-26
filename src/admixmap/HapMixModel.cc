@@ -1,6 +1,7 @@
 #include "HapMixModel.h"
-//#include "MixturePropsWrapper.hh"
 #include "EventLogger.hh"
+#include "HapMixIndividual.h"
+
 // HapMixModel::HapMixModel(){
 
 // }
@@ -23,7 +24,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
 
   //create HapMixIndividualCollection object
   //NB call after A Initialise, and before R Initialise
-  HMIC = new HapMixIndividualCollection(&options, &data, &Loci, &A, L->getGlobalTheta());
+  HMIC = new HapMixIndividualCollection(&options, &data, &Loci, L->getGlobalTheta());
   //set IC pointer in base class to the same address as HMIC
   IC = HMIC;
 
@@ -53,6 +54,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
     A.AllocateDiploidGenotypeProbs();
     A.SetDiploidGenotypeProbs();
   }
+  HapMixIndividual::SetGenotypeProbs( A.getHaploidGenotypeProbs(), A.getDiploidGenotypeProbs());
 
   if(isMaster){
     const int numindivs = data.getNumberOfIndividuals();
@@ -331,7 +333,13 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
   if(options.OutputCGProbs()){
     std::string s = options.getResultsDir();
     s.append("/PPGenotypeProbs.txt");
-    HMIC->OutputCGProbs(s.c_str());
+    const vector<unsigned>& maskedLoci = options.getMaskedLoci();
+    const Vector_s& LocusLabels = data.getLocusLabels();
+    Vector_s MaskedLocusLabels;
+    for(vector<unsigned>::const_iterator l = maskedLoci.begin(); l!=maskedLoci.end(); ++l)
+      MaskedLocusLabels.push_back(LocusLabels[*l]);
+
+    HMIC->OutputCGProbs(s.c_str(), MaskedLocusLabels);
   }
 }
 void HapMixModel::InitialiseTests(Options& options, const InputData& data, LogWriter& Log){

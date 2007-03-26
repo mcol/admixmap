@@ -26,6 +26,7 @@ class GSLerror : public std::exception{
   ~GSLerror() throw(){};
   const char* what()const throw(){
     return (reason + " on line " + line + " of " + file).c_str();
+    //    return (file + ":" + line + " -- " + reason).c_str();
   }
 };
 

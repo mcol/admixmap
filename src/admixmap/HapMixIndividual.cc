@@ -225,12 +225,13 @@ HapMixIndividual::~HapMixIndividual(){
 
 }
 
-void HapMixIndividual::SetStaticMembers( Genome* const pLoci, const Options* const options, 
-                                         const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs){
+// void HapMixIndividual::SetStaticMembers( Genome* const pLoci, const Options* const options){
+//   Individual::SetStaticMembers(pLoci, options);
+// }
+
+void HapMixIndividual::SetGenotypeProbs(const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs){
   HaploidGenotypeProbs = &haploidGenotypeProbs;
   DiploidGenotypeProbs = &diploidGenotypeProbs;
-
-  Individual::SetStaticMembers(pLoci, options);
 }
 
 ///Indicates whether genotype is missing at all simple loci within a composite locus

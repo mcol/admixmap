@@ -254,7 +254,10 @@ libnew:
 	@echo **recompiling bayeslib**
 	$(MAKE) -C $(BAYESLIB_PATH) -e -fmanual.make allnew bayeslib
 
-allclean: libclean clean
+commonclean:
+	$(MAKE) -C ../common -fmanual.make clean
+
+allclean: libclean commonclean clean
 
 #delete all object files, libraries and exec
 realclean: clean librealclean 

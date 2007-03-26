@@ -1,6 +1,13 @@
 #include "GenotypeProbOutputter.h"
 #include <string>
 #include <cmath>
+#include "utils/Exceptions.h"
+
+//define to turn on checking for nans
+//#define GPO_DEBUG
+ 
+//define to output indiv and locus labels
+//#define GPO_LABELS
 
 using namespace::std;
 void GenotypeProbOutputter::Initialise(unsigned Nindivs, unsigned Nloci){
@@ -14,21 +21,17 @@ void GenotypeProbOutputter::Initialise(unsigned Nindivs, unsigned Nloci){
 }
 
 /// Accumulates genotype probabilities for individual i, locus j
-void GenotypeProbOutputter::Update(
-    const unsigned i, //< Individual number
-    const unsigned j, //< Locus number
-    const vector<vector<double> >& unorderedGenotypeProbs)
-{
-#ifndef PARALLEL
+void GenotypeProbOutputter::Update( unsigned indiv, unsigned locus, 
+				    const vector<vector<double> >& unorderedGenotypeProbs){
 #define GPO_SPIT cout << "GenotypeProbOutputter::Update(): (" \
-    << i << ", " << j \
+    << indiv << ", " << locus \
     << ") (" \
     << unorderedGenotypeProbs[0][0] << ", " \
     << unorderedGenotypeProbs[1][0] << ", " \
     << unorderedGenotypeProbs[2][0] << "), (" \
-    << sumProbs[i][j][0] << ", " \
-    << sumProbs[i][j][1] << ", " \
-    << sumProbs[i][j][2] << ")" << endl
+    << sumProbs[indiv][locus][0] << ", " \
+    << sumProbs[indiv][locus][1] << ", " \
+    << sumProbs[indiv][locus][2] << ")" << endl
 
 //  if (isnan(unorderedGenotypeProbs[0][0])
 //   || isnan(unorderedGenotypeProbs[1][0])
@@ -39,41 +42,22 @@ void GenotypeProbOutputter::Update(
 
   //TODO: shortcut - HapPairs will always be the same
 
-//   if(fabs(Probs[0]+Probs[1]+Probs[2]+Probs[3] - 1.0) >1e-6 ){
-//     cout << Probs[0] << " " << Probs[1] << " " << Probs[2] << " " << Probs[3] << endl;
-//     cout << "j= " << j << " i= " << i << " " << (j*NumMaskedIndivs +i )*3 << " ";
-//   }
-
-//  //cout << "J = " << NumMaskedLoci << " I = " << NumMaskedIndivs << " " << SumProbs.size() << " "<< SumProbs[(j*NumMaskedIndivs +i )*3 ] << endl;
-
   for (int g = 0; g < 3; ++g) {
-    sumProbs[i][j][g] += unorderedGenotypeProbs[g][0];
+    sumProbs[indiv][locus][g] += unorderedGenotypeProbs[g][0];
   }
   
-//  if (i == 1) {
-//    GPO_SPIT;
-//  }
-//  if (isnan(sumProbs[i][j][0])
-//   || isnan(sumProbs[i][j][1])
-//   || isnan(sumProbs[i][j][2])) {
-//    GPO_SPIT;
-//    throw("sumProbs are nan");
-//  }
-
   ++NumIterations;
 
-#endif
 }
 
-//! Output Probs as R object to be read with dget() function
-void GenotypeProbOutputter::Output(const char* filename){
+/// Output Probs as R object to be read with dget() function
+void GenotypeProbOutputter::Output(const char* filename, const vector<string>& LocusLabels){
   outfile.open(filename);
-  outfile << "# $Id$" << endl;
-  outfile << "structure(.Data=c(" << endl;
+
   outfile << setfill(' ');
-  //  outfile.setf(ios::fixed); 
+  outfile.setf(ios::fixed); 
   outfile.precision(6);
-  //average over iterations
+
   NumIterations /= NumMaskedIndivs;
   NumIterations /= NumMaskedLoci;
   double numIterationsReciprocal = 1.0 / NumIterations;
@@ -82,88 +66,68 @@ void GenotypeProbOutputter::Output(const char* filename){
   vector<vector<double> >::iterator locus_i;
   vector<double>::iterator gt_i;
   
-  unsigned counter = 0;
   unsigned icounter1 = 1; //< Individual counter (1-based)
   unsigned lcounter1 = 1; //< Locus counter (1-based)
-  unsigned last = NumMaskedLoci * NumMaskedIndivs * 3 - 1;
+  double SumProb = 0.0, UnRoundedMeanProb = 0.0;
+
   for(indiv_i = sumProbs.begin(); indiv_i != sumProbs.end(); ++indiv_i) {
-    outfile << "# Individual " << icounter1 << endl;
+#ifdef GPO_LABELS
+    outfile << endl << "#Individual " << icounter1;
+#endif
     lcounter1 = 1;
     for (locus_i = indiv_i->begin(); locus_i != indiv_i->end(); ++locus_i) {
+      // Keep one line per genotype triplet, adding a comma at end of previous line
+      outfile << newline;
+
       for (gt_i = locus_i->begin(); gt_i != locus_i->end(); ++gt_i) {
-        double tmp_gt = *gt_i;
+        SumProb = *gt_i;
+	//average over iterations
         *gt_i *= numIterationsReciprocal;
-        // Round the probabilites to 6 decimal places
+        // Round the probabilities to 6 decimal places
         // Makes them sum up to exactly 1.0 after outputting
         // (assuming they do sum up to 1.0 before rounding)
-        double tmp_gt2 = *gt_i;
+        UnRoundedMeanProb = *gt_i;
         *gt_i = floor((*gt_i) * 1e6 + 0.5) * 1e-6;
-        // Output the number
-        outfile << setw(10);
-        outfile << *gt_i;
-        // Write a comma if it wasn't the last element
-        if (!(counter == last)) { outfile << ", "; }
-        ++counter;
-        if (isnan(*gt_i)) {
+
+        // Output the number, preceded by a comma if not the first element
+        outfile << comma << setw(6) << *gt_i;
+
+#ifdef GPO_DEBUG
+         if (isnan(*gt_i)) {
           cerr << "*gt_i is nan. "
-              << tmp_gt << " * "
+              << SumProb << " * "
               << numIterationsReciprocal << " -> " 
-              << tmp_gt2 << " -> "
+              << UnRoundedMeanProb << " -> "
               << "nan" << endl;
-          throw("*gt_i is nan");
+          throw nanException("*gt_i is nan ", __FILE__, __LINE__);
         }
-      }
-      outfile << "# masked locus no. " << lcounter1;
-      // Keep one line per genotype triplet
-      outfile << endl;
+#endif
+      }//end loop over genotypes
+#ifdef GPO_LABELS
+      //comma first except for last line 
+      // (RObjectWriter cannot deal with complex comments like this so have to do it explicitly)
+      if(icounter1< NumMaskedIndivs || lcounter1 < NumMaskedLoci)
+	outfile << COMMA;
+      outfile << " # masked locus no. " << lcounter1;
+#endif
       ++lcounter1;
-    }
+    }//end loop over individuals
     ++icounter1;
-  }
+  }//end loop over loci
 
   //output dimensions
   std::vector<int> dim(3,0);
   dim[0] = 3;  
-  dim[1] = NumMaskedIndivs;
-  dim[2] = NumMaskedLoci;
+  dim[1] = NumMaskedLoci;
+  dim[2] = NumMaskedIndivs;
 
-  std::vector<std::string> labels(dim[0],"");
-  labels[0] = "Genotype1";
-  labels[1] = "Genotype2";
-  labels[2] = "Genotype3";
-  outfile << ")," << endl;
+  std::vector<std::string> dim1labels(dim[0],"");
+  dim1labels[0] = "Genotype1";
+  dim1labels[1] = "Genotype2";
+  dim1labels[2] = "Genotype3";
 
-  //output dimensions
-  outfile << ".Dim = c(";
-  for(unsigned int i=0;i<dim.size();i++){
-    outfile << dim[i];
-    if(i != dim.size() - 1){
-      outfile << ",";
-    }
-  }
-  outfile << ")," << endl;
-
-  //output dimnames
-  outfile << ".Dimnames=list(";
-
-  outfile << "c(";
-  for(unsigned int i=0;i<labels.size();i++){
-    outfile << "\"" << labels[i] << "\"";
-    if(i != labels.size() - 1){
-      outfile << ", ";
-    }
-  }
-  outfile << "), ";
-
-  // Individual labels
-  outfile << "1:" << dim[1];
-  // outfile << "INDIVIDUAL_LABELS";
-  outfile << ", ";
-  // Locus labels
-  outfile << "1:" << dim[2] << "";
-  // outfile << "LOCI_LABELS";
-
-  // Closing brackets, one to end list, one to end object.
-  outfile << "))" << endl;
-  outfile.close();
+  vector<vector<string> > dimnames;
+  dimnames.push_back(dim1labels);
+  dimnames.push_back(LocusLabels);
+  outfile.close(dim, dimnames);
 }

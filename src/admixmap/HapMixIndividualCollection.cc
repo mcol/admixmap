@@ -7,7 +7,7 @@
 
 HapMixIndividualCollection
 ::HapMixIndividualCollection(const HapMixOptions* const options, 
-			     const InputData* const Data, Genome* Loci, const HapMixFreqs* A, const double* theta){
+			     const InputData* const Data, Genome* Loci, const double* theta){
   SetNullValues();
   NumCompLoci = Loci->GetNumberOfCompositeLoci();
   GlobalConcordanceCounts = 0;
@@ -37,7 +37,7 @@ HapMixIndividualCollection
 #endif
   
   //  Individual::SetStaticMembers(Loci, options);
-  HapMixIndividual::SetStaticMembers(Loci, options, A->getHaploidGenotypeProbs(), A->getDiploidGenotypeProbs());
+  Individual::SetStaticMembers(Loci, options);
 
   if(worker_rank < (int)size){
     _child = new Individual*[size];
@@ -63,6 +63,7 @@ HapMixIndividualCollection::~HapMixIndividualCollection(){
 //     return 0;
 //   }
 // }
+
 void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const options, unsigned iteration){
 
 #ifdef PARALLEL
@@ -160,8 +161,8 @@ void HapMixIndividualCollection::AccumulateConditionalGenotypeProbs(const HapMix
     }
   }
 }
-void HapMixIndividualCollection::OutputCGProbs(const char* filename){
-  GPO.Output(filename);
+void HapMixIndividualCollection::OutputCGProbs(const char* filename, const Vector_s& MaskedLocusLabels){
+  GPO.Output(filename, MaskedLocusLabels);
 }
 
 double HapMixIndividualCollection

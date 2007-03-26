@@ -46,7 +46,7 @@ private:
   int Transitions; ///<length of chain
   // = # composite Loci, (=L in Chromosome)
 
-  double sumfactor; 
+  double alphasumfactor , betasumfactor; 
   
   //forward and backward probabilities
   //L x K x K arrays

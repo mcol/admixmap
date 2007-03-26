@@ -6,22 +6,22 @@
 #include <iomanip>
 #include "CompositeLocus.h"
 #include "utils/pvector.h"
+#include "utils/RObjectWriter.h"
 
 class GenotypeProbOutputter{
 public:
 
   void Initialise(unsigned Nindivs, unsigned Nloci);
-  //TODO: alternative for parallel version since HapPairProbs are not stored and Workers have no CompositeLocus objects
-  //update for a single individual at a single locus
-  void Update(unsigned i, unsigned j, const vector<vector<double> >&);
-  void Output(const char* filename);
+  void Update(unsigned i, unsigned j, const std::vector<std::vector<double> >&);
+  void Output(const char* filename, const std::vector<std::string>& LocusLabels);
 
 private:
   unsigned NumMaskedIndivs;
   unsigned NumMaskedLoci;
   unsigned NumIterations;
   pvector<double> Probs;
-  std::ofstream outfile;
+  //std::ofstream outfile;
+  RObjectWriter outfile;
 
   /** Three-dimensional vector for probabilities.
    * Dimensions are:

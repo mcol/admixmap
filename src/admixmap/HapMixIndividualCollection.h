@@ -23,7 +23,7 @@ class HapMixIndividualCollection : public IndividualCollection
 {
 public:
   ///constructor
-  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const HapMixFreqs* A, const double* theta);
+  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const double* theta);
   //destructor
   ~HapMixIndividualCollection();
   ///samples hidden states for each individual and calculates sufficient statistics for population-level parameters
@@ -38,7 +38,7 @@ public:
   int getNumberOfIndividualsForScoreTests()const;
   unsigned int getFirstScoreTestIndividualNumber()const;
   void AccumulateConditionalGenotypeProbs(const HapMixOptions* const options, const Genome& Loci);
-  void OutputCGProbs(const char* filename);
+  void OutputCGProbs(const char* filename, const Vector_s& LocusLabels);
   double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
 				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A );
 private:

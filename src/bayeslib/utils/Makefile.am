@@ -5,11 +5,14 @@ libutils_la_SOURCES		= functions.cc \
 				  StringSplitter.cc \
 				  StringConvertor.cc \
 				  LogWriter.cc \
+				  RObjectWriter.cc \
 				  GSLErrorHandler.cc \
-				  pvector.cc \
+				  ProbVector.cc \
+			          pvector.cc \
 				  SnapToZero.cc \
 				  DivideBy.cc \
 				  ZeroOrMore.cc
+>>>>>>> .r2243
 
 noinst_HEADERS			= DataMatrix.h \
 				  DataReader.h \
@@ -20,9 +23,11 @@ noinst_HEADERS			= DataMatrix.h \
 				  StringConvertor.h \
 				  StringSplitter.h \
 				  ColumnIter.h \
+				  RObjectWriter.h
 				  GSLErrorHandler.h \
 				  Exceptions.h \
 				  GSLExceptions.h \
+                                  ProbVector.h \
 				  pvector.h \
 				  SnapToZero.h \
 				  DivideBy.h \

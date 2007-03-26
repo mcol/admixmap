@@ -10,14 +10,8 @@
  * 
  */
 
-
 #include "samplers/rand.h"
 #include "HMM.h"
-//#include <math.h>
-//#include <cstdlib>
-//#include <values.h>
-//#include <vector>
-
 
 using namespace std;
 
@@ -70,7 +64,9 @@ void HMM::SetDimensions( int inTransitions, int NumHiddenStates, const double* c
   DStates = K*K;
   Transitions = inTransitions;
   alpha = new double[Transitions*K*K];
-  sumfactor=0.0;
+  alphasumfactor=0.0;
+  betasumfactor=0.0;
+
   p = new double[Transitions];
   f = fin;
   StateArrivalProbs = new double[Transitions * K * 2];
@@ -175,7 +171,7 @@ void HMM::SampleJumpIndicators(const int* const HiddenStates,  unsigned int game
 }
 
 /**
-  returns log-likelihood
+  returns log-likelihood.
   This is the sum over states of products of alpha and beta
   and is the same for all t so it is convenient to compute for
   t = T-1 since beta here is 1 so no backward recursions are required. 
@@ -188,19 +184,13 @@ double HMM::getLogLikelihood(bool isdiploid)
     }
 
     double sum = 0;
-    if(isdiploid) {
-	for( int j = 0; j < DStates; j++ ) {
-	    sum += alpha[(Transitions - 1)*DStates + j];
-	} 
-    } else {//haploid
-	for( int j = 0; j < K; j++ ) {
-	    sum += alpha[(Transitions - 1)*K + j];
-	}
+    const int NumStates = isdiploid ? DStates : K;
 
+    for( int j = 0; j < NumStates; j++ ) {
+      sum += alpha[(Transitions - 1)*NumStates + j];
+    } 
 
-    }
-
-    return( sumfactor+log(sum) );
+    return( alphasumfactor+log(sum) );
 }
 
 /** 
@@ -303,7 +293,7 @@ void HMM::UpdateForwardProbsDiploid()
     throw string("Error: Call to HMM when inputs are not set!");
 
   // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
-  sumfactor = 0.0; // accumulates log-likelihood
+  alphasumfactor = 0.0; // accumulates log-likelihood
   double Sum = 0.0;
   double scaleFactor = 0.0;
   
@@ -324,7 +314,7 @@ void HMM::UpdateForwardProbsDiploid()
       for( int j = 0; j <  DStates; ++j ) {
 	alpha[(t-1)*DStates +j] *= scaleFactor;
       }
-      sumfactor += log(Sum);
+      alphasumfactor += log(Sum);
     }
     
     RecursionProbs(p[t], f + 2*t, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, 
@@ -351,7 +341,7 @@ void HMM::UpdateBackwardProbsDiploid()
   if(!LambdaBeta)//allocate LambdaBeta array if not already done
     LambdaBeta = new double[K*K];
 
-
+  betasumfactor = 0.0;
   double scaleFactor, Sum;
   
   for(int j = 0; j < DStates; ++j){
@@ -364,7 +354,7 @@ void HMM::UpdateBackwardProbsDiploid()
     double f2[2] = {f[2*t + 2], f[2*t + 3]};
     for(int j = 0; j < DStates; ++j){
       //no need to check for missing genotypes, GPI will return 1 if missing
-      LambdaBeta[j] = beta[(t+1)*DStates + j] * ThetaThetaPrime(t+1, j) * LambdaGPI(t+1, j);
+       LambdaBeta[j] = beta[(t+1)*DStates + j] * ThetaThetaPrime(t+1, j) * LambdaGPI(t+1, j);
     }
 
     //normalize
@@ -372,10 +362,12 @@ void HMM::UpdateBackwardProbsDiploid()
     for(int j = 0; j < DStates; ++j){
       Sum += LambdaBeta[j];
     }
+
     scaleFactor = 1.0 / Sum;
     for( int j = 0; j <  DStates; ++j ) {
       LambdaBeta[j] *= scaleFactor;
     }
+      betasumfactor += log(Sum);
       
     RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
     for(int j = 0; j < DStates; ++j){ // vectorization successful
@@ -394,7 +386,7 @@ void HMM::UpdateBackwardProbsDiploid()
 void HMM::UpdateForwardProbsHaploid(){
   if(LambdaGPI.isNull() || theta.isNull() || !f)
     throw string("Error: Call to HMM when inputs are not set!");
-  sumfactor = 0.0;
+  alphasumfactor = 0.0;
   double Sum = 0.0;
   double scaleFactor = 0.0;
 
@@ -413,7 +405,7 @@ void HMM::UpdateForwardProbsHaploid(){
       for( int j = 0; j <  K; ++j ) {
 	alpha[(t-1)*K +j] *= scaleFactor;
       }
-      sumfactor += log(Sum);
+      alphasumfactor += log(Sum);
     }
 
     for(int j = 0; j < K; ++j){

@@ -85,7 +85,7 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
 
   if(Comms::isWorker()){
     ThetaSquared = new double[Loci->GetNumberOfCompositeLoci() * K *K];
-    //    if(options->getTestForAllelicAssociation() || options->OutputCGProbs())
+    if(options->getTestForAllelicAssociation() || options->OutputCGProbs())
       ThetaThetaInv = new double[Loci->GetNumberOfCompositeLoci() * K *K];
   }
 
@@ -723,7 +723,7 @@ void PopHapMix::SetThetaSquared(){
     for(unsigned j0 = 0; j0 < K; ++j0) {
       for(unsigned j1 = 0; j1 < K; ++j1) {
 	ThetaSquared[locusKSq + j0*K + j1] = MixtureProps[rownum + j0] * MixtureProps[rownum + j1];
-	if(options->getTestForAllelicAssociation())
+	if(options->getTestForAllelicAssociation() || options->OutputCGProbs())
 	  ThetaThetaInv[locusKSq + j0*K + j1] = 1.0 / ThetaSquared[locusKSq + j0*K + j1];
       }
     }
