@@ -129,7 +129,7 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* o
 	*outputstream << "NA" << separator << "NA";
     }
     else{// MissingInfo > CompleteInfo
-      if(final)*outputstream << "NA";
+      if(final)*outputstream << "NA" << separator;
       *outputstream << "NA";
     }
   }
