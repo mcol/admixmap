@@ -140,8 +140,6 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
   //set parameters of prior on frequency Dirichlet prior params
   const std::vector<double> &params = options->getAlleleFreqPriorParams();
   etaHierModel = options->isFreqPrecisionHierModel();
-  if(etaHierModel && params.size()!=3)
-    Log << On << "ERROR: allelefreqprior should have 3 elements.\n Using default instead.\n";
 
   if(etaHierModel){
     if(params.size()==3) {

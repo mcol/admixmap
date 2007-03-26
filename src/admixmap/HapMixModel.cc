@@ -2,6 +2,7 @@
 #include "EventLogger.hh"
 #include "HapMixIndividual.h"
 
+#define SCORETEST_UPDATE_EVERY 2
 // HapMixModel::HapMixModel(){
 
 // }
@@ -123,9 +124,10 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
   
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){
     //score tests
-    if( options->getScoreTestIndicator() ){
+  if( (isMaster || isWorker) && !anneal && iteration > options->getBurnIn() ){
+    //update score tests every SCORETEST_UPDATE_EVERY iterations after burn-in
+    if( options->getScoreTestIndicator() && !(iteration%SCORETEST_UPDATE_EVERY) ){
       EventLogger::LogEvent(21, iteration, "ScoreTestUpdatestart");
       //TODO: broadcast dispersion in linear regression
       Scoretests.Update(R);//score tests evaluated for first outcome var only
