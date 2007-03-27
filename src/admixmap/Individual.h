@@ -71,7 +71,7 @@ public:
   void SampleMissingOutcomes(DataMatrix *Outcome, const std::vector<Regression*>& R);
   
 //  // The following functions are not implemented in Individual.
-  virtual std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) = 0;
+  virtual const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) const = 0;
   virtual void calculateUnorderedGenotypeProbs() = 0;
   virtual void calculateUnorderedGenotypeProbs(unsigned) = 0;
 

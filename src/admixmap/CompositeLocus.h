@@ -184,23 +184,6 @@ inline void CompositeLocus::GetHaploidGenotypeProbs(double *Probs, const std::ve
   }
 }
 
-/** Simplified version of getConditionalHapPairProbs.
- * 
- * Sets only two values of the Probs vector. It was made inline because
- * this function is one of the main performance bottlenecks
- * of the allelic association score test. It's being called
- * K^2 (e.g. 64) times for each individual at each locus.
- */
-inline void CompositeLocus::getFirstAndLastConditionalHapPairProbs(
-      pvector<double>& Probs,
-      const int ancestry[2]) const
-{
-  Probs[0] = HapPairProbs[ /* 0 * PopSq_x_NumberOfStates + */ 
-                           /* 0 * PopulationsSquared + */
-                           ancestry[0] * Populations  + ancestry[1]];
-  Probs[3] = HapPairProbs[ PopulationsSquared_x_3 + 
-                           ancestry[0] * Populations  + ancestry[1]];
-}
 
 
 #endif /* !COMPOSITE_LOCUS_H */

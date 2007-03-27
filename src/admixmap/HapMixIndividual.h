@@ -36,12 +36,14 @@ public:
   void calculateUnorderedGenotypeProbs(void);
   const pvector<double>& getStateProbs(const bool, int, int) const;
   void calculateUnorderedGenotypeProbs(unsigned);
-  std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int);
-  pvector<double> orderedGenotypeProbs; //< Temporary vector
+  const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) const;
 
 private:
 
   vector<unsigned short> hgenotypes;//< genotypes coded as single integers, assuming all typed loci are SNPs
+
+  /// Temporary vector used by calculateUnorderedProbs
+  pvector<double> orderedGenotypeProbs;
 
   static const FreqArray* HaploidGenotypeProbs;
   static const FreqArray* DiploidGenotypeProbs;

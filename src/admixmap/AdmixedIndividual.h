@@ -76,7 +76,7 @@ public:
   
   // Override functions from Individual, so AdmixedIndividual can
   // be instantiated.
-  virtual std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) {
+  virtual const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) const {
     throw string("AdmixedIndividual::getUnorderedProbs(const unsigned) is not implemented."); }
   virtual void calculateUnorderedGenotypeProbs() {
     throw string("AdmixedIndividual::calculateUnorderedGenotypeProbs() is not implemented."); }

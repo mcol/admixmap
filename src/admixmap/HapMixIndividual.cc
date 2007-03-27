@@ -322,8 +322,10 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
       Loci->getRelativeLocusNumber(j));
 
   // set UnorderedProbs[j][*][0] to 0;
-  vector<vector<double> >::iterator gi;
-  for (gi = UnorderedProbs[j].begin(); gi != UnorderedProbs[j].end(); ++gi) {
+  for (vector<vector<double> >::iterator gi = UnorderedProbs[j].begin();
+      gi != UnorderedProbs[j].end();
+      ++gi)
+  {
     (*gi)[0] = 0;
   }
 
@@ -340,21 +342,25 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
 //  orderedStateProbs.snapToZero();
 
   for (anc[0] = 0; anc[0] < NumHiddenStates; ++anc[0]) {
-    for (anc[1] = 0; anc[1] < NumHiddenStates; ++anc[1]) {
-      ospIdx = anc[0] * NumHiddenStates + anc[1];
+  	/*
+  	 * Calculating first index of ordered state probabilities.
+  	 * It will be incremented in the innter loop after each iteration.
+  	 */
+  	ospIdx = anc[0] * NumHiddenStates;
+    for (anc[1] = 0; anc[1] < NumHiddenStates; ++anc[1], ++ospIdx) {
       
       if (orderedStateProbs[ospIdx] == 0) continue;
       
       /*
        * Calling a simplified version of getConditionalHapPairProbs
        * which sets only 0th and 3rd element of orderedGenotypeProbs
-       * vector.
+       * vector. 
+       * 
+       * PossibleHapPairs[j] are 
+       * assumed to be all four: 0,0; 1,0; 0,1; 1,1.
        */
       (*Loci)(j)->getFirstAndLastConditionalHapPairProbs(
-          orderedGenotypeProbs,
-          // Assumed to be all four: 0,0; 1,0; 0,1; 1,1.
-          // PossibleHapPairs[j],
-          anc);
+          orderedGenotypeProbs, anc);
 
       /*
        * multiply result by conditional probs of anc and accumulate
@@ -365,10 +371,10 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
        * (p0,  p1,   p2,   p3)
        *  get  skip  skip  get
        */
-      for (int ogpi = 0; ogpi < 4; ogpi += 3) {
-        UnorderedProbs[j][ord2unord[ogpi]][0] +=
-            orderedGenotypeProbs[ogpi] * orderedStateProbs[ospIdx];
-      }
+      UnorderedProbs[j][0][0] +=
+      			orderedGenotypeProbs[0] * orderedStateProbs[ospIdx];
+      UnorderedProbs[j][2][0] +=
+      			orderedGenotypeProbs[3] * orderedStateProbs[ospIdx];
     }
   }
   /*
@@ -392,8 +398,8 @@ const pvector<double>& HapMixIndividual::getStateProbs(const bool isDiploid,cons
  * Return unordered probs as a vector of vectors of doubles.
  * Function AncestryAssocTest::Update() wants them this way.
  */
-vector<vector<double> >& HapMixIndividual::getUnorderedProbs(
-  const unsigned int j)
+const vector<vector<double> >& HapMixIndividual::getUnorderedProbs(
+  const unsigned int j) const
 {
   return UnorderedProbs[j];
 }

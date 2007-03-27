@@ -277,6 +277,8 @@ const pvector<double>& HMM::GetHiddenStateProbs(bool isDiploid, int t){
   const double *b = beta + t*States;  
   for( unsigned j = 0; j < States; j++ ){
     //    hiddenStateProbs[j] = alpha[t*States + j] * beta[t*States + j];
+    // GCC Autovectorizer says:
+    // HMM.cc:278: note: not vectorized: unhandled data-ref
     hiddenStateProbs[j] = (*(a++)) * ( *(b++) );
   }
 
