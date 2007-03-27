@@ -12,7 +12,6 @@ libutils_la_SOURCES		= functions.cc \
 				  SnapToZero.cc \
 				  DivideBy.cc \
 				  ZeroOrMore.cc
->>>>>>> .r2243
 
 noinst_HEADERS			= DataMatrix.h \
 				  DataReader.h \
