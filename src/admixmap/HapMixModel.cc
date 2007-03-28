@@ -339,7 +339,8 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
     const Vector_s& LocusLabels = data.getLocusLabels();
     Vector_s MaskedLocusLabels;
     for(vector<unsigned>::const_iterator l = maskedLoci.begin(); l!=maskedLoci.end(); ++l)
-      MaskedLocusLabels.push_back(LocusLabels[*l]);
+      // Masked loci indices are 1-based, need to offset by one
+      MaskedLocusLabels.push_back(LocusLabels[(*l) - 1]);
 
     HMIC->OutputCGProbs(s.c_str(), MaskedLocusLabels);
   }
