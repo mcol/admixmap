@@ -7,7 +7,12 @@ export CXXFLAGS="\
 -pipe \
 -fomit-frame-pointer \
 -ffast-math \
--ftree-vectorize \
--ftree-vectorizer-verbose=3"
+"
+
+# Option -ftree-vectorize is disabled. It's apparently not a safe flag
+# to use. See:
+# http://actin.ucd.ie/trac/genepi/wiki/Autovectorization%20in%20GCC
+#
+# -ftree-vectorize -ftree-vectorizer-verbose=3
 
 source "$(pwd)/src/scripts/build-common"
