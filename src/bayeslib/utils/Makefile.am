@@ -14,7 +14,8 @@ libutils_la_SOURCES		= functions.cc			\
 				  DivideBy.cc			\
 				  ZeroOrMore.cc
 
-noinst_HEADERS			= DataMatrix.h			\
+noinst_HEADERS			= Array.hh  \
+                                  DataMatrix.h			\
 				  DataReader.h			\
 				  dist.h			\
 				  linalg.h			\

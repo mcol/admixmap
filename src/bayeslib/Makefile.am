@@ -4,7 +4,7 @@ libbayes_la_LIBADD	= samplers/libsampler.la			\
 			  utils/libutils.la				\
 			  regression/libbayesreg.la
 SUBDIRS			= samplers utils regression
-noinst_HEADERS		= common.h
+noinst_HEADERS		= common.h bcppcl.h
 
 if PARALLEL
 lib_LTLIBRARIES			+= libbayes-para.la
