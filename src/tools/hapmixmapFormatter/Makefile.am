@@ -2,7 +2,9 @@ BAYESLIB_PATH = $(top_srcdir)/src/bayeslib
 AM_CPPFLAGS=-I$(BAYESLIB_PATH)/utils
 bin_PROGRAMS = DataFormatter
 SUFFIXES=.cc .cpp .o
-DataFormatter_SOURCES = FormatPhasedData.cpp GenotypeEncoder.cpp $(BAYESLIB_PATH)/utils/StringSplitter.cc
+DataFormatter_SOURCES = FormatPhasedData.cpp		\
+			GenotypeEncoder.cpp 		\
+			$(BAYESLIB_PATH)/utils/StringSplitter.cc
 
 noinst_HEADERS = Formatting.h		\
 		 Formatting2.h		\

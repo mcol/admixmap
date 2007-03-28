@@ -1,6 +1,6 @@
-SUBDIRS		 = bayeslib \
-		   common \
-		   admixmap \
-		   hapmixmap \
-		   tools \
+SUBDIRS		 = bayeslib		\
+		   common		\
+		   admixmap		\
+		   hapmixmap		\
+		   tools		\
 		   scripts

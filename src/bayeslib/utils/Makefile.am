@@ -1,35 +1,36 @@
 noinst_LTLIBRARIES         	= libutils.la
-libutils_la_SOURCES		= functions.cc \
-				  DataReader.cc \
-				  DataMatrix.cc \
-				  StringSplitter.cc \
-				  StringConvertor.cc \
-				  LogWriter.cc \
-				  RObjectWriter.cc \
-				  GSLErrorHandler.cc \
-				  ProbVector.cc \
-			          pvector.cc \
-				  SnapToZero.cc \
-				  DivideBy.cc \
+
+libutils_la_SOURCES		= functions.cc			\
+				  DataReader.cc			\
+				  DataMatrix.cc			\
+				  StringSplitter.cc		\
+				  StringConvertor.cc		\
+				  LogWriter.cc			\
+				  RObjectWriter.cc		\
+				  GSLErrorHandler.cc		\
+				  ProbVector.cc			\
+			          pvector.cc			\
+				  SnapToZero.cc			\
+				  DivideBy.cc			\
 				  ZeroOrMore.cc
 
-noinst_HEADERS			= DataMatrix.h \
-				  DataReader.h \
-				  dist.h \
-				  linalg.h \
-				  LogWriter.h \
-				  misc.h \
-				  StringConvertor.h \
-				  StringSplitter.h \
-				  ColumnIter.h \
-				  RObjectWriter.h \
-				  GSLErrorHandler.h \
-				  Exceptions.h \
-				  GSLExceptions.h \
-                                  ProbVector.h \
-				  pvector.h \
-				  SnapToZero.h \
-				  DivideBy.h \
+noinst_HEADERS			= DataMatrix.h			\
+				  DataReader.h			\
+				  dist.h			\
+				  linalg.h			\
+				  LogWriter.h			\
+				  misc.h			\
+				  StringConvertor.h		\
+				  StringSplitter.h		\
+				  ColumnIter.h			\
+				  RObjectWriter.h		\
+				  GSLErrorHandler.h		\
+				  Exceptions.h			\
+				  GSLExceptions.h		\
+                                  ProbVector.h			\
+				  pvector.h			\
+				  SnapToZero.h			\
+				  DivideBy.h			\
 				  ZeroOrMore.h
 
 INCLUDES			= -I$(top_srcdir)/src/bayeslib
