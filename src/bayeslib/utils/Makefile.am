@@ -22,7 +22,7 @@ noinst_HEADERS			= DataMatrix.h \
 				  StringConvertor.h \
 				  StringSplitter.h \
 				  ColumnIter.h \
-				  RObjectWriter.h
+				  RObjectWriter.h \
 				  GSLErrorHandler.h \
 				  Exceptions.h \
 				  GSLExceptions.h \

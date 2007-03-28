@@ -97,7 +97,8 @@ noinst_HEADERS	= HapMixFreqs.h \
                   GenotypeIterator.h \
                   FreqArrays.h \
                   MixturePropsWrapper.hh \
-                  EventLogger.hh
+                  EventLogger.hh \
+		  GeneticDistanceUnit.h
 
 # A library which holds all the code that is common for Admixmap and
 # Hapmixmap. It also includes bayeslib; it's defined via LIBADD variable.
