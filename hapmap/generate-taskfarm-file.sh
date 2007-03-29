@@ -55,6 +55,10 @@ do
 	# cycle wastage when hitting the time limit.
 	for STATES in $STATES_LIST
 	do
+		echo -n >> "$TASK_FILE" '. ${MODULESHOME}/init/sh'
+		echo -n >> "$TASK_FILE" " ; "
+		echo -n >> "$TASK_FILE" module load pathscale
+		echo -n >> "$TASK_FILE" " ; "
 		# Training, presumably long run
 		echo -n >> "$TASK_FILE" \
 		perl $CHR22 \
@@ -68,7 +72,7 @@ do
 		echo -n >> "$TASK_FILE" " ; "
 		# FIXME: Number of individuals
 		# predict_time $SAMPLES 100 $STATES
-		# TIME_TOTAL="$TIME_TOTAL + `predict_time $SAMPLES 100 $STATES`"
+		TIME_TOTAL="$TIME_TOTAL + `predict_time $SAMPLES 100 $STATES`"
 		echo -n >> "$TASK_FILE" \
 		perl $CHR22 \
 			--pop $POPULATION \
@@ -76,7 +80,7 @@ do
 			--maskfile mi_cc_index.txt \
 			--genotypes-file mi_merged_cc_train.txt \
 			--locus-file mi_loci.txt \
-			--samples 200 \
+			--samples 1000 \
 			--burnin 50 \
 			--mutual-information \
 			--re-run

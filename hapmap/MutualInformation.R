@@ -24,6 +24,13 @@ genotypes = c("1,1", "1,2", "2,2")
 
 results.dir = paste(population, "/", chromosome, "Results", states, "States2", sep = "")
 
+print(results.dir)
+
+# Dimensions of Genotype Probs are:
+#
+# 1. Genotype
+# 2. Locus
+# 3. Individual
 GP = dget(paste(results.dir, "PPGenotypeProbs.txt", sep = "/"))
 orig = dget(paste(population, "chr22data", "mi_cc_observed_dput.txt", sep = "/"))
 v = as.vector(as.matrix(orig))
@@ -39,14 +46,14 @@ gp.dbg <- function(indiv, loc) {
 }
 
 # Array for mutual information.
-mi <- matrix(nrow = length(GP[1,1,]), ncol = 3)
+mi <- matrix(nrow = length(GP[1,,1]), ncol = 3)
 colnames(mi) <- c("Mutual information", "Mutual information, no uncertainity", "Unique genotypes")
 
 # Unique loci in original data. Numer 1 indicates that all individuals
 # had the same genotype in specific locus.
 
-for (locus.id in dimnames(GP)[[3]]) {
-	locus.no = as.numeric(locus.id)
+# for (locus.id in 1:length(dimnames(GP)[[2]]) {
+for (locus.no in 1:length(GP[1,,1])) {
 	# print(c("Number of unique genotypes: ", length(unique(na.omit(orig[, locus.no])))))
 	joint.pd <- joint.prob(GP, locus.no, genotypes)
 	joint.pd.no.uncert <- joint.prob(GP, locus.no, genotypes, throw_away_uncertainity = TRUE)

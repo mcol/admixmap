@@ -176,8 +176,8 @@ joint.prob <- function(GP, locus.no, genotypes, throw_away_uncertainity = FALSE)
 		# message(c("colname:", colname))
 		# print(indiv.idx)
 		# print(locus.no)
-		# print(matrix(GP[, indiv.idx, locus.no], nrow = 3))
-		indiv.probs <- matrix(GP[, indiv.idx, locus.no], nrow = 3)
+		# print(matrix(GP[, locus.no, indiv.idx], nrow = 3))
+		indiv.probs <- matrix(GP[, locus.no, indiv.idx], nrow = 3)
 		#     in1 in2 in3 in4 ...
 		# 1,1 0.1 0.2
 		# 1,2 0.2 0.3

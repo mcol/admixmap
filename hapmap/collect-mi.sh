@@ -2,8 +2,7 @@
 
 # Collect calculated Mutual Information and print it as a table.
 
-STATES_LIST=$(seq 2 2 18)
-POPULATIONS="Eur Afr Asian"
+source config.sh
 
 echo -n "States"
 for POPULATION in $POPULATIONS
