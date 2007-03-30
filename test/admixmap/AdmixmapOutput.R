@@ -81,10 +81,15 @@ readLoci <- function(){
 }
 
 getNumSubpopulations <- function(user.options) {
-  if(!is.null(user.options$populations)) {
-    K <- as.numeric(user.options$populations)
+  ##hapmixmodel - get number of block states
+  if(!is.null(user.options$hapmixmodel) && (user.options$hapmixmodel==1)){
+    K <- as.numeric(user.options$states)
+  }else{
+    ##admixmap - get number of populations
+    if(!is.null(user.options$populations)) {
+      K <- as.numeric(user.options$populations)
+    }else {cat("Error: number of subpopulations not written to file\n", file=outfile, append=T);}
   }
-  else {cat("Error: number of subpopulations not written to file\n", file=outfile, append=T);}
   return(K)
 }
 
@@ -402,10 +407,8 @@ plotPValuesKPopulations <- function(outfile, pvalues, thinning) {
 
 ##used for allelic and haplotype association score tests
 plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
-  full.filename <- paste(resultsdir,scorefile,sep="/")
-  if(file.exists(full.filename)){
-  scoretest <- dget(full.filename)
-
+  scoretest <- dget(paste(resultsdir,scorefile,sep="/"))
+  
   ## rows are: locus,(haplotype), -log10pvalue
   ## extract testnames and drop 1st row
   if (!haplotypes) {
@@ -422,7 +425,6 @@ plotScoreTest <- function(scorefile, haplotypes, outputfilePlot, thinning) {
 
   plotlogpvalues(outputfilePlot, log10pvalues,
               10*thinning, "Running computation of p-values for allelic association", F)
-}
 }
 
 #used to plot output of score test for heterozygosity
@@ -480,10 +482,10 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   rm(scoretest.final.table)
   
   ##plot z-scores across genome
-  zscores <- scoretest.final[,,7]
+  zscores <- t(scoretest.final[,,7])
   plotScoreMap(loci.compound,zscores, KK, testname) 
   ## plot information content
-  info.content <- scoretest.final[,,2]
+  info.content <- t(scoretest.final[,,2])
   plotInfoMap(loci.compound, info.content, KK, testname)
   
   ## calculate high and low cutoffs of population risk ratio r that can be excluded at
@@ -1009,19 +1011,11 @@ rm(message)
 loci.compound <- readLoci()
 n.chr <- nlevels(factor(loci.compound$Chromosome))
 
-if(is.null(user.options$hapmixmodel) || user.options$hapmixmodel==0){
-  K <- getNumSubpopulations(user.options)
-  population.labels <- getPopulationLabels(K, user.options)
-  AdmixturePrior <- getAdmixturePrior(K, user.options)
-  ParentsIdentified <- getParentsIdentified(AdmixturePrior)
-  IsAdmixed <- getIsAdmixed(AdmixturePrior)
-}else{
-  K <- 1
-  population.labels <- NULL
-  AdmixturePrior <- NULL
-  ParentsIdentified <- NULL
-  IsAdmixed <- F
-}
+K <- getNumSubpopulations(user.options)
+population.labels <- getPopulationLabels(K, user.options)
+AdmixturePrior <- getAdmixturePrior(K, user.options)
+ParentsIdentified <- getParentsIdentified(AdmixturePrior)
+IsAdmixed <- getIsAdmixed(AdmixturePrior)
                                             
 param.samples <- NULL
 effect.pop <- NULL
