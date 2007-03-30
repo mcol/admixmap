@@ -1,39 +1,30 @@
+// *-*-C++-*-*
 #ifndef PVECTOR_H_
 #define PVECTOR_H_
 
-#include <cmath>
-#include <vector>
-#include <algorithm>
-#include <string>
-#include <numeric>
+#include "Array.hh"
 
-#include "DivideBy.h"
-#include "ZeroOrMore.h"
-#include "SnapToZero.h"
+#define PVECTOR_THRESHOLD 1e-20
 
-using std::string;
-using std::vector;
-
-#define PVECTOR_PRECISION 1e-10
-#define PVECTOR_SUM 1.0
-#define PVECTOR_SNAP 1e-20
+BEGIN_BCPPCL_NAMESPACE
 
 /// Extension of STL Vector to handle vectors of probabilities
 template<class T>
-class pvector : public vector<T>
-{
-private:
-  T sum;
-  SnapToZero<T> snapper;
-  DivideBy<T> divisor;
+class pvector : public Array<T>{
+
 public:
-  pvector<T>() {
-    snapper.setThreshold(PVECTOR_SNAP);
-  }
+  pvector<T>() : Array<T>(){}
+  pvector<T>(unsigned n) : Array<T>(n){};
   void normalize();
-  void verify();
+  bool verify();
   bool is_normalized();
   void snapToZero();
+  void print(std::ostream&, const T precision, const char* sep)const;
+
+private:
+  T sum;
+
 };
 
+END_BCPPCL_NAMESPACE
 #endif /*PVECTOR_H_*/

@@ -13,11 +13,34 @@ BEGIN_BCPPCL_NAMESPACE
 template <class T>
 class Array : public std::vector<T>{
 public:
-  ///write to output stream
-  virtual void print(std::ostream& os)const{
-    copy(this->begin(), this->end(), std::ostream_iterator<T>(os, " "));
-    os << std::endl;
+  Array() : std::vector<T>() {}
+
+  Array(unsigned n) : std::vector<T> (n){}
+  virtual ~Array(){};
+
+  ///write to output stream, with optional separator
+  virtual void print(std::ostream& os, const char* sep= " ")const{
+    copy(this->begin(), this->end(), std::ostream_iterator<T>(os, sep));
+    //os << std::endl;
   }
+
+  ///scalar multiplication
+  virtual void operator*=(const T& t){
+    typename std::vector<T>::iterator i = this->begin();
+    for(;  i != this->end(); ++ i)
+      *i *= t;
+  }
+  ///scalar multiplication
+  Array operator*(const T& t)const{
+    Array A ;
+    typename std::vector<T>::const_iterator i = this->begin();
+    for(;  i != this->end(); ++ i)
+      A.push_back( (*i) * t);
+    return A;
+  }
+
+
+
 };
 
 

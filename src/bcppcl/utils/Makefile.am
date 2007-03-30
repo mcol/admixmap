@@ -9,10 +9,8 @@ libutils_la_SOURCES		= functions.cc			\
 				  RObjectWriter.cc		\
 				  GSLErrorHandler.cc		\
 				  ProbVector.cc			\
-			          pvector.cc			\
-				  SnapToZero.cc			\
-				  DivideBy.cc			\
-				  ZeroOrMore.cc
+			          pvector.cc			
+
 
 noinst_HEADERS			= Array.hh  \
                                   DataMatrix.h			\
@@ -30,9 +28,7 @@ noinst_HEADERS			= Array.hh  \
 				  GSLExceptions.h		\
                                   ProbVector.h			\
 				  pvector.h			\
-				  SnapToZero.h			\
-				  DivideBy.h			\
-				  ZeroOrMore.h
+				  SnapToZero.h		
 
 INCLUDES			= -I$(top_srcdir)/src/bayeslib
 
