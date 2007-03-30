@@ -347,6 +347,20 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     }
   }
 
+  //freqprecisionfile not allowed if frequencies are fixed
+  if(fixedallelefreqs){
+      //TODO: ?? warnings
+    if( FreqPrecisionOutputFilename.size()){
+      FreqPrecisionOutputFilename.clear();
+      useroptions.erase("freqprecisionfile");
+    }
+    if(AlleleFreqPriorOutputFilename.size()){
+      AlleleFreqPriorOutputFilename.clear();
+      useroptions.erase("allelefreqprecisionposteriormeanfile");
+    }
+  }
+
+
   //fixed allele freqs
   if( PriorAlleleFreqFilename.length() && fixedallelefreqs  ){
     Log << "Analysis with fixed allele frequencies.\n";
