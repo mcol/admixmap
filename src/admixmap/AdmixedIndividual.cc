@@ -18,8 +18,6 @@
 #include <algorithm>
 #include <limits>
 #include <sstream>
-#include "GenotypeIterator.h"
-#include "MixturePropsWrapper.hh"
 
 #define PR(x) cout << #x << " = " << x << endl;
 
@@ -40,6 +38,7 @@ AdmixedIndividual::AdmixedIndividual() {//should initialise pointers here
 AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const options, const InputData* const Data,  
 				     bool undertest=false){
   GenotypesMissing = new bool*[numChromosomes];
+
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     GenotypesMissing[j] = new bool[ Loci->GetSizeOfChromosome(j) ];
   }  
@@ -75,25 +74,17 @@ AdmixedIndividual::AdmixedIndividual(int number, const AdmixOptions* const optio
   if( options->getHWTestIndicator())SetMissingGenotypes();
   DeleteGenotypes();
 
+  //allocate genotype probs
+  GenotypeProbs = new double*[numChromosomes];
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    if(isHaploid || (!SexIsFemale && Loci->isXChromosome(j))){//haploid on this chromosome
+      GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*NumHiddenStates];
+    }
+    else{
+      GenotypeProbs[j] = new double[Loci->GetSizeOfChromosome(j)*NumHiddenStates*NumHiddenStates];
+    }
+  }  
 
- //allocate genotype probs
-#ifdef ARRAY2D
-  GPArray.array = new double*[numCompositeLoci];
-  unsigned locus = 0;
-   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    unsigned DStates = NumHiddenStates;
-    if(!isHaploid && (j!=X_posn || SexIsFemale))
-      DStates*=NumHiddenStates;
-     for(unsigned jj = 0; jj < Loci->GetSizeOfChromosome(j);++jj){
-       GPArray.array[locus] = new double[DStates];
-       ++locus;
-     }
-  }
-#else
-   //KLUDGE: in parallel version, the array must be regular so K^2 for each locus, even if haploid. Surplus elements will be unused without affecting the HMM updates
-  GPArray.array = new double[numCompositeLoci*NumHiddenStates*NumHiddenStates];
-#endif
-  GPI.setPointer(&GPArray);
 
   thetahat = 0;
   if(options->getChibIndicator() || options->getIndAdmixModeFilename())
@@ -244,8 +235,8 @@ void AdmixedIndividual::setAdmixtureProps(const double* const a, size_t size) {
 void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, const double* const AlleleProbs){
   if( !GenotypesMissing[j][jj] ){
     if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-      double *q = GPArray[locus];
-      
+      double *q = GenotypeProbs[j]+jj*NumHiddenStates*NumHiddenStates;
+ 	     
       happairiter end = PossibleHapPairs[locus].end();
       const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
       for(int k0 = 0; k0 < NumHiddenStates; ++k0)
@@ -259,7 +250,7 @@ void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, const do
 	}
     }
     else{//haploid
-      double *q =GPArray[locus];
+      double *q =GenotypeProbs[j]+jj*NumHiddenStates;
       happairiter end = PossibleHapPairs[locus].end();
       const unsigned NumberOfStates = Loci->GetNumberOfStates(locus);
       for(int k0 = 0; k0 < NumHiddenStates; ++k0) {
@@ -271,52 +262,52 @@ void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, const do
 	q++;
       }
     }
-    
+ 	   
   } else {//missing genotype
     if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-    for( int k = 0; k < NumHiddenStates*NumHiddenStates; ++k ) GPArray[locus][ k] = 1.0;
-   }
-   else{
-    for( int k = 0; k < NumHiddenStates; ++k ) GPArray[locus][ k] = 1.0;
-   }
+      for( int k = 0; k < NumHiddenStates*NumHiddenStates; ++k ) GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates + k] = 1.0;
+    }
+    else{
+      for( int k = 0; k < NumHiddenStates; ++k ) GenotypeProbs[j][jj*NumHiddenStates + k] = 1.0;
+    }
   }
 }
 #endif
-
+ 	
 void AdmixedIndividual::SetGenotypeProbs(int j, int jj, unsigned locus, bool chibindicator=false){
   //chibindicator is passed to CompositeLocus object.  If set to true, CompositeLocus will use HapPairProbsMAP
   //instead of HapPairProbs when allelefreqs are not fixed.
   if( !GenotypesMissing[j][jj] ) {
     if( !isHaploid && (j!=(int)X_posn || SexIsFemale)) { //diploid genotype
-      (*Loci)(locus)->GetGenotypeProbs(GPArray[locus], PossibleHapPairs[locus],
+      (*Loci)(locus)->GetGenotypeProbs(GenotypeProbs[j]+jj*NumHiddenStates*NumHiddenStates, PossibleHapPairs[locus],
 				       chibindicator);
       //       if(chibindicator) {
-      // 	for( int k = 0; k < NumHiddenStates; ++k ) cout << GPArray[locus][k] << " ";
+      //        for( int k = 0; k < NumHiddenStates; ++k ) cout << GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates + k] << " ";
       //       }
     } else {//haploid genotype
-      (*Loci)(locus)->GetHaploidGenotypeProbs(GPArray[locus], PossibleHapPairs[locus],
-					                          chibindicator);
+      (*Loci)(locus)->GetHaploidGenotypeProbs(GenotypeProbs[j]+jj*NumHiddenStates, PossibleHapPairs[locus],
+					      chibindicator);
     }
   } else {
     if( !isHaploid && (j!=(int)X_posn || SexIsFemale))  //diploid genotype
-      for( int k = 0; k < NumHiddenStates*NumHiddenStates; ++k ) GPArray[locus][k] = 1.0;
+      for( int k = 0; k < NumHiddenStates*NumHiddenStates; ++k ) GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates + k] = 1.0;
     else //haploid genotype
-      for( int k = 0; k < NumHiddenStates; ++k ) GPArray[locus][k] = 1.0;
+      for( int k = 0; k < NumHiddenStates; ++k ) GenotypeProbs[j][jj*NumHiddenStates + k] = 1.0;
   }
-
+ 	
 }
-
+ 	
 void AdmixedIndividual::AnnealGenotypeProbs(int j, const double coolness) {
   // called after energy has been evaluated, before updating model parameters
   int locus = Loci->getChromosome(j)->GetLocus(0);
   for(unsigned int jj = 0; jj < Loci->GetSizeOfChromosome(j); jj++ ){ // loop over composite loci
-    if( !GenotypesMissing[j][jj] ) { 
+    if( !GenotypesMissing[j][jj] ) {
       if(!isHaploid && ( j!=(int)X_posn || SexIsFemale))  //diploid genotype
 	for(int k = 0; k < NumHiddenStates*NumHiddenStates; ++k) // loop over ancestry states
-	  GPArray[locus][k] = pow(GPArray[locus][k], coolness);
+	  GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates+k] = pow(GenotypeProbs[j][jj*NumHiddenStates*NumHiddenStates+k], coolness);
       else //haploid genotype
 	for(int k = 0; k < NumHiddenStates; ++k) // loop over ancestry states
-	  GPArray[locus][k] = pow(GPArray[locus][k], coolness);
+	  GenotypeProbs[j][jj*NumHiddenStates+k] = pow(GenotypeProbs[j][jj*NumHiddenStates+k], coolness);
     }
     locus++;
   }
@@ -428,7 +419,7 @@ double AdmixedIndividual::getLogLikelihoodAtPosteriorMeans(const Options* const 
   else {
     for( unsigned int j = 0; j < numChromosomes; j++ ) {
       UpdateHMMInputs(j, options, ThetaBar, sumlogrho); // sumlogrho is posterior mean of rho
-      LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
+      LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
     }
   }
   delete[] ThetaBar;
@@ -470,10 +461,10 @@ void AdmixedIndividual::SampleJumpIndicators(bool sampleArrivals){
     //sample number of arrivals, update SumNumArrivals and SumLocusAncestry
     if( !Loci->isXChromosome(j) )
       C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry, SumNumArrivals, 
-			      sampleArrivals);
+				     sampleArrivals);
     else 
       C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumLocusAncestry_X, SumNumArrivals, 
-			      sampleArrivals);
+				     sampleArrivals);
   } //end chromosome loop
 }
 
@@ -895,48 +886,25 @@ void AdmixedIndividual::UpdateHMMInputs(unsigned int j, const Options* const opt
   //Updates inputs to HMM for chromosome j
   //also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
   const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
+  const bool isRandomMating = options->isRandomMatingModel();
   Chromosome* C = Loci->getChromosome(j);
 
-  //offset GPI to point to genotype probs for the first locus on chromosome, no column offset
-  GPI.Offset(C->GetLocus(0));
-
-  C->SetGenotypeProbs(GPI , GenotypesMissing[j]);
+  C->HMM->SetGenotypeProbs(GenotypeProbs[j], GenotypesMissing[j]);
 
   if(!options->isGlobalRho()){
     //set locus correlation, f, if individual- or gamete-specific rho
-    C->SetLocusCorrelation(rho, !options->isRandomMatingModel(), options->isRandomMatingModel());
+    C->SetLocusCorrelation(rho, isRandomMating);
   }
 
-  MixturePropsWrapper ThetaWrap;
-  //TODO: pass as last argument condition if either of the 2 ancestry score tests
-  if(diploid || !options->isRandomMatingModel()){
-    ThetaWrap.assign(theta);
-    SetThetaThetaPrime(theta, options->isRandomMatingModel(), true);
+  // set StateArrivalProbs in HMM
+  if(diploid || !isRandomMating){
+    C->HMM->SetStateArrivalProbs(theta, (int)isRandomMating, diploid);
   }
   else{ //haploid case in random mating model: pass pointer to maternal admixture props
-    ThetaWrap.assign(theta + NumHiddenStates);
-    SetThetaThetaPrime(theta + NumHiddenStates, true, true);
+    C->HMM->SetStateArrivalProbs(theta + NumHiddenStates, true, false);
   }
 
-  MixturePropsWrapper ThetaSqWrap(ThetaThetaPrime);
-  MixturePropsWrapper ThetaThetaInvWrap(ThetaThetaInv);
-
-  C->SetHMMTheta(ThetaWrap, ThetaSqWrap, ThetaThetaInvWrap);
-  //if(diploid)
-  C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
-}
-
-void AdmixedIndividual::SetThetaThetaPrime(const double* aTheta, bool RandomMating, bool needBackwardProbs){
-
-  const unsigned colOffset = RandomMating ? 1 :0;
-
-  for(int j0 = 0; j0 < NumHiddenStates; ++j0) {
-    for(int j1 = 0; j1 < NumHiddenStates; ++j1) {
-	ThetaThetaPrime[j0*NumHiddenStates + j1] = aTheta[j0] * aTheta[j1 + NumHiddenStates * colOffset];
-	if(needBackwardProbs)ThetaThetaInv[j0*NumHiddenStates + j1] = 1.0 / ThetaThetaPrime[j0*NumHiddenStates + j1];
-      }
-  }
 }
 
 void AdmixedIndividual::SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta, 
@@ -1011,7 +979,7 @@ void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, cons
       locus = chrm->GetLocus(jj); 
       //retrieve AncestryProbs from HMM
       std::vector<std::vector<double> > AProbs = 
-	chrm->getAncestryProbs(!isHaploid && (!chrm->isXChromosome() || SexIsFemale),  jj );
+	chrm->getHiddenStateCopyNumberProbs(!isHaploid && (!chrm->isXChromosome() || SexIsFemale),  jj );
       
       //Update affecteds only scores      
       if(IamAffected){

@@ -15,7 +15,7 @@
 #define POPHAPMIX_H 1
 
 #include "HapMixOptions.h"
-#include "Genome.h"
+#include "HapMixGenome.hh"
 #include "samplers/HamiltonianMonteCarlo.h"
 //#include "samplers/StepSizeTuner.h"//for sampling globalrho and globaltheta
 #include "samplers/AdaptiveRejection.h"
@@ -63,7 +63,7 @@ typedef struct{
 class PopHapMix
 {
 public:
-  PopHapMix(HapMixOptions* op, Genome* loci);
+  PopHapMix(HapMixOptions* op, HapMixGenome* loci);
   
   ~PopHapMix();
   
@@ -74,7 +74,7 @@ public:
   //void UpdateGlobalTheta(int iteration, IndividualCollection* individuals);
   void SampleMixtureProportions(const int* SumArrivalCounts);
   
-  void SetHMMStateArrivalProbs(bool );
+  void SetHMMStateArrivalProbs();
 
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream& out); 
@@ -83,7 +83,7 @@ public:
   
   void OutputErgodicAvg( int, std::ofstream& avgstream);
   
-  const double* getGlobalTheta()const;
+  const double* getGlobalMixtureProps()const;
   
   void printAcceptanceRates(LogWriter &Log);
   
@@ -97,7 +97,7 @@ private:
   std::ofstream outputstream;//output to paramfile
 
   HapMixOptions *options;
-  Genome* Loci; 
+  HapMixGenome* Loci; 
 
   std::vector<double> lambda;///< arrival rates
   std::vector<double> SumLogLambda; //ergodic sum of log(rho)
@@ -116,9 +116,6 @@ private:
   double* SumThetaSq;///< sum of square of mixture props over loci, for calculation of variance
   double eta;///< observed mixture props precision
 
-  double* ThetaSquared;//< Array required for HMM updates
-  double* ThetaThetaInv;//< Array required for HMM backward updates
-
   DirichletParamSampler MixturePropsPrecisionSampler;
 
   void InitialiseMixtureProportions(LogWriter& Log);
@@ -130,7 +127,6 @@ private:
   void SampleRateParameter();
   void Sampleh_RandomWalk();
   void Sampleh_ARS();
-  void SetThetaSquared();
 
   static double LambdaEnergy(const double* const x, const void* const vargs);
   static void LambdaGradient( const double* const x, const void* const vargs, double* g );

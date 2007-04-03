@@ -17,6 +17,7 @@
 const FreqArray* HapMixIndividual::HaploidGenotypeProbs;
 const FreqArray* HapMixIndividual::DiploidGenotypeProbs;
 GenotypeProbIterator HapMixIndividual::GPI;
+HapMixGenome* HapMixIndividual::pG;
 
 /** Possible haplotype pairs */
 struct phps_t {
@@ -229,7 +230,8 @@ HapMixIndividual::~HapMixIndividual(){
 //   Individual::SetStaticMembers(pLoci, options);
 // }
 
-void HapMixIndividual::SetGenotypeProbs(const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs){
+void HapMixIndividual::SetGenotypeProbs(HapMixGenome* const G, const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs){
+  pG = G;
   HaploidGenotypeProbs = &haploidGenotypeProbs;
   DiploidGenotypeProbs = &diploidGenotypeProbs;
 }
@@ -246,12 +248,11 @@ bool HapMixIndividual::simpleGenotypeIsMissing(unsigned locus)const{
 
 /***
     Updates inputs to HMM for chromosome j
-    also sets Diploid flag in Chromosome (last arg of SetStateArrivalProbs)
 */
-void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const options, 
-				 const double* const , const vector<double> ) {
+void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const , 
+				       const double* const , const vector<double> ) {
 
-  Chromosome* C = Loci->getChromosome(j);
+  HapMixChromosome* C = pG->getHapMixChromosome(j);
   const bool diploid = !isHaploid && (j!=X_posn || SexIsFemale);
   const unsigned locus0 = C->GetLocus(0);//index of first locus on chromosome
 
@@ -268,8 +269,7 @@ void HapMixIndividual::UpdateHMMInputs(unsigned int j, const Options* const opti
     GPI.assign( HaploidGenotypeProbs, &hgenotypes, 2, locus0);
   }
 
-  C->SetGenotypeProbs( GPI, GenotypesMissing[j]);
-  C->SetStateArrivalProbs(options->isRandomMatingModel(), diploid);
+  C->HMM->SetGenotypeProbs( GPI, GenotypesMissing[j]);
   logLikelihood.HMMisOK = false;//because forward probs in HMM have been changed
 }
 
@@ -383,35 +383,62 @@ void HapMixIndividual::calculateUnorderedGenotypeProbs(unsigned j){
    * (up0,   up1,         up2)
    *  calc.  complement   calc.
    */
-	UnorderedProbs[j][1][0] = 1.0
-			- UnorderedProbs[j][0][0]
-			- UnorderedProbs[j][2][0];
+	UnorderedProbs[j][1][0] = 1.0 - UnorderedProbs[j][0][0] - UnorderedProbs[j][2][0];
 }
 
 /** Get probabilities of hidden states from HMM */
 
-const pvector<double>& HapMixIndividual::getStateProbs(const bool isDiploid,const int chromosome,const int locus)const{
-  return Loci->getChromosome(chromosome)->getHiddenStateProbs(isDiploid, locus);
+const pvector<double>& HapMixIndividual::getStateProbs(const bool isDiploid, const int chromosome,const int locus)const{
+  return pG->getHapMixChromosome(chromosome)->HMM->GetHiddenStateProbs(isDiploid, locus);
 }
 
 /**
  * Return unordered probs as a vector of vectors of doubles.
- * Function AncestryAssocTest::Update() wants them this way.
+ * 
  */
-const vector<vector<double> >& HapMixIndividual::getUnorderedProbs(
-  const unsigned int j) const
-{
+const vector<vector<double> >& HapMixIndividual::getUnorderedProbs(const unsigned int j)const{
   return UnorderedProbs[j];
 }
 
 void HapMixIndividual::SampleJumpIndicators(int* SumArrivalCounts){
   for( unsigned int j = 0; j < numChromosomes; j++ ){
-    Chromosome* C = Loci->getChromosome(j);
+    HapMixChromosome* C = pG->getHapMixChromosome(j);
     // don't need to sample jump indicators if globalrho and no conjugate update of admixture this iteration
     //sample number of arrivals, update SumNumArrivals and SumLocusAncestry
     //if( !Loci->isXChromosome(j) )
-      C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumArrivalCounts);
+    C->HMM->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumArrivalCounts);
     //    else 
     /// C->SampleJumpIndicators(LocusAncestry[j], gametes[j], SumArrivalCounts_X);
+  } //end chromosome loop
+}
+/**
+   Accumulate counts of arrivals of each state. ConcordanceCounts is a L * 2K  array, where the first K elements
+   in each row are counts of discordant loci and the remaining K are counts of concordant loci
+*/
+void HapMixIndividual::AccumulateConcordanceCounts(int* ConcordanceCounts)const{
+  unsigned locus = 0;
+  const unsigned  K = NumHiddenStates;
+  // const unsigned KSq = NumHiddenStates * NumHiddenStates;
+  for( unsigned int j = 0; j < numChromosomes; j++ ){
+    const Chromosome* C = Loci->getChromosome(j);
+    ++locus;//skip first locus on each chromosome
+    for(unsigned locus = 1; locus < C->GetSize(); ++locus){
+      
+      //first gamete
+      if( LocusAncestry[j][locus-1] != LocusAncestry[j][locus]) //discordant loci
+        ++ConcordanceCounts[ locus*2*K + LocusAncestry[j][locus] ];
+      else//concordant loci
+        ++ConcordanceCounts[ locus*2*K + K + LocusAncestry[j][locus] ];
+      
+      //second gamete
+      if(!j==X_posn || SexIsFemale){
+        if( LocusAncestry[j][C->GetSize() + locus-1] != LocusAncestry[j][C->GetSize() + locus])
+          ++ConcordanceCounts[locus*2*K + LocusAncestry[j][C->GetSize()+locus]];
+        else
+          ++ConcordanceCounts[locus*2*K + K + LocusAncestry[j][C->GetSize()+locus]];
+ 	
+      }
+      ++locus;
+    }
   } //end chromosome loop
 }

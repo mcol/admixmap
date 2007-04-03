@@ -255,7 +255,7 @@ double Individual::getLogLikelihood(const Options* const options, const double* 
     if(updateHMM){// force update of forward probs 
       UpdateHMMInputs(j, options, theta, rho);
     }
-    LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
+    LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
   }
   return LogLikelihood; // if HMM update not required, can just use stored log-likelihood  
 }
@@ -271,7 +271,7 @@ double Individual::getLogLikelihoodAtPosteriorMeans(const Options* const options
   double LogLikelihood = 0.0;
   for( unsigned int j = 0; j < numChromosomes; j++ ) {
     UpdateHMMInputs(j, options, Theta, _rho); 
-    LogLikelihood += Loci->getChromosome(j)->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
+    LogLikelihood += Loci->getChromosome(j)->HMM->getLogLikelihood( !isHaploid && (!Loci->isXChromosome(j) || SexIsFemale) );
   }
   return LogLikelihood;
 }
@@ -286,39 +286,7 @@ void Individual::SampleLocusAncestry(const Options* const options){
       UpdateHMMInputs(j, options, Theta, _rho);
     }
     // sampling locus ancestry can use current values of forward probability vectors alpha in HMM 
-    C->SampleLocusAncestry(LocusAncestry[j], (!isHaploid && (!Loci->isXChromosome(j) || SexIsFemale)));
-  } //end chromosome loop
-}
-
-/**
-   Accumulate counts of arrivals of each state. ConcordanceCounts is a L * 2K  array, where the first K elements
-   in each row are counts of discordant loci and the remaining K are counts of concordant loci
-*/
-void Individual::AccumulateConcordanceCounts(int* ConcordanceCounts)const{
-  unsigned locus = 0;
-  const unsigned  K = NumHiddenStates;
-  // const unsigned KSq = NumHiddenStates * NumHiddenStates;
-  for( unsigned int j = 0; j < numChromosomes; j++ ){
-    const Chromosome* C = Loci->getChromosome(j);
-    ++locus;//skip first locus on each chromosome
-    for(unsigned locus = 1; locus < C->GetSize(); ++locus){
-      
-      //first gamete
-      if( LocusAncestry[j][locus-1] != LocusAncestry[j][locus]) //discordant loci
-        ++ConcordanceCounts[ locus*2*K + LocusAncestry[j][locus] ];
-      else//concordant loci
-        ++ConcordanceCounts[ locus*2*K + K + LocusAncestry[j][locus] ];
-      
-      //second gamete
-      if(!j==X_posn || SexIsFemale){
-        if( LocusAncestry[j][C->GetSize() + locus-1] != LocusAncestry[j][C->GetSize() + locus])
-          ++ConcordanceCounts[locus*2*K + LocusAncestry[j][C->GetSize()+locus]];
-        else
-          ++ConcordanceCounts[locus*2*K + K + LocusAncestry[j][C->GetSize()+locus]];
- 	
-      }
-      ++locus;
-    }
+    C->HMM->SampleHiddenStates(LocusAncestry[j], (!isHaploid && (!Loci->isXChromosome(j) || SexIsFemale)));
   } //end chromosome loop
 }
 

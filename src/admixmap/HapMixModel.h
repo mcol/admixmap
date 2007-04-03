@@ -16,6 +16,7 @@
 #define HAPMIXMODEL_H 1
 
 #include "Model.h"
+#include "HapMixGenome.hh"
 #include "HapMixOptions.h"
 #include "PopHapMix.h"
 #include "HapMixFreqs.h"
@@ -24,7 +25,7 @@
 
 class HapMixModel : public Model{
 public:
-    ~HapMixModel();
+  ~HapMixModel();
   void Initialise(HapMixOptions & options, InputData& data,  LogWriter& Log);
   void InitialiseTests(Options& options, const InputData& data, LogWriter& Log);
   void SubIterate(int iteration, const int& burnin, Options& options, InputData & data, 
@@ -38,6 +39,7 @@ public:
   double* getSumEnergy()const{return 0;};
   double* getSumEnergySq()const{return 0;};
 private:
+  HapMixGenome Loci;
   PopHapMix* L;
   HapMixFreqs A;
   MantelHaenszelTest MHTest;

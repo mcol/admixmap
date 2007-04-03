@@ -14,6 +14,7 @@
 #ifndef HAPMIXINDIVIDUAL_H
 #define HAPMIXINDIVIDUAL_H 1
 #include "Individual.h"
+#include "HapMixGenome.hh"
 #include "GPI.h"
 #include <map>
 #include "utils/pvector.h"
@@ -27,23 +28,26 @@ public:
   HapMixIndividual();
   HapMixIndividual(int number, const Options* const options, const InputData* const Data, const double* GlobalTheta);
   ~HapMixIndividual();
-  static void SetGenotypeProbs(const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs);
+  static void SetGenotypeProbs(HapMixGenome* const G, const FreqArray& haploidGenotypeProbs, const FreqArray& diploidGenotypeProbs);
   void SetMissingGenotypes();
   bool GenotypeIsMissing(unsigned int locus)const;
   bool simpleGenotypeIsMissing(unsigned locus)const;
   void SampleJumpIndicators(int* SumArrivalCounts);
 
+  void AccumulateConcordanceCounts(int* ConcordanceCounts)const;
   void calculateUnorderedGenotypeProbs(void);
   const pvector<double>& getStateProbs(const bool, int, int) const;
   void calculateUnorderedGenotypeProbs(unsigned);
   const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) const;
 
 private:
-
   vector<unsigned short> hgenotypes;//< genotypes coded as single integers, assuming all typed loci are SNPs
 
   /// Temporary vector used by calculateUnorderedProbs
   pvector<double> orderedGenotypeProbs;
+
+  //shared pointer to HapMixGenome object
+  static HapMixGenome* pG;
 
   static const FreqArray* HaploidGenotypeProbs;
   static const FreqArray* DiploidGenotypeProbs;

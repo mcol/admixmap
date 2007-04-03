@@ -16,6 +16,7 @@
 #define ADMIXMAPMODEL_H 1
 
 #include "Model.h"
+#include "Genome.h"
 #include "AdmixOptions.h"
 #include "PopAdmix.h"
 #include "StratificationTest.h"
@@ -43,6 +44,7 @@ public:
   double* getSumEnergy()const;
   double* getSumEnergySq()const;
 private:
+  Genome Loci;
   PopAdmix* L;
   DispersionFreqs A;
   AdmixIndividualCollection* AdmixedIndividuals;

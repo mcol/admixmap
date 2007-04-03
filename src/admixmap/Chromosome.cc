@@ -11,27 +11,33 @@
  * 
  */
 #include "Chromosome.h"
-#include "Individual.h"
 #include <iostream>
 #include "utils/misc.h"
+//#include <string>    //for throwing exceptions in f
+//#include <exception> // for catching exceptions in f
 
 #define PR(x) cerr << #x << " = " << x << endl;
 
 using namespace std;
 
 Chromosome::Chromosome(){
-    Distances = 0;
-    NumberOfCompositeLoci = 0;
-    NumHiddenStates = 0;
-    isX = false;
-    //Diploid = true;
-    f = 0;
-    CodedStates = 0;
+  Distances = 0;
+  NumberOfCompositeLoci = 0;
+  NumHiddenStates = 0;
+  isX = false;
+  //Diploid = true;
+  f = 0;
+  CodedStates = 0;
+  HMM = 0;
 }
 
-Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool isx = false) 
+Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool isx = false) {
 		      //size = number of comp loci on chromosome
-{
+  Initialise(n, size, start, inNumHiddenStates, isx);
+  HMM = new HiddenMarkovModel( size, NumHiddenStates, f);
+}
+
+void Chromosome::Initialise(int n, int size, int start, int inNumHiddenStates, bool isx){
   Number = n;
   _startLocus = start;
   NumHiddenStates = inNumHiddenStates;
@@ -46,7 +52,6 @@ Chromosome::Chromosome(int n, int size, int start, int inNumHiddenStates, bool i
   f = new double[2*size];
   f[0] = f[1] = 0.0;
 
-  SampleStates.SetDimensions( size, NumHiddenStates, f);
 }
 
 Chromosome::~Chromosome()
@@ -54,6 +59,7 @@ Chromosome::~Chromosome()
   delete[] CodedStates;
   delete[] f;
   delete[] Distances; 
+  delete HMM;
 }
 
 // ******** Chromosome information **********************************
@@ -104,74 +110,49 @@ unsigned int Chromosome::GetNumberOfCompositeLoci()const
 
 // ****************** Setting of locus correlation, f *************************
 
-///Sets locus ancestry correlations f for locus-specific lambda (= rho*distance).
-void Chromosome::SetLocusCorrelation(const vector<double>::const_iterator lambda_iter){
-  for(unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
-    double lambda = *(lambda_iter + j -1);//rho_[j +_startLocus];
-    if(isX)lambda *= 0.5;
-    f[2*j] = f[2*j + 1] = myexp( - lambda );
-  }
+///returns locus correlation at a given locus, given a value of sum-intensities
+//TODO: possibly make inline
+double Chromosome::LocusCorrelation(unsigned locus, double drho){
+  //  try{
+    if(isX)//sumintensities on Xchrm is set to half autosomal value
+      return myexp(-GetDistance( locus ) * drho*0.5);
+    else
+      return myexp(-GetDistance( locus ) * drho);
+//  }
+//   catch(std::exception e){
+//     std::string err = "Error encountered while setting locus f in Chromosome: ";
+//     err.append(e.what());
+//     throw err;
+//   }
 }
 
-///sets f for global rho, call after global rho is updated
-void Chromosome::SetLocusCorrelation(const double rho_){
-  double rho = rho_;
-  if(isX)rho *= 0.5;
-  for(unsigned j = 1; j < NumberOfCompositeLoci; j++ ){
-    f[2*j] = f[2*j + 1] = myexp( -GetDistance( j ) * rho );
-  }
-}
 /**
    Sets locus correlation, f.
    rho should be either
    (1) vector of length 1 containing a global (global rho model) or 
    individual-level (non globalrho and assortative mating) sumintensities
    (2) vector of length 2 containing gamete-specific sumintensities for a single individual
-   (3) vector of length numloci, containing locus-specific sumintensities
 */
-void Chromosome::SetLocusCorrelation(const std::vector<double> rho_, bool global, bool RandomMating=false){
-  if(global){//global or individual-specific
-    SetLocusCorrelation(rho_[0]);
+void Chromosome::SetLocusCorrelation(const std::vector<double>& vrho, bool RandomMating=false){
+  for( unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
+    //first gamete
+    f[2*j] = LocusCorrelation(j, vrho[0]);
+    //second gamete
+    if(RandomMating)//value for second gamete is different
+      f[2*j + 1] = LocusCorrelation(j, vrho[1]);
+    else//second gamete is the same
+      //SetLocusCorrelelation(j, vrho[0]);
+      f[2*j + 1] = f[2*j];
   }
-  else{
-    if(RandomMating){//gamete-specific
-      if(rho_.size()!=2)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
-      for( unsigned int j = 1; j < NumberOfCompositeLoci; j++ ){
-	if(isX){
-	  f[2*j] = myexp( -GetDistance( j ) * rho_[0]*0.5 );//sumintensities on Xchrm is set to half autosomal value
-	  f[2*j + 1] = myexp( -GetDistance( j ) * rho_[1]*0.5 );
-	}
-	else{
-	  f[2*j] = myexp( -GetDistance( j ) * rho_[0] );
-	  f[2*j + 1] = myexp( -GetDistance( j ) * rho_[1] );
-	}
-
-      }
-    }
-    //else{//locus-specific
-    //SetLocusCorrelation(rho_);
-    //}
+}
+void Chromosome::SetGlobalLocusCorrelation(double drho){
+  for(unsigned j = 1; j < NumberOfCompositeLoci; j++ ){
+    f[2*j    ] = LocusCorrelation(j, drho);
+    f[2*j + 1] = f[2*j];
   }
 }
 
 // ********** Interface to HMM ****************************************
-void Chromosome::SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool* const GenotypesMissing) {
-  SampleStates.SetGenotypeProbs(GenotypeProbs, GenotypesMissing);
-}
-void Chromosome::SetHMMTheta(const MixturePropsWrapper& Admixture, const MixturePropsWrapper& ThetaSq,
-			     const MixturePropsWrapper& ThetaSqInv){
-    SampleStates.SetTheta(Admixture, ThetaSq, ThetaSqInv);
-}
-
-///sets state arrival probs in HMM, only required for diploid case
-void Chromosome::SetStateArrivalProbs(bool RandomMating, bool isdiploid) {
-  SampleStates.SetStateArrivalProbs(RandomMating, isdiploid);
-}
-///samples locus ancestry (hidden states in HMM)
-void Chromosome::SampleLocusAncestry(int *OrderedStates, bool diploid){
-  SampleStates.Sample(OrderedStates, diploid);
-}
-
 /**
    sets conditional probabilities of ancestry at locus j.
    One row per population, Cols 0,1,2 are probs that 0,1,2 of the 2 gametes have ancestry from that population
@@ -182,48 +163,32 @@ void Chromosome::SampleLocusAncestry(int *OrderedStates, bool diploid){
 	(i,0) = 1.0 - (i,1) - (i,2)
 	where p's are probs in StateProbs from HMM
 */
-std::vector<std::vector<double> > Chromosome::getAncestryProbs(const bool isDiploid, int j){
-  //return SampleStates.Get3WayStateProbs(isDiploid, j);
-  const std::vector<double> probs = SampleStates.GetHiddenStateProbs(isDiploid, j);
-  std::vector<std::vector<double> >AncestryProbs(3);
+std::vector<std::vector<double> > Chromosome::getHiddenStateCopyNumberProbs(const bool isDiploid, int j){
+  const pvector<double>& probs = HMM->GetHiddenStateProbs(isDiploid, j);
+  std::vector<std::vector<double> >CopyNumberProbs(3);
 
   if(isDiploid){
     for( int k1 = 0; k1 < NumHiddenStates; k1++ ){
-      AncestryProbs[2].push_back(probs[ ( NumHiddenStates + 1 ) * k1 ]);//prob of 2 copies = diagonal element 
-      AncestryProbs[1].push_back( 0.0 );
+      CopyNumberProbs[2].push_back(probs[ ( NumHiddenStates + 1 ) * k1 ]);//prob of 2 copies = diagonal element 
+      CopyNumberProbs[1].push_back( 0.0 );
       for( int k2 = 0 ; k2 < NumHiddenStates; k2++ )
-	AncestryProbs[1][k1] += probs[k1*NumHiddenStates +k2] + probs[k2*NumHiddenStates +k1];
-      AncestryProbs[1][k1] -= 2.0*AncestryProbs[2][k1];
-      AncestryProbs[0].push_back( 1.0 - AncestryProbs[1][k1] - AncestryProbs[2][k1] );
+	CopyNumberProbs[1][k1] += probs[k1*NumHiddenStates +k2] + probs[k2*NumHiddenStates +k1];
+      CopyNumberProbs[1][k1] -= 2.0*CopyNumberProbs[2][k1];
+      CopyNumberProbs[0].push_back( 1.0 - CopyNumberProbs[1][k1] - CopyNumberProbs[2][k1] );
     }
   }
   else{//haploid case
     for( int k = 0; k < NumHiddenStates; k++ ){
-      AncestryProbs[2].push_back( 0.0 );//cannot have two copies if haploid
-      AncestryProbs[1].push_back(probs[k]);//probability of one copy
-      AncestryProbs[0].push_back(1.0-probs[k]);//probability of no copies
+      CopyNumberProbs[2].push_back( 0.0 );//cannot have two copies if haploid
+      CopyNumberProbs[1].push_back(probs[k]);//probability of one copy
+      CopyNumberProbs[0].push_back(1.0-probs[k]);//probability of no copies
     }
   }
-  return AncestryProbs;
-}
-
-///returns HMM Likelihood
-double Chromosome::getLogLikelihood(const bool isDiploid)
-{
-    return SampleStates.getLogLikelihood(isDiploid);
+  return CopyNumberProbs;
 }
 
 ///samples jump indicators xi for this chromosome and updates SumLocusAncestry
 void Chromosome::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 				      int *SumLocusAncestry, std::vector<unsigned> &SumN, bool SampleArrivals)const {
-  SampleStates.SampleJumpIndicators(LocusAncestry, gametes, SumLocusAncestry, SumN, SampleArrivals, _startLocus);
-}
-void Chromosome::SampleJumpIndicators(const int* const HiddenStates, const unsigned int gametes, 
-				      int *SumHiddenStates)const {
-  SampleStates.SampleJumpIndicators(HiddenStates, gametes, SumHiddenStates);
-}
-
-const pvector<double>& Chromosome::getHiddenStateProbs(const bool isDiploid, int t)
-{
-  return SampleStates.GetHiddenStateProbs(isDiploid, t);
+  HMM->SampleJumpIndicators(LocusAncestry, gametes, SumLocusAncestry, SumN, SampleArrivals, _startLocus);
 }

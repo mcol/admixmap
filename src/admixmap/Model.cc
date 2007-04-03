@@ -14,13 +14,13 @@ Model::~Model(){
   if(avgstream.is_open())avgstream.close();
 }
 
-void Model::InitialiseLoci(const Options& options, InputData& data, LogWriter& Log){
-  Loci.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
+void Model::InitialiseGenome(Genome& G, const Options& options, InputData& data, LogWriter& Log){
+  G.Initialise(&data, options.getPopulations(), Log);//reads locusfile and creates CompositeLocus objects
   if(Comms::isFreqSampler()){
     //print table of loci for R script to read
     string locustable = options.getResultsDir();
     locustable.append("/LocusTable.txt");
-    Loci.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1));
+    G.PrintLocusTable(locustable.c_str(), data.getLocusMatrix().getCol(1));
     locustable.clear();
   }
 }

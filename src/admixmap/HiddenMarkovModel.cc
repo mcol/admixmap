@@ -1,5 +1,5 @@
 /*
- *   HMM.cc 
+ *   HMMClass.cc 
  *   Class to implement hidden Markov model for haploid or diploid Poisson arrivals.
  *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -9,46 +9,54 @@
  * See the file COPYING for details.
  * 
  */
-
+#include "HiddenMarkovModel.h"
+#include <cmath>
 #include "samplers/rand.h"
-#include "HMM.h"
 
 using namespace std;
 
-HMM::HMM()
-{
+///set pointers to null etc
+void HiddenMarkovModel::SetNullValues(){
   alpha = 0;
   beta = 0;
   LambdaBeta = 0;
   p = 0;
   StateArrivalProbs = 0;
-  //ThetaThetaInv = 0;
+  ThetaThetaPrime = 0;
+  ThetaThetaInv = 0;
   colProb = 0;
   Expectation0 = 0;
   Expectation1 = 0;
   rowProb = 0;
   cov = 0;
   f = 0;
+  Lambda = 0;
   alphaIsBad = true;
   betaIsBad = true;
+  sumfactor = 0.0;
 }
 
-/** not currently used
- * HMM objects are instantiated in Chromosome using default
- * constructor above and dimensions set by SetDimensions below
- */
-HMM::HMM( int inTransitions, int pops, const double* const fin) {
+///no-argument constructor
+HiddenMarkovModel::HiddenMarkovModel()
+{
+  SetNullValues();
+}
+
+///constructor with arguments
+HiddenMarkovModel::HiddenMarkovModel( int inTransitions, int pops, const double* const fin) {
+  SetNullValues();
   SetDimensions(inTransitions, pops, fin);
 }
 
-HMM::~HMM()
+HiddenMarkovModel::~HiddenMarkovModel()
 {
   delete[] p;
   delete[] alpha;
   delete[] beta;
   delete[] LambdaBeta;
   delete[] StateArrivalProbs;
-  //delete[] ThetaThetaInv;
+  delete[] ThetaThetaPrime;
+  delete[] ThetaThetaInv;
   delete[] rowProb;
   delete[] colProb;
   delete[] Expectation0;
@@ -56,68 +64,76 @@ HMM::~HMM()
   delete[] cov; //free_matrix(cov, K);
 }
 
-void HMM::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin)
+///allocate arrays and set f pointer
+void HiddenMarkovModel::SetDimensions( int inTransitions, int NumHiddenStates, const double* const fin)
 {
   //inTransitions = #transitions +1 = #Loci 
-  //K = #populations
+  //pops = #populations
   K = NumHiddenStates;
   DStates = K*K;
   Transitions = inTransitions;
   alpha = new double[Transitions*K*K];
-  alphasumfactor=0.0;
-  betasumfactor=0.0;
-
   p = new double[Transitions];
   f = fin;
   StateArrivalProbs = new double[Transitions * K * 2];
-  //ThetaThetaInv     = new double[K*K];
+  ThetaThetaPrime = new double[K*K];
+  ThetaThetaInv = new double[K*K];
 
-  if(K>2){
-    rowProb = new double[K];
-    colProb = new double[K];
-    Expectation0 = new double[K];
-    Expectation1 = new double[K];
-    cov = new double[K*K]; 
+  SetArraysForRecursionProbs(K);
+}
+
+void HiddenMarkovModel::SetArraysForRecursionProbs(unsigned k){
+  if(k>2){
+    rowProb = new double[k];
+    colProb = new double[k];
+    Expectation0 = new double[k];
+    Expectation1 = new double[k];
+    cov = new double[k*k]; 
   }
 }
 
-void HMM::SetGenotypeProbs(const GenotypeProbIterator& GenotypeProbs, const bool* const missing){
-  LambdaGPI = GenotypeProbs;
+///set the pointers to genotype probs and missingGenotypes
+void HiddenMarkovModel::SetGenotypeProbs(const double* const lambdain, const bool* const missing){
+  Lambda = lambdain;
   missingGenotypes = missing;
   alphaIsBad = true;//new input so reset
   betaIsBad = true;
 }
 
-void HMM::SetTheta(const MixturePropsWrapper& Theta, const MixturePropsWrapper& ThetaSq, 
-		   const MixturePropsWrapper& ThetaSqInv){
+/**
+   Set arrival rates and set pointer to ?? probs and , if diploid, calculate ThetaThetaPrime and ThetaThetaInv. 
+   Requires f to have been set.
+   Mcol = column with theta for second gamete.
+*/
+void HiddenMarkovModel::SetStateArrivalProbs(const double* const Theta, const int Mcol, const bool isdiploid){
   theta = Theta;
-  ThetaThetaPrime = ThetaSq;
-  ThetaThetaInv = ThetaSqInv;
   alphaIsBad = true;//new input so reset
   betaIsBad = true;
 
-}
+  if(isdiploid){
+    for(int j0 = 0; j0 < K; ++j0) {
+      for(int j1 = 0; j1 < K; ++j1) {
+	ThetaThetaPrime[j0*K + j1] = Theta[j0]*Theta[j1 + K*Mcol];
+	ThetaThetaInv[j0*K + j1] = 1.0 / ThetaThetaPrime[j0*K + j1];
+      }
+    }
+  }
 
-void HMM::SetStateArrivalProbs(int Mcol, bool isdiploid){
   //required only for diploid updates
-  alphaIsBad = true;//new input so reset
-  betaIsBad = true;
-
   for(int t = 1; t < Transitions; t++ ){        
     for(int j = 0; j < K; ++j){
-      StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * theta(t, j);
+      StateArrivalProbs[t*K*2 + j*2]    = (1.0 - f[2*t]) * theta[j];
       if(isdiploid)
-	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta(t, K*Mcol +j );
+	StateArrivalProbs[t*K*2 + j*2 +1] = (1.0 - f[2*t + 1]) * theta[K*Mcol +j ];
     }
     p[t] = f[2*t] * f[2*t + 1];
   }
 }
 
-void HMM::SampleJumpIndicators(const int* const LocusAncestry, unsigned int gametes, 
+void HiddenMarkovModel::SampleJumpIndicators(const int* const LocusAncestry, const unsigned int gametes, 
 			       int *SumLocusAncestry, vector<unsigned> &SumNumArrivals, bool SampleArrivals, unsigned startlocus)const {
   //this does not require forward or backward probs, just state arrival probs
-  if(LambdaGPI.isNull() || theta.isNull() || !f)
-    throw string("Error: Call to HMM::SampleJumpIndicators when StateArrivalProbs are not set!");
+  if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel::SampleJumpIndicators when StateArrivalProbs are not set!");
   bool xi = false;//jump indicator
   double ProbJump = 0.0; // prob jump indicator is 1
   // first locus not included in loop below
@@ -145,60 +161,36 @@ void HMM::SampleJumpIndicators(const int* const LocusAncestry, unsigned int game
     }//end gamete loop
   } // ends loop over intervals
 }
-void HMM::SampleJumpIndicators(const int* const HiddenStates,  unsigned int gametes, 
-			       int *SumHiddenStates)const {
-  //this does not require forward or backward probs, just state arrival probs
-  if(LambdaGPI.isNull() || theta.isNull() || !f)
-    throw string("Error: Call to HMM::SampleJumpIndicators when StateArrivalProbs are not set!");
-  bool xi = false;//jump indicator
-  double ProbJump = 0.0; // prob jump indicator is 1
-  // first locus not included in loop below
-  for( unsigned int g = 0; g < gametes; g++ ){
-    SumHiddenStates[ HiddenStates[g*Transitions] ]++;
-  }
-  for( int t = 1; t < Transitions; t++ ) {
-    for( unsigned int g = 0; g < gametes; g++ ){
-      xi = true;
-      if( HiddenStates[g*Transitions + t-1] == HiddenStates[g*Transitions + t] ){
-	ProbJump = StateArrivalProbs[t*K*2 + HiddenStates[t + g*Transitions]*2 + g];  
-	xi = (bool)(ProbJump / (ProbJump + f[2*t+g]) > Rand::myrand());
-      } 
-      if( xi ){ // increment sum if jump indicator is 1
-	SumHiddenStates[ t*K + HiddenStates[t+g*Transitions] ]++;
-      }//end if xi true
-    }//end gamete loop
-  } // ends loop over intervals
-}
 
 /**
-  returns log-likelihood.
+  returns log-likelihood
   This is the sum over states of products of alpha and beta
   and is the same for all t so it is convenient to compute for
   t = T-1 since beta here is 1 so no backward recursions are required. 
 */
-double HMM::getLogLikelihood(bool isdiploid) 
+double HiddenMarkovModel::getLogLikelihood(const bool isdiploid) 
 { 
-    if(alphaIsBad) {
-	if(isdiploid) UpdateForwardProbsDiploid();
-	else UpdateForwardProbsHaploid();
-    }
+  if(alphaIsBad) {
+    if(isdiploid) UpdateForwardProbsDiploid();
+    else UpdateForwardProbsHaploid();
+  }
 
-    double sum = 0;
-    const int NumStates = isdiploid ? DStates : K;
-
-    for( int j = 0; j < NumStates; j++ ) {
-      sum += alpha[(Transitions - 1)*NumStates + j];
-    } 
-
-    return( alphasumfactor+log(sum) );
+  double sum = 0.0;
+  const int NumStates = isdiploid? DStates : K;
+  
+  for( int j = 0; j < NumStates; j++ ) {
+    sum += alpha[(Transitions - 1)*NumStates + j];
+  }
+    
+  return( sumfactor+log(sum) );
 }
 
-/** 
-    Samples Hidden States
-    SStates    - an int array to store the sampled states
-    isdiploid  - indicator for diploidy
- */
-void HMM::Sample(int *SStates, bool isdiploid)
+/**
+  Samples Hidden States.
+  SStates    - an int array to store the sampled states
+  isdiploid  - indicator for diploidy
+*/
+void HiddenMarkovModel::SampleHiddenStates(int *SStates, const bool isdiploid)
 {
   if(alphaIsBad){
     if(isdiploid)UpdateForwardProbsDiploid();
@@ -238,6 +230,7 @@ void HMM::Sample(int *SStates, bool isdiploid)
     for( int state = 0; state < K; state++ )V[state] = alpha[(Transitions - 1)*K + state ];
     SStates[Transitions-1] = Rand::SampleFromDiscrete( V, K );
     for( int t =  Transitions - 2; t >= 0; t-- ){
+	//for(int j = 0; j < K; j++)V[j] = (j == C[t+1])*f[2*t+1]+theta[C[t+1]]*(1.0 - f[2*t]);
 	for(int state = 0; state < K; state++)
 	    V[state] = (state == SStates[t+1]) * f[2*t+2] + StateArrivalProbs[(t+1)*K*2 + SStates[t+1]*2  ];
 	for( int state = 0; state < K; state++ ) 
@@ -247,14 +240,13 @@ void HMM::Sample(int *SStates, bool isdiploid)
     delete[] V;
   }
 }
-
 /** 
     Returns a vector of conditional probabilities of each hidden state
     at 'time' t.
     If diploid, the vector is really a matrix of probabilities of pairs
     of states.
  */
-const pvector<double>& HMM::GetHiddenStateProbs(bool isDiploid, int t){
+const pvector<double>& HiddenMarkovModel::GetHiddenStateProbs(bool isDiploid, int t){
   if(alphaIsBad){
     if(isDiploid)UpdateForwardProbsDiploid();
     else UpdateForwardProbsHaploid();
@@ -277,8 +269,6 @@ const pvector<double>& HMM::GetHiddenStateProbs(bool isDiploid, int t){
   const double *b = beta + t*States;  
   for( unsigned j = 0; j < States; j++ ){
     //    hiddenStateProbs[j] = alpha[t*States + j] * beta[t*States + j];
-    // GCC Autovectorizer says:
-    // HMM.cc:278: note: not vectorized: unhandled data-ref
     hiddenStateProbs[j] = (*(a++)) * ( *(b++) );
   }
 
@@ -288,27 +278,30 @@ const pvector<double>& HMM::GetHiddenStateProbs(bool isDiploid, int t){
 
 // ****** End Public Interface *******
 
-/// Updates Forward probabilities alpha, diploid case only
-void HMM::UpdateForwardProbsDiploid()
-{
-  if(LambdaGPI.isNull() || theta.isNull() || !f)
-    throw string("Error: Call to HMM when inputs are not set!");
-
+/*
+  Updates Forward probabilities alpha, diploid case only
+*/
+void HiddenMarkovModel::UpdateForwardProbsDiploid(){
+  if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   // if genotypes missing at locus, skip multiplication by lambda and scaling at next locus   
-  alphasumfactor = 0.0; // accumulates log-likelihood
+  sumfactor = 0.0; // accumulates log-likelihood
   double Sum = 0.0;
   double scaleFactor = 0.0;
   
-  for(int j = 0; j < DStates; ++j) {
-    //no need to check for missing genotypes, GPI will return 1 if missing
-    alpha[j] = ThetaThetaPrime(0,j) * LambdaGPI(0, j);
+  if(!missingGenotypes[0]) {
+    for(int j = 0; j < DStates; ++j) {
+      alpha[j] =  ThetaThetaPrime[j] * Lambda[j];
+    } 
+  } else {
+    for(int j = 0; j < DStates; ++j) {
+      alpha[j] = ThetaThetaPrime[j];
+    }
   }
   
-  // normalize, call recursionprobs, multiply by emission probs
   for( int t = 1; t < Transitions; ++t ){
     if(!missingGenotypes[t-1]) {
-      // normalize previous alpha and accumulate log scale factor
       Sum = 0.0;
+      //scale previous alpha to sum to 1
       for( int j = 0; j <  DStates; ++j ) {
 	Sum += alpha[(t-1)*DStates +j];
       }
@@ -316,34 +309,29 @@ void HMM::UpdateForwardProbsDiploid()
       for( int j = 0; j <  DStates; ++j ) {
 	alpha[(t-1)*DStates +j] *= scaleFactor;
       }
-      alphasumfactor += log(Sum);
+      sumfactor += log(Sum);
     }
     
-    RecursionProbs(p[t], f + 2*t, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, 
-		   alpha + t*DStates);
+    RecursionProbs(p[t], f + 2*t, StateArrivalProbs + t*K*2, alpha + (t-1)*DStates, alpha + t*DStates);
     
     for(int j = 0; j < DStates; ++j){
       if(!missingGenotypes[t]) {
-    	alpha[t*DStates +j] *=  LambdaGPI(t, j);
-      }
+	alpha[t*DStates +j] *=  Lambda[t*DStates + j]; //*lam++; 
+	//++lam;
+      } //else ++lam;
     }
   }
   alphaIsBad = false;
 }
 
-void HMM::UpdateBackwardProbsDiploid()
-{
-  //check required arrays are available
-  if(LambdaGPI.isNull() || theta.isNull() || !f)
-    throw string("Error: Call to HMM when inputs are not set!");
-
+void HiddenMarkovModel::UpdateBackwardProbsDiploid(){
+  if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   if(!beta) { // allocate beta array if not already done
-    beta = new double[Transitions*K*K];
+    beta =  new double[Transitions*K*K];
   }
-  if(!LambdaBeta)//allocate LambdaBeta array if not already done
+  if(!LambdaBeta)
     LambdaBeta = new double[K*K];
 
-  betasumfactor = 0.0;
   double scaleFactor, Sum;
   
   for(int j = 0; j < DStates; ++j){
@@ -351,50 +339,39 @@ void HMM::UpdateBackwardProbsDiploid()
     beta[(Transitions - 1)*DStates + j] = 1.0;
   }
   
-  // weight by thetathetaprime, multiply by emission probs, normalize, recursion probs, reverse weighting 
   for( int t = Transitions-2; t >= 0; --t ) {
     double f2[2] = {f[2*t + 2], f[2*t + 3]};
-    for(int j = 0; j < DStates; ++j){
-      //no need to check for missing genotypes, GPI will return 1 if missing
-       LambdaBeta[j] = beta[(t+1)*DStates + j] * ThetaThetaPrime(t+1, j) * LambdaGPI(t+1, j);
-    }
-
-    //normalize
     Sum = 0.0;
     for(int j = 0; j < DStates; ++j){
+      LambdaBeta[j] = Lambda[(t+1)*K*K + j] * beta[(t+1)*DStates + j] * ThetaThetaPrime[j];
       Sum += LambdaBeta[j];
     }
-
+    //scale LambdaBeta to sum to 1
     scaleFactor = 1.0 / Sum;
     for( int j = 0; j <  DStates; ++j ) {
       LambdaBeta[j] *= scaleFactor;
     }
-      betasumfactor += log(Sum);
-      
+    
     RecursionProbs(p[t+1], f2, StateArrivalProbs+(t+1)*K*2, LambdaBeta, beta+ t*DStates);
     for(int j = 0; j < DStates; ++j){ // vectorization successful
-      beta[t*DStates + j] *= ThetaThetaInv(t+1, j); 
+      beta[t*DStates + j] *= ThetaThetaInv[j];
     }
   }
   betaIsBad = false;
 }
 
-
-
-/**
-   Updates forward probs, haploid case only.
-   Here the last dimensions of f and lambda are 1.
- */
-void HMM::UpdateForwardProbsHaploid(){
-  if(LambdaGPI.isNull() || theta.isNull() || !f)
-    throw string("Error: Call to HMM when inputs are not set!");
-  alphasumfactor = 0.0;
+/*
+  Updates forward probs, haploid case only
+  Here Admixture is a column matrix and the last dimensions of f and lambda are 1.
+*/
+void HiddenMarkovModel::UpdateForwardProbsHaploid(){
+  if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
+  sumfactor = 0.0;
   double Sum = 0.0;
   double scaleFactor = 0.0;
-
-    for(int j = 0; j < K; ++j){
-      alpha[j] = theta(0, j) * LambdaGPI(0, j);
-    }
+  for(int j = 0; j < K; ++j){
+    alpha[j] = theta[j] * Lambda[j];
+  }
   
   for( int t = 1; t < Transitions; t++ ) {
     if(!missingGenotypes[t-1]) {
@@ -407,20 +384,19 @@ void HMM::UpdateForwardProbsHaploid(){
       for( int j = 0; j <  K; ++j ) {
 	alpha[(t-1)*K +j] *= scaleFactor;
       }
-      alphasumfactor += log(Sum);
+      sumfactor += log(Sum);
     }
 
     for(int j = 0; j < K; ++j){
-      alpha[t*K + j] = f[2*t]*alpha[(t-1)*K +j] + (1.0 - f[2*t]) * theta(t, j);
-      alpha[t*K + j] *= LambdaGPI(t, j);
+      alpha[t*K + j] = f[2*t]*alpha[(t-1)*K +j] + (1.0 - f[2*t]) * theta[j];
+      alpha[t*K + j] *= Lambda[t*K + j];
     }
   }
   alphaIsBad =  false;
 }
 
-void HMM::UpdateBackwardProbsHaploid(){
-  if(LambdaGPI.isNull() || theta.isNull() || !f)
-    throw string("Error: Call to HMM when inputs are not set!");
+void HiddenMarkovModel::UpdateBackwardProbsHaploid(){
+  if(!Lambda || !theta || !f)throw string("Error: Call to HiddenMarkovModel when inputs are not set!");
   if(!beta) { // allocate diploid-sized beta array if not already done
     beta =  new double[Transitions*K*K];
   }
@@ -434,8 +410,8 @@ void HMM::UpdateBackwardProbsHaploid(){
   for( int t = Transitions-2; t >=0; t-- ){
     Sum = 0.0;
     for(int j = 0; j < K; ++j){
-      LambdaBeta[j] = LambdaGPI(t+1, j)*beta[(t+1)*K + j];
-      Sum += theta(t+1, j)*LambdaBeta[j];
+      LambdaBeta[j] = Lambda[(t+1)*K + j]*beta[(t+1)*K + j];
+      Sum += theta[j]*LambdaBeta[j];
     }
     for(int j = 0; j < K; ++j){
       beta[t*K + j] = f[2*(t+1)]*LambdaBeta[j] + (1.0 - f[2*(t+1)+1])*Sum;
@@ -444,13 +420,10 @@ void HMM::UpdateBackwardProbsHaploid(){
   betaIsBad = false;
 }
 
-/** argument oldProbs is square array of size K * K
- * for forward recursions, pass alpha_t and multiply newProbs
- * by emission probs lambda_t 
- * for backward recursions, pass array of products
- * lambda_t+1[jj] * beta_t+1[jj] 
- */
-void HMM::RecursionProbs(double ff, const double f2[2], const double* const stateArrivalProbs, 
+// argument oldProbs is square array of size K * K
+// for forward recursions, pass alpha_t and multiply newProbs by emission probs lambda_t 
+// for backward recursions, pass array of products lambda_t+1[jj] * beta_t+1[jj] 
+void HiddenMarkovModel::RecursionProbs(const double ff, const double f2[2], const double* const stateArrivalProbs, 
 			 const double* const oldProbs, double *newProbs) {
   if(K==2) RecursionProbs2(ff, f2, stateArrivalProbs, oldProbs, newProbs);
   else {
@@ -481,7 +454,7 @@ void HMM::RecursionProbs(double ff, const double f2[2], const double* const stat
   }//end else
 }
  
-void HMM::RecursionProbs2(double ff, const double f2[2], const double* const stateArrivalProbs, 
+void HiddenMarkovModel::RecursionProbs2(const double ff, const double f2[2], const double* const stateArrivalProbs, 
 			  const double* const oldProbs, double *newProbs) {
   // version for 2 subpopulations
   double row0Prob;

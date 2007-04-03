@@ -19,17 +19,17 @@
 #include "gsl/gsl_math.h"
 #include "gsl/gsl_specfunc.h"
 #include "Comms.h"
-#include "MixturePropsWrapper.hh" //for passing mixture props to HMM
 #include "EventLogger.hh"//for MPE event logging
 #include "utils/GSLExceptions.h" //for catching gsl exceptions
 #include "utils/Exceptions.h"//for throwing InfiniteGradient to Hamiltonian
+
 using namespace std;
 
 #define PR(x) cerr << #x << " = " << x << endl;
 #define SQ( x ) x*x
 #define REC(x) 1.0 / x
 
-PopHapMix::PopHapMix( HapMixOptions* op, Genome* loci)
+PopHapMix::PopHapMix( HapMixOptions* op, HapMixGenome* loci)
 {
   options = op;
   Loci = loci;
@@ -37,15 +37,12 @@ PopHapMix::PopHapMix( HapMixOptions* op, Genome* loci)
   ArrivalRateSampler = 0;
   MixturePropsPrior = 0;
   dirparams = 0;
-  ThetaSquared = 0;
-  ThetaThetaInv = 0;
   SumTheta = 0;
   SumThetaSq = 0;
   eta = 0.0;
 }
 
 void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
-  Log.setDisplayMode(On);
   K = options->getNumberOfBlockStates();
 
   if ( Comms::isMaster()){
@@ -60,17 +57,16 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
       outputstream.open( options->getParameterFilename(), ios::out );
       if( !outputstream )
 	{
-	  Log.setDisplayMode(On);
-            Log << "ERROR: Couldn't open paramfile\n";
+	  Log << On << "ERROR: Couldn't open paramfile\n";
             exit( 1 );
 	}
       else{
-	Log << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
+	Log << Quiet << "Writing population-level parameters to " << options->getParameterFilename() << "\n";
 	InitializeOutputFile(distanceUnit);
       }
     }
     else{
-      Log << "No paramfile given\n";
+      Log << Quiet << "No paramfile given\n";
     }
   }
   
@@ -83,13 +79,6 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
   //TODO: broadcast Mixture Params
 #endif    
 
-  if(Comms::isWorker()){
-    ThetaSquared = new double[Loci->GetNumberOfCompositeLoci() * K *K];
-    if(options->getTestForAllelicAssociation() || options->OutputCGProbs())
-      ThetaThetaInv = new double[Loci->GetNumberOfCompositeLoci() * K *K];
-  }
-
-  SetThetaSquared();
 }
 
 ///initialise global admixture proportions
@@ -114,8 +103,8 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
     SumThetaSq = new double[K];
 
     //set initial value of precision
-    double InitialPrecision = options->getMixturePropsPrecision();
-    if(InitialPrecision <= 0.0)InitialPrecision = (double)K;
+    double InitialPrecision = options->getMixturePropsPrecision(); //user-specified
+    if(InitialPrecision <= 0.0)InitialPrecision = (double)K;// default
 
     double MPDShape = (double)K;// precision prior shape
     double MPDRate = 1.0;//precision prior rate
@@ -130,7 +119,7 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
       if(userprior.size()){//user has specified a prior
 	MPDShape = userprior[0];
 	MPDRate = userprior[1];
-	InitialPrecision = MPDShape / MPDRate;
+	//InitialPrecision = MPDShape / MPDRate;
       }
 
       //setup sampler for mixure props precision
@@ -153,7 +142,7 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
 
   }//end if not fixed proportions
   else
-    Log << "Model with fixed mixture proportions\n";
+    Log << Quiet << "Model with fixed mixture proportions\n";
   
 }
 
@@ -246,8 +235,6 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
 PopHapMix::~PopHapMix()
 {
   delete[] MixtureProps;
-  delete[] ThetaSquared;
-  delete[] ThetaThetaInv;
   delete[] ArrivalRateSampler;
   delete[] MixturePropsPrior;
   delete[] dirparams;
@@ -580,7 +567,7 @@ void PopHapMix::OutputParams(int iteration, LogWriter &){
   }
 }
 
-const double *PopHapMix::getGlobalTheta()const{
+const double *PopHapMix::getGlobalMixtureProps()const{
   return MixtureProps;
 }
 
@@ -686,46 +673,20 @@ void PopHapMix::SampleMixtureProportions(const int* SumArrivalCounts){
   //TODO: broadcast mixture props
 #endif
 
-  if(Comms::isWorker())
-    SetThetaSquared();
 }
 
 /**
    set global state arrival probs in hapmixmodel.
-   call once with isInitial=true to set everything then with isInitial=false every time afterwards.
-   NB: assumes always diploid
+    NB: assumes always diploid
 */
 //TODO: can skip this if xonly analysis with no females
-void PopHapMix::SetHMMStateArrivalProbs(bool isInitial){
+void PopHapMix::SetHMMStateArrivalProbs(){
   //set locus correlation (workers only)
-  const unsigned KSq = K*K;
   if(Comms::isWorker()){
     Loci->SetLocusCorrelation(lambda);
     for( unsigned int j = 0; j < Loci->GetNumberOfChromosomes(); j++ ){
-      Chromosome* C = Loci->getChromosome(j);
-
-      if(isInitial || !options->getFixedMixtureProps()){
-	MixturePropsWrapper ThetaWrap(MixtureProps + (C->GetLocus(0) * K), K);
-	MixturePropsWrapper ThetaSqWrap(ThetaSquared + (C->GetLocus(0) * KSq), KSq);
-	MixturePropsWrapper ThetaThetaInvWrap(ThetaThetaInv + (C->GetLocus(0) * KSq), KSq);
- 
-	C->SetHMMTheta(ThetaWrap, ThetaSqWrap, ThetaThetaInvWrap);
-      }
-      C->SetStateArrivalProbs(options->isRandomMatingModel(), true);
+      Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, 0, true/*<-diploid*/);
     }
   }
 }
 
-void PopHapMix::SetThetaSquared(){
-  for(unsigned locus = 0; locus < Loci->GetNumberOfCompositeLoci(); ++locus){
-    const unsigned locusKSq = locus*K*K;
-    const unsigned rownum = locus*K;
-    for(unsigned j0 = 0; j0 < K; ++j0) {
-      for(unsigned j1 = 0; j1 < K; ++j1) {
-	ThetaSquared[locusKSq + j0*K + j1] = MixtureProps[rownum + j0] * MixtureProps[rownum + j1];
-	if(options->getTestForAllelicAssociation() || options->OutputCGProbs())
-	  ThetaThetaInv[locusKSq + j0*K + j1] = 1.0 / ThetaSquared[locusKSq + j0*K + j1];
-      }
-    }
-  }
-}

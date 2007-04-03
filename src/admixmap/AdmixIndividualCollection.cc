@@ -370,8 +370,6 @@ void AdmixIndividualCollection::FindPosteriorModes(const AdmixOptions* const opt
 					      const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
 					      AlleleFreqs* A, 
 					      const Vector_s& PopulationLabels){
-  //TODO: check this for hapmixmodel
-
   if(options->getDisplayLevel()>1)
     cout<< endl << "Finding posterior mode of individual parameters ..." << endl;
   //open output file and write header
@@ -505,14 +503,14 @@ double* AdmixIndividualCollection::getSumEnergySq()const{
     return SumEnergySq;
 }
 double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-							LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
+							LogWriter &Log, const vector<double>& SumLogRho, unsigned 
 							, AlleleFreqs* A){
   //TODO: broadcast SumLogRho to workers
   //SumRho = ergodic sum of global sumintensities
   int iterations = options->getTotalSamples()-options->getBurnIn();
   
   //update chromosomes using globalrho, for globalrho model
-  if(options->getPopulations() >1 && (options->isGlobalRho() || options->getHapMixModelIndicator()) ){
+  if(options->getPopulations() >1 && options->isGlobalRho() ){
     vector<double> RhoBar(Loci->GetNumberOfCompositeLoci());
     if(Comms::isMaster())//master only
       for(unsigned i = 0; i < Loci->GetNumberOfCompositeLoci(); ++i)RhoBar[i] = (exp(SumLogRho[i] / (double)iterations));
@@ -523,13 +521,6 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* cons
     //set locus correlation
     if(Comms::isWorker()){//workers only
       Loci->SetLocusCorrelation(RhoBar);
-      if(options->getHapMixModelIndicator())
-	for( unsigned int j = 0; j < numChromosomes; j++ )
-	  //set global state arrival probs in hapmixmodel
-	  //TODO: can skip this if xonly analysis with no females
-	  //NB: assumes always diploid in hapmixmodel
-	  //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-	  Loci->getChromosome(j)->SetStateArrivalProbs(options->isRandomMatingModel(), true);
     }
   }
   
@@ -550,8 +541,7 @@ double AdmixIndividualCollection::getDevianceAtPosteriorMean(const Options* cons
   // fix this to be test individual only if single individual
   double Lhat = 0.0; // Lhat = loglikelihood at estimates
   for(unsigned int i = worker_rank; i < size; i+= NumWorkers ){
-    if(options->getHapMixModelIndicator())Lhat += _child[i]->getLogLikelihood(options, false, false);
-    else Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
+    Lhat += _child[i]->getLogLikelihoodAtPosteriorMeans(options);
   }
 #ifdef PARALLEL
   if(!Comms::isFreqSampler()){

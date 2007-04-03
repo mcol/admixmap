@@ -19,8 +19,6 @@
 #include <gsl/gsl_cdf.h>
 #include "AffectedsOnlyTest.h"
 #include "AncestryAssocTest.h"
-#include "GPI.h"
-
 
 ///Class to represent an individual in an admixture model
 class AdmixedIndividual : public Individual 
@@ -78,10 +76,10 @@ public:
   // be instantiated.
   virtual const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) const {
     throw string("AdmixedIndividual::getUnorderedProbs(const unsigned) is not implemented."); }
-  virtual void calculateUnorderedGenotypeProbs() {
-    throw string("AdmixedIndividual::calculateUnorderedGenotypeProbs() is not implemented."); }
-  virtual void calculateUnorderedGenotypeProbs(unsigned) {
-    throw string("AdmixedIndividual::calculateUnorderedGenotypeProbs(unsigned) is not implemented."); }
+//   virtual void calculateUnorderedGenotypeProbs() {
+//     throw string("AdmixedIndividual::calculateUnorderedGenotypeProbs() is not implemented."); }
+//   virtual void calculateUnorderedGenotypeProbs(unsigned) {
+//     throw string("AdmixedIndividual::calculateUnorderedGenotypeProbs(unsigned) is not implemented."); }
 
 private:
   bool IAmUnderTest;//true if not in Individual array
@@ -96,8 +94,7 @@ private:
   std::vector<unsigned> SumNumArrivals;
   std::vector< double > rhohat;
   std::vector<double> sumlogrho;
-  GenotypeProbIterator GPI;
-  FreqArray GPArray;
+  double** GenotypeProbs;///<array to hold GenotypeProbs
   
   std::vector<double> logPosterior[3]; // elements 0, 1, 2 are for theta, rho, freqs
   
@@ -142,7 +139,6 @@ private:
   double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
 
-  static void SetThetaThetaPrime(const double* aTheta, bool RandomMating, bool needBackwardProbs);
 };
 
 #endif /* ADMIXED_INDIVIDUAL_H */

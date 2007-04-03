@@ -84,7 +84,7 @@ public:
   virtual void getOnePopOneIndLogLikelihood(LogWriter& , const std::vector<std::string>& ){};
   
 protected:
-  void InitialiseLoci(const Options& options, InputData& data, LogWriter& Log);
+  void InitialiseGenome(Genome& G, const Options& options, InputData& data, LogWriter& Log);
   virtual void UpdateParameters(int iteration, const Options *options, 
                                 LogWriter& Log, const Vector_s& PopulationLabels, const double* Coolnesses, double coolness, bool anneal) = 0;
   //virtual void OutputParameters(int iteration, const Options *options, LogWriter& Log) = 0;
@@ -92,7 +92,6 @@ protected:
   void OutputErgodicAvgDeviance(int samples, double & SumEnergy, double & SumEnergySq);
 
   AlleleFreqs* pA;
-  Genome Loci;
   IndividualCollection *IC;
   vector<Regression*> R;//vector of regression pointers
 

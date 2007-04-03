@@ -13,7 +13,7 @@ void AdmixMapModel::Initialise(AdmixOptions& options, InputData& data,  LogWrite
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
-  InitialiseLoci(options, data, Log);
+  InitialiseGenome(Loci, options, data, Log);
 
   A.Initialise(&options, &data, &Loci, Log, options.getChibIndicator()); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object

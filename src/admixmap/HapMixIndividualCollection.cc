@@ -1,6 +1,6 @@
 #include "HapMixIndividualCollection.h"
 #include "HapMixOptions.h"
-#include "HapMixIndividual.h"
+//#include "HapMixIndividual.h"
 #include "HapMixFreqs.h"
 #include "regression/Regression.h"
 #include "Comms.h"
@@ -43,7 +43,9 @@ HapMixIndividualCollection
     _child = new Individual*[size];
     for (unsigned int i = worker_rank; i < size; i += NumWorkers) {
       // _child[i] = new Individual(i+1, options, Data);//NB: first arg sets Individual's number
-      _child[i] = new HapMixIndividual(i+1, options, Data, theta);//NB: first arg sets Individual's number
+      //NB: first arg sets Individual's number
+      HapMixChild.push_back(new HapMixIndividual(i+1, options, Data, theta));
+      _child[i] = HapMixChild[i];
     }
   }
   if(options->OutputCGProbs())GPO.Initialise(options->GetNumMaskedIndividuals(), options->GetNumMaskedLoci());
@@ -96,12 +98,12 @@ void HapMixIndividualCollection::SampleHiddenStates(const HapMixOptions* const o
 	|| (find(mi_begin, mi_end, i+1) != mi_end)
 	)
     {
-      _child[i]->calculateUnorderedGenotypeProbs();
+     HapMixChild[i]->calculateUnorderedGenotypeProbs();
     } 
 
     //accumulate sufficient statistics for update of arrival rates and mixture proportions
-    _child[i]->AccumulateConcordanceCounts(ConcordanceCounts);
-    _child[i]->SampleJumpIndicators(SumArrivalCounts);
+    HapMixChild[i]->AccumulateConcordanceCounts(ConcordanceCounts);
+    HapMixChild[i]->SampleJumpIndicators(SumArrivalCounts);
   }
 #ifdef PARALLEL
   if(worker_rank<(int)size)MPE_Log_event(16, 0, "Sampledancestry");
@@ -167,7 +169,7 @@ void HapMixIndividualCollection::OutputCGProbs(const char* filename, const Vecto
 
 double HapMixIndividualCollection
 ::getDevianceAtPosteriorMean(const Options* const options, vector<Regression *> &R, Genome* Loci,
-                             LogWriter &Log, const vector<double>& SumLogRho, unsigned numChromosomes
+                             LogWriter &Log, const double* const MixtureProps, const vector<double>& SumLogRho, unsigned numChromosomes
                              , AlleleFreqs* 
 #ifdef PARALLEL
 //A is not required in serial version
@@ -176,6 +178,8 @@ double HapMixIndividualCollection
     ){
 
   //TODO: broadcast SumLogRho to workers
+  //TODO: set mixture props to posterior means
+
   //SumRho = ergodic sum of global sumintensities
   int iterations = options->getTotalSamples()-options->getBurnIn();
   
@@ -197,7 +201,7 @@ double HapMixIndividualCollection
 	  //TODO: can skip this if xonly analysis with no females
 	  //NB: assumes always diploid in hapmixmodel
 	  //KLUDGE: should use global theta as first arg here; Theta in Individual should be the same
-	  Loci->getChromosome(j)->SetStateArrivalProbs(options->isRandomMatingModel(), true);
+	  Loci->getChromosome(j)->HMM->SetStateArrivalProbs(MixtureProps, options->isRandomMatingModel(), true);
     }
   }
   

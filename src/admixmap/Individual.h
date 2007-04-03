@@ -59,7 +59,7 @@ public:
   int GetLocusAncestry(int, int, int)const;
    
   void SampleLocusAncestry(const Options* const options);
-  void AccumulateConcordanceCounts(int* ConcordanceCounts)const;
+
 #ifdef PARALLEL
   void SampleHapPair(unsigned j, unsigned jj, unsigned locus, AlleleFreqs *A, bool skipMissingGenotypes, bool annealthermo, bool UpdateCounts,
 		     const double* const AlleleProbs);
@@ -70,12 +70,12 @@ public:
 
   void SampleMissingOutcomes(DataMatrix *Outcome, const std::vector<Regression*>& R);
   
-//  // The following functions are not implemented in Individual.
-  virtual const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int) const = 0;
-  virtual void calculateUnorderedGenotypeProbs() = 0;
-  virtual void calculateUnorderedGenotypeProbs(unsigned) = 0;
+//required because the test that needs them is in ScoreTests. Can be removed if the test is removed from there.
+   virtual const std::vector<std::vector<double> >& getUnorderedProbs(const unsigned int)const = 0;
+//   virtual void calculateUnorderedGenotypeProbs() = 0;
+//   virtual void calculateUnorderedGenotypeProbs(unsigned) = 0;
 
-  virtual void SampleJumpIndicators(int* ){};
+//   virtual void SampleJumpIndicators(int* ){};
 protected:
   unsigned myNumber;//< number of this individual, counting from 1
   bool SexIsFemale;

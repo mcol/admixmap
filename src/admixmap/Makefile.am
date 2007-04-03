@@ -30,6 +30,8 @@ libhapmixmap_la_SOURCES =				\
 			HapMixModel.cc			\
 			HapMixOptions.cc		\
 			MantelHaenszelTest.cc		\
+                        HapMixHMM.cc \
+                        HapMixGenome.cc \
 			PopHapMix.cc
 
 libhapmixmap_la_LIBADD	= libgenepi.la
@@ -52,80 +54,83 @@ admixmap_SOURCES = admixmap.cc				\
 admixmap_LDADD		= libgenepi.la
 
 
-noinst_HEADERS	= HapMixFreqs.h				\
-		  HapMixIndividual.h			\
-                  HapMixIndividualCollection.h		\
-                  HapMixModel.h				\
-                  HapMixOptions.h			\
-                  AdmixedIndividual.h			\
-                  AdmixIndividualCollection.h		\
-                  AdmixMapModel.h			\
-                  AdmixOptions.h			\
-                  AdmixtureAssocTest.h			\
-                  chib.h				\
-                  DispersionFreqs.h			\
-                  DispersionTest.h			\
-                  IndAdmixOutputter.h			\
-                  MisSpecAlleleFreqTest.h		\
-                  PopAdmix.h				\
-                  StratificationTest.h			\
-                  AffectedsOnlyTest.h			\
-                  AlleleFreqSampler.h			\
-                  AlleleFreqs.h				\
-                  AncestryAssocTest.h			\
-                  Annealer.h				\
-                  Chromosome.h				\
-                  Comms.h				\
-                  HapPair.h				\
-                  Haplotype.h				\
-                  CompositeLocus.h			\
-                  Genome.h				\
-                  GenotypeProbOutputter.h		\
-                  HMM.h					\
-                  HWTest.h				\
-                  IndividualCollection.h		\
-                  Individual.h				\
-                  InputData.h				\
-                  MantelHaenszelTest.h			\
-                  Model.h				\
-                  Options.h				\
-                  PopHapMix.h				\
-                  ResidualLDTest.h			\
-                  ScoreTestBase.h			\
-                  ScoreTests.h				\
-                  GPI.h					\
-                  GenotypeIterator.h			\
-                  FreqArrays.h				\
-                  MixturePropsWrapper.hh		\
-                  EventLogger.hh			\
+noinst_HEADERS	= HapMixFreqs.h \
+		  HapMixIndividual.h \
+                  HapMixIndividualCollection.h \
+                  HapMixModel.h \
+                  HapMixOptions.h \
+                  AdmixedIndividual.h \
+                  AdmixIndividualCollection.h \
+                  AdmixMapModel.h \
+                  AdmixOptions.h \
+                  AdmixtureAssocTest.h \
+                  chib.h \
+                  DispersionFreqs.h \
+                  DispersionTest.h \
+                  IndAdmixOutputter.h \
+                  MisSpecAlleleFreqTest.h \
+                  PopAdmix.h \
+                  StratificationTest.h \
+                  AffectedsOnlyTest.h \
+                  AlleleFreqSampler.h \
+                  AlleleFreqs.h \
+                  AncestryAssocTest.h \
+                  Annealer.h \
+                  Chromosome.h \
+                  Comms.h \
+                  HapPair.h \
+                  Haplotype.h \
+                  CompositeLocus.h \
+                  Genome.h \
+                  GenotypeProbOutputter.h \
+                  HiddenMarkovModel.h \
+                  HapMixHMM.hh \
+                  HapMixGenome.hh \
+                  HWTest.h \
+                  IndividualCollection.h \
+                  Individual.h \
+                  InputData.h \
+                  MantelHaenszelTest.h \
+                  Model.h \
+                  Options.h \
+                  PopHapMix.h \
+                  ResidualLDTest.h \
+                  ScoreTestBase.h \
+                  ScoreTests.h \
+                  GPI.h \
+                  GenotypeIterator.h \
+                  FreqArrays.h \
+                  EventLogger.hh \
 		  GeneticDistanceUnit.h
 
 # A library which holds all the code that is common for Admixmap and
 # Hapmixmap. It also includes bayeslib; it's defined via LIBADD variable.
-libgenepi_la_SOURCES = misc.cc				\
-		       AlleleFreqs.cc			\
-		       Options.cc			\
-		       AdmixOptions.cc			\
-		       InputData.cc			\
-		       Genome.cc			\
-		       Chromosome.cc			\
-		       Haplotype.cc			\
-		       CompositeLocus.cc		\
-		       IndividualCollection.cc		\
-		       Individual.cc			\
-		       HMM.cc				\
-		       AdmixtureAssocTest.cc		\
-		       AffectedsOnlyTest.cc		\
-		       AncestryAssocTest.cc		\
-		       ScoreTestBase.cc			\
-		       ScoreTests.cc			\
-		       ResidualLDTest.cc		\
-		       HWTest.cc			\
-		       AlleleFreqSampler.cc		\
-		       Comms.cc				\
-		       GPI.cc				\
-		       GenotypeProbOutputter.cc		\
-		       Annealer.cc			\
+
+libgenepi_la_SOURCES = misc.cc \
+		       AlleleFreqs.cc \
+		       Options.cc \
+		       AdmixOptions.cc \
+		       InputData.cc \
+		       Genome.cc \
+		       Chromosome.cc \
+		       Haplotype.cc \
+		       CompositeLocus.cc \
+		       IndividualCollection.cc \
+		       Individual.cc \
+		       HiddenMarkovModel.cc \
+                       HapMixHMM.cc \
+		       AdmixtureAssocTest.cc \
+		       AffectedsOnlyTest.cc \
+		       AncestryAssocTest.cc \
+		       ScoreTestBase.cc \
+		       ScoreTests.cc \
+		       ResidualLDTest.cc \
+		       HWTest.cc \
+		       AlleleFreqSampler.cc \
+		       Comms.cc \
+		       GPI.cc \
+		       GenotypeProbOutputter.cc \
+		       Annealer.cc \
 		       EventLogger.cc
 
 libgenepi_la_LDFLAGS	= 

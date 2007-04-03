@@ -79,10 +79,10 @@ public:
   
   double GetLengthOfGenome()const;
   double GetLengthOfXchrm()const;
-  void SetLocusCorrelation(const std::vector<double> rho);
+  virtual void SetLocusCorrelation(const std::vector<double>& rho);
   void SetLocusCorrelation(double rho);
 
-private:
+protected:
   Chromosome **C;
   double *Distances;
   unsigned int NumberOfCompositeLoci;
@@ -95,6 +95,11 @@ private:
   unsigned int *SizesOfChromosomes;
   bool X_data;
   unsigned XChromosomeIndex;
+
+  virtual void CreateChromosome(unsigned i, unsigned size, bool isX, unsigned cstart, int NumHiddenStates );
+  void SetupChromosome(Chromosome* C, bool isX, unsigned cstart, const string& label);
+
+private:
   /** Index of chromosomes and loci.
    *
    * LocusTable[i][0] is the chromosome
@@ -105,6 +110,7 @@ private:
 
   void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations);
   void PrintSizes(LogWriter &Log, GeneticDistanceUnit u)const;
+
 
   // UNIMPLEMENTED
   // to avoid use

@@ -16,7 +16,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   const bool isFreqSampler = Comms::isFreqSampler();
   const bool isWorker = Comms::isWorker();
 
-  InitialiseLoci(options, data, Log);
+  InitialiseGenome(Loci, options, data, Log);
   A.Initialise(&options, &data, &Loci, Log); //checks allelefreq files, initialises allele freqs and finishes setting up Composite Loci
   pA = &A;//set pointer to AlleleFreqs object
 
@@ -25,7 +25,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
 
   //create HapMixIndividualCollection object
   //NB call after A Initialise, and before R Initialise
-  HMIC = new HapMixIndividualCollection(&options, &data, &Loci, L->getGlobalTheta());
+  HMIC = new HapMixIndividualCollection(&options, &data, &Loci, L->getGlobalMixtureProps());
   //set IC pointer in base class to the same address as HMIC
   IC = HMIC;
 
@@ -55,7 +55,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
     A.AllocateDiploidGenotypeProbs();
     A.SetDiploidGenotypeProbs();
   }
-  HapMixIndividual::SetGenotypeProbs( A.getHaploidGenotypeProbs(), A.getDiploidGenotypeProbs());
+  HapMixIndividual::SetGenotypeProbs(&Loci, A.getHaploidGenotypeProbs(), A.getDiploidGenotypeProbs());
 
   if(isMaster){
     const int numindivs = data.getNumberOfIndividuals();
@@ -74,7 +74,7 @@ void HapMixModel::Initialise(HapMixOptions& options, InputData& data,  LogWriter
   if(isFreqSampler)A.PrintPrior(Log);
   
   if( options.getNumberOfBlockStates()>1 && isWorker) {
-    L->SetHMMStateArrivalProbs(true);
+    L->SetHMMStateArrivalProbs();
   }
   
   //initialise regression objects
@@ -180,7 +180,7 @@ void HapMixModel::UpdateParameters(int iteration, const Options * _options, LogW
 
     //Set global StateArrivalProbs in HMM objects. Do not force setting of mixture props (if fixed)
     if( isWorker) {
-      L->SetHMMStateArrivalProbs(false);
+      L->SetHMMStateArrivalProbs();
     }
 
   }
@@ -407,5 +407,5 @@ void HapMixModel::InitializeErgodicAvgFile(const Options* const _options, LogWri
 }
 
 double HapMixModel::getDevianceAtPosteriorMean(const Options* const options, LogWriter& Log){
-  return IC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
+  return HMIC->getDevianceAtPosteriorMean(options, R, &Loci, Log, L->getGlobalMixtureProps(), L->getSumLogRho(), Loci.GetNumberOfChromosomes(), &A);
 }

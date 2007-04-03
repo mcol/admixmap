@@ -1,5 +1,4 @@
 /** 
- *   ADMIXMAP
  *   Genome.cc (formerly GeneticArray.cc) 
  *   Class to hold and access (pointers to) Composite Locus objects and information about the genome.
  *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
@@ -168,14 +167,12 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
       XChromosomeIndex = cstart[i];//index of first locus on X chromosome
     }
 
-    C[i] = new Chromosome(i, size, cstart[i], populations, isX);
-    //C[i] is a pointer to Chromosome
-
+    CreateChromosome(i, size, isX, cstart[i], populations);
     C[i]->SetLabel(label);
-
+    
     for(int j = 0; j < size; j++){//loop over loci on chromosome
       C[i]->SetDistance(j,GetDistance(cstart[i]+j));
-
+      
       if( j != 0 ){
 	if( !isX ){
 	  LengthOfGenome += GetDistance(cstart[i]+j);
@@ -188,8 +185,20 @@ void Genome::InitialiseChromosomes(const vector<unsigned> cstart, int population
 	}
       }
     }
+    
   }
 }
+
+/**
+   create chromosome i.
+   isX indicates if it is to be an X chromosome.
+   cstart is the index of the first locus.
+*/
+void Genome::CreateChromosome(unsigned i,unsigned size,  bool isX, unsigned cstart, int NumHiddenStates ){
+  C[i] = new Chromosome(i, size, cstart, NumHiddenStates, isX);
+  //C[i] is a pointer to Chromosome
+}
+
 ///accesses the entire chromosome array
 const Chromosome* const* Genome::getChromosomes()const{
   return C;
@@ -410,26 +419,18 @@ unsigned Genome::getFirstXLocus()const{
 }
 
 ///set global locus correlation across all chromosomes, case of vector-valued rho
-void Genome::SetLocusCorrelation(const vector<double> rho){
+void Genome::SetLocusCorrelation(const vector<double>& rho){
   if(rho.size()==1) 
     for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
       //in case of global rho model (rho has length 1), sets f globally across loci
-      C[j]->SetLocusCorrelation(rho, true, false);
-  }
-  else{      //in hapmixmodel, sets locus-specific f
-    if(rho.size()<NumberOfCompositeLoci-NumberOfChromosomes)throw string("Bad arguments passed to Chromosome::SetLocusCorr");
-    vector<double>::const_iterator rho_iter = rho.begin();
-    for( unsigned int j = 0 ; j < NumberOfChromosomes; j++ ) {
-      C[j]->SetLocusCorrelation(rho_iter);
-      rho_iter += C[j]->GetSize()-1;
-    }
+      C[j]->SetLocusCorrelation(rho, false/*<-no random-mating*/);
   }
 }
 
 ///set global locus correlation across all chromosomes, case of global rho
 void Genome::SetLocusCorrelation(double rho){
   for( unsigned int j = 0; j < NumberOfChromosomes; j++ ) {
-    C[j]->SetLocusCorrelation(rho);
+    C[j]->SetGlobalLocusCorrelation(rho);
   }
 }
 

@@ -48,9 +48,6 @@ public:
   void AccumulateAlleleCounts(const Options* const options, AlleleFreqs *A, const Genome* const Loci,
                               bool anneal);
 
-  virtual double getDevianceAtPosteriorMean(const Options* const options, vector<Regression *>&R, Genome* Loci, LogWriter &Log,
-				    const vector<double>& SumRho, unsigned numChromosomes, AlleleFreqs* A ) = 0;
-
   int getSize()const;
   int getNumDiploidIndividuals();
   virtual int getNumberOfIndividualsForScoreTests()const{return getSize();}

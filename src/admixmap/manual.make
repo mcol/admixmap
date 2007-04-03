@@ -169,7 +169,7 @@ CPPFLAGS = $(WFLAGS) $(PROC) $(DFLAGS)
 export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 
 common_objects	= misc.o Model.o AlleleFreqs.o Options.o AdmixOptions.o InputData.o Genome.o\
- Chromosome.o CompositeLocus.o Haplotype.o IndividualCollection.o Individual.o HMM.o AdmixtureAssocTest.o\
+ Chromosome.o CompositeLocus.o Haplotype.o IndividualCollection.o Individual.o HiddenMarkovModel.o AdmixtureAssocTest.o\
  AffectedsOnlyTest.o AncestryAssocTest.o ScoreTestBase.o ScoreTests.o \
  ResidualLDTest.o HWTest.o AlleleFreqSampler.o Comms.o GenotypeProbOutputter.o GPI.o Annealer.o EventLogger.o
 
@@ -177,17 +177,18 @@ admixmap_objects = admixmap.o AdmixMapModel.o PopAdmix.o DispersionFreqs.o Admix
  chib.o IndAdmixOutputter.o StratificationTest.o MisSpecAlleleFreqTest.o DispersionTest.o
 
 hapmixmap_objects = hapmixmap.o HapMixModel.o HapMixOptions.o PopHapMix.o\
-HapMixFreqs.o HapMixIndividual.o HapMixIndividualCollection.o MantelHaenszelTest.o 
+HapMixFreqs.o HapMixIndividual.o HapMixIndividualCollection.o HapMixGenome.o HapMixHMM.o MantelHaenszelTest.o 
 
 #both serial
 all:	admixmap hapmixmap
 
 #ADMIXMAP serial
-admixmap:	checkbayeslib admixmap_message $(admixmap_objects) $(common_objects)
+
+admixmap:	checkbayeslib admixmap_message $(common_objects) $(admixmap_objects) 
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(ADMEXEC) $(admixmap_objects) $(common_objects) $(LFLAGS) $(LIBS)
 	@echo **ADMIXMAP has been compiled as $(DESTDIR)/$(ADMEXEC) \**
 #HAPMIXMAP serial
-hapmixmap:	checkbayeslib hapmixmap_message $(hapmixmap_objects) $(common_objects)
+hapmixmap:	checkbayeslib hapmixmap_message $(common_objects) $(hapmixmap_objects) 
 	$(CXX) $(CPPFLAGS) -o $(DESTDIR)/$(HAPEXEC) $(hapmixmap_objects) $(common_objects) $(LFLAGS) $(LIBS)
 	@echo **HAPMIXMAP has been compiled as $(DESTDIR)/$(HAPEXEC) \**
 
