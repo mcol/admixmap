@@ -1,41 +1,24 @@
-noinst_LTLIBRARIES         	= libutils.la
+AM_CPPFLAGS = -I$(top_srcdir)
+LDFLAGS=
+SUFFIXES=.cc .o
+WFLAGS=-W -Wall -fexceptions
+OPTFLAGS=
+AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
-libutils_la_SOURCES		= functions.cc			\
-				  DataReader.cc			\
-				  DataMatrix.cc			\
-				  StringSplitter.cc		\
-				  StringConvertor.cc		\
-				  LogWriter.cc			\
-				  RObjectWriter.cc		\
-				  GSLErrorHandler.cc		\
-				  ProbVector.cc			\
-			          pvector.cc			
+#this sublibrary will not be installed
+noinst_LIBRARIES = libutils.a
+
+#sources for the sublibrary
+libutils_a_SOURCES = functions.cc DataReader.cc DataMatrix.cc LogWriter.cc StringConvertor.cc StringSplitter.cc GSLErrorHandler.cc  ProbVector.cc pvector.cc RObjectWriter.cc
+
+#headers to be installed
+include_HEADERS = ColumnIter.h DataMatrix.h DataReader.h dist.h Exceptions.h GSLExceptions.h GSLErrorHandler.h linalg.h misc.h LogWriter.h Array.hh ProbVector.h pvector.h  RObjectWriter.h SnapToZero.h StringSplitter.h StringConvertor.h
+
+#place headers in bcppcl dir
+includedir=$(prefix)/include/bcppcl
+
+#.cc.o:
+#	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
 
 
-noinst_HEADERS			= Array.hh  \
-                                  DataMatrix.h			\
-				  DataReader.h			\
-				  dist.h			\
-				  linalg.h			\
-				  LogWriter.h			\
-				  misc.h			\
-				  StringConvertor.h		\
-				  StringSplitter.h		\
-				  ColumnIter.h			\
-				  RObjectWriter.h		\
-				  GSLErrorHandler.h		\
-				  Exceptions.h			\
-				  GSLExceptions.h		\
-                                  ProbVector.h			\
-				  pvector.h			\
-				  SnapToZero.h		
 
-INCLUDES			= -I$(top_srcdir)/src/bayeslib
-
-if PARALLEL
-noinst_LTLIBRARIES		+= libutils-para.la
-libutils_para_la_SOURCES	= $(libutils_la_SOURCES)
-libutils_para_la_CPPFLAGS	= -DPARALLEL
-endif
-
-# libutils_la_LDFLAGS		= -version-info 0:0:0

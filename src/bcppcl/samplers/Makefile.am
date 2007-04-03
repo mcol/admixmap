@@ -1,34 +1,17 @@
-noinst_LTLIBRARIES         	= libsampler.la
+AM_CPPFLAGS = -I$(top_srcdir)
+LDFLAGS=
+SUFFIXES=.cc .o
+WFLAGS=-W -Wall
+OPTFLAGS=
+AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
-libsampler_la_SOURCES		= rand.cc				\
-				  AdaptiveRejection.cc			\
-				  StepSizeTuner.cc			\
-				  Gaussian.cc				\
-				  GaussianProposalMH.cc			\
-				  DirichletParamSampler.cc		\
-				  HamiltonianMonteCarlo.cc		\
-				  MuSampler.cc				\
-				  DispersionSampler.cc			\
-				  ModeFinder.cc
+noinst_LIBRARIES = libsampler.a
+libsampler_a_SOURCES = AdaptiveRejection.cc DirichletParamSampler.cc DispersionSampler.cc Gaussian.cc GaussianProposalMH.cc HamiltonianMonteCarlo.cc ModeFinder.cc MuSampler.cc rand.cc StepSizeTuner.cc 
 
-noinst_HEADERS		= AdaptiveRejection.h				\
-				  DirichletParamSampler.h		\
-				  DispersionSampler.h			\
-				  Gaussian.h				\
-				  GaussianProposalMH.h			\
-				  gsl-sprng.h				\
-				  HamiltonianMonteCarlo.h		\
-				  ModeFinder.h				\
-				  MuSampler.h				\
-				  rand.h				\
-				  StepSizeTuner.h
+include_HEADERS = AdaptiveRejection.h DirichletParamSampler.h DispersionSampler.h Gaussian.h GaussianProposalMH.h HamiltonianMonteCarlo.h ModeFinder.h MuSampler.h rand.h gsl-sprng.h StepSizeTuner.h
+includedir=$(prefix)/include/bcppcl
 
-AM_CPPFLAGS			= -I$(top_srcdir)/src/bayeslib
+#.cc.o:
+#	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
 
-if PARALLEL
-noinst_LTLIBRARIES		+= libsampler-para.la
-libsampler_para_la_SOURCES	= $(libsampler_la_SOURCES)
-libsampler_para_la_CPPFLAGS	= -DPARALLEL
-endif
 
-# libsampler_a_LDFLAGS		= -version-info 0:0:0

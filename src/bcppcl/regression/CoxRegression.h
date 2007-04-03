@@ -3,7 +3,7 @@
 #define COXREGRESSION_H 1
 
 #include "Regression.h"
-#include "samplers/GaussianProposalMH.h"
+#include "GaussianProposalMH.h"
 
 ///Struct to hold arguments for sampling logistic regression parameters
 typedef struct{

@@ -1,0 +1,36 @@
+** Instructions for building bcppcl, the Bayesian C++ Computation Library **
+
+If installing from Subversion repository, complete all steps. 
+If installing from tarfile (bcppcl-##.tar.gz), skip step 1.
+These instructions assume you are working in Unix, Linux, Msys or Cygwin.
+
+1. To create the configure script:
+--------------------------------
+autoreconf -fv
+
+You will need GNU autoconf v2.59 or newer, GNU automake v1.8 or newer.
+
+You might get warnings about underquoted definitions. These can be safely ignored. They can be suppressed in automake v1.10 or later by adding '-Wno-syntax' to the ACLOCAL_AMFLAGS in Makefile.am.
+
+2. To create the makefiles:
+-----------------------------
+./configure [options]
+A full list of options is available by using the option --help. The principal ones are:
+--prefix=<where to install>
+--enable-optimize
+--enable-debug
+--enable-profile
+--enable-parallel
+--enable-shared
+Use the -q flag to suppress the output
+
+The configure script will loook for Intel and Pathscale compilers first, then GNU g++ then Portland's pgCC. If you have more than one of these available or want to use a different compiler, make sure to use the command 'export CXX=<compiler-name> first. 
+
+By default, no extra flags are passed to the compiler. Use 'export EXTRAFLAGS=...'  ( NB not CXXFLAGS) to do so. 
+
+It is not (yet) possible to build a shared library. 
+
+3. To compile and install:
+-----------------------------
+make, make install
+Header files will be placed in $PREFIX/bcppcl and the library in $PREFIX/lib

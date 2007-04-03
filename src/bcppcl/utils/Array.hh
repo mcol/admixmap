@@ -1,7 +1,7 @@
 #ifndef PMBZARRAY_H
 #define PMBZARRAY_H
 
-#include "../bcppcl.h"
+#include "bcppcl.h"
 #include <vector>
 #include <iostream>
 #include <iterator>

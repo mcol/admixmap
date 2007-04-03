@@ -3,7 +3,7 @@
 #define LINEARREGRESSION_H 1
 
 #include "Regression.h"
-#include "samplers/Gaussian.h"
+#include "Gaussian.h"
 
 ///Class to sample the parameters of a linear regression
 class LinearRegression : public Regression{

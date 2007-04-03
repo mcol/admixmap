@@ -1,21 +1,16 @@
-noinst_LTLIBRARIES         	= libbayesreg.la
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/samplers -I$(top_srcdir)/utils
+LDFLAGS=
+SUFFIXES=.cc .o
+WFLAGS=-W -Wall
+OPTFLAGS=
+AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
-libbayesreg_la_SOURCES		= Regression.cc			\
-				  LinearRegression.cc		\
-				  LogisticRegression.cc		\
-				  CoxRegression.cc
+noinst_LIBRARIES = libregression.a
+libregression_a_SOURCES = Regression.cc LogisticRegression.cc LinearRegression.cc CoxRegression.cc
+include_HEADERS = Regression.h LogisticRegression.h LinearRegression.h CoxRegression.h
+includedir=$(prefix)/include/bcppcl
 
-noinst_HEADERS			= Regression.h			\
-				  LinearRegression.h		\
-				  LogisticRegression.h		\
-				  CoxRegression.h
+#.cc.o:
+#	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
 
-INCLUDES			= -I$(top_srcdir)/src/bayeslib
 
-if PARALLEL
-noinst_LTLIBRARIES		+= libbayesreg-para.la
-libbayesreg_para_la_SOURCES	= $(libbayesreg_la_SOURCES)
-libbayesreg_para_la_CPPFLAGS	= -DPARALLEL
-endif
-
-# libbayesreg_la_LDFLAGS		= -version-info 0:0:0
