@@ -163,7 +163,7 @@ my $arg_hash = {
     checkdata       => 0,
     # mixturepropsprior => "50, 1",
     fixedmixtureprops => 0,
-    fixedmixtureproprprecision =>1,
+    fixedmixturepropsprecision =>1,
 
 #main options
     resultsdir      => 'results',
@@ -391,7 +391,7 @@ sub runRscript
 {
     my ($args) = @_;
     print "Starting R script to process output\n";
-    system("R CMD BATCH --quiet --no-save --no-restore ../tools/admixmap/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
+    system("R CMD BATCH --quiet --no-save --no-restore ../test/admixmap/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
     print "R script completed\n\n";
 }
 
