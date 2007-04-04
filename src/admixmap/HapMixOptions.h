@@ -25,11 +25,11 @@
 class HapMixOptions : public Options
 {
 public:
-  HapMixOptions(int, char**);
+  HapMixOptions(int, char**, bool PrintOptionList);
   ~HapMixOptions();
   
   int checkOptions(LogWriter &Log, int NumberOfIndividuals);
-  void PrintOptions();
+  void PrintUserOptions();
 
   //main output files
   const char *getFreqPrecisionOutputFilename() const;

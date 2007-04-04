@@ -22,13 +22,18 @@ using namespace std;
 // {
 //   Initialise();
 // }
-HapMixOptions::HapMixOptions(int argc,  char** argv){
+HapMixOptions::HapMixOptions(int argc,  char** argv, bool PrintOptionList){
   //base class sets default base options
   //this call to SetDefaultValues calls this class' options
   SetDefaultValues();
-  ReadUserOptions(argc, argv);
+  if(!PrintOptionList)
+    ReadUserOptions(argc, argv);
+
   OptionMap ProgOptions;
   SetOptions(ProgOptions);
+
+  if(PrintOptionList)
+    PrintAllOptions(ProgOptions);
 }
 
 void HapMixOptions::SetDefaultValues(){
@@ -398,7 +403,7 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
   else return 0;
 }
 
-void HapMixOptions::PrintOptions(){
+void HapMixOptions::PrintUserOptions(){
   //set states value in case it has changed or not specified
   std::ostringstream s;
   if (s << getNumberOfBlockStates()) // conversion worked
@@ -406,5 +411,5 @@ void HapMixOptions::PrintOptions(){
     useroptions["states"] = (char *)s.str().c_str();
     }
   //Now output Options table to args.txt
-  Options::PrintOptions();
+  Options::PrintUserOptions();
 }

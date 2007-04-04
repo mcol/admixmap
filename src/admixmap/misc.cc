@@ -22,7 +22,7 @@
 */
 void PrintOptionsMessage() {
   cout << "You must specify an options file\n"
-       << "Consult the manual for a list of user options."
+       << "Consult the manual for details of user options."
        << endl;
 }
 

@@ -36,7 +36,7 @@ public:
   virtual ~Options();
   
   virtual int checkOptions(LogWriter &Log, int);
-  virtual void PrintOptions();
+  virtual void PrintUserOptions();
 
   long getBurnIn() const;
   long getTotalSamples() const;
@@ -173,6 +173,7 @@ protected:
   virtual void SetDefaultValues();  
   Options();
   void ReadUserOptions(int, char**);
+  void PrintAllOptions(OptionMap& ProgOptions)const;
 private:
   //functions for reading uer options
   void ReadCommandLineArgs(const int argc, char** argv);

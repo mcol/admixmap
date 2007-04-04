@@ -24,7 +24,7 @@ Options::Options()
 void Options::ReadUserOptions(int argc,  char** argv){
   if(argc == 2)
     ReadArgsFromFile(argv[1], useroptions);
-  else{
+  else if(argc > 1){
     //NOTE: command line args will not be supported soon
     cout << "Warning: command-line arguments are deprecated" << endl;
     ReadCommandLineArgs(argc, argv);
@@ -414,17 +414,6 @@ void Options::SetOptions(OptionMap& ProgOptions)
   TestForAllelicAssociation = (AllelicAssociationScoreFilename.size()>0);
   TestForResidualAllelicAssoc = (ResidualAllelicAssocScoreFilename.size()>0);
 }
-  ///output Options table to args.txt
-void Options::PrintOptions(){
-  string ss;
-  ss = ResultsDir + "/args.txt";
-  ofstream argstream(ss.c_str());
-
-  for( UserOptions::iterator p= useroptions.begin(); p!=useroptions.end(); p++) {
-    argstream << p->first << "=" << p->second <<endl;
-  }
-  argstream.close();
-}
 
 int Options::checkOptions(LogWriter &Log, int){
   bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
@@ -495,4 +484,26 @@ void Options::ReadCommandLineArgs(const int argc, char** argv){
     ++i;
     useroptions[name] = value;
   }
+}
+
+///output Options table to args.txt
+void Options::PrintUserOptions(){
+  string ss;
+  ss = ResultsDir + "/args.txt";
+  ofstream argstream(ss.c_str());
+
+  for( UserOptions::iterator p= useroptions.begin(); p!=useroptions.end(); p++) {
+    argstream << p->first << "=" << p->second <<endl;
+  }
+  argstream.close();
+}
+
+//print all available options to cout
+void Options::PrintAllOptions(OptionMap& ProgOptions)const{
+  cout << "This is a list of all valid options:" << endl
+       << "----------------------------------------" << endl;
+  for( OptionMap::const_iterator p = ProgOptions.begin(); p != ProgOptions.end(); ++p){
+    cout << p->first << " ( " << p->second.second << " )" << endl;
+  }
+
 }

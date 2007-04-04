@@ -20,14 +20,17 @@
 using namespace std;
 
 int main( int argc , char** argv ){
+  bool PrintOptionList = false;
   if(argc==2 && !strcmp(argv[1], "-v")){
     LogWriter LW;
     PrintCopyrightNotice(LW);
     exit(0);
   }
+  //-h flag or --help print a usage messsage
   else if (argc < 2 || (argc ==2 && ( !strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")) ) ) {
-    PrintOptionsMessage();
-    exit(1); 
+    //PrintOptionsMessage();
+    //exit(1); 
+    PrintOptionList = true;
   } 
 #ifdef PARALLEL
   MPI::Init(argc, argv);
@@ -56,7 +59,15 @@ int main( int argc , char** argv ){
   //  const bool isWorker = Comms::isWorker();
 
   //read user options
-  HapMixOptions options(argc, argv);
+  //if PrintOptionList = true, program will print list of options and exit.
+  if(PrintOptionList){
+    LogWriter LW;
+    PrintCopyrightNotice(LW);
+    PrintOptionsMessage();
+  }
+  HapMixOptions options(argc, argv, PrintOptionList);
+  if(PrintOptionList)
+    exit(1);
 
   //create results directory, or if it exists, deletes the contents
   if(isMaster){
@@ -87,7 +98,7 @@ int main( int argc , char** argv ){
     }
   
     //print user options to args.txt; must be done after all options are set
-    if(isMaster)options.PrintOptions();
+    if(isMaster)options.PrintUserOptions();
 
     HapMixModel M;
     M.Initialise(options, data, Log);

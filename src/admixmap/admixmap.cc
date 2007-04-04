@@ -88,7 +88,7 @@ int main( int argc , char** argv ){
     }
   
     //print user options to args.txt; must be done after all options are set
-    if(isMaster)options.PrintOptions();
+    if(isMaster)options.PrintUserOptions();
 
     AdmixMapModel M;
 

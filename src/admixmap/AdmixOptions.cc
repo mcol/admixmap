@@ -802,7 +802,7 @@ bool AdmixOptions::CheckInitAlpha( const vector<double> &alphatemp)const
    return admixed;
 }
 
-void AdmixOptions::PrintOptions(){
+void AdmixOptions::PrintUserOptions(){
   //set populations value in case it has changed or not specified
   //NB do similar for any option that can be changed outside Options
   std::ostringstream s;
@@ -812,5 +812,5 @@ void AdmixOptions::PrintOptions(){
     }
   useroptions["hapmixmodel"] = "0";
   //Now output Options table to args.txt
-  Options::PrintOptions();
+  Options::PrintUserOptions();
 }

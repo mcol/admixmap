@@ -26,7 +26,7 @@ public:
   ~AdmixOptions();
   
   int checkOptions(LogWriter &Log, int NumberOfIndividuals);
-  void PrintOptions();
+  void PrintUserOptions();
 
   //main output files
   const char *getEtaOutputFilename() const;
