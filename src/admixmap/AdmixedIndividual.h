@@ -18,7 +18,7 @@
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 #include "AffectedsOnlyTest.h"
-#include "AncestryAssocTest.h"
+#include "CopyNumberAssocTest.h"
 
 ///Class to represent an individual in an admixture model
 class AdmixedIndividual : public Individual 
@@ -41,7 +41,7 @@ public:
 
   void ResetSufficientStats();
   void UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
-		    const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
+		    const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
   void SampleJumpIndicators(bool sampleArrivals);
   void SampleRho(const AdmixOptions* const options, double rhoalpha, double rhobeta,  
 		 bool updateSumLogRho);
@@ -49,7 +49,7 @@ public:
 		    const DataType* const OutcomeType, const std::vector<double> lambda, const int NumCovariates,
 		    DataMatrix *Covariates, const std::vector<const double*> beta, const double* const poptheta,
 		    const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-		    double DInvLink, const double dispersion, AncestryAssocTest& ancestryAssocTest,const bool RW, const bool anneal);
+		    double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest,const bool RW, const bool anneal);
 
   void FindPosteriorModes(const AdmixOptions* const options, const vector<vector<double> > &alpha,  
 			  double rhoalpha, double rhobeta, AlleleFreqs* A, ofstream &modefile);  
@@ -135,7 +135,7 @@ private:
 				  double rhoalpha, double rhobeta)const;
   
   void UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest);
+			Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest);
   double getLogLikelihood(const Options* const options, 
 			  const double* const theta, const vector<double > rho, bool updateHMM);
 

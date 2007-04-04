@@ -21,7 +21,8 @@ public:
 protected:
   bool test;
   std::ofstream outputfile;
-  unsigned numPrintedIterations;
+  unsigned numPrintedIterations;///< number of times output is written to file (for R object dimension)
+  unsigned numUpdates;///< number of times Update function has been called
   bool onFirstLine;///< to indicate whether to use a separator before newline
 
   //utility functions
@@ -30,9 +31,9 @@ protected:
 				     const double score, const double scoresq, const double info, bool final);
   void OutputScoreTest( int iterations, std::ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
 			       const double* score, const double* scoresq, const double* info, bool final, unsigned dim2);
-  void OutputRaoBlackwellizedScoreTest( int iterations, std::ofstream* outputstream, std::string label,
-					       const double score, const double scoresq, const double varscore, 
-					       const double info, bool final );
+  void OutputRaoBlackwellizedScoreTest( std::ofstream* outputstream, std::string label,
+					const double score, const double scoresq, const double varscore, 
+					const double info, bool final );
 
   static std::string double2R(double);
   static std::string double2R(double, int);
@@ -40,5 +41,13 @@ protected:
 
 };
 
-
+// #include <exception>
+// ///exception class to throw when trying to output test results when numUpdates = 0
+// class ScoreTestNotUpdatedException : public std::exception{
+// public:
+//   ~ScoreTestNotUpdatedException() throw(){};
+//   const char* what() const throw(){
+//     return "Unable to output scoretest as no updates have been made";
+//   }
+// };
 #endif

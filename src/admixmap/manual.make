@@ -170,7 +170,7 @@ export CC PCC CPPFLAGS SERIAL_INCLUDES PARALLEL_INCLUDES
 
 common_objects	= misc.o Model.o AlleleFreqs.o Options.o AdmixOptions.o InputData.o Genome.o\
  Chromosome.o CompositeLocus.o Haplotype.o IndividualCollection.o Individual.o HiddenMarkovModel.o AdmixtureAssocTest.o\
- AffectedsOnlyTest.o AncestryAssocTest.o ScoreTestBase.o ScoreTests.o \
+ AffectedsOnlyTest.o CopyNumberAssocTest.o ScoreTestBase.o ScoreTests.o \
  ResidualLDTest.o HWTest.o AlleleFreqSampler.o Comms.o GenotypeProbOutputter.o GPI.o Annealer.o EventLogger.o
 
 admixmap_objects = admixmap.o AdmixMapModel.o PopAdmix.o DispersionFreqs.o AdmixedIndividual.o AdmixIndividualCollection.o\

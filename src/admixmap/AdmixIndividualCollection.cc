@@ -187,7 +187,7 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 */
 // void AdmixIndividualCollection::SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
 // 							 const vector<Regression*> &R, const double* const poptheta,
-// 							 const vector<vector<double> > &alpha, AncestryAssocTest& ancestryAssocTest, bool anneal){
+// 							 const vector<vector<double> > &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
 //   vector<double> lambda;
 //   vector<const double*> beta;
   
@@ -222,7 +222,7 @@ void AdmixIndividualCollection::annealGenotypeProbs(unsigned nchr, const double 
 void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions* const options,
                                                     const vector<Regression*> &R, const double* const poptheta,
                                                     const vector<vector<double> > &alpha, 
-                                                    AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest, bool anneal){
+                                                    AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest, bool anneal){
   vector<double> lambda;
   vector<const double*> beta;
   double dispersion = 0.0; 
@@ -289,7 +289,7 @@ void AdmixIndividualCollection::HMMUpdates(int iteration, const AdmixOptions* co
 void AdmixIndividualCollection::SampleParameters(int iteration, const AdmixOptions* const options,
 					    const vector<Regression*> &R, const double* const poptheta,
 					    const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
-					    AncestryAssocTest& ancestryAssocTest, bool anneal=false){
+					    CopyNumberAssocTest& ancestryAssocTest, bool anneal=false){
   //sufficient statistics have been stored in Individuals
   // coolness is not passed as argument to this function because annealing has already been implemented by 
   // calling annealGenotypeProbs 

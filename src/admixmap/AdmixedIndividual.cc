@@ -624,7 +624,7 @@ void AdmixedIndividual::SampleTheta( const int iteration, double *SumLogTheta, c
 			      const DataType* const OutcomeType, const vector<double> lambda, const int NumCovariates,
 			      DataMatrix *Covariates, const vector<const double*> beta, const double* const poptheta,
 			      const AdmixOptions* const options, const vector<vector<double> > &alpha, 
-				     double DInvLink, const double dispersion, AncestryAssocTest& ancestryAssocTest, const bool RW, const bool anneal=false)
+				     double DInvLink, const double dispersion, CopyNumberAssocTest& ancestryAssocTest, const bool RW, const bool anneal=false)
 // samples individual admixture proportions
 // called with RW true for a random-walk proposal, false for a conjugate proposal
 {
@@ -936,7 +936,7 @@ void AdmixedIndividual::SampleRho(const AdmixOptions* const options, double rhoa
 
 //********************** Score Tests ***************************
 void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatrix *Outcome, DataMatrix *Covariates, 
-				     const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest){
+				     const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest){
 //merge with updatescoretests
   for( unsigned int j = 0; j < numChromosomes; j++ ){
     Chromosome* C = Loci->getChromosome(j);
@@ -959,7 +959,7 @@ void AdmixedIndividual::UpdateScores(const AdmixOptions* const options, DataMatr
 }
 
 void AdmixedIndividual::UpdateScoreTests(const AdmixOptions* const options, const double* admixtureCovars, DataMatrix *Outcome, 
-					 Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest){
+					 Chromosome* chrm, const vector<Regression*> R, AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest){
   bool IamAffected = false;
   try {
     if( options->getTestForAffectedsOnly()){

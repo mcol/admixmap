@@ -1,9 +1,8 @@
 // *-*-C++-*-*
 /** 
- *   ADMIXMAP
- *   AncestryAssocTest.h 
- *   header file for AncestryAssocTest class
- *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   CopyNumberAssocTest.h (formerly AncestryAssocTest.h)
+ *   header file for CopyNumberAssocTest class
+ *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -11,22 +10,22 @@
  * See the file COPYING for details.
  * 
  */
-#ifndef ANCESTRYASSOCTEST_H
-#define ANCESTRYASSOCTEST_H 1
+#ifndef COPYNUMBERASSOCTEST_H
+#define COPYNUMBERASSOCTEST_H 1
 
 #include "ScoreTestBase.h"
 
 class Genome;
 
 /**
-   Class to implement score test for linkage with locus ancestry
+   Class originally designed to implement score test for linkage with locus ancestry
  */
-class AncestryAssocTest : public ScoreTestBase{
+class CopyNumberAssocTest : public ScoreTestBase{
 
 public:
-  AncestryAssocTest();
-  AncestryAssocTest(bool use_prevb);
-  ~AncestryAssocTest();
+  CopyNumberAssocTest();
+  CopyNumberAssocTest(bool use_prevb);
+  ~CopyNumberAssocTest();
   void Initialise(const char* filename, const int NumPopulations, const int NumLoci, LogWriter &Log, bool use_prevb = true);
 
   void Reset();
@@ -36,8 +35,8 @@ public:
 
   void Accumulate(unsigned j);
 
-  void Output(int iterations, const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
-  void ROutput(const int numIterations);
+  void Output(const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
+  void ROutput();
 
 private:
   unsigned K, L;
@@ -63,4 +62,4 @@ private:
 
 
 
-#endif /* !defined ANCESTRYASSOCTEST_H */
+#endif /* !defined COPYNUMBERASSOCTEST_H */

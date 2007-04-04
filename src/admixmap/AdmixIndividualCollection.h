@@ -39,15 +39,15 @@ public:
   void HMMUpdates(int iteration, const AdmixOptions* const options,
                   const vector<Regression*> &R, const double* const poptheta,
                   const vector<vector<double> > &alpha, 
-                  AffectedsOnlyTest& affectedsOnlyTest, AncestryAssocTest& ancestryAssocTest, bool anneal);
+                  AffectedsOnlyTest& affectedsOnlyTest, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
   void SampleAdmixtureWithRandomWalk(int iteration, const AdmixOptions* const options,
 				     const vector<Regression*> &R, const double* const poptheta,
-				     const vector<vector<double> > &alpha, AncestryAssocTest& ancestryAssocTest, bool anneal);
+				     const vector<vector<double> > &alpha, CopyNumberAssocTest& ancestryAssocTest, bool anneal);
 
   void SampleParameters(int iteration, const AdmixOptions* const options,
 			const vector<Regression*> &R, const double* const poptheta,
 			const vector<vector<double> > &alpha, double rhoalpha, double rhobeta,
-			AncestryAssocTest& ancestryAssocTest, bool anneal);
+			CopyNumberAssocTest& ancestryAssocTest, bool anneal);
   void setChibNumerator(const AdmixOptions* const options,const vector<vector<double> > &alpha, 
 		  double rhoalpha, double rhobeta, AlleleFreqs *A);
   void updateChib(const AdmixOptions* const options,const vector<vector<double> > &alpha, 

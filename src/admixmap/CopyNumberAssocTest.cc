@@ -1,6 +1,6 @@
 /** 
  *   ADMIXMAP
- *   AncestryAssocTest.h 
+ *   CopyNumberAssocTest.h 
  *   Class to implement score test for association of trait with ancestry
  *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
@@ -10,14 +10,14 @@
  * See the file COPYING for details.
  * 
  */
-#include "AncestryAssocTest.h"
+#include "CopyNumberAssocTest.h"
 #include "Genome.h"
 #include "utils/linalg.h"
 #include "utils/dist.h"
 #include "utils/misc.h"
 
 using namespace::std;
-AncestryAssocTest::AncestryAssocTest(){
+CopyNumberAssocTest::CopyNumberAssocTest(){
   SumScore = 0;
   SumInfo = 0;
   SumVarScore = 0;
@@ -33,12 +33,13 @@ AncestryAssocTest::AncestryAssocTest(){
   K = 0;
   L = 0;
   numPrintedIterations = 0;
+  numUpdates = 0;
 }
-AncestryAssocTest::AncestryAssocTest(bool use_prevb){
-  AncestryAssocTest();
+CopyNumberAssocTest::CopyNumberAssocTest(bool use_prevb){
+  CopyNumberAssocTest();
   useprevb = use_prevb;
 }
-AncestryAssocTest::~AncestryAssocTest(){
+CopyNumberAssocTest::~CopyNumberAssocTest(){
   if(test){
     delete[] SumScore;
     delete[] SumInfo;
@@ -53,7 +54,7 @@ AncestryAssocTest::~AncestryAssocTest(){
     free_matrix(InfoCorrection, L);
   }
 }
-void AncestryAssocTest::Initialise(const char* filename, const int NumStrata, const int NumLoci, LogWriter &Log, bool use_prevb){
+void CopyNumberAssocTest::Initialise(const char* filename, const int NumStrata, const int NumLoci, LogWriter &Log, bool use_prevb){
   test = true;
   OpenFile(Log, &outputfile, filename, "Tests for locus linkage", true);
   
@@ -85,7 +86,7 @@ void AncestryAssocTest::Initialise(const char* filename, const int NumStrata, co
   Xcov = new double[K];
 }
 
-void AncestryAssocTest::Reset(){
+void CopyNumberAssocTest::Reset(){
   if(test){
     for(unsigned j = 0; j < L; ++j){
       for(unsigned k = 0; k < 2*K; ++k)
@@ -106,7 +107,7 @@ void AncestryAssocTest::Reset(){
     }
   }
 }
-void AncestryAssocTest::Output(int iterations, const Vector_s& PopLabels, const Genome& Loci, bool final, const char* filename){
+void CopyNumberAssocTest::Output(const Vector_s& PopLabels, const Genome& Loci, bool final, const char* filename){
   std::ofstream* outfile;
   if(final){
     outfile = new ofstream(filename);
@@ -127,14 +128,14 @@ void AncestryAssocTest::Output(int iterations, const Vector_s& PopLabels, const 
     for( unsigned k = 0; k < KK; k++ ){//end at 1 for 2pops
       std::string label = locuslabel;
       if(K>1)label += "\"" + sep + "\"" + PopLabels[k+firstpoplabel];//label is output in quotes
-      OutputRaoBlackwellizedScoreTest(iterations, outfile, label, SumScore[ j*KK + k], SumScore2[ j*KK + k], 
+      OutputRaoBlackwellizedScoreTest(outfile, label, SumScore[ j*KK + k], SumScore2[ j*KK + k], 
  				      SumVarScore[ j*KK + k ],SumInfo[ j*KK + k ], final); 
     }
   }
   if(final)outfile->close();
 }
 
-void AncestryAssocTest::ROutput(const int ){
+void CopyNumberAssocTest::ROutput(){
   if(test){
     int KK = K;
     if(KK ==2 )KK = 1;
@@ -153,7 +154,7 @@ void AncestryAssocTest::ROutput(const int ){
   }
 }
 
-void AncestryAssocTest::Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
+void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi, double YMinusEY, double DInvLink, 
 			       const vector<vector<double> > Probs) {
   //Updates score stats for test for association with locus ancestry
   //now use Rao-Blackwellized estimator by replacing realized ancestries with their expectations
@@ -206,7 +207,7 @@ void AncestryAssocTest::Update(int locus, const double* Covariates, double phi, 
     delete[] XX;
     delete[] BX;
     delete[] VarA;
-    std::string error_string = "Error in AncestryAssocTest::Update:\n";
+    std::string error_string = "Error in CopyNumberAssocTest::Update:\n";
     error_string.append(s);
     throw(error_string);//throw error message to top level
   }
@@ -218,9 +219,10 @@ void AncestryAssocTest::Update(int locus, const double* Covariates, double phi, 
   delete[] XX;
   delete[] BX;
   delete[] VarA;
+
 }
 
-void AncestryAssocTest::Accumulate(unsigned j){
+void CopyNumberAssocTest::Accumulate(unsigned j){
   double *score = new double[K], *info = new double[K*K];
   try{
     CentredGaussianConditional(K, Score[j], Info[j], score, info, 2*K );
@@ -244,11 +246,12 @@ void AncestryAssocTest::Accumulate(unsigned j){
   }
   delete[] score;
   delete[] info;
-
+  //increment update counter
+  ++numUpdates;
 }
 
 //TODO: fix to be called within update
-void AncestryAssocTest::UpdateB(double DInvLink, double dispersion, const double* Covariates){
+void CopyNumberAssocTest::UpdateB(double DInvLink, double dispersion, const double* Covariates){
   //increment B using covariates
   //Xcov is a vector of covariates as in UpdateScoreForAncestry
     Xcov[K-1] = 1;//last entry is intercept

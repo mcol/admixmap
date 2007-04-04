@@ -19,7 +19,7 @@
 #include "common.h"
 #include "AdmixtureAssocTest.h"
 #include "AffectedsOnlyTest.h" 
-#include "AncestryAssocTest.h"
+#include "CopyNumberAssocTest.h"
 #include "ResidualLDTest.h"
 
 class FreqArray;
@@ -58,7 +58,7 @@ public:
   ~ScoreTests();
 
   AffectedsOnlyTest& getAffectedsOnlyTest();
-  AncestryAssocTest& getAncestryAssocTest();
+  CopyNumberAssocTest& getAncestryAssocTest();
   void OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels);
 
 private:
@@ -119,9 +119,9 @@ private:
   ResidualLDTest ResidualAllelicAssocScoreTest;//here temporarily, until rest of scoretests classes have been created
   AdmixtureAssocTest AdmixtureAssocScoreTest;
   AffectedsOnlyTest AffectedsOnlyScoreTest;
-  AncestryAssocTest AncestryAssocScoreTest;
+  CopyNumberAssocTest AncestryAssocScoreTest;
 
-  AncestryAssocTest NewAllelicAssocTest;//test using conditional distribution of copies of allele2, rather than sampled values
+  CopyNumberAssocTest NewAllelicAssocTest;//test using conditional distribution of copies of allele2, rather than sampled values
 };
 
 

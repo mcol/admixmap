@@ -394,6 +394,7 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");
 
   //prior and model specification
+  ProgOptions["hapmixmodel"] = OptionPair(&HapMixModel, "bool");//this will cause program to abort if 1
   ProgOptions["randommatingmodel"] = OptionPair(&RandomMatingModel, "bool");
   ProgOptions["globalrho"] = OptionPair(&GlobalRho, "bool");
   ProgOptions["indadmixhiermodel"] = OptionPair(&IndAdmixHierIndicator, "bool");
@@ -455,6 +456,11 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
 
   bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
   Log.setDisplayMode(Quiet);
+
+  if(HapMixModel){
+    Log << On << "ERROR: 'hapmixmodel' option is not supported. Consider trying HAPMIXMAP instead\n" << Quiet;
+    badOptions = true;
+  }
 
   // **** analysis type  ****
   if(CoxOutcomeVarFilename.length() ){

@@ -78,10 +78,14 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
   //*outputstream << endl;
 }
 
-void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* outputstream, string label,
+void ScoreTestBase::OutputRaoBlackwellizedScoreTest( ofstream* outputstream, string label,
 						     const double score, const double scoresq, const double varscore, 
 						     const double info, bool final )
 {
+  if(numUpdates == 0){
+    throw string("Unable to output scoretest as no updates have been made");
+  }
+
   string separator = final? "\t" : ",";
 
   if(!onFirstLine){
@@ -95,11 +99,12 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( int iterations, ofstream* o
 
 
   *outputstream << "\"" << label << "\"" << separator;
-      
-  const double EU = score / (double)iterations;
-  const double VU = varscore / (double) iterations;
-  const double missing = scoresq / (double) iterations - EU * EU + VU;
-  const double complete =  info / (double) iterations;
+
+  const double scaleFactor = 1.0 / (double)numUpdates;      
+  const double EU = score * scaleFactor;
+  const double VU = varscore * scaleFactor;
+  const double missing = scoresq * scaleFactor - EU * EU + VU;
+  const double complete =  info * scaleFactor;
   
   if(final){
     *outputstream << double2R(EU, 3)                                << separator//score

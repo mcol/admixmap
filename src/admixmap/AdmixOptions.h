@@ -107,6 +107,7 @@ private:
   bool locusForTestIndicator;
   int LocusForTest;
   bool correlatedallelefreqs;
+  bool HapMixModel;
   bool RandomMatingModel;//random mating model
   bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture

@@ -654,7 +654,7 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
 	filename.append("/AllelicAssocTestsFinal.txt");
       }
       else outfile = &allelicAssocScoreStream;
-      NewAllelicAssocTest.Output(iterations, PLabels, *Lociptr, final, filename.c_str());
+      NewAllelicAssocTest.Output(PLabels, *Lociptr, final, filename.c_str());
     }
     else{
     if(final){
@@ -750,7 +750,7 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
       filename.append("/TestsAncestryAssocFinal.txt");
       finalfilename = filename.c_str();
      }
-    AncestryAssocScoreTest.Output(iterations, PLabels, *Lociptr, final, finalfilename);
+    AncestryAssocScoreTest.Output(PLabels, *Lociptr, final, finalfilename);
   }
   //affectedonly
   if( options->getTestForAffectedsOnly() ){
@@ -760,7 +760,7 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
       filename.append("/TestsAffectedsOnlyFinal.txt");
       finalfilename = filename.c_str();
     }
-    AffectedsOnlyScoreTest.Output(iterations, PLabels, *Lociptr, final, finalfilename);
+    AffectedsOnlyScoreTest.Output(PLabels, *Lociptr, final, finalfilename);
   }
   
   //residual allelic association
@@ -903,7 +903,7 @@ void ScoreTests::ROutput(){
   int count;
   if(options->getTestForAllelicAssociation()){
     if(options->getHapMixModelIndicator()){
-      NewAllelicAssocTest.ROutput(numPrintedIterations);
+      NewAllelicAssocTest.ROutput();
     }
     else{
 
@@ -954,7 +954,7 @@ void ScoreTests::ROutput(){
    * R-matrix previously written to ancestryAssociationScoreStream
    */
   if (options->getTestForLinkageWithAncestry()){
-    AncestryAssocScoreTest.ROutput(numPrintedIterations);
+    AncestryAssocScoreTest.ROutput();
   }
   
   /**
@@ -962,7 +962,7 @@ void ScoreTests::ROutput(){
    * R-matrix previously written to affectedsOnlyScoreStream
    */
   if (options->getTestForAffectedsOnly()){
-    AffectedsOnlyScoreTest.ROutput(numPrintedIterations);
+    AffectedsOnlyScoreTest.ROutput();
   }
 
   /**
@@ -1023,7 +1023,7 @@ string ScoreTests::double2R( double x, int precision )
 AffectedsOnlyTest& ScoreTests::getAffectedsOnlyTest(){
   return AffectedsOnlyScoreTest;
 }
-AncestryAssocTest& ScoreTests::getAncestryAssocTest(){
+CopyNumberAssocTest& ScoreTests::getAncestryAssocTest(){
   return AncestryAssocScoreTest;
 }
 

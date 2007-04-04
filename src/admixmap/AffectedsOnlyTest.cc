@@ -2,7 +2,7 @@
  *   ADMIXMAP
  *   AffectedsOnlyTest.cc 
  *   Class implements affecteds-only score test for linkage with locus ancestry
- *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -24,6 +24,8 @@ AffectedsOnlyTest::AffectedsOnlyTest(){
   SumAffectedsInfo = 0;
   SumAffectedsVarScore = 0;
   test=false;
+  numPrintedIterations = 0;
+  numUpdates = 0;
 }
 
 AffectedsOnlyTest::~AffectedsOnlyTest(){
@@ -80,20 +82,23 @@ void AffectedsOnlyTest::Reset(){
   }
 }
 
-void AffectedsOnlyTest::Output(int iterations, const Vector_s& PopLabels, const Genome& Loci, bool final, const char* filename){
+void AffectedsOnlyTest::Output(const Vector_s& PopLabels, const Genome& Loci, bool final, const char* filename){
   std::ofstream* outfile;
   if(final){
     outfile = new ofstream(filename);
     *outfile <<"Locus\tPopulation\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tMissing1\tMissing2\tStdNormal\tPValue\n";
   }
-  else outfile = &outputfile;
+  else{
+    outfile = &outputfile;
+    ++numPrintedIterations;
+  }
 
   string sep = final? "\t" : ",";
   for(unsigned int j = 0; j < L; j++ ){
     const string locuslabel = Loci(j)->GetLabel(0);
     for( unsigned k = 0; k < K; k++ ){//end at 1 for 2pops
       const std::string label = locuslabel + "\"" + sep + "\"" + PopLabels[k+firstpoplabel];//label is output in quotes
-	OutputRaoBlackwellizedScoreTest(iterations, outfile, label, SumAffectedsScore[ j*K + k], SumAffectedsScore2[ j*K + k], 
+	OutputRaoBlackwellizedScoreTest(outfile, label, SumAffectedsScore[ j*K + k], SumAffectedsScore2[ j*K + k], 
 					SumAffectedsVarScore[ j*K + k ],SumAffectedsInfo[ j*K + k ], final); 
     }
   }
@@ -104,7 +109,7 @@ void AffectedsOnlyTest::Output(int iterations, const Vector_s& PopLabels, const 
  * writes out the dimensions and labels of the 
  * R-matrix already written to file
  */
-void AffectedsOnlyTest::ROutput(const int numIterations){
+void AffectedsOnlyTest::ROutput(){
   if (test){
     
     std::vector<std::string> labels(3);
@@ -115,7 +120,7 @@ void AffectedsOnlyTest::ROutput(const int numIterations){
     std::vector<int> dimensions(3,0);
     dimensions[0] = labels.size(); 
     dimensions[1] = L * K;
-    dimensions[2] = (int)(numIterations);
+    dimensions[2] = (int)(numPrintedIterations);
 
     R_output3DarrayDimensions(&outputfile,dimensions,labels);
   }
@@ -186,6 +191,8 @@ void AffectedsOnlyTest::Accumulate(unsigned j){
     SumAffectedsInfo[j*K +k] += AffectedsInfo[j * K +k];
     SumAffectedsScore2[j*K +k] +=  AffectedsScore[j*K +k] * AffectedsScore[j*K +k];
   }
+  //increment update counter
+  ++numUpdates;
 }
 
 ///outputs ergodic averages of Likelihood Ratios as R object

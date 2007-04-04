@@ -248,6 +248,13 @@ bool Options::getDeleteOldResultsIndicator()const{
 bool Options::doPrintBuildInfo()const{
   return PrintBuildInfo;
 }
+
+///convert option name to lower case and remove underscores
+void Options::ParseOptionName(string& name){
+  StringConvertor::toLower(name);
+  StringConvertor::RemoveCharFromString(name, '_');
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 int Options::ReadArgsFromFile(const char* filename, UserOptions& opt){
   ifstream fin(filename);
@@ -281,7 +288,10 @@ int Options::ReadArgsFromFile(const char* filename, UserOptions& opt){
 	}
 	//add line to xargv
 	string::size_type eq = str.find("=");
-	opt[str.substr(0, eq)] = str.substr(eq+1 );
+	string optionName = str.substr(0, eq);
+	ParseOptionName(optionName);
+	//set map element, name  = value
+	opt[optionName] = str.substr(eq+1 );
       }
     str.clear();
   }

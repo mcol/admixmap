@@ -82,7 +82,7 @@ int main( int argc , char** argv ){
 
      //check user options
     if(options.checkOptions(Log, data.getNumberOfIndividuals())){
-      Log << On << "\nProgram aborted due to bad options.\n";
+      Log << On << "\nProgram aborted due to bad options. See logfile for details\n";
       exit(1);
     }
   

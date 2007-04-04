@@ -178,7 +178,7 @@ private:
   void ReadCommandLineArgs(const int argc, char** argv);
   int ReadArgsFromFile(const char* filename, map<string, string>& UserOptions);
   int assign(OptionPair& opt, const string value);
-
+  void ParseOptionName(string& name);
 
   // UNIMPLEMENTED: to avoid use
   Options(const Options&);

@@ -74,7 +74,7 @@ noinst_HEADERS	= HapMixFreqs.h \
                   AffectedsOnlyTest.h \
                   AlleleFreqSampler.h \
                   AlleleFreqs.h \
-                  AncestryAssocTest.h \
+                  CopyNumberAssocTest.h \
                   Annealer.h \
                   Chromosome.h \
                   Comms.h \
@@ -121,7 +121,7 @@ libgenepi_la_SOURCES = misc.cc \
                        HapMixHMM.cc \
 		       AdmixtureAssocTest.cc \
 		       AffectedsOnlyTest.cc \
-		       AncestryAssocTest.cc \
+		       CopyNumberAssocTest.cc \
 		       ScoreTestBase.cc \
 		       ScoreTests.cc \
 		       ResidualLDTest.cc \

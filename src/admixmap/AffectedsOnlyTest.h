@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   AffectedsOnlyTest.h 
  *   header file for AffectedsOnly class
- *   Copyright (c) 2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2006, 2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -35,8 +35,8 @@ public:
 
   void Accumulate(unsigned j);
 
-  void Output(int iterations, const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
-  void ROutput(const int numIterations);
+  void Output(const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
+  void ROutput();
   void OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels, const Genome& Loci);
 
 private:
