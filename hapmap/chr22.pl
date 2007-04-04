@@ -123,8 +123,8 @@ if ($usage) {
 }
 
 my %state_files = (
-    arrivalrates => "arrivalrates",
-    mixtureprops => "mixtureprops",
+    arrivalratefile => "arrivalrates",
+    mixturepropsfile => "mixtureprops",
     allelefreqfile => "allelefreqs",
     freqpriorfile => "freqprior",
 );
