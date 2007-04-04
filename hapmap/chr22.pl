@@ -54,7 +54,7 @@ my $read_initial_params = 0;
 
 # Change this to the location of the hapmixmap executable
 #my $executable = '../test/adm-para';
-my $executable = '../test/hapmixmap';
+my $executable = '/ichec/home/users/maciej/usr/bin/hapmixmap';
 #my $executable = '/ichec/home/users/doducd/test/hapmixmap';
 
 ##parse any command line options
@@ -123,7 +123,7 @@ if ($usage) {
 }
 
 my %state_files = (
-    lambdafile => "lambdas",
+    # lambdafile => "lambdas",
     allelefreqfile => "allelefreqs",
     freqpriorfile => "freqprior",
 );
@@ -162,6 +162,8 @@ my $arg_hash = {
     states     => $STATES,
     #outcomevarfile => 'chr22/dummyoutcome.txt',
     checkdata       => 0,
+    # mixturepropsprior => "50, 1",
+    fixedmixtureprops => 0,
 
 #main options
     resultsdir      => 'results',
@@ -174,14 +176,14 @@ my $arg_hash = {
     hapmixmodel     => 1,
 
 #prior spec
-    hapmixlambdaprior => "30, 0.1, 10, 1",
-    allelefreqprior => "0.2, 1, 1",
+    # hapmixlambdaprior => "30, 0.1, 10, 1",
+    # allelefreqprior => "0.2, 1, 1",
 
-    lambdasamplerparams => "0.1, 0.00001, 10, 0.9, 20",
+    # lambdasamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 #output files
     logfile =>'logfile.txt',
     paramfile =>'paramfile.txt',#mean and var of sampled arrival rates
-    dispparamfile => "allelefreqpriors.txt",#mean and var of sampled freq dispersion
+    # dispparamfile => "allelefreqpriors.txt",#mean and var of sampled freq dispersion
 
     #regparamfile          => 'regparamfile.txt',
     #ergodicaveragefile => 'ergodicaverage.txt',
@@ -384,7 +386,7 @@ sub runRscript
 {
     my ($args) = @_;
     print "Starting R script to process output\n";
-    system("R CMD BATCH --quiet --no-save --no-restore ../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
+    system("R CMD BATCH --quiet --no-save --no-restore ../tools/admixmap/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt RESULTSDIR=$args->{resultsdir}");
     print "R script completed\n\n";
 }
 
