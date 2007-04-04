@@ -14,7 +14,7 @@ public:
   static int toInt(const std::string& str);
   /// converts a string to float
   static double toFloat(const std::string& str);
-  
+
   /// converts a string to a vector of two unsigned short ints. 
   static void toIntPair(std::vector<unsigned short>*, const std::string& str, const char* sep);
   /// determines if a string is a missing value.
@@ -23,14 +23,20 @@ public:
   static bool isWhiteLine(const char *p);
   /// removes quotes from strings. 
   static std::string dequote(const std::string& str);
+
   /// Converts a string to a vector of doubles. 
   static void StringToVec(const std::string str, std::vector<double>&);
   /// Converts a string to a vector of floats. 
   static void StringToVec(const std::string str, std::vector<float>&);
   /// Converts a string to a vector of unsigned ints. 
   static void StringToVec(const std::string str, std::vector<unsigned>&);
+
   ///determines if a given string is in a list of strings
   static bool isListedString(const std::string s, const std::vector<std::string>list);
+  ///converts a string to lower case
+  static void toLower(std::string& s);
+  ///removes all instances of character c from string s
+  static void RemoveCharFromString(std::string& s, const char c);
 
   /// a dummy function
   static bool dummy();
