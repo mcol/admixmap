@@ -123,7 +123,8 @@ if ($usage) {
 }
 
 my %state_files = (
-    # lambdafile => "lambdas",
+    arrivalrates => "arrivalrates",
+    mixtureprops => "mixtureprops",
     allelefreqfile => "allelefreqs",
     freqpriorfile => "freqprior",
 );
@@ -157,13 +158,12 @@ my $arg_hash = {
     genotypesfile                   => "$datadir/phased_genotypes.txt",
     locusfile                       => "$datadir/phased_loci.txt",
 
-    #priorallelefreqfile => 'data/priorallelefreqs.txt',
-    #fixedallelefreqs => 1,
+#model
     states     => $STATES,
-    #outcomevarfile => 'chr22/dummyoutcome.txt',
     checkdata       => 0,
     # mixturepropsprior => "50, 1",
     fixedmixtureprops => 0,
+    fixedmixtureproprprecision =>1,
 
 #main options
     resultsdir      => 'results',
@@ -176,17 +176,22 @@ my $arg_hash = {
     hapmixmodel     => 1,
 
 #prior spec
-    # hapmixlambdaprior => "30, 0.1, 10, 1",
-    # allelefreqprior => "0.2, 1, 1",
+    arrivalrateprior => "30, 0.1, 10, 1",
+    allelefreqprecisionprior => "0.2, 1, 1",
 
-    # lambdasamplerparams => "0.1, 0.00001, 10, 0.9, 20",
+    arrivalratesamplerparams => "0.1, 0.00001, 10, 0.9, 20",
 #output files
     logfile =>'logfile.txt',
-    paramfile =>'paramfile.txt',#mean and var of sampled arrival rates
-    # dispparamfile => "allelefreqpriors.txt",#mean and var of sampled freq dispersion
+    paramfile         =>'paramfile.txt',#mean and var of sampled arrival rates
+    freqprecisionfile =>'freqprecision.txt', #mean and var of sampled allele freq precision
 
-    #regparamfile          => 'regparamfile.txt',
+#posterior means
+    #arrivalrateposteriormeanfile => 'ArrivalRatePostMeans.txt',
+#mean and var of sampled freq precision
+    #allelefreqprecisionposteriormeanfile => 'FreqPrecisionPostMeans.txt',
+
     #ergodicaveragefile => 'ergodicaverage.txt',
+
 
 #optional tests
     #residualallelicassocscorefile => 'residualLDscores.txt',
