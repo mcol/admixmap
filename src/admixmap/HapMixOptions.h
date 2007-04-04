@@ -36,6 +36,7 @@ public:
   const char *getAlleleFreqPriorOutputFilename() const;
   bool OutputAlleleFreqPrior()const;
   const char* getArrivalRateOutputFilename()const;
+  const char* getFinalMixturePropsFilename()const;
   const char* getFinalLambdaFilename()const;
   const char* getFinalFreqPriorFilename()const;
 
@@ -43,6 +44,7 @@ public:
   const std::vector<double> &getLambdaPrior()const;
   const std::vector<double> & getAlleleFreqPriorParams()const;
   const char* getInitialArrivalRateFilename()const;
+  const char* getInitialMixturePropsFilename()const;
   const char* getInitialAlleleFreqFilename()const;
   const char* getInitialFreqPriorFilename()const;
   const char* getCCGenotypesFilename()const;
@@ -75,28 +77,43 @@ public:
   unsigned GetNumMaskedLoci()const;
 
 private:
+  //model settings
+  static const bool HapMixModelIndicator = true; 
   int NumBlockStates;
-  static const bool HapMixModelIndicator = true; //model haplotypes with mixture model
   bool FreqPrecisionHierModel;
   bool FixedMixtureProps;
   bool FixedMixturePropsPrecision;
   float MixturePropsPrecision;
 
+  //prior parameters
   std::vector<double> allelefreqprecisionprior;
   std::vector<double> lambdaprior;///< parameters of gamma priors on arrival rate distribution
   std::vector<double> MixturePropsPrecisionPrior;// parameters of Gamma prior on mixture props dispersion
 
+  //data files
+  std::string CCGenotypesFilename;//case-control genotypes file
+
+  //parameter output
   std::string FreqPrecisionOutputFilename;
+
+  //posterior means
   std::string AlleleFreqPriorOutputFilename;
-  std::string MHTestFilename;
   std::string ArrivalRateOutputFilename;
+
+  //tests
+  std::string MHTestFilename;
+
+  //intitial values
   std::string InitialArrivalRateFilename;
+  std::string InitialMixturePropsFilename;
   std::string InitialAlleleFreqFilename;
   std::string InitialFreqPriorFile;
-  std::string CCGenotypesFilename;//case-control genotypes file (hapmixmodel only)
 
+  //final values
   std::string FinalFreqPriorFilename;
   std::string FinalLambdaFilename;
+  std::string FinalMixturePropsFilename;
+  //allelefreqoutputfile used in lieu of FinalAlleleFreqFile
 
   //indices for assessing prediction of missing genotypes in hapmixmodel
   std::vector<unsigned> MaskedIndividuals;

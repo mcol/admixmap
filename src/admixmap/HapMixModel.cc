@@ -315,8 +315,10 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
     }
     //output posterior means of lambda (expected number of arrivals)
     L->OutputLambdaPosteriorMeans(options.getArrivalRateOutputFilename(), options.getTotalSamples()-options.getBurnIn());
-    //output final values of lambda and its prior params
-    L->OutputLambda(options.getFinalLambdaFilename());
+    //output final values of arrival rates and their prior params
+    L->OutputArrivalRates(options.getFinalLambdaFilename());
+    //output final values of mixture proportions
+    L->OutputMixtureProps(options.getFinalMixturePropsFilename());
   }
   if(Comms::isFreqSampler()){
     //output final values of allele freq prior

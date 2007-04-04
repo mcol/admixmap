@@ -79,7 +79,7 @@ public:
   void OutputParams(int iteration, LogWriter &Log);
   void OutputParams(ostream& out); 
   ///output average mixture props to an ostream
-  void OutputMixtureProps(ostream& out)const;
+  void OutputAverageMixtureProps(ostream& out)const;
   
   void OutputErgodicAvg( int, std::ofstream& avgstream);
   
@@ -89,7 +89,8 @@ public:
   
   const vector<double>& getlambda()const{return lambda;};
   const vector<double>& getSumLogRho()const{return SumLogLambda;};
-  void OutputLambda(const char* filename)const;
+  void OutputArrivalRates(const char* filename)const;
+  void OutputMixtureProps(const char* filename)const;
   void OutputLambdaPosteriorMeans(const char* filename, int samples)const;
   
 private:

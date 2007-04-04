@@ -86,9 +86,32 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
   const unsigned L = Loci->GetNumberOfCompositeLoci();
 
   MixtureProps = new double[K*L];
-  //set initial values of Mixture Props as uniform
-  //TODO: initialise to prior means
-  fill(MixtureProps, MixtureProps + K*L, 1.0/(double)K);
+
+  //set initial values
+  const char* initfilename = options->getInitialMixturePropsFilename();
+  //get initial values from file
+  if(strlen(initfilename)){
+    ifstream initfile(initfilename);
+
+    if(initfile.is_open()){
+      Log << Quiet << "Reading initial values of mixture proportions from " << initfilename << "\n";
+      //copy initial values straight from file into array
+      istream_iterator<double>firstvalue(initfile);
+      //NOTE: does not check number of elements
+      copy(firstvalue, istream_iterator<double>(), MixtureProps);
+      initfile.close();
+    }
+    else{
+      string err("ERROR: cannot open initialmixturepropsfile: ");
+      err.append(initfilename);
+      throw err;
+    }
+  }
+  //set initial values of Mixture Props as uniform  
+  else{
+    //TODO: initialise to prior means
+    fill(MixtureProps, MixtureProps + K*L, 1.0/(double)K);
+  }
 
   if(!options->getFixedMixtureProps()){//we are sampling mixture props
     /*
@@ -204,15 +227,25 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
   const bool useinitfile = (strlen(initfilename) > 0);
   ifstream initfile;
   if(useinitfile){
-    Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
     initfile.open(initfilename);
+
+    if(initfile.is_open()){
+    Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
+
     //read initial values of h, beta
     initfile >> LambdaArgs.h >> LambdaArgs.beta;
     //copy initial values of lambda straight from file into vector
     istream_iterator<double>firstlambda(initfile);
     //copy(firstlambda, firstlambda + numIntervals, lambda.begin());
-    copy(firstlambda, istream_iterator<double>(), lambda.begin());//does not check number of elements
+    //NOTE: does not check number of elements
+    copy(firstlambda, istream_iterator<double>(), lambda.begin());
     initfile.close();
+    }
+    else{
+      string err("ERROR: cannot open initialarrivalratefile: ");
+      err.append(initfilename);
+      throw err;
+    }
   }
   
   for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
@@ -542,7 +575,7 @@ void PopHapMix::OutputParams(ostream& out){
 }
 
 //output mixture proportions averaged over loci
-void PopHapMix::OutputMixtureProps(ostream& out)const{
+void PopHapMix::OutputAverageMixtureProps(ostream& out)const{
   vector<double> sum(K, 0.0);
   const unsigned L = Loci->GetNumberOfCompositeLoci();
   for(unsigned locus = 0; locus < L; ++locus){
@@ -561,7 +594,7 @@ void PopHapMix::OutputParams(int iteration, LogWriter &){
     }
   //Output to paramfile after BurnIn
   if( iteration > options->getBurnIn() ){
-    // OutputMixtureProps(outputstream);
+    // OutputAverageMixtureProps(outputstream);
     OutputParams(outputstream);
     outputstream << endl;
   }
@@ -598,26 +631,36 @@ void PopHapMix::printAcceptanceRates(LogWriter &Log) {
   
 }
 ///Outputs h, beta and current values of lambda to file
-void PopHapMix::OutputLambda(const char* filename)const{
+void PopHapMix::OutputArrivalRates(const char* filename)const{
   if(strlen(filename)){
     ofstream outfile(filename);
-    //     int locus = 0;
-    //     vector<double>::const_iterator r = rho.begin();
-    //     for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
-    // 	++locus;//skip first locus on each chromosome
-    // 	for(unsigned i = 1; i < Loci->GetSizeOfChromosome(c); ++i){
-    // 	    outfile << *r << " " << Loci->GetDistance(locus)<< endl;
-    // 	    ++r;
-    // 	    ++locus;
-    // 	}
-    //     }
-    outfile << LambdaArgs.h << " " << LambdaArgs.beta << " ";
-    copy(lambda.begin(), lambda.end(), ostream_iterator<double>(outfile, " "));
-
-    
-    outfile.close();
+    if(outfile.is_open()){
+      //write prior params first
+      outfile << LambdaArgs.h << " " << LambdaArgs.beta << " ";
+      //then copy all lambdas, space-separated
+      copy(lambda.begin(), lambda.end(), ostream_iterator<double>(outfile, " "));
+      
+      outfile.close();
+    }
+    else
+      cerr << "Error: cannot open finalarrivalratefile: " << filename << endl;
   }
 }
+
+///outputs mixture props to file
+void PopHapMix::OutputMixtureProps(const char* filename)const{
+  if(strlen(filename)){
+    ofstream outfile(filename);
+    if(outfile.is_open()){
+      //copy to output stream , space-separated
+      copy(MixtureProps, MixtureProps + K*Loci->GetNumberOfCompositeLoci(), ostream_iterator<double>(outfile, " "));
+      outfile.close();
+    }
+    else
+      cerr << "Error: cannot open finalmixturepropsfile: " << filename << endl;
+  }
+}
+
 void PopHapMix::OutputLambdaPosteriorMeans(const char* filename, int samples)const{
   ofstream outfile(filename);
   for(vector<double>::const_iterator i = SumLogLambda.begin(); i < SumLogLambda.end(); ++i)

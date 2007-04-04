@@ -43,16 +43,18 @@ void HapMixOptions::SetDefaultValues(){
   // other specified options will be appended to this array 
 
   //final values are always output to file, with these default filenames
-  FinalFreqPriorFilename = "state-freqpriors.txt";
-  FinalLambdaFilename = "state-lambdas.txt";
   AlleleFreqOutputFilename = "state-allelefreqs.txt";
+  FinalFreqPriorFilename = "state-freqpriors.txt";
+  FinalLambdaFilename = "state-arrivalrates.txt";
+  FinalMixturePropsFilename = "state-mixtureprops.txt";
 
   useroptions["states"] = "4";
   useroptions["arrivalrateprior"] = "30, 0.1, 10, 1";
   //useroptions["mixturepropsprecisionprior"] = "1,1";
+  useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
   useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
   useroptions["finalarrivalratefile"] = FinalLambdaFilename;
-  useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
+  useroptions["finalmixturepropsfile"] = FinalMixturePropsFilename;
   useroptions["freqprecisionhiermodel"] = "1";
   useroptions["fixedmixtureprops"] = "1";
   useroptions["fixedmixturepropsprecision"] = "1";
@@ -133,7 +135,10 @@ const char* HapMixOptions::getInitialAlleleFreqFilename()const{
   return InitialAlleleFreqFilename.c_str();
 }
 const char* HapMixOptions::getInitialArrivalRateFilename()const{
-    return InitialArrivalRateFilename.c_str();
+  return InitialArrivalRateFilename.c_str();
+}
+const char* HapMixOptions::getInitialMixturePropsFilename()const{
+  return InitialMixturePropsFilename.c_str();
 }
 const char* HapMixOptions::getInitialFreqPriorFilename()const{
   return InitialFreqPriorFile.c_str();
@@ -166,7 +171,9 @@ const char* HapMixOptions::getFinalFreqPriorFilename()const{
 const char* HapMixOptions::getFinalLambdaFilename()const{
   return FinalLambdaFilename.c_str();
 }
-
+const char* HapMixOptions::getFinalMixturePropsFilename()const{
+  return FinalMixturePropsFilename.c_str();
+}
 unsigned HapMixOptions::GetNumMaskedIndividuals()const{
   return MaskedIndividuals.size();
 }
@@ -184,6 +191,7 @@ void HapMixOptions::SetOptions(OptionMap& ProgOptions)
   */
   ProgOptions["ccgenotypesfile"] = OptionPair(&CCGenotypesFilename, "string");
   ProgOptions["initialarrivalratefile"] = OptionPair(&InitialArrivalRateFilename, "string");
+  ProgOptions["initialmixturepropsfile"] = OptionPair(&InitialMixturePropsFilename, "string");
   ProgOptions["initialfreqpriorfile"] = OptionPair(&InitialFreqPriorFile, "string");
   ProgOptions["initialallelefreqfile"] = OptionPair(&InitialAlleleFreqFilename, "string");// synonym for allelefreqfile
 
@@ -203,7 +211,7 @@ void HapMixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["mixturepropsprecision"] = OptionPair(&MixturePropsPrecision, "float");
 
   /*
-     prior specification
+    prior specification
   */
   //vector of length 4, 2 Gamma priors on Gamma parameters
   ProgOptions["arrivalrateprior"] = OptionPair(&lambdaprior, "dvector");
@@ -223,9 +231,10 @@ void HapMixOptions::SetOptions(OptionMap& ProgOptions)
   ProgOptions["freqprecisionfile"] = OptionPair(&FreqPrecisionOutputFilename, "outputfile");
 
   //final values
+  ProgOptions["finalallelefreqfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");// synonym for allelefreqoutputfile
   ProgOptions["finalfreqpriorfile"] = OptionPair(&FinalFreqPriorFilename, "outputfile");
   ProgOptions["finalarrivalratefile"] = OptionPair(&FinalLambdaFilename, "outputfile");
-  ProgOptions["finalallelefreqfile"] = OptionPair(&AlleleFreqOutputFilename, "outputfile");// synonym for allelefreqoutputfile
+  ProgOptions["finalmixturepropsfile"] = OptionPair(&FinalMixturePropsFilename, "outputfile");
 
   //posterior means
   ProgOptions["allelefreqprecisionposteriormeanfile"] = OptionPair(&AlleleFreqPriorOutputFilename, "outputfile");
@@ -307,6 +316,7 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
       FixedMixturePropsPrecision = true;
       Log << "WARNING: option 'fixedmixtureprops=1' requires 'fixedmixturepropsprecision=1'\n";
     }
+    //    useroptions.erase["finalmixturepropsfile"];
   }else{//we are sampling mixture props
     if(!FixedMixturePropsPrecision){//we are also sampling mixture props precision
       //check mixture props prior has length 2 and both elements are positive
