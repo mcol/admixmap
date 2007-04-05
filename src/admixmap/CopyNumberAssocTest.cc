@@ -222,10 +222,20 @@ void CopyNumberAssocTest::Update(int locus, const double* Covariates, double phi
 
 }
 
+///accumulate score, info, scoresq and var score over iterations
+void CopyNumberAssocTest::Accumulate(){
+  //increment update counter
+  for(unsigned j = 0; j < L; ++j)
+    Accumulate(j);
+  ++numUpdates;
+}
+
 void CopyNumberAssocTest::Accumulate(unsigned j){
-  double *score = new double[K], *info = new double[K*K];
+  double *CentredScore = new double[K], *CentredInfo = new double[K*K];
+
+  //centre score and info by conditioning on covariates
   try{
-    CentredGaussianConditional(K, Score[j], Info[j], score, info, 2*K );
+    CentredGaussianConditional(K, Score[j], Info[j], CentredScore, CentredInfo, 2*K );
   }
   catch(string s){
     string error = "Error centring ancestry association scores:\n";
@@ -239,15 +249,13 @@ void CopyNumberAssocTest::Accumulate(unsigned j){
   if(K == 2){KK = 1; k1 = 1;}
      
   for( unsigned k = 0; k < KK ; k++ ){
-    SumScore[j*KK +k] += score[k+k1];
-    SumInfo[j*KK +k] += info[(k+k1)*K +k+k1] + InfoCorrection[j][k+k1];
-    SumScore2[j*KK +k] += score[k+k1] * score[k+k1];
+    SumScore[j*KK +k] += CentredScore[k+k1];
+    SumInfo[j*KK +k] += CentredInfo[(k+k1)*K +k+k1] + InfoCorrection[j][k+k1];
+    SumScore2[j*KK +k] += CentredScore[k+k1] * CentredScore[k+k1];
     SumVarScore[j*KK +k] += VarScore[j][k+k1];
   }
-  delete[] score;
-  delete[] info;
-  //increment update counter
-  ++numUpdates;
+  delete[] CentredScore;
+  delete[] CentredInfo;
 }
 
 //TODO: fix to be called within update

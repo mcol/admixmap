@@ -33,7 +33,7 @@ public:
   void Update(unsigned int locus, int k0, const double* const Theta, 
 	      bool RandomMatingModel, bool diploid, const std::vector<std::vector<double> > AProbs);
 
-  void Accumulate(unsigned j);
+  void Accumulate();
 
   void Output(const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
   void ROutput();
@@ -54,6 +54,8 @@ private:
 
   double *LikRatio1;
   double *LikRatio2;
+
+  void Accumulate(unsigned j);
 
 };
 

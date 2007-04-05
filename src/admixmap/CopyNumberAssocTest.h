@@ -33,7 +33,7 @@ public:
 	      const std::vector<std::vector<double> > Probs) ;
   void UpdateB(double DInvLink, double dispersion, const double* Covariates);
 
-  void Accumulate(unsigned j);
+  void Accumulate();
 
   void Output(const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
   void ROutput();
@@ -55,6 +55,8 @@ private:
   double* SumInfo;
   double* SumVarScore;
   double* SumScore2;
+
+  void Accumulate(unsigned j);
 };
 
 

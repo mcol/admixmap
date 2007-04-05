@@ -432,29 +432,43 @@ void ScoreTests::Update(const vector<Regression* >& R)
 #endif
 
   if(rank==0){
-    //-----------------------------
-    //Accumulate Scores, Info etc. over iterations
-    //-----------------------------
-  
-    /*----------------------
-      | admixture association |
-      -----------------------*/
-    if( options->getTestForAdmixtureAssociation() ){
-      AdmixtureAssocScoreTest.Update();
-    }
-  
-    for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
-      const int NumberOfLoci = Lociptr->getNumberOfLoci(j);
-
+    try{
+      //-----------------------------
+      //Accumulate Scores, Info etc. over iterations
+      //-----------------------------
+      
+      /*----------------------
+	| admixture association |
+	-----------------------*/
+      if( options->getTestForAdmixtureAssociation() ){
+	AdmixtureAssocScoreTest.Update();
+      }
+      /*-----------------------
+	| Linkage with ancestry  |
+	-----------------------*/
+      if( options->getTestForLinkageWithAncestry() ){
+	AncestryAssocScoreTest.Accumulate();
+      } 
+      /*------------------------------------
+	|affecteds-only linkage with ancestry |
+	------------------------------------*/ 
+      if( options->getTestForAffectedsOnly() ){
+	AffectedsOnlyScoreTest.Accumulate();
+      }
+      /*------------------------------------
+	|hapmixmodel allelic assoc test      |
+	------------------------------------*/ 
+      if(options->getHapMixModelIndicator() && options->getTestForAllelicAssociation()){
+	NewAllelicAssocTest.Accumulate();
+      }
+      
       /*-------------------------------------
 	| Allelic and haplotype association  |
-	-------------------------------------*/
-      try{
-	if(options->getHapMixModelIndicator() && options->getTestForAllelicAssociation()){
-	  if(Lociptr->GetNumberOfStates(j)==2)NewAllelicAssocTest.Accumulate(j);
-	  
-	}
-	else{
+	-------------------------------------*/      
+      for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
+	const int NumberOfLoci = Lociptr->getNumberOfLoci(j);
+	
+	if(!options->getHapMixModelIndicator()){
 	  if( options->getTestForAllelicAssociation() ){
 	    
 	    //loop over simple loci within haplotypes
@@ -473,28 +487,15 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	    }
 	  }
 	}
-      }
-      catch(string s){
-	string error_string = "Error accumulating scores for allelicassociation or haplotype association scoretest\n";
-	error_string.append(s);
-	throw(error_string);
-      }
+	
+      }//end comp locus loop
+    }
+    catch(string s){
+      string error_string = "Error accumulating scores for allelicassociation or haplotype association scoretest\n";
+      error_string.append(s);
+      throw(error_string);
+    }
     
-      /*-----------------------
-	| Linkage with ancestry  |
-	-----------------------*/
-      if( options->getTestForLinkageWithAncestry() ){
-	//AdmixedIndividual::SumScoresForAncestry(j, SumAncestryScore, SumAncestryInfo, SumAncestryScore2, SumAncestryVarScore);
-	AncestryAssocScoreTest.Accumulate(j);
-      } 
-      /*------------------------------------
-	|affecteds-only linkage with ancestry |
-	------------------------------------*/ 
-      if( options->getTestForAffectedsOnly() ){
-	//Individual::SumScoresForLinkageAffectedsOnly(j, SumAffectedsScore, SumAffectedsVarScore, SumAffectedsScore2, SumAffectedsInfo);
-	AffectedsOnlyScoreTest.Accumulate(j);
-      }
-    }//end comp locus loop
   }//end if rank==0
 }
 

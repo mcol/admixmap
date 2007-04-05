@@ -183,6 +183,14 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
   }
 }
 
+///accumulate score, info, scoresq and var score over iterations
+void AffectedsOnlyTest::Accumulate(){
+  for(unsigned j = 0; j < L; ++j)
+    Accumulate(j);
+  //increment update counter
+  ++numUpdates;
+}
+
 ///accumulates E(score), E(score squared), variance of score and info over iterations, for locus j
 void AffectedsOnlyTest::Accumulate(unsigned j){
   for( unsigned k = 0; k < K; k++ ){
@@ -191,8 +199,6 @@ void AffectedsOnlyTest::Accumulate(unsigned j){
     SumAffectedsInfo[j*K +k] += AffectedsInfo[j * K +k];
     SumAffectedsScore2[j*K +k] +=  AffectedsScore[j*K +k] * AffectedsScore[j*K +k];
   }
-  //increment update counter
-  ++numUpdates;
 }
 
 ///outputs ergodic averages of Likelihood Ratios as R object
