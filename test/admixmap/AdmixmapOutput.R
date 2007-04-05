@@ -484,7 +484,7 @@ plotAncestryScoreTest <- function(scorefile, testname, Pops, population.labels, 
   ##plot z-scores across genome
   zscores <- t(scoretest.final[,,7])
   plotScoreMap(loci.compound,zscores, KK, testname) 
-  ## plot information content
+  ## plot (complete) information content
   info.content <- t(scoretest.final[,,2])
   plotInfoMap(loci.compound, info.content, KK, testname)
   
@@ -985,7 +985,44 @@ plotPosteriorDensityIndivParameters <- function(samples.admixture, samples.sumIn
   dev.off()
 }
 
+##plot arrival rates vs map position in hapmixmodel
+plotArrivalRates <- function(arrival.rate.pm.file, locus.table, ps.filename){
+  full.filename <- paste(resultsdir, arrival.rate.pm.file, sep="/")
+  
+  ##cat("Error: \n", file=outfile, append=T)
+  
+  ##read arrival rate posterior means
+  ar.pm <- scan(full.filename)
+  
+  ##read map positions from LocusTable
+  map.pos <- locus.table[,3]
+  x.label <- dimnames(locus.table)[[2]][3]
 
+  
+  postscript(paste(resultsdir, ps.filename, sep="/"))
+  plot(map.pos[-1], ar.pm, xlab=x.label, ylab="Arrival Rates", main="Arrival Rate Map",type='l')  
+  dev.off()
+}
+
+##plot map of information extracted in hapmix allelic assoc test or ancestry assoc test
+plotExtractedInfoMap <- function(score.table.final, locus.table, ps.filename){
+  full.filename <- paste(resultsdir, score.table.final, sep="/")
+  
+  ##cat("Error: \n", file=outfile, append=T)
+  
+  ##read final score test table and extract PercentInfo column
+  percent.info <- read.table(full.filename, header=T)$PercentInfo  
+  
+  ##read map positions from LocusTable
+  map.pos <- locus.table[,3]
+  x.label <- dimnames(locus.table)[[2]][3]
+
+  
+  postscript(paste(resultsdir, ps.filename, sep="/"))
+  plot(map.pos, percent.info, xlab=x.label, ylab="\%Info Extracted", main="Extracted Info Map",type='l')  
+  dev.off()
+
+}
 ###################################################################################
 ## start of script
 ###################################################################################
@@ -1123,9 +1160,20 @@ if(is.null(user.options$dispparamfile)||
   cat(" done\n", file=outfile, append=T)
 }   
 
+## read hapmix allele freq precision samples
+hapmix.freq.precision.samples = NULL
+if(user.options$hapmixmodel == 1){
+  if(!is.null(user.options$freqprecisionfile)){
+  cat("reading allele frequency precision parameters...", file=outfile, append=T)
+  hapmix.freq.precision.samples<-read.table(paste(resultsdir, user.options$freqprecisionfile,sep="/"), header=TRUE)
+  cat(" done\n", file=outfile, append=T)
+  }
+}
+
 ## combine samples of Dirichlet params, admixture proportions, dispersion params, regression params
 param.samples.all <- cbindIfNotNull(param.samples, pop.admix.prop)
 param.samples.all <- cbindIfNotNull(param.samples.all, eta.samples)
+param.samples.all <- cbindIfNotNull(param.samples.all, hapmix.freq.precision.samples)
 param.samples.all <- cbindIfNotNull(param.samples.all, regparam.samples)
 param.samples.all <- cbindIfNotNull(param.samples.all, effect.pop)
 ## calculate posterior quantiles
@@ -1202,6 +1250,14 @@ if(!is.null(user.options$thermo) && user.options$thermo == 1){
   cat(" done\n", file=outfile, append=T)
 }
 
+##plot arrival rates against map position in hapmixmodel
+if(user.options$hapmixmodel == 1 && !is.null(user.options$arrivalrateposteriormeanfile)
+   && file.exists(paste(resultsdir, user.options$arrivalrateposteriormeanfile, sep="/")) ){
+  cat("plotting arrival rate map...", file=outfile, append=T)
+  plotArrivalRates(user.options$arrivalrateposteriormeanfile, loci.compound, "ArrivalRateMap.ps")
+  cat(" done\n", file=outfile, append=T)
+}
+
 #read output of test for heterozygosity and plot
 if(!is.null(user.options$hwtestfile) && file.exists(paste(resultsdir,user.options$hwtestfile, sep="/"))){
   cat("plotting scores in test for heterozygosity...", file=outfile, append=T)
@@ -1209,19 +1265,27 @@ if(!is.null(user.options$hwtestfile) && file.exists(paste(resultsdir,user.option
   cat(" done\n", file=outfile, append=T)
 }
 ## read output of score test for allelic association, and plot cumulative results
-if(!is.null(user.options$allelicassociationscorefile) && file.exists(paste(resultsdir,user.options$allelicassociationscorefile, sep="/"))) {
+if(!is.null(user.options$allelicassociationscorefile)
+   && file.exists(paste(resultsdir,user.options$allelicassociationscorefile, sep="/"))) {
   cat("plotting scores in test for allelic association...", file=outfile, append=T)
   outputfilePlot <- paste(resultsdir, "TestsAllelicAssociation.ps", sep="/" )
+
   plotScoreTest(user.options$allelicassociationscorefile, FALSE, outputfilePlot, user.options$every)
   cat(" done\n", file=outfile, append=T)
 
-##append columnns with posterior means of arrival rate and allele freq dispersion to final table if hapmixmodel
-  if(user.options$hapmixmodel == 1 &&
-     !is.null(user.options$hapmixlambdaoutputfile) && !is.null(user.options$allelefreqprioroutputfile)){
-    lambda <- c(NA, scan(paste(resultsdir, user.options$hapmixlambdaoutputfile, sep="/")))
-    eta <- c(scan(paste(resultsdir, user.options$allelefreqprioroutputfile, sep="/")))
-    scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T), lambda, eta)
-    write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=F, col.names=T)
+##append columnns with posterior means of arrival rate and allele freq precision to final table if hapmixmodel
+  if(user.options$hapmixmodel == 1){
+    if(!is.null(user.options$arrivalrateposteriormeanfile) && !is.null(user.options$allelefreqprecisionposteriormeanfile)){
+      cat("appending posterior means of arrival rates and freq precision to score table...", file=outfile, append=T)
+      lambda <- c(NA, scan(paste(resultsdir, user.options$arrivalrateposteriormeanfile, sep="/")))
+      eta <- c(scan(paste(resultsdir, user.options$allelefreqprecisionposteriormeanfile, sep="/")))
+      scoretest.final.table <- data.frame(read.table(paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), na.strings="NA", header=T), lambda, eta)
+      write.table(scoretest.final.table, file=paste(resultsdir, "AllelicAssocTestsFinal.txt", sep="/"), row.names=F, col.names=T)
+      cat(" done\n", file=outfile, append=T)
+    }
+    cat("plotting map of information extracted...", file=outfile, append=T)
+    plotExtractedInfoMap("AllelicAssocTestsFinal.txt", loci.compound, "InfoExtractedMap.ps")
+    cat(" done\n", file=outfile, append=T)
   }
 }
 
