@@ -42,6 +42,28 @@ void StringConvertor::toIntPair(std::vector<unsigned short>* a, const std::strin
   }                      
 }
 
+char LowerCase(char c){
+  return (char)(tolower(c));
+}
+
+void StringConvertor::toLower(string& s){
+  transform(s.begin(), s.end(), s.begin(), LowerCase);
+}
+
+void StringConvertor::RemoveCharFromString(string& s, const char c){
+
+  string::size_type u = 0, t = 0;
+  do{
+     u = s.find(c, t);
+     if(u != string::npos)
+       s.erase(u, 1);
+
+     t = u;
+  }
+  while(t != string::npos);
+
+}
+
 /// determines if a char array consists only of whitespace.
 bool StringConvertor::isWhiteLine(const char *p)
 {
@@ -79,8 +101,8 @@ void StringConvertor::StringToVec(const string s, std::vector<float>& vec)
 
   vec.clear();
   while(start != string::npos){
-    // Convert elements to doubles and fill resulting vector.
-    vec.push_back( toFloat(str.substr(start, size)) );
+    // Convert elements to appropriate type and fill resulting vector.
+    vec.push_back( (float)toFloat(str.substr(start, size)) );
     start = str.find_first_not_of(" ,", size);
     size = str.find_first_of(" ,", start);
   }
@@ -122,6 +144,7 @@ void StringConvertor::StringToVec(const string s, std::vector<unsigned>& vec)
     size = str.find_first_of(" ,", start);
   }
 }
+
 //small function to determine if a given string is in a list of strings
 bool StringConvertor::isListedString(const std::string s, const std::vector<std::string>list){
   bool b = false;

@@ -1,6 +1,3 @@
-# bcppcl, the Bayesian C++ Computation Library
-# configure.ac
-# Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
 
 AC_INIT([bcppcl],[1.0])
@@ -20,7 +17,6 @@ Configuring $PACKAGE_STRING for $target
 
 # C++ compilers
 #AC_PROG_CXX
-dnl automatic support for Intel, Pathscale, GNU, Portland, in that order
 AC_PROG_CXX([icpc icc pathCC g++ pgCC])
 AC_LANG(C++)
 
@@ -31,18 +27,23 @@ dnl TODO: architecture-specific optimisations
 # C compiler - because we are using gsl
 AC_PROG_CC
 
-# check for ranlib. remove when using libtool
-AC_PROG_RANLIB
+# check for ranlib. not stricly necessary but just in case 
+#AC_PROG_RANLIB
 
 # Disable shared library building by default (use --enable-shared to enable)
-#AM_DISABLE_SHARED
+AM_DISABLE_SHARED
+AC_PROG_LIBTOOL
+
+#check C++ features
+#AC_CONFIG_HEADERS(config.h)
+#AC_CHECK_CXX_FEATURES
+
+#check for std headers
+#AC_CHECK_HEADERS(vector,,AC_MSG_WARN(STL classes missing ?))
+#AC_CHECK_HEADERS(string,,AC_MSG_WARN(STL classes missing ?))
 
 #check for gsl
 AM_PATH_GSL
-
-#check C++ features and write config.h
-#AC_CONFIG_HEADERS(config.h)
-#AC_CHECK_CXX_FEATURES
 
 #check if script called with --enable-parallel and if so set parallel flags
 AC_ENABLE_PARALLEL
@@ -54,13 +55,19 @@ AC_CXX_ENABLE_OPTIMIZE
 AC_CXX_ENABLE_DEBUG
 AC_CXX_ENABLE_PROFILE
 
+# Doxygen documentation
+AC_PROG_DOXYGEN
+
 #AC_CONFIG_SUBDIRS(utils samplers regression)
 
 # Process the Makefile.in's
 AC_CONFIG_FILES([Makefile 
 	utils/Makefile 
 	samplers/Makefile 
-	regression/Makefile])
+	regression/Makefile
+	doxygen/Makefile
+	doxygen/Doxyfile
+	])
 AC_OUTPUT
 
 # Summarize variables
