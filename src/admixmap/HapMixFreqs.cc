@@ -260,8 +260,8 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
 void HapMixFreqs::OpenOutputFile(const char* filename){
   if(strlen(filename)){
     allelefreqprioroutput.open(filename);
-    allelefreqprioroutput << "eta.Mean\teta.Var";
-    if(etaHierModel)allelefreqprioroutput << "\teta.Rate";
+    allelefreqprioroutput << "Freq.Precision.Mean\tFreq.Precision.Var";
+    if(etaHierModel)allelefreqprioroutput << "\tFreq.Precision.Prior.Rate";
     allelefreqprioroutput << std::endl;
   }
 }
