@@ -6,10 +6,10 @@ OPTFLAGS=
 AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
 #this sublibrary will not be installed
-noinst_LIBRARIES = libutils.a
+noinst_LTLIBRARIES = libutils.la
 
 #sources for the sublibrary
-libutils_a_SOURCES = functions.cc DataReader.cc DataMatrix.cc LogWriter.cc StringConvertor.cc StringSplitter.cc GSLErrorHandler.cc  ProbVector.cc pvector.cc RObjectWriter.cc
+libutils_la_SOURCES = functions.cc DataReader.cc DataMatrix.cc LogWriter.cc StringConvertor.cc StringSplitter.cc GSLErrorHandler.cc  ProbVector.cc pvector.cc RObjectWriter.cc
 
 #headers to be installed
 include_HEADERS = ColumnIter.h DataMatrix.h DataReader.h dist.h Exceptions.h GSLExceptions.h GSLErrorHandler.h linalg.h misc.h LogWriter.h Array.hh ProbVector.h pvector.h  RObjectWriter.h SnapToZero.h StringSplitter.h StringConvertor.h

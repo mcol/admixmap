@@ -5,8 +5,8 @@ WFLAGS=-W -Wall
 OPTFLAGS=
 AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
-noinst_LIBRARIES = libsampler.a
-libsampler_a_SOURCES = AdaptiveRejection.cc DirichletParamSampler.cc DispersionSampler.cc Gaussian.cc GaussianProposalMH.cc HamiltonianMonteCarlo.cc ModeFinder.cc MuSampler.cc rand.cc StepSizeTuner.cc 
+noinst_LTLIBRARIES = libsampler.la
+libsampler_la_SOURCES = AdaptiveRejection.cc DirichletParamSampler.cc DispersionSampler.cc Gaussian.cc GaussianProposalMH.cc HamiltonianMonteCarlo.cc ModeFinder.cc MuSampler.cc rand.cc StepSizeTuner.cc 
 
 include_HEADERS = AdaptiveRejection.h DirichletParamSampler.h DispersionSampler.h Gaussian.h GaussianProposalMH.h HamiltonianMonteCarlo.h ModeFinder.h MuSampler.h rand.h gsl-sprng.h StepSizeTuner.h
 includedir=$(prefix)/include/bcppcl
