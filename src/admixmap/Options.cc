@@ -464,6 +464,24 @@ void Options::ReadCommandLineArgs(const int argc, char** argv){
   char delims[] = "-=";
   for(int i = 1; i < argc; ++i){
 
+    //check for options file flag and read options from file
+    if(!strncmp(argv[i], "-f", 2)){
+      const char* optionsFilename= 0;
+      if(strlen(argv[i])==2){//space between -f and the filename
+	++i;//move to the next arg and interpret as a filename
+	if(argv[i][0] == '-'){//oops, this is actually a new arg
+	  cerr << "ERROR: -f requires an options filename as argument\n";
+	  exit(1);
+	}
+	optionsFilename = argv[i];
+      }
+      else{//no space
+	optionsFilename = argv[i]+2;
+      }
+      cout << "Reading options from " << optionsFilename << endl;
+      ReadArgsFromFile(optionsFilename, useroptions);      
+      continue;
+    }
     //tokenise argv, splitting on '-' and '='
     char *result = NULL;
     result = strtok( argv[i], delims );
