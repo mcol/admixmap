@@ -71,7 +71,7 @@ public:
   const Chromosome* const* getChromosomes()const;
   Chromosome *getChromosome(unsigned);
 
-  void PrintLocusTable(const char* filename, const std::vector<double>& Distances)const;
+  void PrintLocusTable(const char* filename, const std::vector<double>& Distances, const std::string& unitString)const;
 
   unsigned GetChrNumOfLocus(unsigned locus); 
   int GetNumberOfStates()const;
@@ -109,7 +109,7 @@ private:
   std::vector<std::string> ChrmLabels;
 
   void InitialiseChromosomes(const std::vector<unsigned> cstart, int populations);
-  void PrintSizes(LogWriter &Log, GeneticDistanceUnit u)const;
+  void PrintSizes(LogWriter &Log, const std::string& distanceUnit)const;
 
 
   // UNIMPLEMENTED
