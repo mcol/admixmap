@@ -10,11 +10,17 @@ require $function_file or die("cannot find doanalysis.pl");
 my $train = '';
 my $test = '';
 my $resume = '';
+my $usage = 0;
 
 GetOptions("train" =>\$train,
 	   "test" => \$test,
 	   "resume" => \$resume,
+	   "help!" => \$usage,
 	  );
+
+if (not ($train or $resume or $test) or $usage) {
+    print "Usage: $0 [ --train | --resume | --test ]\n";
+}
 
 
 my $executable = "./hapmixmap";
