@@ -61,18 +61,18 @@ class FastPhasePosteriorProbabilityDistribution:
         else:
             loci_idx = range(no_loci)
         # print "loci_idx:", loci_idx[:10]
-        for locus_no in loci_idx:
-            f.write("# Locus %s\n" % locus_no)
-            for i_key in self.individuals.keys():
-                f.write("# Individual %s\n" % i_key)
+        for i_key in self.individuals.keys():
+            f.write("# Individual %s\n" % i_key)
+            for locus_no in loci_idx:
+                f.write("# Locus %s\n" % locus_no)
                 gd = self.individuals[i_key].get_genotype_distrib(locus_no)
                 assert sum([gd[i] for i in self.GENOTYPES]) - 1 < 1e-5
                 for genotype in self.GENOTYPES:
                     f.write("%s, " % gd[genotype])
                 f.write("\n")
         f.write("),\n")
-        f.write(".Dim = c(%s, %s, %s),\n" % (3, no_indivs, len(loci_idx)))
-        f.write(".Dimnames = list(c(\"Genotype1\", \"Genotype2\", \"Genotype3\"), 1:%s, 1:%s))\n" % (no_indivs, len(loci_idx)))
+        f.write(".Dim = c(%s, %s, %s),\n" % (3, len(loci_idx), no_indivs))
+        f.write(".Dimnames = list(c(\"Genotype1\", \"Genotype2\", \"Genotype3\"), 1:%s, 1:%s))\n" % (len(loci_idx), no_indivs))
         f.close()
 
 class Individual:
@@ -125,8 +125,9 @@ class Individual:
         counts = self.get_genotype_counts(locus_no)
         total = sum([counts[i] for i in counts.keys()])
         # print counts, total
+        reciprocal = 1.0 / float(total)
         for key in counts.keys():
-            counts[key] /= float(total)
+            counts[key] *= reciprocal
         assert sum([counts[i] for i in counts.keys()]) - 1 < 1e-5
         # assert len(counts.keys()) == 3
         return counts
