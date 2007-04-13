@@ -122,6 +122,6 @@ loci = read.table(
 	row.names = "SNPid")
 
 message("Saving fastPHASE file to ", out.fastphase.file, ".")
-save.fastphase(genotypes, loci, out.fastphase.file)
+save.fastphase(genotypes, loci[1:number.loci,], out.fastphase.file)
 message("Saving finished.")
 

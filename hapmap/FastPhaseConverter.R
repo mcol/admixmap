@@ -53,6 +53,7 @@ indivs.fastphase <- function(fp) {
 save.fastphase <- function(genotype, loci, out.fastphase.file) {
 	number.indivs = length(genotype[,1])
 	number.loci = length(genotype[1,])
+	stopifnot(number.loci == length(loci[,2]))
 
 	# Three-dimensional array, dimensions:
 	# 1. Individual
@@ -81,7 +82,11 @@ save.fastphase <- function(genotype, loci, out.fastphase.file) {
 		# UPDATE: Locus position line removed becuase it's not
 		# used anyway and fastPHASE won't read the data
 		# properly.
-		# paste("P", paste(diffinv(loci[,2]), collapse = " ")),
+		#
+		# UPDATE: This line is necessary when using the -M2
+		# option as stated in fastPHASE manual, section 5.10,
+		# page 17.
+		paste("P", paste(diffinv(loci[,2]), collapse = " ")),
 		indivs.fastphase(fp),
 		sep = "\n",
 		file = out.fastphase.file)
