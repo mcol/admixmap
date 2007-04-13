@@ -29,13 +29,13 @@ bin_PROGRAMS = hapmixmap-para
 hapmixmap_para_SOURCES = $(all_SOURCES) $(parallel_SOURCES)
 hapmixmap_para_LDADD = $(top_builddir)/src/base/libbase-para.a -lbcppcl-para -lgsl -lgslcblas -lm $(PARALLEL_LIBS)
 hapmixmap_para_CPPFLAGS = $(AM_CPPFLAGS) -DPARALLEL
-hapmixmap_para_DEPENDENCIES=$(BASELIB_PATH)/libbase-para.a
+hapmixmap_para_DEPENDENCIES=$(top_builddir)/src/base//libbase-para.a
 else
 bin_PROGRAMS = hapmixmap
 hapmixmap_SOURCES = $(all_SOURCES)
 hapmixmap_LDFLAGS = -static $(AM_LDFLAGS)
 hapmixmap_LDADD = $(top_builddir)/src/base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
-hapmixmap_DEPENDENCIES=$(BASELIB_PATH)/libbase.a
+hapmixmap_DEPENDENCIES=$(top_builddir)/src/base/libbase.a 
 endif
 
 #disable building of baselib with 'make distcheck'

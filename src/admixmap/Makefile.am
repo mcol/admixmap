@@ -26,7 +26,7 @@ StratificationTest.cc StratificationTest.h
 
 admixmap_LDADD=$(top_builddir)/src/base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
 
-admixmap_DEPENDENCIES = $(BASELIB_PATH)/libbase.a
+admixmap_DEPENDENCIES = $(top_builddir)/src/base/libbase.a
 
 #disable building of baselib with 'make distcheck'
 DISTCHECK_CONFIGURE_FLAGS = --disable-baselib
