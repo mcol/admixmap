@@ -11,8 +11,8 @@
  * 
  */
 
-#include "DispersionSampler.h"
-#include "utils/misc.h"
+#include "bcppcl/DispersionSampler.h"
+#include "bcppcl/misc.h"
 using namespace::std;
 
 unsigned DispersionSampler::K;

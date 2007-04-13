@@ -1,5 +1,5 @@
-#include "GSLErrorHandler.h"
-#include "GSLExceptions.h"
+#include "bcppcl/GSLErrorHandler.h"
+#include "bcppcl/GSLExceptions.h"
 #include <string>
 #include <sstream>
 

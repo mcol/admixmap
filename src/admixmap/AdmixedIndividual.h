@@ -14,7 +14,7 @@
 #ifndef ADMIXED_INDIVIDUAL_H
 #define ADMIXED_INDIVIDUAL_H 1
 #include "Individual.h"
-#include "samplers/StepSizeTuner.h"
+#include "bcppcl/StepSizeTuner.h"
 #include "chib.h"
 #include <gsl/gsl_cdf.h>
 #include "AffectedsOnlyTest.h"

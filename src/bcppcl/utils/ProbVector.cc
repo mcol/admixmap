@@ -1,4 +1,4 @@
-#include "ProbVector.h"
+#include "bcppcl/ProbVector.h"
 #include <iostream>
 #include <algorithm>
 #include <numeric>

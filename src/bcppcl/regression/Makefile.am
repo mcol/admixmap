@@ -1,14 +1,20 @@
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/samplers -I$(top_srcdir)/utils
+AM_CPPFLAGS = -I$(srcdir)/..
 LDFLAGS=
 SUFFIXES=.cc .o
 WFLAGS=-W -Wall
 OPTFLAGS=
 AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
+all_SOURCES = Regression.cc LogisticRegression.cc LinearRegression.cc CoxRegression.cc
+
+if PARALLEL
+noinst_LTLIBRARIES = libregression-para.la
+libregression_para_la_SOURCES=$(all_SOURCES)
+
+else
 noinst_LTLIBRARIES = libregression.la
-libregression_la_SOURCES = Regression.cc LogisticRegression.cc LinearRegression.cc CoxRegression.cc
-include_HEADERS = Regression.h LogisticRegression.h LinearRegression.h CoxRegression.h
-includedir=$(prefix)/include/bcppcl
+libregression_la_SOURCES=$(all_SOURCES)
+endif
 
 #.cc.o:
 #	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<

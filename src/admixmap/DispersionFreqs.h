@@ -17,10 +17,10 @@
                      //2 = HAMILTONIAN
 
 #include "AlleleFreqs.h"
-#include "samplers/MuSampler.h"
-#include "samplers/DispersionSampler.h"
-#include "samplers/StepSizeTuner.h"
-#include "samplers/AdaptiveRejection.h"
+#include "bcppcl/MuSampler.h"
+#include "bcppcl/DispersionSampler.h"
+#include "bcppcl/StepSizeTuner.h"
+#include "bcppcl/AdaptiveRejection.h"
 class AdmixOptions;
 
 /// Class to hold allele/haplotype frequencies and their priors in a dispersion model.

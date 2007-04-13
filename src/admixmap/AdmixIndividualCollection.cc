@@ -11,7 +11,7 @@
  * 
  */
 #include "AdmixIndividualCollection.h"
-#include "regression/Regression.h"
+#include "bcppcl/Regression.h"
 #include "Comms.h"
 #ifdef PARALLEL
 #include <mpe.h>//for MPI event logging

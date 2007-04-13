@@ -25,7 +25,7 @@
 #include "IndividualCollection.h"
 #include "Genome.h"
 #include "AlleleFreqs.h"
-#include "utils/LogWriter.h"
+#include "bcppcl/LogWriter.h"
 
 ///Class to implement test for dispersion of allele frequencies between unadmixed populations sampled and the corresponding ancestry-specific allele frequencies in the admixed population under study
 class DispersionTest{

@@ -1,4 +1,4 @@
-#include "ModeFinder.h"
+#include "bcppcl/ModeFinder.h"
 #include <math.h>
 #include <iostream>
 

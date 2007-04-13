@@ -10,8 +10,8 @@
  * See the file COPYING for details.
  * 
  */
-#include "AdaptiveRejection.h"
-#include "rand.h"
+#include "bcppcl/AdaptiveRejection.h"
+#include "bcppcl/rand.h"
 #include <iostream>
 #include <sstream>
 

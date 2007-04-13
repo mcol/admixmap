@@ -1,4 +1,4 @@
-#include "StringSplitter.h"
+#include "bcppcl/StringSplitter.h"
 #include <cctype>
 #include <stdexcept>
 

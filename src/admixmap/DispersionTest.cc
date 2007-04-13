@@ -16,8 +16,8 @@
 
 #include "DispersionTest.h"
 #include <numeric>
-#include "utils/misc.h"
-#include "utils/dist.h"
+#include "bcppcl/misc.h"
+#include "bcppcl/dist.h"
 
 using namespace ::std;
 

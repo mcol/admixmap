@@ -12,7 +12,8 @@
  * 
  */
 #include "chib.h"
-#include "utils/misc.h"
+#include "bcppcl/misc.h"
+#include "bcppcl/LogWriter.h"
 //#include <limits>
 
 using namespace std;

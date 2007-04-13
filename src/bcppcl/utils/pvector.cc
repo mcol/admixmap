@@ -1,9 +1,9 @@
-#include "pvector.h"
+#include "bcppcl/pvector.h"
 #include <cmath>//for fabs
 #include <algorithm>
 #include <numeric>
 //#include <string>//for exceptions
-#include "SnapToZero.h"
+#include "bcppcl/SnapToZero.h"
 
 #define PVECTOR_PRECISION 1e-10
 #define PVECTOR_SUM 1.0

@@ -6,7 +6,7 @@ These instructions assume you are working in Unix, Linux, Msys or Cygwin.
 
 1. To create the configure script:
 --------------------------------
-autoreconf -fv
+autoreconf -fi
 
 You will need GNU autoconf v2.59 or newer, GNU automake v1.8 or newer.
 
@@ -24,11 +24,9 @@ A full list of options is available by using the option --help. The principal on
 --enable-shared
 Use the -q flag to suppress the output
 
-The configure script will loook for Intel and Pathscale compilers first, then GNU g++ then Portland's pgCC. If you have more than one of these available or want to use a different compiler, make sure to use the command 'export CXX=<compiler-name> first. 
+The configure script will look for Intel and Pathscale compilers first, then GNU g++ then Portland's pgCC. If you have more than one of these available or want to use a different compiler, make sure to use the command 'export CXX=<compiler-name> first. 
 
 By default, no extra flags are passed to the compiler. Use 'export EXTRAFLAGS=...'  ( NB not CXXFLAGS) to do so. 
-
-It is not (yet) possible to build a shared library. 
 
 3. To compile and install:
 -----------------------------

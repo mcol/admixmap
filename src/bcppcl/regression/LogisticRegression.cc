@@ -1,6 +1,6 @@
-#include "LogisticRegression.h"
-#include "utils/linalg.h"
-#include "utils/misc.h" //for myexp
+#include "bcppcl/LogisticRegression.h"
+#include "bcppcl/linalg.h"
+#include "bcppcl/misc.h" //for myexp
 #include <math.h>//for sqrt and exp
 #include <numeric>//for accumulate
 

@@ -1,164 +1,52 @@
-AUTOMAKE_OPTIONS	= gnu
-LIBS			= -lgsl -lgslcblas $(PARALLEL_LIBS)
-# LDADD			= libgenepi.la
-# TESTS			= check-admixmap-help check-hapmixmap-help
+BAYESLIB_PATH=$(srcdir)/../bcppcl
+BASELIB_PATH=$(srcdir)/../base
+AM_CPPFLAGS=-I$(BAYESLIB_PATH)  -I$(BASELIB_PATH)
 
-SUBDIRS			= 
+AM_LDFLAGS=-static -L$(top_builddir)/src/bcppcl
+SUFFIXES=.cc .o
+WFLAGS=-W -Wall
+AM_CXXFLAGS=$(WFLAGS)
 
-EXTRA_DIST		= $(TESTS)
-INCLUDES		= -I$(top_srcdir)/src/bayeslib
+ACLOCAL_AMFLAGS = -I ../m4
+#use -Wno-syntax if Automake is >= v1.10 to suppress "underquoted" warnings
+#ACLOCAL_AMFLAGS = -Wno-syntax
 
+bin_PROGRAMS = admixmap
+admixmap_SOURCES = AdmixedIndividual.cc AdmixedIndividual.h \
+AdmixIndividualCollection.cc AdmixIndividualCollection.h \
+admixmap.cc \
+AdmixMapModel.cc AdmixMapModel.h \
+chib.cc chib.h \
+DispersionFreqs.cc DispersionFreqs.h \
+DispersionTest.cc DispersionTest.h \
+IndAdmixOutputter.cc IndAdmixOutputter.h \
+MisSpecAlleleFreqTest.cc MisSpecAlleleFreqTest.h \
+PopAdmix.cc PopAdmix.h \
+StratificationTest.cc StratificationTest.h
 
-bin_PROGRAMS		= hapmixmap admixmap
-noinst_LTLIBRARIES	= libgenepi.la		\
-			  libhapmixmap.la
+admixmap_LDADD=$(top_builddir)/src/base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
 
-hapmixmap_LDFLAGS	= $(STATIC_LDFLAGS)
-hapmixmap_CPPFLAGS	= 
-hapmixmap_SOURCES	= hapmixmap.cc
+admixmap_DEPENDENCIES = $(BASELIB_PATH)/libbase.a
 
-admixmap_CPPFLAGS	= 
+#disable building of baselib with 'make distcheck'
+DISTCHECK_CONFIGURE_FLAGS = --disable-baselib
 
-# This library holds all the classes that are used by hapmixmap. The
-# hapmixmap's binary sources are only `hapmixmap.cc', everything else
-# comes in this and other libraries.
-libhapmixmap_la_SOURCES =				\
-			HapMixFreqs.cc			\
-		   	Model.cc			\
-			HapMixIndividual.cc		\
-			HapMixIndividualCollection.cc	\
-			HapMixModel.cc			\
-			HapMixOptions.cc		\
-			MantelHaenszelTest.cc		\
-                        HapMixHMM.cc \
-                        HapMixGenome.cc \
-			PopHapMix.cc
+#extra files to clean with 'make distclean'
+#includes m4 files copied from elsewhere
+DISTCLEANFILES = m4/*.m4
 
-libhapmixmap_la_LIBADD	= libgenepi.la
+#.cc.o:
+#	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
 
-hapmixmap_LDADD		= libhapmixmap.la
+#bcppcl:
+#	@(cd $(BAYESLIB_PATH) && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;	
+#baselib:
+#	@(cd $(BASELIB_PATH) && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
 
-admixmap_SOURCES = admixmap.cc				\
-		   Model.cc				\
-		   AdmixedIndividual.cc			\
-		   AdmixIndividualCollection.cc		\
-		   AdmixMapModel.cc			\
-		   chib.cc				\
-		   DispersionFreqs.cc			\
-		   DispersionTest.cc			\
-		   IndAdmixOutputter.cc			\
-		   MisSpecAlleleFreqTest.cc		\
-		   PopAdmix.cc				\
-		   StratificationTest.cc
+#$(BASELIB_PATH)/libbase.a : baselib
 
-admixmap_LDADD		= libgenepi.la
+#lbbcppcl.a: bcppcl
 
+allclean: clean
+	@(cd $(BASELIB_PATH) && $(MAKE) $(AM_MAKEFLAGS) clean) || exit 1;
 
-noinst_HEADERS	= HapMixFreqs.h                         \
-		  HapMixIndividual.h                    \
-                  HapMixIndividualCollection.h          \
-                  HapMixModel.h                         \
-                  HapMixOptions.h                       \
-                  AdmixedIndividual.h                   \
-                  AdmixIndividualCollection.h           \
-                  AdmixMapModel.h                       \
-                  AdmixOptions.h                        \
-                  AdmixtureAssocTest.h                  \
-                  chib.h                                \
-                  DispersionFreqs.h                     \
-                  DispersionTest.h                      \
-                  IndAdmixOutputter.h                   \
-                  MisSpecAlleleFreqTest.h               \
-                  PopAdmix.h                            \
-                  StratificationTest.h                  \
-                  AffectedsOnlyTest.h                   \
-                  AlleleFreqSampler.h                   \
-                  AlleleFreqs.h                         \
-                  CopyNumberAssocTest.h                 \
-                  Annealer.h                            \
-                  Chromosome.h                          \
-                  Comms.h                               \
-                  HapPair.h                             \
-                  Haplotype.h                           \
-                  CompositeLocus.h                      \
-                  Genome.h                              \
-                  GenotypeProbOutputter.h               \
-                  HiddenMarkovModel.h                   \
-                  HapMixHMM.hh                          \
-                  HapMixGenome.hh                       \
-                  HWTest.h                              \
-                  IndividualCollection.h                \
-                  Individual.h                          \
-                  InputData.h                           \
-                  MantelHaenszelTest.h                  \
-                  Model.h                               \
-                  Options.h                             \
-                  PopHapMix.h                           \
-                  ResidualLDTest.h                      \
-                  ScoreTestBase.h                       \
-                  ScoreTests.h                          \
-                  GPI.h                                 \
-                  GenotypeIterator.h                    \
-                  FreqArrays.h                          \
-                  EventLogger.hh                        \
-		  GeneticDistanceUnit.h
-
-# A library which holds all the code that is common for Admixmap and
-# Hapmixmap. It also includes bayeslib; it's defined via LIBADD variable.
-
-libgenepi_la_SOURCES = misc.cc                          \
-		       AlleleFreqs.cc                   \
-		       Options.cc                       \
-		       AdmixOptions.cc                  \
-		       InputData.cc                     \
-		       Genome.cc                        \
-		       Chromosome.cc                    \
-		       Haplotype.cc                     \
-		       CompositeLocus.cc                \
-		       IndividualCollection.cc          \
-		       Individual.cc                    \
-		       HiddenMarkovModel.cc             \
-                       HapMixHMM.cc                     \
-		       AdmixtureAssocTest.cc            \
-		       AffectedsOnlyTest.cc             \
-		       CopyNumberAssocTest.cc           \
-		       ScoreTestBase.cc                 \
-		       ScoreTests.cc                    \
-		       ResidualLDTest.cc                \
-		       HWTest.cc                        \
-		       AlleleFreqSampler.cc             \
-		       Comms.cc                         \
-		       GPI.cc                           \
-		       GenotypeProbOutputter.cc         \
-		       Annealer.cc                      \
-		       EventLogger.cc
-
-libgenepi_la_LDFLAGS	= 
-
-libgenepi_la_LIBADD = $(top_builddir)/src/bayeslib/libbayes.la \
-		      $(top_builddir)/src/common/libcommon.la
-
-if PARALLEL
-# Parallel libgenepi
-noinst_LTLIBRARIES		+= libgenepi-para.la libhapmixmap-para.la
-libgenepi_para_la_SOURCES	= $(libgenepi_la_SOURCES)
-libgenepi_para_la_CPPFLAGS	= -DPARALLEL
-libgenepi_para_la_LDFLAGS	= $(PARALLEL_LIBS)
-libgenepi_para_la_LIBADD	= $(top_builddir)/src/bayeslib/libbayes-para.la
-
-# HAPMIXMAP library
-libhapmixmap_para_la_SOURCES	= $(libhapmixmap_la_SOURCES)
-libhapmixmap_para_la_CPPFLAGS	= -DPARALLEL
-libhapmixmap_para_la_LIBADD	= $(top_builddir)/src/bayeslib/libbayes-para.la \
-				  libgenepi-para.la
-libhapmixmap_para_la_LDFLAGS	= $(PARALLEL_LIBS)
-
-# Parallel hapmixmap
-bin_PROGRAMS			+= hapmixmap-para
-hapmixmap_para_CPPFLAGS		= $(hapmixmap_CPPFLAGS) -DPARALLEL
-hapmixmap_para_SOURCES		= $(hapmixmap_SOURCES)
-hapmixmap_para_LDFLAGS		= $(PARALLEL_LIBS)
-hapmixmap_para_LDADD		= $(top_builddir)/src/bayeslib/libbayes-para.la \
-				  libgenepi-para.la                             \
-				  libhapmixmap-para.la
-endif

@@ -1,7 +1,7 @@
-#include "CoxRegression.h"
+#include "bcppcl/CoxRegression.h"
 #include <algorithm>
-#include "utils/misc.h"
-#include "samplers/rand.h"
+#include "bcppcl/misc.h"
+#include "bcppcl/rand.h"
 #include <math.h>
 
 using namespace::std;

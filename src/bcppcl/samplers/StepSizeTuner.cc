@@ -11,7 +11,7 @@
  * 
  */
 
-#include "StepSizeTuner.h"
+#include "bcppcl/StepSizeTuner.h"
 
 StepSizeTuner::StepSizeTuner()
 {

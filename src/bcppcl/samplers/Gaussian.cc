@@ -16,9 +16,9 @@
 #include <cstring>
 #include <stdlib.h>
 #include <algorithm>
-#include "rand.h"
-#include "utils/linalg.h"//for Cholesky decomp
-#include "Gaussian.h"
+#include "bcppcl/rand.h"
+#include "bcppcl/linalg.h"//for Cholesky decomp
+#include "bcppcl/Gaussian.h"
 
 using namespace::std;
 

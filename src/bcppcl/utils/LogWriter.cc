@@ -9,7 +9,7 @@
  * See the file COPYING for details.
  * 
  */
-#include "LogWriter.h"
+#include "bcppcl/LogWriter.h"
 #ifdef PARALLEL
 #include <mpi++.h>
 #endif

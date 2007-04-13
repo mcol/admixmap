@@ -10,9 +10,9 @@
  * 
  */
 
-#include "misc.h"
-#include "dist.h"
-#include "linalg.h"
+#include "bcppcl/misc.h"
+#include "bcppcl/dist.h"
+#include "bcppcl/linalg.h"
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
 #include "gsl/gsl_sf_exp.h"
@@ -24,8 +24,8 @@
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_randist.h>
 #include <sstream>
-#include "GSLErrorHandler.h"
-#include "GSLExceptions.h"
+#include "bcppcl/GSLErrorHandler.h"
+#include "bcppcl/GSLExceptions.h"
 
 #define MIN(X, Y) X<Y?X:Y
  

@@ -1,5 +1,5 @@
-#include "DataReader.h"
-#include "StringConvertor.h"
+#include "bcppcl/DataReader.h"
+#include "bcppcl/StringConvertor.h"
 #include <stdexcept>
 
 StringSplitter DataReader::splitter;

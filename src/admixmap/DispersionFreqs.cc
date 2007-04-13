@@ -13,9 +13,9 @@
  */
 #include "DispersionFreqs.h"
 #include "AdmixOptions.h"
-#include "samplers/AdaptiveRejection.h"
-#include "utils/misc.h"
-#include "samplers/MuSampler.h"
+#include "bcppcl/AdaptiveRejection.h"
+#include "bcppcl/misc.h"
+#include "bcppcl/MuSampler.h"
 #include <math.h>
 #include <numeric>
 #include "Comms.h"

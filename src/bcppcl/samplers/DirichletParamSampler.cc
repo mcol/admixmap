@@ -9,10 +9,10 @@
  * See the file COPYING for details.
  * 
  */
-#include "DirichletParamSampler.h"
+#include "bcppcl/DirichletParamSampler.h"
 #include <algorithm>
 #include <numeric>
-#include "utils/misc.h"
+#include "bcppcl/misc.h"
 #include <gsl/gsl_math.h>
 
 using namespace std;

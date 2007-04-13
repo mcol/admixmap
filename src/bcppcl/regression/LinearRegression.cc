@@ -1,9 +1,9 @@
-#include "LinearRegression.h"
+#include "bcppcl/LinearRegression.h"
 #include <numeric>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
-#include "utils/linalg.h"
-#include "samplers/rand.h"//for sampling data precision
+#include "bcppcl/linalg.h"
+#include "bcppcl/rand.h"//for sampling data precision
 #include <math.h>//for sqrt and exp
 
 using namespace::std;

@@ -9,10 +9,10 @@
  * See the file COPYING for details.
  * 
  */
-#include "GaussianProposalMH.h"
-#include "ModeFinder.h"
+#include "bcppcl/GaussianProposalMH.h"
+#include "bcppcl/ModeFinder.h"
 #include <math.h>
-#include "rand.h"
+#include "bcppcl/rand.h"
 
 GaussianProposalMH::GaussianProposalMH
 (double (*funct)( const double, const void* const ),

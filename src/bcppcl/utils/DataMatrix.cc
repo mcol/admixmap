@@ -10,7 +10,7 @@
  * See the file COPYING for details.
  * 
  */
-#include "DataMatrix.h"
+#include "bcppcl/DataMatrix.h"
 #include <algorithm>
 #include <iostream>
 #include <numeric>

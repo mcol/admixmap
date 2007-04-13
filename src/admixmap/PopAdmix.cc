@@ -12,8 +12,8 @@
 #include "PopAdmix.h"
 #include "Chromosome.h"
 #include "AdmixIndividualCollection.h"
-#include "utils/misc.h"
-#include "utils/dist.h"//for log gamma density
+#include "bcppcl/misc.h"
+#include "bcppcl/dist.h"//for log gamma density
 #include <algorithm>
 #include <numeric>
 #include "gsl/gsl_math.h"

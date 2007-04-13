@@ -12,7 +12,7 @@
 
 #include <cmath>
 #include <iostream>
-#include "rand.h"
+#include "bcppcl/rand.h"
 #include <limits>
 #include <sstream>
 extern "C" {

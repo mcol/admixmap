@@ -16,6 +16,7 @@
 #include "gsl/gsl_linalg.h"
 #include "gsl/gsl_blas.h"
 #include "FreqArrays.h"
+#include "bcppcl/LogWriter.h"
 
 using namespace std;
 

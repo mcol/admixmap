@@ -11,10 +11,10 @@
  * 
  */
 #include "AdmixedIndividual.h"
-#include "regression/Regression.h"
-#include "utils/misc.h"
-#include "utils/dist.h"
-//#include "utils/linalg.h"
+#include "bcppcl/Regression.h"
+#include "bcppcl/misc.h"
+#include "bcppcl/dist.h"
+//#include "bcppcl/linalg.h"
 #include <algorithm>
 #include <limits>
 #include <sstream>

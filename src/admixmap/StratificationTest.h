@@ -18,8 +18,8 @@
 #include <iostream>
 #include "IndividualCollection.h"
 #include "Genome.h"
-#include "utils/LogWriter.h"
 
+class LogWriter;
 class FreqArray;
 
 ///Class to implement a test for residual population stratification

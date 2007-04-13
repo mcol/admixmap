@@ -11,7 +11,7 @@ Copyright (c) David O'Donnell 2007
 #include <sstream>
 #include "ranker.h"
 #include "gsl/gsl_permutation.h"
-#include "StringSplitter.h"
+#include "bcppcl/StringSplitter.h"
 
 using namespace::std;
 

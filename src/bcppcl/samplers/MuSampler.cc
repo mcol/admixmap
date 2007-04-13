@@ -20,9 +20,9 @@
  * 
  */
 
-#include "MuSampler.h"
-#include "AdaptiveRejection.h"
-#include "utils/misc.h"
+#include "bcppcl/MuSampler.h"
+#include "bcppcl/AdaptiveRejection.h"
+#include "bcppcl/misc.h"
 #include <numeric>
 #include <gsl/gsl_linalg.h>
 

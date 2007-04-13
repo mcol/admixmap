@@ -9,8 +9,8 @@
  * See the file COPYING for details.
  * 
  */
-#include "Regression.h"
-#include "utils/linalg.h"
+#include "bcppcl/Regression.h"
+#include "bcppcl/linalg.h"
 #include <iomanip>
 #include <algorithm>
 
