@@ -36,7 +36,7 @@ public:
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(int iteration, const Genome* const Loci, const Vector_s& PopLabels);
+  void Output(const Genome* const Loci, const Vector_s& PopLabels);
   void Reset();
   
 private:
@@ -62,7 +62,7 @@ public:
   
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(int iteration, const Genome* const Loci, const Vector_s& PopLabels);
+  void Output(const Genome* const Loci, const Vector_s& PopLabels);
   void Reset(){};
 
 private:
@@ -76,7 +76,7 @@ private:
   void UpdateScoreForMisSpecOfAlleleFreqs2(const int j, const int NumberOfStates, const double* const AlleleFreqs, 
 					   const IndividualCollection* const individuals);
 
-  void OutputTestsForMisSpecifiedAlleleFreqs2( int samples, const Genome* const Loci, const std::string* const PopLabels);
+  void OutputTestsForMisSpecifiedAlleleFreqs2(const Genome* const Loci, const std::string* const PopLabels);
 
 };
 
@@ -89,7 +89,7 @@ public:
 
   void Initialise(const AdmixOptions* const options, const Genome* const Loci, LogWriter &Log );
   void Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci);
-  void Output(int iteration, const Genome* const Loci, const Vector_s& PopLabels);
+  void Output(const Genome* const Loci, const Vector_s& PopLabels);
 
 private:
   bool doTest1, doTest2;//indicators for the two tests

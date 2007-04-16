@@ -114,7 +114,7 @@ void ScoreTests::Update(const vector<Regression* >& R)
 {
   Reset();//set sums over individuals to zero
   double DInvLink;
-  int NumberOfIndividuals = individuals->getNumberOfIndividualsForScoreTests();
+  const int NumberOfIndividuals = individuals->getNumberOfIndividualsForScoreTests();
   //------------------------------------------------------
   // Accumulate Scores over individuals for this iteration
   //------------------------------------------------------
@@ -184,7 +184,7 @@ void ScoreTests::Update(const vector<Regression* >& R)
 	| admixture association |
 	-----------------------*/
       if( options->getTestForAdmixtureAssociation() ){
-	AdmixtureAssocScoreTest.Update();
+	AdmixtureAssocScoreTest.Accumulate();
       }
       /*-----------------------
 	| Linkage with ancestry  |
@@ -225,7 +225,7 @@ void ScoreTests::UpdateScoresForResidualAllelicAssociation(const FreqArray& Alle
 // }
 // ********** OUTPUT **********************************************************
 
-void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final){
+void ScoreTests::Output(const Vector_s& PLabels, const Vector_s& LocusLabels, bool final){
   //PopLabels = PLabels;
 
   //Allelic association
@@ -268,11 +268,11 @@ void ScoreTests::Output(int iterations, const Vector_s& PLabels, const Vector_s&
   }
   
   //residual allelic association
-  ResidualAllelicAssocScoreTest.Output(iterations, final, LocusLabels);
+  ResidualAllelicAssocScoreTest.Output(final, LocusLabels);
   
   //admixture association
   if( !final && options->getTestForAdmixtureAssociation() ){
-    AdmixtureAssocScoreTest.Output(iterations);
+    AdmixtureAssocScoreTest.Output();
   }
 }
 
@@ -323,6 +323,6 @@ CopyNumberAssocTest& ScoreTests::getAncestryAssocTest(){
   return AncestryAssocScoreTest;
 }
 
-void ScoreTests::OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels){
-  AffectedsOnlyScoreTest.OutputLikRatios(filename, iterations, PopLabels, *Lociptr);
+void ScoreTests::OutputLikelihoodRatios(const char* const filename, const Vector_s& PopLabels){
+  AffectedsOnlyScoreTest.OutputLikRatios(filename, PopLabels, *Lociptr);
 }

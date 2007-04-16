@@ -23,6 +23,8 @@ ResidualLDTest::ResidualLDTest(){
   rank = Comms::getRank();
   worker_rank = Comms::getWorkerRank();
   NumWorkers = Comms::getNumWorkers();
+  numUpdates = 0;
+  numPrintedIterations = 0;
 }
 
 ResidualLDTest::~ResidualLDTest(){
@@ -145,6 +147,7 @@ void ResidualLDTest::Update(const FreqArray& AlleleFreqs, bool ){
       }
     }
 #endif
+  ++numUpdates;
 }
 
 
@@ -273,7 +276,7 @@ void ResidualLDTest::UpdateScoresForResidualAllelicAssociation2(int c, int locus
   }
 }
 
-void ResidualLDTest::Output(int iterations, bool final, const std::vector<std::string>& LocusLabels){
+void ResidualLDTest::Output(bool final, const std::vector<std::string>& LocusLabels){
   string sep = final ? "\t" : ",";//separator
   ofstream* outfile;
   
@@ -285,7 +288,7 @@ void ResidualLDTest::Output(int iterations, bool final, const std::vector<std::s
       outfile = new ofstream(filename.c_str(), ios::out);
       *outfile << "Loci\tScore\tCompleteInfo\tObservedInfo\tPercentInfo\tdf\tChiSquared\tPValue\n";
     }else outfile = &outputfile;
-    OutputTestsForResidualAllelicAssociation(iterations, outfile, final, LocusLabels);
+    OutputTestsForResidualAllelicAssociation(outfile, final, LocusLabels);
     //     for(unsigned int c = 0; c < Lociptr->GetNumberOfChromosomes(); c++ )
     //       for(unsigned j = 0; j < chrm[c]->GetSize()-1; ++j){
     // 	int abslocus = chrm[c]->GetLocus(j);
@@ -295,11 +298,14 @@ void ResidualLDTest::Output(int iterations, bool final, const std::vector<std::s
     // 	int N = (*Lociptr)(abslocus+1)->GetNumberOfStates()-1;
     // 	OutputScoreTest(iterations, outfile, M*N, labels, SumScore[c][j], SumScore2[c][j], SumInfo[c][j], final);
     //       }
-    if(final)delete outfile;
+    if(final)
+      delete outfile;
+    else
+      ++numPrintedIterations;
   }
 }
 
-void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final, 
+void ResidualLDTest::OutputTestsForResidualAllelicAssociation(ofstream* outputstream, bool final, 
 							      const std::vector<std::string>& LocusLabels){
   //cannot function in base class as it output a line for each dimension of score
   double *score = 0, *ObservedInfo = 0;
@@ -322,15 +328,15 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, of
       double compinfo = 0.0;
 
       for(int i = 0; i < dim; ++i){
-	score[i] = SumScore[c][j][i]/(double) iterations; //score
+	score[i] = SumScore[c][j][i]/(double) numUpdates; //score
       }
       for(int i = 0; i < dim; ++i){
 	for(int ii = 0; ii < dim; ++ii){
-	  ObservedInfo[i*dim +ii] = SumInfo[c][j][i*dim+ii]/ (double) iterations//complete info
-	    + score[i]*score[ii] - SumScore2[c][j][i*dim+ii]/(double)iterations;//-missing info
+	  ObservedInfo[i*dim +ii] = SumInfo[c][j][i*dim+ii]/ (double) numUpdates//complete info
+	    + score[i]*score[ii] - SumScore2[c][j][i*dim+ii]/(double)numUpdates;//-missing info
 	}
 	obsinfo += ObservedInfo[i*dim +i];//trace of Observed Info
-	compinfo += SumInfo[c][j][i*dim+i]/ (double) iterations;//trace of Complete Info
+	compinfo += SumInfo[c][j][i*dim+i]/ (double) numUpdates;//trace of Complete Info
       }
 
       //output labels
@@ -389,7 +395,6 @@ void ResidualLDTest::OutputTestsForResidualAllelicAssociation(int iterations, of
 
 void ResidualLDTest::ROutput(){
   if(test){
-  int numPrintedIterations = (options->getTotalSamples() - options->getBurnIn()) / (options->getSampleEvery() * 10);
     vector<int> dimensions(3,0);
     dimensions[0] = 2;
     dimensions[1] = Lociptr->GetNumberOfCompositeLoci() - Lociptr->GetNumberOfChromosomes();

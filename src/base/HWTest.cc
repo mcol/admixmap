@@ -26,7 +26,7 @@ HWTest::HWTest(){
   suminfo = 0;
   NumInd = 0;
   NumLoci = 0;
-  samples  = 0;
+  numUpdates  = 0;
   test=false;
 }
 
@@ -154,7 +154,7 @@ void HWTest::Update(const IndividualCollection* const IC, const Genome* const Lo
     sumscore[j] += score[j];
     sumscore2[j] += score[j] * score[j];
   }
-  ++samples;
+  ++numUpdates;
 }
 
 void HWTest::Output(const Vector_s LocusLabels){
@@ -163,7 +163,7 @@ void HWTest::Output(const Vector_s LocusLabels){
 
   for(int j = 0; j < NumLoci; j++ ){
     //call function in base class
-    OutputScalarScoreTest(samples, &outputfile, LocusLabels[j], sumscore[j], sumscore2[j], suminfo[j], true);
+    OutputScalarScoreTest(numUpdates, &outputfile, LocusLabels[j], sumscore[j], sumscore2[j], suminfo[j], true);
   }
 }
 

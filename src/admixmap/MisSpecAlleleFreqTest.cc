@@ -62,12 +62,12 @@ void MisSpecAlleleFreqTest::Update(const IndividualCollection* const individuals
     Test2.Update(individuals, A, Loci);
 }
 
-void MisSpecAlleleFreqTest::Output(int samples, const Genome* const Loci, const Vector_s& PopLabels){
+void MisSpecAlleleFreqTest::Output(const Genome* const Loci, const Vector_s& PopLabels){
     if( doTest1){
-      Test1.Output(samples, Loci, PopLabels);
+      Test1.Output(Loci, PopLabels);
     }
     if( doTest2 ){
-      Test2.Output(samples, Loci, PopLabels);
+      Test2.Output(Loci, PopLabels);
     }
 }
 
@@ -84,6 +84,7 @@ MisSpecifiedAlleleFreqTest::MisSpecifiedAlleleFreqTest(){
   NumCompLoci = 0;
   test = false;
   Populations = 1;
+  numUpdates = 0;
 }
 
 MisSpecifiedAlleleFreqTest::~MisSpecifiedAlleleFreqTest(){
@@ -195,7 +196,7 @@ void MisSpecifiedAlleleFreqTest::Update(const IndividualCollection* const indivi
     }
     free_matrix(phi, Populations);
   }
-
+  ++numUpdates;
 }
 
 /**
@@ -262,7 +263,7 @@ void MisSpecifiedAlleleFreqTest::UpdateLocus(int j, const double* const* phi, in
 	    Info[j][ k*Populations + kk ] += score[k] * score[kk] - (phi[k][kk] + phi[kk][k]) / Pi[2];}
 }
 
-void MisSpecifiedAlleleFreqTest::Output( int samples, const Genome* const Loci, const Vector_s& PopLabels)
+void MisSpecifiedAlleleFreqTest::Output( const Genome* const Loci, const Vector_s& PopLabels)
 {
   if( test){
     double* ObservedMatrix = new double[Populations*Populations];
@@ -271,15 +272,15 @@ void MisSpecifiedAlleleFreqTest::Output( int samples, const Genome* const Loci, 
     for(int j = 0; j < NumCompLoci; j++ ){
       if( (*Loci)(j)->GetNumberOfLoci() == 1 ){
 	
-	for(int k = 0; k < Populations; ++k)SumScore[j][k] /= (double) samples;
+	for(int k = 0; k < Populations; ++k)SumScore[j][k] /= (double) numUpdates;
 	matrix_product(SumScore[j], ScoreSq, Populations, 1);//ScoreSq = Score * t(Score)
 	//CompleteMatrix = SumInfo[j] / samples;
 	for(int k = 0; k < Populations*Populations; ++k){
-	  SumInfo[j][k] /= (double) samples;//SumInfo[j] = CompleteMatrix
-	  ObservedMatrix[k] = SumInfo[j][k] + ScoreSq[k] - SumScoreSq[j][k] / (double)samples;
+	  SumInfo[j][k] /= (double) numUpdates;//SumInfo[j] = CompleteMatrix
+	  ObservedMatrix[k] = SumInfo[j][k] + ScoreSq[k] - SumScoreSq[j][k] / (double)numUpdates;
 	}
 	
-	//ObservedMatrix = CompleteMatrix + ScoreMatrix * ScoreMatrix.Transpose() - SumScoreSq[j] / samples;
+	//ObservedMatrix = CompleteMatrix + ScoreMatrix * ScoreMatrix.Transpose() - SumScoreSq[j] / numUpdates;
 	
 	for( int k = 0; k < Populations; k++ ){
 	  double observedinfo = ObservedMatrix[ k*Populations + k ];
@@ -329,6 +330,7 @@ MisSpecifiedAlleleFreqTest2::MisSpecifiedAlleleFreqTest2(){
   NumCompLoci = 0;
   test = false;
   Populations = 1;
+  numUpdates = 0;
 }
 
 MisSpecifiedAlleleFreqTest2::~MisSpecifiedAlleleFreqTest2(){
@@ -397,12 +399,14 @@ void MisSpecifiedAlleleFreqTest2::Initialise(const AdmixOptions* const options, 
 }
 
 void MisSpecifiedAlleleFreqTest2::Update(const IndividualCollection* const individuals, const AlleleFreqs* const A, const Genome* const Loci){
-  if( test )    
+  if( test ){
     for( int j = 0; j < NumCompLoci; j++ ){
       for( int i = 0; i < individuals->getSize(); i++ ){
 	UpdateScoreForMisSpecOfAlleleFreqs2(j, (*Loci)(j)->GetNumberOfStates(), A->GetAlleleFreqs(j), individuals);
       }
     }
+    ++numUpdates;
+  }
 }
 
 // presumably this calculates score test for mis-spec allele freqs at multi-allelic loci
@@ -445,7 +449,7 @@ void MisSpecifiedAlleleFreqTest2::UpdateScoreForMisSpecOfAlleleFreqs2(const int 
    delete[] NewInfo;
 }
 
-void MisSpecifiedAlleleFreqTest2::Output( int samples, const Genome* const Loci, const Vector_s& PopLabels)
+void MisSpecifiedAlleleFreqTest2::Output(const Genome* const Loci, const Vector_s& PopLabels)
 {
   if( test ){
     //allelefreqscorestream2 << setiosflags(ios::fixed) << setprecision(2);//output 2 decimal places
@@ -459,18 +463,18 @@ void MisSpecifiedAlleleFreqTest2::Output( int samples, const Genome* const Loci,
       //CompositeLocus *locus = (CompositeLocus*)(*Lociptr)(j);
       for( int k = 0; k < Populations; k++ ){
 	for(int s = 0; s < NumberOfStates-1; ++s){
-	  score[s] = SumScore[j][k][s] / (double)samples;
+	  score[s] = SumScore[j][k][s] / (double)numUpdates;
 	}
 	
 	matrix_product(score, scoresq, NumberOfStates-1, 1);//scoresq = score * t(score)
 	for(int s = 0; s < (NumberOfStates-1)*(NumberOfStates-1); ++s){
-	  completeinfo[s] = SumInfo[j][k][s] / (double)samples;
-	  observedinfo[s] = completeinfo[s] + scoresq[s] - SumScoreSq[j][k][s] / (double)samples;
+	  completeinfo[s] = SumInfo[j][k][s] / (double)numUpdates;
+	  observedinfo[s] = completeinfo[s] + scoresq[s] - SumScoreSq[j][k][s] / (double)numUpdates;
 	}
 	
-	//score = SumScore[j][k] / samples;
-	//completeinfo = SumInfo[j][k] / samples;
-	//observedinfo = completeinfo + score * score.Transpose() - SumScoreSq[j][k] / samples;
+	//score = SumScore[j][k] / numUpdates;
+	//completeinfo = SumInfo[j][k] / numUpdates;
+	//observedinfo = completeinfo + score * score.Transpose() - SumScoreSq[j][k] / numUpdates;
 	outputfile << (*Loci)(j)->GetLabel(0) << "\t"
 		   << PopLabels[k] << "\t";
 	try{

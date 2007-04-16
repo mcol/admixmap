@@ -31,9 +31,9 @@ public:
 
   void Reset();
 
-  void Output( int );
+  void Output( );
 
-  void Update();
+  void Accumulate();
   void UpdateIndividualScore( const double* const Theta, double YMinusEY,double phi, double DInvLink, bool RandomMatingModel);
 
 private:

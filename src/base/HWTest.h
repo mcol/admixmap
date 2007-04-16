@@ -50,7 +50,7 @@ public:
   ~HWTest();
 
 private:
-  int NumInd, NumLoci, samples;
+  int NumInd, NumLoci;
   //dmatrix score;
   //dmatrix sumscore;
   //dmatrix sumscore2;

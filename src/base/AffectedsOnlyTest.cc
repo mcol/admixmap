@@ -183,26 +183,22 @@ void AffectedsOnlyTest::Update(unsigned int locus, int k0, const double* const T
   }
 }
 
-///accumulate score, info, scoresq and var score over iterations
+///accumulates E(score), E(score squared), variance of score and info over iterations
 void AffectedsOnlyTest::Accumulate(){
   for(unsigned j = 0; j < L; ++j)
-    Accumulate(j);
+    for( unsigned k = 0; k < K; k++ ){
+      SumAffectedsScore[j*K +k] += AffectedsScore[j*K + k];
+      SumAffectedsVarScore[j*K +k] += AffectedsVarScore[j * K +k];
+      SumAffectedsInfo[j*K +k] += AffectedsInfo[j * K +k];
+      SumAffectedsScore2[j*K +k] +=  AffectedsScore[j*K +k] * AffectedsScore[j*K +k];
+    }
+
   //increment update counter
   ++numUpdates;
 }
 
-///accumulates E(score), E(score squared), variance of score and info over iterations, for locus j
-void AffectedsOnlyTest::Accumulate(unsigned j){
-  for( unsigned k = 0; k < K; k++ ){
-    SumAffectedsScore[j*K +k] += AffectedsScore[j*K + k];
-    SumAffectedsVarScore[j*K +k] += AffectedsVarScore[j * K +k];
-    SumAffectedsInfo[j*K +k] += AffectedsInfo[j * K +k];
-    SumAffectedsScore2[j*K +k] +=  AffectedsScore[j*K +k] * AffectedsScore[j*K +k];
-  }
-}
-
 ///outputs ergodic averages of Likelihood Ratios as R object
-void AffectedsOnlyTest::OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels, const Genome& Loci){
+void AffectedsOnlyTest::OutputLikRatios(const char* const filename, const Vector_s& PopLabels, const Genome& Loci){
   //open outut file
   std::ofstream likratiostream(filename);
 
@@ -216,8 +212,8 @@ void AffectedsOnlyTest::OutputLikRatios(const char* const filename, int iteratio
       likratiostream << "\"" << Loci(j)->GetLabel(0) << "\",";
       likratiostream << "\""<<PopLabels[k+firstpoplabel] << "\","; //need offset to get second poplabel for 2pops
       
-      L1 = LikRatio1[ j*K + k] / ( iterations );
-      L2 = LikRatio2[ j*K + k] / ( iterations );
+      L1 = LikRatio1[ j*K + k] / ( numUpdates );
+      L2 = LikRatio2[ j*K + k] / ( numUpdates );
       
       likratiostream << double2R(L1)<< ","
 		   << double2R(L2)<< ","<<endl;

@@ -286,7 +286,7 @@ void AdmixMapModel::SubIterate(int iteration, const int & burnin, Options& _opti
 	    avgstream << endl;
 	  }
 	  //Score Test output
-	  if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
+	  if( options.getScoreTestIndicator() )  Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), false);
 	}//end "if every'*10" block
       }//end "if after BurnIn" block
     } // end "if not AnnealedRun" block
@@ -383,7 +383,7 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
   if( options.getTestForDispersion() )  DispTest.Output(options.getTotalSamples() - options.getBurnIn(), Loci, data.GetPopLabels());
   //tests for mis-specified allele frequencies
   if( options.getTestForMisspecifiedAlleleFreqs() || options.getTestForMisspecifiedAlleleFreqs2())
-    AlleleFreqTest.Output(options.getTotalSamples() - options.getBurnIn(), &Loci, data.GetPopLabels()); 
+    AlleleFreqTest.Output(&Loci, data.GetPopLabels()); 
   //test for H-W eq
   if( options.getHWTestIndicator() )
     HWtest.Output(data.getLocusLabels()); 
@@ -392,12 +392,11 @@ void AdmixMapModel::Finalize(const Options& _options, LogWriter& Log, const Inpu
     //finish writing score test output as R objects
     Scoretests.ROutput();
     //write final tables
-    Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
+    Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), true);
   }
   //output to likelihood ratio file
   if(options.getTestForAffectedsOnly())
-    //Individual::OutputLikRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), data.GetPopLabels());
-    Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), options.getTotalSamples()-options.getBurnIn(), 
+    Scoretests.OutputLikelihoodRatios(options.getLikRatioFilename(), 
 				      data.GetPopLabels());	
 }
 void AdmixMapModel::InitialiseTests(Options& _options, const InputData& data, LogWriter& Log){

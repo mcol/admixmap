@@ -37,7 +37,7 @@ public:
 
   void Output(const Vector_s& PopLabels, const Genome& Loci, bool final = false, const char* filename = 0);
   void ROutput();
-  void OutputLikRatios(const char* const filename, int iterations, const Vector_s& PopLabels, const Genome& Loci);
+  void OutputLikRatios(const char* const filename, const Vector_s& PopLabels, const Genome& Loci);
 
 private:
   unsigned K, L;
@@ -54,8 +54,6 @@ private:
 
   double *LikRatio1;
   double *LikRatio2;
-
-  void Accumulate(unsigned j);
 
 };
 

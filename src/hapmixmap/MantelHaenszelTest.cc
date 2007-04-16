@@ -6,7 +6,8 @@
 #include "gsl/gsl_math.h"//for gsl_finite
 
 MantelHaenszelTest::MantelHaenszelTest(){
-
+  numUpdates = 0;
+  numPrintedIterations = 0;
 }
 MantelHaenszelTest::~MantelHaenszelTest(){
   if(test){
@@ -26,7 +27,6 @@ MantelHaenszelTest::~MantelHaenszelTest(){
 void MantelHaenszelTest::Initialise(unsigned NumStates, const Genome* const loci, const char* filename, LogWriter& Log){
   K = NumStates;
   Ksq = K*K;
-  numPrintedIterations = 0;
   Loci = loci;
   test = true;
 
@@ -95,10 +95,10 @@ void MantelHaenszelTest::Update(const IndividualCollection* IC, const Genome& Lo
     }
     ++locus;//skip last locus on chromosome
   }//end locus loop
-  
+  ++numUpdates;
 }
 
-void MantelHaenszelTest::Output(const char* filename, unsigned NumIters, const std::vector<std::string>& LocusLabels, bool final){
+void MantelHaenszelTest::Output(const char* filename, const std::vector<std::string>& LocusLabels, bool final){
   std::ofstream finaltable;
   std::ofstream* outfile; 
   if(!final){
@@ -118,7 +118,7 @@ void MantelHaenszelTest::Output(const char* filename, unsigned NumIters, const s
   for(unsigned c = 0; c < Loci->GetNumberOfChromosomes(); ++c){
     for(unsigned j = 0; j < Loci->GetSizeOfChromosome(c)-1; ++j){
       std::string label = LocusLabels[locus] + "/" + LocusLabels[locus+1];
-      OutputScalarScoreTest(NumIters, outfile, label, Score[locus], ScoreSq[locus], Info[locus], final);
+      OutputScalarScoreTest(numUpdates, outfile, label, Score[locus], ScoreSq[locus], Info[locus], final);
 
 
 //       const double ebar = Score[locus] / (double)NumIters;

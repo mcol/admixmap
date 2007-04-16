@@ -33,7 +33,7 @@ public:
   void Initialise(Options* , const IndividualCollection* const, const Genome* const ,
 		  LogWriter &);
 
-  void Output(int iterations, bool final, const std::vector<std::string>& LocusLabels);
+  void Output(bool final, const std::vector<std::string>& LocusLabels);
   void ROutput();
 
   void Update(double);
@@ -57,7 +57,7 @@ private:
   //std::vector<unsigned> Tcount;
   
   //OUTPUT
-  void OutputTestsForResidualAllelicAssociation(int iterations, ofstream* outputstream, bool final, 
+  void OutputTestsForResidualAllelicAssociation(ofstream* outputstream, bool final, 
 						const std::vector<std::string>& LocusLabels);
   
   void UpdateScoresForResidualAllelicAssociation(int c, int locus, const double* const AlleleFreqsA, const double* const AlleleFreqsB);

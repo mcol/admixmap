@@ -244,9 +244,9 @@ void HapMixModel::SubIterate(int iteration, const int & burnin, Options & _optio
           avgstream << endl;
         }
         //Score Test output
-        if( options.getScoreTestIndicator() )  Scoretests.Output(iteration-burnin, data.GetPopLabels(), data.getLocusLabels(), false);
+        if( options.getScoreTestIndicator() )  Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), false);
         if(options.getMHTest() && Comms::isMaster()){
-          MHTest.Output(options.getMHTestFilename(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), false);
+          MHTest.Output(options.getMHTestFilename(), data.getLocusLabels(), false);
         }
       }//end "if every'*10" block
     }//end "if after BurnIn" block
@@ -303,7 +303,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
   if(options.getMHTest() && Comms::isMaster()){
     std::string s = options.getResultsDir();
     s.append("/MHTestFinal.txt");
-    MHTest.Output(s.c_str(), options.getTotalSamples() - options.getBurnIn(), data.getLocusLabels(), true);
+    MHTest.Output(s.c_str(), data.getLocusLabels(), true);
   }
   //Write final score test tables  
   if(Comms::isMaster()){
@@ -311,7 +311,7 @@ void HapMixModel::Finalize(const Options& _options, LogWriter& Log, const InputD
       //finish writing score test output as R objects
       Scoretests.ROutput();
       //write final tables
-      Scoretests.Output(options.getTotalSamples() - options.getBurnIn(), data.GetPopLabels(), data.getLocusLabels(), true);
+      Scoretests.Output(data.GetPopLabels(), data.getLocusLabels(), true);
     }
     //output posterior means of lambda (expected number of arrivals)
     L->OutputLambdaPosteriorMeans(options.getArrivalRateOutputFilename(), options.getTotalSamples()-options.getBurnIn());

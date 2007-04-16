@@ -47,7 +47,7 @@ public:
   void Initialise(Options* , const IndividualCollection* const, const Genome* const ,
 		  const Vector_s&, LogWriter &);
 
-  void Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
+  void Output(const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
 
   void ROutput();
   void SetAllelicAssociationTest(const std::vector<double> &alpha0);
@@ -58,7 +58,7 @@ public:
 
   AffectedsOnlyTest& getAffectedsOnlyTest();
   CopyNumberAssocTest& getAncestryAssocTest();
-  void OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels);
+  void OutputLikelihoodRatios(const char* const filename, const Vector_s& PopLabels);
 
 private:
   const Options *options;

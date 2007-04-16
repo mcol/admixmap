@@ -28,6 +28,7 @@ AdmixtureAssocTest::AdmixtureAssocTest(){
   NumPopulations = 0;
   NumOutcomeVars = 0;
   test=false;
+  numUpdates = 0;
 }
 AdmixtureAssocTest::~AdmixtureAssocTest(){
   //delete arrays for admixture assoc score test
@@ -120,7 +121,7 @@ void AdmixtureAssocTest::UpdateIndividualScore( const double* const Theta, doubl
   }
 }
 
-void AdmixtureAssocTest::Update(){
+void AdmixtureAssocTest::Accumulate(){
   if( test ){
 #ifdef PARALLEL
   //sum scores across processes
@@ -136,14 +137,15 @@ void AdmixtureAssocTest::Update(){
       for( unsigned j = 0; j < NumOutcomeVars; j++ )
 	SumScore2[ k*NumOutcomeVars + j ] += Score[ k*NumOutcomeVars + j ] * Score[ k*NumOutcomeVars + j ];
   }
+  ++numUpdates;
 }
-void AdmixtureAssocTest::Output(int iterations)
+void AdmixtureAssocTest::Output()
 {
   for( unsigned k = 0; k < NumPopulations; k++ ){
     for( unsigned j = 0; j < NumOutcomeVars; j++ ){
-      double EU = SumScore[ k*NumOutcomeVars + j ] / ( iterations );
-      double complete = SumInfo[ k*NumOutcomeVars + j ] / ( iterations );
-      double missing = SumScore2[ k*NumOutcomeVars + j ] / ( iterations ) - EU * EU;
+      double EU = SumScore[ k*NumOutcomeVars + j ] / ( numUpdates );
+      double complete = SumInfo[ k*NumOutcomeVars + j ] / ( numUpdates );
+      double missing = SumScore2[ k*NumOutcomeVars + j ] / ( numUpdates ) - EU * EU;
       outputfile.width(9);
       outputfile << setprecision(6) << double2R(complete) << " ";
       outputfile.width(9);
