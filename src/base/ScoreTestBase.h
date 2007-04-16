@@ -18,6 +18,10 @@ public:
   //virtual void Update() = 0;
   //virtual void Output() = 0;
 
+  static std::string double2R(double);
+  static std::string double2R(double, int);
+  static void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);
+
 protected:
   bool test;
   std::ofstream outputfile;
@@ -34,10 +38,6 @@ protected:
   void OutputRaoBlackwellizedScoreTest( std::ofstream* outputstream, std::string label,
 					const double score, const double scoresq, const double varscore, 
 					const double info, bool final );
-
-  static std::string double2R(double);
-  static std::string double2R(double, int);
-  static void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);
 
 };
 

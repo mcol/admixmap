@@ -18,6 +18,7 @@
 #include "bcppcl/LogWriter.h"
 #include "common.h"
 #include "AdmixtureAssocTest.h"
+#include "AllelicAssocTest.h"
 #include "AffectedsOnlyTest.h" 
 #include "CopyNumberAssocTest.h"
 #include "ResidualLDTest.h"
@@ -49,9 +50,7 @@ public:
   void Output(int iterations, const Vector_s& PLabels, const Vector_s& LocusLabels, bool final);
 
   void ROutput();
-
   void SetAllelicAssociationTest(const std::vector<double> &alpha0);
-
   void Update(const vector<Regression* >& R);
   void UpdateScoresForResidualAllelicAssociation(const FreqArray& Allelefreqs);
 
@@ -62,66 +61,23 @@ public:
   void OutputLikelihoodRatios(const char* const filename, int iterations, const Vector_s& PopLabels);
 
 private:
-  bool onFirstLineAllelicAssoc;
-  double **LocusLinkageAlleleScore;
-  double **LocusLinkageAlleleInfo;
-  double **SumLocusLinkageAlleleScore2;
-  double **SumLocusLinkageAlleleScore;
-  double **SumLocusLinkageAlleleInfo;
-  int *locusObsIndicator;
-  unsigned *dim_;
-
-  bool onFirstLineHapAssoc;
-  double ***ScoreWithinHaplotype;
-  double ***InfoWithinHaplotype;
-  double **SumScoreWithinHaplotype;
-  double **SumScore2WithinHaplotype;
-  double **SumInfoWithinHaplotype;
-
-  std::ofstream HaplotypeAssocScoreStream;
-  std::ofstream allelicAssocScoreStream;
-
   const Options *options;
   const IndividualCollection *individuals;
   const Genome* Lociptr;//Pointer to Loci
   const Chromosome* const* chrm;//Copy of pointer to array of chromosomes
   int rank, worker_rank, NumWorkers;
-  unsigned NumOutputs;//counts calls to output function for dimensions of R objects
 
 //OUTPUT
-  void OpenFile(LogWriter &Log, std::ofstream* outputstream, const char* filename, std::string testname);
-
-  void OutputScoreTest( int iterations, ofstream* outputstream, unsigned dim, std::vector<std::string> labels,
-			const double* score, const double* scoresq, const double* info, bool final, bool firstline, unsigned );
-
-  void OutputScalarScoreTest( int iterations, ofstream* outputstream, string label,
-			      const double score, const double scoresq, const double info, bool final, bool firstline);
-
-  //void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, int locus, double p,double phi, double DInvLink);
-  void UpdateScoreForWithinHaplotypeAssociation( const Individual* const ind, const std::vector<int> allele2Counts, 
-						 int locus, double p,double phi, double DInvLink);
-
-  void CentreAndSum(unsigned dim, double *score, double* info, 
-				double *sumscore, double* sumscoresq, double* suminfo);
-
-  void UpdateAlleleScores( double* score, double* info, const double* admixtureProps, const vector<int> Counts, 
-			   double YMinusEY, double phi, double DInvLink);
-
-  void UpdateScoreForAllelicAssociation( const Individual* const , double, double, double, bool);
-
-  static std::string double2R( double );
-  static std::string double2R( double x, int precision );
-
-  static void R_output3DarrayDimensions(std::ofstream* stream, const std::vector<int> dim, const std::vector<std::string> labels);    
 
   void Reset();
 
+  AllelicAssocTest AllelicAssociationTest;
   ResidualLDTest ResidualAllelicAssocScoreTest;//here temporarily, until rest of scoretests classes have been created
   AdmixtureAssocTest AdmixtureAssocScoreTest;
   AffectedsOnlyTest AffectedsOnlyScoreTest;
   CopyNumberAssocTest AncestryAssocScoreTest;
 
-  CopyNumberAssocTest NewAllelicAssocTest;//test using conditional distribution of copies of allele2, rather than sampled values
+  CopyNumberAssocTest HapMixAllelicAssocTest;//test using conditional distribution of copies of allele2, rather than sampled values
 };
 
 

@@ -11,6 +11,8 @@ all_SOURCES = AdmixtureAssocTest.cc AdmixtureAssocTest.h \
 AffectedsOnlyTest.cc AffectedsOnlyTest.h \
 AlleleFreqs.cc AlleleFreqs.h \
 AlleleFreqSampler.cc AlleleFreqSampler.h \
+AllelicAssocTest.cc AllelicAssocTest.h \
+AllelicAssocSubTest.cc AllelicAssocSubTest.h \
 Annealer.cc Annealer.h \
 Chromosome.cc Chromosome.h \
 common.h \
