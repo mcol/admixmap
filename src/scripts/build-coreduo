@@ -8,6 +8,7 @@ export CXXFLAGS="\
 -fomit-frame-pointer \
 -ffast-math \
 "
+export USER_CONFIG_OPTS="--disable-cxx-flags-preset"
 
 # Option -ftree-vectorize is disabled. It's apparently not a safe flag
 # to use. See:

@@ -1,8 +1,10 @@
 #!/bin/bash
 export LDFLAGS=""
 export CPPFLAGS=""
-export CXXFLAGS="-g -O0 -march=i686 -Wall -Werror"
+export CXXFLAGS=""
+export EXTRAFLAGS="-march=i686"
 # export CXXFLAGS="-g -O0 -march=i686 -Wall"
 # USER_CONFIG_OPTS="--enable-testing"
+export USER_CONFIG_OPTS="--enable-debug"
 
 source "$(pwd)/src/scripts/build-common"

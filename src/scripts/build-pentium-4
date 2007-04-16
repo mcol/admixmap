@@ -15,4 +15,5 @@ export CXXFLAGS="\
 #
 # -ftree-vectorize -ftree-vectorizer-verbose=3
 
+USER_CONFIG_OPTS="--disable-cxx-flags-preset"
 source "$(pwd)/src/scripts/build-common"

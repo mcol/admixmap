@@ -18,7 +18,7 @@ dnl Set default values
 AR=ar
 AR_FLAGS="-cru"
 LDFLAGS=
-CXXFLAGS=$EXTRA_FLAGS
+
 AC_ARG_VAR([EXTRA_FLAGS], [Extra C++ compiler flags])
 
 AC_MSG_CHECKING([whether using $CXX preset flags])
@@ -27,7 +27,7 @@ AS_HELP_STRING([--enable-cxx-flags-preset],
 [Enable C++ compiler flags preset @<:@default yes@:>@]),[],[enableval='yes'])
 
 if test "$enableval" = yes ; then
-
+        CXXFLAGS=$EXTRA_FLAGS
 	ac_cxx_flags_preset=yes
 
 	case "$CXX" in

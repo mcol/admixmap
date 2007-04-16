@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Prepare the environment for running hapmixmap
+# Prepare the environment for running admixmap or hapmixmap
 # run with:
 #
 # source src/scripts/env-prepare

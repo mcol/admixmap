@@ -3,11 +3,10 @@
 # This is for profiling on Core 2 Duo (architecture nocona)
 export LDFLAGS=""
 export CPPFLAGS=""
-export CXXFLAGS="\
+export EXTRAFLAGS="\
 -march=nocona \
 -O3 \
 -ffast-math \
--pg \
 "
 
 # Option -ftree-vectorize is disabled. It's apparently not a safe flag
@@ -16,4 +15,5 @@ export CXXFLAGS="\
 #
 # -ftree-vectorize -ftree-vectorizer-verbose=3
 
+USER_CONFIG_OPTS="--enable-profile"
 source "$(pwd)/src/scripts/build-common"

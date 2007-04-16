@@ -7,12 +7,10 @@
 . ${MODULESHOME}/init/sh
 module unload gcc
 module unload gcc4
-module unload mpich/gcc
-module unload mpich/gcc4
 module load pathscale
-module unload mpich/path
+
 export CC="pathcc"
-export CXX="pathCC"
+#export CXX="pathCC"
 export LDFLAGS="-L/opt/packages/sprng-2.0/lib"
 export CPPFLAGS="-I/opt/packages/sprng-2.0/include"
 export CXXFLAGS="\
@@ -22,6 +20,6 @@ export CXXFLAGS="\
 -fno-math-errno \
 -ffast-math \
 -fexceptions"
-USER_CONFIG_OPTS="--disable-static-binary"
+USER_CONFIG_OPTS="--disable-cxx-flags-preset"
 
 source "$(pwd)/src/scripts/build-common"

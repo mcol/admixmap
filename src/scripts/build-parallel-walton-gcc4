@@ -11,7 +11,7 @@ module unload mpich/gcc
 module load gcc4
 module load mpich/gcc4
 export CC="mpicc"
-export CXX="mpiCC"
+#export CXX="mpiCC"
 export LDFLAGS="-L/opt/packages/sprng-2.0/lib"
 export CPPFLAGS="-I/opt/packages/sprng-2.0/include"
 # gcc-4 has architecture `opteron' (gcc-3 hasn't)
@@ -29,6 +29,6 @@ export CXXFLAGS="\
 #
 # -ftree-vectorize -ftree-vectorizer-verbose=3
 
-USER_CONFIG_OPTS="--enable-parallel"
+USER_CONFIG_OPTS="--enable-parallel --disable-cxx-flags-preset"
 
 source "$(pwd)/src/scripts/build-common"

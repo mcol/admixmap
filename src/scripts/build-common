@@ -26,15 +26,13 @@ fi
 
 if [ ! -x "./configure" ]
 then
-	echo "./configure not present, bootstrapping"
-	./bootstrap
-else
-	echo "./configure present, invoking autoreconf"
+	echo "./configure not present, invoking autoreconf"
 	autoreconf
 fi
 
 make distclean
 
+echo "config-options"='$USER_CONFIG_OPTS'"
 echo "CXXFLAGS='$CXXFLAGS'"
 echo "CPPFLAGS='$CPPFLAGS'"
 echo "LDFLAGS='$LDFLAGS'"
