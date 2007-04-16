@@ -19,6 +19,7 @@
 #include "IndividualCollection.h"
 #include "Genome.h"
 
+class AdmixOptions;
 class LogWriter;
 class FreqArray;
 

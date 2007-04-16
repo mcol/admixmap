@@ -21,7 +21,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include "AdmixOptions.h"
 #include "GeneticDistanceUnit.h"
 #include "InputData.h"
 
@@ -45,6 +44,8 @@ public:
   bool isX_data()const;
 
   CompositeLocus* operator()(int) const;
+
+  const CompositeLocus* GetLocus(int)const;
 
   void SetLabels(const std::vector<std::string> &labels, const std::vector<double> &distances);
 

@@ -14,7 +14,6 @@
 #define ADMIXTUREASSOCTEST_H 1
 
 #include "ScoreTestBase.h"
-#include "AdmixOptions.h"
 
 class IndividualCollection;
 

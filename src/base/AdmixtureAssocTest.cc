@@ -12,9 +12,12 @@
  */
 #include "AdmixtureAssocTest.h"
 #include <math.h>//for sqrt
+#include <algorithm> //for fill
 #ifdef PARALLEL
 #include "Comms.h"
 #endif
+
+using namespace std;
 
 AdmixtureAssocTest::AdmixtureAssocTest(){
   Score = 0; 
@@ -99,7 +102,7 @@ void AdmixtureAssocTest::InitialiseAssocScoreFile(const Vector_s& PLabels){
     outputfile << "\ncomplete  missing   statistic  ";
     for( unsigned i = 1; i < NumPopulations; i++ )
       outputfile << "complete  missing   statistic ";
-    outputfile << endl;
+    outputfile << std::endl;
   }
 }
 
@@ -149,5 +152,5 @@ void AdmixtureAssocTest::Output(int iterations)
       outputfile << setprecision(6) << double2R(EU / sqrt( complete - missing )) << " ";
     }
   }
-  outputfile << endl;
+  outputfile << std::endl;
 }

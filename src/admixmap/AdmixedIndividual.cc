@@ -11,6 +11,7 @@
  * 
  */
 #include "AdmixedIndividual.h"
+#include "AdmixOptions.h"
 #include "bcppcl/Regression.h"
 #include "bcppcl/misc.h"
 #include "bcppcl/dist.h"

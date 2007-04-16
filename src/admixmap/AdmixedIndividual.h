@@ -20,6 +20,8 @@
 #include "AffectedsOnlyTest.h"
 #include "CopyNumberAssocTest.h"
 
+class AdmixOptions;
+
 ///Class to represent an individual in an admixture model
 class AdmixedIndividual : public Individual 
 {

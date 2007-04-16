@@ -15,6 +15,7 @@
  */
 
 #include "DispersionTest.h"
+#include "AdmixOptions.h"
 #include <numeric>
 #include "bcppcl/misc.h"
 #include "bcppcl/dist.h"

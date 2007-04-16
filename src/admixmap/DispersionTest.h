@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   DispersionTest.h 
  *   header file for DispersionTest class
- *   Copyright (c) 2005 LSHTM
+ *   Copyright (c) 2005 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 #include "Genome.h"
 #include "AlleleFreqs.h"
 #include "bcppcl/LogWriter.h"
+
+class AdmixOptions;
 
 ///Class to implement test for dispersion of allele frequencies between unadmixed populations sampled and the corresponding ancestry-specific allele frequencies in the admixed population under study
 class DispersionTest{

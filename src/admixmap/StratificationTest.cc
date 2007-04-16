@@ -11,6 +11,7 @@
  * 
  */
 #include "StratificationTest.h"
+#include "AdmixOptions.h"
 #include <numeric>
 #include "gsl/gsl_eigen.h"
 #include "gsl/gsl_linalg.h"

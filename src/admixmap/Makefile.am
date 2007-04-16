@@ -16,6 +16,7 @@ admixmap_SOURCES = AdmixedIndividual.cc AdmixedIndividual.h \
 AdmixIndividualCollection.cc AdmixIndividualCollection.h \
 admixmap.cc \
 AdmixMapModel.cc AdmixMapModel.h \
+AdmixOptions.cc AdmixOptions.h \
 chib.cc chib.h \
 DispersionFreqs.cc DispersionFreqs.h \
 DispersionTest.cc DispersionTest.h \

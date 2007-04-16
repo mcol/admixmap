@@ -14,6 +14,7 @@
  * 
  */
 #include "HWTest.h"
+#include "Options.h"
 //#include "IndividualCollection.h"
 #include "gsl/gsl_cdf.h"
 #include "bcppcl/misc.h"
@@ -39,8 +40,8 @@ HWTest::~HWTest(){
   delete[] suminfo;
 }
 
-//void HWTest::Initialise(AdmixOptions *options, int nind, int nloci, LogWriter *Log){
-void HWTest::Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log){
+//void HWTest::Initialise(Options *options, int nind, int nloci, LogWriter *Log){
+void HWTest::Initialise(const Options* const options, int nloci, LogWriter &Log){
 
   //NumInd = nind;
   NumLoci = nloci;

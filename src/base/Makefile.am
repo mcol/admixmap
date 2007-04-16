@@ -38,8 +38,7 @@ Model.cc Model.h \
 Options.cc Options.h \
 ResidualLDTest.cc ResidualLDTest.h \
 ScoreTestBase.cc ScoreTestBase.h \
-ScoreTests.cc ScoreTests.h \
-AdmixOptions.cc AdmixOptions.h
+ScoreTests.cc ScoreTests.h 
 
 if PARALLEL
 noinst_LIBRARIES = libbase-para.a

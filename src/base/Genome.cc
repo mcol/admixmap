@@ -15,6 +15,7 @@
 #include "bcppcl/DataMatrix.h"
 #include "bcppcl/StringConvertor.h"
 #include "Comms.h"
+#include "bcppcl/LogWriter.h"
 using namespace std;
 
 Genome::Genome()
@@ -221,6 +222,10 @@ CompositeLocus* Genome::operator() ( int ElementNumber ) const
   }
 
   return &(LocusArray[ElementNumber]);
+}
+
+const CompositeLocus* Genome::GetLocus(int ElementNumber)const{
+  return this->operator()(ElementNumber);
 }
 
 /// Writes numbers of loci and chromosomes and length of genome to Log and screen.

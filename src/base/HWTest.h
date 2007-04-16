@@ -24,11 +24,11 @@
 
 #include "ScoreTestBase.h"
 #include "common.h"
-#include "AdmixOptions.h"
 #include "Genome.h"
 #include "IndividualCollection.h"
 
 class LogWriter;
+class Options;
 //class IndividualCollection;
 /**
   Class to implement a score test for deviation from Hardy-Weinberg equilibrium
@@ -41,7 +41,7 @@ class HWTest : public ScoreTestBase{
 public:
   HWTest();
 
-  void Initialise(const AdmixOptions* const options, int nloci, LogWriter &Log);
+  void Initialise(const Options* const options, int nloci, LogWriter &Log);
 
   void Output(const Vector_s locuslabels);
 
