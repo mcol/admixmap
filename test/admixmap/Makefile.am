@@ -1,2 +1,2 @@
-pkgdata_DATA		= AdmixmapOutput.R
-EXTRA_DIST		= AdmixmapOutput.R
+SUBDIRS = tutorial
+EXTRA_DIST		= AdmixmapOutput.R testArguments.txt admixmap.pl

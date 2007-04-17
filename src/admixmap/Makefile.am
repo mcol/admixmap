@@ -7,10 +7,6 @@ SUFFIXES=.cc .o
 WFLAGS=-W -Wall
 AM_CXXFLAGS=$(WFLAGS)
 
-ACLOCAL_AMFLAGS = -I ../m4
-#use -Wno-syntax if Automake is >= v1.10 to suppress "underquoted" warnings
-#ACLOCAL_AMFLAGS = -Wno-syntax
-
 bin_PROGRAMS = admixmap
 admixmap_SOURCES = AdmixedIndividual.cc AdmixedIndividual.h \
 AdmixIndividualCollection.cc AdmixIndividualCollection.h \
@@ -25,29 +21,10 @@ MisSpecAlleleFreqTest.cc MisSpecAlleleFreqTest.h \
 PopAdmix.cc PopAdmix.h \
 StratificationTest.cc StratificationTest.h
 
-admixmap_LDADD=$(top_builddir)/src/base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
+admixmap_LDADD=$(builddir)/../base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
 
-admixmap_DEPENDENCIES = $(top_builddir)/src/base/libbase.a
-
-#disable building of baselib with 'make distcheck'
-DISTCHECK_CONFIGURE_FLAGS = --disable-baselib
-
-#extra files to clean with 'make distclean'
-#includes m4 files copied from elsewhere
-DISTCLEANFILES = m4/*.m4
+admixmap_DEPENDENCIES = $(builddir)/../base/libbase.a
 
 #.cc.o:
 #	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
-
-#bcppcl:
-#	@(cd $(BAYESLIB_PATH) && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;	
-#baselib:
-#	@(cd $(BASELIB_PATH) && $(MAKE) $(AM_MAKEFLAGS)) || exit 1;
-
-#$(BASELIB_PATH)/libbase.a : baselib
-
-#lbbcppcl.a: bcppcl
-
-allclean: clean
-	@(cd $(BASELIB_PATH) && $(MAKE) $(AM_MAKEFLAGS) clean) || exit 1;
 

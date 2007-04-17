@@ -3,10 +3,6 @@ AM_LDFLAGS= -L$(srcdir)/../bcppcl
 SUFFIXES=.cc .o
 AM_CXXFLAGS=-W -Wall
 
-ACLOCAL_AMFLAGS = 
-#use -Wno-syntax if Automake is >= v1.10 to suppress "underquoted" warnings
-#ACLOCAL_AMFLAGS = -Wno-syntax
-
 all_SOURCES = AdmixtureAssocTest.cc AdmixtureAssocTest.h \
 AffectedsOnlyTest.cc AffectedsOnlyTest.h \
 AlleleFreqs.cc AlleleFreqs.h \

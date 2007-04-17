@@ -95,6 +95,9 @@ AC_CONFIG_FILES([Makefile
 	   src/doxygen/Doxyfile
 	   test/Makefile
 	   test/admixmap/Makefile
+	   test/admixmap/tutorial/Makefile
+	   test/admixmap/tutorial/data/Makefile
+	   test/admixmap/tutorial/HapFreqs/Makefile
 	   dist/Makefile
 	   dist/admixmap/Makefile
 	   dist/hapmixmap/Makefile
