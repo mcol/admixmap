@@ -1,6 +1,8 @@
 #include "bcppcl/DataReader.h"
 #include "bcppcl/StringConvertor.h"
 #include <stdexcept>
+#include <ctype.h>
+#include <algorithm>
 
 StringSplitter DataReader::splitter;
 
@@ -24,7 +26,7 @@ void DataReader::ReadData(const char* filename, std::vector< std::vector<std::st
   convertMatrix(SMatrix, DMatrix, 0, 0, 0);
 }
 
-
+///read a file into a string matrix
 void DataReader::readFile(const char *fname, std::vector<std::vector<std::string> >& data, LogWriter &Log)
 {
     if (0 == fname || 0 == strlen(fname)) return;
@@ -42,18 +44,32 @@ void DataReader::readFile(const char *fname, std::vector<std::vector<std::string
 
     data.clear();
     try {
-      std::string line;        
+      std::string line; 
 
-        while (getline(in, line)) {
-	  if (!StringConvertor::isWhiteLine(line.c_str())) {
-	    data.push_back(splitter.split(line.c_str()));
-	    if(data.size()>1 && data[data.size()-1].size() != data[0].size()){
-	      std::string errstring = "Inconsistent row lengths in file ";
-	      errstring.append(fname);
-	      throw errstring;
-	    }
+      //check for header
+      getline(in, line);
+      if( find_if(line.begin(), line.end(), isalpha) == line.end() ){
+	std::string errstring = "ERROR: No header found in file ";
+	errstring.append(fname);
+	throw(errstring);
+      }
+
+      while (!in.eof()) {
+	//skip blank lines
+	if (!StringConvertor::isWhiteLine(line.c_str())) {
+	  //tokenise, splitting on whitespace
+	  data.push_back(splitter.split(line.c_str()));
+
+	  //throw exception if line has length different from header
+	  if(data.size()>1 && data[data.size()-1].size() != data[0].size()){
+	    std::string errstring = "Inconsistent row lengths in file ";
+	    errstring.append(fname);
+	    throw errstring;
 	  }
-        }
+	}
+	//read next line
+	getline(in, line);
+      }
     } catch (...) {
       in.close();
       throw;
