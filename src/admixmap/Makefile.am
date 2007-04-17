@@ -21,9 +21,9 @@ MisSpecAlleleFreqTest.cc MisSpecAlleleFreqTest.h \
 PopAdmix.cc PopAdmix.h \
 StratificationTest.cc StratificationTest.h
 
-admixmap_LDADD=$(builddir)/../base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
+admixmap_LDADD=$(top_builddir)/$(subdir)/../base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
 
-admixmap_DEPENDENCIES = $(builddir)/../base/libbase.a
+admixmap_DEPENDENCIES = $(top_builddir)/$(subdir)/../base/libbase.a
 
 #.cc.o:
 #	$(CXX) $(AM_CXXFLAGS) $(CXXFLAGS) $(AM_CPPFLAGS) $(CPPFLAGS) -c $<
