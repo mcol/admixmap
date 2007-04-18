@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <numeric>
 //#include <string>//for exceptions
-#include "bcppcl/SnapToZero.h"
+#include "IsNegative.h" //for verify
+#include <iterator>
 
 #define PVECTOR_PRECISION 1e-10
 #define PVECTOR_SUM 1.0
@@ -38,8 +39,17 @@ bool pvector<T>::verify(){
 
 template <class T>
 void pvector<T>::snapToZero(){
-  for_each(this->begin(), this->end(), SnapToZero<T>);
-  this->normalize();
+ for(typename pvector<T>::iterator i = this->begin(); i != this->end(); ++i){
+  if(*i < threshold) *i = 0;
+ } 
+ snapToZero(threshold);
+ this->normalize();
+}
+
+template <class T>
+void pvector<T>::snapToZero(const T t_threshold){
+  threshold = t_threshold;
+  snapToZero();
 }
 
 // Providing explicit template instantiation to avoid linker errors.
@@ -47,10 +57,12 @@ template bool pvector<double>::is_normalized();
 template void pvector<double>::normalize();
 template bool pvector<double>::verify();
 template void pvector<double>::snapToZero();
+template void pvector<double>::snapToZero(double);
 
 template bool pvector<float>::is_normalized();
 template void pvector<float>::normalize();
 template bool pvector<float>::verify();
 template void pvector<float>::snapToZero();
+template void pvector<float>::snapToZero(float);
 
 END_BCPPCL_NAMESPACE
