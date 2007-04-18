@@ -1,8 +1,7 @@
 AM_CPPFLAGS = -I$(srcdir)/..
 LDFLAGS=
 SUFFIXES=.cc .o
-WFLAGS=-W -Wall -fexceptions
-OPTFLAGS=
+OPTFLAGS=-fexceptions
 AM_CXXFLAGS=$(WFLAGS) $(OPTFLAGS)
 
 

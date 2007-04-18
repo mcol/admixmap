@@ -35,7 +35,7 @@ public:
   void ReadData(const DataMatrix& CoxData);
   double DerivativeInverseLinkFunction(unsigned i)const;
   double getDispersion()const;
-  void OutputParams(std::ostream* out);
+  void OutputParams(std::ostream* out)const;
   void Update(bool sumbeta, const std::vector<double>& Outcome, double coolness);
   double getLogLikelihood(const std::vector<double>& Outcome)const;
   double getLogLikelihood(const double* const _beta, const std::vector<double>& _HazardRates, 

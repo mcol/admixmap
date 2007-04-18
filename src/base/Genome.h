@@ -35,8 +35,8 @@ public:
   void Initialise(const InputData* const data_, int populations, LogWriter &Log);
 
   const vector<int> GetChrmAndLocus(int) const;
-  const int getChromosomeNumber(int) const;
-  const int getRelativeLocusNumber(int) const;
+  int getChromosomeNumber(int) const;
+  int getRelativeLocusNumber(int) const;
 
   const std::vector<  std::vector< int > >GetChrmAndLocus( )const;
   void GetChrmAndLocus(unsigned locus, unsigned* c, unsigned* l);

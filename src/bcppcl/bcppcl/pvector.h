@@ -4,8 +4,6 @@
 
 #include "bcppcl/Array.hh"
 
-#define PVECTOR_THRESHOLD 1e-20
-
 BEGIN_BCPPCL_NAMESPACE
 
 /// Extension of STL Vector to handle vectors of probabilities
@@ -19,7 +17,7 @@ public:
   bool verify();
   bool is_normalized();
   void snapToZero();
-  void print(std::ostream&, const T precision, const char* sep)const;
+  //void print(std::ostream&, const T precision, const char* sep)const;
 
 private:
   T sum;

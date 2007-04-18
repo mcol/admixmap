@@ -479,7 +479,7 @@ void PopHapMix::LambdaGradient( const double* const x, const void* const vargs, 
 
 //log posterior for h
 double PopHapMix::hlogf(double h, const void* const vargs){
-  const h_args* const args = (const h_args* const)vargs;
+  const h_args* const args = (h_args*)vargs;
   double sum = 0.0;
   double loglikelihood = 0.0;
   double logprior = 0.0;
@@ -498,7 +498,7 @@ double PopHapMix::hlogf(double h, const void* const vargs){
 
 //derivative of log posterior
 double PopHapMix::hdlogf(double h, const void* const vargs){
-  const h_args* const args = (const h_args* const)vargs;
+  const h_args* const args = (h_args*)vargs;
   double sum = 0.0;
   try{
     for(unsigned j = 0; j < args->NumIntervals; ++j){
@@ -513,7 +513,7 @@ double PopHapMix::hdlogf(double h, const void* const vargs){
 
 //second derivative of log posterior
 double PopHapMix::hd2logf(double h, const void* const vargs){
-  const h_args* const args = (const h_args* const)vargs;
+  const h_args* const args = (h_args*)vargs;
   double sum = 0.0;
   try{
     for(unsigned j = 0; j < args->NumIntervals; ++j){

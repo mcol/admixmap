@@ -155,7 +155,7 @@ void CoxRegression::Update(bool sumbeta, const std::vector<double>& , double coo
 //   }
 //}
 
-void CoxRegression::OutputParams(ostream* out){
+void CoxRegression::OutputParams(ostream* out)const{
   Regression::OutputParams(out);
   //TODO: ?? output hazard rates
 }

@@ -19,6 +19,8 @@ AR=ar
 AR_FLAGS="-cru"
 
 AC_ARG_VAR([EXTRA_FLAGS], [Extra C++ compiler flags])
+AC_ARG_VAR([WFLAGS], [Compiler warning flags])
+AC_SUBST(WFLAGS)
 
 AC_MSG_CHECKING([whether using $CXX preset flags])
 AC_ARG_ENABLE(cxx-flags-preset,
@@ -36,6 +38,7 @@ if test "$enableval" = yes ; then
 		CXX_OPTIMIZE_FLAGS="-O3 -Zp16 -ip -ansi_alias"
 		CXX_DEBUG_FLAGS="-g -O0 -C"
 		CXX_PROFIL_FLAGS="-pg"
+                WFLAGS="-w1"
 	;;
 	*g++*|*c++*)  dnl GNU C++  http://gcc.gnu.org/
 		CXX_VENDOR="GNU" 
@@ -49,6 +52,7 @@ if test "$enableval" = yes ; then
 			#CXXFLAGS=""
 			CXX_OPTIMIZE_FLAGS="-O3 -funroll-loops -fstrict-aliasing -fomit-frame-pointer -ffast-math"
 		fi
+                WFLAGS="-Wall"
 		CXX_DEBUG_FLAGS="-g"
 		CXX_PROFIL_FLAGS="-pg"
 	;;

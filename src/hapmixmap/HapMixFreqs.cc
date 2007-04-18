@@ -418,7 +418,7 @@ void HapMixFreqs::SamplePriorProportions(unsigned locus, double sumlogfreqs1, do
 }
 
 double HapMixFreqs::fmu_hapmix(double mu, const void* const vargs){
-    const hapmixmuargs* const args = (const hapmixmuargs* const)vargs;
+    const hapmixmuargs* const args = (hapmixmuargs*)vargs;
     double f = 0.0;
     const double eta = args->eta;
 //loglikelihood
@@ -431,7 +431,7 @@ double HapMixFreqs::fmu_hapmix(double mu, const void* const vargs){
     return f;
 }
 double HapMixFreqs::dfmu_hapmix(double mu, const void* const vargs){
-    const hapmixmuargs* const args = (const hapmixmuargs* const)vargs;
+    const hapmixmuargs* const args = (hapmixmuargs*)vargs;
     double f = 0.0;
     const double eta = args->eta;
 //derivative of loglikelihood
@@ -444,7 +444,7 @@ double HapMixFreqs::dfmu_hapmix(double mu, const void* const vargs){
     return f;
 }
 double HapMixFreqs::d2fmu_hapmix(double mu, const void* const vargs){
-    const hapmixmuargs* const args = (const hapmixmuargs* const)vargs;
+    const hapmixmuargs* const args = (hapmixmuargs*)vargs;
     double f = 0.0;
     const double eta = args->eta;
 //2nd derivative of loglikelihood

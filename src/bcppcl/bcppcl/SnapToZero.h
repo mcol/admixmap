@@ -6,6 +6,8 @@
 
 BEGIN_BCPPCL_NAMESPACE
 
+#define PVECTOR_THRESHOLD 1e-20
+
 template <class T>
 void SnapToZero(T& x, const T& threshold = PVECTOR_THRESHOLD){
     if (x < threshold)  x = 0;

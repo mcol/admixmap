@@ -1,7 +1,7 @@
 AM_CPPFLAGS = -I$(srcdir)/../bcppcl
 AM_LDFLAGS= -L$(srcdir)/../bcppcl
 SUFFIXES=.cc .o
-AM_CXXFLAGS=-W -Wall
+AM_CXXFLAGS=$(WFLAGS)
 
 all_SOURCES = AdmixtureAssocTest.cc AdmixtureAssocTest.h \
 AffectedsOnlyTest.cc AffectedsOnlyTest.h \

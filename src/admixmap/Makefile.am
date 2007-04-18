@@ -4,7 +4,6 @@ AM_CPPFLAGS=-I$(BAYESLIB_PATH)  -I$(BASELIB_PATH)
 
 AM_LDFLAGS=-static -L$(top_builddir)/src/bcppcl
 SUFFIXES=.cc .o
-WFLAGS=-W -Wall
 AM_CXXFLAGS=$(WFLAGS)
 
 bin_PROGRAMS = admixmap
