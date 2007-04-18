@@ -5,7 +5,7 @@
 source config.sh
 
 SUFFIX="$1"
-SEP="||"
+SEP="$2"
 INT_SEP=" $SEP "
 HEAD_SEP="$SEP "
 TRAIL_SEP=" $SEP"
@@ -27,8 +27,14 @@ do
 	for POPULATION in $POPULATIONS
 	do
 		echo -n -e "$INT_SEP"
-		MEAN_MI=$(cat ${POPULATION}${SUFFIX}/Chr22Results${STATES}States2/mean-coefficient-of-constraint.txt)
-		echo -n $MEAN_MI | head -c 6
+		MEAN_MI_FILE_NAME="${POPULATION}${SUFFIX}/Chr22Results${STATES}States2/mean-coefficient-of-constraint.txt"
+		if [ -r "${MEAN_MI_FILE_NAME}" ]
+		then
+			MEAN_MI="$(cat ${MEAN_MI_FILE_NAME})"
+		else
+			MEAN_MI="NA"
+		fi
+		echo -n ${MEAN_MI} | head -c 6
 	done
 	echo -n -e "$TRAIL_SEP"
 	echo
