@@ -6,7 +6,7 @@ Configuration:
 
 C Compiler         = $CC
 C++ Compiler       = $CXX
-Compiler flags     = $CXXFLAGS
+Compiler flags     = $WFLAGS $CXXFLAGS
 dnl CXX_OPTIMIZE_FLAGS = $CXX_OPTIMIZE_FLAGS
 dnl CXX_DEBUG_FLAGS    = $CXX_DEBUG_FLAGS
 Optimize           = $enable_optimize

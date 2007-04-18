@@ -68,6 +68,7 @@ if test "$enableval" = yes ; then
 		CXX_OPTIMIZE_FLAGS="-O3 -fstrict-aliasing -finline-functions"
 		CXX_DEBUG_FLAGS="-g"
 		CXX_PROFIL_FLAGS="-pg"
+                WFLAGS="-Wall"
 		#AR="$CXX"
 		#AR_FLAGS="-ar -o"
 	;;
