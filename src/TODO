@@ -1,20 +1,9 @@
-fix m4 inclusion
-
-automatic building of parallel hapmixmap
 
 namespaces for bcppcl
 
 package for tools
 
-custom packages for admixmap, hapmixmap in top dir
-
-recursive building of all sources in top dir
-
-script to assemble binary packages
-
 check compilation with Intel compiler
-
-revise scripts
 
 --with-baselib-path
 
@@ -25,7 +14,5 @@ revise scripts
 --with-mpi-path
 
 checks for sprng, gmp, bcppcl
-
-custom binary and src packages
 
 error messages if MPI, sprng, gsl etc no found

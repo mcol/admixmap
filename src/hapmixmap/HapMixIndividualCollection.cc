@@ -1,3 +1,16 @@
+/* 
+ *   HAPMIXMAP
+ *   HapMixIndividualCollection.cc
+ *   Container class for HapMixIndividual objects
+ *   Copyright (c) 2006, 2007 David O'Donnell and Paul McKeigue
+ *  
+ * This program is free software distributed WITHOUT ANY WARRANTY. 
+ * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
+ * version 2 or later, as published by the Free Software Foundation. 
+ * See the file COPYING for details.
+ * 
+ */
+
 #include "HapMixIndividualCollection.h"
 #include "HapMixOptions.h"
 //#include "HapMixIndividual.h"
@@ -7,7 +20,7 @@
 
 HapMixIndividualCollection
 ::HapMixIndividualCollection(const HapMixOptions* const options, 
-			     const InputData* const Data, Genome* Loci, const double* theta){
+			     InputData* const Data, Genome* Loci, const double* theta){
   SetNullValues();
   NumCompLoci = Loci->GetNumberOfCompositeLoci();
   GlobalConcordanceCounts = 0;

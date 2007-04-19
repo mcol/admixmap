@@ -169,6 +169,7 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
 
   EtaRate = EtaRatePriorShape / EtaRatePriorRate;
   HapMixMuArgs.K = Populations;
+  //initialise sampler for freq precision Dirichlet prior proportions, bounded by 0 and 1
   MuSampler.Initialise(true, true, 1.0, 0.0, fmu_hapmix, dfmu_hapmix );
 
   std::ifstream initialvaluefile;

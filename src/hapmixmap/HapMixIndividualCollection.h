@@ -24,7 +24,7 @@ class HapMixIndividualCollection : public IndividualCollection
 {
 public:
   ///constructor
-  HapMixIndividualCollection(const HapMixOptions* const options, const InputData* const Data, Genome* Loci, const double* theta);
+  HapMixIndividualCollection(const HapMixOptions* const options, InputData* const Data, Genome* Loci, const double* theta);
   //destructor
   ~HapMixIndividualCollection();
   ///samples hidden states for each individual and calculates sufficient statistics for population-level parameters

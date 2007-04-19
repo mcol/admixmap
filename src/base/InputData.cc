@@ -211,6 +211,11 @@ void InputData::CheckData(Options *options, LogWriter &Log){
 	CheckRepAncestryFile(options->getPopulations(), Log);
   }
 
+  if(options->getHapMixModelIndicator() && options->CheckData()){
+    alleleCounts[0].assign(NumCompositeLoci, 0);
+    alleleCounts[1].assign(NumCompositeLoci, 0);
+  }
+
 }
 ///determine number of individuals by counting lines in genotypesfile 
 int InputData::getNumberOfIndividuals()const {
@@ -584,6 +589,23 @@ void InputData::CheckRepAncestryFile(int populations, LogWriter &Log)const{
   }
 }
 
+void InputData::CheckForMonomorphicLoci(LogWriter& Log)const{
+  std::vector<unsigned> MMLoci;
+
+  for(unsigned locus = 0; locus < NumCompositeLoci; ++locus){
+    if(!alleleCounts[0][locus] || !alleleCounts[1][locus])
+      MMLoci.push_back(locus);  
+  }
+  if(MMLoci.size()){
+    Log << On << "ERROR: The following loci are monomorphic. Check your genotypesfile.\n";
+    for(vector<unsigned>::const_iterator j = MMLoci.begin(); j != MMLoci.end(); ++j){
+      Log << geneticData_[0][*j+1] << "\n";
+    }
+    exit(1);
+  }
+
+}
+
 ///determines if an individual is female
 bool InputData::isFemale(int i)const{
   //if (options->getgenotypesSexColumn() == 1) {
@@ -603,6 +625,7 @@ vector<unsigned short> InputData::GetGenotype(unsigned locus, int individual, in
   return GetGenotype(geneticData_[individual][col]);
 }
 
+///gets a hapmix case-control genotype from the ccgenotypes file
 vector<unsigned short> InputData::GetCaseControlGenotype(unsigned locus, unsigned* cclocus,
                                                                   int individual, int SexColumn)const{
   vector<unsigned short> g;
@@ -621,6 +644,7 @@ vector<unsigned short> InputData::GetCaseControlGenotype(unsigned locus, unsigne
   return g;
 }
 
+///extract a genotype as a string from the genotype file and convert to a vector of unsigned ints
 vector<unsigned short> InputData::GetGenotype(const string genostring)const{
   vector<unsigned short> g;
  
@@ -647,16 +671,11 @@ vector<unsigned short> InputData::GetGenotype(const string genostring)const{
   return g;  
 }
 
-/** gets genotypes in admixmapmodel (hapmix genotypes are coded differently)
- * 
- * Reads from Genome and writes to genotypes.
- * 
- * @see Genome
- */
-void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci,
-      vector<genotype>* genotypes, bool** Missing)
+///gets genotypes in admixmap model (hapmix genotypes are coded differently)
+void InputData::GetGenotype(int i, int SexColumn, const Genome &Loci,  vector<genotype>* genotypes, bool** Missing)
 const
 {
+  //these next lines should be removed (but cannot be yet as HapMixIndividual still calls this function)
   if(i > NumIndividuals && NumCCIndividuals) {
     GetCaseControlGenotype(i, SexColumn, Loci, genotypes, Missing);
     return;
@@ -680,11 +699,8 @@ const
       unsigned int count = 0;
       //  if(isXchrm)numXloci += numloci;
       for (int locus = 0; locus < numLoci; locus++) {
-#ifdef PARALLEL
-	const int numalleles = 2;
-#else
 	const int numalleles = Loci(complocus)->GetNumberOfAllelesOfLocus(locus);
-#endif
+
 	vector<unsigned short> g = GetGenotype(simplelocus, i, SexColumn);
 	if(g.size()==2)
 	  if( (g[0] > numalleles) || (g[1] > numalleles))
@@ -726,7 +742,8 @@ const
   CheckGenotypes(numhaploid, numdiploid, numhaploidX, numdiploidX, i, geneticData_[i][0]);
 }
 
-bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vector<unsigned short>* genotypes, bool** Missing)const{
+///fills a hapmix individual's genotype vector
+bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vector<unsigned short>* genotypes, bool** Missing){
   const bool isCaseControl = (bool)(i > getNumberOfIndividuals() - getNumberOfCaseControlIndividuals() );
 
   unsigned long numhaploid = 0, numdiploid = 0, numhaploidX = 0, numdiploidX = 0;
@@ -756,6 +773,7 @@ bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vect
         else{//exclude missing genotypes from counts
           if(isXChr)++numhaploidX;
           else ++numhaploid;
+	  if(!isCaseControl && alleleCounts[g[0]-1].size())++alleleCounts[g[0]-1][locus];
         }
         
       }
@@ -765,7 +783,7 @@ bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vect
           throwGenotypeError(i, locus, Loci(locus)->GetLabel(0), g[0], g[1], 2);
         
         unsigned short gg = g[0]+g[1];
-        if(gg>0){
+        if(gg>0){//not missing
           if(isXChr)++numdiploidX;
           else ++numdiploid;
         }
@@ -777,14 +795,20 @@ bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vect
           }
           case 2:{//1,1
             genotypes->push_back(1);
+	    if(!isCaseControl && alleleCounts[0].size())++alleleCounts[0][locus];
             break;
           }
           case 3:{//1,2
             genotypes->push_back(3);
+	    if(!isCaseControl && alleleCounts[0].size()){
+	      ++alleleCounts[0][locus];
+	      ++alleleCounts[1][locus];
+	    }
             break;
           }
           case 4:{//2,2
             genotypes->push_back(2);
+	    if(!isCaseControl && alleleCounts[1].size())++alleleCounts[1][locus];
             break;
           }
           default:{
@@ -794,6 +818,12 @@ bool InputData::GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, vect
             
         }
       } //end if diploid
+      else {//bad formatting eg 1,1,1
+	cerr << "Unrecognized genotype format - "
+	     << geneticData_[i][locus]
+	     << " - at locus " << Loci(locus)->GetLabel(0) << " for individual " << geneticData_[i][0] << std::endl;
+	exit(1);
+      }
      ++locus;
     }
   }
@@ -806,6 +836,7 @@ return isHaploid;
 }
 
 ///check an Individual's genotypes are valid
+//writes error messages to cerr as logfile is not available yet
 void InputData::CheckGenotypes(unsigned long numhaploid, unsigned long numdiploid, unsigned long numhaploidX, unsigned long numdiploidX, unsigned i, const string& ID)const{
 
 ///check for no observed genotypes
@@ -843,6 +874,9 @@ void InputData::CheckGenotypes(unsigned long numhaploid, unsigned long numdiploi
   }
 
 }
+
+///obsolete function for retrieving a hapmix case/control genotype, called by admixmap's GetGenotype function
+//should be removed
 void InputData::GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci, vector<genotype>* genotypes, bool** Missing)const{
   unsigned int simplelocus = 0;//simple locus counter
   unsigned complocus = 0;
@@ -935,13 +969,18 @@ void InputData::GetCaseControlGenotype(int i, int SexColumn, const Genome &Loci,
   }
 
 }
+
+///search the loci in genotypesfile for loci in a ccgenotypesfile
 void InputData::FindCaseControlLoci(){
   for(Vector_s::const_iterator j = geneticData_[0].begin()+1; j != geneticData_[0].end(); ++j){
     isCaseControlSNP.push_back(StringConvertor::isListedString(*j, CCgeneticData_[0]));
   }
 }
 
+///write an error message to stderr when a genotype has an invalid allele number
+// Doesn't actually throw anything and has to use cerr as logfile is not available yet
 void InputData::throwGenotypeError(int ind, int locus, std::string label, int g0, int g1, int numalleles)const{
+
   cerr << "Error in genotypes file:\n"
        << "Individual " << ind << " at locus " << locus <<" (" << label << ")"
        << " has genotype " << g0 << ", " << g1 << " \n"

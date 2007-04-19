@@ -3,7 +3,7 @@
  *   ADMIXMAP
  *   InputData.h 
  *   header file for InputData class
- *   Copyright (c) 2005, 2006 David O'Donnell and Paul McKeigue
+ *   Copyright (c) 2005 - 2007 David O'Donnell and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -98,8 +98,9 @@ public:
   GeneticDistanceUnit getUnitOfDistance()const;
   const std::string& getUnitOfDistanceAsString()const;
   void GetGenotype(int i, int SexColumn, const Genome &Loci, std::vector<genotype>* genotypes, bool **Missing)const;
-  bool GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, std::vector<unsigned short>* genotypes, bool** Missing)const;
+  bool GetHapMixGenotype(int i, int SexColumn, const Genome &Loci, std::vector<unsigned short>* genotypes, bool** Missing);
 
+  void CheckForMonomorphicLoci(LogWriter& Log)const;
 private:    
   Matrix_s locusData_;
   Matrix_s geneticData_;
@@ -133,6 +134,7 @@ private:
   unsigned NumCompositeLoci;
   bool IsPedFile;
   std::vector<bool> isCaseControlSNP;
+  std::vector<unsigned> alleleCounts[2];///< counts of alleles in hapmix genotypesfile, to check for monomorphic loci
 
   void getPopLabels(const Vector_s& data, size_t Populations, Vector_s& labels);
   void ReadPopulationLabels(Options *options);

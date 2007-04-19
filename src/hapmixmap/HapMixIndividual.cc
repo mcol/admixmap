@@ -56,7 +56,7 @@ map<int, int> HapMixIndividual::ord2unord;
 //}
 
 //Note: assuming SetStaticMembers is called first
-HapMixIndividual::HapMixIndividual(int number, const Options* const options, const InputData* const Data, const double* GlobalTheta){
+HapMixIndividual::HapMixIndividual(int number, const Options* const options, InputData* const Data, const double* GlobalTheta){
 
   GenotypesMissing = new bool*[numChromosomes];
   for( unsigned int j = 0; j < numChromosomes; j++ ){
