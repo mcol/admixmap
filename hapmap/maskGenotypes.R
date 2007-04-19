@@ -57,7 +57,9 @@ genotypes <- read.table(
 	colClasses = "character",
 	row.names = "Individ")
 
-# genotypes <- read.table( "Eur/chr22data/d1_test.txt", header = TRUE, na.strings = c("\"0,0\"", "0,0", "\"0\"", "0"), colClasses = "character", row.names = "Individ")
+# genotypes <- read.table( "Eur/chr22data/d1_test.txt", header = TRUE,
+# na.strings = c("\"0,0\"", "0,0", "\"0\"", "0"), colClasses
+# = "character", row.names = "Individ")
 
 message("Data reading finished.")
 

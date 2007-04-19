@@ -121,6 +121,8 @@ sub write_idx_to_file(\$\$$\@\@$) {
 		$firstline[0] = "Individ";
 	}
 	$limit = $limit_loci ? $limit_loci : ($#firstline - 1);
+    # If the limit is less than the number of loci, use the number of
+    # loci.
     if ($limit_loci and $limit_loci < $#firstline) {
         $limit =  $limit_loci;
     } else {

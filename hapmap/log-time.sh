@@ -15,6 +15,7 @@ then
 fi
 
 TIME_FILE=time-stats.txt
+CURRENT_TIME=$(date +%Y-%m-%d-%H-%M-%S)
 
 POPULATION=$(cat $LOG_FILE | grep Loading | head -n 1 | cut -d" " -f2 | cut -d"/" -f1)
 STATES=$(cat $LOG_FILE | grep states | cut -d" " -f 5)
@@ -31,5 +32,5 @@ then
 fi
 ELAPSED=$(cat $LOG_FILE | grep "Elapsed seconds" | cut -d"=" -f2)
 
-echo -e >> "$TIME_FILE" "$POPULATION\t$STATES\t$SAMPLES\t$HAPLOID\t$DIPLOID\t$ELAPSED"
+echo -e >> "$TIME_FILE" "$CURRENT_TIME\t$POPULATION\t$STATES\t$SAMPLES\t$HAPLOID\t$DIPLOID\t$ELAPSED"
 # echo -e "$POPULATION\t$STATES\t$SAMPLES\t$HAPLOID\t$DIPLOID\t$ELAPSED"

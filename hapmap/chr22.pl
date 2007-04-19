@@ -162,7 +162,7 @@ my $arg_hash = {
     states     => $STATES,
     checkdata       => 0,
     # mixturepropsprior => "50, 1",
-    fixedmixtureprops => 0,
+    fixedmixtureprops => 1,
     fixedmixturepropsprecision =>1,
 
 #main options
@@ -177,13 +177,16 @@ my $arg_hash = {
 
 #prior spec
     arrivalrateprior => "30, 0.1, 10, 1",
-    allelefreqprecisionprior => "0.2, 1, 1",
+    # allelefreqprecisionprior => "0.2, 1, 1",
+    allelefreqprecisionprior => "25, 1000, 10",
 
     arrivalratesamplerparams => "0.1, 0.00001, 10, 0.9, 20",
+
 #output files
     logfile =>'logfile.txt',
     paramfile         =>'paramfile.txt',#mean and var of sampled arrival rates
     freqprecisionfile =>'freqprecision.txt', #mean and var of sampled allele freq precision
+    arrivalrateposteriormeanfile => "ArrivalRatePosteriorMeans.txt",
 
 #posterior means
     #arrivalrateposteriormeanfile => 'ArrivalRatePostMeans.txt',
