@@ -55,9 +55,6 @@ void AllelicAssocTest::Initialise(Options* op, const IndividualCollection* const
   if(rank==0)OpenFile(Log, &outputfile, options->getAllelicAssociationScoreFilename(), 
 		      "Tests for allelic association", true);
       
-#ifdef PARALLEL
-      int dimalleleinfo = 0, dimhapinfo = 0;
-#endif
       locusObsIndicator = new int[L];
       
       //search for loci with no observed genotypes
@@ -84,18 +81,9 @@ void AllelicAssocTest::Initialise(Options* op, const IndividualCollection* const
 	else//simple multiallelic locus
 	  SubTests.push_back(new MultiAllelicLocusTest(NumberOfStates, (rank==0)));
 	
-#ifdef PARALLEL
-	dimalleleinfo += (dim_[j] + NumCovars) * (dim_[j] + NumCovars);
-	
-	if( NumberOfLoci > 1 )
-	  dimhapinfo += NumberOfLoci * (1 + NumCovars) * (1 + NumCovars);
-#endif
-	
 
       }//end loop over loci
 #ifdef PARALLEL
-      Comms::SetDoubleWorkspace(max(dimalleleinfo, dimhapinfo), rank==0);
-      Comms::SetIntegerWorkspace(L, (rank==0));
       //accumulate locusObsIndicator over individuals (processes) 
       Comms::AllReduce_int(locusObsIndicator, L);
 #endif
@@ -135,9 +123,6 @@ void AllelicAssocTest::SetAllelicAssociationTest(const std::vector<double> &alph
   for( int k = 0; k < options->getPopulations(); k++ )
     alphaScaled[k] = alpha0[k] / sum;
 
-#ifdef PARALLEL
-  int dimalleleinfo = 0;
-#endif
   //merge rare haplotypes
   for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ ){
     if( (*Lociptr)(j)->GetNumberOfLoci() > 1 ){//skip simple loci
@@ -146,13 +131,7 @@ void AllelicAssocTest::SetAllelicAssociationTest(const std::vector<double> &alph
 
       HaplotypeAssocTests[j]->Resize(NumMergedHaplotypes);
     }
-#ifdef PARALLEL
-    dimalleleinfo += ( NumMergedHaplotypes + NumCovars) * (NumMergedHaplotypes + NumCovars );
-#endif
   }
-#ifdef PARALLEL
-  Comms::SetDoubleWorkspace(dimalleleinfo, (rank==0));
-#endif
 
   delete[] alphaScaled;
 }
@@ -270,11 +249,8 @@ void AllelicAssocTest::ROutput(){
    int count = 0;
    for(unsigned int j = 0; j < Lociptr->GetNumberOfCompositeLoci(); j++ )
     if(locusObsIndicator[j]){
-#ifdef PARALLEL
-    const int NumberOfLoci = 1;
-#else
     const int NumberOfLoci = (* Lociptr)(j)->GetNumberOfLoci();
-#endif
+
     if( NumberOfLoci == 1 ) count += SubTests[j]->getDim();
     else count += NumberOfLoci;
   }         

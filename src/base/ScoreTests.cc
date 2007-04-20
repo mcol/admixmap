@@ -1,11 +1,8 @@
 /** 
  *   ScoreTests.cc 
- *   Class implements the following score tests:
-
+ *   Class acts as a container for the following tests:
  *   (1) Score test for allelic association
  *   (2) Score test for within-halpotype association
- *
- *  Also acts as a wrapper for the following tests:
  *   (3) Score test for admixture association (admixturescoretest)
  *   (4) Score test for linkage with locus ancestry
  *   (5) Affecteds-only score test for linkage with locus ancestry
@@ -166,14 +163,6 @@ void ScoreTests::Update(const vector<Regression* >& R)
     }
   }
   
-#ifdef PARALLEL
-  if( options->getTestForAllelicAssociation() ){
-    Comms::ReduceAllelicAssocScores(LocusLinkageAlleleScore, LocusLinkageAlleleInfo, Lociptr->GetNumberOfCompositeLoci(), 
-				    dim_,individuals->GetNumCovariates() - individuals->GetNumberOfInputCovariates());
-  }
-
-#endif
-
   if(rank==0){
 
       //-----------------------------
