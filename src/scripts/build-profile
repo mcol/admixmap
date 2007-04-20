@@ -3,7 +3,7 @@
 # This is for profiling on Core 2 Duo (architecture nocona)
 export LDFLAGS=""
 export CPPFLAGS=""
-export EXTRAFLAGS="\
+export EXTRA_FLAGS="\
 -march=nocona \
 -O3 \
 -ffast-math \

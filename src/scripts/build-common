@@ -24,22 +24,25 @@ then
 	echo
 fi
 
-if [ ! -x "./configure" ]
+if [ ! -x "./configure" ];
 then
 	echo "./configure not present, invoking autoreconf"
 	autoreconf
 fi
 
+if [ -x "Makefile" ];
+then
 make distclean
+fi
 
-echo "config-options"='$USER_CONFIG_OPTS'"
+echo "config-options='$USER_CONFIG_OPTS'"
 echo "CXXFLAGS='$CXXFLAGS'"
 echo "CPPFLAGS='$CPPFLAGS'"
 echo "LDFLAGS='$LDFLAGS'"
 echo
 echo ./configure --prefix "${USER_PREFIX}" ${USER_CONFIG_OPTS}
 ./configure --prefix "${USER_PREFIX}" ${USER_CONFIG_OPTS}
-if [ "$?" != "0" ]
+if [ "$?" != "0" ];
 then
 	echo "Configure failed."
 	exit 1
