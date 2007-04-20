@@ -3,10 +3,6 @@ namespaces for bcppcl
 
 package for tools
 
-check compilation with Intel compiler
-
---with-baselib-path
-
 --with-bcppcl-path
 
 --with-sprng-path
@@ -15,4 +11,4 @@ check compilation with Intel compiler
 
 checks for sprng, gmp, bcppcl
 
-error messages if MPI, sprng, gsl etc no found
+error messages if MPI, sprng, gsl etc not found

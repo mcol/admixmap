@@ -394,11 +394,12 @@ void InputData::CheckAlleleFreqs(Options *options, LogWriter &Log){
   unsigned index = 0;
   for(unsigned i = 0; i < NumCompositeLoci; ++i){
     int states = 1;
+
     do{
       states *= (int)locusMatrix_.get( index, 0 );
       index++;
     }
-    while( index < locusMatrix_.nRows() - 1 && !locusMatrix_.isMissing(index, 1) && locusMatrix_.get( index, 1 ) == 0 );
+    while( index < locusMatrix_.nRows() && !locusMatrix_.isMissing(index, 1) && locusMatrix_.get( index, 1 ) == 0 );
     NumberOfStates += states;
   }
 
