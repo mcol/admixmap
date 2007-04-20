@@ -796,7 +796,7 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
         p <- allelefreq.means.list[[locus]][[pop]]#[-1]
         v <- allelefreq.covs.list[[locus]][[pop]] #[-1,-1]
 
-      if(sum(v)>0){
+      if(sum(diag(v))>0) { # if posterior variance > 0
         if(length(p)==2) {#diallelic locus
           factor <- p[1]*(1 - p[1])/v[1,1]
         } else {
@@ -811,16 +811,11 @@ fitDirichletParams <- function(allelefreq.means.list, allelefreq.covs.list) {
           d.observed <- sum(diag(v))##det(v)
           factor <- (d.predicted/d.observed)##^(1/length(p))
         }
-##        if(pop==1) { # create matrix of allele freqs: rows index alleles, cols index populations  
-##          allelefreq.params.list[[locus]] <- matrix(data=NA, nrow=length(p), ncol=k,
-##                                                    dimnames=dimnames(allelefreq.means.list[[locus]][-1]))
-##                                        #list(character(0), population.labels))
-##        }
         allelefreq.sumalphas[locus,pop] <- factor - 1
         allelefreq.params.list[[locus]][[pop]] <-
           allelefreq.sumalphas[locus,pop]*allelefreq.means.list[[locus]][[pop]] 
-      }else{
-        allelefreq.params.list[[locus]][[pop]] <-allelefreq.means.list[[locus]][[pop]]
+      }else{ # posterior variance zero: allele freqs effectively fixed
+        allelefreq.params.list[[locus]][[pop]] <- 1000 * allelefreq.means.list[[locus]][[pop]]
       }
     }##end pop loop
   }## end locus loop
