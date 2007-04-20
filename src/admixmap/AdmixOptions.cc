@@ -67,11 +67,6 @@ void AdmixOptions::SetDefaultValues(){
   etavar = 2500.0; 
 
 
-  //prior on frequency Dirichlet prior params in hapmixmodel
-  //allelefreqprior.push_back(0.01);//shape
-  //allelefreqprior.push_back(0.1);//prior shape of rate
-  //allelefreqprior.push_back(1.0);//prior rate of rate
-
   LikRatioFilename = "LikRatioFile.txt";//hardcoding for now, can change later
 
   // option names and default option values are stored as strings in a map container 
@@ -113,7 +108,7 @@ bool AdmixOptions::getOutputFST() const
 
 bool AdmixOptions::getFixedAlleleFreqs() const
 {
-  return (fixedallelefreqs || (alleleFreqFilename.length() && !HapMixModelIndicator));
+  return (fixedallelefreqs || alleleFreqFilename.length() );
 }
 bool AdmixOptions::getCorrelatedAlleleFreqs() const
 {
@@ -225,14 +220,14 @@ bool AdmixOptions::getTestForAdmixtureAssociation() const
 }
 
 double AdmixOptions::getRhoPriorMean()const{
-  if( !HapMixModelIndicator && (GlobalRho || !IndAdmixHierIndicator ) )
+  if( GlobalRho || !IndAdmixHierIndicator  )
     return globalrhoPrior[0] / globalrhoPrior[1];
   else 
     return rhoPrior[0] * rhoPrior[2] / (rhoPrior[1] - 1.0);
 }
 
 double AdmixOptions::getRhoalpha() const {
-  if(!HapMixModelIndicator && (GlobalRho || !IndAdmixHierIndicator)) {
+  if(GlobalRho || !IndAdmixHierIndicator) {
     return globalrhoPrior[0];
   } else {
     return rhoPrior[0];
@@ -381,7 +376,6 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
 {
   //set up Option map
   //first set options for this class
-  //A = AdmixOption, H = HapMixOption, C = Common (Base class)
 
   ProgOptions["populations"] = OptionPair(&Populations, "int");
   ProgOptions["allelefreqfile"] = OptionPair(&alleleFreqFilename, "string");
@@ -390,15 +384,15 @@ void AdmixOptions::SetOptions(OptionMap& ProgOptions)
   //standard output files (optional)
 
   //file to write sampled values of dispersion parameter
-  ProgOptions["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");// C
+  ProgOptions["dispparamfile"] = OptionPair(&EtaOutputFilename, "outputfile");
   ProgOptions["indadmixturefile"] = OptionPair(&IndAdmixtureFilename, "outputfile");
 
   //prior and model specification
-  ProgOptions["hapmixmodel"] = OptionPair(&HapMixModel, "bool");//this will cause program to abort if 1
+  ProgOptions["hapmixmodel"] = OptionPair(0, "null");//this will cause program to abort if 1
   ProgOptions["randommatingmodel"] = OptionPair(&RandomMatingModel, "bool");
   ProgOptions["globalrho"] = OptionPair(&GlobalRho, "bool");
   ProgOptions["indadmixhiermodel"] = OptionPair(&IndAdmixHierIndicator, "bool");
-  ProgOptions["etapriorfile"] = OptionPair(&EtaPriorFilename, "string");//C
+  ProgOptions["etapriorfile"] = OptionPair(&EtaPriorFilename, "string");
   ProgOptions["globalsumintensitiesprior"] = OptionPair(&globalrhoPrior, "dvector");
   ProgOptions["sumintensitiesprior"] = OptionPair(&rhoPrior, "dvector");
   ProgOptions["etapriormean"] = OptionPair(&etamean, "double");
@@ -457,7 +451,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   bool badOptions = false;//to indicate invalid options. Prog will exit at end of function if true.
   Log.setDisplayMode(Quiet);
 
-  if(HapMixModel){
+  if(useroptions["hapmixmodel"].size() && useroptions["hapmixmodel"] != "0"){
     Log << On << "ERROR: 'hapmixmodel' option is not supported. Consider trying HAPMIXMAP instead\n" << Quiet;
     badOptions = true;
   }
@@ -608,10 +602,6 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
       else Log <<"undefined\n";
       useroptions.erase("globalsumintensitiesprior") ;  
     }
-  //if(allelefreqprior.size())
-  //Log << "Warning: option 'allelefreqprior' is valid only with a hapmixmodel. This option will be ignored\n";
-
-
 
   //Prior on admixture
   setInitAlpha(Log);
@@ -625,7 +615,7 @@ int AdmixOptions::checkOptions(LogWriter &Log, int NumberOfIndividuals){
   if( (alleleFreqFilename.length()) ||
            (PriorAlleleFreqFilename.length() && fixedallelefreqs ) ){
     Log << "Analysis with fixed allele frequencies.\n";
-    if(OutputAlleleFreq && !HapMixModelIndicator){
+    if(OutputAlleleFreq ){
       Log << "ERROR: allelefreqoutputfile option is invalid with fixed allele frequencies\n"
 	  << "       this option will be ignored\n";
       useroptions.erase("allelefreqoutputfile");
@@ -738,14 +728,13 @@ void AdmixOptions::setInitAlpha(LogWriter &Log){
   if( initalpha[0].size() == 0 && initalpha[1].size() == 0 ){
     fill( alphatemp.begin(), alphatemp.end(), 1.0);//fill alphatemp with 1s
     initalpha[0] = alphatemp; initalpha[1] = alphatemp;//put 2 copies of alphatemp in alpha
-    if(!HapMixModelIndicator){
-      if(!IndAdmixHierIndicator)
-	Log << "Dirichlet parameters of prior on admixture: ";
-      else 
-	Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
-      for(int k = 0;k < Populations; ++k){Log << alphatemp[k] << " " ;}
-      Log << "\n";
-    }
+    if(!IndAdmixHierIndicator)
+      Log << "Dirichlet parameters of prior on admixture: ";
+    else 
+      Log << "Initial value for population admixture (Dirichlet) parameter vector: ";
+    for(int k = 0;k < Populations; ++k){Log << alphatemp[k] << " " ;}
+    Log << "\n";
+
   }
   //if only initalpha0 specified, sets initial values of alpha parameter vector for both gametes
   // if indadmixhiermodel=0, alpha values stay fixed

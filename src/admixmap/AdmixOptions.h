@@ -107,7 +107,6 @@ private:
   bool locusForTestIndicator;
   int LocusForTest;
   bool correlatedallelefreqs;
-  bool HapMixModel;
   bool RandomMatingModel;//random mating model
   bool GlobalRho;//indicator for global rho
   bool IndAdmixHierIndicator;//hierarchical model on ind admixture
@@ -132,7 +131,6 @@ private:
   //double RhobetaShape, RhobetaRate;//gamma parameters for prior on rhobeta
   std::vector<double> globalrhoPrior;
   std::vector<double> rhoPrior;
-  std::vector<double> hapmixlambdaprior;///< prior means of rho prior params in hapmixmodel
   std::vector<double> alpha0;
   std::vector<double> alpha1;
   std::vector< std::vector<double> > initalpha;
