@@ -55,7 +55,6 @@ void HapMixOptions::SetDefaultValues(){
 
   useroptions["states"] = "4";
   useroptions["arrivalrateprior"] = "30, 0.1, 10, 1";
-  //useroptions["mixturepropsprecisionprior"] = "1,1";
   useroptions["finalallelefreqfile"] = AlleleFreqOutputFilename;
   useroptions["finalfreqpriorfile"] = FinalFreqPriorFilename;
   useroptions["finalarrivalratefile"] = FinalLambdaFilename;
@@ -325,7 +324,7 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
   }else{//we are sampling mixture props
     if(!FixedMixturePropsPrecision){//we are also sampling mixture props precision
       //check mixture props prior has length 2 and both elements are positive
-      if( useroptions["mixturepropsprecisionprior"].size() && //if user has specified a prior
+      if( MixturePropsPrecisionPrior.size() && //if user has specified a prior
 	  (MixturePropsPrecisionPrior.size()!=2 || MixturePropsPrecisionPrior[0] <= 0.0 || MixturePropsPrecisionPrior[1] <= 0.0) ){
 	Log << "ERROR: 'mixturepropsprecisionprior' should be 2 positive numbers\n";
 	badOptions = true;
@@ -342,11 +341,10 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
       }
     }
   }// end random mixture props block
-  if(FixedMixturePropsPrecision  && useroptions["mixturepropsprecisionprior"].size()){
+  if(FixedMixturePropsPrecision  && MixturePropsPrecisionPrior.size()){
       Log << "WARNING: option 'mixturepropsprecisionprior' is not valid with 'fixedmixturepropsprecision'\n";
       useroptions.erase("mixturepropsprecisionprior");
   }
-
 
   // **** model for allele freqs ****
 
@@ -398,6 +396,7 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     //if(NumAnnealedRuns==0) NumAnnealedRuns = 100;
     Log << "\nUsing thermodynamic integration to calculate marginal likelihood ";
   }
+
 
   if(badOptions) return 1;
   else return 0;
