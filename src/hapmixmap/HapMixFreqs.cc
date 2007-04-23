@@ -24,6 +24,7 @@ HapMixFreqs::HapMixFreqs(){
   SumEta = 0;
   NumEtaUpdates = 0;
   accumulateEta = false;
+  etaHierModel = true;
   DiploidGenotypeProbs.array = 0;
   FREQSAMPLER = FREQ_HAMILTONIAN_SAMPLER;
 }
@@ -47,14 +48,13 @@ void HapMixFreqs::Initialise(HapMixOptions* const options, InputData* const data
   
   if(Comms::isFreqSampler()){
     LoadAlleleFreqs(options, data, Log);
-    Log.setDisplayMode(On);
-    //open allelefreqoutputfile
-    if(IsRandom() ){
-      OpenOutputFile(options->getFreqPrecisionOutputFilename());
-    }
     
     InitialisePrior(Populations, NumberOfCompositeLoci, options, Log );  
 
+    //open freqpriorfile
+    if(IsRandom() ){
+      OpenOutputFile(options->getFreqPrecisionOutputFilename());
+    }
   }//end if is freqsampler
   if(Comms::isFreqSampler() || Comms::isWorker()){
     AllocateAlleleCountArrays(options->getPopulations());
@@ -258,6 +258,8 @@ void HapMixFreqs::LoadAlleleFreqs(HapMixOptions* const options, InputData* const
     }
   }//end else
 }
+
+///opens file for output of precision mean and var and prior rate
 void HapMixFreqs::OpenOutputFile(const char* filename){
   if(strlen(filename)){
     allelefreqprioroutput.open(filename);
