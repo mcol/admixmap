@@ -84,8 +84,8 @@ void PopHapMix::Initialise(const string& distanceUnit, LogWriter& Log){
 ///initialise global admixture proportions
 void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
   const unsigned L = Loci->GetNumberOfCompositeLoci();
-
-  MixtureProps = new double[K*L];
+  const unsigned KL = K*L;
+  MixtureProps = new double[KL];
 
   //set initial values
   const char* initfilename = options->getInitialMixturePropsFilename();
@@ -95,10 +95,17 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
 
     if(initfile.is_open()){
       Log << Quiet << "Reading initial values of mixture proportions from " << initfilename << "\n";
-      //copy initial values straight from file into array
-      istream_iterator<double>firstvalue(initfile);
-      //NOTE: does not check number of elements
-      copy(firstvalue, istream_iterator<double>(), MixtureProps);
+      unsigned index = 0;
+      do{
+          initfile >> MixtureProps[index];
+          ++index;
+      }while(!initfile.eof() && index < KL);
+       if(index < KL){
+           Log << On << "\nERROR: Too few entries in initialmixturepropsfile. Expected " << KL
+               << ", found " << index-1 << "\n";
+           exit(1);
+       }
+
       initfile.close();
     }
     else{
@@ -234,12 +241,18 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
 
     //read initial values of h, beta
     initfile >> LambdaArgs.h >> LambdaArgs.beta;
-    //copy initial values of lambda straight from file into vector
-    istream_iterator<double>firstlambda(initfile);
-    //copy(firstlambda, firstlambda + numIntervals, lambda.begin());
-    //NOTE: does not check number of elements
-    copy(firstlambda, istream_iterator<double>(), lambda.begin());
-    initfile.close();
+
+      vector<double>::iterator ar = lambda.begin();
+      while(!initfile.eof() && ar != lambda.end()){
+        initfile >> *ar;
+        ++ar;
+      }
+      if(ar != lambda.end()){
+          Log << On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
+              << numIntervals + 2 << ", found " << numIntervals - (int)(lambda.end() - ar)+2 << "\n";
+          exit(1);
+      }
+
     }
     else{
       string err("ERROR: cannot open initialarrivalratefile: ");

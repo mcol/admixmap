@@ -185,6 +185,9 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
     if(initialvaluefile.is_open()){//read values from file
       initialvaluefile >> Eta[i];
       initialvaluefile >> DirichletParams[i];//read mu
+      if(initialvaluefile.eof()){
+        throw string("ERROR: Too few entries in initialfreqpriorfile\n");
+      }
       DirichletParams[i] *= Eta[i];         //multiply by eta to get Dir params
     }
     else{

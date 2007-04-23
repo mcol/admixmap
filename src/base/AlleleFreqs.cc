@@ -275,13 +275,17 @@ void AlleleFreqs::LoadInitialAlleleFreqs(const char*filename, LogWriter &Log){
 #endif
       for( int pop = 0; pop < Populations; pop++ ){
         Freqs[locus][NumStates-1 + pop*NumStates] = 1.0;
-        for( int state = 0; state < NumStates-1; state++ ){
-          infile >> phi;
-          if(phi == 1.0)phi = 0.999;
-          if(phi == 0.0)phi = 0.001;
-          Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] = phi;
-          Freqs[locus][NumStates-1 + pop*NumStates] -= phi;
-	}
+
+         for( int state = 0; state < NumStates-1; state++ ){
+           infile >> phi;
+           if(infile.eof()){
+             throw string( "ERROR: Too few entries in initialallelefreqfile.\n") ;
+           }
+           if(phi == 1.0)phi = 0.999;
+           if(phi == 0.0)phi = 0.001;
+           Freqs[locus][state + pop*Loci->GetNumberOfStates(locus)] = phi;
+           Freqs[locus][NumStates-1 + pop*NumStates] -= phi;
+ 	}
       }
     }
     infile.close();
