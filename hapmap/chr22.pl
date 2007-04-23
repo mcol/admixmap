@@ -160,7 +160,7 @@ my $arg_hash = {
 
 #model
     states     => $STATES,
-    checkdata       => 0,
+    checkdata       => 1,
     # mixturepropsprior => "50, 1",
     fixedmixtureprops => 1,
     fixedmixturepropsprecision =>1,
@@ -215,87 +215,25 @@ if ($ccgenotypesfile) {
     $arg_hash->{'ccgenotypesfile'} = "$datadir/$ccgenotypesfile";
 }
 
-# Data masking if requested
-# Data set will be base-named "train", that is:
-# masked_genotypes.txt
-# masked_loci.txt
+# Data masking if requested. All the output files go to the ${datadir}
 if ($mask_data) {
-    my $train_basename = "mi";
     print "Preparing train and test data.\n";
-    my $lf = $arg_hash->{'locusfile'};
-    my $new_locus_file = "mi_loci.txt";
+
+    my $prep_script = "cut-loci/mask-genotypes.py";
     my @data_prepare_args = (
-        "./prepareTestingData.pl ",
-        "--phased-file $datadir/phased_genotypes.txt ",
-        "--haploid-file $datadir/${train_basename}_genotypes.txt ",
-        "--case-control-file $datadir/${train_basename}_cc.txt ",
-        "--percent-indivs $mask_percent_indivs ",
-        "--limit-loci $limit_loci ",
-        "--in-locus-file $lf ",
-        "--out-locus-file $datadir/$new_locus_file");
+        "python ${prep_script}",
+        "--in-haplotypes ${datadir}/phased_genotypes.txt",
+        "--in-loci ${datadir}/phased_loci.txt",
+        "-i 17",
+        "-l 30",
+        "-m 5000",
+        "--output-dir ${datadir}");
+
     my $dp_return = system(join(" ", @data_prepare_args));
-    $arg_hash->{'locusfile'} = "$datadir/$new_locus_file";
+
     if ($dp_return != 0) {
-        die("prepareTestingData.pl returned an error code.\n");
+        die("${prep_script} returned an error code.\n");
     }
-    # Count the lines in the train data to determine the number of
-    # individuals
-    my $train_file_name = "$datadir/${train_basename}_genotypes.txt";
-    open(TRAIN_DATA, "<$train_file_name")
-        or die("Couldn't open the train data file: '$train_file_name'.");
-    # One line for headers and two lines per individual
-    my @train_array = <TRAIN_DATA>;
-    my $train_indivs = (scalar(@train_array) - 1) / 2;
-    # Gotcha: hapmixmap wants the number of _lines_, not the number of
-    # individuals. In this case number of lines is double the number of
-    # individuals.
-    my $train_indivs_lines = $train_indivs * 2;
-    close TRAIN_DATA;
-    print "Masking data: $mask_percent_indivs% of individuals";
-    print " and $mask_percent_loci% of loci. Running R for this.\n";
-    print "Train individuals: $train_indivs.\n";
-    my @r_call = qw(R CMD BATCH --no-save --no-restore);
-    push(@r_call, "--population=$POP");
-    push(@r_call, "--basename=${train_basename}_cc");
-    push(@r_call, "--loci-file=$datadir/$locus_file");
-    # All the individuals in the case-control file should be masked,
-    # hence 100% masked individuals.
-    push(@r_call, "--percent-indivs=100");
-    push(@r_call, "--percent-loci=$mask_percent_loci");
-    push(@r_call, "--indiv-offset=$train_indivs_lines");
-    push(@r_call, "maskGenotypes.R");
-    my $r_return = system(join(" ", @r_call));
-    if ($r_return != 0) {
-        die "maskGenotypes.R script returned an error code: $r_return\n";
-    }
-
-    # Need to put two files together for hapmixmap to process them
-    # correctly. Appending ccgenotypesfile to the haploid data. The
-    # resulting file will be mixed haploid and diploid.
-    my $merged_train_cc_file = "$datadir/${train_basename}_merged_cc_train.txt";
-    print "Merging $datadir/${train_basename}_cc_masked.txt and $train_file_name\n";
-    print "To the $merged_train_cc_file.\n";
-
-    open(CC_FILE,  "<$datadir/${train_basename}_cc_masked.txt");
-    my @masked = <CC_FILE>;
-    # Remove the header line
-    shift(@masked);
-    close(CC_FILE);
-
-    open(TRAIN_DATA, "<$train_file_name");
-    my @train_lines = <TRAIN_DATA>;
-    close(TRAIN_DATA);
-
-    open(MERGED_DATA, ">$merged_train_cc_file");
-    for my $line (@train_lines) {
-        print MERGED_DATA $line;
-    }
-    for my $line (@masked) {
-        print MERGED_DATA $line;
-    }
-    close(MERGED_DATA);
-    undef @masked;
-    undef @train_lines;
 
     print "Masking finished.\n";
     print "Exiting after masking the data.\n";
