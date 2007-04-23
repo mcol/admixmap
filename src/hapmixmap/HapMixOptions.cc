@@ -397,6 +397,30 @@ int HapMixOptions::checkOptions(LogWriter &Log, int ){
     Log << "\nUsing thermodynamic integration to calculate marginal likelihood ";
   }
 
+//check maskedloci and maskedindivs options
+  if(MaskedLoci.size()){
+      if(!MaskedIndividuals.size()){
+          Log << On << "Error: maskedloci option specified without maskedindivs\n";
+          MaskedLoci.clear();
+      }
+      else if(MaskedLoci[0] <= 0){
+          Log << On << "Warning: " << MaskedLoci[0] 
+              << " is not a valid value for a masked locus and will be ignored\n";
+          MaskedLoci.erase(MaskedLoci.begin());
+      }
+  }
+  if(MaskedIndividuals.size()){
+      if(!MaskedLoci.size()){
+          Log << On << "Error: maskedindivs option specified without maskedloci\n";
+          MaskedIndividuals.clear();
+      }
+      else if(MaskedIndividuals[0] <= 0){
+          Log << On << "Warning: " << MaskedIndividuals[0] 
+              << " is not a valid value for a masked individual and will be ignored\n";
+          MaskedIndividuals.erase(MaskedIndividuals.begin());
+      }
+  }
+
 
   if(badOptions) return 1;
   else return 0;
