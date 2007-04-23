@@ -28,7 +28,7 @@ hapmixmap_para_DEPENDENCIES=$(top_builddir)/$(subdir)/../base/libbase-para.a
 else
 bin_PROGRAMS = hapmixmap
 hapmixmap_SOURCES = $(all_SOURCES)
-hapmixmap_LDFLAGS = -static $(AM_LDFLAGS)
+hapmixmap_LDFLAGS = -all-static $(AM_LDFLAGS)
 hapmixmap_LDADD = $(top_builddir)/$(subdir)/../base/libbase.a -lbcppcl -lgsl -lgslcblas -lm
 hapmixmap_DEPENDENCIES=$(top_builddir)/$(subdir)/../base/libbase.a 
 endif
