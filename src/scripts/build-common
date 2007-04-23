@@ -27,7 +27,7 @@ fi
 if [ ! -x "./configure" ];
 then
 	echo "./configure not present, invoking autoreconf"
-	autoreconf
+	autoreconf -fvi
 fi
 
 if [ -x "Makefile" ];
