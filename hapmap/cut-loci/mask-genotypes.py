@@ -97,15 +97,15 @@ def main():
     dgf = DgetFormatter()
     mi_cc_observed_dput = open(dmm.get_output_filename("mi_cc_observed_dput.txt"), "w")
     mi_cc_observed_dput.write(dgf.format(ud.get_masked_individuals(),
-        ud.loci_to_write, ud.masked_loci))
+        ud.get_masked_loci_to_write(), ud.masked_loci))
     mi_cc_observed_dput.close()
 
     #  mi_cc_observed.txt 1500 loci   CC, unmasked    hapmixmap  D
     mi_cc_observed = open(dmm.get_output_filename("mi_cc_observed.txt"), "w")
     mi_cc_observed.write(hmf.format_header(
-        ud.get_masked_individuals(), ud.loci_to_write, ud.masked_loci))
+        ud.get_masked_individuals(), ud.get_masked_loci_to_write(), ud.masked_loci))
     mi_cc_observed.write(hmf.format_diplotypes(
-        ud.get_masked_individuals(), ud.loci_to_write, ud.masked_loci, mask = False))
+        ud.get_masked_individuals(), ud.get_masked_loci_to_write(), ud.masked_loci, mask = False))
     mi_cc_observed.close()
 
     #  mi_cc_original_full.txt   the same as mi_cc.txt, except for the

@@ -206,7 +206,10 @@ class UserData:
         print "Number of loci to write: %s out of %s with a limit of %s" % \
                 (len(self.loci_to_write), len(self.loci), limit_loci)
 
-    def get_unmasked_loci():
+    def get_masked_loci_to_write(self):
+        return filter(lambda x: self.masked_loci.has_key(x.snp_id), self.loci_to_write)
+
+    def get_unmasked_loci(self):
         unmasked_loci = []
         for locus in self.loci:
             if not self.masked_loci.has_key(locus.snp_id):
@@ -320,6 +323,8 @@ class HapmixmapIndexFormatter:
 #
 class DgetFormatter:
     def format(self, indivs, loci, masked_loci):
+        assert type(loci) == list
+        assert loci[0].__class__.__name__ == 'Locus'
         # TODO: continue from here, R formatter
         ret = ""
         ret += "structure(list(\n"
