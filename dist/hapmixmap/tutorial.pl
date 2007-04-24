@@ -3,7 +3,7 @@ use strict;
 use File::Path;
 use Getopt::Long;
 
-my $function_file = "../doanalysis.pl";
+my $function_file = "./doanalysis.pl";
 
 require $function_file or die("cannot find doanalysis.pl");
 
@@ -25,7 +25,6 @@ if (not ($train or $resume or $test) or $usage) {
 
 my $executable = "./hapmixmap";
 my $rscript = "./AdmixmapOutput.R";
-################### DO NOT EDIT ABOVE THIS LINE ########################
 
 
 my $arg_hash = {

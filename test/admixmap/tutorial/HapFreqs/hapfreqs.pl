@@ -2,8 +2,15 @@
 use strict; 
 use File::Path;
 
+my $function_file = "../../doanalysis.pl";
+
+require $function_file or die("cannot find doanalysis.pl");
+
 # Change this to the location of the admixmap executable
-my $executable = '../../test/admixmap';
+my $executable = '../../admixmap';
+
+# Change this to the location of the R script
+my $rscript = "../../AdmixmapOutput.R";
 
 # $arg_hash is a hash of parameters passed to
 # the executable as arguments.
@@ -27,49 +34,24 @@ my $arg_hash =
     allelefreqoutputfile       => 'hapfreq.txt'
 };
 
-doAnalysis($executable,$arg_hash);
+doAnalysis($executable, $rscript, $arg_hash);
 
 $arg_hash->{resultsdir}             = 'DRD2freqresultsEur';
 $arg_hash->{genotypesfile}             = 'genotypesDRD2Eur.txt';
-doAnalysis($executable,$arg_hash);
+doAnalysis($executable, $rscript, $arg_hash);
 
 $arg_hash->{resultsdir}             = 'DRD2freqresultsAfr';
 $arg_hash->{genotypesfile}             = 'genotypesDRD2Afr.txt';
-doAnalysis($executable,$arg_hash);
+doAnalysis($executable, $rscript, $arg_hash);
 
 $arg_hash->{resultsdir}             = 'CandidatesfreqresultsEur';
 $arg_hash->{locusfile}             = 'lociCandidates.txt';
 $arg_hash->{genotypesfile}             = 'genotypesCandidatesEur.txt';
-doAnalysis($executable,$arg_hash);
+doAnalysis($executable, $rscript, $arg_hash);
 
 $arg_hash->{resultsdir}             = 'CandidatesfreqresultsNAm';
 $arg_hash->{genotypesfile}             = 'genotypesCandidatesNAm.txt';
-doAnalysis($executable,$arg_hash);
+doAnalysis($executable, $rscript, $arg_hash);
 
 
-sub getArguments
-{
-    my $hash = $_[0];
-    my $filename = 'perlargs.txt';
-    open(OPTIONFILE, ">$filename") or die ("Could not open args file");
-    foreach my $key (keys %$hash){
-      print OPTIONFILE $key . '=' . $hash->{$key} . "\n";
-    }
-    close OPTIONFILE;
-    return " ".$filename;
-}
-
-sub doAnalysis
-{
-    my ($prog,$args) = @_;
-    my $command = $prog.getArguments($args);
-
-    $ENV{'RESULTSDIR'} = $args->{resultsdir};
-    print "Results will be written to subdirectory $ENV{'RESULTSDIR'}\n";
-    if(system($command)){
-      print "Starting R script to process output\n";
-      system("R CMD BATCH --	quiet --no-save --no-restore ../../test/AdmixmapOutput.R $args->{resultsdir}/Rlog.txt");
-      print "R script completed\n\n";
-    }
-}
 

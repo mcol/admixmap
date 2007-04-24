@@ -2,7 +2,7 @@ Introduction
 -----------------
 ADMIXMAP is a general-purpose program for modelling admixture using marker genotypes and trait data.  
 
-The current version is 3.5 and it is released under a GPL (GNU public licence). See the file COPYING for details.
+The current version is 3.6 and it is released under a GPL (GNU public licence). See the file COPYING for details.
 
 Installing Admixmap for Windows
 -------------------------------
@@ -35,13 +35,12 @@ Use of the Perl script requires Perl to be installed. It can be downloaded from 
 Contents
 ------------
 Distributed with the admixmap executable are the following:
-data: a folder with test data and input files.
-testArguments.txt: a text file containing a list of options to test the programme using the test data.
-admixmap.pl: a sample perl script to use with the test data.
-tutorial.pl: a perl script to go with the tutorial
-AdmixmapOutput.R: an R script to analyze the output.
-README.txt: this file.
-COPYING: a copy of the GNU Public Licence (GPL).
+  testArguments.txt: a text file containing a list of options to test the programme using the test data.
+  admixmap.pl: a sample perl script to use with the test data.
+  AdmixmapOutput.R: an R script to analyze the output.
+  README.txt: this file.
+  COPYING: a copy of the GNU Public Licence (GPL).
+  tutorial: a folder with test data and tutorial scripts.
 
 Running the Program
 ----------------------
