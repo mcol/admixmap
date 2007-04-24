@@ -1,2 +1,1 @@
-SUBDIRS = tutorial
-EXTRA_DIST		= AdmixmapOutput.R testArguments.txt admixmap.pl
+EXTRA_DIST = sim.R sim.pl

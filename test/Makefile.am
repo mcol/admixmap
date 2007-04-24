@@ -1,1 +1,1 @@
-SUBDIRS		= admixmap
+SUBDIRS		= admixmap hapmixmap
