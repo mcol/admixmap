@@ -20,16 +20,20 @@ admixmap-bindist:
 	cp -f src/admixmap/admixmap$(EXEEXT) dist/admixmap/admixmap
 	cp -uf dist/admixmap/README.txt dist/admixmap/admixmap
 	cp -uf dist/admixmap/COPYING.txt dist/admixmap/admixmap
-	cp -uf test/admixmap/AdmixmapOutput.R dist/admixmap/admixmap
-	cp -uf test/admixmap/admixmap.pl dist/admixmap/admixmap
+	cp -uf dist/admixmap/AdmixmapOutput.R dist/admixmap/admixmap
+	cp -uf dist/admixmap/admixmap.pl dist/admixmap/admixmap
 	cp -uf dist/doanalysis.pl dist/admixmap/admixmap
-	cp -uf test/admixmap/testArguments.txt dist/admixmap/admixmap
-	cp -rf test/admixmap/tutorial dist/admixmap/admixmap
-	@( cd dist/admixmap \
-&& rm -Rf admixmap/tutorial/.svn \
-&& rm -f admixmap-bin.tar.gz \
-&& tar -czf admixmap-bin.tar.gz admixmap \
-&& rm -Rf admixmap) || exit 1;
+	cp -uf dist/admixmap/testArguments.txt dist/admixmap/admixmap
+#now the tutorial
+	mkdir -p dist/admixmap/admixmap/tutorial
+	mkdir -p dist/admixmap/admixmap/tutorial/data
+	mkdir -p dist/admixmap/admixmap/tutorial/HapFreqs
+	cp -uf dist/admixmap/tutorial/*.txt dist/admixmap/tutorial/*.pl dist/admixmap/admixmap/tutorial
+	cp -uf dist/admixmap/tutorial/data/*.txt dist/admixmap/admixmap/tutorial/data
+	cp -uf dist/admixmap/tutorial/HapFreqs/*.txt dist/admixmap/tutorial/HapFreqs/*.pl dist/admixmap/admixmap/tutorial/HapFreqs
+	@echo =================================================
+	@echo admixmap binary package is ready for zipping
+	@echo =================================================
 
 #make hapmixmap binary distribution
 hapmixmap-bindist:
@@ -39,7 +43,7 @@ hapmixmap-bindist:
 	cp -f src/hapmixmap/hapmixmap$(EXEEXT) dist/hapmixmap/hapmixmap
 	cp -uf dist/hapmixmap/README.txt dist/hapmixmap/hapmixmap
 	cp -uf dist/admixmap/COPYING.txt dist/hapmixmap/hapmixmap
-	cp -uf test/admixmap/AdmixmapOutput.R dist/hapmixmap/hapmixmap
+	cp -uf dist/admixmap/AdmixmapOutput.R dist/hapmixmap/hapmixmap
 #	cp -uf test/hapmixmap/hapmixmap.pl dist/hapmixmap/hapmixmap
 	cp -uf dist/doanalysis.pl dist/hapmixmap/hapmixmap
 	cp -uf dist/hapmixmap/options.txt dist/hapmixmap/hapmixmap
@@ -48,10 +52,9 @@ hapmixmap-bindist:
 #	cp -uf dist/hapmixmap/*.conf dist/hapmixmap/hapmixmap
 	mkdir dist/hapmixmap/hapmixmap/data
 	cp -Rf dist/hapmixmap/data/*.txt dist/hapmixmap/hapmixmap/data
-	@( cd dist/hapmixmap \
-&& rm -f hapmixmap-bin.tar.gz \
-&& tar -czf hapmixmap-bin.tar.gz hapmixmap \
-&& rm -Rf hapmixmap) || exit 1;
+	@echo ==================================================
+	@echo hapmixmap binary package is ready for zipping
+	@echo ==================================================
 
 #make admixmap (only) source distribution
 admixmap-srcdist: dist
@@ -64,11 +67,11 @@ admixmap-srcdist: dist
 #copy other files
 	cp -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/*.txt packages/admixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/INSTALL packages/admixmap
-	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/test/admixmap/AdmixmapOutput.R packages/admixmap
-	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/test/admixmap/admixmap.pl packages/admixmap
+	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/AdmixmapOutput.R packages/admixmap
+	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/admixmap.pl packages/admixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/doanalysis.pl packages/admixmap
-	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/test/admixmap/testArguments.txt packages/admixmap
-	cp -rf @PACKAGE_NAME@-@PACKAGE_VERSION@/test/admixmap/tutorial packages/admixmap
+	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/testArguments.txt packages/admixmap
+	cp -rf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/tutorial packages/admixmap
 #delete temporaries
 	rm -Rf @PACKAGE_NAME@-@PACKAGE_VERSION@
 	rm -f @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.gz
@@ -81,7 +84,6 @@ admixmap-srcdist: dist
 	@echo =================================================
 	@echo admixmap source package is ready for distribution
 	@echo =================================================
-## TODO: check binary path
 
 #make hapmixmap (only) source distribution
 hapmixmap-srcdist: dist
@@ -95,8 +97,8 @@ hapmixmap-srcdist: dist
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/README.txt packages/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/COPYING.txt packages/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/INSTALL packages/hapmixmap
-	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/test/admixmap/AdmixmapOutput.R packages/hapmixmap
-#	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/test/hapmixmap/hapmixmap.pl packageshapmixmap
+	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/admixmap/AdmixmapOutput.R packages/hapmixmap
+#	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/hapmixmap.pl packageshapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/doanalysis.pl packages/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/options.txt packages/hapmixmap
 	cp -uf @PACKAGE_NAME@-@PACKAGE_VERSION@/dist/hapmixmap/tutorial.pl packages/hapmixmap
