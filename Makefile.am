@@ -18,19 +18,19 @@ admixmap-bindist:
 	rm -Rf dist/admixmap/admixmap
 	mkdir -p dist/admixmap/admixmap
 	cp -f src/admixmap/admixmap$(EXEEXT) dist/admixmap/admixmap
-	cp -uf dist/admixmap/README.txt dist/admixmap/admixmap
-	cp -uf dist/admixmap/COPYING.txt dist/admixmap/admixmap
-	cp -uf dist/admixmap/AdmixmapOutput.R dist/admixmap/admixmap
-	cp -uf dist/admixmap/admixmap.pl dist/admixmap/admixmap
-	cp -uf dist/doanalysis.pl dist/admixmap/admixmap
-	cp -uf dist/admixmap/testArguments.txt dist/admixmap/admixmap
+	cp -uf $(top_srcdir)/dist/admixmap/README.txt dist/admixmap/admixmap
+	cp -uf $(top_srcdir)/dist/admixmap/COPYING.txt dist/admixmap/admixmap
+	cp -uf $(top_srcdir)/dist/admixmap/AdmixmapOutput.R dist/admixmap/admixmap
+	cp -uf $(top_srcdir)/dist/admixmap/admixmap.pl dist/admixmap/admixmap
+	cp -uf $(top_srcdir)/dist/doanalysis.pl dist/admixmap/admixmap
+	cp -uf $(top_srcdir)/dist/admixmap/testArguments.txt dist/admixmap/admixmap
 #now the tutorial
 	mkdir -p dist/admixmap/admixmap/tutorial
 	mkdir -p dist/admixmap/admixmap/tutorial/data
 	mkdir -p dist/admixmap/admixmap/tutorial/HapFreqs
-	cp -uf dist/admixmap/tutorial/*.txt dist/admixmap/tutorial/*.pl dist/admixmap/admixmap/tutorial
-	cp -uf dist/admixmap/tutorial/data/*.txt dist/admixmap/admixmap/tutorial/data
-	cp -uf dist/admixmap/tutorial/HapFreqs/*.txt dist/admixmap/tutorial/HapFreqs/*.pl dist/admixmap/admixmap/tutorial/HapFreqs
+	cp -uf $(top_srcdir)/dist/admixmap/tutorial/*.txt $(top_srcdir)/dist/admixmap/tutorial/*.pl dist/admixmap/admixmap/tutorial
+	cp -uf $(top_srcdir)/dist/admixmap/tutorial/data/*.txt dist/admixmap/admixmap/tutorial/data
+	cp -uf $(top_srcdir)/dist/admixmap/tutorial/HapFreqs/*.txt $(top_srcdir)/dist/admixmap/tutorial/HapFreqs/*.pl dist/admixmap/admixmap/tutorial/HapFreqs
 	@echo =================================================
 	@echo admixmap binary package is ready for zipping
 	@echo =================================================
@@ -41,17 +41,17 @@ hapmixmap-bindist:
 	rm -Rf dist/hapmixmap/hapmixmap
 	mkdir -p dist/hapmixmap/hapmixmap
 	cp -f src/hapmixmap/hapmixmap$(EXEEXT) dist/hapmixmap/hapmixmap
-	cp -uf dist/hapmixmap/README.txt dist/hapmixmap/hapmixmap
-	cp -uf dist/admixmap/COPYING.txt dist/hapmixmap/hapmixmap
-	cp -uf dist/admixmap/AdmixmapOutput.R dist/hapmixmap/hapmixmap
-#	cp -uf test/hapmixmap/hapmixmap.pl dist/hapmixmap/hapmixmap
-	cp -uf dist/doanalysis.pl dist/hapmixmap/hapmixmap
-	cp -uf dist/hapmixmap/options.txt dist/hapmixmap/hapmixmap
-	cp -uf dist/hapmixmap/tutorial.pl dist/hapmixmap/hapmixmap
-	cp -uf dist/hapmixmap/tutorial.html dist/hapmixmap/hapmixmap
-#	cp -uf dist/hapmixmap/*.conf dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/hapmixmap/README.txt dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/admixmap/COPYING.txt dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/admixmap/AdmixmapOutput.R dist/hapmixmap/hapmixmap
+#	cp -uf $(top_srcdir)/test/hapmixmap/hapmixmap.pl dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/doanalysis.pl dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/hapmixmap/options.txt dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/hapmixmap/tutorial.pl dist/hapmixmap/hapmixmap
+	cp -uf $(top_srcdir)/dist/hapmixmap/tutorial.html dist/hapmixmap/hapmixmap
+#	cp -uf $(top_srcdir)/dist/hapmixmap/*.conf dist/hapmixmap/hapmixmap
 	mkdir dist/hapmixmap/hapmixmap/data
-	cp -Rf dist/hapmixmap/data/*.txt dist/hapmixmap/hapmixmap/data
+	cp -uf $(top_srcdir)/dist/hapmixmap/data/*.txt dist/hapmixmap/hapmixmap/data
 	@echo ==================================================
 	@echo hapmixmap binary package is ready for zipping
 	@echo ==================================================
