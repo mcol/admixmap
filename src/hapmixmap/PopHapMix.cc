@@ -97,15 +97,15 @@ void PopHapMix::InitialiseMixtureProportions(LogWriter& Log){
       Log << Quiet << "Reading initial values of mixture proportions from " << initfilename << "\n";
       unsigned index = 0;
       do{
-          initfile >> MixtureProps[index];
-          ++index;
+	initfile >> MixtureProps[index];
+	++index;
       }while(!initfile.eof() && index < KL);
-       if(index < KL){
-           Log << On << "\nERROR: Too few entries in initialmixturepropsfile. Expected " << KL
-               << ", found " << index-1 << "\n";
-           exit(1);
-       }
-
+      if(index < KL){
+	Log << On << "\nERROR: Too few entries in initialmixturepropsfile. Expected " << KL
+	    << ", found " << index-1 << "\n";
+	exit(1);
+      }
+      
       initfile.close();
     }
     else{
@@ -237,22 +237,22 @@ void PopHapMix::InitialiseArrivalRates(LogWriter& Log){
     initfile.open(initfilename);
 
     if(initfile.is_open()){
-    Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
-
-    //read initial values of h, beta
-    initfile >> LambdaArgs.h >> LambdaArgs.beta;
-
+      Log << Quiet << "Reading initial values of arrival rates from " << initfilename << "\n";
+      
+      //read initial values of h, beta
+      initfile >> LambdaArgs.h >> LambdaArgs.beta;
+      
       vector<double>::iterator ar = lambda.begin();
       while(!initfile.eof() && ar != lambda.end()){
         initfile >> *ar;
         ++ar;
       }
       if(ar != lambda.end()){
-          Log << On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
-              << numIntervals + 2 << ", found " << numIntervals - (int)(lambda.end() - ar)+2 << "\n";
-          exit(1);
+	Log << On << "\nERROR: Too few entries in initialarrivalratefile. Expected " 
+	    << numIntervals + 2 << ", found " << numIntervals - (int)(lambda.end() - ar)+2 << "\n";
+	exit(1);
       }
-
+      
     }
     else{
       string err("ERROR: cannot open initialarrivalratefile: ");

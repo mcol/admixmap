@@ -57,18 +57,23 @@ void ScoreTestBase::OutputScalarScoreTest( int iterations, ofstream* outputstrea
     const double PercentInfo = 100.0 * ObservedInfo / CompleteInfo;
     if(final) *outputstream << double2R(PercentInfo, 2) << sep;
 
-    if(!final || PercentInfo > 10.0){ //only output p-values in final table if >10% info extracted
+    if(PercentInfo >= 10.0){ //only output p-values if >10% info extracted
       const double zscore = Score / sqrt( ObservedInfo );
       const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
       if(final){
+	//output zscore and pvalue in final table
 	*outputstream << double2R(zscore,3) << sep 
-		      << double2R(pvalue);
+		      << double2R(pvalue) ;
       }
       else //not final table - output log p-value
 	*outputstream << double2R(-log10(pvalue));
     }
-    else //final table and %info is <10
-      *outputstream << "NA" << sep << "NA";
+    else{ // %info is <10
+      if(final)//2 NAs in final table
+	*outputstream << "NA" << sep << "NA";
+      else//1 NA in cumulative output
+	*outputstream << "NA";
+    }
 
   }// negative CI or MissingInfo > CompleteInfo
   else{
@@ -120,18 +125,23 @@ void ScoreTestBase::OutputRaoBlackwellizedScoreTest( ofstream* outputstream, str
 		    << double2R(100.0*(missing-VU)/complete, 2)         << separator;//%remainder of missing info      
     }
     if(missing < complete) {
-      if(!final || PercentInfo > 10.0){ //only output p-values in final table if >10% info extracted
-      const double zscore = EU / sqrt( complete - missing );
-      const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
-      if(final){
+      if(PercentInfo >= 10.0){ //only output p-values if >10% info extracted
+	const double zscore = EU / sqrt( complete - missing );
+	const double pvalue = 2.0 * gsl_cdf_ugaussian_P(-fabs(zscore));
+	if(final){
+	  //output zscore and pvalue in final table
 	  *outputstream << double2R(zscore,3) << separator 
 			<< double2R(pvalue) ;
 	}
-      else //not final table - output log p-value
-	*outputstream << double2R(-log10(pvalue));
+	else //not final table - output log p-value
+	  *outputstream << double2R(-log10(pvalue));
       }
-      else //final table and %info is <10
-	*outputstream << "NA" << separator << "NA";
+      else{ // %info is <10
+	if(final)//2 NAs in final table
+	  *outputstream << "NA" << separator << "NA";
+	else//1 NA in cumulative output
+	  *outputstream << "NA";
+      }
     }
     else{// MissingInfo > CompleteInfo
       if(final)*outputstream << "NA" << separator;

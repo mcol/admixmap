@@ -179,7 +179,7 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
     initialvaluefile.open(initialvaluefilename);
   }
 
-  //TODO: check initial value file has right format, number of entries;
+  //TODO: check initial value file has right format
   //TODO??: check prior is consistent with initial values
   for( int i = 0; i < NumberOfCompositeLoci; i++ ){
     if(initialvaluefile.is_open()){//read values from file
