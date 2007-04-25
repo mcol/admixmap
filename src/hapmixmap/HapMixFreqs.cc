@@ -141,29 +141,29 @@ void HapMixFreqs::InitialisePrior(unsigned Populations, unsigned L, const HapMix
   const std::vector<double> &params = options->getAlleleFreqPriorParams();
   etaHierModel = options->isFreqPrecisionHierModel();
 
-  if(etaHierModel){
-    if(params.size()==3) {
+  if(etaHierModel){//hierarchical model on precision
+    if(params.size()==3) {//user-specified prior
       EtaShape = params[0];
       EtaRatePriorShape = params[1];
       EtaRatePriorRate = params[2];
     }
-    else
-      {//set defaults
-        EtaShape = 1.0;
-        EtaRatePriorShape = 0.2;
-        EtaRatePriorRate = 1.0;
+    else//set defaults
+      {
+        EtaShape = 10.0;
+        EtaRatePriorShape = 10.0;
+        EtaRatePriorRate = 100.0;
       }
   }
-  else{
-      EtaRatePriorRate = 1.0;    
-      if(params.size()>=2) {
+  else{//no hierarchical model on precision
+      EtaRatePriorRate = 100.0;    
+      if(params.size()>=2) {//user-specified prior
         EtaShape = params[0];
         EtaRatePriorShape = params[1];
       }
-      else
-        {//set defaults
-          EtaShape = 0.2;
-          EtaRatePriorShape = 1.0;
+      else//set defaults
+        {
+          EtaShape = 10.0;
+          EtaRatePriorShape = 10.0;
         }
   }
 
