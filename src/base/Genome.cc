@@ -1,7 +1,7 @@
 /** 
  *   Genome.cc (formerly GeneticArray.cc) 
  *   Class to hold and access (pointers to) Composite Locus objects and information about the genome.
- *   Copyright (c) 2002-2006 David O'Donnell, Clive Hoggart and Paul McKeigue
+ *   Copyright (c) 2002-2007 David O'Donnell, Clive Hoggart and Paul McKeigue
  *  
  * This program is free software distributed WITHOUT ANY WARRANTY. 
  * You can redistribute it and/or modify it under the terms of the GNU General Public License, 
@@ -429,7 +429,7 @@ void Genome::PrintLocusTable(const char* filename, const vector<double>& Dist, c
     for(unsigned j  = 1; j < SizesOfChromosomes[c]; ++j){//step through rest of loci on chromosome
       mapPosition += Dist[simple_locus];//increment map position by distance of first locus in complocus
       outfile << LocusArray[locus].GetLabel(0) << "\t" << LocusArray[locus].GetNumberOfStates() << "\t" 
-	      << mapPosition*100.0 << "\t" << c+1 << endl;
+	      << mapPosition << "\t" << c+1 << endl;
       simple_locus += LocusArray[locus].GetNumberOfLoci();
       ++locus;
     }
